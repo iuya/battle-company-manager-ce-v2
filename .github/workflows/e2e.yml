@@ -1,0 +1,39 @@
+# Browser smoke tests (docs/testing.md): `make e2e` against the compose PostgreSQL, with the runner's Chrome.
+name: e2e
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+      - name: Tailwind CLI (the Makefile's get-tailwind fetches the macOS build)
+        run: |
+          curl -fsSL https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 -o tailwindcss
+          chmod +x tailwindcss
+      - name: Browser tests
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: make e2e
+      - name: Screenshots and page texts of failed steps
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-out
+          path: |
+            tests/e2e/out/*.png
+            tests/e2e/out/*.txt
+            tests/e2e/out/server.log

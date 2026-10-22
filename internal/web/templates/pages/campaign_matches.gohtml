@@ -1,0 +1,21 @@
+{{define "title"}}Matches · {{.Campaign.Name}} · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+{{template "campaign_header" .}}
+<div class="mt-6 flex items-center justify-between gap-3">
+  <h2 class="!text-2xl">Matches</h2>
+  {{if .CanOpenMatch}}<a href="/campaigns/{{.Campaign.ID}}/matches/new" class="btn btn-primary">New match</a>{{end}}
+</div>
+{{if eq .Campaign.Status "paused"}}<p class="mt-2 text-sm text-muted">This campaign is paused: open matches can be finished, but no new match can start until the organiser resumes it.</p>
+{{else if eq .Campaign.Status "finished"}}<p class="mt-2 text-sm text-muted">This campaign has ended. Its matches are frozen as they were, open ones included, until an administrator reactivates it.</p>
+{{else if not .CanOpenMatch}}<p class="mt-2 text-sm text-muted">A match needs at least two companies and this campaign has {{.Companies}}. Players create theirs from <strong>My company</strong>; invite them from the Overview.</p>{{end}}
+{{if .Matches}}
+<ul class="card mt-3 divide-y divide-line !p-0">
+  {{range .Matches}}
+  <li><a href="/campaigns/{{$.Campaign.ID}}/matches/{{.ID}}" class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-fg no-underline hover:bg-raised hover:no-underline">
+    <span class="min-w-0"><span class="block text-xs text-muted">Match {{.Number}} · {{fmtDateShort .PlayedOn}}</span>{{template "match_sides" .}}{{template "match_scenario" .}}</span>
+    {{template "match_result" .}}
+  </a></li>
+  {{end}}
+</ul>
+{{else}}<p class="mt-3 text-muted">No matches have been played yet.</p>{{end}}
+{{end}}

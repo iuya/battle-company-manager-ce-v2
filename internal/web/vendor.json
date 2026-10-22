@@ -1,0 +1,41 @@
+{
+  "_comment": "Third-party JavaScript committed under static/js. Checked by TestVendoredJSMatchesManifest (make vendor-check); update procedure in docs/vendored-js.md.",
+  "files": [
+    {
+      "file": "static/js/alpine.min.js",
+      "name": "Alpine.js",
+      "version": "3.17.4",
+      "license": "MIT",
+      "source": "https://cdn.jsdelivr.net/npm/alpinejs@3.17.4/dist/cdn.min.js",
+      "sha256": "232519394c6c8fdba6f362b1d9da16106db513cdbf899011f00daab4051df31c",
+      "advisories": "https://github.com/alpinejs/alpine/security/advisories"
+    },
+    {
+      "file": "static/js/htmx.min.js",
+      "name": "htmx",
+      "version": "2.0.11",
+      "license": "0BSD",
+      "source": "https://cdn.jsdelivr.net/npm/htmx.org@2.0.11/dist/htmx.min.js",
+      "sha256": "d6fdc75f204e6bdefa99b69bf1e6d4ac69b8a364f77929f45c13476b4000f717",
+      "advisories": "https://github.com/bigskysoftware/htmx/security/advisories"
+    },
+    {
+      "file": "static/js/sortable.min.js",
+      "name": "SortableJS",
+      "version": "1.15.6",
+      "license": "MIT",
+      "source": "https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js",
+      "sha256": "6d0a831fc19b4bae851797ad3393157e861afb7862459c11226359b27e2c4337",
+      "advisories": "https://github.com/SortableJS/Sortable/security/advisories"
+    },
+    {
+      "file": "static/js/dice3d.js",
+      "name": "dice3d bundle (three.js + cannon-es)",
+      "version": "three 0.160.1, cannon-es 0.20.0, esbuild 0.25.0",
+      "license": "MIT",
+      "source": "built from tools/dice3d (make dice3d); not fetched",
+      "sha256": "ad857908414edbbf97acd0006c7f9bc8726d57df86e34d1e43ca12de5ae8060b",
+      "advisories": "https://github.com/mrdoob/three.js/security/advisories"
+    }
+  ]
+}

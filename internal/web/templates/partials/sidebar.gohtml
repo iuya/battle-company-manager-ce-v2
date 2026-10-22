@@ -1,0 +1,56 @@
+{{/* Main navigation. A fixed column from md up; below that a drawer that slides over the page (state `open` lives on the shell in the layout). */}}
+{{define "nav_link"}}
+<a href="{{.Href}}" class="nav-link" :aria-current="path === '{{.Href}}' || ('{{.Prefix}}' !== '' && path.startsWith('{{.Prefix}}')) ? 'page' : null" @click="open = false">{{.Label}}</a>
+{{end}}
+
+{{define "sidebar"}}
+<aside id="sidebar" class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col gap-1 overflow-y-auto border-r border-line bg-surface p-3 transition-transform duration-200 md:sticky md:top-14 md:z-10 md:h-[calc(100vh-3.5rem)] md:self-start md:translate-x-0"
+       :class="open && '!translate-x-0'" aria-label="Main">
+  <div class="mb-2 flex items-center justify-between md:hidden">
+    <span class="px-2 font-heading text-lg font-bold">Menu</span>
+    <button type="button" class="btn btn-ghost !px-2" @click="open = false" aria-label="Close menu">
+      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  {{if .User.IsSuperuser}}
+  <a href="/admin" class="nav-link nav-admin mb-2" :aria-current="path.startsWith('/admin') ? 'page' : null" @click="open = false">Administration</a>
+  {{end}}
+  <nav class="flex flex-col gap-1">
+    {{template "nav_link" (navItem "/" "Campaigns" "/campaigns/new")}}
+    {{/* The campaigns sub-menu shows while you are on the main page or anywhere inside a campaign. */}}
+    <ul x-show="path === '/' || path.startsWith('/campaigns')" x-cloak class="ml-3 flex flex-col gap-0.5 border-l border-line pl-2"
+        aria-label="Your campaigns" hx-get="/nav/campaigns" hx-trigger="load, campaigns-changed from:body" hx-target="this" hx-swap="innerHTML"></ul>
+    {{template "nav_link" (navItem "/glossary" "Glossary" "")}}
+  </nav>
+  <div class="mt-auto flex flex-col gap-1 border-t border-line pt-3">
+    <p class="truncate px-3 text-sm text-muted" title="{{.User.Email}}">{{.User.DisplayName}}</p>
+    {{template "nav_link" (navItem "/account" "Account" "")}}
+    <form method="post" action="/logout"><button class="nav-link w-full text-left">Sign out</button></form>
+  </div>
+</aside>
+{{end}}
+
+{{/* The items of the campaigns sub-menu, fetched by the sidebar (see handleNavCampaigns). Their links restate the body's
+   hx-target/hx-swap because they would otherwise inherit the list's own (the list is the target of the fetch). */}}
+{{/* The items of the campaigns sub-menu, fetched by the sidebar (see handleNavCampaigns). Only the campaign you are in
+   (inCampaign, from the shell in the layout) shows its pages and is marked; the others stay collapsed. The li restates
+   the body's hx-target/hx-swap because its links would otherwise inherit the list's own (the list is the fetch target). */}}
+{{define "nav_campaigns"}}{{range .Campaigns}}
+<li hx-target="#main" hx-swap="innerHTML show:window:top">
+  <a href="/campaigns/{{.ID}}" class="nav-link nav-campaign !min-h-11 md:!min-h-9 {{if eq .Status "finished"}}!text-muted{{end}}" :aria-current="inCampaign({{.ID}}) ? 'true' : null" @click="open = false"><span class="truncate">{{.Name}}</span>{{if eq .Status "finished"}}<span class="sr-only"> (finished)</span>{{end}}</a>
+  {{/* Both lists animate their height together (the open one grows while the other shrinks), so nothing jumps; a collapsed list is inert so its links cannot be tabbed to. */}}
+  <div class="grid transition-[grid-template-rows] duration-150 ease-out motion-reduce:transition-none" :class="inCampaign({{.ID}}) ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'" :inert="!inCampaign({{.ID}})">
+    <ul class="mb-1 ml-3 mt-0.5 flex min-h-0 flex-col gap-0.5 overflow-hidden border-l border-accent pl-2" aria-label="{{.Name}}">
+      {{template "nav_tab" (navTab .ID "" "Overview")}}
+      {{template "nav_tab" (navTab .ID "my-company" "My Company")}}
+      {{template "nav_tab" (navTab .ID "armory" "Armory")}}
+      {{template "nav_tab" (navTab .ID "companies" "Companies")}}
+      {{template "nav_tab" (navTab .ID "rankings" "Rankings")}}
+      {{template "nav_tab" (navTab .ID "matches" "Matches")}}
+      {{template "nav_tab" (navTab .ID "glossary" "Glossary")}}
+    </ul>
+  </div>
+</li>
+{{else}}<li class="px-3 py-1 text-sm text-muted">No active campaigns</li>{{end}}{{end}}
+
+{{define "nav_tab"}}<li><a href="/campaigns/{{.ID}}{{if .Tab}}/{{.Tab}}{{end}}" class="nav-link !min-h-11 !font-normal md:!min-h-8" :aria-current="onTab({{.ID}}, '{{.Tab}}') ? 'page' : null" @click="open = false">{{.Label}}</a></li>{{end}}

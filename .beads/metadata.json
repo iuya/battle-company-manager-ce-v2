@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "battle_company_manager_ce_v2",
+  "project_id": "eb9193a8-50c8-462c-8b9b-bac21d2dab69"
+}

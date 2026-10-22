@@ -1,0 +1,11 @@
+{{define "title"}}{{.Heading}} · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+<div class="mx-auto mt-6 max-w-lg space-y-4 sm:mt-12">
+  <div class="card space-y-4">
+    <p class="text-sm text-muted">Error {{.Status}}</p>
+    <h1 class="!text-3xl">{{.Heading}}</h1>
+    <p role="alert">{{.Message}}</p>
+    <p>{{if .User}}<a class="btn btn-primary" href="/">Back to your campaigns</a>{{else}}<a class="btn btn-primary" href="/login">Sign in</a>{{end}}</p>
+  </div>
+</div>
+{{end}}

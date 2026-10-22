@@ -1,0 +1,112 @@
+{{/* The Against the Odds card of the match page (docs/matches.md). Takes atoView. Empty when there is nothing to show. */}}
+{{define "ato_card"}}{{$v := .}}
+<div id="ato">
+{{if .Show}}
+<section class="card mt-6 space-y-4" aria-labelledby="ato-title">
+  <h2 id="ato-title" class="!text-xl">Against the Odds</h2>
+  {{with .Msg}}<div class="alert {{if $v.Error}}alert-danger{{else}}alert-success{{end}}" role="{{if $v.Error}}alert{{else}}status{{end}}">{{.}}</div>{{end}}
+  {{if not .Eligible}}
+    <p class="text-muted">{{.Why}}</p>
+  {{else}}
+    <p>{{.CompanyName}} is <strong>{{.Gap}}</strong> below {{.OppName}} ({{.OwnRating}} vs {{.OppRating}}).{{if .Editor}} Spend up to {{.Gap}} Rating.{{else}} Only the lower rated company chooses bonuses.{{end}}</p>
+    {{if .Locked}}<p class="text-sm text-muted" role="status">{{.LockedWhy}} The choice can no longer be changed.</p>{{end}}
+    {{if .Editor}}{{template "ato_form" .}}{{else}}
+      <p>{{.Summary}}</p>
+      {{if .Chosen}}<p class="text-sm text-muted">Spent {{.Spent}} of {{.Gap}}.</p>{{end}}
+      {{range .Selection.Items}}{{if .UnitID}}<p class="text-sm text-muted">{{$v.KitName .Kit}}: {{.Item}}{{with .Detail}} ({{.}}){{end}} goes to {{$v.ModelName .UnitID}}.</p>{{end}}{{end}}
+    {{end}}
+  {{end}}
+</section>
+{{end}}
+</div>
+{{end}}
+
+{{define "ato_form"}}{{$v := .}}{{$base := printf "/campaigns/%d/matches/%d/ato" .Campaign .MatchID}}
+<form hx-post="{{$base}}" hx-target="#ato" hx-swap="outerHTML" class="space-y-4" novalidate
+  x-data="{ ...{{.State}},
+    get kitRating() { return this.ratings.toolKit || 0 },
+    get spent() { let n = 0; for (const k of this.bonus) { if (k !== 'toolKit') n += this.ratings[k] || 0 } if (this.bonus.includes('toolKit')) n += this.kits.length * this.kitRating; return n },
+    get left() { return this.gap - this.spent },
+    get parts() { const p = []; for (const k of this.bonus) { if (k === 'toolKit') { if (this.kits.length) p.push({ name: this.names[k] + ' x' + this.kits.length, n: this.kits.length * this.kitRating }) } else p.push({ name: this.names[k], n: this.ratings[k] || 0 }) } return p },
+    can(key, hard) { return !hard && (this.bonus.includes(key) || (this.ratings[key] || 0) <= this.left) },
+    reason(key, hard) { if (hard) return hard; if (this.bonus.includes(key)) return ''; const need = this.ratings[key] || 0; return need <= this.left ? '' : 'Needs ' + need + ', ' + Math.max(this.left, 0) + ' left' },
+    canKit(key) { return this.kits.includes(key) || this.kitRating <= this.left } }"
+  x-effect="if (!bonus.includes('toolKit')) kits = []; if (!bonus.includes('wanderer')) wanderer = ''; if (!bonus.includes('ambush')) ambush = ''">
+  <input type="hidden" name="revision" value="{{.Revision}}">
+
+  <div aria-live="polite">
+    <p class="text-sm font-medium">Spent <span x-text="spent"></span> / {{.Gap}}, <span x-text="left"></span> left</p>
+    <div class="mt-1 flex h-3 w-full overflow-hidden rounded-full border border-line bg-raised" role="img" :aria-label="'Spent ' + spent + ' of {{.Gap}}'">
+      <template x-for="(p, i) in parts" :key="i"><span class="h-full border-r border-surface bg-accent" :style="'width:' + (p.n / {{.Gap}} * 100) + '%'" :title="p.name + ': ' + p.n"></span></template>
+    </div>
+    <ul class="mt-1 flex flex-wrap gap-x-3 text-xs text-muted"><template x-for="(p, i) in parts" :key="i"><li x-text="p.name + ' ' + p.n"></li></template></ul>
+  </div>
+
+  <div class="space-y-2">
+    {{range .Options}}{{$o := .}}{{$hard := $v.HardReason .}}
+    <div class="rounded-lg border border-line px-3 py-2" :class="bonus.includes({{jsstr .Key}}) && '!border-accent bg-accent-soft'">
+      <label class="flex min-h-11 items-start gap-3">
+        <input type="checkbox" name="bonus" value="{{.Key}}" x-model="bonus" :disabled="!can({{jsstr .Key}}, {{jsstr $hard}})" class="mt-1 size-5 shrink-0 accent-accent">
+        <span class="min-w-0"><span class="font-medium">{{.Name}}</span> <span class="text-sm text-muted">(Rating {{.Rating}}{{if eq .Key "toolKit"}} per kit{{end}})</span>
+          <span class="block text-sm text-muted">{{.Text}}</span></span>
+      </label>
+      <p class="mt-1 text-sm text-muted" x-show="reason({{jsstr .Key}}, {{jsstr $hard}})" x-text="reason({{jsstr .Key}}, {{jsstr $hard}})" x-cloak></p>
+
+      {{if eq .Key "toolKit"}}
+      <div class="mt-2 space-y-3" x-show="bonus.includes('toolKit')" x-cloak>
+        <fieldset class="min-w-0 space-y-2"><legend class="text-sm font-medium">Kits ({{$v.ToolKitRating}} Rating each, up to five different ones)</legend>
+          {{range $v.Kits}}{{$k := .}}
+          <label class="flex min-h-11 items-start gap-3 rounded-md border border-line bg-surface px-3 py-2">
+            <input type="checkbox" name="kit" value="{{.Key}}" x-model="kits" :disabled="!bonus.includes('toolKit') || !canKit({{jsstr .Key}})" class="mt-1 size-5 shrink-0 accent-accent">
+            <span class="min-w-0 text-sm"><span class="font-medium">{{.Name}}</span><span class="block text-muted">{{range $i, $it := .Items}}{{if $i}}, {{end}}{{$it.Item}}{{if gt $it.Count 1}} x{{$it.Count}}{{end}}{{end}}</span></span>
+          </label>
+          {{end}}
+        </fieldset>
+        {{range $v.Kits}}{{$k := .}}
+        <div class="space-y-2 rounded-md border border-line bg-surface p-3" x-show="kits.includes({{jsstr .Key}})" x-cloak>
+          <h3 class="!text-base font-medium">{{.Name}}: who carries what</h3>
+          {{range $ii, $it := .Items}}{{range $c := $v.Copies $it.Count}}
+          {{$id := printf "%s-%d-%d" $k.Key $ii $c}}{{$a := $v.Assigned $k.Key $it.Item $c}}
+          <div class="space-y-1" x-data="{ unit: '{{$a.UnitID}}' }">
+            <label class="block text-sm font-medium" for="assign-{{$id}}">{{$it.Item}}{{if gt $it.Count 1}} ({{inc $c}} of {{$it.Count}}){{end}}{{if $it.HeroOnly}} <span class="text-muted font-normal">· Heroes only</span>{{end}} <span class="font-normal text-muted" x-show="unit === '0'"><span aria-hidden="true">●</span> not given yet, not in play</span></label>
+            <select id="assign-{{$id}}" name="assign-{{$id}}" class="input" x-model="unit" :disabled="!kits.includes({{jsstr $k.Key}})">
+              <option value="0">Not given to anybody yet</option>
+              {{range $v.Models $it.HeroOnly}}<option value="{{.UnitID}}" {{if eq .UnitID $a.UnitID}}selected{{end}}>{{.Name}} · {{.Type}}</option>{{end}}
+            </select>
+            {{if $it.Detail}}<div class="field"><label for="detail-{{$id}}">Weapon it goes on</label><input id="detail-{{$id}}" name="detail-{{$id}}" maxlength="40" value="{{$a.Detail}}" class="input" :disabled="unit === '0'" placeholder="For example: Elven blade"></div>{{end}}
+          </div>
+          {{end}}{{end}}
+        </div>
+        {{end}}
+      </div>
+      {{else if eq .Key "wanderer"}}
+      <fieldset class="mt-2 min-w-0 space-y-2" x-show="bonus.includes('wanderer')" x-cloak><legend class="text-sm font-medium">Which Wanderer ({{.Rating}} Rating here whatever it costs alone)</legend>
+        {{range $v.Wanderers}}
+        <label class="flex min-h-11 items-start gap-3 rounded-md border border-line bg-surface px-3 py-2 has-[:checked]:border-accent">
+          <input type="radio" name="wanderer" value="{{.Name}}" x-model="wanderer" :disabled="!bonus.includes('wanderer')" class="mt-1 size-4 shrink-0 accent-accent">
+          <span class="min-w-0 text-sm"><span class="font-medium">{{.Name}}</span> <span class="text-muted"><s>{{.OwnPrice}}</s> · {{$o.Rating}} here</span>{{with .Summary}}<span class="block text-muted">{{.}}</span>{{end}}</span>
+        </label>
+        {{end}}
+        <p class="text-sm text-muted" x-show="wanderer === ''">Choose a Wanderer.</p>
+      </fieldset>
+      {{else if eq .Key "ambush"}}
+      <div class="field mt-2" x-show="bonus.includes('ambush')" x-cloak>
+        <label for="ato-ambush">Choose the scenario</label>
+        <select id="ato-ambush" name="ambush" class="input" x-model="ambush" :disabled="!bonus.includes('ambush')">
+          <option value="">Choose a scenario…</option>
+          {{range $v.Groups}}<optgroup label="{{.Title}}">{{range .Scenarios}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</optgroup>{{end}}
+        </select>
+        <p class="hint">It replaces the scenario that was rolled. Removing Ambush! brings the old one back.</p>
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+    <p class="text-sm text-muted" x-show="bonus.length === 0">No bonus chosen.</p>
+  </div>
+
+  <div class="flex flex-wrap gap-2">
+    <button class="btn btn-primary">Save</button>
+    {{if .Chosen}}<button type="button" class="btn btn-secondary" @click="if (confirm('Clear every bonus?')) { bonus = []; $nextTick(() => $root.requestSubmit()) }">Clear</button>{{end}}
+  </div>
+</form>
+{{end}}

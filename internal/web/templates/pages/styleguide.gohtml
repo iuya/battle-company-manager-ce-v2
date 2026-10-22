@@ -1,0 +1,162 @@
+{{define "title"}}Style guide · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+<div x-data="contrast" class="space-y-12">
+
+  <header>
+    <h1>Style guide</h1>
+    <p class="mt-2 max-w-prose text-muted">Every design token and component in the active theme. Palette and mode are also in the settings menu (gear icon in the header) and are remembered in a cookie.</p>
+  </header>
+
+  {{/* ---- theme lab ---- */}}
+  <section class="card sticky top-2 z-10 flex flex-wrap items-center gap-x-8 gap-y-3 !p-4" aria-label="Theme lab">
+    <div class="flex items-center gap-2">
+      <span class="text-sm font-semibold">Palette</span>
+      <div class="flex flex-wrap gap-1" role="group" aria-label="Palette">
+        {{range .Palettes}}
+        <button type="button" class="btn btn-secondary !px-3" :class="$store.theme.palette === '{{.Key}}' && '!border-accent !bg-accent-soft'"
+                :aria-pressed="$store.theme.palette === '{{.Key}}'" @click="$store.theme.set('palette', '{{.Key}}')">{{.Name}}</button>
+        {{end}}
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-sm font-semibold">Mode</span>
+      <div class="flex gap-1" role="group" aria-label="Mode">
+        {{range .Modes}}
+        <button type="button" class="btn btn-secondary !px-3" :class="$store.theme.mode === '{{.}}' && '!border-accent !bg-accent-soft'"
+                :aria-pressed="$store.theme.mode === '{{.}}'" @click="$store.theme.set('mode', '{{.}}')">{{.}}</button>
+        {{end}}
+      </div>
+    </div>
+  </section>
+
+  {{/* ---- colors ---- */}}
+  <section class="space-y-4">
+    <h2>Color tokens</h2>
+    <p class="max-w-prose text-muted">Components only use these names, never raw colors. Values below are read live from the active theme.</p>
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+      <template x-for="t in tokens" :key="t.n">
+        <div class="overflow-hidden rounded-lg border border-line bg-surface">
+          <div class="h-14" :style="'background:' + t.hex"></div>
+          <div class="px-3 py-2"><div class="text-sm font-semibold" x-text="t.n"></div><div class="font-mono text-xs text-muted" x-text="t.hex"></div></div>
+        </div>
+      </template>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <caption class="pb-2 text-left font-semibold">Contrast (WCAG): text pairs must reach 4.5:1 (AA)</caption>
+        <thead class="text-muted"><tr><th class="py-1 pr-4">Foreground</th><th class="pr-4">Background</th><th class="pr-4">Sample</th><th class="pr-4">Ratio</th><th>Level</th></tr></thead>
+        <tbody>
+          <template x-for="r in rows" :key="r.a + r.b">
+            <tr class="border-t border-line">
+              <td class="py-1.5 pr-4" x-text="r.a"></td><td class="pr-4" x-text="r.b"></td>
+              <td class="pr-4"><span class="rounded px-2 py-0.5 font-semibold" :style="'color:' + r.fa + ';background:' + r.fb">Aa Battle</span></td>
+              <td class="pr-4 font-mono" x-text="r.ratio + ':1'"></td>
+              <td><span class="badge" :class="r.level === 'fail' && '!bg-danger-soft !text-danger'" x-text="r.level"></span></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {{/* ---- type ---- */}}
+  <section class="space-y-4">
+    <h2>Typography</h2>
+    <div class="card space-y-3">
+      <p class="font-heading text-5xl font-bold leading-tight">Heading 1 · The Shire</p>
+      <h2>Heading 2 · Minas Tirith</h2>
+      <h3>Heading 3 · Company roster</h3>
+      <h4>Heading 4 · Injuries &amp; experience</h4>
+      <p>Body text uses the system UI font: it costs no download and reads cleanly at any size. A Battle Company grows through its games, and the roster keeps every warrior's story.</p>
+      <p class="text-sm text-muted">Muted small text for hints and metadata · <a href="#">A link looks like this</a> · <code class="rounded bg-raised px-1.5 py-0.5 font-mono text-sm">1d6</code></p>
+    </div>
+  </section>
+
+  {{/* ---- buttons ---- */}}
+  <section class="space-y-4">
+    <h2>Buttons</h2>
+    <div class="card flex flex-wrap items-center gap-3">
+      <button class="btn btn-primary">Primary</button>
+      <button class="btn btn-secondary">Secondary</button>
+      <button class="btn btn-ghost">Ghost</button>
+      <button class="btn btn-danger">Delete</button>
+      <button class="btn btn-primary" disabled>Disabled</button>
+    </div>
+  </section>
+
+  {{/* ---- forms ---- */}}
+  <section class="space-y-4">
+    <h2>Forms</h2>
+    <div class="card grid gap-6 md:grid-cols-2">
+      <div class="field"><label for="sg-name">Company name</label><input id="sg-name" class="input" placeholder="The Grey Company"><span class="hint">Between 1 and 60 characters.</span></div>
+      <div class="field"><label for="sg-bad">With an error</label><input id="sg-bad" class="input" aria-invalid="true" value="x" aria-describedby="sg-bad-err"><span id="sg-bad-err" class="error">That name is already taken.</span></div>
+      <div class="field"><label for="sg-sel">Alignment</label><select id="sg-sel" class="input"><option>Good</option><option>Evil</option></select></div>
+      <label class="flex items-center gap-2 self-end text-sm"><input type="checkbox" class="h-4 w-4 accent-[var(--accent)]" checked> Remember me</label>
+    </div>
+  </section>
+
+  {{/* ---- feedback ---- */}}
+  <section class="space-y-4">
+    <h2>Alerts &amp; badges</h2>
+    <div class="space-y-3">
+      <div class="alert alert-info" role="status">Your roster was saved.</div>
+      <div class="alert alert-success" role="status">Gandalf joined the company.</div>
+      <div class="alert alert-danger" role="alert">Those credentials do not match.</div>
+      <p class="flex flex-wrap gap-2"><span class="badge">Hero</span><span class="badge">Rare 2</span><span class="badge">Elite company</span></p>
+    </div>
+  </section>
+
+  {{/* ---- account patterns ---- */}}
+  <section class="space-y-4">
+    <h2>Account patterns</h2>
+    <div class="grid gap-6 md:grid-cols-2">
+      <div class="card space-y-4" x-data="{ show: false }">
+        <h3 class="!text-xl">Password field</h3>
+        <div class="field"><label for="sg-pw">New password</label>
+          <div class="relative"><input id="sg-pw" :type="show ? 'text' : 'password'" type="password" class="input pr-16" autocomplete="new-password">
+            <button type="button" class="btn btn-ghost absolute inset-y-0 right-0 !px-3 !py-0 text-xs" @click="show = !show" :aria-pressed="show" aria-label="Show passwords" x-text="show ? 'Hide' : 'Show'">Show</button></div>
+          <p class="hint">10 to 128 characters.</p></div>
+        <div class="field"><label for="sg-ro">Read only</label><input id="sg-ro" class="input" value="frodo@shire.me" readonly><p class="hint">Ask an administrator to change it.</p></div>
+      </div>
+      <div class="card space-y-4 !border-danger">
+        <details class="group">
+          <summary class="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+            <h3 class="!text-xl text-danger">Danger card, collapsed</h3>
+            <span class="text-sm text-muted group-open:hidden">Show</span><span class="hidden text-sm text-muted group-open:inline">Hide</span>
+          </summary>
+          <div class="mt-4 space-y-3"><p class="text-sm text-muted">Says what stays and what blocks it, then asks for a confirmation.</p><button type="button" class="btn btn-danger" disabled>Close my account</button></div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  {{/* ---- preview of what comes next ---- */}}
+  <section class="space-y-4">
+    <h2>Preview: sign in</h2>
+    <div class="card mx-auto max-w-sm space-y-5">
+      <div class="flex flex-col items-center gap-2 text-center">
+        <img src="/static/favicon.svg" alt="" class="h-14 w-14">
+        <h3>Welcome back</h3>
+        <p class="text-sm text-muted">Sign in to manage your companies.</p>
+      </div>
+      <div class="field"><label for="sg-email">Email</label><input id="sg-email" type="email" class="input" autocomplete="email"></div>
+      <div class="field"><label for="sg-pass">Password</label><input id="sg-pass" type="password" class="input" autocomplete="current-password"></div>
+      <button class="btn btn-primary w-full">Sign in</button>
+    </div>
+  </section>
+
+  <section class="space-y-3" x-data="diceDemo" @keydown.space.window="onSpace($event)">
+    <h2>Dice</h2>
+    <p class="text-sm text-muted">Any number of D6, in 3D. A roll the server decided is shown rolling to its value and cannot be changed; where "Shake the table" is on and the browser decides, the space bar jolts the table while the dice roll.</p>
+    <canvas x-ref="canvas" class="dice-tray" aria-label="Dice tray"></canvas>
+    <div class="flex flex-wrap items-end gap-3">
+      <div class="field"><label for="sg-dice">Dice</label><select id="sg-dice" class="input w-24" x-model.number="count"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" x-model="canShakeDemo"> Shake with space</label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" x-model="serverValues"> Value decided beforehand (cannot be shaken)</label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" x-model="lanes"> Two rolls in two lanes</label>
+      <button type="button" class="btn btn-primary" :disabled="rolling" @click="go()">Roll</button>
+    </div>
+    <p class="text-sm" x-show="stopped" x-cloak role="status">Result: <strong x-text="dice.join(' + ')"></strong></p>
+  </section>
+</div>
+{{end}}

@@ -1,0 +1,33 @@
+{{define "title"}}Rankings · {{.Campaign.Name}} · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+{{template "campaign_header" .}}
+<p class="mt-4 text-sm text-muted">Companies are ranked by the total point cost of their units.</p>
+{{if .Rows}}
+<div class="card mt-3 overflow-x-auto !p-0">
+  <table class="w-full text-left text-sm">
+    <thead class="border-b border-line text-muted">
+      <tr>
+        <th scope="col" class="py-2 pl-3 pr-1 font-medium">#</th>
+        <th scope="col" class="px-2 py-2 font-medium">Company</th>
+        <th scope="col" class="whitespace-nowrap px-1.5 py-2 text-right font-medium sm:px-2">Points</th>
+        <th scope="col" class="whitespace-nowrap px-1.5 py-2 text-right font-medium sm:px-2"><abbr title="Wins / draws / losses" class="no-underline">W/D/L</abbr></th>
+        <th scope="col" class="whitespace-nowrap px-1.5 py-2 text-right font-medium sm:px-2"><abbr title="Matches played" class="no-underline">Played</abbr></th>
+        <th scope="col" class="whitespace-nowrap py-2 pl-1.5 pr-3 text-right font-medium sm:pl-2">Units</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-line">
+      {{range .Rows}}
+      <tr {{if and $.Campaign.Company (eq $.Campaign.Company.ID .ID)}}class="bg-accent-soft"{{end}}>
+        <td class="py-2 pl-3 pr-1 font-semibold">{{.Rank}}</td>
+        <td class="px-2 py-2"><a href="/campaigns/{{$.Campaign.ID}}/companies/{{.ID}}" class="font-medium">{{.Name}}</a><span class="block text-xs text-muted">{{.Owner}} · {{.Faction}}</span></td>
+        <td class="whitespace-nowrap px-1.5 py-2 text-right font-semibold sm:px-2">{{template "points" .}}</td>
+        <td class="whitespace-nowrap px-1.5 py-2 text-right sm:px-2">{{template "wdl" .}}</td>
+        <td class="px-1.5 py-2 text-right sm:px-2">{{.Played}}</td>
+        <td class="py-2 pl-1.5 pr-3 text-right sm:pl-2">{{.Units}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}<p class="mt-4 text-muted">No companies to rank yet.</p>{{end}}
+{{end}}

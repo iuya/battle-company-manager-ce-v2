@@ -1,0 +1,91 @@
+{{define "title"}}Rules files · Administration · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+{{template "admin_head" .}}
+{{template "admin_ruleset_panel" .Panel}}
+{{end}}
+
+{{/* The whole page below the tabs: it is swapped after every action, because a default or a deletion changes other cards too. */}}
+{{define "admin_ruleset_panel"}}
+<div id="ruleset-panel" class="mt-6 space-y-6">
+  {{with .Notice}}<div class="alert alert-success" role="status">{{.}}</div>{{end}}
+  {{with .Err}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+
+  <section class="card space-y-4" aria-labelledby="rs-upload-h">
+    <h2 class="!text-xl" id="rs-upload-h">Upload a rules file</h2>
+    <form hx-post="/admin/rulesets" hx-encoding="multipart/form-data" hx-target="#ruleset-panel" hx-swap="outerHTML" class="space-y-4" novalidate>
+      {{with .UploadErr}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+      <div class="grid gap-4 sm:grid-cols-[14rem_1fr]">
+        <div class="field"><label for="rs-kind">Kind</label>
+          <select id="rs-kind" name="kind" class="input">
+            <option value="vanilla" {{if eq .Kind "vanilla"}}selected{{end}}>Vanilla rules data</option>
+            <option value="battle_companies" {{if eq .Kind "battle_companies"}}selected{{end}}>Battle Companies rules data</option>
+            <option value="glossary" {{if eq .Kind "glossary"}}selected{{end}}>Glossary</option>
+          </select></div>
+        <div class="field"><label for="rs-file">File</label>
+          <input id="rs-file" name="file" type="file" accept=".json,application/json" required class="block w-full text-sm file:mr-3 file:min-h-10 file:rounded-md file:border file:border-line file:bg-surface file:px-4 file:text-fg"></div>
+      </div>
+      <p class="text-sm text-muted">The file is checked against the schema of its kind (at most 16 MB). A file with the same content is stored once. Files are told apart by their content (the short code next to the name), so two files may share a name and version.</p>
+      <button class="btn btn-primary">Upload</button>
+    </form>
+  </section>
+
+  <div class="flex flex-wrap items-center justify-between gap-3" x-data="{ ask: false }">
+    <p class="text-sm text-muted">Campaigns keep the files they were created with; a file in use cannot be deleted.</p>
+    {{if .Unused}}
+    <div class="flex flex-wrap items-center gap-2">
+      <button type="button" class="btn btn-secondary" x-show="!ask" @click="ask = true">Delete {{.Unused}} unused {{if eq .Unused 1}}file{{else}}files{{end}}</button>
+      <form x-show="ask" x-cloak hx-post="/admin/rulesets/prune" hx-target="#ruleset-panel" hx-swap="outerHTML" class="flex flex-wrap items-center gap-2">
+        <span class="text-sm">Delete {{.Unused}} unused {{if eq .Unused 1}}file{{else}}files{{end}}? Files shipped with the app come back at the next start.</span>
+        <button class="btn btn-danger">Delete</button>
+        <button type="button" class="btn btn-secondary" @click="ask = false">Cancel</button>
+      </form>
+    </div>
+    {{end}}
+  </div>
+
+  {{$hl := .Highlight}}
+  {{range .Groups}}
+  <section aria-labelledby="rs-{{.Kind}}-h">
+    <h2 class="!text-xl" id="rs-{{.Kind}}-h">{{.Label}}</h2>
+    <ul class="mt-3 space-y-3">
+      {{range .Files}}{{template "admin_ruleset_card" (dict "F" . "Highlight" (eq $hl .Hash))}}{{else}}<li class="text-muted">None stored.</li>{{end}}
+    </ul>
+  </section>
+  {{end}}
+</div>
+{{end}}
+
+{{define "admin_ruleset_card"}}
+{{$f := .F}}
+<li id="rs-{{$f.Hash}}" class="card !p-4 {{if .Highlight}}!border-accent ring-2 ring-accent{{end}}" x-data="{ ask: '' }">
+  <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+    <h3 class="!text-lg break-words">{{$f.Name}}{{with $f.Version}} · v{{.}}{{end}}</h3>
+    {{if $f.Default}}<span class="badge badge-gold">Default</span>{{end}}
+    <span class="badge badge-muted font-mono" title="{{$f.Hash}}">{{$f.ShortHash}}</span>
+  </div>
+  <p class="mt-1 text-sm text-muted">{{$f.KB}} KB · {{if $f.UploadedBy}}{{if $f.UploadedBy.DisplayName}}{{$f.UploadedBy.DisplayName}}{{else}}Former player{{end}}{{else}}Shipped with the app{{end}} · {{fmtDateShort $f.CreatedAt}}</p>
+  <div class="mt-2 text-sm">
+    {{if $f.Campaigns}}
+    <details>
+      <summary class="cursor-pointer rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Used by {{len $f.Campaigns}} {{if eq (len $f.Campaigns) 1}}campaign{{else}}campaigns{{end}}</summary>
+      <ul class="mt-1 list-disc pl-6">{{range $f.Campaigns}}<li><a href="/campaigns/{{.ID}}">{{.Name}}</a></li>{{end}}</ul>
+    </details>
+    {{else}}<span class="text-muted">Used by no campaign.</span>{{end}}
+  </div>
+  <div class="mt-3 flex flex-wrap gap-2">
+    <a href="/admin/rulesets/{{$f.Hash}}/download" download="{{$f.Name}}{{with $f.Version}}-{{.}}{{end}}.json" class="btn btn-secondary" hx-boost="false">Download</a>
+    {{if not $f.Default}}<button type="button" class="btn btn-secondary" @click="ask = 'default'">Make default</button>{{end}}
+    {{if $f.Deletable}}<button type="button" class="btn btn-secondary !text-danger" @click="ask = 'delete'">Delete</button>{{end}}
+  </div>
+  {{if not $f.Default}}<form x-show="ask === 'default'" x-cloak hx-post="/admin/rulesets/{{$f.Hash}}/default" hx-target="#ruleset-panel" hx-swap="outerHTML" class="mt-3 flex flex-wrap items-center gap-2">
+    <span class="text-sm">New campaigns will use this file.</span>
+    <button class="btn btn-primary">Make default</button>
+    <button type="button" class="btn btn-secondary" @click="ask = ''">Cancel</button>
+  </form>{{end}}
+  {{if $f.Deletable}}<form x-show="ask === 'delete'" x-cloak hx-post="/admin/rulesets/{{$f.Hash}}/delete" hx-target="#ruleset-panel" hx-swap="outerHTML" class="mt-3 flex flex-wrap items-center gap-2">
+    <span class="text-sm">Delete this file? It is used by no campaign.</span>
+    <button class="btn btn-danger">Delete</button>
+    <button type="button" class="btn btn-secondary" @click="ask = ''">Cancel</button>
+  </form>{{end}}
+</li>
+{{end}}

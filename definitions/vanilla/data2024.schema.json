@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data2024.schema.json",
+  "title": "MESBG vanilla definitions file",
+  "description": "Structural schema: keeps the shape of every collection checked without constraining the (large, evolving) per-army configuration.",
+  "type": "object",
+  "required": ["game", "stats", "scenarios", "scenarioScoring", "data"],
+  "properties": {
+    "game": { "type": "string" },
+    "stats": { "type": "array", "items": { "type": "object", "required": ["abbreviation"] } },
+    "scenarios": { "type": "array", "items": { "type": "string" } },
+    "scenarioScoring": { "type": "array", "items": { "type": "object", "required": ["name", "points"] } },
+    "data": {
+      "type": "object",
+      "required": ["factions", "heroicTiers", "heroes", "warriors", "gear", "magicalPowers", "keywords", "armyBonuses"],
+      "properties": {
+        "factions": { "type": "array", "items": { "$ref": "#/$defs/named" } },
+        "heroicTiers": { "type": "array", "items": { "$ref": "#/$defs/named" } },
+        "heroes": { "type": "array", "items": { "$ref": "#/$defs/unit" } },
+        "warriors": { "type": "array", "items": { "$ref": "#/$defs/unit" } },
+        "gear": { "type": "array", "items": { "$ref": "#/$defs/named" } },
+        "magicalPowers": { "type": "array", "items": { "type": "object", "required": ["name", "duration", "definition"] } },
+        "keywords": { "type": "array", "items": { "type": "object", "required": ["name", "definition"], "properties": { "tag": { "type": "string" } } } },
+        "armyBonuses": { "type": "array", "items": { "type": "object", "required": ["name", "definition"] } }
+      }
+    }
+  },
+  "$defs": {
+    "named": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string", "minLength": 1 } } },
+    "unit": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "points": { "type": "integer", "minimum": 0 },
+        "movement": { "type": "integer" }, "fight": { "type": "integer" }, "shoot": { "type": "integer" },
+        "strength": { "type": "integer" }, "defence": { "type": "integer" }, "attack": { "type": "integer" },
+        "wounds": { "type": "integer" }, "courage": { "type": "integer" }, "intelligence": { "type": "integer" },
+        "might": { "type": "integer" }, "will": { "type": "integer" }, "fate": { "type": "integer" },
+        "specialRules": { "type": "array", "items": { "type": "string" } },
+        "wargear": { "type": "array", "items": { "type": "string" } },
+        "options": { "type": "array" }
+      }
+    }
+  }
+}

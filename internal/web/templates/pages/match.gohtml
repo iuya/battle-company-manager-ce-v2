@@ -1,0 +1,679 @@
+{{define "title"}}Match {{.Match.Number}} · {{.Campaign.Name}} · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+<p class="text-sm"><a href="/campaigns/{{.Campaign.ID}}/matches">← {{.Campaign.Name}} · Matches</a></p>
+{{template "match_body" .}}
+{{end}}
+
+{{/* Everything below the back link. A write answers with this alone and htmx swaps it for #match, so the badge, the scenario and the result never disagree. */}}
+{{define "match_body"}}
+{{$m := .Match}}
+<div id="match">
+{{with .Notice}}<div class="alert {{if $.NoticeErr}}alert-danger{{else}}alert-success{{end}} mt-3" role="{{if $.NoticeErr}}alert{{else}}status{{end}}">{{.}}</div>{{end}}
+<div class="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+  <div>
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1"><h1>Match {{$m.Number}}</h1>{{template "match_result" $m}}</div>
+    <p class="mt-1 text-muted">{{fmtDate $m.PlayedOn}}{{with $m.EndedOn}} · Ended {{fmtDate .}}{{end}}</p>
+  </div>
+  {{if and .CanEdit (not $m.Ended)}}{{template "end_propose" (dict "V" . "OOB" false)}}{{end}}
+  {{if and .AdminOnEnded $m.Ended (not .AftermathApplied)}}
+  <form hx-post="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/reopen" hx-target="#match" hx-swap="outerHTML" class="max-w-sm lg:text-right" x-data>
+    <input type="hidden" name="revision" value="{{$m.Revision}}">
+    <button class="btn btn-secondary" @click="if (!confirm('Reopen this match? The players will be able to change the scenario and the result again.')) $event.preventDefault()">Reopen match</button>
+  </form>
+  {{end}}
+</div>
+
+{{if and (eq .Campaign.Status "finished") (not $m.Ended)}}<div class="alert alert-info mt-4" role="status">This campaign has ended, so this match is frozen as it was: it stays open, but nothing can be changed until an administrator reactivates the campaign.</div>{{end}}
+{{if and (not $m.Ended) (ne .Campaign.Status "finished")}}<div id="end-card-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/end/card" hx-trigger="live:match from:body" hx-swap="innerHTML">{{with $m.EndProposal}}{{template "end_card" $}}{{end}}</div>{{end}}
+
+<div class="mt-6 flex flex-wrap gap-4">
+  {{range $i, $side := $m.Sides}}
+  <section class="card min-w-60 flex-1 space-y-2">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 class="!text-xl break-words {{with $m.Tone $i}}tone-{{.}}{{end}}">{{$side.Label}}</h2>
+      {{if and $.ShowRoles $side.Role}}<span class="badge badge-gold shrink-0 capitalize">{{$side.Role}}</span>{{end}}
+      {{with $m.SideVP $i}}<p class="shrink-0 text-sm text-muted"><span class="text-lg font-semibold text-fg">{{.}}</span> VP</p>{{end}}
+    </div>
+    <ul class="space-y-1">
+      {{range $side.Companies}}<li><a href="/campaigns/{{$.Campaign.ID}}/companies/{{.ID}}" class="font-medium">{{.Name}}</a> <span class="text-sm text-muted">{{.Owner}}</span>{{if ($m.Result.Company .ID).Fled}} <span class="badge badge-muted" title="Left the battlefield (All is Lost)">Fled</span>{{end}}</li>{{end}}
+    </ul>
+  </section>
+  {{end}}
+</div>
+
+
+{{template "scenario_card" .}}
+
+{{if and .ShowRoles .CanEdit}}{{template "roles_card" .}}{{end}}
+
+<div id="ato-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/ato" hx-trigger="load" hx-swap="innerHTML"></div>
+
+{{if .ShowSecret}}<div id="secret-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/secret" hx-trigger="load" hx-swap="innerHTML"></div>{{end}}
+
+
+{{if and (not $m.Ended) (ne .Campaign.Status "finished")}}<div id="end-checks-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/live/end?card=1" hx-trigger="load, live:match from:body" hx-swap="innerHTML"></div>{{end}}
+
+{{template "result_card" .}}
+
+{{if $m.Ended}}{{template "aftermath_card" .}}{{end}}
+
+{{with $m.History}}
+<section class="card mt-6 space-y-2" id="history">
+  <h2 class="!text-xl">History</h2>
+  <ol class="space-y-1">
+    {{range .}}<li class="text-sm"><span class="font-medium">{{if eq .Kind "reopened"}}Reopened{{else}}Ended{{end}}</span> by {{.By}}{{with .Detail}}, {{.}}{{end}} <span class="text-muted">· {{fmtDateTime .On}}</span></li>{{end}}
+  </ol>
+</section>
+{{end}}
+{{template "live_log_slot" .}}
+</div>
+{{end}}
+
+{{/* The scenario card. Mode "" shows the scenario, "pick" the list of the rules file's scenarios, "custom" the one-off form. */}}
+{{define "scenario_card"}}
+{{$m := .Match}}{{$base := printf "/campaigns/%d/matches/%d/scenario" .Campaign.ID $m.ID}}
+<section class="card mt-6 space-y-3" id="scenario">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 class="!text-xl">Scenario</h2>
+    {{if and .Editor (not .Mode)}}
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="btn btn-secondary" hx-get="{{$base}}?mode=pick" hx-target="#scenario" hx-swap="outerHTML">{{if $m.Scenario}}Change scenario{{else}}Choose scenario{{end}}</button>
+      <button type="button" class="btn btn-secondary" hx-get="{{$base}}?mode=custom" hx-target="#scenario" hx-swap="outerHTML">{{if and $m.Scenario (eq $m.Scenario.Kind "custom")}}Edit one-off{{else}}One-off scenario{{end}}</button>
+      {{if $m.Scenario}}<form hx-post="{{$base}}/remove" hx-target="#match" hx-swap="outerHTML" x-data><input type="hidden" name="revision" value="{{$m.Revision}}"><button class="btn btn-ghost" @click="if (!confirm({{if eq $m.Scenario.Kind "custom"}}'Remove this one-off scenario? Its description and how it is won are lost.'{{else}}'Remove the scenario? The objectives ticked on the result form are cleared.'{{end}})) $event.preventDefault()">Remove</button></form>{{end}}
+    </div>
+    {{end}}
+  </div>
+  {{if eq .Mode "pick"}}{{template "scenario_picker" .}}
+  {{else if eq .Mode "custom"}}{{template "scenario_custom" .}}
+  {{else}}
+  {{with $m.Scenario}}
+    <p class="font-medium break-words">{{.Name}}{{if eq .Kind "custom"}} <span class="badge badge-gold align-middle">One-off</span>{{end}}</p>
+    {{if eq .Kind "custom"}}
+      {{if .Description}}<div><h3 class="text-sm font-medium text-muted">Description</h3><p class="whitespace-pre-line break-words">{{.Description}}</p></div>{{end}}
+      {{if .Victory}}<div><h3 class="text-sm font-medium text-muted">How it is won</h3><p class="whitespace-pre-line break-words">{{.Victory}}</p></div>{{end}}
+    {{else if $.Info}}
+      {{with $.Info.Prizes}}
+      <div class="space-y-2" aria-label="What the result earns">
+        <h3 class="text-sm font-medium text-muted">What the result earns</h3>
+        <ul class="grid gap-2 sm:grid-cols-2">
+          {{range .}}<li class="rounded-lg border border-line bg-raised px-3 py-2">
+            <p class="font-medium">{{.Name}}{{with .Who}} <span class="badge badge-gold align-middle">{{.}}</span>{{end}}</p>
+            <p class="mt-1 text-sm text-muted">{{.Text}}</p>
+          </li>{{end}}
+        </ul>
+      </div>
+      {{end}}
+      {{with $.Info.About}}
+      {{if .Roles}}<p class="text-sm text-muted">This scenario has an {{index .Roles 0}} and a {{index .Roles 1}}: tag the teams under Roles.</p>{{end}}
+      <details class="rounded-lg border border-line px-3 py-2"><summary class="flex min-h-11 cursor-pointer items-center text-sm font-medium">About this scenario</summary>
+        <div class="mt-2 space-y-3 text-sm">
+          {{with .Outline}}<p class="font-medium break-words">{{.}}</p>{{end}}
+          {{with .Description}}<p class="whitespace-pre-line break-words">{{.}}</p>{{end}}
+          {{range .Sections}}<div><h3 class="text-sm font-medium text-muted">{{.Title}}</h3><p class="whitespace-pre-line break-words">{{.Text}}</p></div>{{end}}
+        </div>
+      </details>
+      {{with .Rules}}
+      <details class="rounded-lg border border-line px-3 py-2"><summary class="flex min-h-11 cursor-pointer items-center text-sm font-medium">Special rules</summary>
+        <div class="mt-2 space-y-3 text-sm">
+          {{range .}}<div><h3 class="text-sm font-medium text-muted">{{.Title}}</h3><p class="whitespace-pre-line break-words">{{.Text}}</p>{{with .Table}}{{template "rule_table" (dict "T" . "Combined" $.Combined)}}{{end}}</div>{{end}}
+          {{with $.Info.About.Uses}}<p class="text-muted">Also in play, as the rulebook has them: {{join . ", "}}.</p>{{end}}
+        </div>
+      </details>
+      {{end}}
+      {{end}}
+      {{if $.Info.Scoring}}
+      <details class="rounded-lg border border-line px-3 py-2"><summary class="flex min-h-11 cursor-pointer items-center text-sm font-medium">How it is scored</summary>
+        <ul class="mt-2 list-disc space-y-1 pl-5 text-sm">{{range $.Info.Scoring}}<li>{{.}}</li>{{end}}</ul>
+      </details>
+      {{end}}
+    {{end}}
+  {{else}}
+    <p class="text-muted">{{if .Editor}}No scenario yet.{{else}}The players have not chosen a scenario yet.{{end}}</p>
+  {{end}}
+  {{end}}
+</section>
+{{end}}
+
+{{/* The picker: the rules file's scenarios by table, searched in the browser. Choosing one posts its name. */}}
+{{define "scenario_picker"}}
+{{$m := .Match}}{{$base := printf "/campaigns/%d/matches/%d/scenario" .Campaign.ID $m.ID}}
+<div x-data="listSearch"><div class="space-y-4" x-data="{ picked: {{with $m.Scenario}}{{if eq .Kind "rulebook"}}{{jsstr .Name}}{{else}}''{{end}}{{else}}''{{end}} }">
+  {{template "scenario_roll" .}}
+  <form hx-post="{{$base}}" hx-target="#match" hx-swap="outerHTML" class="space-y-4">
+    <input type="hidden" name="revision" value="{{$m.Revision}}">
+    <input type="hidden" name="kind" value="rulebook">
+    {{with .ScenarioErr}}{{with index . ""}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}{{end}}
+    <div class="field">
+      <label for="scenario-search">Search the scenarios</label>
+      <input id="scenario-search" type="search" x-model="q" placeholder="Name of a scenario…" autocomplete="off" class="input">
+    </div>
+    <p class="text-sm text-muted" x-show="noMatch()" x-cloak>No scenario matches.</p>
+    {{range .Groups}}{{$title := .Title}}
+    <fieldset class="space-y-2" x-show="catShows({{jsstr $title}})">
+      <legend class="mb-1 text-sm font-semibold text-muted">{{$title}}</legend>
+      {{range .Scenarios}}
+      <label data-name="{{.Name}}" data-category="{{$title}}" x-show="shows($el)" class="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-line px-3 py-2 hover:bg-raised has-[:checked]:border-accent has-[:checked]:bg-accent-soft">
+        <input type="radio" name="name" value="{{.Name}}" x-model="picked" class="mt-1 size-4 shrink-0 accent-accent">
+        <span class="min-w-0">
+          <span class="font-medium">{{.Name}}</span>{{if .Roll}} <span class="text-xs text-muted">(second die {{.Roll}})</span>{{end}}
+          {{with .Scoring}}<span class="line-clamp-2 text-sm text-muted">{{index . 0}}</span>{{end}}
+        </span>
+      </label>
+      {{end}}
+    </fieldset>
+    {{else}}<p class="text-muted">The rules of this campaign list no scenarios.</p>{{end}}
+    <div class="flex flex-wrap gap-2">
+      <button class="btn btn-primary" :disabled="picked === ''">Use this scenario</button>
+      <button type="button" class="btn btn-secondary" hx-get="{{$base}}" hx-target="#scenario" hx-swap="outerHTML">Cancel</button>
+    </div>
+  </form>
+</div></div>
+{{end}}
+
+{{/* "Roll for it": the Top Dog / Underdog rule and the two D6 of the scenario selection. It only preselects a scenario of the
+   picker below (it shares its scope); the player confirms with "Use this scenario". The roll panel is the same component as the
+   other rolls: the server rolls and the dice show it, a typed roll needs ManualRolls and a thrown one ShakeTheTable. */}}
+{{define "scenario_roll"}}
+{{$m := .Match}}{{$s := .Campaign.Settings}}{{$roll := .Roll}}
+<div id="scenario-roll" class="space-y-3 rounded-xl border border-line bg-raised p-4" x-data="rollPanel" @keydown.space.window="onSpace($event)"
+     data-dice="{{.Dice}}" data-groups="1,1" data-labels="Table,Scenario" data-animate="{{.RollAnimates}}" data-shake="{{$s.ShakeTheTable}}">
+  <h3 class="!text-xl">Roll for it</h3>
+  <p class="text-sm text-muted">Compare the company ratings: the higher is the Top Dog, the other the Underdog (it wins the roll-off for the layout and starting positions). Then roll a D6 to pick one of the three tables and a second D6 to pick the scenario, ideally rolled by different players.</p>
+  {{with .RollSides}}
+  <ul class="grid gap-2 sm:grid-cols-2">
+    {{range .}}<li class="rounded-lg border border-line bg-surface px-3 py-2"><span class="font-medium break-words">{{.Name}}</span> <span class="text-sm text-muted">rating {{.Rating}}</span>{{if .Top}} <span class="badge badge-gold">Top Dog</span>{{else if .Under}} <span class="badge badge-muted">Underdog</span>{{end}}</li>{{end}}
+  </ul>
+  {{if and (index . 0) (eq (index . 0).Rating (index . 1).Rating)}}<p class="text-sm text-muted">The ratings are equal: follow the normal scenario rules for the layout roll-off.</p>{{end}}
+  {{else}}<p class="text-sm text-muted">Top Dog and Underdog are compared between two sides; with more sides the players agree on it.</p>{{end}}
+
+  {{with $roll}}{{if .Error}}<div class="alert alert-danger" role="alert">{{.Error}}</div>{{end}}{{end}}
+  <canvas x-ref="canvas" class="dice-tray" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>
+  {{if and $roll (not $roll.Error)}}
+  <div {{if $roll.Animate}}x-show="revealed" x-cloak{{end}} role="status">
+    <p>You rolled a <strong class="text-2xl">{{$roll.First}}</strong> (table {{template "table_of" $roll.First}}) and a <strong class="text-2xl">{{$roll.Second}}</strong>:
+    {{with $roll.Scenario}}<strong>{{.Name}}</strong>. It is selected below; use it, or choose another.{{else}} the rules of this campaign place no scenario there. Roll again or choose one below.{{end}}</p>
+    {{with $roll.Line}}<p class="text-sm"><span class="badge badge-gold">Vantage Point</span> {{.}}</p>{{end}}
+    {{range $roll.Vantage}}{{$vo := .}}
+    <form hx-post="/campaigns/{{$.Campaign.ID}}/matches/{{$m.ID}}/scenario/roll" hx-target="#scenario-roll" hx-swap="outerHTML" class="mt-2 flex flex-wrap items-center gap-2">
+      <input type="hidden" name="roll" value="{{$roll.First}}"><input type="hidden" name="roll2" value="{{$roll.Second}}"><input type="hidden" name="vantage" value="{{$vo.CompanyID}}">
+      <span class="text-sm"><span class="badge badge-gold">Vantage Point</span> {{$vo.Name}} may move the second die (once):</span>
+      <button name="adjust" value="1" class="btn btn-secondary !min-h-9" {{if ge $roll.Second 6}}disabled{{end}}>+1</button>
+      <button name="adjust" value="-1" class="btn btn-secondary !min-h-9" {{if le $roll.Second 1}}disabled{{end}}>-1</button>
+    </form>
+    {{end}}
+    {{with $roll.Scenario}}<span class="hidden" data-pick="{{.Name}}" x-effect="if (revealed) { picked = $el.dataset.pick; q = ''; $nextTick(() => { const r = document.querySelector('#scenario input[name=name]:checked'); if (r) r.closest('label').scrollIntoView({ block: 'nearest', behavior: 'smooth' }) }) }"></span>{{end}}
+  </div>
+  {{end}}
+
+  <form x-ref="rollForm" hx-post="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/scenario/roll" hx-target="#scenario-roll" hx-swap="outerHTML" class="flex flex-wrap items-end gap-3">
+    <input type="hidden" name="thrown" value="" x-ref="thrown">
+    {{if $s.ManualRolls}}
+    <div class="field"><label for="roll-first">First die (table)</label><select id="roll-first" name="roll" class="input w-44"><option value="0">Roll for me</option>{{range $n := seq 1 6}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>
+    <div class="field"><label for="roll-second">Second die (scenario)</label><select id="roll-second" name="roll2" class="input w-44"><option value="0">Roll for me</option>{{range $n := seq 1 6}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>
+    {{else}}<input type="hidden" name="roll" value="0"><input type="hidden" name="roll2" value="0">{{end}}
+    <button class="btn btn-secondary" :disabled="rolling" {{if $s.ShakeTheTable}}@click="if (!typed()) { $event.preventDefault(); throwScenario() }"{{end}}>{{if $roll}}Roll again{{else}}Roll the dice{{end}}</button>
+  </form>
+  {{if $s.ShakeTheTable}}<p class="text-sm text-muted" x-show="rolling && !shaken" x-cloak>Press the space bar to shake the table (once).</p>{{end}}
+</div>
+{{end}}
+
+{{/* A table a scenario special rule prints. Takes {T: core.ScenarioRuleTable, Combined: the companies' ratings added}; the row that covers the
+   match's combined rating is marked when the table looks that up. */}}
+{{define "rule_table"}}{{$t := .T}}{{$hit := -1}}{{if and (eq $t.Lookup "combinedRating") .Combined}}{{$hit = $t.RowFor .Combined}}{{end}}
+<table class="mt-2 w-full table-fixed border-collapse overflow-hidden rounded-lg border border-line text-sm">
+  <thead class="bg-raised text-left text-muted"><tr>{{range $i, $c := $t.Columns}}<th scope="col" class="px-3 py-1.5 font-medium {{if eq $i 0}}w-2/5 sm:w-1/4{{end}}">{{$c}}</th>{{end}}</tr></thead>
+  <tbody>
+    {{range $i, $row := $t.Rows}}<tr class="border-t border-line {{if eq $i $hit}}bg-accent-soft font-semibold{{end}}" {{if eq $i $hit}}aria-current="true"{{end}}>{{range $j, $c := $row.Cells}}{{if eq $j 0}}<th scope="row" class="px-3 py-1.5 text-left align-top font-medium">{{$c}}</th>{{else}}<td class="break-words px-3 py-1.5 align-top">{{$c}}</td>{{end}}{{end}}</tr>{{end}}
+  </tbody>
+</table>
+{{if ge $hit 0}}<p class="mt-1 text-xs text-muted">Highlighted: the companies in this match add up to {{.Combined}} rating.</p>{{else if eq $t.Lookup "combinedRating"}}<p class="mt-1 text-xs text-muted">Look up the two companies' ratings added together.</p>{{else if eq $t.Lookup "d6"}}<p class="mt-1 text-xs text-muted">Roll a D6 and read the matching row.</p>{{end}}
+{{end}}
+
+{{define "table_of"}}{{if le . 2}}1{{else if le . 4}}2{{else}}3{{end}}{{end}}
+
+{{/* The one-off scenario form: a scenario the players invented. It is kept with this match only. */}}
+{{define "scenario_custom"}}
+{{$m := .Match}}{{$base := printf "/campaigns/%d/matches/%d/scenario" .Campaign.ID $m.ID}}{{$e := .ScenarioErr}}
+<form hx-post="{{$base}}" hx-target="#match" hx-swap="outerHTML" class="space-y-4" x-data="{ n: 0, d: 0, v: 0 }" x-init="n = $refs.n.value.length; d = $refs.d.value.length; v = $refs.v.value.length">
+  <input type="hidden" name="revision" value="{{$m.Revision}}">
+  <input type="hidden" name="kind" value="custom">
+  {{with index $e ""}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+  <p class="text-sm text-muted">Players are trusted: the app does not check the victory conditions. It is kept with this match only and is not offered to other matches.</p>
+  <div class="field">
+    <label for="scenario-name">Name</label>
+    <input id="scenario-name" name="name" value="{{.ScenarioIn.Name}}" x-ref="n" @input="n = $event.target.value.length" maxlength="60" required autocomplete="off" class="input" {{with index $e "name"}}aria-invalid="true" aria-describedby="scenario-name-err"{{end}}>
+    {{with index $e "name"}}<p class="error" id="scenario-name-err" role="alert">{{.}}</p>{{end}}
+    <p class="hint"><span x-text="n">0</span> / 60</p>
+  </div>
+  <div class="field">
+    <label for="scenario-description">Description <span class="text-muted">(optional)</span></label>
+    <textarea id="scenario-description" name="description" rows="4" x-ref="d" @input="d = $event.target.value.length" maxlength="1000" class="input" {{with index $e "description"}}aria-invalid="true" aria-describedby="scenario-description-err"{{end}}>{{.ScenarioIn.Description}}</textarea>
+    {{with index $e "description"}}<p class="error" id="scenario-description-err" role="alert">{{.}}</p>{{end}}
+    <p class="hint"><span x-text="d">0</span> / 1000</p>
+  </div>
+  <div class="field">
+    <label for="scenario-victory">How it is won <span class="text-muted">(optional)</span></label>
+    <textarea id="scenario-victory" name="victory" rows="4" x-ref="v" @input="v = $event.target.value.length" maxlength="1000" class="input" {{with index $e "victory"}}aria-invalid="true" aria-describedby="scenario-victory-err"{{end}}>{{.ScenarioIn.Victory}}</textarea>
+    {{with index $e "victory"}}<p class="error" id="scenario-victory-err" role="alert">{{.}}</p>{{end}}
+    <p class="hint"><span x-text="v">0</span> / 1000</p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <button class="btn btn-primary" :disabled="n === 0">Save one-off scenario</button>
+    <button type="button" class="btn btn-secondary" hx-get="{{$base}}" hx-target="#scenario" hx-swap="outerHTML">Cancel</button>
+  </div>
+</form>
+{{end}}
+
+{{/* The result card: a form for an editor (behind a button, with a warning, for an administrator on an ended match), the report for everybody else. */}}
+{{define "result_card"}}
+{{$m := .Match}}
+<section class="card mt-6 space-y-4" id="result" {{if .AdminOnEnded}}x-data="{ open: false }"{{end}}>
+  <h2 class="!text-xl">Result</h2>
+  {{if .CanEdit}}{{template "result_form" .}}
+  {{else}}
+    {{template "result_report" .}}
+    {{if .AdminOnEnded}}
+    <div>
+      <button type="button" class="btn btn-secondary" x-show="!open" @click="open = true">Edit the result (organiser or administrator)</button>
+      <div x-show="open" x-cloak class="space-y-4">
+        {{if .AftermathApplied}}<div class="alert alert-info" role="note">A company has already played its aftermath; changes here do not redo it.</div>{{else}}<div class="alert alert-info" role="note">No aftermath has started yet, so the new result will be used when the companies start theirs.</div>{{end}}
+        {{template "result_form" .}}
+      </div>
+    </div>
+    {{end}}
+  {{end}}
+</section>
+{{end}}
+
+{{define "result_report"}}
+{{$m := .Match}}
+  {{if $m.Result.Decided}}
+    <p class="font-medium">{{with $m.ReportedWinner}}<span class="tone-win">{{.}}</span> won{{else}}<span class="tone-draw">Draw</span>{{end}}</p>
+  {{else}}
+    <p class="text-muted">{{if .Editor}}Nothing reported yet.{{else}}Nothing has been reported yet.{{end}}</p>
+  {{end}}
+  {{range $m.Sides}}{{range .Companies}}{{$co := $m.Result.Company .ID}}{{if $co.Objectives}}{{$name := .Name}}
+    <p class="text-sm"><span class="font-medium">{{$name}}</span> completed: {{range $.Objectives}}{{if index $co.Objectives .Key}}{{.Label}}{{if gt (index $co.Objectives .Key) 1}} (x{{index $co.Objectives .Key}}){{end}}. {{end}}{{end}}</p>
+  {{end}}{{end}}{{end}}
+  {{with $m.Result.Note}}<p class="whitespace-pre-line break-words">{{.}}</p>{{end}}
+  {{if .Fled}}<p class="text-sm text-muted">A company that fled the battlefield (All is Lost) is marked on its side.</p>{{end}}
+  {{if and (not .Editor) $m.Ended}}<p class="text-sm text-muted">This match has ended.</p>{{end}}
+{{end}}
+
+{{define "result_form"}}
+{{$m := .Match}}{{$d := .Draft}}
+<form hx-post="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/result" hx-target="#match" hx-swap="outerHTML" class="space-y-5"
+      x-data="matchResult" data-result="{{.ResultJSON}}" data-winner="{{.WinnerValue}}" @input="refresh()" @change="refresh()">
+  <input type="hidden" name="revision" value="{{$m.Revision}}">
+  {{with .ResultErr}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+  <p class="alert alert-danger" role="alert" x-show="conflict()" x-cloak x-text="conflict()">{{.Draft.FleeConflict}}</p>
+  <div class="alert alert-info space-y-1" role="status" x-show="hints().length" x-cloak>
+    <p class="font-medium">Worth a second look (nothing is blocked):</p>
+    <ul class="list-disc pl-5 text-sm"><template x-for="h in hints()" :key="h"><li x-text="h"></li></template></ul>
+  </div>
+
+  <fieldset class="space-y-2">
+    <legend class="text-sm font-semibold">Who won?</legend>
+    <div class="grid gap-2 sm:grid-cols-2">
+      {{range $i, $side := $m.Sides}}
+      <label class="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-line px-3 py-2 hover:bg-raised has-[:checked]:border-accent has-[:checked]:bg-accent-soft">
+        <input type="radio" name="winner" value="{{inc $i}}" x-model="winner" class="size-4 shrink-0 accent-accent"><span class="min-w-0 break-words">{{$side.Label}}</span>
+      </label>
+      {{end}}
+      <label class="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-line px-3 py-2 hover:bg-raised has-[:checked]:border-accent has-[:checked]:bg-accent-soft">
+        <input type="radio" name="winner" value="draw" x-model="winner" class="size-4 shrink-0 accent-accent"><span>Draw</span>
+      </label>
+      <label class="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-line px-3 py-2 text-muted hover:bg-raised has-[:checked]:border-accent has-[:checked]:bg-accent-soft">
+        <input type="radio" name="winner" value="" x-model="winner" class="size-4 shrink-0 accent-accent"><span>Not decided yet</span>
+      </label>
+    </div>
+  </fieldset>
+
+  {{range $i, $side := $m.Sides}}
+  <fieldset class="space-y-3 rounded-lg border border-line p-3">
+    <legend class="px-1 text-sm font-semibold break-words">{{$side.Label}}</legend>
+    <div class="field sm:max-w-48">
+      <label for="vp-{{inc $i}}">Victory Points <span class="text-muted">(optional)</span></label>
+      <input id="vp-{{inc $i}}" name="vp-{{inc $i}}" type="number" inputmode="numeric" min="0" max="99" value="{{with $d.SideVP $i}}{{.}}{{end}}" data-vp class="input">
+      {{if index $.VPFromLive (inc $i)}}<p class="hint"><span class="badge badge-gold">From the live match</span> The secret objectives scored this; add the other Victory Points and save.</p>{{end}}
+    </div>
+    <ul class="space-y-2">
+      {{range $side.Companies}}
+      <li class="space-y-1">
+        <p class="font-medium break-words">{{.Name}}{{if and $.ShowRoles $side.Role}} <span class="badge badge-gold align-middle capitalize">{{$side.Role}}</span>{{end}}</p>
+        <label class="flex min-h-11 cursor-pointer items-center gap-3">
+          <input type="checkbox" name="fled-{{.ID}}" value="1" x-model="fled['{{.ID}}']" class="size-4 shrink-0 accent-accent">
+          <span>Fled the battlefield <span class="text-muted">(All is Lost)</span>{{if index $.FledFromLive .ID}} <span class="badge badge-gold">From the live match</span>{{end}}</span>
+        </label>
+        <p class="text-sm text-muted" x-show="fled['{{.ID}}']" {{if not ($d.Result.Company .ID).Fled}}x-cloak{{end}}>The other side claims victory (All is Lost). Saving this does not end the match.</p>
+        {{$co := $d.Result.Company .ID}}{{$cid := .ID}}{{$name := .Name}}
+        {{range $.Objectives}}{{$o := .}}
+        <div class="rounded-md bg-raised px-3 py-2">
+          {{if eq .Max 1}}
+          <label class="flex min-h-11 cursor-pointer items-center gap-3">
+            <input type="checkbox" name="obj-{{$cid}}-{{.Key}}" value="1" {{if index $co.Objectives .Key}}checked{{end}} {{if .Model}}data-holds="{{.Label}}" data-company="{{$name}}"{{end}} class="size-4 shrink-0 accent-accent"><span>{{.Label}}{{if index $.ObjFromLive (printf "%d/%s" $cid .Key)}} <span class="badge badge-gold" title="Every opposing company was Broken at the end of the game">From the live match</span>{{end}}</span>
+          </label>
+          {{else}}
+          <div class="field"><label for="obj-{{$cid}}-{{.Key}}">{{.Label}}</label>
+            <input id="obj-{{$cid}}-{{.Key}}" name="obj-{{$cid}}-{{.Key}}" type="number" inputmode="numeric" min="0" max="{{.Max}}" value="{{index $co.Objectives .Key}}" class="input sm:max-w-32"></div>
+          {{end}}
+          {{range .Rewards}}{{with .Preview}}<p class="text-sm text-muted">Completing this earns: {{.}}</p>{{end}}{{end}}
+        </div>
+        {{end}}
+      </li>
+      {{end}}
+    </ul>
+  </fieldset>
+  {{end}}
+
+  <div x-data="{ help: false }">
+    <button type="button" class="text-sm underline" :aria-expanded="help" @click="help = !help">What is All is Lost?</button>
+    <p x-show="help" x-cloak class="mt-1 rounded-md border border-line bg-raised px-3 py-2 text-sm">A Battle Company that is Broken may flee the battlefield. The opponent claims victory and the full scenario rewards; the fleeing company earns only the Influence for taking part.</p>
+  </div>
+
+  <div class="field" x-data="{ n: {{len $d.Result.Note}} }">
+    <label for="result-note">A word about the game <span class="text-muted">(optional)</span></label>
+    <textarea id="result-note" name="note" rows="3" maxlength="500" @input="n = $event.target.value.length" class="input">{{$d.Result.Note}}</textarea>
+    <p class="hint"><span x-text="n">0</span> / 500</p>
+  </div>
+
+  <button class="btn btn-primary">Save result</button>
+</form>
+{{end}}
+
+{{/* The Aftermath card of an ended match: each company with its status and the way in (docs/aftermath.md). */}}
+{{define "aftermath_card"}}
+<section class="card mt-6 space-y-4" id="aftermath">
+  <h2 class="!text-xl">Aftermath</h2>
+  {{with .AftermathErr}}<div class="alert alert-danger" role="alert">{{.}}</div>
+  {{else}}
+  {{if not .Aftermath}}<p class="text-muted">No company took part in this match.</p>{{end}}
+  <ul class="divide-y divide-line">
+    {{range .Aftermath}}
+    <li class="space-y-2 py-3 first:pt-0 last:pb-0" {{if .Waive}}x-data="{ waiving: false }"{{end}}>
+      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div class="min-w-0">
+          <p class="flex flex-wrap items-center gap-x-2 gap-y-1"><a href="/campaigns/{{$.Campaign.ID}}/companies/{{.Ref.CompanyID}}" class="font-medium break-words">{{.Ref.CompanyName}}</a> {{template "aftermath_badge" .Ref.Status}}</p>
+          {{with .Owner}}<p class="text-sm text-muted">{{.}}</p>{{end}}
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <a class="btn {{if and .Edit .Ref.Status.Locks}}btn-primary{{else}}btn-secondary{{end}}" href="/campaigns/{{$.Campaign.ID}}/matches/{{.Ref.MatchID}}/aftermath/{{.Ref.CompanyID}}">{{if and .Edit .Ref.Status.Locks}}{{if eq (printf "%s" .Ref.Status) "pending"}}Start{{else}}Continue{{end}}<span class="sr-only"> the aftermath of {{.Ref.CompanyName}}</span>{{else}}View<span class="sr-only"> the aftermath of {{.Ref.CompanyName}}</span>{{end}}</a>
+          {{if .Waive}}<button type="button" class="btn btn-ghost" x-show="!waiving" @click="waiving = true" :aria-expanded="waiving">Waive<span class="sr-only"> the aftermath of {{.Ref.CompanyName}}</span></button>{{end}}
+        </div>
+      </div>
+      {{with .Summary}}<p class="text-sm text-muted break-words">{{.}}</p>{{end}}
+      {{if .Waive}}
+      <form hx-post="/campaigns/{{$.Campaign.ID}}/matches/{{.Ref.MatchID}}/aftermath/{{.Ref.CompanyID}}/waive" hx-target="#match" hx-swap="outerHTML" x-show="waiving" x-cloak class="space-y-2 rounded-xl border border-line bg-raised p-3">
+        <div class="field"><label for="waive-{{.Ref.CompanyID}}">Why is this aftermath waived? <span class="text-muted">(everybody can read it)</span></label>
+          <input id="waive-{{.Ref.CompanyID}}" name="note" class="input" maxlength="200" required autocomplete="off"></div>
+        <p class="text-sm text-muted">Nothing is applied: no experience, influence or injuries. The company is unlocked.</p>
+        <div class="flex flex-wrap gap-2"><button class="btn btn-danger">Waive aftermath</button><button type="button" class="btn btn-ghost" @click="waiving = false">Cancel</button></div>
+      </form>
+      {{end}}
+    </li>
+    {{end}}
+  </ul>
+  {{end}}
+</section>
+{{end}}
+
+{{/* The match log. The sheet of a company page (opened from the live banner), the card of the match page and the rows of an older page.
+   The log is kept for good: after the match it stays here, read only. Takes liveLogView. */}}
+{{define "live_log_sheet"}}
+<div id="live-log" data-live-log>
+  <h2 class="!text-2xl pr-10">Match log</h2>
+  <p class="mt-1 text-sm text-muted">Newest first. Undo takes an entry out; what came later stays as long as it still fits.</p>
+  {{template "live_log_body" .}}
+  <p class="mt-4"><button type="button" class="btn btn-secondary" @click="closeModal()">Close</button></p>
+</div>
+{{end}}
+
+{{define "live_log_card"}}
+<section id="live-log" data-live-log class="card mt-6 space-y-3" aria-labelledby="live-log-title">
+  <h2 id="live-log-title" class="!text-2xl">Match log</h2>
+  {{if and .Ended (not .Entries)}}<p class="text-muted">This match has no log: it was recorded after the fact.</p>{{else}}{{template "live_log_body" .}}{{end}}
+</section>
+{{end}}
+
+{{define "live_log_body"}}
+{{with .Error}}<div class="alert alert-danger mt-3" role="alert">{{.}}</div>{{end}}
+{{if not .Entries}}<p class="mt-3 text-muted">Nothing has happened yet.</p>{{else}}
+<ol class="mt-3 divide-y divide-line rounded-lg border border-line" aria-label="Match log">
+  {{template "live_log_rows" .}}
+</ol>
+{{end}}
+{{end}}
+
+{{define "live_log_rows"}}{{$v := .}}
+{{range .Entries}}
+{{if .Heading}}<li class="bg-raised px-3 py-1 text-xs font-semibold text-muted">{{.Heading}}</li>{{end}}
+<li class="flex items-start gap-3 px-3 py-2">
+  <span class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style="background: hsl({{.Hue}} 55% 50%)" title="{{.Company}}" aria-hidden="true"></span>
+  <div class="min-w-0 flex-1"><p class="break-words text-sm">{{.Text}}</p><p class="text-xs text-muted">{{.Company}}{{with .By}} · {{.}}{{end}}</p></div>
+  {{if and .CanUndo (not $v.Ended)}}<button type="button" class="btn btn-secondary !min-h-9 shrink-0 !px-3 !text-xs" hx-post="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/live/log/{{.ID}}/undo" hx-vals='{"company":"{{$v.Company}}","from":"{{if $v.Card}}card{{else}}log{{end}}"}' hx-target="#live-log" hx-swap="outerHTML" hx-sync="this:queue all" aria-label="Undo: {{.Text}}">Undo</button>{{end}}
+</li>
+{{end}}
+{{if .Older}}<li class="px-3 py-2 text-center"><button type="button" class="btn btn-ghost !min-h-9" hx-get="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/live/log?before={{.Older}}&company={{$v.Company}}{{if $v.Card}}&card=1{{end}}" hx-target="closest li" hx-swap="outerHTML">Show older entries</button></li>{{end}}
+{{end}}
+
+{{/* The log card on the match page: loaded after the page, refreshed when the match changes (the sync script fires live:match). */}}
+{{define "live_log_slot"}}
+<div id="live-log-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/live/log?card=1" hx-trigger="load{{if not .Match.Ended}}, live:match from:body{{end}}" hx-swap="innerHTML" {{if not .Match.Ended}}data-live-match="{{.Match.ID}}" data-campaign="{{.Campaign.ID}}"{{end}}></div>
+{{end}}
+
+
+{{/* The end checks (docs/live-match.md "End checks"): the sheet of a company page, the card of the match page. Take endView. */}}
+{{define "end_checks_sheet"}}
+<div id="end-checks" data-end-checks>
+  <h2 class="!text-2xl pr-10">End checks</h2>
+  <p class="mt-1 text-sm text-muted">What the players settle when the game ends. Each is worth 1 experience.</p>
+  {{template "end_checks_body" .}}
+  <p class="mt-4"><button type="button" class="btn btn-secondary" @click="closeModal()">Close</button></p>
+</div>
+{{end}}
+
+{{define "end_checks_card"}}
+<section id="end-checks" data-end-checks class="card mt-6 space-y-3" aria-labelledby="end-checks-title">
+  <h2 id="end-checks-title" class="!text-2xl">End checks</h2>
+  <p class="text-sm text-muted">What the players settle when the game ends. Each is worth 1 experience.</p>
+  {{template "end_checks_body" .}}
+</section>
+{{end}}
+
+{{define "end_checks_body"}}{{$v := .}}{{$view := "sheet"}}{{if .Card}}{{$view = "card"}}{{end}}
+<div aria-live="polite">
+{{with .Msg}}<div class="alert {{if $v.Error}}alert-danger{{else}}alert-success{{end}} mt-3 flex flex-wrap items-center justify-between gap-2" role="{{if $v.Error}}alert{{else}}status{{end}}">
+  <span>{{.}}</span>
+  {{if and (not $v.Error) $v.EntryID}}<button type="button" class="btn btn-secondary !min-h-9" hx-post="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/live/log/{{$v.EntryID}}/undo" hx-vals='{"company":"{{$v.Company}}","from":"{{if $v.Card}}endcard{{else}}end{{end}}"}' hx-target="#end-checks" hx-swap="outerHTML">Undo</button>{{end}}
+</div>{{end}}
+</div>
+{{if not .Players}}<p class="mt-3 text-sm text-muted">Only the players of this match set these; you can follow the votes below.</p>{{end}}
+{{range .Checks.Objective}}{{$co := .}}
+<fieldset class="mt-4 min-w-0">
+  <legend class="font-medium break-words">Got the objective · {{.Name}}</legend>
+  <p class="text-sm text-muted">Carrying or within range of an Objective at the end of the game (escaping off the board edge counts). Units on the field or retreated.</p>
+  {{if not .Units}}<p class="mt-2 text-sm text-muted">No unit of {{.Name}} is on the field or retreated.</p>{{else}}
+  <ul class="mt-2 space-y-1">
+    {{range .Units}}
+    <li><form hx-post="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/live/{{$co.CompanyID}}/objective" hx-target="#end-checks" hx-swap="outerHTML" hx-sync="#end-checks:queue all">
+      <input type="hidden" name="unit" value="{{.UnitID}}"><input type="hidden" name="on" value="{{if .Has}}0{{else}}1{{end}}"><input type="hidden" name="view" value="{{$view}}"><input type="hidden" name="page" value="{{$v.Company}}">
+      <button type="submit" role="switch" aria-checked="{{.Has}}" class="btn btn-secondary w-full !h-auto !min-h-11 !flex-wrap !justify-between !gap-x-3 !whitespace-normal !px-3 !py-2 text-left {{if .Has}}!border-accent !bg-accent-soft{{end}}">
+        <span class="min-w-0 break-words">{{.Title}} <span class="text-sm font-normal text-muted">{{if ne .Title .Type}}{{.Type}}{{end}}{{if eq (printf "%v" .Zone) "retreated"}}{{if ne .Title .Type}} · {{end}}retreated{{end}}</span></span>
+        <span class="shrink-0 text-sm">{{if .Has}}Has the objective{{else}}No{{end}}</span>
+      </button>
+    </form></li>
+    {{end}}
+  </ul>{{end}}
+</fieldset>
+{{end}}
+{{range .Checks.MVP}}{{$b := .}}
+<fieldset class="mt-4 min-w-0">
+  <legend class="font-medium break-words">Select MVP · {{.Name}}</legend>
+  <p class="text-sm text-muted">The unit of {{.Name}} that stood out. You can change your vote until the match ends.</p>
+  <ul class="mt-2 space-y-1" role="radiogroup" aria-label="MVP of {{.Name}}">
+    {{range .Units}}
+    <li><form hx-post="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/live/{{$b.CompanyID}}/mvp" hx-target="#end-checks" hx-swap="outerHTML" hx-sync="#end-checks:queue all">
+      <input type="hidden" name="unit" value="{{.UnitID}}"><input type="hidden" name="view" value="{{$view}}"><input type="hidden" name="page" value="{{$v.Company}}">
+      <button type="submit" role="radio" aria-checked="{{.Current}}" class="btn btn-secondary w-full !h-auto !min-h-11 !flex-wrap !justify-between !gap-x-3 !whitespace-normal !px-3 !py-2 text-left {{if .Current}}!border-accent !bg-accent-soft{{end}}">
+        <span class="min-w-0 break-words">{{.Title}} <span class="text-sm font-normal text-muted">{{if ne .Title .Type}}{{.Type}} · {{end}}Wounds {{.Wounds.Current}}</span></span>
+        <span class="shrink-0 text-sm">{{if .Current}}Your vote{{end}}</span>
+      </button>
+    </form></li>
+    {{end}}
+    <li><form hx-post="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/live/{{$b.CompanyID}}/mvp" hx-target="#end-checks" hx-swap="outerHTML" hx-sync="#end-checks:queue all">
+      <input type="hidden" name="unit" value="0"><input type="hidden" name="view" value="{{$view}}"><input type="hidden" name="page" value="{{$v.Company}}">
+      <button type="submit" role="radio" aria-checked="{{eq .Current 0}}" class="btn btn-secondary w-full !h-auto !min-h-11 !flex-wrap !justify-between !gap-x-3 !whitespace-normal !px-3 !py-2 text-left {{if eq .Current 0}}!border-accent !bg-accent-soft{{end}}"><span>No MVP</span></button>
+    </form></li>
+  </ul>
+</fieldset>
+{{end}}
+{{range .Checks.Tally}}{{if .Lines}}
+<div class="mt-4">
+  <h3 class="!text-base font-medium break-words">Votes · {{.Name}}</h3>
+  <ul class="mt-1 text-sm">
+    {{range .Lines}}<li>{{.Title}} <span class="text-muted">· {{.Votes}} vote{{if ne .Votes 1}}s{{end}}</span></li>{{end}}
+  </ul>
+  {{if .Tied}}<p class="text-sm text-muted">Tied: the owner of {{.Name}} picks in the aftermath.</p>{{end}}
+</div>
+{{end}}{{end}}
+{{end}}
+
+{{/* The answer to Propose to end: what is still open, then Go back or End anyway. It never blocks. Takes endView. */}}
+{{define "end_reminder"}}
+<div id="end-reminder" x-data class="alert alert-info mt-2" role="alertdialog" aria-labelledby="end-reminder-title">
+  <p id="end-reminder-title" class="font-medium">Propose to end this match?</p>
+  <p class="mt-1 text-sm">The match ends when every player has confirmed. Meanwhile a change to the scenario or the result asks them to confirm again. Afterwards only the organiser or an administrator can change them.</p>
+  {{with .Checks.Pending}}<p class="mt-2 text-sm font-medium">Still open</p>
+  <ul class="list-disc pl-5 text-sm">{{range .}}<li>{{.}}</li>{{end}}</ul>{{end}}
+  <form hx-post="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/end/propose" hx-target="#match" hx-swap="outerHTML" class="mt-3 flex flex-wrap gap-2">
+    <input type="hidden" name="revision" value="{{.Revision}}">
+    <button type="button" class="btn btn-secondary" @click="$root.remove()">Go back</button>
+    <button class="btn btn-primary">Propose anyway</button>
+  </form>
+</div>
+{{end}}
+
+{{/* The Propose to end button, hidden while an end is pending. The card's slot sends it again out of band when the match changes. Takes V (matchView) and OOB. */}}
+{{define "end_propose"}}{{$v := .V}}{{$m := $v.Match}}
+<div id="end-propose" class="max-w-sm lg:text-right" {{if .OOB}}hx-swap-oob="true"{{end}}>
+  {{if not $m.EndProposal}}
+  <button type="button" class="btn btn-primary" {{if $v.EndReason}}disabled aria-describedby="end-reason"{{end}} hx-get="/campaigns/{{$v.Campaign.ID}}/matches/{{$m.ID}}/live/end/reminder?revision={{$m.Revision}}" hx-target="#end-reminder-slot" hx-swap="innerHTML">Propose to end</button>
+  {{with $v.EndReason}}<p id="end-reason" class="mt-1 text-sm text-muted">{{.}}</p>{{end}}
+  <div id="end-reminder-slot" class="text-left"></div>
+  {{end}}
+</div>
+{{end}}
+
+{{/* What the card's slot answers: the pending end, and the header button in step with it. Takes matchView. */}}
+{{define "end_card_slot"}}{{with .Match.EndProposal}}{{template "end_card" $}}{{end}}{{if .CanEdit}}{{template "end_propose" (dict "V" . "OOB" true)}}{{end}}{{end}}
+
+{{/* The pending end of the match: a row per company with Confirmed or Waiting, then what the viewer may do. Takes matchView. */}}
+{{define "end_card"}}{{$m := .Match}}{{$p := $m.EndProposal}}{{$base := printf "/campaigns/%d/matches/%d/end" .Campaign.ID $m.ID}}
+<section id="end-card" class="card mt-6 space-y-3" aria-labelledby="end-card-title">
+  <h2 id="end-card-title" class="!text-xl">Ending the match</h2>
+  <p class="text-sm text-muted">{{$p.ProposedBy}} proposed to end it · {{fmtDateTime $p.ProposedOn}}. It ends when every company has confirmed.</p>
+  {{with $p.Notice}}<div class="alert alert-info" role="status">{{.}}</div>{{end}}
+  <ul class="divide-y divide-line" aria-label="Confirmations">
+    {{range $p.Companies}}<li class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
+      <span class="min-w-0 break-words"><span class="font-medium">{{.CompanyName}}</span>{{if $m.Sides}} <span class="text-sm text-muted">{{template "end_owner" (dict "M" $m "ID" .CompanyID)}}</span>{{end}}</span>
+      {{if .Confirmed}}<span class="badge badge-gold shrink-0"><span aria-hidden="true">&#10003;</span> Confirmed{{if .Override}} by override{{end}}</span>
+      {{else}}<span class="badge badge-muted shrink-0"><span aria-hidden="true">&#9719;</span> Waiting</span>{{end}}
+      {{if .Confirmed}}<span class="basis-full text-xs text-muted sm:basis-auto">{{.By}} · {{fmtDateTime .On}}</span>{{end}}
+    </li>{{end}}
+  </ul>
+  {{with .End}}
+  <div class="flex flex-wrap gap-2">
+    {{if .CanConfirm}}<form hx-post="{{$base}}/confirm" hx-target="#match" hx-swap="outerHTML"><input type="hidden" name="revision" value="{{$m.Revision}}"><button class="btn btn-primary">Confirm the end</button></form>{{end}}
+    {{if .CanWithdraw}}<form hx-post="{{$base}}/withdraw" hx-target="#match" hx-swap="outerHTML"><input type="hidden" name="revision" value="{{$m.Revision}}"><button class="btn btn-secondary">Withdraw my confirmation</button></form>{{end}}
+    {{if .CanCancel}}<form hx-post="{{$base}}/cancel" hx-target="#match" hx-swap="outerHTML"><input type="hidden" name="revision" value="{{$m.Revision}}"><button class="btn btn-secondary">Keep playing</button></form>{{end}}
+  </div>
+  {{if .CanOverride}}{{template "end_override" (dict "Base" $base "Rev" $m.Revision "P" $p "Note" $.OverrideNote "Err" $.OverrideErr "Target" "#match" "Extra" "")}}{{end}}
+  {{if and (not .CanConfirm) (not .CanWithdraw) (not .CanCancel) (not .CanOverride)}}<p class="text-sm text-muted">{{with .Reason}}{{.}}{{else}}Waiting for the players.{{end}}</p>{{end}}
+  {{end}}
+</section>
+{{end}}
+
+{{define "end_owner"}}{{range .M.Sides}}{{range .Companies}}{{if eq .ID $.ID}}{{.Owner}}{{end}}{{end}}{{end}}{{end}}
+
+{{/* The Attacker/Defender tags of the teams, for an editor of an open match (only while the scenario is open or has roles). */}}
+{{define "roles_card"}}{{$m := .Match}}
+<section class="card mt-6 space-y-3" id="roles" aria-labelledby="roles-title">
+  <h2 id="roles-title" class="!text-xl">Roles</h2>
+  <p class="text-sm text-muted">Who attacks and who defends. Scenarios with an Attacker and a Defender need both teams tagged before the match can end.</p>
+  <form hx-post="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/roles" hx-target="#match" hx-swap="outerHTML" class="space-y-3">
+    <input type="hidden" name="revision" value="{{$m.Revision}}">
+    <div class="grid gap-3 sm:grid-cols-2">
+      {{range $i, $side := $m.Sides}}
+      <div class="field"><label for="role-{{inc $i}}" class="break-words">{{$side.Label}}</label>
+        <select id="role-{{inc $i}}" name="role-{{inc $i}}" class="input">
+          <option value="">None</option>
+          <option value="attacker" {{if eq $side.Role "attacker"}}selected{{end}}>Attacker</option>
+          <option value="defender" {{if eq $side.Role "defender"}}selected{{end}}>Defender</option>
+        </select></div>
+      {{end}}
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button class="btn btn-primary">Save roles</button>
+      {{if eq (len $m.Sides) 2}}<button type="button" class="btn btn-secondary" hx-post="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/roles/swap" hx-vals='{"revision":"{{$m.Revision}}"}' hx-target="#match" hx-swap="outerHTML">Swap roles</button>{{end}}
+    </div>
+  </form>
+</section>
+{{end}}
+
+{{/* The secret objectives of the scenario (Fog of War): the viewer's own notes while the match is open, everybody's after it. Takes secretView. */}}
+{{define "secret_card"}}{{$v := .}}
+{{if or .Mine .Revealed .Others}}
+<section id="secret-objectives" class="card mt-6 space-y-4" aria-labelledby="secret-title">
+  <h2 id="secret-title" class="!text-xl">Secret objectives</h2>
+  {{if .Ended}}
+    <p class="text-sm text-muted">The match is over: the notes are revealed.</p>
+    {{if not .Revealed}}<p class="text-muted">Nobody noted a secret objective.</p>{{end}}
+    <ul class="divide-y divide-line">
+      {{range .Revealed}}<li class="py-2 text-sm"><span class="font-medium">{{.Company}}</span> · {{if .Label}}{{.Label}}{{else}}{{.Text}}{{end}}{{with .Nominee}}<br><span class="text-muted">Noted: {{.}}</span>{{end}}<br>{{if .Tier}}<span class="badge badge-gold">Scored {{.Points}} VP</span>{{else}}<span class="text-muted">No score reported.</span>{{end}}</li>{{end}}
+    </ul>
+  {{else}}
+  <p class="text-sm text-muted">Note these down at the start and report what you reached at the end. Only you see your entries until the match ends, then everybody does.</p>
+  <div aria-live="polite">
+  {{with .Msg}}<div class="alert {{if $v.Error}}alert-danger{{else}}alert-success{{end}} flex flex-wrap items-center justify-between gap-2" role="{{if $v.Error}}alert{{else}}status{{end}}"><span>{{.}}</span>
+    {{if and (not $v.Error) $v.EntryID}}<button type="button" class="btn btn-secondary !min-h-9" hx-post="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/live/log/{{$v.EntryID}}/undo" hx-vals='{"from":"secret"}' hx-target="#secret-objectives" hx-swap="outerHTML">Undo</button>{{end}}</div>{{end}}
+  </div>
+  {{range .Mine}}{{$co := .}}
+  <div class="space-y-3">
+    <h3 class="!text-base font-medium break-words">{{.Name}}</h3>
+    {{range .Objectives}}{{$o := .}}
+    <fieldset class="min-w-0 space-y-2 rounded-lg border border-line p-3">
+      <legend class="px-1 text-sm font-medium">{{if .Label}}{{.Label}}{{else}}{{.Key}}{{end}}</legend>
+      <p class="text-sm break-words">{{.Instruction}}</p>
+      {{with .Nomination}}
+      <form hx-post="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/secret/{{$co.ID}}" hx-target="#secret-objectives" hx-swap="outerHTML" class="space-y-2">
+        <input type="hidden" name="kind" value="nominate"><input type="hidden" name="key" value="{{$o.Key}}">
+        {{if eq .From "terrain"}}
+        <div class="field"><label for="n-{{$co.ID}}-{{$o.Key}}">The terrain piece{{if eq .Where "opponentHalf"}} (wholly in the opponent's half){{end}}</label>
+          <input id="n-{{$co.ID}}-{{$o.Key}}" name="note" maxlength="120" value="{{$o.Nominee}}" class="input" placeholder="For example: the ruined tower"></div>
+        {{else}}
+        <div class="field"><label for="n-{{$co.ID}}-{{$o.Key}}">{{if eq .From "ownHeroes"}}One of your Heroes{{else}}A Hero of the opponent{{end}}</label>
+          <select id="n-{{$co.ID}}-{{$o.Key}}" name="unit" class="input"><option value="0">None</option>{{range $o.Heroes}}<option value="{{.ID}}" {{if .Selected}}selected{{end}}>{{.Label}}</option>{{end}}</select></div>
+        {{end}}
+        <button class="btn btn-secondary">Save note</button>
+        {{if $o.Nominee}}<span class="ml-2 text-sm text-muted">Noted: {{$o.Nominee}}</span>{{end}}
+      </form>
+      {{end}}
+      <form hx-post="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/secret/{{$co.ID}}" hx-target="#secret-objectives" hx-swap="outerHTML" class="space-y-2">
+        <input type="hidden" name="kind" value="done"><input type="hidden" name="key" value="{{$o.Key}}">
+        <p class="text-sm font-medium">What you reached</p>
+        <div class="grid gap-2" role="radiogroup" aria-label="Tier reached for {{$o.Label}}">
+          <label class="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-line px-3 py-2 hover:bg-raised has-[:checked]:border-accent has-[:checked]:bg-accent-soft"><input type="radio" name="tier" value="0" {{if eq $o.Tier 0}}checked{{end}} class="mt-1 size-4 shrink-0 accent-accent"><span class="text-sm">Not reached yet</span></label>
+          {{range $i, $t := .Options}}<label class="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-line px-3 py-2 hover:bg-raised has-[:checked]:border-accent has-[:checked]:bg-accent-soft"><input type="radio" name="tier" value="{{inc $i}}" {{if eq $o.Tier (inc $i)}}checked{{end}} class="mt-1 size-4 shrink-0 accent-accent"><span class="min-w-0 break-words text-sm"><strong>{{$t.Points}} VP</strong> · {{$t.Text}}</span></label>{{end}}
+        </div>
+        <button class="btn btn-secondary">Save</button>
+      </form>
+    </fieldset>
+    {{end}}
+  </div>
+  {{end}}
+  {{if not .Mine}}<p class="text-sm text-muted">Only the players of the match note secret objectives.</p>{{end}}
+  {{with .Others}}<p class="text-sm text-muted">Noted already: {{join . ", "}}. What they noted stays hidden until the match ends.</p>{{end}}
+  {{end}}
+</section>
+{{end}}
+{{end}}

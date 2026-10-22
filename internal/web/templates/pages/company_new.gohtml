@@ -1,0 +1,254 @@
+{{define "title"}}Create your company · {{.Campaign.Name}} · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+<div x-data="companyBrowser" @mouseover="over($event)" @mouseout="out($event)" @focusin="over($event)" @focusout="out($event)" @keydown.escape.window="hide()" data-picked="{{with .Info}}{{.Profile.Name}}{{end}}">
+  <p class="text-sm"><a href="/campaigns/{{.Campaign.ID}}">← {{.Campaign.Name}}</a></p>
+  <h1 class="mt-2">Choose your company</h1>
+  <p class="mt-1 max-w-prose text-muted">Every Battle Company of this campaign's rules. Pick one to see its history, its starting company, what it can recruit and become, and what only it has. Hover or tap a unit or an item for its card. You can have one company in each campaign.</p>
+
+  <div class="mt-6 grid items-start gap-6 lg:grid-cols-[17rem_minmax(0,1fr)]">
+    <nav aria-label="Companies" class="space-y-3 lg:sticky lg:top-20">
+      <div class="flex gap-2">
+        <label for="company-search" class="sr-only">Search companies</label>
+        <input id="company-search" type="search" x-model="q" placeholder="Search companies…" autocomplete="off" class="input min-w-0 flex-1">
+      </div>
+      <div class="flex gap-1.5" role="group" aria-label="Alignment">
+        <button type="button" class="chip" :class="align === '' && 'chip-on'" @click="align = ''">All</button>
+        <button type="button" class="chip" :class="align === 'good' && 'chip-on'" @click="align = 'good'">Good</button>
+        <button type="button" class="chip" :class="align === 'evil' && 'chip-on'" @click="align = 'evil'">Evil</button>
+      </div>
+      <p class="text-sm text-muted" x-show="noMatch()" x-cloak>No company matches.</p>
+      <ul class="max-h-[60vh] space-y-1 overflow-y-auto pr-1 lg:max-h-[calc(100vh-14rem)]">
+        {{range .Profiles}}
+        <li data-name="{{.Name}}" data-align="{{.Alignment}}" x-show="shows($el)">
+          <button type="button" data-name="{{.Name}}" hx-get="/campaigns/{{$.Campaign.ID}}/company/info?c={{urlquery .Name}}" hx-target="#company-info" hx-swap="innerHTML" hx-boost="false" @click="picked = $el.dataset.name" hx-on::after-swap="if (!matchMedia('(min-width: 1024px)').matches) document.getElementById('company-info').scrollIntoView({ behavior: 'smooth' })"
+                  class="company-pick" :class="picked === $el.dataset.name && 'company-pick-on'" :aria-current="picked === $el.dataset.name">
+            <span class="font-medium">{{.Name}}</span>
+            <span class="flex items-center gap-2 text-xs text-muted"><span class="badge {{if eq .Alignment "evil"}}badge-danger{{else}}badge-muted{{end}}">{{.Alignment}}</span>{{.MaxModels}} models · {{.ReinforcementCost}} influence</span>
+          </button>
+        </li>
+        {{end}}
+      </ul>
+    </nav>
+
+    <div id="company-info" class="min-w-0" aria-live="polite">
+      {{with .Info}}{{template "company_info" .}}{{else}}
+      <div class="card space-y-2 text-muted"><p class="text-lg text-fg">Pick a company from the list.</p><p>Each one has its own starting company, reinforcement chart, promotions, exclusive wargear, hero upgrade and special rules.</p></div>
+      {{end}}
+    </div>
+  </div>
+
+  {{/* The card of a unit, or the text of an item, under the pointer. */}}
+  <div x-ref="tip" x-show="tip.show" x-cloak role="tooltip" class="card pointer-events-none fixed z-50 max-h-[calc(100vh-1rem)] w-80 max-w-[calc(100vw-1rem)] overflow-hidden !p-3 text-sm shadow-lg" :style="`left: ${tip.x}px; top: ${tip.y}px`">
+    <template x-if="tip.html"><div x-html="tip.html"></div></template>
+    <template x-if="!tip.html"><div>
+      <p class="font-heading text-lg font-bold leading-tight" x-text="tip.title"></p>
+      <p class="text-xs text-muted" x-show="tip.meta" x-text="tip.meta"></p>
+      <p class="mt-1 whitespace-pre-line" x-text="tip.text"></p>
+    </div></template>
+  </div>
+</div>
+{{end}}
+
+{{/* A unit named in a company's page: hovering it shows its card. Takes {P: profile, U: unit name, W: wargear}. */}}
+{{define "unit_ref"}}{{$pv := .P.Preview .U (gear .W)}}<span class="unit-ref" tabindex="0" {{if $pv.ID}}data-preview="{{$pv.ID}}"{{end}}>{{.U}}</span>{{if .P.OnOwnPath .U}} <span class="badge badge-muted" title="On Their Own Path: it never becomes a hero and earns no experience">On Their Own Path</span>{{end}}{{end}}
+
+{{/* The card of a unit as the company page shows it in a tooltip: its profile, wargear, rules and heroic actions. */}}
+{{define "unit_preview"}}
+<div class="space-y-2">
+  <div class="flex items-start gap-2">{{template "kind_icon" .Kind}}<div class="min-w-0 flex-1"><p class="font-heading text-lg font-bold leading-tight">{{.Name}}</p>{{with .Types}}<p class="text-xs text-muted">{{join . " · "}}</p>{{end}}</div>{{if .Points}}<span class="shrink-0 text-sm font-semibold">{{.Points}} <span class="font-normal text-muted">pts</span></span>{{end}}</div>
+  {{if .Stats}}<div class="flex flex-wrap justify-center gap-2">
+    <dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">{{range .Stats}}{{if not .HeroOnly}}<div class="min-w-7 border-r border-line bg-surface px-0.5 py-1 last:border-r-0"><dt class="text-[10px] uppercase leading-none text-muted">{{.Abbr}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}</dl>
+    {{if .HasHeroStats}}<dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-accent text-center">{{range .Stats}}{{if .HeroOnly}}<div class="min-w-12 border-r border-line bg-accent-soft px-2 py-1 last:border-r-0"><dt class="text-[10px] uppercase leading-none text-muted">{{.Name}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}</dd></div>{{end}}{{end}}</dl>{{end}}
+  </div>{{end}}
+  {{with .Wargear}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Wargear</span>{{range .}}<span class="eq-chip">{{upfirst .}}</span>{{end}}</p>{{end}}
+  {{with .HeroicActions}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Heroic actions</span>{{range .}}<span class="act-chip">{{.}}</span>{{end}}</p>{{end}}
+  {{with .Rules}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Special rules</span>{{range .}}<span class="rule-chip rule-unit">{{.}}</span>{{end}}</p>{{end}}
+</div>
+{{end}}
+
+{{/* One company: what it is, what it starts with, what it can recruit and become, and what only it has. The creation form sits
+   in the header; the controls for the leader and the sergeants are in the starting company below and belong to it
+   (the `form` attribute). */}}
+{{define "company_info"}}
+{{$p := .Profile}}{{$cid := .Campaign.ID}}
+<article class="space-y-6" x-data="commission" data-leader="{{range .Start}}{{if eq (printf "%s" .Role) "leader"}}{{.Index}}{{end}}{{end}}" data-sergeants="{{$first := true}}{{range .Start}}{{if eq (printf "%s" .Role) "sergeant"}}{{if not $first}},{{end}}{{.Index}}{{$first = false}}{{end}}{{end}}" data-suggested="{{if .Start}}{{(index .Start 0).Suggested}}{{else}}false{{end}}" data-company="{{$p.Name}}">
+  <header class="card space-y-4">
+    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <h2 class="!text-3xl">{{$p.Name}}</h2>
+      <span class="badge {{if eq $p.Alignment "evil"}}badge-danger{{else}}badge-muted{{end}}">{{$p.Alignment}}</span>
+    </div>
+    {{range $i, $para := split $p.Description "\n\n"}}<p class="max-w-prose {{if eq $i 0}}text-lg{{else}}text-muted{{end}}">{{$para}}</p>{{end}}
+    <dl class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="facts"><dt>Models</dt><dd>up to {{$p.MaxModels}}</dd></div>
+      <div class="facts"><dt>{{template "segments" (dict "S" ($.Named "Influence") "CID" $cid)}} per reinforcement</dt><dd>{{$p.ReinforcementCost}}</dd></div>
+      <div class="facts"><dt>Starting gold</dt><dd>{{$p.StartGold}}</dd></div>
+      <div class="facts"><dt>{{template "segments" (dict "S" ($.Named "Break Point") "CID" $cid)}}</dt><dd>{{if $p.BreakPoint}}{{$p.BreakPoint}}%{{else}}the usual{{end}}</dd></div>
+    </dl>
+    <p class="border-t border-line pt-4"><a href="#take-command" class="btn btn-primary" @click="$nextTick(() => document.getElementById('take-command').scrollIntoView({ behavior: 'smooth' }))">Take command of this company ↓</a>
+      <span class="ml-2 text-sm text-muted">The end of the page: your officers, your oath.</span></p>
+  </header>
+
+
+  <section class="card space-y-4" aria-labelledby="reinf-title">
+    <h3 id="reinf-title">Reinforcements <span class="text-sm font-normal text-muted">{{$p.ReinforcementCost}} influence per roll</span></h3>
+    <div class="grid gap-4 md:grid-cols-2">
+      {{template "chart_table" (dict "V" $ "Title" "Reinforcement chart" "Rows" $p.Reinforcements)}}
+      {{if $p.SpecialChart}}{{template "chart_table" (dict "V" $ "Title" "Special chart" "Rows" $p.SpecialChart)}}{{end}}
+    </div>
+    {{with $p.SpecialUnits}}<div><p class="text-sm font-medium">Special units <span class="font-normal text-muted">bought directly</span></p>
+      <ul class="mt-1 flex flex-wrap gap-2">{{range .}}<li class="rounded-lg border border-line bg-surface px-3 py-1.5">{{template "unit_ref" (dict "P" $p "U" .Unit "W" nil)}} <span class="text-sm text-muted">· {{.Cost}} influence</span>{{with .Rare}} <span class="badge badge-gold" title="The company may have at most {{.}} at once">Rare {{.}}</span>{{end}}</li>{{end}}</ul></div>{{end}}
+    {{range $.Notes.Chart}}<p class="text-sm text-muted">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p>{{end}}
+  </section>
+
+  {{if $p.Advancements}}
+  <section class="card space-y-3" aria-labelledby="promo-title">
+    <h3 id="promo-title">Promotions <span class="text-sm font-normal text-muted">a warrior rolling a 3 to 5 on its level-up becomes one of these</span></h3>
+    <div class="overflow-x-auto rounded-lg border border-line">
+      <table class="w-full text-sm">
+        <thead class="bg-raised text-xs uppercase text-muted"><tr><th class="px-3 py-1.5 text-left font-semibold">From</th><th class="px-3 py-1.5 text-left font-semibold">To</th></tr></thead>
+        <tbody class="divide-y divide-line">{{range $p.Advancements}}<tr>
+          <td class="px-3 py-2">{{template "unit_ref" (dict "P" $p "U" .FromUnit "W" .FromWargear)}}{{range .FromWargear}} {{template "chip" (dict "V" $ "N" .)}}{{end}}</td>
+          <td class="px-3 py-2">{{range $i, $t := .To}}{{if $i}}<span class="text-muted"> or </span>{{end}}{{template "unit_ref" (dict "P" $p "U" $t.Name "W" $t.Wargear)}}{{range $t.Wargear}} {{template "chip" (dict "V" $ "N" .)}}{{end}}{{end}}</td>
+        </tr>{{end}}</tbody>
+      </table>
+    </div>
+    {{range $.Notes.Promotions}}<p class="text-sm text-muted">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p>{{end}}
+  </section>
+  {{end}}
+
+  {{if or $p.UniqueWargear $p.HeroUpgrades $p.Rules $p.Granted $p.Aliases $p.Exchanges $p.Substitutions}}
+  <section class="space-y-3" aria-labelledby="own-title">
+    <h3 id="own-title">Only this company has</h3>
+    <div class="grid gap-3 md:grid-cols-2">
+      {{range $p.UniqueWargear}}
+      <div class="exclusive">
+        <p class="exclusive-label">Exclusive wargear</p><p class="font-medium">{{upfirst .Name}}</p>
+        <p class="text-sm text-muted">{{.Cost}} influence · rating {{.Rating.Warrior}} / {{.Rating.Hero}}{{if .Gold.Warrior}} · {{.Gold.Warrior}} / {{.Gold.Hero}} Gold{{end}}</p>
+        {{with index $.Tips .Name}}<p class="mt-1 text-sm">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p>{{end}}
+      </div>{{end}}
+      {{range $p.HeroUpgrades}}
+      <div class="exclusive exclusive-gold">
+        <p class="exclusive-label">Hero upgrade{{with .Restriction}} · {{.}} only{{end}}</p><p class="font-medium">{{template "segments" (dict "S" ($.Named .Name) "CID" $cid)}}</p>
+        {{with .Flavour}}<p class="text-sm italic text-muted">{{.}}</p>{{end}}
+        {{with index $.Tips .Name}}<p class="mt-1 text-sm">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p>{{end}}
+      </div>{{end}}
+      {{range $p.Rules}}<div class="exclusive"><p class="exclusive-label">Company rule</p><p class="text-sm">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p></div>{{end}}
+      {{range $p.Granted}}<div class="exclusive"><p class="exclusive-label">Free special rule · {{.AppliesTo}}</p><p class="font-medium">{{template "segments" (dict "S" ($.Named .Rule) "CID" $cid)}}</p><p class="text-sm text-muted">{{.Text}}</p></div>{{end}}
+      {{range $p.Aliases}}<div class="exclusive"><p class="exclusive-label">Unit with its own name</p><p class="font-medium">{{template "unit_ref" (dict "P" $p "U" .Label "W" nil)}}</p><p class="text-sm text-muted">{{template "segments" (dict "S" ($.Linked .Text) "CID" $cid)}}</p></div>{{end}}
+      {{range $p.Exchanges}}<div class="exclusive"><p class="exclusive-label">Rule exchange</p><p class="text-sm">{{template "segments" (dict "S" ($.Linked .Text) "CID" $cid)}}</p></div>{{end}}
+      {{range $p.Substitutions}}<div class="exclusive"><p class="exclusive-label">Company rule</p><p class="text-sm">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p></div>{{end}}
+    </div>
+  </section>
+  {{end}}
+
+  {{if or $p.LimitLines $p.LimitOverrides $p.OnTheirOwnPath $.Notes.Limits}}
+  <section class="card space-y-2" aria-labelledby="limits-title">
+    <h3 id="limits-title">Limits and notes</h3>
+    <ul class="list-inside list-disc space-y-1 text-sm">
+      {{range $p.LimitLines}}<li>{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</li>{{end}}
+      {{range $k, $v := $p.LimitOverrides}}<li>This company may have up to {{$v}}% of its models with a {{$k}} (the usual limit is lower).</li>{{end}}
+      {{if $p.OnTheirOwnPath}}<li>Units marked <span class="badge badge-muted">On Their Own Path</span> do not become heroes and earn no experience (<a class="term-link" hx-boost="false" href="/campaigns/{{$cid}}/glossary#t-on-their-own-path">glossary</a>).</li>{{end}}
+      {{range $.Notes.Limits}}<li>{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</li>{{end}}
+    </ul>
+  </section>
+  {{end}}
+
+  {{/* Taking command: the officers, then the oath. Everything above is for reading; this is the one decision. */}}
+  <section id="take-command" class="card space-y-5 scroll-mt-20" aria-labelledby="command-title">
+    <div>
+      <h3 id="command-title">Take command</h3>
+      <p class="mt-1 text-sm text-muted">Your company starts with these models{{if $p.StartGold}} and {{$p.StartGold}} Gold to spend in the armory{{end}}. Choose its officers: drag a leader and two sergeants into their places (or use the buttons on a card). They become <strong>heroes</strong> with a point of Might, Will and Fate and each chooses a path from the company page before your first match. <strong>The officers cannot be changed once you have sworn.</strong></p>
+    </div>
+    {{with .Error}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+    <div x-show="suggested" x-cloak class="alert alert-info" role="status"><strong>This is only a suggestion.</strong> These officers are the company's own idea of who should lead. Change them as you please: drag another model over them, or send them back with Remove.</div>
+
+    {{template "officer_panel" (dict "V" $ "PoolLabel" "the models that stay warriors")}}
+    {{range $.Notes.Start}}<p class="text-sm text-muted">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p>{{end}}
+
+    <form id="create-company" method="post" action="/campaigns/{{$cid}}/company" hx-boost="false" class="space-y-4 border-t border-line pt-5" @submit="read()">
+      <input type="hidden" name="faction" value="{{$p.Name}}">
+      <input type="hidden" name="leader" :value="leader">
+      <template x-for="s in sergeants" :key="s"><input type="hidden" name="sergeant" :value="s"></template>
+      <blockquote class="oath">
+        <p>{{$p.Oath.Before}}<input id="name" name="name" value="{{.Name}}" maxlength="60" required autocomplete="off" x-model="name" @blur="touched = true" class="oath-name" placeholder="name your company" aria-label="The name of your company" size="22">{{$p.Oath.After}}</p>
+      </blockquote>
+      <p class="text-sm" :class="touched ? 'text-danger' : 'text-muted'" x-show="incomplete()" x-cloak aria-live="polite" x-text="incomplete()"></p>
+      <button type="button" class="btn btn-primary" :disabled="!!incomplete()" @click="swear()">{{$p.Oath.Vow}}</button>
+
+      <dialog x-ref="confirm" class="dialog" aria-labelledby="swear-title">
+        <h3 id="swear-title" class="!text-2xl">Are you sure?</h3>
+        <p class="mt-2">You take command of the {{$p.Name}} company <strong x-text="name.trim()"></strong>, with <strong x-text="officerName(leader)"></strong> as its leader and <strong x-text="sergeants.map(i => officerName(i)).join(' and ')"></strong> as its sergeants.</p>
+        <p class="mt-2 font-semibold">These decisions are final: neither the company nor its officers can be changed afterwards (the name can).</p>
+        <div class="mt-5 flex justify-end gap-2">
+          <button type="button" class="btn btn-secondary" @click="$refs.confirm.close()">No</button>
+          <button class="btn btn-primary">Yes</button>
+        </div>
+      </dialog>
+    </form>
+  </section>
+
+  {{/* The cards the unit names above show on hover. */}}
+  {{range $p.Previews}}<div hidden id="{{.ID}}">{{template "unit_preview" .}}</div>{{end}}
+</article>
+{{end}}
+
+{{/* An item or a rule as a small chip: a link to its glossary entry when it has one. Takes {V: the page's view, N: the name}. */}}
+{{define "chip"}}{{$t := index (.V.Named .N) 0}}{{if $t.TermID}}<a class="eq-chip term-link" hx-boost="false" href="/campaigns/{{.V.Campaign.ID}}/glossary#t-{{$t.TermID}}" data-tip-title="{{$t.TipTitle}}" data-tip-text="{{$t.TipText}}">{{upfirst .N}}</a>{{else}}<span class="eq-chip">{{upfirst .N}}</span>{{end}}{{end}}
+
+{{/* A chart of rolls and what they give. Takes {V: the page's view, Title, Rows}. */}}
+{{define "chart_table"}}{{$v := .V}}{{$p := $v.Profile}}{{$cid := $v.Campaign.ID}}
+<div>
+  <p class="mb-1 text-sm font-medium">{{.Title}}</p>
+  <div class="overflow-hidden rounded-lg border border-line">
+    <table class="w-full text-sm">
+      <tbody class="divide-y divide-line">{{range .Rows}}<tr>
+        <td class="w-14 bg-raised px-3 py-1.5 text-center font-semibold">{{if eq .Min .Max}}{{.Min}}{{else}}{{.Min}}–{{.Max}}{{end}}</td>
+        <td class="px-3 py-1.5">{{with .Result}}{{if eq .Type "nothing"}}<span class="text-muted">Nothing{{if .Blocks}} (and no more rolls){{end}}</span>
+          {{else if eq .Type "specialChart"}}<span class="text-muted">Roll on the special chart</span>{{if .Alt}} <span class="text-muted">or</span> {{template "unit_ref" (dict "P" $p "U" .Alt "W" nil)}}{{end}}
+          {{else if eq .Type "choice"}}<span class="text-muted">{{template "segments" (dict "S" ($v.Linked .Text) "CID" $cid)}}</span>
+          {{else if eq .Type "unitChoice"}}<span class="text-muted">One of</span> {{range $i, $o := .Options}}{{if $i}}<span class="text-muted">, </span>{{end}}{{template "unit_ref" (dict "P" $p "U" $o.Unit "W" nil)}}{{with $o.Label}} <span class="text-xs text-muted">({{.}})</span>{{end}}{{end}} <span class="text-xs text-muted">· one of each at most</span>
+          {{else}}{{if gt .Count 1}}{{.Count}} × {{end}}{{template "unit_ref" (dict "P" $p "U" .Unit "W" .Wargear)}}{{range .Wargear}} {{template "chip" (dict "V" $v "N" .)}}{{end}}{{if .Choice}} <span class="text-xs text-muted">choose its options</span>{{end}}{{if .Alt}} <span class="text-muted">or</span> {{template "unit_ref" (dict "P" $p "U" .Alt "W" nil)}}{{end}}{{with .Rare}} <span class="badge badge-gold" title="The company may have at most {{.}} at once">Rare {{.}}</span>{{end}}{{end}}{{end}}</td>
+      </tr>{{end}}</tbody>
+    </table>
+  </div>
+</div>
+{{end}}
+
+
+{{/* The officer panel: the Leader place, two Sergeant places and the pool of models, drag and drop (the Alpine "commission" component of
+   the enclosing element) and the card buttons. Takes {V: the page's view (Leader, Sergeant n, Pool), PoolLabel: the text after "Starting company"}. */}}
+{{define "officer_panel"}}{{$v := .V}}
+    <div class="mx-auto grid max-w-2xl grid-cols-2 gap-3">
+      <div class="col-span-2 mx-auto w-full max-w-xs">
+        <p class="mb-1 flex items-center justify-center gap-1.5 text-sm font-semibold">{{template "role_insignia" "leader"}} Leader</p>
+        <ul class="officer-slot" data-slot="leader" aria-label="Leader">{{range $v.Leader}}{{template "start_card" (dict "V" $v "R" .)}}{{end}}</ul>
+      </div>
+      {{range $n := seq 0 1}}<div>
+        <p class="mb-1 flex items-center justify-center gap-1.5 text-sm font-semibold">{{template "role_insignia" "sergeant"}} Sergeant</p>
+        <ul class="officer-slot" data-slot="sergeant" aria-label="Sergeant {{inc $n}}">{{range $v.Sergeant $n}}{{template "start_card" (dict "V" $v "R" .)}}{{end}}</ul>
+      </div>{{end}}
+    </div>
+
+    <div>
+      <p class="mb-1 text-sm font-semibold">Starting company <span class="font-normal text-muted">· {{.PoolLabel}}</span></p>
+      <ul id="start-pool" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-label="Starting models">
+        {{range $v.Pool}}{{template "start_card" (dict "V" $v "R" .)}}{{end}}
+      </ul>
+    </div>
+{{end}}
+
+{{/* A starting model in the creation page: draggable between the pool and the officers' places. Takes {V: the page's view, R: startRow}. */}}
+{{define "start_card"}}{{$v := .V}}{{$r := .R}}{{$p := $v.Profile}}
+<li class="start-card" data-index="{{$r.Index}}" data-eligible="{{$r.Eligible}}" data-unit="{{$r.Unit}}"{{if $r.Locked}} data-keep="true"{{end}}>
+  <div class="min-w-0 flex-1">
+    <p class="font-medium">{{template "unit_ref" (dict "P" $p "U" $r.Unit "W" $r.Wargear)}}</p>
+    <p class="mt-0.5 flex flex-wrap gap-1">{{range $r.Wargear}}{{template "chip" (dict "V" $v "N" .)}}{{end}}{{if $r.Suggested}}<span class="badge badge-gold" x-show="suggested" x-cloak>Suggested</span>{{end}}</p>
+  </div>
+  <div class="pool-only flex shrink-0 flex-col gap-1">
+    {{if $r.Eligible}}<button type="button" class="btn btn-secondary !min-h-8 !px-2 !text-xs" @click="assign($el.closest('.start-card'), 'leader')">Leader</button>
+    <button type="button" class="btn btn-secondary !min-h-8 !px-2 !text-xs" @click="assign($el.closest('.start-card'), 'sergeant')">Sergeant</button>
+    {{else}}<span class="max-w-24 text-right text-xs text-muted" title="This company cannot make {{$r.Unit}} an officer">Cannot lead</span>{{end}}
+  </div>
+  {{if $r.Locked}}<span class="slot-only text-xs text-muted">Always leads</span>{{else}}<button type="button" class="slot-only btn btn-ghost !min-h-8 !px-2 !text-xs" @click="unassign($el.closest('.start-card'))">Remove</button>{{end}}
+</li>
+{{end}}

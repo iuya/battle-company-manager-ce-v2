@@ -1,0 +1,149 @@
+{{/* Header shared by every page of a campaign: name, status and the tabs (the current one comes from .Tab). */}}
+{{define "campaign_header"}}
+<p class="text-sm"><a href="/" class="inline-flex min-h-11 items-center">← Campaigns</a></p>
+<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+  <h1>{{.Campaign.Name}}</h1>
+  {{if eq .Campaign.Status "paused"}}<span class="badge badge-muted">Paused</span>{{else if eq .Campaign.Status "finished"}}<span class="badge badge-muted">Finished</span>{{else}}<span class="badge">Active</span>{{end}}
+</div>
+{{with .Campaign.Description}}<p class="mt-1 text-muted">{{.}}</p>{{end}}
+<nav class="tab-bar mt-4 flex overflow-x-auto border-b border-line" aria-label="Campaign">
+  {{$base := printf "/campaigns/%d" .Campaign.ID}}
+  <a href="{{$base}}" class="tab" {{if eq .Tab "overview"}}aria-current="page"{{end}}>Overview</a>
+  <a href="{{$base}}/my-company" class="tab" {{if eq .Tab "my-company"}}aria-current="page"{{end}}>My Company</a>
+  <a href="{{$base}}/armory" class="tab" {{if eq .Tab "armory"}}aria-current="page"{{end}}>Armory</a>
+  <a href="{{$base}}/companies" class="tab" {{if eq .Tab "companies"}}aria-current="page"{{end}}>Companies</a>
+  <a href="{{$base}}/rankings" class="tab" {{if eq .Tab "rankings"}}aria-current="page"{{end}}>Rankings</a>
+  <a href="{{$base}}/matches" class="tab" {{if eq .Tab "matches"}}aria-current="page"{{end}}>Matches</a>
+  <a href="{{$base}}/glossary" class="tab" {{if eq .Tab "glossary"}}aria-current="page"{{end}}>Glossary</a>
+</nav>
+{{end}}
+
+{{/* Wins, draws and losses as green / yellow / red numbers. Takes a core.CampaignCompany. */}}
+{{define "wdl"}}<span class="whitespace-nowrap"><span class="tone-win">{{.Wins}}</span><span class="text-muted">/</span><span class="tone-draw">{{.Draws}}</span><span class="text-muted">/</span><span class="tone-loss">{{.Losses}}</span></span>{{end}}
+
+{{/* One match on one line: "A  vs  B + C". The winner's name is green, losers red, and both are yellow after a draw. */}}
+{{define "match_sides"}}
+{{$m := .}}
+<span class="inline-flex flex-wrap items-baseline gap-x-2">
+  {{range $i, $side := .Sides}}
+    {{if $i}}<span class="text-muted">vs</span>{{end}}
+    <span class="font-medium {{with $m.Tone $i}}tone-{{.}}{{end}}" {{if $side.Name}}title="{{$side.Name}}"{{end}}>{{range $j, $co := $side.Companies}}{{if $j}} + {{end}}{{$co.Name}}{{end}}</span>
+  {{end}}
+</span>
+{{end}}
+
+{{/* "Scenario: X" or "One-off: X" under the sides of a match; nothing when none is chosen. */}}
+{{define "match_scenario"}}{{with .Scenario}}<span class="block text-sm text-muted break-words">{{if eq .Kind "custom"}}One-off{{else}}Scenario{{end}}: {{.Name}}</span>{{end}}{{end}}
+
+{{define "match_result"}}
+{{if not .Ended}}<span class="badge badge-muted">Open</span>
+{{else if eq .Winner 0}}<span class="badge badge-muted tone-draw">Draw</span>
+{{else}}<span class="badge badge-muted tone-win">{{.WinnerName}} won</span>{{end}}
+{{end}}
+
+{{/* Stats and the management section of a company; shown on the My Company page, own or read only. Takes .Company (a value or a pointer). */}}
+{{/* A company's points: what counts now, and in brackets what they would be with nobody injured (left out when the same). */}}
+{{define "points"}}{{.Points}}{{if and .FullPoints (ne .FullPoints .Points)}} <span class="font-normal text-muted">({{.FullPoints}})</span>{{end}}{{end}}
+
+{{define "company_stats"}}
+<dl class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+  <div class="card !p-4"><dt class="text-sm text-muted">Points</dt><dd class="text-2xl font-semibold">{{template "points" .Company}}</dd>{{with .Injured}}<dd class="mt-0.5 text-xs text-danger">{{.}} injured, not counted</dd>{{end}}</div>
+  <div class="card !p-4"><dt class="text-sm text-muted">Units</dt><dd class="text-2xl font-semibold">{{.Company.Units}}{{with .Max}} <span class="text-base font-normal text-muted">/ {{.}}</span>{{end}}</dd></div>
+  <div class="card !p-4"><dt class="text-sm text-muted">Matches</dt><dd class="text-2xl font-semibold">{{.Company.Played}}</dd></div>
+  <div class="card !p-4"><dt class="text-sm text-muted">W / D / L</dt><dd class="text-2xl font-semibold">{{template "wdl" .Company}}</dd></div>
+</dl>
+{{end}}
+
+
+{{/* The Grants card of a company: what the organiser awarded (newest first) and, for the organiser and administrators, the form to award something. */}}
+{{define "grants_card"}}
+<section class="card mt-6 space-y-4" id="grants">
+  <h2 class="!text-xl">Grants</h2>
+  {{with .Notice}}<div class="alert {{if $.NoticeErr}}alert-danger{{else}}alert-success{{end}}" role="{{if $.NoticeErr}}alert{{else}}status{{end}}">{{.}}</div>{{end}}
+  {{if .Grants}}
+  <ul class="divide-y divide-line">
+    {{range .Grants}}
+    <li class="space-y-1 py-2 first:pt-0 last:pb-0">
+      <p class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        {{if .Gold}}<span class="badge {{if lt .Gold 0}}badge-muted{{else}}badge-gold{{end}}">{{if gt .Gold 0}}+{{end}}{{.Gold}} Gold</span>{{end}}
+        {{if .Influence}}<span class="badge {{if lt .Influence 0}}badge-muted{{end}}">{{if gt .Influence 0}}+{{end}}{{.Influence}} Influence</span>{{end}}
+        {{if .Experience}}<span class="badge {{if lt .Experience 0}}badge-muted{{end}}">{{if gt .Experience 0}}+{{end}}{{.Experience}} Experience{{with $.UnitName .UnitID}} · {{.}}{{end}}</span>{{end}}
+      </p>
+      {{with .Note}}<p class="break-words">{{.}}</p>{{end}}
+      <p class="text-sm text-muted">{{with .By}}{{.}} · {{end}}{{fmtDate .On}}</p>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}<p class="text-muted">Nothing has been granted to this company yet.</p>{{end}}
+
+  {{if .CanGrant}}
+  <form hx-post="/campaigns/{{.CampaignID}}/companies/{{.CompanyID}}/grants" hx-target="#grants" hx-swap="outerHTML" class="space-y-4 rounded-xl border border-line bg-raised p-4" x-data="{ n: {{len .Form.Note}} }">
+    <h3 class="!text-lg">Grant reward</h3>
+    <p class="text-sm text-muted">The company has <strong class="text-fg">{{.Gold}}</strong> Gold and <strong class="text-fg">{{.Influence}}</strong> Influence. Use a negative number to correct a mistake.</p>
+    {{with index .Errors ""}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="field"><label for="grant-gold">Gold</label>
+        <input id="grant-gold" name="gold" type="number" inputmode="numeric" step="1" min="-1000" max="1000" value="{{.Form.Gold}}" class="input" {{with index .Errors "gold"}}aria-invalid="true" aria-describedby="grant-gold-err"{{end}}>
+        {{with index .Errors "gold"}}<p class="error" id="grant-gold-err" role="alert">{{.}}</p>{{end}}</div>
+      <div class="field"><label for="grant-influence">Influence</label>
+        <input id="grant-influence" name="influence" type="number" inputmode="numeric" step="1" min="-100" max="100" value="{{.Form.Influence}}" class="input" {{with index .Errors "influence"}}aria-invalid="true" aria-describedby="grant-influence-err"{{end}}>
+        {{with index .Errors "influence"}}<p class="error" id="grant-influence-err" role="alert">{{.}}</p>{{end}}</div>
+      <div class="field"><label for="grant-experience">Experience</label>
+        <input id="grant-experience" name="experience" type="number" inputmode="numeric" step="1" min="-100" max="100" value="{{.Form.Experience}}" class="input" {{with index .Errors "experience"}}aria-invalid="true" aria-describedby="grant-experience-err"{{end}}>
+        {{with index .Errors "experience"}}<p class="error" id="grant-experience-err" role="alert">{{.}}</p>{{end}}</div>
+      <div class="field"><label for="grant-unit">Unit that gets the experience</label>
+        <select id="grant-unit" name="unit" class="input" {{with index .Errors "unit"}}aria-invalid="true" aria-describedby="grant-unit-err"{{end}}>
+          <option value="">Choose a unit…</option>
+          {{range .Roster}}<option value="{{.ID}}" {{if eq (printf "%d" .ID) $.Form.Unit}}selected{{end}}>{{.Title}}</option>{{end}}
+        </select>
+        {{with index .Errors "unit"}}<p class="error" id="grant-unit-err" role="alert">{{.}}</p>{{end}}</div>
+    </div>
+    <div class="field"><label for="grant-note">Note <span class="text-muted">(why; everybody in the campaign can read it)</span></label>
+      <textarea id="grant-note" name="note" rows="2" maxlength="200" required @input="n = $event.target.value.length" class="input" {{with index .Errors "note"}}aria-invalid="true" aria-describedby="grant-note-err"{{end}}>{{.Form.Note}}</textarea>
+      {{with index .Errors "note"}}<p class="error" id="grant-note-err" role="alert">{{.}}</p>{{end}}
+      <p class="hint"><span x-text="n">0</span> / 200</p></div>
+    <button class="btn btn-primary">Grant reward</button>
+  </form>
+  {{end}}
+</section>
+{{end}}
+
+{{/* The Perks card of a company: scenario perks waiting to be used, with Mark used for the owner, and the used ones collapsed.
+   Takes Unused, Used (perkView lists), CanUse and CampaignID. */}}
+{{define "perks_card"}}
+<section class="card mt-6 space-y-3" id="perks">
+  <h2 class="!text-xl">Perks</h2>
+  {{if .Unused}}
+  <ul class="divide-y divide-line">
+    {{range .Unused}}
+    <li class="flex flex-wrap items-start justify-between gap-3 py-2 first:pt-0 last:pb-0">
+      <div class="min-w-0 space-y-0.5">
+        <p class="font-medium break-words">{{.Name}}{{with .Unit}} <span class="text-sm font-normal text-muted">· {{.}}</span>{{end}}</p>
+        {{with .Text}}<p class="text-sm break-words">{{.}}</p>{{end}}
+        {{with .WhenText}}<p class="text-sm text-muted">{{.}}</p>{{end}}
+      </div>
+      {{if $.CanUse}}<form hx-post="/campaigns/{{$.CampaignID}}/my-company/perks/{{.ID}}/use" hx-target="#main" hx-swap="innerHTML show:window:top"><button class="btn btn-secondary !min-h-9">Mark used<span class="sr-only"> {{.Name}}</span></button></form>{{end}}
+    </li>
+    {{end}}
+  </ul>
+  {{else}}<p class="text-muted">No perks waiting. Some scenarios award one to the winner.</p>{{end}}
+  {{with .Used}}
+  <details class="group">
+    <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium"><span>Used ({{len .}})</span><span class="text-muted group-open:hidden">Show</span><span class="hidden text-muted group-open:inline">Hide</span></summary>
+    <ul class="space-y-1 text-sm text-muted">{{range .}}<li class="opacity-70">{{.Name}}{{with .Unit}} · {{.}}{{end}}{{with .UsedOn}} · used {{fmtDate .}}{{end}}</li>{{end}}</ul>
+  </details>
+  {{end}}
+</section>
+{{end}}
+
+{{/* The History card: the latest lines of the company's aftermaths grouped by match, newest first. Takes (dict "Lines" []core.AftermathLine "CID" campaign id). */}}
+{{define "history_card"}}
+<section class="card mt-6 space-y-2" id="aftermath-history">
+  <h2 class="!text-xl">Aftermath history</h2>
+  {{$cid := .CID}}{{if .Lines}}{{$match := -1}}{{range .Lines}}{{if ne .Match $match}}{{if ge $match 0}}</ul>{{end}}{{$match = .Match}}
+  {{if .Match}}<h3 class="!text-base">{{if .MatchID}}<a class="underline" href="/campaigns/{{$cid}}/matches/{{.MatchID}}">Match {{.Match}}</a>{{else}}Match {{.Match}}{{end}}{{if not .On.IsZero}} <span class="text-sm font-normal text-muted">· {{fmtDateShort .On}}</span>{{end}}</h3>{{end}}
+  <ul class="divide-y divide-line text-sm">{{end}}<li class="py-1.5 first:pt-0 last:pb-0">{{.Text}}{{if .Amount}} <span class="text-muted">({{if gt .Amount 0}}+{{end}}{{.Amount}})</span>{{end}}</li>{{end}}</ul>
+  {{else}}<p class="text-muted">Nothing yet. What the War's Aftermath does to the company is listed here.</p>{{end}}
+</section>
+{{end}}
+

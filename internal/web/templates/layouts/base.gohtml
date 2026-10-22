@@ -1,0 +1,72 @@
+{{define "layout"}}<!doctype html>
+<html lang="en" data-palette="forest" data-mode="light"{{with .User}} data-auth="1"{{with .Appearance}}{{if .Palette}} data-pref="{{.Palette}}.{{.Mode}}"{{end}}{{end}}{{end}}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f1f3ec">
+  <title>{{template "title" .}}</title>
+  {{/* Applies the saved appearance (static/js/theme-init.js; the account's data-pref when signed in, else cookie "bcm-theme" = "<palette>.<mode>") before the first paint: no flash of the wrong palette or mode. */}}
+  <script src="/static/js/theme-init.js"></script>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/static/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/js/tz.js"></script>
+  <script src="/static/js/htmx.min.js" defer></script>
+  <script src="/static/js/theme.js" defer></script>{{/* must come before Alpine: it registers its stores on alpine:init */}}
+  <script src="/static/js/match_form.js" defer></script>
+  <script src="/static/js/match_result.js" defer></script>
+  <script src="/static/js/ruleset_picker.js" defer></script>
+  <script src="/static/js/lists.js" defer></script>
+  <script src="/static/js/sortable.min.js" defer></script>{{/* SortableJS (MIT): drag and drop of the unit cards */}}
+  <script src="/static/js/dice.js" defer></script>
+  <script src="/static/js/company.js" defer></script>
+  <script src="/static/js/live.js" defer></script>
+  <script src="/static/js/dialog.js" defer></script>
+  <script src="/static/js/submit.js" defer></script>
+  <script src="/static/js/tabs.js" defer></script>
+  <script src="/static/js/alpine.min.js" defer></script>
+  {{/* historyCacheSize 0: going back re-fetches the page instead of restoring an HTML snapshot, which would carry Alpine's generated nodes without their state. */}}
+  <meta name="htmx-config" content='{"historyCacheSize":0,"responseHandling":[{"code":"422","swap":true},{"code":"[23]..","swap":true},{"code":".*","swap":false,"error":true}]}'>
+</head>
+{{/* hx-boost turns every link/form into an htmx request that only swaps #main; the server answers with the content block only. */}}
+<body class="min-h-full" hx-boost="true" hx-target="#main" hx-swap="innerHTML show:window:top">
+{{if .User}}
+{{/* App shell: sidebar on the left from md up, a slide-over drawer below. `path` follows htmx navigation so the sidebar can mark the current page. */}}
+<div data-path="{{.Path}}" x-data="{ open: false, err: '', path: $el.dataset.path, fail(xhr) { const t = (xhr.responseText || '').trim(); this.err = t && t.length < 200 && t[0] !== '<' ? t : 'Something went wrong. Reload the page and try again.'; }, inCampaign(id) { return this.path === '/campaigns/' + id || this.path.startsWith('/campaigns/' + id + '/'); }, navigate(e) { const a = e.target.closest('a[href]'); if (!a || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || a.target || a.origin !== location.origin) return; this.path = a.pathname; }, onTab(id, tab) { const base = '/campaigns/' + id; return tab === '' ? this.path === base : this.path === base + '/' + tab || this.path.startsWith(base + '/' + tab + '/'); } }" @keydown.escape.window="open = false" @click="navigate($event)" @htmx:response-error.window="path = location.pathname; fail($event.detail.xhr)" @htmx:send-error.window="path = location.pathname; err = 'Could not reach the server. Check your connection and try again.'" @htmx:before-request.window="err = ''"
+     @htmx:after-settle.window="path = location.pathname" @popstate.window="path = location.pathname">
+  <div x-show="err" x-cloak role="alert" class="alert alert-danger fixed inset-x-4 top-16 z-50 mx-auto flex max-w-xl items-start justify-between gap-3 shadow-lg">
+    <span x-text="err"></span>
+    <button type="button" class="btn btn-ghost !min-h-0 !px-2 !py-0" @click="err = ''" aria-label="Dismiss">×</button>
+  </div>
+  <header class="sticky top-0 z-20 border-b border-line bg-surface">
+    <div class="flex items-center gap-2 px-3 py-2 sm:px-4">
+      <button type="button" class="btn btn-ghost !px-2 md:hidden" @click="open = true" :aria-expanded="open" aria-controls="sidebar" aria-label="Open menu">
+        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <a href="/" class="flex min-w-0 items-center gap-2 font-heading text-base font-bold leading-tight text-fg no-underline hover:no-underline sm:text-xl"><img src="/static/favicon.svg" alt="" class="h-8 w-8 shrink-0"><span class="line-clamp-3 sm:line-clamp-2">Battle Companies 2nd Community Edition Manager</span></a>
+      <div class="ml-auto">{{template "theme_menu" .}}</div>
+    </div>
+  </header>
+  <div class="md:flex">
+    <div x-show="open" x-cloak x-transition.opacity class="fixed inset-0 z-30 bg-black/50 md:hidden" @click="open = false" aria-hidden="true"></div>
+    {{template "sidebar" .}}
+    <div class="flex min-h-[calc(100vh-3.5rem)] min-w-0 flex-1 flex-col">
+      <main id="main" class="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{{template "content" .}}</main>
+      {{template "footer"}}
+    </div>
+  </div>
+</div>
+{{else}}
+  <header class="border-b border-line bg-surface">
+    <div class="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3">
+      <a href="/" class="flex items-center gap-2 font-heading text-base font-bold leading-tight text-fg no-underline hover:no-underline sm:text-xl"><img src="/static/favicon.svg" alt="" class="h-8 w-8 shrink-0"><span class="line-clamp-3 sm:line-clamp-2">Battle Companies 2nd Community Edition Manager</span></a>
+      <div class="ml-auto">{{template "theme_menu" .}}</div>
+    </div>
+  </header>
+  <main id="main" class="mx-auto max-w-5xl px-4 py-8">{{template "content" .}}</main>
+  {{template "footer"}}
+{{end}}
+</body>
+</html>{{end}}

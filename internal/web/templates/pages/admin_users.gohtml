@@ -1,0 +1,88 @@
+{{define "title"}}Users · Administration · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+{{template "admin_head" .}}
+<form role="search" action="/admin/users" method="get" class="mt-6 max-w-xl" hx-get="/admin/users" hx-trigger="input changed delay:300ms from:#user-q, submit" hx-target="#user-rows" hx-swap="innerHTML" hx-push-url="false">
+  <div class="field"><label for="user-q">Search accounts</label>
+    <input id="user-q" name="q" type="search" class="input" value="{{.Q}}" placeholder="Name or email" autocomplete="off"></div>
+</form>
+<div id="user-rows" class="mt-4" aria-live="polite">{{template "admin_user_rows" .List}}</div>
+<p class="mt-6 max-w-xl text-sm text-muted">Accounts are created and recovered with the command line (<code>make user</code>, <code>make grant</code>): the service sends no email, so there is no sign-up, password reset or email change here.</p>
+{{end}}
+
+{{define "admin_user_rows"}}
+<p class="text-sm text-muted">{{.Total}} {{if eq .Total 1}}account{{else}}accounts{{end}}{{if .Q}} match “{{.Q}}”{{end}}</p>
+<ul class="mt-3 space-y-3">{{template "admin_user_page" .}}</ul>
+{{end}}
+
+{{define "admin_user_page"}}
+{{range .Rows}}{{template "admin_user_row" .}}{{else}}<li class="text-muted">No accounts match.</li>{{end}}
+{{if .Next}}<li id="user-more"><button type="button" class="btn btn-secondary" hx-get="{{.NextURL}}" hx-target="#user-more" hx-swap="outerHTML" hx-push-url="false">Show more</button></li>{{end}}
+{{end}}
+
+{{/* One account. Takes an adminUserRow; the permission form swaps this row alone. */}}
+{{define "admin_user_row"}}
+{{$u := .U}}
+<li id="user-{{$u.ID}}" class="card !p-4 {{if $u.Closed}}opacity-60{{end}}">
+  <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+    <h2 class="!text-lg break-words">{{if $u.DisplayName}}{{$u.DisplayName}}{{else}}Former player{{end}}</h2>
+    {{if .Self}}<span class="badge badge-muted">You</span>{{end}}
+    {{if $u.Closed}}<span class="badge badge-muted">Closed</span>
+    {{else}}
+      <span class="badge {{if eq $u.Role "superuser"}}badge-gold{{else if eq $u.Role "admin"}}{{else}}badge-muted{{end}}">{{$u.Role}}</span>
+      {{if eq $u.Role "user"}}{{if $u.CanCreateCampaigns}}<span class="badge">Can create campaigns</span>{{end}}{{end}}
+    {{end}}
+  </div>
+  {{if $u.Email}}<p class="break-all text-sm text-muted">{{$u.Email}}</p>{{end}}
+  <p class="mt-1 text-sm text-muted">{{$u.Campaigns}} {{if eq $u.Campaigns 1}}campaign{{else}}campaigns{{end}} · account created {{fmtDateShort $u.CreatedAt}}</p>
+  {{with .Notice}}<div class="alert alert-success mt-3" role="status">{{.}}</div>{{end}}
+  {{if $u.Organises}}
+  <details class="mt-3" {{if .HandoverOpen}}open{{end}}>
+    <summary class="inline-flex min-h-10 cursor-pointer items-center rounded-md text-sm font-medium text-accent-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Organises {{len $u.Organises}} campaign{{if ne (len $u.Organises) 1}}s{{end}}</summary>
+    {{with .HandoverMsg}}<div class="alert {{if $.HandoverError}}alert-danger{{else}}alert-success{{end}} mt-2" role="{{if $.HandoverError}}alert{{else}}status{{end}}">{{.}}</div>{{end}}
+    <ul class="mt-2 divide-y divide-line">
+      {{range $u.Organises}}{{$c := .}}
+      <li class="space-y-2 py-2">
+        <p class="break-words"><span class="font-medium">{{.Name}}</span> <span class="badge badge-muted">{{.Status}}</span> <span class="text-sm text-muted">{{.Players}} player{{if ne .Players 1}}s{{end}}</span></p>
+        {{with index $.Candidates $c.ID}}
+        <form hx-post="/admin/users/{{$u.ID}}/handover" hx-target="#user-{{$u.ID}}" hx-swap="outerHTML" class="flex flex-wrap items-end gap-2">
+          <input type="hidden" name="campaign" value="{{$c.ID}}"><input type="hidden" name="email" value="{{$u.Email}}">
+          <div class="field min-w-0 flex-1"><label for="ho-{{$u.ID}}-{{$c.ID}}">New organiser</label>
+            <select id="ho-{{$u.ID}}-{{$c.ID}}" name="organiser" class="input" required><option value="">Choose a player</option>{{range .}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></div>
+          <button class="btn btn-secondary">Hand over</button>
+        </form>
+        {{else}}<p class="text-sm text-muted">No other player has a company in this campaign yet.</p>{{end}}
+      </li>
+      {{end}}
+    </ul>
+  </details>
+  {{end}}
+  {{if not $u.Closed}}
+  <details class="mt-3" {{if .Open}}open{{end}}>
+    <summary class="inline-flex min-h-10 cursor-pointer items-center rounded-md text-sm font-medium text-accent-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Edit permissions</summary>
+    <form hx-post="/admin/users/{{$u.ID}}/permissions" hx-target="#user-{{$u.ID}}" hx-swap="outerHTML" class="mt-3 space-y-4" x-data="{ role: '{{.Role}}', can: {{if .CanCreate}}true{{else}}false{{end}} }" novalidate>
+      <input type="hidden" name="email" value="{{$u.Email}}">
+      {{with .Err}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+      <fieldset class="space-y-1">
+        <legend class="text-sm font-medium">Role</legend>
+        {{template "admin_role" (dict "R" "user" "Cur" (print .Role) "Text" "Plays in campaigns.")}}
+        {{template "admin_role" (dict "R" "admin" "Cur" (print .Role) "Text" "Also creates campaigns and edits any match or aftermath.")}}
+        {{template "admin_role" (dict "R" "superuser" "Cur" (print .Role) "Text" "Also sees this section.")}}
+      </fieldset>
+      <label class="flex min-h-10 items-start gap-3 text-sm">
+        <input type="checkbox" name="can_create" {{if .CanCreate}}checked{{end}} {{if ne (print .Role) "user"}}disabled{{end}} :disabled="role !== 'user'" :checked="role !== 'user' || can" @change="can = $event.target.checked" class="mt-1 h-4 w-4 accent-[var(--accent)]">
+        <span><span class="font-medium">Can create campaigns</span><span class="block text-muted">Admins and superusers always can.</span></span>
+      </label>
+      {{if and .Self (eq (print $u.Role) "superuser")}}<p class="text-sm text-muted">This is your own account: you cannot demote yourself while you are the last superuser.</p>{{end}}
+      <button class="btn btn-primary">Save</button>
+    </form>
+  </details>
+  {{end}}
+</li>
+{{end}}
+
+{{define "admin_role"}}
+<label class="flex min-h-10 items-start gap-3 text-sm">
+  <input type="radio" name="role" value="{{.R}}" x-model="role" {{if eq .Cur .R}}checked{{end}} class="mt-1 h-4 w-4 accent-[var(--accent)]">
+  <span><span class="font-medium">{{.R}}</span><span class="block text-muted">{{.Text}}</span></span>
+</label>
+{{end}}

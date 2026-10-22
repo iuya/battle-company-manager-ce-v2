@@ -1,0 +1,36 @@
+# DEVELOPMENT ONLY. PostgreSQL with throwaway credentials, published on localhost for the server that make run / dev / demo / seed and the
+# integration tests run on the host. Never expose this on a network. Production is compose.yaml (plain `docker compose up`).
+# The Makefile passes -f compose.dev.yaml itself; by hand: docker compose -f compose.dev.yaml up -d --wait
+# (no `name:` on purpose: the project keeps the directory's name and so the existing development volume).
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: bcm
+      POSTGRES_PASSWORD: bcm
+      POSTGRES_DB: bcm
+    ports: ["127.0.0.1:5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/dev-initdb.sh:/docker-entrypoint-initdb.d/10-test-db.sh:ro # the bcm_test database of the integration tests
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bcm"]
+      interval: 2s
+      retries: 15
+# The server itself runs on the host there (make run / dev / demo). Every variable it reads, with its default, so the file documents
+# the whole configuration (cmd/server/envdocs_test.go, make check-env-docs, keeps this list complete); the Makefile sets the first
+# ones for development, the rest come from the environment or .env.
+#   PORT=8080                    port the server listens on
+#   DATABASE_URL=postgres://bcm:bcm@localhost:5432/bcm?sslmode=disable   (the Makefile default for this database)
+#   APP_ENV=development          production (default when unset) | development; make run, dev and demo set development
+#   SECURE_COOKIES=              unset: on in production, off in development; true | false
+#   ALLOW_INSECURE_COOKIES=false true lets production start with SECURE_COOKIES=false
+#   TRUST_PROXY=false            true only behind a reverse proxy that sets X-Forwarded-For
+#   CSP_MODE=report              off | report | enforce
+#   MIGRATE_ON_START=true        false: refuse to start on a database that is behind (make migrate first)
+#   MAX_CACHED_RULESETS=16       parsed rule sets kept in memory, at least 1
+#   APP_TIMEZONE=                IANA zone for visitors with none (UTC when empty)
+#   STATIC_MAX_AGE=0s            Cache-Control lifetime of static files
+#   STYLEGUIDE=false             serve /styleguide and the development marks; make run, dev and demo set true
+volumes:
+  pgdata:

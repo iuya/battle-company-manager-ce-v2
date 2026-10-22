@@ -1,0 +1,4 @@
+{{/* Shared by the match page's Aftermath card and the aftermath page. */}}
+
+{{/* The status badge of a company's aftermath. Takes the core.AftermathStatus. */}}
+{{define "aftermath_badge"}}{{if eq (printf "%s" .) "done"}}<span class="badge tone-win !bg-success-soft">Done</span>{{else if eq (printf "%s" .) "waived"}}<span class="badge badge-muted">Waived</span>{{else if eq (printf "%s" .) "pending"}}<span class="badge badge-gold">Pending</span>{{else}}<span class="badge">In progress</span>{{end}}{{end}}

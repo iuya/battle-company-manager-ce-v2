@@ -1,0 +1,163 @@
+{{define "title"}}Armory · {{.Campaign.Name}} · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+{{template "campaign_header" .}}
+{{if not .HasCompany}}
+<section class="card mt-6 space-y-3">
+  <h2 class="!text-2xl">Armory</h2>
+  <p class="text-muted">The armory lists what your company can buy. Create your company to see it.</p>
+  <a href="/campaigns/{{.Campaign.ID}}/company/new" class="btn btn-primary">Create my company</a>
+</section>
+{{else}}
+{{with .Notice}}<div class="alert {{if $.NoticeError}}alert-danger{{else}}alert-success{{end}} mt-4" role="status">{{.}}</div>{{end}}
+{{with .Company.LockMessage}}<div class="alert alert-info mt-4" role="status" id="armory-lock"><strong>The company is locked.</strong> {{.}} <a class="underline" href="/campaigns/{{$.Campaign.ID}}/my-company">Open My Company</a></div>{{end}}
+<div x-data="armory" data-applies="{{.Applies}}" @mouseover="over($event)" @mouseout="out($event)" @focusin="over($event)" @focusout="out($event)" @keydown.escape.window="hideTip()">
+  <div class="mt-4 flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h2 class="!text-2xl">Armory</h2>
+      <p class="mt-1 text-sm text-muted">Everything {{.Company.Name}} can buy, whether or not a unit can take it now. Influence <strong class="text-fg">{{.Company.Influence}}</strong> · Gold <strong class="text-fg">{{.Company.Gold}}</strong>.</p>
+    </div>
+    <div class="w-full sm:w-72">
+      <label for="armory-search" class="sr-only">Search the armory</label>
+      <input id="armory-search" type="search" x-model="q" placeholder="Search items…" autocomplete="off" class="input">
+    </div>
+  </div>
+
+  {{/* Filters like the glossary's: the main categories, then the item categories that apply to the one picked. */}}
+  <div class="mt-3 space-y-2">
+    <button type="button" role="switch" :aria-checked="mine" class="flex min-h-10 items-center gap-3 text-left text-sm" @click="toggleMine()">
+      <span class="relative h-6 w-11 shrink-0 rounded-full border border-line transition-colors" :class="mine ? 'bg-accent' : 'bg-raised'" aria-hidden="true">
+        <span class="absolute left-0.5 top-0.5 h-4.5 w-4.5 rounded-full bg-surface shadow transition-transform" :class="mine && 'translate-x-5'"></span>
+      </span>
+      <span>Hide what {{.Company.Name}} cannot take</span>
+    </button>
+    <div class="flex flex-wrap gap-2" role="group" aria-label="Filter by kind">
+      <button type="button" class="btn btn-secondary !min-h-11 !px-3 sm:!min-h-9" :class="main === '' && '!border-accent !bg-accent-soft'" :aria-pressed="main === ''" @click="pickMain('')">All</button>
+      {{range $m := split "wargear,equipment,creatures,wanderers" ","}}<button type="button" class="btn btn-secondary !min-h-11 !px-3 sm:!min-h-9 capitalize" :class="main === '{{$m}}' && '!border-accent !bg-accent-soft'" :aria-pressed="main === '{{$m}}'" data-main-chip="{{$m}}" @click="pickMain('{{$m}}')">{{$m}}</button>{{end}}
+    </div>
+    <div class="flex flex-wrap gap-2" role="group" aria-label="Filter by item category">
+      {{range .Subs}}<button type="button" class="chip" data-sub-chip="{{.Key}}" :class="[sub === '{{.Key}}' && 'chip-on', !subApplies('{{.Key}}') && 'opacity-40']" :aria-pressed="sub === '{{.Key}}'" :disabled="!subApplies('{{.Key}}')" @click="sub = sub === '{{.Key}}' ? '' : '{{.Key}}'">{{.Label}}</button>{{end}}
+    </div>
+    <p class="text-xs text-muted" x-show="mine && hiddenCount() > 0" x-cloak role="status"><span x-text="hiddenCount()"></span> hidden because no one in the company can take them. <button type="button" class="underline" @click="toggleMine()">Show them</button></p>
+  </div>
+  <p class="mt-6 text-muted" x-show="noMatch()" x-cloak role="status">Nothing matches the filters. <button type="button" class="btn btn-ghost !min-h-9 !px-3" @click="clear()">Clear the filters</button></p>
+
+  <ul class="mt-4 space-y-3">
+    {{range .Entries}}{{$item := .Name}}{{$cost := .Cost}}
+    <li data-name="{{.Name}}" data-aliases="{{join .AlsoCalled "|"}}" data-main="{{.Main}}" data-sub="{{.Sub}}" data-avail="{{if .Avail}}1{{else}}0{{end}}" x-show="shows($el)" x-data="{ open: false }" class="card !p-4">
+      <div class="flex flex-wrap items-start gap-x-3 gap-y-2">
+        <span class="mt-1 flex gap-0.5">{{template "gear_icons" .}}</span>
+        <div class="min-w-0 flex-1">
+          <p class="font-medium">{{.Name}}
+            <span class="badge badge-muted">{{if .Size}}{{.Size}} slot{{else}}wargear{{end}}</span>{{if .ArmourStage}} <span class="badge badge-gold" title="Replaces the armour the model wears">armour upgrade</span>{{end}}{{if .Exclusive}} <span class="badge badge-gold" title="Only your company can buy it">Company-exclusive</span>{{end}}
+            {{range .Restrictions}}<span class="badge badge-muted">{{.}}</span>{{end}}</p>
+          {{if .AlsoCalled}}<p class="text-xs text-muted">Also: {{join .AlsoCalled ", "}}</p>{{end}}
+          {{with .Stats}}<p class="mt-1 text-sm font-medium">{{.}}</p>{{end}}
+          {{if .Description}}<p class="mt-1 text-sm text-muted">{{.Description}}</p>{{end}}
+          {{if .Grants}}<p class="mt-1 text-sm"><span class="text-muted">{{if eq .GrantedTo "mount"}}Gives its mount:{{else}}Gives:{{end}}</span> {{join .Grants ", "}}</p>{{end}}
+        </div>
+        <div class="ml-auto flex shrink-0 flex-col items-end gap-1">
+          <span class="text-sm font-semibold">{{.Cost}} influence{{if .Gold.Warrior}} · <span title="Gold price: warrior / hero">{{.Gold.Warrior}}{{if ne .Gold.Warrior .Gold.Hero}} / {{.Gold.Hero}}{{end}} gold</span>{{end}}</span>
+          <button type="button" class="btn {{if .CanBuy}}btn-primary{{else}}btn-secondary{{end}} !min-h-9" @click="open = !open" :aria-expanded="open" {{if $.Company.LockMessage}}disabled title="{{$.Company.LockMessage}}"{{end}}>{{if .CanBuy}}Buy for…{{else}}No unit can take it{{end}}</button>
+        </div>
+      </div>
+      <ul x-show="open" x-cloak class="mt-3 divide-y divide-line rounded-lg border border-line" aria-label="Units">
+        {{range .Units}}
+        <li class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-1.5 {{if not .Able}}opacity-50{{end}}">
+          <span class="flex items-center gap-2">{{template "role_insignia" .Role}}<span class="font-medium">{{.Title}}</span>{{if ne .Title .Type}}<span class="text-sm text-muted">{{.Type}}</span>{{end}}</span>
+          {{if .Able}}
+          <form method="post" action="/campaigns/{{$.Campaign.ID}}/armory/buy" hx-post="/campaigns/{{$.Campaign.ID}}/armory/buy"><input type="hidden" name="unit" value="{{.ID}}"><input type="hidden" name="item" value="{{$item}}">{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-8 !px-3 !text-xs" "Cost" $cost "Gold" .GoldPrice "PayInfluence" .PayInfluence "PayGold" .PayGold)}}</form>
+          {{else}}<span class="text-sm text-muted">{{.Reason}}</span>{{end}}
+        </li>
+        {{end}}
+      </ul>
+    </li>
+    {{end}}
+  </ul>
+
+  {{/* Creatures: animals for the leader and the sergeants (one each, no roster slot, no injuries). */}}
+  {{if .Creatures}}
+  <section x-show="mainShows('creatures')" aria-label="Creatures">
+  <h2 class="mt-10 !text-2xl">Creatures</h2>
+  <p class="mt-1 text-sm text-muted">Bought for the leader or a sergeant, one each. They are not units: they take no slot of the company, no equipment slot and roll no injuries.</p>
+  <ul class="mt-4 space-y-3">
+    {{range .Creatures}}{{$name := .Name}}{{$ccost := .Cost}}{{$cgold := .Gold}}{{$cinf := .PayInfluence}}{{$cgd := .PayGold}}
+    <li data-name="{{.Name}}" data-aliases="creature" data-main="creatures" data-avail="1" x-show="shows($el)" x-data="{ open: false }" class="card !p-4">
+      <div class="flex flex-wrap items-start gap-x-3 gap-y-2">
+        <span class="mt-1 text-muted">{{template "paw"}}</span>
+        <div class="min-w-0 flex-1 space-y-2">
+          <p class="font-medium">{{.Name}} <span class="badge badge-muted">creature</span> <span class="text-sm font-normal text-muted">{{.Points}} pts</span></p>
+          <dl class="inline-grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">
+            {{range .StatBlock}}<div class="min-w-8 border-r border-line bg-surface px-0.5 py-1 last:border-r-0" title="{{.Name}}"><dt class="text-[10px] uppercase leading-none text-muted">{{.Abbr}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}{{.Trail}}</dd></div>{{end}}
+          </dl>
+          {{with .RuleChips}}<div class="flex flex-wrap items-center gap-1.5"><span class="text-sm text-muted">Special rules:</span><ul class="flex flex-wrap gap-1.5" aria-label="Special rules">{{template "armory_chips" (dict "L" . "Cls" "rule-chip")}}</ul></div>{{end}}
+          {{if .Carry}}<p class="text-sm text-muted">Gives the whole company a pack of {{.Carry.Capacity}} pieces: any member can store, take out or swap gear for free.</p>{{end}}
+          {{range .Notes}}<p class="text-sm text-muted">{{.}}</p>{{end}}
+        </div>
+        <div class="ml-auto flex shrink-0 flex-col items-end gap-1">
+          <span class="text-sm font-semibold">{{.Cost}} influence</span>
+          <button type="button" class="btn {{if .CanTake}}btn-primary{{else}}btn-secondary{{end}} !min-h-9" @click="open = !open" :aria-expanded="open" {{if $.Company.LockMessage}}disabled title="{{$.Company.LockMessage}}"{{end}}>{{if .CanTake}}Buy for…{{else}}Nobody can take it{{end}}</button>
+        </div>
+      </div>
+      <ul x-show="open" x-cloak class="mt-3 divide-y divide-line rounded-lg border border-line" aria-label="Officers">
+        {{range .Owners}}
+        <li class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-1.5 {{if not .Able}}opacity-50{{end}}">
+          <span class="flex items-center gap-2">{{template "role_insignia" .Role}}<span class="font-medium">{{.Title}}</span>{{if ne .Title .Type}}<span class="text-sm text-muted">{{.Type}}</span>{{end}}</span>
+          {{if .Able}}<form method="post" action="/campaigns/{{$.Campaign.ID}}/armory/creature" hx-post="/campaigns/{{$.Campaign.ID}}/armory/creature"><input type="hidden" name="unit" value="{{.ID}}"><input type="hidden" name="name" value="{{$name}}">{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-8 !px-3 !text-xs" "Cost" $ccost "Gold" $cgold "PayInfluence" $cinf "PayGold" $cgd)}}</form>
+          {{else}}<span class="text-sm text-muted">{{.Reason}}</span>{{end}}
+        </li>
+        {{end}}
+      </ul>
+    </li>
+    {{end}}
+  </ul>
+  </section>
+  {{end}}
+
+  {{/* Wanderers: mercenary heroes. They join as a unit and count towards the company's limit. */}}
+  {{if .Wanderers}}
+  <section x-show="mainShows('wanderers')" aria-label="Wanderers">
+  <h2 class="mt-10 !text-2xl">Wanderers</h2>
+  <p class="mt-1 text-sm text-muted">Mercenary heroes that fight for the company. One at a time; they count as a unit, cannot buy equipment, gain no experience and can be dismissed (the influence is not returned).</p>
+  <ul class="mt-4 space-y-3">
+    {{range .Wanderers}}
+    <li data-name="{{.Name}}" data-aliases="wanderer" data-main="wanderers" data-avail="{{if .Avail}}1{{else}}0{{end}}" x-show="shows($el)" class="card !p-4">
+      <div class="flex flex-wrap items-start gap-x-3 gap-y-2">
+        <div class="min-w-0 flex-1 space-y-2">
+          <p class="font-medium">{{.Name}} <span class="badge badge-gold">wanderer</span> <span class="text-sm font-normal text-muted">{{.Points}} pts</span></p>
+          <div class="flex flex-wrap items-center gap-2">
+            <dl class="inline-grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">
+              {{range .StatBlock}}{{if not .HeroOnly}}<div class="min-w-8 border-r border-line bg-surface px-0.5 py-1 last:border-r-0" title="{{.Name}}"><dt class="text-[10px] uppercase leading-none text-muted">{{.Abbr}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}
+            </dl>
+            <dl class="inline-grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-accent text-center">
+              {{range .StatBlock}}{{if .HeroOnly}}<div class="min-w-12 border-r border-line bg-accent-soft px-2 py-1 last:border-r-0"><dt class="text-[10px] uppercase leading-none text-muted">{{.Name}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}</dd></div>{{end}}{{end}}
+            </dl>
+          </div>
+          {{with .WargearChips}}<div class="flex flex-wrap items-center gap-1.5"><span class="text-sm text-muted">Wargear:</span><ul class="flex flex-wrap gap-1.5" aria-label="Wargear">{{template "armory_chips" (dict "L" . "Cls" "eq-chip")}}</ul></div>{{end}}
+          {{with .ActionChips}}<div class="flex flex-wrap items-center gap-1.5"><span class="text-sm text-muted">Heroic actions:</span><ul class="flex flex-wrap gap-1.5" aria-label="Heroic actions">{{template "armory_chips" (dict "L" . "Cls" "act-chip")}}</ul></div>{{end}}
+          {{with .RuleChips}}<div class="flex flex-wrap items-center gap-1.5"><span class="text-sm text-muted">Special rules:</span><ul class="flex flex-wrap gap-1.5" aria-label="Special rules">{{template "armory_chips" (dict "L" . "Cls" "rule-chip")}}</ul></div>{{end}}
+          {{with .Note}}<p class="text-xs text-muted">{{.}}</p>{{end}}
+        </div>
+        <div class="ml-auto flex shrink-0 flex-col items-end gap-1">
+          <span class="text-sm font-semibold">{{.Cost}} influence or {{.Gold}} gold</span>
+          {{if .Hirable}}<form {{if $.Company.LockMessage}}inert class="opacity-50" title="{{$.Company.LockMessage}}"{{end}} method="post" action="/campaigns/{{$.Campaign.ID}}/armory/wanderer" hx-post="/campaigns/{{$.Campaign.ID}}/armory/wanderer"><input type="hidden" name="name" value="{{.Name}}">{{template "pay_buttons" (dict "Label" "Hire" "Class" "!min-h-9" "Cost" .Cost "Gold" .Gold "PayInfluence" .PayInfluence "PayGold" .PayGold)}}</form>
+          {{else}}<span class="max-w-48 text-right text-xs text-muted">{{.Reason}}</span>{{end}}
+        </div>
+      </div>
+    </li>
+    {{end}}
+  </ul>
+  </section>
+  {{end}}
+
+  {{/* The name and text of the rule, item or action under the pointer. */}}
+  <div x-ref="tip" x-show="tip.show" x-cloak role="tooltip" class="card pointer-events-none fixed z-50 max-h-[calc(100vh-1rem)] w-80 max-w-[calc(100vw-1rem)] overflow-hidden !p-3 text-sm shadow-lg" :style="`left: ${tip.x}px; top: ${tip.y}px`">
+    <p class="font-heading text-lg font-bold leading-tight" x-text="tip.title"></p>
+    <p class="text-xs text-muted" x-show="tip.meta" x-text="tip.meta"></p>
+    <p class="mt-1 whitespace-pre-line" x-text="tip.text"></p>
+  </div>
+</div>
+{{end}}
+{{end}}
+
+{{/* Names on a creature's or wanderer's card; the ones some file explains carry a tooltip. Takes {L: []tipChip, Cls: the chip's class}. */}}
+{{define "armory_chips"}}{{$cls := .Cls}}{{range .L}}<li class="{{$cls}}{{if .Text}} has-tip{{end}}"{{if .Text}} tabindex="0" data-tip-title="{{.Title}}" data-tip-meta="{{.Meta}}" data-tip-text="{{.Text}}"{{end}}>{{.Name}}</li>{{end}}{{end}}

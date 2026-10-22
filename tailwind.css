@@ -1,0 +1,375 @@
+@import "tailwindcss" source("./internal/web");
+
+/* ==========================================================================================================
+   Theme. Components only use the semantic tokens below (bg-page, text-fg, bg-accent...), never raw colors, so
+   a palette is one block of variables. The <html> element carries data-palette and data-mode (light|dark, already
+   resolved from the user's System/Light/Dark choice); the same attributes on any element preview that palette
+   (settings menu swatches). See static/js/theme.js.
+   tools/check_theme_contrast.py verifies every palette against WCAG AA.
+   ========================================================================================================== */
+
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-weight: 600;
+  font-display: swap;
+  src: url("/static/fonts/cormorant-garamond-latin-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-weight: 700;
+  font-display: swap;
+  src: url("/static/fonts/cormorant-garamond-latin-700.woff2") format("woff2");
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warn: var(--warn);
+  --color-gold: var(--gold);
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-heading: var(--heading-font);
+}
+
+/* ---- headings: self-hosted Cormorant Garamond; body text stays on the system font ---- */
+:root { --heading-font: "Cormorant Garamond", Georgia, "Times New Roman", serif; --heading-weight: 700; }
+
+/* ---- palettes ---- */
+/* Parchment & Ember */
+[data-palette="ember"][data-mode="light"] {
+  --page: #f6f1e7;
+  --surface: #fffdf8;
+  --raised: #efe8d8;
+  --fg: #2b2118;
+  --muted: #665848;
+  --line: #d8ccb4;
+  --accent: #841912;
+  --accent-fg: #fff8ef;
+  --accent-text: #841912;
+  --accent-soft: #f3dcd6;
+  --danger: #a8231b;
+  --danger-soft: #f8dcd8;
+  --success: #2d6a3e;
+  --success-soft: #d9ecdc;
+  --warn: #8a5a00;
+  --gold: #8a6a1f;
+  --focus: var(--accent-text);
+}
+[data-palette="ember"][data-mode="dark"] {
+  --page: #1e1213;
+  --surface: #2a1a1b;
+  --raised: #3b2425;
+  --fg: #f1e7d8;
+  --muted: #bfab97;
+  --line: #4d3436;
+  --accent: #e0705a;
+  --accent-fg: #1e1213;
+  --accent-text: #ec8a74;
+  --accent-soft: #4a2523;
+  --danger: #ff8f84;
+  --danger-soft: #4a2220;
+  --success: #86c795;
+  --success-soft: #223a29;
+  --warn: #f0c050;
+  --gold: #d2ad5c;
+  --focus: var(--accent-text);
+}
+
+/* Mithril & Night */
+[data-palette="mithril"][data-mode="light"] {
+  --page: #eef1f4;
+  --surface: #ffffff;
+  --raised: #e3e8ee;
+  --fg: #1b2430;
+  --muted: #4f5d6f;
+  --line: #cfd6df;
+  --accent: #7d5f14;
+  --accent-fg: #ffffff;
+  --accent-text: #7d5f14;
+  --accent-soft: #f1e7cd;
+  --danger: #a8231b;
+  --danger-soft: #f8dcd8;
+  --success: #2d6a3e;
+  --success-soft: #d9ecdc;
+  --warn: #7d6200;
+  --gold: #7d5f14;
+  --focus: var(--accent-text);
+}
+[data-palette="mithril"][data-mode="dark"] {
+  --page: #0f141b;
+  --surface: #171e28;
+  --raised: #212b38;
+  --fg: #e6ebf1;
+  --muted: #9aa8b8;
+  --line: #2c3847;
+  --accent: #d4af55;
+  --accent-fg: #0f141b;
+  --accent-text: #e0bf6b;
+  --accent-soft: #3a3220;
+  --danger: #ff8f84;
+  --danger-soft: #4a2220;
+  --success: #86c795;
+  --success-soft: #223a29;
+  --warn: #e8cc6a;
+  --gold: #d4af55;
+  --focus: var(--accent-text);
+}
+
+/* Forest & Gold (default) */
+:root, [data-palette="forest"][data-mode="light"] {
+  --page: #f1f3ec;
+  --surface: #fcfdf9;
+  --raised: #e4e9db;
+  --fg: #1d2a1f;
+  --muted: #51604f;
+  --line: #cdd6c2;
+  --accent: #2f5d3a;
+  --accent-fg: #ffffff;
+  --accent-text: #2f5d3a;
+  --accent-soft: #dde8d6;
+  --danger: #a8231b;
+  --danger-soft: #f8dcd8;
+  --success: #2d6a3e;
+  --success-soft: #d9ecdc;
+  --warn: #85620a;
+  --gold: #80621c;
+  --focus: var(--accent-text);
+}
+[data-palette="forest"][data-mode="dark"] {
+  --page: #101a14;
+  --surface: #17231b;
+  --raised: #213227;
+  --fg: #e5eee3;
+  --muted: #9fb2a2;
+  --line: #2c4033;
+  --accent: #86c694;
+  --accent-fg: #0f1a13;
+  --accent-text: #9bd3a7;
+  --accent-soft: #22392a;
+  --danger: #ff8f84;
+  --danger-soft: #4a2220;
+  --success: #86c795;
+  --success-soft: #223a29;
+  --warn: #ecc94b;
+  --gold: #cfae5c;
+  --focus: var(--accent-text);
+}
+
+html[data-mode="light"] { color-scheme: light; }
+html[data-mode="dark"] { color-scheme: dark; }
+
+/* ---- base ---- */
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body { @apply bg-page text-fg font-sans antialiased; }
+  h1, h2, h3, h4 { font-family: var(--heading-font); font-weight: var(--heading-weight); line-height: 1.15; font-variant-numeric: lining-nums; }
+  h1 { @apply text-5xl; } h2 { @apply text-4xl; } h3 { @apply text-3xl; } h4 { @apply text-2xl; }
+  ::selection { background: var(--accent); color: var(--accent-fg); }
+  /* The ring inscription behind every page: centered on the viewport, painted in the palette's gold through a mask so
+     any palette/mode recolors it. Landscape: the whole ring fits the screen. Portrait (phones): it is sized by the
+     width so it is larger than the screen and shows around the cards. Cards and the header are opaque and cover it. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: var(--gold);
+    opacity: var(--ring-opacity, 0.14);
+    -webkit-mask: url("/static/img/ring-text.svg") center / min(94vmin, 1300px) no-repeat;
+    mask: url("/static/img/ring-text.svg") center / min(94vmin, 1300px) no-repeat;
+  }
+  @media (max-aspect-ratio: 1/1) {
+    body::before {
+      -webkit-mask-size: min(130vw, 1300px);
+      mask-size: min(130vw, 1300px);
+    }
+  }
+  @media print { body::before { display: none; } }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  a { @apply text-accent-text underline-offset-2 hover:underline; }
+  /* A link inside running text is underlined: its colour alone is not enough to tell it from the words around it (WCAG 1.4.1). */
+  p a:not(.btn):not(.tab):not(.nav-link), li a:not(.btn):not(.tab):not(.nav-link), td a:not(.btn):not(.tab):not(.nav-link), dd a:not(.btn):not(.tab):not(.nav-link) { @apply underline; }
+  /* A long name with no spaces (a 60-character company or campaign name) breaks instead of widening the page. */
+  main { overflow-wrap: anywhere; }
+  @media (prefers-reduced-motion: reduce) { *, ::before, ::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
+  [x-cloak] { display: none !important; }
+}
+
+/* ---- components ---- */
+@layer components {
+  .btn { @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-transparent px-4 py-2 text-sm font-semibold no-underline transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn:hover { @apply no-underline; }
+  .btn-primary { @apply bg-accent text-accent-fg hover:brightness-110; }
+  .btn-secondary { @apply border-line bg-surface text-fg hover:bg-raised; }
+  .btn-ghost { @apply text-accent-text hover:bg-accent-soft; }
+  .btn-danger { @apply bg-danger text-page hover:brightness-110; }
+  .field { @apply flex flex-col gap-1.5; }
+  .field > label { @apply text-sm font-medium; }
+  .field .hint { @apply text-xs text-muted; }
+  .field .error { @apply text-xs font-medium text-danger; }
+  .input { @apply min-h-10 w-full rounded-md border border-line bg-surface px-3 py-2 text-base text-fg placeholder:text-muted; }
+  .input:hover { border-color: var(--muted); }
+  .input[aria-invalid="true"] { @apply border-danger; }
+  .card { @apply rounded-xl border border-line bg-surface p-6 shadow-sm; }
+  .alert { @apply rounded-md border px-4 py-3 text-sm; }
+  .alert-info { @apply border-accent bg-accent-soft text-fg; }
+  .alert-success { @apply border-success bg-success-soft text-fg; }
+  .alert-danger { @apply border-danger bg-danger-soft text-fg; }
+  .nav-link { @apply flex min-h-10 items-center rounded-md px-3 py-2 text-sm font-medium text-fg no-underline hover:bg-raised hover:no-underline; }
+  .nav-link[aria-current="page"] { @apply bg-accent-soft font-semibold text-accent-text; }
+  /* The campaign you are in: an accent bar, soft fill and a faint gold glow. */
+  .nav-campaign[aria-current="true"] { @apply border-l-4 border-accent bg-accent-soft pl-2 font-semibold text-accent-text; box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent), 0 0 14px color-mix(in srgb, var(--gold) 25%, transparent); }
+  .nav-admin { @apply border border-gold bg-gold/15 font-semibold; }
+  .nav-admin[aria-current="page"] { @apply bg-gold/30 text-fg; }
+  /* The tab bar scrolls sideways on a phone: a fade shows at the edge that has more behind it. */
+  .tab-bar { background:
+    linear-gradient(to right, var(--page) 30%, transparent) 0 0 / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--page) 30%, transparent) 100% 0 / 2rem 100% no-repeat local,
+    linear-gradient(to right, color-mix(in srgb, var(--muted) 35%, transparent), transparent) 0 0 / 1rem 100% no-repeat scroll,
+    linear-gradient(to left, color-mix(in srgb, var(--muted) 35%, transparent), transparent) 100% 0 / 1rem 100% no-repeat scroll; }
+  .tab { @apply flex min-h-10 shrink-0 items-center border-b-2 border-transparent px-2.5 text-sm font-medium text-muted no-underline hover:text-fg hover:no-underline; }
+  .tab[aria-current="page"] { @apply border-accent font-semibold text-fg; }
+  /* Match outcomes: wins green, draws yellow, losses red (each palette tunes the three colors). */
+  .tone-win { @apply text-success; }
+  .tone-draw { @apply text-warn; }
+  .tone-loss { @apply text-danger; }
+  /* A glossary term you jumped to through a link. */
+  .term:target, .term-hl { @apply border-accent; box-shadow: 0 0 0 2px var(--accent); }
+  .badge-gold { @apply bg-gold/20 text-fg; }
+  /* A unit's place in the company is its frame: leader gold and doubled, sergeant accent and doubled, other heroes a solid
+     accent frame, regular units a thin plain one. */
+  .unit { @apply rounded-xl border border-line; position: relative; }
+  .unit-leader { @apply border-2 border-gold; outline: 2px solid color-mix(in srgb, var(--gold) 45%, transparent); outline-offset: 2px; }
+  .unit-sergeant { @apply border-2 border-accent; outline: 2px solid color-mix(in srgb, var(--accent) 40%, transparent); outline-offset: 2px; }
+  .unit-hero { @apply border-2 border-accent; }
+  .insignia-leader { color: var(--gold); }
+  .insignia-sergeant { color: var(--accent-text); }
+  .insignia-hero { color: var(--accent-text); opacity: .8; }
+  /* The dice tray (static/js/dice.js): a felt-like strip the dice move over; shaken, it jolts. */
+  .dice-tray { @apply block h-36 w-full rounded-xl border border-line bg-raised; }
+  .dice-shake { animation: dice-shake .4s ease-in-out; }
+  @keyframes dice-shake { 0%, 100% { transform: translate(0, 0); } 15% { transform: translate(-7px, 3px); } 30% { transform: translate(6px, -4px); } 45% { transform: translate(-5px, -2px); } 60% { transform: translate(5px, 4px); } 80% { transform: translate(-2px, 1px); } }
+  @media (prefers-reduced-motion: reduce) { .dice-shake { animation: none; } }
+  .unit-injured { border-color: var(--danger); }
+  .unit-fallen { background: var(--raised); border-style: dashed; filter: grayscale(.5); }
+  /* Changing the formation: a handle above each card to drag it by (or its arrows), cards that do not react meanwhile. */
+  .unit-handle { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .375rem; padding: .25rem .5rem; border: 1px dashed var(--accent); border-radius: .5rem; background: var(--accent-soft); cursor: grab; font-size: .8125rem; user-select: none; touch-action: none; }
+  .unit-handle:active { cursor: grabbing; }
+  .formation-editing .unit-slot > article { pointer-events: none; }
+  .unit-ghost { opacity: .35; }
+  .unit-drag { box-shadow: 0 12px 30px rgb(0 0 0 / .35); }
+  /* The expand button: a tab flush in the corner of the frame. */
+  .unit-corner { position: absolute; top: 0; right: 0; z-index: 1; display: flex; height: 1.375rem; width: 1.5rem; align-items: center; justify-content: center; border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); border-top-right-radius: 0.7rem; border-bottom-left-radius: 0.5rem; background: var(--raised); color: var(--muted); }
+  /* A bigger touch area than the small tab itself (it reaches into the card, away from the corner). */
+  @media (pointer: coarse) { .unit-corner::after { content: ""; position: absolute; top: 0; right: 0; bottom: -1.4rem; left: -1.25rem; } }
+  .unit-corner:hover { color: var(--fg); background: var(--accent-soft); }
+  /* A unit with promotions waiting: a gold banner across the top of its card, with a slow shine. */
+  .promo { position: relative; display: flex; width: calc(100% + 2rem); margin: -1rem -1rem 0; align-items: center; gap: 0.5rem; overflow: hidden; border-radius: 0.7rem 0.7rem 0 0; padding: 0.4rem 2rem 0.4rem 1rem; text-align: left; font-size: 0.875rem; font-weight: 700; color: var(--page); background: linear-gradient(90deg, var(--warn), color-mix(in srgb, var(--warn) 75%, var(--gold))); cursor: pointer; }
+  .promo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 35%, rgb(255 255 255 / .45) 50%, transparent 65%); transform: translateX(-120%); animation: promo-shine 3.2s ease-in-out infinite; pointer-events: none; }
+  .promo:hover { filter: brightness(1.08); }
+  /* The same effect as a button of its own (the "Next level up" of the level-up window). */
+  .promo-btn { width: auto; margin: 0; border-radius: 0.6rem; padding: 0.6rem 1.25rem 0.6rem 1rem; }
+  @keyframes promo-shine { 0%, 50% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+  @media (prefers-reduced-motion: reduce) { .promo::after { animation: none; } }
+  /* The maximised card floats over the page; its slot keeps the grid from reflowing. */
+  .unit-expanded { position: fixed; z-index: 50; left: 50%; top: 4rem; transform: translateX(-50%); width: min(46rem, calc(100vw - 2rem)); max-height: calc(100vh - 5.5rem); overflow-y: auto; outline-offset: 2px; box-shadow: 0 20px 50px rgb(0 0 0 / .4); }
+  /* Equipment and rules chips. */
+  .eq-chip { @apply inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2 py-0.5 text-xs; }
+  .eq-chip.has-tip { border-style: dashed; cursor: help; }
+  .eq-chip.is-bought { @apply border-accent bg-accent-soft; border-style: solid; }
+  .eq-chip.is-bought.has-tip { border-style: dashed; }
+  /* A unit missing the next match goes to the end of the list (the order is only visual: it comes back by itself). */
+  .unit-away { order: 1; }
+  .formation-editing .unit-away { order: 0; }
+  .eq-q { @apply ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-raised text-[10px] font-bold text-muted; }
+  .rule-chip { @apply inline-flex items-center gap-1 rounded-md bg-raised px-2 py-0.5 text-xs text-fg; border-left: 3px solid var(--line); }
+  .rule-chip[data-tip-title] { cursor: help; }
+  .rule-path { border-left-color: var(--accent); }
+  .rule-equipment { border-left-color: var(--gold); }
+  .rule-company { border-left-color: var(--gold); @apply border border-gold bg-warn/10; }
+  .rule-spell { @apply bg-accent-soft text-accent-text; border-left-color: var(--accent); }
+  /* A hero's path: its name, heroic actions and rules, in a tinted box. */
+  .path-box { @apply rounded-lg border border-accent/40 bg-accent-soft/40 p-2; }
+  .path-name { @apply text-xs font-semibold uppercase tracking-wide text-accent-text; }
+  .act-chip { @apply inline-flex items-center gap-1 rounded-md border border-gold bg-surface px-2 py-0.5 text-xs; }
+  .act-chip[data-tip-title] { cursor: help; }
+  .act-bought { @apply bg-gold/20; }
+  /* The + that opens the equipment window, and the slot pips of a unit. */
+  .eq-add { @apply inline-flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-accent text-sm font-bold text-accent-text hover:bg-accent-soft; }
+  /* The live match banner: a dot that says whether the page follows the match (green) or is trying again (grey, pulsing). */
+  .live-dot { @apply inline-block h-2 w-2 rounded-full bg-muted; }
+  #live-dot[data-state="on"] .live-dot { @apply bg-success; }
+  #live-dot[data-state="retry"] .live-dot { @apply animate-pulse; }
+  .eq-add-sm { @apply h-4 w-4 text-xs leading-none; }
+  @media (pointer: coarse) { .eq-add { position: relative; } .eq-add::after { content: ""; position: absolute; inset: -0.6rem; } }
+  /* The company browser (create a company): the list, the facts, the frames of what only a company has. */
+  .chip { @apply inline-flex min-h-11 items-center rounded-full border border-line bg-surface px-3 py-1 text-xs sm:min-h-8 font-medium text-muted hover:text-fg; }
+  .chip-on { @apply border-accent bg-accent-soft text-fg; }
+  .company-pick { @apply flex w-full flex-col items-start gap-0.5 rounded-lg border border-transparent px-3 py-2 text-left hover:bg-raised; }
+  .officer-slot { @apply min-h-24 list-none rounded-xl border-2 border-dashed border-line bg-raised p-2; }
+  .officer-slot:empty::before { content: 'Drag a model here'; @apply flex min-h-20 items-center justify-center text-sm text-muted; }
+  .officer-slot .start-card { @apply flex-col items-stretch border-accent bg-accent-soft sm:flex-row sm:items-start; }
+  .start-card { @apply flex min-w-0 cursor-grab items-start gap-2 rounded-lg border border-line bg-surface px-3 py-2; touch-action: none; }
+  .start-card[data-eligible="false"] { @apply cursor-default opacity-80; }
+  .officer-slot .pool-only, #start-pool .slot-only { display: none !important; }
+  .oath { @apply rounded-xl border-l-4 border-accent bg-accent-soft px-4 py-3 font-heading text-xl italic leading-relaxed; }
+  .oath-name { @apply mx-1 inline-block max-w-full border-0 border-b-2 border-accent bg-transparent px-1 py-0 text-center font-heading text-xl font-bold italic text-fg outline-none; }
+  .oath-name:focus { @apply bg-surface; }
+  .dialog { @apply m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-line bg-surface p-5 text-fg shadow-lg; }
+  .dialog::backdrop { background: rgb(0 0 0 / .5); }
+  .company-pick-on { @apply border-accent bg-accent-soft; }
+  .unit-ref { @apply cursor-help font-medium underline decoration-dotted decoration-1 underline-offset-4 hover:text-accent-text; }
+  .facts { @apply rounded-lg border border-line bg-surface px-3 py-2; }
+  .facts dt { @apply text-xs uppercase tracking-wide text-muted; }
+  .facts dd { @apply font-semibold; }
+  .exclusive { @apply rounded-lg border border-dashed border-accent bg-surface px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]; }
+  .exclusive-gold { @apply border-solid border-gold bg-warn/10; }
+  .exclusive-label { @apply mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-accent-text; }
+  .exclusive-gold .exclusive-label { @apply text-gold; }
+  .eq-heal { @apply border-solid border-danger text-danger hover:bg-danger-soft; }
+  .pip { @apply inline-block h-2.5 w-2.5 rounded-sm border border-accent; }
+  .pip-on { @apply bg-accent; }
+  .term-link { @apply underline decoration-dotted underline-offset-2; cursor: help; }
+  /* Each class of equipment has its own colour (light and dark tuned separately); an item can show several icons. */
+  .eq-ic-mount { color: var(--eq-mount); } .eq-ic-melee, .eq-ic-two_handed { color: var(--eq-melee); } .eq-ic-spear { color: var(--eq-spear); }
+  .eq-ic-shield { color: var(--eq-shield); } .eq-ic-armour { color: var(--eq-armour); } .eq-ic-bow { color: var(--eq-bow); }
+  .eq-ic-crossbow { color: var(--eq-crossbow); } .eq-ic-throwing { color: var(--eq-throwing); }
+  .eq-ic-lance { color: var(--eq-lance); } .eq-ic-missile { color: var(--eq-missile); } .eq-ic-consumable { color: var(--eq-consumable); }
+  /* The other classes of an item that is several things: smaller and quieter than the first. */
+  .eq-secondary { display: inline-flex; opacity: .65; } .eq-secondary .eq-ic { height: .7rem; width: .7rem; }
+  .eq-ic-banner, .eq-ic-instrument, .eq-ic-horn, .eq-ic-drum, .eq-ic-badge { color: var(--eq-banner); } .eq-ic-other { color: var(--muted); }
+  /* Specific items by family: gear and tools brown, magic purple and teal, food and herbs green, poison red, the generic ones muted. */
+  .eq-ic-backpack, .eq-ic-rope, .eq-ic-boots, .eq-ic-belt, .eq-ic-cloak, .eq-ic-pelt, .eq-ic-barding, .eq-ic-map { color: var(--eq-mount); }
+  .eq-ic-ring, .eq-ic-talisman, .eq-ic-scroll { color: var(--eq-throwing); } .eq-ic-orb { color: var(--eq-crossbow); }
+  .eq-ic-herbs, .eq-ic-cram, .eq-ic-brew { color: var(--eq-bow); } .eq-ic-vial, .eq-ic-torch { color: var(--eq-melee); }
+  .eq-ic-snare, .eq-ic-blowpipe { color: var(--eq-armour); } .eq-ic-axe { color: var(--eq-melee); }
+  .eq-ic-generic-small, .eq-ic-generic-large { color: var(--muted); }
+  .badge-muted { @apply bg-raised text-muted; }
+  /* Outcome labels readable at a glance: a soft tint of the semantic colour, ringed in it, with the text in the body colour. */
+  .badge-success { @apply bg-success-soft text-fg; box-shadow: inset 0 0 0 1px var(--success); }
+  .badge-danger { @apply bg-danger-soft text-fg; box-shadow: inset 0 0 0 1px var(--danger); }
+  .badge-warn { @apply text-fg; background: color-mix(in srgb, var(--warn) 22%, var(--surface)); box-shadow: inset 0 0 0 1px var(--warn); }
+  .badge { @apply inline-flex items-center rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-semibold text-accent-text; }
+  .divider { @apply border-t border-line; }
+  /* htmx marks a form with .htmx-request while its request is in flight */
+  form.htmx-request button[type="submit"] { @apply pointer-events-none opacity-60; }
+}
+
+/* ---- equipment class colours (independent of the palette) ---- */
+[data-mode="light"] { --eq-mount: #8a5a1f; --eq-melee: #a8312a; --eq-spear: #b4651a; --eq-shield: #2c62a6; --eq-armour: #566370; --eq-bow: #2f7a4a; --eq-crossbow: #1d7a78; --eq-throwing: #7447a8; --eq-banner: #9a7b14; --eq-lance: #96432a; --eq-missile: #1f8a64; --eq-consumable: #b0397a; }
+[data-mode="dark"] { --eq-mount: #d9a45f; --eq-melee: #ff948a; --eq-spear: #f0a560; --eq-shield: #86b4ee; --eq-armour: #b2bec9; --eq-bow: #8fd1a3; --eq-crossbow: #7fd6d2; --eq-throwing: #c4a0f0; --eq-banner: #e6c34f; --eq-lance: #f0a07c; --eq-missile: #7fe0b8; --eq-consumable: #f2a3cf; }
+
+/* While an aftermath locks the company (My Company), the controls marked data-lock look disabled; company.js explains why on click. */
+[data-lock]:not([data-lock=""]) [data-lock] { opacity: 0.5; cursor: not-allowed; }

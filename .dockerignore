@@ -1,0 +1,14 @@
+.git
+.beads
+.env
+tmp
+build
+sources
+tailwindcss
+tools/dice3d/node_modules
+internal/web/static/app.css
+backups
+compose*.yaml
+.env.*
+docs
+*.md

@@ -1,0 +1,508 @@
+package web
+
+import (
+	"errors"
+	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
+)
+
+// The windows of the My Company page (recruiting, buying equipment) are fetched when they open and their forms answer
+// with the whole page again, with a notice saying what happened.
+
+type specialView struct {
+	core.SpecialRecruit
+	Reason string // empty when the company can recruit it now
+}
+
+type recruitPanel struct {
+	Campaign   core.CampaignDetail
+	Company    core.CompanyDetail
+	Reason     string // why a new recruit is not possible now; empty when it is
+	Special    []specialView
+	Roll       *core.RecruitRoll // the recruit in progress, nil when none
+	Error      string
+	Rendezvous bool // the company holds an unused Rendezvous: the first roll offers +1 / -1
+	Animate    bool // the roll was just made by the server: show the dice rolling to it before revealing it
+}
+
+// recruitPanelFor builds the recruit window for the signed-in user's company.
+func (s *Server) recruitPanelFor(r *http.Request, c core.CampaignDetail, errMsg string, animate bool) (recruitPanel, error) {
+	user := *userFrom(r.Context())
+	detail, err := s.campaigns.CompanyDetail(r.Context(), c.ID, c.Company.ID)
+	if err != nil {
+		return recruitPanel{}, err
+	}
+	roll, err := s.campaigns.RecruitState(r.Context(), user, c.ID)
+	if err != nil {
+		return recruitPanel{}, err
+	}
+	_, rendezvous := core.UnusedPerk(detail.Perks, core.PerkRendezvous)
+	panel := recruitPanel{Campaign: c, Company: detail, Roll: roll, Error: errMsg, Animate: animate && roll != nil, Rendezvous: rendezvous}
+	_, panel.Reason = detail.CanRecruit(detail.Recruit.Cost)
+	for _, sp := range detail.Recruit.Special {
+		_, why := detail.CanRecruit(sp.Cost)
+		if why == "" && sp.Blocked != "" {
+			why = "Cannot join: " + sp.Blocked + "."
+		}
+		panel.Special = append(panel.Special, specialView{SpecialRecruit: sp, Reason: why})
+	}
+	return panel, nil
+}
+
+// showRecruitPanel answers a step of the recruit with the window again (the player stays in it).
+func (s *Server) showRecruitPanel(w http.ResponseWriter, r *http.Request, status int, errMsg string, animate bool) {
+	base, ok := s.loadCampaign(w, r, "my-company")
+	if !ok {
+		return
+	}
+	if base.Campaign.Company == nil {
+		s.notFound(w, r)
+		return
+	}
+	// a recruit waiting for its options comes first: reopening the window continues it
+	pending, err := s.campaigns.PendingChoice(r.Context(), *userFrom(r.Context()), base.Campaign.ID)
+	if s.fail(w, r, err) {
+		return
+	}
+	if pending != nil {
+		s.render.partial(w, status, "campaign_my_company", "choice_panel", map[string]any{"Campaign": base.Campaign, "Choice": pending})
+		return
+	}
+	// so does a Ranger of the North waiting for the officers to be arranged
+	if officers, err := s.campaigns.PendingOfficers(r.Context(), *userFrom(r.Context()), base.Campaign.ID); s.fail(w, r, err) {
+		return
+	} else if officers != nil {
+		s.render.partial(w, status, "campaign_my_company", "officers_panel", map[string]any{"Campaign": base.Campaign, "Panel": officers, "Error": errMsg})
+		return
+	}
+	panel, err := s.recruitPanelFor(r, base.Campaign, errMsg, animate)
+	if s.fail(w, r, err) {
+		return
+	}
+	s.render.partials(w, status, renderPart{"campaign_my_company", "recruit_panel", panel}, renderPart{"campaign_my_company", "influence_oob", panel})
+}
+
+func (s *Server) handleRecruitPanel(w http.ResponseWriter, r *http.Request) {
+	s.showRecruitPanel(w, r, http.StatusOK, "", false)
+}
+
+// handleRollRecruit makes the roll (the player's own, or random) and shows it in the window to be confirmed or adjusted.
+func (s *Server) handleRollRecruit(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	roll, _ := strconv.Atoi(r.PostFormValue("roll")) // empty or 0: random
+	thrown := r.PostFormValue("thrown") != ""        // the browser threw the dice and reports the result
+	perk, _ := strconv.Atoi(r.PostFormValue("perk")) // the Rendezvous bonus: -1, 0 or +1
+	err := s.campaigns.RollRecruitWithPerk(r.Context(), *userFrom(r.Context()), id, roll, thrown, perk)
+	if errors.Is(err, core.ErrRefused) {
+		s.showRecruitPanel(w, r, http.StatusUnprocessableEntity, reason(err), false)
+		return
+	}
+	if s.fail(w, r, err) {
+		return
+	}
+	// only a roll the server made is animated: a thrown or entered roll was already seen by the player
+	s.showRecruitPanel(w, r, http.StatusOK, "", roll == 0 && !thrown)
+}
+
+// handleConfirmRecruit settles the recruit with the player's adjustment. It ends the recruit (the whole page answers, the
+// window closes) unless the roll led to the special chart, which keeps the window open for the second roll.
+func (s *Server) handleConfirmRecruit(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	adjust, _ := strconv.Atoi(r.PostFormValue("adjust"))
+	res, err := s.campaigns.ConfirmRecruit(r.Context(), *userFrom(r.Context()), id, adjust, r.PostFormValue("pick"))
+	s.afterConfirm(w, r, res, err)
+}
+
+// handleChooseLower settles a recruit whose result could not join with the lower result the player chose.
+func (s *Server) handleChooseLower(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	index, err := strconv.Atoi(r.PostFormValue("result"))
+	if err != nil {
+		s.showRecruitPanel(w, r, http.StatusUnprocessableEntity, "Choose one of the results.", false)
+		return
+	}
+	res, err := s.campaigns.ChooseLower(r.Context(), *userFrom(r.Context()), id, index)
+	s.afterConfirm(w, r, res, err)
+}
+
+// afterConfirm answers a step that settles a recruit: it may need another roll or a lower result (the window stays), or be over.
+func (s *Server) afterConfirm(w http.ResponseWriter, r *http.Request, res core.RecruitResult, err error) {
+	switch {
+	case errors.Is(err, core.ErrRefused):
+		s.showRecruitPanel(w, r, http.StatusUnprocessableEntity, reason(err), false)
+	case s.fail(w, r, err):
+	case res.Officers != nil: // the Ranger of the North was chosen: the window turns into the officer panel
+		s.showRecruitPanel(w, r, http.StatusOK, "", false)
+	case res.Next || res.Lower:
+		s.showRecruitPanel(w, r, http.StatusOK, "", false)
+	default:
+		w.Header().Set("HX-Retarget", "#main") // the recruit is over: the page answers and the window goes away
+		w.Header().Set("HX-Reswap", "innerHTML show:window:top")
+		s.afterAction(w, r, res.Summary, nil)
+	}
+}
+
+// handleRecruit buys one of the company's special units directly (the form names it).
+func (s *Server) handleRecruit(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	res, err := s.campaigns.RecruitSpecial(r.Context(), *userFrom(r.Context()), id, r.PostFormValue("special"))
+	s.afterAction(w, r, res.Summary, err)
+}
+
+// handleChooseOptions finishes a "choice of options" recruit with the option the player picked (empty: the base profile).
+func (s *Server) handleChooseOptions(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	res, err := s.campaigns.ChooseOptions(r.Context(), *userFrom(r.Context()), id, r.PostFormValue("option"))
+	s.afterAction(w, r, res.Summary, err)
+}
+
+type armouryPanel struct {
+	Campaign  core.CampaignDetail
+	Unit      core.CompanyUnit
+	Slots     core.Slots
+	Items     []core.ArmouryItem
+	Influence int
+	Kind      string           // "wargear" or "equipment": which half of the armoury the window shows; empty shows both
+	Creatures []creatureChoice // what an officer can also take: creatures
+}
+
+// creatureChoice is a creature and whether this officer can take it.
+type creatureChoice struct {
+	core.ArmouryCreature
+	Reason string
+}
+
+func (s *Server) handleArmouryPanel(w http.ResponseWriter, r *http.Request) {
+	base, ok := s.loadCampaign(w, r, "my-company")
+	if !ok {
+		return
+	}
+	unitID, ok := s.idParam(w, r, "unit")
+	if !ok || base.Campaign.Company == nil {
+		s.notFound(w, r)
+		return
+	}
+	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, base.Campaign.Company.ID)
+	if s.fail(w, r, err) {
+		return
+	}
+	items, err := s.campaigns.Armoury(r.Context(), base.Campaign.ID, base.Campaign.Company.ID, unitID)
+	if s.fail(w, r, err) {
+		return
+	}
+	panel := armouryPanel{Campaign: base.Campaign, Influence: detail.Influence}
+	if k := r.URL.Query().Get("kind"); k == "wargear" || k == "equipment" {
+		panel.Kind = k
+	}
+	for _, it := range items {
+		// What a rule forbids is not shown; the rest is, with the reason when it cannot be bought now.
+		if it.Offered() && (panel.Kind == "" || (panel.Kind == "equipment") == (it.Size != "")) {
+			panel.Items = append(panel.Items, it)
+		}
+	}
+	for _, u := range detail.Roster {
+		if u.ID == unitID {
+			panel.Unit, panel.Slots = u, u.Slots()
+		}
+	}
+	creatures, err := s.campaigns.ArmouryCreatures(r.Context(), base.Campaign.ID, base.Campaign.Company.ID)
+	if s.fail(w, r, err) {
+		return
+	}
+	for _, c := range creatures {
+		if panel.Kind == "equipment" {
+			break
+		}
+		for _, o := range c.Owners {
+			if o.ID == unitID {
+				panel.Creatures = append(panel.Creatures, creatureChoice{ArmouryCreature: c, Reason: o.Reason})
+			}
+		}
+	}
+	s.render.partial(w, http.StatusOK, "campaign_my_company", "armoury_panel", panel)
+}
+
+func (s *Server) handleBuyEquipment(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	unitID, ok := s.idParam(w, r, "unit")
+	if !ok {
+		return
+	}
+	item := r.PostFormValue("item")
+	err := s.campaigns.BuyEquipment(r.Context(), *userFrom(r.Context()), id, unitID, item, r.PostFormValue("pay"))
+	s.afterAction(w, r, "Bought "+item+".", err)
+}
+
+func (s *Server) handleDropEquipment(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	unitID, ok := s.idParam(w, r, "unit")
+	if !ok {
+		return
+	}
+	item := r.PostFormValue("item")
+	err := s.campaigns.DropEquipment(r.Context(), *userFrom(r.Context()), id, unitID, item)
+	s.afterAction(w, r, "Dropped "+item+".", err)
+}
+
+// treatPanel is the window for treating a hero's injuries.
+type treatPanel struct {
+	Campaign  core.CampaignDetail
+	Unit      core.CompanyUnit
+	Influence int
+	Rules     core.InjuryRules
+	Attempt   []core.UnitInjury // what the attempt can remove now
+	Healers   []core.UnitInjury // what the healers can
+	Result    *core.TreatResult // what the last treatment did
+	Animate   bool              // the roll was made by the server: show the dice rolling to it first
+	Error     string
+}
+
+func (s *Server) showTreatPanel(w http.ResponseWriter, r *http.Request, status int, unitID int64, result *core.TreatResult, errMsg string, animate bool) {
+	base, ok := s.loadCampaign(w, r, "my-company")
+	if !ok {
+		return
+	}
+	if base.Campaign.Company == nil {
+		s.notFound(w, r)
+		return
+	}
+	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, base.Campaign.Company.ID)
+	if s.fail(w, r, err) {
+		return
+	}
+	panel := treatPanel{Campaign: base.Campaign, Influence: detail.Influence, Rules: detail.Injuries, Result: result, Error: errMsg, Animate: animate}
+	found := false
+	for _, u := range detail.Roster {
+		if u.ID == unitID {
+			panel.Unit, found = u, true
+		}
+	}
+	if !found {
+		s.notFound(w, r)
+		return
+	}
+	if result == nil { // a roll that waits for the decision on extra influence is shown again
+		if result, err = s.campaigns.TreatmentState(r.Context(), *userFrom(r.Context()), base.Campaign.ID, unitID); s.fail(w, r, err) {
+			return
+		}
+		panel.Result = result
+	}
+	panel.Attempt = detail.Injuries.Healable(panel.Unit, detail.Injuries.Attempt)
+	panel.Healers = detail.Injuries.Healable(panel.Unit, detail.Injuries.Healers)
+	s.render.partial(w, status, "campaign_my_company", "treat_panel", panel)
+}
+
+func (s *Server) handleTreatPanel(w http.ResponseWriter, r *http.Request) {
+	unitID, ok := s.idParam(w, r, "unit")
+	if !ok {
+		return
+	}
+	s.showTreatPanel(w, r, http.StatusOK, unitID, nil, "", false)
+}
+
+// handleTreatInjury pays to treat a unit's injuries. A warrior's treatment answers with the page; a hero's with the window,
+// showing what the roll gave, so that a failed attempt can be tried again.
+func (s *Server) handleTreatInjury(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	unitID, ok := s.idParam(w, r, "unit")
+	if !ok {
+		return
+	}
+	t := core.Treatment{Method: r.PostFormValue("method"), Injury: r.PostFormValue("injury")}
+	t.Roll, _ = strconv.Atoi(r.PostFormValue("roll"))
+	t.Extra, _ = strconv.Atoi(r.PostFormValue("extra"))
+	t.Resolve = r.PostFormValue("resolve") != ""
+	t.Thrown = r.PostFormValue("thrown") != ""
+	thrown := r.PostFormValue("thrown") != ""
+	user := *userFrom(r.Context())
+	res, err := s.campaigns.TreatInjury(r.Context(), user, id, unitID, t)
+	if t.Method == "warrior" {
+		s.afterAction(w, r, res.Summary, err)
+		return
+	}
+	switch {
+	case errors.Is(err, core.ErrRefused):
+		s.showTreatPanel(w, r, http.StatusUnprocessableEntity, unitID, nil, reason(err), false)
+	case s.fail(w, r, err):
+	default:
+		s.showTreatPanel(w, r, http.StatusOK, unitID, &res, "", res.Rolled && !t.Resolve && t.Roll == 0 && !thrown)
+	}
+}
+
+// handleSaveCemetery stores the order of the fallen units.
+func (s *Server) handleSaveCemetery(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	err := s.campaigns.SaveCemeteryOrder(r.Context(), *userFrom(r.Context()), id, idList(r.PostFormValue("order")))
+	s.afterAction(w, r, "Cemetery order saved.", err)
+}
+
+// idList reads unit ids separated by commas.
+func idList(text string) []int64 {
+	var out []int64
+	for _, part := range strings.Split(text, ",") {
+		if n, err := strconv.ParseInt(strings.TrimSpace(part), 10, 64); err == nil {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// handleSaveFormation stores the unit order the player chose; the form carries the unit ids, comma separated.
+func (s *Server) handleSaveFormation(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	var order []int64
+	for _, part := range strings.Split(r.PostFormValue("order"), ",") {
+		if n, err := strconv.ParseInt(strings.TrimSpace(part), 10, 64); err == nil {
+			order = append(order, n)
+		}
+	}
+	err := s.campaigns.SaveFormation(r.Context(), *userFrom(r.Context()), id, order)
+	s.afterAction(w, r, "Formation saved.", err)
+}
+
+// afterAction shows the My Company page again: with the notice when it worked, or the reason when the rules refused.
+func (s *Server) afterAction(w http.ResponseWriter, r *http.Request, done string, err error) {
+	switch {
+	case errors.Is(err, core.ErrRefused):
+		s.myCompanyPage(w, r, http.StatusUnprocessableEntity, reason(err), true)
+	case s.fail(w, r, err):
+	default:
+		s.myCompanyPage(w, r, http.StatusOK, done, false)
+	}
+}
+
+// handleRenameUnit renames a unit; an empty name takes the unit back to its type.
+func (s *Server) handleRenameUnit(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	unitID, ok := s.idParam(w, r, "unit")
+	if !ok {
+		return
+	}
+	err := s.campaigns.RenameUnit(r.Context(), *userFrom(r.Context()), id, unitID, r.PostFormValue("name"))
+	s.afterAction(w, r, "Renamed.", err)
+}
+
+// handlePathPanel is the window where a leader or sergeant without a path chooses one.
+func (s *Server) handlePathPanel(w http.ResponseWriter, r *http.Request) {
+	base, ok := s.loadCampaign(w, r, "my-company")
+	if !ok {
+		return
+	}
+	unitID, ok := s.idParam(w, r, "unit")
+	if !ok || base.Campaign.Company == nil {
+		s.notFound(w, r)
+		return
+	}
+	s.showPathPanel(w, r, base.Campaign, unitID, http.StatusOK, "")
+}
+
+func (s *Server) showPathPanel(w http.ResponseWriter, r *http.Request, c core.CampaignDetail, unitID int64, status int, errMsg string) {
+	offer, err := s.campaigns.PathOptions(r.Context(), *userFrom(r.Context()), c.ID, unitID)
+	if errors.Is(err, core.ErrRefused) {
+		errMsg, err = reason(err), nil
+	}
+	if s.fail(w, r, err) {
+		return
+	}
+	s.render.partial(w, status, "campaign_my_company", "path_panel", map[string]any{"Campaign": c, "Offer": offer, "Error": errMsg})
+}
+
+// handleChoosePath gives the officer the path the player chose.
+func (s *Server) handleChoosePath(w http.ResponseWriter, r *http.Request) {
+	base, ok := s.loadCampaign(w, r, "my-company")
+	if !ok {
+		return
+	}
+	unitID, ok := s.idParam(w, r, "unit")
+	if !ok {
+		return
+	}
+	err := s.campaigns.ChoosePath(r.Context(), *userFrom(r.Context()), base.Campaign.ID, unitID, r.PostFormValue("path"), r.PostFormValue("power"))
+	if errors.Is(err, core.ErrRefused) {
+		s.showPathPanel(w, r, base.Campaign, unitID, http.StatusUnprocessableEntity, reason(err))
+		return
+	}
+	w.Header().Set("HX-Retarget", "#main")
+	w.Header().Set("HX-Reswap", "innerHTML show:window:top")
+	s.afterAction(w, r, "The path is chosen.", err)
+}
+
+// handleRenameCompany renames the player's company.
+func (s *Server) handleRenameCompany(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	err := s.campaigns.RenameCompany(r.Context(), *userFrom(r.Context()), id, r.PostFormValue("name"))
+	s.afterAction(w, r, "The company has a new name.", err)
+}
+
+// handleArrangeOfficers appoints the officers when a Ranger of the North takes command: the form names the unit for the Leader place
+// ("leader", 0 is the Ranger) and for each Sergeant place ("sergeant", repeated).
+func (s *Server) handleArrangeOfficers(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	leader, err := strconv.ParseInt(r.PostFormValue("leader"), 10, 64)
+	if err != nil {
+		s.showRecruitPanel(w, r, http.StatusUnprocessableEntity, "Choose a Leader.", false)
+		return
+	}
+	a := core.OfficerArrangement{Leader: leader}
+	for _, v := range r.PostForm["sergeant"] {
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			s.showRecruitPanel(w, r, http.StatusUnprocessableEntity, "That unit cannot be appointed.", false)
+			return
+		}
+		a.Sergeants = append(a.Sergeants, n)
+	}
+	res, err := s.campaigns.ArrangeOfficers(r.Context(), *userFrom(r.Context()), id, a)
+	if errors.Is(err, core.ErrRefused) {
+		s.showRecruitPanel(w, r, http.StatusUnprocessableEntity, reason(err), false)
+		return
+	}
+	if s.fail(w, r, err) {
+		return
+	}
+	w.Header().Set("HX-Retarget", "#main") // the officers are settled: the page answers and the window goes away
+	w.Header().Set("HX-Reswap", "innerHTML show:window:top")
+	s.afterAction(w, r, res.Summary, nil)
+}

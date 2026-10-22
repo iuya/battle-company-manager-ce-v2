@@ -1,0 +1,22 @@
+{{define "title"}}Glossary · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+<h1>Glossary</h1>
+<p class="mt-1 text-muted">{{if .Custom}}A glossary file you picked, shown in this browser only.{{else}}The rules glossary the app ships with.{{end}} Each campaign has its own, under its Glossary tab.</p>
+{{with .Notice}}<div class="alert alert-info mt-4" role="status">{{.}}</div>{{end}}
+{{with .Error}}<div class="alert alert-danger mt-4" role="alert">{{.}}</div>{{end}}
+{{if .Custom}}
+<div class="alert alert-info mt-4 flex flex-wrap items-center justify-between gap-3" role="status">
+  <span>Not the app's default: <strong>{{.Glossary.Info.Name}}</strong>.</span>
+  <form method="post" action="/glossary" hx-boost="false"><input type="hidden" name="glossary-mode" value="default"><button class="btn btn-secondary !min-h-9">Back to the default</button></form>
+</div>
+{{end}}
+<details class="group mt-4 rounded-xl border border-line bg-surface px-4 py-2" {{if .Error}}open{{end}}>
+  <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"><span>Use another glossary</span><span class="text-sm text-muted group-open:hidden">Show</span><span class="hidden text-sm text-muted group-open:inline">Hide</span></summary>
+  <form method="post" action="/glossary" enctype="multipart/form-data" hx-boost="false" class="space-y-3 pb-3">
+    <p class="text-sm text-muted">Pick a glossary file of your own to read in this browser. It does not change any campaign.</p>
+    {{template "ruleset_picker" .Picker}}
+    <button class="btn btn-primary">Show this glossary</button>
+  </form>
+</details>
+{{template "glossary_body" .}}
+{{end}}

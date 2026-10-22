@@ -1,0 +1,8 @@
+{{/* The sub-navigation of the administration section: tabs (scrolling sideways if they must, like the campaign tabs). Takes the page's adminBase. */}}
+{{define "admin_head"}}
+<h1>Administration</h1>
+<nav class="mt-4 flex overflow-x-auto border-b border-line" aria-label="Administration">
+  <a href="/admin/users" class="tab" {{if eq .Section "users"}}aria-current="page"{{end}}>Users</a>
+  <a href="/admin/rulesets" class="tab" {{if eq .Section "rulesets"}}aria-current="page"{{end}}>Rules files</a>
+</nav>
+{{end}}

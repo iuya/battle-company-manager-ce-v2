@@ -1,0 +1,15 @@
+{{/* The override: a quiet button that opens the warning and the note field. Takes Base, Rev, P (the proposal), Note, Err, Target and Extra (hidden fields). */}}
+{{define "end_override"}}{{$open := or .Err .Note}}
+<div x-data="{ open: {{if $open}}true{{else}}false{{end}} }" class="basis-full">
+  <button type="button" class="btn btn-ghost" x-show="!open" @click="open = true" aria-controls="override-form">End without confirmation&hellip;</button>
+  <form id="override-form" x-show="open" {{if not $open}}x-cloak{{end}} hx-post="{{.Base}}/override" hx-target="{{.Target}}" hx-swap="outerHTML" class="space-y-3 rounded-lg border border-line bg-surface p-3 text-fg">
+    <input type="hidden" name="revision" value="{{.Rev}}">{{.Extra}}
+    <div class="alert alert-danger" role="alert">{{range $i, $c := .P.Waiting}}{{if $i}}, {{end}}{{$c.CompanyName}}{{end}} {{if gt (len .P.Waiting) 1}}have{{else}}has{{end}} not confirmed that the game is over. The result and the aftermath will be fixed for everyone.</div>
+    <div class="field"><label for="override-note">Why are you ending it?</label>
+      <textarea id="override-note" name="note" rows="2" maxlength="200" required class="input" aria-describedby="override-help{{if .Err}} override-err{{end}}">{{.Note}}</textarea>
+      <p id="override-help" class="text-xs text-muted">Shown in the history. Up to 200 characters.</p>
+      {{with .Err}}<p id="override-err" class="text-sm text-danger" role="alert">{{.}}</p>{{end}}</div>
+    <div class="flex flex-wrap gap-2"><button class="btn btn-danger">End the match</button><button type="button" class="btn btn-secondary" @click="open = false">Go back</button></div>
+  </form>
+</div>
+{{end}}

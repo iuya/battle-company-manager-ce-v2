@@ -1,0 +1,125 @@
+{{define "title"}}Account · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+<h1>Account</h1>
+<p class="mt-1 text-muted">Signed in as {{.User.Email}}.</p>
+<div class="mt-6 max-w-xl space-y-6">
+  {{template "account_profile" .Profile}}
+  {{template "account_password" .Pass}}
+  {{template "account_sessions" .Others}}
+  <section class="card space-y-4" id="account-appearance">
+    <h2 class="!text-xl">Appearance</h2>
+    <p class="text-sm text-muted">Saved in your account, so every device you sign in on looks the same. The gear in the header changes the same settings.</p>
+    {{template "theme_controls"}}
+  </section>
+  {{template "account_timezone" .Zone}}
+  {{template "account_close" .Close}}
+</div>
+{{end}}
+
+{{/* A notice above a card's form: success, or a failure when .NoticeErr is set. */}}
+{{define "account_notice"}}{{with .Notice}}<div class="alert {{if $.NoticeErr}}alert-danger{{else}}alert-success{{end}}" role="{{if $.NoticeErr}}alert{{else}}status{{end}}">{{.}}</div>{{end}}{{end}}
+
+{{define "account_profile"}}
+<section class="card space-y-4" id="account-profile">
+  <h2 class="!text-xl">Profile</h2>
+  {{template "account_notice" .}}
+  <form hx-post="/account/profile" hx-target="#account-profile" hx-swap="outerHTML" class="space-y-4" x-data="{ n: {{len .Name}} }" novalidate>
+    <div class="field"><label for="acc-name">Name</label>
+      <input id="acc-name" name="name" type="text" class="input" value="{{.Name}}" maxlength="60" autocomplete="name" required @input="n = $event.target.value.length"
+             {{with index .Errors "name"}}aria-invalid="true" aria-describedby="acc-name-err"{{end}}>
+      {{with index .Errors "name"}}<p class="error" id="acc-name-err" role="alert">{{.}}</p>{{end}}
+      <p class="hint">Shown to the other players, 1 to 60 characters.</p></div>
+    <div class="field"><label for="acc-email">Email</label>
+      <input id="acc-email" type="email" class="input" value="{{.User.Email}}" readonly aria-describedby="acc-email-hint">
+      <p class="hint" id="acc-email-hint">Ask an administrator to change it.</p></div>
+    <button class="btn btn-primary">Save name</button>
+  </form>
+</section>
+{{end}}
+
+{{define "account_password"}}
+<section class="card space-y-4" id="account-password">
+  <h2 class="!text-xl">Password</h2>
+  {{template "account_notice" .}}
+  <form hx-post="/account/password" hx-target="#account-password" hx-swap="outerHTML" class="space-y-4" x-data="{ show: false, next: '', confirm: '' }" novalidate>
+    {{with index .Errors ""}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+    {{/* the account's email as a hidden username, so password managers file the new password under the right account */}}
+    <input type="email" value="{{.User.Email}}" autocomplete="username" hidden readonly tabindex="-1" aria-hidden="true">
+    {{template "account_pw_field" (dict "ID" "acc-current" "Name" "current" "Label" "Current password" "Auto" "current-password" "Errors" .Errors)}}
+    {{template "account_pw_field" (dict "ID" "acc-new" "Name" "new" "Label" "New password" "Auto" "new-password" "Errors" .Errors "Model" "next" "Hint" "10 to 128 characters.")}}
+    {{template "account_pw_field" (dict "ID" "acc-confirm" "Name" "confirm" "Label" "New password again" "Auto" "new-password" "Errors" .Errors "Model" "confirm")}}
+    <p class="text-xs font-medium text-danger" x-show="confirm !== '' && confirm !== next" x-cloak>The two passwords do not match.</p>
+    <p class="text-sm text-muted">Changing it signs you out of every other device.</p>
+    <button class="btn btn-primary" :disabled="next.length < 10 || next !== confirm">Change password</button>
+  </form>
+</section>
+{{end}}
+
+{{/* One password input with its show/hide button; the enclosing form holds the `show` flag. Takes ID, Name, Label, Auto, Errors, and optionally Model and Hint. */}}
+{{define "account_pw_field"}}
+<div class="field"><label for="{{.ID}}">{{.Label}}</label>
+  <div class="relative">
+    <input id="{{.ID}}" name="{{.Name}}" :type="show ? 'text' : 'password'" type="password" class="input pr-16" autocomplete="{{.Auto}}" required {{with .Model}}x-model="{{.}}"{{end}}
+           {{with index .Errors .Name}}aria-invalid="true" aria-describedby="{{$.ID}}-err"{{end}}>
+    <button type="button" class="btn btn-ghost absolute inset-y-0 right-0 !px-3 !py-0 text-xs" @click="show = !show" :aria-pressed="show" aria-label="Show passwords" x-text="show ? 'Hide' : 'Show'">Show</button>
+  </div>
+  {{with index .Errors .Name}}<p class="error" id="{{$.ID}}-err" role="alert">{{.}}</p>{{end}}
+  {{with .Hint}}<p class="hint">{{.}}</p>{{end}}</div>
+{{end}}
+
+{{define "account_sessions"}}
+<section class="card space-y-4" id="account-sessions">
+  <h2 class="!text-xl">Sessions</h2>
+  {{template "account_notice" .}}
+  <p class="text-sm text-muted">You stay signed in on every device until you sign out. Lost a phone or used a shared computer? End the sessions of all the other devices; this one stays signed in.</p>
+  <form hx-post="/account/sessions/sign-out-others" hx-target="#account-sessions" hx-swap="outerHTML">
+    <button class="btn btn-secondary">Sign out everywhere else</button>
+  </form>
+</section>
+{{end}}
+
+{{define "account_close"}}
+<section class="card space-y-4 !border-danger" id="account-close">
+  <details {{if .Open}}open{{end}} class="group">
+    <summary class="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+      <h2 class="!text-xl text-danger">Close account</h2>
+      <span class="text-sm text-muted group-open:hidden">Show</span><span class="hidden text-sm text-muted group-open:inline">Hide</span>
+    </summary>
+    <div class="mt-4 space-y-4">
+      <p class="text-sm">Closing your account signs you out everywhere and you can no longer sign in. It cannot be undone.</p>
+      <p class="text-sm text-muted">What stays: your companies and matches remain in their campaigns, listed under “Former player”, so the other players' rankings and history do not change. Your name and email are removed.</p>
+      <p class="text-sm text-muted">What blocks it: you cannot close the account while you organise a campaign that is not finished, or if you are the last superuser.</p>
+      <form hx-post="/account/close" hx-target="#account-close" hx-swap="outerHTML" class="space-y-4" x-data="{ show: false, email: '', pw: '' }" novalidate>
+        {{with index .Errors ""}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+        <div class="field"><label for="close-email">Type your email address to confirm</label>
+          <input id="close-email" name="email" type="email" class="input" value="{{.Email}}" x-model="email" autocomplete="off" autocapitalize="none" spellcheck="false" required
+                 {{with index .Errors "email"}}aria-invalid="true" aria-describedby="close-email-err"{{end}}>
+          {{with index .Errors "email"}}<p class="error" id="close-email-err" role="alert">{{.}}</p>{{end}}</div>
+        {{template "account_pw_field" (dict "ID" "close-password" "Name" "password" "Label" "Your password" "Auto" "current-password" "Errors" .Errors "Model" "pw")}}
+        <button class="btn btn-danger" :disabled="email.trim() === '' || pw === ''">Close my account</button>
+      </form>
+    </div>
+  </details>
+</section>
+{{end}}
+
+{{/* The time zone times are shown in; empty is automatic (this device's zone, sent in the tz cookie by static/js/tz.js). */}}
+{{define "account_timezone"}}
+<section class="card space-y-4" id="account-timezone">
+  <h2 class="!text-xl">Time zone</h2>
+  {{template "account_notice" .}}
+  <form hx-post="/account/timezone" hx-target="#account-timezone" hx-swap="outerHTML" class="space-y-4" x-data="{ zone: {{jsstr .Name}}, device: (Intl.DateTimeFormat().resolvedOptions().timeZone || '') }" novalidate>
+    <div class="field"><label for="acc-tz">Show times in</label>
+      <input id="acc-tz" name="zone" type="text" class="input" list="tz-list" x-model="zone" placeholder="Automatic (this device)" autocomplete="off" autocapitalize="none" spellcheck="false"
+             {{with index .Errors "zone"}}aria-invalid="true" aria-describedby="acc-tz-err"{{end}}>
+      <datalist id="tz-list">{{range .TimezoneNames}}<option value="{{.}}">{{end}}</datalist>
+      {{with index .Errors "zone"}}<p class="error" id="acc-tz-err" role="alert">{{.}}</p>{{end}}
+      <p class="hint">Empty is automatic: your device's zone<span x-show="device"> (<span x-text="device"></span>)</span>. {{with .Now}}It is {{.Format "15:04"}} in the zone shown now ({{.Format "MST"}}).{{end}}</p></div>
+    <div class="flex flex-wrap gap-2">
+      <button class="btn btn-primary">Save time zone</button>
+      <button type="button" class="btn btn-secondary" x-show="device" @click="zone = device">Use this device's zone</button>
+      <button type="button" class="btn btn-ghost" x-show="zone !== ''" @click="zone = ''">Automatic</button>
+    </div>
+  </form>
+</section>
+{{end}}

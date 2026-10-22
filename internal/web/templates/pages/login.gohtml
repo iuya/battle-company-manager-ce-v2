@@ -1,0 +1,33 @@
+{{define "title"}}Sign in · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+<div class="mx-auto mt-6 max-w-sm sm:mt-12">
+  <div class="card space-y-6">
+    <div class="flex flex-col items-center gap-3 text-center">
+      <img src="/static/icon.svg" alt="" class="h-20 w-20">
+      <div>
+        <h1 class="!text-3xl sm:!text-4xl"><span class="block">Battle Companies</span><span class="block text-balance">2nd Community Edition Manager</span></h1>
+      </div>
+    </div>
+    {{/* A failed attempt comes back as just this page content (htmx swaps it in); a success redirects. */}}
+    {{with .Notice}}<div class="alert alert-success" role="status">{{.}}</div>{{end}}
+    <form method="post" action="/login" hx-post="/login" hx-boost="false" class="space-y-5" x-data="{ show: false }" novalidate>
+      {{with .Error}}<div class="alert alert-danger" role="alert" id="login-error">{{.}}</div>{{end}}
+      {{with .Next}}<input type="hidden" name="next" value="{{.}}">{{end}}
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" class="input" value="{{.Email}}" autocomplete="username" autocapitalize="none" spellcheck="false" required {{if not .Email}}autofocus{{end}}
+               {{if .Error}}aria-invalid="true" aria-describedby="login-error"{{end}}>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="relative">
+          <input id="password" name="password" :type="show ? 'text' : 'password'" type="password" class="input pr-16" autocomplete="current-password" required {{if .Email}}autofocus{{end}}
+                 {{if .Error}}aria-invalid="true" aria-describedby="login-error"{{end}}>
+          <button type="button" class="btn btn-ghost absolute inset-y-0 right-0 !px-3 !py-0 text-xs" @click="show = !show" :aria-pressed="show" x-text="show ? 'Hide' : 'Show'">Show</button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary w-full">Sign in</button>
+    </form>
+  </div>
+</div>
+{{end}}

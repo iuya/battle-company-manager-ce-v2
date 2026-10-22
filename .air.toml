@@ -1,0 +1,9 @@
+root = "."
+tmp_dir = "tmp"
+[build]
+cmd = "go build -o ./tmp/server ./cmd/server"
+entrypoint = ["./tmp/server"]
+include_ext = ["go", "gohtml", "sql"]
+exclude_dir = ["tmp", "definitions", "node_modules"]
+[log]
+time = true

@@ -1,0 +1,86 @@
+{{define "title"}}New match · {{.Campaign.Name}} · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+<div class="max-w-3xl">
+  <p class="text-sm"><a href="/campaigns/{{.Campaign.ID}}/matches">← {{.Campaign.Name}} · Matches</a></p>
+  <h1 class="mt-2">New match</h1>
+  {{if .TooFew}}
+  <div class="card mt-6 space-y-2">
+    <p>A match needs at least two companies and this campaign has {{.Companies}}.</p>
+    <p class="text-sm text-muted">Each player creates a company from <strong>My company</strong>; the organiser can invite players from the Overview. Come back when two companies exist.</p>
+    <a href="/campaigns/{{.Campaign.ID}}/matches" class="btn btn-secondary">Back to the matches</a>
+  </div>
+  {{else}}
+  <form method="post" action="/campaigns/{{.Campaign.ID}}/matches" hx-boost="false" class="mt-6 space-y-5"
+        x-data="matchForm" data-companies="{{.CompaniesJSON}}" data-sides="{{.SidesJSON}}" data-ffa="{{.FFA}}">
+    {{with .Error}}<div class="alert alert-danger" role="alert">{{.}}{{with $.Busy}} <a href="/campaigns/{{$.Campaign.ID}}/matches/{{.MatchID}}" class="font-medium">Go to Match {{.Number}}</a>{{end}}</div>{{end}}
+    <div class="card field">
+      <label for="sides">Number of sides</label>
+      <select id="sides" class="input sm:w-40" :value="sides.length" :disabled="ffa" @change="setCount($event.target.value)">
+        {{range $n := (seq 2 8)}}<option value="{{$n}}">{{$n}}</option>{{end}}
+      </select>
+      <p class="hint">Most matches are 1 v 1, but any number of sides can take part. Name each side if you like.</p>
+      <input type="hidden" name="sides" :value="sides.length">
+      <label class="mt-2 flex min-h-10 items-center gap-3 text-sm">
+        <input type="checkbox" class="h-5 w-5 accent-[var(--accent)]" :checked="ffa" @change="setFFA($event.target.checked)">
+        <span><span class="font-medium">All vs all</span> <span class="text-muted">· every company fights on its own side</span></span>
+      </label>
+      <input type="hidden" name="mode" :value="ffa ? 'ffa' : 'sides'">
+    </div>
+
+    <div class="grid gap-4" :class="!ffa && 'md:grid-cols-2'">
+      <template x-for="(side, i) in visible" :key="i">
+        <section class="card space-y-3 !p-4" @click.outside="side.open = false">
+          <h2 class="!text-xl" x-show="ffa">Everyone in the match</h2>
+          <div class="field" x-show="!ffa">
+            <label :for="'side-name-' + (i + 1)">Side <span x-text="i + 1"></span> name</label>
+            <input :id="'side-name-' + (i + 1)" :name="'side-name-' + (i + 1)" x-model="side.name" maxlength="40" :placeholder="'Side ' + (i + 1)" autocomplete="off" class="input">
+          </div>
+
+          <div class="field" x-show="!ffa">
+            <label :for="'side-role-' + (i + 1)">Role <span class="text-muted">(optional)</span></label>
+            <select :id="'side-role-' + (i + 1)" :name="'side-role-' + (i + 1)" x-model="side.role" class="input sm:w-48" :disabled="ffa">
+              <option value="">None</option><option value="attacker" :disabled="sides.some((o, j) => j !== i && o.role === 'attacker')">Attacker</option><option value="defender" :disabled="sides.some((o, j) => j !== i && o.role === 'defender')">Defender</option>
+            </select>
+            <p class="hint" x-show="i === 0">For scenarios with an Attacker and a Defender; you can also set it on the match page.</p>
+          </div>
+
+          <ul class="flex flex-wrap gap-2" x-show="side.ids.length" aria-label="Companies on this side">
+            <template x-for="id in side.ids" :key="id">
+              <li class="flex items-center gap-1 rounded-full bg-accent-soft py-1 pl-3 pr-1 text-sm">
+                <input type="hidden" :name="'side-' + (i + 1)" :value="id">
+                <span class="font-medium" x-text="company(id).name"></span>
+                <button type="button" class="flex h-7 w-7 items-center justify-center rounded-full hover:bg-raised" @click="remove(side, id)" :aria-label="'Remove ' + company(id).name">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+              </li>
+            </template>
+          </ul>
+          <p class="text-sm text-muted" x-show="!side.ids.length">No companies yet.</p>
+
+          <div class="relative" @keydown.escape="side.open = false">
+            <input type="search" x-model="side.query" @focus="side.open = true" @input="side.open = true"
+                   @keydown.enter="if (side.query.trim() && results(side).length) { $event.preventDefault(); add(side, results(side)[0].id); side.open = false }" placeholder="Search companies to add…" autocomplete="off"
+                   class="input" role="combobox" :aria-label="'Search companies for side ' + (i + 1)" :aria-expanded="side.open" aria-autocomplete="list">
+            <ul x-show="side.open" x-cloak class="card absolute inset-x-0 z-10 mt-1 max-h-56 overflow-y-auto !p-1 shadow-lg" role="listbox">
+              <template x-for="c in results(side)" :key="c.id">
+                <li role="option"><button type="button" class="flex w-full flex-col rounded-md px-3 py-2 text-left hover:bg-raised" @click="add(side, c.id); side.open = false">
+                  <span class="font-medium" x-text="c.name"></span><span class="text-xs text-muted" x-text="c.owner + ' · ' + c.faction"></span>
+                </button></li>
+              </template>
+              <li class="px-3 py-2 text-sm text-muted" x-show="results(side).length === 0">No matching companies left.</li>
+            </ul>
+            <button type="button" class="btn btn-secondary mt-2" x-show="ffa" @click="addAll(side)">Add every company</button>
+          </div>
+        </section>
+      </template>
+    </div>
+
+    <p class="text-sm text-muted">A company can only be on one side, and every side needs at least one company. In all vs all, add at least two companies.</p>
+    <div class="flex flex-wrap gap-2">
+      <button class="btn btn-primary">Create match</button>
+      <a href="/campaigns/{{.Campaign.ID}}/matches" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+  {{end}}
+</div>
+{{end}}

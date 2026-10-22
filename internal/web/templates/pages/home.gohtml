@@ -1,0 +1,58 @@
+{{define "title"}}Campaigns · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+<div class="flex flex-wrap items-center justify-between gap-3">
+  <h1>Campaigns</h1>
+  {{if .User.MayCreateCampaigns}}<a href="/campaigns/new" class="btn btn-primary">New campaign</a>{{end}}
+</div>
+<p class="mt-1 text-muted">{{if .Newcomer}}Welcome, {{.User.DisplayName}}.{{else}}Welcome back, {{.User.DisplayName}}.{{end}}</p>
+
+{{/* Remembered in a cookie so the sidebar sub-menu follows; changing it reloads this page's content and the sub-menu. */}}
+{{if not .Newcomer}}
+<div class="mt-4" x-data="{ on: {{.ShowFinished}} }">
+  <button type="button" role="switch" :aria-checked="on" class="flex min-h-10 items-center gap-3 text-sm"
+          @click="on = !on; document.cookie = 'bcm-finished=' + (on ? '1' : '0') + '; path=/; max-age=31536000; samesite=lax'; htmx.ajax('GET', '/', { target: '#main', swap: 'innerHTML' }); htmx.trigger(document.body, 'campaigns-changed')">
+    <span class="relative h-6 w-11 shrink-0 rounded-full border border-line transition-colors" :class="on ? 'bg-accent' : 'bg-raised'" aria-hidden="true">
+      <span class="absolute left-0.5 top-0.5 h-4.5 w-4.5 rounded-full bg-surface shadow transition-transform" :class="on && 'translate-x-5'"></span>
+    </span>
+    <span>Show finished campaigns</span>
+  </button>
+</div>
+{{end}}
+
+{{if .Campaigns}}
+{{/* Searches by name in the browser, over the campaigns already on the page (finished ones only when they are shown). */}}
+<div x-data="listSearch">
+<div class="mt-4">
+  <label for="campaign-search" class="sr-only">Search campaigns</label>
+  <input id="campaign-search" type="search" x-model="q" placeholder="Search campaigns by name…" autocomplete="off" class="input sm:max-w-sm">
+</div>
+<ul class="mt-6 grid gap-4 xl:grid-cols-2">
+  {{range .Campaigns}}
+  <li data-name="{{.Name}}" x-show="shows($el)" class="card relative flex flex-col gap-3 hover:bg-raised {{if eq .Status "finished"}}opacity-75{{end}}">
+    <div class="flex items-start justify-between gap-3">
+      <h2 class="!text-2xl"><a href="/campaigns/{{.ID}}" class="text-fg no-underline after:absolute after:inset-0 hover:no-underline">{{.Name}}</a></h2>
+      {{if eq .Status "paused"}}<span class="badge badge-muted shrink-0">Paused</span>{{else if eq .Status "finished"}}<span class="badge badge-muted shrink-0">Finished</span>{{else}}<span class="badge shrink-0">Active</span>{{end}}
+    </div>
+    {{with .Description}}<p class="text-sm text-muted">{{.}}</p>{{end}}
+    <dl class="mt-auto grid gap-x-4 sm:grid-cols-2 gap-y-2 border-t border-line pt-3 text-sm">
+      <div>
+        <dt class="text-muted">Progress</dt>
+        <dd class="font-medium">{{if .Rounds}}Round {{.Round}} of {{.Rounds}}{{else if .Round}}Round {{.Round}}{{else}}Not started{{end}} · {{.Matches}} {{if eq .Matches 1}}match{{else}}matches{{end}}</dd>
+      </div>
+      <div>
+        <dt class="text-muted">Your company</dt>
+        <dd class="font-medium">{{with .Company}}{{.Name}} <span class="font-normal text-muted">({{.Faction}})</span>{{else}}<span class="font-normal text-muted">None yet</span>{{end}}</dd>
+      </div>
+    </dl>
+  </li>
+  {{end}}
+</ul>
+<p class="mt-6 text-muted" x-show="noMatch()" x-cloak>No campaign matches “<span x-text="q"></span>”.</p>
+</div>
+{{else}}
+<div class="card mt-6 text-center">
+  <h2>No {{if not .ShowFinished}}active {{end}}campaigns</h2>
+  <p class="mt-2 text-muted">{{if .User.MayCreateCampaigns}}Create one, or open an invite link from your organiser to join.{{else}}Open an invite link from your organiser to join a campaign.{{end}}</p>
+</div>
+{{end}}
+{{end}}

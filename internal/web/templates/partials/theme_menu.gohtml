@@ -1,0 +1,45 @@
+{{/* Appearance settings: mode (system/light/dark) and palette. Stored in a cookie, and in the account for signed-in users (theme.js). */}}
+{{define "theme_menu"}}
+<div class="relative" x-data="{ open: false }" @keydown.escape.window="open = false" @click.outside="open = false">
+  <button type="button" class="btn btn-ghost !min-h-11 !min-w-11 !px-2" @click="open = !open" :aria-expanded="open" aria-haspopup="dialog" aria-label="Appearance settings" title="Appearance">
+    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button>
+  <div x-show="open" x-cloak x-transition.opacity.duration.100ms role="dialog" aria-label="Appearance settings"
+       class="card absolute right-0 z-20 mt-2 w-72 space-y-5 !p-4 shadow-lg">
+    {{template "theme_controls"}}
+    {{if .Dev}}<p class="divider pt-3 text-sm"><a href="/styleguide" @click="open = false">Style guide</a></p>{{end}}
+  </div>
+</div>
+{{end}}
+
+{{/* The mode and palette controls, shared by the settings menu and the Account page; they only talk to $store.theme. */}}
+{{define "theme_controls"}}
+<div class="space-y-5">
+  <div class="space-y-2">
+    <h3 class="!text-xl">Mode</h3>
+    <div class="grid grid-cols-3 gap-1" role="group" aria-label="Mode">
+      <template x-for="m in $store.theme.modes" :key="m">
+        <button type="button" class="btn btn-secondary !px-2 capitalize" :class="$store.theme.mode === m && '!border-accent !bg-accent-soft'"
+                :aria-pressed="$store.theme.mode === m" @click="$store.theme.set('mode', m)" x-text="m"></button>
+      </template>
+    </div>
+  </div>
+  <div class="space-y-2">
+    <h3 class="!text-xl">Palette</h3>
+    <div class="space-y-1" role="group" aria-label="Palette">
+      <template x-for="p in $store.theme.palettes" :key="p.key">
+        <button type="button" class="flex w-full items-center gap-3 rounded-md border border-transparent px-2 py-2 text-left text-sm hover:bg-raised"
+                :class="$store.theme.palette === p.key && '!border-accent !bg-accent-soft'" :aria-pressed="$store.theme.palette === p.key"
+                @click="$store.theme.set('palette', p.key)">
+          {{/* the same data-palette/data-mode attributes preview a palette on any element */}}
+          <span class="flex h-8 w-14 shrink-0 overflow-hidden rounded border border-line" :data-palette="p.key" :data-mode="$store.theme.resolvedMode">
+            <span class="h-full w-1/3 bg-page"></span><span class="h-full w-1/3 bg-accent"></span><span class="h-full w-1/3 bg-gold"></span>
+          </span>
+          <span class="flex-1 font-medium" x-text="p.name"></span>
+          <svg x-show="$store.theme.palette === p.key" class="h-4 w-4 text-accent-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
+        </button>
+      </template>
+    </div>
+  </div>
+</div>
+{{end}}

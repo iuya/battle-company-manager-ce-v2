@@ -1,0 +1,23 @@
+{{/* One "which rules file?" choice (see static/js/ruleset_picker.js). Takes a pickerView. */}}
+{{define "ruleset_picker"}}
+<div class="rounded-lg border border-line p-3" x-data="rulesetPicker" data-kind="{{.Kind}}" data-label="{{.Label}}">
+  <p class="font-medium">{{.Label}}</p>
+  <div class="mt-2 space-y-2 text-sm">
+    <label class="flex min-h-10 items-start gap-3">
+      <input type="radio" name="{{.Kind}}-mode" value="default" x-model="mode" class="mt-1 h-4 w-4 accent-[var(--accent)]">
+      <span>The app's default<span class="block text-muted">{{.Default.Name}}{{with .Default.Version}} · v{{.}}{{end}} <span class="badge badge-muted font-mono" title="Identifies this exact file">{{.Default.ShortHash}}</span></span></span>
+    </label>
+    <label class="flex min-h-10 items-start gap-3">
+      <input type="radio" name="{{.Kind}}-mode" value="file" x-model="mode" class="mt-1 h-4 w-4 accent-[var(--accent)]">
+      <span>My own file</span>
+    </label>
+    <div x-show="mode === 'file'" x-cloak class="space-y-2 pl-7">
+      <input type="file" name="{{.Kind}}-file" accept=".json,application/json" x-ref="file" @change="pick()" :required="mode === 'file' && !hash" class="block w-full text-sm file:mr-3 file:min-h-10 file:rounded-md file:border file:border-line file:bg-surface file:px-4 file:text-fg">
+      <input type="hidden" name="{{.Kind}}-hash" :value="hash">
+      <p x-show="state === 'busy'" class="text-muted" role="status">Reading the file…</p>
+      <p x-show="state === 'ready'" class="text-success" role="status"><span class="font-medium" x-text="info && (info.name + (info.version ? ' · v' + info.version : ''))"></span> <span class="badge badge-muted font-mono" title="Identifies this exact file" x-text="short"></span></p>
+      <p x-show="state === 'error'" class="text-danger" role="alert" x-text="message"></p>
+    </div>
+  </div>
+</div>
+{{end}}

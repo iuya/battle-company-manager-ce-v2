@@ -1,0 +1,237 @@
+{{define "title"}}{{.Campaign.Name}} · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+{{template "campaign_header" .}}
+<div class="mt-6 grid gap-4 lg:grid-cols-2">
+  {{with .Campaign.Company}}
+  <section class="card space-y-3">
+    <h2 class="!text-2xl">Your company</h2>
+    <div>
+      <p class="text-lg font-semibold">{{.Name}}</p>
+      <p class="text-sm text-muted">{{.Faction}}</p>
+    </div>
+    <div class="flex flex-wrap gap-x-8 gap-y-3 text-sm">
+      <dl class="flex gap-x-8">
+        <div><dt class="text-muted">Points</dt><dd class="font-semibold">{{template "points" .}}</dd></div>
+        <div><dt class="text-muted">Units</dt><dd class="font-semibold">{{.Units}}</dd></div>
+      </dl>
+      {{/* W / D / L over 3 / 1 / 1 in ONE 5-column grid: a column is as wide as its widest cell, so each figure sits right
+         under its letter whatever its width. */}}
+      <div class="ml-auto grid grid-cols-[repeat(5,auto)] gap-x-1.5 text-center" role="group" aria-label="Wins, draws and losses">
+        <span class="text-muted">W</span><span class="text-muted">/</span><span class="text-muted">D</span><span class="text-muted">/</span><span class="text-muted">L</span>
+        <span class="font-semibold tone-win">{{.Wins}}</span><span class="text-muted">/</span><span class="font-semibold tone-draw">{{.Draws}}</span><span class="text-muted">/</span><span class="font-semibold tone-loss">{{.Losses}}</span>
+      </div>
+    </div>
+    <a href="/campaigns/{{$.Campaign.ID}}/my-company" class="btn btn-primary">Manage company</a>
+  </section>
+  {{else}}
+  <section class="card space-y-3">
+    <h2 class="!text-2xl">Choose your company</h2>
+    <p class="text-muted">You have not joined this campaign with a battle company yet. Each player has one company per campaign.</p>
+    <a href="/campaigns/{{.Campaign.ID}}/company/new" class="btn btn-primary">Create my company</a>
+  </section>
+  {{end}}
+
+  <section class="card space-y-3">
+    <h2 class="!text-2xl">The campaign</h2>
+    <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+      <div><dt class="text-muted">Organiser</dt><dd class="font-medium">{{.Campaign.Organiser}}</dd></div>
+      <div><dt class="text-muted">Players</dt><dd class="font-medium">{{.Campaign.Players}}</dd></div>
+      <div><dt class="text-muted">Progress</dt><dd class="font-medium">{{if .Campaign.Rounds}}Round {{.Campaign.Round}} of {{.Campaign.Rounds}}{{else if .Campaign.Round}}Round {{.Campaign.Round}}{{else}}Not started{{end}}</dd></div>
+      <div><dt class="text-muted">Matches</dt><dd class="font-medium">{{.Campaign.Matches}}</dd></div>
+    </dl>
+    {{if .CanInvite}}{{template "invite_card" (dict "CampaignID" .Campaign.ID "Active" .Campaign.ActiveInvites "Paused" (eq .Campaign.Status "paused"))}}{{end}}
+    {{if .CanInvite}}{{template "handover_card" (dict "CampaignID" .Campaign.ID "Players" .NewOrganisers)}}{{end}}
+  </section>
+</div>
+
+{{if .CanManage}}{{template "manage_card" (dict "Campaign" .Campaign "Admin" .IsAdmin)}}{{end}}
+
+{{if .Campaign.Rulesets}}
+<section class="card mt-4 space-y-3">
+  <h2 class="!text-2xl">Rules</h2>
+  <ul class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+    {{range .Campaign.Rulesets}}
+    <li>
+      <p class="text-muted">{{.Kind.Label}}</p>
+      <p class="font-medium">{{.Name}}{{with .Version}} <span class="font-normal text-muted">· v{{.}}</span>{{end}}
+        <span class="badge badge-muted ml-1 align-middle font-mono" title="Identifies this exact file: {{.Hash}}">{{.ShortHash}}</span>{{if .Default}} <span class="badge align-middle">Default</span>{{end}}</p>
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+
+{{/* The campaign's settings, as the organiser chose them when creating it: everyone sees them, nobody changes them here. */}}
+<section class="card mt-4 space-y-3" aria-labelledby="settings-title">
+  <h2 id="settings-title" class="!text-2xl">Campaign settings</h2>
+  <ul class="grid gap-3 text-sm sm:grid-cols-2">
+    <li class="flex items-start gap-2">
+      <span class="badge shrink-0 {{if not .Campaign.Settings.HeroesDropProfileGear}}badge-muted{{end}}">{{if .Campaign.Settings.HeroesDropProfileGear}}On{{else}}Off{{end}}</span>
+      <span><span class="font-medium">Heroes may discard any wargear</span><span class="block text-muted">Even what is built into their profile, without their rating changing.</span></span>
+    </li>
+    <li class="flex items-start gap-2">
+      <span class="badge shrink-0 {{if not .Campaign.Settings.ShakeTheTable}}badge-muted{{end}}">{{if .Campaign.Settings.ShakeTheTable}}On{{else}}Off{{end}}</span>
+      <span><span class="font-medium">Shake the table</span><span class="block text-muted">{{if .Campaign.Settings.ShakeTheTable}}Players throw the dice in their browser, which decides the roll; the space bar shakes the table.{{else}}The server rolls the dice; the animation only shows its result.{{end}}</span></span>
+    </li>
+    <li class="flex items-start gap-2">
+      <span class="badge shrink-0 {{if not .Campaign.Settings.ManualRolls}}badge-muted{{end}}">{{if .Campaign.Settings.ManualRolls}}On{{else}}Off{{end}}</span>
+      <span><span class="font-medium">Players may enter their own rolls</span><span class="block text-muted">{{if .Campaign.Settings.ManualRolls}}A roll panel lets a player type the result of physical dice; the app takes their word for it.{{else}}Every roll panel only has a Roll button: the server rolls.{{end}}</span></span>
+    </li>
+    <li class="flex items-start gap-2">
+      <span class="badge shrink-0 {{if not .Campaign.Settings.CustomOnTheirOwnPath}}badge-muted{{end}}">{{if .Campaign.Settings.CustomOnTheirOwnPath}}On{{else}}Off{{end}}</span>
+      <span><span class="font-medium">Own path for units On Their Own Path</span><span class="block text-muted">{{if .Campaign.Settings.CustomOnTheirOwnPath}}Those units follow the homebrew Path of Their Own Making: they start as heroes, earn experience and level up.{{else}}Those units earn no experience and never level up.{{end}}</span></span>
+    </li>
+  </ul>
+  <p class="text-xs text-muted">Set by the organiser, {{.Campaign.Organiser}}, when the campaign was created.</p>
+</section>
+
+<section class="mt-8">
+  <div class="flex items-center justify-between gap-3">
+    <h2 class="!text-2xl">Latest matches</h2>
+    <a href="/campaigns/{{.Campaign.ID}}/matches" class="text-sm">All matches</a>
+  </div>
+  {{if .Recent}}
+  <ul class="card mt-3 divide-y divide-line !p-0">
+    {{range .Recent}}
+    <li><a href="/campaigns/{{$.Campaign.ID}}/matches/{{.ID}}" class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-fg no-underline hover:bg-raised hover:no-underline">
+      <span class="min-w-0">{{template "match_sides" .}}{{template "match_scenario" .}}</span>{{template "match_result" .}}
+    </a></li>
+    {{end}}
+  </ul>
+  {{else}}<p class="mt-3 text-muted">No matches yet.</p>{{end}}
+</section>
+{{end}}
+
+{{/* The invite block of the campaign card: a button, and after it the copyable link (shown once). Takes CampaignID, and Link, Expires, Error after a request. */}}
+{{define "invite_card"}}
+<div id="invite" class="space-y-2 border-t border-line pt-3" x-data="{ copied: false, copy() { navigator.clipboard.writeText(this.$refs.link.value).then(() => { this.copied = true; setTimeout(() => { this.copied = false }, 2000) }).catch(() => this.$refs.link.select()) } }">
+  {{with .Error}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+  {{if .Link}}
+  <div class="field"><label for="invite-link">Invitation link</label>
+    <div class="flex flex-wrap gap-2">
+      <input id="invite-link" x-ref="link" class="input min-w-0 flex-1" value="{{.Link}}" readonly @focus="$el.select()">
+      <button type="button" class="btn btn-secondary" @click="copy()"><span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied</span></button>
+    </div>
+    <p class="hint">Anybody signed in who opens it can join until {{fmtDate .Expires}}. It is shown only now: make a new one if you lose it.</p>
+  </div>
+  <p class="sr-only" role="status" x-text="copied ? 'Link copied' : ''"></p>
+  {{else}}
+  <p class="text-sm text-muted">{{if .Paused}}The campaign is paused: nobody can join until you resume it.{{else}}Players join with a link you send them.{{end}}</p>
+  {{end}}
+  {{with .Notice}}<p class="text-sm" role="status">{{.}}</p>{{end}}
+  {{if .Active}}<p class="text-sm text-muted">{{.Active}} invitation link{{if ne .Active 1}}s{{end}} work{{if eq .Active 1}}s{{end}} now.</p>{{end}}
+  <div class="flex flex-wrap gap-2" x-data="{ ask: false }">
+    {{if not .Paused}}<form hx-post="/campaigns/{{.CampaignID}}/invite" hx-target="#invite" hx-swap="outerHTML"><button class="btn btn-secondary">{{if .Link}}Make another link{{else}}Invite players{{end}}</button></form>{{end}}
+    {{if .Active}}
+    {{if not .Paused}}<form hx-post="/campaigns/{{.CampaignID}}/invites/regenerate" hx-target="#invite" hx-swap="outerHTML"><button class="btn btn-secondary" title="Stops every link that works now and makes one new link">Regenerate</button></form>{{end}}
+    <button type="button" class="btn btn-secondary" x-show="!ask" @click="ask = true">Invalidate links</button>
+    <div x-show="ask" x-cloak class="alert alert-info w-full space-y-2" role="alertdialog" aria-label="Invalidate the links?">
+      <p class="text-sm">Every link that works now stops working. Players who already joined stay.</p>
+      <form hx-post="/campaigns/{{.CampaignID}}/invites/invalidate" hx-target="#invite" hx-swap="outerHTML" class="flex flex-wrap gap-2">
+        <button type="button" class="btn btn-secondary" @click="ask = false">Cancel</button><button class="btn btn-danger">Invalidate links</button>
+      </form>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}
+
+{{/* Hand the campaign over: a collapsed form listing the other players. Takes CampaignID, Players (handoverCandidate) and, after a refusal, Error. */}}
+{{define "handover_card"}}
+<div id="handover" class="border-t border-line pt-3">
+  <details {{if .Error}}open{{end}}>
+    <summary class="inline-flex min-h-10 cursor-pointer items-center rounded-md text-sm font-medium text-accent-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Hand over the campaign</summary>
+    {{if .Players}}
+    <form hx-post="/campaigns/{{.CampaignID}}/handover" hx-target="#handover" hx-swap="outerHTML" class="mt-2 space-y-3" x-data="{ who: '' }">
+      {{with .Error}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+      <p class="text-sm text-muted">Another player becomes the organiser and you become a player. Only the new organiser (or an administrator) can hand it back.</p>
+      <div class="field"><label for="handover-who">New organiser</label>
+        <select id="handover-who" name="organiser" class="input" x-model="who" required>
+          <option value="">Choose a player</option>
+          {{range .Players}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+        </select></div>
+      <button class="btn btn-secondary" :disabled="who === ''">Hand over</button>
+    </form>
+    {{else}}<p class="mt-2 text-sm text-muted">Another player has to join and create a company before you can hand the campaign over.</p>{{end}}
+  </details>
+</div>
+{{end}}
+
+{{/* The Manage campaign card (managers). Pause and resume take one confirmation, ending four steps (consequences, the exact name, a last
+   confirmation), reactivating (administrators) one. Takes {Campaign: core.CampaignDetail, Admin, Error}. */}}
+{{define "manage_card"}}{{$c := .Campaign}}
+<section id="manage" class="card mt-4 space-y-4" aria-labelledby="manage-title">
+  <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+    <h2 id="manage-title" class="!text-2xl">Manage campaign</h2>
+    {{if eq $c.Status "paused"}}<span class="badge badge-muted">Paused</span>{{else if eq $c.Status "finished"}}<span class="badge badge-muted">Finished</span>{{else}}<span class="badge">Active</span>{{end}}
+  </div>
+  {{with .Error}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+  {{if eq $c.Status "finished"}}
+    <p class="text-sm text-muted">This campaign has ended. Everything is frozen as it was: matches that were open stay open, and nothing can be changed.</p>
+    {{if .Admin}}
+    <div x-data="{ ask: false }" class="space-y-2">
+      <button type="button" class="btn btn-secondary" x-show="!ask" @click="ask = true">Reactivate campaign</button>
+      <div x-show="ask" x-cloak class="alert alert-info space-y-2" role="alertdialog" aria-label="Reactivate the campaign?">
+        <p class="text-sm">The campaign becomes active again and everything works as before. Invitation links stay revoked.</p>
+        <form hx-post="/campaigns/{{$c.ID}}/status" hx-target="#manage" hx-swap="outerHTML" class="flex flex-wrap gap-2">
+          <input type="hidden" name="to" value="active">
+          <button type="button" class="btn btn-secondary" @click="ask = false">Cancel</button><button class="btn btn-primary">Reactivate</button>
+        </form>
+      </div>
+    </div>
+    {{else}}<p class="text-sm text-muted">An ended campaign stays ended for the organiser: only an administrator can reactivate it.</p>{{end}}
+  {{else}}
+    <div x-data="{ ask: false }" class="space-y-2">
+      {{if eq $c.Status "paused"}}
+      <p class="text-sm text-muted">The campaign is paused: open matches can be finished, but nobody can start a new match or join with an invitation.</p>
+      <button type="button" class="btn btn-secondary" x-show="!ask" @click="ask = true">Resume campaign</button>
+      <div x-show="ask" x-cloak class="alert alert-info space-y-2" role="alertdialog" aria-label="Resume the campaign?">
+        <p class="text-sm">New matches and invitations work again.</p>
+        <form hx-post="/campaigns/{{$c.ID}}/status" hx-target="#manage" hx-swap="outerHTML" class="flex flex-wrap gap-2">
+          <input type="hidden" name="to" value="active">
+          <button type="button" class="btn btn-secondary" @click="ask = false">Cancel</button><button class="btn btn-primary">Resume</button>
+        </form>
+      </div>
+      {{else}}
+      <p class="text-sm text-muted">Pause the campaign between sessions: open matches can be finished, but nobody can start a new match or join.</p>
+      <button type="button" class="btn btn-secondary" x-show="!ask" @click="ask = true">Pause campaign</button>
+      <div x-show="ask" x-cloak class="alert alert-info space-y-2" role="alertdialog" aria-label="Pause the campaign?">
+        <p class="text-sm">Open matches can still be finished. Nobody can start a new match or join with an invitation until you resume.</p>
+        <form hx-post="/campaigns/{{$c.ID}}/status" hx-target="#manage" hx-swap="outerHTML" class="flex flex-wrap gap-2">
+          <input type="hidden" name="to" value="paused">
+          <button type="button" class="btn btn-secondary" @click="ask = false">Cancel</button><button class="btn btn-primary">Pause</button>
+        </form>
+      </div>
+      {{end}}
+    </div>
+    <div class="border-t border-line pt-4" x-data="{ step: 0, typed: '' }" data-name="{{$c.Name}}">
+      <button type="button" class="btn btn-danger" x-show="step === 0" @click="step = 1">End campaign…</button>
+      <div x-show="step === 1" x-cloak class="alert alert-danger space-y-2" role="alertdialog" aria-labelledby="end-1">
+        <p id="end-1" class="font-medium">End {{$c.Name}}? Step 1 of 3: what happens</p>
+        <ul class="list-disc space-y-1 pl-5 text-sm">
+          <li>The campaign becomes read only for everybody: no company changes, no matches, no grants, no aftermath, no live tracking.</li>
+          <li>{{if $c.OpenMatches}}{{$c.OpenMatches}} match{{if ne $c.OpenMatches 1}}es are{{else}} is{{end}} still open: {{if ne $c.OpenMatches 1}}they{{else}}it{{end}} stay open, frozen as {{if ne $c.OpenMatches 1}}they are{{else}}it is{{end}}, and cannot be ended or edited.{{else}}No match is open.{{end}}</li>
+          <li>{{if $c.PendingAftermaths}}{{$c.PendingAftermaths}} aftermath{{if ne $c.PendingAftermaths 1}}s are{{else}} is{{end}} pending and will not be played.{{else}}No aftermath is pending.{{end}}</li>
+          <li>{{if $c.ActiveInvites}}{{$c.ActiveInvites}} invitation link{{if ne $c.ActiveInvites 1}}s stop{{else}} stops{{end}} working.{{else}}Invitations stop working.{{end}}</li>
+          <li><strong>It cannot be undone by you.</strong> Only an administrator can reactivate an ended campaign.</li>
+        </ul>
+        <p class="flex flex-wrap gap-2"><button type="button" class="btn btn-secondary" @click="step = 0">Cancel</button><button type="button" class="btn btn-danger" @click="step = 2">Continue</button></p>
+      </div>
+      <div x-show="step === 2" x-cloak class="alert alert-danger space-y-2" role="alertdialog" aria-labelledby="end-2">
+        <p id="end-2" class="font-medium">Step 2 of 3: type the name</p>
+        <div class="field"><label for="end-name">Type <strong class="break-words">{{$c.Name}}</strong> to go on</label>
+          <input id="end-name" class="input" x-model="typed" autocomplete="off" autocapitalize="off" spellcheck="false" @keydown.enter.prevent="if (typed.trim() === $root.dataset.name) step = 3"></div>
+        <p class="flex flex-wrap gap-2"><button type="button" class="btn btn-secondary" @click="step = 1">Back</button><button type="button" class="btn btn-danger" :disabled="typed.trim() !== $root.dataset.name" @click="step = 3">Continue</button></p>
+      </div>
+      <div x-show="step === 3" x-cloak class="alert alert-danger space-y-2" role="alertdialog" aria-labelledby="end-3">
+        <p id="end-3" class="font-medium">Step 3 of 3: this is final</p>
+        <p class="text-sm">{{$c.Name}} ends now and stays frozen until an administrator reactivates it.</p>
+        <form hx-post="/campaigns/{{$c.ID}}/status" hx-target="#manage" hx-swap="outerHTML" class="flex flex-wrap gap-2">
+          <input type="hidden" name="to" value="finished"><input type="hidden" name="confirm" :value="typed.trim()">
+          <button type="button" class="btn btn-secondary" @click="step = 2">Back</button><button class="btn btn-danger">End the campaign for good</button>
+        </form>
+      </div>
+    </div>
+  {{end}}
+</section>
+{{end}}

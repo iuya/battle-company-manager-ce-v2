@@ -1,0 +1,48 @@
+{{define "title"}}New campaign · Battle Companies 2nd CE Manager{{end}}
+{{/* The options of one scope the rules file offers, as checkboxes. Takes {Title, Scope, Options, Settings}. */}}
+{{define "option_group"}}{{$g := .}}
+<fieldset class="space-y-2" {{if not (hasScope .Options .Scope)}}hidden{{end}}>
+  <legend class="text-sm font-medium">{{.Title}}</legend>
+  {{range .Options}}{{if eq .Scope $g.Scope}}
+  {{if .Unsupported}}<div class="flex items-start gap-3 text-sm opacity-60" aria-disabled="true">
+    <input type="checkbox" disabled class="mt-1 h-4 w-4" aria-label="{{.Label}} (unknown setting)">
+    <span><span class="font-medium line-through">{{.Label}}</span>
+      <span class="badge badge-muted ml-1 cursor-help" tabindex="0" title="This version of the app does not recognise this setting. Either the app needs updating, or the rule in the Battle Companies file is wrong or not supported yet.">unknown setting</span>
+      <span class="block text-muted line-through">{{.Description}}</span></span>
+  </div>
+  {{else}}<label class="flex items-start gap-3 text-sm">
+    <input type="checkbox" name="option-{{.Key}}" class="mt-1 h-4 w-4 accent-[var(--accent)]" {{if $g.Settings.Enabled .Key}}checked{{end}}>
+    <span><span class="font-medium">{{.Label}}</span><span class="block text-muted">{{.Description}}</span></span>
+  </label>{{end}}{{end}}{{end}}
+</fieldset>
+{{end}}
+
+{{define "content"}}
+<div class="max-w-xl">
+  <p class="text-sm"><a href="/" class="inline-flex min-h-11 items-center">← Campaigns</a></p>
+  <h1 class="mt-2">New campaign</h1>
+  <form method="post" action="/campaigns" enctype="multipart/form-data" hx-boost="false" class="card mt-6 space-y-4" x-data="{ name: '' }" x-init="name = $refs.name.value">
+    {{with .Error}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+    <div class="field">
+      <label for="name">Name</label>
+      <input id="name" name="name" value="{{.Input.Name}}" x-ref="name" x-model="name" maxlength="60" required autocomplete="off" class="input">
+    </div>
+    <div class="field">
+      <label for="description">Description <span class="text-muted">(optional)</span></label>
+      <textarea id="description" name="description" rows="3" maxlength="280" class="input">{{.Input.Description}}</textarea>
+    </div>
+    <fieldset class="space-y-3">
+      <legend class="text-sm font-medium">Rules</legend>
+      <p class="text-sm text-muted">Use the files the app ships with, or your own.</p>
+      {{range .Pickers}}{{template "ruleset_picker" .}}{{end}}
+    </fieldset>
+    {{template "option_group" (dict "Title" "Optional rules" "Scope" "rules" "Options" .Options "Settings" .Input.Settings)}}
+    {{template "option_group" (dict "Title" "How the app behaves" "Scope" "app" "Options" .Options "Settings" .Input.Settings)}}
+    <p class="text-sm text-muted">You will be the organiser. Once it exists you can share an invite link so players can join.</p>
+    <div class="flex flex-wrap gap-2">
+      <button :disabled="name.trim() === ''" class="btn btn-primary">Create campaign</button>
+      <a href="/" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{{end}}

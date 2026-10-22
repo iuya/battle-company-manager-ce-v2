@@ -1,0 +1,231 @@
+package web
+
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"slices"
+	"strconv"
+	"strings"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
+)
+
+type armoryView struct {
+	campaignBase
+	Company     core.CompanyDetail
+	HasCompany  bool
+	Entries     []armoryRow
+	Creatures   []armoryCreature
+	Wanderers   []armoryWanderer
+	Subs        []armorySub // the item categories that exist, in display order
+	Applies     string      // JSON: the item categories each main category has, for the filter chips
+	Notice      string
+	NoticeError bool
+}
+
+// tipChip is a name on an armory card with the text of its tooltip (a special rule, an item, a heroic action); the text is empty
+// when no file explains the name.
+type tipChip struct {
+	Name, Title, Text, Meta, TermID string
+}
+
+// armoryRow is an item of the armory with the place it has in the page's filters.
+type armoryRow struct {
+	core.ArmouryEntry
+	Main  string // wargear | equipment
+	Sub   string // the item category (armorySub.Key)
+	Avail bool   // some unit of the company can take it, now or once it can pay: not just a rule that rules every unit out
+}
+
+type armoryCreature struct {
+	core.ArmouryCreature
+	RuleChips []tipChip
+}
+
+type armoryWanderer struct {
+	core.ArmouryWanderer
+	Avail                                bool
+	RuleChips, WargearChips, ActionChips []tipChip
+}
+
+// armorySub is an item category of the filters.
+type armorySub struct{ Key, Label string }
+
+var armorySubs = []armorySub{
+	{"melee", "Melee"}, {"ranged", "Ranged"}, {"armour", "Armour and shields"}, {"mount", "Mounts"},
+	{"consumable", "Consumables"}, {"banner", "Banners and horns"}, {"other", "Other"},
+}
+
+// subOf is the item category of an item, by its first class.
+func subOf(classes []core.EquipmentClass) string {
+	if len(classes) == 0 {
+		return "other"
+	}
+	switch classes[0] {
+	case core.EquipMelee, core.EquipTwoHanded, core.EquipSpear, core.EquipLance:
+		return "melee"
+	case core.EquipBow, core.EquipCrossbow, core.EquipThrowing, core.EquipMissile:
+		return "ranged"
+	case core.EquipArmour, core.EquipShield:
+		return "armour"
+	case core.EquipMount:
+		return "mount"
+	case core.EquipConsumable:
+		return "consumable"
+	case core.EquipBanner, core.EquipHorn:
+		return "banner"
+	}
+	return "other"
+}
+
+// armoryRows places the items in the filters. An item is out of reach when a rule rules out every unit of the company (the goat
+// of another company's riders, a Fell Warg for a company without wargs): lacking influence or a free slot is not.
+func armoryRows(entries []core.ArmouryEntry) ([]armoryRow, []armorySub, string) {
+	has := map[string]map[string]bool{"wargear": {}, "equipment": {}, "creatures": {}, "wanderers": {}}
+	rows := make([]armoryRow, len(entries))
+	for i, e := range entries {
+		r := armoryRow{ArmouryEntry: e, Main: "wargear", Sub: subOf(e.Classes), Avail: len(e.Units) == 0 || slices.ContainsFunc(e.Units, func(u core.UnitOption) bool { return u.Blocker != core.BlockedByRule })}
+		if e.Size != "" {
+			r.Main = "equipment"
+		}
+		has[r.Main][r.Sub] = true
+		rows[i] = r
+	}
+	var subs []armorySub
+	applies := map[string][]string{}
+	for m, set := range has {
+		applies[m] = []string{}
+		for _, sb := range armorySubs {
+			if set[sb.Key] {
+				applies[m] = append(applies[m], sb.Key)
+			}
+		}
+	}
+	for _, sb := range armorySubs {
+		if slices.Contains(applies["wargear"], sb.Key) || slices.Contains(applies["equipment"], sb.Key) {
+			subs = append(subs, sb)
+		}
+	}
+	b, _ := json.Marshal(applies)
+	return rows, subs, string(b)
+}
+
+// armoryTips explains the names on the creature and wanderer cards: an item by the armory's own text (or its alias), a rule or a
+// heroic action by the glossary.
+type armoryTips struct {
+	glossary core.Glossary
+	items    map[string]core.ArmouryEntry
+}
+
+func newArmoryTips(g core.Glossary, entries []core.ArmouryEntry) armoryTips {
+	t := armoryTips{glossary: g, items: map[string]core.ArmouryEntry{}}
+	for _, e := range entries {
+		for _, n := range append([]string{e.Name}, e.AlsoCalled...) {
+			t.items[strings.ToLower(n)] = e
+		}
+	}
+	return t
+}
+
+func (t armoryTips) chip(name, kind string) tipChip {
+	c := tipChip{Name: name, Title: name, Meta: kind}
+	if e, ok := t.items[strings.ToLower(name)]; ok && e.Description != "" {
+		c.Text = e.Description
+		if e.Stats != "" {
+			c.Meta = kind + " · " + e.Stats
+		}
+		return c
+	}
+	if term, ok := t.glossary.Find(name); ok {
+		c.TermID, c.Title, c.Text = term.ID, term.Name, term.Summary(520)
+	}
+	return c
+}
+
+func (t armoryTips) chips(names []string, kind string) []tipChip {
+	var out []tipChip
+	for _, n := range names {
+		out = append(out, t.chip(n, kind))
+	}
+	return out
+}
+
+// armoryPage renders the Armory tab: every item the company's armoury sells, with who could buy it.
+func (s *Server) armoryPage(w http.ResponseWriter, r *http.Request, status int, notice string, noticeErr bool) {
+	base, ok := s.loadCampaign(w, r, "armory")
+	if !ok {
+		return
+	}
+	view := armoryView{campaignBase: base, Notice: notice, NoticeError: noticeErr}
+	if mine := base.Campaign.Company; mine != nil {
+		detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, mine.ID)
+		if s.fail(w, r, err) {
+			return
+		}
+		entries, err := s.campaigns.ArmouryEntries(r.Context(), base.Campaign.ID, mine.ID)
+		if s.fail(w, r, err) {
+			return
+		}
+		entries = offeredEntries(entries)
+		view.Company, view.HasCompany = detail, true
+		view.Entries, view.Subs, view.Applies = armoryRows(entries)
+		g, err := s.glossary.ForCampaign(r.Context(), base.Campaign.ID) // rules are explained by the campaign's glossary
+		if err != nil && !errors.Is(err, core.ErrNotFound) {
+			s.fail(w, r, err)
+			return
+		}
+		tips := newArmoryTips(g, entries)
+		creatures, err := s.campaigns.ArmouryCreatures(r.Context(), base.Campaign.ID, mine.ID)
+		if s.fail(w, r, err) {
+			return
+		}
+		for _, c := range creatures {
+			view.Creatures = append(view.Creatures, armoryCreature{ArmouryCreature: c, RuleChips: tips.chips(c.Rules, "Special rule")})
+		}
+		wanderers, err := s.campaigns.ArmouryWanderers(r.Context(), base.Campaign.ID, mine.ID)
+		if s.fail(w, r, err) {
+			return
+		}
+		for _, wd := range wanderers {
+			view.Wanderers = append(view.Wanderers, armoryWanderer{ArmouryWanderer: wd, Avail: !strings.HasPrefix(wd.Reason, "The company cannot take"),
+				RuleChips: tips.chips(wd.Rules, "Special rule"), WargearChips: tips.chips(wd.Wargear, "Wargear"), ActionChips: tips.chips(wd.HeroicActions, "Heroic action")})
+		}
+	}
+	s.render.page(w, r, status, "campaign_armory", view)
+}
+
+func (s *Server) handleArmory(w http.ResponseWriter, r *http.Request) {
+	s.armoryPage(w, r, http.StatusOK, "", false)
+}
+
+// handleArmoryBuy buys an item for the unit chosen in the armory and shows the armory again.
+func (s *Server) handleArmoryBuy(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	unitID, _ := strconv.ParseInt(r.PostFormValue("unit"), 10, 64)
+	item := r.PostFormValue("item")
+	err := s.campaigns.BuyEquipment(r.Context(), *userFrom(r.Context()), id, unitID, item, r.PostFormValue("pay"))
+	switch {
+	case errors.Is(err, core.ErrRefused):
+		s.armoryPage(w, r, http.StatusUnprocessableEntity, reason(err), true)
+	case s.fail(w, r, err):
+	default:
+		s.armoryPage(w, r, http.StatusOK, "Bought "+item+".", false)
+	}
+}
+
+// offeredEntries leaves out the armour upgrades no unit can ever take (the model already wears that stage, the company has no unit
+// with it): they are synthetic offers, not items of the book. Everything else stays with the reason it cannot be bought.
+func offeredEntries(entries []core.ArmouryEntry) []core.ArmouryEntry {
+	var out []core.ArmouryEntry
+	for _, e := range entries {
+		if e.ArmourStage > 0 && !slices.ContainsFunc(e.Units, func(u core.UnitOption) bool { return u.Blocker != core.BlockedByRule }) {
+			continue
+		}
+		out = append(out, e)
+	}
+	return out
+}

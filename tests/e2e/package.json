@@ -1,0 +1,12 @@
+{
+  "name": "bcm-e2e",
+  "private": true,
+  "description": "Browser smoke tests (docs/testing.md). Not part of the Go module.",
+  "scripts": {
+    "test": "node run.mjs"
+  },
+  "dependencies": {
+    "axe-core": "4.10.2",
+    "puppeteer-core": "24.4.0"
+  }
+}

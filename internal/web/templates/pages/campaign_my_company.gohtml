@@ -1,0 +1,355 @@
+{{define "title"}}{{if .ReadOnly}}{{.Company.Name}}{{else}}My Company{{end}} · {{.Campaign.Name}} · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+{{template "campaign_header" .}}
+{{if .HasCompany}}
+{{with .Company}}
+{{if $.ReadOnly}}
+<div class="alert alert-info mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2" role="status">
+  {{if $.Frozen}}<span>This campaign has ended, so <strong>{{.Name}}</strong> is frozen as it was: you can look at everything, but nothing here can be changed until an administrator reactivates the campaign.</span>
+  {{else}}<span>Viewing <strong>{{.Name}}</strong>, the company of {{.Owner}}. Read only: you can look at everything, but nothing here can be changed.</span>{{end}}
+  <a href="/campaigns/{{$.Campaign.ID}}/companies" class="btn btn-secondary !min-h-9">All companies</a>
+</div>
+<div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1"><h2 class="!text-3xl">{{.Name}}</h2><span class="badge badge-muted">{{if $.Frozen}}Frozen{{else}}Viewing only{{end}}</span></div>
+{{else}}
+<div class="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1" x-data="{ renaming: false }">
+  <h2 class="!text-3xl" x-show="!renaming">{{.Name}}</h2>
+  <button type="button" class="btn btn-ghost !min-h-11 !min-w-11 !px-2 text-muted sm:!min-h-8 sm:!min-w-0" x-show="!renaming" @click="renaming = true; $nextTick(() => $refs.name.focus())" aria-label="Rename the company" title="Rename the company"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg></button>
+  <form x-show="renaming" x-cloak method="post" action="/campaigns/{{$.Campaign.ID}}/my-company/rename" hx-post="/campaigns/{{$.Campaign.ID}}/my-company/rename" hx-target="#main" hx-swap="innerHTML" class="flex min-w-0 flex-1 items-center gap-2">
+    <input x-ref="name" name="name" value="{{.Name}}" maxlength="60" required aria-label="Name of the company" class="input min-w-0 max-w-md flex-1" @keydown.escape.stop.prevent="renaming = false">
+    <button class="btn btn-primary !min-h-9">Rename</button>
+    <button type="button" class="btn btn-ghost !min-h-9" @click="renaming = false">Cancel</button>
+  </form>
+  <span class="badge" x-show="!renaming">Your company</span>
+</div>
+{{end}}
+<p class="mt-1 text-muted">{{.Faction}} · led by {{.Owner}}</p>
+{{with .BreakPointPercent}}<p class="text-sm text-muted" id="company-break-point">Break Point: {{.}}% of the starting models</p>{{end}}
+{{with $.Notice}}<div class="alert {{if $.NoticeError}}alert-danger{{else}}alert-success{{end}} mt-4" role="status">{{.}}</div>{{end}}
+{{if and .OfficersPending (not $.ReadOnly)}}
+<section class="alert alert-info mt-4 flex flex-wrap items-center justify-between gap-3" role="region" aria-label="Officers to arrange" id="officers-banner">
+  <p class="font-medium">Your company is waiting for its new Leader: arrange the officers.</p>
+  <button type="button" class="btn btn-primary !min-h-9" hx-get="/campaigns/{{$.Campaign.ID}}/my-company/recruit" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Arrange the officers</button>
+</section>
+{{end}}
+{{with .Aftermaths}}{{if not $.ReadOnly}}
+<section class="alert alert-info mt-4 space-y-2" role="region" aria-label="Aftermath to finish" id="aftermath-banner">
+  <p class="font-medium">The War's Aftermath is waiting. The company is locked (no recruiting, buying, dropping or healing) until each one is finished.</p>
+  <ul class="flex flex-wrap gap-2">{{range .}}<li><a class="btn btn-primary !min-h-9" href="/campaigns/{{$.Campaign.ID}}/matches/{{.MatchID}}/aftermath/{{.CompanyID}}">Match {{.MatchNumber}}: {{if eq (printf "%s" .Status) "pending"}}Start{{else}}Continue{{end}} the aftermath</a></li>{{end}}</ul>
+</section>
+{{end}}{{end}}
+
+{{with $.Live}}{{template "live_banner" (dict "LV" . "CID" $.Campaign.ID)}}{{end}}
+{{template "company_stats" (dict "Company" .CampaignCompany "Max" .MaxUnits "Injured" .InjuredUnits)}}
+
+{{/* One component for the resources and the units: the tooltips, the windows and the formation. */}}
+<div x-data="company" @open-modal.window="openModal()" data-lock="{{.LockMessage}}" @click.capture="lockClick($event)" data-modal="{{if or $.Pending $.Recruiting $.Officers}}true{{end}}" @mouseover="over($event)" @mouseout="out($event)" @focusin="over($event)" @focusout="out($event)" @keydown.escape.window="close()">
+{{/* Resources and limits */}}
+<section class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" aria-label="Resources">
+  <div class="grid {{if .Rerolls}}grid-cols-3{{else}}grid-cols-2{{end}} gap-3">
+    <div class="card has-tip !p-4" tabindex="0" data-tip-title="Influence" data-tip-meta="Resource" data-tip-text="Spent on recruiting, on equipment, creatures and wanderers from the armory, on treating injuries and on adjusting reinforcement rolls. The company earns it from its matches and from some injury results."><p class="text-sm text-muted">Influence</p><p class="text-3xl font-semibold" id="company-influence">{{.Influence}}</p></div>
+    <div class="card has-tip !p-4" tabindex="0" data-tip-title="Gold" data-tip-meta="Resource" data-tip-text="Gold is given to some companies in their starting company, as a special victory reward in some scenarios, or by the organizer in a narrative scenario. It buys equipment, creatures and wanderers at their rating in Gold (no influence) and extra wargear for models. Slots and limits still apply, and what is left is kept."><p class="text-sm text-muted">Gold</p><p class="text-3xl font-semibold">{{.Gold}}</p></div>
+    {{if .Rerolls}}<div class="card has-tip !p-4" tabindex="0" data-tip-title="Re-rolls" data-tip-meta="Against the Odds" data-tip-text="They come from the Against the Odds bonus Reroll, which the company with the lower rating may pick after the scenario roll (it costs 15 rating): two re-rolls, usable during the game or in the War's Aftermath, each for a single die or a single result such as a level-up roll. No other rule grants them. Spare ones do not carry over to the next match. (The other Against the Odds bonuses give influence, experience, a tool kit, a temporary wanderer or the choice of scenario.)"><p class="text-sm text-muted">Re-rolls</p><p class="text-3xl font-semibold">{{.Rerolls}}</p></div>{{end}}
+  </div>
+  <div class="card space-y-3 !p-4">
+    <h3 class="!text-xl">Limits <span class="text-sm font-normal text-muted">used / maximum</span></h3>
+    <ul class="grid gap-3 sm:grid-cols-3">
+      {{range .Limits}}
+      <li>
+        <p class="flex items-baseline justify-between text-sm"><span>{{.Label}}</span><span class="font-semibold {{if .Full}}tone-draw{{end}}">{{.Used}} / {{.Max}}</span></p>
+        <div class="mt-1 h-2 overflow-hidden rounded-full bg-raised" role="presentation"><div class="h-full rounded-full {{if .Full}}bg-warn{{else}}bg-accent{{end}}" style="width: {{pct .Used .Max}}%"></div></div>
+        {{if not .RoomForNew}}<p class="mt-1 text-xs text-muted">No room for another such model: a new recruit counts too, and the maximum is {{.Next}} then.</p>{{end}}
+      </li>
+      {{end}}
+    </ul>
+  </div>
+</section>
+
+{{/* The units */}}
+<section class="mt-8">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <h2 class="!text-2xl">Battle company <span class="text-base font-normal text-muted">{{.ModelCount}} / {{.MaxUnits}} units</span></h2>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+    {{if and (not $.ReadOnly) (not $.Live)}}<button type="button" class="btn btn-secondary" x-show="!formation" @click="startFormation()">Change formation</button>
+    <button type="button" data-lock class="btn btn-primary" hx-get="/campaigns/{{$.Campaign.ID}}/my-company/recruit" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">{{if $.Pending}}Choose {{$.Pending.Unit}}'s options{{else}}Recruit · {{.Recruit.Cost}} influence{{end}}{{if $.Pending}}<span class="ml-2 inline-block h-2.5 w-2.5 rounded-full bg-warn" aria-hidden="true"></span>{{end}}</button>{{end}}
+    </div>
+  </div>
+  <p class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+    <span class="inline-flex items-center gap-1">{{template "role_insignia" "leader"}} Leader</span>
+    <span class="inline-flex items-center gap-1">{{template "role_insignia" "sergeant"}} Sergeant</span>
+    <span class="inline-flex items-center gap-1">{{template "role_insignia" "hero"}} Hero</span>
+    <span><span class="eq-chip is-bought !py-0">+ item</span> bought</span>
+    <span><span class="eq-chip has-tip !py-0">item</span> dashed: hover for its rules</span>
+  </p>
+  {{/* Change formation: drag the cards (or use their arrows), then save the order; it is kept for good. */}}
+  {{if and (not $.ReadOnly) (not $.Live)}}<div x-show="formation" x-cloak class="alert alert-info mt-4 flex flex-wrap items-center justify-between gap-3" role="status">
+    <span>Drag the units into the order you want, or use the arrows on their handles. Save to keep it.</span>
+    <form method="post" action="/campaigns/{{$.Campaign.ID}}/my-company/formation" hx-post="/campaigns/{{$.Campaign.ID}}/my-company/formation" hx-target="#main" hx-swap="innerHTML show:window:top" class="flex gap-2">
+      <input type="hidden" name="order" :value="formationOrder">
+      <button class="btn btn-primary !min-h-9">Save formation</button>
+      <button type="button" class="btn btn-secondary !min-h-9" @click="cancelFormation()">Cancel</button>
+    </form>
+  </div>{{end}}
+  {{if and $.Live (not $.ReadOnly)}}<p class="mt-3 text-sm text-muted" id="live-locked">The company is locked until the match ends: no recruiting, buying, healing or level-ups.</p>{{end}}
+  {{if $.Live}}{{template "live_zones" $}}{{else}}
+  <div x-ref="grid" class="mt-4 grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" :class="formation && 'formation-editing'">
+    {{range $.Units}}{{template "unit_card" (dict "U" . "CID" $.Campaign.ID "WCost" $.Company.Injuries.WarriorCost "RO" $.ReadOnly)}}{{end}}
+  </div>
+  {{end}}
+
+  {{with $.Company.Cemetery}}
+  {{/* The cemetery: the units that died, as they were. They cannot return to the company, nor can a unit of the company be moved here;
+     the player can only put them in the order they like. */}}
+  <section class="mt-10" x-data="cemetery" aria-labelledby="cemetery-title">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h2 id="cemetery-title" class="!text-2xl">Cemetery <span class="text-base font-normal text-muted">{{len .}} fallen</span></h2>
+      {{if not $.ReadOnly}}<button type="button" class="btn btn-secondary" x-show="!editing" @click="start()">Change order</button>{{end}}
+    </div>
+    <div x-show="editing" x-cloak class="alert alert-info mt-4 flex flex-wrap items-center justify-between gap-3" role="status">
+      <span>Drag the fallen into the order you want, or use the arrows. They stay in the cemetery. Save to keep the order.</span>
+      <form method="post" action="/campaigns/{{$.Campaign.ID}}/my-company/cemetery" hx-post="/campaigns/{{$.Campaign.ID}}/my-company/cemetery" hx-target="#main" hx-swap="innerHTML show:window:top" class="flex gap-2">
+        <input type="hidden" name="order" :value="order">
+        <button class="btn btn-primary !min-h-9">Save order</button>
+        <button type="button" class="btn btn-secondary !min-h-9" @click="cancel()">Cancel</button>
+      </form>
+    </div>
+    <div x-ref="grid" class="mt-4 grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" :class="editing && 'formation-editing'">
+      {{range .}}{{template "fallen_card" (dict "F" . "Return" (and $.Company.RangerMayReturn (eq .Unit.Type $.Company.RangerUnit)))}}{{end}}
+    </div>
+  </section>
+  {{end}}
+
+  {{with $.Company.Creatures}}
+  {{/* Creatures are not units: no roster slot, no injuries. Each belongs to a leader or a sergeant. */}}
+  <h3 class="mt-8 !text-xl">Creatures</h3>
+  <ul class="mt-3 grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3" aria-label="Creatures">
+    {{range .}}
+    <li class="card flex flex-col gap-2 !p-3">
+      <div class="flex items-start gap-2"><span class="mt-1 text-muted">{{template "paw"}}</span>
+        <div class="min-w-0 flex-1"><p class="font-heading text-lg font-bold leading-tight">{{.Name}}</p><p class="text-xs text-muted">Belongs to {{.OwnerName}}</p></div>
+        <span class="text-sm font-semibold">{{.Points}} <span class="font-normal text-muted">pts</span></span></div>
+      <dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">
+        {{range .Stats}}<div class="border-r border-line bg-surface px-0.5 py-1 last:border-r-0" title="{{.Name}}"><dt class="text-[10px] uppercase leading-none text-muted">{{.Abbr}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}{{.Trail}}</dd></div>{{end}}
+      </dl>
+      {{with .Rules}}<ul class="flex flex-wrap gap-1.5">{{range .}}<li class="rule-chip rule-unit">{{.}}</li>{{end}}</ul>{{end}}
+      {{range .Notes}}<p class="text-xs text-muted">{{.}}</p>{{end}}
+      {{if .Carry}}
+      <div class="flex items-center justify-between gap-2 border-t border-line pt-2 text-xs"><span class="text-muted">Carrying {{len $.Company.Pack.Items}} / {{$.Company.Pack.Capacity}}</span>
+        {{if not $.ReadOnly}}<button type="button" class="btn btn-secondary !min-h-8 !px-3 !text-xs" hx-get="/campaigns/{{$.Campaign.ID}}/my-company/pack" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Open the pack</button>{{end}}</div>
+      {{end}}
+    </li>
+    {{end}}
+  </ul>
+  {{end}}
+
+  <div x-show="expanded !== null" x-cloak x-transition.opacity class="fixed inset-0 z-40 bg-black/50" @click="close()" aria-hidden="true"></div>
+
+  {{/* A window for recruiting and for buying a unit's equipment; its content is fetched when it opens (htmx) and its forms
+     answer with the whole page again. */}}
+  {{if or (not $.ReadOnly) (and $.Live $.Live.Edit)}}
+  <div x-show="modal" x-cloak x-transition.opacity class="fixed inset-0 z-[55] flex items-start justify-center overflow-y-auto bg-black/60 p-3 sm:p-6" @click.self="closeModal()">
+    <div class="card relative my-4 w-full max-w-3xl !p-4 sm:!p-6" role="dialog" aria-modal="true" aria-label="Company window">
+      <button type="button" class="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-md text-muted hover:bg-raised hover:text-fg" @click="closeModal()" aria-label="Close">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <div id="modal-body" hx-target="#main" hx-swap="innerHTML show:window:top">{{with $.Pending}}{{template "choice_panel" (dict "Campaign" $.Campaign "Choice" .)}}{{else}}{{with $.Officers}}{{template "officers_panel" (dict "Campaign" $.Campaign "Panel" .)}}{{else}}{{with $.Recruiting}}{{template "recruit_panel" .}}{{else}}<p class="text-muted">Loading…</p>{{end}}{{end}}{{end}}</div>
+    </div>
+  </div>
+
+  {{end}}
+
+  {{/* Preview of the rule, item or glossary term under the pointer. */}}
+  <div x-ref="tip" x-show="tip.show" x-cloak role="tooltip" class="card pointer-events-none fixed z-[60] max-h-[calc(100vh-1rem)] w-80 max-w-[calc(100vw-1rem)] overflow-hidden !p-3 text-sm shadow-lg" :style="`left: ${tip.x}px; top: ${tip.y}px`">
+    <p class="font-heading text-lg font-bold leading-tight" x-text="tip.title"></p>
+    <p class="text-xs text-muted" x-show="tip.meta" x-text="tip.meta"></p>
+    <dl x-show="tip.stats.length" x-cloak class="mt-2 grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">
+      <template x-for="s in tip.stats" :key="s[0]"><div class="border-r border-line bg-surface px-0.5 py-1 last:border-r-0"><dt class="text-[10px] uppercase leading-none text-muted" x-text="s[0]"></dt><dd class="text-sm font-semibold leading-tight" x-text="s[1]"></dd></div></template>
+    </dl>
+    <p class="mt-1 whitespace-pre-line" x-text="tip.text"></p>
+    <template x-if="tip.path">
+      <div class="mt-2 space-y-2">
+        <p class="text-xs font-semibold uppercase tracking-wide text-muted">Characteristic limits</p>
+        <div class="flex flex-wrap justify-center overflow-hidden rounded-lg border border-line text-center">
+          <template x-for="l in tip.path.limits" :key="l[0]"><div class="min-w-9 border-r border-line bg-surface px-1.5 py-1"><p class="text-[10px] font-semibold uppercase leading-none text-muted" x-text="l[2]"></p><p class="text-sm font-semibold" x-text="l[1]"></p></div></template>
+        </div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-muted">Level-up chart (2D6)</p>
+        <table class="w-full overflow-hidden rounded-lg border border-line text-xs">
+          <template x-for="r in tip.path.rows" :key="r.roll"><tr class="border-b border-line last:border-0"><td class="w-8 bg-surface px-1.5 py-1 text-center font-semibold" x-text="r.roll"></td><td class="px-1.5 py-1" x-text="r.text.length > 110 ? r.text.slice(0, 110).replace(/\s+\S*$/, '') + '…' : r.text"></td></tr></template>
+        </table>
+      </div>
+    </template>
+  </div>
+
+  {{if $.Live}}{{template "live_toast" (dict)}}{{end}}
+  <div x-show="notice" x-cloak x-transition.opacity class="alert alert-info fixed bottom-4 left-1/2 z-[60] -translate-x-1/2 shadow-lg" role="status" x-text="notice"></div>
+</section>
+</div>
+{{template "perks_card" (dict "Unused" $.PerksUnused "Used" $.PerksUsed "CanUse" (not $.ReadOnly) "CampaignID" $.Campaign.ID)}}
+{{template "history_card" (dict "Lines" $.Company.History "CID" $.Campaign.ID)}}
+{{template "grants_card" $.Grants}}
+{{end}}
+{{else}}
+<section class="card mt-6 space-y-3">
+  <h2 class="!text-2xl">Choose your company</h2>
+  <p class="text-muted">You have not joined this campaign with a battle company yet. Each player has one company per campaign.</p>
+  <a href="/campaigns/{{.Campaign.ID}}/company/new" class="btn btn-primary">Create my company</a>
+</section>
+{{end}}
+{{end}}
+
+{{/* The banner of a company in a running match. Takes {LV, CID}. The dot is driven by the sync script (static/js/live.js). */}}
+{{define "live_banner"}}{{$cid := .CID}}{{with .LV}}
+<div id="live-banner" data-match="{{.MatchID}}" class="alert alert-info sticky top-[3.75rem] z-10 mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 !py-2" role="status">
+  <span class="min-w-0 font-medium"><a class="underline" href="/campaigns/{{$cid}}/matches/{{.MatchID}}">Match {{.MatchNumber}}</a> is running{{with .Scenario}} <span class="font-normal text-muted">· {{.}}</span>{{end}}</span>
+  <span id="live-dot" class="inline-flex items-center gap-1.5 text-xs text-muted" data-state="off"><span class="live-dot" aria-hidden="true"></span><span id="live-dot-text">Live</span></span>
+  <span class="ml-auto flex gap-2">
+  <button type="button" class="btn btn-secondary !min-h-9" hx-get="/campaigns/{{$cid}}/matches/{{.MatchID}}/live/end?company={{.CompanyID}}" hx-target="#modal-body" hx-swap="innerHTML" data-open-modal>End checks</button>
+  {{if .Edit}}<button type="button" class="btn btn-secondary !min-h-9" hx-get="/campaigns/{{$cid}}/matches/{{.MatchID}}/live/log?company={{.CompanyID}}" hx-target="#modal-body" hx-swap="innerHTML" data-open-modal>Match log</button>{{end}}
+  </span>
+  <div id="live-end" class="basis-full empty:hidden" hx-target="this" hx-get="/campaigns/{{$cid}}/matches/{{.MatchID}}/live/end/banner?company={{.CompanyID}}" hx-trigger="live:match from:body" hx-swap="innerHTML">{{template "end_banner" .End}}</div>
+</div>
+{{end}}{{end}}
+
+{{/* The pending end inside the sticky live banner: who it waits for and what the viewer may do. Takes endBanner. Posts to the match routes, which answer it again. */}}
+{{define "end_banner"}}{{if .Pending}}{{$base := printf "/campaigns/%d/matches/%d/end" .Campaign .MatchID}}{{$extra := .Fields}}{{$a := .Access}}
+<div class="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-2" role="status" id="live-end-body">
+  <p class="min-w-0 flex-1 basis-60 font-medium break-words"><span aria-hidden="true">&#9719;</span> Ending: waiting for {{.WaitingNames}}{{with .Proposal.Notice}}<span class="block text-sm font-normal text-muted">{{.}}</span>{{end}}</p>
+  <div class="flex flex-wrap gap-2">
+    {{if $a.CanConfirm}}<form hx-post="{{$base}}/confirm" hx-target="#live-end" hx-swap="innerHTML">{{$extra}}<input type="hidden" name="revision" value="{{.Revision}}"><button class="btn btn-primary !min-h-9">Confirm the end</button></form>{{end}}
+    {{if $a.CanWithdraw}}<form hx-post="{{$base}}/withdraw" hx-target="#live-end" hx-swap="innerHTML">{{$extra}}<input type="hidden" name="revision" value="{{.Revision}}"><button class="btn btn-secondary !min-h-9">Withdraw</button></form>{{end}}
+    {{if $a.CanCancel}}<form hx-post="{{$base}}/cancel" hx-target="#live-end" hx-swap="innerHTML">{{$extra}}<input type="hidden" name="revision" value="{{.Revision}}"><button class="btn btn-secondary !min-h-9">Keep playing</button></form>{{end}}
+  </div>
+  {{if $a.CanOverride}}{{template "end_override" (dict "Base" $base "Rev" .Revision "P" .Proposal "Note" .OverrideNote "Err" .OverrideErr "Target" "#live-end" "Extra" $extra)}}{{end}}
+</div>
+{{end}}{{with .Notice}}<p class="mt-1 text-sm {{if $.NoticeErr}}text-danger{{else}}text-muted{{end}}" role="{{if $.NoticeErr}}alert{{else}}status{{end}}">{{.}}</p>{{end}}{{end}}
+
+
+{{/* The zones of a company in a running match: the Field (the unit cards), Retreated, Field casualties and Missed this game. The whole
+   block is what the sync script refetches from /campaigns/{id}/companies/{company}/live. Takes the page view. */}}
+{{define "live_zones"}}{{$cid := .Campaign.ID}}{{$lv := .Live}}
+<div id="live-zones"{{if .OOB}} hx-swap-oob="true"{{end}} data-seq="{{$lv.Seq}}" data-company="{{$lv.CompanyID}}" data-match="{{$lv.MatchID}}" data-campaign="{{$cid}}" class="space-y-8">
+  {{template "live_break" (dict "LV" $lv "CID" $cid)}}
+  <div x-ref="grid" class="mt-4 grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Battle company in the field">
+    {{range $lv.Field}}{{template "unit_card" (dict "U" .U "CID" $cid "WCost" $.Company.Injuries.WarriorCost "RO" $.ReadOnly "LV" $lv "LU" .L)}}{{else}}<p class="text-muted md:col-span-2 xl:col-span-3">Nobody is in the field.</p>{{end}}
+  </div>
+  {{template "live_zone" (dict "Title" "Retreated" "Cards" $lv.Retreated "LV" $lv "CID" $cid "Kind" "retreated" "Note" "Left the table. They roll no injuries and finish the match as having fled.")}}
+  {{template "live_zone" (dict "Title" "Field casualties" "Cards" $lv.Casualties "LV" $lv "CID" $cid "Kind" "casualty" "Note" "They roll for injuries after the match.")}}
+  {{if $lv.Missed}}{{template "live_zone" (dict "Title" "Missed this game" "Cards" $lv.Missed "LV" $lv "CID" $cid "Kind" "missed" "Note" "Injured before the match: they take no part and earn no experience.")}}{{end}}
+</div>
+{{end}}
+
+{{/* The turn, the Break Point panel and the Company broken banner (docs/live-match.md, Company break point in play). It sits in the zones so every
+   change of the match (SSE) refreshes it for the viewers too. Takes {LV, CID}. */}}
+{{define "live_break"}}{{$lv := .LV}}{{$b := $lv.Break}}{{$act := printf "/campaigns/%d/matches/%d/live/%d/actions" .CID $lv.MatchID $lv.CompanyID}}
+<div class="mt-4 space-y-3" id="live-break">
+  <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+    <p class="font-medium" id="live-turn">{{if $lv.Turn}}Turn {{$lv.Turn}}{{else}}Turn not started{{end}}</p>
+    {{if $lv.Edit}}<button type="button" class="btn btn-secondary !min-h-11" {{if $lv.EndPending}}disabled aria-describedby="turn-blocked"{{end}} hx-post="{{$act}}" hx-vals='{"kind":"turn","turn":"{{$lv.NextTurn}}"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Start turn {{$lv.NextTurn}}</button>{{if $lv.EndPending}}<p id="turn-blocked" class="basis-full text-sm text-muted">Cancel the ending first: the match is about to end.</p>{{end}}{{end}}
+  </div>
+
+  {{if $b.StartingModels}}
+  <details class="card !p-3" id="live-break-panel">
+    <summary class="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1">
+      <span class="font-medium">Break Point {{$b.BreakPoint}} of {{$b.StartingModels}} · Casualties {{$b.Casualties}} · {{$b.Percent}}%</span>
+      {{if $b.Broken}}<span class="badge !bg-danger-soft !text-danger">Broken since turn {{$b.BrokenAtTurn}}</span>{{else if $b.WillBreak}}<span class="badge badge-gold">Will break next turn</span>{{end}}
+      <span class="ml-auto text-sm text-muted">Details</span>
+    </summary>
+    <div class="mt-1 h-2 overflow-hidden rounded-full bg-raised" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{$lv.MeterPct}}" aria-label="Casualties against the Break Point"><div class="h-full rounded-full {{if $b.Broken}}bg-danger{{else if $b.WillBreak}}bg-warn{{else}}bg-accent{{end}}" style="width: {{$lv.MeterPct}}%"></div></div>
+    <div class="mt-3 space-y-3 text-sm">
+      <p class="text-muted">The Break Point is {{$b.Percent}}% of the starting models{{if ne $b.Percent 50}} (this company's own rule){{end}}. A company whose casualties are above it when a turn starts is Broken for the rest of the game.</p>
+      {{if $b.WillBreak}}<p class="alert alert-info" role="status">This company will be Broken at the start of the next turn ({{$b.Casualties}} casualties, Break Point {{$b.BreakPoint}}).</p>{{end}}
+      {{$fc := $lv.FailedCourage}}
+      <div><p class="font-medium">Casualties ({{$b.Casualties}})</p>
+        <ul class="text-muted">{{range $lv.Casualties}}<li>{{.U.Title}} · {{.L.Reason}}</li>{{end}}{{range $fc}}<li>{{.U.Title}} · Failed courage</li>{{end}}{{if and (not $lv.Casualties) (not $fc)}}<li>None counted from the log.</li>{{end}}</ul></div>
+      {{if $lv.Edit}}
+      <div class="space-y-2">
+        <p class="font-medium">Adjust the count <span class="font-normal text-muted">(creatures, Ponies, late arrivals: what the app cannot know)</span></p>
+        <div class="field"><label for="break-note">Note (optional)</label><input id="break-note" name="note" maxlength="200" class="input" placeholder="Late arrival"></div>
+        <div class="flex flex-wrap items-center gap-2"><span class="min-w-32">Starting models <strong>{{$b.StartingModels}}</strong></span>
+          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"-1"}' hx-include="#break-note" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">−</button>
+          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"1"}' hx-include="#break-note" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">+</button></div>
+        <div class="flex flex-wrap items-center gap-2"><span class="min-w-32">Casualties <strong>{{$b.Casualties}}</strong></span>
+          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"-1"}' hx-include="#break-note" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">−</button>
+          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"1"}' hx-include="#break-note" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">+</button></div>
+      </div>
+      {{end}}
+      {{with $b.Exceptions}}<div><p class="font-medium">Scenario exceptions</p><ul class="list-disc pl-5 text-muted">{{range .}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+    </div>
+  </details>
+  {{end}}
+
+  {{if $b.Broken}}
+  <section class="alert alert-danger space-y-2" id="live-broken" aria-labelledby="broken-title">
+    <h3 id="broken-title" class="!text-lg">The company is Broken (turn {{$b.BrokenAtTurn}})</h3>
+    <p>Every model tests Courage before it does anything else. Models in combat, or that cannot activate, do not test.</p>
+    {{if $b.Fled}}<p class="font-medium">The company fled the battlefield (All is Lost). Your opponent claims victory.</p>{{end}}
+    {{if and $b.Offer $lv.Edit}}
+    <details class="rounded-lg border border-line bg-surface p-3 text-fg">
+      <summary class="flex min-h-11 cursor-pointer items-center font-medium">All is Lost: flee or fight on?</summary>
+      <p class="mt-1 text-sm">Decided at the beginning of the turn the company breaks. Your opponent claims victory and full rewards. You earn only the Influence for taking part (the injury rolls and experience still happen).</p>
+      <div class="mt-2 flex flex-wrap gap-2">
+        <button type="button" class="btn btn-danger" hx-post="{{$act}}" hx-vals='{"kind":"allIsLost","flee":"1"}' hx-confirm="Flee the battlefield? Every model in the field leaves the table and your opponent claims victory." hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Flee the battlefield</button>
+        <button type="button" class="btn btn-secondary" hx-post="{{$act}}" hx-vals='{"kind":"allIsLost","flee":"0"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Fight on</button>
+      </div>
+    </details>
+    {{else if $b.Offer}}<p class="text-sm">The owner of the company can decide to flee (All is Lost) this turn.</p>{{end}}
+    {{$t := $lv.ToTest}}{{$due := $t.Due}}{{$done := $t.Done}}
+    <details id="who-tested" class="rounded-lg border border-line bg-surface p-3 text-fg">
+      <summary class="flex min-h-11 cursor-pointer items-center font-medium">Who has tested this turn</summary>
+      <ul class="mt-1 text-sm">
+        {{range $due}}<li class="py-0.5"><span class="badge !bg-danger-soft !text-danger">Test due</span> {{.U.Title}}</li>{{end}}
+        {{range $done}}<li class="py-0.5 text-muted"><span class="badge badge-muted">Resolved</span> {{.U.Title}}</li>{{end}}
+        {{if and (not $due) (not $done)}}<li class="text-muted">Nobody is in the field.</li>{{end}}
+      </ul>
+    </details>
+  </section>
+  {{end}}
+</div>
+{{end}}
+
+{{/* One of the zones beside the field: a one-line header with a count, and compact cards. Takes {Title, Cards, LV, CID, Kind, Note}. */}}
+{{define "live_zone"}}
+<section aria-label="{{.Title}}">
+  <h3 class="flex flex-wrap items-baseline gap-x-2 !text-xl">{{.Title}} <span class="badge badge-muted">{{len .Cards}}</span>{{if not .Cards}}<span class="text-sm font-normal text-muted">None</span>{{end}}</h3>
+  {{if .Cards}}
+  <p class="mt-1 text-xs text-muted">{{.Note}}</p>
+  <ul class="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+    {{range .Cards}}{{template "live_compact" (dict "C" . "LV" $.LV "CID" $.CID "Kind" $.Kind)}}{{end}}
+  </ul>
+  {{end}}
+</section>
+{{end}}
+
+{{/* A unit outside the field, in short: who, why it is here and (for the owner) the way back. */}}
+{{define "live_compact"}}{{$u := .C.U}}{{$l := .C.L}}
+<li class="card unit-slot flex flex-wrap items-center gap-x-3 gap-y-1 !p-3 {{if eq .Kind "missed"}}opacity-70{{end}}" data-unit-id="{{$u.ID}}" id="unit-{{$u.ID}}">
+  {{template "role_insignia" $u.Role}}
+  <div class="min-w-0 flex-1">
+    <p class="font-medium leading-tight">{{$u.Title}}{{if ne $u.Title $u.Type}} <span class="text-sm font-normal text-muted">{{$u.Type}}</span>{{end}}</p>
+    <p class="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs">
+      {{if eq .Kind "retreated"}}<span class="badge badge-muted">Retreated</span>{{else if eq .Kind "casualty"}}<span class="badge !bg-danger-soft !text-danger">Casualty</span>{{else}}<span class="badge badge-muted">Missed this game</span>{{end}}
+      {{with $l.Reason}}<span class="text-muted">{{.}}</span>{{end}}
+    </p>
+  </div>
+  {{if and .LV.Edit (ne .Kind "missed")}}
+  <button type="button" class="btn btn-secondary !min-h-9" hx-post="/campaigns/{{.CID}}/matches/{{.LV.MatchID}}/live/{{.LV.CompanyID}}/actions" hx-vals='{"kind":"return","unit":"{{$u.ID}}"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Return to the battle</button>
+  {{end}}
+</li>
+{{end}}
+
+
+{{/* The answer to a live action: the zones, and the toast swapped in beside them. Takes the page view with .Toast. */}}
+{{define "live_response"}}{{template "live_zones" .}}{{template "live_toast" (dict "T" .Toast)}}{{end}}
+
+{{/* The toast of a live action ("Aldor wounded Grashnak (2)") with Undo, or the reason it was refused. Takes {T: *liveToast or nil}; the
+   element is always there so the answer can swap it out of band. */}}
+{{define "live_toast"}}{{$t := .T}}
+<div id="live-toast" hx-swap-oob="true" aria-live="polite" class="pointer-events-none fixed bottom-4 left-1/2 z-[60] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2">
+  {{if $t}}<div class="alert {{if $t.Error}}alert-danger{{else}}alert-success{{end}} pointer-events-auto flex items-center gap-3 shadow-lg" role="status" x-data="{ on: true }" x-init="setTimeout(() => on = false, {{if $t.Error}}9000{{else}}7000{{end}})" x-show="on" x-transition.opacity>
+    <span class="min-w-0 flex-1">{{$t.Text}}</span>
+    {{if and $t.CanUndo (not $t.Error)}}<button type="button" class="btn btn-secondary !min-h-9 shrink-0" hx-post="/campaigns/{{$t.Campaign}}/matches/{{$t.MatchID}}/live/log/{{$t.EntryID}}/undo" hx-vals='{"company":"{{$t.Company}}"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Undo</button>{{end}}
+    <button type="button" class="btn btn-ghost !min-h-9 !px-2 shrink-0" @click="on = false" aria-label="Dismiss">×</button>
+  </div>{{end}}
+</div>
+{{end}}

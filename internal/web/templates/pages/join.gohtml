@@ -1,0 +1,23 @@
+{{define "title"}}Join a campaign · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+<div class="mx-auto mt-6 max-w-md sm:mt-12">
+  <div class="card space-y-4">
+    <h1 class="!text-3xl">Join a campaign</h1>
+    {{if .Error}}
+    <div class="alert alert-danger" role="alert">{{.Error}}</div>
+    <a href="/" class="btn btn-secondary">Go to my campaigns</a>
+    {{else if .Preview.Member}}
+    <p class="text-muted">You are already in <strong class="break-words text-fg">{{.Preview.CampaignName}}</strong>; this link has nothing more to do for you.</p>
+    <a href="/campaigns/{{.Preview.CampaignID}}" class="btn btn-primary">Open the campaign</a>
+    {{else if .Preview.Paused}}
+    <p class="text-muted">You were invited to <strong class="break-words text-fg">{{.Preview.CampaignName}}</strong>, but the campaign is paused: nobody can join until the organiser resumes it. Open this link again later.</p>
+    <a href="/" class="btn btn-secondary">Go to my campaigns</a>
+    {{else}}
+    <p class="text-muted">You were invited to <strong class="break-words text-fg">{{.Preview.CampaignName}}</strong>. Joining adds it to your campaigns; then you can create your company.</p>
+    <form method="post" action="/join/{{.Token}}" hx-boost="false">
+      <button class="btn btn-primary">Join the campaign</button>
+    </form>
+    {{end}}
+  </div>
+</div>
+{{end}}
