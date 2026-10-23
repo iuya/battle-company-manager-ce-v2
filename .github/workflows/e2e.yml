@@ -27,7 +27,7 @@ jobs:
       - name: Browser tests
         env:
           CHROME_PATH: /usr/bin/google-chrome
-        run: make e2e
+        run: make e2e-enforce # the suite under the blocking Content-Security-Policy; make e2e is the same in report mode
       - name: Screenshots and page texts of failed steps
         if: failure()
         uses: actions/upload-artifact@v4

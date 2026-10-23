@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -19,6 +21,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/postgres"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/web"
 )
@@ -303,4 +306,261 @@ func firstLines(s, contains string, n int) string {
 		}
 	}
 	return strings.Join(out, "\n")
+}
+
+// TestHostileUploadsAnswer4xx (robustness): the three multipart upload handlers (the admin Rules files page, the glossary picker and the
+// campaign form's pickers) get malformed, truncated, huge, deeply nested, oddly typed and badly encoded JSON. Each must answer a 4xx
+// with a message (never 5xx, a panic, or a request that outlives the deadline) and must not leave anything stored.
+func TestHostileUploadsAnswer4xx(t *testing.T) {
+	base := os.Getenv("TEST_DATABASE_URL")
+	if base == "" {
+		t.Skip("TEST_DATABASE_URL is not set")
+	}
+	if testing.Short() {
+		t.Skip("slow")
+	}
+	if _, err := os.Stat("definitions"); err != nil {
+		wd, _ := os.Getwd()
+		if err := os.Chdir("../.."); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.Chdir(wd) })
+	}
+	ctx := context.Background()
+	store, err := postgres.Open(ctx, freshDatabase(ctx, t, base))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	b, err := newBackendWithDice(ctx, store, &demoDice{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.auth.CreateUser(ctx, "root@example.com", "Root", "a-long-password"); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.auth.SetPermissions(ctx, "root@example.com", core.RoleSuperuser, true); err != nil {
+		t.Fatal(err)
+	}
+	tok, _, _, err := b.auth.Login(ctx, "root@example.com", "a-long-password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var logs bytes.Buffer
+	old := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(old) })
+	srv, err := web.NewServer(web.Config{}, b.campaigns, b.rulesets, b.glossaries, b.auth)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := srv.Handler()
+
+	good, err := os.ReadFile("definitions/glossary/mesbg_glossary.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := func(p []byte) string { s, _ := core.RulesetHash(p); return s }
+	rep := func(s string, n int) []byte { return []byte(strings.Repeat(s, n)) }
+	cat := func(parts ...[]byte) []byte { return bytes.Join(parts, nil) }
+	const meta = `"name":"x","version":"1","terms":[]`
+	type payload struct {
+		name    string
+		content []byte
+		ctype   string // content type of the file part ("" = application/json)
+	}
+	payloads := []payload{
+		{"empty", nil, ""},
+		{"whitespace", []byte("  \n\t "), ""},
+		{"not json", []byte("hello"), ""},
+		{"open brace", []byte("{"), ""},
+		{"truncated file", good[:len(good)/2], ""},
+		{"truncated mid string", append([]byte(`{"name":"x","terms":["abc`), 0), ""},
+		{"array not object", []byte(`[1,2,3]`), ""},
+		{"null", []byte(`null`), ""},
+		{"scalar", []byte(`42`), ""},
+		{"trailing garbage", cat(good, []byte("}}}")), ""},
+		{"two documents", cat(good, good), ""},
+		{"wrong content type", good, "application/zip"},
+		{"binary content type", good, "application/octet-stream"},
+		{"gzip magic", []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03"), "application/gzip"},
+		{"zip magic", []byte("PK\x03\x04\x14\x00\x00\x00\x08\x00"), "application/zip"},
+		{"utf8 bom", cat([]byte("\xef\xbb\xbf"), good), ""},
+		{"utf16", []byte("\xff\xfe{\x00}\x00"), ""},
+		{"deep arrays 100k", cat(rep("[", 100000), rep("]", 100000)), ""},
+		{"deep arrays unclosed 8M", rep("[", 8<<20), ""},
+		{"deep objects", cat(rep(`{"a":`, 50000), []byte("1"), rep("}", 50000)), ""},
+		{"deep inside a valid shape", cat([]byte(`{`+meta+`,"x":`), rep("[", 100000), rep("]", 100000), []byte("}")), ""},
+		{"huge array of numbers", cat([]byte(`{`+meta+`,"x":[0`), rep(",0", 6<<20), []byte("]}")), ""},
+		{"huge array of empty objects", cat([]byte(`{`+meta+`,"x":[{}`), rep(",{}", 4<<20), []byte("]}")), ""},
+		{"huge string", cat([]byte(`{"name":"`), rep("a", 15<<20), []byte(`","version":"1","terms":[]}`)), ""},
+		{"huge key", cat([]byte(`{"`), rep("k", 15<<20), []byte(`":1}`)), ""},
+		{"many keys", cat([]byte(`{`+meta), func() []byte {
+			var sb strings.Builder
+			for i := 0; i < 400000; i++ {
+				fmt.Fprintf(&sb, `,"k%d":1`, i)
+			}
+			return []byte(sb.String())
+		}(), []byte("}")), ""},
+		{"duplicate keys", []byte(`{"name":"a","name":"b","version":"1","version":"2","terms":[],"terms":{}}`), ""},
+		{"duplicate keys many", cat([]byte(`{`+meta), rep(`,"name":"y"`, 500000), []byte("}")), ""},
+		{"invalid utf8 in string", []byte("{\"name\":\"\xff\xfe\",\"version\":\"1\",\"terms\":[]}"), ""},
+		{"invalid utf8 in key", []byte("{\"\xc3\x28\":1,\"name\":\"x\",\"version\":\"1\",\"terms\":[]}"), ""},
+		{"NUL escape", []byte(`{"name":"a\u0000b","version":"1","terms":[]}`), ""},
+		{"NUL escape in version", []byte(`{"name":"x","version":"1\u0000","terms":[]}`), ""},
+		{"lone surrogate", []byte(`{"name":"\ud800","version":"1","terms":[]}`), ""},
+		{"raw NUL", []byte("{\"name\":\"a\x00b\",\"version\":\"1\",\"terms\":[]}"), ""},
+		{"huge number", []byte(`{"name":"x","version":1e999999,"terms":[]}`), ""},
+		{"long digits", cat([]byte(`{"name":"x","version":`), rep("9", 1<<20), []byte(`,"terms":[]}`)), ""},
+		{"vanilla marker only", []byte(`{"appVersion":1,"game":"g"}`), ""},
+		{"bc marker only", []byte(`{"extends":{},"name":"n","version":"1"}`), ""},
+		{"wrong shape types", []byte(`{"name":["x"],"version":{"a":1},"terms":"no"}`), ""},
+	}
+	// Each handler gets every payload as its file. A request is a 4xx, or (for the one payload that is a valid glossary) a success.
+	type target struct {
+		name, path string
+		fields     func(kind string, content []byte) map[string]string
+		file       string
+		ok         map[int]bool // statuses that are not a failure of the handler besides 4xx (redirects)
+	}
+	targets := []target{
+		{"admin upload", "/admin/rulesets", func(k string, c []byte) map[string]string { return map[string]string{"kind": k} }, "file", nil},
+		{"glossary picker", "/glossary", func(k string, c []byte) map[string]string {
+			return map[string]string{"glossary-mode": "file", "glossary-hash": sum(c)}
+		}, "glossary-file", nil},
+		{"campaign form", "/campaigns", func(k string, c []byte) map[string]string {
+			return map[string]string{"name": "Hostile", "description": "d", k + "-mode": "file", k + "-hash": sum(c)}
+		}, "", nil},
+	}
+	multipart := func(fields map[string]string, file, fname, ctype string, content []byte) (*bytes.Buffer, string) {
+		var buf bytes.Buffer
+		w := multipartWriter(&buf)
+		for k, v := range fields {
+			_ = w.WriteField(k, v)
+		}
+		if file != "" {
+			w.writeFile(file, fname, ctype, content)
+		}
+		w.Close()
+		return &buf, w.FormDataContentType()
+	}
+	kinds := []string{"glossary", "vanilla", "battle_companies"}
+	var failures []string
+	send := func(label, path string, body io.Reader, ctype string, cl int64) {
+		req := httptest.NewRequest("POST", path, body)
+		req.Header.Set("Content-Type", ctype)
+		req.Header.Set("HX-Request", "true")
+		req.AddCookie(&http.Cookie{Name: "bcm_session", Value: tok})
+		if cl >= 0 {
+			req.ContentLength = cl
+		}
+		rec := httptest.NewRecorder()
+		done := make(chan struct{})
+		start := time.Now()
+		go func() {
+			defer close(done)
+			defer func() {
+				if p := recover(); p != nil {
+					failures = append(failures, fmt.Sprintf("PANIC escaped the middleware: %s: %v", label, p))
+				}
+			}()
+			h.ServeHTTP(rec, req)
+		}()
+		select {
+		case <-done:
+		case <-time.After(45 * time.Second):
+			failures = append(failures, fmt.Sprintf("%s: still running after 45 s", label))
+			return
+		}
+		if os.Getenv("UPLOAD_VERBOSE") != "" {
+			t.Logf("%d %s %s", rec.Code, time.Since(start).Round(time.Millisecond), label)
+		}
+		if rec.Code < 400 || rec.Code >= 500 {
+			// the admin upload of a valid glossary or a redirect is fine: only 5xx is a failure here
+			if rec.Code >= 500 {
+				failures = append(failures, fmt.Sprintf("%d %s (%s)", rec.Code, label, time.Since(start).Round(time.Millisecond)))
+			}
+			return
+		}
+		if strings.TrimSpace(rec.Body.String()) == "" {
+			failures = append(failures, fmt.Sprintf("%d %s: no message in the answer", rec.Code, label))
+		}
+	}
+	for _, p := range payloads {
+		for _, tg := range targets {
+			for _, k := range kinds {
+				if tg.name == "glossary picker" && k != "glossary" {
+					continue
+				}
+				file := tg.file
+				if file == "" {
+					file = k + "-file"
+				}
+				fields := tg.fields(k, p.content)
+				ct := p.ctype
+				if ct == "" {
+					ct = "application/json"
+				}
+				buf, mt := multipart(fields, file, "rules.json", ct, p.content)
+				send(fmt.Sprintf("%s / %s / %s", tg.name, k, p.name), tg.path, buf, mt, -1)
+			}
+		}
+	}
+	// the request itself is wrong
+	huge := rep("x", 17<<20)
+	for _, tg := range targets {
+		k := "glossary"
+		file := tg.file
+		if file == "" {
+			file = k + "-file"
+		}
+		fields := tg.fields(k, nil)
+		buf, mt := multipart(fields, file, "rules.json", "application/json", huge)
+		send(tg.name+" / body over the limit", tg.path, buf, mt, -1)
+		buf, mt = multipart(fields, file, "rules.json", "application/json", good)
+		cut := buf.Bytes()[:buf.Len()/2]
+		send(tg.name+" / truncated multipart", tg.path, bytes.NewReader(cut), mt, -1)
+		send(tg.name+" / no boundary", tg.path, strings.NewReader("--x\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nb\r\n--x--"), "multipart/form-data", -1)
+		send(tg.name+" / empty boundary", tg.path, strings.NewReader("junk"), "multipart/form-data; boundary=", -1)
+		send(tg.name+" / body is not multipart", tg.path, strings.NewReader("a=b"), "multipart/form-data; boundary=zzz", -1)
+		send(tg.name+" / json body", tg.path, bytes.NewReader(good), "application/json", -1)
+		send(tg.name+" / lying length", tg.path, bytes.NewReader(good[:10]), "multipart/form-data; boundary=zzz", 1<<40)
+		// many parts
+		var many bytes.Buffer
+		mw := multipartWriter(&many)
+		for i := 0; i < 5000; i++ {
+			_ = mw.WriteField(fmt.Sprintf("f%d", i), "v")
+		}
+		mw.Close()
+		send(tg.name+" / 5000 fields", tg.path, &many, mw.FormDataContentType(), -1)
+		// a field with a huge value
+		var big bytes.Buffer
+		bw := multipartWriter(&big)
+		_ = bw.WriteField("name", string(rep("n", 12<<20)))
+		bw.Close()
+		send(tg.name+" / 12 MB text field", tg.path, &big, bw.FormDataContentType(), -1)
+	}
+	sort.Strings(failures)
+	for _, f := range failures {
+		t.Error(f)
+	}
+	if strings.Contains(logs.String(), "level=ERROR msg=panic") {
+		t.Errorf("a handler panicked:\n%s", firstLines(logs.String(), "msg=panic", 5))
+	}
+	if n, _ := store.Rulesets().ListUsage(ctx); len(n) > 3 {
+		t.Errorf("%d rules files are stored, the shipped three expected: a hostile upload got stored", len(n))
+	}
+}
+
+// uploadWriter is a multipart writer that can also write a file part with the content type of the test's choosing.
+type uploadWriter struct{ *multipart.Writer }
+
+func multipartWriter(w io.Writer) uploadWriter { return uploadWriter{multipart.NewWriter(w)} }
+
+func (u uploadWriter) writeFile(field, name, ctype string, content []byte) {
+	h := textproto.MIMEHeader{}
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name=%q; filename=%q`, field, name))
+	h.Set("Content-Type", ctype)
+	p, _ := u.CreatePart(h)
+	_, _ = p.Write(content)
 }

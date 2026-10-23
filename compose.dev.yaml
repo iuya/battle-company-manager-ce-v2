@@ -29,6 +29,8 @@ services:
 #   CSP_MODE=report              off | report | enforce
 #   MIGRATE_ON_START=true        false: refuse to start on a database that is behind (make migrate first)
 #   MAX_CACHED_RULESETS=16       parsed rule sets kept in memory, at least 1
+#   REQUEST_TIMEOUT=30s          a request that works longer is cancelled and answers 503; 0 = no limit; the live stream is exempt
+#   RULES_BUILD_TIMEOUT=60s      deadline of building a parsed rule set (a parser stuck on a hostile upload); at least 1s
 #   APP_TIMEZONE=                IANA zone for visitors with none (UTC when empty)
 #   STATIC_MAX_AGE=0s            Cache-Control lifetime of static files
 #   STYLEGUIDE=false             serve /styleguide and the development marks; make run, dev and demo set true

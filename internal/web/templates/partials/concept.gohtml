@@ -1,0 +1,33 @@
+{{/* The helper popup's content (docs/concept-graph.md, static/js/concepts.js). Only the content: the sheet around it, Back and Close are
+     built by the script. Everything is text from the rules files, escaped here; the chips are buttons the script handles. */}}
+
+{{define "concept_chip"}}<li class="concept-item"><button type="button" class="concept-chip" data-concept-go="{{.ID}}"><span>{{.Name}}</span><span class="concept-kind">{{.Kind}}</span></button>{{with .Via}}<span class="concept-via">{{.}}</span>{{end}}</li>{{end}}
+
+{{define "concept_chip_bare"}}<li class="concept-item"><button type="button" class="concept-chip" data-concept-go="{{.ID}}"><span>{{.Name}}</span><span class="concept-kind">{{.Kind}}</span></button></li>{{end}}
+
+{{define "concept_popup"}}<div class="concept" data-concept-root="{{.ID}}" data-title="{{.Name}}">
+  <p><span class="badge">{{.Kind}}</span></p>
+  <h2 class="concept-title" id="concept-title" tabindex="-1">{{.Name}}</h2>
+  {{if .Text}}<p class="concept-text">{{range .Text}}{{if .ConceptID}}<button type="button" class="concept-term" data-concept-go="{{.ConceptID}}">{{.Text}}</button>{{else}}{{.Text}}{{end}}{{end}}</p>{{else}}<p class="text-sm text-muted">These rules have no description for it.</p>{{end}}
+  {{range .Groups}}
+  <section class="concept-group" aria-label="{{.Title}}">
+    <h3 class="concept-heading">{{.Title}}</h3>
+    {{if .Plain}}<ul class="concept-list">{{range .Plain}}{{template "concept_chip" .}}{{end}}</ul>{{end}}
+    {{range .Folds}}<details class="concept-fold"><summary>{{.Label}} <span class="text-muted">({{len .Items}})</span></summary><ul class="concept-list">{{range .Items}}{{template "concept_chip_bare" .}}{{end}}</ul></details>{{end}}
+    {{if .More}}<details class="concept-fold"><summary>Show {{len .More}} more</summary><ul class="concept-list">{{range .More}}{{template "concept_chip" .}}{{end}}</ul></details>{{end}}
+  </section>
+  {{end}}
+  {{if .GlossaryID}}<p class="concept-foot"><a class="btn btn-secondary !min-h-9" href="/campaigns/{{.CID}}/glossary#t-{{.GlossaryID}}" hx-boost="false">Open in glossary</a></p>{{end}}
+</div>{{end}}
+
+{{/* A name with several meanings: none is chosen for the reader. */}}
+{{define "concept_choose"}}<div class="concept" data-concept-root="" data-title="{{.Asked}}">
+  <h2 class="concept-title" id="concept-title" tabindex="-1">{{.Asked}}</h2>
+  <p class="text-sm text-muted">This name means more than one thing in these rules. Which one?</p>
+  <ul class="concept-list">{{range .Candidates}}{{template "concept_chip_bare" .}}{{end}}</ul>
+</div>{{end}}
+
+{{define "concept_missing"}}<div class="concept" data-concept-root="" data-state="missing" data-title="Not found">
+  <h2 class="concept-title" id="concept-title" tabindex="-1">Not found</h2>
+  <p class="text-sm">This is no longer in these rules.</p>
+</div>{{end}}

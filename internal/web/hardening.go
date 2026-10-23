@@ -39,6 +39,9 @@ func (c *Config) Resolve() error {
 		return errors.New("refusing to start: production with insecure cookies; set SECURE_COOKIES=true (behind a TLS-terminating proxy), " +
 			"or ALLOW_INSECURE_COOKIES=true to accept session cookies over plain http (docs/operations.md)")
 	}
+	if c.RequestTimeout < 0 {
+		return fmt.Errorf("REQUEST_TIMEOUT %s: want 0 (off) or a positive duration", c.RequestTimeout)
+	}
 	switch c.CSPMode {
 	case "off", "report", "enforce":
 	default:

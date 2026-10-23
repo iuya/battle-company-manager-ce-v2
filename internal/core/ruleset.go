@@ -66,6 +66,39 @@ func RulesetHash(content []byte) (string, error) {
 	return hex.EncodeToString(sum[:]), nil
 }
 
+// Limits on the shape of an uploaded rules file. The shipped files hold at most about 40 000 values and 11 levels; validating a
+// 14 MB file of "0," costs about 40 times its size in memory, so the shape is bounded before the schema sees it.
+const (
+	MaxRulesetValues = 1_000_000
+	MaxRulesetDepth  = 64
+)
+
+// checkRulesetShape streams the JSON once, without building it, and refuses a document with more than MaxRulesetValues values or
+// nested deeper than MaxRulesetDepth. Syntax errors are left to the callers' own parsing.
+func checkRulesetShape(content []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(content))
+	depth, values := 0, 0
+	for {
+		tok, err := dec.Token()
+		if err != nil {
+			return nil // end of input, or malformed: reported by the parse that follows
+		}
+		if d, ok := tok.(json.Delim); ok && (d == '}' || d == ']') {
+			depth--
+			continue
+		}
+		values++
+		if values > MaxRulesetValues {
+			return errors.Join(ErrInvalidRuleset, fmt.Errorf("the file has more than %d values", MaxRulesetValues))
+		}
+		if _, ok := tok.(json.Delim); ok {
+			if depth++; depth > MaxRulesetDepth {
+				return errors.Join(ErrInvalidRuleset, fmt.Errorf("the file is nested more than %d levels deep", MaxRulesetDepth))
+			}
+		}
+	}
+}
+
 // RulesetMeta reads the name and version of a rules file and checks that it is the kind of document it claims to be.
 // Battle Companies and glossary files carry top-level "name" and "version". The vanilla file is a third-party store
 // that is never edited: its name is "game" and its version "appVersion".

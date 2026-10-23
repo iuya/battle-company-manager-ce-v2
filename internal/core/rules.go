@@ -3,10 +3,12 @@ package core
 import (
 	"container/list"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
 	"sync"
+	"time"
 )
 
 // RuleSet is the rules a campaign is played with, built from its three stored files. It is immutable once built and shared
@@ -45,7 +47,22 @@ type Rules struct {
 	calls map[RulesetHashes]*ruleSetCall
 	lru   *list.List // of RulesetHashes, most recently used first
 	max   int
+
+	timeout time.Duration // deadline of one build
+	stuck   int           // builds given up on that are still running (their parser has not returned)
+	buildFn func(context.Context, RulesetHashes) (*RuleSet, error)
 }
+
+// DefaultBuildTimeout is how long building a rule set from its three files may take before it is given up on; RULES_BUILD_TIMEOUT sets
+// it (WithBuildTimeout). Parsing the shipped files takes well under a second.
+const DefaultBuildTimeout = 60 * time.Second
+
+// maxStuckBuilds bounds the goroutines of builds that were given up on but whose parser has not returned (parsers take no context, so a
+// loop on a hostile file cannot be stopped from outside). Beyond it new builds are refused at once instead of piling up more.
+const maxStuckBuilds = 4
+
+// ErrBuildsStuck says too many earlier builds are still stuck in a parser.
+var ErrBuildsStuck = errors.New("too many rule set builds are stuck")
 
 // MaxCachedRuleSets is the default of how many rule sets (hash triples) stay in memory; MAX_CACHED_RULESETS sets it (WithMaxCached). A parsed set is a few MB; a handful of triples exist in
 // practice (the shipped files plus the odd upload a campaign pins), so the cap only bites when a superuser uploads many files.
@@ -62,7 +79,19 @@ func NewRules(repo rulesetRepository, log *slog.Logger) *Rules {
 	if log == nil {
 		log = slog.Default()
 	}
-	return &Rules{repo: repo, log: log, calls: map[RulesetHashes]*ruleSetCall{}, lru: list.New(), max: MaxCachedRuleSets}
+	r := &Rules{repo: repo, log: log, calls: map[RulesetHashes]*ruleSetCall{}, lru: list.New(), max: MaxCachedRuleSets, timeout: DefaultBuildTimeout}
+	r.buildFn = r.build
+	return r
+}
+
+// WithBuildTimeout sets the deadline of one build (at least 1 ms; smaller values are ignored). Call it before the first For.
+func (r *Rules) WithBuildTimeout(d time.Duration) *Rules {
+	if d >= time.Millisecond {
+		r.mu.Lock()
+		r.timeout = d
+		r.mu.Unlock()
+	}
+	return r
 }
 
 // WithMaxCached sets the cap of the cache (at least 1; smaller values are ignored). Call it before the first For.
@@ -86,11 +115,11 @@ func (r *Rules) For(ctx context.Context, h RulesetHashes) (*RuleSet, error) {
 		c.elem = r.lru.PushFront(h)
 		r.calls[h] = c
 		r.evict()
-		// The build outlives the request that triggered it: the others wait for it too.
+		// The build outlives the request that triggered it: the others wait for it too. It has its own deadline.
 		go func() {
 			// A panic in the parsers (a malformed upload) must not end the process, and must still release the waiters.
 			c.err = safely("rule set build", func() (err error) {
-				c.set, err = r.build(context.WithoutCancel(ctx), h)
+				c.set, err = r.buildBounded(context.WithoutCancel(ctx), h)
 				return err
 			})
 			if c.err != nil {
@@ -135,6 +164,63 @@ func (r *Rules) Cached() int {
 	return len(r.calls)
 }
 
+// buildBounded runs the build under the deadline. The database reads and the steps of build stop with the context; a parser that
+// loops cannot be interrupted, so after the deadline the build is given up on (an error that wraps context.DeadlineExceeded, not
+// cached) and its goroutine is left to end by itself: at most maxStuckBuilds of them are tolerated at a time.
+func (r *Rules) buildBounded(ctx context.Context, h RulesetHashes) (*RuleSet, error) {
+	r.mu.Lock()
+	timeout, stuck := r.timeout, r.stuck
+	r.mu.Unlock()
+	if stuck >= maxStuckBuilds {
+		return nil, ErrBuildsStuck
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	type result struct {
+		set *RuleSet
+		err error
+	}
+	out := make(chan result, 1) // buffered: a build given up on must be able to finish without a reader
+	var finished, abandoned bool
+	go func() {
+		var res result
+		res.err = safely("rule set build", func() (err error) {
+			res.set, err = r.buildFn(ctx, h)
+			return err
+		})
+		r.mu.Lock()
+		finished = true
+		if abandoned {
+			r.stuck--
+		}
+		r.mu.Unlock()
+		out <- res
+	}()
+	select {
+	case res := <-out:
+		return res.set, res.err
+	case <-ctx.Done():
+	}
+	r.mu.Lock()
+	if finished { // it ended just as the deadline did: take its answer
+		r.mu.Unlock()
+		res := <-out
+		return res.set, res.err
+	}
+	abandoned = true
+	r.stuck++
+	r.mu.Unlock()
+	r.log.Error("rule set build given up on", "timeout", timeout, "vanilla", h.Vanilla, "battleCompanies", h.BattleCompanies, "glossary", h.Glossary)
+	return nil, fmt.Errorf("building the rule set took longer than %s: %w", timeout, context.DeadlineExceeded)
+}
+
+// Stuck is how many given-up builds are still running in a parser.
+func (r *Rules) Stuck() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.stuck
+}
+
 func (r *Rules) build(ctx context.Context, h RulesetHashes) (*RuleSet, error) {
 	get := func(kind RulesetKind, hash string) (StoredRuleset, error) {
 		s, err := r.repo.Get(ctx, hash)
@@ -158,6 +244,9 @@ func (r *Rules) build(ctx context.Context, h RulesetHashes) (*RuleSet, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	reviewed, err := ParseVanillaAmbiguities(bc.Content)
 	if err != nil {
 		return nil, err
@@ -166,12 +255,18 @@ func (r *Rules) build(ctx context.Context, h RulesetHashes) (*RuleSet, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	bb, err := ParseBattleCompanies(bc.Content)
 	if err != nil {
 		return nil, err
 	}
 	bb.SpellWargearLikeVanilla(vb)
 	bb.ApplyUnitFillIns(vb)
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	gl, err := BuildGlossaryWith(glossary.RulesetInfo, glossary.Content, GlossaryExtras(vanilla.Content, bc.Content))
 	if err != nil {
 		return nil, err

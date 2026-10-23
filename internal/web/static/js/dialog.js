@@ -8,7 +8,7 @@
   const focusables = d => [...d.querySelectorAll(FOCUSABLE)].filter(e => e.getClientRects().length > 0);
 
   function sync() {
-    const open = [...document.querySelectorAll('[role="dialog"][aria-modal="true"]')].find(shown) || null;
+    const open = [...document.querySelectorAll('[role="dialog"][aria-modal="true"]:not([data-focus-managed])')].find(shown) || null;
     if (open === current) return;
     if (open) {
       opener = document.activeElement;
@@ -24,6 +24,7 @@
 
   document.addEventListener('keydown', e => {
     if (e.key !== 'Tab' || !current) return;
+    if (document.activeElement && document.activeElement.closest('[data-focus-managed]')) return; // the helper popup (concepts.js) keeps its own focus
     const items = focusables(current);
     if (!items.length) { e.preventDefault(); return; }
     const first = items[0], last = items[items.length - 1];

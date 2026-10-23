@@ -143,6 +143,9 @@ def main():
         if name == kw["name"] and vanilla.keyword(name):
             kw["overrides"] = vanilla.keyword(name)
         kw_final.append(kw)
+    for kw in core.SCENARIO_KEYWORDS:
+        assert not vanilla.keyword(kw["name"]) and kw["name"] not in seen, f"{kw['name']} is already defined"
+        kw_final.append(dict(kw))
     for c in companies:
         for u in c.get("heroUpgrades", []):
             u["specialRule"] = rename.get((c["name"], u["name"]), u["specialRule"])

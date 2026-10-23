@@ -17409,6 +17409,11 @@
         "source": "Gundabad"
       },
       {
+        "name": "Command Support",
+        "source": "Scenario Special Rules",
+        "definition": "A keyword some equipment (a War Drum, a War Horn, a Pennant, an Instrument) gives its bearer to stand for the leader's command retinue. It has no effect in play: a few scenarios score Victory Points for Command Support models still alive at the end of the game."
+      },
+      {
         "name": "Laden with Baggage",
         "definition": "A Baggage Pony has a carrying capacity of up to 15 pieces of Equipment, weapons or additional wargear (except mounts). Whilst these pieces are on the Packhorse, the company gains no benefit from them. During the War's Aftermath, after determining injuries but before determining the next scenario, any member of a Battle Company may retrieve, store, or swap one of its pieces of Wargear or Equipment for an item from the Pony. During a scenario, any member of a Battle Company that begins its turn in base contact with the Pony may do likewise. Note that your Battle Company must still abide by the Wargear Limits at all times and each member must follow restrictions for Warriors and Heroes as normal.",
         "source": "Baggage Pony"

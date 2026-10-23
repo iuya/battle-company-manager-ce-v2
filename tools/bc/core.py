@@ -579,6 +579,15 @@ SCENARIO_SELECTION = {
 }
 
 
+# Special rules the scenarios use that no path or upgrade defines: they get an entry in data.keywords so that gear can grant them and the
+# glossary can show them. Paraphrased from the "Scenario Special Rules" section and the scoring bullets of the scenarios that use it.
+SCENARIO_KEYWORDS = [
+    {"name": "Command Support", "source": "Scenario Special Rules",
+     "definition": "A keyword some equipment (a War Drum, a War Horn, a Pennant, an Instrument) gives its bearer to stand for the leader's command retinue. "
+                   "It has no effect in play: a few scenarios score Victory Points for Command Support models still alive at the end of the game."},
+]
+
+
 # Rules that take a parameter "X". Vanilla already defines most of them as families of concrete rules (Hatred (Man),
 # Hatred (Rohan)...); here the family is formalised once: what X means and who chooses it. `definitionFrom` names the
 # vanilla rule whose text is the template. Battle Companies generalisations replace a named character with the rule's

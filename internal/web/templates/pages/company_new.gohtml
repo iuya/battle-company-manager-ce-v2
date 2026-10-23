@@ -193,7 +193,7 @@
 {{end}}
 
 {{/* An item or a rule as a small chip: a link to its glossary entry when it has one. Takes {V: the page's view, N: the name}. */}}
-{{define "chip"}}{{$t := index (.V.Named .N) 0}}{{if $t.TermID}}<a class="eq-chip term-link" hx-boost="false" href="/campaigns/{{.V.Campaign.ID}}/glossary#t-{{$t.TermID}}" data-tip-title="{{$t.TipTitle}}" data-tip-text="{{$t.TipText}}">{{upfirst .N}}</a>{{else}}<span class="eq-chip">{{upfirst .N}}</span>{{end}}{{end}}
+{{define "chip"}}{{$t := index (.V.Named .N) 0}}{{if $t.TermID}}<a class="eq-chip term-link" hx-boost="false" href="/campaigns/{{.V.Campaign.ID}}/glossary#t-{{$t.TermID}}" data-concept data-tip-title="{{$t.TipTitle}}" data-tip-text="{{$t.TipText}}">{{upfirst .N}}</a>{{else}}<span class="eq-chip">{{upfirst .N}}</span>{{end}}{{end}}
 
 {{/* A chart of rolls and what they give. Takes {V: the page's view, Title, Rows}. */}}
 {{define "chart_table"}}{{$v := .V}}{{$p := $v.Profile}}{{$cid := $v.Campaign.ID}}

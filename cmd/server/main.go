@@ -27,6 +27,9 @@ type config struct {
 	MigrateOnStart bool `env:"MIGRATE_ON_START" default:"true"`
 	// MaxCachedRuleSets caps the rule sets (hash triples) kept parsed in memory, least recently used dropped first; a set is a few MB.
 	MaxCachedRuleSets int `env:"MAX_CACHED_RULESETS" default:"16"`
+	// RulesBuildTimeout is the deadline of building a parsed rule set from its three files; a parser stuck on a hostile upload ends with
+	// an error (not cached) instead of running for ever.
+	RulesBuildTimeout time.Duration `env:"RULES_BUILD_TIMEOUT" default:"60s"`
 	// PerfTrace adds a Server-Timing header (time, database statements) to every answer, for tests/e2e/perf.mjs. Development only.
 	PerfTrace bool `env:"PERF_TRACE" default:"false"`
 	Web       web.Config
@@ -36,6 +39,9 @@ type config struct {
 func (c config) validate() error {
 	if c.MaxCachedRuleSets < 1 {
 		return fmt.Errorf("MAX_CACHED_RULESETS %d: want at least 1", c.MaxCachedRuleSets)
+	}
+	if c.RulesBuildTimeout < time.Second {
+		return fmt.Errorf("RULES_BUILD_TIMEOUT %s: want at least 1s", c.RulesBuildTimeout)
 	}
 	return nil
 }
@@ -71,6 +77,7 @@ func run() error {
 		return err
 	}
 	rulesCacheMax = cfg.MaxCachedRuleSets
+	rulesBuildTimeout = cfg.RulesBuildTimeout
 	if err := cfg.Web.Resolve(); err != nil {
 		return err
 	}
@@ -102,6 +109,7 @@ func run() error {
 		return err
 	}
 	srv.SetReadiness(store.Ping)
+	srv.SetConcepts(b.concepts)
 
 	httpSrv := &http.Server{Addr: ":" + cfg.Port, Handler: handlerWrap(srv.Handler()),
 		// Slow-client protection. The live stream (SSE) lifts the read deadline and sets a write deadline per write, so it is not cut.

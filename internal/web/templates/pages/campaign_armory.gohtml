@@ -160,4 +160,4 @@
 {{end}}
 
 {{/* Names on a creature's or wanderer's card; the ones some file explains carry a tooltip. Takes {L: []tipChip, Cls: the chip's class}. */}}
-{{define "armory_chips"}}{{$cls := .Cls}}{{range .L}}<li class="{{$cls}}{{if .Text}} has-tip{{end}}"{{if .Text}} tabindex="0" data-tip-title="{{.Title}}" data-tip-meta="{{.Meta}}" data-tip-text="{{.Text}}"{{end}}>{{.Name}}</li>{{end}}{{end}}
+{{define "armory_chips"}}{{$cls := .Cls}}{{range .L}}<li class="{{$cls}}{{if .Text}} has-tip{{end}}"{{if .Text}} tabindex="0" data-concept data-tip-title="{{.Title}}" data-tip-meta="{{.Meta}}" data-tip-text="{{.Text}}"{{end}}>{{.Name}}</li>{{end}}{{end}}

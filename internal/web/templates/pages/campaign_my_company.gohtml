@@ -80,7 +80,7 @@
     <span class="inline-flex items-center gap-1">{{template "role_insignia" "sergeant"}} Sergeant</span>
     <span class="inline-flex items-center gap-1">{{template "role_insignia" "hero"}} Hero</span>
     <span><span class="eq-chip is-bought !py-0">+ item</span> bought</span>
-    <span><span class="eq-chip has-tip !py-0">item</span> dashed: hover for its rules</span>
+    <span><span class="eq-chip has-tip !py-0">item</span> dashed: hover for its rules, click for more</span>
   </p>
   {{/* Change formation: drag the cards (or use their arrows), then save the order; it is kept for good. */}}
   {{if and (not $.ReadOnly) (not $.Live)}}<div x-show="formation" x-cloak class="alert alert-info mt-4 flex flex-wrap items-center justify-between gap-3" role="status">

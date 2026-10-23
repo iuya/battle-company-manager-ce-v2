@@ -2,6 +2,7 @@ package web
 
 import (
 	"bufio"
+	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
@@ -186,4 +187,59 @@ func TestOnceDoesNotSerialiseDifferentPeople(t *testing.T) {
 		t.Error("a request of another person waits for a stuck one")
 	}
 	close(release)
+}
+
+// A request sent twice gets the first answer again, and that answer must still be a valid one when the browser accepts gzip: the
+// replay used to carry the first answer's "Content-Encoding: gzip" header over the uncompressed copy of its body.
+func TestOnceReplayOfACompressedAnswerIsDecodable(t *testing.T) {
+	f := newFixture(t, Config{})
+	body := strings.Repeat("<p>a long enough fragment to be compressed</p>", 100)
+	h := gzipResponses(f.srv.once(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(body))
+	}))
+	for i := 0; i < 2; i++ {
+		r := httptest.NewRequest("POST", "/x", strings.NewReader("a=1"))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		r.Header.Set("Accept-Encoding", "gzip")
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, r.WithContext(context.WithValue(r.Context(), ctxKey{}, &core.User{ID: 1})))
+		zr, err := gzip.NewReader(rec.Body)
+		if err != nil {
+			t.Fatalf("send %d: %q is not a gzip body (Content-Encoding %q): %v", i, rec.Body.String()[:20], rec.Header().Get("Content-Encoding"), err)
+		}
+		got, err := io.ReadAll(zr)
+		if err != nil || string(got) != body {
+			t.Fatalf("send %d: the body does not decode to the answer (%v)", i, err)
+		}
+	}
+}
+
+// Confirming a recruit, rolling on the special chart and confirming again sends the same confirm twice with a step between them:
+// both must run. Only a request identical to the person's previous one (a double click) is answered with the first answer.
+func TestOnceOnlyReplaysTheImmediateRepeat(t *testing.T) {
+	f := newFixture(t, Config{})
+	runs := map[string]int{}
+	h := f.srv.once(func(w http.ResponseWriter, r *http.Request) {
+		runs[r.URL.Path]++
+		fmt.Fprintf(w, "%s #%d", r.URL.Path, runs[r.URL.Path])
+	})
+	send := func(path string) string {
+		r := httptest.NewRequest("POST", path, strings.NewReader("adjust=0"))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rec := httptest.NewRecorder()
+		h(rec, r.WithContext(context.WithValue(r.Context(), ctxKey{}, &core.User{ID: 1})))
+		return rec.Body.String()
+	}
+	for _, c := range []struct{ path, want string }{
+		{"/confirm", "/confirm #1"},
+		{"/confirm", "/confirm #1"}, // a double click: the first answer
+		{"/roll", "/roll #1"},
+		{"/confirm", "/confirm #2"}, // the same confirm after another step runs again
+		{"/roll", "/roll #2"},
+	} {
+		if got := send(c.path); got != c.want {
+			t.Errorf("%s: got %q, want %q", c.path, got, c.want)
+		}
+	}
 }

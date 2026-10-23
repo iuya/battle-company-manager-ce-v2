@@ -139,6 +139,8 @@ func TestRulesetsStoreAlreadyStoredSkipsInsert(t *testing.T) {
 func TestRulesetsStoreRejections(t *testing.T) {
 	ctx := context.Background()
 	big := `{"name":"BC","version":"1","extends":"V","pad":"` + strings.Repeat("x", MaxRulesetSize) + `"}`
+	many := `{"name":"BC","version":"1","extends":"V","pad":[0` + strings.Repeat(",0", MaxRulesetValues) + `]}`
+	deep := `{"name":"BC","version":"1","extends":"V","pad":` + strings.Repeat("[", MaxRulesetDepth+1) + strings.Repeat("]", MaxRulesetDepth+1) + `}`
 	tests := []struct {
 		name    string
 		kind    RulesetKind
@@ -149,6 +151,8 @@ func TestRulesetsStoreRejections(t *testing.T) {
 	}{
 		{"unknown kind", "nope", bcFile, nil, nil, "unknown kind"},
 		{"too large", KindBattleCompanies, big, func(string) string { return "h" }, nil, "larger than 16 MB"},
+		{"too many values", KindBattleCompanies, many, nil, nil, "more than 1000000 values"},
+		{"nested too deep", KindBattleCompanies, deep, nil, nil, "levels deep"},
 		{"not json", KindBattleCompanies, "{nope", func(string) string { return "h" }, nil, "not valid JSON"},
 		{"hash mismatch", KindBattleCompanies, bcFile, func(string) string { return "deadbeef" }, nil, "does not match the hash"},
 		{"wrong kind of document", KindGlossary, bcFile, nil, nil, "does not look like a Glossary"},

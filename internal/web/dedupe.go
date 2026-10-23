@@ -58,8 +58,8 @@ func (c *recentMatches) create(what any, make func() (int64, error)) (int64, err
 }
 
 // once guards an action that spends or rolls something (a purchase, a roll, a grant) against being sent twice: a request
-// identical to one the same person made within onceWindow (same address, same body) is not run again, it gets the first
-// answer. That is what a double click or a retry on a slow line sends. Requests are run one at a time, so two sent together
+// identical to the same person's previous one, made within onceWindow (same address, same body), is not run again, it gets the
+// first answer. A different request in between ends the match: the same form sent again after another step is a new action. That is what a double click or a retry on a slow line sends. Requests are run one at a time, so two sent together
 // are handled in order.
 func (s *Server) once(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +75,7 @@ func (s *Server) once(next http.HandlerFunc) http.HandlerFunc {
 		}
 		r.Body = io.NopCloser(bytes.NewReader(body))
 		sum := sha256.Sum256(body)
-		key := fmt.Sprint(u.ID, " ", r.URL.Path, " ", r.Header.Get("HX-Request"), " ", hex.EncodeToString(sum[:]))
+		key := fmt.Sprint(r.URL.Path, " ", r.Header.Get("HX-Request"), " ", hex.EncodeToString(sum[:]))
 
 		// One request of a person at a time (a stripe of locks by account, so a stuck request holds up that person, never the app),
 		// and the table of answers is locked only while it is read or written, never while the handler runs.
@@ -83,14 +83,18 @@ func (s *Server) once(next http.HandlerFunc) http.HandlerFunc {
 		stripe.Lock()
 		defer stripe.Unlock()
 		now := time.Now()
+		// Only the person's latest answer is kept: a request identical to it is a double click or a retry, but once the person has sent
+		// anything else the same request again is a new step (confirm the reinforcement, roll on the special chart, confirm again:
+		// the two confirms have the same address and body and must both run).
 		s.onceMu.Lock()
-		for k, v := range s.onceSeen {
-			if now.Sub(v.at) > onceWindow {
-				delete(s.onceSeen, k)
+		for k, a := range s.onceSeen {
+			if now.Sub(a.at) > onceWindow {
+				delete(s.onceSeen, k) // answers held past the window are dropped, whatever their size
 			}
 		}
-		v, seen := s.onceSeen[key]
+		v, seen := s.onceSeen[u.ID]
 		s.onceMu.Unlock()
+		seen = seen && v.key == key && now.Sub(v.at) <= onceWindow
 		if seen {
 			for h, vals := range v.header {
 				w.Header()[h] = vals
@@ -101,12 +105,20 @@ func (s *Server) once(next http.HandlerFunc) http.HandlerFunc {
 		}
 		rec := &replayRecorder{ResponseWriter: w, status: http.StatusOK}
 		next(rec, r)
+		s.onceMu.Lock()
+		delete(s.onceSeen, u.ID) // whatever this request was, an older answer no longer counts as the latest
+		s.onceMu.Unlock()
 		if len(rec.body) <= 1<<20 && rec.status < 500 {
 			s.onceMu.Lock()
 			if s.onceSeen == nil {
-				s.onceSeen = map[string]onceAnswer{}
+				s.onceSeen = map[int64]onceAnswer{}
 			}
-			s.onceSeen[key] = onceAnswer{at: now, status: rec.status, header: rec.Header().Clone(), body: rec.body}
+			// rec.body is what the handler wrote, before the compression layer: the encoding headers of the first answer do not describe
+			// it (a replay carrying "Content-Encoding: gzip" over a plain body is undecodable for the browser).
+			hdr := rec.Header().Clone()
+			hdr.Del("Content-Encoding")
+			hdr.Del("Content-Length")
+			s.onceSeen[u.ID] = onceAnswer{key: key, at: now, status: rec.status, header: hdr, body: rec.body}
 			s.onceMu.Unlock()
 		}
 	}
@@ -118,6 +130,7 @@ const onceStripeCount = 64
 const onceWindow = 3 * time.Second
 
 type onceAnswer struct {
+	key    string
 	at     time.Time
 	status int
 	header http.Header

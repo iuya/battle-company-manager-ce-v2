@@ -97,6 +97,15 @@ agent in `tools/glossary_summaries.json` (`summarized: true` in the output; the 
 summary yet and falls back to the verbatim text). `python3 tools/build_glossary.py --uncapped out.json` dumps the full
 verbatim text of every term to read when writing or reviewing a summary.
 
+## Concept graph
+
+`python3 tools/build_concept_graph.py` writes `definitions/concepts/concept_graph.json` (`--check`: only say whether it is up to date) from the
+three shipped files and `tools/concepts_curated.json`; run it after rebuilding any of them, because the graph records their hashes and
+`validate_definitions.py` fails on a stale one (`make concept-graph` does both). It prints what it could not put in the graph (names that
+resolve to no term, edges that would point from vanilla/glossary into Battle Companies). The library is `tools/concept_graph.py`
+(a port of the app's glossary build, checked by `internal/core/concept_graph_file_test.go`); tests: `python3 -m unittest discover -s tools -p 'test_*.py'`.
+Details: [`docs/definitions.md`](../docs/definitions.md) ("The concept graph file").
+
 ## Rulebook to Markdown (local reading only)
 
 `python3 tools/pdf2md.py ~/Downloads/MESBG_RULES.pdf sources/mesbg_rules.md` converts the MESBG rules PDF

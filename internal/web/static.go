@@ -34,7 +34,7 @@ const bundleName = "js/app.js"
 
 var bundleScripts = []string{
 	"js/htmx.min.js", "js/theme.js", "js/match_form.js", "js/match_result.js", "js/ruleset_picker.js", "js/lists.js", "js/sortable.min.js",
-	"js/htmx_ready.js", "js/dice.js", "js/company.js", "js/live.js", "js/dialog.js", "js/submit.js", "js/tabs.js", "js/alpine.min.js",
+	"js/htmx_ready.js", "js/dice.js", "js/company.js", "js/live.js", "js/dialog.js", "js/concepts.js", "js/submit.js", "js/tabs.js", "js/alpine.min.js",
 }
 
 var staticFiles = sync.OnceValue(func() staticSet {

@@ -84,6 +84,50 @@ export default async function (h) {
     await eowyn.settle(400);
   });
 
+  await h.step('live: a click that straddles a live refresh still lands (the swap waits for the pointer)', async () => {
+    // Press on Actions, make the zones refresh while the button is held, release: without live.js holding the swap the pressed
+    // button is gone by mouseup and no click is fired. The refresh is forced through htmx on the same URL the SSE refresh uses.
+    const p = eowyn.page;
+    await p.evaluate(() => {
+      const zones = document.getElementById('live-zones');
+      zones.dataset.probe = 'old';
+      window.__swaps = 0; window.__clicked = 0;
+      document.body.addEventListener('htmx:beforeSwap', (e) => { if (e.detail.target?.id === 'live-zones') window.__swaps++; });
+      const b = [...zones.querySelectorAll('button')].find((x) => x.innerText.trim() === 'Actions');
+      b.dataset.probe = 'pressed';
+      b.addEventListener('click', () => window.__clicked++);
+      b.scrollIntoView({ block: 'center' });
+    });
+    const box = await p.evaluate(() => { const r = document.querySelector('[data-probe=pressed]').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+    await p.mouse.move(box.x, box.y);
+    await p.mouse.down();
+    let released = false;
+    try {
+    await p.evaluate(() => {
+      const d = document.getElementById('live-zones').dataset;
+      htmx.ajax('GET', `/campaigns/${d.campaign}/companies/${d.company}/live`, { target: '#live-zones', swap: 'outerHTML' });
+    });
+    await p.waitForFunction(() => window.__swaps >= 1, { timeout: 8000 });
+    await sleep(150); // the answer has arrived and been held back
+    const kept = await p.evaluate(() => !!document.querySelector('[data-probe=pressed]')?.isConnected);
+    assert.ok(kept, 'the pressed button is still in the page while the pointer is down');
+    await p.mouse.up(); released = true;
+    } finally { if (!released) await p.mouse.up().catch(() => {}); }
+    await p.waitForFunction(() => window.__clicked === 1, { timeout: 4000 }).catch(() => { throw new Error('the click that straddled the refresh was lost'); });
+    // The held refresh is applied right after the release: the zones are the new ones.
+    await p.waitForFunction(() => document.getElementById('live-zones')?.dataset.probe !== 'old', { timeout: 8000 })
+      .catch(() => { throw new Error('the held refresh was never applied after the release'); });
+    await p.waitForFunction((m) => [...document.querySelectorAll(m)].some((d) => d.getBoundingClientRect().height), { timeout: 8000 }, MODAL)
+      .catch(() => { throw new Error('the click that straddled the refresh did not open the menu'); });
+    // Leave a sheet, not the menu, as the last content of the window: the next step looks for the menu entry and must not find a stale one.
+    await eowyn.click(MODAL + ' button', 'Wounded a unit');
+    await eowyn.waitText('Pick who was wounded');
+    await eowyn.click(MODAL + ' button', '=Close');
+    await p.waitForFunction((m) => ![...document.querySelectorAll(m)].some((d) => d.getBoundingClientRect().height), { timeout: 4000 }, MODAL)
+      .catch(() => { throw new Error('the menu did not close'); });
+    await eowyn.settle(400);
+  });
+
   await h.step('live: wound an enemy unit from the other company (preview, confirm)', async () => {
     const actions = await eowyn.page.$$('main button');
     const idx = await eowyn.page.evaluate(() => [...document.querySelectorAll('main button')].map((b, i) => [b, i]).filter(([b]) => b.innerText.trim() === 'Actions').map(([, i]) => i)[1]);

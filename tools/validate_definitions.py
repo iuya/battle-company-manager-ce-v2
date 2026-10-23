@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+import concept_graph  # noqa: E402
 from bc.gear import ABILITY_KEYS, CLASSES, ITEM_ALIASES, RANGED_CLASSES, item_key, resolve_rule, _keyword_names  # noqa: E402
 from bc.refs import referenced, vanilla_duplicates  # noqa: E402
 from bc.text import fold  # noqa: E402
@@ -52,6 +53,7 @@ def main():
     ap.add_argument("--vanilla", default=str(ROOT / "definitions/vanilla/data2024.json"))
     ap.add_argument("--battle-companies", default=str(ROOT / "definitions/battle_companies/battle_companies.json"))
     ap.add_argument("--glossary", default=str(ROOT / "definitions/glossary/mesbg_glossary.json"))
+    ap.add_argument("--concept-graph", default=str(ROOT / "definitions/concepts/concept_graph.json"))
     args = ap.parse_args()
     vp, bp = Path(args.vanilla), Path(args.battle_companies)
     van, bc = json.load(open(vp, encoding="utf-8")), json.load(open(bp, encoding="utf-8"))
@@ -817,6 +819,14 @@ def main():
             for target in t.get("see", []):
                 if target not in known:
                     errors.append(f"glossary term {t['name']!r}: see -> {target!r} is not a term")
+
+    cp = Path(args.concept_graph)
+    if glossary and cp.exists():
+        graph = json.load(open(cp, encoding="utf-8"))
+        errors += [f"{cp.name}: {e}" for e in schema_errors(graph, cp.with_suffix(".schema.json"))]
+        errors += [f"{cp.name}: {e}" for e in concept_graph.check_graph(graph, [Path(x).read_bytes() for x in (args.vanilla, args.battle_companies, args.glossary)])]
+    elif glossary:
+        errors.append(f"{cp} is missing: run tools/build_concept_graph.py")
 
     for w in sorted(set(warnings)):
         print("warning:", w)

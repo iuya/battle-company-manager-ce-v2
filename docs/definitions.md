@@ -10,6 +10,7 @@ change the campaign and are applied by the engine.
 | `vanilla/data2024.json` | The base game: units, wargear, special rules (keywords), magical powers. A **reference store**, never edited |
 | `battle_companies/battle_companies.json` | Everything specific to Battle Companies 2nd CE. **Generated.** The source of truth for the rule engine |
 | `glossary/mesbg_glossary.json` | Concepts of the MESBG rules manual that the vanilla file leaves out (Heroic Actions, Stand Fast, the turn phases…); from the 2024 rules manual |
+| `concepts/concept_graph.json` | The reviewed edges between concepts (`grants`, `cancels`, `lifts`, `requires`) of the three files above, for the helper popups. **Generated** by `tools/build_concept_graph.py`, never uploaded by users; see [`concept-graph.md`](concept-graph.md) |
 
 Every file we author (Battle Companies, glossary) starts with a top-level `name` and `version`, both strings: the
 Battle Companies ones come from the rulebook's title page ("Stable Released Version 1.1" is `1.1`), the glossary's
@@ -331,13 +332,41 @@ Companies rulebook itself defines belong in the Battle Companies file.
 The Battle Companies document and the MESBG rules manual are copyrighted. They (and any text converted from them) live
 only in the gitignored `sources/` folder. The JSON files built from them may be committed.
 
+## The concept graph file
+
+`definitions/concepts/concept_graph.json` (schema `concept_graph.schema.json`) is built by `tools/build_concept_graph.py` (library
+`tools/concept_graph.py`) from the shipped triple and holds only what cannot be recomputed from the text: `builtFrom` (the three ruleset
+hashes, as `core.RulesetHash` computes them), `nodes` (`id` = `<kind>:<glossary term id>`, `kind`, `name`, `aliases`, `file` = the file the text
+comes from, `textHash` = `core.ConceptTextHash` of the term's text), `edges` (`grants`, `cancels`, `lifts`, `requires`, with `via`) and
+`ambiguous` (names or aliases claimed by more than one node). `mentions` and `see` are not stored. The nodes are the terms of the ruleset's
+glossary exactly as the app builds it (`GlossaryExtras` + `BuildGlossaryWith`): `tools/concept_graph.py` is a port of those two functions and
+`internal/core/concept_graph_file_test.go` checks every node (id, kind, name, aliases, text hash), the `builtFrom` hashes and that the file
+is taken whole by the loader. Output is sorted: regenerating gives no diff.
+
+Edges derived from the data (`derive_edges`): `grants` from `gearAnnotations[].grants`, equipment `grantsSpecialRules`, a path's starting heroic
+action and chart rules; `cancels` from the shield `defenceBonus` abilities (every item of the cancelling classes, and `cancelledByItems`,
+points at the shield); `lifts` from `liftedByRules`; `requires` from `requiresMount` and equipment `restrictions` (cavalry, hero). Their
+`via` is a sentence of the item's text or a short description of the field (`restriction: cavalry`). By hand: `tools/concepts_curated.json`
+(names, a `via` that must be a verbatim quote of one of the two texts, checked by the build, and a `why`). Whatever has no node to point at
+or would point from vanilla/glossary into Battle Companies is not in the graph and the build prints it (today Hearthguard -> Burly, because
+Burly is a Battle Companies override of the vanilla rule, and Blowpipe -> Poisoned Attacks (Blowpipe), which vanilla does not define). Left out
+by decision, without a report: standard weapons with a modifier or a kind that has no term of their own (Elven lance, Elven hand-and-a-half
+weapon, Bow with poisoned arrows, Hand-and-a-half hammer...: no node is invented) and the `evil`/`unique` equipment restrictions (armoury only).
+Command Support (a scenario special rule, `SCENARIO_KEYWORDS` in `tools/bc/core.py`) is a Battle Companies keyword, so the instruments' grants point at it.
+
+`validate_definitions.py` checks the schema, that every edge endpoint is a node, every node resolves to a term of the files (same file,
+name, kind and `textHash`) and no term lacks a node, the direction rule (no edge from a vanilla or glossary node into Battle Companies),
+no duplicate or self edge, only the four stored types, a `via` on `cancels`/`lifts`/`requires`, `ambiguous` equal to the real list, and
+that `builtFrom` is current (a stale graph fails: rerun the builder after rebuilding any of the three files). Tests:
+`tools/test_concept_graph.py` (`python3 -m unittest discover -s tools -p 'test_*.py'`, part of `make test`). `make concept-graph` rebuilds and validates.
+
 ## The loader
 
-The **loader** (`core.Rules`, `internal/core/rules.go`) merges the three files into in-memory maps the rule engine queries. The concept graph (bead 6lu.9) is not built. Design:
+The **loader** (`core.Rules`, `internal/core/rules.go`) merges the three files into in-memory maps the rule engine queries. The concept graph (bead 6lu.9) is specified in [`concept-graph.md`](concept-graph.md); its loader (`core.Concepts`, mentions and see computed per ruleset triple from the glossary, curated-file hook with per-edge reuse) and the generated file (`definitions/concepts/concept_graph.json`, read by `cmd/server` at start) are built, and so is the popup (`GET /campaigns/{id}/concepts/...`, [`frontend.md`](frontend.md) "Helper popup"). Design:
 
 - **Maps, not database lookups.** The files are parsed once into immutable maps keyed by name (BC first, then vanilla,
-  then glossary, following the rules above), read concurrently without locks. The concept graph is precomputed into
-  adjacency maps at the same time.
+  then glossary, following the rules above), read concurrently without locks. The concept graph is computed into
+  adjacency maps on first use per triple (`core.Concepts`, its own bounded cache).
 - **Shared by content.** A ruleset is identified by the content hash (SHA-256 of the compacted JSON, so whitespace does
   not matter) of its vanilla, Battle Companies and glossary documents. Campaigns with the same hashes share one set of
   maps: the cache is keyed by that triple and builds each set once, even under concurrent requests.

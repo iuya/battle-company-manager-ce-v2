@@ -79,6 +79,41 @@ document.addEventListener('alpine:init', () => {
     Promise.allSettled(jobs).finally(() => { busy = false; if (again) { again = false; refresh(); } });
   }
 
+  // A refresh replaces the Actions buttons, and a click whose mousedown and mouseup straddle that swap gets no click event (the pressed
+  // element is gone). So the swap of a refresh is held back while a pointer is down inside the zones or a request started from inside
+  // them is still on its way (a menu or sheet being opened), then applied by fetching once more (the latest state, never a stale one).
+  // A lost pointerup or a request that never answers cannot freeze the page: the hold ends by itself after HOLD_MAX_MS.
+  const HOLD_MAX_MS = 2500;
+  const hold = { down: false, inflight: 0, pending: false, timer: null };
+  const held = () => hold.down || hold.inflight > 0;
+  const inZones = el => !!(el && el.closest && el.closest('#live-zones'));
+  const isRefresh = c => !!c && String(c.verb).toLowerCase() === 'get' && /\/live$/.test(String(c.path || '').split('?')[0]);
+  function release() {
+    if (hold.timer) { clearTimeout(hold.timer); hold.timer = null; }
+    if (held() || !hold.pending) return;
+    hold.pending = false;
+    refresh();
+  }
+  function forceRelease() { hold.down = false; hold.inflight = 0; hold.timer = null; release(); }
+  function arm() { if (!hold.timer) hold.timer = setTimeout(forceRelease, HOLD_MAX_MS); }
+  document.addEventListener('pointerdown', e => { if (inZones(e.target)) hold.down = true; }, true);
+  ['pointerup', 'pointercancel', 'dragend'].forEach(n => document.addEventListener(n, () => { hold.down = false; release(); }, true));
+  window.addEventListener('blur', () => { hold.down = false; release(); });
+  // Counted by the request itself (its loadend), not by an event on the element: the element may be gone by then.
+  document.addEventListener('htmx:beforeRequest', e => {
+    const d = e.detail || {};
+    if (!inZones(e.target) || isRefresh(d.requestConfig) || !d.xhr) return;
+    hold.inflight++;
+    d.xhr.addEventListener('loadend', () => { if (hold.inflight > 0) hold.inflight--; release(); }, { once: true });
+  });
+  document.addEventListener('htmx:beforeSwap', e => {
+    const d = e.detail;
+    if (!d || !d.target || d.target.id !== 'live-zones' || !isRefresh(d.requestConfig) || !held()) return;
+    d.shouldSwap = false; // the answer is dropped, one more fetch follows the release
+    hold.pending = true;
+    arm();
+  });
+
   function startPolling() {
     if (poll) return;
     dot('retry', 'Updating every few seconds');

@@ -2,7 +2,7 @@
 // `E2E_BASE_URL=http://127.0.0.1:18080 node run.mjs` runs against a server you started yourself (scratch data only!).
 import { Env, outDir } from './lib/env.mjs';
 import { Harness, clearOut } from './lib/harness.mjs';
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -39,6 +39,14 @@ try {
     try { await mod.default(h, { shared, env }); }
     catch (e) { console.log(`  FAIL  ${f}: ${e.stack || e}`); h.results.push({ name: f, ok: false, error: String(e.message) }); await h.dump(f); }
   }
+  // The server logged every report the browsers sent to /csp-report (a second witness next to the securitypolicyviolation events).
+  try {
+    const reports = readFileSync(join(outDir, 'server.log'), 'utf8').split('\n').filter((l) => l.includes('csp violation') && !l.includes('csp-control'));
+    if (!process.env.E2E_BASE_URL) {
+      h.results.push(reports.length ? { name: 'csp: no violation reports in the server log', ok: false, error: reports.slice(0, 5).join('\n') } : { name: 'csp: no violation reports in the server log', ok: true });
+      console.log(reports.length ? `  FAIL  csp reports in the server log (${reports.length}):\n        ${reports.slice(0, 5).join('\n        ')}` : '\n  ok    csp: no violation reports in the server log');
+    }
+  } catch {}
   const failed = h.results.filter((r) => !r.ok);
   console.log(`\n[e2e] ${h.results.length - failed.length} passed, ${failed.length} failed in ${Math.round((Date.now() - t0) / 1000)} s${h.retries ? `, ${h.retries} click(s) repeated because no request was sent` : ''}`);
   for (const r of failed) console.log(`  FAILED: ${r.name}`);

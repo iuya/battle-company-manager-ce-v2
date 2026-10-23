@@ -109,7 +109,8 @@ htmx request that swaps only `#main`:
 - **Links to a glossary term** (`/campaigns/N/glossary#t-...`, from a tooltip chip or a "Glossary" link) carry `hx-boost="false"`: a boosted swap runs the glossary component before the address has its `#fragment` and scrolls to the top, so the term was never reached. A full load lets the browser jump and the component highlight the term.
 - **Wargear names** are lower case in the rules file; the `upfirst` template function (`sentence`) gives them a capital wherever the company chooser shows them (the same helper as for messages).
 - **Swapped content is wired at once.** htmx reads the `hx-*` attributes of a swapped-in fragment only when it settles (20 ms after the swap), and a click in that gap sends nothing (seen: a sheet menu entry that did nothing under load). `static/js/htmx_ready.js` calls `htmx.process` on the swap target in `htmx:afterSwap`, so the new buttons work from the moment they are on screen. The e2e step "a menu entry clicked the instant it is swapped in" holds it.
-- **Double submit.** `static/js/submit.js` disables a form's buttons while its request is in flight and ignores a second submit. On the server, making a match or a campaign is deduplicated for 10 s (the same person, the same content opens the first one), and the actions that spend or roll (recruit, level-up, purchases, hires, treatment, perks, grants, invites, aftermath rolls and decisions) run behind `Server.once` (`internal/web/dedupe.go`): an identical request (same address and body) from the same person within 3 s gets the first answer instead of running again.
+- **A live refresh waits for the pointer.** Every refresh of `#live-zones` replaces the Actions buttons, so a click whose mousedown and mouseup straddle a swap got no click event (the pressed element was gone). `static/js/live.js` holds the swap of a refresh (`GET .../live` into `#live-zones`, dropped in `htmx:beforeSwap`) while a pointer is down inside the zones or a request started from inside them (a menu or sheet being opened) is still running, and fetches the zones once more right after `pointerup`/`pointercancel`/`dragend`/the request's `loadend` (the latest state; nothing stale is kept). A hold ends by itself after 2.5 s, so a lost `pointerup` cannot freeze the live view. The e2e step "a click that straddles a live refresh still lands" (`40-match`) presses, forces a refresh, checks the pressed button is still there, releases and expects the click and then the new zones.
+- **Double submit.** `static/js/submit.js` disables a form's buttons while its request is in flight and ignores a second submit. On the server, making a match or a campaign is deduplicated for 10 s (the same person, the same content opens the first one), and the actions that spend or roll (recruit, level-up, purchases, hires, treatment, perks, grants, invites, aftermath rolls and decisions) run behind `Server.once` (`internal/web/dedupe.go`): a request identical (same address and body) to the same person's previous guarded request, within 3 s, gets that answer instead of running again; any other request in between ends the match, so confirming a recruit, rolling on the special chart and confirming again runs both confirms.
 - **Refusals and failures** go through `Server.refuse` / `notFound` (`internal/web/errors.go`), keeping the status code: a full page request gets the `error` page in the layout (title, heading, the reason, a way back: the campaigns, or Sign in for a visitor), an htmx request gets the short plain text that the layout's error banner shows. A 5xx logs its cause and shows a fixed sentence. A catch-all route makes unknown addresses a rendered 404.
 - **Validation errors** are returned with status `422` and swapped in place (htmx is configured to swap 422). Any other
   failure of an htmx request (403, 404, 500, no connection) is not swapped; the app shell shows it in a dismissible red
@@ -871,6 +872,46 @@ file the server already knows by hash, or an upload; `POST /glossary`, `rulesetC
 cookie (a year, this browser only). With a cookie the page shows that file through `glossaries.ByHash`, says it is not the default
 and offers **Back to the default** (the cookie is cleared); an unknown or malformed hash falls back to the default with a notice and
 drops the cookie. The campaign tab always shows the campaign's own glossary. (An explicit link list in the file would be the alternative to the case rule.)
+
+## Helper popup
+
+Tapping or clicking a term opens the **helper popup**: what the rules say about it, and the things it is linked to
+([`concept-graph.md`](concept-graph.md) is the contract; the graph is `core.Concepts`, wired in `cmd/server` and given to the server with
+`SetConcepts`). The page keeps its hover tooltip (a desktop hover shows it as before); a click, a tap or Enter opens the popup instead,
+and the tooltip steps aside.
+
+- **Terms that open it** carry `data-concept` next to their `data-tip-title`: the glossary links inside descriptions (`segments`), the rule,
+  heroic action, spell, path rule, unit upgrade, injury, creature and equipment chips of the unit cards (My Company, the live company page,
+  other companies), the armoury's chips and the company browser's terms. The name looked up is `data-concept`'s value or, when it is empty,
+  `data-tip-title`. A glossary link keeps working with Ctrl/Cmd/Shift-click, in a new tab and on a page without a campaign in its address.
+  The sidebar's own glossary page (`/glossary`) and the glossary page itself are left as they are (their links jump within the page).
+- **Endpoints** (campaign members only, behind the recover and timeout middleware, answers are HTML fragments of
+  `partials/concept.gohtml`): `GET /campaigns/{id}/concepts/{concept}` (one concept by id: 200, or 404 with the "no longer in these rules"
+  fragment) and `GET /campaigns/{id}/concepts/resolve?name=...` (a displayed name such as `Fury (2)`, an alias, any case: 200 with the
+  concept; an ambiguous name lists its meanings and picks none; an unknown name is a 404 and the page falls back to the tooltip). Both
+  send `Cache-Control: private, max-age=3600` and an `ETag` made from the campaign's ruleset triple (and the partial's own hash, so a deploy
+  does not serve old markup); a matching `If-None-Match` is answered 304 before the graph is asked. Without a graph (`SetConcepts` not
+  called) the routes do not exist.
+- **Content:** a kind badge, the name, the text (plain, escaped; words that are other concepts are buttons), then groups: Grants / Granted by,
+  Cancels / Cancelled by, Lifts / Lifted by, Requires / Required by, Mentions, Mentioned in, See also (both ends, once each); a group with
+  no entries is not drawn. In the groups of the typed edges the chips that share a reason (`via`) fold into one closed line with a count once
+  there are three of them ("Defence bonus is lost with a bow weapon (9)": the shield's 54 explicit cancels read as a few lines); chips with a
+  reason of their own show it beside them. Mentions and See also cut after ten chips behind "Show N more". "Open in glossary" (the
+  campaign's glossary at `#t-<id>`, `hx-boost="false"`) is hidden for a concept with no glossary term.
+- **Behaviour** (`static/js/concepts.js`, in the bundle after `dialog.js`): the sheet is built when the first term is opened and removed on
+  close. A chip or linked word fetches that concept and swaps the content; **Back** returns through the steps (kept in memory, as is every fetched
+  fragment). While loading it shows a skeleton; a network error or 5xx shows "Could not load this" with **Retry**; a name the graph does not
+  know (or an old server) shows the tooltip's own text (`data-tip-text`, with the glossary link of a link). It closes with **Escape**, the
+  backdrop, **Close**, or a page change (htmx navigation, back and forward). The sheet is a `role="dialog" aria-modal="true"` with the concept's name as its label;
+  focus moves to the heading, Tab and Shift+Tab stay inside (the script keeps this itself: `data-focus-managed` keeps `dialog.js` out of it),
+  Escape closes only the popup (a unit card or window under it stays), and the focus returns to the term. Under `md` it is a bottom sheet (full width, at most 70% of the
+  height, scrolling inside, dimmed backdrop, the page behind does not scroll); from `md` up a 24 rem card placed beside the term (below it, above
+  when there is no room) over a transparent backdrop. Everything uses the semantic tokens (`.concept-*` in `tailwind.css`).
+- **Safe by construction:** no inline script or handler; the fragment is made by the server from text of the rules files, escaped by
+  `html/template`; the script inserts markup in one place only (the fragment) and positions the card through the `style` property
+  (allowed under the policy). `TestHelperPopupScriptFitsThePolicy` guards it and the e2e suite runs under `CSP_MODE=enforce`.
+- **Tested:** `internal/web/concepts_test.go` (generated mock of `concepts`: body, groups, folds, escaping, glossary link, caching and 304,
+  404, ambiguous and unknown names, non-members and anonymous visitors) and the e2e flow `87-concepts` (docs/testing.md).
 
 ## Invite links
 

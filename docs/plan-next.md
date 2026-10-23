@@ -22,7 +22,8 @@ their own paths only, no `pkill`, reports short. Decisions already taken are in 
 4. **QA tester:** `mqn.159.3` (stream reconnect and poll fallback, formation drag and drop by hand-like events, axe-core pass,
    CI job, keyboard walk); add a permission matrix row for `ArrangeOfficers` (needs a Shire fixture with a fallen Ranger).
 5. **CSP:** `mtu.14` / `mqn.94`: after about a week of real use of report mode, read the `/csp-report` log, fix violations, switch
-   `CSP_MODE=enforce` for production (dev stays report). Very low priority.
+   `CSP_MODE=enforce` for production (dev stays report). Very low priority. Evidence and the exact reading/switch steps are in
+   `operations.md` ("Content-Security-Policy"); CI already runs the browser suite under enforce.
 6. **Concept graph for helper popups (`6lu.9`):** expert spec first (defaults saved on the bead), then build. Low priority.
 7. **Full gates, then the owner reviews:** `make test`, `make test-integration`, `python3 tools/validate_definitions.py`,
    `go vet ./...`, `gofmt -l`; the owner runs `make demo`, plays the new flows, commits `.beads/issues.jsonl`, pushes, runs

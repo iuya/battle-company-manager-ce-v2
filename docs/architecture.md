@@ -25,7 +25,7 @@ A small Go service with a server-rendered frontend and one external dependency: 
 Go interfaces are satisfied implicitly, so each package defines the small interface **it** consumes:
 
 - `core` declares `authRepository`; `postgres.Store` satisfies it.
-- `web` declares `auth`, `campaigns` and `rulesets`; `core.Auth` satisfies the first, `cmd/server`'s facade over the core services the second, `core.Rulesets` the third (and `core.Glossaries` the glossary one).
+- `web` declares `auth`, `campaigns` and `rulesets`; `core.Auth` satisfies the first, `cmd/server`'s facade over the core services the second, `core.Rulesets` the third (and `core.Glossaries` the glossary one). `web` also declares `concepts` (the helper popups' graph); `core.Concepts` satisfies it and `cmd/server` hands it over with `Server.SetConcepts` (without it the popup routes are not served).
 
 Consequences:
 
@@ -57,7 +57,7 @@ option is added to the struct, to this table, to the campaign form and to the Ov
 Everything runs on the real backend; `cmd/server/backend.go` (`newBackend`) builds it over the Postgres store and is the only place
 that knows all the services. The core services are `Rulesets`, the loader `Rules` / `RuleSet`, `Campaigns`, `CompanyService`,
 `ArmouryService`, `RecruitService`, `LevelService`, `TreatmentService`, `CemeteryService`, `Matches`, `AftermathService`, `Invites` and
-`Glossaries`; `campaignsFacade` embeds the first ten (under aliases, so `Matches.Matches` is not hidden by the field name) and so
+`Glossaries` and `Concepts` (the graph, built over the loader and the curated `definitions/concepts/concept_graph.json`, which `loadConceptFile` reads at start: a missing file only drops the curated edges); `campaignsFacade` embeds the first ten (under aliases, so `Matches.Matches` is not hidden by the field name) and so
 satisfies `web.campaigns`, because their method names are disjoint. Wiring details: `CompanyService.WithAftermaths` gives the company
 page its perks and history, `Matches.AftermathStarted` is the aftermath store's `Started` (a match cannot be reopened once a company
 started), and a finished campaign's invite cannot be redeemed (`Redeem` returns `ErrNotFound`). The rules *data* parsers
@@ -333,6 +333,8 @@ Environment variables (loaded by `go-simpler.org/env`; `.env.example` lists them
 | `SECURE_COOKIES` | unset | `Secure` session, theme and glossary cookies, and the `Strict-Transport-Security` header (one year, no `includeSubDomains`). Unset: on in production, off in development. `false` in production is **refused at start** unless `ALLOW_INSECURE_COOKIES=true` (then it starts with a warning). Behind a TLS proxy `true` is the setting |
 | `ALLOW_INSECURE_COOKIES` | `false` | Explicit opt-out that lets production start with `SECURE_COOKIES=false` (plain http on a private network, a try-out) |
 | `MAX_CACHED_RULESETS` | `16` | Parsed rule sets (hash triples) kept in memory, least recently used dropped first; at least 1, anything else is refused at start |
+| `REQUEST_TIMEOUT` | `30s` | Context deadline of every request but the live stream: queries and rule computation stop when it is up or the client leaves, the answer is 503. `0` turns it off; negative is refused at start |
+| `RULES_BUILD_TIMEOUT` | `60s` | Deadline of building a parsed rule set from its three files (see [operations.md](operations.md) "Robustness"); at least `1s`, anything else is refused at start |
 | `APP_TIMEZONE` | unset | IANA zone for visitors with no account zone and no browser zone (UTC when empty) |
 | `TRUST_PROXY` | `false` | Count login attempts per `X-Forwarded-For` (last entry) instead of the peer address; only behind a reverse proxy that sets it. Production without it logs a warning |
 | `CSP_MODE` | `report` | `off`, `report` (`Content-Security-Policy-Report-Only` and the `/csp-report` logger) or `enforce`; see "Content-Security-Policy" below |

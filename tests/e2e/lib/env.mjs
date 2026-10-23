@@ -109,7 +109,7 @@ export class Env {
     const logFd = openSync(join(outDir, 'server.log'), 'w');
     const p = spawn(this.bin, [], {
       cwd: root, stdio: ['ignore', logFd, logFd],
-      env: { ...process.env, DATABASE_URL: dbUrl(this.db), PORT: String(this.port), APP_ENV: 'development', CSP_MODE: 'report', STYLEGUIDE: 'true', ...(this.extraEnv || {}) },
+      env: { ...process.env, DATABASE_URL: dbUrl(this.db), PORT: String(this.port), APP_ENV: 'development', CSP_MODE: process.env.E2E_CSP_MODE || 'report', STYLEGUIDE: 'true', ...(this.extraEnv || {}) },
     });
     this.procs.push(p);
     for (let i = 0; i < 100; i++) {

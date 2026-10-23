@@ -30,8 +30,12 @@ export default async function (h) {
     assert.match(tip, /To Hit/);
     for (const scheme of ['light', 'dark']) for (const w of SIZES) {
       await layout(galadriel, w, scheme);
-      await (await galadriel.page.evaluateHandle(() => [...document.querySelectorAll('main li.eq-chip, main ul[aria-label="Unit upgrades"] li')].find((e) => /^Elven Cloak$/i.test(e.innerText.trim())))).asElement().hover();
-      await galadriel.settle(250);
+      const cloak = (await galadriel.page.evaluateHandle(() => [...document.querySelectorAll('main li.eq-chip, main ul[aria-label="Unit upgrades"] li')].find((e) => /^Elven Cloak$/i.test(e.innerText.trim())))).asElement();
+      // The viewport changed under a mouse that may already rest on the chip's old place: leave, scroll to it, enter again (a fresh mouseover).
+      await galadriel.page.mouse.move(0, 0);
+      await cloak.evaluate((e) => e.scrollIntoView({ block: 'center' }));
+      await cloak.hover();
+      await galadriel.settle(400);
       const box = await galadriel.page.evaluate(() => { const t = [...document.querySelectorAll('[role=tooltip]')].find((x) => x.getBoundingClientRect().width); if (!t) return null; const r = t.getBoundingClientRect(); return [r.left, r.right]; });
       assert.ok(box && box[0] >= -1 && box[1] <= w + 1, `the tooltip fits the viewport at ${w}px ${scheme}: ${box}`);
       await galadriel.page.screenshot({ path: `out/elven-cloak-tip-${w}-${scheme}.png` });

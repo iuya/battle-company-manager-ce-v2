@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"log/slog"
 	"net/http"
@@ -50,6 +51,24 @@ func (s *Server) recoverer(next http.Handler) http.Handler {
 			}
 		}()
 		next.ServeHTTP(w, r)
+	})
+}
+
+// requestTimeout gives every request a context that ends after d (0: no limit), so the queries and the rule computation behind a
+// request stop when the time is up, and, because the context of a request also ends when its client leaves, when the client is gone.
+// net/http's WriteTimeout does neither. The live stream is long lived by design and is exempt (it ends with its client).
+func requestTimeout(d time.Duration, next http.Handler) http.Handler {
+	if d <= 0 {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/events") {
+			next.ServeHTTP(w, r)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), d)
+		defer cancel()
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 

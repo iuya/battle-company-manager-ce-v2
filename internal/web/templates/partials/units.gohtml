@@ -86,7 +86,7 @@
 {{define "spell_icon"}}<svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2 6.5L20.5 10 14 12l-2 8-2-8-6.5-2L10 8.5z"/></svg>{{end}}
 
 {{/* A description with the glossary terms it mentions as links (previewed on hover). Takes {S: []segView, CID: campaign id}. */}}
-{{define "segments"}}{{range .S}}{{if .TermID}}<a href="/campaigns/{{$.CID}}/glossary#t-{{.TermID}}" class="term-link" hx-boost="false" data-tip-title="{{.TipTitle}}" data-tip-text="{{.TipText}}">{{.Text}}</a>{{else}}{{.Text}}{{end}}{{end}}{{end}}
+{{define "segments"}}{{range .S}}{{if .TermID}}<a href="/campaigns/{{$.CID}}/glossary#t-{{.TermID}}" class="term-link" hx-boost="false" data-concept data-tip-title="{{.TipTitle}}" data-tip-text="{{.TipText}}">{{.Text}}</a>{{else}}{{.Text}}{{end}}{{end}}{{end}}
 
 {{/* ---- The unit card. Takes {U: unitView, CID: campaign id}; the page's `company` component (static/js/company.js) expands it. ---- */}}
 {{/* One item of a unit: its icon, name and numbers; the dashed border says it has a tooltip (rules, slot, numbers). */}}
@@ -112,7 +112,7 @@
 {{end}}{{end}}
 
 {{define "gear_chip"}}
-<li class="eq-chip eq-{{.Class}} {{if and .Bought (not .Size)}}is-bought{{end}} {{if or .Description .Size .MountStats}}has-tip{{end}} {{if or .Disabled .Struck}}text-muted line-through{{end}}" {{if .Disabled}}title="No benefit while the hero has {{.Disabled}}"{{else if .Struck}}title="{{.Struck}}" aria-label="{{.Name}}, {{.Struck}}"{{end}} {{if or .Description .Size .MountStats}}tabindex="0" data-tip-title="{{.Name}}" data-tip-meta="{{if .Exclusive}}Company-exclusive · {{end}}{{if .MountStats}}Mount{{else if .Bought}}Bought{{else}}Starting equipment{{end}}{{with .Size}} · {{.}} slot{{end}}{{with .Stats}} · {{.}}{{end}}"{{with .TipStats}} data-tip-stats="{{.}}"{{end}} data-tip-text="{{.Description}}{{range $i, $r := .MountRules}}{{if $i}}, {{else}}
+<li class="eq-chip eq-{{.Class}} {{if and .Bought (not .Size)}}is-bought{{end}} {{if or .Description .Size .MountStats}}has-tip{{end}} {{if or .Disabled .Struck}}text-muted line-through{{end}}" {{if .Disabled}}title="No benefit while the hero has {{.Disabled}}"{{else if .Struck}}title="{{.Struck}}" aria-label="{{.Name}}, {{.Struck}}"{{end}} {{if or .Description .Size .MountStats}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="{{if .Exclusive}}Company-exclusive · {{end}}{{if .MountStats}}Mount{{else if .Bought}}Bought{{else}}Starting equipment{{end}}{{with .Size}} · {{.}} slot{{end}}{{with .Stats}} · {{.}}{{end}}"{{with .TipStats}} data-tip-stats="{{.}}"{{end}} data-tip-text="{{.Description}}{{range $i, $r := .MountRules}}{{if $i}}, {{else}}
 
 Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   {{template "gear_icons" .}}<span>{{if and .Bought (not .Size)}}+ {{end}}{{if .Modifies}}{{.Modifies}} · envenomed{{else}}{{.Name}}{{if .Poisoned}} · poisoned{{end}}{{end}}</span>{{with .Stats}}<span class="text-muted">{{.}}</span>{{end}}
@@ -171,7 +171,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
       {{$warrior := eq (printf "%s" $u.Role) "warrior"}}
       {{if or $u.Injured $u.Injuries}}<p class="mt-1 flex flex-wrap items-center gap-1.5">
         {{if $u.Injured}}<span class="badge !bg-danger-soft !text-danger" title="Misses the next game and does not count towards the company's rating">Out next match</span>{{end}}
-        {{range $u.Injuries}}<span class="badge !bg-danger-soft !text-danger has-tip" tabindex="0" data-tip-title="{{.Name}}" data-tip-meta="Injury{{if gt .Count 1}} · suffered {{.Count}} times{{end}}" data-tip-text="{{.Text}}">{{.Name}}{{if gt .Count 1}} ×{{.Count}}{{end}}</span>{{end}}
+        {{range $u.Injuries}}<span class="badge !bg-danger-soft !text-danger has-tip" tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Injury{{if gt .Count 1}} · suffered {{.Count}} times{{end}}" data-tip-text="{{.Text}}">{{.Name}}{{if gt .Count 1}} ×{{.Count}}{{end}}</span>{{end}}
         {{if $ro}}{{else if $warrior}}{{if $u.Injured}}<form data-lock method="post" action="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/treat" hx-post="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/treat" hx-target="#main" hx-swap="innerHTML show:window:top" hx-confirm="Treat {{$u.Title}}'s injury for {{$wcost}} influence?"><input type="hidden" name="method" value="warrior"><button class="eq-add eq-heal" title="Treat injuries: {{$wcost}} influence, no roll" aria-label="Heal {{$u.Title}} for {{$wcost}} influence">{{template "cross"}}</button></form>{{end}}
         {{else}}<button type="button" data-lock class="eq-add eq-heal" hx-get="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/treat" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" title="Treat injuries" aria-label="Treat {{$u.Title}}'s injuries">{{template "cross"}}</button>{{end}}
       </p>{{end}}
@@ -200,13 +200,13 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     <p class="flex items-center gap-1.5 text-xs text-muted"><span>Wargear</span>{{if and (not $u.Wanderer) (not $ro)}}<button type="button" data-lock class="eq-add eq-add-sm" hx-get="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/armoury?kind=wargear" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" aria-label="Buy wargear for {{$u.Title}}" title="Buy wargear">+</button>{{end}}</p>
     <ul class="flex flex-wrap items-center gap-1.5" aria-label="Wargear">
       {{range $u.Items}}{{if and (not .Upgrade) (not .Size)}}{{template "gear_chip" .}}{{end}}{{end}}
-      {{with $u.Creature}}<li class="eq-chip has-tip" tabindex="0" data-tip-title="{{.Name}}" data-tip-meta="Creature · not a unit, no injuries" {{with $u.CreatureStats}}data-tip-stats="{{.}}" {{end}}data-tip-text="{{$u.CreatureTip}}">{{template "paw"}}<span>{{.Name}}</span></li>{{end}}
+      {{with $u.Creature}}<li class="eq-chip has-tip" tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Creature · not a unit, no injuries" {{with $u.CreatureStats}}data-tip-stats="{{.}}" {{end}}data-tip-text="{{$u.CreatureTip}}">{{template "paw"}}<span>{{.Name}}</span></li>{{end}}
     </ul>
     {{if and $lu $lu.Loaned}}<ul class="flex flex-wrap items-center gap-1.5" aria-label="Loaned items">
       {{range loanedGroups $lu.Loaned}}<li class="eq-chip {{if .AllUsed}}text-muted line-through{{end}}" {{if .AllUsed}}aria-label="{{.Item}}, used"{{end}}><span>{{.Item}}{{if gt .Count 1}} ×{{.Count}}{{end}}{{with .Detail}} ({{.}}){{end}}</span> <span class="badge badge-gold">Loaned{{with .Kit}} ({{.}}){{end}}</span>{{if .AllUsed}} <span class="text-xs">used</span>{{else if .Used}} <span class="text-xs text-muted">{{.Used}} used</span>{{else if .AfterGame}} <span class="text-xs text-muted">use after the game</span>{{end}}</li>{{end}}
     </ul>{{end}}
     {{/* Named unit upgrades (Helmingas, Hearthguard...) are not gear: badges, not items. */}}
-    <ul class="flex flex-wrap gap-1.5" aria-label="Unit upgrades">{{- range $u.Items}}{{if .Upgrade}}<li class="badge badge-gold{{if .Description}} has-tip{{end}}" {{if .Description}}tabindex="0" data-tip-title="{{.Name}}" data-tip-meta="Unit upgrade" data-tip-text="{{.Description}}"{{else}}title="Unit upgrade"{{end}}>{{.Name}}</li>{{end}}{{end -}}</ul>
+    <ul class="flex flex-wrap gap-1.5" aria-label="Unit upgrades">{{- range $u.Items}}{{if .Upgrade}}<li class="badge badge-gold{{if .Description}} has-tip{{end}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Unit upgrade" data-tip-text="{{.Description}}"{{else}}title="Unit upgrade"{{end}}>{{.Name}}</li>{{end}}{{end -}}</ul>
     {{$sl := $u.Slots}}
     <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted" aria-label="Equipment slots">
       <span class="inline-flex items-center gap-1.5"><span>Equipment</span>{{if and (not $u.Wanderer) (not $ro)}}<button type="button" data-lock class="eq-add eq-add-sm" hx-get="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/armoury?kind=equipment" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" aria-label="Buy equipment for {{$u.Title}}" title="Buy equipment">+</button>{{end}}</span>
@@ -226,13 +226,13 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
       <p class="path-name">{{.Name}}</p>
       <ul class="flex flex-wrap gap-1.5" aria-label="Heroic actions">
         {{range .Actions}}
-        <li class="act-chip act-{{.Source}}" {{if .Summary}}tabindex="0" data-tip-title="{{.Name}}" data-tip-meta="Heroic action · {{if eq (printf "%s" .Source) "bought"}}bought{{else if eq (printf "%s" .Source) "path"}}unlocked by the path{{else}}of the unit{{end}}" data-tip-text="{{.Summary}}"{{end}}>{{template "bolt_icon"}}<span>{{if eq (printf "%s" .Source) "bought"}}+ {{end}}{{.Name}}</span></li>
+        <li class="act-chip act-{{.Source}}" {{if .Summary}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Heroic action · {{if eq (printf "%s" .Source) "bought"}}bought{{else if eq (printf "%s" .Source) "path"}}unlocked by the path{{else}}of the unit{{end}}" data-tip-text="{{.Summary}}"{{end}}>{{template "bolt_icon"}}<span>{{if eq (printf "%s" .Source) "bought"}}+ {{end}}{{.Name}}</span></li>
         {{end}}
       </ul>
       {{if or .Rules .Powers}}
       <ul class="flex flex-wrap gap-1.5" aria-label="Rules and magical powers from the path">
-        {{range .Rules}}<li class="rule-chip {{if eq (printf "%s" .Source) "company"}}rule-company{{else}}rule-path{{end}}" {{if .Description}}tabindex="0" data-tip-title="{{.Shown}}" data-tip-meta="{{if eq (printf "%s" .Source) "company"}}Company-exclusive hero upgrade{{else}}From the hero's path{{end}}" data-tip-text="{{.Description}}"{{end}}><span>{{.Shown}}</span></li>{{end}}
-        {{range .Powers}}<li class="rule-chip rule-spell" {{if .Description}}tabindex="0" data-tip-title="{{.Name}}" data-tip-meta="Spell · cast {{.Casting}}+ · {{if .Range}}range {{.Range}}&quot;{{else}}self{{end}} · learned through the path" data-tip-text="{{.Description}}"{{end}}>{{template "spell_icon"}}<span>{{.Name}}</span><span class="font-semibold">{{.Casting}}+ · {{if .Range}}{{.Range}}"{{else}}self{{end}}</span></li>{{end}}
+        {{range .Rules}}<li class="rule-chip {{if eq (printf "%s" .Source) "company"}}rule-company{{else}}rule-path{{end}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-meta="{{if eq (printf "%s" .Source) "company"}}Company-exclusive hero upgrade{{else}}From the hero's path{{end}}" data-tip-text="{{.Description}}"{{end}}><span>{{.Shown}}</span></li>{{end}}
+        {{range .Powers}}<li class="rule-chip rule-spell" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Spell · cast {{.Casting}}+ · {{if .Range}}range {{.Range}}&quot;{{else}}self{{end}} · learned through the path" data-tip-text="{{.Description}}"{{end}}>{{template "spell_icon"}}<span>{{.Name}}</span><span class="font-semibold">{{.Casting}}+ · {{if .Range}}{{.Range}}"{{else}}self{{end}}</span></li>{{end}}
       </ul>
       {{end}}
     </div>
@@ -241,7 +241,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     {{/* Special rules: the unit's own, then its spells, then those from equipment (the path's are in its own box). */}}
     <ul class="flex flex-wrap gap-1.5" aria-label="Special rules">
       {{range $u.Rules}}
-      <li class="rule-chip rule-{{.Source}} {{if .Spell}}rule-spell{{end}} {{if .Struck}}text-muted line-through{{end}}" {{if .Struck}}aria-label="{{.Shown}}, {{.Struck}}"{{end}} {{if .Description}}tabindex="0" data-tip-title="{{.Shown}}" data-tip-meta="{{if .Spell}}Spell · cast {{.Casting}}+ · {{if .Range}}range {{.Range}}&quot;{{else}}self{{end}}{{else if .Mount}}Granted to the {{.Mount}}{{else if eq (printf "%s" .Source) "equipment"}}From {{.From}}{{else if eq (printf "%s" .Source) "company"}}Company-exclusive rule{{else}}Special rule{{end}}" data-tip-text="{{.Description}}"{{end}}>
+      <li class="rule-chip rule-{{.Source}} {{if .Spell}}rule-spell{{end}} {{if .Struck}}text-muted line-through{{end}}" {{if .Struck}}aria-label="{{.Shown}}, {{.Struck}}"{{end}} {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-meta="{{if .Spell}}Spell · cast {{.Casting}}+ · {{if .Range}}range {{.Range}}&quot;{{else}}self{{end}}{{else if .Mount}}Granted to the {{.Mount}}{{else if eq (printf "%s" .Source) "equipment"}}From {{.From}}{{else if eq (printf "%s" .Source) "company"}}Company-exclusive rule{{else}}Special rule{{end}}" data-tip-text="{{.Description}}"{{end}}>
         {{if .Spell}}{{template "spell_icon"}}{{end}}{{with .Mount}}<span class="text-muted">{{.}}:</span>{{end}}<span>{{.Shown}}</span>{{if .Spell}}<span class="font-semibold">{{.Casting}}+ · {{if .Range}}{{.Range}}"{{else}}self{{end}}</span>{{end}}
       </li>
       {{end}}
@@ -255,7 +255,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
       <ul class="mt-1 space-y-2">
         {{range $u.Items}}{{if and (not .Upgrade) (not .Size)}}{{template "expanded_item" (dict "I" . "U" $u "CID" $cid "RO" $ro)}}{{end}}{{end}}
       </ul>
-      <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Unit upgrades">{{- range $u.Items}}{{if .Upgrade}}<li class="badge badge-gold{{if .Description}} has-tip{{end}}" {{if .Description}}tabindex="0" data-tip-title="{{.Name}}" data-tip-meta="Unit upgrade" data-tip-text="{{.Description}}"{{end}}>{{.Name}} <span class="font-normal">· unit upgrade</span></li>{{end}}{{end -}}</ul>
+      <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Unit upgrades">{{- range $u.Items}}{{if .Upgrade}}<li class="badge badge-gold{{if .Description}} has-tip{{end}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Unit upgrade" data-tip-text="{{.Description}}"{{end}}>{{.Name}} <span class="font-normal">· unit upgrade</span></li>{{end}}{{end -}}</ul>
     </section>
     <section>
       <h4 class="!text-lg">Equipment</h4>
@@ -348,8 +348,8 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </div>
   {{with $u.Equipment}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Wargear</span>{{range .}}<span class="eq-chip">{{.Name}}</span>{{end}}</p>{{end}}
   {{with $u.Path}}{{if .Name}}<div class="path-box space-y-1.5"><p class="path-name">{{.Name}}</p>
-    <ul class="flex flex-wrap gap-1.5">{{range .HeroicActions}}<li class="act-chip">{{.Name}}</li>{{end}}{{range .Rules}}<li class="rule-chip rule-path" {{if .Description}}tabindex="0" data-tip-title="{{.Shown}}" data-tip-text="{{.Description}}"{{end}}>{{.Shown}}</li>{{end}}</ul></div>{{end}}{{end}}
-  {{with $u.Rules}}<ul class="flex flex-wrap gap-1.5" aria-label="Special rules">{{range .}}<li class="rule-chip rule-{{.Source}}" {{if .Description}}tabindex="0" data-tip-title="{{.Shown}}" data-tip-text="{{.Description}}"{{end}}>{{.Shown}}</li>{{end}}</ul>{{end}}
+    <ul class="flex flex-wrap gap-1.5">{{range .HeroicActions}}<li class="act-chip">{{.Name}}</li>{{end}}{{range .Rules}}<li class="rule-chip rule-path" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-text="{{.Description}}"{{end}}>{{.Shown}}</li>{{end}}</ul></div>{{end}}{{end}}
+  {{with $u.Rules}}<ul class="flex flex-wrap gap-1.5" aria-label="Special rules">{{range .}}<li class="rule-chip rule-{{.Source}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-text="{{.Description}}"{{end}}>{{.Shown}}</li>{{end}}</ul>{{end}}
   <p class="mt-auto border-t border-line pt-3 text-xs text-muted">Lvl {{$u.Level}} · {{$u.XP}} XP</p>
 </article>
 </div>

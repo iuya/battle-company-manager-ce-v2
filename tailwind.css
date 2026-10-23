@@ -289,7 +289,7 @@ html[data-mode="dark"] { color-scheme: dark; }
   .unit-expanded { position: fixed; z-index: 50; left: 50%; top: 4rem; transform: translateX(-50%); width: min(46rem, calc(100vw - 2rem)); max-height: calc(100vh - 5.5rem); overflow-y: auto; outline-offset: 2px; box-shadow: 0 20px 50px rgb(0 0 0 / .4); }
   /* Equipment and rules chips. */
   .eq-chip { @apply inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2 py-0.5 text-xs; }
-  .eq-chip.has-tip { border-style: dashed; cursor: help; }
+  .eq-chip.has-tip { border-style: dashed; cursor: pointer; }
   .eq-chip.is-bought { @apply border-accent bg-accent-soft; border-style: solid; }
   .eq-chip.is-bought.has-tip { border-style: dashed; }
   /* A unit missing the next match goes to the end of the list (the order is only visual: it comes back by itself). */
@@ -297,7 +297,7 @@ html[data-mode="dark"] { color-scheme: dark; }
   .formation-editing .unit-away { order: 0; }
   .eq-q { @apply ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-raised text-[10px] font-bold text-muted; }
   .rule-chip { @apply inline-flex items-center gap-1 rounded-md bg-raised px-2 py-0.5 text-xs text-fg; border-left: 3px solid var(--line); }
-  .rule-chip[data-tip-title] { cursor: help; }
+  .rule-chip[data-tip-title] { cursor: pointer; }
   .rule-path { border-left-color: var(--accent); }
   .rule-equipment { border-left-color: var(--gold); }
   .rule-company { border-left-color: var(--gold); @apply border border-gold bg-warn/10; }
@@ -306,7 +306,7 @@ html[data-mode="dark"] { color-scheme: dark; }
   .path-box { @apply rounded-lg border border-accent/40 bg-accent-soft/40 p-2; }
   .path-name { @apply text-xs font-semibold uppercase tracking-wide text-accent-text; }
   .act-chip { @apply inline-flex items-center gap-1 rounded-md border border-gold bg-surface px-2 py-0.5 text-xs; }
-  .act-chip[data-tip-title] { cursor: help; }
+  .act-chip[data-tip-title] { cursor: pointer; }
   .act-bought { @apply bg-gold/20; }
   /* The + that opens the equipment window, and the slot pips of a unit. */
   .eq-add { @apply inline-flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-accent text-sm font-bold text-accent-text hover:bg-accent-soft; }
@@ -343,7 +343,31 @@ html[data-mode="dark"] { color-scheme: dark; }
   .eq-heal { @apply border-solid border-danger text-danger hover:bg-danger-soft; }
   .pip { @apply inline-block h-2.5 w-2.5 rounded-sm border border-accent; }
   .pip-on { @apply bg-accent; }
-  .term-link { @apply underline decoration-dotted underline-offset-2; cursor: help; }
+  .term-link { @apply underline decoration-dotted underline-offset-2; cursor: pointer; }
+  /* The helper popup (static/js/concepts.js): a bottom sheet on a phone, a card by the term from md up. */
+  .concept-layer { @apply fixed inset-0 z-[70]; }
+  .concept-backdrop { @apply absolute inset-0 bg-black/50 md:bg-transparent; }
+  .concept-pop { @apply absolute inset-x-0 bottom-0 flex max-h-[70vh] flex-col overflow-hidden rounded-t-xl border-t border-line bg-surface text-fg shadow-lg md:inset-x-auto md:bottom-auto md:w-96 md:max-w-[calc(100vw-1rem)] md:max-h-[min(32rem,calc(100vh-1rem))] md:rounded-xl md:border; }
+  .concept-bar { @apply flex shrink-0 items-center justify-between gap-2 border-b border-line bg-raised px-2 py-1; }
+  .concept-bar .btn { @apply !min-h-10 !px-3; }
+  .concept-body { @apply min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 text-sm; }
+  .concept { @apply space-y-3; }
+  .concept-title { @apply font-heading text-xl font-bold leading-tight outline-none; }
+  .concept-text { @apply whitespace-pre-line leading-relaxed; }
+  .concept-term { @apply cursor-pointer rounded-sm text-accent-text underline decoration-dotted underline-offset-2 hover:decoration-solid; }
+  .concept-heading { @apply text-xs font-semibold uppercase tracking-wide text-muted; }
+  .concept-group { @apply space-y-1.5 border-t border-line pt-2; }
+  .concept-list { @apply flex flex-wrap items-center gap-1.5; }
+  .concept-item { @apply inline-flex max-w-full flex-wrap items-center gap-1; }
+  .concept-chip { @apply inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-left text-sm font-medium text-fg hover:border-accent hover:bg-accent-soft md:min-h-8; }
+  .concept-kind { @apply text-[11px] font-normal text-muted; }
+  .concept-via { @apply text-xs italic text-muted; }
+  .concept-fold { @apply rounded-lg border border-line px-2 py-1; }
+  .concept-fold > summary { @apply flex min-h-9 cursor-pointer items-center gap-1 text-sm font-medium; }
+  .concept-fold > ul { @apply pb-1 pt-1; }
+  .concept-foot { @apply border-t border-line pt-3; }
+  .concept-open { overflow: hidden; }
+  .concept-skel { @apply h-4 animate-pulse rounded bg-raised; }
   /* Each class of equipment has its own colour (light and dark tuned separately); an item can show several icons. */
   .eq-ic-mount { color: var(--eq-mount); } .eq-ic-melee, .eq-ic-two_handed { color: var(--eq-melee); } .eq-ic-spear { color: var(--eq-spear); }
   .eq-ic-shield { color: var(--eq-shield); } .eq-ic-armour { color: var(--eq-armour); } .eq-ic-bow { color: var(--eq-bow); }

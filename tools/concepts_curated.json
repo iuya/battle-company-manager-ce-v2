@@ -1,0 +1,8 @@
+{
+  "text": "Hand-curated edges of the concept graph (grants, cancels, lifts, requires) for what the data does not state. Names are glossary terms (name or alias). `via` must be a verbatim quote of the text of one of the two terms (checked by the build, whitespace aside). `why` says why the edge was added; REVIEW it. Edges the data already gives (tools/concept_graph.py: derive_edges) must not be repeated here.",
+  "edges": [
+    {"from": "Heroic Actions", "to": "Might", "type": "requires", "via": "A Hero spends a Might Point to declare a Heroic Action", "why": "Every heroic action costs a Might Point; the popup of Heroic Actions then says what it needs."},
+    {"from": "Shielding", "to": "Shields", "type": "requires", "via": "A model carrying a shield may declare they are Shielding", "why": "Shielding is only open to a model with a shield."},
+    {"from": "Cavalry", "to": "Mount", "type": "requires", "via": "A Cavalry model is a rider and its Mount.", "why": "A Cavalry model is made of a rider and a Mount."}
+  ]
+}

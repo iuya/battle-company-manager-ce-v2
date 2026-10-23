@@ -106,6 +106,9 @@ func (r *Rulesets) store(ctx context.Context, kind RulesetKind, hash string, con
 	if got != hash {
 		return RulesetInfo{}, errors.Join(ErrInvalidRuleset, errors.New("the file does not match the hash it was announced with"))
 	}
+	if err := checkRulesetShape(content); err != nil {
+		return RulesetInfo{}, err
+	}
 	name, version, err := RulesetMeta(kind, content)
 	if err != nil {
 		return RulesetInfo{}, err

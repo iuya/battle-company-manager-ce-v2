@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
+	"io/fs"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/postgres"
@@ -46,12 +49,16 @@ type backend struct {
 	store      *postgres.Store
 	rulesets   *core.Rulesets
 	glossaries *core.Glossaries
+	concepts   *core.Concepts // the helper popups' graph (docs/concept-graph.md)
 	auth       *core.Auth
 	liveHub    *core.LiveHub // main starts it (Start) and closes it on shutdown
 }
 
 // rulesCacheMax is MAX_CACHED_RULESETS as run read it; 0 (the commands that do not load the server config) keeps core's default.
 var rulesCacheMax int
+
+// rulesBuildTimeout is RULES_BUILD_TIMEOUT as run read it; 0 keeps core's default.
+var rulesBuildTimeout time.Duration
 
 // newBackend builds the services over the Postgres store, registers the rules files the app ships with (read from
 // definitions/, so run from the repository root) and returns them.
@@ -87,7 +94,7 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 	}
 
 	log := slog.Default()
-	rules := core.NewRules(store.Rulesets(), log).WithMaxCached(rulesCacheMax)
+	rules := core.NewRules(store.Rulesets(), log).WithMaxCached(rulesCacheMax).WithBuildTimeout(rulesBuildTimeout)
 	// the reads of a request that carries a read scope (the aftermath page) are made once; everything else passes through
 	camps, comps, matches, aftermaths := core.ScopeCampaigns(store.Campaigns()), core.ScopeCompanies(store.Companies()), core.ScopeMatches(store.Matches()), store.Aftermaths()
 	atoRepo, liveRepo := core.ScopeATO(store.ATO()), core.ScopeLive(store.Live())
@@ -102,6 +109,11 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 	matchSvc.EndNotify = func(ctx context.Context, ch core.EndChange) { live.RecordEnd(ctx, ch) } // the log lines of a pending end
 	live.WithEnds(matchSvc)                                                                       // a game action cancels a pending end
 	aftermath.WithLive(live)                                                                      // the default aftermath sheet comes from the live match
+
+	curated, err := loadConceptFile(log)
+	if err != nil {
+		return nil, err
+	}
 
 	return &backend{
 		campaigns: &campaignsFacade{
@@ -121,6 +133,24 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 		store:      store,
 		rulesets:   rulesets,
 		glossaries: core.NewGlossaries(camps, rules, store.Rulesets()),
+		concepts:   core.NewConcepts(rules, curated, log),
 		auth:       core.NewAuth(store),
 	}, nil
+}
+
+// conceptGraphFile is the generated graph of curated edges (grants, cancels, lifts, requires) shipped next to the rules files.
+const conceptGraphFile = "definitions/concepts/concept_graph.json"
+
+// loadConceptFile reads the curated concept graph. A missing file is not fatal (the popups then show mentions and see-also only,
+// which the graph computes from each ruleset's own text); a file that is there but cannot be read is, like the rules files.
+func loadConceptFile(log *slog.Logger) (*core.ConceptFile, error) {
+	b, err := os.ReadFile(conceptGraphFile)
+	if errors.Is(err, fs.ErrNotExist) {
+		log.Warn("no curated concept graph file; the helper popups show mentions and see-also only", "file", conceptGraphFile)
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return core.ParseConceptFile(b)
 }

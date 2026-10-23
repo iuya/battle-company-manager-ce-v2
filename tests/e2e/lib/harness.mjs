@@ -30,7 +30,14 @@ export class Session {
       .catch(() => { throw new Error(`text still present after ${timeout} ms: "${text}"`); });
   }
   // Clicks the first visible element matching css whose text contains `text` (exact when text starts with =).
-  async click(css, text, { nav = false, timeout = 8000 } = {}) {
+  // A swap can replace the element between finding it and pressing it ("Node is detached"): find it again, as a person would.
+  async click(css, text, opts = {}) {
+    for (let i = 0; ; i++) {
+      try { return await this.clickOnce(css, text, opts); }
+      catch (e) { if (i >= 2 || !/detached/i.test(String(e.message))) throw e; await sleep(150); }
+    }
+  }
+  async clickOnce(css, text, { nav = false, timeout = 8000 } = {}) {
     const handle = await this.page.waitForFunction((css, text) => {
       const exact = text && text.startsWith('=');
       const want = exact ? text.slice(1) : text;
@@ -111,7 +118,8 @@ export class Harness {
   async launch() {
     this.browser = await puppeteer.launch({
       executablePath: findChrome(), headless: true, protocolTimeout: 30000,
-      args: ['--no-sandbox', '--disable-dev-shm-usage', '--hide-scrollbars'],
+      // SwiftShader gives headless Chrome a software WebGL (the 3D dice, flow 86); where the runner has a GPU path it is not used
+      args: ['--no-sandbox', '--disable-dev-shm-usage', '--hide-scrollbars', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
     });
   }
   async session(email, { width = 1280, height = 900, password = PASSWORD, login = true } = {}) {
@@ -120,6 +128,22 @@ export class Harness {
     await page.setViewport({ width, height });
     page.setDefaultTimeout(10000);
     const s = new Session(this, email, ctx, page);
+    // Headless Chrome on Linux has no pointing device, so (hover: hover) is false there (true on macOS) and the app, which shows its
+    // hover tooltips only for hover-capable devices, would show none: report a mouse, as a desktop browser does.
+    await page.evaluateOnNewDocument(() => {
+      const real = window.matchMedia.bind(window);
+      window.matchMedia = (q) => {
+        const m = real(q);
+        if (/^\(\s*(any-)?hover:\s*hover\s*\)$/.test(q) && !m.matches) Object.defineProperty(m, 'matches', { value: true });
+        return m;
+      };
+    });
+    // Every Content-Security-Policy violation the browser raises (the report-only policy too) fails the step that caused it.
+    await page.evaluateOnNewDocument(() => {
+      document.addEventListener('securitypolicyviolation', (e) => {
+        console.error(`CSP violation: ${e.disposition} ${e.violatedDirective} blocked=${e.blockedURI} source=${e.sourceFile}:${e.lineNumber} sample=${(e.sample || '').slice(0, 80)}`);
+      });
+    });
     page.on('console', (m) => { if (m.type() === 'error') s.record('console', m.text() + ' ' + (m.location()?.url || '')); });
     // hx-confirm and confirm() open native dialogs that block the page until answered: accept them and remember the text.
     page.on('dialog', (d) => { s.dialogs.push(d.message()); d.accept().catch(() => {}); });

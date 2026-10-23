@@ -23,7 +23,7 @@ filesystem, all capabilities dropped and `no-new-privileges`.
 
 **TLS and cookies.** Production expects HTTPS in front: a reverse proxy terminates TLS and forwards to the app port. Session, theme and glossary cookies are `Secure` and `Strict-Transport-Security`
 is sent (`SECURE_COOKIES=true`, the compose default and the setting behind a TLS proxy). The server **refuses to start** in production with `SECURE_COOKIES=false` unless `ALLOW_INSECURE_COOKIES=true`
-is also set (a plain-http try-out or private network; uncomment that line in `compose.yaml`). Set `TRUST_PROXY=true` only when the proxy sets `X-Forwarded-For` itself. `CSP_MODE` stays `report` for now.
+is also set (a plain-http try-out or private network; uncomment that line in `compose.yaml`). Set `TRUST_PROXY=true` only when the proxy sets `X-Forwarded-For` itself. `CSP_MODE` stays `report` until the owner switches it (next section).
 The variables beyond `POSTGRES_PASSWORD`, `APP_BIND`, `APP_PORT` and `SECURE_COOKIES` are commented in the app's `environment:` in `compose.yaml`; uncomment the ones you change (they then read `.env`).
 
 **Configuration reference.** Every variable the server reads is listed (with default) in `compose.yaml`, `compose.dev.yaml` and `.env.example`; `make check-env-docs` fails when one is missing.
@@ -32,6 +32,33 @@ raise it only if a superuser uploads many rules files that campaigns pin, lower 
 
 The backup, restore and drill scripts use the default compose file, i.e. production, and need `POSTGRES_PASSWORD` visible to compose (it is, from `.env`). For the development database:
 `make backup COMPOSE_FILE=compose.dev.yaml`.
+
+## Content-Security-Policy: report mode, then enforce
+
+Production starts in `CSP_MODE=report` (the default): the browser loads everything, sends each violation to `POST /csp-report` and the app logs one line. Before the switch the browser suite already ran
+the whole app under the blocking policy with no violation (`make e2e-enforce`, [security-and-risks.md](security-and-risks.md) section 1); the week of report mode covers what a suite cannot: real browsers and real data.
+
+**What to read after a week** (the app logs to stdout):
+
+```
+docker compose logs --since 168h app | grep -E "csp violation|csp reports dropped"
+docker compose logs --since 168h app | grep "csp violation" | grep -v chrome-extension | sed 's/.*directive=//' | sort | uniq -c | sort -rn
+```
+
+- **No line, or only lines whose `source=` starts with `chrome-extension://`, `moz-extension://` or `safari-extension://` (a user's extension, not the app):** ready.
+- **A line with `source=` a `/static/js/...` file or `blocked=inline` or `blocked=eval` on `directive=script-src...`:** something the policy would break (`eval` is allowed by `'unsafe-eval'`, so `eval` should not appear). Fix it (move the code to a file under `static/js`) and run another week.
+- **`directive=img-src`, `font-src`, `connect-src` or `style-src-elem` with a `blocked=` URL of the app's own origin or `data:`/`blob:`:** a source the policy omits; add it to `cspPolicy` in `internal/web/hardening.go`, with a test, before enforcing.
+- **`csp reports dropped count=N`:** the 60 per minute limit cut a flood; one browser, one broken page. Look at the first lines around it.
+- Every line shows `disposition=report`; `document=` is the page, `line=` the position in `source=`. Reports from a reverse proxy that injects scripts (analytics, a banner) are also visible here: the proxy's script would be blocked after the switch.
+
+**The switch** is one line in the `environment:` block of `compose.yaml`, among the active settings:
+
+```
+      CSP_MODE: enforce
+```
+
+then `docker compose up -d app` (a restart; no migration). The same policy now blocks and `Content-Security-Policy` replaces `Content-Security-Policy-Report-Only`; reports keep arriving (`disposition=enforce`), so read the same log for a day.
+Rollback is the same line with `report` (or `off`) and the same command: nothing else depends on it. The default in the code and in `.env.example` stays `report` until the owner decides.
 
 ## Backup
 
@@ -84,7 +111,7 @@ A panic in an HTTP handler is caught by the outermost middleware (`recoverer`: l
 needs its own guard, because an unrecovered panic in any goroutine ends the process.
 
 - **Goroutines.** There are four. The rule-set build (`core.Rules.For`) and the live hub (`LiveHub.Start`) run under `core.safely`: a panic is logged with its stack, the
-  build answers an error (and is not cached), the hub restarts the Postgres feed after a second and the restart marks every stream changed. The match page cards
+  build answers an error (and is not cached), the hub restarts the Postgres feed after a second and the restart marks every stream changed. The rule-set build has a deadline (`RULES_BUILD_TIMEOUT`, default 60 s, at least 1 s): its database reads and the checks between the parsing stages stop with it; the parsers take no context, so a build that is still inside one at the deadline is given up on: the waiters get an error wrapping `context.DeadlineExceeded` (503), the failure is not cached (the next request builds again) and the parser goroutine is left to end by itself. At most 4 such stuck builds are tolerated (`Rules.Stuck`); further ones are refused at once (`ErrBuildsStuck`) instead of piling up goroutines. The match page cards
   (`internal/web/match_cards.go`) recover and fall back to the lazy fetch. `ListenAndServe` is handled by net/http. There are no cleanup loops: the session cache, the login
   throttle, the memos and the rule-set cache are bounded by size and prune on access.
 - **LISTEN/NOTIFY.** One connection outside the pool. Connect and `LISTEN` have a 15 s deadline; an idle connection is pinged every 30 s; any failure reconnects with
@@ -92,8 +119,8 @@ needs its own guard, because an unrecovered panic in any goroutine ends the proc
   (so a slow browser costs one batch, never a backlog), publish holds the hub lock only for non-blocking work, and a stream frees its slot when its request ends
   (`context.AfterFunc`). Caps: 10 streams per user, 50 per match.
 - **Server limits** (`cmd/server/main.go`): ReadHeaderTimeout 5 s, ReadTimeout 60 s, WriteTimeout 120 s, IdleTimeout 120 s, MaxHeaderBytes 64 KB. The live stream (SSE) sets
-  a write deadline per write and lifts the read deadline, so it is not cut (`TestLiveStreamOutlivesTheServerTimeouts`). Request bodies: 1 MiB for everything that is not a
-  multipart upload (`limitBody`); uploads set their own limit (`maxUpload`) before parsing. Shutdown on SIGINT/SIGTERM: the hub closes its streams, in-flight requests get 10 s.
+  a write deadline per write and lifts the read deadline, so it is not cut (`TestLiveStreamOutlivesTheServerTimeouts`). Every request but the live stream has a context deadline (`REQUEST_TIMEOUT`, default 30 s, `0` = off; `requestTimeout` in `internal/web/middleware.go`): WriteTimeout only cuts the connection and never cancels `r.Context()`, this does, so queries and rule computation stop when the time is up or the client leaves; the handler answers 503 (`serverError` maps context errors). Request bodies: 1 MiB for everything that is not a
+  multipart upload (`limitBody`); uploads set their own limit (`maxUpload`, 16 MiB) before parsing and `core.Rulesets` streams the JSON once before validating it: more than 1 000 000 values or more than 64 levels is refused with a 422 (the shipped files have about 40 000 values and 11 levels; validating costs about 40 times the file size in memory). `TestHostileUploadsAnswer4xx` sends the three upload handlers malformed, truncated, huge, deeply nested, oddly typed and badly encoded files and multipart bodies: always a 4xx with a message. Shutdown on SIGINT/SIGTERM: the hub closes its streams, in-flight requests get 10 s.
 - **Database.** Every pooled connection gets `statement_timeout=60s` and `idle_in_transaction_session_timeout=60s` (a setting in `DATABASE_URL` wins; migrations run before
   the limits apply), so a stuck request cannot hold the match row lock or a pool connection for ever. Every transaction begins with `defer tx.Rollback`. Handlers pass
   the request context, so a client that leaves cancels its queries.

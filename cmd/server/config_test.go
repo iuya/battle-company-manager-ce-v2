@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"go-simpler.org/env"
 )
@@ -49,4 +50,25 @@ func envMap(m map[string]string) map[string]string {
 		out[k] = v
 	}
 	return out
+}
+
+func TestRulesBuildTimeoutFromEnvironment(t *testing.T) {
+	for _, tt := range []struct {
+		val     string
+		want    time.Duration
+		wantErr bool
+	}{{"", time.Minute, false}, {"90s", 90 * time.Second, false}, {"500ms", 0, true}, {"0s", 0, true}, {"-5s", 0, true}} {
+		var cfg config
+		m := map[string]string{}
+		if tt.val != "" {
+			m["RULES_BUILD_TIMEOUT"] = tt.val
+		}
+		err := env.Load(&cfg, &env.Options{Source: env.Map(envMap(m))})
+		if err == nil {
+			err = cfg.validate()
+		}
+		if (err != nil) != tt.wantErr || (err == nil && cfg.RulesBuildTimeout != tt.want) {
+			t.Errorf("%q: timeout %s, err %v", tt.val, cfg.RulesBuildTimeout, err)
+		}
+	}
 }

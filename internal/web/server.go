@@ -300,6 +300,10 @@ type Config struct {
 	StyleGuide bool `env:"STYLEGUIDE" default:"false"`
 	// AppTimezone is the zone times are shown in for a visitor whose account has none and whose browser sent none (IANA name; UTC when empty).
 	AppTimezone string `env:"APP_TIMEZONE"`
+	// RequestTimeout is how long one request may work before its context is cancelled (queries stop, the answer is 503). net/http's
+	// WriteTimeout only cuts the connection and never cancels r.Context(). The live stream (SSE) is exempt. 0 turns it off, which is
+	// also what a zero Config (the tests) means.
+	RequestTimeout time.Duration `env:"REQUEST_TIMEOUT" default:"30s"`
 }
 
 type Server struct {
@@ -307,6 +311,7 @@ type Server struct {
 	campaigns campaigns
 	rulesets  rulesets
 	glossary  glossaries
+	concepts  concepts // the helper popups' graph; nil serves no popup (SetConcepts)
 	auth      auth
 	render    *renderer
 	throttle  *loginThrottle
@@ -318,7 +323,7 @@ type Server struct {
 	recent          recentMatches
 	onceMu          sync.Mutex // guards onceSeen only
 	onceStripes     [onceStripeCount]sync.Mutex
-	onceSeen        map[string]onceAnswer
+	onceSeen        map[int64]onceAnswer // by account: the latest guarded answer
 }
 
 func NewServer(cfg Config, campaigns campaigns, rulesets rulesets, glossary glossaries, auth auth) (*Server, error) {
@@ -441,6 +446,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /glossary", s.protected(s.handleGlossary))
 	mux.HandleFunc("POST /glossary", s.protected(s.handleChooseGlossary))
 	mux.HandleFunc("GET /campaigns/{id}/glossary", s.protected(s.handleCampaignGlossary))
+	if s.concepts != nil {
+		mux.HandleFunc("GET /campaigns/{id}/concepts/resolve", s.protected(s.handleConceptByName))
+		mux.HandleFunc("GET /campaigns/{id}/concepts/{concept}", s.protected(s.handleConcept))
+	}
 	mux.HandleFunc("GET /account", s.protected(s.handleAccount))
 	mux.HandleFunc("PUT /account/appearance", s.session(s.handleAccountAppearance))
 	mux.HandleFunc("POST /account/timezone", s.protected(s.handleAccountTimezone))
@@ -467,7 +476,7 @@ func (s *Server) Handler() http.Handler {
 	// Browsers send CSP reports without the headers the check relies on; a report only becomes a log line, so it is let through.
 	cop := http.NewCrossOriginProtection()
 	cop.AddInsecureBypassPattern("POST /csp-report")
-	return s.recoverer(s.securityHeaders(logger(s.guardInput(gzipResponses(cop.Handler(mux))))))
+	return s.recoverer(requestTimeout(s.cfg.RequestTimeout, s.securityHeaders(logger(s.guardInput(gzipResponses(cop.Handler(mux)))))))
 }
 
 // pageBase is embedded in every page's data: what the layout needs to draw the header.
