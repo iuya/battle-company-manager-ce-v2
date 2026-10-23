@@ -8,7 +8,7 @@ DATABASE_URL ?= postgres://bcm:bcm@localhost:5432/bcm?sslmode=disable
 CSS_IN  = ./tailwind.css
 CSS_OUT = ./internal/web/static/app.css
 
-.PHONY: e2e e2e-install e2e-clean test-db check-env-docs migrate up up-app prod-user prod-down backup restore restore-drill vendor-check dice3d user grant seed demo db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
+.PHONY: e2e e2e-install e2e-clean perf test-db check-env-docs migrate up up-app prod-user prod-down backup restore restore-drill vendor-check dice3d user grant seed demo db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
 
 # make user EMAIL=you@example.com NAME="Your Name"   (asks for the password)
 user: db-up
@@ -116,6 +116,12 @@ e2e-install:
 e2e: db-up css
 	@test -d tests/e2e/node_modules || $(MAKE) e2e-install
 	cd tests/e2e && node run.mjs $(if $(ONLY),--only $(ONLY))
+
+# make perf [LABEL=name] [REPS=3] [LATENCIES=0,100,300] [ONLY=match]   frontend performance baseline (docs/performance.md): the main flows in headless Chrome with 0/100/300 ms
+# of emulated latency on a scratch copy of the demo world; prints a table and writes tests/e2e/out/perf-<LABEL>.json
+perf: db-up css
+	@test -d tests/e2e/node_modules || $(MAKE) e2e-install
+	cd tests/e2e && node perf.mjs --label $(or $(LABEL),run) $(if $(REPS),--reps $(REPS)) $(if $(LATENCIES),--latencies $(LATENCIES)) $(if $(ONLY),--only "$(ONLY)")
 
 # make e2e-clean   drops the cached seeded template databases (bcm_e2e_tpl_*) and the test outputs
 e2e-clean: db-up

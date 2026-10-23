@@ -3,10 +3,12 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	neturl "net/url"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -22,7 +24,7 @@ func freshDatabase(ctx context.Context, t *testing.T, url string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	const name = "bcm_world_test"
+	name := fmt.Sprintf("bcm_world_test_%d_%d", os.Getpid(), time.Now().UnixNano()%1000000) // unique per run: two test runs at once must not drop each other's database
 	admin, err := pgx.Connect(ctx, url)
 	if err != nil {
 		t.Fatal(err)
@@ -142,6 +144,32 @@ func TestSeedWorld(t *testing.T) {
 		if !seen[st] {
 			t.Errorf("no company of the aftermath ward is %q", st)
 		}
+	}
+	// ward 3: three companies wait at the screen where no hero is left and a Warrior has to be chosen (one, two tied, a Leader)
+	ward3 := byName["Aftermath ward 3: no hero left to step up"]
+	m3, err := b.campaigns.Matches(ctx, ward3.ID)
+	if err != nil || len(m3) != 1 {
+		t.Fatalf("ward 3 matches: %v %v", m3, err)
+	}
+	refs3, err := b.campaigns.AftermathStatuses(ctx, ward3.ID, m3[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fallback := map[string]int{}
+	for _, r := range refs3 {
+		a, err := b.campaigns.Aftermath(ctx, you, ward3.ID, m3[0].ID, r.CompanyID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if a.Succession != nil {
+			fallback[r.CompanyName] = len(a.Succession.Fallback)
+			if r.CompanyName == "Rangers who lost every officer" && !a.Succession.NeedLeader {
+				t.Error("the Rangers need a Leader from the Warriors")
+			}
+		}
+	}
+	if fallback["Orcs with one clear veteran"] != 1 || fallback["Dwarves with two equal veterans"] != 2 || fallback["Rangers who lost every officer"] < 1 {
+		t.Errorf("ward 3 Warriors to choose from: %v", fallback)
 	}
 	// the Shire company of the cemetery lost its Ranger in a played match: three officers (a company recruits only with
 	// three) and the Ranger in the cemetery, so Recruit may swap a successful result for a new one

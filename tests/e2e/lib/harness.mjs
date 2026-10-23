@@ -10,7 +10,7 @@ export { sleep };
 // A signed-in browser context (own cookies) with one page that records console errors, page errors, failed requests
 // and 4xx/5xx answers; `issues()` returns and clears them.
 export class Session {
-  constructor(h, email, ctx, page) { this.h = h; this.email = email; this.ctx = ctx; this.page = page; this.found = []; this.allow = []; this.dialogs = []; }
+  constructor(h, email, ctx, page) { this.h = h; this.email = email; this.ctx = ctx; this.page = page; this.found = []; this.allow = []; this.dialogs = []; this.reqs = []; this.reqCount = 0; }
   record(kind, text) {
     if (this.allow.some((re) => re.test(text))) return;
     this.found.push(`${this.email}: ${kind}: ${text}`);
@@ -44,8 +44,35 @@ export class Session {
     }, { timeout }, css, text).catch(() => { throw new Error(`nothing to click: ${css} "${text || ''}"`); });
     const el = handle.asElement();
     await el.evaluate((e) => e.scrollIntoView({ block: 'center' }));
+    // A sheet slides in and a swapped fragment shifts the layout: on a loaded machine the animation lags and a click at the
+    // measured centre lands on whatever is there by then (seen: "Wounded a unit" clicked, no request sent). Click once the box has
+    // held still for three frames, and only if the element is still attached.
+    await el.evaluate((e) => new Promise((res) => {
+      let last = '', same = 0, n = 0;
+      const tick = () => {
+        const r = e.getBoundingClientRect(), k = [r.x, r.y, r.width, r.height].map(Math.round).join();
+        same = k === last ? same + 1 : 0; last = k;
+        if (same >= 3 || ++n > 90) res(); else requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }));
     if (nav) await Promise.all([this.page.waitForNavigation({ waitUntil: 'load' }), el.click()]);
-    else await el.click();
+    else {
+      // A button that carries an htmx request must send one. On a loaded machine a click was seen to do nothing (the sheet menu stayed,
+      // no request left the page; never reproduced on a quiet one): click again once, say so in the output, and fail as before if
+      // that does nothing either. Counted in the results line so a rising rate shows.
+      const hx = await el.evaluate((e) => !!(e.getAttribute('hx-get') || e.getAttribute('hx-post')) && !e.hasAttribute('hx-confirm')).catch(() => false);
+      const before = this.reqCount;
+      await el.click();
+      if (hx) {
+        const sent = async () => { for (let i = 0; i < 15 && this.reqCount === before; i++) await sleep(100); return this.reqCount !== before; };
+        if (!(await sent()) && await el.evaluate((e) => e.isConnected).catch(() => false)) {
+          this.h.retries = (this.h.retries || 0) + 1;
+          console.log(`        (click on "${text || css}" sent no request, clicking again; ${this.email}, url ${this.page.url()})`);
+          await el.click().catch(() => {});
+        }
+      }
+    }
     await this.settle();
   }
   // Waits for htmx requests to finish (htmx adds htmx-request while one runs) and for the network to go quiet.
@@ -102,6 +129,10 @@ export class Harness {
       if (t.includes('ERR_ABORTED')) return; // navigations and closed event streams
       s.record('requestfailed', `${r.method()} ${r.url()} ${t}`);
     });
+    // The last requests of the page with the time they were sent and answered, for the failure dump (what raced with what).
+    const t0 = Date.now(), stamp = () => String(Date.now() - t0).padStart(7);
+    page.on('request', (r) => { s.reqCount++; if (!/\/static\//.test(r.url())) { s.reqs.push(`${stamp()} ms > ${r.method()} ${r.url().replace(this.base, '')}`); if (s.reqs.length > 60) s.reqs.shift(); } });
+    page.on('response', (r) => { if (!/\/static\//.test(r.url())) { s.reqs.push(`${stamp()} ms < ${r.status()} ${r.url().replace(this.base, '')}`); if (s.reqs.length > 60) s.reqs.shift(); } });
     page.on('response', (r) => { if (r.status() >= 400) s.record('http', `${r.status()} ${r.request().method()} ${r.url()}`); });
     this.sessions.push(s);
     if (login) await this.login(s, email, password);
@@ -142,7 +173,8 @@ export class Harness {
       try {
         const base = join(outDir, `${slug}.${i++}-${s.email.split('@')[0]}`);
         await s.page.screenshot({ path: base + '.png', fullPage: true });
-        writeFileSync(base + '.txt', `${s.page.url()}\n\n${await s.text()}\n`);
+        const live = await s.page.evaluate(() => ({ dot: document.getElementById('live-dot-text')?.textContent, seq: document.getElementById('live-zones')?.dataset.seq, dialogs: [...document.querySelectorAll('[role=dialog]')].filter((d) => d.getBoundingClientRect().height).map((d) => d.innerText.slice(0, 80).replace(/\s+/g, ' ')), busy: !!document.querySelector('.htmx-request') })).catch(() => ({}));
+        writeFileSync(base + '.txt', `${s.page.url()}\n\nlive state: ${JSON.stringify(live)}\nlast requests (> sent, < answered):\n${s.reqs.join('\n')}\n\n${await s.text()}\n`);
       } catch {}
     }
     console.log(`        screenshots and page text: tests/e2e/out/${slug}.*`);

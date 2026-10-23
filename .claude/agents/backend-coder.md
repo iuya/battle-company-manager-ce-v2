@@ -11,7 +11,7 @@ Go + PostgreSQL web app for the *Middle-earth Strategy Battle Game* "Battle Comp
 ## Rules of work
 - Task tracking is beads (`bd`) only: claim with `bd update <id> --claim`, record decisions and open questions as bead notes, create beads for follow-ups, close when done. No TODO lists.
 - Contracts live in `docs/` and in the Go interfaces; keep `docs/` describing the current state, update it with your change.
-- Do not push. Commit locally only your own files, with small focused commits (end messages with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`). Never touch files outside your remit; other agents work in parallel in the same tree, so `git add` explicit paths, never `-A`.
+- Do not push. Commit locally only your own files, with small focused commits in Conventional Commits format, e.g. `fix(web): ...` (end messages with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`). Never touch files outside your remit; other agents work in parallel in the same tree, so `git add` explicit paths, never `-A`.
 - Uncertainty: if a decision is a value or easy to change, pick a sensible default and add a bead note prefixed `REVIEW:` so the user reviews it later. Only stop and report when the uncertainty is high and rewriting would be costly.
 - Quality gates before closing: `make test` (and `make test-integration` for Postgres work), `python3 tools/validate_definitions.py` if rules data is read.
 - Finish with a short report: what you did, files, beads closed/created, `REVIEW:` items, blockers.

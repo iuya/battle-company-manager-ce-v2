@@ -36,11 +36,16 @@ func hueOf(id int64) int { return int(id*47) % 360 }
 
 // logView reads a page of the log of the match (newest first), with the company names and the minute headings.
 func (s *Server) logView(r *http.Request, id, matchID, before int64) (liveLogView, error) {
-	user := *userFrom(r.Context())
 	m, err := s.campaigns.Match(r.Context(), id, matchID)
 	if err != nil {
 		return liveLogView{}, err
 	}
+	return s.logViewOf(r, id, m, before)
+}
+
+// logViewOf is logView for a match the caller has loaded already.
+func (s *Server) logViewOf(r *http.Request, id int64, m core.Match, before int64) (liveLogView, error) {
+	user, matchID := *userFrom(r.Context()), m.ID
 	entries, err := s.campaigns.Log(r.Context(), user, id, matchID, before, liveLogPage)
 	if err != nil {
 		return liveLogView{}, err

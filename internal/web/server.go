@@ -4,7 +4,7 @@ package web
 
 import (
 	"context"
-	"io/fs"
+	"log/slog"
 	"math/rand/v2"
 	"net/http"
 	"strings"
@@ -49,6 +49,8 @@ type campaigns interface {
 	// List returns the user's campaigns: the unfinished ones first, then (when withFinished) the finished ones, each
 	// group newest first.
 	List(ctx context.Context, userID int64, withFinished bool) ([]core.CampaignSummary, error)
+	// NavCampaigns is List for the sidebar: only id, name and status, nobody's company rated (no rules code, one statement).
+	NavCampaigns(ctx context.Context, userID int64, withFinished bool) ([]core.CampaignNav, error)
 	// Create returns an error wrapping core.ErrInvalidCampaign when the input is rejected.
 	Create(ctx context.Context, owner core.User, in core.CampaignInput) (core.CampaignSummary, error)
 
@@ -314,7 +316,8 @@ type Server struct {
 	ready           func(context.Context) error // the database check of /readyz (SetReadiness)
 	cspReports      *reportLimiter
 	recent          recentMatches
-	onceMu          sync.Mutex
+	onceMu          sync.Mutex // guards onceSeen only
+	onceStripes     [onceStripeCount]sync.Mutex
 	onceSeen        map[string]onceAnswer
 }
 
@@ -323,6 +326,7 @@ func NewServer(cfg Config, campaigns campaigns, rulesets rulesets, glossary glos
 	if err != nil {
 		return nil, err
 	}
+	_ = staticFiles() // builds the embedded asset table now: a broken build fails at start, not at the first request
 	return &Server{cfg: cfg, campaigns: campaigns, rulesets: rulesets, glossary: glossary, auth: auth, render: r, throttle: newLoginThrottle(), accountThrottle: newLoginThrottle(), cspReports: newReportLimiter(), d6: func() int { return 1 + rand.IntN(6) }}, nil
 }
 
@@ -330,8 +334,7 @@ func NewServer(cfg Config, campaigns campaigns, rulesets rulesets, glossary glos
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 
-	static, _ := fs.Sub(assets, "static")
-	mux.Handle("GET /static/", http.StripPrefix("/static/", s.cacheControl(noListing(http.FileServerFS(static)))))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", noListing(s.staticHandler())))
 
 	mux.HandleFunc("GET /healthz", s.handleHealthz)
 	mux.HandleFunc("GET /readyz", s.handleReadyz)
@@ -464,7 +467,7 @@ func (s *Server) Handler() http.Handler {
 	// Browsers send CSP reports without the headers the check relies on; a report only becomes a log line, so it is let through.
 	cop := http.NewCrossOriginProtection()
 	cop.AddInsecureBypassPattern("POST /csp-report")
-	return s.recoverer(s.securityHeaders(logger(cop.Handler(mux))))
+	return s.recoverer(s.securityHeaders(logger(s.guardInput(gzipResponses(cop.Handler(mux))))))
 }
 
 // pageBase is embedded in every page's data: what the layout needs to draw the header.
@@ -472,10 +475,33 @@ type pageBase struct {
 	User *core.User
 	Path string // current URL path, so the sidebar can mark the page you are on
 	Dev  bool   // show the links to the developer tools (style guide)
+	// NavInline says the page's data carries the sidebar's campaign list (Campaigns, as the main page's does): the sidebar draws it
+	// in place and fetches /nav/campaigns only when the list changes.
+	NavInline bool
+	// NavList is the sidebar's campaign list when NavInline is set by base (a full page for a signed-in user); the main page
+	// uses its own Campaigns instead.
+	NavList []core.CampaignNav
+	NavOwn  bool // the page's own Campaigns is the list (main page)
 }
 
-func (s *Server) base(r *http.Request) pageBase {
+// bare is the page base without the sidebar's campaign list.
+func (s *Server) bare(r *http.Request) pageBase {
 	return pageBase{User: userFrom(r.Context()), Path: r.URL.Path, Dev: s.cfg.StyleGuide}
+}
+
+// base is bare plus, on a full page (not an htmx content swap, which has no sidebar), the sidebar's campaign list, so the
+// browser needs no /nav/campaigns round trip. If the list cannot be read the sidebar falls back to fetching it lazily.
+func (s *Server) base(r *http.Request) pageBase {
+	b := s.bare(r)
+	if b.User == nil || (r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-History-Restore-Request") != "true") {
+		return b
+	}
+	if list, err := s.campaigns.NavCampaigns(r.Context(), b.User.ID, showFinished(r)); err == nil {
+		b.NavList, b.NavInline = list, true
+	} else {
+		slog.Warn("sidebar campaign list failed, left to the lazy fetch", "err", err)
+	}
+	return b
 }
 
 // noListing answers 404 to a directory (the file server would list its files).
@@ -485,17 +511,6 @@ func noListing(next http.Handler) http.Handler {
 			http.NotFound(w, r)
 			return
 		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (s *Server) cacheControl(next http.Handler) http.Handler {
-	v := "no-cache"
-	if s.cfg.StaticMaxAge > 0 {
-		v = "public, max-age=" + itoa(int(s.cfg.StaticMaxAge.Seconds()))
-	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", v)
 		next.ServeHTTP(w, r)
 	})
 }

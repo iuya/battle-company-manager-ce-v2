@@ -91,7 +91,7 @@ A company is one aggregate. All company mutations (spend influence, recruit, buy
 // leaves behind when fn returns nil. Read is the same without the lock and without saving.
 type companyRepository interface {
     Read(ctx, campaignID, companyID int64) (CompanyState, error)
-    ReadRoster(ctx, campaignID int64) ([]CompanyState, error) // every company's units and resources in a fixed number of queries, for rating lists (no aftermaths, open match, perks, cemetery)
+    ReadRoster(ctx, campaignID int64) ([]CompanyState, error) // every company's units and resources in one statement, for rating lists (no aftermaths, open match, perks, cemetery)
     Update(ctx, campaignID, companyID int64, fn func(*CompanyState) error) error
     Create(ctx, campaignID int64, owner User, c NewCompany) (CampaignCompany, error) // ErrHasCompany on unique (campaign, owner)
 }
@@ -326,7 +326,8 @@ Environment variables (loaded by `go-simpler.org/env`; `.env.example` lists them
 |---|---|---|
 | `DATABASE_URL` | required (the Makefile defaults to the compose database) | PostgreSQL connection string |
 | `PORT` | `8080` | HTTP port |
-| `STATIC_MAX_AGE` | `0s` | Cache lifetime of static files (`no-cache` when 0) |
+| `STATIC_MAX_AGE` | `0s` | Cache lifetime of static files requested without their `?v=` hash (`no-cache` when 0; the templates always add the hash, and those requests are cached for a year) |
+| `PERF_TRACE` | `false` | Adds a `Server-Timing` header (time, database statements) to every answer, for `make perf` ([performance.md](performance.md)); development only |
 | `STYLEGUIDE` | `false` | Serve `/styleguide` (public when on); `make run`, `make dev` and `make demo` set it to `true` |
 | `APP_ENV` | `production` | `production` is secure by default; `development` (set by `make run`, `dev`, `demo`) is for plain http on localhost. Anything else is refused at start |
 | `SECURE_COOKIES` | unset | `Secure` session, theme and glossary cookies, and the `Strict-Transport-Security` header (one year, no `includeSubDomains`). Unset: on in production, off in development. `false` in production is **refused at start** unless `ALLOW_INSECURE_COOKIES=true` (then it starts with a warning). Behind a TLS proxy `true` is the setting |

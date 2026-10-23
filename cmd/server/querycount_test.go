@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"os"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -13,10 +15,24 @@ import (
 )
 
 // queryCounter counts the statements the pool runs (postgres.Options.Tracer).
-type queryCounter struct{ n atomic.Int64 }
+type queryCounter struct {
+	n   atomic.Int64
+	mu  sync.Mutex
+	sql map[string]int // statements by text, for BenchmarkPages with PERF_SQL=1
+}
 
-func (c *queryCounter) TraceQueryStart(ctx context.Context, _ *pgx.Conn, _ pgx.TraceQueryStartData) context.Context {
+func (c *queryCounter) note(sql string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.sql == nil {
+		c.sql = map[string]int{}
+	}
+	c.sql[strings.Join(strings.Fields(sql), " ")]++
+}
+
+func (c *queryCounter) TraceQueryStart(ctx context.Context, _ *pgx.Conn, d pgx.TraceQueryStartData) context.Context {
 	c.n.Add(1)
+	c.note(d.SQL)
 	return ctx
 }
 func (c *queryCounter) TraceQueryEnd(context.Context, *pgx.Conn, pgx.TraceQueryEndData) {}
@@ -24,8 +40,9 @@ func (c *queryCounter) TraceQueryEnd(context.Context, *pgx.Conn, pgx.TraceQueryE
 func (c *queryCounter) TraceBatchStart(ctx context.Context, _ *pgx.Conn, _ pgx.TraceBatchStartData) context.Context {
 	return ctx
 }
-func (c *queryCounter) TraceBatchQuery(context.Context, *pgx.Conn, pgx.TraceBatchQueryData) {
+func (c *queryCounter) TraceBatchQuery(_ context.Context, _ *pgx.Conn, d pgx.TraceBatchQueryData) {
 	c.n.Add(1)
+	c.note(d.SQL)
 }
 func (c *queryCounter) TraceBatchEnd(context.Context, *pgx.Conn, pgx.TraceBatchEndData) {}
 
@@ -136,12 +153,12 @@ func assertQueryCounts(ctx context.Context, t *testing.T, b *backend, q *queryCo
 		})})
 	}
 
-	within(t, "Get (campaign page)", get, budget{12, 0})
-	within(t, "Companies (companies, rankings, handover)", companies, budget{8, 0})
-	within(t, "Matches (matches page)", matches, budget{16, 0})
-	within(t, "Match (match page)", matchOne, budget{30, 0})
-	within(t, "CompanyDetail (company page)", detail, budget{20, 0})
-	within(t, "List (home page)", home, budget{4, 0})
+	within(t, "Get (campaign page)", get, budget{3, 0})
+	within(t, "Companies (companies, rankings, handover)", companies, budget{6, 0})
+	within(t, "Matches (matches page)", matches, budget{8, 0})
+	within(t, "Match (match page)", matchOne, budget{6, 0})
+	within(t, "CompanyDetail (company page)", detail, budget{7, 0})
+	within(t, "List (home page)", home, budget{3, 0})
 }
 
 // TestQueryCountsOnAPreloadedWorld is the quick way to run the checks above while tuning a query: point WORLD_DATABASE_URL at a

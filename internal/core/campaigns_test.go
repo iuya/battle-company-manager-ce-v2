@@ -297,3 +297,18 @@ func TestCampaignsMembers(t *testing.T) {
 		t.Fatalf("unknown campaign: %v", err)
 	}
 }
+
+// NavCampaigns lists id, name and status without reading a roster or loading rules (List rates every company).
+func TestCampaignsNavCampaignsDoesNotRate(t *testing.T) {
+	f := newCampaignFixture(t)
+	ctx := context.Background()
+	f.campaigns.EXPECT().List(ctx, int64(3), true).Return([]CampaignSummary{
+		{ID: 1, Name: "A", Status: CampaignActive, Company: &CampaignCompany{ID: 9}},
+		{ID: 2, Name: "B", Status: CampaignFinished},
+	}, nil)
+	got, err := f.svc.NavCampaigns(ctx, 3, true)
+	want := []CampaignNav{{ID: 1, Name: "A", Status: CampaignActive}, {ID: 2, Name: "B", Status: CampaignFinished}}
+	if err != nil || len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("NavCampaigns = %+v, %v", got, err)
+	}
+}

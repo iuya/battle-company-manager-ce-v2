@@ -155,6 +155,35 @@ func (c *Campaigns) List(ctx context.Context, userID int64, withFinished bool) (
 	return list, nil
 }
 
+// CampaignNav is a campaign as the sidebar lists it.
+type CampaignNav struct {
+	ID     int64
+	Name   string
+	Status CampaignStatus
+}
+
+// campaignNavLister is implemented by a repository that can list the sidebar's campaigns in one statement.
+type campaignNavLister interface {
+	Nav(ctx context.Context, userID int64, withFinished bool) ([]CampaignNav, error)
+}
+
+// NavCampaigns lists the user's campaigns for the sidebar (same order as List) without rating anyone's company: the sidebar shows only
+// the name and status. A repository with a one-statement Nav answers from it; otherwise the plain list is mapped (still without rules).
+func (c *Campaigns) NavCampaigns(ctx context.Context, userID int64, withFinished bool) ([]CampaignNav, error) {
+	if nl, ok := c.campaigns.(campaignNavLister); ok {
+		return nl.Nav(ctx, userID, withFinished)
+	}
+	list, err := c.campaigns.List(ctx, userID, withFinished)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]CampaignNav, len(list))
+	for i, g := range list {
+		out[i] = CampaignNav{ID: g.ID, Name: g.Name, Status: g.Status}
+	}
+	return out, nil
+}
+
 // Create makes the user the organiser of a new campaign. Only users with CanCreateCampaigns (or admins) may (ErrRefused). An
 // empty hash means the app's default file of that kind; a hash that is not stored or is of another kind is ErrInvalidCampaign.
 func (c *Campaigns) Create(ctx context.Context, owner User, in CampaignInput) (CampaignSummary, error) {

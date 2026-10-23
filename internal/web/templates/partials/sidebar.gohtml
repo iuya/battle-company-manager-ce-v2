@@ -19,7 +19,7 @@
     {{template "nav_link" (navItem "/" "Campaigns" "/campaigns/new")}}
     {{/* The campaigns sub-menu shows while you are on the main page or anywhere inside a campaign. */}}
     <ul x-show="path === '/' || path.startsWith('/campaigns')" x-cloak class="ml-3 flex flex-col gap-0.5 border-l border-line pl-2"
-        aria-label="Your campaigns" hx-get="/nav/campaigns" hx-trigger="load, campaigns-changed from:body" hx-target="this" hx-swap="innerHTML"></ul>
+        aria-label="Your campaigns" hx-get="/nav/campaigns" hx-trigger="{{if .NavInline}}campaigns-changed from:body{{else}}load, campaigns-changed from:body{{end}}" hx-target="this" hx-swap="innerHTML">{{if .NavInline}}{{if .NavOwn}}{{template "nav_campaigns" .}}{{else}}{{template "nav_items" .NavList}}{{end}}{{end}}</ul>
     {{template "nav_link" (navItem "/glossary" "Glossary" "")}}
   </nav>
   <div class="mt-auto flex flex-col gap-1 border-t border-line pt-3">
@@ -35,7 +35,8 @@
 {{/* The items of the campaigns sub-menu, fetched by the sidebar (see handleNavCampaigns). Only the campaign you are in
    (inCampaign, from the shell in the layout) shows its pages and is marked; the others stay collapsed. The li restates
    the body's hx-target/hx-swap because its links would otherwise inherit the list's own (the list is the fetch target). */}}
-{{define "nav_campaigns"}}{{range .Campaigns}}
+{{define "nav_campaigns"}}{{template "nav_items" .Campaigns}}{{end}}
+{{define "nav_items"}}{{range .}}
 <li hx-target="#main" hx-swap="innerHTML show:window:top">
   <a href="/campaigns/{{.ID}}" class="nav-link nav-campaign !min-h-11 md:!min-h-9 {{if eq .Status "finished"}}!text-muted{{end}}" :aria-current="inCampaign({{.ID}}) ? 'true' : null" @click="open = false"><span class="truncate">{{.Name}}</span>{{if eq .Status "finished"}}<span class="sr-only"> (finished)</span>{{end}}</a>
   {{/* Both lists animate their height together (the open one grows while the other shrinks), so nothing jumps; a collapsed list is inert so its links cannot be tabbed to. */}}

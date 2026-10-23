@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 )
 
 // UnitRole is a unit's place in the company hierarchy.
@@ -118,17 +119,28 @@ func (c EquipmentClass) isRangedLimit() bool { return c == EquipBow || c == Equi
 // start of one ("blade" in "bladed").
 func hasWord(text string, words ...string) bool {
 	for _, w := range words {
-		pattern := `\b` + regexp.QuoteMeta(w)
-		if w == "bow" {
-			pattern = `bow\b`
-		} else if exact, ok := strings.CutSuffix(w, "!"); ok {
-			pattern = `\b` + regexp.QuoteMeta(exact) + `\b`
-		}
-		if regexp.MustCompile(`(?i)` + pattern).MatchString(text) {
+		if wordPattern(w).MatchString(text) {
 			return true
 		}
 	}
 	return false
+}
+
+// wordPatterns caches the compiled pattern of each word hasWord is asked for (compiling one per call cost a fifth of a page).
+var wordPatterns sync.Map // word -> *regexp.Regexp
+
+func wordPattern(w string) *regexp.Regexp {
+	if re, ok := wordPatterns.Load(w); ok {
+		return re.(*regexp.Regexp)
+	}
+	pattern := `\b` + regexp.QuoteMeta(w)
+	if w == "bow" {
+		pattern = `bow\b`
+	} else if exact, ok := strings.CutSuffix(w, "!"); ok {
+		pattern = `\b` + regexp.QuoteMeta(exact) + `\b`
+	}
+	re, _ := wordPatterns.LoadOrStore(w, regexp.MustCompile(`(?i)`+pattern))
+	return re.(*regexp.Regexp)
 }
 
 // iconRules maps words in an item's name to the icon that draws it. The first match wins. Items that match none are drawn
@@ -147,14 +159,24 @@ var iconRules = []struct {
 	{"blowpipe", []string{"blowpipe"}}, {"axe", []string{"axe"}},
 }
 
-// IconFor chooses the icon of an item: a specific one by its name (a ring, a scroll, boots, ...), else "" to draw it by its
-// classes, else the generic "small" or "large" icon for equipment that only takes a slot (so a new item in the rules data
-// always has an icon).
-func IconFor(name string, classes []EquipmentClass, size string) string {
+var iconsByName memo
+
+// iconByName is the first icon rule the name matches, or "".
+func iconByName(name string) string {
 	for _, r := range iconRules {
 		if hasWord(name, r.words...) {
 			return r.icon
 		}
+	}
+	return ""
+}
+
+// IconFor chooses the icon of an item: a specific one by its name (a ring, a scroll, boots, ...), else "" to draw it by its
+// classes, else the generic "small" or "large" icon for equipment that only takes a slot (so a new item in the rules data
+// always has an icon).
+func IconFor(name string, classes []EquipmentClass, size string) string {
+	if icon := iconsByName.get(name, iconByName); icon != "" {
+		return icon
 	}
 	if len(classes) > 0 && classes[0] != EquipOther {
 		return ""

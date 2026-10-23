@@ -13,6 +13,7 @@ campaigns, companies and matches. These documents describe the app as it is now.
 | [security-and-risks.md](security-and-risks.md) | CSP analysis and plan, ranked risk register (security, data, performance, operations, quality, rules fidelity) |
 | [vendored-js.md](vendored-js.md) | The committed third-party scripts: versions, sources, checksums (`internal/web/vendor.json`), `make vendor-check`, update procedure |
 | [testing.md](testing.md) | Test commands; the browser smoke tests (`make e2e`): what they cover, isolation, how to write steps |
+| [performance.md](performance.md) | Measured page cost: the baseline, what was changed and what it gained, `make perf`, `BenchmarkPages`, what the backend and the database should look at |
 | [operations.md](operations.md) | Backups with `pg_dump`, restore and the restore drill, retention, upgrading safely |
 | [auth.md](auth.md) | Accounts, sessions, passwords, CSRF, login throttling |
 | [admin.md](admin.md) | The Administration section: users and permissions, rules files (default, upload, prune), organiser handover (spec, designed) |

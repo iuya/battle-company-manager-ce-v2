@@ -7,26 +7,14 @@
   <meta name="theme-color" content="#f1f3ec">
   <title>{{template "title" .}}</title>
   {{/* Applies the saved appearance (static/js/theme-init.js; the account's data-pref when signed in, else cookie "bcm-theme" = "<palette>.<mode>") before the first paint: no flash of the wrong palette or mode. */}}
-  <script src="/static/js/theme-init.js"></script>
-  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="icon" href="/static/favicon-32.png" sizes="32x32" type="image/png">
-  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
-  <link rel="stylesheet" href="/static/app.css">
-  <script src="/static/js/tz.js"></script>
-  <script src="/static/js/htmx.min.js" defer></script>
-  <script src="/static/js/theme.js" defer></script>{{/* must come before Alpine: it registers its stores on alpine:init */}}
-  <script src="/static/js/match_form.js" defer></script>
-  <script src="/static/js/match_result.js" defer></script>
-  <script src="/static/js/ruleset_picker.js" defer></script>
-  <script src="/static/js/lists.js" defer></script>
-  <script src="/static/js/sortable.min.js" defer></script>{{/* SortableJS (MIT): drag and drop of the unit cards */}}
-  <script src="/static/js/dice.js" defer></script>
-  <script src="/static/js/company.js" defer></script>
-  <script src="/static/js/live.js" defer></script>
-  <script src="/static/js/dialog.js" defer></script>
-  <script src="/static/js/submit.js" defer></script>
-  <script src="/static/js/tabs.js" defer></script>
-  <script src="/static/js/alpine.min.js" defer></script>
+  <script src="{{static "js/theme-init.js"}}"></script>
+  <link rel="icon" href="{{static "favicon.svg"}}" type="image/svg+xml">
+  <link rel="icon" href="{{static "favicon-32.png"}}" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="{{static "apple-touch-icon.png"}}">
+  <link rel="stylesheet" href="{{static "app.css"}}">
+  <script src="{{static "js/tz.js"}}"></script>
+  {{/* htmx, the theme store (before Alpine: it registers its stores on alpine:init), the page scripts, SortableJS (MIT) and Alpine, in one file: see bundleScripts in static.go */}}
+  <script src="{{static "js/app.js"}}" defer></script>
   {{/* historyCacheSize 0: going back re-fetches the page instead of restoring an HTML snapshot, which would carry Alpine's generated nodes without their state. */}}
   <meta name="htmx-config" content='{"historyCacheSize":0,"responseHandling":[{"code":"422","swap":true},{"code":"[23]..","swap":true},{"code":".*","swap":false,"error":true}]}'>
 </head>
@@ -45,7 +33,7 @@
       <button type="button" class="btn btn-ghost !px-2 md:hidden" @click="open = true" :aria-expanded="open" aria-controls="sidebar" aria-label="Open menu">
         <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
-      <a href="/" class="flex min-w-0 items-center gap-2 font-heading text-base font-bold leading-tight text-fg no-underline hover:no-underline sm:text-xl"><img src="/static/favicon.svg" alt="" class="h-8 w-8 shrink-0"><span class="line-clamp-3 sm:line-clamp-2">Battle Companies 2nd Community Edition Manager</span></a>
+      <a href="/" class="flex min-w-0 items-center gap-2 font-heading text-base font-bold leading-tight text-fg no-underline hover:no-underline sm:text-xl"><img src="{{static "favicon.svg"}}" alt="" class="h-8 w-8 shrink-0"><span class="line-clamp-3 sm:line-clamp-2">Battle Companies 2nd Community Edition Manager</span></a>
       <div class="ml-auto">{{template "theme_menu" .}}</div>
     </div>
   </header>
@@ -61,7 +49,7 @@
 {{else}}
   <header class="border-b border-line bg-surface">
     <div class="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3">
-      <a href="/" class="flex items-center gap-2 font-heading text-base font-bold leading-tight text-fg no-underline hover:no-underline sm:text-xl"><img src="/static/favicon.svg" alt="" class="h-8 w-8 shrink-0"><span class="line-clamp-3 sm:line-clamp-2">Battle Companies 2nd Community Edition Manager</span></a>
+      <a href="/" class="flex items-center gap-2 font-heading text-base font-bold leading-tight text-fg no-underline hover:no-underline sm:text-xl"><img src="{{static "favicon.svg"}}" alt="" class="h-8 w-8 shrink-0"><span class="line-clamp-3 sm:line-clamp-2">Battle Companies 2nd Community Edition Manager</span></a>
       <div class="ml-auto">{{template "theme_menu" .}}</div>
     </div>
   </header>

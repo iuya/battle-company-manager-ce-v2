@@ -900,7 +900,7 @@ func (s *LiveService) SecretObjectives(ctx context.Context, user User, id, match
 	}
 	titles := map[int64]string{}
 	for _, d := range lc.details {
-		for _, u := range d.Roster {
+		for _, u := range Distinguish(d.Roster) { // the nominee of "one of your Heroes" is told apart from a twin
 			titles[u.ID] = u.Title()
 		}
 	}

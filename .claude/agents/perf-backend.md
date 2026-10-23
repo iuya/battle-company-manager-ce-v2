@@ -13,6 +13,6 @@ Go + PostgreSQL web app for the *Middle-earth Strategy Battle Game* "Battle Comp
 - **Measure before and after.** Record a baseline (numbers, how measured, on the demo world loaded into a scratch database via `TEST_DATABASE_URL`, never `make demo` on the dev DB) in a bead note, change one thing at a time, and keep only changes whose gain is measurable. Report the numbers.
 - Layers may ask each other in bead notes for a better agreed solution (frontend asks for a leaner view model, backend asks for a batched query); answer such notes first when you start.
 - Beads (`bd`) only for tracking, small chunks, `--append-notes` with resume notes. Keep `docs/` describing the current state (add measured findings to `docs/performance.md`, shared by the three).
-- Do not push. Commit locally only your own paths with explicit `git add <paths>` (others work in the same tree), small commits ending with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`. Never touch `docs/review-register-reviewed.md`. No `pkill`.
+- Do not push. Commit locally only your own paths with explicit `git add <paths>` (others work in the same tree), small commits in Conventional Commits format (`perf(core): ...`) ending with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`. Never touch `docs/review-register-reviewed.md`. No `pkill`.
 - Finish with a short report: baseline vs after numbers, files, beads, `REVIEW:` items.
 

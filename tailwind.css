@@ -247,6 +247,8 @@ html[data-mode="dark"] { color-scheme: dark; }
   .tone-loss { @apply text-danger; }
   /* A glossary term you jumped to through a link. */
   .term:target, .term-hl { @apply border-accent; box-shadow: 0 0 0 2px var(--accent); }
+  /* the base comes first: the tone variants below (same specificity) must win over its background and text colour */
+  .badge { @apply inline-flex items-center rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-semibold text-accent-text; }
   .badge-gold { @apply bg-gold/20 text-fg; }
   /* A unit's place in the company is its frame: leader gold and doubled, sergeant accent and doubled, other heroes a solid
      accent frame, regular units a thin plain one. */
@@ -361,7 +363,6 @@ html[data-mode="dark"] { color-scheme: dark; }
   .badge-success { @apply bg-success-soft text-fg; box-shadow: inset 0 0 0 1px var(--success); }
   .badge-danger { @apply bg-danger-soft text-fg; box-shadow: inset 0 0 0 1px var(--danger); }
   .badge-warn { @apply text-fg; background: color-mix(in srgb, var(--warn) 22%, var(--surface)); box-shadow: inset 0 0 0 1px var(--warn); }
-  .badge { @apply inline-flex items-center rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-semibold text-accent-text; }
   .divider { @apply border-t border-line; }
   /* htmx marks a form with .htmx-request while its request is in flight */
   form.htmx-request button[type="submit"] { @apply pointer-events-none opacity-60; }

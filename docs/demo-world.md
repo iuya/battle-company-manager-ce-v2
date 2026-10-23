@@ -52,6 +52,7 @@ company, sees "My company"). Page names are those of the navigation: Overview, M
 | **Matches: every scenario and every state** | six pool companies (Éowyn, Sauron, Aragorn, Galadriel, Gimli, Bilbo) and 22 more played by gallery accounts | see [Matches](#matches) | Matches |
 | **Aftermath ward 1: every step of the War's Aftermath** | eight companies | see [Aftermaths](#aftermaths) | Matches > a match > the company's aftermath; Round 3 of 12 on the Overview |
 | **Aftermath ward 2: draws, odds, perks and a succession** | six companies | see [Aftermaths](#aftermaths) | the same |
+| **Aftermath ward 3: no hero left to step up** | Sauron (Mordor), Gimli (Durin's Folk), Aragorn (Arnor), Galadriel (Lothlorien) | a Sergeant fell and the company has no hero: the Warrior with the most Experience (one clear choice), two Warriors tied (the player chooses), and a Leader who fell with both Sergeants (a Leader, then Sergeants, all from the Warriors); see [Aftermaths](#aftermaths) | the aftermath of each company in Match 1 |
 | **Settings: the server rolls every die** | Éowyn, Sauron | `ShakeTheTable` and `ManualRolls` **off**: roll panels have only a Roll button; the script fixed the server's dice, so the results never change | My company > recruit / level up; the aftermath of Match 1 |
 | **Settings: heroes drop profile gear** | Aragorn | `HeroesDropProfileGear` **on** (a hero dropped an item its unit came with); the campaign is **paused**, Round 5 of 8 | Aragorn's Leader card; the Overview status |
 | **Settings: everything on, own paths level up** | Galadriel | all four settings on; `CustomOnTheirOwnPath`: the Wood Elf Sentinels are heroes on the "Path of Their Own Making", earn experience and have a level-up waiting | My company |
@@ -156,6 +157,13 @@ and one left, and its injuries are not yet applied); a **Rescue** where Arnor's 
 (a new Leader and a new Sergeant chosen) and finished; scenario rewards finished for the Elves (perk *Vantage Point*), the Dwarves
 (*cargo*, +1 Influence) and the Hobbits (perk *Rendezvous*); the organiser's grants in the Dwarves' history.
 
+Ward 3 (one match, three companies on one side): the **Warrior-to-Hero fallback**, built with the real services (experience granted by the organiser before
+the match, casualties rolled with typed dice): the Orcs' Sergeant is dead and one Warrior is ahead in Experience (offered alone, already chosen), the
+Dwarves' Sergeant is dead and two Warriors are tied for the most Experience (both listed, none chosen, an answer is required), and the Rangers lost the Leader
+and both Sergeants (the Leader comes from the Warriors, then the Sergeants). The answer is mandatory in every case (no "nobody"); the promoted Warrior takes
+its path on My Company once the aftermath is finished (before that the path window says "Finish the aftermath ... first").
+The Elven Cloak: the Galadhrim of ward 1 (Galadriel) carry it as a unit upgrade badge with a tooltip.
+
 ## Gaps
 
 States of the wish list that the services cannot produce, or that need raw SQL (the only raw SQL of the world, in
@@ -168,9 +176,6 @@ States of the wish list that the services cannot produce, or that need raw SQL (
   run: see the end of `tmp/demo-world.txt`.
 - **A second rules edition**: only one vanilla and one Battle Companies file ship with the app. The "other edition" is a copy of
   the Battle Companies file with another name and version stored through `Rulesets.StoreAs`; it plays like the original.
-- **Attacker / Defender roles and secret objectives** (Fog of War): the match model has no roles and no hidden objectives; the
-  scenarios with roles (Stand Your Ground, Defend the Gate, Hold the Line, Baggage Train) and Fog of War are ordinary
-  matches in the app. (Bead labelled `review`.)
 - **A join request awaiting approval**: joining is by invite link only; the "pending join" state is a member with no company.
 
 ## Extending the world

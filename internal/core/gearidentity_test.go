@@ -196,6 +196,11 @@ func TestGearWithoutOwnTextFindsATooltip(t *testing.T) {
 	if e, _ := equipmentFor(rs, co, "Twin Blades", false, false, false); !strings.Contains(e.Description, "Attacks to 2") {
 		t.Errorf("Twin Blades: %q", e.Description)
 	}
+	for _, name := range []string{"Elven cloak", "Elven Cloak"} { // profile gear the armoury does not sell: the glossary's wargear entry
+		if e, _ := equipmentFor(rs, co, name, false, false, false); !strings.Contains(e.Description, "Stalk Unseen") || !strings.Contains(e.Description, "To Hit") {
+			t.Errorf("%s: tooltip %q should be the Elven Cloak entry", name, e.Description)
+		}
+	}
 	for _, name := range []string{"Horse", "Warg", "Fell Warg", "Armoured horse", "Goat"} {
 		if tip := gearTip(rs, co, name); tip.Text == "" {
 			t.Errorf("%s has no tooltip (mount profile expected)", name)

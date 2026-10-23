@@ -88,6 +88,11 @@ func loadRecord(ctx context.Context, q querier, rec *core.AftermathRecord, lock 
 	if err != nil {
 		return err
 	}
+	return decodeRecord(rec, status, input, state, lines)
+}
+
+// decodeRecord fills the record from the stored columns.
+func decodeRecord(rec *core.AftermathRecord, status string, input, state, lines []byte) error {
 	rec.Status = core.AftermathStatus(status)
 	var in aftermathInputJSON
 	var st aftermathStateJSON
@@ -105,18 +110,29 @@ func loadRecord(ctx context.Context, q querier, rec *core.AftermathRecord, lock 
 	return nil
 }
 
-// Get returns the record, or ErrNotFound when the company is not in the match of the campaign.
+// Get returns the record, or ErrNotFound when the company is not in the match of the campaign. One statement (one snapshot).
 func (as aftermathStore) Get(ctx context.Context, campaignID, matchID, companyID int64) (core.AftermathRecord, error) {
-	tx, err := as.s.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
-	if err != nil {
-		return core.AftermathRecord{}, err
+	rec := core.AftermathRecord{MatchID: matchID, CompanyID: companyID, Status: core.AftermathPending}
+	var status *string
+	var revision *int
+	var input, state, lines []byte
+	err := as.s.pool.QueryRow(ctx, `
+		SELECT m.ended, a.status, a.revision, a.input, a.state, a.lines, a.started_at, a.finished_at
+		  FROM matches m JOIN match_side_companies sc ON sc.match_id = m.id
+		  LEFT JOIN match_aftermaths a ON a.match_id = m.id AND a.company_id = sc.company_id
+		 WHERE m.id = $1 AND m.campaign_id = $2 AND sc.company_id = $3`, matchID, campaignID, companyID).
+		Scan(&rec.MatchEnded, &status, &revision, &input, &state, &lines, &rec.StartedAt, &rec.FinishedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return rec, core.ErrNotFound
 	}
-	defer tx.Rollback(ctx)
-	rec, err := readRecord(ctx, tx, campaignID, matchID, companyID, false)
 	if err != nil {
 		return rec, err
 	}
-	return rec, loadRecord(ctx, tx, &rec, false)
+	if status == nil {
+		return rec, nil
+	}
+	rec.Revision = *revision
+	return rec, decodeRecord(&rec, *status, input, state, lines)
 }
 
 // Update runs fn on the company and its record under the locks of the match (shared), the company and the record.

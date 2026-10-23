@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"slices"
 	"sort"
@@ -23,24 +25,47 @@ func (s *Store) Matches() matchStore { return matchStore{s} }
 const matchColumns = `m.id, m.number, m.played_on, m.ended, m.ended_on, m.revision, m.decided, m.winner, m.note,
 	m.scenario_kind, m.scenario_name, m.scenario_description, m.scenario_victory`
 
-// load reads matches (newest first) with their sides, companies, result and scenario. where is a condition on m.
+// matchJSON are the columns of a match that come from other tables, as JSON built by the match's own statement (one round trip for
+// the whole match instead of one per table). Times are microseconds since the epoch.
+const matchJSON = `
+	(SELECT COALESCE(jsonb_agg(jsonb_build_array(s.name, s.victory_points, coalesce(s.role, '')) ORDER BY s.position), '[]')
+	   FROM match_sides s WHERE s.match_id = m.id),
+	(SELECT COALESCE(jsonb_agg(jsonb_build_array(mc.position, mc.fled, c.id, c.name, c.faction, c.owner_id, u.display_name,
+	                                             (SELECT count(*) FROM company_units cu WHERE cu.company_id = c.id)) ORDER BY mc.position, mc.slot), '[]')
+	   FROM match_side_companies mc JOIN companies c ON c.id = mc.company_id JOIN users u ON u.id = c.owner_id WHERE mc.match_id = m.id),
+	(SELECT jsonb_build_array(p.proposed_by, pu.display_name, (extract(epoch FROM p.proposed_on) * 1000000)::bigint, p.notice)
+	   FROM match_end_proposal p JOIN users pu ON pu.id = p.proposed_by WHERE p.match_id = m.id),
+	(SELECT COALESCE(jsonb_agg(jsonb_build_array(c.company_id, u.display_name, (extract(epoch FROM c.confirmed_on) * 1000000)::bigint, c.override)), '[]')
+	   FROM match_end_confirmation c JOIN users u ON u.id = c.confirmed_by WHERE c.match_id = m.id),
+	(SELECT COALESCE(jsonb_agg(jsonb_build_array(o.company_id, o.key, o.times) ORDER BY o.company_id, o.key), '[]')
+	   FROM match_objectives o WHERE o.match_id = m.id)`
+
+// load reads matches (newest first) with their sides, companies, result and scenario. where is a condition on m. One statement
+// (two with lock: the rows are locked first, so what is read after is what the lock holder left).
 func (ms matchStore) load(ctx context.Context, q querier, where string, lock bool, args ...any) ([]core.Match, error) {
-	query := `SELECT ` + matchColumns + ` FROM matches m WHERE ` + where + ` ORDER BY m.number DESC`
 	if lock {
-		query += ` FOR UPDATE OF m`
+		rows, err := q.Query(ctx, `SELECT m.id FROM matches m WHERE `+where+` ORDER BY m.number DESC FOR UPDATE OF m`, args...)
+		if err != nil {
+			return nil, err
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
 	}
-	rows, err := q.Query(ctx, query, args...)
+	rows, err := q.Query(ctx, `SELECT `+matchColumns+`, `+matchJSON+` FROM matches m WHERE `+where+` ORDER BY m.number DESC`, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var out []core.Match
 	for rows.Next() {
 		var m core.Match
 		var kind *string
 		var sc core.MatchScenario
+		var sides, companies, proposal, confirmations, objectives []byte
 		if err := rows.Scan(&m.ID, &m.Number, &m.PlayedOn, &m.Ended, &m.EndedOn, &m.Revision, &m.Result.Decided, &m.Result.Winner,
-			&m.Result.Note, &kind, &sc.Name, &sc.Description, &sc.Victory); err != nil {
-			rows.Close()
+			&m.Result.Note, &kind, &sc.Name, &sc.Description, &sc.Victory, &sides, &companies, &proposal, &confirmations, &objectives); err != nil {
 			return nil, err
 		}
 		m.Winner = m.Result.Winner
@@ -48,148 +73,98 @@ func (ms matchStore) load(ctx context.Context, q querier, where string, lock boo
 			sc.Kind = core.ScenarioKind(*kind)
 			m.Scenario = &sc
 		}
+		if err := fillMatch(&m, sides, companies, proposal, confirmations, objectives); err != nil {
+			return nil, fmt.Errorf("match %d: %w", m.ID, err)
+		}
 		out = append(out, m)
 	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	if len(out) == 0 {
-		return nil, nil
-	}
-	ids := make([]int64, len(out))
-	index := map[int64]int{}
-	for i, m := range out {
-		ids[i] = m.ID
-		index[m.ID] = i
-	}
+	return out, rows.Err()
+}
 
+// fillMatch decodes matchJSON into the match.
+func fillMatch(m *core.Match, sidesJSON, companiesJSON, proposalJSON, confirmationsJSON, objectivesJSON []byte) error {
 	// Sides, in order.
-	rows, err = q.Query(ctx, `SELECT match_id, name, victory_points, coalesce(role, '') FROM match_sides WHERE match_id = ANY($1) ORDER BY match_id, position`, ids)
-	if err != nil {
-		return nil, err
+	var sides [][3]json.RawMessage
+	if err := json.Unmarshal(sidesJSON, &sides); err != nil {
+		return err
 	}
-	for rows.Next() {
-		var id int64
+	for _, r := range sides {
 		var side core.MatchSide
-		var vp *int16
-		if err := rows.Scan(&id, &side.Name, &vp, &side.Role); err != nil {
-			rows.Close()
-			return nil, err
+		var vp *int
+		if err := unmarshalAll(r[:], &side.Name, &vp, &side.Role); err != nil {
+			return err
 		}
-		m := &out[index[id]]
 		m.Sides = append(m.Sides, side)
-		sr := core.SideResult{}
-		if vp != nil {
-			v := int(*vp)
-			sr.VictoryPoints = &v
-		}
-		m.Result.Sides = append(m.Result.Sides, sr)
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return nil, err
+		m.Result.Sides = append(m.Result.Sides, core.SideResult{VictoryPoints: vp})
 	}
 
 	// Companies of the sides, with what was reported for them.
-	rows, err = q.Query(ctx, `
-		SELECT mc.match_id, mc.position, mc.fled, c.id, c.name, c.faction, c.owner_id, u.display_name,
-		       (SELECT count(*) FROM company_units cu WHERE cu.company_id = c.id)::int
-		  FROM match_side_companies mc
-		  JOIN companies c ON c.id = mc.company_id
-		  JOIN users u ON u.id = c.owner_id
-		 WHERE mc.match_id = ANY($1) ORDER BY mc.match_id, mc.position, mc.slot`, ids)
-	if err != nil {
-		return nil, err
+	var companies [][8]json.RawMessage
+	if err := json.Unmarshal(companiesJSON, &companies); err != nil {
+		return err
 	}
-	for rows.Next() {
-		var id int64
+	for _, r := range companies {
 		var pos int
 		var fled bool
 		var c core.CampaignCompany
-		if err := rows.Scan(&id, &pos, &fled, &c.ID, &c.Name, &c.Faction, &c.OwnerID, &c.Owner, &c.Units); err != nil {
-			rows.Close()
-			return nil, err
+		if err := unmarshalAll(r[:], &pos, &fled, &c.ID, &c.Name, &c.Faction, &c.OwnerID, &c.Owner, &c.Units); err != nil {
+			return err
 		}
-		m := &out[index[id]]
 		m.Sides[pos].Companies = append(m.Sides[pos].Companies, c)
 		if fled {
 			m.Result.Companies = append(m.Result.Companies, core.CompanyResult{CompanyID: c.ID, Fled: true})
 		}
 	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
 
 	// The pending end, with one entry per company of the match (a company without a confirmation row is waiting).
-	rows, err = q.Query(ctx, `
-		SELECT p.match_id, p.proposed_by, pu.display_name, p.proposed_on, p.notice FROM match_end_proposal p JOIN users pu ON pu.id = p.proposed_by
-		 WHERE p.match_id = ANY($1)`, ids)
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		var id int64
-		var p core.EndProposal
-		if err := rows.Scan(&id, &p.ProposedByID, &p.ProposedBy, &p.ProposedOn, &p.Notice); err != nil {
-			rows.Close()
-			return nil, err
+	if proposalJSON != nil {
+		var r [4]json.RawMessage
+		if err := json.Unmarshal(proposalJSON, &r); err != nil {
+			return err
 		}
-		m := &out[index[id]]
+		var p core.EndProposal
+		var on int64
+		if err := unmarshalAll(r[:], &p.ProposedByID, &p.ProposedBy, &on, &p.Notice); err != nil {
+			return err
+		}
+		p.ProposedOn = time.UnixMicro(on)
 		for _, side := range m.Sides {
 			for _, c := range side.Companies {
 				p.Companies = append(p.Companies, core.EndConfirmation{CompanyID: c.ID, OwnerID: c.OwnerID, CompanyName: c.Name})
 			}
 		}
-		m.EndProposal = &p
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	rows, err = q.Query(ctx, `
-		SELECT c.match_id, c.company_id, u.display_name, c.confirmed_on, c.override FROM match_end_confirmation c JOIN users u ON u.id = c.confirmed_by
-		 WHERE c.match_id = ANY($1)`, ids)
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		var id, company int64
-		var by string
-		var on time.Time
-		var override bool
-		if err := rows.Scan(&id, &company, &by, &on, &override); err != nil {
-			rows.Close()
-			return nil, err
+		var confirmations [][4]json.RawMessage
+		if err := json.Unmarshal(confirmationsJSON, &confirmations); err != nil {
+			return err
 		}
-		if p := out[index[id]].EndProposal; p != nil {
+		for _, r := range confirmations {
+			var company, on int64
+			var by string
+			var override bool
+			if err := unmarshalAll(r[:], &company, &by, &on, &override); err != nil {
+				return err
+			}
 			for i := range p.Companies {
 				if p.Companies[i].CompanyID == company {
-					p.Companies[i].Confirmed, p.Companies[i].By, p.Companies[i].On, p.Companies[i].Override = true, by, on, override
+					p.Companies[i].Confirmed, p.Companies[i].By, p.Companies[i].On, p.Companies[i].Override = true, by, time.UnixMicro(on), override
 				}
 			}
 		}
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return nil, err
+		m.EndProposal = &p
 	}
 
 	// Objectives, merged into the company entries (one per company that fled or completed something).
-	rows, err = q.Query(ctx, `SELECT match_id, company_id, key, times FROM match_objectives WHERE match_id = ANY($1) ORDER BY match_id, company_id, key`, ids)
-	if err != nil {
-		return nil, err
+	var objectives [][3]json.RawMessage
+	if err := json.Unmarshal(objectivesJSON, &objectives); err != nil {
+		return err
 	}
-	for rows.Next() {
-		var id, company int64
+	for _, r := range objectives {
+		var company int64
 		var key string
 		var n int
-		if err := rows.Scan(&id, &company, &key, &n); err != nil {
-			rows.Close()
-			return nil, err
+		if err := unmarshalAll(r[:], &company, &key, &n); err != nil {
+			return err
 		}
-		m := &out[index[id]]
 		i := slices.IndexFunc(m.Result.Companies, func(c core.CompanyResult) bool { return c.CompanyID == company })
 		if i < 0 {
 			m.Result.Companies = append(m.Result.Companies, core.CompanyResult{CompanyID: company})
@@ -200,23 +175,16 @@ func (ms matchStore) load(ctx context.Context, q querier, where string, lock boo
 		}
 		m.Result.Companies[i].Objectives[key] = n
 	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	for i := range out {
-		m := &out[i]
-		order := map[int64]int{}
-		for _, s := range m.Sides {
-			for _, c := range s.Companies {
-				order[c.ID] = len(order)
-			}
+	order := map[int64]int{}
+	for _, s := range m.Sides {
+		for _, c := range s.Companies {
+			order[c.ID] = len(order)
 		}
-		sort.SliceStable(m.Result.Companies, func(a, b int) bool {
-			return order[m.Result.Companies[a].CompanyID] < order[m.Result.Companies[b].CompanyID]
-		})
 	}
-	return out, nil
+	sort.SliceStable(m.Result.Companies, func(a, b int) bool {
+		return order[m.Result.Companies[a].CompanyID] < order[m.Result.Companies[b].CompanyID]
+	})
+	return nil
 }
 
 // List returns the campaign's matches, newest first.
@@ -236,27 +204,38 @@ func (ms matchStore) Get(ctx context.Context, campaignID, matchID int64) (core.M
 	return list[0], nil
 }
 
-// Events is the match's history, oldest first.
+// Events is the match's history, oldest first; ErrNotFound when the campaign has no such match. One statement: the match row, left
+// joined to its events, answers both.
 func (ms matchStore) Events(ctx context.Context, campaignID, matchID int64) ([]core.MatchEvent, error) {
-	if _, err := ms.Get(ctx, campaignID, matchID); err != nil {
-		return nil, err
-	}
 	rows, err := ms.s.pool.Query(ctx, `
-		SELECT e.kind, u.display_name, e.at, e.detail FROM match_events e JOIN users u ON u.id = e.user_id
-		 WHERE e.match_id = $1 ORDER BY e.id`, matchID)
+		SELECT e.kind, u.display_name, e.at, e.detail
+		  FROM matches m LEFT JOIN match_events e ON e.match_id = m.id LEFT JOIN users u ON u.id = e.user_id
+		 WHERE m.campaign_id = $1 AND m.id = $2 ORDER BY e.id`, campaignID, matchID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var out []core.MatchEvent
+	found := false
 	for rows.Next() {
-		var e core.MatchEvent
-		if err := rows.Scan(&e.Kind, &e.By, &e.On, &e.Detail); err != nil {
+		found = true
+		var kind, by, detail *string
+		var at *time.Time
+		if err := rows.Scan(&kind, &by, &at, &detail); err != nil {
 			return nil, err
 		}
-		out = append(out, e)
+		if kind == nil { // the match has no events
+			continue
+		}
+		out = append(out, core.MatchEvent{Kind: *kind, By: *by, On: *at, Detail: *detail})
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, core.ErrNotFound
+	}
+	return out, nil
 }
 
 // Create stores an open match numbered after the campaign's last one. The campaign row is locked meanwhile, so two matches

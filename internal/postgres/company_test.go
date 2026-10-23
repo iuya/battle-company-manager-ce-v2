@@ -268,3 +268,63 @@ func TestReadRosterMatchesRead(t *testing.T) {
 		}
 	}
 }
+
+// Read answers in one statement with JSON; load (used under the row lock by Update) in several. They must give the same state for every
+// company the database holds, including pending aftermaths, perks, an open match and the cemetery.
+func TestReadEqualsLoad(t *testing.T) {
+	s, ctx := testStore(t)
+	cs := s.Companies()
+	rows, err := s.pool.Query(ctx, `SELECT campaign_id, id FROM companies ORDER BY id`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ids [][2]int64
+	for rows.Next() {
+		var p [2]int64
+		if err := rows.Scan(&p[0], &p[1]); err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, p)
+	}
+	rows.Close()
+	for _, p := range ids {
+		got, err := cs.Read(ctx, p[0], p[1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		tx, err := s.pool.Begin(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want, err := cs.load(ctx, tx, p[0], p[1], false)
+		tx.Rollback(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("company %d: Read differs from load\n got %+v\nwant %+v", p[1], got, want)
+		}
+	}
+	// the roster read gives the same companies and units, without what only Read has
+	byCampaign := map[int64][]int64{}
+	for _, p := range ids {
+		byCampaign[p[0]] = append(byCampaign[p[0]], p[1])
+	}
+	for camp, list := range byCampaign {
+		roster, err := cs.ReadRoster(ctx, camp)
+		if err != nil || len(roster) != len(list) {
+			t.Fatalf("roster of %d: %d companies, %v; want %d", camp, len(roster), err, len(list))
+		}
+		for i, id := range list {
+			want, err := cs.Read(ctx, camp, id)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want.Aftermaths, want.OpenMatch, want.Perks, want.Cemetery, want.Recruit = nil, nil, nil, nil, core.RecruitProgress{}
+			if !reflect.DeepEqual(roster[i], want) {
+				t.Fatalf("company %d: ReadRoster differs from Read\n got %+v\nwant %+v", id, roster[i], want)
+			}
+		}
+	}
+	t.Logf("%d companies compared", len(ids))
+}

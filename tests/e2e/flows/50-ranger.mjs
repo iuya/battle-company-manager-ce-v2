@@ -24,12 +24,12 @@ export default async function (h) {
     }
     await bilbo.page.setViewport({ width: 1280, height: 900 });
     assert.equal(await bilbo.page.$$eval(MODAL + ' [data-keep] .slot-only', (e) => e.length), 0, 'the Ranger has no remove button');
-    // keyboard path: move the Ranger to a Sergeant place; the Leader is the one who was in that place or the old Leader
+    // keyboard path: move the Ranger to a Sergeant place; the Leader is the one who was in that place or the old Leader (in the demo world the promoted Hobbit)
     await bilbo.page.click(MODAL + ' [data-keep] button:nth-of-type(2)');
     await bilbo.settle(200);
     const sum = await bilbo.page.$eval(MODAL + ' form', (f) => f.innerText);
     assert.match(sum, /Appoint/);
-    assert.match(sum, /Hobbit Militia \(Sergeant\) 1 leads; Ranger of the North and Hobbit Militia \(Sergeant\) 2 are Sergeants/, 'the Ranger swapped places with a Sergeant');
+    assert.match(sum, /Hobbit Militia \(Leader\) leads; Ranger of the North and Hobbit Militia \(Sergeant\) 1 are Sergeants/, 'the Ranger moved to a Sergeant place; the old Leader (a promoted Hobbit) leads and the other Sergeant stays');
     await bilbo.page.screenshot({ path: 'out/officers-moved.png' });
     await bilbo.click(MODAL + ' button', 'Appoint');
     await bilbo.settle(800);

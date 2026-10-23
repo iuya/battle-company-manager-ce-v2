@@ -2,9 +2,10 @@
 // Everything it starts it stops by pid; nothing here uses pkill, and the development database is never touched.
 import { spawn, execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync, existsSync, mkdirSync, statSync, openSync } from 'node:fs';
+import { readdirSync, readFileSync, existsSync, mkdirSync, statSync, openSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { createServer } from 'node:net';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const here = dirname(fileURLToPath(import.meta.url));
@@ -36,7 +37,7 @@ function hashTree(paths) {
   const walk = (p) => {
     if (!existsSync(p)) return;
     if (statSync(p).isDirectory()) { for (const f of readdirSync(p).sort()) walk(join(p, f)); return; }
-    h.update(p); h.update(readFileSync(p));
+    h.update(relative(root, p)); h.update(readFileSync(p));
   };
   for (const p of paths) walk(p);
   return h.digest('hex').slice(0, 10);
@@ -66,9 +67,12 @@ export class Env {
   // done once per version of the seed script, the migrations and the rules files, then copied per run).
   async prepare(log) {
     mkdirSync(outDir, { recursive: true });
-    this.bin = join(outDir, 'bcm-e2e-server');
+    this.bin = join(outDir, `bcm-e2e-server-${process.pid}`); // one binary per run: parallel runs must not overwrite each other's
     log('building the server');
     sh('go', ['build', '-o', this.bin, './cmd/server']);
+    // Seeding the template and copying from it must not overlap with another run (PostgreSQL refuses CREATE DATABASE ... TEMPLATE while
+    // the template is in use, and two seedings would drop each other's): a lock directory serialises the two steps across runs.
+    await this.lock(log);
     const tpl = 'bcm_e2e_tpl_' + hashTree([join(root, 'cmd/server'), join(root, 'internal/postgres/migrations'), join(root, 'definitions')]);
     const exists = psql(`SELECT 1 FROM pg_database WHERE datname='${tpl}'`).trim() === '1';
     if (!exists || process.env.E2E_RESEED) {
@@ -81,15 +85,31 @@ export class Env {
     this.db = `bcm_e2e_run_${process.pid}`;
     psql(`DROP DATABASE IF EXISTS ${this.db}`);
     psql(`CREATE DATABASE ${this.db} TEMPLATE ${tpl}`);
+    this.unlock();
     this.port = await freePort();
     this.base = `http://127.0.0.1:${this.port}`;
   }
+
+  async lock(log) {
+    const dir = join(tmpdir(), 'bcm-e2e-prepare.lock');
+    for (let i = 0; i < 1800; i++) { // up to 30 minutes (a seeding takes minutes)
+      try { mkdirSync(dir); this.lockDir = dir; return; } catch (e) {
+        if (e.code !== 'EEXIST') throw e;
+        try { if (Date.now() - statSync(dir).mtimeMs > 20 * 60000) rmSync(dir, { recursive: true, force: true }); } catch {} // a crashed run
+        if (i === 0) log('another run is preparing the template database, waiting');
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+    throw new Error('the prepare lock ' + dir + ' stayed taken');
+  }
+
+  unlock() { if (this.lockDir) { try { rmSync(this.lockDir, { recursive: true, force: true }); } catch {} this.lockDir = null; } }
 
   async startServer() {
     const logFd = openSync(join(outDir, 'server.log'), 'w');
     const p = spawn(this.bin, [], {
       cwd: root, stdio: ['ignore', logFd, logFd],
-      env: { ...process.env, DATABASE_URL: dbUrl(this.db), PORT: String(this.port), APP_ENV: 'development', CSP_MODE: 'report', STYLEGUIDE: 'true' },
+      env: { ...process.env, DATABASE_URL: dbUrl(this.db), PORT: String(this.port), APP_ENV: 'development', CSP_MODE: 'report', STYLEGUIDE: 'true', ...(this.extraEnv || {}) },
     });
     this.procs.push(p);
     for (let i = 0; i < 100; i++) {
@@ -101,9 +121,11 @@ export class Env {
 
   // Stops only what this run started, then drops its scratch database. The cached template stays.
   async cleanup() {
+    this.unlock();
     for (const p of this.procs) { try { p.kill('SIGTERM'); } catch {} }
     await new Promise((r) => setTimeout(r, 500));
     for (const p of this.procs) { try { if (p.exitCode === null) p.kill('SIGKILL'); } catch {} }
+    if (this.bin) { try { rmSync(this.bin, { force: true }); } catch {} }
     if (this.db) { try { psql(`DROP DATABASE IF EXISTS ${this.db} WITH (FORCE)`); } catch (e) { console.error('could not drop', this.db, e.message); } }
   }
 }

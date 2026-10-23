@@ -19,6 +19,12 @@ type homeView struct {
 	Newcomer bool
 }
 
+// navView is the data of the sidebar's campaign list (the template "nav_campaigns" reads Campaigns, as homeView's does).
+type navView struct {
+	pageBase
+	Campaigns []core.CampaignNav
+}
+
 const finishedCookie = "bcm-finished" // "1" when the user wants finished campaigns listed (main page and sidebar)
 
 func showFinished(r *http.Request) bool {
@@ -43,18 +49,20 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		}
 		newcomer = len(all) == 0
 	}
-	s.render.page(w, r, http.StatusOK, "home", homeView{pageBase: s.base(r), Campaigns: list, ShowFinished: with, Newcomer: newcomer})
+	base := s.bare(r)
+	base.NavInline, base.NavOwn = true, true // the sidebar's campaign list is this page's list: no second request, no second query
+	s.render.page(w, r, http.StatusOK, "home", homeView{pageBase: base, Campaigns: list, ShowFinished: with, Newcomer: newcomer})
 }
 
 // handleNavCampaigns returns the items of the sidebar's campaigns sub-menu. The sidebar fetches it once per full page
 // load, so no other page has to know about it.
 func (s *Server) handleNavCampaigns(w http.ResponseWriter, r *http.Request) {
-	list, err := s.campaigns.List(r.Context(), userFrom(r.Context()).ID, showFinished(r))
+	list, err := s.campaigns.NavCampaigns(r.Context(), userFrom(r.Context()).ID, showFinished(r))
 	if err != nil {
 		s.serverError(w, r, err)
 		return
 	}
-	s.render.partial(w, http.StatusOK, "home", "nav_campaigns", homeView{pageBase: s.base(r), Campaigns: list})
+	s.render.partial(w, http.StatusOK, "home", "nav_campaigns", navView{pageBase: s.bare(r), Campaigns: list})
 }
 
 // pickerView is one "which rules file?" choice of the new-campaign form.

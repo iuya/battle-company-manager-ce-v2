@@ -78,6 +78,30 @@ users, campaigns, companies and matches can be counted, and no company is withou
 Run it after the first backup is set up, after every change of the backup procedure or of PostgreSQL's major version, and monthly from cron (`15 4 1 * * ... make restore-drill`) so a silent breakage shows up.
 For a deeper check, point a staging copy of the app at the scratch database: `DATABASE_URL=...bcm_drill_x go run ./cmd/server` (comment out the `DROP` in the script's trap, or restore by hand with `make restore` into a staging database).
 
+## Robustness: what keeps one failure from taking the app down
+
+A panic in an HTTP handler is caught by the outermost middleware (`recoverer`: logs the stack, answers 500, keeps serving). Everything that runs outside a request
+needs its own guard, because an unrecovered panic in any goroutine ends the process.
+
+- **Goroutines.** There are four. The rule-set build (`core.Rules.For`) and the live hub (`LiveHub.Start`) run under `core.safely`: a panic is logged with its stack, the
+  build answers an error (and is not cached), the hub restarts the Postgres feed after a second and the restart marks every stream changed. The match page cards
+  (`internal/web/match_cards.go`) recover and fall back to the lazy fetch. `ListenAndServe` is handled by net/http. There are no cleanup loops: the session cache, the login
+  throttle, the memos and the rule-set cache are bounded by size and prune on access.
+- **LISTEN/NOTIFY.** One connection outside the pool. Connect and `LISTEN` have a 15 s deadline; an idle connection is pinged every 30 s; any failure reconnects with
+  1 s to 30 s backoff, logs a warning and re-syncs all streams. The hub never blocks on a subscriber: each stream holds one coalesced batch and a one-slot wake channel
+  (so a slow browser costs one batch, never a backlog), publish holds the hub lock only for non-blocking work, and a stream frees its slot when its request ends
+  (`context.AfterFunc`). Caps: 10 streams per user, 50 per match.
+- **Server limits** (`cmd/server/main.go`): ReadHeaderTimeout 5 s, ReadTimeout 60 s, WriteTimeout 120 s, IdleTimeout 120 s, MaxHeaderBytes 64 KB. The live stream (SSE) sets
+  a write deadline per write and lifts the read deadline, so it is not cut (`TestLiveStreamOutlivesTheServerTimeouts`). Request bodies: 1 MiB for everything that is not a
+  multipart upload (`limitBody`); uploads set their own limit (`maxUpload`) before parsing. Shutdown on SIGINT/SIGTERM: the hub closes its streams, in-flight requests get 10 s.
+- **Database.** Every pooled connection gets `statement_timeout=60s` and `idle_in_transaction_session_timeout=60s` (a setting in `DATABASE_URL` wins; migrations run before
+  the limits apply), so a stuck request cannot hold the match row lock or a pool connection for ever. Every transaction begins with `defer tx.Rollback`. Handlers pass
+  the request context, so a client that leaves cancels its queries.
+- **Boot versus run.** Configuration errors, a failed migration, a broken embedded asset table (`staticFiles`) and an unparsable template fail at start (`NewServer`,
+  `run`), never at the first request. At run time nothing calls `log.Fatal`; the `panic` calls in `cmd/server/world*.go` belong to the `seed` command.
+- **Tests.** `TestMalformedInputNeverCrashesAHandler` (cmd/server, needs `TEST_DATABASE_URL`; about 80 s with the seeding, `SWEEP_FULL=1` tries 23 values and takes about two minutes) sends every route, read from `server.go`, hostile values for every
+  form field the handlers and templates know and hostile path ids against the demo world: no 5xx, no logged panic. Run the packages you touch with `go test -race`.
+
 ## Not covered
 
 Point-in-time recovery (WAL archiving) is not set up: the recovery point is the last dump. If a day of loss becomes unacceptable, move to a managed PostgreSQL with PITR or add `pgBackRest`/WAL-G; the app needs no change.

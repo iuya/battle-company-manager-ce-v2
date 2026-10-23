@@ -772,6 +772,7 @@ func (v *aftermathView) fillUnits(in core.AftermathInput, errs map[int64]string)
 
 // handleAftermath shows a company's aftermath. An open match shows the locked state.
 func (s *Server) handleAftermath(w http.ResponseWriter, r *http.Request) {
+	r = r.WithContext(core.WithReadScope(r.Context())) // a read only request: the services share the match, company and record they read
 	base, m, co, ok := s.aftermathCtx(w, r)
 	if !ok {
 		return

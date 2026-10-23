@@ -126,14 +126,167 @@ func nilIfEmpty[T any](s []T) []T {
 	return s
 }
 
-// Read returns the company's state without locking it.
+// unitsJSON is a column: the units of company c with their equipment, in roster order, as JSON (readUnitJSON).
+const unitsJSON = `(SELECT COALESCE(jsonb_agg(jsonb_build_object('id', x.id, 'base', x.base, 'name', x.custom_name, 'role', x.role, 'kind', x.kind,
+	                  'path', x.path, 'pathRules', x.path_rules, 'level', x.level, 'xp', x.xp, 'points', x.points, 'wanderer', x.wanderer,
+	                  'creature', x.creature, 'injured', x.injured, 'healers', x.sent_to_healers, 'progress', x.progress,
+	                  'injuries', x.injuries, 'data', x.data, 'pending', x.pending,
+	                  'gear', (SELECT jsonb_agg(e.name ORDER BY e.position) FROM unit_equipment e WHERE e.unit_id = x.id AND e.origin = 'gear'),
+	                  'bought', (SELECT jsonb_agg(e.name ORDER BY e.position) FROM unit_equipment e WHERE e.unit_id = x.id AND e.origin = 'bought'),
+	                  'dropped', (SELECT jsonb_agg(e.name ORDER BY e.position) FROM unit_equipment e WHERE e.unit_id = x.id AND e.origin = 'dropped'))
+	                  ORDER BY x.position), '[]')
+	          FROM company_units x WHERE x.company_id = c.id)`
+
+// readQuery reads a whole company in ONE statement (one snapshot, one round trip): the company row and, as JSON, its pending
+// aftermaths, open match, unused perks, units with their equipment, and cemetery. Same content and order as load.
+const readQuery = `
+	SELECT c.id, c.name, c.faction, c.owner_id, u.display_name, c.influence, c.gold, c.rerolls, c.pack, c.unit_order, c.grave_order, c.pending,
+	       (SELECT COALESCE(jsonb_agg(jsonb_build_array(m.id, m.number, COALESCE(a.status, 'pending')) ORDER BY m.number), '[]')
+	          FROM match_side_companies sc
+	          JOIN matches m ON m.id = sc.match_id AND m.ended
+	          LEFT JOIN match_aftermaths a ON a.match_id = sc.match_id AND a.company_id = sc.company_id
+	         WHERE sc.company_id = c.id AND COALESCE(a.status, 'pending') NOT IN ('done', 'waived')),
+	       (SELECT jsonb_build_array(m.id, m.number) FROM match_side_companies sc JOIN matches m ON m.id = sc.match_id AND NOT m.ended
+	         WHERE sc.company_id = c.id ORDER BY m.number LIMIT 1),
+	       (SELECT COALESCE(jsonb_agg(jsonb_build_array(p.id, COALESCE(p.match_id, 0), COALESCE(p.unit_id, 0), p.effect, p.name, p.text, p.applies)
+	                                  ORDER BY p.id), '[]')
+	          FROM company_perks p WHERE p.company_id = c.id AND p.used_on IS NULL),
+	       ` + unitsJSON + `,
+	       (SELECT COALESCE(jsonb_agg(jsonb_build_object('fate', f.fate, 'in', f.fell_in, 'snapshot', f.snapshot) ORDER BY f.position), '[]')
+	          FROM fallen_units f WHERE f.company_id = c.id)
+	  FROM companies c JOIN users u ON u.id = c.owner_id WHERE c.campaign_id = $1 AND c.id = $2`
+
+type readUnitJSON struct {
+	ID        int64           `json:"id"`
+	Base      string          `json:"base"`
+	Name      string          `json:"name"`
+	Role      string          `json:"role"`
+	Kind      string          `json:"kind"`
+	Path      string          `json:"path"`
+	PathRules int             `json:"pathRules"`
+	Level     int             `json:"level"`
+	XP        int             `json:"xp"`
+	Points    int             `json:"points"`
+	Wanderer  string          `json:"wanderer"`
+	Creature  string          `json:"creature"`
+	Injured   bool            `json:"injured"`
+	Healers   bool            `json:"healers"`
+	Progress  json.RawMessage `json:"progress"`
+	Injuries  injuriesJSON    `json:"injuries"`
+	Data      unitDataJSON    `json:"data"`
+	Pending   unitPendingJSON `json:"pending"`
+	Gear      []string        `json:"gear"`
+	Bought    []string        `json:"bought"`
+	Dropped   []string        `json:"dropped"`
+}
+
+// Read returns the company's state without locking it, in one statement (so one snapshot, with no transaction around it).
 func (cs companyStore) Read(ctx context.Context, campaignID, companyID int64) (core.CompanyState, error) {
-	tx, err := cs.s.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly}) // one snapshot for all the queries
-	if err != nil {
-		return core.CompanyState{}, err
+	var st core.CompanyState
+	co := &st.Company
+	var companyPending, refs, open, perks, units, fallen []byte
+	err := cs.s.pool.QueryRow(ctx, readQuery, campaignID, companyID).
+		Scan(&co.ID, &co.Name, &co.Faction, &co.OwnerID, &co.Owner, &st.Influence, &st.Gold, &st.Rerolls, &st.Pack, &st.Order, &st.Graveyard,
+			&companyPending, &refs, &open, &perks, &units, &fallen)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return st, core.ErrNotFound
 	}
-	defer tx.Rollback(ctx)
-	return cs.load(ctx, tx, campaignID, companyID, false)
+	if err != nil {
+		return st, err
+	}
+	var cp companyPendingJSON
+	if err := json.Unmarshal(companyPending, &cp); err != nil {
+		return st, fmt.Errorf("company %d pending: %w", companyID, err)
+	}
+	st.Recruit = cp.Recruit
+
+	var rr [][3]json.RawMessage
+	if err := json.Unmarshal(refs, &rr); err != nil {
+		return st, fmt.Errorf("company %d aftermaths: %w", companyID, err)
+	}
+	for _, r := range rr {
+		ref := core.AftermathRef{CompanyID: companyID, CompanyName: co.Name}
+		var status string
+		if err := unmarshalAll(r[:], &ref.MatchID, &ref.MatchNumber, &status); err != nil {
+			return st, fmt.Errorf("company %d aftermaths: %w", companyID, err)
+		}
+		ref.Status = core.AftermathStatus(status)
+		st.Aftermaths = append(st.Aftermaths, ref)
+	}
+	if open != nil {
+		var o [2]int64
+		if err := json.Unmarshal(open, &o); err != nil {
+			return st, fmt.Errorf("company %d open match: %w", companyID, err)
+		}
+		st.OpenMatch = &core.OpenMatchRef{MatchID: o[0], Number: int(o[1])}
+	}
+	var pr [][7]json.RawMessage
+	if err := json.Unmarshal(perks, &pr); err != nil {
+		return st, fmt.Errorf("company %d perks: %w", companyID, err)
+	}
+	for _, r := range pr {
+		var p core.Perk
+		if err := unmarshalAll(r[:], &p.ID, &p.MatchID, &p.UnitID, &p.Effect, &p.Name, &p.Text, &p.When); err != nil {
+			return st, fmt.Errorf("company %d perks: %w", companyID, err)
+		}
+		st.Perks = append(st.Perks, p)
+	}
+	st.Pack, st.Order, st.Graveyard = nilIfEmpty(st.Pack), nilIfEmpty(st.Order), nilIfEmpty(st.Graveyard)
+
+	if st.Units, err = decodeUnits(units); err != nil {
+		return st, fmt.Errorf("company %d units: %w", companyID, err)
+	}
+	var fs []struct {
+		Fate     string          `json:"fate"`
+		In       string          `json:"in"`
+		Snapshot json.RawMessage `json:"snapshot"`
+	}
+	if err := json.Unmarshal(fallen, &fs); err != nil {
+		return st, fmt.Errorf("company %d cemetery: %w", companyID, err)
+	}
+	for _, f := range fs {
+		var s snapshotJSON
+		if err := json.Unmarshal(f.Snapshot, &s); err != nil {
+			return st, fmt.Errorf("fallen snapshot: %w", err)
+		}
+		st.Cemetery = append(st.Cemetery, core.FallenUnit{Unit: s.Unit, Fate: f.Fate, Match: f.In})
+	}
+	return st, nil
+}
+
+// decodeUnits turns the unitsJSON column into unit states (nil for none).
+func decodeUnits(raw []byte) ([]core.UnitState, error) {
+	var us []readUnitJSON
+	if err := json.Unmarshal(raw, &us); err != nil {
+		return nil, err
+	}
+	var out []core.UnitState
+	for _, j := range us {
+		u := core.UnitState{ID: j.ID, Base: j.Base, Name: j.Name, Role: core.UnitRole(j.Role), Kind: core.UnitKind(j.Kind), Path: j.Path,
+			PathRules: j.PathRules, Level: j.Level, XP: j.XP, Points: j.Points, Wanderer: j.Wanderer, Creature: j.Creature, Injured: j.Injured,
+			SentToHealers: j.Healers, Gear: j.Gear, Bought: j.Bought, Dropped: j.Dropped,
+			Injuries: j.Injuries.Counts, Bonus: j.Data.Bonus, Actions: j.Data.Actions, BoughtActions: j.Data.BoughtActions, Spells: j.Data.Spells,
+			Pending: j.Pending.Pending}
+		if len(j.Progress) > 0 && string(j.Progress) != "null" {
+			var p progressJSON
+			if err := json.Unmarshal(j.Progress, &p); err != nil {
+				return nil, fmt.Errorf("unit %d progress: %w", u.ID, err)
+			}
+			u.Progress = p.P
+		}
+		out = append(out, u)
+	}
+	return out, nil
+}
+
+// unmarshalAll decodes raw[i] into dest[i].
+func unmarshalAll(raw []json.RawMessage, dest ...any) error {
+	for i, d := range dest {
+		if err := json.Unmarshal(raw[i], d); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // loadUnits reads the units of the companies (with their equipment) in two queries, however many companies there are, in each company's
@@ -221,43 +374,31 @@ func (cs companyStore) loadUnits(ctx context.Context, q querier, ids []int64) (m
 	return out, nil
 }
 
-// ReadRoster reads the state of every company of the campaign in four queries: the companies' own figures and their units with
+// ReadRoster reads the state of every company of the campaign in one statement: the companies' own figures and their units with
 // equipment, enough to rate them. Pending aftermaths, the open match, perks and the cemetery are left out (Read has them).
 func (cs companyStore) ReadRoster(ctx context.Context, campaignID int64) ([]core.CompanyState, error) {
-	tx, err := cs.s.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback(ctx)
-	rows, err := tx.Query(ctx, `SELECT c.id, c.name, c.faction, c.owner_id, u.display_name, c.influence, c.gold, c.rerolls, c.pack, c.unit_order, c.grave_order
-	            FROM companies c JOIN users u ON u.id = c.owner_id WHERE c.campaign_id = $1 ORDER BY c.id`, campaignID)
+	rows, err := cs.s.pool.Query(ctx, `SELECT c.id, c.name, c.faction, c.owner_id, u.display_name, c.influence, c.gold, c.rerolls, c.pack, c.unit_order, c.grave_order,
+	            `+unitsJSON+`
+	       FROM companies c JOIN users u ON u.id = c.owner_id WHERE c.campaign_id = $1 ORDER BY c.id`, campaignID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var out []core.CompanyState
-	var ids []int64
 	for rows.Next() {
 		var st core.CompanyState
 		co := &st.Company
-		if err := rows.Scan(&co.ID, &co.Name, &co.Faction, &co.OwnerID, &co.Owner, &st.Influence, &st.Gold, &st.Rerolls, &st.Pack, &st.Order, &st.Graveyard); err != nil {
+		var units []byte
+		if err := rows.Scan(&co.ID, &co.Name, &co.Faction, &co.OwnerID, &co.Owner, &st.Influence, &st.Gold, &st.Rerolls, &st.Pack, &st.Order, &st.Graveyard, &units); err != nil {
 			return nil, err
 		}
 		st.Pack, st.Order, st.Graveyard = nilIfEmpty(st.Pack), nilIfEmpty(st.Order), nilIfEmpty(st.Graveyard)
-		out, ids = append(out, st), append(ids, co.ID)
+		if st.Units, err = decodeUnits(units); err != nil {
+			return nil, fmt.Errorf("company %d units: %w", co.ID, err)
+		}
+		out = append(out, st)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	rows.Close()
-	units, err := cs.loadUnits(ctx, tx, ids)
-	if err != nil {
-		return nil, err
-	}
-	for i := range out {
-		out[i].Units = units[out[i].Company.ID]
-	}
-	return out, nil
+	return out, rows.Err()
 }
 
 // Update locks the company row, runs fn on the state and stores the result; an error from fn rolls everything back.

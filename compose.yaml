@@ -46,6 +46,7 @@ services:
       # APP_TIMEZONE: ${APP_TIMEZONE:-}              # IANA zone for visitors with no account zone and no browser zone (UTC when empty)
       # STATIC_MAX_AGE: ${STATIC_MAX_AGE:-0s}        # Cache-Control lifetime of static files (no-cache when 0)
       # STYLEGUIDE: ${STYLEGUIDE:-false}             # serve /styleguide and the development marks (development only; leave off in production)
+      # PERF_TRACE: ${PERF_TRACE:-false}             # Server-Timing header with time and database statements (measuring aid, development only; leave off in production)
     # The image writes nothing to disk: lock it down.
     read_only: true
     tmpfs: [/tmp]

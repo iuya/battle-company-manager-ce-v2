@@ -63,6 +63,27 @@ export default async function (h) {
     await you.page.waitForFunction(() => document.body.innerText.includes('On foot'), { timeout: 8000 });
   });
 
+  await h.step('live: a menu entry clicked the instant it is swapped in still sends its request', async () => {
+    // htmx wires a swapped fragment when it settles (20 ms later): without htmx_ready.js a click inside that gap did nothing.
+    await eowyn.page.evaluate(() => {
+      window.__sent = [];
+      document.body.addEventListener('htmx:beforeRequest', (e) => window.__sent.push(e.detail.requestConfig.path));
+      document.body.addEventListener('htmx:afterSwap', function once() {
+        const entry = [...document.querySelectorAll('#modal-body [role=menuitem]')].find((b) => b.innerText.includes('Wounded a unit'));
+        if (!entry) return;
+        document.body.removeEventListener('htmx:afterSwap', once);
+        setTimeout(() => entry.click(), 0); // after this swap, before the 20 ms settle timer of htmx
+      });
+    });
+    const actions = await eowyn.page.evaluateHandle(() => [...document.querySelectorAll('main button')].filter((b) => b.innerText.trim() === 'Actions')[1]);
+    await actions.asElement().click();
+    await eowyn.page.waitForFunction(() => window.__sent.some((p) => /sheet\/wound$/.test(p)), { timeout: 8000 })
+      .catch(() => { throw new Error('the entry clicked at the moment of the swap sent no request'); });
+    await eowyn.waitText('Pick who was wounded');
+    await eowyn.click(MODAL + ' button', '=Close');
+    await eowyn.settle(400);
+  });
+
   await h.step('live: wound an enemy unit from the other company (preview, confirm)', async () => {
     const actions = await eowyn.page.$$('main button');
     const idx = await eowyn.page.evaluate(() => [...document.querySelectorAll('main button')].map((b, i) => [b, i]).filter(([b]) => b.innerText.trim() === 'Actions').map(([, i]) => i)[1]);

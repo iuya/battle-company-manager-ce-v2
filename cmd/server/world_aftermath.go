@@ -11,6 +11,7 @@ var fiveXP = map[string]int{"woundedEnemy": 1, "fatePrevented": 1, "objective": 
 func (w *world) aftermathCampaigns() {
 	w.aftermathWardOne()
 	w.aftermathWardTwo()
+	w.aftermathWardThree()
 }
 
 func (w *world) aftermathWardOne() {
@@ -158,4 +159,61 @@ func (w *world) aftermathWardTwo() {
 	_ = l2
 	w.show(arnor)
 	w.show(mordor)
+}
+
+// aftermathWardThree leaves three companies at the screen where no hero is left to take over and a Warrior must be chosen: a
+// Sergeant fell with one Warrior ahead in Experience (the rules make it a hero, the player only confirms), a Sergeant fell with two
+// Warriors tied for the most Experience (the player chooses), and a Leader fell together with both Sergeants (a Leader first,
+// then Sergeants, all from the Warriors).
+func (w *world) aftermathWardThree() {
+	c := w.campaign("you", "Aftermath ward 3: no hero left to step up",
+		"A Sergeant fell and the company has no hero: the Warrior with the most Experience takes the place (one clear choice), two Warriors tied for it (the player chooses), and a Leader who fell with both of his Sergeants (a new Leader, then new Sergeants, all from the Warriors).", defaultSettings)
+	cos := w.pool(c, [][3]string{
+		{"sauron", "Orcs with one clear veteran", "Mordor"},
+		{"gimli", "Dwarves with two equal veterans", "Durin's Folk"},
+		{"aragorn", "Rangers who lost every officer", "Arnor"},
+		{"galadriel", "Elves who held the line", "Lothlorien"},
+	}...)
+	mordor, dwarf, arnor, elves := cos[0], cos[1], cos[2], cos[3]
+
+	// experience below a level-up (5) before the match: one veteran in Mordor, two equal ones in Durin's Folk, one in Arnor
+	_, _, ws := w.roster(mordor)
+	w.xp(mordor, ws[len(ws)-1].ID, 4, "Led the charge at the gate")
+	_, _, ws = w.roster(dwarf)
+	w.xp(dwarf, ws[0].ID, 3, "Held the door")
+	w.xp(dwarf, ws[1].ID, 3, "Held the door")
+	_, _, ws = w.roster(arnor)
+	w.xp(arnor, ws[0].ID, 4, "Scouted the road")
+
+	m := w.played(c, "Seize Ground", outcome{winner: 2, vp: []int{1, 6}}, []*wco{mordor, dwarf, arnor}, []*wco{elves})
+	// the sheets: everybody survives except the officers named, who are casualties and roll a 2 (dead)
+	fall := func(co *wco, sergeantsToo, leader bool) core.Aftermath {
+		l, s, _ := w.roster(co)
+		in := w.sheet(co)
+		dice := map[int64][3]int{}
+		for i, sg := range s {
+			if i == 0 || sergeantsToo {
+				set(&in, sg.ID, core.OutcomeCasualty, nil)
+				dice[sg.ID] = [3]int{1, 1, 1}
+			}
+		}
+		if leader {
+			set(&in, l.ID, core.OutcomeCasualty, nil)
+			dice[l.ID] = [3]int{1, 1, 1}
+		}
+		return w.settle(co, m, in, dice, false)
+	}
+	a := fall(mordor, false, false)
+	if a.Succession == nil || len(a.Succession.Fallback) != 1 {
+		w.gap("the Orcs' aftermath does not wait on one Warrior (succession %+v)", a.Succession)
+	}
+	a = fall(dwarf, false, false)
+	if a.Succession == nil || len(a.Succession.Fallback) != 2 {
+		w.gap("the Dwarves' aftermath does not wait on two tied Warriors (succession %+v)", a.Succession)
+	}
+	a = fall(arnor, true, true)
+	if a.Succession == nil || !a.Succession.NeedLeader || len(a.Succession.Fallback) == 0 {
+		w.gap("the Rangers' aftermath does not wait on a Leader from the Warriors (succession %+v)", a.Succession)
+	}
+	w.settle(elves, m, w.sheet(elves), nil, true)
 }

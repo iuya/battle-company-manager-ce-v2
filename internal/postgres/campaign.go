@@ -43,16 +43,39 @@ func decodeSettings(b []byte) (core.CampaignSettings, error) {
 // (the price of a unit is in the vanilla profile), which SQL cannot read: they are left at zero for the service to fill in
 // from BuildDetail. Wins, draws and losses count the company's ended matches: it won when its side is the match's winner
 // (matches.winner is the 1-based side, 0 a draw).
-const companyFigures = `
-	SELECT c.id, c.name, c.faction, c.owner_id, u.display_name,
+const companyFigures = `SELECT ` + figureColumns + `
+	  FROM companies c JOIN users u ON u.id = c.owner_id`
+
+// figureColumns are the columns of a CampaignCompany, for a query that has the company as c and its owner as u (a LEFT JOIN gives NULLs).
+const figureColumns = `c.id, c.name, c.faction, c.owner_id, u.display_name,
 	       (SELECT count(*) FROM company_units cu WHERE cu.company_id = c.id)::int,
 	       (SELECT count(*) FROM match_side_companies mc JOIN matches m ON m.id = mc.match_id
 	         WHERE mc.company_id = c.id AND m.ended AND m.winner = mc.position + 1)::int,
 	       (SELECT count(*) FROM match_side_companies mc JOIN matches m ON m.id = mc.match_id
 	         WHERE mc.company_id = c.id AND m.ended AND m.winner = 0)::int,
 	       (SELECT count(*) FROM match_side_companies mc JOIN matches m ON m.id = mc.match_id
-	         WHERE mc.company_id = c.id AND m.ended AND m.winner <> 0 AND m.winner <> mc.position + 1)::int
-	  FROM companies c JOIN users u ON u.id = c.owner_id`
+	         WHERE mc.company_id = c.id AND m.ended AND m.winner <> 0 AND m.winner <> mc.position + 1)::int`
+
+// optionalCompany scans the figureColumns of a LEFT JOIN: nil when the user has no company there.
+type optionalCompany struct {
+	id                  *int64
+	name, faction       *string
+	ownerID             *int64
+	owner               *string
+	units, wins, d, los *int
+}
+
+func (o *optionalCompany) dest() []any {
+	return []any{&o.id, &o.name, &o.faction, &o.ownerID, &o.owner, &o.units, &o.wins, &o.d, &o.los}
+}
+
+func (o *optionalCompany) company() *core.CampaignCompany {
+	if o.id == nil {
+		return nil
+	}
+	return &core.CampaignCompany{ID: *o.id, Name: *o.name, Faction: *o.faction, OwnerID: *o.ownerID, Owner: *o.owner,
+		Units: *o.units, Wins: *o.wins, Draws: *o.d, Losses: *o.los}
+}
 
 func scanCompany(row pgx.Row) (core.CampaignCompany, error) {
 	var c core.CampaignCompany
@@ -63,14 +86,16 @@ func scanCompany(row pgx.Row) (core.CampaignCompany, error) {
 	return c, err
 }
 
-// List returns the user's campaigns: unfinished first, then finished, each newest first.
+// List returns the user's campaigns: unfinished first, then finished, each newest first. One statement, the user's company with its
+// figures included.
 func (cs campaignStore) List(ctx context.Context, userID int64, withFinished bool) ([]core.CampaignSummary, error) {
 	rows, err := cs.s.pool.Query(ctx, `
-		SELECT g.id, g.name, g.description, g.status, g.round, g.rounds, c.id,
-		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id)::int
+		SELECT g.id, g.name, g.description, g.status, g.round, g.rounds,
+		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id)::int, `+figureColumns+`
 		  FROM campaign_members m
 		  JOIN campaigns g ON g.id = m.campaign_id
 		  LEFT JOIN companies c ON c.campaign_id = g.id AND c.owner_id = m.user_id
+		  LEFT JOIN users u ON u.id = c.owner_id
 		 WHERE m.user_id = $1 AND ($2 OR g.status <> 'finished')
 		 ORDER BY (g.status = 'finished'), g.created_at DESC, g.id DESC`, userID, withFinished)
 	if err != nil {
@@ -78,33 +103,42 @@ func (cs campaignStore) List(ctx context.Context, userID int64, withFinished boo
 	}
 	defer rows.Close()
 	var out []core.CampaignSummary
-	var companyIDs []*int64
 	for rows.Next() {
 		var c core.CampaignSummary
 		var status string
-		var companyID *int64
-		if err := rows.Scan(&c.ID, &c.Name, &c.Description, &status, &c.Round, &c.Rounds, &companyID, &c.Matches); err != nil {
+		var co optionalCompany
+		if err := rows.Scan(append([]any{&c.ID, &c.Name, &c.Description, &status, &c.Round, &c.Rounds, &c.Matches}, co.dest()...)...); err != nil {
 			return nil, err
 		}
 		c.Status = core.CampaignStatus(status)
+		c.Company = co.company()
 		out = append(out, c)
-		companyIDs = append(companyIDs, companyID)
 	}
-	if err := rows.Err(); err != nil {
+	return out, rows.Err()
+}
+
+// Nav lists the user's campaigns for the sidebar, in List's order, with id, name and status only: one statement, no company figures.
+func (cs campaignStore) Nav(ctx context.Context, userID int64, withFinished bool) ([]core.CampaignNav, error) {
+	rows, err := cs.s.pool.Query(ctx, `
+		SELECT g.id, g.name, g.status
+		  FROM campaign_members m JOIN campaigns g ON g.id = m.campaign_id
+		 WHERE m.user_id = $1 AND ($2 OR g.status <> 'finished')
+		 ORDER BY (g.status = 'finished'), g.created_at DESC, g.id DESC`, userID, withFinished)
+	if err != nil {
 		return nil, err
 	}
-	rows.Close()
-	for i, id := range companyIDs {
-		if id == nil {
-			continue
-		}
-		co, err := scanCompany(cs.s.pool.QueryRow(ctx, companyFigures+` WHERE c.id = $1`, *id))
-		if err != nil {
+	defer rows.Close()
+	var out []core.CampaignNav
+	for rows.Next() {
+		var n core.CampaignNav
+		var status string
+		if err := rows.Scan(&n.ID, &n.Name, &status); err != nil {
 			return nil, err
 		}
-		out[i].Company = &co
+		n.Status = core.CampaignStatus(status)
+		out = append(out, n)
 	}
-	return out, nil
+	return out, rows.Err()
 }
 
 // Create stores the campaign and makes the owner its organiser and first member in one transaction.
@@ -141,26 +175,39 @@ func (cs campaignStore) Get(ctx context.Context, userID, id int64) (core.Campaig
 	var d core.CampaignDetail
 	var status string
 	var settings []byte
-	var vh, bh, gh string
-	var companyID *int64
+	var co optionalCompany
+	var infos [3]struct {
+		kind, hash, name, version string
+		def                       bool
+	}
 	err := cs.s.pool.QueryRow(ctx, `
-		SELECT g.id, g.name, g.description, g.status, g.round, g.rounds, g.settings, g.vanilla_hash, g.bc_hash, g.glossary_hash,
-		       o.user_id, ou.display_name, (SELECT count(*) FROM campaign_members x WHERE x.campaign_id = g.id)::int, c.id,
+		SELECT g.id, g.name, g.description, g.status, g.round, g.rounds, g.settings,
+		       o.user_id, ou.display_name, (SELECT count(*) FROM campaign_members x WHERE x.campaign_id = g.id)::int,
 		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id)::int,
 		       (SELECT count(*) FROM campaign_invites i WHERE i.campaign_id = g.id AND i.revoked_at IS NULL AND i.expires_at > now()
 		           AND (i.max_uses = 0 OR i.uses < i.max_uses))::int,
 		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND NOT x.ended)::int,
 		       (SELECT count(*) FROM match_side_companies sc JOIN matches x ON x.id = sc.match_id AND x.ended
 		          LEFT JOIN match_aftermaths a ON a.match_id = sc.match_id AND a.company_id = sc.company_id
-		         WHERE sc.campaign_id = g.id AND COALESCE(a.status, 'pending') NOT IN ('done', 'waived'))::int
+		         WHERE sc.campaign_id = g.id AND COALESCE(a.status, 'pending') NOT IN ('done', 'waived'))::int,
+		       rv.kind, rv.hash, rv.name, rv.version, rv.is_default,
+		       rb.kind, rb.hash, rb.name, rb.version, rb.is_default,
+		       rg.kind, rg.hash, rg.name, rg.version, rg.is_default, `+figureColumns+`
 		  FROM campaigns g
+		  JOIN rulesets rv ON rv.hash = g.vanilla_hash
+		  JOIN rulesets rb ON rb.hash = g.bc_hash
+		  JOIN rulesets rg ON rg.hash = g.glossary_hash
 		  JOIN campaign_members m ON m.campaign_id = g.id AND m.user_id = $1
 		  JOIN campaign_members o ON o.campaign_id = g.id AND o.role = 'organiser'
 		  JOIN users ou ON ou.id = o.user_id
 		  LEFT JOIN companies c ON c.campaign_id = g.id AND c.owner_id = m.user_id
+		  LEFT JOIN users u ON u.id = c.owner_id
 		 WHERE g.id = $2`, userID, id).
-		Scan(&d.ID, &d.Name, &d.Description, &status, &d.Round, &d.Rounds, &settings, &vh, &bh, &gh,
-			&d.OrganiserID, &d.Organiser, &d.Players, &companyID, &d.Matches, &d.ActiveInvites, &d.OpenMatches, &d.PendingAftermaths)
+		Scan(append([]any{&d.ID, &d.Name, &d.Description, &status, &d.Round, &d.Rounds, &settings,
+			&d.OrganiserID, &d.Organiser, &d.Players, &d.Matches, &d.ActiveInvites, &d.OpenMatches, &d.PendingAftermaths,
+			&infos[0].kind, &infos[0].hash, &infos[0].name, &infos[0].version, &infos[0].def,
+			&infos[1].kind, &infos[1].hash, &infos[1].name, &infos[1].version, &infos[1].def,
+			&infos[2].kind, &infos[2].hash, &infos[2].name, &infos[2].version, &infos[2].def}, co.dest()...)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return core.CampaignDetail{}, core.ErrNotFound
 	}
@@ -171,20 +218,10 @@ func (cs campaignStore) Get(ctx context.Context, userID, id int64) (core.Campaig
 	if d.Settings, err = decodeSettings(settings); err != nil {
 		return core.CampaignDetail{}, err
 	}
-	for _, h := range []string{vh, bh, gh} {
-		info, err := cs.s.Rulesets().Info(ctx, h)
-		if err != nil {
-			return core.CampaignDetail{}, err
-		}
-		d.Rulesets = append(d.Rulesets, info)
+	for _, i := range infos {
+		d.Rulesets = append(d.Rulesets, core.RulesetInfo{Kind: core.RulesetKind(i.kind), Hash: i.hash, Name: i.name, Version: i.version, Default: i.def})
 	}
-	if companyID != nil {
-		co, err := scanCompany(cs.s.pool.QueryRow(ctx, companyFigures+` WHERE c.id = $1`, *companyID))
-		if err != nil {
-			return core.CampaignDetail{}, err
-		}
-		d.Company = &co
-	}
+	d.Company = co.company()
 	return d, nil
 }
 
@@ -213,6 +250,25 @@ func (cs campaignStore) Company(ctx context.Context, id, companyID int64) (core.
 
 // Hashes returns the rules file hashes of the campaign and its settings.
 func (cs campaignStore) Hashes(ctx context.Context, id int64) (core.RulesetHashes, core.CampaignSettings, error) {
+	if e, ok := cs.s.hashes.Load(id); ok {
+		return e.(hashesEntry).h, e.(hashesEntry).s, nil
+	}
+	h, s, err := cs.readHashes(ctx, id)
+	if err == nil && cs.s.hashesSize.Load() < maxRememberedHashes {
+		cs.s.hashesSize.Add(1)
+		cs.s.hashes.Store(id, hashesEntry{h, s})
+	}
+	return h, s, err
+}
+
+const maxRememberedHashes = 10000
+
+type hashesEntry struct {
+	h core.RulesetHashes
+	s core.CampaignSettings
+}
+
+func (cs campaignStore) readHashes(ctx context.Context, id int64) (core.RulesetHashes, core.CampaignSettings, error) {
 	var h core.RulesetHashes
 	var raw []byte
 	err := cs.s.pool.QueryRow(ctx, `SELECT vanilla_hash, bc_hash, glossary_hash, settings FROM campaigns WHERE id = $1`, id).

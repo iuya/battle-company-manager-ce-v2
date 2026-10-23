@@ -24,4 +24,4 @@ Walk your area end to end like a real player/organiser would, playing the flows 
 ## Working rules
 - Split your area into chunk beads (about 8-12 checks each, label `qa`, under the epic you are given), claim one at a time, close each with a note (covered, fixed, review beads created), and commit your own paths after each. Keep sandbox details (database, port, accounts, script paths) in a note on your first bead so a fresh agent can resume from beads alone.
 - Token economy: do not re-read what the beads already say; read only the pages and files you need; reuse your scripts; stop when the area is covered.
-- Task tracking is beads only. Do not push. Commit with `git commit -- <paths>`; other agents may have uncommitted edits.
+- Task tracking is beads only. Do not push. Commit with `git commit -- <paths>` using Conventional Commits messages (`test(e2e): ...`); other agents may have uncommitted edits.

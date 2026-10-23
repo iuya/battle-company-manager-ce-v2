@@ -88,14 +88,16 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 
 	log := slog.Default()
 	rules := core.NewRules(store.Rulesets(), log).WithMaxCached(rulesCacheMax)
-	camps, comps, matches, aftermaths := store.Campaigns(), store.Companies(), store.Matches(), store.Aftermaths()
+	// the reads of a request that carries a read scope (the aftermath page) are made once; everything else passes through
+	camps, comps, matches, aftermaths := core.ScopeCampaigns(store.Campaigns()), core.ScopeCompanies(store.Companies()), core.ScopeMatches(store.Matches()), store.Aftermaths()
+	atoRepo, liveRepo := core.ScopeATO(store.ATO()), core.ScopeLive(store.Live())
 
-	aftermath := core.NewAftermathService(camps, comps, matches, store.Rulesets(), aftermaths, rules, dice).WithATO(store.ATO())
-	matchSvc := core.NewMatches(camps, comps, matches, store.Rulesets(), rules).WithATO(store.ATO())
+	aftermath := core.NewAftermathService(camps, comps, matches, store.Rulesets(), aftermaths, rules, dice).WithATO(atoRepo)
+	matchSvc := core.NewMatches(camps, comps, matches, store.Rulesets(), rules).WithATO(atoRepo)
 	matchSvc.AftermathStarted = aftermaths.Started           // a match cannot be reopened once a company started its aftermath
 	matchSvc.CompanyAftermaths = aftermath.PendingAftermaths // a company with an unfinished aftermath cannot start a match
 	hub := core.NewLiveHub(store.LiveFeed())
-	live := core.NewLiveService(store.Live(), camps, comps, matches, rules).WithHub(hub).WithATO(store.ATO())
+	live := core.NewLiveService(liveRepo, camps, comps, matches, rules).WithHub(hub).WithATO(atoRepo)
 	matchSvc.LiveInit = live.Init                                                                 // the live data of a match is made when it is created (and on the first read otherwise)
 	matchSvc.EndNotify = func(ctx context.Context, ch core.EndChange) { live.RecordEnd(ctx, ch) } // the log lines of a pending end
 	live.WithEnds(matchSvc)                                                                       // a game action cancels a pending end

@@ -40,7 +40,7 @@ try {
     catch (e) { console.log(`  FAIL  ${f}: ${e.stack || e}`); h.results.push({ name: f, ok: false, error: String(e.message) }); await h.dump(f); }
   }
   const failed = h.results.filter((r) => !r.ok);
-  console.log(`\n[e2e] ${h.results.length - failed.length} passed, ${failed.length} failed in ${Math.round((Date.now() - t0) / 1000)} s`);
+  console.log(`\n[e2e] ${h.results.length - failed.length} passed, ${failed.length} failed in ${Math.round((Date.now() - t0) / 1000)} s${h.retries ? `, ${h.retries} click(s) repeated because no request was sent` : ''}`);
   for (const r of failed) console.log(`  FAILED: ${r.name}`);
   code = failed.length ? 1 : 0;
 } catch (e) {

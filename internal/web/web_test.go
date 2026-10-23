@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -33,6 +34,11 @@ type fixture struct {
 	aftermathErr error
 	// liveDefaults is what the result form reads from the live match (the default: no live data).
 	liveDefaults *core.LiveMatchDefaults
+	// nav is what the sidebar's campaign list reads (the default: none); navErr makes it fail.
+	nav          []core.CampaignNav
+	navErr       error
+	cardsStubbed bool // lazyCards ran
+	navFinished  bool // the withFinished the last NavCampaigns call was given
 }
 
 func newFixture(t *testing.T, cfg Config) *fixture {
@@ -50,6 +56,10 @@ func newFixture(t *testing.T, cfg Config) *fixture {
 		}
 		return *f.liveDefaults, true, nil
 	}).AnyTimes()
+	f.camp.EXPECT().NavCampaigns(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ int64, with bool) ([]core.CampaignNav, error) {
+		f.navFinished = with
+		return f.nav, f.navErr
+	}).AnyTimes()
 	var err error
 	if f.srv, err = NewServer(cfg, f.camp, f.rs, f.gl, f.auth); err != nil {
 		t.Fatal(err)
@@ -64,7 +74,26 @@ func (f *fixture) signedIn(r *http.Request) *http.Request {
 	return r
 }
 
+var matchPageRe = regexp.MustCompile(`^/campaigns/\d+/matches/\d+$`)
+
+// lazyCards makes the cards the full match page draws inline fail (registered after the test's own expectations, so those win), which
+// leaves their slots lazy: the tests of other things need not stub them.
+func (f *fixture) lazyCards() {
+	if f.cardsStubbed {
+		return
+	}
+	f.cardsStubbed = true
+	errNo := errors.New("card not stubbed")
+	f.camp.EXPECT().AgainstTheOdds(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.ATO{}, errNo).AnyTimes()
+	f.camp.EXPECT().SecretObjectives(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.SecretView{}, errNo).AnyTimes()
+	f.camp.EXPECT().EndChecks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.EndChecks{}, errNo).AnyTimes()
+	f.camp.EXPECT().Log(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errNo).AnyTimes()
+}
+
 func (f *fixture) do(r *http.Request) *httptest.ResponseRecorder {
+	if r.Method == http.MethodGet && matchPageRe.MatchString(r.URL.Path) && r.Header.Get("HX-Request") == "" {
+		f.lazyCards()
+	}
 	rec := httptest.NewRecorder()
 	f.srv.Handler().ServeHTTP(rec, r)
 	return rec
@@ -589,7 +618,7 @@ func TestOthersCompanyCannotBeManaged(t *testing.T) {
 		Roster: []core.CompanyUnit{
 			{ID: 1, Name: "Beregond", Type: "Captain", Role: core.RoleLeader, Kind: core.KindInfantry, Points: 70, Level: 0, XP: 11,
 				Stats:     []core.Attribute{{Abbr: "Mv", Name: "Movement", Value: 6, Trail: `"`}, {Abbr: "FV", Name: "Fight", Value: 5, Boost: 1}, {Abbr: "M", Name: "Might", Value: 3, HeroOnly: true}},
-				Equipment: []core.Equipment{{Name: "Sword", Class: core.EquipMelee}, {Name: "Bow", Class: core.EquipBow, Bought: true, Stats: `24" · S2`, Description: "Can shoot."}, {Name: "Elven Cloak", Class: core.EquipOther, Description: "Stalk Unseen."}},
+				Equipment: []core.Equipment{{Name: "Sword", Class: core.EquipMelee}, {Name: "Bow", Class: core.EquipBow, Bought: true, Stats: `24" · S2`, Description: "Can shoot."}, {Name: "Elven Cloak", Class: core.EquipOther, Description: "Stalk Unseen."}, {Name: "Helmingas", Class: core.EquipOther, Upgrade: true, Description: "Guards of the king."}},
 				Rules:     []core.UnitRule{{Name: "Bodyguard", Description: "Protects the Leader.", Source: core.RuleFromUnit}, {Name: "Wither", Description: "Bad things.", Source: core.RuleFromUnit, Spell: true, Casting: 3, Range: 12}},
 				Path: &core.UnitPath{Name: "Path of the Warlord",
 					HeroicActions: []core.HeroicAction{{Name: "Heroic Strike", Source: core.ActionFromUnit}, {Name: "Heroic March", Source: core.ActionBought}},
@@ -606,7 +635,7 @@ func TestOthersCompanyCannotBeManaged(t *testing.T) {
 		t.Errorf("own company page: %d -> %q", rec.Code, rec.Header().Get("Location"))
 	}
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
-	for _, want := range []string{`aria-current="page">My Company`, "Influence", "Gold", "Bows", "1 / 2", "Beregond", "unit-leader", "insignia-leader", "+ Bow", `24&#34; · S2`, "has-tip", "Bodyguard", "rule-spell", "3+", "FV", "path-box", "Path of the Warlord", "Heroic Strike", "+ Heroic March", "Rally the Troops", "Black Dart", "learned through the path", "Lvl 0", "11 / 5 XP", "Level Up ready!", "×2", "unit-corner", "70", `data-tip-title="Elven Cloak"`, `data-tip-text="Stalk Unseen."`} {
+	for _, want := range []string{`aria-current="page">My Company`, "Influence", "Gold", "Bows", "1 / 2", "Beregond", "unit-leader", "insignia-leader", "+ Bow", `24&#34; · S2`, "has-tip", "Bodyguard", "rule-spell", "3+", "FV", "path-box", "Path of the Warlord", "Heroic Strike", "+ Heroic March", "Rally the Troops", "Black Dart", "learned through the path", "Lvl 0", "11 / 5 XP", "Level Up ready!", "×2", "unit-corner", "70", `data-tip-title="Elven Cloak"`, `data-tip-text="Stalk Unseen."`, `data-tip-title="Helmingas" data-tip-meta="Unit upgrade" data-tip-text="Guards of the king."`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("My Company tab lacks %q", want)
 		}
@@ -703,7 +732,7 @@ func TestMatchListColoursTheOutcome(t *testing.T) {
 
 func TestNavCampaigns(t *testing.T) {
 	f := newFixture(t, Config{})
-	f.camp.EXPECT().List(gomock.Any(), frodo.ID, false).Return([]core.CampaignSummary{{ID: 4, Name: "Rohan Rising"}}, nil)
+	f.nav = []core.CampaignNav{{ID: 4, Name: "Rohan Rising"}}
 	rec := f.do(f.signedIn(httptest.NewRequest("GET", "/nav/campaigns", nil)))
 	if body := rec.Body.String(); rec.Code != 200 || !strings.Contains(body, `href="/campaigns/4"`) || strings.Contains(body, "<html") {
 		t.Errorf("got %d: %s", rec.Code, body)
@@ -740,7 +769,8 @@ func TestFinishedCampaignsFollowTheCookie(t *testing.T) {
 		{ID: 1, Name: "Live", Status: core.CampaignActive},
 		{ID: 2, Name: "Over", Status: core.CampaignFinished},
 	}
-	f.camp.EXPECT().List(gomock.Any(), frodo.ID, true).Return(list, nil).Times(2)
+	f.camp.EXPECT().List(gomock.Any(), frodo.ID, true).Return(list, nil)
+	f.nav = []core.CampaignNav{{ID: 1, Name: "Live", Status: core.CampaignActive}, {ID: 2, Name: "Over", Status: core.CampaignFinished}}
 	for _, path := range []string{"/", "/nav/campaigns"} {
 		r := f.signedIn(httptest.NewRequest("GET", path, nil))
 		r.AddCookie(&http.Cookie{Name: finishedCookie, Value: "1"})
@@ -748,8 +778,8 @@ func TestFinishedCampaignsFollowTheCookie(t *testing.T) {
 		if !strings.Contains(body, "Over") || strings.Index(body, "Live") > strings.Index(body, "Over") {
 			t.Errorf("GET %s: finished campaigns should be listed after the active ones", path)
 		}
-		if path == "/nav/campaigns" && !strings.Contains(body, "!text-muted") {
-			t.Error("finished campaigns are greyed out in the sidebar")
+		if path == "/nav/campaigns" && (!strings.Contains(body, "!text-muted") || !f.navFinished) {
+			t.Error("finished campaigns are greyed out in the sidebar and asked for")
 		}
 	}
 }
@@ -768,7 +798,7 @@ func TestCreateMatchAllVsAll(t *testing.T) {
 
 func TestNavCampaignsHaveTheirPages(t *testing.T) {
 	f := newFixture(t, Config{})
-	f.camp.EXPECT().List(gomock.Any(), frodo.ID, false).Return([]core.CampaignSummary{{ID: 4, Name: "Rohan Rising"}}, nil)
+	f.nav = []core.CampaignNav{{ID: 4, Name: "Rohan Rising"}}
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/nav/campaigns", nil))).Body.String()
 	for _, want := range []string{`href="/campaigns/4"`, `href="/campaigns/4/companies"`, `href="/campaigns/4/rankings"`, `href="/campaigns/4/matches"`, "inCampaign(4)"} {
 		if !strings.Contains(body, want) {
@@ -779,7 +809,7 @@ func TestNavCampaignsHaveTheirPages(t *testing.T) {
 
 func TestNavCampaignLinksTargetTheMainPanel(t *testing.T) {
 	f := newFixture(t, Config{})
-	f.camp.EXPECT().List(gomock.Any(), frodo.ID, false).Return([]core.CampaignSummary{{ID: 4, Name: "Rohan Rising"}}, nil)
+	f.nav = []core.CampaignNav{{ID: 4, Name: "Rohan Rising"}}
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/nav/campaigns", nil))).Body.String()
 	if !strings.Contains(body, `hx-target="#main"`) {
 		t.Errorf("links inherit the list's own hx-target unless they set #main:\n%s", body)
@@ -1164,7 +1194,7 @@ func TestUnitCardsCanBeDraggedWhenChangingTheFormation(t *testing.T) {
 	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
-	for _, want := range []string{"Change formation", `data-unit-id="5"`, "unit-handle", "Save formation", `name="order"`, "my-company/formation", "sortable.min.js"} {
+	for _, want := range []string{"Change formation", `data-unit-id="5"`, "unit-handle", "Save formation", `name="order"`, "my-company/formation", "js/app.js"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -1576,5 +1606,29 @@ func TestArmoryFiltersAndTooltips(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Errorf("armory lacks %q", want)
 		}
+	}
+}
+
+// A full page carries the sidebar's campaign list (no /nav/campaigns round trip); an htmx content swap does not, and a
+// failing list falls back to the lazy fetch.
+func TestFullPagesCarryTheSidebarList(t *testing.T) {
+	f := newFixture(t, Config{})
+	f.nav = []core.CampaignNav{{ID: 4, Name: "Rohan Rising"}}
+	get := func() *httptest.ResponseRecorder {
+		return f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/new", nil)))
+	}
+	body := get().Body.String()
+	if !strings.Contains(body, `href="/campaigns/4"`) || strings.Contains(body, `hx-trigger="load, campaigns-changed`) {
+		t.Errorf("sidebar not inline: %s", body)
+	}
+	req := f.signedIn(httptest.NewRequest("GET", "/campaigns/new", nil))
+	req.Header.Set("HX-Request", "true")
+	if body := f.do(req).Body.String(); strings.Contains(body, "Rohan Rising") {
+		t.Errorf("htmx swap carries the sidebar: %s", body)
+	}
+	f.navErr = errors.New("db down")
+	body = get().Body.String()
+	if strings.Contains(body, "Rohan Rising") || !strings.Contains(body, `hx-trigger="load, campaigns-changed`) {
+		t.Errorf("no lazy fallback: %s", body)
 	}
 }

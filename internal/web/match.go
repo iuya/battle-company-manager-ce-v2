@@ -30,6 +30,8 @@ type matchView struct {
 	Combined int  // the rating of the companies in the match added, for the scenario tables that look it up
 	Fled     bool // somebody fled
 
+	Cards *matchCards // the lazy cards drawn inline on the full page; nil on answers to writes
+
 	Notice    string // shown on top of the match
 	NoticeErr bool
 
@@ -323,6 +325,7 @@ func (s *Server) handleMatch(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, r, err) {
 		return
 	}
+	s.loadMatchCards(r, &v)
 	s.render.page(w, r, http.StatusOK, "match", v)
 }
 

@@ -25,4 +25,4 @@ Work in small chunks: one bead per company ("Audit <company>: <result>"), claim,
 
 ## Working rules
 - Token economy: read only the reports and the json/source passages you need (grep, do not load whole files), and reuse earlier findings recorded in beads instead of re-deriving them.
-- Task tracking is beads only. Do not push. Commit with `git commit -- <paths>`; other agents may have uncommitted edits.
+- Task tracking is beads only. Do not push. Commit with `git commit -- <paths>` using Conventional Commits messages (`test(e2e): ...`); other agents may have uncommitted edits.

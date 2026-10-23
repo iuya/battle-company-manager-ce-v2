@@ -14,6 +14,7 @@ import (
 
 	"go-simpler.org/env"
 
+	"github.com/iuya/battle-company-manager-ce-v2/internal/perftrace"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/postgres"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/web"
 )
@@ -26,7 +27,9 @@ type config struct {
 	MigrateOnStart bool `env:"MIGRATE_ON_START" default:"true"`
 	// MaxCachedRuleSets caps the rule sets (hash triples) kept parsed in memory, least recently used dropped first; a set is a few MB.
 	MaxCachedRuleSets int `env:"MAX_CACHED_RULESETS" default:"16"`
-	Web               web.Config
+	// PerfTrace adds a Server-Timing header (time, database statements) to every answer, for tests/e2e/perf.mjs. Development only.
+	PerfTrace bool `env:"PERF_TRACE" default:"false"`
+	Web       web.Config
 }
 
 // validate rejects settings the server cannot run with; the web settings are checked by web.Config.Resolve.
@@ -78,7 +81,13 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	store, err := postgres.OpenWith(ctx, cfg.DatabaseURL, postgres.Options{SkipMigrations: !cfg.MigrateOnStart})
+	opts := postgres.Options{SkipMigrations: !cfg.MigrateOnStart}
+	var handlerWrap = func(h http.Handler) http.Handler { return h }
+	if cfg.PerfTrace {
+		opts.Tracer = perftrace.Tracer{}
+		handlerWrap = perftrace.Middleware
+	}
+	store, err := postgres.OpenWith(ctx, cfg.DatabaseURL, opts)
 	if err != nil {
 		return err
 	}
@@ -94,7 +103,10 @@ func run() error {
 	}
 	srv.SetReadiness(store.Ping)
 
-	httpSrv := &http.Server{Addr: ":" + cfg.Port, Handler: srv.Handler(), ReadHeaderTimeout: 5 * time.Second}
+	httpSrv := &http.Server{Addr: ":" + cfg.Port, Handler: handlerWrap(srv.Handler()),
+		// Slow-client protection. The live stream (SSE) lifts the read deadline and sets a write deadline per write, so it is not cut.
+		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 60 * time.Second, WriteTimeout: 120 * time.Second, IdleTimeout: 120 * time.Second,
+		MaxHeaderBytes: 64 << 10}
 	httpSrv.RegisterOnShutdown(b.liveHub.Close) // the live streams never end by themselves: Shutdown would wait for them
 	go func() {
 		if err := b.liveHub.Start(ctx); err != nil {

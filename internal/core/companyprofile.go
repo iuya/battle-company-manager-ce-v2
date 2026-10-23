@@ -204,29 +204,53 @@ func PreviewKey(unit string, wargear []string) string {
 	return unit + "|" + strings.Join(w, ",")
 }
 
+// profileSet is the companies' profiles as the pages use them (paths and powers attached), built once per book: the book is immutable
+// after loading and every unit of every page asks for its company's profile.
+type profileSet struct {
+	list   []CompanyProfile
+	exact  map[string]int // by name, the first of the file
+	folded map[string]int // by lower-cased name, the first of the file
+}
+
+func (b *BCBook) profileSet() *profileSet {
+	b.profileOnce.Do(func() {
+		ps := &profileSet{list: slices.Clone(b.profiles), exact: map[string]int{}, folded: map[string]int{}}
+		powers := b.progression.PowerChoices(HeroSheet{Powers: map[string]int{}})
+		for i := range ps.list {
+			ps.list[i].Paths = b.progression.Paths
+			ps.list[i].Powers = powers
+			if _, ok := ps.exact[ps.list[i].Name]; !ok {
+				ps.exact[ps.list[i].Name] = i
+			}
+			k := strings.ToLower(ps.list[i].Name)
+			if _, ok := ps.folded[k]; !ok {
+				ps.folded[k] = i
+			}
+		}
+		b.profileSets = ps
+	})
+	if b.profileSets == nil { // the build panicked (sync.Once does not run it again): answer an empty set, not a nil pointer
+		return &profileSet{exact: map[string]int{}, folded: map[string]int{}}
+	}
+	return b.profileSets
+}
+
 // Profile finds a company's profile by name.
 func (b *BCBook) Profile(name string) (CompanyProfile, bool) {
-	for _, p := range b.Profiles() {
-		if p.Name == name {
-			return p, true
-		}
+	ps := b.profileSet()
+	if i, ok := ps.exact[name]; ok {
+		return ps.list[i], true
 	}
-	for _, p := range b.Profiles() { // an older spelling of the name ("Lake-Town" before "Lake-town") still resolves
-		if strings.EqualFold(p.Name, name) {
-			return p, true
-		}
+	// an older spelling of the name ("Lake-Town" before "Lake-town") still resolves
+	if i, ok := ps.folded[strings.ToLower(name)]; ok {
+		return ps.list[i], true
 	}
 	return CompanyProfile{}, false
 }
 
 // Profiles lists every company's profile in the order of the file.
 func (b *BCBook) Profiles() []CompanyProfile {
-	out := slices.Clone(b.profiles)
-	for i := range out {
-		out[i].Paths = b.progression.Paths
-		out[i].Powers = b.progression.PowerChoices(HeroSheet{Powers: map[string]int{}})
-	}
-	return out
+	return slices.Clone(b.profileSet().list)
 }
 
 // parseProfiles reads the descriptive parts of the companies and attaches the unit previews (made with the vanilla book).

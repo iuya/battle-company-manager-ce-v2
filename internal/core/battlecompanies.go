@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 )
 
 // BCBook gives access to the Battle Companies rules the company pages need: how many models a company may have, what
@@ -34,6 +35,8 @@ type BCBook struct {
 	wanderers        []WandererOffer
 	progression      ProgressionRules
 	profiles         []CompanyProfile
+	profileOnce      sync.Once
+	profileSets      *profileSet
 	advancements     map[string][]Advancement
 	pathRules        map[string][]UnitRule // the special rules each path unlocks, in order, with their text
 	readAs           map[string]string     // unit|option (lower-cased) -> the armoury item an option is read as (data.optionSales readAs)

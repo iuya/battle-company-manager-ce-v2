@@ -206,7 +206,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
       {{range loanedGroups $lu.Loaned}}<li class="eq-chip {{if .AllUsed}}text-muted line-through{{end}}" {{if .AllUsed}}aria-label="{{.Item}}, used"{{end}}><span>{{.Item}}{{if gt .Count 1}} ×{{.Count}}{{end}}{{with .Detail}} ({{.}}){{end}}</span> <span class="badge badge-gold">Loaned{{with .Kit}} ({{.}}){{end}}</span>{{if .AllUsed}} <span class="text-xs">used</span>{{else if .Used}} <span class="text-xs text-muted">{{.Used}} used</span>{{else if .AfterGame}} <span class="text-xs text-muted">use after the game</span>{{end}}</li>{{end}}
     </ul>{{end}}
     {{/* Named unit upgrades (Helmingas, Hearthguard...) are not gear: badges, not items. */}}
-    <ul class="flex flex-wrap gap-1.5" aria-label="Unit upgrades">{{- range $u.Items}}{{if .Upgrade}}<li class="badge badge-gold" title="Unit upgrade">{{.Name}}</li>{{end}}{{end -}}</ul>
+    <ul class="flex flex-wrap gap-1.5" aria-label="Unit upgrades">{{- range $u.Items}}{{if .Upgrade}}<li class="badge badge-gold{{if .Description}} has-tip{{end}}" {{if .Description}}tabindex="0" data-tip-title="{{.Name}}" data-tip-meta="Unit upgrade" data-tip-text="{{.Description}}"{{else}}title="Unit upgrade"{{end}}>{{.Name}}</li>{{end}}{{end -}}</ul>
     {{$sl := $u.Slots}}
     <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted" aria-label="Equipment slots">
       <span class="inline-flex items-center gap-1.5"><span>Equipment</span>{{if and (not $u.Wanderer) (not $ro)}}<button type="button" data-lock class="eq-add eq-add-sm" hx-get="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/armoury?kind=equipment" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" aria-label="Buy equipment for {{$u.Title}}" title="Buy equipment">+</button>{{end}}</span>
@@ -255,7 +255,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
       <ul class="mt-1 space-y-2">
         {{range $u.Items}}{{if and (not .Upgrade) (not .Size)}}{{template "expanded_item" (dict "I" . "U" $u "CID" $cid "RO" $ro)}}{{end}}{{end}}
       </ul>
-      <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Unit upgrades">{{- range $u.Items}}{{if .Upgrade}}<li class="badge badge-gold">{{.Name}} <span class="font-normal">· unit upgrade</span></li>{{end}}{{end -}}</ul>
+      <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Unit upgrades">{{- range $u.Items}}{{if .Upgrade}}<li class="badge badge-gold{{if .Description}} has-tip{{end}}" {{if .Description}}tabindex="0" data-tip-title="{{.Name}}" data-tip-meta="Unit upgrade" data-tip-text="{{.Description}}"{{end}}>{{.Name}} <span class="font-normal">· unit upgrade</span></li>{{end}}{{end -}}</ul>
     </section>
     <section>
       <h4 class="!text-lg">Equipment</h4>

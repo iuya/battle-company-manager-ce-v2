@@ -18,6 +18,7 @@ type loginThrottle struct {
 const (
 	maxFailsPerAccount = 5
 	maxFailsPerAddress = 20
+	maxThrottleKeys    = 50_000 // memory bound of the table
 )
 
 func newLoginThrottle() *loginThrottle {
@@ -57,6 +58,14 @@ func (t *loginThrottle) fail(ip, email string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	now := t.now()
+	if len(t.fails) >= maxThrottleKeys { // keys of addresses and emails nobody tries again would stay for ever: sweep the expired ones
+		for k := range t.fails {
+			t.prune(k)
+		}
+		if len(t.fails) >= maxThrottleKeys {
+			clear(t.fails) // a flood from many addresses: forget rather than grow (the limits start again)
+		}
+	}
 	t.fails[account] = append(t.fails[account], now)
 	t.fails[address] = append(t.fails[address], now)
 }

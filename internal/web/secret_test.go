@@ -37,10 +37,10 @@ func secretFixture(t *testing.T) *fixture {
 func TestSecretCardOfAPlayerListsNominationsAndTiers(t *testing.T) {
 	f := secretFixture(t)
 	f.camp.EXPECT().SecretObjectives(gomock.Any(), frodo, int64(7), int64(3)).Return(core.SecretView{
-		Lines:  []core.SecretLine{{CompanyID: 1, Key: "ownHeroSurvives", Nominee: "Hador", Tier: 2, Points: 3}},
+		Lines:  []core.SecretLine{{CompanyID: 1, Key: "ownHeroSurvives", Nominee: "Hador (Sergeant)", Tier: 2, Points: 3}},
 		Others: []string{"Raiders"}}, nil)
 	body := f.do(f.signedIn(httpGet(matchPath + "/secret"))).Body.String()
-	for _, want := range []string{"Secret objectives", "ownHeroSurvives", "terrainPiece", "Hador</option>", `value="6" selected`, "3 VP", `value="2" checked`, "Noted already: Raiders", "ruined tower"} {
+	for _, want := range []string{"Secret objectives", "ownHeroSurvives", "terrainPiece", "Hador (Sergeant)</option>", `value="6" selected`, "3 VP", `value="2" checked`, "Noted already: Raiders", "ruined tower"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("card lacks %q", want)
 		}
@@ -75,7 +75,7 @@ func TestSecretObjectivesAreRevealedAndPrefillTheResultAfterTheEnd(t *testing.T)
 	m.Ended = true
 	f := matchWrite(t, m)
 	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return([]core.ScenarioInfo{fogScenario}, nil).AnyTimes()
-	line := core.SecretLine{CompanyID: 1, Company: "Rangers", Key: "ownHeroSurvives", Label: "Own hero survives", Text: "A very long rule text", Nominee: "Hador", Tier: 2, Points: 3}
+	line := core.SecretLine{CompanyID: 1, Company: "Rangers", Key: "ownHeroSurvives", Label: "Own hero survives", Text: "A very long rule text", Nominee: "Hador (Sergeant)", Tier: 2, Points: 3}
 	f.camp.EXPECT().SecretObjectives(gomock.Any(), frodo, int64(7), int64(3)).Return(core.SecretView{Revealed: true, Lines: []core.SecretLine{line}}, nil).AnyTimes()
 	body := f.do(f.signedIn(httpGet(matchPath + "/secret"))).Body.String()
 	if !strings.Contains(body, "revealed") || !strings.Contains(body, "Noted: Hador") || !strings.Contains(body, "Scored 3 VP") || !strings.Contains(body, "Own hero survives") || strings.Contains(body, "A very long rule text") {

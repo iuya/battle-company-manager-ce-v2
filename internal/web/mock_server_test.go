@@ -2404,6 +2404,45 @@ func (c *MockcampaignsMembersCall) DoAndReturn(f func(context.Context, int64) ([
 	return c
 }
 
+// NavCampaigns mocks base method.
+func (m *Mockcampaigns) NavCampaigns(ctx context.Context, userID int64, withFinished bool) ([]core.CampaignNav, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NavCampaigns", ctx, userID, withFinished)
+	ret0, _ := ret[0].([]core.CampaignNav)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NavCampaigns indicates an expected call of NavCampaigns.
+func (mr *MockcampaignsMockRecorder) NavCampaigns(ctx, userID, withFinished any) *MockcampaignsNavCampaignsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NavCampaigns", reflect.TypeOf((*Mockcampaigns)(nil).NavCampaigns), ctx, userID, withFinished)
+	return &MockcampaignsNavCampaignsCall{Call: call}
+}
+
+// MockcampaignsNavCampaignsCall wrap *gomock.Call
+type MockcampaignsNavCampaignsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsNavCampaignsCall) Return(arg0 []core.CampaignNav, arg1 error) *MockcampaignsNavCampaignsCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsNavCampaignsCall) Do(f func(context.Context, int64, bool) ([]core.CampaignNav, error)) *MockcampaignsNavCampaignsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsNavCampaignsCall) DoAndReturn(f func(context.Context, int64, bool) ([]core.CampaignNav, error)) *MockcampaignsNavCampaignsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // OverrideEnd mocks base method.
 func (m *Mockcampaigns) OverrideEnd(ctx context.Context, user core.User, id, matchID int64, revision int, note string) (core.Match, error) {
 	m.ctrl.T.Helper()

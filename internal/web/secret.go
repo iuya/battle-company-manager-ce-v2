@@ -140,7 +140,7 @@ func heroOptions(d core.CompanyDetail, n *core.ObjectiveNomination, withCompany 
 		}
 	}
 	var out []heroOption
-	for _, u := range d.Roster {
+	for _, u := range core.Distinguish(d.Roster) { // two Sergeants of one kind are told apart, as in the aftermath
 		if !u.IsHero() || core.Absent(u) || (n.AllowLeader == "onlyHero" && u.Role == core.RoleLeader && heroes > 1) {
 			continue
 		}

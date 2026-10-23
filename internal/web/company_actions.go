@@ -99,7 +99,7 @@ func (s *Server) handleRollRecruit(w http.ResponseWriter, r *http.Request) {
 	thrown := r.PostFormValue("thrown") != ""        // the browser threw the dice and reports the result
 	perk, _ := strconv.Atoi(r.PostFormValue("perk")) // the Rendezvous bonus: -1, 0 or +1
 	err := s.campaigns.RollRecruitWithPerk(r.Context(), *userFrom(r.Context()), id, roll, thrown, perk)
-	if errors.Is(err, core.ErrRefused) {
+	if errors.Is(err, core.ErrRefused) || errors.Is(err, core.ErrInvalidRoll) {
 		s.showRecruitPanel(w, r, http.StatusUnprocessableEntity, reason(err), false)
 		return
 	}

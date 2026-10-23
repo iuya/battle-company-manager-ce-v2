@@ -108,6 +108,7 @@ htmx request that swaps only `#main`:
   `hx-target`/`hx-swap`.
 - **Links to a glossary term** (`/campaigns/N/glossary#t-...`, from a tooltip chip or a "Glossary" link) carry `hx-boost="false"`: a boosted swap runs the glossary component before the address has its `#fragment` and scrolls to the top, so the term was never reached. A full load lets the browser jump and the component highlight the term.
 - **Wargear names** are lower case in the rules file; the `upfirst` template function (`sentence`) gives them a capital wherever the company chooser shows them (the same helper as for messages).
+- **Swapped content is wired at once.** htmx reads the `hx-*` attributes of a swapped-in fragment only when it settles (20 ms after the swap), and a click in that gap sends nothing (seen: a sheet menu entry that did nothing under load). `static/js/htmx_ready.js` calls `htmx.process` on the swap target in `htmx:afterSwap`, so the new buttons work from the moment they are on screen. The e2e step "a menu entry clicked the instant it is swapped in" holds it.
 - **Double submit.** `static/js/submit.js` disables a form's buttons while its request is in flight and ignores a second submit. On the server, making a match or a campaign is deduplicated for 10 s (the same person, the same content opens the first one), and the actions that spend or roll (recruit, level-up, purchases, hires, treatment, perks, grants, invites, aftermath rolls and decisions) run behind `Server.once` (`internal/web/dedupe.go`): an identical request (same address and body) from the same person within 3 s gets the first answer instead of running again.
 - **Refusals and failures** go through `Server.refuse` / `notFound` (`internal/web/errors.go`), keeping the status code: a full page request gets the `error` page in the layout (title, heading, the reason, a way back: the campaigns, or Sign in for a visitor), an htmx request gets the short plain text that the layout's error banner shows. A 5xx logs its cause and shows a fixed sentence. A catch-all route makes unknown addresses a rendered 404.
 - **Validation errors** are returned with status `422` and swapped in place (htmx is configured to swap 422). Any other
@@ -118,6 +119,14 @@ htmx request that swaps only `#main`:
   who is signed in, is drawn again. A protected page requested without a session does the same toward `/login`.
 
 **Windows** (`role="dialog" aria-modal="true"`, shown by `x-show`) are handled by `static/js/dialog.js`: focus moves into the window when it opens, Tab stays inside it and focus returns to the opener when it closes; the page closes it on Escape and the backdrop and locks the body scroll while it is open. Its close button is 44 px square. In running text (`p`, `li`, `td`, `dd`) links are underlined, so colour is not the only cue.
+
+**Static files** (`internal/web/static.go`, [performance.md](performance.md)). Templates name them with `{{static "js/x.js"}}`, which adds `?v=<content hash>`;
+a request with the current hash is `Cache-Control: public, max-age=31536000, immutable`, so a page costs no request for them. `app.css` is
+served with the same `?v=` on the fonts and images it loads. Text files are gzipped at start and served with an ETag (304 on a match);
+`STATIC_MAX_AGE` only governs addresses without `?v=`. Pages load three scripts: `theme-init.js` and `tz.js` (head, synchronous) and
+`js/app.js`, a bundle made at start of htmx, the theme store, the page scripts, SortableJS and Alpine in the order of `bundleScripts` (a new
+script goes into that list, not into the layout). Pages and fragments over 1 KB are gzipped for browsers that accept it (`compress.go`; the
+live stream is not).
 
 **Alpine** is used for state that never needs the server: menus, show/hide password, enabling a button as you type,
 the theme store. Keep it to that.
@@ -134,8 +143,7 @@ that slides over the page (Alpine state `open`, closed by the backdrop, Esc or c
 outside `#main`, so Alpine keeps `path` in step with htmx navigation to mark the current link (`aria-current="page"`).
 
 Sidebar order: **Administration** (superusers only, gold-outlined so it stands apart, a 404 for everybody else),
-Campaigns (`/`, the main page) with a sub-menu of the user's active campaigns, Glossary; at the bottom the user's name, Account and Sign out. The sub-menu shows on the main page and inside any campaign; its items are fetched once per full page load from
-`GET /nav/campaigns`. Only the campaign you are in is expanded, with its pages (Overview, Companies, Rankings,
+Campaigns (`/`, the main page) with a sub-menu of the user's active campaigns, Glossary; at the bottom the user's name, Account and Sign out. The sub-menu shows on the main page and inside any campaign; its items are drawn into every full page (`pageBase.base` asks `NavCampaigns` for a signed-in user, `NavInline`; the main page uses its own list, `NavOwn`), so there is no extra request. An htmx content swap has no sidebar and skips the query; if the list cannot be read the sidebar falls back to fetching `GET /nav/campaigns` on load. The list is refetched there only when it changes (`campaigns-changed`). Only the campaign you are in is expanded, with its pages (Overview, Companies, Rankings,
 Matches; the current one marked) under it, and is marked with an accent bar, soft fill and a faint gold glow;
 switching campaign collapses the previous one while the new one expands, both animating their height together (a
 grid-rows 0fr/1fr transition, collapsed lists `inert`; an `x-transition` made the leaving list linger and the sidebar
@@ -761,7 +769,7 @@ The design is in [live-match.md](live-match.md) and [architecture.md](architectu
   are struck through (`itemView.Struck`, `ruleView.Struck`, aria-label "needs a mount"). The data flag `requiresMount` is the curator's
   (pib.15); nothing sets `RequiresMount` yet.
 - **Match log**: `GET .../matches/{match}/live/log` is the sheet (company page; `?company=` so Undo refreshes the zones out of band), `?card=1` the card of
-  the match page (below History, loaded after the page, refreshed on `live:match`), `?before=<seq>` the next 30 older rows. Newest first,
+  the match page (below History, drawn inline in the full page, refreshed on `live:match`), `?before=<seq>` the next 30 older rows. Newest first,
   grouped by minute, Undo only where the service says `CanUndo` and the match is open; a dependency refusal shows in the log. After the
   match the card stays (read only, permanent); an ended match recorded after the fact says it has no log.
 - **End checks** (`live_end.go`, `end_*` templates in `match.gohtml`): the sheet (banner button, `GET .../matches/{match}/live/end?company=`) and the card on
@@ -792,7 +800,7 @@ The design is in [live-match.md](live-match.md) and [architecture.md](architectu
   the dot is green "Live", pulsing grey "Reconnecting" (the browser retries every 3 s; when the stream is back the page refetches what it
   missed, the state is in Postgres); when the stream is refused (caps) or unsupported the page polls every 10 s.
 - **Secret objectives** (`secret.go`, `secret_card` in `match.gohtml`; only for a scenario with `ScoringObjectives[].Secret`, i.e. Fog of War): the card
-  (`GET .../matches/{match}/secret`, loaded after the page) lists, for each company the viewer owns, each secret objective with a nomination
+  (`GET .../matches/{match}/secret`, drawn inline in the full page; the endpoint serves the refresh and the fallback) lists, for each company the viewer owns, each secret objective with a nomination
   form (a select of own or enemy Heroes without the Leader unless he is the only Hero, or a text box for the terrain piece) and a tier radio
   list ("Not reached yet" clears); `POST .../secret/{company}` (`kind=nominate|done`, `key`, `unit`/`note`/`tier`) applies the live action, with an
   Undo (`from=secret`). While the match is open nothing of other players is shown but "Noted already: <companies>" (privacy is the service's);
@@ -889,4 +897,5 @@ Further accounts: `make user` and `make grant`. For the rich world (every state 
   nothing and the card says "Always leads". The core validates the same rule.
 - **Aftermath sheet.** The experience a unit earned are small toggle chips (`chip`, a tick when on) under "Earned experience"; the
   outcome labels of a saved sheet are `badge-success` (survived), `badge-warn` (fled) and `badge-danger` (casualty), tints of the semantic
-  tokens ringed in the colour. The injuries step spells out the bonus die of Lesson Learned and Wounds of a Hero (`BonusLine`).
+  tokens ringed in the colour (in `tailwind.css` the `.badge` base rule comes before every `badge-*` tone: it has the same specificity and
+  would otherwise win; `TestBadgeBaseComesBeforeTones`, and the e2e flow `81-aftermath-ui` reads the computed colours). The injuries step spells out the bonus die of Lesson Learned and Wounds of a Hero (`BonusLine`).

@@ -36,6 +36,7 @@ func (s *Server) handleLiveEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rc := http.NewResponseController(w)
+	_ = rc.SetReadDeadline(time.Time{}) // the server's ReadTimeout is for requests, not for a stream that lives for hours
 	start := func() {
 		h := w.Header()
 		h.Set("Content-Type", "text/event-stream")

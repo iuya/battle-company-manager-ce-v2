@@ -192,6 +192,7 @@ func hostileWorld(t *testing.T) (*fixture, []string) {
 	f.rs.EXPECT().Default(anyCtx, anyCtx).Return(core.RulesetInfo{Name: hostile, Version: hostile, Hash: "abcdef0123456789"}, nil).AnyTimes()
 	f.rs.EXPECT().Lookup(anyCtx, anyCtx).Return(core.RulesetInfo{Name: hostile, Version: hostile, Hash: "abcdef0123456789"}, nil).AnyTimes()
 	f.camp.EXPECT().List(anyCtx, anyCtx, anyCtx).Return(summaries, nil).AnyTimes()
+	f.nav = []core.CampaignNav{{ID: 7, Name: hostile, Status: core.CampaignActive}}
 	f.camp.EXPECT().Get(anyCtx, anyCtx, anyCtx).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().Matches(anyCtx, anyCtx).Return([]core.Match{match}, nil).AnyTimes()
 	f.camp.EXPECT().Match(anyCtx, anyCtx, anyCtx).Return(match, nil).AnyTimes()

@@ -6,6 +6,8 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"sync"
+	"sync/atomic"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,6 +22,11 @@ var migrations embed.FS
 type Store struct {
 	pool *pgxpool.Pool
 	url  string // kept for connections outside the pool (the live feed)
+
+	// hashes remembers each campaign's rules files and settings (campaignStore.Hashes): they are set when the campaign is created and
+	// never change, and campaigns are never deleted, so the answer is read once per campaign and process.
+	hashes     sync.Map // campaign id -> hashesEntry
+	hashesSize atomic.Int64
 }
 
 // Options tune Open.
@@ -41,6 +48,8 @@ func OpenWith(ctx context.Context, url string, opt Options) (*Store, error) {
 		return nil, fmt.Errorf("parsing the database url: %w", err)
 	}
 	cfg.ConnConfig.Tracer = opt.Tracer
+	var guarded atomic.Bool
+	cfg.AfterConnect = func(ctx context.Context, c *pgx.Conn) error { return guard(ctx, c, &guarded) }
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("connecting to postgres: %w", err)
@@ -54,7 +63,34 @@ func OpenWith(ctx context.Context, url string, opt Options) (*Store, error) {
 		pool.Close()
 		return nil, err
 	}
+	// The migrations may run longer than the limits below; every connection opened from now on has them.
+	guarded.Store(true)
+	pool.Reset()
 	return s, nil
+}
+
+// Limits on what one request can hold in the database (REVIEW: values): a statement (a lock wait included) that runs longer is
+// cancelled, and a transaction left open and idle is ended and its locks released, so a stuck request cannot wedge the match row
+// or exhaust the pool. Settings given in DATABASE_URL (statement_timeout=...) win.
+const (
+	statementTimeout       = "60s"
+	idleInTransactionLimit = "60s"
+)
+
+func guard(ctx context.Context, c *pgx.Conn, on *atomic.Bool) error {
+	if !on.Load() {
+		return nil
+	}
+	rp := c.Config().RuntimeParams
+	for name, v := range map[string]string{"statement_timeout": statementTimeout, "idle_in_transaction_session_timeout": idleInTransactionLimit} {
+		if _, set := rp[name]; set {
+			continue
+		}
+		if _, err := c.Exec(ctx, "SELECT set_config($1, $2, false)", name, v); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Store) Close() { s.pool.Close() }

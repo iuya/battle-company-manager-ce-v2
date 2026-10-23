@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 	"time"
 
@@ -16,6 +17,9 @@ import (
 
 // liveChannel is the NOTIFY channel of the live mode.
 const liveChannel = "live_match"
+
+// liveConnectTimeout bounds opening the listening connection and the LISTEN statement.
+const liveConnectTimeout = 15 * time.Second
 
 // liveFeedName names the listening connection in pg_stat_activity.
 const liveFeedName = "bcm-live-feed"
@@ -203,14 +207,66 @@ func (ls liveStore) Init(ctx context.Context, campaignID, matchID int64, units [
 	return tx.Commit(ctx)
 }
 
-// Read returns the snapshot in one repeatable-read transaction, without locking.
+// Read returns the snapshot without locking, in one statement (so one snapshot, with no transaction around it): the match's counter,
+// units and not-undone entries as JSON.
 func (ls liveStore) Read(ctx context.Context, campaignID, matchID int64) (core.LiveSnapshot, error) {
-	tx, err := ls.s.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
-	if err != nil {
-		return core.LiveSnapshot{}, err
+	snap := core.LiveSnapshot{MatchID: matchID}
+	var units, entries []byte
+	err := ls.s.pool.QueryRow(ctx, `
+		SELECT m.number, m.ended, coalesce(l.seq, 0), l.match_id IS NOT NULL,
+		       (SELECT COALESCE(jsonb_agg(jsonb_build_array(u.unit_id, u.company_id, u.start_wounds, u.start_might, u.start_will, u.start_fate,
+		                                                    u.has_mount, u.mount_wounds, u.counts_as_kill, u.absent) ORDER BY u.company_id, u.unit_id), '[]')
+		          FROM match_live_unit u WHERE u.match_id = m.id),
+		       (SELECT COALESCE(jsonb_agg(jsonb_build_array(e.id, e.seq, e.match_id, e.company_id, e.unit_id, e.touches, e.payload, e.text,
+		                                                    coalesce(eu.display_name, ''), coalesce(e.by_user_id, 0),
+		                                                    (extract(epoch FROM e.created_at) * 1000000)::bigint) ORDER BY e.seq), '[]')
+		          FROM match_live_log e LEFT JOIN users eu ON eu.id = e.by_user_id WHERE e.match_id = m.id AND e.undone_at IS NULL)
+		  FROM matches m LEFT JOIN match_live l ON l.match_id = m.id
+		 WHERE m.id = $1 AND m.campaign_id = $2`, matchID, campaignID).
+		Scan(&snap.Number, &snap.Ended, &snap.Seq, &snap.Initialised, &units, &entries)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return snap, core.ErrNotFound
 	}
-	defer tx.Rollback(ctx)
-	return ls.snapshot(ctx, tx, campaignID, matchID)
+	if err != nil {
+		return snap, err
+	}
+	if !snap.Initialised {
+		return snap, nil
+	}
+	var us [][10]json.RawMessage
+	if err := json.Unmarshal(units, &us); err != nil {
+		return snap, err
+	}
+	for _, r := range us {
+		var u core.LiveUnitInit
+		if err := unmarshalAll(r[:], &u.UnitID, &u.CompanyID, &u.Wounds, &u.Might, &u.Will, &u.Fate, &u.HasMount, &u.MountWounds, &u.CountsAsKill, &u.Absent); err != nil {
+			return snap, err
+		}
+		snap.Units = append(snap.Units, u)
+	}
+	var es [][11]json.RawMessage
+	if err := json.Unmarshal(entries, &es); err != nil {
+		return snap, err
+	}
+	for _, r := range es {
+		var e core.LiveEntry
+		var on int64
+		var payload json.RawMessage
+		if err := unmarshalAll(r[:], &e.ID, &e.Seq, &e.MatchID, &e.CompanyID, &e.UnitID, &e.Touches, &payload, &e.Text, &e.By, &e.ByUserID, &on); err != nil {
+			return snap, err
+		}
+		if len(e.Touches) == 0 {
+			e.Touches = nil
+		}
+		e.On = time.UnixMicro(on)
+		a, err := decodeAction(payload)
+		if err != nil {
+			return snap, fmt.Errorf("live entry %d payload: %w", e.ID, err)
+		}
+		e.Action = a
+		snap.Entries = append(snap.Entries, e)
+	}
+	return snap, nil
 }
 
 var errLiveNotInitialised = errors.New("postgres: live match is not initialised")
@@ -334,7 +390,7 @@ func (ls liveStore) Log(ctx context.Context, campaignID, matchID, before int64, 
 	}
 	rows, err := ls.s.pool.Query(ctx, `
 		SELECT `+liveEntryColumns+` FROM match_live_log l LEFT JOIN users u ON u.id = l.by_user_id
-		 WHERE l.match_id = $1 AND l.undone_at IS NULL AND ($2 = 0 OR l.seq < $2) ORDER BY l.seq DESC LIMIT $3`, matchID, before, limit)
+		 WHERE l.match_id = $1 AND l.undone_at IS NULL AND ($2::bigint = 0 OR l.seq < $2::bigint) ORDER BY l.seq DESC LIMIT $3`, matchID, before, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -374,7 +430,9 @@ func (f liveFeed) Run(ctx context.Context, onEvent func(core.LiveEvent), onResyn
 		if connected {
 			backoff = f.minBackoff
 		}
-		_ = err // the next attempt reports itself through onResync; the cause is transient
+		// The next attempt reports itself through onResync; the cause is usually transient, but a permanent one (a bad URL, a
+		// revoked role) must show in the log.
+		slog.Warn("live feed connection lost, reconnecting", "err", err, "in", backoff)
 		select {
 		case <-ctx.Done():
 			return nil
@@ -391,7 +449,11 @@ func (f liveFeed) listen(ctx context.Context, onEvent func(core.LiveEvent), onRe
 		return false, err
 	}
 	cfg.RuntimeParams["application_name"] = liveFeedName
-	conn, err := pgx.ConnectConfig(ctx, cfg)
+	// A black-holed address must not wedge the feed until the operating system gives up: connect and LISTEN get a deadline.
+	cfg.ConnectTimeout = liveConnectTimeout
+	cctx, ccancel := context.WithTimeout(ctx, liveConnectTimeout)
+	defer ccancel()
+	conn, err := pgx.ConnectConfig(cctx, cfg)
 	if err != nil {
 		return false, err
 	}
@@ -400,7 +462,7 @@ func (f liveFeed) listen(ctx context.Context, onEvent func(core.LiveEvent), onRe
 		defer cancel()
 		conn.Close(cctx)
 	}()
-	if _, err := conn.Exec(ctx, "LISTEN "+liveChannel); err != nil {
+	if _, err := conn.Exec(cctx, "LISTEN "+liveChannel); err != nil {
 		return false, err
 	}
 	onResync()

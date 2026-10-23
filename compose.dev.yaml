@@ -32,5 +32,6 @@ services:
 #   APP_TIMEZONE=                IANA zone for visitors with none (UTC when empty)
 #   STATIC_MAX_AGE=0s            Cache-Control lifetime of static files
 #   STYLEGUIDE=false             serve /styleguide and the development marks; make run, dev and demo set true
+#   PERF_TRACE=false             Server-Timing header (time, database statements) for tests/e2e/perf.mjs; development only
 volumes:
   pgdata:

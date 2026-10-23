@@ -88,7 +88,11 @@ func (r *Rules) For(ctx context.Context, h RulesetHashes) (*RuleSet, error) {
 		r.evict()
 		// The build outlives the request that triggered it: the others wait for it too.
 		go func() {
-			c.set, c.err = r.build(context.WithoutCancel(ctx), h)
+			// A panic in the parsers (a malformed upload) must not end the process, and must still release the waiters.
+			c.err = safely("rule set build", func() (err error) {
+				c.set, err = r.build(context.WithoutCancel(ctx), h)
+				return err
+			})
 			if c.err != nil {
 				r.mu.Lock()
 				if r.calls[h] == c {

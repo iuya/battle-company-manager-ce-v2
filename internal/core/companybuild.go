@@ -76,7 +76,7 @@ func equipmentFor(rs *RuleSet, bcCo BCCompany, name string, bought, profile, her
 }
 
 // fallbackGearText is the tooltip of an item no file describes by itself: the vanilla special rule of the same name
-// (Twin Blades), or, for plain melee weapons and the natural and plain weapons that are hand weapons ("Hand weapons", "Fangs (hand weapons)"),
+// (Twin Blades), the glossary's wargear entry of the same name (Elven cloak), or, for plain melee weapons and the natural and plain weapons that are hand weapons ("Hand weapons", "Fangs (hand weapons)"),
 // the rulebook's Hand Weapon entry. Mounts need none: their chip shows the mount's profile.
 func fallbackGearText(rs *RuleSet, name string, plainMelee bool) string {
 	if d, ok := rs.Vanilla.Keyword(name); ok {
@@ -86,6 +86,9 @@ func fallbackGearText(rs *RuleSet, name string, plainMelee bool) string {
 		if t, ok := rs.Glossary.Find("Hand Weapon"); ok {
 			return t.Summary(400)
 		}
+	}
+	if t, ok := rs.Glossary.Find(name); ok && t.Category == "wargear" { // Elven cloak: the rulebook's wargear entry
+		return t.Summary(500)
 	}
 	return ""
 }
@@ -889,7 +892,7 @@ func parsePathRules(bc []byte) map[string][]UnitRule {
 // so far.
 func (b *BCBook) PathRules(path string, n int) []UnitRule {
 	all := b.pathRules[path]
-	return slices.Clone(all[:min(n, len(all))])
+	return slices.Clone(all[:max(0, min(n, len(all)))])
 }
 
 // pathRuleNamed is the special rule of a path with that name and its description.

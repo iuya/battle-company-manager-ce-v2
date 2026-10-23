@@ -46,12 +46,12 @@
 
 {{if and .ShowRoles .CanEdit}}{{template "roles_card" .}}{{end}}
 
-<div id="ato-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/ato" hx-trigger="load" hx-swap="innerHTML"></div>
+<div id="ato-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/ato" {{if not (and .Cards .Cards.ATO)}}hx-trigger="load" {{end}}hx-swap="innerHTML">{{if .Cards}}{{with .Cards.ATO}}{{template "ato_card" .}}{{end}}{{end}}</div>
 
-{{if .ShowSecret}}<div id="secret-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/secret" hx-trigger="load" hx-swap="innerHTML"></div>{{end}}
+{{if .ShowSecret}}<div id="secret-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/secret" hx-trigger="{{if and .Cards .Cards.Secret}}none{{else}}load{{end}}" hx-swap="innerHTML">{{if .Cards}}{{with .Cards.Secret}}{{template "secret_card" .}}{{end}}{{end}}</div>{{end}}
 
 
-{{if and (not $m.Ended) (ne .Campaign.Status "finished")}}<div id="end-checks-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/live/end?card=1" hx-trigger="load, live:match from:body" hx-swap="innerHTML"></div>{{end}}
+{{if and (not $m.Ended) (ne .Campaign.Status "finished")}}<div id="end-checks-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/live/end?card=1" hx-trigger="{{if not (and .Cards (or .Cards.End .Cards.EndNone))}}load, {{end}}live:match from:body" hx-swap="innerHTML">{{if .Cards}}{{with .Cards.End}}{{template "end_checks_card" .}}{{end}}{{end}}</div>{{end}}
 
 {{template "result_card" .}}
 
@@ -458,7 +458,7 @@
 
 {{/* The log card on the match page: loaded after the page, refreshed when the match changes (the sync script fires live:match). */}}
 {{define "live_log_slot"}}
-<div id="live-log-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/live/log?card=1" hx-trigger="load{{if not .Match.Ended}}, live:match from:body{{end}}" hx-swap="innerHTML" {{if not .Match.Ended}}data-live-match="{{.Match.ID}}" data-campaign="{{.Campaign.ID}}"{{end}}></div>
+<div id="live-log-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/live/log?card=1" {{$lazy := not (and .Cards .Cards.Log)}}{{if or $lazy (not .Match.Ended)}}hx-trigger="{{if $lazy}}load{{end}}{{if not .Match.Ended}}{{if $lazy}}, {{end}}live:match from:body{{end}}" {{end}}hx-swap="innerHTML" {{if not .Match.Ended}}data-live-match="{{.Match.ID}}" data-campaign="{{.Campaign.ID}}"{{end}}>{{if .Cards}}{{with .Cards.Log}}{{template "live_log_card" .}}{{end}}{{end}}</div>
 {{end}}
 
 

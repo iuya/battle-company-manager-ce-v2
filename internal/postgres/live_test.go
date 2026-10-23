@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -610,4 +611,42 @@ func TestLiveEndLinesAreStored(t *testing.T) {
 	if snap, err := live.Read(w.ctx, w.camp, w.match.ID); err != nil || len(snap.Entries) != 5 {
 		t.Fatalf("%v %+v", err, snap.Entries)
 	}
+}
+
+// Read answers in one statement with JSON; snapshot (used under the lock by Update) in several. They must agree for every match.
+func TestLiveReadEqualsSnapshot(t *testing.T) {
+	s, ctx := testStore(t)
+	ls := s.Live()
+	rows, err := s.pool.Query(ctx, `SELECT campaign_id, id FROM matches ORDER BY id`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ids [][2]int64
+	for rows.Next() {
+		var p [2]int64
+		if err := rows.Scan(&p[0], &p[1]); err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, p)
+	}
+	rows.Close()
+	for _, p := range ids {
+		got, err := ls.Read(ctx, p[0], p[1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		tx, err := s.pool.Begin(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want, err := ls.snapshot(ctx, tx, p[0], p[1])
+		tx.Rollback(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("match %d: Read differs from snapshot\n got %+v\nwant %+v", p[1], got, want)
+		}
+	}
+	t.Logf("%d matches compared", len(ids))
 }

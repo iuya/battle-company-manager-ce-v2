@@ -12,7 +12,11 @@ import (
 // bow is not a Longbow, a Light Shield is not a Shield (data.gearAnnotations, `relatedTo`).
 
 // ItemKey is the identity of an item name; the same normalisation as `item_key` in tools/bc/gear.py (with spaces removed).
-func ItemKey(name string) string {
+func ItemKey(name string) string { return itemKeys.get(name, itemKey) }
+
+var itemKeys memo
+
+func itemKey(name string) string {
 	var words []string
 	for _, w := range strings.Fields(strings.Map(func(r rune) rune {
 		if unicode.IsLetter(r) || unicode.IsDigit(r) {

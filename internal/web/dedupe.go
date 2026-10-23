@@ -77,15 +77,21 @@ func (s *Server) once(next http.HandlerFunc) http.HandlerFunc {
 		sum := sha256.Sum256(body)
 		key := fmt.Sprint(u.ID, " ", r.URL.Path, " ", r.Header.Get("HX-Request"), " ", hex.EncodeToString(sum[:]))
 
-		s.onceMu.Lock()
-		defer s.onceMu.Unlock()
+		// One request of a person at a time (a stripe of locks by account, so a stuck request holds up that person, never the app),
+		// and the table of answers is locked only while it is read or written, never while the handler runs.
+		stripe := &s.onceStripes[uint64(u.ID)%onceStripeCount]
+		stripe.Lock()
+		defer stripe.Unlock()
 		now := time.Now()
+		s.onceMu.Lock()
 		for k, v := range s.onceSeen {
 			if now.Sub(v.at) > onceWindow {
 				delete(s.onceSeen, k)
 			}
 		}
-		if v, ok := s.onceSeen[key]; ok {
+		v, seen := s.onceSeen[key]
+		s.onceMu.Unlock()
+		if seen {
 			for h, vals := range v.header {
 				w.Header()[h] = vals
 			}
@@ -96,13 +102,18 @@ func (s *Server) once(next http.HandlerFunc) http.HandlerFunc {
 		rec := &replayRecorder{ResponseWriter: w, status: http.StatusOK}
 		next(rec, r)
 		if len(rec.body) <= 1<<20 && rec.status < 500 {
+			s.onceMu.Lock()
 			if s.onceSeen == nil {
 				s.onceSeen = map[string]onceAnswer{}
 			}
 			s.onceSeen[key] = onceAnswer{at: now, status: rec.status, header: rec.Header().Clone(), body: rec.body}
+			s.onceMu.Unlock()
 		}
 	}
 }
+
+// onceStripeCount is the number of locks the accounts share for the one-at-a-time rule of once.
+const onceStripeCount = 64
 
 const onceWindow = 3 * time.Second
 

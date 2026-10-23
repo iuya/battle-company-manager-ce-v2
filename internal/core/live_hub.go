@@ -5,6 +5,7 @@ import (
 	"errors"
 	"slices"
 	"sync"
+	"time"
 )
 
 // Caps on the streams one process serves (REVIEW: 10 per user, 50 per match).
@@ -35,9 +36,28 @@ func NewLiveHub(feed liveFeed) *LiveHub {
 }
 
 // Start runs the feed until ctx is done: every event reaches the streams of its match, a (re)connect marks everything changed.
+//
+// A panic in the feed (or in a callback) is logged and the feed restarted after liveRestartDelay: the hub never takes the process
+// down, and a restart marks every stream changed, so nothing is missed for long.
 func (h *LiveHub) Start(ctx context.Context) error {
-	return h.feed.Run(ctx, h.publish, h.resync)
+	for {
+		err := safely("live feed", func() error { return h.feed.Run(ctx, h.publish, h.resync) })
+		if ctx.Err() != nil {
+			return err
+		}
+		if err == nil {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(liveRestartDelay):
+		}
+	}
 }
+
+// liveRestartDelay is the pause before the feed is restarted after a panic.
+var liveRestartDelay = time.Second
 
 // Close ends every stream (Next returns ErrLiveClosed) and refuses new ones: wire it to the server's shutdown.
 func (h *LiveHub) Close() {
