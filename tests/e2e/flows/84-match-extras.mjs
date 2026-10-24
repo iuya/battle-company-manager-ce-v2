@@ -98,6 +98,14 @@ export default async function (h) {
     const rider = before[0];
     assert.equal(rider.title, 'Rider of Rohan');
     assert.ok(rider.rules.some((r) => r.name === 'Expert Rider'), 'the cavalry rule Expert Rider is on the Rider\'s card');
+    // keywords (docs/unit-keywords.md): the chips are race and factions; Cavalry and the mount are the icon's and the gear's, so a lost mount changes none
+    const kwOf = () => eowyn.page.$eval('main .unit-slot', (u) => ({
+      row: [...u.querySelectorAll('[data-keywords] ul[aria-label=Keywords] > li.kw-chip')].map((c) => c.textContent.trim()),
+      all: [...u.querySelectorAll('.kw-full li.kw-chip')].map((c) => c.textContent.trim()), groups: [...u.querySelectorAll('.kw-full dt')].map((d) => d.textContent.trim()),
+    }));
+    const kw0 = await kwOf();
+    assert.equal(kw0.row[0], 'Man', `the Rider's keywords start with the race: ${kw0.row}`);
+    assert.ok(!kw0.all.some((k) => ['Cavalry', 'Mount', 'Hero', 'Warrior', 'Infantry'].includes(k)) && !kw0.groups.some((g) => g.startsWith('Mount')), `no obvious keyword: ${kw0.all}`);
     await eowyn.click('main button', '=Actions');
     await eowyn.click(MODAL + ' button', 'Mount removed');
     await eowyn.click(MODAL + ' button', '=Confirm');
@@ -108,6 +116,7 @@ export default async function (h) {
     assert.equal(after[0].gear.find((g) => /^horse/i.test(g.name)).struck, 'the mount is lost', 'its horse is struck through with the reason');
     assert.ok(after[0].rules.filter((r) => r.struck).every((r) => r.name === 'Cavalry'), 'only the rules the mount gave are struck');
     for (let i = 1; i < after.length; i++) assert.deepEqual(after[i].gear, before[i].gear, `the other units keep their gear (${after[i].title})`);
+    assert.deepEqual(await kwOf(), kw0, 'on foot: the keywords do not change');
     // the viewer sees it too
     await gimli.goto(`/campaigns/${cid}/companies/${eCo}`);
     await gimli.waitText('On foot');

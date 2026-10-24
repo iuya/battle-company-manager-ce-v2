@@ -76,7 +76,7 @@ States of a company's aftermath in a match (`AftermathStatus`): `pending` (nothi
      "Nobody for now"). A **Sergeant who died or retired** (the Leader living) opens the same Sergeant question
      (`Work.SergeantsToFill` counts the lost Sergeants not yet replaced): a Hero first, optional; with no Hero left, the Warrior
      with the most Experience (ties: highest points, then the player decides; `Succession.Fallback`) must take the place and is
-     treated as having rolled Hero in the Making (might, will, fate +1, chooses its path in the path window). The same fallback
+     treated as having rolled Hero in the Making (might, will, fate +1, the company's hero promotion at once (Arnor: Ranger of Arnor becomes Ranger of the North, `CompanyProfile.BecomeHero`), chooses its path in the path window). The same fallback
      applies to a lost Leader. A Warrior is never made a Sergeant just because the Leader was replaced from the Sergeants. Several officers lost in one match are handled one question at a time (Leader first, then one Sergeant question per lost Sergeant; after a Hero fills the place, the Sergeant place stays offered, optional, while there are fewer than two Sergeants and a Hero is free). Retirement counts as death; only units on the active roster are candidates; a company with nobody left to lead has no question. **Frontend contract (6n1.1):** no new state: `Aftermath.Succession` with `NeedSergeant` and `Fallback` set is the mandatory Warrior question (radios of `Fallback`, no "nobody" answer; the `aftermath_succession` / `aftermath_fallback` templates list each Warrior with its Experience and points, preselect a single one, say when several are tied, and tell that the Warrior chooses its path in the company window as a Hero in the Making), `NeedSergeant` with `SergeantOptions` is the optional Hero question.
    When every casualty is final and every decision is made, the server applies **experience** and moves to `levelups`.
 4. **Experience** (automatic, at the end of step 3). Each surviving unit that took part gets the sum of its gains
@@ -328,7 +328,7 @@ who may not edit gets the sheet read only and a plain 403 on writes. The web int
 - Effects: absent units recover at Start (undone by `ReopenSheet`), injuries count up (`Injuries`), a second arm wound or leg wound
   buries the hero as "Retired", Dead buries as "Dead", Fate rises through the path's limits (`Progress.Bonus["fate"]`), Lesson Learned
   adds XP, Wounds of a Hero adds Influence at Finish. A fallen Leader's place is chosen in `Decide`; with no hero left, the chosen
-  Warrior becomes Leader with the officer's start (1 Might, Will and Fate) and chooses its path in the usual path window.
+  Warrior becomes Leader with the officer's start (1 Might, Will and Fate, and its company's hero promotion) and chooses its path in the usual path window.
 - **Perks and free equipment** (csg.12.5): `Perk` rows (`company_perks`) are created at Finish for the winner only (the relic perk
   bound to its bearer); `UsePerk` is for the owner; `CompanyDetail` carries `Aftermaths`, `Perks` and the latest 20 `History` lines
   (`CompanyService.WithAftermaths`). `FreeEquipmentOffers(id, companyID, maxInfluenceValue)` lists armoury items worth at most the

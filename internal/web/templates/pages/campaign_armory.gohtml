@@ -86,6 +86,7 @@
         <span class="mt-1 text-muted">{{template "paw"}}</span>
         <div class="min-w-0 flex-1 space-y-2">
           <p class="font-medium">{{.Name}} <span class="badge badge-muted">creature</span> <span class="text-sm font-normal text-muted">{{.Points}} pts</span></p>
+          {{template "keyword_row" (dict "K" .Keywords)}}
           <dl class="inline-grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">
             {{range .StatBlock}}<div class="min-w-8 border-r border-line bg-surface px-0.5 py-1 last:border-r-0" title="{{.Name}}"><dt class="text-[10px] uppercase leading-none text-muted">{{.Abbr}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}{{.Trail}}</dd></div>{{end}}
           </dl>
@@ -124,6 +125,7 @@
       <div class="flex flex-wrap items-start gap-x-3 gap-y-2">
         <div class="min-w-0 flex-1 space-y-2">
           <p class="font-medium">{{.Name}} <span class="badge badge-gold">wanderer</span> <span class="text-sm font-normal text-muted">{{.Points}} pts</span></p>
+          {{template "keyword_row" (dict "K" .Keywords)}}
           <div class="flex flex-wrap items-center gap-2">
             <dl class="inline-grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">
               {{range .StatBlock}}{{if not .HeroOnly}}<div class="min-w-8 border-r border-line bg-surface px-0.5 py-1 last:border-r-0" title="{{.Name}}"><dt class="text-[10px] uppercase leading-none text-muted">{{.Abbr}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}

@@ -133,6 +133,11 @@ func (s *LevelService) RollLevelUp(ctx context.Context, user User, campaignID, u
 			}
 			roll = env.warriorRoll(p, d6)
 		}
+		if roll.Kind == "warrior" {
+			var err error
+			out, err = env.settleWarrior(st, us, roll)
+			return err
+		}
 		out = roll
 		if roll.Done {
 			p.Taken++
@@ -216,7 +221,9 @@ func (env *levelEnv) choose(st *CompanyState, us *UnitState, keys []string) (Lev
 		p.Hero, p.Path = true, rest
 		profile, _ := rs.BC.Profile(bcCo.Name)
 		promotion, promotes := profile.PromotionOnHero(u.Type)
-		if profile.StartGains(u.Type) && !(promotes && !promotion.StatGain) { // a Ranger of the North already has its point of Might, Will and Fate
+		if path, ok := rules.Path(rest); ok && len(path.Start) > 0 { // the homebrew path starts on its own Might, Will and Fate
+			p.Bonus = mergeBonus(p.Bonus, map[string]int{"might": path.Start["might"], "will": path.Start["will"], "fate": path.Start["fate"]})
+		} else if profile.StartGains(u.Type) && !(promotes && !promotion.StatGain) { // a Ranger of the North already has its point of Might, Will and Fate
 			p.Bonus = mergeBonus(p.Bonus, map[string]int{"might": 1, "will": 1, "fate": 1})
 		}
 		summary = fmt.Sprintf("%s becomes a hero on the %s.", u.Title(), rest)
@@ -291,14 +298,9 @@ func (s *LevelService) RerollLevelUp(ctx context.Context, user User, campaignID,
 			st.Rerolls--
 			fresh := env.warriorRoll(p, s.dice.D6())
 			fresh.Notes = append(fresh.Notes, fmt.Sprintf("Re-rolled the %d (Against the Odds).", roll.D6))
-			if fresh.Done {
-				p.Taken++
-				us.Pending.Level = nil
-			} else {
-				us.Pending.Level = &fresh
-			}
-			out = fresh
-			return nil
+			var err error
+			out, err = env.settleWarrior(st, us, fresh)
+			return err
 		}
 		if which < 0 || which >= len(roll.Offers) {
 			return Refuse("Choose which result to re-roll.")
@@ -324,6 +326,37 @@ func (s *LevelService) RerollLevelUp(ctx context.Context, user User, campaignID,
 	return out, err
 }
 
+// ownPath is the homebrew path the rolling unit follows when it is On Its Own Path in a campaign with the option.
+func (env *levelEnv) ownPath() (string, bool) {
+	profile, _ := env.rs.BC.Profile(env.bcC.Name)
+	if !ownPathLevels(env.rs, env.settings, profile, env.unit.Type) {
+		return "", false
+	}
+	return env.rs.BC.Progression().CustomPath, true
+}
+
+// settleWarrior stores a warrior's roll, or finishes it: a roll that needs no choice ends the level-up, and one of a unit on its own
+// path that came up Hero in the Making takes that path at once.
+func (env *levelEnv) settleWarrior(st *CompanyState, us *UnitState, roll LevelRoll) (LevelRoll, error) {
+	p := us.Progress
+	switch {
+	case roll.Done:
+		p.Taken++
+		us.Pending.Level = nil
+		return roll, nil
+	case roll.Auto:
+		us.Pending.Level = &roll
+		done, err := env.choose(st, us, []string{roll.Offers[0].Choices[0].Key})
+		if err != nil {
+			return roll, err
+		}
+		done.D6, done.Result, done.Notes = roll.D6, roll.Result, roll.Notes
+		return done, nil
+	}
+	us.Pending.Level = &roll
+	return roll, nil
+}
+
 // warriorRoll resolves a warrior's D6: nothing, a promotion to choose, or a hero in the making.
 func (env *levelEnv) warriorRoll(p *Progress, d6 int) LevelRoll {
 	rules := env.rs.BC.Progression()
@@ -340,6 +373,11 @@ func (env *levelEnv) warriorRoll(p *Progress, d6 int) LevelRoll {
 		}
 	case "heroInTheMaking":
 		offer := LevelOffer{Roll: d6, Text: row.Text}
+		if custom, ok := env.ownPath(); ok { // a unit on its own path takes its path at once: nothing to choose, no promotion to forgo for
+			offer.Choices = []LevelChoice{{Key: "path:" + custom, Label: custom, Group: "Its own path"}}
+			roll.Offers, roll.Auto = []LevelOffer{offer}, true
+			return roll
+		}
 		for _, path := range rules.Paths {
 			if path.LimitPerCompany > 0 && heroesOnPath(env.d, path.Name) >= path.LimitPerCompany {
 				roll.Notes = append(roll.Notes, fmt.Sprintf("The company already has a hero on the %s (at most %d): it is not offered.", path.Name, path.LimitPerCompany))
@@ -415,6 +453,9 @@ func (s *LevelService) ChoosePath(ctx context.Context, user User, campaignID, un
 		}
 		if !offer.Paths[i].StartPower {
 			power = ""
+		}
+		if profile, ok := env.rs.BC.Profile(env.bcC.Name); ok {
+			profile.healOfficer(us)
 		}
 		*us = WithPath(*us, path, power, env.rs.BC.Progression())
 		return nil

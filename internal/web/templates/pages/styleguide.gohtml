@@ -106,6 +106,15 @@
     </div>
   </section>
 
+  {{/* ---- keyword chips ---- */}}
+  <section id="sg-keywords" class="space-y-4" aria-labelledby="sg-keywords-h">
+    <h2 id="sg-keywords-h">Keyword chips</h2>
+    <p class="text-sm text-muted">Race (solid, bold), factions (muted), unit types (outlined). Every chip has a tooltip and opens the helper popup; +N opens the full list in place.</p>
+    <div class="grid gap-4 md:grid-cols-2">
+      {{range .Keywords}}<div class="card space-y-2 !p-4"><p class="text-xs text-muted">{{.Label}}</p>{{template "keyword_row" (dict "K" .K "Open" .Open "Static" .Static)}}</div>{{end}}
+    </div>
+  </section>
+
   {{/* ---- account patterns ---- */}}
   <section class="space-y-4">
     <h2>Account patterns</h2>

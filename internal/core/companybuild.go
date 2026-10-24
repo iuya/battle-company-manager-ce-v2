@@ -93,6 +93,12 @@ func fallbackGearText(rs *RuleSet, name string, plainMelee bool) string {
 	return ""
 }
 
+// ownPathLevels says whether units On Their Own Path earn experience in this campaign (the homebrew Path of Their Own Making):
+// they are warriors that level up on the warrior table and become heroes on that path with a 6.
+func ownPathLevels(rs *RuleSet, settings CampaignSettings, profile CompanyProfile, unit string) bool {
+	return settings.CustomOnTheirOwnPath && rs.BC.Progression().CustomPath != "" && profile.OnOwnPath(unit)
+}
+
 func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettings) CompanyUnit {
 	book := rs.Vanilla
 	base, found := book.Unit(s.Base)
@@ -135,12 +141,7 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 	if s.Points > 0 {
 		base.Points = s.Points
 	}
-	if custom := rs.BC.Progression().CustomPath; custom != "" && settings.CustomOnTheirOwnPath && s.Role == RoleWarrior && profile.OnOwnPath(s.Base) {
-		// the campaign gives these units a path of their own to follow: they start on it as heroes with 0 Might, 0 Will and 1 Fate
-		path, _ := rs.BC.Progression().Path(custom)
-		s.Role, s.Path = RoleHero, custom
-		s.Bonus = mergeBonus(s.Bonus, map[string]int{"might": path.Start["might"], "will": path.Start["will"], "fate": path.Start["fate"]})
-	}
+	ownPathLevels := ownPathLevels(rs, settings, profile, s.Base)
 	hero := s.Role != RoleWarrior
 	u := CompanyUnit{ID: s.ID, Name: s.Name, Type: s.Base, Role: s.Role, Level: s.Level, XP: s.XP, Injured: s.Injured, AtHealers: s.SentToHealers}
 	u.Kind = s.Kind
@@ -328,7 +329,7 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 			}
 		}
 	}
-	if !hero && profile.OwnPath != "" && profile.OnOwnPath(s.Base) { // it never earns experience: its path is the end of the path
+	if !hero && !ownPathLevels && profile.OwnPath != "" && profile.OnOwnPath(s.Base) { // it never earns experience: its path is the end of the path
 		rule := rs.BC.Progression().EndOfPath[profile.OwnPath]
 		desc, _ := rs.BC.Keyword(rule)
 		u.OwnPath, u.XP, u.Level = true, 0, 0
@@ -360,6 +361,7 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 			u.Path.HeroicActions = append(u.Path.HeroicActions, HeroicAction{Name: a, Source: ActionFromUnit})
 		}
 	}
+	u.Keywords = unitKeywordsOf(rs, profile, s, u) // last: a bought mount makes the rider Cavalry
 	return u
 }
 
@@ -459,9 +461,7 @@ func StartingUnits(p CompanyProfile, heroes []StartHero) []UnitState {
 		spec := UnitState{ID: int64(i + 1), Base: s.Unit, Role: RoleWarrior, Gear: slices.Clone(s.Wargear)}
 		if h, ok := byIndex[i]; ok {
 			spec.Role = h.Role
-			if p.StartGains(s.Unit) {
-				spec.Bonus = HeroBonus(nil)
-			}
+			p.BecomeHero(&spec) // an officer is a Hero in the Making: the company's promotion and the hero's point of Might, Will and Fate
 		}
 		out = append(out, spec)
 	}
@@ -675,7 +675,7 @@ func applyCompanyRules(rs *RuleSet, bcCo BCCompany, units []CompanyUnit) []Compa
 		used, models := 0, 0
 		for _, u := range units {
 			models += u.ModelCount()
-			if v, _, ok := resolveUnit(rs, profile, u.Type); ok && slices.ContainsFunc(v.Race, func(r string) bool { return strings.EqualFold(r, l.Keyword) }) {
+			if v, _, ok := resolveUnitKeywords(rs, profile, u.Type); ok && slices.ContainsFunc(v.Race, func(r string) bool { return strings.EqualFold(r, l.Keyword) }) {
 				used++
 			}
 		}
@@ -695,7 +695,7 @@ func hasKeyword(v VanillaUnit, keyword string) bool {
 func countKeyword(rs *RuleSet, profile CompanyProfile, roster []CompanyUnit, keyword string) int {
 	n := 0
 	for _, u := range roster {
-		if v, _, ok := resolveUnit(rs, profile, u.Type); ok && hasKeyword(v, keyword) { // a company's own name for a profile counts as that profile
+		if v, _, ok := resolveUnitKeywords(rs, profile, u.Type); ok && hasKeyword(v, keyword) { // a company's own name for a profile counts as that profile
 			n++
 		}
 	}
@@ -713,7 +713,7 @@ const (
 // companyBlock says why a unit cannot join the company now, with the kind of reason (empty when it can join).
 func companyBlock(rs *RuleSet, bcCo BCCompany, roster []CompanyUnit, unit string) (why, kind string) {
 	profile, _ := rs.BC.Profile(bcCo.Name)
-	v, _, known := resolveUnit(rs, profile, unit)
+	v, _, known := resolveUnitKeywords(rs, profile, unit)
 	if !known {
 		return "", ""
 	}
@@ -979,6 +979,19 @@ func BuildDetail(rs *RuleSet, settings CampaignSettings, st CompanyState) Compan
 		}
 	}
 	detail.Cemetery = OrderFallen(slices.Clone(st.Cemetery), st.Graveyard)
+	if profile, ok := rs.BC.Profile(bcCo.Name); ok {
+		for i := range detail.Cemetery { // a stored snapshot may predate the keywords: the grave shows the unit's own, without a mount
+			u := &detail.Cemetery[i].Unit
+			if !u.Keywords.Empty() {
+				continue
+			}
+			in := UnitKeywordsInput{Type: u.Type, Role: u.Role}
+			if u.Wanderer {
+				in.Wanderer = u.Type
+			}
+			u.Keywords = rs.UnitKeywords(profile, in)
+		}
+	}
 	detail.RangerUnit, detail.RangerMayReturn = rangerMayReturn(rs, bcCo.Name, units, detail.Cemetery)
 	for i, sp := range detail.Recruit.Special {
 		detail.Recruit.Special[i].Blocked, _ = resultBlock(rs, bcCo, units, Reinforcement{Type: "unit", Unit: sp.Unit, Rare: sp.Rare})
@@ -992,4 +1005,20 @@ func breakPointPercent(rs *RuleSet, faction string) int {
 		return p.BreakPoint
 	}
 	return rs.BC.BreakRules().DefaultPercent
+}
+
+// unitKeywordsOf is the keyword set of a built unit: its profile's, plus the mount it carries (a bought one, or a composite's).
+func unitKeywordsOf(rs *RuleSet, profile CompanyProfile, s UnitState, u CompanyUnit) UnitKeywords {
+	in := UnitKeywordsInput{Type: s.Base, Role: s.Role, Wanderer: s.Wanderer}
+	if i := slices.IndexFunc(u.Equipment, func(e Equipment) bool { return slices.Contains(e.Classes(), EquipMount) }); i >= 0 {
+		in.Mount = u.Equipment[i].Name
+	}
+	if in.Mount == "" {
+		for _, part := range u.Parts {
+			if part.Role == "mount" {
+				in.Mount = part.Name
+			}
+		}
+	}
+	return rs.UnitKeywords(profile, in)
 }

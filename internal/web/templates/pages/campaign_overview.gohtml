@@ -79,7 +79,7 @@
     </li>
     <li class="flex items-start gap-2">
       <span class="badge shrink-0 {{if not .Campaign.Settings.CustomOnTheirOwnPath}}badge-muted{{end}}">{{if .Campaign.Settings.CustomOnTheirOwnPath}}On{{else}}Off{{end}}</span>
-      <span><span class="font-medium">Own path for units On Their Own Path</span><span class="block text-muted">{{if .Campaign.Settings.CustomOnTheirOwnPath}}Those units follow the homebrew Path of Their Own Making: they start as heroes, earn experience and level up.{{else}}Those units earn no experience and never level up.{{end}}</span></span>
+      <span><span class="font-medium">Own path for units On Their Own Path</span><span class="block text-muted">{{if .Campaign.Settings.CustomOnTheirOwnPath}}Those units are warriors that earn experience and level up; on a roll of 6 they become heroes and take the homebrew Path of Their Own Making automatically.{{else}}Those units earn no experience and never level up.{{end}}</span></span>
     </li>
   </ul>
   <p class="text-xs text-muted">Set by the organiser, {{.Campaign.Organiser}}, when the campaign was created.</p>

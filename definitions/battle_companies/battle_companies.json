@@ -15233,6 +15233,90 @@
           ],
           "reason": "REVIEW: the vanilla Hunter Orc Warrior has no race, faction, unit type or base size; its sibling Hunter Orc Warg Rider has race Orc, faction Gundabad, types Warrior + Cavalry, 25mm. The Warrior is the same Orc on foot, so Infantry replaces Cavalry.",
           "source": "vanilla Hunter Orc Warg Rider (sibling profile)"
+        },
+        {
+          "unit": "Vault Warden Team",
+          "race": [
+            "Dwarf"
+          ],
+          "faction": [
+            "Khazad-dum"
+          ],
+          "unitType": [
+            "Warrior",
+            "Infantry"
+          ],
+          "reason": "REVIEW: the vanilla Vault Warden Team is a bundle (it includes Iron Shield Bearer and Foe Spear Wielder) with no race, faction or unit type; both members are Dwarf, Khazad-dum, Warrior + Infantry, so the bundle takes those keywords.",
+          "source": "vanilla Iron Shield Bearer and Foe Spear Wielder (included profiles)"
+        }
+      ]
+    },
+    "mountFillIns": {
+      "text": "Keywords (race, faction, unit type) a vanilla mount leaves empty. Each item gives values to use ONLY where the vanilla field is empty (the vanilla file is never modified). A faction of 'See Rider' means the rider's factions, as vanilla writes it for Shadowfax; the values are the curator's reading of the mount and need a reviewer's confirmation.",
+      "items": [
+        {
+          "gear": "Brego",
+          "race": [
+            "Horse"
+          ],
+          "faction": [
+            "See Rider"
+          ],
+          "unitType": [
+            "Mount"
+          ],
+          "reason": "REVIEW: Brego has no keywords in vanilla; he is a horse like Shadowfax (Horse, Mount, faction of the rider: Theodred of Rohan or Aragorn).",
+          "source": "vanilla Shadowfax and Horse (sibling mounts)"
+        },
+        {
+          "gear": "War boar",
+          "race": [
+            "Boar"
+          ],
+          "faction": [
+            "See Rider"
+          ],
+          "unitType": [
+            "Mount"
+          ],
+          "reason": "REVIEW: the War boar (Dain Ironfoot's mount) has no keywords in vanilla; its race is the animal, the faction is the rider's, as for the War goat.",
+          "source": "vanilla War goat (sibling mount)"
+        },
+        {
+          "gear": "Elk",
+          "race": [
+            "Elk"
+          ],
+          "faction": [
+            "See Rider"
+          ],
+          "unitType": [
+            "Mount"
+          ],
+          "reason": "REVIEW: Thranduil's Elk has no keywords in vanilla; the Great Elk is Elk, Mirkwood, Mount, but the faction is read as the rider's.",
+          "source": "vanilla Great Elk (sibling mount)"
+        },
+        {
+          "gear": "Cart",
+          "race": [
+            "Horse"
+          ],
+          "faction": [
+            "See Rider"
+          ],
+          "unitType": [
+            "Mount"
+          ],
+          "reason": "REVIEW: Gandalf's Cart has no keywords in vanilla; the sibling Gandalf's Cart is Horse, Mount.",
+          "source": "vanilla Gandalf's Cart (sibling mount)"
+        },
+        {
+          "gear": "Moria Goblin Drum (Drum)",
+          "unitType": [
+            "Mount"
+          ],
+          "reason": "REVIEW: the drum has no race, faction or type in vanilla (its keyword list is a copy of the White Warg's); it is a gear item of type mount, so only the Mount type is given.",
+          "source": "vanilla gear type 'mount'"
         }
       ]
     },

@@ -50,12 +50,13 @@
 {{end}}
 
 {{/* A unit named in a company's page: hovering it shows its card. Takes {P: profile, U: unit name, W: wargear}. */}}
-{{define "unit_ref"}}{{$pv := .P.Preview .U (gear .W)}}<span class="unit-ref" tabindex="0" {{if $pv.ID}}data-preview="{{$pv.ID}}"{{end}}>{{.U}}</span>{{if .P.OnOwnPath .U}} <span class="badge badge-muted" title="On Their Own Path: it never becomes a hero and earns no experience">On Their Own Path</span>{{end}}{{end}}
+{{define "unit_ref"}}{{$pv := .P.Preview .U (gear .W)}}<span class="unit-ref" tabindex="0" {{if $pv.ID}}data-preview="{{$pv.ID}}"{{end}}>{{.U}}</span>{{if .P.OnOwnPath .U}} {{if .C}}<span class="badge badge-muted" title="On Their Own Path: in this campaign it is a warrior that earns experience and becomes a hero on the Path of Their Own Making on a roll of 6">On Their Own Path</span>{{else}}<span class="badge badge-muted" title="On Their Own Path: it never becomes a hero and earns no experience">On Their Own Path</span>{{end}}{{end}}{{end}}
 
 {{/* The card of a unit as the company page shows it in a tooltip: its profile, wargear, rules and heroic actions. */}}
 {{define "unit_preview"}}
 <div class="space-y-2">
   <div class="flex items-start gap-2">{{template "kind_icon" .Kind}}<div class="min-w-0 flex-1"><p class="font-heading text-lg font-bold leading-tight">{{.Name}}</p>{{with .Types}}<p class="text-xs text-muted">{{join . " · "}}</p>{{end}}</div>{{if .Points}}<span class="shrink-0 text-sm font-semibold">{{.Points}} <span class="font-normal text-muted">pts</span></span>{{end}}</div>
+  {{template "keyword_row" (dict "K" .Keywords "Static" true)}}
   {{if .Stats}}<div class="flex flex-wrap justify-center gap-2">
     <dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">{{range .Stats}}{{if not .HeroOnly}}<div class="min-w-7 border-r border-line bg-surface px-0.5 py-1 last:border-r-0"><dt class="text-[10px] uppercase leading-none text-muted">{{.Abbr}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}</dl>
     {{if .HasHeroStats}}<dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-accent text-center">{{range .Stats}}{{if .HeroOnly}}<div class="min-w-12 border-r border-line bg-accent-soft px-2 py-1 last:border-r-0"><dt class="text-[10px] uppercase leading-none text-muted">{{.Name}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}</dd></div>{{end}}{{end}}</dl>{{end}}
@@ -70,7 +71,7 @@
    in the header; the controls for the leader and the sergeants are in the starting company below and belong to it
    (the `form` attribute). */}}
 {{define "company_info"}}
-{{$p := .Profile}}{{$cid := .Campaign.ID}}
+{{$p := .Profile}}{{$cid := .Campaign.ID}}{{$custom := .Campaign.Settings.CustomOnTheirOwnPath}}
 <article class="space-y-6" x-data="commission" data-leader="{{range .Start}}{{if eq (printf "%s" .Role) "leader"}}{{.Index}}{{end}}{{end}}" data-sergeants="{{$first := true}}{{range .Start}}{{if eq (printf "%s" .Role) "sergeant"}}{{if not $first}},{{end}}{{.Index}}{{$first = false}}{{end}}{{end}}" data-suggested="{{if .Start}}{{(index .Start 0).Suggested}}{{else}}false{{end}}" data-company="{{$p.Name}}">
   <header class="card space-y-4">
     <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -96,7 +97,7 @@
       {{if $p.SpecialChart}}{{template "chart_table" (dict "V" $ "Title" "Special chart" "Rows" $p.SpecialChart)}}{{end}}
     </div>
     {{with $p.SpecialUnits}}<div><p class="text-sm font-medium">Special units <span class="font-normal text-muted">bought directly</span></p>
-      <ul class="mt-1 flex flex-wrap gap-2">{{range .}}<li class="rounded-lg border border-line bg-surface px-3 py-1.5">{{template "unit_ref" (dict "P" $p "U" .Unit "W" nil)}} <span class="text-sm text-muted">· {{.Cost}} influence</span>{{with .Rare}} <span class="badge badge-gold" title="The company may have at most {{.}} at once">Rare {{.}}</span>{{end}}</li>{{end}}</ul></div>{{end}}
+      <ul class="mt-1 flex flex-wrap gap-2">{{range .}}<li class="rounded-lg border border-line bg-surface px-3 py-1.5">{{template "unit_ref" (dict "C" $custom "P" $p "U" .Unit "W" nil)}} <span class="text-sm text-muted">· {{.Cost}} influence</span>{{with .Rare}} <span class="badge badge-gold" title="The company may have at most {{.}} at once">Rare {{.}}</span>{{end}}</li>{{end}}</ul></div>{{end}}
     {{range $.Notes.Chart}}<p class="text-sm text-muted">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p>{{end}}
   </section>
 
@@ -107,8 +108,8 @@
       <table class="w-full text-sm">
         <thead class="bg-raised text-xs uppercase text-muted"><tr><th class="px-3 py-1.5 text-left font-semibold">From</th><th class="px-3 py-1.5 text-left font-semibold">To</th></tr></thead>
         <tbody class="divide-y divide-line">{{range $p.Advancements}}<tr>
-          <td class="px-3 py-2">{{template "unit_ref" (dict "P" $p "U" .FromUnit "W" .FromWargear)}}{{range .FromWargear}} {{template "chip" (dict "V" $ "N" .)}}{{end}}</td>
-          <td class="px-3 py-2">{{range $i, $t := .To}}{{if $i}}<span class="text-muted"> or </span>{{end}}{{template "unit_ref" (dict "P" $p "U" $t.Name "W" $t.Wargear)}}{{range $t.Wargear}} {{template "chip" (dict "V" $ "N" .)}}{{end}}{{end}}</td>
+          <td class="px-3 py-2">{{template "unit_ref" (dict "C" $custom "P" $p "U" .FromUnit "W" .FromWargear)}}{{range .FromWargear}} {{template "chip" (dict "V" $ "N" .)}}{{end}}</td>
+          <td class="px-3 py-2">{{range $i, $t := .To}}{{if $i}}<span class="text-muted"> or </span>{{end}}{{template "unit_ref" (dict "C" $custom "P" $p "U" $t.Name "W" $t.Wargear)}}{{range $t.Wargear}} {{template "chip" (dict "V" $ "N" .)}}{{end}}{{end}}</td>
         </tr>{{end}}</tbody>
       </table>
     </div>
@@ -134,7 +135,7 @@
       </div>{{end}}
       {{range $p.Rules}}<div class="exclusive"><p class="exclusive-label">Company rule</p><p class="text-sm">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p></div>{{end}}
       {{range $p.Granted}}<div class="exclusive"><p class="exclusive-label">Free special rule · {{.AppliesTo}}</p><p class="font-medium">{{template "segments" (dict "S" ($.Named .Rule) "CID" $cid)}}</p><p class="text-sm text-muted">{{.Text}}</p></div>{{end}}
-      {{range $p.Aliases}}<div class="exclusive"><p class="exclusive-label">Unit with its own name</p><p class="font-medium">{{template "unit_ref" (dict "P" $p "U" .Label "W" nil)}}</p><p class="text-sm text-muted">{{template "segments" (dict "S" ($.Linked .Text) "CID" $cid)}}</p></div>{{end}}
+      {{range $p.Aliases}}<div class="exclusive"><p class="exclusive-label">Unit with its own name</p><p class="font-medium">{{template "unit_ref" (dict "C" $custom "P" $p "U" .Label "W" nil)}}</p><p class="text-sm text-muted">{{template "segments" (dict "S" ($.Linked .Text) "CID" $cid)}}</p></div>{{end}}
       {{range $p.Exchanges}}<div class="exclusive"><p class="exclusive-label">Rule exchange</p><p class="text-sm">{{template "segments" (dict "S" ($.Linked .Text) "CID" $cid)}}</p></div>{{end}}
       {{range $p.Substitutions}}<div class="exclusive"><p class="exclusive-label">Company rule</p><p class="text-sm">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p></div>{{end}}
     </div>
@@ -147,7 +148,7 @@
     <ul class="list-inside list-disc space-y-1 text-sm">
       {{range $p.LimitLines}}<li>{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</li>{{end}}
       {{range $k, $v := $p.LimitOverrides}}<li>This company may have up to {{$v}}% of its models with a {{$k}} (the usual limit is lower).</li>{{end}}
-      {{if $p.OnTheirOwnPath}}<li>Units marked <span class="badge badge-muted">On Their Own Path</span> do not become heroes and earn no experience (<a class="term-link" hx-boost="false" href="/campaigns/{{$cid}}/glossary#t-on-their-own-path">glossary</a>).</li>{{end}}
+      {{if $p.OnTheirOwnPath}}<li>Units marked <span class="badge badge-muted">On Their Own Path</span> {{if $custom}}are warriors that earn experience in this campaign and become heroes on the Path of Their Own Making on a roll of 6{{else}}do not become heroes and earn no experience{{end}} (<a class="term-link" hx-boost="false" href="/campaigns/{{$cid}}/glossary#t-on-their-own-path">glossary</a>).</li>{{end}}
       {{range $.Notes.Limits}}<li>{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</li>{{end}}
     </ul>
   </section>
@@ -196,7 +197,7 @@
 {{define "chip"}}{{$t := index (.V.Named .N) 0}}{{if $t.TermID}}<a class="eq-chip term-link" hx-boost="false" href="/campaigns/{{.V.Campaign.ID}}/glossary#t-{{$t.TermID}}" data-concept data-tip-title="{{$t.TipTitle}}" data-tip-text="{{$t.TipText}}">{{upfirst .N}}</a>{{else}}<span class="eq-chip">{{upfirst .N}}</span>{{end}}{{end}}
 
 {{/* A chart of rolls and what they give. Takes {V: the page's view, Title, Rows}. */}}
-{{define "chart_table"}}{{$v := .V}}{{$p := $v.Profile}}{{$cid := $v.Campaign.ID}}
+{{define "chart_table"}}{{$v := .V}}{{$p := $v.Profile}}{{$custom := $v.Campaign.Settings.CustomOnTheirOwnPath}}{{$cid := $v.Campaign.ID}}
 <div>
   <p class="mb-1 text-sm font-medium">{{.Title}}</p>
   <div class="overflow-hidden rounded-lg border border-line">
@@ -204,10 +205,10 @@
       <tbody class="divide-y divide-line">{{range .Rows}}<tr>
         <td class="w-14 bg-raised px-3 py-1.5 text-center font-semibold">{{if eq .Min .Max}}{{.Min}}{{else}}{{.Min}}–{{.Max}}{{end}}</td>
         <td class="px-3 py-1.5">{{with .Result}}{{if eq .Type "nothing"}}<span class="text-muted">Nothing{{if .Blocks}} (and no more rolls){{end}}</span>
-          {{else if eq .Type "specialChart"}}<span class="text-muted">Roll on the special chart</span>{{if .Alt}} <span class="text-muted">or</span> {{template "unit_ref" (dict "P" $p "U" .Alt "W" nil)}}{{end}}
+          {{else if eq .Type "specialChart"}}<span class="text-muted">Roll on the special chart</span>{{if .Alt}} <span class="text-muted">or</span> {{template "unit_ref" (dict "C" $custom "P" $p "U" .Alt "W" nil)}}{{end}}
           {{else if eq .Type "choice"}}<span class="text-muted">{{template "segments" (dict "S" ($v.Linked .Text) "CID" $cid)}}</span>
-          {{else if eq .Type "unitChoice"}}<span class="text-muted">One of</span> {{range $i, $o := .Options}}{{if $i}}<span class="text-muted">, </span>{{end}}{{template "unit_ref" (dict "P" $p "U" $o.Unit "W" nil)}}{{with $o.Label}} <span class="text-xs text-muted">({{.}})</span>{{end}}{{end}} <span class="text-xs text-muted">· one of each at most</span>
-          {{else}}{{if gt .Count 1}}{{.Count}} × {{end}}{{template "unit_ref" (dict "P" $p "U" .Unit "W" .Wargear)}}{{range .Wargear}} {{template "chip" (dict "V" $v "N" .)}}{{end}}{{if .Choice}} <span class="text-xs text-muted">choose its options</span>{{end}}{{if .Alt}} <span class="text-muted">or</span> {{template "unit_ref" (dict "P" $p "U" .Alt "W" nil)}}{{end}}{{with .Rare}} <span class="badge badge-gold" title="The company may have at most {{.}} at once">Rare {{.}}</span>{{end}}{{end}}{{end}}</td>
+          {{else if eq .Type "unitChoice"}}<span class="text-muted">One of</span> {{range $i, $o := .Options}}{{if $i}}<span class="text-muted">, </span>{{end}}{{template "unit_ref" (dict "C" $custom "P" $p "U" $o.Unit "W" nil)}}{{with $o.Label}} <span class="text-xs text-muted">({{.}})</span>{{end}}{{end}} <span class="text-xs text-muted">· one of each at most</span>
+          {{else}}{{if gt .Count 1}}{{.Count}} × {{end}}{{template "unit_ref" (dict "C" $custom "P" $p "U" .Unit "W" .Wargear)}}{{range .Wargear}} {{template "chip" (dict "V" $v "N" .)}}{{end}}{{if .Choice}} <span class="text-xs text-muted">choose its options</span>{{end}}{{if .Alt}} <span class="text-muted">or</span> {{template "unit_ref" (dict "C" $custom "P" $p "U" .Alt "W" nil)}}{{end}}{{with .Rare}} <span class="badge badge-gold" title="The company may have at most {{.}} at once">Rare {{.}}</span>{{end}}{{end}}{{end}}</td>
       </tr>{{end}}</tbody>
     </table>
   </div>
@@ -238,11 +239,16 @@
 {{end}}
 
 {{/* A starting model in the creation page: draggable between the pool and the officers' places. Takes {V: the page's view, R: startRow}. */}}
-{{define "start_card"}}{{$v := .V}}{{$r := .R}}{{$p := $v.Profile}}
-<li class="start-card" data-index="{{$r.Index}}" data-eligible="{{$r.Eligible}}" data-unit="{{$r.Unit}}"{{if $r.Locked}} data-keep="true"{{end}}>
+{{define "start_card"}}{{$v := .V}}{{$r := .R}}{{$p := $v.Profile}}{{$custom := $v.Campaign.Settings.CustomOnTheirOwnPath}}
+<li class="start-card" data-index="{{$r.Index}}" data-eligible="{{$r.Eligible}}" data-unit="{{$r.Unit}}"{{with $r.Becomes}} data-becomes="{{.}}"{{end}}{{if $r.Locked}} data-keep="true"{{end}}>
   <div class="min-w-0 flex-1">
-    <p class="font-medium">{{template "unit_ref" (dict "P" $p "U" $r.Unit "W" $r.Wargear)}}</p>
-    <p class="mt-0.5 flex flex-wrap gap-1">{{range $r.Wargear}}{{template "chip" (dict "V" $v "N" .)}}{{end}}{{if $r.Suggested}}<span class="badge badge-gold" x-show="suggested" x-cloak>Suggested</span>{{end}}</p>
+    {{if $r.Becomes}}<p class="pool-only font-medium">{{template "unit_ref" (dict "C" $custom "P" $p "U" $r.Unit "W" $r.Wargear)}}</p>
+    <p class="slot-only font-medium">{{template "unit_ref" (dict "C" $custom "P" $p "U" $r.Becomes "W" $r.BecomesGear)}}</p>
+    <p class="slot-only text-xs text-muted">becomes a {{$r.Becomes}} as an officer</p>
+    <p class="pool-only mt-0.5 flex flex-wrap gap-1">{{range $r.Wargear}}{{template "chip" (dict "V" $v "N" .)}}{{end}}</p>
+    <p class="slot-only mt-0.5 flex flex-wrap gap-1">{{range $r.BecomesGear}}{{template "chip" (dict "V" $v "N" .)}}{{end}}</p>
+    {{else}}<p class="font-medium">{{template "unit_ref" (dict "C" $custom "P" $p "U" $r.Unit "W" $r.Wargear)}}</p>{{end}}
+    <p class="mt-0.5 flex flex-wrap gap-1">{{if not $r.Becomes}}{{range $r.Wargear}}{{template "chip" (dict "V" $v "N" .)}}{{end}}{{end}}{{if $r.Suggested}}<span class="badge badge-gold" x-show="suggested" x-cloak>Suggested</span>{{end}}</p>
   </div>
   <div class="pool-only flex shrink-0 flex-col gap-1">
     {{if $r.Eligible}}<button type="button" class="btn btn-secondary !min-h-8 !px-2 !text-xs" @click="assign($el.closest('.start-card'), 'leader')">Leader</button>

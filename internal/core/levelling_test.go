@@ -563,17 +563,34 @@ func TestAnOfficerChoosesItsPathFromTheCompanyPage(t *testing.T) {
 	}
 }
 
-func TestUnitsOnTheirOwnPathLevelUpOnTheHomebrewPathWhenTheCampaignSaysSo(t *testing.T) {
+func TestUnitsOnTheirOwnPathLevelUpAsWarriorsWhenTheCampaignSaysSo(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
 	f.settings.CustomOnTheirOwnPath = true
-	f.companyOf("Mirkwood", 5, []UnitState{{ID: 90, Base: "Mirkwood Giant Spider", Role: RoleWarrior, XP: 5}})
+	f.companyOf("Mirkwood", 5, []UnitState{{ID: 90, Base: "Mirkwood Giant Spider", Role: RoleWarrior, XP: 10}})
 	spider := f.unit(t, 90)
-	if spider.OwnPath || !spider.IsHero() || spider.Path == nil || spider.Path.Name != "Path of Their Own Making" {
-		t.Fatalf("it follows the homebrew path as a hero: %+v", spider.Path)
+	if spider.OwnPath || spider.IsHero() || spider.Path != nil || spider.PendingLevelUps() != 2 {
+		t.Fatalf("it starts as a warrior that earns experience: %+v", spider)
+	}
+	// a 1 changes nothing and uses the roll
+	r, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{1}, false)
+	if err != nil || !r.Done || f.unit(t, 90).IsHero() {
+		t.Fatalf("a 1: %+v %v", r, err)
+	}
+	// a 6 makes it a hero on its own path at once: no path to choose, no promotion to forgo for
+	r, err = s.RollLevelUp(f.ctx, f.user, 5, 90, []int{6}, false)
+	if err != nil || !r.Done || r.D6 != 6 || r.Result != "heroInTheMaking" {
+		t.Fatalf("a 6 is a hero on the path without a choice: %+v %v", r, err)
+	}
+	if st, _ := s.LevelUpState(f.ctx, f.user, 5, 90); st != nil {
+		t.Errorf("nothing waits for a choice: %+v", st)
+	}
+	hero := f.unit(t, 90)
+	if hero.OwnPath || !hero.IsHero() || hero.PathPending || hero.Path == nil || hero.Path.Name != "Path of Their Own Making" {
+		t.Fatalf("it follows the homebrew path as a hero: %+v", hero.Path)
 	}
 	values := map[string]int{}
-	for _, a := range spider.Stats {
+	for _, a := range hero.Stats {
 		if a.HeroOnly {
 			values[a.Name] = a.Value
 		}
@@ -581,15 +598,21 @@ func TestUnitsOnTheirOwnPathLevelUpOnTheHomebrewPathWhenTheCampaignSaysSo(t *tes
 	if values["Might"] != 0 || values["Will"] != 0 || values["Fate"] != 1 {
 		t.Errorf("0 Might, 0 Will, 1 Fate: %v", values)
 	}
-	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{2, 3}, false)
-	if err != nil || roll.Kind != "hero" || len(roll.Offers) == 0 {
-		t.Fatalf("it rolls on the path's chart: %+v %v", roll, err)
+	if hero.Level != 2 || hero.PendingLevelUps() != 0 {
+		t.Errorf("both rolls are used: level %d, pending %d", hero.Level, hero.PendingLevelUps())
+	}
+	f.state.Units[0].XP = 15 // one more roll: now on the path's chart
+	if roll, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{2, 3}, false); err != nil || roll.Kind != "hero" || len(roll.Offers) == 0 {
+		t.Fatalf("as a hero it rolls on the path's chart: %+v %v", roll, err)
 	}
 	// without the option the spider never levels up
 	f.settings.CustomOnTheirOwnPath = false
-	f.state.Units[0].Pending = UnitPending{}
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{2, 3}, false); !errors.Is(err, ErrRefused) {
-		t.Errorf("on its own path it earns no experience: %v", err)
+	f.state = CompanyState{Company: f.state.Company, Units: []UnitState{{ID: 90, Base: "Mirkwood Giant Spider", Role: RoleWarrior, XP: 10}}}
+	if u := f.unit(t, 90); !u.OwnPath || u.XP != 0 {
+		t.Errorf("on its own path it earns no experience: %+v", u)
+	}
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{6}, false); !errors.Is(err, ErrRefused) {
+		t.Errorf("on its own path it never levels up: %v", err)
 	}
 }
 
@@ -742,5 +765,41 @@ func TestEveryMatchingPromotionIsOffered(t *testing.T) {
 	}
 	if multi == 0 {
 		t.Error("no unit with several promotions to choose from")
+	}
+}
+
+// In every company, with the campaign option, each unit On Its Own Path starts as a warrior that earns experience and takes the
+// homebrew path with a 6; without the option it earns nothing.
+func TestEveryOwnPathUnitStartsAWarriorAndTakesTheHomebrewPathOnASix(t *testing.T) {
+	rs := shippedRules(t)
+	n := 0
+	for _, p := range rs.BC.Profiles() {
+		for _, name := range p.OwnPathUnits {
+			n++
+			t.Run(p.Name+"/"+name, func(t *testing.T) {
+				f := newCompanyFixture(t)
+				l := f.leveller(t)
+				f.settings.CustomOnTheirOwnPath = true
+				f.companyOf(p.Name, 5, []UnitState{{ID: 90, Base: name, Role: RoleWarrior, XP: 5}})
+				if u := f.unit(t, 90); u.OwnPath || u.IsHero() || u.Path != nil || u.PendingLevelUps() != 1 {
+					t.Fatalf("a warrior with a roll waiting: hero %v own %v pending %d", u.IsHero(), u.OwnPath, u.PendingLevelUps())
+				}
+				if r, err := l.RollLevelUp(f.ctx, f.user, 5, 90, []int{6}, false); err != nil || !r.Done {
+					t.Fatalf("%+v %v", r, err)
+				}
+				u := f.unit(t, 90)
+				if !u.IsHero() || u.Path == nil || u.Path.Name != "Path of Their Own Making" || u.PathPending {
+					t.Fatalf("a hero on its own path: %+v", u.Path)
+				}
+				f.settings.CustomOnTheirOwnPath = false
+				f.state.Units[0] = UnitState{ID: 90, Base: name, Role: RoleWarrior, XP: 5}
+				if u := f.unit(t, 90); !u.OwnPath || u.XP != 0 {
+					t.Errorf("without the option it earns nothing: %+v", u.XP)
+				}
+			})
+		}
+	}
+	if n == 0 {
+		t.Fatal("no own-path units")
 	}
 }

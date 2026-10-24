@@ -259,6 +259,21 @@ A card, top to bottom:
   mount icon in the equipment list), a wolf for beasts, a horned dragon for monsters, an oliphaunt for monstrous cavalry
   (`core.KindOf` from the vanilla unit types). The earlier outline icons are kept in `static/img/archive/`.
 - **Name** (units are nameable), **type** and **points** (plain text, no box).
+- **Keyword row** (`keyword_row` in `partials/units.gohtml`, spec [`unit-keywords.md`](unit-keywords.md)), directly under the name and type line:
+  chips for the unit's race, factions and the unit types no other part of the card says, at most 5, race first. The web layer (`notShownKeywords`
+  in `internal/web/keywords.go`, one set for row and full list) draws **no chip** for Hero and Warrior (frame and insignia), Mount (the gear),
+  or Infantry, Cavalry, Beast, War Beast and Monster (the kind icon); Unique, Elite, Swarm, Chariot and the siege types stay. core still computes
+  and flags all of them. Chips are `kw-chip` list items in three shapes so the group does not depend on colour: race solid and bold (`kw-race`),
+  faction muted (`kw-faction`), unit type outlined (`kw-type`); the group is also in each chip's `aria-label` ("Race keyword: Elf"). Each chip is a
+  `has-tip` element (`tabindex="0"`, `data-tip-title/meta/text` from `UnitKeyword.Text`) and opens the helper popup with `data-concept` =
+  `UnitKeyword.Concept` (the glossary term of the same name, else `Keywords`). A `+N` button (the chips past five) expands the row in place (Alpine
+  `x-show`, no request, `aria-expanded`) to the full list in labelled groups Race, Faction, Unit type; "Fewer keywords" closes it. The expanded
+  (maximised) card passes `Open = "expanded === ID"`, so there the full list is always shown and the row and the button are hidden. A lost mount
+  changes nothing here (Cavalry and the mount are not chips; the kind icon does not change on dismount either). A unit with no chip draws no row. Not on
+  the live compact cards or the aftermath/level-up windows. Fallen cards show the same row. The company browser's unit hover card (`unit_preview`)
+  shows the full list in plain, always open, non-interactive chips (`Static`; that card cannot be pointed at). The armoury's wanderer cards use the
+  row; a creature (types only, all of them icon types) has none. Tap targets: the chips get the invisible 44 px coarse-pointer area of the corner
+  tab. `/styleguide` shows the states.
 - **Attributes** from the vanilla file's `stats` list (`VanillaBook.Stats/Profile`): Mv FV SV S D A W C I, then M W F for
   heroes that have any. Values the company raised are green, lowered red; hovering shows the full name. The backend
   fills them dynamically; the page just draws what it is given.
@@ -511,8 +526,7 @@ company's `includedUnitPoints`: Iron Shield Bearer 13, Foe Spear Wielder 12), ea
 against the company's maximum (`CompanyUnit.Models`; `CompanyDetail.ModelCount`) and shows its parts on the card; it counts once for
 the Bow and Cavalry limits. The company's `unitTypes` change what a unit is (Infantry to Cavalry). Units **On Their Own Path** (the
 company's `onTheirOwnPath`, matched by exact name) start on the path "On Their Own Path": no experience, no level-ups, the rule At Path's End; the path is not selectable (`selectable: false`), so a hero's path choice never offers it. With the campaign option **customOnTheirOwnPath** (off by default, `CampaignSettings.CustomOnTheirOwnPath`) these units
-instead start as heroes on the homebrew "Path of Their Own Making" (0 Might, 0 Will, 1 Fate, a 2D6 chart in the file, earn experience and
-level up); the path is hidden from the player's path choices like the empty one (`ProgressionRules.Hidden`). Unit names in the file are exact vanilla names (or a
+are instead ordinary warriors that earn experience (`CompanyUnit.OwnPath` is false) and roll on the warrior level-up table; on a 6 they become heroes on the homebrew "Path of Their Own Making" at once (0 Might, 0 Will, 1 Fate, a 2D6 chart in the file): `RollLevelUp` returns `Done` with that summary (`Result` heroInTheMaking, no `Offers`), there is no path window and no promotion to forgo, so the roll panel treats it like a final result: "You rolled a 6", the summary, Done. The campaign overview describes the setting that way; until the 6 the unit's card is a plain warrior's (XP bar, Level Up ready button). The path is hidden from the player's path choices like the empty one (`ProgressionRules.Hidden`). Officers made at company creation, or taking a lost officer's place, already carry the company's hero promotion (an Arnor officer is a Ranger of the North on the roster); only the path is chosen later. Unit names in the file are exact vanilla names (or a
 company's label for a unit, like the Goblin Hulk), so they are matched exactly. A `heroPromotion` (Arnor) makes the unit change profile
 and become a hero in one step, with no extra Might, Will and Fate.
 
@@ -616,7 +630,7 @@ starting models. The player drags three models into the places (SortableJS; a mo
 there back to the pool) or uses the Leader, Sergeant and Remove buttons of a card, which also work with a keyboard. Models the
 company does not let lead (`startingHeroRestriction`: Lake-town only the Lake-town Guard, Cirith Ungol not the Spider) cannot be
 placed. The company's own suggestion (the roles its file gives, else the first models) starts in the places, marked "Suggested"
-until the player changes anything. Below, the company's **oath** (`data.companies[].oath`: text with `{name}` where the player types
+until the player changes anything. A model whose company promotion changes it when it becomes a hero (`CompanyProfile.PromotionOnHero`: the Arnor Ranger of Arnor) is shown in the places as the unit it will be (`startRow.Becomes`, `BecomesGear`: Ranger of the North with the wargear it keeps) with the hint "becomes a Ranger of the North as an officer"; in the pool it is still the Ranger of Arnor (`pool-only` / `slot-only` spans, `data-becomes` for the confirmation dialog). The "On Their Own Path" badges on that page follow the campaign's `CustomOnTheirOwnPath`: without it they never become heroes and earn no experience, with it they are warriors that earn experience and become heroes on a 6. Below, the company's **oath** (`data.companies[].oath`: text with `{name}` where the player types
 the company's name, and the label of the vow button; companies of a custom file fall back to `campaign.company.oath` for their
 alignment) and the vow button, which opens a "These decisions are final" confirmation with a recap. The officers and the company are
 final; the name can be changed later from My Company (the pencil by its name, `RenameCompany`). `CompanyProfile.ValidateStart`

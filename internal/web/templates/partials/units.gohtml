@@ -119,6 +119,32 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
 </li>
 {{end}}
 
+{{/* ---- Keywords (docs/unit-keywords.md). One chip: a race, faction or unit-type word. Takes {K: core.UnitKeyword, Part: "", Tip: bool}.
+   With Tip it is a has-tip element like the rule chips (hover: tooltip, click/Enter: the helper popup); without it (the hover card of a
+   unit preview, which cannot be pointed at) it is plain text. The group is in the shape (race solid, faction muted, type outlined) and in the label. ---- */}}
+{{define "keyword_chip"}}{{$k := .K}}<li class="kw-chip kw-{{$k.Kind}}{{if .Tip}} has-tip{{end}}" aria-label="{{kwLabel $k .Part}}"{{if .Tip}} tabindex="0" data-concept="{{$k.Concept}}" data-tip-title="{{$k.Name}}" data-tip-meta="{{kwMeta $k .Part}}" data-tip-text="{{$k.Text}}"{{end}}>{{$k.Name}}</li>{{end}}
+
+{{/* The keyword row of a unit: at most 5 chips (race, factions, the unit types the kind icon and the insignia do not say: see notShownKeywords) and a +N
+   button (the chips past five) that opens the full list in place (groups Race, Faction, Unit type). Takes {K: core.UnitKeywords, Open: an Alpine
+   expression that keeps the full list open ("" for never; the expanded card passes "expanded === ID"), Static: true for the hover card (everything
+   shown, no buttons, no tips)}. No row for a unit without chips. */}}
+{{define "keyword_row"}}{{$v := kwRow .K 5}}{{if or $v.Shown $v.Race $v.Faction $v.Type}}{{$static := .Static}}{{$open := or .Open "false"}}
+<div class="kw-block"{{if not $static}} x-data="{ all: false }"{{end}} data-keywords>
+  {{if not $static}}<ul class="kw-row" aria-label="Keywords" x-show="!(all || {{$open}})">
+    {{range $v.Shown}}{{template "keyword_chip" (dict "K" . "Part" "" "Tip" true)}}{{end}}
+    {{if $v.More}}<li class="kw-item"><button type="button" class="kw-chip kw-more" @click.stop="all = true" :aria-expanded="all || {{$open}}">+{{$v.More}}<span class="sr-only"> more keywords, show all</span></button></li>{{end}}
+  </ul>{{end}}
+  <div class="kw-full" role="group" aria-label="All keywords"{{if not $static}} x-cloak x-show="all || {{$open}}"{{end}}>
+    <dl class="kw-groups">
+      {{with $v.Race}}<div><dt>Race</dt><dd><ul class="kw-row" aria-label="Race">{{range .}}{{template "keyword_chip" (dict "K" . "Part" "" "Tip" (not $static))}}{{end}}</ul></dd></div>{{end}}
+      {{with $v.Faction}}<div><dt>Faction</dt><dd><ul class="kw-row" aria-label="Faction">{{range .}}{{template "keyword_chip" (dict "K" . "Part" "" "Tip" (not $static))}}{{end}}</ul></dd></div>{{end}}
+      {{with $v.Type}}<div><dt>Unit type</dt><dd><ul class="kw-row" aria-label="Unit type">{{range .}}{{template "keyword_chip" (dict "K" . "Part" "" "Tip" (not $static))}}{{end}}</ul></dd></div>{{end}}
+    </dl>
+    {{if not $static}}<button type="button" class="btn btn-ghost !min-h-7 !px-2 !text-xs" x-show="!({{$open}})" @click.stop="all = false" aria-expanded="true">Fewer keywords</button>{{end}}
+  </div>
+</div>
+{{end}}{{end}}
+
 {{define "unit_card"}}{{$u := .U}}{{$cid := .CID}}{{$wcost := .WCost}}{{$lv := .LV}}{{$lu := .LU}}{{$rn := .RO}}{{$ro := or .RO $lv}}
 <div class="unit-slot {{if $u.Injured}}unit-away{{end}}" data-unit-id="{{$u.ID}}" :style="expanded === {{$u.ID}} ? 'min-height:' + slotH + 'px' : ''">
 <div class="unit-handle" x-show="formation" x-cloak>
@@ -164,6 +190,8 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
         </form>{{end}}
       </h3>
       {{if $u.Name}}<p class="mt-0.5 text-sm text-muted">{{$u.Type}}</p>{{end}}
+      {{/* Keywords: race, factions and the types the icon and insignia do not say; a lost mount changes none of them. */}}
+      <div class="mt-1.5">{{template "keyword_row" (dict "K" $u.Keywords "Open" (printf "expanded === %d" $u.ID))}}</div>
       {{if $u.Wanderer}}<p class="mt-1 flex flex-wrap items-center gap-1.5"><span class="badge badge-gold">Wanderer</span>{{if and $lu $lu.Temporary}}<span class="badge badge-gold" title="Taken with Against the Odds for this match only">Temporary</span>{{end}}</p>{{end}}
       {{if and $lu $lu.Temporary $lv.Wanderer}}<p class="mt-1 text-sm">{{$lv.Wanderer.Summary}}</p>{{end}}
       {{if and $lu $lv $lv.Broken}}<p class="mt-1">{{if $lv.CourageDue $lu}}<span class="badge !bg-danger-soft !text-danger" title="This unit tests Courage before it does anything else this turn">Test due</span>{{else}}<span class="badge badge-muted" title="Its courage is resolved for this turn">{{$lv.CourageChip $lu}}</span>{{end}}</p>{{end}}
@@ -338,7 +366,8 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
 <article class="card unit unit-fallen flex flex-col gap-3 !p-4">
   <header class="flex items-start gap-2">
     {{template "kind_icon" $u.Kind}}
-    <div class="min-w-0 flex-1"><h3 class="!text-xl leading-tight">{{$u.Title}}</h3>{{if $u.Name}}<p class="text-sm text-muted">{{$u.Type}}</p>{{end}}</div>
+    <div class="min-w-0 flex-1"><h3 class="!text-xl leading-tight">{{$u.Title}}</h3>{{if $u.Name}}<p class="text-sm text-muted">{{$u.Type}}</p>{{end}}
+      <div class="mt-1.5">{{template "keyword_row" (dict "K" $u.Keywords)}}</div></div>
     <span class="shrink-0 text-sm font-semibold">{{$u.Points}} <span class="font-normal text-muted">pts</span></span>
   </header>
   <p class="rounded-lg border border-line bg-raised px-3 py-1.5 text-sm"><span class="font-semibold">Fell</span> · {{.F.Fate}}{{with .F.Match}} · <span class="text-muted">{{.}}</span>{{end}}{{if .Return}} <span class="badge badge-gold align-middle" title="The company's rule: a reinforcement result may be swapped for a new Ranger of the North, who returns as an officer (Leader to start with)">May return with a reinforcement</span>{{end}}</p>

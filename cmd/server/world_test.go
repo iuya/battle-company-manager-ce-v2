@@ -114,6 +114,35 @@ func TestSeedWorld(t *testing.T) {
 		t.Errorf("the finished campaign is %q", s.Status)
 	}
 
+	// everything on: the Wood Elf Sentinels are warriors with experience; one rolled a 6 and is a hero on its own path
+	if all, ok := byName["Settings: everything on, own paths level up"]; !ok {
+		t.Error("the campaign with every setting on is missing")
+	} else {
+		allCos, err := b.campaigns.Companies(ctx, all.ID)
+		if err != nil || len(allCos) == 0 {
+			t.Fatalf("companies of the all-settings campaign: %v %v", allCos, err)
+		}
+		d, err := b.campaigns.CompanyDetail(ctx, all.ID, allCos[0].ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waiting, heroes := 0, 0
+		for _, u := range d.Roster {
+			if u.Type != "Wood Elf Sentinel" {
+				continue
+			}
+			switch {
+			case u.IsHero() && u.Path != nil && u.Path.Name == "Path of Their Own Making":
+				heroes++
+			case u.Role == core.RoleWarrior && !u.OwnPath && u.PendingLevelUps() > 0:
+				waiting++
+			}
+		}
+		if waiting == 0 || heroes == 0 {
+			t.Errorf("Sentinels waiting to level up as warriors: %d, heroes on their own path: %d", waiting, heroes)
+		}
+	}
+
 	// the gallery has a company of each of the 37 factions
 	gal := byName[galleryName]
 	cos, err := b.campaigns.Companies(ctx, gal.ID)

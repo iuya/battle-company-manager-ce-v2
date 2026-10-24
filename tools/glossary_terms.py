@@ -359,3 +359,25 @@ TERMS = [
     T("Rocks", "siege", [], [], [(r"^A pile of Rocks is represented by a 25mm base", 0)], see=["Light Objects", "Boiling Oil", "Siege Ladders"]),
     T("Boiling Oil", "siege", [], [], [(r"^A vat of Boiling Oil is a Heavy Object", 1)], see=["Heavy Objects", "Rocks", "Siege Ladders"]),
 ]
+
+
+# Race and faction keywords that appear on unit cards and mounts. The manual only explains the idea (term "Keywords"); these brief
+# entries are written by the curator, never quoted, and are marked `summarized`. The name carries " keyword" so that the glossary
+# linker does not turn every "man", "elf" or "shire" of the rules texts into a link.
+KEYWORD_SOURCE = {"section": "Keywords", "rulebookPage": 8}
+RACE_KEYWORDS = ["Bat", "Bird", "Boar", "Camel", "Drake", "Dwarf", "Eagle", "Elf", "Elk", "Goat", "Goblin", "Hobbit", "Horse", "Man", "Ogre",
+                 "Orc", "Spider", "Spirit", "Troll", "Uruk-hai", "Warg"]
+FACTION_KEYWORDS = ["Angmar", "Arnor", "Black Dragon", "Blackroot Vale", "Carn Dum", "Corsair", "Dale", "Dol Amroth", "Dol Guldur", "Druadan",
+                    "Dunedain", "Dunland", "Easterling", "Erebor", "Goblin-town", "Gondor", "Gundabad", "Harad", "Iron Hills", "Isengard",
+                    "Khand", "Khazad-dum", "Lake-town", "Lamedon", "Lossarnach", "Lothlórien", "Mahûd", "Mirkwood", "Misty Mountains",
+                    "Mordor", "Moria", "Numenor", "Rivendell", "Rohan", "Ruffian", "Shire", "Umbar"]
+
+
+def keyword_terms():
+    """The authored race and faction terms: (name, kind, definition)."""
+    out = []
+    for kind, words in (("race", RACE_KEYWORDS), ("faction", FACTION_KEYWORDS)):
+        for w in words:
+            out.append((f"{w} keyword", kind, f"{w} is a {kind} keyword. Special rules that name a keyword, such as Hatred ({w}), "
+                                              f"apply to models that have it."))
+    return out

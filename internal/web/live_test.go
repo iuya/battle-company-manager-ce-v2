@@ -252,7 +252,7 @@ func TestWoundSheetListsOnlyUnitsInTheField(t *testing.T) {
 func TestUnitThatLostItsMountIsOnFootWithMountGearStruckThrough(t *testing.T) {
 	d, detail := mineDetail()
 	detail.OpenMatch = &core.OpenMatchRef{MatchID: 3, Number: 3}
-	detail.Roster = []core.CompanyUnit{{ID: 5, Name: "Hador", Type: "Rider", Role: core.RoleSergeant, Kind: core.KindCavalry, Points: 20,
+	detail.Roster = []core.CompanyUnit{{ID: 5, Name: "Hador", Type: "Rider", Role: core.RoleSergeant, Kind: core.KindCavalry, Points: 20, Keywords: rohanRider(),
 		Equipment: []core.Equipment{{Name: "Horse", Class: core.EquipMount}, {Name: "Lance", Class: core.EquipMelee, RequiresMount: true}, {Name: "Sword", Class: core.EquipMelee}},
 		Rules:     []core.UnitRule{{Name: "Cavalry", Source: core.RuleFromUnit}, {Name: "Timid", Mount: "Horse", Source: core.RuleFromUnit}, {Name: "Bodyguard", Source: core.RuleFromUnit}}}}
 	g := newFixture(t, Config{})
@@ -276,8 +276,14 @@ func TestUnitThatLostItsMountIsOnFootWithMountGearStruckThrough(t *testing.T) {
 	if strings.Contains(body, `aria-label="Sword,`) || strings.Contains(body, `aria-label="Bodyguard,`) {
 		t.Error("what needs no mount stays as it is")
 	}
+	if row := keywordRowOf(body); !strings.Contains(row, ">Man<") || strings.Contains(row, ">Cavalry<") || strings.Contains(body, "kw-off") || strings.Contains(body, "Mount: Horse</dt>") {
+		t.Errorf("on foot: the keywords do not change (Cavalry is the icon's, the mount is gear): %s", row)
+	}
 	g.camp.EXPECT().Live(gomock.Any(), frodo, int64(7), int64(1)).Return(live(true), nil)
 	body = g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	if row := keywordRowOf(body); !strings.Contains(row, ">Man<") || strings.Contains(row, ">Cavalry<") || strings.Contains(body, "Mount: Horse</dt>") {
+		t.Errorf("mounted: the same row: %s", row)
+	}
 	if strings.Contains(body, "On foot") || strings.Contains(body, "needs a mount") {
 		t.Error("with the mount back nothing is struck through")
 	}
@@ -382,4 +388,14 @@ func TestAftermathSheetFromTheLiveMatchCarriesTheBadge(t *testing.T) {
 	if body := g.do(g.signedIn(httpGet(amPath))).Body.String(); strings.Contains(body, "From the live match") {
 		t.Error("no badge for a sheet that is not from the live match")
 	}
+}
+
+// keywordRowOf is the compact keyword row of the first card in a page.
+func keywordRowOf(body string) string {
+	i := strings.Index(body, `aria-label="Keywords"`)
+	j := strings.Index(body[i:], `class="kw-full"`)
+	if i < 0 || j < 0 {
+		return ""
+	}
+	return body[i : i+j]
 }

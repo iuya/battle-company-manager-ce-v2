@@ -234,7 +234,7 @@ document.addEventListener('alpine:init', () => {
       this.sergeants = [...index(sergeants[0]), ...index(sergeants[1])];
     },
     card(i) { return this.$root.querySelector(`.start-card[data-index="${i}"]`); },
-    officerName(i) { const c = this.card(i); return c ? c.dataset.unit : ''; },
+    officerName(i) { const c = this.card(i); return c ? (c.dataset.becomes || c.dataset.unit) : ''; },
     // the buttons of a card: Leader and Sergeant send it to a place (the one that was there goes back to the pool), Remove sends it back
     assign(card, role) {
       if (card.dataset.eligible !== 'true' || card.dataset.keep === 'true') return;

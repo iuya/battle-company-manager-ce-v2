@@ -239,6 +239,7 @@
 <div x-show="revealed" x-cloak class="mt-4 space-y-4">
   {{range .Notes}}<p class="alert alert-info" role="status">{{.}}</p>{{end}}
   {{if .Done}}
+  {{if and .D6 (eq .Result "heroInTheMaking")}}<p class="text-lg">You rolled a <strong class="text-3xl">{{.D6}}</strong>.</p>{{end}}
   <p class="alert alert-success" role="status">{{.Summary}}</p>
   <p class="flex flex-wrap gap-2">
     {{if gt $.Pending 0}}<button type="button" class="promo promo-btn" hx-get="/campaigns/{{$cid}}/my-company/units/{{$uid}}/levelup" hx-target="#modal-body" hx-swap="innerHTML"><svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5l2.4 5.6 6.1.6-4.6 4 1.4 6-5.3-3.2-5.3 3.2 1.4-6-4.6-4 6.1-.6zM19 15l.9 2.1 2.1.9-2.1.9L19 21l-.9-2.1-2.1-.9 2.1-.9z"/></svg><span>Next level up</span></button>{{end}}

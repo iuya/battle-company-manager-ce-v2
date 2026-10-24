@@ -115,6 +115,7 @@
         "optionSales",
         "profileWargearNotSold",
         "unitFillIns",
+        "mountFillIns",
         "wargearReadAs",
         "gearAnnotations"
       ],
@@ -723,6 +724,30 @@
                   "faction": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
                   "unitType": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
                   "baseSize": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                  "reason": {"type": "string", "minLength": 1},
+                  "source": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        },
+        "mountFillIns": {
+          "type": "object",
+          "required": ["text", "items"],
+          "additionalProperties": false,
+          "properties": {
+            "text": {"type": "string"},
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["gear", "reason", "source"],
+                "additionalProperties": false,
+                "properties": {
+                  "gear": {"type": "string", "minLength": 1},
+                  "race": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                  "faction": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                  "unitType": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
                   "reason": {"type": "string", "minLength": 1},
                   "source": {"type": "string", "minLength": 1}
                 }

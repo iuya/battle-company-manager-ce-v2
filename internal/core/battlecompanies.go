@@ -25,6 +25,7 @@ type BCBook struct {
 	spell            map[string]string         // lower-cased wargear name -> the spelling the pages use (see canonicaliseWargear)
 	limitRules       []LimitRule
 	fillIns          []unitFillIn
+	mountFillIns     []unitFillIn // data.mountFillIns: unit is the gear name
 	scenarios        []ScenarioInfo
 	labels           map[string]string // rule key -> the label it is shown under (data.keywords label)
 	armourUp         ArmourUpgrade
@@ -304,6 +305,14 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 					UnitType []string `json:"unitType"`
 				} `json:"items"`
 			} `json:"unitFillIns"`
+			MountFillIns struct {
+				Items []struct {
+					Gear     string   `json:"gear"`
+					Race     []string `json:"race"`
+					Faction  []string `json:"faction"`
+					UnitType []string `json:"unitType"`
+				} `json:"items"`
+			} `json:"mountFillIns"`
 			Equipment     struct{ Items []gear } `json:"equipment"`
 			Parameterised []struct {
 				Name       string `json:"name"`
@@ -542,6 +551,9 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 	}
 	for _, f := range doc.Data.UnitFillIns.Items {
 		b.fillIns = append(b.fillIns, unitFillIn{f.Unit, f.Race, f.Faction, f.UnitType})
+	}
+	for _, f := range doc.Data.MountFillIns.Items {
+		b.mountFillIns = append(b.mountFillIns, unitFillIn{f.Gear, f.Race, f.Faction, f.UnitType})
 	}
 	up := doc.Data.Wargear.ArmourUpgrade
 	b.armourUp = ArmourUpgrade{Stages: up.Stages, Cost: up.Influence, Rating: Rating{up.Rating.Warrior, up.Rating.Hero}, Gold: Rating{up.Gold.Warrior, up.Gold.Hero}}
@@ -949,6 +961,23 @@ func (b *BCBook) ApplyUnitFillIns(v *VanillaBook) {
 		}
 		v.units[f.unit] = u
 	}
+	for _, f := range b.mountFillIns { // the same for the keywords of a mount
+		g, ok := v.gear[strings.ToLower(f.unit)]
+		if !ok {
+			continue
+		}
+		if len(g.Race) == 0 {
+			g.Race = slices.Clone(f.race)
+		}
+		if len(g.Faction) == 0 {
+			g.Faction = slices.Clone(f.faction)
+		}
+		if len(g.UnitTypes) == 0 {
+			g.UnitTypes = slices.Clone(f.unitTypes)
+		}
+		v.gear[strings.ToLower(f.unit)] = g
+	}
+	v.collectRaces()
 }
 
 // RuleLabel is the name a rule is shown under: its label when the file gives one (Keen Sight (Falcon) is shown as Keen Sight), else

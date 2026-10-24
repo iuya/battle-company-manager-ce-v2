@@ -1,6 +1,6 @@
 {
   "name": "MESBG Rules Glossary (2024 manual)",
-  "version": "1.0",
+  "version": "1.1",
   "source": "Middle-earth Strategy Battle Game Rules Manual (2024)",
   "description": "Concepts of the MESBG rules manual that the vanilla definitions leave out. Complements the vanilla file; text extracted verbatim from the rules manual (`rulebookPage` is the page number printed in the rulebook). This file refers to nothing else: other files refer to it.",
   "terms": [
@@ -4801,6 +4801,876 @@
         "Heavy Objects",
         "Rocks",
         "Siege Ladders"
+      ]
+    },
+    {
+      "name": "Bat keyword",
+      "category": "keywords",
+      "definition": "Bat is a race keyword. Special rules that name a keyword, such as Hatred (Bat), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Bird keyword",
+      "category": "keywords",
+      "definition": "Bird is a race keyword. Special rules that name a keyword, such as Hatred (Bird), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Boar keyword",
+      "category": "keywords",
+      "definition": "Boar is a race keyword. Special rules that name a keyword, such as Hatred (Boar), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Camel keyword",
+      "category": "keywords",
+      "definition": "Camel is a race keyword. Special rules that name a keyword, such as Hatred (Camel), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Drake keyword",
+      "category": "keywords",
+      "definition": "Drake is a race keyword. Special rules that name a keyword, such as Hatred (Drake), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Dwarf keyword",
+      "category": "keywords",
+      "definition": "Dwarf is a race keyword. Special rules that name a keyword, such as Hatred (Dwarf), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Eagle keyword",
+      "category": "keywords",
+      "definition": "Eagle is a race keyword. Special rules that name a keyword, such as Hatred (Eagle), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Elf keyword",
+      "category": "keywords",
+      "definition": "Elf is a race keyword. Special rules that name a keyword, such as Hatred (Elf), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Elk keyword",
+      "category": "keywords",
+      "definition": "Elk is a race keyword. Special rules that name a keyword, such as Hatred (Elk), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Goat keyword",
+      "category": "keywords",
+      "definition": "Goat is a race keyword. Special rules that name a keyword, such as Hatred (Goat), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Goblin keyword",
+      "category": "keywords",
+      "definition": "Goblin is a race keyword. Special rules that name a keyword, such as Hatred (Goblin), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Hobbit keyword",
+      "category": "keywords",
+      "definition": "Hobbit is a race keyword. Special rules that name a keyword, such as Hatred (Hobbit), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Horse keyword",
+      "category": "keywords",
+      "definition": "Horse is a race keyword. Special rules that name a keyword, such as Hatred (Horse), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Man keyword",
+      "category": "keywords",
+      "definition": "Man is a race keyword. Special rules that name a keyword, such as Hatred (Man), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Ogre keyword",
+      "category": "keywords",
+      "definition": "Ogre is a race keyword. Special rules that name a keyword, such as Hatred (Ogre), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Orc keyword",
+      "category": "keywords",
+      "definition": "Orc is a race keyword. Special rules that name a keyword, such as Hatred (Orc), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Spider keyword",
+      "category": "keywords",
+      "definition": "Spider is a race keyword. Special rules that name a keyword, such as Hatred (Spider), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Spirit keyword",
+      "category": "keywords",
+      "definition": "Spirit is a race keyword. Special rules that name a keyword, such as Hatred (Spirit), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Troll keyword",
+      "category": "keywords",
+      "definition": "Troll is a race keyword. Special rules that name a keyword, such as Hatred (Troll), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Uruk-hai keyword",
+      "category": "keywords",
+      "definition": "Uruk-hai is a race keyword. Special rules that name a keyword, such as Hatred (Uruk-hai), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Warg keyword",
+      "category": "keywords",
+      "definition": "Warg is a race keyword. Special rules that name a keyword, such as Hatred (Warg), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Angmar keyword",
+      "category": "keywords",
+      "definition": "Angmar is a faction keyword. Special rules that name a keyword, such as Hatred (Angmar), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Arnor keyword",
+      "category": "keywords",
+      "definition": "Arnor is a faction keyword. Special rules that name a keyword, such as Hatred (Arnor), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Black Dragon keyword",
+      "category": "keywords",
+      "definition": "Black Dragon is a faction keyword. Special rules that name a keyword, such as Hatred (Black Dragon), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Blackroot Vale keyword",
+      "category": "keywords",
+      "definition": "Blackroot Vale is a faction keyword. Special rules that name a keyword, such as Hatred (Blackroot Vale), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Carn Dum keyword",
+      "category": "keywords",
+      "definition": "Carn Dum is a faction keyword. Special rules that name a keyword, such as Hatred (Carn Dum), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Corsair keyword",
+      "category": "keywords",
+      "definition": "Corsair is a faction keyword. Special rules that name a keyword, such as Hatred (Corsair), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Dale keyword",
+      "category": "keywords",
+      "definition": "Dale is a faction keyword. Special rules that name a keyword, such as Hatred (Dale), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Dol Amroth keyword",
+      "category": "keywords",
+      "definition": "Dol Amroth is a faction keyword. Special rules that name a keyword, such as Hatred (Dol Amroth), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Dol Guldur keyword",
+      "category": "keywords",
+      "definition": "Dol Guldur is a faction keyword. Special rules that name a keyword, such as Hatred (Dol Guldur), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Druadan keyword",
+      "category": "keywords",
+      "definition": "Druadan is a faction keyword. Special rules that name a keyword, such as Hatred (Druadan), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Dunedain keyword",
+      "category": "keywords",
+      "definition": "Dunedain is a faction keyword. Special rules that name a keyword, such as Hatred (Dunedain), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Dunland keyword",
+      "category": "keywords",
+      "definition": "Dunland is a faction keyword. Special rules that name a keyword, such as Hatred (Dunland), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Easterling keyword",
+      "category": "keywords",
+      "definition": "Easterling is a faction keyword. Special rules that name a keyword, such as Hatred (Easterling), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Erebor keyword",
+      "category": "keywords",
+      "definition": "Erebor is a faction keyword. Special rules that name a keyword, such as Hatred (Erebor), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Goblin-town keyword",
+      "category": "keywords",
+      "definition": "Goblin-town is a faction keyword. Special rules that name a keyword, such as Hatred (Goblin-town), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Gondor keyword",
+      "category": "keywords",
+      "definition": "Gondor is a faction keyword. Special rules that name a keyword, such as Hatred (Gondor), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Gundabad keyword",
+      "category": "keywords",
+      "definition": "Gundabad is a faction keyword. Special rules that name a keyword, such as Hatred (Gundabad), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Harad keyword",
+      "category": "keywords",
+      "definition": "Harad is a faction keyword. Special rules that name a keyword, such as Hatred (Harad), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Iron Hills keyword",
+      "category": "keywords",
+      "definition": "Iron Hills is a faction keyword. Special rules that name a keyword, such as Hatred (Iron Hills), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Isengard keyword",
+      "category": "keywords",
+      "definition": "Isengard is a faction keyword. Special rules that name a keyword, such as Hatred (Isengard), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Khand keyword",
+      "category": "keywords",
+      "definition": "Khand is a faction keyword. Special rules that name a keyword, such as Hatred (Khand), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Khazad-dum keyword",
+      "category": "keywords",
+      "definition": "Khazad-dum is a faction keyword. Special rules that name a keyword, such as Hatred (Khazad-dum), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Lake-town keyword",
+      "category": "keywords",
+      "definition": "Lake-town is a faction keyword. Special rules that name a keyword, such as Hatred (Lake-town), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Lamedon keyword",
+      "category": "keywords",
+      "definition": "Lamedon is a faction keyword. Special rules that name a keyword, such as Hatred (Lamedon), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Lossarnach keyword",
+      "category": "keywords",
+      "definition": "Lossarnach is a faction keyword. Special rules that name a keyword, such as Hatred (Lossarnach), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Lothlórien keyword",
+      "category": "keywords",
+      "definition": "Lothlórien is a faction keyword. Special rules that name a keyword, such as Hatred (Lothlórien), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Mahûd keyword",
+      "category": "keywords",
+      "definition": "Mahûd is a faction keyword. Special rules that name a keyword, such as Hatred (Mahûd), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Mirkwood keyword",
+      "category": "keywords",
+      "definition": "Mirkwood is a faction keyword. Special rules that name a keyword, such as Hatred (Mirkwood), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Misty Mountains keyword",
+      "category": "keywords",
+      "definition": "Misty Mountains is a faction keyword. Special rules that name a keyword, such as Hatred (Misty Mountains), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Mordor keyword",
+      "category": "keywords",
+      "definition": "Mordor is a faction keyword. Special rules that name a keyword, such as Hatred (Mordor), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Moria keyword",
+      "category": "keywords",
+      "definition": "Moria is a faction keyword. Special rules that name a keyword, such as Hatred (Moria), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Numenor keyword",
+      "category": "keywords",
+      "definition": "Numenor is a faction keyword. Special rules that name a keyword, such as Hatred (Numenor), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Rivendell keyword",
+      "category": "keywords",
+      "definition": "Rivendell is a faction keyword. Special rules that name a keyword, such as Hatred (Rivendell), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Rohan keyword",
+      "category": "keywords",
+      "definition": "Rohan is a faction keyword. Special rules that name a keyword, such as Hatred (Rohan), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Ruffian keyword",
+      "category": "keywords",
+      "definition": "Ruffian is a faction keyword. Special rules that name a keyword, such as Hatred (Ruffian), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Shire keyword",
+      "category": "keywords",
+      "definition": "Shire is a faction keyword. Special rules that name a keyword, such as Hatred (Shire), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
+      ]
+    },
+    {
+      "name": "Umbar keyword",
+      "category": "keywords",
+      "definition": "Umbar is a faction keyword. Special rules that name a keyword, such as Hatred (Umbar), apply to models that have it.",
+      "summarized": true,
+      "sources": [
+        {
+          "section": "Keywords",
+          "rulebookPage": 8
+        }
+      ],
+      "see": [
+        "Keywords"
       ]
     }
   ]

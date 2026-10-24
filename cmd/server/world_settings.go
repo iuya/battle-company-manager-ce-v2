@@ -64,15 +64,28 @@ func (w *world) settingsCampaigns() {
 
 	// everything on, with the custom path for the units that are On Their Own Path
 	all := w.campaign("you", "Settings: everything on, own paths level up",
-		"ShakeTheTable, ManualRolls, HeroesDropProfileGear and CustomOnTheirOwnPath are on: units On Their Own Path earn experience and level up as heroes.",
+		"ShakeTheTable, ManualRolls, HeroesDropProfileGear and CustomOnTheirOwnPath are on: units On Their Own Path are warriors that earn experience; on a 6 they become heroes on the Path of Their Own Making.",
 		core.CampaignSettings{ShakeTheTable: true, ManualRolls: true, HeroesDropProfileGear: true, CustomOnTheirOwnPath: true})
 	oc := w.company(all, "galadriel", "Own-path Elves", "Lothlorien", true)
 	w.grant(oc, 10, 30)
 	w.recruitAll(oc)
-	if u, ok := w.unit(oc, func(u core.CompanyUnit) bool { return u.Path != nil && u.Path.Name == "Path of Their Own Making" }); ok {
-		w.xp(oc, u.ID, 10, "Walked its own way")
-	} else {
-		w.gap("no unit of %s is on its own path with the custom setting", oc.name)
+	var sentinels []core.CompanyUnit
+	for _, u := range w.detail(oc).Roster {
+		if u.Type == "Wood Elf Sentinel" {
+			sentinels = append(sentinels, u)
+		}
+	}
+	switch {
+	case len(sentinels) == 0:
+		w.gap("no Wood Elf Sentinel in %s to show the custom setting", oc.name)
+	default:
+		w.xp(oc, sentinels[0].ID, 10, "Walked its own way") // a warrior with two level-ups waiting
+		if len(sentinels) > 1 {
+			w.xp(oc, sentinels[1].ID, 5, "Followed the silver stream")
+			w.rollLevel(oc, sentinels[1], 6) // Hero in the Making: it takes the Path of Their Own Making at once
+		} else {
+			w.gap("only one Wood Elf Sentinel in %s: no sentinel that rolled a 6", oc.name)
+		}
 	}
 	w.show(oc)
 

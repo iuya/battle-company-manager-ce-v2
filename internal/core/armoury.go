@@ -462,6 +462,7 @@ func (sh shop) creatures() []ArmouryCreature {
 	var out []ArmouryCreature
 	for _, o := range offers {
 		entry := ArmouryCreature{CreatureOffer: o, StatBlock: creatureStats(sh.rs, o)}
+		entry.Keywords = sh.rs.UnitKeywords(CompanyProfile{}, UnitKeywordsInput{Creature: o.Name})
 		entry.PayInfluence, entry.PayGold = canPay(sh.d, o.Cost, o.Gold)
 		for _, u := range sh.d.Roster {
 			if !isOfficer(cr, u) {
@@ -536,6 +537,7 @@ func (sh shop) wanderers() []ArmouryWanderer {
 	var out []ArmouryWanderer
 	for _, o := range offers {
 		entry := ArmouryWanderer{WandererOffer: o, StatBlock: sh.rs.Vanilla.Profile(o.AsUnit(), true, nil)}
+		entry.Keywords = sh.rs.UnitKeywords(CompanyProfile{}, UnitKeywordsInput{Wanderer: o.Name})
 		entry.PayInfluence, entry.PayGold = canPay(sh.d, o.Cost, o.Gold)
 		switch {
 		case hired >= max(1, wr.MaxAtOnce):

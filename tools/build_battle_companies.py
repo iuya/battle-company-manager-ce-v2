@@ -29,7 +29,7 @@ from bc.scenarios import parse_scenario
 from bc import scenario_rules
 from bc.text import fold, norm, smart_title
 from bc.armoury_gaps import profile_wargear_not_sold, write_report as write_gap_report
-from bc.vanilla import Vanilla, reserved_options, option_sales, unit_fill_ins
+from bc.vanilla import Vanilla, reserved_options, option_sales, unit_fill_ins, mount_fill_ins
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -381,6 +381,7 @@ def main():
             "reservedOptions": reserved_options(van_doc),
             "optionSales": option_sales(van_doc),
             "unitFillIns": unit_fill_ins(),
+            "mountFillIns": mount_fill_ins(),
             "vanillaAmbiguities": sorted(ambiguities, key=lambda a: (a["kind"], a["name"])),
             "wargear": core.ARMOURY_WARGEAR,
             "equipment": {**core.EQUIPMENT_TEXT, "items": equipment},

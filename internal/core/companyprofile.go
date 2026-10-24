@@ -70,6 +70,7 @@ type UnitAlias struct {
 	Unit     string
 	AddRules []string
 	Selected []string // options of the vanilla unit it has selected (Tookish Hunter): their points are part of the unit
+	Keywords []string // keywords the company adds to the vanilla unit (Goblin Hulk: Goblin); a race word goes to the race group
 	Text     string
 }
 
@@ -188,6 +189,7 @@ type UnitPreview struct {
 	Points        int
 	Kind          UnitKind
 	Types         []string
+	Keywords      UnitKeywords // race, faction and unit types of the profile (filled where the rules set is known: see RuleSet.fillPreviewKeywords)
 	Stats         []Attribute
 	Wargear       []string
 	Rules         []string
@@ -307,6 +309,7 @@ func (b *BCBook) parseProfiles(content []byte) {
 					Unit     string   `json:"unit"`
 					AddRules []string `json:"addSpecialRules"`
 					Selected []string `json:"selectedOptions"`
+					Keywords []string `json:"addKeywords"`
 					Text     string   `json:"text"`
 				} `json:"unitAliases"`
 				CompanyLimits []struct {
@@ -481,7 +484,7 @@ func (b *BCBook) parseProfiles(content []byte) {
 			p.Substitutions = append(p.Substitutions, s.Text)
 		}
 		for _, a := range c.UnitAliases {
-			p.Aliases = append(p.Aliases, UnitAlias{Label: a.Label, Unit: a.Unit, AddRules: a.AddRules, Selected: a.Selected, Text: a.Text})
+			p.Aliases = append(p.Aliases, UnitAlias{Label: a.Label, Unit: a.Unit, AddRules: a.AddRules, Selected: a.Selected, Keywords: a.Keywords, Text: a.Text})
 		}
 		p.Advancements = slices.Clone(p.Advancements)
 		for i, adv := range p.Advancements { // a promotion is named by the company's label only where the label changes the unit

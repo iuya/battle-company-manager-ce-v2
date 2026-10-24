@@ -635,6 +635,7 @@ type LevelRoll struct {
 	Done    bool
 	Stage   string // "startingPower": a new Sorcerer chooses its first power
 	Summary string
+	Auto    bool // not stored: a warrior's Hero in the Making whose path is not chosen by the player (On Their Own Path)
 }
 
 // HeroPair is one of a hero's two rolls of 2D6.

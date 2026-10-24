@@ -25,6 +25,8 @@ type CreatureOffer struct {
 	Gold           int // or this much Gold (its points)
 	Points         int // its rating
 	Kind           string
+	UnitTypes      []string // the creature's unit types (Beast, Infantry, Warrior): its only keywords
+	Keywords       UnitKeywords
 	Stats          map[string]int // by stat key
 	Rules          []string
 	Notes          []string
@@ -49,6 +51,7 @@ type WandererOffer struct {
 	Rules         []string
 	Wargear       []string
 	Note          string
+	Keywords      UnitKeywords
 }
 
 // AsUnit is the wanderer as a unit profile, like those of the vanilla file.
@@ -174,6 +177,7 @@ func ParseCreaturesAndWanderers(content []byte) (CreatureRules, []CreatureOffer,
 		c := CreatureOffer{Name: str(raw, "name"), Cost: num(raw, "influence"), Gold: num(raw, "gold"), Points: num(raw, "points"), Stats: stats(raw), Rules: list(raw, "specialRules"), Notes: list(raw, "notes")}
 		if types := list(raw, "unitType"); len(types) > 0 {
 			c.Kind = strings.Join(types, " ")
+			c.UnitTypes = types
 		}
 		var courage struct {
 			Same bool `json:"sameAsOwner"`

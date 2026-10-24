@@ -259,7 +259,7 @@ Companies rulebook itself defines belong in the Battle Companies file.
     resolves, `ranged`/`grantedTo` placement, and that every reachable item has exactly one annotation. The coverage
     walk is written separately from the generator's `collect()`; both follow a unit's `includes` (the Vault Warden Team brings Iron Shield and Foe Spear). It also checks the ability keys and the class names inside ability lists.
 - `data.unitFillIns` (`UNIT_FILL_INS` in `tools/bc/vanilla.py`): race, faction, unitType and baseSize for vanilla units that leave them empty
-  (today the Hunter Orc Warrior, taken from its sibling Warg Rider, REVIEW). The app applies a value only where vanilla is empty; the
+  (today the Hunter Orc Warrior, taken from its sibling Warg Rider, and the Vault Warden Team bundle, taken from its two members: Dwarf, Khazad-dum, Warrior + Infantry; both REVIEW). The app applies a value only where vanilla is empty; the
   validator checks the vanilla field really is empty. Other vanilla units with gaps (crews, siege engines, bundles) are not used by a company.
 - **Rule key and label.** A Battle Companies rule's `name` is its key (identity: `specialRules`, grants, links); the optional `label` is the display
   name when it differs, `relatedTo` lists the rules it is a variant of (they share the label; the glossary links them). Vanilla rules and BC
@@ -307,6 +307,8 @@ Companies rulebook itself defines belong in the Battle Companies file.
   Elven Glaive: `GearAnnotation.Situational`); the loadout conditions (bow, two-handed, pike, Expert Rider, Phalanx) stay computed. Data `optionSales`
   status `ownItem` (Cave Troll's Troll Spear) is a choosable option under its own item name, `readAs` one read as another armoury item.
 - `data.unitFillIns` is applied on the vanilla book at load (`BCBook.ApplyUnitFillIns`), only where the vanilla field is empty.
+- `data.mountFillIns` (`MOUNT_FILL_INS` in `tools/bc/vanilla.py`; `gear`, `race`, `faction`, `unitType`) does the same for the five vanilla mounts without keywords (Brego, War boar, Elk, Cart, Moria Goblin Drum; factions are `See Rider`; all REVIEW); applied by `ApplyUnitFillIns` on the gear. The spelling variants of vanilla keywords (Khazad-Dum/Khazad-dum, ...) cannot be fixed in the vanilla file; core merges them with `keywordSpellings` (`internal/core/keywords.go`).
+- Glossary terms `<Race> keyword` / `<Faction> keyword` (category `keywords`, `RACE_KEYWORDS`/`FACTION_KEYWORDS` in `tools/glossary_terms.py`) are brief authored entries (`summarized`) behind the keyword chips; the " keyword" suffix keeps the glossary linker from linking every "man" or "shire" in the rules texts. `Monster` and `Chariot` chips use the existing terms `Monsters` and `Chariots` (aliases).
 - A rule with a `label` is shown by it: `BCBook.RuleLabel`, `UnitRule.Label` / `Shown()` (templates must print `Shown`, never `Name`);
   the glossary merges such variants into the term of their label. Unique wargear `restrictedToUnits` / `restrictedToKind` and hero
   upgrade `restrictedToUnits` decide who may take them by unit identity (`GearOffer.OnlyUnits/OnlyKind`, `HeroUpgrade.Units`);
@@ -415,10 +417,10 @@ The rules text is not data in the JSON; the rule engine applies it. What the rul
   (alternative option on chart rows, chosen by the player, free), `rangerReplacement` (Shire: `unit`, `max`, `role[]`, `when`; swaps a successful reinforcement result for the unit once the company's one was slain, see [frontend.md](frontend.md); the backend reads it into `CompanyProfile.RangerReplacement`), `includedUnitPoints` + `modelCount` + `recruitFallback`
   (Durin's Folk Vault Warden Team: the members come from the vanilla `includes`, the file adds their points and rules),
   `unitTypes` + `compositeModel` (Warg Marauder: one Cavalry card of three riders and a mount), `heroPromotion` (Arnor:
-  promotion AND hero, no promotion-only outcome).
+  promotion AND hero, no promotion-only outcome). Every road to a hero without a roll (an officer chosen at company creation, a Warrior taking a lost officer's place, a recruit that joins as a Hero) goes through `CompanyProfile.BecomeHero` and is equivalent to a warrior that rolled a 6: the promotion and the hero's stat gain are applied at once, only the path is chosen later. `TestAnOfficerOfTheStartingCompanyIsAHeroInTheMakingInEveryCompany` compares both for every start unit of the 37 companies.
 - `data.paths[].kind`: `heroic` (the 11 selectable paths), `endOfPath` ("On Their Own Path": not selectable, assigned
   automatically when an On Their Own Path unit is recruited, special rule "At Path's End": no XP, no level-up) and
-  `custom` ("Path of Their Own Making", homebrew from a community document, complete: `dice`, `maximums`, an 11-row `progression`, `startingStats` 0/0/1, `givesExperience`, `canLevelUp`, `implemented: true`, enabled by `campaign.options[key=customOnTheirOwnPath]`). Every path has `dice` ("2d6": two pairs, choose one, as `campaign.progression.hero.resolution`). A `specialRule` option may carry its own `definition` (Lead by Example: the vanilla rule of that name belongs to Buhrdur).
+  `custom` ("Path of Their Own Making", homebrew from a community document, complete: `dice`, `maximums`, an 11-row `progression`, `startingStats` 0/0/1, `givesExperience`, `canLevelUp`, `implemented: true`, enabled by `campaign.options[key=customOnTheirOwnPath]`; with it the units On Their Own Path start as Warriors, earn experience on the warrior table and take this path automatically, with its 0/0/1 start, on a roll of 6: no path window, no forgone promotion). Every path has `dice` ("2d6": two pairs, choose one, as `campaign.progression.hero.resolution`). A `specialRule` option may carry its own `definition` (Lead by Example: the vanilla rule of that name belongs to Buhrdur).
   `onTheirOwnPath` effects name their `path`.
 - `campaign.options[]` is the single list of settings. Each option is self-describing (`key`, `scope`: `rules` for rule variants and
   `app` for how the app behaves, `label`, `description`, `default`, `implemented`, `swaps`). Keys today: `heroesDropProfileGear`,

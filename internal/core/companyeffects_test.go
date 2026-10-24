@@ -100,19 +100,19 @@ func TestEffectOnTheirOwnPath(t *testing.T) {
 		ownPath  bool
 	}{
 		{"by default no experience, counted as a warrior", CampaignSettings{}, RoleWarrior, "On Their Own Path", 0, 0, true},
-		{"the homebrew path: a hero with real experience", CampaignSettings{CustomOnTheirOwnPath: true}, RoleHero, "Path of Their Own Making", 7, 1, false},
+		{"the homebrew path: a warrior with real experience", CampaignSettings{CustomOnTheirOwnPath: true}, RoleWarrior, "", 7, 0, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			u := BuildDetail(rs, tt.settings, st).Roster[0]
-			if u.Role != tt.role || u.Path == nil || u.Path.Name != tt.path || u.XP != tt.xp || u.OwnPath != tt.ownPath {
+			if u.Role != tt.role || (u.Path == nil) != (tt.path == "") || (u.Path != nil && u.Path.Name != tt.path) || u.XP != tt.xp || u.OwnPath != tt.ownPath {
 				t.Fatalf("role %s path %+v xp %d ownPath %v", u.Role, u.Path, u.XP, u.OwnPath)
 			}
 			for _, a := range u.Stats {
-				if a.Abbr == "F" && a.HeroOnly && a.Value != tt.fate {
+				if a.Abbr == "F" && a.HeroOnly && tt.role == RoleHero && a.Value != tt.fate {
 					t.Errorf("Fate %d, want %d", a.Value, tt.fate)
 				}
-				if (a.Abbr == "M" || a.Abbr == "W") && a.HeroOnly && tt.fate == 1 && a.Value != 0 {
+				if (a.Abbr == "M" || a.Abbr == "W") && a.HeroOnly && tt.role == RoleHero && a.Value != 0 {
 					t.Errorf("%s %d, want 0", a.Abbr, a.Value)
 				}
 			}

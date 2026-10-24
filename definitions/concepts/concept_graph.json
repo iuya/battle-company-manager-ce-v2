@@ -3,8 +3,8 @@
   "version": "1.0",
   "builtFrom": {
     "vanilla": "235fc4d309ccd25441df33be77501f8f67216cc942a5ffbfe414490e0a376546",
-    "battleCompanies": "fcc40c6bded544b344d930237d716478457172eb62a555426d346cee30dfaddf",
-    "glossary": "4cb77502caeb99b2dc6ea08c37cccb676e1bc49f41176604c2f85e77eeb83024"
+    "battleCompanies": "70a25d731ceb2426d5b99bfb13ac61c9935ab3f74cf93d5e8a14cc265d796efc",
+    "glossary": "47b7bd517bdb8255a31c604618eb3e181070ca87ebdb0ba7e4ce8c10761ea1e1"
   },
   "nodes": [
     {
@@ -6259,6 +6259,13 @@
       ]
     },
     {
+      "id": "term:angmar-keyword",
+      "kind": "term",
+      "name": "Angmar keyword",
+      "file": "glossary",
+      "textHash": "36599e0729809f72"
+    },
+    {
       "id": "term:arcing-shot",
       "kind": "term",
       "name": "Arcing Shot",
@@ -6278,6 +6285,13 @@
       "name": "Armoured Fell beast",
       "file": "vanilla",
       "textHash": "4721bcf2d986e6b7"
+    },
+    {
+      "id": "term:arnor-keyword",
+      "kind": "term",
+      "name": "Arnor keyword",
+      "file": "glossary",
+      "textHash": "93e1a3528edc16ce"
     },
     {
       "id": "term:asfaloth",
@@ -6381,6 +6395,13 @@
       ]
     },
     {
+      "id": "term:bat-keyword",
+      "kind": "term",
+      "name": "Bat keyword",
+      "file": "glossary",
+      "textHash": "9405fc491a5fad85"
+    },
+    {
       "id": "term:battering-down-doors-and-gates",
       "kind": "term",
       "name": "Battering Down Doors and Gates",
@@ -6405,11 +6426,32 @@
       "textHash": "9f1702582e880b8a"
     },
     {
+      "id": "term:bird-keyword",
+      "kind": "term",
+      "name": "Bird keyword",
+      "file": "glossary",
+      "textHash": "ac6a4009d3b89c7a"
+    },
+    {
       "id": "term:black-dart",
       "kind": "term",
       "name": "Black Dart",
       "file": "battleCompanies",
       "textHash": "8d063bb8aa575db0"
+    },
+    {
+      "id": "term:black-dragon-keyword",
+      "kind": "term",
+      "name": "Black Dragon keyword",
+      "file": "glossary",
+      "textHash": "00535976e9bd2883"
+    },
+    {
+      "id": "term:blackroot-vale-keyword",
+      "kind": "term",
+      "name": "Blackroot Vale keyword",
+      "file": "glossary",
+      "textHash": "aa5f780e478432a0"
     },
     {
       "id": "term:bladewrath",
@@ -6441,6 +6483,13 @@
       "aliases": [
         "Blowpipes"
       ]
+    },
+    {
+      "id": "term:boar-keyword",
+      "kind": "term",
+      "name": "Boar keyword",
+      "file": "glossary",
+      "textHash": "f7f494c3b8a00863"
     },
     {
       "id": "term:boiling-oil",
@@ -6509,11 +6558,25 @@
       "textHash": "a4da1390feefe3fb"
     },
     {
+      "id": "term:camel-keyword",
+      "kind": "term",
+      "name": "Camel keyword",
+      "file": "glossary",
+      "textHash": "a24a8c70eb6338a0"
+    },
+    {
       "id": "term:can-i-use-might",
       "kind": "term",
       "name": "Can I Use Might?",
       "file": "glossary",
       "textHash": "fffe98d33561e79f"
+    },
+    {
+      "id": "term:carn-dum-keyword",
+      "kind": "term",
+      "name": "Carn Dum keyword",
+      "file": "glossary",
+      "textHash": "3a01d43467b0a75b"
     },
     {
       "id": "term:cart",
@@ -6688,6 +6751,13 @@
       ]
     },
     {
+      "id": "term:corsair-keyword",
+      "kind": "term",
+      "name": "Corsair keyword",
+      "file": "glossary",
+      "textHash": "5439a7e2ce821343"
+    },
+    {
       "id": "term:courage",
       "kind": "term",
       "name": "Courage",
@@ -6721,6 +6791,13 @@
       "name": "Curse",
       "file": "battleCompanies",
       "textHash": "6e63de296fb2b09b"
+    },
+    {
+      "id": "term:dale-keyword",
+      "kind": "term",
+      "name": "Dale keyword",
+      "file": "glossary",
+      "textHash": "b5a51ef1c4b51066"
     },
     {
       "id": "term:dead",
@@ -6803,6 +6880,20 @@
       ]
     },
     {
+      "id": "term:dol-amroth-keyword",
+      "kind": "term",
+      "name": "Dol Amroth keyword",
+      "file": "glossary",
+      "textHash": "1b2b112509a526cb"
+    },
+    {
+      "id": "term:dol-guldur-keyword",
+      "kind": "term",
+      "name": "Dol Guldur keyword",
+      "file": "glossary",
+      "textHash": "aab600b0f2866f4b"
+    },
+    {
       "id": "term:doors-gates-and-hatches",
       "kind": "term",
       "name": "Doors, Gates and Hatches",
@@ -6827,6 +6918,13 @@
       "textHash": "b2e9a96e215a1869"
     },
     {
+      "id": "term:drake-keyword",
+      "kind": "term",
+      "name": "Drake keyword",
+      "file": "glossary",
+      "textHash": "e2ce72b6cf7cf0f4"
+    },
+    {
       "id": "term:drawn-combat",
       "kind": "term",
       "name": "Drawn Combat",
@@ -6835,6 +6933,13 @@
       "aliases": [
         "Drawn Combats"
       ]
+    },
+    {
+      "id": "term:druadan-keyword",
+      "kind": "term",
+      "name": "Druadan keyword",
+      "file": "glossary",
+      "textHash": "a87ea43c40dbc4b5"
     },
     {
       "id": "term:duel-roll",
@@ -6849,6 +6954,41 @@
       ]
     },
     {
+      "id": "term:dunedain-keyword",
+      "kind": "term",
+      "name": "Dunedain keyword",
+      "file": "glossary",
+      "textHash": "921a30b8fda49a91"
+    },
+    {
+      "id": "term:dunland-keyword",
+      "kind": "term",
+      "name": "Dunland keyword",
+      "file": "glossary",
+      "textHash": "737747929d41bef8"
+    },
+    {
+      "id": "term:dwarf-keyword",
+      "kind": "term",
+      "name": "Dwarf keyword",
+      "file": "glossary",
+      "textHash": "07bafd727e38b83f"
+    },
+    {
+      "id": "term:eagle-keyword",
+      "kind": "term",
+      "name": "Eagle keyword",
+      "file": "glossary",
+      "textHash": "7ba873a4531eddda"
+    },
+    {
+      "id": "term:easterling-keyword",
+      "kind": "term",
+      "name": "Easterling keyword",
+      "file": "glossary",
+      "textHash": "68648e8ef790c5d3"
+    },
+    {
       "id": "term:elevated-positions",
       "kind": "term",
       "name": "Elevated Positions",
@@ -6857,6 +6997,13 @@
       "aliases": [
         "Elevated Position"
       ]
+    },
+    {
+      "id": "term:elf-keyword",
+      "kind": "term",
+      "name": "Elf keyword",
+      "file": "glossary",
+      "textHash": "141edb2231b5f867"
     },
     {
       "id": "term:elite",
@@ -6871,6 +7018,13 @@
       "name": "Elk",
       "file": "vanilla",
       "textHash": "e76f49fb706e036a"
+    },
+    {
+      "id": "term:elk-keyword",
+      "kind": "term",
+      "name": "Elk keyword",
+      "file": "glossary",
+      "textHash": "fd4df7ed44bc55a9"
     },
     {
       "id": "term:elven-weapon",
@@ -6913,6 +7067,13 @@
       "name": "Enrage Beast",
       "file": "battleCompanies",
       "textHash": "d054c79687686fdb"
+    },
+    {
+      "id": "term:erebor-keyword",
+      "kind": "term",
+      "name": "Erebor keyword",
+      "file": "glossary",
+      "textHash": "1db2ff1adbe26c69"
     },
     {
       "id": "term:exhaustion",
@@ -7123,6 +7284,34 @@
       "textHash": "0d6ce86e8c80f311"
     },
     {
+      "id": "term:goat-keyword",
+      "kind": "term",
+      "name": "Goat keyword",
+      "file": "glossary",
+      "textHash": "88203dc8a719c887"
+    },
+    {
+      "id": "term:goblin-keyword",
+      "kind": "term",
+      "name": "Goblin keyword",
+      "file": "glossary",
+      "textHash": "682f2af9aa75efe1"
+    },
+    {
+      "id": "term:goblin-town-keyword",
+      "kind": "term",
+      "name": "Goblin-town keyword",
+      "file": "glossary",
+      "textHash": "5924be895b09f965"
+    },
+    {
+      "id": "term:gondor-keyword",
+      "kind": "term",
+      "name": "Gondor keyword",
+      "file": "glossary",
+      "textHash": "9e595e0b69feec52"
+    },
+    {
       "id": "term:great-eagle",
       "kind": "term",
       "name": "Great Eagle",
@@ -7135,6 +7324,13 @@
       "name": "Great Elk",
       "file": "vanilla",
       "textHash": "b0548a06568b5fd2"
+    },
+    {
+      "id": "term:gundabad-keyword",
+      "kind": "term",
+      "name": "Gundabad keyword",
+      "file": "glossary",
+      "textHash": "571a46ecd054e02b"
     },
     {
       "id": "term:hand-and-a-half-weapon",
@@ -7157,6 +7353,13 @@
         "Hand weapon",
         "hand weapon"
       ]
+    },
+    {
+      "id": "term:harad-keyword",
+      "kind": "term",
+      "name": "Harad keyword",
+      "file": "glossary",
+      "textHash": "56e04aeb5b272f9f"
     },
     {
       "id": "term:having-priority",
@@ -7280,6 +7483,20 @@
       "textHash": "89e65214b47a9a81"
     },
     {
+      "id": "term:hobbit-keyword",
+      "kind": "term",
+      "name": "Hobbit keyword",
+      "file": "glossary",
+      "textHash": "0fe8c6fe68c42b3d"
+    },
+    {
+      "id": "term:horse-keyword",
+      "kind": "term",
+      "name": "Horse keyword",
+      "file": "glossary",
+      "textHash": "a2ba70519ea7863a"
+    },
+    {
       "id": "term:how-to-shoot",
       "kind": "term",
       "name": "How to Shoot",
@@ -7386,11 +7603,25 @@
       ]
     },
     {
+      "id": "term:iron-hills-keyword",
+      "kind": "term",
+      "name": "Iron Hills keyword",
+      "file": "glossary",
+      "textHash": "64383f40dda74811"
+    },
+    {
       "id": "term:irresistible-force",
       "kind": "term",
       "name": "Irresistible Force",
       "file": "glossary",
       "textHash": "ac5359ce5025d417"
+    },
+    {
+      "id": "term:isengard-keyword",
+      "kind": "term",
+      "name": "Isengard keyword",
+      "file": "glossary",
+      "textHash": "0d63694c403d4720"
     },
     {
       "id": "term:jumping",
@@ -7412,11 +7643,25 @@
       "textHash": "3b6897318cad7df3"
     },
     {
+      "id": "term:khand-keyword",
+      "kind": "term",
+      "name": "Khand keyword",
+      "file": "glossary",
+      "textHash": "1a3f0fe4e655516c"
+    },
+    {
       "id": "term:khandish-chariot",
       "kind": "term",
       "name": "Khandish Chariot",
       "file": "vanilla",
       "textHash": "07e153c79822e5e9"
+    },
+    {
+      "id": "term:khazad-dum-keyword",
+      "kind": "term",
+      "name": "Khazad-dum keyword",
+      "file": "glossary",
+      "textHash": "0e5257720399860e"
     },
     {
       "id": "term:knock-to-the-ground",
@@ -7442,6 +7687,20 @@
         "Knocked Prone",
         "knocked Prone"
       ]
+    },
+    {
+      "id": "term:lake-town-keyword",
+      "kind": "term",
+      "name": "Lake-town keyword",
+      "file": "glossary",
+      "textHash": "150e0cad11d2f2f8"
+    },
+    {
+      "id": "term:lamedon-keyword",
+      "kind": "term",
+      "name": "Lamedon keyword",
+      "file": "glossary",
+      "textHash": "0cf9e6a384767290"
     },
     {
       "id": "term:lance",
@@ -7510,6 +7769,20 @@
       ]
     },
     {
+      "id": "term:lossarnach-keyword",
+      "kind": "term",
+      "name": "Lossarnach keyword",
+      "file": "glossary",
+      "textHash": "94531ebe0b17360e"
+    },
+    {
+      "id": "term:lothl-rien-keyword",
+      "kind": "term",
+      "name": "Lothlórien keyword",
+      "file": "glossary",
+      "textHash": "1aed1bc7459a3f1b"
+    },
+    {
       "id": "term:magical-power-durations",
       "kind": "term",
       "name": "Magical Power Durations",
@@ -7527,6 +7800,13 @@
         "Spell",
         "Spells"
       ]
+    },
+    {
+      "id": "term:mah-d-keyword",
+      "kind": "term",
+      "name": "Mahûd keyword",
+      "file": "glossary",
+      "textHash": "76aeebfff1559bed"
     },
     {
       "id": "term:make-way",
@@ -7557,6 +7837,13 @@
       "name": "Making Strikes Against Cavalry Models",
       "file": "glossary",
       "textHash": "4cbdc1b369468b62"
+    },
+    {
+      "id": "term:man-keyword",
+      "kind": "term",
+      "name": "Man keyword",
+      "file": "glossary",
+      "textHash": "b7a22d7b32962a34"
     },
     {
       "id": "term:master-forged",
@@ -7606,6 +7893,13 @@
       "textHash": "4e50649e9c6a18e4"
     },
     {
+      "id": "term:mirkwood-keyword",
+      "kind": "term",
+      "name": "Mirkwood keyword",
+      "file": "glossary",
+      "textHash": "9a9bf89f0191f4d0"
+    },
+    {
       "id": "term:missile-weapon-chart",
       "kind": "term",
       "name": "Missile Weapon Chart",
@@ -7624,6 +7918,13 @@
       "aliases": [
         "Missile Weapon"
       ]
+    },
+    {
+      "id": "term:misty-mountains-keyword",
+      "kind": "term",
+      "name": "Misty Mountains keyword",
+      "file": "glossary",
+      "textHash": "2f1d37a6e8b75057"
     },
     {
       "id": "term:models-in-the-way",
@@ -7666,11 +7967,25 @@
       "textHash": "6440482b7870a4e7"
     },
     {
+      "id": "term:mordor-keyword",
+      "kind": "term",
+      "name": "Mordor keyword",
+      "file": "glossary",
+      "textHash": "04be4f3952cb15af"
+    },
+    {
       "id": "term:moria-goblin-drum-drum",
       "kind": "term",
       "name": "Moria Goblin Drum (Drum)",
       "file": "vanilla",
       "textHash": "2ef2d459e5063161"
+    },
+    {
+      "id": "term:moria-keyword",
+      "kind": "term",
+      "name": "Moria keyword",
+      "file": "glossary",
+      "textHash": "5282cfcfeaa63b5d"
     },
     {
       "id": "term:mount",
@@ -7781,6 +8096,13 @@
       "textHash": "2292b9422f1b97bf"
     },
     {
+      "id": "term:numenor-keyword",
+      "kind": "term",
+      "name": "Numenor keyword",
+      "file": "glossary",
+      "textHash": "51a2d72f1ef2db86"
+    },
+    {
       "id": "term:obstacles",
       "kind": "term",
       "name": "Obstacles",
@@ -7791,11 +8113,25 @@
       ]
     },
     {
+      "id": "term:ogre-keyword",
+      "kind": "term",
+      "name": "Ogre keyword",
+      "file": "glossary",
+      "textHash": "e7f2a015a98bad9a"
+    },
+    {
       "id": "term:open-ground",
       "kind": "term",
       "name": "Open Ground",
       "file": "glossary",
       "textHash": "5255816f9d8b620f"
+    },
+    {
+      "id": "term:orc-keyword",
+      "kind": "term",
+      "name": "Orc keyword",
+      "file": "glossary",
+      "textHash": "ee49e2f9a4dac984"
     },
     {
       "id": "term:outnumbered-in-a-combat",
@@ -7985,11 +8321,25 @@
       ]
     },
     {
+      "id": "term:rivendell-keyword",
+      "kind": "term",
+      "name": "Rivendell keyword",
+      "file": "glossary",
+      "textHash": "afb626bc1f653896"
+    },
+    {
       "id": "term:rocks",
       "kind": "term",
       "name": "Rocks",
       "file": "glossary",
       "textHash": "93356af9faca5c40"
+    },
+    {
+      "id": "term:rohan-keyword",
+      "kind": "term",
+      "name": "Rohan keyword",
+      "file": "glossary",
+      "textHash": "09f634330154c21a"
     },
     {
       "id": "term:rolling-dice",
@@ -8042,6 +8392,13 @@
       "textHash": "53495f2cbb10ae15"
     },
     {
+      "id": "term:ruffian-keyword",
+      "kind": "term",
+      "name": "Ruffian keyword",
+      "file": "glossary",
+      "textHash": "ceab05c88b8e88cd"
+    },
+    {
       "id": "term:scatter",
       "kind": "term",
       "name": "Scatter",
@@ -8082,6 +8439,13 @@
       "name": "Shallow Water",
       "file": "glossary",
       "textHash": "a377c83ac1c5690f"
+    },
+    {
+      "id": "term:shire-keyword",
+      "kind": "term",
+      "name": "Shire keyword",
+      "file": "glossary",
+      "textHash": "066bae3acc39d258"
     },
     {
       "id": "term:shoot-phase",
@@ -8262,6 +8626,13 @@
       "textHash": "8f87f8759fd13a19"
     },
     {
+      "id": "term:spider-keyword",
+      "kind": "term",
+      "name": "Spider keyword",
+      "file": "glossary",
+      "textHash": "9de162ff72402b29"
+    },
+    {
       "id": "term:spiked-barricade",
       "kind": "term",
       "name": "Spiked Barricade",
@@ -8270,6 +8641,13 @@
       "aliases": [
         "Spiked Barricades"
       ]
+    },
+    {
+      "id": "term:spirit-keyword",
+      "kind": "term",
+      "name": "Spirit keyword",
+      "file": "glossary",
+      "textHash": "1ab7ee9b3e83f316"
     },
     {
       "id": "term:staff-of-power",
@@ -8518,6 +8896,13 @@
       "textHash": "578085b3fc86d478"
     },
     {
+      "id": "term:troll-keyword",
+      "kind": "term",
+      "name": "Troll keyword",
+      "file": "glossary",
+      "textHash": "85b01356f8168f40"
+    },
+    {
       "id": "term:turn",
       "kind": "term",
       "name": "Turn",
@@ -8544,6 +8929,13 @@
         "Two-handed Weapons",
         "two-handed weapon"
       ]
+    },
+    {
+      "id": "term:umbar-keyword",
+      "kind": "term",
+      "name": "Umbar keyword",
+      "file": "glossary",
+      "textHash": "516bd6461b1b5470"
     },
     {
       "id": "term:unarmed-models",
@@ -8582,6 +8974,13 @@
       "name": "Untrained Crew",
       "file": "glossary",
       "textHash": "279f06360cfa49c1"
+    },
+    {
+      "id": "term:uruk-hai-keyword",
+      "kind": "term",
+      "name": "Uruk-hai keyword",
+      "file": "glossary",
+      "textHash": "f4ff98066e548e8b"
     },
     {
       "id": "term:using-magical-powers",
@@ -8631,6 +9030,13 @@
         "War Spears",
         "Warspear"
       ]
+    },
+    {
+      "id": "term:warg-keyword",
+      "kind": "term",
+      "name": "Warg keyword",
+      "file": "glossary",
+      "textHash": "be2277f7e2627bda"
     },
     {
       "id": "term:warrior",

@@ -18,6 +18,7 @@ type VanillaBook struct {
 	keywords map[string]string
 	gear     map[string]VanillaGear
 	powers   map[string]VanillaPower
+	races    map[string]bool // lower-cased race words of every profile (a wanderer's unit type "Man" is one); see IsRace
 }
 
 // StatDef is one attribute of a profile as the vanilla file declares them, in display order.
@@ -58,6 +59,9 @@ type VanillaGear struct {
 	Stats      map[string]int // a mount's profile, by StatDef.Key
 	Rules      []string       // a mount's special rules
 	Modifies   []StatChange   // modifiesStats without a condition: what carrying it adds to a characteristic (Helmingas: Strength +1)
+	Race       []string       // a mount's own keywords (Horse, Warg, Fell Beast...)
+	Faction    []string       // Rohan, Gundabad...; "See Rider" means the rider's
+	UnitTypes  []string       // Mount, Chariot, Hero, Monster...
 }
 
 type VanillaPower struct {
@@ -161,6 +165,9 @@ func ParseVanillaWith(content []byte, reviewed []VanillaAmbiguity, log *slog.Log
 		_ = json.Unmarshal(raw["name"], &g.Name)
 		_ = json.Unmarshal(raw["type"], &g.Type)
 		_ = json.Unmarshal(raw["definition"], &g.Definition)
+		_ = json.Unmarshal(raw["race"], &g.Race)
+		_ = json.Unmarshal(raw["faction"], &g.Faction)
+		_ = json.Unmarshal(raw["unitType"], &g.UnitTypes)
 		_ = json.Unmarshal(raw["specialRules"], &g.Rules)
 		var mods []map[string]json.RawMessage
 		_ = json.Unmarshal(raw["modifiesStats"], &mods)
@@ -195,6 +202,7 @@ func ParseVanillaWith(content []byte, reviewed []VanillaAmbiguity, log *slog.Log
 			b.powers[p.Name] = VanillaPower{p.Name, p.Duration, p.Definition}
 		}
 	}
+	b.collectRaces()
 	return b, nil
 }
 

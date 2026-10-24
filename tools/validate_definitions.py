@@ -678,6 +678,15 @@ def main():
         for f in ("race", "faction", "unitType", "baseSize"):
             if f in i and e.get(f):
                 errors.append(f"unitFillIns: {i['unit']} already has {f} in vanilla")
+    vgear = {g["name"]: g for g in van["data"]["gear"]}
+    for i in D["mountFillIns"]["items"]:
+        g = vgear.get(i["gear"])
+        if g is None or g.get("type") != "mount":
+            errors.append(f"mountFillIns: {i['gear']!r} is not a vanilla mount")
+            continue
+        for f in ("race", "faction", "unitType"):
+            if f in i and g.get(f):
+                errors.append(f"mountFillIns: {i['gear']} already has {f} in vanilla")
     # injuries: the treatment and the structured effects must point at real chart entries / gear classes
     inj = bc["campaign"]["injuries"]
     hero = {e["key"]: e for e in inj["hero"]}

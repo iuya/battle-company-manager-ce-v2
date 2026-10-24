@@ -17,10 +17,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from bc.text import norm  # noqa: E402
-from glossary_terms import TERMS  # noqa: E402
+from glossary_terms import TERMS, KEYWORD_SOURCE, keyword_terms  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-GLOSSARY_VERSION = "1.0"  # ours, not the rulebook's: bump it when the content changes
+GLOSSARY_VERSION = "1.1"  # ours, not the rulebook's: bump it when the content changes
 HEAD = re.compile(r"^(#{2,4}) (.*)$")
 INTRO_ONLY = {"Heroic Actions", "War Beasts", "Turn Sequence"}  # overviews whose sub-sections are separate terms
 PAGE = re.compile(r"<!-- page (\d+) -->")
@@ -174,6 +174,10 @@ def main():
                 problems.append(f"{t['name']}: needs a summary in tools/glossary_summaries.json (verbatim text kept for now)")
         entry["sources"] = sources
         terms.append(entry)
+
+    for name, kind, text in keyword_terms():
+        terms.append({"name": name, "category": "keywords", "definition": text, "summarized": True, "sources": [KEYWORD_SOURCE], "see": ["Keywords"]})
+        TERMS.append(dict(name=name, category="keywords", headings=[], aliases=[], paragraphs=[], see=["Keywords"], first=None, synth=False))
 
     # `see` links point to other terms of this file (a small concept graph); they must resolve
     names = {e["name"] for e in terms}

@@ -741,6 +741,15 @@ func successionOpen(roster []CompanyUnit, rec AftermathRecord) *Succession {
 	return nil
 }
 
+// becomeHero treats a warrior taking an officer's place as one that rolled Hero in the Making (CompanyProfile.BecomeHero).
+func (e *amEnv) becomeHero(st *CompanyState, us *UnitState) {
+	if profile, ok := e.rs.BC.Profile(st.Company.Faction); ok {
+		profile.BecomeHero(us)
+	} else {
+		us.Bonus = mergeBonus(us.Bonus, HeroBonus(nil))
+	}
+}
+
 func decideSuccession(e *amEnv, st *CompanyState, rec *AftermathRecord, ans AftermathAnswer) error {
 	roster := e.detail(*st).Roster
 	open := successionOpen(roster, *rec)
@@ -760,7 +769,7 @@ func decideSuccession(e *amEnv, st *CompanyState, rec *AftermathRecord, ans Afte
 				return invalidAftermath("choose one of the Warriors with the most Experience")
 			}
 			us.Role = RoleLeader
-			us.Bonus = mergeBonus(us.Bonus, HeroBonus(nil)) // an officer without a path: it chooses one in the path window
+			e.becomeHero(st, us) // an officer without a path: it chooses one in the path window
 			line(rec, "succession", title+" becomes the Leader (Hero in the Making: choose its path)", uid, 0)
 			return nil
 		}
@@ -776,7 +785,7 @@ func decideSuccession(e *amEnv, st *CompanyState, rec *AftermathRecord, ans Afte
 				return invalidAftermath("choose one of the Warriors with the most Experience")
 			}
 			us.Role = RoleSergeant
-			us.Bonus = mergeBonus(us.Bonus, HeroBonus(nil))
+			e.becomeHero(st, us)
 			rec.Work.SergeantsToFill = max(0, rec.Work.SergeantsToFill-1)
 			line(rec, "succession", title+" becomes a Sergeant (Hero in the Making: choose its path)", uid, 0)
 			return nil

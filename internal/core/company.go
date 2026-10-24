@@ -371,11 +371,12 @@ type CompanyUnit struct {
 	Injured       bool             // misses the next game: it does not count towards the company's rating
 	AtHealers     bool             // sent to the healers: its missed game is the price of the healing, field treatment cannot cancel it
 	Level         int
-	XP            int        // all the experience the unit has earned; each level-up roll uses XPPerLevel of it
-	PathPending   bool       // a hero that has not chosen its path yet: the company cannot play a match until it does
-	OwnPath       bool       // On Its Own Path: it earns no experience and never levels up
-	Models        int        // how many models it counts as against the company's maximum; 0 is one
-	Parts         []UnitPart // a unit made of several models on one card (Warg Marauder: its riders and mount)
+	XP            int          // all the experience the unit has earned; each level-up roll uses XPPerLevel of it
+	PathPending   bool         // a hero that has not chosen its path yet: the company cannot play a match until it does
+	OwnPath       bool         // On Its Own Path: it earns no experience and never levels up
+	Models        int          // how many models it counts as against the company's maximum; 0 is one
+	Parts         []UnitPart   // a unit made of several models on one card (Warg Marauder: its riders and mount)
+	Keywords      UnitKeywords // race, faction and unit types (and the mount's apart), see docs/unit-keywords.md
 }
 
 // UnitPart is a part of a unit made of several models: a rider, a mount.

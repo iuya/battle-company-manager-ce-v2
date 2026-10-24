@@ -40,7 +40,7 @@ func (s *CompanyService) CompanyProfiles(ctx context.Context, campaignID int64) 
 	}
 	profiles := rs.BC.Profiles()
 	for i := range profiles {
-		profiles[i] = profiles[i].WithPreviews(rs.Vanilla)
+		profiles[i] = rs.withPreviewKeywords(profiles[i].WithPreviews(rs.Vanilla))
 	}
 	return profiles, nil
 }
