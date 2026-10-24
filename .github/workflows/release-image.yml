@@ -1,0 +1,112 @@
+# Builds the Docker image and publishes it to the GitHub Container Registry (ghcr.io/<owner>/<repo>) when a release tag vMAJOR.MINOR.PATCH
+# is pushed. Order: browser tests (e2e.yml) -> build amd64 into the runner's daemon and smoke-test it against PostgreSQL -> push amd64+arm64.
+# Run by hand (Actions > release-image > Run workflow) for a dry run: everything except the push. docs/operations.md, "Published image".
+name: release-image
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-image-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  e2e:
+    uses: ./.github/workflows/e2e.yml
+
+  publish:
+    needs: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: bcm
+          POSTGRES_PASSWORD: smoke
+          POSTGRES_DB: bcm
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U bcm -d bcm" --health-interval 5s --health-timeout 4s --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - name: Tags and labels
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          # 1.1.0, 1.1, 1 and latest for a stable tag (latest and the short ones are skipped for a pre-release such as v1.2.0-rc.1;
+          # the short ones are also skipped below 1.0.0). A dry run gets the tag dry-run, which is never pushed.
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=dry-run,enable=${{ !startsWith(github.ref, 'refs/tags/') }}
+          labels: |
+            org.opencontainers.image.title=Battle Companies Manager
+            org.opencontainers.image.description=Campaign manager for Middle-earth Strategy Battle Game Battle Companies (2nd Edition)
+            org.opencontainers.image.licenses=CC-BY-NC-SA-4.0
+          # source, version and revision are set by the action from the repository, the tag and the commit.
+
+      # Smoke test: the amd64 image, as it will be pushed, is loaded into the runner's daemon and started like production would
+      # (read-only, non-root, no capabilities) against the service container. A broken image stops here, before any push.
+      - name: Build amd64 for the smoke test
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: bcm:smoke
+          provenance: false
+          cache-from: type=gha,scope=release-image
+          cache-to: type=gha,scope=release-image,mode=max
+      - name: Smoke test
+        run: |
+          # Host network: the service container's port 5432 is published on the runner. Plain http on localhost, hence the insecure-cookie switch.
+          docker run -d --name bcm-smoke --network host --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
+            -e DATABASE_URL='postgres://bcm:smoke@127.0.0.1:5432/bcm?sslmode=disable' \
+            -e APP_ENV=production -e SECURE_COOKIES=false -e ALLOW_INSECURE_COOKIES=true -e PORT=8080 \
+            bcm:smoke
+          ok=
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/readyz >/dev/null 2>&1; then ok=1; break; fi
+            sleep 2
+          done
+          if [ -z "$ok" ]; then echo "::error::the image did not become ready"; docker logs bcm-smoke; exit 1; fi
+          curl -fsS http://127.0.0.1:8080/healthz; echo
+          curl -fsS http://127.0.0.1:8080/login | grep -qi "password" || { echo "::error::/login did not render a password field"; docker logs bcm-smoke; exit 1; }
+          docker exec bcm-smoke /app/server healthcheck || { echo "::error::the built-in healthcheck failed"; docker logs bcm-smoke; exit 1; }
+          test "$(docker inspect -f '{{.Config.User}}' bcm-smoke)" = "65532:65532"
+          docker logs bcm-smoke
+          docker rm -f bcm-smoke
+
+      - name: Log in to ghcr.io
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build for amd64 and arm64, and push (a dry run builds and does not push)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          cache-from: type=gha,scope=release-image
+          cache-to: type=gha,scope=release-image,mode=max

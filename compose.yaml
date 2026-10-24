@@ -21,8 +21,16 @@ services:
       retries: 20
       start_period: 10s
   app:
+    # The app image comes from one of two places; keep exactly one of the two blocks active.
+    # (a) Built from this checkout (default):
     build: .
     image: bcm:latest
+    # (b) The published image from the GitHub Container Registry (built by .github/workflows/release-image.yml on every release tag; needs no
+    #     checkout of the source, `docker compose pull` fetches it). To use it, comment the two lines above and uncomment these:
+    # image: ghcr.io/iuya/battle-company-manager-ce-v2:latest   # latest stable release; pin one with :1.1.0 (exact), :1.1 (newest patch) or :1
+    # pull_policy: always                                         # check the registry on every `up` (default `missing` keeps a cached image)
+    #     Then: docker compose pull app && docker compose up -d --wait. Switching back to (a) needs `docker compose up -d --build`.
+    #     Details, platforms and rollback: docs/operations.md, "Published image".
     restart: unless-stopped
     depends_on:
       postgres: { condition: service_healthy }

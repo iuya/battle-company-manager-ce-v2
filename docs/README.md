@@ -15,7 +15,7 @@ campaigns, companies and matches. These documents describe the app as it is now.
 | [vendored-js.md](vendored-js.md) | The committed third-party scripts: versions, sources, checksums (`internal/web/vendor.json`), `make vendor-check`, update procedure |
 | [testing.md](testing.md) | Test commands; the browser smoke tests (`make e2e`): what they cover, isolation, how to write steps |
 | [performance.md](performance.md) | Measured page cost: the baseline, what was changed and what it gained, `make perf`, `BenchmarkPages`, what the backend and the database should look at |
-| [operations.md](operations.md) | Backups with `pg_dump`, restore and the restore drill, retention, upgrading safely |
+| [operations.md](operations.md) | Backups with `pg_dump`, restore and the restore drill, retention, upgrading safely, the published image on ghcr.io |
 | [auth.md](auth.md) | Accounts, sessions, passwords, CSRF, login throttling |
 | [admin.md](admin.md) | The Administration section: users and permissions, rules files (default, upload, prune), organiser handover (spec, designed) |
 | [demo-world.md](demo-world.md) | `make demo`: the rich demo world, campaign by campaign: what each shows, where to click, and the states the services cannot reach |

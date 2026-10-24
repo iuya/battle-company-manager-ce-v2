@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call: # release-image.yml runs the same suite as the gate before publishing the image
 
 jobs:
   e2e:

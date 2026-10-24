@@ -33,6 +33,43 @@ raise it only if a superuser uploads many rules files that campaigns pin, lower 
 The backup, restore and drill scripts use the default compose file, i.e. production, and need `POSTGRES_PASSWORD` visible to compose (it is, from `.env`). For the development database:
 `make backup COMPOSE_FILE=compose.dev.yaml`.
 
+## Published image
+
+Every release tag builds the image in CI and publishes it to the GitHub Container Registry: `ghcr.io/iuya/battle-company-manager-ce-v2`. It is the same `Dockerfile` as the local build
+(distroless, non-root uid 65532, no secrets baked in), for `linux/amd64` and `linux/arm64`.
+
+| Tag | Moves | Example |
+|---|---|---|
+| `1.1.0` | never (one release) | pin this in production |
+| `1.1` | to the newest patch of that minor | |
+| `1` | to the newest release of that major (not published below 1.0.0) | |
+| `latest` | to the newest stable release (pre-releases such as `v1.2.0-rc.1` get only their full tag) | |
+
+The image carries the OCI labels `source`, `version`, `revision` (the commit), `licenses`, `title` and `description`.
+
+**Use it.** In `compose.yaml` the app service has two alternative blocks: `build: .` / `image: bcm:latest` (active, builds from the checkout) and a commented
+`image: ghcr.io/...:latest` with `pull_policy: always`. Comment the first pair, uncomment the second (pin `:1.1.0` instead of `:latest` if you want), then
+`docker compose pull app && docker compose up -d --wait`. The rest (database, `.env`, `make prod-user`) is unchanged; `make up` passes `--build`, which is harmless for an image-only service.
+Without compose: `docker pull ghcr.io/iuya/battle-company-manager-ce-v2:1.1.0`. To go back to the local build, swap the lines and run `docker compose up -d --build`.
+
+**Release.** `.github/workflows/release-image.yml` runs when a tag `v*` is pushed (`git tag v1.1.0 && git push origin v1.1.0`, after asking the owner, CLAUDE.md). Jobs, in order:
+`e2e` (the browser tests of `e2e.yml`, called as a reusable workflow; a failure stops the release), then in `publish`: tags and labels, a build of the amd64 image into the runner, a smoke
+test (start it read-only against a PostgreSQL service container, `/readyz`, `/healthz`, the login page, the built-in healthcheck), and only then the amd64+arm64 build and push with the
+`GITHUB_TOKEN` (permissions: contents read, packages write). Running the workflow by hand from the Actions tab is a dry run: the same steps, nothing is pushed.
+
+**Make the package public, once.** The first push creates the package private, and visibility cannot be changed through the API or CI. On GitHub: the repository's *Packages* >
+the package > *Package settings* > *Change visibility* > Public (also *Manage Actions access* should list this repository with Write). After that anyone can pull without logging in.
+
+**Verify a pushed image.**
+```
+docker buildx imagetools inspect ghcr.io/iuya/battle-company-manager-ce-v2:1.1.0     # two platforms: linux/amd64 and linux/arm64
+docker pull ghcr.io/iuya/battle-company-manager-ce-v2:1.1.0 && docker inspect --format '{{json .Config.Labels}}' ghcr.io/iuya/battle-company-manager-ce-v2:1.1.0
+```
+
+**Rollback.** Pin the previous full tag in `compose.yaml` (`image: ...:1.0.3`), `docker compose pull app && docker compose up -d --wait`. Migrations are forward-only: if the newer version
+migrated the database, restore the backup taken before the upgrade (Restore, below) rather than only swapping the image. A bad tag can be removed on the package page (*Versions* > delete);
+fix forward with a new patch tag rather than re-pushing the same tag.
+
 ## Content-Security-Policy: report mode, then enforce
 
 Production starts in `CSP_MODE=report` (the default): the browser loads everything, sends each violation to `POST /csp-report` and the app logs one line. Before the switch the browser suite already ran
