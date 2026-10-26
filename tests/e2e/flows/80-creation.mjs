@@ -58,6 +58,16 @@ export default async function (h) {
     assert.ok(before >= 0);
   });
 
+  await h.step('company chooser: the Arnor epigraph is flavour above the company rule, and no other company draws one', async () => {
+    await pick('Arnor');
+    const text = await page.$eval('[data-epigraph]', (e) => e.innerText);
+    assert.match(text, /Leave all that can be spared behind\. We travel light\./);
+    assert.match(text, /As Arnor fell, the Dunedain grew wilder and more dangerous in their vigil\./);
+    assert.ok(await page.$eval('[data-epigraph]', (e) => { const n = e.parentElement.querySelector('.exclusive'); return !n || !!(e.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING); }), 'the epigraph precedes the cards');
+    await pick('The Shire');
+    assert.equal(await page.$$eval('[data-epigraph]', (e) => e.length), 0, 'The Shire has no epigraph');
+  });
+
   await h.step('shire creation: a forged POST without the Ranger as Leader is refused with the rule', async () => {
     const info = await page.$$eval('.start-card', (cs) => cs.map((c) => ({ i: c.dataset.index, unit: c.dataset.unit, ok: c.dataset.eligible === 'true' })));
     const ranger = info.find((x) => x.unit === 'Ranger of the North');
@@ -117,6 +127,94 @@ export default async function (h) {
     assert.match(await page.$eval('#create-company dialog', (d) => d.innerText), /Drag and drop riders.*leader.*sergeants/s);
     await aragorn.click('dialog[open] button', '=No');
     assert.ok(!(await page.$eval('#create-company dialog', (d) => d.open)), 'No closes the dialog without creating anything');
+  });
+
+  await h.step("helm's deep creation: the Ranger must be an officer: pre-placed, cannot be removed by drag, button or keyboard, moves between Leader and Sergeant", async () => {
+    await pick("Helm's Deep");
+    const RANGER = '.start-card[data-unit="Ranger of the North"]';
+    const where = () => page.$eval(RANGER, (c) => c.closest('.officer-slot') ? c.closest('.officer-slot').getAttribute('aria-label') : 'pool');
+    assert.equal(await where(), 'Leader', 'the Ranger starts in an officer place');
+    assert.equal(await page.$eval(RANGER, (e) => e.dataset.lock), 'officer', 'locked to the officer places');
+    assert.match(await page.$eval(RANGER, (e) => e.innerText), /Locked:.*already a hero/s, 'the card says why');
+    const describedBy = await page.$eval(RANGER, (e) => e.getAttribute('aria-describedby'));
+    assert.ok(describedBy && await page.$(`#${describedBy}`), 'aria-describedby points at the reason');
+    assert.equal(await page.$$eval(`${RANGER} button`, (b) => b.filter((x) => x.innerText.trim() === 'Remove').length), 0, 'no Remove button');
+    // the mouse: out to the pool, and a pool model onto his place
+    await drag(RANGER, '#start-pool');
+    assert.notEqual(await where(), 'pool', 'dragging the Ranger to the pool does not take him out of the officers (he may end in the other place)');
+    const press = async (label) => { // keyboard: focus the button of the Ranger's card and press Enter
+      await page.evaluate((l) => [...document.querySelectorAll('.start-card[data-unit="Ranger of the North"] .slot-only button')].find((b) => b.innerText.trim() === l).focus(), label);
+      await page.keyboard.press('Enter');
+      await aragorn.settle(200);
+    };
+    if (await where() !== 'Leader') await press('Make Leader');
+    assert.equal(await where(), 'Leader', 'Make Leader puts him back in the Leader place');
+    const other = '#start-pool .start-card[data-eligible="true"]';
+    await drag(other, '.officer-slot[data-slot="leader"]');
+    assert.equal(await where(), 'Leader', 'a pool model cannot replace the Ranger');
+    // the buttons of the pool: Leader is blocked (aria-disabled) while the Ranger leads
+    const leaderBtn = `${other} .pool-only button`;
+    assert.equal(await page.$eval(leaderBtn, (b) => b.getAttribute('aria-disabled')), 'true', 'the Leader button is aria-disabled');
+    assert.equal(await page.$eval(leaderBtn, (b) => b.getAttribute('aria-describedby')), describedBy, 'and points at the reason');
+    await page.$eval(leaderBtn, (b) => b.click());
+    assert.equal(await where(), 'Leader', 'the Leader button does not replace the Ranger');
+    // the keyboard: Make Sergeant (focus + Enter), then Make Leader
+    await press('Make Sergeant');
+    assert.match(await where(), /Sergeant/, 'Make Sergeant moves him to a sergeant place');
+    assert.equal(await page.$$eval('.officer-slot[data-slot="leader"] .start-card', (c) => c.length), 1, 'the sergeant he swapped with leads');
+    assert.deepEqual(await page.$$eval('#start-pool .start-card[data-lock="officer"]', (c) => c.length), 0, 'he is not in the pool');
+    await press('Make Leader');
+    assert.equal(await where(), 'Leader', 'Make Leader moves him back');
+    // the mouse between the places
+    await drag(RANGER, '.officer-slot[aria-label="Sergeant 1"]');
+    assert.equal(await where(), 'Sergeant 1', 'dragging him to a Sergeant place swaps with the sergeant');
+    assert.equal(await page.$$eval('.officer-slot[data-slot="leader"] .start-card', (c) => c.length), 1, 'the Leader place is not left empty');
+    const f = await hidden();
+    assert.equal(f.sergeants.length, 2, 'the form still has two sergeants');
+    // a forged POST without him is refused with the same rule
+    const info = await page.$$eval('.start-card', (cs) => cs.map((c) => ({ i: c.dataset.index, unit: c.dataset.unit, ok: c.dataset.eligible === 'true' })));
+    const ranger = info.find((x) => x.unit === 'Ranger of the North');
+    const others = [...new Map(info.filter((x) => x.ok && x.unit !== 'Ranger of the North').map((x) => [x.i, x])).values()];
+    aragorn.allow.push(/422/);
+    const r = await page.evaluate(async (url, body) => {
+      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+      return { status: r.status, text: await r.text() };
+    }, `/campaigns/${cid}/company`, `faction=Helm%27s+Deep&name=Forged+Helm&leader=${others[0].i}&sergeant=${others[1].i}&sergeant=${others[2].i}`);
+    assert.ok(ranger, 'a Ranger');
+    assert.equal(r.status, 422, 'a choice without the Ranger is refused');
+    assert.match(r.text, /must be one of the officers/);
+  });
+
+  await h.step('wanderers creation: the two heroes in the making are locked out of the officers with a text', async () => {
+    await pick('Wanderers in the Wild');
+    const cards = '.start-card[data-lock="barred"]';
+    assert.equal(await page.$$eval(cards, (c) => c.length), 2, 'two heroes in the making');
+    for (const t of await page.$$eval(cards, (c) => c.map((x) => x.innerText))) {
+      assert.match(t, /Locked:.*Hero in the Making/s);
+    }
+    assert.equal(await page.$$eval(`${cards} .pool-only button`, (b) => b.length), 0, 'no assign buttons');
+    const slotsBefore = await page.$$eval('.officer-slot .start-card', (c) => c.map((x) => x.dataset.index).join());
+    await drag(cards, '.officer-slot[data-slot="leader"]');
+    assert.equal(await page.$$eval('.officer-slot .start-card', (c) => c.map((x) => x.dataset.index).join()), slotsBefore, 'a hero in the making cannot be dragged into an officer place');
+    aragorn.allow.push(/422/);
+    const idx = await page.$$eval(cards, (c) => c.map((x) => x.dataset.index));
+    const r = await page.evaluate(async (url, body) => {
+      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+      return { status: r.status, text: await r.text() };
+    }, `/campaigns/${cid}/company`, `faction=Wanderers+in+the+Wild&name=Forged+Wanderers&leader=${idx[0]}&sergeant=0&sergeant=1`);
+    assert.equal(r.status, 422, 'a forged hero in the making as leader is refused');
+    for (const scheme of ['light', 'dark']) for (const w of SIZES) {
+      await layout(aragorn, w, scheme, 1800);
+      assert.ok(await aragorn.noHScroll(), `no horizontal scroll at ${w}px ${scheme}`);
+    }
+    await layout(aragorn, 1280, 'light');
+    await pick("Helm's Deep");
+    for (const scheme of ['light', 'dark']) for (const w of SIZES) {
+      await layout(aragorn, w, scheme, 1800);
+      assert.ok(await aragorn.noHScroll(), `no horizontal scroll at ${w}px ${scheme}`);
+      await (await page.$('#take-command')).screenshot({ path: `out/helm-officers-${w}-${scheme}.png` });
+    }
+    await layout(aragorn, 1280, 'light');
   });
 
   await h.step('shire creation: the officer panel with the locked Ranger fits 360, 768 and 1280 px, light and dark', async () => {

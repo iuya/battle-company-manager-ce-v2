@@ -84,7 +84,7 @@ Top to bottom:
 
 1. **Live banner**, accent surface, sticky below the app bar: "Match N is running" with the scenario name when chosen, a link
    to the match, a live-connection dot (green "Live", grey "Reconnecting...", hidden on the owner's own tab when connection works)
-   and, for the owner, a button **Match log** (opens the log sheet, below). On 360 px the banner is two lines.
+   and, for the owner, a button **Match log** (opens the log sheet, below). The first button is **To wound** (the To Wound chart in a window, [matches.md](matches.md#to-wound-chart-a-window-built); the window is a sibling of the banner and outside `#live-zones`, so a live refresh never closes it). On 360 px the banner is two or three lines.
 2. **Locked notice** instead of the buy/recruit/heal controls: the buttons are hidden, not disabled, and a single line
    "The company is locked until the match ends." explains why. Counters (Points, Units, W/D/L, Influence, Gold) stay.
 3. **Battle company** section: the units in the Field zone, in the company's order. Unit cards as today plus trackers.

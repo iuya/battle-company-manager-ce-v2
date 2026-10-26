@@ -14,7 +14,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+import company_text_checks  # noqa: E402
 import concept_graph  # noqa: E402
+import glossary_reference  # noqa: E402
 from bc.gear import ABILITY_KEYS, CLASSES, ITEM_ALIASES, RANGED_CLASSES, item_key, resolve_rule, _keyword_names  # noqa: E402
 from bc.refs import referenced, vanilla_duplicates  # noqa: E402
 from bc.text import fold  # noqa: E402
@@ -31,6 +33,109 @@ def schema_errors(doc, schema_path):
         return []
     validator = jsonschema.Draft202012Validator(json.load(open(schema_path, encoding="utf-8")))
     return [f"{'/'.join(map(str, e.absolute_path))}: {e.message[:200]}" for e in validator.iter_errors(doc)]
+
+
+TTS_CATALOGUE = ROOT / "sources/tts/models.json"  # local, gitignored (bead zrs.4); never committed
+TTS_MAX_ENTRIES = 100  # data.ttsModels holds fixed mappings only: a catalogue (1700 keys) must never end up in the repository
+
+
+def tts_catalogue(path):
+    """The local catalogue's model keys ('Name: options'), or None when the file does not exist. A list of keys or {'models': [...]}."""
+    if not Path(path).exists():
+        return None
+    raw = json.load(open(path, encoding="utf-8"))
+    keys = raw["models"] if isinstance(raw, dict) else raw
+    return {(fold(k.partition(":")[0]), fold(k.partition(":")[2])) for k in keys}
+
+
+def tts_errors(bc, van, catalogue=None):
+    """Checks data.ttsModels: names exist in the vanilla file; in the local catalogue when there is one; every wanderer, creature,
+    fighting mount and cavalry unit a company uses has its mapping; every used unit has a model (1:1 vanilla name or a mapping)."""
+    t = bc["data"].get("ttsModels")
+    if t is None:
+        return ["data.ttsModels is missing"]
+    errors = []
+    d = van["data"]
+    unit_names = {fold(e["name"]) for k in ("heroes", "warriors") for e in d[k]}
+    all_names = unit_names | {fold(e["name"]) for e in d["gear"]}
+    units = {}
+    for k in ("heroes", "warriors"):
+        for e in reversed(d[k]):
+            units[fold(e["name"])] = e
+
+    def base(m):
+        return m.split(":")[0].strip()
+
+    def model(m, where):
+        if fold(base(m)) not in all_names:
+            errors.append(f"ttsModels {where}: {m!r} is not a name in the vanilla file")
+        if catalogue is not None and not any(b == fold(base(m)) and (":" not in m or o == fold(m.partition(":")[2])) for b, o in catalogue):
+            errors.append(f"ttsModels {where}: {m!r} is not a model of the local catalogue {TTS_CATALOGUE.name}")
+
+    entries = len(t["standIns"]) + len(t["mounts"]) + len(t["riders"]) + len(t["names"])
+    if entries > TTS_MAX_ENTRIES:
+        errors.append(f"ttsModels has {entries} entries: fixed mappings only, never the mod's catalogue")
+    for kind, group in (("standIns", t["standIns"]), ("mounts", t["mounts"]), ("riders", t["riders"]), ("names", t["names"])):
+        for x in group:
+            for v in (x.get("model"), x.get("footModel"), *(x.get("alternatives") or [])):
+                if v is not None and len(v) > 80:
+                    errors.append(f"ttsModels {kind}: {v[:30]!r}... is not a short model name")
+    for x in t["standIns"]:
+        model(x["model"], f"standIn {x['name']}")
+        for a in x.get("alternatives", []):
+            model(a, f"standIn {x['name']} alternative")
+    for x in t["mounts"]:
+        model(x["model"], f"mount {x['gear']}")
+        g = next((g for g in d["gear"] if fold(g["name"]) == fold(x["gear"])), None)
+        if not g or not (g.get("attack") or 0) > 0:
+            errors.append(f"ttsModels mount {x['gear']!r}: not vanilla gear with Attacks above 0")
+    for x in t["riders"]:
+        if fold(x["unit"]) not in unit_names:
+            errors.append(f"ttsModels rider {x['unit']!r} is not a vanilla unit")
+        elif "Cavalry" not in (units[fold(x["unit"])].get("unitType") or []):
+            errors.append(f"ttsModels rider {x['unit']!r} is not a cavalry unit")
+        if "footModel" in x:
+            model(x["footModel"], f"rider {x['unit']} footModel")
+    for x in t["names"]:
+        e = units.get(fold(x["unit"]))
+        if not e:
+            errors.append(f"ttsModels name: {x['unit']!r} is not a vanilla unit")
+        elif not any(o["name"] == x["from"] for o in e.get("options", [])):
+            errors.append(f"ttsModels name: {x['unit']!r} has no vanilla option {x['from']!r}")
+    for key in ("standIns", "mounts", "riders", "names"):
+        seen = set()
+        for x in t[key]:
+            k = (x.get("name") or x.get("gear") or x.get("unit"), x.get("from"))
+            if k in seen:
+                errors.append(f"ttsModels {key}: duplicate entry {k[0]!r}")
+            seen.add(k)
+
+    # coverage: what the companies use
+    stand = {x["name"] for x in t["standIns"]}
+    for w in bc["data"]["wanderers"]["items"] + bc["data"]["creatures"]["items"]:
+        if w["name"] not in stand:
+            errors.append(f"ttsModels standIns: {w['name']!r} (wanderer or creature) has no stand-in")
+    mounts = {fold(x["gear"]) for x in t["mounts"]}
+    for g in bc["data"]["wargear"]["items"]:
+        if g.get("type") != "mount":
+            continue
+        for m in g["names"]:
+            vg = next((v for v in d["gear"] if fold(v["name"]) == fold(m)), None)
+            if vg and (vg.get("attack") or 0) > 0 and fold(m) not in mounts:
+                errors.append(f"ttsModels mounts: the fighting mount {m!r} has no entry")
+    riders = {fold(x["unit"]) for x in t["riders"]}
+    used = referenced(bc, van)["units"]
+    for u in sorted(used):
+        e = units.get(fold(u))
+        if e and "Cavalry" in (e.get("unitType") or []) and fold(u) not in riders:
+            errors.append(f"ttsModels riders: the cavalry unit {u!r} has no entry")
+    if catalogue is not None:
+        from_names = {b for b, _ in catalogue}
+        mapped = riders  # a rider is a mounted model of its own name
+        for u in sorted(used):
+            if fold(u) not in from_names and fold(u) not in mapped:
+                errors.append(f"ttsModels: the unit {u!r} used by a company has no model in the local catalogue and no mapping")
+    return errors
 
 
 def need_units(bc, van):
@@ -53,6 +158,7 @@ def main():
     ap.add_argument("--vanilla", default=str(ROOT / "definitions/vanilla/data2024.json"))
     ap.add_argument("--battle-companies", default=str(ROOT / "definitions/battle_companies/battle_companies.json"))
     ap.add_argument("--glossary", default=str(ROOT / "definitions/glossary/mesbg_glossary.json"))
+    ap.add_argument("--tts-models", default=str(TTS_CATALOGUE), help="local catalogue of the mod's model keys (optional)")
     ap.add_argument("--concept-graph", default=str(ROOT / "definitions/concepts/concept_graph.json"))
     args = ap.parse_args()
     vp, bp = Path(args.vanilla), Path(args.battle_companies)
@@ -399,6 +505,7 @@ def main():
             for lid in ex["limits"]:
                 if lid not in limit_ids:
                     errors.append(f"company {c['name']}: exemption names unknown limit {lid!r}")
+    errors += tts_errors(bc, van, tts_catalogue(args.tts_models))
     # every vanilla name that is defined more than once and needed here must have a recorded decision
     decided = {(a["kind"], a["name"]): a for a in D["vanillaAmbiguities"]}
     need = referenced(bc, van)
@@ -828,6 +935,17 @@ def main():
             for target in t.get("see", []):
                 if target not in known:
                     errors.append(f"glossary term {t['name']!r}: see -> {target!r} is not a term")
+
+    if glossary:
+        tw = glossary.get("reference", {}).get("toWound")
+        if tw is None:
+            errors.append("glossary: reference.toWound is missing")
+        else:
+            errors += glossary_reference.to_wound_errors(tw)
+            if tw.get("term") not in known:
+                errors.append(f"glossary reference.toWound: term {tw.get('term')!r} is not a term")
+
+    errors += company_text_checks.company_text_errors(bc)
 
     cp = Path(args.concept_graph)
     if glossary and cp.exists():

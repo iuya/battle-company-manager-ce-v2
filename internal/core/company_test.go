@@ -542,3 +542,69 @@ func TestLimitMaxRoundsUpAndCountsTheNewModel(t *testing.T) {
 		t.Errorf("7 units with 3 bows: the 8th may not (limit 3 of 8 rounds up to 3): %+v", l)
 	}
 }
+
+// Every sentence of a company's "Only this company has" and limits sections is printed once: a rule that a substitution,
+// exchange, free special rule or limit card already shows is not repeated as a "Company rule" card.
+func TestCompanyPageNeverRepeatsASentence(t *testing.T) {
+	book, err := ParseBattleCompanies(readDef(t, "battle_companies/battle_companies.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := func(t string) string { return strings.ToLower(strings.Join(strings.Fields(t), " ")) }
+	for _, p := range book.Profiles() {
+		var shown []string
+		for _, r := range p.OwnRules() {
+			shown = append(shown, r)
+		}
+		for _, g := range p.Granted {
+			shown = append(shown, g.Text)
+		}
+		for _, e := range p.Exchanges {
+			shown = append(shown, e.Text)
+		}
+		shown = append(shown, p.Substitutions...)
+		shown = append(shown, p.LimitLines()...)
+		for i, a := range shown {
+			for _, b := range shown[i+1:] {
+				if ka, kb := key(a), key(b); ka != "" && (ka == kb || strings.Contains(ka, kb) || strings.Contains(kb, ka)) {
+					t.Errorf("%s prints a sentence twice: %q / %q", p.Name, a, b)
+				}
+			}
+		}
+	}
+	fief, _ := book.Profile("Fiefdoms")
+	if got := fief.OwnRules(); len(got) != 0 || len(fief.Substitutions) != 1 {
+		t.Errorf("Fiefdoms shows its Pride of Dol Amroth sentence once, as the substitution: rules %v, substitutions %v", got, fief.Substitutions)
+	}
+}
+
+// The Last Alliance lists the Rivendell Warrior (the document's 2018 "High Elf Warrior"): no card for a unit with its own name.
+func TestLastAllianceHasNoUnitWithItsOwnName(t *testing.T) {
+	book, err := ParseBattleCompanies(readDef(t, "battle_companies/battle_companies.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, ok := book.Profile("The Last Alliance")
+	if !ok {
+		t.Fatal("no Last Alliance")
+	}
+	if len(p.Aliases) != 0 {
+		t.Errorf("aliases: %+v", p.Aliases)
+	}
+}
+
+func TestCompanyEpigraphOnlyArnor(t *testing.T) {
+	book, err := ParseBattleCompanies(readDef(t, "battle_companies/battle_companies.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range book.Profiles() {
+		if p.Name == "Arnor" {
+			if p.Epigraph == nil || p.Epigraph.Quote != "Leave all that can be spared behind. We travel light." || !strings.HasPrefix(p.Epigraph.Text, "As Arnor fell") {
+				t.Errorf("Arnor epigraph = %+v", p.Epigraph)
+			}
+		} else if p.Epigraph != nil {
+			t.Errorf("%s has an epigraph: %+v", p.Name, p.Epigraph)
+		}
+	}
+}

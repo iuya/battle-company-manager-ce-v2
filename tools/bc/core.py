@@ -986,4 +986,15 @@ def match_input():
 
 
 # Printing errors of the Battle Companies document, corrected when it is read (the vanilla option is "Battlin' Brandybuck").
-SOURCE_TYPOS = {"Brandbybuck": "Brandybuck"}
+# "High Elf Warrior" is the 2018 name of the Rivendell Warrior (same profile, the only Elf of the Last Alliance list): the company
+# lists the Rivendell Warrior, with no alias card, as the document intends.
+# "Giant Mirkwood Spider" (Cirith Ungol) is the same document's "Mirkwood Giant Spider" printed in the other lists (Dol Guldur,
+# Spider Queen's brood): word order slip, the vanilla key is Mirkwood Giant Spider.
+# Applied longest first. The 2018 names and abbreviations below are replaced by the vanilla unit the document means (owner
+# decision 2026-10-26, see docs/definitions.md "Unit names that differ from vanilla"): no alias card.
+SOURCE_TYPOS = {"Brandbybuck": "Brandybuck", "High Elf Warrior": "Rivendell Warrior",
+                "Giant Mirkwood Spider": "Mirkwood Giant Spider",
+                "Rhûnish War Drakes": "War Drakes of Rhun", "Rhûnish War Drake": "War Drake of Rhun",
+                "Grimhammer": "Grim Hammer Warrior", "Warrior of Erebor": "Erebor Dwarf Warrior",
+                "Iron Hills Dwarf": "Iron Hills Warrior", "Mirkwood Cavalry": "Mirkwood Elf Knight",
+                "Abrakhân Guard": "Abrakhan Merchant Guard"}

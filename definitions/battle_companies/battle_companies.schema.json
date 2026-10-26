@@ -111,6 +111,7 @@
         "scenarioDetails",
         "parameterisedRules",
         "vanillaAmbiguities",
+        "ttsModels",
         "reservedOptions",
         "optionSales",
         "profileWargearNotSold",
@@ -617,6 +618,29 @@
                 }
               }
             }
+          }
+        },
+        "ttsModels": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["text", "standIns", "mounts", "riders", "names"],
+          "description": "Fixed mappings to the model names of the Tabletop Simulator MESBG FTC mod (docs/tabletop-simulator.md). Short names only; the mod's catalogue is never stored.",
+          "properties": {
+            "text": {"type": "string", "minLength": 1},
+            "standIns": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["kind", "name", "model", "reason"], "properties": {
+              "kind": {"enum": ["wanderer", "creature"]}, "name": {"type": "string", "minLength": 1}, "model": {"type": "string", "minLength": 1},
+              "alternatives": {"type": "array", "items": {"type": "string", "minLength": 1}}, "reason": {"type": "string", "minLength": 1}}}},
+            "mounts": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["gear", "model", "attacks", "reason"], "properties": {
+              "gear": {"type": "string", "minLength": 1}, "model": {"type": "string", "minLength": 1},
+              "alternatives": {"type": "array", "items": {"type": "string", "minLength": 1}},
+              "attacks": {"type": "integer", "minimum": 1}, "reason": {"type": "string", "minLength": 1}}}},
+            "riders": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["unit", "states", "reason"], "properties": {
+              "unit": {"type": "string", "minLength": 1}, "footModel": {"type": "string", "minLength": 1},
+              "states": {"type": "boolean", "description": "Every model key of the unit carries the state that turns the mounted figure into the rider on foot."},
+              "reason": {"type": "string", "minLength": 1}}}},
+            "names": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["unit", "from", "to", "reason"], "properties": {
+              "unit": {"type": "string", "minLength": 1}, "from": {"type": "string", "minLength": 1}, "to": {"type": "string", "minLength": 1},
+              "reason": {"type": "string", "minLength": 1}}}}
           }
         },
         "vanillaAmbiguities": {
@@ -2486,6 +2510,13 @@
           "items": {
             "type": "string"
           }
+        },
+        "epigraph": {
+          "type": "object",
+          "description": "A quoted title and flavour sentence that head the company's rule text in the rulebook (Arnor: \"Leave all that can be spared behind. We travel light.\" - As Arnor fell, ...). Flavour only, not a rule.",
+          "required": ["quote", "text"],
+          "additionalProperties": false,
+          "properties": {"quote": {"type": "string"}, "text": {"type": "string"}}
         },
         "specialUnits": {
           "type": "array",

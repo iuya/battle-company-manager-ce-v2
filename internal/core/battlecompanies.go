@@ -44,6 +44,7 @@ type BCBook struct {
 	unsold           map[string]string     // unit|option (lower-cased) -> "status: reason" of the options no armoury sells (data.optionSales)
 	breakRules       BreakRules
 	ato              ATORules
+	ttsModels        TTSModels       // data.ttsModels
 	reserved         map[string]bool // unit|option (lower-cased) of the options reserved to a named hero's army list
 }
 
@@ -610,6 +611,9 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 		return nil, err
 	}
 	if b.creatureRules, b.creatures, b.wandererRules, b.wanderers, err = ParseCreaturesAndWanderers(content); err != nil {
+		return nil, err
+	}
+	if b.ttsModels, err = ParseTTSModels(content); err != nil {
 		return nil, err
 	}
 	b.scenarios, _ = ParseScenarios(content) // a file without scenarios simply has none

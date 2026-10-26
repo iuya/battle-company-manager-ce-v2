@@ -53,7 +53,7 @@ def parse_unit(text: str, vanilla, with_count=True):
         out.setdefault("wargear", []).append(mount["m"].lower())
     res = vanilla.resolve(name)
     out["unit"] = res["unit"] if res else name
-    if res and res["via"] != "name":
+    if res and (res["via"] != "name" or res["option"]) and fold(name) != fold(res["unit"]):
         out["label"] = name  # the name printed in the document, shown to the user
         if res["option"]:
             out["selectedOptions"] = [res["option"]]
@@ -165,6 +165,7 @@ def split_company_blocks(lines):
     return desc, sections
 
 
+EPIGRAPH_RE = re.compile(r"^[“\"](?P<quote>[^“”\"]+)[”\"]\s*[–—-]\s*(?P<text>[^“”\"]+)$")
 TITLE_RE = re.compile(r"^(?P<name>[^\n]{3,110}?)(?:\s+[–-]\s*|–\s*|(?<=[a-z])-\s+(?=[A-Z]))(?!\d)(?P<rest>.*)$", re.S)
 
 
@@ -289,8 +290,17 @@ def parse_company(name, alignment, lines, vanilla, keywords):
                 if i == 0:
                     lines_b[0] = re.sub(r"^Company Special Rules?\b[:]?\s*", "", lines_b[0])
                     lines_b = [l for l in lines_b if l]
-                if lines_b:
-                    c.setdefault("specialRules", []).append(join(lines_b))
+                if not lines_b:
+                    continue
+                text = join(lines_b)
+                # a quoted title and a flavour sentence ("Leave all that ..." - As Arnor fell ...) head the rule like a hero
+                # upgrade's name and flavour: they are the company's epigraph, not a rule (the quote may sit apart from its
+                # flavour line)
+                ep = EPIGRAPH_RE.match(text)
+                if ep and "epigraph" not in c:
+                    c["epigraph"] = {"quote": ep["quote"].strip(), "text": ep["text"].strip()}
+                    continue
+                c.setdefault("specialRules", []).append(text)
         elif kind == "elite":
             c["maxModels"] = 12
             for i, b in enumerate(bl):
@@ -371,7 +381,7 @@ def parse_company(name, alignment, lines, vanilla, keywords):
             hires.append(h)
     if hires:
         c["specialUnits"] = hires
-    link_unit_notes(c)
+    link_unit_notes(c, vanilla)
     return c
 
 
@@ -416,11 +426,11 @@ def rule_changes(texts, vanilla):
     return out
 
 
-def link_unit_notes(c):
+def link_unit_notes(c, vanilla):
     """Units written under another name get an explanation on the company page (`unitAliases`).
 
     A unit is either a vanilla unit with an option pre-selected (Tookish Hunter = Hobbit Archer + Tookish Hunter) or a
-    2018 name for a unit renamed in the 2024 edition (High Elf Warrior = Rivendell Warrior). Notes of the document
+    name the document prints for a vanilla unit (2018 name, abbreviation) (Grimhammer = Grim Hammer Warrior). Notes of the document
     that talk about them get `about`, and their text is reused as the explanation.
     """
     found = {}
@@ -449,18 +459,26 @@ def link_unit_notes(c):
         if o.get("selectedOptions"):
             entry["selectedOptions"] = o["selectedOptions"]
             entry["reason"] = "option"
+            opt = vanilla.option(o["unit"], o["selectedOptions"][0]) or {}
             entry["text"] = f"{label} is a {o['unit']} with the {o['selectedOptions'][0]} option selected."
+            if opt.get("points") is not None:
+                entry["text"] += f" The option costs {opt['points']} point{'s' if opt['points'] != 1 else ''}."
+            if opt.get("availableIn") and all(isinstance(a, str) for a in opt["availableIn"]):
+                entry["text"] += (" In the base game only " + " and ".join(opt["availableIn"])
+                                  + " can take it; this company's rules allow it.")
         elif o.get("addSpecialRules") or o.get("addKeywords"):
             entry["reason"] = "delta"
             for k in ("addSpecialRules", "addKeywords"):
                 if o.get(k):
                     entry[k] = o[k]
             added = [f"the {r} special rule" for r in o.get("addSpecialRules", [])] + [f"the {k} keyword" for k in o.get("addKeywords", [])]
-            entry["text"] = f"{label} is a {o['unit']} with {' and '.join(added)} added (not allowed in vanilla, allowed in Battle Companies)."
+            entry["text"] = f"{label} uses the profile of the {o['unit']} with {' and '.join(added)} added (a Battle Companies addition)."
+            if o.get("influence"):
+                entry["text"] += f" It is hired for {o['influence']} Influence Points" + (f" (Rare {o['rare']})." if o.get("rare") else ".")
         else:
             entry["reason"] = "legacyName"
-            entry["text"] = (f"{label} is the name this unit has in the 2018 books; in the 2024 edition it is the "
-                             f"{o['unit']} (same profile).")
+            entry["text"] = (f"The Battle Companies document calls this unit {label}; in the base game it is the "
+                             f"{o['unit']}, with the same profile and points.")
         said = [n["text"] for n in c.get("notes", []) if label in n.get("about", [])]
         if said:
             entry["companyNotes"] = said

@@ -1,11 +1,13 @@
 // Windows (role="dialog" aria-modal="true", shown and hidden by Alpine's x-show): when one opens, focus moves into it, Tab
 // stays inside it and, when it closes, focus goes back to what opened it. Escape and the backdrop are handled by the pages.
 (function () {
-  const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
   let opener = null, current = null;
 
   const shown = d => d.offsetParent !== null || d.getClientRects().length > 0;
-  const focusables = d => [...d.querySelectorAll(FOCUSABLE)].filter(e => e.getClientRects().length > 0);
+  // A closed <details> hides its content from the keyboard (only its summary is reached), whatever getClientRects says about it.
+  const inClosedDetails = e => { const c = e.closest('details:not([open])'); return !!c && !(e.tagName === 'SUMMARY' && e.parentElement === c); };
+  const focusables = d => [...d.querySelectorAll(FOCUSABLE)].filter(e => e.getClientRects().length > 0 && !inClosedDetails(e));
 
   function sync() {
     const open = [...document.querySelectorAll('[role="dialog"][aria-modal="true"]:not([data-focus-managed])')].find(shown) || null;

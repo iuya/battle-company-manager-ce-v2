@@ -226,3 +226,52 @@ func TestTheShiresRangerStartsLockedAsLeader(t *testing.T) {
 		t.Errorf("only the Ranger is locked: %+v", rows[1])
 	}
 }
+
+// The creation page blocks what the server refuses (core.OfficerLocks): a locked card carries its lock and the reason in words.
+func TestTheCreationPageShowsTheOfficerLocksAndTheirReasons(t *testing.T) {
+	content, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
+	if err != nil {
+		t.Skip("no rules file")
+	}
+	book, err := core.ParseBattleCompanies(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := newFixture(t, Config{})
+	profiles := book.Profiles()
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil).AnyTimes()
+	f.camp.EXPECT().CompanyProfiles(gomock.Any(), int64(7)).Return(profiles, nil).AnyTimes()
+	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
+	page := func(name string) string {
+		return f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/company/info?c="+url.QueryEscape(name), nil))).Body.String()
+	}
+	count := func(body, sub string) int { return strings.Count(body, sub) }
+
+	shire := page("The Shire")
+	if count(shire, `data-lock="leader"`) != 1 || !strings.Contains(shire, "Always leads") || !strings.Contains(shire, "Locked:</span> The rules make Ranger of the North the Leader") {
+		t.Error("The Shire: the Ranger is locked to the Leader place with its reason")
+	}
+
+	helm := page("Helm's Deep")
+	if count(helm, `data-lock="officer"`) != 1 || !strings.Contains(helm, "is already a hero") || !strings.Contains(helm, `aria-describedby="lock-`) {
+		t.Error("Helm's Deep: the Ranger is locked among the officers with its reason")
+	}
+	// he starts in an officer's place, not in the pool
+	pool := helm[strings.Index(helm, `id="start-pool"`):]
+	if strings.Contains(pool, `data-lock="officer"`) {
+		t.Error("Helm's Deep: the locked Ranger is pre-placed in an officer place")
+	}
+	if !strings.Contains(helm, "Make Leader") && !strings.Contains(helm, "Make Sergeant") {
+		t.Error("Helm's Deep: the Ranger can be moved between the Leader and Sergeant places with buttons")
+	}
+
+	wild := page("Wanderers in the Wild")
+	if count(wild, `data-lock="barred"`) < 2 || count(wild, "Starts as a Hero in the Making") < 2 && count(wild, "starts as a Hero in the Making") < 2 {
+		t.Errorf("Wanderers: the two heroes in the making show their lock text (%d barred)", count(wild, `data-lock="barred"`))
+	}
+
+	rohan := page("Rohan")
+	if strings.Contains(rohan, "data-lock-note") {
+		t.Error("Rohan has no locks")
+	}
+}

@@ -436,6 +436,108 @@ func (c *MockliveMatchesUndoCall) DoAndReturn(f func(context.Context, core.User,
 	return c
 }
 
+// MockttsExporter is a mock of ttsExporter interface.
+type MockttsExporter struct {
+	ctrl     *gomock.Controller
+	recorder *MockttsExporterMockRecorder
+	isgomock struct{}
+}
+
+// MockttsExporterMockRecorder is the mock recorder for MockttsExporter.
+type MockttsExporterMockRecorder struct {
+	mock *MockttsExporter
+}
+
+// NewMockttsExporter creates a new mock instance.
+func NewMockttsExporter(ctrl *gomock.Controller) *MockttsExporter {
+	mock := &MockttsExporter{ctrl: ctrl}
+	mock.recorder = &MockttsExporterMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockttsExporter) EXPECT() *MockttsExporterMockRecorder {
+	return m.recorder
+}
+
+// TTSExport mocks base method.
+func (m *MockttsExporter) TTSExport(ctx context.Context, campaignID, companyID int64, live *core.TTSLive, opts core.TTSOptions) (core.TTSExport, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TTSExport", ctx, campaignID, companyID, live, opts)
+	ret0, _ := ret[0].(core.TTSExport)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TTSExport indicates an expected call of TTSExport.
+func (mr *MockttsExporterMockRecorder) TTSExport(ctx, campaignID, companyID, live, opts any) *MockttsExporterTTSExportCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TTSExport", reflect.TypeOf((*MockttsExporter)(nil).TTSExport), ctx, campaignID, companyID, live, opts)
+	return &MockttsExporterTTSExportCall{Call: call}
+}
+
+// MockttsExporterTTSExportCall wrap *gomock.Call
+type MockttsExporterTTSExportCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockttsExporterTTSExportCall) Return(arg0 core.TTSExport, arg1 error) *MockttsExporterTTSExportCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockttsExporterTTSExportCall) Do(f func(context.Context, int64, int64, *core.TTSLive, core.TTSOptions) (core.TTSExport, error)) *MockttsExporterTTSExportCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockttsExporterTTSExportCall) DoAndReturn(f func(context.Context, int64, int64, *core.TTSLive, core.TTSOptions) (core.TTSExport, error)) *MockttsExporterTTSExportCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// TTSNames mocks base method.
+func (m *MockttsExporter) TTSNames(ctx context.Context, campaignID, companyID int64, exp core.TTSExport, opts core.TTSNamesOptions) (core.TTSNamesPayload, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TTSNames", ctx, campaignID, companyID, exp, opts)
+	ret0, _ := ret[0].(core.TTSNamesPayload)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TTSNames indicates an expected call of TTSNames.
+func (mr *MockttsExporterMockRecorder) TTSNames(ctx, campaignID, companyID, exp, opts any) *MockttsExporterTTSNamesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TTSNames", reflect.TypeOf((*MockttsExporter)(nil).TTSNames), ctx, campaignID, companyID, exp, opts)
+	return &MockttsExporterTTSNamesCall{Call: call}
+}
+
+// MockttsExporterTTSNamesCall wrap *gomock.Call
+type MockttsExporterTTSNamesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockttsExporterTTSNamesCall) Return(arg0 core.TTSNamesPayload, arg1 error) *MockttsExporterTTSNamesCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockttsExporterTTSNamesCall) Do(f func(context.Context, int64, int64, core.TTSExport, core.TTSNamesOptions) (core.TTSNamesPayload, error)) *MockttsExporterTTSNamesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockttsExporterTTSNamesCall) DoAndReturn(f func(context.Context, int64, int64, core.TTSExport, core.TTSNamesOptions) (core.TTSNamesPayload, error)) *MockttsExporterTTSNamesCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // Mockcampaigns is a mock of campaigns interface.
 type Mockcampaigns struct {
 	ctrl     *gomock.Controller
@@ -3799,6 +3901,84 @@ func (c *MockcampaignsSwapSideRolesCall) Do(f func(context.Context, core.User, i
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsSwapSideRolesCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int) (core.Match, error)) *MockcampaignsSwapSideRolesCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// TTSExport mocks base method.
+func (m *Mockcampaigns) TTSExport(ctx context.Context, campaignID, companyID int64, live *core.TTSLive, opts core.TTSOptions) (core.TTSExport, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TTSExport", ctx, campaignID, companyID, live, opts)
+	ret0, _ := ret[0].(core.TTSExport)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TTSExport indicates an expected call of TTSExport.
+func (mr *MockcampaignsMockRecorder) TTSExport(ctx, campaignID, companyID, live, opts any) *MockcampaignsTTSExportCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TTSExport", reflect.TypeOf((*Mockcampaigns)(nil).TTSExport), ctx, campaignID, companyID, live, opts)
+	return &MockcampaignsTTSExportCall{Call: call}
+}
+
+// MockcampaignsTTSExportCall wrap *gomock.Call
+type MockcampaignsTTSExportCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsTTSExportCall) Return(arg0 core.TTSExport, arg1 error) *MockcampaignsTTSExportCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsTTSExportCall) Do(f func(context.Context, int64, int64, *core.TTSLive, core.TTSOptions) (core.TTSExport, error)) *MockcampaignsTTSExportCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsTTSExportCall) DoAndReturn(f func(context.Context, int64, int64, *core.TTSLive, core.TTSOptions) (core.TTSExport, error)) *MockcampaignsTTSExportCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// TTSNames mocks base method.
+func (m *Mockcampaigns) TTSNames(ctx context.Context, campaignID, companyID int64, exp core.TTSExport, opts core.TTSNamesOptions) (core.TTSNamesPayload, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TTSNames", ctx, campaignID, companyID, exp, opts)
+	ret0, _ := ret[0].(core.TTSNamesPayload)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TTSNames indicates an expected call of TTSNames.
+func (mr *MockcampaignsMockRecorder) TTSNames(ctx, campaignID, companyID, exp, opts any) *MockcampaignsTTSNamesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TTSNames", reflect.TypeOf((*Mockcampaigns)(nil).TTSNames), ctx, campaignID, companyID, exp, opts)
+	return &MockcampaignsTTSNamesCall{Call: call}
+}
+
+// MockcampaignsTTSNamesCall wrap *gomock.Call
+type MockcampaignsTTSNamesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsTTSNamesCall) Return(arg0 core.TTSNamesPayload, arg1 error) *MockcampaignsTTSNamesCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsTTSNamesCall) Do(f func(context.Context, int64, int64, core.TTSExport, core.TTSNamesOptions) (core.TTSNamesPayload, error)) *MockcampaignsTTSNamesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsTTSNamesCall) DoAndReturn(f func(context.Context, int64, int64, core.TTSExport, core.TTSNamesOptions) (core.TTSNamesPayload, error)) *MockcampaignsTTSNamesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

@@ -17,10 +17,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from bc.text import norm  # noqa: E402
+import glossary_reference  # noqa: E402
 from glossary_terms import TERMS, KEYWORD_SOURCE, keyword_terms  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-GLOSSARY_VERSION = "1.1"  # ours, not the rulebook's: bump it when the content changes
+GLOSSARY_VERSION = "1.2"  # ours, not the rulebook's: bump it when the content changes
 HEAD = re.compile(r"^(#{2,4}) (.*)$")
 INTRO_ONLY = {"Heroic Actions", "War Beasts", "Turn Sequence"}  # overviews whose sub-sections are separate terms
 PAGE = re.compile(r"<!-- page (\d+) -->")
@@ -196,6 +197,7 @@ def main():
         "source": "Middle-earth Strategy Battle Game Rules Manual (2024)",
         "description": "Concepts of the MESBG rules manual that the vanilla definitions leave out. Complements the vanilla file; text extracted verbatim from the rules manual (`rulebookPage` is the page number printed in the rulebook). This file refers to nothing else: other files refer to it.",
         "terms": terms,
+        "reference": {"toWound": glossary_reference.to_wound()},
     }
     for name in set(summaries) - {t["name"] for t in TERMS if t["synth"]}:
         problems.append(f"summary for {name!r} has no synth term")

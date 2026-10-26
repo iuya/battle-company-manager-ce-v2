@@ -205,6 +205,27 @@ readable by every campaign player; a non-player gets the existing 404).
 
 Controls are touch sized (44 px), the winner choices stack on 360 px, and the VP fields sit beside the side name from 768 px.
 
+### To Wound chart (a window, built)
+
+An open match has a **To wound** button beside the heading (above **Propose to end** on a phone). It opens the rulebook's To Wound Chart (Strength rows by
+Defence columns, rulebook page 44) in a window, so a player can check a roll without leaving the match; the same window is in the live company page's banner
+([live-match.md](live-match.md)). The chart is `reference.toWound` of the campaign's glossary file ([definitions.md](definitions.md), "Reference tables");
+`core.Glossary.ToWound` (`core.ToWoundChart`, `Roll(strength, defence)`) carries it, so a campaign with another glossary file has that file's chart, and a file
+without one answers "This campaign's rules file has no To Wound chart." instead of a table.
+
+- **Why a window, not a tab.** The match page is short, but the live company page is a long page whose zones the event stream refetches, and a tab would hide the
+  units while the chart is read. A window opened by a button that is always in reach (the live banner is sticky) covers neither, and it sits outside `#match` and
+  `#live-zones`, so a write or a live refresh never closes or replaces it. Its body is fetched once when the page loads (`GET /campaigns/{id}/to-wound`, any member of
+  the campaign; `web/towound.go`) and is static HTML after that: finding a roll sends no request, so it works while the event stream is down.
+- **Find control**: two steppers (a number input between a minus and a plus, 44 px), the attacker's Strength and the target's Defence; the result is shown large
+  ("4+", "6+ then 4+", "Cannot wound") with the chart's own notation text, and the row, the column and the cell are marked in the table; tapping a cell sets both.
+  A first press of plus or minus starts at Strength 3 or Defence 4; typing is clamped to the chart.
+- **The table**: sticky header row and column (corner too) inside the window's own scroll box, 27 px cells at 360 px without sideways scrolling. The cell is
+  colour-coded by band (3+ green tint, 4+ pale, 5+ yellow, 6+ pink, "6/N" red, cannot wound grey) with only semantic tokens (`tw-*` in `tailwind.css`) and is
+  never colour alone: the roll is printed in every cell, "6/4" is a 6+ then a further dice of 4+, "-" cannot wound, a key under the table words each band,
+  and the marked row, column and cell are outlined and bold. The chart's `notes` (Rend, Trapped) are listed under the key.
+- No unit is preselected: the live page has no notion of a selected unit, so the find control starts empty (REVIEW on the bead).
+
 ### Scenario picker (bead spe, part 1)
 
 A dialog or inline card (`htmx` GET `…/matches/{match}/scenario`, POST to set): the scenarios grouped under

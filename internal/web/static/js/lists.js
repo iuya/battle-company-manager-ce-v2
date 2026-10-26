@@ -213,16 +213,17 @@ document.addEventListener('alpine:init', () => {
     setup() {
       if (!window.Sortable || !this.pool()) return;
       const group = { name: 'start-' + this.$root.dataset.company, pull: true,
-        // only a model the company lets lead may go to an officer's place; one that was there goes back to the pool
-        // and a locked model (the Shire's Ranger of the North, data-keep) never leaves the Leader place nor gives it to another
-        put: (to, from, dragged) => to.el === this.pool() ? dragged.dataset.keep !== 'true'
-          : dragged.dataset.eligible === 'true' && !to.el.querySelector('[data-keep]') };
+        // only a model the company lets lead may go to an officer's place; one that was there goes back to the pool (or swaps
+        // with the dragged one). The locks (data-lock, from core.OfficerLocks): "leader" never leaves the Leader place nor gives
+        // it to another; "officer" never goes to the pool and nobody replaces it from the pool; "barred" is never eligible.
+        put: (to, from, dragged) => to.el === this.pool() ? !this.locked(dragged)
+          : dragged.dataset.eligible === 'true' && !to.el.querySelector('[data-lock=leader]') && !(from.el === this.pool() && to.el.querySelector('[data-lock=officer]')) };
       [this.pool(), ...this.slots()].forEach(list => Sortable.create(list, { group, animation: 150, draggable: '.start-card:not([data-keep])', forceFallback: true, fallbackTolerance: 3,
         ghostClass: 'unit-ghost', dragClass: 'unit-drag', filter: 'button, a', preventOnFilter: false, onAdd: e => this.dropped(e), onSort: () => this.read() }));
     },
-    // a card dropped on an officer's place that was taken sends the one that was there back to the pool
+    // a card dropped on an officer's place that was taken sends the one that was there back where the dragged one came from
     dropped(e) {
-      if (e.to !== this.pool()) [...e.to.children].filter(c => c !== e.item).forEach(old => this.pool().appendChild(old));
+      if (e.to !== this.pool()) [...e.to.children].filter(c => c !== e.item).forEach(old => e.from.appendChild(old));
       this.changed();
     },
     // a change of the player's own: the company's suggestion no longer applies
@@ -234,18 +235,42 @@ document.addEventListener('alpine:init', () => {
       this.sergeants = [...index(sergeants[0]), ...index(sergeants[1])];
     },
     card(i) { return this.$root.querySelector(`.start-card[data-index="${i}"]`); },
-    officerName(i) { const c = this.card(i); return c ? (c.dataset.becomes || c.dataset.unit) : ''; },
-    // the buttons of a card: Leader and Sergeant send it to a place (the one that was there goes back to the pool), Remove sends it back
-    assign(card, role) {
-      if (card.dataset.eligible !== 'true' || card.dataset.keep === 'true') return;
+    officerName(i) { const c = this.card(i); return c ? c.dataset.unit : ''; },
+    locked(card) { return card.dataset.lock === 'leader' || card.dataset.lock === 'officer'; },
+    // the place a card goes to with the button of a role, or null: the one that was there goes where the card came from, so a locked
+    // card is never displaced into the pool
+    target(card, role) {
+      void this.leader; void this.sergeants; // the buttons are re-evaluated when the places change
+      if (card.dataset.eligible !== 'true' || card.dataset.lock === 'leader') return null;
+      const from = card.parentElement;
       const [leader, ...sergeants] = this.slots();
-      if (role === 'leader' && leader.querySelector('[data-keep]')) return;
-      const to = role === 'leader' ? leader : (sergeants.find(s => !s.children.length) || sergeants[0]);
-      [...to.children].forEach(old => this.pool().appendChild(old));
+      const free = s => !s.children.length;
+      const takeable = s => s !== from && !s.querySelector('[data-lock=leader]') && !(from === this.pool() && s.querySelector('[data-lock=officer]'));
+      if (role === 'leader') return takeable(leader) ? leader : null;
+      return sergeants.filter(s => s !== from && takeable(s)).sort((a, b) => free(b) - free(a))[0] || null;
+    },
+    blocked(card, role) { return !this.target(card, role); },
+    // the id of the lock text that explains why a button does nothing (for aria-describedby)
+    blocker(card, role) {
+      if (this.target(card, role)) return null;
+      const places = role === 'leader' ? [this.slots()[0]] : this.slots().slice(1);
+      const c = places.map(s => s.querySelector('[data-lock]')).find(Boolean);
+      return c ? 'lock-' + c.dataset.index : null;
+    },
+    roleOf(card) {
+      const i = card.dataset.index;
+      return this.leader === i ? 'leader' : this.sergeants.includes(i) ? 'sergeant' : '';
+    },
+    // the buttons of a card: Leader and Sergeant send it to a place, Remove sends it back to the pool
+    assign(card, role) {
+      const to = this.target(card, role);
+      if (!to) return;
+      const from = card.parentElement;
+      [...to.children].forEach(old => from.appendChild(old));
       to.appendChild(card);
       this.changed();
     },
-    unassign(card) { if (card.dataset.keep === 'true') return; this.pool().appendChild(card); this.changed(); },
+    unassign(card) { if (this.locked(card)) return; this.pool().appendChild(card); this.changed(); },
     incomplete() {
       if (this.leader === '' || this.sergeants.length !== 2) return 'Choose a leader and two sergeants.';
       if (!this.name.trim()) return 'Give your company a name in the oath.';

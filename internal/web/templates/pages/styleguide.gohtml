@@ -106,6 +106,19 @@
     </div>
   </section>
 
+  {{/* ---- copy button and its dialog (docs/tabletop-simulator.md) ---- */}}
+  <section class="space-y-4" aria-labelledby="sg-tts-h">
+    <h2 id="sg-tts-h">Copy button, switches and warning</h2>
+    <p class="text-sm text-muted">The icon button next to a company's name (tooltip on hover and keyboard focus, 44 px touch area on a phone), the switches of the Tabletop Simulator dialog and the warning alert.</p>
+    <div class="card space-y-3">
+      <div class="relative flex items-center gap-2"><span class="font-heading text-2xl font-bold">Riders on every horse</span>
+        <span class="group inline-flex"><button type="button" class="btn btn-ghost !min-h-11 !min-w-11 !px-2 text-muted sm:!min-h-8 sm:!min-w-0" aria-label="Copy as an army list for Tabletop Simulator" aria-describedby="sg-tts-tip"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg></button>
+          <span id="sg-tts-tip" role="tooltip" class="pointer-events-none absolute left-0 top-full z-30 mt-1 hidden w-[min(22rem,calc(100vw-2rem))] rounded-md border border-line bg-surface p-3 text-sm text-fg shadow-lg group-hover:block group-focus-within:block">Copy this company as an army list for Tabletop Simulator. Each unit becomes the closest standard MESBG model.</span></span></div>
+      <div>{{template "tts_switch" (dict "Name" "sg-foot" "On" true "Label" "Riders on foot" "Hint" "On: the extra figure is in the list.")}}{{template "tts_switch" (dict "Name" "sg-mounts" "On" false "Label" "Mounts that fight as figures of their own" "Hint" "Off.")}}</div>
+      <div class="alert alert-warn" role="status"><strong>Changed rules file.</strong> Some unit names may not exist in the mod.</div>
+    </div>
+  </section>
+
   {{/* ---- keyword chips ---- */}}
   <section id="sg-keywords" class="space-y-4" aria-labelledby="sg-keywords-h">
     <h2 id="sg-keywords-h">Keyword chips</h2>

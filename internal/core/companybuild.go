@@ -368,9 +368,10 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 // pointsOf is the unit's rating by the Battle Companies rules (its points):
 //   - a warrior is worth its MESBG points (with the option its wargear amounts to) plus the rating of its equipment;
 //   - a hero built from a warrior profile is worth that profile's points plus the rating of what it gained (HeroRating), plus
+//     the options of its profile it carries at their MESBG points ("make no adjustment: it is as it is in their book"), plus
 //     the rating of wargear and equipment that is neither part of the profile nor of its options, at the hero rating when its
 //     Attacks and Wounds add up to 3 or more and at the warrior rating below that;
-//   - any other hero (a named character, a monster) is its vanilla points plus the rating of its gear.
+//   - any other hero (a named character, a monster) is its vanilla points plus its options plus the rating of its gear.
 func pointsOf(rs *RuleSet, bcCo BCCompany, base VanillaUnit, u *CompanyUnit) int {
 	stats := map[string]int{}
 	for _, a := range u.Stats {
@@ -405,9 +406,9 @@ func pointsOf(rs *RuleSet, bcCo BCCompany, base VanillaUnit, u *CompanyUnit) int
 		}
 		total += e.Rating
 	}
+	covered, rest := OptionsCover(wargear, base.Options) // the options of the profile cost what the MESBG book says, for a hero as for a warrior
 	switch {
 	case !hero:
-		covered, rest := OptionsCover(wargear, base.Options)
 		for _, e := range rest { // wargear that is no part of any option: charge its rating
 			total += ratingOf(e.Name).Warrior
 		}
@@ -417,9 +418,9 @@ func pointsOf(rs *RuleSet, bcCo BCCompany, base VanillaUnit, u *CompanyUnit) int
 		if u.Path != nil {
 			pathRules = len(u.Path.Rules)
 		}
-		return rs.BC.HeroRating(base, stats, pathRules) + total
+		return rs.BC.HeroRating(base, stats, pathRules) + covered + total
 	}
-	return base.Points + total
+	return base.Points + covered + total
 }
 
 // armourRating is the number of stages an armour the unit bought is above the armour its profile comes with and the armour the
@@ -459,9 +460,17 @@ func StartingUnits(p CompanyProfile, heroes []StartHero) []UnitState {
 	var out []UnitState
 	for i, s := range p.StartList() {
 		spec := UnitState{ID: int64(i + 1), Base: s.Unit, Role: RoleWarrior, Gear: slices.Clone(s.Wargear)}
+		if s.Role == RoleHeroInTheMaking { // the file starts it as a hero that has yet to choose its path
+			spec.Role = RoleHero
+			if p.StartGains(s.Unit) {
+				spec.Bonus = HeroBonus(nil)
+			}
+		}
 		if h, ok := byIndex[i]; ok {
 			spec.Role = h.Role
-			p.BecomeHero(&spec) // an officer is a Hero in the Making: the company's promotion and the hero's point of Might, Will and Fate
+			if p.StartGains(s.Unit) { // an officer keeps its profile (no hero promotion: that is a level-up result) and gains a point of Might, Will and Fate
+				spec.Bonus = HeroBonus(nil)
+			}
 		}
 		out = append(out, spec)
 	}

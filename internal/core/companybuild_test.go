@@ -165,7 +165,7 @@ func TestBuildDetailPointsFollowTheBattleCompaniesRating(t *testing.T) {
 		10: 8,                                // a plain Warrior of Minas Tirith
 		6:  8 + 1,                            // Cirion carries a bow, option "Bow" +1
 		9:  8 + 15,                           // Mablung carries a Company Standard (equipment, rating 15)
-		2:  8 + 15 + 5,                       // Hador: the warrior profile, Might, Will and Fate, and the rule his path gave; the spear is the profile's option
+		2:  8 + 15 + 5 + 2,                   // Hador: the warrior profile, Might, Will and Fate, the rule his path gave and his spear, an option worth 2 as in the book
 		1:  8 + 15 + 5 + 10 + 10 + 5 + 5 + 3, // Beregond: + Fight 5, Attack 2, two path rules, gear at the hero rating
 	} {
 		if got := unitByID(t, d, id).Points; got != want {

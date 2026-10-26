@@ -454,9 +454,6 @@ func (s *LevelService) ChoosePath(ctx context.Context, user User, campaignID, un
 		if !offer.Paths[i].StartPower {
 			power = ""
 		}
-		if profile, ok := env.rs.BC.Profile(env.bcC.Name); ok {
-			profile.healOfficer(us)
-		}
 		*us = WithPath(*us, path, power, env.rs.BC.Progression())
 		return nil
 	})

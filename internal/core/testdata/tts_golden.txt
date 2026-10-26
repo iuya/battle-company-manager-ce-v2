@@ -1,0 +1,1065 @@
+## Angmar & Carn Dum
+start: Angmar Orc Warrior [Orc Bow]
+    (1x Angmar Orc Warrior: Orc bow)
+start: Angmar Orc Warrior [Spear]
+    (1x Angmar Orc Warrior: Spear)
+start: Angmar Orc Warrior [Shield]
+    (1x Angmar Orc Warrior: Shield)
+start: Angmar Orc Warrior [Two-handed weapon]
+    (1x Angmar Orc Warrior: Two-handed weapon)
+start: Wild Warg []
+    (1x Wild Warg: )
+start: Warrior of Carn Dum []
+    (1x Warrior of Carn Dum: )
+reinforcement: Wild Warg []
+    (1x Wild Warg: )
+reinforcement: Angmar Orc Warrior []
+    (1x Angmar Orc Warrior: Orc bow)
+    note approximate: Angmar Orc Warrior: the mod has no figure without "Orc bow", so that is the one shown.
+special chart: Warrior of Carn Dum []
+    (1x Warrior of Carn Dum: )
+special chart: Angmar Warg Rider []
+    (1x Angmar Warg Rider: Orc bow)
+    (1x Angmar Orc Warrior: Orc bow)
+    (1x Fell Warg: )
+    note approximate: Angmar Warg Rider: the mod has no figure without "Orc bow", so that is the one shown.
+    note extraFigure: Angmar Warg Rider also has an on-foot figure (Angmar Orc Warrior), for when it dismounts.
+    note extraFigure: Angmar Warg Rider also has its Warg as a figure of its own (Fell Warg).
+special chart: Spectre []
+    (1x Spectre: )
+special chart: Werewolf []
+    (1x Werewolf: )
+advancement: Angmar Warg Rider []
+    (1x Angmar Warg Rider: Orc bow)
+    (1x Angmar Orc Warrior: Orc bow)
+    (1x Fell Warg: )
+    note approximate: Angmar Warg Rider: the mod has no figure without "Orc bow", so that is the one shown.
+    note extraFigure: Angmar Warg Rider also has an on-foot figure (Angmar Orc Warrior), for when it dismounts.
+    note extraFigure: Angmar Warg Rider also has its Warg as a figure of its own (Fell Warg).
+advancement: Fell Warg []
+    (1x Fell Warg: )
+## Arnor
+start: Warrior of Arnor []
+    (1x Warrior of Arnor: )
+start: Ranger of Arnor []
+    (1x Ranger of Arnor: )
+reinforcement: Warrior of Arnor []
+    (1x Warrior of Arnor: )
+reinforcement: Ranger of Arnor []
+    (1x Ranger of Arnor: )
+reinforcement: Ranger of Arnor [Spear]
+    (1x Ranger of Arnor: Spear)
+reinforcement: Knight of Arnor []
+    (1x Knight of Arnor: )
+    (1x Warrior of Arnor: )
+    note extraFigure: Knight of Arnor also has an on-foot figure (Warrior of Arnor), for when it dismounts.
+advancement: Knight of Arnor []
+    (1x Knight of Arnor: )
+    (1x Warrior of Arnor: )
+    note extraFigure: Knight of Arnor also has an on-foot figure (Warrior of Arnor), for when it dismounts.
+## Burning of the Westfold
+start: Uruk-hai Scout [Shield]
+    (1x Uruk-hai Scout: Shield)
+start: Uruk-hai Scout [Uruk-Hai Bow]
+    (1x Uruk-hai Scout: Uruk-Hai Bow)
+start: Wild Man of Dunland [Flaming Brand]
+    (1x Wild Man of Dunland: Flaming Brand)
+start: Isengard Orc Warrior [Shield]
+    (1x Isengard Orc Warrior: Shield)
+start: Isengard Orc Warrior [Spear]
+    (1x Isengard Orc Warrior: Spear)
+start: Isengard Orc Warrior [Orc Bow]
+    (1x Isengard Orc Warrior: Bow)
+start: Isengard Orc Warrior [Two-handed weapon]
+    (1x Isengard Orc Warrior: Two-handed weapon)
+reinforcement: Wild Man of Dunland []
+    (1x Wild Man of Dunland: )
+reinforcement: Isengard Orc Warrior []
+    (1x Isengard Orc Warrior: Bow)
+    note approximate: Isengard Orc Warrior: the mod has no figure without "Orc bow", so that is the one shown.
+special chart: Uruk-hai Scout []
+    (1x Uruk-hai Scout: )
+special chart: Feral Uruk-hai []
+    (1x Feral Uruk-hai: )
+special chart: Crebain []
+    (1x Crebain: )
+advancement: Dunlending Warrior []
+    (1x Dunlending Warrior: Bow)
+    note approximate: Dunlending Warrior: the mod has no figure without "Bow", so that is the one shown.
+advancement: Dunlending Warrior [Shield]
+    (1x Dunlending Warrior: Shield)
+## Cirith Ungol
+start: Mordor Uruk-Hai []
+    (1x Mordor Uruk-Hai: )
+start: Mordor Orc Warrior [Shield]
+    (1x Mordor Orc Warrior: Shield)
+start: Mordor Orc Warrior [Spear]
+    (1x Mordor Orc Warrior: Spear)
+start: Mordor Orc Warrior [Orc Bow]
+    (1x Mordor Orc Warrior: Orc bow)
+start: Mirkwood Giant Spider []
+    (1x Mirkwood Giant Spider: )
+reinforcement: Mordor Orc Warrior []
+    (1x Mordor Orc Warrior: Orc bow)
+    note approximate: Mordor Orc Warrior: the mod has no figure without "Orc bow", so that is the one shown.
+reinforcement: Mordor Uruk-Hai []
+    (1x Mordor Uruk-Hai: )
+reinforcement: Mirkwood Giant Spider []
+    (1x Mirkwood Giant Spider: )
+advancement: Orc Tracker []
+    (1x Orc Tracker: )
+## City of Umbar
+start: Black Numenorean Warrior []
+    (1x Black Numenorean Warrior: )
+start: Corsair of Umbar [Light Shield Throwing weapon]
+    (1x Corsair of Umbar: Light shield and throwing weapons)
+start: Haradrim Warrior [Spear]
+    (1x Haradrim Warrior: Spear)
+start: Corsair of Umbar [Bow]
+    (1x Corsair of Umbar: Bow)
+reinforcement: Haradrim Warrior []
+    (1x Haradrim Warrior: Bow)
+    note approximate: Haradrim Warrior: the mod has no figure without "Bow", so that is the one shown.
+reinforcement: Corsair of Umbar []
+    (1x Corsair of Umbar: Bow)
+    note approximate: Corsair of Umbar: the mod has no figure without "Bow", so that is the one shown.
+special chart: Corsair Crossbowman []
+    (1x Corsair Crossbowman: )
+special chart: Corsair Reaver []
+    (1x Corsair Reaver: )
+special chart: Black Numenorean Warrior []
+    (1x Black Numenorean Warrior: )
+advancement: Corsair Crossbowman []
+    (1x Corsair Crossbowman: )
+## Defenders of the North
+start: Iron Hills Warrior [Shield Spear]
+    (1x Iron Hills Warrior: Shield and Spear)
+start: Iron Hills Warrior [Mattock]
+    (1x Iron Hills Warrior: Mattock)
+start: Warrior of Dale [Shield Spear]
+    (1x Warrior of Dale: Shield and Spear)
+start: Warrior of Dale [Esgaroth Bow]
+    (1x Warrior of Dale: Esgaroth Bow)
+reinforcement: Warrior of Dale []
+    (1x Warrior of Dale: Shield)
+    note approximate: Warrior of Dale: the mod has no figure without "Shield", so that is the one shown.
+reinforcement: Knight of Dale []
+    (1x Knight of Dale: )
+reinforcement: Iron Hills Warrior []
+    (1x Iron Hills Warrior: Mattock)
+    note approximate: Iron Hills Warrior: the mod has no figure without "Mattock", so that is the one shown.
+advancement: Knight of Dale []
+    (1x Knight of Dale: )
+## Dol Guldur
+start: Hunter Orc Warrior []
+    (1x Hunter Orc Warrior: )
+start: Hunter Orc Warrior [Orc Bow]
+    (1x Hunter Orc Warrior: Orc Bow)
+start: Hunter Orc Warrior [Two-handed weapon]
+    (1x Hunter Orc Warrior: Two-handed weapon)
+start: Fell Warg []
+    (1x Fell Warg: )
+reinforcement: Fell Warg []
+    (1x Fell Warg: )
+reinforcement: Hunter Orc Warrior []
+    (1x Hunter Orc Warrior: )
+reinforcement: Hunter Orc Warrior [Orc Bow]
+    (1x Hunter Orc Warrior: Orc Bow)
+reinforcement: Hunter Orc Warrior [Two-handed weapon]
+    (1x Hunter Orc Warrior: Two-handed weapon)
+special chart: Hunter Orc Warg Rider []
+    (1x Hunter Orc Warg Rider: )
+    note hasStates: Hunter Orc Warg Rider: change the figure's state to dismount it.
+special chart: Mirkwood Hunting Spider []
+    (1x Mirkwood Hunting Spider: )
+special chart: Mirkwood Giant Spider []
+    (1x Mirkwood Giant Spider: )
+advancement: Hunter Orc Warg Rider []
+    (1x Hunter Orc Warg Rider: )
+    note hasStates: Hunter Orc Warg Rider: change the figure's state to dismount it.
+advancement: Hunter Orc Warg Rider []
+    (1x Hunter Orc Warg Rider: )
+    note hasStates: Hunter Orc Warg Rider: change the figure's state to dismount it.
+## Durin's Folk
+start: Dwarf Warrior [Shield]
+    (1x Dwarf Warrior: Shield)
+start: Dwarf Warrior [Two-handed weapon]
+    (1x Dwarf Warrior: Two-handed weapon)
+start: Dwarf Warrior [Dwarf Bow]
+    (1x Dwarf Warrior: Dwarf Bow)
+reinforcement: Dwarf Warrior []
+    (1x Dwarf Warrior: Dwarf Bow)
+    note approximate: Dwarf Warrior: the mod has no figure without "Dwarf Bow", so that is the one shown.
+reinforcement: Dwarf Ranger []
+    (1x Dwarf Ranger: Dwarf longbow)
+    note approximate: Dwarf Ranger: the mod has no figure without "Dwarf longbow", so that is the one shown.
+special chart: Khazad Guard []
+    (1x Khazad Guard: )
+special chart: Iron Guard []
+    (1x Iron Guard: )
+special chart: Vault Warden Team []
+    (1x Iron Shield Bearer: )
+    (1x Foe Spear Wielder: )
+advancement: Khazad Guard []
+    (1x Khazad Guard: )
+advancement: Dwarf Ranger [Dwarf Longbow]
+    (1x Dwarf Ranger: Dwarf longbow)
+## Easterlings
+start: Black Dragon Warrior []
+    (1x Black Dragon Warrior: )
+start: Easterling Warrior [Shield]
+    (1x Easterling Warrior: Shield)
+start: Easterling Warrior [Easterling Halberd Shield]
+    (1x Easterling Warrior: Easterling Halberd and shield)
+start: Easterling Warrior [Bow]
+    (1x Easterling Warrior: Bow)
+reinforcement: Easterling Warrior [Shield]
+    (1x Easterling Warrior: Shield)
+reinforcement: Easterling Warrior [Easterling Halberd Shield]
+    (1x Easterling Warrior: Easterling Halberd and shield)
+reinforcement: Easterling Warrior [Bow]
+    (1x Easterling Warrior: Bow)
+reinforcement: Easterling Warrior []
+    (1x Easterling Warrior: Bow)
+    note approximate: Easterling Warrior: the mod has no figure without "Bow", so that is the one shown.
+special chart: Easterling Kataphrakt []
+    (1x Easterling Kataphrakt: )
+    (1x Easterling Warrior: Bow)
+    note extraFigure: Easterling Kataphrakt also has an on-foot figure (Easterling Warrior), for when it dismounts.
+special chart: Dragon Cult Acolyte []
+    (1x Dragon Cult Acolyte: )
+special chart: War Drake of Rhun []
+    (1x War Drake of Rhun: )
+advancement: Black Dragon Warrior []
+    (1x Black Dragon Warrior: )
+advancement: Easterling Kataphrakt []
+    (1x Easterling Kataphrakt: )
+    (1x Easterling Warrior: Bow)
+    note extraFigure: Easterling Kataphrakt also has an on-foot figure (Easterling Warrior), for when it dismounts.
+## Erebor & Dale
+start: Erebor Dwarf Warrior [Shield]
+    (1x Erebor Dwarf Warrior: Shield)
+start: Erebor Dwarf Warrior [Spear]
+    (1x Erebor Dwarf Warrior: Spear)
+start: Warrior of Dale [Shield Spear]
+    (1x Warrior of Dale: Shield and Spear)
+start: Warrior of Dale [Esgaroth Bow]
+    (1x Warrior of Dale: Esgaroth Bow)
+reinforcement: Warrior of Dale []
+    (1x Warrior of Dale: Shield)
+    note approximate: Warrior of Dale: the mod has no figure without "Shield", so that is the one shown.
+reinforcement: Erebor Dwarf Warrior []
+    (1x Erebor Dwarf Warrior: Shield)
+    note approximate: Erebor Dwarf Warrior: the mod has no figure without "Shield", so that is the one shown.
+reinforcement: Grim Hammer Warrior []
+    (1x Grim Hammer Warrior: )
+advancement: Grim Hammer Warrior []
+    (1x Grim Hammer Warrior: )
+## Fiefdoms
+start: Knight of Dol Amroth []
+    (1x Knight of Dol Amroth: )
+start: Clansman of Lamedon []
+    (1x Clansman of Lamedon: )
+start: Axeman of Lossarnach []
+    (1x Axeman of Lossarnach: )
+start: Blackroot Vale Archer []
+    (1x Blackroot Vale Archer: )
+reinforcement: Clansman of Lamedon []
+    (1x Clansman of Lamedon: )
+reinforcement: Blackroot Vale Archer []
+    (1x Blackroot Vale Archer: )
+reinforcement: Axeman of Lossarnach []
+    (1x Axeman of Lossarnach: )
+reinforcement: Man-at-arms of Dol Amroth []
+    (1x Man-at-arms of Dol Amroth: )
+reinforcement: Knight of Dol Amroth []
+    (1x Knight of Dol Amroth: )
+advancement: Knight of Dol Amroth []
+    (1x Knight of Dol Amroth: )
+advancement: Knight of Dol Amroth [Armoured horse]
+    (1x Knight of Dol Amroth: Armoured horse and lance)
+## Fornost
+start: Rivendell Warrior [Elf Bow]
+    (1x Rivendell Warrior: Elf Bow)
+start: Warrior of Minas Tirith [Spear Shield]
+    (1x Warrior of Minas Tirith: Shield and Spear)
+start: Warrior of Minas Tirith [Shield]
+    (1x Warrior of Minas Tirith: Shield)
+start: Hobbit Archer []
+    (1x Hobbit Archer: )
+reinforcement: Warrior of Minas Tirith [Shield]
+    (1x Warrior of Minas Tirith: Shield)
+reinforcement (alt): Hobbit Archer []
+    (1x Hobbit Archer: )
+reinforcement: Warrior of Minas Tirith [Bow]
+    (1x Warrior of Minas Tirith: Bow)
+reinforcement (alt): Hobbit Archer []
+    (1x Hobbit Archer: )
+reinforcement: Warrior of Minas Tirith [Spear Shield]
+    (1x Warrior of Minas Tirith: Shield and Spear)
+reinforcement (alt): Hobbit Archer []
+    (1x Hobbit Archer: )
+reinforcement: Ranger of Arnor []
+    (1x Ranger of Arnor: )
+reinforcement (alt): Hobbit Archer []
+    (1x Hobbit Archer: )
+reinforcement (alt): Hobbit Archer []
+    (1x Hobbit Archer: )
+special chart: Knight of Minas Tirith []
+    (1x Knight of Minas Tirith: )
+    (1x Warrior of Minas Tirith: Bow)
+    note extraFigure: Knight of Minas Tirith also has an on-foot figure (Warrior of Minas Tirith), for when it dismounts.
+special chart: Rivendell Warrior []
+    (1x Rivendell Warrior: )
+advancement: Knight of Minas Tirith []
+    (1x Knight of Minas Tirith: )
+    (1x Warrior of Minas Tirith: Bow)
+    note extraFigure: Knight of Minas Tirith also has an on-foot figure (Warrior of Minas Tirith), for when it dismounts.
+## Goblin-Town
+start: Goblin Warrior []
+    (1x Goblin Warrior: )
+reinforcement: Goblin Warrior []
+    (1x Goblin Warrior: )
+reinforcement: Goblin Warrior [Two-handed weapon]
+    (1x Goblin Warrior: Two-handed weapon)
+special chart: Goblin Warrior []
+    (1x Goblin Warrior: )
+special chart: Goblin Mercenary []
+    (1x Goblin Mercenary: )
+special unit: Goblin Hulk []
+    (1x Gundabad Ogre: )
+advancement: Goblin Mercenary []
+    (1x Goblin Mercenary: )
+## Grand Army of the South
+start: Mahûd Warrior [Blowpipe]
+    (1x Mahûd Warrior: Blowpipe)
+start: Khandish Warrior []
+    (1x Khandish Warrior: )
+start: Corsair of Umbar [Light Shield Throwing weapon]
+    (1x Corsair of Umbar: Light shield and throwing weapons)
+start: Haradrim Warrior [Bow]
+    (1x Haradrim Warrior: Bow)
+reinforcement: Haradrim Warrior []
+    (1x Haradrim Warrior: Bow)
+    note approximate: Haradrim Warrior: the mod has no figure without "Bow", so that is the one shown.
+reinforcement: Mahûd Warrior []
+    (1x Mahûd Warrior: )
+reinforcement: Khandish Warrior []
+    (1x Khandish Warrior: )
+reinforcement: Corsair of Umbar []
+    (1x Corsair of Umbar: Bow)
+    note approximate: Corsair of Umbar: the mod has no figure without "Bow", so that is the one shown.
+special chart: Easterling Warrior []
+    (1x Easterling Warrior: Bow)
+    note approximate: Easterling Warrior: the mod has no figure without "Bow", so that is the one shown.
+special chart: Khandish Horseman []
+    (1x Khandish Horseman: )
+    (1x Khandish Warrior: )
+    note extraFigure: Khandish Horseman also has an on-foot figure (Khandish Warrior), for when it dismounts.
+special chart: Half Troll []
+    (1x Half Troll: )
+advancement: Khandish Horseman []
+    (1x Khandish Horseman: )
+    (1x Khandish Warrior: )
+    note extraFigure: Khandish Horseman also has an on-foot figure (Khandish Warrior), for when it dismounts.
+advancement: Haradrim Raider []
+    (1x Haradrim Raider: Bow)
+    (1x Haradrim Warrior: Bow)
+    note approximate: Haradrim Raider: the mod has no figure without "Bow", so that is the one shown.
+    note extraFigure: Haradrim Raider also has an on-foot figure (Haradrim Warrior), for when it dismounts.
+advancement: Haradrim Raider [War spear]
+    (1x Haradrim Raider: War spear)
+    (1x Haradrim Warrior: Bow)
+    note extraFigure: Haradrim Raider also has an on-foot figure (Haradrim Warrior), for when it dismounts.
+## Gundabad
+start: Gundabad Orc Warrior [Shield]
+    (1x Gundabad Orc Warrior: Shield)
+start: Gundabad Orc Warrior [Spear]
+    (1x Gundabad Orc Warrior: Spear)
+reinforcement: Goblin Mercenary []
+    (1x Goblin Mercenary: )
+reinforcement: Gundabad Orc Warrior [Shield]
+    (1x Gundabad Orc Warrior: Shield)
+reinforcement: Gundabad Orc Warrior [Spear]
+    (1x Gundabad Orc Warrior: Spear)
+reinforcement: Gundabad Orc Warrior []
+    (1x Gundabad Orc Warrior: Shield)
+    note approximate: Gundabad Orc Warrior: the mod has no figure without "Shield", so that is the one shown.
+special chart: Gundabad Berserker []
+    (1x Gundabad Berserker: )
+special chart: War Bat []
+    (1x War Bat: )
+special unit: Gundabad Ogre []
+    (1x Gundabad Ogre: )
+## Halls of Thranduil
+start: Mirkwood Elf Warrior [Shield]
+    (1x Mirkwood Elf Warrior: Shield)
+start: Mirkwood Elf Warrior [Elven-made Glaive]
+    (1x Mirkwood Elf Warrior: Elven Glaive)
+start: Mirkwood Ranger []
+    (1x Mirkwood Ranger: )
+    note optionDropped: Mirkwood Ranger: Elven Cloak has no matching option on the figure and is left out.
+reinforcement: Mirkwood Elf Warrior [Shield]
+    (1x Mirkwood Elf Warrior: Shield)
+reinforcement: Mirkwood Elf Warrior [Elven-made Glaive]
+    (1x Mirkwood Elf Warrior: Elven Glaive)
+reinforcement: Mirkwood Elf Warrior [Elf Bow]
+    (1x Mirkwood Elf Warrior: Elf Bow)
+reinforcement: Mirkwood Elf Warrior []
+    (1x Mirkwood Elf Warrior: Shield)
+    note approximate: Mirkwood Elf Warrior: the mod has no figure without "Shield", so that is the one shown.
+special chart: Palace Guard []
+    (1x Palace Guard: Elven spear)
+    note approximate: Palace Guard: the mod has no figure without "Elven spear", so that is the one shown.
+special chart: Mirkwood Ranger []
+    (1x Mirkwood Ranger: )
+    note optionDropped: Mirkwood Ranger: Elven Cloak has no matching option on the figure and is left out.
+special chart: Mirkwood Elf Knight []
+    (1x Mirkwood Elf Knight: )
+    note hasStates: Mirkwood Elf Knight: change the figure's state to dismount it.
+advancement: Palace Guard [Shield]
+    (1x Palace Guard: Shield)
+advancement: Mirkwood Elf Knight []
+    (1x Mirkwood Elf Knight: )
+    note hasStates: Mirkwood Elf Knight: change the figure's state to dismount it.
+advancement: Mirkwood Ranger []
+    (1x Mirkwood Ranger: )
+    note optionDropped: Mirkwood Ranger: Elven Cloak has no matching option on the figure and is left out.
+## Harad
+start: Haradrim Warrior [Spear]
+    (1x Haradrim Warrior: Spear)
+start: Haradrim Warrior [Bow with poisoned arrows]
+    (1x Haradrim Warrior: Bow)
+    note optionDropped: Haradrim Warrior: Bow with poisoned arrows has no matching option on the figure and is left out.
+    note approximate: Haradrim Warrior: the mod has no figure without "Bow", so that is the one shown.
+reinforcement: Haradrim Warrior [Spear]
+    (1x Haradrim Warrior: Spear)
+reinforcement: Haradrim Warrior [Bow with poisoned arrows]
+    (1x Haradrim Warrior: Bow)
+    note optionDropped: Haradrim Warrior: Bow with poisoned arrows has no matching option on the figure and is left out.
+    note approximate: Haradrim Warrior: the mod has no figure without "Bow", so that is the one shown.
+special chart: Haradrim Raider [War spear]
+    (1x Haradrim Raider: War spear)
+    (1x Haradrim Warrior: Bow)
+    note extraFigure: Haradrim Raider also has an on-foot figure (Haradrim Warrior), for when it dismounts.
+special chart: Haradrim Raider [Bow with poisoned arrows]
+    (1x Haradrim Raider: Bow)
+    (1x Haradrim Warrior: Bow)
+    note optionDropped: Haradrim Raider: Bow with poisoned arrows has no matching option on the figure and is left out.
+    note approximate: Haradrim Raider: the mod has no figure without "Bow", so that is the one shown.
+    note extraFigure: Haradrim Raider also has an on-foot figure (Haradrim Warrior), for when it dismounts.
+special chart: Serpent Guard []
+    (1x Serpent Guard: )
+special chart: Serpent Rider []
+    (1x Serpent Rider: )
+    (1x Serpent Guard: )
+    note extraFigure: Serpent Rider also has an on-foot figure (Serpent Guard), for when it dismounts.
+special chart: Watcher of Kârna []
+    (1x Watcher of Kârna: Bow)
+    note approximate: Watcher of Kârna: the mod has no figure without "Bow", so that is the one shown.
+special chart: Abrakhan Merchant Guard []
+    (1x Abrakhan Merchant Guard: )
+advancement: Haradrim Raider []
+    (1x Haradrim Raider: Bow)
+    (1x Haradrim Warrior: Bow)
+    note approximate: Haradrim Raider: the mod has no figure without "Bow", so that is the one shown.
+    note extraFigure: Haradrim Raider also has an on-foot figure (Haradrim Warrior), for when it dismounts.
+advancement: Haradrim Raider [War spear]
+    (1x Haradrim Raider: War spear)
+    (1x Haradrim Warrior: Bow)
+    note extraFigure: Haradrim Raider also has an on-foot figure (Haradrim Warrior), for when it dismounts.
+advancement: Serpent Rider []
+    (1x Serpent Rider: )
+    (1x Serpent Guard: )
+    note extraFigure: Serpent Rider also has an on-foot figure (Serpent Guard), for when it dismounts.
+## Helm's Deep
+start: Ranger of the North [Armour]
+    (1x Ranger of the North: Armour)
+start: Dwarf Warrior [Two-handed weapon]
+    (1x Dwarf Warrior: Two-handed weapon)
+start: Lothlorien Warrior [Elf Bow]
+    (1x Lothlorien Warrior: Elf bow)
+    note optionDropped: Lothlorien Warrior: Elven Cloak has no matching option on the figure and is left out.
+start: Warrior of Rohan [Shield]
+    (1x Warrior of Rohan: Shield)
+start: Warrior of Rohan [Throwing Spears Shield]
+    (1x Warrior of Rohan: Shield and throwing spears)
+start: Galadhrim Warrior []
+    (1x Galadhrim Warrior: )
+reinforcement: Warrior of Rohan []
+    (1x Warrior of Rohan: Bow)
+    note approximate: Warrior of Rohan: the mod has no figure without "Bow", so that is the one shown.
+reinforcement: Helminga []
+    (1x Warrior of Rohan: Bow, Helmingas)
+    note approximate: Helminga: the mod has no figure without "Bow", so that is the one shown.
+reinforcement: Galadhrim Warrior []
+    (1x Galadhrim Warrior: )
+advancement: Helminga []
+    (1x Warrior of Rohan: Bow, Helmingas)
+    note approximate: Helminga: the mod has no figure without "Bow", so that is the one shown.
+## Hill Tribes of Dunland
+start: Dunlending Warrior [Shield]
+    (1x Dunlending Warrior: Shield)
+start: Dunlending Warrior [Two-handed weapon]
+    (1x Dunlending Warrior: Two-handed weapon)
+start: Dunlending Warrior [Bow]
+    (1x Dunlending Warrior: Bow)
+start: Hill Tribesman [Bow]
+    (1x Hill Tribesman: Bow)
+start: Hill Tribesman [Two-handed weapon]
+    (1x Hill Tribesman: Two-handed weapon)
+start: Hill Tribesman [Light Shield]
+    (1x Hill Tribesman: Light shield)
+start: Hill Tribesman [Flaming Brand]
+    (1x Hill Tribesman: Flaming brand)
+start: Hill Tribesman [Spear]
+    (1x Hill Tribesman: Spear)
+reinforcement: Hill Tribesman []
+    (1x Hill Tribesman: )
+reinforcement: Dunlending Warrior []
+    (1x Dunlending Warrior: Bow)
+    note approximate: Dunlending Warrior: the mod has no figure without "Bow", so that is the one shown.
+special chart: Dunlending Huscarl []
+    (1x Dunlending Huscarl: )
+special chart: Dunlending Horseman []
+    (1x Dunlending Horseman: )
+    (1x Dunlending Warrior: Bow)
+    note extraFigure: Dunlending Horseman also has an on-foot figure (Dunlending Warrior), for when it dismounts.
+special chart: Crebain []
+    (1x Crebain: )
+advancement: Dunlending Warrior [Shield]
+    (1x Dunlending Warrior: Shield)
+advancement: Dunlending Warrior []
+    (1x Dunlending Warrior: Bow)
+    note approximate: Dunlending Warrior: the mod has no figure without "Bow", so that is the one shown.
+## Iron Hills
+start: Iron Hills Warrior [Shield Spear]
+    (1x Iron Hills Warrior: Shield and Spear)
+start: Iron Hills Warrior [Mattock]
+    (1x Iron Hills Warrior: Mattock)
+start: Iron Hills Warrior [Crossbow]
+    (1x Iron Hills Warrior: Crossbow)
+reinforcement: Iron Hills Warrior [Mattock]
+    (1x Iron Hills Warrior: Mattock)
+reinforcement: Iron Hills Warrior [Crossbow]
+    (1x Iron Hills Warrior: Crossbow)
+reinforcement: Iron Hills Warrior [Spear]
+    (1x Iron Hills Warrior: Shield and Spear)
+reinforcement: Iron Hills Warrior []
+    (1x Iron Hills Warrior: Mattock)
+    note approximate: Iron Hills Warrior: the mod has no figure without "Mattock", so that is the one shown.
+reinforcement: Iron Hills Goat Rider []
+    (1x Iron Hills Goat Rider: )
+    (1x Dwarf Warrior: Dwarf Bow)
+    note extraFigure: Iron Hills Goat Rider also has an on-foot figure (Dwarf Warrior), for when it dismounts.
+## Lake-town
+start: Lake-town Guard []
+    (1x Lake-town Guard: )
+start: Lake-town Guard [Spear]
+    (1x Lake-town Guard: Spear)
+start: Lake-town Guard [Bow]
+    (1x Lake-town Guard: Bow)
+start: Lake-town Militia [Light Shield]
+    (1x Lake-town Militia: Light shield)
+start: Lake-town Militia [Spear]
+    (1x Lake-town Militia: Spear)
+start: Lake-town Militia [Bow]
+    (1x Lake-town Militia: Bow)
+reinforcement: Lake-town Militia []
+    (1x Lake-town Militia: Bow)
+    note approximate: Lake-town Militia: the mod has no figure without "Bow", so that is the one shown.
+reinforcement: Lake-town Guard []
+    (1x Lake-town Guard: )
+reinforcement: Lake-town Militia []
+    (1x Lake-town Militia: Bow)
+    note approximate: Lake-town Militia: the mod has no figure without "Bow", so that is the one shown.
+reinforcement: Lake-town Guard []
+    (1x Lake-town Guard: )
+advancement: Lake-town Guard []
+    (1x Lake-town Guard: )
+## Lothlorien
+start: Lothlorien Warrior [Elf Bow]
+    (1x Lothlorien Warrior: Elf bow)
+    note optionDropped: Lothlorien Warrior: Elven Cloak has no matching option on the figure and is left out.
+start: Galadhrim Warrior [Elf Bow]
+    (1x Galadhrim Warrior: Elf Bow)
+start: Lothlorien Warrior [Wood Elf Spear]
+    (1x Lothlorien Warrior: Wood Elf spear)
+    note optionDropped: Lothlorien Warrior: Elven Cloak has no matching option on the figure and is left out.
+start: Galadhrim Warrior [Elven spear]
+    (1x Galadhrim Warrior: Elven Spear)
+start: Lothlorien Warrior []
+    (1x Lothlorien Warrior: )
+    note optionDropped: Lothlorien Warrior: Elven Cloak has no matching option on the figure and is left out.
+start: Galadhrim Warrior []
+    (1x Galadhrim Warrior: )
+reinforcement: Lothlorien Warrior []
+    (1x Lothlorien Warrior: )
+    note optionDropped: Lothlorien Warrior: Elven Cloak has no matching option on the figure and is left out.
+reinforcement: Galadhrim Warrior []
+    (1x Galadhrim Warrior: )
+special chart: Galadhrim Knight []
+    (1x Galadhrim Knight: )
+    (1x Galadhrim Warrior: )
+    note extraFigure: Galadhrim Knight also has an on-foot figure (Galadhrim Warrior), for when it dismounts.
+special chart: Guard of the Galadhrim Court []
+    (1x Guard of the Galadhrim Court: )
+special chart: Wood Elf Sentinel []
+    (1x Wood Elf Sentinel: )
+    note optionDropped: Wood Elf Sentinel: Elven Cloak has no matching option on the figure and is left out.
+advancement: Galadhrim Warrior []
+    (1x Galadhrim Warrior: )
+advancement: Galadhrim Warrior [Elven spear]
+    (1x Galadhrim Warrior: Elven Spear)
+advancement: Lorien Guard []
+    (1x Galadhrim Warrior: Lorien Guard)
+## Minas Morgul
+start: Mordor Orc Warrior [Shield]
+    (1x Mordor Orc Warrior: Shield)
+start: Mordor Orc Warrior [Spear]
+    (1x Mordor Orc Warrior: Spear)
+start: Mordor Orc Warrior [Orc Bow]
+    (1x Mordor Orc Warrior: Orc bow)
+start: Black Numenorean Warrior []
+    (1x Black Numenorean Warrior: )
+reinforcement: Mordor Orc Warrior [Spear]
+    (1x Mordor Orc Warrior: Spear)
+reinforcement: Mordor Orc Warrior [Orc Bow]
+    (1x Mordor Orc Warrior: Orc bow)
+reinforcement: Mordor Orc Warrior [Two-handed weapon]
+    (1x Mordor Orc Warrior: Two-handed weapon)
+reinforcement: Mordor Orc Warrior [Shield]
+    (1x Mordor Orc Warrior: Shield)
+special chart: Morgul Stalker []
+    (1x Morgul Stalker: )
+special chart: Black Numenorean Warrior []
+    (1x Black Numenorean Warrior: )
+special chart: Spectre []
+    (1x Spectre: )
+advancement: Orc Tracker []
+    (1x Orc Tracker: )
+advancement: Black Numenorean Knight []
+    (1x Black Numenorean Knight: )
+    (1x Black Numenorean Warrior: )
+    note extraFigure: Black Numenorean Knight also has an on-foot figure (Black Numenorean Warrior), for when it dismounts.
+## Minas Tirith
+start: Warrior of Minas Tirith [Bow]
+    (1x Warrior of Minas Tirith: Bow)
+start: Warrior of Minas Tirith [Spear Shield]
+    (1x Warrior of Minas Tirith: Shield and Spear)
+start: Warrior of Minas Tirith [Shield]
+    (1x Warrior of Minas Tirith: Shield)
+reinforcement: Warrior of Minas Tirith [Shield]
+    (1x Warrior of Minas Tirith: Shield)
+reinforcement: Warrior of Minas Tirith [Bow]
+    (1x Warrior of Minas Tirith: Bow)
+reinforcement: Warrior of Minas Tirith [Spear Shield]
+    (1x Warrior of Minas Tirith: Shield and Spear)
+reinforcement: Warrior of Minas Tirith []
+    (1x Warrior of Minas Tirith: Bow)
+    note approximate: Warrior of Minas Tirith: the mod has no figure without "Bow", so that is the one shown.
+special chart: Citadel Guard []
+    (1x Citadel Guard: Longbow)
+    note approximate: Citadel Guard: the mod has no figure without "Longbow", so that is the one shown.
+special chart: Knight of Minas Tirith []
+    (1x Knight of Minas Tirith: )
+    (1x Warrior of Minas Tirith: Bow)
+    note extraFigure: Knight of Minas Tirith also has an on-foot figure (Warrior of Minas Tirith), for when it dismounts.
+special chart: Guard of the Fountain Court []
+    (1x Guard of the Fountain Court: )
+advancement: Knight of Minas Tirith []
+    (1x Knight of Minas Tirith: )
+    (1x Warrior of Minas Tirith: Bow)
+    note extraFigure: Knight of Minas Tirith also has an on-foot figure (Warrior of Minas Tirith), for when it dismounts.
+advancement: Citadel Guard [Longbow]
+    (1x Citadel Guard: Longbow)
+advancement: Guard of the Fountain Court []
+    (1x Guard of the Fountain Court: )
+## Mirkwood
+start: Moria Goblin Warrior [Orc Bow]
+    (1x Moria Goblin Warrior: Orc Bow)
+start: Moria Goblin Warrior [Spear]
+    (1x Moria Goblin Warrior: Spear)
+start: Mordor Orc Warrior [Spear]
+    (1x Mordor Orc Warrior: Spear)
+start: Mordor Orc Warrior [Shield]
+    (1x Mordor Orc Warrior: Shield)
+start: Mordor Orc Warrior [Two-handed weapon]
+    (1x Mordor Orc Warrior: Two-handed weapon)
+start: Mordor Orc Warrior [Orc Bow]
+    (1x Mordor Orc Warrior: Orc bow)
+start: Wild Warg []
+    (1x Wild Warg: )
+reinforcement: Mordor Orc Warrior []
+    (1x Mordor Orc Warrior: Orc bow)
+    note approximate: Mordor Orc Warrior: the mod has no figure without "Orc bow", so that is the one shown.
+reinforcement: Moria Goblin Warrior []
+    (1x Moria Goblin Warrior: Orc Bow)
+    note approximate: Moria Goblin Warrior: the mod has no figure without "Orc Bow", so that is the one shown.
+reinforcement: Wild Warg []
+    (1x Wild Warg: )
+special chart: Moria Goblin Prowler []
+    (1x Moria Goblin Prowler: )
+special chart: Mordor Warg Rider []
+    (1x Mordor Warg Rider: Orc bow)
+    (1x Mordor Orc Warrior: Orc bow)
+    (1x Fell Warg: )
+    note approximate: Mordor Warg Rider: the mod has no figure without "Orc bow", so that is the one shown.
+    note extraFigure: Mordor Warg Rider also has an on-foot figure (Mordor Orc Warrior), for when it dismounts.
+    note extraFigure: Mordor Warg Rider also has its Warg as a figure of its own (Fell Warg).
+special chart: Mirkwood Hunting Spider []
+    (1x Mirkwood Hunting Spider: )
+special chart: Mirkwood Giant Spider []
+    (1x Mirkwood Giant Spider: )
+special chart: Warg Marauder []
+    (1x Warg Marauder: )
+advancement: Moria Goblin Prowler []
+    (1x Moria Goblin Prowler: )
+advancement: Orc Tracker []
+    (1x Orc Tracker: )
+advancement: Fell Warg []
+    (1x Fell Warg: )
+## Mordor
+start: Mordor Orc Warrior [Shield]
+    (1x Mordor Orc Warrior: Shield)
+start: Mordor Orc Warrior [Spear]
+    (1x Mordor Orc Warrior: Spear)
+start: Mordor Orc Warrior [Two-handed weapon]
+    (1x Mordor Orc Warrior: Two-handed weapon)
+start: Mordor Orc Warrior [Orc Bow]
+    (1x Mordor Orc Warrior: Orc bow)
+reinforcement: Mordor Orc Warrior [Spear]
+    (1x Mordor Orc Warrior: Spear)
+reinforcement: Mordor Orc Warrior [Orc Bow]
+    (1x Mordor Orc Warrior: Orc bow)
+reinforcement: Mordor Orc Warrior [Two-handed weapon]
+    (1x Mordor Orc Warrior: Two-handed weapon)
+reinforcement: Mordor Orc Warrior [Shield]
+    (1x Mordor Orc Warrior: Shield)
+special chart: Morannon Orc Warrior []
+    (1x Morannon Orc Warrior: )
+special chart: Mordor Uruk-Hai []
+    (1x Mordor Uruk-Hai: )
+special chart: Mordor Warg Rider []
+    (1x Mordor Warg Rider: Orc bow)
+    (1x Mordor Orc Warrior: Orc bow)
+    (1x Fell Warg: )
+    note approximate: Mordor Warg Rider: the mod has no figure without "Orc bow", so that is the one shown.
+    note extraFigure: Mordor Warg Rider also has an on-foot figure (Mordor Orc Warrior), for when it dismounts.
+    note extraFigure: Mordor Warg Rider also has its Warg as a figure of its own (Fell Warg).
+special chart: Black Guard of Barad-dûr []
+    (1x Black Guard of Barad-dûr: )
+special chart: Black Numenorean Warrior []
+    (1x Black Numenorean Warrior: )
+advancement: Morannon Orc Warrior []
+    (1x Morannon Orc Warrior: )
+advancement: Orc Tracker []
+    (1x Orc Tracker: )
+advancement: Black Guard of Barad-dûr []
+    (1x Black Guard of Barad-dûr: )
+## Moria
+start: Moria Goblin Warrior [Shield]
+    (1x Moria Goblin Warrior: Shield)
+start: Moria Goblin Warrior [Spear]
+    (1x Moria Goblin Warrior: Spear)
+start: Moria Goblin Warrior [Orc Bow]
+    (1x Moria Goblin Warrior: Orc Bow)
+reinforcement: Moria Goblin Warrior [Spear]
+    (1x Moria Goblin Warrior: Spear)
+reinforcement: Moria Goblin Warrior [Orc Bow]
+    (1x Moria Goblin Warrior: Orc Bow)
+reinforcement: Moria Goblin Warrior [Shield]
+    (1x Moria Goblin Warrior: Shield)
+reinforcement: Moria Goblin Warrior []
+    (1x Moria Goblin Warrior: Orc Bow)
+    note approximate: Moria Goblin Warrior: the mod has no figure without "Orc Bow", so that is the one shown.
+special chart: Moria Goblin Prowler []
+    (1x Moria Goblin Prowler: )
+special chart: Moria Blackshield Warrior []
+    (1x Moria Blackshield Warrior: )
+special unit: Cave Troll []
+    (1x Cave Troll: Troll Spear)
+    note approximate: Cave Troll: the mod has no figure without "Troll Spear", so that is the one shown.
+advancement: Moria Blackshield Warrior []
+    (1x Moria Blackshield Warrior: )
+advancement: Moria Goblin Prowler []
+    (1x Moria Goblin Prowler: )
+## Muster of Isengard
+start: Uruk-hai Scout [Shield]
+    (1x Uruk-hai Scout: Shield)
+start: Uruk-hai Scout [Uruk-Hai Bow]
+    (1x Uruk-hai Scout: Uruk-Hai Bow)
+start: Uruk-hai Scout []
+    (1x Uruk-hai Scout: )
+reinforcement: Uruk-hai Scout []
+    (1x Uruk-hai Scout: )
+reinforcement: Uruk-hai Warrior []
+    (1x Uruk-hai Warrior: Shield)
+    note approximate: Uruk-hai Warrior: the mod has no figure without "Shield", so that is the one shown.
+special chart: Feral Uruk-hai []
+    (1x Feral Uruk-hai: )
+special chart: Uruk-hai Berserker []
+    (1x Uruk-hai Berserker: )
+advancement: Uruk-hai Warrior [Pike]
+    (1x Uruk-hai Warrior: Pike)
+advancement: Uruk-hai Warrior [Shield]
+    (1x Uruk-hai Warrior: Shield)
+advancement: Uruk-hai Warrior [Crossbow]
+    (1x Uruk-hai Warrior: Crossbow)
+## Osgiliath & Ithilien
+start: Osgiliath Veteran [Shield]
+    (1x Osgiliath Veteran: Shield)
+start: Ranger of Gondor []
+    (1x Ranger of Gondor: )
+start: Warrior of Minas Tirith [Bow]
+    (1x Warrior of Minas Tirith: Bow)
+start: Warrior of Minas Tirith [Spear Shield]
+    (1x Warrior of Minas Tirith: Shield and Spear)
+start: Warrior of Minas Tirith [Shield]
+    (1x Warrior of Minas Tirith: Shield)
+reinforcement: Warrior of Minas Tirith []
+    (1x Warrior of Minas Tirith: Bow)
+    note approximate: Warrior of Minas Tirith: the mod has no figure without "Bow", so that is the one shown.
+reinforcement: Ranger of Gondor []
+    (1x Ranger of Gondor: )
+reinforcement: Ranger of Gondor [Spear]
+    (1x Ranger of Gondor: Spear)
+special chart: Osgiliath Veteran []
+    (1x Osgiliath Veteran: Shield)
+    note approximate: Osgiliath Veteran: the mod has no figure without "Shield", so that is the one shown.
+special chart: Knight of Minas Tirith []
+    (1x Knight of Minas Tirith: )
+    (1x Warrior of Minas Tirith: Bow)
+    note extraFigure: Knight of Minas Tirith also has an on-foot figure (Warrior of Minas Tirith), for when it dismounts.
+advancement: Osgiliath Veteran []
+    (1x Osgiliath Veteran: Shield)
+    note approximate: Osgiliath Veteran: the mod has no figure without "Shield", so that is the one shown.
+advancement: Ranger of Ithilien []
+    (1x Ranger of Gondor: )
+## Paths of the Druadan
+start: Warrior of Rohan [Shield]
+    (1x Warrior of Rohan: Shield)
+start: Rohan Outrider []
+    (1x Rohan Outrider: )
+start: Woses Warrior []
+    (1x Woses Warrior: )
+reinforcement: Warrior of Rohan [Shield]
+    (1x Warrior of Rohan: Shield)
+reinforcement: Warrior of Rohan [Throwing Spears Shield]
+    (1x Warrior of Rohan: Shield and throwing spears)
+reinforcement: Rohan Outrider []
+    (1x Rohan Outrider: )
+reinforcement: Woses Warrior []
+    (1x Woses Warrior: )
+advancement: Rider of Rohan []
+    (1x Rider of Rohan: )
+    note hasStates: Rider of Rohan: change the figure's state to dismount it.
+advancement: Rohan Outrider [Horse]
+    (1x Rohan Outrider: Horse)
+## Rivendell
+start: Rivendell Warrior []
+    (1x Rivendell Warrior: )
+start: Rivendell Warrior [Elf Bow]
+    (1x Rivendell Warrior: Elf Bow)
+reinforcement: Rivendell Warrior []
+    (1x Rivendell Warrior: )
+reinforcement: Rivendell Warrior [Elven spear Shield]
+    (1x Rivendell Warrior: Shield and Elven spear)
+reinforcement: Rivendell Warrior [Elf Bow]
+    (1x Rivendell Warrior: Elf Bow)
+reinforcement: Rivendell Warrior []
+    (1x Rivendell Warrior: )
+special chart: Noldorin Exile []
+    (1x Lothlorien Warrior: Noldorian Exile)
+    note optionDropped: Noldorin Exile: Elven Cloak has no matching option on the figure and is left out.
+special chart: Rivendell Knight []
+    (1x Rivendell Knight: )
+    (1x Rivendell Warrior: )
+    note extraFigure: Rivendell Knight also has an on-foot figure (Rivendell Warrior), for when it dismounts.
+## Rohan
+start: Rider of Rohan []
+    (1x Rider of Rohan: )
+    note hasStates: Rider of Rohan: change the figure's state to dismount it.
+start: Warrior of Rohan [Bow]
+    (1x Warrior of Rohan: Bow)
+start: Warrior of Rohan [Throwing Spears Shield]
+    (1x Warrior of Rohan: Shield and throwing spears)
+start: Warrior of Rohan [Shield]
+    (1x Warrior of Rohan: Shield)
+reinforcement: Warrior of Rohan [Shield]
+    (1x Warrior of Rohan: Shield)
+reinforcement: Warrior of Rohan [Throwing Spears Shield]
+    (1x Warrior of Rohan: Shield and throwing spears)
+reinforcement: Warrior of Rohan [Bow]
+    (1x Warrior of Rohan: Bow)
+special chart: Rohan Outrider []
+    (1x Rohan Outrider: )
+special chart: Rohan Royal Guard []
+    (1x Rohan Royal Guard: )
+special chart: Rider of Rohan []
+    (1x Rider of Rohan: )
+    note hasStates: Rider of Rohan: change the figure's state to dismount it.
+special chart: Rohan Royal Guard [Horse]
+    (1x Rohan Royal Guard: Horse)
+special chart: Son of Eorl []
+    (1x Son of Eorl: )
+    note hasStates: Son of Eorl: change the figure's state to dismount it.
+advancement: Rider of Rohan []
+    (1x Rider of Rohan: )
+    note hasStates: Rider of Rohan: change the figure's state to dismount it.
+advancement: Rohan Royal Guard []
+    (1x Rohan Royal Guard: )
+advancement: Rider of Rohan []
+    (1x Rider of Rohan: )
+    note hasStates: Rider of Rohan: change the figure's state to dismount it.
+advancement: Rohan Outrider []
+    (1x Rohan Outrider: )
+advancement: Rohan Royal Guard [Horse]
+    (1x Rohan Royal Guard: Horse)
+advancement: Rohan Outrider [Horse]
+    (1x Rohan Outrider: Horse)
+## Sharkey's Rogues
+start: Ruffian [Bow]
+    (1x Ruffian: Bow)
+start: Ruffian [Whip]
+    (1x Ruffian: Whip)
+start: Hill Tribesman [Bow]
+    (1x Hill Tribesman: Bow)
+start: Hill Tribesman [Spear]
+    (1x Hill Tribesman: Spear)
+start: Hill Tribesman [Light Shield]
+    (1x Hill Tribesman: Light shield)
+reinforcement: Ruffian []
+    (1x Ruffian: )
+reinforcement: Hill Tribesman []
+    (1x Hill Tribesman: )
+reinforcement: Ruffian []
+    (1x Ruffian: )
+reinforcement: Hill Tribesman []
+    (1x Hill Tribesman: )
+advancement: Hill Tribesman []
+    (1x Hill Tribesman: )
+advancement: Rohirrim Traitor []
+    (1x Rohirrim Traitor: )
+advancement: Rohirrim Traitor [Shield Throwing Spears]
+    (1x Rohirrim Traitor: Shield and throwing spears)
+advancement: Rohirrim Traitor [Shield]
+    (1x Rohirrim Traitor: Shield)
+## The Last Alliance
+start: Rivendell Warrior []
+    (1x Rivendell Warrior: )
+start: Rivendell Warrior [Elf Bow]
+    (1x Rivendell Warrior: Elf Bow)
+start: Warrior of Numenor [Shield]
+    (1x Warrior of Numenor: Shield)
+reinforcement: Warrior of Numenor []
+    (1x Warrior of Numenor: Longbow)
+    note approximate: Warrior of Numenor: the mod has no figure without "Longbow", so that is the one shown.
+reinforcement: Rivendell Warrior []
+    (1x Rivendell Warrior: )
+## The Shire
+start: Ranger of the North []
+    (1x Ranger of the North: )
+start: Hobbit Militia []
+    (1x Hobbit Militia: )
+start: Hobbit Archer []
+    (1x Hobbit Archer: )
+reinforcement: Hobbit Militia []
+    (1x Hobbit Militia: )
+reinforcement: Hobbit Archer []
+    (1x Hobbit Archer: )
+reinforcement: Hobbit Shirriff []
+    (1x Hobbit Shirriff: )
+reinforcement: Hobbit Militia []
+    (1x Hobbit Militia: )
+advancement: Battlin' Brandybuck []
+    (1x Hobbit Militia: Battlin' Brandybuck)
+advancement: Tookish Hunter []
+    (1x Hobbit Archer: Tookish Hunter)
+## Wanderers in the Wild
+start: Warrior of Numenor [Longbow]
+    (1x Warrior of Numenor: Longbow)
+start: Hobbit Militia []
+    (1x Hobbit Militia: )
+start: Hobbit Shirriff []
+    (1x Hobbit Shirriff: )
+start: Tookish Hunter []
+    (1x Hobbit Archer: Tookish Hunter)
+start: Battlin' Brandybuck []
+    (1x Hobbit Militia: Battlin' Brandybuck)
+reinforcement (choice): Hobbit Militia []
+    (1x Hobbit Militia: )
+reinforcement (choice): Hobbit Shirriff []
+    (1x Hobbit Shirriff: )
+reinforcement (choice): Tookish Hunter [Tookish Hunter]
+    (1x Hobbit Archer: Tookish Hunter)
+reinforcement (choice): Battlin' Brandybuck [Battlin' Brandybuck]
+    (1x Hobbit Militia: Battlin' Brandybuck)
+reinforcement: Warrior of Numenor []
+    (1x Warrior of Numenor: Longbow)
+    note approximate: Warrior of Numenor: the mod has no figure without "Longbow", so that is the one shown.
+reinforcement: Dwarf Ranger []
+    (1x Dwarf Ranger: Dwarf longbow)
+    note approximate: Dwarf Ranger: the mod has no figure without "Dwarf longbow", so that is the one shown.
+reinforcement: Lothlorien Warrior []
+    (1x Lothlorien Warrior: )
+    note optionDropped: Lothlorien Warrior: Elven Cloak has no matching option on the figure and is left out.
+## Wolves of Isengard
+start: Isengard Warg []
+    (1x Isengard Warg: )
+start: Isengard Warg Rider [Shield]
+    (1x Isengard Warg Rider: Shield)
+    (1x Isengard Orc Warrior: Shield)
+    (1x Fell Warg: )
+    note extraFigure: Isengard Warg Rider also has an on-foot figure (Isengard Orc Warrior), for when it dismounts.
+    note extraFigure: Isengard Warg Rider also has its Warg as a figure of its own (Fell Warg).
+start: Isengard Warg Rider [Orc Bow]
+    (1x Isengard Warg Rider: Orc bow)
+    (1x Isengard Orc Warrior: Bow)
+    (1x Fell Warg: )
+    note extraFigure: Isengard Warg Rider also has an on-foot figure (Isengard Orc Warrior), for when it dismounts.
+    note extraFigure: Isengard Warg Rider also has its Warg as a figure of its own (Fell Warg).
+reinforcement: Isengard Warg []
+    (1x Isengard Warg: )
+reinforcement: Isengard Warg Rider []
+    (1x Isengard Warg Rider: Orc bow)
+    (1x Isengard Orc Warrior: Bow)
+    (1x Fell Warg: )
+    note approximate: Isengard Warg Rider: the mod has no figure without "Orc bow", so that is the one shown.
+    note extraFigure: Isengard Warg Rider also has an on-foot figure (Isengard Orc Warrior), for when it dismounts.
+    note extraFigure: Isengard Warg Rider also has its Warg as a figure of its own (Fell Warg).
+advancement: Isengard Warg Rider []
+    (1x Isengard Warg Rider: Orc bow)
+    (1x Isengard Orc Warrior: Bow)
+    (1x Fell Warg: )
+    note approximate: Isengard Warg Rider: the mod has no figure without "Orc bow", so that is the one shown.
+    note extraFigure: Isengard Warg Rider also has an on-foot figure (Isengard Orc Warrior), for when it dismounts.
+    note extraFigure: Isengard Warg Rider also has its Warg as a figure of its own (Fell Warg).
+## Armoury
+wanderer: Wandering Swordsman
+    (Captain of Dale: )
+    note shownAs: Wandering Swordsman is shown as Captain of Dale.
+wanderer: Wandering Marksman
+    (Ruffian: Bow)
+    note shownAs: Wandering Marksman is shown as Ruffian: Bow.
+wanderer: Wandering Scavenger
+    (Goblin Mercenary Captain: )
+    note shownAs: Wandering Scavenger is shown as Goblin Mercenary Captain.
+wanderer: Wandering Sage
+    (Malbeth the Seer: )
+    note shownAs: Wandering Sage is shown as Malbeth the Seer.
+creature: Baggage Pony
+    (Warrior of Minas Tirith: Bow)
+    (1x Bill the Pony: )
+    note approximate: Warrior of Minas Tirith: the mod has no figure without "Bow", so that is the one shown.
+    note shownAs: Warrior of Minas Tirith's Baggage Pony is shown as Bill the Pony.
+creature: Falcon
+    (Warrior of Minas Tirith: Bow)
+    (1x Crebain: )
+    note approximate: Warrior of Minas Tirith: the mod has no figure without "Bow", so that is the one shown.
+    note shownAs: Warrior of Minas Tirith's Falcon is shown as Crebain.
+creature: Hunting Dog
+    (Warrior of Minas Tirith: Bow)
+    (1x Fang: )
+    note approximate: Warrior of Minas Tirith: the mod has no figure without "Bow", so that is the one shown.
+    note shownAs: Warrior of Minas Tirith's Hunting Dog is shown as Fang.

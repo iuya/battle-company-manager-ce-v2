@@ -624,8 +624,7 @@ func influenceText(cost int) string {
 func (env recruitEnv) newRecruit(base string, gear []string) UnitState {
 	spec := UnitState{Base: base, Role: RoleWarrior, Gear: gear}
 	if profile, ok := env.rs.BC.Profile(env.bcC.Name); ok && profile.RecruitAsHero {
-		spec.Role = RoleHero
-		profile.BecomeHero(&spec)
+		spec.Role, spec.Bonus = RoleHero, HeroBonus(nil)
 	}
 	return spec
 }

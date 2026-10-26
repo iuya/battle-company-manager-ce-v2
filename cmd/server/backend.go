@@ -25,6 +25,7 @@ type (
 	aftermathSvc = core.AftermathService
 	invitesSvc   = core.Invites
 	liveSvc      = core.LiveService
+	ttsSvc       = core.TTSService
 )
 
 // campaignsFacade implements web.campaigns by embedding the core services: each owns its use cases, their method names are
@@ -41,6 +42,7 @@ type campaignsFacade struct {
 	*aftermathSvc
 	*invitesSvc
 	*liveSvc
+	*ttsSvc
 }
 
 // backend is everything the server and the seed command use, built over one store.
@@ -128,6 +130,7 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 			aftermathSvc: aftermath,
 			invitesSvc:   core.NewInvites(camps, store.Invites()),
 			liveSvc:      live,
+			ttsSvc:       core.NewTTSService(camps, comps, rules),
 		},
 		liveHub:    hub,
 		store:      store,

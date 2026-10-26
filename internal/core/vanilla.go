@@ -42,7 +42,16 @@ type VanillaUnit struct {
 	Wargear       []string
 	Includes      []string       // the units a bundle brings (Vault Warden Team: Iron Shield Bearer, Foe Spear Wielder); it carries their wargear
 	Options       []ChoiceOption // what the profile lets a model take, with the points it costs
+	// OptionKeys is parallel to Options: the choose-one group of each option (chooseOneKey, requireChooseOneKey), "" when it has none.
+	// At most one option of a group is taken; a group with a required option must have one taken.
+	OptionKeys    []OptionKey
 	MagicalPowers []PowerRef
+}
+
+// OptionKey is the choose-one group an option belongs to.
+type OptionKey struct {
+	Key      string
+	Required bool // requireChooseOneKey: the model must take one option of the group
 }
 
 // PowerRef is a magical power a unit knows, with its range and casting value.
@@ -136,12 +145,19 @@ func ParseVanillaWith(content []byte, reviewed []VanillaAmbiguity, log *slog.Log
 			u.Includes = append(u.Includes, in.Name)
 		}
 		var options []struct {
-			Name   string `json:"name"`
-			Points int    `json:"points"`
+			Name    string `json:"name"`
+			Points  int    `json:"points"`
+			Choose  string `json:"chooseOneKey"`
+			Require string `json:"requireChooseOneKey"`
 		}
 		_ = json.Unmarshal(raw["options"], &options)
 		for _, o := range options {
 			u.Options = append(u.Options, ChoiceOption{Name: o.Name, Points: o.Points})
+			key := OptionKey{Key: o.Choose}
+			if o.Require != "" {
+				key = OptionKey{Key: o.Require, Required: true}
+			}
+			u.OptionKeys = append(u.OptionKeys, key)
 		}
 		var powers []struct {
 			Name    string `json:"name"`

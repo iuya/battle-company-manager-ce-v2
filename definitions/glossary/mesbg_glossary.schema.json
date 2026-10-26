@@ -22,6 +22,31 @@
     "source": {
       "type": "string"
     },
+    "reference": {
+      "type": "object",
+      "description": "Structured tables of the rulebook that the terms only describe.",
+      "required": ["toWound"],
+      "properties": {
+        "toWound": {
+          "type": "object",
+          "required": ["title", "term", "rulebookPage", "strengths", "defences", "cells", "notation", "notes"],
+          "properties": {
+            "title": {"type": "string"},
+            "term": {"type": "string", "description": "The glossary term that describes the chart."},
+            "rulebookPage": {"type": "integer"},
+            "strengths": {"type": "array", "items": {"type": "integer"}, "minItems": 10, "maxItems": 10, "description": "Row labels: the attacker's Strength."},
+            "defences": {"type": "array", "items": {"type": "integer"}, "minItems": 10, "maxItems": 10, "description": "Column labels: the target's Defence."},
+            "cells": {
+              "type": "array", "minItems": 10, "maxItems": 10,
+              "description": "cells[s-1][d-1] is the roll for Strength s against Defence d.",
+              "items": {"type": "array", "minItems": 10, "maxItems": 10, "items": {"type": "string", "pattern": "^([3-6]\\+|6\\+/[4-6]\\+|-)$"}}
+            },
+            "notation": {"type": "object", "additionalProperties": {"type": "string"}},
+            "notes": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      }
+    },
     "terms": {
       "type": "array",
       "minItems": 1,

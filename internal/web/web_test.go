@@ -1399,6 +1399,29 @@ func TestRenamingAUnitReturnsToThePage(t *testing.T) {
 	}
 }
 
+func TestCompanyInfoShowsTheEpigraphAboveTheCompanyRule(t *testing.T) {
+	f := newFixture(t, Config{})
+	profiles := []core.CompanyProfile{
+		{BCCompany: core.BCCompany{Name: "Arnor", Alignment: "good", MaxModels: 15, ReinforcementCost: 3}, Rules: []string{"Rule"}, Substitutions: []string{"Own rule sentence."},
+			Epigraph: &core.Epigraph{Quote: "We travel light.", Text: "The Dunedain grew wilder."}},
+		{BCCompany: core.BCCompany{Name: "Mordor", Alignment: "evil", MaxModels: 15, ReinforcementCost: 3}, Substitutions: []string{"Other rule sentence."}},
+	}
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil).AnyTimes()
+	f.camp.EXPECT().CompanyProfiles(gomock.Any(), int64(7)).Return(profiles, nil).AnyTimes()
+	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
+	get := func(c string) string {
+		return f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/company/info?c="+c, nil))).Body.String()
+	}
+	a := get("Arnor")
+	q, r := strings.Index(a, "We travel light."), strings.Index(a, "Own rule sentence.")
+	if q < 0 || r < 0 || q > r || !strings.Contains(a, "The Dunedain grew wilder.") || !strings.Contains(a, "data-epigraph") {
+		t.Errorf("the epigraph comes before the company rule: %d %d", q, r)
+	}
+	if m := get("Mordor"); strings.Contains(m, "data-epigraph") {
+		t.Error("a company without an epigraph draws none")
+	}
+}
+
 func TestTheCompanyBrowserListsEveryCompanyAndShowsOne(t *testing.T) {
 	f := newFixture(t, Config{})
 	profiles := []core.CompanyProfile{

@@ -117,9 +117,10 @@
   </section>
   {{end}}
 
-  {{if or $p.UniqueWargear $p.HeroUpgrades $p.Rules $p.Granted $p.Aliases $p.Exchanges $p.Substitutions}}
+  {{if or $p.Epigraph $p.UniqueWargear $p.HeroUpgrades $p.OwnRules $p.Granted $p.Aliases $p.Exchanges $p.Substitutions}}
   <section class="space-y-3" aria-labelledby="own-title">
     <h3 id="own-title">Only this company has</h3>
+    {{with $p.Epigraph}}<blockquote class="space-y-0.5" data-epigraph><p class="font-medium italic">&ldquo;{{.Quote}}&rdquo;</p><p class="text-sm italic text-muted">{{.Text}}</p></blockquote>{{end}}
     <div class="grid gap-3 md:grid-cols-2">
       {{range $p.UniqueWargear}}
       <div class="exclusive">
@@ -133,9 +134,9 @@
         {{with .Flavour}}<p class="text-sm italic text-muted">{{.}}</p>{{end}}
         {{with index $.Tips .Name}}<p class="mt-1 text-sm">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p>{{end}}
       </div>{{end}}
-      {{range $p.Rules}}<div class="exclusive"><p class="exclusive-label">Company rule</p><p class="text-sm">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p></div>{{end}}
+      {{range $p.OwnRules}}<div class="exclusive"><p class="exclusive-label">Company rule</p><p class="text-sm">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p></div>{{end}}
       {{range $p.Granted}}<div class="exclusive"><p class="exclusive-label">Free special rule · {{.AppliesTo}}</p><p class="font-medium">{{template "segments" (dict "S" ($.Named .Rule) "CID" $cid)}}</p><p class="text-sm text-muted">{{.Text}}</p></div>{{end}}
-      {{range $p.Aliases}}<div class="exclusive"><p class="exclusive-label">Unit with its own name</p><p class="font-medium">{{template "unit_ref" (dict "C" $custom "P" $p "U" .Label "W" nil)}}</p><p class="text-sm text-muted">{{template "segments" (dict "S" ($.Linked .Text) "CID" $cid)}}</p></div>{{end}}
+      {{range $p.Aliases}}<div class="exclusive"><p class="exclusive-label">Printed name</p><p class="font-medium">{{template "unit_ref" (dict "C" $custom "P" $p "U" .Label "W" nil)}}</p><p class="text-sm text-muted">{{template "segments" (dict "S" ($.Linked .Text) "CID" $cid)}}</p></div>{{end}}
       {{range $p.Exchanges}}<div class="exclusive"><p class="exclusive-label">Rule exchange</p><p class="text-sm">{{template "segments" (dict "S" ($.Linked .Text) "CID" $cid)}}</p></div>{{end}}
       {{range $p.Substitutions}}<div class="exclusive"><p class="exclusive-label">Company rule</p><p class="text-sm">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p></div>{{end}}
     </div>
@@ -240,21 +241,19 @@
 
 {{/* A starting model in the creation page: draggable between the pool and the officers' places. Takes {V: the page's view, R: startRow}. */}}
 {{define "start_card"}}{{$v := .V}}{{$r := .R}}{{$p := $v.Profile}}{{$custom := $v.Campaign.Settings.CustomOnTheirOwnPath}}
-<li class="start-card" data-index="{{$r.Index}}" data-eligible="{{$r.Eligible}}" data-unit="{{$r.Unit}}"{{with $r.Becomes}} data-becomes="{{.}}"{{end}}{{if $r.Locked}} data-keep="true"{{end}}>
+<li class="start-card" data-index="{{$r.Index}}" data-eligible="{{$r.Eligible}}" data-unit="{{$r.Unit}}"{{with $r.Lock.Kind}} data-lock="{{.}}"{{end}}{{if $r.Locked}} data-keep="true"{{end}}{{if $r.Lock.Reason}} aria-describedby="lock-{{$r.Index}}"{{end}}>
   <div class="min-w-0 flex-1">
-    {{if $r.Becomes}}<p class="pool-only font-medium">{{template "unit_ref" (dict "C" $custom "P" $p "U" $r.Unit "W" $r.Wargear)}}</p>
-    <p class="slot-only font-medium">{{template "unit_ref" (dict "C" $custom "P" $p "U" $r.Becomes "W" $r.BecomesGear)}}</p>
-    <p class="slot-only text-xs text-muted">becomes a {{$r.Becomes}} as an officer</p>
-    <p class="pool-only mt-0.5 flex flex-wrap gap-1">{{range $r.Wargear}}{{template "chip" (dict "V" $v "N" .)}}{{end}}</p>
-    <p class="slot-only mt-0.5 flex flex-wrap gap-1">{{range $r.BecomesGear}}{{template "chip" (dict "V" $v "N" .)}}{{end}}</p>
-    {{else}}<p class="font-medium">{{template "unit_ref" (dict "C" $custom "P" $p "U" $r.Unit "W" $r.Wargear)}}</p>{{end}}
-    <p class="mt-0.5 flex flex-wrap gap-1">{{if not $r.Becomes}}{{range $r.Wargear}}{{template "chip" (dict "V" $v "N" .)}}{{end}}{{end}}{{if $r.Suggested}}<span class="badge badge-gold" x-show="suggested" x-cloak>Suggested</span>{{end}}</p>
+    <p class="font-medium">{{template "unit_ref" (dict "C" $custom "P" $p "U" $r.Unit "W" $r.Wargear)}}</p>
+    <p class="mt-0.5 flex flex-wrap gap-1">{{range $r.Wargear}}{{template "chip" (dict "V" $v "N" .)}}{{end}}{{if $r.Suggested}}<span class="badge badge-gold" x-show="suggested" x-cloak>Suggested</span>{{end}}</p>
+    {{with $r.Lock.Reason}}<p id="lock-{{$r.Index}}" class="lock-note mt-1 flex items-start gap-1 text-xs text-muted" data-lock-note><svg class="mt-px h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg><span><span class="font-semibold">Locked:</span> {{.}}</span></p>{{end}}
   </div>
   <div class="pool-only flex shrink-0 flex-col gap-1">
-    {{if $r.Eligible}}<button type="button" class="btn btn-secondary !min-h-8 !px-2 !text-xs" @click="assign($el.closest('.start-card'), 'leader')">Leader</button>
-    <button type="button" class="btn btn-secondary !min-h-8 !px-2 !text-xs" @click="assign($el.closest('.start-card'), 'sergeant')">Sergeant</button>
-    {{else}}<span class="max-w-24 text-right text-xs text-muted" title="This company cannot make {{$r.Unit}} an officer">Cannot lead</span>{{end}}
+    {{if $r.Eligible}}{{range $role := split "leader,sergeant" ","}}<button type="button" class="btn btn-secondary !min-h-8 !px-2 !text-xs" :class="blocked($el.closest('.start-card'), '{{$role}}') && 'opacity-50 cursor-not-allowed'" :aria-disabled="blocked($el.closest('.start-card'), '{{$role}}') ? 'true' : null" :aria-describedby="blocker($el.closest('.start-card'), '{{$role}}')" @click="assign($el.closest('.start-card'), '{{$role}}')">{{upfirst $role}}</button>{{end}}
+    {{else if $r.HeroInMaking}}<span class="max-w-24 text-right text-xs text-muted">Hero in the Making</span>
+    {{else}}<span class="max-w-24 text-right text-xs text-muted">Cannot lead</span>{{end}}
   </div>
-  {{if $r.Locked}}<span class="slot-only text-xs text-muted">Always leads</span>{{else}}<button type="button" class="slot-only btn btn-ghost !min-h-8 !px-2 !text-xs" @click="unassign($el.closest('.start-card'))">Remove</button>{{end}}
+  {{if $r.Locked}}<span class="slot-only text-xs text-muted">Always leads</span>
+  {{else if eq (printf "%s" $r.Lock.Kind) "officer"}}<div class="slot-only flex shrink-0 flex-col gap-1">{{range $role := split "leader,sergeant" ","}}<button type="button" class="btn btn-secondary !min-h-8 !px-2 !text-xs" x-show="roleOf($el.closest('.start-card')) !== '{{$role}}'" :class="blocked($el.closest('.start-card'), '{{$role}}') && 'opacity-50 cursor-not-allowed'" :aria-disabled="blocked($el.closest('.start-card'), '{{$role}}') ? 'true' : null" :aria-describedby="blocker($el.closest('.start-card'), '{{$role}}')" @click="assign($el.closest('.start-card'), '{{$role}}')">Make {{upfirst $role}}</button>{{end}}</div>
+  {{else}}<button type="button" class="slot-only btn btn-ghost !min-h-8 !px-2 !text-xs" @click="unassign($el.closest('.start-card'))">Remove</button>{{end}}
 </li>
 {{end}}

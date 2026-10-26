@@ -342,7 +342,7 @@ profiles in its company's charts, promotions and starting company (`heroOptions`
 reason (`ArmouryItem.Blocker`): a full limit is not a rule against the unit.
 
 **Armour upgrades** (`core/armour.go`, `data.wargear.armourUpgrade`): the shop adds one offer per armour stage above the first
-(`GearOffer.ArmourStage` > 0: "Armour", "Heavy Armour"; 1 influence or Gold, rating per stage: 1 until a hero's Attacks + Wounds reach 3, then 5, and none for a stage that its profile or its Options already have, BC "Calculate Rating"; a warrior pays its option's points). Buying
+(`GearOffer.ArmourStage` > 0: "Armour", "Heavy Armour"; 1 influence or Gold, rating per stage: 1 until a hero's Attacks + Wounds reach 3, then 5, and no extra rating for a stage that its profile or its Options already have, BC "Calculate Rating"; the option itself costs its MESBG points for a warrior and a hero alike). Buying
 one through `BuyEquipment` with the stage's name replaces the armour the unit wears (the old one is dropped) with the next stage;
 stages are never skipped. A warrior (a Beast that is still a warrior included) needs the stage as an option of its profile; a hero only the stages that units
 of its company can have (`armourPool`), so a company without heavy-armoured units never sells Heavy Armour to a hero.
@@ -389,8 +389,21 @@ cannot recruit beyond its maximum (15, or 12 for many) nor without enough influe
 open; their forms answer with the window again (`HX-Retarget` sends the final answer to the whole page) and
 `core.ErrRefused` carries the reason when the rules say no.
 
+**Officer locks on the creation page.** Everything the server forces on the choice of officers is blocked in the page too, from one source:
+`CompanyProfile.OfficerLocks()` (core, `startingcompany.go`) gives, per place of the starting company, an `OfficerLock{Kind, Reason}`:
+`leader` (the Shire's Ranger of the North: must start as the Leader), `officer` (a unit that is a hero by its profile, `startingHeroNoStatGain`:
+Helm's Deep's Ranger of the North: must be Leader or Sergeant), `barred` (a Hero in the Making of Wanderers in the Wild, a unit On Their Own
+Path, or a unit the company excludes: cannot be an officer) or free. `ValidateStart` is built on the same locks (so the page and the
+server cannot diverge; `TestOfficerLocksAgreeWithValidateStartInEveryCompany` checks all companies) and stays the safety net: a forged POST gets the
+same 422 and message. The page (`start_card` in `company_new.gohtml`, `commission` in `lists.js`): the card carries `data-lock`, an
+`aria-describedby` to its reason and a lock icon with "Locked: <reason>"; a `leader` card is pre-placed, immovable and says "Always leads"; an `officer`
+card is pre-placed in an officer place and cannot go to the pool (drag, no Remove button), nor be replaced from the pool, but moves between the Leader
+and Sergeant places by drag (the card it meets swaps places with it) or with the "Make Leader" / "Make Sergeant" buttons (the keyboard path); a `barred` card has no
+assign buttons. The pool buttons that would do nothing (the Leader button while a locked card holds the place) are `aria-disabled` and describedby
+the locking card's reason. Rows are `startRow.Lock` in `internal/web/companies.go`.
+
 **Ranger of the North replacement (Shire; epic bead `6n1`; first design built by `7rf`, `kbk`, `04t`, `3b2`, now being reworked into the officer reshuffle below).** The Shire starts
-with a Ranger of the North as Leader (fixed: `CompanyProfile.ValidateStart` refuses any other choice with "The Ranger of the North must start as the Leader of the The Shire company."; the form should lock him), a vanilla Hero (Might, Will, Fate 1 each, so `startingHeroNoStatGain`). The company's rule:
+with a Ranger of the North as Leader (fixed: `CompanyProfile.ValidateStart` refuses any other choice with "The Ranger of the North must start as the Leader of the The Shire company."; the form locks him, see "Officer locks on the creation page"), a vanilla Hero (Might, Will, Fate 1 each, so `startingHeroNoStatGain`). The company's rule:
 "if the company's Ranger of the North has been slain, you may swap any successful result on the Reinforcements chart for a Ranger
 of the North, who may immediately take the role of Leader or Sergeant. The company may only ever have a single Ranger of the
 North at any time." The data is the effect `companies[Shire].effects[kind=rangerReplacement]`: `unit`, `max` (1, counted in the
@@ -542,8 +555,10 @@ cards back. Meanwhile the cards themselves do not react.
 wargear amounts to plus the rating of its equipment; a hero built from a warrior profile is that profile's points plus
 5 per point of Might, Will, Fate, Movement, Fight, Strength and Defence and 10 per point of Attack and Wounds above the
 profile and above the average Battle Company profile, plus 5 per special rule its path gave (`BCBook.HeroRating`), plus
-the rating of gear that is neither part of its profile nor of its options (at the hero rating when its Attacks and Wounds
-add up to 3 or more); other heroes (named characters, monsters) are their vanilla points plus gear. **Injured** units
+the options of its profile it carries at their MESBG points (BC: wargear of the profile or its Options "makes no adjustment, it
+is as it is in their book", the same price a warrior pays), plus the rating of gear that is neither part of its profile nor of
+its options (at the hero rating when its Attacks and Wounds add up to 3 or more); other heroes (named characters, monsters)
+are their vanilla points plus their options plus gear. A starting company's points plus its gold are 105 once the officers are chosen. **Injured** units
 (marked on their card) miss the next game and are left out of the company's rating (the Points card says how many).
 
 **Optional rules** are chosen when the campaign is created and shown in its Rules card. For now there is one, "heroes may
@@ -630,7 +645,7 @@ starting models. The player drags three models into the places (SortableJS; a mo
 there back to the pool) or uses the Leader, Sergeant and Remove buttons of a card, which also work with a keyboard. Models the
 company does not let lead (`startingHeroRestriction`: Lake-town only the Lake-town Guard, Cirith Ungol not the Spider) cannot be
 placed. The company's own suggestion (the roles its file gives, else the first models) starts in the places, marked "Suggested"
-until the player changes anything. A model whose company promotion changes it when it becomes a hero (`CompanyProfile.PromotionOnHero`: the Arnor Ranger of Arnor) is shown in the places as the unit it will be (`startRow.Becomes`, `BecomesGear`: Ranger of the North with the wargear it keeps) with the hint "becomes a Ranger of the North as an officer"; in the pool it is still the Ranger of Arnor (`pool-only` / `slot-only` spans, `data-becomes` for the confirmation dialog). The "On Their Own Path" badges on that page follow the campaign's `CustomOnTheirOwnPath`: without it they never become heroes and earn no experience, with it they are warriors that earn experience and become heroes on a 6. Below, the company's **oath** (`data.companies[].oath`: text with `{name}` where the player types
+until the player changes anything. An officer keeps its profile (the Arnor Rangers of Arnor stay Rangers of Arnor as officers: the company's hero promotion belongs to the level-up roll), so the cards and the confirmation dialog show the same unit in the pool and in the places; a start unit the company already makes a Hero in the Making (Wanderers) cannot be picked. The "On Their Own Path" badges on that page follow the campaign's `CustomOnTheirOwnPath`: without it they never become heroes and earn no experience, with it they are warriors that earn experience and become heroes on a 6. Below, the company's **oath** (`data.companies[].oath`: text with `{name}` where the player types
 the company's name, and the label of the vow button; companies of a custom file fall back to `campaign.company.oath` for their
 alignment) and the vow button, which opens a "These decisions are final" confirmation with a recap. The officers and the company are
 final; the name can be changed later from My Company (the pencil by its name, `RenameCompany`). `CompanyProfile.ValidateStart`
@@ -645,6 +660,11 @@ path's heroic action, except the units the company lists in `startingHeroNoStatG
 Shire).
 
 ### Company rules and hero upgrades
+
+- A company's **epigraph** (`CompanyProfile.Epigraph`, optional `epigraph {quote, text}` in the Battle Companies file; only Arnor has
+  one) is flavour, drawn on the Choose-your-company page at the head of "Only this company has", above the cards (`[data-epigraph]`):
+  the quote in italic and medium weight, the sentence under it in the same italic muted style as a hero upgrade's flavour. Nothing is
+  drawn for a company without one. The company overview shows no rule cards (only chips), so it draws no epigraph.
 
 - A **hero upgrade** of the company is offered with every hero level-up as a third option, in a gold frame ("Company hero upgrade"): a
   hero may take it instead of either result, even when neither result can be taken, if it does not have it yet (the Battle Companies
@@ -671,6 +691,46 @@ Shire).
 A unit is renamed by double-clicking its name, or with the pencil next to the name on the expanded card (the collapsed card shows no
 extra button, so nothing moves). The name is at most 40 characters; an empty name takes the unit back to its type. Rules that aim at a
 unit use its id, so they follow the new name (`campaigns.RenameUnit`).
+
+### Copy as a Tabletop Simulator army list (built)
+
+An icon button (two sheets, `tts_button` in `partials/tts.gohtml`, 44 px on a phone) sits in the row of the company's name on My Company, on another
+player's company page (read only, also a frozen campaign) and, because it is the same page, in the live match. Not drawn for a company without units.
+Its tooltip is plain CSS (`group-hover` and `group-focus-within`, a `role="tooltip"` span that `aria-describedby` points to; it is outside the company
+component, so the `has-tip` machinery does not reach it) with the exact text of [tabletop-simulator.md](tabletop-simulator.md); the `aria-label` is the
+short "Copy as an army list for Tabletop Simulator". It opens a window (`role="dialog" aria-modal`, the pattern above: `dialog.js` moves the focus in and
+back, Escape and the backdrop close, the body scroll is locked) whose content is fetched by htmx from
+`GET /campaigns/{id}/companies/{company}/tts` (`?live=1` for a company in an open match: the units that are retreated, casualties or absent go in a second
+warband, `core.TTSLiveList`; a match that ended meanwhile gives the plain list). Whoever may open the campaign may ask (`loadCampaign` and `Company`: the
+404 of the company page for a stranger). The handler (`web/tts.go`) calls the minimal `ttsExporter` interface (`core.TTSService`, mocked by `make generate`).
+
+The window: a short title, the three numbered steps (Notebook tab titled `ArmyList`, paste, Spawn Army), a warning "This campaign uses a changed rules file, so
+some unit names may not exist in the mod" when the campaign's vanilla or Battle Companies file is not the shipped default (`customRules`, from
+`CampaignDetail.Rulesets[].Default`), two switches (`tts_switch`: a real `<input type="checkbox" role="switch" class="peer sr-only">`, so the keyboard and
+screen readers have a native control), then the result (`#tts-result`): a read-only monospace `<textarea id="tts-text">`, **Copy to clipboard** and a polite
+live region `#tts-status`, the count line ("15 models + 2 extra figures. Break Point: 7.5 (50% of 15). The mod's own message counts every figure it spawns:
+it will report 17 models") and the notes grouped by kind with their headings (Not in the list, Left out, Shown as, Closest model, Dismounting, Extra figures,
+Second warband), one sentence per unit (core writes the unit's name into each). No model at all: "None of these units has a standard model" and no copy.
+
+The switches (Riders on foot = `foot`, Mounts that fight as figures of their own = `mounts`, both default on, query values 0/1) refresh only `#tts-result`
+(`hx-get` on change, `hx-select="#tts-result"`, `hx-swap="outerHTML"`) so focus stays on the switch. `static/js/tts.js` (in the bundle, no inline handlers)
+adds the remembered values to the first request and the new ones to every switch request (`htmx:configRequest`), keeps them in `localStorage` key `bcm-tts`
+(`{"foot":"1","mounts":"1","rules":"none"}`, every access in try/catch: without storage the defaults apply) and copies with `navigator.clipboard.writeText`, falling back
+to selecting the text and `execCommand('copy')`; when both fail the status says "press Ctrl+C" with the text already selected. The warning alert is the new
+`.alert-warn` (border `warn`, surface `raised`); the button, the switches and the alert are in `/styleguide`. Flow `91-tts` drives all of it.
+
+**Level B block** (bead wu3.4, below the notes, only when there is a list): "Name and describe the figures". A second form (`data-tts-form`, a
+`fieldset` of three radios `rules` = none | short | full, default none (names only), remembered in the same `localStorage` key) refreshes only `#tts-names-result`; the
+list switches refresh `#tts-result` and, through `hx-select-oob="#tts-names-result:outerHTML"`, the names too (the forms are not swapped, so focus stays).
+The result holds a labelled read-only `<textarea id="tts-names-text">` with the ArmyNames JSON (`core.TTSNames` through `ttsExporter.TTSNames`, given the
+export the handler already built, so the list and the names agree, live variant and fallen marker included), **Copy names** with its own polite live region
+`#tts-names-status` (same clipboard and select fallback; `data-tts-copy` names the text area and `data-tts-status` the region), the line "N figures, 9.4 KB of
+24 KB, rule texts: short", and note boxes for `rulesLowered`, `descriptionCut` and `tooLarge` (the last one `.alert-warn`). The changed-rules warning above applies
+to both blocks. Under it four numbered steps (install the helper once with the Saved Objects folder of macOS, Windows and Linux (unverified); paste into a
+Notebook tab titled exactly `ArmyNames`; spawn from `ArmyList`; select the army and press Apply names, Re-apply explained), the link "Download the helper"
+(`GET /tts/helper.zip`, `handleTTSHelper`: `ttshelper.Zip()` through `http.ServeContent` with `ETag`, `application/zip`, `Content-Disposition: attachment`,
+`Cache-Control: public, max-age=3600`, behind `protected`, so an anonymous visitor goes to the login) and a collapsed `<details>` "Show the Lua (fallback,
+unverified)" with a read-only text area (`ttshelper.ShowLua()`) and its own copy button. Flow `92-tts-names` drives it.
 
 ### Gold
 
@@ -757,7 +817,7 @@ The design is in [live-match.md](live-match.md) and [architecture.md](architectu
 `units.gohtml` and `match.gohtml`). `web` declares `liveMatches` (embedded in `campaigns`; `core.LiveService` implements it).
 
 - **Company page of a company in an open match** (`CompanyDetail.OpenMatch` says so; `liveFor` loads `Live`): the same page with
-  - `#live-banner` (sticky under the app bar): "Match N is running" with the scenario, the sync dot, **End checks** (everybody) and, for who may edit, **Match log**;
+  - `#live-banner` (sticky under the app bar): "Match N is running" with the scenario, the sync dot, **To wound** (opens the To Wound chart window, below), **End checks** (everybody) and, for who may edit, **Match log**;
   - the roster locked like read only (no recruit, buy chips, heal, level-up, drop, dismiss; rename stays) with the line "The company is
     locked until the match ends"; "Change formation" is hidden while live (the grid is re-rendered by the sync);
   - `#live-zones` (`live_zones`): the Field as unit cards, then **Retreated**, **Field casualties** and **Missed this game** as
@@ -840,6 +900,21 @@ The design is in [live-match.md](live-match.md) and [architecture.md](architectu
 - **Match creation** shows "Company X is already in Match N." with a link (`*core.CompanyBusyError`) or "Finish the aftermath of Match N
   first."; the aftermath sheet shows **From the live match** (heading badge and a line) while it is the unsaved default
   (`Aftermath.FromLive`; REVIEW: per-value badges are a later option).
+
+## To Wound chart (window)
+
+`partials/to_wound.gohtml` (`to_wound_button`, `to_wound_dialog`, `to_wound_body`), `web/towound.go`, `static/js/towound.js`, the `tw-*` classes in `tailwind.css`; the
+behaviour and the reasons are in [matches.md](matches.md#to-wound-chart-a-window-built).
+
+- The button (`data-to-wound-open`) is on the match page (next to the heading, open matches) and in the live banner. `towound.js` turns its click into a window
+  event (`open-to-wound`), as `dialog.js` does for `data-open-modal`: no inline handler. The window (`#to-wound-dialog`, `role="dialog" aria-modal="true"`, labelled
+  by its title, the pattern of [Components](#components): `dialog.js` moves the focus in and back and traps Tab, Escape, the backdrop and Close shut it, the body scroll
+  is locked) is rendered once per page next to, never inside, `#match`, `#live-zones` and the sticky banner (a sticky element is a stacking context that would put the
+  window under the app bar).
+- Its body is fetched by htmx when the page loads (`hx-trigger="load"`) and kept; the Alpine component `toWound` keeps Strength and Defence in the browser and reads
+  the cells' `data-s`, `data-d`, `data-big`, `data-tier` and `data-meaning`.
+- Cells are colour bands from the semantic tokens (`success-soft`, a tint of `success`, `warn`, `danger`, `raised`); the contrast of every band's text is checked in
+  `93-to-wound` (4.5:1, light and dark), and the roll is always printed, so colour is not the only cue.
 
 ## Account
 

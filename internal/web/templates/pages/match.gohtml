@@ -2,6 +2,8 @@
 {{define "content"}}
 <p class="text-sm"><a href="/campaigns/{{.Campaign.ID}}/matches">← {{.Campaign.Name}} · Matches</a></p>
 {{template "match_body" .}}
+{{/* Outside #match, which every write swaps: the window stays open. */}}
+{{template "to_wound_dialog" (dict "CID" .Campaign.ID)}}
 {{end}}
 
 {{/* Everything below the back link. A write answers with this alone and htmx swaps it for #match, so the badge, the scenario and the result never disagree. */}}
@@ -14,7 +16,10 @@
     <div class="flex flex-wrap items-center gap-x-3 gap-y-1"><h1>Match {{$m.Number}}</h1>{{template "match_result" $m}}</div>
     <p class="mt-1 text-muted">{{fmtDate $m.PlayedOn}}{{with $m.EndedOn}} · Ended {{fmtDate .}}{{end}}</p>
   </div>
+  <div class="flex flex-wrap items-start gap-3">
+  {{if not $m.Ended}}{{template "to_wound_button" (dict "Class" "")}}{{end}}
   {{if and .CanEdit (not $m.Ended)}}{{template "end_propose" (dict "V" . "OOB" false)}}{{end}}
+  </div>
   {{if and .AdminOnEnded $m.Ended (not .AftermathApplied)}}
   <form hx-post="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/reopen" hx-target="#match" hx-swap="outerHTML" class="max-w-sm lg:text-right" x-data>
     <input type="hidden" name="revision" value="{{$m.Revision}}">

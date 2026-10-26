@@ -1,0 +1,11 @@
+{"v":1,"company":"The Riders of Rohan","figures":[
+ {"k":"theoden, king of rohan:","u":1,"x":"","n":"[b]Theoden[/b] (80)","d":"[i]Leader, level 3[/i]\n[FFCC00][b]M[-][/b] 6 | 5/4 | 3/- | 4 | 6 | 3 | 3 | 6 | 3\n[00CCFF]Might 3 Will 3 Fate 3[-]"},
+ {"k":"rider of rohan: shield","u":2,"x":"","n":"[b]Eadric[/b] (10)","d":"Rider 1"},
+ {"k":"rider of rohan: shield","u":3,"x":"","n":"[b]Wulf[/b] (10)","d":"Rider 2"},
+ {"k":"rider of rohan: shield","u":4,"x":"","n":"[b]Hild[/b] (10)","d":"Rider 3"},
+ {"k":"warrior of rohan: banner","u":5,"x":"","n":"[b]Banner A[/b] (6)","d":"Banner 1"},
+ {"k":"warrior of rohan: banner","u":6,"x":"","n":"[b]Banner B[/b] (6)","d":"Banner 2"},
+ {"k":"warrior of rohan: shield","u":2,"x":"foot","n":"[b]Eadric[/b] (10) (on foot)","d":"Eadric on foot"},
+ {"k":"fell warg:","l":"Fell Warg: ","u":7,"x":"mount","n":"[b]Grub[/b]'s Fell Warg","d":"Warg of Grub"},
+ {"k":"úlaire nénya:","l":"Úlaire Nénya:","u":8,"x":"","n":"[b]Ulaire[/b] (90)","d":"Accented key"}
+]}

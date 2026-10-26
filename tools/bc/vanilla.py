@@ -16,17 +16,10 @@ ALIASES = {
 }
 
 
-# Names from the 2018 books that were renamed in the 2024 edition (same stats). The printed name is kept as `label`.
-LEGACY_NAMES = {
-    "high elf warrior": "Rivendell Warrior",
-    "mirkwood cavalry": "Mirkwood Elf Knight",
-    "grimhammer": "Grim Hammer Warrior",
-    "warrior of erebor": "Erebor Dwarf Warrior",
-    "iron hills dwarf": "Iron Hills Warrior",
-    "rhunish war drake": "War Drake of Rhun",
-    "giant mirkwood spider": "Mirkwood Giant Spider",
-    "abrakhan guard": "Abrakhan Merchant Guard",
-}
+# Names the Battle Companies document prints for a vanilla unit under another name (2018 names, abbreviations); same stats and
+# points. The printed name is kept as `label` and the company shows an explanation card. Each mapping is a reviewed guess
+# (see docs/definitions.md, unit names).
+LEGACY_NAMES = {}  # the former entries moved to SOURCE_TYPOS (tools/bc/core.py): the unit is simply named correctly
 
 # Units that are a vanilla unit plus a rule/keyword that would be illegal in vanilla but is allowed in Battle Companies.
 # No new unit is created: the reference points at the vanilla unit and carries the delta.
@@ -45,6 +38,7 @@ class Vanilla:
         d = json.load(open(path, encoding="utf-8"))
         self.game = d["game"]
         data = d["data"]
+        self._data = data
         self.collections = {k: {e["name"] for e in v} for k, v in data.items()}
         self.units = self.collections["warriors"] | self.collections["heroes"]
         self._unit_by_fold = {}
@@ -72,6 +66,14 @@ class Vanilla:
                 a = ALIASES[cand]
                 if a in self.units:
                     return a
+        return None
+
+    def option(self, unit, name):
+        """The vanilla option dict (name, points, availableIn) of a unit, or None."""
+        for kind in ("warriors", "heroes"):
+            for e in self._data[kind]:
+                if e["name"] == unit:
+                    return next((o for o in e.get("options", []) if o["name"] == name), None)
         return None
 
     def keyword(self, name):

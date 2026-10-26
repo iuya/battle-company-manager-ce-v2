@@ -1,0 +1,83 @@
+{{/* The To Wound chart (docs/matches.md, "To Wound chart"). Three pieces: the button that opens it (to_wound_button, on the match page and in
+     the live banner), the window (to_wound_dialog, once per page and outside every region that is swapped or refetched, so nothing
+     closes or replaces it) and its body (to_wound_body, fetched once when the page loads and then kept; static/js/towound.js holds the
+     find control). */}}
+{{define "to_wound_button"}}
+<button type="button" class="btn btn-secondary {{.Class}}" data-to-wound-open aria-haspopup="dialog">To wound</button>
+{{end}}
+
+{{define "to_wound_dialog"}}
+<div x-data="{ open: false }" x-effect="document.body.classList.toggle('overflow-hidden', open)" @open-to-wound.window="open = true" @keydown.escape.window="if (open) open = false">
+  <div x-show="open" x-cloak x-transition.opacity class="fixed inset-0 z-[55] flex items-start justify-center overflow-y-auto bg-black/60 p-3 sm:p-6" @click.self="open = false">
+    <div class="card relative my-2 w-full max-w-xl !p-4 sm:!p-6" role="dialog" aria-modal="true" aria-labelledby="tw-title" id="to-wound-dialog">
+      <button type="button" class="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-md text-muted hover:bg-raised hover:text-fg" @click="open = false" aria-label="Close">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h3 class="!text-2xl pr-10" id="tw-title">To Wound chart</h3>
+      <div id="tw-body" class="mt-2" hx-get="/campaigns/{{.CID}}/to-wound" hx-trigger="load" hx-target="this" hx-swap="innerHTML"><p class="text-muted">Loading…</p></div>
+    </div>
+  </div>
+</div>
+{{end}}
+
+{{define "to_wound_stepper"}}
+<div>
+  <label for="tw-{{.Key}}" class="text-sm font-medium">{{.Label}}</label>
+  <div class="mt-1 flex items-center gap-1.5">
+    <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="{{.Label}}, one lower" @click="step('{{.Key}}', -1)">−</button>
+    <input id="tw-{{.Key}}" type="number" inputmode="numeric" min="{{.Min}}" max="{{.Max}}" step="1" placeholder="–" class="input !min-h-11 w-full min-w-0 text-center text-lg font-semibold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" x-model.number="{{.Key}}" @input="clamp('{{.Key}}')" data-tw-input="{{.Key}}">
+    <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="{{.Label}}, one higher" @click="step('{{.Key}}', 1)">+</button>
+  </div>
+</div>
+{{end}}
+
+{{define "to_wound_body"}}
+{{if .Chart}}
+<div x-data="toWound" class="space-y-3" data-to-wound>
+  <p class="text-sm text-muted">The roll the attacker needs on the dice to wound: its Strength against the target's Defence{{if .Chart.RulebookPage}} (rulebook page {{.Chart.RulebookPage}}){{end}}.</p>
+
+  <div class="grid grid-cols-2 gap-3" role="group" aria-label="Find the roll">
+    {{template "to_wound_stepper" (dict "Key" "s" "Label" "Attacker's Strength" "Min" .Min.S "Max" .Max.S)}}
+    {{template "to_wound_stepper" (dict "Key" "d" "Label" "Target's Defence" "Min" .Min.D "Max" .Max.D)}}
+  </div>
+
+  <div class="tw-result rounded-lg border border-line p-3 text-center" :class="found ? 'tw-t-' + tier : ''" role="status" aria-live="polite" data-tw-result>
+    <template x-if="found">
+      <div>
+        <p class="text-4xl font-semibold leading-tight" x-text="big"></p>
+        <p class="text-sm" x-text="'Strength ' + s + ' against Defence ' + d"></p>
+        <p class="mt-1 text-xs" x-text="meaning"></p>
+      </div>
+    </template>
+    <template x-if="!found"><p class="text-sm text-muted">Pick the attacker's Strength and the target's Defence, or tap a cell of the chart.</p></template>
+  </div>
+
+  <div class="tw-scroll overflow-auto rounded-lg border border-line" tabindex="0" role="region" aria-label="To Wound chart: Strength down the side, Defence across the top">
+    <table class="tw-table w-full border-separate border-spacing-0 text-center text-xs" x-ref="grid">
+      <caption class="sr-only">Roll needed to wound, by the attacker's Strength (rows) and the target's Defence (columns)</caption>
+      <thead>
+        <tr>
+          <th scope="col" class="tw-head tw-corner"><span class="sr-only">Strength, Defence</span><span aria-hidden="true">S\D</span></th>
+          {{range .Chart.Defences}}<th scope="col" class="tw-head tw-col" :class="d === {{.}} && 'tw-on'">{{.}}</th>{{end}}
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Rows}}
+        <tr>
+          <th scope="row" class="tw-head tw-row" :class="s === {{.S}} && 'tw-on'">{{.S}}</th>
+          {{range .Cells}}<td class="tw-c tw-{{.Tier}}" :class="{ 'tw-hl': s === {{.S}} || d === {{.D}}, 'tw-sel': s === {{.S}} && d === {{.D}} }" title="{{.Label}}" data-s="{{.S}}" data-d="{{.D}}" data-roll="{{.Roll}}" data-big="{{.Big}}" data-tier="{{.Tier}}" data-meaning="{{.Meaning}}" @click="pick({{.S}}, {{.D}})">{{if eq .Tier "split"}}<span aria-hidden="true">{{.Show}}</span><span class="sr-only">{{.Big}}</span>{{else if eq .Tier "none"}}<span aria-hidden="true">–</span><span class="sr-only">{{.Big}}</span>{{else}}{{.Show}}{{end}}</td>{{end}}
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+
+  <ul class="grid gap-1 text-xs sm:grid-cols-2" aria-label="Key">
+    {{range .Legend}}<li class="flex items-center gap-2"><span class="tw-c tw-{{.Tier}} tw-key" aria-hidden="true">{{if eq .Tier "none"}}–{{else}}{{.Show}}{{end}}</span><span>{{.Meaning}}</span></li>{{end}}
+  </ul>
+  {{with .Chart.Notes}}<ul class="list-disc space-y-0.5 pl-5 text-xs text-muted">{{range .}}<li>{{.}}</li>{{end}}</ul>{{end}}
+</div>
+{{else}}
+<p class="text-muted">This campaign's rules file has no To Wound chart.</p>
+{{end}}
+{{end}}

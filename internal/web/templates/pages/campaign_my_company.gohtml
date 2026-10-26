@@ -9,9 +9,9 @@
   {{else}}<span>Viewing <strong>{{.Name}}</strong>, the company of {{.Owner}}. Read only: you can look at everything, but nothing here can be changed.</span>{{end}}
   <a href="/campaigns/{{$.Campaign.ID}}/companies" class="btn btn-secondary !min-h-9">All companies</a>
 </div>
-<div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1"><h2 class="!text-3xl">{{.Name}}</h2><span class="badge badge-muted">{{if $.Frozen}}Frozen{{else}}Viewing only{{end}}</span></div>
+<div class="relative mt-4 flex flex-wrap items-center gap-x-3 gap-y-1"><h2 class="!text-3xl">{{.Name}}</h2>{{if $.HasCopyButton}}{{template "tts_button" (dict "URL" $.TTSURL "Tip" $.TTSTip)}}{{end}}<span class="badge badge-muted">{{if $.Frozen}}Frozen{{else}}Viewing only{{end}}</span></div>
 {{else}}
-<div class="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1" x-data="{ renaming: false }">
+<div class="relative mt-6 flex flex-wrap items-center gap-x-3 gap-y-1" x-data="{ renaming: false }">
   <h2 class="!text-3xl" x-show="!renaming">{{.Name}}</h2>
   <button type="button" class="btn btn-ghost !min-h-11 !min-w-11 !px-2 text-muted sm:!min-h-8 sm:!min-w-0" x-show="!renaming" @click="renaming = true; $nextTick(() => $refs.name.focus())" aria-label="Rename the company" title="Rename the company"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg></button>
   <form x-show="renaming" x-cloak method="post" action="/campaigns/{{$.Campaign.ID}}/my-company/rename" hx-post="/campaigns/{{$.Campaign.ID}}/my-company/rename" hx-target="#main" hx-swap="innerHTML" class="flex min-w-0 flex-1 items-center gap-2">
@@ -19,6 +19,7 @@
     <button class="btn btn-primary !min-h-9">Rename</button>
     <button type="button" class="btn btn-ghost !min-h-9" @click="renaming = false">Cancel</button>
   </form>
+  {{if $.HasCopyButton}}<span x-show="!renaming" class="inline-flex">{{template "tts_button" (dict "URL" $.TTSURL "Tip" $.TTSTip)}}</span>{{end}}
   <span class="badge" x-show="!renaming">Your company</span>
 </div>
 {{end}}
@@ -38,7 +39,9 @@
 </section>
 {{end}}{{end}}
 
-{{with $.Live}}{{template "live_banner" (dict "LV" . "CID" $.Campaign.ID)}}{{end}}
+{{with $.Live}}{{template "live_banner" (dict "LV" . "CID" $.Campaign.ID)}}
+{{/* Beside the banner, not in it (the sticky banner is a stacking context) and outside #live-zones, which the live refresh swaps: it stays open. */}}
+{{template "to_wound_dialog" (dict "CID" $.Campaign.ID)}}{{end}}
 {{template "company_stats" (dict "Company" .CampaignCompany "Max" .MaxUnits "Injured" .InjuredUnits)}}
 
 {{/* One component for the resources and the units: the tooltips, the windows and the formation. */}}
@@ -203,7 +206,8 @@
 <div id="live-banner" data-match="{{.MatchID}}" class="alert alert-info sticky top-[3.75rem] z-10 mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 !py-2" role="status">
   <span class="min-w-0 font-medium"><a class="underline" href="/campaigns/{{$cid}}/matches/{{.MatchID}}">Match {{.MatchNumber}}</a> is running{{with .Scenario}} <span class="font-normal text-muted">· {{.}}</span>{{end}}</span>
   <span id="live-dot" class="inline-flex items-center gap-1.5 text-xs text-muted" data-state="off"><span class="live-dot" aria-hidden="true"></span><span id="live-dot-text">Live</span></span>
-  <span class="ml-auto flex gap-2">
+  <span class="ml-auto flex flex-wrap gap-2">
+  {{template "to_wound_button" (dict "Class" "!min-h-9")}}
   <button type="button" class="btn btn-secondary !min-h-9" hx-get="/campaigns/{{$cid}}/matches/{{.MatchID}}/live/end?company={{.CompanyID}}" hx-target="#modal-body" hx-swap="innerHTML" data-open-modal>End checks</button>
   {{if .Edit}}<button type="button" class="btn btn-secondary !min-h-9" hx-get="/campaigns/{{$cid}}/matches/{{.MatchID}}/live/log?company={{.CompanyID}}" hx-target="#modal-body" hx-swap="innerHTML" data-open-modal>Match log</button>{{end}}
   </span>

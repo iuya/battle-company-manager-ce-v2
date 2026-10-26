@@ -3419,7 +3419,7 @@
             "addSpecialRules": [
               "Loyal to the Captain"
             ],
-            "text": "Ranger of Ithilien is a Ranger of Gondor with the Loyal to the Captain special rule added (not allowed in vanilla, allowed in Battle Companies).",
+            "text": "Ranger of Ithilien uses the profile of the Ranger of Gondor with the Loyal to the Captain special rule added (a Battle Companies addition).",
             "companyNotes": [
               "*A Ranger of Ithilien is a Ranger of Gondor with the Loyal to the Captains special rule at no additional cost."
             ]
@@ -3466,7 +3466,7 @@
             "addSpecialRules": [
               "Loyal to the Captain"
             ],
-            "text": "Ranger of Ithilien is a Ranger of Gondor with the Loyal to the Captain special rule added (not allowed in vanilla, allowed in Battle Companies).",
+            "text": "Ranger of Ithilien uses the profile of the Ranger of Gondor with the Loyal to the Captain special rule added (a Battle Companies addition).",
             "layer": "management"
           },
           {
@@ -3982,8 +3982,11 @@
             ]
           }
         ],
+        "epigraph": {
+          "quote": "Leave all that can be spared behind. We travel light.",
+          "text": "As Arnor fell, the Dunedain grew wilder and more dangerous in their vigil."
+        },
         "specialRules": [
-          "\"Leave all that can be spared behind. We travel light.\" - As Arnor fell, the Dunedain grew wilder and more dangerous in their vigil.",
           "Should a Ranger of Arnor Warrior achieve a Hero in the Making result on the Warrior Promotion Table, they instead trade out their profile in its entirety for a Ranger of the North. They will retain their spear, if applicable, however they will not carry over their armour from the Ranger of Arnor profile."
         ],
         "vanillaFaction": "Arnor",
@@ -4029,7 +4032,6 @@
             {
               "count": 1,
               "unit": "Rivendell Warrior",
-              "label": "High Elf Warrior",
               "wargear": [
                 "Elf bow"
               ]
@@ -4107,14 +4109,6 @@
             "text": "The Last Alliance Battle Company may only have up to 12 members rather than the normal 15."
           }
         ],
-        "unitAliases": [
-          {
-            "label": "High Elf Warrior",
-            "unit": "Rivendell Warrior",
-            "reason": "legacyName",
-            "text": "High Elf Warrior is the name this unit has in the 2018 books; in the 2024 edition it is the Rivendell Warrior (same profile)."
-          }
-        ],
         "vanillaFaction": "The Last Alliance",
         "oath": {
           "text": "Elves and Men stand shoulder to shoulder as in the days of Gil-galad and Elendil, and I lead them. Let our oath of fellowship be sealed in the name of {name}, and let no sword be sheathed while the Dark Lord lives.",
@@ -4124,14 +4118,6 @@
           {
             "kind": "maxModels",
             "value": 12,
-            "layer": "management"
-          },
-          {
-            "kind": "unitAlias",
-            "label": "High Elf Warrior",
-            "unit": "Rivendell Warrior",
-            "reason": "legacyName",
-            "text": "High Elf Warrior is the name this unit has in the 2018 books; in the 2024 edition it is the Rivendell Warrior (same profile).",
             "layer": "management"
           },
           {
@@ -4634,7 +4620,7 @@
               "Helmingas"
             ],
             "reason": "option",
-            "text": "Helminga is a Warrior of Rohan with the Helmingas option selected.",
+            "text": "Helminga is a Warrior of Rohan with the Helmingas option selected. The option costs 1 point. In the base game only Grimbold of Grimslade can take it; this company's rules allow it.",
             "companyNotes": [
               "Helminga are found in the Legacies of Middle-Earth (Good) pdf under Grimbold of Grimslade's profile."
             ]
@@ -4660,7 +4646,7 @@
               "Helmingas"
             ],
             "reason": "option",
-            "text": "Helminga is a Warrior of Rohan with the Helmingas option selected.",
+            "text": "Helminga is a Warrior of Rohan with the Helmingas option selected. The option costs 1 point. In the base game only Grimbold of Grimslade can take it; this company's rules allow it.",
             "layer": "management"
           },
           {
@@ -4869,7 +4855,6 @@
             {
               "count": 2,
               "unit": "Erebor Dwarf Warrior",
-              "label": "Warrior of Erebor",
               "wargear": [
                 "shield"
               ]
@@ -4877,7 +4862,6 @@
             {
               "count": 1,
               "unit": "Erebor Dwarf Warrior",
-              "label": "Warrior of Erebor",
               "wargear": [
                 "spear"
               ]
@@ -4934,8 +4918,7 @@
                 "type": "unit",
                 "count": 1,
                 "choice": true,
-                "unit": "Erebor Dwarf Warrior",
-                "label": "Warrior of Erebor"
+                "unit": "Erebor Dwarf Warrior"
               }
             },
             {
@@ -4946,8 +4929,7 @@
               "result": {
                 "type": "unit",
                 "count": 1,
-                "unit": "Grim Hammer Warrior",
-                "label": "Grimhammer"
+                "unit": "Grim Hammer Warrior"
               }
             }
           ]
@@ -4962,29 +4944,13 @@
         "advancements": [
           {
             "from": {
-              "unit": "Erebor Dwarf Warrior",
-              "label": "Warrior of Erebor"
+              "unit": "Erebor Dwarf Warrior"
             },
             "to": [
               {
-                "unit": "Grim Hammer Warrior",
-                "label": "Grimhammer"
+                "unit": "Grim Hammer Warrior"
               }
             ]
-          }
-        ],
-        "unitAliases": [
-          {
-            "label": "Grimhammer",
-            "unit": "Grim Hammer Warrior",
-            "reason": "legacyName",
-            "text": "Grimhammer is the name this unit has in the 2018 books; in the 2024 edition it is the Grim Hammer Warrior (same profile)."
-          },
-          {
-            "label": "Warrior of Erebor",
-            "unit": "Erebor Dwarf Warrior",
-            "reason": "legacyName",
-            "text": "Warrior of Erebor is the name this unit has in the 2018 books; in the 2024 edition it is the Erebor Dwarf Warrior (same profile)."
           }
         ],
         "vanillaFaction": "Erebor & Dale",
@@ -4993,22 +4959,6 @@
           "vow": "By beard and bow"
         },
         "effects": [
-          {
-            "kind": "unitAlias",
-            "label": "Grimhammer",
-            "unit": "Grim Hammer Warrior",
-            "reason": "legacyName",
-            "text": "Grimhammer is the name this unit has in the 2018 books; in the 2024 edition it is the Grim Hammer Warrior (same profile).",
-            "layer": "management"
-          },
-          {
-            "kind": "unitAlias",
-            "label": "Warrior of Erebor",
-            "unit": "Erebor Dwarf Warrior",
-            "reason": "legacyName",
-            "text": "Warrior of Erebor is the name this unit has in the 2018 books; in the 2024 edition it is the Erebor Dwarf Warrior (same profile).",
-            "layer": "management"
-          },
           {
             "kind": "heroUpgrade",
             "name": "Lordly Quality",
@@ -5026,7 +4976,6 @@
             {
               "count": 1,
               "unit": "Iron Hills Warrior",
-              "label": "Iron Hills Dwarf",
               "wargear": [
                 "shield",
                 "spear"
@@ -5035,7 +4984,6 @@
             {
               "count": 2,
               "unit": "Iron Hills Warrior",
-              "label": "Iron Hills Dwarf",
               "wargear": [
                 "mattock"
               ]
@@ -5103,8 +5051,7 @@
                 "type": "unit",
                 "count": 1,
                 "choice": true,
-                "unit": "Iron Hills Warrior",
-                "label": "Iron Hills Dwarf"
+                "unit": "Iron Hills Warrior"
               }
             }
           ]
@@ -5139,14 +5086,6 @@
             "text": "We Stand Together The number of Dwarf models may not exceed the number of Dale models in the company. If you would receive a Reinforcement that exceeds this total, you may choose any lower result."
           }
         ],
-        "unitAliases": [
-          {
-            "label": "Iron Hills Dwarf",
-            "unit": "Iron Hills Warrior",
-            "reason": "legacyName",
-            "text": "Iron Hills Dwarf is the name this unit has in the 2018 books; in the 2024 edition it is the Iron Hills Warrior (same profile)."
-          }
-        ],
         "oath": {
           "text": "The North has long been forgotten by the great kingdoms, so we shall stand for ourselves. Dwarves of the hills and men of Dale, we go forth as {name}, and the road to our homes remains closed to the Shadow.",
           "vow": "Stand together"
@@ -5155,14 +5094,6 @@
           {
             "kind": "maxModels",
             "value": 12,
-            "layer": "management"
-          },
-          {
-            "kind": "unitAlias",
-            "label": "Iron Hills Dwarf",
-            "unit": "Iron Hills Warrior",
-            "reason": "legacyName",
-            "text": "Iron Hills Dwarf is the name this unit has in the 2018 books; in the 2024 edition it is the Iron Hills Warrior (same profile).",
             "layer": "management"
           },
           {
@@ -5395,7 +5326,7 @@
               "Lorien Guard"
             ],
             "reason": "option",
-            "text": "Lorien Guard is a Galadhrim Warrior with the Lorien Guard option selected."
+            "text": "Lorien Guard is a Galadhrim Warrior with the Lorien Guard option selected. The option costs 1 point. In the base game only Galadriel, Lady of Lothlorien and Celeborn, Lord of Lothlorien can take it; this company's rules allow it."
           }
         ],
         "vanillaFaction": "Lothlorien",
@@ -5420,7 +5351,7 @@
               "Lorien Guard"
             ],
             "reason": "option",
-            "text": "Lorien Guard is a Galadhrim Warrior with the Lorien Guard option selected.",
+            "text": "Lorien Guard is a Galadhrim Warrior with the Lorien Guard option selected. The option costs 1 point. In the base game only Galadriel, Lady of Lothlorien and Celeborn, Lord of Lothlorien can take it; this company's rules allow it.",
             "layer": "management"
           },
           {
@@ -5597,7 +5528,7 @@
               "Noldorian Exile"
             ],
             "reason": "option",
-            "text": "Noldorin Exile is a Lothlorien Warrior with the Noldorian Exile option selected.",
+            "text": "Noldorin Exile is a Lothlorien Warrior with the Noldorian Exile option selected. The option costs 1 point. In the base game only Gildor Inglorion can take it; this company's rules allow it.",
             "companyNotes": [
               "A Noldorin Exile is a Lothlorien Warrior with Gildor Inglorion's unique Noldorin Exile upgrade (see Legacies of Middle-Earth - Forces of Good pg. 11 of 22)."
             ]
@@ -5622,7 +5553,7 @@
               "Noldorian Exile"
             ],
             "reason": "option",
-            "text": "Noldorin Exile is a Lothlorien Warrior with the Noldorian Exile option selected.",
+            "text": "Noldorin Exile is a Lothlorien Warrior with the Noldorian Exile option selected. The option costs 1 point. In the base game only Gildor Inglorion can take it; this company's rules allow it.",
             "layer": "management"
           },
           {
@@ -5771,8 +5702,7 @@
             },
             "to": [
               {
-                "unit": "Mirkwood Elf Knight",
-                "label": "Mirkwood Cavalry"
+                "unit": "Mirkwood Elf Knight"
               }
             ]
           },
@@ -5823,14 +5753,13 @@
               "result": {
                 "type": "unit",
                 "count": 1,
-                "unit": "Mirkwood Elf Knight",
-                "label": "Mirkwood Cavalry"
+                "unit": "Mirkwood Elf Knight"
               }
             }
           ]
         },
         "specialRules": [
-          "Palace Guard & Mirkwood Cavalry in this Battle Company treat the Leader as Thranduil for the purposes of their special rules."
+          "Palace Guard & Mirkwood Elf Knight in this Battle Company treat the Leader as Thranduil for the purposes of their special rules."
         ],
         "maxModels": 12,
         "uniqueWargear": [
@@ -5851,20 +5780,12 @@
         ],
         "ruleSubstitutions": [
           {
-            "appliesTo": "Palace Guard & Mirkwood Cavalry",
+            "appliesTo": "Palace Guard & Mirkwood Elf Knight",
             "target": {
               "role": "leader"
             },
             "treatedAs": "Thranduil",
-            "text": "Palace Guard & Mirkwood Cavalry in this Battle Company treat the Leader as Thranduil for the purposes of their special rules."
-          }
-        ],
-        "unitAliases": [
-          {
-            "label": "Mirkwood Cavalry",
-            "unit": "Mirkwood Elf Knight",
-            "reason": "legacyName",
-            "text": "Mirkwood Cavalry is the name this unit has in the 2018 books; in the 2024 edition it is the Mirkwood Elf Knight (same profile)."
+            "text": "Palace Guard & Mirkwood Elf Knight in this Battle Company treat the Leader as Thranduil for the purposes of their special rules."
           }
         ],
         "vanillaFaction": "Halls of Thranduil",
@@ -5880,21 +5801,13 @@
           },
           {
             "kind": "ruleSubstitution",
-            "appliesTo": "Palace Guard & Mirkwood Cavalry",
+            "appliesTo": "Palace Guard & Mirkwood Elf Knight",
             "target": {
               "role": "leader"
             },
             "treatedAs": "Thranduil",
-            "text": "Palace Guard & Mirkwood Cavalry in this Battle Company treat the Leader as Thranduil for the purposes of their special rules.",
+            "text": "Palace Guard & Mirkwood Elf Knight in this Battle Company treat the Leader as Thranduil for the purposes of their special rules.",
             "layer": "match"
-          },
-          {
-            "kind": "unitAlias",
-            "label": "Mirkwood Cavalry",
-            "unit": "Mirkwood Elf Knight",
-            "reason": "legacyName",
-            "text": "Mirkwood Cavalry is the name this unit has in the 2018 books; in the 2024 edition it is the Mirkwood Elf Knight (same profile).",
-            "layer": "management"
           },
           {
             "kind": "uniqueWargear",
@@ -6182,7 +6095,6 @@
             {
               "count": 3,
               "unit": "Iron Hills Warrior",
-              "label": "Iron Hills Dwarf",
               "wargear": [
                 "shield",
                 "spear"
@@ -6191,7 +6103,6 @@
             {
               "count": 1,
               "unit": "Iron Hills Warrior",
-              "label": "Iron Hills Dwarf",
               "wargear": [
                 "Mattock"
               ]
@@ -6199,7 +6110,6 @@
             {
               "count": 1,
               "unit": "Iron Hills Warrior",
-              "label": "Iron Hills Dwarf",
               "wargear": [
                 "crossbow"
               ]
@@ -6229,7 +6139,6 @@
                 "type": "unit",
                 "count": 1,
                 "unit": "Iron Hills Warrior",
-                "label": "Iron Hills Dwarf",
                 "wargear": [
                   "Mattock"
                 ]
@@ -6244,7 +6153,6 @@
                 "type": "unit",
                 "count": 1,
                 "unit": "Iron Hills Warrior",
-                "label": "Iron Hills Dwarf",
                 "wargear": [
                   "Crossbow"
                 ]
@@ -6259,7 +6167,6 @@
                 "type": "unit",
                 "count": 1,
                 "unit": "Iron Hills Warrior",
-                "label": "Iron Hills Dwarf",
                 "wargear": [
                   "Spear"
                 ]
@@ -6274,8 +6181,7 @@
                 "type": "unit",
                 "count": 1,
                 "choice": true,
-                "unit": "Iron Hills Warrior",
-                "label": "Iron Hills Dwarf"
+                "unit": "Iron Hills Warrior"
               }
             },
             {
@@ -6299,14 +6205,6 @@
           }
         ],
         "maxModels": 12,
-        "unitAliases": [
-          {
-            "label": "Iron Hills Dwarf",
-            "unit": "Iron Hills Warrior",
-            "reason": "legacyName",
-            "text": "Iron Hills Dwarf is the name this unit has in the 2018 books; in the 2024 edition it is the Iron Hills Warrior (same profile)."
-          }
-        ],
         "oath": {
           "text": "The hills ring with hammers, and the Iron Hills have never yielded a foot of stone. I take this warband of stubborn hearts and call it {name}; let any foe who tests us learn the weight of the hill-forge.",
           "vow": "By hammer and anvil"
@@ -6315,14 +6213,6 @@
           {
             "kind": "maxModels",
             "value": 12,
-            "layer": "management"
-          },
-          {
-            "kind": "unitAlias",
-            "label": "Iron Hills Dwarf",
-            "unit": "Iron Hills Warrior",
-            "reason": "legacyName",
-            "text": "Iron Hills Dwarf is the name this unit has in the 2018 books; in the 2024 edition it is the Iron Hills Warrior (same profile).",
             "layer": "management"
           },
           {
@@ -6723,7 +6613,7 @@
               "Battlin' Brandybuck"
             ],
             "reason": "option",
-            "text": "Battlin' Brandybuck is a Hobbit Militia with the Battlin' Brandybuck option selected.",
+            "text": "Battlin' Brandybuck is a Hobbit Militia with the Battlin' Brandybuck option selected. The option costs 1 point. In the base game only Meriadoc Brandybuck, Captain of the Shire can take it; this company's rules allow it.",
             "companyNotes": [
               "Tookish Hunter & Battlin' Brandybuck are upgrades to the Hobbit Archer & Hobbit Militia respectively, as detailed on pg.13 of the Armies of Middle-Earth."
             ]
@@ -6735,7 +6625,7 @@
               "Tookish Hunter"
             ],
             "reason": "option",
-            "text": "Tookish Hunter is a Hobbit Archer with the Tookish Hunter option selected.",
+            "text": "Tookish Hunter is a Hobbit Archer with the Tookish Hunter option selected. The option costs 1 point. In the base game only Paladin Took, Thain of the Shire and Peregrin Took, Captain of the Shire can take it; this company's rules allow it.",
             "companyNotes": [
               "Tookish Hunter & Battlin' Brandybuck are upgrades to the Hobbit Archer & Hobbit Militia respectively, as detailed on pg.13 of the Armies of Middle-Earth."
             ]
@@ -6839,7 +6729,7 @@
               "Battlin' Brandybuck"
             ],
             "reason": "option",
-            "text": "Battlin' Brandybuck is a Hobbit Militia with the Battlin' Brandybuck option selected.",
+            "text": "Battlin' Brandybuck is a Hobbit Militia with the Battlin' Brandybuck option selected. The option costs 1 point. In the base game only Meriadoc Brandybuck, Captain of the Shire can take it; this company's rules allow it.",
             "layer": "management"
           },
           {
@@ -6850,7 +6740,7 @@
               "Tookish Hunter"
             ],
             "reason": "option",
-            "text": "Tookish Hunter is a Hobbit Archer with the Tookish Hunter option selected.",
+            "text": "Tookish Hunter is a Hobbit Archer with the Tookish Hunter option selected. The option costs 1 point. In the base game only Paladin Took, Thain of the Shire and Peregrin Took, Captain of the Shire can take it; this company's rules allow it.",
             "layer": "management"
           },
           {
@@ -7071,7 +6961,7 @@
               "Battlin' Brandybuck"
             ],
             "reason": "option",
-            "text": "Battlin' Brandybuck is a Hobbit Militia with the Battlin' Brandybuck option selected.",
+            "text": "Battlin' Brandybuck is a Hobbit Militia with the Battlin' Brandybuck option selected. The option costs 1 point. In the base game only Meriadoc Brandybuck, Captain of the Shire can take it; this company's rules allow it.",
             "companyNotes": [
               "Tookish Hunter & Battlin' Brandybuck are upgrades to the Hobbit Archer & Hobbit Militia respectively, as detailed on pg.13 of the Armies of Middle-Earth."
             ]
@@ -7083,7 +6973,7 @@
               "Tookish Hunter"
             ],
             "reason": "option",
-            "text": "Tookish Hunter is a Hobbit Archer with the Tookish Hunter option selected.",
+            "text": "Tookish Hunter is a Hobbit Archer with the Tookish Hunter option selected. The option costs 1 point. In the base game only Paladin Took, Thain of the Shire and Peregrin Took, Captain of the Shire can take it; this company's rules allow it.",
             "companyNotes": [
               "Tookish Hunter & Battlin' Brandybuck are upgrades to the Hobbit Archer & Hobbit Militia respectively, as detailed on pg.13 of the Armies of Middle-Earth."
             ]
@@ -7119,7 +7009,7 @@
               "Battlin' Brandybuck"
             ],
             "reason": "option",
-            "text": "Battlin' Brandybuck is a Hobbit Militia with the Battlin' Brandybuck option selected.",
+            "text": "Battlin' Brandybuck is a Hobbit Militia with the Battlin' Brandybuck option selected. The option costs 1 point. In the base game only Meriadoc Brandybuck, Captain of the Shire can take it; this company's rules allow it.",
             "layer": "management"
           },
           {
@@ -7130,7 +7020,7 @@
               "Tookish Hunter"
             ],
             "reason": "option",
-            "text": "Tookish Hunter is a Hobbit Archer with the Tookish Hunter option selected.",
+            "text": "Tookish Hunter is a Hobbit Archer with the Tookish Hunter option selected. The option costs 1 point. In the base game only Paladin Took, Thain of the Shire and Peregrin Took, Captain of the Shire can take it; this company's rules allow it.",
             "layer": "management"
           },
           {
@@ -7445,8 +7335,7 @@
             },
             {
               "count": 1,
-              "unit": "Mirkwood Giant Spider",
-              "label": "Giant Mirkwood Spider"
+              "unit": "Mirkwood Giant Spider"
             }
           ],
           "gold": 0
@@ -7497,8 +7386,7 @@
                 "type": "unit",
                 "rare": 1,
                 "count": 1,
-                "unit": "Mirkwood Giant Spider",
-                "label": "Giant Mirkwood Spider"
+                "unit": "Mirkwood Giant Spider"
               }
             }
           ]
@@ -7540,14 +7428,6 @@
             "text": "Obviously, this is no mere Spider from Mirkwood but a spawn of something far more sinister. . . ."
           }
         ],
-        "unitAliases": [
-          {
-            "label": "Giant Mirkwood Spider",
-            "unit": "Mirkwood Giant Spider",
-            "reason": "legacyName",
-            "text": "Giant Mirkwood Spider is the name this unit has in the 2018 books; in the 2024 edition it is the Mirkwood Giant Spider (same profile)."
-          }
-        ],
         "vanillaFaction": "Cirith Ungol",
         "oath": {
           "text": "Up in the dark stair, where Orc and Uruk snarl across the same fire, I have the whip and the watch. This rabble will be called {name}, and we will guard the pass or die cursing.",
@@ -7565,14 +7445,6 @@
           }
         ],
         "effects": [
-          {
-            "kind": "unitAlias",
-            "label": "Giant Mirkwood Spider",
-            "unit": "Mirkwood Giant Spider",
-            "reason": "legacyName",
-            "text": "Giant Mirkwood Spider is the name this unit has in the 2018 books; in the 2024 edition it is the Mirkwood Giant Spider (same profile).",
-            "layer": "management"
-          },
           {
             "kind": "heroUpgrade",
             "name": "Animosity",
@@ -9847,8 +9719,7 @@
               "result": {
                 "type": "unit",
                 "count": 1,
-                "unit": "Abrakhan Merchant Guard",
-                "label": "Abrakhân Guard"
+                "unit": "Abrakhan Merchant Guard"
               }
             }
           ]
@@ -9868,14 +9739,6 @@
         "onTheirOwnPath": [
           "Watcher of Kârna"
         ],
-        "unitAliases": [
-          {
-            "label": "Abrakhân Guard",
-            "unit": "Abrakhan Merchant Guard",
-            "reason": "legacyName",
-            "text": "Abrakhân Guard is the name this unit has in the 2018 books; in the 2024 edition it is the Abrakhan Merchant Guard (same profile)."
-          }
-        ],
         "vanillaFaction": "Harad",
         "oath": {
           "text": "From the burning south, past the Poros, our spears march behind painted banners. I lead the sons of Harad into the northern lands as {name}, to take what the Dark Lord promised and what our swords can hold.",
@@ -9889,14 +9752,6 @@
             "kind": "limitOverride",
             "limit": "bow",
             "percent": 50,
-            "layer": "management"
-          },
-          {
-            "kind": "unitAlias",
-            "label": "Abrakhân Guard",
-            "unit": "Abrakhan Merchant Guard",
-            "reason": "legacyName",
-            "text": "Abrakhân Guard is the name this unit has in the 2018 books; in the 2024 edition it is the Abrakhan Merchant Guard (same profile).",
             "layer": "management"
           },
           {
@@ -10323,8 +10178,7 @@
                 "type": "unit",
                 "rare": 2,
                 "count": 1,
-                "unit": "War Drake of Rhun",
-                "label": "Rhûnish War Drake"
+                "unit": "War Drake of Rhun"
               }
             }
           ]
@@ -10333,26 +10187,12 @@
         "notes": [
           {
             "section": "specialChart",
-            "text": "Rhûnish War Drakes & Dragon Cult Acolytes are On Their Own Path (pg. 33).",
-            "about": [
-              "Rhûnish War Drake"
-            ]
+            "text": "War Drakes of Rhun & Dragon Cult Acolytes are On Their Own Path (pg. 33)."
           }
         ],
         "onTheirOwnPath": [
           "War Drake of Rhun",
           "Dragon Cult Acolyte"
-        ],
-        "unitAliases": [
-          {
-            "label": "Rhûnish War Drake",
-            "unit": "War Drake of Rhun",
-            "reason": "legacyName",
-            "text": "Rhûnish War Drake is the name this unit has in the 2018 books; in the 2024 edition it is the War Drake of Rhun (same profile).",
-            "companyNotes": [
-              "Rhûnish War Drakes & Dragon Cult Acolytes are On Their Own Path (pg. 33)."
-            ]
-          }
         ],
         "oath": {
           "text": "Beyond the Sea of Rhun, our people have long served greater masters, and I now bind my chosen warriors in the Dark Lord's service. Under the banners of Rhun we are {name}, and the West will bow to the east wind.",
@@ -10370,7 +10210,7 @@
           }
         ],
         "onTheirOwnPathRulebook": [
-          "Rhûnish War Drakes",
+          "War Drake of Rhun",
           "Dragon Cult Acolyte"
         ],
         "effects": [
@@ -10380,21 +10220,13 @@
             "layer": "management"
           },
           {
-            "kind": "unitAlias",
-            "label": "Rhûnish War Drake",
-            "unit": "War Drake of Rhun",
-            "reason": "legacyName",
-            "text": "Rhûnish War Drake is the name this unit has in the 2018 books; in the 2024 edition it is the War Drake of Rhun (same profile).",
-            "layer": "management"
-          },
-          {
             "kind": "onTheirOwnPath",
             "units": [
               "War Drake of Rhun",
               "Dragon Cult Acolyte"
             ],
             "path": "On Their Own Path",
-            "text": "Rhûnish War Drakes & Dragon Cult Acolytes are On Their Own Path (pg. 33).",
+            "text": "War Drakes of Rhun & Dragon Cult Acolytes are On Their Own Path (pg. 33).",
             "layer": "management"
           },
           {
@@ -11085,7 +10917,7 @@
             "addKeywords": [
               "Goblin"
             ],
-            "text": "Goblin Hulk is a Gundabad Ogre with the Goblin keyword added (not allowed in vanilla, allowed in Battle Companies).",
+            "text": "Goblin Hulk uses the profile of the Gundabad Ogre with the Goblin keyword added (a Battle Companies addition). It is hired for 15 Influence Points (Rare 1).",
             "companyNotes": [
               "A Goblin-town Battle Company may hire a Goblin Hulk (Rare 1), using the profile of the Gundabad Ogre with the Goblin keyword, for 15 Influence Points.",
               "The Goblin Hulk is On Their Own Path (pg. 33)."
@@ -11134,7 +10966,7 @@
             "addKeywords": [
               "Goblin"
             ],
-            "text": "Goblin Hulk is a Gundabad Ogre with the Goblin keyword added (not allowed in vanilla, allowed in Battle Companies).",
+            "text": "Goblin Hulk uses the profile of the Gundabad Ogre with the Goblin keyword added (a Battle Companies addition). It is hired for 15 Influence Points (Rare 1).",
             "layer": "management"
           },
           {
@@ -22155,6 +21987,196 @@
           "units": [
             "Iron Hills Goat Rider"
           ]
+        }
+      ]
+    },
+    "ttsModels": {
+      "text": "How a Battle Companies unit is written for the Tabletop Simulator MESBG FTC mod (docs/tabletop-simulator.md). standIns: models the mod has no 1:1 figure for (wanderers, creatures) and the mod model shown instead; mounts: a bought mount that fights (vanilla Attacks above 0) and the model of its figure; riders: the cavalry units, the model of the rider on foot and whether the mod's figure carries the dismounted state (`states`); names: option spellings that differ between the vanilla file and the mod. A name here is a vanilla name; a stand-in or mount model may also be 'Name: options'.",
+      "standIns": [
+        {
+          "kind": "wanderer",
+          "name": "Wandering Swordsman",
+          "model": "Captain of Dale",
+          "alternatives": [
+            "Knight of Dale"
+          ],
+          "reason": "a human swordsman; no wanderer figure in the mod"
+        },
+        {
+          "kind": "wanderer",
+          "name": "Wandering Marksman",
+          "model": "Ruffian: Bow",
+          "alternatives": [
+            "Ruffian"
+          ],
+          "reason": "a human archer; the Ruffian with a bow"
+        },
+        {
+          "kind": "wanderer",
+          "name": "Wandering Scavenger",
+          "model": "Goblin Mercenary Captain",
+          "alternatives": [
+            "Goblin Mercenary"
+          ],
+          "reason": "a scavenger, a lone mercenary figure"
+        },
+        {
+          "kind": "wanderer",
+          "name": "Wandering Sage",
+          "model": "Malbeth the Seer",
+          "reason": "an old sage, a seer"
+        },
+        {
+          "kind": "creature",
+          "name": "Baggage Pony",
+          "model": "Bill the Pony",
+          "reason": "the pony of the Fellowship"
+        },
+        {
+          "kind": "creature",
+          "name": "Falcon",
+          "model": "Crebain",
+          "reason": "a bird; the Crebain figure"
+        },
+        {
+          "kind": "creature",
+          "name": "Hunting Dog",
+          "model": "Fang",
+          "reason": "a hound; Fang"
+        }
+      ],
+      "mounts": [
+        {
+          "gear": "Fell Warg",
+          "model": "Fell Warg",
+          "attacks": 1,
+          "reason": "the mount fights (Attacks above 0): its figure is the mount itself"
+        },
+        {
+          "gear": "Warg",
+          "model": "Fell Warg",
+          "alternatives": [
+            "Wild Warg"
+          ],
+          "attacks": 1,
+          "reason": "the mod has no plain Warg figure; the Fell Warg is the closest (owner decision, REVIEW)"
+        }
+      ],
+      "riders": [
+        {
+          "unit": "Angmar Warg Rider",
+          "footModel": "Angmar Orc Warrior",
+          "states": false,
+          "reason": "no states"
+        },
+        {
+          "unit": "Black Numenorean Knight",
+          "footModel": "Black Numenorean Warrior",
+          "states": false,
+          "reason": "states on 3 of 4 keys"
+        },
+        {
+          "unit": "Dunlending Horseman",
+          "footModel": "Dunlending Warrior",
+          "states": false,
+          "reason": "no states"
+        },
+        {
+          "unit": "Easterling Kataphrakt",
+          "footModel": "Easterling Warrior",
+          "states": false,
+          "reason": "no states"
+        },
+        {
+          "unit": "Galadhrim Knight",
+          "footModel": "Galadhrim Warrior",
+          "states": false,
+          "reason": "states on 3 of 7 keys"
+        },
+        {
+          "unit": "Haradrim Raider",
+          "footModel": "Haradrim Warrior",
+          "states": false,
+          "reason": "no states"
+        },
+        {
+          "unit": "Hunter Orc Warg Rider",
+          "footModel": "Hunter Orc Warrior",
+          "states": true,
+          "reason": "states on every model key (rider on foot and the Fell Warg alone)"
+        },
+        {
+          "unit": "Iron Hills Goat Rider",
+          "footModel": "Dwarf Warrior",
+          "states": false,
+          "reason": "states on 1 of 2 keys; no Iron Hills foot model in the bag; owner chose a plain Dwarf Warrior for now"
+        },
+        {
+          "unit": "Isengard Warg Rider",
+          "footModel": "Isengard Orc Warrior",
+          "states": false,
+          "reason": "no states"
+        },
+        {
+          "unit": "Khandish Horseman",
+          "footModel": "Khandish Warrior",
+          "states": false,
+          "reason": "no states"
+        },
+        {
+          "unit": "Knight of Arnor",
+          "footModel": "Warrior of Arnor",
+          "states": false,
+          "reason": "no states"
+        },
+        {
+          "unit": "Knight of Minas Tirith",
+          "footModel": "Warrior of Minas Tirith",
+          "states": false,
+          "reason": "states on 1 of 2 keys"
+        },
+        {
+          "unit": "Mirkwood Elf Knight",
+          "footModel": "Mirkwood Elf Warrior",
+          "states": true,
+          "reason": "states on every model key (the alias Mirkwood Cavalry resolves to it)"
+        },
+        {
+          "unit": "Mordor Warg Rider",
+          "footModel": "Mordor Orc Warrior",
+          "states": false,
+          "reason": "states on 2 of 5 keys"
+        },
+        {
+          "unit": "Rider of Rohan",
+          "footModel": "Warrior of Rohan",
+          "states": true,
+          "reason": "states on every model key"
+        },
+        {
+          "unit": "Rivendell Knight",
+          "footModel": "Rivendell Warrior",
+          "states": false,
+          "reason": "states on 2 of 3 keys"
+        },
+        {
+          "unit": "Serpent Rider",
+          "footModel": "Serpent Guard",
+          "states": false,
+          "reason": "no states"
+        },
+        {
+          "unit": "Son of Eorl",
+          "states": true,
+          "reason": "states on every model key; no on-foot model of its own"
+        }
+      ],
+      "names": [
+        {
+          "unit": "Isengard Orc Warrior",
+          "from": "Orc bow",
+          "to": "Bow",
+          "reason": "the mod writes the plain Bow for the Isengard Orc Warrior"
         }
       ]
     }

@@ -30,7 +30,7 @@ func (w *world) customHeroes(c *wcamp, faction string) []core.StartHero {
 		}
 		var idx []int
 		for i, s := range p.StartList() {
-			if p.CanLead(s.Unit) {
+			if p.CanLeadStart(s) {
 				idx = append(idx, i)
 			}
 		}
@@ -38,7 +38,11 @@ func (w *world) customHeroes(c *wcamp, faction string) []core.StartHero {
 			return nil
 		}
 		n := len(idx)
-		return []core.StartHero{{Index: idx[n-1], Role: core.RoleLeader}, {Index: idx[n-2], Role: core.RoleSergeant}, {Index: idx[n-3], Role: core.RoleSergeant}}
+		pick := []core.StartHero{{Index: idx[n-1], Role: core.RoleLeader}, {Index: idx[n-2], Role: core.RoleSergeant}, {Index: idx[n-3], Role: core.RoleSergeant}}
+		if _, err := p.ValidateStart(pick); err != nil { // the company needs a given unit among its officers (a hero by profile): its suggestion is used
+			return nil
+		}
+		return pick
 	}
 	return nil
 }

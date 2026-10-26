@@ -3,8 +3,9 @@ package core
 import "testing"
 
 // BC "Calculate Rating": a hero pays for wargear and equipment that is neither in its base profile nor in its profile's Options; below
-// Attacks + Wounds 3 at the warrior rating, from 3 on at the hero rating (all such gear recalculated at that moment). A warrior pays
-// its options' points.
+// Attacks + Wounds 3 at the warrior rating, from 3 on at the hero rating (all such gear recalculated at that moment). Wargear of the
+// base profile or of its Options "makes no adjustment, it is as it is in their book": the profile's wargear is free and an option
+// costs its MESBG points, for a hero as for a warrior.
 func TestHeroRatingOfGearOutsideTheProfileAndItsOptions(t *testing.T) {
 	rs := shippedRules(t)
 	rating := func(name string) Rating {
@@ -21,6 +22,16 @@ func TestHeroRatingOfGearOutsideTheProfileAndItsOptions(t *testing.T) {
 		}
 		return buildUnit(rs, rs.mustCompany(t, "Rohan"), s, CampaignSettings{}).Points
 	}
+	vanilla, _ := rs.Vanilla.Unit("Warrior of Rohan")
+	bowOption := 0
+	for _, o := range vanilla.Options {
+		if o.Name == "Bow" {
+			bowOption = o.Points
+		}
+	}
+	if bowOption == 0 {
+		t.Fatal("the Warrior of Rohan has a Bow option")
+	}
 	grown := HeroBonus(map[string]int{"attack": 1}) // Attacks 2 + Wounds 1 = 3
 	young := HeroBonus(nil)                         // Attacks 1 + Wounds 1 = 2
 	for _, tc := range []struct {
@@ -31,8 +42,8 @@ func TestHeroRatingOfGearOutsideTheProfileAndItsOptions(t *testing.T) {
 	}{
 		{"outside the options, below 3", young, "Horse", func(r Rating) int { return r.Warrior }},
 		{"outside the options, from 3", grown, "Horse", func(r Rating) int { return r.Hero }},
-		{"in the options: no adjustment, below 3", young, "Bow", func(Rating) int { return 0 }},
-		{"in the options: no adjustment, from 3", grown, "Bow", func(Rating) int { return 0 }},
+		{"in the options: as in the book, below 3", young, "Bow", func(Rating) int { return bowOption }},
+		{"in the options: as in the book, from 3", grown, "Bow", func(Rating) int { return bowOption }},
 		{"equipment is never in the options, below 3", young, "Company Standard", func(r Rating) int { return r.Warrior }},
 		{"equipment, from 3", grown, "Company Standard", func(r Rating) int { return r.Hero }},
 	} {

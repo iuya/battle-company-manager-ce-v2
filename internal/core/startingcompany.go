@@ -14,6 +14,15 @@ type StartHero struct {
 	Role  UnitRole
 }
 
+// RoleHeroInTheMaking is the role a company's file gives a starting unit that is already a Hero in the Making (Wanderers in the
+// Wild): it starts as a hero with a point of Might, Will and Fate and its path to choose, and is not one of the officers the player picks.
+const RoleHeroInTheMaking UnitRole = "heroInTheMaking"
+
+// CanLeadStart says whether a unit of the starting company may be one of the officers the player picks.
+func (p CompanyProfile) CanLeadStart(s StartUnit) bool {
+	return s.Role != RoleHeroInTheMaking && p.CanLead(s.Unit)
+}
+
 // StartList is the starting company with one entry per model (a unit with a count of two is two entries).
 func (p CompanyProfile) StartList() []StartUnit {
 	var out []StartUnit
@@ -56,7 +65,7 @@ func (p CompanyProfile) DefaultHeroes() []StartHero {
 	taken := map[int]bool{}
 	want := map[UnitRole]int{RoleLeader: 1, RoleSergeant: 2}
 	for i, s := range list {
-		if (s.Role == RoleLeader || s.Role == RoleSergeant) && want[s.Role] > 0 && p.CanLead(s.Unit) {
+		if (s.Role == RoleLeader || s.Role == RoleSergeant) && want[s.Role] > 0 && p.CanLeadStart(s) {
 			want[s.Role]--
 			taken[i] = true
 			out = append(out, StartHero{Index: i, Role: s.Role})
@@ -67,7 +76,7 @@ func (p CompanyProfile) DefaultHeroes() []StartHero {
 			if want[role] == 0 {
 				break
 			}
-			if !taken[i] && p.CanLead(s.Unit) {
+			if !taken[i] && p.CanLeadStart(s) {
 				want[role]--
 				taken[i] = true
 				out = append(out, StartHero{Index: i, Role: role})
@@ -75,6 +84,18 @@ func (p CompanyProfile) DefaultHeroes() []StartHero {
 		}
 	}
 	slices.SortFunc(out, func(a, b StartHero) int { return a.Index - b.Index })
+	return out
+}
+
+// heroesByProfile are the places of the starting units that already have their own Might, Will and Fate (a Ranger of the North:
+// startingHeroNoStatGain) and may lead: they are officers, or the company would be worth 15 points more than the rules say.
+func (p CompanyProfile) heroesByProfile() []int {
+	var out []int
+	for i, s := range p.StartList() {
+		if !p.StartGains(s.Unit) && p.CanLeadStart(s) {
+			out = append(out, i)
+		}
+	}
 	return out
 }
 
@@ -93,7 +114,50 @@ func (p CompanyProfile) fixedLeader(list []StartUnit) (int, bool) {
 }
 
 func (p CompanyProfile) fixedLeaderMessage(unit string) string {
-	return "The " + unit + " must start as the Leader of the " + p.Name + " company."
+	return "The " + unit + " must start as the Leader of " + theCompany(p.Name) + "."
+}
+
+func (p CompanyProfile) heroByProfileMessage(unit string) string {
+	return unit + " must be one of the officers of " + theCompany(p.Name) + " (it is already a hero)."
+}
+
+// OfficerLockKind says how the rules bind a starting unit in the choice of officers.
+type OfficerLockKind string
+
+const (
+	OfficerFree   OfficerLockKind = ""        // the player decides
+	OfficerLeader OfficerLockKind = "leader"  // must start as the Leader
+	OfficerAny    OfficerLockKind = "officer" // must be an officer, Leader or Sergeant
+	OfficerBarred OfficerLockKind = "barred"  // cannot be an officer
+)
+
+// OfficerLock is what the rules say about one starting unit in the choice of officers, with the reason in words. It is the single
+// source of truth of the creation page and of ValidateStart: the page blocks what this forbids, the server refuses it.
+type OfficerLock struct {
+	Kind   OfficerLockKind
+	Reason string // a short sentence for the card ("Locked: ..."); empty when the unit is free
+}
+
+// OfficerLocks gives, for every place of the starting company (StartList), how the rules bind the unit in the choice of officers.
+func (p CompanyProfile) OfficerLocks() []OfficerLock {
+	list := p.StartList()
+	out := make([]OfficerLock, len(list))
+	leader, hasLeader := p.fixedLeader(list)
+	for i, s := range list {
+		switch {
+		case s.Role == RoleHeroInTheMaking:
+			out[i] = OfficerLock{OfficerBarred, s.Unit + " starts as a Hero in the Making with a point of Might, Will and Fate; it chooses its path after the company is made."}
+		case p.OnOwnPath(s.Unit):
+			out[i] = OfficerLock{OfficerBarred, s.Unit + " is On Their Own Path: it earns no experience, so it cannot be an officer."}
+		case !p.CanLeadStart(s):
+			out[i] = OfficerLock{OfficerBarred, "The " + p.Name + " company cannot make " + s.Unit + " an officer."}
+		case hasLeader && i == leader:
+			out[i] = OfficerLock{OfficerLeader, "The rules make " + s.Unit + " the Leader of " + theCompany(p.Name) + "."}
+		case !p.StartGains(s.Unit):
+			out[i] = OfficerLock{OfficerAny, s.Unit + " is already a hero (it has its own Might, Will and Fate), so it is one of the officers: Leader or Sergeant."}
+		}
+	}
+	return out
 }
 
 // ValidateStart checks the player's choice of leader and sergeants against the company; with no choice it gives the company's
@@ -106,6 +170,7 @@ func (p CompanyProfile) ValidateStart(heroes []StartHero) ([]StartHero, error) {
 	fail := func(format string, a ...any) ([]StartHero, error) {
 		return nil, errors.Join(ErrInvalidCompany, fmt.Errorf(format, a...))
 	}
+	locks := p.OfficerLocks()
 	var leaders, sergeants int
 	seen := map[int]bool{}
 	for _, h := range heroes {
@@ -114,8 +179,8 @@ func (p CompanyProfile) ValidateStart(heroes []StartHero) ([]StartHero, error) {
 			return fail("that unit is not in the starting company")
 		case seen[h.Index]:
 			return fail("a unit cannot be two officers")
-		case !p.CanLead(list[h.Index].Unit):
-			return fail("%s cannot be an officer of the %s company", list[h.Index].Unit, p.Name)
+		case locks[h.Index].Kind == OfficerBarred:
+			return fail("%s cannot be an officer of %s", list[h.Index].Unit, theCompany(p.Name))
 		}
 		seen[h.Index] = true
 		switch h.Role {
@@ -130,12 +195,27 @@ func (p CompanyProfile) ValidateStart(heroes []StartHero) ([]StartHero, error) {
 	if leaders != 1 || sergeants != 2 {
 		return fail("choose one leader and two sergeants")
 	}
-	if i, ok := p.fixedLeader(list); ok {
-		if !slices.ContainsFunc(heroes, func(h StartHero) bool { return h.Index == i && h.Role == RoleLeader }) {
+	for i, l := range locks {
+		leads := slices.ContainsFunc(heroes, func(h StartHero) bool { return h.Index == i && h.Role == RoleLeader })
+		officer := slices.ContainsFunc(heroes, func(h StartHero) bool { return h.Index == i })
+		switch {
+		case l.Kind == OfficerLeader && !leads:
 			return fail("%s", p.fixedLeaderMessage(list[i].Unit))
+		case l.Kind == OfficerAny && !officer: // a hero by its profile is worth its Might, Will and Fate as a warrior too
+			return fail("%s", p.heroByProfileMessage(list[i].Unit))
 		}
 	}
 	out := slices.Clone(heroes)
 	slices.SortFunc(out, func(a, b StartHero) int { return a.Index - b.Index })
 	return out, nil
+}
+
+// theCompany writes "the Rohan company" or "the Shire company" without doubling the article when the company's name
+// already starts with "The" (The Shire).
+func theCompany(name string) string {
+	n := strings.TrimSpace(name)
+	if strings.HasPrefix(strings.ToLower(n), "the ") {
+		n = n[4:]
+	}
+	return "the " + n + " company"
 }

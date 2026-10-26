@@ -70,19 +70,7 @@ func TestAnOwnPathWarriorUnderTheSettingShowsExperienceAndLevelUp(t *testing.T) 
 	}
 }
 
-func TestAnOfficerIsShownAsTheUnitItBecomes(t *testing.T) {
-	p := core.CompanyProfile{
-		Name:       "Arnor",
-		Start:      []core.StartUnit{{Count: 1, Unit: "Ranger of Arnor", Wargear: []string{"bow", "spear"}}},
-		Promotions: []core.HeroPromotion{{From: "Ranger of Arnor", OnResult: "heroInTheMaking", Becomes: "Ranger of the North", Drop: []string{"spear"}}},
-	}
-	rows := startRows(p, nil)
-	if len(rows) != 1 || rows[0].Becomes != "Ranger of the North" || strings.Join(rows[0].BecomesGear, ",") != "bow" {
-		t.Errorf("the officer is the promoted unit with the wargear it keeps: %+v", rows)
-	}
-}
-
-func TestTheCreationPreviewOfArnorShowsTheRangerOfTheNorthAndTheOwnPathBadgeFollowsTheSetting(t *testing.T) {
+func TestTheCreationPreviewKeepsTheOfficersAsTheyAreAndTheOwnPathBadgeFollowsTheSetting(t *testing.T) {
 	content, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
 	if err != nil {
 		t.Skip("no rules file")
@@ -99,10 +87,13 @@ func TestTheCreationPreviewOfArnorShowsTheRangerOfTheNorthAndTheOwnPathBadgeFoll
 		f.camp.EXPECT().CompanyProfiles(gomock.Any(), int64(7)).Return(book.Profiles(), nil).AnyTimes()
 		f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 		arnor := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/company/info?c=Arnor", nil))).Body.String()
-		for _, want := range []string{`data-becomes="Ranger of the North"`, "becomes a Ranger of the North as an officer"} {
-			if !strings.Contains(arnor, want) {
-				t.Errorf("the Arnor preview lacks %q", want)
+		for _, not := range []string{"data-becomes", "as an officer"} { // an officer keeps its profile: the hero promotion is a level-up result
+			if strings.Contains(arnor, not) {
+				t.Errorf("the Arnor preview shows a promotion of the officers: %q", not)
 			}
+		}
+		if !strings.Contains(arnor, "Ranger of Arnor") {
+			t.Error("the Arnor preview lists the Rangers of Arnor")
 		}
 		lorien := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/company/info?c=Lothlorien", nil))).Body.String()
 		got := strings.Contains(lorien, "warriors that earn experience in this campaign")

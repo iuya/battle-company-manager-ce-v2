@@ -33,7 +33,7 @@ Companies rulebook itself defines belong in the Battle Companies file.
 
 - **It complements vanilla.** It never redefines a unit. A name used by a company resolves to a vanilla key as a base
   unit with an option pre-selected (`selectedOptions`, for example Tookish Hunter = Hobbit Archer + that option), a unit
-  renamed since the 2018 books (printed name kept as `label`), or a vanilla unit plus a delta (`addSpecialRules`,
+  a name the document prints for a vanilla unit (2018 name or abbreviation, printed name kept as `label`), or a vanilla unit plus a delta (`addSpecialRules`,
   `addKeywords`, for example Ranger of Ithilien). Each company lists these in `unitAliases` with an explanation.
 - **Resolution order:** a definition embedded in the entity that uses it, then the Battle Companies file, then vanilla.
   Battle Companies wins: a rule with the same name as a vanilla rule is its generalisation (a named character becomes
@@ -122,7 +122,36 @@ Companies rulebook itself defines belong in the Battle Companies file.
   documented in `tools/bc/company_effects.py`. Applied by the app today: `recruitAsHero` (every recruit joins as a Hero in the Making), `uniqueWargear[].restriction` (who may take the item: "Hobbit Heroes", "Corsair") and `limit` (most models carrying it); a unique item with a `restriction` is not tied to a profile option. Company Hero Upgrades: a Hero may swap ANY rolled result of a level-up for
   its company's upgrade if it does not already have it (rulebook, Path Progression).
 - `data.companies` (37): starting company, reinforcement and special charts (D6 tables), Company Hero Upgrade,
-  advancements, unique wargear, special rules and limits.
+  advancements, unique wargear, special rules and limits. `specialRules[]` holds the company's rule sentences exactly as printed;
+  a sentence that also has a typed form (`ruleSubstitutions`, `ruleExchanges`, `grantedSpecialRules`, `limitExemptions`) is
+  repeated there on purpose and the app prints it once (`CompanyProfile.OwnRules`). `epigraph {quote, text}` (Arnor) is the quoted
+  title and flavour sentence that head the rule text in the rulebook: flavour, not a rule. `tools/company_text_checks.py`
+  (run by the validator) rejects a rule repeated inside `specialRules`/`notes` and parse artefacts in company texts (unbalanced
+  quotation marks or brackets, an epigraph glued to a rule, fragments at either end, page headers). A name from the 2018 books
+  that the document still prints in a list and that is only a rename (High Elf Warrior = Rivendell Warrior) is corrected when the
+  document is read (`SOURCE_TYPOS`), so the list names the 2024 unit with no alias card; `LEGACY_NAMES` is empty today. Same for "Giant Mirkwood Spider" (Cirith Ungol), which the document itself prints as "Mirkwood Giant
+  Spider" in its other lists.
+
+### Unit names that differ from vanilla (`unitAliases` cards, reviewed)
+
+Every name below is resolved once; the card text is generated (`link_unit_notes`) and says only what the sources support. A generated entry whose printed name equals the base unit name (ignoring case and accents) gets no `label` and no card; the
+card heading in the creation page is "Printed name".
+
+| Printed name (company) | Decision | Evidence |
+|---|---|---|
+| Giant Mirkwood Spider (Cirith Ungol) | (a) typo, `SOURCE_TYPOS`, no card | the same document prints "Mirkwood Giant Spider" in the Dol Guldur lists; vanilla key is Mirkwood Giant Spider (20 pts) |
+| Grimhammer, Warrior of Erebor (Erebor & Dale); Iron Hills Dwarf (Defenders of the North, Iron Hills); Mirkwood Cavalry (Halls of Thranduil); Abrakhân Guard (Harad); Rhûnish War Drake(s) (Easterlings) | (a) 2018 name or abbreviation, `SOURCE_TYPOS` (owner decision), no card | no vanilla unit has these names; mapped to Grim Hammer Warrior, Erebor Dwarf Warrior, Iron Hills Warrior, Mirkwood Elf Knight (mounted, 16 pts; the document's step is "Mirkwood Elf with Elven-made glaive"), Abrakhan Merchant Guard (`legacy: true` in vanilla), War Drake of Rhun. REVIEW: the mappings are best matches; Mirkwood Elf Knight is the least certain. The 105-point test over all companies is the check on prices |
+| Helminga, Lorien Guard, Noldorin Exile, Tookish Hunter, Battlin' Brandybuck | (b) base unit + vanilla option (`selectedOptions`) | vanilla options Helmingas (Warrior of Rohan), Lorien Guard (Galadhrim Warrior), Noldorian Exile (Lothlorien Warrior), Tookish Hunter (Hobbit Archer), Battlin' Brandybuck (Hobbit Militia), each +1 point, reserved to a named hero's list in vanilla; the document names them directly (Noldorin Exile: "a Lothlorien Warrior with Gildor Inglorion's unique upgrade"). The card now states the +1 point and who can take the option in the base game |
+| Ranger of Ithilien (Osgiliath & Ithilien) | (b) delta `addSpecialRules: Loyal to the Captain` | document: "a Ranger of Gondor with the Loyal to the Captains special rule at no additional cost" |
+| Goblin Hulk (Goblin-Town) | (c) delta `addKeywords: Goblin` on the Gundabad Ogre, Rare 1, 15 Influence | document: "using the profile of the Gundabad Ogre with the Goblin keyword, for 15 Influence Points" (the vanilla Ogre costs 60 points). The card says so |
+
+Check against the 105-point rule (points plus starting gold, see the app's `startingtotal_test.go`): every company totals 105
+except Defenders of the North (106). The mapping Iron Hills Dwarf = Iron Hills Warrior is confirmed by the Iron Hills company
+(3 with shield & spear 12, mattock 11, crossbow 12 = 59, plus 1 gold = 60) and Warrior of Dale by Erebor & Dale (2 Erebor
+Dwarf Warriors with shield 10, spear 10, shield & spear 9, two Esgaroth bows 9 = 57, plus 3 gold = 60). Defenders of the North
+prints no gold and its six warriors (12, 11, 11 and 9, 9, 9) cost 61 at the 2024 prices: no other vanilla unit fits the
+Iron Hills Dwarf's options (shield & spear, mattock) while keeping Iron Hills at 60, so the 106 is a book inconsistency, kept
+as the one documented exception.
 - `data.paths` (11 heroic + End of Path + custom): hero paths with maximums and the 2d6 progression table; `data.minorSpecialRules`.
   Each path has `description` (the document's intro sentence, absent for the three paths that add no Heroic Action; their
   `startingNote` says so) and `offers`, derived from the table for the path picker's tooltip: `summary` (ready-made text: starting
@@ -329,10 +358,53 @@ Companies rulebook itself defines belong in the Battle Companies file.
   (Whip: throwing). The table is `LIMIT_EXEMPTIONS` in `tools/bc/core.py`; the build asserts each `text` is on the
   company's page.
 
+### Tabletop Simulator model names (`data.ttsModels`)
+
+Fixed mappings from Battle Companies to the model names of the Tabletop Simulator MESBG FTC mod, read by the TTS export
+(`BCBook.TTSModels()`, `internal/core/ttsmodels.go`; spec in [`tabletop-simulator.md`](tabletop-simulator.md)). Generated by
+`tools/bc/tts.py` from curated tables with a `reason` each; the mod's catalogue of model keys is never in the repository.
+
+- `standIns[]` (`kind` wanderer or creature, `name`, `model`, `alternatives`): the seven approved stand-ins (Wandering Swordsman = Captain of Dale,
+  Marksman = Ruffian: Bow, Scavenger = Goblin Mercenary Captain, Sage = Malbeth the Seer, Baggage Pony = Bill the Pony, Falcon = Crebain, Hunting Dog
+  = Fang). A `model` is a vanilla name or `Name: options`.
+- `mounts[]` (`gear`, `model`, `attacks`): the mounts a company can buy whose vanilla gear has Attacks above 0 (derived from the data: Warg, Fell Warg);
+  `model` is the figure to spawn (the Warg is shown as the Fell Warg).
+- `riders[]` (`unit`, `footModel`, `states`): the cavalry units the companies use (18 vanilla units; the alias Mirkwood Cavalry resolves to Mirkwood Elf
+  Knight). `states` is true when every model key of the unit in the mod carries the state that dismounts the figure (Rider of Rohan, Son of Eorl,
+  Mirkwood Elf Knight, Hunter Orc Warg Rider); six units with states on only some keys are false for now (owner question pending, one value to flip).
+  `footModel` is the rider on foot; absent when the mod has none (Son of Eorl); the Iron Hills Goat Rider's plain Dwarf Warrior is provisional (owner choice, the bag has no Iron Hills foot model).
+- `names[]` (`unit`, `from`, `to`): option spellings that differ between the vanilla file and the mod (Isengard Orc Warrior: Orc bow -> Bow).
+
+The build stops when a stand-in no longer matches the wanderers and creatures, or when the cavalry units the companies use differ from `RIDERS` in
+`tools/bc/tts.py`. The validator (`tts_errors`) checks every name against the vanilla file, that the entries are few (a catalogue is refused), that every
+wanderer, creature, fighting mount and used cavalry unit is mapped and, only when the gitignored `sources/tts/models.json` exists (a list of model keys,
+`--tts-models` to point elsewhere), that every model is a key of it and that every used unit has a model there.
+
 ## Sources and copyright
 
 The Battle Companies document and the MESBG rules manual are copyrighted. They (and any text converted from them) live
 only in the gitignored `sources/` folder. The JSON files built from them may be committed.
+
+## Reference tables (`reference` in the glossary file)
+
+Besides `terms`, `definitions/glossary/mesbg_glossary.json` carries structured rulebook tables the terms only describe
+(`tools/glossary_reference.py`, hand-transcribed from the rulebook's chart; the validator and `tools/test_to_wound.py` check them).
+The home is the glossary because the chart is a base-game rule (not Battle Companies); the file hash covers it like the terms.
+
+`reference.toWound` (the To Wound Chart, rulebook page 44; the glossary term `To Wound Chart` is its prose):
+
+```json
+{"title": "To Wound Chart", "term": "To Wound Chart", "rulebookPage": 44,
+ "strengths": [1,2,...,10], "defences": [1,2,...,10],
+ "cells": [["4+","5+","5+","6+","6+","6+/4+","6+/5+","6+/6+","-","-"], ...],
+ "notation": {"N+": "...", "6+/N+": "...", "-": "..."}, "notes": ["..."]}
+```
+
+`cells[s-1][d-1]` is the roll for Strength `s` against Defence `d` (10 rows by 10 columns; Strength and Defence stay within 1..10).
+Values: `3+`, `4+`, `5+`, `6+` (one dice at that score or more), `6+/4+`, `6+/5+`, `6+/6+` (a 6+ on one dice, then a further dice
+scoring 4+/5+/6+; two individual rolls, either can be re-rolled by a rule) and `-` (cannot wound). The validator requires the
+complete grid, only those values, and monotonicity (never easier as Defence rises, never harder as Strength rises; order
+3+ < 4+ < 5+ < 6+ < 6+/4+ < 6+/5+ < 6+/6+ < -). The rulebook states no rule for natural 1s or 6s on this chart, so none is encoded.
 
 ## The concept graph file
 
@@ -417,7 +489,7 @@ The rules text is not data in the JSON; the rule engine applies it. What the rul
   (alternative option on chart rows, chosen by the player, free), `rangerReplacement` (Shire: `unit`, `max`, `role[]`, `when`; swaps a successful reinforcement result for the unit once the company's one was slain, see [frontend.md](frontend.md); the backend reads it into `CompanyProfile.RangerReplacement`), `includedUnitPoints` + `modelCount` + `recruitFallback`
   (Durin's Folk Vault Warden Team: the members come from the vanilla `includes`, the file adds their points and rules),
   `unitTypes` + `compositeModel` (Warg Marauder: one Cavalry card of three riders and a mount), `heroPromotion` (Arnor:
-  promotion AND hero, no promotion-only outcome). Every road to a hero without a roll (an officer chosen at company creation, a Warrior taking a lost officer's place, a recruit that joins as a Hero) goes through `CompanyProfile.BecomeHero` and is equivalent to a warrior that rolled a 6: the promotion and the hero's stat gain are applied at once, only the path is chosen later. `TestAnOfficerOfTheStartingCompanyIsAHeroInTheMakingInEveryCompany` compares both for every start unit of the 37 companies.
+  promotion AND hero, no promotion-only outcome). An officer is not a warrior that rolled a 6: the company's promotion applies only to the level-up roll. An officer chosen at company creation (`StartingUnits`), a Warrior taking a lost officer's place and a recruit that joins as a Hero (`recruitAsHero`) keep their profile (Arnor's Rangers of Arnor chosen as officers stay Rangers of Arnor, as heroes with their Might, Will and Fate) and gain the point of each (`startingHeroNoStatGain` lists units that already have them). Officers made by an earlier version that were promoted at creation keep their profile as it is. A start unit the file marks `heroInTheMaking` (Wanderers in the Wild) starts as a hero with that point and its path to choose, and is not one of the officers the player picks (`CompanyProfile.CanLeadStart`). The starting company adds up: after the officers are chosen, the company's points plus its starting gold are 105 (60 points of rating and gold plus 5 each for Might, Will and Fate of 3 heroes; BC "Creating Custom Companies"); `TestStartingCompanyPointsPlusGoldAre105InEveryCompany` checks every company and every allowed choice of officers, with the exceptions listed in `startingTotalExceptions`. A starting unit that is a hero by its profile (`startingHeroNoStatGain`: the Ranger of the North of The Shire and Helm's Deep) must be one of the officers (`ValidateStart`), or the company would add up to 120. Defenders of the North adds up to 106: the book's starting list is 61 points of warriors at the current MESBG points (bead for the curator). Wanderers in the Wild: all five starting models are heroes (3 officers and 2 Heroes in the Making, shown on the creation page as "Hero in the Making") and every recruit joins as a Hero in the Making.
 - `data.paths[].kind`: `heroic` (the 11 selectable paths), `endOfPath` ("On Their Own Path": not selectable, assigned
   automatically when an On Their Own Path unit is recruited, special rule "At Path's End": no XP, no level-up) and
   `custom` ("Path of Their Own Making", homebrew from a community document, complete: `dice`, `maximums`, an 11-row `progression`, `startingStats` 0/0/1, `givesExperience`, `canLevelUp`, `implemented: true`, enabled by `campaign.options[key=customOnTheirOwnPath]`; with it the units On Their Own Path start as Warriors, earn experience on the warrior table and take this path automatically, with its 0/0/1 start, on a roll of 6: no path window, no forgone promotion). Every path has `dice` ("2d6": two pairs, choose one, as `campaign.progression.hero.resolution`). A `specialRule` option may carry its own `definition` (Lead by Example: the vanilla rule of that name belongs to Buhrdur).

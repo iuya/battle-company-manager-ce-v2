@@ -43,8 +43,19 @@ type liveMatches interface {
 	MatchDefaults(ctx context.Context, id, matchID int64) (core.LiveMatchDefaults, bool, error)
 }
 
+// ttsExporter is what the copy button needs (docs/tabletop-simulator.md); core.TTSService implements it. The handler has checked that
+// the viewer may see the company.
+type ttsExporter interface {
+	// TTSExport is the company as an army list; live (the company's state in an open match) puts the units that are wounded or out of
+	// the fight in a second warband; nil is the plain list. core.ErrNotFound for an unknown company.
+	TTSExport(ctx context.Context, campaignID, companyID int64, live *core.TTSLive, opts core.TTSOptions) (core.TTSExport, error)
+	// TTSNames is the ArmyNames JSON v1 (level B) of the company for that export, so the list and the names agree.
+	TTSNames(ctx context.Context, campaignID, companyID int64, exp core.TTSExport, opts core.TTSNamesOptions) (core.TTSNamesPayload, error)
+}
+
 type campaigns interface {
 	liveMatches
+	ttsExporter
 
 	// List returns the user's campaigns: the unfinished ones first, then (when withFinished) the finished ones, each
 	// group newest first.
@@ -399,6 +410,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /campaigns/{id}/company", s.protected(s.handleCreateCompany))
 	mux.HandleFunc("GET /campaigns/{id}/companies/{company}", s.protected(s.handleCompany))
 	mux.HandleFunc("GET /campaigns/{id}/companies/{company}/live", s.protected(s.handleLiveFragment))
+	mux.HandleFunc("GET /campaigns/{id}/companies/{company}/tts", s.protected(s.handleTTS))
+	mux.HandleFunc("GET /tts/helper.zip", s.protected(s.handleTTSHelper))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/live/{company}/units/{unit}/sheet/{kind}", s.protected(s.handleLiveSheet))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/live/{company}/units/{unit}/courage/roll", s.protected(s.handleCourageRoll))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/live/{company}/actions", s.protected(s.handleLiveAction))
@@ -418,6 +431,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/scenario", s.protected(s.handleSetScenario))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/scenario/roll", s.protected(s.handleScenarioRoll))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/scenario/remove", s.protected(s.handleClearScenario))
+	mux.HandleFunc("GET /campaigns/{id}/to-wound", s.protected(s.handleToWound))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/ato", s.protected(s.handleATOCard))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/ato", s.protected(s.handleATOSave))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/result", s.protected(s.handleSaveResult))

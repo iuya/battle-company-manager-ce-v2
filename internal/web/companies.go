@@ -47,15 +47,15 @@ func (v companyInfoView) Named(name string) []segView {
 
 // startRow is a model of the starting company in the creation form: who may lead, and the role chosen (or suggested) for it.
 type startRow struct {
-	Index       int
-	Unit        string
-	Wargear     []string
-	Eligible    bool
-	Role        core.UnitRole // warrior, leader or sergeant
-	Suggested   bool          // the role is the company's own suggestion, not the player's choice
-	Becomes     string        // the unit it is as an officer, when the company's hero promotion changes it (Ranger of Arnor: Ranger of the North)
-	BecomesGear []string      // the wargear it keeps as that unit
-	Locked      bool          // the company's fixed Leader (the Shire's Ranger of the North): it starts as Leader and cannot be moved
+	Index        int
+	Unit         string
+	Wargear      []string
+	Eligible     bool
+	Role         core.UnitRole    // warrior, leader or sergeant
+	Suggested    bool             // the role is the company's own suggestion, not the player's choice
+	HeroInMaking bool             // the company starts it as a Hero in the Making (Wanderers in the Wild): it is not one of the officers the player picks
+	Locked       bool             // the company's fixed Leader (the Shire's Ranger of the North): it starts as Leader and cannot be moved
+	Lock         core.OfficerLock // what the rules say about the unit in the choice of officers (core.OfficerLocks): the page blocks it, the server refuses it
 }
 
 // Leader, Sergeants and Pool split the starting models by the place they start in on the page.
@@ -85,17 +85,12 @@ func startRows(p core.CompanyProfile, chosen []core.StartHero) []startRow {
 		chosen = p.DefaultHeroes()
 	}
 	var rows []startRow
+	locks := p.OfficerLocks()
 	for i, u := range p.StartList() {
-		row := startRow{Index: i, Unit: u.Unit, Wargear: u.Wargear, Eligible: p.CanLead(u.Unit), Role: core.RoleWarrior}
-		if promotion, ok := p.PromotionOnHero(u.Unit); ok && !strings.EqualFold(promotion.Becomes, u.Unit) {
-			row.Becomes = promotion.Becomes
-			for _, g := range u.Wargear {
-				if !slices.ContainsFunc(promotion.Drop, func(d string) bool { return strings.EqualFold(d, g) }) {
-					row.BecomesGear = append(row.BecomesGear, g)
-				}
-			}
-		}
-		row.Locked = u.Role == core.RoleLeader && p.RangerReplacement != nil && strings.EqualFold(u.Unit, p.RangerReplacement.Unit)
+		row := startRow{Index: i, Unit: u.Unit, Wargear: u.Wargear, Eligible: p.CanLeadStart(u), Role: core.RoleWarrior}
+		row.HeroInMaking = u.Role == core.RoleHeroInTheMaking
+		row.Lock = locks[i]
+		row.Locked = locks[i].Kind == core.OfficerLeader
 		for _, h := range chosen {
 			if h.Index == i {
 				row.Role, row.Suggested = h.Role, suggested

@@ -48,7 +48,11 @@ Item identity tables in `tools/bc/gear.py`: `RELATED` (related but distinct item
 
 Path tooltips: `add_offers` in `tools/bc/paths.py` derives `data.paths[].offers` (starting Heroic Action, Mastery rule, own special rules, signature characteristics, choices and a ready-made `summary`) from each path's progression table.
 
-`data.reservedOptions` is generated from vanilla (`reserved_options` in `tools/bc/vanilla.py`; the validator recomputes it). Printing errors of the Battle Companies document are corrected when it is read, listed in `SOURCE_TYPOS` in `tools/bc/core.py` (today "Brandbybuck" -> "Brandybuck"); `sources/` is never edited.
+`data.ttsModels` (stand-ins, fighting mounts, cavalry riders, option spellings for the Tabletop Simulator mod) comes from the curated tables in `tools/bc/tts.py` (a reason each); the validator checks it against the vanilla file and, if present, the local gitignored `sources/tts/models.json`; tests in `tools/test_tts_models.py`.
+
+`data.reservedOptions` is generated from vanilla (`reserved_options` in `tools/bc/vanilla.py`; the validator recomputes it). Printing errors of the Battle Companies document are corrected when it is read, listed in `SOURCE_TYPOS` in `tools/bc/core.py` (today "Brandbybuck" -> "Brandybuck", the Last Alliance's 2018 "High Elf Warrior" -> "Rivendell Warrior" "Giant Mirkwood Spider" -> "Mirkwood Giant Spider" and the 2018 names Grimhammer, Warrior of Erebor, Iron Hills Dwarf, Mirkwood Cavalry, Abrakhân Guard, Rhûnish War Drake -> their 2024 units); `sources/` is never edited.
+
+`tools/company_text_checks.py` (called by `validate_definitions.py`, tests in `tools/test_company_text_checks.py`) checks the company texts: no rule repeated inside a company's `specialRules`/`notes`, and no parse artefact (unbalanced quotes, an epigraph glued to a rule, a text starting or ending mid-sentence, a page header). A quoted title with a flavour sentence at the head of the company rules becomes `epigraph`.
 
 ### How the file relates to vanilla
 
@@ -72,7 +76,7 @@ Path tooltips: `add_offers` in `tools/bc/paths.py` derives `data.paths[].offers`
 * **Company rule rewiring**: `ruleSubstitutions` (the Leader counts as Faramir for Loyal to the Captain),
   `ruleExchanges` (Hatred (Rohan) becomes Hatred (Hobbit)) and `grantedSpecialRules` (free rules).
 * **Units written under another name** resolve to a vanilla unit: either the base unit with an option pre-selected
-  (`selectedOptions`, e.g. Tookish Hunter = Hobbit Archer + Tookish Hunter) a renamed 2018 unit (`LEGACY_NAMES` in
+  (`selectedOptions`, e.g. Tookish Hunter = Hobbit Archer + Tookish Hunter) a name the document prints for a vanilla unit (`LEGACY_NAMES` in
   `tools/bc/vanilla.py`), or a vanilla unit plus a **delta** (`UNIT_DELTAS`; `addSpecialRules` / `addKeywords`, e.g.
   Ranger of Ithilien = Ranger of Gondor + Loyal to the Captain). No new units are created. The printed name stays as `label` and every company lists them in `unitAliases` with an
   explanation.
@@ -96,6 +100,12 @@ from leaking in, it is not a summary). Long rule chapters are marked `synth=True
 agent in `tools/glossary_summaries.json` (`summarized: true` in the output; the build reports marked terms that have no
 summary yet and falls back to the verbatim text). `python3 tools/build_glossary.py --uncapped out.json` dumps the full
 verbatim text of every term to read when writing or reviewing a summary.
+
+## Reference tables
+
+`tools/glossary_reference.py` holds the hand-transcribed To Wound Chart (`reference.toWound` in the glossary file, written by
+`build_glossary.py`) and its checks (complete 10x10 grid, allowed values, monotonic), used by `validate_definitions.py`; tests in
+`tools/test_to_wound.py`. After changing it: rebuild the glossary, then `python3 tools/build_concept_graph.py`.
 
 ## Concept graph
 

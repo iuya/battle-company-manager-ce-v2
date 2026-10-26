@@ -1,8 +1,8 @@
-// Units On Their Own Path, and officers whose hero promotion changes the unit.
+// Units On Their Own Path, and officers keeping their profile (the hero promotion is a level-up result).
 // 1. The demo campaign with everything on: the settings text, a Wood Elf Sentinel that is a plain warrior with XP and a Level up
 //    button, a typed 6 that makes it a hero on the Path of Their Own Making at once (no path window, no forgo offer).
-// 2. The Take command preview names the setting's effect on the badge, and an Arnor officer is shown as the Ranger of the North.
-import { assert, campaignId, MODAL, SIZES, layout } from '../lib/util.mjs';
+// 2. The Take command preview names the setting's effect on the badge, and an Arnor officer stays a Ranger of Arnor.
+import { assert, campaignId, MODAL, SIZES, layout, numberAfter } from '../lib/util.mjs';
 
 export default async function (h) {
   const galadriel = await h.session('galadriel@example.com');
@@ -98,7 +98,7 @@ export default async function (h) {
   });
   if (!tid) return;
 
-  await h.step('arnor creation: an officer is previewed as the Ranger of the North, the others stay Rangers of Arnor', async () => {
+  await h.step('arnor creation: an officer stays a Ranger of Arnor in the preview (no promotion at creation)', async () => {
     await layout(arnor, 1280, 'light', 1800);
     await arnor.goto(`/campaigns/${tid}/company/new`);
     await arnor.click('nav[aria-label=Companies] button[data-name="Arnor"]');
@@ -123,22 +123,16 @@ export default async function (h) {
       assert.equal(slots.length, 3, 'three officers are in the places');
       for (const s of slots) {
         assert.equal(s.unit, 'Ranger of Arnor');
-        assert.equal(s.becomes, 'Ranger of the North');
-        assert.match(s.shown, /Ranger of the North/);
-        assert.match(s.shown, /becomes a Ranger of the North as an officer/);
-        assert.ok(!/Ranger of Arnor/.test(s.shown), `an officer is not shown as a Ranger of Arnor (${s.shown})`);
+        assert.equal(s.becomes, undefined, 'no promotion is previewed');
+        assert.match(s.shown, /Ranger of Arnor/);
+        assert.ok(!/Ranger of the North|as an officer/.test(s.shown), `an officer is not shown as a Ranger of the North (${s.shown})`);
       }
       assert.ok(await arnor.noHScroll(), `no horizontal scroll at ${w}px ${scheme}`);
     }
     await layout(arnor, 1280, 'light', 1800);
-    // sent back to the pool, the card is a Ranger of Arnor again
-    await arnor.page.evaluate(() => document.querySelector('.officer-slot .start-card .slot-only.btn')?.click());
-    await arnor.settle(300);
-    const pooled = await arnor.page.$$eval('#start-pool .start-card[data-becomes]', (cards) => cards.map((c) => [...c.querySelectorAll('p')].filter((p) => p.offsetParent !== null).map((p) => p.innerText.trim()).join(' | ')));
-    assert.ok(pooled.length >= 1 && pooled.every((t) => !/Ranger of the North/.test(t)), 'in the pool, a Ranger is still a Ranger of Arnor');
   });
 
-  await h.step('arnor creation: the confirmation and the company page name the Ranger of the North', async () => {
+  await h.step('arnor creation: the confirmation and the company page name the Ranger of Arnor, and 101 points and 4 gold are 105', async () => {
     await arnor.goto(`/campaigns/${tid}/company/new`);
     await arnor.click('nav[aria-label=Companies] button[data-name="Arnor"]');
     await arnor.page.waitForSelector('#take-command');
@@ -154,13 +148,17 @@ export default async function (h) {
     await arnor.fill('#name', 'Rangers of the E2E');
     await arnor.click('#create-company button.btn-primary', '');
     const text = await arnor.page.$eval('#create-company dialog', (d) => d.innerText);
-    assert.match(text, /Ranger of the North as its leader/);
-    assert.ok(!/Ranger of Arnor/.test(text), 'the dialog does not name a Ranger of Arnor as an officer');
+    assert.match(text, /Ranger of Arnor as its leader/);
+    assert.ok(!/Ranger of the North/.test(text), 'the dialog does not promote an officer');
     await arnor.click('dialog[open] button', '=Yes', { nav: true });
     await arnor.waitText('Rangers of the E2E');
     const titles = await arnor.page.$$eval('main .unit-slot', (slots) => slots.map((u) => `${(u.querySelector('article.unit').className.match(/unit-(leader|sergeant|hero|warrior)/) || [])[1]}:${u.querySelector('.unit-handle .truncate').textContent.trim()}`));
     const officers = titles.filter((t) => /^(leader|sergeant):/.test(t));
     assert.equal(officers.length, 3);
-    assert.ok(officers.every((t) => /Ranger of the North/.test(t)), `the officers are Rangers of the North (${officers.join(', ')})`);
+    assert.ok(officers.every((t) => /Ranger of Arnor/.test(t) && !/Ranger of the North/.test(t)), `the officers are Rangers of Arnor (${officers.join(', ')})`);
+    const points = await arnor.page.$$eval('main .unit-slot', (slots) => slots.map((u) => Number((u.querySelector('article.unit').innerText.match(/(\d+)\s*pts/) || [])[1])));
+    const total = points.reduce((a, n) => a + n, 0);
+    assert.equal(total, 101, `three Rangers of Arnor officers (8 + 15 each) and four more models are 101 points (${points.join('+')})`);
+    assert.equal(total + numberAfter(await arnor.text(), 'Gold'), 105, 'points plus starting gold are 105');
   });
 }

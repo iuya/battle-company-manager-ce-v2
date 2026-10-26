@@ -1,6 +1,6 @@
 {
   "name": "MESBG Rules Glossary (2024 manual)",
-  "version": "1.1",
+  "version": "1.2",
   "source": "Middle-earth Strategy Battle Game Rules Manual (2024)",
   "description": "Concepts of the MESBG rules manual that the vanilla definitions leave out. Complements the vanilla file; text extracted verbatim from the rules manual (`rulebookPage` is the page number printed in the rulebook). This file refers to nothing else: other files refer to it.",
   "terms": [
@@ -5673,5 +5673,168 @@
         "Keywords"
       ]
     }
-  ]
+  ],
+  "reference": {
+    "toWound": {
+      "title": "To Wound Chart",
+      "term": "To Wound Chart",
+      "rulebookPage": 44,
+      "strengths": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "defences": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "cells": [
+        [
+          "4+",
+          "5+",
+          "5+",
+          "6+",
+          "6+",
+          "6+/4+",
+          "6+/5+",
+          "6+/6+",
+          "-",
+          "-"
+        ],
+        [
+          "4+",
+          "4+",
+          "5+",
+          "5+",
+          "6+",
+          "6+",
+          "6+/4+",
+          "6+/5+",
+          "6+/6+",
+          "-"
+        ],
+        [
+          "3+",
+          "4+",
+          "4+",
+          "5+",
+          "5+",
+          "6+",
+          "6+",
+          "6+/4+",
+          "6+/5+",
+          "6+/6+"
+        ],
+        [
+          "3+",
+          "3+",
+          "4+",
+          "4+",
+          "5+",
+          "5+",
+          "6+",
+          "6+",
+          "6+/4+",
+          "6+/5+"
+        ],
+        [
+          "3+",
+          "3+",
+          "3+",
+          "4+",
+          "4+",
+          "5+",
+          "5+",
+          "6+",
+          "6+",
+          "6+/4+"
+        ],
+        [
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "4+",
+          "4+",
+          "5+",
+          "5+",
+          "6+",
+          "6+"
+        ],
+        [
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "4+",
+          "4+",
+          "5+",
+          "5+",
+          "6+"
+        ],
+        [
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "4+",
+          "4+",
+          "5+",
+          "5+"
+        ],
+        [
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "4+",
+          "4+",
+          "5+"
+        ],
+        [
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "3+",
+          "4+",
+          "4+"
+        ]
+      ],
+      "notation": {
+        "N+": "roll one dice; N or more wounds",
+        "6+/N+": "roll one dice and score a 6+, then a further dice that must score N+; both rolls are individual (either can be re-rolled by a rule)",
+        "-": "cannot wound"
+      },
+      "notes": [
+        "Rows are the attacker's Strength, columns the target's Defence; the cell is the minimum roll to wound.",
+        "A Rend uses the nominated model's Strength in place of its Defence.",
+        "Strikes against a Trapped model make two To Wound Rolls and apply both."
+      ]
+    }
+  }
 }

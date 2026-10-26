@@ -110,6 +110,9 @@ type HeroPromotion struct {
 	ForgoAllowed            bool
 }
 
+// Epigraph is the quoted title and flavour sentence that head a company's rule text in the rulebook (flavour, not a rule).
+type Epigraph struct{ Quote, Text string }
+
 // Oath is what the player swears when they take command of a company: a text with the company's name typed in at {name}, and the
 // label of the button that seals it.
 type Oath struct {
@@ -153,6 +156,7 @@ type CompanyProfile struct {
 	Aliases        []UnitAlias
 	KeywordLimits  []KeywordLimit
 	Oath           Oath
+	Epigraph       *Epigraph         // nil for a company without one
 	Paths          []PathProgression // the paths a starting hero can follow
 	Powers         []LevelChoice     // the magical powers a starting Sorcerer can begin with (Key "power:Name")
 	OwnPathUnits   []string          // units On Their Own Path: they earn no experience and follow the path below
@@ -289,6 +293,10 @@ func (b *BCBook) parseProfiles(content []byte) {
 					Limit   string   `json:"restriction"`
 					Units   []string `json:"restrictedToUnits"`
 				} `json:"heroUpgrades"`
+				Epigraph *struct {
+					Quote string `json:"quote"`
+					Text  string `json:"text"`
+				} `json:"epigraph"`
 				SpecialRules []string `json:"specialRules"`
 				GrantedRules []struct {
 					Rule      string `json:"specialRule"`
@@ -503,6 +511,9 @@ func (b *BCBook) parseProfiles(content []byte) {
 			p.Notes = append(p.Notes, CompanyNote{Section: n.Section, Text: n.Text})
 		}
 		p.Oath = Oath{Text: c.Oath.Text, Vow: c.Oath.Vow}
+		if c.Epigraph != nil {
+			p.Epigraph = &Epigraph{Quote: c.Epigraph.Quote, Text: c.Epigraph.Text}
+		}
 		if f, ok := doc.Campaign.Company.Oath[base.Alignment]; ok && !strings.Contains(p.Oath.Text, "{name}") {
 			p.Oath = Oath{Text: f.Text, Vow: f.Vow}
 		}
@@ -604,6 +615,34 @@ func (p CompanyProfile) NotesIn(section string) []string {
 		if n.Section == section && !slices.Contains(out, n.Text) {
 			out = append(out, n.Text)
 		}
+	}
+	return out
+}
+
+// OwnRules are the company's special rules the page prints as "Company rule" cards: a rule whose sentence a typed card already
+// shows (a substitution, an exchange, a free special rule, a limit line) is left out, so no sentence appears twice.
+func (p CompanyProfile) OwnRules() []string {
+	key := func(t string) string { return strings.ToLower(strings.Join(strings.Fields(t), " ")) }
+	var typed []string
+	for _, g := range p.Granted {
+		typed = append(typed, key(g.Text))
+	}
+	for _, e := range p.Exchanges {
+		typed = append(typed, key(e.Text))
+	}
+	for _, s := range p.Substitutions {
+		typed = append(typed, key(s))
+	}
+	for _, l := range p.LimitLines() {
+		typed = append(typed, key(l))
+	}
+	var out []string
+	for _, r := range p.Rules {
+		k := key(r)
+		if k == "" || slices.Contains(typed, k) || slices.ContainsFunc(out, func(o string) bool { return key(o) == k }) {
+			continue
+		}
+		out = append(out, r)
 	}
 	return out
 }

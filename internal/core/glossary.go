@@ -17,6 +17,9 @@ type Glossary struct {
 	Terms []GlossaryTerm
 	link  *linker
 	byID  map[string]int
+
+	// ToWound is the To Wound Chart of the file (reference.toWound); nil when the file has none or a broken one (the chart is then not offered).
+	ToWound *ToWoundChart
 }
 
 // Term finds a term by its id.
@@ -304,6 +307,9 @@ func BuildGlossaryWith(info RulesetInfo, content []byte, extras []ExtraTerm) (Gl
 		return strings.Compare(sortKey(a.Name), sortKey(b.Name))
 	})
 	g := Glossary{Info: info, Terms: make([]GlossaryTerm, len(doc.Terms))}
+	if chart, ok, err := ParseToWound(content); ok && err == nil {
+		g.ToWound = &chart
+	}
 
 	byPhrase := map[string]string{} // lower-cased name or alias -> term id
 	used := map[string]bool{}

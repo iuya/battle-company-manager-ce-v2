@@ -74,12 +74,13 @@ func (w *world) aftermathWardOne() {
 	m4 := w.played(c, "Relic of Ages Past", outcome{winner: 2, vp: []int{0, 6}, fled: []*wco{mir},
 		ticks: map[*wco]map[string]int{wild: {"possessesRelic": 1}}, note: "The Wargs ran at the first volley."}, []*wco{mir}, []*wco{wild})
 	in = w.sheet(wild)
-	_, _, ws = w.roster(wild)
-	if len(ws) == 0 {
-		panic(worldAbort{errNoWarrior})
+	l, _, ws = w.roster(wild)
+	carrier := l // the Wanderers are all heroes from the start: the Leader holds the Relic
+	if len(ws) > 0 {
+		carrier = ws[0]
 	}
 	for i := range in.Models {
-		if in.Models[i].UnitID == ws[0].ID {
+		if in.Models[i].UnitID == carrier.ID {
 			in.Models[i].Relic = true
 		}
 	}

@@ -11,6 +11,7 @@ campaigns, companies and matches. These documents describe the app as it is now.
 | [aftermath.md](aftermath.md) | The War's Aftermath after a match: sheet, injury rolls, experience, level-ups, influence, scenario rewards, locks (contract, designed) |
 | [live-match.md](live-match.md) | Live match mode: trackers, action trackers and experience, Retreated and Field casualties, match log with undo, live sync (spec, designed) |
 | [unit-keywords.md](unit-keywords.md) | Race, faction and unit-type keywords on the unit cards: data sources, the computation (`core.UnitKeywords`), chips, tooltips, mounted/dismounted, optional rule-target highlight (spec, designed) |
+| [tabletop-simulator.md](tabletop-simulator.md) | Research and ranked proposals for taking a company into Tabletop Simulator (the MESBG FTC mod's army list text, vanilla mapping with counts, what could not be verified); first slice: copy the company as an army list (built: core list, and the copy button and dialog on My Company, other companies and the live match) |
 | [security-and-risks.md](security-and-risks.md) | CSP analysis and plan, ranked risk register (security, data, performance, operations, quality, rules fidelity) |
 | [vendored-js.md](vendored-js.md) | The committed third-party scripts: versions, sources, checksums (`internal/web/vendor.json`), `make vendor-check`, update procedure |
 | [testing.md](testing.md) | Test commands; the browser smoke tests (`make e2e`): what they cover, isolation, how to write steps |
