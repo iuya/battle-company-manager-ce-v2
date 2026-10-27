@@ -85,8 +85,14 @@
     place();
   }
 
-  function showHTML(html) {
+  function showHTML(html, works) {
     bodyEl.innerHTML = html; // made and escaped by the server from the rules files
+    if (works) { // "Works against: enemy models with the Orc keyword." of the rule chip that was opened (data-tip-works), after the description
+      const line = el('p', 'concept-works', works);
+      const text = bodyEl.querySelector('.concept-text');
+      const title = bodyEl.querySelector('#concept-title');
+      if (text) text.after(line); else if (title) title.after(line);
+    }
     const root = bodyEl.querySelector('[data-concept-root]');
     settle(root && root.dataset.title);
   }
@@ -133,7 +139,7 @@
     loading();
     const res = await load(target.url);
     if (mine !== seq || !layer) return; // another step or Close came first
-    if (res && isPopup(res) && (res.status === 200 || target.byId)) { cur.html = res.html; showHTML(res.html); return; }
+    if (res && isPopup(res) && (res.status === 200 || target.byId)) { cur.html = res.html; showHTML(res.html, target.works); return; }
     if (target.fallback) { showFallback(target.fallback); return; } // an unknown name, an old server: the tooltip's own text
     showError();
   }
@@ -151,6 +157,7 @@
     build();
     go({
       url: byName(cid, name),
+      works: opening.dataset.tipWorks || '',
       fallback: { title: opening.dataset.tipTitle || name, meta: opening.dataset.tipMeta || '', text: opening.dataset.tipText || '', href: opening.matches('a[href]') ? opening.getAttribute('href') : '' },
     }, false);
     return true;
@@ -174,7 +181,7 @@
     if (!prev) return;
     seq++;
     cur = prev;
-    if (prev.html) showHTML(prev.html);
+    if (prev.html) showHTML(prev.html, prev.target && prev.target.works);
     else if (prev.target) go(prev.target, false);
   }
 

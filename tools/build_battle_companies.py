@@ -19,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from bc import core
-from bc import company_effects, magic, oaths, tts
+from bc import auras, company_effects, magic, oaths, rule_targets, tts
 from bc.gear import apply_read_as, build_gear_annotations, item_key, write_review
 from bc.armoury import parse_creatures, parse_equipment, parse_wanderers
 from bc.companies import parse_company
@@ -410,6 +410,8 @@ def main():
                 u["profile"] = a["profile"]
     doc["data"]["profileWargearNotSold"] = profile_wargear_not_sold(doc, van_doc, needed["units"])
     doc["data"]["ttsModels"] = tts.build(doc, van_doc)
+    doc["data"]["ruleTargets"] = rule_targets.build(doc, van_doc)
+    doc["data"]["auras"] = auras.build(doc, van_doc)
     write_gap_report(doc, ROOT / "tools/armoury_gaps.md")
     write_review(gear, gear_report, ROOT / "tools/gear_review.md")
     print(f"gear annotations: {len(gear['items'])} items, {len(gear_report.unclear_grants)} open grant questions, "

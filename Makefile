@@ -8,7 +8,7 @@ DATABASE_URL ?= postgres://bcm:bcm@localhost:5432/bcm?sslmode=disable
 CSS_IN  = ./tailwind.css
 CSS_OUT = ./internal/web/static/app.css
 
-.PHONY: concept-graph e2e e2e-enforce e2e-install e2e-clean perf test-db check-env-docs migrate up up-app prod-user prod-down backup restore restore-drill vendor-check dice3d user grant seed demo db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
+.PHONY: concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs migrate up up-app prod-user prod-down backup restore restore-drill vendor-check dice3d user grant seed demo db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
 
 # make user EMAIL=you@example.com NAME="Your Name"   (asks for the password)
 user: db-up
@@ -101,7 +101,7 @@ concept-graph:
 	python3 tools/build_concept_graph.py
 	python3 tools/validate_definitions.py
 
-test:
+test: e2e-check-groups
 	go test ./...
 	python3 -m unittest discover -s tools -p 'test_*.py'
 
@@ -119,10 +119,10 @@ test-integration: test-db
 e2e-install:
 	cd tests/e2e && npm ci --no-audit --no-fund
 
-# make e2e [ONLY=match]   browser smoke tests (docs/testing.md): own scratch database from a seeded template, own port, headless Chrome; failures leave screenshots in tests/e2e/out
+# make e2e [ONLY=match] [GROUP=name]   browser smoke tests (docs/testing.md): own scratch database from a seeded template, own port, headless Chrome; failures leave screenshots in tests/e2e/out
 e2e: db-up css
 	@test -d tests/e2e/node_modules || $(MAKE) e2e-install
-	cd tests/e2e && node run.mjs $(if $(ONLY),--only $(ONLY))
+	cd tests/e2e && node run.mjs $(if $(ONLY),--only $(ONLY)) $(if $(GROUP),--group $(GROUP))
 
 # make e2e-enforce [ONLY=match]   the same suite with the server in CSP_MODE=enforce (E2E_CSP_MODE=enforce): every page, swap, stream and the 3D dice run under the
 # blocking Content-Security-Policy, and a violation (browser event or /csp-report line) fails the step (docs/security-and-risks.md). CI runs this one.
@@ -134,6 +134,14 @@ e2e-enforce:
 perf: db-up css
 	@test -d tests/e2e/node_modules || $(MAKE) e2e-install
 	cd tests/e2e && node perf.mjs --label $(or $(LABEL),run) $(if $(REPS),--reps $(REPS)) $(if $(LATENCIES),--latencies $(LATENCIES)) $(if $(ONLY),--only "$(ONLY)")
+
+# make e2e-groups   the suite one group of tests/e2e/groups.json after the other (what CI runs as parallel jobs; each group starts from a fresh copy of the seeded world);
+# E2E_CSP_MODE=enforce make e2e-groups for the blocking policy. make e2e-check-groups only checks that every flow file is in exactly one group (part of make test).
+e2e-groups:
+	@for g in $$(node tests/e2e/lib/groups.mjs --names | tr -d '[]"' | tr ',' ' '); do $(MAKE) e2e GROUP=$$g || exit 1; done
+
+e2e-check-groups:
+	node tests/e2e/lib/groups.mjs
 
 # make e2e-clean   drops the cached seeded template databases (bcm_e2e_tpl_*) and the test outputs
 e2e-clean: db-up

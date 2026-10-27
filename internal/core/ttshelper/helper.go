@@ -35,7 +35,8 @@ const howTo = "Names and describes the figures of a Battle Company.\n" +
 	"1. In the app, open the company's Tabletop Simulator window and press Copy names.\n" +
 	"2. In the Notebook, add a tab named ArmyNames and paste.\n" +
 	"3. Spawn the army with Spawn Army, drag-select it (or select nothing), press Apply names.\n" +
-	"Re-apply sends the names again, also to figures that are already named."
+	"Re-apply sends the names again, also to figures that are already named.\n" +
+	"Names v2 also draw aura rings on the figures: Rings shows or hides them, Redraw draws them again, B C S E U switch one kind."
 
 // Script returns the Lua source of the helper.
 func Script() string { return script }

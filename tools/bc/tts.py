@@ -10,7 +10,8 @@ TEXT = (
     "How a Battle Companies unit is written for the Tabletop Simulator MESBG FTC mod (docs/tabletop-simulator.md). standIns: models the mod has no "
     "1:1 figure for (wanderers, creatures) and the mod model shown instead; mounts: a bought mount that fights (vanilla Attacks above 0) and the "
     "model of its figure; riders: the cavalry units, the model of the rider on foot and whether the mod's figure carries the dismounted state "
-    "(`states`); names: option spellings that differ between the vanilla file and the mod. A name here is a vanilla name; a stand-in or mount "
+    "(`states`); names: option spellings that differ between the vanilla file and the mod; defaultOptions: the options a unit is shown with when it carries none "
+    "(the bag has no bare figure); markerOptions: an alias marker option (Lorien Guard) left out of the key when it is the unit's only option. A name here is a vanilla name; a stand-in or mount "
     "model may also be 'Name: options'."
 )
 
@@ -57,6 +58,20 @@ RIDERS = {
 # Spelling differences between a vanilla option and the mod's key: (unit, vanilla option, mod option, reason).
 NAMES = [
     ("Isengard Orc Warrior", "Orc bow", "Bow", "the mod writes the plain Bow for the Isengard Orc Warrior"),
+]
+
+# Units whose figure needs an option when the company carries none: unit -> (options, reason). Without it the key would not be one of the
+# mod's bag (no figure of the unit is bare), and the published image has no catalogue to look the closest key up in.
+DEFAULT_OPTIONS = [
+    ("Mahûd Warrior", ["Spear"], "the bag has no bare Mahûd Warrior; owner decision: melee over ranged, the cheapest (Spear, 1 point)"),
+    ("Rohirrim Traitor", ["Shield"], "the bag has no bare Rohirrim Traitor; owner decision: melee over ranged, the cheapest (Shield, 1 point). "
+     "REVIEW: the owner may prefer 'Shield and throwing spears'"),
+]
+
+# Options that only name the unit (a company alias selects them) and that the figure lacks when they are the only option: unit, option, reason.
+MARKER_OPTIONS = [
+    ("Galadhrim Warrior", "Lorien Guard", "the bag has no figure with the Lorien Guard marker alone: the bare Galadhrim Warrior is shown and the "
+     "name and description keep the Lorien Guard identity (owner decision)"),
 ]
 
 
@@ -124,7 +139,21 @@ def build(doc, van):
         if not e or not any(o["name"] == frm for o in e.get("options", [])):
             bad.append(f"names: {unit!r} has no vanilla option {frm!r}")
         opts.append({"unit": unit, "from": frm, "to": to, "reason": reason})
+    defaults = []
+    for unit, options, reason in DEFAULT_OPTIONS:
+        e = units.get(fold(unit))
+        have = {o["name"] for o in (e or {}).get("options", [])}
+        if not e or not set(options) <= have:
+            bad.append(f"defaultOptions: {unit!r} has no vanilla option(s) {options}")
+        defaults.append({"unit": unit, "options": options, "reason": reason})
+    markers = []
+    for unit, option, reason in MARKER_OPTIONS:
+        e = units.get(fold(unit))
+        if not e or not any(o["name"] == option for o in e.get("options", [])):
+            bad.append(f"markerOptions: {unit!r} has no vanilla option {option!r}")
+        markers.append({"unit": unit, "option": option, "reason": reason})
     if bad:
         raise SystemExit("data.ttsModels: " + "; ".join(bad))
     return {"text": TEXT, "standIns": stand_ins, "mounts": mounts,
-            "riders": sorted(riders, key=lambda r: r["unit"]), "names": opts}
+            "riders": sorted(riders, key=lambda r: r["unit"]), "names": opts,
+            "defaultOptions": defaults, "markerOptions": markers}

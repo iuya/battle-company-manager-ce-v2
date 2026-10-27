@@ -1,0 +1,1751 @@
+## Angmar & Carn Dum
+start: Angmar Orc Warrior [Orc Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Angmar Orc Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Angmar Orc Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Angmar Orc Warrior [Two-handed weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Wild Warg []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Carn Dum []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Wild Warg []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Angmar Orc Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Warrior of Carn Dum []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Angmar Warg Rider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Spectre []
+    warrior: 12" enemy/target A fell light is in them
+    hero: 6" command/always Stand Fast, With Me!, Loose | 12" enemy/target A fell light is in them
+special chart: Werewolf []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Angmar Warg Rider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Fell Warg []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Show of Strength on Angmar Orc Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Angmar Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Angmar Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Angmar Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Angmar Orc Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Angmar Orc Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Angmar Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Angmar Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Angmar Orc Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Angmar Orc Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Angmar Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Angmar Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Arnor
+start: Warrior of Arnor []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Ranger of Arnor []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Arnor []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Ranger of Arnor []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Ranger of Arnor [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Knight of Arnor []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Knight of Arnor []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Foresight of the Seer on Warrior of Arnor: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Warrior of Arnor: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Warrior of Arnor: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Warrior of Arnor: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Warrior of Arnor: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Warrior of Arnor: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Warrior of Arnor: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Warrior of Arnor: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Warrior of Arnor: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Warrior of Arnor: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Warrior of Arnor: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Warrior of Arnor: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Burning of the Westfold
+start: Uruk-hai Scout [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Uruk-hai Scout [Uruk-Hai Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Wild Man of Dunland [Flaming Brand]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Isengard Orc Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Isengard Orc Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Isengard Orc Warrior [Orc Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Isengard Orc Warrior [Two-handed weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Wild Man of Dunland []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Isengard Orc Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Uruk-hai Scout []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Feral Uruk-hai []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Crebain []
+    warrior: 12" enemy/always Keen Sight
+    hero: 6" command/always Stand Fast, With Me!, Loose | 12" enemy/always Keen Sight
+advancement: Dunlending Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Dunlending Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Pillager on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Uruk-hai Scout: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Uruk-hai Scout: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Cirith Ungol
+start: Mordor Uruk-Hai []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mordor Orc Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mordor Orc Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mordor Orc Warrior [Orc Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mirkwood Giant Spider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mordor Orc Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mordor Uruk-Hai []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mirkwood Giant Spider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Orc Tracker []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Animosity on Mordor Uruk-Hai: 6" command/always Stand Fast, With Me!, Loose
+upgrade She Hungers for Sweeter Meats on Mirkwood Giant Spider: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Mordor Uruk-Hai: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Mordor Uruk-Hai: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Mordor Uruk-Hai: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Mordor Uruk-Hai: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Mordor Uruk-Hai: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Mordor Uruk-Hai: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Mordor Uruk-Hai: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Mordor Uruk-Hai: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Mordor Uruk-Hai: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Mordor Uruk-Hai: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Mordor Uruk-Hai: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## City of Umbar
+start: Black Numenorean Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Corsair of Umbar [Light Shield Throwing weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Haradrim Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Corsair of Umbar [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Haradrim Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Corsair of Umbar []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Corsair Crossbowman []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Corsair Reaver []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Black Numenorean Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Corsair Crossbowman []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Seize Command on Black Numenorean Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared Seize Command
+path Path of the Tactician on Black Numenorean Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Black Numenorean Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Black Numenorean Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Black Numenorean Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Black Numenorean Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Black Numenorean Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Black Numenorean Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Black Numenorean Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Black Numenorean Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Black Numenorean Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Black Numenorean Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Defenders of the North
+start: Iron Hills Warrior [Shield Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Iron Hills Warrior [Mattock]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Dale [Shield Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Dale [Esgaroth Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Dale []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Knight of Dale []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Iron Hills Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Knight of Dale []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Defender on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Iron Hills Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Iron Hills Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Dol Guldur
+start: Hunter Orc Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hunter Orc Warrior [Orc Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hunter Orc Warrior [Two-handed weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Fell Warg []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Fell Warg []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Hunter Orc Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Hunter Orc Warrior [Orc Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Hunter Orc Warrior [Two-handed weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Hunter Orc Warg Rider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Mirkwood Hunting Spider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Mirkwood Giant Spider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Hunter Orc Warg Rider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Hunter Orc Warg Rider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Master Hunter on Hunter Orc Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Hunter Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Hunter Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Hunter Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Hunter Orc Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Hunter Orc Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Hunter Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Hunter Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Hunter Orc Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Hunter Orc Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Hunter Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Hunter Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Durin's Folk
+start: Dwarf Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Dwarf Warrior [Two-handed weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Dwarf Warrior [Dwarf Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Dwarf Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Dwarf Ranger []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Khazad Guard []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Iron Guard []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Vault Warden Team []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Khazad Guard []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Dwarf Ranger [Dwarf Longbow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade The Stubbornness of Dwarves on Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Dwarf Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Dwarf Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Easterlings
+start: Black Dragon Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Easterling Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Easterling Warrior [Easterling Halberd Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Easterling Warrior [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Easterling Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Easterling Warrior [Easterling Halberd Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Easterling Warrior [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Easterling Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Easterling Kataphrakt []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Dragon Cult Acolyte []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: War Drake of Rhun []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Black Dragon Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Easterling Kataphrakt []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Skilled Blade on Black Dragon Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Black Dragon Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Black Dragon Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Black Dragon Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Black Dragon Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Black Dragon Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Black Dragon Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Black Dragon Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Black Dragon Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Black Dragon Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Black Dragon Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Black Dragon Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Erebor & Dale
+start: Erebor Dwarf Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Erebor Dwarf Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Dale [Shield Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Dale [Esgaroth Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Dale []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Erebor Dwarf Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Grim Hammer Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Grim Hammer Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Lordly Quality on Erebor Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Erebor Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Erebor Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Erebor Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Erebor Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Erebor Dwarf Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Erebor Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Erebor Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Erebor Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Erebor Dwarf Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Erebor Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Erebor Dwarf Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Fiefdoms
+start: Knight of Dol Amroth []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Clansman of Lamedon []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Axeman of Lossarnach []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Blackroot Vale Archer []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Clansman of Lamedon []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Blackroot Vale Archer []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Axeman of Lossarnach []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Man-at-arms of Dol Amroth []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Knight of Dol Amroth []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Knight of Dol Amroth []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Knight of Dol Amroth [Armoured horse]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Lord of Dol Amroth on Knight of Dol Amroth: 6" banner/always Lord of Dol Amroth | 6" command/always Stand Fast, With Me!, Loose
+upgrade Lord of Lossarnach on Axeman of Lossarnach: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Lord of Lossarnach
+upgrade Chief of Lamedon on Clansman of Lamedon: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Chief of Lamedon
+upgrade Lord of the Vale on Blackroot Vale Archer: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Lord of the Vale
+path Path of the Tactician on Knight of Dol Amroth: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Knight of Dol Amroth: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Knight of Dol Amroth: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Knight of Dol Amroth: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Knight of Dol Amroth: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Knight of Dol Amroth: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Knight of Dol Amroth: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Knight of Dol Amroth: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Knight of Dol Amroth: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Knight of Dol Amroth: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Knight of Dol Amroth: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Fornost
+start: Rivendell Warrior [Elf Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Minas Tirith [Spear Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Minas Tirith [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hobbit Archer []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Minas Tirith [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement (alt): Hobbit Archer []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Minas Tirith [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement (alt): Hobbit Archer []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Minas Tirith [Spear Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement (alt): Hobbit Archer []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Ranger of Arnor []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement (alt): Hobbit Archer []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement (alt): Hobbit Archer []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Knight of Minas Tirith []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Rivendell Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Knight of Minas Tirith []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Defiance on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Rivendell Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Rivendell Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Goblin-Town
+start: Goblin Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Goblin Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Goblin Warrior [Two-handed weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Goblin Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Goblin Mercenary []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special unit: Goblin Hulk []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Goblin Mercenary []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Swap with Me! on Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/target Swap with Me!
+path Path of the Tactician on Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Goblin Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Goblin Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Grand Army of the South
+start: Mahûd Warrior [Blowpipe]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Khandish Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Corsair of Umbar [Light Shield Throwing weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Haradrim Warrior [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Haradrim Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mahûd Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Khandish Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Corsair of Umbar []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Easterling Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Khandish Horseman []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Half Troll []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Khandish Horseman []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Haradrim Raider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Haradrim Raider [War spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Master Skirmisher on Mahûd Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Mahûd Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Mahûd Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Mahûd Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Mahûd Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Mahûd Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Mahûd Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Mahûd Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Mahûd Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Mahûd Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Mahûd Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Mahûd Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Gundabad
+start: Gundabad Orc Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Gundabad Orc Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Goblin Mercenary []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Gundabad Orc Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Gundabad Orc Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Gundabad Orc Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Gundabad Berserker []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: War Bat []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special unit: Gundabad Ogre []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Feel no Pain on Gundabad Orc Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Gundabad Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Gundabad Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Gundabad Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Gundabad Orc Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Gundabad Orc Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Gundabad Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Gundabad Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Gundabad Orc Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Gundabad Orc Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Gundabad Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Gundabad Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Halls of Thranduil
+start: Mirkwood Elf Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mirkwood Elf Warrior [Elven-made Glaive]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mirkwood Ranger []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mirkwood Elf Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mirkwood Elf Warrior [Elven-made Glaive]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mirkwood Elf Warrior [Elf Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mirkwood Elf Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Palace Guard []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Mirkwood Ranger []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Mirkwood Elf Knight []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Palace Guard [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Mirkwood Elf Knight []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Mirkwood Ranger []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Bladelord on Mirkwood Elf Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Mirkwood Elf Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Mirkwood Elf Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Mirkwood Elf Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Mirkwood Elf Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Mirkwood Elf Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Mirkwood Elf Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Mirkwood Elf Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Mirkwood Elf Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Mirkwood Elf Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Mirkwood Elf Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Mirkwood Elf Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Harad
+start: Haradrim Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Haradrim Warrior [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Haradrim Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Haradrim Warrior [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Haradrim Raider [War spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Haradrim Raider [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Serpent Guard []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Serpent Rider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Watcher of Kârna []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Abrakhan Merchant Guard []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Haradrim Raider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Haradrim Raider [War spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Serpent Rider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Master of Poisons on Haradrim Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Haradrim Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Haradrim Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Haradrim Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Haradrim Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Haradrim Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Haradrim Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Haradrim Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Haradrim Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Haradrim Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Haradrim Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Haradrim Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Helm's Deep
+start: Ranger of the North [Armour]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Dwarf Warrior [Two-handed weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Lothlorien Warrior [Elf Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Rohan [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Rohan [Throwing Spears Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Galadhrim Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Rohan []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Helminga []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Galadhrim Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Helminga []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade One Final Blow on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim
+path Path of the Tactician on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always Knife Mastery
+path Path of the Soldier on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Ranger of the North: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose, Take Aim | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 6" support/declared The King's Protector
+path Path of the Ranger on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, At the Double, Take Aim | 6" support/always Chief Advisor
+path Path of the Warlord on Ranger of the North: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/declared To Arms!
+path Path of the Duelist on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 6" support/declared For Glory
+## Hill Tribes of Dunland
+start: Dunlending Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Dunlending Warrior [Two-handed weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Dunlending Warrior [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hill Tribesman [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hill Tribesman [Two-handed weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hill Tribesman [Light Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hill Tribesman [Flaming Brand]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hill Tribesman [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Hill Tribesman []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Dunlending Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Dunlending Huscarl []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Dunlending Horseman []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Crebain []
+    warrior: 12" enemy/always Keen Sight
+    hero: 6" command/always Stand Fast, With Me!, Loose | 12" enemy/always Keen Sight
+advancement: Dunlending Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Dunlending Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Whipped into a Frenzy on Dunlending Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Dunlending Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Dunlending Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Dunlending Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Dunlending Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Dunlending Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Dunlending Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Dunlending Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Dunlending Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Dunlending Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Dunlending Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Dunlending Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Iron Hills
+start: Iron Hills Warrior [Shield Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Iron Hills Warrior [Mattock]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Iron Hills Warrior [Crossbow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Iron Hills Warrior [Mattock]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Iron Hills Warrior [Crossbow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Iron Hills Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Iron Hills Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Iron Hills Goat Rider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Stubborn Brilliance! on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Iron Hills Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Iron Hills Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Iron Hills Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Lake-town
+start: Lake-town Guard []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Lake-town Guard [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Lake-town Guard [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Lake-town Militia [Light Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Lake-town Militia [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Lake-town Militia [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Lake-town Militia []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Lake-town Guard []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Lake-town Militia []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Lake-town Guard []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Lake-town Guard []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Moneybags on Lake-town Guard: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared Moneybags
+path Path of the Tactician on Lake-town Guard: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Lake-town Guard: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Lake-town Guard: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Lake-town Guard: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Lake-town Guard: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Lake-town Guard: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Lake-town Guard: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Lake-town Guard: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Lake-town Guard: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Lake-town Guard: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Lake-town Guard: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Lothlorien
+start: Lothlorien Warrior [Elf Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Galadhrim Warrior [Elf Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Lothlorien Warrior [Wood Elf Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Galadhrim Warrior [Elven spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Lothlorien Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Galadhrim Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Lothlorien Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Galadhrim Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Galadhrim Knight []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Guard of the Galadhrim Court []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Wood Elf Sentinel []
+    warrior: 3" support/declared Enchanting Song: Lay of Gondolin | 12" support/target Enchanting Song: Hymn of Elbereth
+    hero: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared Enchanting Song: Lay of Gondolin | 12" support/target Enchanting Song: Hymn of Elbereth
+advancement: Galadhrim Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Galadhrim Warrior [Elven spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Lorien Guard []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Blessing of the Golden Wood on Lothlorien Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Lothlorien Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Lothlorien Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Lothlorien Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Lothlorien Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Lothlorien Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Lothlorien Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Lothlorien Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Lothlorien Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Lothlorien Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Lothlorien Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Lothlorien Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Minas Morgul
+start: Mordor Orc Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mordor Orc Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mordor Orc Warrior [Orc Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Black Numenorean Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mordor Orc Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mordor Orc Warrior [Orc Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mordor Orc Warrior [Two-handed weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mordor Orc Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Morgul Stalker []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Black Numenorean Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Spectre []
+    warrior: 12" enemy/target A fell light is in them
+    hero: 6" command/always Stand Fast, With Me!, Loose | 12" enemy/target A fell light is in them
+advancement: Orc Tracker []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Black Numenorean Knight []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Morgul Weaponry on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Mordor Orc Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Mordor Orc Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Minas Tirith
+start: Warrior of Minas Tirith [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Minas Tirith [Spear Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Minas Tirith [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Minas Tirith [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Minas Tirith [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Minas Tirith [Spear Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Minas Tirith []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Citadel Guard []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Knight of Minas Tirith []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Guard of the Fountain Court []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Knight of Minas Tirith []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Citadel Guard [Longbow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Guard of the Fountain Court []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade The Charge of Gondor on Warrior of Minas Tirith: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Warrior of Minas Tirith: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Warrior of Minas Tirith: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Warrior of Minas Tirith: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Warrior of Minas Tirith: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Warrior of Minas Tirith: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Warrior of Minas Tirith: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Warrior of Minas Tirith: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Warrior of Minas Tirith: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Warrior of Minas Tirith: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Warrior of Minas Tirith: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Warrior of Minas Tirith: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Mirkwood
+start: Moria Goblin Warrior [Orc Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Moria Goblin Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mordor Orc Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mordor Orc Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mordor Orc Warrior [Two-handed weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mordor Orc Warrior [Orc Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Wild Warg []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mordor Orc Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Moria Goblin Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Wild Warg []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Moria Goblin Prowler []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Mordor Warg Rider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Mirkwood Hunting Spider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Mirkwood Giant Spider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Warg Marauder []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Moria Goblin Prowler []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Orc Tracker []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Fell Warg []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Cover of Darkness on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Moria Goblin Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Moria Goblin Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Mordor
+start: Mordor Orc Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mordor Orc Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mordor Orc Warrior [Two-handed weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Mordor Orc Warrior [Orc Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mordor Orc Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mordor Orc Warrior [Orc Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mordor Orc Warrior [Two-handed weapon]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Mordor Orc Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Morannon Orc Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Mordor Uruk-Hai []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Mordor Warg Rider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Black Guard of Barad-dûr []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Black Numenorean Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Morannon Orc Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Orc Tracker []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Black Guard of Barad-dûr []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Orcish Brawler on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Mordor Orc Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Mordor Orc Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Mordor Orc Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Moria
+start: Moria Goblin Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Moria Goblin Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Moria Goblin Warrior [Orc Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Moria Goblin Warrior [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Moria Goblin Warrior [Orc Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Moria Goblin Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Moria Goblin Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Moria Goblin Prowler []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Moria Blackshield Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special unit: Cave Troll []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Moria Blackshield Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Moria Goblin Prowler []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Callous Leadership on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared Callous Leadership
+path Path of the Tactician on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Moria Goblin Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Moria Goblin Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Moria Goblin Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Muster of Isengard
+start: Uruk-hai Scout [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Uruk-hai Scout [Uruk-Hai Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Uruk-hai Scout []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Uruk-hai Scout []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Uruk-hai Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Feral Uruk-hai []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Uruk-hai Berserker []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Uruk-hai Warrior [Pike]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Uruk-hai Warrior [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Uruk-hai Warrior [Crossbow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade There will be no dawn for Men on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Uruk-hai Scout: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Uruk-hai Scout: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Uruk-hai Scout: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Osgiliath & Ithilien
+start: Osgiliath Veteran [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Ranger of Gondor []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Minas Tirith [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Minas Tirith [Spear Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Minas Tirith [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Minas Tirith []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Ranger of Gondor []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Ranger of Gondor [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Osgiliath Veteran []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Knight of Minas Tirith []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Osgiliath Veteran []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Ranger of Ithilien []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Remember Today on Osgiliath Veteran: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Remember Today
+path Path of the Tactician on Osgiliath Veteran: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Osgiliath Veteran: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Osgiliath Veteran: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Osgiliath Veteran: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Osgiliath Veteran: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Osgiliath Veteran: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Osgiliath Veteran: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Osgiliath Veteran: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Osgiliath Veteran: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Osgiliath Veteran: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Osgiliath Veteran: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Paths of the Druadan
+start: Warrior of Rohan [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Rohan Outrider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Woses Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Rohan [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Rohan [Throwing Spears Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Rohan Outrider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Woses Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Rider of Rohan []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Rohan Outrider [Horse]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Know All Paths on Warrior of Rohan: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Warrior of Rohan: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Warrior of Rohan: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Warrior of Rohan: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Warrior of Rohan: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Warrior of Rohan: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Warrior of Rohan: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Warrior of Rohan: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Warrior of Rohan: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Warrior of Rohan: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Warrior of Rohan: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Warrior of Rohan: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Rivendell
+start: Rivendell Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Rivendell Warrior [Elf Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Rivendell Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Rivendell Warrior [Elven spear Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Rivendell Warrior [Elf Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Rivendell Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Noldorin Exile []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Rivendell Knight []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Veteran of the Old Wars on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Rivendell Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Rivendell Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Rohan
+start: Rider of Rohan []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Rohan [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Rohan [Throwing Spears Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Rohan [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Rohan [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Rohan [Throwing Spears Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Rohan [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Rohan Outrider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Rohan Royal Guard []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Rider of Rohan []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Rohan Royal Guard [Horse]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+special chart: Son of Eorl []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Rider of Rohan []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Rohan Royal Guard []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Rider of Rohan []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Rohan Outrider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Rohan Royal Guard [Horse]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Rohan Outrider [Horse]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Back on your Horses! on Rider of Rohan: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Rider of Rohan: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Rider of Rohan: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Rider of Rohan: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Rider of Rohan: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Rider of Rohan: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Rider of Rohan: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Rider of Rohan: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Rider of Rohan: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Rider of Rohan: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Rider of Rohan: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Rider of Rohan: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Sharkey's Rogues
+start: Ruffian [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Ruffian [Whip]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hill Tribesman [Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hill Tribesman [Spear]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hill Tribesman [Light Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Ruffian []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Hill Tribesman []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Ruffian []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Hill Tribesman []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Hill Tribesman []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Rohirrim Traitor []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Rohirrim Traitor [Shield Throwing Spears]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Rohirrim Traitor [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Strength in Numbers on Ruffian: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Ruffian: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Ruffian: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Ruffian: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Ruffian: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Ruffian: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Ruffian: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Ruffian: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Ruffian: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Ruffian: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Ruffian: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Ruffian: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## The Last Alliance
+start: Rivendell Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Rivendell Warrior [Elf Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Warrior of Numenor [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Numenor []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Rivendell Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade There Were Some Who Resisted on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Rivendell Warrior: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Rivendell Warrior: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Rivendell Warrior: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## The Shire
+start: Ranger of the North []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hobbit Militia []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hobbit Archer []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Hobbit Militia []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Hobbit Archer []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Hobbit Shirriff []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Hobbit Militia []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Battlin' Brandybuck []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Tookish Hunter []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Of a Party Sort on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim
+upgrade Throwing Stones on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim
+path Path of the Tactician on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always Knife Mastery
+path Path of the Soldier on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Ranger of the North: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose, Take Aim | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 6" support/declared The King's Protector
+path Path of the Ranger on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, At the Double, Take Aim | 6" support/always Chief Advisor
+path Path of the Warlord on Ranger of the North: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/declared To Arms!
+path Path of the Duelist on Ranger of the North: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 6" support/declared For Glory
+## Wanderers in the Wild
+start: Warrior of Numenor [Longbow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hobbit Militia []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Hobbit Shirriff []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Tookish Hunter []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Battlin' Brandybuck []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement (choice): Hobbit Militia []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement (choice): Hobbit Shirriff []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement (choice): Tookish Hunter [Tookish Hunter]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement (choice): Battlin' Brandybuck [Battlin' Brandybuck]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Warrior of Numenor []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Dwarf Ranger []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Lothlorien Warrior []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade You Have My Sword on Warrior of Numenor: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared You Have My Sword
+upgrade I Have My Own Sword, Thank You Very Much on Hobbit Militia: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Warrior of Numenor: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Warrior of Numenor: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Warrior of Numenor: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Warrior of Numenor: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Warrior of Numenor: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Warrior of Numenor: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Warrior of Numenor: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Warrior of Numenor: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Warrior of Numenor: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Warrior of Numenor: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Warrior of Numenor: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory
+## Wolves of Isengard
+start: Isengard Warg []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Isengard Warg Rider [Shield]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+start: Isengard Warg Rider [Orc Bow]
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Isengard Warg []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+reinforcement: Isengard Warg Rider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+advancement: Isengard Warg Rider []
+    warrior: -
+    hero: 6" command/always Stand Fast, With Me!, Loose
+upgrade Savage Charge on Isengard Warg Rider: 6" command/always Stand Fast, With Me!, Loose
+upgrade Feral Charge on Isengard Warg: 6" command/always Stand Fast, With Me!, Loose
+path Path of the Tactician on Isengard Warg: 6" command/always Stand Fast, With Me!, Loose | 6" support/always Heroic Move Mastery, Reading the Portents | 6" enemy/target Gatekeeper | 12" enemy/target Spy
+path Path of the Sharpshooter on Isengard Warg: 6" command/always Stand Fast, With Me!, Loose | 3" support/always Knife Mastery
+path Path of the Soldier on Isengard Warg: 6" command/always Stand Fast, With Me!, Loose | 3" support/always A Good Sort | 6" support/declared Relentless Commander
+path Path of the Marksman on Isengard Warg: 6" command/always Stand Fast, With Me!, Loose, Take Aim | 3" support/always "Hold positions, loose the arrows!"
+path Path of the Claimant on Isengard Warg: 6" banner/conditional Claim the Throne | 6" command/always Stand Fast, With Me!, Loose | 6" enemy/target Heroic Challenge
+path Path of the Sorcerer on Isengard Warg: 6" command/always Stand Fast, With Me!, Loose | 6" command/cast Aura of Command | 6" support/cast Fury | 6" enemy/cast Aura of Dismay, Fog of Disarray, Instill Fear | 3" utility/cast Writhing Vines | 6" utility/cast Blinding Light
+path Path of the Shieldbearer on Isengard Warg: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared The King's Protector
+path Path of the Ranger on Isengard Warg: 6" command/always Stand Fast, With Me!, Loose, At the Double | 6" support/always Chief Advisor
+path Path of the Warlord on Isengard Warg: 3" banner/always Commanding Bellow | 12" command/always Voice of Command | 6" enemy/always Furious Tirade, Master of Battle
+path Path of the Berserker on Isengard Warg: 6" command/always Stand Fast, With Me!, Loose | 3" support/declared To Arms!
+path Path of the Duelist on Isengard Warg: 6" command/always Stand Fast, With Me!, Loose | 6" support/declared For Glory

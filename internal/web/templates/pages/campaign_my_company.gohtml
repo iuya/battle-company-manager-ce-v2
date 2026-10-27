@@ -235,7 +235,7 @@
 <div id="live-zones"{{if .OOB}} hx-swap-oob="true"{{end}} data-seq="{{$lv.Seq}}" data-company="{{$lv.CompanyID}}" data-match="{{$lv.MatchID}}" data-campaign="{{$cid}}" class="space-y-8">
   {{template "live_break" (dict "LV" $lv "CID" $cid)}}
   <div x-ref="grid" class="mt-4 grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Battle company in the field">
-    {{range $lv.Field}}{{template "unit_card" (dict "U" .U "CID" $cid "WCost" $.Company.Injuries.WarriorCost "RO" $.ReadOnly "LV" $lv "LU" .L)}}{{else}}<p class="text-muted md:col-span-2 xl:col-span-3">Nobody is in the field.</p>{{end}}
+    {{range $lv.Field}}{{template "unit_card" (dict "U" .U "CID" $cid "WCost" $.Company.Injuries.WarriorCost "RO" $.ReadOnly "LV" $lv "LU" .L "AP" .Applies)}}{{else}}<p class="text-muted md:col-span-2 xl:col-span-3">Nobody is in the field.</p>{{end}}
   </div>
   {{template "live_zone" (dict "Title" "Retreated" "Cards" $lv.Retreated "LV" $lv "CID" $cid "Kind" "retreated" "Note" "Left the table. They roll no injuries and finish the match as having fled.")}}
   {{template "live_zone" (dict "Title" "Field casualties" "Cards" $lv.Casualties "LV" $lv "CID" $cid "Kind" "casualty" "Note" "They roll for injuries after the match.")}}
@@ -331,6 +331,7 @@
   {{template "role_insignia" $u.Role}}
   <div class="min-w-0 flex-1">
     <p class="font-medium leading-tight">{{$u.Title}}{{if ne $u.Title $u.Type}} <span class="text-sm font-normal text-muted">{{$u.Type}}</span>{{end}}</p>
+    {{with $u.Keywords}}<div class="mt-1">{{template "keyword_row" (dict "K" . "Open" "false")}}</div>{{end}}
     <p class="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs">
       {{if eq .Kind "retreated"}}<span class="badge badge-muted">Retreated</span>{{else if eq .Kind "casualty"}}<span class="badge !bg-danger-soft !text-danger">Casualty</span>{{else}}<span class="badge badge-muted">Missed this game</span>{{end}}
       {{with $l.Reason}}<span class="text-muted">{{.}}</span>{{end}}

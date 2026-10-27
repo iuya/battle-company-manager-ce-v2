@@ -112,6 +112,8 @@
         "parameterisedRules",
         "vanillaAmbiguities",
         "ttsModels",
+        "ruleTargets",
+        "auras",
         "reservedOptions",
         "optionSales",
         "profileWargearNotSold",
@@ -623,7 +625,7 @@
         "ttsModels": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["text", "standIns", "mounts", "riders", "names"],
+          "required": ["text", "standIns", "mounts", "riders", "names", "defaultOptions", "markerOptions"],
           "description": "Fixed mappings to the model names of the Tabletop Simulator MESBG FTC mod (docs/tabletop-simulator.md). Short names only; the mod's catalogue is never stored.",
           "properties": {
             "text": {"type": "string", "minLength": 1},
@@ -640,7 +642,68 @@
               "reason": {"type": "string", "minLength": 1}}}},
             "names": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["unit", "from", "to", "reason"], "properties": {
               "unit": {"type": "string", "minLength": 1}, "from": {"type": "string", "minLength": 1}, "to": {"type": "string", "minLength": 1},
+              "reason": {"type": "string", "minLength": 1}}}},
+            "defaultOptions": {"type": "array", "description": "Units the bag has no bare figure of: the options requested when the company carries none.", "items": {"type": "object", "additionalProperties": false, "required": ["unit", "options", "reason"], "properties": {
+              "unit": {"type": "string", "minLength": 1}, "options": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+              "reason": {"type": "string", "minLength": 1}}}},
+            "markerOptions": {"type": "array", "description": "Alias marker options left out of the key when they are the unit's only option; the name and description keep them.", "items": {"type": "object", "additionalProperties": false, "required": ["unit", "option", "reason"], "properties": {
+              "unit": {"type": "string", "minLength": 1}, "option": {"type": "string", "minLength": 1},
               "reason": {"type": "string", "minLength": 1}}}}
+          }
+        },
+        "ruleTargets": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["text", "patterns", "names"],
+          "description": "Who a special rule works against or for (bead vj0.6, docs/unit-keywords.md). A rule not listed is own.",
+          "properties": {
+            "text": {"type": "string", "minLength": 1},
+            "patterns": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["rule", "base", "appliesTo", "target", "keywordMatch", "variants"], "properties": {
+              "rule": {"type": "string", "minLength": 1}, "base": {"type": "string", "minLength": 1},
+              "appliesTo": {"enum": ["enemy-keyword", "friendly-keyword"]}, "target": {"type": "string", "pattern": "\\{X\\}"},
+              "keywordMatch": {"enum": ["any", "all"]}, "variants": {"type": "array", "items": {"type": "string", "minLength": 1}}}}},
+            "names": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["rule", "appliesTo"], "properties": {
+              "rule": {"type": "string", "minLength": 1}, "appliesTo": {"enum": ["enemy-keyword", "enemy-any", "friendly-keyword", "own"]},
+              "keywords": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "keywordMatch": {"enum": ["any", "all"]},
+              "target": {"type": "string", "minLength": 1}, "bearerKeywords": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}}}}
+          }
+        },
+        "auras": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["text", "kinds", "groups", "entries", "excluded", "outOfScope", "unreachable"],
+          "description": "Aura ranges (bead 4fe.2, docs/aura-ranges.md): fixed radii around the bearer drawn as rings in Tabletop Simulator and shown as chips on the unit cards.",
+          "properties": {
+            "text": {"type": "string", "minLength": 1},
+            "kinds": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["id", "label", "colour", "rgb", "text", "default"], "properties": {
+              "id": {"enum": ["banner", "command", "support", "enemy", "utility"]}, "label": {"type": "string", "minLength": 1}, "colour": {"type": "string", "minLength": 1},
+              "rgb": {"type": "string", "pattern": "^[0-9A-F]{6}$"}, "text": {"type": "string", "minLength": 1}, "default": {"type": "boolean"}}}},
+            "groups": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["id", "label", "text", "default"], "properties": {
+              "id": {"enum": ["always", "declared", "conditional", "cast", "target", "large", "optional"]}, "label": {"type": "string", "minLength": 1},
+              "text": {"type": "string", "minLength": 1}, "default": {"type": "boolean"}}}},
+            "entries": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false,
+              "required": ["id", "source", "label", "radius", "kind", "affects", "when", "group", "los", "keywords", "tip", "concept", "reason"], "properties": {
+              "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+              "source": {"type": "object", "additionalProperties": false, "required": ["type"], "properties": {
+                "type": {"enum": ["item", "rule", "hero", "heroicAction", "power"]},
+                "names": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                "pattern": {"type": "string", "minLength": 1}}},
+              "label": {"type": "string", "minLength": 1}, "mergeLabels": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+              "radius": {"type": "number", "minimum": 0.5, "maximum": 48}, "radiusParts": {"type": "array", "minItems": 2, "items": {"type": "number", "exclusiveMinimum": 0}},
+              "textFrom": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+              "kind": {"enum": ["banner", "command", "support", "enemy", "utility"]}, "affects": {"enum": ["friendly", "enemy", "any", "self"]},
+              "when": {"enum": ["always", "declared", "conditional", "cast", "target"]},
+              "group": {"enum": ["always", "declared", "conditional", "cast", "target", "large", "optional"]},
+              "los": {"type": "boolean"}, "keywords": {"type": "array", "items": {"type": "string", "minLength": 1}},
+              "bearer": {"enum": ["Hero"]}, "replaces": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+              "tip": {"type": "string", "minLength": 1, "maxLength": 200}, "concept": {"type": "string", "minLength": 1}, "reason": {"type": "string", "minLength": 1}}}},
+            "excluded": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["type", "names", "radius", "category", "reason"], "properties": {
+              "type": {"enum": ["item", "rule", "power", "heroicAction"]}, "names": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+              "pattern": {"type": "string", "minLength": 1}, "radius": {"type": "number", "minimum": 0},
+              "category": {"enum": ["receiver-side", "centred-elsewhere", "weapon-range", "movement", "visibility", "effect-length"]}, "reason": {"type": "string", "minLength": 1}}}},
+            "outOfScope": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["scope", "reason"], "properties": {
+              "scope": {"type": "string", "minLength": 1}, "reason": {"type": "string", "minLength": 1}}}},
+            "unreachable": {"type": "array", "items": {"type": "string", "minLength": 1}}
           }
         },
         "vanillaAmbiguities": {

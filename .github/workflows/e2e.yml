@@ -1,4 +1,6 @@
-# Browser smoke tests (docs/testing.md): `make e2e` against the compose PostgreSQL, with the runner's Chrome.
+# Browser smoke tests (docs/testing.md): `make e2e-enforce GROUP=<name>` against the compose PostgreSQL, with the runner's Chrome.
+# The flows are split into the groups of tests/e2e/groups.json, one parallel job each (own PostgreSQL, own seeded world); the final `e2e` job
+# is the single name to require (branch protection) and the gate of release-image.yml: it fails unless every group passed.
 name: e2e
 on:
   push:
@@ -8,15 +10,34 @@ on:
   workflow_call: # release-image.yml runs the same suite as the gate before publishing the image
 
 jobs:
-  e2e:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      groups: ${{ steps.groups.outputs.groups }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Groups (fails when a flow file is in no group or in two)
+        id: groups
+        run: |
+          node tests/e2e/lib/groups.mjs
+          echo "groups=$(node tests/e2e/lib/groups.mjs --names | tail -n 1)" >> "$GITHUB_OUTPUT"
+
+  browser:
+    needs: plan
+    name: browser (${{ matrix.group }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false # every group reports, whatever the others do
+      matrix:
+        group: ${{ fromJSON(needs.plan.outputs.groups) }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -25,16 +46,29 @@ jobs:
         run: |
           curl -fsSL https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 -o tailwindcss
           chmod +x tailwindcss
-      - name: Browser tests
+      - name: Browser tests, group ${{ matrix.group }}
         env:
           CHROME_PATH: /usr/bin/google-chrome
-        run: make e2e-enforce # the suite under the blocking Content-Security-Policy; make e2e is the same in report mode
+        run: make e2e-enforce GROUP=${{ matrix.group }} # the group under the blocking Content-Security-Policy; make e2e is the same in report mode
       - name: Screenshots and page texts of failed steps
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: e2e-out
+          name: e2e-out-${{ matrix.group }}
           path: |
             tests/e2e/out/*.png
             tests/e2e/out/*.txt
             tests/e2e/out/server.log
+
+  e2e:
+    needs: [plan, browser]
+    if: always() # a skipped or failed group must fail this job, not skip it (a skipped required check counts as passed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every group passed
+        env:
+          RESULTS: ${{ needs.plan.result }} ${{ needs.browser.result }}
+        run: |
+          echo "plan, browser: $RESULTS"
+          test "$RESULTS" = "success success"

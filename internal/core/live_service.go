@@ -1030,8 +1030,8 @@ func (s *LiveService) RollCourage(ctx context.Context, user User, id, matchID, u
 		return CourageRoll{}, Refuse("%s has no Courage to test.", unit.Title())
 	}
 	dice, err := castDice(s.dice, entered)
-	if err != nil {
-		return CourageRoll{}, err
+	if err != nil { // the live mode answers bad input with ErrInvalidLive (422), not the aftermath's error (which would be a 500 here)
+		return CourageRoll{}, invalid("Enter the two dice, each from 1 to 6.")
 	}
 	total := dice[0] + dice[1]
 	return CourageRoll{Dice: dice, Total: total, Courage: courage, Passed: total >= courage}, nil

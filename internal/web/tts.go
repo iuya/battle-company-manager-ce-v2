@@ -55,13 +55,168 @@ type ttsView struct {
 	NamesJSON  string
 	NameGroups []ttsNoteGroup
 	Lua        string // the helper's script, for the fallback
+
+	// Aura rings (docs/aura-ranges.md): the switches of the Auras section and what the company has.
+	AuraSel core.AuraSelection
+	Auras   core.AuraSummary
 }
+
+// auraKindOrder is the kinds of data.auras in the order of the dialog; the query lists the ones that are on.
+var auraKindOrder = []core.AuraKind{"banner", "command", "support", "enemy", "utility"}
+
+// auraSwitches are the group switches of the Auras section in the order the dialog shows them (the group "always" has none: it is on with
+// the master switch). Default is the owner's choice (docs/aura-ranges.md section 9): declared and conditional on, the others off.
+var auraSwitches = []struct {
+	Group, Param, Label, Hint string
+	Default                   bool
+}{
+	{core.AuraGroupDeclared, "adeclared", "Rules that need an action", "Heroic Actions, Active rules and once-per-game rules.", true},
+	{core.AuraGroupConditional, "aconditional", "Rules that need an event", "Rules that start working after something happened in the game.", true},
+	{core.AuraGroupCast, "acast", "Spells in effect", "Magical Powers of the bearer while they are in effect.", false},
+	{core.AuraGroupTarget, "atarget", "Targeting ranges", "The radius only limits the choice of one model.", false},
+	{core.AuraGroupLarge, "alarge", "Large rings, over 12 inches", "They fill the table, like the war horn's 24 inches.", false},
+	{core.AuraGroupOptional, "aoptional", "Optional rings", "Light of a Torch: correct, but not a rule that decides who is affected.", false},
+}
+
+// ttsAuraSelection reads the Auras section of the query: the master switch is on unless it says 0, akinds lists the kinds that are on
+// (absent: all), and each group switch has its default.
+func ttsAuraSelection(r *http.Request) core.AuraSelection {
+	q := r.URL.Query()
+	sel := core.AuraSelection{Draw: ttsSwitch(r, "auras")}
+	if q.Has("akinds") {
+		sel.Kinds = map[core.AuraKind]bool{}
+		for _, k := range strings.Split(q.Get("akinds"), ",") {
+			if k = strings.TrimSpace(k); k != "" {
+				sel.Kinds[core.AuraKind(k)] = true
+			}
+		}
+	}
+	for _, g := range auraSwitches {
+		on := g.Default
+		if v := q.Get(g.Param); v != "" {
+			if b, err := strconv.ParseBool(v); err == nil {
+				on = b
+			}
+		}
+		switch g.Group {
+		case core.AuraGroupDeclared:
+			sel.Declared = on
+		case core.AuraGroupConditional:
+			sel.Conditional = on
+		case core.AuraGroupCast:
+			sel.Cast = on
+		case core.AuraGroupTarget:
+			sel.Target = on
+		case core.AuraGroupLarge:
+			sel.Large = on
+		case core.AuraGroupOptional:
+			sel.Optional = on
+		}
+	}
+	return sel
+}
+
+func (v ttsView) groupOn(g string) bool {
+	switch g {
+	case core.AuraGroupDeclared:
+		return v.AuraSel.Declared
+	case core.AuraGroupConditional:
+		return v.AuraSel.Conditional
+	case core.AuraGroupCast:
+		return v.AuraSel.Cast
+	case core.AuraGroupTarget:
+		return v.AuraSel.Target
+	case core.AuraGroupLarge:
+		return v.AuraSel.Large
+	case core.AuraGroupOptional:
+		return v.AuraSel.Optional
+	}
+	return true
+}
+
+// AurasOn is whether the master switch is on.
+func (v ttsView) AurasOn() bool { return v.AuraSel.Draw }
+
+// HasAuraKinds is whether the company has any aura ring at all (in any group).
+func (v ttsView) HasAuraKinds() bool { return len(v.Auras.Kinds) > 0 }
+
+// auraKindRow is one row of the Auras section: a kind the company has.
+type auraKindRow struct {
+	ID, Label, Letter, Colour, Text string
+	On                              bool
+	Rings                           int
+	Radii                           string // `3", 6"`
+	Thick                           bool   // drawn with the thicker line (the enemy kind): a cue that does not rely on colour
+}
+
+// AuraKinds are the rows of the kinds the company has.
+func (v ttsView) AuraKinds() []auraKindRow {
+	var out []auraKindRow
+	for _, k := range v.Auras.Kinds {
+		out = append(out, auraKindRow{ID: string(k.Kind), Label: k.Label, Letter: strings.ToUpper(string(k.Kind)[:1]), Colour: k.Colour, Text: k.Text, On: k.On, Rings: k.Rings,
+			Radii: auraRadii(k.Radii), Thick: k.Kind == "enemy"})
+	}
+	return out
+}
+
+// auraRadii writes radii as `3", 6", 12"`.
+func auraRadii(rs []float64) string {
+	parts := make([]string, len(rs))
+	for i, r := range rs {
+		parts[i] = auraInches(r) + `"`
+	}
+	return strings.Join(parts, ", ")
+}
+
+// auraInches writes a radius without a needless fraction: 6, 4.5.
+func auraInches(r float64) string { return strconv.FormatFloat(r, 'f', -1, 64) }
+
+// auraSwitchRow is a group switch with what it does.
+type auraSwitchRow struct {
+	Name, Label, Hint, Count string
+	On                       bool
+}
+
+// AuraGroups are the group switches that matter to this company: those with at least one ring (the count says how many they add or remove).
+func (v ttsView) AuraGroups() []auraSwitchRow {
+	var out []auraSwitchRow
+	for _, g := range auraSwitches {
+		n := v.Auras.Counts[g.Group]
+		if n == 0 {
+			continue
+		}
+		on := v.groupOn(g.Group)
+		c := "adds " + counted(n, "ring")
+		if on {
+			c = counted(n, "ring")
+		}
+		out = append(out, auraSwitchRow{Name: g.Param, Label: g.Label, Hint: g.Hint, Count: c, On: on})
+	}
+	return out
+}
+
+// counted writes "1 ring", "3 rings".
+func counted(n int, word string) string {
+	if n == 1 {
+		return "1 " + word
+	}
+	return itoa(n) + " " + word + "s"
+}
+
+// AuraTotals is the line under the rows: "7 rings on 5 figures".
+func (v ttsView) AuraTotals() string {
+	return counted(v.Auras.Rings, "ring") + " on " + counted(v.Auras.Figures, "figure")
+}
+
+// HelperV2 is whether the names carry rings, so an older helper cannot read them.
+func (v ttsView) HelperV2() bool { return v.Names.Version >= core.TTSNamesVersionAuras }
 
 // ttsNamesNoteGroups are the kinds of note of the names, in the order the dialog shows them.
 var ttsNamesNoteGroups = []struct{ Kind, Title, Hint string }{
 	{core.TTSTooLarge, "Too large", "The Notebook may cut the text, and the helper then cannot read it."},
 	{core.TTSRulesLowered, "Rule texts left out to fit", "The names would pass the size limit with the rule texts you chose."},
 	{core.TTSDescriptionCut, "Descriptions shortened", "A description has a limit, so some lines or a rule text were cut."},
+	{core.TTSAurasLeftOut, "Aura rings left out", "A figure draws at most 4 rings and the names carry at most 150, so the rest are not drawn."},
 }
 
 // HasNames is whether there are figures to name.
@@ -202,8 +357,13 @@ func (s *Server) handleTTS(w http.ResponseWriter, r *http.Request) {
 	}
 	view.Groups = ttsGroups(view.Export.Notes)
 	view.Rules = ttsRules(r)
+	view.AuraSel = ttsAuraSelection(r)
 	if view.HasList() {
-		view.Names, err = s.campaigns.TTSNames(r.Context(), base.Campaign.ID, co.ID, view.Export, core.TTSNamesOptions{Rules: view.Rules})
+		view.Auras, err = s.campaigns.TTSAuras(r.Context(), base.Campaign.ID, co.ID, live, core.TTSOptions{FootVersions: view.Foot, MountFigures: view.Mounts}, view.AuraSel)
+		if s.fail(w, r, err) {
+			return
+		}
+		view.Names, err = s.campaigns.TTSNames(r.Context(), base.Campaign.ID, co.ID, view.Export, core.TTSNamesOptions{Rules: view.Rules, Auras: view.AuraSel})
 		if s.fail(w, r, err) {
 			return
 		}

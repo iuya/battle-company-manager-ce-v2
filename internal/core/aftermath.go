@@ -701,7 +701,7 @@ func Experience(ctx AftermathContext, in AftermathInput) []UnitGain {
 			continue
 		}
 		g := UnitGain{UnitID: m.UnitID}
-		if m.Took() && !u.OwnPath {
+		if m.Took() && !u.OwnPath && !u.Wanderer { // neither earns experience (BC: Wanderers gain none, units On Their Own Path none)
 			for _, gain := range ctx.Rules.Gains {
 				if n := m.Gains[gain.Key]; n > 0 {
 					g.Lines = append(g.Lines, AmountLine{Text: gain.Label, Amount: n * gain.Amount, UnitID: m.UnitID, Key: gain.Key})

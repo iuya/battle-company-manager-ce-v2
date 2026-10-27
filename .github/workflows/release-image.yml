@@ -1,5 +1,6 @@
 # Builds the Docker image and publishes it to the GitHub Container Registry (ghcr.io/<owner>/<repo>) when a release tag vMAJOR.MINOR.PATCH
-# is pushed. Order: browser tests (e2e.yml) -> build amd64 into the runner's daemon and smoke-test it against PostgreSQL -> push amd64+arm64.
+# is pushed. Order: browser tests (e2e.yml, all groups) -> per platform on a NATIVE runner (amd64: ubuntu-latest, arm64: ubuntu-24.04-arm; no QEMU):
+# build into the runner's daemon, smoke-test it against PostgreSQL, push it by digest -> merge: one multi-platform manifest with the release tags.
 # Run by hand (Actions > release-image > Run workflow) for a dry run: everything except the push. docs/operations.md, "Published image".
 name: release-image
 on:
@@ -19,15 +20,26 @@ env:
 
 jobs:
   e2e:
-    uses: ./.github/workflows/e2e.yml
+    uses: ./.github/workflows/e2e.yml # its final `e2e` job fails unless every group passed
 
-  publish:
+  build:
     needs: e2e
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+    name: image ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            pair: linux-amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            pair: linux-arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
     permissions:
       contents: read
-      packages: write
+      packages: write # the push by digest (tags only)
     services:
       postgres:
         image: postgres:17-alpine
@@ -40,38 +52,31 @@ jobs:
           --health-cmd "pg_isready -U bcm -d bcm" --health-interval 5s --health-timeout 4s --health-retries 20
     steps:
       - uses: actions/checkout@v7
-      - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
-      - name: Tags and labels
+      - name: Labels
         id: meta
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE }}
-          # 1.1.0, 1.1, 1 and latest for a stable tag (latest and the short ones are skipped for a pre-release such as v1.2.0-rc.1;
-          # the short ones are also skipped below 1.0.0). A dry run gets the tag dry-run, which is never pushed.
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=dry-run,enable=${{ !startsWith(github.ref, 'refs/tags/') }}
           labels: |
             org.opencontainers.image.title=Battle Companies Manager
             org.opencontainers.image.description=Campaign manager for Middle-earth Strategy Battle Game Battle Companies (2nd Edition)
             org.opencontainers.image.licenses=CC-BY-NC-SA-4.0
           # source, version and revision are set by the action from the repository, the tag and the commit.
 
-      # Smoke test: the amd64 image, as it will be pushed, is loaded into the runner's daemon and started like production would
+      # Smoke test: this runner's native image, as it will be pushed, is loaded into the daemon and started like production would
       # (read-only, non-root, no capabilities) against the service container. A broken image stops here, before any push.
-      - name: Build amd64 for the smoke test
+      - name: Build ${{ matrix.platform }} for the smoke test
         uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: linux/amd64
+          platforms: ${{ matrix.platform }}
           load: true
           tags: bcm:smoke
+          labels: ${{ steps.meta.outputs.labels }}
           provenance: false
-          cache-from: type=gha,scope=release-image
-          cache-to: type=gha,scope=release-image,mode=max
+          cache-from: type=gha,scope=release-image-${{ matrix.pair }}
+          cache-to: type=gha,scope=release-image-${{ matrix.pair }},mode=max
       - name: Smoke test
         run: |
           # Host network: the service container's port 5432 is published on the runner. Plain http on localhost, hence the insecure-cookie switch.
@@ -89,9 +94,11 @@ jobs:
           curl -fsS http://127.0.0.1:8080/login | grep -qi "password" || { echo "::error::/login did not render a password field"; docker logs bcm-smoke; exit 1; }
           docker exec bcm-smoke /app/server healthcheck || { echo "::error::the built-in healthcheck failed"; docker logs bcm-smoke; exit 1; }
           test "$(docker inspect -f '{{.Config.User}}' bcm-smoke)" = "65532:65532"
+          test "$(docker inspect -f '{{.Architecture}}' bcm:smoke)" = "${{ matrix.platform == 'linux/arm64' && 'arm64' || 'amd64' }}"
           docker logs bcm-smoke
           docker rm -f bcm-smoke
 
+      # A dry run (workflow_dispatch) stops after the smoke test: nothing below runs.
       - name: Log in to ghcr.io
         if: startsWith(github.ref, 'refs/tags/v')
         uses: docker/login-action@v4
@@ -99,14 +106,76 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build for amd64 and arm64, and push (a dry run builds and does not push)
+      - name: Push ${{ matrix.platform }} by digest (untagged; the merge job tags the manifest)
+        id: push
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
-          push: ${{ startsWith(github.ref, 'refs/tags/v') }}
-          tags: ${{ steps.meta.outputs.tags }}
+          platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
-          cache-from: type=gha,scope=release-image
-          cache-to: type=gha,scope=release-image,mode=max
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=release-image-${{ matrix.pair }}
+          cache-to: type=gha,scope=release-image-${{ matrix.pair }},mode=max
+      - name: Export the digest
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.push.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+      - name: Upload the digest
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ matrix.pair }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # One multi-platform manifest from the two digests, with the release tags. Tags only: a dry run has nothing to merge.
+  merge:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Download the digests
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v4
+      - name: Tags
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          # 1.1.0, 1.1, 1 and latest for a stable tag (latest and the short ones are skipped for a pre-release such as v1.2.0-rc.1;
+          # the short ones are also skipped below 1.0.0).
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create the manifest list
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          shopt -s nullglob
+          digests=(*)
+          test "${#digests[@]}" = 2 || { echo "::error::expected the digests of two platforms, got: ${digests[*]}"; exit 1; }
+          refs=()
+          for d in "${digests[@]}"; do refs+=("${{ env.IMAGE }}@sha256:$d"); done
+          read -r -a tag_args < <(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          docker buildx imagetools create "${tag_args[@]}" "${refs[@]}"
+      - name: Inspect the image
+        run: docker buildx imagetools inspect ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}

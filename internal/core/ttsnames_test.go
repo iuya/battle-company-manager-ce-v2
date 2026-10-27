@@ -76,7 +76,7 @@ func checkTTSPayload(t *testing.T, label string, ex TTSExport, p TTSNamesPayload
 	if err := json.Unmarshal(b, &back); err != nil {
 		t.Fatalf("%s: %v", label, err)
 	}
-	if !reflect.DeepEqual(back.Figures, p.Figures) || back.Version != 1 || back.Company != p.Company {
+	if !reflect.DeepEqual(back.Figures, p.Figures) || back.Version != p.Version || (p.Version != 1 && p.Version != 2) || back.Company != p.Company {
 		t.Errorf("%s: the JSON does not read back as the payload", label)
 	}
 	if again, _ := p.JSON(); !slices.Equal(again, b) {

@@ -287,6 +287,36 @@ type UnitRule struct {
 	From        string // for rules from equipment: the item that grants it
 	Mount       string // for rules granted to the mount (Pony: Timid), the mount's name; empty for the bearer's own
 	Label       string // the name to show when it differs from Name (the key): see Shown
+	// Works is who the rule works against, for its tooltip ("enemy models with the Orc keyword"); Against holds, for a rule that works against
+	// enemy models with a keyword, the alternatives of keywords (one bracket each). Both come from data.ruleTargets and stay empty without it.
+	Works   string
+	Against [][]string
+	Needs   []string // the rule only works whilst the bearer has one of these keywords (Slay their Horses!: Cavalry)
+	Friends bool     // Works names friendly models (Fury (X)): it works for them, not against
+}
+
+// WorksLabel is the lead of the Works text: "Works against" an enemy, "Works for" friendly models.
+func (r UnitRule) WorksLabel() string {
+	if r.Friends {
+		return "Works for"
+	}
+	return "Works against"
+}
+
+// TipText is the description for a tooltip: with a line on who the rule works against, when the rule set says so.
+func (r UnitRule) TipText() string {
+	if r.Works == "" {
+		return r.Description
+	}
+	return strings.TrimSpace(r.Description + "\n\n" + r.WorksLine())
+}
+
+// WorksLine is "Works against: enemy models with the Orc keyword."; empty without Works.
+func (r UnitRule) WorksLine() string {
+	if r.Works == "" {
+		return ""
+	}
+	return r.WorksLabel() + ": " + r.Works + "."
 }
 
 // Shown is the name of the rule on cards, chips and tooltips: its label, else its name. Name stays the key.
@@ -333,6 +363,10 @@ type UnitPath struct {
 	HeroicActions []HeroicAction // unlocked so far, including the ones bought later
 	Rules         []UnitRule     // special rules gained from the path; they are not repeated among the unit's own rules
 	Powers        []UnitRule     // magical powers learned through the path (the Path of the Sorcerer); Spell is true
+	// MinorRules is the number of minor special rules the hero took at level-up, with a target or without (they rate 5 each, at most 10 in all);
+	// a rule an item grants (Envenom Weapon's Poisoned Attacks) is not one of them. minorListed is how many of them are in Rules.
+	MinorRules  int
+	minorListed int
 }
 
 // Attribute is one value of a unit's profile (Mv 6", FV 4, SV 4+, ...). Boost is what the company added to the vanilla
@@ -380,6 +414,7 @@ type CompanyUnit struct {
 	Models            int          // how many models it counts as against the company's maximum; 0 is one
 	Parts             []UnitPart   // a unit made of several models on one card (Warg Marauder: its riders and mount)
 	Keywords          UnitKeywords // race, faction and unit types (and the mount's apart), see docs/unit-keywords.md
+	Auras             []Aura       // the aura ranges of the unit, unfiltered, merged by kind and radius (UnitAuras): the chips of the card, docs/aura-ranges.md
 }
 
 // UnitPart is a part of a unit made of several models: a rider, a mount.
@@ -406,8 +441,13 @@ func (d CompanyDetail) ModelCount() int {
 func (u CompanyUnit) XPInLevel() int { return max(0, u.XP-u.Level*XPPerLevel) }
 
 // PendingLevelUps is how many level-up rolls the unit can make now. A unit only gains a level once its roll is made,
-// so one that earned 15 XP at level 0 has 3 rolls waiting.
-func (u CompanyUnit) PendingLevelUps() int { return u.XPInLevel() / XPPerLevel }
+// so one that earned 15 XP at level 0 has 3 rolls waiting. A Wanderer and a unit On Its Own Path never level up: none waits.
+func (u CompanyUnit) PendingLevelUps() int {
+	if u.Wanderer || u.OwnPath {
+		return 0
+	}
+	return u.XPInLevel() / XPPerLevel
+}
 
 // LockMessage is the reason a locked company gives (see LockMessage), empty when it is not locked.
 func (d CompanyDetail) LockMessage() string {

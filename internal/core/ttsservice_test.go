@@ -33,3 +33,28 @@ func TestTTSServiceNamesMatchTheExportItWasGiven(t *testing.T) {
 		t.Errorf("the size is the JSON's: %v %d %d", err, len(js), p.Size)
 	}
 }
+
+func TestTTSServiceAurasAgreeWithTheNames(t *testing.T) {
+	f := newCompanyFixture(t)
+	f.update()
+	rs := shippedRules(t)
+	s := NewTTSService(f.campaigns, f.companies, staticRules{rs})
+	opts := TTSOptions{FootVersions: true, MountFigures: true}
+	sel := rs.DefaultAuraSelection()
+	sum, err := s.TTSAuras(f.ctx, 5, 1, nil, opts, sel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	exp, _ := s.TTSExport(f.ctx, 5, 1, nil, opts)
+	p, _ := s.TTSNames(f.ctx, 5, 1, exp, TTSNamesOptions{Rules: TTSRulesShort, Auras: sel})
+	rings, figures := 0, 0
+	for _, fg := range p.Figures {
+		rings += len(fg.Auras)
+		if len(fg.Auras) > 0 {
+			figures++
+		}
+	}
+	if sum.Rings != rings || sum.Figures != figures {
+		t.Errorf("summary %d rings on %d figures, payload %d on %d", sum.Rings, sum.Figures, rings, figures)
+	}
+}

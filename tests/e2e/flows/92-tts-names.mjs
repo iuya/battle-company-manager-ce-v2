@@ -33,7 +33,7 @@ export default async function (h) {
     await eowyn.page.evaluate(() => localStorage.removeItem('bcm-tts'));
     await open(eowyn);
     const p = await names(eowyn);
-    assert.equal(p.v, 1);
+    assert.ok(p.v === 1 || p.v === 2, 'version 1, or 2 when the company has aura rings (the Auras switch is on by default; flow 96)');
     assert.ok(p.company);
     const want = listFigures(await val(eowyn, 'tts-text'));
     assert.equal(p.figures.length, want.length, 'one entry per figure of the list');
@@ -97,6 +97,14 @@ export default async function (h) {
   await h.step('tts-names: the helper link downloads a zip with the Saved Object and its icon', async () => {
     const href = await eowyn.page.$eval('#tts-helper-link', (e) => e.getAttribute('href'));
     assert.equal(href, '/tts/helper.zip');
+    // the page is hx-boosted: without hx-boost="false" the click is turned into an htmx request and the zip's bytes are swapped into #main
+    // instead of being downloaded (owner report 2026-10-28): clicking must leave the dialog and the page as they are
+    assert.equal(await eowyn.page.$eval('#tts-helper-link', (e) => e.getAttribute('hx-boost')), 'false');
+    await eowyn.page.click('#tts-helper-link');
+    await new Promise((r) => setTimeout(r, 800));
+    const after = await eowyn.page.evaluate(() => ({ title: !!document.querySelector('#tts-names-title'), pk: document.body.innerText.startsWith('PK') }));
+    assert.equal(after.title, true, 'the dialog is still there after the click');
+    assert.equal(after.pk, false, 'the zip bytes were not swapped into the page');
     const r = await eowyn.page.evaluate(async (u) => {
       const res = await fetch(u);
       const b = new Uint8Array(await res.arrayBuffer());

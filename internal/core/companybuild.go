@@ -238,12 +238,14 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 				}
 				u.Path.Rules = append(u.Path.Rules, UnitRule{Name: name, Description: text, Source: RuleFromCompany})
 			}
+			u.Path.MinorRules = len(p.Minor)
 			for _, entry := range p.Minor {
 				name, param, parameterised := strings.Cut(entry, "|")
 				if parameterised { // a rule with a target: a weapon now, a hero once all the units are built (resolveTargets)
 					if weapon, ok := strings.CutPrefix(param, "weapon:"); ok {
 						def := rs.BC.Progression().MinorParams[name].Definition
 						u.Path.Rules = append(u.Path.Rules, UnitRule{Name: name + " (" + weapon + ")", Description: def + " It applies to the " + weapon + ".", Source: RuleFromPath})
+						u.Path.minorListed++
 						for i := range u.Equipment {
 							if strings.EqualFold(u.Equipment[i].Name, weapon) {
 								u.Equipment[i].Poisoned = true
@@ -257,6 +259,7 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 					desc, _ = rs.BC.Keyword(name)
 				}
 				u.Path.Rules = append(u.Path.Rules, UnitRule{Name: name, Description: desc, Source: RuleFromPath})
+				u.Path.minorListed++
 			}
 		}
 		for _, sp := range s.Spells {
@@ -354,6 +357,7 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 		}
 	}
 	u.Keywords = unitKeywordsOf(rs, profile, s, u) // last: a bought mount makes the rider Cavalry
+	u.Auras = rs.UnitAuras(u)                      // after the gear, the rules and the path are in
 	return u
 }
 
@@ -406,11 +410,11 @@ func pointsOf(rs *RuleSet, bcCo BCCompany, base VanillaUnit, u *CompanyUnit) int
 		}
 		return base.Points + covered + total
 	case slices.Contains(base.UnitTypes, "Warrior"):
-		pathRules := 0
+		pathRules, minor := 0, 0
 		if u.Path != nil {
-			pathRules = len(u.Path.Rules)
+			pathRules, minor = len(u.Path.Rules)-u.Path.minorListed, u.Path.MinorRules
 		}
-		return rs.BC.HeroRating(base, stats, pathRules) + covered + total
+		return rs.BC.HeroRating(base, stats, pathRules, minor) + covered + total
 	}
 	return base.Points + covered + total
 }
@@ -943,6 +947,10 @@ func BuildDetail(rs *RuleSet, settings CampaignSettings, st CompanyState) Compan
 	units = OrderUnits(units, st.Order)
 	resolveTargets(rs, progress, units)
 	companyLimits := applyCompanyRules(rs, bcCo, units)
+	targets := rs.BC.RuleTargets()
+	for i := range units {
+		targets.annotateUnit(&units[i]) // last: the rules a company grants or swaps are in
+	}
 	creatures, pack := creaturesOf(rs, owned, st.Pack, units)
 	var stored []Equipment // the pack's gear still counts towards the bow and throwing limits
 	for _, n := range st.Pack {

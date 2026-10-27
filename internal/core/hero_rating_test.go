@@ -1,6 +1,9 @@
 package core
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 // BC "Calculate Rating": a hero pays for wargear and equipment that is neither in its base profile nor in its profile's Options; below
 // Attacks + Wounds 3 at the warrior rating, from 3 on at the hero rating (all such gear recalculated at that moment). Wargear of the
@@ -101,4 +104,67 @@ func (rs *RuleSet) mustCompany(t *testing.T, name string) BCCompany {
 		t.Fatalf("no company %s", name)
 	}
 	return c
+}
+
+// BC "Calculate Rating" (S1417-1418): a hero gains 5 for every minor special rule, together at most 10 (data: perMinorSpecialRule,
+// maxMinorSpecialRuleRating). A minor rule with a target (Poisoned Attacks (weapon), Combat Synergy - hero) is a minor rule too; a rule an
+// item grants (Envenom Weapon's Poisoned Attacks) is not: it is the item's, rated as equipment.
+func TestHeroRatingOfMinorSpecialRules(t *testing.T) {
+	rs := shippedRules(t)
+	co := rs.mustCompany(t, "Rohan")
+	rating := rs.BC.rating
+	if rating.PerMinorSpecialRule != 5 || rating.MaxMinorSpecialRule != 10 {
+		t.Fatalf("the data says %d per minor rule, at most %d", rating.PerMinorSpecialRule, rating.MaxMinorSpecialRule)
+	}
+	hero := func(id int64, p *Progress, bought ...string) UnitState {
+		return UnitState{ID: id, Base: "Warrior of Rohan", Role: RoleHero, Bonus: HeroBonus(nil), Path: "Path of the Soldier", Gear: []string{"Spear"}, Bought: bought, Progress: p}
+	}
+	points := func(p *Progress, bought ...string) int {
+		d := BuildDetail(rs, CampaignSettings{}, CompanyState{Company: CampaignCompany{Faction: co.Name}, Units: []UnitState{hero(1, p, bought...), hero(2, nil)}})
+		for _, u := range d.Roster {
+			if u.ID == 1 {
+				return u.Points
+			}
+		}
+		t.Fatal("no unit 1")
+		return 0
+	}
+	base := points(nil)
+	for _, tc := range []struct {
+		name  string
+		minor []string
+		want  int
+	}{
+		{"none", nil, 0},
+		{"one untargeted", []string{"Resistant to Magic"}, 5},
+		{"two", []string{"Resistant to Magic", "Fearless"}, 10},
+		{"three are capped at 10", []string{"Resistant to Magic", "Fearless", "Stalwart"}, 10},
+		{"a weapon target counts", []string{"Poisoned Attacks|weapon:Spear"}, 5},
+		{"a weapon target and an untargeted rule", []string{"Poisoned Attacks|weapon:Spear", "Fearless"}, 10},
+		{"a unit target counts", []string{"Combat Synergy|unit:2"}, 5},
+		{"all kinds, capped", []string{"Poisoned Attacks|weapon:Spear", "Fearless", "Combat Synergy|unit:2"}, 10},
+	} {
+		if got := points(&Progress{Hero: true, Path: "Path of the Soldier", Minor: tc.minor}) - base; got != tc.want {
+			t.Errorf("%s: adds %d, want %d", tc.name, got, tc.want)
+		}
+	}
+	// a path rule rates 5 and is not capped with the minor rules
+	if got := points(&Progress{Hero: true, Path: "Path of the Soldier", Rules: []string{rs.BC.pathRules["Path of the Soldier"][0].Name}, Minor: []string{"Fearless", "Stalwart", "Resistant to Magic"}}) - base; got != 15 {
+		t.Errorf("a path rule and three minor rules add %d, want 5 + 10", got)
+	}
+	// Envenom Weapon: its Poisoned Attacks is the item's, not a minor rule: only the item's own rating is added
+	env := "Envenom Weapon (Spear)"
+	withD := BuildDetail(rs, CampaignSettings{}, CompanyState{Company: CampaignCompany{Faction: "Rohan"}, Units: []UnitState{hero(1, nil, env), hero(2, nil)}})
+	with := withD.Roster[slices.IndexFunc(withD.Roster, func(u CompanyUnit) bool { return u.ID == 1 })]
+	sum := func(u CompanyUnit) (n int) {
+		for _, e := range u.Equipment {
+			n += e.Rating
+		}
+		return n
+	}
+	baseD := BuildDetail(rs, CampaignSettings{}, CompanyState{Company: CampaignCompany{Faction: "Rohan"}, Units: []UnitState{hero(1, nil), hero(2, nil)}})
+	itemRating := sum(with) - sum(baseD.Roster[slices.IndexFunc(baseD.Roster, func(u CompanyUnit) bool { return u.ID == 1 })])
+	if with.Points-base != itemRating {
+		t.Errorf("Envenom Weapon adds %d, its own rating is %d: the rule it grants must not count as a minor rule", with.Points-base, itemRating)
+	}
 }

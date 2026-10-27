@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -123,6 +122,13 @@ func TestTTSListAllCompanies(t *testing.T) {
 		d := CompanyDetail{CampaignCompany: CampaignCompany{Faction: co.Name}, Roster: []CompanyUnit{u}, Creatures: []CompanyCreature{{Name: c.Name, OwnerID: 1}}}
 		writeTTSGolden(t, &golden, "creature: "+c.Name, rs.TTSList(d, TTSOptions{}))
 	}
+	// the fallback to the closest figure, against the small made-up bag of ttsFakeBag
+	fmt.Fprintf(&golden, "## Fallback (fake bag)\n")
+	for _, f := range []struct{ faction, base string }{{"Grand Army of the South", "Mahûd Warrior"}, {"Sharkey's Rogues", "Rohirrim Traitor"}, {"Lothlorien", "Lorien Guard"}} {
+		u := buildUnit(rs, ttsBC(t, rs, f.faction), UnitState{ID: 1, Base: f.base, Role: RoleWarrior}, CampaignSettings{})
+		d := CompanyDetail{CampaignCompany: CampaignCompany{Faction: f.faction}, Roster: []CompanyUnit{u}}
+		writeTTSGolden(t, &golden, f.base, rs.TTSList(d, TTSOptions{Catalogue: ttsFakeBag()}))
+	}
 	const path = "testdata/tts_golden.txt"
 	if *updateTTSGolden {
 		if err := os.MkdirAll("testdata", 0o755); err != nil {
@@ -190,34 +196,42 @@ func known2(models TTSModels, name string) []string {
 	return out
 }
 
-// TestTTSListModelsFile: when the local catalogue sources/tts/models.json exists (gitignored), every name the lists emit is a key of it.
+// TestTTSListCatalogue: when the local catalogue sources/tts/models.json exists (gitignored), every key the lists emit is a key of it, for
+// every unit of every company with no gear, with each option and with each pair of options (the fallback picks the closest figure).
 func TestTTSListCatalogue(t *testing.T) {
-	raw, err := os.ReadFile("../../sources/tts/models.json")
+	cat, err := LoadTTSCatalogue("../../sources/tts/models.json")
 	if err != nil {
 		t.Skip("no local catalogue (sources/tts/models.json)")
 	}
-	keys := map[string]bool{}
-	var asList []string
-	var asMap map[string]json.RawMessage
-	switch {
-	case json.Unmarshal(raw, &asList) == nil:
-		for _, k := range asList {
-			keys[strings.ToLower(strings.TrimSpace(k))] = true
-		}
-	case json.Unmarshal(raw, &asMap) == nil:
-		for k := range asMap {
-			keys[strings.ToLower(strings.TrimSpace(k))] = true
-		}
-	default:
-		t.Skip("sources/tts/models.json has an unknown shape")
-	}
 	rs := shippedRules(t)
 	missing := map[string]bool{}
+	check := func(bcCo BCCompany, unit string, gear []string) {
+		u := buildUnit(rs, bcCo, UnitState{ID: 1, Base: unit, Role: RoleWarrior, Gear: slices.Clone(gear)}, CampaignSettings{})
+		d := CompanyDetail{CampaignCompany: CampaignCompany{Faction: bcCo.Name}, Roster: []CompanyUnit{u}}
+		for _, l := range rs.TTSList(d, TTSOptions{FootVersions: true, MountFigures: true, Catalogue: cat}).Lines() {
+			if !cat.Has(strings.TrimSpace(l.Key)) {
+				missing[fmt.Sprintf("%s (%s %v) -> %q", bcCo.Name, unit, gear, l.Key)] = true
+			}
+		}
+	}
 	for _, bcCo := range ttsCompanies(rs) {
+		profile, _ := rs.BC.Profile(bcCo.Name)
+		seen := map[string]bool{}
 		for _, e := range ttsEntries(rs, bcCo) {
-			for _, l := range rs.TTSList(ttsOne(rs, bcCo, e), TTSOptions{FootVersions: true, MountFigures: true}).Lines() {
-				if !keys[l.Key] {
-					missing[l.Key] = true
+			check(bcCo, e.unit, e.wargear)
+			if seen[e.unit] {
+				continue
+			}
+			seen[e.unit] = true
+			check(bcCo, e.unit, nil)
+			v, _, ok := resolveUnit(rs, profile, e.unit)
+			if !ok {
+				continue
+			}
+			for i, o := range v.Options {
+				check(bcCo, e.unit, []string{o.Name})
+				for _, p := range v.Options[i+1:] {
+					check(bcCo, e.unit, []string{o.Name, p.Name})
 				}
 			}
 		}
@@ -249,4 +263,13 @@ func writeTTSGolden(t *testing.T, b *strings.Builder, label string, ex TTSExport
 	for _, n := range ex.Notes {
 		fmt.Fprintf(b, "    note %s: %s\n", n.Kind, n.Text)
 	}
+}
+
+func ttsBC(t *testing.T, rs *RuleSet, name string) BCCompany {
+	t.Helper()
+	co, ok := rs.BC.Company(name)
+	if !ok {
+		t.Fatalf("no company %s", name)
+	}
+	return co
 }

@@ -343,3 +343,99 @@ func TestTTSLiveListSecondWarband(t *testing.T) {
 		t.Errorf("all out: %+v", all.Warbands)
 	}
 }
+
+// ttsFakeBag is a small made-up catalogue (no mod content) with the gaps the fallback has to cover.
+func ttsFakeBag() *MapCatalogue {
+	return NewMapCatalogue([]string{
+		"Mahûd Warrior: Blowpipe", "Mahûd Warrior: Spear",
+		"Rohirrim Traitor: Banner", "Rohirrim Traitor: Bow", "Rohirrim Traitor: Shield", "Rohirrim Traitor: Shield and throwing spears",
+		"Rohirrim Traitor: War horn, shield, and throwing spears",
+		"Galadhrim Warrior:", "Galadhrim Warrior: Elf Bow", "Galadhrim Warrior: Elven Spear",
+	})
+}
+
+func TestTTSListFallbackClosestKey(t *testing.T) {
+	rs := shippedRules(t)
+	bag := ttsFakeBag()
+	tests := []struct {
+		name, faction, base string
+		gear                []string
+		want                string // the nickname text of the only line
+		wantDropped         []string
+		approximate         bool
+	}{
+		{"bare Mahud takes the spear, not the blowpipe", "Grand Army of the South", "Mahûd Warrior", nil, "(Mahûd Warrior: Spear)", nil, true},
+		{"exact key is untouched", "Grand Army of the South", "Mahûd Warrior", []string{"Blowpipe"}, "(Mahûd Warrior: Blowpipe)", nil, false},
+		{"bare Traitor takes the plain shield, not bow, banner or horn", "Sharkey's Rogues", "Rohirrim Traitor", nil, "(Rohirrim Traitor: Shield)", nil, true},
+		{"Lorien Guard alone falls back to the bare Galadhrim Warrior", "Lothlorien", "Lorien Guard", nil, "(Galadhrim Warrior: )", []string{"Lorien Guard"}, true},
+		{"Lorien Guard with a bow keeps the bow", "Lothlorien", "Lorien Guard", []string{"Elf Bow"}, "(Galadhrim Warrior: Elf Bow)", []string{"Lorien Guard"}, true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			u := ttsUnit(t, rs, tc.faction, 1, tc.base, RoleWarrior, tc.gear, nil)
+			ex := rs.TTSList(ttsDetail(tc.faction, u), TTSOptions{Catalogue: bag})
+			lines := ex.Lines()
+			if len(lines) != 1 || lines[0].Text(true) != tc.want {
+				t.Fatalf("lines %+v, want %s", lines, tc.want)
+			}
+			if !slices.Equal(lines[0].Dropped, tc.wantDropped) {
+				t.Errorf("dropped %v, want %v", lines[0].Dropped, tc.wantDropped)
+			}
+			if got := slices.Contains(ttsKinds(ex), TTSApproximate); got != tc.approximate {
+				t.Errorf("approximate note %v, want %v (%v)", got, tc.approximate, ex.Notes)
+			}
+			if !bag.Has(strings.TrimSpace(lines[0].Key)) {
+				t.Errorf("key %q not in the bag", lines[0].Key)
+			}
+		})
+	}
+}
+
+// The fixed mappings of data.ttsModels give the three keys the bag has without any catalogue (the published image has none).
+func TestTTSListFixedMappingsWithoutCatalogue(t *testing.T) {
+	rs := shippedRules(t)
+	for _, tc := range []struct {
+		faction, base, want, dropped string
+	}{
+		{"Grand Army of the South", "Mahûd Warrior", "(Mahûd Warrior: Spear)", ""},
+		{"Sharkey's Rogues", "Rohirrim Traitor", "(Rohirrim Traitor: Shield)", ""},
+		{"Lothlorien", "Lorien Guard", "(Galadhrim Warrior: )", "Lorien Guard"},
+	} {
+		u := ttsUnit(t, rs, tc.faction, 1, tc.base, RoleWarrior, nil, nil)
+		ex := rs.TTSList(ttsDetail(tc.faction, u), TTSOptions{})
+		if ex.Text != tc.want || !slices.Contains(ttsKinds(ex), TTSApproximate) {
+			t.Errorf("%s: got %q %v", tc.base, ex.Text, ex.Notes)
+		}
+		l := ex.Lines()[0]
+		if (tc.dropped == "") != (len(l.Dropped) == 0) || (tc.dropped != "" && l.Dropped[0] != tc.dropped) {
+			t.Errorf("%s: dropped %v, want %q", tc.base, l.Dropped, tc.dropped)
+		}
+	}
+	// a carried option is untouched
+	u := ttsUnit(t, rs, "Grand Army of the South", 1, "Mahûd Warrior", RoleWarrior, []string{"Blowpipe"}, nil)
+	if ex := rs.TTSList(ttsDetail("Grand Army of the South", u), TTSOptions{}); ex.Text != "(Mahûd Warrior: Blowpipe)" || slices.Contains(ttsKinds(ex), TTSApproximate) {
+		t.Errorf("got %q %v", ex.Text, ex.Notes)
+	}
+}
+
+func TestTTSNamesLorienGuardHeaderSaysSo(t *testing.T) {
+	rs := shippedRules(t)
+	u := ttsUnit(t, rs, "Lothlorien", 1, "Lorien Guard", RoleWarrior, nil, nil)
+	d := ttsDetail("Lothlorien", u)
+	ex := rs.TTSList(d, TTSOptions{Catalogue: ttsFakeBag()})
+	p := rs.TTSNames(d, ex, TTSNamesOptions{})
+	if len(p.Figures) != 1 {
+		t.Fatalf("figures %+v", p.Figures)
+	}
+	f := p.Figures[0]
+	if f.Line != "Galadhrim Warrior: " || !strings.Contains(f.Name, "Lorien Guard") || !strings.Contains(f.Desc, "Warrior"+ttsHeaderSep+"Lorien Guard") {
+		t.Errorf("line %q name %q desc %q", f.Line, f.Name, f.Desc)
+	}
+}
+
+func TestMapCatalogue(t *testing.T) {
+	c := NewMapCatalogue([]string{" Foo: A ", "foo: a", "Foo:", "Bar: B"})
+	if !c.Has("FOO: a") || !c.Has("foo:") || c.Has("foo: b") || len(c.Keys("FOO")) != 2 {
+		t.Errorf("keys %v", c.Keys("foo"))
+	}
+}

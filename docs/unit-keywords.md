@@ -1,6 +1,6 @@
 # Unit keywords on the cards (spec)
 
-Status: **built: core (vj0.1-.3) and web (vj0.4/.5: unit cards, live, read-only, armoury, previews, fallen; e2e flow `79-keywords`, live dismount in `84-match-extras`).** Not built: the optional rule-target slices (vj0.6). Owner request: a unit's card shows only the kind icon (infantry, cavalry, beast, monster, monstrous
+Status: **built: core (vj0.1-.3) and web (vj0.4/.5: unit cards, live, read-only, armoury, previews, fallen; e2e flow `79-keywords`, live dismount in `84-match-extras`).** The rule-target slices (vj0.6) are built as redefined below ("Rule targets"). Owner request: a unit's card shows only the kind icon (infantry, cavalry, beast, monster, monstrous
 cavalry); the race and the other keywords are not shown, but rules such as Hatred (X), Ancient Enemies (X), Fury (X), Terror (X) and
 "whilst this model has the Cavalry keyword" only act against, or for, models with a given keyword. Beads: epic `vj0` (children `vj0.1` core computation, `.2` core surfaces, `.3` oracle test, `.4` card row, `.5` other surfaces, `.6` optional rule targets).
 This page is the contract between the frontend (chips, tooltips), the backend (`core.UnitKeywords`) and the data. Related:
@@ -95,7 +95,8 @@ shows the tooltip, a click/tap/Enter opens the helper popup; no inline script, s
 |---|---|---|
 | My Company card (collapsed and expanded) | `CompanyUnit.Keywords` | row as above; the full list on the expanded card |
 | Live company page card (`unit_card` with `LiveUnit`) | `CompanyUnit.Keywords` + `LiveUnit.Mounted` | the state is applied in the web layer with `Keywords.OnFoot()` (pure, no request); a Mount-removed event updates the card through the existing SSE refresh |
-| Live compact cards (Retreated, Field casualties, Missed) | none | no row (compact cards are one line) |
+| Live compact cards (Retreated, Field casualties, Missed) | `CompanyUnit.Keywords` | the row (REVIEW 9, rule targets): the opponent's units must be readable |
+| Live "Wounded a unit" rows | `CompanyUnit.Keywords` | a flat chip list without tips, plus the "applies" markers |
 | Other company's read-only page (`RO`) | same as My Company (read-only changes nothing about display) | same row, tooltips and popup |
 | Fallen/cemetery cards | `CompanyUnit.Keywords` of the fallen unit | row without the mount block |
 | Company browser unit previews (`UnitPreview`) and promotion/chart previews | `UnitPreview.Keywords` | row (no state, no mount) at the top of the hover card, full list always shown (it is a small card) |
@@ -226,22 +227,33 @@ Frontend:
 - [ ] Web tests with the generated mock (row HTML, order, `+N`, escaping, `data-concept` values), and an e2e step in an existing flow (docs/testing.md).
 - [ ] `docs/frontend.md` card section updated (this page stays the contract).
 
-## Optional slice: highlight who a parameterised rule works against
+## Rule targets: who a keyword rule works against (built, vj0.6)
 
-Parameterised rules whose X is a keyword: Hatred (X), Ancient Enemies (X), Fury (X) (friendly models), Terror (X, optional). Proposed, **default:
-tooltip-only slice A; slice B off**.
+Rules whose parameter or text names a keyword act on other models, not on the bearer: Hatred (X) and Ancient Enemies (X) against **enemy** models with
+X, Terror against every enemy, Fury (X) for friendly models. The first plan (ring the matching chip on the unit's own card) was wrong for them and was
+**replaced by the owner's decision** with three parts, all built:
 
-- **Slice A (cheap, default when built):** core parses the keyword parameters of a unit's rule labels
-  (`func RuleTargets(label string) (rule string, keywords [][]string)`: `Hatred (Goblin)(Orc)(Uruk-Hai)` is three alternatives of one keyword
-  each; `Ancient Enemies (Dwarf)(Elf)` likewise; "a model needs all the keywords listed" applies when one bracket lists several, not to the
-  repeated-bracket form). The keyword chips that equal a parameter get an accent ring on **the card's own unit** ("this rule works against...") and the rule chip's
-  tooltip adds "Works against: Rohan models". No data about other companies is needed.
-- **Slice B (optional, off by default):** on a match page with opponents, a switch "Show who my rules work against" marks, on the other companies'
-  read-only cards and the live Field, the units that have a keyword named by any rule of the viewer's units, and says "3 of your units hate this
-  one" on a chip tooltip. Needs `func (rs *RuleSet) RuleMatches(attacker UnitKeywords + rules, target UnitKeywords) []RuleMatch` and a per-match
-  cache; the web part reuses the chip row (`aria-current` plus a ring, no new colour). Deferred: it needs real use of slice A first.
+1. **Tooltip wording.** `data.ruleTargets` of the Battle Companies file classifies each rule by direction (`enemy-keyword`, `enemy-any`,
+   `friendly-keyword`; a rule not listed is `own`) with a text template (`target`, `{X}` is the keywords). It has `patterns` (the families written with
+   brackets, matched on the base name: `Hatred (X)`, `Ancient Enemies (X)`, `Terror (X)`, `Fury (X)`) and `names` (single rules, with the `keywords` their text
+   names, `keywordMatch` any/all and `bearerKeywords` the bearer must have). Documented in [`definitions.md`](definitions.md). core reads it
+   (`BCBook.RuleTargets()`, `core.RuleTargets.Describe`) and `buildDetail` sets `UnitRule.Works` ("enemy models with the Orc keyword"; several
+   bracket alternatives are joined with "or": `Hatred (Goblin)(Orc)(Uruk-Hai)` is "Goblin, Orc or Uruk-Hai"), `UnitRule.Against` (the keyword alternatives
+   of an enemy-keyword rule; one bracket with several words needs all of them), `Needs` and `Friends` on the unit's rules and its path's. The rule chip's
+   tooltip and the helper popup then say "Works against: ..." (`UnitRule.TipText`, `WorksLine`; web in [`frontend.md`](frontend.md)). A bracket that
+   is a number or a distance (`Terror (2)`, `Harbinger of Evil (12")`) is no keyword and falls back to the rule by name. **No highlight on the unit's own card.**
+2. **The opponent's keyword chips in the live match**: the compact live cards and the "Wounded a unit" rows show them (the Field cards always did).
+3. **"Your Hatred applies" markers** in the live match: `core.RuleMatches(mine, theirs []TargetUnit) map[unitID][]RuleMatch` is a pure function. `TargetUnit`
+   comes from `core.NewTargetUnit(unit, liveUnit)`, which only takes a unit **still in the Field**, with `OnFoot()` applied when its mount is lost and
+   without the rules granted to the mount. An enemy unit gets a `RuleMatch` for each enemy-keyword rule of your side's units that has an alternative whose
+   words it all has (case-insensitive, spellings as in `keywordSpellings`), listing the holders; a rule with `Needs` only counts for a bearer that has one of
+   them. Only `enemy-keyword` rules give markers, never `enemy-any` (Terror) or `friendly-keyword`; no table (a custom ruleset) means no `Against`, so no marker
+   and plain tooltips. Tests: `ruletargets_test.go` (parsing, descriptions, matching, fields, and one over **all companies' real previews** that checks every
+   named keyword exists in the data and that an enemy with it is matched), `internal/web/ruletargets_test.go`, e2e flow `95-keyword-targets`.
 
-REVIEW defaults: slice B stays off until the owner asks; slice A comes after the base feature.
+The cross-company slice B of the first plan ("a switch that marks...") is replaced by part 3 (no switch: the markers are the live match's, on by default).
+Not done: the mount's keywords (a rule naming `Mount`, such as "Slay their Horses!", cannot match a rider), a rule that names a unit's keyword and a distance or a
+visibility (the marker says the keyword matches, not that the models are in range).
 
 ## REVIEW defaults (owner to confirm)
 
@@ -254,4 +266,6 @@ REVIEW defaults: slice B stays off until the owner asks; slice A comes after the
 6. Race and faction spelling variants are merged by a table in core, the JSON is not changed.
 7. Races and factions open the glossary term `Keywords` in the popup; terms per race are a later curator task.
 8. Goblin Hulk's Goblin keyword is honoured by company keyword limits as well as shown.
-9. Live compact cards and aftermath/level-up windows show no keyword row.
+9. Aftermath/level-up windows show no keyword row. The live compact cards do (the opponent's units must be readable).
+10. Rule targets: every `enemy-keyword` rule of the table marks (not only Hatred and Ancient Enemies), so "Glory Seekers" marks every enemy Hero; the marker
+    wording is "<rule> applies"; "Works for" is used for friendly rules.

@@ -21972,7 +21972,7 @@
       ]
     },
     "ttsModels": {
-      "text": "How a Battle Companies unit is written for the Tabletop Simulator MESBG FTC mod (docs/tabletop-simulator.md). standIns: models the mod has no 1:1 figure for (wanderers, creatures) and the mod model shown instead; mounts: a bought mount that fights (vanilla Attacks above 0) and the model of its figure; riders: the cavalry units, the model of the rider on foot and whether the mod's figure carries the dismounted state (`states`); names: option spellings that differ between the vanilla file and the mod. A name here is a vanilla name; a stand-in or mount model may also be 'Name: options'.",
+      "text": "How a Battle Companies unit is written for the Tabletop Simulator MESBG FTC mod (docs/tabletop-simulator.md). standIns: models the mod has no 1:1 figure for (wanderers, creatures) and the mod model shown instead; mounts: a bought mount that fights (vanilla Attacks above 0) and the model of its figure; riders: the cavalry units, the model of the rider on foot and whether the mod's figure carries the dismounted state (`states`); names: option spellings that differ between the vanilla file and the mod; defaultOptions: the options a unit is shown with when it carries none (the bag has no bare figure); markerOptions: an alias marker option (Lorien Guard) left out of the key when it is the unit's only option. A name here is a vanilla name; a stand-in or mount model may also be 'Name: options'.",
       "standIns": [
         {
           "kind": "wanderer",
@@ -22159,6 +22159,2170 @@
           "to": "Bow",
           "reason": "the mod writes the plain Bow for the Isengard Orc Warrior"
         }
+      ],
+      "defaultOptions": [
+        {
+          "unit": "Mahûd Warrior",
+          "options": [
+            "Spear"
+          ],
+          "reason": "the bag has no bare Mahûd Warrior; owner decision: melee over ranged, the cheapest (Spear, 1 point)"
+        },
+        {
+          "unit": "Rohirrim Traitor",
+          "options": [
+            "Shield"
+          ],
+          "reason": "the bag has no bare Rohirrim Traitor; owner decision: melee over ranged, the cheapest (Shield, 1 point). REVIEW: the owner may prefer 'Shield and throwing spears'"
+        }
+      ],
+      "markerOptions": [
+        {
+          "unit": "Galadhrim Warrior",
+          "option": "Lorien Guard",
+          "reason": "the bag has no figure with the Lorien Guard marker alone: the bare Galadhrim Warrior is shown and the name and description keep the Lorien Guard identity (owner decision)"
+        }
+      ]
+    },
+    "ruleTargets": {
+      "text": "Who a special rule works against or for. appliesTo: enemy-keyword (enemy models that carry the keyword), enemy-any (enemy models in general, no keyword), friendly-keyword (friendly models that carry the keyword benefit), own (the bearer only; a rule that is not listed is own). target: short text for the tooltip, {X} is the keyword(s) of the rule's brackets (kind pattern) or of `keywords` (kind name), several joined with ' or ' when keywordMatch is any and ' and ' when all. bearerKeywords: the rule only works whilst the bearer has one of these keywords. The label of a pattern rule is 'Rule (A)(B)': every bracket is one alternative (keywordMatch any); Fury (X) names the keywords of one group of models in a single bracket ('Mordor Orc': a model needs all of them).",
+      "patterns": [
+        {
+          "rule": "Hatred (X)",
+          "base": "Hatred",
+          "appliesTo": "enemy-keyword",
+          "target": "enemy models with the {X} keyword",
+          "keywordMatch": "any",
+          "variants": [
+            "Hatred (Angmar)",
+            "Hatred (Arnor)",
+            "Hatred (Dragon)",
+            "Hatred (Dunland)",
+            "Hatred (Dwarf)",
+            "Hatred (Elf)",
+            "Hatred (Goblin)",
+            "Hatred (Goblin)(Orc)(Uruk-Hai)",
+            "Hatred (Gundabad)",
+            "Hatred (Hobbit)",
+            "Hatred (Man)",
+            "Hatred (Mordor)",
+            "Hatred (Orc)",
+            "Hatred (Rohan)",
+            "Hatred (Spider)",
+            "Hatred (Uruk-hai)"
+          ]
+        },
+        {
+          "rule": "Ancient Enemies (X)",
+          "base": "Ancient Enemies",
+          "appliesTo": "enemy-keyword",
+          "target": "enemy models with the {X} keyword",
+          "keywordMatch": "any",
+          "variants": [
+            "Ancient Enemies (Dwarf)",
+            "Ancient Enemies (Dwarf)(Elf)",
+            "Ancient Enemies (Elf)",
+            "Ancient Enemies (Gondor)",
+            "Ancient Enemies (Orc)"
+          ]
+        },
+        {
+          "rule": "Terror (X)",
+          "base": "Terror",
+          "appliesTo": "enemy-keyword",
+          "target": "enemy models with the {X} keyword (plain Terror affects all enemy models)",
+          "keywordMatch": "any",
+          "variants": []
+        },
+        {
+          "rule": "Fury (X)",
+          "base": "Fury",
+          "appliesTo": "friendly-keyword",
+          "target": "friendly models with the {X} keywords within 6\"",
+          "keywordMatch": "all",
+          "variants": []
+        }
+      ],
+      "names": [
+        {
+          "rule": "End the Race of Men",
+          "appliesTo": "enemy-keyword",
+          "keywords": [
+            "Man"
+          ],
+          "keywordMatch": "all",
+          "target": "enemy {X} models"
+        },
+        {
+          "rule": "At 'em, Lads!",
+          "appliesTo": "enemy-keyword",
+          "keywords": [
+            "Hobbit"
+          ],
+          "keywordMatch": "all",
+          "target": "enemy {X} models"
+        },
+        {
+          "rule": "Put 'em in chains!",
+          "appliesTo": "enemy-keyword",
+          "keywords": [
+            "Hobbit"
+          ],
+          "keywordMatch": "all",
+          "target": "enemy {X} models"
+        },
+        {
+          "rule": "Against all odds",
+          "appliesTo": "enemy-keyword",
+          "keywords": [
+            "Hero",
+            "Monster"
+          ],
+          "keywordMatch": "any",
+          "target": "enemy {X} models"
+        },
+        {
+          "rule": "Glory Seekers",
+          "appliesTo": "enemy-keyword",
+          "keywords": [
+            "Hero"
+          ],
+          "keywordMatch": "all",
+          "target": "enemy {X} models"
+        },
+        {
+          "rule": "Angmar Arise (Slayer of Men)",
+          "appliesTo": "enemy-keyword",
+          "keywords": [
+            "Hero"
+          ],
+          "keywordMatch": "all",
+          "target": "enemy {X} models"
+        },
+        {
+          "rule": "Furious Tirade",
+          "appliesTo": "enemy-keyword",
+          "keywords": [
+            "Warrior"
+          ],
+          "keywordMatch": "all",
+          "target": "enemy {X} models"
+        },
+        {
+          "rule": "Feral Charge",
+          "appliesTo": "enemy-keyword",
+          "keywords": [
+            "Infantry"
+          ],
+          "keywordMatch": "all",
+          "target": "enemy {X} models it Charges"
+        },
+        {
+          "rule": "Gatekeeper",
+          "appliesTo": "enemy-keyword",
+          "keywords": [
+            "Infantry"
+          ],
+          "keywordMatch": "all",
+          "target": "enemy {X} models"
+        },
+        {
+          "rule": "Sharpshooter",
+          "appliesTo": "enemy-keyword",
+          "keywords": [
+            "Cavalry"
+          ],
+          "keywordMatch": "all",
+          "target": "enemy {X} models"
+        },
+        {
+          "rule": "\"Slay their Horses!\"",
+          "appliesTo": "enemy-keyword",
+          "keywords": [
+            "Mount"
+          ],
+          "keywordMatch": "all",
+          "target": "enemy {X}s",
+          "bearerKeywords": [
+            "Cavalry"
+          ]
+        },
+        {
+          "rule": "Terror",
+          "appliesTo": "enemy-any",
+          "target": "enemy models in general"
+        },
+        {
+          "rule": "Visage of Terror",
+          "appliesTo": "enemy-any",
+          "target": "enemy models that try to Charge it"
+        },
+        {
+          "rule": "Harbinger of Evil (12\")",
+          "appliesTo": "enemy-any",
+          "target": "enemy models within 12\""
+        },
+        {
+          "rule": "Harbinger of Evil (18\")",
+          "appliesTo": "enemy-any",
+          "target": "enemy models within 18\""
+        },
+        {
+          "rule": "Keen Sight",
+          "appliesTo": "enemy-any",
+          "target": "enemy models within 12\""
+        },
+        {
+          "rule": "Wormtongue",
+          "appliesTo": "enemy-keyword",
+          "keywords": [
+            "Hero"
+          ],
+          "keywordMatch": "all",
+          "target": "enemy {X} models within 6\""
+        },
+        {
+          "rule": "\"Dol Amroth for Gondor!\"",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Dol Amroth"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models"
+        },
+        {
+          "rule": "Battle Wisdom",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Lothlorien",
+            "Warrior"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models within 3\""
+        },
+        {
+          "rule": "Chronicler (Thorin's Company)",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Thorin's Company"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models within 6\""
+        },
+        {
+          "rule": "Gift of Foresight",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Arnor"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models within 6\""
+        },
+        {
+          "rule": "High King of the Elves",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Elf",
+            "Hero"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models"
+        },
+        {
+          "rule": "High Spirits",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Hobbit"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models within 6\""
+        },
+        {
+          "rule": "Official Meals",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Fellowship"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models"
+        },
+        {
+          "rule": "Ghostly Resolve",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Angmar",
+            "Orc"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models within 12\""
+        },
+        {
+          "rule": "Master of Birds",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Eagle"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models within 12\""
+        },
+        {
+          "rule": "Protect the little ones!",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Fellowship",
+            "Hobbit"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models (the bearer must be within 3\")"
+        },
+        {
+          "rule": "To me, Shire-folk!",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Hobbit"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models"
+        },
+        {
+          "rule": "Sweet Maiden of the Golden Ale",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Hobbit"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models"
+        },
+        {
+          "rule": "Relentless Advance",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Orc",
+            "Goblin",
+            "Bat"
+          ],
+          "keywordMatch": "any",
+          "target": "friendly {X} models it moves through"
+        },
+        {
+          "rule": "Favour of the War Chief",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Dunland",
+            "Hero"
+          ],
+          "keywordMatch": "all",
+          "target": "a friendly {X} model within 3\""
+        },
+        {
+          "rule": "The Honour of Lamedon",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Lamedon",
+            "Hero"
+          ],
+          "keywordMatch": "all",
+          "target": "a friendly {X} model within 3\""
+        },
+        {
+          "rule": "Onwards Men of Esgaroth",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Lake-town",
+            "Hero"
+          ],
+          "keywordMatch": "all",
+          "target": "a friendly {X} model within 3\""
+        },
+        {
+          "rule": "Raising Spirits (Thorin's Company)",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Thorin's Company",
+            "Hero"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models within 3\""
+        },
+        {
+          "rule": "Reading the Portents (Thorin's Company)",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Thorin's Company",
+            "Hero"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models within 6\""
+        },
+        {
+          "rule": "Spider-kin",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Spider"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models"
+        },
+        {
+          "rule": "Packlord",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Warg"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models"
+        },
+        {
+          "rule": "Pack Master",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Warg"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models"
+        },
+        {
+          "rule": "Goblin Mastery",
+          "appliesTo": "friendly-keyword",
+          "keywords": [
+            "Moria",
+            "Goblin"
+          ],
+          "keywordMatch": "all",
+          "target": "friendly {X} models within 6\""
+        },
+        {
+          "rule": "Lordly Quality",
+          "appliesTo": "friendly-keyword",
+          "target": "friendly models that share the bearer's faction keyword"
+        },
+        {
+          "rule": "Defender",
+          "appliesTo": "friendly-keyword",
+          "target": "a friendly Hero with the opposite species keyword (Man/Dwarf)"
+        },
+        {
+          "rule": "Arise, Riders of Rohan!",
+          "appliesTo": "own",
+          "bearerKeywords": [
+            "Cavalry"
+          ]
+        },
+        {
+          "rule": "The Gleaming Horde",
+          "appliesTo": "own",
+          "bearerKeywords": [
+            "Cavalry"
+          ]
+        },
+        {
+          "rule": "King's Knights",
+          "appliesTo": "own",
+          "bearerKeywords": [
+            "Cavalry"
+          ]
+        },
+        {
+          "rule": "Hunt Master",
+          "appliesTo": "own",
+          "bearerKeywords": [
+            "Cavalry"
+          ]
+        },
+        {
+          "rule": "Fury of the Pack",
+          "appliesTo": "own",
+          "bearerKeywords": [
+            "Cavalry"
+          ]
+        },
+        {
+          "rule": "Master Hunter",
+          "appliesTo": "own",
+          "bearerKeywords": [
+            "Cavalry"
+          ]
+        },
+        {
+          "rule": "Bladelord",
+          "appliesTo": "own",
+          "bearerKeywords": [
+            "Infantry"
+          ]
+        },
+        {
+          "rule": "Ancestral Fury",
+          "appliesTo": "own",
+          "bearerKeywords": [
+            "Infantry"
+          ]
+        },
+        {
+          "rule": "Bodyguard",
+          "appliesTo": "own"
+        },
+        {
+          "rule": "Woodland Creature",
+          "appliesTo": "own"
+        },
+        {
+          "rule": "Mountain Dweller",
+          "appliesTo": "own"
+        },
+        {
+          "rule": "Command Support",
+          "appliesTo": "own"
+        }
+      ]
+    },
+    "auras": {
+      "text": "Fixed radii around the bearer, in inches from the edge of its base, inside which models are affected by (or eligible for) a rule or an item the bearer has: a banner, a Hero's Stand Fast, 'friendly models within 3\" of this Hero'. Not auras: weapon ranges, 'in the same combat', a radius around somebody else (receiver-side rules), around an objective, a marker or a target. An entry is found on a unit by `source` (item, rule or power names; the Hero rules of the rulebook; a heroic action); `kind` is the colour group, `when` and `group` say which dialog switch governs it. Rings of one figure with the same kind, radius and tier are merged (labels joined). `replaces` lists entries that the bearer does not get when it has this one. `radius` is written in the source text (or is the sum of `radiusParts`).",
+      "kinds": [
+        {
+          "id": "banner",
+          "label": "Banner",
+          "colour": "yellow",
+          "rgb": "F0E442",
+          "text": "Banners: friendly models in a Fight re-roll a Duel die",
+          "default": true
+        },
+        {
+          "id": "command",
+          "label": "Command",
+          "colour": "orange",
+          "rgb": "E69F00",
+          "text": "Courage and the Hero's shouts: Stand Fast, the Heroic Actions, horns and drums",
+          "default": true
+        },
+        {
+          "id": "support",
+          "label": "Support",
+          "colour": "sky blue",
+          "rgb": "56B4E9",
+          "text": "Bonuses to friendly models near the bearer",
+          "default": true
+        },
+        {
+          "id": "enemy",
+          "label": "Enemy",
+          "colour": "vermillion",
+          "rgb": "D55E00",
+          "text": "Penalties, denial or reactions against the enemy",
+          "default": true
+        },
+        {
+          "id": "utility",
+          "label": "Utility",
+          "colour": "reddish purple",
+          "rgb": "CC79A7",
+          "text": "Light, markers and other effects",
+          "default": true
+        }
+      ],
+      "groups": [
+        {
+          "id": "always",
+          "label": "Rules always in force",
+          "text": "Passive rules and every Hero's Stand Fast",
+          "default": true
+        },
+        {
+          "id": "declared",
+          "label": "Rules that need an action",
+          "text": "Heroic Actions, Active rules and once-per-game rules (a Might or Will Point, or a declaration)",
+          "default": true
+        },
+        {
+          "id": "conditional",
+          "label": "Rules that need an event",
+          "text": "Rules that start working after something happened in the game (Claim the Throne)",
+          "default": true
+        },
+        {
+          "id": "cast",
+          "label": "Spells in effect",
+          "text": "Magical Powers of the bearer while they are in effect",
+          "default": false
+        },
+        {
+          "id": "target",
+          "label": "Targeting ranges",
+          "text": "The radius only limits the choice of one model (Gatekeeper, Spy...): informative, noisy",
+          "default": false
+        },
+        {
+          "id": "large",
+          "label": "Large rings, over 12\"",
+          "text": "Rings larger than 12 inches fill the table (the war horn's 24\")",
+          "default": false
+        },
+        {
+          "id": "optional",
+          "label": "Optional rings",
+          "text": "Light of a Torch: correct but not a rule that decides who is affected",
+          "default": false
+        }
+      ],
+      "entries": [
+        {
+          "id": "banner-3",
+          "source": {
+            "type": "item",
+            "names": [
+              "Banner"
+            ]
+          },
+          "label": "Banner",
+          "radius": 3,
+          "kind": "banner",
+          "affects": "friendly",
+          "when": "always",
+          "los": true,
+          "keywords": [],
+          "tip": "A friendly model in a Fight within 3\" of a banner may re-roll one Duel die; the bearer needs line of sight and is -1 on Duel Rolls.",
+          "concept": "Banner",
+          "reason": "The Banner text: a 3\" area of effect. Vanilla banner options (plain, exchanges, bundles) all resolve to the item Banner.",
+          "group": "always"
+        },
+        {
+          "id": "standard-3",
+          "source": {
+            "type": "item",
+            "names": [
+              "Company Standard"
+            ]
+          },
+          "label": "Company Standard",
+          "radius": 3,
+          "kind": "banner",
+          "affects": "friendly",
+          "when": "always",
+          "los": false,
+          "keywords": [],
+          "tip": "Friendly models within 3\" may re-roll Duel dice of 1.",
+          "concept": "Company Standard",
+          "reason": "A Pennant (a banner) of the Battle Companies equipment table: the same 3\" as a banner; merges with it into one ring.",
+          "group": "always"
+        },
+        {
+          "id": "instrument-3",
+          "source": {
+            "type": "item",
+            "names": [
+              "Company Instrument"
+            ]
+          },
+          "label": "Company Instrument",
+          "radius": 3,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "always",
+          "los": false,
+          "keywords": [],
+          "tip": "A friendly model within 3\" that suffers a wound rolls a D6 and ignores the wound on a 6.",
+          "concept": "Company Instrument",
+          "reason": "Battle Companies equipment table: 3\" around the bearer.",
+          "group": "always"
+        },
+        {
+          "id": "drum-12",
+          "source": {
+            "type": "item",
+            "names": [
+              "War drum",
+              "Company Drum"
+            ]
+          },
+          "label": "War Drum",
+          "radius": 12,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false,
+          "keywords": [],
+          "tip": "The war drum's free Heroic March shout reaches 12\" (models with the keywords after the drum).",
+          "concept": "War Drum",
+          "reason": "War drum text: the At the Double of the free Heroic March has range 12\" instead of 6\". The Company Drum is a War Drum (isA).",
+          "group": "declared"
+        },
+        {
+          "id": "horn-24",
+          "source": {
+            "type": "item",
+            "names": [
+              "War Horn",
+              "Company Horn"
+            ]
+          },
+          "label": "War Horn",
+          "radius": 24,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "always",
+          "los": false,
+          "keywords": [],
+          "tip": "Friendly models within 24\" of a war horn get +1 to Courage Tests.",
+          "concept": "War Horn",
+          "reason": "War horn text: 24\". Correct but it fills the table: group `large`, off by default (Q3). The Company Horn is a War Horn (isA).",
+          "group": "large"
+        },
+        {
+          "id": "horn-standfast-9",
+          "source": {
+            "type": "item",
+            "names": [
+              "War Horn",
+              "Company Horn"
+            ]
+          },
+          "label": "War Horn: Stand Fast +3\"",
+          "radius": 9,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false,
+          "keywords": [],
+          "tip": "Once per game a war horn extends the Hero's own Stand Fast by 3\", to 9\".",
+          "concept": "War Horn",
+          "reason": "War horn text: once per game +3\" to a friendly Hero's Stand Fast, or to the bearer's own when it is a Hero (6\" + 3\"). Only a Hero bearer has the ring (for a Warrior bearer the 9\" is centred on the Hero, not on the horn).",
+          "radiusParts": [
+            6,
+            3
+          ],
+          "textFrom": [
+            "Stand Fast"
+          ],
+          "bearer": "Hero",
+          "group": "declared"
+        },
+        {
+          "id": "torch-6",
+          "source": {
+            "type": "item",
+            "names": [
+              "Torching Brand"
+            ]
+          },
+          "label": "Torching Brand",
+          "radius": 6,
+          "kind": "utility",
+          "affects": "any",
+          "when": "always",
+          "los": false,
+          "keywords": [],
+          "tip": "Torch light: models within 6\" are seen as if in daylight.",
+          "concept": "Torching Brand",
+          "reason": "Battle Companies equipment table: 'illuminate the area within 6\"'. Light, not a rule on a model: group `optional`, off by default (spec 2.4).",
+          "group": "optional"
+        },
+        {
+          "id": "standfast-6",
+          "source": {
+            "type": "hero"
+          },
+          "label": "Stand Fast",
+          "radius": 6,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "always",
+          "los": true,
+          "keywords": [
+            "Warrior"
+          ],
+          "tip": "A Hero that passed its Broken Army Courage Test calls Stand Fast: friendly Warriors within 6\" in sight pass theirs.",
+          "concept": "Stand Fast",
+          "reason": "Glossary Stand Fast (every Hero). With Me! (Heroic Move) and Loose (Heroic Shoot) are universal Heroic Actions with the same 6\": their labels are merged.",
+          "mergeLabels": [
+            "With Me!",
+            "Loose"
+          ],
+          "textFrom": [
+            "With Me!",
+            "Loose"
+          ],
+          "group": "always"
+        },
+        {
+          "id": "atthedouble-6",
+          "source": {
+            "type": "heroicAction",
+            "names": [
+              "Heroic March"
+            ]
+          },
+          "label": "At the Double",
+          "radius": 6,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false,
+          "keywords": [],
+          "tip": "The Heroic March shout: friendly models within 6\" of the Hero's start add to their Move and must end within 6\".",
+          "concept": "At the Double",
+          "reason": "Heroic March is not universal: the Ranger path (or a vanilla profile) gives it. The shout is in the glossary term At the Double.",
+          "group": "declared"
+        },
+        {
+          "id": "resolve-6",
+          "source": {
+            "type": "heroicAction",
+            "names": [
+              "Heroic Resolve"
+            ]
+          },
+          "label": "Heroic Resolve",
+          "radius": 6,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false,
+          "keywords": [],
+          "tip": "Friendly models within 6\" get an extra free die on Resist Tests until the End Phase.",
+          "concept": "Heroic Resolve",
+          "reason": "Warlord path starting Heroic Action; merged into the Hero's 6\" command ring.",
+          "group": "declared"
+        },
+        {
+          "id": "takeaim-6",
+          "source": {
+            "type": "heroicAction",
+            "names": [
+              "Heroic Accuracy"
+            ]
+          },
+          "label": "Take Aim",
+          "radius": 6,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false,
+          "keywords": [],
+          "tip": "The Take Aim shout of Heroic Accuracy: friendly models within 6\" re-roll failed In The Way Tests.",
+          "concept": "Take Aim",
+          "reason": "Marksman path starting Heroic Action; spec 2.4 lists it as support but says it merges into the 6\" command ring, so it is command (REVIEW).",
+          "group": "declared"
+        },
+        {
+          "id": "voice-12",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Voice of Command"
+            ]
+          },
+          "label": "Voice of Command",
+          "radius": 12,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "always",
+          "los": true,
+          "keywords": [],
+          "tip": "The Hero's Stand Fast reaches 12\" instead of 6\".",
+          "concept": "Voice of Command",
+          "reason": "Warlord rule: replaces the Hero's 6\" command rings (Stand Fast and the shouts) with one 12\" ring.",
+          "replaces": [
+            "standfast-6",
+            "atthedouble-6",
+            "resolve-6",
+            "takeaim-6"
+          ],
+          "group": "always"
+        },
+        {
+          "id": "tirade-6",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Furious Tirade"
+            ]
+          },
+          "label": "Furious Tirade",
+          "radius": 6,
+          "kind": "enemy",
+          "affects": "enemy",
+          "when": "always",
+          "los": false,
+          "keywords": [
+            "Warrior"
+          ],
+          "tip": "Enemy Warriors within 6\" cannot use any Hero's Stand Fast.",
+          "concept": "Furious Tirade",
+          "reason": "Warlord rule (also the named rule of Lobelia, which the Battle Companies rule replaces).",
+          "group": "always"
+        },
+        {
+          "id": "bellow-3",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Commanding Bellow"
+            ]
+          },
+          "label": "Commanding Bellow",
+          "radius": 3,
+          "kind": "banner",
+          "affects": "friendly",
+          "when": "always",
+          "los": true,
+          "keywords": [],
+          "tip": "Friendly models treat this Hero as a banner with range 3\".",
+          "concept": "Commanding Bellow",
+          "reason": "Warlord rule: 'treat this Hero as a banner with a range of 3\"'. Not in the spec table (omitted by mistake); added as a banner ring.",
+          "group": "always"
+        },
+        {
+          "id": "claim-6",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Claim the Throne"
+            ]
+          },
+          "label": "Claim the Throne",
+          "radius": 6,
+          "kind": "banner",
+          "affects": "friendly",
+          "when": "conditional",
+          "los": true,
+          "keywords": [],
+          "tip": "After the enemy Leader falls within 6\" of this Hero, friendly models treat it as a banner with range 6\".",
+          "concept": "Claim the Throne",
+          "reason": "Claimant rule (and Freca's vanilla rule, replaced by it): the banner range 6\" starts after a game event.",
+          "group": "conditional"
+        },
+        {
+          "id": "dolamroth-6",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Lord of Dol Amroth"
+            ]
+          },
+          "label": "Lord of Dol Amroth",
+          "radius": 6,
+          "kind": "banner",
+          "affects": "friendly",
+          "when": "always",
+          "los": true,
+          "keywords": [
+            "Dol Amroth"
+          ],
+          "tip": "Other friendly Dol Amroth models treat this Hero as a banner with range 6\".",
+          "concept": "Lord of Dol Amroth",
+          "reason": "Fiefdoms rule: 'a banner with a range of 6\"'. Not in the spec table (omitted by mistake); added as a banner ring.",
+          "group": "always"
+        },
+        {
+          "id": "leadbyexample-6",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Lead by Example"
+            ]
+          },
+          "label": "Lead by Example",
+          "radius": 6,
+          "kind": "banner",
+          "affects": "friendly",
+          "when": "conditional",
+          "los": true,
+          "keywords": [
+            "Orc",
+            "Troll"
+          ],
+          "tip": "After slaying 3 enemy Heroes or Monsters, other friendly Orcs and Trolls treat this model as a banner with range 6\".",
+          "concept": "Lead by Example",
+          "reason": "Vanilla rule of Buhrdur, Hill Troll Chieftain (a unit companies can field). Not in the spec table; added as a banner ring.",
+          "group": "conditional"
+        },
+        {
+          "id": "hmm-6",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Heroic Move Mastery"
+            ]
+          },
+          "label": "Heroic Move Mastery",
+          "radius": 6,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "always",
+          "los": false,
+          "keywords": [
+            "Hero"
+          ],
+          "tip": "Friendly Heroes within 6\" gain a bonus on the roll-off for Heroic Moves.",
+          "concept": "Heroic Move Mastery",
+          "reason": "Tactician mastery rule.",
+          "group": "always"
+        },
+        {
+          "id": "portents-6",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Reading the Portents"
+            ]
+          },
+          "label": "Reading the Portents",
+          "radius": 6,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false,
+          "keywords": [],
+          "tip": "Spend a Will Point to let a friendly model within 6\" re-roll one Duel die.",
+          "concept": "Reading the Portents",
+          "reason": "Tactician rule (Oin's vanilla rule of the same name is replaced by it).",
+          "group": "declared"
+        },
+        {
+          "id": "knife-3",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Knife Mastery"
+            ]
+          },
+          "label": "Knife Mastery",
+          "radius": 3,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "always",
+          "los": true,
+          "keywords": [],
+          "tip": "Friendly models with a bow or crossbow within 3\" in sight re-roll To Wound rolls of 1.",
+          "concept": "Knife Mastery",
+          "reason": "Sharpshooter rule.",
+          "group": "always"
+        },
+        {
+          "id": "hold-3",
+          "source": {
+            "type": "rule",
+            "names": [
+              "\"Hold positions, loose the arrows!\""
+            ]
+          },
+          "label": "\"Hold positions, loose the arrows!\"",
+          "radius": 3,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "always",
+          "los": false,
+          "keywords": [],
+          "tip": "Friendly models within 3\" re-roll failed To Hit rolls when they shoot, if they did not Move.",
+          "concept": "\"Hold positions, loose the arrows!\"",
+          "reason": "Marksman rule.",
+          "group": "always"
+        },
+        {
+          "id": "goodsort-3",
+          "source": {
+            "type": "rule",
+            "names": [
+              "A Good Sort"
+            ]
+          },
+          "label": "A Good Sort",
+          "radius": 3,
+          "kind": "support",
+          "affects": "self",
+          "when": "always",
+          "los": false,
+          "keywords": [],
+          "tip": "Within 3\" of another friendly Hero this Hero has +1 Attack.",
+          "concept": "A Good Sort",
+          "reason": "Soldier rule (also Dori's vanilla rule, replaced by it): the bearer benefits when another Hero is near.",
+          "group": "always"
+        },
+        {
+          "id": "relentless-6",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Relentless Commander"
+            ]
+          },
+          "label": "Relentless Commander",
+          "radius": 6,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false,
+          "keywords": [],
+          "tip": "If you give Priority to the opponent, friendly models within 6\" re-roll To Wound rolls of 1.",
+          "concept": "Relentless Commander",
+          "reason": "Soldier rule.",
+          "group": "declared"
+        },
+        {
+          "id": "kingprot-6",
+          "source": {
+            "type": "rule",
+            "names": [
+              "The King's Protector"
+            ]
+          },
+          "label": "The King's Protector",
+          "radius": 6,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false,
+          "keywords": [
+            "Hero"
+          ],
+          "tip": "The chosen Hero engaged within 6\" gets a free Heroic Combat from this Hero.",
+          "concept": "The King's Protector",
+          "reason": "Shieldbearer rule.",
+          "group": "declared"
+        },
+        {
+          "id": "advisor-6",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Chief Advisor"
+            ]
+          },
+          "label": "Chief Advisor",
+          "radius": 6,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "always",
+          "los": false,
+          "keywords": [
+            "Hero"
+          ],
+          "tip": "A friendly Hero within 6\" that spends a Might Point rolls a D6: on a 6 it is free.",
+          "concept": "Chief Advisor",
+          "reason": "Ranger rule.",
+          "group": "always"
+        },
+        {
+          "id": "toarms-3",
+          "source": {
+            "type": "rule",
+            "names": [
+              "To Arms!"
+            ]
+          },
+          "label": "To Arms!",
+          "radius": 3,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false,
+          "keywords": [],
+          "tip": "Once per game friendly models within 3\" get +1 Strength until the end of the turn.",
+          "concept": "To Arms!",
+          "reason": "Berserker rule (also Thorin's vanilla rule, replaced by it).",
+          "group": "declared"
+        },
+        {
+          "id": "forglory-6",
+          "source": {
+            "type": "rule",
+            "names": [
+              "For Glory"
+            ]
+          },
+          "label": "For Glory",
+          "radius": 6,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false,
+          "keywords": [],
+          "tip": "Once per game friendly models within 6\" get +1 Fight and re-roll To Wound rolls of 1.",
+          "concept": "For Glory",
+          "reason": "Duelist rule.",
+          "group": "declared"
+        },
+        {
+          "id": "remember-3",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Remember Today"
+            ]
+          },
+          "label": "Remember Today",
+          "radius": 3,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "always",
+          "los": false,
+          "keywords": [
+            "Hero"
+          ],
+          "tip": "May use the Might, Will and Fate of another friendly Hero within 3\".",
+          "concept": "Remember Today",
+          "reason": "Osgiliath & Ithilien rule.",
+          "group": "always"
+        },
+        {
+          "id": "lossarnach-3",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Lord of Lossarnach"
+            ]
+          },
+          "label": "Lord of Lossarnach",
+          "radius": 3,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "always",
+          "los": false,
+          "keywords": [
+            "Lossarnach"
+          ],
+          "tip": "Other friendly Lossarnach models within 3\" re-roll To Wound rolls of 1.",
+          "concept": "Lord of Lossarnach",
+          "reason": "Fiefdoms rule (also Forlong's vanilla rule, replaced by it).",
+          "group": "always"
+        },
+        {
+          "id": "lamedon-3",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Chief of Lamedon"
+            ]
+          },
+          "label": "Chief of Lamedon",
+          "radius": 3,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "always",
+          "los": false,
+          "keywords": [
+            "Lamedon"
+          ],
+          "tip": "Other friendly Lamedon models within 3\" pass their Courage Tests.",
+          "concept": "Chief of Lamedon",
+          "reason": "Fiefdoms rule (also Angbor's vanilla rule, replaced by it).",
+          "group": "always"
+        },
+        {
+          "id": "vale-3",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Lord of the Vale"
+            ]
+          },
+          "label": "Lord of the Vale",
+          "radius": 3,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "always",
+          "los": false,
+          "keywords": [],
+          "tip": "Other friendly models within 3\" re-roll To Hit rolls of 1 when they shoot, if they did not Move.",
+          "concept": "Lord of the Vale",
+          "reason": "Fiefdoms rule.",
+          "group": "always"
+        },
+        {
+          "id": "moneybags-6",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Moneybags"
+            ]
+          },
+          "label": "Moneybags",
+          "radius": 6,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false,
+          "keywords": [
+            "Lake-town"
+          ],
+          "tip": "Friendly Lake-town models within 6\" get +1 Fight and treat this Hero as a banner.",
+          "concept": "Moneybags",
+          "reason": "Lake-town rule (also the vanilla rule of the Master of Lake-town, replaced by it).",
+          "group": "declared"
+        },
+        {
+          "id": "callous-3",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Callous Leadership"
+            ]
+          },
+          "label": "Callous Leadership",
+          "radius": 3,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false,
+          "keywords": [
+            "Goblin"
+          ],
+          "tip": "Friendly Goblins within 3\" get +1 To Wound; one that loses a Duel risks a wound.",
+          "concept": "Callous Leadership",
+          "reason": "Moria rule (replaces Durburz's vanilla 6\" rule).",
+          "group": "declared"
+        },
+        {
+          "id": "seize-3",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Seize Command"
+            ]
+          },
+          "label": "Seize Command",
+          "radius": 3,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "declared",
+          "los": true,
+          "keywords": [],
+          "tip": "When the Leader has one Wound left within 3\" in sight, it may be removed to give this Hero command.",
+          "concept": "Seize Command",
+          "reason": "City of Umbar rule.",
+          "group": "declared"
+        },
+        {
+          "id": "sword-6",
+          "source": {
+            "type": "rule",
+            "names": [
+              "You Have My Sword"
+            ]
+          },
+          "label": "You Have My Sword",
+          "radius": 6,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false,
+          "keywords": [
+            "Hobbit"
+          ],
+          "tip": "A Hobbit engaged within 6\" lets this Hero declare a free Heroic Combat.",
+          "concept": "You Have My Sword",
+          "reason": "Wanderers in the Wild rule.",
+          "group": "declared"
+        },
+        {
+          "id": "keensight-12",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Keen Sight",
+              "Keen Sight (Falcon)"
+            ]
+          },
+          "label": "Keen Sight",
+          "radius": 12,
+          "kind": "enemy",
+          "affects": "enemy",
+          "when": "always",
+          "los": false,
+          "keywords": [],
+          "tip": "Enemy models within 12\" gain no benefit from Stalk Unseen (a Falcon apart from its Hero).",
+          "concept": "Keen Sight (Falcon)",
+          "reason": "Falcon creature figure (its own `aura` agrees) and the Crebain of the vanilla file.",
+          "group": "always"
+        },
+        {
+          "id": "battle-6",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Master of Battle (3+)"
+            ],
+            "pattern": "Master of Battle (X+)"
+          },
+          "label": "Master of Battle",
+          "radius": 6,
+          "kind": "enemy",
+          "affects": "enemy",
+          "when": "declared",
+          "los": false,
+          "keywords": [
+            "Hero"
+          ],
+          "tip": "When an enemy Hero within 6\" declares a Heroic Action, roll a D6 to copy it.",
+          "concept": "Master of Battle (3+)",
+          "reason": "Warlord option and Rutabi, General of the Dragon Legion (the pattern covers the other variants if a company ever gets them).",
+          "group": "declared"
+        },
+        {
+          "id": "gatekeeper-6",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Gatekeeper"
+            ]
+          },
+          "label": "Gatekeeper",
+          "radius": 6,
+          "kind": "enemy",
+          "affects": "enemy",
+          "when": "target",
+          "los": true,
+          "keywords": [
+            "Infantry"
+          ],
+          "tip": "May select one enemy Infantry model within 6\" in sight.",
+          "concept": "Gatekeeper",
+          "reason": "Tactician rule: chooses one model.",
+          "group": "target"
+        },
+        {
+          "id": "spy-12",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Spy"
+            ]
+          },
+          "label": "Spy",
+          "radius": 12,
+          "kind": "enemy",
+          "affects": "enemy",
+          "when": "target",
+          "los": true,
+          "keywords": [
+            "Hero"
+          ],
+          "tip": "Whilst within 12\" and in sight of the chosen enemy Hero, its Heroic Actions may be cancelled.",
+          "concept": "Spy",
+          "reason": "Tactician rule: one chosen Hero.",
+          "group": "target"
+        },
+        {
+          "id": "challenge-6",
+          "source": {
+            "type": "heroicAction",
+            "names": [
+              "Heroic Challenge"
+            ]
+          },
+          "label": "Heroic Challenge",
+          "radius": 6,
+          "kind": "enemy",
+          "affects": "enemy",
+          "when": "target",
+          "los": false,
+          "keywords": [
+            "Hero"
+          ],
+          "tip": "Names an enemy Hero within 6\" of the same Heroic Tier or higher.",
+          "concept": "Heroic Challenge",
+          "reason": "Claimant starting Heroic Action: names one Hero.",
+          "group": "target"
+        },
+        {
+          "id": "swap-3",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Swap with Me!"
+            ]
+          },
+          "label": "Swap with Me!",
+          "radius": 3,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "target",
+          "los": false,
+          "keywords": [
+            "Goblin"
+          ],
+          "tip": "May swap places with a friendly Goblin on a 25mm base within 3\".",
+          "concept": "Swap with Me!",
+          "reason": "Goblin-Town rule: one chosen model.",
+          "group": "target"
+        },
+        {
+          "id": "fell-12",
+          "source": {
+            "type": "rule",
+            "names": [
+              "A fell light is in them",
+              "A Fell Light is in Them"
+            ]
+          },
+          "label": "A fell light is in them",
+          "radius": 12,
+          "kind": "enemy",
+          "affects": "enemy",
+          "when": "target",
+          "los": true,
+          "keywords": [],
+          "tip": "At the end of its Move may choose one enemy model within 12\" in sight.",
+          "concept": "A fell light is in them",
+          "reason": "Chooses one model.",
+          "group": "target"
+        },
+        {
+          "id": "glove-3",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Handler's Glove"
+            ]
+          },
+          "label": "Handler's Glove",
+          "radius": 3,
+          "kind": "utility",
+          "affects": "any",
+          "when": "target",
+          "los": false,
+          "keywords": [],
+          "tip": "The Hero may release its creature anywhere within 3\".",
+          "concept": "Handler's Glove",
+          "reason": "Places one creature; the radius only limits where.",
+          "group": "target"
+        },
+        {
+          "id": "hymn-12",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Enchanting Song"
+            ]
+          },
+          "label": "Enchanting Song: Hymn of Elbereth",
+          "radius": 12,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "target",
+          "los": false,
+          "keywords": [],
+          "tip": "The Hymn of Elbereth chooses one friendly model within 12\".",
+          "concept": "Enchanting Song",
+          "reason": "Wood Elf Sentinel: chooses one model.",
+          "group": "target"
+        },
+        {
+          "id": "lay-3",
+          "source": {
+            "type": "rule",
+            "names": [
+              "Enchanting Song"
+            ]
+          },
+          "label": "Enchanting Song: Lay of Gondolin",
+          "radius": 3,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false,
+          "keywords": [],
+          "tip": "The Lay of Gondolin gives the Sentinel and friendly models within 3\" the Terror rule.",
+          "concept": "Enchanting Song",
+          "reason": "Wood Elf Sentinel song.",
+          "group": "declared"
+        },
+        {
+          "id": "aoc-6",
+          "source": {
+            "type": "power",
+            "names": [
+              "Aura of Command"
+            ]
+          },
+          "label": "Aura of Command",
+          "radius": 6,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "cast",
+          "los": false,
+          "keywords": [],
+          "tip": "While in effect, the caster and friendly models within 6\" pass Courage Tests.",
+          "concept": "Aura of Command",
+          "reason": "Magical Power.",
+          "group": "cast"
+        },
+        {
+          "id": "fury-6",
+          "source": {
+            "type": "power",
+            "names": [
+              "Fury",
+              "Fury (Easterling)",
+              "Fury (Moria Goblin)",
+              "Fury (Mordor Orc)",
+              "Fury (Isengard Orc)",
+              "Fury (Isengard Uruk-hai)",
+              "Fury (Beast)",
+              "Fury (Spider)"
+            ],
+            "pattern": "Fury (X)"
+          },
+          "label": "Fury",
+          "radius": 6,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "cast",
+          "los": false,
+          "keywords": [],
+          "tip": "While in effect, friendly models within 6\" with the keywords in brackets pass Courage Tests.",
+          "concept": "Fury",
+          "reason": "Magical Power (and its keyword variants).",
+          "group": "cast"
+        },
+        {
+          "id": "dismay-6",
+          "source": {
+            "type": "power",
+            "names": [
+              "Aura of Dismay"
+            ]
+          },
+          "label": "Aura of Dismay",
+          "radius": 6,
+          "kind": "enemy",
+          "affects": "enemy",
+          "when": "cast",
+          "los": false,
+          "keywords": [],
+          "tip": "While in effect, enemy models within 6\" of the caster take -1 on Courage Tests.",
+          "concept": "Aura of Dismay",
+          "reason": "Magical Power.",
+          "group": "cast"
+        },
+        {
+          "id": "fog-6",
+          "source": {
+            "type": "power",
+            "names": [
+              "Fog of Disarray"
+            ]
+          },
+          "label": "Fog of Disarray",
+          "radius": 6,
+          "kind": "enemy",
+          "affects": "enemy",
+          "when": "cast",
+          "los": false,
+          "keywords": [],
+          "tip": "While in effect, enemy models within 6\" of the caster take -1 on Intelligence Tests.",
+          "concept": "Fog of Disarray",
+          "reason": "Magical Power.",
+          "group": "cast"
+        },
+        {
+          "id": "fear-6",
+          "source": {
+            "type": "power",
+            "names": [
+              "Instill Fear"
+            ]
+          },
+          "label": "Instill Fear",
+          "radius": 6,
+          "kind": "enemy",
+          "affects": "enemy",
+          "when": "cast",
+          "los": false,
+          "keywords": [],
+          "tip": "While in effect, enemy models within 6\" of the caster count as Fearful.",
+          "concept": "Instill Fear",
+          "reason": "Magical Power.",
+          "group": "cast"
+        },
+        {
+          "id": "blinding-6",
+          "source": {
+            "type": "power",
+            "names": [
+              "Blinding Light"
+            ]
+          },
+          "label": "Blinding Light",
+          "radius": 6,
+          "kind": "utility",
+          "affects": "any",
+          "when": "cast",
+          "los": false,
+          "keywords": [],
+          "tip": "While in effect, the area within 6\" of the caster is daylight and shots at models in it hit only on a 6.",
+          "concept": "Blinding Light",
+          "reason": "Magical Power.",
+          "group": "cast"
+        },
+        {
+          "id": "vines-3",
+          "source": {
+            "type": "power",
+            "names": [
+              "Writhing Vines"
+            ]
+          },
+          "label": "Writhing Vines",
+          "radius": 3,
+          "kind": "utility",
+          "affects": "enemy",
+          "when": "cast",
+          "los": false,
+          "keywords": [],
+          "tip": "The Vine Marker is placed within 3\" of the caster and makes 3\" around it difficult terrain for the enemy.",
+          "concept": "Writhing Vines",
+          "reason": "Magical Power: the radius is also around the marker; the ring shows where the marker may go.",
+          "group": "cast"
+        }
+      ],
+      "excluded": [
+        {
+          "type": "rule",
+          "names": [
+            "The King's Guard"
+          ],
+          "radius": 3,
+          "category": "receiver-side",
+          "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Riders of Eorl"
+          ],
+          "radius": 6,
+          "category": "receiver-side",
+          "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Arise, Riders of Rohan!"
+          ],
+          "radius": 12,
+          "category": "receiver-side",
+          "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Pride of Dol Amroth"
+          ],
+          "radius": 3,
+          "category": "receiver-side",
+          "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Loyal to the Captain"
+          ],
+          "radius": 6,
+          "category": "receiver-side",
+          "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Warrior of the Dragon Cult"
+          ],
+          "radius": 3,
+          "category": "receiver-side",
+          "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Favour of the War Chief"
+          ],
+          "radius": 3,
+          "category": "receiver-side",
+          "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Protectors of the White Tree"
+          ],
+          "radius": 6,
+          "category": "receiver-side",
+          "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Everyone has a Price"
+          ],
+          "radius": 6,
+          "category": "receiver-side",
+          "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Onwards Men of Esgaroth"
+          ],
+          "radius": 3,
+          "category": "receiver-side",
+          "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "The Honour of Lamedon"
+          ],
+          "radius": 3,
+          "category": "receiver-side",
+          "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "King's Knights"
+          ],
+          "radius": 6,
+          "category": "receiver-side",
+          "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Mindless Killers"
+          ],
+          "radius": 6,
+          "category": "receiver-side",
+          "reason": "the 6\" is measured from a friendly Corsair bo'sun, not from the bearer (receiver-side, like the 13 of spec 2.1)"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Pillager"
+          ],
+          "radius": 3,
+          "category": "centred-elsewhere",
+          "reason": "the radius is around an Objective Marker"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Rapid Fire"
+          ],
+          "radius": 3,
+          "category": "centred-elsewhere",
+          "reason": "the radius is around the first target of the shot"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Master of Traps"
+          ],
+          "radius": 3,
+          "category": "centred-elsewhere",
+          "reason": "radii around Trap Markers and Objectives (where a marker may not be placed, when it is triggered)"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Combat Synergy"
+          ],
+          "pattern": "Combat Synergy (X)",
+          "radius": 1,
+          "category": "centred-elsewhere",
+          "reason": "two named Heroes within 1\" of each other swap places: a pair, not an area"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Volley Fire"
+          ],
+          "radius": 6,
+          "category": "weapon-range",
+          "reason": "adds 6\" to the range of the bearer's shooting attacks"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Throwing Stones"
+          ],
+          "radius": 8,
+          "category": "weapon-range",
+          "reason": "the range of a throwing weapon"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Spider Webs"
+          ],
+          "radius": 8,
+          "category": "weapon-range",
+          "reason": "the range of a throwing weapon"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Fly"
+          ],
+          "radius": 4,
+          "category": "movement",
+          "reason": "the Move Value of a model that chooses not to Fly"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Stalk Unseen"
+          ],
+          "radius": 6,
+          "category": "visibility",
+          "reason": "a concealment distance (line of sight): models further than 6\" cannot see the bearer; not a radius of affected models. Keen Sight, which removes it, has a ring"
+        },
+        {
+          "type": "rule",
+          "names": [
+            "Silent Hunters"
+          ],
+          "radius": 6,
+          "category": "visibility",
+          "reason": "a concealment distance (line of sight), like Stalk Unseen"
+        },
+        {
+          "type": "power",
+          "names": [
+            "Call Winds"
+          ],
+          "radius": 3,
+          "category": "effect-length",
+          "reason": "the distance a target is blown (D3+3\"); the range of the power is its `range`"
+        },
+        {
+          "type": "power",
+          "names": [
+            "Tremor"
+          ],
+          "radius": 3,
+          "category": "effect-length",
+          "reason": "a line of D3+3\" from the caster, not an area around it"
+        },
+        {
+          "type": "item",
+          "names": [
+            "Blowpipe",
+            "Bow",
+            "Crossbow",
+            "Dwarf Bow",
+            "Dwarf Longbow",
+            "Elf Bow",
+            "Elven throwing weapon",
+            "Esgaroth Bow",
+            "Longbow",
+            "Orc Bow",
+            "Short Bow",
+            "Throwing Spears",
+            "Throwing weapon",
+            "Troll Chain",
+            "Uruk-Hai Bow",
+            "Whip"
+          ],
+          "radius": 0,
+          "category": "weapon-range",
+          "reason": "a weapon's range (missile profile), not a rule radius: a possible later feature (Q11)"
+        }
+      ],
+      "outOfScope": [
+        {
+          "scope": "data.scenarioDetails",
+          "reason": "scenario layout, deployment and scoring (objectives, board edges, entry points): centred on objectives, markers or the table, never on a unit"
+        },
+        {
+          "scope": "data.gearAnnotations ranged items",
+          "reason": "missile profiles (bows, crossbows, throwing weapons, the blowpipe, the whip): weapon ranges, listed in `excluded` by the generator"
+        },
+        {
+          "scope": "data.companies",
+          "reason": "company rules print no distance of their own (the validator checks the keywords they use, which are covered above)"
+        }
+      ],
+      "unreachable": [
+        "\"Come here maggot!\"",
+        "\"Dol Amroth for Gondor!\"",
+        "\"Go for the Horse!\"",
+        "\"Looks like meat's back on the menu, boys!",
+        "A Bad Influence",
+        "A Helpful Sort",
+        "A Light in the Dark",
+        "A Stern Scolding",
+        "Accurate",
+        "Air of Self-importance",
+        "Allies 'til the End",
+        "An Unlikely Friendship",
+        "Angmar Arise (Slayer of Men)",
+        "Arcana Leech",
+        "Archers, this way!",
+        "Area Effect",
+        "Ascendent",
+        "Awesome Presence",
+        "Battle Wisdom",
+        "Birdcalls",
+        "Blood of Numenor",
+        "Bloodoath",
+        "Bound in Shadow",
+        "Breathe Fire (Smaug)",
+        "Burn it down!",
+        "Call 'the Beast'",
+        "Captain of the Citadel Guard",
+        "Captain of the Guard",
+        "Chronicler",
+        "Chronicler (Thorin's Company)",
+        "Commanding Presence",
+        "Conduit of Angmar",
+        "Considerable Wealth",
+        "Cornered Beast",
+        "Da! Down Here!",
+        "Detonation Table",
+        "Do not talk to me of Dragon fire",
+        "Doorward of Meduseld",
+        "Dragged to the Depths",
+        "Drums in the Deep",
+        "Dubious Counsel",
+        "Dunlending Commander",
+        "Dunlending Heritage",
+        "Durin's Heir",
+        "Durin's Protector",
+        "Edoras Shall Fall",
+        "Family Bond",
+        "Fight to the Last",
+        "For Théoden!",
+        "For Tuckborough!",
+        "For the Shire!",
+        "Forest Stalker",
+        "Forth, and Fear no Darkness",
+        "Gandalf's Intervention",
+        "Gandalf's Rockets",
+        "General of the North",
+        "Ghostly Resolve",
+        "Gift of Foresight",
+        "Go back to the void, from whence you came!",
+        "Goblin Mastery",
+        "Goblin Projectile",
+        "Gothmog's Right Hand",
+        "Grasping Tentacles",
+        "Hands off the shiny shirt; that's mine!",
+        "Head Shirriff",
+        "Head Taker",
+        "Heart of Darkness",
+        "Herald of Doom",
+        "Herald of Victory",
+        "High King of Gondor and Arnor",
+        "High King of the Elves",
+        "High Spirits",
+        "Home is the Hero",
+        "I Shall Kill You if You Touch Him",
+        "If I were to marry anyone, it would've been her",
+        "Imposing Presence",
+        "In Defence of the King",
+        "In Defence of the King (Hurin)",
+        "In the name of the Dragon Emperor",
+        "Incantations of Power",
+        "Iron Fist",
+        "Leave me flowers alone!",
+        "Let him go or I'll have you, Longshanks!",
+        "Lord of Dale",
+        "Lord of Dale (Girion)",
+        "Lord of Dunland",
+        "Lord of the Blackroot Vale",
+        "Lord of the Iron Hills",
+        "Lord of the Istari",
+        "Loremaster",
+        "Loyal Hounds",
+        "Loyalty, honour, a willing heart. I can ask no more than that",
+        "Master of Battle (2+)",
+        "Master of Battle (4+)",
+        "Master of Battle (5+)",
+        "Master of Birds",
+        "Master of the Dark Wild",
+        "Master of the Nazgul",
+        "Mayor of Michel Delving",
+        "Miasmatic Presence",
+        "Mutual Respect",
+        "Orders from Edoras",
+        "Pall of Darkness",
+        "Piercing Shot",
+        "Piercing Shot (Isengard)",
+        "Piercing Shot (Windlance)",
+        "Progeny",
+        "Protect the Nest",
+        "Protect the Young",
+        "Protect the little ones!",
+        "Raise the Ladders!",
+        "Raising Spirits",
+        "Raising Spirits (Thorin's Company)",
+        "Reading the Portents (Thorin's Company)",
+        "Resolute Fighter",
+        "Riches Beyond Renown",
+        "Roast 'em Slowly",
+        "Rule Through Fear",
+        "Run and Drum",
+        "Ruthless Commander",
+        "Sap Fortitude",
+        "Save the Gold!",
+        "Saviour of Lake-town",
+        "Sense of impending doom",
+        "Serve the Master of the Precious",
+        "Set Ablaze",
+        "Shadow Pawn",
+        "Sharkey's Spy",
+        "She is always hungry",
+        "Sing a Jolly Song (Goldberry)",
+        "Sing a Jolly Song (Tom)",
+        "Soft and quick and shadows we must be",
+        "Songs of Elbereth",
+        "Spider-kin",
+        "Spiritual Displacement",
+        "Stand by our Men!",
+        "Stand, Men of the West!",
+        "Standards of the Emperor",
+        "Steadfast",
+        "Steadfast (Thorin's Company)",
+        "Strength of Brotherhood (Elladan)",
+        "Strength of Brotherhood (Elrohir)",
+        "Sweet Maiden of the Golden Ale",
+        "Swift Gallop",
+        "Swirling Mists",
+        "Take Up the Drum",
+        "Take up the Drum",
+        "Take up the Drum (Blackshield)",
+        "Tentacles",
+        "The Age of Men is Over",
+        "The Bringer of Death",
+        "The Goblin King's Command",
+        "The King in the North",
+        "The King's Axemen",
+        "The King's Counsel",
+        "The Lineage of Numenor",
+        "The Master's Puppet",
+        "The Old Twirly Whirlies",
+        "The Palanquin",
+        "The Price of Failure",
+        "The Shards of Narsil",
+        "The Time of the Orc has Come",
+        "The Warrior Poet",
+        "The will of men is easily corrupted",
+        "There is Always Hope",
+        "There's some good in this world, Mr Frodo, and it's worth fighting for",
+        "This is our country",
+        "To me, Shire-folk!",
+        "Unholy Resurrection",
+        "Unnatural Speed",
+        "Voice of Curunir",
+        "War Aspect",
+        "War Leader of the North",
+        "Warlord of Carn Dum",
+        "Water Dweller",
+        "Well fed, and ready to fight",
+        "Whips of the Master",
+        "Windlance Trained",
+        "Wise Counsel",
+        "Wizard's Pupil",
+        "Wormtongue"
       ]
     }
   }

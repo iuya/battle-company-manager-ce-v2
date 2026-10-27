@@ -221,7 +221,7 @@ func TestMessagesForBadInput(t *testing.T) {
 		{"empty", func(w *ttsfake.World) { w.SetNames("   ", "White") }, "is empty"},
 		{"bad json", func(w *ttsfake.World) { w.SetNames(`{"v":1,"figures":[{"k":"a"`, "White") }, "not valid JSON"},
 		{"not an object", func(w *ttsfake.World) { w.SetNames(`"hello"`, "White") }, "not valid JSON"},
-		{"unknown version", func(w *ttsfake.World) { w.SetNames(`{"v":2,"figures":[]}`, "White") }, "older than the app"},
+		{"unknown version", func(w *ttsfake.World) { w.SetNames(`{"v":3,"figures":[]}`, "White") }, "older than the app"},
 		{"no version", func(w *ttsfake.World) { w.SetNames(`{"figures":[]}`, "White") }, "older than the app"},
 		{"no figures", func(w *ttsfake.World) { w.SetNames(`{"v":1}`, "White") }, "have no figures"},
 		{"oversized", func(w *ttsfake.World) {
@@ -317,7 +317,7 @@ func TestScriptUsesOnlyTheCommonSubset(t *testing.T) {
 		"bare unpack":                regexp.MustCompile(`(^|[^.\w])unpack\(`),
 		"bit32":                      regexp.MustCompile(`\bbit32\b`),
 		"table.move":                 regexp.MustCompile(`table\.move`),
-		"destruct/clone/setPosition": regexp.MustCompile(`\b(destruct|clone|setPosition|setPositionSmooth|takeObject|putObject)\b`),
+		"destruct/clone/setPosition": regexp.MustCompile(`\b(destruct|clone|setPosition|setPositionSmooth|takeObject|putObject|destroyObject|spawnObject|setRotation|setRotationSmooth|setScale|setState|setLock)\b`),
 	}
 	for name, re := range banned {
 		if loc := re.FindStringIndex(src); loc != nil {

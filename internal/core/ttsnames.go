@@ -45,6 +45,8 @@ const (
 // TTSNamesOptions are the switches of the dialog.
 type TTSNamesOptions struct {
 	Rules string // TTSRulesNone (also when empty or unknown), TTSRulesShort or TTSRulesFull: the highest level tried; the payload is lowered when it is too big
+	// Auras are the rings to write (docs/aura-ranges.md): the zero value writes none and the payload stays version 1.
+	Auras AuraSelection
 }
 
 // TTSFigure is one figure of the army, as the helper reads it. The i-th figure with the same Key is the i-th (Occurrence) of that nickname.
@@ -56,9 +58,12 @@ type TTSFigure struct {
 	Occurrence int    `json:"o"` // 0-based position among the figures with the same Key
 	Name       string `json:"n"` // the name to give the figure: [b]Title[/b] (points), in the rich text of the game
 	Desc       string `json:"d"` // the description: rich text, at most TTSDescriptionMax characters
+	// Version 2 only: the rings of the figure (at most AurasPerFigure) and, when the selection asks for it, the base radius in inches.
+	Auras []TTSRing `json:"a,omitempty"`
+	Base  float64   `json:"b,omitempty"`
 }
 
-// TTSNamesPayload is the ArmyNames JSON v1: one figure per spawned model in spawn order (the lines of the export in warband order, each
+// TTSNamesPayload is the ArmyNames JSON v1 (v2 when it carries aura rings): one figure per spawned model in spawn order (the lines of the export in warband order, each
 // expanded Count times).
 type TTSNamesPayload struct {
 	Version int         `json:"v"`
@@ -93,12 +98,17 @@ func (r *RuleSet) TTSNames(d CompanyDetail, exp TTSExport, opts TTSNamesOptions)
 		TTSRulesShort: {TTSRulesShort, TTSRulesNone},
 		TTSRulesNone:  {TTSRulesNone},
 	}[want]
+	rings, st := r.figureRings(d, exp, opts.Auras)
 	var p TTSNamesPayload
 	for _, level := range levels {
-		p = r.ttsNamesAt(d, exp, level)
+		p = r.ttsNamesAt(d, exp, level, rings)
 		if p.Size <= TTSNamesMaxBytes {
 			break
 		}
+	}
+	if p.Size > TTSNamesMaxBytes && p.Version == TTSNamesVersionAuras { // the rings are the last thing to give up
+		p = r.ttsNamesAt(d, exp, levels[len(levels)-1], nil)
+		st.notes = []TTSNote{{Kind: TTSAurasLeftOut, Text: "All aura rings were left out to fit the size limit."}}
 	}
 	if p.Rules != want {
 		p.Notes = append(p.Notes, TTSNote{Kind: TTSRulesLowered, Text: "Rule texts " + map[string]string{TTSRulesShort: "shortened", TTSRulesNone: "left out"}[p.Rules] + " to fit."})
@@ -106,6 +116,7 @@ func (r *RuleSet) TTSNames(d CompanyDetail, exp TTSExport, opts TTSNamesOptions)
 	if p.Size > TTSNamesMaxBytes {
 		p.Notes = append(p.Notes, TTSNote{Kind: TTSTooLarge, Text: fmt.Sprintf("The names are %d KB, over the %d KB the Notebook is meant to take: send fewer figures.", (p.Size+1023)/1024, TTSNamesMaxBytes/1024)})
 	}
+	p.Notes = append(p.Notes, st.notes...)
 	return p
 }
 
@@ -161,13 +172,14 @@ func (n *ttsNamer) title(u CompanyUnit) string {
 	return u.Title()
 }
 
-func (r *RuleSet) ttsNamesAt(d CompanyDetail, exp TTSExport, level string) TTSNamesPayload {
+func (r *RuleSet) ttsNamesAt(d CompanyDetail, exp TTSExport, level string, rings []figAuras) TTSNamesPayload {
 	n := &ttsNamer{rs: r, d: d, models: r.BC.TTSModels(), level: level, units: map[int64]CompanyUnit{}, named: r.namedUpgrades()}
 	for _, u := range d.Roster {
 		n.units[u.ID] = u
 	}
 	p := TTSNamesPayload{Version: TTSNamesVersion, Company: ttsSafe(d.Name), Figures: []TTSFigure{}, Rules: level}
 	seen := map[string]int{}
+	at := 0
 	for _, w := range exp.Warbands {
 		for _, l := range w.Lines {
 			for _, id := range l.UnitIDs {
@@ -175,6 +187,11 @@ func (r *RuleSet) ttsNamesAt(d CompanyDetail, exp TTSExport, level string) TTSNa
 				f.Key, f.Line, f.Unit, f.Extra = l.Key, ttsLineText(l), id, l.Extra
 				f.Occurrence = seen[l.Key]
 				seen[l.Key]++
+				if at < len(rings) && len(rings[at].Rings) > 0 {
+					f.Auras, f.Base = ringsOf(rings[at].Rings), rings[at].Base
+					p.Version = TTSNamesVersionAuras
+				}
+				at++
 				p.Figures = append(p.Figures, f)
 			}
 		}
@@ -262,6 +279,9 @@ func (n *ttsNamer) unitLines(u CompanyUnit, l TTSLine) []ttsDLine {
 	head := []string{ttsRoleLabel[u.Role]}
 	if u.Path != nil && u.Path.Name != "" {
 		head = append(head, ttsSafe(u.Path.Name))
+	}
+	for _, d := range l.Dropped { // the figure has no key for it (the bag lacks it), the unit still is one
+		head = append(head, ttsSafe(d))
 	}
 	if l.Extra == "foot" {
 		head = append(head, "on foot")

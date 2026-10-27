@@ -558,3 +558,29 @@ func TestWoundsOfAHeroWithAnInjuryKeepsItsBonus(t *testing.T) {
 		t.Errorf("Wounds of a Hero is a plain Full Recovery in the data: kind %s, decision %+v", e.Kind, e.Decision)
 	}
 }
+
+// BC: a Wanderer cannot gain Experience Points or advancements: the aftermath credits it none (also with Against the Odds and a reward) and
+// the card never shows "Level up ready" for it, whatever XP it carries.
+func TestExperienceSkipsWanderers(t *testing.T) {
+	ctx := ctxFor(t, "win", "", false, CompanyResult{})
+	ro := append(roster(), CompanyUnit{ID: 9, Name: "Wandering Ruffian", Role: RoleWarrior, Points: 10, Wanderer: true})
+	ctx.Roster = ro
+	in := DefaultSheet(ro)
+	in.AgainstTheOdds = []string{"experience"}
+	in.Models[len(in.Models)-1].Gains["mvp"] = 1
+	if g := gainOf(Experience(ctx, in), 9); g.Total != 0 || len(g.Lines) != 0 {
+		t.Errorf("a Wanderer earns nothing: %+v", g)
+	}
+	if g := gainOf(Experience(ctx, in), 5); g.Total == 0 {
+		t.Errorf("a warrior still earns: %+v", g)
+	}
+	if n := (CompanyUnit{Wanderer: true, XP: 2 * XPPerLevel}).PendingLevelUps(); n != 0 {
+		t.Errorf("a Wanderer has %d level-ups waiting", n)
+	}
+	if n := (CompanyUnit{OwnPath: true, XP: 2 * XPPerLevel}).PendingLevelUps(); n != 0 {
+		t.Errorf("a unit On Its Own Path has %d level-ups waiting", n)
+	}
+	if n := (CompanyUnit{XP: 2 * XPPerLevel}).PendingLevelUps(); n != 2 {
+		t.Errorf("an ordinary unit has %d level-ups waiting", n)
+	}
+}

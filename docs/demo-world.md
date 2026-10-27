@@ -49,6 +49,7 @@ company, sees "My company"). Page names are those of the navigation: Overview, M
 | **Injuries and treatment: every wound on the chart** | Éowyn (Rohan), Sauron (Mordor), Aragorn (Arnor) | see [Injuries](#injuries-and-treatment) | My company of each |
 | **Level-ups waiting: warriors, heroes, paths and a Sorcerer** | Galadriel (Lothlorien), Bilbo (The Shire) | see [Level-ups](#level-ups) | My company: the unit cards with "Level up" |
 | **Limits, creatures and wanderers: the armoury at its edge** | Radagast (Mirkwood), Pippin (The Shire), Gimli (Erebor & Dale), Éowyn (Rohan), Sauron (Helm's Deep), Galadriel (Rivendell) | see [Units, creatures and limits](#units-creatures-and-limits) | Armoury, My company |
+| **Keyword targets: who the rules work against** | Gimli (Erebor & Dale, Ancient Enemies (Orc)), Radagast (Mirkwood, Orcs, Goblins and Spiders) | two recruited companies and no match: open one between them to see the "Ancient Enemies (Orc) applies" markers on the enemy's units in the live match (e2e flow `95-keyword-targets`) | Matches > new match; the live company pages |
 | **Matches: every scenario and every state** | six pool companies (Éowyn, Sauron, Aragorn, Galadriel, Gimli, Bilbo) and 22 more played by gallery accounts | see [Matches](#matches) | Matches |
 | **Aftermath ward 1: every step of the War's Aftermath** | eight companies | see [Aftermaths](#aftermaths) | Matches > a match > the company's aftermath; Round 3 of 12 on the Overview |
 | **Aftermath ward 2: draws, odds, perks and a succession** | six companies | see [Aftermaths](#aftermaths) | the same |
@@ -58,9 +59,43 @@ company, sees "My company"). Page names are those of the navigation: Overview, M
 | **Settings: everything on, own paths level up** | Galadriel | all four settings on; `CustomOnTheirOwnPath`: the Wood Elf Sentinels are warriors that earn experience: one has two level-ups waiting, another rolled a 6 and became a hero on the "Path of Their Own Making" | My company |
 | **Pinned to another edition: Battle Companies 2.1-demo** | Gimli, Bilbo | a campaign pinned to a **forked Battle Companies file** (the app's file with another name and version) while the other campaigns use the default | Overview > Rules card (name, version, short hash); `/admin` > Rules files lists both |
 | **Finished campaign: the Siege of Osgiliath** | Faramir, Sauron | a campaign played to its end (status finished, Round 12 of 12): no invite, no grant, no new match; two matches with finished aftermaths | Overview; Rankings; the home page's "finished" group |
+| **Aura parade: every aura ring a company can carry** | You (Fiefdoms), Éowyn (Rohan), Galadriel (Lothlorien), Sauron (Angmar & Carn Dum) and six gallery accounts (Lake-town, Moria, City of Umbar, Osgiliath & Ithilien, Goblin-Town, Wanderers in the Wild) | ten companies that between them carry **every aura of `data.auras` that a company can reach**, for the smoke test of the rings in Tabletop Simulator; `CustomOnTheirOwnPath` is on (Lead by Example). See [Aura parade](#aura-parade) | My company (as `you`: Fiefdoms; the others under Companies) > the Tabletop Simulator button |
 | **Cemetery: the fallen of the Misty Mountains** | Boromir (closed account), Bilbo (The Shire, "Hobbits who lost their Ranger": the Ranger of the North fell in a lost Rescue match against Boromir's company, played through the aftermath: a Hobbit who had rolled Hero in the Making took the Sergeant place the promotion of a Sergeant to Leader left, so the company has the three officers it needs to recruit; the Ranger is in the cemetery, so Recruit may swap a successful result for a new one) | a cemetery with a dead and a retired Sergeant and four dead warriors, in the order the player chose; the owner shown as "Former player" | My company > Cemetery (as `you`: Companies > the company) |
 | **Handed over: Faramir organises now** | Éowyn, Faramir | `Campaigns.HandOver`: created by You, organised by Faramir; You is a player without a company | Overview as `faramir` (organiser buttons) and as `you` (none) |
 | **Faramir's campaign: a small start** | Aragorn, Pippin | a campaign organised by Faramir from the start | Overview as `faramir` |
+
+### Aura parade
+
+Step `world_aura.go`, campaign **Aura parade: every aura ring a company can carry** (organiser `you`). Spec: [`aura-ranges.md`](aura-ranges.md); data: [`definitions.md`](definitions.md#aura-ranges-dataauras).
+Every officer's level-ups are typed rolls (`w.gain`: 5 experience, the roll of the path chart that offers the rule, the choice; a warrior becomes a hero with a 6, a Sorcerer names
+its first power), items are bought with gold, so everything is reached through the real services. A company in a campaign belongs to one player and a company has its own upgrades, so the
+auras that depend on the company are spread over ten companies (the three "main" ones carry the items, the paths, the powers and the creature; the six gallery accounts carry one hereditary upgrade
+each). The script prints the auras of every unit and creature (`aura ...` lines) and the Tabletop Simulator export (`Tabletop Simulator: N rings on M of K figures`), and records a gap
+(failing `TestSeedWorld`) when an entry of `data.auras` is carried by no company and `auraUnreachable` (`world_aura.go`) does not explain it. The default selection of the dialog applies
+(the `cast`, `target`, `large` and `optional` groups are off), so the spells, the targeting ranges, the war horn's 24" and the Torch ring show once their switches are on.
+
+| Company (account) | What it carries | Auras |
+|---|---|---|
+| **Fiefdoms of Gondor** (`you`) | Warlord Leader (Furious Tirade, Commanding Bellow, Master of Battle (3+), Voice of Command, **Lord of Dol Amroth**) with an Armoured horse and a Company Horn; Tactician Sergeant (Heroic Move Mastery, Reading the Portents, Spy, Gatekeeper, **Chief of Lamedon**); Marksman Sergeant (Hold positions, Take Aim) with a Company Instrument; a Soldier hero (A Good Sort, Relentless Commander, **Lord of Lossarnach**) with a Torching Brand; a Sharpshooter hero (Knife Mastery, **Lord of the Vale**); a Warrior with a Company Standard; a Warrior with a Company Drum | Company Standard 3" banner; Company Instrument 3" support; Company Drum 12" command; Company Horn 24" command and 9" Stand Fast extension (Hero); Torching Brand 6" utility; Stand Fast 6" (every hero); Take Aim; Voice of Command 12" (replaces the 6" command rings of that Leader); Furious Tirade; Commanding Bellow; Master of Battle; Lord of Dol Amroth; Chief of Lamedon; Lord of Lossarnach; Lord of the Vale; Heroic Move Mastery; Reading the Portents; Spy; Gatekeeper; Knife Mastery; "Hold positions, loose the arrows!"; A Good Sort; Relentless Commander |
+| **Riders of the Mark** (`eowyn`) | Claimant Leader (Claim the Throne, Heroic Challenge), Ranger Sergeant (Chief Advisor, Heroic March), Berserker Sergeant (To Arms!), Duelist hero (For Glory), Shieldbearer hero (The King's Protector), a Rider of Rohan with a Company Standard | Claim the Throne; Heroic Challenge; At the Double; Chief Advisor; To Arms!; For Glory; The King's Protector; Company Standard on a rider |
+| **Golden Wood** (`galadriel`) | Sorcerer Leader who knows Aura of Command, Aura of Dismay, Blinding Light, Fog of Disarray, Instill Fear, Writhing Vines and Fury (Beast); a Falcon (shown as Crebain); Wood Elf Sentinels, one of them a hero on the Path of Their Own Making with Lead by Example | Aura of Command, Fury, Aura of Dismay, Fog of Disarray, Instill Fear, Blinding Light, Writhing Vines (all `cast`); Keen Sight and Handler's Glove (the Falcon's own figure); Enchanting Song (Lay of Gondolin, Hymn of Elbereth); Lead by Example |
+| **Angmar** (`sauron`) | Warlord Leader with no rule yet (Heroic Resolve alone); Warg Riders, one with a Company Standard (the rider, its on-foot version and the Wild Warg mount are figures: the mount gets no ring); a Spectre | Heroic Resolve; A fell light is in them (`target`); Company Standard on a rider and on its on-foot version |
+| **Lake-town** (`lake-town@`) | an officer with **Moneybags** | Moneybags |
+| **Moria** (`moria@`) | an officer with **Callous Leadership** | Callous Leadership |
+| **City of Umbar** (`city-of-umbar@`) | an officer with **Seize Command** | Seize Command |
+| **Osgiliath & Ithilien** (`osgiliath-ithilien@`) | an officer with **Remember Today** | Remember Today |
+| **Goblin-Town** (`goblin-town@`) | an officer with **Swap with Me!** | Swap with Me! (`target`) |
+| **Wanderers in the Wild** (`wanderers-in-the-wild@`) | an officer with **You Have My Sword** | You Have My Sword |
+
+Every company also shows Stand Fast, With Me! and Loose on its heroes; the Marksman officers of the satellite companies show Take Aim.
+
+**Auras no company can reach** (`auraUnreachable`):
+
+- **Banner (3")**, the plain item: a Battle Company cannot own it. The Battle Companies equipment table sells the Company Standard instead and the vanilla options "Banner", "War horn" and "War drum"
+  are `notSold` (`data.optionSales`). The Company Standard (same 3" ring), the Company Horn and the Company Drum (the same names as the entries `horn-*` and `drum-12`) are carried above. The entry would show
+  up in a custom ruleset that sells a banner.
+- The rules the data lists as `receiver-side`, `centred-elsewhere`, `weapon-range`... (`data.auras.excluded`) and the 181 vanilla rules of characters no company can field (`data.auras.unreachable`) are not entries.
+- Everything else of the 52 entries is carried by at least one company above; `Lead by Example` needs the campaign setting `CustomOnTheirOwnPath` (a homebrew path), which this campaign switches on.
 
 ### Company types
 

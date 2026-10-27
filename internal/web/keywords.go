@@ -73,3 +73,14 @@ func keywordLabel(w core.UnitKeyword, part string) string {
 	s := g + ": " + w.Name
 	return s
 }
+
+// joinNames writes names for a sentence: "Aldor", "Aldor and Hama", "Aldor, Hama and Eowyn".
+func joinNames(names []string) string {
+	switch len(names) {
+	case 0:
+		return ""
+	case 1:
+		return names[0]
+	}
+	return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
+}

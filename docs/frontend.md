@@ -270,10 +270,17 @@ A card, top to bottom:
   `x-show`, no request, `aria-expanded`) to the full list in labelled groups Race, Faction, Unit type; "Fewer keywords" closes it. The expanded
   (maximised) card passes `Open = "expanded === ID"`, so there the full list is always shown and the row and the button are hidden. A lost mount
   changes nothing here (Cavalry and the mount are not chips; the kind icon does not change on dismount either). A unit with no chip draws no row. Not on
-  the live compact cards or the aftermath/level-up windows. Fallen cards show the same row. The company browser's unit hover card (`unit_preview`)
+  the aftermath/level-up windows; the live compact cards (Retreated, Field casualties, Missed) have the row too, so the opponent's units are readable
+  there. Fallen cards show the same row. The company browser's unit hover card (`unit_preview`)
   shows the full list in plain, always open, non-interactive chips (`Static`; that card cannot be pointed at). The armoury's wanderer cards use the
   row; a creature (types only, all of them icon types) has none. Tap targets: the chips get the invisible 44 px coarse-pointer area of the corner
   tab. `/styleguide` shows the states.
+- **Who a rule works against** (spec [`unit-keywords.md`](unit-keywords.md) "Rule targets"): the rule chips of the card (the unit's own, the path's) carry
+  `UnitRule.Works`, filled by core from `data.ruleTargets`. The tooltip text is `UnitRule.TipText()`: the description and a second paragraph
+  "Works against: enemy models with the Orc keyword." ("Works for: ..." for friendly models, Fury (X)); the same line is in `data-tip-works`, which
+  `concepts.js` adds under the text of the helper popup (`.concept-works`, an accent-soft box; the popup itself is the rule's glossary term and does not
+  know the parameter). The expanded card prints the line (`data-works`) under each rule. An own rule and a rule the table does not list have no line; a
+  ruleset without `data.ruleTargets` has plain tooltips. **Nothing is highlighted on the unit's own card** for an enemy rule.
 - **Attributes** from the vanilla file's `stats` list (`VanillaBook.Stats/Profile`): Mv FV SV S D A W C I, then M W F for
   heroes that have any. Values the company raised are green, lowered red; hovering shows the full name. The backend
   fills them dynamically; the page just draws what it is given.
@@ -554,7 +561,7 @@ cards back. Meanwhile the cards themselves do not react.
 **Rating and injuries.** A unit's points are its Battle Companies rating: a warrior is its MESBG points plus the option its
 wargear amounts to plus the rating of its equipment; a hero built from a warrior profile is that profile's points plus
 5 per point of Might, Will, Fate, Movement, Fight, Strength and Defence and 10 per point of Attack and Wounds above the
-profile and above the average Battle Company profile, plus 5 per special rule its path gave (`BCBook.HeroRating`), plus
+profile and above the average Battle Company profile, plus 5 per special rule its path gave and 5 per minor special rule it took at level-up, those at most 10 together (`BCBook.HeroRating`; Envenom Weapon's rule is the item's and does not count), plus
 the options of its profile it carries at their MESBG points (BC: wargear of the profile or its Options "makes no adjustment, it
 is as it is in their book", the same price a warrior pays), plus the rating of gear that is neither part of its profile nor of
 its options (at the hero rating when its Attacks and Wounds add up to 3 or more); other heroes (named characters, monsters)
@@ -732,6 +739,38 @@ Notebook tab titled exactly `ArmyNames`; spawn from `ArmyList`; select the army 
 `Cache-Control: public, max-age=3600`, behind `protected`, so an anonymous visitor goes to the login) and a collapsed `<details>` "Show the Lua (fallback,
 unverified)" with a read-only text area (`ttshelper.ShowLua()`) and its own copy button. Flow `92-tts-names` drives it.
 
+**Auras section** (bead 4fe.6, spec [`aura-ranges.md`](aura-ranges.md) 4.6; template `tts_auras`, swap target `#tts-auras`, between the rule-text radios and
+`#tts-names-result`). A form (`data-tts-form`) with: the master switch **Draw aura rings** (`name="auras"`, default on, owner decision Q8); a fieldset **Kinds of ring**
+with one native checkbox per kind the company has (`name="akind"`, `id="tts-akind-<kind>"`), each row a ring icon (`aura_ring`: the kind's Okabe-Ito colour as the border,
+its first letter B C S E U inside, the enemy kind with the thicker border, so colour is never the only cue), the label and "N rings, radii 3", 6"" from
+`core.AuraSummary` (`TTSAuras`: counted before the limits of 6 per figure and 150 in all, so a ring the limits cut is still counted and its switch (Large rings) stays; the kind shows "no rings drawn with these
+settings" when none is); a fieldset **Which rules** with a switch per group that has at least one ring in the company: Rules that need an action (`adeclared`, default
+on), Rules that need an event (`aconditional`, on), Spells in effect (`acast`), Targeting ranges (`atarget`), Large rings over 12 inches (`alarge`) and Optional rings
+(`aoptional`), all off, each with "adds N rings" (or "N rings" when on). A group with no ring in the company has no switch. Under the form: the totals line
+(`#tts-auras-total`: "16 rings on 7 figures, 1 left out (limit 6 per figure, 150 in all)") and the legend (`dl[data-tts-legend]`: kind, colour name, the sentence of
+`data.auras.kinds`, "thick line" for the enemy kind). With the master switch off only the switch is drawn; a company with no aura at all shows "This company has no aura ranges."
+instead. Query parameters of the dialog route: `auras=1|0`, `akinds=banner,command,...` (the kinds that are on; absent: all), `adeclared`, `aconditional`, `acast`, `atarget`,
+`alarge`, `aoptional` (`1|0`); `ttsAuraSelection` builds the `core.AuraSelection`, which goes to `ttsExporter.TTSAuras` (counts) and to `TTSNamesOptions.Auras` (the payload).
+`tts.js` remembers all of it in `bcm-tts` (the kinds the player switched off as `akoff`, so a kind the next company lacks keeps its setting, and sends `akinds` only when
+one is off) and adds it to every dialog request. The section is swapped on its own (`hx-select="#tts-auras"`) and refreshes the names through `hx-select-oob`; the list
+switches (foot, mounts) refresh `#tts-auras` too, because the figures change. The inputs keep their ids, so htmx gives the focus back after a swap (flow `96-tts-auras`
+presses Space and checks it). The names JSON is **version 2** only when at least one ring is selected, else version 1 (an older helper keeps working); a v2 payload shows
+`#tts-helper-v2` ("Download the helper again ... an older helper says that it is older than the app") inside `#tts-names-result`, the step list tells what the **Rings**,
+**B C S E U** and **Redraw** buttons of the helper do, and the note kind `aurasLeftOut` is shown as "Aura rings left out". Works for the live variant (a fallen unit has no
+ring), another player's company and the plain list. The ring colours are fixed classes (`.aura-k-banner` ... in `tailwind.css`, the palette of the helper), not theme tokens;
+the rest uses the tokens. Both are in `/styleguide` ("Aura rings and chips").
+
+**Aura chips on the unit cards** (bead 4fe.7; `aura_chip` and `aura_row` in `partials/units.gohtml`, helpers in `internal/web/auras.go`). `CompanyUnit.Auras` is filled by core at
+build time (`RuleSet.UnitAuras`: unfiltered, merged by kind and radius, sorted kind then radius). The row sits under the special rules on every `unit_card` (My Company, another
+company's read-only page, the Field cards of a live match) and the expanded card lists them in full under "Auras" (`data-auras-full`: radius, labels, who it affects and when, the
+tip). Not on the compact cards (Retreated, casualties, missed), the fallen cards, the company browser's hover card or the armoury (those have no built unit or are one-line rows).
+A chip (`.aura-chip`, like a rule chip: kind colour on the left edge, a small ring icon with the kind's letter, text `Aura 6"`) is a `has-tip` element (`tabindex="0"`,
+`aria-label` "Aura, 6 inches: Stand Fast, With Me!; works for friendly models, always, needs line of sight", tooltip title = the merged labels, meta "Command - friendly models
+- always - needs line of sight", text = the tips; `data-concept` = the entry's glossary term, so Enter or a click opens the helper popup). At most 3 chips and a `+N` button
+that opens the rest in place (Alpine, `aria-expanded`, "Fewer"). **Decision (bead 4fe.7):** the card shows every aura the unit has, not only the ones the dialog draws by default; a
+ring of a group that is off by default (spells, targeting ranges, rings over 12 inches, the Torch) is muted and dashed (`.aura-off`) and its tooltip and label say "off by
+default in Tabletop Simulator", so the card tells what the unit can do and the dialog what is drawn. No row for a unit without an aura. **Hidden by default:** the rows and the expanded "Auras" section stay in the markup but `tailwind.css` hides them (`html:not([data-show-auras]) .unit [data-auras], ... [data-auras-full]`) unless this browser chose them: the toggle **Show auras on unit cards** (section "Unit cards" of `theme_controls`, the Appearance menu and the Account page; `$store.theme.auras` / `setAuras`) writes the cookie `bcm-auras=1` and `theme-init.js` sets `data-show-auras="on"` on `<html>` before the first paint, so there is no flash. Per browser, not in the account. `/styleguide` keeps its chips (not inside a `.unit`). Flow `96-tts-auras` drives both.
+
 ### Gold
 
 Gold is given to some companies in their starting company, as a special victory reward of some scenarios, and by the organizer
@@ -826,6 +865,17 @@ The design is in [live-match.md](live-match.md) and [architecture.md](architectu
     match's last sequence).
   - Another player's company is the same page read only (`ReadOnly`); an editor who is not the owner (organiser, administrator) has the
     trackers and actions on it. Viewers see `current / start` without buttons.
+- **The opponent's keywords and "applies" markers** (`kw_applies`, `keyword_flat` in `partials/units.gohtml`; docs/unit-keywords.md "Rule targets"):
+  the Field cards, the compact cards and the rows of "Wounded a unit" of an enemy company show the unit's keyword chips (compact cards use the normal
+  `keyword_row`; the wound sheet's rows, which sit inside a label, a flat list without tips: `keyword_flat`, `data-keywords-flat`). An enemy Field unit
+  that has a keyword named by an enemy-keyword rule of **your side's** units in the Field (Hatred (X), Ancient Enemies (X) and the named rules the table
+  marks `enemy-keyword`; not `enemy-any` rules such as Terror) gets a `.kw-applies` marker "Hatred (Orc) applies" per rule: an accent outline plus
+  the text, `has-tip` (`tabindex="0"`, tooltip "Your Aldor and Hama have Hatred (Orc). This unit has the Orc keyword, so the rule works against it.",
+  Enter opens the helper popup for the rule), in a `ul[data-rule-matches]` under the keyword row; the sheet's rows show the same text in a plain span.
+  The reverse (the enemy's rules against you) is not shown. `liveFor` computes it (`enemyMatches`: `core.RuleMatches` over the Field units of the
+  viewer's side and of the company on the page, each read through `Live` and `CompanyDetail`), so the refresh of `#live-zones` redraws the markers and a
+  unit that retreats or falls loses its marker; a viewer with no company in the match, and the viewer's own side, get none. Without `data.ruleTargets`
+  no rule has targets and nothing is marked. Read errors of the extra companies drop the markers, never the page.
 - **Trackers** (`live_trackers`, replace W, Might, Will, Fate in the attribute row): `-` and `+` (44 px high), a tap on the number opens a
   "set to" field; the buttons are disabled at 0 and at the start value; the number is red at 0 (and at 1 for Wounds when it started higher).
   Each press is one `POST .../matches/{match}/live/{company}/actions` (`kind=stat`, `unit`, `stat`, `delta` or `set`), answered by

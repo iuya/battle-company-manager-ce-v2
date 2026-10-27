@@ -127,6 +127,16 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
    unit preview, which cannot be pointed at) it is plain text. The group is in the shape (race solid, faction muted, type outlined) and in the label. ---- */}}
 {{define "keyword_chip"}}{{$k := .K}}<li class="kw-chip kw-{{$k.Kind}}{{if .Tip}} has-tip{{end}}" aria-label="{{kwLabel $k .Part}}"{{if .Tip}} tabindex="0" data-concept="{{$k.Concept}}" data-tip-title="{{$k.Name}}" data-tip-meta="{{kwMeta $k .Part}}" data-tip-text="{{$k.Text}}"{{end}}>{{$k.Name}}</li>{{end}}
 
+{{/* "Hatred (Orc) applies": the rules of your units in the live match that name a keyword of this enemy unit. Takes []core.RuleMatch (nil: nothing is
+   drawn). Each marker is a has-tip element (hover/focus tooltip, Enter opens the helper popup on the rule); the text is in the badge, so colour is not
+   the only signal. */}}
+{{define "kw_applies"}}{{with .}}<ul class="mt-1.5 flex flex-wrap gap-1.5" aria-label="Rules of your units that apply to this unit" data-rule-matches>
+  {{range .}}<li class="kw-applies has-tip" tabindex="0" data-concept="{{.Rule}}" data-tip-title="{{.Rule}} applies" data-tip-meta="Your {{joinNames .Holders}}" data-tip-text="{{.Text}}" data-rule-match="{{.Rule}}">{{.Label}}</li>{{end}}
+</ul>{{end}}{{end}}
+
+{{/* The keywords of an enemy unit in one flat line, no tips and no buttons (it sits inside a label or a one-line card). Takes core.UnitKeywords. */}}
+{{define "keyword_flat"}}{{$v := kwRow . 99}}{{with $v.Shown}}<span class="kw-row" role="list" aria-label="Keywords" data-keywords-flat>{{range .}}<span class="kw-chip kw-{{.Kind}}" role="listitem" aria-label="{{kwLabel . ""}}">{{.Name}}</span>{{end}}</span>{{end}}{{end}}
+
 {{/* The keyword row of a unit: at most 5 chips (race, factions, the unit types the kind icon and the insignia do not say: see notShownKeywords) and a +N
    button (the chips past five) that opens the full list in place (groups Race, Faction, Unit type). Takes {K: core.UnitKeywords, Open: an Alpine
    expression that keeps the full list open ("" for never; the expanded card passes "expanded === ID"), Static: true for the hover card (everything
@@ -148,7 +158,21 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
 </div>
 {{end}}{{end}}
 
-{{define "unit_card"}}{{$u := .U}}{{$cid := .CID}}{{$wcost := .WCost}}{{$lv := .LV}}{{$lu := .LU}}{{$rn := .RO}}{{$ro := or .RO $lv}}
+{{/* The aura chips of a unit (docs/aura-ranges.md): one chip per merged aura, like a rule chip. Takes core.Unit.Auras. At most 3 chips and a +N button that opens the rest in
+   place (Alpine, no request). A ring the Tabletop Simulator dialog leaves off by default is muted and dashed; its tooltip says so. The kind is the ring's letter and line,
+   not only its colour. Each chip is a has-tip element (tooltip, Enter opens the glossary popup of the rule). No row for a unit without an aura. */}}
+{{define "aura_chip"}}{{$a := .A}}<li class="aura-chip aura-k-{{$a.Kind}}{{if auraOff $a}} aura-off{{end}} has-tip" {{if .Hide}}x-cloak x-show="more" {{end}}tabindex="0" aria-label="{{auraLabel $a}}"{{with $a.Concept}} data-concept="{{.}}"{{else}} data-concept{{end}} data-tip-title="{{$a.Label}}" data-tip-meta="{{auraMeta $a}}" data-tip-text="{{$a.Tip}}" data-aura="{{$a.ID}}">{{template "aura_ring" (dict "ID" $a.Kind "Letter" (auraLetter $a) "Thick" (auraThick $a))}}<span>{{auraText $a}}</span></li>{{end}}
+{{define "aura_row"}}{{with .}}{{$v := auraRow . 3}}
+<div class="mt-0.5" x-data="{ more: false }" data-auras>
+  <ul class="flex flex-wrap items-center gap-1.5" aria-label="Auras">
+    {{range $v.Shown}}{{template "aura_chip" (dict "A" . "Hide" false)}}{{end}}
+    {{range $v.Rest}}{{template "aura_chip" (dict "A" . "Hide" true)}}{{end}}
+    {{if $v.Rest}}<li x-show="!more"><button type="button" class="aura-more" @click.stop="more = true" :aria-expanded="more">+{{len $v.Rest}}<span class="sr-only"> more auras, show all</span></button></li>
+    <li x-show="more" x-cloak><button type="button" class="aura-more" @click.stop="more = false" :aria-expanded="more">Fewer<span class="sr-only"> auras</span></button></li>{{end}}
+  </ul>
+</div>{{end}}{{end}}
+
+{{define "unit_card"}}{{$ap := .AP}}{{$u := .U}}{{$cid := .CID}}{{$wcost := .WCost}}{{$lv := .LV}}{{$lu := .LU}}{{$rn := .RO}}{{$ro := or .RO $lv}}
 <div class="unit-slot {{if $u.Injured}}unit-away{{end}}" data-unit-id="{{$u.ID}}" :style="expanded === {{$u.ID}} ? 'min-height:' + slotH + 'px' : ''">
 <div class="unit-handle" x-show="formation" x-cloak>
   <span class="flex min-w-0 items-center gap-1.5"><svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg><span class="truncate font-medium">{{$u.Title}}</span></span>
@@ -195,6 +219,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
       {{if $u.Name}}<p class="mt-0.5 text-sm text-muted">{{$u.Type}}</p>{{end}}
       {{/* Keywords: race, factions and the types the icon and insignia do not say; a lost mount changes none of them. */}}
       <div class="mt-1.5">{{template "keyword_row" (dict "K" $u.Keywords "Open" (printf "expanded === %d" $u.ID))}}</div>
+      {{template "kw_applies" $ap}}
       {{if $u.Wanderer}}<p class="mt-1 flex flex-wrap items-center gap-1.5"><span class="badge badge-gold">Wanderer</span>{{if and $lu $lu.Temporary}}<span class="badge badge-gold" title="Taken with Against the Odds for this match only">Temporary</span>{{end}}</p>{{end}}
       {{if and $lu $lu.Temporary $lv.Wanderer}}<p class="mt-1 text-sm">{{$lv.Wanderer.Summary}}</p>{{end}}
       {{if and $lu $lv $lv.Broken}}<p class="mt-1">{{if $lv.CourageDue $lu}}<span class="badge !bg-danger-soft !text-danger" title="This unit tests Courage before it does anything else this turn">Test due</span>{{else}}<span class="badge badge-muted" title="Its courage is resolved for this turn">{{$lv.CourageChip $lu}}</span>{{end}}</p>{{end}}
@@ -262,7 +287,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
       </ul>
       {{if or .Rules .Powers}}
       <ul class="flex flex-wrap gap-1.5" aria-label="Rules and magical powers from the path">
-        {{range .Rules}}<li class="rule-chip {{if eq (printf "%s" .Source) "company"}}rule-company{{else}}rule-path{{end}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-meta="{{if eq (printf "%s" .Source) "company"}}Company-exclusive hero upgrade{{else}}From the hero's path{{end}}" data-tip-text="{{.Description}}"{{end}}><span>{{.Shown}}</span></li>{{end}}
+        {{range .Rules}}<li class="rule-chip {{if eq (printf "%s" .Source) "company"}}rule-company{{else}}rule-path{{end}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-meta="{{if eq (printf "%s" .Source) "company"}}Company-exclusive hero upgrade{{else}}From the hero's path{{end}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}><span>{{.Shown}}</span></li>{{end}}
         {{range .Powers}}<li class="rule-chip rule-spell" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Spell · cast {{.Casting}}+ · {{if .Range}}range {{.Range}}&quot;{{else}}self{{end}} · learned through the path" data-tip-text="{{.Description}}"{{end}}>{{template "spell_icon"}}<span>{{.Name}}</span><span class="font-semibold">{{.Casting}}+ · {{if .Range}}{{.Range}}"{{else}}self{{end}}</span></li>{{end}}
       </ul>
       {{end}}
@@ -272,11 +297,12 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     {{/* Special rules: the unit's own, then its spells, then those from equipment (the path's are in its own box). */}}
     <ul class="flex flex-wrap gap-1.5" aria-label="Special rules">
       {{range $u.Rules}}
-      <li class="rule-chip rule-{{.Source}} {{if .Spell}}rule-spell{{end}} {{if .Struck}}text-muted line-through{{end}}" {{if .Struck}}aria-label="{{.Shown}}, {{.Struck}}"{{end}} {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-meta="{{if .Spell}}Spell · cast {{.Casting}}+ · {{if .Range}}range {{.Range}}&quot;{{else}}self{{end}}{{else if .Mount}}Granted to the {{.Mount}}{{else if eq (printf "%s" .Source) "equipment"}}From {{.From}}{{else if eq (printf "%s" .Source) "company"}}Company-exclusive rule{{else}}Special rule{{end}}" data-tip-text="{{.Description}}"{{end}}>
+      <li class="rule-chip rule-{{.Source}} {{if .Spell}}rule-spell{{end}} {{if .Struck}}text-muted line-through{{end}}" {{if .Struck}}aria-label="{{.Shown}}, {{.Struck}}"{{end}} {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-meta="{{if .Spell}}Spell · cast {{.Casting}}+ · {{if .Range}}range {{.Range}}&quot;{{else}}self{{end}}{{else if .Mount}}Granted to the {{.Mount}}{{else if eq (printf "%s" .Source) "equipment"}}From {{.From}}{{else if eq (printf "%s" .Source) "company"}}Company-exclusive rule{{else}}Special rule{{end}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}>
         {{if .Spell}}{{template "spell_icon"}}{{end}}{{with .Mount}}<span class="text-muted">{{.}}:</span>{{end}}<span>{{.Shown}}</span>{{if .Spell}}<span class="font-semibold">{{.Casting}}+ · {{if .Range}}{{.Range}}"{{else}}self{{end}}</span>{{end}}
       </li>
       {{end}}
     </ul>
+    {{template "aura_row" $u.Auras}}
   </div>
 
   {{/* Expanded: everything in full, no hovering needed (except for glossary terms, which are previewed). */}}
@@ -311,6 +337,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
       <div class="rule-chip {{if eq (printf "%s" .Source) "company"}}rule-company{{else}}rule-path{{end}} !block !rounded-lg !px-3 !py-2 !text-sm">
         <p class="font-medium">{{.Shown}}{{if eq (printf "%s" .Source) "company"}} <span class="badge badge-gold">Company-exclusive hero upgrade</span>{{end}}</p>
         {{if .Segments}}<p class="mt-1 text-muted">{{template "segments" (dict "S" .Segments "CID" $cid)}}</p>{{end}}
+        {{with .WorksLine}}<p class="mt-1 text-xs font-medium" data-works>{{.}}</p>{{end}}
       </div>
       {{end}}
       {{range .Powers}}
@@ -329,10 +356,21 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
           <p class="flex flex-wrap items-center gap-x-2 font-medium">{{if .Spell}}{{template "spell_icon"}}{{end}}{{.Shown}}
             {{if .Spell}}<span class="font-normal">Spell · cast {{.Casting}}+ · {{if .Range}}range {{.Range}}"{{else}}self{{end}}</span>{{else if .Mount}}<span class="badge badge-muted">Mount: {{.Mount}}</span>{{else if eq (printf "%s" .Source) "equipment"}}<span class="badge badge-muted">From {{.From}}</span>{{end}}</p>
           {{if .Segments}}<p class="mt-1 text-muted">{{template "segments" (dict "S" .Segments "CID" $cid)}}</p>{{end}}
+          {{with .WorksLine}}<p class="mt-1 text-xs font-medium" data-works>{{.}}</p>{{end}}
         </li>
         {{end}}
       </ul>
     </section>
+    {{with $u.Auras}}<section data-auras-full>
+      <h4 class="!text-lg">Auras</h4>
+      <ul class="mt-1 space-y-2" aria-label="Auras in full">
+        {{range .}}
+        <li class="aura-chip aura-k-{{.Kind}}{{if auraOff .}} aura-off{{end}} !flex !items-start !gap-2 !rounded-lg !px-3 !py-2 !text-sm" aria-label="{{auraLabel .}}">{{template "aura_ring" (dict "ID" .Kind "Letter" (auraLetter .) "Thick" (auraThick .))}}
+          <div class="min-w-0"><p class="font-medium">{{auraText .}}{{with .Label}}: {{.}}{{end}}</p><p class="text-xs text-muted">{{auraMeta .}}</p><p class="mt-1 text-sm">{{.Tip}}</p></div>
+        </li>
+        {{end}}
+      </ul>
+    </section>{{end}}
   </div>
 
   {{/* Level and experience: 5 XP per level-up roll; a unit can have several rolls waiting, and only gains the level when it rolls (the promotion banner at the top). */}}
@@ -380,8 +418,8 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </div>
   {{with $u.Equipment}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Wargear</span>{{range .}}<span class="eq-chip">{{.Name}}</span>{{end}}</p>{{end}}
   {{with $u.Path}}{{if .Name}}<div class="path-box space-y-1.5"><p class="path-name">{{.Name}}</p>
-    <ul class="flex flex-wrap gap-1.5">{{range .HeroicActions}}<li class="act-chip">{{.Name}}</li>{{end}}{{range .Rules}}<li class="rule-chip rule-path" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-text="{{.Description}}"{{end}}>{{.Shown}}</li>{{end}}</ul></div>{{end}}{{end}}
-  {{with $u.Rules}}<ul class="flex flex-wrap gap-1.5" aria-label="Special rules">{{range .}}<li class="rule-chip rule-{{.Source}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-text="{{.Description}}"{{end}}>{{.Shown}}</li>{{end}}</ul>{{end}}
+    <ul class="flex flex-wrap gap-1.5">{{range .HeroicActions}}<li class="act-chip">{{.Name}}</li>{{end}}{{range .Rules}}<li class="rule-chip rule-path" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}>{{.Shown}}</li>{{end}}</ul></div>{{end}}{{end}}
+  {{with $u.Rules}}<ul class="flex flex-wrap gap-1.5" aria-label="Special rules">{{range .}}<li class="rule-chip rule-{{.Source}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}>{{.Shown}}</li>{{end}}</ul>{{end}}
   <p class="mt-auto border-t border-line pt-3 text-xs text-muted">Lvl {{$u.Level}} · {{$u.XP}} XP</p>
 </article>
 </div>

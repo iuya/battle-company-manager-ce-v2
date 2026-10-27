@@ -121,7 +121,8 @@ export default async function (h) {
     assert.match(await you.page.$eval('#tts-count', (e) => e.innerText), /it will report (\d+) models/);
     assert.ok(await you.page.$eval('#tts-count', (e) => !/extra figure/.test(e.innerText)), 'no extra figures with both off');
     assert.match(bothModels, /extra figure/, 'with both on the count names the extra figures');
-    assert.deepEqual(await you.page.evaluate(() => JSON.parse(localStorage.getItem('bcm-tts'))), { foot: '0', mounts: '0', rules: 'none' });
+    const mem = await you.page.evaluate(() => JSON.parse(localStorage.getItem('bcm-tts')));
+    assert.deepEqual({ foot: mem.foot, mounts: mem.mounts, rules: mem.rules }, { foot: '0', mounts: '0', rules: 'none' });
     await close(you);
     await you.goto(href); // a new page: the choice is remembered
     await open(you);

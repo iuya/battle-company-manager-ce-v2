@@ -130,7 +130,7 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 			aftermathSvc: aftermath,
 			invitesSvc:   core.NewInvites(camps, store.Invites()),
 			liveSvc:      live,
-			ttsSvc:       core.NewTTSService(camps, comps, rules),
+			ttsSvc:       core.NewTTSService(camps, comps, rules).WithCatalogue(ttsCatalogue(log)),
 		},
 		liveHub:    hub,
 		store:      store,
@@ -156,4 +156,19 @@ func loadConceptFile(log *slog.Logger) (*core.ConceptFile, error) {
 		return nil, err
 	}
 	return core.ParseConceptFile(b)
+}
+
+// ttsCatalogue loads the optional Tabletop Simulator model catalogue named by TTS_CATALOGUE (the mod's content: never in the image);
+// without it the lists never fall back to another figure.
+func ttsCatalogue(log *slog.Logger) core.TTSCatalogue {
+	path := os.Getenv("TTS_CATALOGUE")
+	if path == "" {
+		return nil
+	}
+	c, err := core.LoadTTSCatalogue(path)
+	if err != nil {
+		log.Warn("tts catalogue not loaded", "path", path, "err", err)
+		return nil
+	}
+	return c
 }

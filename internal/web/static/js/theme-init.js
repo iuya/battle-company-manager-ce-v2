@@ -7,5 +7,6 @@
   var mode = ["light", "dark"].indexOf(v[1]) >= 0 ? v[1] : "system";
   var dark = mode === "dark" || (mode === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
   if (["forest", "ember", "mithril"].indexOf(v[0]) >= 0) r.dataset.palette = v[0];
+  if (/(?:^|; )bcm-auras=1(?:;|$)/.test(document.cookie)) r.dataset.showAuras = "on"; // aura chips on the unit cards: off unless this browser chose them
   r.dataset.mode = dark ? "dark" : "light";
 })();

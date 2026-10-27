@@ -464,7 +464,8 @@
         <li x-show="match($el)" data-search="{{.Title}} {{.Type}} {{$.Unit.Title}}">
           <label class="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-line px-3 py-1.5 hover:bg-raised">
             <input type="radio" name="target" value="{{.ID}}" required class="h-4 w-4 accent-[var(--accent)]" data-name="{{.Title}}" data-wounds="{{.Live.Wounds.Current}}" data-start="{{.Live.Wounds.Start}}" data-fate="{{.Live.Fate.Current}}" data-mounted="{{if .Live.Mounted}}1{{end}}" data-mount-wounds="{{.Live.MountWounds.Current}}" data-kill="{{if .Kill}}1{{end}}" @change="pick($el)">
-            <span class="min-w-0 flex-1"><span class="font-medium">{{.Title}}</span>{{if ne .Title .Type}} <span class="text-sm text-muted">{{.Type}}</span>{{end}}</span>
+            <span class="min-w-0 flex-1"><span class="font-medium">{{.Title}}</span>{{if ne .Title .Type}} <span class="text-sm text-muted">{{.Type}}</span>{{end}}
+              {{if or .Keywords.Model .Applies}}<span class="mt-0.5 flex flex-wrap items-center gap-1.5">{{template "keyword_flat" .Keywords}}{{range .Applies}}<span class="kw-applies" data-rule-match="{{.Rule}}" title="{{.Text}}">{{.Label}}</span>{{end}}</span>{{end}}</span>
             <span class="text-sm text-muted">Wounds {{.Live.Wounds.Current}}/{{.Live.Wounds.Start}}{{if .Live.Mounted}} · mounted{{end}}</span>
           </label>
         </li>

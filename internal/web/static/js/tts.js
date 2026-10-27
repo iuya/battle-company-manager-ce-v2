@@ -1,30 +1,42 @@
-// The Tabletop Simulator army list dialog (templates/partials/tts.gohtml): remembers the two switches in localStorage and adds them to
+// The Tabletop Simulator army list dialog (templates/partials/tts.gohtml): remembers the switches in localStorage and adds them to
 // the requests that fetch the list, and copies the list to the clipboard. No inline handlers: the page's CSP forbids them.
 (function () {
   const KEY = 'bcm-tts';
-  const DEFAULTS = { foot: '1', mounts: '1', rules: 'none' };
+  // The Auras section (docs/aura-ranges.md): the master switch and the groups declared and conditional are on by default, as the owner chose;
+  // The kinds the player unchecked are remembered (akoff), so a kind this company lacks keeps its setting for the next; akinds, the list of the kinds that are on, is
+  // sent only when one is off (absent means every kind).
+  const KINDS = ['banner', 'command', 'support', 'enemy', 'utility'];
+  const DEFAULTS = { foot: '1', mounts: '1', rules: 'none', auras: '1', adeclared: '1', aconditional: '1', acast: '0', atarget: '0', alarge: '0', aoptional: '0' };
+  const SWITCHES = ['foot', 'mounts', 'auras', 'adeclared', 'aconditional', 'acast', 'atarget', 'alarge', 'aoptional'];
   const read = () => {
     try { return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { return Object.assign({}, DEFAULTS); }
   };
   const write = (v) => { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* private window: the choice is not kept */ } };
 
-  // The dialog opens with the remembered switches; a change of a switch is remembered and asked for again. Two forms feed the same
-  // request: the list's switches (foot, mounts) and the rule texts of the names (rules); what a form lacks comes from the memory.
+  // The dialog opens with the remembered switches; a change of a switch is remembered and asked for again. Three forms feed the same
+  // request: the list's switches (foot, mounts), the rule texts of the names (rules) and the Auras section; what a form lacks comes from the
+  // memory. The kind checkboxes (akind) become one parameter, akinds, a comma list.
   document.addEventListener('htmx:configRequest', (e) => {
     const el = e.detail.elt;
     if (!el || !el.hasAttribute) return;
     const v = read();
     if (el.hasAttribute('data-tts-form')) {
-      for (const name of ['foot', 'mounts']) { const c = el.elements[name]; if (c) v[name] = c.checked ? '1' : '0'; }
+      for (const name of SWITCHES) { const c = el.elements[name]; if (c) v[name] = c.checked ? '1' : '0'; }
       const r = el.elements['rules'];
       if (r && r.value) v.rules = r.value;
+      const kinds = el.querySelectorAll('input[name="akind"]');
+      if (kinds.length) {
+        const off = new Set((v.akoff || '').split(',').filter(Boolean));
+        for (const c of kinds) { if (c.checked) off.delete(c.value); else off.add(c.value); }
+        v.akoff = Array.from(off).join(',');
+      }
       write(v);
     } else if (!el.hasAttribute('data-tts-open')) {
       return;
     }
-    e.detail.parameters.foot = v.foot;
-    e.detail.parameters.mounts = v.mounts;
-    e.detail.parameters.rules = v.rules;
+    for (const name of SWITCHES.concat('rules')) e.detail.parameters[name] = v[name];
+    delete e.detail.parameters.akind;
+    if (v.akoff) e.detail.parameters.akinds = KINDS.filter((k) => !v.akoff.split(',').includes(k)).join(',');
   });
 
   // The switches are drawn from the request, which was made with the remembered values; the forms are not swapped, only the results.

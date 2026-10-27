@@ -125,6 +125,17 @@
     <p class="text-sm text-muted">Race (solid, bold), factions (muted), unit types (outlined). Every chip has a tooltip and opens the helper popup; +N opens the full list in place.</p>
     <div class="grid gap-4 md:grid-cols-2">
       {{range .Keywords}}<div class="card space-y-2 !p-4"><p class="text-xs text-muted">{{.Label}}</p>{{template "keyword_row" (dict "K" .K "Open" .Open "Static" .Static)}}</div>{{end}}
+      <div class="card space-y-2 !p-4"><p class="text-xs text-muted">An enemy unit in a live match: a rule of your side's units names one of its keywords (tooltip, Enter opens the rule's popup)</p>{{template "kw_applies" .Applies}}</div>
+    </div>
+  </section>
+
+  {{/* ---- aura rings and chips (docs/aura-ranges.md) ---- */}}
+  <section id="sg-auras" class="space-y-4" aria-labelledby="sg-auras-h">
+    <h2 id="sg-auras-h">Aura rings and chips</h2>
+    <p class="text-sm text-muted">The five kinds of ring in the colours of Tabletop Simulator, each with its letter (and the enemy kind with the thicker line, so colour is never the only cue). The chip row of a unit card shows three and +N; a muted dashed chip is a ring the dialog leaves off by default.</p>
+    <div class="card space-y-3 !p-4">
+      <p class="flex flex-wrap items-center gap-3 text-sm">{{template "aura_ring" (dict "ID" "banner" "Letter" "B" "Thick" false)}} Banner {{template "aura_ring" (dict "ID" "command" "Letter" "C" "Thick" false)}} Command {{template "aura_ring" (dict "ID" "support" "Letter" "S" "Thick" false)}} Support {{template "aura_ring" (dict "ID" "enemy" "Letter" "E" "Thick" true)}} Enemy {{template "aura_ring" (dict "ID" "utility" "Letter" "U" "Thick" false)}} Utility</p>
+      {{template "aura_row" .Auras}}
     </div>
   </section>
 

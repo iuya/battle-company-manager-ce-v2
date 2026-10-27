@@ -1,13 +1,16 @@
 // Browser smoke tests (docs/testing.md). `make e2e`; `node run.mjs --only <text>` runs the flow files whose name contains it (for example `--only match`);
+// `--group <name>` (or E2E_GROUP) runs the flows of one group of groups.json (CI runs one job per group);
 // `E2E_BASE_URL=http://127.0.0.1:18080 node run.mjs` runs against a server you started yourself (scratch data only!).
 import { Env, outDir } from './lib/env.mjs';
 import { Harness, clearOut } from './lib/harness.mjs';
 import { readdirSync, readFileSync } from 'node:fs';
+import { loadGroups, checkGroups } from './lib/groups.mjs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const args = process.argv.slice(2);
 const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : process.env.E2E_ONLY;
+const group = args.includes('--group') ? args[args.indexOf('--group') + 1] : process.env.E2E_GROUP; // a group of groups.json
 const prepareOnly = args.includes('--prepare');
 const log = (m) => console.log(`[e2e] ${m}`);
 
@@ -21,6 +24,8 @@ process.on('SIGTERM', async () => { await stop(); process.exit(143); });
 
 try {
   clearOut();
+  const problems = checkGroups();
+  if (problems.length) throw new Error('tests/e2e/groups.json:\n  ' + problems.join('\n  '));
   if (process.env.E2E_BASE_URL) { env.base = process.env.E2E_BASE_URL; }
   else {
     await env.prepare(log);
@@ -31,7 +36,9 @@ try {
   h = new Harness(env.base);
   await h.launch();
   const dir = join(dirname(fileURLToPath(import.meta.url)), 'flows');
-  const files = readdirSync(dir).filter((f) => f.endsWith('.mjs') && (!only || f.includes(only))).sort();
+  let members = null;
+  if (group) { members = loadGroups()[group]; if (!members) throw new Error(`no group ${group} in tests/e2e/groups.json`); log(`group ${group}: ${members.join(', ')}`); }
+  const files = readdirSync(dir).filter((f) => f.endsWith('.mjs') && (!only || f.includes(only)) && (!members || members.includes(f.replace(/\.mjs$/, '')))).sort();
   const shared = {}; // flows hand objects to later flows (the campaign and the match they created)
   for (const f of files) {
     const mod = await import(join(dir, f));

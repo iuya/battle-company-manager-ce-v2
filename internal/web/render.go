@@ -53,7 +53,7 @@ type navLink struct{ Href, Label, Prefix string }
 func navItem(href, label, prefix string) navLink { return navLink{href, label, prefix} }
 
 func newRenderer() (*renderer, error) {
-	base, err := template.New("").Funcs(template.FuncMap{"upfirst": sentence, "kwRow": keywordRow, "kwMeta": keywordMeta, "kwLabel": keywordLabel, "loanedGroups": loanedGroups, "navItem": navItem, "inc": func(i int) int { return i + 1 }, "static": staticURL, "seq": seq, "steps": func() []int { return []int{0, 1, 2, 3} }, "dict": func(kv ...any) map[string]any {
+	base, err := template.New("").Funcs(template.FuncMap{"upfirst": sentence, "kwRow": keywordRow, "kwMeta": keywordMeta, "kwLabel": keywordLabel, "auraRow": auraRow, "auraText": auraText, "auraLetter": auraLetter, "auraThick": auraThick, "auraOff": auraOff, "auraMeta": auraMeta, "auraLabel": auraLabel, "joinNames": joinNames, "loanedGroups": loanedGroups, "navItem": navItem, "inc": func(i int) int { return i + 1 }, "static": staticURL, "seq": seq, "steps": func() []int { return []int{0, 1, 2, 3} }, "dict": func(kv ...any) map[string]any {
 		m := map[string]any{}
 		for i := 0; i+1 < len(kv); i += 2 {
 			m[kv[i].(string)] = kv[i+1]

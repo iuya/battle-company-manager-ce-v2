@@ -24,8 +24,10 @@ document.addEventListener("alpine:init", () => {
     modes: ["system", "light", "dark"],
     palette: "forest",
     mode: "system", // system | light | dark
+    auras: false, // show the aura chips on the unit cards; per browser (cookie bcm-auras), off by default
 
     init() {
+      this.auras = document.documentElement.dataset.showAuras === "on";
       // signed in: the account's choice (data-pref, "<palette>.<mode>") wins over this browser's cookie
       const pref = (document.documentElement.dataset.pref || "").split(".");
       const saved = pref[0] ? { palette: pref[0], mode: pref[1] } : readCookie();
@@ -39,6 +41,12 @@ document.addEventListener("alpine:init", () => {
       document.cookie = `${COOKIE}=${this.palette}.${this.mode}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
       this.apply();
       this.save();
+    },
+    setAuras(on) {
+      this.auras = !!on;
+      document.cookie = `bcm-auras=${this.auras ? 1 : 0}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
+      if (this.auras) document.documentElement.dataset.showAuras = "on";
+      else delete document.documentElement.dataset.showAuras;
     },
     // Signed in: keep the choice in the account too. A failure is silent; the cookie keeps working.
     save() {

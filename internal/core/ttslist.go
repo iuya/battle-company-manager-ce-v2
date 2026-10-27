@@ -1,7 +1,9 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 )
@@ -14,6 +16,17 @@ import (
 type TTSOptions struct {
 	FootVersions bool // add the on-foot line of a rider whose figure has no dismount state
 	MountFigures bool // add a figure line for a mount that fights on its own (vanilla Attacks above 0)
+	// Catalogue is the model keys of the mod's bag, when known (nil: every key is taken to exist). Set by the service, not the dialog.
+	Catalogue TTSCatalogue
+}
+
+// TTSCatalogue is the set of model keys of the mod's bag (docs/tabletop-simulator.md, "Keys the bag does not have"). It is the mod's
+// content and is never committed: a local file (sources/tts/models.json, or TTS_CATALOGUE) feeds it, and nil means unknown.
+type TTSCatalogue interface {
+	// Has says that the key (lower case, trimmed: "name: option a, option b") is in the bag.
+	Has(key string) bool
+	// Keys are the keys of the figures named name, as the mod spells them ("Mahûd Warrior: Spear"), bare ones included.
+	Keys(name string) []string
 }
 
 // Note kinds.
@@ -44,6 +57,8 @@ type TTSLine struct {
 	Extra   string   // "" for a unit or creature of the company, "foot" for the rider on foot, "mount" for the mount alone
 	// Creature says that the figure is a creature an officer owns (shown as a stand-in), not the unit itself; UnitIDs are the owners.
 	Creature bool
+	// Dropped are the marker options (Lorien Guard) the figure has no key for: the unit has them, the figure does not show them.
+	Dropped []string
 }
 
 // Text is the line as the mod reads it: `(Name: Option A, Option B)`, or `(3x Name: )` for a follower. hero says it is the first line of
@@ -217,7 +232,7 @@ func (x *ttsBuild) warband(units []CompanyUnit) []TTSLine {
 		}
 		var sig []string
 		for _, l := range ul {
-			sig = append(sig, l.Extra+"|"+l.Key)
+			sig = append(sig, l.Extra+"|"+l.Key+"|"+strings.Join(l.Dropped, ","))
 		}
 		s := strings.Join(sig, "\n")
 		if n := len(groups); n > 0 && groups[n-1].sig == s {
@@ -362,7 +377,29 @@ func (x *ttsBuild) unitLine(u CompanyUnit, v VanillaUnit) TTSLine {
 			}
 		}
 	}
-	return newTTSLine(u.ID, v.Name, options, "")
+	var dropped []string
+	if len(options) == 1 {
+		for _, m := range x.models.MarkerOptions {
+			if strings.EqualFold(m.Unit, v.Name) && strings.EqualFold(m.Option, options[0]) {
+				dropped, options = []string{options[0]}, nil
+				x.note(u.ID, TTSApproximate, "%s: the mod has no figure with %s alone, so %s is shown; the name and description still say so.", u.Title(), dropped[0], figureName(newTTSLine(u.ID, v.Name, nil, "")))
+			}
+		}
+	}
+	if len(options) == 0 && dropped == nil {
+		for _, d := range x.models.DefaultOptions {
+			if strings.EqualFold(d.Unit, v.Name) {
+				options = slices.Clone(d.Options)
+				x.note(u.ID, TTSApproximate, "%s: the mod has no figure for %s, so %s is shown (the closest one the mod has).", u.Title(), figureName(newTTSLine(u.ID, v.Name, nil, "")), figureName(newTTSLine(u.ID, v.Name, options, "")))
+			}
+		}
+	}
+	l := newTTSLine(u.ID, v.Name, options, "")
+	l.Dropped = dropped
+	if x.opts.Catalogue != nil && !x.opts.Catalogue.Has(strings.TrimSpace(l.Key)) {
+		l = x.fallback(u, v, l)
+	}
+	return l
 }
 
 func newTTSLine(id int64, name string, options []string, extra string) TTSLine {
@@ -560,4 +597,167 @@ func itemNames(items []Equipment, idx []int) string {
 		names = append(names, items[j].Name)
 	}
 	return strings.Join(names, ", ")
+}
+
+// markers are the options a company's unit alias selects (Lorien Guard): they only name the unit, the figure needs none of them.
+func (x *ttsBuild) markers() map[string]bool {
+	m := map[string]bool{}
+	for _, a := range x.profile.Aliases {
+		for _, o := range a.Selected {
+			m[strings.ToLower(o)] = true
+		}
+	}
+	return m
+}
+
+// fallback is the closest figure the bag has for line l, whose exact key it does not have, with an approximate note. First the marker
+// options (Lorien Guard) are dropped, if the rest is a key; else the closest key of the unit is taken (see closestKey).
+func (x *ttsBuild) fallback(u CompanyUnit, v VanillaUnit, l TTSLine) TTSLine {
+	cat := x.opts.Catalogue
+	markers := x.markers()
+	var kept, dropped []string
+	for _, o := range l.Options {
+		if markers[strings.ToLower(o)] {
+			dropped = append(dropped, o)
+		} else {
+			kept = append(kept, o)
+		}
+	}
+	if len(dropped) > 0 {
+		if nl := newTTSLine(u.ID, l.Name, kept, l.Extra); cat.Has(strings.TrimSpace(nl.Key)) {
+			nl.Dropped = dropped
+			x.note(u.ID, TTSApproximate, "%s: the mod has no figure with %s, so %s is shown; the name and description still say so.", u.Title(), strings.Join(dropped, ", "), figureName(nl))
+			return nl
+		}
+	}
+	best, ok := x.closestKey(v, l.Name, kept, cat)
+	if !ok {
+		return l
+	}
+	name, opts := splitModel(best)
+	nl := newTTSLine(u.ID, name, opts, l.Extra)
+	nl.Dropped = dropped
+	x.note(u.ID, TTSApproximate, "%s: the mod has no figure for %s, so %s is shown (the closest one the mod has).", u.Title(), figureName(l), figureName(nl))
+	return nl
+}
+
+func figureName(l TTSLine) string {
+	if len(l.Options) == 0 {
+		return l.Name + " with no options"
+	}
+	return l.Name + " with " + strings.Join(l.Options, ", ")
+}
+
+// Words of an option that decide how close it is to a plain melee figure.
+var (
+	ttsAvoidWords = []string{"bow", "crossbow", "blowpipe", "throwing", "banner", "horn", "sling"}
+	ttsMeleeWords = []string{"spear", "sword", "axe", "mace", "hammer", "lance", "pike", "halberd", "glaive", "flail", "club", "scimitar", "weapon", "pick"}
+)
+
+func hasAnyWord(opt string, words []string) bool {
+	o := strings.ToLower(opt)
+	return slices.ContainsFunc(words, func(w string) bool { return strings.Contains(o, w) })
+}
+
+// closestKey picks among the keys of the unit the bag has: the one that keeps most of the wanted options, then the one without ranged
+// weapons, banner or war horn, then the one with a melee weapon, then the cheapest (the points of the unit's options), then by key.
+func (x *ttsBuild) closestKey(v VanillaUnit, name string, wanted []string, cat TTSCatalogue) (string, bool) {
+	type cand struct {
+		key                   string
+		matched, avoid, melee int
+		points                int
+	}
+	points := func(opt string) int {
+		for _, n := range x.models.Names {
+			if strings.EqualFold(n.Unit, v.Name) && strings.EqualFold(n.To, opt) {
+				opt = n.From
+			}
+		}
+		for _, o := range v.Options {
+			if strings.EqualFold(o.Name, opt) {
+				return o.Points
+			}
+		}
+		return 1000
+	}
+	var cands []cand
+	for _, k := range cat.Keys(name) {
+		_, opts := splitModel(k)
+		if len(opts) == 0 {
+			continue
+		}
+		c := cand{key: k}
+		for _, o := range opts {
+			if slices.ContainsFunc(wanted, func(w string) bool { return strings.EqualFold(w, o) }) {
+				c.matched++
+				continue
+			}
+			c.avoid += btoi(hasAnyWord(o, ttsAvoidWords))
+			c.melee += btoi(hasAnyWord(o, ttsMeleeWords))
+			c.points += points(o)
+		}
+		cands = append(cands, c)
+	}
+	if len(cands) == 0 {
+		return "", false
+	}
+	slices.SortFunc(cands, func(a, b cand) int {
+		switch {
+		case a.matched != b.matched:
+			return b.matched - a.matched
+		case a.avoid != b.avoid:
+			return a.avoid - b.avoid
+		case (a.melee > 0) != (b.melee > 0):
+			return btoi(b.melee > 0) - btoi(a.melee > 0)
+		case a.points != b.points:
+			return a.points - b.points
+		}
+		return strings.Compare(strings.ToLower(a.key), strings.ToLower(b.key))
+	})
+	return cands[0].key, true
+}
+
+// MapCatalogue is a TTSCatalogue over a list of keys.
+type MapCatalogue struct {
+	keys   map[string]bool
+	byName map[string][]string
+}
+
+// NewMapCatalogue indexes keys such as "Mahûd Warrior: Spear" (case and surrounding spaces do not matter).
+func NewMapCatalogue(keys []string) *MapCatalogue {
+	c := &MapCatalogue{keys: map[string]bool{}, byName: map[string][]string{}}
+	for _, k := range keys {
+		k = strings.TrimSpace(k)
+		lk := strings.ToLower(k)
+		if c.keys[lk] {
+			continue
+		}
+		c.keys[lk] = true
+		name, _ := splitModel(k)
+		c.byName[strings.ToLower(name)] = append(c.byName[strings.ToLower(name)], k)
+	}
+	return c
+}
+
+func (c *MapCatalogue) Has(key string) bool { return c.keys[strings.ToLower(strings.TrimSpace(key))] }
+
+func (c *MapCatalogue) Keys(name string) []string {
+	return c.byName[strings.ToLower(strings.TrimSpace(name))]
+}
+
+// LoadTTSCatalogue reads a catalogue file (tools/extract_tts_models.py: a JSON list of keys, or an object keyed by them).
+func LoadTTSCatalogue(path string) (*MapCatalogue, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var list []string
+	if json.Unmarshal(raw, &list) == nil {
+		return NewMapCatalogue(list), nil
+	}
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &obj); err != nil {
+		return nil, fmt.Errorf("catalogue %s: neither a list nor an object of keys: %w", path, err)
+	}
+	return NewMapCatalogue(slices.Collect(mapKeys(obj))), nil
 }

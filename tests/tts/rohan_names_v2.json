@@ -1,0 +1,11 @@
+{"v":2,"company":"The Riders of Rohan","auras":{"kinds":[{"id":"banner","rgb":"F0E442"},{"id":"command","rgb":"E69F00"},{"id":"support","rgb":"56B4E9"},{"id":"enemy","rgb":"D55E00"},{"id":"utility","rgb":"CC79A7"}],"cap":4},"figures":[
+ {"k":"theoden, king of rohan:","u":1,"x":"","n":"[b]Theoden[/b] (80)","d":"[i]Leader, level 3[/i]\n[FFCC00][b]M[-][/b] 6 | 5/4 | 3/- | 4 | 6 | 3 | 3 | 6 | 3\n[00CCFF]Might 3 Will 3 Fate 3[-]","a":[{"r":3,"k":"banner","w":"x","n":"Claim the Throne"},{"r":6,"k":"command","w":"a","n":"Stand Fast, With Me!"},{"r":6,"k":"enemy","w":"a","n":"Furious Tirade"},{"r":3,"k":"support","w":"a","n":"Remember Today"}],"b":0.49},
+ {"k":"rider of rohan: shield","u":2,"x":"","n":"[b]Eadric[/b] (10)","d":"Rider 1","a":[{"r":6,"k":"command","w":"a","n":"Stand Fast, With Me!"}]},
+ {"k":"rider of rohan: shield","u":3,"x":"","n":"[b]Wulf[/b] (10)","d":"Rider 2","a":[{"r":6,"k":"command","w":"a","n":"Stand Fast, With Me!"},{"r":3,"k":"support","w":"a","n":"Knife Mastery"}]},
+ {"k":"rider of rohan: shield","u":4,"x":"","n":"[b]Hild[/b] (10)","d":"Rider 3","a":[{"r":6,"k":"utility","w":"c","n":"Blinding Light"}]},
+ {"k":"warrior of rohan: banner","u":5,"x":"","n":"[b]Banner A[/b] (6)","d":"Banner 1","a":[{"r":3,"k":"banner","w":"a","n":"Banner"}]},
+ {"k":"warrior of rohan: banner","u":6,"x":"","n":"[b]Banner B[/b] (6)","d":"Banner 2","a":[{"r":3,"k":"banner","w":"a","n":"Banner"}]},
+ {"k":"warrior of rohan: shield","u":2,"x":"foot","n":"[b]Eadric[/b] (10) (on foot)","d":"Eadric on foot","a":[{"r":6,"k":"command","w":"a","n":"Stand Fast, With Me!"}]},
+ {"k":"fell warg:","l":"Fell Warg: ","u":7,"x":"mount","n":"[b]Grub[/b]'s Fell Warg","d":"Warg of Grub"},
+ {"k":"úlaire nénya:","l":"Úlaire Nénya:","u":8,"x":"","n":"[b]Ulaire[/b] (90)","d":"Accented key","a":[{"r":12,"k":"enemy","w":"a","n":"Keen Sight"},{"r":3,"k":"banner","w":"a","n":"Banner"},{"r":6,"k":"utility","w":"c","n":"Blinding Light"},{"r":6,"k":"command","w":"a","n":"Aura of Command"}],"b":0.6}
+]}

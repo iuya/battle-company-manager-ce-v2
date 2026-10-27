@@ -28,6 +28,12 @@ func liveSetupWith(t *testing.T, access core.LiveAccess, change func(*core.LiveC
 // liveSetupMatch also changes the match the mock serves (a pending end, say).
 func liveSetupMatch(t *testing.T, access core.LiveAccess, change func(*core.LiveCompany), matchChange func(*core.Match), sides ...core.MatchSide) *fixture {
 	t.Helper()
+	return liveSetupRoster(t, access, change, matchChange, nil, sides...)
+}
+
+// liveSetupRoster is liveSetupMatch with its own roster for the viewer's company (nil: Hador, Aldor, Baran and Cirion).
+func liveSetupRoster(t *testing.T, access core.LiveAccess, change func(*core.LiveCompany), matchChange func(*core.Match), roster []core.CompanyUnit, sides ...core.MatchSide) *fixture {
+	t.Helper()
 	f := newFixture(t, Config{})
 	d, detail := mineDetail()
 	detail.OpenMatch = &core.OpenMatchRef{MatchID: 3, Number: 3}
@@ -36,6 +42,9 @@ func liveSetupMatch(t *testing.T, access core.LiveAccess, change func(*core.Live
 		{ID: 6, Name: "Aldor", Type: "Warrior", Role: core.RoleWarrior, Kind: core.KindInfantry, Points: 8},
 		{ID: 7, Name: "Baran", Type: "Warrior", Role: core.RoleWarrior, Kind: core.KindInfantry, Points: 8},
 		{ID: 8, Name: "Cirion", Type: "Warrior", Role: core.RoleWarrior, Kind: core.KindInfantry, Points: 8, Injured: true},
+	}
+	if roster != nil {
+		detail.Roster = roster
 	}
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()

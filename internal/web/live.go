@@ -81,8 +81,73 @@ func (v liveView) ToTest() (t struct{ Due, Done []liveCard }) {
 
 // liveCard is a unit with its live state (zero L for a unit that is not in the match).
 type liveCard struct {
-	U unitView
-	L core.LiveUnit
+	U       unitView
+	L       core.LiveUnit
+	Applies []core.RuleMatch // an enemy unit: the rules of the viewer's side that name one of its keywords (docs/unit-keywords.md)
+}
+
+// targetUnits are the units of a company still in the Field, as the rule matching sees them (core.NewTargetUnit).
+func targetUnits(roster []core.CompanyUnit, lc core.LiveCompany) (out []core.TargetUnit) {
+	live := map[int64]core.LiveUnit{}
+	for _, l := range lc.Units {
+		live[l.UnitID] = l
+	}
+	for _, u := range roster {
+		if t, ok := core.NewTargetUnit(u, live[u.ID]); ok {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+// viewerSide is the companies of the match that stand on the viewer's side, the viewer's own among them; nil when the viewer has no company
+// in the match or the company asked about is on that side too (nothing of one's own side is an enemy).
+func viewerSide(base campaignBase, m core.Match, companyID int64) []core.CampaignCompany {
+	mine := base.Campaign.Company
+	if mine == nil {
+		return nil
+	}
+	var viewer, other []core.CampaignCompany
+	for _, side := range m.Sides {
+		hasMine, hasOther := false, false
+		for _, c := range side.Companies {
+			hasMine = hasMine || c.ID == mine.ID
+			hasOther = hasOther || c.ID == companyID
+		}
+		if hasMine {
+			viewer = side.Companies
+		}
+		if hasOther {
+			other = side.Companies
+		}
+	}
+	if viewer == nil || other == nil || slices.ContainsFunc(viewer, func(c core.CampaignCompany) bool { return c.ID == companyID }) {
+		return nil
+	}
+	return viewer
+}
+
+// enemyMatches are the rules of the viewer's side that name keywords of the units of an enemy company, by unit; empty when the viewer is
+// not on the other side, when the rule set has no rule targets, or when a read fails (the markers are an extra, never an error).
+func (s *Server) enemyMatches(r *http.Request, base campaignBase, m core.Match, companyID int64, theirs []core.CompanyUnit, lc core.LiveCompany) map[int64][]core.RuleMatch {
+	side := viewerSide(base, m, companyID)
+	if side == nil {
+		return nil
+	}
+	var mine []core.TargetUnit
+	user := *userFrom(r.Context())
+	for _, co := range side {
+		friend, err := s.campaigns.Live(r.Context(), user, base.Campaign.ID, co.ID)
+		if err != nil {
+			return nil
+		}
+		detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, co.ID)
+		if err != nil {
+			return nil
+		}
+		mine = append(mine, targetUnits(detail.Roster, friend)...)
+	}
+	return core.RuleMatches(mine, targetUnits(theirs, lc))
 }
 
 // liveFor loads the live state of the company when it is in an open match (nil when it is in none: the page is the usual one).
@@ -99,16 +164,25 @@ func (s *Server) liveFor(r *http.Request, base campaignBase, detail core.Company
 		return nil, err
 	}
 	v := &liveView{LiveCompany: lc, CampaignID: campaignID, Edit: lc.Access == core.LiveEdit}
-	if m, err := s.campaigns.Match(r.Context(), campaignID, lc.MatchID); err == nil {
-		if m.Scenario != nil {
-			v.Scenario = m.Scenario.Name
+	match, matchErr := s.campaigns.Match(r.Context(), campaignID, lc.MatchID)
+	if matchErr == nil {
+		if match.Scenario != nil {
+			v.Scenario = match.Scenario.Name
 		}
-		v.EndPending = m.EndProposal != nil
-		v.End = s.endBannerFor(r, base, m, lc.CompanyID)
+		v.EndPending = match.EndProposal != nil
+		v.End = s.endBannerFor(r, base, match, lc.CompanyID)
 	}
 	live := map[int64]core.LiveUnit{}
 	for _, u := range lc.Units {
 		live[u.UnitID] = u
+	}
+	var applies map[int64][]core.RuleMatch
+	if matchErr == nil && viewerSide(base, match, lc.CompanyID) != nil {
+		roster := make([]core.CompanyUnit, len(units))
+		for i, u := range units {
+			roster[i] = u.CompanyUnit
+		}
+		applies = s.enemyMatches(r, base, match, lc.CompanyID, roster, lc)
 	}
 	for _, u := range units {
 		u = markUsedItems(u, live[u.ID])
@@ -116,7 +190,7 @@ func (s *Server) liveFor(r *http.Request, base campaignBase, detail core.Company
 		if in && l.HasMount && !l.Mounted {
 			u = strikeMountGear(u)
 		}
-		card := liveCard{U: u, L: l}
+		card := liveCard{U: u, L: l, Applies: applies[u.ID]}
 		switch {
 		case slices.Contains(lc.Absent, u.ID):
 			v.Missed = append(v.Missed, card)

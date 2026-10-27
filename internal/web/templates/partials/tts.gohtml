@@ -23,12 +23,58 @@
 
 {{define "tts_switch"}}
 <label class="flex min-h-11 cursor-pointer items-start gap-3 py-1 text-sm">
-  <input type="checkbox" role="switch" name="{{.Name}}" value="1" class="peer sr-only" {{if .On}}checked{{end}}>
+  <input type="checkbox" role="switch" {{with .ID}}id="{{.}}" {{end}}name="{{.Name}}" value="1" class="peer sr-only" {{if .On}}checked{{end}}>
   <span class="relative mt-0.5 h-6 w-11 shrink-0 rounded-full border border-line bg-raised transition-colors peer-checked:bg-accent peer-checked:[&>span]:translate-x-5 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent" aria-hidden="true">
     <span class="absolute left-0.5 top-0.5 h-4.5 w-4.5 rounded-full bg-surface shadow transition-transform"></span>
   </span>
-  <span><span class="font-medium">{{.Label}}</span><span class="block text-xs text-muted">{{.Hint}}</span></span>
+  <span><span class="font-medium">{{.Label}}</span><span class="block text-xs text-muted">{{.Hint}}</span></span>{{with .Count}}<span class="ml-auto shrink-0 pl-2 text-xs text-muted" data-tts-count>{{.}}</span>{{end}}
 </label>
+{{end}}
+
+{{/* The ring of a kind: its colour and its first letter, so the kind is not told by colour alone; the enemy kind has the thicker line, as in the game. */}}
+{{define "aura_ring"}}<span class="aura-ring aura-k-{{.ID}}{{if .Thick}} aura-ring-thick{{end}}" aria-hidden="true">{{.Letter}}</span>{{end}}
+
+{{/* The Auras section of the names block (docs/aura-ranges.md, section 4.6). Its own swap target: the switches keep their ids, so htmx gives the focus back. */}}
+{{define "tts_auras"}}
+<div id="tts-auras" class="mt-4 border-t border-line pt-3" data-tts-auras>
+  <h5 class="text-base font-semibold" id="tts-auras-title">Aura rings</h5>
+  <p class="mt-1 text-sm text-muted">Optional. The helper draws a ring on the table around the figures whose rules or items work within a fixed distance, such as a banner or a Hero's Stand Fast. Rings are measured from the edge of the base.</p>
+  {{if not .HasAuraKinds}}
+  <p class="alert alert-info mt-2" role="status" data-tts-no-auras>This company has no aura ranges.</p>
+  {{else}}
+  <form class="mt-2" hx-get="{{.URL}}" hx-trigger="change" hx-target="#tts-auras" hx-select="#tts-auras" hx-select-oob="#tts-names-result:outerHTML" hx-swap="outerHTML" data-tts-form aria-labelledby="tts-auras-title">
+    {{template "tts_switch" (dict "ID" "tts-auras-on" "Name" "auras" "On" .AurasOn "Label" "Draw aura rings" "Hint" "Adds the rings to the names. An older helper cannot read them: download it again.")}}
+    {{if .AurasOn}}
+    <fieldset class="mt-2 text-sm">
+      <legend class="font-medium">Kinds of ring</legend>
+      <ul class="mt-1 divide-y divide-line" data-tts-kinds>
+        {{range .AuraKinds}}
+        <li><label class="flex min-h-11 cursor-pointer items-center gap-3 py-1">
+          <input type="checkbox" id="tts-akind-{{.ID}}" name="akind" value="{{.ID}}" class="h-4 w-4 shrink-0 accent-[var(--accent)]" {{if .On}}checked{{end}}>
+          {{template "aura_ring" .}}
+          <span class="min-w-0"><span class="font-medium">{{.Label}}</span> <span class="text-muted" data-tts-kind-count>{{if .Rings}}{{.Rings}} ring{{if ne .Rings 1}}s{{end}}, radii {{.Radii}}{{else}}no rings drawn with these settings{{end}}</span></span>
+        </label></li>
+        {{end}}
+      </ul>
+    </fieldset>
+    {{with .AuraGroups}}
+    <fieldset class="mt-2 text-sm">
+      <legend class="font-medium">Which rules</legend>
+      {{range .}}{{template "tts_switch" (dict "ID" (printf "tts-%s" .Name) "Name" .Name "On" .On "Label" .Label "Hint" .Hint "Count" .Count)}}{{end}}
+    </fieldset>
+    {{end}}
+    {{end}}
+  </form>
+  {{if .AurasOn}}
+  <p class="mt-2 text-sm" id="tts-auras-total" role="status"><strong>{{.AuraTotals}}</strong>{{if .Auras.LeftOut}}, <span class="text-muted">{{.Auras.LeftOut}} left out (limit 4 per figure, 150 in all)</span>{{end}}.</p>
+  <dl class="mt-2 grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-2" aria-label="Legend of the ring colours" data-tts-legend>
+    {{range .AuraKinds}}
+    <div class="flex items-start gap-2"><dt class="flex shrink-0 items-center gap-1.5">{{template "aura_ring" .}}<span class="font-medium">{{.Label}}, {{.Colour}}{{if .Thick}}, thick line{{end}}</span></dt><dd class="min-w-0 text-xs text-muted">{{.Text}}</dd></div>
+    {{end}}
+  </dl>
+  {{end}}
+  {{end}}
+</div>
 {{end}}
 
 {{define "tts_dialog"}}
@@ -43,7 +89,7 @@
 
 {{if .Custom}}<div class="alert alert-warn mt-3" role="status"><strong>Changed rules file.</strong> This campaign uses a changed rules file, so some unit names may not exist in the mod.</div>{{end}}
 
-<form class="mt-3 border-t border-line pt-2" hx-get="{{.URL}}" hx-trigger="change" hx-target="#tts-result" hx-select="#tts-result" hx-select-oob="#tts-names-result:outerHTML" hx-swap="outerHTML" data-tts-form aria-label="What the list contains">
+<form class="mt-3 border-t border-line pt-2" hx-get="{{.URL}}" hx-trigger="change" hx-target="#tts-result" hx-select="#tts-result" hx-select-oob="#tts-names-result:outerHTML,#tts-auras:outerHTML" hx-swap="outerHTML" data-tts-form aria-label="What the list contains">
   {{template "tts_switch" (dict "Name" "foot" "On" .Foot "Label" "Riders on foot" "Hint" "Add the on-foot figure of a rider whose model cannot dismount by changing its state.")}}
   {{template "tts_switch" (dict "Name" "mounts" "On" .Mounts "Label" "Mounts that fight as figures of their own" "Hint" "Add a figure for a mount with Attacks of its own, such as a Warg shown as a Fell Warg.")}}
 </form>
@@ -93,7 +139,9 @@
     </fieldset>
   </form>
 
-  <div id="tts-names-result" class="mt-2 space-y-3">
+  {{template "tts_auras" .}}
+
+  <div id="tts-names-result" class="mt-4 space-y-3">
     {{if .HasNames}}
     <div>
       <label for="tts-names-text" class="text-sm font-medium">The names (JSON)</label>
@@ -104,6 +152,7 @@
       <span id="tts-names-status" class="text-sm text-muted" role="status" aria-live="polite"></span>
     </div>
     <p class="text-sm" id="tts-names-size"><strong>{{len .Names.Figures}} figure{{if ne (len .Names.Figures) 1}}s{{end}}</strong>, {{.NamesSize}} of {{.NamesLimit}} KB, rule texts: <strong>{{.Names.Rules}}</strong>.</p>
+    {{if .HelperV2}}<div class="alert alert-info" role="status" id="tts-helper-v2"><strong>These names carry aura rings.</strong> Download the helper again (step 1) if you installed it before: an older helper does not know the rings and says that it is older than the app. Without rings the names still work with any helper.</div>{{end}}
     {{range .NameGroups}}
     <section class="alert {{if eq .Title "Too large"}}alert-warn{{else}}alert-info{{end}}" role="status">
       <h5 class="text-sm font-semibold">{{.Title}}</h5>
@@ -115,7 +164,7 @@
   </div>
 
   <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm" aria-label="How to use the names in Tabletop Simulator">
-    <li><strong>Install the helper once.</strong> <a class="font-medium" href="/tts/helper.zip" download id="tts-helper-link">Download the helper</a> and unzip it into the Saved Objects folder of Tabletop Simulator:
+    <li><strong>Install the helper once.</strong> <a class="font-medium" href="/tts/helper.zip" download hx-boost="false" id="tts-helper-link">Download the helper</a> and unzip it into the Saved Objects folder of Tabletop Simulator:
       <ul class="mt-1 list-disc space-y-0.5 pl-5 text-muted">
         <li>macOS: <code class="break-all font-mono text-xs">~/Library/Tabletop Simulator/Saves/Saved Objects</code></li>
         <li>Windows: <code class="break-all font-mono text-xs">Documents\My Games\Tabletop Simulator\Saves\Saved Objects</code></li>
@@ -125,6 +174,7 @@
     <li>Add a second Notebook tab titled exactly <code class="font-mono">ArmyNames</code> and paste the names there (<strong>Copy names</strong> above). Do not paste them into <code class="font-mono">ArmyList</code>: the mod would spawn the lines as models.</li>
     <li>Spawn the army from <code class="font-mono">ArmyList</code> as above.</li>
     <li>Select your army (drag a box around it) and press <strong>Apply names</strong> on the helper block. A message tells how many figures were named. <strong>Re-apply</strong> sends the names again, also to figures already named, for example after the company changed.</li>
+    <li>With aura rings on, the rings are drawn when the names are applied. The <strong>Rings</strong> button on the helper block shows or hides all of them, the small buttons <strong>B C S E U</strong> one kind each (Banner, Command, Support, Enemy, Utility), and <strong>Redraw</strong> brings them back if the mod's own circle (numpad 1 to 3 on a figure) wiped them. They follow the figure when it is moved.</li>
   </ol>
 
   <details class="mt-3 rounded-md border border-line bg-surface p-3">

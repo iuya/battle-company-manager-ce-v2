@@ -38,8 +38,12 @@ var ttsNamesSample = core.TTSNamesPayload{Version: 1, Company: "Riders", Rules: 
 	{Key: "warrior of rohan: shield", Line: "Warrior of Rohan: Shield", Unit: 6, Name: "[b]Eadric[/b] (8)", Desc: "x"},
 }}
 
+// ttsDefaultAuras is the selection of a dialog opened with no query: the switch on, the groups the owner chose on (docs/aura-ranges.md section 9).
+var ttsDefaultAuras = core.AuraSelection{Draw: true, Declared: true, Conditional: true}
+
 func (f *fixture) expectNames(rules string) {
-	f.camp.EXPECT().TTSNames(gomock.Any(), int64(7), int64(2), gomock.Any(), core.TTSNamesOptions{Rules: rules}).Return(ttsNamesSample, nil)
+	f.camp.EXPECT().TTSNames(gomock.Any(), int64(7), int64(2), gomock.Any(), core.TTSNamesOptions{Rules: rules, Auras: ttsDefaultAuras}).Return(ttsNamesSample, nil)
+	f.camp.EXPECT().TTSAuras(gomock.Any(), int64(7), int64(2), gomock.Any(), gomock.Any(), ttsDefaultAuras).Return(core.AuraSummary{}, nil).AnyTimes()
 }
 
 func TestTTSDialogShowsTheListTheCountsAndTheNotes(t *testing.T) {
@@ -204,9 +208,9 @@ func TestTTSDialogShowsTheNamesBlock(t *testing.T) {
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/companies/2/tts", nil))).Body.String()
 	for _, want := range []string{"Name and describe the figures", `id="tts-names-text"`, "Copy names", `data-tts-copy="tts-names-text"`, `id="tts-names-status"`, `aria-live="polite"`,
 		"2 figures", "9.4 KB of 24 KB", `name="rules" value="none" class="h-4 w-4 accent-[var(--accent)]" checked`, `name="rules" value="short"`, `name="rules" value="full"`,
-		`href="/tts/helper.zip"`, "Download the helper", "Saved Objects", "~/Library/Tabletop Simulator/Saves/Saved Objects", `Documents\My Games\Tabletop Simulator\Saves\Saved Objects`, "Linux (not verified)",
+		`href="/tts/helper.zip"`, `hx-boost="false"`, "Download the helper", "Saved Objects", "~/Library/Tabletop Simulator/Saves/Saved Objects", `Documents\My Games\Tabletop Simulator\Saves\Saved Objects`, "Linux (not verified)",
 		"ArmyNames", "Apply names", "Re-apply", "drag", "Show the Lua (fallback, unverified)", `id="tts-lua-text"`, "Copy the Lua", "function onLoad",
-		`hx-select-oob="#tts-names-result:outerHTML"`} {
+		`hx-select-oob="#tts-names-result:outerHTML,#tts-auras:outerHTML"`, `id="tts-auras"`, "This company has no aura ranges."} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the dialog lacks %q", want)
 		}
@@ -253,7 +257,8 @@ func TestTTSNamesNotesAreShown(t *testing.T) {
 		{Kind: core.TTSDescriptionCut, Text: "2 descriptions lost lines to fit 900 characters."},
 		{Kind: core.TTSTooLarge, Text: "The names are 26 KB, over the 24 KB the Notebook is meant to take: send fewer figures."},
 	}
-	f.camp.EXPECT().TTSNames(gomock.Any(), int64(7), int64(2), gomock.Any(), core.TTSNamesOptions{Rules: "full"}).Return(big, nil)
+	f.camp.EXPECT().TTSNames(gomock.Any(), int64(7), int64(2), gomock.Any(), core.TTSNamesOptions{Rules: "full", Auras: ttsDefaultAuras}).Return(big, nil)
+	f.camp.EXPECT().TTSAuras(gomock.Any(), int64(7), int64(2), nil, gomock.Any(), ttsDefaultAuras).Return(core.AuraSummary{}, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/companies/2/tts?rules=full", nil))).Body.String()
 	for _, want := range []string{"Too large", "send fewer figures", "Rule texts left out to fit", "Descriptions shortened", "2 descriptions lost lines", "26.0 KB of 24 KB", "rule texts: <strong>none</strong>", "alert-warn"} {
 		if !strings.Contains(body, want) {
@@ -268,7 +273,8 @@ func TestTTSLiveVariantNamesUseTheLiveExport(t *testing.T) {
 	f.camp.EXPECT().Live(gomock.Any(), frodo, int64(7), int64(2)).Return(core.LiveCompany{CompanyID: 2, MatchID: 3, Units: units}, nil)
 	ex := ttsSample
 	f.camp.EXPECT().TTSExport(gomock.Any(), int64(7), int64(2), &core.TTSLive{Units: units}, gomock.Any()).Return(ex, nil)
-	f.camp.EXPECT().TTSNames(gomock.Any(), int64(7), int64(2), ex, core.TTSNamesOptions{Rules: "none"}).Return(ttsNamesSample, nil)
+	f.camp.EXPECT().TTSNames(gomock.Any(), int64(7), int64(2), ex, core.TTSNamesOptions{Rules: "none", Auras: ttsDefaultAuras}).Return(ttsNamesSample, nil)
+	f.camp.EXPECT().TTSAuras(gomock.Any(), int64(7), int64(2), &core.TTSLive{Units: units}, gomock.Any(), ttsDefaultAuras).Return(core.AuraSummary{}, nil)
 	if rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/companies/2/tts?live=1", nil))); rec.Code != 200 {
 		t.Errorf("live names: %d", rec.Code)
 	}
@@ -277,6 +283,7 @@ func TestTTSLiveVariantNamesUseTheLiveExport(t *testing.T) {
 func TestTTSNamesErrorIsAnError(t *testing.T) {
 	f := ttsFixture(t)
 	f.camp.EXPECT().TTSExport(gomock.Any(), int64(7), int64(2), nil, gomock.Any()).Return(ttsSample, nil)
+	f.camp.EXPECT().TTSAuras(gomock.Any(), int64(7), int64(2), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.AuraSummary{}, nil)
 	f.camp.EXPECT().TTSNames(gomock.Any(), int64(7), int64(2), gomock.Any(), gomock.Any()).Return(core.TTSNamesPayload{}, core.ErrNotFound)
 	if rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/companies/2/tts", nil))); rec.Code != http.StatusNotFound {
 		t.Errorf("names for a vanished company: %d", rec.Code)
@@ -327,5 +334,108 @@ func TestTTSHelperZipNeedsASession(t *testing.T) {
 	rec := f.do(httptest.NewRequest("GET", "/tts/helper.zip", nil))
 	if rec.Code != http.StatusSeeOther || !strings.HasPrefix(rec.Header().Get("Location"), "/login") {
 		t.Errorf("signed out goes to the login: %d %v", rec.Code, rec.Header())
+	}
+}
+
+// ttsAuraSample is what a company with banners, Heroes and a Torch shows: kinds with counts and radii, and what the switches add.
+var ttsAuraSample = core.AuraSummary{
+	Rings: 7, Figures: 5, LeftOut: 2,
+	Kinds: []core.AuraKindSummary{
+		{Kind: "banner", Label: "Banner", Colour: "yellow", Text: "Banners: friendly models re-roll a Duel die", Rings: 1, Radii: []float64{3}, On: true},
+		{Kind: "command", Label: "Command", Colour: "orange", Text: "Courage and the Hero's shouts", Rings: 4, Radii: []float64{6, 12}, On: true},
+		{Kind: "enemy", Label: "Enemy", Colour: "vermillion", Text: "Penalties against the enemy", Rings: 2, Radii: []float64{6}, On: false},
+	},
+	Counts: map[string]int{"declared": 3, "conditional": 0, "cast": 1, "target": 0, "large": 1, "optional": 1},
+}
+
+func TestTTSAurasSectionShowsKindsCountsGroupsAndLegend(t *testing.T) {
+	f := ttsFixture(t)
+	f.camp.EXPECT().TTSExport(gomock.Any(), int64(7), int64(2), nil, gomock.Any()).Return(ttsSample, nil)
+	f.camp.EXPECT().TTSAuras(gomock.Any(), int64(7), int64(2), nil, core.TTSOptions{FootVersions: true, MountFigures: true}, ttsDefaultAuras).Return(ttsAuraSample, nil)
+	v2 := ttsNamesSample
+	v2.Version = 2
+	f.camp.EXPECT().TTSNames(gomock.Any(), int64(7), int64(2), gomock.Any(), core.TTSNamesOptions{Rules: "none", Auras: ttsDefaultAuras}).Return(v2, nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/companies/2/tts", nil))).Body.String()
+	for _, want := range []string{
+		`id="tts-auras"`, `name="auras" value="1"`, `id="tts-auras-on"`, "Draw aura rings",
+		`id="tts-akind-banner" name="akind" value="banner"`, `id="tts-akind-command" name="akind" value="command"`, "1 ring, radii 3&#34;", "4 rings, radii 6&#34;, 12&#34;",
+		"Rules that need an action", "adds 1 ring", "Spells in effect", "Large rings, over 12 inches", "Optional rings", `name="adeclared" value="1" class="peer sr-only" checked`,
+		"7 rings on 5 figures", "2 left out", "data-tts-legend", "Command, orange", "Enemy, vermillion, thick line", "aura-ring-thick", "aura-k-banner",
+		`id="tts-helper-v2"`, "Download the helper again", "numpad 1 to 3", "B C S E U",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the dialog lacks %q", want)
+		}
+	}
+	// the enemy kind is off: its checkbox is not checked; the group with no rings has no switch
+	if i := strings.Index(body, `id="tts-akind-enemy"`); i < 0 || strings.Contains(body[i:i+120], "checked") {
+		t.Error("the enemy kind is off, so not checked")
+	}
+	for _, banned := range []string{`name="aconditional"`, `name="atarget"`, "This company has no aura ranges."} {
+		if strings.Contains(body, banned) {
+			t.Errorf("the dialog should not show %q", banned)
+		}
+	}
+}
+
+func TestTTSAurasQueryBuildsTheSelection(t *testing.T) {
+	f := ttsFixture(t)
+	f.camp.EXPECT().TTSExport(gomock.Any(), int64(7), int64(2), nil, gomock.Any()).Return(ttsSample, nil)
+	sel := core.AuraSelection{Draw: true, Kinds: map[core.AuraKind]bool{"banner": true, "support": true}, Declared: false, Conditional: true, Cast: true, Large: true}
+	f.camp.EXPECT().TTSAuras(gomock.Any(), int64(7), int64(2), nil, gomock.Any(), sel).Return(ttsAuraSample, nil)
+	f.camp.EXPECT().TTSNames(gomock.Any(), int64(7), int64(2), gomock.Any(), core.TTSNamesOptions{Rules: "none", Auras: sel}).Return(ttsNamesSample, nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/companies/2/tts?akinds=banner,support&adeclared=0&aconditional=1&acast=1&alarge=1&atarget=0", nil))).Body.String()
+	if strings.Contains(body, `name="adeclared" value="1" class="peer sr-only" checked`) || !strings.Contains(body, `name="acast" value="1" class="peer sr-only" checked`) {
+		t.Error("the group switches come from the query")
+	}
+	if strings.Contains(body, `id="tts-helper-v2"`) {
+		t.Error("a v1 payload needs no new helper")
+	}
+}
+
+func TestTTSAurasSwitchOffAsksForNoRingsAndHidesTheRows(t *testing.T) {
+	f := ttsFixture(t)
+	f.camp.EXPECT().TTSExport(gomock.Any(), int64(7), int64(2), nil, gomock.Any()).Return(ttsSample, nil)
+	sel := core.AuraSelection{Declared: true, Conditional: true}
+	f.camp.EXPECT().TTSAuras(gomock.Any(), int64(7), int64(2), nil, gomock.Any(), sel).Return(core.AuraSummary{Kinds: ttsAuraSample.Kinds}, nil)
+	f.camp.EXPECT().TTSNames(gomock.Any(), int64(7), int64(2), gomock.Any(), core.TTSNamesOptions{Rules: "none", Auras: sel}).Return(ttsNamesSample, nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/companies/2/tts?auras=0", nil))).Body.String()
+	if !strings.Contains(body, `id="tts-auras-on" name="auras" value="1" class="peer sr-only" >`) || strings.Contains(body, `name="akind"`) || strings.Contains(body, "data-tts-legend") {
+		t.Error("with the switch off only the switch is drawn")
+	}
+}
+
+func TestTTSAurasLiveVariantAsksForTheLiveRings(t *testing.T) {
+	f := ttsFixture(t)
+	units := []core.LiveUnit{{UnitID: 5, Zone: core.ZoneCasualty}}
+	f.camp.EXPECT().Live(gomock.Any(), frodo, int64(7), int64(2)).Return(core.LiveCompany{CompanyID: 2, MatchID: 3, Units: units}, nil)
+	f.camp.EXPECT().TTSExport(gomock.Any(), int64(7), int64(2), &core.TTSLive{Units: units}, gomock.Any()).Return(ttsSample, nil)
+	f.camp.EXPECT().TTSAuras(gomock.Any(), int64(7), int64(2), &core.TTSLive{Units: units}, gomock.Any(), ttsDefaultAuras).Return(ttsAuraSample, nil)
+	f.camp.EXPECT().TTSNames(gomock.Any(), int64(7), int64(2), gomock.Any(), gomock.Any()).Return(ttsNamesSample, nil)
+	if rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/companies/2/tts?live=1", nil))); rec.Code != 200 {
+		t.Errorf("live auras: %d", rec.Code)
+	}
+}
+
+func TestTTSAurasLeftOutNoteIsShown(t *testing.T) {
+	f := ttsFixture(t)
+	f.camp.EXPECT().TTSExport(gomock.Any(), int64(7), int64(2), nil, gomock.Any()).Return(ttsSample, nil)
+	f.camp.EXPECT().TTSAuras(gomock.Any(), int64(7), int64(2), nil, gomock.Any(), ttsDefaultAuras).Return(ttsAuraSample, nil)
+	p := ttsNamesSample
+	p.Notes = []core.TTSNote{{Kind: core.TTSAurasLeftOut, Text: "2 aura rings were left out (limit 4 per figure, 150 in all)."}}
+	f.camp.EXPECT().TTSNames(gomock.Any(), int64(7), int64(2), gomock.Any(), gomock.Any()).Return(p, nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/companies/2/tts", nil))).Body.String()
+	if !strings.Contains(body, "Aura rings left out") || !strings.Contains(body, "2 aura rings were left out") {
+		t.Error("the note of the rings left out is shown")
+	}
+}
+
+func TestTTSAurasNoRingsSaysSo(t *testing.T) {
+	f := ttsFixture(t)
+	f.camp.EXPECT().TTSExport(gomock.Any(), int64(7), int64(2), nil, gomock.Any()).Return(ttsSample, nil)
+	f.expectNames("none")
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/companies/2/tts", nil))).Body.String()
+	if !strings.Contains(body, "This company has no aura ranges.") || strings.Contains(body, `name="auras"`) {
+		t.Error("a company without rings says so and has no switch")
 	}
 }

@@ -46,6 +46,7 @@ type VanillaUnit struct {
 	// At most one option of a group is taken; a group with a required option must have one taken.
 	OptionKeys    []OptionKey
 	MagicalPowers []PowerRef
+	BaseSize      []string // "25mm", "120mm oval", "180x140mm oval": see BaseRadius
 }
 
 // OptionKey is the choose-one group an option belongs to.
@@ -137,6 +138,7 @@ func ParseVanillaWith(content []byte, reviewed []VanillaAmbiguity, log *slog.Log
 		_ = json.Unmarshal(raw["specialRules"], &u.SpecialRules)
 		_ = json.Unmarshal(raw["heroicActions"], &u.HeroicActions)
 		_ = json.Unmarshal(raw["wargear"], &u.Wargear)
+		_ = json.Unmarshal(raw["baseSize"], &u.BaseSize)
 		var includes []struct {
 			Name string `json:"name"`
 		}

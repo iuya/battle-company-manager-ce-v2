@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import company_text_checks  # noqa: E402
 import concept_graph  # noqa: E402
 import glossary_reference  # noqa: E402
+from bc import auras as aura_table  # noqa: E402
 from bc.gear import ABILITY_KEYS, CLASSES, ITEM_ALIASES, RANGED_CLASSES, item_key, resolve_rule, _keyword_names  # noqa: E402
 from bc.refs import referenced, vanilla_duplicates  # noqa: E402
 from bc.text import fold  # noqa: E402
@@ -37,6 +38,245 @@ def schema_errors(doc, schema_path):
 
 TTS_CATALOGUE = ROOT / "sources/tts/models.json"  # local, gitignored (bead zrs.4); never committed
 TTS_MAX_ENTRIES = 100  # data.ttsModels holds fixed mappings only: a catalogue (1700 keys) must never end up in the repository
+
+
+def rule_target_errors(bc, van):
+    """Checks data.ruleTargets: names exist (vanilla or Battle Companies), every parameterised rule with a keyword parameter and every
+    vanilla/BC rule family `Hatred (..)`, `Ancient Enemies (..)`, `Fury (..)`, `Terror (..)` is classified, a rule that names a keyword in
+    its definition (Battle Companies rules) has a decision, enemy/friendly entries have a target and keywords or a pattern."""
+    t = bc["data"].get("ruleTargets")
+    if t is None:
+        return ["data.ruleTargets is missing"]
+    errors = []
+    D = bc["data"]
+    names = {fold(k["name"]) for k in van["data"]["keywords"]} | {fold(k["name"]) for k in D["keywords"]}
+    bases = {p["base"] for p in t["patterns"]}
+    for p in t["patterns"]:
+        if p["rule"] != p["base"] + " (X)":
+            errors.append(f"ruleTargets pattern {p['rule']!r}: must be '<base> (X)'")
+        if fold(p["base"]) not in names and fold(p["base"]) not in {fold(x["name"]) for x in D["parameterisedRules"]}:
+            errors.append(f"ruleTargets pattern {p['rule']!r}: no such rule in vanilla or Battle Companies")
+    for pr in D["parameterisedRules"]:
+        if pr["parameter"]["kind"] == "keyword" and pr["name"] not in bases:
+            errors.append(f"parameterised rule {pr['pattern']!r} has a keyword parameter but no ruleTargets pattern")
+    allnames = [k["name"] for k in van["data"]["keywords"]] + [k["name"] for k in D["keywords"]]
+    for n in sorted(set(allnames)):
+        b, sep, _ = n.partition(" (")
+        if sep and b in ("Hatred", "Ancient Enemies", "Fury", "Terror") and b not in bases:
+            errors.append(f"rule {n!r} belongs to the keyword family {b!r}, which has no ruleTargets pattern")
+    seen = set()
+    for e in t["names"]:
+        if fold(e["rule"]) not in names:
+            errors.append(f"ruleTargets: {e['rule']!r} is neither a vanilla nor a Battle Companies rule")
+        if fold(e["rule"]) in seen:
+            errors.append(f"ruleTargets: duplicate entry {e['rule']!r}")
+        seen.add(fold(e["rule"]))
+        a = e["appliesTo"]
+        if a == "own" and (e.get("keywords") or e.get("target")):
+            errors.append(f"ruleTargets {e['rule']!r}: an own rule has no keywords or target")
+        if a != "own" and not e.get("target"):
+            errors.append(f"ruleTargets {e['rule']!r}: {a} needs a target text")
+        if a in ("enemy-any",) and e.get("keywords"):
+            errors.append(f"ruleTargets {e['rule']!r}: enemy-any has no keywords")
+        if "{X}" in e.get("target", "") and not e.get("keywords"):
+            errors.append(f"ruleTargets {e['rule']!r}: target uses {{X}} but keywords is empty")
+        if e.get("keywords") and not e.get("keywordMatch"):
+            errors.append(f"ruleTargets {e['rule']!r}: keywords need keywordMatch")
+    # a Battle Companies rule whose text names a keyword must have a decision (even if it is 'own')
+    for k in D["keywords"]:
+        if re.search(r"\bkeywords?\b", k["definition"]) and fold(k["name"]) not in seen and k["name"] not in bases:
+            errors.append(f"Battle Companies rule {k['name']!r} names a keyword in its text but has no ruleTargets decision")
+    return errors
+
+
+AURA_KINDS = ["banner", "command", "support", "enemy", "utility"]
+AURA_GROUP_DEFAULTS = {"always": True, "declared": True, "conditional": True, "cast": False, "target": False, "large": False, "optional": False}  # docs/aura-ranges.md section 9
+AURA_WHEN = ["always", "declared", "conditional", "cast", "target"]
+AURA_AFFECTS = ["friendly", "enemy", "any", "self"]
+
+
+def aura_errors(bc, van, glossary):
+    """Checks data.auras (docs/aura-ranges.md 5.1): kinds and group defaults as the spec; every entry's source exists, its radius is written in the source
+    text (the sum of `radiusParts`, or the glossary text of its concept for the Hero rules), its group agrees with when/radius, `replaces` points at entries;
+    every reachable rule, power, item or heroic action whose text names a distance is an entry or in `excluded` (a reason each); every banner or instrument
+    is an entry; `unreachable` is current; the Falcon creature agrees with its Keen Sight ring."""
+    a = bc["data"].get("auras")
+    if a is None:
+        return ["data.auras is missing"]
+    errors = []
+    D = bc["data"]
+    if [k["id"] for k in a["kinds"]] != AURA_KINDS:
+        errors.append(f"auras.kinds must be {AURA_KINDS} in this order")
+    for k in a["kinds"]:
+        if not k["default"]:
+            errors.append(f"auras kind {k['id']!r}: every kind is on by default (spec 4.4)")
+    if {g["id"]: g["default"] for g in a["groups"]} != AURA_GROUP_DEFAULTS or len(a["groups"]) != len(AURA_GROUP_DEFAULTS):
+        errors.append(f"auras.groups must be exactly {AURA_GROUP_DEFAULTS} (docs/aura-ranges.md section 9, defaults not changed by the owner)")
+
+    nodes = concept_graph.make_nodes(van, bc, glossary) if glossary else []
+    idx = concept_graph.Index(nodes)
+    ntext = {n["id"]: n["_text"] for n in nodes}
+
+    def concept_text(name):
+        i = idx.find(name)
+        return ntext.get(i, "") if i else None
+
+    bck = {fold(k["name"]): k["definition"] for k in D["keywords"]}
+    vk = {}
+    for k in van["data"]["keywords"]:
+        vk.setdefault(fold(k["name"]), k["definition"])
+    params = D["parameterisedRules"]
+    powers = {fold(p["name"]): p["definition"] for p in D["magicalPowers"]["items"]}
+    ann = {fold(x["name"]): x for x in D["gearAnnotations"]["items"]}
+    vg = {}
+    for g in van["data"]["gear"]:
+        vg.setdefault(fold(g["name"]), g.get("definition", ""))
+    eq = {fold(x["name"]): x["definition"] for x in D["equipment"]["items"]}
+    actions = {fold(p["startingHeroicAction"]["name"]): p["startingHeroicAction"]["definition"] for p in D["paths"] if p.get("startingHeroicAction")}
+
+    def family(name):
+        for p in params:
+            if name in p.get("vanillaVariants", []) or fold(name) == fold(p["pattern"]):
+                return p["definition"]
+        return None
+
+    def name_text(t, n):
+        """The text of a named source (None: the name does not exist)."""
+        f = fold(n)
+        if t == "rule":
+            return bck.get(f) or vk.get(f) or family(n)
+        if t == "power":
+            return powers.get(f)
+        if t == "item":
+            if f not in ann:
+                return None
+            return " ".join([ann[f].get("definition", ""), vg.get(f, ""), eq.get(f, "")])
+        if t == "heroicAction":
+            return actions.get(f) if f in actions else concept_text(n)
+        return None
+
+    ids = [e["id"] for e in a["entries"]]
+    for i in {i for i in ids if ids.count(i) > 1}:
+        errors.append(f"auras: duplicate entry id {i!r}")
+    byid = {e["id"]: e for e in a["entries"]}
+    covered, patterns = set(), set()
+    for e in a["entries"]:
+        w = f"auras entry {e['id']!r}"
+        s = e["source"]
+        t = s["type"]
+        names = s.get("names", [])
+        if e["kind"] not in AURA_KINDS:
+            errors.append(f"{w}: kind {e['kind']!r}")
+        if e["affects"] not in AURA_AFFECTS or e["when"] not in AURA_WHEN:
+            errors.append(f"{w}: affects/when out of range")
+        if not 0.5 <= e["radius"] <= 48:
+            errors.append(f"{w}: radius {e['radius']} must be 0.5 to 48")
+        # group agrees with when and radius
+        g = e["group"]
+        if e["when"] in ("target", "cast"):
+            want = e["when"]
+        elif e["radius"] > aura_table.LARGE:
+            want = "large"
+        else:
+            want = g if g == "optional" else e["when"]
+        if g != want:
+            errors.append(f"{w}: group {g!r} but when {e['when']!r} and radius {e['radius']} make it {want!r}")
+        if g == "optional" and (e["when"] != "always" or e["kind"] != "utility"):
+            errors.append(f"{w}: group optional is only for always-on utility rings (the Torch)")
+        if t == "hero":
+            if names or e["id"] != "standfast-6":
+                errors.append(f"{w}: the hero source has no names and is the Stand Fast entry")
+        elif not names:
+            errors.append(f"{w}: source {t} needs names")
+        if e.get("bearer") and e["bearer"] != "Hero":
+            errors.append(f"{w}: bearer must be Hero")
+        for r in e.get("replaces", []):
+            if r not in byid or r == e["id"]:
+                errors.append(f"{w}: replaces {r!r} is not another entry")
+            elif e["id"] in byid[r].get("replaces", []):
+                errors.append(f"{w}: replaces {r!r}, which replaces it")
+        if len(e["tip"]) > 200:
+            errors.append(f"{w}: tip is longer than a sentence (200 characters)")
+        # the sources exist and the radius is in their text
+        texts = []
+        for n in names:
+            covered.add((t, fold(n)))
+            tx = name_text(t, n)
+            if tx is None:
+                errors.append(f"{w}: {t} {n!r} does not exist in the vanilla or Battle Companies file")
+                continue
+            texts.append(tx)
+            if t in ("rule", "power") and "radiusParts" not in e and not aura_table.has(e["radius"], tx):
+                errors.append(f"{w}: the radius {e['radius']}\" is not written in the text of {n!r}")
+        ct = concept_text(e["concept"])
+        if ct is None:
+            errors.append(f"{w}: concept {e['concept']!r} is not a term of the glossary")
+        else:
+            texts.append(ct)
+        for x in e.get("textFrom", []) + e.get("mergeLabels", []):
+            tx = concept_text(x)
+            if tx is None:
+                errors.append(f"{w}: {x!r} is not a term of the glossary")
+            else:
+                texts.append(tx)
+                if x in e.get("mergeLabels", []) and not aura_table.has(e["radius"], tx):
+                    errors.append(f"{w}: merged label {x!r} does not have the radius {e['radius']}\" in its text")
+        union = " ".join(texts)
+        if "radiusParts" in e:
+            if abs(sum(e["radiusParts"]) - e["radius"]) > 1e-9:
+                errors.append(f"{w}: radiusParts {e['radiusParts']} do not add up to {e['radius']}")
+            for part in e["radiusParts"]:
+                if not aura_table.has(part, union):
+                    errors.append(f"{w}: part {part}\" is not written in any source text")
+        elif t not in ("rule", "power") and not aura_table.has(e["radius"], union):
+            errors.append(f"{w}: the radius {e['radius']}\" is not written in the source or concept text")
+        if s.get("pattern"):
+            patterns.add(fold(s["pattern"]))
+    if sum(1 for e in a["entries"] if e["source"]["type"] == "hero") != 1:
+        errors.append("auras: exactly one hero entry (every Hero's Stand Fast)")
+    # exclusions
+    for x in a["excluded"]:
+        w = f"auras excluded {x['names'][0]!r}"
+        for n in x["names"]:
+            if (x["type"], fold(n)) in covered:
+                errors.append(f"{w}: {n!r} is also an entry")
+            covered.add((x["type"], fold(n)))
+            tx = name_text(x["type"], n)
+            if tx is None:
+                errors.append(f"{w}: {x['type']} {n!r} does not exist")
+            elif x["category"] != "weapon-range" and not aura_table.has(x["radius"], tx):
+                errors.append(f"{w}: radius {x['radius']}\" is not written in the text of {n!r}")
+        if x.get("pattern"):
+            patterns.add(fold(x["pattern"]))
+        if not x["reason"].strip():
+            errors.append(f"{w}: a reason is required")
+    # coverage
+    cand, weapons = aura_table.candidates(bc, van)
+    for (t, f), (name, _) in sorted(cand.items()):
+        if (t, f) not in covered and f not in patterns:
+            errors.append(f"auras: {t} {name!r} names a distance but is neither an entry nor excluded")
+    for f, (name, _) in sorted(weapons.items()):
+        if ("item", f) not in covered:
+            errors.append(f"auras: weapon {name!r} names a range but is not in the weapon-range exclusion")
+    for f, x in ann.items():
+        if {"banner", "instrument"} & set(x.get("classes", [])) and ("item", f) not in covered:
+            errors.append(f"auras: {x['name']!r} is a banner or an instrument but has no aura entry")
+    # unreachable
+    if a["unreachable"] != aura_table.unreachable(bc, van):
+        errors.append("auras.unreachable is not current: rerun tools/build_battle_companies.py")
+    un = {fold(n) for n in a["unreachable"]}
+    for (t, f) in covered:
+        if t == "rule" and f in un:
+            errors.append(f"auras: rule {f!r} is in `unreachable` but has an entry or an exclusion")
+    # the Falcon creature has its own aura field
+    for c in D["creatures"]["items"]:
+        r = (c.get("aura") or {}).get("radiusInches")
+        if r is not None:
+            ent = [e for e in a["entries"] if e["kind"] == "enemy" and "Keen Sight (Falcon)" in e["source"].get("names", [])]
+            if not ent or ent[0]["radius"] != r:
+                errors.append(f"auras: creature {c['name']!r} has an aura of {r}\" but no entry with that radius")
+    return errors
+
 
 
 def tts_catalogue(path):
@@ -72,7 +312,7 @@ def tts_errors(bc, van, catalogue=None):
         if catalogue is not None and not any(b == fold(base(m)) and (":" not in m or o == fold(m.partition(":")[2])) for b, o in catalogue):
             errors.append(f"ttsModels {where}: {m!r} is not a model of the local catalogue {TTS_CATALOGUE.name}")
 
-    entries = len(t["standIns"]) + len(t["mounts"]) + len(t["riders"]) + len(t["names"])
+    entries = len(t["standIns"]) + len(t["mounts"]) + len(t["riders"]) + len(t["names"]) + len(t["defaultOptions"]) + len(t["markerOptions"])
     if entries > TTS_MAX_ENTRIES:
         errors.append(f"ttsModels has {entries} entries: fixed mappings only, never the mod's catalogue")
     for kind, group in (("standIns", t["standIns"]), ("mounts", t["mounts"]), ("riders", t["riders"]), ("names", t["names"])):
@@ -102,10 +342,30 @@ def tts_errors(bc, van, catalogue=None):
             errors.append(f"ttsModels name: {x['unit']!r} is not a vanilla unit")
         elif not any(o["name"] == x["from"] for o in e.get("options", [])):
             errors.append(f"ttsModels name: {x['unit']!r} has no vanilla option {x['from']!r}")
-    for key in ("standIns", "mounts", "riders", "names"):
+    for x in t["defaultOptions"]:
+        e = units.get(fold(x["unit"]))
+        have = {o["name"] for o in (e or {}).get("options", [])}
+        if not e:
+            errors.append(f"ttsModels defaultOptions: {x['unit']!r} is not a vanilla unit")
+        for o in x["options"]:
+            if o not in have:
+                errors.append(f"ttsModels defaultOptions: {x['unit']!r} has no vanilla option {o!r}")
+        if catalogue is not None:
+            key = ", ".join(sorted(fold(o) for o in x["options"]))
+            if not any(b == fold(x["unit"]) and o == key for b, o in catalogue):
+                errors.append(f"ttsModels defaultOptions: {x['unit']}: {', '.join(x['options'])} is not a key of the local catalogue")
+    for x in t["markerOptions"]:
+        e = units.get(fold(x["unit"]))
+        if not e:
+            errors.append(f"ttsModels markerOptions: {x['unit']!r} is not a vanilla unit")
+        elif not any(o["name"] == x["option"] for o in e.get("options", [])):
+            errors.append(f"ttsModels markerOptions: {x['unit']!r} has no vanilla option {x['option']!r}")
+        if catalogue is not None and not any(b == fold(x["unit"]) and o == "" for b, o in catalogue):
+            errors.append(f"ttsModels markerOptions: the bare key of {x['unit']!r} is not in the local catalogue")
+    for key in ("standIns", "mounts", "riders", "names", "defaultOptions", "markerOptions"):
         seen = set()
         for x in t[key]:
-            k = (x.get("name") or x.get("gear") or x.get("unit"), x.get("from"))
+            k = (x.get("name") or x.get("gear") or x.get("unit"), x.get("from") or x.get("option"))
             if k in seen:
                 errors.append(f"ttsModels {key}: duplicate entry {k[0]!r}")
             seen.add(k)
@@ -513,6 +773,8 @@ def main():
                 if lid not in limit_ids:
                     errors.append(f"company {c['name']}: exemption names unknown limit {lid!r}")
     errors += tts_errors(bc, van, tts_catalogue(args.tts_models))
+    errors += rule_target_errors(bc, van)
+    errors += aura_errors(bc, van, glossary)
     # every vanilla name that is defined more than once and needed here must have a recorded decision
     decided = {(a["kind"], a["name"]): a for a in D["vanillaAmbiguities"]}
     need = referenced(bc, van)

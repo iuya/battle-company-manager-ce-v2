@@ -20,6 +20,7 @@ type BCBook struct {
 	armoury          []GearOffer
 	keywords         map[string]string
 	parameterised    map[string]string // the definition of each rule with a parameter, by lower-cased name
+	ruleTargets      RuleTargets       // data.ruleTargets: who each keyword rule works against (empty in a custom ruleset)
 	rating           RatingRules
 	annotations      map[string]GearAnnotation // by lower-cased name and alias
 	weaponRules      []GearAnnotation          // the annotations that give a rule to a weapon the player chooses (Envenom Weapon (X))
@@ -46,6 +47,7 @@ type BCBook struct {
 	breakRules       BreakRules
 	ato              ATORules
 	ttsModels        TTSModels       // data.ttsModels
+	auras            AuraTable       // data.auras
 	reserved         map[string]bool // unit|option (lower-cased) of the options reserved to a named hero's army list
 }
 
@@ -53,7 +55,9 @@ type BCBook struct {
 type RatingRules struct {
 	PerPoint       map[string]int // rating per point of a characteristic, by key ("might": 5, "attack": 10)
 	PerSpecialRule int
-	Average        map[string]int // the average Battle Company profile: advancements up to it add no rating
+	// PerMinorSpecialRule is the rating of a minor special rule, MaxMinorSpecialRule the most all of a hero's minor rules add.
+	PerMinorSpecialRule, MaxMinorSpecialRule int
+	Average                                  map[string]int // the average Battle Company profile: advancements up to it add no rating
 }
 
 // BCCompany is a Battle Company's page: its limits and its reinforcement charts.
@@ -207,7 +211,9 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 						Stat   string `json:"stat"`
 						Rating int    `json:"rating"`
 					} `json:"perPoint"`
-					PerSpecialRule int `json:"perSpecialRule"`
+					PerSpecialRule            int `json:"perSpecialRule"`
+					PerMinorSpecialRule       int `json:"perMinorSpecialRule"`
+					MaxMinorSpecialRuleRating int `json:"maxMinorSpecialRuleRating"`
 				} `json:"hero"`
 			} `json:"rating"`
 			CharacteristicLimits struct {
@@ -319,6 +325,23 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 				Name       string `json:"name"`
 				Definition string `json:"definition"`
 			} `json:"parameterisedRules"`
+			RuleTargets struct {
+				Patterns []struct {
+					Rule         string `json:"rule"`
+					Base         string `json:"base"`
+					AppliesTo    string `json:"appliesTo"`
+					Target       string `json:"target"`
+					KeywordMatch string `json:"keywordMatch"`
+				} `json:"patterns"`
+				Names []struct {
+					Rule           string   `json:"rule"`
+					AppliesTo      string   `json:"appliesTo"`
+					Keywords       []string `json:"keywords"`
+					KeywordMatch   string   `json:"keywordMatch"`
+					Target         string   `json:"target"`
+					BearerKeywords []string `json:"bearerKeywords"`
+				} `json:"names"`
+			} `json:"ruleTargets"`
 			Keywords []struct {
 				Name       string `json:"name"`
 				Definition string `json:"definition"`
@@ -504,7 +527,7 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 	if len(b.limitRules) == 0 {
 		b.limitRules = defaultLimitRules
 	}
-	b.rating = RatingRules{PerPoint: map[string]int{}, PerSpecialRule: doc.Campaign.Rating.Hero.PerSpecialRule, Average: map[string]int{}}
+	b.rating = RatingRules{PerPoint: map[string]int{}, PerSpecialRule: doc.Campaign.Rating.Hero.PerSpecialRule, PerMinorSpecialRule: doc.Campaign.Rating.Hero.PerMinorSpecialRule, MaxMinorSpecialRule: doc.Campaign.Rating.Hero.MaxMinorSpecialRuleRating, Average: map[string]int{}}
 	for _, p := range doc.Campaign.Rating.Hero.PerPoint {
 		b.rating.PerPoint[p.Stat] = p.Rating
 	}
@@ -600,6 +623,14 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 			b.parameterised[strings.ToLower(pr.Name)] = d
 		}
 	}
+	var targets []RuleTarget
+	for _, p := range doc.Data.RuleTargets.Patterns {
+		targets = append(targets, RuleTarget{Rule: p.Rule, Base: p.Base, Direction: RuleDirection(p.AppliesTo), Target: p.Target, All: p.KeywordMatch == "all"})
+	}
+	for _, n := range doc.Data.RuleTargets.Names {
+		targets = append(targets, RuleTarget{Rule: n.Rule, Direction: RuleDirection(n.AppliesTo), Target: n.Target, Keywords: n.Keywords, All: n.KeywordMatch == "all", Needs: n.BearerKeywords})
+	}
+	b.ruleTargets = NewRuleTargets(targets)
 	b.labels = map[string]string{}
 	for _, k := range doc.Data.Keywords {
 		if _, seen := b.keywords[k.Name]; !seen {
@@ -624,6 +655,9 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 		return nil, err
 	}
 	if b.ttsModels, err = ParseTTSModels(content); err != nil {
+		return nil, err
+	}
+	if b.auras, err = ParseAuras(content); err != nil {
 		return nil, err
 	}
 	b.scenarios, _ = ParseScenarios(content) // a file without scenarios simply has none
@@ -726,6 +760,14 @@ func (b *BCBook) Keyword(name string) (string, bool) {
 	return b.ParameterisedKeyword(name)
 }
 
+// RuleTargets is the table of who the keyword rules work against; empty when the file has none.
+func (b *BCBook) RuleTargets() RuleTargets {
+	if b == nil {
+		return RuleTargets{}
+	}
+	return b.ruleTargets
+}
+
 // DefinedKeyword is the definition of a rule the file defines under exactly this name, not one a parameterised rule gives it.
 func (b *BCBook) DefinedKeyword(name string) (string, bool) { d, ok := b.keywords[name]; return d, ok }
 
@@ -805,11 +847,15 @@ func (b *BCBook) ChoosableOptions(unit string, options []ChoiceOption) []ChoiceO
 // HeroRating is the rating (the points) of a hero before its wargear and equipment, by the Battle Companies rules: the
 // points of the Warrior profile it was built from, plus the rating of what it gained: 5 per point of Might, Will and Fate,
 // 5 per point of Movement, Fight, Strength and Defence and 10 per point of Attack and Wounds above the Warrior's profile
-// and above the average Battle Company profile (advancements up to it add nothing), and 5 per special rule gained.
-// Shoot, Courage, Intelligence, heroic actions and magical powers add nothing. stats are the hero's current values
-// by characteristic key.
-func (b *BCBook) HeroRating(base VanillaUnit, stats map[string]int, specialRules int) int {
-	rating := base.Points + specialRules*b.rating.PerSpecialRule
+// and above the average Battle Company profile (advancements up to it add nothing), 5 per special rule gained and 5 per
+// minor special rule gained, the minor rules together at most 10. Shoot, Courage, Intelligence, heroic actions and magical
+// powers add nothing. stats are the hero's current values by characteristic key.
+func (b *BCBook) HeroRating(base VanillaUnit, stats map[string]int, specialRules, minorRules int) int {
+	minor := minorRules * b.rating.PerMinorSpecialRule
+	if b.rating.MaxMinorSpecialRule > 0 {
+		minor = min(minor, b.rating.MaxMinorSpecialRule)
+	}
+	rating := base.Points + specialRules*b.rating.PerSpecialRule + minor
 	for stat, per := range b.rating.PerPoint {
 		value := stats[stat]
 		floor := max(base.Stats[stat], b.rating.Average[stat])

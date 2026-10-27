@@ -153,6 +153,26 @@ func TestSeedWorld(t *testing.T) {
 		t.Errorf("the gallery has %d companies, want 37", len(cos))
 	}
 
+	// the Aura parade: ten companies, each of which sends rings to Tabletop Simulator; the script itself reports (as a gap) an aura entry
+	// that no company carries and the list of unreachable ones does not explain
+	parade, ok := byName[auraParadeName]
+	if !ok {
+		t.Fatal("the Aura parade is missing")
+	}
+	paradeCos, err := b.campaigns.Companies(ctx, parade.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(paradeCos) != 10 {
+		t.Errorf("the Aura parade has %d companies, want 10", len(paradeCos))
+	}
+	for _, c := range paradeCos {
+		sum, err := b.campaigns.TTSAuras(ctx, parade.ID, c.ID, nil, core.TTSOptions{FootVersions: true, MountFigures: true}, core.AuraSelection{Draw: true, Declared: true, Conditional: true})
+		if err != nil || sum.Rings == 0 || len(sum.Kinds) == 0 {
+			t.Errorf("%s sends no aura ring: %v %+v", c.Name, err, sum)
+		}
+	}
+
 	// the aftermath ward has a company in every stage
 	ward := byName["Aftermath ward 1: every step of the War's Aftermath"]
 	matches, err := b.campaigns.Matches(ctx, ward.ID)

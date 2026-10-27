@@ -343,7 +343,8 @@ reinforcement: Haradrim Warrior []
     (1x Haradrim Warrior: Bow)
     note approximate: Haradrim Warrior: the mod has no figure without "Bow", so that is the one shown.
 reinforcement: Mahûd Warrior []
-    (1x Mahûd Warrior: )
+    (1x Mahûd Warrior: Spear)
+    note approximate: Mahûd Warrior: the mod has no figure for Mahûd Warrior with no options, so Mahûd Warrior with Spear is shown (the closest one the mod has).
 reinforcement: Khandish Warrior []
     (1x Khandish Warrior: )
 reinforcement: Corsair of Umbar []
@@ -606,7 +607,8 @@ advancement: Galadhrim Warrior []
 advancement: Galadhrim Warrior [Elven spear]
     (1x Galadhrim Warrior: Elven Spear)
 advancement: Lorien Guard []
-    (1x Galadhrim Warrior: Lorien Guard)
+    (1x Galadhrim Warrior: )
+    note approximate: Lorien Guard: the mod has no figure with Lorien Guard alone, so Galadhrim Warrior with no options is shown; the name and description still say so.
 ## Minas Morgul
 start: Mordor Orc Warrior [Shield]
     (1x Mordor Orc Warrior: Shield)
@@ -934,7 +936,8 @@ reinforcement: Hill Tribesman []
 advancement: Hill Tribesman []
     (1x Hill Tribesman: )
 advancement: Rohirrim Traitor []
-    (1x Rohirrim Traitor: )
+    (1x Rohirrim Traitor: Shield)
+    note approximate: Rohirrim Traitor: the mod has no figure for Rohirrim Traitor with no options, so Rohirrim Traitor with Shield is shown (the closest one the mod has).
 advancement: Rohirrim Traitor [Shield Throwing Spears]
     (1x Rohirrim Traitor: Shield and throwing spears)
 advancement: Rohirrim Traitor [Shield]
@@ -1057,3 +1060,13 @@ creature: Hunting Dog
     (1x Fang: )
     note approximate: Warrior of Minas Tirith: the mod has no figure without "Bow", so that is the one shown.
     note shownAs: Warrior of Minas Tirith's Hunting Dog is shown as Fang.
+## Fallback (fake bag)
+Mahûd Warrior
+    (Mahûd Warrior: Spear)
+    note approximate: Mahûd Warrior: the mod has no figure for Mahûd Warrior with no options, so Mahûd Warrior with Spear is shown (the closest one the mod has).
+Rohirrim Traitor
+    (Rohirrim Traitor: Shield)
+    note approximate: Rohirrim Traitor: the mod has no figure for Rohirrim Traitor with no options, so Rohirrim Traitor with Shield is shown (the closest one the mod has).
+Lorien Guard
+    (Galadhrim Warrior: )
+    note approximate: Lorien Guard: the mod has no figure with Lorien Guard alone, so Galadhrim Warrior with no options is shown; the name and description still say so.

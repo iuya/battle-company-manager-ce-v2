@@ -12,7 +12,19 @@ type TTSModels struct {
 	Mounts   []TTSMount   // bought mounts that fight (vanilla Attacks above 0) and the model of their figure
 	Riders   []TTSRider   // the cavalry units
 	Names    []TTSName    // option spellings that differ between the vanilla file and the mod
+	// DefaultOptions: units the bag has no bare figure of; MarkerOptions: alias markers left out of the key when they stand alone.
+	DefaultOptions []TTSDefaultOptions
+	MarkerOptions  []TTSMarkerOption
 }
+
+// TTSDefaultOptions: a Unit that carries no option is requested with Options (the bag has no bare figure of it).
+type TTSDefaultOptions struct {
+	Unit    string
+	Options []string
+}
+
+// TTSMarkerOption: Option of Unit only names the unit (a company alias selects it); as the only option it is left out of the key.
+type TTSMarkerOption struct{ Unit, Option string }
 
 // TTSStandIn: Kind is "wanderer" or "creature", Name the Battle Companies name, Model the mod model shown instead ("Name" or "Name: options").
 type TTSStandIn struct {
@@ -64,6 +76,14 @@ func ParseTTSModels(bc []byte) (TTSModels, error) {
 					From string `json:"from"`
 					To   string `json:"to"`
 				} `json:"names"`
+				DefaultOptions []struct {
+					Unit    string   `json:"unit"`
+					Options []string `json:"options"`
+				} `json:"defaultOptions"`
+				MarkerOptions []struct {
+					Unit   string `json:"unit"`
+					Option string `json:"option"`
+				} `json:"markerOptions"`
 			} `json:"ttsModels"`
 		} `json:"data"`
 	}
@@ -82,6 +102,12 @@ func ParseTTSModels(bc []byte) (TTSModels, error) {
 	}
 	for _, n := range doc.Data.TTS.Names {
 		out.Names = append(out.Names, TTSName{n.Unit, n.From, n.To})
+	}
+	for _, d := range doc.Data.TTS.DefaultOptions {
+		out.DefaultOptions = append(out.DefaultOptions, TTSDefaultOptions{d.Unit, d.Options})
+	}
+	for _, m := range doc.Data.TTS.MarkerOptions {
+		out.MarkerOptions = append(out.MarkerOptions, TTSMarkerOption{m.Unit, m.Option})
 	}
 	return out, nil
 }

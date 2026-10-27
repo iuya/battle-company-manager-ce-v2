@@ -144,6 +144,16 @@ Semantics of one declaration (`LiveWound`):
 - If the target reaches 0 Wounds (rider part) it is a casualty (Field casualties, reason "Wounded by Aldor (Company)") and, when it is a Hero or Monster, the attacker's `slainHeroOrMonster` count rises by one. Undoing the declaration undoes all of it.
 - The declaration is applied at once; the target's owner sees the card change live and a toast "Aldor wounded Grashnak (2). Undo" (REVIEW question `pib.9.q1`: apply at once vs confirm by the target's owner; the default is apply at once, either owner may undo).
 
+### The opponent's keywords and which of your rules apply
+
+The units of the other side show their keyword chips everywhere a unit is drawn in the match (cards in the Field, the compact Retreated, Field
+casualties and Missed cards, the rows of "Wounded a unit"). A unit in the Field that has a keyword named by an enemy-keyword rule (Hatred (X), Ancient Enemies (X),
+named rules such as End the Race of Men) of **one of your side's units that is also in the Field** carries a marker "Hatred (Orc) applies" naming the rule,
+and its tooltip says which of your units has it. Rules that work against every enemy (Terror) and friendly rules (Fury) give no marker; the enemy's rules
+against you are not shown. A unit that retreats, falls or is missed takes part in neither list, so the marker goes with it; a unit that lost its mount counts
+without Cavalry (`UnitKeywords.OnFoot`, which no Hatred rule names today). `core.RuleMatches` is pure and the web layer calls it with the Field units of both
+sides; the markers come back with every live refresh. Spec and data: [unit-keywords.md](unit-keywords.md) "Rule targets".
+
 ### Mount removed / re-added
 
 - **Mount removed** ("fell, now infantry") sets `Mounted = false`. The card then:

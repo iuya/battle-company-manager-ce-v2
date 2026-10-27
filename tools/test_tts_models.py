@@ -36,6 +36,15 @@ class TTSModelsTest(unittest.TestCase):
         self.assertEqual({u for u, r in riders.items() if r["states"]}, {"Rider of Rohan", "Son of Eorl", "Mirkwood Elf Knight", "Hunter Orc Warg Rider"})
         self.assertEqual(riders["Serpent Rider"]["footModel"], "Serpent Guard")
 
+    def test_default_and_marker_options(self):
+        self.assertEqual({d["unit"]: d["options"] for d in self.t["defaultOptions"]}, {"Mahûd Warrior": ["Spear"], "Rohirrim Traitor": ["Shield"]})
+        self.assertEqual([(m["unit"], m["option"]) for m in self.t["markerOptions"]], [("Galadhrim Warrior", "Lorien Guard")])
+        self.t["defaultOptions"][0]["options"] = ["Lance"]
+        self.t["markerOptions"][0]["option"] = "Nope"
+        e = "\n".join(self.errors())
+        self.assertIn("'Lance'", e)
+        self.assertIn("'Nope'", e)
+
     def test_unknown_names_are_errors(self):
         self.t["standIns"][0]["model"] = "Captain of Nowhere"
         self.t["riders"][0]["footModel"] = "Nobody"

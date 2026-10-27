@@ -41,5 +41,12 @@
       </template>
     </div>
   </div>
+  <div class="space-y-2">
+    <h3 class="!text-xl">Unit cards</h3>
+    <label class="flex cursor-pointer items-start gap-3 text-sm">
+      <input type="checkbox" class="mt-0.5 h-5 w-5 shrink-0 accent-accent" data-auras-toggle :checked="$store.theme.auras" @change="$store.theme.setAuras($event.target.checked)">
+      <span><span class="font-medium">Show auras on unit cards</span><span class="block text-xs text-muted">The aura chips and the Auras section of an expanded card. Saved in this browser.</span></span>
+    </label>
+  </div>
 </div>
 {{end}}

@@ -68,6 +68,8 @@ type woundTarget struct {
 	core.CompanyUnit
 	Live core.LiveUnit
 	Kill bool // a Hero or Monster: slaying it earns the attacker experience
+	// Applies are the rules of the attacker's side that name a keyword of this enemy unit (Hatred (Orc) applies).
+	Applies []core.RuleMatch
 }
 
 // HasEnemies and HasFriends say which parts of the target list exist.
@@ -204,6 +206,7 @@ func (s *Server) woundTargets(r *http.Request, id, matchID, companyID, attacker 
 	}
 	user := *userFrom(r.Context())
 	var enemies, friends []woundGroup
+	var mine []core.TargetUnit // the Field units of the attacker's side, the attacker included: their rules are what the markers show
 	for i, side := range m.Sides {
 		for _, co := range side.Companies {
 			lc, err := s.campaigns.Live(r.Context(), user, id, co.ID)
@@ -215,6 +218,9 @@ func (s *Server) woundTargets(r *http.Request, id, matchID, companyID, attacker 
 				return nil, err
 			}
 			g := woundGroup{Company: co.Name, Side: side.Label(), Friends: i == own}
+			if g.Friends {
+				mine = append(mine, targetUnits(detail.Roster, lc)...)
+			}
 			for _, lu := range lc.Units {
 				if lu.Zone != core.ZoneField || lu.UnitID == attacker {
 					continue
@@ -234,6 +240,18 @@ func (s *Server) woundTargets(r *http.Request, id, matchID, companyID, attacker 
 			} else {
 				enemies = append(enemies, g)
 			}
+		}
+	}
+	for gi := range enemies {
+		var theirs []core.TargetUnit
+		for _, t := range enemies[gi].Targets {
+			if tu, ok := core.NewTargetUnit(t.CompanyUnit, t.Live); ok {
+				theirs = append(theirs, tu)
+			}
+		}
+		found := core.RuleMatches(mine, theirs)
+		for ti := range enemies[gi].Targets {
+			enemies[gi].Targets[ti].Applies = found[enemies[gi].Targets[ti].ID]
 		}
 	}
 	return append(enemies, friends...), nil

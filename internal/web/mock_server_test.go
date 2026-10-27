@@ -460,6 +460,45 @@ func (m *MockttsExporter) EXPECT() *MockttsExporterMockRecorder {
 	return m.recorder
 }
 
+// TTSAuras mocks base method.
+func (m *MockttsExporter) TTSAuras(ctx context.Context, campaignID, companyID int64, live *core.TTSLive, opts core.TTSOptions, sel core.AuraSelection) (core.AuraSummary, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TTSAuras", ctx, campaignID, companyID, live, opts, sel)
+	ret0, _ := ret[0].(core.AuraSummary)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TTSAuras indicates an expected call of TTSAuras.
+func (mr *MockttsExporterMockRecorder) TTSAuras(ctx, campaignID, companyID, live, opts, sel any) *MockttsExporterTTSAurasCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TTSAuras", reflect.TypeOf((*MockttsExporter)(nil).TTSAuras), ctx, campaignID, companyID, live, opts, sel)
+	return &MockttsExporterTTSAurasCall{Call: call}
+}
+
+// MockttsExporterTTSAurasCall wrap *gomock.Call
+type MockttsExporterTTSAurasCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockttsExporterTTSAurasCall) Return(arg0 core.AuraSummary, arg1 error) *MockttsExporterTTSAurasCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockttsExporterTTSAurasCall) Do(f func(context.Context, int64, int64, *core.TTSLive, core.TTSOptions, core.AuraSelection) (core.AuraSummary, error)) *MockttsExporterTTSAurasCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockttsExporterTTSAurasCall) DoAndReturn(f func(context.Context, int64, int64, *core.TTSLive, core.TTSOptions, core.AuraSelection) (core.AuraSummary, error)) *MockttsExporterTTSAurasCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // TTSExport mocks base method.
 func (m *MockttsExporter) TTSExport(ctx context.Context, campaignID, companyID int64, live *core.TTSLive, opts core.TTSOptions) (core.TTSExport, error) {
 	m.ctrl.T.Helper()
@@ -3977,6 +4016,45 @@ func (c *MockcampaignsSwapSideRolesCall) Do(f func(context.Context, core.User, i
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsSwapSideRolesCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int) (core.Match, error)) *MockcampaignsSwapSideRolesCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// TTSAuras mocks base method.
+func (m *Mockcampaigns) TTSAuras(ctx context.Context, campaignID, companyID int64, live *core.TTSLive, opts core.TTSOptions, sel core.AuraSelection) (core.AuraSummary, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TTSAuras", ctx, campaignID, companyID, live, opts, sel)
+	ret0, _ := ret[0].(core.AuraSummary)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TTSAuras indicates an expected call of TTSAuras.
+func (mr *MockcampaignsMockRecorder) TTSAuras(ctx, campaignID, companyID, live, opts, sel any) *MockcampaignsTTSAurasCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TTSAuras", reflect.TypeOf((*Mockcampaigns)(nil).TTSAuras), ctx, campaignID, companyID, live, opts, sel)
+	return &MockcampaignsTTSAurasCall{Call: call}
+}
+
+// MockcampaignsTTSAurasCall wrap *gomock.Call
+type MockcampaignsTTSAurasCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsTTSAurasCall) Return(arg0 core.AuraSummary, arg1 error) *MockcampaignsTTSAurasCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsTTSAurasCall) Do(f func(context.Context, int64, int64, *core.TTSLive, core.TTSOptions, core.AuraSelection) (core.AuraSummary, error)) *MockcampaignsTTSAurasCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsTTSAurasCall) DoAndReturn(f func(context.Context, int64, int64, *core.TTSLive, core.TTSOptions, core.AuraSelection) (core.AuraSummary, error)) *MockcampaignsTTSAurasCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

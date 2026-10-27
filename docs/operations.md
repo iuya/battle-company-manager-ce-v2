@@ -53,9 +53,10 @@ The image carries the OCI labels `source`, `version`, `revision` (the commit), `
 Without compose: `docker pull ghcr.io/iuya/battle-company-manager-ce-v2:1.1.0`. To go back to the local build, swap the lines and run `docker compose up -d --build`.
 
 **Release.** `.github/workflows/release-image.yml` runs when a tag `v*` is pushed (`git tag v1.1.0 && git push origin v1.1.0`, after asking the owner, CLAUDE.md). Jobs, in order:
-`e2e` (the browser tests of `e2e.yml`, called as a reusable workflow; a failure stops the release), then in `publish`: tags and labels, a build of the amd64 image into the runner, a smoke
-test (start it read-only against a PostgreSQL service container, `/readyz`, `/healthz`, the login page, the built-in healthcheck), and only then the amd64+arm64 build and push with the
-`GITHUB_TOKEN` (permissions: contents read, packages write). Running the workflow by hand from the Actions tab is a dry run: the same steps, nothing is pushed.
+`e2e` (the browser tests of `e2e.yml`, called as a reusable workflow: four parallel groups and a final `e2e` job; any failing group stops the release), then `build`, a matrix of two jobs on native runners
+(no QEMU): `linux/amd64` on `ubuntu-latest` and `linux/arm64` on `ubuntu-24.04-arm` (free for public repositories). Each builds its image into its runner, smoke-tests it (starts it read-only against a PostgreSQL service
+container, `/readyz`, `/healthz`, the login page, the built-in healthcheck, the architecture), and only then pushes it by digest (no tag) with the `GITHUB_TOKEN` (permissions: contents read, packages write) and uploads the
+digest as an artifact. The `merge` job (tags only) downloads both digests and creates the multi-platform manifest with the tags of the table above (`docker buildx imagetools create`), then inspects it. The build cache (gha) is kept per platform. Running the workflow by hand from the Actions tab is a dry run: the browser tests and both builds with their smoke tests, no login, no push, and `merge` is skipped.
 
 **Make the package public, once.** The first push creates the package private, and visibility cannot be changed through the API or CI. On GitHub: the repository's *Packages* >
 the package > *Package settings* > *Change visibility* > Public (also *Manage Actions access* should list this repository with Write). After that anyone can pull without logging in.
@@ -163,6 +164,7 @@ needs its own guard, because an unrecovered panic in any goroutine ends the proc
   the request context, so a client that leaves cancels its queries.
 - **Boot versus run.** Configuration errors, a failed migration, a broken embedded asset table (`staticFiles`) and an unparsable template fail at start (`NewServer`,
   `run`), never at the first request. At run time nothing calls `log.Fatal`; the `panic` calls in `cmd/server/world*.go` belong to the `seed` command.
+- **Live match actions.** `TestLiveActionsSurviveExtremeValues` (cmd/server, needs `TEST_DATABASE_URL`; about 2.5 minutes, `SWEEP_FULL=1` about 6) is the sweep that puts ONE extreme but plausible value at a time (wounds 2^31, negatives, 0, empty, overflowing numbers, the unit of another company, match or campaign, wrong parts, reasons and fields, oversized or NUL notes) into an otherwise valid form of every live POST (each action kind, undo, courage roll, objective and MVP votes, secret objectives, the end-of-match steps), also repeated and against the wrong match, an ended match and a finished campaign. No answer is a 5xx or an empty 4xx, and after every kind the folded state is checked: every tracker within 0..start, no negative or overflowing Break Point counter, the log readable. The service validates all bounds (`LiveState.Check`: trackers 0..start, wounds caused 1 to 9, Fate within what is left, Break correction -9..9 and never below one starting model, turns in sequence); typed courage dice outside 1 to 6 are an `ErrInvalidLive` (422).
 - **Tests.** `TestMalformedInputNeverCrashesAHandler` (cmd/server, needs `TEST_DATABASE_URL`; about 80 s with the seeding, `SWEEP_FULL=1` tries 23 values and takes about two minutes) sends every route, read from `server.go`, hostile values for every
   form field the handlers and templates know and hostile path ids against the demo world: no 5xx, no logged panic. Run the packages you touch with `go test -race`.
 

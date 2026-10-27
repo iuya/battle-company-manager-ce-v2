@@ -51,6 +51,9 @@ type ttsExporter interface {
 	TTSExport(ctx context.Context, campaignID, companyID int64, live *core.TTSLive, opts core.TTSOptions) (core.TTSExport, error)
 	// TTSNames is the ArmyNames JSON v1 (level B) of the company for that export, so the list and the names agree.
 	TTSNames(ctx context.Context, campaignID, companyID int64, exp core.TTSExport, opts core.TTSNamesOptions) (core.TTSNamesPayload, error)
+	// TTSAuras is the Auras section of the dialog for a selection: the kinds the company has, their rings and radii, what each switch adds and
+	// the notes for rings left out (docs/aura-ranges.md). live and opts are those of TTSExport, so the counts agree with the figures.
+	TTSAuras(ctx context.Context, campaignID, companyID int64, live *core.TTSLive, opts core.TTSOptions, sel core.AuraSelection) (core.AuraSummary, error)
 }
 
 type campaigns interface {

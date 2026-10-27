@@ -13,6 +13,8 @@ type styleGuideView struct {
 	Palettes []palette
 	Modes    []string
 	Keywords []keywordSample
+	Applies  []core.RuleMatch // sample markers of an enemy unit in a live match
+	Auras    []core.Aura      // sample aura chips of a Hero
 }
 
 // keywordSample is one state of the keyword chip row for the style guide.
@@ -47,5 +49,16 @@ func (s *Server) handleStyleGuide(w http.ResponseWriter, r *http.Request) {
 		Palettes: []palette{{"forest", "Forest & Gold"}, {"ember", "Parchment & Ember"}, {"mithril", "Mithril & Night"}},
 		Modes:    []string{"system", "light", "dark"},
 		Keywords: sampleKeywords(),
+		Auras: []core.Aura{
+			{ID: "standfast-6", Kind: "command", Radius: 6, Affects: "friendly", When: core.AuraAlways, Group: core.AuraGroupAlways, LOS: true, Label: "Stand Fast, With Me!", Tip: "Friendly Warriors within 6 inches may rally.", Concept: "Stand Fast"},
+			{ID: "banner-3", Kind: "banner", Radius: 3, Affects: "friendly", When: core.AuraAlways, Group: core.AuraGroupAlways, Label: "Company Standard", Tip: "Friendly models within 3 inches re-roll Duel dice of 1.", Concept: "Company Standard"},
+			{ID: "tirade-6", Kind: "enemy", Radius: 6, Affects: "enemy", When: core.AuraAlways, Group: core.AuraGroupAlways, Label: "Furious Tirade", Tip: "Enemy Warriors within 6 inches cannot use Stand Fast."},
+			{ID: "knife-3", Kind: "support", Radius: 3, Affects: "friendly", When: core.AuraAlways, Group: core.AuraGroupAlways, LOS: true, Label: "Knife Mastery", Tip: "Friendly bow models re-roll a natural 1 To Wound."},
+			{ID: "torch-6", Kind: "utility", Radius: 6, Affects: "any", When: core.AuraAlways, Group: core.AuraGroupOptional, Label: "Torching Brand", Tip: "Lit area: off by default in the dialog."},
+		},
+		Applies: []core.RuleMatch{
+			{Rule: "Hatred (Orc)", Holders: []string{"Hador", "Aldor"}, Keyword: "Orc"},
+			{Rule: "Ancient Enemies (Dwarf)(Elf)", Holders: []string{"Grashnak"}, Keyword: "Elf"},
+		},
 	})
 }

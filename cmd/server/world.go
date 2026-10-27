@@ -49,6 +49,9 @@ type world struct {
 	// scenarios of the default Battle Companies file, by name
 	scenarios map[string]core.ScenarioInfo
 	spareNext int // next faction of the rules file for w.spare
+	// the Aura parade: the default rules and the data.auras entries (by id) the companies of the script cover, with the companies
+	rules       *core.RuleSet
+	auraCovered map[string][]string
 }
 
 // wcamp is a campaign of the world with the actor who organises it.
@@ -386,7 +389,7 @@ func seedWorld(ctx context.Context, b *backend, dice *demoDice, password string,
 	if out == nil {
 		out = os.Stdout
 	}
-	w := &world{ctx: ctx, b: b, dice: dice, pw: password, out: out, users: map[string]core.User{}, exec: exec}
+	w := &world{ctx: ctx, b: b, dice: dice, pw: password, out: out, users: map[string]core.User{}, exec: exec, auraCovered: map[string][]string{}}
 	defer func() {
 		if r := recover(); r != nil {
 			if a, ok := r.(worldAbort); ok {
@@ -411,9 +414,11 @@ func seedWorld(ctx context.Context, b *backend, dice *demoDice, password string,
 		{"injuries and treatment", w.injuryCampaign},
 		{"level-ups", w.levelCampaign},
 		{"units, creatures, wanderers and limits", w.limitsCampaign},
+		{"keyword targets", w.targetsCampaign},
 		{"matches and scenarios", w.matchCampaign},
 		{"aftermaths", w.aftermathCampaigns},
 		{"settings, editions and the end", w.settingsCampaigns},
+		{"aura parade", w.auraParade},
 		{"cemetery, invites and handover", w.finishingTouches},
 	} {
 		fmt.Fprintln(out, "==", step.name)
