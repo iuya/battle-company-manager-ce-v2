@@ -427,7 +427,7 @@ def main():
                 errors.append(f"gear {it['name']!r}: related to itself")
             elif it["name"] not in [x["name"] for x in other.get("relatedTo", [])]:
                 errors.append(f"gear {it['name']!r}: relatedTo {r['name']!r} is not symmetric")
-        for field in ("variantOf", "pricedAs"):
+        for field in ("pricedAs",):
             tgt = it.get(field)
             if tgt and item_key(tgt) not in by_key:
                 errors.append(f"gear {it['name']!r}: {field} {tgt!r} is not an item")
@@ -443,7 +443,7 @@ def main():
                 errors.append(f"gear {it['name']!r}: a crossbow cannot fire after moving")
             if it.get("ranged") != {"range": 24, "strength": 4}:
                 errors.append(f"gear {it['name']!r}: a crossbow is 24\" S4 (vanilla and the rulebook's Missile Weapon chart)")
-    # item modifiers: an item is a base item plus modifiers; pricedAs / variantOf are derived from them
+    # item modifiers: an item is a base item plus modifiers; pricedAs is derived from them
     mods = {m["key"]: m for m in D["gearAnnotations"]["modifiers"]}
     if len(mods) != len(D["gearAnnotations"]["modifiers"]):
         errors.append("gearAnnotations.modifiers: duplicate key")
@@ -463,15 +463,11 @@ def main():
             for k in it["modifiers"]:
                 if k not in mods:
                     errors.append(f"gear {nm!r}: unknown modifier {k!r}")
-            kinds = {mods[k]["identity"] for k in it["modifiers"] if k in mods}
-            if ("variant" in kinds) != (it.get("variantOf") == it["base"]):
-                errors.append(f"gear {nm!r}: variantOf must be the base exactly when a modifier has identity 'variant'")
             if it.get("pricedAs") and (it["pricedAs"] != it["base"] or "elven" not in it["modifiers"]):
                 errors.append(f"gear {nm!r}: pricedAs is the base of an Elven item")
         else:
-            for field in ("pricedAs", "variantOf"):
-                if it.get(field):
-                    errors.append(f"gear {nm!r}: {field} is derived from base + modifiers")
+            if it.get("pricedAs"):
+                errors.append(f"gear {nm!r}: pricedAs is derived from base + modifiers")
         g = it.get("grantsRuleForChosenWeapon")
         if g:
             if not it.get("weaponModifier") or f"{g['rule']} (X)" not in it.get("grants", []):

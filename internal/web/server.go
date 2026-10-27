@@ -109,7 +109,7 @@ type campaigns interface {
 	// result is left pending in the RecruitResult (Choice) until ChooseOptions; PendingChoice tells whether one is waiting.
 	BuyEquipment(ctx context.Context, user core.User, id, unitID int64, item, pay string) error
 	// BuyEquipmentFor buys an item that is a modifier of one weapon (Envenom Weapon) with the weapon the player chose among the unit's
-	// PoisonableWeapons; ChooseModifierWeapon chooses it (again) for one the unit carries (Equipment.Choices lists the weapons).
+	// PoisonableWeapons; ChooseModifierWeapon chooses it, once, for a legacy one the unit carries without a weapon (Equipment.Choices lists the weapons).
 	BuyEquipmentFor(ctx context.Context, user core.User, id, unitID int64, item, pay, weapon string) error
 	ChooseModifierWeapon(ctx context.Context, user core.User, id, unitID int64, modifier, weapon string) error
 	// TreatInjury pays to treat a unit's injuries (costs and rolls come from the rules file). The result says what happened;

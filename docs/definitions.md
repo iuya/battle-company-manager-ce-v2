@@ -268,8 +268,8 @@ as the one documented exception.
     BC wargear table: Elven-made weaponry uses the generic equivalent's values, restricted to Elf models), `masterForged` (rulebook: no -1
     Duel Roll for using it as a two-handed weapon; no BC item carries it today). "Masterwork" and "Dwarven-made" appear in neither document; "Fire-based attacks" has no inherent
     effect, so none of them is a modifier. `identity` says what the modifier does to identity: `distinct` (the Elven spear is its own item: a
-    Spear option does not take it, so a Spear is not bought by an Elf profile and the other way round) or `variant` (fills the profile's base item; no item uses it today). `variantOf` and `pricedAs` are derived from base + modifiers for the app: `variantOf` for a `variant` modifier,
-    `pricedAs` (sold at the base's price and rating) for an Elven item whose base is in the wargear table and which is not unique wargear
+    Spear option does not take it, so a Spear is not bought by an Elf profile and the other way round) or `variant` (fills the profile's base item; no item uses it today). `pricedAs` is derived from base + modifiers for the app
+    (sold at the base's price and rating) for an Elven item whose base is in the wargear table and which is not unique wargear
     (the Elven-made Glaive and the Wood Elf Spear are Spear + `elven` too but keep the price of their company's page; the Galadhrim Knight's
     Elven-made hand-and-a-half sword is never sold, `NOT_SOLD` in `tools/bc/gear.py`). `relatedTo` stays for items that are related
     but have no base (Elf Bow / Longbow). The validator checks keys, bases, the glossary terms and that the derived fields agree.
@@ -297,10 +297,14 @@ as the one documented exception.
        `CompanyUnit.PoisonableWeapons` those of the unit). The classes come from `weaponClasses` (Go: `BCBook.CanBePoisoned`, also used by the
        level-up's Poisoned Attacks); in a match the kit assignment `Detail` names the weapon in free text. The minor special rule "Poisoned Attacks (X)" of the paths asks the same
        question (`Progress.Minor`, `Poisoned Attacks|weapon:<name>`) and gives the same unit rule.
-       Promotion: Envenom Weapon is equipment and stays; the chosen weapon is a name, so if the new profile no longer lists that weapon the
-       item goes back to `Envenom Weapon (X)` (no rule, nothing shown for a weapon the unit lacks) and the player chooses again among the
-       weapons of the new profile (`ArmouryService.ChooseModifierWeapon`). A unit with the same rule from its profile, the Blowpipe and
-       Envenom Weapon shows it once; a weapon a rule already names is not offered.
+       The choice is FINAL (owner decision 2026-10-27) and belongs to the weapon's NAME: the unit keeps the rule when the weapon is dropped
+       or lost in a promotion (the item keeps its chosen weapon, `Equipment.Choices` is empty), and buying the weapon again poisons it again
+       (the rule shows once); dropping the Envenom Weapon item itself removes the rule. The rule is only ever created with a weapon chosen
+       from the unit's own `PoisonableWeapons`: `BuyEquipmentFor` refuses a purchase without a weapon, with a weapon the unit lacks, one
+       already poisoned or outside `weaponClasses` (the refusal names the choices), and `ArmouryService.ChooseModifierWeapon` only serves a
+       legacy `Envenom Weapon (X)` that has no weapon yet (it gives no rule until one is chosen) and refuses a second choice. Promotion:
+       Envenom Weapon is equipment and stays as it is. A unit with the same rule from its profile, the Blowpipe and Envenom Weapon shows it
+       once; a weapon a rule already names is not offered.
   - Bow-type weapons (`bow` class: Bow, Longbow, Elf Bow...) carry `moveAndShoot` (may shoot after moving up to half the Move Value,
     Shoot Value worsened by 1); a `crossbow` (24" S4, vanilla and the rulebook's Missile Weapon chart) carries `noFireAfterMove`. A
     Pike carries `twoHanded`, Support `depth` 2 (it supports like a spear and through a second pike-bearer) and the shield/missile

@@ -42,7 +42,7 @@
   <p class="mt-6 text-muted" x-show="noMatch()" x-cloak role="status">Nothing matches the filters. <button type="button" class="btn btn-ghost !min-h-9 !px-3" @click="clear()">Clear the filters</button></p>
 
   <ul class="mt-4 space-y-3">
-    {{range .Entries}}{{$item := .Name}}{{$cost := .Cost}}
+    {{range $ei, $e := .Entries}}{{$item := .Name}}{{$cost := .Cost}}{{$wm := .WeaponModifier}}
     <li data-name="{{.Name}}" data-aliases="{{join .AlsoCalled "|"}}" data-main="{{.Main}}" data-sub="{{.Sub}}" data-avail="{{if .Avail}}1{{else}}0{{end}}" x-show="shows($el)" x-data="{ open: false }" class="card !p-4">
       <div class="flex flex-wrap items-start gap-x-3 gap-y-2">
         <span class="mt-1 flex gap-0.5">{{template "gear_icons" .}}</span>
@@ -62,10 +62,12 @@
       </div>
       <ul x-show="open" x-cloak class="mt-3 divide-y divide-line rounded-lg border border-line" aria-label="Units">
         {{range .Units}}
-        <li class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-1.5 {{if not .Able}}opacity-50{{end}}">
-          <span class="flex items-center gap-2">{{template "role_insignia" .Role}}<span class="font-medium">{{.Title}}</span>{{if ne .Title .Type}}<span class="text-sm text-muted">{{.Type}}</span>{{end}}</span>
-          {{if .Able}}
-          <form method="post" action="/campaigns/{{$.Campaign.ID}}/armory/buy" hx-post="/campaigns/{{$.Campaign.ID}}/armory/buy"><input type="hidden" name="unit" value="{{.ID}}"><input type="hidden" name="item" value="{{$item}}">{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-8 !px-3 !text-xs" "Cost" $cost "Gold" .GoldPrice "PayInfluence" .PayInfluence "PayGold" .PayGold)}}</form>
+        <li class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-1.5">
+          <span class="flex items-center gap-2">{{template "role_insignia" .Role}}<span class="font-medium {{if not .Able}}text-muted{{end}}">{{.Title}}</span>{{if ne .Title .Type}}<span class="text-sm text-muted">{{.Type}}</span>{{end}}</span>
+          {{$ws := index $.Weapons .ID}}
+          {{if and .Able $wm (not $ws)}}<span class="text-sm text-muted">{{template "no_weapon_reason" $item}}</span>
+          {{else if .Able}}
+          <form method="post" action="/campaigns/{{$.Campaign.ID}}/armory/buy" hx-post="/campaigns/{{$.Campaign.ID}}/armory/buy" class="flex flex-wrap items-end gap-2"><input type="hidden" name="unit" value="{{.ID}}"><input type="hidden" name="item" value="{{$item}}">{{if $wm}}{{template "weapon_chooser" (dict "Weapons" $ws "ID" (printf "armory-weapon-%d-%d" .ID $ei) "Chosen" "")}}{{end}}{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-8 !px-3 !text-xs" "Cost" $cost "Gold" .GoldPrice "PayInfluence" .PayInfluence "PayGold" .PayGold)}}</form>
           {{else}}<span class="text-sm text-muted">{{.Reason}}</span>{{end}}
         </li>
         {{end}}
@@ -101,7 +103,7 @@
       </div>
       <ul x-show="open" x-cloak class="mt-3 divide-y divide-line rounded-lg border border-line" aria-label="Officers">
         {{range .Owners}}
-        <li class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-1.5 {{if not .Able}}opacity-50{{end}}">
+        <li class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-1.5">
           <span class="flex items-center gap-2">{{template "role_insignia" .Role}}<span class="font-medium">{{.Title}}</span>{{if ne .Title .Type}}<span class="text-sm text-muted">{{.Type}}</span>{{end}}</span>
           {{if .Able}}<form method="post" action="/campaigns/{{$.Campaign.ID}}/armory/creature" hx-post="/campaigns/{{$.Campaign.ID}}/armory/creature"><input type="hidden" name="unit" value="{{.ID}}"><input type="hidden" name="name" value="{{$name}}">{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-8 !px-3 !text-xs" "Cost" $ccost "Gold" $cgold "PayInfluence" $cinf "PayGold" $cgd)}}</form>
           {{else}}<span class="text-sm text-muted">{{.Reason}}</span>{{end}}

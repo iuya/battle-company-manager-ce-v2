@@ -103,9 +103,9 @@
           <div class="min-w-0">
             <p class="font-medium">{{.Name}}{{with .Stats}} <span class="font-normal text-muted">{{.}}</span>{{end}} {{if .Bought}}<span class="badge">Bought</span>{{else}}<span class="badge badge-muted">Starting</span>{{end}}{{with .Size}} <span class="badge badge-muted">{{.}} slot</span>{{end}}</p>
             {{if .Segments}}<p class="text-sm text-muted">{{template "segments" (dict "S" .Segments "CID" $cid)}}</p>{{end}}
-            {{if and .Choices (not $ro)}}<form data-lock class="mt-1 flex flex-wrap items-end gap-2" method="post" action="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/equipment/weapon" hx-post="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/equipment/weapon" hx-target="#main" hx-swap="innerHTML show:window:top">
-              <input type="hidden" name="item" value="{{.Name}}">{{template "weapon_chooser" (dict "Weapons" .Choices "ID" (printf "weapon-%d-%s" $u.ID .Name) "Chosen" .Modifies)}}<button class="btn btn-ghost !min-h-8 !px-2 !text-xs">{{if .Modifies}}Change weapon{{else}}Choose weapon{{end}}</button>
-            </form>{{else if and .Choices $ro}}{{if not .Modifies}}<p class="text-xs text-muted">No weapon chosen yet.</p>{{end}}{{end}}
+            {{if and .Choices (not .Modifies) (not $ro)}}<form data-lock class="mt-1 flex flex-wrap items-end gap-2" method="post" action="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/equipment/weapon" hx-post="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/equipment/weapon" hx-target="#main" hx-swap="innerHTML show:window:top">
+              <input type="hidden" name="item" value="{{.Name}}">{{template "weapon_chooser" (dict "Weapons" .Choices "ID" (printf "weapon-%d-%s" $u.ID .Name) "Chosen" "")}}<button class="btn btn-ghost !min-h-8 !px-2 !text-xs">Choose weapon</button>
+            </form>{{else if and .Choices (not .Modifies) $ro}}<p class="text-xs text-muted">No weapon chosen yet.</p>{{end}}
           </div>
           {{if .Drop}}<span class="ml-auto max-w-40 shrink-0 self-start text-right text-xs text-muted">{{if not $ro}}{{.Drop}}{{end}}</span>{{else if not $ro}}
           <form data-lock class="ml-auto shrink-0 self-start" method="post" action="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/equipment/drop" hx-post="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/equipment/drop" hx-target="#main" hx-swap="innerHTML show:window:top" hx-confirm="Drop {{.Name}}? It is lost for good and nothing is refunded.">
@@ -428,3 +428,6 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
 
 {{/* The weapon a rule with a weapon parameter (Poisoned Attacks) is given to: one of the unit's eligible weapons. Takes {Weapons, ID, Chosen}. */}}
 {{define "weapon_chooser"}}<div class="field !mb-0"><label for="{{.ID}}" class="text-xs">Weapon</label><select id="{{.ID}}" name="weapon" class="input !min-h-9" required>{{if not .Chosen}}<option value="" disabled selected>Choose a weapon</option>{{end}}{{range .Weapons}}<option value="{{.}}" {{if eq . $.Chosen}}selected{{end}}>{{.}}</option>{{end}}</select></div>{{end}}
+
+{{/* Why a weapon modifier (Envenom Weapon) cannot be bought: the unit has no weapon left it could be for. */}}
+{{define "no_weapon_reason"}}No weapon left for {{.}}: every weapon of this unit is poisoned already or cannot be.{{end}}

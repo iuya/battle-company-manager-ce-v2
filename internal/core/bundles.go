@@ -16,7 +16,7 @@ type PartialBundle struct {
 // itemAs describes a wargear name as the identity checks want it.
 func itemAs(rs *RuleSet, bcCo BCCompany, name string) GearOffer {
 	e, _ := equipmentFor(rs, bcCo, name, false, false, false)
-	return GearOffer{Name: name, AlsoCalled: e.Spellings, VariantOf: e.VariantOf, Classes: e.Classes()}
+	return GearOffer{Name: name, AlsoCalled: e.Spellings, Classes: e.Classes()}
 }
 
 // completeBundle applies the rule that a chart row, a promotion or the starting company which names one piece of a multi-item profile

@@ -1106,7 +1106,7 @@ func TestArmoryTabListsEverythingWithTheUnitsThatCanTakeIt(t *testing.T) {
 			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", Role: core.RoleSergeant, Reason: "Cavalry only", Blocker: core.BlockedByRule}}},
 	}, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory", nil))).Body.String()
-	for _, want := range []string{"Badge of Courage", "Barding", "Buy for…", "No unit can take it", "Cavalry only", "opacity-50", `/armory/buy`, `name="item" value="Badge of Courage"`, "Gives:", "Fearless", `x-data="armory"`} {
+	for _, want := range []string{"Badge of Courage", "Barding", "Buy for…", "No unit can take it", "Cavalry only", `/armory/buy`, `name="item" value="Badge of Courage"`, "Gives:", "Fearless", `x-data="armory"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("armory lacks %q", want)
 		}
@@ -1155,6 +1155,35 @@ func TestBuyingFromTheArmory(t *testing.T) {
 	rec = f.do(f.signedIn(form("/campaigns/7/armory/buy", url.Values{"unit": {"5"}, "item": {"Seeing Stone"}})))
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "heroes only") {
 		t.Errorf("refused: %d", rec.Code)
+	}
+}
+
+func TestArmoryTabAsksForTheWeaponOfAWeaponModifier(t *testing.T) {
+	f := newFixture(t, Config{})
+	d, detail := mineDetail()
+	detail.Roster = []core.CompanyUnit{{ID: 5, Name: "Hador", Type: "Warrior", PoisonableWeapons: []string{"Bow", "Sword"}}, {ID: 6, Name: "Bare", Type: "Warrior"}}
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).Times(2)
+	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).Times(2)
+	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
+	f.camp.EXPECT().ArmouryCreatures(gomock.Any(), int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().ArmouryWanderers(gomock.Any(), int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().ArmouryEntries(gomock.Any(), int64(7), int64(1)).Return([]core.ArmouryEntry{
+		{GearOffer: core.GearOffer{Name: "Envenom Weapon (X)", Classes: []core.EquipmentClass{core.EquipOther}, Cost: 2, Size: "small", WeaponModifier: true},
+			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", PayInfluence: true}, {ID: 6, Title: "Bare", Type: "Warrior", PayInfluence: true}}},
+	}, nil).Times(2)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory", nil))).Body.String()
+	for _, want := range []string{`name="weapon"`, `<option value="Bow"`, `<option value="Sword"`, "Choose a weapon", "No weapon left for Envenom Weapon (X)"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("armory lacks %q", want)
+		}
+	}
+	if strings.Count(body, `name="weapon"`) != 1 {
+		t.Error("only the unit with a weapon gets a chooser; the other gets the reason")
+	}
+	f.camp.EXPECT().BuyEquipmentFor(gomock.Any(), frodo, int64(7), int64(5), "Envenom Weapon (X)", gomock.Any(), "Bow").Return(nil)
+	rec := f.do(f.signedIn(form("/campaigns/7/armory/buy", url.Values{"unit": {"5"}, "item": {"Envenom Weapon (X)"}, "weapon": {"Bow"}})))
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Bought Envenom Weapon (X).") {
+		t.Errorf("got %d", rec.Code)
 	}
 }
 
@@ -1672,7 +1701,7 @@ func TestBuyingAndChoosingTheWeaponOfAWeaponModifier(t *testing.T) {
 			t.Errorf("got %d", rec.Code)
 		}
 	})
-	t.Run("choose again", func(t *testing.T) {
+	t.Run("choose a legacy item's weapon", func(t *testing.T) {
 		f := newFixture(t, Config{})
 		d, detail := mineDetail()
 		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
@@ -1685,6 +1714,46 @@ func TestBuyingAndChoosingTheWeaponOfAWeaponModifier(t *testing.T) {
 		rec := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/equipment/weapon", url.Values{"item": {"Envenom Weapon (X)"}, "weapon": {"Bow"}})))
 		if rec.Code != 200 || !strings.Contains(rec.Body.String(), "applies to the Bow") {
 			t.Errorf("got %d", rec.Code)
+		}
+	})
+	t.Run("the choice is final: a second choice and a purchase without a weapon are refused with the message", func(t *testing.T) {
+		f := newFixture(t, Config{})
+		d, detail := mineDetail()
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).Times(2)
+		f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).Times(2)
+		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).Times(2)
+		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).Times(2)
+		f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).Times(2)
+		f.camp.EXPECT().ChooseModifierWeapon(gomock.Any(), frodo, int64(7), int64(5), "Envenom Weapon (Bow)", "Spear").
+			Return(core.Refuse("Envenom Weapon (Bow) already has its weapon (Bow): the choice is final."))
+		rec := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/equipment/weapon", url.Values{"item": {"Envenom Weapon (Bow)"}, "weapon": {"Spear"}})))
+		if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "the choice is final") {
+			t.Errorf("second choice: %d", rec.Code)
+		}
+		f.camp.EXPECT().BuyEquipment(gomock.Any(), frodo, int64(7), int64(5), "Envenom Weapon (X)", gomock.Any()).
+			Return(core.Refuse("Envenom Weapon (X) needs the weapon it is for: choose one of Bow, Hand weapon."))
+		rec = f.do(f.signedIn(form("/campaigns/7/my-company/units/5/equipment", url.Values{"item": {"Envenom Weapon (X)"}})))
+		if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "choose one of Bow, Hand weapon") {
+			t.Errorf("no weapon: %d", rec.Code)
+		}
+	})
+	t.Run("a chosen weapon has no chooser and no Change weapon, whether or not the weapon is carried", func(t *testing.T) {
+		f := newFixture(t, Config{})
+		d, detail := mineDetail()
+		detail.Roster[0].Equipment = []core.Equipment{{Name: "Envenom Weapon (Bow)", Class: core.EquipOther, Size: "small", Bought: true, Modifies: "Bow"}}
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+		f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
+		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+		f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
+		body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+		if strings.Contains(body, `/units/5/equipment/weapon`) || strings.Contains(body, "Change weapon") || strings.Contains(body, "Choose weapon") {
+			t.Error("the choice is final: nothing to choose or change")
+		}
+		if !strings.Contains(body, "Bow · envenomed") {
+			t.Error("the item shows its weapon")
 		}
 	})
 	t.Run("the card offers the chooser", func(t *testing.T) {

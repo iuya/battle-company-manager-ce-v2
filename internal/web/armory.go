@@ -18,8 +18,9 @@ type armoryView struct {
 	Entries     []armoryRow
 	Creatures   []armoryCreature
 	Wanderers   []armoryWanderer
-	Subs        []armorySub // the item categories that exist, in display order
-	Applies     string      // JSON: the item categories each main category has, for the filter chips
+	Subs        []armorySub        // the item categories that exist, in display order
+	Weapons     map[int64][]string // per unit: the weapons Poisoned Attacks could still be given to (Envenom Weapon asks for one)
+	Applies     string             // JSON: the item categories each main category has, for the filter chips
 	Notice      string
 	NoticeError bool
 }
@@ -169,6 +170,10 @@ func (s *Server) armoryPage(w http.ResponseWriter, r *http.Request, status int, 
 		}
 		entries = offeredEntries(entries)
 		view.Company, view.HasCompany = detail, true
+		view.Weapons = map[int64][]string{}
+		for _, u := range detail.Roster {
+			view.Weapons[u.ID] = u.PoisonableWeapons
+		}
 		view.Entries, view.Subs, view.Applies = armoryRows(entries)
 		g, err := s.glossary.ForCampaign(r.Context(), base.Campaign.ID) // rules are explained by the campaign's glossary
 		if err != nil && !errors.Is(err, core.ErrNotFound) {
@@ -207,7 +212,7 @@ func (s *Server) handleArmoryBuy(w http.ResponseWriter, r *http.Request) {
 	}
 	unitID, _ := strconv.ParseInt(r.PostFormValue("unit"), 10, 64)
 	item := r.PostFormValue("item")
-	err := s.campaigns.BuyEquipment(r.Context(), *userFrom(r.Context()), id, unitID, item, r.PostFormValue("pay"))
+	err := s.buyEquipment(r, id, unitID, item)
 	switch {
 	case errors.Is(err, core.ErrRefused):
 		s.armoryPage(w, r, http.StatusUnprocessableEntity, reason(err), true)

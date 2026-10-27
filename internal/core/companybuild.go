@@ -38,7 +38,7 @@ func equipmentFor(rs *RuleSet, bcCo BCCompany, name string, bought, profile, her
 	}
 	e.Class, e.Also = classes[0], classes[1:]
 	if annotated {
-		e.Spellings, e.VariantOf = append([]string{a.Name}, a.Aliases...), a.VariantOf
+		e.Spellings = append([]string{a.Name}, a.Aliases...)
 		e.RequiresMount = a.RequiresMount
 	}
 	e.Exclusive = offered && offer.Exclusive
@@ -391,7 +391,7 @@ func pointsOf(rs *RuleSet, bcCo BCCompany, base VanillaUnit, u *CompanyUnit) int
 					e.Rating = stage * rs.BC.ArmourUpgrade().Rating.For(heroColumn) // +1 per stage until Attacks + Wounds reach 3, then +5
 				}
 			} else if hero && !slices.ContainsFunc(base.Options, func(o ChoiceOption) bool {
-				return GearMatchesOption(GearOffer{Name: e.Name, AlsoCalled: e.Spellings, VariantOf: e.VariantOf, Classes: e.Classes()}, o.Name)
+				return GearMatchesOption(GearOffer{Name: e.Name, AlsoCalled: e.Spellings, Classes: e.Classes()}, o.Name)
 			}) {
 				e.Rating = ratingOf(e.Name).For(heroColumn)
 			}

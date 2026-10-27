@@ -963,10 +963,6 @@
                     "type": "string",
                     "description": "Derived from base + the Elven modifier: An Elven-made item sold at the price and rating of its generic equivalent in the wargear table ('Elven-made weaponry uses their generic equivalent values, but are restricted to Elf models'). Its own item, not an alias."
                   },
-                  "variantOf": {
-                    "type": "string",
-                    "description": "Derived from base + a `variant` modifier: this item is a specific version of another and fills its place in a profile option (no item uses it today). Not an alias."
-                  },
                   "relatedTo": {
                     "type": "array",
                     "minItems": 1,

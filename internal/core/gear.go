@@ -22,7 +22,6 @@ type GearAnnotation struct {
 	Base           string            // the generic item this one is a version of (Elven spear: Spear); the tooltip already explains the modifiers
 	Modifiers      []string          // keys of data.gearAnnotations.modifiers (elven, masterForged, poisoned)
 	PricedAs       string            // an Elven-made item sold at the price of its generic equivalent (derived from Base + the elven modifier)
-	VariantOf      string            // a specific version of another item that fills its place in a profile option
 	Related        []string          // related but distinct items (Elf Bow and Longbow share a profile): never the same item
 	RequiresMount  bool              // only a mounted model can use it (a lance, Barding): struck through in a live match when the mount is lost
 	WeaponModifier bool              // not an item but a modifier bought for one weapon (Envenom Weapon)

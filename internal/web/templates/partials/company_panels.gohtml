@@ -376,7 +376,9 @@
       {{if .Description}}<p class="mt-0.5 line-clamp-2 text-sm text-muted">{{.Description}}</p>{{end}}
     </div>
     <div class="ml-auto flex shrink-0 flex-col items-end gap-1">
-      {{if .Buyable}}
+      {{if and .Buyable .WeaponModifier (not $.Unit.PoisonableWeapons)}}
+      <span class="max-w-48 text-right text-xs text-muted">{{template "no_weapon_reason" .Name}}</span>
+      {{else if .Buyable}}
       <form method="post" action="/campaigns/{{$.Campaign.ID}}/my-company/units/{{$.Unit.ID}}/equipment" hx-post="/campaigns/{{$.Campaign.ID}}/my-company/units/{{$.Unit.ID}}/equipment">
         <input type="hidden" name="item" value="{{.Name}}">{{if .WeaponModifier}}{{template "weapon_chooser" (dict "Weapons" $.Unit.PoisonableWeapons "ID" (printf "buy-weapon-%d" $.Unit.ID) "Chosen" "")}}{{end}}{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-9" "Cost" .Cost "Gold" .GoldPrice "PayInfluence" .PayInfluence "PayGold" .PayGold)}}
       </form>

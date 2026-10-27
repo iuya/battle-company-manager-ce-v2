@@ -73,16 +73,27 @@ func isPoisoned(weapon string, poisoned []string) bool {
 	return slices.ContainsFunc(poisoned, func(p string) bool { return sameSpelling(p, weapon) })
 }
 
-// applyWeaponModifiers resolves the weapon modifiers a unit carries (Envenom Weapon): the weapons it could be given to, the one chosen
-// when it is still carried and not poisoned by something else, and the rule `Poisoned Attacks (<weapon>)` the unit gains for it. The
-// rule is added to the grants once (the profile's own rule, the Blowpipe's and a level-up's are the same rule and show once). It
-// fills the unit's PoisonableWeapons last.
+// applyWeaponModifiers resolves the weapon modifiers a unit carries (Envenom Weapon): the weapons it could still be given to, and the
+// rule `Poisoned Attacks (<weapon>)` the unit gains for the weapon the modifier names. The choice is final and belongs to the weapon's
+// NAME (owner decision 2026-10-27): the rule stays on the unit when the weapon is dropped or lost in a promotion, and it applies again
+// when the weapon is bought again; only losing the modifier itself loses the rule. A modifier without a weapon (a legacy item) gives no
+// rule and lists the choices. The rule is added to the grants once (the profile's own rule, the Blowpipe's and a level-up's are the
+// same rule and show once). It fills the unit's PoisonableWeapons last.
 func applyWeaponModifiers(rs *RuleSet, book *VanillaBook, u *CompanyUnit, grants []UnitRule) []UnitRule {
 	var pathRules []UnitRule
 	if u.Path != nil {
 		pathRules = u.Path.Rules
 	}
 	poisoned := poisonedWeapons(u.Rules, pathRules, grants)
+	chosen := map[int]string{} // equipment index -> the weapon its name chose
+	for i, e := range u.Equipment {
+		if a, ok := rs.BC.Annotation(e.Name); ok && a.ChosenWeapon != nil {
+			if _, w, ok := rs.BC.ChosenWeapon(e.Name); ok {
+				chosen[i] = w
+				poisoned = append(poisoned, w)
+			}
+		}
+	}
 	var weapons []string // the carried weapons the rule could be given to, by name once
 	for _, e := range u.Equipment {
 		if rs.BC.CanBePoisoned(e) && !isPoisoned(e.Name, poisoned) && !slices.ContainsFunc(weapons, func(w string) bool { return sameSpelling(w, e.Name) }) {
@@ -95,20 +106,21 @@ func applyWeaponModifiers(rs *RuleSet, book *VanillaBook, u *CompanyUnit, grants
 		if !ok || a.ChosenWeapon == nil {
 			continue
 		}
-		e.Choices = slices.Clone(weapons)
-		_, weapon, chosen := rs.BC.ChosenWeapon(e.Name)
-		j := slices.IndexFunc(weapons, func(w string) bool { return sameSpelling(w, weapon) })
-		if !chosen || j < 0 {
+		weapon, ok := chosen[i]
+		if !ok {
+			e.Choices = slices.Clone(weapons)
 			continue
 		}
-		e.Modifies = weapons[j]
+		e.Modifies = weapon
+		if j := slices.IndexFunc(u.Equipment, func(c Equipment) bool { return sameSpelling(c.Name, weapon) && rs.BC.CanBePoisoned(c) }); j >= 0 {
+			e.Modifies = u.Equipment[j].Name // the spelling the unit carries it under
+		}
 		rule := a.ChosenWeapon.Rule + " (" + e.Modifies + ")"
 		desc, ok := book.Keyword(rule)
 		if !ok {
 			desc, _ = rs.BC.Keyword(rule)
 		}
 		grants = append(grants, UnitRule{Name: rule, Description: desc, Source: RuleFromEquipment, From: e.Name})
-		weapons = slices.Delete(weapons, j, j+1)
 	}
 	u.PoisonableWeapons = weapons
 	return grants

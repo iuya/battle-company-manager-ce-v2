@@ -352,8 +352,9 @@ func (a *ArmouryService) BuyEquipment(ctx context.Context, user User, campaignID
 }
 
 // BuyEquipmentFor is BuyEquipment for an item that is a modifier of one weapon (Envenom Weapon): weapon is the weapon of the unit the
-// player chose for it (one of its PoisonableWeapons, in any spelling the item is known by). Empty, the modifier is bought without a
-// weapon and ChooseModifierWeapon gives it one later. A weapon for an item that takes none is refused.
+// player chose for it (one of its PoisonableWeapons, in any spelling the item is known by). A weapon modifier is never bought without
+// its weapon (the unit gains the rule only for a weapon chosen from the unit's own, and the choice is final), and a weapon for an item
+// that takes none is refused.
 func (a *ArmouryService) BuyEquipmentFor(ctx context.Context, user User, campaignID, unitID int64, item, how, weapon string) error {
 	id, err := a.myCompanyToChange(ctx, user, campaignID)
 	if err != nil {
@@ -390,7 +391,10 @@ func (a *ArmouryService) BuyEquipmentFor(ctx context.Context, user User, campaig
 			return Refuse("%s: %s", it.Name, lowerFirst(it.Reason))
 		}
 		stored := it.Name
-		if weapon = strings.TrimSpace(weapon); weapon != "" {
+		if weapon = strings.TrimSpace(weapon); weapon == "" && it.WeaponModifier {
+			unit, _ := sh.unit(unitID)
+			return Refuse("%s needs the weapon it is for: choose one of %s.", it.Name, strings.Join(unit.PoisonableWeapons, ", "))
+		} else if weapon != "" {
 			if !it.WeaponModifier {
 				return Refuse("%s is not for a weapon.", it.Name)
 			}
@@ -426,10 +430,10 @@ func pickWeapon(choices []string, weapon, unit, modifier string) (string, error)
 	return "", Refuse("%s cannot take %s for %q: choose one of %s.", unit, modifier, weapon, strings.Join(choices, ", "))
 }
 
-// ChooseModifierWeapon chooses (or chooses again, free of charge) the weapon a weapon modifier the unit carries is for. modifier is the
-// item as the unit shows it ("Envenom Weapon (X)" while it has no weapon, "Envenom Weapon (Bow)" after); weapon is one of the item's
-// Choices. The unit gains Poisoned Attacks (<weapon>); the weapon stays the plain item. A locked company, an unknown unit or item
-// and a weapon the unit cannot give the rule to are refused.
+// ChooseModifierWeapon chooses, free of charge, the weapon a weapon modifier the unit carries without one (a legacy "Envenom Weapon (X)")
+// is for; weapon is one of the item's Choices. The choice is FINAL: a modifier that has its weapon is refused. The unit gains Poisoned
+// Attacks (<weapon>); the weapon stays the plain item. A locked company, an unknown unit or item and a weapon the unit cannot give the
+// rule to are refused.
 func (a *ArmouryService) ChooseModifierWeapon(ctx context.Context, user User, campaignID, unitID int64, modifier, weapon string) error {
 	id, err := a.myCompanyToChange(ctx, user, campaignID)
 	if err != nil {
@@ -459,6 +463,9 @@ func (a *ArmouryService) ChooseModifierWeapon(ctx context.Context, user User, ca
 			return ErrNotFound
 		}
 		e := unit.Equipment[i]
+		if _, chosen, ok := rs.BC.ChosenWeapon(e.Name); ok {
+			return Refuse("%s already has its weapon (%s): the choice is final.", e.Name, chosen)
+		}
 		w, err := pickWeapon(e.Choices, weapon, unit.Title(), e.Name)
 		if err != nil {
 			return err

@@ -240,6 +240,16 @@ func (s *Server) handleArmouryPanel(w http.ResponseWriter, r *http.Request) {
 	s.render.partial(w, http.StatusOK, "campaign_my_company", "armoury_panel", panel)
 }
 
+// buyEquipment buys the item with the form's payment and, for a weapon modifier (Envenom Weapon), the weapon the player chose:
+// the buy window and the Armory tab ask for it the same way (the shared weapon_chooser).
+func (s *Server) buyEquipment(r *http.Request, id, unitID int64, item string) error {
+	u := *userFrom(r.Context())
+	if weapon := r.PostFormValue("weapon"); weapon != "" {
+		return s.campaigns.BuyEquipmentFor(r.Context(), u, id, unitID, item, r.PostFormValue("pay"), weapon)
+	}
+	return s.campaigns.BuyEquipment(r.Context(), u, id, unitID, item, r.PostFormValue("pay"))
+}
+
 func (s *Server) handleBuyEquipment(w http.ResponseWriter, r *http.Request) {
 	id, ok := s.idParam(w, r, "id")
 	if !ok {
@@ -250,16 +260,11 @@ func (s *Server) handleBuyEquipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	item := r.PostFormValue("item")
-	var err error
-	if weapon := r.PostFormValue("weapon"); weapon != "" { // a weapon modifier (Envenom Weapon): the same weapon chooser as the level-up's
-		err = s.campaigns.BuyEquipmentFor(r.Context(), *userFrom(r.Context()), id, unitID, item, r.PostFormValue("pay"), weapon)
-	} else {
-		err = s.campaigns.BuyEquipment(r.Context(), *userFrom(r.Context()), id, unitID, item, r.PostFormValue("pay"))
-	}
+	err := s.buyEquipment(r, id, unitID, item)
 	s.afterAction(w, r, "Bought "+item+".", err)
 }
 
-// handleChooseModifierWeapon chooses (or chooses again) the weapon a weapon modifier of the unit is for.
+// handleChooseModifierWeapon chooses the weapon a weapon modifier of the unit without one is for; the choice is final, core refuses a second.
 func (s *Server) handleChooseModifierWeapon(w http.ResponseWriter, r *http.Request) {
 	id, ok := s.idParam(w, r, "id")
 	if !ok {

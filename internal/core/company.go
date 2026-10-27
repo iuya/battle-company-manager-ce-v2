@@ -210,7 +210,6 @@ type Equipment struct {
 	Exclusive   bool        // only this company has it
 	MountStats  []Attribute // for a mount: its stat block
 	MountRules  []string    // and its special rules
-	VariantOf   string      // the item whose place in a profile option this one fills
 	Spellings   []string    // other spellings of the same item (the rules file's aliases), for identity checks
 	Disabled    string      // the injury that stops the hero benefiting from it (Arm Wound); empty when it works
 	// RequiresMount marks gear only a mounted model can use (a lance): the live match strikes it through when the mount is lost. The rules
@@ -803,7 +802,7 @@ func OptionsCover(items []Equipment, options []ChoiceOption) (points int, rest [
 		return o.Points, nil
 	}
 	isItem := func(it Equipment, part string) bool {
-		return GearMatchesOption(GearOffer{Name: it.Name, AlsoCalled: it.Spellings, VariantOf: it.VariantOf, Classes: it.Classes()}, part)
+		return GearMatchesOption(GearOffer{Name: it.Name, AlsoCalled: it.Spellings, Classes: it.Classes()}, part)
 	}
 	// take(items, option) returns the indexes of items that fill every part of the option, or nil.
 	take := func(free []bool, option string) []int {
@@ -891,7 +890,7 @@ func matchesOption(items []Equipment, option string) bool {
 	for _, part := range parts {
 		found := false
 		for i, it := range items {
-			if !used[i] && GearMatchesOption(GearOffer{Name: it.Name, AlsoCalled: it.Spellings, VariantOf: it.VariantOf, Classes: it.Classes()}, part) {
+			if !used[i] && GearMatchesOption(GearOffer{Name: it.Name, AlsoCalled: it.Spellings, Classes: it.Classes()}, part) {
 				used[i], found = true, true
 				break
 			}

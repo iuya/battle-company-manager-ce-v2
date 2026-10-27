@@ -93,8 +93,9 @@ func carriedItems(rs *RuleSet, bcC BCCompany, g string) (items []string, exchang
 // dropUnlisted takes from a promoted warrior the wargear its new profile does not list. The gear is gone for good, as with a
 // drop; a hero made of the unit may buy it again from the armoury. A stored option label is read as the items it carries, each
 // judged on its own against what the new profile lists as wargear or option; when the new profile has an exchange option that gives
-// the carried item, that exchange is already chosen and the entry becomes that option. A weapon modifier (Envenom Weapon) whose
-// weapon the new profile no longer lists is a modifier without a weapon again: the player chooses anew.
+// the carried item, that exchange is already chosen and the entry becomes that option. A weapon modifier (Envenom Weapon) with its
+// weapon chosen is kept as it is: the rule belongs to the weapon's name, so the unit keeps it when the new profile no longer lists the
+// weapon (the player may buy the weapon again if the armoury offers it).
 func dropUnlisted(env *levelEnv, us *UnitState, newBase string, given []string) {
 	rs, bcC := env.rs, env.bcC
 	listed := listedNames(rs, bcC, newBase, given)
@@ -113,12 +114,8 @@ func dropUnlisted(env *levelEnv, us *UnitState, newBase string, given []string) 
 			}
 		}
 		for _, g := range list {
-			if base, weapon, ok := rs.BC.ChosenWeapon(g); ok {
-				if keepsOnPromotion(rs, bcC, listed, weapon) {
-					add(g)
-				} else {
-					add(base)
-				}
+			if a, ok := rs.BC.Annotation(g); ok && a.ChosenWeapon != nil { // a weapon modifier stays; its choice is final and names the weapon, carried or not
+				add(g)
 				continue
 			}
 			items, exchange := carriedItems(rs, bcC, g)

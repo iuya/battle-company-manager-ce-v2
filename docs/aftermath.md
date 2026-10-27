@@ -376,8 +376,9 @@ the entry becomes that option; when the new profile carries it as its own wargea
 bow becomes a Khandish Horseman, who lists the hand-and-a-half weapon and the bow, and has both).
 
 Poison is no property of wargear (docs/definitions.md **Poison**): the plain Bow stays when the new profile lists it, and the unit is
-poisonous only if the new profile has Poisoned Attacks (a Haradrim Raider has it, a Khandish Horseman does not). An Envenom Weapon whose
-weapon the new profile no longer lists goes back to `Envenom Weapon (X)` and the player chooses again.
+poisonous only if the new profile has Poisoned Attacks (a Haradrim Raider has it, a Khandish Horseman does not). An Envenom Weapon keeps its chosen
+weapon whether or not the new profile lists it: the choice is final and the rule `Poisoned Attacks (<weapon>)` belongs to the weapon's
+name, so the unit keeps it; the player may buy the weapon again if the new profile offers it.
 `TestEveryPromotionAppliesTheOneRule` applies the rule to every promotion of every company, with no per-item list.
 
 ## Unit titles on the aftermath

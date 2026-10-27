@@ -795,11 +795,9 @@ def build_gear_annotations(bc, van, vanilla_units):
             assert base_item is not None, f"{it.name}: base item {base_name!r} is not an item"
             entry["base"], entry["modifiers"] = base_item.name, list(mods)
             # derived for the rule engine: an Elven-made item without a price of its own (unique wargear has one) is sold at its base's
-            # price (unless it is starting wargear that is never sold, NOT_SOLD); a "variant" modifier makes the item fill its base's place in a profile option.
+            # price (unless it is starting wargear that is never sold, NOT_SOLD).
             if "elven" in mods and k not in unique_keys and item_key(base_item.name) in priced_keys and k not in NOT_SOLD:
                 entry["pricedAs"] = base_item.name
-            if any(MODIFIER_BY_KEY[m]["identity"] == "variant" for m in mods):
-                entry["variantOf"] = base_item.name
         if k in GRANTS_RULE_FOR_CHOSEN_WEAPON:
             entry["grantsRuleForChosenWeapon"] = GRANTS_RULE_FOR_CHOSEN_WEAPON[k]
         if k in RELATED_BY:
@@ -831,7 +829,7 @@ def build_gear_annotations(bc, van, vanilla_units):
                 "tools/bc/gear.py from the item texts plus a table of decisions. `classes` say what the item IS (the first is "
                 "the main one: icon lead and sorting); `grants` are special rules the bearer gets (only recorded when the text "
                 "or the Battle Companies document says the bearer gets the rule; `grantedTo: mount` = the rules belong to the mount); "
-                "`ranged` is the missile profile (bow, crossbow, throwing, missile); `weaponModifier` marks a modifier bought for one weapon (`grantsRuleForChosenWeapon` says which rule it gives the weapon the player chooses); `base` and `modifiers` say that the item is a version of a generic item (Elven spear = Spear + Elven, see `modifiers` above; `pricedAs` and `variantOf` are derived from them); `aliases` "
+                "`ranged` is the missile profile (bow, crossbow, throwing, missile); `weaponModifier` marks a modifier bought for one weapon (`grantsRuleForChosenWeapon` says which rule it gives the weapon the player chooses); `base` and `modifiers` say that the item is a version of a generic item (Elven spear = Spear + Elven, see `modifiers` above; `pricedAs` is derived from them); `aliases` "
                 "are other spellings of the same item; `definition` is the tooltip text (the source text, plus the rulebook text of its class when the source has none or only a profile), `abilities` the same rules as data, `profile` points a mount at its stat block; `status` is `derived` (pattern) or `curated` (decided by hand).",
         "modifiers": MODIFIERS,
         "items": out,

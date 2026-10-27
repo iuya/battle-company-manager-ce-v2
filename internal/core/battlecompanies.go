@@ -122,7 +122,6 @@ type GearOffer struct {
 	Description    string
 	Grants         []string // special rules the item gives its bearer (the mount's when GrantedTo is "mount")
 	GrantedTo      string
-	VariantOf      string    // a specific version of another item that fills its place in a profile option (Bow with poisoned arrows)
 	Stats          string    // the missile profile, `24" · S2`
 	Exclusive      bool      // only the company has it (its unique wargear)
 	Only           string    // who may take a unique item ("Hobbit Heroes", "Corsair"); empty: whoever the profile options allow
@@ -355,7 +354,6 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 					} `json:"grantsRuleForChosenWeapon"`
 					RequiresMount bool     `json:"requiresMount"`
 					Definition    string   `json:"definition"`
-					VariantOf     string   `json:"variantOf"`
 					PricedAs      string   `json:"pricedAs"`
 					Base          string   `json:"base"`
 					Modifiers     []string `json:"modifiers"`
@@ -447,7 +445,7 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 	b.annotations = map[string]GearAnnotation{}
 	for _, it := range doc.Data.GearAnnotations.Items {
 		a := GearAnnotation{Name: it.Name, Aliases: it.Aliases, Grants: it.Grants, GrantedTo: it.GrantedTo, WeaponModifier: it.WeaponModifier, RequiresMount: it.RequiresMount, Definition: strings.Join(strings.Fields(it.Definition), " ")}
-		a.VariantOf, a.PricedAs, a.Base, a.Modifiers = it.VariantOf, it.PricedAs, it.Base, it.Modifiers
+		a.PricedAs, a.Base, a.Modifiers = it.PricedAs, it.Base, it.Modifiers
 		if cw := it.ChosenWeapon; cw != nil {
 			a.ChosenWeapon = &ChosenWeaponRule{Rule: cw.Rule}
 			for _, c := range cw.WeaponClasses {
@@ -649,7 +647,7 @@ func (b *BCBook) Injuries() InjuryRules { return b.injuries }
 func (b *BCBook) offerFrom(o GearOffer, also []string, _ string) GearOffer {
 	for _, n := range append([]string{o.Name}, also...) {
 		if a, ok := b.annotations[strings.ToLower(n)]; ok {
-			o.Classes, o.Stats, o.GrantedTo, o.WeaponModifier, o.VariantOf = a.Classes, a.Stats(), a.GrantedTo, a.WeaponModifier, a.VariantOf
+			o.Classes, o.Stats, o.GrantedTo, o.WeaponModifier = a.Classes, a.Stats(), a.GrantedTo, a.WeaponModifier
 			if a.Definition != "" { // the full text of the item, as the rules file annotates it
 				o.Description = a.Definition
 			}
@@ -752,7 +750,7 @@ func Refuse(format string, args ...any) error {
 // the item's own aliases): a Pike is not a Spear, a Longbow is not an Elf bow, a Crossbow is not a Bow, whatever their classes.
 func GearMatchesOption(offer GearOffer, option string) bool {
 	for _, part := range OptionItems(option) {
-		if namesItem(offer.Name, offer.AlsoCalled, part) || (offer.VariantOf != "" && namesItem(offer.VariantOf, nil, part)) {
+		if namesItem(offer.Name, offer.AlsoCalled, part) {
 			return true
 		}
 	}
