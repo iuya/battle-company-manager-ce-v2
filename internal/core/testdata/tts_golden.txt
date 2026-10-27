@@ -428,25 +428,19 @@ advancement: Mirkwood Ranger []
 ## Harad
 start: Haradrim Warrior [Spear]
     (1x Haradrim Warrior: Spear)
-start: Haradrim Warrior [Bow with poisoned arrows]
+start: Haradrim Warrior [Bow]
     (1x Haradrim Warrior: Bow)
-    note optionDropped: Haradrim Warrior: Bow with poisoned arrows has no matching option on the figure and is left out.
-    note approximate: Haradrim Warrior: the mod has no figure without "Bow", so that is the one shown.
 reinforcement: Haradrim Warrior [Spear]
     (1x Haradrim Warrior: Spear)
-reinforcement: Haradrim Warrior [Bow with poisoned arrows]
+reinforcement: Haradrim Warrior [Bow]
     (1x Haradrim Warrior: Bow)
-    note optionDropped: Haradrim Warrior: Bow with poisoned arrows has no matching option on the figure and is left out.
-    note approximate: Haradrim Warrior: the mod has no figure without "Bow", so that is the one shown.
 special chart: Haradrim Raider [War spear]
     (1x Haradrim Raider: War spear)
     (1x Haradrim Warrior: Bow)
     note extraFigure: Haradrim Raider also has an on-foot figure (Haradrim Warrior), for when it dismounts.
-special chart: Haradrim Raider [Bow with poisoned arrows]
+special chart: Haradrim Raider [Bow]
     (1x Haradrim Raider: Bow)
     (1x Haradrim Warrior: Bow)
-    note optionDropped: Haradrim Raider: Bow with poisoned arrows has no matching option on the figure and is left out.
-    note approximate: Haradrim Raider: the mod has no figure without "Bow", so that is the one shown.
     note extraFigure: Haradrim Raider also has an on-foot figure (Haradrim Warrior), for when it dismounts.
 special chart: Serpent Guard []
     (1x Serpent Guard: )

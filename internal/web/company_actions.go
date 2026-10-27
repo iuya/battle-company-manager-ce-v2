@@ -250,8 +250,28 @@ func (s *Server) handleBuyEquipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	item := r.PostFormValue("item")
-	err := s.campaigns.BuyEquipment(r.Context(), *userFrom(r.Context()), id, unitID, item, r.PostFormValue("pay"))
+	var err error
+	if weapon := r.PostFormValue("weapon"); weapon != "" { // a weapon modifier (Envenom Weapon): the same weapon chooser as the level-up's
+		err = s.campaigns.BuyEquipmentFor(r.Context(), *userFrom(r.Context()), id, unitID, item, r.PostFormValue("pay"), weapon)
+	} else {
+		err = s.campaigns.BuyEquipment(r.Context(), *userFrom(r.Context()), id, unitID, item, r.PostFormValue("pay"))
+	}
 	s.afterAction(w, r, "Bought "+item+".", err)
+}
+
+// handleChooseModifierWeapon chooses (or chooses again) the weapon a weapon modifier of the unit is for.
+func (s *Server) handleChooseModifierWeapon(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	unitID, ok := s.idParam(w, r, "unit")
+	if !ok {
+		return
+	}
+	item, weapon := r.PostFormValue("item"), r.PostFormValue("weapon")
+	err := s.campaigns.ChooseModifierWeapon(r.Context(), *userFrom(r.Context()), id, unitID, item, weapon)
+	s.afterAction(w, r, "Poisoned Attacks now applies to the "+weapon+".", err)
 }
 
 func (s *Server) handleDropEquipment(w http.ResponseWriter, r *http.Request) {

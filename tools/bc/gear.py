@@ -60,7 +60,6 @@ def _d(classes, why, grants=None, ranged=None, modifier=False):
 ITEM_ALIASES = {
     "warspear": "War spear",
     "uruk bow": "Uruk-hai Bow",
-    "bow with poison arrows": "Bow with poisoned arrows",
     # The Wild Man of Dunland's option is "Two-handed axe", the Dwarf Warrior's too (the user confirmed 2026-10-20: it is the Two-handed
     # weapon; an axe is the miniature).
     "two-handed axe": "Two-handed weapon",
@@ -155,10 +154,8 @@ DECISIONS = {
     "tookish hunter": _d(["other"], UPGRADE),
     "noldorian exile": _d(["other"], UPGRADE),
     "guardian of the king": _d(["other"], UPGRADE),
-    "bow with poisoned arrows": _d(["bow"], "a Bow (24\" S2) in the Haradrim lists; the arrows are poisoned, so it grants Poisoned Attacks (Bow) (decided by the user)",
-                                 grants=["Poisoned Attacks (Bow)"], ranged={"range": 24, "strength": 2}),
     "elven cloak": _d(["other"], "a cloak: neither weapon nor armour"),
-    "envenom weapon (x)": _d(["other"], "decided by the user: not an item but a modifier; 'they will grant the Poisoned Attacks special rule' to the weapon bought it for, which the app shows as a poisoned copy of that weapon",
+    "envenom weapon (x)": _d(["other"], "decided by the user: not an item; the player chooses one weapon of the unit and the unit gains the special rule Poisoned Attacks (<that weapon>) ('they must decide which weapon on their profile they will grant the Poisoned Attacks special rule'); the app shows a copy of the weapon with the rule",
                          grants=["Poisoned Attacks (X)"], modifier=True),
     "healing herbs": _d(["consumable"], "used up once ('remove the Healing Herbs from their Equipment') (decided by the user)"),
     "wondrous cram": _d(["consumable"], "used up once ('remove the Wondrous Cram') (decided by the user)"),
@@ -298,17 +295,22 @@ READ_AS = {
     ("Rivendell Warrior", "spear"): ("Elven spear", "the Rivendell Warrior's option is 'Shield and Elven spear'"),
     ("Mordor Orc Warrior", "bow"): ("Orc bow", "the Mordor Orc Warrior's option is 'Orc bow'"),
     ("Hunter Orc Warrior", "bow"): ("Orc Bow", "the Hunter Orc Warrior's option is 'Orc Bow'"),
+    # Poison belongs to the UNIT (owner decision 2026-10-27): the Haradrim lists' "bow with poisoned arrows" is a plain Bow, and the profile
+    # already has the special rule Poisoned Attacks (Bow) (the validator checks it for every reading that names poison).
+    ("Haradrim Warrior", "bow with poisoned arrows"): ("Bow", "poison belongs to the unit: the Haradrim Warrior has Poisoned Attacks (Bow) on its profile"),
+    ("Haradrim Warrior", "bow with poison arrows"): ("Bow", "poison belongs to the unit: the Haradrim Warrior has Poisoned Attacks (Bow) on its profile"),
+    ("Haradrim Raider", "bow with poison arrows"): ("Bow", "poison belongs to the unit: the Haradrim Raider has Poisoned Attacks (Bow) on its profile"),
 }
 # ---------------------------------------------------------------------------------------------------------------------
-# Item modifiers. An item is a BASE item plus MODIFIERS: "Elven spear" is a Spear that is an Elven weapon, "Bow with poisoned arrows"
-# is a Bow that is poisoned. A modifier is defined once (`data.gearAnnotations.modifiers`: its rulebook text, its effect as data, what
+# Item modifiers. An item is a BASE item plus MODIFIERS: "Elven spear" is a Spear that is an Elven weapon.
+# (Poison is NOT a modifier: it is the special rule Poisoned Attacks (<weapon>) of the UNIT, or of the Blowpipe itself.) A modifier is defined once (`data.gearAnnotations.modifiers`: its rulebook text, its effect as data, what
 # it does to identity and price) and the items carry `base` and `modifiers`. Sources: the MESBG rulebook "Weapons" chapter (Elven weapon,
-# Master-forged; the other weapon sections are base weapons, not modifiers), the Poisoned Attacks rule and the Battle Companies
-# wargear table / Envenom Weapon. Nothing in either document is called "Masterwork" or "Dwarven-made"; "Fire-based attacks" has no
+# Master-forged; the other weapon sections are base weapons, not modifiers) and the Battle Companies
+# wargear table. Nothing in either document is called "Masterwork" or "Dwarven-made"; "Fire-based attacks" has no
 # inherent effect (the Flaming Brand keeps its own text), so neither is a modifier.
 #   identity "distinct": the modified item is its OWN item: a profile option that names a Spear does not take an Elven spear (the Elven
 #                        weapon is restricted to Elves by being an option of the unit), and an Elven spear does not fill a Spear.
-#   identity "variant":  the modified item fills the place of its base in a profile option (a Bow with poisoned arrows is the profile's Bow).
+#   identity "variant":  the modified item fills the place of its base in a profile option (no item uses it today).
 # ---------------------------------------------------------------------------------------------------------------------
 MODIFIERS = [
     {"key": "elven", "name": "Elven weapon", "glossary": "Elven Weapon", "identity": "distinct", "appliesTo": "melee",
@@ -329,10 +331,6 @@ MODIFIERS = [
              "Roll for using it as a two-handed weapon.",
      "abilities": [{"key": "noTwoHandedDuelPenalty"}],
      "source": "MESBG rulebook, Master-forged (p. 106); no Battle Companies item carries it today"},
-    {"key": "poisoned", "name": "Poisoned", "identity": "variant", "appliesTo": "any",
-     "text": "This weapon has the Poisoned Attacks special rule.",
-     "abilities": [{"key": "grantsRule", "rule": "Poisoned Attacks"}],
-     "source": "BC Envenom Weapon; Haradrim lists (bow with poisoned arrows); MESBG rulebook, blowpipe"},
 ]
 # Item (key) -> (base item, [modifier keys]). The base is the generic item the modified one is a version of.
 MODIFIED = {item_key(k): v for k, v in {
@@ -345,14 +343,15 @@ MODIFIED = {item_key(k): v for k, v in {
     "Elven hand weapon": ("Hand weapon", ["elven"]),
     "Elven Glaive": ("Spear", ["elven"]),          # "This is an Elven spear" (vanilla); unique to the Halls of Thranduil, own price
     "Wood Elf Spear": ("Spear", ["elven"]),        # "This is an Elven spear" (vanilla); unique to Lothlorien, own price
-    "Bow with poisoned arrows": ("Bow", ["poisoned"]),
 }.items()}
 # Elven items that are only a profile's starting wargear and have no armoury entry, though their base is in the price table. The Galadhrim
 # Knight's "Elven-made hand-and-a-half sword" is not the Rivendell "Elven hand-and-a-half weapon" (kept apart as before; curator's reading).
 NOT_SOLD = {item_key("Elven-made Hand-and-a-half sword")}
 MODIFIER_BY_KEY = {m["key"]: m for m in MODIFIERS}
-# Items that apply a modifier to a weapon of the bearer instead of being a weapon (Envenom Weapon).
-GRANTS_MODIFIER = {item_key("Envenom Weapon (X)"): "poisoned"}
+# Items that give a rule to ONE weapon the bearer chooses instead of being a weapon (Envenom Weapon): the player names a weapon of the
+# unit and the unit gains `<rule> (<weapon>)`. `weaponClasses` are the item classes the choice may fall on (every weapon class).
+WEAPON_CLASSES = ["melee", "two_handed", "spear", "lance", "bow", "crossbow", "throwing", "missile"]
+GRANTS_RULE_FOR_CHOSEN_WEAPON = {item_key("Envenom Weapon (X)"): {"rule": "Poisoned Attacks", "weaponClasses": WEAPON_CLASSES}}
 
 
 def apply_read_as(doc):
@@ -801,8 +800,8 @@ def build_gear_annotations(bc, van, vanilla_units):
                 entry["pricedAs"] = base_item.name
             if any(MODIFIER_BY_KEY[m]["identity"] == "variant" for m in mods):
                 entry["variantOf"] = base_item.name
-        if k in GRANTS_MODIFIER:
-            entry["grantsModifier"] = GRANTS_MODIFIER[k]
+        if k in GRANTS_RULE_FOR_CHOSEN_WEAPON:
+            entry["grantsRuleForChosenWeapon"] = GRANTS_RULE_FOR_CHOSEN_WEAPON[k]
         if k in RELATED_BY:
             rel = []
             for names, why in RELATED_BY[k]:
@@ -832,7 +831,7 @@ def build_gear_annotations(bc, van, vanilla_units):
                 "tools/bc/gear.py from the item texts plus a table of decisions. `classes` say what the item IS (the first is "
                 "the main one: icon lead and sorting); `grants` are special rules the bearer gets (only recorded when the text "
                 "or the Battle Companies document says the bearer gets the rule; `grantedTo: mount` = the rules belong to the mount); "
-                "`ranged` is the missile profile (bow, crossbow, throwing, missile); `weaponModifier` marks a modifier bought for one weapon (`grantsModifier` says which); `base` and `modifiers` say that the item is a version of a generic item (Elven spear = Spear + Elven, see `modifiers` above; `pricedAs` and `variantOf` are derived from them); `aliases` "
+                "`ranged` is the missile profile (bow, crossbow, throwing, missile); `weaponModifier` marks a modifier bought for one weapon (`grantsRuleForChosenWeapon` says which rule it gives the weapon the player chooses); `base` and `modifiers` say that the item is a version of a generic item (Elven spear = Spear + Elven, see `modifiers` above; `pricedAs` and `variantOf` are derived from them); `aliases` "
                 "are other spellings of the same item; `definition` is the tooltip text (the source text, plus the rulebook text of its class when the source has none or only a profile), `abilities` the same rules as data, `profile` points a mount at its stat block; `status` is `derived` (pattern) or `curated` (decided by hand).",
         "modifiers": MODIFIERS,
         "items": out,

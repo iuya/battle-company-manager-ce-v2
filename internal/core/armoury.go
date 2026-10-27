@@ -348,6 +348,13 @@ func (sh shop) uniqueReason(u CompanyUnit, o GearOffer) string {
 // BuyEquipment buys an item for a unit of the user's company with its influence (pay "") or Gold (pay "gold"). What the rules
 // do not allow is an error wrapping ErrRefused with the reason; an item the unit's rules never offer is ErrNotFound.
 func (a *ArmouryService) BuyEquipment(ctx context.Context, user User, campaignID, unitID int64, item, how string) error {
+	return a.BuyEquipmentFor(ctx, user, campaignID, unitID, item, how, "")
+}
+
+// BuyEquipmentFor is BuyEquipment for an item that is a modifier of one weapon (Envenom Weapon): weapon is the weapon of the unit the
+// player chose for it (one of its PoisonableWeapons, in any spelling the item is known by). Empty, the modifier is bought without a
+// weapon and ChooseModifierWeapon gives it one later. A weapon for an item that takes none is refused.
+func (a *ArmouryService) BuyEquipmentFor(ctx context.Context, user User, campaignID, unitID int64, item, how, weapon string) error {
 	id, err := a.myCompanyToChange(ctx, user, campaignID)
 	if err != nil {
 		return err
@@ -382,6 +389,18 @@ func (a *ArmouryService) BuyEquipment(ctx context.Context, user User, campaignID
 		if !it.Buyable() {
 			return Refuse("%s: %s", it.Name, lowerFirst(it.Reason))
 		}
+		stored := it.Name
+		if weapon = strings.TrimSpace(weapon); weapon != "" {
+			if !it.WeaponModifier {
+				return Refuse("%s is not for a weapon.", it.Name)
+			}
+			unit, _ := sh.unit(unitID)
+			w, err := pickWeapon(unit.PoisonableWeapons, weapon, unit.Title(), it.Name)
+			if err != nil {
+				return err
+			}
+			stored = ChosenWeaponName(it.Name, w)
+		}
 		if err := pay(st, how, it.Name, it.Cost, it.GoldPrice, it.PayInfluence, it.PayGold); err != nil {
 			return err
 		}
@@ -391,8 +410,69 @@ func (a *ArmouryService) BuyEquipment(ctx context.Context, user User, campaignID
 			upgradeArmour(sh, u, unit, it.GearOffer)
 			return nil
 		}
-		u.Bought = append(u.Bought, it.Name)
+		u.Bought = append(u.Bought, stored)
 		return nil
+	})
+}
+
+// pickWeapon finds the weapon the player named among the choices, in any spelling of the same item; the refusal says why not.
+func pickWeapon(choices []string, weapon, unit, modifier string) (string, error) {
+	if i := slices.IndexFunc(choices, func(c string) bool { return sameSpelling(c, weapon) }); i >= 0 {
+		return choices[i], nil
+	}
+	if len(choices) == 0 {
+		return "", Refuse("%s has no weapon %s could be for.", unit, modifier)
+	}
+	return "", Refuse("%s cannot take %s for %q: choose one of %s.", unit, modifier, weapon, strings.Join(choices, ", "))
+}
+
+// ChooseModifierWeapon chooses (or chooses again, free of charge) the weapon a weapon modifier the unit carries is for. modifier is the
+// item as the unit shows it ("Envenom Weapon (X)" while it has no weapon, "Envenom Weapon (Bow)" after); weapon is one of the item's
+// Choices. The unit gains Poisoned Attacks (<weapon>); the weapon stays the plain item. A locked company, an unknown unit or item
+// and a weapon the unit cannot give the rule to are refused.
+func (a *ArmouryService) ChooseModifierWeapon(ctx context.Context, user User, campaignID, unitID int64, modifier, weapon string) error {
+	id, err := a.myCompanyToChange(ctx, user, campaignID)
+	if err != nil {
+		return err
+	}
+	rs, settings, err := a.ruleset(ctx, campaignID)
+	if err != nil {
+		return err
+	}
+	return a.companies.Update(ctx, campaignID, id, func(st *CompanyState) error {
+		if err := st.Locked(); err != nil {
+			return err
+		}
+		sh := newShop(rs, settings, *st)
+		unit, ok := sh.unit(unitID)
+		if !ok {
+			return ErrNotFound
+		}
+		i := slices.IndexFunc(unit.Equipment, func(e Equipment) bool {
+			if !strings.EqualFold(e.Name, strings.TrimSpace(modifier)) {
+				return false
+			}
+			an, ok := rs.BC.Annotation(e.Name)
+			return ok && an.ChosenWeapon != nil
+		})
+		if i < 0 {
+			return ErrNotFound
+		}
+		e := unit.Equipment[i]
+		w, err := pickWeapon(e.Choices, weapon, unit.Title(), e.Name)
+		if err != nil {
+			return err
+		}
+		an, _ := rs.BC.Annotation(e.Name)
+		u, _ := stateUnit(st, unitID)
+		renamed := ChosenWeaponName(an.Name, w)
+		for _, list := range []*[]string{&u.Bought, &u.Gear} {
+			if j := slices.IndexFunc(*list, func(g string) bool { return strings.EqualFold(g, e.Name) }); j >= 0 {
+				(*list)[j] = renamed
+				return nil
+			}
+		}
+		return ErrNotFound
 	})
 }
 

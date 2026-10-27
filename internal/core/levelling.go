@@ -211,6 +211,9 @@ func (env *levelEnv) choose(st *CompanyState, us *UnitState, keys []string) (Lev
 		if name != to.Unit {
 			p.Base = name // Ranger of Ithilien, Helminga: the company's name carries the rules and options the alias adds
 		}
+		if !env.unit.IsHero() { // a hero keeps what it carries; a warrior keeps only what its new profile lists
+			dropUnlisted(env, us, p.Base, to.Wargear)
+		}
 		summary = fmt.Sprintf("%s is promoted to %s.", u.Title(), name)
 	case "path":
 		for _, pp := range rules.Paths { // the offer may be older than another hero's choice of a limited path
@@ -556,28 +559,7 @@ func sheetOf(u CompanyUnit, p *Progress, roster []CompanyUnit, upgrades []HeroUp
 			sheet.Upgrades = append(sheet.Upgrades, up)
 		}
 	}
-	// weapons that are not poisoned yet (by a rule, a level-up or Envenom Weapon)
-	poisoned := map[string]bool{}
-	var pathRules []UnitRule
-	if u.Path != nil {
-		pathRules = u.Path.Rules
-	}
-	for _, r := range append(slices.Clone(u.Rules), pathRules...) {
-		if w, ok := strings.CutPrefix(r.Name, "Poisoned Attacks ("); ok {
-			poisoned[strings.ToLower(strings.TrimSuffix(w, ")"))] = true
-		}
-	}
-	for _, e := range u.Equipment {
-		if e.Poisoned || e.Modifies != "" {
-			poisoned[strings.ToLower(e.Name)] = true
-			poisoned[strings.ToLower(e.Modifies)] = true
-		}
-	}
-	for _, e := range u.Equipment {
-		if !e.Upgrade && isWeapon(e) && !poisoned[strings.ToLower(e.Name)] && e.Modifies == "" {
-			sheet.Weapons = append(sheet.Weapons, e.Name)
-		}
-	}
+	sheet.Weapons = slices.Clone(u.PoisonableWeapons) // weapons that are not poisoned yet (by a rule, a level-up or Envenom Weapon)
 	// other heroes of the company, not already the target of this unit's Combat Synergy
 	aimed := map[int64]bool{}
 	if p != nil {
@@ -614,15 +596,4 @@ func upgradesOf(rs *RuleSet, bcCo BCCompany, u CompanyUnit) []HeroUpgrade {
 		}
 	}
 	return out
-}
-
-// isWeapon says whether an item is a weapon that could be poisoned.
-func isWeapon(e Equipment) bool {
-	return slices.ContainsFunc(e.Classes(), func(c EquipmentClass) bool {
-		switch c {
-		case EquipMelee, EquipTwoHanded, EquipSpear, EquipLance, EquipBow, EquipCrossbow, EquipThrowing, EquipMissile:
-			return true
-		}
-		return false
-	})
 }

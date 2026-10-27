@@ -18,9 +18,8 @@ func TestItemModifiersExplainedInTheTooltip(t *testing.T) {
 			t.Errorf("the Elven spear tooltip lacks %q: %s", want, spear.Definition)
 		}
 	}
-	bow, _ := rs.BC.Annotation("Bow with poisoned arrows")
-	if bow.Base != "Bow" || bow.VariantOf != "Bow" || !strings.Contains(bow.Definition, "Poisoned:") {
-		t.Errorf("poisoned bow = %+v", bow)
+	if _, ok := rs.BC.Annotation("Bow with poisoned arrows"); ok {
+		t.Error("poison is a rule of the unit, not an item: there is no poisoned bow")
 	}
 	if plain, _ := rs.BC.Annotation("Spear"); plain.Base != "" || strings.Contains(plain.Definition, "Elven") {
 		t.Errorf("a plain Spear has no modifier: %+v", plain)

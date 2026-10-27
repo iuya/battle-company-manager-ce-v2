@@ -17,18 +17,26 @@ type GearAnnotation struct {
 	GrantedTo      string   // "mount" when the rules belong to the mount; empty for the bearer
 	Range          int      // inches, for bows, crossbows, throwing weapons and missiles
 	Strength       int
-	Definition     string        // what the item does, in words (shown on hover)
-	MountProfile   string        // for a mount: the name of its vanilla entry, which has its stat block
-	Base           string        // the generic item this one is a version of (Elven spear: Spear); the tooltip already explains the modifiers
-	Modifiers      []string      // keys of data.gearAnnotations.modifiers (elven, masterForged, poisoned)
-	PricedAs       string        // an Elven-made item sold at the price of its generic equivalent (derived from Base + the elven modifier)
-	VariantOf      string        // a specific version of another item that fills its place in a profile option
-	Related        []string      // related but distinct items (Elf Bow and Longbow share a profile): never the same item
-	RequiresMount  bool          // only a mounted model can use it (a lance, Barding): struck through in a live match when the mount is lost
-	WeaponModifier bool          // not an item but a modifier bought for one weapon (Envenom Weapon)
-	Situational    []StatChange  // bonuses that hold only in a game situation (Elven Glaive attacks): item text, never added to the stats
-	StatChanges    []StatChange  // armour: what it adds to a characteristic (data.gearAnnotations statChanges)
-	Defence        *DefenceBonus // a shield: the Defence it adds and what cancels it
+	Definition     string            // what the item does, in words (shown on hover)
+	MountProfile   string            // for a mount: the name of its vanilla entry, which has its stat block
+	Base           string            // the generic item this one is a version of (Elven spear: Spear); the tooltip already explains the modifiers
+	Modifiers      []string          // keys of data.gearAnnotations.modifiers (elven, masterForged, poisoned)
+	PricedAs       string            // an Elven-made item sold at the price of its generic equivalent (derived from Base + the elven modifier)
+	VariantOf      string            // a specific version of another item that fills its place in a profile option
+	Related        []string          // related but distinct items (Elf Bow and Longbow share a profile): never the same item
+	RequiresMount  bool              // only a mounted model can use it (a lance, Barding): struck through in a live match when the mount is lost
+	WeaponModifier bool              // not an item but a modifier bought for one weapon (Envenom Weapon)
+	ChosenWeapon   *ChosenWeaponRule // the rule the modifier gives the UNIT for the weapon the player chooses (Poisoned Attacks)
+	Situational    []StatChange      // bonuses that hold only in a game situation (Elven Glaive attacks): item text, never added to the stats
+	StatChanges    []StatChange      // armour: what it adds to a characteristic (data.gearAnnotations statChanges)
+	Defence        *DefenceBonus     // a shield: the Defence it adds and what cancels it
+}
+
+// ChosenWeaponRule is data.gearAnnotations grantsRuleForChosenWeapon: the player chooses ONE item of the unit whose class is among
+// WeaponClasses; the unit gains the special rule `Rule (<weapon name>)` and the weapon itself stays the plain item.
+type ChosenWeaponRule struct {
+	Rule          string
+	WeaponClasses []EquipmentClass
 }
 
 // StatChange is a change to a characteristic.

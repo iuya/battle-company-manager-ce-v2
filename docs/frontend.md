@@ -312,7 +312,7 @@ blowpipe: a ranged weapon that counts against no limit), banner, instrument, con
 other, each with its icon and colour; an item that is several things leads with its first class and shows the others as small
 secondary markers. Granted rules are the item's rules, or the mount's when the annotation says `grantedTo: mount` (Pony:
 Timid); Barding is the steed's armour, sorted right after the mount, and its rules go to the rider. Envenom Weapon is not an
-item but a modifier: the card shows a copy of the weapon it was bought for with Poisoned Attacks (X). Named unit upgrades
+item but a modifier: the unit gains Poisoned Attacks (<the weapon the player chose>) and the weapon stays plain. A bought Envenom Weapon asks for the weapon with the `weapon_chooser` select (the unit's `PoisonableWeapons` in the buy window, the item's `Choices` on the expanded card, which also lets the player choose again); the level-up's "A minor special rule" lists the same weapons (`HeroSheet.Weapons` is the unit's `PoisonableWeapons`). Named unit upgrades
 (Helmingas, Hearthguard...) are badges, not gear. Limits are counted by class (bow and crossbow, throwing, the Cavalry
 keyword) with a company's `limitExemptions` (an exempt unit is left out of the count and of the base the maximum is worked
 out on) and `limitOverrides` (`BCBook.Limits`).
@@ -338,7 +338,7 @@ company's armoury sells (`Armoury`: the common wargear and equipment plus the co
 its influence cost and slot size. **Only what the unit could take is listed**: an item a rule forbids it is left out
 (already carried, heroes only, cavalry only, evil only, and, for wargear, an option its
 profile does not have: a warrior may only buy wargear matching one of its profile's options, a hero any wargear of the
-profiles in its company's charts, promotions and starting company (`heroOptions`); a Beast takes no wargear and only equipment that grants exactly one special rule (Trophy Pelt, Badge of Courage), `beastMayCarry`; a profile without options, such as the Guard of the Fountain Court, buys no wargear, a Mattock is not the Two-handed weapon option). An item that only lacks influence, a free slot or room under a company limit (bows, throwing weapons) is listed with that
+profiles in its company's charts, promotions and starting company (`heroOptions`); a Beast takes no wargear and only equipment that grants exactly one special rule (Trophy Pelt, Badge of Courage), `beastMayCarry`; a warrior promoted to any profile loses the wargear that profile does not list, by item identity, see [aftermath.md](aftermath.md#wargear-on-a-promotion) (the Mirkwood Elf Warrior's Elven-made glaive on becoming a Mirkwood Elf Knight: gone for good, `dropUnlisted`; a hero Knight buys it back); a profile without options, such as the Guard of the Fountain Court, buys no wargear, a Mattock is not the Two-handed weapon option). An item that only lacks influence, a free slot or room under a company limit (bows, throwing weapons) is listed with that
 reason (`ArmouryItem.Blocker`): a full limit is not a rule against the unit.
 
 **Armour upgrades** (`core/armour.go`, `data.wargear.armourUpgrade`): the shop adds one offer per armour stage above the first

@@ -85,7 +85,7 @@ func mordor() CompanyState {
 		Company: CampaignCompany{ID: 1, Name: "The Black Hand", Faction: "Mordor"},
 		Units: []UnitState{
 			{ID: 1, Name: "Grishnákh", Base: "Mordor Orc Warrior", Role: RoleLeader, Bonus: HeroBonus(map[string]int{"strength": 1}), Bought: []string{"Shield", "Trophy Pelt", "Ring of Warding"}, Path: "Path of the Tactician", PathRules: 2, Actions: []string{"Heroic March"}, Level: 2, XP: 10},
-			{ID: 2, Name: "Snaga", Base: "Orc Tracker", Role: RoleSergeant, Bonus: HeroBonus(nil), Bought: []string{"Envenom Weapon (X)"}, Path: "Path of the Sharpshooter", PathRules: 1, Level: 1, XP: 6},
+			{ID: 2, Name: "Snaga", Base: "Orc Tracker", Role: RoleSergeant, Bonus: HeroBonus(nil), Bought: []string{"Envenom Weapon (Orc bow)"}, Path: "Path of the Sharpshooter", PathRules: 1, Level: 1, XP: 6},
 			{ID: 3, Name: "Ugluk the Younger", Base: "Uruk-hai Warrior", Role: RoleSergeant, Bonus: HeroBonus(nil), Bought: []string{"Throwing Weapon"}, Path: "Path of the Berserker", PathRules: 1, Actions: []string{"Heroic Strike"}, XP: 10},
 			{ID: 4, Name: "Gorbag", Base: "Mordor Troll Chieftain", Role: RoleHero, Path: "Path of the Soldier", PathRules: 1, Level: 2, XP: 12},
 			{ID: 5, Name: "Muzgûr", Base: "Muzgûr, Orc Shaman", Role: RoleHero, Path: "Path of the Sorcerer", PathRules: 2, BoughtActions: []string{"Heroic Channelling"}, Spells: []PathSpell{{"Black Dart", 3, 12}, {"Aura of Command", 4, 6}}, Level: 1, XP: 9},
@@ -265,11 +265,11 @@ func TestBuildDetailTheDataDrivesWhatTheCardsShow(t *testing.T) {
 	snaga := unitByID(t, d2, 2)
 	modified := false
 	for _, e := range snaga.Equipment {
-		if e.Name == "Envenom Weapon (X)" && e.Modifies != "" {
+		if e.Name == "Envenom Weapon (Orc bow)" && e.Modifies == "Orc Bow" {
 			modified = true
 		}
 	}
-	if _, ok := ruleNamed(snaga, "Poisoned Attacks (X)"); !modified || !ok {
+	if _, ok := ruleNamed(snaga, "Poisoned Attacks (Orc Bow)"); !modified || !ok {
 		t.Errorf("a poisoned copy of the weapon: modified=%v rule=%v", modified, ok)
 	}
 	for _, e := range unitByID(t, d1, 3).Equipment {

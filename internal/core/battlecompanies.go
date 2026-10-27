@@ -22,6 +22,7 @@ type BCBook struct {
 	parameterised    map[string]string // the definition of each rule with a parameter, by lower-cased name
 	rating           RatingRules
 	annotations      map[string]GearAnnotation // by lower-cased name and alias
+	weaponRules      []GearAnnotation          // the annotations that give a rule to a weapon the player chooses (Envenom Weapon (X))
 	spell            map[string]string         // lower-cased wargear name -> the spelling the pages use (see canonicaliseWargear)
 	limitRules       []LimitRule
 	fillIns          []unitFillIn
@@ -348,13 +349,17 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 					Grants         []string `json:"grants"`
 					GrantedTo      string   `json:"grantedTo"`
 					WeaponModifier bool     `json:"weaponModifier"`
-					RequiresMount  bool     `json:"requiresMount"`
-					Definition     string   `json:"definition"`
-					VariantOf      string   `json:"variantOf"`
-					PricedAs       string   `json:"pricedAs"`
-					Base           string   `json:"base"`
-					Modifiers      []string `json:"modifiers"`
-					StatChanges    []struct {
+					ChosenWeapon   *struct {
+						Rule          string   `json:"rule"`
+						WeaponClasses []string `json:"weaponClasses"`
+					} `json:"grantsRuleForChosenWeapon"`
+					RequiresMount bool     `json:"requiresMount"`
+					Definition    string   `json:"definition"`
+					VariantOf     string   `json:"variantOf"`
+					PricedAs      string   `json:"pricedAs"`
+					Base          string   `json:"base"`
+					Modifiers     []string `json:"modifiers"`
+					StatChanges   []struct {
 						Stat        string `json:"stat"`
 						Delta       int    `json:"delta"`
 						Conditional bool   `json:"conditional"`
@@ -443,6 +448,13 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 	for _, it := range doc.Data.GearAnnotations.Items {
 		a := GearAnnotation{Name: it.Name, Aliases: it.Aliases, Grants: it.Grants, GrantedTo: it.GrantedTo, WeaponModifier: it.WeaponModifier, RequiresMount: it.RequiresMount, Definition: strings.Join(strings.Fields(it.Definition), " ")}
 		a.VariantOf, a.PricedAs, a.Base, a.Modifiers = it.VariantOf, it.PricedAs, it.Base, it.Modifiers
+		if cw := it.ChosenWeapon; cw != nil {
+			a.ChosenWeapon = &ChosenWeaponRule{Rule: cw.Rule}
+			for _, c := range cw.WeaponClasses {
+				a.ChosenWeapon.WeaponClasses = append(a.ChosenWeapon.WeaponClasses, EquipmentClass(c))
+			}
+			b.weaponRules = append(b.weaponRules, a)
+		}
 		for _, c := range it.StatChanges {
 			sc := StatChange{Stat: c.Stat, Delta: c.Delta}
 			if c.Conditional {
@@ -654,6 +666,11 @@ func (b *BCBook) offerFrom(o GearOffer, also []string, _ string) GearOffer {
 // Annotation finds what the file says about a piece of gear by its name or an alias, ignoring case.
 func (b *BCBook) Annotation(name string) (GearAnnotation, bool) {
 	a, ok := b.annotations[strings.ToLower(strings.TrimSpace(name))]
+	if !ok {
+		if base, _, chosen := b.ChosenWeapon(name); chosen {
+			a, ok = b.annotations[strings.ToLower(base)]
+		}
+	}
 	return a, ok
 }
 
@@ -696,6 +713,9 @@ func (b *BCBook) Offer(c BCCompany, name string) (GearOffer, bool) {
 		if namesItem(o.Name, o.AlsoCalled, name) {
 			return o, true
 		}
+	}
+	if base, _, chosen := b.ChosenWeapon(name); chosen {
+		return b.Offer(c, base)
 	}
 	return GearOffer{}, false
 }

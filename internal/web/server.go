@@ -108,6 +108,10 @@ type campaigns interface {
 	// going (RecruitResult.Next): roll again. RecruitState tells whether a recruit is in progress. A "choice of options"
 	// result is left pending in the RecruitResult (Choice) until ChooseOptions; PendingChoice tells whether one is waiting.
 	BuyEquipment(ctx context.Context, user core.User, id, unitID int64, item, pay string) error
+	// BuyEquipmentFor buys an item that is a modifier of one weapon (Envenom Weapon) with the weapon the player chose among the unit's
+	// PoisonableWeapons; ChooseModifierWeapon chooses it (again) for one the unit carries (Equipment.Choices lists the weapons).
+	BuyEquipmentFor(ctx context.Context, user core.User, id, unitID int64, item, pay, weapon string) error
+	ChooseModifierWeapon(ctx context.Context, user core.User, id, unitID int64, modifier, weapon string) error
 	// TreatInjury pays to treat a unit's injuries (costs and rolls come from the rules file). The result says what happened;
 	// a failed attempt is not an error: its influence is lost.
 	// RenameUnit gives a unit the name the player chose (empty: it goes back to its type). Rules that aim at a unit keep
@@ -394,6 +398,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /campaigns/{id}/my-company/units/{unit}/rename", s.protected(s.handleRenameUnit))
 	mux.HandleFunc("GET /campaigns/{id}/my-company/units/{unit}/treat", s.protected(s.handleTreatPanel))
 	mux.HandleFunc("POST /campaigns/{id}/my-company/units/{unit}/treat", s.protected(s.once(s.handleTreatInjury)))
+	mux.HandleFunc("POST /campaigns/{id}/my-company/units/{unit}/equipment/weapon", s.protected(s.once(s.handleChooseModifierWeapon)))
 	mux.HandleFunc("POST /campaigns/{id}/my-company/units/{unit}/equipment/drop", s.protected(s.once(s.handleDropEquipment)))
 	mux.HandleFunc("GET /campaigns/{id}/my-company/units/{unit}/armoury", s.protected(s.handleArmouryPanel))
 	mux.HandleFunc("GET /campaigns/{id}/my-company/units/{unit}/path", s.protected(s.handlePathPanel))

@@ -468,14 +468,20 @@ def main():
                 errors.append(f"gear {nm!r}: variantOf must be the base exactly when a modifier has identity 'variant'")
             if it.get("pricedAs") and (it["pricedAs"] != it["base"] or "elven" not in it["modifiers"]):
                 errors.append(f"gear {nm!r}: pricedAs is the base of an Elven item")
-            if "poisoned" in it["modifiers"] and not any(g.startswith("Poisoned Attacks") for g in it.get("grants", [])):
-                errors.append(f"gear {nm!r}: a poisoned item grants Poisoned Attacks")
         else:
             for field in ("pricedAs", "variantOf"):
                 if it.get(field):
                     errors.append(f"gear {nm!r}: {field} is derived from base + modifiers")
-        if it.get("grantsModifier") and it["grantsModifier"] not in mods:
-            errors.append(f"gear {nm!r}: grantsModifier {it['grantsModifier']!r} is not a modifier")
+        g = it.get("grantsRuleForChosenWeapon")
+        if g:
+            if not it.get("weaponModifier") or f"{g['rule']} (X)" not in it.get("grants", []):
+                errors.append(f"gear {nm!r}: grantsRuleForChosenWeapon goes with weaponModifier and the grant '{g['rule']} (X)'")
+            if not g["weaponClasses"] or any(c not in ("melee", "two_handed", "spear", "lance", "bow", "crossbow", "throwing", "missile") for c in g["weaponClasses"]):
+                errors.append(f"gear {nm!r}: grantsRuleForChosenWeapon.weaponClasses must be weapon classes")
+        elif it.get("weaponModifier"):
+            errors.append(f"gear {nm!r}: a weapon modifier says which rule it gives the chosen weapon (grantsRuleForChosenWeapon)")
+        if "poison" in nm.lower() and not it.get("weaponModifier"):
+            errors.append(f"gear {nm!r}: poison is a rule of the unit (Poisoned Attacks (<weapon>)), not a wargear variant; only the Blowpipe itself carries it")
         if "elven" in it.get("modifiers", []) and not (nm.lower().startswith("elven") or "elf" in nm.lower() or "This is an Elven" in it.get("definition", "")):
             errors.append(f"gear {nm!r}: an Elven item is called Elven or its text says so")
     for need, depth in (("Pike", 2), ("Spear", 1)):
@@ -486,6 +492,11 @@ def main():
     for rd in D["wargearReadAs"]["items"]:
         if item_key(rd["item"]) not in by_key:
             errors.append(f"wargearReadAs: {rd['item']!r} is not an item")
+        if "poison" in rd["written"].lower():  # poison belongs to the unit: its vanilla profile must carry Poisoned Attacks (<the item>)
+            vu = next((x for k in ("warriors", "heroes") for x in van["data"][k] if x["name"] == rd["unit"]), None)
+            want = f"poisoned attacks ({rd['item'].lower()})"
+            if not vu or want not in [r.lower() for r in vu.get("specialRules", [])]:
+                errors.append(f"wargearReadAs: {rd['unit']!r} reads {rd['written']!r} as a plain {rd['item']}, but its profile has no {want}")
     # limits: stable ids, exemptions
     limit_ids = [l["id"] for l in bc["limits"]]
     if len(set(limit_ids)) != len(limit_ids):

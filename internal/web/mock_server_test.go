@@ -1029,6 +1029,44 @@ func (c *MockcampaignsBuyEquipmentCall) DoAndReturn(f func(context.Context, core
 	return c
 }
 
+// BuyEquipmentFor mocks base method.
+func (m *Mockcampaigns) BuyEquipmentFor(ctx context.Context, user core.User, id, unitID int64, item, pay, weapon string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BuyEquipmentFor", ctx, user, id, unitID, item, pay, weapon)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BuyEquipmentFor indicates an expected call of BuyEquipmentFor.
+func (mr *MockcampaignsMockRecorder) BuyEquipmentFor(ctx, user, id, unitID, item, pay, weapon any) *MockcampaignsBuyEquipmentForCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BuyEquipmentFor", reflect.TypeOf((*Mockcampaigns)(nil).BuyEquipmentFor), ctx, user, id, unitID, item, pay, weapon)
+	return &MockcampaignsBuyEquipmentForCall{Call: call}
+}
+
+// MockcampaignsBuyEquipmentForCall wrap *gomock.Call
+type MockcampaignsBuyEquipmentForCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsBuyEquipmentForCall) Return(arg0 error) *MockcampaignsBuyEquipmentForCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsBuyEquipmentForCall) Do(f func(context.Context, core.User, int64, int64, string, string, string) error) *MockcampaignsBuyEquipmentForCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsBuyEquipmentForCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string, string, string) error) *MockcampaignsBuyEquipmentForCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // CancelEnd mocks base method.
 func (m *Mockcampaigns) CancelEnd(ctx context.Context, user core.User, id, matchID int64, revision int) (core.Match, error) {
 	m.ctrl.T.Helper()
@@ -1180,6 +1218,44 @@ func (c *MockcampaignsChooseLowerCall) Do(f func(context.Context, core.User, int
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsChooseLowerCall) DoAndReturn(f func(context.Context, core.User, int64, int) (core.RecruitResult, error)) *MockcampaignsChooseLowerCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// ChooseModifierWeapon mocks base method.
+func (m *Mockcampaigns) ChooseModifierWeapon(ctx context.Context, user core.User, id, unitID int64, modifier, weapon string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ChooseModifierWeapon", ctx, user, id, unitID, modifier, weapon)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ChooseModifierWeapon indicates an expected call of ChooseModifierWeapon.
+func (mr *MockcampaignsMockRecorder) ChooseModifierWeapon(ctx, user, id, unitID, modifier, weapon any) *MockcampaignsChooseModifierWeaponCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChooseModifierWeapon", reflect.TypeOf((*Mockcampaigns)(nil).ChooseModifierWeapon), ctx, user, id, unitID, modifier, weapon)
+	return &MockcampaignsChooseModifierWeaponCall{Call: call}
+}
+
+// MockcampaignsChooseModifierWeaponCall wrap *gomock.Call
+type MockcampaignsChooseModifierWeaponCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsChooseModifierWeaponCall) Return(arg0 error) *MockcampaignsChooseModifierWeaponCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsChooseModifierWeaponCall) Do(f func(context.Context, core.User, int64, int64, string, string) error) *MockcampaignsChooseModifierWeaponCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsChooseModifierWeaponCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string, string) error) *MockcampaignsChooseModifierWeaponCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

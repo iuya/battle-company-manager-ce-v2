@@ -945,9 +945,19 @@
                     "items": {"type": "string"},
                     "description": "Keys of `gearAnnotations.modifiers` that apply to the item; needs `base`."
                   },
-                  "grantsModifier": {
-                    "type": "string",
-                    "description": "For a weapon modifier bought for one weapon (Envenom Weapon): the modifier it gives that weapon."
+                  "grantsRuleForChosenWeapon": {
+                    "type": "object",
+                    "required": ["rule", "weaponClasses"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "rule": {"type": "string", "minLength": 1, "description": "A parameterised rule (data.parameterisedRules) whose parameter is a weapon: the unit gains '<rule> (<chosen weapon>)'."},
+                      "weaponClasses": {
+                        "type": "array", "minItems": 1, "uniqueItems": true,
+                        "items": {"enum": ["melee", "two_handed", "spear", "lance", "bow", "crossbow", "throwing", "missile"]},
+                        "description": "The classes of the unit's items the player may choose from."
+                      }
+                    },
+                    "description": "For a weapon modifier (Envenom Weapon): the player chooses one weapon of the unit and the UNIT gains the special rule '<rule> (<weapon>)' (Poisoned Attacks (Spear)). The weapon itself stays a plain item."
                   },
                   "pricedAs": {
                     "type": "string",
@@ -955,7 +965,7 @@
                   },
                   "variantOf": {
                     "type": "string",
-                    "description": "Derived from base + a `variant` modifier: this item is a specific version of another and fills its place in a profile option (Bow with poisoned arrows is the profile's Bow). Not an alias."
+                    "description": "Derived from base + a `variant` modifier: this item is a specific version of another and fills its place in a profile option (no item uses it today). Not an alias."
                   },
                   "relatedTo": {
                     "type": "array",

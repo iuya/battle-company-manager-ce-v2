@@ -66,6 +66,9 @@ func equipmentFor(rs *RuleSet, bcCo BCCompany, name string, bought, profile, her
 		e.Upgrade, e.Profile = true, true // a package that came with the unit, not something to drop or count
 	}
 	rules := a.Grants
+	if a.ChosenWeapon != nil { // a weapon modifier gives its rule to the weapon the player chose, and the unit's build adds it
+		rules = nil
+	}
 	if !annotated && offered {
 		rules = offer.Grants
 	}
@@ -199,18 +202,6 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 		}
 	}
 	u.Equipment = SortEquipment(u.Equipment)
-	for i := range u.Equipment { // a weapon modifier (Envenom Weapon) is shown as a copy of the weapon it was bought for
-		if a, ok := rs.BC.Annotation(u.Equipment[i].Name); ok && a.WeaponModifier {
-			for _, w := range u.Equipment {
-				if !w.Upgrade && slices.ContainsFunc(w.Classes(), func(c EquipmentClass) bool {
-					return c == EquipMelee || c == EquipTwoHanded || c == EquipSpear || c == EquipLance
-				}) {
-					u.Equipment[i].Modifies = w.Name
-					break
-				}
-			}
-		}
-	}
 	for i := range u.Equipment {
 		u.Equipment[i].Drop = DropReason(u, u.Equipment[i], base.Options, settings.HeroesDropProfileGear)
 	}
@@ -292,6 +283,7 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 			add(s.Progress.Actions, ActionFromPath)
 		}
 	}
+	grants = applyWeaponModifiers(rs, book, &u, grants)
 	have := map[string]bool{}
 	for _, r := range u.Rules {
 		have[strings.ToLower(r.Name)] = true

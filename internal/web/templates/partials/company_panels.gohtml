@@ -378,7 +378,7 @@
     <div class="ml-auto flex shrink-0 flex-col items-end gap-1">
       {{if .Buyable}}
       <form method="post" action="/campaigns/{{$.Campaign.ID}}/my-company/units/{{$.Unit.ID}}/equipment" hx-post="/campaigns/{{$.Campaign.ID}}/my-company/units/{{$.Unit.ID}}/equipment">
-        <input type="hidden" name="item" value="{{.Name}}">{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-9" "Cost" .Cost "Gold" .GoldPrice "PayInfluence" .PayInfluence "PayGold" .PayGold)}}
+        <input type="hidden" name="item" value="{{.Name}}">{{if .WeaponModifier}}{{template "weapon_chooser" (dict "Weapons" $.Unit.PoisonableWeapons "ID" (printf "buy-weapon-%d" $.Unit.ID) "Chosen" "")}}{{end}}{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-9" "Cost" .Cost "Gold" .GoldPrice "PayInfluence" .PayInfluence "PayGold" .PayGold)}}
       </form>
       {{else}}
       <span class="text-sm font-semibold">{{.Cost}} influence{{if .GoldPrice}} · {{.GoldPrice}} gold{{end}}</span><span class="max-w-48 text-right text-xs text-muted">{{.Reason}}</span>

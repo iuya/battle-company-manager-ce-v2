@@ -131,7 +131,7 @@ Ids are `BIGINT GENERATED ALWAYS AS IDENTITY`. Unit ids are never reused or shar
 | `campaign_invites` | `token_hash` PK (SHA-256, like sessions), `campaign_id`, `created_by`, `expires_at`, `max_uses`, `uses` |
 | `companies` | `id`, `campaign_id`, `owner_id`, `name`, `faction`, `influence`, `gold`, `max_models_override`, `pack jsonb`, `pending jsonb` (recruit roll, lower choice, option choice), `created_at`; unique `(campaign_id, owner_id)` |
 | `company_units` | `id`, `company_id`, `position` (unique per company, deferrable), `base` (vanilla unit name), `custom_name`, `role`, `level`, `xp`, `progress jsonb` (`core.Progress`), `injuries jsonb`, `injured bool`, `sent_to_healers bool`, `pending jsonb` (level roll, treatment), `wanderer`, `creature` |
-| `unit_equipment` | `unit_id`, `name`, `origin` (`bought` or `dropped_profile`), `for_weapon` (Envenom Weapon target); profile wargear is derived from rules, only deviations are stored |
+| `unit_equipment` | `unit_id`, `name`, `origin` (`bought` or `dropped_profile`) (an Envenom Weapon carries its weapon in its name: `Envenom Weapon (Bow)`); profile wargear is derived from rules, only deviations are stored |
 | `fallen_units` | `id`, `company_id`, `position`, `snapshot jsonb` (profile, wargear, path, level, XP), `fell_in`, `fate`, `fell_at` |
 | `matches`, `match_sides`, `match_side_companies`, `match_objectives`, `match_events`, `grants` | the match layer, see below |
 

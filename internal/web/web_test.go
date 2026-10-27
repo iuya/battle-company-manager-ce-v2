@@ -1655,3 +1655,51 @@ func TestFullPagesCarryTheSidebarList(t *testing.T) {
 		t.Errorf("no lazy fallback: %s", body)
 	}
 }
+
+func TestBuyingAndChoosingTheWeaponOfAWeaponModifier(t *testing.T) {
+	t.Run("buy with a weapon", func(t *testing.T) {
+		f := newFixture(t, Config{})
+		d, detail := mineDetail()
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+		f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
+		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+		f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
+		f.camp.EXPECT().BuyEquipmentFor(gomock.Any(), frodo, int64(7), int64(5), "Envenom Weapon (X)", "", "Bow").Return(nil)
+		rec := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/equipment", url.Values{"item": {"Envenom Weapon (X)"}, "weapon": {"Bow"}})))
+		if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Bought Envenom Weapon (X).") {
+			t.Errorf("got %d", rec.Code)
+		}
+	})
+	t.Run("choose again", func(t *testing.T) {
+		f := newFixture(t, Config{})
+		d, detail := mineDetail()
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+		f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
+		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+		f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
+		f.camp.EXPECT().ChooseModifierWeapon(gomock.Any(), frodo, int64(7), int64(5), "Envenom Weapon (X)", "Bow").Return(nil)
+		rec := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/equipment/weapon", url.Values{"item": {"Envenom Weapon (X)"}, "weapon": {"Bow"}})))
+		if rec.Code != 200 || !strings.Contains(rec.Body.String(), "applies to the Bow") {
+			t.Errorf("got %d", rec.Code)
+		}
+	})
+	t.Run("the card offers the chooser", func(t *testing.T) {
+		f := newFixture(t, Config{})
+		d, detail := mineDetail()
+		detail.Roster[0].Equipment = []core.Equipment{{Name: "Envenom Weapon (X)", Class: core.EquipOther, Size: "small", Bought: true, Choices: []string{"Bow", "Hand weapon"}}}
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+		f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
+		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+		f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
+		body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+		if !strings.Contains(body, `/units/5/equipment/weapon`) || !strings.Contains(body, `<option value="Hand weapon"`) || !strings.Contains(body, "Choose weapon") {
+			t.Error("the card lets the player choose the weapon")
+		}
+	})
+}

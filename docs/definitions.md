@@ -241,9 +241,9 @@ as the one documented exception.
     items' `grants` with `grantedTo: "mount"` (the Pony's Timid; `UnitRule.Mount`); the Cavalry keyword is matched by the rule name `Cavalry`.
     The validator: every pure `lance` item has the flag, a mount or a spear never does.
   - `weaponModifier: true` marks something that is not an item but a modifier bought for one weapon (Envenom Weapon
-    (X), granting `Poisoned Attacks (X)`): the app shows a copy of the chosen weapon with the rule.
+    (X)): the app shows a copy of the chosen weapon with the rule. It carries `grantsRuleForChosenWeapon` (see **Poison** below).
   - `ranged` (`range`, `strength`) is required on `bow`, `crossbow`, `throwing` and `missile`, and allowed only there.
-    Poisoned weapons record the rule as a grant (`Poisoned Attacks (Bow)` on "Bow with poisoned arrows").
+    The Blowpipe records its rule as a grant (`Poisoned Attacks (Blowpipe)`): it is the only item that carries poison itself.
   - An item whose text says "This is a(n) X" inherits X's grants (the Company Horn gets the War horn's Dominant (2)).
   - `grantedTo: "mount"` marks the rules a mount brings (a Pony's Timid): they belong to the mount, not the rider.
     Only on items whose main class is `mount`.
@@ -259,18 +259,16 @@ as the one documented exception.
     `base` + `modifiers` (below). `data.wargearReadAs` lists the company-list spellings read as the profile's specific item (curator's
     readings, e.g. Rivendell Warrior "spear" -> Elven spear); the lists carry the resolved name. "Two-handed axe" (Dwarf Warrior, Wild Man of
     Dunland) is an alias of the Two-handed weapon (confirmed by the user); the capitalised vanilla spelling "Two-handed Axe" is listed as an alias too (`VANILLA_SPELLING_VARIANTS` in `tools/bc/gear.py`) so every canonical spelling agrees. The Easterling Halberd is in the simple hybrid-weapons row at 1 Influence (confirmed). The Elven Glaive and Wood Elf Spear are Spear + `elven` that also carry their own rule (`ITEM_RULES`): the glaive's `attacksBonus` (+1 Attacks for the Duel Roll or for Strikes when Engaged and not Supported; the wording is the vanilla gear text, the BC document only prices it), the Wood Elf Spear's `shielding`.
-  - **Item modifiers.** An item is a base item plus modifiers: "Elven spear" = Spear + `elven`, "Bow with poisoned arrows" = Bow + `poisoned`.
+  - **Item modifiers.** An item is a base item plus modifiers: "Elven spear" = Spear + `elven`. Poison is not a modifier (see **Poison**).
     `data.gearAnnotations.modifiers[]` defines each modifier once (`key`, `name`, `glossary` term, `identity`, `appliesTo`, the rulebook `text`
     and a shorter `tooltip`, the effect as `abilities`, the `price` rule, `source`); an item carries `base` (the generic item) and `modifiers`
     (keys). The tooltip (`definition`) of a modified item ends with each modifier's text, so the chips, the glossary extras and the armoury
     explain it with no extra code. The modifiers of the sources: `elven` (rulebook "Elven weapon": wins a Drawn Combat's roll-off on 3+ for a
     Good model, on 1-4 for an Evil one, cancelled when both sides have one, melee weapons only, any weapon with "Elf" in its name is Elven;
     BC wargear table: Elven-made weaponry uses the generic equivalent's values, restricted to Elf models), `masterForged` (rulebook: no -1
-    Duel Roll for using it as a two-handed weapon; no BC item carries it today) and `poisoned` (the Poisoned Attacks rule; `Envenom Weapon`
-    has `grantsModifier: poisoned`). "Masterwork" and "Dwarven-made" appear in neither document; "Fire-based attacks" has no inherent
+    Duel Roll for using it as a two-handed weapon; no BC item carries it today). "Masterwork" and "Dwarven-made" appear in neither document; "Fire-based attacks" has no inherent
     effect, so none of them is a modifier. `identity` says what the modifier does to identity: `distinct` (the Elven spear is its own item: a
-    Spear option does not take it, so a Spear is not bought by an Elf profile and the other way round) or `variant` (the poisoned bow fills
-    the profile's Bow). `variantOf` and `pricedAs` are derived from base + modifiers for the app: `variantOf` for a `variant` modifier,
+    Spear option does not take it, so a Spear is not bought by an Elf profile and the other way round) or `variant` (fills the profile's base item; no item uses it today). `variantOf` and `pricedAs` are derived from base + modifiers for the app: `variantOf` for a `variant` modifier,
     `pricedAs` (sold at the base's price and rating) for an Elven item whose base is in the wargear table and which is not unique wargear
     (the Elven-made Glaive and the Wood Elf Spear are Spear + `elven` too but keep the price of their company's page; the Galadhrim Knight's
     Elven-made hand-and-a-half sword is never sold, `NOT_SOLD` in `tools/bc/gear.py`). `relatedTo` stays for items that are related
@@ -278,6 +276,31 @@ as the one documented exception.
     A warrior may buy an item only when it is exactly one of the items its profile options name (`OptionItems` / `GearMatchesOption`,
     `internal/core/gearidentity.go`), a hero any item of its company's profiles. Chips and tooltips look the item up by its own name:
     `GlossaryExtras` adds one term per item, weak against the rulebook's own glossary entry (Spear, Pike, Bow, Crossbow, Light Shield).
+  - **Poison** (owner decision 2026-10-27). Poison is the special rule `Poisoned Attacks (<weapon>)` of a UNIT; wargear stays plain. It comes
+    from three places, and no wargear item other than the Blowpipe carries it:
+    1. *A unit rule.* Haradrim Warrior, Haradrim Raider, Haradrim Chieftain, Watcher of Kârna... have `Poisoned Attacks (Bow)` on their vanilla
+       profile. A Harad list row written "bow with poisoned arrows" / "bow with poison arrows" is read as the plain `Bow`
+       (`data.wargearReadAs`, `READ_AS` in `tools/bc/gear.py`) and needs no grant: the unit already has the rule. The validator checks that
+       every such reading names a unit whose profile has `Poisoned Attacks (<item>)`. A promoted unit therefore keeps the plain Bow but is
+       poisonous only if the NEW profile has the rule (the Haradrim Raider has, a unit without it does not).
+    2. *The weapon itself.* The Blowpipe grants `Poisoned Attacks (Blowpipe)` (annotation `grants`, rulebook: "benefits from the Poisoned
+       Weapons special rule"); most Blowpipe profiles list the rule too, and a unit that has both shows it once. The grant leaves with the
+       Blowpipe: a promotion to a profile that does not list the Blowpipe drops the item and the rule.
+    3. *Envenom Weapon (X)* (equipment, `restrictions: ["evil"]`, Small, 1 Influence). The annotation says what it gives:
+       `weaponModifier: true`, `grants: ["Poisoned Attacks (X)"]` and
+       `grantsRuleForChosenWeapon: {"rule": "Poisoned Attacks", "weaponClasses": ["melee","two_handed","spear","lance","bow","crossbow","throwing","missile"]}`.
+       The player chooses ONE item of the unit whose class is in `weaponClasses` (a weapon the unit has, not already named by a
+       `Poisoned Attacks (<weapon>)` rule it holds); the UNIT gains the rule `Poisoned Attacks (<that weapon's name>)` (the parameter of
+       `data.parameterisedRules` "Poisoned Attacks"). The weapon stays the plain item. In a company the choice is stored in the name of the
+       bought item: `Envenom Weapon (X)` has no weapon yet, `Envenom Weapon (Bow)` is chosen (`BCBook.ChosenWeapon` resolves it to the
+       annotation and the armoury offer; the card's `Equipment.Modifies` is the weapon, `Equipment.Choices` the weapons it could be for,
+       `CompanyUnit.PoisonableWeapons` those of the unit). The classes come from `weaponClasses` (Go: `BCBook.CanBePoisoned`, also used by the
+       level-up's Poisoned Attacks); in a match the kit assignment `Detail` names the weapon in free text. The minor special rule "Poisoned Attacks (X)" of the paths asks the same
+       question (`Progress.Minor`, `Poisoned Attacks|weapon:<name>`) and gives the same unit rule.
+       Promotion: Envenom Weapon is equipment and stays; the chosen weapon is a name, so if the new profile no longer lists that weapon the
+       item goes back to `Envenom Weapon (X)` (no rule, nothing shown for a weapon the unit lacks) and the player chooses again among the
+       weapons of the new profile (`ArmouryService.ChooseModifierWeapon`). A unit with the same rule from its profile, the Blowpipe and
+       Envenom Weapon shows it once; a weapon a rule already names is not offered.
   - Bow-type weapons (`bow` class: Bow, Longbow, Elf Bow...) carry `moveAndShoot` (may shoot after moving up to half the Move Value,
     Shoot Value worsened by 1); a `crossbow` (24" S4, vanilla and the rulebook's Missile Weapon chart) carries `noFireAfterMove`. A
     Pike carries `twoHanded`, Support `depth` 2 (it supports like a spear and through a second pike-bearer) and the shield/missile
@@ -425,7 +448,7 @@ points at the shield); `lifts` from `liftedByRules`; `requires` from `requiresMo
 or would point from vanilla/glossary into Battle Companies is not in the graph and the build prints it (today Hearthguard -> Burly, because
 Burly is a Battle Companies override of the vanilla rule, and Blowpipe -> Poisoned Attacks (Blowpipe), which vanilla does not define). Left out
 by decision, without a report: standard weapons with a modifier or a kind that has no term of their own (Elven lance, Elven hand-and-a-half
-weapon, Bow with poisoned arrows, Hand-and-a-half hammer...: no node is invented) and the `evil`/`unique` equipment restrictions (armoury only).
+weapon, Hand-and-a-half hammer...: no node is invented) and the `evil`/`unique` equipment restrictions (armoury only).
 Command Support (a scenario special rule, `SCENARIO_KEYWORDS` in `tools/bc/core.py`) is a Battle Companies keyword, so the instruments' grants point at it.
 
 `validate_definitions.py` checks the schema, that every edge endpoint is a node, every node resolves to a term of the files (same file,

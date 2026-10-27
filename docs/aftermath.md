@@ -361,6 +361,25 @@ decision is open; a refusal is shown on the step). Afterwards the page is the **
 company first) with links to My Company and the match, readable by everybody. The web interface gained
 `FreeEquipmentOffers(ctx, id, companyID, maxInfluenceValue)` (`core.AftermathService` implements it).
 
+## Wargear on a promotion
+
+One rule (`core/promotion_gear.go`): a warrior who is promoted keeps only the wargear his new profile lists, under any name the armoury
+recognises as the same item (`ItemKey`, the armoury's other names and the annotations' aliases such as Two-handed axe = Two-handed weapon,
+`wargearReadAs`); the rest is lost for good. The new profile lists its options, its own wargear, what its company label selects and what
+the promotion gives. Equipment (slot items) stays, and a unit that becomes a hero keeps everything. The points follow from what is left.
+Different weapons are different items (a Wood Elf Spear, an Elven glaive and an Elven spear are three).
+
+Every carried item is judged on its own. A stored option label stands for the items it carries: "Shield and Spear" is two items, and an
+exchange ("Exchange hand-and-a-half weapon for bow") carries only the item it gives, since the other was exchanged away. A carried item
+the new profile lists stays as itself; when the new profile has an exchange option that gives it, that exchange is already chosen and
+the entry becomes that option; when the new profile carries it as its own wargear the profile supplies it (a Khandish Warrior with the
+bow becomes a Khandish Horseman, who lists the hand-and-a-half weapon and the bow, and has both).
+
+Poison is no property of wargear (docs/definitions.md **Poison**): the plain Bow stays when the new profile lists it, and the unit is
+poisonous only if the new profile has Poisoned Attacks (a Haradrim Raider has it, a Khandish Horseman does not). An Envenom Weapon whose
+weapon the new profile no longer lists goes back to `Envenom Weapon (X)` and the player chooses again.
+`TestEveryPromotionAppliesTheOneRule` applies the rule to every promotion of every company, with no per-item list.
+
 ## Unit titles on the aftermath
 
 Cards, casualties, succession options and every audit line use `core.Distinguish(roster)`: a Leader or Sergeant carries its role

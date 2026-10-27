@@ -198,7 +198,8 @@ type Equipment struct {
 	Bought      bool
 	Icon        string      // a specific icon (IconFor); empty to draw the item by its classes
 	Upgrade     bool        // a named unit upgrade (Helmingas, Hearthguard...), not gear: shown as a badge
-	Modifies    string      // for a weapon modifier (Envenom Weapon): the weapon it was bought for
+	Modifies    string      // for a weapon modifier (Envenom Weapon): the weapon the player chose for it; empty while none is chosen
+	Choices     []string    // for a weapon modifier: the weapons of the unit it could be given to now (the chosen one included)
 	Profile     bool        // part of the unit's vanilla profile (a Warrior of Minas Tirith's armour), not an option or a purchase
 	Rating      int         // what the item adds to the unit's points (0 for profile items, which are already in them)
 	Drop        string      // why the unit cannot drop it (see DropReason); empty when it can
@@ -353,30 +354,33 @@ const XPPerLevel = 5
 // CompanyUnit is one model of a battle company. Units are nameable: Name is the player's name for it (may be empty) and
 // Type is what it actually is ("Warrior of Minas Tirith").
 type CompanyUnit struct {
-	ID            int64
-	Name          string
-	Type          string
-	Role          UnitRole
-	Kind          UnitKind
-	Points        int
-	Stats         []Attribute
-	Equipment     []Equipment      // sorted with SortEquipment
-	Rules         []UnitRule       // sorted with SortRules; the rules of a hero's path are in Path instead
-	Path          *UnitPath        // heroes only
-	Creature      *UnitCreatureRef // the creature this officer owns
-	Wanderer      bool             // a mercenary hired from the armoury
-	StatMods      []StatMod        // what the gear changes in the characteristics, relative to the vanilla profile (already in Stats)
-	Injuries      []UnitInjury     // a hero's persistent injuries (arm wound, leg wound, broken honour) with their counts
-	LostAbilities []InjuryLoss     // what the injuries took away: Stand Fast, heroic actions on the company
-	Injured       bool             // misses the next game: it does not count towards the company's rating
-	AtHealers     bool             // sent to the healers: its missed game is the price of the healing, field treatment cannot cancel it
-	Level         int
-	XP            int          // all the experience the unit has earned; each level-up roll uses XPPerLevel of it
-	PathPending   bool         // a hero that has not chosen its path yet: the company cannot play a match until it does
-	OwnPath       bool         // On Its Own Path: it earns no experience and never levels up
-	Models        int          // how many models it counts as against the company's maximum; 0 is one
-	Parts         []UnitPart   // a unit made of several models on one card (Warg Marauder: its riders and mount)
-	Keywords      UnitKeywords // race, faction and unit types (and the mount's apart), see docs/unit-keywords.md
+	ID        int64
+	Name      string
+	Type      string
+	Role      UnitRole
+	Kind      UnitKind
+	Points    int
+	Stats     []Attribute
+	Equipment []Equipment // sorted with SortEquipment
+	// PoisonableWeapons are the weapons of the unit that Poisoned Attacks could still be given to (an Envenom Weapon, a level-up): the
+	// carried weapons whose class is among the weaponClasses of Envenom Weapon, minus those a Poisoned Attacks (<weapon>) rule names.
+	PoisonableWeapons []string
+	Rules             []UnitRule       // sorted with SortRules; the rules of a hero's path are in Path instead
+	Path              *UnitPath        // heroes only
+	Creature          *UnitCreatureRef // the creature this officer owns
+	Wanderer          bool             // a mercenary hired from the armoury
+	StatMods          []StatMod        // what the gear changes in the characteristics, relative to the vanilla profile (already in Stats)
+	Injuries          []UnitInjury     // a hero's persistent injuries (arm wound, leg wound, broken honour) with their counts
+	LostAbilities     []InjuryLoss     // what the injuries took away: Stand Fast, heroic actions on the company
+	Injured           bool             // misses the next game: it does not count towards the company's rating
+	AtHealers         bool             // sent to the healers: its missed game is the price of the healing, field treatment cannot cancel it
+	Level             int
+	XP                int          // all the experience the unit has earned; each level-up roll uses XPPerLevel of it
+	PathPending       bool         // a hero that has not chosen its path yet: the company cannot play a match until it does
+	OwnPath           bool         // On Its Own Path: it earns no experience and never levels up
+	Models            int          // how many models it counts as against the company's maximum; 0 is one
+	Parts             []UnitPart   // a unit made of several models on one card (Warg Marauder: its riders and mount)
+	Keywords          UnitKeywords // race, faction and unit types (and the mount's apart), see docs/unit-keywords.md
 }
 
 // UnitPart is a part of a unit made of several models: a rider, a mount.
