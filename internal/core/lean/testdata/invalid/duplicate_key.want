@@ -1,0 +1,3 @@
+battle_companies.json: name: key "name" is written twice; the last one would win silently
+battle_companies.json: version: missing
+battle_companies.json: campaign: missing

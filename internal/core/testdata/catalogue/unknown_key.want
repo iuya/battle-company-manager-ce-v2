@@ -1,0 +1,3 @@
+battle_companies.json: companies[0].strat: unknown field; did you mean "start"?
+  hint: known fields: advancements, aka, alignment, breakPoint, description, epigraph, exchanges, extends, faction, gear, granted, heroUpgrades, heroes, id, limits, maxModels, name, notes, oath, ownPath, promotions, recruit, reinforcements, rules, special, specialRules, start, substitutions, units
+battle_companies.json: companies[0].start: missing

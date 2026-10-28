@@ -25,6 +25,10 @@ type levelPanel struct {
 	Pending  int             // level-up rolls the unit still has waiting
 	Rerolls  int             // Against the Odds re-rolls the company has
 	Error    string
+	// Spec is the dice of this unit's roll (a warrior's, or the hero's path chart) and Pairs how many results a hero rolls: the form,
+	// the dice tray and the heading are sized by them (campaign.progression, data.paths[].dice).
+	Spec  core.DiceSpec
+	Pairs int
 }
 
 func (s *Server) showLevelPanel(w http.ResponseWriter, r *http.Request, status int, unitID int64, roll *core.LevelRoll, animate bool, errMsg string) {
@@ -52,6 +56,13 @@ func (s *Server) showLevelPanel(w http.ResponseWriter, r *http.Request, status i
 		return
 	}
 	panel.Pending, panel.Rerolls = panel.Unit.PendingLevelUps(), detail.Rerolls
+	panel.Spec, panel.Pairs = detail.RuleDice.Level.Warrior, 1
+	if panel.Unit.IsHero() {
+		panel.Spec, panel.Pairs = detail.RuleDice.Level.Hero, detail.RuleDice.Level.Pairs
+		if panel.Unit.Path != nil {
+			panel.Spec = detail.RuleDice.Level.HeroFor(panel.Unit.Path.Name)
+		}
+	}
 	glossary, err := s.glossary.ForCampaign(r.Context(), base.Campaign.ID) // to describe a rule, an action or a power with links to its terms
 	if err != nil && !errors.Is(err, core.ErrNotFound) {
 		s.fail(w, r, err)
@@ -80,7 +91,6 @@ func (s *Server) showLevelPanel(w http.ResponseWriter, r *http.Request, status i
 		if panel.Roll.D6 > 0 {
 			dice = append(dice, strconv.Itoa(panel.Roll.D6))
 		}
-		names := []string{"First roll", "Second roll"}
 		for i, pair := range panel.Roll.Pairs { // each of a hero's rolls gets its own lane
 			if len(pair.Dice) == 0 {
 				continue
@@ -89,11 +99,22 @@ func (s *Server) showLevelPanel(w http.ResponseWriter, r *http.Request, status i
 				dice = append(dice, strconv.Itoa(d))
 			}
 			groups = append(groups, strconv.Itoa(len(pair.Dice)))
-			labels = append(labels, names[i])
+			labels = append(labels, rollLabel(i+1))
 		}
 		panel.Dice, panel.Groups, panel.Labels = strings.Join(dice, ","), strings.Join(groups, ","), strings.Join(labels, ",")
 	}
 	s.render.partial(w, status, "campaign_my_company", "level_panel", panel)
+}
+
+// rollLabel names the i-th result of a hero's level-up: "First roll", "Second roll", "Roll 3".
+func rollLabel(i int) string {
+	switch i {
+	case 1:
+		return "First roll"
+	case 2:
+		return "Second roll"
+	}
+	return "Roll " + strconv.Itoa(i)
 }
 
 func (s *Server) handleLevelUpPanel(w http.ResponseWriter, r *http.Request) {
@@ -114,13 +135,8 @@ func (s *Server) handleLevelUpRoll(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var entered []int
-	own := false
-	for _, f := range []string{"roll", "roll2"} {
-		n, _ := strconv.Atoi(r.PostFormValue(f))
-		entered = append(entered, n)
-		own = own || n > 0
-	}
+	entered := enteredRolls(r)
+	own := entered != nil
 	thrown := r.PostFormValue("thrown") != "" // the browser threw the dice (Shake the table) and reports the result
 	roll, err := s.campaigns.RollLevelUp(r.Context(), *userFrom(r.Context()), id, unitID, entered, thrown)
 	switch {
@@ -252,7 +268,11 @@ func tipPath(p *core.PathTable) string {
 	out := struct {
 		Limits [][3]string `json:"limits"`
 		Rows   []row       `json:"rows"`
+		Dice   string      `json:"dice"`
 	}{}
+	if p.PathDice.Valid() {
+		out.Dice = p.PathDice.Display()
+	}
 	for _, l := range p.Limits {
 		out.Limits = append(out.Limits, [3]string{l.Stat, l.Limit, l.Abbr})
 	}

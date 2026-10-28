@@ -8,7 +8,7 @@ import (
 
 // TreatmentService pays influence to treat injuries (Battle Companies, Step 3; costs, targets and the injuries each way can
 // remove come from campaign.injuries.treatment in the rules file). A warrior's Injured condition goes for the warrior cost. A
-// hero either attempts it (a D6 against a target, raised with extra influence; a failed attempt keeps its cost) or goes to the
+// hero either attempts it (the dice of the rules against a target, raised with extra influence; a failed attempt keeps its cost) or goes to the
 // healers (no roll, it misses the next game); either removes one injury. A roll that missed by little waits for the player's
 // decision on extra influence: UnitState.Pending.Treat, stored with the unit.
 type TreatmentService struct{ companyDeps }
@@ -157,8 +157,12 @@ func (s *TreatmentService) treat(env levelEnv, st *CompanyState, us *UnitState, 
 		return heal(t.Injury), nil
 	}
 	res.Rolled, res.Roll = true, t.Roll
-	if res.Roll < 1 || res.Roll > 6 {
-		res.Roll = s.dice.D6()
+	if spec := m.TreatDice; res.Roll < spec.Min() || res.Roll > spec.Max() {
+		res.Dice = RollDice(s.dice, spec)
+		res.Roll = 0
+		for _, d := range res.Dice {
+			res.Roll += d
+		}
 	}
 	res.Needed, res.Total = m.Target, total(res.Roll, 0)
 	if res.Total >= m.Target {

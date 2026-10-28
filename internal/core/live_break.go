@@ -13,9 +13,14 @@ import (
 // BreakRules are the Break Point rules of the Battle Companies file (campaign.breakPoint).
 type BreakRules struct {
 	DefaultPercent int
-	CourageDice    string // whenBroken.courageTest.dice, "2d6"
-	PassIf         string // whenBroken.courageTest.passIf, "totalAtLeastCourage"
-	Exceptions     []BreakException
+	// Comparison is breakPoint.threshold.comparison (E1): false is "gt" (Broken when the casualties are strictly greater than the Break
+	// Point, exactly the Break Point is not Broken), true is "gte". The Break Point is never rounded (a fixed engine rule): the test is
+	// done on integers, casualties * 100 against percent * startingModels.
+	AtLeast     bool
+	CourageDice string   // whenBroken.courageTest.dice as written, lower case ("2d6")
+	CourageSpec DiceSpec // CourageDice parsed (E4); the zero spec when the file names none
+	PassIf      string   // whenBroken.courageTest.passIf, "totalAtLeastCourage"
+	Exceptions  []BreakException
 }
 
 // BreakException is a scenario or scenario setting that changes the courage tests or the count (campaign.breakPoint.scenarioExceptions).
@@ -82,11 +87,15 @@ func (r BreakRules) ExceptionsFor(scenario string, settings ...string) []BreakEx
 // ATO are the Against the Odds rules of the file (empty when the file has none).
 func (b *BCBook) ATO() ATORules { return b.ato }
 
+// ExperienceGain is the amount of an experience gain of the file (experience.gains[key].amount); 0 when the file has none.
+func (b *BCBook) ExperienceGain(key string) int { return b.xpGains[key] }
+
 // BreakRules are the Break Point rules of the file.
 func (b *BCBook) BreakRules() BreakRules { return b.breakRules }
 
 // BreakConfig is what the fold needs to know about one company that is not in the log.
 type BreakConfig struct {
+	AtLeast    bool     // breakPoint.threshold.comparison is "gte"
 	Percent    int      // the share of the starting models that breaks it (company effect or the file's default); 0: never Broken
 	Extra      int      // models counted besides the units: the company's creatures, a temporary Wanderer, models yet to arrive
 	Exceptions []string // the scenario's exceptions, as sentences
@@ -177,6 +186,15 @@ func (s LiveState) startingModels(company int64) int {
 	return n
 }
 
+// exceeded says whether the casualties break a company of models at the start: more than the Break Point (comparison gt) or at least
+// it (gte), on integers so the Break Point is not rounded.
+func (c BreakConfig) exceeded(casualties, models int) bool {
+	if c.AtLeast {
+		return casualties*100 >= c.Percent*models
+	}
+	return casualties*100 > c.Percent*models
+}
+
 // Turn is the last started turn (0 before the first).
 func (s LiveState) Turn() int { return s.m.turn }
 
@@ -186,7 +204,7 @@ func (s LiveState) Break(company int64) LiveBreak {
 	b := LiveBreak{Percent: cfg.Percent, StartingModels: s.startingModels(company), Casualties: s.casualtiesOf(company), Broken: st.broken,
 		BrokenAtTurn: st.brokenAt, Fled: st.fled, Exceptions: cfg.Exceptions}
 	b.Threshold100 = b.Percent * b.StartingModels
-	b.WillBreak = !b.Broken && b.Percent > 0 && b.Casualties*100 > b.Threshold100
+	b.WillBreak = !b.Broken && b.Percent > 0 && cfg.exceeded(b.Casualties, b.StartingModels)
 	b.Offer = b.Broken && st.brokenAt == s.m.turn && !st.decided
 	return b
 }
@@ -200,7 +218,7 @@ func (s LiveState) startTurn(n int) {
 		if st.broken || cfg.Percent <= 0 {
 			continue
 		}
-		if s.casualtiesOf(company)*100 > cfg.Percent*s.startingModels(company) {
+		if cfg.exceeded(s.casualtiesOf(company), s.startingModels(company)) {
 			st.broken, st.brokenAt = true, n
 		}
 	}

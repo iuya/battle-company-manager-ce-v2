@@ -254,7 +254,8 @@ func (m Match) hasCompany(id int64) bool {
 type ScenarioInfo struct {
 	Name       string
 	Table      int                 // 1-3 (the scenario selection table it is on); 0 when the file does not place it
-	Roll       int                 // 1-6 on that table's second D6; 0 when unknown
+	Roll       int                 // 1..Sides on that table's second die; 0 when unknown
+	FirstDie   [2]int              // the range of the first die that picks its table (campaign.scenarioSelection.tables[].roll)
 	Objectives []ScenarioObjective // the ticks of the scenario's rewards; empty for most scenarios
 	Scoring    []string            // text of the Victory Point conditions, shown as a read-only reminder
 	About      ScenarioAbout       // what the rulebook says about the set-up and the special rules
@@ -331,12 +332,13 @@ type ScenarioText struct {
 	Table       *ScenarioRuleTable // a table the rule prints, after its text (Strange Aura, the Monster Budget)
 }
 
-// ScenarioRuleTable is a table of a scenario special rule. Lookup says what selects a row: "d6" (rolled at the table) or
+// ScenarioRuleTable is a table of a scenario special rule. Lookup says what selects a row: a dice string such as "d6" (rolled at the table) or
 // "combinedRating" (the two companies' ratings added, known when the match is made).
 type ScenarioRuleTable struct {
-	Lookup  string
-	Columns []string
-	Rows    []ScenarioTableRow
+	Lookup    string
+	Columns   []string
+	Rows      []ScenarioTableRow
+	TableDice DiceSpec // the dice of a Lookup that is a dice string ("d6"); the rows cover Min..Max of it. Zero for combinedRating
 }
 
 // ScenarioTableRow covers the values Min to Max (Max below zero: open ended) and prints its Cells.

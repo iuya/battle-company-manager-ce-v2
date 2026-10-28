@@ -88,13 +88,18 @@ func (s *AftermathService) UsePerk(ctx context.Context, user User, id, companyID
 }
 
 // UseVantagePoint applies the company's Vantage Point to the second die of the scenario selection of an open match the company plays
-// in: adjust is +1 or -1 (others are ErrInvalidRoll), the second die must stay on 1 to 6. The perk is used up (a second use is
+// in: adjust is within the range of the rules (+1 or -1 by default; others are ErrInvalidRoll), the second die must stay on its faces (campaign.scenarioSelection.die). The perk is used up (a second use is
 // refused). It returns the die as moved and the line for the roll ("4, Vantage Point +1 = 5"). Only the owner of the company uses it.
 func (s *AftermathService) UseVantagePoint(ctx context.Context, user User, id, matchID, companyID int64, second, adjust int) (int, string, error) {
-	if adjust != -1 && adjust != 1 {
-		return 0, "", errors.Join(ErrInvalidRoll, errors.New("the Vantage Point bonus is +1 or -1"))
+	rs, _, err := s.ruleset(ctx, id)
+	if err != nil {
+		return 0, "", err
 	}
-	if second < 1 || second > 6 || second+adjust < 1 || second+adjust > 6 {
+	vantage := rs.BC.Recruiting().VantagePoint
+	if adjust == 0 || !vantage.Allows(adjust) {
+		return 0, "", errors.Join(ErrInvalidRoll, fmt.Errorf("the Vantage Point bonus is %s", vantage.Describe()))
+	}
+	if sides := rs.BC.Selection().Die.Sides; second < 1 || second > sides || second+adjust < 1 || second+adjust > sides {
 		return 0, "", errors.Join(ErrInvalidRoll, fmt.Errorf("a %d cannot be moved by %+d", second, adjust))
 	}
 	mine, err := s.myCompanyToChange(ctx, user, id)

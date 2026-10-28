@@ -385,8 +385,8 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   {{else}}
   <div class="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-3 text-xs">
     <span class="font-semibold">Lvl {{$u.Level}}</span>
-    <div class="h-2 min-w-20 flex-1 overflow-hidden rounded-full bg-raised" role="progressbar" aria-valuemin="0" aria-valuemax="5" aria-valuenow="{{$u.XPInLevel}}" aria-label="Experience"><div class="h-full rounded-full {{if $u.PendingLevelUps}}bg-warn{{else}}bg-accent{{end}}" style="width: {{pct $u.XPInLevel 5}}%"></div></div>
-    <span class="text-muted">{{$u.XPInLevel}} / 5 XP</span>
+    <div class="h-2 min-w-20 flex-1 overflow-hidden rounded-full bg-raised" role="progressbar" aria-valuemin="0" aria-valuemax="{{$u.LevelEvery}}" aria-valuenow="{{$u.XPInLevel}}" aria-label="Experience"><div class="h-full rounded-full {{if $u.PendingLevelUps}}bg-warn{{else}}bg-accent{{end}}" style="width: {{pct $u.XPInLevel $u.LevelEvery}}%"></div></div>
+    <span class="text-muted">{{$u.XPInLevel}} / {{$u.LevelEvery}} XP</span>
   </div>
   {{end}}
 </article>

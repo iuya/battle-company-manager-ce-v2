@@ -9,6 +9,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 // RuleSet is the rules a campaign is played with, built from its three stored files. It is immutable once built and shared
@@ -18,6 +20,10 @@ type RuleSet struct {
 	Vanilla  *VanillaBook
 	BC       *BCBook
 	Glossary Glossary
+
+	// Doc is the typed lean document of a schemaVersion 2 file; nil for the old format. The consumers of slices 2 to 9 read it
+	// instead of decoding the bytes again.
+	Doc *lean.Document
 }
 
 // Keyword returns the definition of a special rule: the one embedded in the entity that uses it (a unit's own rule, a hero
@@ -247,6 +253,13 @@ func (r *Rules) build(ctx context.Context, h RulesetHashes) (*RuleSet, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if isLeanFile(bc.Content) {
+		rs, err := loadV2(vanilla.Content, bc.Content, glossary.Content, r.log.With("vanilla", vanilla.ShortHash()))
+		if rs != nil {
+			rs.Hashes = h
+		}
+		return rs, err
+	}
 	reviewed, err := ParseVanillaAmbiguities(bc.Content)
 	if err != nil {
 		return nil, err
@@ -264,6 +277,9 @@ func (r *Rules) build(ctx context.Context, h RulesetHashes) (*RuleSet, error) {
 	}
 	bb.SpellWargearLikeVanilla(vb)
 	bb.ApplyUnitFillIns(vb)
+	if err := bb.CheckRaces(vb); err != nil {
+		return nil, err
+	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

@@ -1,0 +1,420 @@
+{
+  "text": "Vanilla profile options that the Armoury of a Battle Company does not sell, so 'option has no matching armoury item' is expected and not a data defect. status `notSold`: no armoury item exists for it (the option is a banner, war horn or war drum, which the Battle Companies equipment table replaces with the Company Standard, Company Horn and Company Drum and which a 'Choice of Options' excludes; or it is Unique Wargear a company lists on its own page). status `readAs`: the option is read as an item the Armoury does sell (`armouryItem`), so it stays choosable and buyable as that item. status `ownItem`: the option is a weapon of its own that the Armoury does not sell but data.gearAnnotations describes (`item`, a Cave Troll's Troll Spear): choosable under its own name, no Armoury price. status `granted`: the model comes with it from the charts or the starting company and no Armoury entry sells it. A company whose armoury does sell the item (its Unique Wargear) is unaffected: this list only silences the check where no item matches.",
+  "sources": {
+    "Angmar Orc Warrior / Banner": "BC document, Equipment and Choice of Options",
+    "Black Dragon Warrior / Exchange shield for banner": "BC document, Equipment and Choice of Options",
+    "Black Guard of Barad-dûr / Exchange shield for banner": "BC document, Equipment and Choice of Options",
+    "Black Numenorean Knight / Exchange lance for banner": "BC document, Equipment and Choice of Options",
+    "Black Numenorean Knight / Exchange lance for war horn": "BC document, Equipment and Choice of Options",
+    "Blackroot Vale Archer / Banner": "BC document, Equipment and Choice of Options",
+    "Blackroot Vale Archer / War Horn": "BC document, Equipment and Choice of Options",
+    "Boromir, Captain of the White Tower / Banner of Minas Tirith": "BC document, Equipment and Choice of Options",
+    "Cave Troll / Hand-and-a-half hammer": "BC document, Moria",
+    "Cave Troll / Troll Spear": "BC document, Moria; vanilla gear",
+    "Dunlending Warrior / Banner": "BC document, Equipment and Choice of Options",
+    "Dwarf Warrior / Banner": "BC document, Equipment and Choice of Options",
+    "Dwarf Warrior / War Horn": "BC document, Equipment and Choice of Options",
+    "Easterling Kataphrakt / Banner": "BC document, Equipment and Choice of Options",
+    "Easterling Kataphrakt / Exchange shield for war drum": "BC document, Equipment and Choice of Options",
+    "Easterling Warrior / Banner": "BC document, Equipment and Choice of Options",
+    "Galadhrim Knight / Banner": "BC document, Equipment and Choice of Options",
+    "Galadhrim Warrior / Banner": "BC document, Equipment and Choice of Options",
+    "Galadhrim Warrior / War horn and Elf Bow": "BC document, Equipment and Choice of Options",
+    "Guard of the Galadhrim Court / Exchange Elven pike for banner and Elven hand weapon": "BC document, Equipment and Choice of Options",
+    "Guard of the Galadhrim Court / Replace Pike with Banner": "BC document, Equipment and Choice of Options",
+    "Gundabad Orc Warrior / Banner": "BC document, Equipment and Choice of Options",
+    "Gundabad Orc Warrior / Banner and shield": "BC document, Equipment and Choice of Options",
+    "Halbarad / Banner of Arwen Evenstar": "BC document, Equipment and Choice of Options",
+    "Haradrim Raider / Banner": "BC document, Equipment and Choice of Options",
+    "Haradrim Warrior / Banner": "BC document, Equipment and Choice of Options",
+    "Haradrim Warrior / War Horn": "BC document, Equipment and Choice of Options",
+    "Hobbit Archer / War Horn": "BC document, Equipment and Choice of Options",
+    "Iron Hills Warrior / Banner": "BC document, Equipment and Choice of Options",
+    "Iron Hills Warrior / Banner and shield": "BC document, Equipment and Choice of Options",
+    "Isengard Orc Warrior / Banner": "BC document, Equipment and Choice of Options",
+    "Isengard Troll / Swap shield for war drum (Isengard)": "BC document, Equipment and Choice of Options",
+    "Knight of Dol Amroth / Armoured horse and banner": "BC document, Equipment and Choice of Options",
+    "Knight of Dol Amroth / Armoured horse and war horn": "BC document, Equipment and Choice of Options",
+    "Knight of Dol Amroth / Banner": "BC document, Equipment and Choice of Options",
+    "Knight of Dol Amroth / War horn": "BC document, Equipment and Choice of Options",
+    "Knight of Minas Tirith / Exchange lance and shield for banner": "BC document, Equipment and Choice of Options",
+    "Lothlorien Warrior / Banner": "BC document, Equipment and Choice of Options",
+    "Lothlorien Warrior / Wood Elf spear": "BC document, Lothlorien (Unique Wargear)",
+    "Minas Tirith Siege Crew / Banner": "BC document, Equipment and Choice of Options",
+    "Minas Tirith Siege Crew / War horn and Shield": "BC document, Equipment and Choice of Options",
+    "Morannon Orc Warrior / Banner": "BC document, Equipment and Choice of Options",
+    "Mordor Orc Warrior / Banner": "BC document, Equipment and Choice of Options",
+    "Mordor Troll / War drum (Mordor)": "BC document, Equipment and Choice of Options",
+    "Mordor Troll (Catapult) / War drum (Mordor)": "BC document, Equipment and Choice of Options",
+    "Ranger of Arnor / Banner": "BC document, Equipment and Choice of Options",
+    "Ranger of Arnor / War horn": "BC document, Equipment and Choice of Options",
+    "Ranger of Gondor / Banner": "BC document, Equipment and Choice of Options",
+    "Ranger of Gondor / War horn": "BC document, Equipment and Choice of Options",
+    "Ranger of the North / Armour": "BC document, Helm's Deep",
+    "Rider of Rohan / Banner": "BC document, Equipment and Choice of Options",
+    "Rivendell Knight / Exchange Elven lance for banner": "BC document, Equipment and Choice of Options",
+    "Rivendell Warrior / Banner": "BC document, Equipment and Choice of Options",
+    "Rohirrim Traitor / Banner": "BC document, Equipment and Choice of Options",
+    "Rohirrim Traitor / War horn, shield, and throwing spears": "BC document, Equipment and Choice of Options",
+    "Ruffian / Whip": "BC document, Sharkey's Rogues",
+    "Uruk-hai Scout / Banner": "BC document, Equipment and Choice of Options",
+    "Uruk-hai Warrior / Banner": "BC document, Equipment and Choice of Options",
+    "Warrior of Arnor / Swap shield and spear for banner": "BC document, Equipment and Choice of Options",
+    "Warrior of Carn Dum / Banner": "BC document, Equipment and Choice of Options",
+    "Warrior of Dale / Banner": "BC document, Equipment and Choice of Options",
+    "Warrior of Dale / War Horn": "BC document, Equipment and Choice of Options",
+    "Warrior of Minas Tirith / Banner": "BC document, Equipment and Choice of Options",
+    "Warrior of Minas Tirith / War horn and Shield": "BC document, Equipment and Choice of Options",
+    "Warrior of Rohan / Banner": "BC document, Equipment and Choice of Options",
+    "Warrior of Rohan / War horn, shield, and throwing spears": "BC document, Equipment and Choice of Options",
+    "Warrior of the Dead / Banner": "BC document, Equipment and Choice of Options",
+    "Watcher of Kârna / Twin Blades": "BC document, Harad"
+  },
+  "wargearReadAs": {
+    "text": "Company lists that write a generic item where the unit's profile has a specific one are read as the profile's item, so every item keeps its own identity (curator's readings, to be confirmed).",
+    "items": [
+      {
+        "unit": "Haradrim Raider",
+        "written": "bow with poison arrows",
+        "item": "Bow",
+        "why": "poison belongs to the unit: the Haradrim Raider has Poisoned Attacks (Bow) on its profile"
+      },
+      {
+        "unit": "Haradrim Warrior",
+        "written": "bow with poison arrows",
+        "item": "Bow",
+        "why": "poison belongs to the unit: the Haradrim Warrior has Poisoned Attacks (Bow) on its profile"
+      },
+      {
+        "unit": "Haradrim Warrior",
+        "written": "bow with poisoned arrows",
+        "item": "Bow",
+        "why": "poison belongs to the unit: the Haradrim Warrior has Poisoned Attacks (Bow) on its profile"
+      },
+      {
+        "unit": "Hunter Orc Warrior",
+        "written": "bow",
+        "item": "Orc Bow",
+        "why": "the Hunter Orc Warrior's option is 'Orc Bow'"
+      },
+      {
+        "unit": "Mordor Orc Warrior",
+        "written": "bow",
+        "item": "Orc bow",
+        "why": "the Mordor Orc Warrior's option is 'Orc bow'"
+      },
+      {
+        "unit": "Rivendell Warrior",
+        "written": "spear",
+        "item": "Elven spear",
+        "why": "the Rivendell Warrior's option is 'Shield and Elven spear'"
+      }
+    ]
+  },
+  "profileWargearNotSold": {
+    "text": "Wargear that is part of a unit's vanilla profile but that no Battle Companies Armoury sells (profile armour and hand weapons, natural weapons, the Elven cloak...). A model of the unit always starts with it (it is added on recruit) but it can never be bought, and it is not an option to choose. Generated: every vanilla unit a company uses, every profile wargear whose item no armoury row, equipment or Unique Wargear names.",
+    "items": [
+      {
+        "item": "Armour",
+        "units": [
+          "Angmar Orc Warrior",
+          "Angmar Warg Rider",
+          "Blackroot Vale Archer",
+          "Clansman of Lamedon",
+          "Dragon Cult Acolyte",
+          "Dunlending Horseman",
+          "Dunlending Warrior",
+          "Dwarf Ranger",
+          "Goblin Mercenary",
+          "Gundabad Berserker",
+          "Half Troll",
+          "Haradrim Raider",
+          "Haradrim Warrior",
+          "Hunter Orc Warg Rider",
+          "Hunter Orc Warrior",
+          "Isengard Orc Warrior",
+          "Isengard Warg Rider",
+          "Khandish Horseman",
+          "Khandish Warrior",
+          "Lake-town Guard",
+          "Mahûd Warrior",
+          "Mordor Orc Warrior",
+          "Mordor Uruk-Hai",
+          "Mordor Warg Rider",
+          "Morgul Stalker",
+          "Moria Goblin Prowler",
+          "Moria Goblin Warrior",
+          "Ranger of Arnor",
+          "Ranger of Gondor",
+          "Rider of Rohan",
+          "Rohan Outrider",
+          "Serpent Guard",
+          "Serpent Rider",
+          "Uruk-hai Scout",
+          "War Drake of Rhun",
+          "Warg Marauder",
+          "Warrior of Carn Dum",
+          "Warrior of Dale",
+          "Warrior of Numenor",
+          "Warrior of Rohan"
+        ]
+      },
+      {
+        "item": "Axe",
+        "units": [
+          "Dwarf Warrior"
+        ]
+      },
+      {
+        "item": "Beaks and Claws (hand weapon)",
+        "units": [
+          "Crebain"
+        ]
+      },
+      {
+        "item": "Berserker Blade",
+        "units": [
+          "Uruk-hai Berserker"
+        ]
+      },
+      {
+        "item": "Claws and teeth (hand weapon)",
+        "units": [
+          "Fell Warg",
+          "Werewolf"
+        ]
+      },
+      {
+        "item": "Claws and teeth (hand weapons",
+        "units": [
+          "Wild Warg"
+        ]
+      },
+      {
+        "item": "Claws and teeth (hand weapons)",
+        "units": [
+          "War Drake of Rhun"
+        ]
+      },
+      {
+        "item": "Dwarf Armour",
+        "units": [
+          "Dwarf Warrior"
+        ]
+      },
+      {
+        "item": "Elven cloak",
+        "units": [
+          "Lothlorien Warrior",
+          "Mirkwood Ranger",
+          "Wood Elf Sentinel"
+        ]
+      },
+      {
+        "item": "Elven hand weapon",
+        "units": [
+          "Mirkwood Ranger",
+          "Wood Elf Sentinel"
+        ]
+      },
+      {
+        "item": "Fangs (hand weapons)",
+        "units": [
+          "Mirkwood Giant Spider",
+          "Mirkwood Hunting Spider"
+        ]
+      },
+      {
+        "item": "Hand weapon",
+        "units": [
+          "Angmar Orc Warrior",
+          "Angmar Warg Rider",
+          "Axeman of Lossarnach",
+          "Black Dragon Warrior",
+          "Black Guard of Barad-dûr",
+          "Black Numenorean Knight",
+          "Black Numenorean Warrior",
+          "Blackroot Vale Archer",
+          "Citadel Guard",
+          "Corsair Crossbowman",
+          "Corsair of Umbar",
+          "Dunlending Horseman",
+          "Dunlending Huscarl",
+          "Dunlending Warrior",
+          "Dwarf Ranger",
+          "Easterling Kataphrakt",
+          "Easterling Warrior",
+          "Erebor Dwarf Warrior",
+          "Goblin Mercenary",
+          "Goblin Warrior",
+          "Guard of the Fountain Court",
+          "Gundabad Berserker",
+          "Gundabad Ogre",
+          "Gundabad Orc Warrior",
+          "Half Troll",
+          "Haradrim Raider",
+          "Haradrim Warrior",
+          "Hill Tribesman",
+          "Hobbit Archer",
+          "Hobbit Militia",
+          "Iron Guard",
+          "Iron Hills Warrior",
+          "Isengard Orc Warrior",
+          "Isengard Warg Rider",
+          "Khandish Horseman",
+          "Khandish Warrior",
+          "Khazad Guard",
+          "Knight of Arnor",
+          "Knight of Dale",
+          "Knight of Dol Amroth",
+          "Knight of Minas Tirith",
+          "Lake-town Guard",
+          "Lake-town Militia",
+          "Mahûd Warrior",
+          "Man-at-arms of Dol Amroth",
+          "Morannon Orc Warrior",
+          "Mordor Orc Warrior",
+          "Mordor Uruk-Hai",
+          "Mordor Warg Rider",
+          "Morgul Stalker",
+          "Moria Blackshield Warrior",
+          "Moria Goblin Warrior",
+          "Orc Tracker",
+          "Osgiliath Veteran",
+          "Ranger of Arnor",
+          "Ranger of Gondor",
+          "Ranger of the North",
+          "Rider of Rohan",
+          "Rohan Outrider",
+          "Rohan Royal Guard",
+          "Rohirrim Traitor",
+          "Ruffian",
+          "Son of Eorl",
+          "Spectre",
+          "Uruk-hai Scout",
+          "Uruk-hai Warrior",
+          "Warg Marauder",
+          "Warrior of Arnor",
+          "Warrior of Carn Dum",
+          "Warrior of Dale",
+          "Warrior of Minas Tirith",
+          "Warrior of Numenor",
+          "Warrior of Rohan",
+          "Watcher of Kârna",
+          "Wild Man of Dunland",
+          "Woses Warrior"
+        ]
+      },
+      {
+        "item": "Hand weapons",
+        "units": [
+          "Corsair Reaver",
+          "Dragon Cult Acolyte",
+          "Feral Uruk-hai",
+          "Hunter Orc Warg Rider",
+          "Hunter Orc Warrior"
+        ]
+      },
+      {
+        "item": "Heavy armour",
+        "units": [
+          "Axeman of Lossarnach",
+          "Black Guard of Barad-dûr",
+          "Black Numenorean Knight",
+          "Black Numenorean Warrior",
+          "Dunlending Huscarl",
+          "Easterling Kataphrakt",
+          "Galadhrim Knight",
+          "Guard of the Galadhrim Court",
+          "Gundabad Orc Warrior",
+          "Iron Guard",
+          "Knight of Arnor",
+          "Knight of Dale",
+          "Knight of Dol Amroth",
+          "Man-at-arms of Dol Amroth",
+          "Morannon Orc Warrior",
+          "Moria Blackshield Warrior",
+          "Palace Guard",
+          "Rohan Royal Guard",
+          "Son of Eorl",
+          "Warrior of Arnor"
+        ]
+      },
+      {
+        "item": "Heavy Armour",
+        "units": [
+          "Black Dragon Warrior",
+          "Citadel Guard",
+          "Easterling Warrior",
+          "Erebor Dwarf Warrior",
+          "Galadhrim Warrior",
+          "Guard of the Fountain Court",
+          "Iron Hills Goat Rider",
+          "Iron Hills Warrior",
+          "Knight of Minas Tirith",
+          "Mirkwood Elf Knight",
+          "Mirkwood Elf Warrior",
+          "Osgiliath Veteran",
+          "Rivendell Knight",
+          "Rivendell Warrior",
+          "Spectre",
+          "Uruk-hai Warrior",
+          "Warrior of Minas Tirith"
+        ]
+      },
+      {
+        "item": "Heavy Dwarf Armour",
+        "units": [
+          "Grim Hammer Warrior",
+          "Khazad Guard"
+        ]
+      },
+      {
+        "item": "Light armour",
+        "units": [
+          "Corsair of Umbar",
+          "Feral Uruk-hai",
+          "Lake-town Militia",
+          "Uruk-hai Berserker",
+          "Watcher of Kârna"
+        ]
+      },
+      {
+        "item": "Pavise",
+        "units": [
+          "Corsair Crossbowman"
+        ]
+      },
+      {
+        "item": "Razor-sharp teeth and talons (hand weapons)",
+        "units": [
+          "War Bat"
+        ]
+      },
+      {
+        "item": "Sword",
+        "units": [
+          "Iron Hills Goat Rider"
+        ]
+      },
+      {
+        "item": "Teeth and claws (hand weapon)",
+        "units": [
+          "Isengard Warg"
+        ]
+      },
+      {
+        "item": "Troll Chain",
+        "units": [
+          "Cave Troll"
+        ]
+      },
+      {
+        "item": "War goat",
+        "units": [
+          "Iron Hills Goat Rider"
+        ]
+      }
+    ]
+  }
+}

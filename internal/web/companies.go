@@ -59,14 +59,23 @@ type startRow struct {
 }
 
 // Leader, Sergeants and Pool split the starting models by the place they start in on the page.
-func (v companyInfoView) Leader() []startRow { return v.with(core.RoleLeader) }
-func (v companyInfoView) Pool() []startRow   { return v.with(core.RoleWarrior) }
+func (v companyInfoView) Pool() []startRow { return v.with(core.RoleWarrior) }
+func (v companyInfoView) Leader(n int) []startRow {
+	if s := v.with(core.RoleLeader); n < len(s) {
+		return s[n : n+1]
+	}
+	return nil
+}
 func (v companyInfoView) Sergeant(n int) []startRow {
 	if s := v.with(core.RoleSergeant); n < len(s) {
 		return s[n : n+1]
 	}
 	return nil
 }
+
+// Leaders and Sergeants are the places the rules give a company (campaign.company.leaders, .sergeants).
+func (v companyInfoView) Leaders() int   { return v.Profile.Leaders }
+func (v companyInfoView) Sergeants() int { return v.Profile.Sergeants }
 
 func (v companyInfoView) with(role core.UnitRole) []startRow {
 	var out []startRow
@@ -101,22 +110,29 @@ func startRows(p core.CompanyProfile, chosen []core.StartHero) []startRow {
 		}
 		rows = append(rows, row)
 	}
-	if slices.ContainsFunc(rows, func(r startRow) bool { return r.Locked }) { // one Leader place: nobody else holds it
-		for i := range rows {
-			if !rows[i].Locked && rows[i].Role == core.RoleLeader {
-				rows[i].Role = core.RoleWarrior
-			}
+	leaders := 0
+	for _, r := range rows {
+		if r.Role == core.RoleLeader {
+			leaders++
+		}
+	}
+	for i := len(rows) - 1; i >= 0 && leaders > p.Leaders; i-- { // the fixed Leader holds a place: nobody else holds more than the rest
+		if !rows[i].Locked && rows[i].Role == core.RoleLeader {
+			rows[i].Role = core.RoleWarrior
+			leaders--
 		}
 	}
 	return rows
 }
 
-// startHeroes reads the leader and the sergeants chosen in the creation form (fields leader and sergeant: the numbers of the
+// startHeroes reads the leaders and the sergeants chosen in the creation form (fields leader and sergeant: the numbers of the
 // starting models).
 func startHeroes(r *http.Request) []core.StartHero {
 	var out []core.StartHero
-	if i, err := strconv.Atoi(r.PostFormValue("leader")); err == nil {
-		out = append(out, core.StartHero{Index: i, Role: core.RoleLeader})
+	for _, v := range r.PostForm["leader"] {
+		if i, err := strconv.Atoi(v); err == nil {
+			out = append(out, core.StartHero{Index: i, Role: core.RoleLeader})
+		}
 	}
 	for _, v := range r.PostForm["sergeant"] {
 		if i, err := strconv.Atoi(v); err == nil {

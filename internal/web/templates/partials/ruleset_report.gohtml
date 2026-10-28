@@ -1,0 +1,36 @@
+{{/* The report of a rules file check: every problem grouped by file, the path in monospace, the hint and the closest known name. Takes a *reportView. Used by the admin upload card (rejected upload and "Check this file") and by the new campaign form. */}}
+{{define "ruleset_report"}}
+<div class="space-y-4" data-ruleset-report>
+  <p class="font-medium" role="status">
+    {{if .OK}}No problems found{{if .Warnings}}, {{.Warnings}} {{if eq .Warnings 1}}warning{{else}}warnings{{end}}{{end}}. {{.Note}}
+    {{else}}{{.Errors}} {{if eq .Errors 1}}problem{{else}}problems{{end}} found{{if .Warnings}}, {{.Warnings}} {{if eq .Warnings 1}}warning{{else}}warnings{{end}}{{end}}. {{.Note}}{{end}}
+  </p>
+  {{range .Files}}
+  <section aria-label="{{.File}}">
+    <h3 class="!text-base font-mono break-all">{{.File}}</h3>
+    <ul class="mt-2 divide-y divide-line rounded-md border border-line bg-surface">
+      {{range .Issues}}
+      <li class="space-y-1 p-3 text-sm">
+        <p class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          {{if .Warn}}<span class="badge badge-warn">Warning</span>{{else}}<span class="badge badge-danger">Error</span>{{end}}
+          <span class="min-w-0 break-words">{{.Message}}</span>
+        </p>
+        {{with .Path}}<p class="text-muted">At <code class="font-mono break-all">{{.}}</code></p>{{end}}
+        {{with .Closest}}<p>Closest match: <code class="badge badge-muted font-mono break-all">{{.}}</code></p>{{end}}
+        {{with .Hint}}<p class="text-muted">{{.}}</p>{{end}}
+      </li>
+      {{end}}
+    </ul>
+  </section>
+  {{end}}
+  {{if .More}}<p class="text-sm text-muted">and {{.More}} more not listed. Fix these and check again.</p>{{end}}
+</div>
+{{end}}
+
+{{/* The answer of the "Check this file" button: a report, or a plain reason. Takes a checkResult. */}}
+{{define "ruleset_check_result"}}
+<div id="rs-check-result" aria-live="polite">
+  {{with .Report}}<div class="alert {{if .OK}}alert-success{{else}}alert-danger{{end}}">{{template "ruleset_report" .}}</div>{{end}}
+  {{if and .Msg (not .Report)}}<div class="alert alert-danger" role="alert">{{.Msg}}</div>{{end}}
+</div>
+{{end}}

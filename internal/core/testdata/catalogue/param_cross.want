@@ -1,0 +1,2 @@
+battle_companies.json: campaign.company.sergeants: leaders 3 + sergeants 6 is more than maxModels 5
+battle_companies.json: campaign.progression.hero.choose: 3 is more than rollsPerProgression 2

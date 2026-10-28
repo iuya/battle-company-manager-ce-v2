@@ -1,0 +1,38 @@
+Companies of the rule set, with their starting gold and points.
+Minas Tirith | good | gold 4 | points 101 (default officers) | total 105 | models 6 | break point 50% | max models 15 | reinforcement 3 | flags 36
+Osgiliath & Ithilien | good | gold 4 | points 101 (default officers) | total 105 | models 6 | break point 50% | max models 15 | reinforcement 3 | flags 37
+Fiefdoms | good | gold 0 | points 105 (default officers) | total 105 | models 7 | break point 50% | max models 15 | reinforcement 3 | flags 38
+Fornost | good | gold 1 | points 104 (default officers) | total 105 | models 7 | break point 50% | max models 15 | reinforcement 3 | flags 38
+Arnor | good | gold 4 | points 101 (default officers) | total 105 | models 7 | break point 50% | max models 15 | reinforcement 3 | flags 38
+The Last Alliance | good | gold 1 | points 104 (default officers) | total 105 | models 6 | break point 50% | max models 12 | reinforcement 4 | flags 38
+Rohan | good | gold 2 | points 103 (default officers) | total 105 | models 7 | break point 50% | max models 15 | reinforcement 3 | flags 39
+Helm's Deep | good | gold 1 | points 104 (default officers) | total 105 | models 6 | break point 50% | max models 15 | reinforcement 3 | flags 43
+Paths of the Druadan | good | gold 5 | points 100 (default officers) | total 105 | models 7 | break point 50% | max models 15 | reinforcement 3 | flags 38
+Erebor & Dale | good | gold 3 | points 102 (default officers) | total 105 | models 6 | break point 50% | max models 15 | reinforcement 3 | flags 39
+Defenders of the North | good | gold 0 | points 106 (default officers) | total 106 | models 6 | break point 50% | max models 12 | reinforcement 3 | flags 37
+Lothlorien | good | gold 3 | points 102 (default officers) | total 105 | models 6 | break point 50% | max models 12 | reinforcement 4 | flags 41
+Rivendell | good | gold 2 | points 103 (default officers) | total 105 | models 6 | break point 50% | max models 12 | reinforcement 4 | flags 40
+Halls of Thranduil | good | gold 4 | points 101 (default officers) | total 105 | models 5 | break point 50% | max models 12 | reinforcement 4 | flags 39
+Durin's Folk | good | gold 6 | points 99 (default officers) | total 105 | models 6 | break point 50% | max models 12 | reinforcement 3 | flags 40
+Iron Hills | good | gold 1 | points 104 (default officers) | total 105 | models 5 | break point 50% | max models 12 | reinforcement 4 | flags 38
+Lake-town | good | gold 1 | points 104 (default officers) | total 105 | models 9 | break point 50% | max models 20 | reinforcement 2 | flags 36
+Wanderers in the Wild | good | gold 0 | points 105 (default officers) | total 105 | models 5 | break point 50% | max models 15 | reinforcement 3 | flags 40
+The Shire | good | gold 0 | points 105 (default officers) | total 105 | models 13 | break point 50% | max models 25 | reinforcement 2 | flags 36
+Mordor | evil | gold 0 | points 105 (default officers) | total 105 | models 10 | break point 50% | max models 15 | reinforcement 3 | flags 40
+Cirith Ungol | evil | gold 0 | points 105 (default officers) | total 105 | models 7 | break point 50% | max models 15 | reinforcement 3 | flags 38
+Minas Morgul | evil | gold 4 | points 101 (default officers) | total 105 | models 8 | break point 50% | max models 15 | reinforcement 3 | flags 38
+Angmar & Carn Dum | evil | gold 4 | points 101 (default officers) | total 105 | models 8 | break point 50% | max models 15 | reinforcement 3 | flags 41
+Burning of the Westfold | evil | gold 0 | points 105 (default officers) | total 105 | models 9 | break point 50% | max models 15 | reinforcement 3 | flags 38
+Muster of Isengard | evil | gold 0 | points 105 (default officers) | total 105 | models 7 | break point 66% | max models 12 | reinforcement 3 | flags 37
+Wolves of Isengard | evil | gold 3 | points 102 (default officers) | total 105 | models 6 | break point 50% | max models 12 | reinforcement 3 | flags 40
+Hill Tribes of Dunland | evil | gold 0 | points 105 (default officers) | total 105 | models 9 | break point 50% | max models 15 | reinforcement 3 | flags 38
+Sharkey's Rogues | evil | gold 0 | points 105 (default officers) | total 105 | models 10 | break point 50% | max models 20 | reinforcement 2 | flags 36
+Moria | evil | gold 0 | points 105 (default officers) | total 105 | models 12 | break point 50% | max models 20 | reinforcement 3 | flags 41
+Mirkwood | evil | gold 0 | points 105 (default officers) | total 105 | models 10 | break point 50% | max models 15 | reinforcement 3 | flags 42
+Harad | evil | gold 4 | points 101 (default officers) | total 105 | models 8 | break point 50% | max models 15 | reinforcement 3 | flags 37
+City of Umbar | evil | gold 0 | points 105 (default officers) | total 105 | models 7 | break point 50% | max models 15 | reinforcement 3 | flags 37
+Easterlings | evil | gold 3 | points 102 (default officers) | total 105 | models 6 | break point 50% | max models 12 | reinforcement 3 | flags 38
+Grand Army of the South | evil | gold 3 | points 102 (default officers) | total 105 | models 7 | break point 50% | max models 15 | reinforcement 3 | flags 39
+Dol Guldur | evil | gold 1 | points 104 (default officers) | total 105 | models 7 | break point 50% | max models 15 | reinforcement 4 | flags 40
+Goblin-Town | evil | gold 0 | points 105 (default officers) | total 105 | models 12 | break point 50% | max models 25 | reinforcement 2 | flags 36
+Gundabad | evil | gold 0 | points 105 (default officers) | total 105 | models 6 | break point 50% | max models 15 | reinforcement 3 | flags 38

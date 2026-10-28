@@ -346,6 +346,10 @@ var ttsAuraSample = core.AuraSummary{
 		{Kind: "enemy", Label: "Enemy", Colour: "vermillion", Text: "Penalties against the enemy", Rings: 2, Radii: []float64{6}, On: false},
 	},
 	Counts: map[string]int{"declared": 3, "conditional": 0, "cast": 1, "target": 0, "large": 1, "optional": 1},
+	Groups: map[string]core.AuraGroupDef{
+		"declared": {ID: "declared", Label: "Rules that need an action", Text: "Heroic Actions"}, "cast": {ID: "cast", Label: "Spells in effect"},
+		"large": {ID: "large", Label: "Large rings, over 15 inches", Text: "Rings fill the table"}, "optional": {ID: "optional", Label: "Optional rings"},
+	},
 }
 
 func TestTTSAurasSectionShowsKindsCountsGroupsAndLegend(t *testing.T) {
@@ -359,7 +363,7 @@ func TestTTSAurasSectionShowsKindsCountsGroupsAndLegend(t *testing.T) {
 	for _, want := range []string{
 		`id="tts-auras"`, `name="auras" value="1"`, `id="tts-auras-on"`, "Draw aura rings",
 		`id="tts-akind-banner" name="akind" value="banner"`, `id="tts-akind-command" name="akind" value="command"`, "1 ring, radii 3&#34;", "4 rings, radii 6&#34;, 12&#34;",
-		"Rules that need an action", "adds 1 ring", "Spells in effect", "Large rings, over 12 inches", "Optional rings", `name="adeclared" value="1" class="peer sr-only" checked`,
+		"Rules that need an action", "adds 1 ring", "Spells in effect", "Large rings, over 15 inches", "Optional rings", `name="adeclared" value="1" class="peer sr-only" checked`,
 		"7 rings on 5 figures", "2 left out", "data-tts-legend", "Command, orange", "Enemy, vermillion, thick line", "aura-ring-thick", "aura-k-banner",
 		`id="tts-helper-v2"`, "Download the helper again", "numpad 1 to 3", "B C S E U",
 	} {

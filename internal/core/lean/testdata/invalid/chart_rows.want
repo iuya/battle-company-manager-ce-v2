@@ -1,0 +1,4 @@
+battle_companies.json: companies[0].reinforcements.rows[0]: a row is either "nothing" or a "unit", not both
+battle_companies.json: companies[0].reinforcements.rows[1]: a row needs a "unit" or "nothing": true
+battle_companies.json: companies[0].reinforcements.rows[2].blocks: blocks belongs to a "nothing" row
+battle_companies.json: companies[0].reinforcements.rows[3].rare: rare belongs to a row with a unit

@@ -1,0 +1,4 @@
+battle_companies.json: campaign.scenarioSelection.tables[0].scenarios: lists 1 scenario; each table lists exactly 6 (the second die picks one)
+battle_companies.json: campaign.scenarioSelection.tables[2].roll: [5,6] overlaps [3,5]; ranges must partition 1..6
+battle_companies.json: campaign.scenarioSelection.tables[2].scenarios: lists 0 scenarios; each table lists exactly 6 (the second die picks one)
+battle_companies.json: campaign.scenarioSelection.tables: ranges cover 1-5, 6 is missing; ranges must partition 1..6

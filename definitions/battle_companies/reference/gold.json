@@ -1,0 +1,77 @@
+{
+  "startingGoldPath": "data.companies[].startingCompany.gold",
+  "ignoresInfluenceCost": true,
+  "sources": [
+    {
+      "key": "startingCompany",
+      "path": "data.companies[].startingCompany.gold"
+    },
+    {
+      "key": "scenarioVictoryReward",
+      "path": null,
+      "note": "some scenarios give Gold to the victor; no scenario in the data lists an amount"
+    },
+    {
+      "key": "organizerGrant",
+      "path": null,
+      "note": "the Campaign Organiser may grant Gold in a narrative scenario that is not in the rulebook"
+    }
+  ],
+  "when": [
+    "companyCreation",
+    "campaign"
+  ],
+  "carryOver": true,
+  "spendableOn": [
+    {
+      "kind": "equipment",
+      "price": "gold",
+      "priceIs": "rating.warrior | rating.hero (the model's kind)",
+      "path": "data.equipment.items[].gold"
+    },
+    {
+      "kind": "creature",
+      "price": "gold",
+      "priceIs": "points",
+      "path": "data.creatures.items[].gold"
+    },
+    {
+      "kind": "wanderer",
+      "price": "gold",
+      "priceIs": "points",
+      "path": "data.wanderers.items[].gold"
+    },
+    {
+      "kind": "wargear",
+      "price": "gold",
+      "priceIs": "rating.warrior | rating.hero",
+      "path": "data.wargear.items[].gold",
+      "condition": "warriorsStayLegalToAProfileOption"
+    }
+  ],
+  "cannotBuy": [
+    "units",
+    "influence"
+  ],
+  "stillApplies": [
+    "equipmentSlots",
+    "wargearLimits",
+    "rare",
+    "restrictions"
+  ],
+  "confirmedByUser": [
+    "sources",
+    "when",
+    "carryOver",
+    "spendableOn[kind=wargear].priceIs",
+    "heroesPayHeroRating",
+    "stillApplies",
+    "heroesMayTakeWargearOutsideProfile"
+  ],
+  "defaultNotConfirmed": [
+    "cannotBuy"
+  ],
+  "heroesPayHeroRating": true,
+  "heroesMayTakeWargearOutsideProfile": true,
+  "text": "Gold comes from some companies' starting company, from victory rewards of some scenarios and from the organiser's narrative scenarios; it carries over and can be spent in the Armoury later. Spending at company creation:  an Equipment, Creature or Wanderer costs its initial Rating (point value) in Gold and no Influence; Gold can alternatively buy extra Wargear for starting models as long as Warriors stay legal to one of their profile's Options. The starting company is meant to add up to 60 points of Rating plus Gold (before Might / Will / Fate)."
+}

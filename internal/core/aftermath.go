@@ -100,15 +100,17 @@ type InjuryRow struct {
 	Key, Name  string
 	Text       string
 	Kind       CasualtyKind
-	RetireAt   int      // for an injury: the count that forces retirement (0: never)
-	Heals      []string // for a heal: the injury keys the hero may heal
-	BonusDice  string   // "d3" or "d6"
-	BonusKind  string   // "experience" or "influence"
-	Fate       int      // permanent Fate points gained (to the path's maximum)
+	RetireAt   int            // for an injury: the count that forces retirement (0: never)
+	Heals      []string       // for a heal: the injury keys the hero may heal
+	BonusDice  string         // the bonus dice as written, lower case ("d3", "d6")
+	BonusSpec  DiceSpec       // BonusDice parsed (grantsExperience.dice, grantsInfluence.dice)
+	BonusKind  string         // "experience" or "influence"
+	Fate       int            // the Fate share of StatGains, kept for the pages that name it
+	StatGains  map[string]int // permanent points of each stat gained (to the path's maximum), by stat key
 	Persistent bool
 }
 
-// Covers says whether the roll (2 to 12) is on this row.
+// Covers says whether the roll (a total of the injury dice) is on this row.
 func (r InjuryRow) Covers(total int) bool { return total >= r.Min && total <= r.Max }
 
 // RewardEffect is an entry of campaign.aftermathEffects: what a scenario reward does.
@@ -149,9 +151,10 @@ type RewardRule struct {
 type AftermathRules struct {
 	Gains                    []XPGain
 	Participating, Draw, Win int // Influence
-	Threshold                int // experience per progression roll
+	LevelEvery               int // the experience that earns one level-up roll (campaign.progression.threshold)
 	Bonuses                  []OddsBonus
 	Warrior, Hero            []InjuryRow
+	InjuryDice               DiceSpec                // campaign.injuries.roll, "2d6": the injury charts cover Min..Max of it
 	Effects                  map[string]RewardEffect // by key
 	ItemEffects              map[string]string       // lower-case equipment name -> aftermathEffects key (Healing Herbs, Wondrous Cram)
 	Scenarios                map[string][]RewardRule // by scenario name
@@ -215,9 +218,11 @@ func ParseAftermath(content []byte) (AftermathRules, error) {
 	}
 	var doc struct {
 		Campaign struct {
+			Progression struct {
+				Threshold int `json:"threshold"`
+			} `json:"progression"`
 			Experience struct {
-				Threshold int `json:"progressionThreshold"`
-				Gains     []struct {
+				Gains []struct {
 					Key        string `json:"key"`
 					Label      string `json:"label"`
 					Amount     int    `json:"amount"`
@@ -232,6 +237,7 @@ func ParseAftermath(content []byte) (AftermathRules, error) {
 				} `json:"gains"`
 			} `json:"influence"`
 			Injuries struct {
+				Roll    string     `json:"roll"`
 				Warrior []chartRow `json:"warrior"`
 				Hero    []chartRow `json:"hero"`
 			} `json:"injuries"`
@@ -296,8 +302,9 @@ func ParseAftermath(content []byte) (AftermathRules, error) {
 	}
 	c := doc.Campaign
 	rules := AftermathRules{
+		LevelEvery:    c.Progression.Threshold,
 		Participating: c.Influence.Gains.Participating, Draw: c.Influence.Gains.Draw, Win: c.Influence.Gains.Win,
-		Threshold: c.Experience.Threshold, Effects: map[string]RewardEffect{}, ItemEffects: map[string]string{}, Scenarios: map[string][]RewardRule{},
+		Effects: map[string]RewardEffect{}, ItemEffects: map[string]string{}, Scenarios: map[string][]RewardRule{},
 	}
 	for _, g := range c.Experience.Gains {
 		rules.Gains = append(rules.Gains, XPGain{Key: g.Key, Label: g.Label, Amount: g.Amount, Repeatable: g.Repeatable})
@@ -336,34 +343,55 @@ func ParseAftermath(content []byte) (AftermathRules, error) {
 			default:
 				return nil, fmt.Errorf("the injuries chart row %q does nothing the aftermath knows", r.Key)
 			}
+			bonus := func(kind, path, dice string) error {
+				spec, err := ParseDiceAt("campaign.injuries."+map[bool]string{false: "warrior", true: "hero"}[hero]+"["+r.Key+"]."+path+".dice", dice)
+				row.BonusKind, row.BonusDice, row.BonusSpec = kind, strings.ToLower(dice), spec
+				return err
+			}
 			if r.GrantsXP != nil {
-				row.BonusKind, row.BonusDice = "experience", strings.ToLower(r.GrantsXP.Dice)
+				if err := bonus("experience", "grantsExperience", r.GrantsXP.Dice); err != nil {
+					return nil, err
+				}
 			}
 			if r.GrantsInfluence != nil {
-				row.BonusKind, row.BonusDice = "influence", strings.ToLower(r.GrantsInfluence.Dice)
+				if err := bonus("influence", "grantsInfluence", r.GrantsInfluence.Dice); err != nil {
+					return nil, err
+				}
 			}
-			for _, sc := range r.StatChanges {
-				if sc.Stat == "fate" {
-					row.Fate = sc.Delta
+			if !r.Persistent { // a persistent injury keeps its stat changes as the injury itself; a kept row gains the stat for good
+				for j, sc := range r.StatChanges {
+					path := fmt.Sprintf("campaign.injuries.%s[%s].statChanges[%d]", map[bool]string{false: "warrior", true: "hero"}[hero], r.Key, j)
+					switch {
+					case !slices.Contains(knownStats, sc.Stat):
+						return nil, fmt.Errorf("%s.stat: %q is not a characteristic; known: %s", path, sc.Stat, strings.Join(knownStats, ", "))
+					case sc.Delta <= 0:
+						return nil, fmt.Errorf("%s.delta: %d must be a gain; a loss belongs to a persistent injury", path, sc.Delta)
+					}
+					if row.StatGains == nil {
+						row.StatGains = map[string]int{}
+					}
+					row.StatGains[sc.Stat] += sc.Delta
+					if sc.Stat == "fate" {
+						row.Fate = sc.Delta
+					}
 				}
 			}
 			out = append(out, row)
 		}
-		// the chart must cover 2-12 exactly once
-		for total := 2; total <= 12; total++ {
-			n := 0
-			for _, r := range out {
-				if r.Covers(total) {
-					n++
-				}
-			}
-			if n != 1 {
-				return nil, fmt.Errorf("the %s injuries chart must cover every roll from 2 to 12 once (%d covers %d)", map[bool]string{false: "warrior", true: "hero"}[hero], n, total)
-			}
+		// the chart must cover Min..Max of the injury dice exactly once
+		var spans [][2]int
+		for _, r := range out {
+			spans = append(spans, [2]int{r.Min, r.Max})
+		}
+		if err := CheckCovers("campaign.injuries."+map[bool]string{false: "warrior", true: "hero"}[hero], rules.InjuryDice, spans); err != nil {
+			return nil, fmt.Errorf("the injuries chart must cover every roll of the injury dice once: %w", err)
 		}
 		return out, nil
 	}
 	var err error
+	if rules.InjuryDice, err = diceAt("campaign.injuries.roll", c.Injuries.Roll); err != nil {
+		return AftermathRules{}, errors.Join(ErrInvalidRuleset, err)
+	}
 	if rules.Warrior, err = convert(c.Injuries.Warrior, false); err != nil {
 		return AftermathRules{}, errors.Join(ErrInvalidRuleset, err)
 	}
@@ -880,22 +908,20 @@ func ResolveScratchReroll(chart []InjuryRow, total int, unit CasualtyUnit) (Casu
 	return e, ok
 }
 
-// Bonus rolls the bonus dice of a result (Lesson Learned: D3 Experience; Wounds of a Hero: D6 Influence). 0 when it has none.
+// Bonus rolls the bonus dice of a result (campaign.injuries rows grantsExperience / grantsInfluence: Lesson Learned D3, Wounds of a Hero D6). 0 when it has none.
 func (e CasualtyEffect) Bonus(d Dice) int {
-	switch e.Row.BonusDice {
-	case "d3":
-		return (d.D6()-1)/2 + 1
-	case "d6":
-		return d.D6()
+	if e.Row.BonusDice == "" {
+		return 0
 	}
-	return 0
+	return d.Roll(e.Row.BonusSpec)
 }
 
 // Succession is who must be chosen after the Leader fell or a Sergeant was lost. Heroes are units with a role other than warrior.
 type Succession struct {
 	NeedLeader      bool
 	LeaderOptions   []int64 // the remaining Sergeants (other heroes when there are none)
-	NeedSergeant    bool    // the company has fewer than two Sergeants
+	NeedSergeant    bool    // the company has fewer Sergeants than the rules give it
+	Sergeants       int     // the Sergeants a company has (campaign.company.sergeants), set with NeedSergeant
 	SergeantOptions []int64 // the other heroes
 	// Fallback is set when no hero is left (for the Leader, or for a lost Sergeant): the Warriors with the most Experience (ties:
 	// highest points); one entry means it is treated as having rolled Hero in the Making, several mean the player decides. The
@@ -904,22 +930,27 @@ type Succession struct {
 }
 
 // NextSuccession says what the company has to decide after its Leader fell (leaderFell), looking at the roster that is left
-// (the fallen already removed, the roles as they are now). Without a fallen Leader nothing is needed.
-func NextSuccession(roster []CompanyUnit, leaderFell bool) Succession {
+// (the fallen already removed, the roles as they are now) and the number of Leaders the rules give a company
+// (campaign.company.leaders). Without a fallen Leader nothing is needed.
+func NextSuccession(roster []CompanyUnit, leaderFell bool, leaders int) Succession {
 	var s Succession
 	if !leaderFell {
 		return s
 	}
 	var sergeants, others []int64
+	led := 0
 	for _, u := range roster {
 		switch u.Role {
 		case RoleLeader:
-			return Succession{} // somebody already took over
+			led++
 		case RoleSergeant:
 			sergeants = append(sergeants, u.ID)
 		case RoleHero:
 			others = append(others, u.ID)
 		}
+	}
+	if led >= leaders {
+		return Succession{} // the company has its leaders again: somebody already took over
 	}
 	switch {
 	case len(sergeants) > 0:
@@ -935,11 +966,11 @@ func NextSuccession(roster []CompanyUnit, leaderFell bool) Succession {
 	return s
 }
 
-// NextSergeant says whether the company, with its Leader, has fewer than two Sergeants and which heroes could fill the place.
+// NextSergeant says whether the company, with its Leader, has fewer Sergeants than the rules give it (campaign.company.sergeants) and which heroes could fill the place.
 // replace is true when a Sergeant died or retired and has not been replaced: with no hero left, the Warriors with the most
 // Experience are then offered (Fallback; the place is no longer optional), as for a lost Leader.
-func NextSergeant(roster []CompanyUnit, replace bool) Succession {
-	var s Succession
+func NextSergeant(roster []CompanyUnit, replace bool, sergeants int) Succession {
+	s := Succession{Sergeants: sergeants}
 	n := 0
 	for _, u := range roster {
 		switch u.Role {
@@ -949,7 +980,7 @@ func NextSergeant(roster []CompanyUnit, replace bool) Succession {
 			s.SergeantOptions = append(s.SergeantOptions, u.ID)
 		}
 	}
-	if n >= 2 {
+	if n >= sergeants {
 		return s
 	}
 	switch {

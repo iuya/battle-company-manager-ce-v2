@@ -13,7 +13,8 @@
   <section class="card space-y-4" aria-labelledby="rs-upload-h">
     <h2 class="!text-xl" id="rs-upload-h">Upload a rules file</h2>
     <form hx-post="/admin/rulesets" hx-encoding="multipart/form-data" hx-target="#ruleset-panel" hx-swap="outerHTML" class="space-y-4" novalidate>
-      {{with .UploadErr}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+      {{if .Report}}<div class="alert alert-danger" role="alert">{{template "ruleset_report" .Report}}</div>
+      {{else}}{{with .UploadErr}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}{{end}}
       <div class="grid gap-4 sm:grid-cols-[14rem_1fr]">
         <div class="field"><label for="rs-kind">Kind</label>
           <select id="rs-kind" name="kind" class="input">
@@ -25,7 +26,11 @@
           <input id="rs-file" name="file" type="file" accept=".json,application/json" required class="block w-full text-sm file:mr-3 file:min-h-10 file:rounded-md file:border file:border-line file:bg-surface file:px-4 file:text-fg"></div>
       </div>
       <p class="text-sm text-muted">The file is checked against the schema of its kind (at most 16 MB). A file with the same content is stored once. Files are told apart by their content (the short code next to the name), so two files may share a name and version.</p>
-      <button class="btn btn-primary">Upload</button>
+      <div class="flex flex-wrap gap-2">
+        <button class="btn btn-primary">Upload</button>
+        <button type="button" class="btn btn-secondary" hx-post="/admin/rulesets/check" hx-encoding="multipart/form-data" hx-include="closest form" hx-target="#rs-check-result" hx-swap="outerHTML">Check this file</button>
+      </div>
+      <div id="rs-check-result" aria-live="polite"></div>
     </form>
   </section>
 

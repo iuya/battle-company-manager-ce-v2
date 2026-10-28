@@ -44,10 +44,13 @@ func matchWrite(t *testing.T, m core.Match) *fixture {
 
 var twoCompanies = []core.CampaignCompany{{ID: 1, Name: "Rangers"}, {ID: 2, Name: "Raiders"}}
 
+// testSelection is the scenario selection of the shipped rules: two d6, the first picks one of three tables.
+var testSelection = core.ScenarioSelection{Die: core.DiceSpec{Count: 1, Sides: 6}, Tables: []core.ScenarioTableRange{{Min: 1, Max: 2}, {Min: 3, Max: 4}, {Min: 5, Max: 6}}}
+
 var testScenarios = []core.ScenarioInfo{
-	{Name: "Seize Ground", Table: 1, Roll: 1, Scoring: []string{"Hold the objectives"}},
-	{Name: "Chance Encounter", Table: 1, Roll: 2},
-	{Name: "Rescue", Table: 3, Roll: 1},
+	{Name: "Seize Ground", Table: 1, Roll: 1, FirstDie: [2]int{1, 2}, Scoring: []string{"Hold the objectives"}},
+	{Name: "Chance Encounter", Table: 1, Roll: 2, FirstDie: [2]int{1, 2}},
+	{Name: "Rescue", Table: 3, Roll: 1, FirstDie: [2]int{5, 6}},
 	{Name: "Homebrew", Table: 0},
 }
 
@@ -605,7 +608,7 @@ func TestScenarioRollPreselectsOnlyAndShowsTopDog(t *testing.T) {
 	m.Sides[1].Companies[0].Points = 100
 	f := rollSetup(t, m, core.CampaignSettings{})
 	seq := []int{1, 2}
-	f.srv.d6 = func() int { n := seq[0]; seq = seq[1:]; return n }
+	f.srv.die = func(int) int { n := seq[0]; seq = seq[1:]; return n }
 	rec := f.do(f.signedIn(form(matchPath+"/scenario/roll", url.Values{"roll": {"0"}, "roll2": {"0"}})))
 	body := rec.Body.String()
 	if rec.Code != 200 {
@@ -867,7 +870,7 @@ func TestMatchPageShowsScenarioRuleTablesAndMarksTheCombinedRating(t *testing.T)
 		About: core.ScenarioAbout{Uses: []string{"Dark of Night"}, Rules: []core.ScenarioText{
 			{Title: "There's Always a Bigger Beast", Text: "Rule of thumb:", Table: &core.ScenarioRuleTable{Lookup: "combinedRating", Columns: []string{"Combined Rating", "Monster Budget"},
 				Rows: []core.ScenarioTableRow{{Min: 0, Max: 400, Cells: []string{"0-400", "140 points"}}, {Min: 401, Max: 500, Cells: []string{"401-500", "200 points"}}, {Min: 501, Max: -1, Cells: []string{"501+", "300 points"}}}}},
-			{Title: "Strange Aura", Text: "Roll.", Table: &core.ScenarioRuleTable{Lookup: "d6", Columns: []string{"D6", "Result"}, Rows: []core.ScenarioTableRow{{Min: 1, Max: 6, Cells: []string{"1-6", "Fearless"}}}}}}}}}, nil)
+			{Title: "Strange Aura", Text: "Roll.", Table: &core.ScenarioRuleTable{Lookup: "d6", TableDice: core.DiceSpec{Count: 1, Sides: 6}, Columns: []string{"D6", "Result"}, Rows: []core.ScenarioTableRow{{Min: 1, Max: 6, Cells: []string{"1-6", "Fearless"}}}}}}}}}, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
 	for _, want := range []string{"Monster Budget", "200 points", `aria-current="true"`, "add up to 450 rating", "Roll a D6", "Dark of Night"} {
 		if !strings.Contains(body, want) {
@@ -928,7 +931,7 @@ func TestVantagePointIsOfferedAfterTheRollAndMovesTheSecondDie(t *testing.T) {
 	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return(testScenarios, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(core.CompanyDetail{Perks: []core.Perk{{ID: 9, Effect: core.PerkVantagePoint}}}, nil).Times(1)
 	seq := []int{1, 1}
-	f.srv.d6 = func() int { n := seq[0]; seq = seq[1:]; return n }
+	f.srv.die = func(int) int { n := seq[0]; seq = seq[1:]; return n }
 	body := f.do(f.signedIn(form(matchPath+"/scenario/roll", url.Values{"roll": {"0"}, "roll2": {"0"}}))).Body.String()
 	for _, want := range []string{"Vantage Point", `name="vantage" value="1"`, `name="adjust" value="1"`, `name="adjust" value="-1" class="btn btn-secondary !min-h-9" disabled`} {
 		if !strings.Contains(body, want) {

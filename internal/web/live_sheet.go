@@ -28,6 +28,7 @@ type liveSheet struct {
 	Hero            bool // may call Stand Fast (a Hero that is not a Wanderer; the service refuses the rest with a sentence)
 	StandFastCalled bool // a Hero called Stand Fast this turn: the Warriors' hint
 	ManualRolls     bool
+	CourageDice     core.DiceSpec // the dice of the Courage test (campaign.breakPoint.whenBroken.courageTest.dice)
 	Roll            *core.CourageRoll
 	RollErr         string
 }
@@ -151,6 +152,7 @@ func (s *Server) liveSheetFor(w http.ResponseWriter, r *http.Request, kind strin
 		s.notFound(w, r)
 		return none, false
 	}
+	sheet.CourageDice = detail.RuleDice.Courage
 	sheet.Hero = sheet.Unit.IsHero() && !sheet.Unit.Wanderer
 	sheet.Gains = sheet.Live.Gains
 	if kind == "courage" {
@@ -174,10 +176,7 @@ func (s *Server) handleCourageRoll(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var entered []int
-	if a, b := formInt(r, "roll"), formInt(r, "roll2"); a > 0 || b > 0 {
-		entered = []int{a, b}
-	}
+	entered := enteredRolls(r)
 	status := http.StatusOK
 	roll, err := s.campaigns.RollCourage(r.Context(), *userFrom(r.Context()), sheet.Campaign, sheet.MatchID, sheet.Unit.ID, entered, false)
 	switch {

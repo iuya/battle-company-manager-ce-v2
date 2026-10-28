@@ -1,0 +1,5 @@
+battle_companies.json: companies[0].reinforcements.rows[1].roll: roll 2 is covered twice (by rows[0] and rows[1]); each total belongs to exactly one row
+battle_companies.json: companies[0].reinforcements.rows[3].roll: "3-2" is empty
+  hint: write the lower number first: "2-3"
+battle_companies.json: companies[0].reinforcements.rows[4].roll: roll 7 is outside 1-6, the totals of D6
+battle_companies.json: companies[0].reinforcements.rows: rolls cover 1-3, 5; 4, 6 are missing (a D6 chart must cover 1-6 exactly once)

@@ -43,18 +43,17 @@ type OfficerPanel struct {
 	Leader     OfficerCard // the Ranger, ID RangerID
 	Officers   []OfficerCard
 	Candidates []OfficerCard // only used when there are fewer than three other officers
-	Drop       int           // max(0, len(Officers)-2)
+	Sergeants  int           // the Sergeant places of a company (campaign.company.sergeants)
+	Leaders    int           // and its Leader places
+	Drop       int           // max(0, len(Officers) - the Sergeants a company has)
 }
 
-// OfficerArrangement is the player's arrangement: the unit for the Leader place and for the Sergeant places (at most two). The
+// OfficerArrangement is the player's arrangement: the unit for the Leader place and for the Sergeant places (at most as many as the company has Sergeants). The
 // new Ranger is RangerID; he is in exactly one of the officer places.
 type OfficerArrangement struct {
 	Leader    int64
 	Sergeants []int64
 }
-
-// maxSergeants is how many Sergeants a company has at most (one Leader).
-const maxSergeants = 2
 
 // rangerOffer is nil unless the company has the rule (and it lets him lead), the cemetery holds one of its unit (however it
 // fell: dead, or a hero forced to retire) and the roster has fewer than Max of them.
@@ -97,7 +96,8 @@ func (env recruitEnv) officerPanel(unit string) *OfficerPanel {
 	}
 	// the Leader first, then the Sergeants
 	slices.SortStableFunc(p.Officers, func(a, b OfficerCard) int { return a.Role.order() - b.Role.order() })
-	p.Drop = max(0, len(p.Officers)-maxSergeants)
+	p.Sergeants, p.Leaders = env.rs.BC.Shape().Sergeants, env.rs.BC.Shape().Leaders
+	p.Drop = max(0, len(p.Officers)-p.Sergeants)
 	return p
 }
 
@@ -127,8 +127,8 @@ func (env recruitEnv) arrange(st *CompanyState, step OfficerStep, a OfficerArran
 	for _, c := range panel.Candidates {
 		known[c.ID] = c
 	}
-	if len(a.Sergeants) > maxSergeants {
-		return RecruitResult{}, Refuse("A company has at most %d Sergeants.", maxSergeants)
+	if sergeants := env.rs.BC.Shape().Sergeants; len(a.Sergeants) > sergeants {
+		return RecruitResult{}, Refuse("A company has at most %d Sergeants.", sergeants)
 	}
 	places := append([]int64{a.Leader}, a.Sergeants...)
 	seen := map[int64]bool{}

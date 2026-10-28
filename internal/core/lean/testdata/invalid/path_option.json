@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 2,
+  "name": "Fixture",
+  "version": "1.0",
+  "extends": "Middle-Earth Strategy Battle Game - 2024",
+  "campaign": {
+    "company": {
+      "maxModels": 15,
+      "leaders": 1,
+      "sergeants": 2,
+      "heroStart": {
+        "might": 1,
+        "will": 1,
+        "fate": 1
+      },
+      "startingInfluence": 0,
+      "equipmentSlots": {
+        "small": 1,
+        "large": 1
+      }
+    },
+    "recruitment": {
+      "die": "d6",
+      "adjust": {
+        "maxPerAttempt": 3,
+        "direction": "up",
+        "costPerPoint": 1
+      },
+      "rare": {
+        "injuredCount": true,
+        "deadCount": false,
+        "promotedCount": false
+      }
+    },
+    "influence": {
+      "gains": {
+        "participating": 2,
+        "draw": 1,
+        "win": 2
+      }
+    },
+    "progression": {
+      "threshold": 5,
+      "warrior": {
+        "roll": "d6",
+        "table": [
+          {
+            "roll": "1-2",
+            "key": "noChange",
+            "name": "No Change"
+          },
+          {
+            "roll": "3-5",
+            "key": "promoted",
+            "name": "Promoted"
+          },
+          {
+            "roll": 6,
+            "key": "heroInTheMaking",
+            "name": "A Hero in the Making"
+          }
+        ],
+        "noPromotion": {
+          "courage": 1,
+          "intelligence": 1,
+          "maximum": 3
+        }
+      },
+      "hero": {
+        "roll": "2d6",
+        "rollsPerProgression": 2,
+        "choose": 1
+      }
+    },
+    "injuries": {
+      "roll": "2d6",
+      "warrior": [
+        {
+          "roll": "2-3",
+          "key": "dead",
+          "name": "Dead"
+        },
+        {
+          "roll": "4-5",
+          "key": "injured",
+          "name": "Injured"
+        },
+        {
+          "roll": "6-11",
+          "key": "fullRecovery",
+          "name": "Full Recovery"
+        },
+        {
+          "roll": 12,
+          "key": "lessonLearned",
+          "name": "Lesson Learned",
+          "grantsExperience": {
+            "dice": "d3"
+          }
+        }
+      ],
+      "hero": [
+        {
+          "roll": 2,
+          "key": "dead",
+          "name": "Dead"
+        },
+        {
+          "roll": "3-11",
+          "key": "fullRecovery",
+          "name": "Full Recovery"
+        },
+        {
+          "roll": 12,
+          "key": "heroic",
+          "name": "Heroic Recovery",
+          "statChanges": [
+            {
+              "stat": "fate",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    "experience": {
+      "gains": [
+        {
+          "key": "participated",
+          "label": "Participating in the scenario",
+          "amount": 1
+        },
+        {
+          "key": "mvp",
+          "label": "MVP",
+          "amount": 1,
+          "dice": "d3"
+        }
+      ]
+    },
+    "breakPoint": {
+      "default": {
+        "percent": 50,
+        "of": "startingModels"
+      },
+      "threshold": {
+        "comparison": "gt"
+      },
+      "whenBroken": {
+        "courageTest": {
+          "dice": "2d6"
+        }
+      }
+    },
+    "rating": {
+      "hero": {
+        "wargear": {
+          "threshold": {
+            "stats": [
+              "attack",
+              "wounds"
+            ],
+            "sumAtLeast": 3
+          }
+        }
+      }
+    },
+    "scenarioSelection": {
+      "die": "d2",
+      "tables": [
+        {
+          "roll": [
+            1,
+            1
+          ],
+          "scenarios": [
+            "Seize Ground",
+            "Chance Encounter"
+          ]
+        },
+        {
+          "roll": [
+            2,
+            2
+          ],
+          "scenarios": [
+            "Hold the Line",
+            "Rescue"
+          ]
+        }
+      ]
+    }
+  },
+  "scenarios": [
+    {
+      "name": "Seize Ground",
+      "description": "..."
+    },
+    {
+      "name": "Chance Encounter",
+      "description": "..."
+    },
+    {
+      "name": "Hold the Line",
+      "description": "..."
+    },
+    {
+      "name": "Rescue",
+      "description": "..."
+    }
+  ],
+  "paths": [
+    {
+      "name": "Path of Test",
+      "rows": [
+        {
+          "roll": 2,
+          "options": [
+            {
+              "stat": "fight",
+              "power": "Fortify Spirit"
+            }
+          ]
+        },
+        {
+          "roll": 3,
+          "options": [
+            {
+              "maxTotal": 2
+            }
+          ]
+        },
+        {
+          "roll": 4,
+          "options": [
+            {
+              "stat": "fight",
+              "maxTotal": 1
+            }
+          ]
+        },
+        {
+          "roll": 5,
+          "options": [
+            {
+              "stat": "fight"
+            }
+          ]
+        },
+        {
+          "roll": 6,
+          "options": [
+            {
+              "stat": "fight"
+            }
+          ]
+        },
+        {
+          "roll": 7,
+          "options": [
+            {
+              "stat": "fight"
+            }
+          ]
+        },
+        {
+          "roll": 8,
+          "options": [
+            {
+              "stat": "fight"
+            }
+          ]
+        },
+        {
+          "roll": 9,
+          "options": [
+            {
+              "stat": "fight"
+            }
+          ]
+        },
+        {
+          "roll": 10,
+          "options": [
+            {
+              "stat": "fight"
+            }
+          ]
+        },
+        {
+          "roll": 11,
+          "options": [
+            {
+              "stat": "fight"
+            }
+          ]
+        },
+        {
+          "roll": 12,
+          "options": [
+            {
+              "stat": "fight"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

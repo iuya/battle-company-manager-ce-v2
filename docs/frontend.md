@@ -236,6 +236,26 @@ first 8 characters, `RulesetInfo.ShortHash`), so two files with the same name an
 The store is `core.Rulesets` over PostgreSQL; at startup it registers the real files under `definitions/` as the defaults (so
 the server must be started from the repository root).
 
+### The rules file report
+
+A refused rules file shows **every** problem, not the first. `rulesetIssues(err)` (`internal/web/ruleset_report.go`) reads the
+`*core.RulesetReport` out of the error with `errors.As` (also the merged report of the campaign form) and builds a `reportView`:
+issues grouped by file in report order, at most 200 rows (`maxIssuesShown`), the rest counted together with the core's own
+`Truncated()` as "and N more not listed", plus the error and warning counts. `partials/ruleset_report.gohtml` draws it: a status
+line ("12 problems found. Nothing was stored."), one section per file (monospace file name), one row per issue with an Error or
+Warning badge (text, not colour only), the message, `At <path>` in `<code>` (breaks anywhere, no horizontal scroll), the closest
+known name as a muted chip and the hint. It sits in an `alert-danger` on:
+
+- the **admin upload card** (`POST /admin/rulesets`, 422, the panel is swapped with the report; a refusal that is not a report
+  keeps its one-line reason);
+- the **new-campaign form** (`POST /campaigns`, 422 with the form kept; the three files are all checked before any is stored,
+  so the text is "Nothing was stored and no campaign was created."; the browser keeps the name but a file input cannot be
+  refilled, so the file is chosen again);
+- the **Check this file** button of the admin upload card: `POST /admin/rulesets/check` runs `rulesets.Check` (a dry run, stores
+  nothing) and swaps `#rs-check-result` under the buttons: 200 `alert-success` ("No problems found", warnings listed) or 422
+  with the report. The web layer never imports `lean`; tests build reports with `core.NewRulesetReport`. Flow `89-ruleset-report`
+  drives all three at 360/768/1280 in light and dark; `/styleguide` shows a sample.
+
 ## Adding a page
 
 1. A template in `pages/` defining `title` and `content`, written mobile first with the tokens and components above.
@@ -248,7 +268,7 @@ the server must be started from the repository root).
 
 The My Company tab shows, in this order, a row of Points, Units (current / the company's maximum), Matches and W / D / L, a row
 of Influence, Gold and the limits, (bows and crossbows, throwing weapons and
-cavalry: a third of the company, always rounded up, `core.CompanyLimits`; `CompanyLimit.Next` is the maximum once one more model has joined, because a model that
+cavalry: a third of the company by default, `limits[]` of the rules file through `BCBook.Limits`; `CompanyLimit.Next` is the maximum once one more model has joined, because a model that
 joins counts in the numerator and the denominator: 6 models with 2 bows may take a 7th bow model, `RoomForNew`) and one **card per unit**, in the company's order
 (`core.OrderUnits`: leader, sergeants, other heroes, regular units, unless the player saved another order).
 
@@ -605,15 +625,15 @@ The "Level Up ready!" banner of a card opens the level-up window (`level_panel`)
 Companies file (`core.ParseProgression`: `campaign.progression`, `data.paths`, `campaign.characteristicLimits`, each
 company's `advancements`); a unit earns a roll every 5 XP and several can wait.
 
-- A **warrior** rolls a D6: 1-2 nothing, 3-5 a promotion (the player picks one of the company's advancements that match
+- A **warrior** rolls its dice (`campaign.progression.warrior.roll`, d6 in the shipped file): 1-2 nothing, 3-5 a promotion (the player picks one of the company's advancements that match
   the unit; with none, Courage and Intelligence +1 up to 3+), 6 a hero in the making (pick a path, +1 Might, Will and Fate,
   or forgo it and take the promotion).
-- A **hero** rolls two pairs of 2D6 on its path chart. A result it cannot take (stat at the path's or the overall
+- A **hero** rolls `progression.hero.rollsPerProgression` results (two) of its path's dice (`paths[].dice`, else `progression.hero.roll`, 2D6) on its path chart, and keeps one (`choose`, 1). A result it cannot take (stat at the path's or the overall
   maximum, rule or action already owned, minor-rule or heroic-action total reached) is re-rolled by the app, with a note.
   The player picks one of the results and, where a row has alternatives or a list (stat of a pair, a minor rule, a heroic
   action), the concrete choice. A result marked "take the other roll too" asks for the other result in the same window: choosing it turns the other roll's choices into a second, required pick, and one Choose applies both. When rolls remain, "Next level up" (the card's banner effect) opens the next.
 - The choices that give a rule, a minor rule, a heroic action, a power or a path show the glossary's description under their name, with links to other terms that preview on hover; the whole choice also has a tooltip with the full text.
-- "Roll for me" is animated (one die for a warrior; a hero's four dice run in two lanes, one per roll, named and totalled once they stop); "I rolled" takes the player's own dice. A roll
+- "Roll for me" is animated (a warrior's dice; a hero's dice run in one lane per result, named and totalled once they stop); "I rolled" takes the player's own dice. A roll
   waits for its choice if the window is closed (`campaigns.LevelUpState`).
 - **Magical powers** (Path of the Sorcerer only): the rows offer "a new power or improve a casting value". The list is the
   Sorcerer's spell list (`data.magicalPowers.items[learnable]`, each with range and casting value) minus the powers the hero
@@ -807,7 +827,13 @@ Item tooltips read the Battle Companies file's `gearAnnotations[].definition`; a
 ### Dice
 
 The dice are 3D: `static/js/dice3d.js` (three.js draws them, cannon-es rolls them) loads the first time a roll needs it, so other
-pages never pay for it; where WebGL or the file is missing, `static/js/dice.js` falls back to its flat 2D tray. `window.diceMixin()`
+pages never pay for it; where WebGL or the file is missing, `static/js/dice.js` falls back to its flat 2D tray. **The number and the
+faces of the dice come from the rules file** (docs/definitions-lean-design.md 12.1), never from a template or script: a roll panel carries
+`data-sides` (faces of each die), `data-per-lane` (dice in one roll) and `data-lanes` (rolls side by side, a hero's results), and
+`throwDice({count, sides, groups})` takes them. The 3D dice are cubes, so a roll of d6 uses them; a roll of any other size (d3, d8,
+d12 ...) is drawn by the flat tray, a die with its number (a die of up to six faces shows pips, a bigger one its number). Typed
+rolls are one select per die from `templates/partials/dice.gohtml` (`dice_selects`, fields `roll`, `roll2` ... read by
+`enteredRolls`); a die with no physical form (a D3) is typed on a D6 (`core.TypedMax`, `core.FromTyped`). `window.diceMixin()`
 (`throwDice`, `shake`, `onSpace`) is what the Alpine components use, with the same interface for both trays.
 
 - **Built output.** dice3d.js is built from `tools/dice3d/src/index.js` (`make dice3d`, needs node and npm) with esbuild, which keeps
@@ -822,7 +848,7 @@ pages never pay for it; where WebGL or the file is missing, `static/js/dice.js` 
   again, and the tray jolts. The browser reports the result (`thrown`), so this is client authoritative and the backend refuses
   it when the setting is off.
 - Where **Shake the table** is on, the **Roll** button of every roll panel (recruit, treatment, level-up) throws the dice in the browser (one die; a hero's level-up two pairs in two lanes) and sends the result (`thrown`); typing a roll instead (campaign setting) sends it as typed, and "Roll for me" in a campaign with both settings on still throws in the browser. Where it is off, Roll lets the server roll and the 3D dice only act it out. While dice roll, the space bar never scrolls the page.
-- **Paths.** A path's glossary term is shown as in the rulebook: its characteristic limits as a centred row of cells with the abbreviated attributes linked to their terms (a number of level-up increases is written `(+2)`, a total `9`, a best value `3+`), then the 2D6 chart as a table (each result linked to the rules it names). `core.PathTable` carries the data (`GlossaryTerm.Path`); the level-up lists paths by name, and the tooltip draws the same two tables (`data-tip-path`).
+- **Paths.** A path's glossary term is shown as in the rulebook: its characteristic limits as a centred row of cells with the abbreviated attributes linked to their terms (a number of level-up increases is written `(+2)`, a total `9`, a best value `3+`), then the level-up chart as a table headed by the path's dice (each result linked to the rules it names). `core.PathTable` carries the data (`GlossaryTerm.Path`, `PathDice`); the level-up lists paths by name, and the tooltip draws the same two tables (`data-tip-path`).
 - **Lanes.** A hero's two rolls run in two lanes of the same table (taller than a single lane, so thrown dice do not keep hitting the divider), one pair each, named and totalled at the right edge.
 - Typed rolls ("I rolled a N") are the campaign setting **Players may enter their own rolls** (off by default, set at creation,
   shown in the Overview): off, every roll panel only has a Roll button and the backend refuses a typed roll.

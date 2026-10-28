@@ -215,7 +215,7 @@ func hostileWorld(t *testing.T) (*fixture, []string) {
 		Casualties: []core.Casualty{{UnitID: 5, Name: "n", Hero: true, Rolled: true, Dice: []int{3, 4}, Total: 7, ResultTxt: "n", Text: "n"}},
 		Lines:      []core.AftermathLine{{Kind: "note", Text: "n"}}}
 	taint(&am)
-	rules := core.AftermathRules{Gains: []core.XPGain{{Key: "k", Label: hostile, Amount: 1}}, Threshold: 5,
+	rules := core.AftermathRules{Gains: []core.XPGain{{Key: "k", Label: hostile, Amount: 1}},
 		Bonuses: []core.OddsBonus{{Key: "k", Name: hostile, Text: hostile}},
 		Warrior: []core.InjuryRow{{Min: 1, Max: 6, Key: "k", Name: hostile, Text: hostile}}, Hero: []core.InjuryRow{{Min: 2, Max: 12, Key: "k", Name: hostile, Text: hostile}}}
 	f.camp.EXPECT().AftermathRules(anyCtx, anyCtx).Return(rules, nil).AnyTimes()

@@ -1,0 +1,2 @@
+warn: battle_companies.json: paths[0].rows[1].text: differs from the composed "Spy (Active) - At the beginning of the g..."
+  hint: remove "text" unless the difference is intended

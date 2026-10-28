@@ -135,7 +135,7 @@ func (lc liveContext) inits(snap LiveSnapshot) []LiveUnitInit {
 // match's scenario. Nothing is stored: it is worked out from the roster and the file every time, like the names.
 func (lc *liveContext) breakConfig(rs *RuleSet, d CompanyDetail) {
 	rules := rs.BC.BreakRules()
-	cfg := BreakConfig{Percent: breakPointPercent(rs, d.Faction), Extra: len(d.Creatures)}
+	cfg := BreakConfig{AtLeast: rules.AtLeast, Percent: breakPointPercent(rs, d.Faction), Extra: len(d.Creatures)}
 	scenario := ""
 	if lc.match.Scenario != nil && lc.match.Scenario.Kind == ScenarioRulebook {
 		scenario = lc.match.Scenario.Name
@@ -638,6 +638,8 @@ type EndChecks struct {
 	MVP       []MVPBallot         // one per company of another team than a company the viewer owns
 	Tally     []MVPTally          // every company of the match
 	Pending   []string            // what the End match reminder lists
+	// ObjectiveXP and MVPXP are what each of the two checks is worth in experience (experience.gains amounts), printed on the card.
+	ObjectiveXP, MVPXP int
 }
 
 // CompanyObjectives lists the units of a company that may get the objective (in the Field or Retreated).
@@ -710,6 +712,9 @@ func (s *LiveService) EndChecks(ctx context.Context, user User, id, matchID int6
 		return EndCheckUnit{UnitID: u.UnitID, Title: cu.Title(), Type: cu.Type, Zone: u.Zone, Wounds: u.Wounds, Has: st.HasObjective(u.UnitID)}
 	}
 	var out EndChecks
+	if lc.rules != nil {
+		out.ObjectiveXP, out.MVPXP = lc.rules.BC.ExperienceGain(GainObjective), lc.rules.BC.ExperienceGain(GainMVP)
+	}
 	for _, side := range lc.match.Sides {
 		for _, co := range side.Companies {
 			if LiveAccessFor(user, lc.match, co, lc.camp.OrganiserID) == LiveEdit && lc.camp.CanPlay() == nil {
@@ -1009,7 +1014,7 @@ func (s *LiveService) RollCourage(ctx context.Context, user User, id, matchID, u
 		return CourageRoll{}, Refuse("%s", msg)
 	}
 	rules := rs.BC.BreakRules()
-	if rules.CourageDice != "2d6" || rules.PassIf != "totalAtLeastCourage" {
+	if !rules.CourageSpec.Valid() || rules.PassIf != "totalAtLeastCourage" { // the dice are the file's; the pass rule is the one the engine implements
 		return CourageRoll{}, fmt.Errorf("the rules file asks for a courage test the app does not know (%q, %q)", rules.CourageDice, rules.PassIf)
 	}
 	snap, err := s.snapshot(ctx, id, lc.match)
@@ -1029,11 +1034,11 @@ func (s *LiveService) RollCourage(ctx context.Context, user User, id, matchID, u
 	if courage == 0 {
 		return CourageRoll{}, Refuse("%s has no Courage to test.", unit.Title())
 	}
-	dice, err := castDice(s.dice, entered)
+	dice, err := castDice(s.dice, rules.CourageSpec, entered)
 	if err != nil { // the live mode answers bad input with ErrInvalidLive (422), not the aftermath's error (which would be a 500 here)
-		return CourageRoll{}, invalid("Enter the two dice, each from 1 to 6.")
+		return CourageRoll{}, invalid("Enter %s, each from 1 to %d.", diceWords(rules.CourageSpec.Count, "die", "dice"), rules.CourageSpec.Sides)
 	}
-	total := dice[0] + dice[1]
+	total := sumOf(dice)
 	return CourageRoll{Dice: dice, Total: total, Courage: courage, Passed: total >= courage}, nil
 }
 

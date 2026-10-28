@@ -1,0 +1,653 @@
+# Grand Army of the South (evil)
+
+=== anomalies (39) ===
+tooltip-name | Armoured horse | tooltip (bc armoury) never says "Armoured horse": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+tooltip-name | Armour | tooltip (bc definition) never says "Armour": Adds 1 to Defence.
+tooltip-name | Barding | tooltip (bc definition) never says "Barding": The rider gains the Expert Rider & Horselord special rules.
+tooltip-name | Blowpipe | tooltip (bc definition) never says "Blowpipe": 12" Range, 2 Strength. Benefits from the Poisoned Weapons special rule (re-roll …
+tooltip-name | Company Drum | tooltip (bc definition) never says "Company Drum": This is a War Drum that grants the bearer the Command Support keyword.
+tooltip-name | Company Horn | tooltip (bc definition) never says "Company Horn": This is a War Horn that grants the bearer the Command Support keyword.
+tooltip-name | Company Instrument | tooltip (bc definition) never says "Company Instrument": This is an Instrument that grants the bearer the Command Support keyword. Friend…
+tooltip-name | Company Standard | tooltip (bc definition) never says "Company Standard": This is a Pennant that grants the bearer the Command Support keyword. Friendly m…
+tooltip-name | Dunlending War Axe | tooltip (bc definition) never says "Dunlending War Axe": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Dwarf Bow | tooltip (bc definition) never says "Dwarf Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Dwarf Longbow | tooltip (bc definition) never says "Dwarf Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Easterling Halberd | tooltip (bc definition) never says "Easterling Halberd": This can be used as either a pike or a two-handed weapon.
+tooltip-name | Elf Bow | tooltip (bc definition) never says "Elf Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Elven hand-and-a-half weapon | tooltip (bc definition) never says "Elven hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | Elven lance | tooltip (bc definition) never says "Elven lance": A Cavalry model using a lance adds 1 to its To Wound rolls when making Strikes i…
+tooltip-name | Elven pike | tooltip (bc definition) never says "Elven pike": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Elven spear | tooltip (bc definition) never says "Elven spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Elven throwing weapon | tooltip (bc definition) never says "Elven throwing weapon": 6" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Envenom Weapon (X) | tooltip (bc definition) never says "Envenom Weapon (X)": When a model purchases Envenom Weapon, they must decide which weapon on their pr…
+tooltip-name | Esgaroth Bow | tooltip (bc definition) never says "Esgaroth Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Fell Warg | tooltip (bc armoury) never says "Fell Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | Galadhrim Steed | tooltip (bc definition) never says "Galadhrim Steed": This is an armoured horse that also has the Woodland Creature special rule.
+tooltip-name | Goat | tooltip (bc armoury) never says "Goat": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+tooltip-name | Hand-and-a-half weapon | tooltip (bc definition) never says "Hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | Heavy Armour | tooltip (bc definition) never says "Heavy Armour": Adds 2 to Defence.
+tooltip-name | Horse | tooltip (bc armoury) never says "Horse": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | Longbow | tooltip (bc definition) never says "Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Orc Bow | tooltip (bc definition) never says "Orc Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Seeing Stone | tooltip (bc definition) never says "Seeing Stone": Once per game, during the Priority Phase but before the roll for Priority, the b…
+tooltip-name | Short Bow | tooltip (bc definition) never says "Short Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Small Shield | tooltip (bc definition) never says "Small Shield": This is a Light Shield that gives the bearer +1 to their Defence Characteristic …
+tooltip-name | Spear | tooltip (bc definition) never says "Spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Throwing Spears | tooltip (bc definition) never says "Throwing Spears": 8" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Torching Brand | tooltip (bc definition) never says "Torching Brand": A model with a Torch gains the following benefits: They illuminate the area with…
+tooltip-name | Uruk-Hai Bow | tooltip (bc definition) never says "Uruk-Hai Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | War spear | tooltip (bc definition) never says "War spear": Counts as a lance while mounted, and a spear while dismounted
+tooltip-name | Warg | tooltip (bc armoury) never says "Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | hand-and-a-half weapon | tooltip (bc definition) never says "hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | war spear | tooltip (bc definition) never says "war spear": Counts as a lance while mounted, and a spear while dismounted
+
+=== profile (everything the company page holds) ===
+profile
+  BCCompany:
+    Name: "Grand Army of the South"
+    Alignment: "evil"
+    MaxModels: 15
+    ReinforcementCost: 3
+    Reinforcements:
+      - {Min: 1, Max: 1, Result: {Type: "nothing", Count: 1, Blocks: true}}
+      - {Min: 2, Max: 2, Result: {Type: "unit", Unit: "Haradrim Warrior", Count: 1, Choice: true}}
+      - {Min: 3, Max: 3, Result: {Type: "unit", Unit: "Mahûd Warrior", Count: 1, Choice: true}}
+      - {Min: 4, Max: 4, Result: {Type: "unit", Unit: "Khandish Warrior", Count: 1, Choice: true}}
+      - {Min: 5, Max: 5, Result: {Type: "unit", Unit: "Corsair of Umbar", Count: 1, Choice: true}}
+      - {Min: 6, Max: 6, Result: {Type: "specialChart", Count: 1}}
+    SpecialChart:
+      - {Min: 1, Max: 3, Result: {Type: "unit", Unit: "Easterling Warrior", Count: 1, Choice: true}}
+      - {Min: 4, Max: 5, Result: {Type: "unit", Unit: "Khandish Horseman", Count: 1}}
+      - {Min: 6, Max: 6, Result: {Type: "unit", Unit: "Half Troll", Count: 1, Rare: 3}}
+    UniqueWargear:
+      -
+        Name: "War Camel"
+        Classes: ["mount"]
+        Cost: 5
+        Gold: {Warrior: 15, Hero: 30}
+        Rating: {Warrior: 15, Hero: 30}
+        Grants: ["Impaler"]
+        GrantedTo: "mount"
+        Exclusive: true
+        Only: "Mahûd"
+        Limit: 1
+        OnlyUnits: ["Mahûd Warrior"]
+    LimitExemptions: [{Unit: "Khandish Horseman", Limits: ["bow"], Text: "Khandish Horsemen in this Battle Company do not count towards your Bow Limit."}]
+    LimitOverrides: {}
+  Description: "The people of Khand have long been allied with the Dark Lord of Mordor, their 'friendship' with the dark tower having proven extremely profitable over the many years. The Khandish warriors are mercenaries at heart, happy to fight for whomever will pay them the most. Far to the south of Gondor, even further than the Haradrim, dwell the Mahûd, a vicious warrior race. There are few who can survive in the harsh desert environment that the Mahûd have adapted to, and those unaccustomed to the scorching heat and arid terrain will succumb to thirst and exhaustion should they remain there for too long.\n\nThe Dark Lord's call has summoned all manner of creatures to his banner, including these Men of self-interest looking for extra coin in exchange for their club or axe. While never neighbors before, they now frequently share camp during the War of the Ring."
+  Start:
+    - {Count: 1, Unit: "Mahûd Warrior", Wargear: ["Blowpipe"]}
+    - {Count: 2, Unit: "Khandish Warrior"}
+    - {Count: 2, Unit: "Corsair of Umbar", Wargear: ["Light Shield", "Throwing weapon"]}
+    - {Count: 2, Unit: "Haradrim Warrior", Wargear: ["Bow"]}
+  StartGold: 3
+  HeroUpgrades:
+    -
+      Name: "Master Skirmisher"
+      Flavour: "The men under Sauron are renowned for their skills as skirmishers, picking off the enemies from range or using their momentum to deliver a devastating blow."
+      Rule: "Master Skirmisher"
+      Text: "The Hero may still fire a bow even if they have moved over half their Move value this turn. If the Hero fires a Blowpipe or a Throwing Weapon, they instead do not suffer the -1 penalty for moving. Additionally, the Hero does not suffer the -1 penalty for using a two-handed weapon in a turn in which they Charged."
+  Rules: ["Khandish Horsemen in this Battle Company do not count towards your Bow Limit."]
+  Oath:
+    Text: "Haradrim, Khandish riders and Mahud beast-masters gather beneath one banner, and I carry their strength north. Let us be known as {name}, so that every land trembles at the thunder of our drums."
+    Vow: "Hear our drums"
+  OwnPathUnits: ["Half Troll"]
+  OwnPath: "On Their Own Path"
+  OnTheirOwnPath: ["Half Troll"]
+  Notes: [{Section: "specialChart", Text: "Half Trolls are On Their Own Path (pg. 33)."}]
+path "Path of the Tactician": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Sharpshooter": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Soldier": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Marksman": limit per company 0, start action "Heroic Accuracy", start power no; chart as in _progression.txt
+path "Path of the Claimant": limit per company 0, start action "Heroic Challenge", start power no; chart as in _progression.txt
+path "Path of the Sorcerer": limit per company 1, start action "Heroic Channeling", start power yes; chart as in _progression.txt
+path "Path of the Shieldbearer": limit per company 0, start action "Heroic Defence", start power no; chart as in _progression.txt
+path "Path of the Ranger": limit per company 0, start action "Heroic March", start power no; chart as in _progression.txt
+path "Path of the Warlord": limit per company 0, start action "Heroic Resolve", start power no; chart as in _progression.txt
+path "Path of the Berserker": limit per company 0, start action "Heroic Strength", start power no; chart as in _progression.txt
+path "Path of the Duelist": limit per company 0, start action "Heroic Strike", start power no; chart as in _progression.txt
+starting power power:Aura of Command = Aura of Command · 5+ · self
+starting power power:Aura of Dismay = Aura of Dismay · 4+ · self
+starting power power:Banishment = Banishment · 5+ · 6"
+starting power power:Black Dart = Black Dart · 6+ · 6"
+starting power power:Bladewrath = Bladewrath · 5+ · 6"
+starting power power:Blessing of the Valar = Blessing of the Valar · 4+ · 6"
+starting power power:Blinding Light = Blinding Light · 5+ · self
+starting power power:Call Winds = Call Winds · 5+ · 12"
+starting power power:Collapse Rocks = Collapse Rocks · 6+ · 12"
+starting power power:Compel = Compel · 5+ · 12"
+starting power power:Curse = Curse · 5+ · 12"
+starting power power:Drain Courage = Drain Courage · 5+ · 12"
+starting power power:Enchant Blades = Enchant Blades · 5+ · 6"
+starting power power:Enrage Beast = Enrage Beast · 5+ · 6"
+starting power power:Flameburst = Flameburst · 6+ · 6"
+starting power power:Fog of Disarray = Fog of Disarray · 4+ · self
+starting power power:Foil Magic = Foil Magic · 4+ · 12"
+starting power power:Fortify Spirit = Fortify Spirit · 4+ · 6"
+starting power power:Fury (Easterling) = Fury (Easterling) · 4+ · self
+starting power power:Fury (Moria Goblin) = Fury (Moria Goblin) · 4+ · self
+starting power power:Fury (Mordor Orc) = Fury (Mordor Orc) · 4+ · self
+starting power power:Fury (Isengard Orc) = Fury (Isengard Orc) · 4+ · self
+starting power power:Fury (Isengard Uruk-hai) = Fury (Isengard Uruk-hai) · 4+ · self
+starting power power:Fury (Beast) = Fury (Beast) · 4+ · self
+starting power power:Fury (Spider) = Fury (Spider) · 4+ · self
+starting power power:Instill Fear = Instill Fear · 6+ · self
+starting power power:Nature's Wrath = Nature's Wrath · 6+ · 3"
+starting power power:Panic Steed = Panic Steed · 5+ · 12"
+starting power power:Protection of the Valar = Protection of the Valar · 5+ · 6"
+starting power power:Renew = Renew · 5+ · 3"
+starting power power:Sorcerous Blast = Sorcerous Blast · 6+ · 6"
+starting power power:Strengthen Will = Strengthen Will · 5+ · 6"
+starting power power:Terrifying Aura = Terrifying Aura · 4+ · self
+starting power power:Transfix = Transfix · 5+ · 12"
+starting power power:Tremor = Tremor · 6+ · self
+starting power power:Wither = Wither · 5+ · 12"
+starting power power:Writhing Vines = Writhing Vines · 5+ · self
+
+=== start: gold, points and officer choices ===
+starting influence 0, gold 3
+default officers [{0 leader} {1 sergeant} {2 sergeant}]: 7 models, 102 points, total 105
+officer choices: 105 allowed, 0 refused; totals (points + gold) of the allowed ones:
+  total 105: 105 choices
+company at creation: 102 points, max units 15, break point 50%, limits:
+  limit bow "Bows" used 2 max 3 next 3
+  limit throwing "Throwing weapons" used 2 max 3 next 3
+  limit cavalry "Cavalry" used 0 max 3 next 3
+
+=== armoury of the company: unique wargear ===
+unique "War Camel"
+  Name: "War Camel"
+  Classes: ["mount"]
+  Cost: 5
+  Gold: {Warrior: 15, Hero: 30}
+  Rating: {Warrior: 15, Hero: 30}
+  Grants: ["Impaler"]
+  GrantedTo: "mount"
+  Exclusive: true
+  Only: "Mahûd"
+  Limit: 1
+  OnlyUnits: ["Mahûd Warrior"]
+armoury size 63 (common 62 + unique 1)
+
+=== units ===
+
+-- Mahûd Warrior (Blowpipe)
+from: start
+vanilla Mahûd Warrior: 8 points, types Warrior, Infantry, race Man, faction Harad, Mahûd
+profile: Mv 6" · FV 3 · SV 3+ · S 4 · D 5 · A 1 · W 1 · C 8+ · I 8+
+rules: Poisoned Attacks (blowpipe) | actions:  | wargear: Armour, Hand weapon, Shield
+keywords: Man/race/profile, Harad/faction/profile, Mahûd/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Blowpipe" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Blowpipe, Spear
+built warrior: 9 points | equipment: Hand weapon (profile), Shield (profile), Armour (profile), Blowpipe | rules: Poisoned Attacks (blowpipe) (unit)
+built hero: 24 points | equipment: Hand weapon (profile), Shield (profile), Armour (profile), Blowpipe | rules: Poisoned Attacks (blowpipe) (unit)
+may lead yes | own path no | hero upgrades: Master Skirmisher
+warrior can buy wargear (2): Spear via Spear; War Camel
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 29 not an option of the profile; 14 for other reasons: set be525f46
+hero can buy wargear (10): Horse via Horse; Bow via Exchange hand-and-a-half weapon for bow; Throwing weapon via Light shield and throwing weapons; Spear via Spear; War spear via Bow & war spear; Hand-and-a-half weapon via Exchange hand-and-a-half weapon for bow; Two-handed weapon via Exchange hand weapon for two-handed weapon; Easterling Halberd via Easterling Halberd and shield; Light Shield via Light shield and throwing weapons; War Camel
+hero can buy equipment (24): set 6f670c33
+hero refused: 21 not an option of the profile; 8 for other reasons: set f5f60bce
+
+-- Khandish Warrior
+from: start; reinforcements 4
+vanilla Khandish Warrior: 8 points, types Warrior, Infantry, race Man, faction Khand
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules:  | actions:  | wargear: Armour, Hand-and-a-half weapon, Hand weapon
+keywords: Man/race/profile, Khand/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Exchange hand-and-a-half weapon for bow" 0 pts, buyable yes
+choosable at recruit: Exchange hand-and-a-half weapon for bow
+built warrior: 8 points | equipment: Hand-and-a-half weapon (profile), Hand weapon (profile), Armour (profile) | rules: 
+built hero: 23 points | equipment: Hand-and-a-half weapon (profile), Hand weapon (profile), Armour (profile) | rules: 
+may lead yes | own path no | hero upgrades: Master Skirmisher
+promotes to: Khandish Horseman
+warrior can buy wargear (1): Bow via Exchange hand-and-a-half weapon for bow
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 30 not an option of the profile; 14 for other reasons: set c28f30e8
+hero can buy wargear (10): Horse via Horse; Bow via Exchange hand-and-a-half weapon for bow; Blowpipe via Blowpipe; Throwing weapon via Light shield and throwing weapons; Spear via Spear; War spear via Bow & war spear; Two-handed weapon via Exchange hand weapon for two-handed weapon; Easterling Halberd via Easterling Halberd and shield; Light Shield via Light shield and throwing weapons; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 21 not an option of the profile; 8 for other reasons: set 7cb84820
+
+-- Corsair of Umbar (Light Shield, Throwing weapon)
+from: start
+vanilla Corsair of Umbar: 8 points, types Warrior, Infantry, race Man, faction Corsair, Umbar
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 3 · A 1 · W 1 · C 7+ · I 7+
+rules:  | actions:  | wargear: Light Armour, Hand weapon
+keywords: Man/race/profile, Corsair/faction/profile, Umbar/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Light shield and throwing weapons" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Bow, Light shield and throwing weapons, Spear
+built warrior: 9 points | equipment: Hand weapon (profile), Light Shield, Light Armour (profile), Throwing weapon | rules: 
+built hero: 24 points | equipment: Hand weapon (profile), Light Shield, Light Armour (profile), Throwing weapon | rules: 
+may lead yes | own path no | hero upgrades: Master Skirmisher
+warrior can buy wargear (2): Bow via Bow; Spear via Spear
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 28 not an option of the profile; 15 for other reasons: set 23721fa7
+hero can buy wargear (9): Horse via Horse; Bow via Exchange hand-and-a-half weapon for bow; Blowpipe via Blowpipe; Spear via Spear; War spear via Bow & war spear; Hand-and-a-half weapon via Exchange hand-and-a-half weapon for bow; Two-handed weapon via Exchange hand weapon for two-handed weapon; Easterling Halberd via Easterling Halberd and shield; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 21 not an option of the profile; 9 for other reasons: set 663763b2
+
+-- Haradrim Warrior (Bow)
+from: start
+vanilla Haradrim Warrior: 6 points, types Warrior, Infantry, race Man, faction Harad
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules: Poisoned Attacks (Bow) | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Harad/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "War Horn" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Bow" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Bow, Spear
+built warrior: 7 points | equipment: Hand weapon (profile), Armour (profile), Bow | rules: Poisoned Attacks (Bow) (unit)
+built hero: 22 points | equipment: Hand weapon (profile), Armour (profile), Bow | rules: Poisoned Attacks (Bow) (unit)
+may lead yes | own path no | hero upgrades: Master Skirmisher
+promotes to: Haradrim Raider
+warrior can buy wargear (1): Spear via Spear
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 30 not an option of the profile; 14 for other reasons: set ad58d959
+hero can buy wargear (10): Horse via Horse; Blowpipe via Blowpipe; Throwing weapon via Light shield and throwing weapons; Spear via Spear; War spear via Bow & war spear; Hand-and-a-half weapon via Exchange hand-and-a-half weapon for bow; Two-handed weapon via Exchange hand weapon for two-handed weapon; Easterling Halberd via Easterling Halberd and shield; Light Shield via Light shield and throwing weapons; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 21 not an option of the profile; 8 for other reasons: set 907a82b0
+
+-- Haradrim Warrior
+from: reinforcements 2
+vanilla Haradrim Warrior: 6 points, types Warrior, Infantry, race Man, faction Harad
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules: Poisoned Attacks (Bow) | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Harad/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "War Horn" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Bow" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Bow, Spear
+built warrior: 6 points | equipment: Hand weapon (profile), Armour (profile) | rules: Poisoned Attacks (Bow) (unit)
+built hero: 21 points | equipment: Hand weapon (profile), Armour (profile) | rules: Poisoned Attacks (Bow) (unit)
+may lead yes | own path no | hero upgrades: Master Skirmisher
+promotes to: Haradrim Raider
+warrior can buy wargear (2): Bow via Bow; Spear via Spear
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 30 not an option of the profile; 13 for other reasons: set 1ca1ae63
+hero can buy wargear (11): Horse via Horse; Bow via Exchange hand-and-a-half weapon for bow; Blowpipe via Blowpipe; Throwing weapon via Light shield and throwing weapons; Spear via Spear; War spear via Bow & war spear; Hand-and-a-half weapon via Exchange hand-and-a-half weapon for bow; Two-handed weapon via Exchange hand weapon for two-handed weapon; Easterling Halberd via Easterling Halberd and shield; Light Shield via Light shield and throwing weapons; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 21 not an option of the profile; 7 for other reasons: set a4c3c166
+
+-- Mahûd Warrior
+from: reinforcements 3
+vanilla Mahûd Warrior: 8 points, types Warrior, Infantry, race Man, faction Harad, Mahûd
+profile: Mv 6" · FV 3 · SV 3+ · S 4 · D 5 · A 1 · W 1 · C 8+ · I 8+
+rules: Poisoned Attacks (blowpipe) | actions:  | wargear: Armour, Hand weapon, Shield
+keywords: Man/race/profile, Harad/faction/profile, Mahûd/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Blowpipe" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Blowpipe, Spear
+built warrior: 8 points | equipment: Hand weapon (profile), Shield (profile), Armour (profile) | rules: Poisoned Attacks (blowpipe) (unit)
+built hero: 23 points | equipment: Hand weapon (profile), Shield (profile), Armour (profile) | rules: Poisoned Attacks (blowpipe) (unit)
+may lead yes | own path no | hero upgrades: Master Skirmisher
+warrior can buy wargear (3): Blowpipe via Blowpipe; Spear via Spear; War Camel
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 29 not an option of the profile; 13 for other reasons: set 2ee3a542
+hero can buy wargear (11): Horse via Horse; Bow via Exchange hand-and-a-half weapon for bow; Blowpipe via Blowpipe; Throwing weapon via Light shield and throwing weapons; Spear via Spear; War spear via Bow & war spear; Hand-and-a-half weapon via Exchange hand-and-a-half weapon for bow; Two-handed weapon via Exchange hand weapon for two-handed weapon; Easterling Halberd via Easterling Halberd and shield; Light Shield via Light shield and throwing weapons; War Camel
+hero can buy equipment (24): set 6f670c33
+hero refused: 21 not an option of the profile; 7 for other reasons: set 5ee0f1c6
+
+-- Corsair of Umbar
+from: reinforcements 5
+vanilla Corsair of Umbar: 8 points, types Warrior, Infantry, race Man, faction Corsair, Umbar
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 3 · A 1 · W 1 · C 7+ · I 7+
+rules:  | actions:  | wargear: Light Armour, Hand weapon
+keywords: Man/race/profile, Corsair/faction/profile, Umbar/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Light shield and throwing weapons" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Bow, Light shield and throwing weapons, Spear
+built warrior: 8 points | equipment: Hand weapon (profile), Light Armour (profile) | rules: 
+built hero: 23 points | equipment: Hand weapon (profile), Light Armour (profile) | rules: 
+may lead yes | own path no | hero upgrades: Master Skirmisher
+warrior can buy wargear (4): Bow via Bow; Throwing weapon via Light shield and throwing weapons; Spear via Spear; Light Shield via Light shield and throwing weapons
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 28 not an option of the profile; 13 for other reasons: set 1ca1ae63
+hero can buy wargear (11): Horse via Horse; Bow via Exchange hand-and-a-half weapon for bow; Blowpipe via Blowpipe; Throwing weapon via Light shield and throwing weapons; Spear via Spear; War spear via Bow & war spear; Hand-and-a-half weapon via Exchange hand-and-a-half weapon for bow; Two-handed weapon via Exchange hand weapon for two-handed weapon; Easterling Halberd via Easterling Halberd and shield; Light Shield via Light shield and throwing weapons; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 21 not an option of the profile; 7 for other reasons: set a4c3c166
+
+-- Easterling Warrior
+from: special chart 1-3
+vanilla Easterling Warrior: 8 points, types Warrior, Infantry, race Man, faction Easterling
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 5 · A 1 · W 1 · C 7+ · I 6+
+rules: Phalanx | actions:  | wargear: Heavy Armour, Hand weapon
+keywords: Man/race/profile, Easterling/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Easterling Halberd and shield" 2 pts, buyable yes
+option "Bow" 1 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Easterling Halberd and shield, Bow, Shield
+built warrior: 8 points | equipment: Hand weapon (profile), Heavy Armour (profile) | rules: Phalanx (unit)
+built hero: 23 points | equipment: Hand weapon (profile), Heavy Armour (profile) | rules: Phalanx (unit)
+may lead yes | own path no | hero upgrades: Master Skirmisher
+warrior can buy wargear (3): Bow via Bow; Easterling Halberd via Easterling Halberd and shield; Shield via Easterling Halberd and shield
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 29 not an option of the profile; 13 for other reasons: set 1ca1ae63
+hero can buy wargear (11): Horse via Horse; Bow via Exchange hand-and-a-half weapon for bow; Blowpipe via Blowpipe; Throwing weapon via Light shield and throwing weapons; Spear via Spear; War spear via Bow & war spear; Hand-and-a-half weapon via Exchange hand-and-a-half weapon for bow; Two-handed weapon via Exchange hand weapon for two-handed weapon; Easterling Halberd via Easterling Halberd and shield; Light Shield via Light shield and throwing weapons; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 21 not an option of the profile; 7 for other reasons: set a4c3c166
+
+-- Khandish Horseman
+from: special chart 4-5; promotion from Khandish Warrior
+vanilla Khandish Horseman: 14 points, types Warrior, Cavalry, race Man, faction Khand
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules:  | actions:  | wargear: Armour, Hand-and-a-half weapon, Hand weapon, Bow, Horse
+keywords: Man/race/profile, Khand/faction/profile, Warrior/type/profile, Cavalry/type/profile
+choosable at recruit: 
+built warrior: 14 points | equipment: Horse (profile), Hand-and-a-half weapon (profile), Hand weapon (profile), Armour (profile), Bow (profile) | rules: 
+built hero: 29 points | equipment: Horse (profile), Hand-and-a-half weapon (profile), Hand weapon (profile), Armour (profile), Bow (profile) | rules: 
+may lead yes | own path no | hero upgrades: Master Skirmisher
+warrior can buy wargear (0): 
+warrior can buy equipment (19): set b9bf299f
+warrior refused: 29 not an option of the profile; 15 for other reasons: set 68f1a8f5
+hero can buy wargear (8): Blowpipe via Blowpipe; Throwing weapon via Light shield and throwing weapons; Spear via Spear; War spear via Bow & war spear; Two-handed weapon via Exchange hand weapon for two-handed weapon; Easterling Halberd via Easterling Halberd and shield; Light Shield via Light shield and throwing weapons; Shield via Shield
+hero can buy equipment (25): set 9d5ad3fe
+hero refused: 21 not an option of the profile; 9 for other reasons: set 422f067c
+
+-- Half Troll
+from: special chart 6
+vanilla Half Troll: 25 points, types Warrior, Infantry, race Man, faction Harad, Mahûd
+profile: Mv 6" · FV 5 · SV 6+ · S 5 · D 6 · A 2 · W 2 · C 8+ · I 9+
+rules: Dominant (2), Terror | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Harad/faction/profile, Mahûd/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Exchange hand weapon for two-handed weapon" 0 pts, buyable yes
+choosable at recruit: Exchange hand weapon for two-handed weapon
+built warrior: 25 points | equipment: Hand weapon (profile), Armour (profile) | rules: Dominant (2) (unit), Terror (unit)
+built hero: 40 points | equipment: Hand weapon (profile), Armour (profile) | rules: Dominant (2) (unit), Terror (unit)
+may lead no | own path yes | hero upgrades: Master Skirmisher
+warrior can buy wargear (1): Two-handed weapon via Exchange hand weapon for two-handed weapon
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 31 not an option of the profile; 13 for other reasons: set 1ca1ae63
+hero can buy wargear (11): Horse via Horse; Bow via Exchange hand-and-a-half weapon for bow; Blowpipe via Blowpipe; Throwing weapon via Light shield and throwing weapons; Spear via Spear; War spear via Bow & war spear; Hand-and-a-half weapon via Exchange hand-and-a-half weapon for bow; Two-handed weapon via Exchange hand weapon for two-handed weapon; Easterling Halberd via Easterling Halberd and shield; Light Shield via Light shield and throwing weapons; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 21 not an option of the profile; 7 for other reasons: set a4c3c166
+
+-- Haradrim Raider
+from: promotion from Haradrim Warrior
+vanilla Haradrim Raider: 11 points, types Warrior, Cavalry, race Man, faction Harad
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules: Poisoned Attacks (bow) | actions:  | wargear: Armour, Hand weapon, Horse
+keywords: Man/race/profile, Harad/faction/profile, Warrior/type/profile, Cavalry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Bow & war spear" 2 pts, buyable yes
+option "Bow" 1 pts, buyable yes
+option "War spear" 1 pts, buyable yes
+choosable at recruit: Bow & war spear, Bow, War spear
+built warrior: 11 points | equipment: Horse (profile), Hand weapon (profile), Armour (profile) | rules: Poisoned Attacks (bow) (unit)
+built hero: 26 points | equipment: Horse (profile), Hand weapon (profile), Armour (profile) | rules: Poisoned Attacks (bow) (unit)
+may lead yes | own path no | hero upgrades: Master Skirmisher
+warrior can buy wargear (2): Bow via Bow & war spear; War spear via Bow & war spear
+warrior can buy equipment (19): set b9bf299f
+warrior refused: 29 not an option of the profile; 13 for other reasons: set 9bdbb906
+hero can buy wargear (10): Bow via Exchange hand-and-a-half weapon for bow; Blowpipe via Blowpipe; Throwing weapon via Light shield and throwing weapons; Spear via Spear; War spear via Bow & war spear; Hand-and-a-half weapon via Exchange hand-and-a-half weapon for bow; Two-handed weapon via Exchange hand weapon for two-handed weapon; Easterling Halberd via Easterling Halberd and shield; Light Shield via Light shield and throwing weapons; Shield via Shield
+hero can buy equipment (25): set 9d5ad3fe
+hero refused: 21 not an option of the profile; 7 for other reasons: set 36a4ef3a
+
+-- Haradrim Raider (War spear)
+from: promotion from Haradrim Warrior
+vanilla Haradrim Raider: 11 points, types Warrior, Cavalry, race Man, faction Harad
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules: Poisoned Attacks (bow) | actions:  | wargear: Armour, Hand weapon, Horse
+keywords: Man/race/profile, Harad/faction/profile, Warrior/type/profile, Cavalry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Bow & war spear" 2 pts, buyable yes
+option "Bow" 1 pts, buyable yes
+option "War spear" 1 pts, buyable yes
+choosable at recruit: Bow & war spear, Bow, War spear
+built warrior: 12 points | equipment: Horse (profile), Hand weapon (profile), War spear, Armour (profile) | rules: Poisoned Attacks (bow) (unit)
+built hero: 27 points | equipment: Horse (profile), Hand weapon (profile), War spear, Armour (profile) | rules: Poisoned Attacks (bow) (unit)
+may lead yes | own path no | hero upgrades: Master Skirmisher
+warrior can buy wargear (1): Bow via Bow & war spear
+warrior can buy equipment (19): set b9bf299f
+warrior refused: 29 not an option of the profile; 14 for other reasons: set df298d61
+hero can buy wargear (9): Bow via Exchange hand-and-a-half weapon for bow; Blowpipe via Blowpipe; Throwing weapon via Light shield and throwing weapons; Spear via Spear; Hand-and-a-half weapon via Exchange hand-and-a-half weapon for bow; Two-handed weapon via Exchange hand weapon for two-handed weapon; Easterling Halberd via Easterling Halberd and shield; Light Shield via Light shield and throwing weapons; Shield via Shield
+hero can buy equipment (25): set 9d5ad3fe
+hero refused: 21 not an option of the profile; 8 for other reasons: set 70219454
+
+=== hero upgrades and who may take them ===
+Master Skirmisher (rule "Master Skirmisher", restriction "", units []): allowed to 8 of 12 units: Corsair of Umbar, Easterling Warrior, Half Troll, Haradrim Raider, Haradrim Warrior, Khandish Horseman, Khandish Warrior, Mahûd Warrior
+
+=== promotion: matching, choices and gear kept ===
+
+-- advancement 0
+advancement {FromUnit: "Khandish Warrior", To: [{Unit: "Khandish Horseman"}]}
+gear a Khandish Warrior may carry (3): Bow, Exchange hand-and-a-half weapon for bow, Hand-and-a-half weapon
+carrying nothing: matches warrior yes hero yes | choices warrior: promo:0:0=Khandish Horseman | hero: promo:0:0=Khandish Horseman
+    to Khandish Horseman (given ): warrior keeps [] drops []; a hero keeps everything
+carrying Bow: matches warrior yes hero yes | choices warrior: promo:0:0=Khandish Horseman | hero: promo:0:0=Khandish Horseman
+    to Khandish Horseman (given ): warrior keeps [Bow] drops []; a hero keeps everything
+carrying Exchange hand-and-a-half weapon for bow: matches warrior yes hero yes | choices warrior: promo:0:0=Khandish Horseman | hero: promo:0:0=Khandish Horseman
+    to Khandish Horseman (given ): warrior keeps [] drops [Exchange hand-and-a-half weapon for bow]; a hero keeps everything
+carrying Hand-and-a-half weapon: matches warrior yes hero yes | choices warrior: promo:0:0=Khandish Horseman | hero: promo:0:0=Khandish Horseman
+    to Khandish Horseman (given ): warrior keeps [Hand-and-a-half weapon] drops []; a hero keeps everything
+carrying everything: matches warrior yes hero yes | choices warrior: promo:0:0=Khandish Horseman | hero: promo:0:0=Khandish Horseman
+    to Khandish Horseman (given ): warrior keeps [Bow, Hand-and-a-half weapon] drops [Exchange hand-and-a-half weapon for bow]; a hero keeps everything
+
+-- advancement 1
+advancement {FromUnit: "Haradrim Warrior", To: [{Unit: "Haradrim Raider"}]}
+gear a Haradrim Warrior may carry (2): Bow, Spear
+carrying nothing: matches warrior yes hero yes | choices warrior: promo:1:0=Haradrim Raider | hero: promo:1:0=Haradrim Raider
+    to Haradrim Raider (given ): warrior keeps [] drops []; a hero keeps everything
+carrying Bow: matches warrior yes hero yes | choices warrior: promo:1:0=Haradrim Raider | hero: promo:1:0=Haradrim Raider
+    to Haradrim Raider (given ): warrior keeps [Bow] drops []; a hero keeps everything
+carrying Spear: matches warrior yes hero yes | choices warrior: promo:1:0=Haradrim Raider, promo:2:0=Haradrim Raider with War spear | hero: promo:1:0=Haradrim Raider, promo:2:0=Haradrim Raider with War spear
+    to Haradrim Raider (given ): warrior keeps [] drops [Spear]; a hero keeps everything
+carrying everything: matches warrior yes hero yes | choices warrior: promo:1:0=Haradrim Raider, promo:2:0=Haradrim Raider with War spear | hero: promo:1:0=Haradrim Raider, promo:2:0=Haradrim Raider with War spear
+    to Haradrim Raider (given ): warrior keeps [Bow] drops [Spear]; a hero keeps everything
+
+-- advancement 2
+advancement {FromUnit: "Haradrim Warrior", FromWargear: ["Spear"], To: [{Unit: "Haradrim Raider", Wargear: ["War spear"]}]}
+gear a Haradrim Warrior may carry (2): Bow, Spear
+carrying nothing: matches warrior no hero no | choices warrior: promo:1:0=Haradrim Raider | hero: promo:1:0=Haradrim Raider
+carrying Bow: matches warrior no hero no | choices warrior: promo:1:0=Haradrim Raider | hero: promo:1:0=Haradrim Raider
+carrying Spear: matches warrior yes hero yes | choices warrior: promo:1:0=Haradrim Raider, promo:2:0=Haradrim Raider with War spear | hero: promo:1:0=Haradrim Raider, promo:2:0=Haradrim Raider with War spear
+    to Haradrim Raider (given War spear): warrior keeps [] drops [Spear]; a hero keeps everything
+carrying everything: matches warrior yes hero yes | choices warrior: promo:1:0=Haradrim Raider, promo:2:0=Haradrim Raider with War spear | hero: promo:1:0=Haradrim Raider, promo:2:0=Haradrim Raider with War spear
+    to Haradrim Raider (given War spear): warrior keeps [Bow] drops [Spear]; a hero keeps everything
+
+=== tooltips and glossary terms (digest of the text in _tooltips.txt) ===
+Armour | gear | bc definition | Armour | 2f9f13f9
+Armoured horse | gear | bc armoury | Armoured horse | 333e3f85
+Axe of Lossarnach | gear | bc definition | Axe of Lossarnach | 1b918223
+Backpack | gear | bc definition | Backpack | 7b80e55f
+Badge of Courage | gear | bc definition | Badge of Courage | bec4a181
+Banner | gear | bc definition | Banner | 416dceb6
+Barding | gear | bc definition | Barding | 4c468a2d
+Blowpipe | gear | bc definition | Blowpipe | 21aa6a45
+Bow | gear | bc definition | Bow | 50b72f32
+bow | gear | bc definition | Bow | 50b72f32
+Climbing ropes | gear | bc definition | Climbing ropes | 51c983e4
+Company Drum | gear | bc definition | Company Drum | ceffaace
+Company Horn | gear | bc definition | Company Horn | bd7ab082
+Company Instrument | gear | bc definition | Company Instrument | 6fc2cb65
+Company Standard | gear | bc definition | Company Standard | 7d183865
+Concealing Cloak | gear | bc definition | Concealing Cloak | 04641e38
+Crossbow | gear | bc definition | Crossbow | 1d6c529f
+Dunlending War Axe | gear | bc definition | Dunlending War Axe | d12785f5
+Dwarf Bow | gear | bc definition | Dwarf Bow | b534ad01
+Dwarf Longbow | gear | bc definition | Dwarf Longbow | aa321757
+Dwarven Brew | gear | bc definition | Dwarven Brew | 0b7919b0
+Easterling Halberd | gear | bc definition | Easterling Halberd | cb29ec36
+Elf Bow | gear | bc definition | Elf Bow | aa321757
+Elven hand-and-a-half weapon | gear | bc definition |  | 93f1d3f0
+Elven lance | gear | bc definition |  | 4f2e75d6
+Elven pike | gear | bc definition |  | 5f6060e2
+Elven spear | gear | bc definition |  | a07b16fc
+Elven throwing weapon | gear | bc definition | Elven throwing weapon | 7c19502f
+Envenom Weapon (X) | gear | bc definition | Envenom Weapon (X) | 15b47736
+Esgaroth Bow | gear | bc definition | Esgaroth Bow | aa321757
+Fell Warg | gear | bc armoury | Fell Warg | a2c5ffdf
+Flaming Brand | gear | bc definition | Flaming Brand | ef23e06a
+Galadhrim Steed | gear | bc definition | Galadhrim Steed | 9092cc78
+Goat | gear | bc armoury | Goat | 333e3f85
+Hand weapon | gear | none | Hand Weapon | a152aed7
+hand weapon | gear | none | Hand Weapon | a152aed7
+Hand-and-a-half weapon | gear | bc definition | Hand-and-a-half Weapon | 5e201940
+hand-and-a-half weapon | gear | bc definition | Hand-and-a-half Weapon | 5e201940
+Healing Herbs | gear | bc definition | Healing Herbs | b67655bf
+Heavy Armour | gear | bc definition | Heavy Armour | 25524851
+Horse | gear | bc armoury | Horse | a2c5ffdf
+Lance | gear | bc definition | Lance | c0628685
+Light Armour | gear | bc definition | Light Armour | 72272c56
+Light Shield | gear | bc definition | Light Shield | 7dba0213
+Light shield | gear | bc definition | Light Shield | 7dba0213
+Longbow | gear | bc definition | Longbow | aa321757
+Lucky Talisman | gear | bc definition | Lucky Talisman | edadbe36
+Map | gear | bc definition | Map | 2ecc3fda
+Mattock | gear | bc definition | Mattock | 2ada7b97
+Mountain Boots | gear | bc definition | Mountain Boots | 0dfacc62
+Orc Bow | gear | bc definition | Orc Bow | 6fd46631
+Pike | gear | bc definition | Pike | a96f4253
+Ring of Warding | gear | bc definition | Ring of Warding | c0e74ef4
+Scroll of Courage | gear | bc definition | Scroll of Courage | e83f5953
+Scroll of Hidden Paths | gear | bc definition | Scroll of Hidden Paths | 5fc4181c
+Seeing Stone | gear | bc definition | Seeing Stone | de3e77c7
+Shield | gear | bc definition | Shields | 399b67fd
+shield | gear | bc definition | Shields | 399b67fd
+Short Bow | gear | bc definition | Short Bow | 6fd46631
+Small Shield | gear | bc definition | Small Shield | cb8c5e2c
+Spear | gear | bc definition | Spear | 761cb2e2
+Throwing Spears | gear | bc definition | Throwing Spear | d5b6b5e7
+Throwing weapon | gear | bc definition | Throwing Weapons | 160baaa6
+throwing weapons | gear | bc definition | Throwing Weapons | 160baaa6
+Torching Brand | gear | bc definition | Torching Brand | 85ef5e26
+Traps & Snares | gear | bc definition | Traps & Snares | 69a67031
+Trophy Pelt | gear | bc definition | Trophy Pelt | 7e4eed78
+Two-handed weapon | gear | bc definition | Two-handed Weapon | 5e201940
+two-handed weapon | gear | bc definition | Two-handed Weapon | 5e201940
+Uruk-Hai Bow | gear | bc definition | Uruk-Hai Bow | b534ad01
+War Camel | gear | vanilla mount profile | War Camel | 24ce635b
+War Horn | gear | bc definition | War Horn | 3dcaab42
+War spear | gear | bc definition | War Spear | 8700bf62
+war spear | gear | bc definition | War Spear | 8700bf62
+Warg | gear | bc armoury | Warg | a2c5ffdf
+Wondrous Cram | gear | bc definition | Wondrous Cram | 7853368f
+Woodland Belt | gear | bc definition | Woodland Belt | 2cd22098
+Dominant (2) | rule | vanilla rule | Dominant (2) | 8da59337
+Phalanx | rule | vanilla rule | Phalanx | 40aaa494
+Poisoned Attacks (Bow) | rule | vanilla rule | Poisoned Attacks (Bow) | 774163a2
+Poisoned Attacks (blowpipe) | rule | bc parameterised rule | Poisoned Attacks | c5663836
+Poisoned Attacks (bow) | rule | bc parameterised rule | Poisoned Attacks (Bow) | c5663836
+Terror | rule | vanilla rule | Terror | b0b86d7b
+
+=== duplicated vanilla names the company uses ===
+
+=== name resolution: what every name the company mentions resolves to ===
+unit "Corsair of Umbar" -> vanilla "Corsair of Umbar"
+unit "Easterling Warrior" -> vanilla "Easterling Warrior"
+unit "Half Troll" -> vanilla "Half Troll"
+unit "Haradrim Raider" -> vanilla "Haradrim Raider"
+unit "Haradrim Warrior" -> vanilla "Haradrim Warrior"
+unit "Khandish Horseman" -> vanilla "Khandish Horseman"
+unit "Khandish Warrior" -> vanilla "Khandish Warrior"
+unit "Mahûd Warrior" -> vanilla "Mahûd Warrior"
+gear "Armour" -> key "armour" | annotation "Armour" | vanilla gear "Armour"
+gear "Banner" -> key "banner" | annotation "Banner" | vanilla gear "Banner"
+gear "Blowpipe" -> key "blowpipe" | offer "Blowpipe" size "" also [] | annotation "Blowpipe" | vanilla gear "Blowpipe"
+gear "Bow" -> key "bow" | offer "Bow" size "" also [] | annotation "Bow" | vanilla gear "Bow"
+gear "Bow & war spear" -> key "bowandwarspear" | vanilla gear "Bow & war spear"
+gear "Easterling Halberd" -> key "easterlinghalberd" | offer "Easterling Halberd" size "" also [] | annotation "Easterling Halberd" | vanilla gear "Easterling Halberd"
+gear "Easterling Halberd and shield" -> key "easterlinghalberdandshield" | vanilla gear "Easterling Halberd and shield"
+gear "Exchange hand weapon for two-handed weapon" -> key "exchangehandweaponfortwohandedweapon" | unknown
+gear "Exchange hand-and-a-half weapon for bow" -> key "exchangehandandahalfweaponforbow" | vanilla gear "Exchange hand-and-a-half weapon for bow"
+gear "Hand weapon" -> key "handweapon" | annotation "Hand weapon"
+gear "Hand-and-a-half weapon" -> key "handandahalfweapon" | offer "Hand-and-a-half weapon" size "" also [] | annotation "Hand-and-a-half weapon"
+gear "Heavy Armour" -> key "heavyarmour" | annotation "Heavy Armour" | vanilla gear "Heavy Armour"
+gear "Horse" -> key "horse" | offer "Horse" size "" also [] | annotation "Horse" | vanilla gear "Horse"
+gear "Light Armour" -> key "lightarmour" | annotation "Light Armour" | vanilla gear "Light Armour"
+gear "Light Shield" -> key "lightshield" | offer "Light Shield" size "" also [] | annotation "Light Shield" | vanilla gear "Light Shield"
+gear "Light shield" -> key "lightshield" | offer "Light Shield" size "" also [] | annotation "Light Shield" | vanilla gear "Light Shield"
+gear "Light shield and throwing weapons" -> key "lightshieldandthrowingweapon" | vanilla gear "Light shield and throwing weapons"
+gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
+gear "Spear" -> key "spear" | offer "Spear" size "" also [] | annotation "Spear"
+gear "Throwing weapon" -> key "throwingweapon" | offer "Throwing weapon" size "" also [Throwing weapons] | annotation "Throwing weapon" | vanilla gear "Throwing weapon"
+gear "War Camel" -> key "warcamel" | offer "War Camel" size "" also [] | annotation "War Camel" | vanilla gear "War Camel"
+gear "War Horn" -> key "warhorn" | annotation "War Horn" | vanilla gear "War Horn"
+gear "War spear" -> key "warspear" | offer "War spear" size "" also [Warspear] | annotation "War spear" | vanilla gear "War spear"
+gear "bow" -> key "bow" | offer "Bow" size "" also [] | annotation "Bow" | vanilla gear "Bow"
+gear "hand weapon" -> key "handweapon" | annotation "Hand weapon"
+gear "hand-and-a-half weapon" -> key "handandahalfweapon" | offer "Hand-and-a-half weapon" size "" also [] | annotation "Hand-and-a-half weapon"
+gear "shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
+gear "throwing weapons" -> key "throwingweapon" | offer "Throwing weapon" size "" also [Throwing weapons] | annotation "Throwing weapon" | vanilla gear "Throwing weapons"
+gear "two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe Two-handed axe] | annotation "Two-handed weapon"
+gear "war spear" -> key "warspear" | offer "War spear" size "" also [Warspear] | annotation "War spear" | vanilla gear "War spear"
+rule "\"Hold positions, loose the arrows!\"" -> label "\"Hold positions, loose the arrows!\"" | text from bc rule | glossary "\"Hold positions, loose the arrows!\""
+rule "A Good Sort" -> label "A Good Sort" | text from bc rule | glossary "A Good Sort"
+rule "Big Game Hunter" -> label "Big Game Hunter" | text from bc rule | glossary "Big Game Hunter"
+rule "Burly" -> label "Burly" | text from bc rule | glossary "Burly"
+rule "Chief Advisor" -> label "Chief Advisor" | text from bc rule | glossary "Chief Advisor"
+rule "Claim the Throne" -> label "Claim the Throne" | text from bc rule | glossary "Claim the Throne"
+rule "Command Support" -> label "Command Support" | text from bc rule | glossary "Command Support"
+rule "Commanding Bellow" -> label "Commanding Bellow" | text from bc rule | glossary "Commanding Bellow"
+rule "Cunning Fighter" -> label "Cunning Fighter" | text from bc rule | glossary "Cunning Fighter"
+rule "Deceptive Caster" -> label "Deceptive Caster" | text from bc rule | glossary "Deceptive Caster"
+rule "Defender of the City" -> label "Defender of the City" | text from bc rule | glossary "Defender of the City"
+rule "Devastating Charge" -> label "Devastating Charge" | text from vanilla rule | glossary "Devastating Charge"
+rule "Dominant (2)" -> label "Dominant (2)" | text from vanilla rule | glossary "Dominant (2)"
+rule "Experienced Tracker" -> label "Experienced Tracker" | text from bc rule | glossary "Experienced Tracker"
+rule "Expert Rider" -> label "Expert Rider" | text from vanilla rule | glossary "Expert Rider"
+rule "Fearless" -> label "Fearless" | text from vanilla rule | glossary "Fearless"
+rule "Fearsome Charge" -> label "Fearsome Charge" | text from bc rule | glossary "Fearsome Charge"
+rule "Fell Sight" -> label "Fell Sight" | text from vanilla rule | glossary "Fell Sight"
+rule "For Glory" -> label "For Glory" | text from bc rule | glossary "For Glory"
+rule "Furious Tirade" -> label "Furious Tirade" | text from bc rule | glossary "Furious Tirade"
+rule "Fury of the Bear" -> label "Fury of the Bear" | text from bc rule | glossary "Fury of the Bear"
+rule "Gatekeeper" -> label "Gatekeeper" | text from bc rule | glossary "Gatekeeper"
+rule "General Hunter" -> label "General Hunter" | text from bc rule | glossary "General Hunter"
+rule "Grim Blade" -> label "Grim Blade" | text from bc rule | glossary "Grim Blade"
+rule "Heroic Accuracy" -> label "Heroic Accuracy" | text from none | glossary "Heroic Accuracy"
+rule "Heroic Challenge" -> label "Heroic Challenge" | text from none | glossary "Heroic Challenge"
+rule "Heroic Channeling" -> label "Heroic Channeling" | text from none | glossary "Heroic Channelling"
+rule "Heroic Defence" -> label "Heroic Defence" | text from none | glossary "Heroic Defence"
+rule "Heroic March" -> label "Heroic March" | text from none | glossary "Heroic March"
+rule "Heroic Resolve" -> label "Heroic Resolve" | text from none | glossary "Heroic Resolve"
+rule "Heroic Strength" -> label "Heroic Strength" | text from none | glossary "Heroic Strength"
+rule "Heroic Strike" -> label "Heroic Strike" | text from none | glossary "Heroic Strike"
+rule "Horse Lord" -> label "Horse Lord" | text from vanilla rule | glossary "Horse Lord"
+rule "Impaler" -> label "Impaler" | text from vanilla rule | glossary "Impaler"
+rule "Knife Mastery" -> label "Knife Mastery" | text from bc rule | glossary "Knife Mastery"
+rule "Lethal Aim" -> label "Lethal Aim" | text from bc rule | glossary "Lethal Aim"
+rule "Longbeard" -> label "Longbeard" | text from bc rule | glossary "Longbeard"
+rule "Marshal" -> label "Marshal" | text from bc rule | glossary "Marshal"
+rule "Master Duelist" -> label "Master Duelist" | text from bc rule | glossary "Master Duelist"
+rule "Master Skirmisher" -> label "Master Skirmisher" | text from bc rule | glossary "Master Skirmisher"
+rule "Master of Battle (3+)" -> label "Master of Battle (3+)" | text from vanilla rule | glossary "Master of Battle (3+)"
+rule "Master of Magic" -> label "Master of Magic" | text from bc rule | glossary "Master of Magic"
+rule "Master of Traps" -> label "Master of Traps" | text from vanilla rule | glossary "Master of Traps"
+rule "Mountain Dweller" -> label "Mountain Dweller" | text from vanilla rule | glossary "Mountain Dweller"
+rule "Oblivious to Pain" -> label "Oblivious to Pain" | text from bc rule | glossary "Oblivious to Pain"
+rule "Phalanx" -> label "Phalanx" | text from vanilla rule | glossary "Phalanx"
+rule "Pinpoint Shot" -> label "Pinpoint Shot" | text from bc rule | glossary "Pinpoint Shot"
+rule "Poisoned Attacks (Blowpipe)" -> label "Poisoned Attacks (Blowpipe)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Poisoned Attacks (Bow)" -> label "Poisoned Attacks (Bow)" | text from vanilla rule | glossary "Poisoned Attacks (Bow)"
+rule "Poisoned Attacks (X)" -> label "Poisoned Attacks (X)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Poisoned Attacks (blowpipe)" -> label "Poisoned Attacks (blowpipe)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Poisoned Attacks (bow)" -> label "Poisoned Attacks (bow)" | text from bc parameterised rule | glossary "Poisoned Attacks (Bow)"
+rule "Rallying Cry" -> label "Rallying Cry" | text from bc rule | glossary "Rallying Cry"
+rule "Rapid Fire" -> label "Rapid Fire" | text from bc rule | glossary "Rapid Fire"
+rule "Reading the Portents" -> label "Reading the Portents" | text from bc rule | glossary "Reading the Portents"
+rule "Reckless Charge" -> label "Reckless Charge" | text from bc rule | glossary "Reckless Charge"
+rule "Relentless Commander" -> label "Relentless Commander" | text from bc rule | glossary "Relentless Commander"
+rule "Resistant to Magic" -> label "Resistant to Magic" | text from vanilla rule | glossary "Resistant to Magic"
+rule "Sorcerous Adept" -> label "Sorcerous Adept" | text from bc rule | glossary "Sorcerous Adept"
+rule "Spectral Walk" -> label "Spectral Walk" | text from vanilla rule | glossary "Spectral Walk"
+rule "Spy" -> label "Spy" | text from bc rule | glossary "Spy"
+rule "Stalk Unseen" -> label "Stalk Unseen" | text from vanilla rule | glossary "Stalk Unseen"
+rule "Swift Parry" -> label "Swift Parry" | text from bc rule | glossary "Swift Parry"
+rule "Swift Shot" -> label "Swift Shot" | text from bc rule | glossary "Swift Shot"
+rule "Terror" -> label "Terror" | text from vanilla rule | glossary "Terror"
+rule "Terror (Beast)" -> label "Terror (Beast)" | text from vanilla rule | glossary "Terror"
+rule "Terror (Cavalry)" -> label "Terror (Cavalry)" | text from vanilla rule | glossary "Terror"
+rule "The King's Protector" -> label "The King's Protector" | text from bc rule | glossary "The King's Protector"
+rule "To Arms!" -> label "To Arms!" | text from bc rule | glossary "To Arms!"
+rule "Usurper of Kings" -> label "Usurper of Kings" | text from bc rule | glossary "Usurper of Kings"
+rule "Voice of Command" -> label "Voice of Command" | text from bc rule | glossary "Voice of Command"
+rule "Volley Fire" -> label "Volley Fire" | text from bc rule | glossary "Volley Fire"
+rule "Warrior of Renown" -> label "Warrior of Renown" | text from bc rule | glossary "Warrior of Renown"
+rule "Woodland Creature" -> label "Woodland Creature" | text from vanilla rule | glossary "Woodland Creature"

@@ -1,0 +1,668 @@
+# Hill Tribes of Dunland (evil)
+
+=== anomalies (38) ===
+tooltip-name | Armoured horse | tooltip (bc armoury) never says "Armoured horse": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+tooltip-name | Armour | tooltip (bc definition) never says "Armour": Adds 1 to Defence.
+tooltip-name | Barding | tooltip (bc definition) never says "Barding": The rider gains the Expert Rider & Horselord special rules.
+tooltip-name | Beaks and Claws (hand weapon) | tooltip (none) never says "Beaks and Claws (hand weapon)": These are the standard kind of weapon a model may carry, and is anything wielded…
+tooltip-name | Blowpipe | tooltip (bc definition) never says "Blowpipe": 12" Range, 2 Strength. Benefits from the Poisoned Weapons special rule (re-roll …
+tooltip-name | Company Drum | tooltip (bc definition) never says "Company Drum": This is a War Drum that grants the bearer the Command Support keyword.
+tooltip-name | Company Horn | tooltip (bc definition) never says "Company Horn": This is a War Horn that grants the bearer the Command Support keyword.
+tooltip-name | Company Instrument | tooltip (bc definition) never says "Company Instrument": This is an Instrument that grants the bearer the Command Support keyword. Friend…
+tooltip-name | Company Standard | tooltip (bc definition) never says "Company Standard": This is a Pennant that grants the bearer the Command Support keyword. Friendly m…
+tooltip-name | Dunlending War Axe | tooltip (bc definition) never says "Dunlending War Axe": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Dwarf Bow | tooltip (bc definition) never says "Dwarf Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Dwarf Longbow | tooltip (bc definition) never says "Dwarf Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Easterling Halberd | tooltip (bc definition) never says "Easterling Halberd": This can be used as either a pike or a two-handed weapon.
+tooltip-name | Elf Bow | tooltip (bc definition) never says "Elf Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Elven hand-and-a-half weapon | tooltip (bc definition) never says "Elven hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | Elven lance | tooltip (bc definition) never says "Elven lance": A Cavalry model using a lance adds 1 to its To Wound rolls when making Strikes i…
+tooltip-name | Elven pike | tooltip (bc definition) never says "Elven pike": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Elven spear | tooltip (bc definition) never says "Elven spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Elven throwing weapon | tooltip (bc definition) never says "Elven throwing weapon": 6" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Envenom Weapon (X) | tooltip (bc definition) never says "Envenom Weapon (X)": When a model purchases Envenom Weapon, they must decide which weapon on their pr…
+tooltip-name | Esgaroth Bow | tooltip (bc definition) never says "Esgaroth Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Fell Warg | tooltip (bc armoury) never says "Fell Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | Galadhrim Steed | tooltip (bc definition) never says "Galadhrim Steed": This is an armoured horse that also has the Woodland Creature special rule.
+tooltip-name | Goat | tooltip (bc armoury) never says "Goat": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+tooltip-name | Hand-and-a-half weapon | tooltip (bc definition) never says "Hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | Heavy Armour | tooltip (bc definition) never says "Heavy Armour": Adds 2 to Defence.
+tooltip-name | Horse | tooltip (bc armoury) never says "Horse": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | Longbow | tooltip (bc definition) never says "Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Orc Bow | tooltip (bc definition) never says "Orc Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Seeing Stone | tooltip (bc definition) never says "Seeing Stone": Once per game, during the Priority Phase but before the roll for Priority, the b…
+tooltip-name | Short Bow | tooltip (bc definition) never says "Short Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Small Shield | tooltip (bc definition) never says "Small Shield": This is a Light Shield that gives the bearer +1 to their Defence Characteristic …
+tooltip-name | Spear | tooltip (bc definition) never says "Spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Throwing Spears | tooltip (bc definition) never says "Throwing Spears": 8" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Torching Brand | tooltip (bc definition) never says "Torching Brand": A model with a Torch gains the following benefits: They illuminate the area with…
+tooltip-name | Uruk-Hai Bow | tooltip (bc definition) never says "Uruk-Hai Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | War spear | tooltip (bc definition) never says "War spear": Counts as a lance while mounted, and a spear while dismounted
+tooltip-name | Warg | tooltip (bc armoury) never says "Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+
+=== profile (everything the company page holds) ===
+profile
+  BCCompany:
+    Name: "Hill Tribes of Dunland"
+    Alignment: "evil"
+    MaxModels: 15
+    ReinforcementCost: 3
+    Reinforcements:
+      - {Min: 1, Max: 1, Result: {Type: "nothing", Count: 1, Blocks: true}}
+      - {Min: 2, Max: 3, Result: {Type: "unit", Unit: "Hill Tribesman", Count: 1, Choice: true}}
+      - {Min: 4, Max: 5, Result: {Type: "unit", Unit: "Dunlending Warrior", Count: 1, Choice: true}}
+      - {Min: 6, Max: 6, Result: {Type: "specialChart", Count: 1}}
+    SpecialChart:
+      - {Min: 1, Max: 3, Result: {Type: "unit", Unit: "Dunlending Huscarl", Count: 1}}
+      - {Min: 4, Max: 5, Result: {Type: "unit", Unit: "Dunlending Horseman", Count: 1}}
+      - {Min: 6, Max: 6, Result: {Type: "unit", Unit: "Crebain", Count: 1, Rare: 2}}
+    LimitOverrides: {}
+  Description: "When Saruman's treachery was finally revealed, he called upon more than just Orcs and Uruk-hai to wage war upon the kingdom of Rohan. The Dunlending people have hated the Rohirrim for centuries, and they required little persuasion to join the White Wizard's cause to see to the destruction of those they have fought to supplant for many years.\n\nWhilst most of the Dunlendings joined Saruman's standing armies, some smaller bands were gathered together and sent out to raid the settlements of Rohan in secret, causing panic before the main armies of Isengard would attack. These bands would often venture into the wider lands of Middle-earth in order to raid and pillage other settlements, gaining wealth and renown amongst their people as they slaughtered those in their path."
+  Start:
+    - {Count: 1, Unit: "Dunlending Warrior", Wargear: ["Shield"]}
+    - {Count: 1, Unit: "Dunlending Warrior", Wargear: ["Two-handed weapon"]}
+    - {Count: 1, Unit: "Dunlending Warrior", Wargear: ["Bow"]}
+    - {Count: 1, Unit: "Hill Tribesman", Wargear: ["Bow"]}
+    - {Count: 1, Unit: "Hill Tribesman", Wargear: ["Two-handed weapon"]}
+    - {Count: 1, Unit: "Hill Tribesman", Wargear: ["Light Shield"]}
+    - {Count: 1, Unit: "Hill Tribesman", Wargear: ["Flaming Brand"]}
+    - {Count: 2, Unit: "Hill Tribesman", Wargear: ["Spear"]}
+  HeroUpgrades:
+    -
+      Name: "Whipped into a Frenzy"
+      Flavour: "The Hill Tribesmen have been driven into a frenzy by the promise of claiming the lands they believe to be theirs."
+      Rule: "Whipped into a Frenzy"
+      Text: "Whenever this Hero suffers a Wound, roll a D6. On the roll of a natural 6, the Wound is ignored. If this Hero would later gain a special rule with the same effect (e.g. Oblivious to Pain) then treat that special rule as improving Whipped into a Frenzy to a natural 5+."
+  Oath:
+    Text: "The Rohirrim took our valleys and stained our fathers' graves, and now a white wizard pays us for our vengeance. Let our hill-fires be named {name}, and let every stolen field be won back in blood."
+    Vow: "Remember the hills"
+  OwnPathUnits: ["Crebain"]
+  OwnPath: "On Their Own Path"
+  OnTheirOwnPath: ["Crebain"]
+  Notes: [{Section: "specialChart", Text: "Crebain are On Their Own Path (pg. 33)."}]
+path "Path of the Tactician": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Sharpshooter": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Soldier": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Marksman": limit per company 0, start action "Heroic Accuracy", start power no; chart as in _progression.txt
+path "Path of the Claimant": limit per company 0, start action "Heroic Challenge", start power no; chart as in _progression.txt
+path "Path of the Sorcerer": limit per company 1, start action "Heroic Channeling", start power yes; chart as in _progression.txt
+path "Path of the Shieldbearer": limit per company 0, start action "Heroic Defence", start power no; chart as in _progression.txt
+path "Path of the Ranger": limit per company 0, start action "Heroic March", start power no; chart as in _progression.txt
+path "Path of the Warlord": limit per company 0, start action "Heroic Resolve", start power no; chart as in _progression.txt
+path "Path of the Berserker": limit per company 0, start action "Heroic Strength", start power no; chart as in _progression.txt
+path "Path of the Duelist": limit per company 0, start action "Heroic Strike", start power no; chart as in _progression.txt
+starting power power:Aura of Command = Aura of Command · 5+ · self
+starting power power:Aura of Dismay = Aura of Dismay · 4+ · self
+starting power power:Banishment = Banishment · 5+ · 6"
+starting power power:Black Dart = Black Dart · 6+ · 6"
+starting power power:Bladewrath = Bladewrath · 5+ · 6"
+starting power power:Blessing of the Valar = Blessing of the Valar · 4+ · 6"
+starting power power:Blinding Light = Blinding Light · 5+ · self
+starting power power:Call Winds = Call Winds · 5+ · 12"
+starting power power:Collapse Rocks = Collapse Rocks · 6+ · 12"
+starting power power:Compel = Compel · 5+ · 12"
+starting power power:Curse = Curse · 5+ · 12"
+starting power power:Drain Courage = Drain Courage · 5+ · 12"
+starting power power:Enchant Blades = Enchant Blades · 5+ · 6"
+starting power power:Enrage Beast = Enrage Beast · 5+ · 6"
+starting power power:Flameburst = Flameburst · 6+ · 6"
+starting power power:Fog of Disarray = Fog of Disarray · 4+ · self
+starting power power:Foil Magic = Foil Magic · 4+ · 12"
+starting power power:Fortify Spirit = Fortify Spirit · 4+ · 6"
+starting power power:Fury (Easterling) = Fury (Easterling) · 4+ · self
+starting power power:Fury (Moria Goblin) = Fury (Moria Goblin) · 4+ · self
+starting power power:Fury (Mordor Orc) = Fury (Mordor Orc) · 4+ · self
+starting power power:Fury (Isengard Orc) = Fury (Isengard Orc) · 4+ · self
+starting power power:Fury (Isengard Uruk-hai) = Fury (Isengard Uruk-hai) · 4+ · self
+starting power power:Fury (Beast) = Fury (Beast) · 4+ · self
+starting power power:Fury (Spider) = Fury (Spider) · 4+ · self
+starting power power:Instill Fear = Instill Fear · 6+ · self
+starting power power:Nature's Wrath = Nature's Wrath · 6+ · 3"
+starting power power:Panic Steed = Panic Steed · 5+ · 12"
+starting power power:Protection of the Valar = Protection of the Valar · 5+ · 6"
+starting power power:Renew = Renew · 5+ · 3"
+starting power power:Sorcerous Blast = Sorcerous Blast · 6+ · 6"
+starting power power:Strengthen Will = Strengthen Will · 5+ · 6"
+starting power power:Terrifying Aura = Terrifying Aura · 4+ · self
+starting power power:Transfix = Transfix · 5+ · 12"
+starting power power:Tremor = Tremor · 6+ · self
+starting power power:Wither = Wither · 5+ · 12"
+starting power power:Writhing Vines = Writhing Vines · 5+ · self
+
+=== start: gold, points and officer choices ===
+starting influence 0, gold 0
+default officers [{0 leader} {1 sergeant} {2 sergeant}]: 9 models, 105 points, total 105
+officer choices: 252 allowed, 0 refused; totals (points + gold) of the allowed ones:
+  total 105: 252 choices
+company at creation: 105 points, max units 15, break point 50%, limits:
+  limit bow "Bows" used 2 max 3 next 4
+  limit throwing "Throwing weapons" used 0 max 3 next 4
+  limit cavalry "Cavalry" used 0 max 3 next 4
+
+=== armoury of the company: unique wargear ===
+armoury size 62 (common 62 + unique 0)
+
+=== units ===
+
+-- Dunlending Warrior (Shield)
+from: start; promotion from Hill Tribesman
+vanilla Dunlending Warrior: 7 points, types Warrior, Infantry, race Man, faction Dunland
+profile: Mv 6" · FV 3 · SV 4+ · S 4 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules:  | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Dunland/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Bow" 1 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+option "Two-handed weapon" 1 pts, buyable yes
+choosable at recruit: Bow, Shield, Two-handed weapon
+built warrior: 8 points | equipment: Hand weapon (profile), Shield, Armour (profile) | rules: 
+built hero: 23 points | equipment: Hand weapon (profile), Shield, Armour (profile) | rules: 
+may lead yes | own path no | hero upgrades: Whipped into a Frenzy
+warrior can buy wargear (2): Bow via Bow; Two-handed weapon via Two-handed weapon
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 29 not an option of the profile; 13 for other reasons: set 2ee3a542
+hero can buy wargear (7): Horse via Horse; Bow via Bow; Spear via Spear; Two-handed weapon via Two-handed weapon; Dunlending War Axe via Dunlending War Axe; Flaming Brand via Flaming brand; Light Shield via Light shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 24 not an option of the profile; 7 for other reasons: set 5ee0f1c6
+
+-- Dunlending Warrior (Two-handed weapon)
+from: start
+vanilla Dunlending Warrior: 7 points, types Warrior, Infantry, race Man, faction Dunland
+profile: Mv 6" · FV 3 · SV 4+ · S 4 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules:  | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Dunland/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Bow" 1 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+option "Two-handed weapon" 1 pts, buyable yes
+choosable at recruit: Bow, Shield, Two-handed weapon
+built warrior: 8 points | equipment: Hand weapon (profile), Two-handed weapon, Armour (profile) | rules: 
+built hero: 23 points | equipment: Hand weapon (profile), Two-handed weapon, Armour (profile) | rules: 
+may lead yes | own path no | hero upgrades: Whipped into a Frenzy
+warrior can buy wargear (2): Bow via Bow; Shield via Shield
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 29 not an option of the profile; 13 for other reasons: set 87139a94
+hero can buy wargear (7): Horse via Horse; Bow via Bow; Spear via Spear; Dunlending War Axe via Dunlending War Axe; Flaming Brand via Flaming brand; Light Shield via Light shield; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 24 not an option of the profile; 7 for other reasons: set 9d8a8cf4
+
+-- Dunlending Warrior (Bow)
+from: start
+vanilla Dunlending Warrior: 7 points, types Warrior, Infantry, race Man, faction Dunland
+profile: Mv 6" · FV 3 · SV 4+ · S 4 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules:  | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Dunland/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Bow" 1 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+option "Two-handed weapon" 1 pts, buyable yes
+choosable at recruit: Bow, Shield, Two-handed weapon
+built warrior: 8 points | equipment: Hand weapon (profile), Armour (profile), Bow | rules: 
+built hero: 23 points | equipment: Hand weapon (profile), Armour (profile), Bow | rules: 
+may lead yes | own path no | hero upgrades: Whipped into a Frenzy
+warrior can buy wargear (2): Two-handed weapon via Two-handed weapon; Shield via Shield
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 29 not an option of the profile; 13 for other reasons: set 56d83c1c
+hero can buy wargear (7): Horse via Horse; Spear via Spear; Two-handed weapon via Two-handed weapon; Dunlending War Axe via Dunlending War Axe; Flaming Brand via Flaming brand; Light Shield via Light shield; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 24 not an option of the profile; 7 for other reasons: set 509a5d97
+
+-- Hill Tribesman (Bow)
+from: start
+vanilla Hill Tribesman: 5 points, types Warrior, Infantry, race Man, faction Dunland
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 3 · A 1 · W 1 · C 7+ · I 8+
+rules: Hatred (Rohan) | actions:  | wargear: Hand weapon
+keywords: Man/race/profile, Dunland/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Flaming brand" 1 pts, buyable yes
+option "Light shield" 1 pts, buyable yes
+option "Light shield and flaming brand" 2 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+option "Two-handed weapon" 1 pts, buyable yes
+choosable at recruit: Bow, Flaming brand, Light shield, Light shield and flaming brand, Spear, Two-handed weapon
+built warrior: 6 points | equipment: Hand weapon (profile), Bow | rules: Hatred (Rohan) (unit)
+built hero: 21 points | equipment: Hand weapon (profile), Bow | rules: Hatred (Rohan) (unit)
+may lead yes | own path no | hero upgrades: Whipped into a Frenzy
+promotes to: Dunlending Warrior
+promotes to: Dunlending Warrior
+warrior can buy wargear (4): Spear via Spear; Two-handed weapon via Two-handed weapon; Flaming Brand via Flaming brand; Light Shield via Light shield
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 27 not an option of the profile; 13 for other reasons: set 56d83c1c
+hero can buy wargear (7): Horse via Horse; Spear via Spear; Two-handed weapon via Two-handed weapon; Dunlending War Axe via Dunlending War Axe; Flaming Brand via Flaming brand; Light Shield via Light shield; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 24 not an option of the profile; 7 for other reasons: set 509a5d97
+
+-- Hill Tribesman (Two-handed weapon)
+from: start
+vanilla Hill Tribesman: 5 points, types Warrior, Infantry, race Man, faction Dunland
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 3 · A 1 · W 1 · C 7+ · I 8+
+rules: Hatred (Rohan) | actions:  | wargear: Hand weapon
+keywords: Man/race/profile, Dunland/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Flaming brand" 1 pts, buyable yes
+option "Light shield" 1 pts, buyable yes
+option "Light shield and flaming brand" 2 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+option "Two-handed weapon" 1 pts, buyable yes
+choosable at recruit: Bow, Flaming brand, Light shield, Light shield and flaming brand, Spear, Two-handed weapon
+built warrior: 6 points | equipment: Hand weapon (profile), Two-handed weapon | rules: Hatred (Rohan) (unit)
+built hero: 21 points | equipment: Hand weapon (profile), Two-handed weapon | rules: Hatred (Rohan) (unit)
+may lead yes | own path no | hero upgrades: Whipped into a Frenzy
+promotes to: Dunlending Warrior
+promotes to: Dunlending Warrior
+warrior can buy wargear (4): Bow via Bow; Spear via Spear; Flaming Brand via Flaming brand; Light Shield via Light shield
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 27 not an option of the profile; 13 for other reasons: set 87139a94
+hero can buy wargear (7): Horse via Horse; Bow via Bow; Spear via Spear; Dunlending War Axe via Dunlending War Axe; Flaming Brand via Flaming brand; Light Shield via Light shield; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 24 not an option of the profile; 7 for other reasons: set 9d8a8cf4
+
+-- Hill Tribesman (Light Shield)
+from: start
+vanilla Hill Tribesman: 5 points, types Warrior, Infantry, race Man, faction Dunland
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 3 · A 1 · W 1 · C 7+ · I 8+
+rules: Hatred (Rohan) | actions:  | wargear: Hand weapon
+keywords: Man/race/profile, Dunland/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Flaming brand" 1 pts, buyable yes
+option "Light shield" 1 pts, buyable yes
+option "Light shield and flaming brand" 2 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+option "Two-handed weapon" 1 pts, buyable yes
+choosable at recruit: Bow, Flaming brand, Light shield, Light shield and flaming brand, Spear, Two-handed weapon
+built warrior: 6 points | equipment: Hand weapon (profile), Light Shield | rules: Hatred (Rohan) (unit)
+built hero: 21 points | equipment: Hand weapon (profile), Light Shield | rules: Hatred (Rohan) (unit)
+may lead yes | own path no | hero upgrades: Whipped into a Frenzy
+promotes to: Dunlending Warrior
+promotes to: Dunlending Warrior
+warrior can buy wargear (4): Bow via Bow; Spear via Spear; Two-handed weapon via Two-handed weapon; Flaming Brand via Flaming brand
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 27 not an option of the profile; 13 for other reasons: set 2868a424
+hero can buy wargear (7): Horse via Horse; Bow via Bow; Spear via Spear; Two-handed weapon via Two-handed weapon; Dunlending War Axe via Dunlending War Axe; Flaming Brand via Flaming brand; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 24 not an option of the profile; 7 for other reasons: set a1d7e8e4
+
+-- Hill Tribesman (Flaming Brand)
+from: start
+vanilla Hill Tribesman: 5 points, types Warrior, Infantry, race Man, faction Dunland
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 3 · A 1 · W 1 · C 7+ · I 8+
+rules: Hatred (Rohan) | actions:  | wargear: Hand weapon
+keywords: Man/race/profile, Dunland/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Flaming brand" 1 pts, buyable yes
+option "Light shield" 1 pts, buyable yes
+option "Light shield and flaming brand" 2 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+option "Two-handed weapon" 1 pts, buyable yes
+choosable at recruit: Bow, Flaming brand, Light shield, Light shield and flaming brand, Spear, Two-handed weapon
+built warrior: 6 points | equipment: Hand weapon (profile), Flaming Brand | rules: Hatred (Rohan) (unit), Terror (Cavalry) (equipment), Terror (Beast) (equipment)
+built hero: 21 points | equipment: Hand weapon (profile), Flaming Brand | rules: Hatred (Rohan) (unit), Terror (Cavalry) (equipment), Terror (Beast) (equipment)
+may lead yes | own path no | hero upgrades: Whipped into a Frenzy
+promotes to: Dunlending Warrior
+promotes to: Dunlending Warrior
+warrior can buy wargear (4): Bow via Bow; Spear via Spear; Two-handed weapon via Two-handed weapon; Light Shield via Light shield
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 27 not an option of the profile; 13 for other reasons: set cce30966
+hero can buy wargear (7): Horse via Horse; Bow via Bow; Spear via Spear; Two-handed weapon via Two-handed weapon; Dunlending War Axe via Dunlending War Axe; Light Shield via Light shield; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 24 not an option of the profile; 7 for other reasons: set a6d820c8
+
+-- Hill Tribesman (Spear)
+from: start
+vanilla Hill Tribesman: 5 points, types Warrior, Infantry, race Man, faction Dunland
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 3 · A 1 · W 1 · C 7+ · I 8+
+rules: Hatred (Rohan) | actions:  | wargear: Hand weapon
+keywords: Man/race/profile, Dunland/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Flaming brand" 1 pts, buyable yes
+option "Light shield" 1 pts, buyable yes
+option "Light shield and flaming brand" 2 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+option "Two-handed weapon" 1 pts, buyable yes
+choosable at recruit: Bow, Flaming brand, Light shield, Light shield and flaming brand, Spear, Two-handed weapon
+built warrior: 6 points | equipment: Hand weapon (profile), Spear | rules: Hatred (Rohan) (unit)
+built hero: 21 points | equipment: Hand weapon (profile), Spear | rules: Hatred (Rohan) (unit)
+may lead yes | own path no | hero upgrades: Whipped into a Frenzy
+promotes to: Dunlending Warrior
+promotes to: Dunlending Warrior
+warrior can buy wargear (4): Bow via Bow; Two-handed weapon via Two-handed weapon; Flaming Brand via Flaming brand; Light Shield via Light shield
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 27 not an option of the profile; 13 for other reasons: set 245f39bb
+hero can buy wargear (7): Horse via Horse; Bow via Bow; Two-handed weapon via Two-handed weapon; Dunlending War Axe via Dunlending War Axe; Flaming Brand via Flaming brand; Light Shield via Light shield; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 24 not an option of the profile; 7 for other reasons: set 105f2b23
+
+-- Hill Tribesman
+from: reinforcements 2-3
+vanilla Hill Tribesman: 5 points, types Warrior, Infantry, race Man, faction Dunland
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 3 · A 1 · W 1 · C 7+ · I 8+
+rules: Hatred (Rohan) | actions:  | wargear: Hand weapon
+keywords: Man/race/profile, Dunland/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Flaming brand" 1 pts, buyable yes
+option "Light shield" 1 pts, buyable yes
+option "Light shield and flaming brand" 2 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+option "Two-handed weapon" 1 pts, buyable yes
+choosable at recruit: Bow, Flaming brand, Light shield, Light shield and flaming brand, Spear, Two-handed weapon
+built warrior: 5 points | equipment: Hand weapon (profile) | rules: Hatred (Rohan) (unit)
+built hero: 20 points | equipment: Hand weapon (profile) | rules: Hatred (Rohan) (unit)
+may lead yes | own path no | hero upgrades: Whipped into a Frenzy
+promotes to: Dunlending Warrior
+promotes to: Dunlending Warrior
+warrior can buy wargear (5): Bow via Bow; Spear via Spear; Two-handed weapon via Two-handed weapon; Flaming Brand via Flaming brand; Light Shield via Light shield
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 27 not an option of the profile; 12 for other reasons: set 5cd77772
+hero can buy wargear (8): Horse via Horse; Bow via Bow; Spear via Spear; Two-handed weapon via Two-handed weapon; Dunlending War Axe via Dunlending War Axe; Flaming Brand via Flaming brand; Light Shield via Light shield; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 24 not an option of the profile; 6 for other reasons: set 46adf8e8
+
+-- Dunlending Warrior
+from: reinforcements 4-5; promotion from Hill Tribesman
+vanilla Dunlending Warrior: 7 points, types Warrior, Infantry, race Man, faction Dunland
+profile: Mv 6" · FV 3 · SV 4+ · S 4 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules:  | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Dunland/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Bow" 1 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+option "Two-handed weapon" 1 pts, buyable yes
+choosable at recruit: Bow, Shield, Two-handed weapon
+built warrior: 7 points | equipment: Hand weapon (profile), Armour (profile) | rules: 
+built hero: 22 points | equipment: Hand weapon (profile), Armour (profile) | rules: 
+may lead yes | own path no | hero upgrades: Whipped into a Frenzy
+warrior can buy wargear (3): Bow via Bow; Two-handed weapon via Two-handed weapon; Shield via Shield
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 29 not an option of the profile; 12 for other reasons: set 5cd77772
+hero can buy wargear (8): Horse via Horse; Bow via Bow; Spear via Spear; Two-handed weapon via Two-handed weapon; Dunlending War Axe via Dunlending War Axe; Flaming Brand via Flaming brand; Light Shield via Light shield; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 24 not an option of the profile; 6 for other reasons: set 46adf8e8
+
+-- Dunlending Huscarl
+from: special chart 1-3
+vanilla Dunlending Huscarl: 11 points, types Warrior, Infantry, Elite, race Man, faction Dunland
+profile: Mv 6" · FV 3 · SV 4+ · S 4 · D 5 · A 1 · W 1 · C 7+ · I 7+
+rules: Bodyguard, Favour of the War Chief, Dunlending War Axe | actions:  | wargear: Heavy Armour, Hand weapon, Dunlending War Axe
+keywords: Man/race/profile, Dunland/faction/profile, Warrior/type/profile, Infantry/type/profile, Elite/type/profile
+choosable at recruit: 
+built warrior: 11 points | equipment: Hand weapon (profile), Dunlending War Axe (profile), Heavy Armour (profile) | rules: Bodyguard (unit), Favour of the War Chief (unit), Dunlending War Axe (unit)
+built hero: 26 points | equipment: Hand weapon (profile), Dunlending War Axe (profile), Heavy Armour (profile) | rules: Bodyguard (unit), Favour of the War Chief (unit), Dunlending War Axe (unit)
+may lead yes | own path no | hero upgrades: Whipped into a Frenzy
+warrior can buy wargear (0): 
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 31 not an option of the profile; 13 for other reasons: set 86ecc5ea
+hero can buy wargear (7): Horse via Horse; Bow via Bow; Spear via Spear; Two-handed weapon via Two-handed weapon; Flaming Brand via Flaming brand; Light Shield via Light shield; Shield via Shield
+hero can buy equipment (24): set 6f670c33
+hero refused: 24 not an option of the profile; 7 for other reasons: set ebba0d58
+
+-- Dunlending Horseman
+from: special chart 4-5
+vanilla Dunlending Horseman: 12 points, types Warrior, Cavalry, race Man, faction Dunland
+profile: Mv 6" · FV 3 · SV 4+ · S 4 · D 5 · A 1 · W 1 · C 7+ · I 7+
+rules: "Slay their Horses!" | actions:  | wargear: Armour, Hand weapon, Shield, Horse
+keywords: Man/race/profile, Dunland/faction/profile, Warrior/type/profile, Cavalry/type/profile
+choosable at recruit: 
+built warrior: 12 points | equipment: Horse (profile), Hand weapon (profile), Shield (profile), Armour (profile) | rules: "Slay their Horses!" (unit)
+built hero: 27 points | equipment: Horse (profile), Hand weapon (profile), Shield (profile), Armour (profile) | rules: "Slay their Horses!" (unit)
+may lead yes | own path no | hero upgrades: Whipped into a Frenzy
+warrior can buy wargear (0): 
+warrior can buy equipment (19): set b9bf299f
+warrior refused: 30 not an option of the profile; 13 for other reasons: set e02ecfdc
+hero can buy wargear (6): Bow via Bow; Spear via Spear; Two-handed weapon via Two-handed weapon; Dunlending War Axe via Dunlending War Axe; Flaming Brand via Flaming brand; Light Shield via Light shield
+hero can buy equipment (25): set 9d5ad3fe
+hero refused: 24 not an option of the profile; 7 for other reasons: set c690d356
+
+-- Crebain
+from: special chart 6
+vanilla Crebain: 20 points, types Warrior, Infantry, Beast, Swarm, race Bird, faction Dunland
+profile: Mv 12" · FV 2 · SV 6+ · S 2 · D 3 · A 2 · W 4 · C 8+ · I 7+
+rules: Fly, Keen Sight, Cloud of Birds | actions:  | wargear: Beaks and Claws (hand weapon)
+keywords: Bird/race/profile, Dunland/faction/profile, Warrior/type/profile, Infantry/type/profile, Beast/type/profile, Swarm/type/profile
+choosable at recruit: 
+built warrior: 20 points | equipment: Beaks and Claws (hand weapon) (profile) | rules: Fly (unit), Keen Sight (unit), Cloud of Birds (unit)
+built hero: 35 points | equipment: Beaks and Claws (hand weapon) (profile) | rules: Fly (unit), Keen Sight (unit), Cloud of Birds (unit)
+may lead no | own path yes | hero upgrades: Whipped into a Frenzy
+warrior can buy wargear (0): 
+warrior can buy equipment (10): set 1ff4a3ef
+warrior refused: 0 not an option of the profile; 52 for other reasons: set df7d13bd
+hero can buy wargear (0): 
+hero can buy equipment (10): set 1ff4a3ef
+hero refused: 0 not an option of the profile; 52 for other reasons: set 804c5b2a
+
+=== hero upgrades and who may take them ===
+Whipped into a Frenzy (rule "Whipped into a Frenzy", restriction "", units []): allowed to 5 of 13 units: Crebain, Dunlending Horseman, Dunlending Huscarl, Dunlending Warrior, Hill Tribesman
+
+=== promotion: matching, choices and gear kept ===
+
+-- advancement 0
+advancement {FromUnit: "Hill Tribesman", To: [{Unit: "Dunlending Warrior", Wargear: ["Shield"]}]}
+gear a Hill Tribesman may carry (8): Bow, Flaming Brand, Flaming brand, Light Shield, Light shield, Spear, Two-handed weapon, flaming brand
+carrying nothing: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given Shield): warrior keeps [] drops []; a hero keeps everything
+carrying Bow: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given Shield): warrior keeps [Bow] drops []; a hero keeps everything
+carrying Flaming Brand: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given Shield): warrior keeps [] drops [Flaming Brand]; a hero keeps everything
+carrying Flaming brand: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given Shield): warrior keeps [] drops [Flaming brand]; a hero keeps everything
+carrying Light Shield: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given Shield): warrior keeps [] drops [Light Shield]; a hero keeps everything
+carrying Light shield: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given Shield): warrior keeps [] drops [Light shield]; a hero keeps everything
+carrying Spear: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given Shield): warrior keeps [] drops [Spear]; a hero keeps everything
+carrying Two-handed weapon: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given Shield): warrior keeps [Two-handed weapon] drops []; a hero keeps everything
+carrying flaming brand: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given Shield): warrior keeps [] drops [flaming brand]; a hero keeps everything
+carrying everything: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given Shield): warrior keeps [Bow, Two-handed weapon] drops [Flaming Brand, Flaming brand, Light Shield, Light shield, Spear, flaming brand]; a hero keeps everything
+
+-- advancement 1
+advancement {FromUnit: "Hill Tribesman", To: [{Unit: "Dunlending Warrior"}]}
+gear a Hill Tribesman may carry (8): Bow, Flaming Brand, Flaming brand, Light Shield, Light shield, Spear, Two-handed weapon, flaming brand
+carrying nothing: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given ): warrior keeps [] drops []; a hero keeps everything
+carrying Bow: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given ): warrior keeps [Bow] drops []; a hero keeps everything
+carrying Flaming Brand: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given ): warrior keeps [] drops [Flaming Brand]; a hero keeps everything
+carrying Flaming brand: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given ): warrior keeps [] drops [Flaming brand]; a hero keeps everything
+carrying Light Shield: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given ): warrior keeps [] drops [Light Shield]; a hero keeps everything
+carrying Light shield: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given ): warrior keeps [] drops [Light shield]; a hero keeps everything
+carrying Spear: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given ): warrior keeps [] drops [Spear]; a hero keeps everything
+carrying Two-handed weapon: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given ): warrior keeps [Two-handed weapon] drops []; a hero keeps everything
+carrying flaming brand: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given ): warrior keeps [] drops [flaming brand]; a hero keeps everything
+carrying everything: matches warrior yes hero yes | choices warrior: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior | hero: promo:0:0=Dunlending Warrior with Shield, promo:1:0=Dunlending Warrior
+    to Dunlending Warrior (given ): warrior keeps [Bow, Two-handed weapon] drops [Flaming Brand, Flaming brand, Light Shield, Light shield, Spear, flaming brand]; a hero keeps everything
+
+=== tooltips and glossary terms (digest of the text in _tooltips.txt) ===
+Armour | gear | bc definition | Armour | 2f9f13f9
+Armoured horse | gear | bc armoury | Armoured horse | 333e3f85
+Axe of Lossarnach | gear | bc definition | Axe of Lossarnach | 1b918223
+Backpack | gear | bc definition | Backpack | 7b80e55f
+Badge of Courage | gear | bc definition | Badge of Courage | bec4a181
+Banner | gear | bc definition | Banner | 416dceb6
+Barding | gear | bc definition | Barding | 4c468a2d
+Beaks and Claws (hand weapon) | gear | none |  | a152aed7
+Blowpipe | gear | bc definition | Blowpipe | 21aa6a45
+Bow | gear | bc definition | Bow | 50b72f32
+Climbing ropes | gear | bc definition | Climbing ropes | 51c983e4
+Company Drum | gear | bc definition | Company Drum | ceffaace
+Company Horn | gear | bc definition | Company Horn | bd7ab082
+Company Instrument | gear | bc definition | Company Instrument | 6fc2cb65
+Company Standard | gear | bc definition | Company Standard | 7d183865
+Concealing Cloak | gear | bc definition | Concealing Cloak | 04641e38
+Crossbow | gear | bc definition | Crossbow | 1d6c529f
+Dunlending War Axe | gear | bc definition | Dunlending War Axe | d12785f5
+Dwarf Bow | gear | bc definition | Dwarf Bow | b534ad01
+Dwarf Longbow | gear | bc definition | Dwarf Longbow | aa321757
+Dwarven Brew | gear | bc definition | Dwarven Brew | 0b7919b0
+Easterling Halberd | gear | bc definition | Easterling Halberd | cb29ec36
+Elf Bow | gear | bc definition | Elf Bow | aa321757
+Elven hand-and-a-half weapon | gear | bc definition |  | 93f1d3f0
+Elven lance | gear | bc definition |  | 4f2e75d6
+Elven pike | gear | bc definition |  | 5f6060e2
+Elven spear | gear | bc definition |  | a07b16fc
+Elven throwing weapon | gear | bc definition | Elven throwing weapon | 7c19502f
+Envenom Weapon (X) | gear | bc definition | Envenom Weapon (X) | 15b47736
+Esgaroth Bow | gear | bc definition | Esgaroth Bow | aa321757
+Fell Warg | gear | bc armoury | Fell Warg | a2c5ffdf
+Flaming Brand | gear | bc definition | Flaming Brand | ef23e06a
+Flaming brand | gear | bc definition | Flaming Brand | ef23e06a
+flaming brand | gear | bc definition | Flaming Brand | ef23e06a
+Galadhrim Steed | gear | bc definition | Galadhrim Steed | 9092cc78
+Goat | gear | bc armoury | Goat | 333e3f85
+Hand weapon | gear | none | Hand Weapon | a152aed7
+Hand-and-a-half weapon | gear | bc definition | Hand-and-a-half Weapon | 5e201940
+Healing Herbs | gear | bc definition | Healing Herbs | b67655bf
+Heavy Armour | gear | bc definition | Heavy Armour | 25524851
+Horse | gear | bc armoury | Horse | a2c5ffdf
+Lance | gear | bc definition | Lance | c0628685
+Light Shield | gear | bc definition | Light Shield | 7dba0213
+Light shield | gear | bc definition | Light Shield | 7dba0213
+Longbow | gear | bc definition | Longbow | aa321757
+Lucky Talisman | gear | bc definition | Lucky Talisman | edadbe36
+Map | gear | bc definition | Map | 2ecc3fda
+Mattock | gear | bc definition | Mattock | 2ada7b97
+Mountain Boots | gear | bc definition | Mountain Boots | 0dfacc62
+Orc Bow | gear | bc definition | Orc Bow | 6fd46631
+Pike | gear | bc definition | Pike | a96f4253
+Ring of Warding | gear | bc definition | Ring of Warding | c0e74ef4
+Scroll of Courage | gear | bc definition | Scroll of Courage | e83f5953
+Scroll of Hidden Paths | gear | bc definition | Scroll of Hidden Paths | 5fc4181c
+Seeing Stone | gear | bc definition | Seeing Stone | de3e77c7
+Shield | gear | bc definition | Shields | 399b67fd
+Short Bow | gear | bc definition | Short Bow | 6fd46631
+Small Shield | gear | bc definition | Small Shield | cb8c5e2c
+Spear | gear | bc definition | Spear | 761cb2e2
+Throwing Spears | gear | bc definition | Throwing Spear | d5b6b5e7
+Throwing weapon | gear | bc definition | Throwing Weapons | 160baaa6
+Torching Brand | gear | bc definition | Torching Brand | 85ef5e26
+Traps & Snares | gear | bc definition | Traps & Snares | 69a67031
+Trophy Pelt | gear | bc definition | Trophy Pelt | 7e4eed78
+Two-handed weapon | gear | bc definition | Two-handed Weapon | 5e201940
+Uruk-Hai Bow | gear | bc definition | Uruk-Hai Bow | b534ad01
+War spear | gear | bc definition | War Spear | 8700bf62
+Warg | gear | bc armoury | Warg | a2c5ffdf
+Wondrous Cram | gear | bc definition | Wondrous Cram | 7853368f
+Woodland Belt | gear | bc definition | Woodland Belt | 2cd22098
+"Slay their Horses!" | rule | vanilla rule | "Slay their Horses!" | 2caf1dc6
+Bodyguard | rule | vanilla rule | Bodyguard | eb9a048c
+Cloud of Birds | rule | vanilla rule | Cloud of Birds | 695821bc
+Dunlending War Axe | rule | vanilla rule | Dunlending War Axe | c4f9f137
+Favour of the War Chief | rule | vanilla rule | Favour of the War Chief | d21ef274
+Fly | rule | vanilla rule | Fly | cd244a62
+Hatred (Rohan) | rule | vanilla rule | Hatred (Rohan) | 224dd9d4
+Keen Sight | rule | vanilla rule | Keen Sight | 9e4a5d66
+
+=== duplicated vanilla names the company uses ===
+
+=== name resolution: what every name the company mentions resolves to ===
+unit "Crebain" -> vanilla "Crebain"
+unit "Dunlending Horseman" -> vanilla "Dunlending Horseman"
+unit "Dunlending Huscarl" -> vanilla "Dunlending Huscarl"
+unit "Dunlending Warrior" -> vanilla "Dunlending Warrior"
+unit "Hill Tribesman" -> vanilla "Hill Tribesman"
+gear "Armour" -> key "armour" | annotation "Armour" | vanilla gear "Armour"
+gear "Banner" -> key "banner" | annotation "Banner" | vanilla gear "Banner"
+gear "Beaks" -> key "beak" | unknown
+gear "Beaks and Claws (hand weapon)" -> key "beakandclawhandweapon" | annotation "Beaks and Claws (hand weapon)"
+gear "Bow" -> key "bow" | offer "Bow" size "" also [] | annotation "Bow" | vanilla gear "Bow"
+gear "Claws" -> key "claw" | unknown
+gear "Dunlending War Axe" -> key "dunlendingwaraxe" | offer "Dunlending War Axe" size "" also [] | annotation "Dunlending War Axe"
+gear "Flaming Brand" -> key "flamingbrand" | offer "Flaming Brand" size "" also [Flaming Brands] | annotation "Flaming Brand" | vanilla gear "Flaming Brand"
+gear "Flaming brand" -> key "flamingbrand" | offer "Flaming Brand" size "" also [Flaming Brands] | annotation "Flaming Brand" | vanilla gear "Flaming Brand"
+gear "Hand weapon" -> key "handweapon" | annotation "Hand weapon"
+gear "Heavy Armour" -> key "heavyarmour" | annotation "Heavy Armour" | vanilla gear "Heavy Armour"
+gear "Horse" -> key "horse" | offer "Horse" size "" also [] | annotation "Horse" | vanilla gear "Horse"
+gear "Light Shield" -> key "lightshield" | offer "Light Shield" size "" also [] | annotation "Light Shield" | vanilla gear "Light Shield"
+gear "Light shield" -> key "lightshield" | offer "Light Shield" size "" also [] | annotation "Light Shield" | vanilla gear "Light Shield"
+gear "Light shield and flaming brand" -> key "lightshieldandflamingbrand" | unknown
+gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
+gear "Spear" -> key "spear" | offer "Spear" size "" also [] | annotation "Spear"
+gear "Two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe Two-handed axe] | annotation "Two-handed weapon"
+gear "flaming brand" -> key "flamingbrand" | offer "Flaming Brand" size "" also [Flaming Brands] | annotation "Flaming Brand" | vanilla gear "Flaming Brand"
+rule "\"Hold positions, loose the arrows!\"" -> label "\"Hold positions, loose the arrows!\"" | text from bc rule | glossary "\"Hold positions, loose the arrows!\""
+rule "\"Slay their Horses!\"" -> label "\"Slay their Horses!\"" | text from vanilla rule | glossary "\"Slay their Horses!\""
+rule "A Good Sort" -> label "A Good Sort" | text from bc rule | glossary "A Good Sort"
+rule "Big Game Hunter" -> label "Big Game Hunter" | text from bc rule | glossary "Big Game Hunter"
+rule "Bodyguard" -> label "Bodyguard" | text from vanilla rule | glossary "Bodyguard"
+rule "Burly" -> label "Burly" | text from bc rule | glossary "Burly"
+rule "Chief Advisor" -> label "Chief Advisor" | text from bc rule | glossary "Chief Advisor"
+rule "Claim the Throne" -> label "Claim the Throne" | text from bc rule | glossary "Claim the Throne"
+rule "Cloud of Birds" -> label "Cloud of Birds" | text from vanilla rule | glossary "Cloud of Birds"
+rule "Command Support" -> label "Command Support" | text from bc rule | glossary "Command Support"
+rule "Commanding Bellow" -> label "Commanding Bellow" | text from bc rule | glossary "Commanding Bellow"
+rule "Cunning Fighter" -> label "Cunning Fighter" | text from bc rule | glossary "Cunning Fighter"
+rule "Deceptive Caster" -> label "Deceptive Caster" | text from bc rule | glossary "Deceptive Caster"
+rule "Defender of the City" -> label "Defender of the City" | text from bc rule | glossary "Defender of the City"
+rule "Devastating Charge" -> label "Devastating Charge" | text from vanilla rule | glossary "Devastating Charge"
+rule "Dominant (2)" -> label "Dominant (2)" | text from vanilla rule | glossary "Dominant (2)"
+rule "Dunlending War Axe" -> label "Dunlending War Axe" | text from vanilla rule | glossary "Dunlending War Axe"
+rule "Experienced Tracker" -> label "Experienced Tracker" | text from bc rule | glossary "Experienced Tracker"
+rule "Expert Rider" -> label "Expert Rider" | text from vanilla rule | glossary "Expert Rider"
+rule "Favour of the War Chief" -> label "Favour of the War Chief" | text from vanilla rule | glossary "Favour of the War Chief"
+rule "Fearless" -> label "Fearless" | text from vanilla rule | glossary "Fearless"
+rule "Fearsome Charge" -> label "Fearsome Charge" | text from bc rule | glossary "Fearsome Charge"
+rule "Fell Sight" -> label "Fell Sight" | text from vanilla rule | glossary "Fell Sight"
+rule "Fly" -> label "Fly" | text from vanilla rule | glossary "Fly"
+rule "For Glory" -> label "For Glory" | text from bc rule | glossary "For Glory"
+rule "Furious Tirade" -> label "Furious Tirade" | text from bc rule | glossary "Furious Tirade"
+rule "Fury of the Bear" -> label "Fury of the Bear" | text from bc rule | glossary "Fury of the Bear"
+rule "Gatekeeper" -> label "Gatekeeper" | text from bc rule | glossary "Gatekeeper"
+rule "General Hunter" -> label "General Hunter" | text from bc rule | glossary "General Hunter"
+rule "Grim Blade" -> label "Grim Blade" | text from bc rule | glossary "Grim Blade"
+rule "Hatred (Rohan)" -> label "Hatred (Rohan)" | text from vanilla rule | glossary "Hatred (Rohan)"
+rule "Heroic Accuracy" -> label "Heroic Accuracy" | text from none | glossary "Heroic Accuracy"
+rule "Heroic Challenge" -> label "Heroic Challenge" | text from none | glossary "Heroic Challenge"
+rule "Heroic Channeling" -> label "Heroic Channeling" | text from none | glossary "Heroic Channelling"
+rule "Heroic Defence" -> label "Heroic Defence" | text from none | glossary "Heroic Defence"
+rule "Heroic March" -> label "Heroic March" | text from none | glossary "Heroic March"
+rule "Heroic Resolve" -> label "Heroic Resolve" | text from none | glossary "Heroic Resolve"
+rule "Heroic Strength" -> label "Heroic Strength" | text from none | glossary "Heroic Strength"
+rule "Heroic Strike" -> label "Heroic Strike" | text from none | glossary "Heroic Strike"
+rule "Horse Lord" -> label "Horse Lord" | text from vanilla rule | glossary "Horse Lord"
+rule "Keen Sight" -> label "Keen Sight" | text from vanilla rule | glossary "Keen Sight"
+rule "Knife Mastery" -> label "Knife Mastery" | text from bc rule | glossary "Knife Mastery"
+rule "Lethal Aim" -> label "Lethal Aim" | text from bc rule | glossary "Lethal Aim"
+rule "Longbeard" -> label "Longbeard" | text from bc rule | glossary "Longbeard"
+rule "Marshal" -> label "Marshal" | text from bc rule | glossary "Marshal"
+rule "Master Duelist" -> label "Master Duelist" | text from bc rule | glossary "Master Duelist"
+rule "Master of Battle (3+)" -> label "Master of Battle (3+)" | text from vanilla rule | glossary "Master of Battle (3+)"
+rule "Master of Magic" -> label "Master of Magic" | text from bc rule | glossary "Master of Magic"
+rule "Master of Traps" -> label "Master of Traps" | text from vanilla rule | glossary "Master of Traps"
+rule "Mountain Dweller" -> label "Mountain Dweller" | text from vanilla rule | glossary "Mountain Dweller"
+rule "Oblivious to Pain" -> label "Oblivious to Pain" | text from bc rule | glossary "Oblivious to Pain"
+rule "Pinpoint Shot" -> label "Pinpoint Shot" | text from bc rule | glossary "Pinpoint Shot"
+rule "Poisoned Attacks (Blowpipe)" -> label "Poisoned Attacks (Blowpipe)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Poisoned Attacks (X)" -> label "Poisoned Attacks (X)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Rallying Cry" -> label "Rallying Cry" | text from bc rule | glossary "Rallying Cry"
+rule "Rapid Fire" -> label "Rapid Fire" | text from bc rule | glossary "Rapid Fire"
+rule "Reading the Portents" -> label "Reading the Portents" | text from bc rule | glossary "Reading the Portents"
+rule "Reckless Charge" -> label "Reckless Charge" | text from bc rule | glossary "Reckless Charge"
+rule "Relentless Commander" -> label "Relentless Commander" | text from bc rule | glossary "Relentless Commander"
+rule "Resistant to Magic" -> label "Resistant to Magic" | text from vanilla rule | glossary "Resistant to Magic"
+rule "Sorcerous Adept" -> label "Sorcerous Adept" | text from bc rule | glossary "Sorcerous Adept"
+rule "Spectral Walk" -> label "Spectral Walk" | text from vanilla rule | glossary "Spectral Walk"
+rule "Spy" -> label "Spy" | text from bc rule | glossary "Spy"
+rule "Stalk Unseen" -> label "Stalk Unseen" | text from vanilla rule | glossary "Stalk Unseen"
+rule "Swift Parry" -> label "Swift Parry" | text from bc rule | glossary "Swift Parry"
+rule "Swift Shot" -> label "Swift Shot" | text from bc rule | glossary "Swift Shot"
+rule "Terror" -> label "Terror" | text from vanilla rule | glossary "Terror"
+rule "Terror (Beast)" -> label "Terror (Beast)" | text from vanilla rule | glossary "Terror"
+rule "Terror (Cavalry)" -> label "Terror (Cavalry)" | text from vanilla rule | glossary "Terror"
+rule "The King's Protector" -> label "The King's Protector" | text from bc rule | glossary "The King's Protector"
+rule "To Arms!" -> label "To Arms!" | text from bc rule | glossary "To Arms!"
+rule "Usurper of Kings" -> label "Usurper of Kings" | text from bc rule | glossary "Usurper of Kings"
+rule "Voice of Command" -> label "Voice of Command" | text from bc rule | glossary "Voice of Command"
+rule "Volley Fire" -> label "Volley Fire" | text from bc rule | glossary "Volley Fire"
+rule "Warrior of Renown" -> label "Warrior of Renown" | text from bc rule | glossary "Warrior of Renown"
+rule "Whipped into a Frenzy" -> label "Whipped into a Frenzy" | text from bc rule | glossary "Whipped into a Frenzy"
+rule "Woodland Creature" -> label "Woodland Creature" | text from vanilla rule | glossary "Woodland Creature"

@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -280,7 +281,7 @@ func (s *AftermathService) view(ctx context.Context, e *amEnv, st CompanyState, 
 		}
 	}
 	if status == AftermathInjuries && rec.Work.Applied {
-		a.Succession = successionOpen(d.Roster, rec)
+		a.Succession = successionOpen(d.Roster, rec, e.rs.BC.Shape())
 		a.NoOneToLead = a.Succession == nil && rec.Work.LeaderFell && !slices.ContainsFunc(d.Roster, func(u CompanyUnit) bool { return u.Role == RoleLeader })
 	}
 	return a
@@ -435,14 +436,23 @@ func (s *AftermathService) ReopenSheet(ctx context.Context, user User, id, match
 	})
 }
 
-func castDice(d Dice, entered []int) ([]int, error) {
+// castDice rolls the injury dice (campaign.injuries.roll), or checks the dice the player entered: one per die, each 1..Sides.
+func castDice(d Dice, spec DiceSpec, entered []int) ([]int, error) {
 	if entered == nil {
-		return []int{d.D6(), d.D6()}, nil
+		return RollDice(d, spec), nil
 	}
-	if len(entered) != 2 || entered[0] < 1 || entered[0] > 6 || entered[1] < 1 || entered[1] > 6 {
-		return nil, invalidAftermath("enter the two dice, each from 1 to 6")
+	if len(entered) != spec.Count || slices.ContainsFunc(entered, func(n int) bool { return n < 1 || n > spec.Sides }) {
+		return nil, invalidAftermath(fmt.Sprintf("enter %s, each from 1 to %d", diceWords(spec.Count, "die", "dice"), spec.Sides))
 	}
 	return slices.Clone(entered), nil
+}
+
+func diceWords(n int, one, many string) string {
+	words := []string{"zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"}
+	if n == 1 {
+		return "one " + one
+	}
+	return "the " + words[min(n, len(words)-1)] + " " + many
 }
 
 func invalidAftermath(msg string) error { return fmt.Errorf("%w: %s", ErrInvalidAftermath, msg) }
@@ -461,8 +471,8 @@ func (s *AftermathService) roll(e *amEnv, st *CompanyState, rec *AftermathRecord
 	if rec.Work.Second[cas.UnitID] {
 		resolve = ResolveScratchReroll
 	}
-	total, shown := RollModifierOf(e.rules, rec.Input).Apply(dice[0] + dice[1]) // Healing Herbs: +1, held to the clamp
-	eff, _ := resolve(e.rules.Chart(cas.Hero), total, cu)                       // the chart covers 2-12
+	total, shown := RollModifierOf(e.rules, rec.Input).Apply(sumOf(dice)) // Healing Herbs: +1, held to the clamp
+	eff, _ := resolve(e.rules.Chart(cas.Hero), total, cu)                 // the chart covers Min..Max of the injury dice
 	cas.Rolled, cas.Dice, cas.Total, cas.Modifier = true, dice, total, shown
 	cas.ResultKey, cas.ResultTxt, cas.Text = eff.Row.Key, eff.Row.Name, eff.Row.Text
 	cas.Kind, cas.InjuryKey, cas.Count, cas.Decision = eff.Kind, eff.InjuryKey, eff.Count, eff.Decision
@@ -531,8 +541,8 @@ func consumeItems(e *amEnv, st *CompanyState, rec *AftermathRecord) {
 	}
 }
 
-// decideBonus answers the bonus die of Lesson Learned (a D3) or Wounds of a Hero (a D6): "0" lets the server roll, "1" to "6" is
-// the die the player rolled (a D3 reads 1-2 as 1, 3-4 as 2, 5-6 as 3).
+// decideBonus answers the bonus dice of Lesson Learned (a D3) or Wounds of a Hero (a D6), whatever the rules file says: "0" lets
+// the server roll, a number is the roll the player made (see TypedMax and FromTyped: a D3 is rolled on a D6).
 func (s *AftermathService) decideBonus(e *amEnv, rec *AftermathRecord, ans AftermathAnswer) error {
 	w := &rec.Work
 	i := slices.IndexFunc(w.Casualties, func(c Casualty) bool { return c.UnitID == ans.UnitID })
@@ -543,23 +553,19 @@ func (s *AftermathService) decideBonus(e *amEnv, rec *AftermathRecord, ans After
 	if w.Applied || cas.Decision == nil || cas.Decision.Kind != "bonus" {
 		return Refuse("%s has no such question open.", cas.Name)
 	}
+	eff := CasualtyEffect{Row: e.chartRow(*cas)}
+	spec := eff.Row.BonusSpec
 	n, err := strconv.Atoi(ans.Answer)
-	if err != nil || n < 0 || n > 6 {
-		return invalidAftermath("enter the die, from 1 to 6, or 0 to roll it for you")
+	if err != nil || n < 0 || n > TypedMax(spec) || n > 0 && n < spec.Min() {
+		return invalidAftermath(fmt.Sprintf("enter the roll, from %d to %d, or 0 to roll it for you", spec.Min(), TypedMax(spec)))
 	}
 	if n > 0 {
 		if msg := e.settings.RollRefusal(true, false); msg != "" {
 			return Refuse("%s", msg)
 		}
+		cas.Bonus, _ = FromTyped(spec, n)
 	} else {
-		n = s.dice.D6()
-	}
-	eff := CasualtyEffect{Row: e.chartRow(*cas)}
-	switch eff.Row.BonusDice {
-	case "d3":
-		cas.Bonus = (n-1)/2 + 1
-	default:
-		cas.Bonus = n
+		cas.Bonus = s.dice.Roll(spec)
 	}
 	cas.Decision = nil
 	return nil
@@ -583,7 +589,7 @@ func (s *AftermathService) RollCasualty(ctx context.Context, user User, id, matc
 			if (unitID != 0 && cas.UnitID != unitID) || cas.Rolled {
 				continue
 			}
-			dice, err := castDice(s.dice, entered)
+			dice, err := castDice(s.dice, e.rules.InjuryDice, entered)
 			if err != nil {
 				return err
 			}
@@ -620,7 +626,7 @@ func (s *AftermathService) RerollCasualty(ctx context.Context, user User, id, ma
 		case w.Rerolls <= 0 || st.Rerolls <= 0:
 			return Refuse("No Against the Odds re-rolls left.")
 		}
-		dice, err := castDice(s.dice, entered)
+		dice, err := castDice(s.dice, e.rules.InjuryDice, entered)
 		if err != nil {
 			return err
 		}
@@ -723,18 +729,18 @@ func (s *AftermathService) decideReward(e *amEnv, st *CompanyState, rec *Afterma
 }
 
 // successionOpen says what the company still has to decide after its Leader fell or a Sergeant was lost, or nil.
-func successionOpen(roster []CompanyUnit, rec AftermathRecord) *Succession {
+func successionOpen(roster []CompanyUnit, rec AftermathRecord, shape CompanyRules) *Succession {
 	w := rec.Work
 	if !w.LeaderFell && w.SergeantsToFill == 0 {
 		return nil
 	}
 	if w.LeaderFell {
-		if sc := NextSuccession(roster, true); sc.NeedLeader {
+		if sc := NextSuccession(roster, true, shape.Leaders); sc.NeedLeader {
 			return &sc
 		}
 	}
 	if !w.NoSergeant {
-		if sc := NextSergeant(roster, w.SergeantsToFill > 0); sc.NeedSergeant {
+		if sc := NextSergeant(roster, w.SergeantsToFill > 0, shape.Sergeants); sc.NeedSergeant {
 			return &sc
 		}
 	}
@@ -743,7 +749,7 @@ func successionOpen(roster []CompanyUnit, rec AftermathRecord) *Succession {
 
 func decideSuccession(e *amEnv, st *CompanyState, rec *AftermathRecord, ans AftermathAnswer) error {
 	roster := e.detail(*st).Roster
-	open := successionOpen(roster, *rec)
+	open := successionOpen(roster, *rec, e.rs.BC.Shape())
 	if !rec.Work.Applied || open == nil {
 		return Refuse("Nobody has to be chosen now.")
 	}
@@ -760,7 +766,7 @@ func decideSuccession(e *amEnv, st *CompanyState, rec *AftermathRecord, ans Afte
 				return invalidAftermath("choose one of the Warriors with the most Experience")
 			}
 			us.Role = RoleLeader
-			us.Bonus = mergeBonus(us.Bonus, HeroBonus(nil)) // an officer without a path: it chooses one in the path window
+			us.Bonus = mergeBonus(us.Bonus, e.rs.BC.HeroBonus(nil)) // an officer without a path: it chooses one in the path window
 			line(rec, "succession", title+" becomes the Leader (Hero in the Making: choose its path)", uid, 0)
 			return nil
 		}
@@ -776,7 +782,7 @@ func decideSuccession(e *amEnv, st *CompanyState, rec *AftermathRecord, ans Afte
 				return invalidAftermath("choose one of the Warriors with the most Experience")
 			}
 			us.Role = RoleSergeant
-			us.Bonus = mergeBonus(us.Bonus, HeroBonus(nil))
+			us.Bonus = mergeBonus(us.Bonus, e.rs.BC.HeroBonus(nil))
 			rec.Work.SergeantsToFill = max(0, rec.Work.SergeantsToFill-1)
 			line(rec, "succession", title+" becomes a Sergeant (Hero in the Making: choose its path)", uid, 0)
 			return nil
@@ -817,7 +823,7 @@ func (s *AftermathService) advance(e *amEnv, st *CompanyState, rec *AftermathRec
 			return err
 		}
 	}
-	if successionOpen(e.detail(*st).Roster, *rec) != nil {
+	if successionOpen(e.detail(*st).Roster, *rec, e.rs.BC.Shape()) != nil {
 		return nil
 	}
 	applyExperience(e, st, rec)
@@ -885,8 +891,8 @@ func (s *AftermathService) applyInjuries(e *amEnv, st *CompanyState, rec *Afterm
 		default:
 			line(rec, "injury", cas.Name+": "+cas.ResultTxt, cas.UnitID, 0)
 		}
-		if row.Fate > 0 {
-			gainFate(e, st, rec, cas, row.Fate)
+		for _, stat := range slices.Sorted(maps.Keys(row.StatGains)) {
+			gainStat(e, st, rec, cas, stat, row.StatGains[stat])
 		}
 		if row.BonusKind == "experience" && cas.Bonus > 0 {
 			us, _ = stateUnit(st, cas.UnitID)
@@ -898,8 +904,9 @@ func (s *AftermathService) applyInjuries(e *amEnv, st *CompanyState, rec *Afterm
 	return nil
 }
 
-// gainFate gives a hero permanent Fate points, up to the maximum of its path.
-func gainFate(e *amEnv, st *CompanyState, rec *AftermathRecord, cas *Casualty, points int) {
+// gainStat gives a hero permanent points of a stat (Fate for Protection by the Valar), up to the maximum of its path.
+func gainStat(e *amEnv, st *CompanyState, rec *AftermathRecord, cas *Casualty, stat string, points int) {
+	name := strings.ToUpper(stat[:1]) + stat[1:]
 	d := e.detail(*st)
 	u, ok := rosterUnit(d.Roster, cas.UnitID)
 	us, found := stateUnit(st, cas.UnitID)
@@ -910,8 +917,8 @@ func gainFate(e *amEnv, st *CompanyState, rec *AftermathRecord, cas *Casualty, p
 	path, _ := rules.Path(u.Path.Name)
 	sheet := sheetOf(u, us.Progress, d.Roster, nil)
 	for range points {
-		if _, can := rules.improvedStat(path, sheet, "fate", 1, 0); !can {
-			line(rec, "injury", cas.Name+" is at the most Fate its path allows", cas.UnitID, 0)
+		if _, can := rules.improvedStat(path, sheet, stat, 1, 0); !can {
+			line(rec, "injury", cas.Name+" is at the most "+name+" its path allows", cas.UnitID, 0)
 			return
 		}
 		if us.Progress == nil {
@@ -920,9 +927,13 @@ func gainFate(e *amEnv, st *CompanyState, rec *AftermathRecord, cas *Casualty, p
 		if us.Progress.Bonus == nil {
 			us.Progress.Bonus = map[string]int{}
 		}
-		us.Progress.Bonus["fate"]++
+		if rules.LowerIsBetter[stat] { // Courage and Shoot improve by going down
+			us.Progress.Bonus[stat]--
+		} else {
+			us.Progress.Bonus[stat]++
+		}
 		sheet = sheetOf(mustUnit(e.detail(*st).Roster, cas.UnitID), us.Progress, d.Roster, nil)
-		line(rec, "injury", cas.Name+" gains 1 Fate point", cas.UnitID, 0)
+		line(rec, "injury", cas.Name+" gains 1 "+name+" point", cas.UnitID, 0)
 	}
 }
 

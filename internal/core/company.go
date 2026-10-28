@@ -94,6 +94,10 @@ const (
 	EquipOther      EquipmentClass = "other"
 )
 
+// knownEquipmentClasses is the vocabulary of item classes (the classes a rules file may name).
+var knownEquipmentClasses = []EquipmentClass{EquipMount, EquipMelee, EquipTwoHanded, EquipSpear, EquipLance, EquipShield, EquipArmour, EquipBow, EquipCrossbow,
+	EquipThrowing, EquipMissile, EquipBanner, EquipHorn, EquipConsumable, EquipOther}
+
 // rank is the position of a class in a unit's equipment list: mount first (with its armour right after), then melee
 // weapons (lances included), shield, armour, ranged weapons, and everything else last, so units can be compared at a glance.
 func (c EquipmentClass) rank() int {
@@ -111,8 +115,6 @@ func (c EquipmentClass) rank() int {
 	}
 	return 6
 }
-
-func (c EquipmentClass) isRangedLimit() bool { return c == EquipBow || c == EquipCrossbow }
 
 // hasWord reports whether text contains one of the words, as a whole word ("Mountain Boots" is not a mount). A word
 // ending in "!" must match exactly ("mount!"), "bow" also matches the end of a word (Longbow), and the others match the
@@ -203,6 +205,7 @@ type Equipment struct {
 	Profile     bool        // part of the unit's vanilla profile (a Warrior of Minas Tirith's armour), not an option or a purchase
 	Rating      int         // what the item adds to the unit's points (0 for profile items, which are already in them)
 	Drop        string      // why the unit cannot drop it (see DropReason); empty when it can
+	GrantsSlots SlotCounts  // the equipment slots the item adds (data.gearAnnotations grantsSlots: the Backpack)
 	Size        string      // "small" or "large" for equipment that takes a slot; empty for wargear, which takes none
 	Stats       string      // what the item does in numbers, e.g. `24" · S2` for a bow; empty for most items
 	Description string      // the item's rules, if it has any (shown on hover)
@@ -381,20 +384,23 @@ type Attribute struct {
 	HeroOnly bool
 }
 
-// XPPerLevel is the experience a unit needs to earn one level-up roll (Battle Companies' progression threshold).
-const XPPerLevel = 5
+// KeywordCavalry is the unit keyword the Cavalry limit counts (limits[] of type keyword).
+const KeywordCavalry = "Cavalry"
 
 // CompanyUnit is one model of a battle company. Units are nameable: Name is the player's name for it (may be empty) and
 // Type is what it actually is ("Warrior of Minas Tirith").
 type CompanyUnit struct {
-	ID        int64
-	Name      string
-	Type      string
-	Role      UnitRole
-	Kind      UnitKind
-	Points    int
-	Stats     []Attribute
-	Equipment []Equipment // sorted with SortEquipment
+	ID   int64
+	Name string
+	Type string
+	// PromotedFrom is the profile the unit was recruited as when a promotion changed its Type; empty otherwise. Rare N counts it
+	// where the rules say promoted models count (campaign.recruitment.rare).
+	PromotedFrom string
+	Role         UnitRole
+	Kind         UnitKind
+	Points       int
+	Stats        []Attribute
+	Equipment    []Equipment // sorted with SortEquipment
 	// PoisonableWeapons are the weapons of the unit that Poisoned Attacks could still be given to (an Envenom Weapon, a level-up): the
 	// carried weapons whose class is among the weaponClasses of Envenom Weapon, minus those a Poisoned Attacks (<weapon>) rule names.
 	PoisonableWeapons []string
@@ -408,7 +414,9 @@ type CompanyUnit struct {
 	Injured           bool             // misses the next game: it does not count towards the company's rating
 	AtHealers         bool             // sent to the healers: its missed game is the price of the healing, field treatment cannot cancel it
 	Level             int
-	XP                int          // all the experience the unit has earned; each level-up roll uses XPPerLevel of it
+	XP                int          // all the experience the unit has earned; each level-up roll uses LevelEvery of it
+	BaseSlots         SlotCounts   // the equipment slots a model has before its items add any (campaign.company.equipmentSlots)
+	LevelEvery        int          // the experience that earns one level-up roll (campaign.progression.threshold)
 	PathPending       bool         // a hero that has not chosen its path yet: the company cannot play a match until it does
 	OwnPath           bool         // On Its Own Path: it earns no experience and never levels up
 	Models            int          // how many models it counts as against the company's maximum; 0 is one
@@ -437,8 +445,8 @@ func (d CompanyDetail) ModelCount() int {
 	return n
 }
 
-// XPInLevel is the experience earned towards the next level-up; it can be more than XPPerLevel when level-ups are waiting.
-func (u CompanyUnit) XPInLevel() int { return max(0, u.XP-u.Level*XPPerLevel) }
+// XPInLevel is the experience earned towards the next level-up; it can be more than LevelEvery when level-ups are waiting.
+func (u CompanyUnit) XPInLevel() int { return max(0, u.XP-u.Level*u.LevelEvery) }
 
 // PendingLevelUps is how many level-up rolls the unit can make now. A unit only gains a level once its roll is made,
 // so one that earned 15 XP at level 0 has 3 rolls waiting. A Wanderer and a unit On Its Own Path never level up: none waits.
@@ -446,7 +454,10 @@ func (u CompanyUnit) PendingLevelUps() int {
 	if u.Wanderer || u.OwnPath {
 		return 0
 	}
-	return u.XPInLevel() / XPPerLevel
+	if u.LevelEvery <= 0 { // a unit that was not built from a ruleset has no level-ups
+		return 0
+	}
+	return u.XPInLevel() / u.LevelEvery
 }
 
 // LockMessage is the reason a locked company gives (see LockMessage), empty when it is not locked.
@@ -465,8 +476,8 @@ func (u CompanyUnit) Title() string {
 	return u.Type
 }
 
-// Slots is how many of a unit's equipment slots are used. A model carries one large and one small piece of equipment; a
-// Backpack (a large item) holds three more small ones.
+// Slots is how many of a unit's equipment slots are used. The slots a model has and the ones an item adds come from the
+// rules file (campaign.company.equipmentSlots, data.gearAnnotations grantsSlots).
 type Slots struct {
 	LargeUsed, LargeMax int
 	SmallUsed, SmallMax int
@@ -477,7 +488,7 @@ func (s Slots) SmallFree() bool { return s.SmallUsed < s.SmallMax }
 
 // Slots counts the unit's equipment against its slots.
 func (u CompanyUnit) Slots() Slots {
-	s := Slots{LargeMax: 1, SmallMax: 1}
+	s := Slots{LargeMax: u.BaseSlots.Large, SmallMax: u.BaseSlots.Small}
 	for _, e := range u.Equipment {
 		switch e.Size {
 		case "large":
@@ -485,9 +496,8 @@ func (u CompanyUnit) Slots() Slots {
 		case "small":
 			s.SmallUsed++
 		}
-		if strings.EqualFold(e.Name, "Backpack") {
-			s.SmallMax += 3
-		}
+		s.LargeMax += e.GrantsSlots.Large
+		s.SmallMax += e.GrantsSlots.Small
 	}
 	return s
 }
@@ -505,25 +515,22 @@ func (u CompanyUnit) HasHeroStats() bool {
 func (u CompanyUnit) IsHero() bool { return u.Role != RoleWarrior }
 
 // CompanyLimit is how much of a capped resource a company uses (Battle Companies caps bows, throwing weapons and cavalry
-// at a third of the company, rounded up).
+// at a third of the company, rounded up: limits[] of the rules file).
 type CompanyLimit struct {
-	ID    string // bow, throwing or cavalry
+	ID    string // the limit's id in the rules file (bow, throwing, cavalry)
 	Label string
 	Used  int
 	Max   int // the most the company's models now allow
 	Next  int // the most when one more model has joined (it counts in numerator and denominator): where a recruit is checked
+	// LimitClasses are the item classes the limit counts and LimitKeyword the unit keyword it counts instead (limits[].classes, type keyword).
+	LimitClasses []EquipmentClass
+	LimitKeyword string
 }
 
 // RoomForNew says whether a model that counts once against the limit can join the company.
 func (l CompanyLimit) RoomForNew() bool { return l.Used+1 <= l.Next }
 
 func (l CompanyLimit) Full() bool { return l.Used >= l.Max }
-
-// CompanyLimits counts the limits with the default Battle Companies rules (a third of the models, rounded up, no company
-// exemptions); BCBook.Limits applies a company's own.
-func CompanyLimits(units []CompanyUnit) []CompanyLimit {
-	return computeLimits(defaultLimitRules, BCCompany{}, units)
-}
 
 // CompanyDetail is a company with everything its page shows.
 type CompanyDetail struct {
@@ -551,6 +558,8 @@ type CompanyDetail struct {
 	OfficersPending bool
 	Pack            *Pack       // what the Baggage Pony carries; nil when the company has none
 	Injuries        InjuryRules // what treating injuries costs and does (the rules file)
+	// RuleDice are the dice the pages roll for the company outside the aftermath: the level-ups and the Courage test of a Broken company.
+	RuleDice RuleDice
 	// Aftermaths are the aftermaths of ended matches the company still has to finish: it is locked until then. Perks and History
 	// come from the aftermath storage (CompanyService.WithAftermaths): the scenario perks, unused first, and the latest 20 lines
 	// of the company's aftermaths.
@@ -561,6 +570,14 @@ type CompanyDetail struct {
 	History   []AftermathLine
 }
 
+// RuleDice are dice of the rules file the pages need to throw and to ask for.
+type RuleDice struct {
+	Level   LevelDice
+	Courage DiceSpec // campaign.breakPoint.whenBroken.courageTest.dice
+	// The Against the Odds Reroll bonus (campaign.againstTheOdds.bonuses[key=reroll]): what it costs in Rating and how many re-rolls it gives.
+	RerollRating, RerollCount int
+}
+
 // RecruitInfo is what a company can do to get new units: roll on its reinforcement chart for a cost in influence (it
 // differs per company; a 6 may lead to a special chart), and buy special units directly for their own cost.
 type RecruitInfo struct {
@@ -568,7 +585,8 @@ type RecruitInfo struct {
 	Chart        []RecruitRow
 	SpecialChart []RecruitRow // the chart a "special chart" result leads to; empty when the company has none
 	Special      []SpecialRecruit
-	Notes        []string // what the company's page says about its reinforcements
+	Notes        []string     // what the company's page says about its reinforcements
+	Rules        RecruitRules // the recruiting parameters of the rules file: the window prints its numbers from here
 }
 
 // RecruitRow describes one line of a chart for the recruit window.
@@ -595,9 +613,6 @@ func (r RecruitRow) Roll() string {
 	return fmt.Sprintf("%d–%d", r.Min, r.Max)
 }
 
-// MaxAdjust is how much influence may be spent adjusting the rolls of one recruit, across both charts.
-const MaxAdjust = 3
-
 // RecruitRoll is a recruit in progress: the reinforcement price is paid and the roll made, and the player may now adjust
 // it with influence before confirming. A "special chart" result sends the recruit on to a second roll.
 type RecruitRoll struct {
@@ -607,7 +622,9 @@ type RecruitRoll struct {
 	// PerkAdjust is the Rendezvous bonus (+1 or -1) already applied to the die and PerkRaw the die before it: the window badges it
 	// ("5, Rendezvous +1 = 6"); both are zero without the perk.
 	PerkAdjust, PerkRaw int
-	Budget              int           // how many points the roll can still be raised by (1 influence each; a roll is never lowered by paying)
+	Budget, BudgetDown  int           // how many points the roll can still be raised and lowered by, at the rules' price (campaign.recruitment.adjust); 0 where the direction is not allowed
+	Adjust              AdjustRules   // the rules of the adjustment, for the window's text
+	Sides               int           // faces of the reinforcement die
 	Lower               *RecruitLower // set when the result cannot be recruited: the player chooses a lower one
 	// Replace is set on a rolled special chart result when the company is missing a member of a team (Vault Warden Team): the
 	// player may confirm with pick "member" to take that member instead of the result, at no extra cost.

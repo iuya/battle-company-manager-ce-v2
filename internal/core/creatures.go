@@ -7,9 +7,8 @@ import (
 
 // CreatureRules are the Battle Companies rules for creatures (data.creatures.rules): animals bought for the officers.
 type CreatureRules struct {
-	AttachTo      []string // the roles that may have one: leader, sergeant
-	MaxPerHero    int
-	MaxPerCompany int
+	AttachTo   []string // the roles that may have one: leader, sergeant
+	MaxPerHero int      // data.creatures.rules.maxPerHero; the company-wide count follows from one creature per officer
 }
 
 // CarryFeature is what the Baggage Pony gives the whole company: a pack the members can store gear in and take it from.
@@ -139,16 +138,15 @@ func ParseCreaturesAndWanderers(content []byte) (CreatureRules, []CreatureOffer,
 	var doc struct {
 		Data struct {
 			Creatures struct {
-				Rules struct {
-					AttachTo      []string `json:"attachTo"`
-					MaxPerHero    int      `json:"maxPerHero"`
-					MaxPerCompany int      `json:"maxPerCompany"`
+				Rules *struct {
+					AttachTo   []string `json:"attachTo"`
+					MaxPerHero *int     `json:"maxPerHero"`
 				} `json:"rules"`
 				Items []item `json:"items"`
 			} `json:"creatures"`
 			Wanderers struct {
-				Rules struct {
-					MaxAtOnce int `json:"maxAtOnce"`
+				Rules *struct {
+					MaxAtOnce *int `json:"maxAtOnce"`
 				} `json:"rules"`
 				Items []item `json:"items"`
 			} `json:"wanderers"`
@@ -171,7 +169,26 @@ func ParseCreaturesAndWanderers(content []byte) (CreatureRules, []CreatureOffer,
 	num := func(raw item, key string) (n int) { _ = json.Unmarshal(raw[key], &n); return }
 	list := func(raw item, key string) (l []string) { _ = json.Unmarshal(raw[key], &l); return }
 
-	cr := CreatureRules{AttachTo: doc.Data.Creatures.Rules.AttachTo, MaxPerHero: doc.Data.Creatures.Rules.MaxPerHero, MaxPerCompany: doc.Data.Creatures.Rules.MaxPerCompany}
+	var cr CreatureRules
+	var wr WandererRules
+	var pr problems
+	if r := doc.Data.Creatures.Rules; r != nil {
+		cr.AttachTo = r.AttachTo
+		cr.MaxPerHero = pr.intIn("data.creatures.rules.maxPerHero", r.MaxPerHero, 0, 99)
+		if cr.MaxPerHero > 1 { // an officer's creature is one place of its record
+			pr.add("data.creatures.rules.maxPerHero: %d is not supported, an officer keeps one creature", cr.MaxPerHero)
+		}
+	} else if len(doc.Data.Creatures.Items) > 0 {
+		pr.add("data.creatures.rules is missing")
+	}
+	if r := doc.Data.Wanderers.Rules; r != nil {
+		wr.MaxAtOnce = pr.intIn("data.wanderers.rules.maxAtOnce", r.MaxAtOnce, 0, 99)
+	} else if len(doc.Data.Wanderers.Items) > 0 {
+		pr.add("data.wanderers.rules is missing")
+	}
+	if err := pr.err(); err != nil {
+		return CreatureRules{}, nil, WandererRules{}, nil, err
+	}
 	var creatures []CreatureOffer
 	for _, raw := range doc.Data.Creatures.Items {
 		c := CreatureOffer{Name: str(raw, "name"), Cost: num(raw, "influence"), Gold: num(raw, "gold"), Points: num(raw, "points"), Stats: stats(raw), Rules: list(raw, "specialRules"), Notes: list(raw, "notes")}
@@ -200,7 +217,6 @@ func ParseCreaturesAndWanderers(content []byte) (CreatureRules, []CreatureOffer,
 			creatures = append(creatures, c)
 		}
 	}
-	wr := WandererRules{MaxAtOnce: doc.Data.Wanderers.Rules.MaxAtOnce}
 	var wanderers []WandererOffer
 	for _, raw := range doc.Data.Wanderers.Items {
 		w := WandererOffer{Name: str(raw, "name"), Cost: num(raw, "influence"), Gold: num(raw, "gold"), Points: num(raw, "points"), UnitTypes: list(raw, "unitType"), Stats: stats(raw),

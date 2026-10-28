@@ -145,6 +145,9 @@ func (c *CaptureDuplicates) Handle(_ context.Context, r slog.Record) error {
 
 // LoadRuleSet builds a rule set straight from the three files, as Rules does from the stored ones, logging to log.
 func LoadRuleSet(vanilla, bc, glossary []byte, log *slog.Logger) (*RuleSet, error) {
+	if isLeanFile(bc) { // a Battle Companies file of the lean format
+		return loadV2(vanilla, bc, glossary, log)
+	}
 	reviewed, err := ParseVanillaAmbiguities(bc)
 	if err != nil {
 		return nil, err
@@ -159,6 +162,9 @@ func LoadRuleSet(vanilla, bc, glossary []byte, log *slog.Logger) (*RuleSet, erro
 	}
 	bb.SpellWargearLikeVanilla(vb)
 	bb.ApplyUnitFillIns(vb)
+	if err := bb.CheckRaces(vb); err != nil {
+		return nil, err
+	}
 	hash, err := RulesetHash(glossary)
 	if err != nil {
 		return nil, err
@@ -240,7 +246,7 @@ func auditCompany(rs *RuleSet, in AuditInput, table itemTable, p CompanyProfile)
 
 	// The starting company as the creation form builds it.
 	heroes := p.DefaultHeroes()
-	st := CompanyState{Company: CampaignCompany{ID: 1, Name: p.Name, Faction: p.Name}, Influence: StartingInfluence, Gold: p.StartGold, Units: StartingUnits(p, heroes)}
+	st := CompanyState{Company: CampaignCompany{ID: 1, Name: p.Name, Faction: p.Name}, Influence: rs.BC.Recruiting().StartingInfluence, Gold: p.StartGold, Units: StartingUnits(p, heroes)}
 	ca.Detail = BuildDetail(rs, CampaignSettings{}, st)
 	ca.Armoury = nil
 
@@ -332,7 +338,7 @@ func auditCompany(rs *RuleSet, in AuditInput, table itemTable, p CompanyProfile)
 		ua.CanLead, ua.OwnPath = p.CanLead(r.name), p.OnOwnPath(r.name)
 
 		us := CompanyState{Company: CampaignCompany{ID: 1, Name: p.Name, Faction: p.Name}, Influence: auditInfluence, Gold: auditInfluence,
-			Units: []UnitState{{ID: 1, Base: r.name, Role: RoleWarrior, Gear: slices.Clone(r.wargear)}, {ID: 2, Base: r.name, Role: RoleHero, Bonus: HeroBonus(nil), Gear: slices.Clone(r.wargear)}}}
+			Units: []UnitState{{ID: 1, Base: r.name, Role: RoleWarrior, Gear: slices.Clone(r.wargear)}, {ID: 2, Base: r.name, Role: RoleHero, Bonus: rs.BC.HeroBonus(nil), Gear: slices.Clone(r.wargear)}}}
 		sh := newShop(rs, CampaignSettings{}, us)
 		ua.Warrior, _ = sh.unit(1)
 		ua.Hero, _ = sh.unit(2)

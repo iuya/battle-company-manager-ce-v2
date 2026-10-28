@@ -1,0 +1,529 @@
+# Easterlings (evil)
+
+=== anomalies (38) ===
+tooltip-name | Armoured horse | tooltip (bc armoury) never says "Armoured horse": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+tooltip-name | Armour | tooltip (bc definition) never says "Armour": Adds 1 to Defence.
+tooltip-name | Barding | tooltip (bc definition) never says "Barding": The rider gains the Expert Rider & Horselord special rules.
+tooltip-name | Blowpipe | tooltip (bc definition) never says "Blowpipe": 12" Range, 2 Strength. Benefits from the Poisoned Weapons special rule (re-roll …
+tooltip-name | Claws and teeth (hand weapon) | tooltip (none) never says "Claws and teeth (hand weapon)": These are the standard kind of weapon a model may carry, and is anything wielded…
+tooltip-name | Company Drum | tooltip (bc definition) never says "Company Drum": This is a War Drum that grants the bearer the Command Support keyword.
+tooltip-name | Company Horn | tooltip (bc definition) never says "Company Horn": This is a War Horn that grants the bearer the Command Support keyword.
+tooltip-name | Company Instrument | tooltip (bc definition) never says "Company Instrument": This is an Instrument that grants the bearer the Command Support keyword. Friend…
+tooltip-name | Company Standard | tooltip (bc definition) never says "Company Standard": This is a Pennant that grants the bearer the Command Support keyword. Friendly m…
+tooltip-name | Dunlending War Axe | tooltip (bc definition) never says "Dunlending War Axe": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Dwarf Bow | tooltip (bc definition) never says "Dwarf Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Dwarf Longbow | tooltip (bc definition) never says "Dwarf Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Easterling Halberd | tooltip (bc definition) never says "Easterling Halberd": This can be used as either a pike or a two-handed weapon.
+tooltip-name | Elf Bow | tooltip (bc definition) never says "Elf Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Elven hand-and-a-half weapon | tooltip (bc definition) never says "Elven hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | Elven lance | tooltip (bc definition) never says "Elven lance": A Cavalry model using a lance adds 1 to its To Wound rolls when making Strikes i…
+tooltip-name | Elven pike | tooltip (bc definition) never says "Elven pike": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Elven spear | tooltip (bc definition) never says "Elven spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Elven throwing weapon | tooltip (bc definition) never says "Elven throwing weapon": 6" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Envenom Weapon (X) | tooltip (bc definition) never says "Envenom Weapon (X)": When a model purchases Envenom Weapon, they must decide which weapon on their pr…
+tooltip-name | Esgaroth Bow | tooltip (bc definition) never says "Esgaroth Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Fell Warg | tooltip (bc armoury) never says "Fell Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | Galadhrim Steed | tooltip (bc definition) never says "Galadhrim Steed": This is an armoured horse that also has the Woodland Creature special rule.
+tooltip-name | Goat | tooltip (bc armoury) never says "Goat": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+tooltip-name | Hand-and-a-half weapon | tooltip (bc definition) never says "Hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | Heavy Armour | tooltip (bc definition) never says "Heavy Armour": Adds 2 to Defence.
+tooltip-name | Horse | tooltip (bc armoury) never says "Horse": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | Longbow | tooltip (bc definition) never says "Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Orc Bow | tooltip (bc definition) never says "Orc Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Seeing Stone | tooltip (bc definition) never says "Seeing Stone": Once per game, during the Priority Phase but before the roll for Priority, the b…
+tooltip-name | Short Bow | tooltip (bc definition) never says "Short Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Small Shield | tooltip (bc definition) never says "Small Shield": This is a Light Shield that gives the bearer +1 to their Defence Characteristic …
+tooltip-name | Spear | tooltip (bc definition) never says "Spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Throwing Spears | tooltip (bc definition) never says "Throwing Spears": 8" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Torching Brand | tooltip (bc definition) never says "Torching Brand": A model with a Torch gains the following benefits: They illuminate the area with…
+tooltip-name | Uruk-Hai Bow | tooltip (bc definition) never says "Uruk-Hai Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | War spear | tooltip (bc definition) never says "War spear": Counts as a lance while mounted, and a spear while dismounted
+tooltip-name | Warg | tooltip (bc armoury) never says "Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+
+=== profile (everything the company page holds) ===
+profile
+  BCCompany:
+    Name: "Easterlings"
+    Alignment: "evil"
+    MaxModels: 12
+    ReinforcementCost: 3
+    Reinforcements:
+      - {Min: 1, Max: 1, Result: {Type: "nothing", Count: 1, Blocks: true}}
+      - {Min: 2, Max: 2, Result: {Type: "unit", Unit: "Easterling Warrior", Count: 1, Wargear: ["Shield"]}}
+      - {Min: 3, Max: 3, Result: {Type: "unit", Unit: "Easterling Warrior", Count: 1, Wargear: ["Easterling Halberd", "Shield"]}}
+      - {Min: 4, Max: 4, Result: {Type: "unit", Unit: "Easterling Warrior", Count: 1, Wargear: ["Bow"]}}
+      - {Min: 5, Max: 5, Result: {Type: "unit", Unit: "Easterling Warrior", Count: 1, Choice: true}}
+      - {Min: 6, Max: 6, Result: {Type: "specialChart", Count: 1}}
+    SpecialChart:
+      - {Min: 1, Max: 3, Result: {Type: "unit", Unit: "Easterling Kataphrakt", Count: 1}}
+      - {Min: 4, Max: 5, Result: {Type: "unit", Unit: "Dragon Cult Acolyte", Count: 1}}
+      - {Min: 6, Max: 6, Result: {Type: "unit", Unit: "War Drake of Rhun", Count: 1, Rare: 2}}
+    LimitOverrides: {}
+  Description: "It is said of the Easterlings that there is no Mannish culture in Middle-earth so devoted to warfare, with every Easterling, male and female, learning to fight with spear and sword from their youth. Those who take their devotion to martial matters further will supplicate themselves at one of the many warrior shrines across the land, learning the art of bladecraft under the brutal tutelage of the Dragon Knights, in the hope of one day being raised to become one of their chosen 'Black Dragons'. To this end, aspirants will venture forth from their warrior shrine to test themselves, either against other shrines or, preferably, against the dwellers of other lands.\n\nA warband that succeeds in this task does not become rich in the conventional sense, for wealth is of no consequence to those who walk the blade-path. Indeed, any treasures plucked from the fallen are offered to their shrine as proof of their feats in battle. Victories inevitably draw more like-minded soldiers to their ranks, and while many warbands dwindle through defeat, the greatest will return back to their shrine triumphant, faces scarred from battle and their packs bulging with trophies taken from the vanquished."
+  Start:
+    - {Count: 1, Unit: "Black Dragon Warrior", Role: "leader"}
+    - {Count: 1, Unit: "Easterling Warrior", Wargear: ["Shield"]}
+    - {Count: 2, Unit: "Easterling Warrior", Wargear: ["Easterling Halberd", "Shield"]}
+    - {Count: 2, Unit: "Easterling Warrior", Wargear: ["Bow"]}
+  StartGold: 3
+  HeroUpgrades:
+    -
+      Name: "Skilled Blade"
+      Flavour: "An expert fighter, the Hero seeks out and issues a challenge to the leaders of the opposition, eager to prove themselves against the mightiest opponents in Middle-earth."
+      Rule: "Skilled Blade"
+      Text: "When fighting an enemy Hero, this Hero may force their opponent to reroll one of their dice in the Duel roll. This is not cumulative with other special rules that confer the same effect."
+  Oath:
+    Text: "Beyond the Sea of Rhun, our people have long served greater masters, and I now bind my chosen warriors in the Dark Lord's service. Under the banners of Rhun we are {name}, and the West will bow to the east wind."
+    Vow: "Rhun rises"
+  OwnPathUnits: ["War Drake of Rhun", "Dragon Cult Acolyte"]
+  OwnPath: "On Their Own Path"
+  OnTheirOwnPath: ["War Drake of Rhun", "Dragon Cult Acolyte"]
+  Notes: [{Section: "specialChart", Text: "War Drakes of Rhun & Dragon Cult Acolytes are On Their Own Path (pg. 33)."}]
+path "Path of the Tactician": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Sharpshooter": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Soldier": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Marksman": limit per company 0, start action "Heroic Accuracy", start power no; chart as in _progression.txt
+path "Path of the Claimant": limit per company 0, start action "Heroic Challenge", start power no; chart as in _progression.txt
+path "Path of the Sorcerer": limit per company 1, start action "Heroic Channeling", start power yes; chart as in _progression.txt
+path "Path of the Shieldbearer": limit per company 0, start action "Heroic Defence", start power no; chart as in _progression.txt
+path "Path of the Ranger": limit per company 0, start action "Heroic March", start power no; chart as in _progression.txt
+path "Path of the Warlord": limit per company 0, start action "Heroic Resolve", start power no; chart as in _progression.txt
+path "Path of the Berserker": limit per company 0, start action "Heroic Strength", start power no; chart as in _progression.txt
+path "Path of the Duelist": limit per company 0, start action "Heroic Strike", start power no; chart as in _progression.txt
+starting power power:Aura of Command = Aura of Command · 5+ · self
+starting power power:Aura of Dismay = Aura of Dismay · 4+ · self
+starting power power:Banishment = Banishment · 5+ · 6"
+starting power power:Black Dart = Black Dart · 6+ · 6"
+starting power power:Bladewrath = Bladewrath · 5+ · 6"
+starting power power:Blessing of the Valar = Blessing of the Valar · 4+ · 6"
+starting power power:Blinding Light = Blinding Light · 5+ · self
+starting power power:Call Winds = Call Winds · 5+ · 12"
+starting power power:Collapse Rocks = Collapse Rocks · 6+ · 12"
+starting power power:Compel = Compel · 5+ · 12"
+starting power power:Curse = Curse · 5+ · 12"
+starting power power:Drain Courage = Drain Courage · 5+ · 12"
+starting power power:Enchant Blades = Enchant Blades · 5+ · 6"
+starting power power:Enrage Beast = Enrage Beast · 5+ · 6"
+starting power power:Flameburst = Flameburst · 6+ · 6"
+starting power power:Fog of Disarray = Fog of Disarray · 4+ · self
+starting power power:Foil Magic = Foil Magic · 4+ · 12"
+starting power power:Fortify Spirit = Fortify Spirit · 4+ · 6"
+starting power power:Fury (Easterling) = Fury (Easterling) · 4+ · self
+starting power power:Fury (Moria Goblin) = Fury (Moria Goblin) · 4+ · self
+starting power power:Fury (Mordor Orc) = Fury (Mordor Orc) · 4+ · self
+starting power power:Fury (Isengard Orc) = Fury (Isengard Orc) · 4+ · self
+starting power power:Fury (Isengard Uruk-hai) = Fury (Isengard Uruk-hai) · 4+ · self
+starting power power:Fury (Beast) = Fury (Beast) · 4+ · self
+starting power power:Fury (Spider) = Fury (Spider) · 4+ · self
+starting power power:Instill Fear = Instill Fear · 6+ · self
+starting power power:Nature's Wrath = Nature's Wrath · 6+ · 3"
+starting power power:Panic Steed = Panic Steed · 5+ · 12"
+starting power power:Protection of the Valar = Protection of the Valar · 5+ · 6"
+starting power power:Renew = Renew · 5+ · 3"
+starting power power:Sorcerous Blast = Sorcerous Blast · 6+ · 6"
+starting power power:Strengthen Will = Strengthen Will · 5+ · 6"
+starting power power:Terrifying Aura = Terrifying Aura · 4+ · self
+starting power power:Transfix = Transfix · 5+ · 12"
+starting power power:Tremor = Tremor · 6+ · self
+starting power power:Wither = Wither · 5+ · 12"
+starting power power:Writhing Vines = Writhing Vines · 5+ · self
+
+=== start: gold, points and officer choices ===
+starting influence 0, gold 3
+default officers [{0 leader} {1 sergeant} {2 sergeant}]: 6 models, 102 points, total 105
+officer choices: 60 allowed, 0 refused; totals (points + gold) of the allowed ones:
+  total 105: 60 choices
+company at creation: 102 points, max units 12, break point 50%, limits:
+  limit bow "Bows" used 2 max 2 next 3
+  limit throwing "Throwing weapons" used 0 max 2 next 3
+  limit cavalry "Cavalry" used 0 max 2 next 3
+
+=== armoury of the company: unique wargear ===
+armoury size 62 (common 62 + unique 0)
+
+=== units ===
+
+-- Black Dragon Warrior
+from: start; promotion from Easterling Warrior
+vanilla Black Dragon Warrior: 10 points, types Warrior, Infantry, race Man, faction Easterling, Black Dragon
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 6 · A 1 · W 1 · C 6+ · I 6+
+rules: Phalanx, Warrior of the Dragon Cult | actions:  | wargear: Heavy Armour, Shield, Hand weapon
+keywords: Man/race/profile, Easterling/faction/profile, Black Dragon/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Exchange shield for banner" 25 pts, buyable yes | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Easterling Halberd" 1 pts, buyable yes
+choosable at recruit: Easterling Halberd
+built warrior: 10 points | equipment: Hand weapon (profile), Shield (profile), Heavy Armour (profile) | rules: Phalanx (unit), Warrior of the Dragon Cult (unit)
+built hero: 25 points | equipment: Hand weapon (profile), Shield (profile), Heavy Armour (profile) | rules: Phalanx (unit), Warrior of the Dragon Cult (unit)
+may lead yes | own path no | hero upgrades: Skilled Blade
+warrior can buy wargear (1): Easterling Halberd via Easterling Halberd
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 30 not an option of the profile; 13 for other reasons: set 2ee3a542
+hero can buy wargear (4): Armoured horse via Armoured horse; Bow via Bow; Throwing weapon via Throwing weapon; Easterling Halberd via Easterling Halberd
+hero can buy equipment (24): set 6f670c33
+hero refused: 27 not an option of the profile; 7 for other reasons: set 5ee0f1c6
+
+-- Easterling Warrior (Shield)
+from: start; reinforcements 2
+vanilla Easterling Warrior: 8 points, types Warrior, Infantry, race Man, faction Easterling
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 5 · A 1 · W 1 · C 7+ · I 6+
+rules: Phalanx | actions:  | wargear: Heavy Armour, Hand weapon
+keywords: Man/race/profile, Easterling/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Easterling Halberd and shield" 2 pts, buyable yes
+option "Bow" 1 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Easterling Halberd and shield, Bow, Shield
+built warrior: 9 points | equipment: Hand weapon (profile), Shield, Heavy Armour (profile) | rules: Phalanx (unit)
+built hero: 24 points | equipment: Hand weapon (profile), Shield, Heavy Armour (profile) | rules: Phalanx (unit)
+may lead yes | own path no | hero upgrades: Skilled Blade
+promotes to: Black Dragon Warrior
+promotes to: Easterling Kataphrakt
+warrior can buy wargear (2): Bow via Bow; Easterling Halberd via Easterling Halberd and shield
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 29 not an option of the profile; 13 for other reasons: set 2ee3a542
+hero can buy wargear (4): Armoured horse via Armoured horse; Bow via Bow; Throwing weapon via Throwing weapon; Easterling Halberd via Easterling Halberd
+hero can buy equipment (24): set 6f670c33
+hero refused: 27 not an option of the profile; 7 for other reasons: set 5ee0f1c6
+
+-- Easterling Warrior (Easterling Halberd, Shield)
+from: start; reinforcements 3
+vanilla Easterling Warrior: 8 points, types Warrior, Infantry, race Man, faction Easterling
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 5 · A 1 · W 1 · C 7+ · I 6+
+rules: Phalanx | actions:  | wargear: Heavy Armour, Hand weapon
+keywords: Man/race/profile, Easterling/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Easterling Halberd and shield" 2 pts, buyable yes
+option "Bow" 1 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Easterling Halberd and shield, Bow, Shield
+built warrior: 10 points | equipment: Hand weapon (profile), Easterling Halberd, Shield, Heavy Armour (profile) | rules: Phalanx (unit)
+built hero: 25 points | equipment: Hand weapon (profile), Easterling Halberd, Shield, Heavy Armour (profile) | rules: Phalanx (unit)
+may lead yes | own path no | hero upgrades: Skilled Blade
+promotes to: Black Dragon Warrior
+promotes to: Easterling Kataphrakt
+warrior can buy wargear (1): Bow via Bow
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 29 not an option of the profile; 14 for other reasons: set d092f21f
+hero can buy wargear (3): Armoured horse via Armoured horse; Bow via Bow; Throwing weapon via Throwing weapon
+hero can buy equipment (24): set 6f670c33
+hero refused: 27 not an option of the profile; 8 for other reasons: set 45b31b5f
+
+-- Easterling Warrior (Bow)
+from: start; reinforcements 4
+vanilla Easterling Warrior: 8 points, types Warrior, Infantry, race Man, faction Easterling
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 5 · A 1 · W 1 · C 7+ · I 6+
+rules: Phalanx | actions:  | wargear: Heavy Armour, Hand weapon
+keywords: Man/race/profile, Easterling/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Easterling Halberd and shield" 2 pts, buyable yes
+option "Bow" 1 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Easterling Halberd and shield, Bow, Shield
+built warrior: 9 points | equipment: Hand weapon (profile), Heavy Armour (profile), Bow | rules: Phalanx (unit)
+built hero: 24 points | equipment: Hand weapon (profile), Heavy Armour (profile), Bow | rules: Phalanx (unit)
+may lead yes | own path no | hero upgrades: Skilled Blade
+promotes to: Black Dragon Warrior
+promotes to: Easterling Kataphrakt
+warrior can buy wargear (2): Easterling Halberd via Easterling Halberd and shield; Shield via Easterling Halberd and shield
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 29 not an option of the profile; 13 for other reasons: set 56d83c1c
+hero can buy wargear (4): Armoured horse via Armoured horse; Throwing weapon via Throwing weapon; Easterling Halberd via Easterling Halberd; Shield via Exchange shield for banner
+hero can buy equipment (24): set 6f670c33
+hero refused: 27 not an option of the profile; 7 for other reasons: set 509a5d97
+
+-- Easterling Warrior
+from: reinforcements 5
+vanilla Easterling Warrior: 8 points, types Warrior, Infantry, race Man, faction Easterling
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 5 · A 1 · W 1 · C 7+ · I 6+
+rules: Phalanx | actions:  | wargear: Heavy Armour, Hand weapon
+keywords: Man/race/profile, Easterling/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Easterling Halberd and shield" 2 pts, buyable yes
+option "Bow" 1 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Easterling Halberd and shield, Bow, Shield
+built warrior: 8 points | equipment: Hand weapon (profile), Heavy Armour (profile) | rules: Phalanx (unit)
+built hero: 23 points | equipment: Hand weapon (profile), Heavy Armour (profile) | rules: Phalanx (unit)
+may lead yes | own path no | hero upgrades: Skilled Blade
+promotes to: Black Dragon Warrior
+promotes to: Easterling Kataphrakt
+warrior can buy wargear (3): Bow via Bow; Easterling Halberd via Easterling Halberd and shield; Shield via Easterling Halberd and shield
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 29 not an option of the profile; 12 for other reasons: set 5cd77772
+hero can buy wargear (5): Armoured horse via Armoured horse; Bow via Bow; Throwing weapon via Throwing weapon; Easterling Halberd via Easterling Halberd; Shield via Exchange shield for banner
+hero can buy equipment (24): set 6f670c33
+hero refused: 27 not an option of the profile; 6 for other reasons: set 46adf8e8
+
+-- Easterling Kataphrakt
+from: special chart 1-3; promotion from Easterling Warrior
+vanilla Easterling Kataphrakt: 15 points, types Warrior, Cavalry, race Man, faction Easterling
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 6 · A 1 · W 1 · C 7+ · I 6+
+rules: Phalanx, The Gleaming Horde | actions:  | wargear: Heavy Armour, Shield, Hand weapon, Armoured horse
+keywords: Man/race/profile, Easterling/faction/profile, Warrior/type/profile, Cavalry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Exchange shield for war drum" 25 pts, buyable yes | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+choosable at recruit: 
+built warrior: 15 points | equipment: Armoured horse (profile), Hand weapon (profile), Shield (profile), Heavy Armour (profile) | rules: Phalanx (unit), The Gleaming Horde (unit)
+built hero: 30 points | equipment: Armoured horse (profile), Hand weapon (profile), Shield (profile), Heavy Armour (profile) | rules: Phalanx (unit), The Gleaming Horde (unit)
+may lead yes | own path no | hero upgrades: Skilled Blade
+warrior can buy wargear (0): 
+warrior can buy equipment (19): set b9bf299f
+warrior refused: 30 not an option of the profile; 13 for other reasons: set 33af5db0
+hero can buy wargear (3): Bow via Bow; Throwing weapon via Throwing weapon; Easterling Halberd via Easterling Halberd
+hero can buy equipment (25): set 9d5ad3fe
+hero refused: 27 not an option of the profile; 7 for other reasons: set 7eb1beda
+
+-- Dragon Cult Acolyte
+from: special chart 4-5
+vanilla Dragon Cult Acolyte: 11 points, types Warrior, Infantry, race Man, faction Easterling, Black Dragon
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 4 · A 2 · W 1 · C 6+ · I 6+
+rules: Unyielding Combat Stance, Supreme Agility, Warrior of the Dragon Cult | actions:  | wargear: Armour, Hand weapon, Throwing weapon
+keywords: Man/race/profile, Easterling/faction/profile, Black Dragon/faction/profile, Warrior/type/profile, Infantry/type/profile
+choosable at recruit: 
+built warrior: 11 points | equipment: Hand weapon (profile), Armour (profile), Throwing weapon (profile) | rules: Unyielding Combat Stance (unit), Supreme Agility (unit), Warrior of the Dragon Cult (unit)
+built hero: 26 points | equipment: Hand weapon (profile), Armour (profile), Throwing weapon (profile) | rules: Unyielding Combat Stance (unit), Supreme Agility (unit), Warrior of the Dragon Cult (unit)
+may lead no | own path yes | hero upgrades: Skilled Blade
+warrior can buy wargear (0): 
+warrior can buy equipment (18): set cdfc1ae6
+warrior refused: 31 not an option of the profile; 13 for other reasons: set f729d0fd
+hero can buy wargear (4): Armoured horse via Armoured horse; Bow via Bow; Easterling Halberd via Easterling Halberd; Shield via Exchange shield for banner
+hero can buy equipment (24): set 6f670c33
+hero refused: 27 not an option of the profile; 7 for other reasons: set 996cc04d
+
+-- War Drake of Rhun
+from: special chart 6
+vanilla War Drake of Rhun: 20 points, types Warrior, Infantry, Beast, race Drake, faction Easterling
+profile: Mv 6" · FV 4 · SV 6+ · S 4 · D 5 · A 2 · W 2 · C 6+ · I 9+
+rules: Dominant (2), Terror, Venom, Slow-acting Venom | actions:  | wargear: Armour, Claws and teeth (hand weapon)
+keywords: Drake/race/profile, Easterling/faction/profile, Warrior/type/profile, Infantry/type/profile, Beast/type/profile
+choosable at recruit: 
+built warrior: 20 points | equipment: Claws and teeth (hand weapon) (profile), Armour (profile) | rules: Dominant (2) (unit), Terror (unit), Venom (unit), Slow-acting Venom (unit)
+built hero: 35 points | equipment: Claws and teeth (hand weapon) (profile), Armour (profile) | rules: Dominant (2) (unit), Terror (unit), Venom (unit), Slow-acting Venom (unit)
+may lead no | own path yes | hero upgrades: Skilled Blade
+warrior can buy wargear (0): 
+warrior can buy equipment (10): set 1ff4a3ef
+warrior refused: 0 not an option of the profile; 52 for other reasons: set df7d13bd
+hero can buy wargear (0): 
+hero can buy equipment (10): set 1ff4a3ef
+hero refused: 0 not an option of the profile; 52 for other reasons: set 804c5b2a
+
+=== hero upgrades and who may take them ===
+Skilled Blade (rule "Skilled Blade", restriction "", units []): allowed to 5 of 8 units: Black Dragon Warrior, Dragon Cult Acolyte, Easterling Kataphrakt, Easterling Warrior, War Drake of Rhun
+
+=== promotion: matching, choices and gear kept ===
+
+-- advancement 0
+advancement {FromUnit: "Easterling Warrior", To: [{Unit: "Black Dragon Warrior"}]}
+gear a Easterling Warrior may carry (4): Bow, Easterling Halberd, Shield, shield
+carrying nothing: matches warrior yes hero yes | choices warrior: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt | hero: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt
+    to Black Dragon Warrior (given ): warrior keeps [] drops []; a hero keeps everything
+carrying Bow: matches warrior yes hero yes | choices warrior: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt | hero: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt
+    to Black Dragon Warrior (given ): warrior keeps [] drops [Bow]; a hero keeps everything
+carrying Easterling Halberd: matches warrior yes hero yes | choices warrior: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt | hero: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt
+    to Black Dragon Warrior (given ): warrior keeps [Easterling Halberd] drops []; a hero keeps everything
+carrying Shield: matches warrior yes hero yes | choices warrior: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt | hero: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt
+    to Black Dragon Warrior (given ): warrior keeps [Shield] drops []; a hero keeps everything
+carrying shield: matches warrior yes hero yes | choices warrior: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt | hero: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt
+    to Black Dragon Warrior (given ): warrior keeps [shield] drops []; a hero keeps everything
+carrying everything: matches warrior yes hero yes | choices warrior: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt | hero: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt
+    to Black Dragon Warrior (given ): warrior keeps [Easterling Halberd, Shield, shield] drops [Bow]; a hero keeps everything
+
+-- advancement 1
+advancement {FromUnit: "Easterling Warrior", To: [{Unit: "Easterling Kataphrakt"}]}
+gear a Easterling Warrior may carry (4): Bow, Easterling Halberd, Shield, shield
+carrying nothing: matches warrior yes hero yes | choices warrior: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt | hero: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt
+    to Easterling Kataphrakt (given ): warrior keeps [] drops []; a hero keeps everything
+carrying Bow: matches warrior yes hero yes | choices warrior: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt | hero: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt
+    to Easterling Kataphrakt (given ): warrior keeps [] drops [Bow]; a hero keeps everything
+carrying Easterling Halberd: matches warrior yes hero yes | choices warrior: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt | hero: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt
+    to Easterling Kataphrakt (given ): warrior keeps [] drops [Easterling Halberd]; a hero keeps everything
+carrying Shield: matches warrior yes hero yes | choices warrior: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt | hero: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt
+    to Easterling Kataphrakt (given ): warrior keeps [Shield] drops []; a hero keeps everything
+carrying shield: matches warrior yes hero yes | choices warrior: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt | hero: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt
+    to Easterling Kataphrakt (given ): warrior keeps [shield] drops []; a hero keeps everything
+carrying everything: matches warrior yes hero yes | choices warrior: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt | hero: promo:0:0=Black Dragon Warrior, promo:1:0=Easterling Kataphrakt
+    to Easterling Kataphrakt (given ): warrior keeps [Shield, shield] drops [Bow, Easterling Halberd]; a hero keeps everything
+
+=== tooltips and glossary terms (digest of the text in _tooltips.txt) ===
+Armour | gear | bc definition | Armour | 2f9f13f9
+Armoured horse | gear | bc armoury | Armoured horse | 333e3f85
+Axe of Lossarnach | gear | bc definition | Axe of Lossarnach | 1b918223
+Backpack | gear | bc definition | Backpack | 7b80e55f
+Badge of Courage | gear | bc definition | Badge of Courage | bec4a181
+Banner | gear | bc definition | Banner | 416dceb6
+banner | gear | bc definition | Banner | 416dceb6
+Barding | gear | bc definition | Barding | 4c468a2d
+Blowpipe | gear | bc definition | Blowpipe | 21aa6a45
+Bow | gear | bc definition | Bow | 50b72f32
+Claws and teeth (hand weapon) | gear | none |  | a152aed7
+Climbing ropes | gear | bc definition | Climbing ropes | 51c983e4
+Company Drum | gear | bc definition | Company Drum | ceffaace
+Company Horn | gear | bc definition | Company Horn | bd7ab082
+Company Instrument | gear | bc definition | Company Instrument | 6fc2cb65
+Company Standard | gear | bc definition | Company Standard | 7d183865
+Concealing Cloak | gear | bc definition | Concealing Cloak | 04641e38
+Crossbow | gear | bc definition | Crossbow | 1d6c529f
+Dunlending War Axe | gear | bc definition | Dunlending War Axe | d12785f5
+Dwarf Bow | gear | bc definition | Dwarf Bow | b534ad01
+Dwarf Longbow | gear | bc definition | Dwarf Longbow | aa321757
+Dwarven Brew | gear | bc definition | Dwarven Brew | 0b7919b0
+Easterling Halberd | gear | bc definition | Easterling Halberd | cb29ec36
+Elf Bow | gear | bc definition | Elf Bow | aa321757
+Elven hand-and-a-half weapon | gear | bc definition |  | 93f1d3f0
+Elven lance | gear | bc definition |  | 4f2e75d6
+Elven pike | gear | bc definition |  | 5f6060e2
+Elven spear | gear | bc definition |  | a07b16fc
+Elven throwing weapon | gear | bc definition | Elven throwing weapon | 7c19502f
+Envenom Weapon (X) | gear | bc definition | Envenom Weapon (X) | 15b47736
+Esgaroth Bow | gear | bc definition | Esgaroth Bow | aa321757
+Fell Warg | gear | bc armoury | Fell Warg | a2c5ffdf
+Flaming Brand | gear | bc definition | Flaming Brand | ef23e06a
+Galadhrim Steed | gear | bc definition | Galadhrim Steed | 9092cc78
+Goat | gear | bc armoury | Goat | 333e3f85
+Hand weapon | gear | none | Hand Weapon | a152aed7
+Hand-and-a-half weapon | gear | bc definition | Hand-and-a-half Weapon | 5e201940
+Healing Herbs | gear | bc definition | Healing Herbs | b67655bf
+Heavy Armour | gear | bc definition | Heavy Armour | 25524851
+Horse | gear | bc armoury | Horse | a2c5ffdf
+Lance | gear | bc definition | Lance | c0628685
+Light Shield | gear | bc definition | Light Shield | 7dba0213
+Longbow | gear | bc definition | Longbow | aa321757
+Lucky Talisman | gear | bc definition | Lucky Talisman | edadbe36
+Map | gear | bc definition | Map | 2ecc3fda
+Mattock | gear | bc definition | Mattock | 2ada7b97
+Mountain Boots | gear | bc definition | Mountain Boots | 0dfacc62
+Orc Bow | gear | bc definition | Orc Bow | 6fd46631
+Pike | gear | bc definition | Pike | a96f4253
+Ring of Warding | gear | bc definition | Ring of Warding | c0e74ef4
+Scroll of Courage | gear | bc definition | Scroll of Courage | e83f5953
+Scroll of Hidden Paths | gear | bc definition | Scroll of Hidden Paths | 5fc4181c
+Seeing Stone | gear | bc definition | Seeing Stone | de3e77c7
+Shield | gear | bc definition | Shields | 399b67fd
+shield | gear | bc definition | Shields | 399b67fd
+Short Bow | gear | bc definition | Short Bow | 6fd46631
+Small Shield | gear | bc definition | Small Shield | cb8c5e2c
+Spear | gear | bc definition | Spear | 761cb2e2
+Throwing Spears | gear | bc definition | Throwing Spear | d5b6b5e7
+Throwing weapon | gear | bc definition | Throwing Weapons | 160baaa6
+Torching Brand | gear | bc definition | Torching Brand | 85ef5e26
+Traps & Snares | gear | bc definition | Traps & Snares | 69a67031
+Trophy Pelt | gear | bc definition | Trophy Pelt | 7e4eed78
+Two-handed weapon | gear | bc definition | Two-handed Weapon | 5e201940
+Uruk-Hai Bow | gear | bc definition | Uruk-Hai Bow | b534ad01
+war drum | gear | bc definition | War Drum | 0cb762ff
+War spear | gear | bc definition | War Spear | 8700bf62
+Warg | gear | bc armoury | Warg | a2c5ffdf
+Wondrous Cram | gear | bc definition | Wondrous Cram | 7853368f
+Woodland Belt | gear | bc definition | Woodland Belt | 2cd22098
+Dominant (2) | rule | vanilla rule | Dominant (2) | 8da59337
+Phalanx | rule | vanilla rule | Phalanx | 40aaa494
+Slow-acting Venom | rule | vanilla rule | Slow-acting Venom | ba48b1ac
+Supreme Agility | rule | vanilla rule | Supreme Agility | d444ab83
+Terror | rule | vanilla rule | Terror | b0b86d7b
+The Gleaming Horde | rule | vanilla rule | The Gleaming Horde | 960a9ad0
+Unyielding Combat Stance | rule | vanilla rule | Unyielding Combat Stance | 6bf807cd
+Venom | rule | vanilla rule | Venom | d640990b
+Warrior of the Dragon Cult | rule | vanilla rule | Warrior of the Dragon Cult | 5c04c982
+
+=== duplicated vanilla names the company uses ===
+
+=== name resolution: what every name the company mentions resolves to ===
+unit "Black Dragon Warrior" -> vanilla "Black Dragon Warrior"
+unit "Dragon Cult Acolyte" -> vanilla "Dragon Cult Acolyte"
+unit "Easterling Kataphrakt" -> vanilla "Easterling Kataphrakt"
+unit "Easterling Warrior" -> vanilla "Easterling Warrior"
+unit "War Drake of Rhun" -> vanilla "War Drake of Rhun"
+gear "Armour" -> key "armour" | annotation "Armour" | vanilla gear "Armour"
+gear "Armoured horse" -> key "armouredhorse" | offer "Armoured horse" size "" also [] | annotation "Armoured horse" | vanilla gear "Armoured horse"
+gear "Banner" -> key "banner" | annotation "Banner" | vanilla gear "Banner"
+gear "Bow" -> key "bow" | offer "Bow" size "" also [] | annotation "Bow" | vanilla gear "Bow"
+gear "Claws" -> key "claw" | unknown
+gear "Claws and teeth (hand weapon)" -> key "clawandteethhandweapon" | annotation "Claws and teeth (hand weapon)"
+gear "Easterling Halberd" -> key "easterlinghalberd" | offer "Easterling Halberd" size "" also [] | annotation "Easterling Halberd" | vanilla gear "Easterling Halberd"
+gear "Easterling Halberd and shield" -> key "easterlinghalberdandshield" | vanilla gear "Easterling Halberd and shield"
+gear "Exchange shield for banner" -> key "exchangeshieldforbanner" | vanilla gear "Exchange Shield for Banner"
+gear "Exchange shield for war drum" -> key "exchangeshieldforwardrum" | vanilla gear "Exchange shield for war drum"
+gear "Hand weapon" -> key "handweapon" | annotation "Hand weapon"
+gear "Heavy Armour" -> key "heavyarmour" | annotation "Heavy Armour" | vanilla gear "Heavy Armour"
+gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
+gear "Throwing weapon" -> key "throwingweapon" | offer "Throwing weapon" size "" also [Throwing weapons] | annotation "Throwing weapon" | vanilla gear "Throwing weapon"
+gear "banner" -> key "banner" | annotation "Banner" | vanilla gear "Banner"
+gear "shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
+gear "teeth" -> key "teeth" | unknown
+gear "war drum" -> key "wardrum" | annotation "War drum"
+rule "\"Hold positions, loose the arrows!\"" -> label "\"Hold positions, loose the arrows!\"" | text from bc rule | glossary "\"Hold positions, loose the arrows!\""
+rule "A Good Sort" -> label "A Good Sort" | text from bc rule | glossary "A Good Sort"
+rule "Big Game Hunter" -> label "Big Game Hunter" | text from bc rule | glossary "Big Game Hunter"
+rule "Burly" -> label "Burly" | text from bc rule | glossary "Burly"
+rule "Chief Advisor" -> label "Chief Advisor" | text from bc rule | glossary "Chief Advisor"
+rule "Claim the Throne" -> label "Claim the Throne" | text from bc rule | glossary "Claim the Throne"
+rule "Command Support" -> label "Command Support" | text from bc rule | glossary "Command Support"
+rule "Commanding Bellow" -> label "Commanding Bellow" | text from bc rule | glossary "Commanding Bellow"
+rule "Cunning Fighter" -> label "Cunning Fighter" | text from bc rule | glossary "Cunning Fighter"
+rule "Deceptive Caster" -> label "Deceptive Caster" | text from bc rule | glossary "Deceptive Caster"
+rule "Defender of the City" -> label "Defender of the City" | text from bc rule | glossary "Defender of the City"
+rule "Devastating Charge" -> label "Devastating Charge" | text from vanilla rule | glossary "Devastating Charge"
+rule "Dominant (2)" -> label "Dominant (2)" | text from vanilla rule | glossary "Dominant (2)"
+rule "Experienced Tracker" -> label "Experienced Tracker" | text from bc rule | glossary "Experienced Tracker"
+rule "Expert Rider" -> label "Expert Rider" | text from vanilla rule | glossary "Expert Rider"
+rule "Fearless" -> label "Fearless" | text from vanilla rule | glossary "Fearless"
+rule "Fearsome Charge" -> label "Fearsome Charge" | text from bc rule | glossary "Fearsome Charge"
+rule "Fell Sight" -> label "Fell Sight" | text from vanilla rule | glossary "Fell Sight"
+rule "For Glory" -> label "For Glory" | text from bc rule | glossary "For Glory"
+rule "Furious Tirade" -> label "Furious Tirade" | text from bc rule | glossary "Furious Tirade"
+rule "Fury of the Bear" -> label "Fury of the Bear" | text from bc rule | glossary "Fury of the Bear"
+rule "Gatekeeper" -> label "Gatekeeper" | text from bc rule | glossary "Gatekeeper"
+rule "General Hunter" -> label "General Hunter" | text from bc rule | glossary "General Hunter"
+rule "Grim Blade" -> label "Grim Blade" | text from bc rule | glossary "Grim Blade"
+rule "Heroic Accuracy" -> label "Heroic Accuracy" | text from none | glossary "Heroic Accuracy"
+rule "Heroic Challenge" -> label "Heroic Challenge" | text from none | glossary "Heroic Challenge"
+rule "Heroic Channeling" -> label "Heroic Channeling" | text from none | glossary "Heroic Channelling"
+rule "Heroic Defence" -> label "Heroic Defence" | text from none | glossary "Heroic Defence"
+rule "Heroic March" -> label "Heroic March" | text from none | glossary "Heroic March"
+rule "Heroic Resolve" -> label "Heroic Resolve" | text from none | glossary "Heroic Resolve"
+rule "Heroic Strength" -> label "Heroic Strength" | text from none | glossary "Heroic Strength"
+rule "Heroic Strike" -> label "Heroic Strike" | text from none | glossary "Heroic Strike"
+rule "Horse Lord" -> label "Horse Lord" | text from vanilla rule | glossary "Horse Lord"
+rule "Knife Mastery" -> label "Knife Mastery" | text from bc rule | glossary "Knife Mastery"
+rule "Lethal Aim" -> label "Lethal Aim" | text from bc rule | glossary "Lethal Aim"
+rule "Longbeard" -> label "Longbeard" | text from bc rule | glossary "Longbeard"
+rule "Marshal" -> label "Marshal" | text from bc rule | glossary "Marshal"
+rule "Master Duelist" -> label "Master Duelist" | text from bc rule | glossary "Master Duelist"
+rule "Master of Battle (3+)" -> label "Master of Battle (3+)" | text from vanilla rule | glossary "Master of Battle (3+)"
+rule "Master of Magic" -> label "Master of Magic" | text from bc rule | glossary "Master of Magic"
+rule "Master of Traps" -> label "Master of Traps" | text from vanilla rule | glossary "Master of Traps"
+rule "Mountain Dweller" -> label "Mountain Dweller" | text from vanilla rule | glossary "Mountain Dweller"
+rule "Oblivious to Pain" -> label "Oblivious to Pain" | text from bc rule | glossary "Oblivious to Pain"
+rule "Phalanx" -> label "Phalanx" | text from vanilla rule | glossary "Phalanx"
+rule "Pinpoint Shot" -> label "Pinpoint Shot" | text from bc rule | glossary "Pinpoint Shot"
+rule "Poisoned Attacks (Blowpipe)" -> label "Poisoned Attacks (Blowpipe)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Poisoned Attacks (X)" -> label "Poisoned Attacks (X)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Rallying Cry" -> label "Rallying Cry" | text from bc rule | glossary "Rallying Cry"
+rule "Rapid Fire" -> label "Rapid Fire" | text from bc rule | glossary "Rapid Fire"
+rule "Reading the Portents" -> label "Reading the Portents" | text from bc rule | glossary "Reading the Portents"
+rule "Reckless Charge" -> label "Reckless Charge" | text from bc rule | glossary "Reckless Charge"
+rule "Relentless Commander" -> label "Relentless Commander" | text from bc rule | glossary "Relentless Commander"
+rule "Resistant to Magic" -> label "Resistant to Magic" | text from vanilla rule | glossary "Resistant to Magic"
+rule "Skilled Blade" -> label "Skilled Blade" | text from bc rule | glossary "Skilled Blade"
+rule "Slow-acting Venom" -> label "Slow-acting Venom" | text from vanilla rule | glossary "Slow-acting Venom"
+rule "Sorcerous Adept" -> label "Sorcerous Adept" | text from bc rule | glossary "Sorcerous Adept"
+rule "Spectral Walk" -> label "Spectral Walk" | text from vanilla rule | glossary "Spectral Walk"
+rule "Spy" -> label "Spy" | text from bc rule | glossary "Spy"
+rule "Stalk Unseen" -> label "Stalk Unseen" | text from vanilla rule | glossary "Stalk Unseen"
+rule "Supreme Agility" -> label "Supreme Agility" | text from vanilla rule | glossary "Supreme Agility"
+rule "Swift Parry" -> label "Swift Parry" | text from bc rule | glossary "Swift Parry"
+rule "Swift Shot" -> label "Swift Shot" | text from bc rule | glossary "Swift Shot"
+rule "Terror" -> label "Terror" | text from vanilla rule | glossary "Terror"
+rule "Terror (Beast)" -> label "Terror (Beast)" | text from vanilla rule | glossary "Terror"
+rule "Terror (Cavalry)" -> label "Terror (Cavalry)" | text from vanilla rule | glossary "Terror"
+rule "The Gleaming Horde" -> label "The Gleaming Horde" | text from vanilla rule | glossary "The Gleaming Horde"
+rule "The King's Protector" -> label "The King's Protector" | text from bc rule | glossary "The King's Protector"
+rule "To Arms!" -> label "To Arms!" | text from bc rule | glossary "To Arms!"
+rule "Unyielding Combat Stance" -> label "Unyielding Combat Stance" | text from vanilla rule | glossary "Unyielding Combat Stance"
+rule "Usurper of Kings" -> label "Usurper of Kings" | text from bc rule | glossary "Usurper of Kings"
+rule "Venom" -> label "Venom" | text from vanilla rule | glossary "Venom"
+rule "Voice of Command" -> label "Voice of Command" | text from bc rule | glossary "Voice of Command"
+rule "Volley Fire" -> label "Volley Fire" | text from bc rule | glossary "Volley Fire"
+rule "Warrior of Renown" -> label "Warrior of Renown" | text from bc rule | glossary "Warrior of Renown"
+rule "Warrior of the Dragon Cult" -> label "Warrior of the Dragon Cult" | text from vanilla rule | glossary "Warrior of the Dragon Cult"
+rule "Woodland Creature" -> label "Woodland Creature" | text from vanilla rule | glossary "Woodland Creature"

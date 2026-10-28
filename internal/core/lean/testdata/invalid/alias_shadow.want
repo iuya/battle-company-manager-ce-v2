@@ -1,0 +1,2 @@
+battle_companies.json: units[1].aka[0]: "Ranger of Gondor" is a vanilla name; an alias must not shadow a different unit
+  hint: pick another alias, or annotate the unit instead

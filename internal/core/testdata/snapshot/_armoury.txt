@@ -1,0 +1,871 @@
+The common armoury every company sells (the company's own unique wargear is in its file), with the gear annotation of each item.
+
+item "Armoured horse" {Name: "Armoured horse", Classes: ["mount"], Cost: 4, Gold: {Warrior: 15, Hero: 25}, Rating: {Warrior: 15, Hero: 25}}
+annotation {Name: "Armoured horse", Classes: ["mount"], MountProfile: "Armoured horse"}
+
+item "Goat"
+  Name: "Goat"
+  Classes: ["mount"]
+  Cost: 4
+  Gold: {Warrior: 15, Hero: 25}
+  Rating: {Warrior: 15, Hero: 25}
+  Grants: ["Mountain Dweller", "Devastating Charge"]
+  GrantedTo: "mount"
+annotation {Name: "Goat", Classes: ["mount"], Grants: ["Mountain Dweller", "Devastating Charge"], GrantedTo: "mount", MountProfile: "War goat"}
+
+item "Galadhrim Steed"
+  Name: "Galadhrim Steed"
+  Classes: ["mount"]
+  Cost: 4
+  Gold: {Warrior: 15, Hero: 25}
+  Rating: {Warrior: 15, Hero: 25}
+  Description: "This is an armoured horse that also has the Woodland Creature special rule."
+  Grants: ["Woodland Creature"]
+  GrantedTo: "mount"
+annotation
+  Name: "Galadhrim Steed"
+  Classes: ["mount"]
+  Grants: ["Woodland Creature"]
+  GrantedTo: "mount"
+  Definition: "This is an armoured horse that also has the Woodland Creature special rule."
+  MountProfile: "Galadhrim Steed"
+
+item "Horse" {Name: "Horse", Classes: ["mount"], Cost: 3, Gold: {Warrior: 10, Hero: 20}, Rating: {Warrior: 10, Hero: 20}}
+annotation {Name: "Horse", Classes: ["mount"], MountProfile: "Horse"}
+
+item "Fell Warg"
+  Name: "Fell Warg"
+  Classes: ["mount"]
+  Cost: 3
+  Gold: {Warrior: 10, Hero: 20}
+  Rating: {Warrior: 10, Hero: 20}
+  Grants: ["Fell Sight"]
+  GrantedTo: "mount"
+annotation {Name: "Fell Warg", Classes: ["mount"], Grants: ["Fell Sight"], GrantedTo: "mount", MountProfile: "Fell Warg"}
+
+item "Warg" {Name: "Warg", Classes: ["mount"], Cost: 3, Gold: {Warrior: 10, Hero: 20}, Rating: {Warrior: 10, Hero: 20}}
+annotation {Name: "Warg", Classes: ["mount"], MountProfile: "Warg"}
+
+item "Bow"
+  Name: "Bow"
+  Classes: ["bow"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "24\" Range, 2 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Stats: "24\" · S2"
+annotation
+  Name: "Bow"
+  Classes: ["bow"]
+  Range: 24
+  Strength: 2
+  Definition: "24\" Range, 2 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Related: ["Short Bow", "Orc Bow", "Dwarf Bow"]
+
+item "Dwarf Bow"
+  Name: "Dwarf Bow"
+  Classes: ["bow"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "18\" Range, 3 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Stats: "18\" · S3"
+annotation
+  Name: "Dwarf Bow"
+  Classes: ["bow"]
+  Range: 18
+  Strength: 3
+  Definition: "18\" Range, 3 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Related: ["Bow", "Short Bow", "Orc Bow"]
+
+item "Uruk-Hai Bow"
+  Name: "Uruk-Hai Bow"
+  AlsoCalled: ["Uruk bow"]
+  Classes: ["bow"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "18\" Range, 3 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Stats: "18\" · S3"
+annotation
+  Name: "Uruk-Hai Bow"
+  Classes: ["bow"]
+  Aliases: ["Uruk bow"]
+  Range: 18
+  Strength: 3
+  Definition: "18\" Range, 3 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+
+item "Orc Bow"
+  Name: "Orc Bow"
+  Classes: ["bow"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "18\" Range, 2 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Stats: "18\" · S2"
+annotation
+  Name: "Orc Bow"
+  Classes: ["bow"]
+  Range: 18
+  Strength: 2
+  Definition: "18\" Range, 2 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Related: ["Bow", "Short Bow", "Dwarf Bow"]
+
+item "Short Bow"
+  Name: "Short Bow"
+  Classes: ["bow"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "18\" Range, 2 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Stats: "18\" · S2"
+annotation
+  Name: "Short Bow"
+  Classes: ["bow"]
+  Range: 18
+  Strength: 2
+  Definition: "18\" Range, 2 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Related: ["Bow", "Orc Bow", "Dwarf Bow"]
+
+item "Elf Bow"
+  Name: "Elf Bow"
+  Classes: ["bow"]
+  Cost: 2
+  Gold: {Warrior: 2, Hero: 5}
+  Rating: {Warrior: 2, Hero: 5}
+  Description: "24\" Range, 3 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Stats: "24\" · S3"
+annotation
+  Name: "Elf Bow"
+  Classes: ["bow"]
+  Range: 24
+  Strength: 3
+  Definition: "24\" Range, 3 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Related: ["Longbow", "Esgaroth Bow", "Dwarf Longbow"]
+
+item "Esgaroth Bow"
+  Name: "Esgaroth Bow"
+  Classes: ["bow"]
+  Cost: 2
+  Gold: {Warrior: 2, Hero: 5}
+  Rating: {Warrior: 2, Hero: 5}
+  Description: "24\" Range, 3 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Stats: "24\" · S3"
+annotation
+  Name: "Esgaroth Bow"
+  Classes: ["bow"]
+  Range: 24
+  Strength: 3
+  Definition: "24\" Range, 3 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Related: ["Elf Bow", "Longbow", "Dwarf Longbow"]
+
+item "Longbow"
+  Name: "Longbow"
+  Classes: ["bow"]
+  Cost: 2
+  Gold: {Warrior: 2, Hero: 5}
+  Rating: {Warrior: 2, Hero: 5}
+  Description: "24\" Range, 3 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Stats: "24\" · S3"
+annotation
+  Name: "Longbow"
+  Classes: ["bow"]
+  Range: 24
+  Strength: 3
+  Definition: "24\" Range, 3 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Related: ["Elf Bow", "Esgaroth Bow", "Dwarf Longbow"]
+
+item "Dwarf Longbow"
+  Name: "Dwarf Longbow"
+  Classes: ["bow"]
+  Cost: 2
+  Gold: {Warrior: 2, Hero: 5}
+  Rating: {Warrior: 2, Hero: 5}
+  Description: "24\" Range, 3 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Stats: "24\" · S3"
+annotation
+  Name: "Dwarf Longbow"
+  Classes: ["bow"]
+  Range: 24
+  Strength: 3
+  Definition: "24\" Range, 3 Strength. A model with a bow may shoot after moving, as long as it did not move more than half its Move Value; its Shoot Value is then worsened by 1 (a natural 6 always hits). Missile weapon with the range and Strength shown. Counts towards the Bow limit (Battle Companies count Heroes too); a model with a bow gets no Defence bonus from a shield."
+  Related: ["Elf Bow", "Longbow", "Esgaroth Bow"]
+
+item "Crossbow"
+  Name: "Crossbow"
+  Classes: ["crossbow"]
+  Cost: 2
+  Gold: {Warrior: 2, Hero: 5}
+  Rating: {Warrior: 2, Hero: 5}
+  Description: "24\" Range, 4 Strength. A model with a crossbow may not fire in the same turn that it has moved. It may not fire even after a short move, unlike a bow (which may fire after moving up to half its Move Value). Missile weapon with the range and Strength shown. Counts towards the Bow limit; a model with a crossbow gets no Defence bonus from a shield."
+  Stats: "24\" · S4"
+annotation
+  Name: "Crossbow"
+  Classes: ["crossbow"]
+  Range: 24
+  Strength: 4
+  Definition: "24\" Range, 4 Strength. A model with a crossbow may not fire in the same turn that it has moved. It may not fire even after a short move, unlike a bow (which may fire after moving up to half its Move Value). Missile weapon with the range and Strength shown. Counts towards the Bow limit; a model with a crossbow gets no Defence bonus from a shield."
+
+item "Blowpipe"
+  Name: "Blowpipe"
+  Classes: ["missile"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "12\" Range, 2 Strength. Benefits from the Poisoned Weapons special rule (re-roll 1s to wound)."
+  Grants: ["Poisoned Attacks (Blowpipe)"]
+  Stats: "12\" · S2"
+annotation
+  Name: "Blowpipe"
+  Classes: ["missile"]
+  Grants: ["Poisoned Attacks (Blowpipe)"]
+  Range: 12
+  Strength: 2
+  Definition: "12\" Range, 2 Strength. Benefits from the Poisoned Weapons special rule (re-roll 1s to wound)."
+
+item "Throwing weapon"
+  Name: "Throwing weapon"
+  AlsoCalled: ["Throwing weapons"]
+  Classes: ["throwing"]
+  Cost: 1
+  Gold: {Warrior: 2, Hero: 5}
+  Rating: {Warrior: 2, Hero: 5}
+  Description: "6\" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after a full Move (no Move-and-shoot penalty), or once per turn in the Move Phase when Charging (stop 1\" short, throw, then continue the Charge against that target). Counts towards the Throwing Weapon limit, not the Bow limit."
+  Stats: "6\" · S3"
+annotation
+  Name: "Throwing weapon"
+  Classes: ["throwing"]
+  Aliases: ["Throwing weapons"]
+  Range: 6
+  Strength: 3
+  Definition: "6\" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after a full Move (no Move-and-shoot penalty), or once per turn in the Move Phase when Charging (stop 1\" short, throw, then continue the Charge against that target). Counts towards the Throwing Weapon limit, not the Bow limit."
+
+item "Throwing Spears"
+  Name: "Throwing Spears"
+  AlsoCalled: ["Throwing Spear", "Throwing spear"]
+  Classes: ["throwing"]
+  Cost: 1
+  Gold: {Warrior: 2, Hero: 5}
+  Rating: {Warrior: 2, Hero: 5}
+  Description: "8\" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after a full Move (no Move-and-shoot penalty), or once per turn in the Move Phase when Charging (stop 1\" short, throw, then continue the Charge against that target). Counts towards the Throwing Weapon limit, not the Bow limit."
+  Stats: "8\" · S3"
+annotation
+  Name: "Throwing Spears"
+  Classes: ["throwing"]
+  Aliases: ["Throwing Spear", "Throwing spear"]
+  Range: 8
+  Strength: 3
+  Definition: "8\" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after a full Move (no Move-and-shoot penalty), or once per turn in the Move Phase when Charging (stop 1\" short, throw, then continue the Charge against that target). Counts towards the Throwing Weapon limit, not the Bow limit."
+
+item "Pike"
+  Name: "Pike"
+  Classes: ["spear"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "Pikes function in much the same way as spears, and allow models to Support in exactly the same way as those armed with a spear. Additionally, a model armed with a pike can Support another friendly model armed with a pike that is Supporting a friendly model Engaged in Combat - essentially giving two Supports to the same model. A pike requires two hands to use, and so a model armed with a pike will suffer a -1 penalty to their Duel Rolls if they are armed with a shield or a Missile Weapon. As models armed with pikes can effectively Support at three models deep (one Engaged in Combat and two Supporting), it can be very easy to cause your own models to be Trapped, as only one model may Back Away not two. This is the risk of Supporting in such depth. Additionally, if a Cavalry model Charges a model armed with a pike, then the model with a pike will gain a bonus of +l To Wound when making Strikes against the Mount in the ensuing Combat."
+annotation
+  Name: "Pike"
+  Classes: ["spear"]
+  Definition: "Pikes function in much the same way as spears, and allow models to Support in exactly the same way as those armed with a spear. Additionally, a model armed with a pike can Support another friendly model armed with a pike that is Supporting a friendly model Engaged in Combat - essentially giving two Supports to the same model. A pike requires two hands to use, and so a model armed with a pike will suffer a -1 penalty to their Duel Rolls if they are armed with a shield or a Missile Weapon. As models armed with pikes can effectively Support at three models deep (one Engaged in Combat and two Supporting), it can be very easy to cause your own models to be Trapped, as only one model may Back Away not two. This is the risk of Supporting in such depth. Additionally, if a Cavalry model Charges a model armed with a pike, then the model with a pike will gain a bonus of +l To Wound when making Strikes against the Mount in the ensuing Combat."
+
+item "Spear"
+  Name: "Spear"
+  Classes: ["spear"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "Support: an Infantry model with it that is not Engaged in Combat can assist a friendly model in base contact whose base is the same size or smaller. It adds one dice (its own Fight Value) to that Combat's Duel Roll and, if its side wins, makes one Strike with its own Strength. A Supporting model is not involved in the Combat (cannot be struck). It Supports one Combat per Fight Phase and cannot Support if Prone, unable to Activate, or if it shot that turn. It is a hand weapon when the model is Engaged."
+annotation
+  Name: "Spear"
+  Classes: ["spear"]
+  Definition: "Support: an Infantry model with it that is not Engaged in Combat can assist a friendly model in base contact whose base is the same size or smaller. It adds one dice (its own Fight Value) to that Combat's Duel Roll and, if its side wins, makes one Strike with its own Strength. A Supporting model is not involved in the Combat (cannot be struck). It Supports one Combat per Fight Phase and cannot Support if Prone, unable to Activate, or if it shot that turn. It is a hand weapon when the model is Engaged."
+
+item "Lance"
+  Name: "Lance"
+  Classes: ["lance"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "A Cavalry model using a lance receives a bonus when making Strikes in a turn that they have Charged; add 1 to their roll To Wound - thus, a score of 2 becomes 3, 4 becomes 5 and so on. Note, in cases where two rolls are required (e.g., 6/4+), this will affect both rolls. A Cavalry model using a lance even gets this bonus against other Cavalry models, as long as it has Charged, although not if it is within difficult terrain. If a Cavalry model with a lance dismounts, or their steed is slain, they will ordinarily abandon their lance, resorting to using another hand weapon."
+annotation
+  Name: "Lance"
+  Classes: ["lance"]
+  Definition: "A Cavalry model using a lance receives a bonus when making Strikes in a turn that they have Charged; add 1 to their roll To Wound - thus, a score of 2 becomes 3, 4 becomes 5 and so on. Note, in cases where two rolls are required (e.g., 6/4+), this will affect both rolls. A Cavalry model using a lance even gets this bonus against other Cavalry models, as long as it has Charged, although not if it is within difficult terrain. If a Cavalry model with a lance dismounts, or their steed is slain, they will ordinarily abandon their lance, resorting to using another hand weapon."
+  RequiresMount: true
+
+item "War spear"
+  Name: "War spear"
+  AlsoCalled: ["Warspear"]
+  Classes: ["spear", "lance"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "Counts as a lance while mounted, and a spear while dismounted"
+annotation
+  Name: "War spear"
+  Classes: ["spear", "lance"]
+  Aliases: ["Warspear"]
+  Definition: "Counts as a lance while mounted, and a spear while dismounted"
+
+item "Hand-and-a-half weapon"
+  Name: "Hand-and-a-half weapon"
+  Classes: ["melee", "two_handed"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound rolls when making Strikes."
+annotation
+  Name: "Hand-and-a-half weapon"
+  Classes: ["melee", "two_handed"]
+  Definition: "Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound rolls when making Strikes."
+
+item "Two-handed weapon"
+  Name: "Two-handed weapon"
+  AlsoCalled: ["Two-handed Axe", "Two-handed axe"]
+  Classes: ["two_handed"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound rolls when making Strikes."
+annotation
+  Name: "Two-handed weapon"
+  Classes: ["two_handed"]
+  Aliases: ["Two-handed Axe", "Two-handed axe"]
+  Definition: "Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound rolls when making Strikes."
+
+item "Mattock"
+  Name: "Mattock"
+  Classes: ["two_handed"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "This is a two-handed weapon. Additionally, if a model wielding a Mattock wins a Duel Roll they may choose to try to knock down an enemy model instead of making Strikes. If they do, choose a single enemy model involved in the Combat. This model and the chosen model both roll a single D6 and add their Strength characteristic. If this model rolls equal to or higher than the chosen model, then the chosen model is immediately knocked Prone. This may be done before any other friendly models make their strikes. Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound rolls when making Strikes."
+annotation
+  Name: "Mattock"
+  Classes: ["two_handed"]
+  Definition: "This is a two-handed weapon. Additionally, if a model wielding a Mattock wins a Duel Roll they may choose to try to knock down an enemy model instead of making Strikes. If they do, choose a single enemy model involved in the Combat. This model and the chosen model both roll a single D6 and add their Strength characteristic. If this model rolls equal to or higher than the chosen model, then the chosen model is immediately knocked Prone. This may be done before any other friendly models make their strikes. Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound rolls when making Strikes."
+
+item "Axe of Lossarnach"
+  Name: "Axe of Lossarnach"
+  Classes: ["spear", "two_handed"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "An Axe of Lossarnach can be used either as a spear or a two-handed weapon."
+annotation
+  Name: "Axe of Lossarnach"
+  Classes: ["spear", "two_handed"]
+  Definition: "An Axe of Lossarnach can be used either as a spear or a two-handed weapon."
+
+item "Dunlending War Axe"
+  Name: "Dunlending War Axe"
+  Classes: ["spear", "two_handed"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "Support: an Infantry model with it that is not Engaged in Combat can assist a friendly model in base contact whose base is the same size or smaller. It adds one dice (its own Fight Value) to that Combat's Duel Roll and, if its side wins, makes one Strike with its own Strength. A Supporting model is not involved in the Combat (cannot be struck). It Supports one Combat per Fight Phase and cannot Support if Prone, unable to Activate, or if it shot that turn. It is a hand weapon when the model is Engaged. Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound rolls when making Strikes."
+annotation
+  Name: "Dunlending War Axe"
+  Classes: ["spear", "two_handed"]
+  Definition: "Support: an Infantry model with it that is not Engaged in Combat can assist a friendly model in base contact whose base is the same size or smaller. It adds one dice (its own Fight Value) to that Combat's Duel Roll and, if its side wins, makes one Strike with its own Strength. A Supporting model is not involved in the Combat (cannot be struck). It Supports one Combat per Fight Phase and cannot Support if Prone, unable to Activate, or if it shot that turn. It is a hand weapon when the model is Engaged. Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound rolls when making Strikes."
+
+item "Easterling Halberd"
+  Name: "Easterling Halberd"
+  Classes: ["spear", "two_handed"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "This can be used as either a pike or a two-handed weapon."
+annotation {Name: "Easterling Halberd", Classes: ["spear", "two_handed"], Definition: "This can be used as either a pike or a two-handed weapon."}
+
+item "Flaming Brand"
+  Name: "Flaming Brand"
+  AlsoCalled: ["Flaming Brands"]
+  Classes: ["melee"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "A model with a flaming brand has the Terror (Cavalry) and Terror (Beast) special rules. Additionally, a model with a flaming brand counts as 2 models rather than 1 when working out how many models are within range of an Objective Marker."
+  Grants: ["Terror (Cavalry)", "Terror (Beast)"]
+annotation
+  Name: "Flaming Brand"
+  Classes: ["melee"]
+  Aliases: ["Flaming Brands"]
+  Grants: ["Terror (Cavalry)", "Terror (Beast)"]
+  Definition: "A model with a flaming brand has the Terror (Cavalry) and Terror (Beast) special rules. Additionally, a model with a flaming brand counts as 2 models rather than 1 when working out how many models are within range of an Objective Marker."
+
+item "Light Shield"
+  Name: "Light Shield"
+  Classes: ["shield"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "A model with a light shield does not gain a bonus to its Defence. However, it may use the Shielding special rule."
+annotation
+  Name: "Light Shield"
+  Classes: ["shield"]
+  Definition: "A model with a light shield does not gain a bonus to its Defence. However, it may use the Shielding special rule."
+  Related: ["Shield", "Small Shield"]
+
+item "Shield"
+  Name: "Shield"
+  Classes: ["shield"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "Adds 1 to Defence, but not if the model also has a bow, crossbow, two-handed weapon or pike (or uses a hand-and-a-half weapon two-handed in that Combat). Shielding (Active): at the start of a Combat, before the Duel Roll, the model may double its Attacks for that Combat; if it wins it cannot Strike and gets no benefit from its weapons' special rules. In a Multiple Combat all friendly models must Shield or none can; a Shielding model cannot be Supported; Cavalry cannot Shield; a Prone model can."
+annotation
+  Name: "Shield"
+  Classes: ["shield"]
+  Definition: "Adds 1 to Defence, but not if the model also has a bow, crossbow, two-handed weapon or pike (or uses a hand-and-a-half weapon two-handed in that Combat). Shielding (Active): at the start of a Combat, before the Duel Roll, the model may double its Attacks for that Combat; if it wins it cannot Strike and gets no benefit from its weapons' special rules. In a Multiple Combat all friendly models must Shield or none can; a Shielding model cannot be Supported; Cavalry cannot Shield; a Prone model can."
+  Related: ["Light Shield", "Small Shield"]
+  Defence:
+    Value: 1
+    CancelledByClasses: ["bow", "crossbow", "two_handed"]
+    CancelledByItems: ["Pike"]
+    TwoHandedUse: true
+    Lifted: [{Rule: "Expert Rider", Cancels: ["bow"], WhileMounted: true}, {Rule: "Phalanx", Cancels: ["Pike"]}]
+
+item "Elven hand-and-a-half weapon"
+  Name: "Elven hand-and-a-half weapon"
+  AlsoCalled: ["Elven-made Hand-and-a-half Weapon", "Elven-made hand-and-a-half weapon"]
+  Classes: ["melee", "two_handed"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound rolls when making Strikes. Elven weapon: If a model fights with an Elven weapon in a Combat, they will be more likely to win the Duel Roll in the result of a Drawn Combat. In these instances, a Good model armed with an Elven weapon will win the roll-off on a 3+, whilst an Evil model armed with an Elven weapon will win the roll-off on a 1-4. If both sides have an Elven weapon, neither side gains the benefit. Some Missile Weapons may also be classed as Elven weapons; however, the above bonus only applies to Melee Weapons."
+annotation
+  Name: "Elven hand-and-a-half weapon"
+  Classes: ["melee", "two_handed"]
+  Aliases: ["Elven-made Hand-and-a-half Weapon", "Elven-made hand-and-a-half weapon"]
+  Definition: "Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound rolls when making Strikes. Elven weapon: If a model fights with an Elven weapon in a Combat, they will be more likely to win the Duel Roll in the result of a Drawn Combat. In these instances, a Good model armed with an Elven weapon will win the roll-off on a 3+, whilst an Evil model armed with an Elven weapon will win the roll-off on a 1-4. If both sides have an Elven weapon, neither side gains the benefit. Some Missile Weapons may also be classed as Elven weapons; however, the above bonus only applies to Melee Weapons."
+  Base: "Hand-and-a-half weapon"
+  Modifiers: ["elven"]
+  PricedAs: "Hand-and-a-half weapon"
+
+item "Elven lance"
+  Name: "Elven lance"
+  Classes: ["lance"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "A Cavalry model using a lance adds 1 to its To Wound rolls when making Strikes in a Combat in which it Charged (not a Duel bonus), except when it Charged from within Difficult Terrain. A rider that dismounts or loses its Mount discards the lance. Elven weapon: If a model fights with an Elven weapon in a Combat, they will be more likely to win the Duel Roll in the result of a Drawn Combat. In these instances, a Good model armed with an Elven weapon will win the roll-off on a 3+, whilst an Evil model armed with an Elven weapon will win the roll-off on a 1-4. If both sides have an Elven weapon, neither side gains the benefit. Some Missile Weapons may also be classed as Elven weapons; however, the above bonus only applies to Melee Weapons."
+annotation
+  Name: "Elven lance"
+  Classes: ["lance"]
+  Definition: "A Cavalry model using a lance adds 1 to its To Wound rolls when making Strikes in a Combat in which it Charged (not a Duel bonus), except when it Charged from within Difficult Terrain. A rider that dismounts or loses its Mount discards the lance. Elven weapon: If a model fights with an Elven weapon in a Combat, they will be more likely to win the Duel Roll in the result of a Drawn Combat. In these instances, a Good model armed with an Elven weapon will win the roll-off on a 3+, whilst an Evil model armed with an Elven weapon will win the roll-off on a 1-4. If both sides have an Elven weapon, neither side gains the benefit. Some Missile Weapons may also be classed as Elven weapons; however, the above bonus only applies to Melee Weapons."
+  Base: "Lance"
+  Modifiers: ["elven"]
+  PricedAs: "Lance"
+  RequiresMount: true
+
+item "Elven pike"
+  Name: "Elven pike"
+  Classes: ["spear"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "Support: an Infantry model with it that is not Engaged in Combat can assist a friendly model in base contact whose base is the same size or smaller. It adds one dice (its own Fight Value) to that Combat's Duel Roll and, if its side wins, makes one Strike with its own Strength. A Supporting model is not involved in the Combat (cannot be struck). It Supports one Combat per Fight Phase and cannot Support if Prone, unable to Activate, or if it shot that turn. A pike can also Support another pike-armed model that is itself Supporting (two Supports deep; beware Trapping, only one model may Back Away). A pike needs two hands: -1 to Duel Rolls if the model also has a shield or a Missile Weapon. If a Cavalry model Charges a pike-armed model, the pike-bearer gets +1 To Wound when Striking the Mount. Elven weapon: If a model fights with an Elven weapon in a Combat, they will be more likely to win the Duel Roll in the result of a Drawn Combat. In these instances, a Good model armed with an Elven weapon will win the roll-off on a 3+, whilst an Evil model armed with an Elven weapon will win the roll-off on a 1-4. If both sides have an Elven weapon, neither side gains the benefit. Some Missile Weapons may also be classed as Elven weapons; however, the above bonus only applies to Melee Weapons."
+annotation
+  Name: "Elven pike"
+  Classes: ["spear"]
+  Definition: "Support: an Infantry model with it that is not Engaged in Combat can assist a friendly model in base contact whose base is the same size or smaller. It adds one dice (its own Fight Value) to that Combat's Duel Roll and, if its side wins, makes one Strike with its own Strength. A Supporting model is not involved in the Combat (cannot be struck). It Supports one Combat per Fight Phase and cannot Support if Prone, unable to Activate, or if it shot that turn. A pike can also Support another pike-armed model that is itself Supporting (two Supports deep; beware Trapping, only one model may Back Away). A pike needs two hands: -1 to Duel Rolls if the model also has a shield or a Missile Weapon. If a Cavalry model Charges a pike-armed model, the pike-bearer gets +1 To Wound when Striking the Mount. Elven weapon: If a model fights with an Elven weapon in a Combat, they will be more likely to win the Duel Roll in the result of a Drawn Combat. In these instances, a Good model armed with an Elven weapon will win the roll-off on a 3+, whilst an Evil model armed with an Elven weapon will win the roll-off on a 1-4. If both sides have an Elven weapon, neither side gains the benefit. Some Missile Weapons may also be classed as Elven weapons; however, the above bonus only applies to Melee Weapons."
+  Base: "Pike"
+  Modifiers: ["elven"]
+  PricedAs: "Pike"
+
+item "Elven spear"
+  Name: "Elven spear"
+  Classes: ["spear"]
+  Cost: 1
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "Support: an Infantry model with it that is not Engaged in Combat can assist a friendly model in base contact whose base is the same size or smaller. It adds one dice (its own Fight Value) to that Combat's Duel Roll and, if its side wins, makes one Strike with its own Strength. A Supporting model is not involved in the Combat (cannot be struck). It Supports one Combat per Fight Phase and cannot Support if Prone, unable to Activate, or if it shot that turn. It is a hand weapon when the model is Engaged. Elven weapon: If a model fights with an Elven weapon in a Combat, they will be more likely to win the Duel Roll in the result of a Drawn Combat. In these instances, a Good model armed with an Elven weapon will win the roll-off on a 3+, whilst an Evil model armed with an Elven weapon will win the roll-off on a 1-4. If both sides have an Elven weapon, neither side gains the benefit. Some Missile Weapons may also be classed as Elven weapons; however, the above bonus only applies to Melee Weapons."
+annotation
+  Name: "Elven spear"
+  Classes: ["spear"]
+  Definition: "Support: an Infantry model with it that is not Engaged in Combat can assist a friendly model in base contact whose base is the same size or smaller. It adds one dice (its own Fight Value) to that Combat's Duel Roll and, if its side wins, makes one Strike with its own Strength. A Supporting model is not involved in the Combat (cannot be struck). It Supports one Combat per Fight Phase and cannot Support if Prone, unable to Activate, or if it shot that turn. It is a hand weapon when the model is Engaged. Elven weapon: If a model fights with an Elven weapon in a Combat, they will be more likely to win the Duel Roll in the result of a Drawn Combat. In these instances, a Good model armed with an Elven weapon will win the roll-off on a 3+, whilst an Evil model armed with an Elven weapon will win the roll-off on a 1-4. If both sides have an Elven weapon, neither side gains the benefit. Some Missile Weapons may also be classed as Elven weapons; however, the above bonus only applies to Melee Weapons."
+  Base: "Spear"
+  Modifiers: ["elven"]
+  PricedAs: "Spear"
+
+item "Elven throwing weapon"
+  Name: "Elven throwing weapon"
+  AlsoCalled: ["Elven throwing weapons"]
+  Classes: ["throwing"]
+  Cost: 1
+  Gold: {Warrior: 2, Hero: 5}
+  Rating: {Warrior: 2, Hero: 5}
+  Description: "6\" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after a full Move (no Move-and-shoot penalty), or once per turn in the Move Phase when Charging (stop 1\" short, throw, then continue the Charge against that target). Counts towards the Throwing Weapon limit, not the Bow limit. Elven weapon: If a model fights with an Elven weapon in a Combat, they will be more likely to win the Duel Roll in the result of a Drawn Combat. In these instances, a Good model armed with an Elven weapon will win the roll-off on a 3+, whilst an Evil model armed with an Elven weapon will win the roll-off on a 1-4. If both sides have an Elven weapon, neither side gains the benefit. Some Missile Weapons may also be classed as Elven weapons; however, the above bonus only applies to Melee Weapons."
+  Stats: "6\" · S3"
+annotation
+  Name: "Elven throwing weapon"
+  Classes: ["throwing"]
+  Aliases: ["Elven throwing weapons"]
+  Range: 6
+  Strength: 3
+  Definition: "6\" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after a full Move (no Move-and-shoot penalty), or once per turn in the Move Phase when Charging (stop 1\" short, throw, then continue the Charge against that target). Counts towards the Throwing Weapon limit, not the Bow limit. Elven weapon: If a model fights with an Elven weapon in a Combat, they will be more likely to win the Duel Roll in the result of a Drawn Combat. In these instances, a Good model armed with an Elven weapon will win the roll-off on a 3+, whilst an Evil model armed with an Elven weapon will win the roll-off on a 1-4. If both sides have an Elven weapon, neither side gains the benefit. Some Missile Weapons may also be classed as Elven weapons; however, the above bonus only applies to Melee Weapons."
+  Base: "Throwing weapon"
+  Modifiers: ["elven"]
+  PricedAs: "Throwing weapon"
+
+item "Backpack"
+  Name: "Backpack"
+  Classes: ["other"]
+  Cost: 1
+  Size: "large"
+  Gold: {Warrior: 2, Hero: 2}
+  Rating: {Warrior: 2, Hero: 2}
+  Description: "A model with a Backpack may carry an additional three Small pieces of Equipment within it (for a maximum of four)."
+annotation
+  Name: "Backpack"
+  Classes: ["other"]
+  Definition: "A model with a Backpack may carry an additional three Small pieces of Equipment within it (for a maximum of four)."
+
+item "Badge of Courage"
+  Name: "Badge of Courage"
+  Classes: ["other"]
+  Cost: 2
+  Size: "small"
+  Gold: {Warrior: 5, Hero: 5}
+  Rating: {Warrior: 5, Hero: 5}
+  Description: "A model with a Badge of Courage gains the Fearless special rule."
+  Grants: ["Fearless"]
+annotation
+  Name: "Badge of Courage"
+  Classes: ["other"]
+  Grants: ["Fearless"]
+  Definition: "A model with a Badge of Courage gains the Fearless special rule."
+
+item "Barding"
+  Name: "Barding"
+  Classes: ["armour"]
+  Cost: 2
+  Size: "large"
+  Restrictions: ["cavalry"]
+  Gold: {Warrior: 10, Hero: 10}
+  Rating: {Warrior: 10, Hero: 10}
+  Description: "The rider gains the Expert Rider & Horselord special rules."
+  Grants: ["Expert Rider", "Horse Lord"]
+annotation
+  Name: "Barding"
+  Classes: ["armour"]
+  Grants: ["Expert Rider", "Horse Lord"]
+  Definition: "The rider gains the Expert Rider & Horselord special rules."
+  RequiresMount: true
+
+item "Climbing ropes"
+  Name: "Climbing ropes"
+  Classes: ["other"]
+  Cost: 1
+  Size: "small"
+  Gold: {Warrior: 1, Hero: 1}
+  Rating: {Warrior: 1, Hero: 1}
+  Description: "A model with Climbing Ropes will add +1 to any Climb tests they make. Additionally, after the model makes a Climb test they may choose to leave their rope behind. If they do so they cannot use it for the rest of the game, mark the location with a marker, counter or token. Any friendly model that makes a Climb test from the same point also gains a bonus of +1 to the result. At the end of the game, the model is assumed to retrieve the rope."
+annotation
+  Name: "Climbing ropes"
+  Classes: ["other"]
+  Definition: "A model with Climbing Ropes will add +1 to any Climb tests they make. Additionally, after the model makes a Climb test they may choose to leave their rope behind. If they do so they cannot use it for the rest of the game, mark the location with a marker, counter or token. Any friendly model that makes a Climb test from the same point also gains a bonus of +1 to the result. At the end of the game, the model is assumed to retrieve the rope."
+
+item "Company Drum"
+  Name: "Company Drum"
+  Classes: ["instrument"]
+  Cost: 3
+  Size: "large"
+  Gold: {Warrior: 25, Hero: 25}
+  Rating: {Warrior: 25, Hero: 25}
+  Description: "This is a War Drum that grants the bearer the Command Support keyword."
+  Grants: ["Command Support"]
+annotation
+  Name: "Company Drum"
+  Classes: ["instrument"]
+  Grants: ["Command Support"]
+  Definition: "This is a War Drum that grants the bearer the Command Support keyword."
+
+item "Company Horn"
+  Name: "Company Horn"
+  Classes: ["instrument"]
+  Cost: 3
+  Size: "small"
+  Gold: {Warrior: 15, Hero: 15}
+  Rating: {Warrior: 15, Hero: 15}
+  Description: "This is a War Horn that grants the bearer the Command Support keyword."
+  Grants: ["Command Support", "Dominant (2)"]
+annotation
+  Name: "Company Horn"
+  Classes: ["instrument"]
+  Grants: ["Command Support", "Dominant (2)"]
+  Definition: "This is a War Horn that grants the bearer the Command Support keyword."
+
+item "Company Standard"
+  Name: "Company Standard"
+  Classes: ["banner"]
+  Cost: 3
+  Size: "large"
+  Gold: {Warrior: 15, Hero: 15}
+  Rating: {Warrior: 15, Hero: 15}
+  Description: "This is a Pennant that grants the bearer the Command Support keyword. Friendly models within 3\" of this model may re-roll any rolls of a 1 when making a Duel Roll."
+  Grants: ["Command Support"]
+annotation
+  Name: "Company Standard"
+  Classes: ["banner"]
+  Grants: ["Command Support"]
+  Definition: "This is a Pennant that grants the bearer the Command Support keyword. Friendly models within 3\" of this model may re-roll any rolls of a 1 when making a Duel Roll."
+
+item "Company Instrument"
+  Name: "Company Instrument"
+  Classes: ["instrument"]
+  Cost: 3
+  Size: "small"
+  Gold: {Warrior: 15, Hero: 15}
+  Rating: {Warrior: 15, Hero: 15}
+  Description: "This is an Instrument that grants the bearer the Command Support keyword. Friendly models within 3\" of this model that suffer a wound may roll a d6. On a natural 6, they ignore the wound."
+  Grants: ["Command Support"]
+annotation
+  Name: "Company Instrument"
+  Classes: ["instrument"]
+  Grants: ["Command Support"]
+  Definition: "This is an Instrument that grants the bearer the Command Support keyword. Friendly models within 3\" of this model that suffer a wound may roll a d6. On a natural 6, they ignore the wound."
+
+item "Concealing Cloak"
+  Name: "Concealing Cloak"
+  Classes: ["other"]
+  Cost: 2
+  Size: "small"
+  Gold: {Warrior: 5, Hero: 5}
+  Rating: {Warrior: 5, Hero: 5}
+  Description: "A model wearing a Concealing Cloak has the Stalk Unseen special rule."
+  Grants: ["Stalk Unseen"]
+annotation
+  Name: "Concealing Cloak"
+  Classes: ["other"]
+  Grants: ["Stalk Unseen"]
+  Definition: "A model wearing a Concealing Cloak has the Stalk Unseen special rule."
+
+item "Dwarven Brew"
+  Name: "Dwarven Brew"
+  Classes: ["consumable"]
+  Cost: 1
+  Size: "large"
+  Gold: {Warrior: 2, Hero: 2}
+  Rating: {Warrior: 2, Hero: 2}
+  Description: "A model may elect to use their Dwarven Brew at the start of any game, if they do so, every model within the model's Battle Company adds +1 to their Courage value for the remainder of the game. Once used, take an Intelligence Test. On an unsuccessful roll, the keg has run dry; remove it from the Hero model's Equipment."
+annotation
+  Name: "Dwarven Brew"
+  Classes: ["consumable"]
+  Definition: "A model may elect to use their Dwarven Brew at the start of any game, if they do so, every model within the model's Battle Company adds +1 to their Courage value for the remainder of the game. Once used, take an Intelligence Test. On an unsuccessful roll, the keg has run dry; remove it from the Hero model's Equipment."
+
+item "Envenom Weapon (X)"
+  Name: "Envenom Weapon (X)"
+  Classes: ["other"]
+  Cost: 1
+  Size: "small"
+  Restrictions: ["evil"]
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "When a model purchases Envenom Weapon, they must decide which weapon on their profile they will grant the Poisoned Attacks special rule."
+  Grants: ["Poisoned Attacks (X)"]
+  WeaponModifier: true
+annotation
+  Name: "Envenom Weapon (X)"
+  Classes: ["other"]
+  Grants: ["Poisoned Attacks (X)"]
+  Definition: "When a model purchases Envenom Weapon, they must decide which weapon on their profile they will grant the Poisoned Attacks special rule."
+  WeaponModifier: true
+  ChosenWeapon: {Rule: "Poisoned Attacks", WeaponClasses: ["melee", "two_handed", "spear", "lance", "bow", "crossbow", "throwing", "missile"]}
+
+item "Healing Herbs"
+  Name: "Healing Herbs"
+  Classes: ["consumable"]
+  Cost: 2
+  Size: "small"
+  Restrictions: ["hero"]
+  Gold: {Warrior: 5, Hero: 5}
+  Rating: {Warrior: 5, Hero: 5}
+  Description: "A Hero may elect to use their Healing Herbs at the end of any game they participated in that they were not removed as a casualty (ignoring Fleeing the Battlefield). If they do this, remove the Healing Herbs from their Equipment. All members of the Battle Company may add +1 to any Injury rolls that they must make at the end of the game. This is not cumulative."
+annotation
+  Name: "Healing Herbs"
+  Classes: ["consumable"]
+  Definition: "A Hero may elect to use their Healing Herbs at the end of any game they participated in that they were not removed as a casualty (ignoring Fleeing the Battlefield). If they do this, remove the Healing Herbs from their Equipment. All members of the Battle Company may add +1 to any Injury rolls that they must make at the end of the game. This is not cumulative."
+
+item "Lucky Talisman"
+  Name: "Lucky Talisman"
+  Classes: ["other"]
+  Cost: 2
+  Size: "small"
+  Restrictions: ["hero"]
+  Gold: {Warrior: 5, Hero: 5}
+  Rating: {Warrior: 5, Hero: 5}
+  Description: "A Hero with a Lucky Talisman may re-roll any failed Fate rolls."
+annotation {Name: "Lucky Talisman", Classes: ["other"], Definition: "A Hero with a Lucky Talisman may re-roll any failed Fate rolls."}
+
+item "Map"
+  Name: "Map"
+  Classes: ["other"]
+  Cost: 1
+  Size: "small"
+  Restrictions: ["hero"]
+  Gold: {Warrior: 5, Hero: 5}
+  Rating: {Warrior: 5, Hero: 5}
+  Description: "After both Battle Companies have deployed, before the first Priority is rolled, a Battle Company with a Map may redeploy D6 models using the normal rules. If both players have a Map, the player with Priority redeploys their models first. In scenarios where you roll for when or where models arrive or deploy, you may modify the roll for this model by +1 or -1. In scenarios where the bearer would be grouped with other models for these rolls, then they may confer this bonus to the whole group."
+annotation
+  Name: "Map"
+  Classes: ["other"]
+  Definition: "After both Battle Companies have deployed, before the first Priority is rolled, a Battle Company with a Map may redeploy D6 models using the normal rules. If both players have a Map, the player with Priority redeploys their models first. In scenarios where you roll for when or where models arrive or deploy, you may modify the roll for this model by +1 or -1. In scenarios where the bearer would be grouped with other models for these rolls, then they may confer this bonus to the whole group."
+
+item "Mountain Boots"
+  Name: "Mountain Boots"
+  Classes: ["other"]
+  Cost: 1
+  Size: "large"
+  Gold: {Warrior: 3, Hero: 3}
+  Rating: {Warrior: 3, Hero: 3}
+  Description: "A model wearing Mountain Boots has the Mountain Dweller special rule."
+  Grants: ["Mountain Dweller"]
+annotation
+  Name: "Mountain Boots"
+  Classes: ["other"]
+  Grants: ["Mountain Dweller"]
+  Definition: "A model wearing Mountain Boots has the Mountain Dweller special rule."
+
+item "Ring of Warding"
+  Name: "Ring of Warding"
+  Classes: ["other"]
+  Cost: 1
+  Size: "small"
+  Gold: {Warrior: 5, Hero: 5}
+  Rating: {Warrior: 5, Hero: 5}
+  Description: "A model with a Ring of Warding gains the Resistant to Magic special rule."
+  Grants: ["Resistant to Magic"]
+annotation
+  Name: "Ring of Warding"
+  Classes: ["other"]
+  Grants: ["Resistant to Magic"]
+  Definition: "A model with a Ring of Warding gains the Resistant to Magic special rule."
+
+item "Scroll of Courage"
+  Name: "Scroll of Courage"
+  Classes: ["consumable"]
+  Cost: 1
+  Size: "small"
+  Restrictions: ["hero"]
+  Gold: {Warrior: 3, Hero: 3}
+  Rating: {Warrior: 3, Hero: 3}
+  Description: "At the start of any game, the Hero may read the Scroll of Courage. If they do, all friendly models add +1 to their Courage value for the remainder of the game. Once read, take an Intelligence Test. On an unsuccessful roll, the scroll is caught by a strong breeze and floats off into the air; remove it from the Hero model's Equipment."
+annotation
+  Name: "Scroll of Courage"
+  Classes: ["consumable"]
+  Definition: "At the start of any game, the Hero may read the Scroll of Courage. If they do, all friendly models add +1 to their Courage value for the remainder of the game. Once read, take an Intelligence Test. On an unsuccessful roll, the scroll is caught by a strong breeze and floats off into the air; remove it from the Hero model's Equipment."
+
+item "Scroll of Hidden Paths"
+  Name: "Scroll of Hidden Paths"
+  Classes: ["consumable"]
+  Cost: 1
+  Size: "small"
+  Restrictions: ["hero"]
+  Gold: {Warrior: 3, Hero: 3}
+  Rating: {Warrior: 3, Hero: 3}
+  Description: "At the start of any game, before forces are deployed, the Hero may read the Scroll of Hidden Paths. If they do, you may keep D3 Warrior models off the board when deploying your forces. These models will arrive from any board edge of your choosing at the end of your company's second Move phase via the rules for Reinforcements. Once read, take an Intelligence Test. On an unsuccessful roll, the scroll is caught by a strong breeze and floats off into the air; remove it from the Hero model's Equipment."
+annotation
+  Name: "Scroll of Hidden Paths"
+  Classes: ["consumable"]
+  Definition: "At the start of any game, before forces are deployed, the Hero may read the Scroll of Hidden Paths. If they do, you may keep D3 Warrior models off the board when deploying your forces. These models will arrive from any board edge of your choosing at the end of your company's second Move phase via the rules for Reinforcements. Once read, take an Intelligence Test. On an unsuccessful roll, the scroll is caught by a strong breeze and floats off into the air; remove it from the Hero model's Equipment."
+
+item "Seeing Stone"
+  Name: "Seeing Stone"
+  Classes: ["other"]
+  Cost: 4
+  Size: "small"
+  Restrictions: ["hero", "unique"]
+  Gold: {Warrior: 10, Hero: 10}
+  Rating: {Warrior: 10, Hero: 10}
+  Description: "Once per game, during the Priority Phase but before the roll for Priority, the bearer can use the Palantir to automatically win the roll to choose who has Priority for that turn. If both sides have a special rule allowing them to do this and both wish to use it in the same turn, players roll off as normal and both special rules count as being used."
+annotation
+  Name: "Seeing Stone"
+  Classes: ["other"]
+  Definition: "Once per game, during the Priority Phase but before the roll for Priority, the bearer can use the Palantir to automatically win the roll to choose who has Priority for that turn. If both sides have a special rule allowing them to do this and both wish to use it in the same turn, players roll off as normal and both special rules count as being used."
+
+item "Small Shield"
+  Name: "Small Shield"
+  Classes: ["shield"]
+  Cost: 1
+  Size: "small"
+  Gold: {Warrior: 1, Hero: 1}
+  Rating: {Warrior: 1, Hero: 1}
+  Description: "This is a Light Shield that gives the bearer +1 to their Defence Characteristic against Strikes. This may not be carried in conjunction with another kind of Shield. The bearer may also use Shielding (double Attacks for the Combat, then cannot Strike if it wins; see Shield)."
+annotation
+  Name: "Small Shield"
+  Classes: ["shield"]
+  Definition: "This is a Light Shield that gives the bearer +1 to their Defence Characteristic against Strikes. This may not be carried in conjunction with another kind of Shield. The bearer may also use Shielding (double Attacks for the Combat, then cannot Strike if it wins; see Shield)."
+  Related: ["Shield", "Light Shield"]
+  Defence: {Value: 1, Conditional: true, Condition: "Only against Strikes.", Against: "strikes"}
+
+item "Torching Brand"
+  Name: "Torching Brand"
+  Classes: ["other"]
+  Cost: 1
+  Size: "large"
+  Gold: {Warrior: 1, Hero: 5}
+  Rating: {Warrior: 1, Hero: 5}
+  Description: "A model with a Torch gains the following benefits: They illuminate the area within 6\" of them; models within this area can be seen as if it were daylight. They gain the Terror (Beast) and Terror (Cavalry) special rules. They gain Dominant (2)."
+  Grants: ["Terror (Beast)", "Terror (Cavalry)", "Dominant (2)"]
+annotation
+  Name: "Torching Brand"
+  Classes: ["other"]
+  Grants: ["Terror (Beast)", "Terror (Cavalry)", "Dominant (2)"]
+  Definition: "A model with a Torch gains the following benefits: They illuminate the area within 6\" of them; models within this area can be seen as if it were daylight. They gain the Terror (Beast) and Terror (Cavalry) special rules. They gain Dominant (2)."
+
+item "Traps & Snares"
+  Name: "Traps & Snares"
+  Classes: ["other"]
+  Cost: 4
+  Size: "large"
+  Gold: {Warrior: 20, Hero: 20}
+  Rating: {Warrior: 20, Hero: 20}
+  Description: "A model with Traps & Snares gains the Master of Traps special rule (page 19 of the Armies of Middle-Earth manual)"
+  Grants: ["Master of Traps"]
+annotation
+  Name: "Traps & Snares"
+  Classes: ["other"]
+  Grants: ["Master of Traps"]
+  Definition: "A model with Traps & Snares gains the Master of Traps special rule (page 19 of the Armies of Middle-Earth manual)"
+
+item "Trophy Pelt"
+  Name: "Trophy Pelt"
+  Classes: ["other"]
+  Cost: 2
+  Size: "large"
+  Gold: {Warrior: 3, Hero: 5}
+  Rating: {Warrior: 3, Hero: 5}
+  Description: "A model with a Trophy Pelt gains the Terror special rule."
+  Grants: ["Terror"]
+annotation {Name: "Trophy Pelt", Classes: ["other"], Grants: ["Terror"], Definition: "A model with a Trophy Pelt gains the Terror special rule."}
+
+item "Wondrous Cram"
+  Name: "Wondrous Cram"
+  Classes: ["consumable"]
+  Cost: 2
+  Size: "small"
+  Gold: {Warrior: 3, Hero: 3}
+  Rating: {Warrior: 3, Hero: 3}
+  Description: "A model that has purchased Wondrous Cram may elect to use it at the end of any game they participated in that they were removed as a casualty (ignoring Fleeing the Battlefield). If they do this, remove the Wondrous Cram from their Equipment; additionally, do not roll on the Injury chart for them, instead they will automatically count as having rolled the Full Recovery result."
+annotation
+  Name: "Wondrous Cram"
+  Classes: ["consumable"]
+  Definition: "A model that has purchased Wondrous Cram may elect to use it at the end of any game they participated in that they were removed as a casualty (ignoring Fleeing the Battlefield). If they do this, remove the Wondrous Cram from their Equipment; additionally, do not roll on the Injury chart for them, instead they will automatically count as having rolled the Full Recovery result."
+
+item "Woodland Belt"
+  Name: "Woodland Belt"
+  Classes: ["other"]
+  Cost: 1
+  Size: "small"
+  Gold: {Warrior: 3, Hero: 3}
+  Rating: {Warrior: 3, Hero: 3}
+  Description: "A model wearing the Woodland Belt has the Woodland Creature special rule."
+  Grants: ["Woodland Creature"]
+annotation
+  Name: "Woodland Belt"
+  Classes: ["other"]
+  Grants: ["Woodland Creature"]
+  Definition: "A model wearing the Woodland Belt has the Woodland Creature special rule."

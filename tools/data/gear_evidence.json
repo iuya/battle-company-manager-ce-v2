@@ -1,0 +1,490 @@
+{
+  "Armour": {
+    "evidence": "vanilla type: armour",
+    "status": "derived"
+  },
+  "Armoured horse": {
+    "evidence": "vanilla type: mount",
+    "status": "derived"
+  },
+  "Axe": {
+    "evidence": "an axe is a hand weapon",
+    "status": "curated"
+  },
+  "Axe of Lossarnach": {
+    "evidence": "'used either as a spear or a two-handed weapon'",
+    "status": "curated"
+  },
+  "Backpack": {
+    "evidence": "BC equipment: A model with a Backpack may carry an additional three Small pieces of Equipment within it (for a ...",
+    "status": "derived"
+  },
+  "Badge of Courage": {
+    "evidence": "BC equipment: A model with a Badge of Courage gains the Fearless special rule.",
+    "status": "derived"
+  },
+  "Banner": {
+    "evidence": "vanilla type banner",
+    "status": "curated"
+  },
+  "Barding": {
+    "evidence": "armour of the steed; the rider gains rules (see grants)",
+    "status": "curated"
+  },
+  "Battlin' Brandybuck": {
+    "evidence": "named unit upgrade (a package of stats/rules), not a physical item",
+    "status": "curated"
+  },
+  "Beaks and Claws (hand weapon)": {
+    "evidence": "natural weapons that count as hand weapons",
+    "status": "curated"
+  },
+  "Berserker Blade": {
+    "evidence": "'This is a hand-and-a-half weapon'; used 'as a two-handed weapon' (decided by the user: all hand-and-a-half weapons are the same)",
+    "status": "curated",
+    "isA": "Hand-and-a-half weapon"
+  },
+  "Blowpipe": {
+    "evidence": "vanilla: '12\" Range, 2 Strength. Benefits from the Poisoned Weapons special rule'; a ranged weapon that counts against no limit (decided by the user)",
+    "status": "curated"
+  },
+  "Bow": {
+    "evidence": "vanilla type: bow",
+    "status": "derived",
+    "relatedNotes": {
+      "Short Bow": "Bows of different makes and profiles; none is another's alias.",
+      "Orc Bow": "Bows of different makes and profiles; none is another's alias.",
+      "Dwarf Bow": "Bows of different makes and profiles; none is another's alias."
+    }
+  },
+  "Claws and teeth (hand weapon)": {
+    "evidence": "natural weapons that count as hand weapons",
+    "status": "curated"
+  },
+  "Climbing ropes": {
+    "evidence": "BC equipment: A model with Climbing Ropes will add +1 to any Climb tests they make. Additionally, after the model ...",
+    "status": "derived"
+  },
+  "Company Drum": {
+    "evidence": "'This is a War Drum'",
+    "status": "curated",
+    "isA": "War drum"
+  },
+  "Company Horn": {
+    "evidence": "'This is a War Horn'",
+    "status": "curated",
+    "isA": "War Horn"
+  },
+  "Company Instrument": {
+    "evidence": "'This is an Instrument'",
+    "status": "curated"
+  },
+  "Company Standard": {
+    "evidence": "'This is a Pennant' (a banner)",
+    "status": "curated"
+  },
+  "Concealing Cloak": {
+    "evidence": "BC equipment: A model wearing a Concealing Cloak has the Stalk Unseen special rule.",
+    "status": "derived"
+  },
+  "Crossbow": {
+    "evidence": "vanilla type: bow ('may not fire in the same turn that it has moved')",
+    "status": "derived"
+  },
+  "Dunlending War Axe": {
+    "evidence": "vanilla keyword 'Dunlending War Axe' (data.keywords): 'This can be used as either a spear or a two-handed weapon.'",
+    "status": "curated"
+  },
+  "Dwarf Armour": {
+    "evidence": "vanilla type armour",
+    "status": "curated"
+  },
+  "Dwarf Bow": {
+    "evidence": "vanilla type: bow",
+    "status": "derived",
+    "relatedNotes": {
+      "Bow": "Bows of different makes and profiles; none is another's alias.",
+      "Short Bow": "Bows of different makes and profiles; none is another's alias.",
+      "Orc Bow": "Bows of different makes and profiles; none is another's alias."
+    }
+  },
+  "Dwarf Longbow": {
+    "evidence": "vanilla type: bow",
+    "status": "derived",
+    "relatedNotes": {
+      "Elf Bow": "Same missile profile (24\" Range, Strength 3), different make: each is its own item and a company's armoury may offer one without the others.",
+      "Longbow": "Same missile profile (24\" Range, Strength 3), different make: each is its own item and a company's armoury may offer one without the others.",
+      "Esgaroth Bow": "Same missile profile (24\" Range, Strength 3), different make: each is its own item and a company's armoury may offer one without the others."
+    }
+  },
+  "Dwarven Brew": {
+    "evidence": "used once ('Once used...') (decided by the user)",
+    "status": "curated"
+  },
+  "Easterling Halberd": {
+    "evidence": "'used as either a pike or a two-handed weapon'",
+    "status": "curated"
+  },
+  "Elf Bow": {
+    "evidence": "vanilla type: bow",
+    "status": "derived",
+    "relatedNotes": {
+      "Longbow": "Same missile profile (24\" Range, Strength 3), different make: each is its own item and a company's armoury may offer one without the others.",
+      "Esgaroth Bow": "Same missile profile (24\" Range, Strength 3), different make: each is its own item and a company's armoury may offer one without the others.",
+      "Dwarf Longbow": "Same missile profile (24\" Range, Strength 3), different make: each is its own item and a company's armoury may offer one without the others."
+    }
+  },
+  "Elven Cloak": {
+    "evidence": "a cloak: neither weapon nor armour",
+    "status": "curated"
+  },
+  "Elven Glaive": {
+    "evidence": "'This is an Elven spear'",
+    "status": "curated",
+    "isA": "Elven spear"
+  },
+  "Elven hand-and-a-half weapon": {
+    "evidence": "an Elven-made hand-and-a-half weapon; wielded as a hand weapon or a two-handed weapon (decided by the user)",
+    "status": "curated"
+  },
+  "Elven hand weapon": {
+    "evidence": "an Elven-made hand weapon",
+    "status": "curated"
+  },
+  "Elven lance": {
+    "evidence": "an Elven-made lance (class lance, decided by the user)",
+    "status": "curated"
+  },
+  "Elven-made Hand-and-a-half sword": {
+    "evidence": "an Elven-made hand-and-a-half sword; wielded as a hand weapon or a two-handed weapon (decided by the user)",
+    "status": "curated"
+  },
+  "Elven pike": {
+    "evidence": "an Elven-made pike",
+    "status": "curated"
+  },
+  "Elven spear": {
+    "evidence": "an Elven-made spear",
+    "status": "curated"
+  },
+  "Elven throwing weapon": {
+    "evidence": "vanilla type: throwingWeapon",
+    "status": "derived"
+  },
+  "Envenom Weapon (X)": {
+    "evidence": "decided by the user: not an item; the player chooses one weapon of the unit and the unit gains the special rule Poisoned Attacks (<that weapon>) ('they must decide which weapon on their profile they will grant the Poisoned Attacks special rule'); the app shows a copy of the weapon with the rule",
+    "status": "curated"
+  },
+  "Esgaroth Bow": {
+    "evidence": "vanilla type: bow",
+    "status": "derived",
+    "relatedNotes": {
+      "Elf Bow": "Same missile profile (24\" Range, Strength 3), different make: each is its own item and a company's armoury may offer one without the others.",
+      "Longbow": "Same missile profile (24\" Range, Strength 3), different make: each is its own item and a company's armoury may offer one without the others.",
+      "Dwarf Longbow": "Same missile profile (24\" Range, Strength 3), different make: each is its own item and a company's armoury may offer one without the others."
+    }
+  },
+  "Fangs (hand weapons)": {
+    "evidence": "natural weapons that count as hand weapons",
+    "status": "curated"
+  },
+  "Fell Warg": {
+    "evidence": "vanilla type: mount",
+    "status": "derived"
+  },
+  "Flaming Brand": {
+    "evidence": "BC wargear table lists it with the weapons (type weapon); unlike the Torching Brand, which is Equipment",
+    "status": "curated"
+  },
+  "Foe Spear": {
+    "evidence": "vanilla: 'This is a spear'; reached through the Vault Warden Team (includes Foe Spear Wielder)",
+    "status": "curated",
+    "isA": "Spear"
+  },
+  "Galadhrim Steed": {
+    "evidence": "vanilla type: mount",
+    "status": "derived",
+    "isA": "Armoured horse"
+  },
+  "Goat": {
+    "evidence": "vanilla type: mount",
+    "status": "derived"
+  },
+  "Guardian of the King": {
+    "evidence": "named unit upgrade (a package of stats/rules), not a physical item",
+    "status": "curated"
+  },
+  "Hand-and-a-half hammer": {
+    "evidence": "a hand-and-a-half weapon (hammer); wielded as a hand weapon or a two-handed weapon (decided by the user)",
+    "status": "curated"
+  },
+  "Hand-and-a-half weapon": {
+    "evidence": "hand-and-a-half weapon: wielded in one hand or two; classed as a melee weapon; wielded as a hand weapon or a two-handed weapon (decided by the user)",
+    "status": "curated"
+  },
+  "Hand weapon": {
+    "evidence": "a plain hand weapon",
+    "status": "curated"
+  },
+  "Healing Herbs": {
+    "evidence": "used up once ('remove the Healing Herbs from their Equipment') (decided by the user)",
+    "status": "curated"
+  },
+  "Hearthguard": {
+    "evidence": "named unit upgrade (a package of stats/rules), not a physical item",
+    "status": "curated"
+  },
+  "Heavy Armour": {
+    "evidence": "vanilla type: armour",
+    "status": "derived"
+  },
+  "Heavy Dwarf Armour": {
+    "evidence": "vanilla type armour",
+    "status": "curated"
+  },
+  "Helmingas": {
+    "evidence": "named unit upgrade (a package of stats/rules), not a physical item",
+    "status": "curated"
+  },
+  "Horse": {
+    "evidence": "vanilla type: mount",
+    "status": "derived"
+  },
+  "Iron Shield": {
+    "evidence": "vanilla type Shield: 'a shield that provides a bonus of +3 ... -1 penalty to their Duel Rolls, unless they are supported by a model with a Foe Spear'; reached through the Vault Warden Team (includes Iron Shield Bearer)",
+    "status": "curated",
+    "isA": "Shield"
+  },
+  "King's Guard": {
+    "evidence": "named unit upgrade (a package of stats/rules), not a physical item",
+    "status": "curated"
+  },
+  "Lance": {
+    "evidence": "a lance: a cavalry spear, own class (decided by the user)",
+    "status": "curated"
+  },
+  "Light Armour": {
+    "evidence": "vanilla type armour (light armour: Defence bonus against Shooting only)",
+    "status": "curated"
+  },
+  "Light Shield": {
+    "evidence": "'a light shield' (may use Shielding, no Defence bonus); decided by the user: hover text + shield class, no grant",
+    "status": "curated",
+    "relatedNotes": {
+      "Shield": "Shields of different kinds: the Light Shield gives no Defence bonus, the Small Shield gives +1 and Shielding.",
+      "Small Shield": "Shields of different kinds: the Light Shield gives no Defence bonus, the Small Shield gives +1 and Shielding."
+    }
+  },
+  "Longbow": {
+    "evidence": "vanilla type: bow",
+    "status": "derived",
+    "relatedNotes": {
+      "Elf Bow": "Same missile profile (24\" Range, Strength 3), different make: each is its own item and a company's armoury may offer one without the others.",
+      "Esgaroth Bow": "Same missile profile (24\" Range, Strength 3), different make: each is its own item and a company's armoury may offer one without the others.",
+      "Dwarf Longbow": "Same missile profile (24\" Range, Strength 3), different make: each is its own item and a company's armoury may offer one without the others."
+    }
+  },
+  "Lorien Guard": {
+    "evidence": "named unit upgrade (a package of stats/rules), not a physical item",
+    "status": "curated"
+  },
+  "Lucky Talisman": {
+    "evidence": "BC equipment: A Hero with a Lucky Talisman may re-roll any failed Fate rolls.",
+    "status": "derived"
+  },
+  "Map": {
+    "evidence": "BC equipment: After both Battle Companies have deployed, before the first Priority is rolled, a Battle Company ...",
+    "status": "derived"
+  },
+  "Mattock": {
+    "evidence": "'This is a two-handed weapon'",
+    "status": "curated",
+    "isA": "Two-handed weapon"
+  },
+  "Mountain Boots": {
+    "evidence": "BC equipment: A model wearing Mountain Boots has the Mountain Dweller special rule.",
+    "status": "derived"
+  },
+  "Noldorian Exile": {
+    "evidence": "named unit upgrade (a package of stats/rules), not a physical item",
+    "status": "curated"
+  },
+  "Orc Bow": {
+    "evidence": "vanilla type: bow",
+    "status": "derived",
+    "relatedNotes": {
+      "Bow": "Bows of different makes and profiles; none is another's alias.",
+      "Short Bow": "Bows of different makes and profiles; none is another's alias.",
+      "Dwarf Bow": "Bows of different makes and profiles; none is another's alias."
+    }
+  },
+  "Pavise": {
+    "evidence": "'This is a shield that provides the bearer +3 Defence rather than +1' (not while Engaged)",
+    "status": "curated",
+    "isA": "Shield"
+  },
+  "Pike": {
+    "evidence": "a pike: 'function in much the same way as spears'",
+    "status": "curated"
+  },
+  "Pony": {
+    "evidence": "vanilla type: mount",
+    "status": "derived"
+  },
+  "Razor-sharp teeth and talons (hand weapons)": {
+    "evidence": "natural weapons that count as hand weapons",
+    "status": "curated"
+  },
+  "Ring of Warding": {
+    "evidence": "BC equipment: A model with a Ring of Warding gains the Resistant to Magic special rule.",
+    "status": "derived"
+  },
+  "Scroll of Courage": {
+    "evidence": "read once ('Once read...') (decided by the user)",
+    "status": "curated"
+  },
+  "Scroll of Hidden Paths": {
+    "evidence": "read once at the start of a game (decided by the user)",
+    "status": "curated"
+  },
+  "Seeing Stone": {
+    "evidence": "BC equipment: Once per game, during the Priority Phase but before the roll for Priority, the bearer can use the ...",
+    "status": "derived"
+  },
+  "Shield": {
+    "evidence": "vanilla type: shield",
+    "status": "derived",
+    "relatedNotes": {
+      "Light Shield": "Shields of different kinds: the Light Shield gives no Defence bonus, the Small Shield gives +1 and Shielding.",
+      "Small Shield": "Shields of different kinds: the Light Shield gives no Defence bonus, the Small Shield gives +1 and Shielding."
+    }
+  },
+  "Short Bow": {
+    "evidence": "vanilla type: bow",
+    "status": "derived",
+    "relatedNotes": {
+      "Bow": "Bows of different makes and profiles; none is another's alias.",
+      "Orc Bow": "Bows of different makes and profiles; none is another's alias.",
+      "Dwarf Bow": "Bows of different makes and profiles; none is another's alias."
+    }
+  },
+  "Small Shield": {
+    "evidence": "'This is a Light Shield that gives the bearer +1 to their Defence Characteristic against Strikes' (BC overrides the vanilla Light Shield, which gives no bonus); a Light Shield may use Shielding",
+    "status": "curated",
+    "isA": "Light Shield",
+    "relatedNotes": {
+      "Shield": "Shields of different kinds: the Light Shield gives no Defence bonus, the Small Shield gives +1 and Shielding.",
+      "Light Shield": "Shields of different kinds: the Light Shield gives no Defence bonus, the Small Shield gives +1 and Shielding."
+    }
+  },
+  "Smoke Bombs": {
+    "evidence": "'These are a throwing weapon with a Strength of 1'; no range is printed, so the 6\" of a generic throwing weapon (decided by the user)",
+    "status": "curated"
+  },
+  "Spear": {
+    "evidence": "a spear (BC wargear table, type weapon)",
+    "status": "curated"
+  },
+  "Sword": {
+    "evidence": "a sword is a hand weapon",
+    "status": "curated"
+  },
+  "Teeth and claws (hand weapon)": {
+    "evidence": "natural weapons that count as hand weapons",
+    "status": "curated"
+  },
+  "Throwing Spears": {
+    "evidence": "BC wargear table: throwingWeapon",
+    "status": "curated"
+  },
+  "Throwing weapon": {
+    "evidence": "BC wargear table: throwingWeapon",
+    "status": "curated"
+  },
+  "Tookish Hunter": {
+    "evidence": "named unit upgrade (a package of stats/rules), not a physical item",
+    "status": "curated"
+  },
+  "Torching Brand": {
+    "evidence": "decided by the user (Equipment, unlike the Flaming Brand weapon): 'They gain the Terror (Beast) and Terror (Cavalry) special rules. They gain Dominant (2).'",
+    "status": "curated"
+  },
+  "Traps & Snares": {
+    "evidence": "BC equipment: A model with Traps & Snares gains the Master of Traps special rule (page 19 of the Armies of ...",
+    "status": "derived"
+  },
+  "Troll Chain": {
+    "evidence": "vanilla type throwingWeapon",
+    "status": "curated"
+  },
+  "Troll Spear": {
+    "evidence": "'This is a spear' with an additional rule of its own (vanilla gear entry; decided by the user 2026-10-22: its own weapon, not read as the Armoury Spear)",
+    "status": "curated",
+    "isA": "Spear"
+  },
+  "Trophy Pelt": {
+    "evidence": "BC equipment: A model with a Trophy Pelt gains the Terror special rule.",
+    "status": "derived"
+  },
+  "Twin Blades": {
+    "evidence": "two blades: a melee weapon",
+    "status": "curated"
+  },
+  "Two-handed weapon": {
+    "evidence": "a two-handed weapon",
+    "status": "curated"
+  },
+  "Uruk-Hai Bow": {
+    "evidence": "vanilla type: bow",
+    "status": "derived"
+  },
+  "Venom-back": {
+    "evidence": "unit upgrade of a creature (no rules text in the sources)",
+    "status": "curated"
+  },
+  "War Camel": {
+    "evidence": "vanilla type: mount",
+    "status": "derived"
+  },
+  "War drum": {
+    "evidence": "a drum (defined in the 'Exchange shield for war drum' entry)",
+    "status": "curated"
+  },
+  "War goat": {
+    "evidence": "vanilla type: mount",
+    "status": "derived"
+  },
+  "War Horn": {
+    "evidence": "a horn",
+    "status": "curated"
+  },
+  "War spear": {
+    "evidence": "'Counts as a lance while mounted, and a spear while dismounted'; the BC wargear row 'Warspear' is the same item",
+    "status": "curated"
+  },
+  "Warg": {
+    "evidence": "vanilla type: mount",
+    "status": "derived"
+  },
+  "Westfold Redshield": {
+    "evidence": "named unit upgrade (a package of stats/rules), not a physical item",
+    "status": "curated"
+  },
+  "Whip": {
+    "evidence": "'counts as a throwing weapon ... can also be used as a hand weapon'",
+    "status": "curated"
+  },
+  "Wondrous Cram": {
+    "evidence": "used up once ('remove the Wondrous Cram') (decided by the user)",
+    "status": "curated"
+  },
+  "Wood Elf Spear": {
+    "evidence": "'This is an Elven spear'; 'may use the Shielding rule even though they do not have a shield', so it also has the shield class (decided by the user: hover text + shield class, no grant). Every spear is a melee weapon, so `melee` is never listed with `spear`",
+    "status": "curated",
+    "isA": "Elven spear"
+  },
+  "Woodland Belt": {
+    "evidence": "BC equipment: A model wearing the Woodland Belt has the Woodland Creature special rule.",
+    "status": "derived"
+  }
+}

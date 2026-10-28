@@ -1,0 +1,18 @@
+battle_companies.json: campaign.recruitment.adjust.maxPerAttempt: 40 is out of range 0..20
+battle_companies.json: campaign.injuries.roll: "2d6x" is not a dice spec; expected [N]dM, N 1..10, M 2..100
+battle_companies.json: rules[2].aura.kind: "banners" is not a valid kind; known: banner, command, support, enemy, utility; closest: "banner"
+battle_companies.json: companies[0].alignment: "nuetral" is not a valid alignment; known: good, evil
+battle_companies.json: companies[0].colour: unknown field
+  hint: known fields: advancements, aka, alignment, breakPoint, description, epigraph, exchanges, extends, faction, gear, granted, heroUpgrades, heroes, id, limits, maxModels, name, notes, oath, ownPath, promotions, recruit, reinforcements, rules, special, specialRules, start, substitutions, units
+battle_companies.json: gear[1].name: "Bow" is already defined at gear[0]; names are unique
+  hint: use another name or put the old spelling in aka
+battle_companies.json: rules[0]: "Fearless" exists in vanilla or the glossary; add "overrides": true or drop the definition to annotate it
+  hint: an entry that only adds properties to something below has no definition
+battle_companies.json: rules[1]: "Foo" has no definition here, in Battle Companies, vanilla or the glossary
+  hint: write its definition, or check the spelling of the name
+battle_companies.json: companies[0].start.units[0].unit: no unit "Ranger of Arnr" in this company, the shared units or vanilla; closest: "Ranger of Arnor"
+battle_companies.json: companies[0].reinforcements.rows[0].with[0]: "Speer" is not an option of "Ranger of Arnor" nor a gear item; closest: "Spear"
+  hint: options come from the vanilla profile; items from gear[]
+battle_companies.json: companies[0].heroUpgrades[0].name: no rule "Foresight of the Seer" in rules[], vanilla or the glossary; closest: "Foresight"
+  hint: define it in rules[]
+battle_companies.json: companies[0].reinforcements.rows: rolls cover 1-5, 6 is missing (a D6 chart must cover 1-6 exactly once)

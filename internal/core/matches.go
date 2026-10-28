@@ -34,14 +34,15 @@ type Matches struct {
 
 	mu        sync.Mutex
 	scenarios map[string][]ScenarioInfo // by Battle Companies file hash; files never change
-	atoCache  map[string]ATORules       // the same for the Against the Odds rules
+	selection map[string]ScenarioSelection
+	atoCache  map[string]ATORules // the same for the Against the Odds rules
 }
 
 // NewMatches builds the service. rules is the loader (*Rules).
 func NewMatches(campaigns campaignRepository, companies companyRepository, matches matchRepository, rulesets rulesetRepository, rules ruleSource) *Matches {
 	return &Matches{
 		companyDeps: companyDeps{campaigns: campaigns, companies: companies, rules: rules, dice: RandomDice{}},
-		matches:     matches, rulesets: rulesets, scenarios: map[string][]ScenarioInfo{},
+		matches:     matches, rulesets: rulesets, scenarios: map[string][]ScenarioInfo{}, selection: map[string]ScenarioSelection{},
 	}
 }
 
@@ -131,6 +132,31 @@ func (s *Matches) Scenarios(ctx context.Context, id int64) ([]ScenarioInfo, erro
 		return nil, err
 	}
 	return s.scenarioList(ctx, h.BattleCompanies)
+}
+
+// ScenarioSelection is how the campaign's rules pick a scenario by dice: the size of the two dice and the table ranges of the first.
+func (s *Matches) ScenarioSelection(ctx context.Context, id int64) (ScenarioSelection, error) {
+	h, _, err := s.campaigns.Hashes(ctx, id)
+	if err != nil {
+		return ScenarioSelection{}, err
+	}
+	s.mu.Lock()
+	sel, ok := s.selection[h.BattleCompanies]
+	s.mu.Unlock()
+	if ok {
+		return sel, nil
+	}
+	file, err := s.rulesets.Get(ctx, h.BattleCompanies)
+	if err != nil {
+		return ScenarioSelection{}, err
+	}
+	if sel, err = ParseScenarioSelection(file.Content); err != nil {
+		return ScenarioSelection{}, err
+	}
+	s.mu.Lock()
+	s.selection[h.BattleCompanies] = sel
+	s.mu.Unlock()
+	return sel, nil
 }
 
 func (s *Matches) scenarioList(ctx context.Context, hash string) ([]ScenarioInfo, error) {

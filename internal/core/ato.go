@@ -33,6 +33,7 @@ const (
 type ATOBonusRule struct {
 	Key, Name, Text string
 	Rating          int      // Tool Kit: per kit
+	GivesRerolls    int      // Reroll: how many re-rolls it gives (the bonus's count)
 	AppliesIn       []string // setup | game | aftermath | scenarioChoice
 }
 
@@ -106,6 +107,7 @@ func ParseATO(content []byte) (ATORules, error) {
 					Name      string   `json:"name"`
 					Text      string   `json:"text"`
 					Rating    int      `json:"rating"`
+					Count     int      `json:"count"`
 					AppliesIn []string `json:"appliesIn"`
 					Purchase  struct {
 						Max int `json:"maxPurchases"`
@@ -158,7 +160,7 @@ func ParseATO(content []byte) (ATORules, error) {
 	ato := doc.Campaign.AgainstTheOdds
 	r := ATORules{Inclusive: ato.Budget.Inclusive}
 	for _, b := range ato.Bonuses {
-		r.Bonuses = append(r.Bonuses, ATOBonusRule{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, AppliesIn: b.AppliesIn})
+		r.Bonuses = append(r.Bonuses, ATOBonusRule{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, GivesRerolls: b.Count, AppliesIn: b.AppliesIn})
 		if b.Key != atoToolKit {
 			continue
 		}

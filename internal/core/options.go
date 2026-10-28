@@ -2,9 +2,13 @@ package core
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 	"slices"
 	"strings"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 // CampaignOption is a setting a Battle Companies file offers the organiser of a campaign (campaign.options[] of the file):
@@ -74,6 +78,17 @@ func ParseCampaignOptions(content []byte) ([]CampaignOption, error) {
 	return out, nil
 }
 
+// ComposeObjectiveText is the sentence a scoring objective shows: the instruction (what a player notes down at the start of a
+// secret objective), then the sentence of each option in the order the file prints them, joined by a space. The sentences are stored
+// once, as options (a "for each" objective has one); there is no prose copy to keep in step.
+func ComposeObjectiveText(instruction string, sentences []string) string {
+	parts := slices.Clone(sentences)
+	if instruction != "" {
+		parts = append([]string{instruction}, parts...)
+	}
+	return strings.Join(parts, " ")
+}
+
 // ParseScenarios reads the scenarios of a Battle Companies file in the order of its list: name, place on the scenario
 // selection tables, the text of its Victory Point conditions (one entry per group of conditions) and its objectives: the
 // rewards of data.scenarioDetails[] whose condition the players tick (companyFlag, and modelFlag shown as one tick per
@@ -81,16 +96,11 @@ func ParseCampaignOptions(content []byte) ([]CampaignOption, error) {
 // leaderNotRemoved) are not ticks and are not listed.
 func ParseScenarios(content []byte) ([]ScenarioInfo, error) {
 	var doc struct {
-		Scenarios       []string `json:"scenarios"`
-		ScenarioScoring []struct {
-			Name   string `json:"name"`
-			Points [][]struct {
-				Text string `json:"text"`
-			} `json:"points"`
-		} `json:"scenarioScoring"`
-		Campaign struct {
+		Scenarios []string `json:"scenarios"`
+		Campaign  struct {
 			Selection struct {
 				Tables []struct {
+					Roll      []int    `json:"roll"`
 					Scenarios []string `json:"scenarios"`
 				} `json:"tables"`
 			} `json:"scenarioSelection"`
@@ -168,18 +178,9 @@ func ParseScenarios(content []byte) ([]ScenarioInfo, error) {
 		for t, table := range doc.Campaign.Selection.Tables {
 			if i := slices.Index(table.Scenarios, name); i >= 0 {
 				info.Table, info.Roll = t+1, i+1
-			}
-		}
-		for _, sc := range doc.ScenarioScoring {
-			if sc.Name != name {
-				continue
-			}
-			for _, group := range sc.Points {
-				texts := make([]string, len(group))
-				for i, p := range group {
-					texts[i] = p.Text
+				if len(table.Roll) == 2 {
+					info.FirstDie = [2]int{table.Roll[0], table.Roll[1]}
 				}
-				info.Scoring = append(info.Scoring, strings.Join(texts, " "))
 			}
 		}
 		for _, d := range doc.Data.ScenarioDetails {
@@ -203,6 +204,20 @@ func ParseScenarios(content []byte) ([]ScenarioInfo, error) {
 						}
 						t.Rows = append(t.Rows, ScenarioTableRow{Min: row.Min, Max: max, Cells: row.Cells})
 					}
+					if spec, err := lean.ParseDice(r.Table.Lookup); err == nil {
+						t.TableDice = spec
+						var spans [][2]int
+						for _, row := range t.Rows {
+							hi := row.Max
+							if hi < 0 {
+								hi = spec.Max()
+							}
+							spans = append(spans, [2]int{row.Min, hi})
+						}
+						if err := CheckCovers(fmt.Sprintf("data.scenarioDetails[%s].specialRules[%s].table", name, r.Name), spec, spans); err != nil {
+							return nil, errors.Join(ErrInvalidRuleset, err)
+						}
+					}
 					text.Table = t
 				}
 				info.About.Rules = append(info.About.Rules, text)
@@ -212,13 +227,19 @@ func ParseScenarios(content []byte) ([]ScenarioInfo, error) {
 				info.About.Roles = append(info.About.Roles, r.Name)
 			}
 			for _, o := range d.ScoringObjectives {
-				so := ScoringObjective{Label: ObjectiveLabel(o.Key), Key: o.Key, Text: o.Text, Side: o.Side, Kind: o.Kind, Instruction: o.Instruction, Secret: o.Secret, MaxPoints: o.MaxPoints}
+				sentences := make([]string, len(o.Options))
+				for i, opt := range o.Options {
+					sentences[i] = opt.Text
+				}
+				so := ScoringObjective{Label: ObjectiveLabel(o.Key), Key: o.Key, Text: ComposeObjectiveText(o.Instruction, sentences), Side: o.Side, Kind: o.Kind, Instruction: o.Instruction, Secret: o.Secret, MaxPoints: o.MaxPoints}
+				info.Scoring = append(info.Scoring, so.Text)
 				if o.Nomination != nil {
 					so.Nomination = &ObjectiveNomination{From: o.Nomination.From, AllowLeader: o.Nomination.AllowLeader, Where: o.Nomination.Where}
 				}
 				for _, opt := range o.Options {
 					so.Options = append(so.Options, ScoringTier{Text: opt.Text, Points: opt.Points})
 				}
+				slices.SortStableFunc(so.Options, func(a, b ScoringTier) int { return a.Points - b.Points }) // the tiers ascend whatever order the sentences are printed in
 				info.ScoringObjectives = append(info.ScoringObjectives, so)
 			}
 			for _, rw := range d.Rewards {

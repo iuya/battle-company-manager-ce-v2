@@ -20,6 +20,8 @@ type GearAnnotation struct {
 	Definition     string            // what the item does, in words (shown on hover)
 	MountProfile   string            // for a mount: the name of its vanilla entry, which has its stat block
 	Base           string            // the generic item this one is a version of (Elven spear: Spear); the tooltip already explains the modifiers
+	GrantsSlots    SlotCounts        // equipment slots the item adds to its bearer (the Backpack: 3 small)
+	OnlyRace       string            // the race word the item is restricted to (Elven-made items: Elf); empty for none
 	Modifiers      []string          // keys of data.gearAnnotations.modifiers (elven, masterForged, poisoned)
 	PricedAs       string            // an Elven-made item sold at the price of its generic equivalent (derived from Base + the elven modifier)
 	Related        []string          // related but distinct items (Elf Bow and Longbow share a profile): never the same item
@@ -95,12 +97,15 @@ type LimitRule struct {
 	Label   string
 	Percent float64
 	RoundUp bool
+	// Classes are the item classes the limit counts (limits[].classes); Keyword is the unit keyword it counts instead (limits[]
+	// type "keyword": Cavalry). Exactly one of them is set.
+	Classes []EquipmentClass
+	Keyword string
 }
 
-var defaultLimitRules = []LimitRule{
-	{ID: "bow", Label: "Bows", Percent: 33.33, RoundUp: true},
-	{ID: "throwing", Label: "Throwing weapons", Percent: 33.33, RoundUp: true},
-	{ID: "cavalry", Label: "Cavalry", Percent: 33.33, RoundUp: true},
+// counts says whether an item of the given classes counts against the limit.
+func (r LimitRule) counts(classes []EquipmentClass) bool {
+	return slices.ContainsFunc(classes, func(c EquipmentClass) bool { return slices.Contains(r.Classes, c) })
 }
 
 // LimitExemption is a company rule that some models or items do not count against some limits.
@@ -129,52 +134,39 @@ func computeLimits(rules []LimitRule, c BCCompany, units []CompanyUnit, stored .
 				continue
 			}
 			base++
-			if rule.ID == "cavalry" && u.isCavalry() {
+			if rule.Keyword == KeywordCavalry && u.isCavalry() {
 				used++
 			}
 			for _, e := range u.Equipment {
-				if slices.ContainsFunc(c.LimitExemptions, func(x LimitExemption) bool {
-					return x.Item != "" && strings.EqualFold(x.Item, e.Name) && x.covers(rule.ID)
-				}) {
-					continue
-				}
-				switch rule.ID {
-				case "bow":
-					if slices.ContainsFunc(e.Classes(), EquipmentClass.isRangedLimit) {
-						used++
-					}
-				case "throwing":
-					if slices.Contains(e.Classes(), EquipThrowing) {
-						used++
-					}
-				}
-			}
-		}
-		for _, e := range stored { // gear in the Baggage Pony's pack still counts towards the ranged limits
-			if slices.ContainsFunc(c.LimitExemptions, func(x LimitExemption) bool {
-				return x.Item != "" && strings.EqualFold(x.Item, e.Name) && x.covers(rule.ID)
-			}) {
-				continue
-			}
-			switch rule.ID {
-			case "bow":
-				if slices.ContainsFunc(e.Classes(), EquipmentClass.isRangedLimit) {
-					used++
-				}
-			case "throwing":
-				if slices.Contains(e.Classes(), EquipThrowing) {
+				if rule.counts(e.Classes()) && !c.exempts(e.Name, rule.ID) {
 					used++
 				}
 			}
 		}
-		out = append(out, CompanyLimit{ID: rule.ID, Label: rule.Label, Used: used, Max: LimitMax(percent, base), Next: LimitMax(percent, base+1)})
+		for _, e := range stored { // gear in the Baggage Pony's pack still counts towards the item limits
+			if rule.counts(e.Classes()) && !c.exempts(e.Name, rule.ID) {
+				used++
+			}
+		}
+		out = append(out, CompanyLimit{ID: rule.ID, Label: rule.Label, Used: used, Max: LimitMax(percent, base, rule.RoundUp), Next: LimitMax(percent, base+1, rule.RoundUp),
+			LimitClasses: rule.Classes, LimitKeyword: rule.Keyword})
 	}
 	return out
 }
 
-// LimitMax is the most models a limit allows in a group of n models: the share of n, always rounded up (Battle Companies:
-// "a third of the models" is 2 of 6 and 3 of 7). A model joining the company counts in n, so a limit that is full at n models
-// may have room at n+1 (CompanyLimit.Next).
-func LimitMax(percent float64, n int) int {
-	return int(math.Ceil(percent/100*float64(n) - 1e-9))
+// exempts says whether the company's rules leave the item out of the limit's count.
+func (c BCCompany) exempts(item, limit string) bool {
+	return slices.ContainsFunc(c.LimitExemptions, func(x LimitExemption) bool {
+		return x.Item != "" && strings.EqualFold(x.Item, item) && x.covers(limit)
+	})
+}
+
+// LimitMax is the most models a limit allows in a group of n models: the share of n, rounded up when the rule says so (Battle
+// Companies: "a third of the models" is 2 of 6 and 3 of 7) and down otherwise. A model joining the company counts in n, so a limit
+// that is full at n models may have room at n+1 (CompanyLimit.Next).
+func LimitMax(percent float64, n int, roundUp bool) int {
+	if roundUp {
+		return int(math.Ceil(percent/100*float64(n) - 1e-9))
+	}
+	return int(math.Floor(percent/100*float64(n) + 1e-9))
 }

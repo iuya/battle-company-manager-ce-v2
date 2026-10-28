@@ -1,0 +1,2 @@
+battle_companies.json: gear[2].name: "Bow" is already defined at gear[0]; names are unique
+  hint: use another name or put the old spelling in aka

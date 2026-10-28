@@ -25,9 +25,10 @@ type InjuryDef struct {
 type TreatMethod struct {
 	Key          string
 	Cost         int
-	Target       int // the D6 must reach it (0: no roll)
-	Ceiling      int // the modified roll never goes above it
-	PerPoint     int // roll gained per extra influence point
+	TreatDice    DiceSpec // the dice of the roll (roll.dice); Target is a total of them
+	Target       int      // the roll must reach it (0: no roll)
+	Ceiling      int      // the modified roll never goes above it
+	PerPoint     int      // roll gained per extra influence point
 	Healable     []string
 	MissNextGame bool // the hero misses the next game
 	Text         string
@@ -74,7 +75,7 @@ type UnitInjury struct {
 type Treatment struct {
 	Method  string // "warrior", "attempt" or "healers"
 	Injury  string // the injury key to remove (heroes)
-	Roll    int    // the D6 the player rolled; 0 for the server to roll (attempt)
+	Roll    int    // the total the player rolled with the method's dice; 0 for the server to roll (attempt)
 	Extra   int    // extra influence spent to raise the roll (attempt)
 	Thrown  bool   // the browser threw the dice for Roll (Shake the table)
 	Resolve bool   // answer a roll that waits: Extra is the influence the player spends to raise it (0: accept the result)
@@ -83,8 +84,9 @@ type Treatment struct {
 // TreatResult says what a treatment did.
 type TreatResult struct {
 	Rolled  bool
-	Roll    int // the D6
-	Total   int // with the extra influence
+	Roll    int   // the total of the dice
+	Dice    []int // each die the server rolled (nil for a roll the player typed)
+	Total   int   // with the extra influence
 	Needed  int
 	Healed  bool
 	Pending bool // the roll failed but extra influence could make it succeed: the player decides
@@ -112,7 +114,8 @@ func ParseInjuries(content []byte) (InjuryRules, error) {
 		MissNextGame bool     `json:"missNextGame"`
 		Text         string   `json:"text"`
 		Roll         *struct {
-			Target   int `json:"target"`
+			Dice     string `json:"dice"`
+			Target   int    `json:"target"`
 			Modifier struct {
 				PerPoint int `json:"perPoint"`
 				Ceiling  int `json:"ceiling"`
@@ -181,6 +184,21 @@ func ParseInjuries(content []byte) (InjuryRules, error) {
 		tm := TreatMethod{Key: m.Key, Cost: m.Cost, Healable: m.Healable, MissNextGame: m.MissNextGame, Text: m.Text}
 		if m.Roll != nil {
 			tm.Target, tm.PerPoint, tm.Ceiling = m.Roll.Target, m.Roll.Modifier.PerPoint, m.Roll.Modifier.Ceiling
+			path := "campaign.injuries.treatment.hero[" + m.Key + "].roll"
+			if m.Roll.Dice == "" {
+				return InjuryRules{}, fmt.Errorf("%s.dice is missing", path)
+			}
+			spec, err := ParseDiceAt(path+".dice", m.Roll.Dice)
+			if err != nil {
+				return InjuryRules{}, err
+			}
+			tm.TreatDice = spec
+			switch {
+			case tm.Target < 1 || tm.Target > spec.Max():
+				return InjuryRules{}, fmt.Errorf("%s.target: %d is outside 1..%d, the highest roll of %s", path, tm.Target, spec.Max(), spec)
+			case tm.Ceiling > 0 && tm.Ceiling < tm.Target:
+				return InjuryRules{}, fmt.Errorf("%s.modifier.ceiling: %d is below the target %d", path, tm.Ceiling, tm.Target)
+			}
 		}
 		switch m.Key {
 		case "attempt":

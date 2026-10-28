@@ -1,0 +1,2504 @@
+{
+  "$defs": {
+    "Abilities": {
+      "additionalProperties": false,
+      "properties": {
+        "attacksBonus": {
+          "maximum": 10,
+          "minimum": -10,
+          "type": "integer"
+        },
+        "defenceBonus": {
+          "maximum": 10,
+          "minimum": -10,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "Adjust": {
+      "additionalProperties": false,
+      "properties": {
+        "costPerPoint": {
+          "maximum": 10,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "direction": {
+          "enum": [
+            "up",
+            "down",
+            "both"
+          ],
+          "type": "string"
+        },
+        "maxPerAttempt": {
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "maxPerAttempt",
+        "direction",
+        "costPerPoint"
+      ],
+      "type": "object"
+    },
+    "Advancement": {
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "type": "object"
+    },
+    "AftermathEffect": {
+      "additionalProperties": true,
+      "properties": {
+        "key": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "range": {
+          "items": {
+            "maximum": 6,
+            "minimum": -6,
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "type": "object"
+    },
+    "Aura": {
+      "additionalProperties": false,
+      "properties": {
+        "affects": {
+          "enum": [
+            "friendly",
+            "enemy",
+            "any",
+            "self"
+          ],
+          "type": "string"
+        },
+        "concept": {
+          "type": "string"
+        },
+        "keywords": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "banner",
+            "command",
+            "support",
+            "enemy",
+            "utility"
+          ],
+          "type": "string"
+        },
+        "los": {
+          "type": "boolean"
+        },
+        "radius": {
+          "maximum": 48,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "tip": {
+          "type": "string"
+        },
+        "when": {
+          "enum": [
+            "always",
+            "declared",
+            "conditional",
+            "target",
+            "cast"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "radius",
+        "kind",
+        "affects",
+        "when"
+      ],
+      "type": "object"
+    },
+    "AuraGroup": {
+      "additionalProperties": false,
+      "properties": {
+        "default": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "AuraKind": {
+      "additionalProperties": false,
+      "properties": {
+        "colour": {
+          "type": "string"
+        },
+        "default": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "rgb": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "Auras": {
+      "additionalProperties": false,
+      "properties": {
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/AuraGroup"
+          },
+          "type": "array"
+        },
+        "kinds": {
+          "items": {
+            "$ref": "#/$defs/AuraKind"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "BreakDefault": {
+      "additionalProperties": false,
+      "properties": {
+        "of": {
+          "type": "string"
+        },
+        "percent": {
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "percent"
+      ],
+      "type": "object"
+    },
+    "BreakPoint": {
+      "additionalProperties": true,
+      "properties": {
+        "default": {
+          "$ref": "#/$defs/BreakDefault"
+        },
+        "threshold": {
+          "$ref": "#/$defs/BreakThreshold"
+        },
+        "whenBroken": {
+          "$ref": "#/$defs/WhenBroken"
+        }
+      },
+      "required": [
+        "default",
+        "threshold",
+        "whenBroken"
+      ],
+      "type": "object"
+    },
+    "BreakThreshold": {
+      "additionalProperties": false,
+      "properties": {
+        "comparison": {
+          "enum": [
+            "gt",
+            "gte"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "comparison"
+      ],
+      "type": "object"
+    },
+    "Campaign": {
+      "additionalProperties": false,
+      "properties": {
+        "aftermathEffects": {
+          "items": {
+            "$ref": "#/$defs/AftermathEffect"
+          },
+          "type": "array"
+        },
+        "againstTheOdds": {},
+        "breakPoint": {
+          "$ref": "#/$defs/BreakPoint"
+        },
+        "characteristicLimits": {},
+        "company": {
+          "$ref": "#/$defs/CompanyRules"
+        },
+        "experience": {
+          "$ref": "#/$defs/Experience"
+        },
+        "gold": {},
+        "influence": {
+          "$ref": "#/$defs/Influence"
+        },
+        "injuries": {
+          "$ref": "#/$defs/Injuries"
+        },
+        "matchInput": {},
+        "options": {},
+        "progression": {
+          "$ref": "#/$defs/Progression"
+        },
+        "rating": {
+          "$ref": "#/$defs/RatingRules"
+        },
+        "recruitment": {
+          "$ref": "#/$defs/Recruitment"
+        },
+        "scenarioSelection": {
+          "$ref": "#/$defs/ScenarioSelection"
+        }
+      },
+      "required": [
+        "company",
+        "recruitment",
+        "influence",
+        "progression",
+        "injuries",
+        "experience",
+        "breakPoint",
+        "rating",
+        "scenarioSelection"
+      ],
+      "type": "object"
+    },
+    "Chart": {
+      "additionalProperties": false,
+      "properties": {
+        "influence": {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/ChartRow"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "rows"
+      ],
+      "type": "object"
+    },
+    "ChartRow": {
+      "additionalProperties": false,
+      "properties": {
+        "blocks": {
+          "type": "boolean"
+        },
+        "count": {
+          "default": 1,
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "nothing": {
+          "type": "boolean"
+        },
+        "rare": {
+          "maximum": 50,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "roll": {
+          "$ref": "#/$defs/Roll"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "with": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "roll"
+      ],
+      "type": "object"
+    },
+    "ChosenGrant": {
+      "additionalProperties": false,
+      "properties": {
+        "rule": {
+          "type": "string"
+        },
+        "weaponClasses": {
+          "items": {
+            "enum": [
+              "melee",
+              "spear",
+              "two_handed",
+              "mount",
+              "bow",
+              "armour",
+              "throwing",
+              "shield",
+              "instrument",
+              "consumable",
+              "lance",
+              "banner",
+              "missile",
+              "crossbow",
+              "other"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "rule",
+        "weaponClasses"
+      ],
+      "type": "object"
+    },
+    "Company": {
+      "additionalProperties": false,
+      "properties": {
+        "advancements": {
+          "items": {
+            "$ref": "#/$defs/Advancement"
+          },
+          "type": "array"
+        },
+        "aka": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "alignment": {
+          "enum": [
+            "good",
+            "evil"
+          ],
+          "type": "string"
+        },
+        "breakPoint": {
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "description": {
+          "type": "string"
+        },
+        "epigraph": {
+          "$ref": "#/$defs/Epigraph"
+        },
+        "exchanges": {},
+        "extends": {
+          "type": "string"
+        },
+        "faction": {
+          "type": "string"
+        },
+        "gear": {
+          "items": {
+            "$ref": "#/$defs/Gear"
+          },
+          "type": "array"
+        },
+        "granted": {},
+        "heroUpgrades": {
+          "items": {
+            "$ref": "#/$defs/HeroUpgrade"
+          },
+          "type": "array"
+        },
+        "heroes": {
+          "$ref": "#/$defs/Heroes"
+        },
+        "id": {
+          "type": "string"
+        },
+        "limits": {
+          "$ref": "#/$defs/CompanyLimit"
+        },
+        "maxModels": {
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "oath": {
+          "$ref": "#/$defs/Oath"
+        },
+        "ownPath": {
+          "$ref": "#/$defs/OwnPath"
+        },
+        "promotions": {
+          "items": {
+            "$ref": "#/$defs/Promotion"
+          },
+          "type": "array"
+        },
+        "recruit": {
+          "$ref": "#/$defs/Recruit"
+        },
+        "reinforcements": {
+          "$ref": "#/$defs/Chart"
+        },
+        "rules": {
+          "items": {
+            "$ref": "#/$defs/Rule"
+          },
+          "type": "array"
+        },
+        "special": {
+          "$ref": "#/$defs/SpecialChart"
+        },
+        "specialRules": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "start": {
+          "$ref": "#/$defs/Start"
+        },
+        "substitutions": {},
+        "units": {
+          "items": {
+            "$ref": "#/$defs/Unit"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "alignment"
+      ],
+      "type": "object"
+    },
+    "CompanyLimit": {
+      "additionalProperties": false,
+      "properties": {
+        "company": {},
+        "exempt": {},
+        "override": {}
+      },
+      "type": "object"
+    },
+    "CompanyRules": {
+      "additionalProperties": false,
+      "properties": {
+        "equipmentSlots": {
+          "$ref": "#/$defs/SlotPair"
+        },
+        "heroStart": {
+          "$ref": "#/$defs/HeroGain"
+        },
+        "leaders": {
+          "maximum": 3,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "maxModels": {
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "oaths": {},
+        "sergeants": {
+          "maximum": 6,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "startingInfluence": {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "maxModels",
+        "leaders",
+        "sergeants",
+        "heroStart",
+        "startingInfluence",
+        "equipmentSlots"
+      ],
+      "type": "object"
+    },
+    "CourageTest": {
+      "additionalProperties": true,
+      "properties": {
+        "dice": {
+          "$ref": "#/$defs/DiceSpec"
+        }
+      },
+      "required": [
+        "dice"
+      ],
+      "type": "object"
+    },
+    "DiceGrant": {
+      "additionalProperties": false,
+      "properties": {
+        "dice": {
+          "$ref": "#/$defs/DiceSpec"
+        }
+      },
+      "required": [
+        "dice"
+      ],
+      "type": "object"
+    },
+    "DiceSpec": {
+      "description": "A dice specification [N]dM, N 1..10, M 2..100; d66 is refused.",
+      "not": {
+        "pattern": "[dD]66$"
+      },
+      "pattern": "^([1-9]|10)?[dD]([2-9]|[1-9][0-9]|100)$",
+      "type": "string"
+    },
+    "Epigraph": {
+      "additionalProperties": false,
+      "properties": {
+        "quote": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Experience": {
+      "additionalProperties": false,
+      "properties": {
+        "gains": {
+          "items": {
+            "$ref": "#/$defs/ExperienceGain"
+          },
+          "type": "array"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "gains"
+      ],
+      "type": "object"
+    },
+    "ExperienceGain": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "dice": {
+          "$ref": "#/$defs/DiceSpec"
+        },
+        "key": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "repeatable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "type": "object"
+    },
+    "FollowerRules": {
+      "additionalProperties": false,
+      "properties": {
+        "maxAtOnce": {
+          "maximum": 99,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxPerHero": {
+          "maximum": 99,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "Followers": {
+      "additionalProperties": false,
+      "properties": {
+        "rules": {
+          "$ref": "#/$defs/FollowerRules"
+        }
+      },
+      "required": [
+        "rules"
+      ],
+      "type": "object"
+    },
+    "Gear": {
+      "additionalProperties": false,
+      "properties": {
+        "abilities": {
+          "$ref": "#/$defs/Abilities"
+        },
+        "aka": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "aura": {
+          "$ref": "#/$defs/Aura"
+        },
+        "base": {
+          "type": "string"
+        },
+        "classes": {
+          "items": {
+            "enum": [
+              "melee",
+              "spear",
+              "two_handed",
+              "mount",
+              "bow",
+              "armour",
+              "throwing",
+              "shield",
+              "instrument",
+              "consumable",
+              "lance",
+              "banner",
+              "missile",
+              "crossbow",
+              "other"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "definition": {
+          "type": "string"
+        },
+        "extends": {
+          "type": "string"
+        },
+        "gold": {
+          "$ref": "#/$defs/Rating"
+        },
+        "grants": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "grantsForChosenWeapon": {
+          "$ref": "#/$defs/ChosenGrant"
+        },
+        "grantsSlots": {
+          "$ref": "#/$defs/Slots"
+        },
+        "id": {
+          "type": "string"
+        },
+        "influence": {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "wargear",
+            "equipment",
+            "creature",
+            "wanderer"
+          ],
+          "type": "string"
+        },
+        "limit": {
+          "maximum": 99,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "modifiers": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "overrides": {
+          "type": "boolean"
+        },
+        "pricedAs": {
+          "type": "string"
+        },
+        "profile": {},
+        "ranged": {
+          "type": "boolean"
+        },
+        "rating": {
+          "$ref": "#/$defs/Rating"
+        },
+        "requiresMount": {
+          "type": "boolean"
+        },
+        "size": {
+          "enum": [
+            "small",
+            "large"
+          ],
+          "type": "string"
+        },
+        "statChanges": {
+          "items": {
+            "$ref": "#/$defs/StatChange"
+          },
+          "type": "array"
+        },
+        "tts": {
+          "$ref": "#/$defs/GearTTS"
+        },
+        "type": {
+          "type": "string"
+        },
+        "who": {
+          "$ref": "#/$defs/Who"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "GearTTS": {
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "HeroGain": {
+      "additionalProperties": false,
+      "properties": {
+        "fate": {
+          "maximum": 5,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "might": {
+          "maximum": 5,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "will": {
+          "maximum": 5,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "might",
+        "will",
+        "fate"
+      ],
+      "type": "object"
+    },
+    "HeroProgress": {
+      "additionalProperties": true,
+      "properties": {
+        "choose": {
+          "maximum": 6,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "roll": {
+          "$ref": "#/$defs/DiceSpec"
+        },
+        "rollsPerProgression": {
+          "maximum": 6,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "roll",
+        "rollsPerProgression",
+        "choose"
+      ],
+      "type": "object"
+    },
+    "HeroRating": {
+      "additionalProperties": true,
+      "properties": {
+        "wargear": {
+          "$ref": "#/$defs/WargearRating"
+        }
+      },
+      "required": [
+        "wargear"
+      ],
+      "type": "object"
+    },
+    "HeroUpgrade": {
+      "additionalProperties": false,
+      "properties": {
+        "definition": {
+          "type": "string"
+        },
+        "flavour": {
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "Heroes": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "excluded": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "noStartGain": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "recruitAsHero": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "Influence": {
+      "additionalProperties": false,
+      "properties": {
+        "gains": {
+          "$ref": "#/$defs/InfluenceGains"
+        },
+        "spend": {}
+      },
+      "required": [
+        "gains"
+      ],
+      "type": "object"
+    },
+    "InfluenceGains": {
+      "additionalProperties": false,
+      "properties": {
+        "draw": {
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "participating": {
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "win": {
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "participating",
+        "draw",
+        "win"
+      ],
+      "type": "object"
+    },
+    "Injuries": {
+      "additionalProperties": true,
+      "properties": {
+        "hero": {
+          "items": {
+            "$ref": "#/$defs/InjuryRow"
+          },
+          "type": "array"
+        },
+        "roll": {
+          "$ref": "#/$defs/DiceSpec"
+        },
+        "warrior": {
+          "items": {
+            "$ref": "#/$defs/InjuryRow"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "roll"
+      ],
+      "type": "object"
+    },
+    "InjuryRow": {
+      "additionalProperties": true,
+      "properties": {
+        "cancelsMissedGame": {
+          "type": "boolean"
+        },
+        "grantsExperience": {
+          "$ref": "#/$defs/DiceGrant"
+        },
+        "key": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "roll": {
+          "$ref": "#/$defs/Roll"
+        },
+        "statChanges": {
+          "items": {
+            "$ref": "#/$defs/StatChange"
+          },
+          "type": "array"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "roll"
+      ],
+      "type": "object"
+    },
+    "Limit": {
+      "additionalProperties": false,
+      "properties": {
+        "classes": {
+          "items": {
+            "enum": [
+              "melee",
+              "spear",
+              "two_handed",
+              "mount",
+              "bow",
+              "armour",
+              "throwing",
+              "shield",
+              "instrument",
+              "consumable",
+              "lance",
+              "banner",
+              "missile",
+              "crossbow",
+              "other"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "maximumPercentage": {
+          "maximum": 100,
+          "minimum": 0.01,
+          "type": "number"
+        },
+        "property": {
+          "type": "string"
+        },
+        "roundUp": {
+          "type": "boolean"
+        },
+        "type": {
+          "enum": [
+            "bow",
+            "throwingWeapon",
+            "keyword",
+            "class"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "maximumPercentage",
+        "roundUp"
+      ],
+      "type": "object"
+    },
+    "Magic": {
+      "additionalProperties": false,
+      "properties": {
+        "castingRule": {
+          "type": "string"
+        },
+        "powers": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Power"
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "NoPromotion": {
+      "additionalProperties": false,
+      "properties": {
+        "courage": {
+          "maximum": 5,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "intelligence": {
+          "maximum": 5,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maximum": {
+          "maximum": 10,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "courage",
+        "intelligence",
+        "maximum"
+      ],
+      "type": "object"
+    },
+    "Nomination": {
+      "additionalProperties": false,
+      "properties": {
+        "allowLeader": {
+          "enum": [
+            "onlyHero"
+          ],
+          "type": "string"
+        },
+        "from": {
+          "enum": [
+            "ownHeroes",
+            "enemyHeroes",
+            "terrain"
+          ],
+          "type": "string"
+        },
+        "where": {
+          "enum": [
+            "opponentHalf"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "from"
+      ],
+      "type": "object"
+    },
+    "Oath": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "vow": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "OptionException": {
+      "additionalProperties": false,
+      "properties": {
+        "granted": {
+          "type": "boolean"
+        },
+        "option": {
+          "type": "string"
+        },
+        "ownItem": {
+          "type": "string"
+        },
+        "readAs": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "unit",
+        "option"
+      ],
+      "type": "object"
+    },
+    "OwnPath": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "default": "On Their Own Path",
+          "type": "string"
+        },
+        "units": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "units"
+      ],
+      "type": "object"
+    },
+    "Parameter": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "keyword",
+            "weapon",
+            "rollTarget",
+            "number",
+            "companyHero"
+          ],
+          "type": "string"
+        },
+        "picks": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    },
+    "Path": {
+      "additionalProperties": false,
+      "properties": {
+        "aka": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "type": "string"
+        },
+        "dice": {
+          "$ref": "#/$defs/DiceSpec"
+        },
+        "extends": {
+          "type": "string"
+        },
+        "heroicAction": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "default": "heroic",
+          "enum": [
+            "heroic",
+            "custom",
+            "endOfPath"
+          ],
+          "type": "string"
+        },
+        "limit": {
+          "maximum": 99,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "mastery": {
+          "type": "string"
+        },
+        "maximums": {},
+        "name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/PathRow"
+          },
+          "type": "array"
+        },
+        "signature": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "spells": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "PathOption": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "castingValue": {
+          "maximum": 10,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "heroicAction": {
+          "type": "string"
+        },
+        "maxTotal": {
+          "maximum": 99,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "minorRule": {
+          "$ref": "#/$defs/RuleRef"
+        },
+        "oneOf": {
+          "items": {
+            "$ref": "#/$defs/PathOption"
+          },
+          "type": "array"
+        },
+        "power": {
+          "type": "string"
+        },
+        "rule": {
+          "$ref": "#/$defs/RuleRef"
+        },
+        "stat": {
+          "enum": [
+            "movement",
+            "fight",
+            "shoot",
+            "strength",
+            "defence",
+            "attack",
+            "wounds",
+            "courage",
+            "intelligence",
+            "might",
+            "will",
+            "fate"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "PathRow": {
+      "additionalProperties": false,
+      "properties": {
+        "options": {
+          "items": {
+            "$ref": "#/$defs/PathOption"
+          },
+          "type": "array"
+        },
+        "roll": {
+          "$ref": "#/$defs/Roll"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "roll",
+        "options"
+      ],
+      "type": "object"
+    },
+    "Pin": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "hero",
+            "warrior",
+            "unit",
+            "item",
+            "rule",
+            "mount"
+          ],
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "occurrence": {
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "occurrence"
+      ],
+      "type": "object"
+    },
+    "Power": {
+      "additionalProperties": false,
+      "properties": {
+        "casting": {
+          "type": "string"
+        },
+        "range": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Progression": {
+      "additionalProperties": true,
+      "properties": {
+        "hero": {
+          "$ref": "#/$defs/HeroProgress"
+        },
+        "threshold": {
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "warrior": {
+          "$ref": "#/$defs/WarriorProgress"
+        }
+      },
+      "required": [
+        "threshold",
+        "warrior",
+        "hero"
+      ],
+      "type": "object"
+    },
+    "Promotion": {
+      "additionalProperties": false,
+      "properties": {
+        "becomes": {
+          "type": "string"
+        },
+        "drop": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "from": {
+          "type": "string"
+        },
+        "keep": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "on": {
+          "enum": [
+            "noChange",
+            "promoted",
+            "heroInTheMaking"
+          ],
+          "type": "string"
+        },
+        "pathChoice": {
+          "type": "string"
+        },
+        "statGain": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "on",
+        "becomes"
+      ],
+      "type": "object"
+    },
+    "RareRule": {
+      "additionalProperties": false,
+      "properties": {
+        "deadCount": {
+          "type": "boolean"
+        },
+        "injuredCount": {
+          "type": "boolean"
+        },
+        "promotedCount": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "injuredCount",
+        "deadCount",
+        "promotedCount"
+      ],
+      "type": "object"
+    },
+    "Rating": {
+      "description": "A rating: one number for warrior and hero alike, or {warrior, hero}.",
+      "oneOf": [
+        {
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "hero": {
+              "maximum": 1000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "warrior": {
+              "maximum": 1000,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "warrior",
+            "hero"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "RatingRules": {
+      "additionalProperties": true,
+      "properties": {
+        "hero": {
+          "$ref": "#/$defs/HeroRating"
+        }
+      },
+      "required": [
+        "hero"
+      ],
+      "type": "object"
+    },
+    "Recruit": {
+      "additionalProperties": false,
+      "properties": {
+        "balance": {},
+        "fallback": {},
+        "replace": {}
+      },
+      "type": "object"
+    },
+    "Recruitment": {
+      "additionalProperties": false,
+      "properties": {
+        "adjust": {
+          "$ref": "#/$defs/Adjust"
+        },
+        "die": {
+          "$ref": "#/$defs/DiceSpec"
+        },
+        "rare": {
+          "$ref": "#/$defs/RareRule"
+        }
+      },
+      "required": [
+        "die",
+        "adjust",
+        "rare"
+      ],
+      "type": "object"
+    },
+    "Roll": {
+      "description": "A chart roll: a whole number, a range \"lo-hi\" or a pair [lo, hi].",
+      "oneOf": [
+        {
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "pattern": "^\\s*([0-9]{1,3}|1000)\\s*(-\\s*([0-9]{1,3}|1000)\\s*)?$",
+          "type": "string"
+        },
+        {
+          "items": {
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        }
+      ]
+    },
+    "Rule": {
+      "additionalProperties": false,
+      "properties": {
+        "aka": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "aura": {
+          "$ref": "#/$defs/Aura"
+        },
+        "definition": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "minor": {
+          "type": "boolean"
+        },
+        "name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "overrides": {
+          "type": "boolean"
+        },
+        "parameter": {
+          "$ref": "#/$defs/Parameter"
+        },
+        "source": {
+          "type": "string"
+        },
+        "tag": {
+          "enum": [
+            "Active",
+            "Passive"
+          ],
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/Target"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "RuleRef": {
+      "description": "A rule name, or a rule definition object that the loader hoists.",
+      "oneOf": [
+        {
+          "pattern": "\\S",
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/Rule"
+        }
+      ]
+    },
+    "Scalar": {
+      "description": "A string or a number read as text (the rulebook version).",
+      "oneOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "number"
+        }
+      ]
+    },
+    "Scenario": {
+      "additionalProperties": false,
+      "properties": {
+        "aka": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "armies": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "layout": {
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "objectives": {
+          "type": "string"
+        },
+        "outline": {
+          "type": "string"
+        },
+        "rewards": {},
+        "roles": {},
+        "scoring": {
+          "items": {
+            "$ref": "#/$defs/Scoring"
+          },
+          "type": "array"
+        },
+        "side": {
+          "default": "both",
+          "enum": [
+            "both",
+            "attacker",
+            "defender"
+          ],
+          "type": "string"
+        },
+        "specialRules": {},
+        "startingPositions": {
+          "type": "string"
+        },
+        "usesRules": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "ScenarioSelection": {
+      "additionalProperties": true,
+      "properties": {
+        "die": {
+          "$ref": "#/$defs/DiceSpec"
+        },
+        "tables": {
+          "items": {
+            "$ref": "#/$defs/ScenarioTable"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "die",
+        "tables"
+      ],
+      "type": "object"
+    },
+    "ScenarioTable": {
+      "additionalProperties": false,
+      "properties": {
+        "roll": {
+          "$ref": "#/$defs/Roll"
+        },
+        "scenarios": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "roll",
+        "scenarios"
+      ],
+      "type": "object"
+    },
+    "Scoring": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "maximum": 99,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "instruction": {
+          "type": "string"
+        },
+        "item": {
+          "type": "string"
+        },
+        "key": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "nomination": {
+          "$ref": "#/$defs/Nomination"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/ScoringOption"
+          },
+          "type": "array"
+        },
+        "secret": {
+          "type": "boolean"
+        },
+        "side": {
+          "default": "both",
+          "enum": [
+            "both",
+            "attacker",
+            "defender"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "type": "object"
+    },
+    "ScoringOption": {
+      "additionalProperties": false,
+      "properties": {
+        "points": {
+          "maximum": 99,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "points"
+      ],
+      "type": "object"
+    },
+    "SlotPair": {
+      "additionalProperties": false,
+      "properties": {
+        "large": {
+          "maximum": 10,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "small": {
+          "maximum": 10,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "small",
+        "large"
+      ],
+      "type": "object"
+    },
+    "Slots": {
+      "additionalProperties": false,
+      "properties": {
+        "large": {
+          "maximum": 10,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "small": {
+          "maximum": 10,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "SpecialChart": {
+      "additionalProperties": false,
+      "properties": {
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/ChartRow"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "rows"
+      ],
+      "type": "object"
+    },
+    "Start": {
+      "additionalProperties": false,
+      "properties": {
+        "gold": {
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "units": {
+          "items": {
+            "$ref": "#/$defs/StartUnit"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "units"
+      ],
+      "type": "object"
+    },
+    "StartUnit": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "default": 1,
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "unit": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "with": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "unit"
+      ],
+      "type": "object"
+    },
+    "StatChange": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "maximum": 20,
+          "minimum": -20,
+          "type": "integer"
+        },
+        "stat": {
+          "enum": [
+            "movement",
+            "fight",
+            "shoot",
+            "strength",
+            "defence",
+            "attack",
+            "wounds",
+            "courage",
+            "intelligence",
+            "might",
+            "will",
+            "fate"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "stat",
+        "amount"
+      ],
+      "type": "object"
+    },
+    "TableRow": {
+      "additionalProperties": true,
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "roll": {
+          "$ref": "#/$defs/Roll"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "roll"
+      ],
+      "type": "object"
+    },
+    "Target": {
+      "additionalProperties": false,
+      "properties": {
+        "appliesTo": {
+          "default": "own",
+          "enum": [
+            "enemy-keyword",
+            "enemy-any",
+            "friendly-keyword",
+            "own"
+          ],
+          "type": "string"
+        },
+        "bearerKeywords": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "keywords": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "match": {
+          "default": "any",
+          "enum": [
+            "any",
+            "all"
+          ],
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "TypeDelta": {
+      "additionalProperties": false,
+      "properties": {
+        "add": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "remove": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "Unit": {
+      "additionalProperties": false,
+      "properties": {
+        "addKeywords": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "addRules": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "aka": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "composite": {},
+        "definition": {},
+        "extends": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "includes": {},
+        "models": {},
+        "name": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "options": {},
+        "overrides": {
+          "type": "boolean"
+        },
+        "ownPath": {
+          "$ref": "#/$defs/OwnPath"
+        },
+        "points": {
+          "maximum": 10000,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "profile": {},
+        "tts": {
+          "$ref": "#/$defs/UnitTTS"
+        },
+        "types": {
+          "$ref": "#/$defs/TypeDelta"
+        },
+        "with": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "UnitTTS": {
+      "additionalProperties": false,
+      "properties": {
+        "alternatives": {},
+        "defaultOptions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "foot": {
+          "type": "string"
+        },
+        "marker": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "options": {},
+        "states": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Vanilla": {
+      "additionalProperties": false,
+      "properties": {
+        "mounts": {
+          "additionalProperties": {
+            "$ref": "#/$defs/VanillaFill"
+          },
+          "type": "object"
+        },
+        "options": {
+          "$ref": "#/$defs/VanillaOptions"
+        },
+        "pins": {
+          "items": {
+            "$ref": "#/$defs/Pin"
+          },
+          "type": "array"
+        },
+        "units": {
+          "additionalProperties": {
+            "$ref": "#/$defs/VanillaFill"
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "VanillaFill": {
+      "additionalProperties": false,
+      "properties": {
+        "baseSize": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "faction": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "race": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "unitType": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "VanillaOptions": {
+      "additionalProperties": false,
+      "properties": {
+        "exceptions": {
+          "items": {
+            "$ref": "#/$defs/OptionException"
+          },
+          "type": "array"
+        },
+        "notSold": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "WargearRating": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "threshold": {
+          "$ref": "#/$defs/WargearThreshold"
+        }
+      },
+      "required": [
+        "threshold"
+      ],
+      "type": "object"
+    },
+    "WargearThreshold": {
+      "additionalProperties": false,
+      "properties": {
+        "stats": {
+          "items": {
+            "enum": [
+              "movement",
+              "fight",
+              "shoot",
+              "strength",
+              "defence",
+              "attack",
+              "wounds",
+              "courage",
+              "intelligence",
+              "might",
+              "will",
+              "fate"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "sumAtLeast": {
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "stats",
+        "sumAtLeast"
+      ],
+      "type": "object"
+    },
+    "WarriorProgress": {
+      "additionalProperties": true,
+      "properties": {
+        "noPromotion": {
+          "$ref": "#/$defs/NoPromotion"
+        },
+        "roll": {
+          "$ref": "#/$defs/DiceSpec"
+        },
+        "table": {
+          "items": {
+            "$ref": "#/$defs/TableRow"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "roll",
+        "noPromotion"
+      ],
+      "type": "object"
+    },
+    "WhenBroken": {
+      "additionalProperties": true,
+      "properties": {
+        "courageTest": {
+          "$ref": "#/$defs/CourageTest"
+        }
+      },
+      "required": [
+        "courageTest"
+      ],
+      "type": "object"
+    },
+    "Who": {
+      "additionalProperties": false,
+      "properties": {
+        "alignment": {
+          "enum": [
+            "good",
+            "evil"
+          ],
+          "type": "string"
+        },
+        "hero": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "race": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "text": {
+          "type": "string"
+        },
+        "unitTypes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "units": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$id": "battle_companies.v2.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Generated from internal/core/lean/model.go and campaign.go by `go test ./internal/core/lean -run TestSchemaUpToDate -update-schema`; never edit by hand. The Go decoder (lean.Decode) is the authority: it also checks names, charts and cross references, which a schema cannot.",
+  "properties": {
+    "auras": {
+      "$ref": "#/$defs/Auras"
+    },
+    "campaign": {
+      "$ref": "#/$defs/Campaign"
+    },
+    "companies": {
+      "items": {
+        "$ref": "#/$defs/Company"
+      },
+      "type": "array"
+    },
+    "creatures": {
+      "$ref": "#/$defs/Followers"
+    },
+    "credit": {},
+    "extends": {
+      "type": "string"
+    },
+    "gear": {
+      "items": {
+        "$ref": "#/$defs/Gear"
+      },
+      "type": "array"
+    },
+    "limits": {
+      "items": {
+        "$ref": "#/$defs/Limit"
+      },
+      "type": "array"
+    },
+    "magic": {
+      "$ref": "#/$defs/Magic"
+    },
+    "name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "paths": {
+      "items": {
+        "$ref": "#/$defs/Path"
+      },
+      "type": "array"
+    },
+    "rules": {
+      "items": {
+        "$ref": "#/$defs/Rule"
+      },
+      "type": "array"
+    },
+    "scenarios": {
+      "items": {
+        "$ref": "#/$defs/Scenario"
+      },
+      "type": "array"
+    },
+    "schemaVersion": {
+      "const": 2,
+      "maximum": 1000,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "units": {
+      "items": {
+        "$ref": "#/$defs/Unit"
+      },
+      "type": "array"
+    },
+    "vanilla": {
+      "$ref": "#/$defs/Vanilla"
+    },
+    "version": {
+      "$ref": "#/$defs/Scalar"
+    },
+    "wanderers": {
+      "$ref": "#/$defs/Followers"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "name",
+    "version",
+    "campaign"
+  ],
+  "title": "Battle Companies rules file, lean format (schemaVersion 2)",
+  "type": "object"
+}

@@ -96,7 +96,7 @@
 {{define "aftermath_casualty"}}
 {{$v := .V}}{{$c := .C}}{{$base := .Base}}{{$animate := index $v.Animate $c.UnitID}}
 <article class="space-y-3 rounded-xl border border-line p-3" id="casualty-{{$c.UnitID}}" x-data="rollPanel"
-         data-dice="{{$v.DiceCSV $c}}" data-groups="2" data-labels="" data-animate="{{$animate}}" data-shake="{{$v.Settings.ShakeTheTable}}" @keydown.space.window="onSpace($event)">
+         data-dice="{{$v.DiceCSV $c}}" data-groups="{{$v.Rules.InjuryDice.Count}}" data-per-lane="{{$v.Rules.InjuryDice.Count}}" data-sides="{{$v.Rules.InjuryDice.Sides}}" data-labels="" data-animate="{{$animate}}" data-shake="{{$v.Settings.ShakeTheTable}}" @keydown.space.window="onSpace($event)">
   <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
     <h3 class="!text-xl break-words">{{$c.Name}}</h3>
     <span class="text-sm text-muted">{{if $c.Hero}}Hero{{else}}Warrior{{end}} · {{if $c.Hero}}hero{{else}}warrior{{end}} chart</span>
@@ -108,10 +108,9 @@
     <form x-ref="rollForm" hx-post="{{$base}}/roll" hx-target="#aftermath-page" hx-swap="outerHTML" class="flex flex-wrap items-end gap-3">
       <input type="hidden" name="unit" value="{{$c.UnitID}}"><input type="hidden" name="thrown" value="">
       {{if $v.Settings.ManualRolls}}
-      <div class="field"><label for="d1-{{$c.UnitID}}">First die</label><select id="d1-{{$c.UnitID}}" name="roll" class="input w-40"><option value="0">Roll for me</option>{{range $n := seq 1 6}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>
-      <div class="field"><label for="d2-{{$c.UnitID}}">Second die</label><select id="d2-{{$c.UnitID}}" name="roll2" class="input w-40"><option value="0">Roll for me</option>{{range $n := seq 1 6}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>
-      {{else}}<input type="hidden" name="roll" value="0"><input type="hidden" name="roll2" value="0">{{end}}
-      <button class="btn btn-primary" :disabled="rolling" {{if $v.Settings.ShakeTheTable}}@click="if (!typed()) { $event.preventDefault(); throwCasualty() }"{{end}}>Roll 2D6</button>
+      {{template "dice_selects" (dict "ID" "d" "Suffix" (printf "-%d" $c.UnitID) "Count" $v.Rules.InjuryDice.Count "Sides" $v.Rules.InjuryDice.Sides "Class" "w-40")}}
+      {{else}}{{template "dice_zeros" (dict "Count" $v.Rules.InjuryDice.Count)}}{{end}}
+      <button class="btn btn-primary" :disabled="rolling" {{if $v.Settings.ShakeTheTable}}@click="if (!typed()) { $event.preventDefault(); throwCasualty() }"{{end}}>Roll {{$v.Rules.InjuryDice.Display}}</button>
     </form>
     {{if $v.Settings.ShakeTheTable}}<p class="text-sm text-muted" x-show="rolling && !shaken" x-cloak role="status">Press the space bar to shake the table (once).</p>{{end}}
     {{else}}<p class="text-sm text-muted">Waiting for the roll.</p>{{end}}
@@ -127,14 +126,13 @@
     {{if $v.CanReroll $c}}
     <form hx-post="{{$base}}/reroll" hx-target="#aftermath-page" hx-swap="outerHTML"><input type="hidden" name="unit" value="{{$c.UnitID}}">
       {{if $v.Settings.ManualRolls}}<div class="mb-2 flex flex-wrap items-end gap-3">
-        <div class="field"><label for="rr1-{{$c.UnitID}}">First die</label><select id="rr1-{{$c.UnitID}}" name="roll" class="input w-40"><option value="0">Roll for me</option>{{range $n := seq 1 6}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>
-        <div class="field"><label for="rr2-{{$c.UnitID}}">Second die</label><select id="rr2-{{$c.UnitID}}" name="roll2" class="input w-40"><option value="0">Roll for me</option>{{range $n := seq 1 6}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div></div>{{end}}
+        {{template "dice_selects" (dict "ID" "rr" "Suffix" (printf "-%d" $c.UnitID) "Count" $v.Rules.InjuryDice.Count "Sides" $v.Rules.InjuryDice.Sides "Class" "w-40")}}</div>{{end}}
       <button class="btn btn-secondary">Re-roll · Against the Odds <span class="text-sm text-muted">({{$v.A.Rerolls}} left)</span></button></form>
     {{end}}
     <details class="group">
       <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium"><span>The {{if $c.Hero}}hero{{else}}warrior{{end}} injuries chart</span><span class="text-muted group-open:hidden">Show</span><span class="hidden text-muted group-open:inline">Hide</span></summary>
       <div class="overflow-x-auto rounded-lg border border-line"><table class="w-full text-sm">
-        <thead class="bg-raised text-xs uppercase text-muted"><tr><th class="w-16 px-3 py-1.5 text-center font-semibold">2D6</th><th class="px-3 py-1.5 text-left font-semibold">Result</th></tr></thead>
+        <thead class="bg-raised text-xs uppercase text-muted"><tr><th class="w-16 px-3 py-1.5 text-center font-semibold">{{$v.Rules.InjuryDice.Display}}</th><th class="px-3 py-1.5 text-left font-semibold">Result</th></tr></thead>
         <tbody class="divide-y divide-line">{{range $v.Chart $c}}<tr {{if .Covers $c.Total}}class="bg-accent-soft font-semibold" aria-current="true"{{end}}><td class="px-3 py-2 text-center">{{if eq .Min .Max}}{{.Min}}{{else}}{{.Min}}-{{.Max}}{{end}}</td><td class="px-3 py-2"><span class="font-medium">{{.Name}}</span>{{with .Text}}<span class="block text-muted font-normal">{{.}}</span>{{end}}</td></tr>{{end}}</tbody>
       </table></div>
     </details>
@@ -153,7 +151,7 @@
     <label class="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="answer" value="reroll" required class="h-5 w-5 accent-[var(--accent)]"> Roll again</label>
     <label class="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="answer" value="keep" class="h-5 w-5 accent-[var(--accent)]"> Keep it (misses the next game)</label>
     {{else if eq $d.Kind "bonus"}}
-    <div class="field"><label for="bonus-{{$c.UnitID}}">The die</label><select id="bonus-{{$c.UnitID}}" name="answer" class="input w-48"><option value="0">Roll for me</option>{{range $n := seq 1 6}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>
+    <div class="field"><label for="bonus-{{$c.UnitID}}">The die</label><select id="bonus-{{$c.UnitID}}" name="answer" class="input w-48"><option value="0">Roll for me</option>{{range $n := seq 1 ($v.BonusMax $c)}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>
     {{else}}
     {{range $d.Options}}<label class="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="answer" value="{{.Key}}" class="h-5 w-5 accent-[var(--accent)]"> {{.Label}}</label>{{end}}
     <label class="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="answer" value="" checked class="h-5 w-5 accent-[var(--accent)]"> None</label>
@@ -186,7 +184,7 @@
   <fieldset class="min-w-0 space-y-1">
     {{if $s.Fallback}}{{template "aftermath_fallback" (dict "V" $v "IDs" $s.Fallback "Role" "sergeant")}}
     {{else}}
-    <legend class="text-sm font-semibold">The company has fewer than two Sergeants. Which hero becomes a Sergeant? (Optional: a Hero who is not a Leader or Sergeant may take the place.)</legend>
+    <legend class="text-sm font-semibold">The company has fewer than {{count $s.Sergeants "Sergeant"}}. Which hero becomes a Sergeant? (Optional: a Hero who is not a Leader or Sergeant may take the place.)</legend>
     {{range $id := $s.SergeantOptions}}<label class="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="answer" value="{{$id}}" class="h-5 w-5 accent-[var(--accent)]"> {{$v.UnitName $id}}</label>{{end}}
     <label class="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="answer" value="" checked class="h-5 w-5 accent-[var(--accent)]"> Nobody for now</label>
     {{end}}
@@ -206,7 +204,7 @@
 
 {{define "aftermath_levelups"}}
 {{$cid := .Campaign.ID}}
-<p class="text-sm text-muted">Every {{.Rules.Threshold}} experience a unit rolls for a level-up. Experience is applied; units that crossed a threshold are listed here.</p>
+<p class="text-sm text-muted">Every {{.LevelEvery}} experience a unit rolls for a level-up. Experience is applied; units that crossed a threshold are listed here.</p>
 {{with .Waiting}}
 <ul class="divide-y divide-line">
   {{range .}}

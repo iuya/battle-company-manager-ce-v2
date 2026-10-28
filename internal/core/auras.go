@@ -558,6 +558,7 @@ type AuraSummary struct {
 	LeftOut int               // rings left out by the limits
 	// Counts (before the limits): how many rings each switch (declared, conditional, cast, target, large, optional) adds when turned on, or removes when it is on.
 	Counts map[string]int
+	Groups map[string]AuraGroupDef // data.auras.groups by id: the labels and texts of the switches
 	Notes  []TTSNote
 }
 
@@ -568,7 +569,10 @@ func (r *RuleSet) CompanyAuraSummary(d CompanyDetail, sel AuraSelection) AuraSum
 
 // AuraSummaryFor is the summary for the figures of exp (the list the player spawns, a live list included: fallen units have no rings).
 func (r *RuleSet) AuraSummaryFor(d CompanyDetail, exp TTSExport, sel AuraSelection) AuraSummary {
-	s := AuraSummary{Counts: map[string]int{}}
+	s := AuraSummary{Counts: map[string]int{}, Groups: map[string]AuraGroupDef{}}
+	for _, g := range r.BC.auras.Groups {
+		s.Groups[g.ID] = g
+	}
 	rings, notes := r.figureRings(d, exp, sel)
 	s.Notes = notes.notes
 	s.LeftOut = notes.leftOut

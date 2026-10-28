@@ -1,0 +1,7 @@
+{{/* The typed dice of a roll form, one select per die: sized by the dice of the rules file, never by a number of the template. Takes
+   {ID: id prefix, Suffix: id suffix, Count: dice, Sides: faces (or the highest total when Count is the number of results), Class: width}.
+   The fields are named roll, roll2, roll3 ... (rollName); "Roll for me" (0) leaves the die to the app. */}}
+{{define "dice_selects"}}{{$d := .}}{{range $i := seq 1 .Count}}<div class="field"><label for="{{$d.ID}}{{$i}}{{$d.Suffix}}">{{dieLabel $i $d.Count}}</label><select id="{{$d.ID}}{{$i}}{{$d.Suffix}}" name="{{rollName $i}}" class="input {{$d.Class}}"><option value="0">Roll for me</option>{{range $n := seq 1 $d.Sides}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>{{end}}{{end}}
+
+{{/* The same fields left on "Roll for me" (no typed rolls). Takes {Count}. */}}
+{{define "dice_zeros"}}{{range $i := seq 1 .Count}}<input type="hidden" name="{{rollName $i}}" value="0">{{end}}{{end}}

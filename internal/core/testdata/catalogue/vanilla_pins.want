@@ -1,0 +1,2 @@
+warn: battle_companies.json: vanilla.pins[1].occurrence: occurrence 3 does not exist for "Peregrin Took" in this vanilla file
+warn: battle_companies.json: vanilla.pins[2].occurrence: occurrence 1 does not exist for "Nobody At All" in this vanilla file

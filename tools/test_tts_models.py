@@ -7,11 +7,12 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+from bc import curated  # noqa: E402
 import validate_definitions as vd  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 VAN = json.load(open(ROOT / "definitions/vanilla/data2024.json", encoding="utf-8"))
-BC = json.load(open(ROOT / "definitions/battle_companies/battle_companies.json", encoding="utf-8"))
+BC = curated.load_full(ROOT / "definitions/battle_companies/battle_companies.json", ROOT / "tools/data")  # the audit view: the file plus the curator data
 
 
 class TTSModelsTest(unittest.TestCase):

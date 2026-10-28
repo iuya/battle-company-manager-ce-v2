@@ -302,6 +302,11 @@ READ_AS = {
     ("Haradrim Raider", "bow with poison arrows"): ("Bow", "poison belongs to the unit: the Haradrim Raider has Poisoned Attacks (Bow) on its profile"),
 }
 # ---------------------------------------------------------------------------------------------------------------------
+# Race an Elven-made item is restricted to (`who.race`; the unit-exclusive items stay open, decided by the rule engine) and the
+# equipment slots an item adds to its bearer (`grantsSlots`; the Backpack holds three more Small pieces).
+ELVEN_RACE = "Elf"
+GRANTS_SLOTS = {"backpack": {"small": 3}}
+
 # Item modifiers. An item is a BASE item plus MODIFIERS: "Elven spear" is a Spear that is an Elven weapon.
 # (Poison is NOT a modifier: it is the special rule Poisoned Attacks (<weapon>) of the UNIT, or of the Blowpipe itself.) A modifier is defined once (`data.gearAnnotations.modifiers`: its rulebook text, its effect as data, what
 # it does to identity and price) and the items carry `base` and `modifiers`. Sources: the MESBG rulebook "Weapons" chapter (Elven weapon,
@@ -796,8 +801,12 @@ def build_gear_annotations(bc, van, vanilla_units):
             entry["base"], entry["modifiers"] = base_item.name, list(mods)
             # derived for the rule engine: an Elven-made item without a price of its own (unique wargear has one) is sold at its base's
             # price (unless it is starting wargear that is never sold, NOT_SOLD).
+            if "elven" in mods:
+                entry["who"] = {"race": ELVEN_RACE}
             if "elven" in mods and k not in unique_keys and item_key(base_item.name) in priced_keys and k not in NOT_SOLD:
                 entry["pricedAs"] = base_item.name
+        if k in GRANTS_SLOTS:
+            entry["grantsSlots"] = dict(GRANTS_SLOTS[k])
         if k in GRANTS_RULE_FOR_CHOSEN_WEAPON:
             entry["grantsRuleForChosenWeapon"] = GRANTS_RULE_FOR_CHOSEN_WEAPON[k]
         if k in RELATED_BY:

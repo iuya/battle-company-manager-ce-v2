@@ -4,35 +4,39 @@ document.addEventListener('alpine:init', () => {
   // A window with a roll in it (recruiting, treating a hero's injuries): the dice (static/js/dice.js), the roll the player may adjust, and the chart row it lands on.
   Alpine.data('rollPanel', () => ({
     ...window.diceMixin(),
-    roll: 0, adjust: 0, budget: 0, influence: 0, revealed: true, shakeOn: false, // note: `shake` is the method of the dice mixin; a field of that name would hide it
+    roll: 0, adjust: 0, budget: 0, budgetDown: 0, cost: 1, sides: 6, perLane: 1, lanes: 1, influence: 0, revealed: true, shakeOn: false, // note: `shake` is the method of the dice mixin; a field of that name would hide it
     init() {
       const d = this.$el.dataset;
       this.shakeOn = d.shake === 'true';
-      this.roll = Number(d.roll) || 0; this.budget = Number(d.budget) || 0; this.influence = Number(d.influence) || 0;
+      this.roll = Number(d.roll) || 0; this.budget = Number(d.budget) || 0; this.budgetDown = Number(d.budgetDown) || 0; this.cost = Number(d.cost) || 0; this.sides = Number(d.sides) || 6; this.influence = Number(d.influence) || 0;
+      // the dice of this roll, from the rules file: faces of each die, dice in one roll (perLane), rolls thrown side by side (lanes)
+      this.perLane = Number(d.perLane) || 1; this.lanes = Number(d.lanes) || 1;
       // a roll the server just made is shown rolling first, and its number revealed when the dice stop
       const dice = (d.dice || '').split(',').map(Number).filter(n => n > 0);
       const values = dice.length ? dice : (this.roll > 0 ? [this.roll] : []);
       this.revealed = !(d.animate === 'true' && values.length);
-      if (!this.revealed) this.$nextTick(() => this.throwDice({ count: values.length, values, then: () => { this.revealed = true; }, groups: (d.groups || '').split(',').map(Number).filter(n => n > 0), labels: (d.labels || '').split(',').filter(Boolean) }));
+      if (!this.revealed) this.$nextTick(() => this.throwDice({ count: values.length, sides: this.sides, values, then: () => { this.revealed = true; }, groups: (d.groups || '').split(',').map(Number).filter(n => n > 0), labels: (d.labels || '').split(',').filter(Boolean) }));
     },
     // Where Shake the table is on, the Roll button throws the dice in the browser, unless the player typed their own roll.
-    typed() { const f = this.$refs.rollForm; return !!f && ['roll', 'roll2'].some(n => f.elements[n] && Number(f.elements[n].value) > 0); },
-    // A level-up thrown in the browser: a warrior throws one die, a hero two pairs (in two lanes); the result is sent as the roll.
+    typed() { const f = this.$refs.rollForm; return !!f && Array.from(f.elements).some(e => /^roll\d*$/.test(e.name) && Number(e.value) > 0); },
+    // The form field of the i-th roll (1-based): roll, roll2, roll3 ... (read back by the server).
+    field(i) { return this.$refs.rollForm.elements[i === 1 ? 'roll' : 'roll' + i]; },
+    sum(v, from, n) { return v.slice(from, from + n).reduce((a, b) => a + b, 0); },
+    // A level-up thrown in the browser: a warrior throws its dice, a hero one set for each result the rules ask for (one lane each);
+    // the sum of each set is sent as the roll.
     throwLevel() {
-      const hero = this.$root.dataset.hero === 'true', form = this.$refs.rollForm;
-      this.throwDice({ count: hero ? 4 : 1, groups: hero ? [2, 2] : null, labels: ['First roll', 'Second roll'], canShake: true, then: v => {
-        form.elements.roll.value = String(hero ? v[0] + v[1] : v[0]);
-        if (hero) form.elements.roll2.value = String(v[2] + v[3]);
+      const hero = this.$root.dataset.hero === 'true', form = this.$refs.rollForm, n = this.perLane, lanes = hero ? this.lanes : 1;
+      this.throwDice({ count: n * lanes, sides: this.sides, groups: lanes > 1 ? Array(lanes).fill(n) : null, labels: Array.from({ length: lanes }, (_, k) => ['First roll', 'Second roll'][k] || 'Roll ' + (k + 1)), canShake: true, then: v => {
+        for (let k = 0; k < lanes; k++) this.field(k + 1).value = String(this.sum(v, k * n, n));
         form.elements.thrown.value = '1';
         form.requestSubmit();
       } });
     },
-    // A casualty's injury roll (2D6) thrown in the browser, sent as the player's own two dice.
+    // A casualty's injury roll thrown in the browser, sent as the player's own dice (one field each).
     throwCasualty() {
       const form = this.$refs.rollForm;
-      this.throwDice({ count: 2, canShake: true, then: v => {
-        form.elements.roll.value = String(v[0]);
-        form.elements.roll2.value = String(v[1]);
+      this.throwDice({ count: this.perLane, sides: this.sides, canShake: true, then: v => {
+        v.forEach((n, k) => { this.field(k + 1).value = String(n); });
         form.elements.thrown.value = '1';
         form.requestSubmit();
       } });
@@ -40,19 +44,22 @@ document.addEventListener('alpine:init', () => {
     // The scenario roll of the picker thrown in the browser: two dice in two lanes, sent as the player's own roll.
     throwScenario() {
       const form = this.$refs.rollForm;
-      this.throwDice({ count: 2, groups: [1, 1], labels: ['Table', 'Scenario'], canShake: true, then: v => {
+      this.throwDice({ count: 2, sides: this.sides, groups: [1, 1], labels: ['Table', 'Scenario'], canShake: true, then: v => {
         form.elements.roll.value = String(v[0]);
         form.elements.roll2.value = String(v[1]);
         form.elements.thrown.value = '1';
         form.requestSubmit();
       } });
     },
-    get max() { return Math.min(this.budget, this.influence); },
-    get final() { return Math.min(6, Math.max(1, this.roll + this.adjust)); },
+    // What the company can pay for at the rules' price per point (free where the price is 0).
+    get affordable() { return this.cost > 0 ? Math.floor(this.influence / this.cost) : Infinity; },
+    // Whether the step (points, positive raises the die) is within the attempt's points, the die and the influence.
+    allowed(n) { return n === 0 || (n > 0 ? n <= Math.min(this.budget, this.affordable) : -n <= Math.min(this.budgetDown, this.affordable)); },
+    get final() { return Math.min(this.sides, Math.max(1, this.roll + this.adjust)); },
     // The browser throws the dice (Shake the table is on) and reports the result as the player's own roll.
     throwHere() {
-      this.throwDice({ count: 1, canShake: true, then: v => {
-        this.$refs.own.value = String(v[0]);
+      this.throwDice({ count: this.perLane, sides: this.sides, canShake: true, then: v => {
+        this.$refs.own.value = String(this.sum(v, 0, v.length));
         this.$refs.thrown.value = '1';
         this.$refs.rollForm.requestSubmit();
       } });

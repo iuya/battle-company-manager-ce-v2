@@ -15,6 +15,7 @@ type styleGuideView struct {
 	Keywords []keywordSample
 	Applies  []core.RuleMatch // sample markers of an enemy unit in a live match
 	Auras    []core.Aura      // sample aura chips of a Hero
+	Report   *reportView      // a sample rules file report
 }
 
 // keywordSample is one state of the keyword chip row for the style guide.
@@ -49,6 +50,11 @@ func (s *Server) handleStyleGuide(w http.ResponseWriter, r *http.Request) {
 		Palettes: []palette{{"forest", "Forest & Gold"}, {"ember", "Parchment & Ember"}, {"mithril", "Mithril & Night"}},
 		Modes:    []string{"system", "light", "dark"},
 		Keywords: sampleKeywords(),
+		Report: newReportView(*core.NewRulesetReport([]core.RulesetIssue{
+			{File: "battle_companies.json", Path: "companies[0].start.units[0].unit", Message: `no unit "Ranger of Arnr" in this company or vanilla`, Closest: "Ranger of Arnor"},
+			{File: "battle_companies.json", Path: "gear[1].name", Message: `"Bow" is already defined at gear[0]`, Hint: "use another name or put the old spelling in aka"},
+			{File: "glossary.json", Path: "terms[4]", Message: "the term is never referenced", Warn: true},
+		}, 0)),
 		Auras: []core.Aura{
 			{ID: "standfast-6", Kind: "command", Radius: 6, Affects: "friendly", When: core.AuraAlways, Group: core.AuraGroupAlways, LOS: true, Label: "Stand Fast, With Me!", Tip: "Friendly Warriors within 6 inches may rally.", Concept: "Stand Fast"},
 			{ID: "banner-3", Kind: "banner", Radius: 3, Affects: "friendly", When: core.AuraAlways, Group: core.AuraGroupAlways, Label: "Company Standard", Tip: "Friendly models within 3 inches re-roll Duel dice of 1.", Concept: "Company Standard"},

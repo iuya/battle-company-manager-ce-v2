@@ -20,11 +20,21 @@ import (
 // demoDice is the dice of the services in the demo world: random, except while a script fixes the next results.
 type demoDice struct{ fixed *core.FixedDice }
 
-func (d *demoDice) D6() int {
+func (d *demoDice) D6() int { return d.Die(6) }
+
+func (d *demoDice) Die(sides int) int {
 	if d.fixed == nil {
-		return rand.IntN(6) + 1
+		return rand.IntN(sides) + 1
 	}
-	return d.fixed.D6()
+	return d.fixed.Die(sides)
+}
+
+func (d *demoDice) Roll(spec core.DiceSpec) int {
+	n := 0
+	for range spec.Count {
+		n += d.Die(spec.Sides)
+	}
+	return n
 }
 
 // Set fixes the next results (the last one repeats); Random goes back to random dice.

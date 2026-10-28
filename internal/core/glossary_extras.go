@@ -1,10 +1,13 @@
 package core
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 // ExtraTerm is a glossary entry made from a campaign's rules files (the vanilla file and the Battle Companies file): special
@@ -22,10 +25,11 @@ type ExtraTerm struct {
 	Weak bool
 }
 
-// PathData is a path as the glossary shows it: the limits of its heroes and the results of its 2D6 chart.
+// PathData is a path as the glossary shows it: the limits of its heroes and the results of its level-up chart.
 type PathData struct {
-	Limits []PathLimit
-	Rows   []PathChartRow
+	Limits   []PathLimit
+	Rows     []PathChartRow
+	PathDice DiceSpec // the dice the chart is rolled with (paths[].dice, else progression.hero.roll); zero when the file names none
 }
 
 // PathLimit is the limit of one characteristic: "Fight", "+3 / 9".
@@ -83,6 +87,11 @@ func GlossaryExtras(vanilla, bc []byte) []ExtraTerm {
 		const src = "Battle Companies"
 		var doc struct {
 			Campaign struct {
+				Progression struct {
+					Hero struct {
+						Roll string `json:"roll"`
+					} `json:"hero"`
+				} `json:"progression"`
 				Injuries struct {
 					Hero    []map[string]json.RawMessage `json:"hero"`
 					Warrior []map[string]json.RawMessage `json:"warrior"`
@@ -92,6 +101,7 @@ func GlossaryExtras(vanilla, bc []byte) []ExtraTerm {
 				Keywords []map[string]json.RawMessage `json:"keywords"`
 				Paths    []struct {
 					Name        string `json:"name"`
+					Dice        string `json:"dice"`
 					Description string `json:"description"`
 					StartNote   string `json:"startingNote"`
 					StartAction *struct {
@@ -147,6 +157,7 @@ func GlossaryExtras(vanilla, bc []byte) []ExtraTerm {
 					add(p.StartAction.Name, "heroic actions", p.StartAction.Definition, src)
 				}
 				data := &PathData{Limits: pathLimits(p.Maximums)}
+				data.PathDice, _ = lean.ParseDice(cmp.Or(p.Dice, doc.Campaign.Progression.Hero.Roll)) // a bad string is the loader's error, not the glossary's
 				for _, row := range p.Progression {
 					data.Rows = append(data.Rows, PathChartRow{Roll: row.Roll, Text: tidy(row.Text)})
 				}

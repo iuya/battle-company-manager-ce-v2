@@ -1,10 +1,12 @@
 package core
 
 import (
+	"bytes"
 	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"sync"
@@ -14,47 +16,50 @@ import (
 // recruiting costs and what it can give, and what the armoury sells. Like VanillaBook it is the part of the future rules
 // loader that the app needs now.
 type BCBook struct {
-	defaultMaxModels int
-	eliteMaxModels   int
-	companies        map[string]BCCompany
-	armoury          []GearOffer
-	keywords         map[string]string
-	parameterised    map[string]string // the definition of each rule with a parameter, by lower-cased name
-	ruleTargets      RuleTargets       // data.ruleTargets: who each keyword rule works against (empty in a custom ruleset)
-	rating           RatingRules
-	annotations      map[string]GearAnnotation // by lower-cased name and alias
-	weaponRules      []GearAnnotation          // the annotations that give a rule to a weapon the player chooses (Envenom Weapon (X))
-	spell            map[string]string         // lower-cased wargear name -> the spelling the pages use (see canonicaliseWargear)
-	limitRules       []LimitRule
-	fillIns          []unitFillIn
-	mountFillIns     []unitFillIn // data.mountFillIns: unit is the gear name
-	scenarios        []ScenarioInfo
-	labels           map[string]string // rule key -> the label it is shown under (data.keywords label)
-	armourUp         ArmourUpgrade
-	injuries         InjuryRules
-	creatureRules    CreatureRules
-	creatures        []CreatureOffer
-	wandererRules    WandererRules
-	wanderers        []WandererOffer
-	progression      ProgressionRules
-	profiles         []CompanyProfile
-	profileOnce      sync.Once
-	profileSets      *profileSet
-	advancements     map[string][]Advancement
-	pathRules        map[string][]UnitRule // the special rules each path unlocks, in order, with their text
-	readAs           map[string]string     // unit|option (lower-cased) -> the armoury item an option is read as (data.optionSales readAs)
-	unsold           map[string]string     // unit|option (lower-cased) -> "status: reason" of the options no armoury sells (data.optionSales)
-	breakRules       BreakRules
-	ato              ATORules
-	ttsModels        TTSModels       // data.ttsModels
-	auras            AuraTable       // data.auras
-	reserved         map[string]bool // unit|option (lower-cased) of the options reserved to a named hero's army list
+	shape         CompanyRules // campaign.company: officers, hero start, model limits
+	companies     map[string]BCCompany
+	armoury       []GearOffer
+	keywords      map[string]string
+	parameterised map[string]string // the definition of each rule with a parameter, by lower-cased name
+	ruleTargets   RuleTargets       // data.ruleTargets: who each keyword rule works against (empty in a custom ruleset)
+	rating        RatingRules
+	annotations   map[string]GearAnnotation // by lower-cased name and alias
+	weaponRules   []GearAnnotation          // the annotations that give a rule to a weapon the player chooses (Envenom Weapon (X))
+	spell         map[string]string         // lower-cased wargear name -> the spelling the pages use (see canonicaliseWargear)
+	limitRules    []LimitRule
+	fillIns       []unitFillIn
+	mountFillIns  []unitFillIn // data.mountFillIns: unit is the gear name
+	scenarios     []ScenarioInfo
+	selection     ScenarioSelection
+	labels        map[string]string // rule key -> the label it is shown under (data.keywords label)
+	armourUp      ArmourUpgrade
+	injuries      InjuryRules
+	recruit       RecruitRules
+	creatureRules CreatureRules
+	creatures     []CreatureOffer
+	wandererRules WandererRules
+	wanderers     []WandererOffer
+	progression   ProgressionRules
+	profiles      []CompanyProfile
+	profileOnce   sync.Once
+	profileSets   *profileSet
+	advancements  map[string][]Advancement
+	pathRules     map[string][]UnitRule // the special rules each path unlocks, in order, with their text
+	readAs        map[string]string     // unit|option (lower-cased) -> the armoury item an option is read as (data.optionSales readAs)
+	unsold        map[string]string     // unit|option (lower-cased) -> "status: reason" of the options no armoury sells (data.optionSales)
+	breakRules    BreakRules
+	xpGains       map[string]int // experience.gains[].amount by key
+	ato           ATORules
+	ttsModels     TTSModels       // data.ttsModels
+	auras         AuraTable       // data.auras
+	reserved      map[string]bool // unit|option (lower-cased) of the options reserved to a named hero's army list
 }
 
 // RatingRules are the Battle Companies rules that turn a hero's profile into a rating (its points).
 type RatingRules struct {
 	PerPoint       map[string]int // rating per point of a characteristic, by key ("might": 5, "attack": 10)
 	PerSpecialRule int
+	Wargear        WargearThreshold // when a hero pays the hero rating for its wargear
 	// PerMinorSpecialRule is the rating of a minor special rule, MaxMinorSpecialRule the most all of a hero's minor rules add.
 	PerMinorSpecialRule, MaxMinorSpecialRule int
 	Average                                  map[string]int // the average Battle Company profile: advancements up to it add no rating
@@ -202,8 +207,6 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 	var doc struct {
 		Campaign struct {
 			Company struct {
-				MaxModels      int `json:"maxModels"`
-				EliteMaxModels int `json:"eliteMaxModels"`
 			} `json:"company"`
 			Rating struct {
 				Hero struct {
@@ -221,8 +224,11 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 			} `json:"characteristicLimits"`
 			BreakPoint struct {
 				Default struct {
-					Percent int `json:"percent"`
+					Percent *int `json:"percent"`
 				} `json:"default"`
+				Threshold struct {
+					Comparison string `json:"comparison"`
+				} `json:"threshold"`
 				WhenBroken struct {
 					Courage struct {
 						Dice   string `json:"dice"`
@@ -380,7 +386,14 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 					PricedAs      string   `json:"pricedAs"`
 					Base          string   `json:"base"`
 					Modifiers     []string `json:"modifiers"`
-					StatChanges   []struct {
+					GrantsSlots   *struct {
+						Large *int `json:"large"`
+						Small *int `json:"small"`
+					} `json:"grantsSlots"`
+					Who *struct {
+						Race string `json:"race"`
+					} `json:"who"`
+					StatChanges []struct {
 						Stat        string `json:"stat"`
 						Delta       int    `json:"delta"`
 						Conditional bool   `json:"conditional"`
@@ -415,23 +428,41 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 				} `json:"items"`
 			} `json:"gearAnnotations"`
 		} `json:"data"`
-		Limits []struct {
-			ID      string  `json:"id"`
-			Label   string  `json:"label"`
-			Percent float64 `json:"maximumPercentage"`
-			RoundUp bool    `json:"roundUp"`
-		} `json:"limits"`
 	}
 	if err := json.Unmarshal(content, &doc); err != nil {
 		return nil, errors.Join(ErrInvalidRuleset, errors.New("the Battle Companies file is not valid JSON"))
 	}
-	b := &BCBook{defaultMaxModels: doc.Campaign.Company.MaxModels, eliteMaxModels: doc.Campaign.Company.EliteMaxModels,
-		companies: map[string]BCCompany{}, keywords: map[string]string{}}
+	b := &BCBook{companies: map[string]BCCompany{}, keywords: map[string]string{}}
+	var wargear WargearThreshold
+	var err error
+	if b.shape, wargear, b.limitRules, err = ParseCompanyRules(content); err != nil {
+		return nil, errors.Join(ErrInvalidRuleset, err)
+	}
 	if r, err := ParseATO(content); err == nil {
 		b.ato = r
 	}
-	b.breakRules.DefaultPercent = doc.Campaign.BreakPoint.Default.Percent
+	if bytes.Contains(content, []byte(`"breakPoint"`)) {
+		var pr problems
+		b.breakRules.DefaultPercent = pr.intIn("campaign.breakPoint.default.percent", doc.Campaign.BreakPoint.Default.Percent, 1, 100)
+		switch c := doc.Campaign.BreakPoint.Threshold.Comparison; c {
+		case "gt":
+		case "gte":
+			b.breakRules.AtLeast = true
+		default:
+			pr.add("campaign.breakPoint.threshold.comparison: %q is not a comparison; known: gt, gte", c)
+		}
+		if err := pr.err(); err != nil {
+			return nil, errors.Join(ErrInvalidRuleset, err)
+		}
+	}
 	b.breakRules.CourageDice, b.breakRules.PassIf = strings.ToLower(doc.Campaign.BreakPoint.WhenBroken.Courage.Dice), doc.Campaign.BreakPoint.WhenBroken.Courage.PassIf
+	if b.breakRules.CourageDice != "" {
+		spec, err := ParseDiceAt("campaign.breakPoint.whenBroken.courageTest.dice", b.breakRules.CourageDice)
+		if err != nil {
+			return nil, errors.Join(ErrInvalidRuleset, err)
+		}
+		b.breakRules.CourageSpec = spec
+	}
 	for _, e := range doc.Campaign.BreakPoint.Exceptions {
 		b.breakRules.Exceptions = append(b.breakRules.Exceptions, BreakException{Scenario: e.Scenario, Setting: e.Setting, Rule: e.Rule, Effect: e.Effect, Who: e.Who, Prose: e.Text})
 	}
@@ -466,9 +497,22 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 		b.unsold[reservedKey(r.Unit, r.Option)] = r.Status + ": " + r.Reason
 	}
 	b.annotations = map[string]GearAnnotation{}
+	var slotPr problems
 	for _, it := range doc.Data.GearAnnotations.Items {
 		a := GearAnnotation{Name: it.Name, Aliases: it.Aliases, Grants: it.Grants, GrantedTo: it.GrantedTo, WeaponModifier: it.WeaponModifier, RequiresMount: it.RequiresMount, Definition: strings.Join(strings.Fields(it.Definition), " ")}
 		a.PricedAs, a.Base, a.Modifiers = it.PricedAs, it.Base, it.Modifiers
+		if g := it.GrantsSlots; g != nil { // an absent size grants none
+			path := "data.gearAnnotations.items[" + it.Name + "].grantsSlots."
+			if g.Large != nil {
+				a.GrantsSlots.Large = slotPr.intIn(path+"large", g.Large, 0, 10)
+			}
+			if g.Small != nil {
+				a.GrantsSlots.Small = slotPr.intIn(path+"small", g.Small, 0, 10)
+			}
+		}
+		if it.Who != nil {
+			a.OnlyRace = strings.TrimSpace(it.Who.Race)
+		}
 		if cw := it.ChosenWeapon; cw != nil {
 			a.ChosenWeapon = &ChosenWeaponRule{Rule: cw.Rule}
 			for _, c := range cw.WeaponClasses {
@@ -521,13 +565,10 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 			}
 		}
 	}
-	for _, l := range doc.Limits {
-		b.limitRules = append(b.limitRules, LimitRule{ID: l.ID, Label: limitLabel(l.ID, l.Label), Percent: l.Percent, RoundUp: l.RoundUp})
+	if err := slotPr.err(); err != nil {
+		return nil, errors.Join(ErrInvalidRuleset, err)
 	}
-	if len(b.limitRules) == 0 {
-		b.limitRules = defaultLimitRules
-	}
-	b.rating = RatingRules{PerPoint: map[string]int{}, PerSpecialRule: doc.Campaign.Rating.Hero.PerSpecialRule, PerMinorSpecialRule: doc.Campaign.Rating.Hero.PerMinorSpecialRule, MaxMinorSpecialRule: doc.Campaign.Rating.Hero.MaxMinorSpecialRuleRating, Average: map[string]int{}}
+	b.rating = RatingRules{PerPoint: map[string]int{}, PerSpecialRule: doc.Campaign.Rating.Hero.PerSpecialRule, Wargear: wargear, PerMinorSpecialRule: doc.Campaign.Rating.Hero.PerMinorSpecialRule, MaxMinorSpecialRule: doc.Campaign.Rating.Hero.MaxMinorSpecialRuleRating, Average: map[string]int{}}
 	for _, p := range doc.Campaign.Rating.Hero.PerPoint {
 		b.rating.PerPoint[p.Stat] = p.Rating
 	}
@@ -546,7 +587,7 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 		bc := BCCompany{Name: c.Name, Alignment: c.Alignment, MaxModels: c.MaxModels, ReinforcementCost: c.Reinforcements.Influence,
 			Reinforcements: rows(c.Reinforcements.Table, ownNames), SpecialChart: rows(c.SpecialChart.Table, ownNames)}
 		if bc.MaxModels == 0 {
-			bc.MaxModels = b.defaultMaxModels
+			bc.MaxModels = b.shape.MaxModels
 		}
 		for _, x := range c.LimitExemptions {
 			bc.LimitExemptions = append(bc.LimitExemptions, LimitExemption{Unit: x.Unit, Item: x.Item, Limits: x.Limits, Text: x.Text})
@@ -648,6 +689,20 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 		return nil, err
 	}
 	b.injuries = inj
+	if b.recruit, err = ParseRecruitRules(content); err != nil {
+		return nil, err
+	}
+	for _, name := range slices.Sorted(maps.Keys(b.companies)) {
+		c := b.companies[name]
+		if err := checkChart("company "+c.Name+" reinforcements", c.Reinforcements, b.recruit.Sides); err != nil {
+			return nil, err
+		}
+		if len(c.SpecialChart) > 0 {
+			if err := checkChart("company "+c.Name+" special chart", c.SpecialChart, b.recruit.Sides); err != nil {
+				return nil, err
+			}
+		}
+	}
 	if b.progression, b.advancements, err = ParseProgression(content); err != nil {
 		return nil, err
 	}
@@ -660,9 +715,37 @@ func ParseBattleCompanies(content []byte) (*BCBook, error) {
 	if b.auras, err = ParseAuras(content); err != nil {
 		return nil, err
 	}
-	b.scenarios, _ = ParseScenarios(content) // a file without scenarios simply has none
+	scenarios, err := ParseScenarios(content) // a file without scenarios simply has none
+	if errors.Is(err, ErrInvalidRuleset) {    // a table keyed by dice that does not cover them is an error of the file
+		return nil, err
+	}
+	b.scenarios = scenarios
+	if hasInjuries(content) { // the injury dice and charts are checked with the rest of the file, not when the first aftermath opens
+		r, err := ParseAftermath(content)
+		if err != nil {
+			return nil, err
+		}
+		b.xpGains = map[string]int{}
+		for _, g := range r.Gains {
+			b.xpGains[g.Key] = g.Amount
+		}
+	}
+	if b.selection, err = ParseScenarioSelection(content); err != nil {
+		return nil, err
+	}
 	return b, nil
 }
+
+// Shape is the company shape of the file (campaign.company): the officers of a company, what a new hero starts with and the model limits.
+func (b *BCBook) Shape() CompanyRules { return b.shape }
+
+// HeroBonus is what a hero starts with (campaign.company.startingHeroStats), plus extra.
+func (b *BCBook) HeroBonus(extra map[string]int) map[string]int {
+	return b.shape.HeroStart.Bonus(extra)
+}
+
+// Selection is how the dice pick a scenario (campaign.scenarioSelection).
+func (b *BCBook) Selection() ScenarioSelection { return b.selection }
 
 // Creatures and Wanderers are what the armoury also sells besides gear.
 func (b *BCBook) Creatures() (CreatureRules, []CreatureOffer) { return b.creatureRules, b.creatures }
@@ -674,6 +757,10 @@ func (b *BCBook) Advancements(c BCCompany) []Advancement { return b.advancements
 
 // Injuries are the injury chart and the treatments of the file.
 func (b *BCBook) Injuries() InjuryRules { return b.injuries }
+
+// Recruiting are the recruiting parameters of the file: the adjustment of rolls with influence, the die, Rare, the perks that move
+// a die and the starting influence.
+func (b *BCBook) Recruiting() RecruitRules { return b.recruit }
 
 // offerFrom fills an offer's classes, missile profile and granted rules from the gear annotations of the file: by the
 // item's name, then by the other names it is sold under. An item nobody annotated is "other" (the cards then draw a
@@ -709,15 +796,6 @@ func (b *BCBook) Annotation(name string) (GearAnnotation, bool) {
 // Limits counts a company's limits (bows, throwing weapons, cavalry) with its exemptions and its own shares.
 func (b *BCBook) Limits(c BCCompany, units []CompanyUnit, stored ...Equipment) []CompanyLimit {
 	return computeLimits(b.limitRules, c, units, stored...)
-}
-
-func limitLabel(id, fromFile string) string {
-	for _, d := range defaultLimitRules {
-		if d.ID == id {
-			return d.Label
-		}
-	}
-	return fromFile
 }
 
 // Company finds a company by its Battle Companies name ("Minas Tirith").
@@ -1048,6 +1126,24 @@ func (b *BCBook) ApplyUnitFillIns(v *VanillaBook) {
 	v.collectRaces()
 }
 
+// CheckRaces refuses an item restricted to a race word no vanilla profile has (data.gearAnnotations.items[].who.race), once the
+// fill-ins are applied so the words the Battle Companies file adds count.
+func (b *BCBook) CheckRaces(v *VanillaBook) error {
+	var pr problems
+	seen := map[string]bool{}
+	for _, a := range b.annotations {
+		if a.OnlyRace != "" && !seen[a.Name] && !v.IsRace(a.OnlyRace) {
+			pr.add("data.gearAnnotations.items[%s].who.race: %q is not a race of the vanilla data", a.Name, a.OnlyRace)
+		}
+		seen[a.Name] = true
+	}
+	slices.Sort(pr)
+	if err := pr.err(); err != nil {
+		return errors.Join(ErrInvalidRuleset, err)
+	}
+	return nil
+}
+
 // RuleLabel is the name a rule is shown under: its label when the file gives one (Keen Sight (Falcon) is shown as Keen Sight), else
 // its name. The name is the key (identity); the app never shows a key that has a label.
 func (b *BCBook) RuleLabel(name string) string {
@@ -1065,4 +1161,14 @@ func (b *BCBook) Scenario(name string) (ScenarioInfo, bool) {
 		}
 	}
 	return ScenarioInfo{}, false
+}
+
+// hasInjuries says whether the file carries a campaign.injuries section (a fixture of a test may not).
+func hasInjuries(content []byte) bool {
+	var probe struct {
+		Campaign struct {
+			Injuries json.RawMessage `json:"injuries"`
+		} `json:"campaign"`
+	}
+	return json.Unmarshal(content, &probe) == nil && len(probe.Campaign.Injuries) > 2 && string(probe.Campaign.Injuries) != "null"
 }

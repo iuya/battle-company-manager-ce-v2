@@ -1,0 +1,598 @@
+[
+  {
+    "kind": "gear",
+    "name": "Anduril, Flame of the West",
+    "status": "equivalent",
+    "note": "Same item, only whitespace differs."
+  },
+  {
+    "kind": "gear",
+    "name": "Axe of Lossarnach",
+    "status": "equivalent",
+    "note": "Same weapon (spear or two-handed weapon)."
+  },
+  {
+    "kind": "gear",
+    "name": "Easterling Halberd",
+    "status": "equivalent",
+    "note": "Identical."
+  },
+  {
+    "kind": "gear",
+    "name": "Fate",
+    "status": "firstWins",
+    "note": "The first entry is the stat point the Heroic Tier / army rules add; the second is the Witch-king's text and is not an item.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "gear",
+    "name": "Might",
+    "status": "firstWins",
+    "note": "The first entry is the stat point the Heroic Tier / army rules add; the second is the Witch-king's text and is not an item.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "gear",
+    "name": "The Oakenshield",
+    "status": "firstWins",
+    "note": "Re-reviewed 2026-10-22 with the user's heuristic (an older entry lacks Intelligence, carries a 'legacy' value or misses fields; otherwise the first wins): different wording of the shielding bonus; only the first carries the +1 Defence (modifiesStats) and the second has no stat data. First kept.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "gear",
+    "name": "The Ring of Durin",
+    "status": "equivalent",
+    "note": "Same effect; the first entry only adds that it is Unique wargear."
+  },
+  {
+    "kind": "gear",
+    "name": "Will",
+    "status": "firstWins",
+    "note": "The first entry is the stat point the Heroic Tier / army rules add; the second is the Witch-king's text and is not an item.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "keyword",
+    "name": "Area Effect",
+    "status": "equivalent",
+    "note": "Same rule, only typos and capitalisation differ (the second has the Active tag)."
+  },
+  {
+    "kind": "keyword",
+    "name": "Brawler",
+    "status": "firstWins",
+    "note": "Re-reviewed 2026-10-22 with the user's heuristic (an older entry lacks Intelligence, carries a 'legacy' value or misses fields; otherwise the first wins): Sid's rule in two versions; the first (re-roll natural 1s when outnumbered plus never Unarmed) is the fuller one, the second only the Unarmed part. First kept.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "keyword",
+    "name": "Caras Galadhon Fighting Style",
+    "status": "equivalent",
+    "note": "Same rule (the Guard may use Shielding with the pike), different wording."
+  },
+  {
+    "kind": "keyword",
+    "name": "Crushing Strength",
+    "status": "firstWins",
+    "note": "Re-reviewed 2026-10-22 with the user's heuristic (an older entry lacks Intelligence, carries a 'legacy' value or misses fields; otherwise the first wins): Grimbeorn's rule in the first, Beorn's in the second (same effect); the Battle Companies Beorning Hero is Grimbeorn. First kept.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "keyword",
+    "name": "Dead-eye Shot",
+    "status": "equivalent",
+    "note": "Same rule, only spelling differs."
+  },
+  {
+    "kind": "keyword",
+    "name": "Drums in the Deep",
+    "status": "firstWins",
+    "note": "The first is the current Drum rule; the second adds older army-building text about the Drum taking up two spaces.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "keyword",
+    "name": "Enchanting Song",
+    "status": "firstWins",
+    "note": "Two versions of the Wood Elf Sentinel's songs; the second uses the older wording (Courage test, Eldamar Madrigal takes control of the target).",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "keyword",
+    "name": "It has not yet Awoken",
+    "status": "equivalent",
+    "note": "Same rule, different wording."
+  },
+  {
+    "kind": "keyword",
+    "name": "King Under the Mountain",
+    "status": "firstWins",
+    "note": "Two wordings of Dain's rule (the first says Erebor Dwarf Hero models, the second Erebor Dwarf models including Heroes); the first is kept.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "keyword",
+    "name": "Leader of the Beornings",
+    "status": "firstWins",
+    "note": "Re-reviewed 2026-10-22 with the user's heuristic (an older entry lacks Intelligence, carries a 'legacy' value or misses fields; otherwise the first wins): the second still writes 'Stand Fast!' with the old exclamation mark and adds Bears; the first uses the current wording. First kept.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "keyword",
+    "name": "Longbeard",
+    "status": "overridden",
+    "note": "Replaced by the Path of the Tactician's generalised Longbeard (Battle Companies override)."
+  },
+  {
+    "kind": "keyword",
+    "name": "Mercenary Ambush",
+    "status": "firstWins",
+    "note": "Two versions (Intelligence Test vs older Courage test to arrive); the first is the current one.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "keyword",
+    "name": "One Final Blow",
+    "status": "overridden",
+    "note": "Replaced by the Helm's Deep Company Hero Upgrade of the same name (Battle Companies override)."
+  },
+  {
+    "kind": "keyword",
+    "name": "One of Nine",
+    "status": "firstWins",
+    "note": "Re-reviewed 2026-10-22 with the user's heuristic (an older entry lacks Intelligence, carries a 'legacy' value or misses fields; otherwise the first wins): the first names the Nazgul of Dol Guldur (the newer unit list); the second only the Ringwraiths and named Wraiths and adds the Ring invisibility sentence. First kept.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "keyword",
+    "name": "Pride of Dol Amroth",
+    "status": "equivalent",
+    "note": "Identical."
+  },
+  {
+    "kind": "keyword",
+    "name": "Relentless Advance",
+    "status": "firstWins",
+    "note": "Two versions of the Gundabad Ogre rule; the second is the older, Ogre-specific text that still mentions Command.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "keyword",
+    "name": "Spear Mastery",
+    "status": "equivalent",
+    "note": "Same rule, only capitalisation differs."
+  },
+  {
+    "kind": "keyword",
+    "name": "Take up the Drum",
+    "status": "firstWins",
+    "note": "Re-reviewed 2026-10-22 with the user's heuristic (an older entry lacks Intelligence, carries a 'legacy' value or misses fields; otherwise the first wins): the first is Active, applies to a Warrior within 1\" and carries the slain Drummer's wargear; the second is Passive and says any unengaged Warrior. First kept.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "keyword",
+    "name": "The Honour of Lamedon",
+    "status": "firstWins",
+    "note": "Two different rules: the Clansman's (first) and Angbor's banner effect (second, used by no unit).",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "keyword",
+    "name": "Whips of the Master",
+    "status": "equivalent",
+    "note": "Same rule; the first entry only adds flavour text."
+  },
+  {
+    "kind": "unit",
+    "name": "Aldor, Rohan Archer",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Alfrid the Councillor",
+    "status": "firstWins",
+    "note": "Re-reviewed 2026-10-22 with the user's heuristic (an older entry lacks Intelligence, carries a 'legacy' value or misses fields; otherwise the first wins): the first (heroes) entry has Intelligence 7, Might 1 and Fearful; the second has no Intelligence, so it is the older entry. First kept.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "unit",
+    "name": "Aragorn (Strider)",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Arwen Undomiel",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Bain, Son of Bard",
+    "status": "pinned",
+    "note": "The first (heroes) entry misspells the unit type key (uniType) so the type list is lost; the second (warriors) entry is the complete one. Profile otherwise identical.",
+    "occurrence": 2,
+    "occurrences": 2
+  },
+  {
+    "kind": "unit",
+    "name": "Balin the Dwarf",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Barliman Butterbur",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Bifur the Dwarf",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Bilbo Baggins",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Bilbo Baggins, Ageing Hobbit",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Bilbo Baggins, Master Burglar",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Bill the Pony",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Black Guard Drummer",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Bofur the Dwarf",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Bombur the Dwarf",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Boromir of Gondor",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Castellan of Dol Guldur",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Dori the Dwarf",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Dwalin the Dwarf",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Eowyn, Shieldmaiden of Rohan",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Fili the Dwarf",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Folco Boffin",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Fredegar `Fatty` Bolger",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Frodo Baggins",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Galadhrim Knight",
+    "status": "firstWins",
+    "note": "The second profile is incomplete (no factions, race, unit type or base size).",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "unit",
+    "name": "Gildor Inglorion",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Gimli, Son of Gloin",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Gloin the Dwarf",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Goldberry",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Gollum",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Grima Wormtongue",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Guard of the Galadhrim Court",
+    "status": "firstWins",
+    "note": "The second profile is incomplete (no factions, race, unit type or base size).",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "unit",
+    "name": "Haleth, Son of Hama",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Kili the Dwarf",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Legolas Greenleaf",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Lobelia Sackville-Baggins",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Meriadoc Brandybuck",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Meriadoc Brandybuck, Esquire of Rohan",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Mordor Orc Drummer",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Mordor Orc Siege Veteran",
+    "status": "pinned",
+    "note": "Re-reviewed 2026-10-22 with the user's heuristic (an older entry lacks Intelligence, carries a 'legacy' value or misses fields; otherwise the first wins): both entries are complete and in the heroes list; they differ only in unitType. 'Warrior, Hero' is the only entry of the file that mixes Warrior and Hero (the types exclude each other); 'Infantry, Hero' is how the other automatically added heroes are typed. The second is pinned.",
+    "occurrence": 2,
+    "occurrences": 2
+  },
+  {
+    "kind": "unit",
+    "name": "Nazgul of Dol Guldur (Dark Headsman)",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Nazgul of Dol Guldur (Khamul)",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Nazgul of Dol Guldur (The Abyssal Knight)",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Nazgul of Dol Guldur (The Forsaken)",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Nazgul of Dol Guldur (The Lingering Shadow)",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Nazgul of Dol Guldur (The Slayer of Men)",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Nazgul of Dol Guldur (Witch King)",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Nori the Dwarf",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Oin the Dwarf",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Ori the Dwarf",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Peregrin Took",
+    "status": "pinned",
+    "note": "The first (heroes) entry has no race, unit type or base size; the second (warriors) entry is the complete one. Same stats otherwise.",
+    "occurrence": 2,
+    "occurrences": 2
+  },
+  {
+    "kind": "unit",
+    "name": "Peregrin Took, Guard of the Citadel",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Radagast the Brown",
+    "status": "firstWins",
+    "note": "Re-reviewed 2026-10-22 with the user's heuristic (an older entry lacks Intelligence, carries a 'legacy' value or misses fields; otherwise the first wins): Nature's Wrath casts on 5+ in the first entry, 4+ in the second. Neither has a legacy value or misses fields; the first belongs to the current armies (Radagast's Alliance, White Council, Five Armies) and the second only to Thorin's Company, so the first is kept.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "unit",
+    "name": "Ranger of the North",
+    "status": "equivalent",
+    "note": "The warriors entry is the hero profile used as a warrior (countAsProperty: heroes): same stats."
+  },
+  {
+    "kind": "unit",
+    "name": "Rosie Cotton",
+    "status": "firstWins",
+    "note": "Re-reviewed 2026-10-22 with the user's heuristic (an older entry lacks Intelligence, carries a 'legacy' value or misses fields; otherwise the first wins): the first entry has Fearful, the second does not; both are complete and not legacy. First kept (no evidence against it).",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "unit",
+    "name": "Samwise Gamgee",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Sauron, the Necromancer",
+    "status": "firstWins",
+    "note": "The second entry has no unit type or base size.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "unit",
+    "name": "The Gatekeeper of Bree",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "The Keeper of the Dungeons",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Thrain the Broken",
+    "status": "firstWins",
+    "note": "Re-reviewed 2026-10-22 with the user's heuristic (an older entry lacks Intelligence, carries a 'legacy' value or misses fields; otherwise the first wins): the first entry carries a Hand weapon, the second a Dagger and lacks race, unit type and base size (incomplete). First kept.",
+    "occurrence": 1,
+    "occurrences": 2
+  },
+  {
+    "kind": "unit",
+    "name": "Tom Bombadil",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Troll Brute",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  },
+  {
+    "kind": "unit",
+    "name": "Uruk-Hai Drummer",
+    "status": "equivalent",
+    "note": "Same profile, rules and wargear; the entries only differ in army-building data (factions, unique, countAsProperty, option availability). The heroes entry is the first."
+  }
+]

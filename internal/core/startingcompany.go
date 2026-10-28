@@ -57,13 +57,13 @@ func (p CompanyProfile) StartGains(unit string) bool {
 	return !slices.ContainsFunc(p.NoStartGain, func(n string) bool { return strings.EqualFold(n, unit) })
 }
 
-// DefaultHeroes is the leader and the two sergeants the company suggests: the roles its file gives, completed with the first
+// DefaultHeroes is the leaders and sergeants the company suggests (as many as campaign.company gives it): the roles its file gives, completed with the first
 // units that can lead.
 func (p CompanyProfile) DefaultHeroes() []StartHero {
 	list := p.StartList()
 	var out []StartHero
 	taken := map[int]bool{}
-	want := map[UnitRole]int{RoleLeader: 1, RoleSergeant: 2}
+	want := map[UnitRole]int{RoleLeader: p.Leaders, RoleSergeant: p.Sergeants}
 	for i, s := range list {
 		if (s.Role == RoleLeader || s.Role == RoleSergeant) && want[s.Role] > 0 && p.CanLeadStart(s) {
 			want[s.Role]--
@@ -192,8 +192,8 @@ func (p CompanyProfile) ValidateStart(heroes []StartHero) ([]StartHero, error) {
 			return fail("a starting officer is the leader or a sergeant")
 		}
 	}
-	if leaders != 1 || sergeants != 2 {
-		return fail("choose one leader and two sergeants")
+	if leaders != p.Leaders || sergeants != p.Sergeants {
+		return fail("choose %s and %s", countOf(p.Leaders, "leader"), countOf(p.Sergeants, "sergeant"))
 	}
 	for i, l := range locks {
 		leads := slices.ContainsFunc(heroes, func(h StartHero) bool { return h.Index == i && h.Role == RoleLeader })
@@ -218,4 +218,17 @@ func theCompany(name string) string {
 		n = n[4:]
 	}
 	return "the " + n + " company"
+}
+
+// countOf writes a count and its noun in words: "one leader", "two sergeants", "no sergeants".
+func countOf(n int, noun string) string {
+	words := []string{"no", "one", "two", "three", "four", "five", "six"}
+	word := fmt.Sprint(n)
+	if n >= 0 && n < len(words) {
+		word = words[n]
+	}
+	if n != 1 {
+		noun += "s"
+	}
+	return word + " " + noun
 }

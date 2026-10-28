@@ -47,7 +47,8 @@ type matchView struct {
 	End              core.EndAccess // what the viewer may do about the pending or proposed end
 	OverrideNote     string         // the override dialog's note after a refusal; the dialog then stays open
 	OverrideErr      string
-	Roll             *scenarioRoll // the picker's "Roll for it" panel: nil until a roll is asked for
+	Roll             *scenarioRoll          // the picker's "Roll for it" panel: nil until a roll is asked for
+	Selection        core.ScenarioSelection // how the dice pick a scenario (set in the picker): the size of the dice and the first die's table ranges
 
 	VPFromLive map[int]bool // sides whose Victory Points the form prefilled from the secret objectives of the live match (1-based side)
 	// FledFromLive and ObjFromLive ("company/objective key") mark what the result form prefilled from the live match (36y.17).
@@ -247,6 +248,9 @@ func (s *Server) newMatchView(r *http.Request, base campaignBase, m core.Match, 
 			}
 		}
 		if mode == "pick" {
+			if v.Selection, err = s.campaigns.ScenarioSelection(r.Context(), base.Campaign.ID); err != nil {
+				return v, err
+			}
 			v.Groups = groupScenarios(list)
 		}
 	}
@@ -303,17 +307,30 @@ func (s *Server) prefillLiveDefaults(r *http.Request, v *matchView) {
 
 // groupScenarios splits the rules file's scenarios by table, in the order the file gives them.
 func groupScenarios(list []core.ScenarioInfo) []scenarioGroup {
-	titles := map[int]string{1: "Table 1 (first die 1-2)", 2: "Table 2 (first die 3-4)", 3: "Table 3 (first die 5-6)", 0: "Other scenarios"}
+	title := func(sc core.ScenarioInfo) string {
+		if sc.Table == 0 {
+			return "Other scenarios"
+		}
+		return fmt.Sprintf("Table %d (first die %s)", sc.Table, rangeText(sc.FirstDie[0], sc.FirstDie[1]))
+	}
 	var out []scenarioGroup
 	for _, sc := range list {
-		i := slices.IndexFunc(out, func(g scenarioGroup) bool { return g.Title == titles[sc.Table] })
+		i := slices.IndexFunc(out, func(g scenarioGroup) bool { return g.Title == title(sc) })
 		if i < 0 {
-			out = append(out, scenarioGroup{Title: titles[sc.Table]})
+			out = append(out, scenarioGroup{Title: title(sc)})
 			i = len(out) - 1
 		}
 		out[i].Scenarios = append(out[i].Scenarios, sc)
 	}
 	return out
+}
+
+// rangeText writes a range of rolls: "3", "1-2".
+func rangeText(lo, hi int) string {
+	if lo == hi {
+		return strconv.Itoa(lo)
+	}
+	return fmt.Sprintf("%d-%d", lo, hi)
 }
 
 func (s *Server) handleMatch(w http.ResponseWriter, r *http.Request) {
@@ -693,10 +710,12 @@ func (s *Server) handleScenarioRoll(w http.ResponseWriter, r *http.Request) {
 	for _, g := range v.Groups {
 		list = append(list, g.Scenarios...)
 	}
+	sel := v.Selection
+	dieErr := fmt.Sprintf("A die shows 1 to %d.", sel.Die.Sides)
 	switch msg := base.Campaign.Settings.RollRefusal(d1 > 0 || d2 > 0, thrown); {
 	case vantage != 0:
-		if d1 < 1 || d1 > 6 || d2 < 1 || d2 > 6 {
-			roll.Error, status = "A die shows 1 to 6.", http.StatusUnprocessableEntity
+		if !sel.Valid(d1) || !sel.Valid(d2) {
+			roll.Error, status = dieErr, http.StatusUnprocessableEntity
 			break
 		}
 		moved, line, err := s.campaigns.UseVantagePoint(r.Context(), user, base.Campaign.ID, m.ID, vantage, d2, formInt(r, "adjust"))
@@ -710,23 +729,23 @@ func (s *Server) handleScenarioRoll(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		roll.First, roll.Second, roll.Line = d1, moved, line
-		if sc, found := core.ScenarioByRolls(list, d1, moved); found {
+		if sc, found := core.ScenarioByRolls(sel, list, d1, moved); found {
 			roll.Scenario = &sc
 		}
 	case msg != "":
 		roll.Error, status = msg, http.StatusUnprocessableEntity
-	case d1 < 0 || d1 > 6 || d2 < 0 || d2 > 6:
-		roll.Error, status = "A die shows 1 to 6.", http.StatusUnprocessableEntity
+	case d1 < 0 || d1 > sel.Die.Sides || d2 < 0 || d2 > sel.Die.Sides:
+		roll.Error, status = dieErr, http.StatusUnprocessableEntity
 	default:
 		roll.Animate = d1 == 0 || d2 == 0 // a die the server rolls is shown rolling; the ones the player brings are not
 		if d1 == 0 {
-			d1 = s.d6()
+			d1 = s.die(sel.Die.Sides)
 		}
 		if d2 == 0 {
-			d2 = s.d6()
+			d2 = s.die(sel.Die.Sides)
 		}
 		roll.First, roll.Second = d1, d2
-		if sc, found := core.ScenarioByRolls(list, d1, d2); found {
+		if sc, found := core.ScenarioByRolls(sel, list, d1, d2); found {
 			roll.Scenario = &sc
 		}
 	}

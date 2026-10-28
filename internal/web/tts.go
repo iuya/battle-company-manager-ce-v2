@@ -67,15 +67,15 @@ var auraKindOrder = []core.AuraKind{"banner", "command", "support", "enemy", "ut
 // auraSwitches are the group switches of the Auras section in the order the dialog shows them (the group "always" has none: it is on with
 // the master switch). Default is the owner's choice (docs/aura-ranges.md section 9): declared and conditional on, the others off.
 var auraSwitches = []struct {
-	Group, Param, Label, Hint string
-	Default                   bool
+	Group, Param string
+	Default      bool // the label and the hint are data.auras.groups[].label and .text
 }{
-	{core.AuraGroupDeclared, "adeclared", "Rules that need an action", "Heroic Actions, Active rules and once-per-game rules.", true},
-	{core.AuraGroupConditional, "aconditional", "Rules that need an event", "Rules that start working after something happened in the game.", true},
-	{core.AuraGroupCast, "acast", "Spells in effect", "Magical Powers of the bearer while they are in effect.", false},
-	{core.AuraGroupTarget, "atarget", "Targeting ranges", "The radius only limits the choice of one model.", false},
-	{core.AuraGroupLarge, "alarge", "Large rings, over 12 inches", "They fill the table, like the war horn's 24 inches.", false},
-	{core.AuraGroupOptional, "aoptional", "Optional rings", "Light of a Torch: correct, but not a rule that decides who is affected.", false},
+	{core.AuraGroupDeclared, "adeclared", true},
+	{core.AuraGroupConditional, "aconditional", true},
+	{core.AuraGroupCast, "acast", false},
+	{core.AuraGroupTarget, "atarget", false},
+	{core.AuraGroupLarge, "alarge", false},
+	{core.AuraGroupOptional, "aoptional", false},
 }
 
 // ttsAuraSelection reads the Auras section of the query: the master switch is on unless it says 0, akinds lists the kinds that are on
@@ -190,7 +190,7 @@ func (v ttsView) AuraGroups() []auraSwitchRow {
 		if on {
 			c = counted(n, "ring")
 		}
-		out = append(out, auraSwitchRow{Name: g.Param, Label: g.Label, Hint: g.Hint, Count: c, On: on})
+		out = append(out, auraSwitchRow{Name: g.Param, Label: v.Auras.Groups[g.Group].Label, Hint: v.Auras.Groups[g.Group].Text, Count: c, On: on})
 	}
 	return out
 }

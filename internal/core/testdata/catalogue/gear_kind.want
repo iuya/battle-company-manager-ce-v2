@@ -1,0 +1,2 @@
+battle_companies.json: gear[0].kind: missing; a new item needs a kind
+  hint: known: wargear, equipment, creature, wanderer

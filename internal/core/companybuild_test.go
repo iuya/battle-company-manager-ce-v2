@@ -459,7 +459,7 @@ func TestBuildDetailAHobbitProfileWithItsOptionIsWorthItsPoints(t *testing.T) {
 	if hunter := d.Roster[0]; hunter.Type != "Tookish Hunter" || hunter.Points != 6 {
 		t.Fatalf("a Tookish Hunter is a Hobbit Archer (5) with its option (1): %+v", hunter)
 	}
-	if why, _ := rareBlock(d.Roster, "Tookish Hunter", 1); why == "" {
+	if why, _ := rareBlock(rs.BC.Recruiting().Rare, d.Roster, nil, "Tookish Hunter", 1); why == "" {
 		t.Error("only one Tookish Hunter")
 	}
 }

@@ -19,7 +19,12 @@ type VanillaBook struct {
 	gear     map[string]VanillaGear
 	powers   map[string]VanillaPower
 	races    map[string]bool // lower-cased race words of every profile (a wanderer's unit type "Man" is one); see IsRace
+
+	occurrences map[string]int // dupKey(kind, name) -> how often the file defines the name (the lean validator's vanilla.pins check)
 }
+
+// Occurrences says how many times the vanilla file defines a name of a kind ("unit", "gear", "keyword", "power"); 0 when it does not.
+func (b *VanillaBook) Occurrences(kind, name string) int { return b.occurrences[dupKey(kind, name)] }
 
 // StatDef is one attribute of a profile as the vanilla file declares them, in display order.
 type StatDef struct {
@@ -221,6 +226,10 @@ func ParseVanillaWith(content []byte, reviewed []VanillaAmbiguity, log *slog.Log
 		}
 	}
 	b.collectRaces()
+	b.occurrences = make(map[string]int, len(dups.seen))
+	for key, st := range dups.seen {
+		b.occurrences[key] = st.count
+	}
 	return b, nil
 }
 

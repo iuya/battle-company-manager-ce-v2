@@ -19,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from bc import core
-from bc import auras, company_effects, magic, oaths, rule_targets, tts
+from bc import auras, company_effects, curated, magic, oaths, rule_targets, tts
 from bc.gear import apply_read_as, build_gear_annotations, item_key, write_review
 from bc.armoury import parse_creatures, parse_equipment, parse_wanderers
 from bc.companies import parse_company
@@ -32,6 +32,13 @@ from bc.armoury_gaps import profile_wargear_not_sold, write_report as write_gap_
 from bc.vanilla import Vanilla, reserved_options, option_sales, unit_fill_ins, mount_fill_ins
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def write_json(path, obj):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(obj, f, ensure_ascii=False, indent=2)
+        f.write("\n")
 
 
 def find(lines, text, after=0):
@@ -53,6 +60,7 @@ def main():
     ap.add_argument("--src", default=str(ROOT / "sources/battle_companies_rules.txt"))
     ap.add_argument("--vanilla", default=str(ROOT / "definitions/vanilla/data2024.json"))
     ap.add_argument("--out", default=str(ROOT / "definitions/battle_companies/battle_companies.json"))
+    ap.add_argument("--data-dir", default=str(ROOT / "tools/data"), help="where the curator data (provenance, audit records) is written")
     args = ap.parse_args()
 
     src_text = open(args.src, encoding="utf-8").read().replace("\r", "")
@@ -371,7 +379,6 @@ def main():
         "validations": core.VALIDATIONS,
         "campaign": campaign,
         "scenarios": [s["name"] for s in scenarios],
-        "scenarioScoring": scoring,
         "data": {
             "companies": companies,
             "paths": paths,
@@ -389,7 +396,7 @@ def main():
             "wanderers": {**core.WANDERERS_TEXT, "items": wanderers},
             "keywords": kw_final,
             "parameterisedRules": param_rules,
-            "scenarioDetails": [{k: v for k, v in s.items() if k != "scoring"} | ({"scoring": [b["text"] for b in s["scoring"]]} if "scoring" in s else {}) for s in scenarios],
+            "scenarioDetails": [{k: v for k, v in s.items() if k != "scoring"} for s in scenarios],
         },
     }
     # ---- gear annotations (need the finished file: keywords, wargear tables, companies) -------------------------------------
@@ -417,10 +424,16 @@ def main():
     print(f"gear annotations: {len(gear['items'])} items, {len(gear_report.unclear_grants)} open grant questions, "
           f"{len(gear_report.unresolved)} unresolved")
 
-    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-    with open(args.out, "w", encoding="utf-8") as f:
-        json.dump(doc, f, ensure_ascii=False, indent=2)
-        f.write("\n")
+    # ---- cut the file the app loads: curator data to tools/data, unread prose to reference/ (tools/bc/curated.py) -------------
+    store, reference = curated.split(doc)
+    out = Path(args.out)
+    for dest, files in ((Path(args.data_dir), store), (out.parent / "reference", reference)):
+        dest.mkdir(parents=True, exist_ok=True)
+        for old in dest.glob("*.json"):
+            old.unlink()
+        for name, content in files.items():
+            write_json(dest / f"{name}.json", content)
+    write_json(out, doc)
     report(doc, vanilla)
 
 

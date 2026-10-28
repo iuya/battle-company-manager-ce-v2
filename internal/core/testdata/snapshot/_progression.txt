@@ -1,0 +1,1223 @@
+
+=== progression tables ===
+progression
+  Threshold: 5
+  Warrior:
+    - {Min: 1, Max: 2, Key: "noChange", Name: "No Change", Text: "The Warrior does not gain a promotion."}
+    -
+      Min: 3
+      Max: 5
+      Key: "promoted"
+      Name: "Promoted"
+      Text: "The Warrior has been granted a promotion by the leader of the company. Check the Advancements table on the company's page: the Warrior exchanges all characteristics and wargear for the new profile, while retaining any wargear that the new profile allows. A Warrior eligible for several promotions picks one. If there is no promotion, the Warrior increases Courage & Intelligence by +1 each, to a maximum of 3+."
+    -
+      Min: 6
+      Max: 6
+      Key: "heroInTheMaking"
+      Name: "A Hero in the Making"
+      Text: "The Warrior is treated as a Hero and immediately gains 1 Might, Will, and Fate point. They retain their Experience Points and advance like a Hero from the next game on. Alternatively the model may forgo the Hero's Journey and take their Promotion instead."
+  NoPromotion: ["courage", "intelligence"]
+  NoPromotionTo: 3
+  Paths:
+    -
+      Name: "Path of the Tactician"
+      Limits:
+        "attack": {"max": 2}
+        "courage": {"maxIncrease": 3}
+        "defence": {"maxIncrease": 1}
+        "fate": {"max": 1}
+        "fight": {"maxIncrease": 3}
+        "intelligence": {"maxIncrease": 3}
+        "might": {"max": 2}
+        "shoot": {"best": 3}
+        "strength": {"maxIncrease": 1}
+        "will": {"max": 6}
+        "wounds": {"max": 2}
+      Rows:
+        -
+          Roll: 2
+          Text: "Spy (Active) - At the beginning of the game, after both sides have deployed, this Hero may choose one enemy Hero in your opponent's Company. Whilst this Hero is within 12\" of, and has Line of Sight to, the chosen Hero, whenever the chosen Hero declares a Heroic Action they must roll a D6. On a 1-2, the Heroic Action is immediately cancelled and the Might Point is not spent. The chosen Hero may not then attempt to declare the same Heroic Action again that turn."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Spy"}]
+        -
+          Roll: 3
+          Text: "Gatekeeper (Active) - At the end of the Priority Phase, this Hero may spend a Will Point to use this special rule. If they do, this Hero may select a single enemy Infantry model within 6\" and Line of Sight and roll a D6. On a 3+, the chosen model may not Move during their Activation, but may otherwise act normally. Monster models are unaffected by this special rule."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Gatekeeper"}]
+        - {Roll: 4, Text: "Improve Attacks or Wounds by 1.", Options: [{Type: "improveStat", Stats: ["attack", "wounds"], Amount: 1}]}
+        -
+          Roll: 5
+          Text: "Improve Courage or Intelligence by 1 (& take your other roll too!)"
+          Options: [{Type: "improveStat", Stats: ["courage", "intelligence"], Amount: 1, RollAgain: true}]
+        - {Roll: 6, Text: "Improve Strength or Defence by 1.", Options: [{Type: "improveStat", Stats: ["strength", "defence"], Amount: 1}]}
+        -
+          Roll: 7
+          Text: "Heroic Move Mastery (Active) - If during the Declare Heroic Actions step of a Move Phase or Fight Phase, both sides have declared a Heroic Move or a Heroic Combat and a roll-off is required to see which side's Heroic Move happens first, friendly Heroes within 6\" of this Hero will gain a bonus to that roll. If they would normally win the roll-off on a 4+, they will instead win it on a 3+. If they would normally win the roll-off on a 1, 2, or 3, they will instead win the roll-off on a 1, 2, 3, or 4. OR improve Will by 1."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Heroic Move Mastery"}, {Type: "improveStat", Stats: ["will"], Amount: 1}]
+        - {Roll: 8, Text: "Improve Fight Value or Shoot Value by 1.", Options: [{Type: "improveStat", Stats: ["fight", "shoot"], Amount: 1}]}
+        -
+          Roll: 9
+          Text: "Improve Might or Fate by 1, or improve Will by 2 (to a Maximum of 6 Will)!"
+          Options:
+            -
+              Type: "oneOf"
+              Amount: 1
+              OneOf: [{Type: "improveStat", Stats: ["might", "fate"], Amount: 1}, {Type: "improveStat", Stats: ["will"], Amount: 2, Maximum: 6}]
+        -
+          Roll: 10
+          Text: "Choice of Minor Special Rule (up t0 to a maximum of 4) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 5)"
+          Options: [{Type: "minorSpecialRule", Amount: 1, MaxTotal: 4}, {Type: "heroicAction", Amount: 1, MaxTotal: 5}]
+        -
+          Roll: 11
+          Text: "Longbeard (Active) - During the Priority Phase, after the roll for Priority has taken place, this Hero can spend a Will Point to allow their controlling player to re-roll their roll for Priority."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Longbeard"}]
+        -
+          Roll: 12
+          Text: "Reading the Portents (Active) - During the Fight Phase, this Hero can spend a Will Point to allow a friendly model within 6\" to re-roll a single die during their Duel Roll. This Hero can use this special rule multiple times during the same Fight Phase, so long as they have Will Points remaining."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Reading the Portents"}]
+      Summary: "Adds no Heroic Action. Heroic Move Mastery improves the Heroic Move every Hero has. Path special rules: Spy, Gatekeeper, Longbeard and Reading the Portents. Signature characteristic: Will. Level-ups can also give a Minor Special Rule and a new Heroic Action."
+      Mastery: "Heroic Move Mastery"
+      SpecialRules: ["Spy", "Gatekeeper", "Longbeard", "Reading the Portents"]
+    -
+      Name: "Path of the Sharpshooter"
+      Limits:
+        "attack": {"max": 1}
+        "courage": {"maxIncrease": 3}
+        "defence": {"maxIncrease": 1}
+        "fate": {"max": 2}
+        "fight": {"maxIncrease": 1}
+        "intelligence": {"maxIncrease": 3}
+        "might": {"max": 2}
+        "shoot": {"best": 3}
+        "strength": {"maxIncrease": 1}
+        "will": {"max": 2}
+        "wounds": {"max": 2}
+      Rows:
+        -
+          Roll: 2
+          Text: "Big Game Hunter (Active) - If this Hero successfully Wound an enemy Monster model with a shooting attack (a Wound is caused and is not prevented), it will deal D3 Wounds rather than 1."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Big Game Hunter"}]
+        -
+          Roll: 3
+          Text: "Knife Mastery (Active) - Friendly Battle Company models with any bow or crossbow within 3\" and Line of Sight of this Hero may reroll To Wound Rolls of a natural 1 when making Strikes. Additionally, friendly Battle Company models with any bow or crossbow within 3\" and Line of Sight of this Hero may use the Shielding rule even if they do not possess any kind of shield."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Knife Mastery"}]
+        - {Roll: 4, Text: "Improve Attacks or Wounds by 1.", Options: [{Type: "improveStat", Stats: ["attack", "wounds"], Amount: 1}]}
+        -
+          Roll: 5
+          Text: "Improve Courage or Intelligence by 1 (& take your other roll too!)"
+          Options: [{Type: "improveStat", Stats: ["courage", "intelligence"], Amount: 1, RollAgain: true}]
+        - {Roll: 6, Text: "Improve Strength or Defence by 1.", Options: [{Type: "improveStat", Stats: ["strength", "defence"], Amount: 1}]}
+        -
+          Roll: 7
+          Text: "Heroic Shoot Mastery - When benefiting from a Heroic Shoot called by this Hero, friendly models may reroll failed To Wound Rolls when making shooting attacks. OR improve Shoot Value by 1."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Heroic Shoot Mastery"}, {Type: "improveStat", Stats: ["shoot"], Amount: 1}]
+        - {Roll: 8, Text: "Improve Fight Value or Shoot Value by 1.", Options: [{Type: "improveStat", Stats: ["fight", "shoot"], Amount: 1}]}
+        - {Roll: 9, Text: "Improve Might, Will, or Fate by 1.", Options: [{Type: "improveStat", Stats: ["might", "will", "fate"], Amount: 1}]}
+        -
+          Roll: 10
+          Text: "Choice of Minor Special Rule (up t0 to a maximum of 3) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 6)"
+          Options: [{Type: "minorSpecialRule", Amount: 1, MaxTotal: 3}, {Type: "heroicAction", Amount: 1, MaxTotal: 6}]
+        -
+          Roll: 11
+          Text: "Swift Shot (Active) - This Hero never suffers the -1 penalty To Hit for Moving and Shooting. May fire a Crossbow after moving up to half of their Movement value, but with a -1 penalty."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Swift Shot"}]
+        -
+          Roll: 12
+          Text: "Rapid Fire (Active) - If this Hero hits a target with its ranged weapon in the Shoot Phase, it may make another shooting attack with its weapon that targets a model within 3\" of the initial target - it may even be the same target. If that second shot also hits, then this model may Shoot again as described above. This model can make a maximum of three shots per turn as a result of this special rule."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Rapid Fire"}]
+      Summary: "Adds no Heroic Action. Heroic Shoot Mastery improves the Heroic Shoot every Hero has. Path special rules: Big Game Hunter, Knife Mastery, Swift Shot and Rapid Fire. Signature characteristic: Shoot. Level-ups can also give a Minor Special Rule and a new Heroic Action."
+      Mastery: "Heroic Shoot Mastery"
+      SpecialRules: ["Big Game Hunter", "Knife Mastery", "Swift Shot", "Rapid Fire"]
+    -
+      Name: "Path of the Soldier"
+      Limits:
+        "attack": {"max": 2}
+        "courage": {"maxIncrease": 3}
+        "defence": {"maxIncrease": 1}
+        "fate": {"max": 2}
+        "fight": {"maxIncrease": 4}
+        "intelligence": {"maxIncrease": 3}
+        "might": {"max": 2}
+        "shoot": {"best": 3}
+        "strength": {"maxIncrease": 1}
+        "will": {"max": 2}
+        "wounds": {"max": 2}
+      Rows:
+        -
+          Roll: 2
+          Text: "A Good Sort (Active) - Whilst within 3\" of another friendly Hero, this Hero increases their Attacks by 1 and may re-roll any rolls of a 1 in this Hero's Duel rolls."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "A Good Sort"}]
+        -
+          Roll: 3
+          Text: "Relentless Commander (Active) - Whilst this Hero is alive and on the battlefield, if you win the roll to choose who has Priority, and choose to give Priority to your opponent, then until the end of the turn friendly Battle Company models within 6\" of this Hero may reroll To Wound Rolls of a natural 1 when making Strikes."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Relentless Commander"}]
+        - {Roll: 4, Text: "Improve Attacks or Wounds by 1.", Options: [{Type: "improveStat", Stats: ["attack", "wounds"], Amount: 1}]}
+        -
+          Roll: 5
+          Text: "Improve Courage or Intelligence by 1 (& take your other roll too!)"
+          Options: [{Type: "improveStat", Stats: ["courage", "intelligence"], Amount: 1, RollAgain: true}]
+        - {Roll: 6, Text: "Improve Strength or Defence by 1.", Options: [{Type: "improveStat", Stats: ["strength", "defence"], Amount: 1}]}
+        -
+          Roll: 7
+          Text: "Heroic Combat Mastery (Active) - The Hero may call Heroic Combat without expending a point of Might if they slayed an enemy model they were Engaged in Combat with in the previous turn. OR improve Fight Value by 1."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Heroic Combat Mastery"}, {Type: "improveStat", Stats: ["fight"], Amount: 1}]
+        - {Roll: 8, Text: "Improve Fight Value or Shoot Value by 1.", Options: [{Type: "improveStat", Stats: ["fight", "shoot"], Amount: 1}]}
+        - {Roll: 9, Text: "Improve Might, Will, or Fate by 1.", Options: [{Type: "improveStat", Stats: ["might", "will", "fate"], Amount: 1}]}
+        -
+          Roll: 10
+          Text: "Choice of Minor Special Rule (up t0 to a maximum of 3) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 6)"
+          Options: [{Type: "minorSpecialRule", Amount: 1, MaxTotal: 3}, {Type: "heroicAction", Amount: 1, MaxTotal: 6}]
+        -
+          Roll: 11
+          Text: "Fearsome Charge (Active) - If this Hero Charges into Combat, then until the end of the turn they count as having the Terror special rule."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Fearsome Charge"}]
+        -
+          Roll: 12
+          Text: "Reckless Charge (Active) - If this Hero Charges into Combat, then must reroll failed To Wound rolls when making Strikes."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Reckless Charge"}]
+      Summary: "Adds no Heroic Action. Heroic Combat Mastery improves the Heroic Combat every Hero has. Path special rules: A Good Sort, Relentless Commander, Fearsome Charge and Reckless Charge. Signature characteristic: Fight. Level-ups can also give a Minor Special Rule and a new Heroic Action."
+      Mastery: "Heroic Combat Mastery"
+      SpecialRules: ["A Good Sort", "Relentless Commander", "Fearsome Charge", "Reckless Charge"]
+    -
+      Name: "Path of the Marksman"
+      Limits:
+        "attack": {"max": 1}
+        "courage": {"maxIncrease": 3}
+        "defence": {"maxIncrease": 1}
+        "fate": {"max": 2}
+        "fight": {"maxIncrease": 1}
+        "intelligence": {"maxIncrease": 3}
+        "might": {"max": 2}
+        "shoot": {"best": 2}
+        "strength": {"maxIncrease": 1}
+        "will": {"max": 2}
+        "wounds": {"max": 2}
+      Rows:
+        -
+          Roll: 2
+          Text: "Pinpoint Shot (Active) - Instead of shooting normally in the Shoot Phase, this Hero may make a single shooting attack against an enemy model Engaged in Combat with a friendly model (including himself). If they do, then if the To Hit Roll is successful, this Hero doesn't need to make any In The Way Rolls – the shot will automatically hit its target."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Pinpoint Shot"}]
+        -
+          Roll: 3
+          Text: "\"Hold positions, loose the arrows!\" (Active) - Whilst within 3\" of this Hero, friendly models may re-roll failed To Hit Rolls when making a shooting attack, providing they didn't Move in the preceding Move Phase."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "\"Hold positions, loose the arrows!\""}]
+        - {Roll: 4, Text: "Improve Attacks or Wounds by 1.", Options: [{Type: "improveStat", Stats: ["attack", "wounds"], Amount: 1}]}
+        -
+          Roll: 5
+          Text: "Improve Courage or Intelligence by 1 (& take your other roll too!)"
+          Options: [{Type: "improveStat", Stats: ["courage", "intelligence"], Amount: 1, RollAgain: true}]
+        - {Roll: 6, Text: "Improve Strength or Defence by 1.", Options: [{Type: "improveStat", Stats: ["strength", "defence"], Amount: 1}]}
+        -
+          Roll: 7
+          Text: "Heroic Accuracy Mastery - Friendly models benefiting from this Hero's Heroic Accuracy pass in-the-way checks on a 2+ rather than 4+. OR Improve Shoot Value by 1."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Heroic Accuracy Mastery"}, {Type: "improveStat", Stats: ["shoot"], Amount: 1}]
+        - {Roll: 8, Text: "Improve Fight Value or Shoot Value by 1.", Options: [{Type: "improveStat", Stats: ["fight", "shoot"], Amount: 1}]}
+        - {Roll: 9, Text: "Improve Might, Will, or Fate by 1.", Options: [{Type: "improveStat", Stats: ["might", "will", "fate"], Amount: 1}]}
+        -
+          Roll: 10
+          Text: "Choice of Minor Special Rule (up t0 to a maximum of 3) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 6)"
+          Options: [{Type: "minorSpecialRule", Amount: 1, MaxTotal: 3}, {Type: "heroicAction", Amount: 1, MaxTotal: 6}]
+        -
+          Roll: 11
+          Text: "Volley Fire (Active) - This Hero increases the range of their shooting attacks by 6\", provided they have not moved that turn. This special rule does not apply to throwing weapons."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Volley Fire"}]
+        -
+          Roll: 12
+          Text: "Lethal Aim (Active) - Each turn during the Shoot Phase, this Hero gains a free Might Point that can only be spent during a shooting attack on either a To Hit Roll, a To Wound Roll, or an In The Way Test. If this free Might Point is not spent by the end of the turn, it is lost."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Lethal Aim"}]
+      StartAction: "Heroic Accuracy"
+      Description: "The Hero adds Heroic Accuracy to their list of Heroic Actions when embarking upon this path."
+      Summary: "Adds the Heroic Action Heroic Accuracy. Heroic Accuracy Mastery improves Heroic Accuracy. Path special rules: Pinpoint Shot, \"Hold positions, loose the arrows!\", Volley Fire and Lethal Aim. Signature characteristic: Shoot. Level-ups can also give a Minor Special Rule and a new Heroic Action."
+      Mastery: "Heroic Accuracy Mastery"
+      SpecialRules: ["Pinpoint Shot", "\"Hold positions, loose the arrows!\"", "Volley Fire", "Lethal Aim"]
+    -
+      Name: "Path of the Claimant"
+      Limits:
+        "attack": {"max": 3}
+        "courage": {"maxIncrease": 3}
+        "defence": {"maxIncrease": 1}
+        "fate": {"max": 1}
+        "fight": {"maxIncrease": 4}
+        "intelligence": {"maxIncrease": 3}
+        "might": {"max": 3}
+        "shoot": {"best": 3}
+        "strength": {"maxIncrease": 1}
+        "will": {"max": 2}
+        "wounds": {"max": 2}
+      Rows:
+        -
+          Roll: 2
+          Text: "Usurper of Kings (Active) - If this Hero is Engaged in Combat with an enemy Hero, this Hero may re-roll a single D6 during the Duel Roll. Additionally, this Hero must reroll To Wound Rolls of a natural 1 when making Strikes against an enemy Hero."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Usurper of Kings"}]
+        -
+          Roll: 3
+          Text: "Claim the Throne (Passive) - If the enemy Leader is removed as a casualty whilst within 6\" of this Hero, then for the duration of the battle friendly Battle Company models treat this Hero as a banner with a range of 6\"."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Claim the Throne"}]
+        - {Roll: 4, Text: "Improve Attacks or Wounds by 1.", Options: [{Type: "improveStat", Stats: ["attack", "wounds"], Amount: 1}]}
+        -
+          Roll: 5
+          Text: "Improve Courage or Intelligence by 1 (& take your other roll too!)"
+          Options: [{Type: "improveStat", Stats: ["courage", "intelligence"], Amount: 1, RollAgain: true}]
+        - {Roll: 6, Text: "Improve Strength or Defence by 1.", Options: [{Type: "improveStat", Stats: ["strength", "defence"], Amount: 1}]}
+        -
+          Roll: 7
+          Text: "Heroic Challenge Mastery - The number of bonus Attacks granted by the Heroic Challenge is increased to +2 for this Hero, rather than the normal +1. OR improve Might by 1."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Heroic Challenge Mastery"}, {Type: "improveStat", Stats: ["might"], Amount: 1}]
+        - {Roll: 8, Text: "Improve Fight Value or Shoot Value by 1.", Options: [{Type: "improveStat", Stats: ["fight", "shoot"], Amount: 1}]}
+        - {Roll: 9, Text: "Improve Might, Will, or Fate by 1.", Options: [{Type: "improveStat", Stats: ["might", "will", "fate"], Amount: 1}]}
+        -
+          Roll: 10
+          Text: "Choice of Minor Special Rule (up t0 to a maximum of 3) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 6)"
+          Options: [{Type: "minorSpecialRule", Amount: 1, MaxTotal: 3}, {Type: "heroicAction", Amount: 1, MaxTotal: 6}]
+        -
+          Roll: 11
+          Text: "General Hunter (Active) - If this model slays the enemy General in a Combat, they immediately regain a single point of Might spent earlier in the battle."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "General Hunter"}]
+        -
+          Roll: 12
+          Text: "Cunning Fighter (Active) - If this Hero wins a Duel Roll, and there are no other allies involved in the Combat (including Supporting models) then this Hero can choose a single enemy model on a 25mm base that he was Engaged in Combat with and roll a D6. On a 4+, the chosen model is knocked Prone before Strikes are made."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Cunning Fighter"}]
+      StartAction: "Heroic Challenge"
+      Description: "The Hero adds Heroic Challenge to their list of Heroic Actions when embarking upon this path."
+      Summary: "Adds the Heroic Action Heroic Challenge. Heroic Challenge Mastery improves Heroic Challenge. Path special rules: Usurper of Kings, Claim the Throne, General Hunter and Cunning Fighter. Signature characteristic: Might. Level-ups can also give a Minor Special Rule and a new Heroic Action."
+      Mastery: "Heroic Challenge Mastery"
+      SpecialRules: ["Usurper of Kings", "Claim the Throne", "General Hunter", "Cunning Fighter"]
+    -
+      Name: "Path of the Sorcerer"
+      Limits:
+        "attack": {"max": 2}
+        "courage": {"best": 3}
+        "defence": {"maxIncrease": 1}
+        "fate": {"max": 2}
+        "fight": {"maxIncrease": 2}
+        "intelligence": {"best": 3}
+        "might": {"max": 1}
+        "shoot": {"best": 3}
+        "strength": {"maxIncrease": 1}
+        "will": {"max": 6}
+        "wounds": {"max": 3}
+      Rows:
+        -
+          Roll: 2
+          Text: "Deceptive Caster (Passive) - At the beginning of the game, after both sides have deployed, this Hero may choose a single enemy Hero. The chosen Hero suffers a -1 penalty to any Resist Tests they take when targeted by a Magical Power Cast by this Hero; except any natural 6."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Deceptive Caster"}]
+        -
+          Roll: 3
+          Text: "Choice of Magical Power or Improve an existing Magical Power's Casting Value by 1, to a maximum of 2 improvements per Magical Power"
+          Options: [{Type: "oneOf", Amount: 1, OneOf: [{Type: "magicalPower", Amount: 1}, {Type: "improveCastingValue", Amount: 1, MaxPerPower: 2}]}]
+        - {Roll: 4, Text: "Improve Attacks or Wounds by 1.", Options: [{Type: "improveStat", Stats: ["attack", "wounds"], Amount: 1}]}
+        -
+          Roll: 5
+          Text: "Improve Courage or Intelligence by 1 (& take your other roll too!)"
+          Options: [{Type: "improveStat", Stats: ["courage", "intelligence"], Amount: 1, RollAgain: true}]
+        - {Roll: 6, Text: "Improve Strength or Defence by 1.", Options: [{Type: "improveStat", Stats: ["strength", "defence"], Amount: 1}]}
+        -
+          Roll: 7
+          Text: "Heroic Channeling Mastery - When the Hero casts a Heroic Channeled spell that targets a single model, they may target one additional model. OR Improve Will by 1 OR Pick an additional Magical Power, or Improve an existing Magical Power's Casting Value by 1, to a maximum of 2 improvements per Magical Power"
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Heroic Channeling Mastery"}, {Type: "improveStat", Stats: ["will"], Amount: 1}]
+        - {Roll: 8, Text: "Improve Fight Value or Shoot Value by 1.", Options: [{Type: "improveStat", Stats: ["fight", "shoot"], Amount: 1}]}
+        -
+          Roll: 9
+          Text: "Improve Fate by 1, or improve Will by 2 (to a Maximum of 6 Will)!"
+          Options:
+            -
+              Type: "oneOf"
+              Amount: 1
+              OneOf: [{Type: "improveStat", Stats: ["fate"], Amount: 1}, {Type: "improveStat", Stats: ["will"], Amount: 2, Maximum: 6}]
+        -
+          Roll: 10
+          Text: "Choice of Minor Special Rule (up to a maximum of 4), Magical Power, or Improve an existing Magical Power's Casting Value by 1."
+          Options:
+            -
+              Type: "oneOf"
+              Amount: 1
+              OneOf: [{Type: "minorSpecialRule", Amount: 1, MaxTotal: 4}, {Type: "magicalPower", Amount: 1}, {Type: "improveCastingValue", Amount: 1}]
+        -
+          Roll: 11
+          Text: "Sorcerous Adept (Active) - Each time this Hero rolls one or more natural 6s when making a Casting Test, they will regain a single Will Point after resolving the effects of the Magical Power."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Sorcerous Adept"}]
+        -
+          Roll: 12
+          Text: "Master of Magic (Passive) - This Hero may still be Activated whilst Engaged in Combat in order to attempt to Cast Magical Powers whilst Engaged in Combat, with the exception of the following Magical Powers: Nature's Wrath, Sorcerous Blast, Call Winds, and Tremor."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Master of Magic"}]
+      StartAction: "Heroic Channeling"
+      StartPower: true
+      LimitPerCompany: 1
+      Description: "The Hero adds Heroic Channeling to their list of Heroic Actions, adds their choice of Magical Power to their Spell List when embarking upon this path. (Rare Limit: 1 per Company)"
+      Summary: "Adds the Heroic Action Heroic Channeling and a Magical Power of your choice to the Spell List. Heroic Channeling Mastery improves Heroic Channeling. Path special rules: Deceptive Caster, Sorcerous Adept and Master of Magic. Signature characteristic: Will. Level-ups can also give a Minor Special Rule, a Magical Power and a better Casting Value."
+      Mastery: "Heroic Channeling Mastery"
+      SpecialRules: ["Deceptive Caster", "Sorcerous Adept", "Master of Magic"]
+    -
+      Name: "Path of the Shieldbearer"
+      Limits:
+        "attack": {"max": 2}
+        "courage": {"maxIncrease": 4}
+        "defence": {"maxIncrease": 1}
+        "fate": {"max": 3}
+        "fight": {"maxIncrease": 3}
+        "intelligence": {"maxIncrease": 4}
+        "might": {"max": 2}
+        "shoot": {"best": 3}
+        "strength": {"maxIncrease": 1}
+        "will": {"max": 1}
+        "wounds": {"max": 3}
+      Rows:
+        -
+          Roll: 2
+          Text: "Swift Parry (Active) - This Hero may force one enemy model involved in the same Combat as them to re-roll a single D6 for their Duel Roll. This must be done before all other re-rolls, and before any Might Points are spent."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Swift Parry"}]
+        -
+          Roll: 3
+          Text: "Marshal (Passive) - This Hero and friendly Battle Company Warriors that can draw Line of Sight to this Hero may re-roll any failed Intelligence Tests and gain the Shieldwall special rule."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Marshal"}]
+        - {Roll: 4, Text: "Improve Attacks or Wounds by 1.", Options: [{Type: "improveStat", Stats: ["attack", "wounds"], Amount: 1}]}
+        -
+          Roll: 5
+          Text: "Improve Courage or Intelligence by 1 (& take your other roll too!)"
+          Options: [{Type: "improveStat", Stats: ["courage", "intelligence"], Amount: 1, RollAgain: true}]
+        - {Roll: 6, Text: "Improve Strength or Defence by 1.", Options: [{Type: "improveStat", Stats: ["strength", "defence"], Amount: 1}]}
+        -
+          Roll: 7
+          Text: "Heroic Defence Mastery - The Hero may call Heroic Defence without expending Might if they are outnumbered in Combat. OR improve Defence by 1."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Heroic Defence Mastery"}, {Type: "improveStat", Stats: ["defence"], Amount: 1}]
+        - {Roll: 8, Text: "Improve Fight Value or Shoot Value by 1.", Options: [{Type: "improveStat", Stats: ["fight", "shoot"], Amount: 1}]}
+        - {Roll: 9, Text: "Improve Might, Will, or Fate by 1.", Options: [{Type: "improveStat", Stats: ["might", "will", "fate"], Amount: 1}]}
+        -
+          Roll: 10
+          Text: "Choice of Minor Special Rule (up t0 to a maximum of 2) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 6)"
+          Options: [{Type: "minorSpecialRule", Amount: 1, MaxTotal: 2}, {Type: "heroicAction", Amount: 1, MaxTotal: 6}]
+        -
+          Roll: 11
+          Text: "Defender of the City (Active) - This Hero may use the Shielding special rule even if they are not armed with a shield. If this Hero elects to shield, and wins the ensuing Combat, they may make a single Strike against one enemy model that was involved in the Combat."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Defender of the City"}]
+        -
+          Roll: 12
+          Text: "The King's Protector (Active) - At the start of the game, choose one friendly Battle Company Hero. If the target Hero is Engaged in Combat and within 6\" of this Hero, this Hero may declare a Heroic Combat for free. If the Heroic Combat is successful then this Hero must use the following Move to join the target Hero's combat. If this is not possible, then this Hero must Move as close as possible to the target Hero."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "The King's Protector"}]
+      StartAction: "Heroic Defence"
+      Description: "The Hero adds Heroic Defence to their list of Heroic Actions when embarking upon this path."
+      Summary: "Adds the Heroic Action Heroic Defence. Heroic Defence Mastery improves Heroic Defence. Path special rules: Swift Parry, Marshal, Defender of the City and The King's Protector. Signature characteristic: Defence. Level-ups can also give a Minor Special Rule and a new Heroic Action."
+      Mastery: "Heroic Defence Mastery"
+      SpecialRules: ["Swift Parry", "Marshal", "Defender of the City", "The King's Protector"]
+    -
+      Name: "Path of the Ranger"
+      Limits:
+        "attack": {"max": 2}
+        "courage": {"maxIncrease": 3}
+        "defence": {"maxIncrease": 1}
+        "fate": {"max": 2}
+        "fight": {"maxIncrease": 2}
+        "intelligence": {"maxIncrease": 4}
+        "might": {"max": 2}
+        "movement": {"maxIncrease": 2}
+        "shoot": {"best": 2}
+        "strength": {"maxIncrease": 1}
+        "will": {"max": 2}
+        "wounds": {"max": 2}
+      Rows:
+        -
+          Roll: 2
+          Text: "Spectral Walk (Passive) - See page 129 of the Middle-Earth Strategy Battle Game Rules Manual"
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Spectral Walk"}]
+        -
+          Roll: 3
+          Text: "Experienced Tracker (Passive) - At the start of each game, you may choose either Woodland Creature or Mountain Dwellers. Friendly Battle Company models gain the chosen special rule for the duration of the game."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Experienced Tracker"}]
+        - {Roll: 4, Text: "Improve Attacks or Wounds by 1.", Options: [{Type: "improveStat", Stats: ["attack", "wounds"], Amount: 1}]}
+        -
+          Roll: 5
+          Text: "Improve Courage or Intelligence by 1 (& take your other roll too!)"
+          Options: [{Type: "improveStat", Stats: ["courage", "intelligence"], Amount: 1, RollAgain: true}]
+        - {Roll: 6, Text: "Improve Strength or Defence by 1.", Options: [{Type: "improveStat", Stats: ["strength", "defence"], Amount: 1}]}
+        -
+          Roll: 7
+          Text: "Heroic March Mastery - Models are not required to stay within the 'At the Double' range of this Hero in a turn in which this Hero declares a Heroic March. OR improve Move Value by 1."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Heroic March Mastery"}, {Type: "improveStat", Stats: ["movement"], Amount: 1}]
+        - {Roll: 8, Text: "Improve Fight Value or Shoot Value by 1.", Options: [{Type: "improveStat", Stats: ["fight", "shoot"], Amount: 1}]}
+        - {Roll: 9, Text: "Improve Might, Will, or Fate by 1.", Options: [{Type: "improveStat", Stats: ["might", "will", "fate"], Amount: 1}]}
+        -
+          Roll: 10
+          Text: "Choice of Minor Special Rule (up t0 to a maximum of 3) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 5)"
+          Options: [{Type: "minorSpecialRule", Amount: 1, MaxTotal: 3}, {Type: "heroicAction", Amount: 1, MaxTotal: 5}]
+        -
+          Roll: 11
+          Text: "Chief Advisor (Active) - Whenever a friendly Battle Company Hero model within 6\" spends a Might Point, they may roll a D6. On a natural 6, the Might Point is free and is not spent."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Chief Advisor"}]
+        -
+          Roll: 12
+          Text: "Rallying Cry (Passive) - Friendly Battle Company Infantry models can still charge after participating in a Heroic March called by this Hero."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Rallying Cry"}]
+      StartAction: "Heroic March"
+      Description: "The Hero adds Heroic March to their list of Heroic Actions when embarking upon this path."
+      Summary: "Adds the Heroic Action Heroic March. Heroic March Mastery improves Heroic March. Path special rules: Spectral Walk, Experienced Tracker, Chief Advisor and Rallying Cry. Signature characteristic: Move. Level-ups can also give a Minor Special Rule and a new Heroic Action."
+      Mastery: "Heroic March Mastery"
+      SpecialRules: ["Spectral Walk", "Experienced Tracker", "Chief Advisor", "Rallying Cry"]
+    -
+      Name: "Path of the Warlord"
+      Limits:
+        "attack": {"max": 3}
+        "courage": {"best": 3}
+        "defence": {"maxIncrease": 1}
+        "fate": {"max": 3}
+        "fight": {"maxIncrease": 4}
+        "intelligence": {"best": 3}
+        "might": {"max": 3}
+        "shoot": {"best": 3}
+        "strength": {"maxIncrease": 1}
+        "will": {"max": 3}
+        "wounds": {"max": 3}
+      Rows:
+        -
+          Roll: 2
+          Text: "Furious Tirade (Active) - Enemy Warrior models cannot benefit from a Hero model's Stand Fast whilst within 6\" of this Hero."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Furious Tirade"}]
+        -
+          Roll: 3
+          Text: "Commanding Bellow (Passive) - Friendly Battle Company models treat this Hero as a banner with a range of 3\"."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Commanding Bellow"}]
+        - {Roll: 4, Text: "Improve Attacks or Wounds by 1.", Options: [{Type: "improveStat", Stats: ["attack", "wounds"], Amount: 1}]}
+        -
+          Roll: 5
+          Text: "Improve Courage or Intelligence by 1 (& take your other roll too!)"
+          Options: [{Type: "improveStat", Stats: ["courage", "intelligence"], Amount: 1, RollAgain: true}]
+        - {Roll: 6, Text: "Improve Strength or Defence by 1.", Options: [{Type: "improveStat", Stats: ["strength", "defence"], Amount: 1}]}
+        -
+          Roll: 7
+          Text: "Heroic Resolve Mastery - The Hero may call Heroic Resolve without expending Might if their force is Broken. OR improve Courage & Intelligence by 1 (& take your other roll too!)"
+          Options:
+            - {Type: "specialRule", Amount: 1, Rule: "Heroic Resolve Mastery"}
+            - {Type: "improveStat", Stats: ["courage", "intelligence"], Amount: 1, RollAgain: true}
+        - {Roll: 8, Text: "Improve Fight Value or Shoot Value by 1.", Options: [{Type: "improveStat", Stats: ["fight", "shoot"], Amount: 1}]}
+        - {Roll: 9, Text: "Improve Might, Will, or Fate by 1.", Options: [{Type: "improveStat", Stats: ["might", "will", "fate"], Amount: 1}]}
+        -
+          Roll: 10
+          Text: "Choice of Minor Special Rule (up t0 to a maximum of 4) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 7)"
+          Options: [{Type: "minorSpecialRule", Amount: 1, MaxTotal: 4}, {Type: "heroicAction", Amount: 1, MaxTotal: 7}]
+        -
+          Roll: 11
+          Text: "Master of Battle (3+) (Active) - See page 127 of the Middle-Earth Strategy Battle Game Rules Manual"
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Master of Battle (3+)"}]
+        -
+          Roll: 12
+          Text: "Voice of Command (Active) - The range of this Hero's Stand Fast is 12\" rather than 6\". Additionally, friendly Hero models can benefit from this Hero's Stand Fast."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Voice of Command"}]
+      StartAction: "Heroic Resolve"
+      Description: "The Hero adds Heroic Resolve to their list of Heroic Actions when embarking upon this path."
+      Summary: "Adds the Heroic Action Heroic Resolve. Heroic Resolve Mastery improves Heroic Resolve. Path special rules: Furious Tirade, Commanding Bellow, Master of Battle (3+) and Voice of Command. Signature characteristic: Courage and Intelligence. Level-ups can also give a Minor Special Rule and a new Heroic Action."
+      Mastery: "Heroic Resolve Mastery"
+      SpecialRules: ["Furious Tirade", "Commanding Bellow", "Master of Battle (3+)", "Voice of Command"]
+    -
+      Name: "Path of the Berserker"
+      Limits:
+        "attack": {"max": 3}
+        "courage": {"maxIncrease": 4}
+        "defence": {"maxIncrease": 1}
+        "fate": {"max": 2}
+        "fight": {"maxIncrease": 4}
+        "intelligence": {"maxIncrease": 2}
+        "might": {"max": 3}
+        "shoot": {"best": 3}
+        "strength": {"maxIncrease": 1}
+        "will": {"max": 1}
+        "wounds": {"max": 2}
+      Rows:
+        -
+          Roll: 2
+          Text: "Burly (Passive) - A model with this special rule does not suffer the -1 penalty to the Duel Roll for using a two-handed weapon. Additionally, a model with this special rule can still Move its full Move Value whilst carrying a Heavy Object."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Burly"}]
+        -
+          Roll: 3
+          Text: "To Arms! (Active) - Once per game, at the start of his Activation, this Hero can declare they are using this special rule. If they do, then until the end of the turn all friendly models within 3\" of this Hero increase their Strength by 1."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "To Arms!"}]
+        - {Roll: 4, Text: "Improve Attacks or Wounds by 1.", Options: [{Type: "improveStat", Stats: ["attack", "wounds"], Amount: 1}]}
+        -
+          Roll: 5
+          Text: "Improve Courage or Intelligence by 1 (& take your other roll too!)"
+          Options: [{Type: "improveStat", Stats: ["courage", "intelligence"], Amount: 1, RollAgain: true}]
+        - {Roll: 6, Text: "Improve Strength or Defence by 1.", Options: [{Type: "improveStat", Stats: ["strength", "defence"], Amount: 1}]}
+        -
+          Roll: 7
+          Text: "Heroic Strength Mastery - When this Hero declares a Heroic Strength, they may choose to make a single Strike against every enemy involved in the combat, including supporting models, instead of making Strikes as normal. OR improve Strength by 1."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Heroic Strength Mastery"}, {Type: "improveStat", Stats: ["strength"], Amount: 1}]
+        - {Roll: 8, Text: "Improve Fight Value or Shoot Value by 1.", Options: [{Type: "improveStat", Stats: ["fight", "shoot"], Amount: 1}]}
+        - {Roll: 9, Text: "Improve Might, Will, or Fate by 1.", Options: [{Type: "improveStat", Stats: ["might", "will", "fate"], Amount: 1}]}
+        -
+          Roll: 10
+          Text: "Choice of Minor Special Rule (up t0 to a maximum of 3) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 6)"
+          Options: [{Type: "minorSpecialRule", Amount: 1, MaxTotal: 3}, {Type: "heroicAction", Amount: 1, MaxTotal: 6}]
+        -
+          Roll: 11
+          Text: "Oblivious to Pain (Passive) - Whenever this Hero suffers a Wound, roll a D6. On the roll of natural 6, the Wound is ignored."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Oblivious to Pain"}]
+        -
+          Roll: 12
+          Text: "Fury of the Bear (Active) - If this Hero is involved in a Combat and kills every model he was Engaged in Combat with, then in the following turn he may declare a Heroic Move for free and must Charge if able."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Fury of the Bear"}]
+      StartAction: "Heroic Strength"
+      Description: "The Hero adds Heroic Strength to their list of Heroic Actions when embarking upon this path."
+      Summary: "Adds the Heroic Action Heroic Strength. Heroic Strength Mastery improves Heroic Strength. Path special rules: Burly, To Arms!, Oblivious to Pain and Fury of the Bear. Signature characteristic: Strength. Level-ups can also give a Minor Special Rule and a new Heroic Action."
+      Mastery: "Heroic Strength Mastery"
+      SpecialRules: ["Burly", "To Arms!", "Oblivious to Pain", "Fury of the Bear"]
+    -
+      Name: "Path of the Duelist"
+      Limits:
+        "attack": {"max": 2}
+        "courage": {"maxIncrease": 4}
+        "defence": {"maxIncrease": 1}
+        "fate": {"max": 1}
+        "fight": {"max": 9}
+        "intelligence": {"maxIncrease": 2}
+        "might": {"max": 3}
+        "shoot": {"best": 3}
+        "strength": {"maxIncrease": 1}
+        "will": {"max": 3}
+        "wounds": {"max": 2}
+      Rows:
+        -
+          Roll: 2
+          Text: "Grim Blade (Active) - This Hero will always win the roll-off during a Drawn Combat. If both sides have a Hero with this special rule, neither side will benefit from this special rule."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Grim Blade"}]
+        -
+          Roll: 3
+          Text: "For Glory (Active) - Once per game, at the start of any Fight Phase, this Hero can use this special rule so long as they are alive and on the battlefield. If they do, then friendly Battle Company models within 6\" of this Hero gain a bonus of +1 Fight Value and may reroll To Wound Rolls of a natural 1 when making Strikes until the end of the turn."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "For Glory"}]
+        - {Roll: 4, Text: "Improve Attacks or Wounds by 1.", Options: [{Type: "improveStat", Stats: ["attack", "wounds"], Amount: 1}]}
+        -
+          Roll: 5
+          Text: "Improve Courage or Intelligence by 1 (& take your other roll too!)"
+          Options: [{Type: "improveStat", Stats: ["courage", "intelligence"], Amount: 1, RollAgain: true}]
+        - {Roll: 6, Text: "Improve Strength or Defence by 1.", Options: [{Type: "improveStat", Stats: ["strength", "defence"], Amount: 1}]}
+        -
+          Roll: 7
+          Text: "Heroic Strike Mastery - When calling a Heroic Strike the Hero adds +3 to their Fight Value rather than rolling a D3. OR improve Fight Value by 1."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Heroic Strike Mastery"}, {Type: "improveStat", Stats: ["fight"], Amount: 1}]
+        - {Roll: 8, Text: "Improve Fight Value or Shoot Value by 1.", Options: [{Type: "improveStat", Stats: ["fight", "shoot"], Amount: 1}]}
+        - {Roll: 9, Text: "Improve Might, Will, or Fate by 1.", Options: [{Type: "improveStat", Stats: ["might", "will", "fate"], Amount: 1}]}
+        -
+          Roll: 10
+          Text: "Choice of Minor Special Rule (up t0 to a maximum of 3) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 6)"
+          Options: [{Type: "minorSpecialRule", Amount: 1, MaxTotal: 3}, {Type: "heroicAction", Amount: 1, MaxTotal: 6}]
+        -
+          Roll: 11
+          Text: "Master Duelist (Active) - At the start of a Combat involving this Hero, before any Heroic Strikes are resolved, this Hero may increase their Fight Value to match that of a single enemy model they are Engaged in Combat with."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Master Duelist"}]
+        -
+          Roll: 12
+          Text: "Warrior of Renown (Active) - Enemy models Engaged in Combat with this Hero cannot declare a Heroic Strike."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Warrior of Renown"}]
+      StartAction: "Heroic Strike"
+      Description: "The Hero adds Heroic Strike to their list of Heroic Actions when embarking upon this path."
+      Summary: "Adds the Heroic Action Heroic Strike. Heroic Strike Mastery improves Heroic Strike. Path special rules: Grim Blade, For Glory, Master Duelist and Warrior of Renown. Signature characteristic: Fight. Level-ups can also give a Minor Special Rule and a new Heroic Action."
+      Mastery: "Heroic Strike Mastery"
+      SpecialRules: ["Grim Blade", "For Glory", "Master Duelist", "Warrior of Renown"]
+  CustomPath: "Path of Their Own Making"
+  Hidden:
+    -
+      Name: "Path of Their Own Making"
+      Limits:
+        "attack": {"max": 2}
+        "courage": {"maxIncrease": 2}
+        "defence": {"maxIncrease": 1}
+        "fate": {"max": 2}
+        "fight": {"maxIncrease": 2}
+        "intelligence": {"maxIncrease": 2}
+        "might": {"max": 2}
+        "shoot": {"maxIncrease": 2}
+        "strength": {"maxIncrease": 1}
+        "will": {"max": 2}
+        "wounds": {"max": 2}
+      Rows:
+        -
+          Roll: 2
+          Text: "Whirl of Attacks (Active) - When rolling a natural 6 for the Duel Roll, this model rolls an additional attack when rolling to Wound. You can not use this rule if the enemy model is trapped."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Whirl of Attacks"}]
+        -
+          Roll: 3
+          Text: "Lead by Example - If this Hero kills an enemy model, he is treated as a banner for the duration of the next turn."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Lead by Example"}]
+        -
+          Roll: 4
+          Text: "Improve Attacks or Wounds by 1. OR Improve Might, Will, or Fate by 1."
+          Options: [{Type: "improveStat", Stats: ["attack", "wounds"], Amount: 1}, {Type: "improveStat", Stats: ["might", "will", "fate"], Amount: 1}]
+        -
+          Roll: 5
+          Text: "Improve Courage or Intelligence by 1 (do not take the second result!)"
+          Options: [{Type: "improveStat", Stats: ["courage", "intelligence"], Amount: 1}]
+        - {Roll: 6, Text: "Improve Strength or Defence by 1.", Options: [{Type: "improveStat", Stats: ["strength", "defence"], Amount: 1}]}
+        -
+          Roll: 7
+          Text: "Master of Fighting Styles - The Hero has mastered different fighting styles. Before the Duel Roll, the model may use the rules for a two-handed weapon or shielding, even without the equipment. OR Pick an additional Action to add to the Hero's list of Heroic Actions."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Master of Fighting Styles"}, {Type: "heroicAction", Amount: 1}]
+        - {Roll: 8, Text: "Improve Fight Value or Shoot Value by 1.", Options: [{Type: "improveStat", Stats: ["fight", "shoot"], Amount: 1}]}
+        - {Roll: 9, Text: "Improve Might, Will, or Fate by 1.", Options: [{Type: "improveStat", Stats: ["might", "will", "fate"], Amount: 1}]}
+        - {Roll: 10, Text: "Choice of Minor Special Rule", Options: [{Type: "minorSpecialRule", Amount: 1}]}
+        -
+          Roll: 11
+          Text: "Master Duelist (Active) - At the start of a Combat involving this Hero, before any Heroic Strikes are resolved, this Hero may increase their Fight Value to match that of a single enemy model they are Engaged in Combat with."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Master Duelist"}]
+        -
+          Roll: 12
+          Text: "I shall pass! (Active) - If this Hero wins his Duel Roll, after all models have backed away but before making Strikes, the model may make no Strikes and instead move again up to half its Move Value. If it charges an enemy, it fights as normal. This rule can only be used once per turn."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "I shall pass!"}]
+      Description: "Homebrew replacement for On Their Own Path: the unit starts on the path with 0 Might, 0 Will and 1 Fate when recruited, earns XP and levels up on this table; it counts as a Hero for levelling and stays a hero in name only for rules that need Might, Will or Fate."
+      Summary: "Path special rules: Whirl of Attacks, Lead by Example, Master of Fighting Styles, Master Duelist and I shall pass!. Level-ups can also give a Minor Special Rule and a new Heroic Action."
+      SpecialRules: ["Whirl of Attacks", "Lead by Example", "Master of Fighting Styles", "Master Duelist", "I shall pass!"]
+      Start: {"fate": 1, "might": 0, "will": 0}
+  EndOfPath: {"On Their Own Path": "At Path's End"}
+  Peak:
+    "attack": {"max": 3}
+    "courage": {"best": 3}
+    "defence": {"maxIncrease": 1}
+    "fate": {"max": 3}
+    "fight": {"max": 9}
+    "intelligence": {"best": 3}
+    "might": {"max": 3}
+    "movement": {"maxIncrease": 2}
+    "shoot": {"best": 2}
+    "strength": {"maxIncrease": 1}
+    "will": {"max": 3}
+    "willMaxOverrides": {"Path of the Sorcerer": 6, "Path of the Tactician": 6}
+    "wounds": {"max": 3}
+  LowerIsBetter: {"courage": true, "intelligence": true, "shoot": true}
+  MinorRules:
+    - "Cave Dweller"
+    - "Combat Synergy"
+    - "Expert Rider"
+    - "Fell Sight"
+    - "Horse Lord"
+    - "Master of Reserves"
+    - "Mountain Dweller"
+    - "Poisoned Attacks"
+    - "Resistant to Magic"
+    - "Sharpshooter"
+    - "Shieldwall"
+    - "Unyielding Combat Stance"
+    - "Woodland Creature"
+    - "Well-aimed Shot"
+  MinorParams:
+    "Combat Synergy":
+      Kind: "companyHero"
+      Definition: "At the start of any phase, before the Declare Heroic Actions step, if this Hero and X are within 1\" of each other then they can swap places with each other - this does not count as Moving. If they have used this special rule during a turn, then during the Fight Phase of that turn they may each re-roll a single D6 when making a Duel Roll."
+    "Poisoned Attacks":
+      Kind: "weapon"
+      Definition: "A model with this special rule most re-roll any To Wound Rolls of a natural 1 when making Shooting Attacks or making Strikes. Sometimes, a particular weapon will be described as benefiting from this special rule. When this is the case, only To Wound Roll made for that weapon will be able to re-roll To Wound Rolls of a natural 1."
+  Powers:
+    -
+      Name: "Aura of Command"
+      Duration: "Exhaustion"
+      Definition: "This Magical Power targets the caster. Whilst this power is in effect, the caster and all friendly models within 6\" automatically pass all Courage tests they are required to make."
+      Casting: 5
+    -
+      Name: "Aura of Dismay"
+      Duration: "Exhaustion"
+      Definition: "This Magical Power targets the caster. Enemy models within 6\" of the caster suffer a -1 penalty to any Courage Tests they are required to take."
+      Casting: 4
+    -
+      Name: "Banishment"
+      Duration: "Instant"
+      Definition: "This Magical Power targets one enemy Spirit model within range. The target immediately suffers 1 Wound. If this Magical Power targets a Cavalry model, the caster must choose whether the rider or the mount is the target."
+      Range: 6
+      Casting: 5
+    -
+      Name: "Black Dart"
+      Duration: "Instant"
+      Definition: "This power targets one enemy model within range. The target immediately suffers one Strength 6 hit. If this Magical Power targets a Cavalry model, the caster must choose whether the rider or the mount is the target."
+      Range: 6
+      Casting: 6
+    -
+      Name: "Bladewrath"
+      Duration: "Temporary"
+      Definition: "This Magical Power targets one friendly model within range. In the ensuing Fight phase, all Strikes made by the target model are resolved at Strength 6, regardless of any other modifiers."
+      Range: 6
+      Casting: 5
+    -
+      Name: "Blessing of the Valar"
+      Duration: "Instant"
+      Definition: "This Magical Power targets one friendly model within range. The target immediately regains 1 Fate point spent earlier in the battle."
+      Range: 6
+      Casting: 4
+    -
+      Name: "Blinding Light"
+      Duration: "Temporary"
+      Definition: "This Magical Power targets the caster. Whilst the power is in effect, the area within 6\" of the caster is always considered to be daylight (perfect if you are playing a battle at night). Additionally, whilst this power is in effect, enemy models that make a Shooting Attack that targets a model within 6\" of the caster will only hit on a To Hit Roll of a 6. Models cannot benefit from this Magical Power if there is a piece of impassable terrain, such as a wall or building, directly between all parts of the model and the source of the light."
+      Casting: 5
+    -
+      Name: "Call Winds"
+      Duration: "Instant"
+      Definition: "This Magical Power targets one enemy model within range. The target is immediately blown D3 + 3\" directly away from the caster in a straight line. If the model comes into contact with another model or piece of terrain, then it immediately stop. After it has been blown back, the target is knocked Prone. If the target was Engaged in Combat, the effect is the same and they can be blown out of Combat."
+      Range: 12
+      Casting: 5
+    -
+      Name: "Collapse Rocks"
+      Duration: "Instant"
+      Definition: "This Magical Power targets one enemy model in range that is within a ruin, stone or brick building, cave, rock pile or some other piece of terrain where the caster could crack rocks either underfoot or overhead. The target suffers one Strength 7 hit and is knocked Prone. If the target was a Cavalry model, they will automatically count as suffering the Knocked Flying result on the Thrown Rider Chart."
+      Range: 12
+      Casting: 6
+    -
+      Name: "Compel"
+      Duration: "Instant"
+      Definition: "This Magical Power targets one enemy model in range. The caster may Move the target up to half its maximum Move Value, even if the target has already Moved this turn. They cannot Move the target out of Combat, make them take a Jump, Climb, Leap or Swim Test, lie them down or make them dismount. They can, however, make them Move into Difficult Terrain or Charge an enemy model (if able), in which case no Courage Test would be required to Charge an enemy with the Terror special rule. They can make the target drop an Object they are carrying as part of a Scenario (but not Wargear) or put on the One Ring if they carry it. Once the target has been Moved, it cannot Move any further that turn for any reason but may otherwise act normally. If the model affected by this Magical Power would normally have to Charge as part of their Move, they are not forced to when under the influence of this Magical Power."
+      Range: 12
+      Casting: 5
+    -
+      Name: "Curse"
+      Duration: "Instant"
+      Definition: "This Magical Power targets one enemy model in range. The target immediately loses 1 Fate point. If this Magical Power targets a Cavalry model, the caster must choose whether the rider or the mount is the target."
+      Range: 12
+      Casting: 5
+    -
+      Name: "Drain Courage"
+      Duration: "Instant"
+      Definition: "This Magical Power targets one enemy model in range. The target immediately worsens their Courage value by 1 for the remainder of the game, so a model with a Courage of 5+ that is affected by this Magical Power would then have a Courage of 6+. A model can be affected by this Magical Power multiple times over the course of the battle, worsening its Courage value each time. If this Magical Power targets a Cavalry model, the caster must choose whether the rider or the Mount is the target."
+      Range: 12
+      Casting: 5
+    -
+      Name: "Enchant Blades"
+      Duration: "Temporary"
+      Definition: "This Magical Power targets one friendly model within range. In the ensuing Fight Phase, the target may re-roll all failed To Wound rolls when making Strikes."
+      Range: 6
+      Casting: 5
+    -
+      Name: "Enrage Beast"
+      Duration: "Temporary"
+      Definition: "This Magical Power targets one friendly Beast model within range. The target increases its Fight Value, Strength, and Attacks by 2, and gains the Fearless special rule, until the End Phase of the turn, at which point the target will immediately suffer 1 Wound."
+      Range: 6
+      Casting: 5
+    -
+      Name: "Flameburst"
+      Duration: "Instant"
+      Definition: "This Magical Power targets one enemy model in range. The target immediately suffers one Strength 6 hit. This is a fire-based attack, so if a model is immune to fire-based attacks, they are immmune to this Magical Power."
+      Range: 6
+      Casting: 6
+    -
+      Name: "Fog of Disarray"
+      Duration: "Exhaustion"
+      Definition: "This Magical Power targets the caster. Enemy models within 6\" of the caster suffer a -1 penalty to any Intelligence Tests they are required to take."
+      Casting: 4
+    -
+      Name: "Foil Magic"
+      Duration: "Instant"
+      Definition: "This Magical Power targets one enemy model within range. The caster may choose one Magical Power Cast by the target with the Exhaustion duration that is currently in play. That Magical Power immediately ends."
+      Range: 12
+      Casting: 4
+    -
+      Name: "Fortify Spirit"
+      Duration: "Exhaustion"
+      Definition: "This Magical Power may target one friendly model within range. Each time the target becomes the target of a Magical Power Cast by an enemy model, they gain an additional free dice to any Resist Test they would take. The free dice can still be rolled even if the target has no Will Points or chooses not to use any from their store."
+      Range: 6
+      Casting: 4
+    -
+      Name: "Fury"
+      Duration: "Exhaustion"
+      Definition: "This Magical Power targets the caster. Friendly models within 6\" of the caster who have the same keywords as those shown in brackets will automatically pass any Courage Tests they are required to take."
+      Casting: 4
+      Variants:
+        - "Fury (Easterling)"
+        - "Fury (Moria Goblin)"
+        - "Fury (Mordor Orc)"
+        - "Fury (Isengard Orc)"
+        - "Fury (Isengard Uruk-hai)"
+        - "Fury (Beast)"
+        - "Fury (Spider)"
+    -
+      Name: "Instill Fear"
+      Duration: "Temporary"
+      Definition: "This Magical Power targets the caster. Enemy models within 6\" of the caster are considered to have the Fearful special rule."
+      Casting: 6
+    -
+      Name: "Nature's Wrath"
+      Duration: "Instant"
+      Definition: "This Magical Power targets all enemy models within range, even if they are not in Line of Sight of the caster. All target models are immediately knocked Prone. Cavalry models are automatically treated as suffering a Knocked Flying result on the Thrown Rider Chart."
+      Range: 3
+      Casting: 6
+    -
+      Name: "Panic Steed"
+      Duration: "Instant"
+      Definition: "This Magical Power targets one enemy Cavalry model within range. The rider is immediately thrown and the Mount immediately flees and is removed as a casualty. The rider is automatically treated as suffering a Knocked Flying result on the Thrown Rider Chart."
+      Range: 12
+      Casting: 5
+    -
+      Name: "Protection of the Valar"
+      Duration: "Temporary"
+      Definition: "This Magical Power targets one friendly model within range. The target cannot be chosen as the target of an enemy Magical Power or enemy special rule that specifically targets a model. Additionally, enemy models that target the protected model with a Shooting attack will suffer a -1 penalty to the to hit Roll."
+      Range: 6
+      Casting: 5
+    -
+      Name: "Renew"
+      Duration: "Instant"
+      Definition: "This Magical Power targets one friendly model in range. The target immediately regains 1 Wound lost earlier in the battle.If this Magical Power targets a Cavalry model, the caster must choose whether the rider or the mount is the target."
+      Range: 3
+      Casting: 5
+    -
+      Name: "Sorcerous Blast"
+      Duration: "Instant"
+      Definition: "This Magical Power targets one enemy model within range. The target immediately suffers one Strength 5 hit. If they survive, the target is immediately knocked Prone. If the target was a Cavalry model, they will automatically count as suffering the Knocked Flying result on the Thrown Rider Chart.\n                \n                If the target was Engaged in Combat, then any other model that is also engaged in the same Combat will also be knocked prone if it has a Strength of 5 or lower - make sure to Pair Off Combats before working out which models are knocked prone in this manner."
+      Range: 6
+      Casting: 6
+    -
+      Name: "Strengthen Will"
+      Duration: "Instant"
+      Definition: "This Magical Power targets one friendly model within range.The target immediately regains a single Will Point spent earlier in the battle. If this Magical Power targets a Cavalry model, the caster must choose whether the rider or the mount is the target."
+      Range: 6
+      Casting: 5
+    -
+      Name: "Terrifying Aura"
+      Duration: "Exhaustion"
+      Definition: "This Magical Power targets the caster themselves. Whilst this Magical Power is in effect, the caster has the Terror special rule."
+      Casting: 4
+    -
+      Name: "Transfix"
+      Duration: "Temporary"
+      Definition: "This Magical Power targets one enemy model in range. Until the End Phase of the turn, the target cannot Activate, declare Heroic Actions, use Active Abilities, or make Shooting Attacks. If the target wins a Duel Roll, they may not make Strikes. if the target has a piece of wargear that has an Active ability, they stilll have that piece of wargear but cannot use the ability tied to it."
+      Range: 12
+      Casting: 5
+    -
+      Name: "Tremor"
+      Duration: "Instant"
+      Definition: "Draw an imaginary line that extends D3+3\" directly away from the caster in a direction chosen by the caster. This Magical Power targets every model (friend of foe) that lies under the line. Each target immediately suffers one Strength 4 hit and is knocked Prone; if the target was a Cavalry model, they will automatically count as suffering the Knocked Flying result on the Thrown Rider Chart. If a target is Engaged in Combat, then all other models in the same Combat are also considered to be a target - make sure to Pair Off Combats before working out which models are a target.\n                \n                Models with the Fly special rule can never be a target of this Magical Power under any circumstances."
+      Casting: 6
+    -
+      Name: "Wither"
+      Duration: "Instant"
+      Definition: "This Magical Power targets one enemy model in range. The target immediately reduces their Strength value by 1 for the remainder of the game. A model can be affected by this Magical Power multiple times over the course of the battle, reducing its Strength value each time. Should a model ever have its Strength reduced to 0, they are immediately slain and removed as a casualty. If this Magical Power targets a Cavalry model, the caster must choose whether the rider or the Mount is the target."
+      Range: 12
+      Casting: 5
+    -
+      Name: "Writhing Vines"
+      Duration: "Temporary"
+      Definition: "This Magical Power targets the caster. Place a 25mm Vine Marker wholly within 3\" of the caster. Enemy models treat the area within 3\" of the Vine Marker as Difficult Terrain. Remove the Vine Marker during the End Phase."
+      Casting: 5
+  CastFloor: 2
+  CastMax: 2
+
+=== warrior table by D6 ===
+D6 1 -> noChange (No Change) ok=yes
+D6 2 -> noChange (No Change) ok=yes
+D6 3 -> promoted (Promoted) ok=yes
+D6 4 -> promoted (Promoted) ok=yes
+D6 5 -> promoted (Promoted) ok=yes
+D6 6 -> heroInTheMaking (A Hero in the Making) ok=yes
+
+canonical hero: Warrior of Minas Tirith of Minas Tirith
+
+=== path Path of the Tactician: what each 2D6 result offers a fresh hero ===
+ 2 ok=no "Spy (Active) - At the beginning of the game, after both sides have deployed, this Hero may choose one enemy Hero in your opponent's Company. Whilst this Hero is within 12\" of, and has Line of Sight to, the chosen Hero, whenever the chosen Hero declares a Heroic Action they must roll a D6. On a 1-2, the Heroic Action is immediately cancelled and the Might Point is not spent. The chosen Hero may not then attempt to declare the same Heroic Action again that turn.": 
+ 3 ok=no "Gatekeeper (Active) - At the end of the Priority Phase, this Hero may spend a Will Point to use this special rule. If they do, this Hero may select a single enemy Infantry model within 6\" and Line of Sight and roll a D6. On a 3+, the chosen model may not Move during their Activation, but may otherwise act normally. Monster models are unaffected by this special rule.": 
+ 4 ok=yes "Improve Attacks or Wounds by 1.": stat:attack:-1=Attack 1 → 2; stat:wounds:-1=Wounds 1 → 2
+ 5 ok=yes "Improve Courage or Intelligence by 1 (& take your other roll too!)": stat:courage:1=Courage 7+ → 6+(+again); stat:intelligence:1=Intelligence 7+ → 6+(+again)
+ 6 ok=yes "Improve Strength or Defence by 1.": stat:defence:-1=Defence 5 → 6; stat:strength:-1=Strength 3 → 4
+ 7 ok=yes "Heroic Move Mastery (Active) - If during the Declare Heroic Actions step of a Move Phase or Fight Phase, both sides have declared a Heroic Move or a Heroic Combat and a roll-off is required to see which side's Heroic Move happens first, friendly Heroes within 6\" of this Hero will gain a bonus to that roll. If they would normally win the roll-off on a 4+, they will instead win it on a 3+. If they would normally win the roll-off on a 1, 2, or 3, they will instead win the roll-off on a 1, 2, 3, or 4. OR improve Will by 1.": stat:will:-1=Will +1
+ 8 ok=yes "Improve Fight Value or Shoot Value by 1.": stat:fight:-1=Fight 4 → 5; stat:shoot:1=Shoot 4+ → 3+
+ 9 ok=yes "Improve Might or Fate by 1, or improve Will by 2 (to a Maximum of 6 Will)!": stat:might:-1=Might +1; stat:will:-2=Will +2
+10 ok=yes "Choice of Minor Special Rule (up t0 to a maximum of 4) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 5)": action:Heroic Accuracy=Heroic Accuracy{A heroic action}; action:Heroic Challenge=Heroic Challenge{A heroic action}; action:Heroic Channelling=Heroic Channelling{A heroic action}; action:Heroic Defence=Heroic Defence{A heroic action}; action:Heroic March=Heroic March{A heroic action}; action:Heroic Resolve=Heroic Resolve{A heroic action}; action:Heroic Strength=Heroic Strength{A heroic action}; action:Heroic Strike=Heroic Strike{A heroic action}; minor:Cave Dweller=Cave Dweller{A minor special rule}; minor:Expert Rider=Expert Rider{A minor special rule}; minor:Fell Sight=Fell Sight{A minor special rule}; minor:Horse Lord=Horse Lord{A minor special rule}; minor:Master of Reserves=Master of Reserves{A minor special rule}; minor:Mountain Dweller=Mountain Dweller{A minor special rule}; minor:Poisoned Attacks|weapon:Hand weapon=Poisoned Attacks (Hand weapon){A minor special rule}; minor:Resistant to Magic=Resistant to Magic{A minor special rule}; minor:Sharpshooter=Sharpshooter{A minor special rule}; minor:Unyielding Combat Stance=Unyielding Combat Stance{A minor special rule}; minor:Well-aimed Shot=Well-aimed Shot{A minor special rule}; minor:Woodland Creature=Woodland Creature{A minor special rule}
+11 ok=no "Longbeard (Active) - During the Priority Phase, after the roll for Priority has taken place, this Hero can spend a Will Point to allow their controlling player to re-roll their roll for Priority.": 
+12 ok=no "Reading the Portents (Active) - During the Fight Phase, this Hero can spend a Will Point to allow a friendly model within 6\" to re-roll a single die during their Duel Roll. This Hero can use this special rule multiple times during the same Fight Phase, so long as they have Will Points remaining.": 
+starting stats map[attack:{1 0} courage:{7 0} defence:{5 0} fate:{1 1} fight:{4 0} intelligence:{7 0} might:{1 1} movement:{6 0} shoot:{4 0} strength:{3 0} will:{1 1} wounds:{1 0}] rules [gatekeeper heroic move mastery longbeard reading the portents shieldwall spy] actions [] powers map[]
+raising a stat by 1 or 2 from value v (boost 0 / boost 2), '-' when it cannot be raised:
+  attack 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  courage 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  defence 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  fate 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  fight 1:2/3,2/2 2:3/4,3/3 3:4/5,4/4 4:5/6,5/5 5:6/7,6/6 6:7/8,7/7 7:8/9,8/8 8:9/9,9/9 9:-/-,-/- 10:-/-,-/-
+  intelligence 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  might 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  movement 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/10,-/- 9:10/11,-/- 10:11/12,-/-
+  shoot 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  strength 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  will 1:2/3,2/3 2:3/4,3/4 3:4/5,4/5 4:5/6,5/6 5:6/6,6/6 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  wounds 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+
+=== path Path of the Sharpshooter: what each 2D6 result offers a fresh hero ===
+ 2 ok=no "Big Game Hunter (Active) - If this Hero successfully Wound an enemy Monster model with a shooting attack (a Wound is caused and is not prevented), it will deal D3 Wounds rather than 1.": 
+ 3 ok=no "Knife Mastery (Active) - Friendly Battle Company models with any bow or crossbow within 3\" and Line of Sight of this Hero may reroll To Wound Rolls of a natural 1 when making Strikes. Additionally, friendly Battle Company models with any bow or crossbow within 3\" and Line of Sight of this Hero may use the Shielding rule even if they do not possess any kind of shield.": 
+ 4 ok=yes "Improve Attacks or Wounds by 1.": stat:wounds:-1=Wounds 1 → 2
+ 5 ok=yes "Improve Courage or Intelligence by 1 (& take your other roll too!)": stat:courage:1=Courage 7+ → 6+(+again); stat:intelligence:1=Intelligence 7+ → 6+(+again)
+ 6 ok=yes "Improve Strength or Defence by 1.": stat:defence:-1=Defence 5 → 6; stat:strength:-1=Strength 3 → 4
+ 7 ok=yes "Heroic Shoot Mastery - When benefiting from a Heroic Shoot called by this Hero, friendly models may reroll failed To Wound Rolls when making shooting attacks. OR improve Shoot Value by 1.": stat:shoot:1=Shoot 4+ → 3+
+ 8 ok=yes "Improve Fight Value or Shoot Value by 1.": stat:fight:-1=Fight 4 → 5; stat:shoot:1=Shoot 4+ → 3+
+ 9 ok=yes "Improve Might, Will, or Fate by 1.": stat:fate:-1=Fate +1; stat:might:-1=Might +1; stat:will:-1=Will +1
+10 ok=yes "Choice of Minor Special Rule (up t0 to a maximum of 3) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 6)": action:Heroic Accuracy=Heroic Accuracy{A heroic action}; action:Heroic Challenge=Heroic Challenge{A heroic action}; action:Heroic Channelling=Heroic Channelling{A heroic action}; action:Heroic Defence=Heroic Defence{A heroic action}; action:Heroic March=Heroic March{A heroic action}; action:Heroic Resolve=Heroic Resolve{A heroic action}; action:Heroic Strength=Heroic Strength{A heroic action}; action:Heroic Strike=Heroic Strike{A heroic action}; minor:Cave Dweller=Cave Dweller{A minor special rule}; minor:Expert Rider=Expert Rider{A minor special rule}; minor:Fell Sight=Fell Sight{A minor special rule}; minor:Horse Lord=Horse Lord{A minor special rule}; minor:Master of Reserves=Master of Reserves{A minor special rule}; minor:Mountain Dweller=Mountain Dweller{A minor special rule}; minor:Poisoned Attacks|weapon:Hand weapon=Poisoned Attacks (Hand weapon){A minor special rule}; minor:Resistant to Magic=Resistant to Magic{A minor special rule}; minor:Sharpshooter=Sharpshooter{A minor special rule}; minor:Unyielding Combat Stance=Unyielding Combat Stance{A minor special rule}; minor:Well-aimed Shot=Well-aimed Shot{A minor special rule}; minor:Woodland Creature=Woodland Creature{A minor special rule}
+11 ok=no "Swift Shot (Active) - This Hero never suffers the -1 penalty To Hit for Moving and Shooting. May fire a Crossbow after moving up to half of their Movement value, but with a -1 penalty.": 
+12 ok=no "Rapid Fire (Active) - If this Hero hits a target with its ranged weapon in the Shoot Phase, it may make another shooting attack with its weapon that targets a model within 3\" of the initial target - it may even be the same target. If that second shot also hits, then this model may Shoot again as described above. This model can make a maximum of three shots per turn as a result of this special rule.": 
+starting stats map[attack:{1 0} courage:{7 0} defence:{5 0} fate:{1 1} fight:{4 0} intelligence:{7 0} might:{1 1} movement:{6 0} shoot:{4 0} strength:{3 0} will:{1 1} wounds:{1 0}] rules [big game hunter heroic shoot mastery knife mastery rapid fire shieldwall swift shot] actions [] powers map[]
+raising a stat by 1 or 2 from value v (boost 0 / boost 2), '-' when it cannot be raised:
+  attack 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  courage 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  defence 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  fate 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  fight 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:-/-,-/- 10:-/-,-/-
+  intelligence 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  might 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  movement 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/10,-/- 9:10/11,-/- 10:11/12,-/-
+  shoot 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  strength 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  will 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  wounds 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+
+=== path Path of the Soldier: what each 2D6 result offers a fresh hero ===
+ 2 ok=no "A Good Sort (Active) - Whilst within 3\" of another friendly Hero, this Hero increases their Attacks by 1 and may re-roll any rolls of a 1 in this Hero's Duel rolls.": 
+ 3 ok=no "Relentless Commander (Active) - Whilst this Hero is alive and on the battlefield, if you win the roll to choose who has Priority, and choose to give Priority to your opponent, then until the end of the turn friendly Battle Company models within 6\" of this Hero may reroll To Wound Rolls of a natural 1 when making Strikes.": 
+ 4 ok=yes "Improve Attacks or Wounds by 1.": stat:attack:-1=Attack 1 → 2; stat:wounds:-1=Wounds 1 → 2
+ 5 ok=yes "Improve Courage or Intelligence by 1 (& take your other roll too!)": stat:courage:1=Courage 7+ → 6+(+again); stat:intelligence:1=Intelligence 7+ → 6+(+again)
+ 6 ok=yes "Improve Strength or Defence by 1.": stat:defence:-1=Defence 5 → 6; stat:strength:-1=Strength 3 → 4
+ 7 ok=yes "Heroic Combat Mastery (Active) - The Hero may call Heroic Combat without expending a point of Might if they slayed an enemy model they were Engaged in Combat with in the previous turn. OR improve Fight Value by 1.": stat:fight:-1=Fight 4 → 5
+ 8 ok=yes "Improve Fight Value or Shoot Value by 1.": stat:fight:-1=Fight 4 → 5; stat:shoot:1=Shoot 4+ → 3+
+ 9 ok=yes "Improve Might, Will, or Fate by 1.": stat:fate:-1=Fate +1; stat:might:-1=Might +1; stat:will:-1=Will +1
+10 ok=yes "Choice of Minor Special Rule (up t0 to a maximum of 3) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 6)": action:Heroic Accuracy=Heroic Accuracy{A heroic action}; action:Heroic Challenge=Heroic Challenge{A heroic action}; action:Heroic Channelling=Heroic Channelling{A heroic action}; action:Heroic Defence=Heroic Defence{A heroic action}; action:Heroic March=Heroic March{A heroic action}; action:Heroic Resolve=Heroic Resolve{A heroic action}; action:Heroic Strength=Heroic Strength{A heroic action}; action:Heroic Strike=Heroic Strike{A heroic action}; minor:Cave Dweller=Cave Dweller{A minor special rule}; minor:Expert Rider=Expert Rider{A minor special rule}; minor:Fell Sight=Fell Sight{A minor special rule}; minor:Horse Lord=Horse Lord{A minor special rule}; minor:Master of Reserves=Master of Reserves{A minor special rule}; minor:Mountain Dweller=Mountain Dweller{A minor special rule}; minor:Poisoned Attacks|weapon:Hand weapon=Poisoned Attacks (Hand weapon){A minor special rule}; minor:Resistant to Magic=Resistant to Magic{A minor special rule}; minor:Sharpshooter=Sharpshooter{A minor special rule}; minor:Unyielding Combat Stance=Unyielding Combat Stance{A minor special rule}; minor:Well-aimed Shot=Well-aimed Shot{A minor special rule}; minor:Woodland Creature=Woodland Creature{A minor special rule}
+11 ok=no "Fearsome Charge (Active) - If this Hero Charges into Combat, then until the end of the turn they count as having the Terror special rule.": 
+12 ok=no "Reckless Charge (Active) - If this Hero Charges into Combat, then must reroll failed To Wound rolls when making Strikes.": 
+starting stats map[attack:{1 0} courage:{7 0} defence:{5 0} fate:{1 1} fight:{4 0} intelligence:{7 0} might:{1 1} movement:{6 0} shoot:{4 0} strength:{3 0} will:{1 1} wounds:{1 0}] rules [a good sort fearsome charge heroic combat mastery reckless charge relentless commander shieldwall] actions [] powers map[]
+raising a stat by 1 or 2 from value v (boost 0 / boost 2), '-' when it cannot be raised:
+  attack 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  courage 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  defence 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  fate 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  fight 1:2/3,2/3 2:3/4,3/4 3:4/5,4/5 4:5/6,5/6 5:6/7,6/7 6:7/8,7/8 7:8/9,8/9 8:9/9,9/9 9:-/-,-/- 10:-/-,-/-
+  intelligence 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  might 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  movement 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/10,-/- 9:10/11,-/- 10:11/12,-/-
+  shoot 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  strength 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  will 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  wounds 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+
+=== path Path of the Marksman: what each 2D6 result offers a fresh hero ===
+ 2 ok=no "Pinpoint Shot (Active) - Instead of shooting normally in the Shoot Phase, this Hero may make a single shooting attack against an enemy model Engaged in Combat with a friendly model (including himself). If they do, then if the To Hit Roll is successful, this Hero doesn't need to make any In The Way Rolls – the shot will automatically hit its target.": 
+ 3 ok=no "\"Hold positions, loose the arrows!\" (Active) - Whilst within 3\" of this Hero, friendly models may re-roll failed To Hit Rolls when making a shooting attack, providing they didn't Move in the preceding Move Phase.": 
+ 4 ok=yes "Improve Attacks or Wounds by 1.": stat:wounds:-1=Wounds 1 → 2
+ 5 ok=yes "Improve Courage or Intelligence by 1 (& take your other roll too!)": stat:courage:1=Courage 7+ → 6+(+again); stat:intelligence:1=Intelligence 7+ → 6+(+again)
+ 6 ok=yes "Improve Strength or Defence by 1.": stat:defence:-1=Defence 5 → 6; stat:strength:-1=Strength 3 → 4
+ 7 ok=yes "Heroic Accuracy Mastery - Friendly models benefiting from this Hero's Heroic Accuracy pass in-the-way checks on a 2+ rather than 4+. OR Improve Shoot Value by 1.": stat:shoot:1=Shoot 4+ → 3+
+ 8 ok=yes "Improve Fight Value or Shoot Value by 1.": stat:fight:-1=Fight 4 → 5; stat:shoot:1=Shoot 4+ → 3+
+ 9 ok=yes "Improve Might, Will, or Fate by 1.": stat:fate:-1=Fate +1; stat:might:-1=Might +1; stat:will:-1=Will +1
+10 ok=yes "Choice of Minor Special Rule (up t0 to a maximum of 3) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 6)": action:Heroic Challenge=Heroic Challenge{A heroic action}; action:Heroic Channelling=Heroic Channelling{A heroic action}; action:Heroic Defence=Heroic Defence{A heroic action}; action:Heroic March=Heroic March{A heroic action}; action:Heroic Resolve=Heroic Resolve{A heroic action}; action:Heroic Strength=Heroic Strength{A heroic action}; action:Heroic Strike=Heroic Strike{A heroic action}; minor:Cave Dweller=Cave Dweller{A minor special rule}; minor:Expert Rider=Expert Rider{A minor special rule}; minor:Fell Sight=Fell Sight{A minor special rule}; minor:Horse Lord=Horse Lord{A minor special rule}; minor:Master of Reserves=Master of Reserves{A minor special rule}; minor:Mountain Dweller=Mountain Dweller{A minor special rule}; minor:Poisoned Attacks|weapon:Hand weapon=Poisoned Attacks (Hand weapon){A minor special rule}; minor:Resistant to Magic=Resistant to Magic{A minor special rule}; minor:Sharpshooter=Sharpshooter{A minor special rule}; minor:Unyielding Combat Stance=Unyielding Combat Stance{A minor special rule}; minor:Well-aimed Shot=Well-aimed Shot{A minor special rule}; minor:Woodland Creature=Woodland Creature{A minor special rule}
+11 ok=no "Volley Fire (Active) - This Hero increases the range of their shooting attacks by 6\", provided they have not moved that turn. This special rule does not apply to throwing weapons.": 
+12 ok=no "Lethal Aim (Active) - Each turn during the Shoot Phase, this Hero gains a free Might Point that can only be spent during a shooting attack on either a To Hit Roll, a To Wound Roll, or an In The Way Test. If this free Might Point is not spent by the end of the turn, it is lost.": 
+starting stats map[attack:{1 0} courage:{7 0} defence:{5 0} fate:{1 1} fight:{4 0} intelligence:{7 0} might:{1 1} movement:{6 0} shoot:{4 0} strength:{3 0} will:{1 1} wounds:{1 0}] rules ["hold positions, loose the arrows!" heroic accuracy mastery lethal aim pinpoint shot shieldwall volley fire] actions [heroic accuracy] powers map[]
+raising a stat by 1 or 2 from value v (boost 0 / boost 2), '-' when it cannot be raised:
+  attack 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  courage 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  defence 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  fate 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  fight 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:-/-,-/- 10:-/-,-/-
+  intelligence 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  might 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  movement 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/10,-/- 9:10/11,-/- 10:11/12,-/-
+  shoot 1:-/-,-/- 2:-/-,-/- 3:2/2,2/2 4:3/2,3/2 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  strength 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  will 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  wounds 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+
+=== path Path of the Claimant: what each 2D6 result offers a fresh hero ===
+ 2 ok=no "Usurper of Kings (Active) - If this Hero is Engaged in Combat with an enemy Hero, this Hero may re-roll a single D6 during the Duel Roll. Additionally, this Hero must reroll To Wound Rolls of a natural 1 when making Strikes against an enemy Hero.": 
+ 3 ok=no "Claim the Throne (Passive) - If the enemy Leader is removed as a casualty whilst within 6\" of this Hero, then for the duration of the battle friendly Battle Company models treat this Hero as a banner with a range of 6\".": 
+ 4 ok=yes "Improve Attacks or Wounds by 1.": stat:attack:-1=Attack 1 → 2; stat:wounds:-1=Wounds 1 → 2
+ 5 ok=yes "Improve Courage or Intelligence by 1 (& take your other roll too!)": stat:courage:1=Courage 7+ → 6+(+again); stat:intelligence:1=Intelligence 7+ → 6+(+again)
+ 6 ok=yes "Improve Strength or Defence by 1.": stat:defence:-1=Defence 5 → 6; stat:strength:-1=Strength 3 → 4
+ 7 ok=yes "Heroic Challenge Mastery - The number of bonus Attacks granted by the Heroic Challenge is increased to +2 for this Hero, rather than the normal +1. OR improve Might by 1.": stat:might:-1=Might +1
+ 8 ok=yes "Improve Fight Value or Shoot Value by 1.": stat:fight:-1=Fight 4 → 5; stat:shoot:1=Shoot 4+ → 3+
+ 9 ok=yes "Improve Might, Will, or Fate by 1.": stat:might:-1=Might +1; stat:will:-1=Will +1
+10 ok=yes "Choice of Minor Special Rule (up t0 to a maximum of 3) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 6)": action:Heroic Accuracy=Heroic Accuracy{A heroic action}; action:Heroic Channelling=Heroic Channelling{A heroic action}; action:Heroic Defence=Heroic Defence{A heroic action}; action:Heroic March=Heroic March{A heroic action}; action:Heroic Resolve=Heroic Resolve{A heroic action}; action:Heroic Strength=Heroic Strength{A heroic action}; action:Heroic Strike=Heroic Strike{A heroic action}; minor:Cave Dweller=Cave Dweller{A minor special rule}; minor:Expert Rider=Expert Rider{A minor special rule}; minor:Fell Sight=Fell Sight{A minor special rule}; minor:Horse Lord=Horse Lord{A minor special rule}; minor:Master of Reserves=Master of Reserves{A minor special rule}; minor:Mountain Dweller=Mountain Dweller{A minor special rule}; minor:Poisoned Attacks|weapon:Hand weapon=Poisoned Attacks (Hand weapon){A minor special rule}; minor:Resistant to Magic=Resistant to Magic{A minor special rule}; minor:Sharpshooter=Sharpshooter{A minor special rule}; minor:Unyielding Combat Stance=Unyielding Combat Stance{A minor special rule}; minor:Well-aimed Shot=Well-aimed Shot{A minor special rule}; minor:Woodland Creature=Woodland Creature{A minor special rule}
+11 ok=no "General Hunter (Active) - If this model slays the enemy General in a Combat, they immediately regain a single point of Might spent earlier in the battle.": 
+12 ok=no "Cunning Fighter (Active) - If this Hero wins a Duel Roll, and there are no other allies involved in the Combat (including Supporting models) then this Hero can choose a single enemy model on a 25mm base that he was Engaged in Combat with and roll a D6. On a 4+, the chosen model is knocked Prone before Strikes are made.": 
+starting stats map[attack:{1 0} courage:{7 0} defence:{5 0} fate:{1 1} fight:{4 0} intelligence:{7 0} might:{1 1} movement:{6 0} shoot:{4 0} strength:{3 0} will:{1 1} wounds:{1 0}] rules [claim the throne cunning fighter general hunter heroic challenge mastery shieldwall usurper of kings] actions [heroic challenge] powers map[]
+raising a stat by 1 or 2 from value v (boost 0 / boost 2), '-' when it cannot be raised:
+  attack 1:2/3,2/3 2:3/3,3/3 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  courage 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  defence 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  fate 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  fight 1:2/3,2/3 2:3/4,3/4 3:4/5,4/5 4:5/6,5/6 5:6/7,6/7 6:7/8,7/8 7:8/9,8/9 8:9/9,9/9 9:-/-,-/- 10:-/-,-/-
+  intelligence 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  might 1:2/3,2/3 2:3/3,3/3 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  movement 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/10,-/- 9:10/11,-/- 10:11/12,-/-
+  shoot 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  strength 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  will 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  wounds 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+
+=== path Path of the Sorcerer: what each 2D6 result offers a fresh hero ===
+ 2 ok=no "Deceptive Caster (Passive) - At the beginning of the game, after both sides have deployed, this Hero may choose a single enemy Hero. The chosen Hero suffers a -1 penalty to any Resist Tests they take when targeted by a Magical Power Cast by this Hero; except any natural 6.": 
+ 3 ok=yes "Choice of Magical Power or Improve an existing Magical Power's Casting Value by 1, to a maximum of 2 improvements per Magical Power": cast:aura of command=Aura of Command 5+ → 4+{Improve a casting value}; cast:aura of dismay=Aura of Dismay 4+ → 3+{Improve a casting value}; cast:banishment=Banishment 5+ → 4+{Improve a casting value}; cast:black dart=Black Dart 6+ → 5+{Improve a casting value}; cast:bladewrath=Bladewrath 5+ → 4+{Improve a casting value}; cast:blessing of the valar=Blessing of the Valar 4+ → 3+{Improve a casting value}; cast:blinding light=Blinding Light 5+ → 4+{Improve a casting value}; cast:call winds=Call Winds 5+ → 4+{Improve a casting value}; cast:collapse rocks=Collapse Rocks 6+ → 5+{Improve a casting value}; cast:compel=Compel 5+ → 4+{Improve a casting value}; cast:curse=Curse 5+ → 4+{Improve a casting value}; cast:drain courage=Drain Courage 5+ → 4+{Improve a casting value}; cast:enchant blades=Enchant Blades 5+ → 4+{Improve a casting value}; cast:enrage beast=Enrage Beast 5+ → 4+{Improve a casting value}; cast:flameburst=Flameburst 6+ → 5+{Improve a casting value}; cast:fog of disarray=Fog of Disarray 4+ → 3+{Improve a casting value}; cast:foil magic=Foil Magic 4+ → 3+{Improve a casting value}; cast:fortify spirit=Fortify Spirit 4+ → 3+{Improve a casting value}; cast:fury (fury (beast))=Fury (Fury (Beast)) 4+ → 3+{Improve a casting value}; cast:fury (fury (easterling))=Fury (Fury (Easterling)) 4+ → 3+{Improve a casting value}; cast:fury (fury (isengard orc))=Fury (Fury (Isengard Orc)) 4+ → 3+{Improve a casting value}; cast:fury (fury (isengard uruk-hai))=Fury (Fury (Isengard Uruk-hai)) 4+ → 3+{Improve a casting value}; cast:fury (fury (mordor orc))=Fury (Fury (Mordor Orc)) 4+ → 3+{Improve a casting value}; cast:fury (fury (moria goblin))=Fury (Fury (Moria Goblin)) 4+ → 3+{Improve a casting value}; cast:fury (fury (spider))=Fury (Fury (Spider)) 4+ → 3+{Improve a casting value}; cast:instill fear=Instill Fear 6+ → 5+{Improve a casting value}; cast:nature's wrath=Nature's Wrath 6+ → 5+{Improve a casting value}; cast:panic steed=Panic Steed 5+ → 4+{Improve a casting value}; cast:protection of the valar=Protection of the Valar 5+ → 4+{Improve a casting value}; cast:renew=Renew 5+ → 4+{Improve a casting value}; cast:sorcerous blast=Sorcerous Blast 6+ → 5+{Improve a casting value}; cast:strengthen will=Strengthen Will 5+ → 4+{Improve a casting value}; cast:terrifying aura=Terrifying Aura 4+ → 3+{Improve a casting value}; cast:transfix=Transfix 5+ → 4+{Improve a casting value}; cast:tremor=Tremor 6+ → 5+{Improve a casting value}; cast:wither=Wither 5+ → 4+{Improve a casting value}; cast:writhing vines=Writhing Vines 5+ → 4+{Improve a casting value}; power:Fury (Beast)=Fury (Beast) · 4+ · self{A magical power}; power:Fury (Easterling)=Fury (Easterling) · 4+ · self{A magical power}; power:Fury (Isengard Orc)=Fury (Isengard Orc) · 4+ · self{A magical power}; power:Fury (Isengard Uruk-hai)=Fury (Isengard Uruk-hai) · 4+ · self{A magical power}; power:Fury (Mordor Orc)=Fury (Mordor Orc) · 4+ · self{A magical power}; power:Fury (Moria Goblin)=Fury (Moria Goblin) · 4+ · self{A magical power}; power:Fury (Spider)=Fury (Spider) · 4+ · self{A magical power}
+ 4 ok=yes "Improve Attacks or Wounds by 1.": stat:attack:-1=Attack 1 → 2; stat:wounds:-1=Wounds 1 → 2
+ 5 ok=yes "Improve Courage or Intelligence by 1 (& take your other roll too!)": stat:courage:1=Courage 7+ → 6+(+again); stat:intelligence:1=Intelligence 7+ → 6+(+again)
+ 6 ok=yes "Improve Strength or Defence by 1.": stat:defence:-1=Defence 5 → 6; stat:strength:-1=Strength 3 → 4
+ 7 ok=yes "Heroic Channeling Mastery - When the Hero casts a Heroic Channeled spell that targets a single model, they may target one additional model. OR Improve Will by 1 OR Pick an additional Magical Power, or Improve an existing Magical Power's Casting Value by 1, to a maximum of 2 improvements per Magical Power": stat:will:-1=Will +1
+ 8 ok=yes "Improve Fight Value or Shoot Value by 1.": stat:fight:-1=Fight 4 → 5; stat:shoot:1=Shoot 4+ → 3+
+ 9 ok=yes "Improve Fate by 1, or improve Will by 2 (to a Maximum of 6 Will)!": stat:fate:-1=Fate +1; stat:will:-2=Will +2
+10 ok=yes "Choice of Minor Special Rule (up to a maximum of 4), Magical Power, or Improve an existing Magical Power's Casting Value by 1.": cast:aura of command=Aura of Command 5+ → 4+{Improve a casting value}; cast:aura of dismay=Aura of Dismay 4+ → 3+{Improve a casting value}; cast:banishment=Banishment 5+ → 4+{Improve a casting value}; cast:black dart=Black Dart 6+ → 5+{Improve a casting value}; cast:bladewrath=Bladewrath 5+ → 4+{Improve a casting value}; cast:blessing of the valar=Blessing of the Valar 4+ → 3+{Improve a casting value}; cast:blinding light=Blinding Light 5+ → 4+{Improve a casting value}; cast:call winds=Call Winds 5+ → 4+{Improve a casting value}; cast:collapse rocks=Collapse Rocks 6+ → 5+{Improve a casting value}; cast:compel=Compel 5+ → 4+{Improve a casting value}; cast:curse=Curse 5+ → 4+{Improve a casting value}; cast:drain courage=Drain Courage 5+ → 4+{Improve a casting value}; cast:enchant blades=Enchant Blades 5+ → 4+{Improve a casting value}; cast:enrage beast=Enrage Beast 5+ → 4+{Improve a casting value}; cast:flameburst=Flameburst 6+ → 5+{Improve a casting value}; cast:fog of disarray=Fog of Disarray 4+ → 3+{Improve a casting value}; cast:foil magic=Foil Magic 4+ → 3+{Improve a casting value}; cast:fortify spirit=Fortify Spirit 4+ → 3+{Improve a casting value}; cast:fury (fury (beast))=Fury (Fury (Beast)) 4+ → 3+{Improve a casting value}; cast:fury (fury (easterling))=Fury (Fury (Easterling)) 4+ → 3+{Improve a casting value}; cast:fury (fury (isengard orc))=Fury (Fury (Isengard Orc)) 4+ → 3+{Improve a casting value}; cast:fury (fury (isengard uruk-hai))=Fury (Fury (Isengard Uruk-hai)) 4+ → 3+{Improve a casting value}; cast:fury (fury (mordor orc))=Fury (Fury (Mordor Orc)) 4+ → 3+{Improve a casting value}; cast:fury (fury (moria goblin))=Fury (Fury (Moria Goblin)) 4+ → 3+{Improve a casting value}; cast:fury (fury (spider))=Fury (Fury (Spider)) 4+ → 3+{Improve a casting value}; cast:instill fear=Instill Fear 6+ → 5+{Improve a casting value}; cast:nature's wrath=Nature's Wrath 6+ → 5+{Improve a casting value}; cast:panic steed=Panic Steed 5+ → 4+{Improve a casting value}; cast:protection of the valar=Protection of the Valar 5+ → 4+{Improve a casting value}; cast:renew=Renew 5+ → 4+{Improve a casting value}; cast:sorcerous blast=Sorcerous Blast 6+ → 5+{Improve a casting value}; cast:strengthen will=Strengthen Will 5+ → 4+{Improve a casting value}; cast:terrifying aura=Terrifying Aura 4+ → 3+{Improve a casting value}; cast:transfix=Transfix 5+ → 4+{Improve a casting value}; cast:tremor=Tremor 6+ → 5+{Improve a casting value}; cast:wither=Wither 5+ → 4+{Improve a casting value}; cast:writhing vines=Writhing Vines 5+ → 4+{Improve a casting value}; minor:Cave Dweller=Cave Dweller{A minor special rule}; minor:Expert Rider=Expert Rider{A minor special rule}; minor:Fell Sight=Fell Sight{A minor special rule}; minor:Horse Lord=Horse Lord{A minor special rule}; minor:Master of Reserves=Master of Reserves{A minor special rule}; minor:Mountain Dweller=Mountain Dweller{A minor special rule}; minor:Poisoned Attacks|weapon:Hand weapon=Poisoned Attacks (Hand weapon){A minor special rule}; minor:Resistant to Magic=Resistant to Magic{A minor special rule}; minor:Sharpshooter=Sharpshooter{A minor special rule}; minor:Unyielding Combat Stance=Unyielding Combat Stance{A minor special rule}; minor:Well-aimed Shot=Well-aimed Shot{A minor special rule}; minor:Woodland Creature=Woodland Creature{A minor special rule}; power:Fury (Beast)=Fury (Beast) · 4+ · self{A magical power}; power:Fury (Easterling)=Fury (Easterling) · 4+ · self{A magical power}; power:Fury (Isengard Orc)=Fury (Isengard Orc) · 4+ · self{A magical power}; power:Fury (Isengard Uruk-hai)=Fury (Isengard Uruk-hai) · 4+ · self{A magical power}; power:Fury (Mordor Orc)=Fury (Mordor Orc) · 4+ · self{A magical power}; power:Fury (Moria Goblin)=Fury (Moria Goblin) · 4+ · self{A magical power}; power:Fury (Spider)=Fury (Spider) · 4+ · self{A magical power}
+11 ok=no "Sorcerous Adept (Active) - Each time this Hero rolls one or more natural 6s when making a Casting Test, they will regain a single Will Point after resolving the effects of the Magical Power.": 
+12 ok=no "Master of Magic (Passive) - This Hero may still be Activated whilst Engaged in Combat in order to attempt to Cast Magical Powers whilst Engaged in Combat, with the exception of the following Magical Powers: Nature's Wrath, Sorcerous Blast, Call Winds, and Tremor.": 
+starting stats map[attack:{1 0} courage:{7 0} defence:{5 0} fate:{1 1} fight:{4 0} intelligence:{7 0} might:{1 1} movement:{6 0} shoot:{4 0} strength:{3 0} will:{1 1} wounds:{1 0}] rules [deceptive caster heroic channeling mastery master of magic shieldwall sorcerous adept] actions [heroic channeling] powers map[aura of command:0 aura of dismay:0 banishment:0 black dart:0 bladewrath:0 blessing of the valar:0 blinding light:0 call winds:0 collapse rocks:0 compel:0 curse:0 drain courage:0 enchant blades:0 enrage beast:0 flameburst:0 fog of disarray:0 foil magic:0 fortify spirit:0 fury (fury (beast)):0 fury (fury (easterling)):0 fury (fury (isengard orc)):0 fury (fury (isengard uruk-hai)):0 fury (fury (mordor orc)):0 fury (fury (moria goblin)):0 fury (fury (spider)):0 instill fear:0 nature's wrath:0 panic steed:0 protection of the valar:0 renew:0 sorcerous blast:0 strengthen will:0 terrifying aura:0 transfix:0 tremor:0 wither:0 writhing vines:0]
+raising a stat by 1 or 2 from value v (boost 0 / boost 2), '-' when it cannot be raised:
+  attack 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  courage 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  defence 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  fate 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  fight 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/9,-/- 9:-/-,-/- 10:-/-,-/-
+  intelligence 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  might 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  movement 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/10,-/- 9:10/11,-/- 10:11/12,-/-
+  shoot 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  strength 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  will 1:2/3,2/3 2:3/4,3/4 3:4/5,4/5 4:5/6,5/6 5:6/6,6/6 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  wounds 1:2/3,2/3 2:3/3,3/3 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+
+=== path Path of the Shieldbearer: what each 2D6 result offers a fresh hero ===
+ 2 ok=no "Swift Parry (Active) - This Hero may force one enemy model involved in the same Combat as them to re-roll a single D6 for their Duel Roll. This must be done before all other re-rolls, and before any Might Points are spent.": 
+ 3 ok=no "Marshal (Passive) - This Hero and friendly Battle Company Warriors that can draw Line of Sight to this Hero may re-roll any failed Intelligence Tests and gain the Shieldwall special rule.": 
+ 4 ok=yes "Improve Attacks or Wounds by 1.": stat:attack:-1=Attack 1 → 2; stat:wounds:-1=Wounds 1 → 2
+ 5 ok=yes "Improve Courage or Intelligence by 1 (& take your other roll too!)": stat:courage:1=Courage 7+ → 6+(+again); stat:intelligence:1=Intelligence 7+ → 6+(+again)
+ 6 ok=yes "Improve Strength or Defence by 1.": stat:defence:-1=Defence 5 → 6; stat:strength:-1=Strength 3 → 4
+ 7 ok=yes "Heroic Defence Mastery - The Hero may call Heroic Defence without expending Might if they are outnumbered in Combat. OR improve Defence by 1.": stat:defence:-1=Defence 5 → 6
+ 8 ok=yes "Improve Fight Value or Shoot Value by 1.": stat:fight:-1=Fight 4 → 5; stat:shoot:1=Shoot 4+ → 3+
+ 9 ok=yes "Improve Might, Will, or Fate by 1.": stat:fate:-1=Fate +1; stat:might:-1=Might +1
+10 ok=yes "Choice of Minor Special Rule (up t0 to a maximum of 2) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 6)": action:Heroic Accuracy=Heroic Accuracy{A heroic action}; action:Heroic Challenge=Heroic Challenge{A heroic action}; action:Heroic Channelling=Heroic Channelling{A heroic action}; action:Heroic March=Heroic March{A heroic action}; action:Heroic Resolve=Heroic Resolve{A heroic action}; action:Heroic Strength=Heroic Strength{A heroic action}; action:Heroic Strike=Heroic Strike{A heroic action}; minor:Cave Dweller=Cave Dweller{A minor special rule}; minor:Expert Rider=Expert Rider{A minor special rule}; minor:Fell Sight=Fell Sight{A minor special rule}; minor:Horse Lord=Horse Lord{A minor special rule}; minor:Master of Reserves=Master of Reserves{A minor special rule}; minor:Mountain Dweller=Mountain Dweller{A minor special rule}; minor:Poisoned Attacks|weapon:Hand weapon=Poisoned Attacks (Hand weapon){A minor special rule}; minor:Resistant to Magic=Resistant to Magic{A minor special rule}; minor:Sharpshooter=Sharpshooter{A minor special rule}; minor:Unyielding Combat Stance=Unyielding Combat Stance{A minor special rule}; minor:Well-aimed Shot=Well-aimed Shot{A minor special rule}; minor:Woodland Creature=Woodland Creature{A minor special rule}
+11 ok=no "Defender of the City (Active) - This Hero may use the Shielding special rule even if they are not armed with a shield. If this Hero elects to shield, and wins the ensuing Combat, they may make a single Strike against one enemy model that was involved in the Combat.": 
+12 ok=no "The King's Protector (Active) - At the start of the game, choose one friendly Battle Company Hero. If the target Hero is Engaged in Combat and within 6\" of this Hero, this Hero may declare a Heroic Combat for free. If the Heroic Combat is successful then this Hero must use the following Move to join the target Hero's combat. If this is not possible, then this Hero must Move as close as possible to the target Hero.": 
+starting stats map[attack:{1 0} courage:{7 0} defence:{5 0} fate:{1 1} fight:{4 0} intelligence:{7 0} might:{1 1} movement:{6 0} shoot:{4 0} strength:{3 0} will:{1 1} wounds:{1 0}] rules [defender of the city heroic defence mastery marshal shieldwall swift parry the king's protector] actions [heroic defence] powers map[]
+raising a stat by 1 or 2 from value v (boost 0 / boost 2), '-' when it cannot be raised:
+  attack 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  courage 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  defence 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  fate 1:2/3,2/3 2:3/3,3/3 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  fight 1:2/3,2/2 2:3/4,3/3 3:4/5,4/4 4:5/6,5/5 5:6/7,6/6 6:7/8,7/7 7:8/9,8/8 8:9/9,9/9 9:-/-,-/- 10:-/-,-/-
+  intelligence 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  might 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  movement 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/10,-/- 9:10/11,-/- 10:11/12,-/-
+  shoot 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  strength 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  will 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  wounds 1:2/3,2/3 2:3/3,3/3 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+
+=== path Path of the Ranger: what each 2D6 result offers a fresh hero ===
+ 2 ok=no "Spectral Walk (Passive) - See page 129 of the Middle-Earth Strategy Battle Game Rules Manual": 
+ 3 ok=no "Experienced Tracker (Passive) - At the start of each game, you may choose either Woodland Creature or Mountain Dwellers. Friendly Battle Company models gain the chosen special rule for the duration of the game.": 
+ 4 ok=yes "Improve Attacks or Wounds by 1.": stat:attack:-1=Attack 1 → 2; stat:wounds:-1=Wounds 1 → 2
+ 5 ok=yes "Improve Courage or Intelligence by 1 (& take your other roll too!)": stat:courage:1=Courage 7+ → 6+(+again); stat:intelligence:1=Intelligence 7+ → 6+(+again)
+ 6 ok=yes "Improve Strength or Defence by 1.": stat:defence:-1=Defence 5 → 6; stat:strength:-1=Strength 3 → 4
+ 7 ok=yes "Heroic March Mastery - Models are not required to stay within the 'At the Double' range of this Hero in a turn in which this Hero declares a Heroic March. OR improve Move Value by 1.": stat:movement:-1=Movement 6 → 7
+ 8 ok=yes "Improve Fight Value or Shoot Value by 1.": stat:fight:-1=Fight 4 → 5; stat:shoot:1=Shoot 4+ → 3+
+ 9 ok=yes "Improve Might, Will, or Fate by 1.": stat:fate:-1=Fate +1; stat:might:-1=Might +1; stat:will:-1=Will +1
+10 ok=yes "Choice of Minor Special Rule (up t0 to a maximum of 3) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 5)": action:Heroic Accuracy=Heroic Accuracy{A heroic action}; action:Heroic Challenge=Heroic Challenge{A heroic action}; action:Heroic Channelling=Heroic Channelling{A heroic action}; action:Heroic Defence=Heroic Defence{A heroic action}; action:Heroic Resolve=Heroic Resolve{A heroic action}; action:Heroic Strength=Heroic Strength{A heroic action}; action:Heroic Strike=Heroic Strike{A heroic action}; minor:Cave Dweller=Cave Dweller{A minor special rule}; minor:Expert Rider=Expert Rider{A minor special rule}; minor:Fell Sight=Fell Sight{A minor special rule}; minor:Horse Lord=Horse Lord{A minor special rule}; minor:Master of Reserves=Master of Reserves{A minor special rule}; minor:Mountain Dweller=Mountain Dweller{A minor special rule}; minor:Poisoned Attacks|weapon:Hand weapon=Poisoned Attacks (Hand weapon){A minor special rule}; minor:Resistant to Magic=Resistant to Magic{A minor special rule}; minor:Sharpshooter=Sharpshooter{A minor special rule}; minor:Unyielding Combat Stance=Unyielding Combat Stance{A minor special rule}; minor:Well-aimed Shot=Well-aimed Shot{A minor special rule}; minor:Woodland Creature=Woodland Creature{A minor special rule}
+11 ok=no "Chief Advisor (Active) - Whenever a friendly Battle Company Hero model within 6\" spends a Might Point, they may roll a D6. On a natural 6, the Might Point is free and is not spent.": 
+12 ok=no "Rallying Cry (Passive) - Friendly Battle Company Infantry models can still charge after participating in a Heroic March called by this Hero.": 
+starting stats map[attack:{1 0} courage:{7 0} defence:{5 0} fate:{1 1} fight:{4 0} intelligence:{7 0} might:{1 1} movement:{6 0} shoot:{4 0} strength:{3 0} will:{1 1} wounds:{1 0}] rules [chief advisor experienced tracker heroic march mastery rallying cry shieldwall spectral walk] actions [heroic march] powers map[]
+raising a stat by 1 or 2 from value v (boost 0 / boost 2), '-' when it cannot be raised:
+  attack 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  courage 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  defence 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  fate 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  fight 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/9,-/- 9:-/-,-/- 10:-/-,-/-
+  intelligence 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  might 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  movement 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/10,-/- 9:10/11,-/- 10:11/12,-/-
+  shoot 1:-/-,-/- 2:-/-,-/- 3:2/2,2/2 4:3/2,3/2 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  strength 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  will 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  wounds 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+
+=== path Path of the Warlord: what each 2D6 result offers a fresh hero ===
+ 2 ok=no "Furious Tirade (Active) - Enemy Warrior models cannot benefit from a Hero model's Stand Fast whilst within 6\" of this Hero.": 
+ 3 ok=no "Commanding Bellow (Passive) - Friendly Battle Company models treat this Hero as a banner with a range of 3\".": 
+ 4 ok=yes "Improve Attacks or Wounds by 1.": stat:attack:-1=Attack 1 → 2; stat:wounds:-1=Wounds 1 → 2
+ 5 ok=yes "Improve Courage or Intelligence by 1 (& take your other roll too!)": stat:courage:1=Courage 7+ → 6+(+again); stat:intelligence:1=Intelligence 7+ → 6+(+again)
+ 6 ok=yes "Improve Strength or Defence by 1.": stat:defence:-1=Defence 5 → 6; stat:strength:-1=Strength 3 → 4
+ 7 ok=yes "Heroic Resolve Mastery - The Hero may call Heroic Resolve without expending Might if their force is Broken. OR improve Courage & Intelligence by 1 (& take your other roll too!)": stat:courage:1=Courage 7+ → 6+(+again); stat:intelligence:1=Intelligence 7+ → 6+(+again)
+ 8 ok=yes "Improve Fight Value or Shoot Value by 1.": stat:fight:-1=Fight 4 → 5; stat:shoot:1=Shoot 4+ → 3+
+ 9 ok=yes "Improve Might, Will, or Fate by 1.": stat:fate:-1=Fate +1; stat:might:-1=Might +1; stat:will:-1=Will +1
+10 ok=yes "Choice of Minor Special Rule (up t0 to a maximum of 4) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 7)": action:Heroic Accuracy=Heroic Accuracy{A heroic action}; action:Heroic Challenge=Heroic Challenge{A heroic action}; action:Heroic Channelling=Heroic Channelling{A heroic action}; action:Heroic Defence=Heroic Defence{A heroic action}; action:Heroic March=Heroic March{A heroic action}; action:Heroic Strength=Heroic Strength{A heroic action}; action:Heroic Strike=Heroic Strike{A heroic action}; minor:Cave Dweller=Cave Dweller{A minor special rule}; minor:Expert Rider=Expert Rider{A minor special rule}; minor:Fell Sight=Fell Sight{A minor special rule}; minor:Horse Lord=Horse Lord{A minor special rule}; minor:Master of Reserves=Master of Reserves{A minor special rule}; minor:Mountain Dweller=Mountain Dweller{A minor special rule}; minor:Poisoned Attacks|weapon:Hand weapon=Poisoned Attacks (Hand weapon){A minor special rule}; minor:Resistant to Magic=Resistant to Magic{A minor special rule}; minor:Sharpshooter=Sharpshooter{A minor special rule}; minor:Unyielding Combat Stance=Unyielding Combat Stance{A minor special rule}; minor:Well-aimed Shot=Well-aimed Shot{A minor special rule}; minor:Woodland Creature=Woodland Creature{A minor special rule}
+11 ok=no "Master of Battle (3+) (Active) - See page 127 of the Middle-Earth Strategy Battle Game Rules Manual": 
+12 ok=no "Voice of Command (Active) - The range of this Hero's Stand Fast is 12\" rather than 6\". Additionally, friendly Hero models can benefit from this Hero's Stand Fast.": 
+starting stats map[attack:{1 0} courage:{7 0} defence:{5 0} fate:{1 1} fight:{4 0} intelligence:{7 0} might:{1 1} movement:{6 0} shoot:{4 0} strength:{3 0} will:{1 1} wounds:{1 0}] rules [commanding bellow furious tirade heroic resolve mastery master of battle (3+) shieldwall voice of command] actions [heroic resolve] powers map[]
+raising a stat by 1 or 2 from value v (boost 0 / boost 2), '-' when it cannot be raised:
+  attack 1:2/3,2/3 2:3/3,3/3 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  courage 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  defence 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  fate 1:2/3,2/3 2:3/3,3/3 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  fight 1:2/3,2/3 2:3/4,3/4 3:4/5,4/5 4:5/6,5/6 5:6/7,6/7 6:7/8,7/8 7:8/9,8/9 8:9/9,9/9 9:-/-,-/- 10:-/-,-/-
+  intelligence 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  might 1:2/3,2/3 2:3/3,3/3 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  movement 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/10,-/- 9:10/11,-/- 10:11/12,-/-
+  shoot 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  strength 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  will 1:2/3,2/3 2:3/3,3/3 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  wounds 1:2/3,2/3 2:3/3,3/3 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+
+=== path Path of the Berserker: what each 2D6 result offers a fresh hero ===
+ 2 ok=no "Burly (Passive) - A model with this special rule does not suffer the -1 penalty to the Duel Roll for using a two-handed weapon. Additionally, a model with this special rule can still Move its full Move Value whilst carrying a Heavy Object.": 
+ 3 ok=no "To Arms! (Active) - Once per game, at the start of his Activation, this Hero can declare they are using this special rule. If they do, then until the end of the turn all friendly models within 3\" of this Hero increase their Strength by 1.": 
+ 4 ok=yes "Improve Attacks or Wounds by 1.": stat:attack:-1=Attack 1 → 2; stat:wounds:-1=Wounds 1 → 2
+ 5 ok=yes "Improve Courage or Intelligence by 1 (& take your other roll too!)": stat:courage:1=Courage 7+ → 6+(+again); stat:intelligence:1=Intelligence 7+ → 6+(+again)
+ 6 ok=yes "Improve Strength or Defence by 1.": stat:defence:-1=Defence 5 → 6; stat:strength:-1=Strength 3 → 4
+ 7 ok=yes "Heroic Strength Mastery - When this Hero declares a Heroic Strength, they may choose to make a single Strike against every enemy involved in the combat, including supporting models, instead of making Strikes as normal. OR improve Strength by 1.": stat:strength:-1=Strength 3 → 4
+ 8 ok=yes "Improve Fight Value or Shoot Value by 1.": stat:fight:-1=Fight 4 → 5; stat:shoot:1=Shoot 4+ → 3+
+ 9 ok=yes "Improve Might, Will, or Fate by 1.": stat:fate:-1=Fate +1; stat:might:-1=Might +1
+10 ok=yes "Choice of Minor Special Rule (up t0 to a maximum of 3) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 6)": action:Heroic Accuracy=Heroic Accuracy{A heroic action}; action:Heroic Challenge=Heroic Challenge{A heroic action}; action:Heroic Channelling=Heroic Channelling{A heroic action}; action:Heroic Defence=Heroic Defence{A heroic action}; action:Heroic March=Heroic March{A heroic action}; action:Heroic Resolve=Heroic Resolve{A heroic action}; action:Heroic Strike=Heroic Strike{A heroic action}; minor:Cave Dweller=Cave Dweller{A minor special rule}; minor:Expert Rider=Expert Rider{A minor special rule}; minor:Fell Sight=Fell Sight{A minor special rule}; minor:Horse Lord=Horse Lord{A minor special rule}; minor:Master of Reserves=Master of Reserves{A minor special rule}; minor:Mountain Dweller=Mountain Dweller{A minor special rule}; minor:Poisoned Attacks|weapon:Hand weapon=Poisoned Attacks (Hand weapon){A minor special rule}; minor:Resistant to Magic=Resistant to Magic{A minor special rule}; minor:Sharpshooter=Sharpshooter{A minor special rule}; minor:Unyielding Combat Stance=Unyielding Combat Stance{A minor special rule}; minor:Well-aimed Shot=Well-aimed Shot{A minor special rule}; minor:Woodland Creature=Woodland Creature{A minor special rule}
+11 ok=no "Oblivious to Pain (Passive) - Whenever this Hero suffers a Wound, roll a D6. On the roll of natural 6, the Wound is ignored.": 
+12 ok=no "Fury of the Bear (Active) - If this Hero is involved in a Combat and kills every model he was Engaged in Combat with, then in the following turn he may declare a Heroic Move for free and must Charge if able.": 
+starting stats map[attack:{1 0} courage:{7 0} defence:{5 0} fate:{1 1} fight:{4 0} intelligence:{7 0} might:{1 1} movement:{6 0} shoot:{4 0} strength:{3 0} will:{1 1} wounds:{1 0}] rules [burly fury of the bear heroic strength mastery oblivious to pain shieldwall to arms!] actions [heroic strength] powers map[]
+raising a stat by 1 or 2 from value v (boost 0 / boost 2), '-' when it cannot be raised:
+  attack 1:2/3,2/3 2:3/3,3/3 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  courage 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  defence 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  fate 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  fight 1:2/3,2/3 2:3/4,3/4 3:4/5,4/5 4:5/6,5/6 5:6/7,6/7 6:7/8,7/8 7:8/9,8/9 8:9/9,9/9 9:-/-,-/- 10:-/-,-/-
+  intelligence 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  might 1:2/3,2/3 2:3/3,3/3 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  movement 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/10,-/- 9:10/11,-/- 10:11/12,-/-
+  shoot 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  strength 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  will 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  wounds 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+
+=== path Path of the Duelist: what each 2D6 result offers a fresh hero ===
+ 2 ok=no "Grim Blade (Active) - This Hero will always win the roll-off during a Drawn Combat. If both sides have a Hero with this special rule, neither side will benefit from this special rule.": 
+ 3 ok=no "For Glory (Active) - Once per game, at the start of any Fight Phase, this Hero can use this special rule so long as they are alive and on the battlefield. If they do, then friendly Battle Company models within 6\" of this Hero gain a bonus of +1 Fight Value and may reroll To Wound Rolls of a natural 1 when making Strikes until the end of the turn.": 
+ 4 ok=yes "Improve Attacks or Wounds by 1.": stat:attack:-1=Attack 1 → 2; stat:wounds:-1=Wounds 1 → 2
+ 5 ok=yes "Improve Courage or Intelligence by 1 (& take your other roll too!)": stat:courage:1=Courage 7+ → 6+(+again); stat:intelligence:1=Intelligence 7+ → 6+(+again)
+ 6 ok=yes "Improve Strength or Defence by 1.": stat:defence:-1=Defence 5 → 6; stat:strength:-1=Strength 3 → 4
+ 7 ok=yes "Heroic Strike Mastery - When calling a Heroic Strike the Hero adds +3 to their Fight Value rather than rolling a D3. OR improve Fight Value by 1.": stat:fight:-1=Fight 4 → 5
+ 8 ok=yes "Improve Fight Value or Shoot Value by 1.": stat:fight:-1=Fight 4 → 5; stat:shoot:1=Shoot 4+ → 3+
+ 9 ok=yes "Improve Might, Will, or Fate by 1.": stat:might:-1=Might +1; stat:will:-1=Will +1
+10 ok=yes "Choice of Minor Special Rule (up t0 to a maximum of 3) Pick an additional Action to add to the Hero's list of Heroic Actions! (up to a maximum of 6)": action:Heroic Accuracy=Heroic Accuracy{A heroic action}; action:Heroic Challenge=Heroic Challenge{A heroic action}; action:Heroic Channelling=Heroic Channelling{A heroic action}; action:Heroic Defence=Heroic Defence{A heroic action}; action:Heroic March=Heroic March{A heroic action}; action:Heroic Resolve=Heroic Resolve{A heroic action}; action:Heroic Strength=Heroic Strength{A heroic action}; minor:Cave Dweller=Cave Dweller{A minor special rule}; minor:Expert Rider=Expert Rider{A minor special rule}; minor:Fell Sight=Fell Sight{A minor special rule}; minor:Horse Lord=Horse Lord{A minor special rule}; minor:Master of Reserves=Master of Reserves{A minor special rule}; minor:Mountain Dweller=Mountain Dweller{A minor special rule}; minor:Poisoned Attacks|weapon:Hand weapon=Poisoned Attacks (Hand weapon){A minor special rule}; minor:Resistant to Magic=Resistant to Magic{A minor special rule}; minor:Sharpshooter=Sharpshooter{A minor special rule}; minor:Unyielding Combat Stance=Unyielding Combat Stance{A minor special rule}; minor:Well-aimed Shot=Well-aimed Shot{A minor special rule}; minor:Woodland Creature=Woodland Creature{A minor special rule}
+11 ok=no "Master Duelist (Active) - At the start of a Combat involving this Hero, before any Heroic Strikes are resolved, this Hero may increase their Fight Value to match that of a single enemy model they are Engaged in Combat with.": 
+12 ok=no "Warrior of Renown (Active) - Enemy models Engaged in Combat with this Hero cannot declare a Heroic Strike.": 
+starting stats map[attack:{1 0} courage:{7 0} defence:{5 0} fate:{1 1} fight:{4 0} intelligence:{7 0} might:{1 1} movement:{6 0} shoot:{4 0} strength:{3 0} will:{1 1} wounds:{1 0}] rules [for glory grim blade heroic strike mastery master duelist shieldwall warrior of renown] actions [heroic strike] powers map[]
+raising a stat by 1 or 2 from value v (boost 0 / boost 2), '-' when it cannot be raised:
+  attack 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  courage 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  defence 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  fate 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  fight 1:2/3,2/3 2:3/4,3/4 3:4/5,4/5 4:5/6,5/6 5:6/7,6/7 6:7/8,7/8 7:8/9,8/9 8:9/9,9/9 9:-/-,-/- 10:-/-,-/-
+  intelligence 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  might 1:2/3,2/3 2:3/3,3/3 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  movement 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/10,-/- 9:10/11,-/- 10:11/12,-/-
+  shoot 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  strength 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  will 1:2/3,2/3 2:3/3,3/3 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  wounds 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+
+=== path Path of Their Own Making: what each 2D6 result offers a fresh hero ===
+ 2 ok=no "Whirl of Attacks (Active) - When rolling a natural 6 for the Duel Roll, this model rolls an additional attack when rolling to Wound. You can not use this rule if the enemy model is trapped.": 
+ 3 ok=no "Lead by Example - If this Hero kills an enemy model, he is treated as a banner for the duration of the next turn.": 
+ 4 ok=yes "Improve Attacks or Wounds by 1. OR Improve Might, Will, or Fate by 1.": stat:attack:-1=Attack 1 → 2; stat:fate:-1=Fate +1; stat:might:-1=Might +1; stat:will:-1=Will +1; stat:wounds:-1=Wounds 1 → 2
+ 5 ok=yes "Improve Courage or Intelligence by 1 (do not take the second result!)": stat:courage:1=Courage 7+ → 6+; stat:intelligence:1=Intelligence 7+ → 6+
+ 6 ok=yes "Improve Strength or Defence by 1.": stat:defence:-1=Defence 5 → 6; stat:strength:-1=Strength 3 → 4
+ 7 ok=yes "Master of Fighting Styles - The Hero has mastered different fighting styles. Before the Duel Roll, the model may use the rules for a two-handed weapon or shielding, even without the equipment. OR Pick an additional Action to add to the Hero's list of Heroic Actions.": action:Heroic Accuracy=Heroic Accuracy{A heroic action}; action:Heroic Challenge=Heroic Challenge{A heroic action}; action:Heroic Channelling=Heroic Channelling{A heroic action}; action:Heroic Defence=Heroic Defence{A heroic action}; action:Heroic March=Heroic March{A heroic action}; action:Heroic Resolve=Heroic Resolve{A heroic action}; action:Heroic Strength=Heroic Strength{A heroic action}; action:Heroic Strike=Heroic Strike{A heroic action}
+ 8 ok=yes "Improve Fight Value or Shoot Value by 1.": stat:fight:-1=Fight 4 → 5; stat:shoot:1=Shoot 4+ → 3+
+ 9 ok=yes "Improve Might, Will, or Fate by 1.": stat:fate:-1=Fate +1; stat:might:-1=Might +1; stat:will:-1=Will +1
+10 ok=yes "Choice of Minor Special Rule": minor:Cave Dweller=Cave Dweller{A minor special rule}; minor:Expert Rider=Expert Rider{A minor special rule}; minor:Fell Sight=Fell Sight{A minor special rule}; minor:Horse Lord=Horse Lord{A minor special rule}; minor:Master of Reserves=Master of Reserves{A minor special rule}; minor:Mountain Dweller=Mountain Dweller{A minor special rule}; minor:Poisoned Attacks|weapon:Hand weapon=Poisoned Attacks (Hand weapon){A minor special rule}; minor:Resistant to Magic=Resistant to Magic{A minor special rule}; minor:Sharpshooter=Sharpshooter{A minor special rule}; minor:Unyielding Combat Stance=Unyielding Combat Stance{A minor special rule}; minor:Well-aimed Shot=Well-aimed Shot{A minor special rule}; minor:Woodland Creature=Woodland Creature{A minor special rule}
+11 ok=no "Master Duelist (Active) - At the start of a Combat involving this Hero, before any Heroic Strikes are resolved, this Hero may increase their Fight Value to match that of a single enemy model they are Engaged in Combat with.": 
+12 ok=no "I shall pass! (Active) - If this Hero wins his Duel Roll, after all models have backed away but before making Strikes, the model may make no Strikes and instead move again up to half its Move Value. If it charges an enemy, it fights as normal. This rule can only be used once per turn.": 
+starting stats map[attack:{1 0} courage:{7 0} defence:{5 0} fate:{1 1} fight:{4 0} intelligence:{7 0} might:{1 1} movement:{6 0} shoot:{4 0} strength:{3 0} will:{1 1} wounds:{1 0}] rules [i shall pass! lead by example master duelist master of fighting styles shieldwall whirl of attacks] actions [] powers map[]
+raising a stat by 1 or 2 from value v (boost 0 / boost 2), '-' when it cannot be raised:
+  attack 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  courage 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  defence 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  fate 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  fight 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/9,-/- 9:-/-,-/- 10:-/-,-/-
+  intelligence 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  might 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  movement 1:2/3,-/- 2:3/4,-/- 3:4/5,-/- 4:5/6,-/- 5:6/7,-/- 6:7/8,-/- 7:8/9,-/- 8:9/10,-/- 9:10/11,-/- 10:11/12,-/-
+  shoot 1:-/-,-/- 2:-/-,-/- 3:2/2,2/2 4:3/2,3/2 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8
+  strength 1:2/2,-/- 2:3/3,-/- 3:4/4,-/- 4:5/5,-/- 5:6/6,-/- 6:7/7,-/- 7:8/8,-/- 8:9/9,-/- 9:10/10,-/- 10:11/11,-/-
+  will 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
+  wounds 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-

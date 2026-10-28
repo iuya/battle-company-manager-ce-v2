@@ -10,6 +10,7 @@ change the campaign and are applied by the engine.
 | `vanilla/data2024.json` | The base game: units, wargear, special rules (keywords), magical powers. A **reference store**, never edited |
 | `battle_companies/battle_companies.json` | Everything specific to Battle Companies 2nd CE. **Generated.** The source of truth for the rule engine |
 | `glossary/mesbg_glossary.json` | Concepts of the MESBG rules manual that the vanilla file leaves out (Heroic Actions, Stand Fast, the turn phases…); from the 2024 rules manual |
+| `battle_companies/reference/*.json` | Rulebook prose that no code reads (influence, gold, designer notes), kept next to the data. **Never loaded** by the app and never uploaded |
 | `concepts/concept_graph.json` | The reviewed edges between concepts (`grants`, `cancels`, `lifts`, `requires`) of the three files above, for the helper popups. **Generated** by `tools/build_concept_graph.py`, never uploaded by users; see [`concept-graph.md`](concept-graph.md) |
 
 Every file we author (Battle Companies, glossary) starts with a top-level `name` and `version`, both strings: the
@@ -19,7 +20,29 @@ file is a third-party store that is never edited, so it keeps `game` and `appVer
 in `ruleset_picker.js` are the only places that know this. The hash covers the whole file, so any change to these
 fields is a new ruleset.
 
-Schemas next to each file (`*.schema.json`) are checked by `tools/validate_definitions.py`. How to regenerate the files
+**What the Battle Companies file does not carry.** The generator (`tools/bc/curated.py`, called by `tools/build_battle_companies.py`) cuts
+the complete document it assembles in three:
+
+- the **shipped file** holds only what the engine, the templates or the tools read at run time;
+- **`tools/data/*.json`** (committed, written by the generator) holds the curator's provenance and audit records: `duplicate_decisions.json`
+  (kind, name, status, occurrence and the note of the 91 reviewed vanilla duplicates), `aura_audit.json` (`excluded`, `outOfScope`,
+  `unreachable`, the `reason` of each entry, the section text), `gear_evidence.json` (`evidence`, `status`, `isA` and the notes of
+  `relatedTo`), `option_sales_reasons.json` (the `source` of the sales, `wargearReadAs`, `profileWargearNotSold`), `fillin_reviews.json`
+  (`reason` and `source` of the fill-ins), `tts_provenance.json` (the `reason` of each Tabletop Simulator mapping) and `provenance.json`
+  (single `source` / `note` strings, keyed by the address of the entry). `tools/validate_definitions.py` and the Python tests read the
+  shipped file with these attached (`curated.attach`, "the audit view"); a missing or stale record is an error, and
+  `tools/test_curated.py` proves that cutting the audit view again gives back both;
+- **`definitions/battle_companies/reference/*.json`** holds prose no code reads: `influence.json` (the influence text, the lost-all rule,
+  the spend entries other than `adjustRoll`, rare and special units, wargear limits), `gold.json` (`campaign.gold`) and `pathNotes.json`.
+- Dropped, because nothing reads them (the generator source still has the texts): `resolution`, `validations`, `campaign.customCompany`
+  and the prose of `campaign.recruitment` (what stays: `adjust` and the three `rare` counting flags; its `text`, `unitChoice` and
+  `lowerResult` descriptions go). `credit` stays in the header.
+
+The Go loader still reads `data.vanillaAmbiguities` in its four-field form `{kind, name, status, occurrence}`: the audit report lists the
+`equivalent`, `overridden` and `firstWins` statuses of the duplicates the companies use, and cutting them would change that report.
+`data.optionSales[].reason` stays too: the app shows it as the reason an option is not sold.
+
+Schemas next to each file (`*.schema.json`) are checked by `tools/validate_definitions.py`; the Battle Companies one describes the shipped file. How to regenerate the files
 and what the tools do: [`tools/README.md`](../tools/README.md).
 
 ## Dependency direction
@@ -42,8 +65,8 @@ Companies rulebook itself defines belong in the Battle Companies file.
   reviewed in `data.vanillaAmbiguities`: `equivalent` (only wording differs), `overridden` (Battle Companies defines the
   name), `firstWins` (they really differ, the first is right) or `pinned` (the rule of thumb fails; `occurrence` says
   which entry wins; occurrences count the heroes list before the warriors list, case-insensitively, as the loader does).
-  Pinned today: Peregrin Took and Bain, Son of Bard (the first entry is incomplete). Notes starting `REVIEW:` mark
-  value differences settled by the default (first wins) that a person may want to confirm.
+  Pinned today: Mordor Orc Siege Veteran, Peregrin Took and Bain, Son of Bard (the first entry is incomplete). The file keeps `{kind, name, status, occurrence}`; the notes (those starting `REVIEW:` mark
+  value differences settled by the default, first wins, that a person may want to confirm) are in `tools/data/duplicate_decisions.json`, fed by `DUPLICATE_DECISIONS` in `tools/bc/core.py`.
 - **Parameterised rules** (`data.parameterisedRules`): Hatred (X), Poisoned Attacks (X), Master of Battle (X+),
   Dominant (X), Fury (X), Combat Synergy (X), Terror (X) say what X is (`keyword`, `weapon`, `rollTarget`, `number`,
   `companyHero`) and who picks it.
@@ -54,11 +77,11 @@ Companies rulebook itself defines belong in the Battle Companies file.
 
 - `campaign`: the core tables with stable keys the engine can switch on: injuries, experience and progression,
   characteristic limits, influence, rating, Against the Odds, scenario selection.
-  **Costs are properties**, so a modified file can change them: `campaign.influence.spend[]` (`recruit.defaultCost`, a
-  company's own `data.companies[].reinforcements.influence`, `adjustRoll.costPerPoint/maxPerRoll`,
-  `treatInjuries.cost`; `armoury.costSource` lists where item prices live: `influence` on wargear, equipment,
-  creatures, wanderers, unique wargear and special units, `wargear.armourUpgrade.influencePerUpgrade`), the Against
-  the Odds `rating`s and `gains`, and `campaign.injuries.treatment` (see below).
+  **Costs are properties**, so a modified file can change them: `campaign.influence.gains` (Influence for taking part, a draw and a win),
+  `campaign.influence.spend[key=adjustRoll]` and `campaign.recruitment.adjust` (`direction`, `costPerPoint`, `maxPerAttempt`), a
+  company's own `data.companies[].reinforcements.influence`, `campaign.injuries.treatment` (see below), `influence` on wargear, equipment,
+  creatures, wanderers, unique wargear and special units, `wargear.armourUpgrade.influencePerUpgrade`, and the Against
+  the Odds `rating`s and `gains`. The rest of the influence rules (what Influence buys, the lost-all rule) is prose in `reference/influence.json`.
 - `campaign.injuries.hero[]` / `warrior[]` entries carry, besides `roll`, `key`, `effects` and `text`: `persistent`
   (counted per Hero), `healable`, `retireAtCount`, `grantsAtCount`, `statChanges[{stat, delta, per:"count"}]`,
   `disables[{kind: gearClass|gearItem|ability, classes|names|key}]` (gear classes are those of
@@ -73,12 +96,23 @@ Companies rulebook itself defines belong in the Battle Companies file.
   (`average`, `peak`, `lowerIsBetter`, `limitKinds`), per path `data.paths[].maximums` and `progression[]` rows whose
   `options[]` are alternatives (`improveStat`, `specialRule`, `minorSpecialRule{maxTotal}`, `heroicAction{maxTotal}`,
   `magicalPower`, `improveCastingValue`, `oneOf`).
+- **Dice are data** (slice P4, docs/definitions-lean-design.md 12.1). Every dice string is an `[N]dM` spec (N 1..10, M 2..100), parsed once
+  at load with `lean.ParseDice` (`core.DiceSpec`, `core.ParseDiceAt` names the key in the error) and rolled with `core.Dice.Roll(spec)`.
+  The keys read today: `campaign.injuries.roll` (D1: both injury charts cover `Min..Max`, `AftermathRules.InjuryDice`),
+  `campaign.injuries.{warrior,hero}[].grantsExperience.dice` / `grantsInfluence.dice` (D2, any spec, `InjuryRow.BonusSpec`),
+  `campaign.progression.warrior.roll` (C2: the warrior table covers it), `campaign.progression.hero.roll` and `data.paths[].dice` (C4: each
+  path's rows cover its dice, a path without `dice` uses the hero roll), `campaign.progression.hero.rollsPerProgression` and `choose` (C3: 1..6
+  results, the engine keeps one), `campaign.breakPoint.whenBroken.courageTest.dice` (E4: the live Courage test accepts the spec the file declares;
+  the pass rule `totalAtLeastCourage` is the one the engine implements), `campaign.scenarioSelection.die` (F5, one die; the table ranges
+  partition `1..Sides` and each table lists `Sides` scenarios; shipped as `d6`) and
+  `campaign.recruitment.die` (A4, `d6`), and the `lookup` of a scenario special-rule table that is a dice string. A table that does
+  not cover the dice of its key is a load error naming the path (`core.CheckCovers`). The treatment roll die is `campaign.injuries.treatment.hero[key=attempt].roll.dice` (`d6`, one die; the validator checks it).
 - Magic: `data.magicalPowers.items[]` (all 43 vanilla powers: `name`, `duration`, `definition`, `learnable`, and for the 31 on the
   Path of the Sorcerer's Spell List the `range` (inches or "self") and Casting Value `casting` a Hero learns them at) and
   `data.magicalPowers.castingRule` (X+, improving lowers the number by 1, at most 2 per power, floor 2 inferred). The 12 non-learnable powers (Chill Soul, Immobilise, Paralyse, Wrath of Bruinen, Your Staff is Broken, 7 Fury species) have no base range/casting: unit profiles differ per unit and the Spell List does not offer them. The validator checks that every vanilla power has an item and that the learnable ones equal the Spell List. A path's
   `startingHeroicAction` ({name, definition} or null when the path only has a Mastery rule for a universal action) and the
   Sorcerer's `startingMagicalPower` say what a Hero gets when it takes the path.
-- Gold: `campaign.gold` (spendable on, when, what it cannot buy, the 60-point guideline, `inferred`/`undecided` keys) and a
+- Gold: the description of what Gold is (spendable on, when, what it cannot buy, the 60-point guideline) is `reference/gold.json`; a
   `gold` property on every purchasable thing, equal to its initial rating: `{warrior, hero}` on `data.equipment.items[]`,
   `data.wargear.items[]`, `data.wargear.armourUpgrade` and `data.companies[].uniqueWargear[]`; a number (its points) on
   `data.creatures.items[]` and `data.wanderers.items[]`. Starting Gold is `data.companies[].startingCompany.gold`.
@@ -160,15 +194,17 @@ as the one documented exception.
   (`minorSpecialRule`, `heroicAction`, `magicalPower`, `improveCastingValue`). Show `summary` as the tooltip; list the parts
   (rules linking to their definitions in `data.paths[].progression[].options[].specialRule`) in the path detail.
 - `data.wargear`, `data.equipment`, `data.creatures`, `data.wanderers`, `data.keywords` (Battle Companies rules),
-  `scenarios`, `scenarioScoring` and `data.scenarioDetails`. A scenario special rule that prints a table carries `table {lookup, columns, rows[{min, max, cells}]}` (`lookup` `d6`: Sites of Power's Strange Aura; `combinedRating`: Tame the Beast's Monster Budget by the two companies' combined rating, `max` null = open ended); the `definition` keeps only the text around the table. A scoring objective flagged `secret` (Fog of War) also carries `reveal: "endOfGame"`, `completion: "tiers"` (the player reports the best tier reached) and, when the player notes something down at the start, `nomination {from: ownHeroes | enemyHeroes | terrain, allowLeader: onlyHero | where: opponentHalf}` (own Hero, opponent's Hero, a terrain piece wholly in the opponent's half; the Leader only if the company has one Hero); `instruction` keeps the printed sentence. The validator checks the nomination against the instruction. A scenario lists rules it applies without text of their own in `usesRules` (Maelstrom of Battle, Dark of Night, Heirloom of Power). The Wolves Attack prints one Victory Point bullet twice (the Broken company); it is kept as printed.
-- Scenario objectives, rewards and roles (`data.scenarioDetails[]`, built by `tools/bc/scenario_rules.py`; the prose fields
-  `objectives`, `scoring`, `specialRules` stay for display, `scoring` no longer holds the reward paragraphs the layout glued
-  to its last bullet). New per scenario: `roles[{key, name}]` (`attacker`/`defender`, only Stand Your Ground, Defend the Gate,
-  Hold the Line, Baggage Train), `outline` (Seize the Outpost), `scoringObjectives[]` (one per `scoring` bullet, same order) and
+  `scenarios` and `data.scenarioDetails`. A scenario special rule that prints a table carries `table {lookup, columns, rows[{min, max, cells}]}` (`lookup` `d6`: Sites of Power's Strange Aura; `combinedRating`: Tame the Beast's Monster Budget by the two companies' combined rating, `max` null = open ended); the `definition` keeps only the text around the table. A scoring objective flagged `secret` (Fog of War) also carries `reveal: "endOfGame"`, `completion: "tiers"` (the player reports the best tier reached) and, when the player notes something down at the start, `nomination {from: ownHeroes | enemyHeroes | terrain, allowLeader: onlyHero | where: opponentHalf}` (own Hero, opponent's Hero, a terrain piece wholly in the opponent's half; the Leader only if the company has one Hero); `instruction` keeps the printed sentence. The validator checks the nomination against the instruction. A scenario lists rules it applies without text of their own in `usesRules` (Maelstrom of Battle, Dark of Night, Heirloom of Power). The Wolves Attack prints one Victory Point bullet twice (the Broken company); it is kept as printed.
+- Scenario objectives, rewards and roles (`data.scenarioDetails[]`, built by `tools/bc/scenario_rules.py`; the prose field
+  `objectives` and `specialRules` stay for display; there is no `scoring` prose list and no top-level `scenarioScoring`: the
+  scoring text is composed from the typed `scoringObjectives`). New per scenario: `roles[{key, name}]` (`attacker`/`defender`, only Stand Your Ground, Defend the Gate,
+  Hold the Line, Baggage Train), `outline` (Seize the Outpost), `scoringObjectives[]` (one per printed Victory Point bullet, in printed order) and
   `rewards[]`.
   * `scoringObjectives[]`: `{key, text, side (both|attacker|defender), kind, maxPoints, instruction?, secret?}` plus by kind:
-    `tiers` -> `options[{text, points}]` ascending, pick the best tier reached or none ("instead score" sentences are
-    alternatives, not additions); `each` -> `item`, `pointsEach`, `maxCount?`, `maxPoints` (count x pointsEach, capped);
+    Every objective has `options[{text, points}]`, the printed sentences in PRINTED order (`instruction` first, if any;
+    `instruction` + the option texts joined by a space read as `text`, which the validator checks; `text` stays in the file but the
+    app no longer reads it). `tiers` -> `options` (any order of points), pick the best tier reached or none ("instead score" sentences are
+    alternatives, not additions); `each` -> `item`, `pointsEach`, `maxCount`, `count` (= maxCount) and one option worth `pointsEach`, `maxPoints` (count x pointsEach);
     `eachTiers` -> `item`, `count`, `options[]` (every item, e.g. each of 5 Objective Markers, scores its own best tier).
     `secret` marks the Fog of War objectives that are kept hidden until the end; `instruction` is the note-down sentence of
     those. A company's Victory Points are the sum of its objectives (`side` restricts an objective to that role); the most
@@ -196,8 +232,8 @@ as the one documented exception.
   `companyFeature` (Baggage Pony `carryGear`, with `swap`), `handlersGlove`, `aura` (Falcon).
 - `data.gearAnnotations`: one entry per piece of gear a Battle Company model can carry (wargear and options of the
   vanilla units the companies field, what bundles include, the BC wargear and equipment tables, unique wargear,
-  creature/wanderer wargear, the company lists). Fields: `name`, `classes`, `grants`, `ranged`, `aliases`, `evidence`,
-  `status`.
+  creature/wanderer wargear, the company lists). Fields: `name`, `classes`, `grants`, `ranged`, `aliases`, ... (`evidence`, `status` and `isA` are the curator's
+  and live in `tools/data/gear_evidence.json`).
   - **Stat modifiers from gear.** The numbers come from two places that already exist: the vanilla `gear[].modifiesStats` (armour +1/+2/+3
     Defence, Helmingas, Battlin' Brandybuck... `{stat, modifier}`; the vanilla Shield also has `cancelledBy` bow / Two Hand Weapon with
     `uncancelledByKeyword` Expert Rider) and the annotation's `abilities[]` `defenceBonus {value, ...}`. The BC file adds, on every
@@ -256,7 +292,7 @@ as the one documented exception.
     item with its own annotation, text and availability (Pike, Spear, Lance and Warspear share a price, not an identity; Elf Bow,
     Esgaroth Bow, Longbow, Dwarf Longbow and Crossbow likewise). `aliases` are spellings of one item only. Optional links between items:
     `relatedTo[{name, note}]` (related but distinct, symmetric: Elf Bow / Longbow have the same profile, a Pike is not a Spear),
-    `base` + `modifiers` (below). `data.wargearReadAs` lists the company-list spellings read as the profile's specific item (curator's
+    `base` + `modifiers` (below). `wargearReadAs` (`tools/data/option_sales_reasons.json`) lists the company-list spellings read as the profile's specific item (curator's
     readings, e.g. Rivendell Warrior "spear" -> Elven spear); the lists carry the resolved name. "Two-handed axe" (Dwarf Warrior, Wild Man of
     Dunland) is an alias of the Two-handed weapon (confirmed by the user); the capitalised vanilla spelling "Two-handed Axe" is listed as an alias too (`VANILLA_SPELLING_VARIANTS` in `tools/bc/gear.py`) so every canonical spelling agrees. The Easterling Halberd is in the simple hybrid-weapons row at 1 Influence (confirmed). The Elven Glaive and Wood Elf Spear are Spear + `elven` that also carry their own rule (`ITEM_RULES`): the glaive's `attacksBonus` (+1 Attacks for the Duel Roll or for Strikes when Engaged and not Supported; the wording is the vanilla gear text, the BC document only prices it), the Wood Elf Spear's `shielding`.
   - **Item modifiers.** An item is a base item plus modifiers: "Elven spear" = Spear + `elven`. Poison is not a modifier (see **Poison**).
@@ -280,7 +316,7 @@ as the one documented exception.
     from three places, and no wargear item other than the Blowpipe carries it:
     1. *A unit rule.* Haradrim Warrior, Haradrim Raider, Haradrim Chieftain, Watcher of Kârna... have `Poisoned Attacks (Bow)` on their vanilla
        profile. A Harad list row written "bow with poisoned arrows" / "bow with poison arrows" is read as the plain `Bow`
-       (`data.wargearReadAs`, `READ_AS` in `tools/bc/gear.py`) and needs no grant: the unit already has the rule. The validator checks that
+       (`wargearReadAs`, `READ_AS` in `tools/bc/gear.py`) and needs no grant: the unit already has the rule. The validator checks that
        every such reading names a unit whose profile has `Poisoned Attacks (<item>)`. A promoted unit therefore keeps the plain Bow but is
        poisonous only if the NEW profile has the rule (the Haradrim Raider has, a unit without it does not).
     2. *The weapon itself.* The Blowpipe grants `Poisoned Attacks (Blowpipe)` (annotation `grants`, rulebook: "benefits from the Poisoned
@@ -332,12 +368,12 @@ as the one documented exception.
   Not choosable: options in `data.optionSales` with status `notSold` or `granted` (banner / war horn / war drum options, Twin Blades, Whip,
   Armour, the Wood Elf spear) and `data.reservedOptions` (army-list upgrades: Lorien Guard, Hearthguard, Helmingas...). Status `readAs` keeps an
   option choosable as `armouryItem` (Cave Troll: Hand-and-a-half hammer -> Hand-and-a-half Weapon; the hammer is flavour). Status `ownItem` (`item`) keeps an option choosable under its own name when it is a weapon of its own that the Armoury does not sell: the Cave Troll's Troll Spear (a spear with the additional rule `doubleWoundOnNatural6`, annotation class `spear`). Exchange options
-  ("Exchange lance for banner") are judged by the item they bring. `data.profileWargearNotSold` lists the wargear of the profiles no Armoury sells (profile
+  ("Exchange lance for banner") are judged by the item they bring. `profileWargearNotSold` (`tools/data/option_sales_reasons.json`) lists the wargear of the profiles no Armoury sells (profile
   armour and hand weapons, natural weapons, Elven cloak...): a model always starts with it, it is added on recruit, never an option and never
   buyable. The full tables are generated into `tools/armoury_gaps.md` (`bc/armoury_gaps.py`); the validator checks the list. Backend rule:
   choosable = not in `Unsold`, not `Reserved`, or `readAs` (then treated as `armouryItem`); recruit adds the profile wargear regardless.
 - `data.optionSales` (`option_sales` in `tools/bc/vanilla.py`): the vanilla profile options no Armoury sells, so the audit does not flag
-  them as `option-unbuyable`. Items `{unit, option, status, reason, source}`; status `notSold` (banner / war horn / war drum options,
+  them as `option-unbuyable`. Items `{unit, option, status, reason}` (`source` is in `tools/data/option_sales_reasons.json`); status `notSold` (banner / war horn / war drum options,
   generated: the BC equipment sells the Company Standard / Horn / Drum instead and a Choice of Options excludes them; a Unique Wargear
   item of one company, the Wood Elf spear) or `granted` (comes with the charts or starting company: Twin Blades, Whip, a Cave Troll's
   weapons, the Ranger of the North's armour). A company whose armoury does sell the item is unaffected. The validator recomputes the
@@ -376,8 +412,8 @@ as the one documented exception.
   armoured horse is the "Armoured horse and lance" option, 11 + 9 = 20); only wargear no option has is charged its armoury rating. The
   audit flag `price-mismatch` checks it for every start, chart and promotion row.
 - **Limits** (top-level `limits`): every limit (bows, throwing weapons, cavalry, a company's keyword limit such as Helm's Deep Elves)
-  rounds up (`LimitMax`) and counts the model being recruited in the numerator and the denominator (`CompanyLimit.Next`,
-  `recruitEnv.limitBlock`, `companyBlockFor`); the `roundUp` flag of the file is no longer read. each has a stable `id` (`bow`, `throwing`, `cavalry`), the keys of a company's
+  is read from the file (`ParseCompanyRules`, no Go default; the label shown is the file's without its bracketed note, "bows (heroes included)" is "Bows") and counts the model being recruited in the numerator and the denominator (`CompanyLimit.Next`,
+  `recruitEnv.limitBlock`, `companyBlockFor`); a company's keyword limit (Helm's Deep) always rounds up, a `limits[]` entry follows its `maximumPercentage` ((0, 100]) and its `roundUp` flag (`LimitMax`). Each limit carries `classes`, the item classes that count towards it (`bow`: `bow`, `crossbow`; `throwing`: `throwing`; every class is in the gear vocabulary, a limit without classes is a load error), or is a keyword limit (`type: "keyword"`, `value: "Cavalry"`, the only keyword the engine counts), and each has a stable `id` (`bow`, `throwing`, `cavalry`), the keys of a company's
   `limitOverrides`. A company's `limitExemptions` (`unit` or `item`, `limits` ids, `text`) takes models out of a limit:
   a model counts as Cavalry for the `cavalry` limit when its profile says so or it carries a mount (a bought Horse); buying a mount is refused when the limit is full. An exempt model is left out of both the count and the base the maximum is worked out on (2 Warriors of Rohan + 10
   Riders of Rohan: base 2, so Bow and Cavalry maximum ceil(2 / 3) = 1). Today: Rohan (Rider of Rohan: bow, cavalry),
@@ -424,27 +460,26 @@ listed is `own`** (about the bearer only). Shape:
 
 Generated by `tools/bc/auras.py` (bead 4fe.2; spec and consumers: [`aura-ranges.md`](aura-ranges.md)). A curated table, like `ruleTargets`: no rule text carries a
 machine-readable radius. An **aura** is a fixed radius in inches from the edge of the bearer's base inside which models are affected by a rule or an item the bearer
-has. Not auras (see `excluded`): weapon ranges, receiver-side rules (the radius is around a named hero or a General), radii around an objective, a marker or a target,
+has. Not auras (see `excluded` in `tools/data/aura_audit.json`): weapon ranges, receiver-side rules (the radius is around a named hero or a General), radii around an objective, a marker or a target,
 movement and concealment distances. Shape:
 
 ```json
 "auras": {
-  "text": "...",
   "kinds":  [{"id": "banner", "label": "Banner", "colour": "yellow", "rgb": "F0E442", "text": "legend sentence", "default": true}, "... command, support, enemy, utility"],
   "groups": [{"id": "always", "label": "Rules always in force", "text": "...", "default": true}, "... declared, conditional (on); cast, target, large, optional (off)"],
   "entries": [
     {"id": "banner-3", "source": {"type": "item", "names": ["Banner"]}, "label": "Banner", "radius": 3, "kind": "banner", "affects": "friendly",
-     "when": "always", "group": "always", "los": true, "keywords": [], "tip": "one sentence", "concept": "Banner", "reason": "why this entry exists"},
+     "when": "always", "group": "always", "los": true, "keywords": [], "tip": "one sentence", "concept": "Banner"},
     {"id": "standfast-6", "source": {"type": "hero"}, "label": "Stand Fast", "mergeLabels": ["With Me!", "Loose"], "radius": 6, "kind": "command",
      "affects": "friendly", "when": "always", "group": "always", "los": true, "keywords": ["Warrior"], "...": "..."},
     {"id": "voice-12", "source": {"type": "rule", "names": ["Voice of Command"]}, "radius": 12, "replaces": ["standfast-6", "atthedouble-6", "resolve-6", "takeaim-6"], "...": "..."},
     {"id": "horn-standfast-9", "source": {"type": "item", "names": ["War Horn", "Company Horn"]}, "radius": 9, "radiusParts": [6, 3], "textFrom": ["Stand Fast"], "bearer": "Hero", "...": "..."}
-  ],
-  "excluded": [{"type": "rule", "names": ["Pillager"], "radius": 3, "category": "centred-elsewhere", "reason": "..."}],
-  "outOfScope": [{"scope": "data.scenarioDetails", "reason": "..."}],
-  "unreachable": ["Wormtongue", "..."]
+  ]
 }
 ```
+
+`tools/data/aura_audit.json` keeps the working data of the table: `excluded` (`[{"type": "rule", "names": ["Pillager"], "radius": 3, "category": "centred-elsewhere", "reason": "..."}]`),
+`outOfScope` (`[{"scope": "data.scenarioDetails", "reason": "..."}]`), `unreachable` (`["Wormtongue", "..."]`), `entryReasons` (the curator's note of each entry id) and `text`.
 
 **Entry fields.** `id` (unique, `[a-z0-9-]`), `source`, `label` (the chip and ring label), `mergeLabels` (more labels that join `label` when this ring is shown),
 `radius` (inches, 0.5 to 48, always written in the source text; `radiusParts` when it is a sum, `textFrom` names the glossary terms that supply a part), `kind`
@@ -453,7 +488,7 @@ markers), `affects` (`friendly`, `enemy`, `any`, `self`: the bearer benefits whe
 once-per-game rule; `conditional`: only after a game event; `cast`: a Magical Power in effect; `target`: the radius only limits the choice of one model), `group` (the
 dialog switch, see below), `los` (needs line of sight: tooltip only), `keywords` (a filter on the affected models, any one of them: tooltip only, not drawn), `bearer`
 (`Hero`: only a Hero bearer gets the entry), `replaces` (ids of entries the bearer does not get when it has this one), `tip` (one sentence, own words, at most 200
-characters), `concept` (a glossary/rule name that resolves in the concept graph: the chip's popup), `reason` (why the entry exists; the curator's note).
+characters), `concept` (a glossary/rule name that resolves in the concept graph: the chip's popup), 
 
 **Matching: how an entry is found on a unit** (`source`; names are compared with the app's usual folding: case, punctuation and a plural `s` do not matter).
 - `item`: the unit (rider or creature figure, not the mount) carries a piece of gear whose `gearAnnotations` name is one of `names` (items are the ones the existing
@@ -479,7 +514,7 @@ Stand Fast ring): the labels join in table order (`label`, then its `mergeLabels
 `keywords` filter is kept only if every merged entry has one (union), `replaces` is applied first. Merge after the selection filter, so a switched-off entry never lends its label.
 
 **Counts today:** 52 entries: banner 6, command 9, support 23, enemy 10, utility 4; by group: always 18, declared 16, conditional 2, cast 7, target 7, large 1, optional 1.
-`excluded`: 26 groups (41 names) with a category (`receiver-side` 13 rules: the 12 of spec 2.1, which counts Arise, Riders of Rohan! twice, and Mindless Killers, `centred-elsewhere`, `weapon-range`, `movement`,
+`excluded` (in `tools/data/aura_audit.json`): 26 groups (41 names) with a category (`receiver-side` 13 rules: the 12 of spec 2.1, which counts Arise, Riders of Rohan! twice, and Mindless Killers, `centred-elsewhere`, `weapon-range`, `movement`,
 `visibility`, `effect-length`) and the generated `weapon-range` item list (every ranged annotated item); `outOfScope`: the scenario details, the missile profiles and the company
 rules; `unreachable`: the 181 vanilla rules with a distance that no company unit can have (computed).
 
@@ -506,7 +541,7 @@ every rule unlocked, and of each company hero upgrade. `TestAuraRadiiInRuleText`
 
 Fixed mappings from Battle Companies to the model names of the Tabletop Simulator MESBG FTC mod, read by the TTS export
 (`BCBook.TTSModels()`, `internal/core/ttsmodels.go`; spec in [`tabletop-simulator.md`](tabletop-simulator.md)). Generated by
-`tools/bc/tts.py` from curated tables with a `reason` each; the mod's catalogue of model keys is never in the repository.
+`tools/bc/tts.py` from curated tables with a `reason` each (kept in `tools/data/tts_provenance.json`, not in the file); the mod's catalogue of model keys is never in the repository.
 
 - `standIns[]` (`kind` wanderer or creature, `name`, `model`, `alternatives`): the seven approved stand-ins (Wandering Swordsman = Captain of Dale,
   Marksman = Ruffian: Bow, Scavenger = Goblin Mercenary Captain, Sage = Malbeth the Seer, Baggage Pony = Bill the Pony, Falcon = Crebain, Hunting Dog
@@ -518,9 +553,9 @@ Fixed mappings from Battle Companies to the model names of the Tabletop Simulato
   Mirkwood Elf Knight, Hunter Orc Warg Rider); six units with states on only some keys are false for now (owner question pending, one value to flip).
   `footModel` is the rider on foot; absent when the mod has none (Son of Eorl); the Iron Hills Goat Rider's plain Dwarf Warrior is provisional (owner choice, the bag has no Iron Hills foot model).
 - `names[]` (`unit`, `from`, `to`): option spellings that differ between the vanilla file and the mod (Isengard Orc Warrior: Orc bow -> Bow).
-- `defaultOptions[]` (`unit`, `options`, `reason`): units the bag has no bare figure of; the options requested when the company carries none
+- `defaultOptions[]` (`unit`, `options`): units the bag has no bare figure of; the options requested when the company carries none
   (Mahûd Warrior -> Spear, Rohirrim Traitor -> Shield; REVIEW: the owner may prefer `Shield and throwing spears`).
-- `markerOptions[]` (`unit`, `option`, `reason`): an alias marker option that is left out of the key when it is the unit's only option
+- `markerOptions[]` (`unit`, `option`): an alias marker option that is left out of the key when it is the unit's only option
   (Galadhrim Warrior: Lorien Guard -> the bare `Galadhrim Warrior:`; the export keeps the marker in `TTSLine.Dropped`, so the name and description still say Lorien Guard).
   Both lists are applied by the core before (and without) any catalogue, with an `approximate` note.
 
@@ -596,14 +631,81 @@ The **loader** (`core.Rules`, `internal/core/rules.go`) merges the three files i
 - **Uploaded rulesets** (a campaign may use its own files) are stored once per hash, content-addressed, in the database;
   a campaign only references the hashes. The default files shipped with the app go through the same path.
 
+## Upload validation
+
+An upload (the admin Rules files page, the campaign form's file pickers) is validated as a whole before anything is stored; every problem is
+collected and returned, none stops the report early.
+
+1. `core.Rulesets.StoreAs` / `StoreAllAs` / `Check` run the same checks: kind, size (16 MB), the announced hash, JSON well formed (a syntax error
+   names its line and column), shape limits (1,000,000 values, 64 levels), the kind of document (`RulesetMeta`).
+2. The Battle Companies file is read for `schemaVersion`. **Absent or 1: the old format**, checked against its JSON schema as before; every schema
+   failure becomes an issue (path `data.heroes[3].name`, message), none dropped. **2 or anything else: the lean decoder** (`lean.Decode`: version
+   check, strict binder, extends and defaults, name resolution, validation) against the default vanilla file and glossary. Vanilla and glossary
+   files are checked against their schemas.
+3. Any error: the whole list comes back as one `*core.RulesetReport` (wraps `ErrInvalidRuleset`; `Issues()` gives `RulesetIssue{File, Path, Message,
+   Hint, Closest, Warn}`, `Truncated()` the count beyond 1,000), nothing is stored and no campaign is created. `StoreAllAs` checks several uploaded
+   files before inserting any, so a campaign form with a good glossary and a bad Battle Companies file stores neither.
+4. A **valid lean file is refused for storage** with `ErrRulesetNotPlayable` ("schemaVersion 2 files cannot be played by this build yet"; one
+   constant, `acceptV2` in `ruleset_v2.go`) until the consumers read it (slice 9). `Check` is the dry run: it never writes and says only whether the
+   file is right.
+
+Report line, one per issue: `<file>: <json path>: <message>`, then `; closest: "<name>"` when a name did not resolve, then `  hint: <one line>`; a
+warning starts with `warn: ` and does not block. The order is the order of discovery and is deterministic (same bytes, same report). The
+catalogue of messages (unknown key, unknown unit / option / rule, duplicate name, silent shadowing, missing definition, bad chart, path rows,
+vocabulary, parameter ranges, version ...) is executable: `internal/core/lean/testdata/invalid/*.json` with the wording pinned in `*.want`
+([testing.md](testing.md)).
+
+To check a file from the command line (curator, users, CI):
+
+```
+make check-ruleset FILE=battle_companies.json [VANILLA=… GLOSSARY=…]
+```
+
+prints the report and exits 1 on errors (2 when it could not run). The vanilla file and glossary default to the shipped ones. An old-format file
+is pointed at `tools/validate_definitions.py`.
+
+## The schema of the lean format (schemaVersion 2)
+
+`definitions/battle_companies/battle_companies.v2.schema.json` (JSON Schema 2020-12, `$defs` per model struct) describes the lean file. The old-format
+`battle_companies.schema.json` stays beside it until the shipped file is converted.
+
+**The Go model is the contract and the schema is generated from it**, never written by hand: `internal/core/lean/model.go` and `campaign.go` carry
+the keys, types and tags (`required`, `enum`, `min`/`max`, `emin`/`emax`, `rest`), and `schema_gen_test.go` turns them into the schema by
+reflection. A hand-kept copy would drift; a generated one cannot, and a model change shows as a schema diff in the same commit. What a tag cannot say
+is written once in the generator: the polymorphic values (`Roll`, `DiceSpec`, `Rating`, `RuleRef`, `Scalar`, next to their `BindJSON` in `types.go`),
+the `default` of each constant the defaults pass applies (`schemaDefaults`) and `schemaVersion` as `const 2`.
+
+```
+go test ./internal/core/lean -run TestSchemaUpToDate -update-schema    # after changing the model: rewrites the schema file
+```
+
+The tests (`schema_gen_test.go`, `schema_test.go`) fail when the two disagree:
+
+- `TestSchemaUpToDate`: the committed file is byte-for-byte what the model generates.
+- `TestSchemaMatchesModel`: a second, independent reading of the file against the struct tags: every key both ways, type, enum, minimum / maximum,
+  length and item bounds, `required`, closed or open (`rest` maps are open), `default`.
+- `TestSchemaDefaults`: each schema default is what `Normalise` writes into an absent field.
+- `TestFixturesAgainstSchema`: every `testdata/valid/*.json` validates; for every invalid fixture the schema rejects, the decoder reports something at
+  that path or beneath it, so the two never disagree about where a mistake is.
+
+The schema is a first filter, the decoder is the authority: only the decoder checks names, charts, cross references and the dice limits that a
+pattern cannot (`d66`). The schema is slightly stricter than the binder in two places: a `null` on an optional key is accepted only where the model has a
+pointer to a scalar (`heroicAction`, `Who.hero`, `tts.states`: "explicitly none"), and a dice spec with leading zeros (`02d6`) is refused.
+`tools/validate_definitions.py` checks that the schema is a valid 2020-12 schema and accepts the Go valid fixtures.
+
+Scenarios in the lean model (`lean.Scenario`, design 4.7) hold every field the app reads from `data.scenarioDetails`: `outline`, `usesRules`
+(rules applied by name only), the text sections and `scoring[]`, whose objective may carry a `nomination` (`from`: `ownHeroes` | `enemyHeroes` |
+`terrain`, required; `allowLeader: onlyHero` only for heroes; `where: opponentHalf` only for terrain; the decoder reports the other combinations).
+`TestLeanScenariosGaps` proves the old file has no scenario key the lean model leaves out.
+
 ## Confirmed rules and defaults
 
-Objects that describe a house-rule decision (`campaign.gold`, `campaign.injuries.treatment`, `data.creatures.rules`,
+Objects that describe a house-rule decision (`campaign.injuries.treatment`, `data.creatures.rules`,
 `data.wanderers.rules`, `data.magicalPowers.castingRule`, `campaign.progression.hero.resolution`,
 `campaign.characteristicLimits.increases`) carry two lists: `confirmedByUser` (the user decided it) and
 `defaultNotConfirmed` (a default chosen by the app, not confirmed by the user). Gold comes from a company's starting
 company, scenario victory rewards and organiser grants, carries over and can be spent in the Armoury later
-(`campaign.gold.sources`, `when`, `carryOver`). Dual weapons (Axe of Lossarnach, Dunlending War Axe, Easterling
+(`reference/gold.json`). Dual weapons (Axe of Lossarnach, Dunlending War Axe, Easterling
 Halberd) have `gearAnnotations.items[].modes` (chosen per fight; the two-handed mode is not usable with an Arm Wound).
 Stat maximums written `(+1)` count increases from level-ups only (`characteristicLimits.increases`); the backend tracks
 the number of increases per stat.
@@ -632,8 +734,15 @@ The rules text is not data in the JSON; the rule engine applies it. What the rul
 
 ## Explicit company edge cases
 
-- `campaign.recruitment.adjust` / `.lowerResult`: Influence raises the die only (1 per point, at most 3 per attempt across both
-  charts, every point paid, lowering never paid); a lower result is a free choice of any lower result, allowed only when the
+- `campaign.recruitment.adjust` (read by `ParseRecruitRules` into `BCBook.Recruiting()`, `internal/core/recruitrules.go`): `direction`
+  (`up`, `down` or `both`), `costPerPoint` (influence, 0..10) and `maxPerAttempt` (0..20, over both charts together, every point
+  paid in either direction) say how Influence moves the die; the shipped file has up, 1 and 3. The die stays on its faces
+  (`campaign.recruitment.die`, `d6` in the shipped file; every company's reinforcement and special chart must cover `1..sides` once, checked at load).
+  `campaign.recruitment.rare` `injuredUnitsCount`, `deadUnitsCount`, `promotedUnitsCount` say which models count towards Rare N (the
+  dead of the cemetery, the units a promotion turned into another profile, `CompanyUnit.PromotedFrom`). `campaign.aftermathEffects[rendezvous|vantagePoint].range`
+  (-6..6) is how far the perk moves a die. `campaign.company.startingInfluence` (0..100, 0 in the shipped file and when absent) is what a new company starts with. A value
+  outside its range, or a missing adjust or rare section in a file that has a `campaign`, is a load error naming the path. The recruit window prints
+  all of these from the rules (`RecruitInfo.Rules`, `RecruitRoll.Adjust`). The lower-result rule is in code: a lower result is a free choice of any lower result, allowed only when the
   rolled result cannot be recruited or a company rule says so. `companies[].effects[]` kinds `reinforcementReplacement`
   (alternative option on chart rows, chosen by the player, free), `rangerReplacement` (Shire: `unit`, `max`, `role[]`, `when`; swaps a successful reinforcement result for the unit once the company's one was slain, see [frontend.md](frontend.md); the backend reads it into `CompanyProfile.RangerReplacement`), `includedUnitPoints` + `modelCount` + `recruitFallback`
   (Durin's Folk Vault Warden Team: the members come from the vanilla `includes`, the file adds their points and rules),
@@ -659,7 +768,7 @@ A reinforcement or special chart row with `result.type: "unitChoice"` lists `opt
 selectedOptions?, rare}`; `label` + `selectedOptions` name a company `unitAliases` entry (a profile, e.g. Tookish Hunter =
 Hobbit Archer with that option). The player picks ONE option whose own Rare limit is not used up (fewer than `rare` units of that
 profile, unit + selectedOptions, are in the roster; injured units count, dead or promoted ones do not). When every option is used
-up the result cannot be recruited and `campaign.recruitment.lowerResult` applies on the same chart. Wanderers in the Wild row 2 is
+up the result cannot be recruited and the lower-result rule applies on the same chart. Wanderers in the Wild row 2 is
 the only such row (its four Hobbit profiles). Each option is listed in `companies[].rareUnits[]` (`type: "unitChoice"`). Harad's
 On Their Own Path covers the whole Watcher of Kârna unit (decision recorded in the effect text).
 
@@ -683,3 +792,58 @@ output is stable (no timestamps, sorted), so two runs can be diffed. The index c
 uses; reviewed ones are listed per company), `tooltip-name` (text never names its item), `tooltip-missing`, `option-unknown-item`,
 `name-format` (differs from the item table only by case or spacing), `rule-unresolved`, `price-mismatch` (a unit's points are not the vanilla base plus its options) and `partial-bundle` (a row names one piece of a bundled option). A vanilla unit that writes a rule under another spelling than the rule table ("A fell light is in them") gets a BC rule of that spelling with the vanilla text and `overrides` (`SPELLING_VARIANT_RULES` in `tools/bc/core.py`). A bundle unit (`includes`, the Vault Warden Team) carries its members' wargear and is not `unit-no-wargear`. Flags are leads for a reviewer, not
 verdicts: a tooltip may legitimately describe an item without naming it.
+
+## Engine parameters in the current shape
+
+The names of `docs/definitions-lean-design.md` section 12 that the current file already holds, and where the old shape differs
+(the Go code that reads them is the app's; the validator checks the ranges, `engine_parameter_errors`):
+
+| Design name | Current key | Shipped value | Range checked |
+|---|---|---|---|
+| A4 `recruitment.die` | `campaign.recruitment.die` | `"d6"` | one die, `dN`, N 2..100 |
+| F5 `scenarioSelection.die` | `campaign.scenarioSelection.die` | `"d6"` | one die, `dN`; `tables[].roll` partition `1..N`, each table lists N scenarios |
+| A8 `company.startingInfluence` | `campaign.company.startingInfluence` | 0 | 0..100 |
+| B1 `company.leaders`, `.sergeants` | same | 1, 2 | 1..3, 0..6, their sum at most `maxModels` |
+| B3 `company.heroStart` | `campaign.company.startingHeroStats` `{might, will, fate}` | 1, 1, 1 | 0..5 each |
+| B4 `company.maxModels` | `campaign.company.maxModels`, `eliteMaxModels` | 15, 12 | 1..50 |
+| B6 `company.equipmentSlots` | `campaign.company.equipmentSlots` `{large, small}` | 1, 1 | 0..10 each |
+| B7 `gear[].grantsSlots` | `data.gearAnnotations.items[].grantsSlots` `{small, large}` (Backpack: small 3) | 3 on the Backpack, absent elsewhere | 0..10 each; replaces the Backpack name check |
+| G3 `gear[].who.race` | `data.gearAnnotations.items[].who.race` | `"Elf"` on every item with the `elven` modifier | a race word of the vanilla data (unit-exclusive Elven items stay open: the engine decides) |
+| B8, B9 `limits[].maximumPercentage`, `.roundUp`, `.classes` | same, top-level `limits[]` | 33.33, true, see Limits | (0, 100]; classes known to the gear vocabulary |
+| B10 | `data.creatures.rules.maxPerHero`, `data.wanderers.rules.maxAtOnce`, `data.paths[].limitPerCompany` (Sorcerer) | 1, 1, 1 | 0..99 |
+| C1 `progression.threshold` | `campaign.progression.threshold` | 5 | 1..50 |
+| F1 `rating.hero.wargear.threshold` | `campaign.rating.hero.wargear.threshold` `{stats, sumAtLeast}` | `["attack","wounds"]`, 3 | stats are characteristics; 0..20 |
+| D1 (treatment) | `campaign.injuries.treatment.hero[].roll.dice` | `"d6"` | a dice spec; `target` 1..highest roll, `ceiling` at least the target |
+| E1 `breakPoint.threshold.comparison` | `campaign.breakPoint.threshold.comparison` | `"gt"` | `gt` or `gte`; `gte` makes exactly the Break Point Broken; there is no `rounding` key (the Break Point is never rounded, a fixed engine rule) |
+| E6 `breakPoint.default.percent`; company `breakPoint` | `campaign.breakPoint.default.percent`, `data.companies[].breakPointPercentage` | 50; Muster of Isengard 66 | 1..100 |
+| C5 `progression.warrior.noPromotion` | same `{courage, intelligence, maximum}` | 1, 1, 3 | 0..5, 0..5, 1..10; read as amounts |
+| D3 injury row `statChanges[].stat` | `campaign.injuries.hero[].statChanges` | Fate (+1) on Protection by the Valar | a characteristic, a gain (delta above 0) on a row that is not a persistent injury |
+| H4, H7 | `campaign.againstTheOdds.bonuses[key=reroll]` `rating`, `count`; `campaign.experience.gains[].amount` | 15, 2; 1 | printed on the company page and the end checks |
+| C7 | `campaign.characteristicLimits.increases.courageIntelligenceTotalCap` `{value, includesGear}` | 3, true | value 1..10 |
+
+The Go side (slices P2 and P3): `ParseCompanyRules` (`internal/core/companyrules.go`) reads and validates `campaign.company` (leaders,
+sergeants, hero start, `maxModels`, `eliteMaxModels`; each company's own `maxModels` must hold the officers), the hero rating threshold
+and `limits[]` into `BCBook.Shape()`, `RatingRules.Wargear` and the limit rules; a missing or out-of-range value is a load error naming
+the path, there is no code default (a file without a `campaign` section, a test fixture, has none of them). `CompanyUnit.LevelEvery` carries the
+level threshold into the views (the experience bar prints it), `CompanyProfile.Leaders/Sergeants/HeroStart` the officers and the hero start,
+`BCBook.HeroBonus` is the profile bonus of a new hero. `data.creatures.rules.maxPerHero` and `data.wanderers.rules.maxAtOnce` are required
+(0..99; an officer keeps one creature, so `maxPerHero` above 1 is refused); there is no `maxPerCompany` (the count follows from one creature per officer). `data.paths[].limitPerCompany` is optional (0..99, none when absent).
+`increases.courageIntelligenceTotalCap` limits the total improvement of Courage and Intelligence from the profile without gear (gear counts
+when `includesGear`). `campaign.characteristicLimits.peak.willMaxOverrides` maps a path name to its own Will maximum (1..10, the name must be a path of
+`data.paths`; the load refuses anything else): for that path it replaces `peak.will.max` (3 by default, 6 on the Path of the Tactician and of the Sorcerer),
+and the path's own `maximums.will` still applies on top.
+
+The Go side (slice P5): `BreakRules.AtLeast` (the comparison; the Break Point is never rounded, the test is `casualties * 100` against
+`percent * startingModels`) is carried into `BreakConfig` and used by the live fold; the default and the company percents are range
+checked at load. `ProgressionRules.NoPromotionBy` holds the Courage and Intelligence amounts, a warrior with no promotion improves by the
+amount down to `maximum`. An injury row that is kept gains every stat of its `statChanges` (`InjuryRow.StatGains`, to the path's maximum).
+`BCBook.ExperienceGain(key)` and `RuleDice.RerollRating/RerollCount` feed the end checks and the company page; the Auras dialog prints
+the group labels and texts of `data.auras.groups`. `campaign.company.equipmentSlots` (`CompanyRules.EquipmentSlots`, required, 0..10 each) is
+carried into every built unit (`CompanyUnit.BaseSlots`); an item's `grantsSlots` (the Backpack: 3 small, 0..10 each, absent is none)
+into `Equipment.GrantsSlots`; `CompanyUnit.Slots()` adds them, there is no Backpack name check. An item's `who.race` (`GearAnnotation.OnlyRace`)
+is the race of the vanilla data that may take it (Elven-made items: Elf; unit-exclusive items stay open); a race no vanilla profile has is
+refused at load (`data.gearAnnotations.items[Elven spear].who.race: "Quux" is not a race of the vanilla data`). The `comparison` accepts `gt` and
+`gte` only. The aftermath page prints the experience per level-up from `AftermathRules.LevelEvery` (`campaign.progression.threshold`).
+
+`campaign.company.startingPoints` and `campaign.gold.startingTotal` (60) are gone: nothing read them (the 105 points of a starting
+company are a test constant, 106 for Defenders of the North).

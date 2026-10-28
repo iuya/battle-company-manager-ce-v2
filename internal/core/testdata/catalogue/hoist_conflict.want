@@ -1,0 +1,2 @@
+battle_companies.json: companies[0].rules[0]: rule "Shared Wisdom" is defined twice with different text (here and at rules[0])
+  hint: define a rule once, in rules[], and name it where it is used

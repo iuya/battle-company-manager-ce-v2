@@ -140,7 +140,7 @@ def enrich(scenarios, effects):
         for b, o in zip(bullets, spec["objectives"]):
             tiers = b["tiers"]
             lead = [t for t in tiers if t["points"] == 0]
-            options = sorted(({"text": t["text"], "points": t["points"]} for t in tiers if t["points"] > 0), key=lambda t: t["points"])
+            options = [{"text": t["text"], "points": t["points"]} for t in tiers if t["points"] > 0]  # in the printed order
             assert options, (s["name"], b["text"])
             ob = {"key": o["key"], "text": b["text"], "side": o.get("side", "both"), "kind": o["kind"]}
             if lead:
@@ -153,10 +153,11 @@ def enrich(scenarios, effects):
                     ob["nomination"] = dict(SECRET_NOMINATIONS[o["key"]])
             if o["kind"] == "tiers":
                 ob["options"] = options
-                ob["maxPoints"] = options[-1]["points"]
+                ob["maxPoints"] = max(x["points"] for x in options)
             elif o["kind"] == "each":
                 assert len(options) == 1, (s["name"], o["key"])
                 ob["item"], ob["pointsEach"] = o["item"], options[0]["points"]
+                ob["options"] = [{"text": b["text"], "points": options[0]["points"]}]  # the one printed sentence, worth pointsEach
                 if "maxCount" in o:
                     ob["maxCount"] = o["maxCount"]
                 ob["maxPoints"] = min([x for x in (o.get("maxPoints"), o["maxCount"] * ob["pointsEach"] if "maxCount" in o else None) if x is not None], default=None)
@@ -164,9 +165,10 @@ def enrich(scenarios, effects):
                     del ob["maxPoints"]
                 elif "maxCount" not in ob:
                     ob["maxCount"] = ob["maxPoints"] // ob["pointsEach"]
+                ob["count"] = ob["maxCount"]
             else:
                 ob["item"], ob["count"], ob["options"] = o["item"], o["count"], options
-                ob["maxPoints"] = o["count"] * options[-1]["points"]
+                ob["maxPoints"] = o["count"] * max(x["points"] for x in options)
             objectives.append(ob)
         s["scoringObjectives"] = objectives
         keys = [o["key"] for o in objectives]

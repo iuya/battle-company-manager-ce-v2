@@ -19,15 +19,15 @@
 {{define "recruit_roll_form"}}
 <form x-ref="rollForm" method="post" action="/campaigns/{{.Campaign.ID}}/my-company/recruit/roll" hx-post="/campaigns/{{.Campaign.ID}}/my-company/recruit/roll" hx-target="#modal-body" hx-swap="innerHTML" class="flex flex-wrap items-end gap-3">
   <input type="hidden" name="thrown" value="" x-ref="thrown">
-  {{if .Campaign.Settings.ManualRolls}}<div class="field"><label for="roll">Your roll</label><select id="roll" name="roll" class="input w-44" x-ref="own"><option value="0">Roll for me</option>{{range $n := seq 1 6}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>{{else}}<input type="hidden" name="roll" value="0" x-ref="own">{{end}}
-  {{if .Rendezvous}}<div class="field"><label for="perk">Rendezvous <span class="text-muted">(once)</span></label><select id="perk" name="perk" class="input w-44"><option value="0">Not now</option><option value="1">+1 to the die</option><option value="-1">-1 to the die</option></select></div>{{end}}
+  {{if .Campaign.Settings.ManualRolls}}<div class="field"><label for="roll">Your roll</label><select id="roll" name="roll" class="input w-44" x-ref="own"><option value="0">Roll for me</option>{{range $n := seq 1 .Sides}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>{{else}}<input type="hidden" name="roll" value="0" x-ref="own">{{end}}
+  {{if .Rendezvous}}<div class="field"><label for="perk">Rendezvous <span class="text-muted">(once)</span></label><select id="perk" name="perk" class="input w-44"><option value="0">Not now</option>{{range perkSteps .Perk}}<option value="{{.}}">{{if gt . 0}}+{{end}}{{.}} to the die</option>{{end}}</select></div>{{end}}
   <button class="btn btn-primary" :disabled="rolling" {{if .Campaign.Settings.ShakeTheTable}}@click="if (!typed()) { $event.preventDefault(); throwHere() }"{{end}}>{{.Label}}</button>
 </form>
 {{if .Campaign.Settings.ShakeTheTable}}<p class="text-sm text-muted" x-show="rolling && !shaken" x-cloak role="status">Press the space bar to shake the table (once).</p>{{end}}
 {{end}}
 
 {{/* Recruiting, in steps and without leaving the window: roll on the reinforcement chart (the price is paid), see the result,
-   raise it with influence (up to 3) and confirm; a result that leads to the special chart asks for a second roll.
+   move it with influence (as far as the rules allow) and confirm; a result that leads to the special chart asks for a second roll.
    Special units are bought directly. The dice are drawn by static/js/dice.js; a roll the server made is shown rolling
    (Animate) before its number is revealed. */}}
 {{/* The page's Influence card, swapped out of band with the recruit window: the price of a roll leaves the balance at once. */}}
@@ -36,7 +36,7 @@
 {{define "recruit_panel"}}
 {{$ready := and .Roll .Roll.Rolled (not .Roll.Lower)}}
 <div x-data="rollPanel" @keydown.space.window="onSpace($event)"
-     data-roll="{{if .Roll}}{{.Roll.Roll}}{{else}}0{{end}}" data-budget="{{if .Roll}}{{.Roll.Budget}}{{else}}0{{end}}" data-influence="{{.Company.Influence}}"
+     data-roll="{{if .Roll}}{{.Roll.Roll}}{{else}}0{{end}}" data-budget="{{if .Roll}}{{.Roll.Budget}}{{else}}0{{end}}" data-budget-down="{{if .Roll}}{{.Roll.BudgetDown}}{{else}}0{{end}}" data-cost="{{.Company.Recruit.Rules.Adjust.CostPerPoint}}" data-sides="{{.Company.Recruit.Rules.Sides}}" data-influence="{{.Company.Influence}}"
      data-animate="{{.Animate}}" data-shake="{{.Campaign.Settings.ShakeTheTable}}">
 <h2 class="!text-2xl">Recruit</h2>
 <p class="mt-1 text-sm text-muted">{{.Company.Name}} has <strong class="text-fg">{{.Company.Influence}}</strong> influence and <strong class="text-fg">{{.Company.ModelCount}} / {{.Company.MaxUnits}}</strong> units.</p>
@@ -69,9 +69,10 @@
     {{template "recruit_table" (dict "Rows" (or (and (eq .Roll.Stage "special") .Company.Recruit.SpecialChart) .Company.Recruit.Chart) "Live" true)}}
     <form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/recruit/confirm" hx-post="/campaigns/{{.Campaign.ID}}/my-company/recruit/confirm" hx-target="#modal-body" hx-swap="innerHTML" class="space-y-3" x-data="{ swap: false }">
       <div>
-        <p class="text-sm font-medium">Raise the roll <span class="font-normal text-muted">(1 influence per point, up to {{.Roll.Budget}} more for this recruit; the die moves, whatever the results in between)</span></p>
-        <div class="mt-1 flex flex-wrap gap-1" role="group" aria-label="Raise the roll">
-          {{range steps}}<button type="button" class="btn btn-secondary !min-h-9 !px-3" :disabled="Math.abs({{.}}) > max" :class="adjust === {{.}} && '!border-accent !bg-accent-soft'" :aria-pressed="adjust === {{.}}" @click="adjust = {{.}}">{{if gt . 0}}+{{.}}{{else}}As rolled{{end}}</button>{{end}}
+        {{$adj := .Roll.Adjust}}
+        <p class="text-sm font-medium">{{if eq $adj.Direction "up"}}Raise{{else if eq $adj.Direction "down"}}Lower{{else}}Move{{end}} the roll <span class="font-normal text-muted">({{$adj.CostPerPoint}} influence per point, up to {{if $adj.CanRaise}}{{.Roll.Budget}}{{end}}{{if and $adj.CanRaise $adj.CanLower}} up or {{end}}{{if $adj.CanLower}}{{.Roll.BudgetDown}} down{{end}}{{if not $adj.CanLower}} more{{end}} for this recruit; the die moves, whatever the results in between)</span></p>
+        <div class="mt-1 flex flex-wrap gap-1" role="group" aria-label="{{if eq $adj.Direction "up"}}Raise the roll{{else}}Adjust the roll{{end}}">
+          {{range steps $adj}}<button type="button" class="btn btn-secondary !min-h-9 !px-3" :disabled="!allowed({{.}})" :class="adjust === {{.}} && '!border-accent !bg-accent-soft'" :aria-pressed="adjust === {{.}}" @click="adjust = {{.}}">{{if gt . 0}}+{{.}}{{else if lt . 0}}{{.}}{{else}}As rolled{{end}}</button>{{end}}
         </div>
         <input type="hidden" name="adjust" :value="adjust">
       </div>
@@ -104,7 +105,7 @@
   <p class="alert alert-info" role="status">The roll led to the company's special chart. Roll again on it; the price is already paid.</p>
   {{template "recruit_table" (dict "Rows" .Company.Recruit.SpecialChart "Live" false)}}
   <canvas x-ref="canvas" class="dice-tray" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>
-  {{template "recruit_roll_form" (dict "Campaign" .Campaign "Label" "Roll on the special chart")}}
+  {{template "recruit_roll_form" (dict "Campaign" .Campaign "Sides" .Company.Recruit.Rules.Sides "Label" "Roll on the special chart")}}
 </section>
 
 {{else}}
@@ -116,12 +117,12 @@
   {{template "recruit_table" (dict "Rows" .Company.Recruit.SpecialChart "Live" false)}}
   {{end}}
   {{range .Company.Recruit.Notes}}<p class="text-sm text-muted">{{.}}</p>{{end}}
-  <p class="text-sm text-muted">After you roll you may spend influence to raise the die by 1 per point, up to 3 in all, before you confirm. You never pay to lower it: if the result cannot join the company you choose a lower one for free.</p>
+  <p class="text-sm text-muted">After you roll you may spend influence ({{.Company.Recruit.Rules.Adjust.CostPerPoint}} per point) to {{if eq .Company.Recruit.Rules.Adjust.Direction "up"}}raise{{else if eq .Company.Recruit.Rules.Adjust.Direction "down"}}lower{{else}}raise or lower{{end}} the die by 1 per point, up to {{.Company.Recruit.Rules.Adjust.Max}} in all, before you confirm. If the result cannot join the company you choose a lower one for free.</p>
   {{if .Reason}}
   <p class="alert alert-info" role="status">{{.Reason}}</p>
   {{else}}
   <canvas x-ref="canvas" class="dice-tray" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>
-  {{template "recruit_roll_form" (dict "Campaign" .Campaign "Rendezvous" .Rendezvous "Label" (printf "Roll · %d influence" .Company.Recruit.Cost))}}
+  {{template "recruit_roll_form" (dict "Campaign" .Campaign "Sides" .Company.Recruit.Rules.Sides "Perk" .Company.Recruit.Rules.Rendezvous "Rendezvous" .Rendezvous "Label" (printf "Roll · %d influence" .Company.Recruit.Cost))}}
   {{end}}
 </section>
 
@@ -143,11 +144,11 @@
 </div>
 {{end}}
 
-{{/* Treating a hero's injuries: an attempt (a D6 against the target, raised with extra influence; the influence is lost when it fails)
+{{/* Treating a hero's injuries: an attempt (the rules' dice against the target, raised with extra influence; the influence is lost when it fails)
    or the healers (no roll, the hero misses the next game). Costs and the target come from the rules file. */}}
 {{define "treat_panel"}}
 {{$r := .Rules}}{{$cid := .Campaign.ID}}{{$uid := .Unit.ID}}
-<div x-data="rollPanel" @keydown.space.window="onSpace($event)" data-roll="{{with .Result}}{{.Roll}}{{else}}0{{end}}" data-animate="{{.Animate}}" data-shake="{{.Campaign.Settings.ShakeTheTable}}">
+<div x-data="rollPanel" @keydown.space.window="onSpace($event)" data-roll="{{with .Result}}{{.Roll}}{{else}}0{{end}}" data-dice="{{with .Result}}{{ints .Dice}}{{end}}" data-sides="{{$r.Attempt.TreatDice.Sides}}" data-per-lane="{{$r.Attempt.TreatDice.Count}}" data-animate="{{.Animate}}" data-shake="{{.Campaign.Settings.ShakeTheTable}}">
 <h2 class="!text-2xl">Treat {{.Unit.Title}}</h2>
 <p class="mt-1 text-sm text-muted">The company has <strong class="text-fg">{{.Influence}}</strong> influence.</p>
 {{with .Error}}<div class="alert alert-danger mt-3" role="alert">{{.}}</div>{{end}}
@@ -193,13 +194,13 @@
     <form x-ref="rollForm" method="post" action="/campaigns/{{$cid}}/my-company/units/{{$uid}}/treat" hx-post="/campaigns/{{$cid}}/my-company/units/{{$uid}}/treat" hx-target="#modal-body" hx-swap="innerHTML" @click="way = 'attempt'" @focusin="way = 'attempt'"
           class="space-y-3 rounded-xl border p-4 transition" :class="way === 'attempt' ? 'border-accent bg-accent-soft' : 'border-line ' + (way ? 'opacity-60' : '')">
       <h3 class="!text-xl">Field treatment</h3>
-      <p class="text-sm text-muted">Risky: {{$r.Attempt.Cost}} influence and a roll of {{$r.Attempt.Target}}+. The hero plays the next match if it works; the influence is lost if it fails.</p>
+      <p class="text-sm text-muted">Risky: {{$r.Attempt.Cost}} influence and a roll of {{$r.Attempt.Target}}+{{if gt $r.Attempt.TreatDice.Count 1}} on {{$r.Attempt.TreatDice.Display}}{{end}}. The hero plays the next match if it works; the influence is lost if it fails.</p>
       <input type="hidden" name="method" value="attempt"><input type="hidden" name="thrown" value="" x-ref="thrown">
       <fieldset class="space-y-1"><legend class="text-sm font-medium">Remove</legend>
         {{range $i, $o := .Attempt}}<label class="flex min-h-10 items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2"><input type="radio" name="injury" value="{{$o.Key}}" {{if eq $i 0}}checked{{end}} class="h-4 w-4 accent-[var(--accent)]"><span class="flex-1">{{$o.Name}}{{if gt $o.Count 1}} ×{{$o.Count}}{{end}}</span>{{if eq $o.Key "justAScratch"}}<span class="text-sm text-muted">it plays the next match</span>{{end}}</label>{{end}}
       </fieldset>
       <div class="flex flex-wrap items-end gap-3">
-        {{if .Campaign.Settings.ManualRolls}}<div class="field"><label for="roll">Your roll</label><select id="roll" name="roll" class="input w-40" x-ref="own"><option value="0">Roll for me</option>{{range $n := seq 1 6}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>{{else}}<input type="hidden" name="roll" value="0" x-ref="own">{{end}}
+        {{if .Campaign.Settings.ManualRolls}}<div class="field"><label for="roll">Your roll</label><select id="roll" name="roll" class="input w-40" x-ref="own"><option value="0">Roll for me</option>{{range $n := seq $r.Attempt.TreatDice.Min $r.Attempt.TreatDice.Max}}<option value="{{$n}}">I rolled {{if eq $r.Attempt.TreatDice.Count 1}}a {{end}}{{$n}}</option>{{end}}</select></div>{{else}}<input type="hidden" name="roll" value="0" x-ref="own">{{end}}
       </div>
       <div class="flex flex-wrap gap-2">
         <button class="btn btn-primary" :disabled="way !== 'attempt' || rolling" {{if .Campaign.Settings.ShakeTheTable}}@click="if (!typed()) { $event.preventDefault(); throwHere() }"{{end}}>Attempt Treatment</button>
@@ -224,13 +225,13 @@
 </fieldset>
 {{end}}
 
-{{/* A unit's level-up. A warrior rolls a D6 (nothing, a promotion, or a hero in the making); a hero rolls two pairs of 2D6 on its path
-   and chooses one of the results. "Roll for me" is animated; "I rolled" takes the player's own dice. */}}
+{{/* A unit's level-up. A warrior rolls its dice (nothing, a promotion, or a hero in the making); a hero rolls its path's dice once for each
+   result of the rules file and chooses one of them. The dice come from the rules file (.Spec, .Pairs). "Roll for me" is animated; "I rolled" takes the player's own dice. */}}
 {{define "level_panel"}}
 {{$cid := .Campaign.ID}}{{$uid := .Unit.ID}}{{$hero := .Unit.IsHero}}
-<div x-data="rollPanel" @keydown.space.window="onSpace($event)" data-hero="{{$hero}}" data-roll="{{with .Roll}}{{.D6}}{{else}}0{{end}}" data-dice="{{.Dice}}" data-groups="{{.Groups}}" data-labels="{{.Labels}}" data-animate="{{.Animate}}" data-shake="{{.Campaign.Settings.ShakeTheTable}}">
+<div x-data="rollPanel" @keydown.space.window="onSpace($event)" data-hero="{{$hero}}" data-sides="{{.Spec.Sides}}" data-per-lane="{{.Spec.Count}}" data-lanes="{{if $hero}}{{.Pairs}}{{else}}1{{end}}" data-roll="{{with .Roll}}{{.D6}}{{else}}0{{end}}" data-dice="{{.Dice}}" data-groups="{{.Groups}}" data-labels="{{.Labels}}" data-animate="{{.Animate}}" data-shake="{{.Campaign.Settings.ShakeTheTable}}">
 <h2 class="!text-2xl">Level up {{.Unit.Title}}</h2>
-<p class="mt-1 text-sm text-muted">{{if $hero}}A hero rolls two pairs of dice on its path and chooses one result.{{else}}A warrior rolls a die: nothing, a promotion, or a hero in the making.{{end}}
+<p class="mt-1 text-sm text-muted">{{if $hero}}A hero rolls {{.Pairs}} x {{.Spec.Display}} on its path and chooses one result.{{else}}A warrior rolls {{if eq .Spec.Count 1}}a {{end}}{{.Spec.Display}}: nothing, a promotion, or a hero in the making.{{end}}
   {{if .Pending}}<strong class="text-fg">{{.Pending}}</strong> roll{{if gt .Pending 1}}s{{end}} waiting.{{end}}</p>
 {{with .Error}}<div class="alert alert-danger mt-3" role="alert">{{.}}</div>{{end}}
 
@@ -294,12 +295,10 @@
 {{if .Campaign.Settings.ShakeTheTable}}<canvas x-ref="canvas" class="dice-tray mt-4" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>{{end}}
 <form x-ref="rollForm" method="post" action="/campaigns/{{$cid}}/my-company/units/{{$uid}}/levelup/roll" hx-post="/campaigns/{{$cid}}/my-company/units/{{$uid}}/levelup/roll" hx-target="#modal-body" hx-swap="innerHTML" class="mt-5 flex flex-wrap items-end gap-3">
   <input type="hidden" name="thrown" value="">
-  {{if not .Campaign.Settings.ManualRolls}}<input type="hidden" name="roll" value="0">{{if $hero}}<input type="hidden" name="roll2" value="0">{{end}}{{end}}
-  {{if $hero}}
-  {{if .Campaign.Settings.ManualRolls}}<div class="field"><label for="lroll">First pair</label><select id="lroll" name="roll" class="input w-44"><option value="0">Roll for me</option>{{range $n := seq 2 12}}<option value="{{$n}}">I rolled {{$n}}</option>{{end}}</select></div>
-  <div class="field"><label for="lroll2">Second pair</label><select id="lroll2" name="roll2" class="input w-44"><option value="0">Roll for me</option>{{range $n := seq 2 12}}<option value="{{$n}}">I rolled {{$n}}</option>{{end}}</select></div>{{end}}
-  {{else}}
-  {{if .Campaign.Settings.ManualRolls}}<div class="field"><label for="lroll">Your roll</label><select id="lroll" name="roll" class="input w-44"><option value="0">Roll for me</option>{{range $n := seq 1 6}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>{{end}}
+  {{if not .Campaign.Settings.ManualRolls}}{{template "dice_zeros" (dict "Count" (or (and $hero .Pairs) 1))}}{{end}}
+  {{if .Campaign.Settings.ManualRolls}}{{$spec := .Spec}}
+  {{if $hero}}{{range $i := seq 1 .Pairs}}<div class="field"><label for="lroll{{$i}}">{{pairLabel $i}}</label><select id="lroll{{$i}}" name="{{rollName $i}}" class="input w-44"><option value="0">Roll for me</option>{{range $n := seq $spec.Min $spec.Max}}<option value="{{$n}}">I rolled {{$n}}</option>{{end}}</select></div>{{end}}
+  {{else}}<div class="field"><label for="lroll1">Your roll</label><select id="lroll1" name="roll" class="input w-44"><option value="0">Roll for me</option>{{range $n := seq $spec.Min $spec.Max}}<option value="{{$n}}">I rolled {{if eq $spec.Count 1}}a {{end}}{{$n}}</option>{{end}}</select></div>{{end}}
   {{end}}
   <button class="btn btn-primary" :disabled="rolling" {{if .Campaign.Settings.ShakeTheTable}}@click="if (!typed()) { $event.preventDefault(); throwLevel() }"{{end}}>Roll</button>
 </form>
@@ -533,15 +532,14 @@
 {{/* The courage test of a unit of a Broken company: roll (nothing is written), record the outcome, or pass without a roll. Takes liveSheet. */}}
 {{define "live_courage"}}{{$u := .Unit}}{{$base := printf "/campaigns/%d/matches/%d/live/%d" .Campaign .MatchID .Company}}
 <h2 class="!text-2xl pr-10">Courage test: {{$u.Title}}</h2>
-<p class="mt-1 text-sm text-muted">A Broken model tests Courage (2D6, at least its Courage) before it does anything else.{{if .Live.CourageTurn}}{{if eq .Live.CourageTurn .Turn}} Its test is already resolved this turn.{{end}}{{end}}</p>
+<p class="mt-1 text-sm text-muted">A Broken model tests Courage ({{.CourageDice.Display}}, at least its Courage) before it does anything else.{{if .Live.CourageTurn}}{{if eq .Live.CourageTurn .Turn}} Its test is already resolved this turn.{{end}}{{end}}</p>
 {{if and (not .Hero) .StandFastCalled}}<p class="alert alert-info mt-3" role="status">A Hero called Stand Fast this turn: Warriors within 6" in line of sight pass automatically.</p>{{end}}
 {{with .RollErr}}<p class="alert alert-danger mt-3" role="alert">{{.}}</p>{{end}}
 <form class="mt-4 space-y-3" hx-post="{{$base}}/units/{{$u.ID}}/courage/roll" hx-target="#modal-body" hx-swap="innerHTML">
   {{if .ManualRolls}}<div class="flex flex-wrap items-end gap-3">
-    <div class="field"><label for="c-d1">First die</label><select id="c-d1" name="roll" class="input w-40"><option value="0">Roll for me</option>{{range $n := seq 1 6}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>
-    <div class="field"><label for="c-d2">Second die</label><select id="c-d2" name="roll2" class="input w-40"><option value="0">Roll for me</option>{{range $n := seq 1 6}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>
+    {{template "dice_selects" (dict "ID" "c-d" "Suffix" "" "Count" .CourageDice.Count "Sides" .CourageDice.Sides "Class" "w-40")}}
   </div>{{end}}
-  <button class="btn btn-primary">{{if .Roll}}Roll again{{else}}Roll 2D6{{end}}</button>
+  <button class="btn btn-primary">{{if .Roll}}Roll again{{else}}Roll {{.CourageDice.Display}}{{end}}</button>
 </form>
 {{with .Roll}}<p class="mt-3 rounded-lg border border-line bg-raised px-3 py-2" role="status"><strong class="text-xl">{{.Total}}</strong> <span class="text-sm text-muted">({{$.DiceText}})</span> against Courage {{.Courage}}: <strong class="{{if .Passed}}text-success{{else}}text-danger{{end}}">{{if .Passed}}passed{{else}}failed{{end}}</strong></p>{{end}}
 
@@ -617,7 +615,7 @@
 {{define "officers_panel"}}{{$p := .Panel}}
 <div x-data="officers" data-company="{{.Campaign.ID}}" data-drop="{{$p.Drop}}" data-ranger="{{$p.Unit}}">
 <h2 class="!text-2xl">The {{$p.Unit}} takes command</h2>
-<p class="mt-1 text-sm text-muted">He starts as Leader and may stand in any officer place: drag a card to another place, or use the buttons of a card. {{if gt $p.Drop 0}}The company has one Leader and two Sergeants, so {{if eq $p.Drop 1}}one of the old officers stops{{else}}{{$p.Drop}} of the old officers stop{{end}} being an officer: leave {{if eq $p.Drop 1}}him{{else}}them{{end}} in the pool. He stays a Hero and keeps his path, level, experience and gear.{{else}}Places the old officers do not fill stay empty until an officer succession fills them; you may also appoint a Hero from the pool.{{end}}</p>
+<p class="mt-1 text-sm text-muted">He starts as Leader and may stand in any officer place: drag a card to another place, or use the buttons of a card. {{if gt $p.Drop 0}}The company has {{count $p.Leaders "Leader"}} and {{count $p.Sergeants "Sergeant"}}, so {{if eq $p.Drop 1}}one of the old officers stops{{else}}{{$p.Drop}} of the old officers stop{{end}} being an officer: leave {{if eq $p.Drop 1}}him{{else}}them{{end}} in the pool. He stays a Hero and keeps his path, level, experience and gear.{{else}}Places the old officers do not fill stay empty until an officer succession fills them; you may also appoint a Hero from the pool.{{end}}</p>
 {{with .Error}}<div class="alert alert-danger mt-3" role="alert">{{.}}</div>{{end}}
 <form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/recruit/officers" hx-post="/campaigns/{{.Campaign.ID}}/my-company/recruit/officers" hx-target="#modal-body" hx-swap="innerHTML" class="mt-4 space-y-4" @submit="read()">
   <input type="hidden" name="leader" :value="leader">
@@ -627,7 +625,7 @@
       <p class="mb-1 flex items-center justify-center gap-1.5 text-sm font-semibold">{{template "role_insignia" "leader"}} Leader</p>
       <ul class="officer-slot" data-slot="leader" aria-label="Leader">{{template "officer_card" (dict "ID" 0 "Title" $p.Leader.Title "Keep" true)}}</ul>
     </div>
-    {{range $n := seq 0 1}}<div>
+    {{range $n := seq 0 (dec $p.Sergeants)}}<div>
       <p class="mb-1 flex items-center justify-center gap-1.5 text-sm font-semibold">{{template "role_insignia" "sergeant"}} Sergeant</p>
       <ul class="officer-slot" data-slot="sergeant" aria-label="Sergeant {{inc $n}}">{{if lt $n (len $p.Officers)}}{{with index $p.Officers $n}}{{template "officer_card" (dict "ID" .ID "Title" .Title "Role" .Role "Officer" true)}}{{end}}{{end}}</ul>
     </div>{{end}}
@@ -635,7 +633,7 @@
   <div>
     <p class="mb-1 text-sm font-semibold">Not an officer <span class="font-normal text-muted">· stays a Hero</span></p>
     <ul id="start-pool" class="grid gap-2 sm:grid-cols-2" aria-label="Heroes who are not officers">
-      {{range $i, $o := $p.Officers}}{{if ge $i 2}}{{template "officer_card" (dict "ID" $o.ID "Title" $o.Title "Role" $o.Role "Officer" true)}}{{end}}{{end}}
+      {{range $i, $o := $p.Officers}}{{if ge $i $p.Sergeants}}{{template "officer_card" (dict "ID" $o.ID "Title" $o.Title "Role" $o.Role "Officer" true)}}{{end}}{{end}}
       {{range $p.Candidates}}{{template "officer_card" (dict "ID" .ID "Title" .Title "Role" .Role)}}{{end}}
     </ul>
   </div>

@@ -1,0 +1,2 @@
+battle_companies.json: companies[0].reinforcements.rows[0].with[0]: "Speer" is not an option of "Ranger of Arnor" nor a gear item; closest: "Spear"
+  hint: options come from the vanilla profile; items from gear[]

@@ -43,6 +43,7 @@ func equipmentFor(rs *RuleSet, bcCo BCCompany, name string, bought, profile, her
 	}
 	e.Exclusive = offered && offer.Exclusive
 	e.Stats = a.Stats()
+	e.GrantsSlots = a.GrantsSlots
 	if offered {
 		e.Size, e.Description = offer.Size, offer.Description
 	} else if g, found := rs.Vanilla.Gear(name); found {
@@ -146,7 +147,7 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 	}
 	ownPathLevels := ownPathLevels(rs, settings, profile, s.Base)
 	hero := s.Role != RoleWarrior
-	u := CompanyUnit{ID: s.ID, Name: s.Name, Type: s.Base, Role: s.Role, Level: s.Level, XP: s.XP, Injured: s.Injured, AtHealers: s.SentToHealers}
+	u := CompanyUnit{ID: s.ID, Name: s.Name, Type: s.Base, PromotedFrom: s.PromotedFrom, Role: s.Role, Level: s.Level, XP: s.XP, Injured: s.Injured, AtHealers: s.SentToHealers}
 	u.Kind = s.Kind
 	if u.Kind == "" {
 		u.Kind = KindOf(base.UnitTypes)
@@ -357,7 +358,9 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 		}
 	}
 	u.Keywords = unitKeywordsOf(rs, profile, s, u) // last: a bought mount makes the rider Cavalry
-	u.Auras = rs.UnitAuras(u)                      // after the gear, the rules and the path are in
+	u.LevelEvery = rs.BC.Progression().Threshold
+	u.BaseSlots = rs.BC.Shape().EquipmentSlots
+	u.Auras = rs.UnitAuras(u) // after the gear, the rules and the path are in
 	return u
 }
 
@@ -366,7 +369,7 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 //   - a hero built from a warrior profile is worth that profile's points plus the rating of what it gained (HeroRating), plus
 //     the options of its profile it carries at their MESBG points ("make no adjustment: it is as it is in their book"), plus
 //     the rating of wargear and equipment that is neither part of the profile nor of its options, at the hero rating when its
-//     Attacks and Wounds add up to 3 or more and at the warrior rating below that;
+//     characteristics reach campaign.rating.hero.wargear.threshold (Attacks and Wounds add up to 3) and at the warrior rating below that;
 //   - any other hero (a named character, a monster) is its vanilla points plus its options plus the rating of its gear.
 func pointsOf(rs *RuleSet, bcCo BCCompany, base VanillaUnit, u *CompanyUnit) int {
 	stats := map[string]int{}
@@ -374,7 +377,7 @@ func pointsOf(rs *RuleSet, bcCo BCCompany, base VanillaUnit, u *CompanyUnit) int
 		stats[strings.ToLower(a.Name)] = a.Value - a.Gear // the rating counts the earned profile, not what gear adds
 	}
 	hero := u.IsHero()
-	heroColumn := hero && stats["attack"]+stats["wounds"] >= 3
+	heroColumn := hero && rs.BC.rating.Wargear.Reached(stats)
 	ratingOf := func(name string) Rating {
 		offer, _ := rs.BC.Offer(bcCo, name)
 		return offer.Rating
@@ -392,7 +395,7 @@ func pointsOf(rs *RuleSet, bcCo BCCompany, base VanillaUnit, u *CompanyUnit) int
 			wargear = append(wargear, *e)
 			if stage, isArmour := armourRating(rs, base, *e); isArmour { // an armour upgrade adds rating per stage above the profile's own armour
 				if hero {
-					e.Rating = stage * rs.BC.ArmourUpgrade().Rating.For(heroColumn) // +1 per stage until Attacks + Wounds reach 3, then +5
+					e.Rating = stage * rs.BC.ArmourUpgrade().Rating.For(heroColumn) // the warrior rate per stage until the wargear threshold is reached, then the hero rate
 				}
 			} else if hero && !slices.ContainsFunc(base.Options, func(o ChoiceOption) bool {
 				return GearMatchesOption(GearOffer{Name: e.Name, AlsoCalled: e.Spellings, Classes: e.Classes()}, o.Name)
@@ -459,13 +462,13 @@ func StartingUnits(p CompanyProfile, heroes []StartHero) []UnitState {
 		if s.Role == RoleHeroInTheMaking { // the file starts it as a hero that has yet to choose its path
 			spec.Role = RoleHero
 			if p.StartGains(s.Unit) {
-				spec.Bonus = HeroBonus(nil)
+				spec.Bonus = p.HeroStart.Bonus(nil)
 			}
 		}
 		if h, ok := byIndex[i]; ok {
 			spec.Role = h.Role
 			if p.StartGains(s.Unit) { // an officer keeps its profile (no hero promotion: that is a level-up result) and gains a point of Might, Will and Fate
-				spec.Bonus = HeroBonus(nil)
+				spec.Bonus = p.HeroStart.Bonus(nil)
 			}
 		}
 		out = append(out, spec)
@@ -541,8 +544,8 @@ func chartRows(chart []ChartRow) []RecruitRow {
 	return rows
 }
 
-func recruitInfo(bc BCCompany) RecruitInfo {
-	info := RecruitInfo{Cost: bc.ReinforcementCost, Chart: chartRows(bc.Reinforcements), SpecialChart: chartRows(bc.SpecialChart), Notes: bc.RecruitNotes}
+func recruitInfo(bc BCCompany, rules RecruitRules) RecruitInfo {
+	info := RecruitInfo{Rules: rules, Cost: bc.ReinforcementCost, Chart: chartRows(bc.Reinforcements), SpecialChart: chartRows(bc.SpecialChart), Notes: bc.RecruitNotes}
 	for _, s := range bc.SpecialUnits {
 		info.Special = append(info.Special, SpecialRecruit{Unit: s.Unit, Cost: s.Cost, Rare: s.Rare})
 	}
@@ -558,6 +561,9 @@ func applyProgress(rs *RuleSet, s *UnitState, p *Progress) {
 	s.Level += p.Taken
 	s.Bonus = mergeBonus(s.Bonus, p.Bonus)
 	if p.Base != "" {
+		if s.PromotedFrom == "" && !strings.EqualFold(s.Base, p.Base) {
+			s.PromotedFrom = s.Base
+		}
 		s.Base = p.Base
 		s.Gear = append(slices.Clone(s.Gear), p.Gear...)
 		for _, lost := range p.Drop {
@@ -685,7 +691,7 @@ func applyCompanyRules(rs *RuleSet, bcCo BCCompany, units []CompanyUnit) []Compa
 			}
 		}
 		limits = append(limits, CompanyLimit{ID: "keyword-" + strings.ToLower(l.Keyword), Label: l.Keyword + " models", Used: used,
-			Max: LimitMax(l.Percent, models), Next: LimitMax(l.Percent, models+1)})
+			Max: LimitMax(l.Percent, models, true), Next: LimitMax(l.Percent, models+1, true)}) // a company's keyword share is always rounded up
 	}
 	return limits
 }
@@ -744,7 +750,7 @@ func companyBlockFor(rs *RuleSet, bcCo BCCompany, roster []CompanyUnit, v Vanill
 			continue
 		}
 		have := countKeyword(rs, profile, roster, l.Keyword)
-		if max := LimitMax(l.Percent, models+n); have+1 > max { // the new model counts in both numerator and denominator
+		if max := LimitMax(l.Percent, models+n, true); have+1 > max { // the new model counts in both numerator and denominator
 			return fmt.Sprintf("the company may have at most %d %s models (%v%% of %d, rounded up) and has %d", max, l.Keyword, l.Percent, models+n, have), blockLimit
 		}
 	}
@@ -756,18 +762,36 @@ func companyBlockFor(rs *RuleSet, bcCo BCCompany, roster []CompanyUnit, v Vanill
 	return "", ""
 }
 
+// rareCount counts the models of the profiles the match function accepts, as campaign.recruitment.rare says: the roster's units
+// (an injured one only where injuredUnitsCount is set), the dead of the cemetery where deadUnitsCount is set, and the units that
+// a promotion turned into another profile where promotedUnitsCount is set.
+func rareCount(rules RareRules, roster []CompanyUnit, fallen []FallenUnit, match func(profile string) bool) int {
+	n := 0
+	for _, u := range roster {
+		if u.Injured && !rules.Injured {
+			continue
+		}
+		if match(u.Type) || rules.Promoted && u.PromotedFrom != "" && match(u.PromotedFrom) {
+			n++
+		}
+	}
+	if rules.Dead {
+		for _, f := range fallen {
+			if f.Fate == "Dead" && match(f.Unit.Type) {
+				n++
+			}
+		}
+	}
+	return n
+}
+
 // rareBlock says why a rare unit cannot join: the company may have only so many of it at once. A unit that is no longer that
 // unit (promoted) or is gone does not count.
-func rareBlock(roster []CompanyUnit, unit string, rare int) (why, kind string) {
+func rareBlock(rules RareRules, roster []CompanyUnit, fallen []FallenUnit, unit string, rare int) (why, kind string) {
 	if rare <= 0 || unit == "" {
 		return "", ""
 	}
-	have := 0
-	for _, u := range roster {
-		if u.Type == unit {
-			have++
-		}
-	}
+	have := rareCount(rules, roster, fallen, func(t string) bool { return t == unit })
 	if have >= rare {
 		return fmt.Sprintf("%s is rare: the company may have %d at once and has %d", unit, rare, have), blockRare
 	}
@@ -775,10 +799,10 @@ func rareBlock(roster []CompanyUnit, unit string, rare int) (why, kind string) {
 }
 
 // resultBlock says why a result cannot join the company (empty when it can), with the kind of reason.
-func resultBlock(rs *RuleSet, bcCo BCCompany, roster []CompanyUnit, res Reinforcement) (why, kind string) {
+func resultBlock(rs *RuleSet, bcCo BCCompany, roster []CompanyUnit, fallen []FallenUnit, res Reinforcement) (why, kind string) {
 	if res.Type == "unitChoice" { // it can join when at least one of its units can
 		for _, o := range res.Options {
-			if why, _ := resultBlock(rs, bcCo, roster, optionResult(o)); why == "" {
+			if why, _ := resultBlock(rs, bcCo, roster, fallen, optionResult(o)); why == "" {
 				return "", ""
 			}
 		}
@@ -791,13 +815,7 @@ func resultBlock(rs *RuleSet, bcCo BCCompany, roster []CompanyUnit, res Reinforc
 		if members, isTeam := profile.IncludedPoints[res.Unit]; isTeam { // a team (Vault Warden Team) is in the roster as its members: it counts as many times as its most numerous member
 			teams := 0
 			for _, m := range members {
-				n := 0
-				for _, u := range roster {
-					if u.Type == m.Name {
-						n++
-					}
-				}
-				teams = max(teams, n)
+				teams = max(teams, rareCount(rs.BC.Recruiting().Rare, roster, fallen, func(t string) bool { return t == m.Name }))
 			}
 			if teams >= res.Rare {
 				return fmt.Sprintf("%s is rare: the company may have %d at once and has %d", res.Unit, res.Rare, teams), blockRare
@@ -805,7 +823,7 @@ func resultBlock(rs *RuleSet, bcCo BCCompany, roster []CompanyUnit, res Reinforc
 			return companyBlock(rs, bcCo, roster, res.Unit)
 		}
 	}
-	if why, kind := rareBlock(roster, res.Unit, res.Rare); why != "" {
+	if why, kind := rareBlock(rs.BC.Recruiting().Rare, roster, fallen, res.Unit, res.Rare); why != "" {
 		return why, kind
 	}
 	return companyBlock(rs, bcCo, roster, res.Unit)
@@ -910,15 +928,6 @@ func (b *BCBook) pathRuleNamed(path, name string) UnitRule {
 	return UnitRule{Name: name, Source: RuleFromPath}
 }
 
-// HeroBonus is what a hero starts with: one point each of Might, Will and Fate, plus extra.
-func HeroBonus(extra map[string]int) map[string]int {
-	b := map[string]int{"might": 1, "will": 1, "fate": 1}
-	for k, v := range extra {
-		b[k] += v
-	}
-	return b
-}
-
 // BuildDetail turns a company's stored state into what the pages show: the units built from their profiles, equipment, path
 // and level-ups, the company's limits and rating, the recruit charts with the reasons a result cannot join, and the cemetery.
 // Units are in the company's saved order (OrderUnits). An injured unit (or a hero sent to the healers) misses the next game:
@@ -975,14 +984,14 @@ func BuildDetail(rs *RuleSet, settings CampaignSettings, st CompanyState) Compan
 		co.FullPoints += cr.Points
 	}
 	detail := CompanyDetail{CampaignCompany: co, Influence: st.Influence, Gold: st.Gold, Limits: append(rs.BC.Limits(bcCo, units, stored...), companyLimits...),
-		MaxUnits: bcCo.MaxModels, Roster: units, Recruit: recruitInfo(bcCo), InjuredUnits: injured, Settings: settings, Injuries: rs.BC.Injuries(), Creatures: creatures, Pack: pack, Rerolls: st.Rerolls, Aftermaths: st.Aftermaths, OpenMatch: st.OpenMatch, OfficersPending: st.Recruit.Officers != nil, BreakPointPercent: breakPointPercent(rs, co.Faction)}
+		MaxUnits: bcCo.MaxModels, Roster: units, Recruit: recruitInfo(bcCo, rs.BC.Recruiting()), InjuredUnits: injured, Settings: settings, Injuries: rs.BC.Injuries(), RuleDice: ruleDice(rs), Creatures: creatures, Pack: pack, Rerolls: st.Rerolls, Aftermaths: st.Aftermaths, OpenMatch: st.OpenMatch, OfficersPending: st.Recruit.Officers != nil, BreakPointPercent: breakPointPercent(rs, co.Faction)}
 	for _, chart := range []struct {
 		rows []RecruitRow
 		from []ChartRow
 	}{{detail.Recruit.Chart, bcCo.Reinforcements}, {detail.Recruit.SpecialChart, bcCo.SpecialChart}} {
 		for i, row := range chart.from {
 			for j, o := range row.Result.Options { // the units a row lets the player pick, and which of them the company has already
-				blocked, _ := resultBlock(rs, bcCo, units, optionResult(o))
+				blocked, _ := resultBlock(rs, bcCo, units, st.Cemetery, optionResult(o))
 				chart.rows[i].Options = append(chart.rows[i].Options, RowOption{Index: j, Text: choiceName(o), Blocked: blocked})
 			}
 		}
@@ -1003,7 +1012,7 @@ func BuildDetail(rs *RuleSet, settings CampaignSettings, st CompanyState) Compan
 	}
 	detail.RangerUnit, detail.RangerMayReturn = rangerMayReturn(rs, bcCo.Name, units, detail.Cemetery)
 	for i, sp := range detail.Recruit.Special {
-		detail.Recruit.Special[i].Blocked, _ = resultBlock(rs, bcCo, units, Reinforcement{Type: "unit", Unit: sp.Unit, Rare: sp.Rare})
+		detail.Recruit.Special[i].Blocked, _ = resultBlock(rs, bcCo, units, st.Cemetery, Reinforcement{Type: "unit", Unit: sp.Unit, Rare: sp.Rare})
 	}
 	return detail
 }
@@ -1030,4 +1039,15 @@ func unitKeywordsOf(rs *RuleSet, profile CompanyProfile, s UnitState, u CompanyU
 		}
 	}
 	return rs.UnitKeywords(profile, in)
+}
+
+// ruleDice is the dice and the Against the Odds re-roll figures of the rules that the company pages print.
+func ruleDice(rs *RuleSet) RuleDice {
+	d := RuleDice{Level: rs.BC.Progression().LevelDice(), Courage: rs.BC.BreakRules().CourageSpec}
+	for _, b := range rs.BC.ATO().Bonuses {
+		if b.Key == "reroll" {
+			d.RerollRating, d.RerollCount = b.Rating, b.GivesRerolls
+		}
+	}
+	return d
 }

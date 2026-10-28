@@ -93,6 +93,11 @@ Actions per file:
 stored (the existing row is highlighted), or the rejection (`ErrInvalidRuleset` messages). The same size cap (16 MB) applies. Uploading is superuser only on
 this page; organisers keep uploading from the campaign form.
 
+A rejected upload lists **every** problem (file, path, message, hint, closest match; 200 shown, the rest counted) and stores
+nothing. Next to **Upload** the card has **Check this file** (`POST /admin/rulesets/check`, `rulesets.Check`): the same
+validation as a dry run, answered under the buttons with the report or "No problems found" (warnings listed); a valid file is
+not stored by it. Rendering is described in [frontend.md](frontend.md) ("The rules file report").
+
 A file with the same hash is stored once; every kind is identified by its hash alone, so two files with the same name and version but different content coexist (user decision 2026-10-21, migration 00015). The list shows name, version and short hash (`RulesetInfo.ShortHash`) to tell them apart.
 (REVIEW: no "replace edition" action; delete then upload.)
 

@@ -34,11 +34,11 @@ func TestAnOwnPathSixIsAFinalResultWithoutAPathWindow(t *testing.T) {
 	d, detail := mineDetail()
 	d.Settings.ManualRolls = true
 	d.Settings.CustomOnTheirOwnPath = true
-	detail.Roster[0].Type, detail.Roster[0].XP = "Wood Elf Sentinel", 5
+	detail.Roster[0].Type, detail.Roster[0].XP, detail.Roster[0].LevelEvery = "Wood Elf Sentinel", 5, 5
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(5), []int{6, 0}, false).Return(core.LevelRoll{Kind: "warrior", D6: 6, Result: "heroInTheMaking", Done: true,
+	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(5), []int{6}, false).Return(core.LevelRoll{Kind: "warrior", D6: 6, Result: "heroInTheMaking", Done: true,
 		Summary: "Hador becomes a hero on the Path of Their Own Making."}, nil)
 	body := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/levelup/roll", url.Values{"roll": {"6"}}))).Body.String()
 	for _, want := range []string{"Hador becomes a hero on the Path of Their Own Making.", "You rolled a", `data-dice="6"`, "Done"} {
@@ -57,7 +57,7 @@ func TestAnOwnPathWarriorUnderTheSettingShowsExperienceAndLevelUp(t *testing.T) 
 	f := newFixture(t, Config{})
 	d, detail := mineDetail()
 	d.Settings.CustomOnTheirOwnPath = true
-	detail.Roster[0].Type, detail.Roster[0].XP, detail.Roster[0].Level, detail.Roster[0].Role = "Wood Elf Sentinel", 7, 0, core.RoleWarrior
+	detail.Roster[0].Type, detail.Roster[0].XP, detail.Roster[0].LevelEvery, detail.Roster[0].Level, detail.Roster[0].Role = "Wood Elf Sentinel", 7, 5, 0, core.RoleWarrior
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
 	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()

@@ -18,6 +18,7 @@ import company_text_checks  # noqa: E402
 import concept_graph  # noqa: E402
 import glossary_reference  # noqa: E402
 from bc import auras as aura_table  # noqa: E402
+from bc import curated  # noqa: E402
 from bc.gear import ABILITY_KEYS, CLASSES, ITEM_ALIASES, RANGED_CLASSES, item_key, resolve_rule, _keyword_names  # noqa: E402
 from bc.refs import referenced, vanilla_duplicates  # noqa: E402
 from bc.text import fold  # noqa: E402
@@ -34,6 +35,31 @@ def schema_errors(doc, schema_path):
         return []
     validator = jsonschema.Draft202012Validator(json.load(open(schema_path, encoding="utf-8")))
     return [f"{'/'.join(map(str, e.absolute_path))}: {e.message[:200]}" for e in validator.iter_errors(doc)]
+
+
+LEAN_SCHEMA = ROOT / "definitions/battle_companies/battle_companies.v2.schema.json"
+LEAN_FIXTURES = ROOT / "internal/core/lean/testdata/valid"
+
+
+def lean_schema_errors():
+    """The lean (schemaVersion 2) schema is generated from the Go model (internal/core/lean/schema_gen_test.go); here it must be a
+    valid Draft 2020-12 schema and accept every valid fixture of the Go decoder (the Go parity test checks the schema against the model)."""
+    try:
+        import jsonschema
+    except ImportError:
+        print(f"  (skipping {LEAN_SCHEMA.name}: pip install jsonschema)")
+        return []
+    if not LEAN_SCHEMA.exists():
+        return [f"{LEAN_SCHEMA.name} is missing (go test ./internal/core/lean -run TestSchemaUpToDate -update-schema)"]
+    schema = json.load(open(LEAN_SCHEMA, encoding="utf-8"))
+    try:
+        jsonschema.Draft202012Validator.check_schema(schema)
+    except jsonschema.SchemaError as e:
+        return [f"{LEAN_SCHEMA.name}: not a valid schema: {e.message[:200]}"]
+    errors = []
+    for f in sorted(LEAN_FIXTURES.glob("*.json")):
+        errors += [f"{LEAN_SCHEMA.name} vs fixture {f.name}: {e}" for e in schema_errors(json.load(open(f, encoding="utf-8")), LEAN_SCHEMA)]
+    return errors
 
 
 TTS_CATALOGUE = ROOT / "sources/tts/models.json"  # local, gitignored (bead zrs.4); never committed
@@ -413,12 +439,90 @@ def iter_path_options(paths):
                 yield p["name"], o
 
 
+DICE_SPEC = re.compile(r"^(?:([1-9]|10))?[dD]([2-9]|[1-9][0-9]|100)$")
+
+
+def _in_range(errors, path, value, lo, hi):
+    if isinstance(value, bool) or not isinstance(value, int) or not lo <= value <= hi:
+        errors.append(f"{path}: {value!r} is out of range {lo}..{hi}")
+
+
+def engine_parameter_errors(bc, van):
+    """Range checks of the engine parameters of docs/definitions-lean-design.md section 12 (slices P1 to P3) in the current shape."""
+    errors = []
+    camp, data = bc["campaign"], bc["data"]
+    co = camp["company"]
+    _in_range(errors, "campaign.company.maxModels", co["maxModels"], 1, 50)
+    _in_range(errors, "campaign.company.eliteMaxModels", co["eliteMaxModels"], 1, 50)
+    _in_range(errors, "campaign.company.leaders", co["leaders"], 1, 3)
+    _in_range(errors, "campaign.company.sergeants", co["sergeants"], 0, 6)
+    _in_range(errors, "campaign.company.startingInfluence", co["startingInfluence"], 0, 100)
+    if isinstance(co["leaders"], int) and isinstance(co["sergeants"], int) and co["leaders"] + co["sergeants"] > co["maxModels"]:
+        errors.append("campaign.company: leaders + sergeants is more than maxModels")
+    for stat in ("might", "will", "fate"):
+        _in_range(errors, f"campaign.company.startingHeroStats.{stat}", co["startingHeroStats"].get(stat), 0, 5)
+    for size in ("large", "small"):
+        _in_range(errors, f"campaign.company.equipmentSlots.{size}", co["equipmentSlots"].get(size), 0, 10)
+    if camp["breakPoint"]["threshold"]["comparison"] not in ("gt", "gte"):
+        errors.append("campaign.breakPoint.threshold.comparison must be 'gt' or 'gte'")
+    vraces = {r for k in ("heroes", "warriors") for u in van["data"][k] for r in (u.get("race") or [])}
+    for g in data["gearAnnotations"]["items"]:
+        for size, n in (g.get("grantsSlots") or {}).items():
+            _in_range(errors, f"gear {g['name']}: grantsSlots.{size}", n, 0, 10)
+        race = (g.get("who") or {}).get("race")
+        if race is not None and race not in vraces:
+            errors.append(f"gear {g['name']}: who.race {race!r} is not a race of the vanilla data")
+    m = DICE_SPEC.match(str(camp["recruitment"]["die"]))
+    if not m or m.group(1) not in (None, "1"):
+        errors.append(f"campaign.recruitment.die: {camp['recruitment']['die']!r} is not a one-die spec (dN, N 2..100)")
+    ss = camp["scenarioSelection"]
+    m = DICE_SPEC.match(str(ss["die"]))
+    if not m or m.group(1) not in (None, "1"):
+        errors.append(f"campaign.scenarioSelection.die: {ss['die']!r} is not a one-die spec (dN, N 2..100)")
+    else:
+        sides = int(str(ss["die"])[1:])
+        covered = sorted(r for t in ss["tables"] for r in range(t["roll"][0], t["roll"][1] + 1))
+        if covered != list(range(1, sides + 1)):
+            errors.append(f"campaign.scenarioSelection.tables: the roll ranges do not partition 1..{sides}")
+        for i, t in enumerate(ss["tables"]):
+            if len(t["scenarios"]) != sides:
+                errors.append(f"campaign.scenarioSelection.tables[{i}]: lists {len(t['scenarios'])} scenarios, the second die has {sides} faces")
+    td = camp["injuries"]["treatment"]["hero"][0]["roll"]["dice"]
+    m = DICE_SPEC.match(str(td))
+    if not m or m.group(1) not in (None, "1"):
+        errors.append(f"campaign.injuries.treatment.hero[attempt].roll.dice: {td!r} is not a one-die spec (dN, N 2..100)")
+    _in_range(errors, "campaign.progression.threshold", camp["progression"]["threshold"], 1, 50)
+    wg = camp["rating"]["hero"]["wargear"]["threshold"]
+    _in_range(errors, "campaign.rating.hero.wargear.threshold.sumAtLeast", wg["sumAtLeast"], 0, 20)
+    for st in wg["stats"]:
+        if st not in PROFILE_STATS:
+            errors.append(f"campaign.rating.hero.wargear.threshold.stats: {st!r} is not a characteristic")
+    for i, l in enumerate(bc["limits"]):
+        pct = l["maximumPercentage"]
+        if not 0 < pct <= 100:
+            errors.append(f"limits[{i}].maximumPercentage: {pct} is out of range (0, 100]")
+        if not isinstance(l.get("roundUp"), bool):
+            errors.append(f"limits[{i}].roundUp: required, true or false")
+        for c in l.get("classes", []):
+            if c not in CLASSES:
+                errors.append(f"limits[{i}].classes: {c!r} is not a gear class")
+        if l["type"] != "keyword" and not l.get("classes"):
+            errors.append(f"limits[{i}]: a limit that is not a keyword limit needs classes")
+    _in_range(errors, "data.creatures.rules.maxPerHero", data["creatures"]["rules"].get("maxPerHero"), 0, 99)
+    _in_range(errors, "data.wanderers.rules.maxAtOnce", data["wanderers"]["rules"].get("maxAtOnce"), 0, 99)
+    for p in data["paths"]:
+        if p.get("limitPerCompany") is not None:
+            _in_range(errors, f"data.paths[{p['name']}].limitPerCompany", p["limitPerCompany"], 0, 99)
+    return errors
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--vanilla", default=str(ROOT / "definitions/vanilla/data2024.json"))
     ap.add_argument("--battle-companies", default=str(ROOT / "definitions/battle_companies/battle_companies.json"))
     ap.add_argument("--glossary", default=str(ROOT / "definitions/glossary/mesbg_glossary.json"))
     ap.add_argument("--tts-models", default=str(TTS_CATALOGUE), help="local catalogue of the mod's model keys (optional)")
+    ap.add_argument("--data-dir", default=str(ROOT / "tools/data"), help="the curator data the generator cut from the Battle Companies file")
     ap.add_argument("--concept-graph", default=str(ROOT / "definitions/concepts/concept_graph.json"))
     args = ap.parse_args()
     vp, bp = Path(args.vanilla), Path(args.battle_companies)
@@ -431,6 +535,18 @@ def main():
         schema = path.with_suffix(".schema.json")
         if schema.exists():
             errors += [f"{path.name}: {e}" for e in schema_errors(doc, schema)]
+
+    errors += lean_schema_errors()
+
+    # The schema checks the file the app loads. Everything below also needs the curator data the generator cut from it
+    # (tools/bc/curated.py): the audit view is the complete document, and a stale or missing record is an error.
+    try:
+        bc = curated.attach(bc, curated.load_store(Path(args.data_dir)))
+    except (KeyError, FileNotFoundError, ValueError) as e:
+        errors.append(f"tools/data is missing or stale ({type(e).__name__}: {e}): rerun tools/build_battle_companies.py")
+        for e in errors:
+            print("ERROR", e)
+        return 1
 
     V = {k: {fold(e["name"]) for e in v} for k, v in van["data"].items()}
     units = V["warriors"] | V["heroes"]
@@ -819,13 +935,10 @@ def main():
         l = learn.get(k)
         if l and (l["casting"] != s["casting"] or l["range"] != ("self" if s["range"] == "Self" else s["range"])):
             errors.append(f"magical power {k!r}: range/casting differ from the Spell List")
-    scoring = {s["name"]: s for s in bc["scenarioScoring"]}
     exp_keys = {g["key"] for g in bc["campaign"]["experience"]["gains"]}
     for sc in D["scenarioDetails"]:
         n = sc["name"]
         objs = sc.get("scoringObjectives", [])
-        if len(objs) != len(sc.get("scoring", [])):
-            errors.append(f"scenario {n}: {len(objs)} scoringObjectives for {len(sc.get('scoring', []))} scoring bullets")
         if len({o["key"] for o in objs}) != len(objs):
             errors.append(f"scenario {n}: duplicate scoringObjectives key")
         roles = {r["key"] for r in sc.get("roles", [])}
@@ -833,17 +946,24 @@ def main():
             if o["side"] != "both" and o["side"] not in roles:
                 errors.append(f"scenario {n}: objective {o['key']!r} is for {o['side']!r} but the scenario has no such role")
             opts = [x["points"] for x in o.get("options", [])]
-            if o["kind"] in ("tiers", "eachTiers") and (not opts or opts != sorted(opts) or len(set(opts)) != len(opts)):
-                errors.append(f"scenario {n}: objective {o['key']!r} tiers must be ascending and distinct")
+            if not opts:
+                errors.append(f"scenario {n}: objective {o['key']!r} has no options")
+            if o["kind"] in ("tiers", "eachTiers") and len(set(opts)) != len(opts):
+                errors.append(f"scenario {n}: objective {o['key']!r} tiers must be distinct")
+            # the options are the printed sentences, in printed order: instruction + options read as the objective text
+            sentences = ([o["instruction"]] if o.get("instruction") else []) + [x["text"] for x in o.get("options", [])]
+            if " ".join(sentences) != o["text"]:
+                errors.append(f"scenario {n}: objective {o['key']!r}: instruction and options do not read as its text")
+            if o["kind"] == "each" and (len(opts) != 1 or opts[0] != o.get("pointsEach") or o.get("count") != o.get("maxCount")):
+                errors.append(f"scenario {n}: objective {o['key']!r}: a 'each' objective has one option worth pointsEach and count = maxCount")
+            top = max(opts, default=0)
+            want = {"tiers": top, "each": o.get("count", 0) * top, "eachTiers": o.get("count", 0) * top}[o["kind"]]
+            if o.get("maxPoints", want) != want:
+                errors.append(f"scenario {n}: objective {o['key']!r}: maxPoints {o.get('maxPoints')} != {want}")
             if o["kind"] == "each" and not ("pointsEach" in o and o.get("maxPoints")):
                 errors.append(f"scenario {n}: objective {o['key']!r} needs pointsEach and maxPoints")
             if o["kind"] == "eachTiers" and "count" not in o:
                 errors.append(f"scenario {n}: objective {o['key']!r} needs count")
-            sp = scoring.get(n)  # the same points must appear in the vanilla-style scenarioScoring
-            if sp and i < len(sp["points"]):
-                pts = {t["points"] for t in sp["points"][i] if t["points"] > 0}
-                if pts != (set(opts) if opts else {o.get("pointsEach")}):
-                    errors.append(f"scenario {n}: objective {o['key']!r} points differ from scenarioScoring")
         for r in sc.get("rewards", []):
             e = effects.get(r["effect"])
             if not e or e.get("scenario") != n:
@@ -1190,9 +1310,9 @@ def main():
             errors.append(f"{co['name']}: oath must contain {{name}} exactly once, not at the start or end")
         if not 1 <= len(o["vow"]) <= 40:
             errors.append(f"{co['name']}: oath vow must be 1-40 characters")
-    treat = [x for x in bc["campaign"]["influence"]["spend"] if x["key"] == "treatInjuries"]
-    if not treat or "cost" not in treat[0]:
-        errors.append("campaign.influence.spend[treatInjuries] needs a cost")
+    treatment = bc["campaign"]["injuries"]["treatment"]  # the price of treating injuries lives here, which the engine reads
+    if "cost" not in treatment["warrior"] or not all("cost" in h for h in treatment["hero"]):
+        errors.append("campaign.injuries.treatment: every treatment needs a cost")
     if glossary:
         gnames = [t["name"] for t in glossary["terms"]]
         for n in {n for n in gnames if gnames.count(n) > 1}:
@@ -1215,6 +1335,7 @@ def main():
                 errors.append(f"glossary reference.toWound: term {tw.get('term')!r} is not a term")
 
     errors += company_text_checks.company_text_errors(bc)
+    errors += engine_parameter_errors(bc, van)
 
     cp = Path(args.concept_graph)
     if glossary and cp.exists():

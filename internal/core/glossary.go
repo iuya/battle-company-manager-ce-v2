@@ -195,10 +195,11 @@ type Segment struct {
 
 type TermRef struct{ ID, Name string }
 
-// PathTable is a path's limits and 2D6 chart; each result is cut into text and links to other terms.
+// PathTable is a path's limits and level-up chart; each result is cut into text and links to other terms.
 type PathTable struct {
-	Limits []PathTableLimit
-	Rows   []PathTableRow
+	Limits   []PathTableLimit
+	Rows     []PathTableRow
+	PathDice DiceSpec // the dice the chart is rolled with (zero when the file names none)
 }
 
 // PathTableLimit is the limit of one characteristic, with the abbreviation of its name linked to its glossary term.
@@ -383,7 +384,7 @@ func BuildGlossaryWith(info RulesetInfo, content []byte, extras []ExtraTerm) (Gl
 			term.Pages = append(term.Pages, s.RulebookPage)
 		}
 		if t.Path != nil {
-			table := &PathTable{}
+			table := &PathTable{PathDice: t.Path.PathDice}
 			for _, l := range t.Path.Limits {
 				limit := PathTableLimit{Stat: l.Stat, Abbr: l.Abbr, Limit: l.Limit}
 				if term, ok := g.Find(l.Term); ok {

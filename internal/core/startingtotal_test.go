@@ -15,7 +15,7 @@ var startingTotalExceptions = map[string]int{"Defenders of the North": 106}
 
 func startPoints(t *testing.T, rs *RuleSet, p CompanyProfile, heroes []StartHero) (points int) {
 	t.Helper()
-	st := CompanyState{Company: CampaignCompany{ID: 1, Name: p.Name, Faction: p.Name}, Influence: StartingInfluence, Gold: p.StartGold, Units: StartingUnits(p, heroes)}
+	st := CompanyState{Company: CampaignCompany{ID: 1, Name: p.Name, Faction: p.Name}, Influence: rs.BC.Recruiting().StartingInfluence, Gold: p.StartGold, Units: StartingUnits(p, heroes)}
 	return BuildDetail(rs, CampaignSettings{}, st).Points
 }
 

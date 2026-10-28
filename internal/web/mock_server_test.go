@@ -3668,6 +3668,45 @@ func (c *MockcampaignsSaveResultCall) DoAndReturn(f func(context.Context, core.U
 	return c
 }
 
+// ScenarioSelection mocks base method.
+func (m *Mockcampaigns) ScenarioSelection(ctx context.Context, id int64) (core.ScenarioSelection, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ScenarioSelection", ctx, id)
+	ret0, _ := ret[0].(core.ScenarioSelection)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ScenarioSelection indicates an expected call of ScenarioSelection.
+func (mr *MockcampaignsMockRecorder) ScenarioSelection(ctx, id any) *MockcampaignsScenarioSelectionCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScenarioSelection", reflect.TypeOf((*Mockcampaigns)(nil).ScenarioSelection), ctx, id)
+	return &MockcampaignsScenarioSelectionCall{Call: call}
+}
+
+// MockcampaignsScenarioSelectionCall wrap *gomock.Call
+type MockcampaignsScenarioSelectionCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsScenarioSelectionCall) Return(arg0 core.ScenarioSelection, arg1 error) *MockcampaignsScenarioSelectionCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsScenarioSelectionCall) Do(f func(context.Context, int64) (core.ScenarioSelection, error)) *MockcampaignsScenarioSelectionCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsScenarioSelectionCall) DoAndReturn(f func(context.Context, int64) (core.ScenarioSelection, error)) *MockcampaignsScenarioSelectionCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // Scenarios mocks base method.
 func (m *Mockcampaigns) Scenarios(ctx context.Context, id int64) ([]core.ScenarioInfo, error) {
 	m.ctrl.T.Helper()
@@ -4614,6 +4653,45 @@ func (c *MockrulesetsCampaignOptionsCall) DoAndReturn(f func(context.Context) ([
 	return c
 }
 
+// Check mocks base method.
+func (m *Mockrulesets) Check(ctx context.Context, kind core.RulesetKind, content []byte) (core.RulesetReport, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Check", ctx, kind, content)
+	ret0, _ := ret[0].(core.RulesetReport)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Check indicates an expected call of Check.
+func (mr *MockrulesetsMockRecorder) Check(ctx, kind, content any) *MockrulesetsCheckCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Check", reflect.TypeOf((*Mockrulesets)(nil).Check), ctx, kind, content)
+	return &MockrulesetsCheckCall{Call: call}
+}
+
+// MockrulesetsCheckCall wrap *gomock.Call
+type MockrulesetsCheckCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockrulesetsCheckCall) Return(arg0 core.RulesetReport, arg1 error) *MockrulesetsCheckCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockrulesetsCheckCall) Do(f func(context.Context, core.RulesetKind, []byte) (core.RulesetReport, error)) *MockrulesetsCheckCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockrulesetsCheckCall) DoAndReturn(f func(context.Context, core.RulesetKind, []byte) (core.RulesetReport, error)) *MockrulesetsCheckCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // Default mocks base method.
 func (m *Mockrulesets) Default(ctx context.Context, kind core.RulesetKind) (core.RulesetInfo, error) {
 	m.ctrl.T.Helper()
@@ -4921,6 +4999,45 @@ func (c *MockrulesetsSetDefaultCall) Do(f func(context.Context, core.User, strin
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockrulesetsSetDefaultCall) DoAndReturn(f func(context.Context, core.User, string) error) *MockrulesetsSetDefaultCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// StoreAllAs mocks base method.
+func (m *Mockrulesets) StoreAllAs(ctx context.Context, uploader core.User, uploads []core.RulesetUpload) ([]core.RulesetInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StoreAllAs", ctx, uploader, uploads)
+	ret0, _ := ret[0].([]core.RulesetInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// StoreAllAs indicates an expected call of StoreAllAs.
+func (mr *MockrulesetsMockRecorder) StoreAllAs(ctx, uploader, uploads any) *MockrulesetsStoreAllAsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreAllAs", reflect.TypeOf((*Mockrulesets)(nil).StoreAllAs), ctx, uploader, uploads)
+	return &MockrulesetsStoreAllAsCall{Call: call}
+}
+
+// MockrulesetsStoreAllAsCall wrap *gomock.Call
+type MockrulesetsStoreAllAsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockrulesetsStoreAllAsCall) Return(arg0 []core.RulesetInfo, arg1 error) *MockrulesetsStoreAllAsCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockrulesetsStoreAllAsCall) Do(f func(context.Context, core.User, []core.RulesetUpload) ([]core.RulesetInfo, error)) *MockrulesetsStoreAllAsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockrulesetsStoreAllAsCall) DoAndReturn(f func(context.Context, core.User, []core.RulesetUpload) ([]core.RulesetInfo, error)) *MockrulesetsStoreAllAsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

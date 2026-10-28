@@ -57,7 +57,7 @@ func rangerFixture(t *testing.T, officersPending bool) (*fixture, core.CompanyDe
 }
 
 func rolled(offer *core.RangerOffer) *core.RecruitRoll {
-	return &core.RecruitRoll{Stage: "chart", Rolled: true, Roll: 2, Budget: 3, Ranger: offer}
+	return &core.RecruitRoll{Stage: "chart", Rolled: true, Roll: 2, Budget: 3, Adjust: upToThree, Ranger: offer}
 }
 
 func TestRecruitWindowOffersTheRangerSwap(t *testing.T) {

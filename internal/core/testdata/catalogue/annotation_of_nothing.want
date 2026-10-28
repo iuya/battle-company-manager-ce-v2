@@ -1,0 +1,2 @@
+battle_companies.json: units[0]: "Nobody Special" is not defined in vanilla and has no definition or "extends" here
+  hint: give it a definition or an "extends", or check the spelling of the name

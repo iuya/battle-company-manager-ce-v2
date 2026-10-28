@@ -1,0 +1,2 @@
+battle_companies.json: companies[0].start: the company has no unit that may lead (heroes.excluded names every starting unit)
+  hint: a company needs at least one starting unit that may become an officer

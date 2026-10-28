@@ -1,0 +1,1 @@
+battle_companies.json: paths[0].rows[0].options[0].stat: "figth" is not a valid characteristic; known: movement, fight, shoot, strength, defence, attack, wounds, courage, intelligence, might, will, fate; closest: "fight"

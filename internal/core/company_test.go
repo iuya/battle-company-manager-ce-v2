@@ -2,6 +2,7 @@ package core
 
 import (
 	"os"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -39,9 +40,12 @@ func TestCompanyLimits(t *testing.T) {
 		{Kind: KindInfantry, Equipment: []Equipment{bow}}, {Kind: KindInfantry, Equipment: []Equipment{bow, {Name: "Throwing axe", Class: EquipThrowing}}},
 		{Kind: KindCavalry}, {Kind: KindMonstrousCavalry}, {Kind: KindInfantry}, {Kind: KindInfantry}, {Kind: KindInfantry},
 	}
-	limits := CompanyLimits(units) // 7 units: a third rounded up is 3
-	want := []CompanyLimit{{"bow", "Bows", 2, 3, 3}, {"throwing", "Throwing weapons", 1, 3, 3}, {"cavalry", "Cavalry", 2, 3, 3}}
-	if !slices.Equal(limits, want) {
+	limits := shippedLimits(t, units) // 7 units: a third rounded up is 3
+	want := []CompanyLimit{{ID: "bow", Label: "Bows", Used: 2, Max: 3, Next: 3}, {ID: "throwing", Label: "Throwing weapons", Used: 1, Max: 3, Next: 3}, {ID: "cavalry", Label: "Cavalry", Used: 2, Max: 3, Next: 3}}
+	for i := range limits {
+		limits[i].LimitClasses, limits[i].LimitKeyword = nil, ""
+	}
+	if !reflect.DeepEqual(limits, want) {
 		t.Errorf("got %+v, want %+v", limits, want)
 	}
 	if limits[0].Full() || !(CompanyLimit{Used: 3, Max: 3}).Full() {
@@ -52,7 +56,7 @@ func TestCompanyLimits(t *testing.T) {
 func TestARiderWithABoughtMountCountsAsCavalry(t *testing.T) {
 	horse := Equipment{Name: "Horse", Class: EquipMount, Bought: true}
 	units := []CompanyUnit{{Kind: KindInfantry, Equipment: []Equipment{horse}}, {Kind: KindCavalry, Equipment: []Equipment{horse}}, {Kind: KindInfantry}}
-	if l := CompanyLimits(units)[2]; l.Used != 2 || l.Max != 1 {
+	if l := shippedLimits(t, units)[2]; l.Used != 2 || l.Max != 1 {
 		t.Errorf("the mounted warrior and the cavalry unit count once each: %+v", l)
 	}
 }
@@ -93,7 +97,7 @@ func TestSortRules(t *testing.T) {
 
 func TestLevelUps(t *testing.T) {
 	for _, c := range []struct{ level, xp, inLevel, pending int }{{0, 3, 3, 0}, {0, 5, 5, 1}, {0, 15, 15, 3}, {1, 15, 10, 2}, {3, 17, 2, 0}} {
-		u := CompanyUnit{Level: c.level, XP: c.xp}
+		u := CompanyUnit{Level: c.level, XP: c.xp, LevelEvery: 5}
 		if u.XPInLevel() != c.inLevel || u.PendingLevelUps() != c.pending {
 			t.Errorf("level %d xp %d: got %d in level, %d pending; want %d, %d", c.level, c.xp, u.XPInLevel(), u.PendingLevelUps(), c.inLevel, c.pending)
 		}
@@ -116,7 +120,7 @@ func TestDualItemsSortAndCountEverywhere(t *testing.T) {
 	if units[0].Equipment[0].Name != "Spear-bow" {
 		t.Errorf("order: %+v", units[0].Equipment)
 	}
-	if got := CompanyLimits(units)[0]; got.Used != 1 {
+	if got := shippedLimits(t, units)[0]; got.Used != 1 {
 		t.Errorf("bows used: %+v", got)
 	}
 }
@@ -138,7 +142,7 @@ func TestNewClassesSortAndCount(t *testing.T) {
 	}
 	// a missile (the blowpipe) counts against no limit
 	units := []CompanyUnit{{Kind: KindInfantry, Equipment: []Equipment{{Name: "Blowpipe", Class: EquipMissile}}}}
-	if l := CompanyLimits(units); l[0].Used != 0 || l[1].Used != 0 {
+	if l := shippedLimits(t, units); l[0].Used != 0 || l[1].Used != 0 {
 		t.Errorf("a missile counts against neither the bow nor the throwing limit: %+v", l)
 	}
 }
@@ -153,7 +157,7 @@ func TestLimitExemptionsLeaveModelsOutOfTheCountAndTheBase(t *testing.T) {
 		units = append(units, CompanyUnit{Type: "Rider of Rohan", Kind: KindCavalry, Equipment: []Equipment{bow}})
 	}
 	rohan := BCCompany{LimitExemptions: []LimitExemption{{Unit: "Rider of Rohan", Limits: []string{"bow", "cavalry"}}}}
-	for _, l := range computeLimits(defaultLimitRules, rohan, units) {
+	for _, l := range computeLimits(shippedRules(t).BC.limitRules, rohan, units) {
 		switch l.ID {
 		case "bow", "cavalry":
 			if l.Used != 0 || l.Max != 1 {
@@ -169,22 +173,22 @@ func TestLimitExemptionsLeaveModelsOutOfTheCountAndTheBase(t *testing.T) {
 	whip := Equipment{Name: "Whip", Class: EquipThrowing, Also: []EquipmentClass{EquipMelee}}
 	rogues := BCCompany{LimitExemptions: []LimitExemption{{Item: "Whip", Limits: []string{"throwing"}}}}
 	units = []CompanyUnit{{Equipment: []Equipment{whip}}, {Equipment: []Equipment{whip}}, {}}
-	if l := computeLimits(defaultLimitRules, rogues, units)[1]; l.Used != 0 || l.Max != 1 {
+	if l := computeLimits(shippedRules(t).BC.limitRules, rogues, units)[1]; l.Used != 0 || l.Max != 1 {
 		t.Errorf("whips are free: %+v", l)
 	}
 	// a company's own share for a limit (Osgiliath: bows 50%)
 	osgiliath := BCCompany{LimitOverrides: map[string]float64{"bow": 50}}
-	if l := computeLimits(defaultLimitRules, osgiliath, make([]CompanyUnit, 6))[0]; l.Max != 3 {
+	if l := computeLimits(shippedRules(t).BC.limitRules, osgiliath, make([]CompanyUnit, 6))[0]; l.Max != 3 {
 		t.Errorf("50%% of 6: %+v", l)
 	}
 }
 
 func TestSlots(t *testing.T) {
-	u := CompanyUnit{Equipment: []Equipment{{Name: "Sword"}, {Name: "Badge of Courage", Size: "small"}, {Name: "Mountain Boots", Size: "large"}}}
+	u := CompanyUnit{BaseSlots: SlotCounts{Large: 1, Small: 1}, Equipment: []Equipment{{Name: "Sword"}, {Name: "Badge of Courage", Size: "small"}, {Name: "Mountain Boots", Size: "large"}}}
 	if s := u.Slots(); s.LargeUsed != 1 || s.LargeMax != 1 || s.SmallUsed != 1 || s.SmallMax != 1 || s.LargeFree() || s.SmallFree() {
 		t.Errorf("a model carries one large and one small item: %+v", s)
 	}
-	u.Equipment = []Equipment{{Name: "Backpack", Size: "large"}, {Name: "Map", Size: "small"}}
+	u.Equipment = []Equipment{{Name: "Backpack", Size: "large", GrantsSlots: SlotCounts{Small: 3}}, {Name: "Map", Size: "small"}}
 	if s := u.Slots(); s.SmallMax != 4 || !s.SmallFree() || s.LargeFree() {
 		t.Errorf("a backpack holds three more small items: %+v", s)
 	}
@@ -360,7 +364,7 @@ func TestAHeroMustTakeTheOnlyResultItCanTake(t *testing.T) {
 	r := book.Progression()
 	sheet := HeroSheet{Path: "Path of the Tactician", Stats: map[string]SheetStat{"attack": {Value: 3, Boost: 2}, "wounds": {Value: 2, Boost: 1}}, Rules: map[string]bool{}, Actions: map[string]bool{}}
 	// a 4 (Attack or Wounds) cannot be taken at the maximum; a 2 (Spy) can: the 2 stands and the 4 is not rerolled
-	roll := r.RollHero(sheet, LevelLists{}, []int{4, 2}, func() int { return 1 })
+	roll := r.RollHero(sheet, LevelLists{}, []int{4, 2}, &FixedDice{Rolls: []int{1}})
 	if len(roll.Offers) != 1 || roll.Offers[0].Roll != 2 {
 		t.Fatalf("only the 2 is offered: %+v", roll.Offers)
 	}
@@ -369,7 +373,7 @@ func TestAHeroMustTakeTheOnlyResultItCanTake(t *testing.T) {
 	}
 	// neither can be taken: both are rolled again until one can
 	calls := 0
-	roll = r.RollHero(sheet, LevelLists{}, []int{4, 4}, func() int { calls++; return 1 }) // 1+1 = 2: Spy
+	roll = r.RollHero(sheet, LevelLists{}, []int{4, 4}, countingDice{&calls}) // 1+1 = 2: Spy
 	if len(roll.Offers) == 0 || calls == 0 {
 		t.Errorf("unavailable results are rolled again: %+v", roll)
 	}
@@ -527,18 +531,18 @@ func TestLimitMaxRoundsUpAndCountsTheNewModel(t *testing.T) {
 		percent float64
 		n, want int
 	}{{33.33, 6, 2}, {33.33, 7, 3}, {33.33, 9, 3}, {33.33, 10, 4}, {33, 6, 2}, {33, 9, 3}, {33, 12, 4}, {33.33, 0, 0}, {50, 5, 3}} {
-		if got := LimitMax(c.percent, c.n); got != c.want {
+		if got := LimitMax(c.percent, c.n, true); got != c.want {
 			t.Errorf("LimitMax(%v, %d) = %d, want %d", c.percent, c.n, got, c.want)
 		}
 	}
 	bow := Equipment{Name: "Bow", Class: EquipBow}
 	units := []CompanyUnit{{Equipment: []Equipment{bow}}, {Equipment: []Equipment{bow}}, {}, {}, {}, {}} // 6 units, 2 bows
-	l := CompanyLimits(units)[0]
+	l := shippedLimits(t, units)[0]
 	if !l.Full() || !l.RoomForNew() || l.Max != 2 || l.Next != 3 {
 		t.Errorf("6 units with 2 bows: the 7th may be a bow unit (limit 3): %+v", l)
 	}
 	units = append(units, CompanyUnit{Equipment: []Equipment{bow}}) // 7 units, 3 bows
-	if l := CompanyLimits(units)[0]; l.RoomForNew() || l.Max != 3 {
+	if l := shippedLimits(t, units)[0]; l.RoomForNew() || l.Max != 3 {
 		t.Errorf("7 units with 3 bows: the 8th may not (limit 3 of 8 rounds up to 3): %+v", l)
 	}
 }
@@ -608,3 +612,10 @@ func TestCompanyEpigraphOnlyArnor(t *testing.T) {
 		}
 	}
 }
+
+// countingDice rolls ones and counts the dice it rolled.
+type countingDice struct{ n *int }
+
+func (c countingDice) D6() int             { return c.Die(6) }
+func (c countingDice) Die(int) int         { *c.n++; return 1 }
+func (c countingDice) Roll(s DiceSpec) int { return sumDice(c, s) }

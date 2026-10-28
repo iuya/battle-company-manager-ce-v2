@@ -1,4 +1,5 @@
-// Rolling dice, for any number of D6.
+// Rolling dice, for any number of dice of any size the rules ask for (a spec such as 2d6 or d12). The 3D dice are six-sided only;
+// a die of another size is drawn flat here, with its number (pips up to six faces would mislead on a d12).
 //
 // DiceTray throws dice on a canvas: they slide and tumble across the tray, bump into the walls and each other, show faces
 // flickering past while they move, slow down and stop on a number. The numbers can be decided beforehand (the server rolled:
@@ -17,7 +18,7 @@
     1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]],
     5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], 6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]],
   };
-  const randomFace = () => 1 + Math.floor(Math.random() * 6);
+  const randomFace = (sides = 6) => 1 + Math.floor(Math.random() * sides);
   const reducedMotion = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   class DiceTray {
@@ -29,6 +30,7 @@
       this.laneOf = this.groups.flatMap((n, lane) => Array(n).fill(lane));
       this.values = opts.values || null; // predetermined results, one per die; null: decided here
       this.onStop = opts.onStop || (() => {});
+      this.sides = opts.sides || 6; // faces of each die
       this.size = opts.size || 52;
       this.rolling = false;
       this.dice = [];
@@ -56,7 +58,7 @@
       this.dice = Array.from({ length: n }, (_, i) => ({
         lane: this.laneOf[i], x: half + 6 + inLane[i] * 14, y: laneH * (this.laneOf[i] + 0.5) + rand(-8, 8) * (this.groups[this.laneOf[i]] > 1 ? 1 : 0.5),
         vx: rand(650, 1000), vy: rand(-320, 320), angle: rand(0, TAU), spin: rand(9, 15) * (Math.random() < 0.5 ? -1 : 1),
-        face: randomFace(), flicker: 0, rest: false, settling: false, final: this.values ? this.values[i] : randomFace(),
+        face: randomFace(this.sides), flicker: 0, rest: false, settling: false, final: this.values ? this.values[i] : randomFace(this.sides),
       }));
       this.rolling = true;
       if (reducedMotion()) { this.finishNow(); return; }
@@ -111,9 +113,9 @@
         if (d.y < top) { d.y = top; d.vy = Math.abs(d.vy) * 0.7; bounced = true; }
         if (d.y > bottom) { d.y = bottom; d.vy = -Math.abs(d.vy) * 0.7; bounced = true; }
         const speed = Math.hypot(d.vx, d.vy);
-        if (bounced) { d.spin += rand(-4, 4); d.face = randomFace(); d.flicker = 0; }
+        if (bounced) { d.spin += rand(-4, 4); d.face = randomFace(this.sides); d.flicker = 0; }
         d.flicker += dt;
-        if (d.flicker > 0.05 + Math.max(0, 1 - speed / 600) * 0.18) { d.flicker = 0; d.face = randomFace(); } // slower as it slows
+        if (d.flicker > 0.05 + Math.max(0, 1 - speed / 600) * 0.18) { d.flicker = 0; d.face = randomFace(this.sides); } // slower as it slows
         if (speed < 28 && Math.abs(d.spin) < 0.8) d.settling = true;
       }
       for (let i = 0; i < this.dice.length; i++) { // dice do not overlap: push them apart and swap their pace
@@ -126,7 +128,7 @@
           a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push;
           const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
           if (rel < 0) { a.vx += rel * nx; a.vy += rel * ny; b.vx -= rel * nx; b.vy -= rel * ny; }
-          for (const d of [a, b]) { d.rest = d.settling = false; d.face = randomFace(); }
+          for (const d of [a, b]) { d.rest = d.settling = false; d.face = randomFace(this.sides); }
         }
       }
     }
@@ -145,8 +147,15 @@
         c.fillStyle = g; c.strokeStyle = '#8c8470'; c.lineWidth = 1.5;
         c.beginPath(); c.roundRect(-s / 2, -s / 2, s, s, r); c.fill(); c.stroke();
         c.fillStyle = '#1d1a14';
-        const step = s * 0.26, pip = s * 0.075;
-        for (const [px, py] of PIPS[d.face]) { c.beginPath(); c.arc(px * step, py * step, pip, 0, TAU); c.fill(); }
+        if (this.sides <= 6) { // a cube: pips
+          const step = s * 0.26, pip = s * 0.075;
+          for (const [px, py] of PIPS[d.face]) { c.beginPath(); c.arc(px * step, py * step, pip, 0, TAU); c.fill(); }
+        } else { // any other die: its number (kept upright)
+          c.rotate(-d.angle);
+          c.font = '700 ' + Math.round(s * (d.face > 99 ? 0.34 : d.face > 9 ? 0.46 : 0.58)) + 'px system-ui, sans-serif';
+          c.textAlign = 'center'; c.textBaseline = 'middle';
+          c.fillText(String(d.face), 0, 1);
+        }
         c.restore();
       }
     }
@@ -187,7 +196,7 @@
 
   // What a page needs to throw dice with Alpine: spread it into a component with its own x-ref="canvas".
   //   state: dice (the numbers once stopped), rolling, stopped; methods: throwDice(opts), shake(), onSpace(event)
-  // opts: count, values (predetermined or null), canShake, then(values) when they stop.
+  // opts: count, sides (faces of each die, 6), values (predetermined or null), canShake, then(values) when they stop.
   // The 3D dice (dice3d.js: three.js and cannon-es) load the first time a roll needs them, so other pages never pay for them.
   // Where WebGL or the file is missing, the 2D tray above is used.
   let loading3D = null;
@@ -207,7 +216,7 @@
 
   window.diceMixin = () => ({
     dice: [], rolling: false, stopped: false, canShake: false, shaken: false, tray: null,
-    async throwDice({ count = 1, values = null, canShake = false, groups = null, labels = [], then = () => {} } = {}) {
+    async throwDice({ count = 1, sides = 6, values = null, canShake = false, groups = null, labels = [], then = () => {} } = {}) {
       if (this.tray) this.tray.destroy();
       this.tray = null;
       this.canShake = canShake && !values; // a roll the server decided cannot be shaken: the number is already settled
@@ -216,7 +225,7 @@
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); // a space must not press a button
       const onStop = v => { this.dice = v; this.rolling = false; this.stopped = true; then(v); };
       const canvas = this.$refs.canvas, lanes = groups && groups.length > 1 ? groups.length : 1;
-      const lib = await load3D();
+      const lib = sides === 6 ? await load3D() : null; // the 3D dice are cubes: other sizes use the flat tray
       if (ticket !== this.ticket) return; // another throw (or the panel's end) came first
       let tray = null;
       if (lib) {
@@ -227,7 +236,7 @@
       }
       if (!tray) { // no WebGL: the flat tray
         canvas.style.height = lanes > 1 ? lanes * 84 + 'px' : '';
-        tray = new DiceTray(canvas, { count, values, groups, labels, onStop });
+        tray = new DiceTray(canvas, { count, sides, values, groups, labels, onStop });
       }
       this.tray = tray;
       tray.roll();

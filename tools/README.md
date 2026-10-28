@@ -18,6 +18,19 @@ python3 tools/build_battle_companies.py
 python3 tools/validate_definitions.py
 ```
 
+The generator writes three things: the file the app loads, `tools/data/*.json` (the curator's provenance and audit records: duplicate
+decisions, aura audit, gear evidence, option-sale sources, fill-in reviews, Tabletop Simulator reasons, single `source` / `note` strings) and
+`definitions/battle_companies/reference/*.json` (prose no code reads: influence, gold, designer notes). `tools/bc/curated.py` does the cut
+(`split`) and the way back (`attach`, the "audit view" the validator and the Python tests read); `tools/test_curated.py` proves that both agree.
+`validate_definitions.py` takes `--data-dir` and reports a missing or stale record as an error. To change a record, change its table in
+`tools/bc/` (`DUPLICATE_DECISIONS` in `core.py`, `EXCLUDED` in `auras.py`, ...) and rebuild; never edit `tools/data/` by hand.
+
+`validate_definitions.py` also range-checks the engine parameters of the file (`engine_parameter_errors`: officers, hero start, starting influence, recruitment die, XP threshold, limits, follower limits, wargear rating threshold; table in docs/definitions.md).
+
+`validate_definitions.py` also checks `definitions/battle_companies/battle_companies.v2.schema.json` (the lean, schemaVersion 2 schema): a valid
+schema that accepts the Go valid fixtures. That file is **generated from the Go model**, not by `tools/`: regenerate it with
+`go test ./internal/core/lean -run TestSchemaUpToDate -update-schema` (docs/definitions.md, "The schema of the lean format").
+
 What is parsed from the text (`tools/bc/`): hero paths and their 2d6 progression tables, equipment, creatures,
 wanderers, the 37 company lists (starting company, reinforcement/special charts, hero upgrades, advancements, unique
 wargear, company rules) and the 18 scenarios. The Victory Point objectives, rewards and Attacker/Defender roles of the scenarios, as input fields

@@ -188,6 +188,8 @@ type campaigns interface {
 	SaveAgainstTheOdds(ctx context.Context, user core.User, id, matchID int64, revision int, sel core.ATOSelection) (core.ATO, error)
 	// Scenarios lists what the scenario picker offers: the campaign's rules file, by table and roll.
 	Scenarios(ctx context.Context, id int64) ([]core.ScenarioInfo, error)
+	// ScenarioSelection is how the campaign's rules pick a scenario by dice: the size of the two dice and the range of the first that picks each table.
+	ScenarioSelection(ctx context.Context, id int64) (core.ScenarioSelection, error)
 	// GrantReward lets the organiser (or an administrator) award a company Gold, Influence and Experience with a note; the
 	// company's resources change at once. An error wrapping core.ErrRefused for anyone else (core.CampaignDetail.CanGrant) and
 	// for a negative result, core.ErrInvalidCompany for bad input (core.GrantInput.Validate). Grants is the company's history
@@ -266,6 +268,13 @@ type rulesets interface {
 	Find(ctx context.Context, kind core.RulesetKind, hash, name, version string) (core.RulesetInfo, error)
 	// StoreAs verifies an upload (hash and kind) and keeps it, recording who uploaded it unless the file is already stored (same hash; the stored file is returned then); invalid files come back as an error wrapping core.ErrInvalidRuleset.
 	StoreAs(ctx context.Context, uploader core.User, kind core.RulesetKind, hash string, content []byte) (core.RulesetInfo, error)
+	// StoreAllAs stores several uploaded files all or nothing: every file is checked first, the problems of all of them come back
+	// together as one error wrapping core.ErrInvalidRuleset (errors.As to *core.RulesetReport lists them), and nothing is stored
+	// unless every file is good. The infos come back in the order of the uploads.
+	StoreAllAs(ctx context.Context, uploader core.User, uploads []core.RulesetUpload) ([]core.RulesetInfo, error)
+	// Check validates a file without storing it (the dry run behind "Check this file"): the report lists every problem and
+	// warning; the error is non-nil, wraps core.ErrInvalidRuleset and is that report when the file has errors.
+	Check(ctx context.Context, kind core.RulesetKind, content []byte) (core.RulesetReport, error)
 	// ListWithUsage, SetDefault, Delete and PruneUnused are the administration Rules files page; superusers only
 	// (core.ErrRefused otherwise). Delete and PruneUnused spare defaults and files campaigns use.
 	ListWithUsage(ctx context.Context, actor core.User) ([]core.RulesetUsage, error)
@@ -335,7 +344,7 @@ type Server struct {
 	throttle  *loginThrottle
 	// accountThrottle limits wrong current passwords on the Account page, per signed-in user.
 	accountThrottle *loginThrottle
-	d6              func() int                  // the server's die; tests replace it
+	die             func(sides int) int         // the server's die (1..sides); tests replace it
 	ready           func(context.Context) error // the database check of /readyz (SetReadiness)
 	cspReports      *reportLimiter
 	recent          recentMatches
@@ -350,7 +359,7 @@ func NewServer(cfg Config, campaigns campaigns, rulesets rulesets, glossary glos
 		return nil, err
 	}
 	_ = staticFiles() // builds the embedded asset table now: a broken build fails at start, not at the first request
-	return &Server{cfg: cfg, campaigns: campaigns, rulesets: rulesets, glossary: glossary, auth: auth, render: r, throttle: newLoginThrottle(), accountThrottle: newLoginThrottle(), cspReports: newReportLimiter(), d6: func() int { return 1 + rand.IntN(6) }}, nil
+	return &Server{cfg: cfg, campaigns: campaigns, rulesets: rulesets, glossary: glossary, auth: auth, render: r, throttle: newLoginThrottle(), accountThrottle: newLoginThrottle(), cspReports: newReportLimiter(), die: func(sides int) int { return 1 + rand.IntN(sides) }}, nil
 }
 
 // Handler returns the fully wired http.Handler (routes + middleware).
@@ -485,6 +494,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /admin/users/{id}/permissions", s.requireSuperuser(s.handleAdminPermissions))
 	mux.HandleFunc("GET /admin/rulesets", s.requireSuperuser(s.handleAdminRulesets))
 	mux.HandleFunc("POST /admin/rulesets", s.requireSuperuser(s.handleAdminRulesetUpload))
+	mux.HandleFunc("POST /admin/rulesets/check", s.requireSuperuser(s.handleAdminRulesetCheck))
 	mux.HandleFunc("POST /admin/rulesets/prune", s.requireSuperuser(s.handleAdminRulesetPrune))
 	mux.HandleFunc("GET /admin/rulesets/{hash}/download", s.requireSuperuser(s.handleAdminRulesetDownload))
 	mux.HandleFunc("POST /admin/rulesets/{hash}/default", s.requireSuperuser(s.handleAdminRulesetDefault))

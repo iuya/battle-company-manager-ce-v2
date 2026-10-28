@@ -5,6 +5,8 @@
 | `make test` | Go unit tests (the PostgreSQL ones are skipped) |
 | `make test-integration` | All Go tests against the `bcm_test` database of the compose PostgreSQL |
 | `python3 tools/validate_definitions.py` | Rules JSON schemas and cross references |
+| `make check-ruleset FILE=…` | Checks a lean rules file like the upload does ([definitions.md](definitions.md#upload-validation)) |
+| `make fuzz [FUZZTIME=1m]` | Explores `FuzzParseDice` and `FuzzDecode` (their seed corpus already runs in `make test`) |
 | `make e2e` | Browser smoke tests (this page); `make e2e-groups` runs them group by group, `make e2e-check-groups` (part of `make test`) checks the grouping |
 | `make perf` | Page-load measurements at 0/100/300 ms of latency, not a test: see [performance.md](performance.md) |
 
@@ -13,6 +15,74 @@
 `internal/core/ttshelper` runs the helper script (`helper.lua`) inside `go test` with gopher-lua, a test-only dependency, against a fake Tabletop Simulator
 API and a simulation of the army spawner's grid; the fixtures are in `tests/tts/`. It needs no game and no Lua binary and runs with `make test`. The real
 game is only exercised by the owner's smoke test ([tabletop-simulator.md](tabletop-simulator.md#built-the-helper-and-the-saved-object)).
+
+## Golden snapshot of the Battle Companies rules (`go test ./internal/core -run Snapshot`)
+
+`internal/core/snapshot_test.go` freezes everything the app derives from the Battle Companies file, as text in `internal/core/testdata/snapshot/`
+(about 2 MB): one `<company>.txt` per company plus `_index`, `_armoury`, `_progression`, `_campaign`, `_ruletargets`, `_tooltips` and
+`_offersets`. It fails on any difference (the first differing lines are shown); it reads only what core exposes (BCBook, CompanyProfile,
+`AuditRules`, `BuildDetail`, the progression and campaign tables), never the json, so a change of the file format must leave the goldens
+untouched. The few unexported helpers it needs are in its "seams" block. After an intended change, `go test ./internal/core -run Snapshot
+-update-snapshot` rewrites the files and the diff is reviewed in its own commit.
+
+| File | Content |
+|---|---|
+| `<company>.txt` | anomalies; the whole profile (start, charts, rules, effects, aliases, hero upgrades, limits, oath, notes); starting gold, points and the totals of every allowed officer choice; the company's unique wargear (limits, `Only`, ratings); every unit (stats, keywords, options with reserved/unsold/read-as, built warrior and hero, what each can buy with gold, `via` and refusals); who may take each hero upgrade; every promotion (match as warrior and hero for each gear combination, choices, gear kept or dropped); tooltips (digest) and glossary terms; the name-resolution map (each unit, gear and rule the company mentions and what it resolves to) |
+| `_armoury.txt` | the common armoury with its ratings, gold, restrictions, grants and gear annotations (asserted equal for every company) |
+| `_progression.txt` | level-up tables, warrior table, per path the offers for each 2D6 result of a fresh hero and the stat limits (`improvedStat`) |
+| `_campaign.txt` | injuries, aftermath (experience, influence, Against the Odds bonuses, charts, effects, scenario rewards), scenarios, campaign options, Against the Odds, break point, hero rating, creatures, wanderers, armour upgrade |
+| `_ruletargets.txt` | the rule-target table and, for every rule in use, who it works against expanded over the keywords of every unit |
+| `_tooltips.txt`, `_offersets.txt` | texts the company files cite by digest (tooltips, the equipment and rule refusals shared by many units) |
+
+## The lean decoder (`internal/core/lean`)
+
+Pure package, so most tests need no mock; `Lower` (what vanilla and the glossary know) has a hand-written fake for the worked examples
+(`fakelower_test.go`) and a generated mock (`make generate`) where a test must see the calls. Tests are table-driven.
+
+- **Fixtures.** `testdata/valid/*.json` are complete minimal files built from the worked examples of the design (section 4); each decodes with no
+  issue, in the lean package against the fake world and in `internal/core` against the shipped vanilla file and glossary. `testdata/invalid/<case>.json`
+  come with `<case>.want`, the exact report text, one per row of the section 7 catalogue. `testdata/gen_fixtures.py` writes the inputs
+  (`python3 -I internal/core/lean/testdata/gen_fixtures.py`); `go test ./internal/core/lean -run TestInvalidFixtures -update` rewrites the `.want`
+  files, and the diff is read: the wording is reviewed there.
+- **Upload error catalogue.** `internal/core/rulesets_catalogue_test.go` drives every invalid fixture through `Rulesets.Check` against the real
+  vanilla file and glossary and compares the full rendered report with `internal/core/testdata/catalogue/<case>.want`
+  (`go test ./internal/core -run TestUploadErrorCatalogue -update-catalogue`); a file with twelve mistakes returns twelve issues, a file with
+  thousands is capped at 1,000 and counted.
+- **Fuzz.** `FuzzDecode` (no panic, no hang beyond 2 s, the same bytes give the same report, a clean document re-encoded and decoded is equal) and
+  `FuzzParseDice`. The seeds are every fixture and the shipped file; they run in `make test`, `make fuzz` explores.
+- **Equivalence.** `internal/core/lean_convert_test.go` has the test-only converter `oldToLean` (never shipped) and `TestLeanEquivalence`, a registry with
+  one entry per section of the old file. Slice 1 converts the header and `campaign` and checks that the typed parameters equal what the engine
+  uses today; slice 3 converts `scenarios[]` (scoring objectives as typed `scoring[]` with one option per tier sentence, stored once) and checks that
+  the line composed from the options equals the three old prose forms byte for byte, that `maxPoints` is derivable, and (`TestLeanScenariosGaps`)
+  which old keys the lean model still has no field for. A later slice adds its section: extend `oldToLean`, replace the `skip` of its entry with a `check`, build the consumer from
+  `RuleSet.Doc`, and the golden snapshot proves the pages did not change.
+- **Benchmark.** `go test ./internal/core/lean -run xxx -bench DecodeLarge`: a 650 KB file decodes in about 25 ms (budget 100 ms); a decode happens
+  once per content hash.
+
+## Custom rulesets and the magic-number lint (`internal/core`)
+
+`customRuleset(t, mutate)` (`customruleset_test.go`) loads the shipped vanilla, Battle Companies and glossary files, lets `mutate` change the
+decoded Battle Companies document (a `map[string]any`) and builds a `RuleSet` with `LoadRuleSet`, the path production uses. `TestCustomRuleset`
+is table-driven, one row per engine parameter ([definitions-lean-design.md](definitions-lean-design.md) section 12.8): `mutate` sets the value,
+`check` asserts the behaviour through the built rule set. The parameter slices P1 to P6 add rows; today it holds a default row, the treatment
+`perPoint` of the "attempt" method, the recruiting parameters (P1) and the dice (P4: injury dice d12, Courage dice, bonus dice, plus
+`TestCustomRulesetRefusesDiceTheTablesDoNotCover` for dice a table does not cover). `dice_test.go` tests `Dice.Roll`, `FixedDice`,
+`CheckCovers`, the typed-roll folding, `ParseScenarioSelection` and the hero roll with another number of results.
+`customruleset_company_test.go` holds the rows of slices P2 and P3 (`TestCustomRulesetCompanyAndLimits`: officers, hero start, `maxModels`, XP threshold, the
+hero rating threshold, `limits[]`, creature, wanderer and path limits, the Courage and Intelligence cap; `TestCustomRulesetRefusesBadCompanyAndLimitParameters`
+for the path-naming load errors); the treatment dice are in `treatment_test.go`. The web templates that print these numbers are tested in
+`internal/web/rules_numbers_test.go` (the officer places, the experience bar, the treatment window).
+
+`magicnumbers_test.go` holds two report-only checks (they log, never fail; run `go test ./internal/core -run 'Magic|TemplateRule' -v`):
+
+- `TestMagicNumbersReport` parses the non-test `internal/core/*.go` with `go/ast`, counts integer literals other than 0, 1 and 2 (set
+  `magicAllowedValues`) and not in `magicAllowList`, logs the total, the top files and values, and lists declarations of the engine constants
+  slices P1 to P3 delete (`magicForbiddenNames`).
+- `TestTemplateRuleLiteralsReport` greps `internal/web/templates` for `up to N` and `ND6` and logs the count per file.
+
+Allow-list format: `magicAllowList["file.go:value"] = "reason"` (that literal anywhere in the file) or `"file.go:Func:value"` (inside one function);
+the reason is mandatory in review, and the list should shrink. To make the lint enforcing (slice P6), set `magicNumbersEnforce = true`, clear or
+justify every remaining literal, and delete the now-empty rows of the report.
 
 ## Browser smoke tests (`make e2e`)
 

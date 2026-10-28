@@ -1,0 +1,2 @@
+battle_companies.json: rules[0].target.keywords: a target of "enemy-keyword" needs keywords, or the rule needs a parameter that picks them
+  hint: list the keywords, or add "parameter": {"kind": "keyword"}

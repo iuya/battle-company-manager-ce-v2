@@ -181,9 +181,9 @@
 {{define "scenario_roll"}}
 {{$m := .Match}}{{$s := .Campaign.Settings}}{{$roll := .Roll}}
 <div id="scenario-roll" class="space-y-3 rounded-xl border border-line bg-raised p-4" x-data="rollPanel" @keydown.space.window="onSpace($event)"
-     data-dice="{{.Dice}}" data-groups="1,1" data-labels="Table,Scenario" data-animate="{{.RollAnimates}}" data-shake="{{$s.ShakeTheTable}}">
+     data-dice="{{.Dice}}" data-groups="1,1" data-labels="Table,Scenario" data-sides="{{.Selection.Die.Sides}}" data-animate="{{.RollAnimates}}" data-shake="{{$s.ShakeTheTable}}">
   <h3 class="!text-xl">Roll for it</h3>
-  <p class="text-sm text-muted">Compare the company ratings: the higher is the Top Dog, the other the Underdog (it wins the roll-off for the layout and starting positions). Then roll a D6 to pick one of the three tables and a second D6 to pick the scenario, ideally rolled by different players.</p>
+  <p class="text-sm text-muted">Compare the company ratings: the higher is the Top Dog, the other the Underdog (it wins the roll-off for the layout and starting positions). Then roll a {{.Selection.Die.Display}} to pick one of the {{len .Selection.Tables}} tables and a second {{.Selection.Die.Display}} to pick the scenario, ideally rolled by different players.</p>
   {{with .RollSides}}
   <ul class="grid gap-2 sm:grid-cols-2">
     {{range .}}<li class="rounded-lg border border-line bg-surface px-3 py-2"><span class="font-medium break-words">{{.Name}}</span> <span class="text-sm text-muted">rating {{.Rating}}</span>{{if .Top}} <span class="badge badge-gold">Top Dog</span>{{else if .Under}} <span class="badge badge-muted">Underdog</span>{{end}}</li>{{end}}
@@ -195,14 +195,14 @@
   <canvas x-ref="canvas" class="dice-tray" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>
   {{if and $roll (not $roll.Error)}}
   <div {{if $roll.Animate}}x-show="revealed" x-cloak{{end}} role="status">
-    <p>You rolled a <strong class="text-2xl">{{$roll.First}}</strong> (table {{template "table_of" $roll.First}}) and a <strong class="text-2xl">{{$roll.Second}}</strong>:
+    <p>You rolled a <strong class="text-2xl">{{$roll.First}}</strong> (table {{$.Selection.Table $roll.First}}) and a <strong class="text-2xl">{{$roll.Second}}</strong>:
     {{with $roll.Scenario}}<strong>{{.Name}}</strong>. It is selected below; use it, or choose another.{{else}} the rules of this campaign place no scenario there. Roll again or choose one below.{{end}}</p>
     {{with $roll.Line}}<p class="text-sm"><span class="badge badge-gold">Vantage Point</span> {{.}}</p>{{end}}
     {{range $roll.Vantage}}{{$vo := .}}
     <form hx-post="/campaigns/{{$.Campaign.ID}}/matches/{{$m.ID}}/scenario/roll" hx-target="#scenario-roll" hx-swap="outerHTML" class="mt-2 flex flex-wrap items-center gap-2">
       <input type="hidden" name="roll" value="{{$roll.First}}"><input type="hidden" name="roll2" value="{{$roll.Second}}"><input type="hidden" name="vantage" value="{{$vo.CompanyID}}">
       <span class="text-sm"><span class="badge badge-gold">Vantage Point</span> {{$vo.Name}} may move the second die (once):</span>
-      <button name="adjust" value="1" class="btn btn-secondary !min-h-9" {{if ge $roll.Second 6}}disabled{{end}}>+1</button>
+      <button name="adjust" value="1" class="btn btn-secondary !min-h-9" {{if ge $roll.Second $.Selection.Die.Sides}}disabled{{end}}>+1</button>
       <button name="adjust" value="-1" class="btn btn-secondary !min-h-9" {{if le $roll.Second 1}}disabled{{end}}>-1</button>
     </form>
     {{end}}
@@ -213,8 +213,8 @@
   <form x-ref="rollForm" hx-post="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/scenario/roll" hx-target="#scenario-roll" hx-swap="outerHTML" class="flex flex-wrap items-end gap-3">
     <input type="hidden" name="thrown" value="" x-ref="thrown">
     {{if $s.ManualRolls}}
-    <div class="field"><label for="roll-first">First die (table)</label><select id="roll-first" name="roll" class="input w-44"><option value="0">Roll for me</option>{{range $n := seq 1 6}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>
-    <div class="field"><label for="roll-second">Second die (scenario)</label><select id="roll-second" name="roll2" class="input w-44"><option value="0">Roll for me</option>{{range $n := seq 1 6}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>
+    <div class="field"><label for="roll-first">First die (table)</label><select id="roll-first" name="roll" class="input w-44"><option value="0">Roll for me</option>{{range $n := seq 1 $.Selection.Die.Sides}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>
+    <div class="field"><label for="roll-second">Second die (scenario)</label><select id="roll-second" name="roll2" class="input w-44"><option value="0">Roll for me</option>{{range $n := seq 1 $.Selection.Die.Sides}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>
     {{else}}<input type="hidden" name="roll" value="0"><input type="hidden" name="roll2" value="0">{{end}}
     <button class="btn btn-secondary" :disabled="rolling" {{if $s.ShakeTheTable}}@click="if (!typed()) { $event.preventDefault(); throwScenario() }"{{end}}>{{if $roll}}Roll again{{else}}Roll the dice{{end}}</button>
   </form>
@@ -231,10 +231,8 @@
     {{range $i, $row := $t.Rows}}<tr class="border-t border-line {{if eq $i $hit}}bg-accent-soft font-semibold{{end}}" {{if eq $i $hit}}aria-current="true"{{end}}>{{range $j, $c := $row.Cells}}{{if eq $j 0}}<th scope="row" class="px-3 py-1.5 text-left align-top font-medium">{{$c}}</th>{{else}}<td class="break-words px-3 py-1.5 align-top">{{$c}}</td>{{end}}{{end}}</tr>{{end}}
   </tbody>
 </table>
-{{if ge $hit 0}}<p class="mt-1 text-xs text-muted">Highlighted: the companies in this match add up to {{.Combined}} rating.</p>{{else if eq $t.Lookup "combinedRating"}}<p class="mt-1 text-xs text-muted">Look up the two companies' ratings added together.</p>{{else if eq $t.Lookup "d6"}}<p class="mt-1 text-xs text-muted">Roll a D6 and read the matching row.</p>{{end}}
+{{if ge $hit 0}}<p class="mt-1 text-xs text-muted">Highlighted: the companies in this match add up to {{.Combined}} rating.</p>{{else if eq $t.Lookup "combinedRating"}}<p class="mt-1 text-xs text-muted">Look up the two companies' ratings added together.</p>{{else if $t.TableDice.Valid}}<p class="mt-1 text-xs text-muted">Roll {{if eq $t.TableDice.Count 1}}a {{end}}{{$t.TableDice.Display}} and read the matching row.</p>{{end}}
 {{end}}
-
-{{define "table_of"}}{{if le . 2}}1{{else if le . 4}}2{{else}}3{{end}}{{end}}
 
 {{/* The one-off scenario form: a scenario the players invented. It is kept with this match only. */}}
 {{define "scenario_custom"}}
@@ -471,7 +469,7 @@
 {{define "end_checks_sheet"}}
 <div id="end-checks" data-end-checks>
   <h2 class="!text-2xl pr-10">End checks</h2>
-  <p class="mt-1 text-sm text-muted">What the players settle when the game ends. Each is worth 1 experience.</p>
+  <p class="mt-1 text-sm text-muted">What the players settle when the game ends. The objective is worth {{.Checks.ObjectiveXP}} experience, the MVP {{.Checks.MVPXP}}.</p>
   {{template "end_checks_body" .}}
   <p class="mt-4"><button type="button" class="btn btn-secondary" @click="closeModal()">Close</button></p>
 </div>
@@ -480,7 +478,7 @@
 {{define "end_checks_card"}}
 <section id="end-checks" data-end-checks class="card mt-6 space-y-3" aria-labelledby="end-checks-title">
   <h2 id="end-checks-title" class="!text-2xl">End checks</h2>
-  <p class="text-sm text-muted">What the players settle when the game ends. Each is worth 1 experience.</p>
+  <p class="text-sm text-muted">What the players settle when the game ends. The objective is worth {{.Checks.ObjectiveXP}} experience, the MVP {{.Checks.MVPXP}}.</p>
   {{template "end_checks_body" .}}
 </section>
 {{end}}

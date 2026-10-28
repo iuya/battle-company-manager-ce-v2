@@ -6,12 +6,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 var messagePrinter = message.NewPrinter(language.English)
@@ -93,48 +96,162 @@ func (r *Rulesets) StoreAs(ctx context.Context, uploader User, kind RulesetKind,
 }
 
 func (r *Rulesets) store(ctx context.Context, kind RulesetKind, hash string, content []byte, uploader int64) (RulesetInfo, error) {
-	if !kind.Valid() {
-		return RulesetInfo{}, errors.Join(ErrInvalidRuleset, errors.New("unknown kind of rules file"))
-	}
-	if len(content) > MaxRulesetSize {
-		return RulesetInfo{}, errors.Join(ErrInvalidRuleset, fmt.Errorf("the file is larger than %d MB", MaxRulesetSize>>20))
-	}
-	got, err := RulesetHash(content)
+	p, err := r.prepare(ctx, kind, hash, content)
 	if err != nil {
 		return RulesetInfo{}, err
+	}
+	return r.insert(ctx, p, uploader)
+}
+
+// prepared is an upload that passed every check and is ready to insert (known: the file was already stored, nothing to insert).
+type prepared struct {
+	info    RulesetInfo
+	known   bool
+	compact []byte
+}
+
+// prepare runs every check of an upload (size, hash, kind, shape, schema or lean decode) without writing anything.
+func (r *Rulesets) prepare(ctx context.Context, kind RulesetKind, hash string, content []byte) (prepared, error) {
+	got, err := r.preflightHash(kind, content)
+	if err != nil {
+		return prepared{}, err
 	}
 	if got != hash {
-		return RulesetInfo{}, errors.Join(ErrInvalidRuleset, errors.New("the file does not match the hash it was announced with"))
+		return prepared{}, errors.Join(ErrInvalidRuleset, errors.New("the file does not match the hash it was announced with"))
 	}
-	if err := checkRulesetShape(content); err != nil {
-		return RulesetInfo{}, err
-	}
-	name, version, err := RulesetMeta(kind, content)
+	name, version, err := preflightShape(kind, content)
 	if err != nil {
-		return RulesetInfo{}, err
+		return prepared{}, err
 	}
 	known, err := r.repo.Info(ctx, hash)
 	switch {
 	case err == nil:
 		if known.Kind != kind {
-			return RulesetInfo{}, errors.Join(ErrInvalidRuleset, errors.New("this file is already stored as a "+known.Kind.Label()+" file"))
+			return prepared{}, errors.Join(ErrInvalidRuleset, errors.New("this file is already stored as a "+known.Kind.Label()+" file"))
 		}
-		return known, nil
+		return prepared{info: known, known: true}, nil
 	case !errors.Is(err, ErrNotFound):
-		return RulesetInfo{}, err
+		return prepared{}, err
 	}
-	if err := r.validate(kind, content); err != nil {
-		return RulesetInfo{}, err
+	if rep := r.validateFile(ctx, kind, content); rep.Errors() > 0 {
+		return prepared{}, rep
+	} else if !acceptV2 && kind == KindBattleCompanies && isLeanFile(content) {
+		return prepared{}, ErrRulesetNotPlayable
 	}
 	compact, err := compactJSON(content)
 	if err != nil {
+		return prepared{}, err
+	}
+	return prepared{info: RulesetInfo{Kind: kind, Hash: hash, Name: name, Version: version}, compact: compact}, nil
+}
+
+func (r *Rulesets) insert(ctx context.Context, p prepared, uploader int64) (RulesetInfo, error) {
+	if p.known {
+		return p.info, nil
+	}
+	if err := r.repo.Insert(ctx, StoredRuleset{RulesetInfo: p.info, Size: len(p.compact), Content: p.compact, UploadedBy: uploader}); err != nil {
 		return RulesetInfo{}, err
 	}
-	info := RulesetInfo{Kind: kind, Hash: hash, Name: name, Version: version}
-	if err := r.repo.Insert(ctx, StoredRuleset{RulesetInfo: info, Size: len(compact), Content: compact, UploadedBy: uploader}); err != nil {
-		return RulesetInfo{}, err
+	return p.info, nil
+}
+
+// RulesetUpload is one file of an upload: its kind, the hash the browser announced, and the bytes.
+type RulesetUpload struct {
+	Kind    RulesetKind
+	Hash    string
+	Content []byte
+}
+
+// StoreAllAs stores several uploaded files all or nothing: every file is checked first, the problems of all of them are
+// returned together (one report, each issue naming its file), and nothing is inserted unless every file is good. The infos come back in the order of the uploads.
+func (r *Rulesets) StoreAllAs(ctx context.Context, uploader User, uploads []RulesetUpload) ([]RulesetInfo, error) {
+	preps := make([]prepared, len(uploads))
+	var errs []error
+	for i, u := range uploads {
+		p, err := r.prepare(ctx, u.Kind, u.Hash, u.Content)
+		if err != nil {
+			if !errors.Is(err, ErrInvalidRuleset) {
+				return nil, err // the repository failed: not a problem of the file
+			}
+			_, rerr := failure(u.Kind, err)
+			errs = append(errs, rerr)
+			continue
+		}
+		preps[i] = p
 	}
-	return info, nil
+	if len(errs) > 0 {
+		return nil, JoinRulesetReports(errs...)
+	}
+	infos := make([]RulesetInfo, len(uploads))
+	for i, p := range preps {
+		info, err := r.insert(ctx, p, uploader.ID)
+		if err != nil {
+			return nil, err
+		}
+		infos[i] = info
+	}
+	return infos, nil
+}
+
+// preflightHash checks the kind and the size, and returns the file's hash (an error when it is not JSON).
+func (r *Rulesets) preflightHash(kind RulesetKind, content []byte) (string, error) {
+	if !kind.Valid() {
+		return "", errors.Join(ErrInvalidRuleset, errors.New("unknown kind of rules file"))
+	}
+	if len(content) > MaxRulesetSize {
+		return "", errors.Join(ErrInvalidRuleset, fmt.Errorf("the file is larger than %d MB", MaxRulesetSize>>20))
+	}
+	return RulesetHash(content)
+}
+
+// preflightShape checks the shape limits and that the file is the kind of document it claims to be; it returns name and version.
+func preflightShape(kind RulesetKind, content []byte) (name, version string, err error) {
+	if err := checkRulesetShape(content); err != nil {
+		return "", "", err
+	}
+	return RulesetMeta(kind, content)
+}
+
+// Check validates a rules file without storing it and without creating anything (the dry run of the admin "Check this file"
+// button and of the campaign form). The report carries every problem and every warning; the error is non-nil, wraps
+// ErrInvalidRuleset and is that report when the file has errors. A valid schemaVersion 2 file is not an error here: Check says
+// whether the file is right, StoreAs whether this build can play it.
+//
+// REVIEW: a schemaVersion 2 Battle Companies file is checked against the default vanilla file and glossary, not against the other
+// two files the campaign form picked; refine when v2 files become playable (slice 9).
+func (r *Rulesets) Check(ctx context.Context, kind RulesetKind, content []byte) (RulesetReport, error) {
+	if _, err := r.preflightHash(kind, content); err != nil {
+		return failure(kind, err)
+	}
+	if _, _, err := preflightShape(kind, content); err != nil {
+		return failure(kind, err)
+	}
+	rep := r.validateFile(ctx, kind, content)
+	if rep.Errors() > 0 {
+		return *rep, rep
+	}
+	return *rep, nil
+}
+
+// failure turns a plain rejection (too large, not JSON, wrong kind of document) into a one-issue report.
+func failure(kind RulesetKind, err error) (RulesetReport, error) {
+	var rep *RulesetReport
+	if errors.As(err, &rep) {
+		return *rep, rep
+	}
+	msg := reasonOf(err)
+	r := &RulesetReport{issues: []RulesetIssue{{File: kind.fileName(), Message: msg}}, summary: msg}
+	return *r, r
+}
+
+// reasonOf is the human part of an error built with errors.Join(ErrInvalidRuleset, reason).
+func reasonOf(err error) string {
+	if u, ok := err.(interface{ Unwrap() []error }); ok {
+		if errs := u.Unwrap(); len(errs) > 1 {
+			return errs[len(errs)-1].Error()
+		}
+	}
+	return err.Error()
 }
 
 func compactJSON(content []byte) ([]byte, error) {
@@ -145,37 +262,119 @@ func compactJSON(content []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// validate checks the file against the schema of its kind and joins the reasons (at most a handful) into the error.
+// validate checks the file against what its kind demands and returns every problem. A Battle Companies file of schemaVersion 2 goes
+// through the lean decoder, against the default vanilla file and glossary; every other file against the JSON schema of its kind
+// (the failures converted to issues, none dropped). The report never is nil.
+func (r *Rulesets) validateFile(ctx context.Context, kind RulesetKind, content []byte) *RulesetReport {
+	if kind == KindBattleCompanies && isLeanFile(content) {
+		return r.validateV2(ctx, content)
+	}
+	return r.validateSchema(kind, content)
+}
+
+func (r *Rulesets) validateV2(ctx context.Context, content []byte) *RulesetReport {
+	vanilla, glossary, err := r.defaultLowers(ctx)
+	if err != nil {
+		return &RulesetReport{issues: []RulesetIssue{{File: KindBattleCompanies.fileName(), Message: "the default vanilla and glossary files needed to check this file are not available: " + err.Error()}}}
+	}
+	_, rep := DecodeBattleCompanies(KindBattleCompanies.fileName(), content, vanilla, glossary)
+	return newRulesetReport(rep)
+}
+
+// defaultLowers builds the vanilla book and the glossary of the default files.
+func (r *Rulesets) defaultLowers(ctx context.Context) (*VanillaBook, Glossary, error) {
+	load := func(kind RulesetKind) (StoredRuleset, error) {
+		info, err := r.repo.Default(ctx, kind)
+		if err != nil {
+			return StoredRuleset{}, fmt.Errorf("no default %s file: %w", kind, err)
+		}
+		return r.repo.Get(ctx, info.Hash)
+	}
+	v, err := load(KindVanilla)
+	if err != nil {
+		return nil, Glossary{}, err
+	}
+	g, err := load(KindGlossary)
+	if err != nil {
+		return nil, Glossary{}, err
+	}
+	book, err := ParseVanilla(v.Content)
+	if err != nil {
+		return nil, Glossary{}, err
+	}
+	gl, err := BuildGlossary(g.RulesetInfo, g.Content)
+	if err != nil {
+		return nil, Glossary{}, err
+	}
+	return book, gl, nil
+}
+
+// validate checks the file against the JSON schema of its kind and returns the report as the error (nil when it passes).
 func (r *Rulesets) validate(kind RulesetKind, content []byte) error {
+	if rep := r.validateSchema(kind, content); rep.Errors() > 0 {
+		return rep
+	}
+	return nil
+}
+
+// validateSchema checks the file against the JSON schema of its kind.
+func (r *Rulesets) validateSchema(kind RulesetKind, content []byte) *RulesetReport {
+	file := kind.fileName()
+	notJSON := &RulesetReport{issues: []RulesetIssue{{File: file, Message: "the file is not valid JSON"}}, summary: "the file is not valid JSON"}
 	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(content))
 	if err != nil {
-		return errors.Join(ErrInvalidRuleset, errors.New("the file is not valid JSON"))
+		return notJSON
 	}
 	err = r.schemas[kind].Validate(doc)
 	if err == nil {
-		return nil
+		return &RulesetReport{}
 	}
 	var ve *jsonschema.ValidationError
 	if !errors.As(err, &ve) {
-		return errors.Join(ErrInvalidRuleset, err)
+		return &RulesetReport{issues: []RulesetIssue{{File: file, Message: err.Error()}}, summary: err.Error()}
 	}
+	rep := &RulesetReport{}
 	var reasons []string
-	collectCauses(ve, &reasons)
-	if len(reasons) > 5 {
-		reasons = append(reasons[:5], fmt.Sprintf("and %d more", len(reasons)-5))
+	collectCauses(ve, file, &rep.issues, &reasons)
+	if len(rep.issues) > lean.MaxIssues {
+		rep.truncated = len(rep.issues) - lean.MaxIssues
+		rep.issues = rep.issues[:lean.MaxIssues]
 	}
-	return errors.Join(ErrInvalidRuleset, errors.New("the file does not follow the "+strings.ToLower(kind.Label())+" format: "+strings.Join(reasons, "; ")))
+	if len(reasons) > schemaSummaryReasons {
+		reasons = append(reasons[:schemaSummaryReasons], fmt.Sprintf("and %d more", len(reasons)-schemaSummaryReasons))
+	}
+	rep.summary = "the file does not follow the " + strings.ToLower(kind.Label()) + " format: " + strings.Join(reasons, "; ")
+	return rep
 }
 
-func collectCauses(ve *jsonschema.ValidationError, out *[]string) {
+// schemaSummaryReasons is how many schema failures the one-line error text names; the report lists them all.
+const schemaSummaryReasons = 5
+
+// collectCauses lists the leaf failures of a schema validation as issues (json path, message) and as the "/pointer: message"
+// strings of the one-line summary.
+func collectCauses(ve *jsonschema.ValidationError, file string, issues *[]RulesetIssue, reasons *[]string) {
 	if len(ve.Causes) == 0 {
-		loc := "/" + strings.Join(ve.InstanceLocation, "/")
-		*out = append(*out, fmt.Sprintf("%s: %s", loc, ve.ErrorKind.LocalizedString(messagePrinter)))
+		msg := ve.ErrorKind.LocalizedString(messagePrinter)
+		*reasons = append(*reasons, fmt.Sprintf("%s: %s", "/"+strings.Join(ve.InstanceLocation, "/"), msg))
+		*issues = append(*issues, RulesetIssue{File: file, Path: schemaPath(ve.InstanceLocation), Message: msg})
 		return
 	}
 	for _, c := range ve.Causes {
-		collectCauses(c, out)
+		collectCauses(c, file, issues, reasons)
 	}
+}
+
+// schemaPath writes a JSON pointer's parts in the path form of the other reports: a.b[3].c
+func schemaPath(parts []string) string {
+	p := ""
+	for _, part := range parts {
+		if n, err := strconv.Atoi(part); err == nil && n >= 0 {
+			p = lean.Idx(p, n)
+		} else {
+			p = lean.Join(p, part)
+		}
+	}
+	return p
 }
 
 // RegisterDefaults stores the files the app ships with and makes them the defaults of their kinds. Called at every start:

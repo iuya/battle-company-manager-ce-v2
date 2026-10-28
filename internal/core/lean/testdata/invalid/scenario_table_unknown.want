@@ -1,0 +1,2 @@
+battle_companies.json: campaign.scenarioSelection.tables[0].scenarios[1]: no scenario "Chance Encountr" in scenarios[]; closest: "Chance Encounter"
+  hint: define it in scenarios[]

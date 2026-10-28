@@ -1,0 +1,2 @@
+battle_companies.json: paths[0].rows: rolls 2..12 need an option each; 7 is missing
+battle_companies.json: paths[1].rows: rolls 1..6 need an option each; 4-6 are missing

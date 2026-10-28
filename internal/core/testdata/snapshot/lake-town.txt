@@ -1,0 +1,460 @@
+# Lake-town (good)
+
+=== anomalies (36) ===
+tooltip-name | Armoured horse | tooltip (bc armoury) never says "Armoured horse": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+tooltip-name | Armour | tooltip (bc definition) never says "Armour": Adds 1 to Defence.
+tooltip-name | Barding | tooltip (bc definition) never says "Barding": The rider gains the Expert Rider & Horselord special rules.
+tooltip-name | Blowpipe | tooltip (bc definition) never says "Blowpipe": 12" Range, 2 Strength. Benefits from the Poisoned Weapons special rule (re-roll …
+tooltip-name | Company Drum | tooltip (bc definition) never says "Company Drum": This is a War Drum that grants the bearer the Command Support keyword.
+tooltip-name | Company Horn | tooltip (bc definition) never says "Company Horn": This is a War Horn that grants the bearer the Command Support keyword.
+tooltip-name | Company Instrument | tooltip (bc definition) never says "Company Instrument": This is an Instrument that grants the bearer the Command Support keyword. Friend…
+tooltip-name | Company Standard | tooltip (bc definition) never says "Company Standard": This is a Pennant that grants the bearer the Command Support keyword. Friendly m…
+tooltip-name | Dunlending War Axe | tooltip (bc definition) never says "Dunlending War Axe": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Dwarf Bow | tooltip (bc definition) never says "Dwarf Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Dwarf Longbow | tooltip (bc definition) never says "Dwarf Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Easterling Halberd | tooltip (bc definition) never says "Easterling Halberd": This can be used as either a pike or a two-handed weapon.
+tooltip-name | Elf Bow | tooltip (bc definition) never says "Elf Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Elven hand-and-a-half weapon | tooltip (bc definition) never says "Elven hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | Elven lance | tooltip (bc definition) never says "Elven lance": A Cavalry model using a lance adds 1 to its To Wound rolls when making Strikes i…
+tooltip-name | Elven pike | tooltip (bc definition) never says "Elven pike": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Elven spear | tooltip (bc definition) never says "Elven spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Elven throwing weapon | tooltip (bc definition) never says "Elven throwing weapon": 6" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Envenom Weapon (X) | tooltip (bc definition) never says "Envenom Weapon (X)": When a model purchases Envenom Weapon, they must decide which weapon on their pr…
+tooltip-name | Esgaroth Bow | tooltip (bc definition) never says "Esgaroth Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Fell Warg | tooltip (bc armoury) never says "Fell Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | Galadhrim Steed | tooltip (bc definition) never says "Galadhrim Steed": This is an armoured horse that also has the Woodland Creature special rule.
+tooltip-name | Goat | tooltip (bc armoury) never says "Goat": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+tooltip-name | Hand-and-a-half weapon | tooltip (bc definition) never says "Hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | Horse | tooltip (bc armoury) never says "Horse": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | Longbow | tooltip (bc definition) never says "Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Orc Bow | tooltip (bc definition) never says "Orc Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Seeing Stone | tooltip (bc definition) never says "Seeing Stone": Once per game, during the Priority Phase but before the roll for Priority, the b…
+tooltip-name | Short Bow | tooltip (bc definition) never says "Short Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Small Shield | tooltip (bc definition) never says "Small Shield": This is a Light Shield that gives the bearer +1 to their Defence Characteristic …
+tooltip-name | Spear | tooltip (bc definition) never says "Spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Throwing Spears | tooltip (bc definition) never says "Throwing Spears": 8" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Torching Brand | tooltip (bc definition) never says "Torching Brand": A model with a Torch gains the following benefits: They illuminate the area with…
+tooltip-name | Uruk-Hai Bow | tooltip (bc definition) never says "Uruk-Hai Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | War spear | tooltip (bc definition) never says "War spear": Counts as a lance while mounted, and a spear while dismounted
+tooltip-name | Warg | tooltip (bc armoury) never says "Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+
+=== profile (everything the company page holds) ===
+profile
+  BCCompany:
+    Name: "Lake-town"
+    Alignment: "good"
+    MaxModels: 20
+    ReinforcementCost: 2
+    Reinforcements:
+      - {Min: 1, Max: 1, Result: {Type: "nothing", Count: 1, Blocks: true}}
+      - {Min: 2, Max: 3, Result: {Type: "unit", Unit: "Lake-town Militia", Count: 1, Choice: true}}
+      - {Min: 4, Max: 4, Result: {Type: "unit", Unit: "Lake-town Guard", Count: 1, Choice: true}}
+      - {Min: 5, Max: 5, Result: {Type: "unit", Unit: "Lake-town Militia", Count: 2, Choice: true}}
+      - {Min: 6, Max: 6, Result: {Type: "unit", Unit: "Lake-town Guard", Count: 2, Choice: true}}
+    LimitOverrides: {}
+  Description: "The fishing settlement of Esgaroth has long lived in the shadows of The Lonely Mountain and the threat that lies within. In recent years, Lake-town has fallen upon hard times, with its people struggling to find enough food and shelter. The Master of Lake-town, however, hoards his wealth within his residence, growing ever richer whilst the common folk struggle to make ends meet. Yet the Master of Lake-town's lust for wealth extends further, beyond the borders of Lake-town and into the wider world.\n\nThe Master of Lake-town tasks the more opportunistic of his guard to travel across Middle-earth in search of riches, valuable items and trade deals with other realms – some say it was patrols such as these that founded the deal between the Elvenking and Lake-town for their wine. The guards who set out on these ventures will seldom go alone, gathering with them a band of townsfolk from all walks of life to accompany them, promising them the reward of a better life should they return."
+  Start:
+    - {Count: 1, Unit: "Lake-town Guard"}
+    - {Count: 1, Unit: "Lake-town Guard", Wargear: ["Spear"]}
+    - {Count: 1, Unit: "Lake-town Guard", Wargear: ["Bow"]}
+    - {Count: 2, Unit: "Lake-town Militia", Wargear: ["Light Shield"]}
+    - {Count: 2, Unit: "Lake-town Militia", Wargear: ["Spear"]}
+    - {Count: 2, Unit: "Lake-town Militia", Wargear: ["Bow"]}
+  StartGold: 1
+  HeroUpgrades:
+    -
+      Name: "Moneybags"
+      Flavour: "The Master of Lake-town uses his company leaders to distribute the flow of his money. His guards are ever eager to earn his favour and his coin."
+      Rule: "Moneybags"
+      Text: "At the start of the Fight phase, before any Heroic Actions are declared, the Hero can spend a Will Point to use this special rule. If he does, then any friendly Lake-town models within 6\" of this Hero gains a bonus of +1 to their Fight Value and treats this Hero as a banner until the end of the turn."
+  Rules: ["Additionally, a Lake-town Battle Company may have up to 20 models rather than 15."]
+  Substitutions:
+    - "Lake-town Guard treat any friendly Lake-town Hero model with the Moneybags special rule as the Master for the purposes of their Everyone has a Price special rule."
+  Oath:
+    Text: "The lake has fed us and drowned us, and the dragon's ashes still blow in the wind. I lead the watchmen of Esgaroth as {name}, to keep our boats afloat, our coin safe, and our children warm."
+    Vow: "For Esgaroth"
+  StartHeroes: {Allowed: ["Lake-town Guard"]}
+  Notes:
+    - {Section: "startingCompany", Text: "Only Lake-town Guard may be selected as Hero models when you start your Battle Company."}
+    -
+      Section: "advancements"
+      Text: "Lake-town Guard treat any friendly Lake-town Hero model with the Moneybags special rule as the Master for the purposes of their Everyone has a Price special rule."
+path "Path of the Tactician": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Sharpshooter": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Soldier": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Marksman": limit per company 0, start action "Heroic Accuracy", start power no; chart as in _progression.txt
+path "Path of the Claimant": limit per company 0, start action "Heroic Challenge", start power no; chart as in _progression.txt
+path "Path of the Sorcerer": limit per company 1, start action "Heroic Channeling", start power yes; chart as in _progression.txt
+path "Path of the Shieldbearer": limit per company 0, start action "Heroic Defence", start power no; chart as in _progression.txt
+path "Path of the Ranger": limit per company 0, start action "Heroic March", start power no; chart as in _progression.txt
+path "Path of the Warlord": limit per company 0, start action "Heroic Resolve", start power no; chart as in _progression.txt
+path "Path of the Berserker": limit per company 0, start action "Heroic Strength", start power no; chart as in _progression.txt
+path "Path of the Duelist": limit per company 0, start action "Heroic Strike", start power no; chart as in _progression.txt
+starting power power:Aura of Command = Aura of Command · 5+ · self
+starting power power:Aura of Dismay = Aura of Dismay · 4+ · self
+starting power power:Banishment = Banishment · 5+ · 6"
+starting power power:Black Dart = Black Dart · 6+ · 6"
+starting power power:Bladewrath = Bladewrath · 5+ · 6"
+starting power power:Blessing of the Valar = Blessing of the Valar · 4+ · 6"
+starting power power:Blinding Light = Blinding Light · 5+ · self
+starting power power:Call Winds = Call Winds · 5+ · 12"
+starting power power:Collapse Rocks = Collapse Rocks · 6+ · 12"
+starting power power:Compel = Compel · 5+ · 12"
+starting power power:Curse = Curse · 5+ · 12"
+starting power power:Drain Courage = Drain Courage · 5+ · 12"
+starting power power:Enchant Blades = Enchant Blades · 5+ · 6"
+starting power power:Enrage Beast = Enrage Beast · 5+ · 6"
+starting power power:Flameburst = Flameburst · 6+ · 6"
+starting power power:Fog of Disarray = Fog of Disarray · 4+ · self
+starting power power:Foil Magic = Foil Magic · 4+ · 12"
+starting power power:Fortify Spirit = Fortify Spirit · 4+ · 6"
+starting power power:Fury (Easterling) = Fury (Easterling) · 4+ · self
+starting power power:Fury (Moria Goblin) = Fury (Moria Goblin) · 4+ · self
+starting power power:Fury (Mordor Orc) = Fury (Mordor Orc) · 4+ · self
+starting power power:Fury (Isengard Orc) = Fury (Isengard Orc) · 4+ · self
+starting power power:Fury (Isengard Uruk-hai) = Fury (Isengard Uruk-hai) · 4+ · self
+starting power power:Fury (Beast) = Fury (Beast) · 4+ · self
+starting power power:Fury (Spider) = Fury (Spider) · 4+ · self
+starting power power:Instill Fear = Instill Fear · 6+ · self
+starting power power:Nature's Wrath = Nature's Wrath · 6+ · 3"
+starting power power:Panic Steed = Panic Steed · 5+ · 12"
+starting power power:Protection of the Valar = Protection of the Valar · 5+ · 6"
+starting power power:Renew = Renew · 5+ · 3"
+starting power power:Sorcerous Blast = Sorcerous Blast · 6+ · 6"
+starting power power:Strengthen Will = Strengthen Will · 5+ · 6"
+starting power power:Terrifying Aura = Terrifying Aura · 4+ · self
+starting power power:Transfix = Transfix · 5+ · 12"
+starting power power:Tremor = Tremor · 6+ · self
+starting power power:Wither = Wither · 5+ · 12"
+starting power power:Writhing Vines = Writhing Vines · 5+ · self
+
+=== start: gold, points and officer choices ===
+starting influence 0, gold 1
+default officers [{0 leader} {1 sergeant} {2 sergeant}]: 9 models, 104 points, total 105
+officer choices: 3 allowed, 0 refused; totals (points + gold) of the allowed ones:
+  total 105: 3 choices
+company at creation: 104 points, max units 20, break point 50%, limits:
+  limit bow "Bows" used 3 max 3 next 4
+  limit throwing "Throwing weapons" used 0 max 3 next 4
+  limit cavalry "Cavalry" used 0 max 3 next 4
+
+=== armoury of the company: unique wargear ===
+armoury size 62 (common 62 + unique 0)
+
+=== units ===
+
+-- Lake-town Guard
+from: start; reinforcements 4; reinforcements 6; promotion from Lake-town Militia
+vanilla Lake-town Guard: 7 points, types Warrior, Infantry, race Man, faction Lake-town
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 8+ · I 8+
+rules: Everyone has a Price | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Lake-town/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Bow, Spear
+built warrior: 7 points | equipment: Hand weapon (profile), Armour (profile) | rules: Everyone has a Price (unit)
+built hero: 22 points | equipment: Hand weapon (profile), Armour (profile) | rules: Everyone has a Price (unit)
+may lead yes | own path no | hero upgrades: Moneybags
+warrior can buy wargear (2): Bow via Bow; Spear via Spear
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 30 not an option of the profile; 13 for other reasons: set a73a183e
+hero can buy wargear (3): Bow via Bow; Spear via Spear; Light Shield via Light shield
+hero can buy equipment (23): set e39fbb31
+hero refused: 29 not an option of the profile; 7 for other reasons: set 3033d39e
+
+-- Lake-town Guard (Spear)
+from: start
+vanilla Lake-town Guard: 7 points, types Warrior, Infantry, race Man, faction Lake-town
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 8+ · I 8+
+rules: Everyone has a Price | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Lake-town/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Bow, Spear
+built warrior: 8 points | equipment: Hand weapon (profile), Spear, Armour (profile) | rules: Everyone has a Price (unit)
+built hero: 23 points | equipment: Hand weapon (profile), Spear, Armour (profile) | rules: Everyone has a Price (unit)
+may lead yes | own path no | hero upgrades: Moneybags
+warrior can buy wargear (1): Bow via Bow
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 30 not an option of the profile; 14 for other reasons: set 61b8cd69
+hero can buy wargear (2): Bow via Bow; Light Shield via Light shield
+hero can buy equipment (23): set e39fbb31
+hero refused: 29 not an option of the profile; 8 for other reasons: set 6e99fa67
+
+-- Lake-town Guard (Bow)
+from: start
+vanilla Lake-town Guard: 7 points, types Warrior, Infantry, race Man, faction Lake-town
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 8+ · I 8+
+rules: Everyone has a Price | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Lake-town/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Bow, Spear
+built warrior: 8 points | equipment: Hand weapon (profile), Armour (profile), Bow | rules: Everyone has a Price (unit)
+built hero: 23 points | equipment: Hand weapon (profile), Armour (profile), Bow | rules: Everyone has a Price (unit)
+may lead yes | own path no | hero upgrades: Moneybags
+warrior can buy wargear (1): Spear via Spear
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 30 not an option of the profile; 14 for other reasons: set 0e457bca
+hero can buy wargear (2): Spear via Spear; Light Shield via Light shield
+hero can buy equipment (23): set e39fbb31
+hero refused: 29 not an option of the profile; 8 for other reasons: set 7c55058f
+
+-- Lake-town Militia (Light Shield)
+from: start
+vanilla Lake-town Militia: 5 points, types Warrior, Infantry, race Man, faction Lake-town
+profile: Mv 6" · FV 2 · SV 4+ · S 3 · D 3 · A 1 · W 1 · C 7+ · I 8+
+rules: Onwards Men of Esgaroth | actions:  | wargear: Light Armour, Hand weapon
+keywords: Man/race/profile, Lake-town/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Light shield" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Bow, Light shield, Spear
+built warrior: 6 points | equipment: Hand weapon (profile), Light Shield, Light Armour (profile) | rules: Onwards Men of Esgaroth (unit)
+built hero: 21 points | equipment: Hand weapon (profile), Light Shield, Light Armour (profile) | rules: Onwards Men of Esgaroth (unit)
+may lead no | own path no | hero upgrades: Moneybags
+promotes to: Lake-town Guard
+warrior can buy wargear (2): Bow via Bow; Spear via Spear
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 29 not an option of the profile; 14 for other reasons: set 5cb1b91a
+hero can buy wargear (2): Bow via Bow; Spear via Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 29 not an option of the profile; 8 for other reasons: set cbac8556
+
+-- Lake-town Militia (Spear)
+from: start
+vanilla Lake-town Militia: 5 points, types Warrior, Infantry, race Man, faction Lake-town
+profile: Mv 6" · FV 2 · SV 4+ · S 3 · D 3 · A 1 · W 1 · C 7+ · I 8+
+rules: Onwards Men of Esgaroth | actions:  | wargear: Light Armour, Hand weapon
+keywords: Man/race/profile, Lake-town/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Light shield" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Bow, Light shield, Spear
+built warrior: 6 points | equipment: Hand weapon (profile), Spear, Light Armour (profile) | rules: Onwards Men of Esgaroth (unit)
+built hero: 21 points | equipment: Hand weapon (profile), Spear, Light Armour (profile) | rules: Onwards Men of Esgaroth (unit)
+may lead no | own path no | hero upgrades: Moneybags
+promotes to: Lake-town Guard
+warrior can buy wargear (2): Bow via Bow; Light Shield via Light shield
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 29 not an option of the profile; 14 for other reasons: set 61b8cd69
+hero can buy wargear (2): Bow via Bow; Light Shield via Light shield
+hero can buy equipment (23): set e39fbb31
+hero refused: 29 not an option of the profile; 8 for other reasons: set 6e99fa67
+
+-- Lake-town Militia (Bow)
+from: start
+vanilla Lake-town Militia: 5 points, types Warrior, Infantry, race Man, faction Lake-town
+profile: Mv 6" · FV 2 · SV 4+ · S 3 · D 3 · A 1 · W 1 · C 7+ · I 8+
+rules: Onwards Men of Esgaroth | actions:  | wargear: Light Armour, Hand weapon
+keywords: Man/race/profile, Lake-town/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Light shield" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Bow, Light shield, Spear
+built warrior: 6 points | equipment: Hand weapon (profile), Light Armour (profile), Bow | rules: Onwards Men of Esgaroth (unit)
+built hero: 21 points | equipment: Hand weapon (profile), Light Armour (profile), Bow | rules: Onwards Men of Esgaroth (unit)
+may lead no | own path no | hero upgrades: Moneybags
+promotes to: Lake-town Guard
+warrior can buy wargear (2): Spear via Spear; Light Shield via Light shield
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 29 not an option of the profile; 14 for other reasons: set 0e457bca
+hero can buy wargear (2): Spear via Spear; Light Shield via Light shield
+hero can buy equipment (23): set e39fbb31
+hero refused: 29 not an option of the profile; 8 for other reasons: set 7c55058f
+
+-- Lake-town Militia
+from: reinforcements 2-3; reinforcements 5
+vanilla Lake-town Militia: 5 points, types Warrior, Infantry, race Man, faction Lake-town
+profile: Mv 6" · FV 2 · SV 4+ · S 3 · D 3 · A 1 · W 1 · C 7+ · I 8+
+rules: Onwards Men of Esgaroth | actions:  | wargear: Light Armour, Hand weapon
+keywords: Man/race/profile, Lake-town/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Bow" 1 pts, buyable yes
+option "Light shield" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Bow, Light shield, Spear
+built warrior: 5 points | equipment: Hand weapon (profile), Light Armour (profile) | rules: Onwards Men of Esgaroth (unit)
+built hero: 20 points | equipment: Hand weapon (profile), Light Armour (profile) | rules: Onwards Men of Esgaroth (unit)
+may lead no | own path no | hero upgrades: Moneybags
+promotes to: Lake-town Guard
+warrior can buy wargear (3): Bow via Bow; Spear via Spear; Light Shield via Light shield
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 29 not an option of the profile; 13 for other reasons: set a73a183e
+hero can buy wargear (3): Bow via Bow; Spear via Spear; Light Shield via Light shield
+hero can buy equipment (23): set e39fbb31
+hero refused: 29 not an option of the profile; 7 for other reasons: set 3033d39e
+
+=== hero upgrades and who may take them ===
+Moneybags (rule "Moneybags", restriction "", units []): allowed to 2 of 7 units: Lake-town Guard, Lake-town Militia
+
+=== promotion: matching, choices and gear kept ===
+
+-- advancement 0
+advancement {FromUnit: "Lake-town Militia", To: [{Unit: "Lake-town Guard"}]}
+gear a Lake-town Militia may carry (4): Bow, Light Shield, Light shield, Spear
+carrying nothing: matches warrior yes hero yes | choices warrior: promo:0:0=Lake-town Guard | hero: promo:0:0=Lake-town Guard
+    to Lake-town Guard (given ): warrior keeps [] drops []; a hero keeps everything
+carrying Bow: matches warrior yes hero yes | choices warrior: promo:0:0=Lake-town Guard | hero: promo:0:0=Lake-town Guard
+    to Lake-town Guard (given ): warrior keeps [Bow] drops []; a hero keeps everything
+carrying Light Shield: matches warrior yes hero yes | choices warrior: promo:0:0=Lake-town Guard | hero: promo:0:0=Lake-town Guard
+    to Lake-town Guard (given ): warrior keeps [] drops [Light Shield]; a hero keeps everything
+carrying Light shield: matches warrior yes hero yes | choices warrior: promo:0:0=Lake-town Guard | hero: promo:0:0=Lake-town Guard
+    to Lake-town Guard (given ): warrior keeps [] drops [Light shield]; a hero keeps everything
+carrying Spear: matches warrior yes hero yes | choices warrior: promo:0:0=Lake-town Guard | hero: promo:0:0=Lake-town Guard
+    to Lake-town Guard (given ): warrior keeps [Spear] drops []; a hero keeps everything
+carrying everything: matches warrior yes hero yes | choices warrior: promo:0:0=Lake-town Guard | hero: promo:0:0=Lake-town Guard
+    to Lake-town Guard (given ): warrior keeps [Bow, Spear] drops [Light Shield, Light shield]; a hero keeps everything
+
+=== tooltips and glossary terms (digest of the text in _tooltips.txt) ===
+Armour | gear | bc definition | Armour | 2f9f13f9
+Armoured horse | gear | bc armoury | Armoured horse | 333e3f85
+Axe of Lossarnach | gear | bc definition | Axe of Lossarnach | 1b918223
+Backpack | gear | bc definition | Backpack | 7b80e55f
+Badge of Courage | gear | bc definition | Badge of Courage | bec4a181
+Barding | gear | bc definition | Barding | 4c468a2d
+Blowpipe | gear | bc definition | Blowpipe | 21aa6a45
+Bow | gear | bc definition | Bow | 50b72f32
+Climbing ropes | gear | bc definition | Climbing ropes | 51c983e4
+Company Drum | gear | bc definition | Company Drum | ceffaace
+Company Horn | gear | bc definition | Company Horn | bd7ab082
+Company Instrument | gear | bc definition | Company Instrument | 6fc2cb65
+Company Standard | gear | bc definition | Company Standard | 7d183865
+Concealing Cloak | gear | bc definition | Concealing Cloak | 04641e38
+Crossbow | gear | bc definition | Crossbow | 1d6c529f
+Dunlending War Axe | gear | bc definition | Dunlending War Axe | d12785f5
+Dwarf Bow | gear | bc definition | Dwarf Bow | b534ad01
+Dwarf Longbow | gear | bc definition | Dwarf Longbow | aa321757
+Dwarven Brew | gear | bc definition | Dwarven Brew | 0b7919b0
+Easterling Halberd | gear | bc definition | Easterling Halberd | cb29ec36
+Elf Bow | gear | bc definition | Elf Bow | aa321757
+Elven hand-and-a-half weapon | gear | bc definition |  | 93f1d3f0
+Elven lance | gear | bc definition |  | 4f2e75d6
+Elven pike | gear | bc definition |  | 5f6060e2
+Elven spear | gear | bc definition |  | a07b16fc
+Elven throwing weapon | gear | bc definition | Elven throwing weapon | 7c19502f
+Envenom Weapon (X) | gear | bc definition | Envenom Weapon (X) | 15b47736
+Esgaroth Bow | gear | bc definition | Esgaroth Bow | aa321757
+Fell Warg | gear | bc armoury | Fell Warg | a2c5ffdf
+Flaming Brand | gear | bc definition | Flaming Brand | ef23e06a
+Galadhrim Steed | gear | bc definition | Galadhrim Steed | 9092cc78
+Goat | gear | bc armoury | Goat | 333e3f85
+Hand weapon | gear | none | Hand Weapon | a152aed7
+Hand-and-a-half weapon | gear | bc definition | Hand-and-a-half Weapon | 5e201940
+Healing Herbs | gear | bc definition | Healing Herbs | b67655bf
+Horse | gear | bc armoury | Horse | a2c5ffdf
+Lance | gear | bc definition | Lance | c0628685
+Light Armour | gear | bc definition | Light Armour | 72272c56
+Light Shield | gear | bc definition | Light Shield | 7dba0213
+Light shield | gear | bc definition | Light Shield | 7dba0213
+Longbow | gear | bc definition | Longbow | aa321757
+Lucky Talisman | gear | bc definition | Lucky Talisman | edadbe36
+Map | gear | bc definition | Map | 2ecc3fda
+Mattock | gear | bc definition | Mattock | 2ada7b97
+Mountain Boots | gear | bc definition | Mountain Boots | 0dfacc62
+Orc Bow | gear | bc definition | Orc Bow | 6fd46631
+Pike | gear | bc definition | Pike | a96f4253
+Ring of Warding | gear | bc definition | Ring of Warding | c0e74ef4
+Scroll of Courage | gear | bc definition | Scroll of Courage | e83f5953
+Scroll of Hidden Paths | gear | bc definition | Scroll of Hidden Paths | 5fc4181c
+Seeing Stone | gear | bc definition | Seeing Stone | de3e77c7
+Shield | gear | bc definition | Shields | 399b67fd
+Short Bow | gear | bc definition | Short Bow | 6fd46631
+Small Shield | gear | bc definition | Small Shield | cb8c5e2c
+Spear | gear | bc definition | Spear | 761cb2e2
+Throwing Spears | gear | bc definition | Throwing Spear | d5b6b5e7
+Throwing weapon | gear | bc definition | Throwing Weapons | 160baaa6
+Torching Brand | gear | bc definition | Torching Brand | 85ef5e26
+Traps & Snares | gear | bc definition | Traps & Snares | 69a67031
+Trophy Pelt | gear | bc definition | Trophy Pelt | 7e4eed78
+Two-handed weapon | gear | bc definition | Two-handed Weapon | 5e201940
+Uruk-Hai Bow | gear | bc definition | Uruk-Hai Bow | b534ad01
+War spear | gear | bc definition | War Spear | 8700bf62
+Warg | gear | bc armoury | Warg | a2c5ffdf
+Wondrous Cram | gear | bc definition | Wondrous Cram | 7853368f
+Woodland Belt | gear | bc definition | Woodland Belt | 2cd22098
+Everyone has a Price | rule | vanilla rule | Everyone has a Price | a20ce093
+Onwards Men of Esgaroth | rule | vanilla rule | Onwards Men of Esgaroth | 33daabe5
+
+=== duplicated vanilla names the company uses ===
+
+=== name resolution: what every name the company mentions resolves to ===
+unit "Lake-town Guard" -> vanilla "Lake-town Guard"
+unit "Lake-town Militia" -> vanilla "Lake-town Militia"
+gear "Armour" -> key "armour" | annotation "Armour" | vanilla gear "Armour"
+gear "Bow" -> key "bow" | offer "Bow" size "" also [] | annotation "Bow" | vanilla gear "Bow"
+gear "Hand weapon" -> key "handweapon" | annotation "Hand weapon"
+gear "Light Armour" -> key "lightarmour" | annotation "Light Armour" | vanilla gear "Light Armour"
+gear "Light Shield" -> key "lightshield" | offer "Light Shield" size "" also [] | annotation "Light Shield" | vanilla gear "Light Shield"
+gear "Light shield" -> key "lightshield" | offer "Light Shield" size "" also [] | annotation "Light Shield" | vanilla gear "Light Shield"
+gear "Spear" -> key "spear" | offer "Spear" size "" also [] | annotation "Spear"
+rule "\"Hold positions, loose the arrows!\"" -> label "\"Hold positions, loose the arrows!\"" | text from bc rule | glossary "\"Hold positions, loose the arrows!\""
+rule "A Good Sort" -> label "A Good Sort" | text from bc rule | glossary "A Good Sort"
+rule "Big Game Hunter" -> label "Big Game Hunter" | text from bc rule | glossary "Big Game Hunter"
+rule "Burly" -> label "Burly" | text from bc rule | glossary "Burly"
+rule "Chief Advisor" -> label "Chief Advisor" | text from bc rule | glossary "Chief Advisor"
+rule "Claim the Throne" -> label "Claim the Throne" | text from bc rule | glossary "Claim the Throne"
+rule "Command Support" -> label "Command Support" | text from bc rule | glossary "Command Support"
+rule "Commanding Bellow" -> label "Commanding Bellow" | text from bc rule | glossary "Commanding Bellow"
+rule "Cunning Fighter" -> label "Cunning Fighter" | text from bc rule | glossary "Cunning Fighter"
+rule "Deceptive Caster" -> label "Deceptive Caster" | text from bc rule | glossary "Deceptive Caster"
+rule "Defender of the City" -> label "Defender of the City" | text from bc rule | glossary "Defender of the City"
+rule "Devastating Charge" -> label "Devastating Charge" | text from vanilla rule | glossary "Devastating Charge"
+rule "Dominant (2)" -> label "Dominant (2)" | text from vanilla rule | glossary "Dominant (2)"
+rule "Everyone has a Price" -> label "Everyone has a Price" | text from vanilla rule | glossary "Everyone has a Price"
+rule "Experienced Tracker" -> label "Experienced Tracker" | text from bc rule | glossary "Experienced Tracker"
+rule "Expert Rider" -> label "Expert Rider" | text from vanilla rule | glossary "Expert Rider"
+rule "Fearless" -> label "Fearless" | text from vanilla rule | glossary "Fearless"
+rule "Fearsome Charge" -> label "Fearsome Charge" | text from bc rule | glossary "Fearsome Charge"
+rule "Fell Sight" -> label "Fell Sight" | text from vanilla rule | glossary "Fell Sight"
+rule "For Glory" -> label "For Glory" | text from bc rule | glossary "For Glory"
+rule "Furious Tirade" -> label "Furious Tirade" | text from bc rule | glossary "Furious Tirade"
+rule "Fury of the Bear" -> label "Fury of the Bear" | text from bc rule | glossary "Fury of the Bear"
+rule "Gatekeeper" -> label "Gatekeeper" | text from bc rule | glossary "Gatekeeper"
+rule "General Hunter" -> label "General Hunter" | text from bc rule | glossary "General Hunter"
+rule "Grim Blade" -> label "Grim Blade" | text from bc rule | glossary "Grim Blade"
+rule "Heroic Accuracy" -> label "Heroic Accuracy" | text from none | glossary "Heroic Accuracy"
+rule "Heroic Challenge" -> label "Heroic Challenge" | text from none | glossary "Heroic Challenge"
+rule "Heroic Channeling" -> label "Heroic Channeling" | text from none | glossary "Heroic Channelling"
+rule "Heroic Defence" -> label "Heroic Defence" | text from none | glossary "Heroic Defence"
+rule "Heroic March" -> label "Heroic March" | text from none | glossary "Heroic March"
+rule "Heroic Resolve" -> label "Heroic Resolve" | text from none | glossary "Heroic Resolve"
+rule "Heroic Strength" -> label "Heroic Strength" | text from none | glossary "Heroic Strength"
+rule "Heroic Strike" -> label "Heroic Strike" | text from none | glossary "Heroic Strike"
+rule "Horse Lord" -> label "Horse Lord" | text from vanilla rule | glossary "Horse Lord"
+rule "Knife Mastery" -> label "Knife Mastery" | text from bc rule | glossary "Knife Mastery"
+rule "Lethal Aim" -> label "Lethal Aim" | text from bc rule | glossary "Lethal Aim"
+rule "Longbeard" -> label "Longbeard" | text from bc rule | glossary "Longbeard"
+rule "Marshal" -> label "Marshal" | text from bc rule | glossary "Marshal"
+rule "Master Duelist" -> label "Master Duelist" | text from bc rule | glossary "Master Duelist"
+rule "Master of Battle (3+)" -> label "Master of Battle (3+)" | text from vanilla rule | glossary "Master of Battle (3+)"
+rule "Master of Magic" -> label "Master of Magic" | text from bc rule | glossary "Master of Magic"
+rule "Master of Traps" -> label "Master of Traps" | text from vanilla rule | glossary "Master of Traps"
+rule "Moneybags" -> label "Moneybags" | text from bc rule | glossary "Moneybags"
+rule "Mountain Dweller" -> label "Mountain Dweller" | text from vanilla rule | glossary "Mountain Dweller"
+rule "Oblivious to Pain" -> label "Oblivious to Pain" | text from bc rule | glossary "Oblivious to Pain"
+rule "Onwards Men of Esgaroth" -> label "Onwards Men of Esgaroth" | text from vanilla rule | glossary "Onwards Men of Esgaroth"
+rule "Pinpoint Shot" -> label "Pinpoint Shot" | text from bc rule | glossary "Pinpoint Shot"
+rule "Poisoned Attacks (Blowpipe)" -> label "Poisoned Attacks (Blowpipe)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Poisoned Attacks (X)" -> label "Poisoned Attacks (X)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Rallying Cry" -> label "Rallying Cry" | text from bc rule | glossary "Rallying Cry"
+rule "Rapid Fire" -> label "Rapid Fire" | text from bc rule | glossary "Rapid Fire"
+rule "Reading the Portents" -> label "Reading the Portents" | text from bc rule | glossary "Reading the Portents"
+rule "Reckless Charge" -> label "Reckless Charge" | text from bc rule | glossary "Reckless Charge"
+rule "Relentless Commander" -> label "Relentless Commander" | text from bc rule | glossary "Relentless Commander"
+rule "Resistant to Magic" -> label "Resistant to Magic" | text from vanilla rule | glossary "Resistant to Magic"
+rule "Sorcerous Adept" -> label "Sorcerous Adept" | text from bc rule | glossary "Sorcerous Adept"
+rule "Spectral Walk" -> label "Spectral Walk" | text from vanilla rule | glossary "Spectral Walk"
+rule "Spy" -> label "Spy" | text from bc rule | glossary "Spy"
+rule "Stalk Unseen" -> label "Stalk Unseen" | text from vanilla rule | glossary "Stalk Unseen"
+rule "Swift Parry" -> label "Swift Parry" | text from bc rule | glossary "Swift Parry"
+rule "Swift Shot" -> label "Swift Shot" | text from bc rule | glossary "Swift Shot"
+rule "Terror" -> label "Terror" | text from vanilla rule | glossary "Terror"
+rule "Terror (Beast)" -> label "Terror (Beast)" | text from vanilla rule | glossary "Terror"
+rule "Terror (Cavalry)" -> label "Terror (Cavalry)" | text from vanilla rule | glossary "Terror"
+rule "The King's Protector" -> label "The King's Protector" | text from bc rule | glossary "The King's Protector"
+rule "To Arms!" -> label "To Arms!" | text from bc rule | glossary "To Arms!"
+rule "Usurper of Kings" -> label "Usurper of Kings" | text from bc rule | glossary "Usurper of Kings"
+rule "Voice of Command" -> label "Voice of Command" | text from bc rule | glossary "Voice of Command"
+rule "Volley Fire" -> label "Volley Fire" | text from bc rule | glossary "Volley Fire"
+rule "Warrior of Renown" -> label "Warrior of Renown" | text from bc rule | glossary "Warrior of Renown"
+rule "Woodland Creature" -> label "Woodland Creature" | text from vanilla rule | glossary "Woodland Creature"

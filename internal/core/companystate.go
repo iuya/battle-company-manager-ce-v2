@@ -126,6 +126,7 @@ type UnitState struct {
 	ID            int64
 	Name          string // what the player called the unit; may be empty
 	Base          string // the vanilla unit it is (or the company's own label for one)
+	PromotedFrom  string // set by BuildDetail, never stored: the profile the unit was recruited as, when a promotion changed Base
 	Role          UnitRole
 	Kind          UnitKind       // overrides the kind derived from the vanilla unit types
 	Bonus         map[string]int // characteristics it has gained besides what Progress gave (a starting officer: 1 Might, Will, Fate)

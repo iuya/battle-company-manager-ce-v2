@@ -172,7 +172,9 @@ func TestValidateResult(t *testing.T) {
 
 func TestParseScenarios(t *testing.T) {
 	doc := `{"scenarios":["B","A","C"],
-	  "scenarioScoring":[{"name":"A","points":[[{"text":"one"},{"text":"two"}],[{"text":"three"}]]}],
+	  "data":{"scenarioDetails":[{"name":"A","scoringObjectives":[
+	    {"key":"x","kind":"tiers","options":[{"text":"one","points":1},{"text":"two","points":2}]},
+	    {"key":"y","kind":"each","text":"three","pointsEach":1,"maxCount":3}]}]},
 	  "campaign":{"scenarioSelection":{"tables":[{"scenarios":["A","B"]},{"scenarios":["X","Y"]}]}}}`
 	got, err := ParseScenarios([]byte(doc))
 	if err != nil {

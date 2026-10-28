@@ -199,16 +199,21 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
-  // Taking command of a company: three places for the leader and the sergeants, the other starting models in a pool, dragged
+  // A count and its noun in words ("a leader", "two sergeants", "no sergeants"): the numbers come from the rules.
+  const count = (n, noun) => n === 1 ? 'a ' + noun : (['no', 'one', 'two', 'three', 'four', 'five', 'six'][n] || n) + ' ' + noun + 's';
+
+  // Taking command of a company: the places for the leaders and the sergeants, the other starting models in a pool, dragged
   // between them (SortableJS) or moved with the buttons of a card. Nothing but the places decides who is an officer.
   Alpine.data('commission', () => ({
-    name: '', leader: '', sergeants: [], suggested: false, touched: false, // touched: the player has changed something, so what is missing is a mistake, not just the next step
+    name: '', leaders: [], sergeants: [], need: { leaders: 0, sergeants: 0 }, suggested: false, touched: false, // touched: the player has changed something, so what is missing is a mistake, not just the next step
     init() {
       this.suggested = this.$root.dataset.suggested === 'true';
+      this.need = { leaders: parseInt(this.$root.dataset.leaders, 10) || 0, sergeants: parseInt(this.$root.dataset.sergeantsNeeded, 10) || 0 }; // the places the rules give a company
       this.name = (this.$root.querySelector('input[name=name]') || {}).value || '';
       this.$nextTick(() => { this.setup(); this.read(); });
     },
     slots() { return [...this.$root.querySelectorAll('.officer-slot')]; },
+    slotsOf(kind) { return this.slots().filter(s => s.dataset.slot === kind); },
     pool() { return this.$root.querySelector('#start-pool'); },
     setup() {
       if (!window.Sortable || !this.pool()) return;
@@ -229,10 +234,9 @@ document.addEventListener('alpine:init', () => {
     // a change of the player's own: the company's suggestion no longer applies
     changed() { this.suggested = false; this.touched = true; this.read(); },
     read() {
-      const index = list => [...list.children].map(c => c.dataset.index);
-      const [leader, ...sergeants] = this.slots();
-      this.leader = index(leader)[0] || '';
-      this.sergeants = [...index(sergeants[0]), ...index(sergeants[1])];
+      const index = lists => lists.flatMap(list => [...list.children].map(c => c.dataset.index));
+      this.leaders = index(this.slotsOf('leader'));
+      this.sergeants = index(this.slotsOf('sergeant'));
     },
     card(i) { return this.$root.querySelector(`.start-card[data-index="${i}"]`); },
     officerName(i) { const c = this.card(i); return c ? c.dataset.unit : ''; },
@@ -240,26 +244,24 @@ document.addEventListener('alpine:init', () => {
     // the place a card goes to with the button of a role, or null: the one that was there goes where the card came from, so a locked
     // card is never displaced into the pool
     target(card, role) {
-      void this.leader; void this.sergeants; // the buttons are re-evaluated when the places change
+      void this.leaders; void this.sergeants; // the buttons are re-evaluated when the places change
       if (card.dataset.eligible !== 'true' || card.dataset.lock === 'leader') return null;
       const from = card.parentElement;
-      const [leader, ...sergeants] = this.slots();
       const free = s => !s.children.length;
       const takeable = s => s !== from && !s.querySelector('[data-lock=leader]') && !(from === this.pool() && s.querySelector('[data-lock=officer]'));
-      if (role === 'leader') return takeable(leader) ? leader : null;
-      return sergeants.filter(s => s !== from && takeable(s)).sort((a, b) => free(b) - free(a))[0] || null;
+      return this.slotsOf(role).filter(s => s !== from && takeable(s)).sort((a, b) => free(b) - free(a))[0] || null;
     },
     blocked(card, role) { return !this.target(card, role); },
     // the id of the lock text that explains why a button does nothing (for aria-describedby)
     blocker(card, role) {
       if (this.target(card, role)) return null;
-      const places = role === 'leader' ? [this.slots()[0]] : this.slots().slice(1);
+      const places = this.slotsOf(role);
       const c = places.map(s => s.querySelector('[data-lock]')).find(Boolean);
       return c ? 'lock-' + c.dataset.index : null;
     },
     roleOf(card) {
       const i = card.dataset.index;
-      return this.leader === i ? 'leader' : this.sergeants.includes(i) ? 'sergeant' : '';
+      return this.leaders.includes(i) ? 'leader' : this.sergeants.includes(i) ? 'sergeant' : '';
     },
     // the buttons of a card: Leader and Sergeant send it to a place, Remove sends it back to the pool
     assign(card, role) {
@@ -272,7 +274,7 @@ document.addEventListener('alpine:init', () => {
     },
     unassign(card) { if (this.locked(card)) return; this.pool().appendChild(card); this.changed(); },
     incomplete() {
-      if (this.leader === '' || this.sergeants.length !== 2) return 'Choose a leader and two sergeants.';
+      if (this.leaders.length !== this.need.leaders || this.sergeants.length !== this.need.sergeants) return 'Choose ' + count(this.need.leaders, 'leader') + ' and ' + count(this.need.sergeants, 'sergeant') + '.';
       if (!this.name.trim()) return 'Give your company a name in the oath.';
       return '';
     },
@@ -307,7 +309,7 @@ document.addEventListener('alpine:init', () => {
       const ids = list => [...list.children].map(c => c.dataset.id);
       const [leader, ...sergeants] = this.slots();
       this.leader = ids(leader)[0] ?? '';
-      this.sergeants = [...ids(sergeants[0]), ...ids(sergeants[1])];
+      this.sergeants = sergeants.flatMap(ids);
     },
     cards() { return [...this.$root.querySelectorAll('.start-card')]; },
     title(id) { const c = this.cards().find(c => c.dataset.id === String(id)); return c ? c.dataset.title : ''; },

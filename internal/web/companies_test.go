@@ -63,7 +63,7 @@ func TestAChoiceResultAsksForPicksAndASpecialRollOffersTheMissingMember(t *testi
 		{"choose one", &core.RecruitRoll{Stage: "lower", Rolled: true, Roll: 6, Lower: &core.RecruitLower{Roll: 6, Picks: 1, Reason: "Choose any: choose from the chart.",
 			Rows: []core.LowerRow{{Index: 0, Chart: "Reinforcements", Roll: "4", Text: "Hobbit Archer"}}}},
 			[]string{"Choose a result", "joins the company"}, []string{"Choose a lower result", "to go)"}},
-		{"missing member", &core.RecruitRoll{Stage: "special", Rolled: true, Roll: 3, Budget: 3, Replace: "Vault Warden"},
+		{"missing member", &core.RecruitRoll{Stage: "special", Rolled: true, Roll: 3, Budget: 3, Adjust: upToThree, Replace: "Vault Warden"},
 			[]string{`name="pick" value="member"`, "Take the missing Vault Warden instead"}, nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

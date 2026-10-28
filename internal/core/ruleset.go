@@ -22,6 +22,17 @@ func (k RulesetKind) Valid() bool {
 	return k == KindVanilla || k == KindBattleCompanies || k == KindGlossary
 }
 
+// fileName is how reports call the file of a kind.
+func (k RulesetKind) fileName() string {
+	switch k {
+	case KindVanilla:
+		return "vanilla.json"
+	case KindGlossary:
+		return "glossary.json"
+	}
+	return "battle_companies.json"
+}
+
 func (k RulesetKind) Label() string {
 	switch k {
 	case KindVanilla:

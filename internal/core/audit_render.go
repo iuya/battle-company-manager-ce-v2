@@ -128,7 +128,7 @@ func renderCompany(c CompanyAudit) string {
 
 	m.line("## Start")
 	m.line("")
-	m.line("Starting influence %d, gold %d.", StartingInfluence, p.StartGold)
+	m.line("Starting influence %d, gold %d.", c.Detail.Influence, p.StartGold)
 	m.line("")
 	m.line("Oath: %s", strings.ReplaceAll(p.Oath.Text, "{name}", "<name>"))
 	m.line("")

@@ -1,0 +1,2 @@
+battle_companies.json: not valid JSON at line 215, column 8: invalid character '"' after object key:value pair
+  hint: check commas, quotes and brackets near that position

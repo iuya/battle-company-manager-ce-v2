@@ -1,0 +1,590 @@
+# Wanderers in the Wild (good)
+
+=== anomalies (40) ===
+tooltip-name | Armoured horse | tooltip (bc armoury) never says "Armoured horse": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+tooltip-name | Armour | tooltip (bc definition) never says "Armour": Adds 1 to Defence.
+tooltip-name | Barding | tooltip (bc definition) never says "Barding": The rider gains the Expert Rider & Horselord special rules.
+tooltip-name | Blowpipe | tooltip (bc definition) never says "Blowpipe": 12" Range, 2 Strength. Benefits from the Poisoned Weapons special rule (re-roll …
+tooltip-name | Company Drum | tooltip (bc definition) never says "Company Drum": This is a War Drum that grants the bearer the Command Support keyword.
+tooltip-name | Company Horn | tooltip (bc definition) never says "Company Horn": This is a War Horn that grants the bearer the Command Support keyword.
+tooltip-name | Company Instrument | tooltip (bc definition) never says "Company Instrument": This is an Instrument that grants the bearer the Command Support keyword. Friend…
+tooltip-name | Company Standard | tooltip (bc definition) never says "Company Standard": This is a Pennant that grants the bearer the Command Support keyword. Friendly m…
+tooltip-name | Dunlending War Axe | tooltip (bc definition) never says "Dunlending War Axe": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Dwarf Bow | tooltip (bc definition) never says "Dwarf Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Dwarf Longbow | tooltip (bc definition) never says "Dwarf Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Dwarf longbow | tooltip (bc definition) never says "Dwarf longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Easterling Halberd | tooltip (bc definition) never says "Easterling Halberd": This can be used as either a pike or a two-handed weapon.
+tooltip-name | Elf Bow | tooltip (bc definition) never says "Elf Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Elf bow | tooltip (bc definition) never says "Elf bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Elven hand-and-a-half weapon | tooltip (bc definition) never says "Elven hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | Elven lance | tooltip (bc definition) never says "Elven lance": A Cavalry model using a lance adds 1 to its To Wound rolls when making Strikes i…
+tooltip-name | Elven pike | tooltip (bc definition) never says "Elven pike": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Elven spear | tooltip (bc definition) never says "Elven spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Elven throwing weapons | tooltip (bc definition) never says "Elven throwing weapons": 6" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Elven throwing weapon | tooltip (bc definition) never says "Elven throwing weapon": 6" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Envenom Weapon (X) | tooltip (bc definition) never says "Envenom Weapon (X)": When a model purchases Envenom Weapon, they must decide which weapon on their pr…
+tooltip-name | Esgaroth Bow | tooltip (bc definition) never says "Esgaroth Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Fell Warg | tooltip (bc armoury) never says "Fell Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | Galadhrim Steed | tooltip (bc definition) never says "Galadhrim Steed": This is an armoured horse that also has the Woodland Creature special rule.
+tooltip-name | Goat | tooltip (bc armoury) never says "Goat": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+tooltip-name | Hand-and-a-half weapon | tooltip (bc definition) never says "Hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | Horse | tooltip (bc armoury) never says "Horse": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | Longbow | tooltip (bc definition) never says "Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Orc Bow | tooltip (bc definition) never says "Orc Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Seeing Stone | tooltip (bc definition) never says "Seeing Stone": Once per game, during the Priority Phase but before the roll for Priority, the b…
+tooltip-name | Short Bow | tooltip (bc definition) never says "Short Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Small Shield | tooltip (bc definition) never says "Small Shield": This is a Light Shield that gives the bearer +1 to their Defence Characteristic …
+tooltip-name | Spear | tooltip (bc definition) never says "Spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Throwing Spears | tooltip (bc definition) never says "Throwing Spears": 8" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Torching Brand | tooltip (bc definition) never says "Torching Brand": A model with a Torch gains the following benefits: They illuminate the area with…
+tooltip-name | Uruk-Hai Bow | tooltip (bc definition) never says "Uruk-Hai Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | War spear | tooltip (bc definition) never says "War spear": Counts as a lance while mounted, and a spear while dismounted
+tooltip-name | Warg | tooltip (bc armoury) never says "Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-missing | Noldorian Exile | no tooltip text (gear)
+
+=== profile (everything the company page holds) ===
+profile
+  BCCompany:
+    Name: "Wanderers in the Wild"
+    Alignment: "good"
+    MaxModels: 15
+    ReinforcementCost: 3
+    Reinforcements:
+      - {Min: 1, Max: 1, Result: {Type: "nothing", Count: 1, Blocks: true}}
+      -
+        Min: 2
+        Max: 2
+        Result:
+          Type: "unitChoice"
+          Text: "Hobbit (rulebook: any Hobbit profile from the Starting Battle Company that was lost): the four Hobbit profiles of the starting company, one of each at most; the player may recruit any that the company does not have."
+          Count: 1
+          Options:
+            - {Unit: "Hobbit Militia", Rare: 1}
+            - {Unit: "Hobbit Shirriff", Rare: 1}
+            - {Unit: "Hobbit Archer", Label: "Tookish Hunter", Selected: ["Tookish Hunter"], Rare: 1}
+            - {Unit: "Hobbit Militia", Label: "Battlin' Brandybuck", Selected: ["Battlin' Brandybuck"], Rare: 1}
+      - {Min: 3, Max: 3, Result: {Type: "unit", Unit: "Warrior of Numenor", Count: 1, Choice: true, Rare: 3}}
+      - {Min: 4, Max: 4, Result: {Type: "unit", Unit: "Dwarf Ranger", Count: 1, Choice: true, Rare: 1}}
+      - {Min: 5, Max: 5, Result: {Type: "unit", Unit: "Lothlorien Warrior", Count: 1, Choice: true, Rare: 1}}
+      - {Min: 6, Max: 6, Result: {Type: "choice", Text: "Choice of the Above", Count: 1}}
+    RecruitNotes:
+      - "All newly recruited models automatically promote to Heroes in the Making and therefore will add 1 Might, Will, and Fate to their profile."
+      - "*The Hobbit result would be any Hobbit profile from the Starting Battle Company that was lost."
+    LimitOverrides: {}
+  Description: "Middle-earth is filled with those of all races that wander its paths and wild lands for many reasons, and it is not uncommon for a group of such wanderers to find common ground and continue on their journeys together. In fact, groups of Men, Elves, Dwarves, and even Hobbits on rare occasions, have been known to travel together through the various realms of Middle-earth, keeping their purposes to themselves.\n\nOften, such bands of wanderers will be called upon by the free folk to help them against those that seek to cause them harm. Though they owe little allegiance to one another, the bonds formed by travelling together with friends is a strong one, and these wanderers will give their all to protect their companions that they now hold dear."
+  Start:
+    - {Count: 1, Unit: "Warrior of Numenor", Wargear: ["Longbow"], Role: "leader"}
+    - {Count: 1, Unit: "Hobbit Militia", Role: "sergeant"}
+    - {Count: 1, Unit: "Hobbit Shirriff", Role: "sergeant"}
+    - {Count: 1, Unit: "Tookish Hunter", Role: "heroInTheMaking"}
+    - {Count: 1, Unit: "Battlin' Brandybuck", Role: "heroInTheMaking"}
+  HeroUpgrades:
+    -
+      Name: "You Have My Sword"
+      Flavour: "The Hero's tale has just begun where their actions might determine the fate of their party, their village, or all of Middle-Earth."
+      Rule: "You Have My Sword"
+      Text: "During the Declare Heroic Actions step of the Fight Phase, if a friendly Hobbit is Engaged in Combat and is within 6\" of this Hero, this Hero may declare a free Heroic Combat. If this Heroic Combat is successful, then this Hero must use the following Move to join the Hobbit's Combat. If this is not possible, then this Hero must Move as close as possible to the Hobbit. This Hero cannot use this special rule if they are engaged in the same Combat as the Hobbit in question."
+    -
+      Name: "I Have My Own Sword, Thank You Very Much"
+      Flavour: "Full of surprises, this unassuming Shirefolk has mustered the confidence to prove themself against Trolls, Heroes, and other foes."
+      Rule: "I Have My Own Sword, Thank You Very Much"
+      Text: "This model may re-roll any failed To Wound rolls when making Strikes."
+      Restriction: "Hobbit"
+  Rules:
+    - "While a friendly Hobbit model is alive and on the battlefield, all friendly Men, Elf, and Dwarf models are considered Fearless"
+    - "All members of the Battle Company gain the Woodland Creature special rule for no additional cost."
+  Granted:
+    -
+      Rule: "Woodland Creature"
+      AppliesTo: "All members of the Battle Company"
+      Text: "All members of the Battle Company gain the Woodland Creature special rule for no additional cost."
+  Aliases:
+    -
+      Label: "Battlin' Brandybuck"
+      Unit: "Hobbit Militia"
+      Selected: ["Battlin' Brandybuck"]
+      Text: "Battlin' Brandybuck is a Hobbit Militia with the Battlin' Brandybuck option selected. The option costs 1 point. In the base game only Meriadoc Brandybuck, Captain of the Shire can take it; this company's rules allow it."
+    -
+      Label: "Tookish Hunter"
+      Unit: "Hobbit Archer"
+      Selected: ["Tookish Hunter"]
+      Text: "Tookish Hunter is a Hobbit Archer with the Tookish Hunter option selected. The option costs 1 point. In the base game only Paladin Took, Thain of the Shire and Peregrin Took, Captain of the Shire can take it; this company's rules allow it."
+  Oath:
+    Text: "No banner called us, no king commanded; the road itself brought us together. Friends from many peoples, we choose to be called {name}, and wherever we walk, no one in need shall face the dark alone."
+    Vow: "Our road, our oath"
+  RecruitAsHero: true
+  Notes:
+    -
+      Section: "startingCompany"
+      Text: "Tookish Hunter & Battlin' Brandybuck are upgrades to the Hobbit Archer & Hobbit Militia respectively, as detailed on pg.13 of the Armies of Middle-Earth."
+    -
+      Section: "reinforcements"
+      Text: "All newly recruited models automatically promote to Heroes in the Making and therefore will add 1 Might, Will, and Fate to their profile."
+    - {Section: "reinforcements", Text: "*The Hobbit result would be any Hobbit profile from the Starting Battle Company that was lost."}
+path "Path of the Tactician": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Sharpshooter": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Soldier": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Marksman": limit per company 0, start action "Heroic Accuracy", start power no; chart as in _progression.txt
+path "Path of the Claimant": limit per company 0, start action "Heroic Challenge", start power no; chart as in _progression.txt
+path "Path of the Sorcerer": limit per company 1, start action "Heroic Channeling", start power yes; chart as in _progression.txt
+path "Path of the Shieldbearer": limit per company 0, start action "Heroic Defence", start power no; chart as in _progression.txt
+path "Path of the Ranger": limit per company 0, start action "Heroic March", start power no; chart as in _progression.txt
+path "Path of the Warlord": limit per company 0, start action "Heroic Resolve", start power no; chart as in _progression.txt
+path "Path of the Berserker": limit per company 0, start action "Heroic Strength", start power no; chart as in _progression.txt
+path "Path of the Duelist": limit per company 0, start action "Heroic Strike", start power no; chart as in _progression.txt
+starting power power:Aura of Command = Aura of Command · 5+ · self
+starting power power:Aura of Dismay = Aura of Dismay · 4+ · self
+starting power power:Banishment = Banishment · 5+ · 6"
+starting power power:Black Dart = Black Dart · 6+ · 6"
+starting power power:Bladewrath = Bladewrath · 5+ · 6"
+starting power power:Blessing of the Valar = Blessing of the Valar · 4+ · 6"
+starting power power:Blinding Light = Blinding Light · 5+ · self
+starting power power:Call Winds = Call Winds · 5+ · 12"
+starting power power:Collapse Rocks = Collapse Rocks · 6+ · 12"
+starting power power:Compel = Compel · 5+ · 12"
+starting power power:Curse = Curse · 5+ · 12"
+starting power power:Drain Courage = Drain Courage · 5+ · 12"
+starting power power:Enchant Blades = Enchant Blades · 5+ · 6"
+starting power power:Enrage Beast = Enrage Beast · 5+ · 6"
+starting power power:Flameburst = Flameburst · 6+ · 6"
+starting power power:Fog of Disarray = Fog of Disarray · 4+ · self
+starting power power:Foil Magic = Foil Magic · 4+ · 12"
+starting power power:Fortify Spirit = Fortify Spirit · 4+ · 6"
+starting power power:Fury (Easterling) = Fury (Easterling) · 4+ · self
+starting power power:Fury (Moria Goblin) = Fury (Moria Goblin) · 4+ · self
+starting power power:Fury (Mordor Orc) = Fury (Mordor Orc) · 4+ · self
+starting power power:Fury (Isengard Orc) = Fury (Isengard Orc) · 4+ · self
+starting power power:Fury (Isengard Uruk-hai) = Fury (Isengard Uruk-hai) · 4+ · self
+starting power power:Fury (Beast) = Fury (Beast) · 4+ · self
+starting power power:Fury (Spider) = Fury (Spider) · 4+ · self
+starting power power:Instill Fear = Instill Fear · 6+ · self
+starting power power:Nature's Wrath = Nature's Wrath · 6+ · 3"
+starting power power:Panic Steed = Panic Steed · 5+ · 12"
+starting power power:Protection of the Valar = Protection of the Valar · 5+ · 6"
+starting power power:Renew = Renew · 5+ · 3"
+starting power power:Sorcerous Blast = Sorcerous Blast · 6+ · 6"
+starting power power:Strengthen Will = Strengthen Will · 5+ · 6"
+starting power power:Terrifying Aura = Terrifying Aura · 4+ · self
+starting power power:Transfix = Transfix · 5+ · 12"
+starting power power:Tremor = Tremor · 6+ · self
+starting power power:Wither = Wither · 5+ · 12"
+starting power power:Writhing Vines = Writhing Vines · 5+ · self
+
+=== start: gold, points and officer choices ===
+starting influence 0, gold 0
+default officers [{0 leader} {1 sergeant} {2 sergeant}]: 5 models, 105 points, total 105
+officer choices: 3 allowed, 0 refused; totals (points + gold) of the allowed ones:
+  total 105: 3 choices
+company at creation: 105 points, max units 15, break point 50%, limits:
+  limit bow "Bows" used 2 max 2 next 2
+  limit throwing "Throwing weapons" used 0 max 2 next 2
+  limit cavalry "Cavalry" used 0 max 2 next 2
+
+=== armoury of the company: unique wargear ===
+armoury size 62 (common 62 + unique 0)
+
+=== units ===
+
+-- Warrior of Numenor (Longbow)
+from: start
+vanilla Warrior of Numenor: 9 points, types Warrior, Infantry, race Man, faction Numenor
+profile: Mv 6" · FV 5 · SV 4+ · S 4 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules:  | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Numenor/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Shield and Spear" 2 pts, buyable yes
+option "Longbow" 1 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Shield and Spear, Longbow, Shield
+built warrior: 10 points | equipment: Hand weapon (profile), Armour (profile), Longbow | rules: Woodland Creature (company)
+built hero: 25 points | equipment: Hand weapon (profile), Armour (profile), Longbow | rules: Woodland Creature (company)
+may lead yes | own path no | hero upgrades: You Have My Sword
+warrior can buy wargear (2): Spear via Shield and Spear; Shield via Shield and Spear
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 29 not an option of the profile; 14 for other reasons: set 064245ec
+hero can buy wargear (5): Throwing weapon via Throwing weapons; Spear via Shield and Spear; Hand-and-a-half weapon via Hand-and-a-half weapon; Two-handed weapon via Two-handed weapon; Shield via Shield and Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 23 not an option of the profile; 11 for other reasons: set d01241bb
+
+-- Hobbit Militia
+from: start; reinforcements 2 (choice)
+vanilla Hobbit Militia: 4 points, types Warrior, Infantry, race Hobbit, faction Shire
+profile: Mv 4" · FV 1 · SV 3+ · S 2 · D 3 · A 1 · W 1 · C 7+ · I 8+
+rules: Resistant to Magic, Throw Stones (range 8", Strength 1) | actions:  | wargear: Hand weapon
+keywords: Hobbit/race/profile, Shire/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Battlin' Brandybuck" 1 pts, buyable no | reserved
+choosable at recruit: 
+built warrior: 4 points | equipment: Hand weapon (profile) | rules: Resistant to Magic (unit), Throw Stones (range 8", Strength 1) (unit), Woodland Creature (company)
+built hero: 19 points | equipment: Hand weapon (profile) | rules: Resistant to Magic (unit), Throw Stones (range 8", Strength 1) (unit), Woodland Creature (company)
+may lead yes | own path no | hero upgrades: You Have My Sword, I Have My Own Sword, Thank You Very Much
+warrior can buy wargear (0): 
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 32 not an option of the profile; 13 for other reasons: set a73a183e
+hero can buy wargear (9): Short Bow via Short Bow; Elf Bow via Elf bow; Longbow via Longbow; Dwarf Longbow via Dwarf longbow; Throwing weapon via Throwing weapons; Spear via Shield and Spear; Hand-and-a-half weapon via Hand-and-a-half weapon; Two-handed weapon via Two-handed weapon; Shield via Shield and Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 23 not an option of the profile; 7 for other reasons: set 3033d39e
+
+-- Hobbit Shirriff
+from: start; reinforcements 2 (choice)
+vanilla Hobbit Shirriff: 5 points, types Warrior, Infantry, Elite, race Hobbit, faction Shire
+profile: Mv 4" · FV 3 · SV 3+ · S 2 · D 3 · A 1 · W 1 · C 7+ · I 7+
+rules: Resistant to Magic, Throw Stones (range 8", Strength 1) | actions:  | wargear: Hand-and-a-half weapon
+keywords: Hobbit/race/profile, Shire/faction/profile, Warrior/type/profile, Infantry/type/profile, Elite/type/profile
+choosable at recruit: 
+built warrior: 5 points | equipment: Hand-and-a-half weapon (profile) | rules: Resistant to Magic (unit), Throw Stones (range 8", Strength 1) (unit), Woodland Creature (company)
+built hero: 20 points | equipment: Hand-and-a-half weapon (profile) | rules: Resistant to Magic (unit), Throw Stones (range 8", Strength 1) (unit), Woodland Creature (company)
+may lead yes | own path no | hero upgrades: You Have My Sword, I Have My Own Sword, Thank You Very Much
+warrior can buy wargear (0): 
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 31 not an option of the profile; 14 for other reasons: set 8b9cd9d4
+hero can buy wargear (8): Short Bow via Short Bow; Elf Bow via Elf bow; Longbow via Longbow; Dwarf Longbow via Dwarf longbow; Throwing weapon via Throwing weapons; Spear via Shield and Spear; Two-handed weapon via Two-handed weapon; Shield via Shield and Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 23 not an option of the profile; 8 for other reasons: set 2850b199
+
+-- Tookish Hunter
+from: start
+alias
+  Label: "Tookish Hunter"
+  Unit: "Hobbit Archer"
+  Selected: ["Tookish Hunter"]
+  Text: "Tookish Hunter is a Hobbit Archer with the Tookish Hunter option selected. The option costs 1 point. In the base game only Paladin Took, Thain of the Shire and Peregrin Took, Captain of the Shire can take it; this company's rules allow it."
+vanilla Hobbit Archer: 5 points, types Warrior, Infantry, race Hobbit, faction Shire
+profile: Mv 4" · FV 2 · SV 3+ · S 2 · D 3 · A 1 · W 1 · C 7+ · I 7+
+rules: Resistant to Magic, Throw Stones (range 8", Strength 1) | actions:  | wargear: Hand weapon, Short Bow
+keywords: Hobbit/race/profile, Shire/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "War Horn" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Tookish Hunter" 1 pts, buyable no | reserved
+choosable at recruit: 
+built warrior: 6 points | equipment: Hand weapon (profile), Short Bow (profile), Tookish Hunter (upgrade) | rules: Resistant to Magic (unit), Throw Stones (range 8", Strength 1) (unit), Woodland Creature (company)
+built hero: 21 points | equipment: Hand weapon (profile), Short Bow (profile), Tookish Hunter (upgrade) | rules: Resistant to Magic (unit), Throw Stones (range 8", Strength 1) (unit), Woodland Creature (company)
+may lead yes | own path no | hero upgrades: You Have My Sword, I Have My Own Sword, Thank You Very Much
+warrior can buy wargear (0): 
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 31 not an option of the profile; 14 for other reasons: set ff6c5404
+hero can buy wargear (5): Throwing weapon via Throwing weapons; Spear via Shield and Spear; Hand-and-a-half weapon via Hand-and-a-half weapon; Two-handed weapon via Two-handed weapon; Shield via Shield and Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 23 not an option of the profile; 11 for other reasons: set fbb55a59
+
+-- Battlin' Brandybuck
+from: start
+alias
+  Label: "Battlin' Brandybuck"
+  Unit: "Hobbit Militia"
+  Selected: ["Battlin' Brandybuck"]
+  Text: "Battlin' Brandybuck is a Hobbit Militia with the Battlin' Brandybuck option selected. The option costs 1 point. In the base game only Meriadoc Brandybuck, Captain of the Shire can take it; this company's rules allow it."
+vanilla Hobbit Militia: 4 points, types Warrior, Infantry, race Hobbit, faction Shire
+profile: Mv 4" · FV 1 · SV 3+ · S 2 · D 3 · A 1 · W 1 · C 7+ · I 8+
+rules: Resistant to Magic, Throw Stones (range 8", Strength 1) | actions:  | wargear: Hand weapon
+keywords: Hobbit/race/profile, Shire/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Battlin' Brandybuck" 1 pts, buyable no | reserved
+choosable at recruit: 
+built warrior: 5 points | equipment: Hand weapon (profile), Battlin' Brandybuck (upgrade) | rules: Resistant to Magic (unit), Throw Stones (range 8", Strength 1) (unit), Woodland Creature (company)
+built hero: 20 points | equipment: Hand weapon (profile), Battlin' Brandybuck (upgrade) | rules: Resistant to Magic (unit), Throw Stones (range 8", Strength 1) (unit), Woodland Creature (company)
+may lead yes | own path no | hero upgrades: You Have My Sword, I Have My Own Sword, Thank You Very Much
+warrior can buy wargear (0): 
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 32 not an option of the profile; 13 for other reasons: set a73a183e
+hero can buy wargear (9): Short Bow via Short Bow; Elf Bow via Elf bow; Longbow via Longbow; Dwarf Longbow via Dwarf longbow; Throwing weapon via Throwing weapons; Spear via Shield and Spear; Hand-and-a-half weapon via Hand-and-a-half weapon; Two-handed weapon via Two-handed weapon; Shield via Shield and Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 23 not an option of the profile; 7 for other reasons: set 3033d39e
+
+-- Tookish Hunter (Tookish Hunter)
+from: reinforcements 2 (choice)
+alias
+  Label: "Tookish Hunter"
+  Unit: "Hobbit Archer"
+  Selected: ["Tookish Hunter"]
+  Text: "Tookish Hunter is a Hobbit Archer with the Tookish Hunter option selected. The option costs 1 point. In the base game only Paladin Took, Thain of the Shire and Peregrin Took, Captain of the Shire can take it; this company's rules allow it."
+vanilla Hobbit Archer: 5 points, types Warrior, Infantry, race Hobbit, faction Shire
+profile: Mv 4" · FV 2 · SV 3+ · S 2 · D 3 · A 1 · W 1 · C 7+ · I 7+
+rules: Resistant to Magic, Throw Stones (range 8", Strength 1) | actions:  | wargear: Hand weapon, Short Bow
+keywords: Hobbit/race/profile, Shire/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "War Horn" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Tookish Hunter" 1 pts, buyable no | reserved
+choosable at recruit: 
+built warrior: 6 points | equipment: Hand weapon (profile), Short Bow (profile), Tookish Hunter (upgrade) | rules: Resistant to Magic (unit), Throw Stones (range 8", Strength 1) (unit), Woodland Creature (company)
+built hero: 21 points | equipment: Hand weapon (profile), Short Bow (profile), Tookish Hunter (upgrade) | rules: Resistant to Magic (unit), Throw Stones (range 8", Strength 1) (unit), Woodland Creature (company)
+may lead yes | own path no | hero upgrades: You Have My Sword, I Have My Own Sword, Thank You Very Much
+warrior can buy wargear (0): 
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 31 not an option of the profile; 14 for other reasons: set ff6c5404
+hero can buy wargear (5): Throwing weapon via Throwing weapons; Spear via Shield and Spear; Hand-and-a-half weapon via Hand-and-a-half weapon; Two-handed weapon via Two-handed weapon; Shield via Shield and Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 23 not an option of the profile; 11 for other reasons: set fbb55a59
+
+-- Battlin' Brandybuck (Battlin' Brandybuck)
+from: reinforcements 2 (choice)
+alias
+  Label: "Battlin' Brandybuck"
+  Unit: "Hobbit Militia"
+  Selected: ["Battlin' Brandybuck"]
+  Text: "Battlin' Brandybuck is a Hobbit Militia with the Battlin' Brandybuck option selected. The option costs 1 point. In the base game only Meriadoc Brandybuck, Captain of the Shire can take it; this company's rules allow it."
+vanilla Hobbit Militia: 4 points, types Warrior, Infantry, race Hobbit, faction Shire
+profile: Mv 4" · FV 1 · SV 3+ · S 2 · D 3 · A 1 · W 1 · C 7+ · I 8+
+rules: Resistant to Magic, Throw Stones (range 8", Strength 1) | actions:  | wargear: Hand weapon
+keywords: Hobbit/race/profile, Shire/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Battlin' Brandybuck" 1 pts, buyable no | reserved
+choosable at recruit: 
+built warrior: 5 points | equipment: Hand weapon (profile), Battlin' Brandybuck (upgrade) | rules: Resistant to Magic (unit), Throw Stones (range 8", Strength 1) (unit), Woodland Creature (company)
+built hero: 20 points | equipment: Hand weapon (profile), Battlin' Brandybuck (upgrade) | rules: Resistant to Magic (unit), Throw Stones (range 8", Strength 1) (unit), Woodland Creature (company)
+may lead yes | own path no | hero upgrades: You Have My Sword, I Have My Own Sword, Thank You Very Much
+warrior can buy wargear (0): 
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 32 not an option of the profile; 13 for other reasons: set a73a183e
+hero can buy wargear (9): Short Bow via Short Bow; Elf Bow via Elf bow; Longbow via Longbow; Dwarf Longbow via Dwarf longbow; Throwing weapon via Throwing weapons; Spear via Shield and Spear; Hand-and-a-half weapon via Hand-and-a-half weapon; Two-handed weapon via Two-handed weapon; Shield via Shield and Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 23 not an option of the profile; 7 for other reasons: set 3033d39e
+
+-- Warrior of Numenor
+from: reinforcements 3
+vanilla Warrior of Numenor: 9 points, types Warrior, Infantry, race Man, faction Numenor
+profile: Mv 6" · FV 5 · SV 4+ · S 4 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules:  | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Numenor/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Shield and Spear" 2 pts, buyable yes
+option "Longbow" 1 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Shield and Spear, Longbow, Shield
+built warrior: 9 points | equipment: Hand weapon (profile), Armour (profile) | rules: Woodland Creature (company)
+built hero: 24 points | equipment: Hand weapon (profile), Armour (profile) | rules: Woodland Creature (company)
+may lead yes | own path no | hero upgrades: You Have My Sword
+warrior can buy wargear (3): Longbow (gold 1, item 2) via Longbow; Spear via Shield and Spear; Shield via Shield and Spear
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 29 not an option of the profile; 13 for other reasons: set a73a183e
+hero can buy wargear (9): Short Bow via Short Bow; Elf Bow via Elf bow; Longbow via Longbow; Dwarf Longbow via Dwarf longbow; Throwing weapon via Throwing weapons; Spear via Shield and Spear; Hand-and-a-half weapon via Hand-and-a-half weapon; Two-handed weapon via Two-handed weapon; Shield via Shield and Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 23 not an option of the profile; 7 for other reasons: set 3033d39e
+
+-- Dwarf Ranger
+from: reinforcements 4
+vanilla Dwarf Ranger: 8 points, types Warrior, Infantry, race Dwarf, faction Khazad-dum
+profile: Mv 5" · FV 4 · SV 3+ · S 3 · D 5 · A 1 · W 1 · C 6+ · I 6+
+rules: Mountain Dweller, Mountain Fighters | actions:  | wargear: Armour, Hand weapon
+keywords: Dwarf/race/profile, Khazad-dum/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Dwarf longbow" 1 pts, buyable yes
+option "Throwing weapons" 1 pts, buyable yes
+option "Two-handed weapon" 1 pts, buyable yes
+choosable at recruit: Dwarf longbow, Throwing weapons, Two-handed weapon
+built warrior: 8 points | equipment: Hand weapon (profile), Armour (profile) | rules: Mountain Dweller (unit), Mountain Fighters (unit), Woodland Creature (company)
+built hero: 23 points | equipment: Hand weapon (profile), Armour (profile) | rules: Mountain Dweller (unit), Mountain Fighters (unit), Woodland Creature (company)
+may lead yes | own path no | hero upgrades: You Have My Sword
+warrior can buy wargear (3): Dwarf Longbow (gold 1, item 2) via Dwarf longbow; Throwing weapon (gold 1, item 2) via Throwing weapons; Two-handed weapon via Two-handed weapon
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 29 not an option of the profile; 13 for other reasons: set a73a183e
+hero can buy wargear (9): Short Bow via Short Bow; Elf Bow via Elf bow; Longbow via Longbow; Dwarf Longbow via Dwarf longbow; Throwing weapon via Throwing weapons; Spear via Shield and Spear; Hand-and-a-half weapon via Hand-and-a-half weapon; Two-handed weapon via Two-handed weapon; Shield via Shield and Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 23 not an option of the profile; 7 for other reasons: set 3033d39e
+
+-- Lothlorien Warrior
+from: reinforcements 5
+vanilla Lothlorien Warrior: 8 points, types Warrior, Infantry, race Elf, faction Lothlorien
+profile: Mv 6" · FV 5 · SV 3+ · S 3 · D 3 · A 1 · W 1 · C 5+ · I 6+
+rules: Woodland Creature | actions:  | wargear: Elven hand-and-a-half weapon, Elven Cloak
+keywords: Elf/race/profile, Lothlórien/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Elf bow" 2 pts, buyable yes
+option "Elven throwing weapons" 2 pts, buyable yes
+option "Wood Elf spear" 1 pts, buyable no | unsold: notSold: Unique Wargear of the one company that lists it (Wood Elf Spear, 1 Influence); no other armoury sells it
+option "Noldorian Exile" 1 pts, buyable no | reserved
+choosable at recruit: Elf bow, Elven throwing weapons
+built warrior: 8 points | equipment: Elven hand-and-a-half weapon (profile), Elven Cloak (upgrade) | rules: Woodland Creature (unit), Stalk Unseen (equipment)
+built hero: 23 points | equipment: Elven hand-and-a-half weapon (profile), Elven Cloak (upgrade) | rules: Woodland Creature (unit), Stalk Unseen (equipment)
+may lead yes | own path no | hero upgrades: You Have My Sword
+warrior can buy wargear (2): Elf Bow via Elf bow; Elven throwing weapon via Elven throwing weapons
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 34 not an option of the profile; 9 for other reasons: set c58f51de
+hero can buy wargear (10): Short Bow via Short Bow; Elf Bow via Elf bow; Longbow via Longbow; Dwarf Longbow via Dwarf longbow; Throwing weapon via Throwing weapons; Spear via Shield and Spear; Hand-and-a-half weapon via Hand-and-a-half weapon; Two-handed weapon via Two-handed weapon; Shield via Shield and Spear; Elven throwing weapon via Elven throwing weapons
+hero can buy equipment (23): set e39fbb31
+hero refused: 26 not an option of the profile; 3 for other reasons: set 9665d2ba
+
+=== hero upgrades and who may take them ===
+You Have My Sword (rule "You Have My Sword", restriction "", units []): allowed to 7 of 10 units: Battlin' Brandybuck, Dwarf Ranger, Hobbit Militia, Hobbit Shirriff, Lothlorien Warrior, Tookish Hunter, Warrior of Numenor
+I Have My Own Sword, Thank You Very Much (rule "I Have My Own Sword, Thank You Very Much", restriction "Hobbit", units []): allowed to 4 of 10 units: Battlin' Brandybuck, Hobbit Militia, Hobbit Shirriff, Tookish Hunter
+
+=== promotion: matching, choices and gear kept ===
+
+=== tooltips and glossary terms (digest of the text in _tooltips.txt) ===
+Armour | gear | bc definition | Armour | 2f9f13f9
+Armoured horse | gear | bc armoury | Armoured horse | 333e3f85
+Axe of Lossarnach | gear | bc definition | Axe of Lossarnach | 1b918223
+Backpack | gear | bc definition | Backpack | 7b80e55f
+Badge of Courage | gear | bc definition | Badge of Courage | bec4a181
+Banner | gear | bc definition | Banner | 416dceb6
+Barding | gear | bc definition | Barding | 4c468a2d
+Battlin' Brandybuck | gear | bc definition |  | 8b39734b
+Blowpipe | gear | bc definition | Blowpipe | 21aa6a45
+Bow | gear | bc definition | Bow | 50b72f32
+Climbing ropes | gear | bc definition | Climbing ropes | 51c983e4
+Company Drum | gear | bc definition | Company Drum | ceffaace
+Company Horn | gear | bc definition | Company Horn | bd7ab082
+Company Instrument | gear | bc definition | Company Instrument | 6fc2cb65
+Company Standard | gear | bc definition | Company Standard | 7d183865
+Concealing Cloak | gear | bc definition | Concealing Cloak | 04641e38
+Crossbow | gear | bc definition | Crossbow | 1d6c529f
+Dunlending War Axe | gear | bc definition | Dunlending War Axe | d12785f5
+Dwarf Bow | gear | bc definition | Dwarf Bow | b534ad01
+Dwarf Longbow | gear | bc definition | Dwarf Longbow | aa321757
+Dwarf longbow | gear | bc definition | Dwarf Longbow | aa321757
+Dwarven Brew | gear | bc definition | Dwarven Brew | 0b7919b0
+Easterling Halberd | gear | bc definition | Easterling Halberd | cb29ec36
+Elf Bow | gear | bc definition | Elf Bow | aa321757
+Elf bow | gear | bc definition | Elf Bow | aa321757
+Elven Cloak | gear | bc definition | Elven Cloak | 9edce1a3
+Elven hand-and-a-half weapon | gear | bc definition |  | 93f1d3f0
+Elven lance | gear | bc definition |  | 4f2e75d6
+Elven pike | gear | bc definition |  | 5f6060e2
+Elven spear | gear | bc definition |  | a07b16fc
+Elven throwing weapon | gear | bc definition | Elven throwing weapon | 7c19502f
+Elven throwing weapons | gear | bc definition | Elven throwing weapons | 7c19502f
+Envenom Weapon (X) | gear | bc definition | Envenom Weapon (X) | 15b47736
+Esgaroth Bow | gear | bc definition | Esgaroth Bow | aa321757
+Fell Warg | gear | bc armoury | Fell Warg | a2c5ffdf
+Flaming Brand | gear | bc definition | Flaming Brand | ef23e06a
+Galadhrim Steed | gear | bc definition | Galadhrim Steed | 9092cc78
+Goat | gear | bc armoury | Goat | 333e3f85
+Hand weapon | gear | none | Hand Weapon | a152aed7
+Hand-and-a-half weapon | gear | bc definition | Hand-and-a-half Weapon | 5e201940
+Healing Herbs | gear | bc definition | Healing Herbs | b67655bf
+Horse | gear | bc armoury | Horse | a2c5ffdf
+Lance | gear | bc definition | Lance | c0628685
+Light Shield | gear | bc definition | Light Shield | 7dba0213
+Longbow | gear | bc definition | Longbow | aa321757
+Lucky Talisman | gear | bc definition | Lucky Talisman | edadbe36
+Map | gear | bc definition | Map | 2ecc3fda
+Mattock | gear | bc definition | Mattock | 2ada7b97
+Mountain Boots | gear | bc definition | Mountain Boots | 0dfacc62
+Noldorian Exile | gear | none |  | -
+Orc Bow | gear | bc definition | Orc Bow | 6fd46631
+Pike | gear | bc definition | Pike | a96f4253
+Ring of Warding | gear | bc definition | Ring of Warding | c0e74ef4
+Scroll of Courage | gear | bc definition | Scroll of Courage | e83f5953
+Scroll of Hidden Paths | gear | bc definition | Scroll of Hidden Paths | 5fc4181c
+Seeing Stone | gear | bc definition | Seeing Stone | de3e77c7
+Shield | gear | bc definition | Shields | 399b67fd
+Short Bow | gear | bc definition | Short Bow | 6fd46631
+Small Shield | gear | bc definition | Small Shield | cb8c5e2c
+Spear | gear | bc definition | Spear | 761cb2e2
+Throwing Spears | gear | bc definition | Throwing Spear | d5b6b5e7
+Throwing weapon | gear | bc definition | Throwing Weapons | 160baaa6
+Throwing weapons | gear | bc definition | Throwing Weapons | 160baaa6
+Tookish Hunter | gear | bc definition | Tookish Hunter | 25b80f72
+Torching Brand | gear | bc definition | Torching Brand | 85ef5e26
+Traps & Snares | gear | bc definition | Traps & Snares | 69a67031
+Trophy Pelt | gear | bc definition | Trophy Pelt | 7e4eed78
+Two-handed weapon | gear | bc definition | Two-handed Weapon | 5e201940
+Uruk-Hai Bow | gear | bc definition | Uruk-Hai Bow | b534ad01
+War Horn | gear | bc definition | War Horn | 3dcaab42
+War spear | gear | bc definition | War Spear | 8700bf62
+Warg | gear | bc armoury | Warg | a2c5ffdf
+Wondrous Cram | gear | bc definition | Wondrous Cram | 7853368f
+Wood Elf spear | gear | bc definition | Wood Elf Spear | 92f82941
+Woodland Belt | gear | bc definition | Woodland Belt | 2cd22098
+Mountain Dweller | rule | vanilla rule | Mountain Dweller | 7f895f77
+Mountain Fighters | rule | vanilla rule | Mountain Fighters | 16b242cb
+Resistant to Magic | rule | vanilla rule | Resistant to Magic | 3a16ed31
+Throw Stones (range 8", Strength 1) | rule | vanilla rule | Throw Stones (range 8", Strength 1) | 5fe0d4af
+Woodland Creature | rule | vanilla rule | Woodland Creature | 4fec460b
+
+=== duplicated vanilla names the company uses ===
+
+=== name resolution: what every name the company mentions resolves to ===
+unit "Battlin' Brandybuck" -> label of "Hobbit Militia" (rules +[] selected [Battlin' Brandybuck])
+unit "Dwarf Ranger" -> vanilla "Dwarf Ranger"
+unit "Hobbit Archer" -> vanilla "Hobbit Archer"
+unit "Hobbit Militia" -> vanilla "Hobbit Militia"
+unit "Hobbit Shirriff" -> vanilla "Hobbit Shirriff"
+unit "Lothlorien Warrior" -> vanilla "Lothlorien Warrior"
+unit "Tookish Hunter" -> label of "Hobbit Archer" (rules +[] selected [Tookish Hunter])
+unit "Warrior of Numenor" -> vanilla "Warrior of Numenor"
+gear "Armour" -> key "armour" | annotation "Armour" | vanilla gear "Armour"
+gear "Banner" -> key "banner" | annotation "Banner" | vanilla gear "Banner"
+gear "Battlin' Brandybuck" -> key "battlinbrandybuck" | annotation "Battlin' Brandybuck" | vanilla gear "Battlin' Brandybuck"
+gear "Dwarf longbow" -> key "dwarflongbow" | offer "Dwarf Longbow" size "" also [] | annotation "Dwarf Longbow" | vanilla gear "Dwarf Longbow"
+gear "Elf bow" -> key "elfbow" | offer "Elf Bow" size "" also [] | annotation "Elf Bow" | vanilla gear "Elf Bow"
+gear "Elven Cloak" -> key "elvencloak" | annotation "Elven Cloak" | vanilla gear "Elven Cloak"
+gear "Elven hand-and-a-half weapon" -> key "elvenhandandahalfweapon" | offer "Elven hand-and-a-half weapon" size "" also [Elven-made Hand-and-a-half Weapon Elven-made hand-and-a-half weapon] | annotation "Elven hand-and-a-half weapon"
+gear "Elven throwing weapons" -> key "elventhrowingweapon" | offer "Elven throwing weapon" size "" also [Elven throwing weapons] | annotation "Elven throwing weapon" | vanilla gear "Elven throwing weapons"
+gear "Hand weapon" -> key "handweapon" | annotation "Hand weapon"
+gear "Hand-and-a-half weapon" -> key "handandahalfweapon" | offer "Hand-and-a-half weapon" size "" also [] | annotation "Hand-and-a-half weapon"
+gear "Longbow" -> key "longbow" | offer "Longbow" size "" also [] | annotation "Longbow" | vanilla gear "Longbow"
+gear "Noldorian Exile" -> key "noldorianexile" | annotation "Noldorian Exile" | vanilla gear "Noldorian Exile"
+gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
+gear "Shield and Spear" -> key "shieldandspear" | vanilla gear "Shield and Spear"
+gear "Short Bow" -> key "shortbow" | offer "Short Bow" size "" also [] | annotation "Short Bow" | vanilla gear "Short Bow"
+gear "Spear" -> key "spear" | offer "Spear" size "" also [] | annotation "Spear"
+gear "Throwing weapons" -> key "throwingweapon" | offer "Throwing weapon" size "" also [Throwing weapons] | annotation "Throwing weapon" | vanilla gear "Throwing weapons"
+gear "Tookish Hunter" -> key "tookishhunter" | annotation "Tookish Hunter" | vanilla gear "Tookish Hunter"
+gear "Two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe Two-handed axe] | annotation "Two-handed weapon"
+gear "War Horn" -> key "warhorn" | annotation "War Horn" | vanilla gear "War Horn"
+gear "Wood Elf spear" -> key "woodelfspear" | annotation "Wood Elf Spear" | vanilla gear "Wood Elf Spear"
+rule "\"Hold positions, loose the arrows!\"" -> label "\"Hold positions, loose the arrows!\"" | text from bc rule | glossary "\"Hold positions, loose the arrows!\""
+rule "A Good Sort" -> label "A Good Sort" | text from bc rule | glossary "A Good Sort"
+rule "Big Game Hunter" -> label "Big Game Hunter" | text from bc rule | glossary "Big Game Hunter"
+rule "Burly" -> label "Burly" | text from bc rule | glossary "Burly"
+rule "Chief Advisor" -> label "Chief Advisor" | text from bc rule | glossary "Chief Advisor"
+rule "Claim the Throne" -> label "Claim the Throne" | text from bc rule | glossary "Claim the Throne"
+rule "Command Support" -> label "Command Support" | text from bc rule | glossary "Command Support"
+rule "Commanding Bellow" -> label "Commanding Bellow" | text from bc rule | glossary "Commanding Bellow"
+rule "Cunning Fighter" -> label "Cunning Fighter" | text from bc rule | glossary "Cunning Fighter"
+rule "Deceptive Caster" -> label "Deceptive Caster" | text from bc rule | glossary "Deceptive Caster"
+rule "Defender of the City" -> label "Defender of the City" | text from bc rule | glossary "Defender of the City"
+rule "Devastating Charge" -> label "Devastating Charge" | text from vanilla rule | glossary "Devastating Charge"
+rule "Dominant (2)" -> label "Dominant (2)" | text from vanilla rule | glossary "Dominant (2)"
+rule "Experienced Tracker" -> label "Experienced Tracker" | text from bc rule | glossary "Experienced Tracker"
+rule "Expert Rider" -> label "Expert Rider" | text from vanilla rule | glossary "Expert Rider"
+rule "Fearless" -> label "Fearless" | text from vanilla rule | glossary "Fearless"
+rule "Fearsome Charge" -> label "Fearsome Charge" | text from bc rule | glossary "Fearsome Charge"
+rule "Fell Sight" -> label "Fell Sight" | text from vanilla rule | glossary "Fell Sight"
+rule "For Glory" -> label "For Glory" | text from bc rule | glossary "For Glory"
+rule "Furious Tirade" -> label "Furious Tirade" | text from bc rule | glossary "Furious Tirade"
+rule "Fury of the Bear" -> label "Fury of the Bear" | text from bc rule | glossary "Fury of the Bear"
+rule "Gatekeeper" -> label "Gatekeeper" | text from bc rule | glossary "Gatekeeper"
+rule "General Hunter" -> label "General Hunter" | text from bc rule | glossary "General Hunter"
+rule "Grim Blade" -> label "Grim Blade" | text from bc rule | glossary "Grim Blade"
+rule "Heroic Accuracy" -> label "Heroic Accuracy" | text from none | glossary "Heroic Accuracy"
+rule "Heroic Challenge" -> label "Heroic Challenge" | text from none | glossary "Heroic Challenge"
+rule "Heroic Channeling" -> label "Heroic Channeling" | text from none | glossary "Heroic Channelling"
+rule "Heroic Defence" -> label "Heroic Defence" | text from none | glossary "Heroic Defence"
+rule "Heroic March" -> label "Heroic March" | text from none | glossary "Heroic March"
+rule "Heroic Resolve" -> label "Heroic Resolve" | text from none | glossary "Heroic Resolve"
+rule "Heroic Strength" -> label "Heroic Strength" | text from none | glossary "Heroic Strength"
+rule "Heroic Strike" -> label "Heroic Strike" | text from none | glossary "Heroic Strike"
+rule "Horse Lord" -> label "Horse Lord" | text from vanilla rule | glossary "Horse Lord"
+rule "I Have My Own Sword, Thank You Very Much" -> label "I Have My Own Sword, Thank You Very Much" | text from bc rule | glossary "I Have My Own Sword, Thank You Very Much"
+rule "Knife Mastery" -> label "Knife Mastery" | text from bc rule | glossary "Knife Mastery"
+rule "Lethal Aim" -> label "Lethal Aim" | text from bc rule | glossary "Lethal Aim"
+rule "Longbeard" -> label "Longbeard" | text from bc rule | glossary "Longbeard"
+rule "Marshal" -> label "Marshal" | text from bc rule | glossary "Marshal"
+rule "Master Duelist" -> label "Master Duelist" | text from bc rule | glossary "Master Duelist"
+rule "Master of Battle (3+)" -> label "Master of Battle (3+)" | text from vanilla rule | glossary "Master of Battle (3+)"
+rule "Master of Magic" -> label "Master of Magic" | text from bc rule | glossary "Master of Magic"
+rule "Master of Traps" -> label "Master of Traps" | text from vanilla rule | glossary "Master of Traps"
+rule "Mountain Dweller" -> label "Mountain Dweller" | text from vanilla rule | glossary "Mountain Dweller"
+rule "Mountain Fighters" -> label "Mountain Fighters" | text from vanilla rule | glossary "Mountain Fighters"
+rule "Oblivious to Pain" -> label "Oblivious to Pain" | text from bc rule | glossary "Oblivious to Pain"
+rule "Pinpoint Shot" -> label "Pinpoint Shot" | text from bc rule | glossary "Pinpoint Shot"
+rule "Poisoned Attacks (Blowpipe)" -> label "Poisoned Attacks (Blowpipe)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Poisoned Attacks (X)" -> label "Poisoned Attacks (X)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Rallying Cry" -> label "Rallying Cry" | text from bc rule | glossary "Rallying Cry"
+rule "Rapid Fire" -> label "Rapid Fire" | text from bc rule | glossary "Rapid Fire"
+rule "Reading the Portents" -> label "Reading the Portents" | text from bc rule | glossary "Reading the Portents"
+rule "Reckless Charge" -> label "Reckless Charge" | text from bc rule | glossary "Reckless Charge"
+rule "Relentless Commander" -> label "Relentless Commander" | text from bc rule | glossary "Relentless Commander"
+rule "Resistant to Magic" -> label "Resistant to Magic" | text from vanilla rule | glossary "Resistant to Magic"
+rule "Sorcerous Adept" -> label "Sorcerous Adept" | text from bc rule | glossary "Sorcerous Adept"
+rule "Spectral Walk" -> label "Spectral Walk" | text from vanilla rule | glossary "Spectral Walk"
+rule "Spy" -> label "Spy" | text from bc rule | glossary "Spy"
+rule "Stalk Unseen" -> label "Stalk Unseen" | text from vanilla rule | glossary "Stalk Unseen"
+rule "Swift Parry" -> label "Swift Parry" | text from bc rule | glossary "Swift Parry"
+rule "Swift Shot" -> label "Swift Shot" | text from bc rule | glossary "Swift Shot"
+rule "Terror" -> label "Terror" | text from vanilla rule | glossary "Terror"
+rule "Terror (Beast)" -> label "Terror (Beast)" | text from vanilla rule | glossary "Terror"
+rule "Terror (Cavalry)" -> label "Terror (Cavalry)" | text from vanilla rule | glossary "Terror"
+rule "The King's Protector" -> label "The King's Protector" | text from bc rule | glossary "The King's Protector"
+rule "Throw Stones (range 8\", Strength 1)" -> label "Throw Stones (range 8\", Strength 1)" | text from vanilla rule | glossary "Throw Stones (range 8\", Strength 1)"
+rule "To Arms!" -> label "To Arms!" | text from bc rule | glossary "To Arms!"
+rule "Usurper of Kings" -> label "Usurper of Kings" | text from bc rule | glossary "Usurper of Kings"
+rule "Voice of Command" -> label "Voice of Command" | text from bc rule | glossary "Voice of Command"
+rule "Volley Fire" -> label "Volley Fire" | text from bc rule | glossary "Volley Fire"
+rule "Warrior of Renown" -> label "Warrior of Renown" | text from bc rule | glossary "Warrior of Renown"
+rule "Woodland Creature" -> label "Woodland Creature" | text from vanilla rule | glossary "Woodland Creature"
+rule "You Have My Sword" -> label "You Have My Sword" | text from bc rule | glossary "You Have My Sword"

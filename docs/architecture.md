@@ -15,6 +15,7 @@ A small Go service with a server-rendered frontend and one external dependency: 
 |---|---|
 | `cmd/server` | `main`: configuration, wiring (`backend.go`), graceful shutdown; the `user` and `seed` commands (see [auth.md](auth.md)); `world*.go` is the demo world script ([demo-world.md](demo-world.md)) |
 | `internal/core` | Business logic: accounts, sessions, campaign rules, password hashing. Declares the repository interfaces it needs |
+| `internal/core/lean` | The lean rules format (`schemaVersion` 2, [definitions-lean-design.md](definitions-lean-design.md)): typed model, strict decoder, name resolution, validation. Pure: it imports only the standard library, never `core`; `core` adapts it (`ruleset_v2.go`) |
 | `internal/postgres` | Persistence adapter (pgx). Implements the core's repository interfaces; embedded goose migrations |
 | `internal/web` | HTTP adapter: routes, handlers, middleware, templates, static assets. Declares the core interfaces it needs |
 | `definitions/` | Rules data as JSON, see [definitions.md](definitions.md) |
@@ -101,7 +102,7 @@ type companyRepository interface {
 contains no rules. Rules code in `core` is pure: `BuildDetail(RuleSet, CampaignSettings, CompanyState) CompanyDetail` turns
 state plus rules into what the pages show (profiles, limits, rating, order), and each action is a function
 `(RuleSet, settings, *CompanyState, input) (result, error)`. Refusals are `Refuse(...)` (wraps `ErrRefused`); the service checks
-that the user owns the company before `Update`. Rolls come from an injected `Dice` (`D6() int`) so tests are deterministic;
+that the user owns the company before `Update`. Rolls come from an injected `Dice` (`D6()`, `Die(sides)`, `Roll(spec)` for an `NdM` spec of the rules file, `core.RollDice` for the individual dice) so tests are deterministic (`core.FixedDice` feeds one die per result and folds a d2/d3 the way a typed d6 is read);
 `CampaignSettings.RollRefusal` gates typed and thrown rolls.
 
 The services (`internal/core`, one file each) share `companyDeps` (campaign and company repositories, the rule source, the dice):
@@ -109,7 +110,7 @@ The services (`internal/core`, one file each) share `companyDeps` (campaign and 
 | Service | Methods (of `web.campaigns`) | Notes |
 |---|---|---|
 | `Campaigns` (`campaigns.go`) | `List`, `Create`, `Get`, `Companies`, `Company`, `Settings` | Only users who may create campaigns (`User.MayCreateCampaigns`) create; empty hashes are the defaults, an unknown or wrong-kind hash is `ErrInvalidCampaign`. `Points`, `FullPoints` and `Units` of every returned company come from `BuildDetail` (the repositories return 0) |
-| `CompanyService` (`companies.go`) | `CompanyProfiles`, `CreateCompany`, `CompanyDetail`, `RenameCompany`, `RenameUnit`, `SaveFormation` | New companies start with `StartingInfluence` (0) and the profile's Gold; "the user's company" is the one `campaignRepository.Get` reports, so a stranger gets `ErrNotFound` |
+| `CompanyService` (`companies.go`) | `CompanyProfiles`, `CreateCompany`, `CompanyDetail`, `RenameCompany`, `RenameUnit`, `SaveFormation` | New companies start with the rules' `campaign.company.startingInfluence` (`BCBook.Recruiting()`, 0 in the shipped file) and the profile's Gold; "the user's company" is the one `campaignRepository.Get` reports, so a stranger gets `ErrNotFound` |
 | `ArmouryService` (`armoury.go`) | `Armoury`, `ArmouryEntries`, `BuyEquipment`, `DropEquipment`, `ArmouryCreatures`, `BuyCreature`, `ArmouryWanderers`, `HireWanderer`, `DismissWanderer`, `Carry` | Every purchase re-checks inside `Update` on the locked state |
 | `RecruitService` (`recruiting.go`) | `RecruitState`, `RollRecruit`, `ConfirmRecruit`, `ChooseLower`, `RecruitSpecial`, `PendingChoice`, `ChooseOptions` | The recruit in progress is `CompanyState.Recruit`. A result of several models adds all of them; a "choice" result (take any/above result of the chart, "any 2") reuses the lower-result state (`LowerChoice.Picks`); `pick` is `alt`, `opt:N` or `member` |
 | `LevelService` (`levelling.go`) | `LevelUpState`, `RollLevelUp`, `ChooseLevelUp`, `RerollLevelUp`, `PathOptions`, `ChoosePath` | The roll in progress is `UnitState.Pending.Level`; re-rolls spend `CompanyState.Rerolls` |
@@ -274,6 +275,24 @@ NOTIFY payload `{"m": matchID, "c": companyID, "s": seq, "k": "changed"|"ended"}
 - **htmx**: the `sse` extension (`hx-ext="sse" sse-connect=".../events"`) on the live banner element; the company fragment has `hx-get=".../companies/{c}/live" hx-trigger="sse:company-{c}"`, the log card `sse:match`, the banner `sse:ended`.
   Writes answer their own tab by htmx swap and put the new `seq` in the fragment, so the tab ignores an event whose seq it already has. Polling fallback `hx-trigger="every 10s"` when `EventSource` errors.
 
+## The lean decoder and the upload report
+
+`internal/core/lean` is built beside the old parsers, which stay until the slices of the design move each section (none survives slice 9).
+Its files: `model.go` and `campaign.go` (the contract: one struct per concept, tags `json`, `required`, `enum`, `min`/`max`, `rest`),
+`types.go` and `dice.go` (`Roll`, `Rating`, `RuleRef`, `Scalar`, `DiceSpec`, the polymorphic values, bound through the `Binder` interface),
+`jsontree.go` and `bind.go` (the strict binder: JSON to a tree with duplicate-key and depth checks, then reflection over the model; every error is
+collected with its path), `defaults.go` and `extends.go` (`Normalise`: extends of company, unit, gear and path, then the defaults of design section 3,
+idempotent), `lower.go` and `resolve.go` (`Lower`, the interface the lower layers implement, and `Resolve`: every name looked up in the entity's scope,
+the shared lists and the lower layers, entries classified new / extends / annotation / shadow, inline rules hoisted), `validate.go` and
+`validate_charts.go` (structure, chart coverage by dice spec, parameter ranges), `issue.go` and `closest.go` (`Issue`, `Report`, `NameKey`, `Closest`),
+`decode.go` (`Decode`, the one entry point), `encode.go` (the inverse of the binder, for the round-trip test).
+
+`internal/core` adapts it: `ruleset_v2.go` has `DecodeBattleCompanies` and the `lean.Lower` over `VanillaBook` and the glossary;
+`ruleset_report.go` has `RulesetReport` / `RulesetIssue`, the error of a rejected file (plain data, so `web` never imports `lean`);
+`LoadRuleSet` and `Rules.build` look at `schemaVersion` (absent or 1 is the old path, unchanged) and give a v2 file its report or, when it is clean,
+`ErrRulesetNotPlayable` until slice 9 flips `acceptV2`; `RuleSet.Doc` will carry the typed document to the consumers. The upload
+flow is in [definitions.md](definitions.md#upload-validation).
+
 ## Request flow
 
 1. `net/http` `ServeMux` (Go 1.22 method + path patterns, no router dependency).
@@ -385,6 +404,8 @@ Sent on every response according to `CSP_MODE` (`internal/web/hardening.go`; the
 | `make e2e` | Browser smoke tests on a scratch copy of the demo world ([testing.md](testing.md)) |
 | `make test-db` | Makes sure `bcm_test` exists (an older volume has none) |
 | `make generate` | Regenerates the mocks |
+| `make check-ruleset FILE=…` | Checks a lean rules file like the upload does and prints every problem (`cmd/rulecheck`, [definitions.md](definitions.md#upload-validation)) |
+| `make fuzz` | Explores the lean decoder and the dice parser with go's fuzzer ([testing.md](testing.md)) |
 | `make css` | Builds `internal/web/static/app.css` (generated, not committed) |
 | `make db-up` / `make db-down` | Starts / stops the development PostgreSQL (`compose.dev.yaml`) |
 | `make migrate` | Applies pending migrations and exits (`server migrate`) |

@@ -27,6 +27,8 @@ type fixture struct {
 	rs   *Mockrulesets
 	gl   *Mockglossaries
 	auth *Mockauth
+	// selection is how the rules pick a scenario by dice (the default: the shipped rules, testSelection).
+	selection core.ScenarioSelection
 	// grants is what the company pages read as the company's history of awards (the default: none).
 	grants []core.Grant
 	// aftermaths is what the match page's Aftermath card reads (the default: none).
@@ -43,7 +45,7 @@ type fixture struct {
 
 func newFixture(t *testing.T, cfg Config) *fixture {
 	ctrl := gomock.NewController(t)
-	f := &fixture{camp: NewMockcampaigns(ctrl), rs: NewMockrulesets(ctrl), gl: NewMockglossaries(ctrl), auth: NewMockauth(ctrl)}
+	f := &fixture{selection: testSelection, camp: NewMockcampaigns(ctrl), rs: NewMockrulesets(ctrl), gl: NewMockglossaries(ctrl), auth: NewMockauth(ctrl)}
 	f.rs.EXPECT().CampaignOptions(gomock.Any()).Return([]core.CampaignOption{
 		{Key: "heroesDropProfileGear", Scope: "rules", Label: "Heroes may discard any wargear", Description: "Even what is built into their profile."},
 		{Key: "shakeTheTable", Scope: "app", Label: "Shake the table", Description: "Throw the dice in the browser."},
@@ -60,6 +62,7 @@ func newFixture(t *testing.T, cfg Config) *fixture {
 		f.navFinished = with
 		return f.nav, f.navErr
 	}).AnyTimes()
+	f.camp.EXPECT().ScenarioSelection(gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64) (core.ScenarioSelection, error) { return f.selection, nil }).AnyTimes()
 	var err error
 	if f.srv, err = NewServer(cfg, f.camp, f.rs, f.gl, f.auth); err != nil {
 		t.Fatal(err)
@@ -616,7 +619,7 @@ func TestOthersCompanyCannotBeManaged(t *testing.T) {
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(core.CompanyDetail{CampaignCompany: *d.Company, Influence: 4, Gold: 9,
 		Limits: []core.CompanyLimit{{Label: "Bows", Used: 1, Max: 2}},
 		Roster: []core.CompanyUnit{
-			{ID: 1, Name: "Beregond", Type: "Captain", Role: core.RoleLeader, Kind: core.KindInfantry, Points: 70, Level: 0, XP: 11,
+			{ID: 1, Name: "Beregond", Type: "Captain", Role: core.RoleLeader, Kind: core.KindInfantry, Points: 70, Level: 0, XP: 11, LevelEvery: 5,
 				Stats:     []core.Attribute{{Abbr: "Mv", Name: "Movement", Value: 6, Trail: `"`}, {Abbr: "FV", Name: "Fight", Value: 5, Boost: 1}, {Abbr: "M", Name: "Might", Value: 3, HeroOnly: true}},
 				Equipment: []core.Equipment{{Name: "Sword", Class: core.EquipMelee}, {Name: "Bow", Class: core.EquipBow, Bought: true, Stats: `24" · S2`, Description: "Can shoot."}, {Name: "Elven Cloak", Class: core.EquipOther, Description: "Stalk Unseen."}, {Name: "Helmingas", Class: core.EquipOther, Upgrade: true, Description: "Guards of the king."}},
 				Rules:     []core.UnitRule{{Name: "Bodyguard", Description: "Protects the Leader.", Source: core.RuleFromUnit}, {Name: "Wither", Description: "Bad things.", Source: core.RuleFromUnit, Spell: true, Casting: 3, Range: 12}},
@@ -863,9 +866,13 @@ func mineDetail() (core.CampaignDetail, core.CompanyDetail) {
 	d := campaignDetail()
 	d.Company = &core.CampaignCompany{ID: 1, Name: "Rangers", Faction: "Gondor"}
 	return d, core.CompanyDetail{CampaignCompany: *d.Company, Influence: 4, Gold: 1, MaxUnits: 15,
-		Recruit: core.RecruitInfo{Cost: 3, Chart: []core.RecruitRow{{Min: 2, Max: 2, Text: "Warrior of Minas Tirith (Shield)"}, {Min: 6, Max: 6, Text: "Roll on the special chart"}}, SpecialChart: []core.RecruitRow{{Min: 1, Max: 3, Text: "Citadel Guard"}}, Notes: []string{"A rare unit the company cannot have is replaced by a lower result."}, Special: []core.SpecialRecruit{{Unit: "Cave Troll", Cost: 15, Rare: 1}}},
-		Roster:  []core.CompanyUnit{{ID: 5, Name: "Hador", Type: "Warrior", Role: core.RoleSergeant, Kind: core.KindInfantry, Points: 8}}}
+		Recruit:  core.RecruitInfo{Rules: recruitRules, Cost: 3, Chart: []core.RecruitRow{{Min: 2, Max: 2, Text: "Warrior of Minas Tirith (Shield)"}, {Min: 6, Max: 6, Text: "Roll on the special chart"}}, SpecialChart: []core.RecruitRow{{Min: 1, Max: 3, Text: "Citadel Guard"}}, Notes: []string{"A rare unit the company cannot have is replaced by a lower result."}, Special: []core.SpecialRecruit{{Unit: "Cave Troll", Cost: 15, Rare: 1}}},
+		Roster:   []core.CompanyUnit{{ID: 5, Name: "Hador", Type: "Warrior", Role: core.RoleSergeant, Kind: core.KindInfantry, Points: 8}},
+		RuleDice: testRuleDice}
 }
+
+// testRuleDice are the dice of the shipped rules file: warriors roll a d6, heroes two results of 2d6, a Broken model tests Courage on 2d6.
+var testRuleDice = core.RuleDice{Level: core.LevelDice{Warrior: core.DiceSpec{Count: 1, Sides: 6}, Hero: core.DiceSpec{Count: 2, Sides: 6}, Pairs: 2}, Courage: core.DiceSpec{Count: 2, Sides: 6}}
 
 func TestRecruitWindowShowsBothChartsApart(t *testing.T) {
 	f := newFixture(t, Config{})
@@ -900,7 +907,7 @@ func TestARecruitIsRolledThenConfirmedInTheWindow(t *testing.T) {
 
 	// 1. the roll: the window stays and shows the result with its adjustment buttons
 	f.camp.EXPECT().RollRecruitWithPerk(gomock.Any(), frodo, int64(7), 4, false, 0).Return(nil)
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(&core.RecruitRoll{Stage: "chart", Rolled: true, Roll: 4, Budget: 3}, nil)
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(&core.RecruitRoll{Stage: "chart", Rolled: true, Roll: 4, Budget: 3, Adjust: upToThree}, nil)
 	rec := f.do(f.signedIn(form("/campaigns/7/my-company/recruit/roll", url.Values{"roll": {"4"}})))
 	body := rec.Body.String()
 	for _, want := range []string{"You rolled a", "Raise the roll", "Confirm", "recruit/confirm", `name="adjust"`,
@@ -915,7 +922,7 @@ func TestARecruitIsRolledThenConfirmedInTheWindow(t *testing.T) {
 
 	// 2. a result that leads to the special chart keeps the window open
 	f.camp.EXPECT().ConfirmRecruit(gomock.Any(), frodo, int64(7), 1, "").Return(core.RecruitResult{Roll: 6, Summary: "special", Next: true}, nil)
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(&core.RecruitRoll{Stage: "special", Roll: 0, Budget: 2}, nil)
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(&core.RecruitRoll{Stage: "special", Roll: 0, Budget: 2, Adjust: upToThree}, nil)
 	rec = f.do(f.signedIn(form("/campaigns/7/my-company/recruit/confirm", url.Values{"adjust": {"1"}})))
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "special chart") || !strings.Contains(rec.Body.String(), "Roll on the special chart") || rec.Header().Get("HX-Retarget") != "" {
 		t.Errorf("the special chart asks for a second roll in the same window: %d", rec.Code)
@@ -937,7 +944,7 @@ func TestARecruitInProgressReopensItsWindow(t *testing.T) {
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).Times(2)
 	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
 	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(&core.RecruitRoll{Stage: "chart", Rolled: true, Roll: 2, Budget: 3}, nil).Times(2)
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(&core.RecruitRoll{Stage: "chart", Rolled: true, Roll: 2, Budget: 3, Adjust: upToThree}, nil).Times(2)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
 	if !strings.Contains(body, `data-modal="true"`) || !strings.Contains(body, "You rolled a") {
@@ -1314,7 +1321,7 @@ func TestTheLevelUpWindowRollsAndOffersTheResults(t *testing.T) {
 	d, detail := mineDetail()
 	d.Settings.ManualRolls = true
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
-	detail.Roster[0].XP = 10
+	detail.Roster[0].XP, detail.Roster[0].LevelEvery = 10, 5
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
 	f.camp.EXPECT().LevelUpState(gomock.Any(), frodo, int64(7), int64(5)).Return(nil, nil)
@@ -1324,7 +1331,7 @@ func TestTheLevelUpWindowRollsAndOffersTheResults(t *testing.T) {
 			t.Errorf("the roll form lacks %q", want)
 		}
 	}
-	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(5), []int{0, 0}, false).Return(core.LevelRoll{Kind: "warrior", D6: 6, Result: "heroInTheMaking",
+	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(5), nil, false).Return(core.LevelRoll{Kind: "warrior", D6: 6, Result: "heroInTheMaking",
 		Offers: []core.LevelOffer{{Roll: 6, Text: "A hero", Choices: []core.LevelChoice{{Key: "path:Path of the Duelist", Label: "Become a hero: Path of the Duelist", Group: "Choose its path"}}}}}, nil)
 	rec := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/levelup/roll", url.Values{"roll": {"0"}})))
 	body = rec.Body.String()
@@ -1343,7 +1350,7 @@ func TestTheLevelUpWindowRollsAndOffersTheResults(t *testing.T) {
 func TestTheSorcererPowerStepDoesNotSayToTakeTheOtherRoll(t *testing.T) {
 	f := newFixture(t, Config{})
 	d, detail := mineDetail()
-	detail.Roster[0].XP = 10
+	detail.Roster[0].XP, detail.Roster[0].LevelEvery = 10, 5
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
@@ -1368,7 +1375,7 @@ func TestTheSorcererPowerStepDoesNotSayToTakeTheOtherRoll(t *testing.T) {
 func TestTypedRollsNeedTheCampaignSetting(t *testing.T) {
 	f := newFixture(t, Config{})
 	d, detail := mineDetail()
-	detail.Roster[0].XP = 10
+	detail.Roster[0].XP, detail.Roster[0].LevelEvery = 10, 5
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
 	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
@@ -1387,7 +1394,7 @@ func TestTypedRollsNeedTheCampaignSetting(t *testing.T) {
 	msg := core.CampaignSettings{}.RollRefusal(true, false)
 	f.camp.EXPECT().RollRecruitWithPerk(gomock.Any(), frodo, int64(7), 4, false, 0).Return(core.Refuse("%s", msg))
 	f.camp.EXPECT().TreatInjury(gomock.Any(), frodo, int64(7), int64(5), core.Treatment{Method: "attempt", Injury: "armWound", Roll: 6}).Return(core.TreatResult{}, core.Refuse("%s", msg))
-	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(5), []int{6, 0}, false).Return(core.LevelRoll{}, core.Refuse("%s", msg))
+	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(5), []int{6}, false).Return(core.LevelRoll{}, core.Refuse("%s", msg))
 	for _, c := range []struct {
 		path string
 		form url.Values
@@ -1771,4 +1778,78 @@ func TestBuyingAndChoosingTheWeaponOfAWeaponModifier(t *testing.T) {
 			t.Error("the card lets the player choose the weapon")
 		}
 	})
+}
+
+// Several uploaded files are stored all or nothing: a campaign form with a good glossary and a bad Battle Companies file stores
+// neither and creates no campaign; the answer is the 422 form again with the reason.
+func TestCreateCampaignStoresUploadsAllOrNothing(t *testing.T) {
+	f := newFixture(t, Config{})
+	maker, do := campaignMaker(f)
+	f.defaultsShown()
+	const bc, glossary = `{"name":"BC"}`, `{"name":"G","version":"1","terms":[]}`
+	uploads := []core.RulesetUpload{
+		{Kind: core.KindBattleCompanies, Hash: "h-bc", Content: []byte(bc)},
+		{Kind: core.KindGlossary, Hash: "h-gl", Content: []byte(glossary)},
+	}
+	form := map[string]string{"name": "Own rules", "battle_companies-mode": "file", "battle_companies-hash": "h-bc", "glossary-mode": "file", "glossary-hash": "h-gl"}
+	files := map[string]string{"battle_companies-file": bc, "glossary-file": glossary}
+
+	f.rs.EXPECT().StoreAllAs(gomock.Any(), maker, uploads).Return(nil, errors.Join(core.ErrInvalidRuleset, errors.New("limits: wrong type")))
+	rec := do(multipartForm(t, form, files)) // no Create expectation: the strict mock fails if the campaign is created
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Limits: wrong type") {
+		t.Fatalf("a bad file: got %d: %s", rec.Code, rec.Body)
+	}
+
+	f.rs.EXPECT().StoreAllAs(gomock.Any(), maker, uploads).Return([]core.RulesetInfo{{Kind: core.KindBattleCompanies, Hash: "h-bc"}, {Kind: core.KindGlossary, Hash: "h-gl"}}, nil)
+	f.camp.EXPECT().Create(gomock.Any(), maker, core.CampaignInput{Name: "Own rules", BattleCompanies: "h-bc", Glossary: "h-gl"}).Return(core.CampaignSummary{ID: 2}, nil)
+	if rec := do(multipartForm(t, form, files)); rec.Code != http.StatusSeeOther {
+		t.Fatalf("good files: got %d: %s", rec.Code, rec.Body)
+	}
+}
+
+// The recruiting parameters of the shipped file, for the fakes of the windows (the real ones come from the rules file).
+var (
+	upToThree    = core.AdjustRules{Max: 3, CostPerPoint: 1, Direction: core.AdjustUp, Die: true}
+	recruitRules = core.RecruitRules{Adjust: upToThree, Sides: 6, Rendezvous: core.PerkRange{Low: -1, High: 1}}
+)
+
+// The window prints the adjustment from the rules it is given: the price, the points, the directions and the buttons.
+func TestTheRecruitWindowPrintsTheAdjustmentFromTheRules(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		adjust       core.AdjustRules
+		budget, down int
+		want, absent []string
+	}{
+		{"shipped: raise only", upToThree, 3, 0, []string{"Raise the roll", "1 influence per point, up to 3 more", ">+3<", "As rolled"}, []string{">-1<", "Adjust the roll"}},
+		{"cap 5, 2 per point, both ways", core.AdjustRules{Max: 5, CostPerPoint: 2, Direction: core.AdjustBoth, Die: true}, 2, 3,
+			[]string{"Adjust the roll", "2 influence per point, up to 2 up or 3 down", ">+5<", ">-5<", ">-1<", "As rolled"}, []string{"Raise the roll"}},
+		{"lower only", core.AdjustRules{Max: 2, CostPerPoint: 1, Direction: core.AdjustDown, Die: true}, 0, 2,
+			[]string{"Lower the roll", ">-2<", "up to 2 down"}, []string{">+1<"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFixture(t, Config{})
+			d, detail := mineDetail()
+			detail.Influence = 6
+			detail.Recruit.Rules = core.RecruitRules{Adjust: tc.adjust, Sides: 6, Rendezvous: core.PerkRange{Low: -1, High: 1}}
+			f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
+			f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
+			f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+			f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+			f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
+			f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(&core.RecruitRoll{Stage: "chart", Rolled: true, Roll: 3, Budget: tc.budget, BudgetDown: tc.down, Adjust: tc.adjust, Sides: 6}, nil)
+			rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/recruit", nil)))
+			body := rec.Body.String()
+			for _, w := range tc.want {
+				if !strings.Contains(body, w) {
+					t.Errorf("the window lacks %q", w)
+				}
+			}
+			for _, w := range tc.absent {
+				if strings.Contains(body, w) {
+					t.Errorf("the window has %q", w)
+				}
+			}
+		})
+	}
 }

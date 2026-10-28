@@ -1,0 +1,2 @@
+battle_companies.json: schemaVersion 1 is not supported (this app reads 2); the file must be regenerated or converted
+  hint: the Battle Companies file must say "schemaVersion": 2

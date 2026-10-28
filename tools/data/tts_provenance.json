@@ -1,0 +1,45 @@
+{
+  "standIns": [
+    "a human swordsman; no wanderer figure in the mod",
+    "a human archer; the Ruffian with a bow",
+    "a scavenger, a lone mercenary figure",
+    "an old sage, a seer",
+    "the pony of the Fellowship",
+    "a bird; the Crebain figure",
+    "a hound; Fang"
+  ],
+  "mounts": [
+    "the mount fights (Attacks above 0): its figure is the mount itself",
+    "the mod has no plain Warg figure; the Fell Warg is the closest (owner decision, REVIEW)"
+  ],
+  "riders": [
+    "no states",
+    "states on 3 of 4 keys",
+    "no states",
+    "no states",
+    "states on 3 of 7 keys",
+    "no states",
+    "states on every model key (rider on foot and the Fell Warg alone)",
+    "states on 1 of 2 keys; no Iron Hills foot model in the bag; owner chose a plain Dwarf Warrior for now",
+    "no states",
+    "no states",
+    "no states",
+    "states on 1 of 2 keys",
+    "states on every model key (the alias Mirkwood Cavalry resolves to it)",
+    "states on 2 of 5 keys",
+    "states on every model key",
+    "states on 2 of 3 keys",
+    "no states",
+    "states on every model key; no on-foot model of its own"
+  ],
+  "names": [
+    "the mod writes the plain Bow for the Isengard Orc Warrior"
+  ],
+  "defaultOptions": [
+    "the bag has no bare Mahûd Warrior; owner decision: melee over ranged, the cheapest (Spear, 1 point)",
+    "the bag has no bare Rohirrim Traitor; owner decision: melee over ranged, the cheapest (Shield, 1 point). REVIEW: the owner may prefer 'Shield and throwing spears'"
+  ],
+  "markerOptions": [
+    "the bag has no figure with the Lorien Guard marker alone: the bare Galadhrim Warrior is shown and the name and description keep the Lorien Guard identity (owner decision)"
+  ]
+}

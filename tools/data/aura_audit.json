@@ -1,0 +1,506 @@
+{
+  "text": "Fixed radii around the bearer, in inches from the edge of its base, inside which models are affected by (or eligible for) a rule or an item the bearer has: a banner, a Hero's Stand Fast, 'friendly models within 3\" of this Hero'. Not auras: weapon ranges, 'in the same combat', a radius around somebody else (receiver-side rules), around an objective, a marker or a target. An entry is found on a unit by `source` (item, rule or power names; the Hero rules of the rulebook; a heroic action); `kind` is the colour group, `when` and `group` say which dialog switch governs it. Rings of one figure with the same kind, radius and tier are merged (labels joined). `replaces` lists entries that the bearer does not get when it has this one. `radius` is written in the source text (or is the sum of `radiusParts`).",
+  "entryReasons": {
+    "banner-3": "The Banner text: a 3\" area of effect. Vanilla banner options (plain, exchanges, bundles) all resolve to the item Banner.",
+    "standard-3": "A Pennant (a banner) of the Battle Companies equipment table: the same 3\" as a banner; merges with it into one ring.",
+    "instrument-3": "Battle Companies equipment table: 3\" around the bearer.",
+    "drum-12": "War drum text: the At the Double of the free Heroic March has range 12\" instead of 6\". The Company Drum is a War Drum (isA).",
+    "horn-24": "War horn text: 24\". Correct but it fills the table: group `large`, off by default (Q3). The Company Horn is a War Horn (isA).",
+    "horn-standfast-9": "War horn text: once per game +3\" to a friendly Hero's Stand Fast, or to the bearer's own when it is a Hero (6\" + 3\"). Only a Hero bearer has the ring (for a Warrior bearer the 9\" is centred on the Hero, not on the horn).",
+    "torch-6": "Battle Companies equipment table: 'illuminate the area within 6\"'. Light, not a rule on a model: group `optional`, off by default (spec 2.4).",
+    "standfast-6": "Glossary Stand Fast (every Hero). With Me! (Heroic Move) and Loose (Heroic Shoot) are universal Heroic Actions with the same 6\": their labels are merged.",
+    "atthedouble-6": "Heroic March is not universal: the Ranger path (or a vanilla profile) gives it. The shout is in the glossary term At the Double.",
+    "resolve-6": "Warlord path starting Heroic Action; merged into the Hero's 6\" command ring.",
+    "takeaim-6": "Marksman path starting Heroic Action; spec 2.4 lists it as support but says it merges into the 6\" command ring, so it is command (REVIEW).",
+    "voice-12": "Warlord rule: replaces the Hero's 6\" command rings (Stand Fast and the shouts) with one 12\" ring.",
+    "tirade-6": "Warlord rule (also the named rule of Lobelia, which the Battle Companies rule replaces).",
+    "bellow-3": "Warlord rule: 'treat this Hero as a banner with a range of 3\"'. Not in the spec table (omitted by mistake); added as a banner ring.",
+    "claim-6": "Claimant rule (and Freca's vanilla rule, replaced by it): the banner range 6\" starts after a game event.",
+    "dolamroth-6": "Fiefdoms rule: 'a banner with a range of 6\"'. Not in the spec table (omitted by mistake); added as a banner ring.",
+    "leadbyexample-6": "Vanilla rule of Buhrdur, Hill Troll Chieftain (a unit companies can field). Not in the spec table; added as a banner ring.",
+    "hmm-6": "Tactician mastery rule.",
+    "portents-6": "Tactician rule (Oin's vanilla rule of the same name is replaced by it).",
+    "knife-3": "Sharpshooter rule.",
+    "hold-3": "Marksman rule.",
+    "goodsort-3": "Soldier rule (also Dori's vanilla rule, replaced by it): the bearer benefits when another Hero is near.",
+    "relentless-6": "Soldier rule.",
+    "kingprot-6": "Shieldbearer rule.",
+    "advisor-6": "Ranger rule.",
+    "toarms-3": "Berserker rule (also Thorin's vanilla rule, replaced by it).",
+    "forglory-6": "Duelist rule.",
+    "remember-3": "Osgiliath & Ithilien rule.",
+    "lossarnach-3": "Fiefdoms rule (also Forlong's vanilla rule, replaced by it).",
+    "lamedon-3": "Fiefdoms rule (also Angbor's vanilla rule, replaced by it).",
+    "vale-3": "Fiefdoms rule.",
+    "moneybags-6": "Lake-town rule (also the vanilla rule of the Master of Lake-town, replaced by it).",
+    "callous-3": "Moria rule (replaces Durburz's vanilla 6\" rule).",
+    "seize-3": "City of Umbar rule.",
+    "sword-6": "Wanderers in the Wild rule.",
+    "keensight-12": "Falcon creature figure (its own `aura` agrees) and the Crebain of the vanilla file.",
+    "battle-6": "Warlord option and Rutabi, General of the Dragon Legion (the pattern covers the other variants if a company ever gets them).",
+    "gatekeeper-6": "Tactician rule: chooses one model.",
+    "spy-12": "Tactician rule: one chosen Hero.",
+    "challenge-6": "Claimant starting Heroic Action: names one Hero.",
+    "swap-3": "Goblin-Town rule: one chosen model.",
+    "fell-12": "Chooses one model.",
+    "glove-3": "Places one creature; the radius only limits where.",
+    "hymn-12": "Wood Elf Sentinel: chooses one model.",
+    "lay-3": "Wood Elf Sentinel song.",
+    "aoc-6": "Magical Power.",
+    "fury-6": "Magical Power (and its keyword variants).",
+    "dismay-6": "Magical Power.",
+    "fog-6": "Magical Power.",
+    "fear-6": "Magical Power.",
+    "blinding-6": "Magical Power.",
+    "vines-3": "Magical Power: the radius is also around the marker; the ring shows where the marker may go."
+  },
+  "excluded": [
+    {
+      "type": "rule",
+      "names": [
+        "The King's Guard"
+      ],
+      "radius": 3,
+      "category": "receiver-side",
+      "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Riders of Eorl"
+      ],
+      "radius": 6,
+      "category": "receiver-side",
+      "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Arise, Riders of Rohan!"
+      ],
+      "radius": 12,
+      "category": "receiver-side",
+      "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Pride of Dol Amroth"
+      ],
+      "radius": 3,
+      "category": "receiver-side",
+      "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Loyal to the Captain"
+      ],
+      "radius": 6,
+      "category": "receiver-side",
+      "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Warrior of the Dragon Cult"
+      ],
+      "radius": 3,
+      "category": "receiver-side",
+      "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Favour of the War Chief"
+      ],
+      "radius": 3,
+      "category": "receiver-side",
+      "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Protectors of the White Tree"
+      ],
+      "radius": 6,
+      "category": "receiver-side",
+      "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Everyone has a Price"
+      ],
+      "radius": 6,
+      "category": "receiver-side",
+      "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Onwards Men of Esgaroth"
+      ],
+      "radius": 3,
+      "category": "receiver-side",
+      "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "The Honour of Lamedon"
+      ],
+      "radius": 3,
+      "category": "receiver-side",
+      "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "King's Knights"
+      ],
+      "radius": 6,
+      "category": "receiver-side",
+      "reason": "the radius is around another model (a named hero, a General, the Leader): the source is not the bearer; no ring in v1 (spec 2.1, Q4)"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Mindless Killers"
+      ],
+      "radius": 6,
+      "category": "receiver-side",
+      "reason": "the 6\" is measured from a friendly Corsair bo'sun, not from the bearer (receiver-side, like the 13 of spec 2.1)"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Pillager"
+      ],
+      "radius": 3,
+      "category": "centred-elsewhere",
+      "reason": "the radius is around an Objective Marker"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Rapid Fire"
+      ],
+      "radius": 3,
+      "category": "centred-elsewhere",
+      "reason": "the radius is around the first target of the shot"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Master of Traps"
+      ],
+      "radius": 3,
+      "category": "centred-elsewhere",
+      "reason": "radii around Trap Markers and Objectives (where a marker may not be placed, when it is triggered)"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Combat Synergy"
+      ],
+      "pattern": "Combat Synergy (X)",
+      "radius": 1,
+      "category": "centred-elsewhere",
+      "reason": "two named Heroes within 1\" of each other swap places: a pair, not an area"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Volley Fire"
+      ],
+      "radius": 6,
+      "category": "weapon-range",
+      "reason": "adds 6\" to the range of the bearer's shooting attacks"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Throwing Stones"
+      ],
+      "radius": 8,
+      "category": "weapon-range",
+      "reason": "the range of a throwing weapon"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Spider Webs"
+      ],
+      "radius": 8,
+      "category": "weapon-range",
+      "reason": "the range of a throwing weapon"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Fly"
+      ],
+      "radius": 4,
+      "category": "movement",
+      "reason": "the Move Value of a model that chooses not to Fly"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Stalk Unseen"
+      ],
+      "radius": 6,
+      "category": "visibility",
+      "reason": "a concealment distance (line of sight): models further than 6\" cannot see the bearer; not a radius of affected models. Keen Sight, which removes it, has a ring"
+    },
+    {
+      "type": "rule",
+      "names": [
+        "Silent Hunters"
+      ],
+      "radius": 6,
+      "category": "visibility",
+      "reason": "a concealment distance (line of sight), like Stalk Unseen"
+    },
+    {
+      "type": "power",
+      "names": [
+        "Call Winds"
+      ],
+      "radius": 3,
+      "category": "effect-length",
+      "reason": "the distance a target is blown (D3+3\"); the range of the power is its `range`"
+    },
+    {
+      "type": "power",
+      "names": [
+        "Tremor"
+      ],
+      "radius": 3,
+      "category": "effect-length",
+      "reason": "a line of D3+3\" from the caster, not an area around it"
+    },
+    {
+      "type": "item",
+      "names": [
+        "Blowpipe",
+        "Bow",
+        "Crossbow",
+        "Dwarf Bow",
+        "Dwarf Longbow",
+        "Elf Bow",
+        "Elven throwing weapon",
+        "Esgaroth Bow",
+        "Longbow",
+        "Orc Bow",
+        "Short Bow",
+        "Throwing Spears",
+        "Throwing weapon",
+        "Troll Chain",
+        "Uruk-Hai Bow",
+        "Whip"
+      ],
+      "radius": 0,
+      "category": "weapon-range",
+      "reason": "a weapon's range (missile profile), not a rule radius: a possible later feature (Q11)"
+    }
+  ],
+  "outOfScope": [
+    {
+      "scope": "data.scenarioDetails",
+      "reason": "scenario layout, deployment and scoring (objectives, board edges, entry points): centred on objectives, markers or the table, never on a unit"
+    },
+    {
+      "scope": "data.gearAnnotations ranged items",
+      "reason": "missile profiles (bows, crossbows, throwing weapons, the blowpipe, the whip): weapon ranges, listed in `excluded` by the generator"
+    },
+    {
+      "scope": "data.companies",
+      "reason": "company rules print no distance of their own (the validator checks the keywords they use, which are covered above)"
+    }
+  ],
+  "unreachable": [
+    "\"Come here maggot!\"",
+    "\"Dol Amroth for Gondor!\"",
+    "\"Go for the Horse!\"",
+    "\"Looks like meat's back on the menu, boys!",
+    "A Bad Influence",
+    "A Helpful Sort",
+    "A Light in the Dark",
+    "A Stern Scolding",
+    "Accurate",
+    "Air of Self-importance",
+    "Allies 'til the End",
+    "An Unlikely Friendship",
+    "Angmar Arise (Slayer of Men)",
+    "Arcana Leech",
+    "Archers, this way!",
+    "Area Effect",
+    "Ascendent",
+    "Awesome Presence",
+    "Battle Wisdom",
+    "Birdcalls",
+    "Blood of Numenor",
+    "Bloodoath",
+    "Bound in Shadow",
+    "Breathe Fire (Smaug)",
+    "Burn it down!",
+    "Call 'the Beast'",
+    "Captain of the Citadel Guard",
+    "Captain of the Guard",
+    "Chronicler",
+    "Chronicler (Thorin's Company)",
+    "Commanding Presence",
+    "Conduit of Angmar",
+    "Considerable Wealth",
+    "Cornered Beast",
+    "Da! Down Here!",
+    "Detonation Table",
+    "Do not talk to me of Dragon fire",
+    "Doorward of Meduseld",
+    "Dragged to the Depths",
+    "Drums in the Deep",
+    "Dubious Counsel",
+    "Dunlending Commander",
+    "Dunlending Heritage",
+    "Durin's Heir",
+    "Durin's Protector",
+    "Edoras Shall Fall",
+    "Family Bond",
+    "Fight to the Last",
+    "For Théoden!",
+    "For Tuckborough!",
+    "For the Shire!",
+    "Forest Stalker",
+    "Forth, and Fear no Darkness",
+    "Gandalf's Intervention",
+    "Gandalf's Rockets",
+    "General of the North",
+    "Ghostly Resolve",
+    "Gift of Foresight",
+    "Go back to the void, from whence you came!",
+    "Goblin Mastery",
+    "Goblin Projectile",
+    "Gothmog's Right Hand",
+    "Grasping Tentacles",
+    "Hands off the shiny shirt; that's mine!",
+    "Head Shirriff",
+    "Head Taker",
+    "Heart of Darkness",
+    "Herald of Doom",
+    "Herald of Victory",
+    "High King of Gondor and Arnor",
+    "High King of the Elves",
+    "High Spirits",
+    "Home is the Hero",
+    "I Shall Kill You if You Touch Him",
+    "If I were to marry anyone, it would've been her",
+    "Imposing Presence",
+    "In Defence of the King",
+    "In Defence of the King (Hurin)",
+    "In the name of the Dragon Emperor",
+    "Incantations of Power",
+    "Iron Fist",
+    "Leave me flowers alone!",
+    "Let him go or I'll have you, Longshanks!",
+    "Lord of Dale",
+    "Lord of Dale (Girion)",
+    "Lord of Dunland",
+    "Lord of the Blackroot Vale",
+    "Lord of the Iron Hills",
+    "Lord of the Istari",
+    "Loremaster",
+    "Loyal Hounds",
+    "Loyalty, honour, a willing heart. I can ask no more than that",
+    "Master of Battle (2+)",
+    "Master of Battle (4+)",
+    "Master of Battle (5+)",
+    "Master of Birds",
+    "Master of the Dark Wild",
+    "Master of the Nazgul",
+    "Mayor of Michel Delving",
+    "Miasmatic Presence",
+    "Mutual Respect",
+    "Orders from Edoras",
+    "Pall of Darkness",
+    "Piercing Shot",
+    "Piercing Shot (Isengard)",
+    "Piercing Shot (Windlance)",
+    "Progeny",
+    "Protect the Nest",
+    "Protect the Young",
+    "Protect the little ones!",
+    "Raise the Ladders!",
+    "Raising Spirits",
+    "Raising Spirits (Thorin's Company)",
+    "Reading the Portents (Thorin's Company)",
+    "Resolute Fighter",
+    "Riches Beyond Renown",
+    "Roast 'em Slowly",
+    "Rule Through Fear",
+    "Run and Drum",
+    "Ruthless Commander",
+    "Sap Fortitude",
+    "Save the Gold!",
+    "Saviour of Lake-town",
+    "Sense of impending doom",
+    "Serve the Master of the Precious",
+    "Set Ablaze",
+    "Shadow Pawn",
+    "Sharkey's Spy",
+    "She is always hungry",
+    "Sing a Jolly Song (Goldberry)",
+    "Sing a Jolly Song (Tom)",
+    "Soft and quick and shadows we must be",
+    "Songs of Elbereth",
+    "Spider-kin",
+    "Spiritual Displacement",
+    "Stand by our Men!",
+    "Stand, Men of the West!",
+    "Standards of the Emperor",
+    "Steadfast",
+    "Steadfast (Thorin's Company)",
+    "Strength of Brotherhood (Elladan)",
+    "Strength of Brotherhood (Elrohir)",
+    "Sweet Maiden of the Golden Ale",
+    "Swift Gallop",
+    "Swirling Mists",
+    "Take Up the Drum",
+    "Take up the Drum",
+    "Take up the Drum (Blackshield)",
+    "Tentacles",
+    "The Age of Men is Over",
+    "The Bringer of Death",
+    "The Goblin King's Command",
+    "The King in the North",
+    "The King's Axemen",
+    "The King's Counsel",
+    "The Lineage of Numenor",
+    "The Master's Puppet",
+    "The Old Twirly Whirlies",
+    "The Palanquin",
+    "The Price of Failure",
+    "The Shards of Narsil",
+    "The Time of the Orc has Come",
+    "The Warrior Poet",
+    "The will of men is easily corrupted",
+    "There is Always Hope",
+    "There's some good in this world, Mr Frodo, and it's worth fighting for",
+    "This is our country",
+    "To me, Shire-folk!",
+    "Unholy Resurrection",
+    "Unnatural Speed",
+    "Voice of Curunir",
+    "War Aspect",
+    "War Leader of the North",
+    "Warlord of Carn Dum",
+    "Water Dweller",
+    "Well fed, and ready to fight",
+    "Whips of the Master",
+    "Windlance Trained",
+    "Wise Counsel",
+    "Wizard's Pupil",
+    "Wormtongue"
+  ]
+}

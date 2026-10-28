@@ -8,9 +8,6 @@ import (
 	"unicode/utf8"
 )
 
-// StartingInfluence is the influence a new company starts with: the rules file gives a starting company and Gold, no influence.
-const StartingInfluence = 0
-
 // maxUnitName is the longest name a player can give a unit.
 const maxUnitName = 40
 
@@ -80,7 +77,7 @@ func (s *CompanyService) CreateCompany(ctx context.Context, user User, campaignI
 	for i := range units {
 		units[i].ID = 0 // the repository numbers the units
 	}
-	co, err := s.companies.Create(ctx, campaignID, user, NewCompany{Name: in.Name, Faction: profile.Name, Influence: StartingInfluence, Gold: profile.StartGold, Units: units})
+	co, err := s.companies.Create(ctx, campaignID, user, NewCompany{Name: in.Name, Faction: profile.Name, Influence: rs.BC.Recruiting().StartingInfluence, Gold: profile.StartGold, Units: units})
 	if err != nil {
 		return co, err
 	}

@@ -1,0 +1,2 @@
+battle_companies.json: companies[0].heroUpgrades[0].name: no rule "Foresight of the Seer" in rules[], vanilla or the glossary; closest: "Foresight"
+  hint: define it in rules[]

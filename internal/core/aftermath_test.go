@@ -22,7 +22,7 @@ func realAftermathRules(t *testing.T) AftermathRules {
 
 func TestParseAftermath(t *testing.T) {
 	r := realAftermathRules(t)
-	if r.Participating != 2 || r.Draw != 1 || r.Win != 2 || r.Threshold != 5 {
+	if r.Participating != 2 || r.Draw != 1 || r.Win != 2 {
 		t.Errorf("influence/threshold: %+v", r)
 	}
 	if g, ok := r.Gain("slainHeroOrMonster"); !ok || !g.Repeatable || g.Amount != 1 || len(r.Gains) != 7 {
@@ -416,38 +416,38 @@ func TestSuccession(t *testing.T) {
 		}
 		return out
 	}
-	if s := NextSuccession(without(), false); s.NeedLeader {
+	if s := NextSuccession(without(), false, 1); s.NeedLeader {
 		t.Error("nothing to decide when the leader lives")
 	}
 	// the leader fell: a sergeant takes over
-	s := NextSuccession(without(1), true)
+	s := NextSuccession(without(1), true, 1)
 	if !s.NeedLeader || !slices.Equal(s.LeaderOptions, []int64{2, 3}) {
 		t.Errorf("leader: %+v", s)
 	}
 	// after Brand becomes leader there is one sergeant: another hero fills the place
 	next := without(1)
 	next[0].Role = RoleLeader // Brand
-	if s := NextSuccession(next, true); s.NeedLeader {
+	if s := NextSuccession(next, true, 1); s.NeedLeader {
 		t.Errorf("somebody already took over: %+v", s)
 	}
-	sg := NextSergeant(next, false)
+	sg := NextSergeant(next, false, 2)
 	if !sg.NeedSergeant || !slices.Equal(sg.SergeantOptions, []int64{4}) {
 		t.Errorf("sergeant: %+v", sg)
 	}
-	if NextSergeant(roster(), false).NeedSergeant {
+	if NextSergeant(roster(), false, 2).NeedSergeant {
 		t.Error("two sergeants are enough")
 	}
 	// no sergeants: the other heroes
-	if s := NextSuccession(without(1, 2, 3), true); !slices.Equal(s.LeaderOptions, []int64{4}) {
+	if s := NextSuccession(without(1, 2, 3), true, 1); !slices.Equal(s.LeaderOptions, []int64{4}) {
 		t.Errorf("heroes: %+v", s)
 	}
 	// no hero left: the most experienced warrior (a tie of XP goes to the points, a full tie to the player)
 	only := without(1, 2, 3, 4)
-	if s := NextSuccession(only, true); !slices.Equal(s.Fallback, []int64{5, 6}) {
+	if s := NextSuccession(only, true, 1); !slices.Equal(s.Fallback, []int64{5, 6}) {
 		t.Errorf("tie: %+v", s)
 	}
 	only[0].Points = 11
-	if s := NextSuccession(only, true); !slices.Equal(s.Fallback, []int64{5}) {
+	if s := NextSuccession(only, true, 1); !slices.Equal(s.Fallback, []int64{5}) {
 		t.Errorf("points break the tie: %+v", s)
 	}
 }
@@ -532,18 +532,18 @@ func TestSergeantSuccession(t *testing.T) {
 		}
 		return out
 	}
-	s := NextSergeant(without(3), true) // Cene died; Dal is a Hero
+	s := NextSergeant(without(3), true, 2) // Cene died; Dal is a Hero
 	if !s.NeedSergeant || !slices.Equal(s.SergeantOptions, []int64{4}) || len(s.Fallback) != 0 {
 		t.Errorf("a Hero first: %+v", s)
 	}
-	s = NextSergeant(without(3, 4), true) // no Hero left: Edo and Fen tie on Experience and points
+	s = NextSergeant(without(3, 4), true, 2) // no Hero left: Edo and Fen tie on Experience and points
 	if !s.NeedSergeant || len(s.SergeantOptions) != 0 || !slices.Equal(s.Fallback, []int64{5, 6}) {
 		t.Errorf("the Warriors with the most Experience: %+v", s)
 	}
-	if s := NextSergeant(without(3, 4), false); s.NeedSergeant {
+	if s := NextSergeant(without(3, 4), false, 2); s.NeedSergeant {
 		t.Errorf("without a lost Sergeant a Warrior is not made an officer: %+v", s)
 	}
-	if s := NextSergeant(without(2, 3, 4, 5, 6, 7, 8), true); s.NeedSergeant {
+	if s := NextSergeant(without(2, 3, 4, 5, 6, 7, 8), true, 2); s.NeedSergeant {
 		t.Errorf("nobody to choose: %+v", s)
 	}
 }
@@ -574,13 +574,13 @@ func TestExperienceSkipsWanderers(t *testing.T) {
 	if g := gainOf(Experience(ctx, in), 5); g.Total == 0 {
 		t.Errorf("a warrior still earns: %+v", g)
 	}
-	if n := (CompanyUnit{Wanderer: true, XP: 2 * XPPerLevel}).PendingLevelUps(); n != 0 {
+	if n := (CompanyUnit{Wanderer: true, XP: 10, LevelEvery: 5}).PendingLevelUps(); n != 0 {
 		t.Errorf("a Wanderer has %d level-ups waiting", n)
 	}
-	if n := (CompanyUnit{OwnPath: true, XP: 2 * XPPerLevel}).PendingLevelUps(); n != 0 {
+	if n := (CompanyUnit{OwnPath: true, XP: 10, LevelEvery: 5}).PendingLevelUps(); n != 0 {
 		t.Errorf("a unit On Its Own Path has %d level-ups waiting", n)
 	}
-	if n := (CompanyUnit{XP: 2 * XPPerLevel}).PendingLevelUps(); n != 2 {
+	if n := (CompanyUnit{XP: 10, LevelEvery: 5}).PendingLevelUps(); n != 2 {
 		t.Errorf("an ordinary unit has %d level-ups waiting", n)
 	}
 }

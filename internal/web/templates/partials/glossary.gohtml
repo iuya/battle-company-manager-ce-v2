@@ -37,10 +37,10 @@
         {{range .Limits}}<div class="min-w-12 border-r border-line px-2.5 py-1.5 last:border-r-0"><dt class="text-xs font-semibold uppercase text-muted">{{if .TermID}}<a href="#t-{{.TermID}}" title="{{.Stat}}">{{.Abbr}}</a>{{else}}<abbr title="{{.Stat}}">{{.Abbr}}</abbr>{{end}}</dt><dd class="font-semibold">{{.Limit}}</dd></div>{{end}}
       </dl></div>
       <p class="mt-1 text-center text-xs text-muted"><strong>(+N)</strong> at most N increases from level-ups · <strong>N</strong> at most N · <strong>N+</strong> N+ at best.</p>
-      <h4 class="mt-4 !text-lg">Level-up chart <span class="text-sm font-normal text-muted">roll 2D6</span></h4>
+      <h4 class="mt-4 !text-lg">Level-up chart {{if .PathDice.Valid}}<span class="text-sm font-normal text-muted">roll {{.PathDice.Display}}</span>{{end}}</h4>
       <div class="mt-1 overflow-x-auto rounded-lg border border-line">
         <table class="w-full text-sm">
-          <thead class="bg-raised text-xs uppercase text-muted"><tr><th class="w-16 px-3 py-1.5 text-center font-semibold">2D6</th><th class="px-3 py-1.5 text-left font-semibold">Result</th></tr></thead>
+          <thead class="bg-raised text-xs uppercase text-muted"><tr><th class="w-16 px-3 py-1.5 text-center font-semibold">{{if .PathDice.Valid}}{{.PathDice.Display}}{{else}}Roll{{end}}</th><th class="px-3 py-1.5 text-left font-semibold">Result</th></tr></thead>
           <tbody class="divide-y divide-line">{{range .Rows}}<tr><td class="px-3 py-2 text-center text-base font-semibold">{{.Roll}}</td><td class="px-3 py-2">{{range .Segments}}{{if .TermID}}<a href="#t-{{.TermID}}">{{.Text}}</a>{{else}}{{.Text}}{{end}}{{end}}</td></tr>{{end}}</tbody>
         </table>
       </div>

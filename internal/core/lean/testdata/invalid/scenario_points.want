@@ -1,0 +1,1 @@
+battle_companies.json: scenarios[0].scoring[0].options[0].points: expected a whole number, got a string

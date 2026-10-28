@@ -1,0 +1,2 @@
+battle_companies.json: campaign.progression.hero.choose: 0 is out of range 1..6
+battle_companies.json: campaign.breakPoint.threshold.comparison: "ge" is not a valid comparison; known: gt, gte; closest: "gt"

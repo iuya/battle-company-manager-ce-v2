@@ -4,99 +4,15 @@
   "title": "Battle Companies rules file",
   "description": "Complements a vanilla MESBG definitions file (see vanilla/data2024.schema.json). Units, gear, keywords and magical powers that exist in the vanilla file are referenced by name instead of being redefined.",
   "type": "object",
-  "required": [
-    "name",
-    "version",
-    "extends",
-    "limits",
-    "validations",
-    "campaign",
-    "scenarios",
-    "scenarioScoring",
-    "data",
-    "resolution"
-  ],
+  "required": ["name", "version", "extends", "limits", "campaign", "scenarios", "data"],
   "properties": {
-    "name": {
-      "type": "string",
-      "minLength": 1
-    },
-    "version": {
-      "type": "string",
-      "minLength": 1
-    },
-    "extends": {
-      "type": "string",
-      "description": "The `game` of the vanilla file this one complements."
-    },
-    "credit": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": [
-          "name"
-        ]
-      }
-    },
-    "limits": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/limit"
-      }
-    },
-    "validations": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/validation"
-      }
-    },
-    "campaign": {
-      "$ref": "#/$defs/campaign"
-    },
-    "scenarios": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "uniqueItems": true
-    },
-    "scenarioScoring": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": [
-          "name",
-          "points"
-        ],
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "points": {
-            "type": "array",
-            "items": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [
-                  "text",
-                  "points"
-                ],
-                "properties": {
-                  "text": {
-                    "type": "string"
-                  },
-                  "points": {
-                    "type": "integer",
-                    "minimum": 0
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
+    "name": {"type": "string", "minLength": 1},
+    "version": {"type": "string", "minLength": 1},
+    "extends": {"type": "string", "description": "The `game` of the vanilla file this one complements."},
+    "credit": {"type": "array", "items": {"type": "object", "required": ["name"]}},
+    "limits": {"type": "array", "items": {"$ref": "#/$defs/limit"}},
+    "campaign": {"$ref": "#/$defs/campaign"},
+    "scenarios": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
     "data": {
       "type": "object",
       "required": [
@@ -116,184 +32,83 @@
         "auras",
         "reservedOptions",
         "optionSales",
-        "profileWargearNotSold",
         "unitFillIns",
         "mountFillIns",
-        "wargearReadAs",
         "gearAnnotations"
       ],
       "properties": {
-        "companies": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "$ref": "#/$defs/company"
-          }
-        },
-        "paths": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/path"
-          }
-        },
+        "companies": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/company"}},
+        "paths": {"type": "array", "items": {"$ref": "#/$defs/path"}},
         "minorSpecialRules": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "specialRule"
-            ],
+            "required": ["specialRule"],
             "properties": {
-              "specialRule": {
-                "type": "string"
-              },
-              "parameter": {
-                "type": "string"
-              },
-              "reference": {
-                "type": "string"
-              }
+              "specialRule": {"type": "string"},
+              "parameter": {"type": "string"},
+              "reference": {"type": "string"}
             }
-          }
-        },
-        "pathNotes": {
-          "type": "array",
-          "items": {
-            "type": "string"
           }
         },
         "wargear": {
           "type": "object",
-          "required": [
-            "items",
-            "armourUpgrade"
-          ],
+          "required": ["items", "armourUpgrade"],
           "properties": {
             "items": {
               "type": "array",
               "items": {
                 "type": "object",
-                "required": [
-                  "names",
-                  "type",
-                  "influence",
-                  "rating"
-                ],
+                "required": ["names", "type", "influence", "rating"],
                 "properties": {
                   "names": {
                     "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
+                    "items": {"type": "string"},
                     "minItems": 1,
                     "description": "A PRICE GROUP: every name is a distinct item (its own gearAnnotations entry, text and availability) sold at this price. Names are never aliases of each other."
                   },
-                  "type": {
-                    "type": "string"
-                  },
-                  "influence": {
-                    "type": "integer",
-                    "minimum": 0
-                  },
-                  "rating": {
-                    "$ref": "#/$defs/rating"
-                  }
+                  "type": {"type": "string"},
+                  "influence": {"type": "integer", "minimum": 0},
+                  "rating": {"$ref": "#/$defs/rating"}
                 }
               }
             },
             "armourUpgrade": {
               "type": "object",
-              "required": [
-                "stages",
-                "influencePerUpgrade",
-                "rating"
-              ],
+              "required": ["stages", "influencePerUpgrade", "rating"],
               "properties": {
-                "stages": {
-                  "type": "array",
-                  "items": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "influencePerUpgrade": {
-                  "type": "integer"
-                },
-                "rating": {
-                  "$ref": "#/$defs/rating"
-                }
+                "stages": {"type": "array", "items": {"type": "array", "items": {"type": "string"}}},
+                "influencePerUpgrade": {"type": "integer"},
+                "rating": {"$ref": "#/$defs/rating"}
               }
             }
           }
         },
         "equipment": {
           "type": "object",
-          "required": [
-            "items"
-          ],
-          "properties": {
-            "items": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/equipment"
-              }
-            }
-          }
+          "required": ["items"],
+          "properties": {"items": {"type": "array", "items": {"$ref": "#/$defs/equipment"}}}
         },
         "creatures": {
           "type": "object",
-          "required": [
-            "items"
-          ],
-          "properties": {
-            "items": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/creature"
-              }
-            }
-          }
+          "required": ["items"],
+          "properties": {"items": {"type": "array", "items": {"$ref": "#/$defs/creature"}}}
         },
         "wanderers": {
           "type": "object",
-          "required": [
-            "items"
-          ],
-          "properties": {
-            "items": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/wanderer"
-              }
-            }
-          }
+          "required": ["items"],
+          "properties": {"items": {"type": "array", "items": {"$ref": "#/$defs/wanderer"}}}
         },
         "keywords": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "name",
-              "definition"
-            ],
+            "required": ["name", "definition"],
             "properties": {
-              "name": {
-                "type": "string"
-              },
-              "definition": {
-                "type": "string"
-              },
-              "tag": {
-                "enum": [
-                  "Active",
-                  "Passive"
-                ]
-              },
-              "source": {
-                "type": "string"
-              },
+              "name": {"type": "string"},
+              "definition": {"type": "string"},
+              "tag": {"enum": ["Active", "Passive"]},
+              "source": {"type": "string"},
               "overrides": {
                 "type": "string",
                 "description": "Vanilla keyword this rule replaces: Battle Companies always wins over vanilla."
@@ -315,41 +130,19 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "name"
-            ],
+            "required": ["name"],
             "properties": {
-              "name": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              },
-              "armies": {
-                "type": "string"
-              },
-              "layout": {
-                "type": "string"
-              },
-              "startingPositions": {
-                "type": "string"
-              },
-              "objectives": {
-                "type": "string"
-              },
-              "scoring": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
+              "name": {"type": "string"},
+              "description": {"type": "string"},
+              "armies": {"type": "string"},
+              "layout": {"type": "string"},
+              "startingPositions": {"type": "string"},
+              "objectives": {"type": "string"},
               "specialRules": {
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": [
-                    "definition"
-                  ],
+                  "required": ["definition"],
                   "properties": {
                     "table": {
                       "type": "object",
@@ -392,62 +185,26 @@
                 "description": "Attacker / Defender, for the scenarios that have roles.",
                 "items": {
                   "type": "object",
-                  "required": [
-                    "key",
-                    "name"
-                  ],
-                  "properties": {
-                    "key": {
-                      "enum": [
-                        "attacker",
-                        "defender"
-                      ]
-                    },
-                    "name": {
-                      "type": "string"
-                    }
-                  }
+                  "required": ["key", "name"],
+                  "properties": {"key": {"enum": ["attacker", "defender"]}, "name": {"type": "string"}}
                 }
               },
               "scoringObjectives": {
                 "type": "array",
-                "description": "One per Victory Point bullet of `scoring`, in order: what the player is asked and how it scores.",
+                "description": "One per Victory Point bullet of the scenario, in printed order: what the player is asked and how it scores. `options` hold the printed sentences (in printed order) with their points; the objective text is `instruction` followed by the options.",
                 "items": {
                   "type": "object",
-                  "required": [
-                    "key",
-                    "text",
-                    "side",
-                    "kind"
-                  ],
+                  "required": ["key", "text", "side", "kind"],
                   "properties": {
-                    "key": {
-                      "type": "string"
-                    },
-                    "text": {
-                      "type": "string"
-                    },
-                    "side": {
-                      "enum": [
-                        "both",
-                        "attacker",
-                        "defender"
-                      ]
-                    },
+                    "key": {"type": "string"},
+                    "text": {"type": "string"},
+                    "side": {"enum": ["both", "attacker", "defender"]},
                     "kind": {
-                      "enum": [
-                        "tiers",
-                        "each",
-                        "eachTiers"
-                      ],
+                      "enum": ["tiers", "each", "eachTiers"],
                       "description": "tiers: best tier reached or none; each: count x pointsEach; eachTiers: `count` items, each scores its best tier."
                     },
-                    "instruction": {
-                      "type": "string"
-                    },
-                    "secret": {
-                      "type": "boolean"
-                    },
+                    "instruction": {"type": "string"},
+                    "secret": {"type": "boolean"},
                     "reveal": {
                       "enum": ["endOfGame"],
                       "description": "secret objectives only: when the player's note is shown to the others."
@@ -463,48 +220,28 @@
                       "description": "What the player secretly notes down at the start. from: ownHeroes | enemyHeroes (a Hero model) | terrain (a piece wholly in the opponent's half). Absent: nothing is noted.",
                       "properties": {
                         "from": {"enum": ["ownHeroes", "enemyHeroes", "terrain"]},
-                        "allowLeader": {"enum": ["onlyHero"], "description": "The Leader may be chosen only when the company has a single Hero."},
+                        "allowLeader": {
+                          "enum": ["onlyHero"],
+                          "description": "The Leader may be chosen only when the company has a single Hero."
+                        },
                         "where": {"enum": ["opponentHalf"]}
                       }
                     },
                     "options": {
                       "type": "array",
+                      "minItems": 1,
+                      "description": "The printed sentences with their points, in printed order. A `each` objective has one, worth pointsEach.",
                       "items": {
                         "type": "object",
-                        "required": [
-                          "text",
-                          "points"
-                        ],
-                        "properties": {
-                          "text": {
-                            "type": "string"
-                          },
-                          "points": {
-                            "type": "integer",
-                            "minimum": 1
-                          }
-                        }
+                        "required": ["text", "points"],
+                        "properties": {"text": {"type": "string"}, "points": {"type": "integer", "minimum": 1}}
                       }
                     },
-                    "item": {
-                      "type": "string"
-                    },
-                    "count": {
-                      "type": "integer",
-                      "minimum": 1
-                    },
-                    "pointsEach": {
-                      "type": "integer",
-                      "minimum": 1
-                    },
-                    "maxCount": {
-                      "type": "integer",
-                      "minimum": 1
-                    },
-                    "maxPoints": {
-                      "type": "integer",
-                      "minimum": 1
-                    }
+                    "item": {"type": "string"},
+                    "count": {"type": "integer", "minimum": 1},
+                    "pointsEach": {"type": "integer", "minimum": 1},
+                    "maxCount": {"type": "integer", "minimum": 1},
+                    "maxPoints": {"type": "integer", "minimum": 1}
                   }
                 }
               },
@@ -512,47 +249,19 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": [
-                    "effect",
-                    "name",
-                    "text",
-                    "who",
-                    "condition"
-                  ],
+                  "required": ["effect", "name", "text", "who", "condition"],
                   "properties": {
-                    "effect": {
-                      "type": "string",
-                      "description": "Key of campaign.aftermathEffects[]."
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "text": {
-                      "type": "string"
-                    },
-                    "who": {
-                      "type": "string"
-                    },
+                    "effect": {"type": "string", "description": "Key of campaign.aftermathEffects[]."},
+                    "name": {"type": "string"},
+                    "text": {"type": "string"},
+                    "who": {"type": "string"},
                     "condition": {
                       "type": "object",
-                      "required": [
-                        "kind"
-                      ],
+                      "required": ["kind"],
                       "properties": {
-                        "kind": {
-                          "enum": [
-                            "victory",
-                            "companyFlag",
-                            "modelFlag",
-                            "leaderNotRemoved"
-                          ]
-                        },
-                        "key": {
-                          "type": "string"
-                        },
-                        "label": {
-                          "type": "string"
-                        }
+                        "kind": {"enum": ["victory", "companyFlag", "modelFlag", "leaderNotRemoved"]},
+                        "key": {"type": "string"},
+                        "label": {"type": "string"}
                       }
                     }
                   }
@@ -565,58 +274,20 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "name",
-              "pattern",
-              "type",
-              "definition",
-              "parameter"
-            ],
+            "required": ["name", "pattern", "type", "definition", "parameter"],
             "properties": {
-              "name": {
-                "type": "string"
-              },
-              "pattern": {
-                "type": "string"
-              },
-              "type": {
-                "enum": [
-                  "specialRule",
-                  "magicalPower"
-                ]
-              },
-              "definition": {
-                "type": "string"
-              },
-              "overrides": {
-                "type": "string"
-              },
-              "vanillaVariants": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
+              "name": {"type": "string"},
+              "pattern": {"type": "string"},
+              "type": {"enum": ["specialRule", "magicalPower"]},
+              "definition": {"type": "string"},
+              "overrides": {"type": "string"},
+              "vanillaVariants": {"type": "array", "items": {"type": "string"}},
               "parameter": {
                 "type": "object",
-                "required": [
-                  "name",
-                  "kind",
-                  "description"
-                ],
+                "required": ["name", "kind", "description"],
                 "properties": {
-                  "kind": {
-                    "enum": [
-                      "keyword",
-                      "weapon",
-                      "rollTarget",
-                      "number",
-                      "companyHero"
-                    ]
-                  },
-                  "description": {
-                    "type": "string"
-                  }
+                  "kind": {"enum": ["keyword", "weapon", "rollTarget", "number", "companyHero"]},
+                  "description": {"type": "string"}
                 }
               }
             }
@@ -629,26 +300,89 @@
           "description": "Fixed mappings to the model names of the Tabletop Simulator MESBG FTC mod (docs/tabletop-simulator.md). Short names only; the mod's catalogue is never stored.",
           "properties": {
             "text": {"type": "string", "minLength": 1},
-            "standIns": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["kind", "name", "model", "reason"], "properties": {
-              "kind": {"enum": ["wanderer", "creature"]}, "name": {"type": "string", "minLength": 1}, "model": {"type": "string", "minLength": 1},
-              "alternatives": {"type": "array", "items": {"type": "string", "minLength": 1}}, "reason": {"type": "string", "minLength": 1}}}},
-            "mounts": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["gear", "model", "attacks", "reason"], "properties": {
-              "gear": {"type": "string", "minLength": 1}, "model": {"type": "string", "minLength": 1},
-              "alternatives": {"type": "array", "items": {"type": "string", "minLength": 1}},
-              "attacks": {"type": "integer", "minimum": 1}, "reason": {"type": "string", "minLength": 1}}}},
-            "riders": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["unit", "states", "reason"], "properties": {
-              "unit": {"type": "string", "minLength": 1}, "footModel": {"type": "string", "minLength": 1},
-              "states": {"type": "boolean", "description": "Every model key of the unit carries the state that turns the mounted figure into the rider on foot."},
-              "reason": {"type": "string", "minLength": 1}}}},
-            "names": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["unit", "from", "to", "reason"], "properties": {
-              "unit": {"type": "string", "minLength": 1}, "from": {"type": "string", "minLength": 1}, "to": {"type": "string", "minLength": 1},
-              "reason": {"type": "string", "minLength": 1}}}},
-            "defaultOptions": {"type": "array", "description": "Units the bag has no bare figure of: the options requested when the company carries none.", "items": {"type": "object", "additionalProperties": false, "required": ["unit", "options", "reason"], "properties": {
-              "unit": {"type": "string", "minLength": 1}, "options": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-              "reason": {"type": "string", "minLength": 1}}}},
-            "markerOptions": {"type": "array", "description": "Alias marker options left out of the key when they are the unit's only option; the name and description keep them.", "items": {"type": "object", "additionalProperties": false, "required": ["unit", "option", "reason"], "properties": {
-              "unit": {"type": "string", "minLength": 1}, "option": {"type": "string", "minLength": 1},
-              "reason": {"type": "string", "minLength": 1}}}}
+            "standIns": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["kind", "name", "model"],
+                "properties": {
+                  "kind": {"enum": ["wanderer", "creature"]},
+                  "name": {"type": "string", "minLength": 1},
+                  "model": {"type": "string", "minLength": 1},
+                  "alternatives": {"type": "array", "items": {"type": "string", "minLength": 1}}
+                }
+              }
+            },
+            "mounts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["gear", "model", "attacks"],
+                "properties": {
+                  "gear": {"type": "string", "minLength": 1},
+                  "model": {"type": "string", "minLength": 1},
+                  "alternatives": {"type": "array", "items": {"type": "string", "minLength": 1}},
+                  "attacks": {"type": "integer", "minimum": 1}
+                }
+              }
+            },
+            "riders": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["unit", "states"],
+                "properties": {
+                  "unit": {"type": "string", "minLength": 1},
+                  "footModel": {"type": "string", "minLength": 1},
+                  "states": {
+                    "type": "boolean",
+                    "description": "Every model key of the unit carries the state that turns the mounted figure into the rider on foot."
+                  }
+                }
+              }
+            },
+            "names": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["unit", "from", "to"],
+                "properties": {
+                  "unit": {"type": "string", "minLength": 1},
+                  "from": {"type": "string", "minLength": 1},
+                  "to": {"type": "string", "minLength": 1}
+                }
+              }
+            },
+            "defaultOptions": {
+              "type": "array",
+              "description": "Units the bag has no bare figure of: the options requested when the company carries none.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["unit", "options"],
+                "properties": {
+                  "unit": {"type": "string", "minLength": 1},
+                  "options": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+                }
+              }
+            },
+            "markerOptions": {
+              "type": "array",
+              "description": "Alias marker options left out of the key when they are the unit's only option; the name and description keep them.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["unit", "option"],
+                "properties": {
+                  "unit": {"type": "string", "minLength": 1},
+                  "option": {"type": "string", "minLength": 1}
+                }
+              }
+            }
           }
         },
         "ruleTargets": {
@@ -658,116 +392,151 @@
           "description": "Who a special rule works against or for (bead vj0.6, docs/unit-keywords.md). A rule not listed is own.",
           "properties": {
             "text": {"type": "string", "minLength": 1},
-            "patterns": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["rule", "base", "appliesTo", "target", "keywordMatch", "variants"], "properties": {
-              "rule": {"type": "string", "minLength": 1}, "base": {"type": "string", "minLength": 1},
-              "appliesTo": {"enum": ["enemy-keyword", "friendly-keyword"]}, "target": {"type": "string", "pattern": "\\{X\\}"},
-              "keywordMatch": {"enum": ["any", "all"]}, "variants": {"type": "array", "items": {"type": "string", "minLength": 1}}}}},
-            "names": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["rule", "appliesTo"], "properties": {
-              "rule": {"type": "string", "minLength": 1}, "appliesTo": {"enum": ["enemy-keyword", "enemy-any", "friendly-keyword", "own"]},
-              "keywords": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "keywordMatch": {"enum": ["any", "all"]},
-              "target": {"type": "string", "minLength": 1}, "bearerKeywords": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}}}}
+            "patterns": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["rule", "base", "appliesTo", "target", "keywordMatch", "variants"],
+                "properties": {
+                  "rule": {"type": "string", "minLength": 1},
+                  "base": {"type": "string", "minLength": 1},
+                  "appliesTo": {"enum": ["enemy-keyword", "friendly-keyword"]},
+                  "target": {"type": "string", "pattern": "\\{X\\}"},
+                  "keywordMatch": {"enum": ["any", "all"]},
+                  "variants": {"type": "array", "items": {"type": "string", "minLength": 1}}
+                }
+              }
+            },
+            "names": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["rule", "appliesTo"],
+                "properties": {
+                  "rule": {"type": "string", "minLength": 1},
+                  "appliesTo": {"enum": ["enemy-keyword", "enemy-any", "friendly-keyword", "own"]},
+                  "keywords": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                  "keywordMatch": {"enum": ["any", "all"]},
+                  "target": {"type": "string", "minLength": 1},
+                  "bearerKeywords": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+                }
+              }
+            }
           }
         },
         "auras": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["text", "kinds", "groups", "entries", "excluded", "outOfScope", "unreachable"],
+          "required": ["kinds", "groups", "entries"],
           "description": "Aura ranges (bead 4fe.2, docs/aura-ranges.md): fixed radii around the bearer drawn as rings in Tabletop Simulator and shown as chips on the unit cards.",
           "properties": {
-            "text": {"type": "string", "minLength": 1},
-            "kinds": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["id", "label", "colour", "rgb", "text", "default"], "properties": {
-              "id": {"enum": ["banner", "command", "support", "enemy", "utility"]}, "label": {"type": "string", "minLength": 1}, "colour": {"type": "string", "minLength": 1},
-              "rgb": {"type": "string", "pattern": "^[0-9A-F]{6}$"}, "text": {"type": "string", "minLength": 1}, "default": {"type": "boolean"}}}},
-            "groups": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["id", "label", "text", "default"], "properties": {
-              "id": {"enum": ["always", "declared", "conditional", "cast", "target", "large", "optional"]}, "label": {"type": "string", "minLength": 1},
-              "text": {"type": "string", "minLength": 1}, "default": {"type": "boolean"}}}},
-            "entries": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false,
-              "required": ["id", "source", "label", "radius", "kind", "affects", "when", "group", "los", "keywords", "tip", "concept", "reason"], "properties": {
-              "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
-              "source": {"type": "object", "additionalProperties": false, "required": ["type"], "properties": {
-                "type": {"enum": ["item", "rule", "hero", "heroicAction", "power"]},
-                "names": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-                "pattern": {"type": "string", "minLength": 1}}},
-              "label": {"type": "string", "minLength": 1}, "mergeLabels": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-              "radius": {"type": "number", "minimum": 0.5, "maximum": 48}, "radiusParts": {"type": "array", "minItems": 2, "items": {"type": "number", "exclusiveMinimum": 0}},
-              "textFrom": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-              "kind": {"enum": ["banner", "command", "support", "enemy", "utility"]}, "affects": {"enum": ["friendly", "enemy", "any", "self"]},
-              "when": {"enum": ["always", "declared", "conditional", "cast", "target"]},
-              "group": {"enum": ["always", "declared", "conditional", "cast", "target", "large", "optional"]},
-              "los": {"type": "boolean"}, "keywords": {"type": "array", "items": {"type": "string", "minLength": 1}},
-              "bearer": {"enum": ["Hero"]}, "replaces": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-              "tip": {"type": "string", "minLength": 1, "maxLength": 200}, "concept": {"type": "string", "minLength": 1}, "reason": {"type": "string", "minLength": 1}}}},
-            "excluded": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["type", "names", "radius", "category", "reason"], "properties": {
-              "type": {"enum": ["item", "rule", "power", "heroicAction"]}, "names": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-              "pattern": {"type": "string", "minLength": 1}, "radius": {"type": "number", "minimum": 0},
-              "category": {"enum": ["receiver-side", "centred-elsewhere", "weapon-range", "movement", "visibility", "effect-length"]}, "reason": {"type": "string", "minLength": 1}}}},
-            "outOfScope": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["scope", "reason"], "properties": {
-              "scope": {"type": "string", "minLength": 1}, "reason": {"type": "string", "minLength": 1}}}},
-            "unreachable": {"type": "array", "items": {"type": "string", "minLength": 1}}
+            "kinds": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "label", "colour", "rgb", "text", "default"],
+                "properties": {
+                  "id": {"enum": ["banner", "command", "support", "enemy", "utility"]},
+                  "label": {"type": "string", "minLength": 1},
+                  "colour": {"type": "string", "minLength": 1},
+                  "rgb": {"type": "string", "pattern": "^[0-9A-F]{6}$"},
+                  "text": {"type": "string", "minLength": 1},
+                  "default": {"type": "boolean"}
+                }
+              }
+            },
+            "groups": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "label", "text", "default"],
+                "properties": {
+                  "id": {
+                    "enum": ["always", "declared", "conditional", "cast", "target", "large", "optional"]
+                  },
+                  "label": {"type": "string", "minLength": 1},
+                  "text": {"type": "string", "minLength": 1},
+                  "default": {"type": "boolean"}
+                }
+              }
+            },
+            "entries": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "source",
+                  "label",
+                  "radius",
+                  "kind",
+                  "affects",
+                  "when",
+                  "group",
+                  "los",
+                  "keywords",
+                  "tip",
+                  "concept"
+                ],
+                "properties": {
+                  "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+                  "source": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["type"],
+                    "properties": {
+                      "type": {"enum": ["item", "rule", "hero", "heroicAction", "power"]},
+                      "names": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                      "pattern": {"type": "string", "minLength": 1}
+                    }
+                  },
+                  "label": {"type": "string", "minLength": 1},
+                  "mergeLabels": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                  "radius": {"type": "number", "minimum": 0.5, "maximum": 48},
+                  "radiusParts": {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {"type": "number", "exclusiveMinimum": 0}
+                  },
+                  "textFrom": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                  "kind": {"enum": ["banner", "command", "support", "enemy", "utility"]},
+                  "affects": {"enum": ["friendly", "enemy", "any", "self"]},
+                  "when": {"enum": ["always", "declared", "conditional", "cast", "target"]},
+                  "group": {
+                    "enum": ["always", "declared", "conditional", "cast", "target", "large", "optional"]
+                  },
+                  "los": {"type": "boolean"},
+                  "keywords": {"type": "array", "items": {"type": "string", "minLength": 1}},
+                  "bearer": {"enum": ["Hero"]},
+                  "replaces": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                  "tip": {"type": "string", "minLength": 1, "maxLength": 200},
+                  "concept": {"type": "string", "minLength": 1}
+                }
+              }
+            }
           }
         },
         "vanillaAmbiguities": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "kind",
-              "name",
-              "status",
-              "note"
-            ],
+            "required": ["kind", "name", "status"],
             "properties": {
-              "kind": {
-                "enum": [
-                  "keyword",
-                  "gear",
-                  "unit"
-                ]
-              },
-              "name": {
-                "type": "string"
-              },
-              "status": {
-                "enum": [
-                  "equivalent",
-                  "overridden",
-                  "firstWins",
-                  "pinned"
-                ]
-              },
-              "note": {
-                "type": "string"
-              },
+              "kind": {"enum": ["keyword", "gear", "unit"]},
+              "name": {"type": "string"},
+              "status": {"enum": ["equivalent", "overridden", "firstWins", "pinned"]},
               "occurrence": {
                 "type": "integer",
                 "minimum": 1,
                 "description": "1-based vanilla occurrence that wins (firstWins: always 1)."
-              },
-              "occurrences": {
-                "type": "integer",
-                "minimum": 2
-              }
-            }
-          }
-        },
-        "wargearReadAs": {
-          "type": "object",
-          "required": ["text", "items"],
-          "additionalProperties": false,
-          "properties": {
-            "text": {"type": "string"},
-            "items": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": ["unit", "written", "item", "why"],
-                "additionalProperties": false,
-                "properties": {
-                  "unit": {"type": "string"},
-                  "written": {"type": "string", "description": "The item as the Battle Companies company lists print it."},
-                  "item": {"type": "string", "description": "The item of the unit's profile the lists are read as; the company lists carry this name."},
-                  "why": {"type": "string"}
-                }
               }
             }
           }
@@ -803,16 +572,14 @@
               "type": "array",
               "items": {
                 "type": "object",
-                "required": ["unit", "reason", "source"],
+                "required": ["unit"],
                 "additionalProperties": false,
                 "properties": {
                   "unit": {"type": "string", "minLength": 1},
                   "race": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
                   "faction": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
                   "unitType": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-                  "baseSize": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-                  "reason": {"type": "string", "minLength": 1},
-                  "source": {"type": "string", "minLength": 1}
+                  "baseSize": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
                 }
               }
             }
@@ -828,35 +595,13 @@
               "type": "array",
               "items": {
                 "type": "object",
-                "required": ["gear", "reason", "source"],
+                "required": ["gear"],
                 "additionalProperties": false,
                 "properties": {
                   "gear": {"type": "string", "minLength": 1},
                   "race": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
                   "faction": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-                  "unitType": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-                  "reason": {"type": "string", "minLength": 1},
-                  "source": {"type": "string", "minLength": 1}
-                }
-              }
-            }
-          }
-        },
-        "profileWargearNotSold": {
-          "type": "object",
-          "required": ["text", "items"],
-          "additionalProperties": false,
-          "properties": {
-            "text": {"type": "string"},
-            "items": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": ["item", "units"],
-                "additionalProperties": false,
-                "properties": {
-                  "item": {"type": "string", "minLength": 1},
-                  "units": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+                  "unitType": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
                 }
               }
             }
@@ -864,24 +609,30 @@
         },
         "optionSales": {
           "type": "object",
-          "required": ["text", "items"],
+          "required": ["items"],
           "additionalProperties": false,
           "properties": {
-            "text": {"type": "string"},
             "items": {
               "type": "array",
               "items": {
                 "type": "object",
-                "required": ["unit", "option", "status", "reason", "source"],
+                "required": ["unit", "option", "status", "reason"],
                 "additionalProperties": false,
                 "properties": {
                   "unit": {"type": "string", "minLength": 1},
                   "option": {"type": "string", "minLength": 1},
                   "status": {"enum": ["notSold", "granted", "readAs", "ownItem"]},
-                  "item": {"type": "string", "minLength": 1, "description": "ownItem only: the data.gearAnnotations item the option is (a weapon of its own, not sold by the Armoury)."},
-                  "armouryItem": {"type": "string", "minLength": 1, "description": "readAs only: the Armoury item the option is read as."},
-                  "reason": {"type": "string", "minLength": 1},
-                  "source": {"type": "string", "minLength": 1}
+                  "item": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "ownItem only: the data.gearAnnotations item the option is (a weapon of its own, not sold by the Armoury)."
+                  },
+                  "armouryItem": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "readAs only: the Armoury item the option is read as."
+                  },
+                  "reason": {"type": "string", "minLength": 1}
                 }
               }
             }
@@ -889,35 +640,47 @@
         },
         "gearAnnotations": {
           "type": "object",
-          "required": [
-            "text",
-            "modifiers",
-            "items"
-          ],
+          "required": ["text", "modifiers", "items"],
           "additionalProperties": false,
           "properties": {
-            "text": {
-              "type": "string"
-            },
+            "text": {"type": "string"},
             "modifiers": {
               "type": "array",
               "minItems": 1,
               "description": "Qualities that turn a base item into another one (Elven, Master-forged, Poisoned). An item names its base and its modifiers; the modifier says what it does to the rules, the identity and the price.",
               "items": {
                 "type": "object",
-                "required": ["key", "name", "identity", "appliesTo", "text", "abilities", "source"],
+                "required": ["key", "name", "identity", "appliesTo", "text", "abilities"],
                 "additionalProperties": false,
                 "properties": {
                   "key": {"type": "string", "pattern": "^[a-z][A-Za-z]*$"},
                   "name": {"type": "string"},
-                  "glossary": {"type": "string", "description": "The glossary term that defines the rule (shown as the tooltip's link)."},
-                  "identity": {"enum": ["distinct", "variant"], "description": "distinct: the modified item is its own item (a Spear option does not take an Elven spear); variant: it fills the place of its base in a profile option."},
-                  "appliesTo": {"enum": ["melee", "two_handed", "any"], "description": "The kind of weapon the effect matters for."},
-                  "text": {"type": "string", "minLength": 1, "description": "The rule, copied from the source."},
+                  "glossary": {
+                    "type": "string",
+                    "description": "The glossary term that defines the rule (shown as the tooltip's link)."
+                  },
+                  "identity": {
+                    "enum": ["distinct", "variant"],
+                    "description": "distinct: the modified item is its own item (a Spear option does not take an Elven spear); variant: it fills the place of its base in a profile option."
+                  },
+                  "appliesTo": {
+                    "enum": ["melee", "two_handed", "any"],
+                    "description": "The kind of weapon the effect matters for."
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The rule, copied from the source."
+                  },
                   "abilities": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["key"]}},
-                  "tooltip": {"type": "string", "description": "The part of `text` shown in an item's tooltip (a prefix of `text`)."},
-                  "price": {"type": "string", "description": "What the Battle Companies document says about the price of such items."},
-                  "source": {"type": "string"}
+                  "tooltip": {
+                    "type": "string",
+                    "description": "The part of `text` shown in an item's tooltip (a prefix of `text`)."
+                  },
+                  "price": {
+                    "type": "string",
+                    "description": "What the Battle Companies document says about the price of such items."
+                  }
                 }
               }
             },
@@ -925,18 +688,10 @@
               "type": "array",
               "items": {
                 "type": "object",
-                "required": [
-                  "name",
-                  "classes",
-                  "evidence",
-                  "status"
-                ],
+                "required": ["name", "classes"],
                 "additionalProperties": false,
                 "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1
-                  },
+                  "name": {"type": "string", "minLength": 1},
                   "classes": {
                     "type": "array",
                     "minItems": 1,
@@ -966,35 +721,22 @@
                     "type": "array",
                     "minItems": 1,
                     "uniqueItems": true,
-                    "items": {
-                      "type": "string"
-                    },
+                    "items": {"type": "string"},
                     "description": "Special rules the bearer gets: a vanilla keyword, a Battle Companies rule or an instance of a parameterised rule."
                   },
                   "ranged": {
                     "type": "object",
-                    "required": [
-                      "range",
-                      "strength"
-                    ],
+                    "required": ["range", "strength"],
                     "additionalProperties": false,
                     "properties": {
-                      "range": {
-                        "type": "integer",
-                        "minimum": 1
-                      },
-                      "strength": {
-                        "type": "integer",
-                        "minimum": 1
-                      }
+                      "range": {"type": "integer", "minimum": 1},
+                      "strength": {"type": "integer", "minimum": 1}
                     }
                   },
                   "aliases": {
                     "type": "array",
                     "minItems": 1,
-                    "items": {
-                      "type": "string"
-                    },
+                    "items": {"type": "string"},
                     "description": "Other spellings of the same item (plural, hyphenation)."
                   },
                   "base": {
@@ -1013,10 +755,27 @@
                     "required": ["rule", "weaponClasses"],
                     "additionalProperties": false,
                     "properties": {
-                      "rule": {"type": "string", "minLength": 1, "description": "A parameterised rule (data.parameterisedRules) whose parameter is a weapon: the unit gains '<rule> (<chosen weapon>)'."},
+                      "rule": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "A parameterised rule (data.parameterisedRules) whose parameter is a weapon: the unit gains '<rule> (<chosen weapon>)'."
+                      },
                       "weaponClasses": {
-                        "type": "array", "minItems": 1, "uniqueItems": true,
-                        "items": {"enum": ["melee", "two_handed", "spear", "lance", "bow", "crossbow", "throwing", "missile"]},
+                        "type": "array",
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "items": {
+                          "enum": [
+                            "melee",
+                            "two_handed",
+                            "spear",
+                            "lance",
+                            "bow",
+                            "crossbow",
+                            "throwing",
+                            "missile"
+                          ]
+                        },
                         "description": "The classes of the unit's items the player may choose from."
                       }
                     },
@@ -1031,41 +790,38 @@
                     "minItems": 1,
                     "items": {
                       "type": "object",
-                      "required": ["name", "note"],
+                      "required": ["name"],
                       "additionalProperties": false,
-                      "properties": {
-                        "name": {"type": "string"},
-                        "note": {"type": "string", "minLength": 1}
-                      }
+                      "properties": {"name": {"type": "string"}}
                     },
                     "description": "Items that are related but DISTINCT (Elf Bow and Longbow share a profile, a Pike is not a Spear). Never an alias: each has its own availability and text. Symmetric."
-                  },
-                  "evidence": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "status": {
-                    "enum": [
-                      "derived",
-                      "curated"
-                    ]
-                  },
-                  "isA": {
-                    "type": "string",
-                    "description": "The item's text says 'This is a X': it is X plus extras (Small Shield = Light Shield + Defence against Strikes; Company Horn = War Horn; Elven Glaive = Elven spear + its own rule). It inherits X's classes of use and grants; its own abilities add to X's."
                   },
                   "requiresMount": {
                     "const": true,
                     "description": "Gear only a mounted model can use (a lance, Barding): struck through in a live match when the mount is lost. Absent: usable on foot."
+                  },
+                  "grantsSlots": {
+                    "type": "object",
+                    "minProperties": 1,
+                    "additionalProperties": false,
+                    "properties": {
+                      "small": {"type": "integer", "minimum": 0, "maximum": 10},
+                      "large": {"type": "integer", "minimum": 0, "maximum": 10}
+                    },
+                    "description": "Equipment slots the item adds to its bearer (the Backpack: three Small)."
+                  },
+                  "who": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {"race": {"type": "string", "minLength": 1}},
+                    "description": "Who may take the item: `race` is a race word of the vanilla data (Elven-made items: Elf; unit-exclusive items are not restricted)."
                   },
                   "weaponModifier": {
                     "const": true,
                     "description": "Not an item: a modifier bought for one weapon (Envenom Weapon). The app shows a copy of that weapon with the granted rule."
                   },
                   "grantedTo": {
-                    "enum": [
-                      "mount"
-                    ],
+                    "enum": ["mount"],
                     "description": "Absent = the bearer gets the rules; `mount` = they belong to the mount (a Pony's Timid)."
                   },
                   "definition": {
@@ -1076,13 +832,28 @@
                     "type": "array",
                     "items": {
                       "type": "object",
-                      "required": [
-                        "key"
-                      ],
+                      "required": ["key"],
                       "properties": {
                         "key": {
-                          "enum": ["attacksBonus","chargeWoundBonus","defenceBonus","duelPenalty","duelPenaltyUnlessSupportedBy","duelPenaltyWith","limit","moveAndShoot","noFireAfterMove","noMovePenalty","shielding","support","throwOnCharge","twoHanded","woundBonus","woundBonusVsMountWhenCharged",
-                      "doubleWoundOnNatural6"]
+                          "enum": [
+                            "attacksBonus",
+                            "chargeWoundBonus",
+                            "defenceBonus",
+                            "duelPenalty",
+                            "duelPenaltyUnlessSupportedBy",
+                            "duelPenaltyWith",
+                            "limit",
+                            "moveAndShoot",
+                            "noFireAfterMove",
+                            "noMovePenalty",
+                            "shielding",
+                            "support",
+                            "throwOnCharge",
+                            "twoHanded",
+                            "woundBonus",
+                            "woundBonusVsMountWhenCharged",
+                            "doubleWoundOnNatural6"
+                          ]
                         }
                       }
                     },
@@ -1090,23 +861,11 @@
                   },
                   "profile": {
                     "type": "object",
-                    "required": [
-                      "source",
-                      "collection",
-                      "name"
-                    ],
+                    "required": ["source", "collection", "name"],
                     "properties": {
-                      "source": {
-                        "enum": [
-                          "vanilla"
-                        ]
-                      },
-                      "collection": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      }
+                      "source": {"enum": ["vanilla"]},
+                      "collection": {"type": "string"},
+                      "name": {"type": "string"}
                     },
                     "description": "Where a mount's stat block lives."
                   },
@@ -1114,38 +873,15 @@
                     "type": "array",
                     "items": {
                       "type": "object",
-                      "required": [
-                        "stat",
-                        "delta"
-                      ],
-                      "properties": {
-                        "stat": {
-                          "type": "string"
-                        },
-                        "delta": {
-                          "type": "integer"
-                        }
-                      }
+                      "required": ["stat", "delta"],
+                      "properties": {"stat": {"type": "string"}, "delta": {"type": "integer"}}
                     }
                   },
                   "modes": {
                     "type": "object",
                     "properties": {
-                      "choice": {
-                        "enum": [
-                          "perFight"
-                        ]
-                      },
-                      "options": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "required": [
-                            "key",
-                            "class"
-                          ]
-                        }
-                      }
+                      "choice": {"enum": ["perFight"]},
+                      "options": {"type": "array", "items": {"type": "object", "required": ["key", "class"]}}
                     }
                   }
                 }
@@ -1155,107 +891,29 @@
         },
         "magicalPowers": {
           "type": "object",
-          "required": [
-            "castingRule",
-            "items"
-          ],
+          "required": ["castingRule", "items"],
           "properties": {
-            "text": {
-              "type": "string"
-            },
-            "castingRule": {
-              "type": "object",
-              "required": [
-                "lowerIsBetter",
-                "improvement",
-                "floor"
-              ]
-            },
+            "text": {"type": "string"},
+            "castingRule": {"type": "object", "required": ["lowerIsBetter", "improvement", "floor"]},
             "items": {
               "type": "array",
               "items": {
                 "type": "object",
-                "required": [
-                  "name",
-                  "duration",
-                  "definition",
-                  "learnable"
-                ],
+                "required": ["name", "duration", "definition", "learnable"],
                 "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "duration": {
-                    "enum": [
-                      "Exhaustion",
-                      "Instant",
-                      "Temporary"
-                    ]
-                  },
-                  "definition": {
-                    "type": "string"
-                  },
-                  "learnable": {
-                    "type": "boolean"
-                  },
-                  "range": {
-                    "oneOf": [
-                      {
-                        "type": "integer"
-                      },
-                      {
-                        "const": "self"
-                      }
-                    ]
-                  },
-                  "casting": {
-                    "type": "integer",
-                    "minimum": 2,
-                    "maximum": 6
-                  },
-                  "parameter": {
-                    "type": "string"
-                  }
+                  "name": {"type": "string"},
+                  "duration": {"enum": ["Exhaustion", "Instant", "Temporary"]},
+                  "definition": {"type": "string"},
+                  "learnable": {"type": "boolean"},
+                  "range": {"oneOf": [{"type": "integer"}, {"const": "self"}]},
+                  "casting": {"type": "integer", "minimum": 2, "maximum": 6},
+                  "parameter": {"type": "string"}
                 },
-                "if": {
-                  "properties": {
-                    "learnable": {
-                      "const": true
-                    }
-                  }
-                },
-                "then": {
-                  "required": [
-                    "range",
-                    "casting"
-                  ]
-                }
+                "if": {"properties": {"learnable": {"const": true}}},
+                "then": {"required": ["range", "casting"]}
               }
             }
           }
-        }
-      }
-    },
-    "resolution": {
-      "type": "object",
-      "required": [
-        "order",
-        "text",
-        "firstOccurrenceWins"
-      ],
-      "properties": {
-        "order": {
-          "const": [
-            "entity",
-            "battleCompanies",
-            "vanilla"
-          ]
-        },
-        "text": {
-          "type": "string"
-        },
-        "firstOccurrenceWins": {
-          "const": true
         }
       }
     }
@@ -1263,31 +921,15 @@
   "$defs": {
     "roll": {
       "type": "array",
-      "items": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 12
-      },
+      "items": {"type": "integer", "minimum": 1, "maximum": 12},
       "minItems": 2,
       "maxItems": 2,
       "description": "[min, max], inclusive."
     },
     "rating": {
       "type": "object",
-      "required": [
-        "warrior",
-        "hero"
-      ],
-      "properties": {
-        "warrior": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "hero": {
-          "type": "integer",
-          "minimum": 0
-        }
-      }
+      "required": ["warrior", "hero"],
+      "properties": {"warrior": {"type": "integer", "minimum": 0}, "hero": {"type": "integer", "minimum": 0}}
     },
     "stat": {
       "enum": [
@@ -1307,62 +949,22 @@
     },
     "limit": {
       "type": "object",
-      "required": [
-        "type",
-        "maximumPercentage",
-        "id"
-      ],
+      "required": ["type", "maximumPercentage", "id"],
       "properties": {
-        "type": {
-          "type": "string"
-        },
-        "maximumPercentage": {
-          "type": "number"
-        },
-        "roundUp": {
-          "type": "boolean"
-        },
-        "label": {
-          "type": "string"
-        },
+        "type": {"type": "string"},
+        "maximumPercentage": {"type": "number"},
+        "roundUp": {"type": "boolean"},
+        "classes": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "label": {"type": "string"},
         "id": {
           "type": "string",
           "description": "Stable id (bow, throwing, cavalry) that company limitOverrides and limitExemptions refer to."
         }
       }
     },
-    "validation": {
-      "type": "object",
-      "required": [
-        "key",
-        "type",
-        "message"
-      ],
-      "properties": {
-        "key": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
-        }
-      }
-    },
     "table": {
       "type": "array",
-      "items": {
-        "type": "object",
-        "required": [
-          "roll"
-        ],
-        "properties": {
-          "roll": {
-            "$ref": "#/$defs/roll"
-          }
-        }
-      }
+      "items": {"type": "object", "required": ["roll"], "properties": {"roll": {"$ref": "#/$defs/roll"}}}
     },
     "campaign": {
       "type": "object",
@@ -1380,51 +982,35 @@
       "properties": {
         "company": {
           "type": "object",
-          "required": [
-            "maxModels",
-            "leaders",
-            "sergeants",
-            "startingHeroes",
-            "startingPoints"
-          ],
+          "required": ["maxModels", "leaders", "sergeants", "startingInfluence", "equipmentSlots"],
           "properties": {
+            "startingInfluence": {"type": "integer", "minimum": 0, "maximum": 100},
+            "equipmentSlots": {
+              "type": "object",
+              "required": ["large", "small"],
+              "additionalProperties": false,
+              "properties": {
+                "large": {"type": "integer", "minimum": 0, "maximum": 10},
+                "small": {"type": "integer", "minimum": 0, "maximum": 10}
+              }
+            },
             "oath": {
               "type": "object",
               "properties": {
                 "good": {
                   "type": "object",
-                  "required": [
-                    "text",
-                    "vow"
-                  ],
+                  "required": ["text", "vow"],
                   "properties": {
-                    "text": {
-                      "type": "string",
-                      "pattern": "\\{name\\}"
-                    },
-                    "vow": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 40
-                    }
+                    "text": {"type": "string", "pattern": "\\{name\\}"},
+                    "vow": {"type": "string", "minLength": 1, "maxLength": 40}
                   }
                 },
                 "evil": {
                   "type": "object",
-                  "required": [
-                    "text",
-                    "vow"
-                  ],
+                  "required": ["text", "vow"],
                   "properties": {
-                    "text": {
-                      "type": "string",
-                      "pattern": "\\{name\\}"
-                    },
-                    "vow": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 40
-                    }
+                    "text": {"type": "string", "pattern": "\\{name\\}"},
+                    "vow": {"type": "string", "minLength": 1, "maxLength": 40}
                   }
                 }
               }
@@ -1433,126 +1019,47 @@
         },
         "experience": {
           "type": "object",
-          "required": [
-            "progressionThreshold",
-            "gains"
-          ],
+          "required": ["gains"],
           "properties": {
-            "progressionThreshold": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "gains": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [
-                  "key",
-                  "label",
-                  "amount"
-                ]
-              }
-            }
+            "gains": {"type": "array", "items": {"type": "object", "required": ["key", "label", "amount"]}}
           }
         },
         "injuries": {
           "type": "object",
-          "required": [
-            "roll",
-            "warrior",
-            "hero"
-          ],
+          "required": ["roll", "warrior", "hero"],
           "properties": {
-            "warrior": {
-              "$ref": "#/$defs/outcomes"
-            },
-            "hero": {
-              "$ref": "#/$defs/outcomes"
-            },
+            "warrior": {"$ref": "#/$defs/outcomes"},
+            "hero": {"$ref": "#/$defs/outcomes"},
             "treatment": {
               "type": "object",
-              "required": [
-                "currency",
-                "warrior",
-                "hero"
-              ],
+              "required": ["currency", "warrior", "hero"],
               "properties": {
-                "currency": {
-                  "type": "string"
-                },
-                "phase": {
-                  "type": "string"
-                },
+                "currency": {"type": "string"},
+                "phase": {"type": "string"},
                 "warrior": {
                   "type": "object",
-                  "required": [
-                    "key",
-                    "cost"
-                  ],
+                  "required": ["key", "cost"],
                   "properties": {
-                    "key": {
-                      "type": "string"
-                    },
-                    "cost": {
-                      "type": "integer",
-                      "minimum": 0
-                    },
-                    "requires": {
-                      "type": "string"
-                    },
-                    "removes": {
-                      "type": "string"
-                    },
+                    "key": {"type": "string"},
+                    "cost": {"type": "integer", "minimum": 0},
+                    "requires": {"type": "string"},
+                    "removes": {"type": "string"},
                     "roll": {
-                      "type": [
-                        "object",
-                        "null"
-                      ],
-                      "required": [
-                        "dice",
-                        "target"
-                      ],
+                      "type": ["object", "null"],
+                      "required": ["dice", "target"],
                       "properties": {
-                        "dice": {
-                          "type": "string",
-                          "pattern": "^[0-9]*d[0-9]+$"
-                        },
-                        "target": {
-                          "type": "integer"
-                        },
-                        "compare": {
-                          "enum": [
-                            "gte"
-                          ]
-                        },
+                        "dice": {"type": "string", "pattern": "^[0-9]*d[0-9]+$"},
+                        "target": {"type": "integer"},
+                        "compare": {"enum": ["gte"]},
                         "modifier": {
                           "type": "object",
                           "properties": {
-                            "currency": {
-                              "type": "string"
-                            },
-                            "perPoint": {
-                              "type": "integer"
-                            },
-                            "direction": {
-                              "enum": [
-                                "up",
-                                "down",
-                                "both"
-                              ]
-                            },
-                            "maxPoints": {
-                              "type": [
-                                "integer",
-                                "null"
-                              ]
-                            },
-                            "ceiling": {
-                              "type": "integer"
-                            },
-                            "like": {
-                              "type": "string"
-                            }
+                            "currency": {"type": "string"},
+                            "perPoint": {"type": "integer"},
+                            "direction": {"enum": ["up", "down", "both"]},
+                            "maxPoints": {"type": ["integer", "null"]},
+                            "ceiling": {"type": "integer"},
+                            "like": {"type": "string"}
                           }
                         }
                       }
@@ -1564,283 +1071,140 @@
                   "minItems": 1,
                   "items": {
                     "type": "object",
-                    "required": [
-                      "key",
-                      "cost",
-                      "removesInjuries",
-                      "healable"
-                    ],
+                    "required": ["key", "cost", "removesInjuries", "healable"],
                     "properties": {
-                      "key": {
-                        "type": "string"
-                      },
-                      "cost": {
-                        "type": "integer",
-                        "minimum": 0
-                      },
-                      "removesInjuries": {
-                        "type": "integer"
-                      },
-                      "healable": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      },
+                      "key": {"type": "string"},
+                      "cost": {"type": "integer", "minimum": 0},
+                      "removesInjuries": {"type": "integer"},
+                      "healable": {"type": "array", "items": {"type": "string"}},
                       "roll": {
-                        "type": [
-                          "object",
-                          "null"
-                        ],
-                        "required": [
-                          "dice",
-                          "target"
-                        ],
+                        "type": ["object", "null"],
+                        "required": ["dice", "target"],
                         "properties": {
-                          "dice": {
-                            "type": "string",
-                            "pattern": "^[0-9]*d[0-9]+$"
-                          },
-                          "target": {
-                            "type": "integer"
-                          },
-                          "compare": {
-                            "enum": [
-                              "gte"
-                            ]
-                          },
+                          "dice": {"type": "string", "pattern": "^[0-9]*d[0-9]+$"},
+                          "target": {"type": "integer"},
+                          "compare": {"enum": ["gte"]},
                           "modifier": {
                             "type": "object",
                             "properties": {
-                              "currency": {
-                                "type": "string"
-                              },
-                              "perPoint": {
-                                "type": "integer"
-                              },
-                              "direction": {
-                                "enum": [
-                                  "up",
-                                  "down",
-                                  "both"
-                                ]
-                              },
-                              "maxPoints": {
-                                "type": [
-                                  "integer",
-                                  "null"
-                                ]
-                              },
-                              "ceiling": {
-                                "type": "integer"
-                              },
-                              "like": {
-                                "type": "string"
-                              }
+                              "currency": {"type": "string"},
+                              "perPoint": {"type": "integer"},
+                              "direction": {"enum": ["up", "down", "both"]},
+                              "maxPoints": {"type": ["integer", "null"]},
+                              "ceiling": {"type": "integer"},
+                              "like": {"type": "string"}
                             }
                           }
                         }
                       },
-                      "missNextGame": {
-                        "type": "boolean"
-                      },
-                      "onFailure": {
-                        "type": "object"
-                      },
-                      "maxAttempts": {
-                        "type": [
-                          "integer",
-                          "null"
-                        ],
-                        "description": "null: no limit."
-                      }
+                      "missNextGame": {"type": "boolean"},
+                      "onFailure": {"type": "object"},
+                      "maxAttempts": {"type": ["integer", "null"], "description": "null: no limit."}
                     }
                   }
                 },
-                "removalEffect": {
-                  "type": "object"
-                }
+                "removalEffect": {"type": "object"}
               }
             }
           }
         },
         "progression": {
           "type": "object",
-          "required": [
-            "threshold",
-            "warrior",
-            "hero"
-          ],
+          "required": ["threshold", "warrior", "hero"],
           "properties": {
             "warrior": {
               "type": "object",
-              "required": [
-                "roll",
-                "table"
-              ],
-              "properties": {
-                "table": {
-                  "$ref": "#/$defs/outcomes"
-                },
-                "effectsByKey": {
-                  "type": "object"
-                }
-              }
+              "required": ["roll", "table"],
+              "properties": {"table": {"$ref": "#/$defs/outcomes"}, "effectsByKey": {"type": "object"}}
             },
             "xp": {
               "type": "object",
-              "required": [
-                "model",
-                "spentOnRoll",
-                "rollsEarned"
-              ],
+              "required": ["model", "spentOnRoll", "rollsEarned"],
               "properties": {
-                "model": {
-                  "enum": [
-                    "cumulative"
-                  ]
-                },
-                "spentOnRoll": {
-                  "type": "boolean"
-                },
-                "rollsEarned": {
-                  "type": "string"
-                },
-                "rollsAvailable": {
-                  "type": "string"
-                }
+                "model": {"enum": ["cumulative"]},
+                "spentOnRoll": {"type": "boolean"},
+                "rollsEarned": {"type": "string"},
+                "rollsAvailable": {"type": "string"}
               }
             },
             "timing": {
               "type": "object",
-              "required": [
-                "phase",
-                "step"
-              ],
-              "properties": {
-                "phase": {
-                  "type": "string"
-                },
-                "step": {
-                  "type": "integer"
-                }
-              }
+              "required": ["phase", "step"],
+              "properties": {"phase": {"type": "string"}, "step": {"type": "integer"}}
             },
-            "influenceAdjust": {
-              "type": "boolean"
-            },
-            "mightAdjust": {
-              "type": "boolean"
-            },
+            "influenceAdjust": {"type": "boolean"},
+            "mightAdjust": {"type": "boolean"},
             "hero": {
               "type": "object",
-              "required": [
-                "roll"
-              ],
+              "required": ["roll"],
               "properties": {
                 "resolution": {
                   "type": "object",
-                  "required": [
-                    "dice",
-                    "pairs",
-                    "choose"
-                  ],
+                  "required": ["dice", "pairs", "choose"],
                   "properties": {
-                    "dice": {
-                      "type": "string"
-                    },
-                    "pairs": {
-                      "type": "integer"
-                    },
-                    "choose": {
-                      "type": "integer"
-                    }
+                    "dice": {"type": "string"},
+                    "pairs": {"type": "integer"},
+                    "choose": {"type": "integer"}
                   }
                 }
               }
             }
           }
         },
-        "characteristicLimits": {
-          "type": "object",
-          "required": [
-            "average",
-            "peak"
-          ]
-        },
+        "characteristicLimits": {"type": "object", "required": ["average", "peak"]},
         "influence": {
           "type": "object",
-          "required": [
-            "gains",
-            "spend"
-          ],
+          "required": ["gains", "spend"],
           "properties": {
             "spend": {
               "type": "array",
               "items": {
                 "type": "object",
-                "required": [
-                  "key",
-                  "name",
-                  "text"
-                ],
+                "required": ["key", "name", "text"],
                 "properties": {
-                  "key": {
-                    "type": "string"
-                  },
-                  "cost": {
-                    "type": "integer",
-                    "minimum": 0
-                  },
-                  "defaultCost": {
-                    "type": "integer",
-                    "minimum": 0
-                  },
-                  "costPerPoint": {
-                    "type": "integer",
-                    "minimum": 0
-                  },
-                  "perPoint": {
-                    "type": "integer"
-                  },
-                  "maxPerRoll": {
-                    "type": "integer"
-                  },
-                  "directions": {
-                    "type": "array",
-                    "items": {
-                      "enum": [
-                        "up",
-                        "down"
-                      ]
-                    }
-                  }
+                  "key": {"type": "string"},
+                  "cost": {"type": "integer", "minimum": 0},
+                  "defaultCost": {"type": "integer", "minimum": 0},
+                  "costPerPoint": {"type": "integer", "minimum": 0},
+                  "perPoint": {"type": "integer"},
+                  "maxPerRoll": {"type": "integer"},
+                  "directions": {"type": "array", "items": {"enum": ["up", "down"]}}
                 }
               }
             }
           }
         },
-        "rating": {
-          "type": "object",
-          "required": [
-            "hero"
-          ]
-        },
+        "rating": {"type": "object", "required": ["hero"]},
         "againstTheOdds": {
           "type": "object",
           "required": ["bonuses", "selectedAt", "eligible", "budget"],
           "properties": {
             "selectedAt": {"enum": ["afterScenarioRollBeforeSetup"]},
-            "eligible": {"type": "object", "required": ["company", "compare"], "description": "Who may choose bonuses (the strictly lower rated company, rating compared before the bonuses)."},
-            "budget": {"type": "object", "required": ["rule", "inclusive"], "description": "The company's rating after the bonuses may not exceed the opponent's (inclusive: equal is allowed)."},
+            "eligible": {
+              "type": "object",
+              "required": ["company", "compare"],
+              "description": "Who may choose bonuses (the strictly lower rated company, rating compared before the bonuses)."
+            },
+            "budget": {
+              "type": "object",
+              "required": ["rule", "inclusive"],
+              "description": "The company's rating after the bonuses may not exceed the opponent's (inclusive: equal is allowed)."
+            },
             "bonuses": {
               "type": "array",
               "items": {
                 "type": "object",
                 "required": ["key", "name", "rating"],
                 "properties": {
-                  "appliesIn": {"type": "array", "items": {"enum": ["setup", "game", "aftermath", "scenarioChoice"]}},
-                  "purchase": {"type": "object", "required": ["chooses", "distinctKits", "maxPurchases"], "description": "Tool Kit: one purchase is one Kit, the same Kit never twice."},
+                  "appliesIn": {
+                    "type": "array",
+                    "items": {"enum": ["setup", "game", "aftermath", "scenarioChoice"]}
+                  },
+                  "purchase": {
+                    "type": "object",
+                    "required": ["chooses", "distinctKits", "maxPurchases"],
+                    "description": "Tool Kit: one purchase is one Kit, the same Kit never twice."
+                  },
                   "grants": {
                     "type": "object",
                     "required": ["kind"],
@@ -1860,7 +1224,20 @@
             "required": ["key", "kind", "text"],
             "properties": {
               "key": {"type": "string"},
-              "kind": {"enum": ["rerolls", "influence", "experiencePerModel", "reinforcementRollModifier", "scenarioTableModifier", "freeEquipment", "magicalPower", "experience", "injuryRollModifier", "injuryRollReplacement"]},
+              "kind": {
+                "enum": [
+                  "rerolls",
+                  "influence",
+                  "experiencePerModel",
+                  "reinforcementRollModifier",
+                  "scenarioTableModifier",
+                  "freeEquipment",
+                  "magicalPower",
+                  "experience",
+                  "injuryRollModifier",
+                  "injuryRollReplacement"
+                ]
+              },
               "source": {"type": "string"},
               "choice": {"enum": ["player"]},
               "consumes": {"enum": ["oneItem", "thisItem"]},
@@ -1869,7 +1246,10 @@
               "activatedBy": {
                 "type": "object",
                 "required": ["carrier", "requires"],
-                "properties": {"carrier": {"enum": ["hero", "anyModel"]}, "requires": {"type": "array", "items": {"enum": ["participated", "casualty", "notCasualty"]}}}
+                "properties": {
+                  "carrier": {"enum": ["hero", "anyModel"]},
+                  "requires": {"type": "array", "items": {"enum": ["participated", "casualty", "notCasualty"]}}
+                }
               }
             }
           }
@@ -1877,120 +1257,85 @@
         "breakPoint": {
           "type": "object",
           "description": "When a company is Broken and what follows (Rules Manual Broken Army, Stand Fast; All is Lost!).",
-          "required": ["default", "threshold", "startingModels", "casualties", "evaluatedAt", "whenBroken", "allIsLost", "experience", "scenarioExceptions"],
+          "required": [
+            "default",
+            "threshold",
+            "startingModels",
+            "casualties",
+            "evaluatedAt",
+            "whenBroken",
+            "allIsLost",
+            "experience",
+            "scenarioExceptions"
+          ],
           "properties": {
-            "default": {"type": "object", "required": ["percent", "of"], "properties": {"percent": {"type": "integer", "minimum": 1, "maximum": 100}, "of": {"const": "startingModels"}}},
-            "threshold": {"type": "object", "required": ["comparison", "integerTest"], "properties": {"comparison": {"enum": ["strictlyGreater"]}}},
+            "default": {
+              "type": "object",
+              "required": ["percent", "of"],
+              "properties": {
+                "percent": {"type": "integer", "minimum": 1, "maximum": 100},
+                "of": {"const": "startingModels"}
+              }
+            },
+            "threshold": {
+              "type": "object",
+              "required": ["comparison", "integerTest"],
+              "properties": {"comparison": {"enum": ["gt", "gte"]}}
+            },
             "evaluatedAt": {"enum": ["startOfEachTurn"]},
             "whenBroken": {"type": "object", "required": ["courageTest", "standFast"]},
             "allIsLost": {"type": "object", "required": ["decidedAt", "before", "outcome"]},
             "experience": {"type": "object", "required": ["gain"]},
-            "scenarioExceptions": {"type": "array", "items": {"type": "object", "required": ["effect", "who", "text"], "properties": {"text": {"type": "string", "minLength": 1, "description": "Short player-facing sentence (paraphrase)."}}}}
+            "scenarioExceptions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["effect", "who", "text"],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Short player-facing sentence (paraphrase)."
+                  }
+                }
+              }
+            }
           }
         },
         "scenarioSelection": {
           "type": "object",
-          "required": [
-            "tables",
-            "maelstromOfBattle"
-          ],
+          "required": ["die", "tables", "maelstromOfBattle"],
           "properties": {
-            "tables": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [
-                  "roll",
-                  "scenarios"
-                ]
-              }
-            }
+            "die": {"type": "string", "pattern": "^[dD][0-9]+$"},
+            "tables": {"type": "array", "items": {"type": "object", "required": ["roll", "scenarios"]}}
           }
         },
         "options": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "key",
-              "scope",
-              "label",
-              "description",
-              "default",
-              "implemented"
-            ],
+            "required": ["key", "scope", "label", "description", "default", "implemented"],
             "properties": {
-              "key": {
-                "type": "string"
-              },
-              "scope": {
-                "enum": [
-                  "rules",
-                  "app"
-                ]
-              },
-              "label": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              },
-              "default": {
-                "type": "boolean"
-              },
-              "implemented": {
-                "type": "boolean"
-              },
-              "swaps": {
-                "type": "object"
-              }
+              "key": {"type": "string"},
+              "scope": {"enum": ["rules", "app"]},
+              "label": {"type": "string"},
+              "description": {"type": "string"},
+              "default": {"type": "boolean"},
+              "implemented": {"type": "boolean"},
+              "swaps": {"type": "object"}
             }
           }
         },
         "matchInput": {
           "type": "object",
-          "required": [
-            "text",
-            "result",
-            "perCompany",
-            "perModel",
-            "aftermath"
-          ],
+          "required": ["text", "result", "perCompany", "perModel", "aftermath"],
           "properties": {
-            "text": {
-              "type": "string"
-            },
-            "result": {
-              "type": "object"
-            },
-            "perCompany": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [
-                  "key",
-                  "type",
-                  "text"
-                ]
-              }
-            },
-            "perModel": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [
-                  "key",
-                  "type",
-                  "text"
-                ]
-              }
-            },
-            "aftermath": {
-              "type": "object"
-            },
-            "gold": {
-              "type": "object"
-            }
+            "text": {"type": "string"},
+            "result": {"type": "object"},
+            "perCompany": {"type": "array", "items": {"type": "object", "required": ["key", "type", "text"]}},
+            "perModel": {"type": "array", "items": {"type": "object", "required": ["key", "type", "text"]}},
+            "aftermath": {"type": "object"},
+            "gold": {"type": "object"}
           }
         }
       }
@@ -2000,31 +1345,13 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": [
-          "roll",
-          "key",
-          "name",
-          "text"
-        ],
+        "required": ["roll", "key", "name", "text"],
         "properties": {
-          "roll": {
-            "$ref": "#/$defs/roll"
-          },
-          "key": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "effects": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "text": {
-            "type": "string"
-          },
+          "roll": {"$ref": "#/$defs/roll"},
+          "key": {"type": "string"},
+          "name": {"type": "string"},
+          "effects": {"type": "array", "items": {"type": "string"}},
+          "text": {"type": "string"},
           "persistent": {
             "type": "boolean",
             "description": "Stays on the Hero; counted per Hero (retireAtCount / grantsAtCount work on that count)."
@@ -2040,49 +1367,19 @@
           },
           "grantsAtCount": {
             "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "properties": {
-                "specialRule": {
-                  "type": "string"
-                }
-              }
-            }
+            "additionalProperties": {"type": "object", "properties": {"specialRule": {"type": "string"}}}
           },
-          "clearsAfterGames": {
-            "type": "integer",
-            "minimum": 1
-          },
+          "clearsAfterGames": {"type": "integer", "minimum": 1},
           "disables": {
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "kind"
-              ],
+              "required": ["kind"],
               "properties": {
-                "kind": {
-                  "enum": [
-                    "gearClass",
-                    "gearItem",
-                    "ability"
-                  ]
-                },
-                "classes": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "names": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "key": {
-                  "type": "string"
-                }
+                "kind": {"enum": ["gearClass", "gearItem", "ability"]},
+                "classes": {"type": "array", "items": {"type": "string"}},
+                "names": {"type": "array", "items": {"type": "string"}},
+                "key": {"type": "string"}
               }
             }
           },
@@ -2090,113 +1387,49 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "stat",
-                "delta"
-              ],
+              "required": ["stat", "delta"],
               "properties": {
-                "stat": {
-                  "type": "string"
-                },
-                "delta": {
-                  "type": "integer"
-                },
-                "per": {
-                  "enum": [
-                    "count"
-                  ]
-                },
-                "permanent": {
-                  "type": "boolean"
-                },
-                "raisesPathMaximum": {
-                  "type": "boolean"
-                },
-                "capAtPathMaximum": {
-                  "type": "boolean"
-                },
-                "minimum": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                }
+                "stat": {"type": "string"},
+                "delta": {"type": "integer"},
+                "per": {"enum": ["count"]},
+                "permanent": {"type": "boolean"},
+                "raisesPathMaximum": {"type": "boolean"},
+                "capAtPathMaximum": {"type": "boolean"},
+                "minimum": {"type": ["integer", "null"]}
               }
             }
           },
           "heals": {
             "type": "object",
-            "required": [
-              "count",
-              "keys"
-            ],
+            "required": ["count", "keys"],
             "properties": {
-              "count": {
-                "type": "integer"
-              },
-              "choice": {
-                "enum": [
-                  "player"
-                ]
-              },
-              "keys": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
+              "count": {"type": "integer"},
+              "choice": {"enum": ["player"]},
+              "keys": {"type": "array", "items": {"type": "string"}}
             }
           },
           "reroll": {
             "type": "object",
             "properties": {
-              "dice": {
-                "type": "string",
-                "pattern": "^[0-9]*d[0-9]+$"
-              },
-              "optional": {
-                "type": "boolean"
-              },
-              "secondResultStands": {
-                "type": "boolean"
-              },
-              "ifScratchAgainMissNextGame": {
-                "type": "boolean"
-              }
+              "dice": {"type": "string", "pattern": "^[0-9]*d[0-9]+$"},
+              "optional": {"type": "boolean"},
+              "secondResultStands": {"type": "boolean"},
+              "ifScratchAgainMissNextGame": {"type": "boolean"}
             }
           },
           "grantsInfluence": {
             "type": "object",
-            "required": [
-              "dice"
-            ],
-            "properties": {
-              "dice": {
-                "type": "string",
-                "pattern": "^[0-9]*d[0-9]+$"
-              }
-            }
+            "required": ["dice"],
+            "properties": {"dice": {"type": "string", "pattern": "^[0-9]*d[0-9]+$"}}
           },
           "grantsExperience": {
             "type": "object",
-            "required": [
-              "dice"
-            ],
-            "properties": {
-              "dice": {
-                "type": "string",
-                "pattern": "^[0-9]*d[0-9]+$"
-              }
-            }
+            "required": ["dice"],
+            "properties": {"dice": {"type": "string", "pattern": "^[0-9]*d[0-9]+$"}}
           },
           "healableBy": {
             "type": "array",
-            "items": {
-              "enum": [
-                "attempt",
-                "healers"
-              ]
-            },
+            "items": {"enum": ["attempt", "healers"]},
             "description": "Treatment methods (campaign.injuries.treatment.hero[].key) that can remove this status when it is not a persistent injury."
           }
         }
@@ -2204,9 +1437,7 @@
     },
     "pathOption": {
       "type": "object",
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "properties": {
         "type": {
           "enum": [
@@ -2220,24 +1451,10 @@
             "text"
           ]
         },
-        "specialRule": {
-          "type": "string"
-        },
-        "stats": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/stat"
-          }
-        },
-        "amount": {
-          "type": "integer"
-        },
-        "options": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/pathOption"
-          }
-        },
+        "specialRule": {"type": "string"},
+        "stats": {"type": "array", "items": {"$ref": "#/$defs/stat"}},
+        "amount": {"type": "integer"},
+        "options": {"type": "array", "items": {"$ref": "#/$defs/pathOption"}},
         "maxTotal": {
           "type": "integer",
           "description": "minorSpecialRule / heroicAction: most the Hero may have in total."
@@ -2246,227 +1463,129 @@
     },
     "path": {
       "type": "object",
-      "required": [
-        "name",
-        "maximums",
-        "progression"
-      ],
+      "required": ["name", "maximums", "progression"],
       "properties": {
-        "name": {
-          "type": "string"
-        },
-        "heroicAction": {
-          "type": "string"
-        },
-        "maximums": {
-          "type": "object",
-          "propertyNames": {
-            "$ref": "#/$defs/stat"
-          }
-        },
+        "name": {"type": "string"},
+        "heroicAction": {"type": "string"},
+        "maximums": {"type": "object", "propertyNames": {"$ref": "#/$defs/stat"}},
         "progression": {
           "type": "array",
           "minItems": 0,
           "maxItems": 11,
           "items": {
             "type": "object",
-            "required": [
-              "roll",
-              "text",
-              "options"
-            ],
+            "required": ["roll", "text", "options"],
             "properties": {
-              "roll": {
-                "type": "integer",
-                "minimum": 2,
-                "maximum": 12
-              },
-              "text": {
-                "type": "string"
-              },
-              "options": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "$ref": "#/$defs/pathOption"
-                }
-              }
+              "roll": {"type": "integer", "minimum": 2, "maximum": 12},
+              "text": {"type": "string"},
+              "options": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/pathOption"}}
             }
           }
         },
         "spellList": {
           "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "magicalPower",
-              "range",
-              "casting"
-            ]
-          }
+          "items": {"type": "object", "required": ["magicalPower", "range", "casting"]}
         },
         "startingHeroicAction": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": ["object", "null"],
           "properties": {
-            "name": {
-              "type": "string"
-            },
-            "universal": {
-              "type": "boolean"
-            },
-            "definition": {
-              "type": "string"
-            }
+            "name": {"type": "string"},
+            "universal": {"type": "boolean"},
+            "definition": {"type": "string"}
           }
         },
-        "startingNote": {
-          "type": "string"
-        },
+        "startingNote": {"type": "string"},
         "offers": {
           "type": "object",
           "required": ["summary", "specialRules", "signatureStats", "choices"],
           "additionalProperties": false,
           "description": "What taking the path gives a Hero, derived from the path's own data (for the path picker's tooltip).",
           "properties": {
-            "summary": {"type": "string", "description": "One short text: the starting Heroic Action / Magical Power, the path's special rules and Mastery, the characteristics level-ups improve, the other choices."},
+            "summary": {
+              "type": "string",
+              "description": "One short text: the starting Heroic Action / Magical Power, the path's special rules and Mastery, the characteristics level-ups improve, the other choices."
+            },
             "startingHeroicAction": {"type": ["string", "null"]},
             "startingMagicalPower": {"type": "boolean"},
-            "masteryRule": {"type": ["string", "null"], "description": "The path's Mastery rule (it improves a Heroic Action)."},
-            "specialRules": {"type": "array", "items": {"type": "string"}, "description": "The path's own special rules in chart order, without the Mastery rule."},
-            "signatureStats": {"type": "array", "description": "The characteristics improved together with the Mastery rule (the path's signature characteristic).", "items": {"enum": ["movement","fight","shoot","strength","defence","attack","wounds","courage","intelligence","might","will","fate"]}},
-            "choices": {"type": "array", "items": {"enum": ["minorSpecialRule","heroicAction","magicalPower","improveCastingValue"]}}
+            "masteryRule": {
+              "type": ["string", "null"],
+              "description": "The path's Mastery rule (it improves a Heroic Action)."
+            },
+            "specialRules": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "The path's own special rules in chart order, without the Mastery rule."
+            },
+            "signatureStats": {
+              "type": "array",
+              "description": "The characteristics improved together with the Mastery rule (the path's signature characteristic).",
+              "items": {
+                "enum": [
+                  "movement",
+                  "fight",
+                  "shoot",
+                  "strength",
+                  "defence",
+                  "attack",
+                  "wounds",
+                  "courage",
+                  "intelligence",
+                  "might",
+                  "will",
+                  "fate"
+                ]
+              }
+            },
+            "choices": {
+              "type": "array",
+              "items": {"enum": ["minorSpecialRule", "heroicAction", "magicalPower", "improveCastingValue"]}
+            }
           }
         },
-        "kind": {
-          "enum": [
-            "heroic",
-            "endOfPath",
-            "custom"
-          ]
-        }
+        "kind": {"enum": ["heroic", "endOfPath", "custom"]}
       },
       "allOf": [
         {
-          "if": {
-            "not": {
-              "required": [
-                "kind"
-              ]
-            }
-          },
-          "then": {
-            "properties": {
-              "progression": {
-                "minItems": 11
-              }
-            }
-          }
+          "if": {"not": {"required": ["kind"]}},
+          "then": {"properties": {"progression": {"minItems": 11}}}
         }
       ]
     },
     "unitRef": {
       "type": "object",
-      "required": [
-        "unit"
-      ],
+      "required": ["unit"],
       "properties": {
-        "unit": {
-          "type": "string"
-        },
-        "count": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "wargear": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "choice": {
-          "type": "boolean"
-        },
-        "rare": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "role": {
-          "enum": [
-            "leader",
-            "sergeant",
-            "heroInTheMaking"
-          ]
-        },
-        "missingInVanilla": {
-          "type": "boolean"
-        },
-        "label": {
-          "type": "string"
-        },
-        "selectedOptions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "keepsWargear": {
-          "type": "boolean"
-        },
-        "addSpecialRules": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "addKeywords": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
+        "unit": {"type": "string"},
+        "count": {"type": "integer", "minimum": 1},
+        "wargear": {"type": "array", "items": {"type": "string"}},
+        "choice": {"type": "boolean"},
+        "rare": {"type": "integer", "minimum": 1},
+        "role": {"enum": ["leader", "sergeant", "heroInTheMaking"]},
+        "missingInVanilla": {"type": "boolean"},
+        "label": {"type": "string"},
+        "selectedOptions": {"type": "array", "items": {"type": "string"}},
+        "keepsWargear": {"type": "boolean"},
+        "addSpecialRules": {"type": "array", "items": {"type": "string"}},
+        "addKeywords": {"type": "array", "items": {"type": "string"}}
       }
     },
     "chart": {
       "type": "object",
-      "required": [
-        "table"
-      ],
+      "required": ["table"],
       "properties": {
-        "influence": {
-          "type": "integer"
-        },
+        "influence": {"type": "integer"},
         "table": {
           "type": "array",
           "minItems": 1,
           "items": {
             "type": "object",
-            "required": [
-              "roll",
-              "result"
-            ],
+            "required": ["roll", "result"],
             "properties": {
-              "roll": {
-                "$ref": "#/$defs/roll"
-              },
+              "roll": {"$ref": "#/$defs/roll"},
               "result": {
                 "type": "object",
-                "required": [
-                  "type"
-                ],
-                "properties": {
-                  "type": {
-                    "enum": [
-                      "nothing",
-                      "unit",
-                      "specialChart",
-                      "choice",
-                      "unitChoice"
-                    ]
-                  }
-                }
+                "required": ["type"],
+                "properties": {"type": {"enum": ["nothing", "unit", "specialChart", "choice", "unitChoice"]}}
               }
             }
           }
@@ -2475,111 +1594,39 @@
     },
     "company": {
       "type": "object",
-      "required": [
-        "name",
-        "alignment",
-        "startingCompany",
-        "reinforcements",
-        "heroUpgrades"
-      ],
+      "required": ["name", "alignment", "startingCompany", "reinforcements", "heroUpgrades"],
       "properties": {
-        "name": {
-          "type": "string"
-        },
-        "alignment": {
-          "enum": [
-            "good",
-            "evil"
-          ]
-        },
-        "description": {
-          "type": "string"
-        },
+        "name": {"type": "string"},
+        "alignment": {"enum": ["good", "evil"]},
+        "description": {"type": "string"},
         "startingCompany": {
           "type": "object",
-          "required": [
-            "units",
-            "gold"
-          ],
+          "required": ["units", "gold"],
           "properties": {
-            "gold": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "units": {
-              "type": "array",
-              "minItems": 1,
-              "items": {
-                "$ref": "#/$defs/unitRef"
-              }
-            }
+            "gold": {"type": "integer", "minimum": 0},
+            "units": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/unitRef"}}
           }
         },
-        "reinforcements": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/chart"
-            },
-            {
-              "required": [
-                "influence"
-              ]
-            }
-          ]
-        },
-        "specialChart": {
-          "$ref": "#/$defs/chart"
-        },
+        "reinforcements": {"allOf": [{"$ref": "#/$defs/chart"}, {"required": ["influence"]}]},
+        "specialChart": {"$ref": "#/$defs/chart"},
         "heroUpgrades": {
           "type": "array",
           "minItems": 1,
-          "items": {
-            "type": "object",
-            "required": [
-              "name",
-              "specialRule"
-            ]
-          }
+          "items": {"type": "object", "required": ["name", "specialRule"]}
         },
         "advancements": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "from",
-              "to"
-            ],
+            "required": ["from", "to"],
             "properties": {
-              "from": {
-                "$ref": "#/$defs/unitRef"
-              },
-              "to": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "$ref": "#/$defs/unitRef"
-                }
-              }
+              "from": {"$ref": "#/$defs/unitRef"},
+              "to": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/unitRef"}}
             }
           }
         },
-        "uniqueWargear": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "name",
-              "rating",
-              "influence"
-            ]
-          }
-        },
-        "specialRules": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
+        "uniqueWargear": {"type": "array", "items": {"type": "object", "required": ["name", "rating", "influence"]}},
+        "specialRules": {"type": "array", "items": {"type": "string"}},
         "epigraph": {
           "type": "object",
           "description": "A quoted title and flavour sentence that head the company's rule text in the rulebook (Arnor: \"Leave all that can be spared behind. We travel light.\" - As Arnor fell, ...). Flavour only, not a rule.",
@@ -2589,82 +1636,24 @@
         },
         "specialUnits": {
           "type": "array",
-          "items": {
-            "allOf": [
-              {
-                "$ref": "#/$defs/unitRef"
-              },
-              {
-                "required": [
-                  "rare",
-                  "influence"
-                ]
-              }
-            ]
-          }
+          "items": {"allOf": [{"$ref": "#/$defs/unitRef"}, {"required": ["rare", "influence"]}]}
         },
-        "maxModels": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "limitOverrides": {
-          "type": "object"
-        },
-        "onTheirOwnPath": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "notes": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "section",
-              "text"
-            ]
-          }
-        },
+        "maxModels": {"type": "integer", "minimum": 1},
+        "limitOverrides": {"type": "object"},
+        "onTheirOwnPath": {"type": "array", "items": {"type": "string"}},
+        "notes": {"type": "array", "items": {"type": "object", "required": ["section", "text"]}},
         "unitAliases": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "label",
-              "unit",
-              "reason",
-              "text"
-            ],
+            "required": ["label", "unit", "reason", "text"],
             "properties": {
-              "label": {
-                "type": "string"
-              },
-              "unit": {
-                "type": "string"
-              },
-              "reason": {
-                "enum": [
-                  "option",
-                  "legacyName",
-                  "delta"
-                ]
-              },
-              "selectedOptions": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "text": {
-                "type": "string"
-              },
-              "companyNotes": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
+              "label": {"type": "string"},
+              "unit": {"type": "string"},
+              "reason": {"enum": ["option", "legacyName", "delta"]},
+              "selectedOptions": {"type": "array", "items": {"type": "string"}},
+              "text": {"type": "string"},
+              "companyNotes": {"type": "array", "items": {"type": "string"}}
             }
           }
         },
@@ -2672,93 +1661,29 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "appliesTo",
-              "target",
-              "treatedAs"
-            ],
+            "required": ["appliesTo", "target", "treatedAs"],
             "properties": {
-              "specialRule": {
-                "type": "string"
-              },
-              "target": {
-                "type": "object"
-              },
-              "treatedAs": {
-                "type": "string"
-              }
+              "specialRule": {"type": "string"},
+              "target": {"type": "object"},
+              "treatedAs": {"type": "string"}
             }
           }
         },
-        "ruleExchanges": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "remove",
-              "add"
-            ]
-          }
-        },
-        "grantedSpecialRules": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "specialRule",
-              "appliesTo"
-            ]
-          }
-        },
-        "companyLimits": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "keyword",
-              "maximumPercentage"
-            ]
-          }
-        },
+        "ruleExchanges": {"type": "array", "items": {"type": "object", "required": ["remove", "add"]}},
+        "grantedSpecialRules": {"type": "array", "items": {"type": "object", "required": ["specialRule", "appliesTo"]}},
+        "companyLimits": {"type": "array", "items": {"type": "object", "required": ["keyword", "maximumPercentage"]}},
         "limitExemptions": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "limits",
-              "text"
-            ],
-            "oneOf": [
-              {
-                "required": [
-                  "unit"
-                ]
-              },
-              {
-                "required": [
-                  "item"
-                ]
-              }
-            ],
+            "required": ["limits", "text"],
+            "oneOf": [{"required": ["unit"]}, {"required": ["item"]}],
             "additionalProperties": false,
             "properties": {
-              "unit": {
-                "type": "string"
-              },
-              "item": {
-                "type": "string"
-              },
-              "limits": {
-                "type": "array",
-                "minItems": 1,
-                "uniqueItems": true,
-                "items": {
-                  "type": "string"
-                }
-              },
-              "text": {
-                "type": "string"
-              }
+              "unit": {"type": "string"},
+              "item": {"type": "string"},
+              "limits": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+              "text": {"type": "string"}
             },
             "description": "Models taken out of the listed limits (ids of the top-level limits): left out of both the count and the base the maximum is worked out on."
           }
@@ -2767,86 +1692,35 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "kind",
-              "layer"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string"
-              },
-              "layer": {
-                "enum": [
-                  "management",
-                  "match",
-                  "both"
-                ]
-              }
-            }
+            "required": ["kind", "layer"],
+            "properties": {"kind": {"type": "string"}, "layer": {"enum": ["management", "match", "both"]}}
           }
         },
         "oath": {
           "type": "object",
-          "required": [
-            "text",
-            "vow"
-          ],
+          "required": ["text", "vow"],
           "properties": {
-            "text": {
-              "type": "string",
-              "pattern": "\\{name\\}"
-            },
-            "vow": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 40
-            }
+            "text": {"type": "string", "pattern": "\\{name\\}"},
+            "vow": {"type": "string", "minLength": 1, "maxLength": 40}
           }
         }
       }
     },
     "equipment": {
       "type": "object",
-      "required": [
-        "name",
-        "size",
-        "rating",
-        "influence",
-        "definition"
-      ],
+      "required": ["name", "size", "rating", "influence", "definition"],
       "properties": {
-        "name": {
-          "type": "string"
+        "name": {"type": "string"},
+        "size": {"enum": ["small", "large"]},
+        "rating": {"$ref": "#/$defs/rating"},
+        "influence": {"type": "integer", "minimum": 0},
+        "restrictions": {"type": "array", "items": {"type": "string"}},
+        "definition": {"type": "string"},
+        "aftermathEffect": {
+          "type": "string",
+          "description": "Key of campaign.aftermathEffects[] this item activates (Healing Herbs, Wondrous Cram)."
         },
-        "size": {
-          "enum": [
-            "small",
-            "large"
-          ]
-        },
-        "rating": {
-          "$ref": "#/$defs/rating"
-        },
-        "influence": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "restrictions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "definition": {
-          "type": "string"
-        },
-        "aftermathEffect": {"type": "string", "description": "Key of campaign.aftermathEffects[] this item activates (Healing Herbs, Wondrous Cram)."},
-        "grantsSpecialRules": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
+        "grantsSpecialRules": {"type": "array", "items": {"type": "string"}}
       }
     },
     "creature": {
@@ -2863,51 +1737,20 @@
         "wounds"
       ],
       "properties": {
-        "name": {
-          "type": "string"
-        },
-        "points": {
-          "type": "integer"
-        },
-        "influence": {
-          "type": "integer"
-        },
-        "unitType": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
+        "name": {"type": "string"},
+        "points": {"type": "integer"},
+        "influence": {"type": "integer"},
+        "unitType": {"type": "array", "items": {"type": "string"}}
       }
     },
     "wanderer": {
       "type": "object",
-      "required": [
-        "name",
-        "points",
-        "influence",
-        "movement",
-        "fight",
-        "might",
-        "will",
-        "fate"
-      ],
+      "required": ["name", "points", "influence", "movement", "fight", "might", "will", "fate"],
       "properties": {
-        "name": {
-          "type": "string"
-        },
-        "points": {
-          "type": "integer"
-        },
-        "influence": {
-          "type": "integer"
-        },
-        "unitType": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
+        "name": {"type": "string"},
+        "points": {"type": "integer"},
+        "influence": {"type": "integer"},
+        "unitType": {"type": "array", "items": {"type": "string"}}
       }
     }
   }

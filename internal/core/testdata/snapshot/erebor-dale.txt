@@ -1,0 +1,464 @@
+# Erebor & Dale (good)
+
+=== anomalies (39) ===
+tooltip-name | Armoured horse | tooltip (bc armoury) never says "Armoured horse": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+tooltip-name | Armour | tooltip (bc definition) never says "Armour": Adds 1 to Defence.
+tooltip-name | Barding | tooltip (bc definition) never says "Barding": The rider gains the Expert Rider & Horselord special rules.
+tooltip-name | Blowpipe | tooltip (bc definition) never says "Blowpipe": 12" Range, 2 Strength. Benefits from the Poisoned Weapons special rule (re-roll …
+tooltip-name | Company Drum | tooltip (bc definition) never says "Company Drum": This is a War Drum that grants the bearer the Command Support keyword.
+tooltip-name | Company Horn | tooltip (bc definition) never says "Company Horn": This is a War Horn that grants the bearer the Command Support keyword.
+tooltip-name | Company Instrument | tooltip (bc definition) never says "Company Instrument": This is an Instrument that grants the bearer the Command Support keyword. Friend…
+tooltip-name | Company Standard | tooltip (bc definition) never says "Company Standard": This is a Pennant that grants the bearer the Command Support keyword. Friendly m…
+tooltip-name | Dunlending War Axe | tooltip (bc definition) never says "Dunlending War Axe": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Dwarf Bow | tooltip (bc definition) never says "Dwarf Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Dwarf Longbow | tooltip (bc definition) never says "Dwarf Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Easterling Halberd | tooltip (bc definition) never says "Easterling Halberd": This can be used as either a pike or a two-handed weapon.
+tooltip-name | Elf Bow | tooltip (bc definition) never says "Elf Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Elven hand-and-a-half weapon | tooltip (bc definition) never says "Elven hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | Elven lance | tooltip (bc definition) never says "Elven lance": A Cavalry model using a lance adds 1 to its To Wound rolls when making Strikes i…
+tooltip-name | Elven pike | tooltip (bc definition) never says "Elven pike": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Elven spear | tooltip (bc definition) never says "Elven spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Elven throwing weapon | tooltip (bc definition) never says "Elven throwing weapon": 6" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Envenom Weapon (X) | tooltip (bc definition) never says "Envenom Weapon (X)": When a model purchases Envenom Weapon, they must decide which weapon on their pr…
+tooltip-name | Esgaroth Bow | tooltip (bc definition) never says "Esgaroth Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Fell Warg | tooltip (bc armoury) never says "Fell Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | Galadhrim Steed | tooltip (bc definition) never says "Galadhrim Steed": This is an armoured horse that also has the Woodland Creature special rule.
+tooltip-name | Goat | tooltip (bc armoury) never says "Goat": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+tooltip-name | Hand-and-a-half weapon | tooltip (bc definition) never says "Hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | Heavy Armour | tooltip (bc definition) never says "Heavy Armour": Adds 2 to Defence.
+tooltip-name | Heavy Dwarf Armour | tooltip (bc definition) never says "Heavy Dwarf Armour": Adds 3 to Defence.
+tooltip-name | Horse | tooltip (bc armoury) never says "Horse": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | Longbow | tooltip (bc definition) never says "Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Orc Bow | tooltip (bc definition) never says "Orc Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Seeing Stone | tooltip (bc definition) never says "Seeing Stone": Once per game, during the Priority Phase but before the roll for Priority, the b…
+tooltip-name | Short Bow | tooltip (bc definition) never says "Short Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Small Shield | tooltip (bc definition) never says "Small Shield": This is a Light Shield that gives the bearer +1 to their Defence Characteristic …
+tooltip-name | Spear | tooltip (bc definition) never says "Spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Throwing Spears | tooltip (bc definition) never says "Throwing Spears": 8" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Torching Brand | tooltip (bc definition) never says "Torching Brand": A model with a Torch gains the following benefits: They illuminate the area with…
+tooltip-name | Uruk-Hai Bow | tooltip (bc definition) never says "Uruk-Hai Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | War spear | tooltip (bc definition) never says "War spear": Counts as a lance while mounted, and a spear while dismounted
+tooltip-name | Warg | tooltip (bc armoury) never says "Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-missing | Guardian of the King | no tooltip text (gear)
+
+=== profile (everything the company page holds) ===
+profile
+  BCCompany:
+    Name: "Erebor & Dale"
+    Alignment: "good"
+    MaxModels: 15
+    ReinforcementCost: 3
+    Reinforcements:
+      - {Min: 1, Max: 1, Result: {Type: "nothing", Count: 1, Blocks: true}}
+      - {Min: 2, Max: 3, Result: {Type: "unit", Unit: "Warrior of Dale", Count: 1, Choice: true}}
+      - {Min: 4, Max: 5, Result: {Type: "unit", Unit: "Erebor Dwarf Warrior", Count: 1, Choice: true}}
+      - {Min: 6, Max: 6, Result: {Type: "unit", Unit: "Grim Hammer Warrior", Count: 1}}
+    LimitOverrides: {}
+  Description: "To the east of Mirkwood lies the great Dwarven realm of Erebor, once ruled over by Thrór, The Last King Under the Mountain. Over the years, Erebor forged a great alliance with Dale, City of Men, and its lord, Girion. Trade was prevalent between the two peoples, with the Dwarves using Dale's grand markets to trade their wares across Middle-Earth, and in return provide the armouries of Dale with finely-wrought weapons. Yet the greatest asset these allies provided each other was a combined strength-in-arms.\n\nIt was commonplace for a small band of Dwarves from Erebor and Men from Dale to be tasked with the defence of an outpost; one that provided great benefits to both realms. Groups such as these often ended up forming close bonds as they honed their skills side-by-side in the wild lands of Middle-earth, sharing both talents and experiences with each other."
+  Start:
+    - {Count: 2, Unit: "Erebor Dwarf Warrior", Wargear: ["Shield"]}
+    - {Count: 1, Unit: "Erebor Dwarf Warrior", Wargear: ["Spear"]}
+    - {Count: 1, Unit: "Warrior of Dale", Wargear: ["Shield", "Spear"]}
+    - {Count: 2, Unit: "Warrior of Dale", Wargear: ["Esgaroth Bow"]}
+  StartGold: 3
+  HeroUpgrades:
+    -
+      Name: "Lordly Quality"
+      Flavour: "Well respected by their people, their presence encourages those around them to fight all the harder."
+      Rule: "Lordly Quality"
+      Text: "Friendly models that share the same faction keyword treat this Hero as a banner."
+  Oath:
+    Text: "Under the Lonely Mountain, dwarf and man have kept the old friendship, and I am bound to keep it too. Forged in gold and in debt, we are {name}, and no dragon's cunning shall break us."
+    Vow: "By beard and bow"
+path "Path of the Tactician": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Sharpshooter": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Soldier": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Marksman": limit per company 0, start action "Heroic Accuracy", start power no; chart as in _progression.txt
+path "Path of the Claimant": limit per company 0, start action "Heroic Challenge", start power no; chart as in _progression.txt
+path "Path of the Sorcerer": limit per company 1, start action "Heroic Channeling", start power yes; chart as in _progression.txt
+path "Path of the Shieldbearer": limit per company 0, start action "Heroic Defence", start power no; chart as in _progression.txt
+path "Path of the Ranger": limit per company 0, start action "Heroic March", start power no; chart as in _progression.txt
+path "Path of the Warlord": limit per company 0, start action "Heroic Resolve", start power no; chart as in _progression.txt
+path "Path of the Berserker": limit per company 0, start action "Heroic Strength", start power no; chart as in _progression.txt
+path "Path of the Duelist": limit per company 0, start action "Heroic Strike", start power no; chart as in _progression.txt
+starting power power:Aura of Command = Aura of Command · 5+ · self
+starting power power:Aura of Dismay = Aura of Dismay · 4+ · self
+starting power power:Banishment = Banishment · 5+ · 6"
+starting power power:Black Dart = Black Dart · 6+ · 6"
+starting power power:Bladewrath = Bladewrath · 5+ · 6"
+starting power power:Blessing of the Valar = Blessing of the Valar · 4+ · 6"
+starting power power:Blinding Light = Blinding Light · 5+ · self
+starting power power:Call Winds = Call Winds · 5+ · 12"
+starting power power:Collapse Rocks = Collapse Rocks · 6+ · 12"
+starting power power:Compel = Compel · 5+ · 12"
+starting power power:Curse = Curse · 5+ · 12"
+starting power power:Drain Courage = Drain Courage · 5+ · 12"
+starting power power:Enchant Blades = Enchant Blades · 5+ · 6"
+starting power power:Enrage Beast = Enrage Beast · 5+ · 6"
+starting power power:Flameburst = Flameburst · 6+ · 6"
+starting power power:Fog of Disarray = Fog of Disarray · 4+ · self
+starting power power:Foil Magic = Foil Magic · 4+ · 12"
+starting power power:Fortify Spirit = Fortify Spirit · 4+ · 6"
+starting power power:Fury (Easterling) = Fury (Easterling) · 4+ · self
+starting power power:Fury (Moria Goblin) = Fury (Moria Goblin) · 4+ · self
+starting power power:Fury (Mordor Orc) = Fury (Mordor Orc) · 4+ · self
+starting power power:Fury (Isengard Orc) = Fury (Isengard Orc) · 4+ · self
+starting power power:Fury (Isengard Uruk-hai) = Fury (Isengard Uruk-hai) · 4+ · self
+starting power power:Fury (Beast) = Fury (Beast) · 4+ · self
+starting power power:Fury (Spider) = Fury (Spider) · 4+ · self
+starting power power:Instill Fear = Instill Fear · 6+ · self
+starting power power:Nature's Wrath = Nature's Wrath · 6+ · 3"
+starting power power:Panic Steed = Panic Steed · 5+ · 12"
+starting power power:Protection of the Valar = Protection of the Valar · 5+ · 6"
+starting power power:Renew = Renew · 5+ · 3"
+starting power power:Sorcerous Blast = Sorcerous Blast · 6+ · 6"
+starting power power:Strengthen Will = Strengthen Will · 5+ · 6"
+starting power power:Terrifying Aura = Terrifying Aura · 4+ · self
+starting power power:Transfix = Transfix · 5+ · 12"
+starting power power:Tremor = Tremor · 6+ · self
+starting power power:Wither = Wither · 5+ · 12"
+starting power power:Writhing Vines = Writhing Vines · 5+ · self
+
+=== start: gold, points and officer choices ===
+starting influence 0, gold 3
+default officers [{0 leader} {1 sergeant} {2 sergeant}]: 6 models, 102 points, total 105
+officer choices: 60 allowed, 0 refused; totals (points + gold) of the allowed ones:
+  total 105: 60 choices
+company at creation: 102 points, max units 15, break point 50%, limits:
+  limit bow "Bows" used 2 max 2 next 3
+  limit throwing "Throwing weapons" used 0 max 2 next 3
+  limit cavalry "Cavalry" used 0 max 2 next 3
+
+=== armoury of the company: unique wargear ===
+armoury size 62 (common 62 + unique 0)
+
+=== units ===
+
+-- Erebor Dwarf Warrior (Shield)
+from: start
+vanilla Erebor Dwarf Warrior: 9 points, types Warrior, Infantry, race Dwarf, faction Erebor
+profile: Mv 5" · FV 4 · SV 4+ · S 3 · D 6 · A 1 · W 1 · C 6+ · I 7+
+rules: Mountain Dweller | actions:  | wargear: Heavy Armour, Hand weapon
+keywords: Dwarf/race/profile, Erebor/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Shield and Spear" 2 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Shield and Spear, Shield, Spear
+built warrior: 10 points | equipment: Hand weapon (profile), Shield, Heavy Armour (profile) | rules: Mountain Dweller (unit)
+built hero: 25 points | equipment: Hand weapon (profile), Shield, Heavy Armour (profile) | rules: Mountain Dweller (unit)
+may lead yes | own path no | hero upgrades: Lordly Quality
+promotes to: Grim Hammer Warrior
+warrior can buy wargear (1): Spear via Shield and Spear
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 30 not an option of the profile; 14 for other reasons: set 45f112fd
+hero can buy wargear (4): Esgaroth Bow via Esgaroth Bow; Throwing weapon via Throwing weapon; Spear via Shield and Spear; Mattock via Mattock
+hero can buy equipment (23): set e39fbb31
+hero refused: 27 not an option of the profile; 8 for other reasons: set 28300529
+
+-- Erebor Dwarf Warrior (Spear)
+from: start
+vanilla Erebor Dwarf Warrior: 9 points, types Warrior, Infantry, race Dwarf, faction Erebor
+profile: Mv 5" · FV 4 · SV 4+ · S 3 · D 6 · A 1 · W 1 · C 6+ · I 7+
+rules: Mountain Dweller | actions:  | wargear: Heavy Armour, Hand weapon
+keywords: Dwarf/race/profile, Erebor/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Shield and Spear" 2 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Shield and Spear, Shield, Spear
+built warrior: 10 points | equipment: Hand weapon (profile), Spear, Heavy Armour (profile) | rules: Mountain Dweller (unit)
+built hero: 25 points | equipment: Hand weapon (profile), Spear, Heavy Armour (profile) | rules: Mountain Dweller (unit)
+may lead yes | own path no | hero upgrades: Lordly Quality
+promotes to: Grim Hammer Warrior
+warrior can buy wargear (1): Shield via Shield and Spear
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 30 not an option of the profile; 14 for other reasons: set 61b8cd69
+hero can buy wargear (4): Esgaroth Bow via Esgaroth Bow; Throwing weapon via Throwing weapon; Mattock via Mattock; Shield via Shield and Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 27 not an option of the profile; 8 for other reasons: set 6e99fa67
+
+-- Warrior of Dale (Shield, Spear)
+from: start
+vanilla Warrior of Dale: 7 points, types Warrior, Infantry, race Man, faction Dale
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules: Hatred (Dragon) | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Dale/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "War Horn" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Esgaroth Bow" 2 pts, buyable yes
+option "Shield and Spear" 2 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Esgaroth Bow, Shield and Spear, Shield
+built warrior: 9 points | equipment: Hand weapon (profile), Spear, Shield, Armour (profile) | rules: Hatred (Dragon) (unit)
+built hero: 24 points | equipment: Hand weapon (profile), Spear, Shield, Armour (profile) | rules: Hatred (Dragon) (unit)
+may lead yes | own path no | hero upgrades: Lordly Quality
+warrior can buy wargear (1): Esgaroth Bow via Esgaroth Bow
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 29 not an option of the profile; 15 for other reasons: set 8b4cb3f5
+hero can buy wargear (3): Esgaroth Bow via Esgaroth Bow; Throwing weapon via Throwing weapon; Mattock via Mattock
+hero can buy equipment (23): set e39fbb31
+hero refused: 27 not an option of the profile; 9 for other reasons: set 8aa8b518
+
+-- Warrior of Dale (Esgaroth Bow)
+from: start
+vanilla Warrior of Dale: 7 points, types Warrior, Infantry, race Man, faction Dale
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules: Hatred (Dragon) | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Dale/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "War Horn" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Esgaroth Bow" 2 pts, buyable yes
+option "Shield and Spear" 2 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Esgaroth Bow, Shield and Spear, Shield
+built warrior: 9 points | equipment: Hand weapon (profile), Armour (profile), Esgaroth Bow | rules: Hatred (Dragon) (unit)
+built hero: 24 points | equipment: Hand weapon (profile), Armour (profile), Esgaroth Bow | rules: Hatred (Dragon) (unit)
+may lead yes | own path no | hero upgrades: Lordly Quality
+warrior can buy wargear (2): Spear via Shield and Spear; Shield via Shield and Spear
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 29 not an option of the profile; 14 for other reasons: set 575dfc65
+hero can buy wargear (4): Throwing weapon via Throwing weapon; Spear via Shield and Spear; Mattock via Mattock; Shield via Shield and Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 27 not an option of the profile; 8 for other reasons: set b0442a9e
+
+-- Warrior of Dale
+from: reinforcements 2-3
+vanilla Warrior of Dale: 7 points, types Warrior, Infantry, race Man, faction Dale
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 7+ · I 7+
+rules: Hatred (Dragon) | actions:  | wargear: Armour, Hand weapon
+keywords: Man/race/profile, Dale/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "War Horn" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
+option "Esgaroth Bow" 2 pts, buyable yes
+option "Shield and Spear" 2 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Esgaroth Bow, Shield and Spear, Shield
+built warrior: 7 points | equipment: Hand weapon (profile), Armour (profile) | rules: Hatred (Dragon) (unit)
+built hero: 22 points | equipment: Hand weapon (profile), Armour (profile) | rules: Hatred (Dragon) (unit)
+may lead yes | own path no | hero upgrades: Lordly Quality
+warrior can buy wargear (3): Esgaroth Bow via Esgaroth Bow; Spear via Shield and Spear; Shield via Shield and Spear
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 29 not an option of the profile; 13 for other reasons: set a73a183e
+hero can buy wargear (5): Esgaroth Bow via Esgaroth Bow; Throwing weapon via Throwing weapon; Spear via Shield and Spear; Mattock via Mattock; Shield via Shield and Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 27 not an option of the profile; 7 for other reasons: set 3033d39e
+
+-- Erebor Dwarf Warrior
+from: reinforcements 4-5
+vanilla Erebor Dwarf Warrior: 9 points, types Warrior, Infantry, race Dwarf, faction Erebor
+profile: Mv 5" · FV 4 · SV 4+ · S 3 · D 6 · A 1 · W 1 · C 6+ · I 7+
+rules: Mountain Dweller | actions:  | wargear: Heavy Armour, Hand weapon
+keywords: Dwarf/race/profile, Erebor/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Shield and Spear" 2 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+option "Spear" 1 pts, buyable yes
+choosable at recruit: Shield and Spear, Shield, Spear
+built warrior: 9 points | equipment: Hand weapon (profile), Heavy Armour (profile) | rules: Mountain Dweller (unit)
+built hero: 24 points | equipment: Hand weapon (profile), Heavy Armour (profile) | rules: Mountain Dweller (unit)
+may lead yes | own path no | hero upgrades: Lordly Quality
+promotes to: Grim Hammer Warrior
+warrior can buy wargear (2): Spear via Shield and Spear; Shield via Shield and Spear
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 30 not an option of the profile; 13 for other reasons: set a73a183e
+hero can buy wargear (5): Esgaroth Bow via Esgaroth Bow; Throwing weapon via Throwing weapon; Spear via Shield and Spear; Mattock via Mattock; Shield via Shield and Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 27 not an option of the profile; 7 for other reasons: set 3033d39e
+
+-- Grim Hammer Warrior
+from: reinforcements 6; promotion from Erebor Dwarf Warrior
+vanilla Grim Hammer Warrior: 11 points, types Warrior, Infantry, race Dwarf, faction Erebor
+profile: Mv 5" · FV 4 · SV 4+ · S 3 · D 7 · A 1 · W 1 · C 6+ · I 6+
+rules: Ancient Enemies (Orc) | actions:  | wargear: Heavy Dwarf Armour, Mattock, Throwing weapon
+keywords: Dwarf/race/profile, Erebor/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Guardian of the King" 1 pts, buyable no | reserved
+choosable at recruit: 
+built warrior: 11 points | equipment: Mattock (profile), Heavy Dwarf Armour (profile), Throwing weapon (profile) | rules: Ancient Enemies (Orc) (unit)
+built hero: 26 points | equipment: Mattock (profile), Heavy Dwarf Armour (profile), Throwing weapon (profile) | rules: Ancient Enemies (Orc) (unit)
+may lead yes | own path no | hero upgrades: Lordly Quality
+warrior can buy wargear (0): 
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 30 not an option of the profile; 15 for other reasons: set 4329e738
+hero can buy wargear (3): Esgaroth Bow via Esgaroth Bow; Spear via Shield and Spear; Shield via Shield and Spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 27 not an option of the profile; 9 for other reasons: set 7b777117
+
+=== hero upgrades and who may take them ===
+Lordly Quality (rule "Lordly Quality", restriction "", units []): allowed to 3 of 7 units: Erebor Dwarf Warrior, Grim Hammer Warrior, Warrior of Dale
+
+=== promotion: matching, choices and gear kept ===
+
+-- advancement 0
+advancement {FromUnit: "Erebor Dwarf Warrior", To: [{Unit: "Grim Hammer Warrior"}]}
+gear a Erebor Dwarf Warrior may carry (2): Shield, Spear
+carrying nothing: matches warrior yes hero yes | choices warrior: promo:0:0=Grim Hammer Warrior | hero: promo:0:0=Grim Hammer Warrior
+    to Grim Hammer Warrior (given ): warrior keeps [] drops []; a hero keeps everything
+carrying Shield: matches warrior yes hero yes | choices warrior: promo:0:0=Grim Hammer Warrior | hero: promo:0:0=Grim Hammer Warrior
+    to Grim Hammer Warrior (given ): warrior keeps [] drops [Shield]; a hero keeps everything
+carrying Spear: matches warrior yes hero yes | choices warrior: promo:0:0=Grim Hammer Warrior | hero: promo:0:0=Grim Hammer Warrior
+    to Grim Hammer Warrior (given ): warrior keeps [] drops [Spear]; a hero keeps everything
+carrying everything: matches warrior yes hero yes | choices warrior: promo:0:0=Grim Hammer Warrior | hero: promo:0:0=Grim Hammer Warrior
+    to Grim Hammer Warrior (given ): warrior keeps [] drops [Shield, Spear]; a hero keeps everything
+
+=== tooltips and glossary terms (digest of the text in _tooltips.txt) ===
+Armour | gear | bc definition | Armour | 2f9f13f9
+Armoured horse | gear | bc armoury | Armoured horse | 333e3f85
+Axe of Lossarnach | gear | bc definition | Axe of Lossarnach | 1b918223
+Backpack | gear | bc definition | Backpack | 7b80e55f
+Badge of Courage | gear | bc definition | Badge of Courage | bec4a181
+Banner | gear | bc definition | Banner | 416dceb6
+Barding | gear | bc definition | Barding | 4c468a2d
+Blowpipe | gear | bc definition | Blowpipe | 21aa6a45
+Bow | gear | bc definition | Bow | 50b72f32
+Climbing ropes | gear | bc definition | Climbing ropes | 51c983e4
+Company Drum | gear | bc definition | Company Drum | ceffaace
+Company Horn | gear | bc definition | Company Horn | bd7ab082
+Company Instrument | gear | bc definition | Company Instrument | 6fc2cb65
+Company Standard | gear | bc definition | Company Standard | 7d183865
+Concealing Cloak | gear | bc definition | Concealing Cloak | 04641e38
+Crossbow | gear | bc definition | Crossbow | 1d6c529f
+Dunlending War Axe | gear | bc definition | Dunlending War Axe | d12785f5
+Dwarf Bow | gear | bc definition | Dwarf Bow | b534ad01
+Dwarf Longbow | gear | bc definition | Dwarf Longbow | aa321757
+Dwarven Brew | gear | bc definition | Dwarven Brew | 0b7919b0
+Easterling Halberd | gear | bc definition | Easterling Halberd | cb29ec36
+Elf Bow | gear | bc definition | Elf Bow | aa321757
+Elven hand-and-a-half weapon | gear | bc definition |  | 93f1d3f0
+Elven lance | gear | bc definition |  | 4f2e75d6
+Elven pike | gear | bc definition |  | 5f6060e2
+Elven spear | gear | bc definition |  | a07b16fc
+Elven throwing weapon | gear | bc definition | Elven throwing weapon | 7c19502f
+Envenom Weapon (X) | gear | bc definition | Envenom Weapon (X) | 15b47736
+Esgaroth Bow | gear | bc definition | Esgaroth Bow | aa321757
+Fell Warg | gear | bc armoury | Fell Warg | a2c5ffdf
+Flaming Brand | gear | bc definition | Flaming Brand | ef23e06a
+Galadhrim Steed | gear | bc definition | Galadhrim Steed | 9092cc78
+Goat | gear | bc armoury | Goat | 333e3f85
+Guardian of the King | gear | none |  | -
+Hand weapon | gear | none | Hand Weapon | a152aed7
+Hand-and-a-half weapon | gear | bc definition | Hand-and-a-half Weapon | 5e201940
+Healing Herbs | gear | bc definition | Healing Herbs | b67655bf
+Heavy Armour | gear | bc definition | Heavy Armour | 25524851
+Heavy Dwarf Armour | gear | bc definition | Heavy Dwarf Armour | b4ced631
+Horse | gear | bc armoury | Horse | a2c5ffdf
+Lance | gear | bc definition | Lance | c0628685
+Light Shield | gear | bc definition | Light Shield | 7dba0213
+Longbow | gear | bc definition | Longbow | aa321757
+Lucky Talisman | gear | bc definition | Lucky Talisman | edadbe36
+Map | gear | bc definition | Map | 2ecc3fda
+Mattock | gear | bc definition | Mattock | 2ada7b97
+Mountain Boots | gear | bc definition | Mountain Boots | 0dfacc62
+Orc Bow | gear | bc definition | Orc Bow | 6fd46631
+Pike | gear | bc definition | Pike | a96f4253
+Ring of Warding | gear | bc definition | Ring of Warding | c0e74ef4
+Scroll of Courage | gear | bc definition | Scroll of Courage | e83f5953
+Scroll of Hidden Paths | gear | bc definition | Scroll of Hidden Paths | 5fc4181c
+Seeing Stone | gear | bc definition | Seeing Stone | de3e77c7
+Shield | gear | bc definition | Shields | 399b67fd
+Short Bow | gear | bc definition | Short Bow | 6fd46631
+Small Shield | gear | bc definition | Small Shield | cb8c5e2c
+Spear | gear | bc definition | Spear | 761cb2e2
+Throwing Spears | gear | bc definition | Throwing Spear | d5b6b5e7
+Throwing weapon | gear | bc definition | Throwing Weapons | 160baaa6
+Torching Brand | gear | bc definition | Torching Brand | 85ef5e26
+Traps & Snares | gear | bc definition | Traps & Snares | 69a67031
+Trophy Pelt | gear | bc definition | Trophy Pelt | 7e4eed78
+Two-handed weapon | gear | bc definition | Two-handed Weapon | 5e201940
+Uruk-Hai Bow | gear | bc definition | Uruk-Hai Bow | b534ad01
+War Horn | gear | bc definition | War Horn | 3dcaab42
+War spear | gear | bc definition | War Spear | 8700bf62
+Warg | gear | bc armoury | Warg | a2c5ffdf
+Wondrous Cram | gear | bc definition | Wondrous Cram | 7853368f
+Woodland Belt | gear | bc definition | Woodland Belt | 2cd22098
+Ancient Enemies (Orc) | rule | vanilla rule | Ancient Enemies (Orc) | 4a4ac356
+Hatred (Dragon) | rule | vanilla rule | Hatred (Dragon) | 224dd9d4
+Mountain Dweller | rule | vanilla rule | Mountain Dweller | 7f895f77
+
+=== duplicated vanilla names the company uses ===
+
+=== name resolution: what every name the company mentions resolves to ===
+unit "Erebor Dwarf Warrior" -> vanilla "Erebor Dwarf Warrior"
+unit "Grim Hammer Warrior" -> vanilla "Grim Hammer Warrior"
+unit "Warrior of Dale" -> vanilla "Warrior of Dale"
+gear "Armour" -> key "armour" | annotation "Armour" | vanilla gear "Armour"
+gear "Banner" -> key "banner" | annotation "Banner" | vanilla gear "Banner"
+gear "Esgaroth Bow" -> key "esgarothbow" | offer "Esgaroth Bow" size "" also [] | annotation "Esgaroth Bow" | vanilla gear "Esgaroth Bow"
+gear "Guardian of the King" -> key "guardianoftheking" | annotation "Guardian of the King" | vanilla gear "Guardian of the King"
+gear "Hand weapon" -> key "handweapon" | annotation "Hand weapon"
+gear "Heavy Armour" -> key "heavyarmour" | annotation "Heavy Armour" | vanilla gear "Heavy Armour"
+gear "Heavy Dwarf Armour" -> key "heavydwarfarmour" | annotation "Heavy Dwarf Armour" | vanilla gear "Heavy Dwarf Armour"
+gear "Mattock" -> key "mattock" | offer "Mattock" size "" also [] | annotation "Mattock" | vanilla gear "Mattock"
+gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
+gear "Shield and Spear" -> key "shieldandspear" | vanilla gear "Shield and Spear"
+gear "Spear" -> key "spear" | offer "Spear" size "" also [] | annotation "Spear"
+gear "Throwing weapon" -> key "throwingweapon" | offer "Throwing weapon" size "" also [Throwing weapons] | annotation "Throwing weapon" | vanilla gear "Throwing weapon"
+gear "War Horn" -> key "warhorn" | annotation "War Horn" | vanilla gear "War Horn"
+rule "\"Hold positions, loose the arrows!\"" -> label "\"Hold positions, loose the arrows!\"" | text from bc rule | glossary "\"Hold positions, loose the arrows!\""
+rule "A Good Sort" -> label "A Good Sort" | text from bc rule | glossary "A Good Sort"
+rule "Ancient Enemies (Orc)" -> label "Ancient Enemies (Orc)" | text from vanilla rule | glossary "Ancient Enemies (Orc)"
+rule "Big Game Hunter" -> label "Big Game Hunter" | text from bc rule | glossary "Big Game Hunter"
+rule "Burly" -> label "Burly" | text from bc rule | glossary "Burly"
+rule "Chief Advisor" -> label "Chief Advisor" | text from bc rule | glossary "Chief Advisor"
+rule "Claim the Throne" -> label "Claim the Throne" | text from bc rule | glossary "Claim the Throne"
+rule "Command Support" -> label "Command Support" | text from bc rule | glossary "Command Support"
+rule "Commanding Bellow" -> label "Commanding Bellow" | text from bc rule | glossary "Commanding Bellow"
+rule "Cunning Fighter" -> label "Cunning Fighter" | text from bc rule | glossary "Cunning Fighter"
+rule "Deceptive Caster" -> label "Deceptive Caster" | text from bc rule | glossary "Deceptive Caster"
+rule "Defender of the City" -> label "Defender of the City" | text from bc rule | glossary "Defender of the City"
+rule "Devastating Charge" -> label "Devastating Charge" | text from vanilla rule | glossary "Devastating Charge"
+rule "Dominant (2)" -> label "Dominant (2)" | text from vanilla rule | glossary "Dominant (2)"
+rule "Experienced Tracker" -> label "Experienced Tracker" | text from bc rule | glossary "Experienced Tracker"
+rule "Expert Rider" -> label "Expert Rider" | text from vanilla rule | glossary "Expert Rider"
+rule "Fearless" -> label "Fearless" | text from vanilla rule | glossary "Fearless"
+rule "Fearsome Charge" -> label "Fearsome Charge" | text from bc rule | glossary "Fearsome Charge"
+rule "Fell Sight" -> label "Fell Sight" | text from vanilla rule | glossary "Fell Sight"
+rule "For Glory" -> label "For Glory" | text from bc rule | glossary "For Glory"
+rule "Furious Tirade" -> label "Furious Tirade" | text from bc rule | glossary "Furious Tirade"
+rule "Fury of the Bear" -> label "Fury of the Bear" | text from bc rule | glossary "Fury of the Bear"
+rule "Gatekeeper" -> label "Gatekeeper" | text from bc rule | glossary "Gatekeeper"
+rule "General Hunter" -> label "General Hunter" | text from bc rule | glossary "General Hunter"
+rule "Grim Blade" -> label "Grim Blade" | text from bc rule | glossary "Grim Blade"
+rule "Hatred (Dragon)" -> label "Hatred (Dragon)" | text from vanilla rule | glossary "Hatred (Dragon)"
+rule "Heroic Accuracy" -> label "Heroic Accuracy" | text from none | glossary "Heroic Accuracy"
+rule "Heroic Challenge" -> label "Heroic Challenge" | text from none | glossary "Heroic Challenge"
+rule "Heroic Channeling" -> label "Heroic Channeling" | text from none | glossary "Heroic Channelling"
+rule "Heroic Defence" -> label "Heroic Defence" | text from none | glossary "Heroic Defence"
+rule "Heroic March" -> label "Heroic March" | text from none | glossary "Heroic March"
+rule "Heroic Resolve" -> label "Heroic Resolve" | text from none | glossary "Heroic Resolve"
+rule "Heroic Strength" -> label "Heroic Strength" | text from none | glossary "Heroic Strength"
+rule "Heroic Strike" -> label "Heroic Strike" | text from none | glossary "Heroic Strike"
+rule "Horse Lord" -> label "Horse Lord" | text from vanilla rule | glossary "Horse Lord"
+rule "Knife Mastery" -> label "Knife Mastery" | text from bc rule | glossary "Knife Mastery"
+rule "Lethal Aim" -> label "Lethal Aim" | text from bc rule | glossary "Lethal Aim"
+rule "Longbeard" -> label "Longbeard" | text from bc rule | glossary "Longbeard"
+rule "Lordly Quality" -> label "Lordly Quality" | text from bc rule | glossary "Lordly Quality"
+rule "Marshal" -> label "Marshal" | text from bc rule | glossary "Marshal"
+rule "Master Duelist" -> label "Master Duelist" | text from bc rule | glossary "Master Duelist"
+rule "Master of Battle (3+)" -> label "Master of Battle (3+)" | text from vanilla rule | glossary "Master of Battle (3+)"
+rule "Master of Magic" -> label "Master of Magic" | text from bc rule | glossary "Master of Magic"
+rule "Master of Traps" -> label "Master of Traps" | text from vanilla rule | glossary "Master of Traps"
+rule "Mountain Dweller" -> label "Mountain Dweller" | text from vanilla rule | glossary "Mountain Dweller"
+rule "Oblivious to Pain" -> label "Oblivious to Pain" | text from bc rule | glossary "Oblivious to Pain"
+rule "Pinpoint Shot" -> label "Pinpoint Shot" | text from bc rule | glossary "Pinpoint Shot"
+rule "Poisoned Attacks (Blowpipe)" -> label "Poisoned Attacks (Blowpipe)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Poisoned Attacks (X)" -> label "Poisoned Attacks (X)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Rallying Cry" -> label "Rallying Cry" | text from bc rule | glossary "Rallying Cry"
+rule "Rapid Fire" -> label "Rapid Fire" | text from bc rule | glossary "Rapid Fire"
+rule "Reading the Portents" -> label "Reading the Portents" | text from bc rule | glossary "Reading the Portents"
+rule "Reckless Charge" -> label "Reckless Charge" | text from bc rule | glossary "Reckless Charge"
+rule "Relentless Commander" -> label "Relentless Commander" | text from bc rule | glossary "Relentless Commander"
+rule "Resistant to Magic" -> label "Resistant to Magic" | text from vanilla rule | glossary "Resistant to Magic"
+rule "Sorcerous Adept" -> label "Sorcerous Adept" | text from bc rule | glossary "Sorcerous Adept"
+rule "Spectral Walk" -> label "Spectral Walk" | text from vanilla rule | glossary "Spectral Walk"
+rule "Spy" -> label "Spy" | text from bc rule | glossary "Spy"
+rule "Stalk Unseen" -> label "Stalk Unseen" | text from vanilla rule | glossary "Stalk Unseen"
+rule "Swift Parry" -> label "Swift Parry" | text from bc rule | glossary "Swift Parry"
+rule "Swift Shot" -> label "Swift Shot" | text from bc rule | glossary "Swift Shot"
+rule "Terror" -> label "Terror" | text from vanilla rule | glossary "Terror"
+rule "Terror (Beast)" -> label "Terror (Beast)" | text from vanilla rule | glossary "Terror"
+rule "Terror (Cavalry)" -> label "Terror (Cavalry)" | text from vanilla rule | glossary "Terror"
+rule "The King's Protector" -> label "The King's Protector" | text from bc rule | glossary "The King's Protector"
+rule "To Arms!" -> label "To Arms!" | text from bc rule | glossary "To Arms!"
+rule "Usurper of Kings" -> label "Usurper of Kings" | text from bc rule | glossary "Usurper of Kings"
+rule "Voice of Command" -> label "Voice of Command" | text from bc rule | glossary "Voice of Command"
+rule "Volley Fire" -> label "Volley Fire" | text from bc rule | glossary "Volley Fire"
+rule "Warrior of Renown" -> label "Warrior of Renown" | text from bc rule | glossary "Warrior of Renown"
+rule "Woodland Creature" -> label "Woodland Creature" | text from vanilla rule | glossary "Woodland Creature"

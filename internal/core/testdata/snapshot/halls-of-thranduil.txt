@@ -1,0 +1,530 @@
+# Halls of Thranduil (good)
+
+=== anomalies (39) ===
+tooltip-name | Armoured horse | tooltip (bc armoury) never says "Armoured horse": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+tooltip-name | Barding | tooltip (bc definition) never says "Barding": The rider gains the Expert Rider & Horselord special rules.
+tooltip-name | Blowpipe | tooltip (bc definition) never says "Blowpipe": 12" Range, 2 Strength. Benefits from the Poisoned Weapons special rule (re-roll …
+tooltip-name | Company Drum | tooltip (bc definition) never says "Company Drum": This is a War Drum that grants the bearer the Command Support keyword.
+tooltip-name | Company Horn | tooltip (bc definition) never says "Company Horn": This is a War Horn that grants the bearer the Command Support keyword.
+tooltip-name | Company Instrument | tooltip (bc definition) never says "Company Instrument": This is an Instrument that grants the bearer the Command Support keyword. Friend…
+tooltip-name | Company Standard | tooltip (bc definition) never says "Company Standard": This is a Pennant that grants the bearer the Command Support keyword. Friendly m…
+tooltip-name | Dunlending War Axe | tooltip (bc definition) never says "Dunlending War Axe": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Dwarf Bow | tooltip (bc definition) never says "Dwarf Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Dwarf Longbow | tooltip (bc definition) never says "Dwarf Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Easterling Halberd | tooltip (bc definition) never says "Easterling Halberd": This can be used as either a pike or a two-handed weapon.
+tooltip-name | Elf Bow | tooltip (bc definition) never says "Elf Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Elven Glaive | tooltip (bc definition) never says "Elven Glaive": This is an Elven spear. Additionally, a model armed with this weapon that is Eng…
+tooltip-name | Elven hand weapon | tooltip (bc definition) never says "Elven hand weapon": Elven weapon: If a model fights with an Elven weapon in a Combat, they will be m…
+tooltip-name | Elven hand-and-a-half weapon | tooltip (bc definition) never says "Elven hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | Elven lance | tooltip (bc definition) never says "Elven lance": A Cavalry model using a lance adds 1 to its To Wound rolls when making Strikes i…
+tooltip-name | Elven pike | tooltip (bc definition) never says "Elven pike": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Elven spear | tooltip (bc definition) never says "Elven spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Elven throwing weapon | tooltip (bc definition) never says "Elven throwing weapon": 6" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Elven-made Glaive | tooltip (bc definition) never says "Elven-made Glaive": This is an Elven spear. Additionally, a model armed with this weapon that is Eng…
+tooltip-name | Envenom Weapon (X) | tooltip (bc definition) never says "Envenom Weapon (X)": When a model purchases Envenom Weapon, they must decide which weapon on their pr…
+tooltip-name | Esgaroth Bow | tooltip (bc definition) never says "Esgaroth Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Fell Warg | tooltip (bc armoury) never says "Fell Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | Galadhrim Steed | tooltip (bc definition) never says "Galadhrim Steed": This is an armoured horse that also has the Woodland Creature special rule.
+tooltip-name | Goat | tooltip (bc armoury) never says "Goat": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+tooltip-name | Hand-and-a-half weapon | tooltip (bc definition) never says "Hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
+tooltip-name | Heavy Armour | tooltip (bc definition) never says "Heavy Armour": Adds 2 to Defence.
+tooltip-name | Horse | tooltip (bc armoury) never says "Horse": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+tooltip-name | Longbow | tooltip (bc definition) never says "Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Orc Bow | tooltip (bc definition) never says "Orc Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Seeing Stone | tooltip (bc definition) never says "Seeing Stone": Once per game, during the Priority Phase but before the roll for Priority, the b…
+tooltip-name | Short Bow | tooltip (bc definition) never says "Short Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | Small Shield | tooltip (bc definition) never says "Small Shield": This is a Light Shield that gives the bearer +1 to their Defence Characteristic …
+tooltip-name | Spear | tooltip (bc definition) never says "Spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
+tooltip-name | Throwing Spears | tooltip (bc definition) never says "Throwing Spears": 8" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Torching Brand | tooltip (bc definition) never says "Torching Brand": A model with a Torch gains the following benefits: They illuminate the area with…
+tooltip-name | Uruk-Hai Bow | tooltip (bc definition) never says "Uruk-Hai Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
+tooltip-name | War spear | tooltip (bc definition) never says "War spear": Counts as a lance while mounted, and a spear while dismounted
+tooltip-name | Warg | tooltip (bc armoury) never says "Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
+
+=== profile (everything the company page holds) ===
+profile
+  BCCompany:
+    Name: "Halls of Thranduil"
+    Alignment: "good"
+    MaxModels: 12
+    ReinforcementCost: 4
+    Reinforcements:
+      - {Min: 1, Max: 1, Result: {Type: "nothing", Count: 1, Blocks: true}}
+      - {Min: 2, Max: 2, Result: {Type: "unit", Unit: "Mirkwood Elf Warrior", Count: 1, Wargear: ["Shield"]}}
+      - {Min: 3, Max: 3, Result: {Type: "unit", Unit: "Mirkwood Elf Warrior", Count: 1, Wargear: ["Elven-made Glaive"]}}
+      - {Min: 4, Max: 4, Result: {Type: "unit", Unit: "Mirkwood Elf Warrior", Count: 1, Wargear: ["Elf Bow"]}}
+      - {Min: 5, Max: 5, Result: {Type: "unit", Unit: "Mirkwood Elf Warrior", Count: 1, Choice: true}}
+      - {Min: 6, Max: 6, Result: {Type: "specialChart", Count: 1}}
+    SpecialChart:
+      - {Min: 1, Max: 2, Result: {Type: "unit", Unit: "Palace Guard", Count: 1, Choice: true}}
+      - {Min: 3, Max: 4, Result: {Type: "unit", Unit: "Mirkwood Ranger", Count: 1}}
+      - {Min: 5, Max: 6, Result: {Type: "unit", Unit: "Mirkwood Elf Knight", Count: 1}}
+    UniqueWargear:
+      -
+        Name: "Elven-made Glaive"
+        Classes: ["spear"]
+        Cost: 1
+        Gold: {Warrior: 2, Hero: 5}
+        Rating: {Warrior: 2, Hero: 5}
+        Description: "This is an Elven spear. Additionally, a model armed with this weapon that is Engaged in Combat and is not being Supported may either gain a bonus of +1 Attacks for their Duel Roll, or +1 Attacks when making Strikes. This must be decided before the Duel Roll takes place. Support: an Infantry model with it that is not Engaged in Combat can assist a friendly model in base contact whose base is the same size or smaller. It adds one dice (its own Fight Value) to that Combat's Duel Roll and, if its side wins, makes one Strike with its own Strength. A Supporting model is not involved in the Combat (cannot be struck). It Supports one Combat per Fight Phase and cannot Support if Prone, unable to Activate, or if it shot that turn. It is a hand weapon when the model is Engaged. Elven weapon: If a model fights with an Elven weapon in a Combat, they will be more likely to win the Duel Roll in the result of a Drawn Combat. In these instances, a Good model armed with an Elven weapon will win the roll-off on a 3+, whilst an Evil model armed with an Elven weapon will win the roll-off on a 1-4. If both sides have an Elven weapon, neither side gains the benefit. Some Missile Weapons may also be classed as Elven weapons; however, the above bonus only applies to Melee Weapons."
+        Exclusive: true
+    LimitOverrides: {}
+  Description: "Deep within Mirkwood can be found the halls of the Elvenking, Thranduil. This woodland realm is kept hidden within the forest, away from prying eyes and Evil thoughts. Thranduil cares little for the world beyond his realm and will not waste precious lives in keeping it safe. Yet as the years have gone by, even the Elvenking has come to acknowledge the growing threat that is beginning to rise in the old fortress of Dol Guldur.\n\nMore and more frequently, the Elvenking has commanded patrols to go out into Mirkwood and clear out the Evil creatures that lurk in the gloom. For the spiders that once resided solely in Dol Guldur have become more brazen and vicious, creeping further and further north, towards the halls of Thranduil. Those in charge of the Elvenking's patrols are tasked with clearing out these spider nests and protecting Mirkwood from all manner of unwelcome 'guests'."
+  Start:
+    - {Count: 2, Unit: "Mirkwood Elf Warrior", Wargear: ["Shield"]}
+    - {Count: 2, Unit: "Mirkwood Elf Warrior", Wargear: ["Elven-made Glaive"]}
+    - {Count: 1, Unit: "Mirkwood Ranger"}
+  StartGold: 4
+  HeroUpgrades:
+    -
+      Name: "Bladelord"
+      Flavour: "This hero is a swordsman of consummate skill who few can hope to match should they cross blades with them."
+      Rule: "Bladelord"
+      Text: "If they are Outnumbered in a Combat, this Hero may reroll To Wound Rolls of a natural 1 when making Strikes. If they have the Infantry keyword and are Outnumbered in a Combat, this Hero may instead re-roll all failed To Wound Rolls when making Strikes."
+  Rules: ["Palace Guard & Mirkwood Elf Knight in this Battle Company treat the Leader as Thranduil for the purposes of their special rules."]
+  Substitutions: ["Palace Guard & Mirkwood Elf Knight in this Battle Company treat the Leader as Thranduil for the purposes of their special rules."]
+  Oath:
+    Text: "The King beneath the boughs shows no mercy to spiders, and I carry his will. I take his Wood Elves into the dark places and name them {name}, so that Mirkwood may breathe again."
+    Vow: "For the Elvenking"
+path "Path of the Tactician": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Sharpshooter": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Soldier": limit per company 0, start action "", start power no; chart as in _progression.txt
+path "Path of the Marksman": limit per company 0, start action "Heroic Accuracy", start power no; chart as in _progression.txt
+path "Path of the Claimant": limit per company 0, start action "Heroic Challenge", start power no; chart as in _progression.txt
+path "Path of the Sorcerer": limit per company 1, start action "Heroic Channeling", start power yes; chart as in _progression.txt
+path "Path of the Shieldbearer": limit per company 0, start action "Heroic Defence", start power no; chart as in _progression.txt
+path "Path of the Ranger": limit per company 0, start action "Heroic March", start power no; chart as in _progression.txt
+path "Path of the Warlord": limit per company 0, start action "Heroic Resolve", start power no; chart as in _progression.txt
+path "Path of the Berserker": limit per company 0, start action "Heroic Strength", start power no; chart as in _progression.txt
+path "Path of the Duelist": limit per company 0, start action "Heroic Strike", start power no; chart as in _progression.txt
+starting power power:Aura of Command = Aura of Command · 5+ · self
+starting power power:Aura of Dismay = Aura of Dismay · 4+ · self
+starting power power:Banishment = Banishment · 5+ · 6"
+starting power power:Black Dart = Black Dart · 6+ · 6"
+starting power power:Bladewrath = Bladewrath · 5+ · 6"
+starting power power:Blessing of the Valar = Blessing of the Valar · 4+ · 6"
+starting power power:Blinding Light = Blinding Light · 5+ · self
+starting power power:Call Winds = Call Winds · 5+ · 12"
+starting power power:Collapse Rocks = Collapse Rocks · 6+ · 12"
+starting power power:Compel = Compel · 5+ · 12"
+starting power power:Curse = Curse · 5+ · 12"
+starting power power:Drain Courage = Drain Courage · 5+ · 12"
+starting power power:Enchant Blades = Enchant Blades · 5+ · 6"
+starting power power:Enrage Beast = Enrage Beast · 5+ · 6"
+starting power power:Flameburst = Flameburst · 6+ · 6"
+starting power power:Fog of Disarray = Fog of Disarray · 4+ · self
+starting power power:Foil Magic = Foil Magic · 4+ · 12"
+starting power power:Fortify Spirit = Fortify Spirit · 4+ · 6"
+starting power power:Fury (Easterling) = Fury (Easterling) · 4+ · self
+starting power power:Fury (Moria Goblin) = Fury (Moria Goblin) · 4+ · self
+starting power power:Fury (Mordor Orc) = Fury (Mordor Orc) · 4+ · self
+starting power power:Fury (Isengard Orc) = Fury (Isengard Orc) · 4+ · self
+starting power power:Fury (Isengard Uruk-hai) = Fury (Isengard Uruk-hai) · 4+ · self
+starting power power:Fury (Beast) = Fury (Beast) · 4+ · self
+starting power power:Fury (Spider) = Fury (Spider) · 4+ · self
+starting power power:Instill Fear = Instill Fear · 6+ · self
+starting power power:Nature's Wrath = Nature's Wrath · 6+ · 3"
+starting power power:Panic Steed = Panic Steed · 5+ · 12"
+starting power power:Protection of the Valar = Protection of the Valar · 5+ · 6"
+starting power power:Renew = Renew · 5+ · 3"
+starting power power:Sorcerous Blast = Sorcerous Blast · 6+ · 6"
+starting power power:Strengthen Will = Strengthen Will · 5+ · 6"
+starting power power:Terrifying Aura = Terrifying Aura · 4+ · self
+starting power power:Transfix = Transfix · 5+ · 12"
+starting power power:Tremor = Tremor · 6+ · self
+starting power power:Wither = Wither · 5+ · 12"
+starting power power:Writhing Vines = Writhing Vines · 5+ · self
+
+=== start: gold, points and officer choices ===
+starting influence 0, gold 4
+default officers [{0 leader} {1 sergeant} {2 sergeant}]: 5 models, 101 points, total 105
+officer choices: 30 allowed, 0 refused; totals (points + gold) of the allowed ones:
+  total 105: 30 choices
+company at creation: 101 points, max units 12, break point 50%, limits:
+  limit bow "Bows" used 1 max 2 next 2
+  limit throwing "Throwing weapons" used 0 max 2 next 2
+  limit cavalry "Cavalry" used 0 max 2 next 2
+
+=== armoury of the company: unique wargear ===
+unique "Elven-made Glaive"
+  Name: "Elven-made Glaive"
+  Classes: ["spear"]
+  Cost: 1
+  Gold: {Warrior: 2, Hero: 5}
+  Rating: {Warrior: 2, Hero: 5}
+  Description: "This is an Elven spear. Additionally, a model armed with this weapon that is Engaged in Combat and is not being Supported may either gain a bonus of +1 Attacks for their Duel Roll, or +1 Attacks when making Strikes. This must be decided before the Duel Roll takes place. Support: an Infantry model with it that is not Engaged in Combat can assist a friendly model in base contact whose base is the same size or smaller. It adds one dice (its own Fight Value) to that Combat's Duel Roll and, if its side wins, makes one Strike with its own Strength. A Supporting model is not involved in the Combat (cannot be struck). It Supports one Combat per Fight Phase and cannot Support if Prone, unable to Activate, or if it shot that turn. It is a hand weapon when the model is Engaged. Elven weapon: If a model fights with an Elven weapon in a Combat, they will be more likely to win the Duel Roll in the result of a Drawn Combat. In these instances, a Good model armed with an Elven weapon will win the roll-off on a 3+, whilst an Evil model armed with an Elven weapon will win the roll-off on a 1-4. If both sides have an Elven weapon, neither side gains the benefit. Some Missile Weapons may also be classed as Elven weapons; however, the above bonus only applies to Melee Weapons."
+  Exclusive: true
+armoury size 63 (common 62 + unique 1)
+
+=== units ===
+
+-- Mirkwood Elf Warrior (Shield)
+from: start; reinforcements 2
+vanilla Mirkwood Elf Warrior: 9 points, types Warrior, Infantry, race Elf, faction Mirkwood
+profile: Mv 6" · FV 5 · SV 3+ · S 3 · D 5 · A 1 · W 1 · C 5+ · I 6+
+rules: Woodland Creature | actions:  | wargear: Heavy Armour, Elven hand-and-a-half weapon
+keywords: Elf/race/profile, Mirkwood/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Elven Glaive" 2 pts, buyable yes
+option "Elf Bow" 2 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Elven Glaive, Elf Bow, Shield
+built warrior: 10 points | equipment: Elven hand-and-a-half weapon (profile), Shield, Heavy Armour (profile) | rules: Woodland Creature (unit)
+built hero: 25 points | equipment: Elven hand-and-a-half weapon (profile), Shield, Heavy Armour (profile) | rules: Woodland Creature (unit)
+may lead yes | own path no | hero upgrades: Bladelord
+promotes to: Palace Guard
+warrior can buy wargear (2): Elf Bow via Elf Bow; Elven-made Glaive via Elven Glaive
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 34 not an option of the profile; 10 for other reasons: set b4ad808a
+hero can buy wargear (4): Horse via Horse; Elf Bow via Elf Bow; Elven spear via Shield and Elven spear; Elven-made Glaive via Elven Glaive
+hero can buy equipment (23): set e39fbb31
+hero refused: 32 not an option of the profile; 4 for other reasons: set c6404ab5
+
+-- Mirkwood Elf Warrior (Elven-made Glaive)
+from: start; reinforcements 3
+vanilla Mirkwood Elf Warrior: 9 points, types Warrior, Infantry, race Elf, faction Mirkwood
+profile: Mv 6" · FV 5 · SV 3+ · S 3 · D 5 · A 1 · W 1 · C 5+ · I 6+
+rules: Woodland Creature | actions:  | wargear: Heavy Armour, Elven hand-and-a-half weapon
+keywords: Elf/race/profile, Mirkwood/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Elven Glaive" 2 pts, buyable yes
+option "Elf Bow" 2 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Elven Glaive, Elf Bow, Shield
+built warrior: 11 points | equipment: Elven hand-and-a-half weapon (profile), Elven-made Glaive, Heavy Armour (profile) | rules: Woodland Creature (unit)
+built hero: 26 points | equipment: Elven hand-and-a-half weapon (profile), Elven-made Glaive, Heavy Armour (profile) | rules: Woodland Creature (unit)
+may lead yes | own path no | hero upgrades: Bladelord
+promotes to: Mirkwood Elf Knight
+warrior can buy wargear (2): Elf Bow via Elf Bow; Shield via Shield
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 34 not an option of the profile; 10 for other reasons: set 05001d43
+hero can buy wargear (4): Horse via Horse; Elf Bow via Elf Bow; Shield via Shield; Elven spear via Shield and Elven spear
+hero can buy equipment (23): set e39fbb31
+hero refused: 32 not an option of the profile; 4 for other reasons: set 1a82e949
+
+-- Mirkwood Ranger
+from: start; special chart 3-4; promotion from Mirkwood Elf Warrior
+vanilla Mirkwood Ranger: 14 points, types Warrior, Infantry, race Elf, faction Mirkwood
+profile: Mv 6" · FV 5 · SV 3+ · S 3 · D 3 · A 1 · W 1 · C 5+ · I 6+
+rules: Sharpshooter, Woodland Creature, Knife Fighter | actions:  | wargear: Elven hand weapon, Elf Bow, Elven Cloak
+keywords: Elf/race/profile, Mirkwood/faction/profile, Warrior/type/profile, Infantry/type/profile
+choosable at recruit: 
+built warrior: 14 points | equipment: Elven hand weapon (profile), Elf Bow (profile), Elven Cloak (upgrade) | rules: Sharpshooter (unit), Woodland Creature (unit), Knife Fighter (unit), Stalk Unseen (equipment)
+built hero: 29 points | equipment: Elven hand weapon (profile), Elf Bow (profile), Elven Cloak (upgrade) | rules: Sharpshooter (unit), Woodland Creature (unit), Knife Fighter (unit), Stalk Unseen (equipment)
+may lead yes | own path no | hero upgrades: Bladelord
+warrior can buy wargear (0): 
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 37 not an option of the profile; 9 for other reasons: set f319d7c5
+hero can buy wargear (5): Horse via Horse; Shield via Shield; Elven hand-and-a-half weapon via Elven hand-and-a-half weapon; Elven spear via Shield and Elven spear; Elven-made Glaive via Elven Glaive
+hero can buy equipment (23): set e39fbb31
+hero refused: 32 not an option of the profile; 3 for other reasons: set 673f3f36
+
+-- Mirkwood Elf Warrior (Elf Bow)
+from: reinforcements 4
+vanilla Mirkwood Elf Warrior: 9 points, types Warrior, Infantry, race Elf, faction Mirkwood
+profile: Mv 6" · FV 5 · SV 3+ · S 3 · D 5 · A 1 · W 1 · C 5+ · I 6+
+rules: Woodland Creature | actions:  | wargear: Heavy Armour, Elven hand-and-a-half weapon
+keywords: Elf/race/profile, Mirkwood/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Elven Glaive" 2 pts, buyable yes
+option "Elf Bow" 2 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Elven Glaive, Elf Bow, Shield
+built warrior: 11 points | equipment: Elven hand-and-a-half weapon (profile), Heavy Armour (profile), Elf Bow | rules: Woodland Creature (unit)
+built hero: 26 points | equipment: Elven hand-and-a-half weapon (profile), Heavy Armour (profile), Elf Bow | rules: Woodland Creature (unit)
+may lead yes | own path no | hero upgrades: Bladelord
+promotes to: Mirkwood Ranger
+warrior can buy wargear (2): Shield via Shield; Elven-made Glaive via Elven Glaive
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 34 not an option of the profile; 10 for other reasons: set f5aba123
+hero can buy wargear (4): Horse via Horse; Shield via Shield; Elven spear via Shield and Elven spear; Elven-made Glaive via Elven Glaive
+hero can buy equipment (23): set e39fbb31
+hero refused: 32 not an option of the profile; 4 for other reasons: set 1607ea6b
+
+-- Mirkwood Elf Warrior
+from: reinforcements 5
+vanilla Mirkwood Elf Warrior: 9 points, types Warrior, Infantry, race Elf, faction Mirkwood
+profile: Mv 6" · FV 5 · SV 3+ · S 3 · D 5 · A 1 · W 1 · C 5+ · I 6+
+rules: Woodland Creature | actions:  | wargear: Heavy Armour, Elven hand-and-a-half weapon
+keywords: Elf/race/profile, Mirkwood/faction/profile, Warrior/type/profile, Infantry/type/profile
+option "Elven Glaive" 2 pts, buyable yes
+option "Elf Bow" 2 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Elven Glaive, Elf Bow, Shield
+built warrior: 9 points | equipment: Elven hand-and-a-half weapon (profile), Heavy Armour (profile) | rules: Woodland Creature (unit)
+built hero: 24 points | equipment: Elven hand-and-a-half weapon (profile), Heavy Armour (profile) | rules: Woodland Creature (unit)
+may lead yes | own path no | hero upgrades: Bladelord
+warrior can buy wargear (3): Elf Bow via Elf Bow; Shield via Shield; Elven-made Glaive via Elven Glaive
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 34 not an option of the profile; 9 for other reasons: set c58f51de
+hero can buy wargear (5): Horse via Horse; Elf Bow via Elf Bow; Shield via Shield; Elven spear via Shield and Elven spear; Elven-made Glaive via Elven Glaive
+hero can buy equipment (23): set e39fbb31
+hero refused: 32 not an option of the profile; 3 for other reasons: set 9665d2ba
+
+-- Palace Guard
+from: special chart 1-2
+vanilla Palace Guard: 12 points, types Warrior, Infantry, Elite, race Elf, faction Mirkwood
+profile: Mv 6" · FV 5 · SV 3+ · S 3 · D 5 · A 1 · W 1 · C 5+ · I 5+
+rules: Bodyguard, Woodland Creature, The King's Guard | actions:  | wargear: Heavy Armour, Elven hand-and-a-half weapon
+keywords: Elf/race/profile, Mirkwood/faction/profile, Warrior/type/profile, Infantry/type/profile, Elite/type/profile
+option "Shield and Elven spear" 2 pts, buyable yes
+option "Elven spear" 1 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Shield and Elven spear, Elven spear, Shield
+built warrior: 12 points | equipment: Elven hand-and-a-half weapon (profile), Heavy Armour (profile) | rules: Bodyguard (unit), Woodland Creature (unit), The King's Guard (unit)
+built hero: 27 points | equipment: Elven hand-and-a-half weapon (profile), Heavy Armour (profile) | rules: Bodyguard (unit), Woodland Creature (unit), The King's Guard (unit)
+may lead yes | own path no | hero upgrades: Bladelord
+warrior can buy wargear (2): Shield via Shield and Elven spear; Elven spear via Shield and Elven spear
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 35 not an option of the profile; 9 for other reasons: set c58f51de
+hero can buy wargear (5): Horse via Horse; Elf Bow via Elf Bow; Shield via Shield; Elven spear via Shield and Elven spear; Elven-made Glaive via Elven Glaive
+hero can buy equipment (23): set e39fbb31
+hero refused: 32 not an option of the profile; 3 for other reasons: set 9665d2ba
+
+-- Mirkwood Elf Knight
+from: special chart 5-6; promotion from Mirkwood Elf Warrior
+vanilla Mirkwood Elf Knight: 16 points, types Warrior, Cavalry, race Elf, faction Mirkwood
+profile: Mv 6" · FV 5 · SV 3+ · S 3 · D 5 · A 1 · W 1 · C 5+ · I 6+
+rules: Woodland Creature, Expert Rider, King's Knights | actions:  | wargear: Heavy Armour, Elven hand-and-a-half weapon, Horse
+keywords: Elf/race/profile, Mirkwood/faction/profile, Warrior/type/profile, Cavalry/type/profile
+choosable at recruit: 
+built warrior: 16 points | equipment: Horse (profile), Elven hand-and-a-half weapon (profile), Heavy Armour (profile) | rules: Woodland Creature (unit), Expert Rider (unit), King's Knights (unit)
+built hero: 31 points | equipment: Horse (profile), Elven hand-and-a-half weapon (profile), Heavy Armour (profile) | rules: Woodland Creature (unit), Expert Rider (unit), King's Knights (unit)
+may lead yes | own path no | hero upgrades: Bladelord
+warrior can buy wargear (0): 
+warrior can buy equipment (18): set 23c13d49
+warrior refused: 36 not an option of the profile; 9 for other reasons: set 2a0f7bb8
+hero can buy wargear (4): Elf Bow via Elf Bow; Shield via Shield; Elven spear via Shield and Elven spear; Elven-made Glaive via Elven Glaive
+hero can buy equipment (24): set 98fcdafc
+hero refused: 32 not an option of the profile; 3 for other reasons: set 3822f225
+
+-- Palace Guard (Shield)
+from: promotion from Mirkwood Elf Warrior
+vanilla Palace Guard: 12 points, types Warrior, Infantry, Elite, race Elf, faction Mirkwood
+profile: Mv 6" · FV 5 · SV 3+ · S 3 · D 5 · A 1 · W 1 · C 5+ · I 5+
+rules: Bodyguard, Woodland Creature, The King's Guard | actions:  | wargear: Heavy Armour, Elven hand-and-a-half weapon
+keywords: Elf/race/profile, Mirkwood/faction/profile, Warrior/type/profile, Infantry/type/profile, Elite/type/profile
+option "Shield and Elven spear" 2 pts, buyable yes
+option "Elven spear" 1 pts, buyable yes
+option "Shield" 1 pts, buyable yes
+choosable at recruit: Shield and Elven spear, Elven spear, Shield
+built warrior: 13 points | equipment: Elven hand-and-a-half weapon (profile), Shield, Heavy Armour (profile) | rules: Bodyguard (unit), Woodland Creature (unit), The King's Guard (unit)
+built hero: 28 points | equipment: Elven hand-and-a-half weapon (profile), Shield, Heavy Armour (profile) | rules: Bodyguard (unit), Woodland Creature (unit), The King's Guard (unit)
+may lead yes | own path no | hero upgrades: Bladelord
+warrior can buy wargear (1): Elven spear via Shield and Elven spear
+warrior can buy equipment (17): set 5e464f5b
+warrior refused: 35 not an option of the profile; 10 for other reasons: set b4ad808a
+hero can buy wargear (4): Horse via Horse; Elf Bow via Elf Bow; Elven spear via Shield and Elven spear; Elven-made Glaive via Elven Glaive
+hero can buy equipment (23): set e39fbb31
+hero refused: 32 not an option of the profile; 4 for other reasons: set c6404ab5
+
+=== hero upgrades and who may take them ===
+Bladelord (rule "Bladelord", restriction "", units []): allowed to 4 of 8 units: Mirkwood Elf Knight, Mirkwood Elf Warrior, Mirkwood Ranger, Palace Guard
+
+=== promotion: matching, choices and gear kept ===
+
+-- advancement 0
+advancement {FromUnit: "Mirkwood Elf Warrior", FromWargear: ["shield"], To: [{Unit: "Palace Guard", Wargear: ["Shield"]}]}
+gear a Mirkwood Elf Warrior may carry (4): Elf Bow, Elven Glaive, Elven-made Glaive, Shield
+carrying nothing: matches warrior no hero no | choices warrior:  | hero: 
+carrying Elf Bow: matches warrior no hero no | choices warrior: promo:2:0=Mirkwood Ranger | hero: promo:2:0=Mirkwood Ranger
+carrying Elven Glaive: matches warrior no hero no | choices warrior: promo:1:0=Mirkwood Elf Knight | hero: promo:1:0=Mirkwood Elf Knight
+carrying Elven-made Glaive: matches warrior no hero no | choices warrior: promo:1:0=Mirkwood Elf Knight | hero: promo:1:0=Mirkwood Elf Knight
+carrying Shield: matches warrior yes hero yes | choices warrior: promo:0:0=Palace Guard with Shield | hero: promo:0:0=Palace Guard with Shield
+    to Palace Guard (given Shield): warrior keeps [Shield] drops []; a hero keeps everything
+carrying everything: matches warrior yes hero yes | choices warrior: promo:0:0=Palace Guard with Shield, promo:1:0=Mirkwood Elf Knight, promo:2:0=Mirkwood Ranger | hero: promo:0:0=Palace Guard with Shield, promo:1:0=Mirkwood Elf Knight, promo:2:0=Mirkwood Ranger
+    to Palace Guard (given Shield): warrior keeps [Shield] drops [Elf Bow, Elven Glaive, Elven-made Glaive]; a hero keeps everything
+
+-- advancement 1
+advancement {FromUnit: "Mirkwood Elf Warrior", FromWargear: ["Elven-made glaive"], To: [{Unit: "Mirkwood Elf Knight"}]}
+gear a Mirkwood Elf Warrior may carry (4): Elf Bow, Elven Glaive, Elven-made Glaive, Shield
+carrying nothing: matches warrior no hero no | choices warrior:  | hero: 
+carrying Elf Bow: matches warrior no hero no | choices warrior: promo:2:0=Mirkwood Ranger | hero: promo:2:0=Mirkwood Ranger
+carrying Elven Glaive: matches warrior yes hero yes | choices warrior: promo:1:0=Mirkwood Elf Knight | hero: promo:1:0=Mirkwood Elf Knight
+    to Mirkwood Elf Knight (given ): warrior keeps [] drops [Elven Glaive]; a hero keeps everything
+carrying Elven-made Glaive: matches warrior yes hero yes | choices warrior: promo:1:0=Mirkwood Elf Knight | hero: promo:1:0=Mirkwood Elf Knight
+    to Mirkwood Elf Knight (given ): warrior keeps [] drops [Elven-made Glaive]; a hero keeps everything
+carrying Shield: matches warrior no hero no | choices warrior: promo:0:0=Palace Guard with Shield | hero: promo:0:0=Palace Guard with Shield
+carrying everything: matches warrior yes hero yes | choices warrior: promo:0:0=Palace Guard with Shield, promo:1:0=Mirkwood Elf Knight, promo:2:0=Mirkwood Ranger | hero: promo:0:0=Palace Guard with Shield, promo:1:0=Mirkwood Elf Knight, promo:2:0=Mirkwood Ranger
+    to Mirkwood Elf Knight (given ): warrior keeps [] drops [Elf Bow, Elven Glaive, Elven-made Glaive, Shield]; a hero keeps everything
+
+-- advancement 2
+advancement {FromUnit: "Mirkwood Elf Warrior", FromWargear: ["Elf bow"], To: [{Unit: "Mirkwood Ranger"}]}
+gear a Mirkwood Elf Warrior may carry (4): Elf Bow, Elven Glaive, Elven-made Glaive, Shield
+carrying nothing: matches warrior no hero no | choices warrior:  | hero: 
+carrying Elf Bow: matches warrior yes hero yes | choices warrior: promo:2:0=Mirkwood Ranger | hero: promo:2:0=Mirkwood Ranger
+    to Mirkwood Ranger (given ): warrior keeps [Elf Bow] drops []; a hero keeps everything
+carrying Elven Glaive: matches warrior no hero no | choices warrior: promo:1:0=Mirkwood Elf Knight | hero: promo:1:0=Mirkwood Elf Knight
+carrying Elven-made Glaive: matches warrior no hero no | choices warrior: promo:1:0=Mirkwood Elf Knight | hero: promo:1:0=Mirkwood Elf Knight
+carrying Shield: matches warrior no hero no | choices warrior: promo:0:0=Palace Guard with Shield | hero: promo:0:0=Palace Guard with Shield
+carrying everything: matches warrior yes hero yes | choices warrior: promo:0:0=Palace Guard with Shield, promo:1:0=Mirkwood Elf Knight, promo:2:0=Mirkwood Ranger | hero: promo:0:0=Palace Guard with Shield, promo:1:0=Mirkwood Elf Knight, promo:2:0=Mirkwood Ranger
+    to Mirkwood Ranger (given ): warrior keeps [Elf Bow] drops [Elven Glaive, Elven-made Glaive, Shield]; a hero keeps everything
+
+=== tooltips and glossary terms (digest of the text in _tooltips.txt) ===
+Armoured horse | gear | bc armoury | Armoured horse | 333e3f85
+Axe of Lossarnach | gear | bc definition | Axe of Lossarnach | 1b918223
+Backpack | gear | bc definition | Backpack | 7b80e55f
+Badge of Courage | gear | bc definition | Badge of Courage | bec4a181
+Barding | gear | bc definition | Barding | 4c468a2d
+Blowpipe | gear | bc definition | Blowpipe | 21aa6a45
+Bow | gear | bc definition | Bow | 50b72f32
+Climbing ropes | gear | bc definition | Climbing ropes | 51c983e4
+Company Drum | gear | bc definition | Company Drum | ceffaace
+Company Horn | gear | bc definition | Company Horn | bd7ab082
+Company Instrument | gear | bc definition | Company Instrument | 6fc2cb65
+Company Standard | gear | bc definition | Company Standard | 7d183865
+Concealing Cloak | gear | bc definition | Concealing Cloak | 04641e38
+Crossbow | gear | bc definition | Crossbow | 1d6c529f
+Dunlending War Axe | gear | bc definition | Dunlending War Axe | d12785f5
+Dwarf Bow | gear | bc definition | Dwarf Bow | b534ad01
+Dwarf Longbow | gear | bc definition | Dwarf Longbow | aa321757
+Dwarven Brew | gear | bc definition | Dwarven Brew | 0b7919b0
+Easterling Halberd | gear | bc definition | Easterling Halberd | cb29ec36
+Elf Bow | gear | bc definition | Elf Bow | aa321757
+Elven Cloak | gear | bc definition | Elven Cloak | 9edce1a3
+Elven Glaive | gear | bc definition | Elven Glaive | f2091c72
+Elven hand weapon | gear | bc definition |  | 2b15545c
+Elven hand-and-a-half weapon | gear | bc definition |  | 93f1d3f0
+Elven lance | gear | bc definition |  | 4f2e75d6
+Elven pike | gear | bc definition |  | 5f6060e2
+Elven spear | gear | bc definition |  | a07b16fc
+Elven throwing weapon | gear | bc definition | Elven throwing weapon | 7c19502f
+Elven-made Glaive | gear | bc definition |  | f2091c72
+Envenom Weapon (X) | gear | bc definition | Envenom Weapon (X) | 15b47736
+Esgaroth Bow | gear | bc definition | Esgaroth Bow | aa321757
+Fell Warg | gear | bc armoury | Fell Warg | a2c5ffdf
+Flaming Brand | gear | bc definition | Flaming Brand | ef23e06a
+Galadhrim Steed | gear | bc definition | Galadhrim Steed | 9092cc78
+Goat | gear | bc armoury | Goat | 333e3f85
+Hand-and-a-half weapon | gear | bc definition | Hand-and-a-half Weapon | 5e201940
+Healing Herbs | gear | bc definition | Healing Herbs | b67655bf
+Heavy Armour | gear | bc definition | Heavy Armour | 25524851
+Horse | gear | bc armoury | Horse | a2c5ffdf
+Lance | gear | bc definition | Lance | c0628685
+Light Shield | gear | bc definition | Light Shield | 7dba0213
+Longbow | gear | bc definition | Longbow | aa321757
+Lucky Talisman | gear | bc definition | Lucky Talisman | edadbe36
+Map | gear | bc definition | Map | 2ecc3fda
+Mattock | gear | bc definition | Mattock | 2ada7b97
+Mountain Boots | gear | bc definition | Mountain Boots | 0dfacc62
+Orc Bow | gear | bc definition | Orc Bow | 6fd46631
+Pike | gear | bc definition | Pike | a96f4253
+Ring of Warding | gear | bc definition | Ring of Warding | c0e74ef4
+Scroll of Courage | gear | bc definition | Scroll of Courage | e83f5953
+Scroll of Hidden Paths | gear | bc definition | Scroll of Hidden Paths | 5fc4181c
+Seeing Stone | gear | bc definition | Seeing Stone | de3e77c7
+Shield | gear | bc definition | Shields | 399b67fd
+Short Bow | gear | bc definition | Short Bow | 6fd46631
+Small Shield | gear | bc definition | Small Shield | cb8c5e2c
+Spear | gear | bc definition | Spear | 761cb2e2
+Throwing Spears | gear | bc definition | Throwing Spear | d5b6b5e7
+Throwing weapon | gear | bc definition | Throwing Weapons | 160baaa6
+Torching Brand | gear | bc definition | Torching Brand | 85ef5e26
+Traps & Snares | gear | bc definition | Traps & Snares | 69a67031
+Trophy Pelt | gear | bc definition | Trophy Pelt | 7e4eed78
+Two-handed weapon | gear | bc definition | Two-handed Weapon | 5e201940
+Uruk-Hai Bow | gear | bc definition | Uruk-Hai Bow | b534ad01
+War spear | gear | bc definition | War Spear | 8700bf62
+Warg | gear | bc armoury | Warg | a2c5ffdf
+Wondrous Cram | gear | bc definition | Wondrous Cram | 7853368f
+Woodland Belt | gear | bc definition | Woodland Belt | 2cd22098
+Bodyguard | rule | vanilla rule | Bodyguard | eb9a048c
+Expert Rider | rule | vanilla rule | Expert Rider | 1e22d53f
+King's Knights | rule | vanilla rule | King's Knights | 3535a34c
+Knife Fighter | rule | vanilla rule | Knife Fighter | 5549738f
+Sharpshooter | rule | vanilla rule | Sharpshooter | 9145e63b
+The King's Guard | rule | vanilla rule | The King's Guard | 7705c20d
+Woodland Creature | rule | vanilla rule | Woodland Creature | 4fec460b
+
+=== duplicated vanilla names the company uses ===
+
+=== name resolution: what every name the company mentions resolves to ===
+unit "Mirkwood Elf Knight" -> vanilla "Mirkwood Elf Knight"
+unit "Mirkwood Elf Warrior" -> vanilla "Mirkwood Elf Warrior"
+unit "Mirkwood Ranger" -> vanilla "Mirkwood Ranger"
+unit "Palace Guard" -> vanilla "Palace Guard"
+gear "Elf Bow" -> key "elfbow" | offer "Elf Bow" size "" also [] | annotation "Elf Bow" | vanilla gear "Elf Bow"
+gear "Elf bow" -> key "elfbow" | offer "Elf Bow" size "" also [] | annotation "Elf Bow" | vanilla gear "Elf Bow"
+gear "Elven Cloak" -> key "elvencloak" | annotation "Elven Cloak" | vanilla gear "Elven Cloak"
+gear "Elven Glaive" -> key "elvenglaive" | offer "Elven-made Glaive" size "" also [] | annotation "Elven Glaive" | vanilla gear "Elven Glaive"
+gear "Elven hand weapon" -> key "elvenhandweapon" | annotation "Elven hand weapon"
+gear "Elven hand-and-a-half weapon" -> key "elvenhandandahalfweapon" | offer "Elven hand-and-a-half weapon" size "" also [Elven-made Hand-and-a-half Weapon Elven-made hand-and-a-half weapon] | annotation "Elven hand-and-a-half weapon"
+gear "Elven spear" -> key "elvenspear" | offer "Elven spear" size "" also [] | annotation "Elven spear"
+gear "Elven-made Glaive" -> key "elvenglaive" | offer "Elven-made Glaive" size "" also [] | annotation "Elven Glaive"
+gear "Elven-made glaive" -> key "elvenglaive" | offer "Elven-made Glaive" size "" also [] | annotation "Elven Glaive"
+gear "Heavy Armour" -> key "heavyarmour" | annotation "Heavy Armour" | vanilla gear "Heavy Armour"
+gear "Horse" -> key "horse" | offer "Horse" size "" also [] | annotation "Horse" | vanilla gear "Horse"
+gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
+gear "Shield and Elven spear" -> key "shieldandelvenspear" | vanilla gear "Shield and Elven spear"
+gear "shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
+rule "\"Hold positions, loose the arrows!\"" -> label "\"Hold positions, loose the arrows!\"" | text from bc rule | glossary "\"Hold positions, loose the arrows!\""
+rule "A Good Sort" -> label "A Good Sort" | text from bc rule | glossary "A Good Sort"
+rule "Big Game Hunter" -> label "Big Game Hunter" | text from bc rule | glossary "Big Game Hunter"
+rule "Bladelord" -> label "Bladelord" | text from bc rule | glossary "Bladelord"
+rule "Bodyguard" -> label "Bodyguard" | text from vanilla rule | glossary "Bodyguard"
+rule "Burly" -> label "Burly" | text from bc rule | glossary "Burly"
+rule "Chief Advisor" -> label "Chief Advisor" | text from bc rule | glossary "Chief Advisor"
+rule "Claim the Throne" -> label "Claim the Throne" | text from bc rule | glossary "Claim the Throne"
+rule "Command Support" -> label "Command Support" | text from bc rule | glossary "Command Support"
+rule "Commanding Bellow" -> label "Commanding Bellow" | text from bc rule | glossary "Commanding Bellow"
+rule "Cunning Fighter" -> label "Cunning Fighter" | text from bc rule | glossary "Cunning Fighter"
+rule "Deceptive Caster" -> label "Deceptive Caster" | text from bc rule | glossary "Deceptive Caster"
+rule "Defender of the City" -> label "Defender of the City" | text from bc rule | glossary "Defender of the City"
+rule "Devastating Charge" -> label "Devastating Charge" | text from vanilla rule | glossary "Devastating Charge"
+rule "Dominant (2)" -> label "Dominant (2)" | text from vanilla rule | glossary "Dominant (2)"
+rule "Experienced Tracker" -> label "Experienced Tracker" | text from bc rule | glossary "Experienced Tracker"
+rule "Expert Rider" -> label "Expert Rider" | text from vanilla rule | glossary "Expert Rider"
+rule "Fearless" -> label "Fearless" | text from vanilla rule | glossary "Fearless"
+rule "Fearsome Charge" -> label "Fearsome Charge" | text from bc rule | glossary "Fearsome Charge"
+rule "Fell Sight" -> label "Fell Sight" | text from vanilla rule | glossary "Fell Sight"
+rule "For Glory" -> label "For Glory" | text from bc rule | glossary "For Glory"
+rule "Furious Tirade" -> label "Furious Tirade" | text from bc rule | glossary "Furious Tirade"
+rule "Fury of the Bear" -> label "Fury of the Bear" | text from bc rule | glossary "Fury of the Bear"
+rule "Gatekeeper" -> label "Gatekeeper" | text from bc rule | glossary "Gatekeeper"
+rule "General Hunter" -> label "General Hunter" | text from bc rule | glossary "General Hunter"
+rule "Grim Blade" -> label "Grim Blade" | text from bc rule | glossary "Grim Blade"
+rule "Heroic Accuracy" -> label "Heroic Accuracy" | text from none | glossary "Heroic Accuracy"
+rule "Heroic Challenge" -> label "Heroic Challenge" | text from none | glossary "Heroic Challenge"
+rule "Heroic Channeling" -> label "Heroic Channeling" | text from none | glossary "Heroic Channelling"
+rule "Heroic Defence" -> label "Heroic Defence" | text from none | glossary "Heroic Defence"
+rule "Heroic March" -> label "Heroic March" | text from none | glossary "Heroic March"
+rule "Heroic Resolve" -> label "Heroic Resolve" | text from none | glossary "Heroic Resolve"
+rule "Heroic Strength" -> label "Heroic Strength" | text from none | glossary "Heroic Strength"
+rule "Heroic Strike" -> label "Heroic Strike" | text from none | glossary "Heroic Strike"
+rule "Horse Lord" -> label "Horse Lord" | text from vanilla rule | glossary "Horse Lord"
+rule "King's Knights" -> label "King's Knights" | text from vanilla rule | glossary "King's Knights"
+rule "Knife Fighter" -> label "Knife Fighter" | text from vanilla rule | glossary "Knife Fighter"
+rule "Knife Mastery" -> label "Knife Mastery" | text from bc rule | glossary "Knife Mastery"
+rule "Lethal Aim" -> label "Lethal Aim" | text from bc rule | glossary "Lethal Aim"
+rule "Longbeard" -> label "Longbeard" | text from bc rule | glossary "Longbeard"
+rule "Marshal" -> label "Marshal" | text from bc rule | glossary "Marshal"
+rule "Master Duelist" -> label "Master Duelist" | text from bc rule | glossary "Master Duelist"
+rule "Master of Battle (3+)" -> label "Master of Battle (3+)" | text from vanilla rule | glossary "Master of Battle (3+)"
+rule "Master of Magic" -> label "Master of Magic" | text from bc rule | glossary "Master of Magic"
+rule "Master of Traps" -> label "Master of Traps" | text from vanilla rule | glossary "Master of Traps"
+rule "Mountain Dweller" -> label "Mountain Dweller" | text from vanilla rule | glossary "Mountain Dweller"
+rule "Oblivious to Pain" -> label "Oblivious to Pain" | text from bc rule | glossary "Oblivious to Pain"
+rule "Pinpoint Shot" -> label "Pinpoint Shot" | text from bc rule | glossary "Pinpoint Shot"
+rule "Poisoned Attacks (Blowpipe)" -> label "Poisoned Attacks (Blowpipe)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Poisoned Attacks (X)" -> label "Poisoned Attacks (X)" | text from bc parameterised rule | glossary "Poisoned Attacks"
+rule "Rallying Cry" -> label "Rallying Cry" | text from bc rule | glossary "Rallying Cry"
+rule "Rapid Fire" -> label "Rapid Fire" | text from bc rule | glossary "Rapid Fire"
+rule "Reading the Portents" -> label "Reading the Portents" | text from bc rule | glossary "Reading the Portents"
+rule "Reckless Charge" -> label "Reckless Charge" | text from bc rule | glossary "Reckless Charge"
+rule "Relentless Commander" -> label "Relentless Commander" | text from bc rule | glossary "Relentless Commander"
+rule "Resistant to Magic" -> label "Resistant to Magic" | text from vanilla rule | glossary "Resistant to Magic"
+rule "Sharpshooter" -> label "Sharpshooter" | text from vanilla rule | glossary "Sharpshooter"
+rule "Sorcerous Adept" -> label "Sorcerous Adept" | text from bc rule | glossary "Sorcerous Adept"
+rule "Spectral Walk" -> label "Spectral Walk" | text from vanilla rule | glossary "Spectral Walk"
+rule "Spy" -> label "Spy" | text from bc rule | glossary "Spy"
+rule "Stalk Unseen" -> label "Stalk Unseen" | text from vanilla rule | glossary "Stalk Unseen"
+rule "Swift Parry" -> label "Swift Parry" | text from bc rule | glossary "Swift Parry"
+rule "Swift Shot" -> label "Swift Shot" | text from bc rule | glossary "Swift Shot"
+rule "Terror" -> label "Terror" | text from vanilla rule | glossary "Terror"
+rule "Terror (Beast)" -> label "Terror (Beast)" | text from vanilla rule | glossary "Terror"
+rule "Terror (Cavalry)" -> label "Terror (Cavalry)" | text from vanilla rule | glossary "Terror"
+rule "The King's Guard" -> label "The King's Guard" | text from vanilla rule | glossary "The King's Guard"
+rule "The King's Protector" -> label "The King's Protector" | text from bc rule | glossary "The King's Protector"
+rule "To Arms!" -> label "To Arms!" | text from bc rule | glossary "To Arms!"
+rule "Usurper of Kings" -> label "Usurper of Kings" | text from bc rule | glossary "Usurper of Kings"
+rule "Voice of Command" -> label "Voice of Command" | text from bc rule | glossary "Voice of Command"
+rule "Volley Fire" -> label "Volley Fire" | text from bc rule | glossary "Volley Fire"
+rule "Warrior of Renown" -> label "Warrior of Renown" | text from bc rule | glossary "Warrior of Renown"
+rule "Woodland Creature" -> label "Woodland Creature" | text from vanilla rule | glossary "Woodland Creature"

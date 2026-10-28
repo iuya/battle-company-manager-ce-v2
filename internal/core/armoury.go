@@ -281,10 +281,9 @@ func (sh shop) whyNot(u CompanyUnit, o GearOffer) (string, Blocker) {
 		return "Not an option of its profile", BlockedByRule
 	}
 	for _, l := range sh.d.Limits {
-		ranged := (l.ID == "bow" && (slices.Contains(o.Classes, EquipBow) || slices.Contains(o.Classes, EquipCrossbow))) ||
-			(l.ID == "throwing" && slices.Contains(o.Classes, EquipThrowing)) ||
-			(l.ID == "cavalry" && slices.Contains(o.Classes, EquipMount) && !u.isCavalry())
-		if ranged && l.Full() {
+		counts := slices.ContainsFunc(o.Classes, func(c EquipmentClass) bool { return slices.Contains(l.LimitClasses, c) }) ||
+			(l.LimitKeyword == KeywordCavalry && slices.Contains(o.Classes, EquipMount) && !u.isCavalry()) // a mount makes its rider Cavalry
+		if counts && l.Full() {
 			return fmt.Sprintf("%s limit reached (%d of %d)", l.Label, l.Used, l.Max), BlockedByLimit
 		}
 	}
@@ -526,8 +525,8 @@ func creatureReason(cr CreatureRules, d CompanyDetail, o CreatureOffer, u Compan
 	switch {
 	case u.Creature != nil:
 		return "Already has " + u.Creature.Name
-	case len(d.Creatures) >= cr.MaxPerCompany:
-		return fmt.Sprintf("The company already has %d creatures", cr.MaxPerCompany)
+	case cr.MaxPerHero < 1:
+		return "The rules give no officer a creature"
 	}
 	if inf, gold := canPay(d, o.Cost, o.Gold); !inf && !gold {
 		return costReason(d, o.Cost, o.Gold)
@@ -627,8 +626,8 @@ func (sh shop) wanderers() []ArmouryWanderer {
 		entry.Keywords = sh.rs.UnitKeywords(CompanyProfile{}, UnitKeywordsInput{Wanderer: o.Name})
 		entry.PayInfluence, entry.PayGold = canPay(sh.d, o.Cost, o.Gold)
 		switch {
-		case hired >= max(1, wr.MaxAtOnce):
-			entry.Reason = "The company already has a wanderer"
+		case hired >= wr.MaxAtOnce:
+			entry.Reason = wandererLimitReason(wr.MaxAtOnce)
 		case sh.d.ModelCount() >= sh.d.MaxUnits:
 			entry.Reason = fmt.Sprintf("The company is full (%d of %d units)", sh.d.ModelCount(), sh.d.MaxUnits)
 		case !entry.PayInfluence && !entry.PayGold:
@@ -769,4 +768,15 @@ func (a *ArmouryService) Carry(ctx context.Context, user User, campaignID, unitI
 		}
 		return nil
 	})
+}
+
+// wandererLimitReason is why a company at its wanderer limit cannot hire another.
+func wandererLimitReason(limit int) string {
+	switch limit {
+	case 0:
+		return "The rules let a company hire no wanderer"
+	case 1:
+		return "The company already has a wanderer"
+	}
+	return fmt.Sprintf("The company already has %d wanderers", limit)
 }

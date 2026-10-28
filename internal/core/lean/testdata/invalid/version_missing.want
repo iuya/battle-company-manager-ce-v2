@@ -1,0 +1,2 @@
+battle_companies.json: schemaVersion: missing (this app reads 2); an older file must be regenerated or converted
+  hint: the Battle Companies file must say "schemaVersion": 2

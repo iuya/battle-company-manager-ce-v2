@@ -1,0 +1,1 @@
+battle_companies.json: gear[2].extends: "A" extends itself through A -> B -> C -> A; extends must not form a loop

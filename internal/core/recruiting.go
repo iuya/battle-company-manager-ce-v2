@@ -65,6 +65,7 @@ func (s *RecruitService) RecruitState(ctx context.Context, user User, campaignID
 		return nil, err
 	}
 	env := newRecruitEnv(rs, settings, st)
+	rules := rs.BC.Recruiting()
 	r := st.Recruit
 	switch {
 	case r.Lower != nil:
@@ -75,7 +76,8 @@ func (s *RecruitService) RecruitState(ctx context.Context, user User, campaignID
 		}
 		return &RecruitRoll{Stage: "lower", Rolled: true, Roll: r.Lower.Roll, Lower: lower}, nil
 	case r.Roll != nil:
-		out := &RecruitRoll{Stage: r.Roll.Stage, Rolled: r.Roll.Rolled, Roll: r.Roll.Roll, PerkAdjust: r.Roll.PerkAdjust, PerkRaw: r.Roll.PerkRaw, Budget: max(0, min(MaxAdjust-r.Roll.Adjusted, 6-r.Roll.Roll))}
+		out := &RecruitRoll{Stage: r.Roll.Stage, Rolled: r.Roll.Rolled, Roll: r.Roll.Roll, PerkAdjust: r.Roll.PerkAdjust, PerkRaw: r.Roll.PerkRaw, Adjust: rules.Adjust, Sides: rules.Sides}
+		out.Budget, out.BudgetDown = rules.Adjust.Budget(r.Roll.Adjusted, r.Roll.Roll, rules.Sides)
 		if r.Roll.Stage == "special" && r.Roll.Rolled {
 			out.Replace = env.missingMember()
 		}
@@ -122,12 +124,13 @@ func UnusedPerk(perks []Perk, effect string) (Perk, bool) {
 // used twice); the roll line says "5, Rendezvous +1 = 6". The perk is for the first reinforcement roll of the aftermath, so only the
 // roll that pays for a new recruit takes it (not the free roll on the special chart).
 func (s *RecruitService) RollRecruitWithPerk(ctx context.Context, user User, campaignID int64, roll int, thrown bool, perkAdjust int) error {
-	if perkAdjust < -1 || perkAdjust > 1 {
-		return errors.Join(ErrInvalidRoll, errors.New("the Rendezvous bonus is +1 or -1"))
-	}
-	_, settings, err := s.ruleset(ctx, campaignID)
+	rs, settings, err := s.ruleset(ctx, campaignID)
 	if err != nil {
 		return err
+	}
+	rules := rs.BC.Recruiting()
+	if perkAdjust != 0 && !rules.Rendezvous.Allows(perkAdjust) {
+		return errors.Join(ErrInvalidRoll, fmt.Errorf("the Rendezvous bonus is %s", rules.Rendezvous.Describe()))
 	}
 	if msg := settings.RollRefusal(roll > 0, thrown); msg != "" {
 		return Refuse("%s", msg)
@@ -145,11 +148,11 @@ func (s *RecruitService) RollRecruitWithPerk(ctx context.Context, user User, cam
 		if r.Lower != nil {
 			return Refuse("Choose a lower result for the recruit in progress first.")
 		}
-		if roll < 0 || roll > 6 {
+		if roll < 0 || roll > rules.Sides {
 			roll = 0
 		}
 		if roll == 0 {
-			roll = s.dice.D6()
+			roll = s.dice.Die(rules.Sides)
 		}
 		switch {
 		case r.Roll == nil:
@@ -163,7 +166,7 @@ func (s *RecruitService) RollRecruitWithPerk(ctx context.Context, user User, cam
 				if !ok {
 					return Refuse("The company has no Rendezvous to use.")
 				}
-				if n := roll + perkAdjust; n < 1 || n > 6 {
+				if n := roll + perkAdjust; n < 1 || n > rules.Sides {
 					return errors.Join(ErrInvalidRoll, fmt.Errorf("a %d cannot be moved to a %d", roll, n))
 				}
 				step.PerkRaw, step.PerkAdjust, step.Roll = roll, perkAdjust, roll+perkAdjust
@@ -183,8 +186,9 @@ func (s *RecruitService) RollRecruitWithPerk(ctx context.Context, user User, cam
 	})
 }
 
-// ConfirmRecruit settles the recruit in progress. adjust raises the roll by that many points for 1 influence each (at most
-// MaxAdjust across both charts; a roll is never lowered by paying). pick chooses between the options a result offers: "alt" for
+// ConfirmRecruit settles the recruit in progress. adjust moves the roll by that many points (positive raises it, negative lowers it
+// where the rules allow, campaign.recruitment.adjust), each at the rules' influence price and at most the rules' points across both
+// charts. pick chooses between the options a result offers: "alt" for
 // the company's second option, "opt:N" for one of the units of a choice, "member" for the missing member of a team instead of a
 // special chart result. The result is a unit joining, a "choice of options" waiting for the player (Choice), or nothing; a
 // "special chart" result keeps the recruit going (Next), one that cannot join leaves a choice of a lower one (Lower).
@@ -195,11 +199,16 @@ func (s *RecruitService) ConfirmRecruit(ctx context.Context, user User, campaign
 		if rr == nil || !rr.Rolled {
 			return Refuse("There is no roll to confirm.")
 		}
-		adjust = max(0, min(MaxAdjust-rr.Adjusted, 6-rr.Roll, adjust)) // the die is only ever raised, never past 6 (no influence is taken for points it cannot move); a lower result is chosen, never paid for
-		if adjust > st.Influence {
-			return Refuse("Adjusting costs %d influence and the company has %d.", adjust, st.Influence)
+		// The points are moved in the directions the rules allow, at most the attempt's points in all, and the die stays on its faces
+		// (no influence is taken for points it cannot move). A lower result of the chart is chosen, never paid for.
+		rules := env.rs.BC.Recruiting()
+		up, down := rules.Adjust.Budget(rr.Adjusted, rr.Roll, rules.Sides)
+		points := max(-down, min(up, adjust)) // signed: positive raises the die, negative lowers it
+		cost := abs(points) * rules.Adjust.CostPerPoint
+		if cost > st.Influence {
+			return Refuse("Adjusting costs %d influence and the company has %d.", cost, st.Influence)
 		}
-		final := max(1, min(6, rr.Roll+adjust))
+		final := rr.Roll + points
 		chart := env.bcC.Reinforcements
 		if rr.Stage == "special" {
 			chart = env.bcC.SpecialChart
@@ -208,14 +217,17 @@ func (s *RecruitService) ConfirmRecruit(ctx context.Context, user User, campaign
 		if !ok {
 			return Refuse("%d is not a result on the chart", final)
 		}
-		st.Influence -= adjust
-		rr.Paid += adjust
+		st.Influence -= cost
+		rr.Paid += cost
 		prefix := fmt.Sprintf("You rolled a %d", rr.Roll)
 		if rr.PerkAdjust != 0 {
 			prefix = fmt.Sprintf("You rolled a %d, Rendezvous %+d = %d", rr.PerkRaw, rr.PerkAdjust, rr.Roll)
 		}
-		if final != rr.Roll {
+		switch {
+		case final > rr.Roll:
 			prefix += fmt.Sprintf(", raised to a %d", final)
+		case final < rr.Roll:
+			prefix += fmt.Sprintf(", lowered to a %d", final)
 		}
 		if rr.Stage == "special" {
 			prefix += " on the special chart"
@@ -247,7 +259,7 @@ func (s *RecruitService) ConfirmRecruit(ctx context.Context, user User, campaign
 		step := *rr
 		st.Recruit.Roll = nil
 		if why, kind := env.block(res); why != "" {
-			st.Recruit.Lower = &LowerChoice{Prefix: prefix, Paid: step.Paid, Adjusted: step.Adjusted + adjust, Roll: final,
+			st.Recruit.Lower = &LowerChoice{Prefix: prefix, Paid: step.Paid, Adjusted: step.Adjusted + abs(points), Roll: final,
 				Reason: fmt.Sprintf("%s, but %s.", describe(res), why), Cannot: fmt.Sprintf("the %s cannot join (%s)", describe(res), why), Stage: step.Stage,
 				Entries: env.lowerEntries(step.Stage, final, res, kind)}
 			out = RecruitResult{Roll: final, Summary: prefix + "a result that cannot join the company. Choose a lower one.", Lower: true}
@@ -260,12 +272,12 @@ func (s *RecruitService) ConfirmRecruit(ctx context.Context, user User, campaign
 				out = RecruitResult{Roll: final, Summary: fmt.Sprintf("%s%s, but no result on the chart can join the company (−%d influence).", prefix, strings.ToLower(res.Text), step.Paid)}
 				return nil
 			}
-			st.Recruit.Lower = &LowerChoice{Prefix: prefix, Paid: step.Paid, Adjusted: step.Adjusted + adjust, Roll: final,
+			st.Recruit.Lower = &LowerChoice{Prefix: prefix, Paid: step.Paid, Adjusted: step.Adjusted + abs(points), Roll: final,
 				Reason: res.Text + ": choose from the chart.", Cannot: strings.ToLower(res.Text), Stage: step.Stage, Entries: entries, Picks: picksOf(res.Text)}
 			out = RecruitResult{Roll: final, Summary: prefix + strings.ToLower(res.Text) + ": choose your result.", Lower: true}
 			return nil
 		}
-		out = env.settle(st, res, prefix, step.Paid, step.Adjusted+adjust, final, step.Stage)
+		out = env.settle(st, res, prefix, step.Paid, step.Adjusted+abs(points), final, step.Stage)
 		return nil
 	})
 	return out, err
@@ -438,7 +450,7 @@ func (env recruitEnv) pickOption(res Reinforcement, pick string) Reinforcement {
 // block says why a result cannot join the company (empty when it can), with the kind of reason. It is resultBlock, and for a
 // result of several models it also checks they all fit.
 func (env recruitEnv) block(res Reinforcement) (why, kind string) {
-	if why, kind := resultBlock(env.rs, env.bcC, env.d.Roster, res); why != "" {
+	if why, kind := resultBlock(env.rs, env.bcC, env.d.Roster, env.d.Cemetery, res); why != "" {
 		return why, kind
 	}
 	if res.Type == "unit" && res.Count > 1 {
@@ -624,7 +636,7 @@ func influenceText(cost int) string {
 func (env recruitEnv) newRecruit(base string, gear []string) UnitState {
 	spec := UnitState{Base: base, Role: RoleWarrior, Gear: gear}
 	if profile, ok := env.rs.BC.Profile(env.bcC.Name); ok && profile.RecruitAsHero {
-		spec.Role, spec.Bonus = RoleHero, HeroBonus(nil)
+		spec.Role, spec.Bonus = RoleHero, env.rs.BC.HeroBonus(nil)
 	}
 	return spec
 }

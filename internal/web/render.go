@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"path"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,6 +32,28 @@ type renderer struct {
 	loc      locationSets
 }
 
+// intsCSV writes numbers separated by commas (the dice of a roll the server made, for the script that throws them).
+func intsCSV(ns []int) string {
+	parts := make([]string, len(ns))
+	for i, n := range ns {
+		parts[i] = strconv.Itoa(n)
+	}
+	return strings.Join(parts, ",")
+}
+
+// countWords writes a count and its noun in words: "one Leader", "two Sergeants", "no Sergeants" (the numbers come from the rules).
+func countWords(n int, noun string) string {
+	words := []string{"no", "one", "two", "three", "four", "five", "six"}
+	word := strconv.Itoa(n)
+	if n >= 0 && n < len(words) {
+		word = words[n]
+	}
+	if n != 1 {
+		noun += "s"
+	}
+	return word + " " + noun
+}
+
 // seq returns from, from+1, ... to.
 func seq(from, to int) []int {
 	out := make([]int, 0, to-from+1)
@@ -38,6 +61,38 @@ func seq(from, to int) []int {
 		out = append(out, i)
 	}
 	return out
+}
+
+// rollName is the form field of the i-th die (1-based) of a roll: roll, roll2, roll3 ... (read back by enteredRolls).
+func rollName(i int) string {
+	if i <= 1 {
+		return "roll"
+	}
+	return "roll" + strconv.Itoa(i)
+}
+
+// pairLabel names the i-th pair of a hero's level-up in the typed form: "First pair", "Second pair", "Pair 3".
+func pairLabel(i int) string {
+	switch i {
+	case 1:
+		return "First pair"
+	case 2:
+		return "Second pair"
+	}
+	return "Pair " + strconv.Itoa(i)
+}
+
+// dieLabel names the i-th of n dice: "The die", "First die", "Second die", "Die 3".
+func dieLabel(i, n int) string {
+	switch {
+	case n <= 1:
+		return "The die"
+	case i == 1:
+		return "First die"
+	case i == 2:
+		return "Second die"
+	}
+	return "Die " + strconv.Itoa(i)
 }
 
 // navLink is a sidebar entry; it is marked current on its own path and on every path below Prefix.
@@ -53,7 +108,7 @@ type navLink struct{ Href, Label, Prefix string }
 func navItem(href, label, prefix string) navLink { return navLink{href, label, prefix} }
 
 func newRenderer() (*renderer, error) {
-	base, err := template.New("").Funcs(template.FuncMap{"upfirst": sentence, "kwRow": keywordRow, "kwMeta": keywordMeta, "kwLabel": keywordLabel, "auraRow": auraRow, "auraText": auraText, "auraLetter": auraLetter, "auraThick": auraThick, "auraOff": auraOff, "auraMeta": auraMeta, "auraLabel": auraLabel, "joinNames": joinNames, "loanedGroups": loanedGroups, "navItem": navItem, "inc": func(i int) int { return i + 1 }, "static": staticURL, "seq": seq, "steps": func() []int { return []int{0, 1, 2, 3} }, "dict": func(kv ...any) map[string]any {
+	base, err := template.New("").Funcs(template.FuncMap{"upfirst": sentence, "kwRow": keywordRow, "kwMeta": keywordMeta, "kwLabel": keywordLabel, "auraRow": auraRow, "auraText": auraText, "auraLetter": auraLetter, "auraThick": auraThick, "auraOff": auraOff, "auraMeta": auraMeta, "auraLabel": auraLabel, "joinNames": joinNames, "loanedGroups": loanedGroups, "navItem": navItem, "inc": func(i int) int { return i + 1 }, "dec": func(i int) int { return i - 1 }, "ints": intsCSV, "count": countWords, "static": staticURL, "seq": seq, "rollName": rollName, "pairLabel": pairLabel, "dieLabel": dieLabel, "steps": adjustSteps, "perkSteps": perkSteps, "dict": func(kv ...any) map[string]any {
 		m := map[string]any{}
 		for i := 0; i+1 < len(kv); i += 2 {
 			m[kv[i].(string)] = kv[i+1]
@@ -205,6 +260,36 @@ func loanedGroups(items []core.LoanedItem) (out []loanedGroup) {
 		out[i].Count++
 		if it.Used {
 			out[i].Used++
+		}
+	}
+	return out
+}
+
+// adjustSteps are the buttons of the roll adjustment: 0 (as rolled), then 1..Max where the rules allow raising the die and -1..-Max
+// where they allow lowering it, lowest first (campaign.recruitment.adjust).
+func adjustSteps(a core.AdjustRules) []int {
+	var out []int
+	if a.CanLower() {
+		for n := a.Max; n >= 1; n-- {
+			out = append(out, -n)
+		}
+	}
+	out = append(out, 0)
+	if a.CanRaise() {
+		for n := 1; n <= a.Max; n++ {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// perkSteps are the moves a perk offers besides leaving the die alone: -1 and +1 for the default range, descending from the highest
+// raise to the deepest lowering as the rules' range says (campaign.aftermathEffects[].range).
+func perkSteps(p core.PerkRange) []int {
+	var out []int
+	for n := p.High; n >= p.Low; n-- {
+		if n != 0 {
+			out = append(out, n)
 		}
 	}
 	return out

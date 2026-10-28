@@ -1,0 +1,39 @@
+{
+  "text": "A Battle Company always gains 2 Influence Points for participating in a Scenario, +1 for a Draw and +2 for a Win.",
+  "allIsLostSee": "campaign.breakPoint.allIsLost",
+  "allIsLost": "Any Battle Company may voluntarily flee the battlefield once their force is Broken, decided at the beginning of the turn they are broken and before priority. The opponent claims victory and full scenario rewards; the fleeing company earns the standard Influence for participating, but nothing further.",
+  "reinforcementRollOfOne": "Nobody steps forward: no Influence is spent but you may not roll again this Post-Battle Sequence.",
+  "rareUnits": "Models shown with (Rare X) can only ever be taken up to X times by a company.",
+  "specialUnits": "Some companies have profiles that are not on their charts (e.g. Moria's Cave Troll). They have their own costs and limitations on the company page.",
+  "wargearLimits": "Battle Companies use the MESBG Bow & Throwing limits, but Heroes count towards them. Additionally, only up to 33% of a Battle Company may have the Cavalry keyword. Promotions are affected by these limits. Some companies list exceptions.",
+  "spend": [
+    {
+      "key": "recruit",
+      "name": "Recruit Reinforcements",
+      "defaultCost": 3,
+      "companyCostPath": "data.companies[].reinforcements.influence",
+      "text": "Roll on the company's Reinforcement chart. It costs 3 Influence for most companies (see each company page for its Reinforcement cost). A Special Chart result lets you continue on the company's Special Chart. If a roll would give a Rare model the company cannot have, choose a lower result on the same chart. If a roll would break the Wargear Limits you may either increase your roll with Influence or take the next option down."
+    },
+    {
+      "key": "treatInjuries",
+      "name": "Treat Injuries",
+      "cost": 1,
+      "details": "campaign.injuries.treatment",
+      "text": "Spend 1 Influence to: remove the Injured condition from a Warrior; attempt to remove an Injury from a Hero on a 5+ (modifiable with additional Influence like a Might point); or send a Hero to the healers (they miss the next game but remove one Injury)."
+    },
+    {
+      "key": "armoury",
+      "name": "Visit the Armoury",
+      "costSource": [
+        "data.wargear.items[].influence",
+        "data.wargear.armourUpgrade.influencePerUpgrade",
+        "data.equipment.items[].influence",
+        "data.creatures.items[].influence",
+        "data.wanderers.items[].influence",
+        "data.companies[].uniqueWargear[].influence",
+        "data.companies[].specialUnits[].influence"
+      ],
+      "text": "Buy additional equipment and wargear for the cost in Influence Points. Warriors may only buy wargear matching one of their profile's Options. Heroes may take any wargear (including Armour upgrades) available to any profile included in their company's Reinforcement and Special Charts and Promotion table."
+    }
+  ]
+}

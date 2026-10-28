@@ -130,8 +130,9 @@ func TestWaiveAftermath(t *testing.T) {
 const amPath = matchPath + "/aftermath/1"
 
 var amRules = core.AftermathRules{
-	Gains:   []core.XPGain{{Key: "participated", Label: "Took part", Amount: 1}, {Key: "mvp", Label: "MVP", Amount: 1}, {Key: "slain", Label: "Slain a hero", Amount: 1, Repeatable: true}},
-	Bonuses: []core.OddsBonus{{Key: "influence", Name: "Influence", Rating: 15, InfluenceWin: 2}, {Key: "toolkit", Name: "Tool Kit", Rating: 30}},
+	InjuryDice: core.DiceSpec{Count: 2, Sides: 6},
+	Gains:      []core.XPGain{{Key: "participated", Label: "Took part", Amount: 1}, {Key: "mvp", Label: "MVP", Amount: 1}, {Key: "slain", Label: "Slain a hero", Amount: 1, Repeatable: true}},
+	Bonuses:    []core.OddsBonus{{Key: "influence", Name: "Influence", Rating: 15, InfluenceWin: 2}, {Key: "toolkit", Name: "Tool Kit", Rating: 30}},
 }
 
 func amUnits() []core.CompanyUnit {
@@ -308,7 +309,7 @@ func TestRollCasualty(t *testing.T) {
 		t.Errorf("typed or thrown dice are not animated: %d", rec.Code)
 	}
 	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(injuriesState(core.Casualty{UnitID: 10, Name: "Aldor"}), nil)
-	if rec := amPost(f, "/roll", url.Values{"unit": {"10"}, "roll": {"2"}, "roll2": {"0"}}); rec.Code != 422 || !strings.Contains(rec.Body.String(), "both dice") {
+	if rec := amPost(f, "/roll", url.Values{"unit": {"10"}, "roll": {"2"}, "roll2": {"0"}}); rec.Code != 422 || !strings.Contains(rec.Body.String(), "all the dice") {
 		t.Errorf("one typed die: %d", rec.Code)
 	}
 	f.camp.EXPECT().RollCasualty(gomock.Any(), frodo, int64(7), int64(3), int64(1), int64(10), []int{2, 3}, false).Return(core.Aftermath{}, core.Refuse("Players may not type their own rolls here."))
@@ -334,7 +335,7 @@ func TestRerollDecideAndContinue(t *testing.T) {
 		t.Errorf("a typed re-roll is passed on and not animated: %d", rec.Code)
 	}
 	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(st, nil)
-	if rec := amPost(f, "/reroll", url.Values{"unit": {"10"}, "roll": {"4"}, "roll2": {"0"}}); rec.Code != 422 || !strings.Contains(rec.Body.String(), "both dice") {
+	if rec := amPost(f, "/reroll", url.Values{"unit": {"10"}, "roll": {"4"}, "roll2": {"0"}}); rec.Code != 422 || !strings.Contains(rec.Body.String(), "all the dice") {
 		t.Errorf("one typed die: %d", rec.Code)
 	}
 	f.camp.EXPECT().Decide(gomock.Any(), frodo, int64(7), int64(3), int64(1), core.AftermathAnswer{UnitID: 10, Kind: "bonus", Answer: "3"}).Return(st, nil)
@@ -398,7 +399,7 @@ func ownerFixture(t *testing.T, units []core.CompanyUnit) *fixture {
 
 func levelUnits() []core.CompanyUnit {
 	us := amUnits()
-	us[0].XP = 12
+	us[0].XP, us[0].LevelEvery = 12, 5
 	return us
 }
 
@@ -706,7 +707,7 @@ func TestSuccessionFallbackNamesTheWarriorsAndIsMandatory(t *testing.T) {
 func TestWoundsOfAHeroShowsTheExtraInfluenceRoll(t *testing.T) {
 	f := amFixture(t)
 	rules := amRules
-	rules.Hero = []core.InjuryRow{{Min: 2, Max: 11, Key: "dead", Name: "Dead", Kind: core.CasualtyDead}, {Min: 12, Max: 12, Key: "woundsOfAHero", Name: "Wounds of a Hero", Kind: core.CasualtyHeal, BonusDice: "d6", BonusKind: "influence"}}
+	rules.Hero = []core.InjuryRow{{Min: 2, Max: 11, Key: "dead", Name: "Dead", Kind: core.CasualtyDead}, {Min: 12, Max: 12, Key: "woundsOfAHero", Name: "Wounds of a Hero", Kind: core.CasualtyHeal, BonusDice: "d6", BonusSpec: core.DiceSpec{Count: 1, Sides: 6}, BonusKind: "influence"}}
 	f2 := matchWrite(t, endedMatch())
 	_ = f
 	f = f2
@@ -730,5 +731,12 @@ func TestSavedSheetColoursEachOutcome(t *testing.T) {
 		if got := v.OutcomeBadge(o); got != want {
 			t.Errorf("%s: badge %q, want %q", o, got, want)
 		}
+	}
+}
+
+// The experience per level-up comes from the rules, so an empty roster still prints it.
+func TestAftermathViewLevelEveryFromTheRules(t *testing.T) {
+	if got := (aftermathView{Rules: core.AftermathRules{LevelEvery: 4}}).LevelEvery(); got != 4 {
+		t.Errorf("LevelEvery = %d, want 4 with an empty roster", got)
 	}
 }

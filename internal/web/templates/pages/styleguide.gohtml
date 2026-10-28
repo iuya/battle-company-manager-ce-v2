@@ -119,6 +119,13 @@
     </div>
   </section>
 
+  {{/* ---- rules file report ---- */}}
+  <section id="sg-report" class="space-y-4" aria-labelledby="sg-report-h">
+    <h2 id="sg-report-h">Rules file report</h2>
+    <p class="text-sm text-muted">Every problem of a refused rules file, grouped by file: error or warning badge, message, path in monospace, the closest known name and the hint. Shown on the Rules files upload card and the new campaign form.</p>
+    <div class="alert alert-danger">{{template "ruleset_report" .Report}}</div>
+  </section>
+
   {{/* ---- keyword chips ---- */}}
   <section id="sg-keywords" class="space-y-4" aria-labelledby="sg-keywords-h">
     <h2 id="sg-keywords-h">Keyword chips</h2>

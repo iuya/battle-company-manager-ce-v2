@@ -191,7 +191,8 @@ type adminRulesetPanel struct {
 	Notice    string
 	Err       string
 	UploadErr string
-	Kind      string // the kind chosen in the upload form
+	Report    *reportView // every problem of the rejected upload
+	Kind      string      // the kind chosen in the upload form
 }
 
 type rulesetGroup struct {
@@ -315,9 +316,9 @@ func (s *Server) handleAdminRulesetDownload(w http.ResponseWriter, r *http.Reque
 func (s *Server) handleAdminRulesetUpload(w http.ResponseWriter, r *http.Request) {
 	me := *userFrom(r.Context())
 	var kind core.RulesetKind
-	reject := func(status int, msg string) {
+	reject := func(status int, msg string, rep *reportView) {
 		s.panelAnswer(w, r, status, func(p *adminRulesetPanel) {
-			p.UploadErr = msg
+			p.UploadErr, p.Report = msg, rep
 			if kind.Valid() {
 				p.Kind = string(kind)
 			}
@@ -325,17 +326,17 @@ func (s *Server) handleAdminRulesetUpload(w http.ResponseWriter, r *http.Request
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxUpload+1<<20)
 	if err := r.ParseMultipartForm(maxUpload); err != nil {
-		reject(http.StatusUnprocessableEntity, "Choose a .json file of at most 16 MB.")
+		reject(http.StatusUnprocessableEntity, "Choose a .json file of at most 16 MB.", nil)
 		return
 	}
 	kind = core.RulesetKind(r.PostFormValue("kind"))
 	if !kind.Valid() {
-		reject(http.StatusUnprocessableEntity, "Choose the kind of file.")
+		reject(http.StatusUnprocessableEntity, "Choose the kind of file.", nil)
 		return
 	}
 	file, _, err := r.FormFile("file")
 	if err != nil {
-		reject(http.StatusUnprocessableEntity, "Choose a .json file.")
+		reject(http.StatusUnprocessableEntity, "Choose a .json file.", nil)
 		return
 	}
 	defer file.Close()
@@ -367,7 +368,7 @@ func (s *Server) handleAdminRulesetUpload(w http.ResponseWriter, r *http.Request
 	}
 	switch {
 	case errors.Is(err, core.ErrInvalidRuleset):
-		reject(http.StatusUnprocessableEntity, reason(err))
+		reject(http.StatusUnprocessableEntity, reason(err), rulesetIssues(err))
 	default:
 		s.fail(w, r, err)
 	}

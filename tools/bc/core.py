@@ -8,9 +8,9 @@ PROFILE_STATS = ["movement", "fight", "shoot", "strength", "defence", "attack", 
 
 LIMITS = [
     {"id": "bow", "type": "bow", "property": "all", "maximumPercentage": 33.33, "roundUp": True,
-     "label": "bows (heroes included)"},
+     "classes": ["bow", "crossbow"], "label": "bows (heroes included)"},
     {"id": "throwing", "type": "throwingWeapon", "property": "all", "maximumPercentage": 33.33, "roundUp": True,
-     "label": "throwing weapons (heroes included)"},
+     "classes": ["throwing"], "label": "throwing weapons (heroes included)"},
     {"id": "cavalry", "type": "keyword", "value": "Cavalry", "property": "all", "maximumPercentage": 33.33, "roundUp": True,
      "label": "Cavalry"},
 ]
@@ -51,9 +51,9 @@ COMPANY = {
     "eliteMaxModels": 12,
     "leaders": 1,
     "sergeants": 2,
-    "startingHeroes": 3,
     "startingHeroStats": {"might": 1, "will": 1, "fate": 1},
-    "startingPoints": 60,
+    "equipmentSlots": {"large": 1, "small": 1},
+    "startingInfluence": 0,
     "heroicTier": "Minor Hero",
     "text": {
         "heroes": "When you start a Battle Company you select three of its members to become Heroes; they each get a single point of Might, Will and Fate and are treated as Hero models (all are Minor Heroes). One is the Leader (and may use Last Stand!), the other two are Sergeants. The rest are Heroes in the Making.",
@@ -83,7 +83,6 @@ CUSTOM_COMPANY = {
 }
 
 EXPERIENCE = {
-    "progressionThreshold": 5,
     "sameForWarriorsAndHeroes": True,
     "gains": [
         {"key": "participated", "label": "Participating in the scenario", "amount": 1},
@@ -265,7 +264,7 @@ BREAK_POINT = {
     "source": ["MESBG Rules Manual: Broken Army (46), Stand Fast (47), Cavalry and Break Points", "Battle Companies: All is Lost!, Muster of Isengard company rule, scenario special rules"],
     "default": {"percent": 50, "of": "startingModels"},
     "companyOverride": "data.companies[].effects[kind=breakPoint].percent",
-    "threshold": {"comparison": "strictlyGreater", "rounding": "none", "integerTest": "casualties * 100 > percent * startingModels",
+    "threshold": {"comparison": "gt", "integerTest": "casualties * 100 > percent * startingModels",
                   "text": "Break Point = percent of the models that started the game, not rounded (13 models: 6.5; 12 models: 6). Broken when the casualties are greater than the Break Point: exactly 50% lost is not Broken."},
     "startingModels": {
         "count": "modelsOnTheBoardOrYetToArriveAtTheStart",
@@ -497,7 +496,6 @@ CREATURES_TEXT = {
         # decided; `defaultNotConfirmed` lists defaults chosen by the app that the user has not confirmed.
         "attachTo": ["leader", "sergeant"],
         "maxPerHero": 1,
-        "maxPerCompany": 3,
         "takesRosterSlot": False,
         "countsTowardsMaxModels": False,
         "usesEquipmentSlots": False,
@@ -513,7 +511,7 @@ CREATURES_TEXT = {
         "ratingCounts": "points",
         "costCurrency": "influence",
         "perOfficer": 1,
-        "confirmedByUser": ["attachTo", "maxPerHero", "maxPerCompany", "takesRosterSlot", "usesEquipmentSlots", "rollsInjuries",
+        "confirmedByUser": ["attachTo", "maxPerHero", "takesRosterSlot", "usesEquipmentSlots", "rollsInjuries",
                             "countsTowardsWargearLimits"],
         "defaultNotConfirmed": ["gainsExperience", "ratingCounts"],
     },
@@ -550,6 +548,7 @@ WANDERERS_TEXT = {
 }
 
 SCENARIO_SELECTION = {
+    "die": "d6",
     "text": "Compare the Battle Company Ratings: the higher rating is the Top Dog, the other the Underdog. The Underdog is referenced in scenarios for special rules and automatically wins the roll-off to determine Layout and Starting Positions (on a tie follow the normal scenario rules). Then roll a D6 to pick one of the three tables, and a second D6 to pick the Scenario (ideally rolled by different players).",
     "layout": "All scenarios are written with a 48\"x48\" board in mind (36\"x36\" is popular). Cover the board with a dense amount of terrain; some scenarios have specific terrain requirements.",
     "tables": [
@@ -777,10 +776,8 @@ GOLD = {
     ],
     "cannotBuy": ["units", "influence"],
     "stillApplies": ["equipmentSlots", "wargearLimits", "rare", "restrictions"],
-    "startingTotal": {"target": 60, "counts": ["rating", "gold"], "excludes": ["might", "will", "fate"],
-                      "source": "campaign.company.startingPoints", "kind": "guideline for custom companies"},
     "confirmedByUser": ["sources", "when", "carryOver", "spendableOn[kind=wargear].priceIs", "heroesPayHeroRating",
-                        "stillApplies", "heroesMayTakeWargearOutsideProfile", "startingTotalIsGuideline"],
+                        "stillApplies", "heroesMayTakeWargearOutsideProfile"],
     "defaultNotConfirmed": ["cannotBuy"],
     "heroesPayHeroRating": True,
     "heroesMayTakeWargearOutsideProfile": True,
@@ -827,6 +824,7 @@ AFTERMATH_EFFECTS = [
 # Recruitment core rules (decided by the user, explicit so the engine never guesses) and the paths that are not heroic paths.
 # ---------------------------------------------------------------------------------------------------------------------
 RECRUITMENT = {
+    "die": "d6",
     "adjust": {"direction": "up", "currency": "influence", "costPerPoint": 1, "maxPerAttempt": 3, "appliesTo": "die",
                "sharedAcross": ["reinforcements", "specialChart"], "payForEveryPointToReachChoice": True, "lowering": "never",
                "text": "Influence raises the DIE, one point per Influence, at most 3 per recruiting attempt across the reinforcement chart and the "

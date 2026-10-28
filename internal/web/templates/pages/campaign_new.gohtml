@@ -22,7 +22,8 @@
   <p class="text-sm"><a href="/" class="inline-flex min-h-11 items-center">← Campaigns</a></p>
   <h1 class="mt-2">New campaign</h1>
   <form method="post" action="/campaigns" enctype="multipart/form-data" hx-boost="false" class="card mt-6 space-y-4" x-data="{ name: '' }" x-init="name = $refs.name.value">
-    {{with .Error}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+    {{if .Report}}<div class="alert alert-danger" role="alert">{{template "ruleset_report" .Report}}</div>
+    {{else}}{{with .Error}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}{{end}}
     <div class="field">
       <label for="name">Name</label>
       <input id="name" name="name" value="{{.Input.Name}}" x-ref="name" x-model="name" maxlength="60" required autocomplete="off" class="input">

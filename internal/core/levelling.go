@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// LevelService runs level-ups. A unit that earned XPPerLevel experience rolls: a warrior on a D6 (nothing, a promotion, or a
+// LevelService runs level-ups. A unit that earned LevelEvery experience rolls: a warrior on a D6 (nothing, a promotion, or a
 // hero in the making), a hero twice on 2D6 on its path, choosing one result. The rules come from the Battle Companies file
 // (ProgressionRules); the roll in progress is UnitState.Pending.Level, stored with the unit, until the player chooses. Every
 // step is a companyRepository.Update.
@@ -122,14 +122,14 @@ func (s *LevelService) RollLevelUp(ctx context.Context, user User, campaignID, u
 		p := us.Progress
 		var roll LevelRoll
 		if u.IsHero() {
-			roll = rules.RollHero(sheetOf(u, p, env.d.Roster, upgradesOf(env.rs, env.bcC, u)), levelLists(env.rs), entered, s.dice.D6)
+			roll = rules.RollHero(sheetOf(u, p, env.d.Roster, upgradesOf(env.rs, env.bcC, u)), levelLists(env.rs), entered, s.dice)
 		} else {
 			d6 := 0
-			if len(entered) > 0 && entered[0] >= 1 && entered[0] <= 6 {
+			if len(entered) > 0 && entered[0] >= rules.WarriorDice.Min() && entered[0] <= rules.WarriorDice.Max() {
 				d6 = entered[0]
 			}
 			if d6 == 0 {
-				d6 = s.dice.D6()
+				d6 = s.dice.Roll(rules.WarriorDice)
 			}
 			roll = env.warriorRoll(p, d6)
 		}
@@ -227,7 +227,7 @@ func (env *levelEnv) choose(st *CompanyState, us *UnitState, keys []string) (Lev
 		if path, ok := rules.Path(rest); ok && len(path.Start) > 0 { // the homebrew path starts on its own Might, Will and Fate
 			p.Bonus = mergeBonus(p.Bonus, map[string]int{"might": path.Start["might"], "will": path.Start["will"], "fate": path.Start["fate"]})
 		} else if profile.StartGains(u.Type) && !(promotes && !promotion.StatGain) { // a Ranger of the North already has its point of Might, Will and Fate
-			p.Bonus = mergeBonus(p.Bonus, map[string]int{"might": 1, "will": 1, "fate": 1})
+			p.Bonus = mergeBonus(p.Bonus, rs.BC.HeroBonus(nil))
 		}
 		summary = fmt.Sprintf("%s becomes a hero on the %s.", u.Title(), rest)
 		if promotes { // it also changes profile: Ranger of Arnor to Ranger of the North, keeping some of its wargear
@@ -299,7 +299,7 @@ func (s *LevelService) RerollLevelUp(ctx context.Context, user User, campaignID,
 		rules := env.rs.BC.Progression()
 		if roll.Kind == "warrior" {
 			st.Rerolls--
-			fresh := env.warriorRoll(p, s.dice.D6())
+			fresh := env.warriorRoll(p, s.dice.Roll(rules.WarriorDice))
 			fresh.Notes = append(fresh.Notes, fmt.Sprintf("Re-rolled the %d (Against the Odds).", roll.D6))
 			var err error
 			out, err = env.settleWarrior(st, us, fresh)
@@ -310,16 +310,21 @@ func (s *LevelService) RerollLevelUp(ctx context.Context, user User, campaignID,
 		}
 		st.Rerolls--
 		sheet, lists := sheetOf(env.unit, p, env.d.Roster, upgradesOf(env.rs, env.bcC, env.unit)), levelLists(env.rs)
+		spec := rules.HeroDice
+		if hp, ok := rules.Path(sheet.Path); ok {
+			spec = hp.PathDice
+		}
 		for try := 0; try < 60; try++ {
-			d1, d2 := s.dice.D6(), s.dice.D6()
-			if offer, ok := rules.OfferFor(sheet, lists, d1+d2); ok {
+			dice := RollDice(s.dice, spec)
+			total := sumOf(dice)
+			if offer, ok := rules.OfferFor(sheet, lists, total); ok {
 				old := roll.Offers[which]
 				offer.Pair = old.Pair
 				roll.Offers[which] = offer
 				if pi := old.Pair - 1; pi >= 0 && pi < len(roll.Pairs) {
-					roll.Pairs[pi] = HeroPair{Dice: []int{d1, d2}, Sum: d1 + d2, Usable: true}
+					roll.Pairs[pi] = HeroPair{Dice: dice, Sum: total, Usable: true}
 				}
-				roll.Notes = append(roll.Notes, fmt.Sprintf("Re-rolled the %d: now a %d (Against the Odds).", old.Roll, d1+d2))
+				roll.Notes = append(roll.Notes, fmt.Sprintf("Re-rolled the %d: now a %d (Against the Odds).", old.Roll, total))
 				break
 			}
 		}
@@ -491,17 +496,19 @@ func promotionChoices(rs *RuleSet, bcCo BCCompany, u CompanyUnit) []LevelChoice 
 	return out
 }
 
-// noPromotion is what a warrior gets when its company has no promotion for it: Courage and Intelligence, up to 3+.
+// noPromotion is what a warrior gets when its company has no promotion for it: the stats of campaign.progression.warrior.noPromotion improve by its amounts, up to its maximum.
 func noPromotion(u CompanyUnit, p *Progress, rules ProgressionRules) string {
 	var gained []string
 	for _, stat := range rules.NoPromotion {
 		for _, a := range u.Stats {
 			if strings.ToLower(a.Name) == stat && a.Value > rules.NoPromotionTo {
+				// a lower Courage or Intelligence is better: it improves by the amount of the rules, down to the maximum
+				step := min(rules.NoPromotionBy[stat], a.Value-rules.NoPromotionTo)
 				if p.Bonus == nil {
 					p.Bonus = map[string]int{}
 				}
-				p.Bonus[stat]--
-				gained = append(gained, fmt.Sprintf("%s %d+", a.Name, a.Value-1))
+				p.Bonus[stat] -= step
+				gained = append(gained, fmt.Sprintf("%s %d+", a.Name, a.Value-step))
 			}
 		}
 	}
@@ -524,9 +531,10 @@ func heroesOnPath(d CompanyDetail, path string) int {
 
 // sheetOf is what the rules need to know about a hero.
 func sheetOf(u CompanyUnit, p *Progress, roster []CompanyUnit, upgrades []HeroUpgrade) HeroSheet {
-	sheet := HeroSheet{Stats: map[string]SheetStat{}, Rules: map[string]bool{}, Actions: map[string]bool{}, Powers: map[string]int{}, Casting: map[string]int{}, PowerNames: map[string]string{}}
+	sheet := HeroSheet{Stats: map[string]SheetStat{}, Gear: map[string]int{}, Rules: map[string]bool{}, Actions: map[string]bool{}, Powers: map[string]int{}, Casting: map[string]int{}, PowerNames: map[string]string{}}
 	for _, a := range u.Stats {
 		sheet.Stats[strings.ToLower(a.Name)] = SheetStat{Value: a.Value, Boost: a.Boost}
+		sheet.Gear[strings.ToLower(a.Name)] = a.Gear
 	}
 	for _, r := range u.Rules {
 		sheet.Rules[strings.ToLower(r.Name)] = true

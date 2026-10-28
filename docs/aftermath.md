@@ -55,7 +55,7 @@ States of a company's aftermath in a match (`AftermathStatus`): `pending` (nothi
 2. **Start** (`injuries`). Locks the sheet (the player can still *unlock* it until the first roll: `ReopenSheet`). The
    units that missed this game recover (`Injured` and `SentToHealers` cleared). The Against the Odds `reroll` bonus credits
    `CompanyState.Rerolls` (+2). One **casualty** is created per unit with outcome `casualty`.
-3. **Injuries.** Per casualty, 2D6 on the chart of its type (`campaign.injuries.warrior[]` or `.hero[]`, `Roll` ranges):
+3. **Injuries.** Per casualty, the injury dice (`campaign.injuries.roll`, 2D6 in the shipped file; `AftermathRules.InjuryDice`) on the chart of its type (`campaign.injuries.warrior[]` or `.hero[]`, `Roll` ranges):
    - Warrior: Dead (leaves the roster for the cemetery, fate "Dead"), Injured (misses the next game, `Injured`), Full
      Recovery (nothing), Lesson Learned (Full Recovery and +D3 Experience, rolled by the server and shown).
    - Hero: Dead (cemetery), Arm Wound / Leg Wound / Broken Honour (the count of that injury rises; at `retireAtCount` the
@@ -339,7 +339,7 @@ who may not edit gets the sheet read only and a plain 403 on writes. The web int
 ## Built so far (csg.12.1)
 
 The **Injuries** step (`aftermath_injuries`, `aftermath_casualty`, `aftermath_decision`, `aftermath_succession`): one card per casualty
-with the dice component (`rollPanel`, `throwCasualty` in `static/js/company.js`), **Roll 2D6** (typed dice need ManualRolls, thrown
+with the dice component (`rollPanel`, `throwCasualty` in `static/js/company.js`), **Roll {injury dice}** (typed dice need ManualRolls, thrown
 ones ShakeTheTable; `POST .../roll` with `unit`, `roll`, `roll2`, `thrown`), **Roll all** when two or more wait (the server rolls; the
 form reports `unrolled` so only those dice animate), the result with its bonus die, the chart (collapsed, the row of the roll
 highlighted), a tombstone note for the fallen, the open decision (`POST .../decide` with `kind`, `unit`, `answer`: scratch roll again or
@@ -406,10 +406,11 @@ The Armory tab of a locked company shows "The company is locked. <reason>" with 
 disabled with the reason as their title (My Company's controls already carry `data-lock`). A free item from "To the Victor Goes the
 Spoils" is stored like a bought one (origin "bought"); a distinct origin would need a new equipment origin in the unit state.
 
-**Typed dice.** With `ManualRolls` on, the Against the Odds re-roll takes the two dice the player rolled (the re-roll form has the same
-two selects as the roll; "Roll for me" lets the server roll; `RollRefusal` applies), and the bonus die of Lesson Learned (a D3) and
-Wounds of a Hero (a D6) is asked for after the 2D6 as a decision of kind `bonus` (`Decide`, Answer "0" for the server or "1" to "6"
-for the die the player rolled; a D3 reads 1-2 as 1, 3-4 as 2, 5-6 as 3). With `ManualRolls` off the server rolls the bonus die at once
+**Typed dice.** With `ManualRolls` on, the Against the Odds re-roll takes the dice the player rolled (the re-roll form has the same
+selects as the roll, one per die of `injuries.roll`; "Roll for me" lets the server roll; `RollRefusal` applies), and the bonus die of Lesson Learned (a D3) and
+Wounds of a Hero (a D6) is asked for after the injury roll as a decision of kind `bonus` (`Decide`, Answer "0" for the server or the number
+the player rolled, up to `core.TypedMax` of the row's `grantsExperience.dice` / `grantsInfluence.dice`; a D3 is rolled on a D6 and reads 1-2 as 1,
+3-4 as 2, 5-6 as 3, `core.FromTyped`). The bonus dice are any `NdM` spec (`InjuryRow.BonusSpec`). With `ManualRolls` off the server rolls the bonus die at once
 as before. A re-roll that lands on one of those results asks for its own bonus die. Thrown dice (ShakeTheTable) are not offered for the
 re-roll or the bonus die.
 

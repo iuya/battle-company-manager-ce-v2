@@ -90,7 +90,7 @@ func TestCreateCompany(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Name != "The Guard" || got.Faction != "Minas Tirith" || got.Influence != StartingInfluence || got.Gold != profile.StartGold {
+	if got.Name != "The Guard" || got.Faction != "Minas Tirith" || got.Influence != rs.BC.Recruiting().StartingInfluence || got.Gold != profile.StartGold {
 		t.Errorf("stored company = %+v", got)
 	}
 	if want := len(profile.StartList()); len(got.Units) != want {

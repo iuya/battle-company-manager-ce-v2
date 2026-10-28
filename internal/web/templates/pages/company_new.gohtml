@@ -72,7 +72,7 @@
    (the `form` attribute). */}}
 {{define "company_info"}}
 {{$p := .Profile}}{{$cid := .Campaign.ID}}{{$custom := .Campaign.Settings.CustomOnTheirOwnPath}}
-<article class="space-y-6" x-data="commission" data-leader="{{range .Start}}{{if eq (printf "%s" .Role) "leader"}}{{.Index}}{{end}}{{end}}" data-sergeants="{{$first := true}}{{range .Start}}{{if eq (printf "%s" .Role) "sergeant"}}{{if not $first}},{{end}}{{.Index}}{{$first = false}}{{end}}{{end}}" data-suggested="{{if .Start}}{{(index .Start 0).Suggested}}{{else}}false{{end}}" data-company="{{$p.Name}}">
+<article class="space-y-6" x-data="commission" data-leaders="{{$p.Leaders}}" data-sergeants-needed="{{$p.Sergeants}}" data-leader="{{range .Start}}{{if eq (printf "%s" .Role) "leader"}}{{.Index}}{{end}}{{end}}" data-sergeants="{{$first := true}}{{range .Start}}{{if eq (printf "%s" .Role) "sergeant"}}{{if not $first}},{{end}}{{.Index}}{{$first = false}}{{end}}{{end}}" data-suggested="{{if .Start}}{{(index .Start 0).Suggested}}{{else}}false{{end}}" data-company="{{$p.Name}}">
   <header class="card space-y-4">
     <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
       <h2 class="!text-3xl">{{$p.Name}}</h2>
@@ -159,7 +159,7 @@
   <section id="take-command" class="card space-y-5 scroll-mt-20" aria-labelledby="command-title">
     <div>
       <h3 id="command-title">Take command</h3>
-      <p class="mt-1 text-sm text-muted">Your company starts with these models{{if $p.StartGold}} and {{$p.StartGold}} Gold to spend in the armory{{end}}. Choose its officers: drag a leader and two sergeants into their places (or use the buttons on a card). They become <strong>heroes</strong> with a point of Might, Will and Fate and each chooses a path from the company page before your first match. <strong>The officers cannot be changed once you have sworn.</strong></p>
+      <p class="mt-1 text-sm text-muted">Your company starts with these models{{if $p.StartGold}} and {{$p.StartGold}} Gold to spend in the armory{{end}}. Choose its officers: drag {{count $p.Leaders "leader"}} and {{count $p.Sergeants "sergeant"}} into their places (or use the buttons on a card). They become <strong>heroes</strong> with a point of Might, Will and Fate and each chooses a path from the company page before your first match. <strong>The officers cannot be changed once you have sworn.</strong></p>
     </div>
     {{with .Error}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
     <div x-show="suggested" x-cloak class="alert alert-info" role="status"><strong>This is only a suggestion.</strong> These officers are the company's own idea of who should lead. Change them as you please: drag another model over them, or send them back with Remove.</div>
@@ -169,7 +169,7 @@
 
     <form id="create-company" method="post" action="/campaigns/{{$cid}}/company" hx-boost="false" class="space-y-4 border-t border-line pt-5" @submit="read()">
       <input type="hidden" name="faction" value="{{$p.Name}}">
-      <input type="hidden" name="leader" :value="leader">
+      <template x-for="l in leaders" :key="l"><input type="hidden" name="leader" :value="l"></template>
       <template x-for="s in sergeants" :key="s"><input type="hidden" name="sergeant" :value="s"></template>
       <blockquote class="oath">
         <p>{{$p.Oath.Before}}<input id="name" name="name" value="{{.Name}}" maxlength="60" required autocomplete="off" x-model="name" @blur="touched = true" class="oath-name" placeholder="name your company" aria-label="The name of your company" size="22">{{$p.Oath.After}}</p>
@@ -179,7 +179,7 @@
 
       <dialog x-ref="confirm" class="dialog" aria-labelledby="swear-title">
         <h3 id="swear-title" class="!text-2xl">Are you sure?</h3>
-        <p class="mt-2">You take command of the {{$p.Name}} company <strong x-text="name.trim()"></strong>, with <strong x-text="officerName(leader)"></strong> as its leader and <strong x-text="sergeants.map(i => officerName(i)).join(' and ')"></strong> as its sergeants.</p>
+        <p class="mt-2">You take command of the {{$p.Name}} company <strong x-text="name.trim()"></strong>, with <strong x-text="leaders.map(i => officerName(i)).join(' and ')"></strong> as its {{if eq $p.Leaders 1}}leader{{else}}leaders{{end}}{{if gt $p.Sergeants 0}} and <strong x-text="sergeants.map(i => officerName(i)).join(' and ')"></strong> as its {{if eq $p.Sergeants 1}}sergeant{{else}}sergeants{{end}}{{end}}.</p>
         <p class="mt-2 font-semibold">These decisions are final: neither the company nor its officers can be changed afterwards (the name can).</p>
         <div class="mt-5 flex justify-end gap-2">
           <button type="button" class="btn btn-secondary" @click="$refs.confirm.close()">No</button>
@@ -217,15 +217,15 @@
 {{end}}
 
 
-{{/* The officer panel: the Leader place, two Sergeant places and the pool of models, drag and drop (the Alpine "commission" component of
+{{/* The officer panel: the Leader places, the Sergeant places and the pool of models, drag and drop (the Alpine "commission" component of
    the enclosing element) and the card buttons. Takes {V: the page's view (Leader, Sergeant n, Pool), PoolLabel: the text after "Starting company"}. */}}
 {{define "officer_panel"}}{{$v := .V}}
     <div class="mx-auto grid max-w-2xl grid-cols-2 gap-3">
-      <div class="col-span-2 mx-auto w-full max-w-xs">
+      {{range $n := seq 0 (dec $v.Leaders)}}<div class="col-span-2 mx-auto w-full max-w-xs">
         <p class="mb-1 flex items-center justify-center gap-1.5 text-sm font-semibold">{{template "role_insignia" "leader"}} Leader</p>
-        <ul class="officer-slot" data-slot="leader" aria-label="Leader">{{range $v.Leader}}{{template "start_card" (dict "V" $v "R" .)}}{{end}}</ul>
-      </div>
-      {{range $n := seq 0 1}}<div>
+        <ul class="officer-slot" data-slot="leader" aria-label="Leader{{if gt $v.Leaders 1}} {{inc $n}}{{end}}">{{range $v.Leader $n}}{{template "start_card" (dict "V" $v "R" .)}}{{end}}</ul>
+      </div>{{end}}
+      {{range $n := seq 0 (dec $v.Sergeants)}}<div>
         <p class="mb-1 flex items-center justify-center gap-1.5 text-sm font-semibold">{{template "role_insignia" "sergeant"}} Sergeant</p>
         <ul class="officer-slot" data-slot="sergeant" aria-label="Sergeant {{inc $n}}">{{range $v.Sergeant $n}}{{template "start_card" (dict "V" $v "R" .)}}{{end}}</ul>
       </div>{{end}}

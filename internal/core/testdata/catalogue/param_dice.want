@@ -1,0 +1,5 @@
+battle_companies.json: campaign.recruitment.die: "2d6" has 2 dice; a recruiting die is a single die
+  hint: write "d6"
+battle_companies.json: campaign.aftermathEffects[0].range: missing; rendezvous moves a die and needs a range [low, high]
+battle_companies.json: campaign.aftermathEffects[1].range: [1,-1]: low is above high
+battle_companies.json: campaign.progression.warrior.table[0].key: "noChang" is not a key; known: noChange, promoted, heroInTheMaking; closest: "noChange"

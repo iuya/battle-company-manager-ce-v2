@@ -1,15 +1,16 @@
 package core
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"math/rand/v2"
 	"slices"
 	"strings"
 )
 
 // Progression is the level-up system of Battle Companies, read from the rules file (campaign.progression, data.paths,
-// campaign.characteristicLimits). A unit that earns 5 experience rolls once: a warrior on a D6 (promotion, or a hero in the
+// campaign.characteristicLimits). A unit that earns campaign.progression.threshold experience rolls once: a warrior on a D6 (promotion, or a hero in the
 // making), a hero twice on 2D6 on its path, choosing one of the two results.
 
 // WarriorResult is a row of the warrior's D6 progression table.
@@ -43,6 +44,7 @@ type ProgRow struct {
 // PathProgression is a path's chart and the limits of its heroes.
 type PathProgression struct {
 	Name            string
+	PathDice        DiceSpec                  // the dice of the chart (paths[].dice, else progression.hero.roll): Rows cover Min..Max of it
 	Limits          map[string]map[string]int // by stat: max, maxIncrease, best
 	Rows            []ProgRow
 	StartAction     string         // the heroic action a hero gets when it takes the path
@@ -106,17 +108,32 @@ func (a Advancement) Matches(u CompanyUnit) bool {
 	return true
 }
 
+// Stats the progression caps by name.
+const (
+	statCourage      = "courage"
+	statIntelligence = "intelligence"
+)
+
 // ProgressionRules are the progression rules of the Battle Companies file.
 type ProgressionRules struct {
 	Threshold     int
+	WarriorDice   DiceSpec // progression.warrior.roll: Warrior covers Min..Max of it
+	HeroDice      DiceSpec // progression.hero.roll: the dice of a path that names none
+	HeroRolls     int      // progression.hero.rollsPerProgression: how many results a hero rolls for one level-up
+	HeroChoose    int      // progression.hero.choose: how many of them it keeps (the engine keeps one)
 	Warrior       []WarriorResult
-	NoPromotion   []string // the stats a warrior with no promotion improves
-	NoPromotionTo int      // up to this value (3 means 3+)
+	NoPromotion   []string       // the stats a warrior with no promotion improves
+	NoPromotionBy map[string]int // by how much each improves (warrior.noPromotion.courage / .intelligence, C5)
+	NoPromotionTo int            // up to this value (3 means 3+)
 	Paths         []PathProgression
 	CustomPath    string            // the homebrew path the option customOnTheirOwnPath hands to units On Their Own Path
 	Hidden        []PathProgression // paths a company or an option hands out (not for the player to choose): the homebrew path of the units On Their Own Path
 	EndOfPath     map[string]string // the paths a company hands out to units that never level up, with the special rule each has
 	Peak          map[string]map[string]int
+	// CITotalCap is the most Courage and Intelligence may be improved in total, from the unmodified profile (characteristicLimits.increases.
+	// courageIntelligenceTotalCap), CITotalGear whether the improvement from gear counts in it. 0: no cap.
+	CITotalCap    int
+	CITotalGear   bool
 	LowerIsBetter map[string]bool
 	MinorRules    []string
 	MinorParams   map[string]ParamRule // minor rules that need a target chosen when they are taken (Poisoned Attacks: a weapon)
@@ -146,6 +163,31 @@ type PowerOffer struct {
 	Range      int      // inches; 0 is self
 	Casting    int      // the X of X+
 	Variants   []string // a power learned with a choice (Fury: its species) is learned as one of these
+}
+
+// LevelDice are the dice of a level-up as the pages show them (progression.warrior.roll, progression.hero.roll, paths[].dice).
+type LevelDice struct {
+	Warrior DiceSpec
+	Hero    DiceSpec            // a path that names no dice
+	Pairs   int                 // results a hero rolls for one level-up (progression.hero.rollsPerProgression)
+	Paths   map[string]DiceSpec // by path name
+}
+
+// HeroFor is the dice of the hero's chart on that path.
+func (l LevelDice) HeroFor(path string) DiceSpec {
+	if d, ok := l.Paths[path]; ok {
+		return d
+	}
+	return l.Hero
+}
+
+// LevelDice is the dice of the level-ups, for the pages.
+func (r ProgressionRules) LevelDice() LevelDice {
+	l := LevelDice{Warrior: r.WarriorDice, Hero: r.HeroDice, Pairs: r.HeroRolls, Paths: map[string]DiceSpec{}}
+	for _, p := range append(slices.Clone(r.Paths), r.Hidden...) {
+		l.Paths[p.Name] = p.PathDice
+	}
+	return l
 }
 
 // Path finds a path's chart.
@@ -185,8 +227,14 @@ func ParseProgression(content []byte) (ProgressionRules, map[string][]Advancemen
 	var doc struct {
 		Campaign struct {
 			Progression struct {
-				Threshold int `json:"threshold"`
-				Warrior   struct {
+				Threshold *int `json:"threshold"`
+				Hero      struct {
+					Roll                string `json:"roll"`
+					RollsPerProgression *int   `json:"rollsPerProgression"`
+					Choose              *int   `json:"choose"`
+				} `json:"hero"`
+				Warrior struct {
+					Roll  string `json:"roll"`
 					Table []struct {
 						Roll []int  `json:"roll"`
 						Key  string `json:"key"`
@@ -194,15 +242,21 @@ func ParseProgression(content []byte) (ProgressionRules, map[string][]Advancemen
 						Text string `json:"text"`
 					} `json:"table"`
 					NoPromotion struct {
-						Courage      int `json:"courage"`
-						Intelligence int `json:"intelligence"`
-						Maximum      int `json:"maximum"`
+						Courage      *int `json:"courage"`
+						Intelligence *int `json:"intelligence"`
+						Maximum      *int `json:"maximum"`
 					} `json:"noPromotion"`
 				} `json:"warrior"`
 			} `json:"progression"`
 			CharacteristicLimits struct {
 				LowerIsBetter []string                   `json:"lowerIsBetter"`
 				Peak          map[string]json.RawMessage `json:"peak"`
+				Increases     struct {
+					Cap *struct {
+						Value        *int `json:"value"`
+						IncludesGear bool `json:"includesGear"`
+					} `json:"courageIntelligenceTotalCap"`
+				} `json:"increases"`
 			} `json:"characteristicLimits"`
 		} `json:"campaign"`
 		Data struct {
@@ -222,6 +276,7 @@ func ParseProgression(content []byte) (ProgressionRules, map[string][]Advancemen
 			} `json:"companies"`
 			Paths []struct {
 				Name          string                    `json:"name"`
+				Dice          string                    `json:"dice"`
 				Selectable    *bool                     `json:"selectable"`
 				StartingStats map[string]int            `json:"startingStats"`
 				Kind          string                    `json:"kind"`
@@ -285,17 +340,53 @@ func ParseProgression(content []byte) (ProgressionRules, map[string][]Advancemen
 		return out
 	}
 	p := doc.Campaign.Progression
-	rules := ProgressionRules{Threshold: max(1, p.Threshold), NoPromotionTo: p.Warrior.NoPromotion.Maximum, LowerIsBetter: map[string]bool{}, Peak: map[string]map[string]int{}}
+	rules := ProgressionRules{LowerIsBetter: map[string]bool{}, Peak: map[string]map[string]int{}, NoPromotionBy: map[string]int{}}
+	if bytes.Contains(content, []byte(`"campaign"`)) { // a file without a campaign section (a fixture) has no threshold to read
+		var pr problems
+		rules.Threshold = pr.intIn("campaign.progression.threshold", p.Threshold, 1, 50)
+		np := p.Warrior.NoPromotion
+		rules.NoPromotionBy["courage"] = pr.intIn("campaign.progression.warrior.noPromotion.courage", np.Courage, 0, 5)
+		rules.NoPromotionBy["intelligence"] = pr.intIn("campaign.progression.warrior.noPromotion.intelligence", np.Intelligence, 0, 5)
+		rules.NoPromotionTo = pr.intIn("campaign.progression.warrior.noPromotion.maximum", np.Maximum, 1, 10)
+		if err := pr.err(); err != nil {
+			return ProgressionRules{}, nil, errors.Join(ErrInvalidRuleset, err)
+		}
+	}
+	var spans [][2]int
 	for _, w := range p.Warrior.Table {
 		if len(w.Roll) == 2 {
 			rules.Warrior = append(rules.Warrior, WarriorResult{Min: w.Roll[0], Max: w.Roll[1], Key: w.Key, Name: w.Name, Text: w.Text})
+			spans = append(spans, [2]int{w.Roll[0], w.Roll[1]})
 		}
 	}
-	if p.Warrior.NoPromotion.Courage > 0 {
-		rules.NoPromotion = append(rules.NoPromotion, "courage")
+	var err error
+	if len(rules.Warrior) > 0 || p.Warrior.Roll != "" {
+		if rules.WarriorDice, err = diceAt("campaign.progression.warrior.roll", p.Warrior.Roll); err != nil {
+			return ProgressionRules{}, nil, errors.Join(ErrInvalidRuleset, err)
+		}
+		if err = CheckCovers("campaign.progression.warrior.table", rules.WarriorDice, spans); err != nil {
+			return ProgressionRules{}, nil, errors.Join(ErrInvalidRuleset, err)
+		}
 	}
-	if p.Warrior.NoPromotion.Intelligence > 0 {
-		rules.NoPromotion = append(rules.NoPromotion, "intelligence")
+	if len(doc.Data.Paths) > 0 || p.Hero.Roll != "" {
+		if rules.HeroDice, err = diceAt("campaign.progression.hero.roll", p.Hero.Roll); err != nil {
+			return ProgressionRules{}, nil, errors.Join(ErrInvalidRuleset, err)
+		}
+		if p.Hero.RollsPerProgression == nil || p.Hero.Choose == nil {
+			return ProgressionRules{}, nil, errors.Join(ErrInvalidRuleset, errors.New("campaign.progression.hero needs rollsPerProgression and choose"))
+		}
+		rules.HeroRolls, rules.HeroChoose = *p.Hero.RollsPerProgression, *p.Hero.Choose
+		switch {
+		case rules.HeroRolls < 1 || rules.HeroRolls > 6:
+			return ProgressionRules{}, nil, errors.Join(ErrInvalidRuleset, fmt.Errorf("campaign.progression.hero.rollsPerProgression: %d is outside 1..6", rules.HeroRolls))
+		case rules.HeroChoose != 1: // REVIEW: the choice flow keeps one result; the schema allows 1..rolls
+			return ProgressionRules{}, nil, errors.Join(ErrInvalidRuleset, fmt.Errorf("campaign.progression.hero.choose: %d is not supported, a hero keeps one result", rules.HeroChoose))
+		}
+	}
+	for _, stat := range []string{"courage", "intelligence"} {
+		if rules.NoPromotionBy[stat] > 0 {
+			rules.NoPromotion = append(rules.NoPromotion, stat)
+		}
 	}
 	for _, k := range doc.Campaign.CharacteristicLimits.LowerIsBetter {
 		rules.LowerIsBetter[k] = true
@@ -304,6 +395,13 @@ func ParseProgression(content []byte) (ProgressionRules, map[string][]Advancemen
 		var limits map[string]int
 		if json.Unmarshal(raw, &limits) == nil && len(limits) > 0 {
 			rules.Peak[stat] = limits
+		}
+	}
+	if c := doc.Campaign.CharacteristicLimits.Increases.Cap; c != nil {
+		var pr problems
+		rules.CITotalCap, rules.CITotalGear = pr.intIn("campaign.characteristicLimits.increases.courageIntelligenceTotalCap.value", c.Value, 1, 10), c.IncludesGear
+		if err := pr.err(); err != nil {
+			return ProgressionRules{}, nil, errors.Join(ErrInvalidRuleset, err)
 		}
 	}
 	for _, path := range doc.Data.Paths {
@@ -317,11 +415,19 @@ func ParseProgression(content []byte) (ProgressionRules, map[string][]Advancemen
 		if hidden && path.Kind != "custom" {
 			continue
 		}
-		pp := PathProgression{Name: path.Name, Limits: path.Maximums, Start: path.StartingStats}
+		pp := PathProgression{Name: path.Name, Limits: path.Maximums, Start: path.StartingStats, PathDice: rules.HeroDice}
+		if path.Dice != "" {
+			if pp.PathDice, err = ParseDiceAt("data.paths["+path.Name+"].dice", path.Dice); err != nil {
+				return ProgressionRules{}, nil, errors.Join(ErrInvalidRuleset, err)
+			}
+		}
 		if path.StartAction != nil {
 			pp.StartAction = path.StartAction.Name
 		}
 		pp.StartPower = len(path.StartPower) > 0 && string(path.StartPower) != "null"
+		if path.Limit < 0 || path.Limit > 99 {
+			return ProgressionRules{}, nil, errors.Join(ErrInvalidRuleset, fmt.Errorf("data.paths[%s].limitPerCompany: %d is outside 0..99", path.Name, path.Limit))
+		}
 		pp.LimitPerCompany = path.Limit
 		pp.Description, pp.Summary, pp.Mastery, pp.SpecialRules = path.Description, path.Offers.Summary, path.Offers.MasteryRule, path.Offers.SpecialRules
 		for _, row := range path.Progression {
@@ -331,6 +437,15 @@ func ParseProgression(content []byte) (ProgressionRules, map[string][]Advancemen
 			}
 			pp.Rows = append(pp.Rows, r)
 		}
+		if len(pp.Rows) > 0 {
+			var rolls [][2]int
+			for _, r := range pp.Rows {
+				rolls = append(rolls, [2]int{r.Roll, r.Roll})
+			}
+			if err := CheckCovers("data.paths["+path.Name+"].progression", pp.PathDice, rolls); err != nil {
+				return ProgressionRules{}, nil, errors.Join(ErrInvalidRuleset, err)
+			}
+		}
 		if hidden {
 			rules.Hidden = append(rules.Hidden, pp)
 			if path.Kind == "custom" {
@@ -338,6 +453,24 @@ func ParseProgression(content []byte) (ProgressionRules, map[string][]Advancemen
 			}
 		} else {
 			rules.Paths = append(rules.Paths, pp)
+		}
+	}
+	if overrides := rules.Peak[willMaxOverridesKey]; len(overrides) > 0 {
+		var pr problems
+		for name, v := range overrides {
+			named := false
+			for _, p := range doc.Data.Paths {
+				named = named || p.Name == name
+			}
+			if !named {
+				pr.add("campaign.characteristicLimits.peak.willMaxOverrides: %q is not a path", name)
+			}
+			if v < 1 || v > 10 {
+				pr.add("campaign.characteristicLimits.peak.willMaxOverrides[%s]: %d is outside 1..10", name, v)
+			}
+		}
+		if err := pr.err(); err != nil {
+			return ProgressionRules{}, nil, errors.Join(ErrInvalidRuleset, err)
 		}
 	}
 	rules.CastFloor, rules.CastMax = max(1, doc.Data.MagicalPowers.CastingRule.Floor), max(1, doc.Data.MagicalPowers.CastingRule.Improvement.MaxPerPower)
@@ -394,6 +527,7 @@ type SheetStat struct{ Value, Boost int }
 type HeroSheet struct {
 	Path          string
 	Stats         map[string]SheetStat // by stat key (movement, fight, ..., might, will, fate)
+	Gear          map[string]int       // what the hero's gear added to each stat (already in Stats), signed like the value
 	Rules         map[string]bool      // lower-cased special rules it has
 	Actions       map[string]bool      // lower-cased heroic actions it has
 	MinorGained   int                  // minor special rules gained through progression
@@ -432,6 +566,10 @@ type LevelOffer struct {
 	Choices []LevelChoice
 }
 
+// willMaxOverridesKey is the entry of campaign.characteristicLimits.peak that maps a path to its own Will maximum in place of the
+// peak's; the loader keeps it in ProgressionRules.Peak next to the stats.
+const willMaxOverridesKey = "willMaxOverrides"
+
 // improvedStat says what a stat becomes when raised by amount, within the path's limits and the overall peak; ok is false when
 // it cannot be raised at all. A stat where lower is better (Courage, Shoot) goes down.
 func (r ProgressionRules) improvedStat(path PathProgression, sheet HeroSheet, stat string, amount, extraMax int) (value int, ok bool) {
@@ -467,7 +605,20 @@ func (r ProgressionRules) improvedStat(path PathProgression, sheet HeroSheet, st
 		if extraMax > 0 && !lower && v > extraMax {
 			continue
 		}
-		if fits(path.Limits[stat]) && fits(r.Peak[stat]) {
+		if lower && (stat == statCourage || stat == statIntelligence) && r.CITotalCap > 0 {
+			base := cur.Value - cur.Boost // the profile with its gear
+			if r.CITotalGear {
+				base -= sheet.Gear[stat] // the profile without it: the gear's improvement counts in the total
+			}
+			if base-v > r.CITotalCap {
+				continue
+			}
+		}
+		peak := r.Peak[stat]
+		if override, has := r.Peak[willMaxOverridesKey][path.Name]; has && stat == "will" {
+			peak = map[string]int{"max": override} // the path's own Will maximum replaces the overall peak's
+		}
+		if fits(path.Limits[stat]) && fits(peak) {
 			return v, true
 		}
 	}
@@ -550,7 +701,7 @@ func (r ProgressionRules) choicesFor(path PathProgression, sheet HeroSheet, list
 	return out
 }
 
-// OfferFor says what a 2D6 result of the hero's path would give it now; ok is false when nothing in the row can be taken.
+// OfferFor says what a result of the hero's path would give it now; ok is false when nothing in the row can be taken.
 func (r ProgressionRules) OfferFor(sheet HeroSheet, lists LevelLists, sum int) (LevelOffer, bool) {
 	path, found := r.Path(sheet.Path)
 	if !found {
@@ -649,7 +800,7 @@ type HeroPair struct {
 // RollHero rolls a hero's two pairs: a pair the player entered (their own dice) is used as it is. A result the hero cannot take is
 // not offered, and the player must take the other one if it can be taken. Only when neither can be taken are the unavailable
 // results rolled again (by the app) until one can. If nothing is possible the hero has learned all there is.
-func (r ProgressionRules) RollHero(sheet HeroSheet, lists LevelLists, entered []int, rnd func() int) LevelRoll {
+func (r ProgressionRules) RollHero(sheet HeroSheet, lists LevelLists, entered []int, dice Dice) LevelRoll {
 	roll := LevelRoll{Kind: "hero"}
 	type pair struct {
 		sum   int
@@ -657,9 +808,13 @@ func (r ProgressionRules) RollHero(sheet HeroSheet, lists LevelLists, entered []
 		offer LevelOffer
 		ok    bool
 	}
-	pairs := make([]pair, 2)
+	spec := r.HeroDice
+	if p, ok := r.Path(sheet.Path); ok {
+		spec = p.PathDice
+	}
+	pairs := make([]pair, r.HeroRolls)
 	for i := range pairs {
-		if i < len(entered) && entered[i] >= 2 && entered[i] <= 12 {
+		if i < len(entered) && entered[i] >= spec.Min() && entered[i] <= spec.Max() {
 			pairs[i].sum = entered[i]
 		}
 	}
@@ -668,8 +823,8 @@ func (r ProgressionRules) RollHero(sheet HeroSheet, lists LevelLists, entered []
 		valid = 0
 		for i := range pairs {
 			if pairs[i].sum == 0 {
-				pairs[i].dice = []int{rnd(), rnd()}
-				pairs[i].sum = pairs[i].dice[0] + pairs[i].dice[1]
+				pairs[i].dice = RollDice(dice, spec)
+				pairs[i].sum = sumOf(pairs[i].dice)
 			}
 			pairs[i].offer, pairs[i].ok = r.OfferFor(sheet, lists, pairs[i].sum)
 			if pairs[i].ok {
@@ -709,9 +864,6 @@ func (r ProgressionRules) RollHero(sheet HeroSheet, lists LevelLists, entered []
 	}
 	return roll
 }
-
-// D6 rolls a die.
-func D6() int { return rand.IntN(6) + 1 }
 
 // Label is how a power is listed: its name, casting value and range.
 func (p PowerOffer) Label() string {

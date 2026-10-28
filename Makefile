@@ -8,7 +8,7 @@ DATABASE_URL ?= postgres://bcm:bcm@localhost:5432/bcm?sslmode=disable
 CSS_IN  = ./tailwind.css
 CSS_OUT = ./internal/web/static/app.css
 
-.PHONY: concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs migrate up up-app prod-user prod-down backup restore restore-drill vendor-check dice3d user grant seed demo db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
+.PHONY: concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs migrate up up-app prod-user prod-down backup restore restore-drill vendor-check dice3d user grant seed demo fuzz check-ruleset db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
 
 # make user EMAIL=you@example.com NAME="Your Name"   (asks for the password)
 user: db-up
@@ -111,6 +111,16 @@ TEST_DATABASE_URL ?= postgres://bcm:bcm@localhost:5432/bcm_test?sslmode=disable
 # make test-db   makes sure the bcm_test database exists next to the development one (a volume made before it was added has none)
 test-db: db-up
 	@$(DC) exec -T postgres psql -U bcm -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'bcm_test'" | grep -q 1 || $(DC) exec -T postgres psql -U bcm -d postgres -c "CREATE DATABASE bcm_test"
+
+# make check-ruleset FILE=battle_companies.json   checks a lean (schemaVersion 2) rules file like the upload does and prints every problem (exit 1 on errors; docs/definitions.md)
+check-ruleset:
+	@test -n "$(FILE)" || { echo "usage: make check-ruleset FILE=battle_companies.json"; exit 2; }
+	go run ./cmd/rulecheck $(if $(VANILLA),-vanilla "$(VANILLA)") $(if $(GLOSSARY),-glossary "$(GLOSSARY)") "$(FILE)"
+
+# make fuzz [FUZZTIME=1m]   explores the lean decoder and the dice parser with go's fuzzer (the seed corpus already runs in make test; docs/testing.md)
+fuzz:
+	go test ./internal/core/lean -run '^$$' -fuzz FuzzParseDice -fuzztime 20s
+	go test ./internal/core/lean -run '^$$' -fuzz FuzzDecode -fuzztime $(or $(FUZZTIME),1m)
 
 test-integration: test-db
 	TEST_DATABASE_URL='$(TEST_DATABASE_URL)' go test -p 1 -count=1 ./...

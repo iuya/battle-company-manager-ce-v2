@@ -168,6 +168,9 @@ type CompanyProfile struct {
 	Fallbacks      []RecruitFallback
 	Promotions     []HeroPromotion
 	StartHeroes    StartRestriction
+	// Leaders and Sergeants are the officers of a starting company and HeroStart what a new hero starts with (campaign.company).
+	Leaders, Sergeants int
+	HeroStart          HeroStart
 	// RangerReplacement is the Shire's rule (nil without it): a successful reinforcement result may be swapped for the unit once the
 	// company's one is slain.
 	RangerReplacement *RangerReplacement
@@ -393,7 +396,7 @@ func (b *BCBook) parseProfiles(content []byte) {
 		if !ok {
 			continue
 		}
-		p := CompanyProfile{BCCompany: base, Description: strings.TrimSpace(c.Description), BreakPoint: c.BreakPoint, StartGold: c.Start.Gold,
+		p := CompanyProfile{Leaders: b.shape.Leaders, Sergeants: b.shape.Sergeants, HeroStart: b.shape.HeroStart, BCCompany: base, Description: strings.TrimSpace(c.Description), BreakPoint: c.BreakPoint, StartGold: c.Start.Gold,
 			Rules: c.SpecialRules, OnTheirOwnPath: c.OnTheirOwnPath, Advancements: b.advancements[c.Name]}
 		ownNames := map[string]bool{} // the company's own names that change a unit (an option selected, a rule added), not just call it differently
 		for _, a := range c.UnitAliases {

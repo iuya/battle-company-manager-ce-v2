@@ -1,0 +1,141 @@
+
+=== rule targets table ===
+rows
+  - {Rule: "Ancient Enemies (X)", Base: "Ancient Enemies", Direction: "enemy-keyword", Target: "enemy models with the {X} keyword"}
+  - {Rule: "Fury (X)", Base: "Fury", Direction: "friendly-keyword", Target: "friendly models with the {X} keywords within 6\"", All: true}
+  - {Rule: "Hatred (X)", Base: "Hatred", Direction: "enemy-keyword", Target: "enemy models with the {X} keyword"}
+  -
+    Rule: "Terror (X)"
+    Base: "Terror"
+    Direction: "enemy-keyword"
+    Target: "enemy models with the {X} keyword (plain Terror affects all enemy models)"
+  - {Rule: "\"Dol Amroth for Gondor!\"", Direction: "friendly-keyword", Target: "friendly {X} models", Keywords: ["Dol Amroth"], All: true}
+  - {Rule: "\"Slay their Horses!\"", Direction: "enemy-keyword", Target: "enemy {X}s", Keywords: ["Mount"], All: true, Needs: ["Cavalry"]}
+  - {Rule: "Against all odds", Direction: "enemy-keyword", Target: "enemy {X} models", Keywords: ["Hero", "Monster"]}
+  - {Rule: "Ancestral Fury", Direction: "own", Needs: ["Infantry"]}
+  - {Rule: "Angmar Arise (Slayer of Men)", Direction: "enemy-keyword", Target: "enemy {X} models", Keywords: ["Hero"], All: true}
+  - {Rule: "Arise, Riders of Rohan!", Direction: "own", Needs: ["Cavalry"]}
+  - {Rule: "At 'em, Lads!", Direction: "enemy-keyword", Target: "enemy {X} models", Keywords: ["Hobbit"], All: true}
+  -
+    Rule: "Battle Wisdom"
+    Direction: "friendly-keyword"
+    Target: "friendly {X} models within 3\""
+    Keywords: ["Lothlorien", "Warrior"]
+    All: true
+  - {Rule: "Bladelord", Direction: "own", Needs: ["Infantry"]}
+  - {Rule: "Bodyguard", Direction: "own"}
+  -
+    Rule: "Chronicler (Thorin's Company)"
+    Direction: "friendly-keyword"
+    Target: "friendly {X} models within 6\""
+    Keywords: ["Thorin's Company"]
+    All: true
+  - {Rule: "Command Support", Direction: "own"}
+  - {Rule: "Defender", Direction: "friendly-keyword", Target: "a friendly Hero with the opposite species keyword (Man/Dwarf)"}
+  - {Rule: "End the Race of Men", Direction: "enemy-keyword", Target: "enemy {X} models", Keywords: ["Man"], All: true}
+  -
+    Rule: "Favour of the War Chief"
+    Direction: "friendly-keyword"
+    Target: "a friendly {X} model within 3\""
+    Keywords: ["Dunland", "Hero"]
+    All: true
+  - {Rule: "Feral Charge", Direction: "enemy-keyword", Target: "enemy {X} models it Charges", Keywords: ["Infantry"], All: true}
+  - {Rule: "Furious Tirade", Direction: "enemy-keyword", Target: "enemy {X} models", Keywords: ["Warrior"], All: true}
+  - {Rule: "Fury of the Pack", Direction: "own", Needs: ["Cavalry"]}
+  - {Rule: "Gatekeeper", Direction: "enemy-keyword", Target: "enemy {X} models", Keywords: ["Infantry"], All: true}
+  - {Rule: "Ghostly Resolve", Direction: "friendly-keyword", Target: "friendly {X} models within 12\"", Keywords: ["Angmar", "Orc"], All: true}
+  - {Rule: "Gift of Foresight", Direction: "friendly-keyword", Target: "friendly {X} models within 6\"", Keywords: ["Arnor"], All: true}
+  - {Rule: "Glory Seekers", Direction: "enemy-keyword", Target: "enemy {X} models", Keywords: ["Hero"], All: true}
+  - {Rule: "Goblin Mastery", Direction: "friendly-keyword", Target: "friendly {X} models within 6\"", Keywords: ["Moria", "Goblin"], All: true}
+  - {Rule: "Harbinger of Evil (12\")", Direction: "enemy-any", Target: "enemy models within 12\""}
+  - {Rule: "Harbinger of Evil (18\")", Direction: "enemy-any", Target: "enemy models within 18\""}
+  - {Rule: "High King of the Elves", Direction: "friendly-keyword", Target: "friendly {X} models", Keywords: ["Elf", "Hero"], All: true}
+  - {Rule: "High Spirits", Direction: "friendly-keyword", Target: "friendly {X} models within 6\"", Keywords: ["Hobbit"], All: true}
+  - {Rule: "Hunt Master", Direction: "own", Needs: ["Cavalry"]}
+  - {Rule: "Keen Sight", Direction: "enemy-any", Target: "enemy models within 12\""}
+  - {Rule: "King's Knights", Direction: "own", Needs: ["Cavalry"]}
+  - {Rule: "Lordly Quality", Direction: "friendly-keyword", Target: "friendly models that share the bearer's faction keyword"}
+  - {Rule: "Master Hunter", Direction: "own", Needs: ["Cavalry"]}
+  - {Rule: "Master of Birds", Direction: "friendly-keyword", Target: "friendly {X} models within 12\"", Keywords: ["Eagle"], All: true}
+  - {Rule: "Mountain Dweller", Direction: "own"}
+  - {Rule: "Official Meals", Direction: "friendly-keyword", Target: "friendly {X} models", Keywords: ["Fellowship"], All: true}
+  -
+    Rule: "Onwards Men of Esgaroth"
+    Direction: "friendly-keyword"
+    Target: "a friendly {X} model within 3\""
+    Keywords: ["Lake-town", "Hero"]
+    All: true
+  - {Rule: "Pack Master", Direction: "friendly-keyword", Target: "friendly {X} models", Keywords: ["Warg"], All: true}
+  - {Rule: "Packlord", Direction: "friendly-keyword", Target: "friendly {X} models", Keywords: ["Warg"], All: true}
+  -
+    Rule: "Protect the little ones!"
+    Direction: "friendly-keyword"
+    Target: "friendly {X} models (the bearer must be within 3\")"
+    Keywords: ["Fellowship", "Hobbit"]
+    All: true
+  - {Rule: "Put 'em in chains!", Direction: "enemy-keyword", Target: "enemy {X} models", Keywords: ["Hobbit"], All: true}
+  -
+    Rule: "Raising Spirits (Thorin's Company)"
+    Direction: "friendly-keyword"
+    Target: "friendly {X} models within 3\""
+    Keywords: ["Thorin's Company", "Hero"]
+    All: true
+  -
+    Rule: "Reading the Portents (Thorin's Company)"
+    Direction: "friendly-keyword"
+    Target: "friendly {X} models within 6\""
+    Keywords: ["Thorin's Company", "Hero"]
+    All: true
+  -
+    Rule: "Relentless Advance"
+    Direction: "friendly-keyword"
+    Target: "friendly {X} models it moves through"
+    Keywords: ["Orc", "Goblin", "Bat"]
+  - {Rule: "Sharpshooter", Direction: "enemy-keyword", Target: "enemy {X} models", Keywords: ["Cavalry"], All: true}
+  - {Rule: "Spider-kin", Direction: "friendly-keyword", Target: "friendly {X} models", Keywords: ["Spider"], All: true}
+  - {Rule: "Sweet Maiden of the Golden Ale", Direction: "friendly-keyword", Target: "friendly {X} models", Keywords: ["Hobbit"], All: true}
+  - {Rule: "Terror", Direction: "enemy-any", Target: "enemy models in general"}
+  - {Rule: "The Gleaming Horde", Direction: "own", Needs: ["Cavalry"]}
+  -
+    Rule: "The Honour of Lamedon"
+    Direction: "friendly-keyword"
+    Target: "a friendly {X} model within 3\""
+    Keywords: ["Lamedon", "Hero"]
+    All: true
+  - {Rule: "To me, Shire-folk!", Direction: "friendly-keyword", Target: "friendly {X} models", Keywords: ["Hobbit"], All: true}
+  - {Rule: "Visage of Terror", Direction: "enemy-any", Target: "enemy models that try to Charge it"}
+  - {Rule: "Woodland Creature", Direction: "own"}
+  - {Rule: "Wormtongue", Direction: "enemy-keyword", Target: "enemy {X} models within 6\"", Keywords: ["Hero"], All: true}
+
+=== rules in use, who they work against, and the units (name | keywords) they name ===
+"\"Slay their Horses!\"": works "enemy Mounts" against [[Mount]] needs [Cavalry] friends no | 0 unit names: 
+"Ancient Enemies (Dwarf)": works "enemy models with the Dwarf keyword" against [[Dwarf]] needs [] friends no | 9 unit names: Dwarf Ranger, Dwarf Warrior, Erebor Dwarf Warrior, Grim Hammer Warrior, Iron Guard, Iron Hills Goat Rider, Iron Hills Warrior, Khazad Guard, Vault Warden Team
+"Ancient Enemies (Dwarf)(Elf)": works "enemy models with the Dwarf or Elf keyword" against [[Dwarf] [Elf]] needs [] friends no | 21 unit names: Dwarf Ranger, Dwarf Warrior, Erebor Dwarf Warrior, Galadhrim Knight, Galadhrim Warrior, Grim Hammer Warrior, Guard of the Galadhrim Court, Iron Guard, Iron Hills Goat Rider, Iron Hills Warrior, Khazad Guard, Lothlorien Warrior, Mirkwood Elf Knight, Mirkwood Elf Warrior, Mirkwood Ranger, Noldorin Exile, Palace Guard, Rivendell Knight, Rivendell Warrior, Vault Warden Team, Wood Elf Sentinel
+"Ancient Enemies (Elf)": works "enemy models with the Elf keyword" against [[Elf]] needs [] friends no | 12 unit names: Galadhrim Knight, Galadhrim Warrior, Guard of the Galadhrim Court, Lothlorien Warrior, Mirkwood Elf Knight, Mirkwood Elf Warrior, Mirkwood Ranger, Noldorin Exile, Palace Guard, Rivendell Knight, Rivendell Warrior, Wood Elf Sentinel
+"Ancient Enemies (Orc)": works "enemy models with the Orc keyword" against [[Orc]] needs [] friends no | 13 unit names: Angmar Orc Warrior, Angmar Warg Rider, Gundabad Berserker, Gundabad Orc Warrior, Hunter Orc Warg Rider, Hunter Orc Warrior, Isengard Orc Warrior, Isengard Warg Rider, Morannon Orc Warrior, Mordor Orc Warrior, Mordor Warg Rider, Morgul Stalker, Orc Tracker
+"At 'em, Lads!": works "enemy Hobbit models" against [[Hobbit]] needs [] friends no | 5 unit names: Battlin' Brandybuck, Hobbit Archer, Hobbit Militia, Hobbit Shirriff, Tookish Hunter
+"End the Race of Men": works "enemy Man models" against [[Man]] needs [] friends no | 54 unit names: Abrakhan Merchant Guard, Axeman of Lossarnach, Black Dragon Warrior, Black Numenorean Knight, Black Numenorean Warrior, Blackroot Vale Archer, Citadel Guard, Clansman of Lamedon, Corsair Crossbowman, Corsair Reaver, Corsair of Umbar, Dragon Cult Acolyte, Dunlending Horseman, Dunlending Huscarl, Dunlending Warrior, Easterling Kataphrakt, Easterling Warrior, Guard of the Fountain Court, Half Troll, Haradrim Raider, Haradrim Warrior, Helminga, Hill Tribesman, Khandish Horseman, Khandish Warrior, Knight of Arnor, Knight of Dale, Knight of Dol Amroth, Knight of Minas Tirith, Lake-town Guard, Lake-town Militia, Mahûd Warrior, Man-at-arms of Dol Amroth, Osgiliath Veteran, Ranger of Arnor, Ranger of Gondor, Ranger of the North, Rider of Rohan, Rohan Outrider, Rohan Royal Guard, Rohirrim Traitor, Ruffian, Serpent Guard, Serpent Rider, Son of Eorl, Warrior of Arnor, Warrior of Carn Dum, Warrior of Dale, Warrior of Minas Tirith, Warrior of Numenor, Warrior of Rohan, Watcher of Kârna, Wild Man of Dunland, Woses Warrior
+"Favour of the War Chief": works "a friendly Dunland and Hero model within 3\"" against [] needs [] friends yes | 0 unit names: 
+"Feral Charge": works "enemy Infantry models it Charges" against [[Infantry]] needs [] friends no | 99 unit names: Abrakhan Merchant Guard, Angmar Orc Warrior, Axeman of Lossarnach, Battlin' Brandybuck, Black Dragon Warrior, Black Guard of Barad-dûr, Black Numenorean Warrior, Blackroot Vale Archer, Cave Troll, Citadel Guard, Clansman of Lamedon, Corsair Crossbowman, Corsair Reaver, Corsair of Umbar, Crebain, Dragon Cult Acolyte, Dunlending Huscarl, Dunlending Warrior, Dwarf Ranger, Dwarf Warrior, Easterling Warrior, Erebor Dwarf Warrior, Fell Warg, Feral Uruk-hai, Galadhrim Warrior, Goblin Hulk, Goblin Mercenary, Goblin Warrior, Grim Hammer Warrior, Guard of the Fountain Court, Guard of the Galadhrim Court, Gundabad Berserker, Gundabad Ogre, Gundabad Orc Warrior, Half Troll, Haradrim Warrior, Helminga, Hill Tribesman, Hobbit Archer, Hobbit Militia, Hobbit Shirriff, Hunter Orc Warrior, Iron Guard, Iron Hills Warrior, Isengard Orc Warrior, Isengard Warg, Khandish Warrior, Khazad Guard, Knight of Dale, Knight of Dol Amroth, Lake-town Guard, Lake-town Militia, Lothlorien Warrior, Mahûd Warrior, Man-at-arms of Dol Amroth, Mirkwood Elf Warrior, Mirkwood Giant Spider, Mirkwood Hunting Spider, Mirkwood Ranger, Morannon Orc Warrior, Mordor Orc Warrior, Mordor Uruk-Hai, Morgul Stalker, Moria Blackshield Warrior, Moria Goblin Prowler, Moria Goblin Warrior, Noldorin Exile, Orc Tracker, Osgiliath Veteran, Palace Guard, Ranger of Arnor, Ranger of Gondor, Ranger of the North, Rivendell Warrior, Rohan Outrider, Rohan Royal Guard, Rohirrim Traitor, Ruffian, Serpent Guard, Spectre, Tookish Hunter, Uruk-hai Berserker, Uruk-hai Scout, Uruk-hai Warrior, Vault Warden Team, War Bat, War Drake of Rhun, Warrior of Arnor, Warrior of Carn Dum, Warrior of Dale, Warrior of Minas Tirith, Warrior of Numenor, Warrior of Rohan, Watcher of Kârna, Werewolf, Wild Man of Dunland, Wild Warg, Wood Elf Sentinel, Woses Warrior
+"Glory Seekers": works "enemy Hero models" against [[Hero]] needs [] friends no | 1 unit names: Ranger of the North
+"Hatred (Angmar)": works "enemy models with the Angmar keyword" against [[Angmar]] needs [] friends no | 5 unit names: Angmar Orc Warrior, Angmar Warg Rider, Warrior of Carn Dum, Werewolf, Wild Warg
+"Hatred (Dragon)": works "enemy models with the Dragon keyword" against [[Dragon]] needs [] friends no | 0 unit names: 
+"Hatred (Dwarf)": works "enemy models with the Dwarf keyword" against [[Dwarf]] needs [] friends no | 9 unit names: Dwarf Ranger, Dwarf Warrior, Erebor Dwarf Warrior, Grim Hammer Warrior, Iron Guard, Iron Hills Goat Rider, Iron Hills Warrior, Khazad Guard, Vault Warden Team
+"Hatred (Goblin)": works "enemy models with the Goblin keyword" against [[Goblin]] needs [] friends no | 7 unit names: Goblin Hulk, Goblin Mercenary, Goblin Warrior, Moria Blackshield Warrior, Moria Goblin Prowler, Moria Goblin Warrior, Warg Marauder
+"Hatred (Hobbit)": works "enemy models with the Hobbit keyword" against [[Hobbit]] needs [] friends no | 5 unit names: Battlin' Brandybuck, Hobbit Archer, Hobbit Militia, Hobbit Shirriff, Tookish Hunter
+"Hatred (Man)": works "enemy models with the Man keyword" against [[Man]] needs [] friends no | 54 unit names: Abrakhan Merchant Guard, Axeman of Lossarnach, Black Dragon Warrior, Black Numenorean Knight, Black Numenorean Warrior, Blackroot Vale Archer, Citadel Guard, Clansman of Lamedon, Corsair Crossbowman, Corsair Reaver, Corsair of Umbar, Dragon Cult Acolyte, Dunlending Horseman, Dunlending Huscarl, Dunlending Warrior, Easterling Kataphrakt, Easterling Warrior, Guard of the Fountain Court, Half Troll, Haradrim Raider, Haradrim Warrior, Helminga, Hill Tribesman, Khandish Horseman, Khandish Warrior, Knight of Arnor, Knight of Dale, Knight of Dol Amroth, Knight of Minas Tirith, Lake-town Guard, Lake-town Militia, Mahûd Warrior, Man-at-arms of Dol Amroth, Osgiliath Veteran, Ranger of Arnor, Ranger of Gondor, Ranger of the North, Rider of Rohan, Rohan Outrider, Rohan Royal Guard, Rohirrim Traitor, Ruffian, Serpent Guard, Serpent Rider, Son of Eorl, Warrior of Arnor, Warrior of Carn Dum, Warrior of Dale, Warrior of Minas Tirith, Warrior of Numenor, Warrior of Rohan, Watcher of Kârna, Wild Man of Dunland, Woses Warrior
+"Hatred (Mordor)": works "enemy models with the Mordor keyword" against [[Mordor]] needs [] friends no | 10 unit names: Black Guard of Barad-dûr, Black Numenorean Knight, Black Numenorean Warrior, Morannon Orc Warrior, Mordor Orc Warrior, Mordor Uruk-Hai, Mordor Warg Rider, Morgul Stalker, Orc Tracker, Spectre
+"Hatred (Orc)": works "enemy models with the Orc keyword" against [[Orc]] needs [] friends no | 13 unit names: Angmar Orc Warrior, Angmar Warg Rider, Gundabad Berserker, Gundabad Orc Warrior, Hunter Orc Warg Rider, Hunter Orc Warrior, Isengard Orc Warrior, Isengard Warg Rider, Morannon Orc Warrior, Mordor Orc Warrior, Mordor Warg Rider, Morgul Stalker, Orc Tracker
+"Hatred (Rohan)": works "enemy models with the Rohan keyword" against [[Rohan]] needs [] friends no | 7 unit names: Helminga, Rider of Rohan, Rohan Outrider, Rohan Royal Guard, Rohirrim Traitor, Son of Eorl, Warrior of Rohan
+"Hatred (Spirit)": works "enemy models with the Spirit keyword" against [[Spirit]] needs [] friends no | 2 unit names: Spectre, Werewolf
+"Hatred (Uruk-hai)": works "enemy models with the Uruk-hai keyword" against [[Uruk-hai]] needs [] friends no | 6 unit names: Black Guard of Barad-dûr, Feral Uruk-hai, Mordor Uruk-Hai, Uruk-hai Berserker, Uruk-hai Scout, Uruk-hai Warrior
+"Keen Sight": works "enemy models within 12\"" against [] needs [] friends no | 0 unit names: 
+"Onwards Men of Esgaroth": works "a friendly Lake-town and Hero model within 3\"" against [] needs [] friends yes | 0 unit names: 
+"Put 'em in chains!": works "enemy Hobbit models" against [[Hobbit]] needs [] friends no | 5 unit names: Battlin' Brandybuck, Hobbit Archer, Hobbit Militia, Hobbit Shirriff, Tookish Hunter
+"Relentless Advance": works "friendly Orc, Goblin or Bat models it moves through" against [] needs [] friends yes | 0 unit names: 
+"Sharpshooter": works "enemy Cavalry models" against [[Cavalry]] needs [] friends no | 19 unit names: Angmar Warg Rider, Black Numenorean Knight, Dunlending Horseman, Easterling Kataphrakt, Galadhrim Knight, Haradrim Raider, Hunter Orc Warg Rider, Iron Hills Goat Rider, Isengard Warg Rider, Khandish Horseman, Knight of Arnor, Knight of Minas Tirith, Mirkwood Elf Knight, Mordor Warg Rider, Rider of Rohan, Rivendell Knight, Serpent Rider, Son of Eorl, Warg Marauder
+"Terror": works "enemy models in general" against [] needs [] friends no | 0 unit names: 
+"Terror (Beast)": works "enemy models with the Beast keyword (plain Terror affects all enemy models)" against [[Beast]] needs [] friends no | 9 unit names: Crebain, Fell Warg, Isengard Warg, Mirkwood Giant Spider, Mirkwood Hunting Spider, War Bat, War Drake of Rhun, Werewolf, Wild Warg
+"Terror (Cavalry)": works "enemy models with the Cavalry keyword (plain Terror affects all enemy models)" against [[Cavalry]] needs [] friends no | 19 unit names: Angmar Warg Rider, Black Numenorean Knight, Dunlending Horseman, Easterling Kataphrakt, Galadhrim Knight, Haradrim Raider, Hunter Orc Warg Rider, Iron Hills Goat Rider, Isengard Warg Rider, Khandish Horseman, Knight of Arnor, Knight of Minas Tirith, Mirkwood Elf Knight, Mordor Warg Rider, Rider of Rohan, Rivendell Knight, Serpent Rider, Son of Eorl, Warg Marauder
+"The Honour of Lamedon": works "a friendly Lamedon and Hero model within 3\"" against [] needs [] friends yes | 0 unit names: 
+"Visage of Terror": works "enemy models that try to Charge it" against [] needs [] friends no | 0 unit names: 

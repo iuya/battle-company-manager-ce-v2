@@ -285,6 +285,9 @@ func (v aftermathView) ItemBanner() string {
 // ItemName names an elected effect for the read-only sheet.
 func (v aftermathView) ItemName(key string) string { return effectItemName(v.Rules, key) }
 
+// LevelEvery is the experience per level-up of the campaign's rules (progression.threshold).
+func (v aftermathView) LevelEvery() int { return v.Rules.LevelEvery }
+
 type aftermathView struct {
 	campaignBase
 	Match   core.Match
@@ -475,13 +478,33 @@ func (v aftermathView) Fallen(c core.Casualty) bool {
 	return c.Kind == core.CasualtyDead || c.Kind == core.CasualtyRetired
 }
 
+// BonusMax is the highest number the player types for the casualty's bonus roll (6 for a D3, rolled on a D6).
+func (v aftermathView) BonusMax(c core.Casualty) int {
+	for _, row := range v.Chart(c) {
+		if row.Key == c.ResultKey && row.BonusDice != "" {
+			return core.TypedMax(row.BonusSpec)
+		}
+	}
+	return 6
+}
+
+// foldText says how a six-sided die reads for a die of fewer faces: " On a D3 a die of 1-2 reads 1, 3-4 reads 2 and 5-6 reads 3."
+func foldText(spec core.DiceSpec) string {
+	per := 6 / spec.Sides
+	var parts []string
+	for k := 1; k <= spec.Sides; k++ {
+		parts = append(parts, fmt.Sprintf("%s reads %d", rangeText((k-1)*per+1, k*per), k))
+	}
+	return fmt.Sprintf(" On a %s a die of %s and %s.", spec.Display(), strings.Join(parts[:len(parts)-1], ", "), parts[len(parts)-1])
+}
+
 // BonusDieText asks for the bonus die of Lesson Learned (a D3) or Wounds of a Hero (a D6).
 func (v aftermathView) BonusDieText(c core.Casualty) string {
 	for _, row := range v.Chart(c) {
 		if row.Key == c.ResultKey && row.BonusDice != "" {
 			text := fmt.Sprintf("%s: roll a %s for the bonus %s.", row.Name, strings.ToUpper(row.BonusDice), row.BonusKind)
-			if row.BonusDice == "d3" {
-				text += " On a D3 a die of 1-2 reads 1, 3-4 reads 2 and 5-6 reads 3."
+			if core.TypedMax(row.BonusSpec) > row.BonusSpec.Max() { // a die with no physical form (a D3) is rolled on a D6
+				text += foldText(row.BonusSpec)
 			}
 			return text
 		}
@@ -934,7 +957,7 @@ func (s *Server) handleReopenSheet(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------------------------------------------------------
 // The Injuries step
 
-// handleCasualtyRoll rolls one casualty (unit) or every unrolled one (no unit): the app's dice, or the two dice the player
+// handleCasualtyRoll rolls one casualty (unit) or every unrolled one (no unit): the app's dice, or the dice the player
 // typed or threw in the browser (core.CampaignSettings.RollRefusal applies).
 func (s *Server) handleCasualtyRoll(w http.ResponseWriter, r *http.Request) {
 	base, m, co, ok := s.aftermathCtx(w, r)
@@ -942,20 +965,10 @@ func (s *Server) handleCasualtyRoll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	unit, _ := strconv.ParseInt(r.PostFormValue("unit"), 10, 64)
-	d1, _ := strconv.Atoi(r.PostFormValue("roll"))
-	d2, _ := strconv.Atoi(r.PostFormValue("roll2"))
-	var entered []int
-	own := d1 > 0 || d2 > 0
-	if own {
-		if d1 < 1 || d1 > 6 || d2 < 1 || d2 > 6 {
-			a, err := s.campaigns.Aftermath(r.Context(), *userFrom(r.Context()), base.Campaign.ID, m.ID, co.ID)
-			if s.fail(w, r, err) {
-				return
-			}
-			s.aftermathAnswer(w, r, http.StatusUnprocessableEntity, base, m, co, a, "Enter both dice, each showing 1 to 6.", true, nil)
-			return
-		}
-		entered = []int{d1, d2}
+	entered := enteredRolls(r) // the dice typed or thrown; the core checks their number and range against the injury dice of the rules
+	own := entered != nil
+	if s.partialRolls(w, r, base, m, co, entered) {
+		return
 	}
 	a, err := s.campaigns.RollCasualty(r.Context(), *userFrom(r.Context()), base.Campaign.ID, m.ID, co.ID, unit, entered, r.PostFormValue("thrown") != "")
 	if err != nil {
@@ -977,6 +990,19 @@ func (s *Server) handleCasualtyRoll(w http.ResponseWriter, r *http.Request) {
 	s.aftermathAnswer(w, r, http.StatusOK, base, m, co, a, "", false, func(v *aftermathView) { v.Animate = animate })
 }
 
+// partialRolls answers a form with some dice typed and others left on "Roll for me" (422, the sheet as it was) and reports it did.
+func (s *Server) partialRolls(w http.ResponseWriter, r *http.Request, base campaignBase, m core.Match, co core.CampaignCompany, entered []int) bool {
+	if !slices.Contains(entered, 0) {
+		return false
+	}
+	a, err := s.campaigns.Aftermath(r.Context(), *userFrom(r.Context()), base.Campaign.ID, m.ID, co.ID)
+	if s.fail(w, r, err) {
+		return true
+	}
+	s.aftermathAnswer(w, r, http.StatusUnprocessableEntity, base, m, co, a, "Enter all the dice, each showing a face of the die, or leave them all on Roll for me.", true, nil)
+	return true
+}
+
 // handleCasualtyReroll spends an Against the Odds re-roll on a casualty.
 func (s *Server) handleCasualtyReroll(w http.ResponseWriter, r *http.Request) {
 	base, m, co, ok := s.aftermathCtx(w, r)
@@ -984,19 +1010,9 @@ func (s *Server) handleCasualtyReroll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	unit, _ := strconv.ParseInt(r.PostFormValue("unit"), 10, 64)
-	d1, _ := strconv.Atoi(r.PostFormValue("roll"))
-	d2, _ := strconv.Atoi(r.PostFormValue("roll2"))
-	var entered []int
-	if d1 > 0 || d2 > 0 {
-		if d1 < 1 || d1 > 6 || d2 < 1 || d2 > 6 {
-			a, err := s.campaigns.Aftermath(r.Context(), *userFrom(r.Context()), base.Campaign.ID, m.ID, co.ID)
-			if s.fail(w, r, err) {
-				return
-			}
-			s.aftermathAnswer(w, r, http.StatusUnprocessableEntity, base, m, co, a, "Enter both dice, each showing 1 to 6.", true, nil)
-			return
-		}
-		entered = []int{d1, d2}
+	entered := enteredRolls(r)
+	if s.partialRolls(w, r, base, m, co, entered) {
+		return
 	}
 	a, err := s.campaigns.RerollCasualty(r.Context(), *userFrom(r.Context()), base.Campaign.ID, m.ID, co.ID, unit, entered, false)
 	if err != nil {
