@@ -214,7 +214,16 @@ func (s *Server) handleArmory(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if len(base.Campaign.Companies) > 0 {
-			http.Redirect(w, r, base.ArmoryPath(base.Campaign.Companies[0].ID), http.StatusSeeOther)
+			path := base.ArmoryPath(base.Campaign.Companies[0].ID)
+			if boostedLink(r) { // a click: answer with the armoury now instead of a redirect (see boostedLink)
+				target := r.Clone(r.Context())
+				target.URL.RawQuery = "company=" + itoa(int(base.Campaign.Companies[0].ID))
+				target.Form, target.PostForm = nil, nil
+				w.Header().Set("HX-Push-Url", path)
+				s.armoryPage(w, target, http.StatusOK, "", false)
+				return
+			}
+			http.Redirect(w, r, path, http.StatusSeeOther)
 			return
 		}
 	}
