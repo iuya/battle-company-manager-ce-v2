@@ -3625,7 +3625,7 @@
           "type": "string"
         },
         "options": {
-          "description": "A brand-new unit: its options."
+          "description": "A brand-new unit: what it may take, as the vanilla file writes its options: a list of {name, points} (and chooseOneKey / requireChooseOneKey for a choose-one group)."
         },
         "overrides": {
           "description": "true when this entry deliberately replaces a lower-layer entry (vanilla or the glossary) of the same name. Without it, defining a name that already exists is an error.",
@@ -3636,13 +3636,13 @@
           "description": "Marks the unit as On Their Own Path."
         },
         "points": {
-          "description": "A brand-new unit: its points.",
+          "description": "A brand-new unit: its points cost.",
           "maximum": 10000,
           "minimum": 0,
           "type": "integer"
         },
         "profile": {
-          "description": "A brand-new unit: its full profile (movement, fight, ... as the vanilla file writes them). Free-form; the checker only needs a definition when the name exists nowhere below."
+          "description": "A brand-new unit: its full profile, written the way the vanilla file writes one: the characteristics movement, fight, shoot (\"-\" for none), strength, defence, attack, wounds, courage, intelligence (and might, will, fate for a hero), and the lists race, unitType (both required), faction, specialRules, wargear, heroicActions, magicalPowers and baseSize. The app then treats the unit like a vanilla profile."
         },
         "tts": {
           "$ref": "#/$defs/UnitTTS",

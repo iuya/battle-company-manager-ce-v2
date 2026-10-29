@@ -12,7 +12,11 @@ import (
 // DecodeBattleCompanies decodes and validates a schemaVersion 2 Battle Companies file against the vanilla file and the glossary it
 // will be played with. file names the file in the report. The document is nil when the bytes are unusable or of another version.
 func DecodeBattleCompanies(file string, bc []byte, vanilla *VanillaBook, glossary Glossary) (*lean.Document, lean.Report) {
-	doc, _, rep := lean.Decode(file, bc, newVanillaLower(vanilla, glossary))
+	lower := newVanillaLower(vanilla, glossary)
+	doc, ix, rep := lean.Decode(file, bc, lower)
+	if doc != nil {
+		checkNewUnits(file, doc, ix, lower, &rep)
+	}
 	return doc, rep
 }
 

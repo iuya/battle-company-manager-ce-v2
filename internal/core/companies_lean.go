@@ -1,6 +1,7 @@
 package core
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
@@ -38,7 +39,7 @@ func LeanCompanies(d *lean.Document, vanilla *VanillaBook, gear LeanGearTable) L
 	text := LeanRuleText(d.Rules, vanilla)
 	shape := d.Campaign.Company
 	for _, c := range d.Companies {
-		bc, p := leanCompany(d, c, text, gear)
+		bc, p := leanCompany(d, vanilla, c, text, gear)
 		p.Leaders, p.Sergeants = shape.Leaders, shape.Sergeants
 		p.HeroStart = HeroStart{Might: shape.HeroStart.Might, Will: shape.HeroStart.Will, Fate: shape.HeroStart.Fate}
 		set.Companies = append(set.Companies, bc)
@@ -52,12 +53,13 @@ func LeanCompanies(d *lean.Document, vanilla *VanillaBook, gear LeanGearTable) L
 	return set
 }
 
-// leanOwnUnits are a company's own units that build on another unit: the ones the engine treats as aliases.
-func leanOwnUnits(c lean.Company) map[string]lean.Unit {
+// leanOwnUnits are the units a company fields that build on another unit, by NameKey of their name and aka: its own and the shared
+// ones (leanUnitAliases), which the engine treats as aliases.
+func leanOwnUnits(d *lean.Document, c lean.Company) map[string]lean.Unit {
 	own := map[string]lean.Unit{}
-	for _, u := range c.Units {
-		if u.Extends != "" && lean.NameKey(u.Extends) != lean.NameKey(u.Name) {
-			own[lean.NameKey(u.Name)] = u
+	for _, u := range leanUnitAliases(d, c) {
+		for _, n := range append([]string{u.Name}, u.Aka...) {
+			own[lean.NameKey(n)] = u
 		}
 	}
 	return own
@@ -91,8 +93,8 @@ func leanChart(rows []lean.ChartRow, own map[string]lean.Unit) []ChartRow {
 	return out
 }
 
-func leanCompany(d *lean.Document, c lean.Company, text func(string) (string, bool), gear LeanGearTable) (BCCompany, CompanyProfile) {
-	own := leanOwnUnits(c)
+func leanCompany(d *lean.Document, vb *VanillaBook, c lean.Company, text func(string) (string, bool), gear LeanGearTable) (BCCompany, CompanyProfile) {
+	own := leanOwnUnits(d, c)
 	bc := BCCompany{Name: c.Name, Label: c.Label, Alignment: c.Alignment, MaxModels: c.MaxModels, LimitOverrides: map[string]float64{}}
 	if c.Reinforcements != nil {
 		bc.ReinforcementCost = c.Reinforcements.Influence
@@ -154,9 +156,18 @@ func leanCompany(d *lean.Document, c lean.Company, text func(string) (string, bo
 	for _, s := range c.Substitutions {
 		p.Substitutions = append(p.Substitutions, s.Text)
 	}
-	for _, u := range c.Units { // a company unit that builds on another is an alias
-		if _, ok := own[lean.NameKey(u.Name)]; ok {
-			p.Aliases = append(p.Aliases, UnitAlias{Label: u.Name, Unit: u.Extends, AddRules: u.AddRules, Selected: u.With, Keywords: u.AddKeywords, Text: u.Note})
+	for _, u := range leanUnitAliases(d, c) { // a unit that builds on another, the company's own or a shared one, is an alias
+		p.Aliases = append(p.Aliases, UnitAlias{Label: u.Name, Aka: u.Aka, Unit: u.Extends, AddRules: u.AddRules, Selected: u.With, Keywords: u.AddKeywords, Text: u.Note})
+	}
+	for _, u := range c.Units { // a brand-new unit of the company's own
+		if newUnitProfile(u) {
+			if p.NewUnits == nil {
+				p.NewUnits = map[string]VanillaUnit{}
+			}
+			v := leanUnitProfile(vb, u)
+			for _, n := range append([]string{u.Name}, u.Aka...) {
+				p.NewUnits[lean.NameKey(n)] = v
+			}
 		}
 	}
 	if l := c.Limits; l != nil {
@@ -178,7 +189,7 @@ func leanCompany(d *lean.Document, c lean.Company, text func(string) (string, bo
 		p.OwnPathUnits, p.OwnPath = c.OwnPath.Units, c.OwnPath.Path
 		p.OnTheirOwnPath = c.OwnPath.Units
 	}
-	for _, u := range c.Units { // the properties of a unit that only annotates a vanilla one, or builds on it
+	for _, u := range slices.Concat(d.Units, c.Units) { // the properties of a unit that only annotates a vanilla one, or builds on it: the shared units, then the company's own
 		if t := u.Types; t != nil {
 			if p.Types == nil {
 				p.Types = map[string]TypeOverride{}

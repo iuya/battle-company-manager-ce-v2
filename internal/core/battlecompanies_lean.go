@@ -13,6 +13,7 @@ import (
 func LeanBook(d *lean.Document, vb *VanillaBook, gl Glossary) (*BCBook, error) {
 	b := &BCBook{companies: map[string]BCCompany{}, keywords: map[string]string{}, parameterised: map[string]string{}, annotations: map[string]GearAnnotation{},
 		unsold: map[string]string{}, readAs: map[string]string{}, reserved: map[string]bool{}, xpGains: map[string]int{}}
+	RegisterLeanUnits(vb, d) // the brand-new units are vanilla-shaped profiles from here on
 	var err error
 	var wargear WargearThreshold
 	b.shape, wargear, b.limitRules = LeanCompanyRules(d)

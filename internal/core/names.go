@@ -1,6 +1,8 @@
 package core
 
 import (
+	"slices"
+
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
@@ -9,7 +11,7 @@ import (
 //
 //   - sameName says whether two names of the data are the same name (every site that compared two names asks it);
 //   - CompanyProfile.AliasFor finds a company's own name for a unit (its label);
-//   - RuleSet.ResolveUnit finds the vanilla profile a unit name stands for in a company (a vanilla name, else a label);
+//   - RuleSet.ResolveUnit finds the vanilla profile a unit name stands for in a company (a company label, else a vanilla name);
 //   - BCBook.Company finds a company by its name, whatever the case it was stored in (the aka of a company);
 //   - ItemKey / namesItem / SameItem (gearidentity.go) stay the fuzzy bridge to the vanilla file's own spellings of items (plural s, "made", "&").
 //
@@ -28,7 +30,7 @@ func NameKey(s string) string { return lean.NameKey(s) }
 func (p CompanyProfile) aliasesFor(label string) func(yield func(UnitAlias) bool) {
 	return func(yield func(UnitAlias) bool) {
 		for _, a := range p.Aliases {
-			if sameName(a.Label, label) && !yield(a) {
+			if (sameName(a.Label, label) || slices.ContainsFunc(a.Aka, func(k string) bool { return sameName(k, label) })) && !yield(a) {
 				return
 			}
 		}
@@ -43,16 +45,23 @@ func (p CompanyProfile) AliasFor(label string) (UnitAlias, bool) {
 	return UnitAlias{}, false
 }
 
-// ResolveUnit finds the vanilla profile a unit name stands for in a company, as buildUnit does: a vanilla name, else the label of one of
-// the company's aliases (the alias is returned with it).
+// ResolveUnit finds the profile a unit name stands for in a company, as buildUnit does, in one order: the company's own units, then the shared
+// (top-level) units, then vanilla. A unit that builds on another (a company alias, own or shared) comes back as the profile of its base with the alias;
+// a brand-new unit (own, shared or vanilla-shaped) comes back as its own profile with no alias. found is false when the name resolves nowhere.
 func (r *RuleSet) ResolveUnit(p CompanyProfile, name string) (VanillaUnit, *UnitAlias, bool) {
-	if v, ok := r.Vanilla.Unit(name); ok {
+	if v, ok := p.NewUnits[NameKey(name)]; ok {
 		return v, nil, true
 	}
 	for a := range p.aliasesFor(name) {
+		if v, ok := p.NewUnits[NameKey(a.Unit)]; ok {
+			return v, &a, true
+		}
 		if v, ok := r.Vanilla.Unit(a.Unit); ok {
 			return v, &a, true
 		}
+	}
+	if v, ok := r.Vanilla.Unit(name); ok {
+		return v, nil, true
 	}
 	return VanillaUnit{}, nil, false
 }

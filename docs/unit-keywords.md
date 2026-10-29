@@ -108,7 +108,7 @@ func (r *RuleSet) UnitKeywords(p CompanyProfile, in UnitKeywordsInput) UnitKeywo
 type UnitKeywordsInput struct{ Type string; Role UnitRole; Mount, Wanderer, Creature string }
 ```
 
-- `Type` resolves as `resolveUnit` does (vanilla name, else the company's label alias). Not found: the empty value (no panic, no error).
+- `Type` resolves as `resolveUnit` does (the company's label alias or own brand-new unit, the shared units, then the vanilla name). Not found: the empty value (no panic, no error).
 - Order: race group, faction group, type group; inside a group the vanilla order, duplicates removed (case-insensitive), spelling variants merged by the table `keywordSpellings` in core (`Lothlórien`,
   `Khazad-dum`, `Iron Hills`, `Misty Mountains`; `Fellowship, Dunedain` split on the comma; `*` and `None` dropped; lowercase `hero` becomes `Hero`). The data stays untouched.
 - `Hidden` is true for `Hero`, `Warrior`, `Infantry`, `Unique`, `Mount` (the package constant `hiddenTypes`).

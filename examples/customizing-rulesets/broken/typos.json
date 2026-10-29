@@ -241,7 +241,14 @@
         "attack": 1,
         "wounds": 1,
         "courage": 5,
-        "intelligence": 3
+        "intelligence": 3,
+        "race": [
+          "Hound"
+        ],
+        "unitType": [
+          "Warrior",
+          "Infantry"
+        ]
       },
       "definition": "Example text, not a Battle Companies rule: a brand-new unit with no base unit."
     }
