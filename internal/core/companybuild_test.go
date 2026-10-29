@@ -37,7 +37,7 @@ func shippedBCPath() string {
 }
 
 // shippedRules is the RuleSet of the default files, built once for all tests.
-func shippedRules(t *testing.T) *RuleSet {
+func shippedRules(t testing.TB) *RuleSet {
 	t.Helper()
 	shippedOnce.Do(func() {
 		files := map[string]StoredRuleset{}
