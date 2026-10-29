@@ -31,6 +31,18 @@ hash, so timing does not reveal which emails exist, and the only failure message
   database cannot be used to impersonate anyone.
 - The token travels in the `bcm_session` cookie: `HttpOnly`, `SameSite=Lax`, `Path=/`, `Secure` when
   `SECURE_COOKIES=true`.
+- **Last campaign (`bcm-last`).** A second cookie remembers where the user was: `<userID>.<campaignID>[.<companyID>]`, base-10
+  ids only (at most 64 characters, parsed strictly; anything else is dropped). `HttpOnly`, `SameSite=Lax`, `Path=/`, `Secure`
+  like the session cookie, 90 days renewed on each write. It is unsigned because it authorises nothing: it is a hint read only
+  after authentication and validated against the database on every read. It is written by full-page GETs of a campaign page
+  the user belongs to (and of one of their own companies, which records the company); never by htmx fragments, event streams
+  or POSTs, and never for a finished campaign. `GET /` for a signed-in user redirects (303) to the campaign Overview from the
+  cookie; the cookie is **cleared** when it is malformed, holds another user's id (the id inside must be the session user's),
+  the campaign is finished, or the user can no longer open it (`ErrNotFound`), and the list is shown instead. A paused
+  campaign still redirects. `GET /campaigns/{id}/my-company` (no company) opens the company recorded for that campaign if it is
+  still the user's own, else their oldest. The campaign list lives at `GET /campaigns`, which never reads the cookie and never
+  redirects, so the brand link, the sidebar's "Campaigns" and "← Campaigns" always reach it. Logging out keeps the cookie (ids
+  only); closing the account clears it. After sign-in `/` applies it unless `?next=` names another page.
 - Sessions last 30 days and are renewed when more than half of that is gone, so regular users stay signed in.
 - **In-memory cache:** every request of a page, htmx partials included, goes through `Auth.Authenticate`. A session
   confirmed within the last minute is answered from memory, so most requests do not touch the database. Logging out
