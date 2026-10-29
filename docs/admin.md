@@ -49,7 +49,7 @@ content coexist, and the short hash tells them apart.
 | Action | Route | Rule |
 |---|---|---|
 | Upload | `POST /admin/rulesets` (multipart `kind`, `file`) | The server hashes the file, validates it against the schema of its kind and stores it (at most 16 MB). Outcome in the card: stored, already stored, or the rejection |
-| Check this file | `POST /admin/rulesets/check` | The same validation as a dry run; stores nothing |
+| Check this file | `POST /admin/rulesets/check` | The same validation as a dry run (`Rulesets.CheckSet` with the one file); stores nothing. To check a Battle Companies file against your own vanilla file and glossary, every player (not only superusers) can use the online validator at `/tools/validate` ([frontend.md](frontend.md#online-validator)); it stores nothing either |
 | Make default | `POST /admin/rulesets/{hash}/default` | New campaigns and the glossary picker start from the default; existing campaigns keep their files |
 | Download | `GET /admin/rulesets/{hash}/download` | The stored file as an attachment |
 | Delete | `POST /admin/rulesets/{hash}/delete` | Only when no campaign uses the file and it is not a default (confirm step); the database foreign keys back the check |
