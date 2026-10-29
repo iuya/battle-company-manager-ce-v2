@@ -221,6 +221,9 @@ func buildUnitFor(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSet
 		}
 		return false
 	}
+	if n := len(base.Wargear) + len(s.Gear) + len(s.Bought); n > 0 {
+		u.Equipment = make([]Equipment, 0, n) // an Equipment is a few hundred bytes: grow once
+	}
 	for _, w := range base.Wargear {
 		if !dropped(w) {
 			addItem(w, false, true)

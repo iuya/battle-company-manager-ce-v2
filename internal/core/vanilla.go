@@ -387,8 +387,8 @@ func (b *VanillaBook) Keyword(name string) (string, bool) {
 // Profile builds the attributes of a unit from its vanilla profile and the company's bonuses (by StatDef.Key). The hero
 // attributes (Might, Will, Fate) are only included for heroes.
 func (b *VanillaBook) Profile(u VanillaUnit, hero bool, bonus map[string]int) []Attribute {
-	var out []Attribute
-	var heroStats []Attribute // Might, Will and Fate: shown only when a hero has some
+	out := make([]Attribute, 0, len(b.stats)) // one allocation, not a doubling per characteristic
+	var heroStats []Attribute                 // Might, Will and Fate: shown only when a hero has some
 	for _, s := range b.stats {
 		if s.HeroOnly && !hero {
 			continue
@@ -409,6 +409,9 @@ func (b *VanillaBook) Profile(u VanillaUnit, hero bool, bonus map[string]int) []
 		if a.Value != 0 {
 			return append(out, heroStats...)
 		}
+	}
+	if len(out) == 0 {
+		return nil
 	}
 	return out
 }
