@@ -119,7 +119,7 @@ func TestCampaigns(t *testing.T) {
 	if err != nil || co.Units != 2 || co.Owner != "org" || co.OwnerID != owner.ID {
 		t.Fatalf("company: %+v, %v", co, err)
 	}
-	if list, _ = repo.List(ctx, owner.ID, false); list[1].Company == nil || list[1].Company.ID != co.ID || list[0].Company != nil {
+	if list, _ = repo.List(ctx, owner.ID, false); len(list[1].Companies) != 1 || list[1].Companies[0].ID != co.ID || len(list[0].Companies) != 0 {
 		t.Fatalf("list company: %+v", list)
 	}
 	all, err := repo.Companies(ctx, second.ID)
@@ -132,7 +132,7 @@ func TestCampaigns(t *testing.T) {
 	if _, err := repo.Company(ctx, first.ID, co.ID); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("company of another campaign: %v", err)
 	}
-	if d, _ = repo.Get(ctx, owner.ID, second.ID); d.Company == nil || d.Company.ID != co.ID {
-		t.Fatalf("detail company: %+v", d.Company)
+	if d, _ = repo.Get(ctx, owner.ID, second.ID); len(d.Companies) != 1 || d.Companies[0].ID != co.ID {
+		t.Fatalf("detail company: %+v", d.Companies)
 	}
 }

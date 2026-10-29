@@ -62,7 +62,7 @@ func TestBuyingEquipmentSpendsInfluenceAndTakesASlot(t *testing.T) {
 		t.Error("a hero of Minas Tirith may buy a horse: its charts have knights")
 	}
 
-	if err := s.BuyEquipment(f.ctx, f.user, 5, 2, "Badge of Courage", ""); err != nil {
+	if err := s.BuyEquipment(f.ctx, f.user, 5, 1, 2, "Badge of Courage", ""); err != nil {
 		t.Fatal(err)
 	}
 	if f.state.Influence != 10 {
@@ -82,21 +82,21 @@ func TestBuyingEquipmentSpendsInfluenceAndTakesASlot(t *testing.T) {
 	if got := offered(2)["Map"]; got.Blocker != BlockedBySlots || got.Reason != "No free small slot" {
 		t.Errorf("no free small slot is a reason worth showing: %+v", got)
 	}
-	if err := s.BuyEquipment(f.ctx, f.user, 5, 2, "Map", ""); !errors.Is(err, ErrRefused) {
+	if err := s.BuyEquipment(f.ctx, f.user, 5, 1, 2, "Map", ""); !errors.Is(err, ErrRefused) {
 		t.Errorf("no free small slot: %v", err)
 	}
-	if err := s.BuyEquipment(f.ctx, f.user, 5, 2, "No Such Thing", ""); !errors.Is(err, ErrNotFound) {
+	if err := s.BuyEquipment(f.ctx, f.user, 5, 1, 2, "No Such Thing", ""); !errors.Is(err, ErrNotFound) {
 		t.Errorf("unknown item: %v", err)
 	}
 	for _, c := range []struct {
 		unit int64
 		item string
 	}{{6, "Horse"}, {6, "Healing Herbs"}, {2, "Pike"}} { // in the armoury, but not for this unit: the refusal says why, not a 404
-		if err := s.BuyEquipment(f.ctx, f.user, 5, c.unit, c.item, ""); !errors.Is(err, ErrRefused) {
+		if err := s.BuyEquipment(f.ctx, f.user, 5, 1, c.unit, c.item, ""); !errors.Is(err, ErrRefused) {
 			t.Errorf("%s for unit %d: want a refusal, got %v", c.item, c.unit, err)
 		}
 	}
-	if err := s.BuyEquipment(f.ctx, f.user, 5, 999, "Map", ""); !errors.Is(err, ErrNotFound) {
+	if err := s.BuyEquipment(f.ctx, f.user, 5, 1, 999, "Map", ""); !errors.Is(err, ErrNotFound) {
 		t.Errorf("unknown unit: %v", err)
 	}
 	if got := f.state.Influence; got != 10 {
@@ -107,14 +107,14 @@ func TestBuyingEquipmentSpendsInfluenceAndTakesASlot(t *testing.T) {
 func TestPurchasesAreRefusedForStrangersAndWhenTooDear(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.armoury(t)
-	if err := s.BuyEquipment(f.ctx, User{ID: 8}, 5, 2, "Badge of Courage", ""); !errors.Is(err, ErrNotFound) {
+	if err := s.BuyEquipment(f.ctx, User{ID: 8}, 5, 1, 2, "Badge of Courage", ""); !errors.Is(err, ErrNotFound) {
 		t.Errorf("a member without a company: %v", err)
 	}
 	f.state.Influence = 1
 	if got := itemsByName(mustItems(t, s, f, 3))["Armoured Horse"]; got.Name != "" && got.Blocker != BlockedByInfluence {
 		t.Errorf("1 influence left: %+v", got)
 	}
-	if err := s.BuyEquipment(f.ctx, f.user, 5, 3, "Badge of Courage", ""); !errors.Is(err, ErrRefused) {
+	if err := s.BuyEquipment(f.ctx, f.user, 5, 1, 3, "Badge of Courage", ""); !errors.Is(err, ErrRefused) {
 		t.Errorf("too dear: %v", err)
 	}
 	if f.state.Influence != 1 || len(f.state.Units[2].Bought) != 1 {
@@ -141,7 +141,7 @@ func TestConcurrentPurchasesCannotOverspend(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := s.BuyEquipment(f.ctx, f.user, 5, unit, "Badge of Courage", ""); err == nil {
+			if err := s.BuyEquipment(f.ctx, f.user, 5, 1, unit, "Badge of Courage", ""); err == nil {
 				bought.Add(1)
 			} else if !errors.Is(err, ErrRefused) && !errors.Is(err, ErrNotFound) {
 				t.Errorf("unit %d: %v", unit, err)
@@ -174,14 +174,14 @@ func TestEquipmentCanBeBoughtWithGold(t *testing.T) {
 	if item.Name == "" {
 		t.Fatal("some item can be bought with gold")
 	}
-	if err := s.BuyEquipment(f.ctx, f.user, 5, 2, item.Name, "gold"); err != nil {
+	if err := s.BuyEquipment(f.ctx, f.user, 5, 1, 2, item.Name, "gold"); err != nil {
 		t.Fatal(err)
 	}
 	if f.state.Gold != 30-item.GoldPrice || f.state.Influence != 12 {
 		t.Errorf("gold 30 -> %d (price %d), influence %d", f.state.Gold, item.GoldPrice, f.state.Influence)
 	}
 	f.state.Gold = 0
-	if err := s.BuyEquipment(f.ctx, f.user, 5, 3, "Badge of Courage", "gold"); !errors.Is(err, ErrRefused) {
+	if err := s.BuyEquipment(f.ctx, f.user, 5, 1, 3, "Badge of Courage", "gold"); !errors.Is(err, ErrRefused) {
 		t.Errorf("no gold left: %v", err)
 	}
 }
@@ -191,7 +191,7 @@ func TestDroppingFollowsTheBattleCompaniesRules(t *testing.T) {
 	s := f.armoury(t)
 	// A hero drops anything it bought, without conditions; its points follow.
 	hero := f.unit(t, 1)
-	if err := s.DropEquipment(f.ctx, f.user, 5, 1, "Throwing Spear"); err != nil {
+	if err := s.DropEquipment(f.ctx, f.user, 5, 1, 1, "Throwing Spear"); err != nil {
 		t.Errorf("a hero may drop what it bought: %v", err)
 	}
 	if after := f.unit(t, 1); after.Points != hero.Points-5 { // the hero rating of a throwing weapon
@@ -207,19 +207,19 @@ func TestDroppingFollowsTheBattleCompaniesRules(t *testing.T) {
 	if profile == "" {
 		t.Fatal("the leader carries profile gear")
 	}
-	if err := s.DropEquipment(f.ctx, f.user, 5, 1, profile); !errors.Is(err, ErrRefused) {
+	if err := s.DropEquipment(f.ctx, f.user, 5, 1, 1, profile); !errors.Is(err, ErrRefused) {
 		t.Errorf("heroes keep their profile's wargear unless the optional rule is on: %v", err)
 	}
-	if err := s.DropEquipment(f.ctx, f.user, 5, 1, "Badge of Courage"); err != nil {
+	if err := s.DropEquipment(f.ctx, f.user, 5, 1, 1, "Badge of Courage"); err != nil {
 		t.Errorf("equipment is always free to drop: %v", err)
 	}
-	if err := s.DropEquipment(f.ctx, f.user, 5, 1, "Banner of Doom"); !errors.Is(err, ErrRefused) {
+	if err := s.DropEquipment(f.ctx, f.user, 5, 1, 1, "Banner of Doom"); !errors.Is(err, ErrRefused) {
 		t.Errorf("not carried: %v", err)
 	}
-	if err := s.DropEquipment(f.ctx, f.user, 5, 999, "Spear"); !errors.Is(err, ErrNotFound) {
+	if err := s.DropEquipment(f.ctx, f.user, 5, 1, 999, "Spear"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("unknown unit: %v", err)
 	}
-	if err := s.DropEquipment(f.ctx, User{ID: 8}, 5, 1, "Spear"); !errors.Is(err, ErrNotFound) {
+	if err := s.DropEquipment(f.ctx, User{ID: 8}, 5, 1, 1, "Spear"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("non-owner: %v", err)
 	}
 }
@@ -234,7 +234,7 @@ func TestTheOptionalRuleLetsHeroesDropProfileGear(t *testing.T) {
 		}
 	}
 	f.settings = CampaignSettings{HeroesDropProfileGear: true} // the same company in a campaign that plays with the optional rule
-	if err := s.DropEquipment(f.ctx, f.user, 5, 1, profile); err != nil {
+	if err := s.DropEquipment(f.ctx, f.user, 5, 1, 1, profile); err != nil {
 		t.Errorf("with the optional rule a hero may drop %s: %v", profile, err)
 	}
 	if len(f.state.Units[0].Dropped) != 1 {
@@ -251,10 +251,10 @@ func TestAWarriorMayOnlyDropGearWhenWhatIsLeftIsAnOption(t *testing.T) {
 	if before.Points != 8+1+1 {
 		t.Errorf("points of the recruit: %d", before.Points)
 	}
-	if err := s.DropEquipment(f.ctx, f.user, 5, 100, "Shield"); !errors.Is(err, ErrRefused) {
+	if err := s.DropEquipment(f.ctx, f.user, 5, 1, 100, "Shield"); !errors.Is(err, ErrRefused) {
 		t.Errorf("a spear alone is not an option of the profile: %v", err)
 	}
-	if err := s.DropEquipment(f.ctx, f.user, 5, 100, "Spear"); err != nil {
+	if err := s.DropEquipment(f.ctx, f.user, 5, 1, 100, "Spear"); err != nil {
 		t.Fatalf("a shield alone is an option: %v", err)
 	}
 	if after := f.unit(t, 100); after.Points != before.Points-1 {
@@ -304,16 +304,16 @@ func TestCreaturesGoToOfficersAndTakeNoSlots(t *testing.T) {
 	s := f.armoury(t)
 	f.state.Influence = 20
 	before := BuildDetail(shippedRules(t), CampaignSettings{}, f.state)
-	if err := s.BuyCreature(f.ctx, f.user, 5, 6, "Baggage Pony", ""); !errors.Is(err, ErrRefused) {
+	if err := s.BuyCreature(f.ctx, f.user, 5, 1, 6, "Baggage Pony", ""); !errors.Is(err, ErrRefused) {
 		t.Errorf("a warrior cannot have a creature: %v", err)
 	}
-	if err := s.BuyCreature(f.ctx, f.user, 5, 1, "Baggage Pony", ""); err != nil {
+	if err := s.BuyCreature(f.ctx, f.user, 5, 1, 1, "Baggage Pony", ""); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.BuyCreature(f.ctx, f.user, 5, 1, "Falcon", ""); !errors.Is(err, ErrRefused) {
+	if err := s.BuyCreature(f.ctx, f.user, 5, 1, 1, "Falcon", ""); !errors.Is(err, ErrRefused) {
 		t.Errorf("one creature each: %v", err)
 	}
-	if err := s.BuyCreature(f.ctx, f.user, 5, 1, "Unicorn", ""); !errors.Is(err, ErrNotFound) {
+	if err := s.BuyCreature(f.ctx, f.user, 5, 1, 1, "Unicorn", ""); !errors.Is(err, ErrNotFound) {
 		t.Errorf("unknown creature: %v", err)
 	}
 	after := BuildDetail(shippedRules(t), CampaignSettings{}, f.state)
@@ -336,13 +336,13 @@ func TestTheBaggagePonyStoresAndSwapsGear(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.armoury(t)
 	f.state.Influence = 20
-	if err := s.Carry(f.ctx, f.user, 5, 2, CarryAction{Kind: "store", Item: "Spear"}); !errors.Is(err, ErrRefused) {
+	if err := s.Carry(f.ctx, f.user, 5, 1, 2, CarryAction{Kind: "store", Item: "Spear"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("without a pony there is no pack: %v", err)
 	}
-	if err := s.BuyCreature(f.ctx, f.user, 5, 1, "Baggage Pony", ""); err != nil {
+	if err := s.BuyCreature(f.ctx, f.user, 5, 1, 1, "Baggage Pony", ""); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.Carry(f.ctx, f.user, 5, 2, CarryAction{Kind: "store", Item: "Spear"}); err != nil {
+	if err := s.Carry(f.ctx, f.user, 5, 1, 2, CarryAction{Kind: "store", Item: "Spear"}); err != nil {
 		t.Fatal(err)
 	}
 	if len(f.state.Pack) != 1 || f.state.Pack[0] != "Spear" {
@@ -353,27 +353,27 @@ func TestTheBaggagePonyStoresAndSwapsGear(t *testing.T) {
 			t.Error("Hador no longer carries it")
 		}
 	}
-	if err := s.Carry(f.ctx, f.user, 5, 6, CarryAction{Kind: "retrieve", Take: "Spear"}); err != nil {
+	if err := s.Carry(f.ctx, f.user, 5, 1, 6, CarryAction{Kind: "retrieve", Take: "Spear"}); err != nil {
 		if !errors.Is(err, ErrRefused) {
 			t.Fatal(err)
 		}
 		if len(f.state.Pack) != 1 {
 			t.Errorf("a refused retrieve leaves the pack as it was: %v", f.state.Pack)
 		}
-		if err := s.Carry(f.ctx, f.user, 5, 2, CarryAction{Kind: "retrieve", Take: "Spear"}); err != nil {
+		if err := s.Carry(f.ctx, f.user, 5, 1, 2, CarryAction{Kind: "retrieve", Take: "Spear"}); err != nil {
 			t.Errorf("Hador takes his spear back: %v", err)
 		}
 	}
 	if len(f.state.Pack) != 0 {
 		t.Errorf("the pack is empty again: %v", f.state.Pack)
 	}
-	if err := s.Carry(f.ctx, f.user, 5, 2, CarryAction{Kind: "retrieve", Take: "Spear"}); !errors.Is(err, ErrRefused) {
+	if err := s.Carry(f.ctx, f.user, 5, 1, 2, CarryAction{Kind: "retrieve", Take: "Spear"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("not in the pack: %v", err)
 	}
-	if err := s.Carry(f.ctx, f.user, 5, 2, CarryAction{Kind: "burn"}); !errors.Is(err, ErrRefused) {
+	if err := s.Carry(f.ctx, f.user, 5, 1, 2, CarryAction{Kind: "burn"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("unknown action: %v", err)
 	}
-	if err := s.Carry(f.ctx, f.user, 5, 5, CarryAction{Kind: "store", Item: "Horse"}); !errors.Is(err, ErrRefused) {
+	if err := s.Carry(f.ctx, f.user, 5, 1, 5, CarryAction{Kind: "store", Item: "Horse"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("mounts are not carried: %v", err)
 	}
 }
@@ -382,12 +382,12 @@ func TestWanderersJoinAsUnitsAndCanBeDismissed(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.armoury(t)
 	f.state.Influence = 5
-	if err := s.HireWanderer(f.ctx, f.user, 5, "Wandering Swordsman", ""); !errors.Is(err, ErrRefused) {
+	if err := s.HireWanderer(f.ctx, f.user, 5, 1, "Wandering Swordsman", ""); !errors.Is(err, ErrRefused) {
 		t.Errorf("9 influence is more than the company has: %v", err)
 	}
 	f.state.Influence = 30
 	before := BuildDetail(shippedRules(t), CampaignSettings{}, f.state)
-	if err := s.HireWanderer(f.ctx, f.user, 5, "Wandering Swordsman", ""); err != nil {
+	if err := s.HireWanderer(f.ctx, f.user, 5, 1, "Wandering Swordsman", ""); err != nil {
 		t.Fatal(err)
 	}
 	after := BuildDetail(shippedRules(t), CampaignSettings{}, f.state)
@@ -403,16 +403,16 @@ func TestWanderersJoinAsUnitsAndCanBeDismissed(t *testing.T) {
 	if after.Units != before.Units+1 || w.Points != 60 || !w.IsHero() || w.ID == 0 || after.Influence != before.Influence-9 || after.Points != before.Points+60 {
 		t.Errorf("a wanderer is a unit worth 60 points: %+v", w)
 	}
-	if err := s.HireWanderer(f.ctx, f.user, 5, "Wandering Swordsman", ""); !errors.Is(err, ErrRefused) {
+	if err := s.HireWanderer(f.ctx, f.user, 5, 1, "Wandering Swordsman", ""); !errors.Is(err, ErrRefused) {
 		t.Errorf("one wanderer at a time: %v", err)
 	}
-	if err := s.DismissWanderer(f.ctx, f.user, 5, 1); !errors.Is(err, ErrRefused) {
+	if err := s.DismissWanderer(f.ctx, f.user, 5, 1, 1); !errors.Is(err, ErrRefused) {
 		t.Errorf("only wanderers can be dismissed: %v", err)
 	}
-	if err := s.DismissWanderer(f.ctx, User{ID: 8}, 5, w.ID); !errors.Is(err, ErrNotFound) {
+	if err := s.DismissWanderer(f.ctx, User{ID: 8}, 5, 1, w.ID); !errors.Is(err, ErrNotFound) {
 		t.Errorf("non-owner: %v", err)
 	}
-	if err := s.DismissWanderer(f.ctx, f.user, 5, w.ID); err != nil {
+	if err := s.DismissWanderer(f.ctx, f.user, 5, 1, w.ID); err != nil {
 		t.Fatal(err)
 	}
 	if gone := BuildDetail(shippedRules(t), CampaignSettings{}, f.state); gone.Units != before.Units || gone.Influence != after.Influence {

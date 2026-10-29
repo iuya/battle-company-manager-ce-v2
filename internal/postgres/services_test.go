@@ -64,7 +64,7 @@ func TestCoreServicesOnPostgres(t *testing.T) {
 	if created.Points == 0 || created.Units == 0 {
 		t.Errorf("a new company is rated from its units: %+v", created)
 	}
-	if _, err := companies.CreateCompany(ctx, owner, camp.ID, core.CompanyInput{Name: "Again", Faction: "Minas Tirith"}); !errors.Is(err, core.ErrHasCompany) {
+	if _, err := companies.CreateCompany(ctx, owner, camp.ID, core.CompanyInput{Name: "Again", Faction: "Minas Tirith"}); !errors.Is(err, core.ErrCompanyLimit) {
 		t.Fatalf("one company per player: %v", err)
 	}
 	detail, err := companies.CompanyDetail(ctx, camp.ID, created.ID)
@@ -72,8 +72,8 @@ func TestCoreServicesOnPostgres(t *testing.T) {
 		t.Fatalf("detail: %+v %v", detail, err)
 	}
 	got, err := campaigns.Get(ctx, owner.ID, camp.ID)
-	if err != nil || got.Company == nil || got.Company.Points != created.Points {
-		t.Fatalf("the campaign shows the company rated: %+v %v", got.Company, err)
+	if err != nil || len(got.Companies) != 1 || got.Companies[0].Points != created.Points {
+		t.Fatalf("the campaign shows the company rated: %+v %v", got.Companies, err)
 	}
 	var officers []int64
 	for _, u := range detail.Roster {
@@ -90,14 +90,14 @@ func TestCoreServicesOnPostgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	dice := &core.FixedDice{Rolls: []int{6}}
-	if err := core.NewRecruitService(s.Campaigns(), s.Companies(), rules, dice).RollRecruit(ctx, owner, camp.ID, 0, false); err != nil {
+	if err := core.NewRecruitService(s.Campaigns(), s.Companies(), rules, dice).RollRecruit(ctx, owner, camp.ID, created.ID, 0, false); err != nil {
 		t.Fatal(err)
 	}
-	res, err := core.NewRecruitService(s.Campaigns(), s.Companies(), rules, dice).ConfirmRecruit(ctx, owner, camp.ID, 0, "")
+	res, err := core.NewRecruitService(s.Campaigns(), s.Companies(), rules, dice).ConfirmRecruit(ctx, owner, camp.ID, created.ID, 0, "")
 	if err != nil || !res.Next {
 		t.Fatalf("a 6 leads on to the special chart: %+v %v", res, err)
 	}
-	if state, _ := core.NewRecruitService(s.Campaigns(), s.Companies(), rules, dice).RecruitState(ctx, owner, camp.ID); state == nil || state.Stage != "special" {
+	if state, _ := core.NewRecruitService(s.Campaigns(), s.Companies(), rules, dice).RecruitState(ctx, owner, camp.ID, created.ID); state == nil || state.Stage != "special" {
 		t.Fatalf("the special chart waits: %+v", state)
 	}
 	if err := s.Companies().Update(ctx, camp.ID, created.ID, func(st *core.CompanyState) error {
@@ -116,7 +116,7 @@ func TestCoreServicesOnPostgres(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			switch err := armoury.BuyEquipment(ctx, owner, camp.ID, id, "Badge of Courage", ""); {
+			switch err := armoury.BuyEquipment(ctx, owner, camp.ID, created.ID, id, "Badge of Courage", ""); {
 			case err == nil:
 				bought.Add(1)
 			case !errors.Is(err, core.ErrRefused):

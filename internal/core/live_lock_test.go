@@ -20,25 +20,25 @@ func TestCompanyActionsAreLockedWhileAMatchIsRunning(t *testing.T) {
 	arm := NewArmouryService(f.campaigns, f.companies, rules)
 	lvl := NewLevelService(f.campaigns, f.companies, rules, &FixedDice{Rolls: []int{3}})
 	rec := NewRecruitService(f.campaigns, f.companies, rules, &FixedDice{Rolls: []int{3}})
-	_, rollErr := lvl.RollLevelUp(f.ctx, f.user, 5, 1, nil, false)
-	_, chooseErr := lvl.ChooseLevelUp(f.ctx, f.user, 5, 1, []string{"x"})
-	_, rerollErr := lvl.RerollLevelUp(f.ctx, f.user, 5, 1, 0)
-	_, specialErr := rec.RecruitSpecial(f.ctx, f.user, 5, "Anybody")
-	_, treatErr := NewTreatmentService(f.campaigns, f.companies, rules, &FixedDice{}).TreatInjury(f.ctx, f.user, 5, 7, Treatment{Method: "warrior"})
+	_, rollErr := lvl.RollLevelUp(f.ctx, f.user, 5, 1, 1, nil, false)
+	_, chooseErr := lvl.ChooseLevelUp(f.ctx, f.user, 5, 1, 1, []string{"x"})
+	_, rerollErr := lvl.RerollLevelUp(f.ctx, f.user, 5, 1, 1, 0)
+	_, specialErr := rec.RecruitSpecial(f.ctx, f.user, 5, 1, "Anybody")
+	_, treatErr := NewTreatmentService(f.campaigns, f.companies, rules, &FixedDice{}).TreatInjury(f.ctx, f.user, 5, 1, 7, Treatment{Method: "warrior"})
 	for name, err := range map[string]error{
-		"buy":      arm.BuyEquipment(f.ctx, f.user, 5, 6, "Shield", ""),
-		"drop":     arm.DropEquipment(f.ctx, f.user, 5, 6, "Bow"),
-		"creature": arm.BuyCreature(f.ctx, f.user, 5, 2, "Baggage Pony", ""),
-		"wanderer": arm.HireWanderer(f.ctx, f.user, 5, "Anybody", ""),
-		"dismiss":  arm.DismissWanderer(f.ctx, f.user, 5, 6),
-		"carry":    arm.Carry(f.ctx, f.user, 5, 6, CarryAction{Kind: "store", Item: "Bow"}),
-		"recruit":  rec.RollRecruit(f.ctx, f.user, 5, 0, false),
+		"buy":      arm.BuyEquipment(f.ctx, f.user, 5, 1, 6, "Shield", ""),
+		"drop":     arm.DropEquipment(f.ctx, f.user, 5, 1, 6, "Bow"),
+		"creature": arm.BuyCreature(f.ctx, f.user, 5, 1, 2, "Baggage Pony", ""),
+		"wanderer": arm.HireWanderer(f.ctx, f.user, 5, 1, "Anybody", ""),
+		"dismiss":  arm.DismissWanderer(f.ctx, f.user, 5, 1, 6),
+		"carry":    arm.Carry(f.ctx, f.user, 5, 1, 6, CarryAction{Kind: "store", Item: "Bow"}),
+		"recruit":  rec.RollRecruit(f.ctx, f.user, 5, 1, 0, false),
 		"special":  specialErr,
 		"treat":    treatErr,
 		"level":    rollErr,
 		"choose":   chooseErr,
 		"reroll":   rerollErr,
-		"path":     lvl.ChoosePath(f.ctx, f.user, 5, 2, "Path of the Warlord", ""),
+		"path":     lvl.ChoosePath(f.ctx, f.user, 5, 1, 2, "Path of the Warlord", ""),
 	} {
 		if !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Match 3 is running; finish it first.") {
 			t.Errorf("%s: %v", name, err)
@@ -46,27 +46,27 @@ func TestCompanyActionsAreLockedWhileAMatchIsRunning(t *testing.T) {
 	}
 	// the open match message wins over an aftermath
 	f.state.Aftermaths = []AftermathRef{{MatchID: 1, MatchNumber: 2, CompanyID: 1, Status: AftermathPending}}
-	if err := arm.DropEquipment(f.ctx, f.user, 5, 6, "Bow"); err == nil || !strings.Contains(err.Error(), "Match 3 is running") {
+	if err := arm.DropEquipment(f.ctx, f.user, 5, 1, 6, "Bow"); err == nil || !strings.Contains(err.Error(), "Match 3 is running") {
 		t.Errorf("both set: %v", err)
 	}
 	f.state.Aftermaths = nil
 
 	svc := NewCompanyService(f.campaigns, f.companies, rules)
-	if err := svc.RenameUnit(f.ctx, f.user, 5, 6, "Cirion the Bold"); err != nil {
+	if err := svc.RenameUnit(f.ctx, f.user, 5, 1, 6, "Cirion the Bold"); err != nil {
 		t.Errorf("renaming a unit: %v", err)
 	}
 	var order []int64
 	for _, u := range f.state.Units {
 		order = append(order, u.ID)
 	}
-	if err := svc.SaveFormation(f.ctx, f.user, 5, order); err != nil {
+	if err := svc.SaveFormation(f.ctx, f.user, 5, 1, order); err != nil {
 		t.Errorf("formation: %v", err)
 	}
-	if err := NewCemeteryService(f.campaigns, f.companies, rules).SaveCemeteryOrder(f.ctx, f.user, 5, nil); err != nil {
+	if err := NewCemeteryService(f.campaigns, f.companies, rules).SaveCemeteryOrder(f.ctx, f.user, 5, 1, nil); err != nil {
 		t.Errorf("cemetery order: %v", err)
 	}
 	f.state.OpenMatch = nil
-	if err := arm.DropEquipment(f.ctx, f.user, 5, 6, "Bow"); err != nil && strings.Contains(err.Error(), "is running") {
+	if err := arm.DropEquipment(f.ctx, f.user, 5, 1, 6, "Bow"); err != nil && strings.Contains(err.Error(), "is running") {
 		t.Errorf("unlocked: %v", err)
 	}
 }
@@ -115,26 +115,26 @@ func TestFinishedCampaignRefusesEveryCompanyWrite(t *testing.T) {
 	campaigns := NewMockcampaignRepository(ctrl)
 	companies := NewMockcompanyRepository(ctrl)
 	campaigns.EXPECT().Hashes(gomock.Any(), int64(5)).Return(RulesetHashes{}, CampaignSettings{}, nil).AnyTimes()
-	campaigns.EXPECT().Get(gomock.Any(), int64(9), int64(5)).Return(CampaignDetail{CampaignSummary: CampaignSummary{ID: 5, Status: CampaignFinished, Company: &CampaignCompany{ID: 1}}}, nil).AnyTimes()
+	campaigns.EXPECT().Get(gomock.Any(), int64(9), int64(5)).Return(CampaignDetail{CampaignSummary: CampaignSummary{ID: 5, Status: CampaignFinished, Companies: []CampaignCompany{{ID: 1}}}}, nil).AnyTimes()
 	// Update and Read are never reached: every use case stops at the campaign
 	ctx, user := context.Background(), User{ID: 9}
 	arm := NewArmouryService(campaigns, companies, rules)
 	lvl := NewLevelService(campaigns, companies, rules, &FixedDice{Rolls: []int{3}})
 	rec := NewRecruitService(campaigns, companies, rules, &FixedDice{Rolls: []int{3}})
 	co := NewCompanyService(campaigns, companies, rules)
-	_, rollLevel := lvl.RollLevelUp(ctx, user, 5, 1, nil, false)
-	_, chooseLevel := lvl.ChooseLevelUp(ctx, user, 5, 1, []string{"x"})
-	_, rerollLevel := lvl.RerollLevelUp(ctx, user, 5, 1, 0)
-	_, special := rec.RecruitSpecial(ctx, user, 5, "Anybody")
-	_, treat := NewTreatmentService(campaigns, companies, rules, &FixedDice{}).TreatInjury(ctx, user, 5, 7, Treatment{Method: "warrior"})
+	_, rollLevel := lvl.RollLevelUp(ctx, user, 5, 1, 1, nil, false)
+	_, chooseLevel := lvl.ChooseLevelUp(ctx, user, 5, 1, 1, []string{"x"})
+	_, rerollLevel := lvl.RerollLevelUp(ctx, user, 5, 1, 1, 0)
+	_, special := rec.RecruitSpecial(ctx, user, 5, 1, "Anybody")
+	_, treat := NewTreatmentService(campaigns, companies, rules, &FixedDice{}).TreatInjury(ctx, user, 5, 1, 7, Treatment{Method: "warrior"})
 	for name, err := range map[string]error{
-		"buy": arm.BuyEquipment(ctx, user, 5, 6, "Shield", ""), "drop": arm.DropEquipment(ctx, user, 5, 6, "Bow"),
-		"creature": arm.BuyCreature(ctx, user, 5, 2, "Baggage Pony", ""), "wanderer": arm.HireWanderer(ctx, user, 5, "Anybody", ""),
-		"dismiss": arm.DismissWanderer(ctx, user, 5, 6), "carry": arm.Carry(ctx, user, 5, 6, CarryAction{Kind: "store", Item: "Bow"}),
-		"recruit": rec.RollRecruit(ctx, user, 5, 0, false), "special": special, "treat": treat,
-		"level": rollLevel, "choose": chooseLevel, "reroll": rerollLevel, "path": lvl.ChoosePath(ctx, user, 5, 1, "Path of the Warlord", ""),
-		"rename company": co.RenameCompany(ctx, user, 5, "New name"), "rename unit": co.RenameUnit(ctx, user, 5, 1, "Bold"),
-		"formation": co.SaveFormation(ctx, user, 5, []int64{1}), "cemetery order": NewCemeteryService(campaigns, companies, rules).SaveCemeteryOrder(ctx, user, 5, nil),
+		"buy": arm.BuyEquipment(ctx, user, 5, 1, 6, "Shield", ""), "drop": arm.DropEquipment(ctx, user, 5, 1, 6, "Bow"),
+		"creature": arm.BuyCreature(ctx, user, 5, 1, 2, "Baggage Pony", ""), "wanderer": arm.HireWanderer(ctx, user, 5, 1, "Anybody", ""),
+		"dismiss": arm.DismissWanderer(ctx, user, 5, 1, 6), "carry": arm.Carry(ctx, user, 5, 1, 6, CarryAction{Kind: "store", Item: "Bow"}),
+		"recruit": rec.RollRecruit(ctx, user, 5, 1, 0, false), "special": special, "treat": treat,
+		"level": rollLevel, "choose": chooseLevel, "reroll": rerollLevel, "path": lvl.ChoosePath(ctx, user, 5, 1, 1, "Path of the Warlord", ""),
+		"rename company": co.RenameCompany(ctx, user, 5, 1, "New name"), "rename unit": co.RenameUnit(ctx, user, 5, 1, 1, "Bold"),
+		"formation": co.SaveFormation(ctx, user, 5, 1, []int64{1}), "cemetery order": NewCemeteryService(campaigns, companies, rules).SaveCemeteryOrder(ctx, user, 5, 1, nil),
 		"perk": (&AftermathService{companyDeps: companyDeps{campaigns: campaigns}}).UsePerk(ctx, user, 5, 1, 1),
 	} {
 		if !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "The campaign is finished.") {
@@ -168,7 +168,7 @@ func TestRendezvousMovesTheFirstReinforcementRoll(t *testing.T) {
 			f.update()
 			f.settings = CampaignSettings{ManualRolls: true}
 			f.state.Perks, f.state.Influence = tc.perks, 12
-			err := NewRecruitService(f.campaigns, f.companies, rules, &FixedDice{}).RollRecruitWithPerk(f.ctx, f.user, 5, tc.roll, false, tc.adjust)
+			err := NewRecruitService(f.campaigns, f.companies, rules, &FixedDice{}).RollRecruitWithPerk(f.ctx, f.user, 5, 1, tc.roll, false, tc.adjust)
 			if tc.err != nil {
 				if !errors.Is(err, tc.err) || f.state.Recruit.Roll != nil || len(f.state.PerksUsed) != 0 {
 					t.Errorf("got %v, recruit %+v, used %v", err, f.state.Recruit.Roll, f.state.PerksUsed)
@@ -180,7 +180,7 @@ func TestRendezvousMovesTheFirstReinforcementRoll(t *testing.T) {
 				t.Fatalf("got %v %+v, want a %d", err, step, tc.wantRoll)
 			}
 			if tc.adjust != 0 {
-				rr, _ := NewRecruitService(f.campaigns, f.companies, rules, &FixedDice{}).RecruitState(f.ctx, f.user, 5)
+				rr, _ := NewRecruitService(f.campaigns, f.companies, rules, &FixedDice{}).RecruitState(f.ctx, f.user, 5, 1)
 				if rr == nil || rr.PerkAdjust != tc.adjust || rr.PerkRaw != tc.roll || rr.Roll != tc.wantRoll {
 					t.Errorf("the recruit window badges the moved die: %+v", rr)
 				}

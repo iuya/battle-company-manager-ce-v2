@@ -308,7 +308,7 @@ func TestCampaignMembersIncludeThoseWithoutACompany(t *testing.T) {
 		t.Errorf("the organiser comes first: %+v", got)
 	}
 	for _, m := range got {
-		if m.CompanyID != 0 {
+		if len(m.Companies) != 0 {
 			t.Errorf("nobody has a company yet: %+v", m)
 		}
 	}

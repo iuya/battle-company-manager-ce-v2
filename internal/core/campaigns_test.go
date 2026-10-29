@@ -121,9 +121,9 @@ func TestCampaignsRateCompaniesFromTheRules(t *testing.T) {
 		}
 	})
 	t.Run("Get", func(t *testing.T) {
-		f.campaigns.EXPECT().Get(ctx, int64(9), int64(5)).Return(CampaignDetail{CampaignSummary: CampaignSummary{ID: 5, Company: &listed}, Settings: CampaignSettings{ManualRolls: true}}, nil)
+		f.campaigns.EXPECT().Get(ctx, int64(9), int64(5)).Return(CampaignDetail{CampaignSummary: CampaignSummary{ID: 5, Companies: []CampaignCompany{listed}}, Settings: CampaignSettings{ManualRolls: true}}, nil)
 		got, err := f.svc.Get(ctx, 9, 5)
-		if err != nil || got.Company.Points != want.Points || !got.Settings.ManualRolls {
+		if err != nil || len(got.Companies) != 1 || got.Companies[0].Points != want.Points || !got.Settings.ManualRolls {
 			t.Errorf("Get = %+v, %v", got, err)
 		}
 		if listed.Points != 0 {
@@ -131,9 +131,9 @@ func TestCampaignsRateCompaniesFromTheRules(t *testing.T) {
 		}
 	})
 	t.Run("List", func(t *testing.T) {
-		f.campaigns.EXPECT().List(ctx, int64(9), true).Return([]CampaignSummary{{ID: 5, Company: &listed}, {ID: 6}}, nil)
+		f.campaigns.EXPECT().List(ctx, int64(9), true).Return([]CampaignSummary{{ID: 5, Companies: []CampaignCompany{listed}}, {ID: 6}}, nil)
 		got, err := f.svc.List(ctx, 9, true)
-		if err != nil || len(got) != 2 || got[0].Company.FullPoints != want.FullPoints || got[1].Company != nil {
+		if err != nil || len(got) != 2 || got[0].Companies[0].FullPoints != want.FullPoints || got[1].Companies != nil {
 			t.Errorf("List = %+v, %v", got, err)
 		}
 	})
@@ -286,10 +286,10 @@ func TestCampaignsCompaniesReadTheRostersOnce(t *testing.T) {
 func TestCampaignsMembers(t *testing.T) {
 	ctx := context.Background()
 	f := newCampaignFixture(t)
-	want := []CampaignMember{{UserID: 1, Name: "Org", Organiser: true, CompanyID: 4, CompanyName: "Rangers"}, {UserID: 2, Name: "No company"}}
+	want := []CampaignMember{{UserID: 1, Name: "Org", Organiser: true, Companies: []MemberCompany{{ID: 4, Name: "Rangers"}, {ID: 6, Name: "Riders"}}}, {UserID: 2, Name: "No company"}}
 	f.campaigns.EXPECT().Members(ctx, int64(5)).Return(want, nil)
 	got, err := f.svc.Members(ctx, 5)
-	if err != nil || len(got) != 2 || got[1].CompanyID != 0 {
+	if err != nil || len(got) != 2 || len(got[0].Companies) != 2 || len(got[1].Companies) != 0 {
 		t.Fatalf("Members = %+v, %v", got, err)
 	}
 	f.campaigns.EXPECT().Members(ctx, int64(6)).Return(nil, ErrNotFound)
@@ -303,7 +303,7 @@ func TestCampaignsNavCampaignsDoesNotRate(t *testing.T) {
 	f := newCampaignFixture(t)
 	ctx := context.Background()
 	f.campaigns.EXPECT().List(ctx, int64(3), true).Return([]CampaignSummary{
-		{ID: 1, Name: "A", Status: CampaignActive, Company: &CampaignCompany{ID: 9}},
+		{ID: 1, Name: "A", Status: CampaignActive, Companies: []CampaignCompany{{ID: 9}}},
 		{ID: 2, Name: "B", Status: CampaignFinished},
 	}, nil)
 	got, err := f.svc.NavCampaigns(ctx, 3, true)

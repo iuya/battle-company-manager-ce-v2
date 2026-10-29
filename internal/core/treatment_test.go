@@ -20,24 +20,24 @@ func TestTreatingAWarriorsInjuryCostsInfluence(t *testing.T) {
 	if before.InjuredUnits == 0 || before.Injuries.WarriorCost != 1 {
 		t.Fatal("the fixture company has an injured warrior and the file says what treating costs")
 	}
-	if _, err := s.TreatInjury(f.ctx, f.user, 5, 7, Treatment{Method: "warrior"}); err != nil {
+	if _, err := s.TreatInjury(f.ctx, f.user, 5, 1, 7, Treatment{Method: "warrior"}); err != nil {
 		t.Fatal(err)
 	}
 	after := f.detail(t)
 	if after.InjuredUnits != before.InjuredUnits-1 || after.Influence != before.Influence-1 || after.Points <= before.Points {
 		t.Errorf("healing removes the injury, costs influence and returns the points: %+v -> %+v", before.InjuredUnits, after.InjuredUnits)
 	}
-	if _, err := s.TreatInjury(f.ctx, f.user, 5, 7, Treatment{Method: "warrior"}); !errors.Is(err, ErrRefused) {
+	if _, err := s.TreatInjury(f.ctx, f.user, 5, 1, 7, Treatment{Method: "warrior"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("a healthy unit is not treated: %v", err)
 	}
-	if _, err := s.TreatInjury(f.ctx, f.user, 5, 7, Treatment{Method: "attempt"}); !errors.Is(err, ErrRefused) {
+	if _, err := s.TreatInjury(f.ctx, f.user, 5, 1, 7, Treatment{Method: "attempt"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("a warrior has no roll: %v", err)
 	}
-	if _, err := s.TreatInjury(f.ctx, User{ID: 8}, 5, 4, Treatment{Method: "warrior"}); !errors.Is(err, ErrNotFound) {
+	if _, err := s.TreatInjury(f.ctx, User{ID: 8}, 5, 1, 4, Treatment{Method: "warrior"}); !errors.Is(err, ErrNotFound) {
 		t.Errorf("non-owner: %v", err)
 	}
 	f.state.Units[6].Injured, f.state.Influence = true, 0
-	if _, err := s.TreatInjury(f.ctx, f.user, 5, 7, Treatment{Method: "warrior"}); !errors.Is(err, ErrRefused) || !f.state.Units[6].Injured {
+	if _, err := s.TreatInjury(f.ctx, f.user, 5, 1, 7, Treatment{Method: "warrior"}); !errors.Is(err, ErrRefused) || !f.state.Units[6].Injured {
 		t.Errorf("not enough influence: %v", err)
 	}
 }
@@ -47,37 +47,37 @@ func TestTreatingAHeroByAttemptOrByTheHealers(t *testing.T) {
 	s := f.treater(t)
 	f.state.Influence = 5
 	// a roll that misses by a little waits: extra influence is decided after seeing it
-	res, err := s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 4})
+	res, err := s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 4})
 	if err != nil || res.Healed || !res.Pending || res.Boost != 1 || res.Needed != 5 {
 		t.Fatalf("a 4 misses 5+ by one: %+v %v", res, err)
 	}
 	if f.state.Influence != 4 {
 		t.Errorf("the attempt cost its influence: %d", f.state.Influence)
 	}
-	if st, _ := s.TreatmentState(f.ctx, f.user, 5, 4); st == nil || !st.Pending || st.Roll != 4 {
+	if st, _ := s.TreatmentState(f.ctx, f.user, 5, 1, 4); st == nil || !st.Pending || st.Roll != 4 {
 		t.Error("the roll waits for the decision")
 	}
-	if _, err := s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "healers", Injury: "legWound"}); !errors.Is(err, ErrRefused) {
+	if _, err := s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "healers", Injury: "legWound"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("decide first: %v", err)
 	}
 	// accepting the failure: the influence is lost and the injury stays
-	if res, err = s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Resolve: true, Extra: 0}); err != nil || res.Healed || res.Pending {
+	if res, err = s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Resolve: true, Extra: 0}); err != nil || res.Healed || res.Pending {
 		t.Fatalf("accept: %+v %v", res, err)
 	}
 	if f.state.Influence != 4 || len(f.unit(t, 4).Injuries) != 2 {
 		t.Errorf("nothing else was spent: %d", f.state.Influence)
 	}
-	if st, _ := s.TreatmentState(f.ctx, f.user, 5, 4); st != nil {
+	if st, _ := s.TreatmentState(f.ctx, f.user, 5, 1, 4); st != nil {
 		t.Error("nothing waits any more")
 	}
-	if _, err := s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Resolve: true}); !errors.Is(err, ErrRefused) {
+	if _, err := s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Resolve: true}); !errors.Is(err, ErrRefused) {
 		t.Errorf("nothing to resolve: %v", err)
 	}
 	// try again and spend the extra influence
-	if _, err := s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 4}); err != nil {
+	if _, err := s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 4}); err != nil {
 		t.Fatal(err)
 	}
-	res, err = s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Resolve: true, Extra: 1})
+	res, err = s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Resolve: true, Extra: 1})
 	if err != nil || !res.Healed || res.Total != 5 {
 		t.Fatalf("a 4 and 1 extra influence is a 5: %+v %v", res, err)
 	}
@@ -88,28 +88,28 @@ func TestTreatingAHeroByAttemptOrByTheHealers(t *testing.T) {
 		t.Errorf("influence %d", f.state.Influence)
 	}
 	// a natural success needs no decision
-	if res, _ = s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Injury: "justAScratch", Roll: 6}); !res.Healed || res.Pending || f.unit(t, 4).Injured {
+	if res, _ = s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Injury: "justAScratch", Roll: 6}); !res.Healed || res.Pending || f.unit(t, 4).Injured {
 		t.Errorf("a successful attempt lets the hero play: %+v", res)
 	}
 	// the healers cannot remove a missed game; they can remove an injury, and the hero misses the next one
-	if _, err := s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "healers", Injury: "justAScratch"}); !errors.Is(err, ErrRefused) {
+	if _, err := s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "healers", Injury: "justAScratch"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("the healers do not remove a missed game: %v", err)
 	}
-	if res, err = s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "healers", Injury: "legWound"}); err != nil || res.Rolled || !res.Healed {
+	if res, err = s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "healers", Injury: "legWound"}); err != nil || res.Rolled || !res.Healed {
 		t.Fatalf("healers: %+v %v", res, err)
 	}
 	if u := f.unit(t, 4); !u.Injured || len(u.Injuries) != 0 {
 		t.Errorf("the hero is healed but misses the next game: %+v", u.Injuries)
 	}
 	// the game missed at the healers is the price of the healing: a field treatment cannot cancel it
-	if _, err := s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Injury: "justAScratch", Roll: 6}); !errors.Is(err, ErrRefused) || !f.unit(t, 4).Injured {
+	if _, err := s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Injury: "justAScratch", Roll: 6}); !errors.Is(err, ErrRefused) || !f.unit(t, 4).Injured {
 		t.Errorf("the healers' absence stays: %v", err)
 	}
 	f.state.Influence = 0
-	if _, err := s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 6}); !errors.Is(err, ErrRefused) {
+	if _, err := s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 6}); !errors.Is(err, ErrRefused) {
 		t.Errorf("not enough influence: %v", err)
 	}
-	if _, err := s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "voodoo"}); !errors.Is(err, ErrRefused) {
+	if _, err := s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "voodoo"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("unknown treatment: %v", err)
 	}
 }
@@ -118,14 +118,14 @@ func TestTheAppRollsAHeroTreatmentWhenNoRollIsGiven(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.treater(t, 6)
 	f.settings.ManualRolls = false
-	res, err := s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Injury: "legWound"})
+	res, err := s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Injury: "legWound"})
 	if err != nil || !res.Healed || res.Roll != 6 {
 		t.Errorf("the dice gave a 6: %+v %v", res, err)
 	}
-	if _, err := s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 5}); !errors.Is(err, ErrRefused) {
+	if _, err := s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 5}); !errors.Is(err, ErrRefused) {
 		t.Errorf("a typed roll needs the setting: %v", err)
 	}
-	if _, err := s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 5, Thrown: true}); !errors.Is(err, ErrRefused) {
+	if _, err := s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 5, Thrown: true}); !errors.Is(err, ErrRefused) {
 		t.Errorf("a thrown roll needs the setting: %v", err)
 	}
 }
@@ -146,7 +146,7 @@ func TestAnInjuryCountGoesDownOneAtATimeAndTheEffectsFollow(t *testing.T) {
 	if moved() != -2 {
 		t.Fatalf("two leg wounds take 2 off Movement: %d", moved())
 	}
-	if _, err := s.TreatInjury(f.ctx, f.user, 5, 5, Treatment{Method: "healers", Injury: "legWound"}); err != nil {
+	if _, err := s.TreatInjury(f.ctx, f.user, 5, 1, 5, Treatment{Method: "healers", Injury: "legWound"}); err != nil {
 		t.Fatal(err)
 	}
 	if moved() != -1 || f.state.Units[4].Injuries["legWound"] != 1 {
@@ -186,19 +186,19 @@ func TestTheTreatmentRollUsesTheDiceOfTheRules(t *testing.T) {
 	}
 	// the server rolls two dice: 4 and 5 make 9, which reaches 8
 	s, f := treater(4, 5)
-	res, err := s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Injury: "armWound"})
+	res, err := s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Injury: "armWound"})
 	if err != nil || !res.Healed || res.Roll != 9 || len(res.Dice) != 2 || res.Dice[0] != 4 || res.Dice[1] != 5 || res.Needed != 8 {
 		t.Errorf("2d6 rolled by the server: %+v %v", res, err)
 	}
 	// a typed total within 2..12 is taken as it is; 7 misses by one and waits for the decision on extra influence
 	s, f = treater(6, 6)
-	res, err = s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 7})
+	res, err = s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 7})
 	if err != nil || res.Roll != 7 || res.Dice != nil || !res.Pending || res.Boost != 1 {
 		t.Errorf("a typed 7: %+v %v", res, err)
 	}
 	// a typed 13 is no total of 2d6: the server rolls (6 and 6 make 12)
 	s, f = treater(6, 6)
-	res, err = s.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 13})
+	res, err = s.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 13})
 	if err != nil || res.Roll != 12 || len(res.Dice) != 2 {
 		t.Errorf("a typed 13 is refused as a roll and rolled again: %+v %v", res, err)
 	}
@@ -206,7 +206,7 @@ func TestTheTreatmentRollUsesTheDiceOfTheRules(t *testing.T) {
 	f = newCompanyFixture(t)
 	d6 := f.treater(t, 3)
 	f.state.Influence = 5
-	res, err = d6.TreatInjury(f.ctx, f.user, 5, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 7})
+	res, err = d6.TreatInjury(f.ctx, f.user, 5, 1, 4, Treatment{Method: "attempt", Injury: "armWound", Roll: 7})
 	if err != nil || res.Roll != 3 || len(res.Dice) != 1 {
 		t.Errorf("a typed 7 on a d6: %+v %v", res, err)
 	}

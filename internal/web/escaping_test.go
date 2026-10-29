@@ -163,8 +163,8 @@ func hostileWorld(t *testing.T) (*fixture, []string) {
 	taint(&detail)
 	taint(&other)
 	taint(&otherDetail)
-	d.Company.Faction, detail.Faction = "Gondor", "Gondor"
-	hostileCompany := *d.Company
+	d.Companies[0].Faction, detail.Faction = "Gondor", "Gondor"
+	hostileCompany := d.Companies[0]
 
 	match := core.Match{ID: 3, Number: 3, Scenario: &core.MatchScenario{Kind: core.ScenarioCustom, Name: "n", Description: "d", Victory: "v"},
 		Result: core.MatchResult{Decided: true, Winner: 1, Note: "n", Sides: make([]core.SideResult, 2)},
@@ -174,7 +174,7 @@ func hostileWorld(t *testing.T) (*fixture, []string) {
 	taint(&match)
 	match.Result.Note = hostile
 
-	summaries := []core.CampaignSummary{{ID: 7, Name: "n", Description: "d", Status: core.CampaignActive, Round: 1, Rounds: 8, Matches: 1, Company: &hostileCompany}}
+	summaries := []core.CampaignSummary{{ID: 7, Name: "n", Description: "d", Status: core.CampaignActive, Round: 1, Rounds: 8, Matches: 1, Companies: []core.CampaignCompany{hostileCompany}}}
 	taint(&summaries)
 	scenarios := []core.ScenarioInfo{{Name: "Seize Ground", Scoring: []string{hostile}, About: core.ScenarioAbout{}}}
 	profiles := []core.CompanyProfile{{BCCompany: core.BCCompany{Name: "Minas Tirith", Alignment: "good", MaxModels: 15, ReinforcementCost: 3}, Description: hostile,
@@ -197,14 +197,14 @@ func hostileWorld(t *testing.T) (*fixture, []string) {
 	f.camp.EXPECT().Matches(anyCtx, anyCtx).Return([]core.Match{match}, nil).AnyTimes()
 	f.camp.EXPECT().Match(anyCtx, anyCtx, anyCtx).Return(match, nil).AnyTimes()
 	f.camp.EXPECT().Companies(anyCtx, anyCtx).Return([]core.CampaignCompany{hostileCompany, other}, nil).AnyTimes()
-	f.camp.EXPECT().Members(anyCtx, anyCtx).Return([]core.CampaignMember{{UserID: 1, Name: hostile, Organiser: true}, {UserID: 2, Name: hostile, CompanyID: 2, CompanyName: hostile}}, nil).AnyTimes()
+	f.camp.EXPECT().Members(anyCtx, anyCtx).Return([]core.CampaignMember{{UserID: 1, Name: hostile, Organiser: true}, {UserID: 2, Name: hostile, Companies: []core.MemberCompany{{ID: 2, Name: hostile}}}}, nil).AnyTimes()
 	f.camp.EXPECT().Company(anyCtx, anyCtx, int64(2)).Return(other, nil).AnyTimes()
 	f.camp.EXPECT().Company(anyCtx, anyCtx, int64(1)).Return(hostileCompany, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(anyCtx, anyCtx, int64(1)).Return(detail, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(anyCtx, anyCtx, int64(2)).Return(otherDetail, nil).AnyTimes()
-	f.camp.EXPECT().PendingChoice(anyCtx, anyCtx, anyCtx).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().PendingOfficers(anyCtx, anyCtx, anyCtx).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(anyCtx, anyCtx, anyCtx).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(anyCtx, anyCtx, anyCtx, anyCtx).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(anyCtx, anyCtx, anyCtx, anyCtx).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(anyCtx, anyCtx, anyCtx, anyCtx).Return(nil, nil).AnyTimes()
 	f.camp.EXPECT().Scenarios(anyCtx, anyCtx).Return(scenarios, nil).AnyTimes()
 	f.camp.EXPECT().CompanyProfiles(anyCtx, anyCtx).Return(profiles, nil).AnyTimes()
 	f.camp.EXPECT().ArmouryEntries(anyCtx, anyCtx, anyCtx).Return(nil, nil).AnyTimes()

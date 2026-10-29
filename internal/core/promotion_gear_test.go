@@ -10,14 +10,14 @@ import (
 // promoteTo rolls a promotion for the unit and takes the one called label.
 func promoteTo(t *testing.T, f *companyFixture, s *LevelService, id int64, label string) {
 	t.Helper()
-	roll, err := s.RollLevelUp(f.ctx, f.user, 5, id, []int{4}, false)
+	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 1, id, []int{4}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, o := range roll.Offers {
 		for _, ch := range o.Choices {
 			if strings.HasPrefix(ch.Key, "promo:") && strings.HasPrefix(ch.Label, label) {
-				if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, id, []string{ch.Key}); err != nil {
+				if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, id, []string{ch.Key}); err != nil {
 					t.Fatal(err)
 				}
 				return
@@ -119,7 +119,7 @@ func TestAHeroInTheMakingKeepsItsWargear(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
 	f.companyOf("Halls of Thranduil", 5, []UnitState{{ID: 90, Base: "Mirkwood Elf Warrior", Role: RoleWarrior, Gear: []string{"Elven-made Glaive", "Shield"}, XP: 5}})
-	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{6}, false)
+	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{6}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestAHeroInTheMakingKeepsItsWargear(t *testing.T) {
 	if key == "" {
 		t.Fatalf("no path offered: %+v", roll.Offers)
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 90, []string{key}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 90, []string{key}); err != nil {
 		t.Fatal(err)
 	}
 	u := f.unit(t, 90)
