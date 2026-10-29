@@ -50,6 +50,9 @@ type matchView struct {
 	Fled     bool // somebody fled
 
 	Cards *matchCards // the lazy cards drawn inline on the full page; nil on answers to writes
+	// LiveSince is the state of the open match (core.LiveGeneration) that the cards were built from; the page sends it to its event
+	// stream, which then skips the initial refetch of the cards. Empty when unknown: the stream starts with a full sync.
+	LiveSince string
 
 	Notice    string // shown on top of the match
 	NoticeErr bool
@@ -360,6 +363,11 @@ func (s *Server) handleMatch(w http.ResponseWriter, r *http.Request) {
 	v, err := s.newMatchView(r, base, m, "")
 	if s.fail(w, r, err) {
 		return
+	}
+	if !m.Ended && v.Campaign.Status != "finished" { // read before the cards are built (they share the read scope's snapshot)
+		if gen, err := s.campaigns.LiveGeneration(r.Context(), *userFrom(r.Context()), base.Campaign.ID, m.ID); err == nil {
+			v.LiveSince = gen
+		}
 	}
 	s.loadMatchCards(r, &v)
 	s.render.page(w, r, http.StatusOK, "match", v)

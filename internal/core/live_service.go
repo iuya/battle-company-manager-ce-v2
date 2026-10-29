@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -596,8 +597,46 @@ func (s *LiveService) AftermathDefaults(ctx context.Context, id, matchID, compan
 }
 
 // Subscribe feeds the SSE handler: a stream of coalesced changes of the match. ErrNotFound for a stranger or an unknown match,
-// ErrRefused when the match is not open or the caps are reached.
+// ErrRefused when the match is not open or the caps are reached. Its first batch refetches every company (initial sync).
 func (s *LiveService) Subscribe(ctx context.Context, user User, id, matchID int64) (LiveStream, error) {
+	return s.subscribe(ctx, user, id, matchID, "")
+}
+
+// SubscribeSince is Subscribe for a page that knows the state it was built from (LiveGeneration, read before its cards were built): the
+// first batch is empty when the match is still in that state, so the page does not fetch what it already shows. The stream is registered
+// first and the state read after, so a change in between reaches the stream as an event or shows in the state: nothing is missed. A page
+// whose state is older (a reconnect after a change) gets the full initial batch.
+func (s *LiveService) SubscribeSince(ctx context.Context, user User, id, matchID int64, since string) (LiveStream, error) {
+	return s.subscribe(ctx, user, id, matchID, since)
+}
+
+// LiveGeneration names the state of an open match that its cards show: the match revision (end proposals, the scenario and the Against the
+// Odds record raise it) and the live log sequence, the two counters every notification of the live feed comes with. A page reads it before it
+// builds its cards and sends it back to open its event stream (SubscribeSince). ErrNotFound for a stranger or an unknown match.
+func (s *LiveService) LiveGeneration(ctx context.Context, user User, id, matchID int64) (string, error) {
+	if _, err := s.campaigns.Get(ctx, user.ID, id); err != nil {
+		return "", err
+	}
+	return s.generation(ctx, id, matchID)
+}
+
+func (s *LiveService) generation(ctx context.Context, id, matchID int64) (string, error) {
+	m, err := s.matches.Get(ctx, id, matchID)
+	if err != nil {
+		return "", err
+	}
+	snap, err := s.live.Read(ctx, id, matchID)
+	if err != nil {
+		return "", err
+	}
+	return liveGeneration(m, snap), nil
+}
+
+func liveGeneration(m Match, snap LiveSnapshot) string {
+	return strconv.Itoa(m.Revision) + "." + strconv.FormatInt(snap.Seq, 10)
+}
+
+func (s *LiveService) subscribe(ctx context.Context, user User, id, matchID int64, since string) (LiveStream, error) {
 	if s.hub == nil {
 		return nil, fmt.Errorf("live hub not wired")
 	}
@@ -621,11 +660,22 @@ func (s *LiveService) Subscribe(ctx context.Context, user User, id, matchID int6
 	if err != nil {
 		return nil, err
 	}
-	stream, err := s.hub.subscribe(user.ID, matchID, ids, snap.Seq)
+	stream, err := s.hub.open(user.ID, matchID, ids, snap.Seq, since == "")
 	if err != nil {
 		return nil, err
 	}
 	context.AfterFunc(ctx, stream.Close) // a cancelled request frees its slot
+	if since != "" {
+		// The stream hears everything from here on; what happened before is in the state read now.
+		now, err := s.generation(ctx, id, matchID)
+		if err != nil {
+			stream.Close()
+			return nil, err
+		}
+		if now != since {
+			stream.markAll(snap.Seq)
+		}
+	}
 	return stream, nil
 }
 

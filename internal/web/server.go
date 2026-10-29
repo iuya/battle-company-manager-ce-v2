@@ -28,6 +28,10 @@ type liveMatches interface {
 	Log(ctx context.Context, user core.User, id, matchID, before int64, limit int) ([]core.LiveEntry, error)
 	// Subscribe feeds the SSE handler; core.ErrRefused at the stream caps.
 	Subscribe(ctx context.Context, user core.User, id, matchID int64) (core.LiveStream, error)
+	// LiveGeneration names the state of an open match that the cards of its page show; the page reads it before it builds them and sends
+	// it back when it opens its event stream. SubscribeSince is Subscribe with that: no initial batch while the match is still in the state.
+	LiveGeneration(ctx context.Context, user core.User, id, matchID int64) (string, error)
+	SubscribeSince(ctx context.Context, user core.User, id, matchID int64, since string) (core.LiveStream, error)
 	// EndChecks is the card of the end of the game (objective flags, MVP ballots, tally, what is still open); core.ErrNotFound when the
 	// match is not open.
 	EndChecks(ctx context.Context, user core.User, id, matchID int64) (core.EndChecks, error)

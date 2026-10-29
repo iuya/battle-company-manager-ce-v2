@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
@@ -15,6 +16,9 @@ const (
 	liveWriteLimit  = 10 * time.Second
 	liveStreamLimit = 2 * time.Hour // the client reconnects (and refetches) after this
 )
+
+// liveGenerationRe is the shape of core.LiveGeneration ("revision.sequence"); anything else is ignored and the stream starts with a full sync.
+var liveGenerationRe = regexp.MustCompile(`^[0-9]{1,10}\.[0-9]{1,19}$`)
 
 // handleLiveEvents is the Server-Sent Events stream of a match: it carries pointers ("company 12 changed, seq 41"), never state or
 // HTML; the page refetches its fragment (docs/architecture.md "Live match").
@@ -52,7 +56,12 @@ func (s *Server) handleLiveEvents(w http.ResponseWriter, r *http.Request) {
 		sendEvent(w, rc, "ended", 0)
 		return
 	}
-	stream, err := s.campaigns.Subscribe(r.Context(), *user, id, matchID)
+	var stream core.LiveStream
+	if since := r.URL.Query().Get("since"); liveGenerationRe.MatchString(since) { // the page says which state it was built from
+		stream, err = s.campaigns.SubscribeSince(r.Context(), *user, id, matchID, since)
+	} else {
+		stream, err = s.campaigns.Subscribe(r.Context(), *user, id, matchID)
+	}
 	switch {
 	case errors.Is(err, core.ErrNotFound):
 		s.notFound(w, r)
