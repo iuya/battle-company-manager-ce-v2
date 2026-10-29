@@ -31,7 +31,8 @@ type duplicates struct {
 type dupState struct {
 	kind, name string
 	count      int
-	first      string // canonical form of the first occurrence
+	firstOcc   any    // the first occurrence, kept until a second one needs comparing with it
+	first      string // canonical form of the first occurrence (computed when a second occurrence turns up)
 	differs    bool
 }
 
@@ -59,12 +60,14 @@ func (d *duplicates) wins(kind, name string, occurrence any) bool {
 		d.order = append(d.order, key)
 	}
 	st.count++
-	sig := canonical(occurrence)
-	if st.count == 1 {
-		st.first = sig
+	if st.count == 1 { // most names occur once: their canonical form is never needed
+		st.firstOcc = occurrence
 		return true
 	}
-	if sig != st.first {
+	if st.count == 2 {
+		st.first, st.firstOcc = canonical(st.firstOcc), nil
+	}
+	if canonical(occurrence) != st.first {
 		st.differs = true
 	}
 	a, ok := d.reviewed[key]
