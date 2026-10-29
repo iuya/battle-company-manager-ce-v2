@@ -50,7 +50,7 @@
       <div><dt class="text-muted">Organiser</dt><dd class="font-medium">{{.Campaign.Organiser}}</dd></div>
       <div><dt class="text-muted">Players</dt><dd class="font-medium">{{.Campaign.Players}}</dd></div>
       <div><dt class="text-muted">Progress</dt><dd class="font-medium">{{if .Campaign.Rounds}}Round {{.Campaign.Round}} of {{.Campaign.Rounds}}{{else if .Campaign.Round}}Round {{.Campaign.Round}}{{else}}Not started{{end}}</dd></div>
-      <div><dt class="text-muted">Matches</dt><dd class="font-medium">{{.Campaign.Matches}}</dd></div>
+      <div><dt class="text-muted">Matches</dt><dd class="font-medium">{{.Campaign.Matches}}{{if .Campaign.PracticeMatches}} <span class="block text-xs font-normal text-muted" data-practice-count>{{.Campaign.PracticeMatches}} practice {{if eq .Campaign.PracticeMatches 1}}match{{else}}matches{{end}}</span>{{end}}</dd></div>
     </dl>
     {{if .CanInvite}}{{template "invite_card" (dict "CampaignID" .Campaign.ID "Active" .Campaign.ActiveInvites "Paused" (eq .Campaign.Status "paused"))}}{{end}}
     {{if .CanInvite}}{{template "handover_card" (dict "CampaignID" .Campaign.ID "Players" .NewOrganisers)}}{{end}}
@@ -112,7 +112,7 @@
   <ul class="card mt-3 divide-y divide-line !p-0">
     {{range .Recent}}
     <li><a href="/campaigns/{{$.Campaign.ID}}/matches/{{.ID}}" class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-fg no-underline hover:bg-raised hover:no-underline">
-      <span class="min-w-0">{{template "match_sides" .}}{{template "match_scenario" .}}</span>{{template "match_result" .}}
+      <span class="min-w-0">{{template "match_sides" .}}{{template "match_scenario" .}}</span><span class="flex flex-wrap items-center gap-2">{{if .Practice}}{{template "practice_badge"}}{{end}}{{template "match_result" .}}</span>
     </a></li>
     {{end}}
   </ul>

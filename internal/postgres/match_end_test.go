@@ -21,7 +21,7 @@ func TestMatchEndProposalRoundTrip(t *testing.T) {
 	units := []core.UnitState{{Base: "Captain", Role: core.RoleLeader}, {Base: "Warrior", Role: core.RoleWarrior}}
 	a, _ := s.Companies().Create(ctx, camp.ID, org, core.NewCompany{Name: "Alpha", Faction: "Rohan", Units: units})
 	b, _ := s.Companies().Create(ctx, camp.ID, p2, core.NewCompany{Name: "Beta", Faction: "Gondor", Units: units})
-	m, err := repo.Create(ctx, camp.ID, org, []core.NewSide{{Name: "Riders", Companies: []int64{a.ID}}, {Name: "Guards", Companies: []int64{b.ID}}})
+	m, err := repo.Create(ctx, camp.ID, org, core.NewMatch{Sides: []core.NewSide{{Name: "Riders", Companies: []int64{a.ID}}, {Name: "Guards", Companies: []int64{b.ID}}}})
 	if err != nil {
 		t.Fatal(err)
 	}

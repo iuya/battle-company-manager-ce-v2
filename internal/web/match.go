@@ -240,7 +240,7 @@ func (s *Server) newMatchView(r *http.Request, base campaignBase, m core.Match, 
 	if m.Ended {
 		v.Aftermath, v.AftermathErr = s.aftermathRows(r, base, m)
 		for _, row := range v.Aftermath {
-			v.AftermathApplied = v.AftermathApplied || row.Ref.Status.Started() || row.Ref.Status == core.AftermathWaived
+			v.AftermathApplied = v.AftermathApplied || (!m.Practice && (row.Ref.Status.Started() || row.Ref.Status == core.AftermathWaived))
 		}
 	}
 	if m.CanEnd() != nil {

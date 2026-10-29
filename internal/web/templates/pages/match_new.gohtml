@@ -78,7 +78,14 @@
       </template>
     </div>
 
-    <p class="alert alert-info text-sm" role="status" x-show="sameAcross().length" x-cloak data-same-player><span x-text="sameAcross().join('. ') + '.'"></span> Allowed: it counts like any other match.</p>
+    <div class="card field" x-data="{ practice: {{.Practice}} }">
+      <label class="flex min-h-11 items-start gap-3 text-sm">
+        <input type="checkbox" name="practice" value="1" x-model="practice" class="mt-0.5 h-5 w-5 accent-[var(--accent)]" data-practice-box>
+        <span><span class="font-medium">Practice match</span> <span class="text-muted">· No experience, influence, rewards or injuries. The result is only recorded.</span></span>
+      </label>
+      <p class="alert alert-info !py-2 text-sm" role="status" x-show="practice" x-cloak>Nothing is rolled afterwards and no company is locked when it ends. The flag cannot be changed later: to change course, end the match and start a new one.</p>
+      <p class="alert alert-info text-sm" role="status" x-show="sameAcross().length" x-cloak data-same-player><span x-text="sameAcross().join('. ') + '.'"></span> Allowed: <span x-show="!practice">it counts like any other match. </span><span x-show="!practice"><button type="button" class="underline" @click="practice = true" data-make-practice>Make it a practice match</button>.</span><span x-show="practice">it is a practice match.</span></p>
+    </div>
     <p class="text-sm text-muted">A company can only be on one side, and every side needs at least one company. In all vs all, add at least two companies.</p>
     <div class="flex flex-wrap gap-2">
       <button class="btn btn-primary">Create match</button>

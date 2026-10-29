@@ -65,7 +65,7 @@ company, sees "My company"). Page names are those of the navigation: Overview, M
 | **Cemetery: the fallen of the Misty Mountains** | Boromir (closed account), Bilbo (The Shire, "Hobbits who lost their Ranger": the Ranger of the North fell in a lost Rescue match against Boromir's company, played through the aftermath: a Hobbit who had rolled Hero in the Making took the Sergeant place the promotion of a Sergeant to Leader left, so the company has the three officers it needs to recruit; the Ranger is in the cemetery, so Recruit may swap a successful result for a new one) | a cemetery with a dead and a retired Sergeant and four dead warriors, in the order the player chose; the owner shown as "Former player" | My company > Cemetery (as `you`: Companies > the company) |
 | **Handed over: Faramir organises now** | Éowyn, Faramir | `Campaigns.HandOver`: created by You, organised by Faramir; You is a player without a company | Overview as `faramir` (organiser buttons) and as `you` (none) |
 | **Faramir's campaign: a small start** | Aragorn, Pippin | a campaign organised by Faramir from the start | Overview as `faramir` |
-| **Two bands: several companies per player** | Éowyn (two companies), Galadriel (three), Gimli, Sauron | the setting `CompaniesPerPlayer` = 3 (default 1 everywhere else): see [Two bands](#two-bands) | My Company as `eowyn`, `galadriel`; Matches |
+| **Two bands: several companies per player** | Éowyn (two companies), Galadriel (three), Gimli, Sauron | the setting `CompaniesPerPlayer` = 3 (default 1 everywhere else), and the two **practice matches** (one ended, one open with a log): see [Two bands](#two-bands) | My Company as `eowyn`, `galadriel`; Matches, the Practice filter |
 
 ### Two bands
 
@@ -77,8 +77,10 @@ Step `world_bands.go`, campaign **Two bands: several companies per player** (org
 | `galadriel` | Wardens of the Golden Wood (Lothlórien), Scouts of the Hidden Vale (Rivendell), Sentries of the Greenwood (Mirkwood) | three, at the limit: the switcher without a "New company" chip ("All 3 companies created"), "You have all 3 companies this campaign allows." |
 | `gimli`, `sauron` | one each | a player with one company sees exactly what a campaign with the default limit shows: no chip, no new wording |
 
-- **Match 1** (ended): both of Éowyn's companies on one side against Sauron's. The match page says "Same player: both of these companies are Éowyn's."; her first company's aftermath is finished, the second's still to play, and Sauron's is untouched (each is locked on its own).
-- **Match 2** (open): one of Galadriel's companies against Gimli's; her other two are free for a new match. In the new match form the "Mine" chip narrows the search to the viewer's companies, and putting two companies of one player on a side shows the same note before the match is created.
+- **Match 1** (ended, **practice**): Éowyn's two companies against each other, the "Same player" case; the result is entered and the aftermath reads "Practice match: nothing to roll", so neither company is locked by it.
+- **Match 2** (ended): both of Éowyn's companies on one side against Sauron's, a competitive match. The match page says "Same player: both of these companies are Éowyn's."; her first company's aftermath is finished, the second's still to play, and Sauron's is untouched (each is locked on its own).
+- **Match 3** (open): one of Galadriel's companies against Gimli's; her other two are free for a new match.
+- **Match 4** (open, **practice**): Galadriel's other two companies against each other, with a live log (turn 1 and a point of Might spent); their pages show the live state with the Practice badge. The Overview of the campaign counts 2 matches and "2 practice matches"; Éowyn's wins count only Match 2 (see [practice-match-spec.md](practice-match-spec.md)). In the new match form the "Mine" chip narrows the search to the viewer's companies, and putting two companies of one player on a side shows the same note before the match is created.
 - The company id is in every address (`/campaigns/N/my-company/ID`); `/campaigns/N/my-company` alone opens the first company, and another player's company id answers 404.
 
 ### Aura parade

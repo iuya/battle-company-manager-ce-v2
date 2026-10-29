@@ -23,7 +23,7 @@ type matchStore struct{ s *Store }
 func (s *Store) Matches() matchStore { return matchStore{s} }
 
 const matchColumns = `m.id, m.number, m.played_on, m.ended, m.ended_on, m.revision, m.decided, m.winner, m.note,
-	m.scenario_kind, m.scenario_name, m.scenario_description, m.scenario_victory`
+	m.scenario_kind, m.scenario_name, m.scenario_description, m.scenario_victory, m.practice`
 
 // matchJSON are the columns of a match that come from other tables, as JSON built by the match's own statement (one round trip for
 // the whole match instead of one per table). Times are microseconds since the epoch.
@@ -65,7 +65,7 @@ func (ms matchStore) load(ctx context.Context, q querier, where string, lock boo
 		var sc core.MatchScenario
 		var sides, companies, proposal, confirmations, objectives []byte
 		if err := rows.Scan(&m.ID, &m.Number, &m.PlayedOn, &m.Ended, &m.EndedOn, &m.Revision, &m.Result.Decided, &m.Result.Winner,
-			&m.Result.Note, &kind, &sc.Name, &sc.Description, &sc.Victory, &sides, &companies, &proposal, &confirmations, &objectives); err != nil {
+			&m.Result.Note, &kind, &sc.Name, &sc.Description, &sc.Victory, &m.Practice, &sides, &companies, &proposal, &confirmations, &objectives); err != nil {
 			return nil, err
 		}
 		m.Winner = m.Result.Winner
@@ -240,7 +240,7 @@ func (ms matchStore) Events(ctx context.Context, campaignID, matchID int64) ([]c
 
 // Create stores an open match numbered after the campaign's last one. The campaign row is locked meanwhile, so two matches
 // created at once get different numbers.
-func (ms matchStore) Create(ctx context.Context, campaignID int64, by core.User, sides []core.NewSide) (core.Match, error) {
+func (ms matchStore) Create(ctx context.Context, campaignID int64, by core.User, in core.NewMatch) (core.Match, error) {
 	tx, err := ms.s.pool.Begin(ctx)
 	if err != nil {
 		return core.Match{}, err
@@ -258,12 +258,12 @@ func (ms matchStore) Create(ctx context.Context, campaignID int64, by core.User,
 	}
 	var id int64
 	if err := tx.QueryRow(ctx, `
-		INSERT INTO matches (campaign_id, number, created_by)
-		VALUES ($1, (SELECT coalesce(max(number), 0) + 1 FROM matches WHERE campaign_id = $1), $2) RETURNING id`,
-		campaignID, by.ID).Scan(&id); err != nil {
+		INSERT INTO matches (campaign_id, number, created_by, practice)
+		VALUES ($1, (SELECT coalesce(max(number), 0) + 1 FROM matches WHERE campaign_id = $1), $2, $3) RETURNING id`,
+		campaignID, by.ID, in.Practice).Scan(&id); err != nil {
 		return core.Match{}, err
 	}
-	for pos, side := range sides {
+	for pos, side := range in.Sides {
 		if _, err := tx.Exec(ctx, `INSERT INTO match_sides (match_id, position, name, role) VALUES ($1, $2, $3, $4)`, id, pos, side.Name, nullRole(side.Role)); err != nil {
 			return core.Match{}, err
 		}

@@ -14,6 +14,18 @@ Rules come from the Battle Companies file (`campaign.matchInput`, `campaign.inju
 never from constants in the code. The order is `campaign.matchInput.aftermath.order`: **injuries, experience, progression, influence**;
 scenario rewards follow their `condition`. `core.ParseAftermath` reads them into `AftermathRules`; a chart that does not cover 2-12 exactly once is `ErrInvalidRuleset`.
 
+## Practice matches
+
+The aftermath of a **practice match** ([matches.md](matches.md#practice-matches)) is complete and empty from the moment the match ends, and nothing is stored for it. It is **derived**: the repository reads
+the status of a company in a practice match as `done` (`CASE WHEN m.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END` in `pendingRefs`, the company read, `Statuses` and the campaign's pending count), so
+`AftermathStatus.Locks()` is false and the lock, "cannot start a match" and the organiser's pending figure need no special case. `aftermathStore.Get` returns the record `done`, revision 1, no input, one line
+"Practice match: nothing to roll." and `FinishedAt` = the match's end; no `match_aftermaths` row is ever written (`aftermathStore.Update` refuses a practice match too).
+
+`AftermathService.Aftermath` returns that record (`Aftermath.Practice`, no rules or company read), and every write (`SaveAftermath`, `StartAftermath`, `RollCasualty`, `RerollCasualty`, `Decide`, `FinishAftermath`,
+`ReopenSheet`, `WaiveAftermath`) answers `ErrPracticeNothingToRoll` ("Practice match: nothing to roll.") before any rule is read and without touching the company: roster, resources, `Injured` flags, cemetery,
+experience and influence are the same before and after. The page `GET .../aftermath/{company}` shows the short state (badge, the line, "Nothing was awarded and nobody was injured.", a link back to the match; no sheet,
+stepper or waive); a write route answers 422 with the line for an editor and 403 for a reader. `LiveMatches.AftermathDefaults` is never read for it.
+
 ## Principles
 
 - **One aftermath per company per match**, entered and applied by that company's owner (an administrator or the campaign organiser may do

@@ -9,6 +9,15 @@ import (
 
 // newMatch opens a match between the sides (each a list of companies); the first company's name is the side's name.
 func (w *world) newMatch(c *wcamp, sides ...[]*wco) core.Match {
+	return w.openMatch(c, false, sides...)
+}
+
+// newPracticeMatch opens a practice match (no rewards, no aftermath) between the sides.
+func (w *world) newPracticeMatch(c *wcamp, sides ...[]*wco) core.Match {
+	return w.openMatch(c, true, sides...)
+}
+
+func (w *world) openMatch(c *wcamp, practice bool, sides ...[]*wco) core.Match {
 	var ns []core.NewSide
 	for _, s := range sides {
 		side := core.NewSide{Name: s[0].name}
@@ -17,7 +26,7 @@ func (w *world) newMatch(c *wcamp, sides ...[]*wco) core.Match {
 		}
 		ns = append(ns, side)
 	}
-	m, err := w.c().CreateMatch(w.ctx, c.org, c.id, ns)
+	m, err := w.c().CreateMatch(w.ctx, c.org, c.id, core.NewMatch{Sides: ns, Practice: practice})
 	w.must("create match in "+c.name, err)
 	return m
 }
@@ -102,6 +111,14 @@ func (w *world) endMatch(c *wcamp, m core.Match) core.Match {
 // played makes an ended match: scenario, result, end.
 func (w *world) played(c *wcamp, scenario string, o outcome, sides ...[]*wco) core.Match {
 	m := w.newMatch(c, sides...)
+	m = w.rulebook(c, m, scenario)
+	m = w.report(c, m, o)
+	return w.endMatch(c, m)
+}
+
+// playedPractice makes an ended practice match: the same steps as played, but it awards nothing and has no aftermath.
+func (w *world) playedPractice(c *wcamp, scenario string, o outcome, sides ...[]*wco) core.Match {
+	m := w.newPracticeMatch(c, sides...)
 	m = w.rulebook(c, m, scenario)
 	m = w.report(c, m, o)
 	return w.endMatch(c, m)

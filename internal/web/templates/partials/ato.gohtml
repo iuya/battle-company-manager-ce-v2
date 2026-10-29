@@ -51,6 +51,7 @@
           <span class="block text-sm text-muted">{{.Text}}</span></span>
       </label>
       <p class="mt-1 text-sm text-muted" x-show="reason({{jsstr .Key}}, {{jsstr $hard}})" x-text="reason({{jsstr .Key}}, {{jsstr $hard}})" x-cloak></p>
+      {{if and .Reason (not .Disabled)}}<p class="mt-1 text-sm text-muted" data-ato-practice>{{.Reason}}. It stays as entered and does nothing.</p>{{end}}
 
       {{if eq .Key "toolKit"}}
       <div class="mt-2 space-y-3" x-show="bonus.includes('toolKit')" x-cloak>

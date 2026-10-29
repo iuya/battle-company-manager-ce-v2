@@ -720,7 +720,7 @@ func TestCreateMatchBuildsSidesFromTheForm(t *testing.T) {
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
 	f.camp.EXPECT().Companies(gomock.Any(), int64(7)).Return([]core.CampaignCompany{{ID: 1}, {ID: 2}, {ID: 3}, {ID: 4}}, nil)
 	want := []core.NewSide{{Name: "Gondor", Companies: []int64{1, 3}}, {Companies: []int64{2}}, {Name: "Spies"}}
-	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), want).Return(core.Match{ID: 12}, nil)
+	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), core.NewMatch{Sides: want}).Return(core.Match{ID: 12}, nil)
 	rec := f.do(f.signedIn(form("/campaigns/7/matches", url.Values{
 		"sides": {"3"}, "side-name-1": {"Gondor"}, "side-1": {"1", "3", "99"}, // 99 is not in the campaign: ignored
 		"side-2": {"2"}, "side-name-3": {"Spies"},
@@ -808,7 +808,7 @@ func TestCreateMatchAllVsAll(t *testing.T) {
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
 	f.camp.EXPECT().Companies(gomock.Any(), int64(7)).Return([]core.CampaignCompany{{ID: 1, Name: "A"}, {ID: 2, Name: "B"}, {ID: 3, Name: "C"}}, nil)
 	want := []core.NewSide{{Name: "C", Companies: []int64{3}}, {Name: "A", Companies: []int64{1}}}
-	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), want).Return(core.Match{ID: 5}, nil)
+	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), core.NewMatch{Sides: want}).Return(core.Match{ID: 5}, nil)
 	rec := f.do(f.signedIn(form("/campaigns/7/matches", url.Values{"mode": {"ffa"}, "sides": {"2"}, "side-1": {"3", "1"}})))
 	if rec.Code != http.StatusSeeOther {
 		t.Errorf("got %d", rec.Code)

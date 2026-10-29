@@ -332,7 +332,7 @@ func TestAnOwnerOfTwoCompaniesFightsThemselves(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	m, err := w.matches.CreateMatch(ctx, w.org, id, []core.NewSide{{Name: "A", Companies: []int64{w.co1.ID}}, {Name: "B", Companies: []int64{twin.ID}}})
+	m, err := w.matches.CreateMatch(ctx, w.org, id, core.NewMatch{Sides: []core.NewSide{{Name: "A", Companies: []int64{w.co1.ID}}, {Name: "B", Companies: []int64{twin.ID}}}})
 	if err != nil {
 		t.Fatalf("a player's two companies on opposite sides: %v", err)
 	}

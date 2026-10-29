@@ -21,6 +21,7 @@ type liveView struct {
 	Missed     []liveCard // injured at the start: they take no part
 	EndPending bool       // an end of the match is proposed: Start turn is refused
 	End        endBanner  // the pending end, for the sticky banner
+	Practice   bool       // a practice match: the badge and the banner in the match bar
 }
 
 // Broken is whether the company is Broken (its cards show the courage chips).
@@ -173,6 +174,7 @@ func (s *Server) liveFor(r *http.Request, base campaignBase, detail core.Company
 			v.Scenario = match.Scenario.Name
 		}
 		v.EndPending = match.EndProposal != nil
+		v.Practice = match.Practice
 		v.End = s.endBannerFor(r, base, match, lc.CompanyID)
 	}
 	live := map[int64]core.LiveUnit{}

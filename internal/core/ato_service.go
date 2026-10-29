@@ -87,6 +87,11 @@ func (s *Matches) atoCard(ctx context.Context, user User, camp CampaignDetail, i
 		o := ATOOption{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, Taken: rec.Selection.Has(b.Key), AppliesIn: b.AppliesIn}
 		switch {
 		case o.Taken:
+			if m.Practice && atoRewardBonus(b.Key) {
+				o.Reason = ATOPracticeReason // kept as entered, it just does nothing
+			}
+		case m.Practice && atoRewardBonus(b.Key):
+			o.Disabled, o.Reason = true, ATOPracticeReason
 		case b.Key == atoWanderer && hasWanderer:
 			o.Disabled, o.Reason = true, "The company already has a Wanderer."
 		case b.Rating > left || (!rules.Inclusive && b.Rating == left):
@@ -181,6 +186,13 @@ func (s *Matches) SaveAgainstTheOdds(ctx context.Context, user User, id, matchID
 			return ErrMatchChanged
 		}
 		old := st.Record
+		if st.Match.Practice { // a reward bonus cannot be newly taken in a practice match
+			for _, k := range clean.Bonuses {
+				if atoRewardBonus(k) && !old.Selection.Has(k) {
+					return Refuse("%s.", ATOPracticeReason)
+				}
+			}
+		}
 		switch {
 		case clean.Ambush != "":
 			if old.Selection.Ambush == "" { // the scenario it replaces is remembered once

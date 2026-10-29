@@ -141,11 +141,11 @@ const unitsJSON = `(SELECT COALESCE(jsonb_agg(jsonb_build_object('id', x.id, 'ba
 // aftermaths, open match, unused perks, units with their equipment, and cemetery. Same content and order as load.
 const readQuery = `
 	SELECT c.id, c.name, c.faction, c.owner_id, u.display_name, c.influence, c.gold, c.rerolls, c.pack, c.unit_order, c.grave_order, c.pending,
-	       (SELECT COALESCE(jsonb_agg(jsonb_build_array(m.id, m.number, COALESCE(a.status, 'pending')) ORDER BY m.number), '[]')
+	       (SELECT COALESCE(jsonb_agg(jsonb_build_array(m.id, m.number, CASE WHEN m.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END) ORDER BY m.number), '[]')
 	          FROM match_side_companies sc
 	          JOIN matches m ON m.id = sc.match_id AND m.ended
 	          LEFT JOIN match_aftermaths a ON a.match_id = sc.match_id AND a.company_id = sc.company_id
-	         WHERE sc.company_id = c.id AND COALESCE(a.status, 'pending') NOT IN ('done', 'waived')),
+	         WHERE sc.company_id = c.id AND (CASE WHEN m.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END) NOT IN ('done', 'waived')),
 	       (SELECT jsonb_build_array(m.id, m.number) FROM match_side_companies sc JOIN matches m ON m.id = sc.match_id AND NOT m.ended
 	         WHERE sc.company_id = c.id ORDER BY m.number LIMIT 1),
 	       (SELECT COALESCE(jsonb_agg(jsonb_build_array(p.id, COALESCE(p.match_id, 0), COALESCE(p.unit_id, 0), p.effect, p.name, p.text, p.applies)

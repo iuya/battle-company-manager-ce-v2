@@ -160,7 +160,7 @@ type campaigns interface {
 	Matches(ctx context.Context, id int64) ([]core.Match, error) // newest first
 	Match(ctx context.Context, id, matchID int64) (core.Match, error)
 	// CreateMatch returns an error wrapping core.ErrInvalidMatch when the sides are rejected (see core.ValidateSides).
-	CreateMatch(ctx context.Context, user core.User, id int64, sides []core.NewSide) (core.Match, error)
+	CreateMatch(ctx context.Context, user core.User, id int64, in core.NewMatch) (core.Match, error)
 
 	// The match layer (docs/matches.md). Every write takes the acting user and the Match.Revision the form was rendered with;
 	// all return core.ErrNotFound for an unknown campaign or match, an error wrapping core.ErrRefused when Match.Access says

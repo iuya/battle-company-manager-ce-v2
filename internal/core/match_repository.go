@@ -49,10 +49,10 @@ type matchRepository interface {
 	Get(ctx context.Context, campaignID, matchID int64) (Match, error)
 	// Events is the match's history of ending and reopening, oldest first.
 	Events(ctx context.Context, campaignID, matchID int64) ([]MatchEvent, error)
-	// Create stores an open match for the (already validated, see ValidateSides) sides, numbered after the campaign's last
+	// Create stores an open match for the (already validated, see ValidateSides) in.Sides and in.Practice, numbered after the campaign's last
 	// one, at revision 1. ErrNotFound when the creator is not a member of the campaign or a company is not one of its
 	// companies; ErrInvalidMatch when a company appears twice.
-	Create(ctx context.Context, campaignID int64, by User, sides []NewSide) (Match, error)
+	Create(ctx context.Context, campaignID int64, by User, in NewMatch) (Match, error)
 	// Update runs fn on the match inside one transaction holding a row lock on it and stores what fn leaves behind when it
 	// returns nil (the error is returned as is when it does not, and nothing is stored). fn is where the service checks the
 	// access and the revision. What is stored: EndProposal (nil deletes it; an ended match has none), Scenario, Result (Winner and Decided, Note, VictoryPoints per side, Fled and

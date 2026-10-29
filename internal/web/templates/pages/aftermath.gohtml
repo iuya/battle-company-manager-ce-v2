@@ -10,6 +10,17 @@
 {{if .Locked}}
   <h1 class="mt-2">Aftermath · {{.Company.Name}}</h1>
   <div class="alert alert-info mt-4" role="status">{{.Locked}}</div>
+{{else if .A.Practice}}
+{{with .Notice}}<div class="alert {{if $.NoticeErr}}alert-danger{{else}}alert-success{{end}} mt-3" role="{{if $.NoticeErr}}alert{{else}}status{{end}}">{{.}}</div>{{end}}
+<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+  <h1 class="break-words">{{.Company.Name}}</h1>
+  {{template "practice_badge"}}
+</div>
+<section class="card mt-4 space-y-2" data-practice-aftermath>
+  <p class="font-medium">Practice match: nothing to roll.</p>
+  <p class="text-sm text-muted">Nothing was awarded and nobody was injured. {{.Company.Name}} is not locked and can recruit, buy, heal and start a new match.</p>
+  <p class="text-sm"><a href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Back to Match {{.Match.Number}}</a></p>
+</section>
 {{else}}
 {{with .Notice}}<div class="alert {{if $.NoticeErr}}alert-danger{{else}}alert-success{{end}} mt-3" role="{{if $.NoticeErr}}alert{{else}}status{{end}}">{{.}}</div>{{end}}
 <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">

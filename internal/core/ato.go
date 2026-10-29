@@ -30,6 +30,15 @@ const (
 	atoAmbush   = "ambush"
 )
 
+// ATOPracticeReason is why a bonus that only pays after the match is disabled in a practice match.
+const ATOPracticeReason = "No reward in a practice match"
+
+// atoRewardBonus says whether the bonus only acts as a reward after the match (influence, experience, re-rolls): a practice match
+// awards nothing, so these cannot be taken there. The table effects (kits, Wanderer, Ambush!) stay.
+func atoRewardBonus(key string) bool {
+	return key == "influence" || key == "experience" || key == "reroll"
+}
+
 // ATOBonusRule is a bonus of campaign.againstTheOdds.bonuses.
 type ATOBonusRule struct {
 	Key, Name, Text string

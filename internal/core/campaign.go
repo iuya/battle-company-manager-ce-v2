@@ -108,10 +108,12 @@ type CampaignSummary struct {
 	Name        string
 	Description string
 	Status      CampaignStatus
-	Round       int               // the round being played; 0 before the first one
-	Rounds      int               // planned rounds; 0 when the campaign is open ended
-	Matches     int               // matches played so far
-	Companies   []CampaignCompany // the viewer's own companies, oldest first; empty until they create one
+	Round       int // the round being played; 0 before the first one
+	Rounds      int // planned rounds; 0 when the campaign is open ended
+	Matches     int // matches played so far (practice matches excluded)
+	// PracticeMatches counts the practice matches of the campaign, ended or open; they are not in Matches nor in the W/D/L of the companies.
+	PracticeMatches int
+	Companies       []CampaignCompany // the viewer's own companies, oldest first; empty until they create one
 }
 
 // CampaignCompany is a battle company inside a campaign. A user has up to CampaignSettings.CompanyCap() per campaign.
@@ -310,6 +312,9 @@ type Match struct {
 	// writes it as the Detail of the "ended" event.
 	EndProposal *EndProposal
 	EndDetail   string
+	// Practice is set when the match is created and never changed: no rewards and no injuries, its aftermath is complete and empty from
+	// the moment it ends (docs/practice-match-spec.md).
+	Practice bool
 }
 
 // Tone says how side i (0-based) came out: "win", "loss", "draw", or "" while the match is open.
@@ -331,6 +336,12 @@ func (m Match) WinnerName() string {
 		return m.Sides[m.Winner-1].Label()
 	}
 	return ""
+}
+
+// NewMatch is the input of CreateMatch: the sides and whether it is a practice match.
+type NewMatch struct {
+	Sides    []NewSide
+	Practice bool
 }
 
 // NewSide is a side of a match being created: an optional name and the ids of its companies.

@@ -1,6 +1,6 @@
 # Practice matches (spec)
 
-Status: **planned, nothing built.** The feature: a match flagged as **practice** when it is created awards no rewards (experience, influence, any scenario bonus) and
+Status: **implemented** (steps 1 to 5 of section 13: migration 00025, `NewMatch`/`Match.Practice`, the derived aftermath and its refusals, the counts, the form, badge, banner, filter and pages, the demo world and the e2e flow `100-practice-match`). The feature: a match flagged as **practice** when it is created awards no rewards (experience, influence, any scenario bonus) and
 skips injuries. The decisions taken are in section 14. Related: [matches.md](matches.md), [live-match.md](live-match.md),
 [aftermath.md](aftermath.md), [multi-company-spec.md](multi-company-spec.md).
 

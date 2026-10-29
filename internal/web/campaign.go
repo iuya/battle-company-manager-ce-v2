@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -83,8 +84,11 @@ type rankingsView struct {
 
 type matchesView struct {
 	campaignBase
-	Matches   []core.Match
-	Companies int // how many companies the campaign has: a match needs at least two
+	Matches   []core.Match // what the list shows: every match, or only the practice ones with the Practice filter
+	Companies int          // how many companies the campaign has: a match needs at least two
+	// PracticeOnly is the Practice filter (?practice=1); Practice counts the campaign's practice matches for the chip.
+	PracticeOnly bool
+	Practice     int
 }
 
 // minMatchCompanies is how many companies a campaign needs before a match can be opened.
@@ -136,7 +140,16 @@ func (s *Server) handleCampaign(page, tab string) http.HandlerFunc {
 			if s.fail(w, r, err) {
 				return
 			}
-			view = matchesView{base, matches, len(list)}
+			mv := matchesView{campaignBase: base, Matches: matches, Companies: len(list), PracticeOnly: r.URL.Query().Get("practice") == "1"}
+			for _, m := range matches {
+				if m.Practice {
+					mv.Practice++
+				}
+			}
+			if mv.PracticeOnly {
+				mv.Matches = slices.DeleteFunc(slices.Clone(matches), func(m core.Match) bool { return !m.Practice })
+			}
+			view = mv
 		}
 		s.render.page(w, r, http.StatusOK, page, view)
 	}
@@ -438,6 +451,7 @@ type newMatchView struct {
 	Error         string
 	Busy          *core.OpenMatchRef // the open match a refused company is in, to link to
 	Companies     int                // how many companies the campaign has; under two there is nobody to match
+	Practice      bool               // the "Practice match" box is ticked (set on the form only; nothing can change it afterwards)
 }
 
 // TooFew is whether the campaign has too few companies for a match.
@@ -488,6 +502,7 @@ func (s *Server) handleNewMatchPage(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, r, err) {
 		return
 	}
+	view.Practice = r.URL.Query().Get("practice") == "1"
 	s.render.page(w, r, http.StatusOK, "match_new", view)
 }
 
@@ -534,8 +549,9 @@ func (s *Server) handleCreateMatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	user := *userFrom(r.Context())
-	matchID, err := s.recent.create([]any{"match", user.ID, base.Campaign.ID, sides}, func() (int64, error) {
-		m, err := s.campaigns.CreateMatch(r.Context(), user, base.Campaign.ID, sides)
+	practice := r.PostFormValue("practice") == "1"
+	matchID, err := s.recent.create([]any{"match", user.ID, base.Campaign.ID, sides, practice}, func() (int64, error) {
+		m, err := s.campaigns.CreateMatch(r.Context(), user, base.Campaign.ID, core.NewMatch{Sides: sides, Practice: practice})
 		return m.ID, err
 	})
 	switch {
@@ -544,6 +560,7 @@ func (s *Server) handleCreateMatch(w http.ResponseWriter, r *http.Request) {
 		if s.fail(w, r, jerr) {
 			return
 		}
+		view.Practice = practice
 		var busy *core.CompanyBusyError
 		if errors.As(err, &busy) {
 			view.Busy = &busy.OpenMatchRef

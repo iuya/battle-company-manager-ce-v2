@@ -1728,18 +1728,18 @@ func (c *MockcampaignsCreateCompanyCall) DoAndReturn(f func(context.Context, cor
 }
 
 // CreateMatch mocks base method.
-func (m *Mockcampaigns) CreateMatch(ctx context.Context, user core.User, id int64, sides []core.NewSide) (core.Match, error) {
+func (m *Mockcampaigns) CreateMatch(ctx context.Context, user core.User, id int64, in core.NewMatch) (core.Match, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateMatch", ctx, user, id, sides)
+	ret := m.ctrl.Call(m, "CreateMatch", ctx, user, id, in)
 	ret0, _ := ret[0].(core.Match)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateMatch indicates an expected call of CreateMatch.
-func (mr *MockcampaignsMockRecorder) CreateMatch(ctx, user, id, sides any) *MockcampaignsCreateMatchCall {
+func (mr *MockcampaignsMockRecorder) CreateMatch(ctx, user, id, in any) *MockcampaignsCreateMatchCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMatch", reflect.TypeOf((*Mockcampaigns)(nil).CreateMatch), ctx, user, id, sides)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMatch", reflect.TypeOf((*Mockcampaigns)(nil).CreateMatch), ctx, user, id, in)
 	return &MockcampaignsCreateMatchCall{Call: call}
 }
 
@@ -1755,13 +1755,13 @@ func (c *MockcampaignsCreateMatchCall) Return(arg0 core.Match, arg1 error) *Mock
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsCreateMatchCall) Do(f func(context.Context, core.User, int64, []core.NewSide) (core.Match, error)) *MockcampaignsCreateMatchCall {
+func (c *MockcampaignsCreateMatchCall) Do(f func(context.Context, core.User, int64, core.NewMatch) (core.Match, error)) *MockcampaignsCreateMatchCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsCreateMatchCall) DoAndReturn(f func(context.Context, core.User, int64, []core.NewSide) (core.Match, error)) *MockcampaignsCreateMatchCall {
+func (c *MockcampaignsCreateMatchCall) DoAndReturn(f func(context.Context, core.User, int64, core.NewMatch) (core.Match, error)) *MockcampaignsCreateMatchCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

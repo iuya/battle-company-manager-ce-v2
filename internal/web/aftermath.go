@@ -46,7 +46,7 @@ func (s *Server) aftermathRows(r *http.Request, base campaignBase, m core.Match)
 		row.Owner = company.Owner
 		row.Edit = core.AftermathAccessFor(user, m, company, base.Campaign.OrganiserID) == core.AftermathEdit
 		row.Waive = ref.Status.Locks() && core.CanWaive(user, base.Campaign.OrganiserID)
-		if ref.Status == core.AftermathDone || ref.Status == core.AftermathWaived {
+		if !m.Practice && (ref.Status == core.AftermathDone || ref.Status == core.AftermathWaived) {
 			if a, err := s.campaigns.Aftermath(r.Context(), user, base.Campaign.ID, m.ID, ref.CompanyID); err == nil {
 				row.Summary = aftermathSummary(a)
 			}
@@ -721,6 +721,9 @@ func (s *Server) aftermathCtx(w http.ResponseWriter, r *http.Request) (campaignB
 // newAftermathView gathers what the steps need. a is the state to show; an error from the core is returned as is.
 func (s *Server) newAftermathView(r *http.Request, base campaignBase, m core.Match, co core.CampaignCompany, a core.Aftermath) (aftermathView, error) {
 	v := aftermathView{campaignBase: base, Match: m, Company: co, A: a, Result: m.Result.Company(co.ID), Roster: map[int64]core.CompanyUnit{}}
+	if a.Practice { // nothing to roll: the page is the short state, no rules or roster are read
+		return v, nil
+	}
 	var err error
 	if v.Rules, err = s.campaigns.AftermathRules(r.Context(), base.Campaign.ID); err != nil {
 		return v, err

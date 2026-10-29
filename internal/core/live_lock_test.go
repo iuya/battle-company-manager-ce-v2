@@ -75,7 +75,7 @@ func TestCreateMatchGuards(t *testing.T) {
 	f := newMatchesFixture(t)
 	sides := []NewSide{{Name: "A", Companies: []int64{1}}, {Name: "B", Companies: []int64{2}}}
 	var created, inited bool
-	f.matches.EXPECT().Create(gomock.Any(), int64(5), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64, User, []NewSide) (Match, error) {
+	f.matches.EXPECT().Create(gomock.Any(), int64(5), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64, User, NewMatch) (Match, error) {
 		created = true
 		return f.match, nil
 	}).AnyTimes()
@@ -87,12 +87,12 @@ func TestCreateMatchGuards(t *testing.T) {
 		}
 		return nil, nil
 	}
-	_, err := f.svc.CreateMatch(f.ctx, f.player(), 5, sides)
+	_, err := f.svc.CreateMatch(f.ctx, f.player(), 5, NewMatch{Sides: sides})
 	if !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Finish the aftermath of Match 4 first.") || created {
 		t.Errorf("a pending aftermath: %v (created %v)", err, created)
 	}
 	f.svc.CompanyAftermaths = func(context.Context, int64, int64) ([]AftermathRef, error) { return nil, nil }
-	if _, err := f.svc.CreateMatch(f.ctx, f.player(), 5, sides); err != nil || !created || !inited {
+	if _, err := f.svc.CreateMatch(f.ctx, f.player(), 5, NewMatch{Sides: sides}); err != nil || !created || !inited {
 		t.Errorf("created %v, live init %v, err %v (a failing live init does not fail the match)", created, inited, err)
 	}
 }
@@ -101,7 +101,7 @@ func TestCreateMatchPassesTheBusyCompanyError(t *testing.T) {
 	f := newMatchesFixture(t)
 	busy := &CompanyBusyError{Company: "Rangers", OpenMatchRef: OpenMatchRef{MatchID: 2, Number: 2}}
 	f.matches.EXPECT().Create(gomock.Any(), int64(5), gomock.Any(), gomock.Any()).Return(Match{}, busy).AnyTimes()
-	_, err := f.svc.CreateMatch(f.ctx, f.player(), 5, []NewSide{{Name: "A", Companies: []int64{1}}, {Name: "B", Companies: []int64{2}}})
+	_, err := f.svc.CreateMatch(f.ctx, f.player(), 5, NewMatch{Sides: []NewSide{{Name: "A", Companies: []int64{1}}, {Name: "B", Companies: []int64{2}}}})
 	var got *CompanyBusyError
 	if !errors.Is(err, ErrRefused) || !errors.As(err, &got) || got.Number != 2 {
 		t.Errorf("%v", err)

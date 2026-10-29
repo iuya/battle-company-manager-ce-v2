@@ -8,14 +8,18 @@
 {{if eq .Campaign.Status "paused"}}<p class="mt-2 text-sm text-muted">This campaign is paused: open matches can be finished, but no new match can start until the organiser resumes it.</p>
 {{else if eq .Campaign.Status "finished"}}<p class="mt-2 text-sm text-muted">This campaign has ended. Its matches are frozen as they were, open ones included, until an administrator reactivates it.</p>
 {{else if not .CanOpenMatch}}<p class="mt-2 text-sm text-muted">A match needs at least two companies and this campaign has {{.Companies}}. Players create theirs from <strong>My Company</strong>; invite them from the Overview.</p>{{end}}
+<nav class="mt-3 flex flex-wrap gap-2" aria-label="Filter the matches">
+  <a href="/campaigns/{{.Campaign.ID}}/matches" class="chip no-underline hover:no-underline {{if not .PracticeOnly}}chip-on{{end}}" {{if not .PracticeOnly}}aria-current="true"{{end}}>All</a>
+  <a href="/campaigns/{{.Campaign.ID}}/matches?practice=1" class="chip no-underline hover:no-underline {{if .PracticeOnly}}chip-on{{end}}" {{if .PracticeOnly}}aria-current="true"{{end}} data-filter-practice>Practice{{if .Practice}} <span class="ml-1 text-muted">{{.Practice}}</span>{{end}}</a>
+</nav>
 {{if .Matches}}
 <ul class="card mt-3 divide-y divide-line !p-0">
   {{range .Matches}}
   <li><a href="/campaigns/{{$.Campaign.ID}}/matches/{{.ID}}" class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-fg no-underline hover:bg-raised hover:no-underline">
-    <span class="min-w-0"><span class="block text-xs text-muted">Match {{.Number}} · {{fmtDateShort .PlayedOn}}</span>{{template "match_sides" .}}{{template "match_scenario" .}}</span>
+    <span class="min-w-0"><span class="flex flex-wrap items-center gap-x-2 text-xs text-muted">Match {{.Number}} · {{fmtDateShort .PlayedOn}}{{if .Practice}} {{template "practice_badge"}}{{end}}</span>{{template "match_sides" .}}{{template "match_scenario" .}}</span>
     {{template "match_result" .}}
   </a></li>
   {{end}}
 </ul>
-{{else}}<p class="mt-3 text-muted">No matches have been played yet.</p>{{end}}
+{{else}}<p class="mt-3 text-muted">{{if .PracticeOnly}}No practice matches yet.{{else}}No matches have been played yet.{{end}}</p>{{end}}
 {{end}}

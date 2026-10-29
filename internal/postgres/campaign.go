@@ -53,11 +53,11 @@ const figureColumns = `c.id, c.name, c.faction, c.owner_id, u.display_name, ` + 
 // figureCounts are the units, wins, draws and losses of company c.
 const figureCounts = `(SELECT count(*) FROM company_units cu WHERE cu.company_id = c.id)::int,
 	       (SELECT count(*) FROM match_side_companies mc JOIN matches m ON m.id = mc.match_id
-	         WHERE mc.company_id = c.id AND m.ended AND m.winner = mc.position + 1)::int,
+	         WHERE mc.company_id = c.id AND m.ended AND NOT m.practice AND m.winner = mc.position + 1)::int,
 	       (SELECT count(*) FROM match_side_companies mc JOIN matches m ON m.id = mc.match_id
-	         WHERE mc.company_id = c.id AND m.ended AND m.winner = 0)::int,
+	         WHERE mc.company_id = c.id AND m.ended AND NOT m.practice AND m.winner = 0)::int,
 	       (SELECT count(*) FROM match_side_companies mc JOIN matches m ON m.id = mc.match_id
-	         WHERE mc.company_id = c.id AND m.ended AND m.winner <> 0 AND m.winner <> mc.position + 1)::int`
+	         WHERE mc.company_id = c.id AND m.ended AND NOT m.practice AND m.winner <> 0 AND m.winner <> mc.position + 1)::int`
 
 // ownCompaniesJSON is a column: the companies the member m owns in campaign g (oldest first, with their figures) as a JSON array,
 // so a query keeps one row per campaign or member whatever the number of companies (readOwnCompanies decodes it).
@@ -106,7 +106,8 @@ func scanCompany(row pgx.Row) (core.CampaignCompany, error) {
 func (cs campaignStore) List(ctx context.Context, userID int64, withFinished bool) ([]core.CampaignSummary, error) {
 	rows, err := cs.s.pool.Query(ctx, `
 		SELECT g.id, g.name, g.description, g.status, g.round, g.rounds,
-		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id)::int, `+ownCompaniesJSON+`
+		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND NOT x.practice)::int,
+		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND x.practice)::int, `+ownCompaniesJSON+`
 		  FROM campaign_members m
 		  JOIN campaigns g ON g.id = m.campaign_id
 		 WHERE m.user_id = $1 AND ($2 OR g.status <> 'finished')
@@ -120,7 +121,7 @@ func (cs campaignStore) List(ctx context.Context, userID int64, withFinished boo
 		var c core.CampaignSummary
 		var status string
 		var raw []byte
-		if err := rows.Scan(&c.ID, &c.Name, &c.Description, &status, &c.Round, &c.Rounds, &c.Matches, &raw); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Description, &status, &c.Round, &c.Rounds, &c.Matches, &c.PracticeMatches, &raw); err != nil {
 			return nil, err
 		}
 		c.Status = core.CampaignStatus(status)
@@ -199,13 +200,14 @@ func (cs campaignStore) Get(ctx context.Context, userID, id int64) (core.Campaig
 	err := cs.s.pool.QueryRow(ctx, `
 		SELECT g.id, g.name, g.description, g.status, g.round, g.rounds, g.settings,
 		       o.user_id, ou.display_name, (SELECT count(*) FROM campaign_members x WHERE x.campaign_id = g.id)::int,
-		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id)::int,
+		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND NOT x.practice)::int,
+		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND x.practice)::int,
 		       (SELECT count(*) FROM campaign_invites i WHERE i.campaign_id = g.id AND i.revoked_at IS NULL AND i.expires_at > now()
 		           AND (i.max_uses = 0 OR i.uses < i.max_uses))::int,
 		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND NOT x.ended)::int,
 		       (SELECT count(*) FROM match_side_companies sc JOIN matches x ON x.id = sc.match_id AND x.ended
 		          LEFT JOIN match_aftermaths a ON a.match_id = sc.match_id AND a.company_id = sc.company_id
-		         WHERE sc.campaign_id = g.id AND COALESCE(a.status, 'pending') NOT IN ('done', 'waived'))::int,
+		         WHERE sc.campaign_id = g.id AND (CASE WHEN x.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END) NOT IN ('done', 'waived'))::int,
 		       rv.kind, rv.hash, rv.name, rv.version, rv.is_default,
 		       rb.kind, rb.hash, rb.name, rb.version, rb.is_default,
 		       rg.kind, rg.hash, rg.name, rg.version, rg.is_default, `+ownCompaniesJSON+`
@@ -218,7 +220,7 @@ func (cs campaignStore) Get(ctx context.Context, userID, id int64) (core.Campaig
 		  JOIN users ou ON ou.id = o.user_id
 		 WHERE g.id = $2`, userID, id).
 		Scan(&d.ID, &d.Name, &d.Description, &status, &d.Round, &d.Rounds, &settings,
-			&d.OrganiserID, &d.Organiser, &d.Players, &d.Matches, &d.ActiveInvites, &d.OpenMatches, &d.PendingAftermaths,
+			&d.OrganiserID, &d.Organiser, &d.Players, &d.Matches, &d.PracticeMatches, &d.ActiveInvites, &d.OpenMatches, &d.PendingAftermaths,
 			&infos[0].kind, &infos[0].hash, &infos[0].name, &infos[0].version, &infos[0].def,
 			&infos[1].kind, &infos[1].hash, &infos[1].name, &infos[1].version, &infos[1].def,
 			&infos[2].kind, &infos[2].hash, &infos[2].name, &infos[2].version, &infos[2].def, &ownRaw)

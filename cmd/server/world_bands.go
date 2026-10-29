@@ -1,5 +1,7 @@
 package main
 
+import "github.com/iuya/battle-company-manager-ce-v2/internal/core"
+
 // bandsCampaign is the campaign where a player may have several companies (docs/multi-company-spec.md): the setting is 3, Galadriel
 // has all three, Éowyn two (so she may create another), Gimli and Sauron one. Éowyn's two companies play on one side against Sauron
 // in a match that ended, one aftermath finished and the other still to play (each is locked on its own); Galadriel's first company is
@@ -20,13 +22,28 @@ func (w *world) bandsCampaign() {
 		w.grant(co, 8, 10)
 	}
 
+	// A practice match between Éowyn's own two companies (the "Same player" case): nothing to roll, so neither is locked afterwards
+	w.playedPractice(c, "Chance Encounter", outcome{winner: 1, vp: []int{4, 2}, note: "Éowyn trained her two bands against each other."}, []*wco{mark}, []*wco{deep})
+
 	// Éowyn's two companies fight on one side; each has its own aftermath, one done and one still to play
 	m := w.played(c, "Seize Ground", outcome{winner: 1, vp: []int{6, 3}, note: "Both of Éowyn's bands took the field."}, []*wco{mark, deep}, []*wco{gate})
 	w.settle(mark, m, w.sheet(mark), nil, true)
 
 	// Galadriel's first company is in an open match; her other two are free, as is Éowyn's pair now locked by its aftermath
 	w.newMatch(c, []*wco{wood}, []*wco{mountain})
+
+	// An open practice match between two of Galadriel's other companies, with a live log: a turn and a point of Might spent
+	open := w.newPracticeMatch(c, []*wco{vale}, []*wco{green})
+	w.must("start turn 1", w.liveApply(vale, open, core.LiveAction{Kind: core.LiveTurn, Turn: 1}))
+	if hero, ok := w.unit(vale, func(u core.CompanyUnit) bool { return u.IsHero() }); ok {
+		w.must("spend Might", w.liveApply(vale, open, core.LiveAction{Kind: core.LiveStatChange, UnitID: hero.ID, Stat: "might", Delta: -1}))
+	}
 	w.show(mark)
 	w.show(wood)
-	_, _ = vale, green
+}
+
+// liveApply records an action of the match's organiser for the company.
+func (w *world) liveApply(co *wco, m core.Match, a core.LiveAction) error {
+	_, _, err := w.c().Apply(w.ctx, co.camp.org, co.camp.id, m.ID, co.id, a)
+	return err
 }
