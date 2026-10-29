@@ -74,7 +74,7 @@ export default async function (h) {
     assert.ok(text.includes('Ranger of the North'), 'the dialog names the Ranger as leader');
     for (const n of shireNames.slice(1)) assert.ok(text.includes(n), `the dialog names the sergeant ${n}`);
     await confirmDialog(shire, '=Yes', { nav: true });
-    assert.equal(new URL(shire.page.url()).pathname, `/campaigns/${cid}/my-company`, 'redirected to My company');
+    assert.match(new URL(shire.page.url()).pathname, new RegExp(`^/campaigns/${cid}/my-company/\\d+$`), 'redirected to My company');
     await shire.waitText(shireTitle);
     const units = await roster(shire);
     assert.ok(units.length >= 5, `a starting company has units (${units.length})`);
@@ -117,7 +117,7 @@ export default async function (h) {
     const text = await swear(rohan, rohanTitle);
     for (const n of rohanNames) assert.ok(text.includes(n), `the dialog names ${n}`);
     await confirmDialog(rohan, '=Yes', { nav: true });
-    assert.equal(new URL(page.url()).pathname, `/campaigns/${cid}/my-company`, 'redirected to My company');
+    assert.match(new URL(page.url()).pathname, new RegExp(`^/campaigns/${cid}/my-company/\\d+$`), 'redirected to My company');
     await rohan.waitText(rohanTitle);
     const units = await roster(rohan);
     const role = (r) => units.filter((u) => u.role === r).map((u) => u.title);
@@ -149,7 +149,7 @@ export default async function (h) {
     assert.match(r.text, /already have a company/i);
     // the form page of a member who has a company does not offer another creation either
     await shire.goto(`/campaigns/${cid}/company/new`);
-    assert.equal(new URL(shire.page.url()).pathname, `/campaigns/${cid}/my-company`, 'the creation page sends a member with a company to it');
+    assert.match(new URL(shire.page.url()).pathname, new RegExp(`^/campaigns/${cid}/my-company/\\d+$`), 'the creation page sends a member with a company to it');
     await organiser.goto(`/campaigns/${cid}/companies`);
     assert.ok(!(await organiser.has('Second company')), 'no second company was created');
     assert.equal(await organiser.page.$$eval('main li a h2', (e) => e.length), 2, 'two companies in the campaign');
