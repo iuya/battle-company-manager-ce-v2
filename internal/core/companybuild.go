@@ -134,6 +134,12 @@ func ownPathLevels(rs *RuleSet, settings CampaignSettings, profile CompanyProfil
 }
 
 func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettings) CompanyUnit {
+	return buildUnitFor(rs, bcCo, s, settings, false)
+}
+
+// buildUnitFor is buildUnit; ratingOnly leaves out what is derived from the finished unit and feeds nothing in its rating (the keywords
+// and the auras), for companyFigures.
+func buildUnitFor(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettings, ratingOnly bool) CompanyUnit {
 	book := rs.Vanilla
 	base, found := book.Unit(s.Base)
 	var aliasRules, aliasOptions []string // a company's own name for a profile, with rules added (Ranger of Ithilien) and options selected
@@ -384,6 +390,9 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 		for _, a := range base.HeroicActions {
 			u.Path.HeroicActions = append(u.Path.HeroicActions, HeroicAction{Name: a, Source: ActionFromUnit})
 		}
+	}
+	if ratingOnly {
+		return u
 	}
 	u.Keywords = unitKeywordsOf(rs, profile, s, u) // last: a bought mount makes the rider Cavalry
 	u.LevelEvery = rs.BC.Progression().Threshold
@@ -1008,6 +1017,38 @@ func BuildDetail(rs *RuleSet, settings CampaignSettings, st CompanyState) Compan
 		detail.Recruit.Special[i].Blocked, _ = resultBlock(rs, bcCo, units, st.Cemetery, Reinforcement{Type: "unit", Unit: sp.Unit, Rare: sp.Rare})
 	}
 	return detail
+}
+
+// companyFigures is BuildDetail(rs, settings, st).CampaignCompany without the rest of the detail: the figures a list, the sidebar or a
+// match page rate a company by (Points, FullPoints, Units, FactionLabel). It builds the units as BuildDetail does and leaves out what
+// does not enter those figures: keywords, auras, limits, recruit charts, the cemetery. TestCompanyFiguresEqualBuildDetail holds the
+// two together.
+func companyFigures(rs *RuleSet, settings CampaignSettings, st CompanyState) CampaignCompany {
+	co := st.Company
+	bcCo, _ := rs.BC.Company(co.Faction)
+	co.FactionLabel = bcCo.Label
+	co.Units, co.Points, co.FullPoints = 0, 0, 0
+	for _, us := range st.Units {
+		s := us.Clone()
+		applyProgress(rs, bcCo, &s, s.Progress)
+		s.Injured = s.Injured || s.SentToHealers
+		if s.Injuries == nil {
+			s.Injuries = map[string]int{}
+		}
+		u := buildUnitFor(rs, bcCo, s, settings, true)
+		co.Units += u.ModelCount()
+		co.FullPoints += u.Points
+		if !u.Injured { // an injured model misses the next game: it does not count towards the company's rating
+			co.Points += u.Points
+		}
+		if s.Creature != "" {
+			if o, found := creatureOffer(rs, s.Creature); found {
+				co.Points += o.Points // a creature counts for its points in the rating
+				co.FullPoints += o.Points
+			}
+		}
+	}
+	return co
 }
 
 // breakPointPercent is the company's Break Point percentage: its own rule (Muster of Isengard 66) or the file's default.

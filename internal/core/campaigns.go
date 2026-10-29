@@ -89,7 +89,7 @@ func (d companyDeps) rated(ctx context.Context, campaignID int64, rs *RuleSet, s
 	if err != nil {
 		return co, err
 	}
-	b := BuildDetail(rs, settings, st).CampaignCompany
+	b := companyFigures(rs, settings, st)
 	co.Points, co.FullPoints, co.Units, co.FactionLabel = b.Points, b.FullPoints, b.Units, b.FactionLabel
 	return co, nil
 }
@@ -106,7 +106,7 @@ func (d companyDeps) figures(ctx context.Context, campaignID int64, rs *RuleSet,
 		if want != nil && !want(st.Company.ID) { // building a company is the cost: only those asked for
 			continue
 		}
-		out[st.Company.ID] = BuildDetail(rs, settings, st).CampaignCompany
+		out[st.Company.ID] = companyFigures(rs, settings, st)
 	}
 	return out, nil
 }
