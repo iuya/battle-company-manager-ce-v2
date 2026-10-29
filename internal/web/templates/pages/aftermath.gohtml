@@ -64,7 +64,7 @@
   {{else if lt $v.Step .Index}}<p class="text-sm text-muted">{{.Text}}</p>
   {{else if eq .Index 1}}{{template "aftermath_injuries_summary" $v}}
   {{else if eq .Index 3}}{{template "aftermath_summary" $v}}
-  {{else if and (eq .Index 2) $v.Waiting}}<p class="text-sm text-muted">{{len $v.Waiting}} unit{{if ne (len $v.Waiting) 1}}s still have{{else}} still has{{end}} a level-up roll waiting{{if $v.Owner}}: roll {{if ne (len $v.Waiting) 1}}them{{else}}it{{end}} from <a href="/campaigns/{{$v.Campaign.ID}}/my-company">My Company</a>{{end}}.</p>
+  {{else if and (eq .Index 2) $v.Waiting}}<p class="text-sm text-muted">{{len $v.Waiting}} unit{{if ne (len $v.Waiting) 1}}s still have{{else}} still has{{end}} a level-up roll waiting{{if $v.Owner}}: roll {{if ne (len $v.Waiting) 1}}them{{else}}it{{end}} from <a href="/campaigns/{{$v.Campaign.ID}}/my-company{{if $v.Owner}}/{{$v.Company.ID}}{{end}}">My Company</a>{{end}}.</p>
   {{else}}<p class="text-sm text-muted">Done.</p>{{end}}
 </section>
 {{end}}
@@ -210,7 +210,7 @@
   {{range .}}
   <li class="flex flex-wrap items-center justify-between gap-2 py-2">
     <span><span class="font-medium break-words">{{.Title}}</span> <span class="text-sm text-muted">{{.Type}} · {{.PendingLevelUps}} roll{{if ne .PendingLevelUps 1}}s{{end}} waiting</span></span>
-    {{if $.Owner}}<button type="button" class="btn btn-primary" hx-get="/campaigns/{{$cid}}/my-company/units/{{.ID}}/levelup" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Level up<span class="sr-only"> {{.Title}}</span></button>{{end}}
+    {{if $.Owner}}<button type="button" class="btn btn-primary" hx-get="/campaigns/{{$cid}}/my-company/{{$.Company.ID}}/units/{{.ID}}/levelup" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Level up<span class="sr-only"> {{.Title}}</span></button>{{end}}
   </li>
   {{end}}
 </ul>
@@ -285,7 +285,7 @@
   <div><h3 class="!text-lg">{{.Name}}</h3>
     <ul class="mt-1 text-sm">{{range .Lines}}<li class="py-0.5">{{.Text}}{{if .Amount}} <span class="text-muted">({{if gt .Amount 0}}+{{end}}{{.Amount}})</span>{{end}}</li>{{end}}</ul></div>
   {{else}}{{if ne (printf "%s" .A.Status) "waived"}}<p class="text-sm text-muted">Nothing was recorded.</p>{{end}}{{end}}
-  <p class="flex flex-wrap gap-3 text-sm"><a class="btn btn-secondary" href="/campaigns/{{.Campaign.ID}}/my-company">My Company</a><a class="btn btn-ghost" href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Back to the match</a></p>
+  <p class="flex flex-wrap gap-3 text-sm"><a class="btn btn-secondary" href="/campaigns/{{.Campaign.ID}}/my-company{{if .Owner}}/{{.Company.ID}}{{end}}">My Company</a><a class="btn btn-ghost" href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Back to the match</a></p>
 </div>
 {{end}}
 

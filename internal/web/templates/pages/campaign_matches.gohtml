@@ -7,7 +7,7 @@
 </div>
 {{if eq .Campaign.Status "paused"}}<p class="mt-2 text-sm text-muted">This campaign is paused: open matches can be finished, but no new match can start until the organiser resumes it.</p>
 {{else if eq .Campaign.Status "finished"}}<p class="mt-2 text-sm text-muted">This campaign has ended. Its matches are frozen as they were, open ones included, until an administrator reactivates it.</p>
-{{else if not .CanOpenMatch}}<p class="mt-2 text-sm text-muted">A match needs at least two companies and this campaign has {{.Companies}}. Players create theirs from <strong>My company</strong>; invite them from the Overview.</p>{{end}}
+{{else if not .CanOpenMatch}}<p class="mt-2 text-sm text-muted">A match needs at least two companies and this campaign has {{.Companies}}. Players create theirs from <strong>My Company</strong>; invite them from the Overview.</p>{{end}}
 {{if .Matches}}
 <ul class="card mt-3 divide-y divide-line !p-0">
   {{range .Matches}}

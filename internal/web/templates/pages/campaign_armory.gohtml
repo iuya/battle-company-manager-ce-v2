@@ -1,4 +1,4 @@
-{{define "title"}}Armory · {{.Campaign.Name}} · Battle Companies 2nd CE Manager{{end}}
+{{define "title"}}Armory · {{if .Switcher}}{{.Company.Name}} · {{end}}{{.Campaign.Name}} · Battle Companies 2nd CE Manager{{end}}
 {{define "content"}}
 {{template "campaign_header" .}}
 {{if not .HasCompany}}
@@ -9,7 +9,7 @@
 </section>
 {{else}}
 {{with .Notice}}<div class="alert {{if $.NoticeError}}alert-danger{{else}}alert-success{{end}} mt-4" role="status">{{.}}</div>{{end}}
-{{with .Company.LockMessage}}<div class="alert alert-info mt-4" role="status" id="armory-lock"><strong>The company is locked.</strong> {{.}} <a class="underline" href="/campaigns/{{$.Campaign.ID}}/my-company">Open My Company</a></div>{{end}}
+{{with .Company.LockMessage}}<div class="alert alert-info mt-4" role="status" id="armory-lock"><strong>The company is locked.</strong> {{.}} <a class="underline" href="{{$.OwnPath}}">Open My Company</a></div>{{end}}
 <div x-data="armory" data-applies="{{.Applies}}" @mouseover="over($event)" @mouseout="out($event)" @focusin="over($event)" @focusout="out($event)" @keydown.escape.window="hideTip()">
   <div class="mt-4 flex flex-wrap items-end justify-between gap-3">
     <div>
@@ -67,7 +67,7 @@
           {{$ws := index $.Weapons .ID}}
           {{if and .Able $wm (not $ws)}}<span class="text-sm text-muted">{{template "no_weapon_reason" $item}}</span>
           {{else if .Able}}
-          <form method="post" action="/campaigns/{{$.Campaign.ID}}/armory/buy" hx-post="/campaigns/{{$.Campaign.ID}}/armory/buy" class="flex flex-wrap items-end gap-2"><input type="hidden" name="unit" value="{{.ID}}"><input type="hidden" name="item" value="{{$item}}">{{if $wm}}{{template "weapon_chooser" (dict "Weapons" $ws "ID" (printf "armory-weapon-%d-%d" .ID $ei) "Chosen" "")}}{{end}}{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-8 !px-3 !text-xs" "Cost" $cost "Gold" .GoldPrice "PayInfluence" .PayInfluence "PayGold" .PayGold)}}</form>
+          <form method="post" action="/campaigns/{{$.Campaign.ID}}/armory/buy" hx-post="/campaigns/{{$.Campaign.ID}}/armory/buy" class="flex flex-wrap items-end gap-2"><input type="hidden" name="company" value="{{$.Company.ID}}"><input type="hidden" name="unit" value="{{.ID}}"><input type="hidden" name="item" value="{{$item}}">{{if $wm}}{{template "weapon_chooser" (dict "Weapons" $ws "ID" (printf "armory-weapon-%d-%d" .ID $ei) "Chosen" "")}}{{end}}{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-8 !px-3 !text-xs" "Cost" $cost "Gold" .GoldPrice "PayInfluence" .PayInfluence "PayGold" .PayGold)}}</form>
           {{else}}<span class="text-sm text-muted">{{.Reason}}</span>{{end}}
         </li>
         {{end}}
@@ -105,7 +105,7 @@
         {{range .Owners}}
         <li class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-1.5">
           <span class="flex items-center gap-2">{{template "role_insignia" .Role}}<span class="font-medium">{{.Title}}</span>{{if ne .Title .Type}}<span class="text-sm text-muted">{{.Type}}</span>{{end}}</span>
-          {{if .Able}}<form method="post" action="/campaigns/{{$.Campaign.ID}}/armory/creature" hx-post="/campaigns/{{$.Campaign.ID}}/armory/creature"><input type="hidden" name="unit" value="{{.ID}}"><input type="hidden" name="name" value="{{$name}}">{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-8 !px-3 !text-xs" "Cost" $ccost "Gold" $cgold "PayInfluence" $cinf "PayGold" $cgd)}}</form>
+          {{if .Able}}<form method="post" action="/campaigns/{{$.Campaign.ID}}/armory/creature" hx-post="/campaigns/{{$.Campaign.ID}}/armory/creature"><input type="hidden" name="company" value="{{$.Company.ID}}"><input type="hidden" name="unit" value="{{.ID}}"><input type="hidden" name="name" value="{{$name}}">{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-8 !px-3 !text-xs" "Cost" $ccost "Gold" $cgold "PayInfluence" $cinf "PayGold" $cgd)}}</form>
           {{else}}<span class="text-sm text-muted">{{.Reason}}</span>{{end}}
         </li>
         {{end}}
@@ -143,7 +143,7 @@
         </div>
         <div class="ml-auto flex shrink-0 flex-col items-end gap-1">
           <span class="text-sm font-semibold">{{.Cost}} influence or {{.Gold}} gold</span>
-          {{if .Hirable}}<form {{if $.Company.LockMessage}}inert class="opacity-50" title="{{$.Company.LockMessage}}"{{end}} method="post" action="/campaigns/{{$.Campaign.ID}}/armory/wanderer" hx-post="/campaigns/{{$.Campaign.ID}}/armory/wanderer"><input type="hidden" name="name" value="{{.Name}}">{{template "pay_buttons" (dict "Label" "Hire" "Class" "!min-h-9" "Cost" .Cost "Gold" .Gold "PayInfluence" .PayInfluence "PayGold" .PayGold)}}</form>
+          {{if .Hirable}}<form {{if $.Company.LockMessage}}inert class="opacity-50" title="{{$.Company.LockMessage}}"{{end}} method="post" action="/campaigns/{{$.Campaign.ID}}/armory/wanderer" hx-post="/campaigns/{{$.Campaign.ID}}/armory/wanderer"><input type="hidden" name="company" value="{{$.Company.ID}}"><input type="hidden" name="name" value="{{.Name}}">{{template "pay_buttons" (dict "Label" "Hire" "Class" "!min-h-9" "Cost" .Cost "Gold" .Gold "PayInfluence" .PayInfluence "PayGold" .PayGold)}}</form>
           {{else}}<span class="max-w-48 text-right text-xs text-muted">{{.Reason}}</span>{{end}}
         </div>
       </div>

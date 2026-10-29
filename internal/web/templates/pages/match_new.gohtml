@@ -6,7 +6,7 @@
   {{if .TooFew}}
   <div class="card mt-6 space-y-2">
     <p>A match needs at least two companies and this campaign has {{.Companies}}.</p>
-    <p class="text-sm text-muted">Each player creates a company from <strong>My company</strong>; the organiser can invite players from the Overview. Come back when two companies exist.</p>
+    <p class="text-sm text-muted">Each player creates at least one company from <strong>My Company</strong>; the organiser can invite players from the Overview. Come back when two companies exist.</p>
     <a href="/campaigns/{{.Campaign.ID}}/matches" class="btn btn-secondary">Back to the matches</a>
   </div>
   {{else}}
@@ -48,7 +48,7 @@
             <template x-for="id in side.ids" :key="id">
               <li class="flex items-center gap-1 rounded-full bg-accent-soft py-1 pl-3 pr-1 text-sm">
                 <input type="hidden" :name="'side-' + (i + 1)" :value="id">
-                <span class="font-medium" x-text="company(id).name"></span>
+                <span class="font-medium" x-text="company(id).name"></span><span class="text-xs text-muted" x-text="company(id).owner"></span>
                 <button type="button" class="flex h-7 w-7 items-center justify-center rounded-full hover:bg-raised" @click="remove(side, id)" :aria-label="'Remove ' + company(id).name">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
                 </button>
@@ -57,7 +57,10 @@
           </ul>
           <p class="text-sm text-muted" x-show="!side.ids.length">No companies yet.</p>
 
+          <p class="alert alert-info !py-2 text-sm" role="status" x-show="sameOnSide(side).length" x-cloak data-same-player><span x-text="sameOnSide(side).join('. ') + '.'"></span> Allowed: they stay two companies, each with its own aftermath.</p>
+
           <div class="relative" @keydown.escape="side.open = false">
+            <button type="button" class="chip mb-2" x-show="hasMine" x-cloak :class="mineOnly && 'chip-on'" :aria-pressed="mineOnly" @click="mineOnly = !mineOnly">Mine</button>
             <input type="search" x-model="side.query" @focus="side.open = true" @input="side.open = true"
                    @keydown.enter="if (side.query.trim() && results(side).length) { $event.preventDefault(); add(side, results(side)[0].id); side.open = false }" placeholder="Search companies to add…" autocomplete="off"
                    class="input" role="combobox" :aria-label="'Search companies for side ' + (i + 1)" :aria-expanded="side.open" aria-autocomplete="list">
@@ -75,6 +78,7 @@
       </template>
     </div>
 
+    <p class="alert alert-info text-sm" role="status" x-show="sameAcross().length" x-cloak data-same-player><span x-text="sameAcross().join('. ') + '.'"></span> Allowed: it counts like any other match.</p>
     <p class="text-sm text-muted">A company can only be on one side, and every side needs at least one company. In all vs all, add at least two companies.</p>
     <div class="flex flex-wrap gap-2">
       <button class="btn btn-primary">Create match</button>

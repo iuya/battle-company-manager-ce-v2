@@ -39,7 +39,7 @@ func TestAnOwnPathSixIsAFinalResultWithoutAPathWindow(t *testing.T) {
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
 	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(1), int64(5), []int{6}, false).Return(core.LevelRoll{Kind: "warrior", D6: 6, Result: "heroInTheMaking", Done: true,
 		Summary: "Hador becomes a hero on the Path of Their Own Making."}, nil)
-	body := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/levelup/roll", url.Values{"roll": {"6"}}))).Body.String()
+	body := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/levelup/roll", url.Values{"roll": {"6"}}))).Body.String()
 	for _, want := range []string{"Hador becomes a hero on the Path of Their Own Making.", "You rolled a", `data-dice="6"`, "Done"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the final result lacks %q", want)
@@ -63,7 +63,7 @@ func TestAnOwnPathWarriorUnderTheSettingShowsExperienceAndLevelUp(t *testing.T) 
 	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	if !strings.Contains(body, "/ 5 XP") || !strings.Contains(body, "Level Up ready!") || strings.Contains(body, "no experience") {
 		t.Error("the card of a warrior on its own path shows XP and a Level up button until it rolls a 6")
 	}

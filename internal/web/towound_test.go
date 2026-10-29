@@ -81,7 +81,7 @@ func TestToWoundNeedsASignedInMemberOfTheCampaign(t *testing.T) {
 func TestToWoundButtonAndWindowAreOnTheMatchAndLivePages(t *testing.T) {
 	// the live company page: the button in the banner, the window beside it and outside the zones the live refresh swaps
 	f := liveOwnerSetup(t, core.LiveEdit)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	win, zones := strings.Index(body, `id="to-wound-dialog"`), strings.Index(body, `id="live-zones"`)
 	for _, want := range []string{`data-to-wound-open`, `hx-get="/campaigns/7/to-wound"`, `hx-trigger="load"`, `aria-modal="true"`} {
 		if !strings.Contains(body, want) {

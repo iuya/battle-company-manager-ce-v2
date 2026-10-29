@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -131,6 +133,13 @@ func (s *Server) handleCreateCampaign(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, o := range options { // the form has one checkbox per option the rules file offers
 		in.Settings.Set(o.Key, r.PostFormValue("option-"+o.Key) != "")
+	}
+	if v := strings.TrimSpace(r.PostFormValue("companies-per-player")); v != "" {
+		n, perr := strconv.Atoi(v)
+		if perr != nil || n < 1 {
+			n = -1 // not a number, or below 1: Validate refuses it with the allowed range (an absent field keeps the default)
+		}
+		in.Settings.CompaniesPerPlayer = n
 	}
 	err = func() error {
 		if _, err := in.Validate(); err != nil { // before storing any upload

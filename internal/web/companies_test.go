@@ -35,7 +35,7 @@ func TestARecruitThatCannotJoinOffersLowerResults(t *testing.T) {
 		{Index: 0, Chart: "Reinforcements", Roll: "4", Text: "Warrior of Rohan"},
 		{Index: 1, Chart: "Reinforcements", Roll: "3", Text: "Galadhrim Warrior", Blocked: "at most 4 Elf models"}}}
 	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(&core.RecruitRoll{Stage: "lower", Rolled: true, Roll: 5, Lower: lower}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/recruit", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/recruit", nil))).Body.String()
 	for _, want := range []string{"Choose a lower result", "recruit/lower", `name="result" value="0"`, "Cannot join: at most 4 Elf models"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the window lacks %q", want)
@@ -44,7 +44,7 @@ func TestARecruitThatCannotJoinOffersLowerResults(t *testing.T) {
 	f.camp.EXPECT().ChooseLower(gomock.Any(), frodo, int64(7), int64(1), 0).Return(core.RecruitResult{Summary: "A Warrior of Rohan joins."}, nil)
 	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
-	if rec := f.do(f.signedIn(form("/campaigns/7/my-company/recruit/lower", url.Values{"result": {"0"}}))); rec.Code != 200 || !strings.Contains(rec.Body.String(), "A Warrior of Rohan joins.") {
+	if rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/recruit/lower", url.Values{"result": {"0"}}))); rec.Code != 200 || !strings.Contains(rec.Body.String(), "A Warrior of Rohan joins.") {
 		t.Errorf("the chosen result settles the recruit: %d", rec.Code)
 	}
 }
@@ -74,7 +74,7 @@ func TestAChoiceResultAsksForPicksAndASpecialRollOffersTheMissingMember(t *testi
 			f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 			f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 			f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(tc.roll, nil)
-			body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/recruit", nil))).Body.String()
+			body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/recruit", nil))).Body.String()
 			for _, w := range tc.wants {
 				if !strings.Contains(body, w) {
 					t.Errorf("the window lacks %q", w)
@@ -99,14 +99,14 @@ func TestTheCemeteryIsASectionOfItsOwn(t *testing.T) {
 	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
-	for _, want := range []string{"Cemetery", "1 fallen", "Hurin", "Match 2", `data-unit-id="201"`, "my-company/cemetery"} {
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
+	for _, want := range []string{"Cemetery", "1 fallen", "Hurin", "Match 2", `data-unit-id="201"`, "my-company/1/cemetery"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the page lacks %q", want)
 		}
 	}
 	f.camp.EXPECT().SaveCemeteryOrder(gomock.Any(), frodo, int64(7), int64(1), []int64{201}).Return(nil)
-	if rec := f.do(f.signedIn(form("/campaigns/7/my-company/cemetery", url.Values{"order": {"201"}}))); rec.Code != 200 {
+	if rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/cemetery", url.Values{"order": {"201"}}))); rec.Code != 200 {
 		t.Errorf("saving the order: %d", rec.Code)
 	}
 }
@@ -139,18 +139,18 @@ func TestAnOfficerChoosesItsPathInAWindow(t *testing.T) {
 		{Name: "Path of the Soldier", Description: "Hardened fighters.", Summary: "Adds no Heroic Action. Heroic Combat Mastery."}, {Name: "Path of the Sorcerer", StartPower: true, Blocked: "the company already has a hero on it (at most 1)"}},
 		Powers: []core.LevelChoice{{Key: "power:Aura of Command", Label: "Aura of Command"}}}
 	f.camp.EXPECT().PathOptions(gomock.Any(), frodo, int64(7), int64(1), int64(5)).Return(offer, nil).AnyTimes()
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/units/5/path", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/units/5/path", nil))).Body.String()
 	for _, want := range []string{"Choose a path", "Path of the Soldier", `name="path"`, "Not available: the company already has a hero", "First magical power", "Hardened fighters.", `title="Adds no Heroic Action. Heroic Combat Mastery."`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the window lacks %q", want)
 		}
 	}
 	f.camp.EXPECT().ChoosePath(gomock.Any(), frodo, int64(7), int64(1), int64(5), "Path of the Soldier", "").Return(nil)
-	if rec := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/path", url.Values{"path": {"Path of the Soldier"}}))); rec.Code != 200 || !strings.Contains(rec.Body.String(), "The path is chosen.") {
+	if rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/path", url.Values{"path": {"Path of the Soldier"}}))); rec.Code != 200 || !strings.Contains(rec.Body.String(), "The path is chosen.") {
 		t.Errorf("choosing: %d", rec.Code)
 	}
 	f.camp.EXPECT().RenameCompany(gomock.Any(), frodo, int64(7), int64(1), "The Ruinwatch").Return(nil)
-	if rec := f.do(f.signedIn(form("/campaigns/7/my-company/rename", url.Values{"name": {"The Ruinwatch"}}))); rec.Code != 200 {
+	if rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/rename", url.Values{"name": {"The Ruinwatch"}}))); rec.Code != 200 {
 		t.Errorf("renaming: %d", rec.Code)
 	}
 }
@@ -181,7 +181,7 @@ func TestSmallShieldNoteIsShownOnTheCard(t *testing.T) {
 	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
-	body := f.do(f.signedIn(httpGet("/campaigns/7/my-company"))).Body.String()
+	body := f.do(f.signedIn(httpGet("/campaigns/7/my-company/1"))).Body.String()
 	if !strings.Contains(body, "Small Shield: &#43;1 Defence against strikes only") {
 		t.Errorf("the note is on the card: %d %v", len(body), strings.Contains(body, "Hador"))
 	}
@@ -197,7 +197,7 @@ func TestMyCompanyOfAFinishedCampaignIsFrozen(t *testing.T) {
 	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
-	body := f.do(f.signedIn(httpGet("/campaigns/7/my-company"))).Body.String()
+	body := f.do(f.signedIn(httpGet("/campaigns/7/my-company/1"))).Body.String()
 	if !strings.Contains(body, "is frozen as it was") || strings.Contains(body, "Rename the company") {
 		t.Error("an ended campaign freezes the company page")
 	}

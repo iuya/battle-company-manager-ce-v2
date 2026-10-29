@@ -21,6 +21,25 @@ type scenarioGroup struct {
 	Scenarios []core.ScenarioInfo
 }
 
+// SamePlayerNotes are the "Same player" notes of the match page (docs/multi-company-spec.md, 4.3): a player who owns two or more of its
+// companies. Never a refusal; the match counts like any other. Empty when no player has several.
+func (v matchView) SamePlayerNotes() []string {
+	var notes []string
+	for _, sp := range core.SamePlayers(v.Match.Sides) {
+		switch {
+		case sp.AcrossSides && sp.Companies == 2:
+			notes = append(notes, fmt.Sprintf("Same player: %s plays both sides.", sp.Owner))
+		case sp.AcrossSides:
+			notes = append(notes, fmt.Sprintf("Same player: %s has %d companies in this match, on more than one side.", sp.Owner, sp.Companies))
+		case sp.Companies == 2:
+			notes = append(notes, fmt.Sprintf("Same player: both of these companies are %s's.", sp.Owner))
+		default:
+			notes = append(notes, fmt.Sprintf("Same player: all %d of these companies are %s's.", sp.Companies, sp.Owner))
+		}
+	}
+	return notes
+}
+
 type matchView struct {
 	campaignBase
 	Match    core.Match

@@ -14,7 +14,7 @@ func (s *Server) handleBuyCreature(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -33,7 +33,7 @@ func (s *Server) handleHireWanderer(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -58,7 +58,7 @@ func (s *Server) handleDismissWanderer(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -73,6 +73,7 @@ func (s *Server) handleDismissWanderer(w http.ResponseWriter, r *http.Request) {
 // packPanel is the window of the Baggage Pony: what it carries and what each member could store, take or swap.
 type packPanel struct {
 	Campaign core.CampaignDetail
+	Co       int64
 	Company  core.CompanyDetail
 	Pack     core.Pack
 	Members  []packMember
@@ -88,15 +89,11 @@ type packMember struct {
 }
 
 func (s *Server) showPackPanel(w http.ResponseWriter, r *http.Request, status int, notice, errMsg string) {
-	base, ok := s.loadCampaign(w, r, "my-company")
+	base, ok := s.loadOwn(w, r, "my-company")
 	if !ok {
 		return
 	}
-	if myCompanyOf(base.Campaign) == nil {
-		s.notFound(w, r)
-		return
-	}
-	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, myCompanyOf(base.Campaign).ID)
+	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, base.Current.ID)
 	if s.fail(w, r, err) {
 		return
 	}
@@ -104,7 +101,7 @@ func (s *Server) showPackPanel(w http.ResponseWriter, r *http.Request, status in
 		s.notFound(w, r)
 		return
 	}
-	panel := packPanel{Campaign: base.Campaign, Company: detail, Pack: *detail.Pack, Notice: notice, Error: errMsg}
+	panel := packPanel{Campaign: base.Campaign, Co: base.Current.ID, Company: detail, Pack: *detail.Pack, Notice: notice, Error: errMsg}
 	for _, u := range detail.Roster {
 		m := packMember{ID: u.ID, Title: u.Title()}
 		for _, e := range u.Equipment {
@@ -126,7 +123,7 @@ func (s *Server) handleCarry(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}

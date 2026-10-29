@@ -2,9 +2,12 @@
 {{define "content"}}
 {{template "campaign_header" .}}
 <div class="mt-6 grid gap-4 lg:grid-cols-2">
-  {{with .Mine}}
-  <section class="card space-y-3">
-    <h2 class="!text-2xl">Your company</h2>
+  {{$cap := .Campaign.Settings.CompanyCap}}
+  {{if .Campaign.Companies}}
+  <section class="card space-y-3" aria-labelledby="own-companies-title">
+    <h2 id="own-companies-title" class="!text-2xl">{{if gt (len .Campaign.Companies) 1}}Your companies{{else}}Your company{{end}}</h2>
+    {{range .Campaign.Companies}}
+    <div class="space-y-3 {{if gt (len $.Campaign.Companies) 1}}border-t border-line pt-3 first:border-t-0 first:pt-0{{end}}">
     <div>
       <p class="text-lg font-semibold">{{.Name}}</p>
       <p class="text-sm text-muted">{{.FactionName}}</p>
@@ -16,17 +19,25 @@
       </dl>
       {{/* W / D / L over 3 / 1 / 1 in ONE 5-column grid: a column is as wide as its widest cell, so each figure sits right
          under its letter whatever its width. */}}
-      <div class="ml-auto grid grid-cols-[repeat(5,auto)] gap-x-1.5 text-center" role="group" aria-label="Wins, draws and losses">
+      <div class="ml-auto grid grid-cols-[repeat(5,auto)] gap-x-1.5 text-center" role="group" aria-label="Wins, draws and losses{{if gt (len $.Campaign.Companies) 1}} of {{.Name}}{{end}}">
         <span class="text-muted">W</span><span class="text-muted">/</span><span class="text-muted">D</span><span class="text-muted">/</span><span class="text-muted">L</span>
         <span class="font-semibold tone-win">{{.Wins}}</span><span class="text-muted">/</span><span class="font-semibold tone-draw">{{.Draws}}</span><span class="text-muted">/</span><span class="font-semibold tone-loss">{{.Losses}}</span>
       </div>
     </div>
-    <a href="/campaigns/{{$.Campaign.ID}}/my-company" class="btn btn-primary">Manage company</a>
+    <a href="/campaigns/{{$.Campaign.ID}}/my-company/{{.ID}}" class="btn btn-primary">Manage company{{if gt (len $.Campaign.Companies) 1}}<span class="sr-only">: {{.Name}}</span>{{end}}</a>
+    </div>
+    {{end}}
+    {{if .Campaign.CanCreateCompany}}
+    <p class="border-t border-line pt-3 text-sm text-muted">Each player can have up to {{$cap}} companies in this campaign.</p>
+    <a href="/campaigns/{{.Campaign.ID}}/company/new" class="btn btn-secondary">Create another company</a>
+    {{else if and (gt $cap 1) (ne .Campaign.Status "finished")}}
+    <p class="border-t border-line pt-3 text-sm text-muted" id="company-cap-note">{{if gt (len .Campaign.Companies) $cap}}This campaign now allows {{$cap}} companies per player; you keep your {{len .Campaign.Companies}}.{{else}}You have all {{$cap}} companies this campaign allows.{{end}}</p>
+    {{end}}
   </section>
   {{else}}
   <section class="card space-y-3">
     <h2 class="!text-2xl">Choose your company</h2>
-    <p class="text-muted">You have not joined this campaign with a battle company yet. Each player has one company per campaign.</p>
+    <p class="text-muted">You have not joined this campaign with a battle company yet. {{if gt $cap 1}}Each player can have up to {{$cap}} companies in this campaign.{{else}}Each player has one company per campaign.{{end}}</p>
     <a href="/campaigns/{{.Campaign.ID}}/company/new" class="btn btn-primary">Create my company</a>
   </section>
   {{end}}
@@ -81,8 +92,13 @@
       <span class="badge shrink-0 {{if not .Campaign.Settings.CustomOnTheirOwnPath}}badge-muted{{end}}">{{if .Campaign.Settings.CustomOnTheirOwnPath}}On{{else}}Off{{end}}</span>
       <span><span class="font-medium">Own path for units On Their Own Path</span><span class="block text-muted">{{if .Campaign.Settings.CustomOnTheirOwnPath}}Those units are warriors that earn experience and level up; on a roll of 6 they become heroes and take the homebrew Path of Their Own Making automatically.{{else}}Those units earn no experience and never level up.{{end}}</span></span>
     </li>
+    <li class="flex items-start gap-2">
+      <span class="badge shrink-0" id="companies-per-player-value">{{.Campaign.Settings.CompanyCap}}</span>
+      <span><span class="font-medium">Companies per player</span><span class="block text-muted">{{if gt .Campaign.Settings.CompanyCap 1}}Each player can have up to {{.Campaign.Settings.CompanyCap}} companies in this campaign.{{else}}Each player has one company in this campaign.{{end}}</span></span>
+    </li>
   </ul>
-  <p class="text-xs text-muted">Set by the organiser, {{.Campaign.Organiser}}, when the campaign was created.</p>
+  {{if and .CanManage (ne .Campaign.Status "finished")}}{{template "companies_cap_card" (dict "CampaignID" .Campaign.ID "Cap" .Campaign.Settings.CompanyCap)}}{{end}}
+  <p class="text-xs text-muted">Set by the organiser, {{.Campaign.Organiser}}, when the campaign was created. The number of companies per player can be changed later.</p>
 </section>
 
 <section class="mt-8">
@@ -137,6 +153,22 @@
 {{end}}
 
 {{/* Hand the campaign over: a collapsed form listing the other players. Takes CampaignID, Players (handoverCandidate) and, after a refusal, Error. */}}
+{{/* The organiser's control for the companies each player may have (1 to 4). Lowering it only refuses new companies: the ones that exist stay and
+   keep playing. Takes {CampaignID, Cap, Error}. */}}
+{{define "companies_cap_card"}}
+<form id="companies-cap" hx-post="/campaigns/{{.CampaignID}}/settings/companies" hx-target="#companies-cap" hx-swap="outerHTML" method="post" action="/campaigns/{{.CampaignID}}/settings/companies" class="space-y-2 border-t border-line pt-3">
+  {{with .Error}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+  <div class="field !mb-0">
+    <label for="companies-cap-input">Companies per player</label>
+    <div class="flex flex-wrap items-center gap-2">
+      <input id="companies-cap-input" name="companies" type="number" inputmode="numeric" min="1" max="4" step="1" value="{{.Cap}}" required aria-describedby="companies-cap-help" class="input w-24">
+      <button class="btn btn-secondary">Save</button>
+    </div>
+  </div>
+  <p id="companies-cap-help" class="text-xs text-muted">From 1 to 4. Lowering it only stops players creating more companies: the companies that exist stay and keep playing.</p>
+</form>
+{{end}}
+
 {{define "handover_card"}}
 <div id="handover" class="border-t border-line pt-3">
   <details {{if .Error}}open{{end}}>

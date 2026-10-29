@@ -13,6 +13,7 @@ import (
 // levelPanel is the level-up window of a unit: the roll form, then the results to choose from, then what happened.
 type levelPanel struct {
 	Campaign core.CampaignDetail
+	Co       int64 // the company the window acts on (the one of the URL)
 	Unit     core.CompanyUnit
 	Roll     *core.LevelRoll // nil before the roll
 	Offers   []offerView     // what the roll offers, each choice with its description
@@ -32,19 +33,15 @@ type levelPanel struct {
 }
 
 func (s *Server) showLevelPanel(w http.ResponseWriter, r *http.Request, status int, unitID int64, roll *core.LevelRoll, animate bool, errMsg string) {
-	base, ok := s.loadCampaign(w, r, "my-company")
+	base, ok := s.loadOwn(w, r, "my-company")
 	if !ok {
 		return
 	}
-	if myCompanyOf(base.Campaign) == nil {
-		s.notFound(w, r)
-		return
-	}
-	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, myCompanyOf(base.Campaign).ID)
+	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, base.Current.ID)
 	if s.fail(w, r, err) {
 		return
 	}
-	panel := levelPanel{Campaign: base.Campaign, Roll: roll, Animate: animate, Error: errMsg}
+	panel := levelPanel{Campaign: base.Campaign, Co: base.Current.ID, Roll: roll, Animate: animate, Error: errMsg}
 	found := false
 	for _, u := range detail.Roster {
 		if u.ID == unitID {
@@ -69,7 +66,7 @@ func (s *Server) showLevelPanel(w http.ResponseWriter, r *http.Request, status i
 		return
 	}
 	if roll == nil {
-		if roll, err = s.campaigns.LevelUpState(r.Context(), *userFrom(r.Context()), base.Campaign.ID, myCompanyID(base.Campaign), unitID); s.fail(w, r, err) {
+		if roll, err = s.campaigns.LevelUpState(r.Context(), *userFrom(r.Context()), base.Campaign.ID, base.Current.ID, unitID); s.fail(w, r, err) {
 			return
 		}
 		panel.Roll = roll
@@ -131,7 +128,7 @@ func (s *Server) handleLevelUpRoll(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -157,7 +154,7 @@ func (s *Server) handleLevelUpChoose(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -182,7 +179,7 @@ func (s *Server) handleLevelUpReroll(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}

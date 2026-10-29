@@ -158,8 +158,15 @@ func (s *Server) armoryPage(w http.ResponseWriter, r *http.Request, status int, 
 	if !ok {
 		return
 	}
+	if len(base.Campaign.Companies) > 0 { // the company is named by ?company= (and by the hidden field of the buy forms)
+		co, ok := s.ownCompany(w, r, base.Campaign)
+		if !ok {
+			return
+		}
+		base.Current = &co
+	}
 	view := armoryView{campaignBase: base, Notice: notice, NoticeError: noticeErr}
-	if mine := myCompanyOf(base.Campaign); mine != nil {
+	if mine := base.Current; mine != nil {
 		detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, mine.ID)
 		if s.fail(w, r, err) {
 			return
@@ -201,6 +208,16 @@ func (s *Server) armoryPage(w http.ResponseWriter, r *http.Request, status int, 
 }
 
 func (s *Server) handleArmory(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("company") == "" { // the bare tab URL: go to the armoury of the company opened last (the first until the cookie)
+		base, ok := s.loadCampaign(w, r, "armory")
+		if !ok {
+			return
+		}
+		if len(base.Campaign.Companies) > 0 {
+			http.Redirect(w, r, base.ArmoryPath(base.Campaign.Companies[0].ID), http.StatusSeeOther)
+			return
+		}
+	}
 	s.armoryPage(w, r, http.StatusOK, "", false)
 }
 
@@ -210,7 +227,7 @@ func (s *Server) handleArmoryBuy(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}

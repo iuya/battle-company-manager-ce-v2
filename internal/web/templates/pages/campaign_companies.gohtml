@@ -1,7 +1,7 @@
 {{define "title"}}Companies · {{.Campaign.Name}} · Battle Companies 2nd CE Manager{{end}}
 {{define "content"}}
 {{template "campaign_header" .}}
-{{if not .Mine}}
+{{if not .Campaign.Companies}}
 <div class="alert alert-info mt-6 flex flex-wrap items-center justify-between gap-3" role="status">
   <span>You have no company in this campaign yet.</span>
   <a href="/campaigns/{{.Campaign.ID}}/company/new" class="btn btn-primary">Create my company</a>
