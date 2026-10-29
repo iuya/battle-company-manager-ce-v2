@@ -316,11 +316,11 @@ func p2p3Rows(t *testing.T) []struct {
 			f.update()
 			s := NewArmouryService(f.campaigns, f.companies, staticRules{rs})
 			for i := 1; i <= 2; i++ {
-				if err := s.HireWanderer(f.ctx, f.user, 5, "Wandering Swordsman", ""); err != nil {
+				if err := s.HireWanderer(f.ctx, f.user, 5, 1, "Wandering Swordsman", ""); err != nil {
 					t.Fatalf("wanderer %d: %v", i, err)
 				}
 			}
-			if err := s.HireWanderer(f.ctx, f.user, 5, "Wandering Swordsman", ""); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "2 wanderers") {
+			if err := s.HireWanderer(f.ctx, f.user, 5, 1, "Wandering Swordsman", ""); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "2 wanderers") {
 				t.Errorf("a third is refused with the number: %v", err)
 			}
 		}},
@@ -331,7 +331,7 @@ func p2p3Rows(t *testing.T) []struct {
 			f.state.Influence = 40
 			f.update()
 			s := NewArmouryService(f.campaigns, f.companies, staticRules{rs})
-			if err := s.HireWanderer(f.ctx, f.user, 5, "Wandering Swordsman", ""); !errors.Is(err, ErrRefused) {
+			if err := s.HireWanderer(f.ctx, f.user, 5, 1, "Wandering Swordsman", ""); !errors.Is(err, ErrRefused) {
 				t.Errorf("no wanderer may be hired: %v", err)
 			}
 		}},

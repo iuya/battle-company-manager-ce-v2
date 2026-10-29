@@ -69,7 +69,10 @@ type campaigns interface {
 	Create(ctx context.Context, owner core.User, in core.CampaignInput) (core.CampaignSummary, error)
 
 	// The methods below return core.ErrNotFound for an unknown campaign, company or match. Get also returns the
-	// viewer's own company in the campaign (nil when they have none).
+	// viewer's own companies in the campaign (CampaignDetail.Companies, oldest first; empty when they have none).
+	//
+	// Every owner action below takes the company id (companyID) right after the campaign id and returns core.ErrNotFound when it is not
+	// one of the user's own companies there.
 	Get(ctx context.Context, userID, id int64) (core.CampaignDetail, error)
 	Companies(ctx context.Context, id int64) ([]core.CampaignCompany, error)
 	// Members lists everyone in the campaign (also members without a company), the organiser first; the handover form offers the others.
@@ -82,76 +85,77 @@ type campaigns interface {
 	Armoury(ctx context.Context, id, companyID, unitID int64) ([]core.ArmouryItem, error)
 	// LevelUpState, RollLevelUp and ChooseLevelUp run a unit's level-up: the roll (a warrior's D6, or a hero's two 2D6 sums; empty or
 	// zero for the app to roll) and then the choice among the results it offers. A roll in progress waits for its choice.
-	LevelUpState(ctx context.Context, user core.User, id, unitID int64) (*core.LevelRoll, error)
-	RollLevelUp(ctx context.Context, user core.User, id, unitID int64, entered []int, thrown bool) (core.LevelRoll, error)
-	ChooseLevelUp(ctx context.Context, user core.User, id, unitID int64, keys []string) (core.LevelRoll, error)
+	LevelUpState(ctx context.Context, user core.User, id, companyID, unitID int64) (*core.LevelRoll, error)
+	RollLevelUp(ctx context.Context, user core.User, id, companyID, unitID int64, entered []int, thrown bool) (core.LevelRoll, error)
+	ChooseLevelUp(ctx context.Context, user core.User, id, companyID, unitID int64, keys []string) (core.LevelRoll, error)
 	// RerollLevelUp spends an Against the Odds re-roll on one result of the roll in progress (which: the hero's result, 0 or 1).
-	RerollLevelUp(ctx context.Context, user core.User, id, unitID int64, which int) (core.LevelRoll, error)
+	RerollLevelUp(ctx context.Context, user core.User, id, companyID, unitID int64, which int) (core.LevelRoll, error)
 	// ArmouryCreatures and ArmouryWanderers list what the armoury sells besides gear. A creature goes to a leader or a sergeant and
 	// takes no roster slot; a wanderer joins as a unit. BuyCreature, HireWanderer and DismissWanderer act on them; Carry stores,
 	// retrieves or swaps a unit's gear with the Baggage Pony.
 	ArmouryCreatures(ctx context.Context, id, companyID int64) ([]core.ArmouryCreature, error)
 	ArmouryWanderers(ctx context.Context, id, companyID int64) ([]core.ArmouryWanderer, error)
-	BuyCreature(ctx context.Context, user core.User, id, ownerID int64, name, pay string) error
-	HireWanderer(ctx context.Context, user core.User, id int64, name, pay string) error
-	DismissWanderer(ctx context.Context, user core.User, id, unitID int64) error
-	Carry(ctx context.Context, user core.User, id, unitID int64, a core.CarryAction) error
+	BuyCreature(ctx context.Context, user core.User, id, companyID, ownerID int64, name, pay string) error
+	HireWanderer(ctx context.Context, user core.User, id, companyID int64, name, pay string) error
+	DismissWanderer(ctx context.Context, user core.User, id, companyID, unitID int64) error
+	Carry(ctx context.Context, user core.User, id, companyID, unitID int64, a core.CarryAction) error
 	// ArmouryEntries lists every item the company's armoury sells, each with, per unit, whether it can buy it now and why not.
 	ArmouryEntries(ctx context.Context, id, companyID int64) ([]core.ArmouryEntry, error)
 	// SaveFormation stores the order the player put their units in (unit ids, first to last). Once saved it takes priority
 	// over the default order for good; units it does not name (recruited since) follow in the default order. Unknown ids come
 	// back as an error wrapping core.ErrRefused.
-	SaveFormation(ctx context.Context, user core.User, id int64, order []int64) error
+	SaveFormation(ctx context.Context, user core.User, id, companyID int64, order []int64) error
 	// SaveCemeteryOrder stores the order of the fallen units, the same way; the cemetery and the roster stay apart.
-	SaveCemeteryOrder(ctx context.Context, user core.User, id int64, order []int64) error
+	SaveCemeteryOrder(ctx context.Context, user core.User, id, companyID int64, order []int64) error
 	// BuyEquipment, the steps of a recruit and RecruitSpecial spend the company's influence; what the rules do not allow
 	// comes back as an error wrapping core.ErrRefused with the reason. A recruit is rolled (RollRecruit takes the player's
 	// own roll, 0 means a random D6; the first roll pays the reinforcement price) and then confirmed (ConfirmRecruit takes
 	// an adjustment of the roll, -3 to +3, 1 influence each across both charts). A "special chart" result keeps the recruit
 	// going (RecruitResult.Next): roll again. RecruitState tells whether a recruit is in progress. A "choice of options"
 	// result is left pending in the RecruitResult (Choice) until ChooseOptions; PendingChoice tells whether one is waiting.
-	BuyEquipment(ctx context.Context, user core.User, id, unitID int64, item, pay string) error
+	BuyEquipment(ctx context.Context, user core.User, id, companyID, unitID int64, item, pay string) error
 	// BuyEquipmentFor buys an item that is a modifier of one weapon (Envenom Weapon) with the weapon the player chose among the unit's
 	// PoisonableWeapons; ChooseModifierWeapon chooses it, once, for a legacy one the unit carries without a weapon (Equipment.Choices lists the weapons).
-	BuyEquipmentFor(ctx context.Context, user core.User, id, unitID int64, item, pay, weapon string) error
-	ChooseModifierWeapon(ctx context.Context, user core.User, id, unitID int64, modifier, weapon string) error
+	BuyEquipmentFor(ctx context.Context, user core.User, id, companyID, unitID int64, item, pay, weapon string) error
+	ChooseModifierWeapon(ctx context.Context, user core.User, id, companyID, unitID int64, modifier, weapon string) error
 	// TreatInjury pays to treat a unit's injuries (costs and rolls come from the rules file). The result says what happened;
 	// a failed attempt is not an error: its influence is lost.
 	// RenameUnit gives a unit the name the player chose (empty: it goes back to its type). Rules that aim at a unit keep
 	// following it by id.
-	RenameUnit(ctx context.Context, user core.User, id, unitID int64, name string) error
+	RenameUnit(ctx context.Context, user core.User, id, companyID, unitID int64, name string) error
 	// RenameCompany gives the player's company a new name; the officers and the company itself are final, the name is not.
-	RenameCompany(ctx context.Context, user core.User, id int64, name string) error
+	RenameCompany(ctx context.Context, user core.User, id, companyID int64, name string) error
 	// PathOptions and ChoosePath: a leader or sergeant starts without a path and chooses one from the company page (a Sorcerer also
 	// its first magical power). The company cannot play a match before every hero has one.
-	PathOptions(ctx context.Context, user core.User, id, unitID int64) (core.PathOffer, error)
-	ChoosePath(ctx context.Context, user core.User, id, unitID int64, path, power string) error
+	PathOptions(ctx context.Context, user core.User, id, companyID, unitID int64) (core.PathOffer, error)
+	ChoosePath(ctx context.Context, user core.User, id, companyID, unitID int64, path, power string) error
 	// TreatmentState is the treatment roll of a unit that waits for the decision on extra influence (nil when none).
-	TreatmentState(ctx context.Context, user core.User, id, unitID int64) (*core.TreatResult, error)
-	TreatInjury(ctx context.Context, user core.User, id, unitID int64, t core.Treatment) (core.TreatResult, error)
+	TreatmentState(ctx context.Context, user core.User, id, companyID, unitID int64) (*core.TreatResult, error)
+	TreatInjury(ctx context.Context, user core.User, id, companyID, unitID int64, t core.Treatment) (core.TreatResult, error)
 	// DropEquipment makes a unit drop any item it carries, also one of its profile (Battle Companies allows it); nothing is
 	// refunded, and slots and company limits are freed.
-	DropEquipment(ctx context.Context, user core.User, id, unitID int64, item string) error
-	RecruitState(ctx context.Context, user core.User, id int64) (*core.RecruitRoll, error)
+	DropEquipment(ctx context.Context, user core.User, id, companyID, unitID int64, item string) error
+	RecruitState(ctx context.Context, user core.User, id, companyID int64) (*core.RecruitRoll, error)
 	// thrown says the browser decided the roll (Shake the table); a backend refuses a roll the campaign settings do not allow
 	// (core.CampaignSettings.RollRefusal), also for a typed roll in TreatInjury and RollLevelUp.
-	RollRecruit(ctx context.Context, user core.User, id int64, roll int, thrown bool) error
+	RollRecruit(ctx context.Context, user core.User, id, companyID int64, roll int, thrown bool) error
 	// RollRecruitWithPerk is RollRecruit with the Rendezvous bonus (perkAdjust -1, 0 or +1; needs an unused Rendezvous perk).
-	RollRecruitWithPerk(ctx context.Context, user core.User, campaignID int64, roll int, thrown bool, perkAdjust int) error
+	RollRecruitWithPerk(ctx context.Context, user core.User, campaignID, companyID int64, roll int, thrown bool, perkAdjust int) error
 	// UseVantagePoint moves the second die of the scenario roll of an open match by +1 or -1 with the company's perk; it returns the moved die and the line.
 	UseVantagePoint(ctx context.Context, user core.User, id, matchID, companyID int64, second, adjust int) (int, string, error)
-	ConfirmRecruit(ctx context.Context, user core.User, id int64, adjust int, pick string) (core.RecruitResult, error)
-	ChooseLower(ctx context.Context, user core.User, id int64, index int) (core.RecruitResult, error)
-	RecruitSpecial(ctx context.Context, user core.User, id int64, unit string) (core.RecruitResult, error)
-	ChooseOptions(ctx context.Context, user core.User, id int64, option string) (core.RecruitResult, error)
-	PendingChoice(ctx context.Context, user core.User, id int64) (*core.RecruitChoice, error)
+	ConfirmRecruit(ctx context.Context, user core.User, id, companyID int64, adjust int, pick string) (core.RecruitResult, error)
+	ChooseLower(ctx context.Context, user core.User, id, companyID int64, index int) (core.RecruitResult, error)
+	RecruitSpecial(ctx context.Context, user core.User, id, companyID int64, unit string) (core.RecruitResult, error)
+	ChooseOptions(ctx context.Context, user core.User, id, companyID int64, option string) (core.RecruitResult, error)
+	PendingChoice(ctx context.Context, user core.User, id, companyID int64) (*core.RecruitChoice, error)
 	// PendingOfficers is the officer panel of a Ranger of the North waiting to take command (nil when nothing waits);
 	// ArrangeOfficers settles it with the player's arrangement (the Ranger is core.RangerID, 0).
-	PendingOfficers(ctx context.Context, user core.User, id int64) (*core.OfficerPanel, error)
-	ArrangeOfficers(ctx context.Context, user core.User, id int64, a core.OfficerArrangement) (core.RecruitResult, error)
+	PendingOfficers(ctx context.Context, user core.User, id, companyID int64) (*core.OfficerPanel, error)
+	ArrangeOfficers(ctx context.Context, user core.User, id, companyID int64, a core.OfficerArrangement) (core.RecruitResult, error)
 	// CompanyProfiles are the companies a player can choose, each with everything about it (see core.CompanyProfile).
 	CompanyProfiles(ctx context.Context, campaignID int64) ([]core.CompanyProfile, error)
-	// CreateCompany returns core.ErrHasCompany when the user already has one, or an error wrapping core.ErrInvalidCompany.
+	// CreateCompany returns core.ErrCompanyLimit when the user owns the companies the campaign allows (CampaignSettings.CompanyCap), or an error
+	// wrapping core.ErrInvalidCompany (also core.ErrCompanyNameTaken: another company of theirs has that name).
 	CreateCompany(ctx context.Context, user core.User, id int64, in core.CompanyInput) (core.CampaignCompany, error)
 	Matches(ctx context.Context, id int64) ([]core.Match, error) // newest first
 	Match(ctx context.Context, id, matchID int64) (core.Match, error)
@@ -243,7 +247,10 @@ type campaigns interface {
 	Preview(ctx context.Context, user core.User, token string) (core.InvitePreview, error)
 	// HandOver makes another member the organiser; the organiser or an administrator may (core.ErrRefused otherwise).
 	HandOver(ctx context.Context, actor core.User, campaignID, newOrganiserID int64) error
-	// UsePerk marks one of the company's scenario perks used; only its owner may (core.ErrRefused otherwise).
+	// SetCompaniesPerPlayer changes how many companies each player may have (1 to 4), at any time; lowering only blocks new ones. The
+	// organiser and administrators (core.ErrRefused otherwise), core.ErrInvalidCampaign out of range.
+	SetCompaniesPerPlayer(ctx context.Context, actor core.User, campaignID int64, n int) error
+	// UsePerk marks one of the company's scenario perks used; only its owner may (core.ErrNotFound otherwise).
 	UsePerk(ctx context.Context, user core.User, id, companyID, perkID int64) error
 }
 

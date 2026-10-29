@@ -17,10 +17,10 @@ func TestBuryMovesTheUnitToTheCemeteryAsItWas(t *testing.T) {
 	f.state.Influence = 20
 	f.state.Order = []int64{3, 2, 1}
 	arm := NewArmouryService(f.campaigns, f.companies, staticRules{shippedRules(t)})
-	if err := arm.BuyCreature(f.ctx, f.user, 5, 2, "Baggage Pony", ""); err != nil {
+	if err := arm.BuyCreature(f.ctx, f.user, 5, 1, 2, "Baggage Pony", ""); err != nil {
 		t.Fatal(err)
 	}
-	if err := arm.Carry(f.ctx, f.user, 5, 2, CarryAction{Kind: "store", Item: "Spear"}); err != nil {
+	if err := arm.Carry(f.ctx, f.user, 5, 1, 2, CarryAction{Kind: "store", Item: "Spear"}); err != nil {
 		t.Fatal(err)
 	}
 	before := f.detail(t)
@@ -90,20 +90,20 @@ func TestSaveCemeteryOrder(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := s.SaveCemeteryOrder(f.ctx, f.user, 5, []int64{6, 4, 6}); err != nil {
+	if err := s.SaveCemeteryOrder(f.ctx, f.user, 5, 1, []int64{6, 4, 6}); err != nil {
 		t.Fatal(err)
 	}
 	if d := f.detail(t); d.Cemetery[0].Unit.ID != 6 || d.Cemetery[1].Unit.ID != 4 || d.Cemetery[2].Unit.ID != 5 {
 		t.Errorf("the saved order leads, the rest follows: %d %d %d", d.Cemetery[0].Unit.ID, d.Cemetery[1].Unit.ID, d.Cemetery[2].Unit.ID)
 	}
-	if err := s.SaveCemeteryOrder(f.ctx, f.user, 5, []int64{6, 1}); !errors.Is(err, ErrRefused) {
+	if err := s.SaveCemeteryOrder(f.ctx, f.user, 5, 1, []int64{6, 1}); !errors.Is(err, ErrRefused) {
 		t.Errorf("a unit of the roster cannot be put among the fallen: %v", err)
 	}
 	companies := NewCompanyService(f.campaigns, f.companies, staticRules{shippedRules(t)})
-	if err := companies.SaveFormation(f.ctx, f.user, 5, []int64{4}); !errors.Is(err, ErrRefused) {
+	if err := companies.SaveFormation(f.ctx, f.user, 5, 1, []int64{4}); !errors.Is(err, ErrRefused) {
 		t.Errorf("nor a fallen one among the units of the company: %v", err)
 	}
-	if err := s.SaveCemeteryOrder(f.ctx, User{ID: 8}, 5, []int64{6}); !errors.Is(err, ErrNotFound) {
+	if err := s.SaveCemeteryOrder(f.ctx, User{ID: 8}, 5, 1, []int64{6}); !errors.Is(err, ErrNotFound) {
 		t.Errorf("non-owner: %v", err)
 	}
 	if len(f.state.Graveyard) != 2 {

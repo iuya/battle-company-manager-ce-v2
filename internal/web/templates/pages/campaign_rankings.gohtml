@@ -17,7 +17,7 @@
     </thead>
     <tbody class="divide-y divide-line">
       {{range .Rows}}
-      <tr {{if and $.Campaign.Company (eq $.Campaign.Company.ID .ID)}}class="bg-accent-soft"{{end}}>
+      <tr {{if $.Campaign.Owns .ID}}class="bg-accent-soft"{{end}}>
         <td class="py-2 pl-3 pr-1 font-semibold">{{.Rank}}</td>
         <td class="px-2 py-2"><a href="/campaigns/{{$.Campaign.ID}}/companies/{{.ID}}" class="font-medium">{{.Name}}</a><span class="block text-xs text-muted">{{.Owner}} · {{.FactionName}}</span></td>
         <td class="whitespace-nowrap px-1.5 py-2 text-right font-semibold sm:px-2">{{template "points" .}}</td>

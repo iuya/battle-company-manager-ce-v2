@@ -723,6 +723,44 @@ func (c *MockcampaignRepositorySetStatusCall) DoAndReturn(f func(context.Context
 	return c
 }
 
+// UpdateSettings mocks base method.
+func (m *MockcampaignRepository) UpdateSettings(ctx context.Context, campaignID int64, fn func(int64, CampaignStatus, CampaignSettings) (CampaignSettings, error)) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSettings", ctx, campaignID, fn)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateSettings indicates an expected call of UpdateSettings.
+func (mr *MockcampaignRepositoryMockRecorder) UpdateSettings(ctx, campaignID, fn any) *MockcampaignRepositoryUpdateSettingsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSettings", reflect.TypeOf((*MockcampaignRepository)(nil).UpdateSettings), ctx, campaignID, fn)
+	return &MockcampaignRepositoryUpdateSettingsCall{Call: call}
+}
+
+// MockcampaignRepositoryUpdateSettingsCall wrap *gomock.Call
+type MockcampaignRepositoryUpdateSettingsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignRepositoryUpdateSettingsCall) Return(arg0 error) *MockcampaignRepositoryUpdateSettingsCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignRepositoryUpdateSettingsCall) Do(f func(context.Context, int64, func(int64, CampaignStatus, CampaignSettings) (CampaignSettings, error)) error) *MockcampaignRepositoryUpdateSettingsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignRepositoryUpdateSettingsCall) DoAndReturn(f func(context.Context, int64, func(int64, CampaignStatus, CampaignSettings) (CampaignSettings, error)) error) *MockcampaignRepositoryUpdateSettingsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // MockcompanyRepository is a mock of companyRepository interface.
 type MockcompanyRepository struct {
 	ctrl     *gomock.Controller

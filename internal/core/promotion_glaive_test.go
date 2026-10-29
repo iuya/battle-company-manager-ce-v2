@@ -27,7 +27,7 @@ func TestAPromotedWarriorLosesTheGlaiveTheKnightDoesNotHave(t *testing.T) {
 	if before := f.unit(t, 90); !hasGlaive(gearNames(before)) {
 		t.Fatalf("the warrior carries the glaive: %v", gearNames(before))
 	}
-	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{4}, false)
+	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{4}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestAPromotedWarriorLosesTheGlaiveTheKnightDoesNotHave(t *testing.T) {
 	if key == "" {
 		t.Fatalf("the Knight promotion is not offered: %+v", roll.Offers)
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 90, []string{key}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 90, []string{key}); err != nil {
 		t.Fatal(err)
 	}
 	u := f.unit(t, 90)
@@ -107,7 +107,7 @@ func TestAHeroKnightBuysTheElvenGlaive(t *testing.T) {
 	if !ok {
 		t.Fatal("not offered")
 	}
-	if err := s.BuyEquipment(f.ctx, f.user, 5, 7, it.Name, ""); err != nil {
+	if err := s.BuyEquipment(f.ctx, f.user, 5, 1, 7, it.Name, ""); err != nil {
 		t.Fatal(err)
 	}
 	if f.state.Influence != 20-it.Cost || !hasGlaive(f.state.Units[0].Bought) {
@@ -116,7 +116,7 @@ func TestAHeroKnightBuysTheElvenGlaive(t *testing.T) {
 	if !hasGlaive(gearNames(f.unit(t, 7))) {
 		t.Errorf("the hero carries it: %v", gearNames(f.unit(t, 7)))
 	}
-	if err := s.BuyEquipment(f.ctx, f.user, 5, 7, it.Name, ""); err == nil {
+	if err := s.BuyEquipment(f.ctx, f.user, 5, 1, 7, it.Name, ""); err == nil {
 		t.Error("bought twice")
 	}
 }
@@ -126,7 +126,7 @@ func TestAPromotedWarriorKeepsWhatTheNewProfileLists(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
 	f.companyOf("Halls of Thranduil", 5, []UnitState{{ID: 90, Base: "Mirkwood Elf Warrior", Role: RoleWarrior, Gear: []string{"Elf bow"}, XP: 5}})
-	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{4}, false)
+	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{4}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestAPromotedWarriorKeepsWhatTheNewProfileLists(t *testing.T) {
 	if key == "" {
 		t.Fatalf("no Ranger promotion: %+v", roll.Offers)
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 90, []string{key}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 90, []string{key}); err != nil {
 		t.Fatal(err)
 	}
 	if got := gearNames(f.unit(t, 90)); !slices.ContainsFunc(got, func(n string) bool { return SameItem(n, nil, "Elf bow", nil) }) {

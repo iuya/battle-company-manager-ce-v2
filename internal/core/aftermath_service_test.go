@@ -51,7 +51,7 @@ func newAmFixture(t *testing.T) *amFixture {
 		}
 		d := CampaignDetail{CampaignSummary: CampaignSummary{ID: 5}, OrganiserID: amOrganiser}
 		if user == amOwner {
-			d.Company = &CampaignCompany{ID: 1}
+			d.Companies = []CampaignCompany{{ID: 1}}
 		}
 		return d, nil
 	}).AnyTimes()
@@ -441,26 +441,26 @@ func TestCompanyActionsAreLockedWhileAnAftermathIsPending(t *testing.T) {
 	f.state.Aftermaths = []AftermathRef{{MatchID: 1, MatchNumber: 3, CompanyID: 1, Status: AftermathPending}}
 	arm := NewArmouryService(f.campaigns, f.companies, rules)
 	for name, err := range map[string]error{
-		"buy":      arm.BuyEquipment(f.ctx, f.user, 5, 6, "Shield", ""),
-		"drop":     arm.DropEquipment(f.ctx, f.user, 5, 6, "Bow"),
-		"creature": arm.BuyCreature(f.ctx, f.user, 5, 2, "Baggage Pony", ""),
-		"wanderer": arm.HireWanderer(f.ctx, f.user, 5, "Anybody", ""),
-		"dismiss":  arm.DismissWanderer(f.ctx, f.user, 5, 6),
-		"recruit":  NewRecruitService(f.campaigns, f.companies, rules, &FixedDice{Rolls: []int{3}}).RollRecruit(f.ctx, f.user, 5, 0, false),
+		"buy":      arm.BuyEquipment(f.ctx, f.user, 5, 1, 6, "Shield", ""),
+		"drop":     arm.DropEquipment(f.ctx, f.user, 5, 1, 6, "Bow"),
+		"creature": arm.BuyCreature(f.ctx, f.user, 5, 1, 2, "Baggage Pony", ""),
+		"wanderer": arm.HireWanderer(f.ctx, f.user, 5, 1, "Anybody", ""),
+		"dismiss":  arm.DismissWanderer(f.ctx, f.user, 5, 1, 6),
+		"recruit":  NewRecruitService(f.campaigns, f.companies, rules, &FixedDice{Rolls: []int{3}}).RollRecruit(f.ctx, f.user, 5, 1, 0, false),
 	} {
 		if !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Finish the aftermath of Match 3 first") {
 			t.Errorf("%s: %v", name, err)
 		}
 	}
-	_, err := NewTreatmentService(f.campaigns, f.companies, rules, &FixedDice{}).TreatInjury(f.ctx, f.user, 5, 7, Treatment{Method: "warrior"})
+	_, err := NewTreatmentService(f.campaigns, f.companies, rules, &FixedDice{}).TreatInjury(f.ctx, f.user, 5, 1, 7, Treatment{Method: "warrior"})
 	if !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Finish the aftermath") {
 		t.Errorf("treat: %v", err)
 	}
-	if err := NewCompanyService(f.campaigns, f.companies, rules).RenameCompany(f.ctx, f.user, 5, "Still allowed"); err != nil {
+	if err := NewCompanyService(f.campaigns, f.companies, rules).RenameCompany(f.ctx, f.user, 5, 1, "Still allowed"); err != nil {
 		t.Errorf("renaming: %v", err)
 	}
 	f.state.Aftermaths = nil
-	if err := arm.DropEquipment(f.ctx, f.user, 5, 6, "Bow"); errors.Is(err, ErrRefused) && strings.Contains(err.Error(), "Finish the aftermath") {
+	if err := arm.DropEquipment(f.ctx, f.user, 5, 1, 6, "Bow"); errors.Is(err, ErrRefused) && strings.Contains(err.Error(), "Finish the aftermath") {
 		t.Errorf("unlocked: %v", err)
 	}
 }

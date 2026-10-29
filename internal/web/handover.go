@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
@@ -34,8 +35,12 @@ func (s *Server) handoverCandidates(r *http.Request, id, organiser int64) ([]han
 			continue
 		}
 		name := m.Name
-		if m.CompanyName != "" {
-			name += " (" + m.CompanyName + ")"
+		if len(m.Companies) > 0 {
+			names := make([]string, len(m.Companies))
+			for i, c := range m.Companies {
+				names[i] = c.Name
+			}
+			name += " (" + strings.Join(names, ", ") + ")"
 		} else {
 			name += " (no company yet)"
 		}

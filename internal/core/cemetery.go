@@ -82,8 +82,8 @@ func (s *CemeteryService) Injure(ctx context.Context, campaignID, companyID, uni
 
 // SaveCemeteryOrder stores the order the player put their fallen units in. A unit never moves between the cemetery and the
 // roster: an id that is not in the cemetery is refused.
-func (s *CemeteryService) SaveCemeteryOrder(ctx context.Context, user User, campaignID int64, order []int64) error {
-	id, err := s.myCompanyToChange(ctx, user, campaignID)
+func (s *CemeteryService) SaveCemeteryOrder(ctx context.Context, user User, campaignID, companyID int64, order []int64) error {
+	id, err := s.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}

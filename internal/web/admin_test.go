@@ -249,7 +249,7 @@ func TestAdminUsersListsOrganisedCampaignsAndHandsThemOver(t *testing.T) {
 	u := core.AdminUser{User: core.User{ID: 50, Email: "faramir@x.me", DisplayName: "Faramir", Role: core.RoleUser}, Campaigns: 1,
 		Organises: []core.OrganisedCampaign{{ID: 7, Name: "Siege", Status: core.CampaignActive, Players: 3}}}
 	f.auth.EXPECT().ListUsers(gomock.Any(), superG, "", userPageSize, 0).Return([]core.AdminUser{u}, 1, nil)
-	f.camp.EXPECT().Members(gomock.Any(), int64(7)).Return([]core.CampaignMember{{UserID: 50, Name: "Faramir", Organiser: true, CompanyID: 1, CompanyName: "Ithilien"}, {UserID: 51, Name: "Eowyn", CompanyID: 2, CompanyName: "Rohan"}}, nil).AnyTimes()
+	f.camp.EXPECT().Members(gomock.Any(), int64(7)).Return([]core.CampaignMember{{UserID: 50, Name: "Faramir", Organiser: true, Companies: []core.MemberCompany{{ID: 1, Name: "Ithilien"}}}, {UserID: 51, Name: "Eowyn", Companies: []core.MemberCompany{{ID: 2, Name: "Rohan"}}}}, nil).AnyTimes()
 	body := f.do(f.asSuper(httptest.NewRequest("GET", "/admin/users", nil))).Body.String()
 	for _, want := range []string{"Organises 1 campaign", "Siege", "3 players", `value="51">Eowyn (Rohan)`, "/admin/users/50/handover"} {
 		if !strings.Contains(body, want) {

@@ -34,7 +34,7 @@ func TestCompanies(t *testing.T) {
 	if err != nil || created.Units != 3 {
 		t.Fatalf("create: %+v, %v", created, err)
 	}
-	if _, err := repo.Create(ctx, camp.ID, owner, core.NewCompany{Name: "Again", Faction: "Rohan"}); !errors.Is(err, core.ErrHasCompany) {
+	if _, err := repo.Create(ctx, camp.ID, owner, core.NewCompany{Name: "Again", Faction: "Rohan"}); !errors.Is(err, core.ErrCompanyLimit) {
 		t.Fatalf("duplicate: %v", err)
 	}
 	if _, err := repo.Read(ctx, other.ID, created.ID); !errors.Is(err, core.ErrNotFound) {

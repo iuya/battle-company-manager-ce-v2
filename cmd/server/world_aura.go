@@ -73,12 +73,12 @@ func (w *world) becomeHero(co *wco, id int64, path, power string) {
 
 // pathOf gives an officer its path (a Sorcerer its first power).
 func (w *world) pathOf(co *wco, id int64, path, power string) {
-	w.must("choose "+path, w.c().ChoosePath(w.ctx, co.user, co.camp.id, id, path, power))
+	w.must("choose "+path, w.c().ChoosePath(w.ctx, co.user, co.camp.id, co.id, id, path, power))
 }
 
 // buy buys the item for the unit with gold, or influence when it has no gold price; false (and a line in the log) when it cannot.
 func (w *world) buy(co *wco, id int64, item string) bool {
-	return w.try("buy "+item, w.c().BuyEquipment(w.ctx, co.user, co.camp.id, id, item, "gold"))
+	return w.try("buy "+item, w.c().BuyEquipment(w.ctx, co.user, co.camp.id, co.id, id, item, "gold"))
 }
 
 // topUp gives the company money for the shopping of the script.

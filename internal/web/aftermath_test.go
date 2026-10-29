@@ -389,7 +389,7 @@ func ownerFixture(t *testing.T, units []core.CompanyUnit) *fixture {
 	f := newFixture(t, Config{})
 	d := campaignDetail()
 	d.OrganiserID = 99
-	d.Company = &core.CampaignCompany{ID: 1, Name: "Rangers", OwnerID: frodo.ID}
+	d.Companies = []core.CampaignCompany{{ID: 1, Name: "Rangers", OwnerID: frodo.ID}}
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().Match(gomock.Any(), int64(7), int64(3)).Return(endedMatch(), nil).AnyTimes()
 	f.camp.EXPECT().AftermathRules(gomock.Any(), int64(7)).Return(amRules, nil).AnyTimes()
@@ -482,10 +482,10 @@ func myCompanyWith(t *testing.T, refs []core.AftermathRef) string {
 	detail.Aftermaths = refs
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	return f.do(f.signedIn(httpGet("/campaigns/7/my-company"))).Body.String()
 }
 
@@ -514,10 +514,10 @@ func TestMyCompanyShowsPerksAndHistoryAndMarksOneUsed(t *testing.T) {
 	detail.History = []core.AftermathLine{{Kind: "influence", Text: "+2 Influence for a Win", Amount: 2, Match: 4, MatchID: 44, On: time.Date(2026, 10, 3, 20, 0, 0, 0, time.UTC)}, {Kind: "experience", Text: "Aldor: +1 Experience", Match: 4, MatchID: 44, On: time.Date(2026, 10, 3, 20, 0, 0, 0, time.UTC)}, {Kind: "injury", Text: "Brand: Injured", Match: 3}}
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	body := f.do(f.signedIn(httpGet("/campaigns/7/my-company"))).Body.String()
 	for _, want := range []string{`id="perks"`, "Rendezvous", "On the next reinforcement roll", `hx-post="/campaigns/7/my-company/perks/5/use"`, "Used (1)", "Vantage Point", "1 October 2026", `id="aftermath-history"`, "Influence for a Win", `<a class="underline" href="/campaigns/7/matches/44">Match 4</a>`, "· 3 Oct 2026", "<h3 class=\"!text-base\">Match 3</h3>"} {
 		if !strings.Contains(body, want) {

@@ -103,7 +103,7 @@ func targetUnits(roster []core.CompanyUnit, lc core.LiveCompany) (out []core.Tar
 // viewerSide is the companies of the match that stand on the viewer's side, the viewer's own among them; nil when the viewer has no company
 // in the match or the company asked about is on that side too (nothing of one's own side is an enemy).
 func viewerSide(base campaignBase, m core.Match, companyID int64) []core.CampaignCompany {
-	mine := base.Campaign.Company
+	mine := myCompanyOf(base.Campaign)
 	if mine == nil {
 		return nil
 	}
@@ -274,7 +274,7 @@ func (s *Server) liveFragmentViewQuiet(r *http.Request, base campaignBase, detai
 		return myCompanyView{}, err
 	}
 	view := myCompanyView{campaignBase: base, Company: detail, HasCompany: true, Units: unitViews(g, detail.Roster)}
-	view.ReadOnly = base.Campaign.Company == nil || base.Campaign.Company.ID != detail.ID
+	view.ReadOnly = myCompanyOf(base.Campaign) == nil || myCompanyOf(base.Campaign).ID != detail.ID
 	view.Live, err = s.liveFor(r, base, detail, view.Units)
 	return view, err
 }

@@ -241,6 +241,9 @@ type NewCompany struct {
 	Influence     int
 	Gold          int
 	Units         []UnitState // ids are assigned by the repository when zero
+	// Cap is how many companies the owner may have in the campaign (CampaignSettings.CompanyCap): the repository refuses with
+	// ErrCompanyLimit when they own that many already, in the same transaction as the insert. Zero reads as 1.
+	Cap int
 }
 
 // Locked is nil, or ErrRefused when the company is in a running match or has an aftermath to finish: it cannot recruit, buy, drop, heal or change its

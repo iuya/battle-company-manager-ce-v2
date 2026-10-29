@@ -74,23 +74,23 @@ func TestAdjustedPointsCountBothWaysAcrossTheCharts(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.recruiterWith(t, setAdjust(t, 3, 1, "both"))
 	f.state.Influence = 20
-	if err := s.RollRecruit(f.ctx, f.user, 5, 5, false); err != nil {
+	if err := s.RollRecruit(f.ctx, f.user, 5, 1, 5, false); err != nil {
 		t.Fatal(err)
 	}
-	if st, _ := s.RecruitState(f.ctx, f.user, 5); st == nil || st.Budget != 1 || st.BudgetDown != 3 || st.Adjust.Max != 3 || st.Sides != 6 {
+	if st, _ := s.RecruitState(f.ctx, f.user, 5, 1); st == nil || st.Budget != 1 || st.BudgetDown != 3 || st.Adjust.Max != 3 || st.Sides != 6 {
 		t.Fatalf("a 5: up 1, down 3: %+v", st)
 	}
-	if res, err := s.ConfirmRecruit(f.ctx, f.user, 5, 1, ""); err != nil || !res.Next { // a 6: the special chart, 1 of 3 points used
+	if res, err := s.ConfirmRecruit(f.ctx, f.user, 5, 1, 1, ""); err != nil || !res.Next { // a 6: the special chart, 1 of 3 points used
 		t.Fatalf("%+v %v", res, err)
 	}
-	if st, _ := s.RecruitState(f.ctx, f.user, 5); st == nil || st.Stage != "special" || st.BudgetDown != 0 || st.Budget != 2 {
+	if st, _ := s.RecruitState(f.ctx, f.user, 5, 1); st == nil || st.Stage != "special" || st.BudgetDown != 0 || st.Budget != 2 {
 		// not rolled yet: nothing to lower (roll 0), two points left to raise
 		t.Errorf("special chart: %+v", st)
 	}
-	if err := s.RollRecruit(f.ctx, f.user, 5, 4, false); err != nil {
+	if err := s.RollRecruit(f.ctx, f.user, 5, 1, 4, false); err != nil {
 		t.Fatal(err)
 	}
-	if st, _ := s.RecruitState(f.ctx, f.user, 5); st == nil || st.Budget != 2 || st.BudgetDown != 2 {
+	if st, _ := s.RecruitState(f.ctx, f.user, 5, 1); st == nil || st.Budget != 2 || st.BudgetDown != 2 {
 		t.Errorf("a 4 with 2 points left: %+v", st)
 	}
 }
@@ -122,7 +122,7 @@ func TestRendezvousFollowsItsRange(t *testing.T) {
 			})
 			f.state.Influence = 20
 			f.state.Perks = []Perk{{ID: 1, Effect: PerkRendezvous}}
-			err := s.RollRecruitWithPerk(f.ctx, f.user, 5, tt.roll, false, tt.perk)
+			err := s.RollRecruitWithPerk(f.ctx, f.user, 5, 1, tt.roll, false, tt.perk)
 			if tt.wantErr {
 				if !errors.Is(err, ErrInvalidRoll) || !strings.Contains(err.Error(), tt.want) {
 					t.Fatalf("err = %v", err)
@@ -132,7 +132,7 @@ func TestRendezvousFollowsItsRange(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			res, err := s.ConfirmRecruit(f.ctx, f.user, 5, 0, "")
+			res, err := s.ConfirmRecruit(f.ctx, f.user, 5, 1, 0, "")
 			if err != nil || !strings.Contains(res.Summary, tt.want) {
 				t.Errorf("%+v %v", res, err)
 			}
