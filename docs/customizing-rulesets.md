@@ -883,6 +883,8 @@ make test         # the Go and Python tests, including these examples
 
 `make check-ruleset` is the same check the upload runs: it decodes the file strictly (unknown keys, types, ranges, vocabularies), resolves every name against the file, vanilla and the glossary, checks the charts, tables and parameters, and prints **every** problem, not the first. Exit status 0: no errors (warnings are printed); 1: errors; 2: the command could not run.
 
+**Without the command line:** every signed-in player can use the online validator at `/tools/validate` (linked from the new-campaign form: "Not sure your file is valid? Check it first"). Upload your Battle Companies file and, if you wrote your own, the vanilla file and the glossary; an empty vanilla or glossary input means the shipped one. Your Battle Companies file is checked against the vanilla file and glossary you upload there, not against the shipped ones, so a unit or rule that only exists in your own vanilla file or glossary is found. You get the same report as `make check-ruleset`; nothing is stored and no campaign is created. It allows 6 checks a minute per account and files of at most 16 MB; when the checker is busy it answers "try again in a few seconds". The new-campaign form does the same cross check when you upload the files together.
+
 The admin page does the same: **Administration → Rules files**, pick the kind (Battle Companies rules data) and the file, then **Check this file**. It stores nothing and shows the same report. The schema (`battle_companies.schema.json`) gives completion in an editor and catches shape errors early, but the checker is the authority because it also checks names and charts.
 
 **Reading a report.** One problem per line:

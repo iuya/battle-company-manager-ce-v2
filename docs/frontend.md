@@ -250,10 +250,26 @@ known name as a muted chip and the hint. It sits in an `alert-danger` on:
 - the **new-campaign form** (`POST /campaigns`, 422 with the form kept; the three files are all checked before any is stored,
   so the text is "Nothing was stored and no campaign was created."; the browser keeps the name but a file input cannot be
   refilled, so the file is chosen again);
-- the **Check this file** button of the admin upload card: `POST /admin/rulesets/check` runs `rulesets.Check` (a dry run, stores
+- the **Check this file** button of the admin upload card: `POST /admin/rulesets/check` runs `rulesets.CheckSet` (a dry run, stores
   nothing) and swaps `#rs-check-result` under the buttons: 200 `alert-success` ("No problems found", warnings listed) or 422
   with the report. The web layer never imports `lean`; tests build reports with `core.NewRulesetReport`. Flow `89-ruleset-report`
   drives all three at 360/768/1280 in light and dark; `/styleguide` shows a sample.
+
+### Online validator
+
+`/tools/validate` (`validator.go`, `pages/validator.gohtml`) is for every signed-in player. The form has three file inputs, each with its
+`<label>`: **Battle Companies file** (required), **Vanilla rules file** and **Glossary** (optional, the hint names the shipped file used
+when it is left empty). `POST /tools/validate` (multipart `battle_companies`, `vanilla`, `glossary`) runs `rulesets.CheckSet`, so the
+Battle Companies file is checked against the vanilla file and glossary uploaded with it, and answers with the same report partial
+(`alert-success` or 422 `alert-danger`, "Nothing was stored and no campaign was created.") plus a line saying which files were the
+person's own and which the shipped ones. Nothing is written: the page never calls a `Store*` method. The result sits in
+`#validator-result` (`aria-live="polite"`, `tabindex="-1"`, outside the form); htmx swaps its inner HTML and the page script focuses it
+(`@htmx:after-swap`). Without JavaScript the form posts normally and the whole page comes back with the result. Limits: sign-in
+required, 16 MB per file (422 "Choose .json files of at most 16 MB each."), 6 checks a minute per account (`validatorGate.allow`,
+in memory like the login throttle) and 2 checks running at once (`validatorGate.acquire`, no queue); both answer **429** with a
+`Retry-After` and a plain sentence (the layout's alert for an htmx request). Linked from the new-campaign form ("Not sure your file is
+valid? Check it first", opens in a new tab so the form is kept), the admin Rules files page and the guide. Flow `97-online-validator`.
+The page adds no component: it reuses the report partial, `card`, `field` and `alert`, so `/styleguide` is unchanged.
 
 ## Adding a page
 

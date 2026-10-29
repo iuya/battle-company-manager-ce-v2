@@ -4653,41 +4653,41 @@ func (c *MockrulesetsCampaignOptionsCall) DoAndReturn(f func(context.Context) ([
 	return c
 }
 
-// Check mocks base method.
-func (m *Mockrulesets) Check(ctx context.Context, kind core.RulesetKind, content []byte) (core.RulesetReport, error) {
+// CheckSet mocks base method.
+func (m *Mockrulesets) CheckSet(ctx context.Context, set core.RulesetSet) (core.RulesetReport, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Check", ctx, kind, content)
+	ret := m.ctrl.Call(m, "CheckSet", ctx, set)
 	ret0, _ := ret[0].(core.RulesetReport)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Check indicates an expected call of Check.
-func (mr *MockrulesetsMockRecorder) Check(ctx, kind, content any) *MockrulesetsCheckCall {
+// CheckSet indicates an expected call of CheckSet.
+func (mr *MockrulesetsMockRecorder) CheckSet(ctx, set any) *MockrulesetsCheckSetCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Check", reflect.TypeOf((*Mockrulesets)(nil).Check), ctx, kind, content)
-	return &MockrulesetsCheckCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckSet", reflect.TypeOf((*Mockrulesets)(nil).CheckSet), ctx, set)
+	return &MockrulesetsCheckSetCall{Call: call}
 }
 
-// MockrulesetsCheckCall wrap *gomock.Call
-type MockrulesetsCheckCall struct {
+// MockrulesetsCheckSetCall wrap *gomock.Call
+type MockrulesetsCheckSetCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockrulesetsCheckCall) Return(arg0 core.RulesetReport, arg1 error) *MockrulesetsCheckCall {
+func (c *MockrulesetsCheckSetCall) Return(arg0 core.RulesetReport, arg1 error) *MockrulesetsCheckSetCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockrulesetsCheckCall) Do(f func(context.Context, core.RulesetKind, []byte) (core.RulesetReport, error)) *MockrulesetsCheckCall {
+func (c *MockrulesetsCheckSetCall) Do(f func(context.Context, core.RulesetSet) (core.RulesetReport, error)) *MockrulesetsCheckSetCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockrulesetsCheckCall) DoAndReturn(f func(context.Context, core.RulesetKind, []byte) (core.RulesetReport, error)) *MockrulesetsCheckCall {
+func (c *MockrulesetsCheckSetCall) DoAndReturn(f func(context.Context, core.RulesetSet) (core.RulesetReport, error)) *MockrulesetsCheckSetCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
