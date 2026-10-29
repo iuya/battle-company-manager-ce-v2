@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 )
@@ -82,7 +83,20 @@ func (t GlossaryTerm) Text() string {
 }
 
 // Summary is the term's definition as plain text, cut at a word boundary after about max characters.
+//
+// A term of a built glossary remembers the answer per length (the glossary never changes), so the tooltips of a page cost one lookup each.
 func (t GlossaryTerm) Summary(max int) string {
+	if t.summaries == nil {
+		return t.summary(max)
+	}
+	if v, ok := t.summaries.Load(max); ok {
+		return v.(string)
+	}
+	v, _ := t.summaries.LoadOrStore(max, t.summary(max))
+	return v.(string)
+}
+
+func (t GlossaryTerm) summary(max int) string {
 	var b strings.Builder
 	for _, para := range t.Paragraphs {
 		for _, seg := range para {
@@ -185,6 +199,8 @@ type GlossaryTerm struct {
 	Pages      []int       // rulebook pages it comes from
 	Path       *PathTable  // for a path: its limits and chart, as tables
 	Source     string      // for terms made from a campaign's rules files: the file they come from
+
+	summaries *sync.Map // Summary(max) by max, shared by the copies of the term; nil on a term not made by BuildGlossaryWith
 }
 
 // Segment is a piece of a definition: plain text, or (TermID set) a mention of another term to link to.
@@ -299,14 +315,25 @@ func BuildGlossaryWith(info RulesetInfo, content []byte, extras []ExtraTerm) (Gl
 			}
 		}
 	}
-	// Sorted by category, then by name, whatever order the files list them in.
+	// Sorted by category, then by name, whatever order the files list them in. The keys are worked out once per term, not once per comparison.
 	sortKey := func(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
-	slices.SortStableFunc(doc.Terms, func(a, b rawTerm) int {
-		if c := strings.Compare(sortKey(a.Category), sortKey(b.Category)); c != 0 {
+	type termKey struct{ category, name string }
+	keys := make([]termKey, len(doc.Terms))
+	order := make([]int, len(doc.Terms))
+	for i, t := range doc.Terms {
+		keys[i], order[i] = termKey{sortKey(t.Category), sortKey(t.Name)}, i
+	}
+	slices.SortStableFunc(order, func(a, b int) int {
+		if c := strings.Compare(keys[a].category, keys[b].category); c != 0 {
 			return c
 		}
-		return strings.Compare(sortKey(a.Name), sortKey(b.Name))
+		return strings.Compare(keys[a].name, keys[b].name)
 	})
+	sorted := make([]rawTerm, len(doc.Terms))
+	for i, at := range order {
+		sorted[i] = doc.Terms[at]
+	}
+	doc.Terms = sorted
 	g := Glossary{Info: info, Terms: make([]GlossaryTerm, len(doc.Terms))}
 	if chart, ok, err := ParseToWound(content); ok && err == nil {
 		g.ToWound = &chart
@@ -322,7 +349,7 @@ func BuildGlossaryWith(info RulesetInfo, content []byte, extras []ExtraTerm) (Gl
 			id = slugify(t.Name) + "-" + strconv.Itoa(n)
 		}
 		used[id] = true
-		g.Terms[i] = GlossaryTerm{ID: id, Name: t.Name, Category: t.Category, Aliases: t.Aliases, Source: t.From}
+		g.Terms[i] = GlossaryTerm{ID: id, Name: t.Name, Category: t.Category, Aliases: t.Aliases, Source: t.From, summaries: new(sync.Map)}
 		for _, p := range slices.Concat([]string{t.Name}, t.Aliases) {
 			key := strings.ToLower(strings.TrimSpace(p))
 			if _, dup := byPhrase[key]; !dup && utf8.RuneCountInString(key) >= minLinkLen {

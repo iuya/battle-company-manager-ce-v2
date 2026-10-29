@@ -2,13 +2,14 @@
 
 Numbers of the optimization work, taken on one machine with the tools of this repository, so that every pass can be compared with the same
 yardstick. The baseline is the local tag `1.5.0-pre-optimization` (release/v2.0.0 at `b3300b3`, after "practice matches", PR #12). The
-"After" columns are empty: each optimization pass fills them with the same commands ([Reproducing the numbers](#reproducing-the-numbers)).
+"After" columns are filled by each optimization pass for what it touched, with the same commands ([Reproducing the numbers](#reproducing-the-numbers));
+the backend pass (`perf/backend`) filled the load, server-time, memory, start-up and test-time cells and the browser flows ([Backend pass](#backend-pass)).
 The v1.3.0 column exists where a number could be taken from that release's files. Rules and screens do not change between baseline and
 after; the tests are the safety net. How the earlier speed pass measured and what it changed is in [performance.md](performance.md).
 
 Contents: [Summary](#summary), [Method](#method), [A. Data format](#a-data-format), [B. Runtime](#b-runtime),
 [C. Database](#c-database), [D. Build and test](#d-build-and-test), [What is heaviest at the baseline](#what-is-heaviest-at-the-baseline),
-[Reproducing the numbers](#reproducing-the-numbers).
+[Backend pass](#backend-pass), [Reproducing the numbers](#reproducing-the-numbers).
 
 ## Summary
 
@@ -24,20 +25,20 @@ Contents: [Summary](#summary), [Method](#method), [A. Data format](#a-data-forma
 | Non-test Go lines in `internal/core` (with subpackages) | 26,459 | 33,389 | |
 | Python lines in `tools/` | 8,535 | 2,548 | |
 | Rule-number literals reported by `TestMagicNumbersReport` | 171 | 153 | |
-| `core.LoadRuleSet`, three shipped files | 56.5 ms, 19.5 MB, 203,903 allocs | 65.2 ms, 34.2 MB, 483,794 allocs | |
-| `lean.Decode` alone, Battle Companies file | - | 7.3 ms, 4.6 MB, 124,956 allocs | |
-| Campaign list `/campaigns`, server time (statements) | - | 91.5 ms (11) | |
-| Matches tab, server time (statements) | - | 88.9 ms (7) | |
-| My Company, server time (statements) | - | 40.7 ms (16) | |
-| Armory, server time (statements) | - | 53 ms (10) | |
-| Tabletop Simulator dialog, aura rings on, server time (statements) | - | 34.2 ms (7) | |
-| My Company over the wire (HTML gzip) | - | 30.7 KB | |
-| `make perf` my company, 300 ms latency: loaded / settled | - | 709 / 732 ms | |
-| `make perf` match page, 300 ms latency: settled | - | 1002 ms | |
-| Server memory (RSS) after 200 page requests | - | 180 MB | |
-| Server start to first answer | - | 207 ms | |
-| `go test ./...` without a database | - | 30.5 s | |
-| `make test` (includes the PostgreSQL tests) | - | 139.9 s | |
+| `core.LoadRuleSet`, three shipped files | 56.5 ms, 19.5 MB, 203,903 allocs | 65.2 ms, 34.2 MB, 483,794 allocs | 48.7 ms, 26.1 MB, 313,680 allocs |
+| `lean.Decode` alone, Battle Companies file | - | 7.3 ms, 4.6 MB, 124,956 allocs | 5.4 ms, 3.8 MB, 87,560 allocs |
+| Campaign list `/campaigns`, server time (statements) | - | 91.5 ms (11) | 24.5 ms (11) |
+| Matches tab, server time (statements) | - | 88.9 ms (7) | 24.0 ms (7) |
+| My Company, server time (statements) | - | 40.7 ms (16) | 19.5 ms (16) |
+| Armory, server time (statements) | - | 53 ms (10) | 23.2 ms (10) |
+| Tabletop Simulator dialog, aura rings on, server time (statements) | - | 34.2 ms (7) | 13.6 ms (7) |
+| My Company over the wire (HTML gzip) | - | 30.7 KB | 30.7 KB |
+| `make perf` my company, 300 ms latency: loaded / settled | - | 709 / 732 ms | 709 / 733 ms |
+| `make perf` match page, 300 ms latency: settled | - | 1002 ms | 1001 ms |
+| Server memory (RSS) after 200 page requests | - | 180 MB | 176 MB |
+| Server start to first answer | - | 207 ms | 200 ms |
+| `go test ./...` without a database | - | 30.5 s | 29.5 s |
+| `make test` (includes the PostgreSQL tests) | - | 139.9 s | 110 s (1 run) |
 | `make e2e`, the four groups one after the other | - | 1,163 s | |
 | CI end-to-end workflow, PR #12 | - | 594 s | |
 | `go build` of the server, cold build cache | - | 7.1 s | |
@@ -133,8 +134,8 @@ the three shipped files, median of 10:
 | Benchmark | Wall time | Bytes allocated | Allocations | After |
 |---|---|---|---|---|
 | `core.LoadRuleSet`, v1.3.0 (same call, old parsers) | 56.46 ms | 19,472,288 | 203,903 | |
-| `core.LoadRuleSet`, baseline | 65.22 ms (64.77 to 65.54) | 34,211,698 | 483,794 | |
-| `lean.Decode` alone, baseline (Battle Companies file, prepared vanilla book and glossary) | 7.33 ms (7.32 to 7.37) | 4,565,394 | 124,956 | |
+| `core.LoadRuleSet`, baseline | 65.22 ms (64.77 to 65.54) | 34,211,698 | 483,794 | 48.74 ms (48.35 to 49.06), 26.1 MB, 313,680 allocations |
+| `lean.Decode` alone, baseline (Battle Companies file, prepared vanilla book and glossary) | 7.33 ms (7.32 to 7.37) | 4,565,394 | 124,956 | 5.37 ms, 3.8 MB, 87,560 allocations |
 
 A rule set is built once per content hash and kept (see [architecture.md](architecture.md)), so this cost is paid at start and when a
 ruleset is uploaded, not per request.
@@ -156,20 +157,20 @@ Per flow:
 
 | Flow | Requests (doc / xhr / sse / static) + cached | Chain | KB on the wire | KB HTML | DOM elements | Server ms | Statements | After: requests | After: KB | After: server ms | After: statements |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| login | 11 (2 / 1 / 0 / 8) + 9 | 6 | 164.3 | 11.4 | 449 | 110 | 15 | | | | |
-| home | 1 (1 / 0 / 0 / 0) + 8 | 1 | 7.5 | 7.5 | 449 | 125.4 | 11 | | | | |
-| home, cold cache | 9 (1 / 0 / 0 / 8) + 0 | 5 | 156.8 | 7.5 | 449 | 115.9 | 11 | | | | |
-| campaign overview | 1 (1 / 0 / 0 / 0) + 8 | 1 | 7.5 | 7.5 | 434 | 81.1 | 5 | | | | |
-| my company | 2 (2 / 0 / 0 / 0) + 9 | 2 | 31.6 | 31.6 | 1943 | 58.9 | 16 | | | | |
-| recruit window (click) | 1 (0 / 1 / 0 / 0) + 0 | 1 | 2.0 | 2.0 | 1999 | 33.8 | 12 | | | | |
-| level-up window (click) | 1 (0 / 1 / 0 / 0) + 0 | 1 | 4.0 | 4.0 | 3094 | 18.9 | 8 | | | | |
-| click: overview to my company (htmx) | 2 (0 / 2 / 0 / 0) + 2 | 2 | 27.2 | 27.2 | 1943 | 67.8 | 15 | | | | |
-| click: home to campaign overview (htmx) | 1 (0 / 1 / 0 / 0) + 1 | 1 | 3.0 | 3.0 | 434 | 90.5 | 4 | | | | |
-| armoury | 2 (2 / 0 / 0 / 0) + 9 | 2 | 28.4 | 28.4 | 5115 | 64.4 | 10 | | | | |
-| matches list | 1 (1 / 0 / 0 / 0) + 9 | 1 | 7.6 | 7.6 | 564 | 119.6 | 7 | | | | |
-| match page | 6 (1 / 4 / 1 / 0) + 8 | 3 | 20.5 | 20.5 | 1053 | 94 | 68 | | | | |
-| live match (+3 s observed) | 3 (1 / 1 / 1 / 0) + 9 | 2 | 34.5 | 34.5 | 2343 | 45.2 | 27 | | | | |
-| aftermath | 1 (1 / 0 / 0 / 0) + 9 | 1 | 8.1 | 8.1 | 586 | 33.7 | 14 | | | | |
+| login | 11 (2 / 1 / 0 / 8) + 9 | 6 | 164.3 | 11.4 | 449 | 110 | 15 | 11 | 164.3 | 83.8 | 15 |
+| home | 1 (1 / 0 / 0 / 0) + 8 | 1 | 7.5 | 7.5 | 449 | 125.4 | 11 | 1 | 7.5 | 48.7 | 11 |
+| home, cold cache | 9 (1 / 0 / 0 / 8) + 0 | 5 | 156.8 | 7.5 | 449 | 115.9 | 11 | 9 | 156.8 | 51.9 | 11 |
+| campaign overview | 1 (1 / 0 / 0 / 0) + 8 | 1 | 7.5 | 7.5 | 434 | 81.1 | 5 | 1 | 7.5 | 42.7 | 5 |
+| my company | 2 (2 / 0 / 0 / 0) + 9 | 2 | 31.6 | 31.6 | 1943 | 58.9 | 16 | 2 | 31.6 | 35.7 | 16 |
+| recruit window (click) | 1 (0 / 1 / 0 / 0) + 0 | 1 | 2.0 | 2.0 | 1999 | 33.8 | 12 | 1 | 2.0 | 20.3 | 12 |
+| level-up window (click) | 1 (0 / 1 / 0 / 0) + 0 | 1 | 4.0 | 4.0 | 3094 | 18.9 | 8 | 1 | 4.0 | 23.6 | 8 |
+| click: overview to my company (htmx) | 2 (0 / 2 / 0 / 0) + 2 | 2 | 27.2 | 27.2 | 1943 | 67.8 | 15 | 2 | 27.2 | 42.3 | 15 |
+| click: home to campaign overview (htmx) | 1 (0 / 1 / 0 / 0) + 1 | 1 | 3.0 | 3.0 | 434 | 90.5 | 4 | 1 | 3.0 | 40.5 | 4 |
+| armoury | 2 (2 / 0 / 0 / 0) + 9 | 2 | 28.4 | 28.4 | 5115 | 64.4 | 10 | 2 | 28.4 | 40.4 | 10 |
+| matches list | 1 (1 / 0 / 0 / 0) + 9 | 1 | 7.6 | 7.6 | 564 | 119.6 | 7 | 1 | 7.6 | 53.8 | 7 |
+| match page | 6 (1 / 4 / 1 / 0) + 8 | 3 | 20.5 | 20.5 | 1053 | 94 | 68 | 6 | 20.5 | 88.9 | 68 |
+| live match (+3 s observed) | 3 (1 / 1 / 1 / 0) + 9 | 2 | 34.5 | 34.5 | 2343 | 45.2 | 27 | 3 | 34.5 | 51 | 27 |
+| aftermath | 1 (1 / 0 / 0 / 0) + 9 | 1 | 8.1 | 8.1 | 586 | 33.7 | 14 | 1 | 8.1 | 20.6 | 14 |
 
 A live match opens no polling request (0 extra requests in 3 s after it settled). A page that sits on its event stream shows the stream as
 one request.
@@ -178,48 +179,48 @@ Per flow and latency (milliseconds; first paint is the first contentful paint):
 
 | Flow | Latency | TTFB | First paint | Load | Settled | After: TTFB | After: first paint | After: load | After: settled |
 |---|---|---|---|---|---|---|---|---|---|
-| login | 0 ms | 84 | 368 | 111 | 266 | | | | |
-| login | 100 ms | 110 | 320 | 140 | 640 | | | | |
-| login | 300 ms | 115 | 520 | 347 | 1655 | | | | |
-| home | 0 ms | 127 | 292 | 146 | 167 | | | | |
-| home | 100 ms | 107 | 280 | 130 | 153 | | | | |
-| home | 300 ms | 107 | 504 | 335 | 360 | | | | |
-| home, cold cache | 0 ms | 117 | 212 | 139 | 163 | | | | |
-| home, cold cache | 100 ms | 124 | 324 | 361 | 499 | | | | |
-| home, cold cache | 300 ms | 106 | 704 | 945 | 1263 | | | | |
-| campaign overview | 0 ms | 84 | 244 | 105 | 132 | | | | |
-| campaign overview | 100 ms | 87 | 264 | 129 | 154 | | | | |
-| campaign overview | 300 ms | 78 | 496 | 341 | 365 | | | | |
-| my company | 0 ms | 96 | 316 | 134 | 159 | | | | |
-| my company | 100 ms | 186 | 452 | 270 | 292 | | | | |
-| my company | 300 ms | 411 | 868 | 709 | 732 | | | | |
-| recruit window (click) | 0 ms | 46 | 288 | 86 | 187 | | | | |
-| recruit window (click) | 100 ms | 38 | 304 | 79 | 217 | | | | |
-| recruit window (click) | 300 ms | 61 | 280 | 107 | 409 | | | | |
-| level-up window (click) | 0 ms | 61 | 272 | 110 | 199 | | | | |
-| level-up window (click) | 100 ms | 52 | 300 | 108 | 197 | | | | |
-| level-up window (click) | 300 ms | 71 | 252 | 124 | 408 | | | | |
-| click: overview to my company (htmx) | 0 ms | 83 | 240 | 102 | 153 | | | | |
-| click: overview to my company (htmx) | 100 ms | 88 | 240 | 132 | 266 | | | | |
-| click: overview to my company (htmx) | 300 ms | 87 | 240 | 129 | 678 | | | | |
-| click: home to campaign overview (htmx) | 0 ms | 101 | 272 | 120 | 108 | | | | |
-| click: home to campaign overview (htmx) | 100 ms | 131 | 308 | 151 | 133 | | | | |
-| click: home to campaign overview (htmx) | 300 ms | 130 | 288 | 150 | 349 | | | | |
-| armoury | 0 ms | 106 | 308 | 187 | 210 | | | | |
-| armoury | 100 ms | 181 | 412 | 291 | 314 | | | | |
-| armoury | 300 ms | 405 | 816 | 699 | 724 | | | | |
-| matches list | 0 ms | 121 | 280 | 143 | 167 | | | | |
-| matches list | 100 ms | 118 | 268 | 139 | 163 | | | | |
-| matches list | 300 ms | 109 | 492 | 348 | 372 | | | | |
-| match page | 0 ms | 46 | 208 | 81 | 132 | | | | |
-| match page | 100 ms | 51 | 276 | 147 | 383 | | | | |
-| match page | 300 ms | 51 | 540 | 361 | 1002 | | | | |
-| live match (+3 s observed) | 0 ms | 44 | 224 | 95 | 134 | | | | |
-| live match (+3 s observed) | 100 ms | 54 | 288 | 164 | 277 | | | | |
-| live match (+3 s observed) | 300 ms | 62 | 496 | 373 | 701 | | | | |
-| aftermath | 0 ms | 36 | 200 | 60 | 87 | | | | |
-| aftermath | 100 ms | 33 | 264 | 139 | 166 | | | | |
-| aftermath | 300 ms | 29 | 492 | 352 | 374 | | | | |
+| login | 0 ms | 84 | 368 | 111 | 266 | 57 | 244 | 81 | 228 |
+| login | 100 ms | 110 | 320 | 140 | 640 | 53 | 300 | 139 | 640 |
+| login | 300 ms | 115 | 520 | 347 | 1655 | 64 | 512 | 356 | 1682 |
+| home | 0 ms | 127 | 292 | 146 | 167 | 51 | 228 | 71 | 97 |
+| home | 100 ms | 107 | 280 | 130 | 153 | 59 | 280 | 137 | 160 |
+| home | 300 ms | 107 | 504 | 335 | 360 | 51 | 496 | 344 | 369 |
+| home, cold cache | 0 ms | 117 | 212 | 139 | 163 | 53 | 156 | 77 | 98 |
+| home, cold cache | 100 ms | 124 | 324 | 361 | 499 | 50 | 316 | 350 | 482 |
+| home, cold cache | 300 ms | 106 | 704 | 945 | 1263 | 67 | 720 | 961 | 1283 |
+| campaign overview | 0 ms | 84 | 244 | 105 | 132 | 45 | 212 | 70 | 95 |
+| campaign overview | 100 ms | 87 | 264 | 129 | 154 | 41 | 284 | 140 | 163 |
+| campaign overview | 300 ms | 78 | 496 | 341 | 365 | 40 | 500 | 346 | 373 |
+| my company | 0 ms | 96 | 316 | 134 | 159 | 54 | 280 | 92 | 115 |
+| my company | 100 ms | 186 | 452 | 270 | 292 | 153 | 444 | 264 | 289 |
+| my company | 300 ms | 411 | 868 | 709 | 732 | 382 | 856 | 709 | 733 |
+| recruit window (click) | 0 ms | 46 | 288 | 86 | 187 | 41 | 292 | 81 | 198 |
+| recruit window (click) | 100 ms | 38 | 304 | 79 | 217 | 26 | 268 | 65 | 202 |
+| recruit window (click) | 300 ms | 61 | 280 | 107 | 409 | 51 | 276 | 98 | 413 |
+| level-up window (click) | 0 ms | 61 | 272 | 110 | 199 | 51 | 268 | 100 | 192 |
+| level-up window (click) | 100 ms | 52 | 300 | 108 | 197 | 50 | 260 | 98 | 193 |
+| level-up window (click) | 300 ms | 71 | 252 | 124 | 408 | 43 | 224 | 96 | 408 |
+| click: overview to my company (htmx) | 0 ms | 83 | 240 | 102 | 153 | 33 | 220 | 51 | 107 |
+| click: overview to my company (htmx) | 100 ms | 88 | 240 | 132 | 266 | 30 | 192 | 53 | 266 |
+| click: overview to my company (htmx) | 300 ms | 87 | 240 | 129 | 678 | 46 | 228 | 73 | 684 |
+| click: home to campaign overview (htmx) | 0 ms | 101 | 272 | 120 | 108 | 54 | 216 | 80 | 54 |
+| click: home to campaign overview (htmx) | 100 ms | 131 | 308 | 151 | 133 | 55 | 228 | 76 | 134 |
+| click: home to campaign overview (htmx) | 300 ms | 130 | 288 | 150 | 349 | 45 | 220 | 79 | 339 |
+| armoury | 0 ms | 106 | 308 | 187 | 210 | 63 | 244 | 127 | 155 |
+| armoury | 100 ms | 181 | 412 | 291 | 314 | 156 | 396 | 279 | 303 |
+| armoury | 300 ms | 405 | 816 | 699 | 724 | 376 | 812 | 696 | 720 |
+| matches list | 0 ms | 121 | 280 | 143 | 167 | 56 | 224 | 82 | 110 |
+| matches list | 100 ms | 118 | 268 | 139 | 163 | 57 | 272 | 140 | 165 |
+| matches list | 300 ms | 109 | 492 | 348 | 372 | 49 | 496 | 349 | 376 |
+| match page | 0 ms | 46 | 208 | 81 | 132 | 49 | 220 | 84 | 132 |
+| match page | 100 ms | 51 | 276 | 147 | 383 | 54 | 292 | 156 | 386 |
+| match page | 300 ms | 51 | 540 | 361 | 1002 | 54 | 516 | 363 | 1001 |
+| live match (+3 s observed) | 0 ms | 44 | 224 | 95 | 134 | 51 | 232 | 105 | 140 |
+| live match (+3 s observed) | 100 ms | 54 | 288 | 164 | 277 | 55 | 292 | 168 | 280 |
+| live match (+3 s observed) | 300 ms | 62 | 496 | 373 | 701 | 53 | 488 | 369 | 694 |
+| aftermath | 0 ms | 36 | 200 | 60 | 87 | 23 | 200 | 50 | 76 |
+| aftermath | 100 ms | 33 | 264 | 139 | 166 | 27 | 260 | 135 | 160 |
+| aftermath | 300 ms | 29 | 492 | 352 | 374 | 26 | 468 | 347 | 371 |
 
 ### B2. Server time and bytes per page (`pagetimes.mjs`)
 
@@ -232,28 +233,28 @@ gzip ahead of time and `immutable` for a year, so a warm visit does not fetch th
 
 | Page | Server ms (3 runs, min to max) | DB ms | Statements | HTML KB raw | HTML KB gzip | CSS KB raw / gzip | JS KB raw / gzip | After: server ms | After: DB ms | After: statements | After: HTML KB gzip |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Campaign list | 91.5 (83.1 to 93.3) | 35.3 | 11 | 41.0 | 6.8 | 103.6 / 15.1 | 243.0 / 79.0 | | | | |
-| Campaign overview | 64.4 (61.7 to 65.7) | 26 | 5 | 37.1 | 6.8 | 103.6 / 15.1 | 243.0 / 79.0 | | | | |
-| My Company | 40.7 (40.3 to 43.5) | 14.8 | 16 | 251.6 | 30.7 | 103.6 / 15.1 | 243.0 / 79.0 | | | | |
-| Matches tab | 88.9 (83.8 to 95) | 34.6 | 7 | 49.2 | 6.8 | 103.6 / 15.1 | 243.0 / 79.0 | | | | |
-| Armory | 53 (48.9 to 53) | 20.6 | 10 | 449.0 | 27.6 | 103.6 / 15.1 | 243.0 / 79.0 | | | | |
-| New company | 14.2 (11 to 14.8) | 3.8 | 3 | 61.3 | 7.3 | 103.6 / 15.1 | 243.0 / 79.0 | | | | |
-| Match page | 23.4 (23.3 to 23.7) | 30.7 | 37 | 77.3 | 11.1 | 103.6 / 15.1 | 243.0 / 79.0 | | | | |
-| Live match (company page) | 24.9 (24.8 to 25.8) | 16.5 | 26 | 248.6 | 28.7 | 103.6 / 15.1 | 243.0 / 79.0 | | | | |
-| Aftermath | 13.5 (13.3 to 13.6) | 8 | 14 | 54.7 | 7.3 | 103.6 / 15.1 | 243.0 / 79.0 | | | | |
-| Tabletop Simulator dialog, aura rings on | 34.2 (34.1 to 35.4) | 11.2 | 7 | 45.2 | 12.1 | - | - | | | | |
-| Tabletop Simulator dialog, aura rings off | 39.4 (37 to 40.3) | 15.3 | 7 | 43.2 | 11.6 | - | - | | | | |
+| Campaign list | 91.5 (83.1 to 93.3) | 35.3 | 11 | 41.0 | 6.8 | 103.6 / 15.1 | 243.0 / 79.0 | 24.5 | 17.4 | 11 | 6.8 |
+| Campaign overview | 64.4 (61.7 to 65.7) | 26 | 5 | 37.1 | 6.8 | 103.6 / 15.1 | 243.0 / 79.0 | 16.0 | 11.3 | 5 | 6.8 |
+| My Company | 40.7 (40.3 to 43.5) | 14.8 | 16 | 251.6 | 30.7 | 103.6 / 15.1 | 243.0 / 79.0 | 19.5 | 12.6 | 16 | 30.7 |
+| Matches tab | 88.9 (83.8 to 95) | 34.6 | 7 | 49.2 | 6.8 | 103.6 / 15.1 | 243.0 / 79.0 | 24.0 | 16.9 | 7 | 6.8 |
+| Armory | 53 (48.9 to 53) | 20.6 | 10 | 449.0 | 27.6 | 103.6 / 15.1 | 243.0 / 79.0 | 23.2 | 11.4 | 10 | 27.6 |
+| New company | 14.2 (11 to 14.8) | 3.8 | 3 | 61.3 | 7.3 | 103.6 / 15.1 | 243.0 / 79.0 | 5.7 | 3.2 | 3 | 7.3 |
+| Match page | 23.4 (23.3 to 23.7) | 30.7 | 37 | 77.3 | 11.1 | 103.6 / 15.1 | 243.0 / 79.0 | 25.1 | 34.7 | 37 | 11.1 |
+| Live match (company page) | 24.9 (24.8 to 25.8) | 16.5 | 26 | 248.6 | 28.7 | 103.6 / 15.1 | 243.0 / 79.0 | 25.2 | 19.9 | 26 | 28.7 |
+| Aftermath | 13.5 (13.3 to 13.6) | 8 | 14 | 54.7 | 7.3 | 103.6 / 15.1 | 243.0 / 79.0 | 11.8 | 9.6 | 14 | 7.3 |
+| Tabletop Simulator dialog, aura rings on | 34.2 (34.1 to 35.4) | 11.2 | 7 | 45.2 | 12.1 | - | - | 13.6 | 9.5 | 7 | 12.1 |
+| Tabletop Simulator dialog, aura rings off | 39.4 (37 to 40.3) | 15.3 | 7 | 43.2 | 11.6 | - | - | 13.0 | 9.6 | 7 | 11.6 |
 
 ### B3. Server process
 
 | Measure | Baseline | After |
 |---|---|---|
-| Start to first answer of `/healthz` and `/login` (warm binary, median of 15 starts) | 207 ms and 208 ms | |
-| First start of a freshly built binary (cold page cache), 3 observations | 199, 634, 621 ms | |
-| Memory (RSS) just after start | 115 MB | |
-| Memory after one visit to each measured page (rule sets, templates, caches warm) | 177 MB | |
-| Memory after 200 more page requests | 180 MB | |
-| Memory after the measurement (about 450 requests in all) | 181 MB | |
+| Start to first answer of `/healthz` and `/login` (warm binary, median of 15 starts) | 207 ms and 208 ms | 200 ms and 201 ms |
+| First start of a freshly built binary (cold page cache), 3 observations | 199, 634, 621 ms | 622, 593, 600 ms |
+| Memory (RSS) just after start | 115 MB | 116 MB |
+| Memory after one visit to each measured page (rule sets, templates, caches warm) | 177 MB | 175 MB |
+| Memory after 200 more page requests | 180 MB | 176 MB |
+| Memory after the measurement (about 450 requests in all) | 181 MB | 179 MB |
 
 ## C. Database
 
@@ -266,20 +267,20 @@ rule-set loads (warm).
 
 | Page | ms per request | MB allocated | Allocations (thousands) | Statements | KB | After: ms | After: MB | After: statements |
 |---|---|---|---|---|---|---|---|---|
-| home (`/`, campaign list) | 90.1 | 101.5 | 216.6 | 11 | 40.9 | | | |
-| `/nav/campaigns` (sidebar fallback) | 1.0 | 0.2 | 3.8 | 1 | 19.3 | | | |
-| campaign overview | 63.3 | 66.0 | 142.8 | 5 | 37.0 | | | |
-| my company | 43.4 | 40.4 | 121.6 | 16 | 251.5 | | | |
-| armoury | 53.8 | 46.5 | 194.1 | 10 | 448.9 | | | |
-| matches list | 94.8 | 98.8 | 213.0 | 7 | 49.1 | | | |
-| match page | 25.0 | 14.0 | 40.8 | 37 | 77.2 | | | |
-| Against the Odds card | 17.8 | 6.7 | 14.6 | 14 | 0.5 | | | |
-| live log card | 12.4 | 4.9 | 11.0 | 12 | 1.1 | | | |
-| live company page | 26.6 | 11.3 | 61.6 | 26 | 248.6 | | | |
-| aftermath | 14.1 | 9.2 | 30.3 | 14 | 54.6 | | | |
-| new company | 5.3 | 3.8 | 35.9 | 2 | 80.5 | | | |
-| Tabletop Simulator dialog, aura rings on | 41.1 | 40.5 | 88.1 | 8 | 45.2 | | | |
-| Tabletop Simulator dialog, aura rings off | 37.6 | 40.2 | 83.4 | 8 | 43.2 | | | |
+| home (`/`, campaign list) | 90.1 | 101.5 | 216.6 | 11 | 40.9 | 26.8 | 7.4 | 11 |
+| `/nav/campaigns` (sidebar fallback) | 1.0 | 0.2 | 3.8 | 1 | 19.3 | 0.9 | 0.2 | 1 |
+| campaign overview | 63.3 | 66.0 | 142.8 | 5 | 37.0 | 19.1 | 4.9 | 5 |
+| my company | 43.4 | 40.4 | 121.6 | 16 | 251.5 | 20.4 | 5.7 | 16 |
+| armoury | 53.8 | 46.5 | 194.1 | 10 | 448.9 | 23.4 | 9.5 | 10 |
+| matches list | 94.8 | 98.8 | 213.0 | 7 | 49.1 | 24.7 | 7.2 | 7 |
+| match page | 25.0 | 14.0 | 40.8 | 37 | 77.2 | 21.7 | 3.3 | 37 |
+| Against the Odds card | 17.8 | 6.7 | 14.6 | 14 | 0.5 | 16.3 | 1.6 | 14 |
+| live log card | 12.4 | 4.9 | 11.0 | 12 | 1.1 | 11.1 | 1.1 | 12 |
+| live company page | 26.6 | 11.3 | 61.6 | 26 | 248.6 | 22.5 | 4.3 | 26 |
+| aftermath | 14.1 | 9.2 | 30.3 | 14 | 54.6 | 9.8 | 1.7 | 14 |
+| new company | 5.3 | 3.8 | 35.9 | 2 | 80.5 | 3.2 | 1.7 | 2 |
+| Tabletop Simulator dialog, aura rings on | 41.1 | 40.5 | 88.1 | 8 | 45.2 | 12.7 | 3.7 | 8 |
+| Tabletop Simulator dialog, aura rings off | 37.6 | 40.2 | 83.4 | 8 | 43.2 | 12.2 | 3.4 | 8 |
 
 (The browser flow and the HTTP probe count a few more or fewer statements for the same page: the browser's match page adds its htmx cards,
 and each tool picks its own user and campaign for the new-company page.)
@@ -404,22 +405,22 @@ Indexes of the schema at the baseline (51, including primary keys; sizes on the 
 
 | Run | Total | After |
 |---|---|---|
-| `go test -count=1 ./...` without a database (median of 3; packages run side by side) | 30.5 s | |
-| `make test` with the compose PostgreSQL up (PostgreSQL tests run; also docs links, group check and 61 Python tests in 6.6 s), median of 3 | 139.9 s | |
+| `go test -count=1 ./...` without a database (median of 3; packages run side by side) | 30.5 s | 29.5 s |
+| `make test` with the compose PostgreSQL up (PostgreSQL tests run; also docs links, group check and 61 Python tests in 6.6 s), median of 3 | 139.9 s | 110 s (1 run) |
 | `make test` with an empty build cache, 1 run | 141.3 s | |
-| `go test -p 1 -count=1 ./...` with a database (`make test-integration`), 1 run | 191 s | |
+| `go test -p 1 -count=1 ./...` with a database (`make test-integration`), 1 run | 191 s | 161 s |
 
 Per package (seconds; the test binary's own time):
 
 | Package | No database (median of 3) | `make test` (median of 3) | `-p 1` with a database (1 run) | After (no database) | After (`make test`) |
 |---|---|---|---|---|---|
-| `cmd/rulecheck` | 1.7 | 1.9 | 1.6 | | |
-| `cmd/server` | 1.1 | 132.3 | 118.5 | | |
-| `internal/core` | 29.7 | 33.5 | 29.1 | | |
-| `internal/core/lean` | 0.8 | 0.8 | 0.4 | | |
-| `internal/core/ttshelper` | 0.6 | 0.9 | 0.4 | | |
-| `internal/postgres` | 1.3 | 21.1 | 10.7 | | |
-| `internal/web` | 28.9 | 31.9 | 28.0 | | |
+| `cmd/rulecheck` | 1.7 | 1.9 | 1.6 | 1.3 | 1.3 |
+| `cmd/server` | 1.1 | 132.3 | 118.5 | 1.0 | 101.4 |
+| `internal/core` | 29.7 | 33.5 | 29.1 | 18.4 | 18.2 |
+| `internal/core/lean` | 0.8 | 0.8 | 0.4 | 1.1 | cached |
+| `internal/core/ttshelper` | 0.6 | 0.9 | 0.4 | 1.3 | cached |
+| `internal/postgres` | 1.3 | 21.1 | 10.7 | 1.3 | 15.6 |
+| `internal/web` | 28.9 | 31.9 | 28.0 | 28.7 | cached |
 
 Slowest single tests: with a database `TestLiveActionsSurviveExtremeValues` 108.7 s, `TestMalformedInputNeverCrashesAHandler` 67.3 s,
 `TestSeedWorld` 63.0 s, `TestPermissionMatrix` 51.2 s (they run side by side in `cmd/server`), `TestHostileUploadsAnswer4xx` 7.7 s;
@@ -430,8 +431,8 @@ without a database `TestSnapshot` 4.1 s, `TestCustomRulesetWho` 3.0 s, `TestStar
 
 | Group | Steps | Local wall time (`make e2e GROUP=…`) | CI job, PR #12 (job / test step) | After (local) |
 |---|---|---|---|---|
-| core | 57 | 214 s (harness 211 s) | 358 s / 332 s | |
-| pages | 12 | 245 s (243 s) | 412 s / 395 s | |
+| core | 57 | 214 s (harness 211 s) | 358 s / 332 s | 262 s (harness 258 s) |
+| pages | 12 | 245 s (243 s) | 412 s / 395 s | 242 s (harness 240 s) |
 | creation | 101 | 407 s (404 s) | 575 s / 553 s | |
 | rules | 78 | 297 s (294 s) | 456 s / 435 s | |
 | All four, one after the other | 248 | 1,163 s | | |
@@ -460,6 +461,78 @@ Facts the optimization passes start from (all numbers above; profile from `go te
 - **Tests:** `make test` is 140 s, of which `cmd/server` with the database is 132 s (four long tests that run side by side);
   `internal/core` and `internal/web` take about 30 s each without a database. The end-to-end suite is 19 minutes locally.
 
+## Backend pass
+
+Branch `perf/backend` (stacked on `perf/baseline`; bead `battle-company-manager-ce-v2-3c0f`). Same machine, same demo world (a scratch copy of the
+template, 130 companies), same commands. Rules, screens and tests are unchanged: the rendered body of all 77 benchmarked pages (the 14 pages of
+`BenchmarkPages` plus the overview, matches tab and armoury of every campaign) is byte identical before and after, apart from the static `?v=`
+hashes (`PAGES_DUMP=<dir>`, diffed against a worktree of the baseline commit); the golden snapshot, aura and Tabletop Simulator goldens did not
+change. The sequence of changes was profile, change one thing, `BenchmarkPages -count 5` (or `BenchmarkLoadRuleSet -count 10`), keep it only if
+the gain was clear (more than 5 % of time on its benchmark or more than 10 % of allocations). Times are medians; the commits are in this order.
+
+### Kept
+
+| # | Change | Measured (before to after) |
+|---|---|---|
+| 1 | **`equipmentFor` remembered per rule set** (`RuleSet.equipment`, key: company, armoury size, item, bought, profile; 20,000 entries at most). It was 17 % of the CPU on its own and, through `Offer` (a scan of the armoury per item), `itemAs` in `completeBundle` and `applyGearStats`, about half of every page that builds a company: per item and unit it scanned the armoury, normalised names and ran a regular expression over the description. | home 91 to 42 ms, 101.5 to 16.5 MB; matches 95 to 37 ms, 98.8 to 15.8 MB; overview 63 to 25 ms, 66 to 10.6 MB; my company 43 to 25 ms; armoury 55 to 27 ms; Tabletop Simulator 42 to 18 ms |
+| 2 | **`companyFigures`**: the campaign list, the overview and the match pages rate every company of a campaign (`figures`, `rated`) and needed four numbers, but built a whole `CompanyDetail` (keywords, auras, limits, recruit charts, cemetery) for each. It builds the units (keywords and auras aside, which feed nothing in the rating) and sums the figures; `TestCompanyFiguresEqualBuildDetail` compares the two. | home 42 to 28 ms, 16.5 to 9.3 MB, 169k to 99k allocations; overview 25 to 18 ms; matches 37 to 28 ms |
+| 3 | **`NameKey` on ASCII names** without rune decoding (stack buffer; the string itself when it already is a key). `TestASCIINameKeyEqualsTheRuneDefinition` compares it with the rune-by-rune definition on 20,000 random strings. | 148 to 46-56 ns and 3 to 0-1 allocations per call; home 99k to 77k allocations; `LoadRuleSet` 484k to 441k, 66.4 to 63.7 ms; `lean.Decode` 7.4 to 5.9 ms |
+| 4 | **Vanilla duplicates compared only when a name occurs twice** (`duplicates.wins` encoded every vanilla entry to JSON to have a form to compare). | `LoadRuleSet` 63.7 to 56.8 ms, 441k to 407k allocations |
+| 5 | **The vanilla file is decoded once per load** (`decodeVanilla` then `vanillaDoc.book` twice: the book the Battle Companies file is checked against, and the one with the duplicates it pins). | 56.8 to 51.6 ms, 407k to 380k allocations |
+| 6 | **A missing vanilla field is not decoded** (`unmarshalField`): decoding a missing key builds and rewrites an error that every caller ignored (`transformSyntacticError` was 7 % of the load's allocations). | 51.6 to 50.3 ms, 380k to 349k allocations |
+| 7 | **Glossary sort keys once per term** instead of lower-casing and trimming in every comparison. | 50.3 to 48.6 ms, 349k to 327k allocations |
+| 8 | **The lean binder builds a field's JSON path only for fields present** (`bindStruct`). | `lean.Decode` 5.8 to 5.3 ms, 327k to 312k allocations |
+| 9 | **Equipment list and stat block sized once** (`buildUnit`, `VanillaBook.Profile`): doubling a slice of several-hundred-byte structs for every unit of every page. | home 9.1 to 7.4 MB, matches 8.8 to 7.2 MB, my company 7.5 to 6.9 MB per request |
+| 10 | **A glossary term remembers its `Summary(n)`** per length (every unit asked for the same tooltip texts: join, split into fields, count runes, cut). | my company 21.2 to 19.9 ms and 6.9 to 5.7 MB; live company page 5.2 to 4.3 MB |
+
+Result, `BenchmarkPages` (median of 5, `-benchtime 20x`), against the baseline of section C:
+
+| Page | Baseline ms, MB, allocations (thousands) | Now |
+|---|---|---|
+| home (`/`) | 90.1, 101.5, 216.6 | 26.8, 7.4, 73.6 |
+| campaign overview | 63.3, 66.0, 142.8 | 19.1, 4.9, 51.0 |
+| my company | 43.4, 40.4, 121.6 | 20.4, 5.7, 71.7 |
+| armoury | 53.8, 46.5, 194.1 | 23.4, 9.5, 139.0 |
+| matches list | 94.8, 98.8, 213.0 | 24.7, 7.2, 75.4 |
+| match page | 25.0, 14.0, 40.8 | 21.7, 3.3, 28.2 |
+| live company page | 26.6, 11.3, 61.6 | 22.5, 4.3, 53.0 |
+| aftermath | 14.1, 9.2, 30.3 | 9.8, 1.7, 20.4 |
+| new company | 5.3, 3.8, 35.9 | 3.2, 1.7, 28.1 |
+| Tabletop Simulator dialog, rings on | 41.1, 40.5, 88.1 | 12.7, 3.7, 35.3 |
+
+The pages that were GC-bound (campaign list, matches tab, overview, Tabletop Simulator) are 3 to 4 times faster; the rest of what a request
+costs now is PostgreSQL round trips, the roster decode in `internal/postgres` and the template. The two click flows that only open a window (recruit, level-up) are within the noise of the baseline (`make perf` runs 5 flows of 5 reps; 20 and 24 ms of server time against 34 and 19: those requests build one company and were never GC-bound). Memory of the server process did not move
+(176 MB against 180 MB after 200 requests): it is the rule sets, templates and caches, and the caches added here are small. The statement counts
+did not change. `make test` went from 139.9 to 110 s because `internal/core` and `internal/web` build many companies (`internal/core` 29.7 to 18.4 s).
+
+Rule-set load, `BenchmarkLoadRuleSet` (median of 10): 66.1 ms, 34.2 MB, 483,790 allocations to 48.7 ms, 26.1 MB, 313,680. That is below the v1.3.0
+figure in time (56.5 ms) but still above it in memory (19.5 MB) and allocations (204k): what remains is decoding the 1.2 MB vanilla file into one
+map of raw values per entry (the typed document `readUnit` reads field by field), the generic tree the lean decoder builds from the Battle Companies
+file, the path strings of that tree, and building the glossary twice (once without the Battle Companies terms, to check the file against, once
+with them). The upload check (`/tools/validate`) loads the rule set the same way, so it gets the same 25 % cut.
+
+### Tried and not kept
+
+- **`encoding/json/v2` for decoding and encoding** (Go 1.27, `BenchmarkJSON`, `internal/core/bench_json_test.go`, same inputs for both). In Go 1.27
+  `encoding/json` is itself implemented on v2, so the v1 API and v2 with `json.DefaultOptionsV1()` are the same engine: vanilla decode 4.97 and 4.89 ms,
+  glossary 0.72 and 0.72 ms, Tabletop Simulator payload (6 KB) 8 µs and 8 µs, event and settings round trip 2 µs and 2 µs. Only v2 with its own
+  defaults is faster (vanilla 3.91 ms, glossary 0.54 ms, the Battle Companies file into a tree 1.71 against 3.05 ms; the payload is byte identical but
+  8 µs either way). Those defaults are different behaviour (case-sensitive field names, an error for a repeated key, strict UTF-8, another
+  `omitempty`), which would change what an uploaded rules file is accepted for, and the lean decoder's error positions and texts depend on the v1
+  token API. The whole gain would be 1 to 2 ms once per rule set (2 to 4 % of a load) and nothing per request, so no call site was switched.
+- **A separate memo for `BCBook.Offer`** (a map by company and name): not needed once `equipmentFor` is remembered, which is its only hot caller (`Offer` is gone from the profile after change 1).
+- **`sync.Pool` for the template buffers** (`bytes.Buffer` growth is 10 % of the allocated bytes in `internal/web/render.go`): not tried, it is the
+  web layer's and the pages are now dominated by round trips.
+- **Skipping the first glossary build** (the one without the Battle Companies terms): `LeanBook` and the extras read its terms' paragraphs and
+  links, so it cannot be reduced to names without changing what they see; not attempted.
+- **Hub, session cache, goroutines**: profiled, not in any profile above 1 %; unchanged.
+
+### For the database pass
+
+Left in the profile that is not `core`: `postgres.decodeUnits`/`ReadRoster` allocate about 10 % of a request's bytes (the roster JSON decoded per
+company, with reflection-based case-insensitive field lookup `reflect.(*structType).FieldByNameFunc`, 3 %), and the statements with high planning
+time listed in section C.
+
 ## Reproducing the numbers
 
 Commands, from the repository root (the compose PostgreSQL up; `make e2e`, `make perf` and the scripts copy the cached seeded template
@@ -470,6 +543,7 @@ into a scratch database and never touch the development one):
 python3 - <<< 'import json,gzip,sys; b=open("definitions/battle_companies/battle_companies.json","rb").read(); print(len(b), len(json.dumps(json.loads(b),separators=(",",":"),ensure_ascii=False).encode()), len(gzip.compress(b,9)))'
 go test ./internal/core -run 'Magic|TemplateRule' -v
 go test ./internal/core -run xxx -bench LoadRuleSet -benchmem -count 10
+go test ./internal/core -run xxx -bench JSON -benchmem -count 6        # encoding/json against encoding/json/v2
 
 # B. browser flows and server time per page
 make perf LABEL=after REPS=5                         # tests/e2e/out/perf-after.json
@@ -480,6 +554,7 @@ WORLD_DATABASE_URL=postgres://bcm:bcm@localhost:5432/<scratch>?sslmode=disable \
   go test ./cmd/server -run xxx -bench Pages -benchtime 20x -benchmem -count 5
 WORLD_DATABASE_URL=… go test ./cmd/server -run TestQueryCountsOnAPreloadedWorld -v -count=1
 WORLD_DATABASE_URL=… PERF_SQL=1 go test ./cmd/server -run xxx -bench Pages -benchtime 1x     # statements per page
+WORLD_DATABASE_URL=… PAGES_DUMP=/tmp/pages go test ./cmd/server -run xxx -bench Pages/home -benchtime 1x   # the pages' bodies, to diff two builds
 
 # D. build and test
 go build -o /tmp/server ./cmd/server && ls -l /tmp/server

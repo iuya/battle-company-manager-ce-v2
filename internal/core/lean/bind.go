@@ -243,19 +243,18 @@ func bindStruct(dst reflect.Value, v any, at string, r *Reporter) {
 	si := infoOf(dst.Type())
 	for i := range si.fields {
 		f := &si.fields[i]
-		path := Join(at, f.name)
 		val, present := obj[f.name]
 		switch {
 		case !present:
 			if f.required {
-				r.Errorf(path, "missing")
+				r.Errorf(Join(at, f.name), "missing")
 			}
 		case val == nil:
 			if f.required {
-				r.Errorf(path, "must not be null; it is required")
+				r.Errorf(Join(at, f.name), "must not be null; it is required")
 			}
 		default:
-			bindValue(dst.Field(f.index), val, path, r, f)
+			bindValue(dst.Field(f.index), val, Join(at, f.name), r, f)
 		}
 	}
 	var unknown []string

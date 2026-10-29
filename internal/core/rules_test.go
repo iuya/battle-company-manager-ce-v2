@@ -98,7 +98,7 @@ func TestVanillaPinToMissingOccurrenceWarnsAndKeepsFirst(t *testing.T) {
 	}
 }
 
-func readDef(t *testing.T, p string) []byte {
+func readDef(t testing.TB, p string) []byte {
 	t.Helper()
 	b, err := os.ReadFile("../../definitions/" + p)
 	if err != nil {

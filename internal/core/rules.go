@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
@@ -24,6 +25,10 @@ type RuleSet struct {
 	// Doc is the typed lean document of a schemaVersion 2 file; nil for the old format. The consumers read it
 	// instead of decoding the bytes again.
 	Doc *lean.Document
+
+	// equipment remembers equipmentFor per item (see there); the set never changes, so nothing in it can go stale.
+	equipment  sync.Map
+	equipmentN atomic.Int64
 }
 
 // Keyword returns the definition of a special rule: the one embedded in the entity that uses it (a unit's own rule, a hero

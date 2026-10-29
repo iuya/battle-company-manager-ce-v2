@@ -24,10 +24,11 @@ func DecodeBattleCompanies(file string, bc []byte, vanilla *VanillaBook, glossar
 // format, with no schemaVersion or 1, is refused with the one issue that says so). The vanilla file
 // is read twice: once to check the names of the document against, once with the duplicates the document pins.
 func loadV2(vanilla, bc, glossary []byte, log *slog.Logger) (*RuleSet, error) {
-	vb, err := ParseVanillaWith(vanilla, nil, nil)
+	vdoc, err := decodeVanilla(vanilla)
 	if err != nil {
 		return nil, err
 	}
+	vb := vdoc.book(nil, nil, false)
 	hash, err := RulesetHash(glossary)
 	if err != nil {
 		return nil, err
@@ -44,9 +45,7 @@ func loadV2(vanilla, bc, glossary []byte, log *slog.Logger) (*RuleSet, error) {
 	if !rep.OK() {
 		return nil, newRulesetReport(rep)
 	}
-	if vb, err = parseVanilla(vanilla, LeanPins(doc), log, true); err != nil {
-		return nil, err
-	}
+	vb = vdoc.book(LeanPins(doc), log, true)
 	ApplyLeanFillIns(vb, doc.Vanilla)
 	book, err := LeanBook(doc, vb, gl)
 	if err != nil {

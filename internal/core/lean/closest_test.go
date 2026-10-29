@@ -2,12 +2,15 @@ package lean
 
 import (
 	"encoding/json"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
 	"sort"
+	"strings"
 	"testing"
+	"unicode"
 )
 
 func TestNameKey(t *testing.T) {
@@ -168,5 +171,57 @@ func TestFoldingAccentsMergesNoTwoShippedNames(t *testing.T) {
 				t.Errorf("%s: %q fold to the one key %q", file, list, key)
 			}
 		}
+	}
+}
+
+// referenceNameKey is the rune-by-rune definition of nameKey that asciiNameKey must equal on ASCII text.
+func referenceNameKey(s string) string {
+	var b strings.Builder
+	space := false
+	for _, r := range s {
+		switch {
+		case r == '\'' || r == '’' || r == '`':
+			continue
+		case unicode.IsLetter(r) || unicode.IsDigit(r):
+			if space && b.Len() > 0 {
+				b.WriteByte(' ')
+			}
+			space = false
+			b.WriteRune(unicode.ToLower(r))
+		default:
+			space = true
+		}
+	}
+	return b.String()
+}
+
+func TestASCIINameKeyEqualsTheRuneDefinition(t *testing.T) {
+	alphabet := []byte("abcXYZ019 -_'`.,()/\t\x00~")
+	rng := rand.New(rand.NewPCG(1, 2))
+	for i := 0; i < 20000; i++ {
+		b := make([]byte, rng.IntN(130)) // past the stack buffer too
+		for j := range b {
+			b[j] = alphabet[rng.IntN(len(alphabet))]
+		}
+		if got, want := NameKey(string(b)), referenceNameKey(string(b)); got != want {
+			t.Fatalf("NameKey(%q) = %q, want %q", b, got, want)
+		}
+	}
+	for c := 0; c < 128; c++ {
+		s := "a" + string(rune(c)) + "B"
+		if got, want := NameKey(s), referenceNameKey(s); got != want {
+			t.Fatalf("NameKey(%q) = %q, want %q", s, got, want)
+		}
+	}
+}
+
+func BenchmarkNameKey(b *testing.B) {
+	for _, s := range []string{"Warrior of Minas Tirith", "warrior of minas tirith", "Lake-Town", "Lothlórien"} {
+		b.Run(s, func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				NameKey(s)
+			}
+		})
 	}
 }

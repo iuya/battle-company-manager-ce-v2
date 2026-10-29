@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -152,6 +153,22 @@ func BenchmarkPages(b *testing.B) {
 		{"new-company", newCompanyUser, newCompanyPath},
 		{"tts", eowyn, fmt.Sprintf("/campaigns/%d/companies/%s/tts", m, ownCompany[1])},
 		{"tts-no-auras", eowyn, fmt.Sprintf("/campaigns/%d/companies/%s/tts?auras=0", m, ownCompany[1])},
+	}
+	if dir := os.Getenv("PAGES_DUMP"); dir != "" { // PAGES_DUMP=<dir>: write the pages' bodies so two builds can be diffed byte for byte
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			b.Fatal(err)
+		}
+		for _, id := range campaignIDs {
+			for _, suffix := range []string{"", "/matches", "/armory"} {
+				path := fmt.Sprintf("/campaigns/%d%s", id, suffix)
+				_, body := get(admin, path)
+				os.WriteFile(fmt.Sprintf("%s/campaign-%d%s.html", dir, id, strings.ReplaceAll(suffix, "/", "-")), []byte(body), 0o644)
+			}
+		}
+		for _, p := range pages {
+			_, body := get(p.c, p.target)
+			os.WriteFile(dir+"/"+p.name+".html", []byte(body), 0o644)
+		}
 	}
 	for _, p := range pages {
 		// A page that redirects (the armoury to the company the player opened last) is measured at the address it leads to.
