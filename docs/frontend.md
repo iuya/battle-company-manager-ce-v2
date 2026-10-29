@@ -272,7 +272,11 @@ known name as a muted chip and the hint. It sits in an `alert-danger` on:
 The My Company tab shows, in this order, a row of Points, Units (current / the company's maximum), Matches and W / D / L, a row
 of Influence, Gold and the limits, (bows and crossbows, throwing weapons and
 cavalry: a third of the company by default, `limits[]` of the rules file through `BCBook.Limits`; `CompanyLimit.Next` is the maximum once one more model has joined, because a model that
-joins counts in the numerator and the denominator: 6 models with 2 bows may take a 7th bow model, `RoomForNew`) and one **card per unit**, in the company's order
+joins counts in the numerator and the denominator: 6 models with 2 bows may take a 7th bow model, `RoomForNew`; each limit is a
+segmented bar like the experience one, `.xp-bar.limit-bar` with `--seg` = `CompanyLimit.Segments`: one segment per allowed model, the
+counted ones filled from the left, and at the right end one **hatched** segment (`.limit-exempt`) per model or item the
+company's exemptions leave out, `CompanyLimit.Exempt`; the numbers then read "0 / 2 · total 1" (a Rider of Rohan in a company
+where they do not count), with the explanation in the tooltip) and one **card per unit**, in the company's order
 (`core.OrderUnits`: leader, sergeants, other heroes, regular units, unless the player saved another order).
 
 A card, top to bottom:

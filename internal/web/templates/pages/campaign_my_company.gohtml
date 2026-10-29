@@ -57,9 +57,9 @@
     <h3 class="!text-xl">Limits <span class="text-sm font-normal text-muted">used / maximum</span></h3>
     <ul class="grid gap-3 sm:grid-cols-3">
       {{range .Limits}}
-      <li>
-        <p class="flex items-baseline justify-between text-sm"><span>{{.Label}}</span><span class="font-semibold {{if .Full}}tone-draw{{end}}">{{.Used}} / {{.Max}}</span></p>
-        <div class="mt-1 h-2 overflow-hidden rounded-full bg-raised" role="presentation"><div class="h-full rounded-full {{if .Full}}bg-warn{{else}}bg-accent{{end}}" style="width: {{pct .Used .Max}}%"></div></div>
+      <li{{if .Exempt}} class="has-tip" tabindex="0" data-tip-title="{{.Label}}" data-tip-meta="Limit" data-tip-text="The company has {{.Total}}: {{.Used}} count towards the limit of {{.Max}}, and {{.Exempt}} (the hatched segments) do not, because the company's rules leave them out."{{end}}>
+        <p class="flex items-baseline justify-between gap-2 text-sm"><span>{{.Label}}</span><span class="whitespace-nowrap"><span class="font-semibold {{if .Full}}tone-draw{{end}}">{{.Used}} / {{.Max}}</span>{{if .Exempt}}<span class="text-xs text-muted"> · total {{.Total}}</span>{{end}}</span></p>
+        <div class="xp-bar limit-bar mt-1" style="--seg: {{.Segments}}" role="img" aria-label="{{.Used}} of {{.Max}} used{{if .Exempt}}, and {{.Exempt}} more that do not count ({{.Total}} in all){{end}}"><div class="h-full {{if .Full}}bg-warn{{else}}bg-accent{{end}}" style="width: calc(100% * {{.Used}} / {{.Segments}})"></div>{{if .Exempt}}<div class="limit-exempt ml-auto h-full" style="width: calc(100% * {{.Exempt}} / {{.Segments}})"></div>{{end}}</div>
         {{if not .RoomForNew}}<p class="mt-1 text-xs text-muted">No room for another such model: a new recruit counts too, and the maximum is {{.Next}} then.</p>{{end}}
       </li>
       {{end}}

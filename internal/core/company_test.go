@@ -48,6 +48,12 @@ func TestCompanyLimits(t *testing.T) {
 	if !reflect.DeepEqual(limits, want) {
 		t.Errorf("got %+v, want %+v", limits, want)
 	}
+	if s := (CompanyLimit{Used: 4, Max: 3, Exempt: 1}).Segments(); s != 5 { // over the limit the bar grows to show every counted one
+		t.Errorf("segments over the limit: %d", s)
+	}
+	if s := (CompanyLimit{}).Segments(); s != 1 {
+		t.Errorf("an empty limit still draws one segment: %d", s)
+	}
 	if limits[0].Full() || !(CompanyLimit{Used: 3, Max: 3}).Full() {
 		t.Error("Full")
 	}
@@ -160,8 +166,8 @@ func TestLimitExemptionsLeaveModelsOutOfTheCountAndTheBase(t *testing.T) {
 	for _, l := range computeLimits(shippedRules(t).BC.limitRules, rohan, units) {
 		switch l.ID {
 		case "bow", "cavalry":
-			if l.Used != 0 || l.Max != 1 {
-				t.Errorf("%s: the riders do not count and 2 warriors make a maximum of 1: %+v", l.ID, l)
+			if l.Used != 0 || l.Max != 1 || l.Exempt != 10 || l.Total() != 10 || l.Segments() != 11 {
+				t.Errorf("%s: the riders do not count (but are tallied as exempt) and 2 warriors make a maximum of 1: %+v", l.ID, l)
 			}
 		case "throwing":
 			if l.Max != 4 { // nobody is exempt from this one: 12 models
@@ -173,7 +179,7 @@ func TestLimitExemptionsLeaveModelsOutOfTheCountAndTheBase(t *testing.T) {
 	whip := Equipment{Name: "Whip", Class: EquipThrowing, Also: []EquipmentClass{EquipMelee}}
 	rogues := BCCompany{LimitExemptions: []LimitExemption{{Item: "Whip", Limits: []string{"throwing"}}}}
 	units = []CompanyUnit{{Equipment: []Equipment{whip}}, {Equipment: []Equipment{whip}}, {}}
-	if l := computeLimits(shippedRules(t).BC.limitRules, rogues, units)[1]; l.Used != 0 || l.Max != 1 {
+	if l := computeLimits(shippedRules(t).BC.limitRules, rogues, units)[1]; l.Used != 0 || l.Exempt != 2 || l.Max != 1 {
 		t.Errorf("whips are free: %+v", l)
 	}
 	// a company's own share for a limit (Osgiliath: bows 50%)

@@ -318,6 +318,10 @@ html[data-mode="dark"] { color-scheme: dark; }
   .level-medal { @apply inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full border-2 border-gold bg-surface px-1 font-heading text-base font-bold leading-none text-fg; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gold) 22%, transparent); font-variant-numeric: lining-nums; }
   .xp-bar { @apply relative h-2.5 min-w-20 flex-1 overflow-hidden rounded-full bg-raised; }
   .xp-bar::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(100% / var(--seg, 5) - 2px), var(--surface) calc(100% / var(--seg, 5) - 2px) calc(100% / var(--seg, 5))); pointer-events: none; }
+  /* Company limits use the same segmented bar: counted slots filled from the left, hatched slots at the right end for what the
+     company's rules leave out. */
+  .limit-bar { @apply flex; }
+  .limit-exempt { background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--muted) 70%, transparent) 0 2px, transparent 2px 5px); }
   /* The dice tray (static/js/dice.js): a felt-like strip the dice move over; shaken, it jolts. */
   .dice-tray { @apply block h-36 w-full rounded-xl border border-line bg-raised; }
   .dice-shake { animation: dice-shake .4s ease-in-out; }
