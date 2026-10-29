@@ -103,7 +103,7 @@ func (lc *liveContext) overlay(rules ATORules, rec ATORecord) {
 	for _, k := range rules.Kits {
 		for _, it := range k.Items {
 			if it.AfterGame {
-				lc.cfg.AfterGame[strings.ToLower(it.Item)] = true
+				lc.cfg.AfterGame[NameKey(it.Item)] = true
 			}
 		}
 	}
@@ -149,14 +149,11 @@ func (lc *liveContext) breakConfig(rs *RuleSet, d CompanyDetail) {
 			lc.cfg.Owned[u.ID] = append(lc.cfg.Owned[u.ID], e.Name)
 		}
 		n := u.ModelCount()
-		if len(u.Parts) > 0 { // a unit made of several models (Warg Marauder): one until the owner decides how it counts (bead 36y.18)
+		if len(u.Parts) > 0 { // a unit made of several models (Warg Marauder): counted as one
 			n = 1
 		}
 		lc.cfg.BreakModels[u.ID] = n
-		noStandFast := !u.IsHero() || u.Wanderer || slices.ContainsFunc(u.LostAbilities, func(l InjuryLoss) bool {
-			return strings.Contains(strings.ToLower(strings.ReplaceAll(l.Ability, " ", "")), "standfast")
-		})
-		lc.cfg.NoStandFast[u.ID] = noStandFast
+		lc.cfg.NoStandFast[u.ID] = !u.IsHero() || u.Wanderer || u.Lost(AbilityStandFast)
 	}
 }
 

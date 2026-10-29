@@ -10,7 +10,7 @@ import (
 
 // The policy (hardening.go) allows no inline script and no inline event handler: everything that runs is a file under /static/js,
 // or an Alpine/htmx attribute expression (which needs 'unsafe-eval' only). This keeps the templates and the scripts inside it, so
-// that CSP_MODE=enforce stays free of violations (docs/security-and-risks.md section 1; the e2e suite runs under it in CI).
+// that CSP_MODE=enforce stays free of violations (docs/operations.md, "Content-Security-Policy"; the e2e suite runs under it in CI).
 func TestTemplatesAndScriptsFitTheContentSecurityPolicy(t *testing.T) {
 	scriptTag := regexp.MustCompile(`(?is)<script\b[^>]*>`)
 	handler := regexp.MustCompile(`(?i)\s(on[a-z]+)\s*=\s*["']`) // onclick=, onload=... (hx-on:: and @click are not preceded by whitespace + "on")

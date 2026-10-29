@@ -48,7 +48,7 @@ services:
       # PORT: 8080                                   # port the server listens on inside the container (change APP_PORT for the host side)
       # ALLOW_INSECURE_COOKIES: ${ALLOW_INSECURE_COOKIES:-false}   # true: let production start with SECURE_COOKIES=false (plain http, private network)
       # TRUST_PROXY: ${TRUST_PROXY:-false}           # true only behind a reverse proxy that sets X-Forwarded-For; login attempts are counted per client
-      # CSP_MODE: ${CSP_MODE:-report}                # off | report | enforce, Content-Security-Policy (docs/security-and-risks.md)
+      # CSP_MODE: ${CSP_MODE:-report}                # off | report | enforce, Content-Security-Policy (docs/operations.md, "Content-Security-Policy")
       # MIGRATE_ON_START: ${MIGRATE_ON_START:-true}  # false: refuse to start on a database that is behind; run `docker compose run --rm app migrate` first
       # MAX_CACHED_RULESETS: ${MAX_CACHED_RULESETS:-16}   # parsed rule sets kept in memory (a few MB each), least recently used dropped; at least 1
       # REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-30s}    # a request that works longer is cancelled (queries stop, answer 503); 0 = no limit; the live stream is exempt

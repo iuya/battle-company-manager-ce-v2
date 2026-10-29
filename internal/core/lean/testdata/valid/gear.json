@@ -301,14 +301,16 @@
     {
       "name": "Stand Fast Banner",
       "kind": "equipment",
-      "aura": {
-        "radius": 6,
-        "kind": "banner",
-        "affects": "friendly",
-        "when": "always",
-        "los": true,
-        "tip": "..."
-      },
+      "auras": [
+        {
+          "radius": 6,
+          "kind": "banner",
+          "affects": "friendly",
+          "when": "always",
+          "los": true,
+          "tip": "..."
+        }
+      ],
       "tts": {
         "name": "Banner"
       }

@@ -30,11 +30,6 @@ func BenchmarkPages(b *testing.B) {
 	if url == "" {
 		b.Skip("WORLD_DATABASE_URL is not set")
 	}
-	if _, err := os.Stat("definitions"); err != nil {
-		if err := os.Chdir("../.."); err != nil {
-			b.Fatal(err)
-		}
-	}
 	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil))) // the request log would drown the results
 	ctx := context.Background()
 	counter := &queryCounter{}

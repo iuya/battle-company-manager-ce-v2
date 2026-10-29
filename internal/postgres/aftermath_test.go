@@ -69,8 +69,8 @@ func newAftermathWorld(t *testing.T) *aftermathWorld {
 			t.Fatal(err)
 		}
 	}
-	w.matches = core.NewMatches(s.Campaigns(), s.Companies(), s.Matches(), s.Rulesets(), rules)
-	w.am = core.NewAftermathService(s.Campaigns(), s.Companies(), s.Matches(), s.Rulesets(), s.Aftermaths(), rules, core.RandomDice{})
+	w.matches = core.NewMatches(s.Campaigns(), s.Companies(), s.Matches(), rules)
+	w.am = core.NewAftermathService(s.Campaigns(), s.Companies(), s.Matches(), s.Aftermaths(), rules, core.RandomDice{})
 	w.matches.AftermathStarted = w.am.Started
 	return w
 }

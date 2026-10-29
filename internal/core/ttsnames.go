@@ -58,9 +58,8 @@ type TTSFigure struct {
 	Occurrence int    `json:"o"` // 0-based position among the figures with the same Key
 	Name       string `json:"n"` // the name to give the figure: [b]Title[/b] (points), in the rich text of the game
 	Desc       string `json:"d"` // the description: rich text, at most TTSDescriptionMax characters
-	// Version 2 only: the rings of the figure (at most AurasPerFigure) and, when the selection asks for it, the base radius in inches.
+	// Version 2 only: the rings of the figure (at most AurasPerFigure). The helper measures the figure's bounds for the ring's start.
 	Auras []TTSRing `json:"a,omitempty"`
-	Base  float64   `json:"b,omitempty"`
 }
 
 // TTSNamesPayload is the ArmyNames JSON v1 (v2 when it carries aura rings): one figure per spawned model in spawn order (the lines of the export in warband order, each
@@ -127,7 +126,7 @@ type ttsNamer struct {
 	level  string
 	units  map[int64]CompanyUnit
 	cut    int
-	named  map[string]bool // lower-case names of the named unit upgrades (Hearthguard, Helmingas...)
+	named  map[string]bool // NameKeys of the named unit upgrades (Hearthguard, Helmingas...)
 }
 
 // namedUpgrades are the names of the unit upgrades of the data: the options reserved to a named hero's list (data.reservedOptions) and the
@@ -143,7 +142,7 @@ func (r *RuleSet) namedUpgrades() map[string]bool {
 		if p, ok := r.BC.Profile(name); ok {
 			for _, a := range p.Aliases {
 				for _, o := range a.Selected {
-					out[strings.ToLower(o)] = true
+					out[NameKey(o)] = true
 				}
 			}
 		}
@@ -154,7 +153,7 @@ func (r *RuleSet) namedUpgrades() map[string]bool {
 // upgrade is the named unit upgrade the unit carries, if any.
 func (n *ttsNamer) upgrade(u CompanyUnit) (Equipment, bool) {
 	for _, e := range u.Equipment {
-		if e.Upgrade && n.named[strings.ToLower(e.Name)] {
+		if e.Upgrade && n.named[NameKey(e.Name)] {
 			return e, true
 		}
 	}
@@ -188,7 +187,7 @@ func (r *RuleSet) ttsNamesAt(d CompanyDetail, exp TTSExport, level string, rings
 				f.Occurrence = seen[l.Key]
 				seen[l.Key]++
 				if at < len(rings) && len(rings[at].Rings) > 0 {
-					f.Auras, f.Base = ringsOf(rings[at].Rings), rings[at].Base
+					f.Auras = ringsOf(rings[at].Rings)
 					p.Version = TTSNamesVersionAuras
 				}
 				at++
@@ -262,7 +261,7 @@ func (n *ttsNamer) creature(u CompanyUnit, l TTSLine) (CompanyCreature, bool) {
 			continue
 		}
 		for _, s := range n.models.StandIns {
-			if s.Kind == "creature" && strings.EqualFold(s.Name, c.Name) {
+			if s.Kind == "creature" && sameName(s.Name, c.Name) {
 				name, opts := splitModel(s.Model)
 				if newTTSLine(u.ID, name, opts, "").Key == l.Key {
 					return c, true
@@ -300,7 +299,7 @@ func (n *ttsNamer) unitLines(u CompanyUnit, l TTSLine) []ttsDLine {
 	var mounts, gear, equip []string
 	for _, e := range u.Equipment {
 		switch {
-		case e.Upgrade && n.named[strings.ToLower(e.Name)]: // a named unit upgrade names the unit and adds its rules and stats; no line of its own
+		case e.Upgrade && n.named[NameKey(e.Name)]: // a named unit upgrade names the unit and adds its rules and stats; no line of its own
 		case slices.Contains(e.Classes(), EquipMount):
 			if l.Extra == "foot" {
 				continue // the rider on foot has no mount
@@ -364,7 +363,7 @@ func (n *ttsNamer) unitLines(u CompanyUnit, l TTSLine) []ttsDLine {
 
 func (n *ttsNamer) creatureLines(u CompanyUnit, c CompanyCreature, l TTSLine) []ttsDLine {
 	head := "Creature of " + ttsSafe(n.title(u))
-	if !strings.EqualFold(c.Name, l.Name) {
+	if !sameName(c.Name, l.Name) {
 		head += ", shown as " + ttsSafe(l.Name)
 	}
 	lines := []ttsDLine{{"[i]" + head + "[/i]"}}
@@ -379,7 +378,7 @@ func (n *ttsNamer) creatureLines(u CompanyUnit, c CompanyCreature, l TTSLine) []
 func (n *ttsNamer) mountLines(u CompanyUnit, l TTSLine) []ttsDLine {
 	lines := []ttsDLine{{"[i]Mount of " + ttsSafe(n.title(u)) + "[/i]"}}
 	for _, m := range n.models.Mounts {
-		if name, _ := splitModel(m.Model); !strings.EqualFold(name, l.Name) {
+		if name, _ := splitModel(m.Model); !sameName(name, l.Name) {
 			continue
 		}
 		for _, e := range u.Equipment {

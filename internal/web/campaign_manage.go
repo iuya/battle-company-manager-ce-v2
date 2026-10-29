@@ -85,7 +85,7 @@ func (s *Server) handleInvalidateInvites(w http.ResponseWriter, r *http.Request)
 	}
 	card.Active, card.Notice = 0, "No link works any more."
 	if n > 0 {
-		card.Notice = itoa(n) + " link" + map[bool]string{true: "", false: "s"}[n == 1] + " stopped working. The players who joined stay."
+		card.Notice = itoa(n) + " " + core.Plural(n, "link", "links") + " stopped working. The players who joined stay."
 	}
 	s.inviteAnswer(w, r, http.StatusOK, card)
 }

@@ -1,0 +1,6 @@
+battle_companies.json: companies[0].reinforcements.rows[0]: a row is one of unit, nothing, special, choose and options; this one sets 2
+battle_companies.json: companies[0].reinforcements.rows[1].text: text belongs to a row with options
+battle_companies.json: companies[0].reinforcements.rows[2].pick: pick belongs to a row with a unit
+battle_companies.json: companies[0].reinforcements.rows[3]: a row is one of unit, nothing, special, choose and options; this one sets 2
+battle_companies.json: companies[0].reinforcements.rows[4].with: with belongs to a row with a unit
+battle_companies.json: companies[0].special.rows[0].special: special sends a roll on to the special chart, so it belongs to the reinforcement chart

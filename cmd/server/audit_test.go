@@ -9,7 +9,7 @@ import (
 func TestWriteAudit(t *testing.T) {
 	var files [3][]byte
 	for i, name := range []string{"vanilla/data2024.json", "battle_companies/battle_companies.json", "glossary/mesbg_glossary.json"} {
-		b, err := os.ReadFile(filepath.Join("..", "..", "definitions", name))
+		b, err := os.ReadFile(filepath.Join("definitions", name))
 		if err != nil {
 			t.Fatal(err)
 		}

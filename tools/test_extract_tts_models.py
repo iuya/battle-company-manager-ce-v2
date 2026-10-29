@@ -43,7 +43,7 @@ class ExtractTest(unittest.TestCase):
 
     def test_output_format_is_what_the_validator_reads(self):
         import json, tempfile
-        import validate_definitions as vd
+        import lean_checks as vd
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "models.json"
             p.write_text(json.dumps(ex.model_keys(FAKE)), encoding="utf-8")

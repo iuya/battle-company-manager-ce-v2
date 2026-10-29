@@ -231,7 +231,7 @@ func (env *levelEnv) choose(st *CompanyState, us *UnitState, keys []string) (Lev
 		}
 		summary = fmt.Sprintf("%s becomes a hero on the %s.", u.Title(), rest)
 		if promotes { // it also changes profile: Ranger of Arnor to Ranger of the North, keeping some of its wargear
-			p.Base, p.Drop = promotion.Becomes, promotion.Drop // what it had stays, except what the company says is lost
+			p.Base = promotion.Becomes // what it had stays, except the wargear of its old profile (replacedWargear)
 			summary = fmt.Sprintf("%s is promoted to %s and becomes a hero on the %s.", u.Title(), promotion.Becomes, rest)
 		}
 		if path, ok := rules.Path(rest); ok {
@@ -596,7 +596,7 @@ func upgradesOf(rs *RuleSet, bcCo BCCompany, u CompanyUnit) []HeroUpgrade {
 	if !ok {
 		return nil
 	}
-	vanilla, _, _ := resolveUnit(rs, p, u.Type) // a company's own name for a profile (Tookish Hunter) is that profile's race too
+	vanilla, _, _ := rs.ResolveUnit(p, u.Type) // a company's own name for a profile (Tookish Hunter) is that profile's race too
 	var out []HeroUpgrade
 	for _, h := range p.HeroUpgrades {
 		if h.Allows(vanilla) { // some upgrades belong to one race (a Hobbit may take both of the Wanderers' upgrades, the others one)

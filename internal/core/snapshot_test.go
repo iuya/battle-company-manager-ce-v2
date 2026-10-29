@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-// The behaviour-freezing golden snapshot (docs/testing.md, "Golden snapshot"; docs/bcjson-audit-backend.md section 3).
+// The behaviour-freezing golden snapshot (docs/testing.md, "Golden snapshot").
 //
 // It renders everything the app derives from the Battle Companies file as one deterministic text file per company plus a few
 // global files (testdata/snapshot/), and fails on any difference. It reads only what the core exposes (BCBook, CompanyProfile,
@@ -30,7 +30,7 @@ const snapshotDir = "testdata/snapshot"
 // ---- seams: unexported helpers of core used to reach behaviour that has no exported entry point yet ----
 
 func seamResolveUnit(rs *RuleSet, p CompanyProfile, name string) (VanillaUnit, *UnitAlias, bool) {
-	return resolveUnit(rs, p, name)
+	return rs.ResolveUnit(p, name)
 }
 func seamRuleTip(rs *RuleSet, name string) TipAudit { return ruleTip(rs, name) }
 func seamBuildUnit(rs *RuleSet, c BCCompany, st UnitState) CompanyUnit {
@@ -69,6 +69,7 @@ func (d *dumper) compact(v reflect.Value, depth int) (string, bool) {
 		}
 		v = v.Elem()
 	}
+	v = legacyView(v)
 	switch v.Kind() {
 	case reflect.String:
 		return strconv.Quote(v.String()), true
@@ -116,7 +117,7 @@ func (d *dumper) compact(v reflect.Value, depth int) (string, bool) {
 			if !f.IsExported() || d.skip[f.Name] || v.Field(i).IsZero() {
 				continue
 			}
-			s, ok := d.compact(v.Field(i), depth+1)
+			s, ok := d.compact(legacyField(f.Name, v.Field(i)), depth+1)
 			if !ok {
 				return "", false
 			}
@@ -147,6 +148,7 @@ func (d *dumper) put(indent int, label string, v reflect.Value) {
 		}
 		v = v.Elem()
 	}
+	v = legacyView(v)
 	if s, ok := d.compact(v, 0); ok {
 		if s != "" {
 			d.sb.WriteString(pad + label + " " + s + "\n")
@@ -171,20 +173,20 @@ func (d *dumper) put(indent int, label string, v reflect.Value) {
 			if !f.IsExported() || d.skip[f.Name] || v.Field(i).IsZero() {
 				continue
 			}
-			d.put(indent+1, f.Name+":", v.Field(i))
+			d.put(indent+1, f.Name+":", legacyField(f.Name, v.Field(i)))
 		}
 	}
 }
 
-// snapshotUnpinned are the fields slice P4 added (the dice of the rules, docs/definitions-lean-design.md 12.1): the goldens pin the
+// snapshotUnpinned are the fields the rules file drives (the dice of the rules): the goldens pin the
 // behaviour of the shipped data and stay byte-identical, the dice are tested in dice_test.go and TestCustomRuleset.
 var snapshotUnpinned = []string{"InjuryDice", "WarriorDice", "HeroDice", "HeroRolls", "HeroChoose", "PathDice", "CourageSpec", "ScenarioDie", "BonusSpec", "RuleDice", "FirstDie", "TableDice",
-	// slices P2 and P3: the officers, the hero start, the level threshold of a unit and the classes of a limit
+	// the officers, the hero start, the level threshold of a unit and the classes of a limit
 	"Leaders", "Sergeants", "HeroStart", "LevelEvery", "TreatDice", "LimitClasses", "LimitKeyword", "CITotalCap", "CITotalGear",
-	// slice P5: the amounts of the no-promotion improvement, the break point comparison, the stats an injury row gains
+	// the amounts of the no-promotion improvement, the break point comparison, the stats an injury row gains
 	"NoPromotionBy", "Comparison", "StatGains", "GivesRerolls", "RerollRating", "RerollCount",
 	// the equipment slots, the slots an item adds and the race it is restricted to
-	"EquipmentSlots", "GrantsSlots", "BaseSlots", "OnlyRace"}
+	"EquipmentSlots", "GrantsSlots", "BaseSlots"}
 
 // dump renders a value (a struct, slice or map) under a heading.
 func dump(heading string, v any, skip ...string) string {
@@ -433,7 +435,7 @@ func snapshotCompany(t *testing.T, rs *RuleSet, c CompanyAudit, tips, sets map[s
 		}
 		slices.Sort(who)
 		who = slices.Compact(who)
-		s.l("%s (rule %q, restriction %q, units %v): allowed to %d of %d units: %s", h.Name, h.Rule, h.Restriction, h.Units, len(who), len(c.Units), joinS(who))
+		s.l("%s (rule %q, restriction %q, units %v): allowed to %d of %d units: %s", h.Name, h.Rule, h.Restriction(), legacyUnits(h.Who), len(who), len(c.Units), joinS(who))
 	}
 
 	s.h("promotion: matching, choices and gear kept")
@@ -659,9 +661,10 @@ func sortedGear(m map[string]string) []string {
 }
 
 // snapshotNames lists every name the company mentions and what it resolves to.
-func snapshotNames(s *snap, rs *RuleSet, bc BCCompany, c CompanyAudit) {
+// snapshotNameSets are the unit, gear and rule names a company mentions: the corpus the name resolution is checked on.
+func snapshotNameSets(rs *RuleSet, bc BCCompany, c CompanyAudit) (unitNames, gearNames, ruleNames map[string]bool) {
 	p := c.Profile
-	unitNames, gearNames, ruleNames := map[string]bool{}, map[string]bool{}, map[string]bool{}
+	unitNames, gearNames, ruleNames = map[string]bool{}, map[string]bool{}, map[string]bool{}
 	addU := func(xs ...string) {
 		for _, x := range xs {
 			if x = strings.TrimSpace(x); x != "" {
@@ -733,8 +736,6 @@ func snapshotNames(s *snap, rs *RuleSet, bc BCCompany, c CompanyAudit) {
 	}
 	for _, hp := range p.Promotions {
 		addU(hp.From, hp.Becomes)
-		addG(hp.Keep...)
-		addG(hp.Drop...)
 	}
 	for _, f := range p.Fallbacks {
 		addU(f.Unit)
@@ -742,8 +743,10 @@ func snapshotNames(s *snap, rs *RuleSet, bc BCCompany, c CompanyAudit) {
 	addU(p.OwnPathUnits...)
 	addU(p.NoStartGain...)
 	addU(p.OnTheirOwnPath...)
-	addU(p.StartHeroes.Allowed...)
-	addU(p.StartHeroes.Excluded...)
+	if w := p.StartHeroes; w != nil {
+		addU(w.Units...)
+		addU(w.Except...)
+	}
 	for k := range p.Types {
 		addU(k)
 	}
@@ -766,7 +769,7 @@ func snapshotNames(s *snap, rs *RuleSet, bc BCCompany, c CompanyAudit) {
 	}
 	for _, h := range p.HeroUpgrades {
 		addR(h.Rule)
-		addU(h.Units...)
+		addU(legacyUnits(h.Who)...)
 	}
 	for _, g := range p.Granted {
 		addR(g.Rule)
@@ -777,7 +780,9 @@ func snapshotNames(s *snap, rs *RuleSet, bc BCCompany, c CompanyAudit) {
 	for _, o := range bc.UniqueWargear {
 		addG(o.Name)
 		addR(o.Grants...)
-		addU(o.OnlyUnits...)
+		if o.Who != nil {
+			addU(o.Who.Units...)
+		}
 	}
 	for _, o := range c.Armoury {
 		addR(o.Grants...)
@@ -786,7 +791,12 @@ func snapshotNames(s *snap, rs *RuleSet, bc BCCompany, c CompanyAudit) {
 		addR(pa.SpecialRules...)
 		addR(pa.StartAction)
 	}
+	return unitNames, gearNames, ruleNames
+}
 
+func snapshotNames(s *snap, rs *RuleSet, bc BCCompany, c CompanyAudit) {
+	p := c.Profile
+	unitNames, gearNames, ruleNames := snapshotNameSets(rs, bc, c)
 	for _, n := range sortedSet(unitNames) {
 		v, alias, ok := seamResolveUnit(rs, p, n)
 		switch {
@@ -869,7 +879,7 @@ func snapshotProgression(t *testing.T, rs *RuleSet, report AuditReport) string {
 					ch[len(ch)-1] += "{" + c.Group + "}"
 				}
 			}
-			sort.Strings(ch) // the order of the cast choices follows a map in the rules code (bead filed); the set is what is frozen
+			sort.Strings(ch) // the order of the cast choices follows a map in the rules code; the set is what is frozen
 			s.l("%2d ok=%s %q: %s", sum, yn(ok), offer.Text, strings.Join(ch, "; "))
 		}
 		s.l("starting stats %v rules %v actions %v powers %v", sheet.Stats, sortedSet(sheet.Rules), sortedSet(sheet.Actions), sheet.Powers)
@@ -911,17 +921,9 @@ func snapshotCampaign(t *testing.T, rs *RuleSet) string {
 	s.h("injuries")
 	s.WriteString(dump("injuries", b.Injuries()))
 	s.h("aftermath: experience, influence, Against the Odds bonuses, injury charts, effects, scenario rewards")
-	bcJSON := readDef(t, "battle_companies/battle_companies.json")
-	after, err := ParseAftermath(bcJSON)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s.WriteString(dump("aftermath", after))
+	s.WriteString(dump("aftermath", b.Aftermath()))
 	s.h("scenarios")
-	scenarios, err := ParseScenarios(bcJSON)
-	if err != nil {
-		t.Fatal(err)
-	}
+	scenarios := b.Scenarios()
 	s.WriteString(dump("scenarios", scenarios))
 	for _, sc := range scenarios {
 		if got, ok := b.Scenario(sc.Name); !ok || !reflect.DeepEqual(got, sc) {
@@ -929,7 +931,7 @@ func snapshotCampaign(t *testing.T, rs *RuleSet) string {
 		}
 	}
 	s.h("campaign options")
-	opts, err := ParseCampaignOptions(bcJSON)
+	opts, err := ParseCampaignOptions(readDef(t, "battle_companies/battle_companies.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

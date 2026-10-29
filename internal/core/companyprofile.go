@@ -1,10 +1,11 @@
 package core
 
 import (
-	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 // A company profile is everything a player may want to know about a Battle Company before choosing it: its history, its starting
@@ -18,48 +19,37 @@ type StartUnit struct {
 	Role    UnitRole // the role the company suggests for it (leader, sergeant); empty for a plain warrior
 }
 
-// StartRestriction limits which starting units may be made heroes (Lake-town: only the Lake-town Guard; Cirith Ungol: no Spider).
-type StartRestriction struct{ Allowed, Excluded []string }
-
 // RaceBalance says a keyword may not outnumber another (Defenders of the North: Dwarves not more than Dale models).
 type RaceBalance struct{ Keyword, NotMoreThan string }
 
 // HeroUpgrade is the upgrade the heroes of a company can take instead of a level-up result.
 type HeroUpgrade struct {
-	Name        string
-	Flavour     string
-	Rule        string   // the special rule it gives
-	Text        string   // what the rule does, when the file has it
-	Restriction string   // only models of this kind can take it (Fiefdoms: Dol Amroth...); empty for any
-	Units       []string // exact vanilla unit names that can take it (Feral Charge: Isengard Warg); when present they replace the word match
+	Name    string
+	Flavour string
+	Rule    string    // the special rule it gives
+	Text    string    // what the rule does, when the file has it
+	Who     *lean.Who // the models that can take it (Fiefdoms: Dol Amroth...); none for any
 }
 
-// Allows says whether a model can take the upgrade: it is open to everyone unless it names a race, a faction or a kind of
-// unit (a Hobbit in the Wanderers in the Wild, the Spiders of Cirith Ungol, Dol Amroth in the Fiefdoms); plurals count.
+// Allows says whether a model can take the upgrade: it is open to everyone unless it names who may (a Hobbit in the Wanderers in the
+// Wild, the Spiders of Cirith Ungol, Dol Amroth in the Fiefdoms).
 func (h HeroUpgrade) Allows(u VanillaUnit) bool {
-	if len(h.Units) > 0 { // by unit identity, not by the word of the restriction
-		return slices.ContainsFunc(h.Units, func(n string) bool { return strings.EqualFold(n, u.Name) })
-	}
-	want := strings.ToLower(strings.TrimSpace(h.Restriction))
-	if want == "" {
-		return true
-	}
-	one := func(s string) string { return strings.TrimSuffix(strings.ToLower(strings.TrimSpace(s)), "s") }
-	for _, k := range append(append(slices.Clone(u.Race), u.Faction...), u.UnitTypes...) {
-		if one(k) == one(want) {
-			return true
-		}
-	}
-	return strings.Contains(" "+strings.ToLower(u.Name)+" ", " "+want+" ") || strings.Contains(" "+strings.ToLower(u.Name)+" ", " "+one(want)+" ")
+	return h.Who.Admits(vanillaSubject(u, true)) == ""
 }
+
+// Restriction is how the page names who can take the upgrade ("Dol Amroth"); empty for any.
+func (h HeroUpgrade) Restriction() string { return h.Who.Label() }
 
 // GrantedRule is a special rule a company gives some of its models for free.
 type GrantedRule struct {
-	Rule      string
-	AppliesTo string
-	Cost      int
-	Text      string
+	Rule string
+	Who  *lean.Who // the models that get it; none for every model of the company
+	Cost int
+	Text string
 }
+
+// AppliesTo is how the page names the models that get the rule ("All Hero models").
+func (g GrantedRule) AppliesTo() string { return g.Who.Label() }
 
 // RuleExchange is a rule models of a company swap for another.
 type RuleExchange struct{ Remove, Add, Text string }
@@ -105,7 +95,6 @@ type RecruitFallback struct {
 // HeroPromotion makes a unit that becomes a hero change its profile at the same time (Ranger of Arnor to Ranger of the North).
 type HeroPromotion struct {
 	From, OnResult, Becomes string
-	Keep, Drop              []string
 	StatGain                bool
 	ForgoAllowed            bool
 }
@@ -167,7 +156,8 @@ type CompanyProfile struct {
 	ModelCounts    map[string]int           // how many models a recruit counts as against the maximum, by unit
 	Fallbacks      []RecruitFallback
 	Promotions     []HeroPromotion
-	StartHeroes    StartRestriction
+	ElvenWeaponry  *lean.Who // the models that may also buy and wear Elven-made weaponry (restricted to Elves otherwise); none: only Elves
+	StartHeroes    *lean.Who // which starting units may be made heroes (Lake-town: only the Lake-town Guard; Cirith Ungol: no Spider); only units and except count
 	// Leaders and Sergeants are the officers of a starting company and HeroStart what a new hero starts with (campaign.company).
 	Leaders, Sergeants int
 	HeroStart          HeroStart
@@ -218,7 +208,7 @@ func PreviewKey(unit string, wargear []string) string {
 type profileSet struct {
 	list   []CompanyProfile
 	exact  map[string]int // by name, the first of the file
-	folded map[string]int // by lower-cased name, the first of the file
+	folded map[string]int // by NameKey, the first of the file
 }
 
 func (b *BCBook) profileSet() *profileSet {
@@ -231,7 +221,7 @@ func (b *BCBook) profileSet() *profileSet {
 			if _, ok := ps.exact[ps.list[i].Name]; !ok {
 				ps.exact[ps.list[i].Name] = i
 			}
-			k := strings.ToLower(ps.list[i].Name)
+			k := NameKey(ps.list[i].Name)
 			if _, ok := ps.folded[k]; !ok {
 				ps.folded[k] = i
 			}
@@ -251,7 +241,7 @@ func (b *BCBook) Profile(name string) (CompanyProfile, bool) {
 		return ps.list[i], true
 	}
 	// an older spelling of the name ("Lake-Town" before "Lake-town") still resolves
-	if i, ok := ps.folded[strings.ToLower(name)]; ok {
+	if i, ok := ps.folded[NameKey(name)]; ok {
 		return ps.list[i], true
 	}
 	return CompanyProfile{}, false
@@ -262,268 +252,18 @@ func (b *BCBook) Profiles() []CompanyProfile {
 	return slices.Clone(b.profileSet().list)
 }
 
-// parseProfiles reads the descriptive parts of the companies and attaches the unit previews (made with the vanilla book).
-func (b *BCBook) parseProfiles(content []byte) {
-	var doc struct {
-		Campaign struct {
-			Company struct {
-				Oath map[string]struct { // by alignment: what a company of a custom file with no oath of its own swears
-					Text string `json:"text"`
-					Vow  string `json:"vow"`
-				} `json:"oath"`
-			} `json:"company"`
-		} `json:"campaign"`
-		Data struct {
-			Companies []struct {
-				Name        string `json:"name"`
-				Description string `json:"description"`
-				BreakPoint  int    `json:"breakPointPercentage"`
-				Start       struct {
-					Units []struct {
-						Count   int      `json:"count"`
-						Unit    string   `json:"unit"`
-						Label   string   `json:"label"`
-						Wargear []string `json:"wargear"`
-						Role    string   `json:"role"`
-					} `json:"units"`
-					Gold int `json:"gold"`
-				} `json:"startingCompany"`
-				HeroUpgrades []struct {
-					Name    string   `json:"name"`
-					Flavour string   `json:"flavour"`
-					Rule    string   `json:"specialRule"`
-					Text    string   `json:"text"`
-					Limit   string   `json:"restriction"`
-					Units   []string `json:"restrictedToUnits"`
-				} `json:"heroUpgrades"`
-				Epigraph *struct {
-					Quote string `json:"quote"`
-					Text  string `json:"text"`
-				} `json:"epigraph"`
-				SpecialRules []string `json:"specialRules"`
-				GrantedRules []struct {
-					Rule      string `json:"specialRule"`
-					AppliesTo string `json:"appliesTo"`
-					Cost      int    `json:"cost"`
-					Text      string `json:"text"`
-				} `json:"grantedSpecialRules"`
-				RuleExchanges []struct {
-					Remove string `json:"remove"`
-					Add    string `json:"add"`
-					Text   string `json:"text"`
-				} `json:"ruleExchanges"`
-				RuleSubstitutions []struct {
-					Text string `json:"text"`
-				} `json:"ruleSubstitutions"`
-				UnitAliases []struct {
-					Label    string   `json:"label"`
-					Unit     string   `json:"unit"`
-					AddRules []string `json:"addSpecialRules"`
-					Selected []string `json:"selectedOptions"`
-					Keywords []string `json:"addKeywords"`
-					Text     string   `json:"text"`
-				} `json:"unitAliases"`
-				CompanyLimits []struct {
-					Keyword string  `json:"keyword"`
-					Percent float64 `json:"maximumPercentage"`
-					Text    string  `json:"text"`
-				} `json:"companyLimits"`
-				OnTheirOwnPath []string `json:"onTheirOwnPath"`
-				Oath           struct {
-					Text string `json:"text"`
-					Vow  string `json:"vow"`
-				} `json:"oath"`
-				Effects []struct {
-					Kind        string          `json:"kind"`
-					Allowed     []string        `json:"allowed"`
-					Excluded    []string        `json:"excluded"`
-					Unit        string          `json:"unit"`
-					Keyword     string          `json:"keyword"`
-					NotMoreThan string          `json:"notMoreThanKeyword"`
-					Chart       string          `json:"chart"`
-					Add         json.RawMessage `json:"add"` // a list for unitTypes, a string for ruleExchange
-					Remove      json.RawMessage `json:"remove"`
-					Models      int             `json:"models"`
-					When        string          `json:"when"`
-					Charts      []string        `json:"charts"`
-					Units       []string        `json:"units"`
-					Path        string          `json:"path"`
-					From        string          `json:"from"`
-					OnResult    string          `json:"onResult"`
-					Becomes     string          `json:"becomes"`
-					Keep        []string        `json:"keep"`
-					Drop        []string        `json:"drop"`
-					StatGain    *bool           `json:"heroStatGain"`
-					Forgo       *bool           `json:"forgoAllowed"`
-					Members     []struct {
-						Name   string `json:"name"`
-						Points int    `json:"points"`
-					} `json:"members"`
-					Parts []struct {
-						Role    string   `json:"role"`
-						Unit    string   `json:"unit"`
-						Mount   string   `json:"mount"`
-						Count   int      `json:"count"`
-						Wargear []string `json:"wargear"`
-					} `json:"parts"`
-					Counts struct {
-						Slots int `json:"rosterSlots"`
-					} `json:"counts"`
-					Casualty struct {
-						InjuredWhen string `json:"injuredWhen"`
-						Table       string `json:"table"`
-					} `json:"casualty"`
-					Rules       []string `json:"rules"`
-					Results     []int    `json:"results"`
-					Max         int      `json:"max"`
-					Roles       []string `json:"role"` // rangerReplacement: the places the replacement may take
-					Alternative struct {
-						Unit string `json:"unit"`
-					} `json:"alternative"`
-				} `json:"effects"`
-				Notes []struct {
-					Section string `json:"section"`
-					Text    string `json:"text"`
-				} `json:"notes"`
-			} `json:"companies"`
-		} `json:"data"`
-	}
-	if json.Unmarshal(content, &doc) != nil {
-		return
-	}
-	for _, c := range doc.Data.Companies {
-		base, ok := b.companies[c.Name]
-		if !ok {
-			continue
-		}
-		p := CompanyProfile{Leaders: b.shape.Leaders, Sergeants: b.shape.Sergeants, HeroStart: b.shape.HeroStart, BCCompany: base, Description: strings.TrimSpace(c.Description), BreakPoint: c.BreakPoint, StartGold: c.Start.Gold,
-			Rules: c.SpecialRules, OnTheirOwnPath: c.OnTheirOwnPath, Advancements: b.advancements[c.Name]}
-		ownNames := map[string]bool{} // the company's own names that change a unit (an option selected, a rule added), not just call it differently
-		for _, a := range c.UnitAliases {
-			if len(a.Selected) > 0 || len(a.AddRules) > 0 {
-				ownNames[strings.ToLower(a.Label)] = true
+// tidyAdvancements names a promotion by the company's label only where the label changes the unit (it selects an option or adds a
+// rule); the profile gets its own copy of the promotions.
+func (p *CompanyProfile) tidyAdvancements() {
+	p.Advancements = slices.Clone(p.Advancements)
+	for i, adv := range p.Advancements {
+		adv.To = slices.Clone(adv.To)
+		for j, t := range adv.To {
+			if t.Label != "" && !p.ChangesUnit(t.Label) {
+				adv.To[j].Label = ""
 			}
 		}
-		for _, u := range c.Start.Units {
-			unit := u.Unit
-			if ownNames[strings.ToLower(u.Label)] { // Wanderers in the Wild start with a Tookish Hunter, not a plain Hobbit Archer
-				unit = u.Label
-			}
-			p.Start = append(p.Start, StartUnit{Count: max(1, u.Count), Unit: unit, Wargear: u.Wargear, Role: UnitRole(u.Role)})
-		}
-		for _, e := range c.Effects {
-			switch e.Kind {
-			case "startingHeroRestriction":
-				p.StartHeroes = StartRestriction{Allowed: e.Allowed, Excluded: e.Excluded}
-			case "recruitAsHero":
-				p.RecruitAsHero = true
-			case "rangerReplacement":
-				rr := &RangerReplacement{Unit: e.Unit, Max: max(1, e.Max)}
-				for _, r := range e.Roles {
-					rr.Roles = append(rr.Roles, UnitRole(r))
-				}
-				p.RangerReplacement = rr
-			case "startingHeroNoStatGain":
-				p.NoStartGain = append(p.NoStartGain, e.Unit)
-			case "onTheirOwnPath":
-				p.OwnPathUnits = append(p.OwnPathUnits, e.Units...)
-				p.OwnPath = e.Path
-			case "unitTypes":
-				if p.Types == nil {
-					p.Types = map[string]TypeOverride{}
-				}
-				var o TypeOverride
-				_ = json.Unmarshal(e.Add, &o.Add)
-				_ = json.Unmarshal(e.Remove, &o.Remove)
-				p.Types[e.Unit] = o
-			case "includedUnitPoints":
-				if p.IncludedPoints == nil {
-					p.IncludedPoints = map[string][]ModelPoints{}
-				}
-				for _, m := range e.Members {
-					p.IncludedPoints[e.Unit] = append(p.IncludedPoints[e.Unit], ModelPoints{Name: m.Name, Points: m.Points})
-				}
-			case "modelCount":
-				if p.ModelCounts == nil {
-					p.ModelCounts = map[string]int{}
-				}
-				p.ModelCounts[e.Unit] = e.Models
-			case "recruitFallback":
-				p.Fallbacks = append(p.Fallbacks, RecruitFallback{Unit: e.Unit, When: e.When, Charts: e.Charts})
-			case "compositeModel":
-				if p.Composites == nil {
-					p.Composites = map[string]CompositeModel{}
-				}
-				m := CompositeModel{Slots: e.Counts.Slots, InjuredAt: e.Casualty.InjuredWhen, Table: e.Casualty.Table, Rules: e.Rules}
-				for _, part := range e.Parts {
-					name := part.Unit
-					if part.Mount != "" {
-						name = part.Mount
-					}
-					m.Parts = append(m.Parts, ModelPart{Role: part.Role, Name: name, Count: max(1, part.Count), Wargear: part.Wargear})
-				}
-				p.Composites[e.Unit] = m
-			case "heroPromotion":
-				p.Promotions = append(p.Promotions, HeroPromotion{From: e.From, OnResult: e.OnResult, Becomes: e.Becomes, Keep: e.Keep, Drop: e.Drop,
-					StatGain: e.StatGain != nil && *e.StatGain, ForgoAllowed: e.Forgo != nil && *e.Forgo})
-			case "reinforcementReplacement": // two options on every roll of the range: the chart's unit or the alternative
-				if e.Chart == "reinforcements" && len(e.Results) == 2 {
-					for i := range base.Reinforcements {
-						if row := &base.Reinforcements[i]; row.Min >= e.Results[0] && row.Max <= e.Results[1] && row.Result.Type != "nothing" {
-							row.Result.Alt = e.Alternative.Unit
-						}
-					}
-				}
-			case "raceBalance":
-				p.Balance = append(p.Balance, RaceBalance{Keyword: e.Keyword, NotMoreThan: e.NotMoreThan})
-			}
-		}
-		for _, h := range c.HeroUpgrades {
-			text := h.Text
-			if text == "" { // the rule's text is the keyword of the same name
-				text = strings.Join(strings.Fields(b.keywords[h.Rule]), " ")
-			}
-			p.HeroUpgrades = append(p.HeroUpgrades, HeroUpgrade{Name: h.Name, Flavour: h.Flavour, Rule: h.Rule, Text: text, Restriction: h.Limit, Units: h.Units})
-		}
-		for _, g := range c.GrantedRules {
-			p.Granted = append(p.Granted, GrantedRule{Rule: g.Rule, AppliesTo: g.AppliesTo, Cost: g.Cost, Text: g.Text})
-		}
-		for _, e := range c.RuleExchanges {
-			p.Exchanges = append(p.Exchanges, RuleExchange{Remove: e.Remove, Add: e.Add, Text: e.Text})
-		}
-		for _, s := range c.RuleSubstitutions {
-			p.Substitutions = append(p.Substitutions, s.Text)
-		}
-		for _, a := range c.UnitAliases {
-			p.Aliases = append(p.Aliases, UnitAlias{Label: a.Label, Unit: a.Unit, AddRules: a.AddRules, Selected: a.Selected, Keywords: a.Keywords, Text: a.Text})
-		}
-		p.Advancements = slices.Clone(p.Advancements)
-		for i, adv := range p.Advancements { // a promotion is named by the company's label only where the label changes the unit
-			adv.To = slices.Clone(adv.To)
-			for j, t := range adv.To {
-				if t.Label != "" && !p.ChangesUnit(t.Label) {
-					adv.To[j].Label = ""
-				}
-			}
-			p.Advancements[i] = adv
-		}
-		for _, l := range c.CompanyLimits {
-			p.KeywordLimits = append(p.KeywordLimits, KeywordLimit{Keyword: l.Keyword, Percent: l.Percent, Text: l.Text})
-		}
-		for _, n := range c.Notes {
-			p.Notes = append(p.Notes, CompanyNote{Section: n.Section, Text: n.Text})
-		}
-		p.Oath = Oath{Text: c.Oath.Text, Vow: c.Oath.Vow}
-		if c.Epigraph != nil {
-			p.Epigraph = &Epigraph{Quote: c.Epigraph.Quote, Text: c.Epigraph.Text}
-		}
-		if f, ok := doc.Campaign.Company.Oath[base.Alignment]; ok && !strings.Contains(p.Oath.Text, "{name}") {
-			p.Oath = Oath{Text: f.Text, Vow: f.Vow}
-		}
-		if !strings.Contains(p.Oath.Text, "{name}") { // the file has nothing: a plain oath, so the form still works
-			p.Oath = Oath{Text: "Today I take command of this Battle Company. Henceforth let it be called {name}.", Vow: "I solemnly vow"}
-		}
-		b.profiles = append(b.profiles, p)
+		p.Advancements[i] = adv
 	}
 }
 
@@ -565,16 +305,14 @@ func (p CompanyProfile) WithPreviews(vanilla *VanillaBook) CompanyProfile {
 func (p CompanyProfile) preview(vanilla *VanillaBook, unit string, wargear []string) UnitPreview {
 	pv := UnitPreview{Key: PreviewKey(unit, wargear), Name: unit}
 	name, extraRules := unit, []string(nil)
-	for _, a := range p.Aliases { // a company's own name for a profile
-		if strings.EqualFold(a.Label, unit) {
-			name, extraRules = a.Unit, a.AddRules
-		}
+	if a, ok := p.AliasFor(unit); ok { // a company's own name for a profile
+		name, extraRules = a.Unit, a.AddRules
 	}
 	vu, ok := vanilla.Unit(name)
 	if !ok {
 		return pv
 	}
-	hero := vu.Stats["might"] > 0 || vu.Stats["will"] > 0 || vu.Stats["fate"] > 0
+	hero := vanilla.HeroProfile(vu.Stats)
 	pv.Points, pv.Types, pv.Kind = vu.Points, vu.UnitTypes, KindOf(vu.UnitTypes)
 	pv.Stats = vanilla.Profile(vu, hero, nil)
 	pv.Wargear = slices.Clone(vu.Wargear)
@@ -591,9 +329,12 @@ func (p CompanyProfile) preview(vanilla *VanillaBook, unit string, wargear []str
 // ChangesUnit says whether the company's own name for a unit is more than another name for it: it selects an option or adds a
 // rule (Ranger of Ithilien, Helminga), where a legacy name (Grimhammer for the Grim Hammer Warrior) is the same unit.
 func (p CompanyProfile) ChangesUnit(label string) bool {
-	return slices.ContainsFunc(p.Aliases, func(a UnitAlias) bool {
-		return strings.EqualFold(a.Label, label) && (len(a.Selected) > 0 || len(a.AddRules) > 0)
-	})
+	for a := range p.aliasesFor(label) {
+		if len(a.Selected) > 0 || len(a.AddRules) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // Preview is the preview of a unit as the company page names it (the zero value when the unit is unknown).
@@ -647,7 +388,22 @@ func (p CompanyProfile) OwnRules() []string {
 		}
 		out = append(out, r)
 	}
+	if p.ElvenWeaponry != nil {
+		out = append(out, ElvenWeaponrySentence(p.ElvenWeaponry))
+	}
 	return out
+}
+
+// ElvenWeaponrySentence is the company rule the page prints for a company whose models may buy and wear Elven-made weaponry, made from the
+// selector in the file so that it names the units.
+func ElvenWeaponrySentence(w *lean.Who) string {
+	models := w.Models()
+	if models == "models" {
+		models = "Every model of the company"
+	} else {
+		models = strings.ToUpper(models[:1]) + models[1:]
+	}
+	return models + " may buy and wear Elven-made weaponry, which is otherwise restricted to Elf models."
 }
 
 // LimitLines are the sentences about what limits the company: keyword limits and exemptions, each once.
@@ -671,9 +427,9 @@ func (p CompanyProfile) LimitLines() []string {
 // the units exactly as the vanilla file does (or by the label the company gives them).
 func (p CompanyProfile) OnOwnPath(unit string) bool {
 	named := func(unit string) bool {
-		return slices.ContainsFunc(p.OwnPathUnits, func(n string) bool { return strings.EqualFold(n, unit) })
+		return slices.ContainsFunc(p.OwnPathUnits, func(n string) bool { return sameName(n, unit) })
 	}
-	return named(unit) || slices.ContainsFunc(p.Aliases, func(a UnitAlias) bool { return strings.EqualFold(a.Unit, unit) && named(a.Label) }) // the Goblin Hulk is a Gundabad Ogre
+	return named(unit) || slices.ContainsFunc(p.Aliases, func(a UnitAlias) bool { return sameName(a.Unit, unit) && named(a.Label) }) // the Goblin Hulk is a Gundabad Ogre
 }
 
 // Types gives a unit's types in this company: the vanilla ones with the company's changes.

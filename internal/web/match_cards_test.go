@@ -21,7 +21,7 @@ func slotTag(t *testing.T, body, id string) string {
 	return body[i : i+strings.Index(body[i:], ">")+1]
 }
 
-// The full match page draws the cards it used to fetch after loading (one round trip fewer); the slots keep only the refresh on
+// The full match page draws its cards inline (one round trip fewer); the slots keep only the refresh on
 // live:match, so nothing fetches on load.
 func TestMatchPageDrawsItsCardsInline(t *testing.T) {
 	f := atoFixture(t)
@@ -45,7 +45,7 @@ func TestMatchPageDrawsItsCardsInline(t *testing.T) {
 	}
 }
 
-// A card that cannot be built inline stays a lazy slot (the old fetch on load), the page itself is fine.
+// A card that cannot be built inline stays a lazy slot (fetched on load), the page itself is fine.
 func TestMatchPageCardThatFailsStaysLazy(t *testing.T) {
 	f := atoFixture(t)
 	f.camp.EXPECT().EndChecks(gomock.Any(), frodo, int64(7), int64(3)).Return(core.EndChecks{}, nil)

@@ -238,7 +238,7 @@ func hostileWorld(t *testing.T) (*fixture, []string) {
 var noHostileText = map[string]bool{"/styleguide": true}
 
 // Every page type renders hostile names, descriptions and rules-file text without letting them out of their context: in text,
-// in plain attributes and in the attributes Alpine evaluates as JavaScript (docs/security-and-risks.md, R7 and R14).
+// in plain attributes and in the attributes Alpine evaluates as JavaScript.
 func TestHostileStringsAreEscapedOnEveryPage(t *testing.T) {
 	f, pages := hostileWorld(t)
 	for _, path := range pages {

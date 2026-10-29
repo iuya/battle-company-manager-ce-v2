@@ -104,7 +104,7 @@ func gearContributions(rs *RuleSet, items []Equipment, hasRule func(string) bool
 			continue
 		}
 		g, ok := rs.Vanilla.Gear(e.Name)
-		if !ok || strings.EqualFold(g.Type, "armour") || strings.EqualFold(g.Type, "shield") || strings.HasPrefix(strings.ToLower(e.Name), "exchange") || strings.HasPrefix(strings.ToLower(e.Name), "swap") {
+		if !ok || strings.EqualFold(g.Type, "armour") || strings.EqualFold(g.Type, "shield") || ParseOption(e.Name).Exchange {
 			continue
 		}
 		for _, c := range g.Modifies {
@@ -131,10 +131,10 @@ func shieldCancelledBy(d *DefenceBonus, shield Equipment, items []Equipment, has
 		return false
 	}
 	for _, o := range items {
-		if o.Disabled != "" || strings.EqualFold(o.Name, shield.Name) {
+		if o.Disabled != "" || sameName(o.Name, shield.Name) {
 			continue
 		}
-		if slices.ContainsFunc(d.CancelledByItems, func(n string) bool { return strings.EqualFold(n, o.Name) }) && !lifted("", o.Name) {
+		if slices.ContainsFunc(d.CancelledByItems, func(n string) bool { return sameName(n, o.Name) }) && !lifted("", o.Name) {
 			return o.Name
 		}
 		for _, c := range d.CancelledByClasses {
@@ -156,8 +156,8 @@ func shieldCancelledBy(d *DefenceBonus, shield Equipment, items []Equipment, has
 // (the profile already counts that: a profile that lists a shield has the shield's +1), and lists the changes in StatMods.
 func applyGearStats(rs *RuleSet, bcCo BCCompany, base VanillaUnit, u *CompanyUnit, hero bool) {
 	hasRule := func(name string) bool {
-		return slices.ContainsFunc(u.Rules, func(r UnitRule) bool { return strings.EqualFold(r.Name, name) }) ||
-			(u.Path != nil && slices.ContainsFunc(u.Path.Rules, func(r UnitRule) bool { return strings.EqualFold(r.Name, name) }))
+		return slices.ContainsFunc(u.Rules, func(r UnitRule) bool { return sameName(r.Name, name) }) ||
+			(u.Path != nil && slices.ContainsFunc(u.Path.Rules, func(r UnitRule) bool { return sameName(r.Name, name) }))
 	}
 	mounted := u.isCavalry()
 	var own []Equipment

@@ -53,13 +53,13 @@ func (in ScenarioInput) Validate() (ScenarioInput, error) {
 		return in, errors.Join(ErrInvalidMatch, errors.New("choose a rulebook scenario or describe a one-off one"))
 	}
 	if n := utf8.RuneCountInString(in.Name); n == 0 || n > maxScenarioName {
-		errs = append(errs, errors.New("the name must be between 1 and 60 characters"))
+		errs = append(errs, fieldError("name", "the name must be between 1 and 60 characters"))
 	}
 	if utf8.RuneCountInString(in.Description) > maxScenarioText {
-		errs = append(errs, errors.New("the description can have at most 1000 characters"))
+		errs = append(errs, fieldError("description", "the description can have at most 1000 characters"))
 	}
 	if utf8.RuneCountInString(in.Victory) > maxScenarioText {
-		errs = append(errs, errors.New("how it is won can have at most 1000 characters"))
+		errs = append(errs, fieldError("victory", "how it is won can have at most 1000 characters"))
 	}
 	if len(errs) > 0 {
 		return in, errors.Join(append([]error{ErrInvalidMatch}, errs...)...)
@@ -362,7 +362,7 @@ func (t ScenarioRuleTable) RowFor(value int) int {
 type ScenarioPrize struct{ Name, Who, Text string }
 
 // ScenarioObjective is one tick on the match page, per company: a reward condition of the rules file the players tick
-// (Key and Label are the condition's, Max is 1 for now). Rewards is what completing it earns, for the preview.
+// (Key and Label are the condition's, Max is 1). Rewards is what completing it earns, for the preview.
 type ScenarioObjective struct {
 	Key, Label string
 	Max        int  // 1 for a tick

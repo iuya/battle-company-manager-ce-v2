@@ -4,7 +4,6 @@ import (
 	"html"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 
@@ -113,14 +112,7 @@ func TestTheCemeteryIsASectionOfItsOwn(t *testing.T) {
 }
 
 func TestEveryCompanyPageRenders(t *testing.T) {
-	content, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Skip("no rules file")
-	}
-	book, err := core.ParseBattleCompanies(content)
-	if err != nil {
-		t.Fatal(err)
-	}
+	book := shippedRules(t).BC
 	f := newFixture(t, Config{})
 	profiles := book.Profiles()
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil).AnyTimes()
@@ -229,14 +221,7 @@ func TestTheShiresRangerStartsLockedAsLeader(t *testing.T) {
 
 // The creation page blocks what the server refuses (core.OfficerLocks): a locked card carries its lock and the reason in words.
 func TestTheCreationPageShowsTheOfficerLocksAndTheirReasons(t *testing.T) {
-	content, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Skip("no rules file")
-	}
-	book, err := core.ParseBattleCompanies(content)
-	if err != nil {
-		t.Fatal(err)
-	}
+	book := shippedRules(t).BC
 	f := newFixture(t, Config{})
 	profiles := book.Profiles()
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil).AnyTimes()

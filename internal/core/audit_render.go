@@ -199,7 +199,7 @@ func renderCompany(c CompanyAudit) string {
 		m.line("- %s", r)
 	}
 	for _, g := range p.Granted {
-		m.line("- Granted rule %s to %s (cost %d): %s", g.Rule, g.AppliesTo, g.Cost, g.Text)
+		m.line("- Granted rule %s to %s (cost %d): %s", g.Rule, g.AppliesTo(), g.Cost, g.Text)
 	}
 	for _, e := range p.Exchanges {
 		m.line("- Exchange %s for %s: %s", e.Remove, e.Add, e.Text)
@@ -217,7 +217,7 @@ func renderCompany(c CompanyAudit) string {
 		m.line("- Balance: %s not more than %s", b.Keyword, b.NotMoreThan)
 	}
 	for _, h := range p.HeroUpgrades {
-		m.line("- Hero upgrade %s (%s), restriction %q: %s", h.Name, h.Rule, h.Restriction, h.Text)
+		m.line("- Hero upgrade %s (%s), restriction %q: %s", h.Name, h.Rule, h.Restriction(), h.Text)
 	}
 	m.line("")
 	m.line("### Limits")

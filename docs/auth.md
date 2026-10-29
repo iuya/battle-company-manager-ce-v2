@@ -1,6 +1,6 @@
 # Authentication
 
-Accounts sign in with **email and password**. There is no sign-up page: accounts are created by an administrator with
+How accounts, passwords, sessions and request protection work. Accounts sign in with **email and password**. There is no sign-up page: accounts are created by an administrator with
 the server's command line. A visitor who is not signed in sees the login page; a signed-in user sees the main page.
 
 ## Accounts
@@ -63,7 +63,7 @@ hash, so timing does not reveal which emails exist, and the only failure message
 
 ## The Account page
 
-`/account` (sidebar, bottom; built, see [frontend.md](frontend.md#account)), for the signed-in user. Mobile first: one column of cards, each its
+`/account` (sidebar, bottom; see [frontend.md](frontend.md#account)) is for the signed-in user. Mobile first: one column of cards, each its
 own htmx form that swaps only itself (422 with the form kept on error).
 
 - **Profile**: display name (1-60 characters, as `CreateUser`); the email is shown read only ("ask an administrator to
@@ -73,17 +73,17 @@ own htmx form that swaps only itself (422 with the form kept on error).
   handler). `Auth.ChangePassword(ctx, userID, current, next, keepToken)` verifies the current one (a wrong one is
   `ErrInvalidCredentials`, throttled in the web layer like login, per user), stores the new hash and **deletes every other
   session** of the user (`keepToken` stays signed in). A success notice says so.
-- **Sessions**: "Sign out everywhere else" (same deletion, without a password change). (The page does not show how many other sessions exist: there is no count query; the notice reports how many ended.)
+- **Sessions**: "Sign out everywhere else" (same deletion, without a password change). The page does not list the other sessions; the notice reports how many ended.
 - **Appearance**: the palette and mode of the settings menu, saved for the account (below).
 - **Close account** (danger card, collapsed): asks the password and the email typed again.
   `Auth.CloseAccount(ctx, userID, password)` **anonymises** the user instead of deleting rows (companies, matches and
   rankings stay intact for the other players): display name "Former player", email replaced by `closed-<id>@invalid`,
   password hash emptied so it cannot sign in, `closed_at` set, every session deleted, companies kept and listed under the
   new name. The old address is free again: it can be registered as a brand-new account that has no link to the closed one
-  (this is intended; the closed account's history stays under "Former player"). Refused with `ErrRefused` (reason fit to show) for the organiser of an unfinished campaign ("Hand over your
+  (the closed account's history stays under "Former player"). Refused with `ErrRefused` (reason fit to show) for the organiser of an unfinished campaign ("Hand over your
   campaigns (on the campaign overview) or finish them first") and for the last superuser. The organiser (or an administrator)
   hands a campaign over with **Hand over the campaign** on its Overview (`POST /campaigns/{id}/handover`, `Campaigns.HandOver`; the
-  players offered are the owners of the campaign's companies). REVIEW: anonymise rather than delete.
+  players offered are the owners of the campaign's companies).
 
 Errors: `ErrInvalidUser` (joined messages fit to show), `ErrInvalidCredentials`, `ErrRefused`. Repository additions:
 `CredentialsByID`, `UpdateDisplayName`, `UpdatePasswordHash`, `DeleteSessionsExcept(userID, keepTokenHash)`, `CloseUser`,
@@ -94,7 +94,7 @@ log in (empty hash, replaced email) and `CredentialsByID` and the update methods
 
 ## Appearance per account
 
-`core.User` gets `Appearance{Palette, Mode string}` (empty = never chosen), loaded with the session so the layout needs no
+`core.User` carries `Appearance{Palette, Mode string}` (empty = never chosen), loaded with the session so the layout needs no
 extra query. Columns `users.palette` and `users.mode` (nullable, checked against the known keys; the known palettes and modes
 live in `core` as `Palettes` and `Modes`, the web layer's picker reads them).
 
@@ -104,10 +104,4 @@ live in `core` as `Palettes` and `Modes`, the web layer's picker reads them).
   silent: the cookie keeps working. `SetAppearance` must also update the in-memory session cache entry.
 - **Login**: a user with no saved appearance adopts the cookie's value (saved on first sign-in, so a choice made on the login
   page is not lost); otherwise the saved value is written to the cookie by the login response. Logging out keeps the cookie.
-- **Anonymous visitors** (the login page): the cookie only, as today.
-
-## Possible evolution
-
-A short-lived signed access token (JWT) plus the existing session as the refresh token would remove the per-minute
-lookup. It was not chosen: the cache gives the same speed, needs no signing key and revokes immediately on logout. It
-can be added in front of the same session logic if claims in the token ever become useful.
+- **Anonymous visitors** (the login page): the cookie only.

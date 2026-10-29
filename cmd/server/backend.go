@@ -73,7 +73,7 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 	files := map[string][]byte{}
 	for _, path := range []string{
 		"definitions/vanilla/data2024.json", "definitions/battle_companies/battle_companies.json", "definitions/glossary/mesbg_glossary.json",
-		"definitions/vanilla/data2024.schema.json", "definitions/battle_companies/battle_companies.schema.json", "definitions/glossary/mesbg_glossary.schema.json",
+		"definitions/vanilla/data2024.schema.json", "definitions/glossary/mesbg_glossary.schema.json",
 	} {
 		b, err := os.ReadFile(path)
 		if err != nil {
@@ -82,10 +82,9 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 		files[path] = b
 	}
 	vanilla, bc, glossary := files["definitions/vanilla/data2024.json"], files["definitions/battle_companies/battle_companies.json"], files["definitions/glossary/mesbg_glossary.json"]
-	schemas := map[core.RulesetKind][]byte{
-		core.KindVanilla:         files["definitions/vanilla/data2024.schema.json"],
-		core.KindBattleCompanies: files["definitions/battle_companies/battle_companies.schema.json"],
-		core.KindGlossary:        files["definitions/glossary/mesbg_glossary.schema.json"],
+	schemas := map[core.RulesetKind][]byte{ // the Battle Companies file has no JSON schema check: the lean decoder is its authority
+		core.KindVanilla:  files["definitions/vanilla/data2024.schema.json"],
+		core.KindGlossary: files["definitions/glossary/mesbg_glossary.schema.json"],
 	}
 	rulesets, err := core.NewRulesets(store.Rulesets(), schemas)
 	if err != nil {
@@ -101,8 +100,8 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 	camps, comps, matches, aftermaths := core.ScopeCampaigns(store.Campaigns()), core.ScopeCompanies(store.Companies()), core.ScopeMatches(store.Matches()), store.Aftermaths()
 	atoRepo, liveRepo := core.ScopeATO(store.ATO()), core.ScopeLive(store.Live())
 
-	aftermath := core.NewAftermathService(camps, comps, matches, store.Rulesets(), aftermaths, rules, dice).WithATO(atoRepo)
-	matchSvc := core.NewMatches(camps, comps, matches, store.Rulesets(), rules).WithATO(atoRepo)
+	aftermath := core.NewAftermathService(camps, comps, matches, aftermaths, rules, dice).WithATO(atoRepo)
+	matchSvc := core.NewMatches(camps, comps, matches, rules).WithATO(atoRepo)
 	matchSvc.AftermathStarted = aftermaths.Started           // a match cannot be reopened once a company started its aftermath
 	matchSvc.CompanyAftermaths = aftermath.PendingAftermaths // a company with an unfinished aftermath cannot start a match
 	hub := core.NewLiveHub(store.LiveFeed())

@@ -776,7 +776,7 @@ func TestMVPHintForTheAftermathSheet(t *testing.T) {
 	}
 }
 
-// TestRollCourageEnteredDiceAreValidated (bead 1oe): dice typed by the player outside 1 to 6, or a single one, are a refusal-grade
+// TestRollCourageEnteredDiceAreValidated: dice typed by the player outside 1 to 6, or a single one, are a refusal-grade
 // input error of the live mode (ErrInvalidLive, a 422), never the aftermath's error (which the web layer answers with a 500).
 func TestRollCourageEnteredDiceAreValidated(t *testing.T) {
 	f := newLiveFixture(t)

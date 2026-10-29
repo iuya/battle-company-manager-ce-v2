@@ -145,35 +145,7 @@ func (c *CaptureDuplicates) Handle(_ context.Context, r slog.Record) error {
 
 // LoadRuleSet builds a rule set straight from the three files, as Rules does from the stored ones, logging to log.
 func LoadRuleSet(vanilla, bc, glossary []byte, log *slog.Logger) (*RuleSet, error) {
-	if isLeanFile(bc) { // a Battle Companies file of the lean format
-		return loadV2(vanilla, bc, glossary, log)
-	}
-	reviewed, err := ParseVanillaAmbiguities(bc)
-	if err != nil {
-		return nil, err
-	}
-	vb, err := ParseVanillaWith(vanilla, reviewed, log)
-	if err != nil {
-		return nil, err
-	}
-	bb, err := ParseBattleCompanies(bc)
-	if err != nil {
-		return nil, err
-	}
-	bb.SpellWargearLikeVanilla(vb)
-	bb.ApplyUnitFillIns(vb)
-	if err := bb.CheckRaces(vb); err != nil {
-		return nil, err
-	}
-	hash, err := RulesetHash(glossary)
-	if err != nil {
-		return nil, err
-	}
-	gl, err := BuildGlossaryWith(RulesetInfo{Kind: KindGlossary, Hash: hash}, glossary, GlossaryExtras(vanilla, bc))
-	if err != nil {
-		return nil, err
-	}
-	return &RuleSet{Vanilla: vb, BC: bb, Glossary: gl}, nil
+	return loadV2(vanilla, bc, glossary, log)
 }
 
 // itemTable knows every name of a piece of gear the files define, to check the names companies use.
@@ -188,9 +160,9 @@ func newItemTable(rs *RuleSet) itemTable {
 		if n = strings.TrimSpace(n); n != "" {
 			t.byKey[ItemKey(n)] = n
 			// The canonical spelling is the capitalised one; among equals the smallest, so the table never depends on map order.
-			cur, ok := t.canonical[strings.ToLower(n)]
+			cur, ok := t.canonical[NameKey(n)]
 			if !ok || (unicode.IsUpper([]rune(n)[0]) && !unicode.IsUpper([]rune(cur)[0])) || (unicode.IsUpper([]rune(n)[0]) == unicode.IsUpper([]rune(cur)[0]) && n < cur) {
-				t.canonical[strings.ToLower(n)] = n
+				t.canonical[NameKey(n)] = n
 			}
 		}
 	}
@@ -317,13 +289,13 @@ func auditCompany(rs *RuleSet, in AuditInput, table itemTable, p CompanyProfile)
 	ruleNames := map[string]bool{}
 	var resolved []VanillaUnit // the profiles of the company, in chart order, to explain a hero's wargear
 	for _, r := range refs {
-		if v, _, ok := resolveUnit(rs, p, r.name); ok {
+		if v, _, ok := rs.ResolveUnit(p, r.name); ok {
 			resolved = append(resolved, v)
 		}
 	}
 	for _, r := range refs {
 		ua := UnitAudit{Name: r.name, Wargear: r.wargear, Sources: r.sources}
-		v, alias, ok := resolveUnit(rs, p, r.name)
+		v, alias, ok := rs.ResolveUnit(p, r.name)
 		if !ok {
 			flag(FlagUnitUnresolved, r.name, "named by %s; no vanilla profile, no company label", strings.Join(r.sources, ", "))
 			ca.Units = append(ca.Units, ua)
@@ -333,7 +305,7 @@ func auditCompany(rs *RuleSet, in AuditInput, table itemTable, p CompanyProfile)
 		if v.Name != r.name && alias == nil {
 			flag(FlagNameFormat, r.name, "resolves to %q", v.Name)
 		}
-		hero := v.Stats["might"] > 0 || v.Stats["will"] > 0 || v.Stats["fate"] > 0
+		hero := rs.Vanilla.HeroProfile(v.Stats)
 		ua.Stats = rs.Vanilla.Profile(v, hero, nil)
 		ua.CanLead, ua.OwnPath = p.CanLead(r.name), p.OnOwnPath(r.name)
 
@@ -377,10 +349,10 @@ func auditCompany(rs *RuleSet, in AuditInput, table itemTable, p CompanyProfile)
 			uo.WarriorGold, uo.HeroGold = sh.goldPrice(ua.Warrior, offer), offer.Gold.Hero
 			uo.DerivedByWarrior = derivation(offer, p, v.Options, v)
 			uo.DerivedByHero = derivation(offer, p, heroOptions, v)
-			if offer.Size == "" && offer.Only == "" && uo.WarriorReason == "" && uo.DerivedByWarrior == "" {
+			if offer.Size == "" && !offer.namesWho() && uo.WarriorReason == "" && uo.DerivedByWarrior == "" {
 				flag(FlagOfferNotDerivable, r.name+" / "+offer.Name, "a warrior can buy it, but no option of %s matches", v.Name)
 			}
-			if offer.Size == "" && offer.Only == "" && uo.HeroReason == "" && uo.DerivedByHero == "" {
+			if offer.Size == "" && !offer.namesWho() && uo.HeroReason == "" && uo.DerivedByHero == "" {
 				flag(FlagOfferNotDerivable, r.name+" (hero) / "+offer.Name, "a hero can buy it, but no option of the company's units matches")
 			}
 			ua.Offers = append(ua.Offers, uo)
@@ -409,7 +381,7 @@ func auditCompany(rs *RuleSet, in AuditInput, table itemTable, p CompanyProfile)
 	// Names, tooltips.
 	for _, r := range refs {
 		for _, w := range r.wargear {
-			if c, ok := table.canonical[strings.ToLower(strings.TrimSpace(w))]; ok && c != w {
+			if c, ok := table.canonical[NameKey(w)]; ok && c != w {
 				flag(FlagNameFormat, r.name+" / "+w, "wargear spelled %q, the item table has %q", w, c)
 			} else if !ok {
 				flag(FlagOptionUnknown, r.name+" / "+w, "wargear %q is not in the item table", w)
@@ -454,26 +426,26 @@ func auditCompany(rs *RuleSet, in AuditInput, table itemTable, p CompanyProfile)
 	}
 
 	// Duplicated vanilla names the company uses.
-	used := map[string]string{} // lower-cased kind|name -> how it is used
+	used := map[string]string{} // NameKey of kind|name -> how it is used
 	for _, r := range refs {
-		used["unit|"+strings.ToLower(r.name)] = "unit " + r.name
-		if v, _, ok := resolveUnit(rs, p, r.name); ok {
-			used["unit|"+strings.ToLower(v.Name)] = "unit " + r.name
+		used["unit|"+NameKey(r.name)] = "unit " + r.name
+		if v, _, ok := rs.ResolveUnit(p, r.name); ok {
+			used["unit|"+NameKey(v.Name)] = "unit " + r.name
 			for _, w := range append(slices.Clone(v.Wargear), r.wargear...) {
-				used["gear|"+strings.ToLower(w)] = "wargear of " + r.name
+				used["gear|"+NameKey(w)] = "wargear of " + r.name
 			}
 			for _, o := range v.Options {
 				for _, part := range OptionItems(o.Name) {
-					used["gear|"+strings.ToLower(part)] = "option of " + r.name
+					used["gear|"+NameKey(part)] = "option of " + r.name
 				}
 			}
 			for _, rule := range v.SpecialRules {
-				used["keyword|"+strings.ToLower(rule)] = "rule of " + r.name
+				used["keyword|"+NameKey(rule)] = "rule of " + r.name
 			}
 		}
 	}
 	for _, a := range slices.Concat(in.Ambiguities, in.Unreviewed) {
-		how, hit := used[strings.ToLower(a.Kind)+"|"+strings.ToLower(a.Name)]
+		how, hit := used[NameKey(a.Kind)+"|"+NameKey(a.Name)]
 		if !hit {
 			continue
 		}
@@ -514,21 +486,6 @@ func clip(s string, n int) string {
 		return string(r[:n]) + "…"
 	}
 	return s
-}
-
-// resolveUnit finds the vanilla profile a unit name stands for in a company, as buildUnit does: a vanilla name, else a label.
-func resolveUnit(rs *RuleSet, p CompanyProfile, name string) (VanillaUnit, *UnitAlias, bool) {
-	if v, ok := rs.Vanilla.Unit(name); ok {
-		return v, nil, true
-	}
-	for i := range p.Aliases {
-		if strings.EqualFold(p.Aliases[i].Label, name) {
-			if v, ok := rs.Vanilla.Unit(p.Aliases[i].Unit); ok {
-				return v, &p.Aliases[i], true
-			}
-		}
-	}
-	return VanillaUnit{}, nil, false
 }
 
 // companyOptions are the options a hero of the company could take from any profile of its charts, as legalWargear counts them.

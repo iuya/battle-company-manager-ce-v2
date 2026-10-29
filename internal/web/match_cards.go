@@ -10,10 +10,10 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// matchCards are the cards the match page used to fetch after loading (Against the Odds, secret objectives, end checks, log).
+// matchCards are the cards of the match page that are not part of its main body (Against the Odds, secret objectives, end checks, log).
 // The full page builds them in parallel and draws them in its own answer, so the first paint has them; a card that failed is nil
-// and its slot falls back to the old fetch (hx-trigger="load"). The answers to writes (match_body) leave Cards nil: their slots
-// stay lazy as before.
+// and its slot falls back to a fetch on load (hx-trigger="load"). The answers to writes (match_body) leave Cards nil: their slots
+// stay lazy.
 type matchCards struct {
 	ATO     *atoView
 	Secret  *secretView

@@ -2,9 +2,6 @@ package core
 
 import (
 	"fmt"
-	"math"
-	"regexp"
-	"strconv"
 )
 
 // The aura rings of the names payload (ArmyNames v2, docs/aura-ranges.md section 4.2, docs/tabletop-simulator.md): which rings go on which figure.
@@ -41,10 +38,9 @@ func ringsOf(as []Aura) []TTSRing {
 	return out
 }
 
-// figAuras are the rings of one figure of the export and the base radius to tell the helper (0: let it measure the figure).
+// figAuras are the rings of one figure of the export.
 type figAuras struct {
 	Rings []Aura
-	Base  float64
 }
 
 type ringStats struct {
@@ -68,7 +64,6 @@ func (r *RuleSet) figureRingsCap(d CompanyDetail, exp TTSExport, sel AuraSelecti
 	for _, u := range d.Roster {
 		n.units[u.ID] = u
 	}
-	profile, _ := r.BC.Profile(d.Faction)
 	matches := map[int64][]auraMatch{}
 	given := map[string]bool{} // a unit made of several figures (a bundle) gives its rings to the first
 	total, perFigure := 0, 0
@@ -95,11 +90,6 @@ func (r *RuleSet) figureRingsCap(d CompanyDetail, exp TTSExport, sel AuraSelecti
 						matches[id] = ms
 					}
 					f.Rings = r.selectedAuras(ms, sel)
-					if sel.Base && l.Extra == "" && len(f.Rings) > 0 {
-						if v, _, found := resolveUnit(r, profile, u.Type); found {
-							f.Base = BaseRadius(v.BaseSize)
-						}
-					}
 				}
 				if !capped {
 					out = append(out, f)
@@ -131,24 +121,4 @@ func creatureFacts(c CompanyCreature) unitFacts {
 		addFact(f.rules, name)
 	}
 	return f
-}
-
-var baseSizeRe = regexp.MustCompile(`(?i)(\d+(?:\.\d+)?)\s*(?:x\s*(\d+(?:\.\d+)?))?\s*m+\b`)
-
-// BaseRadius is the radius in inches of a vanilla base size ("25mm" is 0.49, "180x140mm oval" is half the longer side, the typo "170mmm oval" reads
-// as 170 mm), rounded to two decimals; 0 when no size is written. Several sizes: the largest.
-func BaseRadius(sizes []string) float64 {
-	mm := 0.0
-	for _, s := range sizes {
-		m := baseSizeRe.FindStringSubmatch(s)
-		if m == nil {
-			continue
-		}
-		for _, v := range m[1:] {
-			if f, err := strconv.ParseFloat(v, 64); err == nil && f > mm {
-				mm = f
-			}
-		}
-	}
-	return math.Round(mm/2/25.4*100) / 100
 }

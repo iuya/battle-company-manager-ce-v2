@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -13,14 +14,20 @@ import (
 // of gear says. It is the part of the future rules loader that the company pages need; names are looked up first
 // occurrence wins, like everywhere else (docs/definitions.md).
 type VanillaBook struct {
-	stats    []StatDef
-	units    map[string]VanillaUnit
-	keywords map[string]string
-	gear     map[string]VanillaGear
-	powers   map[string]VanillaPower
-	races    map[string]bool // lower-cased race words of every profile (a wanderer's unit type "Man" is one); see IsRace
+	stats      []StatDef
+	units      map[string]VanillaUnit
+	keywords   map[string]string
+	gear       map[string]VanillaGear
+	powers     map[string]VanillaPower
+	powerOrder []string        // the names of powers, in the order of the file (the variants of a power: Fury (Orc))
+	races      map[string]bool // lower-cased race words of every profile (a wanderer's unit type "Man" is one); see IsRace
 
 	occurrences map[string]int // dupKey(kind, name) -> how often the file defines the name (the lean validator's vanilla.pins check)
+
+	// heroes are the names of every hero profile and available the armies each option is limited to (the availableIn of the
+	// winning occurrence of a unit), by lower-cased "unit|option": what ReservedOptions derives from.
+	heroes    map[string]bool
+	available map[string][]string
 }
 
 // Occurrences says how many times the vanilla file defines a name of a kind ("unit", "gear", "keyword", "power"); 0 when it does not.
@@ -32,7 +39,7 @@ type StatDef struct {
 	Name     string
 	Abbr     string
 	Trail    string // printed after the value: " for Movement, + for Shoot, Courage and Intelligence
-	HeroOnly bool   // Might, Will and Fate
+	HeroOnly bool   // after the separator of the vanilla list (Might, Will and Fate)
 }
 
 type VanillaUnit struct {
@@ -51,7 +58,7 @@ type VanillaUnit struct {
 	// At most one option of a group is taken; a group with a required option must have one taken.
 	OptionKeys    []OptionKey
 	MagicalPowers []PowerRef
-	BaseSize      []string // "25mm", "120mm oval", "180x140mm oval": see BaseRadius
+	BaseSize      []string // "25mm", "120mm oval", "180x140mm oval": not applied (the helper measures the figure)
 }
 
 // OptionKey is the choose-one group an option belongs to.
@@ -94,7 +101,13 @@ func ParseVanilla(content []byte) (*VanillaBook, error) {
 // name the vanilla file defines more than once resolves to its first occurrence unless a "pinned" entry names another one,
 // and a duplicate whose occurrences differ and that nobody reviewed is logged as a warning (log may be nil).
 func ParseVanillaWith(content []byte, reviewed []VanillaAmbiguity, log *slog.Logger) (*VanillaBook, error) {
+	return parseVanilla(content, reviewed, log, false)
+}
+
+// parseVanilla is ParseVanillaWith; pinsOnly is set for a lean document, which reviews duplicates by pinning (vanilla.pins) only.
+func parseVanilla(content []byte, reviewed []VanillaAmbiguity, log *slog.Logger, pinsOnly bool) (*VanillaBook, error) {
 	dups := newDuplicates(reviewed, log)
+	dups.pinsOnly = pinsOnly
 	defer dups.report()
 	var doc struct {
 		Stats []struct {
@@ -121,13 +134,20 @@ func ParseVanillaWith(content []byte, reviewed []VanillaAmbiguity, log *slog.Log
 	if err := json.Unmarshal(content, &doc); err != nil {
 		return nil, errors.Join(ErrInvalidRuleset, errors.New("the vanilla file is not valid JSON"))
 	}
-	b := &VanillaBook{units: map[string]VanillaUnit{}, keywords: map[string]string{}, gear: map[string]VanillaGear{}, powers: map[string]VanillaPower{}}
+	b := &VanillaBook{units: map[string]VanillaUnit{}, keywords: map[string]string{}, gear: map[string]VanillaGear{}, powers: map[string]VanillaPower{},
+		heroes: map[string]bool{}, available: map[string][]string{}}
+	for _, raw := range doc.Data.Heroes {
+		var name string
+		_ = json.Unmarshal(raw["name"], &name)
+		b.heroes[name] = true
+	}
+	heroOnly := false
 	for _, s := range doc.Stats {
-		if s.Name == "" { // the "|" separator between a profile and its hero attributes
+		if s.Name == "" { // the "|" separator between a profile and its hero attributes: what follows is for heroes only
+			heroOnly = true
 			continue
 		}
-		key := strings.ToLower(s.Name)
-		b.stats = append(b.stats, StatDef{Key: key, Name: s.Name, Abbr: s.Abbr, Trail: s.Trail, HeroOnly: key == "might" || key == "will" || key == "fate"})
+		b.stats = append(b.stats, StatDef{Key: strings.ToLower(s.Name), Name: s.Name, Abbr: s.Abbr, Trail: s.Trail, HeroOnly: heroOnly})
 	}
 	for _, raw := range append(doc.Data.Heroes, doc.Data.Warriors...) {
 		var name string
@@ -152,14 +172,18 @@ func ParseVanillaWith(content []byte, reviewed []VanillaAmbiguity, log *slog.Log
 			u.Includes = append(u.Includes, in.Name)
 		}
 		var options []struct {
-			Name    string `json:"name"`
-			Points  int    `json:"points"`
-			Choose  string `json:"chooseOneKey"`
-			Require string `json:"requireChooseOneKey"`
+			Name      string   `json:"name"`
+			Points    int      `json:"points"`
+			Choose    string   `json:"chooseOneKey"`
+			Require   string   `json:"requireChooseOneKey"`
+			Available []string `json:"availableIn"`
 		}
 		_ = json.Unmarshal(raw["options"], &options)
 		for _, o := range options {
 			u.Options = append(u.Options, ChoiceOption{Name: o.Name, Points: o.Points})
+			if len(o.Available) > 0 {
+				b.available[reservedKey(name, o.Name)] = o.Available
+			}
 			key := OptionKey{Key: o.Choose}
 			if o.Require != "" {
 				key = OptionKey{Key: o.Require, Required: true}
@@ -212,7 +236,7 @@ func ParseVanillaWith(content []byte, reviewed []VanillaAmbiguity, log *slog.Log
 			}
 		}
 		if dups.wins("gear", g.Name, raw) {
-			b.gear[strings.ToLower(g.Name)] = g
+			b.gear[NameKey(g.Name)] = g
 		}
 	}
 	for _, k := range doc.Data.Keywords {
@@ -223,6 +247,7 @@ func ParseVanillaWith(content []byte, reviewed []VanillaAmbiguity, log *slog.Log
 	for _, p := range doc.Data.Powers {
 		if dups.wins("power", p.Name, p) {
 			b.powers[p.Name] = VanillaPower{p.Name, p.Duration, p.Definition}
+			b.powerOrder = append(b.powerOrder, p.Name)
 		}
 	}
 	b.collectRaces()
@@ -236,11 +261,41 @@ func ParseVanillaWith(content []byte, reviewed []VanillaAmbiguity, log *slog.Log
 // Stats are the attributes the vanilla file declares, in display order.
 func (b *VanillaBook) Stats() []StatDef { return b.stats }
 
+// StatKeys are the keys of the characteristics, in display order: the vocabulary of every list of stats.
+func (b *VanillaBook) StatKeys() []string {
+	keys := make([]string, len(b.stats))
+	for i, s := range b.stats {
+		keys[i] = s.Key
+	}
+	return keys
+}
+
+// HeroStat says whether the characteristic belongs to heroes only (Might, Will and Fate).
+func (b *VanillaBook) HeroStat(key string) bool {
+	return slices.ContainsFunc(b.stats, func(s StatDef) bool { return s.Key == key && s.HeroOnly })
+}
+
+// HeroStats are the heroes-only characteristics by key.
+func (b *VanillaBook) HeroStats() map[string]bool {
+	out := map[string]bool{}
+	for _, s := range b.stats {
+		if s.HeroOnly {
+			out[s.Key] = true
+		}
+	}
+	return out
+}
+
+// HeroProfile says whether a profile (by stat key) has a hero characteristic: the vanilla heroes and the warriors alike are told apart by it.
+func (b *VanillaBook) HeroProfile(stats map[string]int) bool {
+	return slices.ContainsFunc(b.stats, func(s StatDef) bool { return s.HeroOnly && stats[s.Key] > 0 })
+}
+
 func (b *VanillaBook) Unit(name string) (VanillaUnit, bool) { u, ok := b.units[name]; return u, ok }
 
 // Gear looks an item up by name, ignoring case ("Heavy Armour" and "Heavy armour" are the same item).
 func (b *VanillaBook) Gear(name string) (VanillaGear, bool) {
-	g, ok := b.gear[strings.ToLower(name)]
+	g, ok := b.gear[NameKey(name)]
 	return g, ok
 }
 

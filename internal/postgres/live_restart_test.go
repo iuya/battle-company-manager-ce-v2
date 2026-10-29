@@ -48,7 +48,7 @@ func TestLiveMatchSurvivesARestart(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	matches := core.NewMatches(s.Campaigns(), s.Companies(), s.Matches(), s.Rulesets(), rules)
+	matches := core.NewMatches(s.Campaigns(), s.Companies(), s.Matches(), rules)
 	m, err := matches.CreateMatch(ctx, one, camp.ID, []core.NewSide{{Name: "Light", Companies: []int64{a.ID}}, {Name: "Dark", Companies: []int64{b.ID}}})
 	if err != nil {
 		t.Fatal(err)
@@ -102,7 +102,7 @@ func TestLiveMatchSurvivesARestart(t *testing.T) {
 	if err != nil || len(batch.Companies) != 2 || batch.Seq != stateAfter.Seq {
 		t.Fatalf("a reconnecting client resyncs: %+v %v", batch, err)
 	}
-	// a write now (through the restarted service) reaches the stream through NOTIFY
+	// a write through the restarted service reaches the stream through NOTIFY
 	time.Sleep(300 * time.Millisecond) // the listener is up after its first resync
 	if _, _, err := restarted.Apply(ctx, two, camp.ID, m.ID, b.ID, core.LiveAction{Kind: core.LiveBroken, UnitID: theirs.Units[1].UnitID}); err != nil {
 		t.Fatal(err)

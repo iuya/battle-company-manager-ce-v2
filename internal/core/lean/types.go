@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// The polymorphic value types (design 3.1, 4.1, 4.3, 4.4). Each reads its forms in BindJSON and writes a canonical form in
+// The polymorphic value types. Each reads its forms in BindJSON and writes a canonical form in
 // MarshalJSON.
 
 // Roll is the roll of a chart row: a number, a range "lo-hi" or a pair [lo, hi]. An empty range ("3-2", Lo > Hi) is bound as
@@ -116,7 +116,7 @@ func (g Rating) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]int{"warrior": g.Warrior, "hero": g.Hero})
 }
 
-// RuleRef names a rule or defines it inline (design 4.4, 4.1): a string, or a rule object that the loader hoists.
+// RuleRef names a rule or defines it inline: a string, or a rule object that the loader hoists.
 type RuleRef struct {
 	Name string
 	Def  *Rule
@@ -146,6 +146,34 @@ func (g RuleRef) MarshalJSON() ([]byte, error) {
 	return json.Marshal(encodeTree(reflectOf(g.Def)))
 }
 
+// BindJSON reads a promotion target: a unit name, or {unit, with} for a promotion that also gives wargear.
+func (a *AdvanceTo) BindJSON(v any, at string, rep *Reporter) {
+	switch x := v.(type) {
+	case string:
+		if strings.TrimSpace(x) == "" {
+			rep.Errorf(at, "must not be empty")
+			return
+		}
+		*a = AdvanceTo{Unit: x}
+	case map[string]any:
+		var o struct {
+			Unit string   `json:"unit" required:"true" min:"1"`
+			With []string `json:"with,omitempty"`
+		}
+		BindValue(&o, x, at, rep)
+		*a = AdvanceTo{Unit: o.Unit, With: o.With}
+	default:
+		rep.Errorf(at, "expected a unit name or {unit, with}, got %s", describe(v))
+	}
+}
+
+func (a AdvanceTo) MarshalJSON() ([]byte, error) {
+	if len(a.With) == 0 {
+		return json.Marshal(a.Unit)
+	}
+	return json.Marshal(map[string]any{"unit": a.Unit, "with": a.With})
+}
+
 // Scalar is a string or a number read as text (the rulebook version "1.1" or 1.1).
 type Scalar string
 
@@ -166,7 +194,7 @@ func (s *Scalar) BindJSON(v any, at string, rep *Reporter) {
 
 func (s Scalar) MarshalJSON() ([]byte, error) { return json.Marshal(string(s)) }
 
-// BindJSON reads a dice spec string; the error names the reason (design 3.1).
+// BindJSON reads a dice spec string; the error names the reason.
 func (d *DiceSpec) BindJSON(v any, at string, rep *Reporter) {
 	s, ok := v.(string)
 	if !ok {

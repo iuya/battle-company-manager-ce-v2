@@ -515,7 +515,7 @@ Small Shield | gear | bc definition | Small Shield | cb8c5e2c
 Spear | gear | bc definition | Spear | 761cb2e2
 Throwing Spears | gear | bc definition | Throwing Spear | d5b6b5e7
 Throwing weapon | gear | bc definition | Throwing Weapons | 160baaa6
-throwing weapons | gear | bc definition | Throwing Weapons | 160baaa6
+throwing weapons | gear | bc armoury | Throwing Weapons | 6561645c
 Torching Brand | gear | bc definition | Torching Brand | 85ef5e26
 Traps & Snares | gear | bc definition | Traps & Snares | 69a67031
 Trophy Pelt | gear | bc definition | Trophy Pelt | 7e4eed78
@@ -566,17 +566,17 @@ gear "Light shield" -> key "lightshield" | offer "Light Shield" size "" also [] 
 gear "Light shield and throwing weapons" -> key "lightshieldandthrowingweapon" | vanilla gear "Light shield and throwing weapons"
 gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
 gear "Spear" -> key "spear" | offer "Spear" size "" also [] | annotation "Spear"
-gear "Throwing weapon" -> key "throwingweapon" | offer "Throwing weapon" size "" also [Throwing weapons] | annotation "Throwing weapon" | vanilla gear "Throwing weapon"
+gear "Throwing weapon" -> key "throwingweapon" | offer "Throwing weapon" size "" also [] | annotation "Throwing weapon" | vanilla gear "Throwing weapon"
 gear "War Camel" -> key "warcamel" | offer "War Camel" size "" also [] | annotation "War Camel" | vanilla gear "War Camel"
 gear "War Horn" -> key "warhorn" | annotation "War Horn" | vanilla gear "War Horn"
-gear "War spear" -> key "warspear" | offer "War spear" size "" also [Warspear] | annotation "War spear" | vanilla gear "War spear"
+gear "War spear" -> key "warspear" | offer "War spear" size "" also [] | annotation "War spear" | vanilla gear "War spear"
 gear "bow" -> key "bow" | offer "Bow" size "" also [] | annotation "Bow" | vanilla gear "Bow"
 gear "hand weapon" -> key "handweapon" | annotation "Hand weapon"
 gear "hand-and-a-half weapon" -> key "handandahalfweapon" | offer "Hand-and-a-half weapon" size "" also [] | annotation "Hand-and-a-half weapon"
 gear "shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
-gear "throwing weapons" -> key "throwingweapon" | offer "Throwing weapon" size "" also [Throwing weapons] | annotation "Throwing weapon" | vanilla gear "Throwing weapons"
-gear "two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe Two-handed axe] | annotation "Two-handed weapon"
-gear "war spear" -> key "warspear" | offer "War spear" size "" also [Warspear] | annotation "War spear" | vanilla gear "War spear"
+gear "throwing weapons" -> key "throwingweapon" | offer "Throwing weapon" size "" also [] | vanilla gear "Throwing weapons"
+gear "two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe] | annotation "Two-handed weapon"
+gear "war spear" -> key "warspear" | offer "War spear" size "" also [] | annotation "War spear" | vanilla gear "War spear"
 rule "\"Hold positions, loose the arrows!\"" -> label "\"Hold positions, loose the arrows!\"" | text from bc rule | glossary "\"Hold positions, loose the arrows!\""
 rule "A Good Sort" -> label "A Good Sort" | text from bc rule | glossary "A Good Sort"
 rule "Big Game Hunter" -> label "Big Game Hunter" | text from bc rule | glossary "Big Game Hunter"

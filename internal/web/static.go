@@ -28,7 +28,7 @@ type staticFile struct {
 type staticSet map[string]*staticFile
 
 // bundleName is the one script the pages load (deferred) next to the two small ones of the head; the files it holds stay available on
-// their own addresses. They are plain scripts that share the page's global scope, as before; a throw while one loads now also skips the
+// their own addresses. They are plain scripts that share the page's global scope; a throw while one loads also skips the
 // ones after it, which the end-to-end tests would show.
 const bundleName = "js/app.js"
 
@@ -61,7 +61,7 @@ var staticFiles = sync.OnceValue(func() staticSet {
 	if err != nil {
 		panic(err)
 	}
-	// One request instead of fourteen: the scripts of every page, in the order the layout used to list them (Alpine last).
+	// One request instead of fourteen: the scripts of every page, in the order the pages need them (Alpine last).
 	var bundle []byte
 	for _, p := range bundleScripts {
 		f, ok := set[p]

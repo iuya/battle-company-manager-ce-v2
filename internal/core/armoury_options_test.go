@@ -185,7 +185,7 @@ func TestWarriorsWithoutOptionsBuyEquipmentButNoWargear(t *testing.T) {
 			equipment := 0
 			for _, it := range items {
 				switch {
-				case it.ArmourStage > 0 || (it.Size == "" && it.Only == ""):
+				case it.ArmourStage > 0 || (it.Size == "" && !it.namesWho()):
 					t.Errorf("%s / %s: no options, yet %s (wargear) is offered", p.Name, name, it.Name)
 				case it.Size != "":
 					equipment++
@@ -216,7 +216,7 @@ func TestAHeroMadeOfAUnitWithoutOptionsUsesTheHeroPool(t *testing.T) {
 	}
 }
 
-// R12: the Ranger of the North is a start unit of the Shire and has a Spear option, so any Shire Hero may buy a Spear.
+// The Ranger of the North is a start unit of the Shire and has a Spear option, so any Shire Hero may buy a Spear.
 func TestShireHeroesMayBuyASpear(t *testing.T) {
 	rs := shippedRules(t)
 	p, _ := rs.BC.Profile("The Shire")

@@ -15,7 +15,7 @@
         <h2 class="!text-xl">{{.Name}}</h2>
         {{if and $.Campaign.Company (eq $.Campaign.Company.ID .ID)}}<span class="badge shrink-0">Yours</span>{{end}}
       </div>
-      <p class="text-sm text-muted">{{.Faction}} · {{.Owner}}</p>
+      <p class="text-sm text-muted">{{.FactionName}} · {{.Owner}}</p>
       <p class="mt-2 text-sm">{{template "points" .}} pts · {{.Units}} units · {{template "wdl" .}}</p>
     </a>
   </li>

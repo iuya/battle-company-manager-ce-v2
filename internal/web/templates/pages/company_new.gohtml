@@ -22,7 +22,7 @@
         <li data-name="{{.Name}}" data-align="{{.Alignment}}" x-show="shows($el)">
           <button type="button" data-name="{{.Name}}" hx-get="/campaigns/{{$.Campaign.ID}}/company/info?c={{urlquery .Name}}" hx-target="#company-info" hx-swap="innerHTML" hx-boost="false" @click="picked = $el.dataset.name" hx-on::after-swap="if (!matchMedia('(min-width: 1024px)').matches) document.getElementById('company-info').scrollIntoView({ behavior: 'smooth' })"
                   class="company-pick" :class="picked === $el.dataset.name && 'company-pick-on'" :aria-current="picked === $el.dataset.name">
-            <span class="font-medium">{{.Name}}</span>
+            <span class="font-medium">{{.DisplayName}}</span>
             <span class="flex items-center gap-2 text-xs text-muted"><span class="badge {{if eq .Alignment "evil"}}badge-danger{{else}}badge-muted{{end}}">{{.Alignment}}</span>{{.MaxModels}} models · {{.ReinforcementCost}} influence</span>
           </button>
         </li>
@@ -75,7 +75,7 @@
 <article class="space-y-6" x-data="commission" data-leaders="{{$p.Leaders}}" data-sergeants-needed="{{$p.Sergeants}}" data-leader="{{range .Start}}{{if eq (printf "%s" .Role) "leader"}}{{.Index}}{{end}}{{end}}" data-sergeants="{{$first := true}}{{range .Start}}{{if eq (printf "%s" .Role) "sergeant"}}{{if not $first}},{{end}}{{.Index}}{{$first = false}}{{end}}{{end}}" data-suggested="{{if .Start}}{{(index .Start 0).Suggested}}{{else}}false{{end}}" data-company="{{$p.Name}}">
   <header class="card space-y-4">
     <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <h2 class="!text-3xl">{{$p.Name}}</h2>
+      <h2 class="!text-3xl">{{$p.DisplayName}}</h2>
       <span class="badge {{if eq $p.Alignment "evil"}}badge-danger{{else}}badge-muted{{end}}">{{$p.Alignment}}</span>
     </div>
     {{range $i, $para := split $p.Description "\n\n"}}<p class="max-w-prose {{if eq $i 0}}text-lg{{else}}text-muted{{end}}">{{$para}}</p>{{end}}
@@ -179,7 +179,7 @@
 
       <dialog x-ref="confirm" class="dialog" aria-labelledby="swear-title">
         <h3 id="swear-title" class="!text-2xl">Are you sure?</h3>
-        <p class="mt-2">You take command of the {{$p.Name}} company <strong x-text="name.trim()"></strong>, with <strong x-text="leaders.map(i => officerName(i)).join(' and ')"></strong> as its {{if eq $p.Leaders 1}}leader{{else}}leaders{{end}}{{if gt $p.Sergeants 0}} and <strong x-text="sergeants.map(i => officerName(i)).join(' and ')"></strong> as its {{if eq $p.Sergeants 1}}sergeant{{else}}sergeants{{end}}{{end}}.</p>
+        <p class="mt-2">You take command of the {{$p.DisplayName}} company <strong x-text="name.trim()"></strong>, with <strong x-text="leaders.map(i => officerName(i)).join(' and ')"></strong> as its {{if eq $p.Leaders 1}}leader{{else}}leaders{{end}}{{if gt $p.Sergeants 0}} and <strong x-text="sergeants.map(i => officerName(i)).join(' and ')"></strong> as its {{if eq $p.Sergeants 1}}sergeant{{else}}sergeants{{end}}{{end}}.</p>
         <p class="mt-2 font-semibold">These decisions are final: neither the company nor its officers can be changed afterwards (the name can).</p>
         <div class="mt-5 flex justify-end gap-2">
           <button type="button" class="btn btn-secondary" @click="$refs.confirm.close()">No</button>

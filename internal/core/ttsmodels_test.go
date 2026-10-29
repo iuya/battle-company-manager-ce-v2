@@ -1,20 +1,12 @@
 package core
 
 import (
-	"os"
 	"slices"
 	"testing"
 )
 
 func TestBCBookTTSModels(t *testing.T) {
-	content, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	book, err := ParseBattleCompanies(content)
-	if err != nil {
-		t.Fatal(err)
-	}
+	book := shippedRules(t).BC
 	m := book.TTSModels()
 	if len(m.StandIns) != 7 {
 		t.Fatalf("stand-ins = %d, want 7", len(m.StandIns))
@@ -37,15 +29,5 @@ func TestBCBookTTSModels(t *testing.T) {
 	}
 	if len(m.Names) == 0 || m.Names[0].Unit != "Isengard Orc Warrior" || m.Names[0].To != "Bow" {
 		t.Errorf("names = %+v", m.Names)
-	}
-}
-
-func TestParseTTSModelsWithoutTheSection(t *testing.T) {
-	got, err := ParseTTSModels([]byte(`{}`))
-	if err != nil || len(got.StandIns)+len(got.Mounts)+len(got.Riders)+len(got.Names) != 0 {
-		t.Errorf("got %+v, %v", got, err)
-	}
-	if _, err := ParseTTSModels([]byte(`{`)); err == nil {
-		t.Error("invalid JSON must fail")
 	}
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// The dice of the rules file (docs/definitions-lean-design.md 12.1) size the forms, the headings and the dice tray: no page
+// The dice of the rules file size the forms, the headings and the dice tray: no page
 // has a number of dice or of faces of its own.
 
 func TestScenarioRollFollowsTheDieOfTheRules(t *testing.T) {

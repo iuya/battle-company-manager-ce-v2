@@ -78,7 +78,7 @@ func TestModelTags(t *testing.T) {
 	})
 }
 
-// TestModelCoversDesign pins the top-level sections of design section 2 and the concepts of 4.1 to 4.9.
+// TestModelCoversDesign pins the top-level sections of the format and its concepts.
 func TestModelCoversDesign(t *testing.T) {
 	want := []string{"schemaVersion", "name", "version", "credit", "extends", "campaign", "rules", "magic", "gear", "paths", "scenarios", "companies", "units", "vanilla", "auras"}
 	dt := reflect.TypeOf(Document{})

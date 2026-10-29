@@ -8,7 +8,7 @@ DATABASE_URL ?= postgres://bcm:bcm@localhost:5432/bcm?sslmode=disable
 CSS_IN  = ./tailwind.css
 CSS_OUT = ./internal/web/static/app.css
 
-.PHONY: concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs migrate up up-app prod-user prod-down backup restore restore-drill vendor-check dice3d user grant seed demo fuzz check-ruleset db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
+.PHONY: hooks hooks-test validate concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs docs-check migrate up up-app prod-user prod-down backup restore restore-drill vendor-check dice3d user grant seed demo fuzz check-ruleset ruleset-reference db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
 
 # make user EMAIL=you@example.com NAME="Your Name"   (asks for the password)
 user: db-up
@@ -95,15 +95,29 @@ audit:
 generate: concept-graph
 	go generate ./...
 
+# make validate   checks the four rules files: JSON Schemas, the Go validator on the Battle Companies file (cmd/rulecheck), the curator's own
+# checks (tools/lean_checks.py), the glossary and the concept graph (tools/README.md). Needs no database; jsonschema is optional.
+# make hooks   turns on the git hooks of .githooks/ for this clone: Conventional Commits subject, gofmt, a secret scan and no push to main.
+# They run the beads hooks (.beads/hooks) first, so beads keeps working. make hooks-test tests them in a throwaway repository.
+hooks:
+	git config core.hooksPath .githooks
+	@echo "git hooks: on (.githooks). Undo with: git config --unset core.hooksPath"
+
+hooks-test:
+	sh tests/ci/githooks.test.sh
+
+validate:
+	python3 tools/validate_definitions.py
+
 # make concept-graph   regenerates definitions/concepts/concept_graph.json from the three rules files (run it after rebuilding
 # any of them: the graph records their hashes) and checks the definitions (docs/definitions.md)
 concept-graph:
 	python3 tools/build_concept_graph.py
 	python3 tools/validate_definitions.py
 
-test: e2e-check-groups
+test: e2e-check-groups docs-check
 	go test ./...
-	python3 -m unittest discover -s tools -p 'test_*.py'
+	cd tools && python3 -m unittest test_extract_tts_models test_to_wound test_lean_checks test_concept_graph test_ruleset_reference
 
 # Runs everything, including the postgres integration tests, against the bcm_test database of the compose PostgreSQL: the tests empty it, the development database (bcm) is never touched.
 TEST_DATABASE_URL ?= postgres://bcm:bcm@localhost:5432/bcm_test?sslmode=disable
@@ -116,6 +130,10 @@ test-db: db-up
 check-ruleset:
 	@test -n "$(FILE)" || { echo "usage: make check-ruleset FILE=battle_companies.json"; exit 2; }
 	go run ./cmd/rulecheck $(if $(VANILLA),-vanilla "$(VANILLA)") $(if $(GLOSSARY),-glossary "$(GLOSSARY)") "$(FILE)"
+
+# make ruleset-reference   rewrites docs/customizing-rulesets-reference.md from battle_companies.schema.json (make test fails when it is stale; the schema itself: go test ./internal/core/lean -run TestSchemaUpToDate -update-schema)
+ruleset-reference:
+	python3 tools/gen_ruleset_reference.py
 
 # make fuzz [FUZZTIME=1m]   explores the lean decoder and the dice parser with go's fuzzer (the seed corpus already runs in make test; docs/testing.md)
 fuzz:
@@ -135,7 +153,7 @@ e2e: db-up css
 	cd tests/e2e && node run.mjs $(if $(ONLY),--only $(ONLY)) $(if $(GROUP),--group $(GROUP))
 
 # make e2e-enforce [ONLY=match]   the same suite with the server in CSP_MODE=enforce (E2E_CSP_MODE=enforce): every page, swap, stream and the 3D dice run under the
-# blocking Content-Security-Policy, and a violation (browser event or /csp-report line) fails the step (docs/security-and-risks.md). CI runs this one.
+# blocking Content-Security-Policy, and a violation (browser event or /csp-report line) fails the step (docs/operations.md, "Content-Security-Policy"). CI runs this one.
 e2e-enforce:
 	$(MAKE) e2e E2E_CSP_MODE=enforce
 
@@ -152,6 +170,10 @@ e2e-groups:
 
 e2e-check-groups:
 	node tests/e2e/lib/groups.mjs
+
+# make docs-check   every relative link of the Markdown files (README, CONTRIBUTING, docs/, tools/, examples/) resolves, fragments included (part of make test)
+docs-check:
+	node tests/ci/links.mjs
 
 # make e2e-clean   drops the cached seeded template databases (bcm_e2e_tpl_*) and the test outputs
 e2e-clean: db-up

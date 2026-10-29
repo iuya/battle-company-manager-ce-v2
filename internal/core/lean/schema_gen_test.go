@@ -12,17 +12,17 @@ import (
 	"testing"
 )
 
-// The JSON Schema of the lean format (definitions/battle_companies/battle_companies.v2.schema.json) is GENERATED from the Go
+// The JSON Schema of the lean format (definitions/battle_companies/battle_companies.schema.json) is GENERATED from the Go
 // model by this file, never written by hand: model.go and campaign.go are the contract, and a hand-kept copy would drift. The
 // committed file exists for the Python validator, editors and the curator; schema_test.go fails when it differs from what this
 // generator makes from the model, and checks the model against the file again with a second, independent reading.
 //
 //	go test ./internal/core/lean -run TestSchemaUpToDate -update-schema    rewrites the file
-var updateSchema = flag.Bool("update-schema", false, "rewrite definitions/battle_companies/battle_companies.v2.schema.json from the Go model")
+var updateSchema = flag.Bool("update-schema", false, "rewrite definitions/battle_companies/battle_companies.schema.json from the Go model")
 
-const schemaPath = "../../../definitions/battle_companies/battle_companies.v2.schema.json"
+const schemaPath = "../../../definitions/battle_companies/battle_companies.schema.json"
 
-// schemaDefaults are the defaults the Normalise pass applies from a constant (design section 3). The key is "Type.jsonName".
+// schemaDefaults are the defaults the Normalise pass applies from a constant. The key is "Type.jsonName".
 // TestSchemaDefaults runs Normalise and checks each one, so the table cannot drift from defaults.go either.
 var schemaDefaults = map[string]any{
 	"Path.kind":        defaultPathKind,
@@ -72,6 +72,19 @@ var polymorphic = map[reflect.Type]map[string]any{
 			map[string]any{"$ref": "#/$defs/Rule"},
 		},
 	},
+	reflect.TypeOf(AdvanceTo{}): {
+		"description": "A promotion target: a unit name, or {unit, with} when the promotion also gives wargear.",
+		"oneOf": []any{
+			map[string]any{"type": "string", "pattern": `\S`},
+			map[string]any{
+				"type": "object", "additionalProperties": false, "required": []any{"unit"},
+				"properties": map[string]any{
+					"unit": map[string]any{"type": "string", "minLength": 1},
+					"with": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+				},
+			},
+		},
+	},
 	reflect.TypeOf(Scalar("")): {
 		"description": "A string or a number read as text (the rulebook version).",
 		"oneOf": []any{
@@ -79,6 +92,14 @@ var polymorphic = map[reflect.Type]map[string]any{
 			map[string]any{"type": "number"},
 		},
 	},
+}
+
+// fieldDoc is the description of the key name of the struct typeName: its own, else the one every struct shares.
+func fieldDoc(typeName, name string) string {
+	if d, ok := fieldDocs[typeName+"."+name]; ok {
+		return d
+	}
+	return commonDocs[name]
 }
 
 // polyName is the $defs key of a polymorphic type.
@@ -209,12 +230,18 @@ func structSchema(t reflect.Type, defs map[reflect.Type]bool) map[string]any {
 		if t == reflect.TypeOf(Document{}) && name == "schemaVersion" {
 			p["const"] = SupportedSchemaVersion
 		}
+		if d := fieldDoc(t.Name(), name); d != "" {
+			p["description"] = d
+		}
 		props[name] = p
 		if sf.Tag.Get("required") == "true" {
 			required = append(required, name)
 		}
 	}
 	out := map[string]any{"type": "object", "properties": props, "additionalProperties": open}
+	if d, ok := typeDocs[t.Name()]; ok {
+		out["description"] = d
+	}
 	if len(required) > 0 {
 		out["required"] = required
 	}
@@ -232,9 +259,9 @@ func generateSchema() map[string]any {
 	defs := map[reflect.Type]bool{}
 	root := structSchema(reflect.TypeOf(Document{}), defs)
 	root["$schema"] = "https://json-schema.org/draft/2020-12/schema"
-	root["$id"] = "battle_companies.v2.schema.json"
+	root["$id"] = "battle_companies.schema.json"
 	root["title"] = "Battle Companies rules file, lean format (schemaVersion 2)"
-	root["description"] = "Generated from internal/core/lean/model.go and campaign.go by `go test ./internal/core/lean -run TestSchemaUpToDate -update-schema`; never edit by hand. The Go decoder (lean.Decode) is the authority: it also checks names, charts and cross references, which a schema cannot."
+	root["description"] = typeDocs["Document"] + " Generated from internal/core/lean/model.go and campaign.go by `go test ./internal/core/lean -run TestSchemaUpToDate -update-schema`; never edit by hand. The Go decoder (lean.Decode) is the authority: it also checks names, charts and cross references, which a schema cannot."
 	all := map[string]any{}
 	// close the set of struct types reachable from the document
 	for done := map[reflect.Type]bool{}; ; {
@@ -283,6 +310,6 @@ func TestSchemaUpToDate(t *testing.T) {
 		t.Fatalf("%v (run: go test ./internal/core/lean -run TestSchemaUpToDate -update-schema)", err)
 	}
 	if !bytes.Equal(got, want) {
-		t.Errorf("battle_companies.v2.schema.json is stale or hand-edited: the Go model is the contract.\nRun: go test ./internal/core/lean -run TestSchemaUpToDate -update-schema")
+		t.Errorf("battle_companies.schema.json is stale or hand-edited: the Go model is the contract.\nRun: go test ./internal/core/lean -run TestSchemaUpToDate -update-schema")
 	}
 }

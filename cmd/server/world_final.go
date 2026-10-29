@@ -110,7 +110,7 @@ func (w *world) finishingTouches() {
 		"used up  /join/" + used.Token + "   (a one-use link already used by Pippin)",
 	}
 
-	// a handover: the campaign of the Rohan players is now organised by Faramir
+	// a handover: the campaign of the Rohan players is organised by Faramir
 	h := w.campaign("you", "Handed over: Faramir organises now",
 		"You created this campaign and handed it over; Faramir is its organiser, You is a player without a company.", defaultSettings)
 	w.company(h, "eowyn", "Éowyn's own company", "Rohan", true)

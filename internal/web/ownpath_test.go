@@ -3,7 +3,6 @@ package web
 import (
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 
@@ -71,14 +70,7 @@ func TestAnOwnPathWarriorUnderTheSettingShowsExperienceAndLevelUp(t *testing.T) 
 }
 
 func TestTheCreationPreviewKeepsTheOfficersAsTheyAreAndTheOwnPathBadgeFollowsTheSetting(t *testing.T) {
-	content, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Skip("no rules file")
-	}
-	book, err := core.ParseBattleCompanies(content)
-	if err != nil {
-		t.Fatal(err)
-	}
+	book := shippedRules(t).BC
 	for _, custom := range []bool{false, true} {
 		f := newFixture(t, Config{})
 		d := campaignDetail()

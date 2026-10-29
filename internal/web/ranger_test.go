@@ -11,9 +11,6 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// The recruit window's swap option and the officer panel come with bead d1z (the core side is built: pick "ranger",
-// PendingOfficers, ArrangeOfficers).
-
 func TestCemeteryTagsTheFallenRanger(t *testing.T) {
 	f := newFixture(t, Config{})
 	d, detail := mineDetail()

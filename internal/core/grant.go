@@ -29,22 +29,22 @@ func (in GrantInput) Validate() (GrantInput, error) {
 	in.Note = strings.TrimSpace(in.Note)
 	var errs []error
 	if n := utf8.RuneCountInString(in.Note); n == 0 || n > maxGrantNote {
-		errs = append(errs, errors.New("the note must be between 1 and 200 characters"))
+		errs = append(errs, fieldError("note", "the note must be between 1 and 200 characters"))
 	}
 	if in.Gold == 0 && in.Influence == 0 && in.Experience == 0 {
-		errs = append(errs, errors.New("give some Gold, Influence or Experience"))
+		errs = append(errs, fieldError("", "give some Gold, Influence or Experience"))
 	}
 	if abs(in.Gold) > maxGrantGold {
-		errs = append(errs, errors.New("Gold must be between -1000 and 1000"))
+		errs = append(errs, fieldError("gold", "Gold must be between -1000 and 1000"))
 	}
 	if abs(in.Influence) > maxGrantInflu {
-		errs = append(errs, errors.New("Influence must be between -100 and 100"))
+		errs = append(errs, fieldError("influence", "Influence must be between -100 and 100"))
 	}
 	if abs(in.Experience) > maxGrantExperi {
-		errs = append(errs, errors.New("Experience must be between -100 and 100"))
+		errs = append(errs, fieldError("experience", "Experience must be between -100 and 100"))
 	}
 	if in.Experience != 0 && in.UnitID == 0 {
-		errs = append(errs, errors.New("choose the unit that gets the experience"))
+		errs = append(errs, fieldError("unit", "choose the unit that gets the experience"))
 	}
 	if in.Experience == 0 {
 		in.UnitID = 0

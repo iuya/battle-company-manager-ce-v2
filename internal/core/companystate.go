@@ -231,7 +231,7 @@ func cloneProgress(p *Progress) Progress {
 	c := *p
 	c.Bonus, c.Cast = cloneMap(p.Bonus), cloneMap(p.Cast)
 	c.Rules, c.Minor, c.Actions, c.Powers, c.Gear = slices.Clone(p.Rules), slices.Clone(p.Minor), slices.Clone(p.Actions), slices.Clone(p.Powers), slices.Clone(p.Gear)
-	c.Upgrades, c.Drop = slices.Clone(p.Upgrades), slices.Clone(p.Drop)
+	c.Upgrades = slices.Clone(p.Upgrades)
 	return c
 }
 

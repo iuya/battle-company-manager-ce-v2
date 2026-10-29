@@ -1,0 +1,4 @@
+battle_companies.json: rules[0].auras[0].mergeLabels[1]: must not be empty
+battle_companies.json: rules[0].auras[0].group: no aura group "lage" in auras.groups; closest: "large"
+  hint: known: always, large
+battle_companies.json: gear[0].auras[0].from: only the ring of a rule has a source kind; an item's ring is an item ring and a power's a power ring

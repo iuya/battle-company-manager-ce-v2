@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+# Conventional Commits check (CLAUDE.md, "Conventions & Patterns"): <type>[(scope)][!]: <description>.
+# Runs the beads commit-msg hook first when there is one, then the format check.
+hook_dir=$(dirname "$0")
+if [ -x "$hook_dir/../.beads/hooks/commit-msg" ]; then
+  "$hook_dir/../.beads/hooks/commit-msg" "$@" || exit $?
+fi
+
+msg_file=$1
+subject=$(sed -n '1p' "$msg_file")
+
+case "$subject" in
+  Merge\ * | Revert\ \"* | fixup!\ * | squash!\ * | amend!\ *) exit 0 ;;
+esac
+
+if printf '%s\n' "$subject" | grep -Eq '^(feat|fix|perf|refactor|docs|test|build|ci|chore)(\([a-z0-9._/-]+\))?!?: [^ ].*'; then
+  exit 0
+fi
+
+cat >&2 <<MSG
+commit-msg: the subject does not follow Conventional Commits.
+
+  got:      $subject
+  expected: <type>[(scope)][!]: <description>
+  types:    feat fix perf refactor docs test build ci chore
+  example:  fix(core): a hero promoted twice keeps the gear of the new profile
+
+See CONTRIBUTING.md and docs/collaborating.md.
+MSG
+exit 1

@@ -18,7 +18,7 @@ func hasGlaive(names []string) bool {
 	return slices.ContainsFunc(names, func(n string) bool { return SameItem(n, nil, "Elven-made Glaive", []string{"Elven Glaive"}) })
 }
 
-// Owner rule (2026-10-26): a Mirkwood Elf Warrior with the Elven-made glaive promoted to the Mirkwood Elf Knight loses it, because
+// A Mirkwood Elf Warrior with the Elven-made glaive promoted to the Mirkwood Elf Knight loses it, because
 // a warrior may only carry what its profile lists and the Knight's profile has no glaive. The dropped gear is simply gone.
 func TestAPromotedWarriorLosesTheGlaiveTheKnightDoesNotHave(t *testing.T) {
 	f := newCompanyFixture(t)

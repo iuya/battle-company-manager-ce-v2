@@ -1,0 +1,2 @@
+battle_companies.json: rules[0].auras[1]: the ring is also labelled "Lay of the Wood" at rules[0].auras[0]; rings of one owner need different labels
+  hint: add "label": "..." to tell the rings apart

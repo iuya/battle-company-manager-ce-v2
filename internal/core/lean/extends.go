@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// The extends engine (design 3, 4.2, 4.3, 4.4): a company, unit, gear item or path may name a base; the result is the base's
+// The extends engine: a company, unit, gear item or path may name a base; the result is the base's
 // fields with the child's own on top. Scalars override, lists and nested objects replace as a whole. A field "written" is a field
 // that is not the zero value, so a child cannot override `true` with `false` (no shipped field needs it). The merge skips what must
 // stay the child's own (name, id, aka, definition text ...). A base that is not in the file (vanilla, the glossary) is left to the
@@ -130,7 +130,7 @@ func applyExtends(doc *Document, rep *Reporter) {
 	extendsList(doc.Companies, nil, "companies", extCompany, func(c *Company) string { return c.Name }, func(c *Company) string { return c.Extends }, func(c *Company) []string { return c.Aka }, rep)
 }
 
-// nameUnits gives an annotation without a name the name of its base (design 3), and reports a unit with neither.
+// nameUnits gives an annotation without a name the name of its base, and reports a unit with neither.
 func nameUnits(units []Unit, path string, rep *Reporter) {
 	for i := range units {
 		u := &units[i]

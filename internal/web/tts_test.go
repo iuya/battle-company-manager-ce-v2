@@ -38,7 +38,7 @@ var ttsNamesSample = core.TTSNamesPayload{Version: 1, Company: "Riders", Rules: 
 	{Key: "warrior of rohan: shield", Line: "Warrior of Rohan: Shield", Unit: 6, Name: "[b]Eadric[/b] (8)", Desc: "x"},
 }}
 
-// ttsDefaultAuras is the selection of a dialog opened with no query: the switch on, the groups the owner chose on (docs/aura-ranges.md section 9).
+// ttsDefaultAuras is the selection of a dialog opened with no query: the switch on, the default groups on (docs/aura-ranges.md section 9).
 var ttsDefaultAuras = core.AuraSelection{Draw: true, Declared: true, Conditional: true}
 
 func (f *fixture) expectNames(rules string) {

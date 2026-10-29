@@ -237,29 +237,33 @@
     },
     {
       "name": "Stand Fast",
-      "aura": {
-        "radius": 6,
-        "kind": "command",
-        "affects": "friendly",
-        "when": "always",
-        "los": false,
-        "tip": "Friendly models within 6\" ..."
-      }
+      "auras": [
+        {
+          "radius": 6,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "always",
+          "los": false,
+          "tip": "Friendly models within 6\" ..."
+        }
+      ]
     },
     {
       "name": "Lead by Example",
-      "aura": {
-        "radius": 6,
-        "kind": "banner",
-        "affects": "friendly",
-        "when": "conditional",
-        "los": true,
-        "keywords": [
-          "Orc",
-          "Troll"
-        ],
-        "tip": "After slaying 3 enemy Heroes or Monsters ..."
-      }
+      "auras": [
+        {
+          "radius": 6,
+          "kind": "banner",
+          "affects": "friendly",
+          "when": "conditional",
+          "los": true,
+          "keywords": [
+            "Orc",
+            "Troll"
+          ],
+          "tip": "After slaying 3 enemy Heroes or Monsters ..."
+        }
+      ]
     },
     {
       "name": "Quiet Step",

@@ -1,8 +1,6 @@
 package core
 
 import (
-	"encoding/json"
-	"fmt"
 	"slices"
 	"sort"
 	"strings"
@@ -110,82 +108,20 @@ type AuraTable struct {
 // Empty says there are no aura entries.
 func (t AuraTable) Empty() bool { return len(t.Entries) == 0 }
 
-// ParseAuras reads data.auras of a Battle Companies file (empty when it has none).
-func ParseAuras(bc []byte) (AuraTable, error) {
-	var doc struct {
-		Data struct {
-			Auras *struct {
-				Kinds []struct {
-					ID      string `json:"id"`
-					Label   string `json:"label"`
-					Colour  string `json:"colour"`
-					RGB     string `json:"rgb"`
-					Text    string `json:"text"`
-					Default bool   `json:"default"`
-				} `json:"kinds"`
-				Groups []struct {
-					ID      string `json:"id"`
-					Label   string `json:"label"`
-					Text    string `json:"text"`
-					Default bool   `json:"default"`
-				} `json:"groups"`
-				Entries []struct {
-					ID     string `json:"id"`
-					Source struct {
-						Type    string   `json:"type"`
-						Names   []string `json:"names"`
-						Pattern string   `json:"pattern"`
-					} `json:"source"`
-					Label       string   `json:"label"`
-					MergeLabels []string `json:"mergeLabels"`
-					Radius      float64  `json:"radius"`
-					Kind        string   `json:"kind"`
-					Affects     string   `json:"affects"`
-					When        string   `json:"when"`
-					Group       string   `json:"group"`
-					LOS         bool     `json:"los"`
-					Keywords    []string `json:"keywords"`
-					Bearer      string   `json:"bearer"`
-					Replaces    []string `json:"replaces"`
-					Tip         string   `json:"tip"`
-					Concept     string   `json:"concept"`
-				} `json:"entries"`
-			} `json:"auras"`
-		} `json:"data"`
+// newAuraEntry completes an entry: the group defaults to `when`, and the names (and the family of a parameterised pattern) are
+// indexed the way the matching looks them up.
+func newAuraEntry(x AuraEntry) AuraEntry {
+	x.keys = map[string]bool{}
+	if x.Group == "" {
+		x.Group = string(x.When)
 	}
-	if err := json.Unmarshal(bc, &doc); err != nil {
-		return AuraTable{}, err
+	for _, n := range x.Source.Names {
+		x.keys[ItemKey(n)] = true
 	}
-	var t AuraTable
-	a := doc.Data.Auras
-	if a == nil {
-		return t, nil
+	if p, _, ok := strings.Cut(x.Source.Pattern, "("); ok {
+		x.family = ItemKey(p)
 	}
-	for _, k := range a.Kinds {
-		t.Kinds = append(t.Kinds, AuraKindDef{ID: k.ID, Label: k.Label, Colour: k.Colour, RGB: k.RGB, Text: k.Text, Default: k.Default})
-	}
-	for _, g := range a.Groups {
-		t.Groups = append(t.Groups, AuraGroupDef{ID: g.ID, Label: g.Label, Text: g.Text, Default: g.Default})
-	}
-	for _, e := range a.Entries {
-		if e.Radius <= 0 {
-			return AuraTable{}, fmt.Errorf("data.auras: entry %q has no radius", e.ID)
-		}
-		x := AuraEntry{ID: e.ID, Source: AuraSource{Type: e.Source.Type, Names: e.Source.Names, Pattern: e.Source.Pattern}, Label: e.Label, MergeLabels: e.MergeLabels,
-			Radius: e.Radius, Kind: AuraKind(e.Kind), Affects: e.Affects, When: AuraWhen(e.When), Group: e.Group, LOS: e.LOS, Keywords: e.Keywords, Bearer: e.Bearer,
-			Replaces: e.Replaces, Tip: e.Tip, Concept: e.Concept, keys: map[string]bool{}}
-		if x.Group == "" {
-			x.Group = string(x.When)
-		}
-		for _, n := range e.Source.Names {
-			x.keys[ItemKey(n)] = true
-		}
-		if p, _, ok := strings.Cut(e.Source.Pattern, "("); ok {
-			x.family = ItemKey(p)
-		}
-		t.Entries = append(t.Entries, x)
-	}
-	return t, nil
+	return x
 }
 
 // Auras is the aura table of the rules.
@@ -258,8 +194,7 @@ func (r *RuleSet) unitFacts(u CompanyUnit) unitFacts {
 			addFact(f.actions, a.Name)
 		}
 	}
-	lostStandFast := slices.ContainsFunc(u.LostAbilities, func(l InjuryLoss) bool { return strings.Contains(ItemKey(l.Ability), "standfast") })
-	f.hero = u.IsHero() && !u.Wanderer && !lostStandFast
+	f.hero = u.IsHero() && !u.Wanderer && !u.Lost(AbilityStandFast)
 	return f
 }
 
@@ -345,8 +280,6 @@ type AuraSelection struct {
 	Kinds map[AuraKind]bool // nil: every kind
 	// The groups of data.auras.groups; the group "always" is on whenever Draw is.
 	Declared, Conditional, Cast, Target, Large, Optional bool
-	// Base adds the base radius of the vanilla unit to a figure (payload field b); off by default: the helper measures the figure (docs/aura-ranges.md Q7).
-	Base bool
 }
 
 // DefaultAuraSelection is the selection the data defaults describe (data.auras kinds and groups; spec section 9).

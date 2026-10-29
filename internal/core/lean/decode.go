@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// Decode is the one entry point (design plan 2): it reads a Battle Companies file of schemaVersion 2, binds it strictly, applies
+// Decode is the one entry point: it reads a Battle Companies file of schemaVersion 2, binds it strictly, applies
 // extends and defaults, resolves every name against the file and lower, and validates. Every problem lands in the report; the
 // document is nil only when the bytes are not usable JSON or are another schemaVersion. The same bytes always give the same
 // report. A panic inside the decoder (a bug, never expected) is reported as an issue instead of taking the caller down.

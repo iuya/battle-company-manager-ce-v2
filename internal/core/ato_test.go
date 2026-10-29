@@ -13,11 +13,7 @@ import (
 
 func realATO(t *testing.T) ATORules {
 	t.Helper()
-	r, err := ParseATO(readDef(t, "battle_companies/battle_companies.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	return r
+	return shippedRules(t).BC.ATO()
 }
 
 func TestParseATO(t *testing.T) {
@@ -216,7 +212,7 @@ func newATOFixture(t *testing.T) *atoFixture {
 		}
 		return []CompanyState{a, b}, nil
 	}).AnyTimes()
-	f.svc = NewMatches(f.campaigns, f.companies, f.matches, f.rulesets, staticRules{shippedRules(t)}).WithATO(f.repo)
+	f.svc = NewMatches(f.campaigns, f.companies, f.matches, staticRules{shippedRules(t)}).WithATO(f.repo)
 	f.repo.EXPECT().Get(gomock.Any(), int64(5), int64(1)).DoAndReturn(func(context.Context, int64, int64) (ATORecord, error) { return f.rec, nil }).AnyTimes()
 	f.repo.EXPECT().GameStarted(gomock.Any(), int64(5), int64(1)).DoAndReturn(func(context.Context, int64, int64) (bool, error) { return f.started, nil }).AnyTimes()
 	f.repo.EXPECT().Update(gomock.Any(), int64(5), int64(1), gomock.Any(), gomock.Any()).DoAndReturn(
@@ -282,10 +278,6 @@ func TestAgainstTheOddsCard(t *testing.T) {
 	}
 }
 
-func itoa(n int) string {
-	return strings.TrimSpace(strings.Repeat(" ", 0) + string(rune('0'+n/10%10)) + string(rune('0'+n%10)))
-}
-
 func TestAgainstTheOddsEqualRatings(t *testing.T) {
 	f := newATOFixture(t)
 	f.companies = NewMockcompanyRepository(gomock.NewController(t))
@@ -294,7 +286,7 @@ func TestAgainstTheOddsEqualRatings(t *testing.T) {
 		a.Company.ID, b.Company.ID = 1, 2
 		return []CompanyState{a, b}, nil
 	}).AnyTimes()
-	f.svc = NewMatches(f.campaigns, f.companies, f.matches, f.rulesets, staticRules{shippedRules(t)}).WithATO(f.repo)
+	f.svc = NewMatches(f.campaigns, f.companies, f.matches, staticRules{shippedRules(t)}).WithATO(f.repo)
 	c := f.card(t, 10)
 	if c.Eligible || !strings.HasPrefix(c.Why, "Against the Odds: nobody. Both companies are rated") || c.Access != ATONone {
 		t.Errorf("equal ratings: %+v", c)

@@ -3,7 +3,7 @@
   "version": "1.0",
   "builtFrom": {
     "vanilla": "235fc4d309ccd25441df33be77501f8f67216cc942a5ffbfe414490e0a376546",
-    "battleCompanies": "3f7bc38473230adcc5f5370edcace2d933023842839f9606a8d36f20ccfbcf17",
+    "battleCompanies": "e222db6f94baeaf1f4880d7858120e6a82f03c84c94997daef79a105c6c3547a",
     "glossary": "5a364b60627bdca4d19f49e152875ae76fc64cc01f56032ab2da10f56fc3872f"
   },
   "nodes": [
@@ -412,10 +412,7 @@
       "kind": "item",
       "name": "Flaming Brand",
       "file": "battleCompanies",
-      "textHash": "14e3e819eab1f283",
-      "aliases": [
-        "Flaming Brands"
-      ]
+      "textHash": "14e3e819eab1f283"
     },
     {
       "id": "item:foe-spear",
@@ -1661,8 +1658,8 @@
       "id": "rule:ancient-enemies",
       "kind": "rule",
       "name": "Ancient Enemies",
-      "file": "vanilla",
-      "textHash": "9209cf64c77343cf"
+      "file": "battleCompanies",
+      "textHash": "c942951f1132f381"
     },
     {
       "id": "rule:ancient-enemies-dwarf",
@@ -3461,7 +3458,7 @@
       "kind": "rule",
       "name": "I shall pass!",
       "file": "battleCompanies",
-      "textHash": "923f9c6ceb5bd985"
+      "textHash": "697853cd55037f73"
     },
     {
       "id": "rule:if-i-were-to-marry-anyone-it-would-ve-been-her",
@@ -3656,8 +3653,15 @@
       "id": "rule:lead-by-example",
       "kind": "rule",
       "name": "Lead by Example",
+      "file": "vanilla",
+      "textHash": "3998cb6a8b8a4139"
+    },
+    {
+      "id": "rule:lead-by-example-their-own-making",
+      "kind": "rule",
+      "name": "Lead by Example (Their Own Making)",
       "file": "battleCompanies",
-      "textHash": "b2402b503740fec9"
+      "textHash": "94e45938437a056f"
     },
     {
       "id": "rule:leader-citadel-guard",
@@ -4042,7 +4046,7 @@
       "kind": "rule",
       "name": "Master of Fighting Styles",
       "file": "battleCompanies",
-      "textHash": "cab550c80c762011"
+      "textHash": "8204844e9d25920b"
     },
     {
       "id": "rule:master-of-magic",
@@ -6079,7 +6083,7 @@
       "kind": "rule",
       "name": "Whirl of Attacks",
       "file": "battleCompanies",
-      "textHash": "51ff4e0364cd4061"
+      "textHash": "4ed052b419c7191f"
     },
     {
       "id": "rule:whirl-of-blades",
@@ -9979,7 +9983,7 @@
     },
     {
       "from": "path:path-of-their-own-making",
-      "to": "rule:lead-by-example",
+      "to": "rule:lead-by-example-their-own-making",
       "type": "grants",
       "via": "Gained by heroes of the Path of Their Own Making."
     },

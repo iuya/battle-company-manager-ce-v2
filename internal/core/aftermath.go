@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 // The War's Aftermath of a match: see docs/aftermath.md. This file holds the types, the rules parser and the pure rules
@@ -186,11 +188,12 @@ func (r AftermathRules) Chart(hero bool) []InjuryRow {
 	return r.Warrior
 }
 
-// ParseAftermath reads the aftermath rules of the Battle Companies file: experience gains, influence gains, Against the Odds
-// bonuses, the injuries charts and the scenario rewards with their effects.
-func ParseAftermath(content []byte) (AftermathRules, error) {
+// LeanAftermath reads the aftermath rules of a lean document: experience gains, influence gains, Against the Odds bonuses, the
+// injuries charts, the scenario rewards and the items that activate an effect. The charts and the bonuses are the campaign tables as
+// the file stores them (lean Rest/Free) until a parameter slice types them.
+func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, error) {
 	type chartRow struct {
-		Roll       [2]int   `json:"roll"`
+		Roll       jsonRoll `json:"roll"`
 		Key        string   `json:"key"`
 		Name       string   `json:"name"`
 		Text       string   `json:"text"`
@@ -208,99 +211,78 @@ func ParseAftermath(content []byte) (AftermathRules, error) {
 			Dice string `json:"dice"`
 		} `json:"grantsInfluence"`
 		StatChanges []struct {
-			Stat  string `json:"stat"`
-			Delta int    `json:"delta"`
+			Stat   string `json:"stat"`
+			Amount int    `json:"amount"`
 		} `json:"statChanges"`
 	}
 	type gains struct {
 		Win   int `json:"win"`
 		Other int `json:"other"`
 	}
-	var doc struct {
-		Campaign struct {
-			Progression struct {
-				Threshold int `json:"threshold"`
-			} `json:"progression"`
-			Experience struct {
-				Gains []struct {
-					Key        string `json:"key"`
-					Label      string `json:"label"`
-					Amount     int    `json:"amount"`
-					Repeatable bool   `json:"repeatable"`
-				} `json:"gains"`
-			} `json:"experience"`
-			Influence struct {
-				Gains struct {
-					Participating int `json:"participating"`
-					Draw          int `json:"draw"`
-					Win           int `json:"win"`
-				} `json:"gains"`
-			} `json:"influence"`
-			Injuries struct {
-				Roll    string     `json:"roll"`
-				Warrior []chartRow `json:"warrior"`
-				Hero    []chartRow `json:"hero"`
-			} `json:"injuries"`
-			AgainstTheOdds struct {
-				Bonuses []struct {
-					Key    string `json:"key"`
-					Name   string `json:"name"`
-					Text   string `json:"text"`
-					Rating int    `json:"rating"`
-					Count  int    `json:"count"`
-					Gains  struct {
-						Influence *gains `json:"influence"`
-						XP        *gains `json:"experiencePerModel"`
-					} `json:"gains"`
-				} `json:"bonuses"`
-			} `json:"againstTheOdds"`
-			AftermathEffects []struct {
+	var c struct {
+		Progression struct {
+			Threshold int `json:"threshold"`
+		} `json:"progression"`
+		Experience struct {
+			Gains []struct {
 				Key        string `json:"key"`
-				Kind       string `json:"kind"`
+				Label      string `json:"label"`
 				Amount     int    `json:"amount"`
-				MaxValue   int    `json:"maxInfluenceValue"`
-				When       string `json:"when"`
-				Text       string `json:"text"`
-				Scenario   string `json:"scenario"`
-				SourceBase string `json:"source"`
-				Modifier   int    `json:"modifier"`
-				Clamp      []int  `json:"clamp"`
-				Stackable  bool   `json:"stackable"`
-				NoRoll     bool   `json:"noRoll"`
-				Result     string `json:"result"`
-				Activated  struct {
-					Carrier  string   `json:"carrier"`
-					Requires []string `json:"requires"`
-				} `json:"activatedBy"`
-			} `json:"aftermathEffects"`
-		} `json:"campaign"`
-		Data struct {
-			Equipment struct {
-				Items []struct {
-					Name   string `json:"name"`
-					Effect string `json:"aftermathEffect"`
-				} `json:"items"`
-			} `json:"equipment"`
-			ScenarioDetails []struct {
-				Name    string `json:"name"`
-				Rewards []struct {
-					Effect    string `json:"effect"`
-					Name      string `json:"name"`
-					Text      string `json:"text"`
-					Who       string `json:"who"`
-					Condition struct {
-						Kind  string `json:"kind"`
-						Key   string `json:"key"`
-						Label string `json:"label"`
-					} `json:"condition"`
-				} `json:"rewards"`
-			} `json:"scenarioDetails"`
-		} `json:"data"`
+				Repeatable bool   `json:"repeatable"`
+			} `json:"gains"`
+		} `json:"experience"`
+		Influence struct {
+			Gains struct {
+				Participating int `json:"participating"`
+				Draw          int `json:"draw"`
+				Win           int `json:"win"`
+			} `json:"gains"`
+		} `json:"influence"`
+		Injuries struct {
+			Roll    string     `json:"roll"`
+			Warrior []chartRow `json:"warrior"`
+			Hero    []chartRow `json:"hero"`
+		} `json:"injuries"`
+		AgainstTheOdds struct {
+			Bonuses []struct {
+				Key    string `json:"key"`
+				Name   string `json:"name"`
+				Text   string `json:"text"`
+				Rating int    `json:"rating"`
+				Count  int    `json:"count"`
+				Gains  struct {
+					Influence *gains `json:"influence"`
+					XP        *gains `json:"experiencePerModel"`
+				} `json:"gains"`
+			} `json:"bonuses"`
+		} `json:"againstTheOdds"`
+		AftermathEffects []struct {
+			Key        string `json:"key"`
+			Kind       string `json:"kind"`
+			Amount     int    `json:"amount"`
+			MaxValue   int    `json:"maxInfluenceValue"`
+			When       string `json:"when"`
+			Text       string `json:"text"`
+			Scenario   string `json:"scenario"`
+			SourceBase string `json:"source"`
+			Modifier   int    `json:"modifier"`
+			Clamp      []int  `json:"clamp"`
+			Stackable  bool   `json:"stackable"`
+			NoRoll     bool   `json:"noRoll"`
+			Result     string `json:"result"`
+			Activated  struct {
+				Carrier  string   `json:"carrier"`
+				Requires []string `json:"requires"`
+			} `json:"activatedBy"`
+		} `json:"aftermathEffects"`
 	}
-	if err := json.Unmarshal(content, &doc); err != nil {
+	raw, err := lean.Encode(d.Campaign)
+	if err != nil {
 		return AftermathRules{}, err
 	}
-	c := doc.Campaign
+	if err := json.Unmarshal(raw, &c); err != nil {
+		return AftermathRules{}, err
+	}
 	rules := AftermathRules{
 		LevelEvery:    c.Progression.Threshold,
 		Participating: c.Influence.Gains.Participating, Draw: c.Influence.Gains.Draw, Win: c.Influence.Gains.Win,
@@ -340,6 +322,12 @@ func ParseAftermath(content []byte) (AftermathRules, error) {
 				row.Kind = CasualtyInjured
 			case slices.Contains(r.Effects, "fullRecovery"):
 				row.Kind = CasualtyRecovered
+			case len(r.Effects) == 0 && r.Key == "dead": // a row written without the shipped file's effect codes is read by its key
+				row.Kind = CasualtyDead
+			case len(r.Effects) == 0 && r.Key == "injured":
+				row.Kind = CasualtyInjured
+			case len(r.Effects) == 0:
+				row.Kind = CasualtyRecovered
 			default:
 				return nil, fmt.Errorf("the injuries chart row %q does nothing the aftermath knows", r.Key)
 			}
@@ -362,17 +350,17 @@ func ParseAftermath(content []byte) (AftermathRules, error) {
 				for j, sc := range r.StatChanges {
 					path := fmt.Sprintf("campaign.injuries.%s[%s].statChanges[%d]", map[bool]string{false: "warrior", true: "hero"}[hero], r.Key, j)
 					switch {
-					case !slices.Contains(knownStats, sc.Stat):
-						return nil, fmt.Errorf("%s.stat: %q is not a characteristic; known: %s", path, sc.Stat, strings.Join(knownStats, ", "))
-					case sc.Delta <= 0:
-						return nil, fmt.Errorf("%s.delta: %d must be a gain; a loss belongs to a persistent injury", path, sc.Delta)
+					case !slices.Contains(vanilla.StatKeys(), sc.Stat):
+						return nil, fmt.Errorf("%s.stat: %q is not a characteristic; known: %s", path, sc.Stat, strings.Join(vanilla.StatKeys(), ", "))
+					case sc.Amount <= 0:
+						return nil, fmt.Errorf("%s.amount: %d must be a gain; a loss belongs to a persistent injury", path, sc.Amount)
 					}
 					if row.StatGains == nil {
 						row.StatGains = map[string]int{}
 					}
-					row.StatGains[sc.Stat] += sc.Delta
+					row.StatGains[sc.Stat] += sc.Amount
 					if sc.Stat == "fate" {
-						row.Fate = sc.Delta
+						row.Fate = sc.Amount
 					}
 				}
 			}
@@ -388,7 +376,6 @@ func ParseAftermath(content []byte) (AftermathRules, error) {
 		}
 		return out, nil
 	}
-	var err error
 	if rules.InjuryDice, err = diceAt("campaign.injuries.roll", c.Injuries.Roll); err != nil {
 		return AftermathRules{}, errors.Join(ErrInvalidRuleset, err)
 	}
@@ -406,18 +393,32 @@ func ParseAftermath(content []byte) (AftermathRules, error) {
 		}
 		rules.Effects[e.Key] = eff
 	}
-	for _, it := range doc.Data.Equipment.Items {
-		if it.Effect == "" {
+	for _, it := range d.Gear {
+		if it.AftermathEffect == "" {
 			continue
 		}
-		if _, ok := rules.Effects[it.Effect]; !ok {
-			return AftermathRules{}, errors.Join(ErrInvalidRuleset, fmt.Errorf("the item %q names the aftermath effect %q, which does not exist", it.Name, it.Effect))
+		if _, ok := rules.Effects[it.AftermathEffect]; !ok {
+			return AftermathRules{}, errors.Join(ErrInvalidRuleset, fmt.Errorf("the item %q names the aftermath effect %q, which does not exist", it.Name, it.AftermathEffect))
 		}
-		rules.ItemEffects[strings.ToLower(it.Name)] = it.Effect
+		rules.ItemEffects[NameKey(it.Name)] = it.AftermathEffect
 	}
-	for _, d := range doc.Data.ScenarioDetails {
-		for _, rw := range d.Rewards {
-			rules.Scenarios[d.Name] = append(rules.Scenarios[d.Name], RewardRule{Effect: rw.Effect, Name: rw.Name, Text: rw.Text, Who: rw.Who,
+	for _, sc := range d.Scenarios {
+		var rewards []struct {
+			Effect    string `json:"effect"`
+			Name      string `json:"name"`
+			Text      string `json:"text"`
+			Who       string `json:"who"`
+			Condition struct {
+				Kind  string `json:"kind"`
+				Key   string `json:"key"`
+				Label string `json:"label"`
+			} `json:"condition"`
+		}
+		if err := leanRoundTrip(sc.Rewards, &rewards); err != nil {
+			return AftermathRules{}, err
+		}
+		for _, rw := range rewards {
+			rules.Scenarios[sc.Name] = append(rules.Scenarios[sc.Name], RewardRule{Effect: rw.Effect, Name: rw.Name, Text: rw.Text, Who: rw.Who,
 				Condition: RewardCondition{Kind: rw.Condition.Kind, Key: rw.Condition.Key, Label: rw.Condition.Label}})
 		}
 	}
@@ -764,7 +765,7 @@ func Experience(ctx AftermathContext, in AftermathInput) []UnitGain {
 // Wounds of a Hero comes from the casualty rolls and is added by the backend.
 func Influence(ctx AftermathContext, in AftermathInput) []AmountLine {
 	lines := []AmountLine{{Text: "Participating", Amount: ctx.Rules.Participating, Key: "participating"}}
-	switch ctx.Outcome { // a fled company's outcome is a loss: no Win or Draw, but it keeps its Against the Odds bonuses (user decision 2026-10-21)
+	switch ctx.Outcome { // a fled company's outcome is a loss: no Win or Draw, but it keeps its Against the Odds bonuses
 	case "win":
 		lines = append(lines, AmountLine{Text: "Win", Amount: ctx.Rules.Win, Key: "win"})
 	case "draw":
@@ -968,7 +969,7 @@ func NextSuccession(roster []CompanyUnit, leaderFell bool, leaders int) Successi
 
 // NextSergeant says whether the company, with its Leader, has fewer Sergeants than the rules give it (campaign.company.sergeants) and which heroes could fill the place.
 // replace is true when a Sergeant died or retired and has not been replaced: with no hero left, the Warriors with the most
-// Experience are then offered (Fallback; the place is no longer optional), as for a lost Leader.
+// Experience are then offered (Fallback; the place is not optional), as for a lost Leader.
 func NextSergeant(roster []CompanyUnit, replace bool, sergeants int) Succession {
 	s := Succession{Sergeants: sergeants}
 	n := 0

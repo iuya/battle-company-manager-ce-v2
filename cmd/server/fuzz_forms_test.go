@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -38,22 +37,15 @@ func TestMalformedInputNeverCrashesAHandler(t *testing.T) {
 	if testing.Short() {
 		t.Skip("slow")
 	}
-	if _, err := os.Stat("definitions"); err != nil { // the rules are read relative to the repository root; put the directory back after
-		wd, _ := os.Getwd()
-		if err := os.Chdir("../.."); err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() { _ = os.Chdir(wd) })
-	}
+	t.Parallel() // its own database (a copy of the seeded template), no state shared with the other tests
 	ctx := context.Background()
-	dsn := freshDatabase(ctx, t, base)
+	dsn := seededDatabase(ctx, t, base)
 	store, err := postgres.Open(ctx, dsn)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer store.Close()
-	dice := &demoDice{}
-	b, err := newBackendWithDice(ctx, store, dice)
+	b, err := newBackendWithDice(ctx, store, &demoDice{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,19 +54,8 @@ func TestMalformedInputNeverCrashesAHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer conn.Close(ctx)
-	exec := func(ctx context.Context, q string, args ...any) error {
-		_, err := conn.Exec(ctx, q, args...)
-		return err
-	}
-	var out bytes.Buffer
-	if err := seedWorld(ctx, b, dice, "demo-password", &out, exec); err != nil {
-		t.Fatalf("%v\n%s", err, out.String())
-	}
 
-	var logs bytes.Buffer
-	old := slog.Default()
-	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
-	t.Cleanup(func() { slog.SetDefault(old) })
+	logs := captureLogs(t)
 
 	srv, err := web.NewServer(web.Config{}, b.campaigns, b.rulesets, b.glossaries, b.auth)
 	if err != nil {
@@ -196,11 +177,11 @@ func TestMalformedInputNeverCrashesAHandler(t *testing.T) {
 	for _, f := range failures {
 		t.Error(f)
 	}
-	if strings.Contains(logs.String(), "level=ERROR msg=panic") {
-		t.Errorf("a handler panicked (recovered by the middleware); first lines:\n%s", firstLines(logs.String(), "msg=panic", 5))
+	if strings.Contains(logs(), "level=ERROR msg=panic") {
+		t.Errorf("a handler panicked (recovered by the middleware); first lines:\n%s", firstLines(logs(), "msg=panic", 5))
 	}
 	seenErr := map[string]bool{}
-	for _, l := range strings.Split(logs.String(), "\n") {
+	for _, l := range strings.Split(logs(), "\n") {
 		if strings.Contains(l, "level=ERROR") {
 			if i := strings.Index(l, "stack="); i > 0 {
 				l = l[:i]
@@ -319,13 +300,6 @@ func TestHostileUploadsAnswer4xx(t *testing.T) {
 	if testing.Short() {
 		t.Skip("slow")
 	}
-	if _, err := os.Stat("definitions"); err != nil {
-		wd, _ := os.Getwd()
-		if err := os.Chdir("../.."); err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() { _ = os.Chdir(wd) })
-	}
 	ctx := context.Background()
 	store, err := postgres.Open(ctx, freshDatabase(ctx, t, base))
 	if err != nil {
@@ -346,10 +320,7 @@ func TestHostileUploadsAnswer4xx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var logs bytes.Buffer
-	old := slog.Default()
-	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
-	t.Cleanup(func() { slog.SetDefault(old) })
+	logs := captureLogs(t)
 	srv, err := web.NewServer(web.Config{}, b.campaigns, b.rulesets, b.glossaries, b.auth)
 	if err != nil {
 		t.Fatal(err)
@@ -544,8 +515,8 @@ func TestHostileUploadsAnswer4xx(t *testing.T) {
 	for _, f := range failures {
 		t.Error(f)
 	}
-	if strings.Contains(logs.String(), "level=ERROR msg=panic") {
-		t.Errorf("a handler panicked:\n%s", firstLines(logs.String(), "msg=panic", 5))
+	if strings.Contains(logs(), "level=ERROR msg=panic") {
+		t.Errorf("a handler panicked:\n%s", firstLines(logs(), "msg=panic", 5))
 	}
 	if n, _ := store.Rulesets().ListUsage(ctx); len(n) > 3 {
 		t.Errorf("%d rules files are stored, the shipped three expected: a hostile upload got stored", len(n))

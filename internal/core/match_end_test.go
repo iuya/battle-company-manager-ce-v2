@@ -230,7 +230,7 @@ func TestCancelPendingEndForTheLiveMode(t *testing.T) {
 	}
 }
 
-// Live integration (6uh.3): the log tells about the end, a game action cancels it, an end check does not, Start turn is refused.
+// Live integration: the log tells about the end, a game action cancels it, an end check does not, Start turn is refused.
 func TestLivePlayDuringAPendingEnd(t *testing.T) {
 	f := newLiveFixture(t)
 	f.match.Scenario = &MatchScenario{Kind: ScenarioCustom, Name: "x"}

@@ -1,4 +1,4 @@
-// Who a rule works against (docs/unit-keywords.md "Rule targets", bead vj0.6): the rule's tooltip and popup say "Works against: ...", the live match shows the
+// Who a rule works against (docs/unit-keywords.md "Rule targets"): the rule's tooltip and popup say "Works against: ...", the live match shows the
 // opponent's keyword chips on every card (also the compact ones), and an enemy unit that a rule of YOUR units names gets a "<rule> applies" marker.
 // The campaign "Keyword targets" has Gimli's Dwarves (Ancient Enemies (Orc)) and Radagast's Mirkwood company (Orcs, Goblins, Spiders), no match yet.
 import { assert, campaignId, layout, MODAL, SIZES } from '../lib/util.mjs';

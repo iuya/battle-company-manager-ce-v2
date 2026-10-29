@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-// The strict binder (design plan section 2): JSON to a generic tree (jsontree.go), then reflection over the model, filling it and
+// The strict binder: JSON to a generic tree (jsontree.go), then reflection over the model, filling it and
 // appending an Issue for every mistake instead of stopping at the first. Unknown keys, wrong types, closed vocabularies, ranges and
 // missing required keys are all reported with their JSON path. Tags are described in model.go.
 

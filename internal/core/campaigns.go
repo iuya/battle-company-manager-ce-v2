@@ -80,19 +80,22 @@ func (d companyDeps) rated(ctx context.Context, campaignID int64, rs *RuleSet, s
 		return co, err
 	}
 	b := BuildDetail(rs, settings, st).CampaignCompany
-	co.Points, co.FullPoints, co.Units = b.Points, b.FullPoints, b.Units
+	co.Points, co.FullPoints, co.Units, co.FactionLabel = b.Points, b.FullPoints, b.Units, b.FactionLabel
 	return co, nil
 }
 
 // figures rates every company of the campaign with a single read of the rosters (rated costs a read per company); the result
-// is by company id, only the Points, FullPoints and Units fields filled.
-func (d companyDeps) figures(ctx context.Context, campaignID int64, rs *RuleSet, settings CampaignSettings) (map[int64]CampaignCompany, error) {
+// is by company id, only the Points, FullPoints and Units fields filled. want, when not nil, picks the companies to build.
+func (d companyDeps) figures(ctx context.Context, campaignID int64, rs *RuleSet, settings CampaignSettings, want func(companyID int64) bool) (map[int64]CampaignCompany, error) {
 	states, err := d.companies.ReadRoster(ctx, campaignID)
 	if err != nil {
 		return nil, err
 	}
 	out := make(map[int64]CampaignCompany, len(states))
 	for _, st := range states {
+		if want != nil && !want(st.Company.ID) { // building a company is the cost: only those asked for
+			continue
+		}
 		out[st.Company.ID] = BuildDetail(rs, settings, st).CampaignCompany
 	}
 	return out, nil
@@ -100,7 +103,7 @@ func (d companyDeps) figures(ctx context.Context, campaignID int64, rs *RuleSet,
 
 // ratedAll fills the rating figures of the companies given (of one campaign) from one read of the campaign's rosters.
 func (d companyDeps) ratedAll(ctx context.Context, campaignID int64, rs *RuleSet, settings CampaignSettings, list []CampaignCompany) error {
-	f, err := d.figures(ctx, campaignID, rs, settings)
+	f, err := d.figures(ctx, campaignID, rs, settings, nil)
 	if err != nil {
 		return err
 	}
@@ -109,7 +112,7 @@ func (d companyDeps) ratedAll(ctx context.Context, campaignID int64, rs *RuleSet
 		if !ok {
 			return ErrNotFound
 		}
-		list[i].Points, list[i].FullPoints, list[i].Units = b.Points, b.FullPoints, b.Units
+		list[i].Points, list[i].FullPoints, list[i].Units, list[i].FactionLabel = b.Points, b.FullPoints, b.Units, b.FactionLabel
 	}
 	return nil
 }
@@ -295,7 +298,7 @@ func (c *Campaigns) HandOver(ctx context.Context, actor User, campaignID, newOrg
 
 // SetCampaignStatus pauses, resumes, ends or reactivates a campaign. The organiser and administrators pause (active to paused), resume
 // (paused to active) and end (active or paused to finished; allowed with open matches, the page warns first); only administrators
-// reactivate a finished campaign (user decision 2026-10-21, mtu.26: an ended campaign is ended for good for the organiser). Ending needs
+// reactivate a finished campaign (an ended campaign is ended for good for the organiser). Ending needs
 // the campaign's name as confirm (the page asks for it after its warnings) and revokes every invitation link; the matches stay exactly
 // as they are, frozen. ErrRefused with the reason otherwise.
 func (c *Campaigns) SetCampaignStatus(ctx context.Context, actor User, campaignID int64, to CampaignStatus, confirm string) error {

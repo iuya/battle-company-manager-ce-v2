@@ -145,7 +145,7 @@ func TestAChosenWeaponModifierIsStillTheArmouryItem(t *testing.T) {
 }
 
 // A promotion keeps the Envenom Weapon with its chosen weapon whether or not the new profile lists the weapon (the rule belongs to
-// the weapon's name; owner decision 2026-10-27), and keeps a legacy modifier without a weapon as it is.
+// the weapon's name), and keeps a legacy modifier without a weapon as it is.
 func TestPromotionKeepsAnEnvenomChoice(t *testing.T) {
 	rs := shippedRules(t)
 	c, _ := rs.BC.Company("City of Umbar")

@@ -207,7 +207,7 @@ func (s LiveState) clone() LiveState {
 
 // loanedIndex finds the loaned item (by name and copy), -1 when the unit has none such.
 func (u *liveUnit) loanedIndex(item string, index int) int {
-	return slices.IndexFunc(u.Loaned, func(l LoanedItem) bool { return strings.EqualFold(l.Item, strings.TrimSpace(item)) && l.Index == index })
+	return slices.IndexFunc(u.Loaned, func(l LoanedItem) bool { return sameName(l.Item, strings.TrimSpace(item)) && l.Index == index })
 }
 
 func (u *liveUnit) stat(name string) *LiveStat {
@@ -447,10 +447,10 @@ func (s LiveState) CheckAs(a LiveAction, byCompany int64, voter LiveVoter) (reso
 			return a, nil, "", invalid("That changes nothing.")
 		}
 		if n := st.Current + delta; n < 0 || n > st.Start {
-			return a, nil, "", Refuse("%s can only go from 0 to %d.", strings.ToUpper(a.Stat[:1])+strings.ToLower(a.Stat[1:]), st.Start)
+			return a, nil, "", Refuse("%s can only go from 0 to %d.", Capitalise(strings.ToLower(a.Stat)), st.Start)
 		}
 		resolved.Delta = delta
-		text = fmt.Sprintf("%s: %s %+d (manual)", who, strings.ToUpper(a.Stat[:1])+strings.ToLower(a.Stat[1:]), delta)
+		text = fmt.Sprintf("%s: %s %+d (manual)", who, Capitalise(strings.ToLower(a.Stat)), delta)
 	case LiveWound:
 		if err := inField(); err != nil {
 			return a, nil, "", err
@@ -496,7 +496,7 @@ func (s LiveState) CheckAs(a LiveAction, byCompany int64, voter LiveVoter) (reso
 				if t.SavedByFate < 0 || t.SavedByFate > min(t.Caused, tu.Fate.Current) {
 					return a, nil, "", invalid("Fate can save from 0 to %d wounds of %s.", min(t.Caused, tu.Fate.Current), name)
 				}
-				desc := fmt.Sprintf("%s (%d wound%s", name, t.Caused, plural(t.Caused))
+				desc := fmt.Sprintf("%s (%d wound%s", name, t.Caused, Plural(t.Caused, "", "s"))
 				if t.SavedByFate > 0 {
 					desc += fmt.Sprintf(", %d saved by Fate", t.SavedByFate)
 				}
@@ -548,20 +548,20 @@ func (s LiveState) CheckAs(a LiveAction, byCompany int64, voter LiveVoter) (reso
 		}
 		if i := u.loanedIndex(item, a.Index); i >= 0 {
 			switch l := u.Loaned[i]; {
-			case l.AfterGame || s.cfg.AfterGame[strings.ToLower(item)]:
+			case l.AfterGame || s.cfg.AfterGame[NameKey(item)]:
 				return a, nil, "", Refuse("%s acts after the game: use it in the aftermath.", l.Item)
 			case l.Used:
 				return a, nil, "", Refuse("%s has already used its %s.", who, l.Item)
 			}
 			item = u.Loaned[i].Item
 		} else {
-			owned := slices.IndexFunc(s.cfg.Owned[a.UnitID], func(n string) bool { return strings.EqualFold(n, item) })
+			owned := slices.IndexFunc(s.cfg.Owned[a.UnitID], func(n string) bool { return sameName(n, item) })
 			switch {
 			case owned < 0:
 				return a, nil, "", Refuse("%s does not have %s.", who, item)
-			case s.cfg.AfterGame[strings.ToLower(item)]:
+			case s.cfg.AfterGame[NameKey(item)]:
 				return a, nil, "", Refuse("%s acts after the game: use it in the aftermath.", item)
-			case slices.ContainsFunc(u.UsedItems, func(n string) bool { return strings.EqualFold(n, item) }):
+			case slices.ContainsFunc(u.UsedItems, func(n string) bool { return sameName(n, item) }):
 				return a, nil, "", Refuse("%s has already used its %s.", who, item)
 			}
 			item = s.cfg.Owned[a.UnitID][owned]
@@ -779,13 +779,6 @@ func (s LiveState) MVPTally(companyID int64) (counts []MVPCount, winner int64, t
 		return counts, tied[0], nil
 	}
 	return counts, 0, tied
-}
-
-func plural(n int) string {
-	if n == 1 {
-		return ""
-	}
-	return "s"
 }
 
 // ValidateLog checks that every entry is valid against the state before it, the way Apply checked it. It is the check of an undo: the

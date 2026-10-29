@@ -4,9 +4,9 @@ This project uses **bd** (beads) for issue tracking. Run `bd prime` for full wor
 
 > **Architecture in one line:** Issues live in a local Dolt database
 > (`.beads/dolt/`); cross-machine sync uses `bd dolt push/pull` (a
-> git-compatible protocol), stored under `refs/dolt/data` on your git
-> remote — separate from `refs/heads/*` where your code lives.
-> `.beads/issues.jsonl` is a passive export, not the wire protocol.
+> git-compatible protocol), stored under `refs/dolt/data` on the Dolt
+> remote, which here is a **private** repository (never the public one).
+> `.beads/issues.jsonl` is a local, ignored export, not the wire protocol.
 >
 > See [sync-concepts](https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md)
 > for the one-screen overview and anti-patterns (don't treat JSONL as the
@@ -67,7 +67,7 @@ bd close <id>         # Complete work
 - Run `bd prime` for detailed command reference and session close protocol
 - Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
 
-**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md for details and anti-patterns.
+**Architecture in one line:** issues live in a local Dolt DB; `bd dolt push` backs it up to a **private** repository (`iuya/battle-company-manager-ce-v2-beads`, never the public repo, whose `refs/dolt/data` must stay empty); `.beads/issues.jsonl` and `.beads/config.yaml` are local, ignored files and are not published. Outside contributors use GitHub issues. See https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md for details and anti-patterns.
 
 ## Agent Context Profiles
 
@@ -124,5 +124,5 @@ bd prime                # Refresh Beads context
 - Run `bd prime` when Beads context is missing or stale. Codex 0.129.0+ can load Beads context automatically through native hooks; use `/hooks` to inspect or toggle them.
 - Keep persistent project memory in Beads via `bd remember`; do not create ad hoc memory files.
 
-**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md for details and anti-patterns.
+**Architecture in one line:** issues live in a local Dolt DB; `bd dolt push` backs it up to a **private** repository (`iuya/battle-company-manager-ce-v2-beads`, never the public repo, whose `refs/dolt/data` must stay empty); `.beads/issues.jsonl` and `.beads/config.yaml` are local, ignored files and are not published. Outside contributors use GitHub issues. See https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md for details and anti-patterns.
 <!-- END BEADS CODEX SETUP -->

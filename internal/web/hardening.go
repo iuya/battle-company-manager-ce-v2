@@ -96,7 +96,7 @@ func (s *Server) handleReadyz(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.WriteString(w, "ok\n")
 }
 
-// cspPolicy is the policy of docs/security-and-risks.md section 1: everything from our own origin, no plugins, no framing, and
+// cspPolicy is the policy of docs/operations.md, "Content-Security-Policy": everything from our own origin, no plugins, no framing, and
 // 'unsafe-eval' / style 'unsafe-inline' only because Alpine's standard build and the style= attributes need them.
 const cspPolicy = "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; " +
 	"font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; " +
@@ -110,7 +110,7 @@ func (s *Server) securityHeaders(next http.Handler) http.Handler {
 		h.Set("Referrer-Policy", "same-origin")
 		if s.cfg.SecureCookies {
 			// Browsers ignore this over plain http, so it is safe to send whenever the site is meant to be served over HTTPS.
-			// No includeSubDomains/preload: they commit the whole domain and are the owner's decision.
+			// No includeSubDomains/preload: they commit the whole domain, so the deployer opts in.
 			h.Set("Strict-Transport-Security", "max-age=31536000")
 		}
 		switch s.cfg.CSPMode {

@@ -86,12 +86,12 @@ func ttsGlue(t *testing.T, label string, rs *RuleSet, d CompanyDetail, exp TTSEx
 	}
 }
 
-// ttsGlueRings pastes the version 2 payload of the same list (every kind and group on, the base radius on) and checks the rings the helper
+// ttsGlueRings pastes the version 2 payload of the same list (every kind and group on) and checks the rings the helper
 // draws: one line per ring on the right figure, the radius of the data plus the base, none on a mount or a fallen unit, none doubled by a
 // second Apply or a Re-apply.
 func ttsGlueRings(t *testing.T, label string, rs *RuleSet, d CompanyDetail, exp TTSExport) {
 	t.Helper()
-	sel := AuraSelection{Draw: true, Declared: true, Conditional: true, Cast: true, Target: true, Large: true, Optional: true, Base: true}
+	sel := AuraSelection{Draw: true, Declared: true, Conditional: true, Cast: true, Target: true, Large: true, Optional: true}
 	p := rs.TTSNames(d, exp, TTSNamesOptions{Rules: TTSRulesNone, Auras: sel})
 	body, err := p.JSON()
 	if err != nil {
@@ -136,10 +136,7 @@ func ttsGlueRings(t *testing.T, label string, rs *RuleSet, d CompanyDetail, exp 
 			if want.Extra == "mount" && len(got) > 0 {
 				t.Fatalf("%s %s: a ring on the mount %d", label, when, i)
 			}
-			base := 0.49
-			if want.Base > 0 {
-				base = want.Base
-			}
+			const base = 0.49 // the fake's default 25 mm figure
 			var wantR, gotR []float64
 			for _, r := range want.Auras {
 				wantR = append(wantR, math.Round((r.R+base-0.0225)*1000)/1000)

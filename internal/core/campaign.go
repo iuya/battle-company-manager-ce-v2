@@ -1,6 +1,7 @@
 package core
 
 import (
+	"cmp"
 	"errors"
 	"regexp"
 	"slices"
@@ -97,9 +98,12 @@ type CampaignCompany struct {
 	ID      int64
 	Name    string
 	Faction string
-	OwnerID int64
-	Owner   string // the player's display name
-	Points  int    // sum of the point costs of its units that are not injured: this is what the ranking sorts by
+	// FactionLabel is how the pages spell the faction when the rules file gives a label for its name (Lothlórien for Lothlorien); the
+	// repositories leave it empty and the services fill it with the rating. Use FactionName to show it.
+	FactionLabel string
+	OwnerID      int64
+	Owner        string // the player's display name
+	Points       int    // sum of the point costs of its units that are not injured: this is what the ranking sorts by
 	// FullPoints is what Points would be if nobody were injured; zero means the same as Points. The front shows "Points (FullPoints)".
 	FullPoints int
 	Units      int
@@ -107,6 +111,9 @@ type CampaignCompany struct {
 	Draws      int
 	Losses     int
 }
+
+// FactionName is the faction as the pages show it.
+func (c CampaignCompany) FactionName() string { return cmp.Or(c.FactionLabel, c.Faction) }
 
 func (c CampaignCompany) Played() int { return c.Wins + c.Draws + c.Losses }
 

@@ -191,7 +191,7 @@ rules: Hatred (Goblin), Hatred (Orc), Hatred (Uruk-hai), Poisoned Attacks (blowp
 keywords: Man/race/profile, Druadan/faction/profile, Warrior/type/profile, Infantry/type/profile
 choosable at recruit: 
 built warrior: 9 points | equipment: Hand weapon (profile), Spear (profile), Blowpipe (profile) | rules: Hatred (Goblin) (unit), Hatred (Orc) (unit), Hatred (Uruk-hai) (unit), Poisoned Attacks (blowpipe) (unit), Stalk Unseen (unit), Woodland Creature (unit)
-built hero: 24 points | equipment: Hand weapon (profile), Spear (profile), Blowpipe (profile) | rules: Hatred (Goblin) (unit), Hatred (Orc) (unit), Hatred (Uruk-hai) (unit), Poisoned Attacks (blowpipe) (unit), Stalk Unseen (unit), Woodland Creature (unit), Arise, Riders of Rohan! (company)
+built hero: 24 points | equipment: Hand weapon (profile), Spear (profile), Blowpipe (profile) | rules: Hatred (Goblin) (unit), Hatred (Orc) (unit), Hatred (Uruk-hai) (unit), Poisoned Attacks (blowpipe) (unit), Stalk Unseen (unit), Woodland Creature (unit)
 may lead yes | own path no | hero upgrades: Know All Paths
 warrior can buy wargear (0): 
 warrior can buy equipment (17): set 5e464f5b
@@ -390,13 +390,13 @@ gear "Horse" -> key "horse" | offer "Horse" size "" also [] | annotation "Horse"
 gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
 gear "Shield and throwing spears" -> key "shieldandthrowingspear" | vanilla gear "Shield and throwing spears"
 gear "Spear" -> key "spear" | offer "Spear" size "" also [] | annotation "Spear"
-gear "Throwing Spears" -> key "throwingspear" | offer "Throwing Spears" size "" also [Throwing Spear Throwing spear] | annotation "Throwing Spears" | vanilla gear "Throwing Spears"
-gear "Throwing spears" -> key "throwingspear" | offer "Throwing Spears" size "" also [Throwing Spear Throwing spear] | annotation "Throwing Spears" | vanilla gear "Throwing Spears"
+gear "Throwing Spears" -> key "throwingspear" | offer "Throwing Spears" size "" also [] | annotation "Throwing Spears" | vanilla gear "Throwing Spears"
+gear "Throwing spears" -> key "throwingspear" | offer "Throwing Spears" size "" also [] | annotation "Throwing Spears" | vanilla gear "Throwing Spears"
 gear "War horn" -> key "warhorn" | annotation "War Horn" | vanilla gear "War Horn"
 gear "War horn, shield, and throwing spears" -> key "warhornshieldandthrowingspear" | vanilla gear "War horn, shield, and throwing spears"
 gear "Westfold Redshield" -> key "westfoldredshield" | annotation "Westfold Redshield" | vanilla gear "Westfold Redshield"
 gear "shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
-gear "throwing spears" -> key "throwingspear" | offer "Throwing Spears" size "" also [Throwing Spear Throwing spear] | annotation "Throwing Spears" | vanilla gear "Throwing Spears"
+gear "throwing spears" -> key "throwingspear" | offer "Throwing Spears" size "" also [] | annotation "Throwing Spears" | vanilla gear "Throwing Spears"
 rule "\"Hold positions, loose the arrows!\"" -> label "\"Hold positions, loose the arrows!\"" | text from bc rule | glossary "\"Hold positions, loose the arrows!\""
 rule "A Good Sort" -> label "A Good Sort" | text from bc rule | glossary "A Good Sort"
 rule "Arise, Riders of Rohan!" -> label "Arise, Riders of Rohan!" | text from vanilla rule | glossary "Arise, Riders of Rohan!"

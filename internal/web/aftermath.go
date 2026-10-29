@@ -24,19 +24,6 @@ type aftermathRow struct {
 	Summary string // what a finished aftermath did, or the note of a waived one
 }
 
-// AftermathLabel is the badge text of a status.
-func aftermathLabel(s core.AftermathStatus) string {
-	switch s {
-	case core.AftermathPending:
-		return "Pending"
-	case core.AftermathDone:
-		return "Done"
-	case core.AftermathWaived:
-		return "Waived"
-	}
-	return "In progress"
-}
-
 // aftermathRows gathers the card of an ended match: one row per company. It never fails the page; the error text says what
 // went wrong so the card can show it.
 func (s *Server) aftermathRows(r *http.Request, base campaignBase, m core.Match) ([]aftermathRow, string) {
@@ -85,7 +72,7 @@ func aftermathSummary(a core.Aftermath) string {
 				dead++
 			}
 		}
-		parts = append(parts, fmt.Sprintf("%d %s", n, plural(n, "casualty", "casualties")))
+		parts = append(parts, fmt.Sprintf("%d %s", n, core.Plural(n, "casualty", "casualties")))
 		if dead > 0 {
 			parts[len(parts)-1] += fmt.Sprintf(" (%d dead)", dead)
 		}
@@ -101,13 +88,6 @@ func aftermathSummary(a core.Aftermath) string {
 	}
 	parts = append(parts, fmt.Sprintf("%+d Experience", xp), fmt.Sprintf("%+d Influence", inf))
 	return strings.Join(parts, " · ")
-}
-
-func plural(n int, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
 }
 
 // handleWaiveAftermath lets the organiser or an administrator waive a company's aftermath (with a note) from the match page.

@@ -390,7 +390,7 @@ gear "Heavy Armour" -> key "heavyarmour" | annotation "Heavy Armour" | vanilla g
 gear "Pike" -> key "pike" | offer "Pike" size "" also [] | annotation "Pike" | vanilla gear "Pike"
 gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
 gear "Spear" -> key "spear" | offer "Spear" size "" also [] | annotation "Spear"
-gear "Two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe Two-handed axe] | annotation "Two-handed weapon"
+gear "Two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe] | annotation "Two-handed weapon"
 gear "War Horn" -> key "warhorn" | annotation "War Horn" | vanilla gear "War Horn"
 gear "War horn" -> key "warhorn" | annotation "War Horn" | vanilla gear "War Horn"
 gear "banner" -> key "banner" | annotation "Banner" | vanilla gear "Banner"

@@ -535,7 +535,7 @@ func TestLiveEndChecksAndSecretEntries(t *testing.T) {
 	}
 }
 
-// The kinds of the Break Point and the Against the Odds items (migration 00021): every field of the payload survives, a match-level
+// The kinds of the Break Point and the Against the Odds items: every field of the payload survives, a match-level
 // turn entry (company 0, unit 0) is stored, undo works on them, and a kind nobody declared is still refused by the constraint.
 func TestLiveBreakPointAndItemKinds(t *testing.T) {
 	w := newLiveWorld(t, "brk")
@@ -573,7 +573,7 @@ func TestLiveBreakPointAndItemKinds(t *testing.T) {
 			t.Errorf("payload %d: %+v, want %+v", i, g, w)
 		}
 	}
-	// undo a new kind: the snapshot no longer carries it
+	// undo a new kind: the snapshot does not carry it
 	if _, err := live.Update(w.ctx, w.camp, w.match.ID, w.org, func(core.LiveSnapshot) (core.LiveChange, error) {
 		return core.LiveChange{Undo: last.ID}, nil
 	}); err != nil {

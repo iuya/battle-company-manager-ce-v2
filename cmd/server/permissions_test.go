@@ -1,6 +1,6 @@
 package main
 
-// The permission matrix (bead mqn.163): every state-changing action of the core services, tried by every kind of account in every
+// The permission matrix: every state-changing action of the core services, tried by every kind of account in every
 // campaign state, against the real services over PostgreSQL (the same wiring as the server). One table, permActions, says for each
 // action who may do it while the campaign is active, paused and finished; every other account must be refused with the expected
 // reason. Anonymous visitors never reach the core: the web layer's own test (internal/web, TestAnonymousWritesRedirectToLogin) covers
@@ -471,7 +471,7 @@ func TestPermissionMatrix(t *testing.T) {
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL is not set")
 	}
-	t.Chdir("../..") // definitions/ is read relative to the repository root; the other tests of the package chdir on their own
+	t.Parallel() // its own database (a copy of the seeded template), no state shared with the other tests
 	ctx := context.Background()
 	store, err := postgres.OpenWith(ctx, freshDatabase(ctx, t, url), postgres.Options{})
 	if err != nil {

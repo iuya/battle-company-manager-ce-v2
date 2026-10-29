@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -273,7 +272,7 @@ func (s *RecruitService) ConfirmRecruit(ctx context.Context, user User, campaign
 				return nil
 			}
 			st.Recruit.Lower = &LowerChoice{Prefix: prefix, Paid: step.Paid, Adjusted: step.Adjusted + abs(points), Roll: final,
-				Reason: res.Text + ": choose from the chart.", Cannot: strings.ToLower(res.Text), Stage: step.Stage, Entries: entries, Picks: picksOf(res.Text)}
+				Reason: res.Text + ": choose from the chart.", Cannot: strings.ToLower(res.Text), Stage: step.Stage, Entries: entries, Picks: max(1, res.Picks)}
 			out = RecruitResult{Roll: final, Summary: prefix + strings.ToLower(res.Text) + ": choose your result.", Lower: true}
 			return nil
 		}
@@ -281,18 +280,6 @@ func (s *RecruitService) ConfirmRecruit(ctx context.Context, user User, campaign
 		return nil
 	})
 	return out, err
-}
-
-var picksPattern = regexp.MustCompile(`(?i)\bany (\d)\b`)
-
-// picksOf is how many results a "choice" result lets the player take ("Choose any 2 Hobbits from above").
-func picksOf(text string) int {
-	if m := picksPattern.FindStringSubmatch(text); m != nil {
-		if n, err := strconv.Atoi(m[1]); err == nil && n > 1 {
-			return n
-		}
-	}
-	return 1
 }
 
 // ChooseLower settles a recruit whose result could not join (or was a "choice") with the result the player picked.
@@ -341,7 +328,7 @@ func (s *RecruitService) RecruitSpecial(ctx context.Context, user User, campaign
 		if err := st.Locked(); err != nil {
 			return err
 		}
-		i := slices.IndexFunc(env.bcC.SpecialUnits, func(su SpecialUnit) bool { return strings.EqualFold(su.Unit, unit) })
+		i := slices.IndexFunc(env.bcC.SpecialUnits, func(su SpecialUnit) bool { return sameName(su.Unit, unit) })
 		if i < 0 {
 			return ErrNotFound
 		}
@@ -573,7 +560,7 @@ func (env recruitEnv) choiceEntries(stage string, final int, choice Reinforcemen
 		chart []ChartRow
 		name  string
 	}
-	above := strings.Contains(strings.ToLower(choice.Text), "above")
+	above := choice.Scope == "above"
 	sources := []source{{env.bcC.Reinforcements, "Reinforcements"}, {env.bcC.SpecialChart, "Special chart"}}
 	if above && stage == "special" {
 		sources = sources[1:]

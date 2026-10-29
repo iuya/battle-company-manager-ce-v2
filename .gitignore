@@ -65,3 +65,10 @@ tools/dice3d/node_modules/
 # pg_dump backups (make backup)
 backups/
 /server
+
+# beads: the issue database is private (backed up to a private repository); neither the export nor this machine's config is published
+.beads/issues.jsonl
+.beads/config.yaml
+
+# local-only notes that must never be published (security findings, deployment planning)
+.private/

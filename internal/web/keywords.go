@@ -11,7 +11,7 @@ import (
 // keywordMax is how many chips the compact row shows before the "+N" button (docs/unit-keywords.md).
 const keywordMax = 5
 
-// notShownKeywords are the unit types no chip shows (owner decision, docs/unit-keywords.md): the card frame and the role insignia already say
+// notShownKeywords are the unit types no chip shows (docs/unit-keywords.md): the card frame and the role insignia already say
 // Hero and Warrior, the mount has its own display, and the kind icon says how the unit moves (Infantry, Cavalry, Beast and War Beast, Monster).
 // Unique, Elite, Swarm, Chariot and the siege types have no other display and stay. core keeps computing every keyword (Hidden, Off).
 var notShownKeywords = map[string]bool{"hero": true, "warrior": true, "mount": true, "infantry": true, "cavalry": true, "beast": true, "war beast": true, "monster": true}

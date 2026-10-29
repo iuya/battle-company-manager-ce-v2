@@ -1,11 +1,11 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"slices"
-	"strings"
 )
 
 // VanillaAmbiguity is a reviewed duplicate of the vanilla file, as the Battle Companies file lists it in
@@ -17,34 +17,15 @@ type VanillaAmbiguity struct {
 	Occurrence int    // pinned: the 1-based occurrence that wins
 }
 
-// ParseVanillaAmbiguities reads data.vanillaAmbiguities of a Battle Companies file (none when it has no such list).
-func ParseVanillaAmbiguities(bc []byte) ([]VanillaAmbiguity, error) {
-	var doc struct {
-		Data struct {
-			Ambiguities []struct {
-				Kind       string `json:"kind"`
-				Name       string `json:"name"`
-				Status     string `json:"status"`
-				Occurrence int    `json:"occurrence"`
-			} `json:"vanillaAmbiguities"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(bc, &doc); err != nil {
-		return nil, fmt.Errorf("the Battle Companies file is not valid JSON: %w", err)
-	}
-	var out []VanillaAmbiguity
-	for _, a := range doc.Data.Ambiguities {
-		out = append(out, VanillaAmbiguity{a.Kind, a.Name, a.Status, a.Occurrence})
-	}
-	return out, nil
-}
-
 // duplicates decides which occurrence of a repeated vanilla name is the one the book keeps.
 type duplicates struct {
 	reviewed map[string]VanillaAmbiguity
 	seen     map[string]*dupState
 	order    []string
 	log      *slog.Logger
+	// pinsOnly: the Battle Companies file is a lean one, whose only statement about a duplicate is a pin (first wins otherwise), so a
+	// duplicate that differs and has no pin is not reported.
+	pinsOnly bool
 }
 
 type dupState struct {
@@ -65,7 +46,7 @@ func newDuplicates(reviewed []VanillaAmbiguity, log *slog.Logger) *duplicates {
 	return d
 }
 
-func dupKey(kind, name string) string { return kind + "\x00" + strings.ToLower(name) }
+func dupKey(kind, name string) string { return kind + "\x00" + NameKey(name) }
 
 // wins counts one more occurrence of the name and says whether the book should (re)store it: the first occurrence is always
 // stored, a later one only when a pinned entry names it. occurrence is whatever identifies the content (compared for equality).
@@ -109,7 +90,11 @@ func (d *duplicates) report() {
 			d.log.Warn("vanilla duplicate pinned to an occurrence that does not exist; the first one is used",
 				"kind", st.kind, "name", st.name, "occurrence", a.Occurrence, "occurrences", st.count)
 		case st.count > 1 && st.differs && !reviewed:
-			d.log.Warn("vanilla defines a name more than once with different content and nobody reviewed it (data.vanillaAmbiguities); the first occurrence is used",
+			level := slog.LevelWarn
+			if d.pinsOnly { // a lean file reviews duplicates by pinning only: the others keep the first occurrence, noted for the audit
+				level = slog.LevelDebug
+			}
+			d.log.Log(context.Background(), level, "vanilla defines a name more than once with different content and nobody reviewed it (vanilla.pins); the first occurrence is used",
 				"kind", st.kind, "name", st.name, "occurrences", st.count)
 		}
 	}

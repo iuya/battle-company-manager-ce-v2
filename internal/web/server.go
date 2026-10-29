@@ -317,7 +317,7 @@ type Config struct {
 	// SecureCookies marks the session cookie Secure and turns on HSTS. Set by Resolve; tests set it directly.
 	SecureCookies bool
 	// CSPMode is the Content-Security-Policy mode: "off", "report" (the default: Content-Security-Policy-Report-Only plus the
-	// /csp-report logger) or "enforce". See docs/security-and-risks.md section 1.
+	// /csp-report logger) or "enforce". See docs/operations.md, "Content-Security-Policy".
 	CSPMode string `env:"CSP_MODE" default:"report"`
 	// TrustProxy takes the client address for the login throttle from the X-Forwarded-For header (its last entry, the one the
 	// reverse proxy in front of the app adds). Turn it on only behind such a proxy: without one the header can be forged.

@@ -71,7 +71,7 @@ profile
   Epigraph:
     Quote: "Leave all that can be spared behind. We travel light."
     Text: "As Arnor fell, the Dunedain grew wilder and more dangerous in their vigil."
-  Promotions: [{From: "Ranger of Arnor", OnResult: "heroInTheMaking", Becomes: "Ranger of the North", Keep: ["Spear"], Drop: ["Armour"]}]
+  Promotions: [{From: "Ranger of Arnor", OnResult: "heroInTheMaking", Becomes: "Ranger of the North"}]
 path "Path of the Tactician": limit per company 0, start action "", start power no; chart as in _progression.txt
 path "Path of the Sharpshooter": limit per company 0, start action "", start power no; chart as in _progression.txt
 path "Path of the Soldier": limit per company 0, start action "", start power no; chart as in _progression.txt
@@ -228,7 +228,7 @@ carrying Spear: matches warrior yes hero yes | choices warrior: promo:0:0=Knight
     to Knight of Arnor (given ): warrior keeps [] drops [Spear]; a hero keeps everything
 carrying everything: matches warrior yes hero yes | choices warrior: promo:0:0=Knight of Arnor | hero: promo:0:0=Knight of Arnor
     to Knight of Arnor (given ): warrior keeps [Shield] drops [Spear]; a hero keeps everything
-hero promotion {From:Ranger of Arnor OnResult:heroInTheMaking Becomes:Ranger of the North Keep:[Spear] Drop:[Armour] StatGain:false ForgoAllowed:false}
+hero promotion {From:Ranger of Arnor OnResult:heroInTheMaking Becomes:Ranger of the North StatGain:false ForgoAllowed:false}
 
 === tooltips and glossary terms (digest of the text in _tooltips.txt) ===
 Armour | gear | bc definition | Armour | 2f9f13f9
@@ -320,7 +320,7 @@ gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shi
 gear "Spear" -> key "spear" | offer "Spear" size "" also [] | annotation "Spear"
 gear "Swap shield and spear for banner" -> key "swapshieldandspearforbanner" | unknown
 gear "War horn" -> key "warhorn" | annotation "War Horn" | vanilla gear "War Horn"
-gear "War spear" -> key "warspear" | offer "War spear" size "" also [Warspear] | annotation "War spear" | vanilla gear "War spear"
+gear "War spear" -> key "warspear" | offer "War spear" size "" also [] | annotation "War spear" | vanilla gear "War spear"
 gear "banner" -> key "banner" | annotation "Banner" | vanilla gear "Banner"
 gear "shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
 gear "spear" -> key "spear" | offer "Spear" size "" also [] | annotation "Spear"

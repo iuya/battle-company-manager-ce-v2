@@ -67,7 +67,7 @@ export default async function (h) {
     }
   }
 
-  // axe-core (R10): serious and critical violations of WCAG 2.x A/AA on every collected page, light and dark.
+  // axe-core: serious and critical violations of WCAG 2.x A/AA on every collected page, light and dark.
   for (const [w, ht, scheme] of [[1280, 900, 'light'], [1280, 900, 'dark'], [360, 780, 'light'], [360, 780, 'dark']]) {
     await h.step(`accessibility (axe-core) at ${w} px, ${scheme}: no serious or critical violations`, async () => {
       const bad = [];

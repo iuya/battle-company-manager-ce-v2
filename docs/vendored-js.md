@@ -1,17 +1,21 @@
 # Vendored JavaScript
 
+The third-party browser scripts the app ships, where they come from, how the repository checks them and how to update them.
+
 The browser libraries are committed under `internal/web/static/js` (no CDN, no build step for them). Their versions, sources and
 checksums are in [`internal/web/vendor.json`](../internal/web/vendor.json); `make vendor-check` (a Go test, also part of `make test`) fails when a file
 and the manifest disagree or when a vendored script is not listed. `make vendor-check ONLINE=1` also downloads every upstream source and compares the bytes.
 
 | File | What | Source |
 |---|---|---|
-| `alpine.min.js` | Alpine.js (standard build; needs `'unsafe-eval'`, see [security-and-risks.md](security-and-risks.md)) | jsDelivr, npm `alpinejs` `dist/cdn.min.js` |
+| `alpine.min.js` | Alpine.js (standard build; needs `'unsafe-eval'` in the Content-Security-Policy, see [operations.md](operations.md#content-security-policy-report-mode-then-enforce)) | jsDelivr, npm `alpinejs` `dist/cdn.min.js` |
 | `htmx.min.js` | htmx | jsDelivr, npm `htmx.org` `dist/htmx.min.js` |
 | `sortable.min.js` | SortableJS | jsDelivr, npm `sortablejs` `Sortable.min.js` |
 | `dice3d.js` | three.js and cannon-es cut down for the 3D dice, built by `tools/dice3d` (`make dice3d`, needs node) | built here |
 
-## Update procedure (review quarterly, and when an advisory appears)
+## Update procedure
+
+Review the scripts regularly and whenever an advisory appears.
 
 1. Read the `advisories` link of each entry in `vendor.json` and the changelogs since the committed version.
 2. Download the new file from the pattern in `source` with the new version, e.g.

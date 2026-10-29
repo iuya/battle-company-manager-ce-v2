@@ -667,17 +667,17 @@ func TestChoiceOfAnyOffersEveryChartAndEveryRoll(t *testing.T) {
 		return n
 	}
 	for _, tt := range []struct {
-		name, text, stage string
-		roll              int
-		special, normal   bool
+		name, scope, stage string
+		roll               int
+		special, normal    bool
 	}{
-		{"any on the special chart", "Choice of Any", "special", 6, true, true},
-		{"any on the normal chart", "Choice of any", "chart", 6, true, true},
-		{"above on the normal chart", "Choice of above", "chart", 5, false, true},
+		{"any on the special chart", "any", "special", 6, true, true},
+		{"any on the normal chart", "any", "chart", 6, true, true},
+		{"above on the normal chart", "above", "chart", 5, false, true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			env := recruitEnv{rs: rs, bcC: rohan}
-			got := env.choiceEntries(tt.stage, tt.roll, Reinforcement{Type: "choice", Text: tt.text})
+			got := env.choiceEntries(tt.stage, tt.roll, Reinforcement{Type: "choice", Text: "Choice of " + tt.scope, Scope: tt.scope})
 			if (normal(got, "Special chart") > 0) != tt.special || (normal(got, "Reinforcements") > 0) != tt.normal {
 				t.Errorf("charts offered: reinforcements %d, special %d", normal(got, "Reinforcements"), normal(got, "Special chart"))
 			}

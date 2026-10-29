@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 // StartHero is a starting unit the player made the leader or a sergeant of the company. It chooses its path later, from the
@@ -43,18 +45,12 @@ func (p CompanyProfile) CanLead(unit string) bool {
 	if p.OnOwnPath(unit) {
 		return false
 	}
-	has := func(names []string) bool {
-		return slices.ContainsFunc(names, func(n string) bool { return strings.Contains(strings.ToLower(unit), strings.ToLower(n)) })
-	}
-	if len(p.StartHeroes.Allowed) > 0 && !has(p.StartHeroes.Allowed) {
-		return false
-	}
-	return !has(p.StartHeroes.Excluded)
+	return p.StartHeroes.Admits(lean.Subject{Names: []string{unit}, Known: true}) == ""
 }
 
 // StartGains says whether a starting hero gets the usual point of Might, Will and Fate (some units already have them).
 func (p CompanyProfile) StartGains(unit string) bool {
-	return !slices.ContainsFunc(p.NoStartGain, func(n string) bool { return strings.EqualFold(n, unit) })
+	return !slices.ContainsFunc(p.NoStartGain, func(n string) bool { return sameName(n, unit) })
 }
 
 // DefaultHeroes is the leaders and sergeants the company suggests (as many as campaign.company gives it): the roles its file gives, completed with the first
@@ -106,7 +102,7 @@ func (p CompanyProfile) fixedLeader(list []StartUnit) (int, bool) {
 		return 0, false
 	}
 	for i, s := range list {
-		if s.Role == RoleLeader && strings.EqualFold(s.Unit, p.RangerReplacement.Unit) {
+		if s.Role == RoleLeader && sameName(s.Unit, p.RangerReplacement.Unit) {
 			return i, true
 		}
 	}
@@ -193,7 +189,7 @@ func (p CompanyProfile) ValidateStart(heroes []StartHero) ([]StartHero, error) {
 		}
 	}
 	if leaders != p.Leaders || sergeants != p.Sergeants {
-		return fail("choose %s and %s", countOf(p.Leaders, "leader"), countOf(p.Sergeants, "sergeant"))
+		return fail("choose %s and %s", Count(p.Leaders, "leader"), Count(p.Sergeants, "sergeant"))
 	}
 	for i, l := range locks {
 		leads := slices.ContainsFunc(heroes, func(h StartHero) bool { return h.Index == i && h.Role == RoleLeader })
@@ -218,17 +214,4 @@ func theCompany(name string) string {
 		n = n[4:]
 	}
 	return "the " + n + " company"
-}
-
-// countOf writes a count and its noun in words: "one leader", "two sergeants", "no sergeants".
-func countOf(n int, noun string) string {
-	words := []string{"no", "one", "two", "three", "four", "five", "six"}
-	word := fmt.Sprint(n)
-	if n >= 0 && n < len(words) {
-		word = words[n]
-	}
-	if n != 1 {
-		noun += "s"
-	}
-	return word + " " + noun
 }

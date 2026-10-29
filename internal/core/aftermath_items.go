@@ -26,7 +26,7 @@ type LoanedItem struct {
 
 // ItemEffect finds the consumable effect an equipment item activates.
 func (r AftermathRules) ItemEffect(item string) (RewardEffect, bool) {
-	key, ok := r.ItemEffects[strings.ToLower(item)]
+	key, ok := r.ItemEffects[NameKey(item)]
 	if !ok {
 		return RewardEffect{}, false
 	}
@@ -51,7 +51,7 @@ func (r AftermathRules) itemName(effect string) string {
 func titleCase(s string) string {
 	words := strings.Fields(s)
 	for i, w := range words {
-		words[i] = strings.ToUpper(w[:1]) + w[1:]
+		words[i] = Capitalise(w)
 	}
 	return strings.Join(words, " ")
 }
@@ -65,12 +65,12 @@ func (r AftermathRules) noRoll(effect string) bool {
 // carries says whether the unit has the item in its equipment or loaned for this match.
 func carries(u CompanyUnit, loaned []LoanedItem, item string) (has, isLoaned bool) {
 	for _, e := range u.Equipment {
-		if strings.EqualFold(e.Name, item) {
+		if sameName(e.Name, item) {
 			return true, false
 		}
 	}
 	for _, l := range loaned {
-		if l.UnitID == u.ID && strings.EqualFold(l.Item, item) {
+		if l.UnitID == u.ID && sameName(l.Item, item) {
 			return true, true
 		}
 	}

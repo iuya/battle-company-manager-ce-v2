@@ -447,16 +447,6 @@ func TestTTSNamesSectionsAndHeader(t *testing.T) {
 // the table in colour, granted and added rules are in the Rules section, gear is in its section; the upgrade has no line of its own.
 func TestTTSNamesUnitUpgrades(t *testing.T) {
 	rs := shippedRules(t)
-	var doc struct {
-		Data struct {
-			ReservedOptions struct {
-				Items []struct{ Unit, Option string }
-			}
-		}
-	}
-	if err := json.Unmarshal(readDef(t, "battle_companies/battle_companies.json"), &doc); err != nil {
-		t.Fatal(err)
-	}
 	type tc struct {
 		label, title string
 		bcCo         BCCompany
@@ -466,7 +456,7 @@ func TestTTSNamesUnitUpgrades(t *testing.T) {
 	}
 	var cases []tc
 	first := ttsCompanies(rs)[0]
-	for _, r := range doc.Data.ReservedOptions.Items {
+	for _, r := range rs.Vanilla.ReservedOptions() {
 		cases = append(cases, tc{label: r.Unit + " with " + r.Option, title: r.Option, bcCo: first, state: UnitState{Base: r.Unit, Gear: []string{r.Option}}, upgrade: r.Option})
 	}
 	for _, bcCo := range ttsCompanies(rs) {
@@ -520,7 +510,7 @@ func TestTTSNamesUnitUpgrades(t *testing.T) {
 					}
 				}
 				for _, e := range u.Equipment {
-					if (!e.Upgrade || !rs.namedUpgrades()[strings.ToLower(e.Name)]) && !slices.Contains(e.Classes(), EquipMount) && !strings.Contains(f.Desc, ttsSafe(e.Name)) {
+					if (!e.Upgrade || !rs.namedUpgrades()[NameKey(e.Name)]) && !slices.Contains(e.Classes(), EquipMount) && !strings.Contains(f.Desc, ttsSafe(e.Name)) {
 						t.Errorf("%s: the gear %q is missing:\n%s", level, e.Name, f.Desc)
 					}
 				}

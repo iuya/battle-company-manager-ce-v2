@@ -45,18 +45,12 @@ func NewRuleTargets(rows []RuleTarget) RuleTargets {
 	t := RuleTargets{names: map[string]RuleTarget{}, patterns: map[string]RuleTarget{}}
 	for _, r := range rows {
 		if r.Base != "" {
-			t.patterns[foldRule(r.Base)] = r
+			t.patterns[NameKey(r.Base)] = r
 		} else if r.Rule != "" {
-			t.names[foldRule(r.Rule)] = r
+			t.names[NameKey(r.Rule)] = r
 		}
 	}
 	return t
-}
-
-// foldRule is a rule name compared without case, quotes and spacing differences.
-func foldRule(s string) string {
-	s = strings.NewReplacer("\"", "", "\u201c", "", "\u201d", "", "\u2019", "'").Replace(s)
-	return strings.ToLower(strings.Join(strings.Fields(s), " "))
 }
 
 // Empty says there is no table (a ruleset without data.ruleTargets).
@@ -118,13 +112,13 @@ type RuleWorks struct {
 // name (Terror, Terror (2)). Nothing for a rule the table does not know and for an "own" rule.
 func (t RuleTargets) Describe(label string) RuleWorks {
 	name, alts := ParseRuleName(label)
-	if row, ok := t.names[foldRule(label)]; ok {
+	if row, ok := t.names[NameKey(label)]; ok {
 		return describeRow(row, nil)
 	}
-	if row, ok := t.patterns[foldRule(name)]; ok && len(alts) > 0 {
+	if row, ok := t.patterns[NameKey(name)]; ok && len(alts) > 0 {
 		return describeRow(row, alts)
 	}
-	if row, ok := t.names[foldRule(name)]; ok {
+	if row, ok := t.names[NameKey(name)]; ok {
 		return describeRow(row, nil)
 	}
 	return RuleWorks{}
@@ -270,7 +264,7 @@ func RuleMatches(mine, theirs []TargetUnit) map[int64][]RuleMatch {
 				if k < 0 || (len(r.Needs) > 0 && !slices.ContainsFunc(r.Needs, func(w string) bool { return m.has([]string{w}) })) {
 					continue
 				}
-				i := slices.IndexFunc(found, func(f RuleMatch) bool { return strings.EqualFold(f.Rule, r.Name) })
+				i := slices.IndexFunc(found, func(f RuleMatch) bool { return sameName(f.Rule, r.Name) })
 				if i < 0 {
 					found = append(found, RuleMatch{Rule: r.Name, Keyword: joinWords(r.Against[k], "and")})
 					i = len(found) - 1

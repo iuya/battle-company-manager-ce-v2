@@ -10,7 +10,7 @@ import (
 )
 
 // The numbers of the rules (campaign.company.leaders, .sergeants, campaign.progression.threshold) are printed from the views, never typed in a
-// template (docs/definitions-lean-design.md 12.6).
+// template.
 
 func TestTheCreationPageDrawsAsManyOfficerPlacesAsTheRulesGive(t *testing.T) {
 	for _, tt := range []struct {
@@ -49,14 +49,6 @@ func TestTheExperienceBarPrintsTheRulesThreshold(t *testing.T) {
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
 	if !strings.Contains(body, "7 / 3 XP") || strings.Contains(body, "/ 5 XP") || !strings.Contains(body, `aria-valuemax="3"`) || !strings.Contains(body, "width: 100%") || !strings.Contains(body, "×2") {
 		t.Errorf("the bar says 7 / 3 XP, full, with 2 rolls waiting")
-	}
-}
-
-func TestCountWords(t *testing.T) {
-	for n, want := range map[int]string{0: "no Sergeants", 1: "one Sergeant", 2: "two Sergeants", 6: "six Sergeants", 7: "7 Sergeants"} {
-		if got := countWords(n, "Sergeant"); got != want {
-			t.Errorf("countWords(%d) = %q, want %q", n, got, want)
-		}
 	}
 }
 

@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 // The auras against the shipped rules (docs/aura-ranges.md, data.auras).
@@ -193,7 +195,7 @@ func TestUnitAurasLostStandFastAndWanderers(t *testing.T) {
 	rs := shippedRules(t)
 	u := auraHeroOn(t, rs, "Rohan", "Warrior of Rohan", "Path of the Soldier", func(s *UnitState) { s.PathRules = 0 })
 	wantAuras(t, "hero", rs.UnitAuras(u), "6 command Stand Fast, With Me!, Loose")
-	u.LostAbilities = []InjuryLoss{{Ability: "Stand Fast", Injury: "Broken Honour"}}
+	u.LostAbilities = []InjuryLoss{{Ability: AbilityStandFast, Injury: "Broken Honour"}}
 	wantAuras(t, "a hero who lost Stand Fast", rs.UnitAuras(u))
 	u.LostAbilities = nil
 	u.Wanderer = true
@@ -202,12 +204,8 @@ func TestUnitAurasLostStandFastAndWanderers(t *testing.T) {
 
 // TestUnitAurasNoData: a ruleset without data.auras has no rings and no error.
 func TestUnitAurasNoData(t *testing.T) {
-	tab, err := ParseAuras([]byte(`{"data":{}}`))
-	if err != nil || !tab.Empty() {
-		t.Fatalf("empty file: %v %v", tab, err)
-	}
-	if _, err := ParseAuras([]byte(`{"data":{"auras":{"entries":[{"id":"x","radius":0}]}}}`)); err == nil {
-		t.Error("an entry with no radius is an error")
+	if tab := LeanAuraTable(&lean.Document{}); !tab.Empty() {
+		t.Fatalf("empty document: %v", tab)
 	}
 	rs := shippedRules(t)
 	withoutAuras(t, rs)
@@ -355,27 +353,12 @@ func TestAuraRadiiInRuleText(t *testing.T) {
 		radius := fmt.Sprintf("%g", e.Radius)
 		if !regexp.MustCompile(`\b`+radius+`\s*(?:"|”|inch)`).MatchString(s) && len(e.Source.Names) > 0 {
 			// a sum (the war horn's 6+3) is written in parts
-			if !strings.Contains(e.ID, "standfast") {
+			if !strings.Contains(e.ID, "standfast") && !strings.Contains(e.Label, "Stand Fast") {
 				t.Errorf("%s: %s\" is not written in the text of %v", e.ID, radius, e.Source.Names)
 			}
 		}
 	}
 	if checked < 25 {
 		t.Errorf("only %d entries had a text to check", checked)
-	}
-}
-
-func TestBaseRadius(t *testing.T) {
-	tests := []struct {
-		in   []string
-		want float64
-	}{
-		{[]string{"25mm"}, 0.49}, {[]string{"40mm"}, 0.79}, {[]string{"60mm"}, 1.18}, {[]string{"120mm oval"}, 2.36},
-		{[]string{"180x140mm oval"}, 3.54}, {[]string{"231x133mm Oval"}, 4.55}, {[]string{"170mmm oval"}, 3.35}, {nil, 0}, {[]string{"large"}, 0},
-	}
-	for _, tc := range tests {
-		if got := BaseRadius(tc.in); got != tc.want {
-			t.Errorf("BaseRadius(%q) = %v, want %v", tc.in, got, tc.want)
-		}
 	}
 }

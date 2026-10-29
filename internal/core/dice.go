@@ -7,7 +7,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
-// DiceSpec is a dice specification [N]dM of the rules file (docs/definitions-lean-design.md 12.1), parsed once at load.
+// DiceSpec is a dice specification [N]dM of the rules file (docs/definitions.md, "Engine parameters"), parsed once at load.
 type DiceSpec = lean.DiceSpec
 
 // NdM is the spec of count dice of sides faces (for tests and for code that builds a spec from numbers it has checked).
@@ -75,7 +75,7 @@ func (d *FixedDice) Die(sides int) int {
 
 func (d *FixedDice) Roll(spec DiceSpec) int { return sumDice(d, spec) }
 
-// ParseDiceAt reads a dice string of the rules file; the error names the path of the key (docs/definitions-lean-design.md 12.1).
+// ParseDiceAt reads a dice string of the rules file; the error names the path of the key.
 func ParseDiceAt(path, s string) (DiceSpec, error) {
 	spec, err := lean.ParseDice(s)
 	if err != nil {

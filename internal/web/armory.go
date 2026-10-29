@@ -193,7 +193,7 @@ func (s *Server) armoryPage(w http.ResponseWriter, r *http.Request, status int, 
 			return
 		}
 		for _, wd := range wanderers {
-			view.Wanderers = append(view.Wanderers, armoryWanderer{ArmouryWanderer: wd, Avail: !strings.HasPrefix(wd.Reason, "The company cannot take"),
+			view.Wanderers = append(view.Wanderers, armoryWanderer{ArmouryWanderer: wd, Avail: wd.Blocker != core.BlockedByRule,
 				RuleChips: tips.chips(wd.Rules, "Special rule"), WargearChips: tips.chips(wd.Wargear, "Wargear"), ActionChips: tips.chips(wd.HeroicActions, "Heroic action")})
 		}
 	}

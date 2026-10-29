@@ -14,7 +14,6 @@ type matchesFixture struct {
 	campaigns *MockcampaignRepository
 	companies *MockcompanyRepository
 	matches   *MockmatchRepository
-	rulesets  *MockrulesetRepository
 	match     Match // the stored match
 	state     CompanyState
 	ctx       context.Context
@@ -26,7 +25,7 @@ func newMatchesFixture(t *testing.T) *matchesFixture {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 	f := &matchesFixture{campaigns: NewMockcampaignRepository(ctrl), companies: NewMockcompanyRepository(ctrl), matches: NewMockmatchRepository(ctrl),
-		rulesets: NewMockrulesetRepository(ctrl), state: gondor(), ctx: context.Background()}
+		state: gondor(), ctx: context.Background()}
 	f.match = testMatch()
 	f.match.Revision = 3
 	f.campaigns.EXPECT().Hashes(gomock.Any(), int64(5)).Return(RulesetHashes{BattleCompanies: "bc"}, CampaignSettings{}, nil).AnyTimes()
@@ -57,10 +56,7 @@ func newMatchesFixture(t *testing.T) *matchesFixture {
 			f.match = m
 			return m, nil
 		}).AnyTimes()
-	f.rulesets.EXPECT().Get(gomock.Any(), "bc").DoAndReturn(func(context.Context, string) (StoredRuleset, error) {
-		return StoredRuleset{Content: readDef(t, "battle_companies/battle_companies.json")}, nil
-	}).AnyTimes()
-	f.svc = NewMatches(f.campaigns, f.companies, f.matches, f.rulesets, staticRules{shippedRules(t)})
+	f.svc = NewMatches(f.campaigns, f.companies, f.matches, staticRules{shippedRules(t)})
 	return f
 }
 

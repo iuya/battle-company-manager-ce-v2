@@ -47,7 +47,7 @@ func (w *world) levelCampaign() {
 	w.rollLevel(lor, ws[1], 6)
 	sorc := w.rollLevel(lor, ws[2], 6)
 	_ = sorc
-	w.chooseLevel(lor, ws[2], "path:Path of the Sorcerer") // now it must choose its first power
+	w.chooseLevel(lor, ws[2], "path:Path of the Sorcerer") // it must choose its first power
 	r := w.rollLevel(lor, ws[5], 2)
 	if !r.Done {
 		w.gap("a D6 of 2 did not end the level-up")

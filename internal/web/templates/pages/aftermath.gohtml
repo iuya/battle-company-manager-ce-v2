@@ -51,7 +51,7 @@
 </div>
 {{end}}
 
-{{/* A step after the sheet. The current one gets its own block (the injuries, level-ups and finish beads fill them in); others are dimmed or summarised. */}}
+{{/* A step after the sheet. The current one gets its own block (the injuries, level-ups and finish blocks below); others are dimmed or summarised. */}}
 {{define "aftermath_later"}}
 {{$v := .V}}
 <section class="card space-y-2 {{if and (lt $v.Step .Index) (not (and (eq .Index 3) (eq $v.Step 2)))}}border-dashed{{end}}" id="aftermath-step-{{.Index}}">

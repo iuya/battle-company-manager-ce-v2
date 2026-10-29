@@ -207,3 +207,28 @@ func TestGearWithoutOwnTextFindsATooltip(t *testing.T) {
 		}
 	}
 }
+
+func TestParseOption(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		exchange bool
+		items    []string
+		gives    []string
+	}{
+		{"Shield and Spear", false, []string{"Shield", "Spear"}, []string{"Shield", "Spear"}},
+		{"Exchange lance for banner", true, []string{"lance", "banner"}, []string{"banner"}},
+		{"Swap shield and spear for banner", true, []string{"shield", "spear", "banner"}, []string{"banner"}},
+		{"Swap hand-and-a-half weapon for great bow", true, []string{"hand-and-a-half weapon", "great bow"}, []string{"great bow"}},
+		{"Replace Pike with Banner", true, []string{"Pike", "Banner"}, []string{"Banner"}},
+		{"swap shield for war drum (Isengard)", true, []string{"shield", "war drum"}, []string{"war drum"}},
+		{"Bow with ...", false, []string{"Bow with ..."}, []string{"Bow with ..."}},
+	} {
+		got := ParseOption(tc.name)
+		if got.Exchange != tc.exchange || !slices.Equal(got.Items, tc.items) || !slices.Equal(got.Gives, tc.gives) {
+			t.Errorf("ParseOption(%q) = %+v, want exchange %v items %q gives %q", tc.name, got, tc.exchange, tc.items, tc.gives)
+		}
+		if again := ParseOption(tc.name); !slices.Equal(again.Items, got.Items) {
+			t.Errorf("ParseOption(%q) is not stable", tc.name)
+		}
+	}
+}

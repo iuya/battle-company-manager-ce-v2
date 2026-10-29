@@ -117,6 +117,7 @@ type ArmouryWanderer struct {
 	PayInfluence, PayGold bool
 	StatBlock             []Attribute
 	Reason                string
+	Blocker               Blocker // what stops the hire; empty when it can be hired
 }
 
 // Hirable says the wanderer can be hired now.
@@ -132,98 +133,48 @@ func (a ArmouryCreature) CanTake() bool {
 	return false
 }
 
-// ParseCreaturesAndWanderers reads data.creatures and data.wanderers of the Battle Companies file.
-func ParseCreaturesAndWanderers(content []byte) (CreatureRules, []CreatureOffer, WandererRules, []WandererOffer, error) {
-	type item map[string]json.RawMessage
-	var doc struct {
-		Data struct {
-			Creatures struct {
-				Rules *struct {
-					AttachTo   []string `json:"attachTo"`
-					MaxPerHero *int     `json:"maxPerHero"`
-				} `json:"rules"`
-				Items []item `json:"items"`
-			} `json:"creatures"`
-			Wanderers struct {
-				Rules *struct {
-					MaxAtOnce *int `json:"maxAtOnce"`
-				} `json:"rules"`
-				Items []item `json:"items"`
-			} `json:"wanderers"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(content, &doc); err != nil {
-		return CreatureRules{}, nil, WandererRules{}, nil, err
-	}
-	stats := func(raw item) map[string]int {
-		out := map[string]int{}
-		for _, k := range []string{"movement", "fight", "shoot", "strength", "defence", "attack", "wounds", "courage", "intelligence", "might", "will", "fate"} {
-			var v int
-			if raw[k] != nil && json.Unmarshal(raw[k], &v) == nil && (v != 0 || k == "attack" || k == "wounds") {
-				out[k] = v
-			}
+// followerStats reads the characteristics of a creature or wanderer: a zero is left out except Attacks and Wounds.
+func followerStats(raw map[string]json.RawMessage, vanilla *VanillaBook) map[string]int {
+	out := map[string]int{}
+	for _, k := range vanilla.StatKeys() {
+		var v int
+		if raw[k] != nil && json.Unmarshal(raw[k], &v) == nil && (v != 0 || k == "attack" || k == "wounds") {
+			out[k] = v
 		}
-		return out
 	}
-	str := func(raw item, key string) (s string) { _ = json.Unmarshal(raw[key], &s); return }
-	num := func(raw item, key string) (n int) { _ = json.Unmarshal(raw[key], &n); return }
-	list := func(raw item, key string) (l []string) { _ = json.Unmarshal(raw[key], &l); return }
+	return out
+}
 
-	var cr CreatureRules
-	var wr WandererRules
-	var pr problems
-	if r := doc.Data.Creatures.Rules; r != nil {
-		cr.AttachTo = r.AttachTo
-		cr.MaxPerHero = pr.intIn("data.creatures.rules.maxPerHero", r.MaxPerHero, 0, 99)
-		if cr.MaxPerHero > 1 { // an officer's creature is one place of its record
-			pr.add("data.creatures.rules.maxPerHero: %d is not supported, an officer keeps one creature", cr.MaxPerHero)
-		}
-	} else if len(doc.Data.Creatures.Items) > 0 {
-		pr.add("data.creatures.rules is missing")
+// creatureFrom reads a creature of data.creatures.items (or of a lean gear entry written in that shape).
+func creatureFrom(raw map[string]json.RawMessage, vanilla *VanillaBook) CreatureOffer {
+	c := CreatureOffer{Name: rawStr(raw, "name"), Cost: rawInt(raw, "influence"), Gold: rawInt(raw, "gold"), Points: rawInt(raw, "points"), Stats: followerStats(raw, vanilla),
+		Rules: rawStrings(raw, "specialRules"), Notes: rawStrings(raw, "notes")}
+	if types := rawStrings(raw, "unitType"); len(types) > 0 {
+		c.Kind = strings.Join(types, " ")
+		c.UnitTypes = types
 	}
-	if r := doc.Data.Wanderers.Rules; r != nil {
-		wr.MaxAtOnce = pr.intIn("data.wanderers.rules.maxAtOnce", r.MaxAtOnce, 0, 99)
-	} else if len(doc.Data.Wanderers.Items) > 0 {
-		pr.add("data.wanderers.rules is missing")
+	var courage struct {
+		Same bool `json:"sameAsOwner"`
 	}
-	if err := pr.err(); err != nil {
-		return CreatureRules{}, nil, WandererRules{}, nil, err
+	if json.Unmarshal(raw["courage"], &courage) == nil {
+		c.CourageOfOwner = courage.Same
 	}
-	var creatures []CreatureOffer
-	for _, raw := range doc.Data.Creatures.Items {
-		c := CreatureOffer{Name: str(raw, "name"), Cost: num(raw, "influence"), Gold: num(raw, "gold"), Points: num(raw, "points"), Stats: stats(raw), Rules: list(raw, "specialRules"), Notes: list(raw, "notes")}
-		if types := list(raw, "unitType"); len(types) > 0 {
-			c.Kind = strings.Join(types, " ")
-			c.UnitTypes = types
-		}
-		var courage struct {
-			Same bool `json:"sameAsOwner"`
-		}
-		if json.Unmarshal(raw["courage"], &courage) == nil {
-			c.CourageOfOwner = courage.Same
-		}
-		var feature struct {
-			Key      string   `json:"key"`
-			Capacity int      `json:"capacity"`
-			Excludes []string `json:"excludes"`
-		}
-		if json.Unmarshal(raw["companyFeature"], &feature) == nil && feature.Key == "carryGear" {
-			c.Carry = &CarryFeature{Capacity: feature.Capacity}
-			for _, e := range feature.Excludes {
-				c.Carry.Excludes = append(c.Carry.Excludes, EquipmentClass(e))
-			}
-		}
-		if c.Name != "" {
-			creatures = append(creatures, c)
+	var feature struct {
+		Key      string   `json:"key"`
+		Capacity int      `json:"capacity"`
+		Excludes []string `json:"excludes"`
+	}
+	if json.Unmarshal(raw["companyFeature"], &feature) == nil && feature.Key == "carryGear" {
+		c.Carry = &CarryFeature{Capacity: feature.Capacity}
+		for _, e := range feature.Excludes {
+			c.Carry.Excludes = append(c.Carry.Excludes, EquipmentClass(e))
 		}
 	}
-	var wanderers []WandererOffer
-	for _, raw := range doc.Data.Wanderers.Items {
-		w := WandererOffer{Name: str(raw, "name"), Cost: num(raw, "influence"), Gold: num(raw, "gold"), Points: num(raw, "points"), UnitTypes: list(raw, "unitType"), Stats: stats(raw),
-			HeroicActions: list(raw, "heroicActions"), Rules: list(raw, "specialRules"), Wargear: list(raw, "wargear"), Note: str(raw, "keywordNote")}
-		if w.Name != "" {
-			wanderers = append(wanderers, w)
-		}
-	}
-	return cr, creatures, wr, wanderers, nil
+	return c
+}
+
+// wandererFrom reads a wanderer of data.wanderers.items (or of a lean gear entry written in that shape).
+func wandererFrom(raw map[string]json.RawMessage, vanilla *VanillaBook) WandererOffer {
+	return WandererOffer{Name: rawStr(raw, "name"), Cost: rawInt(raw, "influence"), Gold: rawInt(raw, "gold"), Points: rawInt(raw, "points"), UnitTypes: rawStrings(raw, "unitType"),
+		Stats: followerStats(raw, vanilla), HeroicActions: rawStrings(raw, "heroicActions"), Rules: rawStrings(raw, "specialRules"), Wargear: rawStrings(raw, "wargear"), Note: rawStr(raw, "keywordNote")}
 }

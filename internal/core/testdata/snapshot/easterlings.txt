@@ -446,7 +446,7 @@ gear "Exchange shield for war drum" -> key "exchangeshieldforwardrum" | vanilla 
 gear "Hand weapon" -> key "handweapon" | annotation "Hand weapon"
 gear "Heavy Armour" -> key "heavyarmour" | annotation "Heavy Armour" | vanilla gear "Heavy Armour"
 gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
-gear "Throwing weapon" -> key "throwingweapon" | offer "Throwing weapon" size "" also [Throwing weapons] | annotation "Throwing weapon" | vanilla gear "Throwing weapon"
+gear "Throwing weapon" -> key "throwingweapon" | offer "Throwing weapon" size "" also [] | annotation "Throwing weapon" | vanilla gear "Throwing weapon"
 gear "banner" -> key "banner" | annotation "Banner" | vanilla gear "Banner"
 gear "shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
 gear "teeth" -> key "teeth" | unknown

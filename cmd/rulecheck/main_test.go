@@ -36,9 +36,17 @@ func TestRuleCheck(t *testing.T) {
 			t.Errorf("code %d out %q", code, out)
 		}
 	})
-	t.Run("the old format is pointed at its validator", func(t *testing.T) {
+	t.Run("the shipped file checks", func(t *testing.T) {
 		code, out, _ := runCheck(t, "../../definitions/battle_companies/battle_companies.json")
-		if code != 1 || !strings.Contains(out, "tools/validate_definitions.py") {
+		if code != 0 || !strings.Contains(out, "0 errors, 0 warnings") {
+			t.Errorf("code %d out %q", code, out)
+		}
+	})
+	t.Run("the old format is refused with a clear message", func(t *testing.T) {
+		p := filepath.Join(t.TempDir(), "old.json")
+		_ = os.WriteFile(p, []byte(`{"name":"x","version":"1","extends":"y"}`), 0o644)
+		code, out, _ := runCheck(t, p)
+		if code != 1 || !strings.Contains(out, "schemaVersion 1 is not supported") {
 			t.Errorf("code %d out %q", code, out)
 		}
 	})

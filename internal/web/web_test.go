@@ -352,6 +352,18 @@ func TestHomeListsCampaigns(t *testing.T) {
 	}
 }
 
+func TestHomeShowsTheFactionUnderItsLabel(t *testing.T) {
+	f := newFixture(t, Config{})
+	f.camp.EXPECT().List(gomock.Any(), frodo.ID, false).Return([]core.CampaignSummary{
+		{ID: 1, Name: "Golden Wood", Status: core.CampaignActive, Rounds: 8,
+			Company: &core.CampaignCompany{Name: "Galadhrim", Faction: "Lothlorien", FactionLabel: "Lothlórien"}},
+	}, nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/", nil))).Body.String()
+	if !strings.Contains(body, "Lothlórien") || strings.Contains(body, "(Lothlorien)") {
+		t.Errorf("the faction is shown as its label: %s", body)
+	}
+}
+
 func TestHomeShowsAdminThings(t *testing.T) {
 	f := newFixture(t, Config{})
 	admin := core.User{ID: 2, DisplayName: "Gandalf", Role: core.RoleSuperuser}
@@ -1653,7 +1665,7 @@ func TestArmoryFiltersAndTooltips(t *testing.T) {
 		{CreatureOffer: core.CreatureOffer{Name: "Hunting Dog", Cost: 1, Rules: []string{"Fearful"}}}}, nil)
 	f.camp.EXPECT().ArmouryWanderers(gomock.Any(), int64(7), int64(1)).Return([]core.ArmouryWanderer{
 		{WandererOffer: core.WandererOffer{Name: "Wandering Swordsman", Cost: 9, Wargear: []string{"Badge of Courage"}, Rules: []string{"Fearful"}}},
-		{WandererOffer: core.WandererOffer{Name: "Kin of Another Folk", Cost: 9}, Reason: "The company cannot take Kin of Another Folk: evil"},
+		{WandererOffer: core.WandererOffer{Name: "Kin of Another Folk", Cost: 9}, Reason: "The company cannot take Kin of Another Folk: evil", Blocker: core.BlockedByRule},
 	}, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory", nil))).Body.String()
 	for _, want := range []string{

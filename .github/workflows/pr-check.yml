@@ -1,0 +1,72 @@
+# Pull request check: the title is a Conventional Commit and the body follows .github/PULL_REQUEST_TEMPLATE.md
+# (required sections present, mandatory checklist boxes ticked). Meant to be a REQUIRED status check (CONTRIBUTING.md).
+# Safe by construction: `pull_request` (never pull_request_target), read-only token, no secrets, no checkout, and the title and body
+# are read from the event payload by the script and never interpolated into a shell command.
+# tests/ci/pr-check.test.mjs extracts the script below and runs it against sample pull requests: keep the `script: |` block last.
+name: pr-check
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  pr-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Title and description
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (pr.user && pr.user.type === 'Bot') {
+              core.info('Pull request opened by a bot: not checked.');
+              return;
+            }
+            const title = pr.title || '';
+            const body = (pr.body || '').replace(/\r\n/g, '\n').replace(/<!--[\s\S]*?-->/g, '');
+            const problems = [];
+
+            const types = ['feat', 'fix', 'perf', 'refactor', 'docs', 'test', 'build', 'ci', 'chore'];
+            const titleRe = new RegExp('^(' + types.join('|') + ')(\\([a-z0-9][a-z0-9._/-]*\\))?!?: \\S.*$');
+            if (!titleRe.test(title)) {
+              problems.push('The title must be a Conventional Commit: <type>[(scope)][!]: <description>, for example "fix(web): keep the roster on one line". Types: ' + types.join(', ') + '.');
+            }
+
+            // Split the body into sections at "## Heading" lines.
+            const sections = {};
+            let current = null;
+            for (const line of body.split('\n')) {
+              const m = /^##\s+(.+?)\s*$/.exec(line);
+              if (m) { current = m[1].toLowerCase(); sections[current] = ''; } else if (current) { sections[current] += line + '\n'; }
+            }
+            const required = ['summary', 'type', 'linked issue', 'how it was tested', 'checklist'];
+            for (const name of required) {
+              if (!(name in sections)) problems.push('The description lacks the section "## ' + name.replace(/^./, c => c.toUpperCase()) + '". Keep every heading of the pull request template.');
+            }
+            const text = name => (sections[name] || '').replace(/\[[ xX]\]/g, '').trim();
+            for (const name of ['summary', 'linked issue', 'how it was tested']) {
+              if (name in sections && text(name).length < 3) problems.push('The section "' + name + '" is empty. Fill it in (for "Linked issue" write "Closes #123" or "None").');
+            }
+            const boxes = name => (sections[name] || '').split('\n').map(l => /^\s*[-*]\s+\[([ xX])\]\s+(.*)$/.exec(l)).filter(Boolean).map(m => ({ done: m[1] !== ' ', label: m[2] }));
+            if ('type' in sections && !boxes('type').some(b => b.done)) problems.push('Tick at least one box under "## Type".');
+            if ('checklist' in sections) {
+              const items = boxes('checklist');
+              const mandatory = [/make test/i, /no secrets/i, /licen[cs]e/i];
+              for (const re of mandatory) {
+                const item = items.find(b => re.test(b.label));
+                if (!item) problems.push('The checklist lacks the item matching ' + re + '. Keep every checklist line of the template.');
+                else if (!item.done) problems.push('Tick the mandatory checklist item: "' + item.label + '".');
+              }
+            }
+
+            if (problems.length) {
+              const message = 'This pull request does not meet the contribution rules (CONTRIBUTING.md):\n\n' + problems.map(p => ' - ' + p).join('\n') + '\n\nEdit the title or description; the check runs again by itself.';
+              core.error(message);
+              core.setFailed(message);
+            } else {
+              core.info('Title and description are fine.');
+            }

@@ -99,7 +99,7 @@ func (s *Server) handleCampaign(page, tab string) http.HandlerFunc {
 			return
 		}
 		ctx, id := r.Context(), base.Campaign.ID
-		var view any = base // tabs with nothing of their own to load (the armory for now)
+		var view any = base // tabs with nothing of their own to load (the armory)
 		switch tab {
 		case "overview":
 			matches, err := s.campaigns.Matches(ctx, id)
@@ -421,7 +421,7 @@ func (v newMatchView) TooFew() bool { return v.Companies < minMatchCompanies }
 func newMatchForm(base campaignBase, companies []core.CampaignCompany, sides []core.NewSide, ffa bool, errMsg string) (newMatchView, error) {
 	list := make([]map[string]any, len(companies))
 	for i, c := range companies {
-		list[i] = map[string]any{"id": c.ID, "name": c.Name, "owner": c.Owner, "faction": c.Faction}
+		list[i] = map[string]any{"id": c.ID, "name": c.Name, "owner": c.Owner, "faction": c.FactionName()}
 	}
 	state := make([]map[string]any, len(sides))
 	for i, sd := range sides {

@@ -23,7 +23,7 @@ func (b *BCBook) ArmourUpgrade() ArmourUpgrade { return b.armourUp }
 func (a ArmourUpgrade) StageOf(name string) (stage int, ok bool) {
 	name = strings.TrimSpace(name)
 	for i, names := range a.Stages {
-		if slices.ContainsFunc(names, func(n string) bool { return strings.EqualFold(n, name) }) {
+		if slices.ContainsFunc(names, func(n string) bool { return sameName(n, name) }) {
 			return i, true
 		}
 	}
@@ -69,18 +69,13 @@ func (sh shop) offers() []GearOffer {
 func (sh shop) armourPool(u CompanyUnit) map[int][]string {
 	up := sh.rs.BC.ArmourUpgrade()
 	pool := map[int][]string{}
-	var options []ChoiceOption
-	if u.IsHero() { // a Beast that is still a warrior only has its profile's options (Wargs and one spider can become heroes)
-		options = sh.heroOptions(u)
-	} else if v, ok := sh.profileOf(u.Type); ok {
-		options = v.Options
-	}
+	options, _ := sh.optionsOf(u)
 	for _, o := range options {
-		if strings.HasPrefix(strings.ToLower(o.Name), "exchange") {
+		if ParseOption(o.Name).Exchange {
 			continue
 		}
 		for _, part := range OptionItems(o.Name) {
-			if s, ok := up.StageOf(part); ok && s > 0 && !slices.ContainsFunc(pool[s], func(n string) bool { return strings.EqualFold(n, part) }) {
+			if s, ok := up.StageOf(part); ok && s > 0 && !slices.ContainsFunc(pool[s], func(n string) bool { return sameName(n, part) }) {
 				pool[s] = append(pool[s], part)
 			}
 		}
@@ -93,7 +88,7 @@ func (sh shop) armourTarget(u CompanyUnit, o GearOffer) string {
 	names := append([]string{o.Name}, o.AlsoCalled...)
 	pool := sh.armourPool(u)[o.ArmourStage]
 	for _, n := range names {
-		if slices.ContainsFunc(pool, func(p string) bool { return strings.EqualFold(p, n) }) {
+		if slices.ContainsFunc(pool, func(p string) bool { return sameName(p, n) }) {
 			return n
 		}
 	}

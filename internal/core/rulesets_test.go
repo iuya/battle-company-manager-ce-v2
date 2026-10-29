@@ -1,7 +1,9 @@
 package core
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"strings"
@@ -17,10 +19,34 @@ var testSchemas = map[RulesetKind][]byte{
 }
 
 const (
-	bcFile       = `{"name":"BC","version":"1","extends":"V"}`
 	vanillaFile  = `{"game":"MESBG 2024","appVersion":2}`
 	glossaryFile = `{"name":"G","version":"1","terms":[]}`
 )
+
+// bcFile is a small valid lean Battle Companies file (the fixture of the lean package), compact.
+var bcFile = func() string {
+	raw, err := os.ReadFile("lean/testdata/valid/minimal.json")
+	if err != nil {
+		panic(err)
+	}
+	var b bytes.Buffer
+	if err := json.Compact(&b, raw); err != nil {
+		panic(err)
+	}
+	return b.String()
+}()
+
+// withDefaults lets the repository answer with the shipped vanilla file and glossary as the defaults a Battle Companies file is checked
+// against.
+func withDefaults(t *testing.T, repo *MockrulesetRepository) {
+	t.Helper()
+	for kind, f := range map[RulesetKind]string{KindVanilla: "vanilla/data2024.json", KindGlossary: "glossary/mesbg_glossary.json"} {
+		raw := readDef(t, f)
+		hash := "default-" + string(kind)
+		repo.EXPECT().Default(gomock.Any(), kind).Return(RulesetInfo{Kind: kind, Hash: hash, Default: true}, nil).AnyTimes()
+		repo.EXPECT().Get(gomock.Any(), hash).Return(StoredRuleset{RulesetInfo: RulesetInfo{Kind: kind, Hash: hash}, Content: raw}, nil).AnyTimes()
+	}
+}
 
 func newTestRulesets(t *testing.T) (*Rulesets, *MockrulesetRepository) {
 	t.Helper()
@@ -112,15 +138,17 @@ func TestRulesetsFind(t *testing.T) {
 func TestRulesetsStoreStoresCompactedContent(t *testing.T) {
 	rs, repo := newTestRulesets(t)
 	ctx := context.Background()
-	pretty := "{\n  \"name\": \"BC\",\n  \"version\": \"1\",\n  \"extends\": \"V\"\n}\n"
+	withDefaults(t, repo)
+	raw, _ := os.ReadFile("lean/testdata/valid/minimal.json")
+	pretty := string(raw)
 	hash := mustHash(t, pretty)
 	repo.EXPECT().Info(ctx, hash).Return(RulesetInfo{}, ErrNotFound)
 	repo.EXPECT().Insert(ctx, StoredRuleset{
-		RulesetInfo: RulesetInfo{Kind: KindBattleCompanies, Hash: hash, Name: "BC", Version: "1"},
+		RulesetInfo: RulesetInfo{Kind: KindBattleCompanies, Hash: hash, Name: "Fixture", Version: "1.0"},
 		Size:        len(bcFile), Content: []byte(bcFile),
 	}).Return(nil)
 	info, err := rs.Store(ctx, KindBattleCompanies, hash, []byte(pretty))
-	if err != nil || info.Hash != hash || info.Name != "BC" || info.Version != "1" || info.Default {
+	if err != nil || info.Hash != hash || info.Name != "Fixture" || info.Version != "1.0" || info.Default {
 		t.Errorf("Store = %+v, %v", info, err)
 	}
 }
@@ -129,7 +157,7 @@ func TestRulesetsStoreAlreadyStoredSkipsInsert(t *testing.T) {
 	rs, repo := newTestRulesets(t)
 	ctx := context.Background()
 	hash := mustHash(t, bcFile)
-	known := RulesetInfo{Kind: KindBattleCompanies, Hash: hash, Name: "BC", Version: "1", Default: true}
+	known := RulesetInfo{Kind: KindBattleCompanies, Hash: hash, Name: "Fixture", Version: "1.0", Default: true}
 	repo.EXPECT().Info(ctx, hash).Return(known, nil)
 	if got, err := rs.Store(ctx, KindBattleCompanies, hash, []byte(bcFile)); err != nil || got != known {
 		t.Errorf("Store = %+v, %v", got, err)
@@ -138,9 +166,9 @@ func TestRulesetsStoreAlreadyStoredSkipsInsert(t *testing.T) {
 
 func TestRulesetsStoreRejections(t *testing.T) {
 	ctx := context.Background()
-	big := `{"name":"BC","version":"1","extends":"V","pad":"` + strings.Repeat("x", MaxRulesetSize) + `"}`
-	many := `{"name":"BC","version":"1","extends":"V","pad":[0` + strings.Repeat(",0", MaxRulesetValues) + `]}`
-	deep := `{"name":"BC","version":"1","extends":"V","pad":` + strings.Repeat("[", MaxRulesetDepth+1) + strings.Repeat("]", MaxRulesetDepth+1) + `}`
+	big := `{"schemaVersion":2,"name":"BC","version":"1","extends":"V","pad":"` + strings.Repeat("x", MaxRulesetSize) + `"}`
+	many := `{"schemaVersion":2,"name":"BC","version":"1","extends":"V","pad":[0` + strings.Repeat(",0", MaxRulesetValues) + `]}`
+	deep := `{"schemaVersion":2,"name":"BC","version":"1","extends":"V","pad":` + strings.Repeat("[", MaxRulesetDepth+1) + strings.Repeat("]", MaxRulesetDepth+1) + `}`
 	tests := []struct {
 		name    string
 		kind    RulesetKind
@@ -156,8 +184,11 @@ func TestRulesetsStoreRejections(t *testing.T) {
 		{"not json", KindBattleCompanies, "{nope", func(string) string { return "h" }, nil, "not valid JSON"},
 		{"hash mismatch", KindBattleCompanies, bcFile, func(string) string { return "deadbeef" }, nil, "does not match the hash"},
 		{"wrong kind of document", KindGlossary, bcFile, nil, nil, "does not look like a Glossary"},
-		{"schema violation", KindBattleCompanies, `{"name":"BC","version":"1","extends":"V","limits":"no"}`, nil,
-			func(m *MockrulesetRepository, h string) { m.EXPECT().Info(ctx, h).Return(RulesetInfo{}, ErrNotFound) }, "/limits"},
+		{"lean violation", KindBattleCompanies, `{"schemaVersion":2,"name":"BC","version":"1","extends":"V","limits":"no"}`, nil,
+			func(m *MockrulesetRepository, h string) {
+				m.EXPECT().Info(ctx, h).Return(RulesetInfo{}, ErrNotFound)
+				withDefaults(t, m)
+			}, "limits"},
 		{"hash stored as another kind", KindBattleCompanies, bcFile, nil,
 			func(m *MockrulesetRepository, h string) {
 				m.EXPECT().Info(ctx, h).Return(RulesetInfo{Kind: KindVanilla, Hash: h}, nil)
@@ -239,7 +270,7 @@ func TestRulesetsRegisterDefaults(t *testing.T) {
 	})
 	t.Run("a newer shipped file replaces the default", func(t *testing.T) {
 		rs, repo := newTestRulesets(t)
-		newBC := `{"name":"BC","version":"2","extends":"V"}`
+		newBC := strings.Replace(bcFile, `"version":"1.0"`, `"version":"2.0"`, 1)
 		h := mustHash(t, newBC)
 		repo.EXPECT().Info(ctx, h).Return(RulesetInfo{Kind: KindBattleCompanies, Hash: h}, nil)
 		repo.EXPECT().Default(ctx, KindBattleCompanies).Return(RulesetInfo{Hash: "old"}, nil)
@@ -290,17 +321,23 @@ func TestRulesetsShippedFilesPassTheirSchemas(t *testing.T) {
 	}
 	schemas := map[RulesetKind][]byte{
 		KindVanilla:         read("vanilla/data2024.schema.json"),
-		KindBattleCompanies: read("battle_companies/battle_companies.schema.json"),
+		KindBattleCompanies: testSchemas[KindBattleCompanies],
 		KindGlossary:        read("glossary/mesbg_glossary.schema.json"),
 	}
-	rs, err := NewRulesets(NewMockrulesetRepository(gomock.NewController(t)), schemas)
+	repo := NewMockrulesetRepository(gomock.NewController(t))
+	withDefaults(t, repo)
+	rs, err := NewRulesets(repo, schemas)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for kind, f := range map[RulesetKind]string{KindVanilla: "vanilla/data2024.json", KindBattleCompanies: "battle_companies/battle_companies.json", KindGlossary: "glossary/mesbg_glossary.json"} {
+	for kind, f := range map[RulesetKind]string{KindVanilla: "vanilla/data2024.json", KindGlossary: "glossary/mesbg_glossary.json"} {
 		if err := rs.validate(kind, read(f)); err != nil {
 			t.Errorf("%s: %v", f, err)
 		}
+	}
+	// the Battle Companies file is checked by the lean decoder against the shipped vanilla file and glossary
+	if rep, err := rs.Check(context.Background(), KindBattleCompanies, read("battle_companies/battle_companies.json")); err != nil || rep.Errors() != 0 {
+		t.Errorf("the shipped Battle Companies file: %v %v", err, rep.Issues())
 	}
 }
 

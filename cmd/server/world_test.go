@@ -46,11 +46,7 @@ func TestSeedWorld(t *testing.T) {
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL is not set")
 	}
-	if _, err := os.Stat("definitions"); err != nil { // definitions/ is read relative to the repository root
-		if err := os.Chdir("../.."); err != nil {
-			t.Fatal(err)
-		}
-	}
+	t.Parallel() // its own database (a copy of the seeded template), no state shared with the other tests
 	ctx := context.Background()
 	url = freshDatabase(ctx, t, url)
 	counter := &queryCounter{}

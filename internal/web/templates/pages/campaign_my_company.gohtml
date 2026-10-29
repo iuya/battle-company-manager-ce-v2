@@ -23,7 +23,7 @@
   <span class="badge" x-show="!renaming">Your company</span>
 </div>
 {{end}}
-<p class="mt-1 text-muted">{{.Faction}} · led by {{.Owner}}</p>
+<p class="mt-1 text-muted">{{.FactionName}} · led by {{.Owner}}</p>
 {{with .BreakPointPercent}}<p class="text-sm text-muted" id="company-break-point">Break Point: {{.}}% of the starting models</p>{{end}}
 {{with $.Notice}}<div class="alert {{if $.NoticeError}}alert-danger{{else}}alert-success{{end}} mt-4" role="status">{{.}}</div>{{end}}
 {{if and .OfficersPending (not $.ReadOnly)}}

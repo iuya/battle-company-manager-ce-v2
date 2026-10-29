@@ -2,22 +2,13 @@ package core
 
 import (
 	"errors"
-	"os"
 	"slices"
 	"testing"
 )
 
 func realAftermathRules(t *testing.T) AftermathRules {
 	t.Helper()
-	content, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Skip("definitions not available: ", err)
-	}
-	rules, err := ParseAftermath(content)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return rules
+	return shippedRules(t).BC.Aftermath()
 }
 
 func TestParseAftermath(t *testing.T) {
@@ -46,7 +37,10 @@ func TestParseAftermath(t *testing.T) {
 	if r.Effects["toTheVictorTheSpoils"].MaxValue != 2 {
 		t.Errorf("spoils: %+v", r.Effects["toTheVictorTheSpoils"])
 	}
-	if _, err := ParseAftermath([]byte(`{"campaign":{"injuries":{"warrior":[{"roll":[2,5],"key":"dead","effects":["remove"]}]}}}`)); !errors.Is(err, ErrInvalidRuleset) {
+	if _, err := customRulesetErr(t, func(doc map[string]any) {
+		inj := doc["campaign"].(map[string]any)["injuries"].(map[string]any)
+		inj["warrior"] = inj["warrior"].([]any)[:2] // the chart no longer covers the injury dice
+	}); !errors.Is(err, ErrInvalidRuleset) {
 		t.Errorf("a chart with a gap must be rejected: %v", err)
 	}
 }

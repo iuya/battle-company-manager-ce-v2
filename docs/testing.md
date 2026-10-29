@@ -1,10 +1,13 @@
 # Testing
 
+How the project is tested: the commands, the Go unit and integration tests, the golden snapshots of the rules data, the Python checks of the definitions, and the headless-browser smoke tests (`make e2e`).
+
 | Command | What it runs |
 |---|---|
-| `make test` | Go unit tests (the PostgreSQL ones are skipped) |
-| `make test-integration` | All Go tests against the `bcm_test` database of the compose PostgreSQL |
-| `python3 tools/validate_definitions.py` | Rules JSON schemas and cross references |
+| `make test` | Go unit tests (the PostgreSQL ones are skipped) and the Python tests of `tools/` (below) |
+| `make test-integration` | All Go tests against the `bcm_test` database of the compose PostgreSQL; in `cmd/server` the demo world is seeded once per run into a template database (`testmain_test.go`) and the two fuzz tests run side by side on copies of it (`go test ./cmd/server` takes about 2 minutes) |
+| `make docs-check` | Every relative link of the Markdown files (README, CONTRIBUTING, `docs/`, `tools/`, `examples/`) resolves, headings in `#fragments` included (`tests/ci/links.mjs`; part of `make test`) |
+| `make validate` | The four rules files: JSON Schemas, the Go validator on the Battle Companies file, the curator's checks, the glossary and the concept graph (below) |
 | `make check-ruleset FILE=…` | Checks a lean rules file like the upload does ([definitions.md](definitions.md#upload-validation)) |
 | `make fuzz [FUZZTIME=1m]` | Explores `FuzzParseDice` and `FuzzDecode` (their seed corpus already runs in `make test`) |
 | `make e2e` | Browser smoke tests (this page); `make e2e-groups` runs them group by group, `make e2e-check-groups` (part of `make test`) checks the grouping |
@@ -14,7 +17,21 @@
 
 `internal/core/ttshelper` runs the helper script (`helper.lua`) inside `go test` with gopher-lua, a test-only dependency, against a fake Tabletop Simulator
 API and a simulation of the army spawner's grid; the fixtures are in `tests/tts/`. It needs no game and no Lua binary and runs with `make test`. The real
-game is only exercised by the owner's smoke test ([tabletop-simulator.md](tabletop-simulator.md#built-the-helper-and-the-saved-object)).
+game is only exercised by playing ([tabletop-simulator.md](tabletop-simulator.md#what-remains-to-verify)).
+
+## Definitions tooling (Python, `tools/`)
+
+`make test` ends with `cd tools && python3 -m unittest test_extract_tts_models test_to_wound test_lean_checks test_concept_graph`. They need `python3` and `go`
+on the PATH (the glossary nodes come from `go run ./tools/conceptnodes`, the app's own loader) and read the shipped files, so they also prove the shipped files:
+
+| Module | What it proves |
+|---|---|
+| `test_lean_checks.py` | Company texts (repeated rules, parse artefacts), aura rings (vocabulary tables, group follows `when`/radius, radius written in the text, the war horn's sum), rule-target keywords, the Tabletop Simulator models against the local catalogue; and `tools/validate_definitions.py` itself: 0 errors on the shipped files, exit 1 on a dangling unit name and on an unknown key |
+| `test_concept_graph.py` | The shipped concept graph is current and what the build writes (deterministic), and each graph check fails on its own corruption (dangling edge, stale hash, wrong direction, missing `via`...) |
+| `test_to_wound.py` | The To Wound Chart of the glossary: complete grid, allowed values, monotonic |
+| `test_extract_tts_models.py` | The Tabletop Simulator saved-game extractor and the catalogue format the validator reads |
+
+`make validate` is the same checks on the shipped files without the corruption tests; `TestShippedConceptGraphMatchesCore` (Go) checks the generated graph file against core.
 
 ## Golden snapshot of the Battle Companies rules (`go test ./internal/core -run Snapshot`)
 
@@ -39,9 +56,9 @@ untouched. The few unexported helpers it needs are in its "seams" block. After a
 Pure package, so most tests need no mock; `Lower` (what vanilla and the glossary know) has a hand-written fake for the worked examples
 (`fakelower_test.go`) and a generated mock (`make generate`) where a test must see the calls. Tests are table-driven.
 
-- **Fixtures.** `testdata/valid/*.json` are complete minimal files built from the worked examples of the design (section 4); each decodes with no
+- **Fixtures.** `testdata/valid/*.json` are complete minimal files built from the worked examples of the format; each decodes with no
   issue, in the lean package against the fake world and in `internal/core` against the shipped vanilla file and glossary. `testdata/invalid/<case>.json`
-  come with `<case>.want`, the exact report text, one per row of the section 7 catalogue. `testdata/gen_fixtures.py` writes the inputs
+  come with `<case>.want`, the exact report text, one per row of the catalogue of validation messages. `testdata/gen_fixtures.py` writes the inputs
   (`python3 -I internal/core/lean/testdata/gen_fixtures.py`); `go test ./internal/core/lean -run TestInvalidFixtures -update` rewrites the `.want`
   files, and the diff is read: the wording is reviewed there.
 - **Upload error catalogue.** `internal/core/rulesets_catalogue_test.go` drives every invalid fixture through `Rulesets.Check` against the real
@@ -50,12 +67,9 @@ Pure package, so most tests need no mock; `Lower` (what vanilla and the glossary
   thousands is capped at 1,000 and counted.
 - **Fuzz.** `FuzzDecode` (no panic, no hang beyond 2 s, the same bytes give the same report, a clean document re-encoded and decoded is equal) and
   `FuzzParseDice`. The seeds are every fixture and the shipped file; they run in `make test`, `make fuzz` explores.
-- **Equivalence.** `internal/core/lean_convert_test.go` has the test-only converter `oldToLean` (never shipped) and `TestLeanEquivalence`, a registry with
-  one entry per section of the old file. Slice 1 converts the header and `campaign` and checks that the typed parameters equal what the engine
-  uses today; slice 3 converts `scenarios[]` (scoring objectives as typed `scoring[]` with one option per tier sentence, stored once) and checks that
-  the line composed from the options equals the three old prose forms byte for byte, that `maxPoints` is derivable, and (`TestLeanScenariosGaps`)
-  which old keys the lean model still has no field for. A later slice adds its section: extend `oldToLean`, replace the `skip` of its entry with a `check`, build the consumer from
-  `RuleSet.Doc`, and the golden snapshot proves the pages did not change.
+- **Goldens as the proof of what the file means.** The file-based goldens freeze what the app derives from the shipped file: `internal/core/testdata/snapshot` (the audit and the pages' data for all 37 companies; `go test ./internal/core -run Snapshot -update-snapshot`), `auras_golden.txt` and `tts_golden.txt`, plus file-level checks in `ruleset_v2_test.go`
+  (`TestShippedFileIsVersionTwo`: the shipped file decodes with no issue but the tolerated `I shall pass!` warning) and `TestCustomRuleset*` (one changed parameter of the
+  shipped file changes the behaviour, or is refused with the decoder's message).
 - **Benchmark.** `go test ./internal/core/lean -run xxx -bench DecodeLarge`: a 650 KB file decodes in about 25 ms (budget 100 ms); a decode happens
   once per content hash.
 
@@ -63,12 +77,12 @@ Pure package, so most tests need no mock; `Lower` (what vanilla and the glossary
 
 `customRuleset(t, mutate)` (`customruleset_test.go`) loads the shipped vanilla, Battle Companies and glossary files, lets `mutate` change the
 decoded Battle Companies document (a `map[string]any`) and builds a `RuleSet` with `LoadRuleSet`, the path production uses. `TestCustomRuleset`
-is table-driven, one row per engine parameter ([definitions-lean-design.md](definitions-lean-design.md) section 12.8): `mutate` sets the value,
-`check` asserts the behaviour through the built rule set. The parameter slices P1 to P6 add rows; today it holds a default row, the treatment
-`perPoint` of the "attempt" method, the recruiting parameters (P1) and the dice (P4: injury dice d12, Courage dice, bonus dice, plus
+is table-driven, one row per engine parameter ([customizing-rulesets-reference.md](customizing-rulesets-reference.md)): `mutate` sets the value,
+`check` asserts the behaviour through the built rule set. It holds a default row, the treatment
+`perPoint` of the "attempt" method, the recruiting parameters and the dice (injury dice d12, Courage dice, bonus dice, plus
 `TestCustomRulesetRefusesDiceTheTablesDoNotCover` for dice a table does not cover). `dice_test.go` tests `Dice.Roll`, `FixedDice`,
 `CheckCovers`, the typed-roll folding, `ParseScenarioSelection` and the hero roll with another number of results.
-`customruleset_company_test.go` holds the rows of slices P2 and P3 (`TestCustomRulesetCompanyAndLimits`: officers, hero start, `maxModels`, XP threshold, the
+`customruleset_company_test.go` holds the company rows (`TestCustomRulesetCompanyAndLimits`: officers, hero start, `maxModels`, XP threshold, the
 hero rating threshold, `limits[]`, creature, wanderer and path limits, the Courage and Intelligence cap; `TestCustomRulesetRefusesBadCompanyAndLimitParameters`
 for the path-naming load errors); the treatment dice are in `treatment_test.go`. The web templates that print these numbers are tested in
 `internal/web/rules_numbers_test.go` (the officer places, the experience bar, the treatment window).
@@ -77,17 +91,16 @@ for the path-naming load errors); the treatment dice are in `treatment_test.go`.
 
 - `TestMagicNumbersReport` parses the non-test `internal/core/*.go` with `go/ast`, counts integer literals other than 0, 1 and 2 (set
   `magicAllowedValues`) and not in `magicAllowList`, logs the total, the top files and values, and lists declarations of the engine constants
-  slices P1 to P3 delete (`magicForbiddenNames`).
+  the engine takes from the data (`magicForbiddenNames`).
 - `TestTemplateRuleLiteralsReport` greps `internal/web/templates` for `up to N` and `ND6` and logs the count per file.
 
 Allow-list format: `magicAllowList["file.go:value"] = "reason"` (that literal anywhere in the file) or `"file.go:Func:value"` (inside one function);
-the reason is mandatory in review, and the list should shrink. To make the lint enforcing (slice P6), set `magicNumbersEnforce = true`, clear or
+the reason is mandatory in review, and the list should shrink. To make the lint enforcing, set `magicNumbersEnforce = true`, clear or
 justify every remaining literal, and delete the now-empty rows of the report.
 
 ## Browser smoke tests (`make e2e`)
 
-Risk R1 of [security-and-risks.md](security-and-risks.md): Alpine, htmx swaps, the live event stream, dice and dialogs are
-only exercised by a real browser. The suite in `tests/e2e` drives headless Chrome with
+Alpine, htmx swaps, the live event stream, dice and dialogs are only exercised by a real browser. The suite in `tests/e2e` drives headless Chrome with
 [puppeteer-core](https://pptr.dev/) through the demo world. It is a separate Node project (its own `package.json` and
 `package-lock.json`, `puppeteer-core` pinned); nothing of it is in the Go module.
 
@@ -112,8 +125,7 @@ gitignored and emptied at each run.
 - Several runs at once (two agents, a clone) are safe: own database, own port, own binary. They still share `tests/e2e/out/`
   (each run empties the screenshots and `server.log` of the others when it starts) and the compose PostgreSQL; from another
   checkout set `COMPOSE_PROJECT_NAME` to the project of the running PostgreSQL (`docker ps` label `com.docker.compose.project`).
-- `TestSeedWorld` makes `bcm_world_test_<pid>_<n>`, unique per run, so two `make test-integration` runs do not drop each other's
-  database (it used to be one fixed name).
+- `TestSeedWorld` makes `bcm_world_test_<pid>_<n>`, unique per run, so two `make test-integration` runs do not drop each other's database.
 - The server listens on a free port chosen by the OS (`APP_ENV=development`, `CSP_MODE=report` or `E2E_CSP_MODE`, `STYLEGUIDE=true`).
 - At the end (also on Ctrl-C) it stops only the processes it started (by pid, no `pkill`) and drops its own database.
   `make e2e-clean` drops the cached templates (`bcm_e2e_*`) and `out/`.
@@ -121,15 +133,10 @@ gitignored and emptied at each run.
   `E2E_ADMIN_URL` (a PostgreSQL URL with rights to create databases) replaces the `docker compose exec psql` calls;
   `E2E_DB_URL_BASE` is the base URL the server gets (default `postgres://bcm:bcm@localhost:5432`).
 
-**Failures that pass on a rerun.** (Root cause of the lost sheet click found and fixed: htmx wires a swapped-in fragment only when it settles, 20 ms after the swap, and a click in that gap sends nothing; `static/js/htmx_ready.js` now processes the fragment at once, and the step "a menu entry clicked the instant it is swapped in" in `40-match` holds it. Other first-run failures are still load until shown otherwise.) Three full runs of the optimisation pass (6 live and aftermath steps failing together, then green)
-were investigated in [mqn.169]: the six are one step failing and the steps after it depending on it (a match flow is a chain). Not
-reproduced on a quiet machine (about 40 match-flow runs, serial and four at once, also with 30 busy processes) and no race found by `go test -race`.
-The one failure seen later was a click on a sheet entry ("Wounded a unit") that sent no request, on a machine running a race
-test loop. So the harness now (a) waits for the clicked box to hold still, (b) clicks again once when a button with `hx-get` or
-`hx-post` sent no request and prints `(click ... sent no request, clicking again)` and a count in the summary, (c) writes into
-every failure dump the last 60 requests of the page with times, the live dot, `data-seq` and the open sheets. If that count shows
-up in a green run, or a failure dump shows the request missing, that is the evidence for a real app bug in the sheet; until then
-treat a first-run failure that is green on rerun as load, not as a regression.
+**Failures that pass on a rerun.** A match flow is a chain, so one failing step makes the steps after it fail too; read the first failure. The harness (a) waits for the clicked box to hold still, (b) clicks again once when a
+button with `hx-get` or `hx-post` sent no request and prints `(click ... sent no request, clicking again)` and a count in the summary, and (c) writes into every failure dump the last 60 requests of the page with times, the live dot, `data-seq` and
+the open sheets. htmx wires a swapped-in fragment only when it settles, 20 ms after the swap; `static/js/htmx_ready.js` processes the fragment at once, and the step "a menu entry clicked the instant it is swapped in" in `40-match` holds that. If the re-click
+count shows up in a green run, or a failure dump shows the request missing, that is evidence for a real bug in the sheet; a first-run failure that is green on rerun on a loaded machine is load, not a regression.
 
 **What it covers** (`tests/e2e/flows`, run in file order; every step also fails on any browser console error, uncaught
 exception, failed request or 4xx/5xx answer it did not expect):
@@ -142,9 +149,9 @@ exception, failed request or 4xx/5xx answer it did not expect):
 | `40-match` | create a match, pick a scenario; live mode with two players and the organiser watching: tracker change seen by the viewer through the event stream and Undo; the stream cut by request interception ("Reconnecting", the page catches up when it is back) and refused with a 429 (the page polls every 10 s); mount removed (seen by the viewer); wound an enemy unit; retreat and return; end checks; log; result; propose to end, the other player confirms; aftermath start, injury roll and Finish for both companies |
 | `50-ranger` | the Ranger of the North swap on a recruit result in the "Cemetery" campaign |
 | `60-pages` | 21 page types (login, home, campaign pages, a match, a live company, an aftermath, glossary, account, admin, style guide) at 360, 768 and 1280 px, light and dark: no horizontal scroll, the colour scheme really switches, no console errors or failed requests |
-
 | `60-pages` (end) | axe-core 4.10 (pinned) on the same pages at 1280 and 360 px, light and dark: no serious or critical violation of WCAG 2.x A/AA; `AXE_OFF` in the file lists the rules left out, each with its reason |
 | `70-keyboard` | the keyboard walk: Tab reaches the controls of the sign-in form and a company page with a visible focus ring; a sheet opens with Enter, keeps the focus inside, closes with Escape and gives the focus back |
+| `79-keywords` | the unit keyword chips ([unit-keywords.md](unit-keywords.md)): the chip row of My Company without the keywords the icon, insignia and gear already say, the `+N` that opens the full list in place, the expanded card, a chip's tooltip and helper popup, the armoury's wanderers and creatures, a fallen unit, another player's read-only page, 360/768/1280 px in both themes, axe |
 | `80-creation` | company creation: the Shire's Ranger of the North starts as the Leader, locked (real mouse drags out of the place and onto it, the Leader button, no Remove) and a forged POST without him gets a 422 with "must start as the Leader"; Rohan's officers moved with real drags between the places and the pool (the form's hidden fields follow, the suggestion banner goes, the vow dialog names the officers); the officer panel at 360/768/1280 px, light and dark |
 | `81-aftermath-ui` | the aftermath sheet's XP chips (height, padding, inside their card, no horizontal scroll at 3 widths x 2 themes) and, once the sheet is locked, the Survived / Casualty / Fled badges: three different computed colour pairs, contrast of at least 4.5 (read from the computed styles, `color-mix()` normalised through a canvas) |
 | `82-company-ui` | the Elven Cloak badge's tooltip on My Company (Stalk Unseen, To Hit) at 3 widths x 2 themes; the buy window's "Find an item" by name, by alias and "No item matches your search."; the armoury's hide switch (on by default, remembered after a reload), main category chips disabling the item chips that do not apply, creature and wanderer tooltips |
@@ -154,8 +161,10 @@ exception, failed request or 4xx/5xx answer it did not expect):
 | `86-dice3d` | the dice animation, with real WebGL (headless Chrome through SwiftShader, flags in `lib/harness.mjs`): a server roll (the campaign where the server rolls every die) loads `dice3d.js` only then, rolls on the 3D tray, ends, reports the number the server sent (`data-roll`) and shows it; the result, raise buttons and Confirm are hidden while the canvas rolls and appear when it stops (sampled every frame), the recruit can then be finished; with `getContext('webgl')` answering null the flat tray takes over and the result still shows; with `dice3d.js` blocked the flat tray is used; the style guide tray stops on given values (1, 2, 4 dice, two lanes) and can be rolled again, a browser roll is shaken once with the space bar, `prefers-reduced-motion` gives the result at once; the tray fits 360, 768 and 1280 px, light and dark |
 | `87-concepts` | the helper popup: a chip on My Company opens it (hover keeps the tooltip, which steps aside), its groups and "Open in glossary", a chip swaps the content and Back returns, Escape closes and the focus returns to the term, backdrop and Close; the shield's explicit cancels fold into closed lines with a count; a vanished concept says "no longer in these rules", an unknown name falls back to the tooltip text; keyboard (Enter opens, Tab and Shift+Tab stay inside, the heading takes the focus after a step); a glossary link in an expanded card opens it over the card and Escape closes only the popup; the live company page's terms open it; the sheet at 360/768/1280 px in both themes (bottom sheet at 360, card from 768, inside the window, no horizontal scroll, axe on the popup) with screenshots `out/concept-popup-*.png` |
 | `88-own-path` | units On Their Own Path and promoted officers: the overview text of the "everything on" campaign, a Sentinel as a warrior with XP and Level Up, a typed 6 that makes it a hero on the Path of Their Own Making with no path window, re-roll or forgo offer (360/768/1280, both themes, no horizontal scroll), the Take command badges following the campaign setting, and Arnor's officers previewed, confirmed and rostered as Rangers of the North (a throwaway campaign) |
+| `89-ruleset-report` | a rules file with twelve mistakes is refused with every problem listed (file, path, hint, closest match) by "Check this file" (a dry run), by the admin upload and by the new-campaign form; nothing is stored and no campaign is created; 360/768/1280 px, light and dark |
+| `90-csp` | the Content-Security-Policy header of the mode the server runs in, and a control that proves the harness sees a violation (otherwise "no violation" in the other flows would prove nothing); `make e2e-enforce` runs the whole suite under the enforcing policy |
 | `91-tts` | the copy button and its dialog (Tabletop Simulator army list): button next to the name with an accessible name and a tooltip on hover and keyboard focus, the list of a Rohan cavalry company (line format, hero line, counts, Break Point, notes), Escape and the focus return, the Tab trap, Copy into the clipboard (and the select-all fallback), the two switches on a Warg company (htmx, no page load, remembered in localStorage), another player's company (wanderers and creatures as stand-ins), a stranger's 404, the live variant (a retreated unit goes to a second warband with a note), 360/768/1280 px in both themes with axe and screenshots (`out/tts-*.png`) |
-| `92-tts-names` | level B block of the Tabletop Simulator dialog: valid ArmyNames JSON with one entry per figure matching the list lines in order, the rule-text switch (none < short <= full, htmx, remembered, survives a list switch), Copy names (clipboard and select fallback, own live region), `/tts/helper.zip` fetched in the page (200, `application/zip`, ETag, `PK` magic, a `.json` and a `.png` entry by their central directory sizes), the collapsed Lua disclosure with its script and copy button, 360/768/1280 px in both themes with axe and screenshots (`out/tts-names-*.png`); the live fallen marker is checked in `91-tts` |
+| `92-tts-names` | the names block of the Tabletop Simulator dialog: valid ArmyNames JSON with one entry per figure matching the list lines in order, the rule-text switch (none < short <= full, htmx, remembered, survives a list switch), Copy names (clipboard and select fallback, own live region), `/tts/helper.zip` fetched in the page (200, `application/zip`, ETag, `PK` magic, a `.json` and a `.png` entry by their central directory sizes), the collapsed Lua disclosure with its script and copy button, 360/768/1280 px in both themes with axe and screenshots (`out/tts-names-*.png`); the live fallen marker is checked in `91-tts` |
 | `93-to-wound` | the To Wound chart window: the match page's button opens a 10 x 10 chart with seven well-known cells of the printed chart (S3 vs D3 4+, S4 vs D6 5+, S5 vs D3 3+, S1 vs D1 4+, S2 vs D7 6+/4+, S1 vs D9 -, S9 vs D10 5+), Escape and the focus return, the window outside `#match`; the find control (typed values, steppers, clamping, a tap on a cell, row/column/cell marked); on the live company page the window outside `#live-zones` stays open with its pick after a live refresh and finding a roll sends no request; the Tab trap, Close and the backdrop; 360/768/1280 px in both themes on both pages: no page scroll, sticky headers, six distinct band colours with contrast of at least 4.5, axe and screenshots (`out/to-wound-*.png`) |
 | `94-envenom` | Envenom Weapon (X) on the gallery's Mordor company: the Armory tab's unit rows each carry a weapon chooser built from that unit's weapons (nothing preselected, required); bought from the buy window (Orc Bow) and from the Armory tab (Spear), the card shows `Poisoned Attacks (<weapon>)` once and the weapon item stays plain; the choice is final (no chooser, no Change weapon), dropping the Spear keeps the rule and buying it again shows it once; Harad's profile-poisoned Bow is not offered; a unit that already carries it has the reason and no button; 3 widths x 2 themes: no horizontal scroll, axe clean on the Armory tab and the buy window (the "no weapon left" reason is a handler test: no demo unit reaches it) |
 | `95-keyword-targets` | the demo campaign "Keyword targets" (Gimli's Dwarves with Ancient Enemies (Orc) against Radagast's Mirkwood company): a rule chip's tooltip and helper popup say "Works against: enemy models with the Orc keyword." and the own card is not marked; on the opponent's page every card shows its keywords and exactly the Orcs carry "Ancient Enemies (Orc) applies" (tooltip, Enter opens the popup, Escape returns the focus); the reverse side, the opponent's own page and an onlooker see no marker; "Wounded a unit" lists the enemy units with keywords and the same markers; a retreating Orc loses its marker through the live refresh, its compact card keeps the chips, and the marker returns with the unit; 360/768/1280 px x light/dark: no horizontal scroll, markers inside the card, axe, screenshots |

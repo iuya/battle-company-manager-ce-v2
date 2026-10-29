@@ -460,19 +460,24 @@ func reasons(err error) []string {
 	return out
 }
 
+// fieldReasons are the reasons of an error built with errors.Join(sentinel, reason...), each with the form field it is about.
+func fieldReasons(err error) []core.FieldError {
+	var out []core.FieldError
+	u, ok := err.(interface{ Unwrap() []error })
+	if !ok {
+		return []core.FieldError{{Field: core.FieldOf(err), Msg: sentence(err.Error())}}
+	}
+	for _, e := range u.Unwrap()[1:] {
+		out = append(out, core.FieldError{Field: core.FieldOf(e), Msg: sentence(e.Error())})
+	}
+	return out
+}
+
 // scenarioErrors files the messages of ScenarioInput.Validate under the field they are about.
 func scenarioErrors(err error) map[string]string {
 	out := map[string]string{}
-	for _, msg := range reasons(err) {
-		field := ""
-		switch {
-		case strings.HasPrefix(msg, "The name"):
-			field = "name"
-		case strings.HasPrefix(msg, "The description"):
-			field = "description"
-		case strings.HasPrefix(msg, "How it is won"):
-			field = "victory"
-		}
+	for _, fr := range fieldReasons(err) {
+		field, msg := fr.Field, fr.Msg
 		if out[field] != "" {
 			msg = out[field] + " " + msg
 		}

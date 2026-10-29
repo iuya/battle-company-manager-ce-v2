@@ -58,7 +58,8 @@ type world struct {
 	exec func(ctx context.Context, query string, args ...any) error
 	// scenarios of the default Battle Companies file, by name
 	scenarios map[string]core.ScenarioInfo
-	spareNext int // next faction of the rules file for w.spare
+	shipped   *core.RuleSet // the rules the app ships with, loaded on first use (rules)
+	spareNext int           // next faction of the rules file for w.spare
 	// the Aura parade: the default rules and the data.auras entries (by id) the companies of the script cover, with the companies
 	rules       *core.RuleSet
 	auraCovered map[string][]string
@@ -224,20 +225,6 @@ func (w *world) mustUnit(co *wco, what string, ok func(core.CompanyUnit) bool) c
 		panic(worldAbort{fmt.Errorf("%s has no %s", co.name, what)})
 	}
 	return u
-}
-
-// warrior returns the n-th warrior that is not injured.
-func (w *world) warrior(co *wco, n int) core.CompanyUnit {
-	i := 0
-	for _, u := range w.detail(co).Roster {
-		if u.Role == core.RoleWarrior && !u.Wanderer && !u.Injured {
-			if i == n {
-				return u
-			}
-			i++
-		}
-	}
-	panic(worldAbort{fmt.Errorf("%s has no warrior number %d", co.name, n)})
 }
 
 func isRole(r core.UnitRole) func(core.CompanyUnit) bool {

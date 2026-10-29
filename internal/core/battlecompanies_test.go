@@ -1,19 +1,11 @@
 package core
 
 import (
-	"os"
 	"testing"
 )
 
 func TestBattleCompaniesBook(t *testing.T) {
-	content, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Skip("definitions not available: ", err)
-	}
-	b, err := ParseBattleCompanies(content)
-	if err != nil {
-		t.Fatal(err)
-	}
+	b := shippedRules(t).BC
 	mt, ok := b.Company("Minas Tirith")
 	if !ok || mt.ReinforcementCost != 3 || mt.MaxModels != 15 || len(mt.Reinforcements) == 0 || len(mt.SpecialChart) == 0 {
 		t.Errorf("Minas Tirith: %+v", mt)
@@ -54,14 +46,7 @@ func TestBattleCompaniesBook(t *testing.T) {
 }
 
 func TestGearAnnotationsFromTheFile(t *testing.T) {
-	content, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Skip("definitions not available: ", err)
-	}
-	b, err := ParseBattleCompanies(content)
-	if err != nil {
-		t.Fatal(err)
-	}
+	b := shippedRules(t).BC
 	classes := func(name string) []EquipmentClass {
 		a, ok := b.Annotation(name)
 		if !ok {
@@ -119,23 +104,9 @@ func TestGearAnnotationsFromTheFile(t *testing.T) {
 }
 
 func TestOptionsReservedToANamedHeroAreNotOffered(t *testing.T) {
-	bcContent, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Skip("definitions not available: ", err)
-	}
-	vContent, err := os.ReadFile("../../definitions/vanilla/data2024.json")
-	if err != nil {
-		t.Skip("definitions not available: ", err)
-	}
-	b, err := ParseBattleCompanies(bcContent)
-	if err != nil {
-		t.Fatal(err)
-	}
-	v, err := ParseVanilla(vContent)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rs := &RuleSet{BC: b, Vanilla: v}
+	rs := shippedRules(t)
+	b, v := rs.BC, rs.Vanilla // the reserved options come from the vanilla file, not from the Battle Companies file
+	_ = v
 	if !b.Reserved("Rivendell Warrior", "King's Guard") || b.Reserved("Rivendell Warrior", "Shield") {
 		t.Error("King's Guard is reserved to Gil-galad's list")
 	}

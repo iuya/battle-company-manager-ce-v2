@@ -395,7 +395,7 @@ gear "Fell Warg" -> key "fellwarg" | offer "Fell Warg" size "" also [] | annotat
 gear "Hand weapon" -> key "handweapon" | annotation "Hand weapon"
 gear "Orc Bow" -> key "orcbow" | offer "Orc Bow" size "" also [] | annotation "Orc Bow" | vanilla gear "Orc Bow"
 gear "Orc bow" -> key "orcbow" | offer "Orc Bow" size "" also [] | annotation "Orc Bow" | vanilla gear "Orc Bow"
-gear "Two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe Two-handed axe] | annotation "Two-handed weapon"
+gear "Two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe] | annotation "Two-handed weapon"
 gear "Venom-back" -> key "venomback" | annotation "Venom-back"
 gear "teeth" -> key "teeth" | unknown
 rule "\"Hold positions, loose the arrows!\"" -> label "\"Hold positions, loose the arrows!\"" | text from bc rule | glossary "\"Hold positions, loose the arrows!\""
