@@ -64,17 +64,24 @@ func decodeSelection(raw []byte) (core.ATOSelection, error) {
 
 // read loads the record of a match (the zero record when none is stored).
 func (as atoStore) read(ctx context.Context, q querier, matchID int64) (core.ATORecord, error) {
-	var rec core.ATORecord
+	var companyID int64
+	var had bool
 	var sel, prev []byte
 	err := q.QueryRow(ctx, `SELECT company_id, selection, previous_scenario, had_previous FROM match_ato WHERE match_id = $1`, matchID).
-		Scan(&rec.CompanyID, &sel, &prev, &rec.HadPrevious)
+		Scan(&companyID, &sel, &prev, &had)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return core.ATORecord{}, nil
 	}
 	if err != nil {
 		return core.ATORecord{}, err
 	}
-	rec.MatchID = matchID
+	return as.decode(matchID, companyID, sel, prev, had)
+}
+
+// decode turns the columns of a stored record into it.
+func (as atoStore) decode(matchID, companyID int64, sel, prev []byte, hadPrevious bool) (core.ATORecord, error) {
+	rec := core.ATORecord{CompanyID: companyID, HadPrevious: hadPrevious, MatchID: matchID}
+	var err error
 	if rec.Selection, err = decodeSelection(sel); err != nil {
 		return core.ATORecord{}, err
 	}
@@ -88,12 +95,25 @@ func (as atoStore) read(ctx context.Context, q querier, matchID int64) (core.ATO
 	return rec, nil
 }
 
-// Get returns the stored record, or the zero record; ErrNotFound when the match is not one of the campaign.
+// Get returns the stored record, or the zero record; ErrNotFound when the match is not one of the campaign. One statement: the match row
+// proves the match belongs to the campaign, the record joins to it.
 func (as atoStore) Get(ctx context.Context, campaignID, matchID int64) (core.ATORecord, error) {
-	if _, err := as.s.Matches().Get(ctx, campaignID, matchID); err != nil {
+	var companyID *int64
+	var sel, prev []byte
+	var had *bool
+	err := as.s.pool.QueryRow(ctx, `SELECT a.company_id, a.selection, a.previous_scenario, a.had_previous
+		FROM matches m LEFT JOIN match_ato a ON a.match_id = m.id WHERE m.id = $1 AND m.campaign_id = $2`, matchID, campaignID).
+		Scan(&companyID, &sel, &prev, &had)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return core.ATORecord{}, core.ErrNotFound
+	}
+	if err != nil {
 		return core.ATORecord{}, err
 	}
-	return as.read(ctx, as.s.pool, matchID)
+	if companyID == nil { // no record stored
+		return core.ATORecord{}, nil
+	}
+	return as.decode(matchID, *companyID, sel, prev, had != nil && *had)
 }
 
 func gameStarted(ctx context.Context, q querier, matchID int64) (bool, error) {
@@ -104,10 +124,13 @@ func gameStarted(ctx context.Context, q querier, matchID int64) (bool, error) {
 
 // GameStarted says whether a live entry that has not been undone exists.
 func (as atoStore) GameStarted(ctx context.Context, campaignID, matchID int64) (bool, error) {
-	if _, err := as.s.Matches().Get(ctx, campaignID, matchID); err != nil {
-		return false, err
+	var started bool
+	err := as.s.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM match_live_log WHERE match_id = m.id AND undone_at IS NULL)
+		FROM matches m WHERE m.id = $1 AND m.campaign_id = $2`, matchID, campaignID).Scan(&started)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, core.ErrNotFound
 	}
-	return gameStarted(ctx, as.s.pool, matchID)
+	return started, err
 }
 
 // Update runs fn under a lock on the match and stores the scenario and the record it leaves behind (an empty selection deletes the row);

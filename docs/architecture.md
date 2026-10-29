@@ -94,6 +94,7 @@ apply the rules in memory, save" and is atomic and serialised per company:
 type companyRepository interface {
     Read(ctx, campaignID, companyID int64) (CompanyState, error)
     ReadRoster(ctx, campaignID int64) ([]CompanyState, error) // every company in one statement, for rating lists
+    // optional, found by type assertion: ReadRosterOf(ctx, companyIDs []int64) ([]CompanyState, error) rates only the companies a page shows
     Update(ctx, campaignID, companyID int64, fn func(*CompanyState) error) error
     Create(ctx, campaignID int64, owner User, c NewCompany) (CampaignCompany, error) // ErrCompanyLimit at c.Cap, ErrCompanyNameTaken
 }
@@ -252,7 +253,9 @@ match (cascade); undone rows stay as the audit.
   25 s `: ping`; each write has a 10 s write deadline; a stream ends after 2 h (the client reconnects, which re-checks the session). The
   server has no `WriteTimeout`, no compression wraps the route and `Shutdown` closes the hub.
 - **Events**: one `event: company-<id>` per company to refetch, `event: match` for the log card, `event: ended` when the match ended or
-  was reopened; `id: <seq>`, `data: {"seq":41}`. On connect the server sends one batch for all companies at the current seq; fetches
+  was reopened; `id: <seq>`, `data: {"seq":41}`. On connect the server sends one batch for all companies at the current seq, unless the page sends `?since=<generation>` (the
+  match revision and live sequence its cards were built from, `LiveService.LiveGeneration`) and the match is still in that state
+  (`SubscribeSince` registers first, compares after; the match page uses it, [performance.md](performance.md#the-match-pages-stream)); fetches
   are idempotent, nothing is replayed. Events carry ids only, and every fetch goes through the normal authorised GET.
 - **Browser**: htmx `sse` extension on the live banner; each company fragment refetches on `sse:company-<id>`, the log card on `sse:match`. A
   write answers its own tab by swap and carries the new `seq`, so the tab ignores the matching event. The client closes the stream when the
@@ -283,7 +286,7 @@ upload flow in [definitions.md](definitions.md#upload-validation).
 1. `net/http` `ServeMux` (Go 1.22 method and path patterns, no router dependency).
 2. Middleware chain: panic recovery, security headers, request logging, cross-origin (CSRF) protection, request deadline.
 3. Per route: `session` (resolves the session cookie, never rejects) or `protected` (also redirects visitors who are not signed in to `/login`).
-4. A handler calls the core through its interface and renders a template.
+4. A handler calls the core through its interface and renders a template. A GET page or card that only reads is registered as `protected(readOnly(handler))`: `readOnly` opens a `core.WithReadScope`, so the services it calls read each campaign, company, match, record and roster once per request (and cards built side by side share a load in flight). A handler that writes is never wrapped: a write does not invalidate the scope.
 
 Routes by area (the feature documents list the actions):
 
@@ -319,7 +322,7 @@ Environment variables (loaded by `go-simpler.org/env`; `.env.example` lists them
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `DATABASE_URL` | required (the Makefile defaults to the compose database) | PostgreSQL connection string |
+| `DATABASE_URL` | required (the Makefile defaults to the compose database) | PostgreSQL connection string. Pool settings go in the URL (`?pool_max_conns=N`, `pool_min_conns`, `pool_max_conn_lifetime`, `pool_max_conn_idle_time`): without `pool_max_conns` the pool holds up to the larger of the number of CPUs and 10 connections (the cards of a match page use four side by side; 4 connections made 160 simultaneous match pages 40 % slower than 10). Keep it below the server's `max_connections` divided by the number of instances, less one connection per instance for the live feed |
 | `PORT` | `8080` | HTTP port |
 | `STATIC_MAX_AGE` | `0s` | Cache lifetime of static files requested without their `?v=` hash (`no-cache` when 0; the templates always add the hash, and those requests are cached for a year) |
 | `PERF_TRACE` | `false` | Adds a `Server-Timing` header (time, database statements) to every answer, for `make perf` ([performance.md](performance.md)); development only |

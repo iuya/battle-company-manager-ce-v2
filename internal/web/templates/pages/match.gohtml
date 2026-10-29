@@ -465,7 +465,7 @@
 
 {{/* The log card on the match page: loaded after the page, refreshed when the match changes (the sync script fires live:match). */}}
 {{define "live_log_slot"}}
-<div id="live-log-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/live/log?card=1" {{$lazy := not (and .Cards .Cards.Log)}}{{if or $lazy (not .Match.Ended)}}hx-trigger="{{if $lazy}}load{{end}}{{if not .Match.Ended}}{{if $lazy}}, {{end}}live:match from:body{{end}}" {{end}}hx-swap="innerHTML" {{if not .Match.Ended}}data-live-match="{{.Match.ID}}" data-campaign="{{.Campaign.ID}}"{{end}}>{{if .Cards}}{{with .Cards.Log}}{{template "live_log_card" .}}{{end}}{{end}}</div>
+<div id="live-log-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/live/log?card=1" {{$lazy := not (and .Cards .Cards.Log)}}{{if or $lazy (not .Match.Ended)}}hx-trigger="{{if $lazy}}load{{end}}{{if not .Match.Ended}}{{if $lazy}}, {{end}}live:match from:body{{end}}" {{end}}hx-swap="innerHTML" {{if not .Match.Ended}}data-live-match="{{.Match.ID}}" data-campaign="{{.Campaign.ID}}"{{with .LiveSince}} data-live-since="{{.}}"{{end}}{{end}}>{{if .Cards}}{{with .Cards.Log}}{{template "live_log_card" .}}{{end}}{{end}}</div>
 {{end}}
 
 

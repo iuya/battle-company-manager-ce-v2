@@ -156,3 +156,31 @@ func TestLiveEventsEndWhenTheClientLeaves(t *testing.T) {
 		t.Error("a cancelled request frees its stream")
 	}
 }
+
+// ?since=<generation> makes the stream skip the initial refetch (SubscribeSince); a value that is not a generation is ignored.
+func TestLiveEventsWithAGenerationSubscribesSince(t *testing.T) {
+	for _, tc := range []struct {
+		query string
+		since bool
+	}{{"?since=4.41", true}, {"?since=garbage", false}, {"?since=4.41%0A", false}, {"", false}} {
+		f := newFixture(t, Config{})
+		st := newFakeStream()
+		f.camp.EXPECT().Match(gomock.Any(), int64(7), int64(3)).Return(openMatch(), nil)
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
+		if tc.since {
+			f.camp.EXPECT().SubscribeSince(gomock.Any(), frodo, int64(7), int64(3), "4.41").Return(st, nil)
+		} else {
+			f.camp.EXPECT().Subscribe(gomock.Any(), frodo, int64(7), int64(3)).Return(st, nil)
+		}
+		srv, req := eventsServer(t, f)
+		req.URL, _ = req.URL.Parse(srv.URL + "/campaigns/7/matches/3/events" + tc.query)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.StatusCode != 200 {
+			t.Errorf("%q: %d", tc.query, resp.StatusCode)
+		}
+		resp.Body.Close()
+	}
+}

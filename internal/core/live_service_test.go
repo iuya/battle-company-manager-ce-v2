@@ -798,3 +798,59 @@ func TestRollCourageEnteredDiceAreValidated(t *testing.T) {
 		t.Errorf("two valid dice: %+v %v", r, err)
 	}
 }
+
+// A page that read the state of the match before it built its cards opens its stream with it: nothing is refetched while the match is
+// still in that state, everything is when it moved on, and a change after the subscription arrives as an event.
+func TestLiveSubscribeSinceSkipsTheInitialSyncOnlyWhenCurrent(t *testing.T) {
+	f := newLiveFixture(t)
+	feed := newFakeFeed()
+	hub := NewLiveHub(feed)
+	svc := NewLiveService(f.repo, f.campaigns, f.companies, f.matches, staticRules{shippedRules(t)}).WithHub(hub)
+	ctx, cancel := context.WithCancel(f.ctx)
+	defer cancel()
+	go func() { _ = hub.Start(ctx) }()
+	<-feed.started
+	user := f.user(liveOwner1)
+
+	gen, err := svc.LiveGeneration(ctx, user, 5, 1)
+	if err != nil || gen == "" {
+		t.Fatal(gen, err)
+	}
+	stream, err := svc.SubscribeSince(ctx, user, 5, 1, gen)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stream.Close()
+	quiet, stop := context.WithTimeout(ctx, 60*time.Millisecond)
+	defer stop()
+	if b, err := stream.Next(quiet); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("a current page gets no initial batch: %+v %v", b, err)
+	}
+	feed.emit(LiveEvent{MatchID: 1, Kind: LiveChanged}) // a match-level change after the subscription
+	if b, err := stream.Next(ctx); err != nil || !b.Match {
+		t.Errorf("event after the subscription: %+v %v", b, err)
+	}
+
+	// the match moves on (a revision, then a log entry): the old generation gets the full initial batch
+	f.match.Revision++
+	if now, _ := svc.LiveGeneration(ctx, user, 5, 1); now == gen {
+		t.Fatal("the generation did not move with the revision")
+	}
+	stale, err := svc.SubscribeSince(ctx, user, 5, 1, gen)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stale.Close()
+	if b, err := stale.Next(ctx); err != nil || len(b.Companies) != 3 || !b.Match {
+		t.Errorf("a stale page gets the initial batch: %+v %v", b, err)
+	}
+	// an unknown or malformed generation counts as stale
+	odd, err := svc.SubscribeSince(ctx, user, 5, 1, "garbage")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer odd.Close()
+	if b, err := odd.Next(ctx); err != nil || len(b.Companies) != 3 {
+		t.Errorf("a page with another generation gets the initial batch: %+v %v", b, err)
+	}
+}

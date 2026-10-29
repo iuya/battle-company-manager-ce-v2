@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -22,6 +24,15 @@ type queryCounter struct {
 }
 
 func (c *queryCounter) note(sql string) {
+	if want := os.Getenv("PERF_STACK"); want != "" && strings.Contains(sql, want) { // PERF_STACK=<text>: who runs a statement that contains the text
+		var frames []string
+		for _, line := range strings.Split(string(debug.Stack()), "\n") {
+			if i := strings.Index(line, "battle-company-manager-ce-v2/internal/"); i >= 0 && !strings.HasPrefix(line, "\t") && !strings.Contains(line, "readscope") {
+				frames = append(frames, strings.TrimSpace(line[i+len("battle-company-manager-ce-v2/internal/"):]))
+			}
+		}
+		fmt.Fprintf(os.Stderr, "STACK %.40s: %s\n", strings.Join(strings.Fields(sql), " "), strings.Join(frames, " < "))
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.sql == nil {

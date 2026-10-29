@@ -160,6 +160,45 @@ func (c *MockliveMatchesLiveCall) DoAndReturn(f func(context.Context, core.User,
 	return c
 }
 
+// LiveGeneration mocks base method.
+func (m *MockliveMatches) LiveGeneration(ctx context.Context, user core.User, id, matchID int64) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LiveGeneration", ctx, user, id, matchID)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LiveGeneration indicates an expected call of LiveGeneration.
+func (mr *MockliveMatchesMockRecorder) LiveGeneration(ctx, user, id, matchID any) *MockliveMatchesLiveGenerationCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LiveGeneration", reflect.TypeOf((*MockliveMatches)(nil).LiveGeneration), ctx, user, id, matchID)
+	return &MockliveMatchesLiveGenerationCall{Call: call}
+}
+
+// MockliveMatchesLiveGenerationCall wrap *gomock.Call
+type MockliveMatchesLiveGenerationCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockliveMatchesLiveGenerationCall) Return(arg0 string, arg1 error) *MockliveMatchesLiveGenerationCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockliveMatchesLiveGenerationCall) Do(f func(context.Context, core.User, int64, int64) (string, error)) *MockliveMatchesLiveGenerationCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockliveMatchesLiveGenerationCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (string, error)) *MockliveMatchesLiveGenerationCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // Log mocks base method.
 func (m *MockliveMatches) Log(ctx context.Context, user core.User, id, matchID, before int64, limit int) ([]core.LiveEntry, error) {
 	m.ctrl.T.Helper()
@@ -393,6 +432,45 @@ func (c *MockliveMatchesSubscribeCall) Do(f func(context.Context, core.User, int
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockliveMatchesSubscribeCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (core.LiveStream, error)) *MockliveMatchesSubscribeCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SubscribeSince mocks base method.
+func (m *MockliveMatches) SubscribeSince(ctx context.Context, user core.User, id, matchID int64, since string) (core.LiveStream, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SubscribeSince", ctx, user, id, matchID, since)
+	ret0, _ := ret[0].(core.LiveStream)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SubscribeSince indicates an expected call of SubscribeSince.
+func (mr *MockliveMatchesMockRecorder) SubscribeSince(ctx, user, id, matchID, since any) *MockliveMatchesSubscribeSinceCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeSince", reflect.TypeOf((*MockliveMatches)(nil).SubscribeSince), ctx, user, id, matchID, since)
+	return &MockliveMatchesSubscribeSinceCall{Call: call}
+}
+
+// MockliveMatchesSubscribeSinceCall wrap *gomock.Call
+type MockliveMatchesSubscribeSinceCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockliveMatchesSubscribeSinceCall) Return(arg0 core.LiveStream, arg1 error) *MockliveMatchesSubscribeSinceCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockliveMatchesSubscribeSinceCall) Do(f func(context.Context, core.User, int64, int64, string) (core.LiveStream, error)) *MockliveMatchesSubscribeSinceCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockliveMatchesSubscribeSinceCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string) (core.LiveStream, error)) *MockliveMatchesSubscribeSinceCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -2425,6 +2503,45 @@ func (c *MockcampaignsLiveCall) DoAndReturn(f func(context.Context, core.User, i
 	return c
 }
 
+// LiveGeneration mocks base method.
+func (m *Mockcampaigns) LiveGeneration(ctx context.Context, user core.User, id, matchID int64) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LiveGeneration", ctx, user, id, matchID)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LiveGeneration indicates an expected call of LiveGeneration.
+func (mr *MockcampaignsMockRecorder) LiveGeneration(ctx, user, id, matchID any) *MockcampaignsLiveGenerationCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LiveGeneration", reflect.TypeOf((*Mockcampaigns)(nil).LiveGeneration), ctx, user, id, matchID)
+	return &MockcampaignsLiveGenerationCall{Call: call}
+}
+
+// MockcampaignsLiveGenerationCall wrap *gomock.Call
+type MockcampaignsLiveGenerationCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsLiveGenerationCall) Return(arg0 string, arg1 error) *MockcampaignsLiveGenerationCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsLiveGenerationCall) Do(f func(context.Context, core.User, int64, int64) (string, error)) *MockcampaignsLiveGenerationCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsLiveGenerationCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (string, error)) *MockcampaignsLiveGenerationCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // Log mocks base method.
 func (m *Mockcampaigns) Log(ctx context.Context, user core.User, id, matchID, before int64, limit int) ([]core.LiveEntry, error) {
 	m.ctrl.T.Helper()
@@ -4054,6 +4171,45 @@ func (c *MockcampaignsSubscribeCall) Do(f func(context.Context, core.User, int64
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsSubscribeCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (core.LiveStream, error)) *MockcampaignsSubscribeCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SubscribeSince mocks base method.
+func (m *Mockcampaigns) SubscribeSince(ctx context.Context, user core.User, id, matchID int64, since string) (core.LiveStream, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SubscribeSince", ctx, user, id, matchID, since)
+	ret0, _ := ret[0].(core.LiveStream)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SubscribeSince indicates an expected call of SubscribeSince.
+func (mr *MockcampaignsMockRecorder) SubscribeSince(ctx, user, id, matchID, since any) *MockcampaignsSubscribeSinceCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeSince", reflect.TypeOf((*Mockcampaigns)(nil).SubscribeSince), ctx, user, id, matchID, since)
+	return &MockcampaignsSubscribeSinceCall{Call: call}
+}
+
+// MockcampaignsSubscribeSinceCall wrap *gomock.Call
+type MockcampaignsSubscribeSinceCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsSubscribeSinceCall) Return(arg0 core.LiveStream, arg1 error) *MockcampaignsSubscribeSinceCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsSubscribeSinceCall) Do(f func(context.Context, core.User, int64, int64, string) (core.LiveStream, error)) *MockcampaignsSubscribeSinceCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsSubscribeSinceCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string) (core.LiveStream, error)) *MockcampaignsSubscribeSinceCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

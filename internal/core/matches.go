@@ -48,7 +48,7 @@ func (s *Matches) Matches(ctx context.Context, id int64) ([]Match, error) {
 	if err != nil {
 		return nil, err
 	}
-	rate, err := s.rater(ctx, id, nil)
+	rate, err := s.rater(ctx, id, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +355,12 @@ func (s *Matches) complete(ctx context.Context, id int64, m Match) (Match, error
 			inMatch[co.ID] = true
 		}
 	}
-	rate, err := s.rater(ctx, id, func(companyID int64) bool { return inMatch[companyID] })
+	inIDs := make([]int64, 0, len(inMatch))
+	for companyID := range inMatch {
+		inIDs = append(inIDs, companyID)
+	}
+	slices.Sort(inIDs)
+	rate, err := s.rater(ctx, id, func(companyID int64) bool { return inMatch[companyID] }, inIDs)
 	if err != nil {
 		return m, err
 	}
@@ -363,7 +368,7 @@ func (s *Matches) complete(ctx context.Context, id int64, m Match) (Match, error
 }
 
 // rater returns a function that fills the rating figures of the companies of a match (each company is read once).
-func (s *Matches) rater(ctx context.Context, id int64, want func(companyID int64) bool) (func(*Match) error, error) {
+func (s *Matches) rater(ctx context.Context, id int64, want func(companyID int64) bool, ids []int64) (func(*Match) error, error) {
 	rs, settings, err := s.ruleset(ctx, id)
 	if err != nil {
 		return nil, err
@@ -375,7 +380,7 @@ func (s *Matches) rater(ctx context.Context, id int64, want func(companyID int64
 			m.Sides[i].Companies = slices.Clone(m.Sides[i].Companies)
 			for k, co := range m.Sides[i].Companies {
 				if figures == nil {
-					if figures, err = s.figures(ctx, id, rs, settings, want); err != nil {
+					if figures, err = s.figures(ctx, id, rs, settings, want, ids); err != nil {
 						return err
 					}
 				}

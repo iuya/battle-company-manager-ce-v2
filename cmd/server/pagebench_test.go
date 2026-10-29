@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	neturl "net/url"
 	"os"
 	"regexp"
 	"sort"
@@ -63,7 +64,7 @@ func BenchmarkPages(b *testing.B) {
 		h.ServeHTTP(rec, req)
 		return rec.Code, rec.Body.String()
 	}
-	conn, err := pgx.Connect(ctx, url)
+	conn, err := pgx.Connect(ctx, withoutPoolParams(url)) // the pool settings (pool_max_conns=...) are the pool's, not the server's
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -199,7 +200,7 @@ func BenchmarkPages(b *testing.B) {
 			counter.mu.Unlock()
 			sort.Slice(all, func(i, j int) bool { return all[i].n > all[j].n })
 			for _, e := range all {
-				fmt.Fprintf(os.Stderr, "%s\t%3d x %.150s\n", p.name, e.n, e.s)
+				fmt.Fprintf(os.Stderr, "%s\t%3d x %s\n", p.name, e.n, abbreviate(e.s))
 			}
 		}
 		b.Run(p.name, func(b *testing.B) {
@@ -214,4 +215,41 @@ func BenchmarkPages(b *testing.B) {
 			b.ReportMetric(float64(size)/1024, "KB")
 		})
 	}
+	// Many visitors at once: the match page (four cards on four connections) requested by every CPU at the same time, to see what the
+	// pool size does under load (WORLD_DATABASE_URL=...&pool_max_conns=N).
+	b.Run("match-parallel", func(b *testing.B) {
+		b.SetParallelism(4)
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				if code, _ := get(admin, matchPath); code != 200 {
+					b.Error("match page answered", code)
+					return
+				}
+			}
+		})
+	})
+}
+
+// abbreviate shows the start and the end of a statement: the starts of several statements are alike, the WHERE clauses tell them apart.
+func abbreviate(s string) string {
+	if len(s) <= 170 {
+		return s
+	}
+	return s[:70] + " ... " + s[len(s)-95:]
+}
+
+// withoutPoolParams drops the pgxpool settings (pool_max_conns, ...) from a database URL, so a plain connection accepts it.
+func withoutPoolParams(raw string) string {
+	u, err := neturl.Parse(raw)
+	if err != nil {
+		return raw
+	}
+	q := u.Query()
+	for k := range q {
+		if strings.HasPrefix(k, "pool_") {
+			q.Del(k)
+		}
+	}
+	u.RawQuery = q.Encode()
+	return u.String()
 }

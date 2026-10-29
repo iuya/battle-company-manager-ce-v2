@@ -33,3 +33,20 @@ func TestPoolConnectionsCarryTheTimeouts(t *testing.T) {
 		})
 	}
 }
+
+func TestPoolSize(t *testing.T) {
+	for _, c := range []struct {
+		url  string
+		def  int32
+		want int32
+	}{
+		{"postgres://u@h/db", 4, 10},
+		{"postgres://u@h/db", 16, 16},
+		{"postgres://u@h/db?pool_max_conns=3", 4, 4},
+		{"host=h dbname=db pool_max_conns=25", 10, 10},
+	} {
+		if got := poolSize(c.url, c.def); got != c.want {
+			t.Errorf("poolSize(%q, %d) = %d, want %d", c.url, c.def, got, c.want)
+		}
+	}
+}

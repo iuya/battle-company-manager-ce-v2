@@ -3,13 +3,13 @@
 Numbers of the optimization work, taken on one machine with the tools of this repository, so that every pass can be compared with the same
 yardstick. The baseline is the local tag `1.5.0-pre-optimization` (release/v2.0.0 at `b3300b3`, after "practice matches", PR #12). The
 "After" columns are filled by each optimization pass for what it touched, with the same commands ([Reproducing the numbers](#reproducing-the-numbers));
-the backend pass (`perf/backend`) filled the load, server-time, memory, start-up and test-time cells and the browser flows ([Backend pass](#backend-pass)); the frontend pass (`perf/frontend`) updated the browser-flow cells it moved (live match, match page, armoury) and added its own section ([Frontend pass](#frontend-pass)).
+the backend pass (`perf/backend`) filled the load, server-time, memory, start-up and test-time cells and the browser flows ([Backend pass](#backend-pass)); the frontend pass (`perf/frontend`) updated the browser-flow cells it moved (live match, match page, armoury) and added its own section ([Frontend pass](#frontend-pass)); the database pass (`perf/database`) filled the database section, the server-time and statement cells of the pages, the browser-flow cells (one fresh `make perf REPS=3`) and the test times ([Database pass](#database-pass)).
 The v1.3.0 column exists where a number could be taken from that release's files. Rules and screens do not change between baseline and
 after; the tests are the safety net. How the earlier speed pass measured and what it changed is in [performance.md](performance.md).
 
 Contents: [Summary](#summary), [Method](#method), [A. Data format](#a-data-format), [B. Runtime](#b-runtime),
 [C. Database](#c-database), [D. Build and test](#d-build-and-test), [What is heaviest at the baseline](#what-is-heaviest-at-the-baseline),
-[Backend pass](#backend-pass), [Frontend pass](#frontend-pass), [Reproducing the numbers](#reproducing-the-numbers).
+[Backend pass](#backend-pass), [Frontend pass](#frontend-pass), [Database pass](#database-pass), [Reproducing the numbers](#reproducing-the-numbers).
 
 ## Summary
 
@@ -27,19 +27,23 @@ Contents: [Summary](#summary), [Method](#method), [A. Data format](#a-data-forma
 | Rule-number literals reported by `TestMagicNumbersReport` | 171 | 153 | |
 | `core.LoadRuleSet`, three shipped files | 56.5 ms, 19.5 MB, 203,903 allocs | 65.2 ms, 34.2 MB, 483,794 allocs | 48.7 ms, 26.1 MB, 313,680 allocs |
 | `lean.Decode` alone, Battle Companies file | - | 7.3 ms, 4.6 MB, 124,956 allocs | 5.4 ms, 3.8 MB, 87,560 allocs |
-| Campaign list `/campaigns`, server time (statements) | - | 91.5 ms (11) | 24.5 ms (11) |
-| Matches tab, server time (statements) | - | 88.9 ms (7) | 24.0 ms (7) |
-| My Company, server time (statements) | - | 40.7 ms (16) | 19.5 ms (16) |
-| Armory, server time (statements) | - | 53 ms (10) | 23.2 ms (10) |
-| Tabletop Simulator dialog, aura rings on, server time (statements) | - | 34.2 ms (7) | 13.6 ms (7) |
+| Campaign list `/campaigns`, server time (statements) | - | 91.5 ms (11) | 4.6 ms (2) |
+| Matches tab, server time (statements) | - | 88.9 ms (7) | 12.9 ms (6) |
+| My Company, server time (statements) | - | 40.7 ms (16) | 9.5 ms (9) |
+| Armory, server time (statements) | - | 53 ms (10) | 13.4 ms (7) |
+| Match page, server time (statements) | - | 23.4 ms (37) | 8.8 ms (12) |
+| Tabletop Simulator dialog, aura rings on, server time (statements) | - | 34.2 ms (7) | 4.6 ms (4) |
+| Statements of one `BenchmarkPages` run (14 pages, 20 requests each) / their executor time in PostgreSQL | - | 4,159 / 1,934 ms (before the database pass) | 2,507 / 403 ms |
 | My Company over the wire (HTML gzip) | - | 30.7 KB | 30.7 KB |
-| `make perf` my company, 300 ms latency: loaded / settled | - | 709 / 732 ms | 709 / 733 ms |
-| `make perf` match page, 300 ms latency: settled | - | 1002 ms | 1001 ms |
-| Server memory (RSS) after 200 page requests | - | 180 MB | 176 MB |
-| Server start to first answer | - | 207 ms | 200 ms |
+| `make perf` my company, 300 ms latency: loaded / settled | - | 709 / 732 ms | 672 / 685 ms |
+| `make perf` match page, 300 ms latency: settled (requests) | - | 1002 ms (6) | 360 ms (2) |
+| Server memory (RSS) after 200 page requests | - | 180 MB | 179 MB |
+| Server start to first answer | - | 207 ms | 208 ms |
 | `go test ./...` without a database | - | 30.5 s | 29.5 s |
-| `make test` (includes the PostgreSQL tests) | - | 139.9 s | 110 s (1 run) |
-| `make e2e`, the four groups one after the other | - | 1,163 s | |
+| `make test` (includes the PostgreSQL tests) | - | 139.9 s | 83 s (1 run) |
+| `make test-integration` (`go test -p 1`, all tests with the database) | - | 191 s | 132 s |
+| Demo world seeded into an empty database (`server seed --world`): wall time / statements | - | 37.7 s / 98,954 | 22.4 s / 45,434 |
+| `make e2e`, the four groups one after the other | - | 1,163 s | 1,148 s (`make e2e-enforce`, one run) |
 | CI end-to-end workflow, PR #12 | - | 594 s | |
 | `go build` of the server, cold build cache | - | 7.1 s | |
 | Binary (release flags, linux/arm64) / Docker image | - | 21.7 MB / 26.1 MB | |
@@ -157,20 +161,20 @@ Per flow:
 
 | Flow | Requests (doc / xhr / sse / static) + cached | Chain | KB on the wire | KB HTML | DOM elements | Server ms | Statements | After: requests | After: KB | After: server ms | After: statements |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| login | 11 (2 / 1 / 0 / 8) + 9 | 6 | 164.3 | 11.4 | 449 | 110 | 15 | 11 | 164.3 | 83.8 | 15 |
-| home | 1 (1 / 0 / 0 / 0) + 8 | 1 | 7.5 | 7.5 | 449 | 125.4 | 11 | 1 | 7.5 | 48.7 | 11 |
-| home, cold cache | 9 (1 / 0 / 0 / 8) + 0 | 5 | 156.8 | 7.5 | 449 | 115.9 | 11 | 9 | 156.8 | 51.9 | 11 |
-| campaign overview | 1 (1 / 0 / 0 / 0) + 8 | 1 | 7.5 | 7.5 | 434 | 81.1 | 5 | 1 | 7.5 | 42.7 | 5 |
-| my company | 2 (2 / 0 / 0 / 0) + 9 | 2 | 31.6 | 31.6 | 1943 | 58.9 | 16 | 2 | 31.6 | 35.7 | 16 |
-| recruit window (click) | 1 (0 / 1 / 0 / 0) + 0 | 1 | 2.0 | 2.0 | 1999 | 33.8 | 12 | 1 | 2.0 | 20.3 | 12 |
-| level-up window (click) | 1 (0 / 1 / 0 / 0) + 0 | 1 | 4.0 | 4.0 | 3094 | 18.9 | 8 | 1 | 4.0 | 23.6 | 8 |
-| click: overview to my company (htmx) | 2 (0 / 2 / 0 / 0) + 2 | 2 | 27.2 | 27.2 | 1943 | 67.8 | 15 | 2 | 27.2 | 42.3 | 15 |
-| click: home to campaign overview (htmx) | 1 (0 / 1 / 0 / 0) + 1 | 1 | 3.0 | 3.0 | 434 | 90.5 | 4 | 1 | 3.0 | 40.5 | 4 |
-| armoury | 2 (2 / 0 / 0 / 0) + 9 | 2 | 28.4 | 28.4 | 5115 | 64.4 | 10 | 2 | 28.6 | 41.6 | 10 |
-| matches list | 1 (1 / 0 / 0 / 0) + 9 | 1 | 7.6 | 7.6 | 564 | 119.6 | 7 | 1 | 7.6 | 53.8 | 7 |
-| match page | 6 (1 / 4 / 1 / 0) + 8 | 3 | 20.5 | 20.5 | 1053 | 94 | 68 | 5 | 15.6 | 76.3 | 67 |
-| live match (+3 s observed) | 3 (1 / 1 / 1 / 0) + 9 | 2 | 34.5 | 34.5 | 2343 | 45.2 | 27 | 2 | 29.6 | 52.5 | 26 |
-| aftermath | 1 (1 / 0 / 0 / 0) + 9 | 1 | 8.1 | 8.1 | 586 | 33.7 | 14 | 1 | 8.1 | 20.6 | 14 |
+| login | 11 (2 / 1 / 0 / 8) + 9 | 6 | 164.3 | 11.4 | 449 | 110 | 15 | 11 | 164.9 | 41.6 | 6 |
+| home | 1 (1 / 0 / 0 / 0) + 8 | 1 | 7.5 | 7.5 | 449 | 125.4 | 11 | 1 | 7.6 | 10.8 | 2 |
+| home, cold cache | 9 (1 / 0 / 0 / 8) + 0 | 5 | 156.8 | 7.5 | 449 | 115.9 | 11 | 9 | 157.3 | 10.7 | 2 |
+| campaign overview | 1 (1 / 0 / 0 / 0) + 8 | 1 | 7.5 | 7.5 | 434 | 81.1 | 5 | 1 | 7.6 | 22.3 | 5 |
+| my company | 2 (2 / 0 / 0 / 0) + 9 | 2 | 31.6 | 31.6 | 1943 | 58.9 | 16 | 2 | 31.6 | 17.8 | 9 |
+| recruit window (click) | 1 (0 / 1 / 0 / 0) + 0 | 1 | 2.0 | 2.0 | 1999 | 33.8 | 12 | 1 | 2.0 | 19.4 | 12 |
+| level-up window (click) | 1 (0 / 1 / 0 / 0) + 0 | 1 | 4.0 | 4.0 | 3094 | 18.9 | 8 | 1 | 4.0 | 15 | 8 |
+| click: overview to my company (htmx) | 2 (0 / 2 / 0 / 0) + 2 | 2 | 27.2 | 27.2 | 1943 | 67.8 | 15 | 1 | 27.3 | 19.5 | 8 |
+| click: home to campaign overview (htmx) | 1 (0 / 1 / 0 / 0) + 1 | 1 | 3.0 | 3.0 | 434 | 90.5 | 4 | 1 | 3.0 | 19.2 | 4 |
+| armoury | 2 (2 / 0 / 0 / 0) + 9 | 2 | 28.4 | 28.4 | 5115 | 64.4 | 10 | 2 | 28.6 | 25.7 | 7 |
+| matches list | 1 (1 / 0 / 0 / 0) + 9 | 1 | 7.6 | 7.6 | 564 | 119.6 | 7 | 1 | 7.6 | 27.9 | 6 |
+| match page | 6 (1 / 4 / 1 / 0) + 8 | 3 | 20.5 | 20.5 | 1053 | 94 | 68 | 2 | 11.9 | 23.5 | 12 |
+| live match (+3 s observed) | 3 (1 / 1 / 1 / 0) + 9 | 2 | 34.5 | 34.5 | 2343 | 45.2 | 27 | 2 | 29.6 | 34.2 | 16 |
+| aftermath | 1 (1 / 0 / 0 / 0) + 9 | 1 | 8.1 | 8.1 | 586 | 33.7 | 14 | 1 | 8.2 | 30.4 | 13 |
 
 A live match opens no polling request (0 extra requests in 3 s after it settled). A page that sits on its event stream shows the stream as
 one request.
@@ -179,48 +183,48 @@ Per flow and latency (milliseconds; first paint is the first contentful paint):
 
 | Flow | Latency | TTFB | First paint | Load | Settled | After: TTFB | After: first paint | After: load | After: settled |
 |---|---|---|---|---|---|---|---|---|---|
-| login | 0 ms | 84 | 368 | 111 | 266 | 57 | 244 | 81 | 228 |
-| login | 100 ms | 110 | 320 | 140 | 640 | 53 | 300 | 139 | 640 |
-| login | 300 ms | 115 | 520 | 347 | 1655 | 64 | 512 | 356 | 1682 |
-| home | 0 ms | 127 | 292 | 146 | 167 | 51 | 228 | 71 | 97 |
-| home | 100 ms | 107 | 280 | 130 | 153 | 59 | 280 | 137 | 160 |
-| home | 300 ms | 107 | 504 | 335 | 360 | 51 | 496 | 344 | 369 |
-| home, cold cache | 0 ms | 117 | 212 | 139 | 163 | 53 | 156 | 77 | 98 |
-| home, cold cache | 100 ms | 124 | 324 | 361 | 499 | 50 | 316 | 350 | 482 |
-| home, cold cache | 300 ms | 106 | 704 | 945 | 1263 | 67 | 720 | 961 | 1283 |
-| campaign overview | 0 ms | 84 | 244 | 105 | 132 | 45 | 212 | 70 | 95 |
-| campaign overview | 100 ms | 87 | 264 | 129 | 154 | 41 | 284 | 140 | 163 |
-| campaign overview | 300 ms | 78 | 496 | 341 | 365 | 40 | 500 | 346 | 373 |
-| my company | 0 ms | 96 | 316 | 134 | 159 | 54 | 280 | 92 | 115 |
-| my company | 100 ms | 186 | 452 | 270 | 292 | 153 | 444 | 264 | 289 |
-| my company | 300 ms | 411 | 868 | 709 | 732 | 382 | 856 | 709 | 733 |
-| recruit window (click) | 0 ms | 46 | 288 | 86 | 187 | 41 | 292 | 81 | 198 |
-| recruit window (click) | 100 ms | 38 | 304 | 79 | 217 | 26 | 268 | 65 | 202 |
-| recruit window (click) | 300 ms | 61 | 280 | 107 | 409 | 51 | 276 | 98 | 413 |
-| level-up window (click) | 0 ms | 61 | 272 | 110 | 199 | 51 | 268 | 100 | 192 |
-| level-up window (click) | 100 ms | 52 | 300 | 108 | 197 | 50 | 260 | 98 | 193 |
-| level-up window (click) | 300 ms | 71 | 252 | 124 | 408 | 43 | 224 | 96 | 408 |
-| click: overview to my company (htmx) | 0 ms | 83 | 240 | 102 | 153 | 33 | 220 | 51 | 107 |
-| click: overview to my company (htmx) | 100 ms | 88 | 240 | 132 | 266 | 30 | 192 | 53 | 266 |
-| click: overview to my company (htmx) | 300 ms | 87 | 240 | 129 | 678 | 46 | 228 | 73 | 684 |
-| click: home to campaign overview (htmx) | 0 ms | 101 | 272 | 120 | 108 | 54 | 216 | 80 | 54 |
-| click: home to campaign overview (htmx) | 100 ms | 131 | 308 | 151 | 133 | 55 | 228 | 76 | 134 |
-| click: home to campaign overview (htmx) | 300 ms | 130 | 288 | 150 | 349 | 45 | 220 | 79 | 339 |
-| armoury | 0 ms | 106 | 308 | 187 | 210 | 63 | 244 | 127 | 155 |
-| armoury | 100 ms | 181 | 412 | 291 | 314 | 156 | 396 | 279 | 303 |
-| armoury | 300 ms | 405 | 816 | 699 | 724 | 376 | 812 | 696 | 720 |
-| matches list | 0 ms | 121 | 280 | 143 | 167 | 56 | 224 | 82 | 110 |
-| matches list | 100 ms | 118 | 268 | 139 | 163 | 57 | 272 | 140 | 165 |
-| matches list | 300 ms | 109 | 492 | 348 | 372 | 49 | 496 | 349 | 376 |
-| match page | 0 ms | 46 | 208 | 81 | 132 | 39 | 212 | 73 | 125 |
-| match page | 100 ms | 51 | 276 | 147 | 383 | 47 | 324 | 151 | 383 |
-| match page | 300 ms | 51 | 540 | 361 | 1002 | 48 | 488 | 357 | 1021 |
-| live match (+3 s observed) | 0 ms | 44 | 224 | 95 | 134 | 55 | 232 | 108 | 139 |
-| live match (+3 s observed) | 100 ms | 54 | 288 | 164 | 277 | 63 | 292 | 173 | 202 |
-| live match (+3 s observed) | 300 ms | 62 | 496 | 373 | 701 | 50 | 508 | 381 | 410 |
-| aftermath | 0 ms | 36 | 200 | 60 | 87 | 23 | 200 | 50 | 76 |
-| aftermath | 100 ms | 33 | 264 | 139 | 166 | 27 | 260 | 135 | 160 |
-| aftermath | 300 ms | 29 | 492 | 352 | 374 | 26 | 468 | 347 | 371 |
+| login | 0 ms | 84 | 368 | 111 | 266 | 14 | 292 | 36 | 157 |
+| login | 100 ms | 110 | 320 | 140 | 640 | 16 | 284 | 138 | 611 |
+| login | 300 ms | 115 | 520 | 347 | 1655 | 17 | 516 | 346 | 1637 |
+| home | 0 ms | 127 | 292 | 146 | 167 | 12 | 176 | 30 | 45 |
+| home | 100 ms | 107 | 280 | 130 | 153 | 13 | 280 | 130 | 143 |
+| home | 300 ms | 107 | 504 | 335 | 360 | 12 | 496 | 344 | 355 |
+| home, cold cache | 0 ms | 117 | 212 | 139 | 163 | 12 | 108 | 36 | 50 |
+| home, cold cache | 100 ms | 124 | 324 | 361 | 499 | 21 | 312 | 337 | 458 |
+| home, cold cache | 300 ms | 106 | 704 | 945 | 1263 | 19 | 716 | 950 | 1280 |
+| campaign overview | 0 ms | 84 | 244 | 105 | 132 | 24 | 188 | 48 | 64 |
+| campaign overview | 100 ms | 87 | 264 | 129 | 154 | 23 | 280 | 131 | 146 |
+| campaign overview | 300 ms | 78 | 496 | 341 | 365 | 21 | 480 | 342 | 356 |
+| my company | 0 ms | 96 | 316 | 134 | 159 | 25 | 332 | 66 | 81 |
+| my company | 100 ms | 186 | 452 | 270 | 292 | 133 | 456 | 279 | 294 |
+| my company | 300 ms | 411 | 868 | 709 | 732 | 343 | 856 | 672 | 685 |
+| recruit window (click) | 0 ms | 46 | 288 | 86 | 187 | 27 | 1216 | 77 | 226 |
+| recruit window (click) | 100 ms | 38 | 304 | 79 | 217 | 23 | 328 | 63 | 196 |
+| recruit window (click) | 300 ms | 61 | 280 | 107 | 409 | 32 | 292 | 77 | 404 |
+| level-up window (click) | 0 ms | 61 | 272 | 110 | 199 | 30 | 276 | 78 | 187 |
+| level-up window (click) | 100 ms | 52 | 300 | 108 | 197 | 34 | 280 | 90 | 191 |
+| level-up window (click) | 300 ms | 71 | 252 | 124 | 408 | 37 | 256 | 92 | 409 |
+| click: overview to my company (htmx) | 0 ms | 83 | 240 | 102 | 153 | 27 | 208 | 48 | 65 |
+| click: overview to my company (htmx) | 100 ms | 88 | 240 | 132 | 266 | 19 | 188 | 38 | 151 |
+| click: overview to my company (htmx) | 300 ms | 87 | 240 | 129 | 678 | 23 | 208 | 47 | 367 |
+| click: home to campaign overview (htmx) | 0 ms | 101 | 272 | 120 | 108 | 28 | 216 | 46 | 42 |
+| click: home to campaign overview (htmx) | 100 ms | 131 | 308 | 151 | 133 | 32 | 200 | 61 | 121 |
+| click: home to campaign overview (htmx) | 300 ms | 130 | 288 | 150 | 349 | 19 | 208 | 44 | 328 |
+| armoury | 0 ms | 106 | 308 | 187 | 210 | 35 | 208 | 82 | 96 |
+| armoury | 100 ms | 181 | 412 | 291 | 314 | 136 | 424 | 259 | 270 |
+| armoury | 300 ms | 405 | 816 | 699 | 724 | 350 | 804 | 806 | 819 |
+| matches list | 0 ms | 121 | 280 | 143 | 167 | 30 | 192 | 57 | 68 |
+| matches list | 100 ms | 118 | 268 | 139 | 163 | 31 | 360 | 123 | 138 |
+| matches list | 300 ms | 109 | 492 | 348 | 372 | 29 | 504 | 346 | 362 |
+| match page | 0 ms | 46 | 208 | 81 | 132 | 25 | 212 | 62 | 74 |
+| match page | 100 ms | 51 | 276 | 147 | 383 | 18 | 300 | 132 | 145 |
+| match page | 300 ms | 51 | 540 | 361 | 1002 | 18 | 500 | 345 | 360 |
+| live match (+3 s observed) | 0 ms | 44 | 224 | 95 | 134 | 37 | 252 | 90 | 112 |
+| live match (+3 s observed) | 100 ms | 54 | 288 | 164 | 277 | 33 | 280 | 164 | 184 |
+| live match (+3 s observed) | 300 ms | 62 | 496 | 373 | 701 | 34 | 492 | 374 | 396 |
+| aftermath | 0 ms | 36 | 200 | 60 | 87 | 32 | 184 | 57 | 72 |
+| aftermath | 100 ms | 33 | 264 | 139 | 166 | 20 | 264 | 136 | 151 |
+| aftermath | 300 ms | 29 | 492 | 352 | 374 | 24 | 492 | 345 | 359 |
 
 ### B2. Server time and bytes per page (`pagetimes.mjs`)
 
@@ -233,27 +237,27 @@ gzip ahead of time and `immutable` for a year, so a warm visit does not fetch th
 
 | Page | Server ms (3 runs, min to max) | DB ms | Statements | HTML KB raw | HTML KB gzip | CSS KB raw / gzip | JS KB raw / gzip | After: server ms | After: DB ms | After: statements | After: HTML KB gzip |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Campaign list | 91.5 (83.1 to 93.3) | 35.3 | 11 | 41.0 | 6.8 | 103.6 / 15.1 | 243.0 / 79.0 | 24.5 | 17.4 | 11 | 6.8 |
-| Campaign overview | 64.4 (61.7 to 65.7) | 26 | 5 | 37.1 | 6.8 | 103.6 / 15.1 | 243.0 / 79.0 | 16.0 | 11.3 | 5 | 6.8 |
-| My Company | 40.7 (40.3 to 43.5) | 14.8 | 16 | 251.6 | 30.7 | 103.6 / 15.1 | 243.0 / 79.0 | 19.5 | 12.6 | 16 | 30.7 |
-| Matches tab | 88.9 (83.8 to 95) | 34.6 | 7 | 49.2 | 6.8 | 103.6 / 15.1 | 243.0 / 79.0 | 24.0 | 16.9 | 7 | 6.8 |
-| Armory | 53 (48.9 to 53) | 20.6 | 10 | 449.0 | 27.6 | 103.6 / 15.1 | 243.0 / 79.0 | 23.2 | 11.4 | 10 | 27.6 |
-| New company | 14.2 (11 to 14.8) | 3.8 | 3 | 61.3 | 7.3 | 103.6 / 15.1 | 243.0 / 79.0 | 5.7 | 3.2 | 3 | 7.3 |
-| Match page | 23.4 (23.3 to 23.7) | 30.7 | 37 | 77.3 | 11.1 | 103.6 / 15.1 | 243.0 / 79.0 | 25.1 | 34.7 | 37 | 11.1 |
-| Live match (company page) | 24.9 (24.8 to 25.8) | 16.5 | 26 | 248.6 | 28.7 | 103.6 / 15.1 | 243.0 / 79.0 | 25.2 | 19.9 | 26 | 28.7 |
-| Aftermath | 13.5 (13.3 to 13.6) | 8 | 14 | 54.7 | 7.3 | 103.6 / 15.1 | 243.0 / 79.0 | 11.8 | 9.6 | 14 | 7.3 |
-| Tabletop Simulator dialog, aura rings on | 34.2 (34.1 to 35.4) | 11.2 | 7 | 45.2 | 12.1 | - | - | 13.6 | 9.5 | 7 | 12.1 |
-| Tabletop Simulator dialog, aura rings off | 39.4 (37 to 40.3) | 15.3 | 7 | 43.2 | 11.6 | - | - | 13.0 | 9.6 | 7 | 11.6 |
+| Campaign list | 91.5 (83.1 to 93.3) | 35.3 | 11 | 41.0 | 6.8 | 103.6 / 15.1 | 243.0 / 79.0 | 4.6 | 2.8 | 2 | 6.9 |
+| Campaign overview | 64.4 (61.7 to 65.7) | 26 | 5 | 37.1 | 6.8 | 103.6 / 15.1 | 243.0 / 79.0 | 8.8 | 6.0 | 5 | 6.8 |
+| My Company | 40.7 (40.3 to 43.5) | 14.8 | 16 | 251.6 | 30.7 | 103.6 / 15.1 | 243.0 / 79.0 | 9.5 | 5.0 | 9 | 30.8 |
+| Matches tab | 88.9 (83.8 to 95) | 34.6 | 7 | 49.2 | 6.8 | 103.6 / 15.1 | 243.0 / 79.0 | 12.9 | 7.8 | 6 | 6.8 |
+| Armory | 53 (48.9 to 53) | 20.6 | 10 | 449.0 | 27.6 | 103.6 / 15.1 | 243.0 / 79.0 | 13.4 | 3.9 | 7 | 27.8 |
+| New company | 14.2 (11 to 14.8) | 3.8 | 3 | 61.3 | 7.3 | 103.6 / 15.1 | 243.0 / 79.0 | 4.1 | 1.9 | 3 | 7.4 |
+| Match page | 23.4 (23.3 to 23.7) | 30.7 | 37 | 77.3 | 11.1 | 103.6 / 15.1 | 243.0 / 79.0 | 8.8 | 6.9 | 12 | 11.1 |
+| Live match (company page) | 24.9 (24.8 to 25.8) | 16.5 | 26 | 248.6 | 28.7 | 103.6 / 15.1 | 243.0 / 79.0 | 13.4 | 7.8 | 16 | 28.8 |
+| Aftermath | 13.5 (13.3 to 13.6) | 8 | 14 | 54.7 | 7.3 | 103.6 / 15.1 | 243.0 / 79.0 | 9.1 | 7.0 | 13 | 7.4 |
+| Tabletop Simulator dialog, aura rings on | 34.2 (34.1 to 35.4) | 11.2 | 7 | 45.2 | 12.1 | - | - | 4.6 | 2.9 | 4 | 12.1 |
+| Tabletop Simulator dialog, aura rings off | 39.4 (37 to 40.3) | 15.3 | 7 | 43.2 | 11.6 | - | - | 4.0 | 2.9 | 4 | 11.6 |
 
 ### B3. Server process
 
 | Measure | Baseline | After |
 |---|---|---|
-| Start to first answer of `/healthz` and `/login` (warm binary, median of 15 starts) | 207 ms and 208 ms | 200 ms and 201 ms |
-| First start of a freshly built binary (cold page cache), 3 observations | 199, 634, 621 ms | 622, 593, 600 ms |
-| Memory (RSS) just after start | 115 MB | 116 MB |
-| Memory after one visit to each measured page (rule sets, templates, caches warm) | 177 MB | 175 MB |
-| Memory after 200 more page requests | 180 MB | 176 MB |
+| Start to first answer of `/healthz` and `/login` (warm binary, median of 15 starts) | 207 ms and 208 ms | 208 ms and 208 ms |
+| First start of a freshly built binary (cold page cache), 3 observations | 199, 634, 621 ms | 587, 603, 626 ms |
+| Memory (RSS) just after start | 115 MB | 115 MB |
+| Memory after one visit to each measured page (rule sets, templates, caches warm) | 177 MB | 178 MB |
+| Memory after 200 more page requests | 180 MB | 179 MB |
 | Memory after the measurement (about 450 requests in all) | 181 MB | 179 MB |
 
 ## C. Database
@@ -267,35 +271,35 @@ rule-set loads (warm).
 
 | Page | ms per request | MB allocated | Allocations (thousands) | Statements | KB | After: ms | After: MB | After: statements |
 |---|---|---|---|---|---|---|---|---|
-| home (`/`, campaign list) | 90.1 | 101.5 | 216.6 | 11 | 40.9 | 26.8 | 7.4 | 11 |
-| `/nav/campaigns` (sidebar fallback) | 1.0 | 0.2 | 3.8 | 1 | 19.3 | 0.9 | 0.2 | 1 |
-| campaign overview | 63.3 | 66.0 | 142.8 | 5 | 37.0 | 19.1 | 4.9 | 5 |
-| my company | 43.4 | 40.4 | 121.6 | 16 | 251.5 | 20.4 | 5.7 | 16 |
-| armoury | 53.8 | 46.5 | 194.1 | 10 | 448.9 | 23.4 | 9.5 | 10 |
-| matches list | 94.8 | 98.8 | 213.0 | 7 | 49.1 | 24.7 | 7.2 | 7 |
-| match page | 25.0 | 14.0 | 40.8 | 37 | 77.2 | 21.7 | 3.3 | 37 |
-| Against the Odds card | 17.8 | 6.7 | 14.6 | 14 | 0.5 | 16.3 | 1.6 | 14 |
-| live log card | 12.4 | 4.9 | 11.0 | 12 | 1.1 | 11.1 | 1.1 | 12 |
-| live company page | 26.6 | 11.3 | 61.6 | 26 | 248.6 | 22.5 | 4.3 | 26 |
-| aftermath | 14.1 | 9.2 | 30.3 | 14 | 54.6 | 9.8 | 1.7 | 14 |
+| home (`/`, campaign list) | 90.1 | 101.5 | 216.6 | 11 | 40.9 | 5.0 | 1.7 | 2 |
+| `/nav/campaigns` (sidebar fallback) | 1.0 | 0.2 | 3.8 | 1 | 19.3 | 0.7 | 0.2 | 1 |
+| campaign overview | 63.3 | 66.0 | 142.8 | 5 | 37.0 | 8.3 | 2.8 | 5 |
+| my company | 43.4 | 40.4 | 121.6 | 16 | 251.5 | 9.5 | 3.3 | 9 |
+| armoury | 53.8 | 46.5 | 194.1 | 10 | 448.9 | 16.5 | 7.1 | 7 |
+| matches list | 94.8 | 98.8 | 213.0 | 7 | 49.1 | 13.0 | 4.6 | 6 |
+| match page | 25.0 | 14.0 | 40.8 | 37 | 77.2 | 7.6 | 1.9 | 12 |
+| Against the Odds card | 17.8 | 6.7 | 14.6 | 14 | 0.5 | 4.5 | 0.5 | 8 |
+| live log card | 12.4 | 4.9 | 11.0 | 12 | 1.1 | 5.6 | 0.5 | 10 |
+| live company page | 26.6 | 11.3 | 61.6 | 26 | 248.6 | 12.6 | 3.5 | 16 |
+| aftermath | 14.1 | 9.2 | 30.3 | 14 | 54.6 | 8.3 | 1.6 | 13 |
 | new company | 5.3 | 3.8 | 35.9 | 2 | 80.5 | 3.2 | 1.7 | 2 |
-| Tabletop Simulator dialog, aura rings on | 41.1 | 40.5 | 88.1 | 8 | 45.2 | 12.7 | 3.7 | 8 |
-| Tabletop Simulator dialog, aura rings off | 37.6 | 40.2 | 83.4 | 8 | 43.2 | 12.2 | 3.4 | 8 |
+| Tabletop Simulator dialog, aura rings on | 41.1 | 40.5 | 88.1 | 8 | 45.2 | 4.9 | 1.5 | 5 |
+| Tabletop Simulator dialog, aura rings off | 37.6 | 40.2 | 83.4 | 8 | 43.2 | 4.2 | 1.2 | 5 |
 
 (The browser flow and the HTTP probe count a few more or fewer statements for the same page: the browser's match page adds its htmx cards,
 and each tool picks its own user and campaign for the new-company page.)
 
 The service-level counts of `TestQueryCountsOnAPreloadedWorld` (`cmd/server/querycount_test.go`; "queries for N rows" proves the count does
-not grow with the rows; the budget is the test's limit):
+not grow with the rows; the budget is the test's limit; the test calls the services without a read scope and with the player of the demo world who has no company, so the page-level gains of the database pass do not show in it, the page table above has them):
 
 | Call | Statements, small / large input | Budget | After |
 |---|---|---|---|
-| `Campaigns.Get` (campaign page) | 1 for 21 rows / 1 for 21 rows | 3 | |
-| `Campaigns.Companies` (companies, rankings, hand-over) | 1 for 0 rows / 3 for 37 rows | 6 | |
-| `Matches.Matches` (matches page) | 5 for 0 rows / 2 for 25 rows | 8 | |
-| `Matches.Match` (match page) | 3 for 1 row / 3 for 1 row | 6 | |
-| `Campaigns.CompanyDetail` (company page) | 4 for 4 rows / 4 for 24 rows | 7 | |
-| `Campaigns.List` (home page) | 1 for 0 rows / 1 for 0 rows | 3 | |
+| `Campaigns.Get` (campaign page) | 1 for 21 rows / 1 for 21 rows | 3 | unchanged |
+| `Campaigns.Companies` (companies, rankings, hand-over) | 1 for 0 rows / 3 for 37 rows | 6 | unchanged |
+| `Matches.Matches` (matches page) | 5 for 0 rows / 2 for 25 rows | 8 | unchanged |
+| `Matches.Match` (match page) | 3 for 1 row / 3 for 1 row | 6 | unchanged |
+| `Campaigns.CompanyDetail` (company page) | 4 for 4 rows / 4 for 24 rows | 7 | unchanged |
+| `Campaigns.List` (home page) | 1 for 0 rows / 1 for 0 rows | 3 | unchanged |
 
 ### The ten slowest statements
 
@@ -324,9 +328,24 @@ for most: PostgreSQL plans these multi-sub-select statements in 1.7 to 4.5 ms. p
 may switch to a generic plan after five executions, so in the running server the planning is not paid on every call; the benchmark and
 `EXPLAIN` figures show the first-call cost.
 
-| After | Mean ms of the same statements | Calls per page |
-|---|---|---|
-| | | |
+After the database pass, the same workload on the same scratch copy (the 14 sub-benchmarks of `BenchmarkPages` at 20 requests each, `auto_explain` as in [Reproducing the numbers](#reproducing-the-numbers), once on a worktree of the tip before the database pass and once on the branch; executor time only, planning excluded):
+
+| Statement | Calls before | Mean ms before | Calls now | Mean ms now | Buffers before / now |
+|---|---|---|---|---|---|
+| company roster of a campaign (`ReadRoster`) | 614 | 2.78 (section above) | 48 | 1.14 | 1,478 / 599 |
+| rosters of some companies by id (`ReadRosterOf`, new) | - | - | 290 | 0.11 | - / 357 |
+| all matches of a campaign (`matchStore.List`) | 48 | 1.33 | 48 | 1.34 | 553 / 553 |
+| company figures of a campaign (`campaignStore.Companies`) | 25 | 1.62 | 25 | 1.29 | 237 / 234 |
+| the user's campaigns (`campaignStore.List`) | 23 | 0.74 | 23 | 0.64 | 146 / 146 |
+| one company in full (`companyStore.Read`) | 843 | 0.25 | 304 | 0.24 | 83 / 83 |
+| campaign detail (`campaignStore.Get`) | 506 | 0.23 | 324 | 0.23 | 58 / 58 |
+| one match (`matchStore.Get`) | 550 | 0.10 | 118 | 0.11 | 36 / 30 |
+| one company with its figures (`campaignStore.Company`) | 186 | 0.10 | 138 | 0.09 | 13 / 13 |
+| live match counter and units (`liveStore.Read`) | 145 | 0.10 | 95 | 0.09 | 10 / 10 |
+| sidebar list (`campaignStore.Nav`) | 324 | 0.04 | 324 | 0.04 | 15 / 15 |
+| **All statements of the run** | **4,159** | **1,934 ms in all** | **2,507** | **403 ms in all** | |
+
+The statements that remain are the same shapes with the same plans; what changed is how often a page runs them (the read scope: 843 reads of one company to 304, 550 reads of one match to 118) and the roster, which is read less often (614 to 48 whole-campaign reads, the rest by id) and costs half as much when it is read in full. The multi-sub-select statements were not rewritten: pgx prepares them once per connection, and a server that has run for a while does not plan them again ([performance.md](performance.md), "Database pass at v2.0.0"). The planning times in the table above are first-call costs.
 
 ### Indexes
 
@@ -386,6 +405,8 @@ Indexes of the schema at the baseline (51, including primary keys; sizes on the 
 | users | users_email_key | 16 kB | UNIQUE users USING btree (lower(email)) |
 | users | users_pkey | 16 kB | UNIQUE users USING btree (id) |
 
+After the database pass the schema has the same 51 indexes: `EXPLAIN` of the 32 distinct statements of a `BenchmarkPages` run with `enable_seqscan = off` shows an index path for every statement the application runs, the sequential scans in the plans above are the planner's choice on tables of 40 to 1,300 rows. No unused index is a candidate for removal: the primary keys and unique constraints that never show a scan (`fallen_units_unit_id_key`, `match_live_log_match_id_seq_key`, `match_sides_role_key`, `matches_campaign_id_number_key`) are integrity rules, and `sessions_user_id_idx` serves the foreign key. `matches_campaign_idx (campaign_id, number DESC)` is covered by the unique `(campaign_id, number)` (a b-tree is read backwards), so it is redundant; dropping it saves 16 kB and one index update per match, nothing a page or a test can measure, so there is no migration.
+
 ## D. Build and test
 
 ### Build
@@ -406,36 +427,36 @@ Indexes of the schema at the baseline (51, including primary keys; sizes on the 
 | Run | Total | After |
 |---|---|---|
 | `go test -count=1 ./...` without a database (median of 3; packages run side by side) | 30.5 s | 29.5 s |
-| `make test` with the compose PostgreSQL up (PostgreSQL tests run; also docs links, group check and 61 Python tests in 6.6 s), median of 3 | 139.9 s | 110 s (1 run) |
+| `make test` with the compose PostgreSQL up (PostgreSQL tests run; also docs links, group check and 61 Python tests in 6.6 s), median of 3 | 139.9 s | 83 s (1 run, `GOFLAGS=-count=1`) |
 | `make test` with an empty build cache, 1 run | 141.3 s | |
-| `go test -p 1 -count=1 ./...` with a database (`make test-integration`), 1 run | 191 s | 161 s |
+| `go test -p 1 -count=1 ./...` with a database (`make test-integration`), 1 run | 191 s | 132 s |
 
 Per package (seconds; the test binary's own time):
 
 | Package | No database (median of 3) | `make test` (median of 3) | `-p 1` with a database (1 run) | After (no database) | After (`make test`) |
 |---|---|---|---|---|---|
 | `cmd/rulecheck` | 1.7 | 1.9 | 1.6 | 1.3 | 1.3 |
-| `cmd/server` | 1.1 | 132.3 | 118.5 | 1.0 | 101.4 |
-| `internal/core` | 29.7 | 33.5 | 29.1 | 18.4 | 18.2 |
-| `internal/core/lean` | 0.8 | 0.8 | 0.4 | 1.1 | cached |
-| `internal/core/ttshelper` | 0.6 | 0.9 | 0.4 | 1.3 | cached |
-| `internal/postgres` | 1.3 | 21.1 | 10.7 | 1.3 | 15.6 |
-| `internal/web` | 28.9 | 31.9 | 28.0 | 28.7 | cached |
+| `cmd/server` | 1.1 | 132.3 | 118.5 | 1.0 | 75.9 (70.8 alone) |
+| `internal/core` | 29.7 | 33.5 | 29.1 | 18.4 | 20.8 (17.1 alone) |
+| `internal/core/lean` | 0.8 | 0.8 | 0.4 | 1.1 | 0.9 |
+| `internal/core/ttshelper` | 0.6 | 0.9 | 0.4 | 1.3 | 1.7 |
+| `internal/postgres` | 1.3 | 21.1 | 10.7 | 1.3 | 22.5 (13.8 alone; it has 3 more database tests) |
+| `internal/web` | 28.9 | 31.9 | 28.0 | 28.7 | 30.9 |
 
 Slowest single tests: with a database `TestLiveActionsSurviveExtremeValues` 108.7 s, `TestMalformedInputNeverCrashesAHandler` 67.3 s,
 `TestSeedWorld` 63.0 s, `TestPermissionMatrix` 51.2 s (they run side by side in `cmd/server`), `TestHostileUploadsAnswer4xx` 7.7 s;
-without a database `TestSnapshot` 4.1 s, `TestCustomRulesetWho` 3.0 s, `TestStartingCompanyPointsPlusGoldAre105InEveryCompany` 2.6 s,
+after the database pass `TestLiveActionsSurviveExtremeValues` 62.8 s, `TestMalformedInputNeverCrashesAHandler` 36.9 s, `TestSeedWorld` 31.7 s, `TestPermissionMatrix` 28.7 s, `TestHostileUploadsAnswer4xx` 7.3 s (the demo-world tests wait for the seeding of the world, which is now 22 s instead of 38 s; see [Database pass](#database-pass)); without a database `TestSnapshot` 4.1 s, `TestCustomRulesetWho` 3.0 s, `TestStartingCompanyPointsPlusGoldAre105InEveryCompany` 2.6 s,
 `TestCustomRulesetCompanyAndLimits` 2.0 s in `internal/core`, and `internal/web` 0.7 s for its slowest (about 29 s there comes from many small tests).
 
 ### Browser tests (`make e2e`)
 
 | Group | Steps | Local wall time (`make e2e GROUP=…`) | CI job, PR #12 (job / test step) | After (local) |
 |---|---|---|---|---|
-| core | 57 | 214 s (harness 211 s) | 358 s / 332 s | 262 s (harness 258 s) |
-| pages | 12 | 245 s (243 s) | 412 s / 395 s | 242 s (harness 240 s) |
+| core | 57 | 214 s (harness 211 s) | 358 s / 332 s | 213 s (harness 213 s) |
+| pages | 12 | 245 s (243 s) | 412 s / 395 s | 240 s (harness 240 s) |
 | creation | 101 | 407 s (404 s) | 575 s / 553 s | |
 | rules | 78 | 297 s (294 s) | 456 s / 435 s | |
-| All four, one after the other | 248 | 1,163 s | | |
+| All four, one after the other | 248 | 1,163 s | 1,148 s (one `make e2e-enforce`, a single process: 245 steps, 0 failed) | |
 
 CI, PR #12 (head `ae502d6`), as GitHub reported it: workflow `e2e` from 14:30:49 to 14:40:43 UTC, 594 s wall; the four group jobs run in
 parallel, so the longest (creation, 575 s) sets the time; job `plan` 6 s, `pr-check` 9 s, the final gate job 2 s. A CI job spends about 15 to 20 s
@@ -568,7 +589,58 @@ Page by page after the pass (`make perf REPS=3`, 300 ms): live match settled 699
 ### Left for later (not done)
 
 - **Tooltip texts repeated in the HTML** (`data-tip-text`): 26 % of my company's raw HTML (67 of 257 KB, 48 distinct texts of 236). Removing them from the HTML altogether would take its gzip from 30.9 to 17.4 KB; a per-page table of the distinct texts (about 13 KB raw) would give about 22 KB (minus 29 %), for 12 template places and 3 scripts. The live page gains less (28.9 to about 27.7 KB). Brotli would find the repeats without any template change, but needs a new dependency.
-- **The match page's three serial round trips** (document, event stream, the initial-sync refetch of the end card, end checks and log): the refetch is the race protection of `LiveHub.subscribe`; it can go when the page can prove it is current (a hub generation counter or sequence on match-level notices, a `core` change; bead note for perf-backend).
+- **The match page's three serial round trips** (document, event stream, the initial-sync refetch): done in the database pass with a generation counter ([Database pass](#database-pass)).
+
+## Database pass
+
+Branch `perf/database` (stacked on `perf/frontend`; bead `battle-company-manager-ce-v2-f0cd`, with the generation counter asked for in `…-ru1n`). Same machine and demo world, scratch databases only (a seeded template `bcm_dbp_tpl`, copies made with `CREATE DATABASE … TEMPLATE`; the development database was never touched). Method: `BenchmarkPages` (`-benchtime 20x`, medians of 3 to 5, the numbers in section C), `auto_explain` and `EXPLAIN (ANALYZE, BUFFERS)` on the statements the pages run, `PERF_SQL=1` and the new `PERF_STACK` for who runs which statement, `pagetimes.mjs` (3 runs), `make perf REPS=3`, and for every change the rendered bodies of all 77 benchmarked pages (`PAGES_DUMP`) diffed against a worktree of the tip before the pass: byte identical, apart from the `?v=` hashes of the static files and one attribute (`data-live-since` on the match page's log slot). One change at a time, one commit each; the golden snapshot and every test are as they were (tests and test tools were added; no assertion was changed or removed; the web fixture got one more stub line for the new interface method).
+
+### Kept
+
+| # | Change | Measured (before to after) |
+|---|---|---|
+| 1 | **A read-only GET opens the read scope** (`readOnly` in `internal/web/session.go` around the GET pages and cards; `core.WithReadScope` was only on the aftermath page). The company page read the same company five times and the campaign four times, the match page reread the match eleven times. | statements: my company 16 to 9, match page 37 to 16, live company page 26 to 17, armoury 10 to 7, Tabletop Simulator dialog 8 to 5, a boosted click on the My Company tab 17 to 8 (the alias route is wrapped too, 34.7 to 19.5 ms of server time); ms: my company 20.3 to 16.7, match page 23.4 to 19.0, live page 22.0 to 16.8, Tabletop Simulator dialog 13.3 to 10.8 |
+| 2 | **The scope shares loads in flight and remembers the roster and the match history** (the four cards of the match page are built side by side and each asked for the same rows; `ReadRoster` and `Events` are remembered like `Get` and `Read`). | overview 5 to 4 statements and 16.9 to 12.3 ms, matches tab 7 to 5 and 24.6 to 16.4 ms, match page 16 to 14 and 19.0 to 12.7 ms, Against the Odds card 12 to 10 and 16.1 to 9.6 ms |
+| 3 | **`ReadRoster` returns typed rows** instead of one `jsonb_build_object` per unit with three sub-selects on `unit_equipment`: the unit columns and the three equipment lists from one lateral probe, the four jsonb columns of a unit decoded only when they hold more than their default. The statement was the largest of the baseline (5 ms, 1,478 buffers), and it was the statement, not the Go decode, that cost: 9.2 of the 12.7 ms of `ReadRoster` on the biggest campaign (37 companies, 536 units). | the statement 9.2 to 3.8 ms and 1,478 to 350 buffers (`EXPLAIN (ANALYZE, BUFFERS, TIMING OFF)`); `BenchmarkReadRoster` 12.7 to 4.3 ms; pages: campaign list 26 to 19 ms, matches tab 16.4 to 14.4, overview 12.3 to 10.3, match page 12.7 to 9.5 |
+| 4 | **`atoStore.Get` and `GameStarted` check the campaign in the statement that reads their data** (they loaded the whole match, with its sides, companies, proposal and objectives as JSON, only to learn that it belongs to the campaign). | Against the Odds card 10 to 8 statements (6.6 to 5.8 ms), match page 14 to 12, aftermath 14 to 13, live page 17 to 16 |
+| 5 | **Rate only what a page shows** (`ReadRosterOf(ids)`, an optional method of the company repository found by type assertion; the campaign list reads the player's companies of all campaigns in one statement). The list read the complete roster of each of the player's campaigns (ten statements, 12 ms of database time) to rate one or two companies of each. | campaign list 19.3 to 5.0 ms and 11 to 2 statements, my company 13.2 to 9.5 ms, Tabletop Simulator dialog 8.8 to 4.9, overview 10.3 to 8.2 (4 to 5 statements), matches tab 14.4 to 12.9 (5 to 6 statements) |
+| 6 | **A company save writes the rows that changed** (`rowsOf` fingerprints the state after the locking read, `save` skips rows that did not move). A save wrote every unit: an UPDATE, a DELETE of its equipment and an INSERT per item, for fourteen units. | seeding the demo world 98,954 to 45,434 statements and 37.7 to 22.4 s; the stored units, equipment and graves of a seeded world are identical to the old code's; a sheet save of one unit writes 1 UPDATE, 1 DELETE and its items instead of the whole roster |
+| 7 | **The match page's event stream starts with the state the cards were built from** (the generation counter of `…-ru1n`; details in [performance.md](performance.md#the-match-pages-stream)): the page reads the match revision and the live log sequence before it builds its cards, sends them as `?since=`, and `SubscribeSince` skips the initial batch that made the page fetch the end card, the end checks and the log again. | match page at 300 ms of latency: settled 1,021 to 384 ms (360 in the full `make perf`), requests 5 to 2, chain 2 to 1, 15.6 to 11.9 KB, statements 67 to 12, server time 76 to 24 ms; at 100 ms 383 to 165, at 0 ms 125 to 81 |
+| 8 | **At least ten pooled connections** unless `DATABASE_URL` sets `pool_max_conns` (pgxpool's default is the number of CPUs, at least 4). | `BenchmarkPages/match-parallel` (160 match pages at once): 2.8 ms a page with 4 connections, 2.0 with 10, 1.8 with 20 |
+
+Result, `BenchmarkPages` (median of 5), against the baseline of section C and the state after the frontend pass (the backend column of the table in [Backend pass](#backend-pass)):
+
+| Page | Baseline ms (statements) | After the backend pass | Now |
+|---|---|---|---|
+| home (`/`) | 90.1 (11) | 26.8 (11) | 5.0 (2) |
+| campaign overview | 63.3 (5) | 19.1 (5) | 8.3 (5) |
+| my company | 43.4 (16) | 20.4 (16) | 9.5 (9) |
+| armoury | 53.8 (10) | 23.4 (10) | 16.5 (7) |
+| matches list | 94.8 (7) | 24.7 (7) | 13.0 (6) |
+| match page | 25.0 (37) | 21.7 (37) | 7.6 (12) |
+| Against the Odds card | 17.8 (14) | 16.3 (14) | 4.5 (8) |
+| live company page | 26.6 (26) | 22.5 (26) | 12.6 (16) |
+| aftermath | 14.1 (14) | 9.8 (14) | 8.3 (13) |
+| Tabletop Simulator dialog, rings on | 41.1 (8) | 12.7 (8) | 4.9 (5) |
+
+Test time: the demo-world tests of `cmd/server` wait for a seed of the world, which is 99,000 round trips at 0.38 ms. Change 6 halves the statements; `TestLiveActionsSurviveExtremeValues` 109 to 63 s, `TestMalformedInputNeverCrashesAHandler` 67 to 37 s, `TestSeedWorld` 63 to 32 s, `TestPermissionMatrix` 51 to 29 s, `cmd/server` 118.5 to 70.8 s, `make test-integration` 191 to 132 s (161 s after the backend pass), `make test` 83 s (110 s). No assertion was touched.
+
+### Rejected or not done, with the measurement
+
+- **Prepared or cached statements, `plan_cache_mode=force_generic_plan`.** pgx already prepares each statement once per connection, so the planning times of section C are first-call costs. `BenchmarkPages` at 300 requests per page gives the same times with and without `force_generic_plan` in the URL (campaign list 18.3 against 17.8 ms, my company 13.3 against 13.4, match page 10.5 against 10.9). Not set: a generic plan can pick the wrong index on a skewed table and there is nothing to win.
+- **Rewriting the multi-sub-select statements** (matches of a campaign 1.3 ms and 553 buffers, company figures 1.3 ms, campaign list 0.6 ms): a page runs each once, after the changes above they are 5 to 15 % of a page's server time, and the plans are index scans or sequential scans of 40-row tables. The one statement that mattered was the roster, and it was reshaped (change 3).
+- **A hand-written or exact-case decoder for the roster JSON.** The struct tags are already exact-case, `FieldByNameFunc` is not in the profile of `decodeUnits` in `internal/postgres` (the profile of the web server had it under the decoding of `core` types that is not in this package), and the whole decode of 130 companies is 3.6 ms (`BenchmarkDecodeUnits`). What cost was the statement (9.2 of the 12.7 ms), so the JSON is gone from the roster instead of being decoded faster; `Read` of one company still builds its units as JSON, 0.24 ms.
+- **Pool: a larger default than ten, `pool_min_conns`.** Sequential requests do not change with the pool size (2, 4, 10 or 25 connections: my company 13.1 to 13.3 ms); only simultaneous ones do, and 20 or 40 connections gain 10 to 15 % more over 10 at the cost of server memory.
+- **Indexes.** No migration: see section C, "Indexes". `matches_campaign_idx` is redundant and its removal is not measurable.
+- **`synchronous_commit = off` for the seed.** 44.5 s against 37.9 s: the seed is bound by round trips, not by the commit.
+- **`pgx.Batch` for the unit writes of a save.** Not needed after change 6 (a save of one unit is a handful of statements); it would also change how errors surface.
+- **Merging the remaining statements of a page** (my company: the sidebar list, the company, its aftermath history, the membership check, the grants, the campaign, the rating figures, the perks): each is a different aggregate, a merge would cost the shape of the repositories for about 0.15 ms a statement.
+- **A scope that serves `ReadRosterOf` from a whole roster it already holds.** The order of the calls on a page (the player's own company first) makes it help only by luck; the overview and the matches tab pay one small extra statement for it.
+- **The live write path** (`liveStore.Update`: lock, snapshot, sequence, insert, notify, commit) is already lean; the sweep tests are bound by request handling and rules code.
+
+### Left for later
+
+- **Matches list** (`matchStore.List`: 25 matches with eight sub-selects each, 1.3 ms) and the figures statement of `campaignStore.Companies` (1.3 ms) are the largest statements left; each page runs one of them once.
 
 ## Reproducing the numbers
 
@@ -593,6 +665,9 @@ WORLD_DATABASE_URL=postgres://bcm:bcm@localhost:5432/<scratch>?sslmode=disable \
 WORLD_DATABASE_URL=… go test ./cmd/server -run TestQueryCountsOnAPreloadedWorld -v -count=1
 WORLD_DATABASE_URL=… PERF_SQL=1 go test ./cmd/server -run xxx -bench Pages -benchtime 1x     # statements per page
 WORLD_DATABASE_URL=… PAGES_DUMP=/tmp/pages go test ./cmd/server -run xxx -bench Pages/home -benchtime 1x   # the pages' bodies, to diff two builds
+WORLD_DATABASE_URL=…'&pool_max_conns=4' go test ./cmd/server -run xxx -bench Pages/match-parallel -benchtime 400x   # 160 match pages at once; the pool size is a URL setting
+WORLD_DATABASE_URL=… PERF_STACK='WHERE c.id = ANY' go test ./cmd/server -run xxx -bench Pages/home -benchtime 1x   # who runs a statement that contains the text
+WORLD_DATABASE_URL=… go test ./internal/postgres -run xxx -bench 'Decode|ReadRoster' -benchmem   # the roster read and the decode of its units
 
 # D. build and test
 go build -o /tmp/server ./cmd/server && ls -l /tmp/server

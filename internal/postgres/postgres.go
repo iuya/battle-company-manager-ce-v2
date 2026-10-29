@@ -6,6 +6,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -48,6 +49,7 @@ func OpenWith(ctx context.Context, url string, opt Options) (*Store, error) {
 		return nil, fmt.Errorf("parsing the database url: %w", err)
 	}
 	cfg.ConnConfig.Tracer = opt.Tracer
+	cfg.MaxConns = poolSize(url, cfg.MaxConns)
 	var guarded atomic.Bool
 	cfg.AfterConnect = func(ctx context.Context, c *pgx.Conn) error { return guard(ctx, c, &guarded) }
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
@@ -67,6 +69,19 @@ func OpenWith(ctx context.Context, url string, opt Options) (*Store, error) {
 	guarded.Store(true)
 	pool.Reset()
 	return s, nil
+}
+
+// minPoolConns is the pool size when DATABASE_URL does not set pool_max_conns and the machine has fewer CPUs: pgxpool's own default is the
+// number of CPUs (at least 4), which on a small host is fewer connections than the cards of one match page need side by side. Measured
+// with 160 match pages requested at once (BenchmarkPages/match-parallel): 4 connections 2.8 ms per page, 10 connections 2.0 ms, 20 connections 1.8 ms.
+const minPoolConns = 10
+
+// poolSize is the connection limit: the one in DATABASE_URL (pool_max_conns=N) when it has one, else the larger of pgxpool's default and minPoolConns.
+func poolSize(url string, def int32) int32 {
+	if strings.Contains(url, "pool_max_conns") {
+		return def
+	}
+	return max(def, minPoolConns)
 }
 
 // Limits on what one request can hold in the database (the values are a judgement call): a statement (a lock wait included) that runs longer is
