@@ -52,7 +52,9 @@ Colors are **semantic tokens**: CSS variables, exposed to Tailwind as utilities 
 **Palettes** (each with a light and a dark variant): **Forest & Gold** (default), **Parchment & Ember** and **Mithril &
 Night**. A palette is selected by `data-palette` and `data-mode` (`light` | `dark`) on the `<html>` element; the same
 attributes on any element preview that palette there. `tools/check_theme_contrast.py` checks every palette and mode
-against WCAG AA (4.5:1 for text, 3:1 for the accent).
+against WCAG AA (4.5:1 for text, 3:1 for the accent). In the dark variants the layers are kept apart on purpose:
+`surface` sits clearly above `page` (about 1.2:1), `raised` above `surface` (about 1.25:1) and `line` reads against
+`surface` (about 1.9:1 or more), so cards and borders do not melt into the page.
 
 **Mode** is System by default (follows the operating system), or Light / Dark. **Palette** and mode are chosen in the
 settings menu (gear icon in the header) and kept in the `bcm-theme` cookie as `<palette>.<mode>`
