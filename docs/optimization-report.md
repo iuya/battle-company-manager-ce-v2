@@ -3,13 +3,13 @@
 Numbers of the optimization work, taken on one machine with the tools of this repository, so that every pass can be compared with the same
 yardstick. The baseline is the local tag `1.5.0-pre-optimization` (release/v2.0.0 at `b3300b3`, after "practice matches", PR #12). The
 "After" columns are filled by each optimization pass for what it touched, with the same commands ([Reproducing the numbers](#reproducing-the-numbers));
-the backend pass (`perf/backend`) filled the load, server-time, memory, start-up and test-time cells and the browser flows ([Backend pass](#backend-pass)).
+the backend pass (`perf/backend`) filled the load, server-time, memory, start-up and test-time cells and the browser flows ([Backend pass](#backend-pass)); the frontend pass (`perf/frontend`) updated the browser-flow cells it moved (live match, match page, armoury) and added its own section ([Frontend pass](#frontend-pass)).
 The v1.3.0 column exists where a number could be taken from that release's files. Rules and screens do not change between baseline and
 after; the tests are the safety net. How the earlier speed pass measured and what it changed is in [performance.md](performance.md).
 
 Contents: [Summary](#summary), [Method](#method), [A. Data format](#a-data-format), [B. Runtime](#b-runtime),
 [C. Database](#c-database), [D. Build and test](#d-build-and-test), [What is heaviest at the baseline](#what-is-heaviest-at-the-baseline),
-[Backend pass](#backend-pass), [Reproducing the numbers](#reproducing-the-numbers).
+[Backend pass](#backend-pass), [Frontend pass](#frontend-pass), [Reproducing the numbers](#reproducing-the-numbers).
 
 ## Summary
 
@@ -166,10 +166,10 @@ Per flow:
 | level-up window (click) | 1 (0 / 1 / 0 / 0) + 0 | 1 | 4.0 | 4.0 | 3094 | 18.9 | 8 | 1 | 4.0 | 23.6 | 8 |
 | click: overview to my company (htmx) | 2 (0 / 2 / 0 / 0) + 2 | 2 | 27.2 | 27.2 | 1943 | 67.8 | 15 | 2 | 27.2 | 42.3 | 15 |
 | click: home to campaign overview (htmx) | 1 (0 / 1 / 0 / 0) + 1 | 1 | 3.0 | 3.0 | 434 | 90.5 | 4 | 1 | 3.0 | 40.5 | 4 |
-| armoury | 2 (2 / 0 / 0 / 0) + 9 | 2 | 28.4 | 28.4 | 5115 | 64.4 | 10 | 2 | 28.4 | 40.4 | 10 |
+| armoury | 2 (2 / 0 / 0 / 0) + 9 | 2 | 28.4 | 28.4 | 5115 | 64.4 | 10 | 2 | 28.6 | 41.6 | 10 |
 | matches list | 1 (1 / 0 / 0 / 0) + 9 | 1 | 7.6 | 7.6 | 564 | 119.6 | 7 | 1 | 7.6 | 53.8 | 7 |
-| match page | 6 (1 / 4 / 1 / 0) + 8 | 3 | 20.5 | 20.5 | 1053 | 94 | 68 | 6 | 20.5 | 88.9 | 68 |
-| live match (+3 s observed) | 3 (1 / 1 / 1 / 0) + 9 | 2 | 34.5 | 34.5 | 2343 | 45.2 | 27 | 3 | 34.5 | 51 | 27 |
+| match page | 6 (1 / 4 / 1 / 0) + 8 | 3 | 20.5 | 20.5 | 1053 | 94 | 68 | 5 | 15.6 | 76.3 | 67 |
+| live match (+3 s observed) | 3 (1 / 1 / 1 / 0) + 9 | 2 | 34.5 | 34.5 | 2343 | 45.2 | 27 | 2 | 29.6 | 52.5 | 26 |
 | aftermath | 1 (1 / 0 / 0 / 0) + 9 | 1 | 8.1 | 8.1 | 586 | 33.7 | 14 | 1 | 8.1 | 20.6 | 14 |
 
 A live match opens no polling request (0 extra requests in 3 s after it settled). A page that sits on its event stream shows the stream as
@@ -212,12 +212,12 @@ Per flow and latency (milliseconds; first paint is the first contentful paint):
 | matches list | 0 ms | 121 | 280 | 143 | 167 | 56 | 224 | 82 | 110 |
 | matches list | 100 ms | 118 | 268 | 139 | 163 | 57 | 272 | 140 | 165 |
 | matches list | 300 ms | 109 | 492 | 348 | 372 | 49 | 496 | 349 | 376 |
-| match page | 0 ms | 46 | 208 | 81 | 132 | 49 | 220 | 84 | 132 |
-| match page | 100 ms | 51 | 276 | 147 | 383 | 54 | 292 | 156 | 386 |
-| match page | 300 ms | 51 | 540 | 361 | 1002 | 54 | 516 | 363 | 1001 |
-| live match (+3 s observed) | 0 ms | 44 | 224 | 95 | 134 | 51 | 232 | 105 | 140 |
-| live match (+3 s observed) | 100 ms | 54 | 288 | 164 | 277 | 55 | 292 | 168 | 280 |
-| live match (+3 s observed) | 300 ms | 62 | 496 | 373 | 701 | 53 | 488 | 369 | 694 |
+| match page | 0 ms | 46 | 208 | 81 | 132 | 39 | 212 | 73 | 125 |
+| match page | 100 ms | 51 | 276 | 147 | 383 | 47 | 324 | 151 | 383 |
+| match page | 300 ms | 51 | 540 | 361 | 1002 | 48 | 488 | 357 | 1021 |
+| live match (+3 s observed) | 0 ms | 44 | 224 | 95 | 134 | 55 | 232 | 108 | 139 |
+| live match (+3 s observed) | 100 ms | 54 | 288 | 164 | 277 | 63 | 292 | 173 | 202 |
+| live match (+3 s observed) | 300 ms | 62 | 496 | 373 | 701 | 50 | 508 | 381 | 410 |
 | aftermath | 0 ms | 36 | 200 | 60 | 87 | 23 | 200 | 50 | 76 |
 | aftermath | 100 ms | 33 | 264 | 139 | 166 | 27 | 260 | 135 | 160 |
 | aftermath | 300 ms | 29 | 492 | 352 | 374 | 26 | 468 | 347 | 371 |
@@ -533,6 +533,43 @@ Left in the profile that is not `core`: `postgres.decodeUnits`/`ReadRoster` allo
 company, with reflection-based case-insensitive field lookup `reflect.(*structType).FieldByNameFunc`, 3 %), and the statements with high planning
 time listed in section C.
 
+## Frontend pass
+
+Branch `perf/frontend` (stacked on `perf/backend`). Same machine and demo world; every change was measured alone and kept only for a measured gain.
+Tools: `make perf REPS=3` (network, 0/100/300 ms; labels `fe-before` / `fe-after`), the new `tests/e2e/rendercost.mjs` (what Chrome spends after
+the bytes arrive: CDP style, layout and script time, long tasks, first and largest contentful paint, layout shift; `--latency`, `--cold`, `--cpu 4`),
+and a byte comparison of the rendered pages (`PAGES_DUMP`, before and after: the only differences are the intended ones, listed below).
+What was already in place before this pass (versioned immutable static files, gzip, one script bundle, sidebar inside every page, lazy cards inline) is
+described in [performance.md](performance.md); the pass looked for what is left.
+
+### Kept
+
+| # | Change | Measured effect |
+|---|---|---|
+| 1 | **Heading font preloaded** (`<link rel=preload as=font crossorigin>` under the stylesheet's own versioned address) | Layout shift on a first visit (cache disabled, 300 ms): campaign pages 0.378 to 0.019, live company page 0.522 to 0.029 (the same at 100 ms). The headings were laid out in the fallback serif and changed height when the font arrived after the stylesheet. First contentful paint unchanged (804 to 832 ms, noise) |
+| 2 | **To Wound chart fetched when first wanted** (pointer, touch or focus on a button that opens it, or the click) instead of on every match and live page load | Live company page at 300 ms: 3 requests to 2, chain 2 to 1, 34.5 to 29.6 KB, settled 699 to 410 ms. The match page does not move (its chain is the event stream's initial sync). 43 KB of HTML and a template run per page view gone |
+| 3 | **Boosted click on the My Company and Armory tabs answered without the redirect** (`HX-Push-Url` names the final address; full-page requests and history restores still redirect) | Click from the overview at 300 ms: My Company 676 to 366 ms, Armory 695 to 369 ms (requests 2 to 1, chain 2 to 1); at 100 ms 263 to 157 ms. Two more statements for the second campaign read |
+| 4 | **Armoury unit lists built on opening** (`<template x-if="open">`, htmx processes the forms then) | Demo armoury, warm cache, median of 9: elements 5,116 to 1,760, script time 44 to 34 ms, task 99 to 91 ms; with the CPU slowed 4 times: script 177 to 138 ms, task 354 to 305 ms. Raw HTML unchanged (the repeated lists compress to 4 KB of 26) |
+| 5 | **Armoury drawn with its default filter** (unavailable items hidden by CSS until Alpine starts; the "N hidden" line carries its count) | Layout shift on a first visit at 300 ms: 0.199 to 0.019 (63 items were painted for one round trip and 30 stayed) |
+
+Page by page after the pass (`make perf REPS=3`, 300 ms): live match settled 699 to 410 ms, 34.5 to 29.6 KB, DOM 2,343 to 2,134 elements; match page 6 to 5 requests, 20.5 to 15.6 KB, DOM 1,053 to 844, settled 1,001 to 1,021 ms (noise; the initial-sync refetch decides it); armoury DOM 5,115 to 1,760, settled 722 to 710 ms. The other flows did not move (home 369 to 374, overview 370 to 373, my company 731 to 707, matches 377 to 365, aftermath 366 to 378 ms).
+
+### Rejected, with the measurement
+
+- **Minifying our own scripts**: they are 94 KB raw and 28.9 KB gzip of the 243 KB / 79 KB bundle (the rest is htmx, SortableJS and Alpine, already minified); minifying would save about 4 KB gzip (5 % of the bundle), once per release, and needs a build tool or a Go dependency nothing else uses.
+- **Splitting SortableJS (45 KB, 14.9 KB gzip) off the bundle**: only the company and list pages use it, but a boosted navigation would have to load it lazily; the bundle is fetched once per release and then cached for a year.
+- **Tailwind output**: the content scan reaches the vendor scripts and `dice3d.js`; excluding them (`@source not`) removes 308 bytes of 106,022 (0.3 %). The stylesheet is already minified (15.5 KB gzip) and has no unused rule families.
+- **Alpine on the sidebar** (about 200 bindings on every page): `Alpine.initTree` of a clone of the sidebar takes 1.8 ms.
+- **Whitespace in the HTML**: 11.6 of 257 KB raw (4.5 %) on my company, nothing after gzip.
+- **gzip level 5 to 9**: my company 30.9 to 29.4 KB, live page 28.9 to 27.5 KB (about 5 %) for more CPU on every page; not taken.
+- **`content-visibility: auto` on the armoury cards**: style and layout together are 22 ms of the 99; nothing to gain.
+- **Early hints / preload of more than the heading font**: the stylesheet, script bundle and favicon are in the head already; the image used as a mask (12 KB) is decorative.
+
+### Left for later (not done)
+
+- **Tooltip texts repeated in the HTML** (`data-tip-text`): 26 % of my company's raw HTML (67 of 257 KB, 48 distinct texts of 236). Removing them from the HTML altogether would take its gzip from 30.9 to 17.4 KB; a per-page table of the distinct texts (about 13 KB raw) would give about 22 KB (minus 29 %), for 12 template places and 3 scripts. The live page gains less (28.9 to about 27.7 KB). Brotli would find the repeats without any template change, but needs a new dependency.
+- **The match page's three serial round trips** (document, event stream, the initial-sync refetch of the end card, end checks and log): the refetch is the race protection of `LiveHub.subscribe`; it can go when the page can prove it is current (a hub generation counter or sequence on match-level notices, a `core` change; bead note for perf-backend).
+
 ## Reproducing the numbers
 
 Commands, from the repository root (the compose PostgreSQL up; `make e2e`, `make perf` and the scripts copy the cached seeded template
@@ -547,6 +584,7 @@ go test ./internal/core -run xxx -bench JSON -benchmem -count 6        # encodin
 
 # B. browser flows and server time per page
 make perf LABEL=after REPS=5                         # tests/e2e/out/perf-after.json
+node tests/e2e/rendercost.mjs --label after --reps 7 [--latency 300 --cold] [--cpu 4]   # browser cost of the big pages (tests/e2e/out/rendercost-after.json)
 node tests/e2e/pagetimes.mjs --label after           # tests/e2e/out/pagetimes-after.json (run it three times)
 
 # C. database (WORLD_DATABASE_URL: a scratch copy of the template database that make e2e or make perf created, bcm_e2e_tpl_<hash>)
