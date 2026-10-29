@@ -70,25 +70,17 @@ func LeanBreakRules(d *lean.Document) BreakRules {
 }
 
 // LeanRating are the rules that turn a hero's profile into a rating: the per-point table, the special rules and the average profile.
-func LeanRating(d *lean.Document, wargear WargearThreshold) (RatingRules, error) {
+func LeanRating(d *lean.Document, wargear WargearThreshold) RatingRules {
 	r := RatingRules{PerPoint: map[string]int{}, Wargear: wargear, Average: map[string]int{}}
 	hero := d.Campaign.Rating.Hero
 	r.PerSpecialRule, r.PerMinorSpecialRule, r.MaxMinorSpecialRule = hero.PerSpecialRule, hero.PerMinorSpecialRule, hero.MaxMinorSpecialRuleRating
 	for _, p := range hero.PerPoint {
 		r.PerPoint[p.Stat] = p.Rating
 	}
-	var limits struct {
-		Average map[string]any `json:"average"`
+	for stat, v := range d.Campaign.CharacteristicLimits.Average {
+		r.Average[stat] = v
 	}
-	if err := leanRoundTrip(d.Campaign.CharacteristicLimits, &limits); err != nil {
-		return RatingRules{}, errors.Join(ErrInvalidRuleset, err)
-	}
-	for k, v := range limits.Average {
-		if n, ok := v.(float64); ok {
-			r.Average[k] = int(n)
-		}
-	}
-	return r, nil
+	return r
 }
 
 // LeanInjuries are the injury chart and the treatments of a lean document.

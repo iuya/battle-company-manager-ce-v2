@@ -617,23 +617,23 @@ type Power struct {
 
 // Path is a heroic path.
 type Path struct {
-	Name         string    `json:"name" required:"true" min:"1"`
-	ID           string    `json:"id,omitempty"`
-	Aka          []string  `json:"aka,omitempty"`
-	Kind         string    `json:"kind,omitempty" enum:"heroic|custom|endOfPath"` // default heroic
-	Extends      string    `json:"extends,omitempty"`
-	Dice         DiceSpec  `json:"dice,omitempty"` // default campaign.progression.hero.roll
-	Description  string    `json:"description,omitempty"`
-	Maximums     Free      `json:"maximums,omitempty"`
-	Mastery      string    `json:"mastery,omitempty"`
-	HeroicAction *string   `json:"heroicAction,omitempty"`
-	Signature    []string  `json:"signature,omitempty"`
-	Spells       []string  `json:"spells,omitempty"`
-	Rows         []PathRow `json:"rows,omitempty"`
-	Limit        int       `json:"limit,omitempty" min:"0" max:"99"`
-	Note         string    `json:"note,omitempty"`
-	Start        *HeroGain `json:"start,omitempty"` // Might, Will and Fate a unit starts on the path with, when it is not the usual heroStart (the homebrew path)
-	Rule         string    `json:"rule,omitempty"`  // the rule of a path that is the end of the road (kind endOfPath): At Path's End
+	Name         string               `json:"name" required:"true" min:"1"`
+	ID           string               `json:"id,omitempty"`
+	Aka          []string             `json:"aka,omitempty"`
+	Kind         string               `json:"kind,omitempty" enum:"heroic|custom|endOfPath"` // default heroic
+	Extends      string               `json:"extends,omitempty"`
+	Dice         DiceSpec             `json:"dice,omitempty"` // default campaign.progression.hero.roll
+	Description  string               `json:"description,omitempty"`
+	Maximums     map[string]StatLimit `json:"maximums,omitempty"`
+	Mastery      string               `json:"mastery,omitempty"`
+	HeroicAction *string              `json:"heroicAction,omitempty"`
+	Signature    []string             `json:"signature,omitempty"`
+	Spells       []string             `json:"spells,omitempty"`
+	Rows         []PathRow            `json:"rows,omitempty"`
+	Limit        int                  `json:"limit,omitempty" min:"0" max:"99"`
+	Note         string               `json:"note,omitempty"`
+	Start        *HeroGain            `json:"start,omitempty"` // Might, Will and Fate a unit starts on the path with, when it is not the usual heroStart (the homebrew path)
+	Rule         string               `json:"rule,omitempty"`  // the rule of a path that is the end of the road (kind endOfPath): At Path's End
 }
 
 // PathRow is the result of one roll on a path; Text is derived when absent.

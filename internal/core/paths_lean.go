@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -37,9 +38,7 @@ func LeanProgression(d *lean.Document, vanilla *VanillaBook, gl Glossary) (Progr
 			rules.NoPromotion = append(rules.NoPromotion, stat)
 		}
 	}
-	if err := leanLimits(d.Campaign.CharacteristicLimits, &rules); err != nil {
-		return ProgressionRules{}, err
-	}
+	leanLimits(d.Campaign.CharacteristicLimits, &rules)
 
 	text := LeanRuleText(d.Rules, vanilla)
 	tags := leanTags(d.Rules)
@@ -54,10 +53,7 @@ func LeanProgression(d *lean.Document, vanilla *VanillaBook, gl Glossary) (Progr
 		if hidden && path.Kind != "custom" {
 			continue
 		}
-		pp := PathProgression{Name: path.Name, Limits: map[string]map[string]int(nil), PathDice: cmp.Or(path.Dice, rules.HeroDice), LimitPerCompany: path.Limit, Description: path.Description}
-		if err := leanRoundTrip(path.Maximums, &pp.Limits); err != nil {
-			return ProgressionRules{}, fmt.Errorf("paths[%s].maximums: %w", path.Name, err)
-		}
+		pp := PathProgression{Name: path.Name, Limits: pathMaximums(path.Maximums), PathDice: cmp.Or(path.Dice, rules.HeroDice), LimitPerCompany: path.Limit, Description: path.Description}
 		if path.Start != nil {
 			pp.Start = map[string]int{"might": path.Start.Might, "will": path.Start.Will, "fate": path.Start.Fate}
 		}
@@ -84,19 +80,6 @@ func LeanProgression(d *lean.Document, vanilla *VanillaBook, gl Glossary) (Progr
 			rules.Paths = append(rules.Paths, pp)
 		}
 	}
-	var bad []string
-	for name, v := range rules.Peak[willMaxOverridesKey] { // the Will maximum a path has of its own
-		switch {
-		case !slices.ContainsFunc(d.Paths, func(p lean.Path) bool { return p.Name == name }):
-			bad = append(bad, fmt.Sprintf("campaign.characteristicLimits.peak.willMaxOverrides: %q is not a path", name))
-		case v < 1 || v > 10:
-			bad = append(bad, fmt.Sprintf("campaign.characteristicLimits.peak.willMaxOverrides[%s]: %d is outside 1..10", name, v))
-		}
-	}
-	if len(bad) > 0 {
-		slices.Sort(bad)
-		return ProgressionRules{}, errors.Join(ErrInvalidRuleset, errors.New(strings.Join(bad, "; ")))
-	}
 	rules.CastFloor, rules.CastMax = LeanCasting(d.Magic)
 	rules.Powers = LeanPowers(d.Magic, vanilla)
 	rules.MinorRules, rules.MinorParams = LeanMinorRules(d.Rules, text)
@@ -116,37 +99,46 @@ func leanRoundTrip(from, into any) error {
 }
 
 // leanLimits reads campaign.characteristicLimits: the stats where lower is better, the overall peak of each stat (with the Will maximum
-// some paths have of their own) and the cap on the total improvement of Courage and Intelligence.
-func leanLimits(free lean.Free, rules *ProgressionRules) error {
-	var l struct {
-		LowerIsBetter []string                   `json:"lowerIsBetter"`
-		Peak          map[string]json.RawMessage `json:"peak"`
-		Increases     struct {
-			Cap *struct {
-				Value        int  `json:"value"`
-				IncludesGear bool `json:"includesGear"`
-			} `json:"courageIntelligenceTotalCap"`
-		} `json:"increases"`
-	}
-	if err := leanRoundTrip(free, &l); err != nil {
-		return errors.Join(ErrInvalidRuleset, fmt.Errorf("campaign.characteristicLimits: %w", err))
-	}
+// some paths have of their own) and the cap on the total improvement of Courage and Intelligence. The document is validated
+// (lean.Decode): the ranges and the paths named by willMaxOverrides are checked there.
+func leanLimits(l lean.CharacteristicLimits, rules *ProgressionRules) {
 	for _, k := range l.LowerIsBetter {
 		rules.LowerIsBetter[k] = true
 	}
-	for stat, raw := range l.Peak {
-		var limits map[string]int
-		if json.Unmarshal(raw, &limits) == nil && len(limits) > 0 {
-			rules.Peak[stat] = limits
+	for stat, limit := range l.Peak.ByStat() {
+		if m := limitMap(limit); len(m) > 0 {
+			rules.Peak[stat] = m
 		}
 	}
-	if c := l.Increases.Cap; c != nil {
-		if c.Value < 1 || c.Value > 10 {
-			return errors.Join(ErrInvalidRuleset, fmt.Errorf("campaign.characteristicLimits.increases.courageIntelligenceTotalCap.value: %d is out of range 1..10", c.Value))
-		}
+	if len(l.Peak.WillMaxOverrides) > 0 {
+		rules.Peak[willMaxOverridesKey] = maps.Clone(l.Peak.WillMaxOverrides)
+	}
+	if c := l.Increases.CourageIntelligenceTotalCap; c != nil {
 		rules.CITotalCap, rules.CITotalGear = c.Value, c.IncludesGear
 	}
-	return nil
+}
+
+// limitMap is a stat limit as the progression reads it: the limits that are set, by name (max, best, maxIncrease).
+func limitMap(l lean.StatLimit) map[string]int {
+	out := map[string]int{}
+	for name, v := range map[string]*int{"max": l.Max, "best": l.Best, "maxIncrease": l.MaxIncrease} {
+		if v != nil {
+			out[name] = *v
+		}
+	}
+	return out
+}
+
+// pathMaximums is a path's maximums as the progression reads them.
+func pathMaximums(m map[string]lean.StatLimit) map[string]map[string]int {
+	if len(m) == 0 {
+		return nil
+	}
+	out := map[string]map[string]int{}
+	for stat, l := range m {
+		out[stat] = limitMap(l)
+	}
+	return out
 }
 
 // leanTags are the tags (Active, Passive) of the rules of rules[] by name.
@@ -291,9 +283,7 @@ func LeanPathTerms(d *lean.Document, vanilla *VanillaBook, gl Glossary) []ExtraT
 		if p.HeroicAction != nil {
 			def += "\n\nStarting heroic action: " + *p.HeroicAction + "."
 		}
-		var limits map[string]map[string]int
-		_ = leanRoundTrip(p.Maximums, &limits)
-		data := &PathData{Limits: pathLimits(limits), PathDice: p.Dice}
+		data := &PathData{Limits: pathLimits(pathMaximums(p.Maximums)), PathDice: p.Dice}
 		type unlocked struct{ rule, text string }
 		var rules []unlocked
 		for _, row := range p.Rows {

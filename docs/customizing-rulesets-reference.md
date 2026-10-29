@@ -72,7 +72,7 @@ Found at: `campaign`.
 | `scenarioSelection` | [ScenarioSelection](#scenarioselection) | yes | - | - | How a scenario is rolled. |
 | `aftermathEffects` | list of [AftermathEffect](#aftermatheffect) |  | - | - | Rewards and bonuses of the War's Aftermath, keyed by the name a scenario reward or an item points at. |
 | `againstTheOdds` | [AgainstTheOdds](#againsttheodds) |  | - | - | The Against the Odds bonuses of the lower-rated company, and how the budget and the eligibility work. |
-| `characteristicLimits` | any |  | - | - | The ceilings of the characteristics: lowerIsBetter (the stats where a lower number is better), peak (the highest a stat goes, and willMaxOverrides, a path's own Will maximum), average and increases.courageIntelligenceTotalCap {value, includesGear}. Not typed; the shape of the shipped file is read. |
+| `characteristicLimits` | [CharacteristicLimits](#characteristiclimits) |  | - | - | The ceilings of the characteristics and the average profile. |
 | `gold` | any |  | - | - | How Gold works. Prose and keys read by the pages; not typed. |
 | `matchInput` | any |  | - | - | What the players enter per match. Prose shown to the players; not typed. |
 | `options` | any |  | - | - | The campaign options the organiser can switch: a list of {key, scope (rules or app), label, description, default, implemented, swaps}. An option key the app does not know is ignored. |
@@ -875,6 +875,74 @@ Found at: `campaign.againstTheOdds.eligible`.
 | `compare` | string |  | - | `strictlyLower` | strictlyLower: at equal Ratings nobody chooses. Informational. |
 | `ratingBeforeBonuses` | boolean |  | - | - | true: the comparison is made before the bonuses. Informational. |
 | `text` | string |  | - | - | The rule in words. |
+
+### CharacteristicLimits
+
+The ceilings of the characteristics: which ones improve downwards, the highest each one goes, the average profile the hero rating starts from, and the cap on the total improvement of Courage and Intelligence.
+
+Found at: `campaign.characteristicLimits`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `average` | map of integer |  | - | - | The average value of each characteristic of a profile ({attack: 1, courage: 7 ...}); the base the hero rating counts points above. A characteristic that is absent is not counted. |
+| `increases` | [CharacteristicIncrease](#characteristicincrease) |  | - | - | Limits on the improvements a hero adds up. |
+| `lowerIsBetter` | list of string |  | - | `movement`, `fight`, `shoot`, `strength`, `defence`, `attack`, `wounds`, `courage`, `intelligence`, `might`, `will`, `fate` | The characteristics where a lower number is better (Shoot, Courage, Intelligence): an improvement lowers them and best, not max, is their limit. |
+| `peak` | [PeakLimits](#peaklimits) |  | - | - | The highest each characteristic goes, whatever the path. |
+
+### CharacteristicIncrease
+
+Limits on the improvements a hero adds up.
+
+Found at: `campaign.characteristicLimits.increases`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `courageIntelligenceTotalCap` | [TotalCap](#totalcap) |  | - | - | The cap on the total improvement of Courage and Intelligence. |
+
+### TotalCap
+
+The most Courage and Intelligence may be improved in total from the unmodified profile.
+
+Found at: `campaign.characteristicLimits.increases.courageIntelligenceTotalCap`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `value` | integer | yes | - | 1..10 | The most points, 1..10, Courage and Intelligence may be improved in total. |
+| `includesGear` | boolean |  | - | - | true: the improvement from gear counts in the total. |
+
+### PeakLimits
+
+The overall limit of each characteristic (one key per characteristic, only those that have one), and the Will maximum some paths have of their own.
+
+Found at: `campaign.characteristicLimits.peak`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `attack` | [StatLimit](#statlimit) |  | - | - | The limit of Attacks. |
+| `courage` | [StatLimit](#statlimit) |  | - | - | The limit of Courage. |
+| `defence` | [StatLimit](#statlimit) |  | - | - | The limit of Defence. |
+| `fate` | [StatLimit](#statlimit) |  | - | - | The limit of Fate. |
+| `fight` | [StatLimit](#statlimit) |  | - | - | The limit of Fight. |
+| `intelligence` | [StatLimit](#statlimit) |  | - | - | The limit of Intelligence. |
+| `might` | [StatLimit](#statlimit) |  | - | - | The limit of Might. |
+| `movement` | [StatLimit](#statlimit) |  | - | - | The limit of Movement. |
+| `shoot` | [StatLimit](#statlimit) |  | - | - | The limit of Shoot. |
+| `strength` | [StatLimit](#statlimit) |  | - | - | The limit of Strength. |
+| `will` | [StatLimit](#statlimit) |  | - | - | The limit of Will. |
+| `willMaxOverrides` | map of integer |  | - | - | The Will maximum a path has of its own, by path name (1..10); it replaces the peak's Will maximum for heroes of that path. |
+| `wounds` | [StatLimit](#statlimit) |  | - | - | The limit of Wounds. |
+
+### StatLimit
+
+How far one characteristic may be improved. A key that is absent sets no limit of that kind. The same shape is used by the overall peak and by a path's maximums.
+
+Found at: `campaign.characteristicLimits.peak.attack`, `campaign.characteristicLimits.peak.courage`, `campaign.characteristicLimits.peak.defence`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `best` | integer |  | - | 1..20 | The best (lowest) value of a characteristic where lower is better. |
+| `max` | integer |  | - | 1..20 | The highest value of a characteristic where higher is better. |
+| `maxIncrease` | integer |  | - | 0..20 | The most points level-ups may add to the profile (without gear). |
 
 ### ArmourUpgrade
 
@@ -1749,7 +1817,7 @@ Found at: `paths[]`.
 | `kind` | string |  | `"heroic"` | `heroic`, `custom`, `endOfPath` | heroic (default): offered to heroes. custom: the homebrew path an option hands out, hidden. endOfPath: no table, only rule. |
 | `limit` | integer |  | - | 0..99 | The most heroes of a company that may take the path (the Sorcerer: 1). |
 | `mastery` | string |  | - | - | The name of the Mastery rule. |
-| `maximums` | any |  | - | - | The ceilings per characteristic, as {stat: {max, maxIncrease, best}} with numbers: max is the highest value the stat may reach, maxIncrease the most points level-ups may add to the profile, best the best (lowest) value of a stat where lower is better, such as 3 for Courage 3+. Not typed. |
+| `maximums` | map of [StatLimit](#statlimit) |  | - | - | The ceilings per characteristic, as {stat: {max, maxIncrease, best}}: max is the highest value the stat may reach, maxIncrease the most points level-ups may add to the profile, best the best (lowest) value of a stat where lower is better, such as 3 for Courage 3+. They apply together with the overall peak. |
 | `note` | string |  | - | - | A note for the people who read the file; the app may show it next to the entry. |
 | `rows` | list of [PathRow](#pathrow) |  | - | - | The table, one row per roll. |
 | `rule` | string |  | - | - | The rule of an endOfPath path (At Path's End). |

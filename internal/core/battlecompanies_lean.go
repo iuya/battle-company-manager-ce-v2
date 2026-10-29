@@ -17,9 +17,7 @@ func LeanBook(d *lean.Document, vb *VanillaBook, gl Glossary) (*BCBook, error) {
 	var err error
 	var wargear WargearThreshold
 	b.shape, wargear, b.limitRules = LeanCompanyRules(d)
-	if b.rating, err = LeanRating(d, wargear); err != nil {
-		return nil, err
-	}
+	b.rating = LeanRating(d, wargear)
 	b.rating.heroStats = vb.HeroStats()
 	b.breakRules = LeanBreakRules(d)
 	b.recruit = LeanRecruitRules(d)

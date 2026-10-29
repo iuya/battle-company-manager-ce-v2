@@ -247,6 +247,7 @@ func (v *validator) parameters(c *Campaign) {
 	v.ratingParameters(&c.Rating)
 	v.breakParameters(&c.BreakPoint)
 	v.aftermathParameters(c)
+	v.limitParameters(&c.CharacteristicLimits)
 	seen := map[string]int{}
 	for i, g := range c.Experience.Gains {
 		if first, dup := seen[g.Key]; dup {
@@ -405,6 +406,44 @@ func (v *validator) aftermathParameters(c *Campaign) {
 			v.rep.Errorf(Join(p, "result"), "missing; a replacement says which injury result the model counts as having rolled")
 		case e.Result != "" && len(chart) > 0 && !chart[e.Result]:
 			v.rep.Errorf(Join(p, "result"), "%q is not the key of an injury result", e.Result)
+		}
+	}
+}
+
+// limitParameters checks the keys of the characteristic limits that are maps (a characteristic, a path) and their ranges.
+func (v *validator) limitParameters(l *CharacteristicLimits) {
+	known := strings.Split(Characteristics, "|")
+	stat := func(path, key string) bool {
+		if inWords(key, known...) {
+			return true
+		}
+		v.rep.Add(Issue{Path: path, Message: fmt.Sprintf("%q is not a characteristic; known: %s", key, strings.Join(known, ", ")), Closest: Closest(known, key)})
+		return false
+	}
+	for _, key := range SortedKeys(l.Average) {
+		p := Join("campaign.characteristicLimits.average", key)
+		if stat(p, key) && (l.Average[key] < 0 || l.Average[key] > 30) {
+			v.rep.Errorf(p, "%d is out of range 0..30", l.Average[key])
+		}
+	}
+	paths := map[string]bool{}
+	var names []string
+	for _, p := range v.doc.Paths {
+		paths[p.Name] = true
+		names = append(names, p.Name)
+	}
+	for _, name := range SortedKeys(l.Peak.WillMaxOverrides) {
+		p := Join("campaign.characteristicLimits.peak.willMaxOverrides", name)
+		switch n := l.Peak.WillMaxOverrides[name]; {
+		case !paths[name]:
+			v.rep.Add(Issue{Path: p, Message: fmt.Sprintf("%q is not a path of paths[]", name), Closest: Closest(names, name)})
+		case n < 1 || n > 10:
+			v.rep.Errorf(p, "%d is out of range 1..10", n)
+		}
+	}
+	for i := range v.doc.Paths {
+		for _, key := range SortedKeys(v.doc.Paths[i].Maximums) {
+			stat(Join(Join(Idx("paths", i), "maximums"), key), key)
 		}
 	}
 }

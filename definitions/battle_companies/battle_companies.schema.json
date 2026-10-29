@@ -1254,7 +1254,8 @@
           "description": "The Break Point."
         },
         "characteristicLimits": {
-          "description": "The ceilings of the characteristics: lowerIsBetter (the stats where a lower number is better), peak (the highest a stat goes, and willMaxOverrides, a path's own Will maximum), average and increases.courageIntelligenceTotalCap {value, includesGear}. Not typed; the shape of the shipped file is read."
+          "$ref": "#/$defs/CharacteristicLimits",
+          "description": "The ceilings of the characteristics and the average profile."
         },
         "company": {
           "$ref": "#/$defs/CompanyRules",
@@ -1326,6 +1327,60 @@
         "wholeModel": {
           "description": "true: the whole model is lost.",
           "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "CharacteristicIncrease": {
+      "additionalProperties": false,
+      "description": "Limits on the improvements a hero adds up.",
+      "properties": {
+        "courageIntelligenceTotalCap": {
+          "$ref": "#/$defs/TotalCap",
+          "description": "The cap on the total improvement of Courage and Intelligence."
+        }
+      },
+      "type": "object"
+    },
+    "CharacteristicLimits": {
+      "additionalProperties": false,
+      "description": "The ceilings of the characteristics: which ones improve downwards, the highest each one goes, the average profile the hero rating starts from, and the cap on the total improvement of Courage and Intelligence.",
+      "properties": {
+        "average": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "The average value of each characteristic of a profile ({attack: 1, courage: 7 ...}); the base the hero rating counts points above. A characteristic that is absent is not counted.",
+          "type": "object"
+        },
+        "increases": {
+          "$ref": "#/$defs/CharacteristicIncrease",
+          "description": "Limits on the improvements a hero adds up."
+        },
+        "lowerIsBetter": {
+          "description": "The characteristics where a lower number is better (Shoot, Courage, Intelligence): an improvement lowers them and best, not max, is their limit.",
+          "items": {
+            "enum": [
+              "movement",
+              "fight",
+              "shoot",
+              "strength",
+              "defence",
+              "attack",
+              "wounds",
+              "courage",
+              "intelligence",
+              "might",
+              "will",
+              "fate"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "peak": {
+          "$ref": "#/$defs/PeakLimits",
+          "description": "The highest each characteristic goes, whatever the path."
         }
       },
       "type": "object"
@@ -3641,7 +3696,11 @@
           "type": "string"
         },
         "maximums": {
-          "description": "The ceilings per characteristic, as {stat: {max, maxIncrease, best}} with numbers: max is the highest value the stat may reach, maxIncrease the most points level-ups may add to the profile, best the best (lowest) value of a stat where lower is better, such as 3 for Courage 3+. Not typed."
+          "additionalProperties": {
+            "$ref": "#/$defs/StatLimit"
+          },
+          "description": "The ceilings per characteristic, as {stat: {max, maxIncrease, best}}: max is the highest value the stat may reach, maxIncrease the most points level-ups may add to the profile, best the best (lowest) value of a stat where lower is better, such as 3 for Courage 3+. They apply together with the overall peak.",
+          "type": "object"
         },
         "name": {
           "description": "The name of the path.",
@@ -3799,6 +3858,68 @@
         "roll",
         "options"
       ],
+      "type": "object"
+    },
+    "PeakLimits": {
+      "additionalProperties": false,
+      "description": "The overall limit of each characteristic (one key per characteristic, only those that have one), and the Will maximum some paths have of their own.",
+      "properties": {
+        "attack": {
+          "$ref": "#/$defs/StatLimit",
+          "description": "The limit of Attacks."
+        },
+        "courage": {
+          "$ref": "#/$defs/StatLimit",
+          "description": "The limit of Courage."
+        },
+        "defence": {
+          "$ref": "#/$defs/StatLimit",
+          "description": "The limit of Defence."
+        },
+        "fate": {
+          "$ref": "#/$defs/StatLimit",
+          "description": "The limit of Fate."
+        },
+        "fight": {
+          "$ref": "#/$defs/StatLimit",
+          "description": "The limit of Fight."
+        },
+        "intelligence": {
+          "$ref": "#/$defs/StatLimit",
+          "description": "The limit of Intelligence."
+        },
+        "might": {
+          "$ref": "#/$defs/StatLimit",
+          "description": "The limit of Might."
+        },
+        "movement": {
+          "$ref": "#/$defs/StatLimit",
+          "description": "The limit of Movement."
+        },
+        "shoot": {
+          "$ref": "#/$defs/StatLimit",
+          "description": "The limit of Shoot."
+        },
+        "strength": {
+          "$ref": "#/$defs/StatLimit",
+          "description": "The limit of Strength."
+        },
+        "will": {
+          "$ref": "#/$defs/StatLimit",
+          "description": "The limit of Will."
+        },
+        "willMaxOverrides": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "The Will maximum a path has of its own, by path name (1..10); it replaces the peak's Will maximum for heroes of that path.",
+          "type": "object"
+        },
+        "wounds": {
+          "$ref": "#/$defs/StatLimit",
+          "description": "The limit of Wounds."
+        }
+      },
       "type": "object"
     },
     "Pin": {
@@ -4661,6 +4782,31 @@
       ],
       "type": "object"
     },
+    "StatLimit": {
+      "additionalProperties": false,
+      "description": "How far one characteristic may be improved. A key that is absent sets no limit of that kind. The same shape is used by the overall peak and by a path's maximums.",
+      "properties": {
+        "best": {
+          "description": "The best (lowest) value of a characteristic where lower is better.",
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max": {
+          "description": "The highest value of a characteristic where higher is better.",
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "maxIncrease": {
+          "description": "The most points level-ups may add to the profile (without gear).",
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
     "SubTarget": {
       "additionalProperties": false,
       "description": "The model that is treated as another: a role of the company, or any hero with a rule.",
@@ -4789,6 +4935,26 @@
           "type": "string"
         }
       },
+      "type": "object"
+    },
+    "TotalCap": {
+      "additionalProperties": false,
+      "description": "The most Courage and Intelligence may be improved in total from the unmodified profile.",
+      "properties": {
+        "includesGear": {
+          "description": "true: the improvement from gear counts in the total.",
+          "type": "boolean"
+        },
+        "value": {
+          "description": "The most points, 1..10, Courage and Intelligence may be improved in total.",
+          "maximum": 10,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "value"
+      ],
       "type": "object"
     },
     "TreatFailure": {

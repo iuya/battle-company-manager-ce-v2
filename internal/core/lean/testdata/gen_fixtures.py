@@ -209,6 +209,17 @@ d=doc(); d["campaign"]["aftermathEffects"]=[
   {"key":"vantagePoint","kind":"scenarioTableModifier","text":"+1 / -1.","die":"second","range":[-1,1],"scenario":"Seize Ground","when":"nextScenarioTableRoll","who":"victor"},
   {"key":"aFinalBlessing","kind":"magicalPower","text":"The Relic bearer gains the power.","ignoresWill":True,"power":"Fortify Spirit","scenario":"Hold the Line","when":"nextGame","who":"modelInPossessionOfRelic"}]
 w('aftermath_effects',d)
+
+# ---- the characteristic limits, typed ----
+LIMITS={"lowerIsBetter":["shoot","courage","intelligence"],
+  "average":{"attack":1,"courage":7,"defence":3,"fight":4,"intelligence":7,"movement":6,"shoot":4,"strength":3,"wounds":1},
+  "increases":{"courageIntelligenceTotalCap":{"includesGear":True,"value":3}},
+  "peak":{"attack":{"max":3},"courage":{"best":3},"defence":{"maxIncrease":1},"fate":{"max":3},"fight":{"max":9},"intelligence":{"best":3},"might":{"max":3},"movement":{"maxIncrease":2},
+          "shoot":{"best":2},"strength":{"maxIncrease":1},"will":{"max":3},"wounds":{"max":3},"willMaxOverrides":{"Path of the Tactician":6}}}
+d=doc(paths=[{"name":"Path of the Tactician","dice":"2d6","maximums":{"fight":{"maxIncrease":3},"shoot":{"best":3}},
+  "rows":[{"roll":r,"options":[{"stat":"fight"}]} for r in range(2,13)]}])
+d["campaign"]["characteristicLimits"]=copy.deepcopy(LIMITS)
+w('limits',d)
 print(sorted(os.listdir(out)))
 
 # ---- invalid catalogue (bind level) ----
@@ -348,6 +359,17 @@ d=doc(); d["campaign"]["aftermathEffects"]=[
 d["campaign"]["progression"]["xp"]=1; d["campaign"]["progression"]["warrior"]["timing"]="x"
 d["campaign"]["scenarioSelection"]["text"]="x"; d["campaign"]["progression"]["warrior"]["table"][0]["extra"]=True
 wi('aftermath_effects',d)
+
+
+d=doc(paths=[{"name":"Path of the Tactician","dice":"2d6","maximums":{"luck":{"max":3},"fight":{"maxIncrease":-1,"most":2}},
+  "rows":[{"roll":r,"options":[{"stat":"fight"}]} for r in range(2,13)]}])
+lim=copy.deepcopy(LIMITS)
+lim["lowerIsBetter"]=["shoot","luck"]; lim["average"]={"attack":1,"speed":6,"fight":40}
+lim["peak"]["luck"]={"max":3}; lim["peak"]["fight"]={"max":0}; lim["peak"]["will"]={"max":3,"best":30}
+lim["peak"]["willMaxOverrides"]={"Path of the Tactician":11,"Path of the Tactitian":6}
+lim["increases"]["courageIntelligenceTotalCap"]={"value":0}; lim["increases"]["strength"]=1
+d["campaign"]["characteristicLimits"]=lim
+wi('limits_table',d)
 
 # ---- header and version ----
 d=doc(); d['schemaVersion']=1; wi('version',d)

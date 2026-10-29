@@ -1,0 +1,16 @@
+battle_companies.json: campaign.characteristicLimits.lowerIsBetter[1]: "luck" is not a valid characteristic; known: movement, fight, shoot, strength, defence, attack, wounds, courage, intelligence, might, will, fate
+battle_companies.json: campaign.characteristicLimits.peak.fight.max: 0 is out of range 1..20
+battle_companies.json: campaign.characteristicLimits.peak.will.best: 30 is out of range 1..20
+battle_companies.json: campaign.characteristicLimits.peak.luck: unknown field
+  hint: known fields: attack, courage, defence, fate, fight, intelligence, might, movement, shoot, strength, will, willMaxOverrides, wounds
+battle_companies.json: campaign.characteristicLimits.increases.courageIntelligenceTotalCap.value: 0 is out of range 1..10
+battle_companies.json: campaign.characteristicLimits.increases.strength: unknown field
+  hint: known fields: courageIntelligenceTotalCap
+battle_companies.json: paths[0].maximums.fight.maxIncrease: -1 is out of range 0..20
+battle_companies.json: paths[0].maximums.fight.most: unknown field
+  hint: known fields: best, max, maxIncrease
+battle_companies.json: campaign.characteristicLimits.average.fight: 40 is out of range 0..30
+battle_companies.json: campaign.characteristicLimits.average.speed: "speed" is not a characteristic; known: movement, fight, shoot, strength, defence, attack, wounds, courage, intelligence, might, will, fate
+battle_companies.json: campaign.characteristicLimits.peak.willMaxOverrides["Path of the Tactician"]: 11 is out of range 1..10
+battle_companies.json: campaign.characteristicLimits.peak.willMaxOverrides["Path of the Tactitian"]: "Path of the Tactitian" is not a path of paths[]; closest: "Path of the Tactician"
+battle_companies.json: paths[0].maximums.luck: "luck" is not a characteristic; known: movement, fight, shoot, strength, defence, attack, wounds, courage, intelligence, might, will, fate
