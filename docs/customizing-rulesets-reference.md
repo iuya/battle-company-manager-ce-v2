@@ -530,17 +530,16 @@ Found at: `campaign.experience.gains[]`.
 
 ### BreakPoint
 
-When a company is Broken and what happens then.
+When a company is Broken and what happens then, and the scenarios that change it.
 
 Found at: `campaign.breakPoint`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `default` | [BreakDefault](#breakdefault) | yes | - | - | The Break Point of a company with none of its own. |
 | `threshold` | [BreakThreshold](#breakthreshold) | yes | - | - | How casualties are compared. |
 | `whenBroken` | [WhenBroken](#whenbroken) | yes | - | - | What happens when the company is Broken. |
+| `scenarioExceptions` | list of [BreakException](#breakexception) |  | - | - | The scenarios, and scenario settings, that change the Courage tests or the count of a Broken company; the live match lists them. |
 
 ### BreakDefault
 
@@ -551,7 +550,7 @@ Found at: `campaign.breakPoint.default`.
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `percent` | integer | yes | - | 1..100 | The share of the starting models that must be lost. |
-| `of` | string |  | - | - | What the share is taken of; startingModels. |
+| `of` | string |  | - | `startingModels` | What the share is taken of: startingModels. |
 
 ### BreakThreshold
 
@@ -569,8 +568,6 @@ What happens to a Broken company.
 
 Found at: `campaign.breakPoint.whenBroken`.
 
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
-
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `courageTest` | [CourageTest](#couragetest) | yes | - | - | The Courage test of a Broken company. |
@@ -581,11 +578,25 @@ The test a model of a Broken company takes.
 
 Found at: `campaign.breakPoint.whenBroken.courageTest`.
 
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
-
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `dice` | [DiceSpec](#dicespec) | yes | - | - | The dice rolled; the model passes with a total at least its Courage. |
+| `passIf` | string |  | - | `totalAtLeastCourage` | totalAtLeastCourage, the only pass rule the app implements. A live match refuses to roll a Courage test when it is missing. |
+
+### BreakException
+
+A scenario, or a scenario setting, that changes the Courage tests or the count of a Broken company. The live match of that scenario shows the text.
+
+Found at: `campaign.breakPoint.scenarioExceptions[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `effect` | string |  | - | `noCourageTest`, `autoPassCourage`, `notCountedForBreakPoint`, `yetToArriveCountAsOnTheBattlefield` | What the exception does: noCourageTest, autoPassCourage, notCountedForBreakPoint or yetToArriveCountAsOnTheBattlefield. |
+| `rule` | string |  | - | - | The name of the scenario rule that causes it, for the reader and the generated sentence. |
+| `scenario` | string |  | - | not empty | The scenario the exception belongs to, spelled as in scenarios[]. Write this or scenarioSetting. |
+| `scenarioSetting` | string |  | - | not empty | The scenario setting the exception belongs to: a scenario rule listed in a scenario's usesRules, such as Maelstrom of Battle; compared without case. Write this or scenario. |
+| `text` | string |  | - | - | The sentence the live match shows. Without it the app words the exception from effect and who. |
+| `who` | string |  | - | `modelsOnTheHill`, `defenderWithin6OfTheGate`, `defenderBaggagePonies`, `neutralModels`, `ownModelsNotArrived` | Who it concerns: modelsOnTheHill, defenderWithin6OfTheGate, defenderBaggagePonies, neutralModels or ownModelsNotArrived. |
 
 ### RatingRules
 

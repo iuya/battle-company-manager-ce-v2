@@ -245,6 +245,7 @@ func (v *validator) parameters(c *Campaign) {
 	v.injuryParameters(&c.Injuries)
 	v.oddsParameters(&c.AgainstTheOdds)
 	v.ratingParameters(&c.Rating)
+	v.breakParameters(&c.BreakPoint)
 	seen := map[string]int{}
 	for i, g := range c.Experience.Gains {
 		if first, dup := seen[g.Key]; dup {
@@ -361,6 +362,23 @@ func (v *validator) ratingParameters(r *RatingRules) {
 			v.rep.Errorf(Join(Idx("campaign.rating.hero.perPoint", i), "stat"), "%q is already rated at campaign.rating.hero.perPoint[%d]", p.Stat, first)
 		} else {
 			seen[p.Stat] = i
+		}
+	}
+}
+
+// breakParameters checks the scenario exceptions of the Break Point: each names a scenario or a scenario setting, and says what it does in
+// its text or in its effect and who.
+func (v *validator) breakParameters(b *BreakPoint) {
+	for i, e := range b.ScenarioExceptions {
+		p := Idx("campaign.breakPoint.scenarioExceptions", i)
+		switch {
+		case e.Scenario != "" && e.ScenarioSetting != "":
+			v.rep.Errorf(Join(p, "scenarioSetting"), "an exception names a scenario or a scenario setting, not both")
+		case e.Scenario == "" && e.ScenarioSetting == "":
+			v.rep.Errorf(Join(p, "scenario"), "missing; an exception names a scenario or a scenarioSetting")
+		}
+		if e.Text == "" && (e.Effect == "" || e.Who == "") {
+			v.rep.Errorf(Join(p, "text"), "missing; an exception needs a text, or an effect and a who to word it from")
 		}
 	}
 }

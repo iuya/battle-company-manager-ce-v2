@@ -137,16 +137,16 @@ type ExperienceGain struct {
 
 // BreakPoint is `campaign.breakPoint`.
 type BreakPoint struct {
-	Default    BreakDefault   `json:"default" required:"true"`
-	Threshold  BreakThreshold `json:"threshold" required:"true"`
-	WhenBroken WhenBroken     `json:"whenBroken" required:"true"`
-	Rest       map[string]any `json:"-" rest:"true"` // startingModels, casualty ... fixed choices documented, prose
+	Default            BreakDefault     `json:"default" required:"true"`
+	Threshold          BreakThreshold   `json:"threshold" required:"true"`
+	WhenBroken         WhenBroken       `json:"whenBroken" required:"true"`
+	ScenarioExceptions []BreakException `json:"scenarioExceptions,omitempty"`
 }
 
 // BreakDefault is the Break Point of a company with none of its own.
 type BreakDefault struct {
 	Percent int    `json:"percent" required:"true" min:"1" max:"100"`
-	Of      string `json:"of,omitempty"`
+	Of      string `json:"of,omitempty" enum:"startingModels"`
 }
 
 // BreakThreshold is the comparison against the Break Point.
@@ -156,14 +156,24 @@ type BreakThreshold struct {
 
 // WhenBroken is what happens to a broken company.
 type WhenBroken struct {
-	CourageTest CourageTest    `json:"courageTest" required:"true"`
-	Rest        map[string]any `json:"-" rest:"true"`
+	CourageTest CourageTest `json:"courageTest" required:"true"`
 }
 
 // CourageTest is the test a model of a broken company takes.
 type CourageTest struct {
-	Dice DiceSpec       `json:"dice" required:"true"`
-	Rest map[string]any `json:"-" rest:"true"`
+	Dice   DiceSpec `json:"dice" required:"true"`
+	PassIf string   `json:"passIf,omitempty" enum:"totalAtLeastCourage"`
+}
+
+// BreakException is a scenario, or a scenario setting, that changes the Courage tests or the count of a Broken company. The live match
+// shows its text; effect and who word it when there is no text.
+type BreakException struct {
+	Text            string `json:"text,omitempty"`
+	Scenario        string `json:"scenario,omitempty" min:"1"`
+	ScenarioSetting string `json:"scenarioSetting,omitempty" min:"1"`
+	Rule            string `json:"rule,omitempty"`
+	Effect          string `json:"effect,omitempty" enum:"noCourageTest|autoPassCourage|notCountedForBreakPoint|yetToArriveCountAsOnTheBattlefield"`
+	Who             string `json:"who,omitempty" enum:"modelsOnTheHill|defenderWithin6OfTheGate|defenderBaggagePonies|neutralModels|ownModelsNotArrived"`
 }
 
 // RatingRules is `campaign.rating`.

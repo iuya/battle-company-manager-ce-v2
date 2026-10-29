@@ -123,7 +123,7 @@ the path, in the upload report and at start-up. `lean.ParameterIDs` is the index
 | `campaign.company` (maxModels, leaders, sergeants, heroStart, equipmentSlots), `limits[]`, creature and wanderer counts, `paths[].limit` | `ParseCompanyRules` (`companyrules.go`) → `BCBook.Shape()`, `CompanyProfile.Leaders/Sergeants/HeroStart`, `CompanyUnit.BaseSlots`, the limit rules; a company's own `maxModels` must hold the officers |
 | `campaign.recruitment` (die, adjust, rare), `campaign.company.startingInfluence`, `aftermathEffects[rendezvous\|vantagePoint].range` | `ParseRecruitRules` (`recruitrules.go`) → `BCBook.Recruiting()`; every chart is checked to cover `1..sides` once; the recruit window prints them (`RecruitInfo.Rules`) |
 | `campaign.progression`, `campaign.experience`, `campaign.influence`, `campaign.injuries` | `ParseProgression`, `AftermathRules` (`aftermath.go`: `LevelEvery`, `Gains`, injury dice and rows, `NoPromotionBy`); `BCBook.ExperienceGain(key)` |
-| `campaign.breakPoint` (default percent, comparison, courage test dice), a company's `breakPoint` | `BreakRules` (`live_break.go`) → `BreakConfig` for the live fold; the test is `casualties * 100` against `percent * startingModels` (never rounded) |
+| `campaign.breakPoint` (default percent, comparison, courage test dice and `passIf`, `scenarioExceptions[]`), a company's `breakPoint` | `BreakRules` (`live_break.go`) → `BreakConfig` for the live fold; the test is `casualties * 100` against `percent * startingModels` (never rounded) |
 | `campaign.rating` | `LeanRating`: `RatingRules.Wargear` (the hero rating threshold), `PerPoint` (`rating.hero.perPoint`), `PerSpecialRule`, `PerMinorSpecialRule`, `MaxMinorSpecialRule`; `BCBook.HeroBonus` is the profile bonus of a new hero |
 | `campaign.scenarioSelection` | `LeanScenarios`; the ranges partition `1..sides` and each table lists `sides` scenarios |
 | `campaign.characteristicLimits` | `LeanProgression`: `lowerIsBetter`, `peak` (and `willMaxOverrides`), `average`, `increases.courageIntelligenceTotalCap {value, includesGear}` |
@@ -138,6 +138,7 @@ dice grants, and the `treatment` methods with their rolls. The upload checks the
 without its classes, names or ability) with the path of the key; `core.LeanInjuries` and `core.LeanAftermath` read the typed values.
 `campaign.againstTheOdds` is typed too (`lean.AgainstTheOdds`, `campaign_ato.go`): the bonuses (key, name, rating, `appliesIn`, `gains`, `count`, the structured `grants`, `kits` and `purchase`), the budget and the eligibility;
 bonus keys and kit names are unique. `core.LeanATO` and `core.LeanAftermath` read the typed values.
+`campaign.breakPoint` is typed (`scenarioExceptions[]` names a scenario of `scenarios[]`, spelled as the scenario is, or a scenario setting, and has a text or an effect and a who).
 `campaign.rating.hero` is typed (`perPoint` lists each characteristic once; the per-rule numbers are ranged and 0 when absent).
 
 **Tables still kept in the shipped shape.** `campaign.aftermathEffects`,

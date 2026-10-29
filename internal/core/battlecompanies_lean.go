@@ -21,9 +21,7 @@ func LeanBook(d *lean.Document, vb *VanillaBook, gl Glossary) (*BCBook, error) {
 		return nil, err
 	}
 	b.rating.heroStats = vb.HeroStats()
-	if b.breakRules, err = LeanBreakRules(d); err != nil {
-		return nil, err
-	}
+	b.breakRules = LeanBreakRules(d)
 	b.recruit = LeanRecruitRules(d)
 	b.selection = LeanScenarioSelection(d)
 	b.injuries = LeanInjuries(d)

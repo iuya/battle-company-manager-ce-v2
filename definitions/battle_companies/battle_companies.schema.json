@@ -878,7 +878,10 @@
       "description": "The Break Point of a company that has none of its own.",
       "properties": {
         "of": {
-          "description": "What the share is taken of; startingModels.",
+          "description": "What the share is taken of: startingModels.",
+          "enum": [
+            "startingModels"
+          ],
           "type": "string"
         },
         "percent": {
@@ -893,13 +896,66 @@
       ],
       "type": "object"
     },
+    "BreakException": {
+      "additionalProperties": false,
+      "description": "A scenario, or a scenario setting, that changes the Courage tests or the count of a Broken company. The live match of that scenario shows the text.",
+      "properties": {
+        "effect": {
+          "description": "What the exception does: noCourageTest, autoPassCourage, notCountedForBreakPoint or yetToArriveCountAsOnTheBattlefield.",
+          "enum": [
+            "noCourageTest",
+            "autoPassCourage",
+            "notCountedForBreakPoint",
+            "yetToArriveCountAsOnTheBattlefield"
+          ],
+          "type": "string"
+        },
+        "rule": {
+          "description": "The name of the scenario rule that causes it, for the reader and the generated sentence.",
+          "type": "string"
+        },
+        "scenario": {
+          "description": "The scenario the exception belongs to, spelled as in scenarios[]. Write this or scenarioSetting.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "scenarioSetting": {
+          "description": "The scenario setting the exception belongs to: a scenario rule listed in a scenario's usesRules, such as Maelstrom of Battle; compared without case. Write this or scenario.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "text": {
+          "description": "The sentence the live match shows. Without it the app words the exception from effect and who.",
+          "type": "string"
+        },
+        "who": {
+          "description": "Who it concerns: modelsOnTheHill, defenderWithin6OfTheGate, defenderBaggagePonies, neutralModels or ownModelsNotArrived.",
+          "enum": [
+            "modelsOnTheHill",
+            "defenderWithin6OfTheGate",
+            "defenderBaggagePonies",
+            "neutralModels",
+            "ownModelsNotArrived"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "BreakPoint": {
-      "additionalProperties": true,
-      "description": "When a company is Broken and what happens then.",
+      "additionalProperties": false,
+      "description": "When a company is Broken and what happens then, and the scenarios that change it.",
       "properties": {
         "default": {
           "$ref": "#/$defs/BreakDefault",
           "description": "The Break Point of a company with none of its own."
+        },
+        "scenarioExceptions": {
+          "description": "The scenarios, and scenario settings, that change the Courage tests or the count of a Broken company; the live match lists them.",
+          "items": {
+            "$ref": "#/$defs/BreakException"
+          },
+          "type": "array"
         },
         "threshold": {
           "$ref": "#/$defs/BreakThreshold",
@@ -1640,12 +1696,19 @@
       "type": "object"
     },
     "CourageTest": {
-      "additionalProperties": true,
+      "additionalProperties": false,
       "description": "The test a model of a Broken company takes.",
       "properties": {
         "dice": {
           "$ref": "#/$defs/DiceSpec",
           "description": "The dice rolled; the model passes with a total at least its Courage."
+        },
+        "passIf": {
+          "description": "totalAtLeastCourage, the only pass rule the app implements. A live match refuses to roll a Courage test when it is missing.",
+          "enum": [
+            "totalAtLeastCourage"
+          ],
+          "type": "string"
         }
       },
       "required": [
@@ -5026,7 +5089,7 @@
       "type": "object"
     },
     "WhenBroken": {
-      "additionalProperties": true,
+      "additionalProperties": false,
       "description": "What happens to a Broken company.",
       "properties": {
         "courageTest": {

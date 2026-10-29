@@ -12,6 +12,12 @@ func init() {
 }
 
 var campaignTypeDocs = map[string]string{
+	"BreakPoint":         "When a company is Broken and what happens then, and the scenarios that change it.",
+	"BreakDefault":       "The Break Point of a company that has none of its own.",
+	"BreakThreshold":     "How the casualties are compared with the Break Point.",
+	"WhenBroken":         "What happens to a Broken company.",
+	"CourageTest":        "The test a model of a Broken company takes.",
+	"BreakException":     "A scenario, or a scenario setting, that changes the Courage tests or the count of a Broken company. The live match of that scenario shows the text.",
 	"RatingRules":        "How companies and heroes are rated.",
 	"HeroRating":         "How a hero is rated: the Rating of each point of a characteristic, of each special rule and minor special rule, and when its gear is paid at the hero rating. A number that is absent is 0.",
 	"RatingPoint":        "The Rating one point of a characteristic is worth in a hero.",
@@ -46,6 +52,24 @@ var campaignTypeDocs = map[string]string{
 }
 
 var campaignFieldDocs = map[string]string{
+	// Break Point
+	"BreakPoint.default":             "The Break Point of a company with none of its own.",
+	"BreakPoint.threshold":           "How casualties are compared.",
+	"BreakPoint.whenBroken":          "What happens when the company is Broken.",
+	"BreakPoint.scenarioExceptions":  "The scenarios, and scenario settings, that change the Courage tests or the count of a Broken company; the live match lists them.",
+	"BreakDefault.percent":           "The share of the starting models that must be lost.",
+	"BreakDefault.of":                "What the share is taken of: startingModels.",
+	"BreakThreshold.comparison":      "gt: Broken with strictly more casualties than the Break Point. gte: exactly the Break Point is Broken too. The Break Point is never rounded.",
+	"WhenBroken.courageTest":         "The Courage test of a Broken company.",
+	"CourageTest.dice":               "The dice rolled; the model passes with a total at least its Courage.",
+	"CourageTest.passIf":             "totalAtLeastCourage, the only pass rule the app implements. A live match refuses to roll a Courage test when it is missing.",
+	"BreakException.text":            "The sentence the live match shows. Without it the app words the exception from effect and who.",
+	"BreakException.scenario":        "The scenario the exception belongs to, spelled as in scenarios[]. Write this or scenarioSetting.",
+	"BreakException.scenarioSetting": "The scenario setting the exception belongs to: a scenario rule listed in a scenario's usesRules, such as Maelstrom of Battle; compared without case. Write this or scenario.",
+	"BreakException.rule":            "The name of the scenario rule that causes it, for the reader and the generated sentence.",
+	"BreakException.effect":          "What the exception does: noCourageTest, autoPassCourage, notCountedForBreakPoint or yetToArriveCountAsOnTheBattlefield.",
+	"BreakException.who":             "Who it concerns: modelsOnTheHill, defenderWithin6OfTheGate, defenderBaggagePonies, neutralModels or ownModelsNotArrived.",
+
 	// Rating
 	"RatingRules.hero":                     "How a hero is rated.",
 	"HeroRating.wargear":                   "When a hero pays the hero rating for gear.",

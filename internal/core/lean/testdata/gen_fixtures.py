@@ -188,6 +188,13 @@ d=doc(); d["campaign"]["rating"]={"hero":{"maxMinorSpecialRuleRating":10,"perMin
   "perPoint":[{"stat":"might","rating":5},{"stat":"fight","rating":5},{"stat":"attack","rating":10},{"stat":"wounds","rating":10}],
   "wargear":{"threshold":{"stats":["attack","wounds"],"sumAtLeast":3},"text":"Paid at the hero rating."}}}
 w('rating',d)
+
+# ---- the Break Point exceptions, typed ----
+d=doc(); d["campaign"]["breakPoint"]["scenarioExceptions"]=[
+  {"text":"Models standing on the hill never take Courage tests for being Broken.","effect":"noCourageTest","rule":"Defend the Hill","scenario":"Hold the Line","who":"modelsOnTheHill"},
+  {"effect":"yetToArriveCountAsOnTheBattlefield","scenarioSetting":"Maelstrom of Battle","who":"ownModelsNotArrived"}]
+d["campaign"]["breakPoint"]["whenBroken"]["courageTest"]["passIf"]="totalAtLeastCourage"
+w('break_exceptions',d)
 print(sorted(os.listdir(out)))
 
 # ---- invalid catalogue (bind level) ----
@@ -308,6 +315,15 @@ d=doc(); d["campaign"]["rating"]={"hero":{"maxMinorSpecialRuleRating":-1,"perMin
   "perPoint":[{"stat":"might","rating":5},{"stat":"speed","rating":5},{"stat":"might","rating":6},{"stat":"fate"}],
   "wargear":{"threshold":{"stats":["attack","wounds"],"sumAtLeast":3}}}}
 wi('rating_table',d)
+
+
+d=doc(); d["campaign"]["breakPoint"]["scenarioExceptions"]=[
+  {"text":"x","scenario":"Hold the Lyne","effect":"noCourageTest"},
+  {"text":"x","scenario":"Rescue","scenarioSetting":"Maelstrom of Battle"},
+  {"text":"x"},{"scenario":"Rescue","effect":"noCourageTest"},
+  {"text":"x","scenario":"rescue","effect":"vanish","who":"everyone","colour":"red"}]
+d["campaign"]["breakPoint"]["whenBroken"]["courageTest"]["passIf"]="always"; d["campaign"]["breakPoint"]["default"]["of"]="allModels"
+wi('break_exceptions',d)
 
 # ---- header and version ----
 d=doc(); d['schemaVersion']=1; wi('version',d)

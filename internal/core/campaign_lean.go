@@ -58,30 +58,15 @@ func LeanScenarioSelection(d *lean.Document) ScenarioSelection {
 }
 
 // LeanBreakRules are the break point rules of a lean document.
-func LeanBreakRules(d *lean.Document) (BreakRules, error) {
+func LeanBreakRules(d *lean.Document) BreakRules {
 	bp := d.Campaign.BreakPoint
 	r := BreakRules{DefaultPercent: bp.Default.Percent, AtLeast: bp.Threshold.Comparison == "gte",
 		CourageDice: strings.ToLower(bp.WhenBroken.CourageTest.Dice.String()), CourageSpec: bp.WhenBroken.CourageTest.Dice}
-	if s, ok := bp.WhenBroken.CourageTest.Rest["passIf"].(string); ok {
-		r.PassIf = s
+	r.PassIf = bp.WhenBroken.CourageTest.PassIf
+	for _, e := range bp.ScenarioExceptions {
+		r.Exceptions = append(r.Exceptions, BreakException{Scenario: e.Scenario, Setting: e.ScenarioSetting, Rule: e.Rule, Effect: e.Effect, Who: e.Who, Prose: e.Text})
 	}
-	if raw, ok := bp.Rest["scenarioExceptions"]; ok {
-		var list []struct {
-			Scenario string `json:"scenario"`
-			Setting  string `json:"scenarioSetting"`
-			Rule     string `json:"rule"`
-			Effect   string `json:"effect"`
-			Who      string `json:"who"`
-			Text     string `json:"text"`
-		}
-		if err := leanRoundTrip(raw, &list); err != nil {
-			return BreakRules{}, errors.Join(ErrInvalidRuleset, err)
-		}
-		for _, e := range list {
-			r.Exceptions = append(r.Exceptions, BreakException{Scenario: e.Scenario, Setting: e.Setting, Rule: e.Rule, Effect: e.Effect, Who: e.Who, Prose: e.Text})
-		}
-	}
-	return r, nil
+	return r
 }
 
 // LeanRating are the rules that turn a hero's profile into a rating: the per-point table, the special rules and the average profile.
