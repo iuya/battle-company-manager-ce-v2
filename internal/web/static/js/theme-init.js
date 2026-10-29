@@ -8,5 +8,6 @@
   var dark = mode === "dark" || (mode === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
   if (["forest", "ember", "mithril"].indexOf(v[0]) >= 0) r.dataset.palette = v[0];
   if (/(?:^|; )bcm-auras=1(?:;|$)/.test(document.cookie)) r.dataset.showAuras = "on"; // aura chips on the unit cards: off unless this browser chose them
+  if (/(?:^|; )bcm-gear=tiles(?:;|$)/.test(document.cookie)) r.dataset.gear = "tiles"; // gear on the unit cards as icons only: this browser's choice
   r.dataset.mode = dark ? "dark" : "light";
 })();

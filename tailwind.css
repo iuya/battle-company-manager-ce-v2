@@ -365,6 +365,15 @@ html[data-mode="dark"] { color-scheme: dark; }
   .eq-chip.has-tip { border-style: dashed; cursor: pointer; }
   .eq-chip.is-bought { @apply border-accent bg-accent-soft; border-style: solid; }
   .eq-chip.is-bought.has-tip { border-style: dashed; }
+  /* The icon of a gear chip, bigger than the h-4 w-4 it is drawn with elsewhere (the expanded card, the armoury). */
+  .eq-chip > .eq-ic, .eq-chip > svg { height: 1.375rem !important; width: 1.375rem !important; }
+  .eq-chip > .eq-secondary .eq-ic { height: .9rem !important; width: .9rem !important; }
+  /* "Icons only" (Appearance, cookie bcm-gear=tiles, html[data-gear=tiles] set by theme-init.js): on a unit card a gear chip is an icon
+     tile, the name and numbers kept for screen readers and shown in the tooltip (or the title) and on the expanded card. A struck item fades. */
+  [data-gear="tiles"] .unit .eq-chip:has(> .eq-ic) { position: relative; height: 2.25rem; min-width: 2.25rem; justify-content: center; gap: 0; border-radius: .5rem; padding: .125rem; }
+  [data-gear="tiles"] .unit .eq-chip:has(> .eq-ic) > span:not(.eq-secondary) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  [data-gear="tiles"] .unit .eq-chip > .eq-ic { height: 1.75rem !important; width: 1.75rem !important; }
+  [data-gear="tiles"] .unit .eq-chip.line-through:has(> .eq-ic) { opacity: .45; }
   /* A unit missing the next match goes to the end of the list (the order is only visual: it comes back by itself). */
   .unit-away { order: 1; }
   .formation-editing .unit-away { order: 0; }
@@ -465,6 +474,8 @@ html[data-mode="dark"] { color-scheme: dark; }
   .badge-muted { @apply bg-raised text-muted; }
   /* Keyword chips (docs/unit-keywords.md): race solid and in the body weight, factions muted, unit types outlined, so the groups differ without colour. */
   .kw-block { @apply min-w-0; }
+  /* On a unit card the keyword row sits at the foot, on the right (the full list, when open, stays left aligned). */
+  .unit-kw > .kw-block > .kw-row { justify-content: flex-end; }
   .kw-row { @apply flex flex-wrap items-center gap-x-1.5 gap-y-1.5; }
   .kw-chip { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs leading-snug; }
   .kw-chip.has-tip { cursor: pointer; }

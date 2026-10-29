@@ -25,9 +25,15 @@ document.addEventListener("alpine:init", () => {
     palette: "forest",
     mode: "system", // system | light | dark
     auras: false, // show the aura chips on the unit cards; per browser (cookie bcm-auras), off by default
+    gears: [
+      { key: "chips", name: "Icon and name" },
+      { key: "tiles", name: "Icons only" },
+    ],
+    gear: "chips", // how the unit cards draw the gear; per browser (cookie bcm-gear)
 
     init() {
       this.auras = document.documentElement.dataset.showAuras === "on";
+      this.gear = document.documentElement.dataset.gear === "tiles" ? "tiles" : "chips";
       // signed in: the account's choice (data-pref, "<palette>.<mode>") wins over this browser's cookie
       const pref = (document.documentElement.dataset.pref || "").split(".");
       const saved = pref[0] ? { palette: pref[0], mode: pref[1] } : readCookie();
@@ -47,6 +53,12 @@ document.addEventListener("alpine:init", () => {
       document.cookie = `bcm-auras=${this.auras ? 1 : 0}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
       if (this.auras) document.documentElement.dataset.showAuras = "on";
       else delete document.documentElement.dataset.showAuras;
+    },
+    setGear(g) {
+      this.gear = g === "tiles" ? "tiles" : "chips";
+      document.cookie = `bcm-gear=${this.gear}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
+      if (this.gear === "tiles") document.documentElement.dataset.gear = "tiles";
+      else delete document.documentElement.dataset.gear;
     },
     // Signed in: keep the choice in the account too. A failure is silent; the cookie keeps working.
     save() {

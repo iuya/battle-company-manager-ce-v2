@@ -90,6 +90,42 @@ export default async function (h) {
     if (original) { await open(); await p.keyboard.type(original); await p.keyboard.press('Enter'); await galadriel.settle(); }
   });
 
+  await h.step('gear style: "Icons only" in Appearance draws the gear as icon tiles, kept by cookie before the first paint; the name stays for screen readers', async () => {
+    const cid = await campaignId(galadriel, 'Aftermath ward 1');
+    await galadriel.goto(`/campaigns/${cid}/my-company`);
+    const p = galadriel.page;
+    await p.evaluate(() => { document.cookie = 'bcm-gear=; Path=/; Max-Age=0'; });
+    await galadriel.goto(`/campaigns/${cid}/my-company`);
+    const chip = () => p.$eval('main article.unit ul[aria-label=Wargear] li.eq-chip', (c) => { const r = c.getBoundingClientRect(), i = c.querySelector('.eq-ic').getBoundingClientRect(); return { w: r.width, h: r.height, icon: i.width, text: c.innerText.trim() }; });
+    const before = await chip();
+    assert.equal(before.icon, 22, 'icon and name: a 1.375 rem icon');
+    assert.ok(before.w > 60, `icon and name: the chip has the name (${before.w} px)`);
+    await p.click('button[aria-label="Appearance settings"]');
+    await galadriel.settle(200);
+    assert.equal(await p.$eval('[data-gear-option=chips]', (b) => b.getAttribute('aria-pressed')), 'true', 'Icon and name by default');
+    await p.click('[data-gear-option=tiles]');
+    await galadriel.settle(200);
+    assert.equal(await p.evaluate(() => document.documentElement.dataset.gear), 'tiles');
+    const tile = await chip();
+    assert.deepEqual([tile.w, tile.h, tile.icon], [36, 36, 28], 'icons only: a 2.25 rem tile with a 1.75 rem icon');
+    assert.equal(tile.text, before.text, 'the name is still in the chip for screen readers');
+    await galadriel.goto(`/campaigns/${cid}/my-company`);
+    assert.equal(await p.evaluate(() => document.documentElement.dataset.gear), 'tiles', 'remembered after a reload, set before the first paint');
+    for (const scheme of ['light', 'dark']) for (const w of SIZES) {
+      await layout(galadriel, w, scheme);
+      assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no horizontal scroll with icon tiles at ${w}px ${scheme}`);
+      await p.$eval('main article.unit', (e) => e.scrollIntoView({ block: 'start' }));
+      await p.screenshot({ path: `out/gear-tiles-${w}-${scheme}.png` });
+    }
+    await layout(galadriel, 1280, 'light');
+    await p.click('button[aria-label="Appearance settings"]');
+    await galadriel.settle(200);
+    await p.click('[data-gear-option=chips]');
+    await galadriel.settle(200);
+    assert.equal(await p.evaluate(() => document.documentElement.dataset.gear || ''), '', 'back to icon and name');
+    assert.equal((await chip()).icon, 22);
+  });
+
   await h.step('buy window: Find an item filters by name and by alias and says "No item matches your search."', async () => {
     const eowyn = await h.session('eowyn@example.com');
     const cid = await campaignId(eowyn, 'Limits, creatures');

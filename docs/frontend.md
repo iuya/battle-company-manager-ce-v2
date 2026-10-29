@@ -333,7 +333,7 @@ A card, top to bottom:
   one, regular units thin. The shape of the insignia tells them apart without colour.
 - **Title plate** (`.unit-head`) across the top: kind icon, insignia, name with the rename pencil (see "Renaming units"), and
   the points; tinted by the same place (`leader-soft`, `sergeant-soft`, `hero-soft`, a warrior's plain) and by `danger-soft`
-  while the unit is injured (its frame turns danger too). Keywords, injuries and the live badges follow under it.
+  while the unit is injured (its frame turns danger too). Injuries and the live badges follow under it.
 - **Kind icon** (left of the plate), a filled game-icons.net icon (CC BY 3.0, credited in `static/img/CREDITS.md`): a swordwoman for
   infantry, a cavalry charge for cavalry, a wolf head for beasts, an orc head for monsters and a dragon head for monstrous
   cavalry (`core.KindOf` from the vanilla unit types). On the plate it is a fixed 3 rem tile with the glyph almost to its edges,
@@ -345,8 +345,14 @@ A card, top to bottom:
   hammers and mattocks, twin blades, natural weapons (claws, teeth, fangs), the glaive, throwing spears, smoke bombs, the
   troll chain, the whip, light and heavy armour, small shields and the pavise. Some share a drawing and differ by colour: the
   Galadhrim Steed is a green horse, the pony a grey one, the halberd gold spears. The earlier icons are kept in `static/img/archive/`.
+  In a gear chip of the card the icon is 1.375 rem. **Gear style**, a per-browser choice in the "Unit cards" section of `theme_controls` (the
+  Appearance menu and the Account page; `$store.theme.gear` / `setGear`, buttons `[data-gear-option]`): "Icon and name" (default) or "Icons only",
+  which writes the cookie `bcm-gear=tiles`; `theme-init.js` then sets `data-gear="tiles"` on `<html>` before the first paint and `tailwind.css`
+  draws every gear chip with an icon on a unit card as a 2.25 rem tile with a 1.75 rem icon. The name and numbers stay in the chip for screen
+  readers (visually hidden) and show in its tooltip, or in its `title` when the item has no tooltip, and on the expanded card; a struck item fades.
 - **Name** (units are nameable), **type** and **points** (plain text, no box).
-- **Keyword row** (`keyword_row` in `partials/units.gohtml`, spec [`unit-keywords.md`](unit-keywords.md)), directly under the name and type line:
+- **Keyword row** (`keyword_row` in `partials/units.gohtml`, spec [`unit-keywords.md`](unit-keywords.md)), at the foot of the card on the right, just
+  above the experience line (`.unit-kw`: seldom needed at the table, so out of the way; the full list, when open, is left aligned):
   chips for the unit's race, factions and the unit types no other part of the card says, at most 5, race first. The web layer (`notShownKeywords`
   in `internal/web/keywords.go`, one set for row and full list) draws **no chip** for Hero and Warrior (frame and insignia), Mount (the gear),
   or Infantry, Cavalry, Beast, War Beast and Monster (the kind icon); Unique, Elite, Swarm, Chariot and the siege types stay. core still computes

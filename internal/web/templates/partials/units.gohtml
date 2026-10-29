@@ -79,7 +79,7 @@
 {{end}}{{end}}
 
 {{define "gear_chip"}}
-<li class="eq-chip eq-{{.Class}} {{if and .Bought (not .Size)}}is-bought{{end}} {{if or .Description .Size .MountStats}}has-tip{{end}} {{if or .Disabled .Struck}}text-muted line-through{{end}}" {{if .Disabled}}title="No benefit while the hero has {{.Disabled}}"{{else if .Struck}}title="{{.Struck}}" aria-label="{{.Name}}, {{.Struck}}"{{end}} {{if or .Description .Size .MountStats}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="{{if .Exclusive}}Company-exclusive · {{end}}{{if .MountStats}}Mount{{else if .Bought}}Bought{{else}}Starting equipment{{end}}{{with .Size}} · {{.}} slot{{end}}{{with .Stats}} · {{.}}{{end}}"{{with .TipStats}} data-tip-stats="{{.}}"{{end}} data-tip-text="{{.Description}}{{range $i, $r := .MountRules}}{{if $i}}, {{else}}
+<li class="eq-chip eq-{{.Class}} {{if and .Bought (not .Size)}}is-bought{{end}} {{if or .Description .Size .MountStats}}has-tip{{end}} {{if or .Disabled .Struck}}text-muted line-through{{end}}" {{if .Disabled}}title="No benefit while the hero has {{.Disabled}}"{{else if .Struck}}title="{{.Struck}}" aria-label="{{.Name}}, {{.Struck}}"{{else if not (or .Description .Size .MountStats)}}title="{{.Name}}{{with .Stats}} · {{.}}{{end}}"{{end}} {{if or .Description .Size .MountStats}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="{{if .Exclusive}}Company-exclusive · {{end}}{{if .MountStats}}Mount{{else if .Bought}}Bought{{else}}Starting equipment{{end}}{{with .Size}} · {{.}} slot{{end}}{{with .Stats}} · {{.}}{{end}}"{{with .TipStats}} data-tip-stats="{{.}}"{{end}} data-tip-text="{{.Description}}{{range $i, $r := .MountRules}}{{if $i}}, {{else}}
 
 Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   {{template "gear_icons" .}}<span>{{if and .Bought (not .Size)}}+ {{end}}{{if .Modifies}}{{.Modifies}} · envenomed{{else}}{{.Name}}{{if .Poisoned}} · poisoned{{end}}{{end}}</span>{{with .Stats}}<span class="text-muted">{{.}}</span>{{end}}
@@ -191,8 +191,6 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </header>
 
   <div class="min-w-0">
-      {{/* Keywords: race, factions and the types the icon and insignia do not say; a lost mount changes none of them. */}}
-      <div>{{template "keyword_row" (dict "K" $u.Keywords "Open" (printf "expanded === %d" $u.ID))}}</div>
       {{template "kw_applies" $ap}}
       {{if $u.Wanderer}}<p class="mt-1 flex flex-wrap items-center gap-1.5"><span class="badge badge-gold">Wanderer</span>{{if and $lu $lu.Temporary}}<span class="badge badge-gold" title="Taken with Against the Odds for this match only">Temporary</span>{{end}}</p>{{end}}
       {{if and $lu $lu.Temporary $lv.Wanderer}}<p class="mt-1 text-sm">{{$lv.Wanderer.Summary}}</p>{{end}}
@@ -346,6 +344,9 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </div>
 
   {{/* Level and experience: 5 XP per level-up roll; a unit can have several rolls waiting, and only gains the level when it rolls (the promotion banner at the top). */}}
+  {{/* Keywords: race, factions and the types the icon and insignia do not say; a lost mount changes none of them. Seldom needed at
+     the table, so at the foot of the card on the right, just above the experience. */}}
+  <div class="unit-kw mt-auto">{{template "keyword_row" (dict "K" $u.Keywords "Open" (printf "expanded === %d" $u.ID))}}</div>
   {{if and $lv $lv.Edit $lu}}{{template "live_actions_menu" (dict "U" $u "LV" $lv "L" $lu)}}{{end}}
   {{if $u.OwnPath}}
   <div class="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3 text-xs"><span class="text-muted">On its own path: no experience</span></div>
@@ -356,7 +357,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </div>
   {{else}}
   <div class="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-3 text-xs">
-    <span class="level-medal" title="Level {{$u.Level}}"><span class="sr-only">Level </span>{{$u.Level}}</span>
+    <span class="level-medal" title="Level {{$u.Level}} · {{$u.XP}} XP in total"><span class="sr-only">Level </span>{{$u.Level}}</span>
     <div class="xp-bar" style="--seg: {{$u.LevelEvery}}" role="progressbar" aria-valuemin="0" aria-valuemax="{{$u.LevelEvery}}" aria-valuenow="{{$u.XPInLevel}}" aria-label="Experience"><div class="h-full rounded-full {{if $u.PendingLevelUps}}bg-warn{{else}}bg-accent{{end}}" style="width: {{pct $u.XPInLevel $u.LevelEvery}}%"></div></div>
     <span class="text-muted">{{$u.XPInLevel}} / {{$u.LevelEvery}} XP</span>
   </div>
