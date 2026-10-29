@@ -40,6 +40,8 @@ The backup, restore and drill scripts use the default compose file, i.e. product
 Every release tag builds the image in CI and publishes it to the GitHub Container Registry: `ghcr.io/iuya/battle-company-manager-ce-v2`. It is the same `Dockerfile` as the local build
 (distroless, non-root uid 65532, no secrets baked in), for `linux/amd64` and `linux/arm64`.
 
+When the image is published, the workflow also creates the **GitHub Release** of the tag (title = the tag, notes = the body of the tagged commit and the image reference; a tag with a hyphen is a pre-release and never the latest). Every named tag `vX.Y.Z` has a release page.
+
 | Tag | Moves | Example |
 |---|---|---|
 | `1.1.0` | never (one release) | pin this in production |
