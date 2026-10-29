@@ -25,6 +25,23 @@ type armoryView struct {
 	NoticeError bool
 }
 
+// HiddenByDefault is how many items and wanderers the armoury's switch hides before anyone touches it ("Hide what the company cannot
+// take" is on by default): the page is drawn that way before Alpine starts, so nothing moves when it does.
+func (v armoryView) HiddenByDefault() int {
+	n := 0
+	for _, e := range v.Entries {
+		if !e.Avail {
+			n++
+		}
+	}
+	for _, w := range v.Wanderers {
+		if !w.Avail {
+			n++
+		}
+	}
+	return n
+}
+
 // tipChip is a name on an armory card with the text of its tooltip (a special rule, an item, a heroic action); the text is empty
 // when no file explains the name.
 type tipChip struct {
