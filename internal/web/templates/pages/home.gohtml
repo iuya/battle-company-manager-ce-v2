@@ -40,7 +40,7 @@
         <dd class="font-medium">{{if .Rounds}}Round {{.Round}} of {{.Rounds}}{{else if .Round}}Round {{.Round}}{{else}}Not started{{end}} · {{.Matches}} {{if eq .Matches 1}}match{{else}}matches{{end}}</dd>
       </div>
       <div>
-        <dt class="text-muted">Your company</dt>
+        <dt class="text-muted">{{if gt (len .Companies) 1}}Your companies{{else}}Your company{{end}}</dt>
         <dd class="font-medium">{{range $i, $c := .Companies}}{{if $i}}, {{end}}{{$c.Name}} <span class="font-normal text-muted">({{$c.FactionName}})</span>{{else}}<span class="font-normal text-muted">None yet</span>{{end}}</dd>
       </div>
     </dl>

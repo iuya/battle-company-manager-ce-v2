@@ -287,8 +287,8 @@ Routes by area (the feature documents list the actions):
 | `GET /`, `GET /nav/campaigns` | signed in | The user's campaigns; the sidebar sub-menu |
 | `GET /campaigns/new`, `POST /campaigns` | may create campaigns | New campaign |
 | `GET /campaigns/{id}` and `/companies`, `/rankings`, `/matches` | campaign member | The campaign's tabs |
-| `/campaigns/{id}/my-company/...` | campaign member | Your company: recruit, armoury, level up, path, treatment, formation, cemetery, pack, perks |
-| `/campaigns/{id}/companies/{company}` | campaign member | Another company, read only (your own redirects to My Company) |
+| `/campaigns/{id}/my-company/{company}/...` | the company's owner (404 for anyone else) | One of your companies: recruit, armoury, level up, path, treatment, formation, cemetery, pack, perks; `/my-company` alone is an alias that opens one |
+| `/campaigns/{id}/companies/{company}` | campaign member | Another company, read only (your own redirects to `/my-company/{company}`) |
 | `/campaigns/{id}/matches/...` | campaign member | Matches, scenario, result, end confirmation, Against the Odds, aftermath ([matches.md](matches.md), [aftermath.md](aftermath.md)) |
 | `/campaigns/{id}/matches/{match}/live/...`, `.../events` | campaign member | Live match actions, log, undo and the event stream |
 | `/join/{token}` | signed in | Redeem an invite link |

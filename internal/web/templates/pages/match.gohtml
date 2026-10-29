@@ -31,6 +31,8 @@
 {{if and (eq .Campaign.Status "finished") (not $m.Ended)}}<div class="alert alert-info mt-4" role="status">This campaign has ended, so this match is frozen as it was: it stays open, but nothing can be changed until an administrator reactivates the campaign.</div>{{end}}
 {{if and (not $m.Ended) (ne .Campaign.Status "finished")}}<div id="end-card-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/end/card" hx-trigger="live:match from:body" hx-swap="innerHTML">{{with $m.EndProposal}}{{template "end_card" $}}{{end}}</div>{{end}}
 
+{{range .SamePlayerNotes}}<p class="alert alert-info mt-4 text-sm" role="status" data-same-player>{{.}}</p>
+{{end}}
 <div class="mt-6 flex flex-wrap gap-4">
   {{range $i, $side := $m.Sides}}
   <section class="card min-w-60 flex-1 space-y-2">

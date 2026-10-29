@@ -19,6 +19,7 @@ type specialView struct {
 
 type recruitPanel struct {
 	Campaign   core.CampaignDetail
+	Co         int64 // the company the window acts on (the one of the URL)
 	Company    core.CompanyDetail
 	Reason     string // why a new recruit is not possible now; empty when it is
 	Special    []specialView
@@ -29,18 +30,18 @@ type recruitPanel struct {
 }
 
 // recruitPanelFor builds the recruit window for the signed-in user's company.
-func (s *Server) recruitPanelFor(r *http.Request, c core.CampaignDetail, errMsg string, animate bool) (recruitPanel, error) {
+func (s *Server) recruitPanelFor(r *http.Request, c core.CampaignDetail, companyID int64, errMsg string, animate bool) (recruitPanel, error) {
 	user := *userFrom(r.Context())
-	detail, err := s.campaigns.CompanyDetail(r.Context(), c.ID, myCompanyOf(c).ID)
+	detail, err := s.campaigns.CompanyDetail(r.Context(), c.ID, companyID)
 	if err != nil {
 		return recruitPanel{}, err
 	}
-	roll, err := s.campaigns.RecruitState(r.Context(), user, c.ID, myCompanyID(c))
+	roll, err := s.campaigns.RecruitState(r.Context(), user, c.ID, companyID)
 	if err != nil {
 		return recruitPanel{}, err
 	}
 	_, rendezvous := core.UnusedPerk(detail.Perks, core.PerkRendezvous)
-	panel := recruitPanel{Campaign: c, Company: detail, Roll: roll, Error: errMsg, Animate: animate && roll != nil, Rendezvous: rendezvous}
+	panel := recruitPanel{Campaign: c, Co: companyID, Company: detail, Roll: roll, Error: errMsg, Animate: animate && roll != nil, Rendezvous: rendezvous}
 	_, panel.Reason = detail.CanRecruit(detail.Recruit.Cost)
 	for _, sp := range detail.Recruit.Special {
 		_, why := detail.CanRecruit(sp.Cost)
@@ -54,31 +55,27 @@ func (s *Server) recruitPanelFor(r *http.Request, c core.CampaignDetail, errMsg 
 
 // showRecruitPanel answers a step of the recruit with the window again (the player stays in it).
 func (s *Server) showRecruitPanel(w http.ResponseWriter, r *http.Request, status int, errMsg string, animate bool) {
-	base, ok := s.loadCampaign(w, r, "my-company")
+	base, ok := s.loadOwn(w, r, "my-company")
 	if !ok {
 		return
 	}
-	if myCompanyOf(base.Campaign) == nil {
-		s.notFound(w, r)
-		return
-	}
 	// a recruit waiting for its options comes first: reopening the window continues it
-	pending, err := s.campaigns.PendingChoice(r.Context(), *userFrom(r.Context()), base.Campaign.ID, myCompanyID(base.Campaign))
+	pending, err := s.campaigns.PendingChoice(r.Context(), *userFrom(r.Context()), base.Campaign.ID, base.Current.ID)
 	if s.fail(w, r, err) {
 		return
 	}
 	if pending != nil {
-		s.render.partial(w, status, "campaign_my_company", "choice_panel", map[string]any{"Campaign": base.Campaign, "Choice": pending})
+		s.render.partial(w, status, "campaign_my_company", "choice_panel", map[string]any{"Campaign": base.Campaign, "Co": base.Current.ID, "Choice": pending})
 		return
 	}
 	// so does a Ranger of the North waiting for the officers to be arranged
-	if officers, err := s.campaigns.PendingOfficers(r.Context(), *userFrom(r.Context()), base.Campaign.ID, myCompanyID(base.Campaign)); s.fail(w, r, err) {
+	if officers, err := s.campaigns.PendingOfficers(r.Context(), *userFrom(r.Context()), base.Campaign.ID, base.Current.ID); s.fail(w, r, err) {
 		return
 	} else if officers != nil {
-		s.render.partial(w, status, "campaign_my_company", "officers_panel", map[string]any{"Campaign": base.Campaign, "Panel": officers, "Error": errMsg})
+		s.render.partial(w, status, "campaign_my_company", "officers_panel", map[string]any{"Campaign": base.Campaign, "Co": base.Current.ID, "Panel": officers, "Error": errMsg})
 		return
 	}
-	panel, err := s.recruitPanelFor(r, base.Campaign, errMsg, animate)
+	panel, err := s.recruitPanelFor(r, base.Campaign, base.Current.ID, errMsg, animate)
 	if s.fail(w, r, err) {
 		return
 	}
@@ -95,7 +92,7 @@ func (s *Server) handleRollRecruit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -121,7 +118,7 @@ func (s *Server) handleConfirmRecruit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -136,7 +133,7 @@ func (s *Server) handleChooseLower(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -172,7 +169,7 @@ func (s *Server) handleRecruit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -186,7 +183,7 @@ func (s *Server) handleChooseOptions(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -196,6 +193,7 @@ func (s *Server) handleChooseOptions(w http.ResponseWriter, r *http.Request) {
 
 type armouryPanel struct {
 	Campaign  core.CampaignDetail
+	Co        int64
 	Unit      core.CompanyUnit
 	Slots     core.Slots
 	Items     []core.ArmouryItem
@@ -211,24 +209,23 @@ type creatureChoice struct {
 }
 
 func (s *Server) handleArmouryPanel(w http.ResponseWriter, r *http.Request) {
-	base, ok := s.loadCampaign(w, r, "my-company")
+	base, ok := s.loadOwn(w, r, "my-company")
 	if !ok {
 		return
 	}
 	unitID, ok := s.idParam(w, r, "unit")
-	if !ok || myCompanyOf(base.Campaign) == nil {
-		s.notFound(w, r)
+	if !ok {
 		return
 	}
-	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, myCompanyOf(base.Campaign).ID)
+	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, base.Current.ID)
 	if s.fail(w, r, err) {
 		return
 	}
-	items, err := s.campaigns.Armoury(r.Context(), base.Campaign.ID, myCompanyOf(base.Campaign).ID, unitID)
+	items, err := s.campaigns.Armoury(r.Context(), base.Campaign.ID, base.Current.ID, unitID)
 	if s.fail(w, r, err) {
 		return
 	}
-	panel := armouryPanel{Campaign: base.Campaign, Influence: detail.Influence}
+	panel := armouryPanel{Campaign: base.Campaign, Co: base.Current.ID, Influence: detail.Influence}
 	if k := r.URL.Query().Get("kind"); k == "wargear" || k == "equipment" {
 		panel.Kind = k
 	}
@@ -243,7 +240,7 @@ func (s *Server) handleArmouryPanel(w http.ResponseWriter, r *http.Request) {
 			panel.Unit, panel.Slots = u, u.Slots()
 		}
 	}
-	creatures, err := s.campaigns.ArmouryCreatures(r.Context(), base.Campaign.ID, myCompanyOf(base.Campaign).ID)
+	creatures, err := s.campaigns.ArmouryCreatures(r.Context(), base.Campaign.ID, base.Current.ID)
 	if s.fail(w, r, err) {
 		return
 	}
@@ -275,7 +272,7 @@ func (s *Server) handleBuyEquipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -294,7 +291,7 @@ func (s *Server) handleChooseModifierWeapon(w http.ResponseWriter, r *http.Reque
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -312,7 +309,7 @@ func (s *Server) handleDropEquipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -328,6 +325,7 @@ func (s *Server) handleDropEquipment(w http.ResponseWriter, r *http.Request) {
 // treatPanel is the window for treating a hero's injuries.
 type treatPanel struct {
 	Campaign  core.CampaignDetail
+	Co        int64
 	Unit      core.CompanyUnit
 	Influence int
 	Rules     core.InjuryRules
@@ -339,19 +337,15 @@ type treatPanel struct {
 }
 
 func (s *Server) showTreatPanel(w http.ResponseWriter, r *http.Request, status int, unitID int64, result *core.TreatResult, errMsg string, animate bool) {
-	base, ok := s.loadCampaign(w, r, "my-company")
+	base, ok := s.loadOwn(w, r, "my-company")
 	if !ok {
 		return
 	}
-	if myCompanyOf(base.Campaign) == nil {
-		s.notFound(w, r)
-		return
-	}
-	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, myCompanyOf(base.Campaign).ID)
+	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, base.Current.ID)
 	if s.fail(w, r, err) {
 		return
 	}
-	panel := treatPanel{Campaign: base.Campaign, Influence: detail.Influence, Rules: detail.Injuries, Result: result, Error: errMsg, Animate: animate}
+	panel := treatPanel{Campaign: base.Campaign, Co: base.Current.ID, Influence: detail.Influence, Rules: detail.Injuries, Result: result, Error: errMsg, Animate: animate}
 	found := false
 	for _, u := range detail.Roster {
 		if u.ID == unitID {
@@ -363,7 +357,7 @@ func (s *Server) showTreatPanel(w http.ResponseWriter, r *http.Request, status i
 		return
 	}
 	if result == nil { // a roll that waits for the decision on extra influence is shown again
-		if result, err = s.campaigns.TreatmentState(r.Context(), *userFrom(r.Context()), base.Campaign.ID, myCompanyID(base.Campaign), unitID); s.fail(w, r, err) {
+		if result, err = s.campaigns.TreatmentState(r.Context(), *userFrom(r.Context()), base.Campaign.ID, base.Current.ID, unitID); s.fail(w, r, err) {
 			return
 		}
 		panel.Result = result
@@ -388,7 +382,7 @@ func (s *Server) handleTreatInjury(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -423,7 +417,7 @@ func (s *Server) handleSaveCemetery(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -448,7 +442,7 @@ func (s *Server) handleSaveFormation(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -479,7 +473,7 @@ func (s *Server) handleRenameUnit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -493,32 +487,31 @@ func (s *Server) handleRenameUnit(w http.ResponseWriter, r *http.Request) {
 
 // handlePathPanel is the window where a leader or sergeant without a path chooses one.
 func (s *Server) handlePathPanel(w http.ResponseWriter, r *http.Request) {
-	base, ok := s.loadCampaign(w, r, "my-company")
+	base, ok := s.loadOwn(w, r, "my-company")
 	if !ok {
 		return
 	}
 	unitID, ok := s.idParam(w, r, "unit")
-	if !ok || myCompanyOf(base.Campaign) == nil {
-		s.notFound(w, r)
+	if !ok {
 		return
 	}
-	s.showPathPanel(w, r, base.Campaign, unitID, http.StatusOK, "")
+	s.showPathPanel(w, r, base, unitID, http.StatusOK, "")
 }
 
-func (s *Server) showPathPanel(w http.ResponseWriter, r *http.Request, c core.CampaignDetail, unitID int64, status int, errMsg string) {
-	offer, err := s.campaigns.PathOptions(r.Context(), *userFrom(r.Context()), c.ID, myCompanyID(c), unitID)
+func (s *Server) showPathPanel(w http.ResponseWriter, r *http.Request, base campaignBase, unitID int64, status int, errMsg string) {
+	offer, err := s.campaigns.PathOptions(r.Context(), *userFrom(r.Context()), base.Campaign.ID, base.Current.ID, unitID)
 	if errors.Is(err, core.ErrRefused) {
 		errMsg, err = reason(err), nil
 	}
 	if s.fail(w, r, err) {
 		return
 	}
-	s.render.partial(w, status, "campaign_my_company", "path_panel", map[string]any{"Campaign": c, "Offer": offer, "Error": errMsg})
+	s.render.partial(w, status, "campaign_my_company", "path_panel", map[string]any{"Campaign": base.Campaign, "Co": base.Current.ID, "Offer": offer, "Error": errMsg})
 }
 
 // handleChoosePath gives the officer the path the player chose.
 func (s *Server) handleChoosePath(w http.ResponseWriter, r *http.Request) {
-	base, ok := s.loadCampaign(w, r, "my-company")
+	base, ok := s.loadOwn(w, r, "my-company")
 	if !ok {
 		return
 	}
@@ -526,9 +519,9 @@ func (s *Server) handleChoosePath(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	err := s.campaigns.ChoosePath(r.Context(), *userFrom(r.Context()), base.Campaign.ID, myCompanyID(base.Campaign), unitID, r.PostFormValue("path"), r.PostFormValue("power"))
+	err := s.campaigns.ChoosePath(r.Context(), *userFrom(r.Context()), base.Campaign.ID, base.Current.ID, unitID, r.PostFormValue("path"), r.PostFormValue("power"))
 	if errors.Is(err, core.ErrRefused) {
-		s.showPathPanel(w, r, base.Campaign, unitID, http.StatusUnprocessableEntity, reason(err))
+		s.showPathPanel(w, r, base, unitID, http.StatusUnprocessableEntity, reason(err))
 		return
 	}
 	w.Header().Set("HX-Retarget", "#main")
@@ -542,7 +535,7 @@ func (s *Server) handleRenameCompany(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}
@@ -557,7 +550,7 @@ func (s *Server) handleArrangeOfficers(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	cid, ok := s.seamCompany(w, r, id)
+	cid, ok := s.ownCompanyID(w, r, id)
 	if !ok {
 		return
 	}

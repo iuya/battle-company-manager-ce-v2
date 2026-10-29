@@ -296,7 +296,7 @@ type aftermathView struct {
 
 // Owner is whether the viewer plays this company: the level-up window of My Company works on the viewer's own company.
 func (v aftermathView) Owner() bool {
-	return myCompanyOf(v.Campaign) != nil && myCompanyOf(v.Campaign).ID == v.Company.ID
+	return v.Campaign.Owns(v.Company.ID)
 }
 
 // Waiting lists the units of the company with level-up rolls waiting.
@@ -1112,7 +1112,7 @@ func splitPerks(all []perkView) (unused, used []perkView) {
 
 // handleUsePerk marks a perk used; only the company's owner does it.
 func (s *Server) handleUsePerk(w http.ResponseWriter, r *http.Request) {
-	base, ok := s.loadCampaign(w, r, "my-company")
+	base, ok := s.loadOwn(w, r, "my-company")
 	if !ok {
 		return
 	}
@@ -1120,11 +1120,7 @@ func (s *Server) handleUsePerk(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if myCompanyOf(base.Campaign) == nil {
-		s.refuse(w, r, http.StatusForbidden, "You have no company in this campaign.")
-		return
-	}
-	err := s.campaigns.UsePerk(r.Context(), *userFrom(r.Context()), base.Campaign.ID, myCompanyOf(base.Campaign).ID, perk)
+	err := s.campaigns.UsePerk(r.Context(), *userFrom(r.Context()), base.Campaign.ID, base.Current.ID, perk)
 	switch {
 	case errors.Is(err, core.ErrRefused):
 		s.myCompanyPage(w, r, http.StatusUnprocessableEntity, reason(err), true)

@@ -127,6 +127,23 @@
   </section>
 
   {{/* ---- keyword chips ---- */}}
+  <section id="sg-switcher" class="space-y-4" aria-labelledby="sg-switcher-h">
+    <h2 id="sg-switcher-h">Company switcher</h2>
+    <p class="text-sm text-muted">Under the tab bar of My Company and the Armory, only for a player with two or more companies in the campaign. Chips are plain links; the current one is <code>aria-current="true"</code>. A last chip creates another company while the campaign allows it, else a short note says all are created. At 360 px the row scrolls sideways.</p>
+    <div class="space-y-4">
+      <nav class="company-switcher flex items-center gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible" aria-label="Your companies (sample, below the limit)">
+        <a href="#sg-switcher" class="chip chip-on shrink-0" aria-current="true" title="Riders of the Mark · Rohan"><span class="max-w-[11rem] truncate sm:max-w-[16rem]">Riders of the Mark</span><span class="hidden pl-1 text-muted sm:inline">· Rohan</span></a>
+        <a href="#sg-switcher" class="chip shrink-0" title="The Grey Wardens · Arnor"><span class="max-w-[11rem] truncate sm:max-w-[16rem]">The Grey Wardens</span><span class="hidden pl-1 text-muted sm:inline">· Arnor</span></a>
+        <a href="#sg-switcher" class="chip shrink-0"><span aria-hidden="true">+&nbsp;</span>New company</a>
+      </nav>
+      <nav class="company-switcher flex items-center gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible" aria-label="Your companies (sample, at the limit)">
+        <a href="#sg-switcher" class="chip shrink-0" title="Riders of the Mark · Rohan"><span class="max-w-[11rem] truncate sm:max-w-[16rem]">Riders of the Mark</span><span class="hidden pl-1 text-muted sm:inline">· Rohan</span></a>
+        <a href="#sg-switcher" class="chip chip-on shrink-0" aria-current="true" title="The Grey Wardens · Arnor"><span class="max-w-[11rem] truncate sm:max-w-[16rem]">The Grey Wardens</span><span class="hidden pl-1 text-muted sm:inline">· Arnor</span></a>
+        <span class="shrink-0 whitespace-nowrap px-1 text-xs text-muted">All 2 companies created</span>
+      </nav>
+    </div>
+  </section>
+
   <section id="sg-keywords" class="space-y-4" aria-labelledby="sg-keywords-h">
     <h2 id="sg-keywords-h">Keyword chips</h2>
     <p class="text-sm text-muted">Race (solid, bold), factions (muted), unit types (outlined). Every chip has a tooltip and opens the helper popup; +N opens the full list in place.</p>

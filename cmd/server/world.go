@@ -417,6 +417,7 @@ func seedWorld(ctx context.Context, b *backend, dice *demoDice, password string,
 		{"settings, editions and the end", w.settingsCampaigns},
 		{"aura parade", w.auraParade},
 		{"cemetery, invites and handover", w.finishingTouches},
+		{"several companies per player", w.bandsCampaign},
 	} {
 		fmt.Fprintln(out, "==", step.name)
 		step.run()

@@ -1,6 +1,6 @@
 # Several companies per player, and opening the last campaign directly (spec)
 
-Status: **steps 1 and 2 of section 11 are built (backend and database); the frontend steps are not.** The decisions taken are in section 12 and applied throughout. The feature has two parts:
+Status: **steps 1 to 6 and 8 of section 11 are built (backend, database, the company in the URL, the switcher, the setting, the match setup and notes, the demo world, the e2e flow `98-several-companies`); step 7 (the last-campaign cookie and `GET /campaigns`) is the next pull request.** The decisions taken are in section 12 and applied throughout. The feature has two parts:
 (1) a user can have more than one battle company in the same campaign; (2) a cookie remembers the last campaign viewed so the user lands on
 it instead of the campaign list.
 
@@ -383,12 +383,12 @@ rules data read).
    the new interface through one documented seam, `myCompanyOf` / `seamCompany` / `campaignBase.Mine` in `internal/web/campaign.go`
    (the viewer's first company): step 3 replaces it with the company of the URL; nothing changes for a player with one company. The
    `CompanyAttention` summary of section 6 is not built.
-3. Frontend: web interface and routes `my-company/{company}`, `ownCompany` helper, alias redirects.
-4. Frontend: Overview/Companies/Rankings/Home wording and multi rows; campaign creation form field and the settings edit form (`SetCompaniesPerPlayer`).
-5. Frontend: company switcher partial + `/styleguide`, New company page rules.
-6. Frontend: match setup "Mine" filter and same-player note; "Same player" note.
-7. Frontend: `bcm-last` cookie, `GET /campaigns`, link changes.
-8. Qa: demo world campaign, e2e flows, docs (`frontend.md`, `auth.md` cookie row, `architecture.md`, `demo-world.md`, `matches.md`).
+3. Frontend: web interface and routes `my-company/{company}`, `ownCompany` helper, alias redirects. **Done** (the alias opens the first company until the cookie exists).
+4. Frontend: Overview/Companies/Rankings/Home wording and multi rows; campaign creation form field and the settings edit form (`SetCompaniesPerPlayer`). **Done.**
+5. Frontend: company switcher partial + `/styleguide`, New company page rules. **Done** (the attention dots of 4.1 are not built).
+6. Frontend: match setup "Mine" filter and same-player note; "Same player" note. **Done.**
+7. Frontend: `bcm-last` cookie, `GET /campaigns`, link changes. **Not built** (the alias picks the first company).
+8. Qa: demo world campaign ("Two bands", `docs/demo-world.md`), e2e flow `98-several-companies`, docs (`frontend.md`, `architecture.md`, `demo-world.md`, `testing.md`). **Done** except the `auth.md` cookie row and the `matches.md` wording, which belong with step 7.
 
 ## 12. Decisions
 

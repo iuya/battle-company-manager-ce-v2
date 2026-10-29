@@ -179,7 +179,7 @@ campaigns are searched only while "Show finished campaigns" is on.
 `/campaigns/{id}` has seven tabs, each its own URL and page (the header and tabs are the `campaign_header` partial;
 `campaignBase` carries the campaign and the current tab): **Overview** (your company or "create my company", campaign
 facts, rules files, latest matches), **My Company** (your company: the page "Manage company" opens; your company's own
-URL under `/companies/{id}` redirects there), **Armory**, **Companies** (everybody's; another company opens read only, yours redirects to My Company), **Rankings**, **Matches** and **Glossary** (the glossary this campaign is played with). The sidebar lists the
+URL under `/companies/{id}` redirects to `/campaigns/{id}/my-company/{company}`), **Armory**, **Companies** (everybody's; another company opens read only, yours redirects to My Company), **Rankings**, **Matches** and **Glossary** (the glossary this campaign is played with). The sidebar lists the
 same tabs under the campaign you are in.
 
 - **Manage campaign** card on the Overview (`CanManage`: the organiser and administrators; `campaign_manage.go`, template `manage_card`): the
@@ -190,8 +190,35 @@ same tabs under the campaign you are in.
   with **Regenerate** and **Invalidate links** (inline confirm; `POST .../invites/regenerate`, `.../invites/invalidate`); while paused it hides
   "Invite players" and Regenerate. Paused: the Matches tab hides New match (`CampaignDetail.CanStartMatch`) and says why, `/matches/new` is 403, the
   join page says the campaign is paused (`InvitePreview.Paused`; a refused join is 422). Finished: the Matches tab says matches are frozen.
-- A player has one company per campaign: `/campaigns/{id}/company/new` creates it (name, faction) and redirects to the
-  company page when one already exists. A company page shows a management section only to its owner.
+- **Several companies per player** (spec [multi-company-spec.md](multi-company-spec.md), decisions in its section 12). The campaign setting
+  **Companies per player** (1 to 4, default 1; `CampaignSettings.CompanyCap`) is a number field on the creation form (`companies-per-player`, with
+  its help text; empty keeps 1, a value outside 1 to 4 is a 422) and is editable later by the organiser and administrators (`companies_cap_card`
+  in the Campaign settings card of the Overview, `POST /campaigns/{id}/settings/companies`, `SetCompaniesPerPlayer`; success reloads the Overview,
+  a refusal or a non-number shows in an `alert-danger` on the control, 422). The help text states the rule: lowering it only stops new companies,
+  the ones that exist stay and keep playing. Everyone sees the value in the settings list.
+  - **The company is in every owner address**: `/campaigns/{id}/my-company/{company}` and everything under it (recruit, units, formation, cemetery,
+    pack, rename, perks). One helper, `ownCompany` (`campaign.go`), reads `{company}` and answers 404 unless it is one of the viewer's own
+    companies of the campaign (`CampaignDetail.Own`); `loadOwn` is `loadCampaign` plus that check and sets `campaignBase.Current`, `ownCompanyID`
+    is the same for the POSTs. No handler guesses a company, and a stranger or the organiser learns nothing. The bare `GET /campaigns/{id}/my-company`
+    is an **alias**: 303 to the company the player opened last (their oldest until the last-opened cookie exists), or the "Choose your company" page
+    when they have none. The armory takes the company in `?company=ID` (the bare tab 303s to the first) and its buy forms carry a hidden `company`. The
+    templates build every owner address from `campaignBase.OwnPath` (or the `Co` of a window's data).
+  - **Company switcher** (`company_switcher` in `partials/campaign.gohtml`, on `/styleguide`): chips under the tab bar of My Company and the
+    Armory, **only when the viewer owns two or more companies** (`campaignBase.Switcher`); a player with one company sees no chip, no new wording
+    and the same pages as before, whatever the limit. One `chip` link per company (name, the faction from 640 px up; the current one
+    `aria-current="true"` and `chip-on`; plain navigation, `hx-boost="false"`), then a "New company" chip while `CanCreateCompany`, else the note
+    "All N companies created". At 360 px the row scrolls sideways, from 640 px it wraps. With several companies the page title names the company.
+  - **New company** (`/campaigns/{id}/company/new`) opens for a player below the cap (a lowered cap counts the same way); at the cap it redirects to
+    My Company, and a stale POST gets the refusal "You already have the N companies this campaign allows." (422; "a company in this campaign" when
+    the cap is 1). A created company opens at its own address. Creating a company is permanent.
+  - **Overview**: "Your company" (one) or "Your companies" (several), one block per company with Manage company, then "Create another company"
+    below the cap, "You have all N companies this campaign allows." at it, or "This campaign now allows N ... per player; you keep your M." above it
+    after a lowered cap. With a limit of 1 nothing is added. Companies and Rankings mark every company of the viewer "Yours" and show the owner.
+  - **Same player** (`core.SamePlayers`): a non-blocking note on the match page (`matchView.SamePlayerNotes`: "Same player: both of these companies
+    are X's." / "Same player: X plays both sides.") and, live, in the new match form (`match_form.js`: "Both are X's" under a side, "Same player:
+    X plays both sides" across sides). Nothing is refused. The form lists each company with its owner and faction, puts the viewer's own first
+    and has a **Mine** chip that narrows the search to them.
+- A company page shows a management section only to its owner. `/campaigns/{id}/company/new` creates a company (name, faction).
 - **Rankings** sort by the total point cost of a company's units (`core.Rank`; equal points share a rank) and show
   wins/draws/losses, matches played and unit count.
 - **Matches** are listed newest first with their sides (`A + B vs C`) and a result badge (Open, Draw, "<side> won").
@@ -468,8 +495,8 @@ data is the effect `companies[Shire].effects[kind=rangerReplacement]` (`unit`, `
 - **Contract.** `RecruitService.PendingOfficers` returns the `OfficerPanel{Unit, Leader, Officers, Candidates, Drop}` (nil when nothing waits) and
   `ArrangeOfficers(ctx, user, campaignID, OfficerArrangement{Leader, Sergeants})` applies the arrangement (the Ranger is id `0`); `ConfirmRecruit(..., "ranger")` starts the step.
   Every invalid arrangement (Ranger left out or named twice, a unit named twice, a non-officer as Sergeant while three officers exist, the wrong number dropped, no pending
-  step) is an `ErrRefused` with nothing stored. The web routes are `GET .../my-company/recruit` (shows the panel whenever one waits) and
-  `POST .../my-company/recruit/officers` (`leader`, repeated `sergeant`), which answers with the whole page, or the panel again with the reason and status 422.
+  step) is an `ErrRefused` with nothing stored. The web routes are `GET .../my-company/{company}/recruit` (shows the panel whenever one waits) and
+  `POST .../my-company/{company}/recruit/officers` (`leader`, repeated `sergeant`), which answers with the whole page, or the panel again with the reason and status 422.
 - A fallen Ranger is an ordinary casualty (a Leader falling still opens the succession of [aftermath.md](aftermath.md)); the cemetery tag `RangerMayReturn` says "May return
   with a reinforcement" and the aftermath alert `RangerFell` says he returns as the Leader.
 
@@ -789,7 +816,7 @@ Roster, promotions (level-up, advancements) and injuries (Heal) are the cards of
   aftermath of Match N first." instead of acting (the root's `data-lock` holds the reason, empty when unlocked). The core refuses
   the action too, so a stale page shows the refusal as a notice.
 - **Perks card** (`perks_card`): the company's unused scenario perks (name, the relic bearer, text, when it applies) with
-  **Mark used** for the owner (`POST /campaigns/{id}/my-company/perks/{perk}/use`, `UsePerk`); used ones sit under a collapsed
+  **Mark used** for the owner (`POST /campaigns/{id}/my-company/{company}/perks/{perk}/use`, `UsePerk`); used ones sit under a collapsed
   "Used (n)". Empty state when there are none.
 - **History card** (`history_card`): the latest 20 aftermath lines (`CompanyDetail.History`), newest first, on both company
   pages; the grants have their own card. Every `core.AftermathLine` carries `Match` (number), `MatchID` and `On` (when the aftermath was finished, else started, else when the match ended; zero when unknown), on `CompanyDetail.History` and on `Aftermath.Lines` of the match page. The card shows "Match N" as a link to `/campaigns/{id}/matches/{MatchID}` (not on the match page itself) and the date through the viewer's time zone formatter (`fmtDateShort`); the card takes `(dict "Lines" … "CID" campaign id)`.
@@ -797,7 +824,7 @@ Roster, promotions (level-up, advancements) and injuries (Heal) are the cards of
   only** (`myCompanyView.ReadOnly`, same template `campaign_my_company`): a "Viewing X, the company of Y. Read only" banner with a
   link back to all companies, the same stats, limits, full unit cards (expandable, tooltips) and cemetery, creatures, perks
   (no "use" button) and history; no rename, recruit, formation, buy, drop, heal, level-up, path, pack or dismiss controls and
-  no buy window. The organiser's award form of the grants card stays. Your own company's URL redirects to My Company.
+  no buy window. The organiser's award form of the grants card stays. Your own company's URL redirects to `/my-company/{company}`.
 
 ## Live match
 

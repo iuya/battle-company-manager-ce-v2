@@ -173,14 +173,14 @@ func TestMyCompanyPageHasTheCopyButtonLiveOnesAskForTheLiveList(t *testing.T) {
 	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	for _, want := range []string{`id="tts-open"`, `hx-get="/campaigns/7/companies/1/tts"`, `aria-label="Copy as an army list for Tabletop Simulator"`, "Paste it into a Notebook tab named ArmyList and press Spawn Army", "closest standard MESBG model"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the page lacks %q", want)
 		}
 	}
 	live := liveOwnerSetup(t, core.LiveEdit)
-	body = live.do(live.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body = live.do(live.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	if !strings.Contains(body, `hx-get="/campaigns/7/companies/1/tts?live=1"`) {
 		t.Error("in a match the button asks for the live list")
 	}
@@ -196,7 +196,7 @@ func TestEmptyCompanyHasNoCopyButton(t *testing.T) {
 	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-	if body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String(); strings.Contains(body, `id="tts-open"`) {
+	if body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String(); strings.Contains(body, `id="tts-open"`) {
 		t.Error("an empty company has nothing to copy")
 	}
 }
