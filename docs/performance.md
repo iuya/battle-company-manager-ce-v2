@@ -1,8 +1,10 @@
 # Performance
 
-Measured findings of the optimisation pass (epic `6ej`), shared by the frontend, backend and database passes. Rules and screens did not
+Measured findings of the optimisation work, shared by the frontend, backend and database passes. Rules and screens did not
 change; the tests are the safety net. Numbers come from one machine (Apple M-series laptop, PostgreSQL 17 in Docker on the same host, Chrome
-headless) and show proportions, not absolutes.
+headless) and show proportions, not absolutes. The headline table (v1.3.0, baseline and final tree, with the change in percent), what each
+pass changed and why, what did not improve, and every command that produced a number are in [optimization-report.md](optimization-report.md);
+this page keeps the tools, the findings behind the code and what to keep when changing it.
 
 ## How to measure
 
