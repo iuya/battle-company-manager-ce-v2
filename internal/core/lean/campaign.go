@@ -85,15 +85,13 @@ type Progression struct {
 	Threshold int             `json:"threshold" required:"true" min:"1" max:"50"` // C1
 	Warrior   WarriorProgress `json:"warrior" required:"true"`
 	Hero      HeroProgress    `json:"hero" required:"true"`
-	Rest      map[string]any  `json:"-" rest:"true"` // xp, timing, influenceAdjust ... read by later slices
 }
 
 // WarriorProgress is the warrior progression table.
 type WarriorProgress struct {
-	Roll        DiceSpec       `json:"roll" required:"true"` // C2: the table rows cover it
-	Table       []TableRow     `json:"table,omitempty"`
-	NoPromotion NoPromotion    `json:"noPromotion" required:"true"` // C5
-	Rest        map[string]any `json:"-" rest:"true"`
+	Roll        DiceSpec    `json:"roll" required:"true"` // C2: the table rows cover it
+	Table       []TableRow  `json:"table,omitempty"`
+	NoPromotion NoPromotion `json:"noPromotion" required:"true"` // C5
 }
 
 // NoPromotion is what a warrior with no promotion gains.
@@ -105,19 +103,17 @@ type NoPromotion struct {
 
 // HeroProgress is the hero progression.
 type HeroProgress struct {
-	Roll                DiceSpec       `json:"roll" required:"true"`                                // C4
-	RollsPerProgression int            `json:"rollsPerProgression" required:"true" min:"1" max:"6"` // C3
-	Choose              int            `json:"choose" required:"true" min:"1" max:"6"`              // C3
-	Rest                map[string]any `json:"-" rest:"true"`
+	Roll                DiceSpec `json:"roll" required:"true"`                                // C4
+	RollsPerProgression int      `json:"rollsPerProgression" required:"true" min:"1" max:"6"` // C3
+	Choose              int      `json:"choose" required:"true" min:"1" max:"6"`              // C3
 }
 
 // TableRow is a row of a table keyed by a roll; the other keys of the row are read by the slice that owns the table.
 type TableRow struct {
-	Roll Roll           `json:"roll" required:"true"`
-	Key  string         `json:"key,omitempty"`
-	Name string         `json:"name,omitempty"`
-	Text string         `json:"text,omitempty"`
-	Rest map[string]any `json:"-" rest:"true"`
+	Roll Roll   `json:"roll" required:"true"`
+	Key  string `json:"key,omitempty"`
+	Name string `json:"name,omitempty"`
+	Text string `json:"text,omitempty"`
 }
 
 // Experience is `campaign.experience`: the gains. The threshold lives in progression.threshold.
@@ -213,20 +209,12 @@ type WargearThreshold struct {
 type ScenarioSelection struct {
 	Die    DiceSpec        `json:"die" required:"true"` // Count 1
 	Tables []ScenarioTable `json:"tables" required:"true"`
-	Rest   map[string]any  `json:"-" rest:"true"` // text, layout, maelstromOfBattle
 }
 
 // ScenarioTable is one table of scenarios picked by the first die.
 type ScenarioTable struct {
 	Roll      Roll     `json:"roll" required:"true"`
 	Scenarios []string `json:"scenarios" required:"true"`
-}
-
-// AftermathEffect is an entry of `campaign.aftermathEffects`; Range is read for rendezvous and vantagePoint.
-type AftermathEffect struct {
-	Key   string         `json:"key" required:"true" min:"1"`
-	Range []int          `json:"range,omitempty" min:"2" max:"2" emin:"-6" emax:"6"`
-	Rest  map[string]any `json:"-" rest:"true"`
 }
 
 // ParameterIDs maps each engine parameter id of the format to the json path (under campaign unless it starts with a top-level

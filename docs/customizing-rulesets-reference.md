@@ -161,7 +161,7 @@ Found at: `campaign.influence`.
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `gains` | [InfluenceGains](#influencegains) | yes | - | - | The Influence earned after a match. |
-| `spend` | any |  | - | - | What Influence buys: player-facing text and the adjustRoll entry. Not typed; the app prints it. |
+| `spend` | any |  | - | - | What Influence buys, as free player-facing prose and data (a list of {key, name, text, ...}). Genuinely open: the app does not read or print it. |
 
 ### InfluenceGains
 
@@ -177,11 +177,9 @@ Found at: `campaign.influence.gains`.
 
 ### Progression
 
-Experience, level-ups and the dice of the warrior and hero progression. The keys that are not listed (xp, timing, ...) are read by the app and kept as they are.
+Experience, level-ups and the dice of the warrior and hero progression.
 
 Found at: `campaign.progression`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
@@ -194,8 +192,6 @@ Found at: `campaign.progression`.
 The warrior progression: the die, its table and what a warrior with no promotion gains.
 
 Found at: `campaign.progression.warrior`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
@@ -217,11 +213,9 @@ Found at: `campaign.progression.warrior.noPromotion`.
 
 ### TableRow
 
-A row of a table keyed by a roll. The other keys of a row are read by the part of the app that owns the table.
+A row of the warrior progression table.
 
 Found at: `campaign.progression.warrior.table[]`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
@@ -235,8 +229,6 @@ Found at: `campaign.progression.warrior.table[]`.
 The hero progression: the dice rolled and how many results the player keeps.
 
 Found at: `campaign.progression.hero`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
@@ -661,8 +653,6 @@ How the scenario of a match is rolled: a first die picks a table, a second die p
 
 Found at: `campaign.scenarioSelection`.
 
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
-
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `die` | [DiceSpec](#dicespec) | yes | - | - | The first die: one die, written dN. The ranges of tables partition 1..N and each table lists N scenarios. |
@@ -681,16 +671,65 @@ Found at: `campaign.scenarioSelection.tables[]`.
 
 ### AftermathEffect
 
-A reward or bonus of the War's Aftermath (a scenario reward, an Against the Odds bonus, a consumable). The keys that are not listed are read by the engine and kept as they are.
+A reward or bonus of the War's Aftermath: a scenario reward (kind influence, experience or freeEquipment), a consumable item (injuryRollModifier, injuryRollReplacement), a die modifier (rendezvous and vantagePoint, by key) or the effect of an Against the Odds bonus. The kind and the keys the engine acts on are listed first; the others state the rule in data for the reader of the file.
 
 Found at: `campaign.aftermathEffects[]`.
 
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `key` | string | yes | - | not empty | The key a scenario reward (rewards[].effect) or an item (aftermathEffect) points at; unique. rendezvous and vantagePoint also need a range. |
+| `kind` | string | yes | - | `rerolls`, `influence`, `experiencePerModel`, `injuryRollModifier`, `injuryRollReplacement`, `reinforcementRollModifier`, `freeEquipment`, `experience`, `scenarioTableModifier`, `magicalPower` | What the effect is. influence and experience pay a scenario reward (amount); freeEquipment lets a model take an item worth at most maxInfluenceValue; injuryRollModifier and injuryRollReplacement are consumables; reinforcementRollModifier and scenarioTableModifier move a die (rendezvous, vantagePoint); rerolls, experiencePerModel and magicalPower are rules the players apply. |
+| `activatedBy` | [ActivatedBy](#activatedby) |  | - | - | Who may use a consumable and when. |
+| `amount` | integer |  | - | 0..100 | The Influence or Experience Points a reward gives (kind influence or experience). |
+| `applies` | string |  | - | `eachInjuryRoll` | eachInjuryRoll: the modifier applies to every injury roll of the company. |
+| `choice` | string |  | - | `player` | player: the player decides whether to use it. |
+| `clamp` | list of integer |  | - | 0..100; 2..2 items | [low, high]: the modified injury total is held to this range. |
+| `consumes` | string |  | - | `oneItem`, `thisItem` | oneItem or thisItem: what is used up when the effect is used. |
+| `count` | integer |  | - | 1..20 | How many re-rolls (kind rerolls). |
+| `die` | string |  | - | `second` | second: the modifier moves the second die of the scenario table. Informational. |
+| `gains` | [ATOReward](#atoreward) |  | - | - | The Influence or Experience by result of an Against the Odds bonus: win for a Victory, other for a Draw or Defeat. |
+| `ignoresWill` | boolean |  | - | - | true: the power works even when the model has no Will left. Informational. |
+| `includesHealOneInjury` | boolean |  | - | - | true: a Full Recovery from the effect also heals one injury. Informational. |
+| `includesHeroReroll` | boolean |  | - | - | true: the modifier also applies to a hero's re-roll. Informational. |
+| `maxInfluenceValue` | integer |  | - | 0..100 | freeEquipment: the most Influence the free item may cost. |
+| `modifier` | integer |  | - | -12..12 | injuryRollModifier: added to the injury total. |
+| `noRoll` | boolean |  | - | - | injuryRollReplacement: true means the model does not roll on the chart. |
+| `power` | string |  | - | not empty | magicalPower: the power granted. |
+| `range` | list of integer |  | - | -6..6; 2..2 items | [low, high], how far the effect moves a die; -6..6. |
+| `result` | string |  | - | not empty | injuryRollReplacement: the key of the injury result the model counts as having rolled; required for that kind. |
+| `rolls` | integer |  | - | 1..20 | How many rolls the die modifier applies to. |
+| `scenario` | string |  | - | not empty | The scenario the effect belongs to, as named in scenarios[]. |
+| `source` | string |  | - | - | Where the rule comes from in the rulebook, for the reader of the file. |
+| `stackable` | boolean |  | - | - | false: only one of the effect counts per aftermath. |
+| `text` | string |  | - | - | The rule in words, shown to the players. |
+| `to` | string |  | - | `leader` | leader: the reward goes to the Leader. |
+| `usableIn` | list of string |  | - | `game`, `warsAftermath` | Where a re-roll may be used: game or warsAftermath. |
+| `usesPerAftermath` | integer |  | - | 1..20 | How often the effect may be used in one aftermath. Informational. |
+| `when` | string |  | - | `beforeInjuryRolls`, `firstReinforcementRollThisAftermath`, `nextScenarioTableRoll`, `nextGame` | When a perk or consumable is used: beforeInjuryRolls, firstReinforcementRollThisAftermath, nextScenarioTableRoll or nextGame. |
+| `who` | string |  | - | not empty | Who gets the effect, in words of the data (victor, lowerRatedCompany ...). Open: the app does not read it. |
+
+### ActivatedBy
+
+Who may use a consumable item and when.
+
+Found at: `campaign.aftermathEffects[].activatedBy`.
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
-| `key` | string | yes | - | not empty | The key a scenario reward (rewards[].effect) or an item (aftermathEffect) points at. rendezvous and vantagePoint also need a range. |
-| `range` | list of integer |  | - | -6..6; 2..2 items | [low, high], how far the effect moves a die; -6..6. |
+| `carrier` | string |  | - | `hero`, `anyModel` | hero: only a hero may use it; anyModel: any model. |
+| `fledModelIs` | string |  | - | `notCasualty` | notCasualty: a model that fled the board is not a casualty. Informational. |
+| `requires` | list of string |  | - | `participated`, `casualty`, `notCasualty` | What must hold: participated (the model took part), casualty, notCasualty. |
+
+### ATOReward
+
+A reward by result.
+
+Found at: `campaign.aftermathEffects[].gains`, `campaign.againstTheOdds.bonuses[].gains.experiencePerModel`, `campaign.againstTheOdds.bonuses[].gains.influence`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `win` | integer | yes | - | 0..20 | The reward for a Victory. |
+| `other` | integer | yes | - | 0..20 | The reward for a Draw or a Defeat. |
 
 ### AgainstTheOdds
 
@@ -740,17 +779,6 @@ Found at: `campaign.againstTheOdds.bonuses[].gains`.
 |---|---|---|---|---|---|
 | `experiencePerModel` | [ATOReward](#atoreward) |  | - | - | Experience added for every model of the company, by result. |
 | `influence` | [ATOReward](#atoreward) |  | - | - | Influence added for the company, by result. |
-
-### ATOReward
-
-A reward by result.
-
-Found at: `campaign.againstTheOdds.bonuses[].gains.experiencePerModel`, `campaign.againstTheOdds.bonuses[].gains.influence`.
-
-| Key | Type | Required | Default | Allowed | Description |
-|---|---|---|---|---|---|
-| `win` | integer | yes | - | 0..20 | The reward for a Victory. |
-| `other` | integer | yes | - | 0..20 | The reward for a Draw or a Defeat. |
 
 ### ATOGrant
 

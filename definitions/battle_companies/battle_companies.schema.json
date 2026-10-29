@@ -446,6 +446,40 @@
       },
       "type": "object"
     },
+    "ActivatedBy": {
+      "additionalProperties": false,
+      "description": "Who may use a consumable item and when.",
+      "properties": {
+        "carrier": {
+          "description": "hero: only a hero may use it; anyModel: any model.",
+          "enum": [
+            "hero",
+            "anyModel"
+          ],
+          "type": "string"
+        },
+        "fledModelIs": {
+          "description": "notCasualty: a model that fled the board is not a casualty. Informational.",
+          "enum": [
+            "notCasualty"
+          ],
+          "type": "string"
+        },
+        "requires": {
+          "description": "What must hold: participated (the model took part), casualty, notCasualty.",
+          "items": {
+            "enum": [
+              "participated",
+              "casualty",
+              "notCasualty"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
     "Adjust": {
       "additionalProperties": false,
       "description": "How a player may spend Influence to move the recruiting die.",
@@ -537,11 +571,120 @@
       "type": "object"
     },
     "AftermathEffect": {
-      "additionalProperties": true,
-      "description": "A reward or bonus of the War's Aftermath (a scenario reward, an Against the Odds bonus, a consumable). The keys that are not listed are read by the engine and kept as they are.",
+      "additionalProperties": false,
+      "description": "A reward or bonus of the War's Aftermath: a scenario reward (kind influence, experience or freeEquipment), a consumable item (injuryRollModifier, injuryRollReplacement), a die modifier (rendezvous and vantagePoint, by key) or the effect of an Against the Odds bonus. The kind and the keys the engine acts on are listed first; the others state the rule in data for the reader of the file.",
       "properties": {
+        "activatedBy": {
+          "$ref": "#/$defs/ActivatedBy",
+          "description": "Who may use a consumable and when."
+        },
+        "amount": {
+          "description": "The Influence or Experience Points a reward gives (kind influence or experience).",
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "applies": {
+          "description": "eachInjuryRoll: the modifier applies to every injury roll of the company.",
+          "enum": [
+            "eachInjuryRoll"
+          ],
+          "type": "string"
+        },
+        "choice": {
+          "description": "player: the player decides whether to use it.",
+          "enum": [
+            "player"
+          ],
+          "type": "string"
+        },
+        "clamp": {
+          "description": "[low, high]: the modified injury total is held to this range.",
+          "items": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        "consumes": {
+          "description": "oneItem or thisItem: what is used up when the effect is used.",
+          "enum": [
+            "oneItem",
+            "thisItem"
+          ],
+          "type": "string"
+        },
+        "count": {
+          "description": "How many re-rolls (kind rerolls).",
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "die": {
+          "description": "second: the modifier moves the second die of the scenario table. Informational.",
+          "enum": [
+            "second"
+          ],
+          "type": "string"
+        },
+        "gains": {
+          "$ref": "#/$defs/ATOReward",
+          "description": "The Influence or Experience by result of an Against the Odds bonus: win for a Victory, other for a Draw or Defeat."
+        },
+        "ignoresWill": {
+          "description": "true: the power works even when the model has no Will left. Informational.",
+          "type": "boolean"
+        },
+        "includesHealOneInjury": {
+          "description": "true: a Full Recovery from the effect also heals one injury. Informational.",
+          "type": "boolean"
+        },
+        "includesHeroReroll": {
+          "description": "true: the modifier also applies to a hero's re-roll. Informational.",
+          "type": "boolean"
+        },
         "key": {
-          "description": "The key a scenario reward (rewards[].effect) or an item (aftermathEffect) points at. rendezvous and vantagePoint also need a range.",
+          "description": "The key a scenario reward (rewards[].effect) or an item (aftermathEffect) points at; unique. rendezvous and vantagePoint also need a range.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "description": "What the effect is. influence and experience pay a scenario reward (amount); freeEquipment lets a model take an item worth at most maxInfluenceValue; injuryRollModifier and injuryRollReplacement are consumables; reinforcementRollModifier and scenarioTableModifier move a die (rendezvous, vantagePoint); rerolls, experiencePerModel and magicalPower are rules the players apply.",
+          "enum": [
+            "rerolls",
+            "influence",
+            "experiencePerModel",
+            "injuryRollModifier",
+            "injuryRollReplacement",
+            "reinforcementRollModifier",
+            "freeEquipment",
+            "experience",
+            "scenarioTableModifier",
+            "magicalPower"
+          ],
+          "type": "string"
+        },
+        "maxInfluenceValue": {
+          "description": "freeEquipment: the most Influence the free item may cost.",
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "modifier": {
+          "description": "injuryRollModifier: added to the injury total.",
+          "maximum": 12,
+          "minimum": -12,
+          "type": "integer"
+        },
+        "noRoll": {
+          "description": "injuryRollReplacement: true means the model does not roll on the chart.",
+          "type": "boolean"
+        },
+        "power": {
+          "description": "magicalPower: the power granted.",
           "minLength": 1,
           "type": "string"
         },
@@ -555,10 +698,78 @@
           "maxItems": 2,
           "minItems": 2,
           "type": "array"
+        },
+        "result": {
+          "description": "injuryRollReplacement: the key of the injury result the model counts as having rolled; required for that kind.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "rolls": {
+          "description": "How many rolls the die modifier applies to.",
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "scenario": {
+          "description": "The scenario the effect belongs to, as named in scenarios[].",
+          "minLength": 1,
+          "type": "string"
+        },
+        "source": {
+          "description": "Where the rule comes from in the rulebook, for the reader of the file.",
+          "type": "string"
+        },
+        "stackable": {
+          "description": "false: only one of the effect counts per aftermath.",
+          "type": "boolean"
+        },
+        "text": {
+          "description": "The rule in words, shown to the players.",
+          "type": "string"
+        },
+        "to": {
+          "description": "leader: the reward goes to the Leader.",
+          "enum": [
+            "leader"
+          ],
+          "type": "string"
+        },
+        "usableIn": {
+          "description": "Where a re-roll may be used: game or warsAftermath.",
+          "items": {
+            "enum": [
+              "game",
+              "warsAftermath"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "usesPerAftermath": {
+          "description": "How often the effect may be used in one aftermath. Informational.",
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "when": {
+          "description": "When a perk or consumable is used: beforeInjuryRolls, firstReinforcementRollThisAftermath, nextScenarioTableRoll or nextGame.",
+          "enum": [
+            "beforeInjuryRolls",
+            "firstReinforcementRollThisAftermath",
+            "nextScenarioTableRoll",
+            "nextGame"
+          ],
+          "type": "string"
+        },
+        "who": {
+          "description": "Who gets the effect, in words of the data (victor, lowerRatedCompany ...). Open: the app does not read it.",
+          "minLength": 1,
+          "type": "string"
         }
       },
       "required": [
-        "key"
+        "key",
+        "kind"
       ],
       "type": "object"
     },
@@ -2337,7 +2548,7 @@
       "type": "object"
     },
     "HeroProgress": {
-      "additionalProperties": true,
+      "additionalProperties": false,
       "description": "The hero progression: the dice rolled and how many results the player keeps.",
       "properties": {
         "choose": {
@@ -2562,7 +2773,7 @@
           "description": "The Influence earned after a match."
         },
         "spend": {
-          "description": "What Influence buys: player-facing text and the adjustRoll entry. Not typed; the app prints it."
+          "description": "What Influence buys, as free player-facing prose and data (a list of {key, name, text, ...}). Genuinely open: the app does not read or print it."
         }
       },
       "required": [
@@ -3647,8 +3858,8 @@
       "type": "object"
     },
     "Progression": {
-      "additionalProperties": true,
-      "description": "Experience, level-ups and the dice of the warrior and hero progression. The keys that are not listed (xp, timing, ...) are read by the app and kept as they are.",
+      "additionalProperties": false,
+      "description": "Experience, level-ups and the dice of the warrior and hero progression.",
       "properties": {
         "hero": {
           "$ref": "#/$defs/HeroProgress",
@@ -4162,7 +4373,7 @@
       "type": "object"
     },
     "ScenarioSelection": {
-      "additionalProperties": true,
+      "additionalProperties": false,
       "description": "How the scenario of a match is rolled: a first die picks a table, a second die picks the scenario in it.",
       "properties": {
         "die": {
@@ -4510,8 +4721,8 @@
       "type": "object"
     },
     "TableRow": {
-      "additionalProperties": true,
-      "description": "A row of a table keyed by a roll. The other keys of a row are read by the part of the app that owns the table.",
+      "additionalProperties": false,
+      "description": "A row of the warrior progression table.",
       "properties": {
         "key": {
           "description": "The key the engine switches on.",
@@ -5017,7 +5228,7 @@
       "type": "object"
     },
     "WarriorProgress": {
-      "additionalProperties": true,
+      "additionalProperties": false,
       "description": "The warrior progression: the die, its table and what a warrior with no promotion gains.",
       "properties": {
         "noPromotion": {

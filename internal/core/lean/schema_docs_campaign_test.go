@@ -12,6 +12,8 @@ func init() {
 }
 
 var campaignTypeDocs = map[string]string{
+	"AftermathEffect":    "A reward or bonus of the War's Aftermath: a scenario reward (kind influence, experience or freeEquipment), a consumable item (injuryRollModifier, injuryRollReplacement), a die modifier (rendezvous and vantagePoint, by key) or the effect of an Against the Odds bonus. The kind and the keys the engine acts on are listed first; the others state the rule in data for the reader of the file.",
+	"ActivatedBy":        "Who may use a consumable item and when.",
 	"BreakPoint":         "When a company is Broken and what happens then, and the scenarios that change it.",
 	"BreakDefault":       "The Break Point of a company that has none of its own.",
 	"BreakThreshold":     "How the casualties are compared with the Break Point.",
@@ -52,6 +54,42 @@ var campaignTypeDocs = map[string]string{
 }
 
 var campaignFieldDocs = map[string]string{
+	"Influence.spend": "What Influence buys, as free player-facing prose and data (a list of {key, name, text, ...}). Genuinely open: the app does not read or print it.",
+
+	// Aftermath effects
+	"AftermathEffect.key":                   "The key a scenario reward (rewards[].effect) or an item (aftermathEffect) points at; unique. rendezvous and vantagePoint also need a range.",
+	"AftermathEffect.kind":                  "What the effect is. influence and experience pay a scenario reward (amount); freeEquipment lets a model take an item worth at most maxInfluenceValue; injuryRollModifier and injuryRollReplacement are consumables; reinforcementRollModifier and scenarioTableModifier move a die (rendezvous, vantagePoint); rerolls, experiencePerModel and magicalPower are rules the players apply.",
+	"AftermathEffect.text":                  "The rule in words, shown to the players.",
+	"AftermathEffect.amount":                "The Influence or Experience Points a reward gives (kind influence or experience).",
+	"AftermathEffect.maxInfluenceValue":     "freeEquipment: the most Influence the free item may cost.",
+	"AftermathEffect.range":                 "[low, high], how far the effect moves a die; -6..6.",
+	"AftermathEffect.scenario":              "The scenario the effect belongs to, as named in scenarios[].",
+	"AftermathEffect.source":                "Where the rule comes from in the rulebook, for the reader of the file.",
+	"AftermathEffect.who":                   "Who gets the effect, in words of the data (victor, lowerRatedCompany ...). Open: the app does not read it.",
+	"AftermathEffect.to":                    "leader: the reward goes to the Leader.",
+	"AftermathEffect.when":                  "When a perk or consumable is used: beforeInjuryRolls, firstReinforcementRollThisAftermath, nextScenarioTableRoll or nextGame.",
+	"AftermathEffect.count":                 "How many re-rolls (kind rerolls).",
+	"AftermathEffect.rolls":                 "How many rolls the die modifier applies to.",
+	"AftermathEffect.usableIn":              "Where a re-roll may be used: game or warsAftermath.",
+	"AftermathEffect.gains":                 "The Influence or Experience by result of an Against the Odds bonus: win for a Victory, other for a Draw or Defeat.",
+	"AftermathEffect.activatedBy":           "Who may use a consumable and when.",
+	"AftermathEffect.applies":               "eachInjuryRoll: the modifier applies to every injury roll of the company.",
+	"AftermathEffect.choice":                "player: the player decides whether to use it.",
+	"AftermathEffect.clamp":                 "[low, high]: the modified injury total is held to this range.",
+	"AftermathEffect.consumes":              "oneItem or thisItem: what is used up when the effect is used.",
+	"AftermathEffect.includesHeroReroll":    "true: the modifier also applies to a hero's re-roll. Informational.",
+	"AftermathEffect.includesHealOneInjury": "true: a Full Recovery from the effect also heals one injury. Informational.",
+	"AftermathEffect.modifier":              "injuryRollModifier: added to the injury total.",
+	"AftermathEffect.stackable":             "false: only one of the effect counts per aftermath.",
+	"AftermathEffect.usesPerAftermath":      "How often the effect may be used in one aftermath. Informational.",
+	"AftermathEffect.noRoll":                "injuryRollReplacement: true means the model does not roll on the chart.",
+	"AftermathEffect.result":                "injuryRollReplacement: the key of the injury result the model counts as having rolled; required for that kind.",
+	"AftermathEffect.die":                   "second: the modifier moves the second die of the scenario table. Informational.",
+	"AftermathEffect.ignoresWill":           "true: the power works even when the model has no Will left. Informational.",
+	"AftermathEffect.power":                 "magicalPower: the power granted.",
+	"ActivatedBy.carrier":                   "hero: only a hero may use it; anyModel: any model.",
+	"ActivatedBy.fledModelIs":               "notCasualty: a model that fled the board is not a casualty. Informational.",
+	"ActivatedBy.requires":                  "What must hold: participated (the model took part), casualty, notCasualty.",
 	// Break Point
 	"BreakPoint.default":             "The Break Point of a company with none of its own.",
 	"BreakPoint.threshold":           "How casualties are compared.",

@@ -246,6 +246,7 @@ func (v *validator) parameters(c *Campaign) {
 	v.oddsParameters(&c.AgainstTheOdds)
 	v.ratingParameters(&c.Rating)
 	v.breakParameters(&c.BreakPoint)
+	v.aftermathParameters(c)
 	seen := map[string]int{}
 	for i, g := range c.Experience.Gains {
 		if first, dup := seen[g.Key]; dup {
@@ -379,6 +380,31 @@ func (v *validator) breakParameters(b *BreakPoint) {
 		}
 		if e.Text == "" && (e.Effect == "" || e.Who == "") {
 			v.rep.Errorf(Join(p, "text"), "missing; an exception needs a text, or an effect and a who to word it from")
+		}
+	}
+}
+
+// aftermathParameters checks the effects of the War's Aftermath: a key is defined once, and a replacement says which chart result it counts as.
+func (v *validator) aftermathParameters(c *Campaign) {
+	chart := map[string]bool{}
+	for _, rows := range [][]InjuryRow{c.Injuries.Warrior, c.Injuries.Hero} {
+		for _, r := range rows {
+			chart[r.Key] = true
+		}
+	}
+	seen := map[string]int{}
+	for i, e := range c.AftermathEffects {
+		p := Idx("campaign.aftermathEffects", i)
+		if first, dup := seen[e.Key]; dup {
+			v.rep.Errorf(Join(p, "key"), "%q is already used at campaign.aftermathEffects[%d]", e.Key, first)
+		} else {
+			seen[e.Key] = i
+		}
+		switch {
+		case e.Kind == "injuryRollReplacement" && e.Result == "":
+			v.rep.Errorf(Join(p, "result"), "missing; a replacement says which injury result the model counts as having rolled")
+		case e.Result != "" && len(chart) > 0 && !chart[e.Result]:
+			v.rep.Errorf(Join(p, "result"), "%q is not the key of an injury result", e.Result)
 		}
 	}
 }

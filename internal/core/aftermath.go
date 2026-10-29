@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -189,55 +188,10 @@ func (r AftermathRules) Chart(hero bool) []InjuryRow {
 }
 
 // LeanAftermath reads the aftermath rules of a lean document: experience gains, influence gains, Against the Odds bonuses, the
-// injuries charts, the scenario rewards and the items that activate an effect. The charts and the bonuses are the campaign tables as
-// the file stores them (lean Rest/Free) until a parameter slice types them.
+// injuries charts, the scenario rewards and the items that activate an effect.
 func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, error) {
-	var c struct {
-		Progression struct {
-			Threshold int `json:"threshold"`
-		} `json:"progression"`
-		Experience struct {
-			Gains []struct {
-				Key        string `json:"key"`
-				Label      string `json:"label"`
-				Amount     int    `json:"amount"`
-				Repeatable bool   `json:"repeatable"`
-			} `json:"gains"`
-		} `json:"experience"`
-		Influence struct {
-			Gains struct {
-				Participating int `json:"participating"`
-				Draw          int `json:"draw"`
-				Win           int `json:"win"`
-			} `json:"gains"`
-		} `json:"influence"`
-		AftermathEffects []struct {
-			Key        string `json:"key"`
-			Kind       string `json:"kind"`
-			Amount     int    `json:"amount"`
-			MaxValue   int    `json:"maxInfluenceValue"`
-			When       string `json:"when"`
-			Text       string `json:"text"`
-			Scenario   string `json:"scenario"`
-			SourceBase string `json:"source"`
-			Modifier   int    `json:"modifier"`
-			Clamp      []int  `json:"clamp"`
-			Stackable  bool   `json:"stackable"`
-			NoRoll     bool   `json:"noRoll"`
-			Result     string `json:"result"`
-			Activated  struct {
-				Carrier  string   `json:"carrier"`
-				Requires []string `json:"requires"`
-			} `json:"activatedBy"`
-		} `json:"aftermathEffects"`
-	}
-	raw, err := lean.Encode(d.Campaign)
-	if err != nil {
-		return AftermathRules{}, err
-	}
-	if err := json.Unmarshal(raw, &c); err != nil {
-		return AftermathRules{}, err
-	}
+	c := d.Campaign
+	var err error
 	rules := AftermathRules{
 		LevelEvery:    c.Progression.Threshold,
 		Participating: c.Influence.Gains.Participating, Draw: c.Influence.Gains.Draw, Win: c.Influence.Gains.Win,
@@ -246,7 +200,7 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 	for _, g := range c.Experience.Gains {
 		rules.Gains = append(rules.Gains, XPGain{Key: g.Key, Label: g.Label, Amount: g.Amount, Repeatable: g.Repeatable})
 	}
-	for _, b := range d.Campaign.AgainstTheOdds.Bonuses {
+	for _, b := range c.AgainstTheOdds.Bonuses {
 		ob := OddsBonus{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, Rerolls: b.Count}
 		if g := b.Gains.Influence; g != nil {
 			ob.InfluenceWin, ob.InfluenceOther = g.Win, g.Other
@@ -325,16 +279,16 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 		}
 		return out, nil
 	}
-	rules.InjuryDice = d.Campaign.Injuries.Roll
-	if rules.Warrior, err = convert(d.Campaign.Injuries.Warrior, false); err != nil {
+	rules.InjuryDice = c.Injuries.Roll
+	if rules.Warrior, err = convert(c.Injuries.Warrior, false); err != nil {
 		return AftermathRules{}, errors.Join(ErrInvalidRuleset, err)
 	}
-	if rules.Hero, err = convert(d.Campaign.Injuries.Hero, true); err != nil {
+	if rules.Hero, err = convert(c.Injuries.Hero, true); err != nil {
 		return AftermathRules{}, errors.Join(ErrInvalidRuleset, err)
 	}
 	for _, e := range c.AftermathEffects {
-		eff := RewardEffect{Key: e.Key, Kind: e.Kind, Text: e.Text, Amount: e.Amount, MaxValue: e.MaxValue, When: e.When,
-			Modifier: e.Modifier, Stackable: e.Stackable, Carrier: e.Activated.Carrier, Requires: e.Activated.Requires, Result: e.Result, NoRoll: e.NoRoll}
+		eff := RewardEffect{Key: e.Key, Kind: e.Kind, Text: e.Text, Amount: e.Amount, MaxValue: e.MaxInfluenceValue, When: e.When,
+			Modifier: e.Modifier, Stackable: e.Stackable, Carrier: e.ActivatedBy.Carrier, Requires: e.ActivatedBy.Requires, Result: e.Result, NoRoll: e.NoRoll}
 		if len(e.Clamp) == 2 {
 			eff.ClampMin, eff.ClampMax = e.Clamp[0], e.Clamp[1]
 		}

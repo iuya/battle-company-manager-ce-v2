@@ -195,6 +195,20 @@ d=doc(); d["campaign"]["breakPoint"]["scenarioExceptions"]=[
   {"effect":"yetToArriveCountAsOnTheBattlefield","scenarioSetting":"Maelstrom of Battle","who":"ownModelsNotArrived"}]
 d["campaign"]["breakPoint"]["whenBroken"]["courageTest"]["passIf"]="totalAtLeastCourage"
 w('break_exceptions',d)
+
+# ---- the aftermath effects, typed ----
+d=doc(); d["campaign"]["aftermathEffects"]=[
+  {"key":"rerollBonus","kind":"rerolls","text":"Two re-rolls.","count":2,"source":"campaign.againstTheOdds.bonuses[key=reroll]","usableIn":["game","warsAftermath"],"who":"lowerRatedCompany"},
+  {"key":"influenceBonus","kind":"influence","text":"+2 Influence for a Victory.","gains":{"other":1,"win":2},"who":"lowerRatedCompany"},
+  {"key":"healingHerbs","kind":"injuryRollModifier","text":"+1 to every Injury roll.","activatedBy":{"carrier":"hero","fledModelIs":"notCasualty","requires":["participated","notCasualty"]},
+   "applies":"eachInjuryRoll","choice":"player","clamp":[2,12],"consumes":"oneItem","includesHeroReroll":True,"modifier":1,"stackable":False,"usesPerAftermath":1,"when":"beforeInjuryRolls","who":"allCompanyModels"},
+  {"key":"wondrousCram","kind":"injuryRollReplacement","text":"Counts as Full Recovery.","activatedBy":{"carrier":"anyModel","requires":["participated","casualty"]},"choice":"player","consumes":"thisItem","includesHealOneInjury":True,"noRoll":True,"result":"fullRecovery","when":"beforeInjuryRolls","who":"carrier"},
+  {"key":"rendezvous","kind":"reinforcementRollModifier","text":"+1 / -1.","range":[-1,1],"rolls":1,"scenario":"Chance Encounter","when":"firstReinforcementRollThisAftermath","who":"victor"},
+  {"key":"toTheVictorTheSpoils","kind":"freeEquipment","text":"A free item.","maxInfluenceValue":2,"scenario":"Rescue","who":"companyThatScoresAllObjectives"},
+  {"key":"survivalOfTheFittest","kind":"experience","text":"One more Experience.","amount":1,"scenario":"Rescue","to":"leader","who":"eachCompanyWhoseLeaderSurvives"},
+  {"key":"vantagePoint","kind":"scenarioTableModifier","text":"+1 / -1.","die":"second","range":[-1,1],"scenario":"Seize Ground","when":"nextScenarioTableRoll","who":"victor"},
+  {"key":"aFinalBlessing","kind":"magicalPower","text":"The Relic bearer gains the power.","ignoresWill":True,"power":"Fortify Spirit","scenario":"Hold the Line","when":"nextGame","who":"modelInPossessionOfRelic"}]
+w('aftermath_effects',d)
 print(sorted(os.listdir(out)))
 
 # ---- invalid catalogue (bind level) ----
@@ -273,7 +287,7 @@ wi('path_rows',doc(paths=[{"name":"Path of Test","dice":"2d6","rows":[{"roll":2,
                            {"name":"Path of Dice","dice":"d6","rows":[{"roll":"1-3","options":[{"stat":"fight"}]}]}]))
 d=doc(); d['campaign']['scenarioSelection']={"die":"d6","tables":[{"roll":[1,2],"scenarios":["Seize Ground"]},{"roll":[3,5],"scenarios":["Seize Ground","Rescue","Hold the Line","Chance Encounter","Rescue","Seize Ground"]},{"roll":[5,6],"scenarios":[]}]}; wi('scenario_tables',d)
 d=doc(); d['campaign']['progression']['hero']['choose']=3; d['campaign']['progression']['hero']['rollsPerProgression']=2; d['campaign']['company']['leaders']=3; d['campaign']['company']['sergeants']=6; d['campaign']['company']['maxModels']=5; wi('param_cross',d)
-d=doc(); d['campaign']['recruitment']['die']="2d6"; d['campaign']['aftermathEffects']=[{"key":"rendezvous"},{"key":"vantagePoint","range":[1,-1]}]; d['campaign']['progression']['warrior']['table'][0]['key']="noChang"; wi('param_dice',d)
+d=doc(); d['campaign']['recruitment']['die']="2d6"; d['campaign']['aftermathEffects']=[{"key":"rendezvous","kind":"reinforcementRollModifier"},{"key":"vantagePoint","kind":"scenarioTableModifier","range":[1,-1]}]; d['campaign']['progression']['warrior']['table'][0]['key']="noChang"; wi('param_dice',d)
 
 
 # ---- the injuries tables, typed ----
@@ -324,6 +338,16 @@ d=doc(); d["campaign"]["breakPoint"]["scenarioExceptions"]=[
   {"text":"x","scenario":"rescue","effect":"vanish","who":"everyone","colour":"red"}]
 d["campaign"]["breakPoint"]["whenBroken"]["courageTest"]["passIf"]="always"; d["campaign"]["breakPoint"]["default"]["of"]="allModels"
 wi('break_exceptions',d)
+
+
+d=doc(); d["campaign"]["aftermathEffects"]=[
+  {"key":"a"},{"key":"b","kind":"bonus"},{"key":"b","kind":"influence","amount":500},
+  {"key":"c","kind":"injuryRollReplacement"},{"key":"d","kind":"injuryRollReplacement","result":"fullRecovry"},
+  {"key":"e","kind":"experience","scenario":"Rescu","when":"later","to":"sergeant","colour":"red","activatedBy":{"carrier":"everyone","requires":["alive"]},"modifier":40,"clamp":[2]},
+  {"key":"f","kind":"freeEquipment","gains":{"win":1}}]
+d["campaign"]["progression"]["xp"]=1; d["campaign"]["progression"]["warrior"]["timing"]="x"
+d["campaign"]["scenarioSelection"]["text"]="x"; d["campaign"]["progression"]["warrior"]["table"][0]["extra"]=True
+wi('aftermath_effects',d)
 
 # ---- header and version ----
 d=doc(); d['schemaVersion']=1; wi('version',d)

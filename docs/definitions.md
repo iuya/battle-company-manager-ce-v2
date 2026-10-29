@@ -139,9 +139,11 @@ without its classes, names or ability) with the path of the key; `core.LeanInjur
 `campaign.againstTheOdds` is typed too (`lean.AgainstTheOdds`, `campaign_ato.go`): the bonuses (key, name, rating, `appliesIn`, `gains`, `count`, the structured `grants`, `kits` and `purchase`), the budget and the eligibility;
 bonus keys and kit names are unique. `core.LeanATO` and `core.LeanAftermath` read the typed values.
 `campaign.breakPoint` is typed (`scenarioExceptions[]` names a scenario of `scenarios[]`, spelled as the scenario is, or a scenario setting, and has a text or an effect and a who).
+`campaign.aftermathEffects[]` is typed (`lean.AftermathEffect`, `campaign_aftermath.go`): `kind` is a closed vocabulary, `key` is unique, a replacement names an injury result of the charts, a `scenario` names a scenario of `scenarios[]`.
+`campaign.progression`, `campaign.scenarioSelection` and the hero and warrior progressions list every key they accept: a key that is not in the reference is an error (there are no open `Rest` objects left in the campaign).
 `campaign.rating.hero` is typed (`perPoint` lists each characteristic once; the per-rule numbers are ranged and 0 when absent).
 
-**Tables still kept in the shipped shape.** `campaign.aftermathEffects`,
+**Tables still kept in the shipped shape.**
 `campaign.matchInput`, `campaign.options` and `campaign.characteristicLimits` are read by the engine in the shape of the shipped file (`Rest` maps and `Free` values in the Go model): a custom file changes their numbers and
 texts, copies their structure, and does not invent keys the engine does not know. `campaign.options[]` is the single list of switches (`key`, `scope` `rules` or `app`, `label`, `description`, `default`,
 `implemented`, `swaps`); a reader that does not know a key ignores it and logs a warning. Objects that record a house-rule decision carry `confirmedByUser` and `defaultNotConfirmed` lists.
