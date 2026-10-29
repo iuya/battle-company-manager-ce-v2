@@ -137,8 +137,6 @@ func conceptKind(category string) string {
 	return "term"
 }
 
-func phraseKey(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
-
 // buildConceptGraph makes the graph of a ruleset's glossary: mentions and see always from its text, plus the curated edges that still hold
 // (see keepCurated). A nil file means mentions and see only.
 func buildConceptGraph(rs *RuleSet, file *ConceptFile, log *slog.Logger) *conceptGraph {
@@ -155,7 +153,7 @@ func buildConceptGraph(rs *RuleSet, file *ConceptFile, log *slog.Logger) *concep
 		nodeOf[t.ID] = n.id
 		seen := map[string]bool{}
 		for _, p := range slices.Concat([]string{t.Name}, t.Aliases) {
-			if k := phraseKey(p); k != "" && !seen[k] {
+			if k := NameKey(p); k != "" && !seen[k] {
 				seen[k] = true
 				g.byPhrase[k] = append(g.byPhrase[k], n.id)
 			}
@@ -240,7 +238,7 @@ func (g *conceptGraph) termText(t GlossaryTerm, nodeOf map[string]string) []Conc
 	return out
 }
 
-func (g *conceptGraph) ambiguous(name string) bool { return len(g.byPhrase[phraseKey(name)]) > 1 }
+func (g *conceptGraph) ambiguous(name string) bool { return len(g.byPhrase[NameKey(name)]) > 1 }
 
 // keepCurated adds the curated edges that hold for this ruleset. With an exact builtFrom match the file is taken as it is (an edge to an
 // unknown node is still refused: the graph must stay consistent). Otherwise an edge is kept only when both endpoints still resolve (by id,
@@ -262,7 +260,7 @@ func (g *conceptGraph) keepCurated(h RulesetHashes, f *ConceptFile, add func(con
 			return "", false
 		}
 		for _, p := range slices.Concat([]string{fn.Name}, fn.Aliases) {
-			if ids := g.byPhrase[phraseKey(p)]; len(ids) == 1 && g.nodes[ids[0]].kind == fn.Kind {
+			if ids := g.byPhrase[NameKey(p)]; len(ids) == 1 && g.nodes[ids[0]].kind == fn.Kind {
 				return ids[0], true
 			}
 		}

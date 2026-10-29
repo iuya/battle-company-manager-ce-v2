@@ -1,7 +1,6 @@
 package core
 
 import (
-	"os"
 	"reflect"
 	"testing"
 )
@@ -10,23 +9,8 @@ import (
 // replaced by a later one, and players type some names themselves. Every lookup of the rule books that takes only strings, numbers
 // and booleans must answer "not found" for a name that does not exist, never panic.
 func TestRuleBookLookupsSurviveUnknownNames(t *testing.T) {
-	bcContent, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Skip("definitions not available: ", err)
-	}
-	vContent, err := os.ReadFile("../../definitions/vanilla/data2024.json")
-	if err != nil {
-		t.Skip("definitions not available: ", err)
-	}
-	b, err := ParseBattleCompanies(bcContent)
-	if err != nil {
-		t.Fatal(err)
-	}
-	v, err := ParseVanilla(vContent)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rs := &RuleSet{BC: b, Vanilla: v}
+	rs := shippedRules(t)
+	b, v := rs.BC, rs.Vanilla
 	args := [][]string{{"", "", ""}, {"No Such Name", "No Such Option", "No Such Item"}, {"\x00", "ß", "%s%d"}}
 	called := 0
 	for _, target := range []any{b, v, rs} {

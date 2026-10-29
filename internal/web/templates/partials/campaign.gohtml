@@ -1,6 +1,6 @@
 {{/* Header shared by every page of a campaign: name, status and the tabs (the current one comes from .Tab). */}}
 {{define "campaign_header"}}
-<p class="text-sm"><a href="/" class="inline-flex min-h-11 items-center">← Campaigns</a></p>
+<p class="text-sm"><a href="/campaigns" class="inline-flex min-h-11 items-center">← Campaigns</a></p>
 <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
   <h1>{{.Campaign.Name}}</h1>
   {{if eq .Campaign.Status "paused"}}<span class="badge badge-muted">Paused</span>{{else if eq .Campaign.Status "finished"}}<span class="badge badge-muted">Finished</span>{{else}}<span class="badge">Active</span>{{end}}
@@ -15,6 +15,22 @@
   <a href="{{$base}}/rankings" class="tab" {{if eq .Tab "rankings"}}aria-current="page"{{end}}>Rankings</a>
   <a href="{{$base}}/matches" class="tab" {{if eq .Tab "matches"}}aria-current="page"{{end}}>Matches</a>
   <a href="{{$base}}/glossary" class="tab" {{if eq .Tab "glossary"}}aria-current="page"{{end}}>Glossary</a>
+</nav>
+{{if and .Switcher (or (eq .Tab "my-company") (eq .Tab "armory"))}}{{template "company_switcher" .}}{{end}}
+{{end}}
+
+{{/* The company switcher, under the tab bar of My Company and the Armory, only when the viewer owns two or more companies of the campaign
+   (a player with one company sees no chip). One chip per company, the one on screen marked aria-current; a normal link, so the URL and the
+   back button follow. A final "New company" chip while the campaign allows another. Takes the page data (campaignBase). */}}
+{{define "company_switcher"}}
+<nav class="company-switcher mt-3 flex items-center gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible" aria-label="Your companies">
+  {{range .Campaign.Companies}}{{$here := and $.Current (eq $.Current.ID .ID)}}
+  <a href="{{$.SwitchPath .ID}}" hx-boost="false" class="chip shrink-0 {{if $here}}chip-on{{end}}" {{if $here}}aria-current="true"{{end}} title="{{.Name}} · {{.FactionName}}">
+    <span class="max-w-[11rem] truncate sm:max-w-[16rem]">{{.Name}}</span><span class="hidden pl-1 text-muted sm:inline">· {{.FactionName}}</span>
+  </a>
+  {{end}}
+  {{if .Campaign.CanCreateCompany}}<a href="/campaigns/{{.Campaign.ID}}/company/new" hx-boost="false" class="chip shrink-0"><span aria-hidden="true">+&nbsp;</span>New company</a>
+  {{else if ne .Campaign.Status "finished"}}<span class="shrink-0 whitespace-nowrap px-1 text-xs text-muted">All {{len .Campaign.Companies}} companies created</span>{{end}}
 </nav>
 {{end}}
 
@@ -34,6 +50,9 @@
 
 {{/* "Scenario: X" or "One-off: X" under the sides of a match; nothing when none is chosen. */}}
 {{define "match_scenario"}}{{with .Scenario}}<span class="block text-sm text-muted break-words">{{if eq .Kind "custom"}}One-off{{else}}Scenario{{end}}: {{.Name}}</span>{{end}}{{end}}
+
+{{/* The Practice badge: neutral tone, icon plus text, never a result colour. Used wherever a practice match appears (docs/frontend.md). */}}
+{{define "practice_badge"}}<span class="badge badge-muted gap-1" data-practice-badge title="No experience, influence, rewards or injuries"><svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>Practice</span>{{end}}
 
 {{define "match_result"}}
 {{if not .Ended}}<span class="badge badge-muted">Open</span>
@@ -122,7 +141,7 @@
         {{with .Text}}<p class="text-sm break-words">{{.}}</p>{{end}}
         {{with .WhenText}}<p class="text-sm text-muted">{{.}}</p>{{end}}
       </div>
-      {{if $.CanUse}}<form hx-post="/campaigns/{{$.CampaignID}}/my-company/perks/{{.ID}}/use" hx-target="#main" hx-swap="innerHTML show:window:top"><button class="btn btn-secondary !min-h-9">Mark used<span class="sr-only"> {{.Name}}</span></button></form>{{end}}
+      {{if $.CanUse}}<form hx-post="{{$.OwnPath}}/perks/{{.ID}}/use" hx-target="#main" hx-swap="innerHTML show:window:top"><button class="btn btn-secondary !min-h-9">Mark used<span class="sr-only"> {{.Name}}</span></button></form>{{end}}
     </li>
     {{end}}
   </ul>

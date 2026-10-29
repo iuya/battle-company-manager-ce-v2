@@ -2,7 +2,7 @@ package lean
 
 import "sort"
 
-// fakeLower is a small hand-written lower layer for the fixtures: the names the worked examples of the design use.
+// fakeLower is a small hand-written lower layer for the fixtures: the names the worked examples of the fixtures use.
 type fakeLower struct {
 	names   map[Kind][]string
 	options map[string][]string

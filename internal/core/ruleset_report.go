@@ -8,7 +8,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
-// RulesetIssue is one problem of an uploaded rules file, as plain data for the web layer (design section 7).
+// RulesetIssue is one problem of an uploaded rules file, as plain data for the web layer.
 type RulesetIssue struct {
 	File    string // one of the three uploaded files
 	Path    string // JSON path inside the file
@@ -85,7 +85,7 @@ func (r RulesetReport) Error() string {
 	}
 	var b strings.Builder
 	n := r.Errors()
-	fmt.Fprintf(&b, "the rules file has %d %s", n, pluralNoun(n, "problem"))
+	fmt.Fprintf(&b, "the rules file has %d %s", n, Plural(n, "problem", "problems"))
 	if r.truncated > 0 {
 		fmt.Fprintf(&b, " (and %d more not listed)", r.truncated)
 	}
@@ -107,13 +107,6 @@ func (r RulesetReport) Error() string {
 
 // Unwrap makes errors.Is(err, ErrInvalidRuleset) true.
 func (r RulesetReport) Unwrap() error { return ErrInvalidRuleset }
-
-func pluralNoun(n int, noun string) string {
-	if n == 1 {
-		return noun
-	}
-	return noun + "s"
-}
 
 // JoinRulesetReports merges the errors of several files into one report (the campaign form checks the three files together);
 // it returns nil when every error is nil, the plain join when one of them is not a report.

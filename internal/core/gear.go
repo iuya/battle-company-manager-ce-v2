@@ -4,7 +4,6 @@ import (
 	"math"
 	"slices"
 	"strconv"
-	"strings"
 )
 
 // GearAnnotation is what the Battle Companies file says about one piece of gear (data.gearAnnotations): what it is, what it
@@ -21,7 +20,6 @@ type GearAnnotation struct {
 	MountProfile   string            // for a mount: the name of its vanilla entry, which has its stat block
 	Base           string            // the generic item this one is a version of (Elven spear: Spear); the tooltip already explains the modifiers
 	GrantsSlots    SlotCounts        // equipment slots the item adds to its bearer (the Backpack: 3 small)
-	OnlyRace       string            // the race word the item is restricted to (Elven-made items: Elf); empty for none
 	Modifiers      []string          // keys of data.gearAnnotations.modifiers (elven, masterForged, poisoned)
 	PricedAs       string            // an Elven-made item sold at the price of its generic equivalent (derived from Base + the elven modifier)
 	Related        []string          // related but distinct items (Elf Bow and Longbow share a profile): never the same item
@@ -44,7 +42,7 @@ type ChosenWeaponRule struct {
 type StatChange struct {
 	Stat  string // the stat key (defence, strength...)
 	Delta int
-	// Condition is set when the change holds only under a condition (R8): it is then a note on the item and never added to the unit's
+	// Condition is set when the change holds only under a condition: it is then a note on the item and never added to the unit's
 	// characteristics, the player applies it. The conservative default: any change the data marks conditional.
 	Condition string
 }
@@ -89,7 +87,7 @@ func IsUnitUpgrade(a GearAnnotation, size string) bool {
 }
 
 // isSteedArmour says whether the item armours the mount, not the rider (barding).
-func isSteedArmour(name string) bool { return strings.EqualFold(name, "Barding") }
+func isSteedArmour(name string) bool { return sameName(name, "Barding") }
 
 // LimitRule is one of the company limits of the Battle Companies file (data limits): its id, share of the models and label.
 type LimitRule struct {
@@ -172,7 +170,7 @@ func computeLimits(rules []LimitRule, c BCCompany, units []CompanyUnit, stored .
 // exempts says whether the company's rules leave the item out of the limit's count.
 func (c BCCompany) exempts(item, limit string) bool {
 	return slices.ContainsFunc(c.LimitExemptions, func(x LimitExemption) bool {
-		return x.Item != "" && strings.EqualFold(x.Item, item) && x.covers(limit)
+		return x.Item != "" && sameName(x.Item, item) && x.covers(limit)
 	})
 }
 

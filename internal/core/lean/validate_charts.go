@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Chart coverage and parameter ranges (design 12.1, 12.7, 7): every table keyed by a roll covers Min..Max of its dice spec exactly
+// Chart coverage and parameter ranges: every table keyed by a roll covers Min..Max of its dice spec exactly
 // once, and the parameters that depend on each other agree.
 
 type rolled struct {
@@ -166,7 +166,7 @@ func rangesText(ns []int) string {
 	return strings.Join(parts, ", ")
 }
 
-// scenarioTables checks the first die's ranges partition 1..Sides and that each table lists Sides scenarios (design 12.2 F5).
+// scenarioTables checks the first die's ranges partition 1..Sides and that each table lists Sides scenarios.
 func (v *validator) scenarioTables(s *ScenarioSelection) {
 	if !s.Die.Valid() {
 		return
@@ -215,7 +215,7 @@ func (v *validator) scenarioTables(s *ScenarioSelection) {
 	}
 }
 
-// parameters checks the ranges that depend on other fields (design 12.2, 12.7).
+// parameters checks the ranges that depend on other fields.
 func (v *validator) parameters(c *Campaign) {
 	if d := c.Recruitment.Die; d.Valid() && d.Count != 1 {
 		v.rep.Add(Issue{Path: "campaign.recruitment.die", Message: fmt.Sprintf("%q has %d dice; a recruiting die is a single die", d.String(), d.Count), Hint: "write \"d6\""})

@@ -26,23 +26,19 @@ func v2Files(t *testing.T) (vanilla, bc, glossary []byte) {
 
 func TestLoadRuleSetDispatchesOnSchemaVersion(t *testing.T) {
 	vanilla, bc2, glossary := v2Files(t)
-	oldBC, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Run("old file: unchanged, no Doc", func(t *testing.T) {
-		rs, err := LoadRuleSet(vanilla, oldBC, glossary, nil)
-		if err != nil || rs.Doc != nil || rs.BC == nil || rs.Vanilla == nil {
+	t.Run("the shipped file: a rule set that carries its document", func(t *testing.T) {
+		rs, err := LoadRuleSet(vanilla, readDef(t, "battle_companies/battle_companies.json"), glossary, nil)
+		if err != nil || rs.Doc == nil || rs.BC == nil || rs.Vanilla == nil {
 			t.Fatalf("rs %v err %v", rs, err)
 		}
 	})
-	t.Run("valid v2 file: not playable yet", func(t *testing.T) {
-		rs, err := LoadRuleSet(vanilla, bc2, glossary, nil)
-		if rs != nil || !errors.Is(err, ErrRulesetNotPlayable) || !errors.Is(err, ErrInvalidRuleset) {
-			t.Fatalf("rs %v err %v", rs, err)
-		}
-		if !strings.Contains(err.Error(), "cannot be played by this build yet") {
-			t.Errorf("message: %v", err)
+	t.Run("a file of the old format is refused with one clear issue", func(t *testing.T) {
+		for _, old := range []string{`{"name":"x","version":"1","extends":"y","data":{}}`, `{"schemaVersion":1,"name":"x"}`} {
+			rs, err := LoadRuleSet(vanilla, []byte(old), glossary, nil)
+			var rep *RulesetReport
+			if rs != nil || !errors.As(err, &rep) || !errors.Is(err, ErrInvalidRuleset) || len(rep.Issues()) != 1 || !strings.Contains(rep.Issues()[0].Message, "schemaVersion 1 is not supported") {
+				t.Fatalf("%s: rs %v err %v", old, rs, err)
+			}
 		}
 	})
 	t.Run("invalid v2 file: the whole report", func(t *testing.T) {
@@ -68,14 +64,11 @@ func TestLoadRuleSetDispatchesOnSchemaVersion(t *testing.T) {
 			t.Fatalf("err %v", err)
 		}
 	})
-	t.Run("not an object keeps the old error", func(t *testing.T) {
+	t.Run("not an object is a one-issue report", func(t *testing.T) {
 		_, err := LoadRuleSet(vanilla, []byte(`[1]`), glossary, nil)
-		if err == nil {
-			t.Fatal("expected an error")
-		}
 		var rep *RulesetReport
-		if errors.As(err, &rep) {
-			t.Errorf("a non-object goes through the old path, got a report: %v", err)
+		if !errors.As(err, &rep) || len(rep.Issues()) != 1 {
+			t.Fatalf("err %v", err)
 		}
 	})
 }
@@ -89,9 +82,9 @@ func TestRulesBuildDispatchesOnSchemaVersion(t *testing.T) {
 		"g": {RulesetInfo: RulesetInfo{Kind: KindGlossary, Hash: "g"}, Content: glossary},
 	}
 	rules := NewRules(fileRepo{files: files}, nil)
-	_, err := rules.For(context.Background(), RulesetHashes{Vanilla: "v", BattleCompanies: "b", Glossary: "g"})
-	if !errors.Is(err, ErrRulesetNotPlayable) {
-		t.Fatalf("err %v", err)
+	set, err := rules.For(context.Background(), RulesetHashes{Vanilla: "v", BattleCompanies: "b", Glossary: "g"})
+	if err != nil || set.Doc == nil || set.Hashes.BattleCompanies != "b" {
+		t.Fatalf("set %v err %v", set, err)
 	}
 	files["b"] = StoredRuleset{RulesetInfo: files["b"].RulesetInfo, Content: []byte(`{"schemaVersion":2}`)}
 	_, err = NewRules(fileRepo{files: files}, nil).For(context.Background(), RulesetHashes{Vanilla: "v", BattleCompanies: "b", Glossary: "g"})

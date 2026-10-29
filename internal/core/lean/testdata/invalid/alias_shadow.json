@@ -213,7 +213,17 @@
     {
       "name": "Mordor Hound",
       "profile": {
-        "move": 9
+        "movement": 9,
+        "fight": 3,
+        "shoot": "-",
+        "strength": 3,
+        "defence": 4,
+        "attack": 1,
+        "wounds": 1,
+        "courage": 5,
+        "intelligence": 3,
+        "race": ["Orc"],
+        "unitType": ["Warrior", "Infantry"]
       },
       "points": 20
     },

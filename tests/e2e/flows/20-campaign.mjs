@@ -53,7 +53,7 @@ export default async function (h, { only, shared }) {
   };
   await h.step('company: take command of a company (confirmation dialog, then My company)', async () => {
     await takeCommand(frodo, 'The Shire', 'Frodo and friends');
-    assert.match(new URL(frodo.page.url()).pathname, /my-company$/);
+    assert.match(new URL(frodo.page.url()).pathname, /my-company\/\d+$/);
     await frodo.waitText('Frodo and friends');
     await frodo.waitText('Your company');
     await takeCommand(you, 'Rohan', 'Riders of E2E');

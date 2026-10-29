@@ -141,11 +141,11 @@ const unitsJSON = `(SELECT COALESCE(jsonb_agg(jsonb_build_object('id', x.id, 'ba
 // aftermaths, open match, unused perks, units with their equipment, and cemetery. Same content and order as load.
 const readQuery = `
 	SELECT c.id, c.name, c.faction, c.owner_id, u.display_name, c.influence, c.gold, c.rerolls, c.pack, c.unit_order, c.grave_order, c.pending,
-	       (SELECT COALESCE(jsonb_agg(jsonb_build_array(m.id, m.number, COALESCE(a.status, 'pending')) ORDER BY m.number), '[]')
+	       (SELECT COALESCE(jsonb_agg(jsonb_build_array(m.id, m.number, CASE WHEN m.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END) ORDER BY m.number), '[]')
 	          FROM match_side_companies sc
 	          JOIN matches m ON m.id = sc.match_id AND m.ended
 	          LEFT JOIN match_aftermaths a ON a.match_id = sc.match_id AND a.company_id = sc.company_id
-	         WHERE sc.company_id = c.id AND COALESCE(a.status, 'pending') NOT IN ('done', 'waived')),
+	         WHERE sc.company_id = c.id AND (CASE WHEN m.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END) NOT IN ('done', 'waived')),
 	       (SELECT jsonb_build_array(m.id, m.number) FROM match_side_companies sc JOIN matches m ON m.id = sc.match_id AND NOT m.ended
 	         WHERE sc.company_id = c.id ORDER BY m.number LIMIT 1),
 	       (SELECT COALESCE(jsonb_agg(jsonb_build_array(p.id, COALESCE(p.match_id, 0), COALESCE(p.unit_id, 0), p.effect, p.name, p.text, p.applies)
@@ -545,7 +545,8 @@ func (cs companyStore) saveUnit(ctx context.Context, q querier, companyID int64,
 	return nil
 }
 
-// Create stores the company and its units for the owner, who must be a member of the campaign.
+// Create stores the company and its units for the owner, who must be a member of the campaign, if the owner is below c.Cap companies
+// there (core.ErrCompanyLimit) and no other company of theirs there has the name (core.ErrCompanyNameTaken).
 func (cs companyStore) Create(ctx context.Context, campaignID int64, owner core.User, c core.NewCompany) (core.CampaignCompany, error) {
 	for _, u := range c.Units {
 		if u.ID != 0 {
@@ -557,15 +558,34 @@ func (cs companyStore) Create(ctx context.Context, campaignID int64, owner core.
 		return core.CampaignCompany{}, err
 	}
 	defer tx.Rollback(ctx)
+	// The member row lock serialises the creates of one player: two simultaneous ones never both pass the count.
+	var locked int64
+	err = tx.QueryRow(ctx, `SELECT user_id FROM campaign_members WHERE campaign_id = $1 AND user_id = $2 FOR UPDATE`, campaignID, owner.ID).Scan(&locked)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return core.CampaignCompany{}, core.ErrNotFound // not a member of that campaign
+	}
+	if err != nil {
+		return core.CampaignCompany{}, err
+	}
+	var owned int
+	var nameTaken bool
+	if err := tx.QueryRow(ctx, `SELECT count(*)::int, COALESCE(bool_or(lower(name) = lower($3)), false) FROM companies WHERE campaign_id = $1 AND owner_id = $2`,
+		campaignID, owner.ID, c.Name).Scan(&owned, &nameTaken); err != nil {
+		return core.CampaignCompany{}, err
+	}
+	switch {
+	case owned >= max(c.Cap, 1):
+		return core.CampaignCompany{}, core.ErrCompanyLimit
+	case nameTaken:
+		return core.CampaignCompany{}, core.ErrCompanyNameTaken
+	}
 	var id int64
 	err = tx.QueryRow(ctx, `INSERT INTO companies (campaign_id, owner_id, name, faction, influence, gold) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
 		campaignID, owner.ID, c.Name, c.Faction, c.Influence, c.Gold).Scan(&id)
 	var pgErr *pgconn.PgError
 	switch {
-	case errors.As(err, &pgErr) && pgErr.Code == uniqueViolation && pgErr.ConstraintName == "companies_campaign_owner_key":
-		return core.CampaignCompany{}, core.ErrHasCompany
 	case errors.As(err, &pgErr) && pgErr.Code == foreignKeyViolation:
-		return core.CampaignCompany{}, core.ErrNotFound // not a member of that campaign
+		return core.CampaignCompany{}, core.ErrNotFound
 	case err != nil:
 		return core.CampaignCompany{}, err
 	}

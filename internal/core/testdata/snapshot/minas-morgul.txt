@@ -445,7 +445,7 @@ gear "Orc Bow" -> key "orcbow" | offer "Orc Bow" size "" also [] | annotation "O
 gear "Orc bow" -> key "orcbow" | offer "Orc Bow" size "" also [] | annotation "Orc Bow" | vanilla gear "Orc Bow"
 gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
 gear "Spear" -> key "spear" | offer "Spear" size "" also [] | annotation "Spear"
-gear "Two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe Two-handed axe] | annotation "Two-handed weapon"
+gear "Two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe] | annotation "Two-handed weapon"
 gear "banner" -> key "banner" | annotation "Banner" | vanilla gear "Banner"
 gear "lance" -> key "lance" | offer "Lance" size "" also [] | annotation "Lance" | vanilla gear "Lance"
 gear "war horn" -> key "warhorn" | annotation "War Horn" | vanilla gear "War Horn"

@@ -1,0 +1,454 @@
+{
+  "schemaVersion": 2,
+  "name": "Fixture",
+  "version": "1.0",
+  "extends": "Middle-Earth Strategy Battle Game - 2024",
+  "campaign": {
+    "company": {
+      "maxModels": 15,
+      "leaders": 1,
+      "sergeants": 2,
+      "heroStart": {
+        "might": 1,
+        "will": 1,
+        "fate": 1
+      },
+      "startingInfluence": 0,
+      "equipmentSlots": {
+        "small": 1,
+        "large": 1
+      }
+    },
+    "recruitment": {
+      "die": "d6",
+      "adjust": {
+        "maxPerAttempt": 3,
+        "direction": "up",
+        "costPerPoint": 1
+      },
+      "rare": {
+        "injuredCount": true,
+        "deadCount": false,
+        "promotedCount": false
+      }
+    },
+    "influence": {
+      "gains": {
+        "participating": 2,
+        "draw": 1,
+        "win": 2
+      }
+    },
+    "progression": {
+      "threshold": 5,
+      "warrior": {
+        "roll": "d6",
+        "table": [
+          {
+            "roll": "1-2",
+            "key": "noChange",
+            "name": "No Change"
+          },
+          {
+            "roll": "3-5",
+            "key": "promoted",
+            "name": "Promoted"
+          },
+          {
+            "roll": 6,
+            "key": "heroInTheMaking",
+            "name": "A Hero in the Making"
+          }
+        ],
+        "noPromotion": {
+          "courage": 1,
+          "intelligence": 1,
+          "maximum": 3
+        }
+      },
+      "hero": {
+        "roll": "2d6",
+        "rollsPerProgression": 2,
+        "choose": 1
+      }
+    },
+    "injuries": {
+      "roll": "2d6",
+      "warrior": [
+        {
+          "roll": "2-3",
+          "key": "dead",
+          "name": "Dead"
+        },
+        {
+          "roll": "4-5",
+          "key": "injured",
+          "name": "Injured"
+        },
+        {
+          "roll": "6-11",
+          "key": "fullRecovery",
+          "name": "Full Recovery"
+        },
+        {
+          "roll": 12,
+          "key": "lessonLearned",
+          "name": "Lesson Learned",
+          "grantsExperience": {
+            "dice": "d3"
+          }
+        }
+      ],
+      "hero": [
+        {
+          "roll": 2,
+          "key": "dead",
+          "name": "Dead"
+        },
+        {
+          "roll": "3-11",
+          "key": "fullRecovery",
+          "name": "Full Recovery"
+        },
+        {
+          "roll": 12,
+          "key": "heroic",
+          "name": "Heroic Recovery",
+          "statChanges": [
+            {
+              "stat": "fate",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    "experience": {
+      "gains": [
+        {
+          "key": "participated",
+          "label": "Participating in the scenario",
+          "amount": 1
+        },
+        {
+          "key": "mvp",
+          "label": "MVP",
+          "amount": 1,
+          "dice": "d3"
+        }
+      ]
+    },
+    "breakPoint": {
+      "default": {
+        "percent": 50,
+        "of": "startingModels"
+      },
+      "threshold": {
+        "comparison": "gt"
+      },
+      "whenBroken": {
+        "courageTest": {
+          "dice": "2d6"
+        }
+      }
+    },
+    "rating": {
+      "hero": {
+        "wargear": {
+          "threshold": {
+            "stats": [
+              "attack",
+              "wounds"
+            ],
+            "sumAtLeast": 3
+          }
+        }
+      }
+    },
+    "scenarioSelection": {
+      "die": "d2",
+      "tables": [
+        {
+          "roll": [
+            1,
+            1
+          ],
+          "scenarios": [
+            "Seize Ground",
+            "Chance Encounter"
+          ]
+        },
+        {
+          "roll": [
+            2,
+            2
+          ],
+          "scenarios": [
+            "Hold the Line",
+            "Rescue"
+          ]
+        }
+      ]
+    }
+  },
+  "scenarios": [
+    {
+      "name": "Seize Ground",
+      "description": "..."
+    },
+    {
+      "name": "Chance Encounter",
+      "description": "..."
+    },
+    {
+      "name": "Hold the Line",
+      "description": "..."
+    },
+    {
+      "name": "Rescue",
+      "description": "..."
+    }
+  ],
+  "rules": [
+    {
+      "name": "Stand Fast",
+      "auras": [
+        {
+          "mergeLabels": [
+            "With Me!",
+            "Loose"
+          ],
+          "from": "hero",
+          "radius": 6,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "always",
+          "los": true,
+          "keywords": [
+            "Orc"
+          ],
+          "tip": "Friendly models within 6\" ..."
+        }
+      ]
+    },
+    {
+      "name": "Heroic Parade",
+      "definition": "The hero declares ...",
+      "auras": [
+        {
+          "label": "At the Double",
+          "from": "heroicAction",
+          "radius": 6,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false
+        }
+      ]
+    },
+    {
+      "name": "Voice of Doom",
+      "definition": "Friendly models within 12\" ...",
+      "auras": [
+        {
+          "radius": 12,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "always",
+          "los": true,
+          "replaces": [
+            "Stand Fast",
+            "At the Double"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Lay of the Wood",
+      "definition": "An Elf may sing ...",
+      "auras": [
+        {
+          "label": "Lay of the Wood: Hymn of Elbereth",
+          "radius": 12,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "target",
+          "los": false
+        },
+        {
+          "label": "Lay of the Wood: Lay of Gondolin",
+          "radius": 3,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "declared",
+          "los": false
+        }
+      ]
+    },
+    {
+      "name": "Keen Sight (Falcon)",
+      "label": "Keen Sight",
+      "definition": "Enemy models within 12\" of a Falcon ...",
+      "auras": [
+        {
+          "radius": 12,
+          "kind": "enemy",
+          "affects": "enemy",
+          "when": "always",
+          "los": false
+        }
+      ]
+    },
+    {
+      "name": "Fury",
+      "definition": "Fury (X) ...",
+      "parameter": {
+        "kind": "keyword"
+      },
+      "auras": [
+        {
+          "from": "power",
+          "radius": 6,
+          "kind": "support",
+          "affects": "friendly",
+          "when": "cast",
+          "los": false,
+          "keywords": [
+            "Orc"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Fright",
+      "definition": "Fright (X) ...",
+      "parameter": {
+        "kind": "keyword"
+      },
+      "target": {
+        "appliesTo": "enemy-keyword",
+        "text": "enemy models with the {X} keyword"
+      },
+      "bareTarget": {
+        "appliesTo": "enemy-any",
+        "text": "enemy models in general"
+      }
+    },
+    {
+      "name": "Lordly Quality",
+      "definition": "Friendly models ...",
+      "target": {
+        "appliesTo": "friendly-keyword",
+        "text": "friendly models that share the bearer's faction keyword"
+      }
+    }
+  ],
+  "gear": [
+    {
+      "name": "Banner",
+      "auras": [
+        {
+          "radius": 3,
+          "kind": "banner",
+          "affects": "friendly",
+          "when": "always",
+          "los": true
+        }
+      ]
+    },
+    {
+      "name": "Signal Horn",
+      "aka": [
+        "Company Signal"
+      ],
+      "kind": "equipment",
+      "size": "small",
+      "influence": 2,
+      "rating": 5,
+      "definition": "A horn ...",
+      "auras": [
+        {
+          "radius": 24,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "always",
+          "group": "large",
+          "los": false
+        },
+        {
+          "label": "Signal Horn: Stand Fast +3\"",
+          "radius": 9,
+          "kind": "command",
+          "affects": "friendly",
+          "when": "declared",
+          "bearer": "Hero",
+          "los": false
+        }
+      ]
+    }
+  ],
+  "auras": {
+    "kinds": [
+      {
+        "id": "banner",
+        "label": "Banner",
+        "colour": "yellow",
+        "rgb": "F0E442",
+        "default": true
+      },
+      {
+        "id": "command",
+        "label": "Command",
+        "colour": "red",
+        "rgb": "CC3311"
+      }
+    ],
+    "groups": [
+      {
+        "id": "always",
+        "label": "Rules always in force",
+        "default": true
+      },
+      {
+        "id": "large",
+        "label": "Large rings"
+      },
+      {
+        "id": "declared",
+        "label": "Declared"
+      },
+      {
+        "id": "cast",
+        "label": "Cast"
+      },
+      {
+        "id": "target",
+        "label": "Target"
+      }
+    ]
+  },
+  "magic": {
+    "powers": {
+      "Fortify Spirit": {
+        "range": "12\"",
+        "casting": "3+",
+        "auras": [
+          {
+            "radius": 6,
+            "kind": "support",
+            "affects": "friendly",
+            "when": "cast",
+            "los": false
+          }
+        ]
+      },
+      "Wrath of Bruinen": {
+        "range": "self",
+        "casting": "2+"
+      }
+    },
+    "castingRule": "...",
+    "floor": 2,
+    "maxPerPower": 2
+  }
+}

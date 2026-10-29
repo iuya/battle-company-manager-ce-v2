@@ -1,9 +1,9 @@
 battle_companies.json: campaign.recruitment.adjust.maxPerAttempt: 40 is out of range 0..20
 battle_companies.json: campaign.injuries.roll: "2d6x" is not a dice spec; expected [N]dM, N 1..10, M 2..100
-battle_companies.json: rules[2].aura.kind: "banners" is not a valid kind; known: banner, command, support, enemy, utility; closest: "banner"
+battle_companies.json: rules[2].auras[0].kind: "banners" is not a valid kind; known: banner, command, support, enemy, utility; closest: "banner"
 battle_companies.json: companies[0].alignment: "nuetral" is not a valid alignment; known: good, evil
 battle_companies.json: companies[0].colour: unknown field
-  hint: known fields: advancements, aka, alignment, breakPoint, description, epigraph, exchanges, extends, faction, gear, granted, heroUpgrades, heroes, id, limits, maxModels, name, notes, oath, ownPath, promotions, recruit, reinforcements, rules, special, specialRules, start, substitutions, units
+  hint: known fields: advancements, aka, alignment, breakPoint, description, elvenWeaponry, epigraph, exchanges, extends, faction, gear, granted, heroUpgrades, heroes, id, label, limits, maxModels, name, notes, oath, ownPath, promotions, recruit, reinforcements, rules, special, specialRules, start, substitutions, units
 battle_companies.json: gear[1].name: "Bow" is already defined at gear[0]; names are unique
   hint: use another name or put the old spelling in aka
 battle_companies.json: rules[0]: "Fearless" exists in vanilla or the glossary; add "overrides": true or drop the definition to annotate it

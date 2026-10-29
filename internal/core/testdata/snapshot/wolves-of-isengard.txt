@@ -318,10 +318,10 @@ gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shi
 gear "Shield & throwing spears" -> key "shieldandthrowingspear" | vanilla gear "Shield & throwing spears"
 gear "Teeth" -> key "teeth" | unknown
 gear "Teeth and claws (hand weapon)" -> key "teethandclawhandweapon" | annotation "Teeth and claws (hand weapon)"
-gear "Throwing spears" -> key "throwingspear" | offer "Throwing Spears" size "" also [Throwing Spear Throwing spear] | annotation "Throwing Spears" | vanilla gear "Throwing Spears"
+gear "Throwing spears" -> key "throwingspear" | offer "Throwing Spears" size "" also [] | annotation "Throwing Spears" | vanilla gear "Throwing Spears"
 gear "Warg" -> key "warg" | offer "Warg" size "" also [] | annotation "Warg" | vanilla gear "Warg"
 gear "claws" -> key "claw" | unknown
-gear "throwing spears" -> key "throwingspear" | offer "Throwing Spears" size "" also [Throwing Spear Throwing spear] | annotation "Throwing Spears" | vanilla gear "Throwing Spears"
+gear "throwing spears" -> key "throwingspear" | offer "Throwing Spears" size "" also [] | annotation "Throwing Spears" | vanilla gear "Throwing Spears"
 rule "\"Hold positions, loose the arrows!\"" -> label "\"Hold positions, loose the arrows!\"" | text from bc rule | glossary "\"Hold positions, loose the arrows!\""
 rule "A Good Sort" -> label "A Good Sort" | text from bc rule | glossary "A Good Sort"
 rule "Big Game Hunter" -> label "Big Game Hunter" | text from bc rule | glossary "Big Game Hunter"

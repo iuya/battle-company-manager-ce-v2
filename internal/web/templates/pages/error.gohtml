@@ -5,7 +5,7 @@
     <p class="text-sm text-muted">Error {{.Status}}</p>
     <h1 class="!text-3xl">{{.Heading}}</h1>
     <p role="alert">{{.Message}}</p>
-    <p>{{if .User}}<a class="btn btn-primary" href="/">Back to your campaigns</a>{{else}}<a class="btn btn-primary" href="/login">Sign in</a>{{end}}</p>
+    <p>{{if .User}}<a class="btn btn-primary" href="/campaigns">Back to your campaigns</a>{{else}}<a class="btn btn-primary" href="/login">Sign in</a>{{end}}</p>
   </div>
 </div>
 {{end}}

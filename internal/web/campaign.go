@@ -3,7 +3,9 @@ package web
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -15,6 +17,8 @@ type campaignBase struct {
 	pageBase
 	Campaign core.CampaignDetail
 	Tab      string // overview, companies, rankings or matches; empty for pages below a tab
+	// Current is the viewer's company an owner page acts on (see loadOwn); nil on the other pages.
+	Current *core.CampaignCompany
 }
 
 // idParam reads a numeric path value; ok is false (and a 404 sent) when it is not a number.
@@ -37,6 +41,7 @@ func (s *Server) loadCampaign(w http.ResponseWriter, r *http.Request, tab string
 	if s.fail(w, r, err) {
 		return campaignBase{}, false
 	}
+	s.rememberVisit(w, r, c, 0)
 	return campaignBase{pageBase: s.base(r), Campaign: c, Tab: tab}, true
 }
 
@@ -79,8 +84,11 @@ type rankingsView struct {
 
 type matchesView struct {
 	campaignBase
-	Matches   []core.Match
-	Companies int // how many companies the campaign has: a match needs at least two
+	Matches   []core.Match // what the list shows: every match, or only the practice ones with the Practice filter
+	Companies int          // how many companies the campaign has: a match needs at least two
+	// PracticeOnly is the Practice filter (?practice=1); Practice counts the campaign's practice matches for the chip.
+	PracticeOnly bool
+	Practice     int
 }
 
 // minMatchCompanies is how many companies a campaign needs before a match can be opened.
@@ -99,7 +107,7 @@ func (s *Server) handleCampaign(page, tab string) http.HandlerFunc {
 			return
 		}
 		ctx, id := r.Context(), base.Campaign.ID
-		var view any = base // tabs with nothing of their own to load (the armory for now)
+		var view any = base // tabs with nothing of their own to load (the armory)
 		switch tab {
 		case "overview":
 			matches, err := s.campaigns.Matches(ctx, id)
@@ -132,7 +140,16 @@ func (s *Server) handleCampaign(page, tab string) http.HandlerFunc {
 			if s.fail(w, r, err) {
 				return
 			}
-			view = matchesView{base, matches, len(list)}
+			mv := matchesView{campaignBase: base, Matches: matches, Companies: len(list), PracticeOnly: r.URL.Query().Get("practice") == "1"}
+			for _, m := range matches {
+				if m.Practice {
+					mv.Practice++
+				}
+			}
+			if mv.PracticeOnly {
+				mv.Matches = slices.DeleteFunc(slices.Clone(matches), func(m core.Match) bool { return !m.Practice })
+			}
+			view = mv
 		}
 		s.render.page(w, r, http.StatusOK, page, view)
 	}
@@ -151,7 +168,7 @@ func (s *Server) handleNewCompanyPage(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if base.Campaign.Company != nil { // one company per player: go and manage it
+	if !base.Campaign.CanCreateCompany() { // at the cap (one company per player by default): go and manage it
 		redirect(w, r, "/campaigns/"+itoa(int(base.Campaign.ID))+"/my-company")
 		return
 	}
@@ -168,17 +185,24 @@ func (s *Server) handleCreateCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	in := core.CompanyInput{Name: r.PostFormValue("name"), Faction: r.PostFormValue("faction"), Heroes: startHeroes(r)}
-	_, err := s.campaigns.CreateCompany(r.Context(), *userFrom(r.Context()), base.Campaign.ID, in)
+	created, err := s.campaigns.CreateCompany(r.Context(), *userFrom(r.Context()), base.Campaign.ID, in)
 	switch {
-	case errors.Is(err, core.ErrInvalidCompany) || errors.Is(err, core.ErrHasCompany):
-		view, ok := s.newCompanyPage(w, r, base, in, reason(err))
+	case errors.Is(err, core.ErrInvalidCompany) || errors.Is(err, core.ErrCompanyLimit):
+		msg := reason(err)
+		if errors.Is(err, core.ErrCompanyLimit) {
+			msg = "You already have a company in this campaign."
+			if n := base.Campaign.Settings.CompanyCap(); n > 1 {
+				msg = fmt.Sprintf("You already have the %d companies this campaign allows.", n)
+			}
+		}
+		view, ok := s.newCompanyPage(w, r, base, in, msg)
 		if !ok {
 			return
 		}
 		s.render.page(w, r, http.StatusUnprocessableEntity, "company_new", view)
 	case s.fail(w, r, err):
 	default:
-		redirect(w, r, "/campaigns/"+itoa(int(base.Campaign.ID))+"/my-company")
+		redirect(w, r, ownPath(base.Campaign.ID, created.ID))
 	}
 }
 
@@ -215,8 +239,8 @@ func (s *Server) handleCompany(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, r, err) {
 		return
 	}
-	if base.Campaign.Company != nil && base.Campaign.Company.ID == co.ID {
-		http.Redirect(w, r, "/campaigns/"+itoa(int(base.Campaign.ID))+"/my-company", http.StatusSeeOther)
+	if base.Campaign.Owns(co.ID) {
+		http.Redirect(w, r, ownPath(base.Campaign.ID, co.ID), http.StatusSeeOther)
 		return
 	}
 	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, co.ID)
@@ -354,53 +378,67 @@ type myCompanyView struct {
 	Live        *liveView  // the company is in an open match: its live state, zones and banner (nil otherwise)
 }
 
-// myCompanyPage renders the My Company tab, optionally with a notice about what was just done.
+// myCompanyPage renders the My Company tab for the company of the URL, optionally with a notice about what was just done.
 func (s *Server) myCompanyPage(w http.ResponseWriter, r *http.Request, status int, notice string, noticeErr bool) {
-	base, ok := s.loadCampaign(w, r, "my-company")
+	base, ok := s.loadOwn(w, r, "my-company")
 	if !ok {
 		return
 	}
-	view := myCompanyView{campaignBase: base, Notice: notice, NoticeError: noticeErr}
-	if mine := base.Campaign.Company; mine != nil {
-		detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, mine.ID)
+	mine, user := *base.Current, *userFrom(r.Context())
+	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, mine.ID)
+	if s.fail(w, r, err) {
+		return
+	}
+	g, err := s.glossary.ForCampaign(r.Context(), base.Campaign.ID) // descriptions link to the campaign's glossary
+	if s.fail(w, r, err) {
+		return
+	}
+	view := myCompanyView{campaignBase: base, Notice: notice, NoticeError: noticeErr, Company: detail, HasCompany: true, Units: unitViews(g, detail.Roster)}
+	view.Frozen = base.Campaign.Status == core.CampaignFinished
+	view.ReadOnly = view.Frozen // an ended campaign is frozen: the page shows everything and offers nothing
+	if view.Live, err = s.liveFor(r, base, detail, view.Units); s.fail(w, r, err) {
+		return
+	}
+	view.PerksUnused, view.PerksUsed = splitPerks(perkViews(detail.Perks, detail.Roster))
+	if view.Grants, err = s.grantsCard(r, base, mine.ID, false); s.fail(w, r, err) { // the form is on the page of the other companies; one does not award one's own
+		return
+	}
+	if view.Pending, err = s.campaigns.PendingChoice(r.Context(), user, base.Campaign.ID, mine.ID); s.fail(w, r, err) {
+		return
+	}
+	if view.Officers, err = s.campaigns.PendingOfficers(r.Context(), user, base.Campaign.ID, mine.ID); s.fail(w, r, err) {
+		return
+	}
+	if roll, err := s.campaigns.RecruitState(r.Context(), user, base.Campaign.ID, mine.ID); s.fail(w, r, err) {
+		return
+	} else if roll != nil && !view.Frozen {
+		panel, err := s.recruitPanelFor(r, base.Campaign, mine.ID, "", false)
 		if s.fail(w, r, err) {
 			return
 		}
-		g, err := s.glossary.ForCampaign(r.Context(), base.Campaign.ID) // descriptions link to the campaign's glossary
-		if s.fail(w, r, err) {
-			return
-		}
-		view.Company, view.HasCompany, view.Units = detail, true, unitViews(g, detail.Roster)
-		view.Frozen = base.Campaign.Status == core.CampaignFinished
-		view.ReadOnly = view.Frozen // an ended campaign is frozen: the page shows everything and offers nothing
-		if view.Live, err = s.liveFor(r, base, detail, view.Units); s.fail(w, r, err) {
-			return
-		}
-		view.PerksUnused, view.PerksUsed = splitPerks(perkViews(detail.Perks, detail.Roster))
-		if view.Grants, err = s.grantsCard(r, base, mine.ID, false); s.fail(w, r, err) { // the form is on the page of the other companies; one does not award one's own
-			return
-		}
-		if view.Pending, err = s.campaigns.PendingChoice(r.Context(), *userFrom(r.Context()), base.Campaign.ID); s.fail(w, r, err) {
-			return
-		}
-		if view.Officers, err = s.campaigns.PendingOfficers(r.Context(), *userFrom(r.Context()), base.Campaign.ID); s.fail(w, r, err) {
-			return
-		}
-		if roll, err := s.campaigns.RecruitState(r.Context(), *userFrom(r.Context()), base.Campaign.ID); s.fail(w, r, err) {
-			return
-		} else if roll != nil && !view.Frozen {
-			panel, err := s.recruitPanelFor(r, base.Campaign, "", false)
-			if s.fail(w, r, err) {
-				return
-			}
-			view.Recruiting = &panel
-		}
+		view.Recruiting = &panel
 	}
 	s.render.page(w, r, status, "campaign_my_company", view)
 }
 
+// handleMyCompany is the My Company tab of the company in the URL.
 func (s *Server) handleMyCompany(w http.ResponseWriter, r *http.Request) {
 	s.myCompanyPage(w, r, http.StatusOK, "", false)
+}
+
+// handleMyCompanyAlias is /campaigns/{id}/my-company without a company, the URL of bookmarks, the sidebar and the tab: it sends the
+// viewer to the company they opened last (the bcm-last cookie), else their first, oldest company, and renders the page
+// that offers to create one when they have none.
+func (s *Server) handleMyCompanyAlias(w http.ResponseWriter, r *http.Request) {
+	base, ok := s.loadCampaign(w, r, "my-company")
+	if !ok {
+		return
+	}
+	if id, ok := lastCompany(r, base.Campaign); ok { // the one opened last, else the oldest
+		http.Redirect(w, r, ownPath(base.Campaign.ID, id), http.StatusSeeOther)
+		return
+	}
+	s.render.page(w, r, http.StatusOK, "campaign_my_company", myCompanyView{campaignBase: base})
 }
 
 // newMatchView feeds the new-match form (static/js/match_form.js): the campaign's companies to search in and the
@@ -413,6 +451,7 @@ type newMatchView struct {
 	Error         string
 	Busy          *core.OpenMatchRef // the open match a refused company is in, to link to
 	Companies     int                // how many companies the campaign has; under two there is nobody to match
+	Practice      bool               // the "Practice match" box is ticked (set on the form only; nothing can change it afterwards)
 }
 
 // TooFew is whether the campaign has too few companies for a match.
@@ -421,7 +460,7 @@ func (v newMatchView) TooFew() bool { return v.Companies < minMatchCompanies }
 func newMatchForm(base campaignBase, companies []core.CampaignCompany, sides []core.NewSide, ffa bool, errMsg string) (newMatchView, error) {
 	list := make([]map[string]any, len(companies))
 	for i, c := range companies {
-		list[i] = map[string]any{"id": c.ID, "name": c.Name, "owner": c.Owner, "faction": c.Faction}
+		list[i] = map[string]any{"id": c.ID, "name": c.Name, "owner": c.Owner, "ownerId": c.OwnerID, "faction": c.FactionName(), "mine": base.Campaign.Owns(c.ID)}
 	}
 	state := make([]map[string]any, len(sides))
 	for i, sd := range sides {
@@ -456,13 +495,14 @@ func (s *Server) handleNewMatchPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sides := []core.NewSide{{}, {}}
-	if mine := base.Campaign.Company; mine != nil {
-		sides[0].Companies = []int64{mine.ID} // you are most likely playing
+	if mine := base.Campaign.Companies; len(mine) > 0 {
+		sides[0].Companies = []int64{mine[0].ID} // you are most likely playing; with several companies the first
 	}
 	view, err := newMatchForm(base, list, sides, false, "")
 	if s.fail(w, r, err) {
 		return
 	}
+	view.Practice = r.URL.Query().Get("practice") == "1"
 	s.render.page(w, r, http.StatusOK, "match_new", view)
 }
 
@@ -509,8 +549,9 @@ func (s *Server) handleCreateMatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	user := *userFrom(r.Context())
-	matchID, err := s.recent.create([]any{"match", user.ID, base.Campaign.ID, sides}, func() (int64, error) {
-		m, err := s.campaigns.CreateMatch(r.Context(), user, base.Campaign.ID, sides)
+	practice := r.PostFormValue("practice") == "1"
+	matchID, err := s.recent.create([]any{"match", user.ID, base.Campaign.ID, sides, practice}, func() (int64, error) {
+		m, err := s.campaigns.CreateMatch(r.Context(), user, base.Campaign.ID, core.NewMatch{Sides: sides, Practice: practice})
 		return m.ID, err
 	})
 	switch {
@@ -519,6 +560,7 @@ func (s *Server) handleCreateMatch(w http.ResponseWriter, r *http.Request) {
 		if s.fail(w, r, jerr) {
 			return
 		}
+		view.Practice = practice
 		var busy *core.CompanyBusyError
 		if errors.As(err, &busy) {
 			view.Busy = &busy.OpenMatchRef
@@ -550,4 +592,84 @@ func creatureTip(c core.UnitCreatureRef) string {
 		parts = append(parts, "Special rules: "+strings.Join(c.Rules, ", "))
 	}
 	return strings.Join(append(parts, c.Notes...), "\n\n")
+}
+
+// Own is the company of the viewer the page acts on: set on the owner routes (/my-company/{company}, the armory) by loadOwn, nil on every
+// other page.
+func (b campaignBase) Own() *core.CampaignCompany { return b.Current }
+
+// Switcher is whether the company chips show: the viewer owns two or more companies of the campaign (docs/multi-company-spec.md, 4.1).
+func (b campaignBase) Switcher() bool { return len(b.Campaign.Companies) > 1 }
+
+// OwnPath is the URL root of the owner pages of the company the page acts on: /campaigns/{id}/my-company/{company}.
+func (b campaignBase) OwnPath() string {
+	if b.Current == nil {
+		return "/campaigns/" + itoa(int(b.Campaign.ID)) + "/my-company"
+	}
+	return ownPath(b.Campaign.ID, b.Current.ID)
+}
+
+// SwitchPath is where the company chip of one of the viewer's companies leads: the same tab, that company.
+func (b campaignBase) SwitchPath(companyID int64) string {
+	if b.Tab == "armory" {
+		return b.ArmoryPath(companyID)
+	}
+	return ownPath(b.Campaign.ID, companyID)
+}
+
+// ArmoryPath is the URL of the armory of one of the viewer's companies.
+func (b campaignBase) ArmoryPath(companyID int64) string {
+	return "/campaigns/" + itoa(int(b.Campaign.ID)) + "/armory?company=" + itoa(int(companyID))
+}
+
+// ownPath is the URL root of the owner pages of one company.
+func ownPath(campaignID, companyID int64) string {
+	return "/campaigns/" + itoa(int(campaignID)) + "/my-company/" + itoa(int(companyID))
+}
+
+// ownCompany is THE helper of every owner route: it reads {company} (or the form value "company" of the armory) and returns it when it is one of the viewer's own companies of the
+// campaign. It answers 404 itself for anything else (not a number, another player's company, a company of another campaign), so a stranger
+// and an organiser probing an id learn nothing. No handler guesses a company.
+func (s *Server) ownCompany(w http.ResponseWriter, r *http.Request, d core.CampaignDetail) (core.CampaignCompany, bool) {
+	raw := r.PathValue("company")
+	if raw == "" {
+		raw = r.FormValue("company") // the armory names its company in the query (page) or a hidden field (buying)
+	}
+	cid, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		s.notFound(w, r)
+		return core.CampaignCompany{}, false
+	}
+	co, own := d.Own(cid)
+	if !own {
+		s.notFound(w, r)
+		return core.CampaignCompany{}, false
+	}
+	return co, true
+}
+
+// loadOwn is loadCampaign for the pages of one of the viewer's companies: base.Current is the company of the URL.
+func (s *Server) loadOwn(w http.ResponseWriter, r *http.Request, tab string) (campaignBase, bool) {
+	base, ok := s.loadCampaign(w, r, tab)
+	if !ok {
+		return campaignBase{}, false
+	}
+	co, ok := s.ownCompany(w, r, base.Campaign)
+	if !ok {
+		return campaignBase{}, false
+	}
+	base.Current = &co
+	s.rememberVisit(w, r, base.Campaign, co.ID)
+	return base, true
+}
+
+// ownCompanyID is the company id of the URL for an action that needs nothing else of the campaign: it loads the campaign to authorise
+// the company through ownCompany.
+func (s *Server) ownCompanyID(w http.ResponseWriter, r *http.Request, campaignID int64) (int64, bool) {
+	d, err := s.campaigns.Get(r.Context(), userFrom(r.Context()).ID, campaignID)
+	if s.fail(w, r, err) {
+		return 0, false
+	}
+	co, ok := s.ownCompany(w, r, d)
+	return co.ID, ok
 }

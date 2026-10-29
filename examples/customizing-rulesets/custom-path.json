@@ -1,0 +1,368 @@
+{
+  "schemaVersion": 2,
+  "name": "Custom path example",
+  "version": "1.0",
+  "extends": "Middle-Earth Strategy Battle Game - 2024",
+  "campaign": {
+    "company": {
+      "maxModels": 15,
+      "leaders": 1,
+      "sergeants": 2,
+      "heroStart": {
+        "might": 1,
+        "will": 1,
+        "fate": 1
+      },
+      "startingInfluence": 0,
+      "equipmentSlots": {
+        "small": 1,
+        "large": 1
+      }
+    },
+    "recruitment": {
+      "die": "d6",
+      "adjust": {
+        "maxPerAttempt": 3,
+        "direction": "up",
+        "costPerPoint": 1
+      },
+      "rare": {
+        "injuredCount": true,
+        "deadCount": false,
+        "promotedCount": false
+      }
+    },
+    "influence": {
+      "gains": {
+        "participating": 2,
+        "draw": 1,
+        "win": 2
+      }
+    },
+    "progression": {
+      "threshold": 5,
+      "warrior": {
+        "roll": "d6",
+        "table": [
+          {
+            "roll": "1-2",
+            "key": "noChange",
+            "name": "No Change"
+          },
+          {
+            "roll": "3-5",
+            "key": "promoted",
+            "name": "Promoted"
+          },
+          {
+            "roll": 6,
+            "key": "heroInTheMaking",
+            "name": "A Hero in the Making"
+          }
+        ],
+        "noPromotion": {
+          "courage": 1,
+          "intelligence": 1,
+          "maximum": 3
+        }
+      },
+      "hero": {
+        "roll": "2d6",
+        "rollsPerProgression": 2,
+        "choose": 1
+      }
+    },
+    "injuries": {
+      "roll": "2d6",
+      "warrior": [
+        {
+          "roll": "2-3",
+          "key": "dead",
+          "name": "Dead"
+        },
+        {
+          "roll": "4-5",
+          "key": "injured",
+          "name": "Injured"
+        },
+        {
+          "roll": "6-11",
+          "key": "fullRecovery",
+          "name": "Full Recovery"
+        },
+        {
+          "roll": 12,
+          "key": "lessonLearned",
+          "name": "Lesson Learned",
+          "grantsExperience": {
+            "dice": "d3"
+          }
+        }
+      ],
+      "hero": [
+        {
+          "roll": 2,
+          "key": "dead",
+          "name": "Dead"
+        },
+        {
+          "roll": "3-11",
+          "key": "fullRecovery",
+          "name": "Full Recovery"
+        },
+        {
+          "roll": 12,
+          "key": "heroic",
+          "name": "Heroic Recovery",
+          "statChanges": [
+            {
+              "stat": "fate",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    "experience": {
+      "gains": [
+        {
+          "key": "participated",
+          "label": "Participating in the scenario",
+          "amount": 1
+        },
+        {
+          "key": "mvp",
+          "label": "MVP",
+          "amount": 1,
+          "dice": "d3"
+        }
+      ]
+    },
+    "breakPoint": {
+      "default": {
+        "percent": 50,
+        "of": "startingModels"
+      },
+      "threshold": {
+        "comparison": "gt"
+      },
+      "whenBroken": {
+        "courageTest": {
+          "dice": "2d6"
+        }
+      }
+    },
+    "rating": {
+      "hero": {
+        "wargear": {
+          "threshold": {
+            "stats": [
+              "attack",
+              "wounds"
+            ],
+            "sumAtLeast": 3
+          }
+        }
+      }
+    },
+    "scenarioSelection": {
+      "die": "d2",
+      "tables": [
+        {
+          "roll": [
+            1,
+            1
+          ],
+          "scenarios": [
+            "Seize Ground",
+            "Chance Encounter"
+          ]
+        },
+        {
+          "roll": [
+            2,
+            2
+          ],
+          "scenarios": [
+            "Hold the Line",
+            "Rescue"
+          ]
+        }
+      ]
+    }
+  },
+  "scenarios": [
+    {
+      "name": "Seize Ground",
+      "description": "Placeholder: describe the scenario."
+    },
+    {
+      "name": "Chance Encounter",
+      "description": "Placeholder: describe the scenario."
+    },
+    {
+      "name": "Hold the Line",
+      "description": "Placeholder: describe the scenario."
+    },
+    {
+      "name": "Rescue",
+      "description": "Placeholder: describe the scenario."
+    }
+  ],
+  "rules": [
+    {
+      "name": "Wayfarer Mastery",
+      "tag": "Passive",
+      "source": "Example",
+      "definition": "Example text, not a Battle Companies rule: a hero with this mastery improves its Heroic March."
+    },
+    {
+      "name": "Trail Sense",
+      "tag": "Passive",
+      "source": "Example",
+      "definition": "Example text, not a Battle Companies rule: the hero is never surprised on its own table edge."
+    }
+  ],
+  "paths": [
+    {
+      "name": "Path of the Wayfarer",
+      "description": "Example path for heroes who live on the road.",
+      "dice": "2d6",
+      "maximums": {
+        "movement": {
+          "maxIncrease": 2
+        },
+        "fight": {
+          "maxIncrease": 2
+        },
+        "strength": {
+          "maxIncrease": 1
+        },
+        "defence": {
+          "maxIncrease": 1
+        },
+        "attack": {
+          "max": 2
+        },
+        "wounds": {
+          "max": 2
+        },
+        "courage": {
+          "best": 3
+        },
+        "intelligence": {
+          "best": 3
+        },
+        "might": {
+          "max": 2
+        },
+        "will": {
+          "max": 2
+        },
+        "fate": {
+          "max": 2
+        }
+      },
+      "mastery": "Wayfarer Mastery",
+      "heroicAction": "Heroic March",
+      "signature": [
+        "movement"
+      ],
+      "rows": [
+        {
+          "roll": 2,
+          "options": [
+            {
+              "rule": "Trail Sense"
+            }
+          ]
+        },
+        {
+          "roll": 3,
+          "options": [
+            {
+              "stat": "movement"
+            }
+          ]
+        },
+        {
+          "roll": 4,
+          "options": [
+            {
+              "stat": "fight"
+            }
+          ]
+        },
+        {
+          "roll": "5-6",
+          "options": [
+            {
+              "stat": "attack"
+            },
+            {
+              "stat": "wounds"
+            }
+          ]
+        },
+        {
+          "roll": 7,
+          "options": [
+            {
+              "stat": "strength"
+            },
+            {
+              "stat": "defence"
+            }
+          ]
+        },
+        {
+          "roll": "8-9",
+          "options": [
+            {
+              "oneOf": [
+                {
+                  "stat": "might"
+                },
+                {
+                  "stat": "will"
+                },
+                {
+                  "stat": "fate"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "roll": 10,
+          "options": [
+            {
+              "rule": {
+                "name": "Hidden Paths",
+                "tag": "Passive",
+                "definition": "Example text, not a Battle Companies rule: the hero may re-deploy once per game."
+              }
+            }
+          ]
+        },
+        {
+          "roll": 11,
+          "options": [
+            {
+              "anyMinorRule": true,
+              "maxTotal": 2
+            }
+          ]
+        },
+        {
+          "roll": 12,
+          "options": [
+            {
+              "rule": "Wayfarer Mastery"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

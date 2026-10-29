@@ -1,8 +1,7 @@
 package lean
 
-// Campaign holds the engine tables and every rule parameter of design section 12 (decision 12): a value the engine uses is a field
-// here, required, with its range; there is no code default. Ids (A1, B3 ...) are those of docs/engine-parameters-audit.md and of
-// the table in design 12.2; ParameterIDs below lists where each lives. Tables whose reader moves in a later slice are Free or
+// Campaign holds the engine tables and every rule parameter of the format (docs/definitions.md, "Engine parameters"): a value the engine uses is a field
+// here, required, with its range; there is no code default. ParameterIDs below lists where each parameter lives. Tables whose reader moves in a later slice are Free or
 // carry a `rest` map so the shipped keys survive until that slice types them.
 type Campaign struct {
 	Company           CompanyRules      `json:"company" required:"true"`
@@ -17,13 +16,13 @@ type Campaign struct {
 	AftermathEffects  []AftermathEffect `json:"aftermathEffects,omitempty"`
 
 	CharacteristicLimits Free `json:"characteristicLimits,omitempty"`
-	AgainstTheOdds       Free `json:"againstTheOdds,omitempty"` // H4: typed by slice P5
+	AgainstTheOdds       Free `json:"againstTheOdds,omitempty"` // not typed yet
 	Gold                 Free `json:"gold,omitempty"`
-	MatchInput           Free `json:"matchInput,omitempty"` // prose shown to players (design 4.8, slice 10)
+	MatchInput           Free `json:"matchInput,omitempty"` // prose shown to players
 	Options              Free `json:"options,omitempty"`
 }
 
-// CompanyRules is `campaign.company` (design 4.8, 12.2 A8, B1, B3, B4, B6).
+// CompanyRules is `campaign.company`.
 type CompanyRules struct {
 	MaxModels         int      `json:"maxModels" required:"true" min:"1" max:"50"`          // B4
 	Leaders           int      `json:"leaders" required:"true" min:"1" max:"3"`             // B1
@@ -31,37 +30,37 @@ type CompanyRules struct {
 	HeroStart         HeroGain `json:"heroStart" required:"true"`                           // B3
 	StartingInfluence int      `json:"startingInfluence" required:"true" min:"0" max:"100"` // A8
 	EquipmentSlots    SlotPair `json:"equipmentSlots" required:"true"`                      // B6
-	Oaths             Free     `json:"oaths,omitempty"`                                     // fallback oath texts by alignment (design 3)
+	Oaths             Free     `json:"oaths,omitempty"`                                     // fallback oath texts by alignment
 }
 
-// HeroGain is what a new hero starts with (12.2 B3).
+// HeroGain is what a new hero starts with.
 type HeroGain struct {
 	Might int `json:"might" required:"true" min:"0" max:"5"`
 	Will  int `json:"will" required:"true" min:"0" max:"5"`
 	Fate  int `json:"fate" required:"true" min:"0" max:"5"`
 }
 
-// SlotPair is the equipment slots of a model (12.2 B6).
+// SlotPair is the equipment slots of a model.
 type SlotPair struct {
 	Small int `json:"small" required:"true" min:"0" max:"10"`
 	Large int `json:"large" required:"true" min:"0" max:"10"`
 }
 
-// Recruitment is `campaign.recruitment`: parameters only, the prose is dropped (decision 14).
+// Recruitment is `campaign.recruitment`: parameters only, the prose is dropped.
 type Recruitment struct {
 	Die    DiceSpec `json:"die" required:"true"` // A4: Count 1; the charts cover 1..Sides
 	Adjust Adjust   `json:"adjust" required:"true"`
 	Rare   RareRule `json:"rare" required:"true"`
 }
 
-// Adjust is how Influence moves a recruiting die (12.2 A1 to A3).
+// Adjust is how Influence moves a recruiting die.
 type Adjust struct {
 	MaxPerAttempt int    `json:"maxPerAttempt" required:"true" min:"0" max:"20"` // A1
 	Direction     string `json:"direction" required:"true" enum:"up|down|both"`  // A2
 	CostPerPoint  int    `json:"costPerPoint" required:"true" min:"0" max:"10"`  // A3
 }
 
-// RareRule says which models of the profile count towards Rare N (12.2 A9).
+// RareRule says which models of the profile count towards Rare N.
 type RareRule struct {
 	InjuredCount  bool `json:"injuredCount" required:"true"`
 	DeadCount     bool `json:"deadCount" required:"true"`
@@ -74,14 +73,14 @@ type Influence struct {
 	Spend Free           `json:"spend,omitempty"`
 }
 
-// InfluenceGains are the Influence of the War's Aftermath (12.2).
+// InfluenceGains are the Influence of the War's Aftermath.
 type InfluenceGains struct {
 	Participating int `json:"participating" required:"true" min:"0" max:"20"`
 	Draw          int `json:"draw" required:"true" min:"0" max:"20"`
 	Win           int `json:"win" required:"true" min:"0" max:"20"`
 }
 
-// Progression is `campaign.progression` (12.2 C1 to C5).
+// Progression is `campaign.progression`.
 type Progression struct {
 	Threshold int             `json:"threshold" required:"true" min:"1" max:"50"` // C1
 	Warrior   WarriorProgress `json:"warrior" required:"true"`
@@ -97,14 +96,14 @@ type WarriorProgress struct {
 	Rest        map[string]any `json:"-" rest:"true"`
 }
 
-// NoPromotion is what a warrior with no promotion gains (12.2 C5).
+// NoPromotion is what a warrior with no promotion gains.
 type NoPromotion struct {
 	Courage      int `json:"courage" required:"true" min:"0" max:"5"`
 	Intelligence int `json:"intelligence" required:"true" min:"0" max:"5"`
 	Maximum      int `json:"maximum" required:"true" min:"1" max:"10"`
 }
 
-// HeroProgress is the hero progression (12.2 C3, C4).
+// HeroProgress is the hero progression.
 type HeroProgress struct {
 	Roll                DiceSpec       `json:"roll" required:"true"`                                // C4
 	RollsPerProgression int            `json:"rollsPerProgression" required:"true" min:"1" max:"6"` // C3
@@ -121,7 +120,7 @@ type TableRow struct {
 	Rest map[string]any `json:"-" rest:"true"`
 }
 
-// Injuries is `campaign.injuries` (12.2 D1 to D3).
+// Injuries is `campaign.injuries`.
 type Injuries struct {
 	Roll    DiceSpec       `json:"roll" required:"true"` // D1
 	Warrior []InjuryRow    `json:"warrior,omitempty"`
@@ -136,17 +135,26 @@ type InjuryRow struct {
 	Name              string         `json:"name,omitempty"`
 	Text              string         `json:"text,omitempty"`
 	GrantsExperience  *DiceGrant     `json:"grantsExperience,omitempty"` // D2
-	StatChanges       []StatChange   `json:"statChanges,omitempty"`      // D3
+	StatChanges       []InjuryChange `json:"statChanges,omitempty"`      // D3
 	CancelsMissedGame bool           `json:"cancelsMissedGame,omitempty"`
 	Rest              map[string]any `json:"-" rest:"true"`
 }
 
-// DiceGrant is Experience rolled on a die (12.2 D2).
+// InjuryChange is a characteristic an injury changes: Amount points, once or Per count of the injury; the other keys
+// of the shipped table (minimum, permanent ...) are kept in Rest until a parameter slice types them.
+type InjuryChange struct {
+	Stat   string         `json:"stat" required:"true" enum:"movement|fight|shoot|strength|defence|attack|wounds|courage|intelligence|might|will|fate" noun:"characteristic"`
+	Amount int            `json:"amount" required:"true" min:"-20" max:"20"`
+	Per    string         `json:"per,omitempty" enum:"count"`
+	Rest   map[string]any `json:"-" rest:"true"`
+}
+
+// DiceGrant is Experience rolled on a die.
 type DiceGrant struct {
 	Dice DiceSpec `json:"dice" required:"true"`
 }
 
-// Experience is `campaign.experience`: the gains (12.2 D2). The threshold lives in progression.threshold.
+// Experience is `campaign.experience`: the gains. The threshold lives in progression.threshold.
 type Experience struct {
 	Gains []ExperienceGain `json:"gains" required:"true"`
 	Note  string           `json:"note,omitempty"`
@@ -156,12 +164,12 @@ type Experience struct {
 type ExperienceGain struct {
 	Key        string   `json:"key" required:"true" min:"1"`
 	Label      string   `json:"label,omitempty"`
-	Amount     int      `json:"amount,omitempty" min:"0" max:"20"` // H7
-	Dice       DiceSpec `json:"dice,omitempty"`                    // D2
+	Amount     int      `json:"amount,omitempty" min:"0" max:"20"`
+	Dice       DiceSpec `json:"dice,omitempty"` // D2
 	Repeatable bool     `json:"repeatable,omitempty"`
 }
 
-// BreakPoint is `campaign.breakPoint` (12.2 E1, E4, E6).
+// BreakPoint is `campaign.breakPoint`.
 type BreakPoint struct {
 	Default    BreakDefault   `json:"default" required:"true"`
 	Threshold  BreakThreshold `json:"threshold" required:"true"`
@@ -169,30 +177,30 @@ type BreakPoint struct {
 	Rest       map[string]any `json:"-" rest:"true"` // startingModels, casualty ... fixed choices documented, prose
 }
 
-// BreakDefault is the Break Point of a company with none of its own (E6).
+// BreakDefault is the Break Point of a company with none of its own.
 type BreakDefault struct {
 	Percent int    `json:"percent" required:"true" min:"1" max:"100"`
 	Of      string `json:"of,omitempty"`
 }
 
-// BreakThreshold is the comparison against the Break Point (E1).
+// BreakThreshold is the comparison against the Break Point.
 type BreakThreshold struct {
 	Comparison string `json:"comparison" required:"true" enum:"gt|gte"`
 }
 
-// WhenBroken is what happens to a broken company (E4).
+// WhenBroken is what happens to a broken company.
 type WhenBroken struct {
 	CourageTest CourageTest    `json:"courageTest" required:"true"`
 	Rest        map[string]any `json:"-" rest:"true"`
 }
 
-// CourageTest is the test a model of a broken company takes (E4).
+// CourageTest is the test a model of a broken company takes.
 type CourageTest struct {
 	Dice DiceSpec       `json:"dice" required:"true"`
 	Rest map[string]any `json:"-" rest:"true"`
 }
 
-// RatingRules is `campaign.rating` (12.2 F1).
+// RatingRules is `campaign.rating`.
 type RatingRules struct {
 	Hero HeroRating     `json:"hero" required:"true"`
 	Rest map[string]any `json:"-" rest:"true"`
@@ -201,7 +209,7 @@ type RatingRules struct {
 // HeroRating is how a hero is rated.
 type HeroRating struct {
 	Wargear WargearRating  `json:"wargear" required:"true"`
-	Rest    map[string]any `json:"-" rest:"true"` // perPoint, perSpecialRule ... (H4, slice P5)
+	Rest    map[string]any `json:"-" rest:"true"` // perPoint, perSpecialRule ...
 }
 
 // WargearRating decides when a hero pays the hero rating for gear.
@@ -210,13 +218,13 @@ type WargearRating struct {
 	Text      string           `json:"text,omitempty"`
 }
 
-// WargearThreshold: a hero whose Stats sum to SumAtLeast pays the hero rating (F1).
+// WargearThreshold: a hero whose Stats sum to SumAtLeast pays the hero rating.
 type WargearThreshold struct {
 	Stats      []string `json:"stats" required:"true" min:"1" enum:"movement|fight|shoot|strength|defence|attack|wounds|courage|intelligence|might|will|fate" noun:"characteristic"`
 	SumAtLeast int      `json:"sumAtLeast" required:"true" min:"0" max:"20"`
 }
 
-// ScenarioSelection is `campaign.scenarioSelection` (12.2 F5).
+// ScenarioSelection is `campaign.scenarioSelection`.
 type ScenarioSelection struct {
 	Die    DiceSpec        `json:"die" required:"true"` // Count 1
 	Tables []ScenarioTable `json:"tables" required:"true"`
@@ -229,14 +237,14 @@ type ScenarioTable struct {
 	Scenarios []string `json:"scenarios" required:"true"`
 }
 
-// AftermathEffect is an entry of `campaign.aftermathEffects`; Range is read for rendezvous and vantagePoint (12.2 A7).
+// AftermathEffect is an entry of `campaign.aftermathEffects`; Range is read for rendezvous and vantagePoint.
 type AftermathEffect struct {
 	Key   string         `json:"key" required:"true" min:"1"`
 	Range []int          `json:"range,omitempty" min:"2" max:"2" emin:"-6" emax:"6"`
 	Rest  map[string]any `json:"-" rest:"true"`
 }
 
-// ParameterIDs maps each engine parameter id of design 12.2 to the json path (under campaign unless it starts with a top-level
+// ParameterIDs maps each engine parameter id of the format to the json path (under campaign unless it starts with a top-level
 // section) where the model holds it. The model test checks that every path resolves to a required field with a range, so the
 // table is the index of the contract.
 var ParameterIDs = map[string]string{

@@ -224,7 +224,7 @@ type Equipment struct {
 	Spellings   []string    // other spellings of the same item (the rules file's aliases), for identity checks
 	Disabled    string      // the injury that stops the hero benefiting from it (Arm Wound); empty when it works
 	// RequiresMount marks gear only a mounted model can use (a lance): the live match strikes it through when the mount is lost. The rules
-	// file's `requiresMount` flag (curator, pib.15) feeds it; until then it is never set.
+	// file's `requiresMount` flag feeds it.
 	RequiresMount bool
 }
 
@@ -418,7 +418,7 @@ type CompanyUnit struct {
 	Wanderer          bool             // a mercenary hired from the armoury
 	StatMods          []StatMod        // what the gear changes in the characteristics, relative to the vanilla profile (already in Stats)
 	Injuries          []UnitInjury     // a hero's persistent injuries (arm wound, leg wound, broken honour) with their counts
-	LostAbilities     []InjuryLoss     // what the injuries took away: Stand Fast, heroic actions on the company
+	LostAbilities     []InjuryLoss     // what the injuries took away, by the data key of the ability (AbilityStandFast, AbilityHeroicActionsOnCompany)
 	Injured           bool             // misses the next game: it does not count towards the company's rating
 	AtHealers         bool             // sent to the healers: its missed game is the price of the healing, field treatment cannot cancel it
 	Level             int
@@ -905,7 +905,7 @@ func OptionsCover(items []Equipment, options []ChoiceOption) (points int, rest [
 	for { // the biggest option whole in what is left, the cheapest of those
 		best, bestGot := -1, []int(nil)
 		for oi, o := range options {
-			if strings.HasPrefix(strings.ToLower(o.Name), "exchange") {
+			if ParseOption(o.Name).Exchange {
 				continue
 			}
 			got := take(free, o.Name)
@@ -942,7 +942,7 @@ func OptionsCover(items []Equipment, options []ChoiceOption) (points int, rest [
 				all = false
 			}
 		}
-		if all && (cheapest < 0 || o.Points < options[cheapest].Points) && !strings.HasPrefix(strings.ToLower(o.Name), "exchange") {
+		if all && (cheapest < 0 || o.Points < options[cheapest].Points) && !ParseOption(o.Name).Exchange {
 			cheapest = oi
 		}
 	}

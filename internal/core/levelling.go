@@ -48,8 +48,8 @@ func (e *levelEnv) refresh(st CompanyState) {
 }
 
 // mutate runs a step on the locked state of the user's company.
-func (s *LevelService) mutate(ctx context.Context, user User, campaignID, unitID int64, fn func(env *levelEnv, st *CompanyState, us *UnitState) error) error {
-	id, err := s.myCompanyToChange(ctx, user, campaignID)
+func (s *LevelService) mutate(ctx context.Context, user User, campaignID, companyID, unitID int64, fn func(env *levelEnv, st *CompanyState, us *UnitState) error) error {
+	id, err := s.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -71,8 +71,8 @@ func (s *LevelService) mutate(ctx context.Context, user User, campaignID, unitID
 }
 
 // LevelUpState is the level-up roll a unit has in progress, nil when none.
-func (s *LevelService) LevelUpState(ctx context.Context, user User, campaignID, unitID int64) (*LevelRoll, error) {
-	id, err := s.myCompany(ctx, user, campaignID)
+func (s *LevelService) LevelUpState(ctx context.Context, user User, campaignID, companyID, unitID int64) (*LevelRoll, error) {
+	id, err := s.ownCompany(ctx, user, campaignID, companyID)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (s *LevelService) LevelUpState(ctx context.Context, user User, campaignID, 
 }
 
 // RollLevelUp makes a unit's level-up roll: its own D6 (or two 2D6 sums for a hero) or random ones.
-func (s *LevelService) RollLevelUp(ctx context.Context, user User, campaignID, unitID int64, entered []int, thrown bool) (LevelRoll, error) {
+func (s *LevelService) RollLevelUp(ctx context.Context, user User, campaignID, companyID, unitID int64, entered []int, thrown bool) (LevelRoll, error) {
 	_, settings, err := s.ruleset(ctx, campaignID)
 	if err != nil {
 		return LevelRoll{}, err
@@ -101,7 +101,7 @@ func (s *LevelService) RollLevelUp(ctx context.Context, user User, campaignID, u
 		return LevelRoll{}, Refuse("%s", msg)
 	}
 	var out LevelRoll
-	err = s.mutate(ctx, user, campaignID, unitID, func(env *levelEnv, st *CompanyState, us *UnitState) error {
+	err = s.mutate(ctx, user, campaignID, companyID, unitID, func(env *levelEnv, st *CompanyState, us *UnitState) error {
 		u := env.unit
 		switch {
 		case u.Wanderer:
@@ -151,12 +151,12 @@ func (s *LevelService) RollLevelUp(ctx context.Context, user User, campaignID, u
 
 // ChooseLevelUp applies the choice the player made among the offers of the roll in progress. keys holds the choice (and, for a
 // result that asks for the other roll too, the choice made on that one).
-func (s *LevelService) ChooseLevelUp(ctx context.Context, user User, campaignID, unitID int64, keys []string) (LevelRoll, error) {
+func (s *LevelService) ChooseLevelUp(ctx context.Context, user User, campaignID, companyID, unitID int64, keys []string) (LevelRoll, error) {
 	if len(keys) == 0 || keys[0] == "" {
 		return LevelRoll{}, Refuse("Choose one of the results offered.")
 	}
 	var out LevelRoll
-	err := s.mutate(ctx, user, campaignID, unitID, func(env *levelEnv, st *CompanyState, us *UnitState) error {
+	err := s.mutate(ctx, user, campaignID, companyID, unitID, func(env *levelEnv, st *CompanyState, us *UnitState) error {
 		var err error
 		out, err = env.choose(st, us, keys)
 		return err
@@ -231,7 +231,7 @@ func (env *levelEnv) choose(st *CompanyState, us *UnitState, keys []string) (Lev
 		}
 		summary = fmt.Sprintf("%s becomes a hero on the %s.", u.Title(), rest)
 		if promotes { // it also changes profile: Ranger of Arnor to Ranger of the North, keeping some of its wargear
-			p.Base, p.Drop = promotion.Becomes, promotion.Drop // what it had stays, except what the company says is lost
+			p.Base = promotion.Becomes // what it had stays, except the wargear of its old profile (replacedWargear)
 			summary = fmt.Sprintf("%s is promoted to %s and becomes a hero on the %s.", u.Title(), promotion.Becomes, rest)
 		}
 		if path, ok := rules.Path(rest); ok {
@@ -280,9 +280,9 @@ func (env *levelEnv) choose(st *CompanyState, us *UnitState, keys []string) (Lev
 
 // RerollLevelUp spends an Against the Odds re-roll (the company's Rerolls) on one result of the roll in progress. A warrior's D6
 // is rolled again; a hero's pair is replaced by a new one (which: 0 or 1, the result to replace).
-func (s *LevelService) RerollLevelUp(ctx context.Context, user User, campaignID, unitID int64, which int) (LevelRoll, error) {
+func (s *LevelService) RerollLevelUp(ctx context.Context, user User, campaignID, companyID, unitID int64, which int) (LevelRoll, error) {
 	var out LevelRoll
-	err := s.mutate(ctx, user, campaignID, unitID, func(env *levelEnv, st *CompanyState, us *UnitState) error {
+	err := s.mutate(ctx, user, campaignID, companyID, unitID, func(env *levelEnv, st *CompanyState, us *UnitState) error {
 		roll := us.Pending.Level
 		switch {
 		case roll == nil:
@@ -406,8 +406,8 @@ func (env *levelEnv) warriorRoll(p *Progress, d6 int) LevelRoll {
 }
 
 // PathOptions says which paths a hero without one can take now.
-func (s *LevelService) PathOptions(ctx context.Context, user User, campaignID, unitID int64) (PathOffer, error) {
-	id, err := s.myCompany(ctx, user, campaignID)
+func (s *LevelService) PathOptions(ctx context.Context, user User, campaignID, companyID, unitID int64) (PathOffer, error) {
+	id, err := s.ownCompany(ctx, user, campaignID, companyID)
 	if err != nil {
 		return PathOffer{}, err
 	}
@@ -444,8 +444,8 @@ func (env *levelEnv) pathOffer() (PathOffer, error) {
 }
 
 // ChoosePath gives an officer the path the player chose (and a Sorcerer its first power): its heroic action comes with it.
-func (s *LevelService) ChoosePath(ctx context.Context, user User, campaignID, unitID int64, path, power string) error {
-	return s.mutate(ctx, user, campaignID, unitID, func(env *levelEnv, st *CompanyState, us *UnitState) error {
+func (s *LevelService) ChoosePath(ctx context.Context, user User, campaignID, companyID, unitID int64, path, power string) error {
+	return s.mutate(ctx, user, campaignID, companyID, unitID, func(env *levelEnv, st *CompanyState, us *UnitState) error {
 		offer, err := env.pathOffer()
 		if err != nil {
 			return err
@@ -596,7 +596,7 @@ func upgradesOf(rs *RuleSet, bcCo BCCompany, u CompanyUnit) []HeroUpgrade {
 	if !ok {
 		return nil
 	}
-	vanilla, _, _ := resolveUnit(rs, p, u.Type) // a company's own name for a profile (Tookish Hunter) is that profile's race too
+	vanilla, _, _ := rs.ResolveUnit(p, u.Type) // a company's own name for a profile (Tookish Hunter) is that profile's race too
 	var out []HeroUpgrade
 	for _, h := range p.HeroUpgrades {
 		if h.Allows(vanilla) { // some upgrades belong to one race (a Hobbit may take both of the Wanderers' upgrades, the others one)

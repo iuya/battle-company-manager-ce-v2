@@ -21,6 +21,25 @@ type scenarioGroup struct {
 	Scenarios []core.ScenarioInfo
 }
 
+// SamePlayerNotes are the "Same player" notes of the match page (docs/multi-company-spec.md, 4.3): a player who owns two or more of its
+// companies. Never a refusal; the match counts like any other. Empty when no player has several.
+func (v matchView) SamePlayerNotes() []string {
+	var notes []string
+	for _, sp := range core.SamePlayers(v.Match.Sides) {
+		switch {
+		case sp.AcrossSides && sp.Companies == 2:
+			notes = append(notes, fmt.Sprintf("Same player: %s plays both sides.", sp.Owner))
+		case sp.AcrossSides:
+			notes = append(notes, fmt.Sprintf("Same player: %s has %d companies in this match, on more than one side.", sp.Owner, sp.Companies))
+		case sp.Companies == 2:
+			notes = append(notes, fmt.Sprintf("Same player: both of these companies are %s's.", sp.Owner))
+		default:
+			notes = append(notes, fmt.Sprintf("Same player: all %d of these companies are %s's.", sp.Companies, sp.Owner))
+		}
+	}
+	return notes
+}
+
 type matchView struct {
 	campaignBase
 	Match    core.Match
@@ -221,7 +240,7 @@ func (s *Server) newMatchView(r *http.Request, base campaignBase, m core.Match, 
 	if m.Ended {
 		v.Aftermath, v.AftermathErr = s.aftermathRows(r, base, m)
 		for _, row := range v.Aftermath {
-			v.AftermathApplied = v.AftermathApplied || row.Ref.Status.Started() || row.Ref.Status == core.AftermathWaived
+			v.AftermathApplied = v.AftermathApplied || (!m.Practice && (row.Ref.Status.Started() || row.Ref.Status == core.AftermathWaived))
 		}
 	}
 	if m.CanEnd() != nil {
@@ -460,19 +479,24 @@ func reasons(err error) []string {
 	return out
 }
 
+// fieldReasons are the reasons of an error built with errors.Join(sentinel, reason...), each with the form field it is about.
+func fieldReasons(err error) []core.FieldError {
+	var out []core.FieldError
+	u, ok := err.(interface{ Unwrap() []error })
+	if !ok {
+		return []core.FieldError{{Field: core.FieldOf(err), Msg: sentence(err.Error())}}
+	}
+	for _, e := range u.Unwrap()[1:] {
+		out = append(out, core.FieldError{Field: core.FieldOf(e), Msg: sentence(e.Error())})
+	}
+	return out
+}
+
 // scenarioErrors files the messages of ScenarioInput.Validate under the field they are about.
 func scenarioErrors(err error) map[string]string {
 	out := map[string]string{}
-	for _, msg := range reasons(err) {
-		field := ""
-		switch {
-		case strings.HasPrefix(msg, "The name"):
-			field = "name"
-		case strings.HasPrefix(msg, "The description"):
-			field = "description"
-		case strings.HasPrefix(msg, "How it is won"):
-			field = "victory"
-		}
+	for _, fr := range fieldReasons(err) {
+		field, msg := fr.Field, fr.Msg
 		if out[field] != "" {
 			msg = out[field] + " " + msg
 		}

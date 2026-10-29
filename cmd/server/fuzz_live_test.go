@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -21,7 +19,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/web"
 )
 
-// TestLiveActionsSurviveExtremeValues (robustness, bead 1oe): the sweep above puts the same hostile value into every field at once, so
+// TestLiveActionsSurviveExtremeValues (robustness): the sweep above puts the same hostile value into every field at once, so
 // a request is almost always refused at the first field. This one sends every live match POST (the action kinds of
 // {company}/actions, undo, courage roll, the end checks, the secret objectives, the end-of-match votes) with a valid form in which ONE
 // field at a time takes an extreme but individually plausible value (2^31 wounds, negative counts, the unit of another company, match
@@ -36,22 +34,15 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 	if testing.Short() {
 		t.Skip("slow")
 	}
-	if _, err := os.Stat("definitions"); err != nil {
-		wd, _ := os.Getwd()
-		if err := os.Chdir("../.."); err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() { _ = os.Chdir(wd) })
-	}
+	t.Parallel() // its own database (a copy of the seeded template), no state shared with the other tests
 	ctx := context.Background()
-	dsn := freshDatabase(ctx, t, base)
+	dsn := seededDatabase(ctx, t, base)
 	store, err := postgres.Open(ctx, dsn)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer store.Close()
-	dice := &demoDice{}
-	b, err := newBackendWithDice(ctx, store, dice)
+	b, err := newBackendWithDice(ctx, store, &demoDice{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,18 +51,7 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer conn.Close(ctx)
-	exec := func(ctx context.Context, q string, args ...any) error {
-		_, err := conn.Exec(ctx, q, args...)
-		return err
-	}
-	var out bytes.Buffer
-	if err := seedWorld(ctx, b, dice, "demo-password", &out, exec); err != nil {
-		t.Fatalf("%v\n%s", err, out.String())
-	}
-	var logs bytes.Buffer
-	old := slog.Default()
-	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
-	t.Cleanup(func() { slog.SetDefault(old) })
+	logs := captureLogs(t)
 	srv, err := web.NewServer(web.Config{}, b.campaigns, b.rulesets, b.glossaries, b.auth)
 	if err != nil {
 		t.Fatal(err)
@@ -382,11 +362,11 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 	for _, f := range failures {
 		t.Error(f)
 	}
-	if strings.Contains(logs.String(), "level=ERROR msg=panic") {
-		t.Errorf("a handler panicked (recovered by the middleware); first lines:\n%s", firstLines(logs.String(), "msg=panic", 5))
+	if strings.Contains(logs(), "level=ERROR msg=panic") {
+		t.Errorf("a handler panicked (recovered by the middleware); first lines:\n%s", firstLines(logs(), "msg=panic", 5))
 	}
 	seen := map[string]bool{}
-	for _, l := range strings.Split(logs.String(), "\n") {
+	for _, l := range strings.Split(logs(), "\n") {
 		if strings.Contains(l, "level=ERROR") {
 			if i := strings.Index(l, "stack="); i > 0 {
 				l = l[:i]

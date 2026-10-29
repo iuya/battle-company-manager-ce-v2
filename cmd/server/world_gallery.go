@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -11,22 +10,52 @@ import (
 
 // bcDefs is the little of the Battle Companies file the script reads to aim its rolls: the special units of each company.
 type bcDefs struct {
-	Data struct {
-		Companies []struct {
-			Name         string `json:"name"`
-			SpecialUnits []struct {
-				Unit string `json:"unit"`
-				Cost int    `json:"cost"`
-			} `json:"specialUnits"`
-		} `json:"companies"`
-	} `json:"data"`
+	Companies []struct {
+		Name         string
+		SpecialUnits []struct {
+			Unit string
+			Cost int
+		}
+	}
+}
+
+// shippedRules is the rule set of the files the app ships with, read once through the loader like the app does.
+func (w *world) shippedRules() *core.RuleSet {
+	if w.shipped != nil {
+		return w.shipped
+	}
+	var files [3][]byte
+	for i, name := range []string{"vanilla/data2024.json", "battle_companies/battle_companies.json", "glossary/mesbg_glossary.json"} {
+		b, err := os.ReadFile("definitions/" + name)
+		w.must("read "+name, err)
+		files[i] = b
+	}
+	rs, err := core.LoadRuleSet(files[0], files[1], files[2], nil)
+	w.must("load the shipped rules", err)
+	w.shipped = rs
+	return rs
 }
 
 func (w *world) defs() bcDefs {
-	raw, err := os.ReadFile("definitions/battle_companies/battle_companies.json")
-	w.must("read the Battle Companies file", err)
 	var d bcDefs
-	w.must("parse the Battle Companies file", json.Unmarshal(raw, &d))
+	for _, c := range w.shippedRules().Doc.Companies {
+		dc := struct {
+			Name         string
+			SpecialUnits []struct {
+				Unit string
+				Cost int
+			}
+		}{Name: c.Name}
+		if c.Special != nil {
+			for _, b := range c.Special.Buy {
+				dc.SpecialUnits = append(dc.SpecialUnits, struct {
+					Unit string
+					Cost int
+				}{b.Unit, b.Influence})
+			}
+		}
+		d.Companies = append(d.Companies, dc)
+	}
 	return d
 }
 
@@ -90,7 +119,7 @@ func (w *world) buyKind(co *wco, u core.CompanyUnit, n int, sized bool) {
 		if it.PayGold {
 			how = "gold"
 		}
-		if err := w.c().BuyEquipment(w.ctx, co.user, co.camp.id, u.ID, it.Name, how); err == nil {
+		if err := w.c().BuyEquipment(w.ctx, co.user, co.camp.id, co.id, u.ID, it.Name, how); err == nil {
 			n--
 		}
 	}
@@ -108,7 +137,7 @@ func (w *world) galleryCampaign() {
 	w.must("profiles", err)
 	special := map[string]int{}
 	cost := map[string]map[string]int{}
-	for _, dc := range defs.Data.Companies {
+	for _, dc := range defs.Companies {
 		cost[dc.Name] = map[string]int{}
 		for _, su := range dc.SpecialUnits {
 			cost[dc.Name][su.Unit] = su.Cost
@@ -124,7 +153,7 @@ func (w *world) galleryCampaign() {
 		w.grant(co, 30, 45)
 		w.grant(co, 0, 30)
 		for unit := range cost[p.Name] {
-			_, err := w.c().RecruitSpecial(w.ctx, co.user, c.id, unit)
+			_, err := w.c().RecruitSpecial(w.ctx, co.user, c.id, co.id, unit)
 			w.try(p.Name+" buys a "+unit, err)
 			w.finishChoice(co)
 		}
@@ -139,7 +168,7 @@ func (w *world) galleryCampaign() {
 // finishChoice answers a pending choice of options with the base profile.
 func (w *world) finishChoice(co *wco) {
 	for i := 0; i < 4; i++ {
-		ch, err := w.c().PendingChoice(w.ctx, co.user, co.camp.id)
+		ch, err := w.c().PendingChoice(w.ctx, co.user, co.camp.id, co.id)
 		if err != nil || ch == nil {
 			return
 		}
@@ -147,7 +176,7 @@ func (w *world) finishChoice(co *wco) {
 		if len(ch.Options) > 0 {
 			opt = ch.Options[0].Name
 		}
-		if _, err := w.c().ChooseOptions(w.ctx, co.user, co.camp.id, opt); err != nil {
+		if _, err := w.c().ChooseOptions(w.ctx, co.user, co.camp.id, co.id, opt); err != nil {
 			return
 		}
 	}

@@ -2,6 +2,7 @@ package core
 
 import (
 	"os"
+	"slices"
 	"testing"
 )
 
@@ -62,5 +63,30 @@ func TestRealVanillaBook(t *testing.T) {
 	}
 	if _, ok := b.Keyword("Terror"); !ok {
 		t.Error("Terror")
+	}
+}
+
+func TestStatVocabularyIsTheVanillaList(t *testing.T) {
+	raw, err := os.ReadFile("../../definitions/vanilla/data2024.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := ParseVanilla(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var phrased []string
+	for _, s := range statPhrases {
+		phrased = append(phrased, s.key)
+	}
+	if got := b.StatKeys(); !slices.Equal(got, phrased) {
+		t.Errorf("the phrasing table %v is not the vanilla stat list %v", phrased, got)
+	}
+	heroes := b.HeroStats()
+	if !heroes["might"] || !heroes["will"] || !heroes["fate"] || len(heroes) != 3 || b.HeroStat("fight") || !b.HeroStat("fate") {
+		t.Errorf("hero stats: %v", heroes)
+	}
+	if !b.HeroProfile(map[string]int{"fate": 1}) || b.HeroProfile(map[string]int{"fight": 3, "wounds": 2}) {
+		t.Error("a profile is a hero's when it has a hero characteristic")
 	}
 }

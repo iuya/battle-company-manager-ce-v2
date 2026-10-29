@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// The upload error catalogue (docs/definitions-lean-design.md section 7): every invalid fixture of the lean package goes through
+// The upload error catalogue (docs/definitions.md, "Upload validation"): every invalid fixture of the lean package goes through
 // Rulesets.Check against the shipped vanilla file and glossary, and the whole rendered report (path, message, closest match, hint,
 // order, truncation) is compared with testdata/catalogue/<case>.want. A change of wording shows up here as a diff to review:
 //

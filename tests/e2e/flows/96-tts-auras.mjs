@@ -56,7 +56,7 @@ export default async function (h) {
     await you.goto(`/campaigns/${parade}/my-company`);
     await you.page.evaluate(() => localStorage.removeItem('bcm-tts'));
     await open(you);
-    assert.ok(await checked(you, '#tts-auras-on'), 'the master switch is on by default (owner decision Q8)');
+    assert.ok(await checked(you, '#tts-auras-on'), 'the master switch is on by default');
     assert.equal(await you.page.$eval('#tts-auras-on', (e) => e.getAttribute('role')), 'switch');
     const p = base = await payload(you);
     assert.equal(p.v, 2, 'rings in the names make it version 2');

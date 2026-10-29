@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"os"
 	"slices"
 	"sync"
 	"testing"
@@ -26,6 +27,15 @@ var (
 	shippedErr  error
 )
 
+// shippedBCPath is the Battle Companies file the tests build the shipped rule set from. BC_LEAN=1 runs the whole suite on the lean file;
+// the golden snapshots are byte-identical on either.
+func shippedBCPath() string {
+	if os.Getenv("BC_LEAN") == "1" {
+		return "battle_companies/battle_companies.lean.json"
+	}
+	return "battle_companies/battle_companies.json"
+}
+
 // shippedRules is the RuleSet of the default files, built once for all tests.
 func shippedRules(t *testing.T) *RuleSet {
 	t.Helper()
@@ -38,7 +48,7 @@ func shippedRules(t *testing.T) *RuleSet {
 			set  *string
 		}{
 			{KindVanilla, "vanilla/data2024.json", &h.Vanilla},
-			{KindBattleCompanies, "battle_companies/battle_companies.json", &h.BattleCompanies},
+			{KindBattleCompanies, shippedBCPath(), &h.BattleCompanies},
 			{KindGlossary, "glossary/mesbg_glossary.json", &h.Glossary},
 		} {
 			content := readDef(t, f.path)
@@ -583,7 +593,10 @@ func TestCompanyNamesResolveIgnoringCase(t *testing.T) {
 			t.Errorf("profile %s: %v", spelling, ok)
 		}
 	}
-	if _, ok := rs.BC.Company("Lake Town"); ok {
-		t.Error("only the case differs")
+	if _, ok := rs.BC.Company("Lake Town"); !ok { // a name is its NameKey: case, accents and punctuation do not make another company
+		t.Error("Lake Town is Lake-town")
+	}
+	if _, ok := rs.BC.Company("Lake Towns"); ok {
+		t.Error("a plural is another name")
 	}
 }

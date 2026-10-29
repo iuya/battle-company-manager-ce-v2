@@ -58,7 +58,8 @@ type world struct {
 	exec func(ctx context.Context, query string, args ...any) error
 	// scenarios of the default Battle Companies file, by name
 	scenarios map[string]core.ScenarioInfo
-	spareNext int // next faction of the rules file for w.spare
+	shipped   *core.RuleSet // the rules the app ships with, loaded on first use (rules)
+	spareNext int           // next faction of the rules file for w.spare
 	// the Aura parade: the default rules and the data.auras entries (by id) the companies of the script cover, with the companies
 	rules       *core.RuleSet
 	auraCovered map[string][]string
@@ -187,7 +188,7 @@ func (w *world) choosePaths(co *wco, shift int) {
 		if !u.PathPending {
 			continue
 		}
-		offer, err := w.c().PathOptions(w.ctx, co.user, co.camp.id, u.ID)
+		offer, err := w.c().PathOptions(w.ctx, co.user, co.camp.id, co.id, u.ID)
 		w.must("path options", err)
 		var open []core.PathOption
 		for _, p := range offer.Paths {
@@ -197,7 +198,7 @@ func (w *world) choosePaths(co *wco, shift int) {
 		}
 		p := open[(shift+n)%len(open)]
 		n++
-		w.must("choose path for "+u.Title(), w.c().ChoosePath(w.ctx, co.user, co.camp.id, u.ID, p.Name, ""))
+		w.must("choose path for "+u.Title(), w.c().ChoosePath(w.ctx, co.user, co.camp.id, co.id, u.ID, p.Name, ""))
 	}
 }
 
@@ -224,20 +225,6 @@ func (w *world) mustUnit(co *wco, what string, ok func(core.CompanyUnit) bool) c
 		panic(worldAbort{fmt.Errorf("%s has no %s", co.name, what)})
 	}
 	return u
-}
-
-// warrior returns the n-th warrior that is not injured.
-func (w *world) warrior(co *wco, n int) core.CompanyUnit {
-	i := 0
-	for _, u := range w.detail(co).Roster {
-		if u.Role == core.RoleWarrior && !u.Wanderer && !u.Injured {
-			if i == n {
-				return u
-			}
-			i++
-		}
-	}
-	panic(worldAbort{fmt.Errorf("%s has no warrior number %d", co.name, n)})
 }
 
 func isRole(r core.UnitRole) func(core.CompanyUnit) bool {
@@ -277,10 +264,10 @@ func (w *world) recruit(co *wco, adjust int, rolls ...int) (string, error) {
 	roll := func() error {
 		r := next()
 		if co.camp.settings.ManualRolls {
-			return w.c().RollRecruit(w.ctx, co.user, co.camp.id, r, false)
+			return w.c().RollRecruit(w.ctx, co.user, co.camp.id, co.id, r, false)
 		}
 		w.rollWith(r)
-		return w.c().RollRecruit(w.ctx, co.user, co.camp.id, 0, false)
+		return w.c().RollRecruit(w.ctx, co.user, co.camp.id, co.id, 0, false)
 	}
 	if err := roll(); err != nil {
 		return "", err
@@ -288,21 +275,21 @@ func (w *world) recruit(co *wco, adjust int, rolls ...int) (string, error) {
 	summary := ""
 	first := true
 	for step := 0; step < 12; step++ {
-		if ch, err := w.c().PendingChoice(w.ctx, co.user, co.camp.id); err != nil {
+		if ch, err := w.c().PendingChoice(w.ctx, co.user, co.camp.id, co.id); err != nil {
 			return summary, err
 		} else if ch != nil {
 			opt := ""
 			if len(ch.Options) > 0 {
 				opt = ch.Options[step%len(ch.Options)].Name
 			}
-			res, err := w.c().ChooseOptions(w.ctx, co.user, co.camp.id, opt)
+			res, err := w.c().ChooseOptions(w.ctx, co.user, co.camp.id, co.id, opt)
 			if err != nil {
 				return summary, err
 			}
 			summary += " " + res.Summary
 			continue
 		}
-		st, err := w.c().RecruitState(w.ctx, co.user, co.camp.id)
+		st, err := w.c().RecruitState(w.ctx, co.user, co.camp.id, co.id)
 		if err != nil {
 			return summary, err
 		}
@@ -316,7 +303,7 @@ func (w *world) recruit(co *wco, adjust int, rolls ...int) (string, error) {
 				if row.Blocked != "" {
 					continue
 				}
-				res, err := w.c().ChooseLower(w.ctx, co.user, co.camp.id, row.Index)
+				res, err := w.c().ChooseLower(w.ctx, co.user, co.camp.id, co.id, row.Index)
 				if err != nil {
 					continue
 				}
@@ -337,7 +324,7 @@ func (w *world) recruit(co *wco, adjust int, rolls ...int) (string, error) {
 				a = adjust
 			}
 			first = false
-			res, err := w.c().ConfirmRecruit(w.ctx, co.user, co.camp.id, a, "")
+			res, err := w.c().ConfirmRecruit(w.ctx, co.user, co.camp.id, co.id, a, "")
 			if err != nil {
 				return strings.TrimSpace(summary), err
 			}
@@ -369,20 +356,20 @@ func (w *world) recruitAll(co *wco) {
 // abandonRecruit settles a recruit left in progress by taking its first possible lower result, so the next one can start.
 func (w *world) abandonRecruit(co *wco) {
 	for i := 0; i < 8; i++ {
-		st, err := w.c().RecruitState(w.ctx, co.user, co.camp.id)
+		st, err := w.c().RecruitState(w.ctx, co.user, co.camp.id, co.id)
 		if err != nil || st == nil {
 			return
 		}
 		if st.Lower != nil {
 			for _, row := range st.Lower.Rows {
-				if _, err := w.c().ChooseLower(w.ctx, co.user, co.camp.id, row.Index); err == nil {
+				if _, err := w.c().ChooseLower(w.ctx, co.user, co.camp.id, co.id, row.Index); err == nil {
 					break
 				}
 			}
 			continue
 		}
 		if st.Rolled {
-			if _, err := w.c().ConfirmRecruit(w.ctx, co.user, co.camp.id, 0, ""); err != nil {
+			if _, err := w.c().ConfirmRecruit(w.ctx, co.user, co.camp.id, co.id, 0, ""); err != nil {
 				return
 			}
 			continue
@@ -430,6 +417,7 @@ func seedWorld(ctx context.Context, b *backend, dice *demoDice, password string,
 		{"settings, editions and the end", w.settingsCampaigns},
 		{"aura parade", w.auraParade},
 		{"cemetery, invites and handover", w.finishingTouches},
+		{"several companies per player", w.bandsCampaign},
 	} {
 		fmt.Fprintln(out, "==", step.name)
 		step.run()

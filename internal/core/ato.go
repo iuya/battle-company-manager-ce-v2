@@ -1,12 +1,13 @@
 package core
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 // Against the Odds before the game (docs/matches.md): the lower rated company spends the Rating gap on bonuses after the scenario roll
@@ -28,6 +29,15 @@ const (
 	atoWanderer = "wanderer"
 	atoAmbush   = "ambush"
 )
+
+// ATOPracticeReason is why a bonus that only pays after the match is disabled in a practice match.
+const ATOPracticeReason = "No reward in a practice match"
+
+// atoRewardBonus says whether the bonus only acts as a reward after the match (influence, experience, re-rolls): a practice match
+// awards nothing, so these cannot be taken there. The table effects (kits, Wanderer, Ambush!) stay.
+func atoRewardBonus(key string) bool {
+	return key == "influence" || key == "experience" || key == "reroll"
+}
 
 // ATOBonusRule is a bonus of campaign.againstTheOdds.bonuses.
 type ATOBonusRule struct {
@@ -94,70 +104,42 @@ func (r ATORules) Wanderer(name string) (ATOWandererRule, bool) {
 	return r.Wanderers[i], true
 }
 
-// ParseATO reads the Against the Odds rules of the Battle Companies file.
-func ParseATO(content []byte) (ATORules, error) {
-	var doc struct {
-		Campaign struct {
-			AgainstTheOdds struct {
-				Budget struct {
-					Inclusive bool `json:"inclusive"`
-				} `json:"budget"`
-				Bonuses []struct {
-					Key       string   `json:"key"`
-					Name      string   `json:"name"`
-					Text      string   `json:"text"`
-					Rating    int      `json:"rating"`
-					Count     int      `json:"count"`
-					AppliesIn []string `json:"appliesIn"`
-					Purchase  struct {
-						Max int `json:"maxPurchases"`
-					} `json:"purchase"`
-					Kits []struct {
-						Name  string `json:"name"`
-						Items []struct {
-							Equipment string `json:"equipment"`
-							Count     int    `json:"count"`
-						} `json:"items"`
-					} `json:"kits"`
-				} `json:"bonuses"`
-			} `json:"againstTheOdds"`
-		} `json:"campaign"`
-		Data struct {
-			Equipment struct {
+// LeanATO reads the Against the Odds rules of a lean document: the bonuses of campaign.againstTheOdds (the table as the file stores it
+// until a parameter slice types it), the equipment the kits name and the wanderers a match may recruit.
+func LeanATO(d *lean.Document, vanilla *VanillaBook) (ATORules, error) {
+	var ato struct {
+		Budget struct {
+			Inclusive bool `json:"inclusive"`
+		} `json:"budget"`
+		Bonuses []struct {
+			Key       string   `json:"key"`
+			Name      string   `json:"name"`
+			Text      string   `json:"text"`
+			Rating    int      `json:"rating"`
+			Count     int      `json:"count"`
+			AppliesIn []string `json:"appliesIn"`
+			Purchase  struct {
+				Max int `json:"maxPurchases"`
+			} `json:"purchase"`
+			Kits []struct {
+				Name  string `json:"name"`
 				Items []struct {
-					Name         string   `json:"name"`
-					Restrictions []string `json:"restrictions"`
-					Effect       string   `json:"aftermathEffect"`
+					Equipment string `json:"equipment"`
+					Count     int    `json:"count"`
 				} `json:"items"`
-			} `json:"equipment"`
-			Wanderers struct {
-				Items []struct {
-					Name      string `json:"name"`
-					Points    int    `json:"points"`
-					Fight     int    `json:"fight"`
-					Strength  int    `json:"strength"`
-					Defence   int    `json:"defence"`
-					Attack    int    `json:"attack"`
-					Wounds    int    `json:"wounds"`
-					Courage   int    `json:"courage"`
-					Shoot     int    `json:"shoot"`
-					Intellect int    `json:"intelligence"`
-					Might     int    `json:"might"`
-					Will      int    `json:"will"`
-					Fate      int    `json:"fate"`
-				} `json:"items"`
-			} `json:"wanderers"`
-		} `json:"data"`
+			} `json:"kits"`
+		} `json:"bonuses"`
 	}
-	if err := json.Unmarshal(content, &doc); err != nil {
-		return ATORules{}, errors.Join(ErrInvalidRuleset, errors.New("the Battle Companies file is not valid JSON"))
+	if err := leanRoundTrip(d.Campaign.AgainstTheOdds, &ato); err != nil {
+		return ATORules{}, errors.Join(ErrInvalidRuleset, err)
 	}
 	heroOnly, afterGame := map[string]bool{}, map[string]bool{}
-	for _, it := range doc.Data.Equipment.Items {
-		heroOnly[it.Name] = slices.Contains(it.Restrictions, "hero")
-		afterGame[it.Name] = it.Effect != ""
+	for _, it := range d.Gear {
+		if it.Kind == "equipment" {
+			heroOnly[it.Name] = slices.Contains(it.Who.Badges(), "hero")
+			afterGame[it.Name] = it.AftermathEffect != ""
+		}
 	}
-	ato := doc.Campaign.AgainstTheOdds
 	r := ATORules{Inclusive: ato.Budget.Inclusive}
 	for _, b := range ato.Bonuses {
 		r.Bonuses = append(r.Bonuses, ATOBonusRule{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, GivesRerolls: b.Count, AppliesIn: b.AppliesIn})
@@ -173,9 +155,14 @@ func ParseATO(content []byte) (ATORules, error) {
 			r.Kits = append(r.Kits, kit)
 		}
 	}
-	for _, w := range doc.Data.Wanderers.Items {
-		r.Wanderers = append(r.Wanderers, ATOWandererRule{Name: w.Name, OwnPrice: w.Points, Wounds: w.Wounds, Might: w.Might, Will: w.Will, Fate: w.Fate, Courage: w.Courage,
-			Summary: fmt.Sprintf("Fight %d, Strength %d, Defence %d, Attacks %d, Wounds %d, Courage %d", w.Fight, w.Strength, w.Defence, w.Attack, w.Wounds, w.Courage)})
+	for _, g := range d.Gear {
+		if g.Kind != "wanderer" {
+			continue
+		}
+		w := wandererFrom(followerItem(g), vanilla)
+		st := w.Stats
+		r.Wanderers = append(r.Wanderers, ATOWandererRule{Name: w.Name, OwnPrice: w.Points, Wounds: st["wounds"], Might: st["might"], Will: st["will"], Fate: st["fate"], Courage: st["courage"],
+			Summary: fmt.Sprintf("Fight %d, Strength %d, Defence %d, Attacks %d, Wounds %d, Courage %d", st["fight"], st["strength"], st["defence"], st["attack"], st["wounds"], st["courage"])})
 	}
 	if _, ok := r.Bonus(atoToolKit); ok && (len(r.Kits) == 0 || r.MaxKits < 1) {
 		return ATORules{}, errors.Join(ErrInvalidRuleset, errors.New("the Tool Kit bonus has no kits"))
@@ -362,6 +349,7 @@ type ATOOption struct {
 	Taken           bool
 	Disabled        bool
 	Reason          string // why it cannot be chosen now ("Needs 45, 10 left")
+	OverBudget      bool   // the budget alone stops it (the page works that out live); any other Reason is a rule
 	AppliesIn       []string
 }
 

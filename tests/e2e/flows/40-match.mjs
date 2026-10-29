@@ -195,7 +195,7 @@ export default async function (h) {
     await you.page.waitForFunction(() => document.getElementById('live-dot-text')?.textContent.includes('Updating every few seconds'), { timeout: 8000 });
     await eowyn.click('main button[aria-label="Might of Rider of Rohan down by one"]', '');
     await you.page.waitForSelector(might(0), { timeout: 15000 }); // the poll runs every 10 s
-    await eowyn.click('main button[aria-label="Might of Rider of Rohan up by one"]', ''); // (the Undo toast is gone by now)
+    await eowyn.click('main button[aria-label="Might of Rider of Rohan up by one"]', ''); // (the Undo toast is gone by then)
     await you.page.waitForSelector(might(1), { timeout: 15000 });
     streamMode = 'open';
     await you.goto(`/campaigns/${cid}/companies/${eCo}`);

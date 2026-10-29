@@ -10,7 +10,7 @@ import (
 )
 
 // The numbers of the rules (campaign.company.leaders, .sergeants, campaign.progression.threshold) are printed from the views, never typed in a
-// template (docs/definitions-lean-design.md 12.6).
+// template.
 
 func TestTheCreationPageDrawsAsManyOfficerPlacesAsTheRulesGive(t *testing.T) {
 	for _, tt := range []struct {
@@ -42,21 +42,13 @@ func TestTheExperienceBarPrintsTheRulesThreshold(t *testing.T) {
 	detail.Roster[0].Type, detail.Roster[0].XP, detail.Roster[0].LevelEvery, detail.Roster[0].Level, detail.Roster[0].Role = "Wood Elf Sentinel", 7, 3, 0, core.RoleWarrior
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	if !strings.Contains(body, "7 / 3 XP") || strings.Contains(body, "/ 5 XP") || !strings.Contains(body, `aria-valuemax="3"`) || !strings.Contains(body, "width: 100%") || !strings.Contains(body, "×2") {
 		t.Errorf("the bar says 7 / 3 XP, full, with 2 rolls waiting")
-	}
-}
-
-func TestCountWords(t *testing.T) {
-	for n, want := range map[int]string{0: "no Sergeants", 1: "one Sergeant", 2: "two Sergeants", 6: "six Sergeants", 7: "7 Sergeants"} {
-		if got := countWords(n, "Sergeant"); got != want {
-			t.Errorf("countWords(%d) = %q, want %q", n, got, want)
-		}
 	}
 }
 
@@ -78,9 +70,9 @@ func TestTheTreatmentWindowFollowsTheDiceOfTheRules(t *testing.T) {
 		detail.Injuries = core.InjuryRules{Attempt: core.TreatMethod{Key: "attempt", Cost: 1, Target: 8, TreatDice: tt.spec, Healable: []string{"armWound"}, PerPoint: 1, Ceiling: tt.spec.Max()}}
 		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 		f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-		f.camp.EXPECT().TreatmentState(gomock.Any(), frodo, int64(7), int64(5)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().TreatmentState(gomock.Any(), frodo, int64(7), int64(1), int64(5)).Return(nil, nil).AnyTimes()
 		f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
-		body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/units/5/treat", nil))).Body.String()
+		body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/units/5/treat", nil))).Body.String()
 		for _, want := range tt.want {
 			if !strings.Contains(body, want) {
 				t.Errorf("%s: the treatment window lacks %q", tt.spec, want)
@@ -102,11 +94,11 @@ func TestTheRerollCardPrintsTheBonusOfTheRules(t *testing.T) {
 	detail.RuleDice.RerollRating, detail.RuleDice.RerollCount = 40, 3
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	if !strings.Contains(body, "it costs 40 rating): 3 re-rolls") || strings.Contains(body, "15 rating") {
 		t.Errorf("the re-roll card says 40 rating and 3 re-rolls")
 	}

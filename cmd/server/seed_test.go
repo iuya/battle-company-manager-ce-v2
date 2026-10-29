@@ -14,9 +14,6 @@ func TestSeedRunsTwice(t *testing.T) {
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL is not set")
 	}
-	if err := os.Chdir("../.."); err != nil { // definitions/ is read relative to the repository root
-		t.Fatal(err)
-	}
 	ctx := context.Background()
 	url = freshDatabase(ctx, t, url) // empty, whatever the other tests left in the test database
 	store, err := postgres.Open(ctx, url)

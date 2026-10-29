@@ -90,10 +90,10 @@ func TestRingGeometryAndColours(t *testing.T) {
 	}
 }
 
-func TestRingBaseFromBoundsAndFromPayload(t *testing.T) {
+func TestRingBaseFromBoundsPayloadBaseIgnored(t *testing.T) {
 	w, figs := ringWorld(t)
 	figs[4].Size = [3]float64{1.5, 1, 1.2} // the larger half side is 0.75
-	figs[8].Size = [3]float64{3, 1, 3}     // the payload says b = 0.6: the bounds are ignored
+	figs[8].Size = [3]float64{3, 1, 3}     // the payload still says b = 0.6 (an old payload): it is ignored, the bounds count
 	w.Press("applyNames", "White")
 	if r := radiusOf(ours(figs[4])[0]); !near(r, 3+0.75-0.0225) {
 		t.Errorf("bounds based radius %.4f", r)
@@ -104,8 +104,8 @@ func TestRingBaseFromBoundsAndFromPayload(t *testing.T) {
 			enemy = l
 		}
 	}
-	if r := radiusOf(enemy); !near(r, 12+0.6-0.0225) {
-		t.Errorf("payload base radius %.4f", r)
+	if r := radiusOf(enemy); !near(r, 12+1.5-0.0225) {
+		t.Errorf("bounds radius, payload b ignored %.4f", r)
 	}
 }
 

@@ -2,7 +2,7 @@
 // the requests that fetch the list, and copies the list to the clipboard. No inline handlers: the page's CSP forbids them.
 (function () {
   const KEY = 'bcm-tts';
-  // The Auras section (docs/aura-ranges.md): the master switch and the groups declared and conditional are on by default, as the owner chose;
+  // The Auras section (docs/aura-ranges.md): the master switch and the groups declared and conditional are on by default;
   // The kinds the player unchecked are remembered (akoff), so a kind this company lacks keeps its setting for the next; akinds, the list of the kinds that are on, is
   // sent only when one is off (absent means every kind).
   const KINDS = ['banner', 'command', 'support', 'enemy', 'utility'];

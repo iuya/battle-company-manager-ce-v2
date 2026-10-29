@@ -132,3 +132,35 @@ func TestGrantRewardSentTwiceIsGrantedOnce(t *testing.T) {
 		}
 	}
 }
+
+func TestValidationMessagesLandUnderTheirField(t *testing.T) {
+	_, err := core.GrantInput{Gold: 5000, Influence: -500, Experience: 500}.Validate()
+	got := map[string]string{}
+	for _, fr := range fieldReasons(err) {
+		got[fr.Field] = fr.Msg
+	}
+	for field, want := range map[string]string{
+		"note": "The note must be between 1 and 200 characters", "gold": "Gold must be between -1000 and 1000",
+		"influence": "Influence must be between -100 and 100", "experience": "Experience must be between -100 and 100",
+		"unit": "Choose the unit that gets the experience",
+	} {
+		if got[field] != want {
+			t.Errorf("grant field %q: %q, want %q", field, got[field], want)
+		}
+	}
+	_, err = core.GrantInput{Note: "x"}.Validate()
+	if fr := fieldReasons(err); len(fr) != 1 || fr[0].Field != "" || fr[0].Msg != "Give some Gold, Influence or Experience" {
+		t.Errorf("a message about the whole form has no field: %+v", fr)
+	}
+
+	_, err = core.ScenarioInput{Kind: core.ScenarioCustom, Description: strings.Repeat("x", 1001), Victory: strings.Repeat("x", 1001)}.Validate()
+	sc := scenarioErrors(err)
+	for field, want := range map[string]string{
+		"name": "The name must be between 1 and 60 characters", "description": "The description can have at most 1000 characters",
+		"victory": "How it is won can have at most 1000 characters",
+	} {
+		if sc[field] != want {
+			t.Errorf("scenario field %q: %q, want %q", field, sc[field], want)
+		}
+	}
+}

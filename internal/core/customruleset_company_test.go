@@ -2,11 +2,12 @@ package core
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 	"testing"
 )
 
-// The rows of TestCustomRuleset for slices P2 and P3 (docs/definitions-lean-design.md 12.8): the shape of a company (officers, hero start,
+// The company rows of TestCustomRuleset (docs/testing.md, "Custom rulesets"): the shape of a company (officers, hero start,
 // model limits, XP per level), the hero rating threshold, the limits, the creature, wanderer and path limits and the caps on Courage and
 // Intelligence. Each changes one value of the shipped file and asserts the new behaviour; the "unchanged file" row asserts the default.
 
@@ -88,7 +89,7 @@ func p2p3Rows(t *testing.T) []struct {
 
 	return []row{
 		{"P2 unchanged file: the shape of the shipped company", noChange, func(t *testing.T, rs *RuleSet) {
-			if got, want := rs.BC.Shape(), (CompanyRules{Leaders: 1, Sergeants: 2, HeroStart: HeroStart{1, 1, 1}, MaxModels: 15, EliteMaxModels: 12, EquipmentSlots: SlotCounts{Large: 1, Small: 1}}); got != want {
+			if got, want := rs.BC.Shape(), (CompanyRules{Leaders: 1, Sergeants: 2, HeroStart: HeroStart{1, 1, 1}, MaxModels: 15, EquipmentSlots: SlotCounts{Large: 1, Small: 1}}); got != want {
 				t.Errorf("shape = %+v, want %+v", got, want)
 			}
 			if got := rs.BC.Progression().Threshold; got != 5 {
@@ -163,8 +164,8 @@ func p2p3Rows(t *testing.T) []struct {
 			}
 		}},
 		{"P2 B3: a new hero starts with 2 Might, 1 Will and no Fate", func(t *testing.T, doc map[string]any) {
-			campaignAt(t, doc, "campaign", "company", "startingHeroStats")["might"] = 2.0
-			campaignAt(t, doc, "campaign", "company", "startingHeroStats")["fate"] = 0.0
+			campaignAt(t, doc, "campaign", "company", "heroStart")["might"] = 2.0
+			campaignAt(t, doc, "campaign", "company", "heroStart")["fate"] = 0.0
 		}, func(t *testing.T, rs *RuleSet) {
 			want := map[string]int{"might": 2, "will": 1, "fate": 0}
 			if got := rs.BC.HeroBonus(nil); got["might"] != want["might"] || got["will"] != want["will"] || got["fate"] != want["fate"] {
@@ -283,28 +284,28 @@ func p2p3Rows(t *testing.T) []struct {
 			}
 		}},
 		{"P3 B10: maxPerHero 0 gives no officer a creature", func(t *testing.T, doc map[string]any) {
-			campaignAt(t, doc, "data", "creatures", "rules")["maxPerHero"] = 0.0
+			campaignAt(t, doc, "creatures", "rules")["maxPerHero"] = 0.0
 		}, func(t *testing.T, rs *RuleSet) {
 			cr, offers := rs.BC.Creatures()
 			if cr.MaxPerHero != 0 || len(offers) == 0 {
 				t.Fatalf("creature rules %+v", cr)
 			}
-			if why := creatureReason(cr, CompanyDetail{}, offers[0], CompanyUnit{Role: RoleLeader}); why == "" {
+			if why, _ := creatureReason(cr, CompanyDetail{}, offers[0], CompanyUnit{Role: RoleLeader}); why == "" {
 				t.Error("an officer cannot take a creature when the rules allow none")
 			}
 		}},
 		{"P3 B10: unchanged creature rules, one per officer and no company-wide count", noChange, func(t *testing.T, rs *RuleSet) {
 			cr, offers := rs.BC.Creatures()
 			many := CompanyDetail{Creatures: make([]CompanyCreature, 5)}
-			if why := creatureReason(cr, many, offers[0], CompanyUnit{Role: RoleLeader, Creature: &UnitCreatureRef{}}); !strings.HasPrefix(why, "Already has") {
+			if why, _ := creatureReason(cr, many, offers[0], CompanyUnit{Role: RoleLeader, Creature: &UnitCreatureRef{}}); !strings.HasPrefix(why, "Already has") {
 				t.Errorf("an officer with a creature: %q", why)
 			}
-			if why := creatureReason(cr, many, offers[0], CompanyUnit{Role: RoleSergeant}); strings.Contains(why, "company already has") {
+			if why, _ := creatureReason(cr, many, offers[0], CompanyUnit{Role: RoleSergeant}); strings.Contains(why, "company already has") {
 				t.Errorf("no company-wide limit, the count follows from the officers: %q", why)
 			}
 		}},
 		{"P3 B10: wanderers.rules.maxAtOnce 2 lets a second wanderer in", func(t *testing.T, doc map[string]any) {
-			campaignAt(t, doc, "data", "wanderers", "rules")["maxAtOnce"] = 2.0
+			campaignAt(t, doc, "wanderers", "rules")["maxAtOnce"] = 2.0
 		}, func(t *testing.T, rs *RuleSet) {
 			wr, _ := rs.BC.Wanderers()
 			if wr.MaxAtOnce != 2 {
@@ -315,29 +316,29 @@ func p2p3Rows(t *testing.T) []struct {
 			f.update()
 			s := NewArmouryService(f.campaigns, f.companies, staticRules{rs})
 			for i := 1; i <= 2; i++ {
-				if err := s.HireWanderer(f.ctx, f.user, 5, "Wandering Swordsman", ""); err != nil {
+				if err := s.HireWanderer(f.ctx, f.user, 5, 1, "Wandering Swordsman", ""); err != nil {
 					t.Fatalf("wanderer %d: %v", i, err)
 				}
 			}
-			if err := s.HireWanderer(f.ctx, f.user, 5, "Wandering Swordsman", ""); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "2 wanderers") {
+			if err := s.HireWanderer(f.ctx, f.user, 5, 1, "Wandering Swordsman", ""); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "2 wanderers") {
 				t.Errorf("a third is refused with the number: %v", err)
 			}
 		}},
 		{"P3 B10: wanderers.rules.maxAtOnce 0 hires none", func(t *testing.T, doc map[string]any) {
-			campaignAt(t, doc, "data", "wanderers", "rules")["maxAtOnce"] = 0.0
+			campaignAt(t, doc, "wanderers", "rules")["maxAtOnce"] = 0.0
 		}, func(t *testing.T, rs *RuleSet) {
 			f := newCompanyFixture(t)
 			f.state.Influence = 40
 			f.update()
 			s := NewArmouryService(f.campaigns, f.companies, staticRules{rs})
-			if err := s.HireWanderer(f.ctx, f.user, 5, "Wandering Swordsman", ""); !errors.Is(err, ErrRefused) {
+			if err := s.HireWanderer(f.ctx, f.user, 5, 1, "Wandering Swordsman", ""); !errors.Is(err, ErrRefused) {
 				t.Errorf("no wanderer may be hired: %v", err)
 			}
 		}},
 		{"P3 B10: a path limit of 2 lets two heroes take the Sorcerer", func(t *testing.T, doc map[string]any) {
-			for _, p := range doc["data"].(map[string]any)["paths"].([]any) {
+			for _, p := range doc["paths"].([]any) {
 				if m := p.(map[string]any); m["name"] == "Path of the Sorcerer" {
-					m["limitPerCompany"] = 2.0
+					m["limit"] = 2.0
 				}
 			}
 		}, func(t *testing.T, rs *RuleSet) {
@@ -371,7 +372,7 @@ func p2p3Rows(t *testing.T) []struct {
 		}},
 		{"shem: a changed default peak Will of 4 holds the other paths only", func(t *testing.T, doc map[string]any) {
 			campaignAt(t, doc, "campaign", "characteristicLimits", "peak", "will")["max"] = 4.0
-			for _, p := range doc["data"].(map[string]any)["paths"].([]any) {
+			for _, p := range doc["paths"].([]any) {
 				if m := p.(map[string]any); m["name"] == "Path of the Duelist" {
 					m["maximums"].(map[string]any)["will"] = map[string]any{"max": 5.0}
 				}
@@ -431,21 +432,18 @@ func TestCustomRulesetRefusesBadCompanyAndLimitParameters(t *testing.T) {
 		{"sergeants missing", func(doc map[string]any) { delete(company(doc), "sergeants") }, "campaign.company.sergeants is missing"},
 		{"more officers than models", func(doc map[string]any) {
 			company(doc)["maxModels"] = 2.0
-			delete(company(doc), "eliteMaxModels")
-			company(doc)["eliteMaxModels"] = 2.0
-		}, "are more than maxModels 2"},
+		}, "more than maxModels 2"},
 		{"a company with fewer models than officers", func(doc map[string]any) {
-			for _, c := range doc["data"].(map[string]any)["companies"].([]any) {
+			for _, c := range doc["companies"].([]any) {
 				if m := c.(map[string]any); m["name"] == "The Last Alliance" {
 					m["maxModels"] = 2.0
 				}
 			}
-		}, "data.companies[The Last Alliance].maxModels: 2 is fewer than the 3 officers"},
+		}, "the starting force has 6 models, more than maxModels 2"},
 		{"maxModels too high", func(doc map[string]any) { company(doc)["maxModels"] = 51.0 }, "campaign.company.maxModels: 51 is outside 1..50"},
-		{"eliteMaxModels missing", func(doc map[string]any) { delete(company(doc), "eliteMaxModels") }, "campaign.company.eliteMaxModels is missing"},
-		{"hero start missing", func(doc map[string]any) { delete(company(doc), "startingHeroStats") }, "campaign.company.startingHeroStats is missing"},
-		{"hero start too high", func(doc map[string]any) { company(doc)["startingHeroStats"].(map[string]any)["will"] = 6.0 }, "campaign.company.startingHeroStats.will: 6 is outside 0..5"},
-		{"hero start fate missing", func(doc map[string]any) { delete(company(doc)["startingHeroStats"].(map[string]any), "fate") }, "campaign.company.startingHeroStats.fate is missing"},
+		{"hero start missing", func(doc map[string]any) { delete(company(doc), "heroStart") }, "campaign.company.heroStart is missing"},
+		{"hero start too high", func(doc map[string]any) { company(doc)["heroStart"].(map[string]any)["will"] = 6.0 }, "campaign.company.heroStart.will: 6 is outside 0..5"},
+		{"hero start fate missing", func(doc map[string]any) { delete(company(doc)["heroStart"].(map[string]any), "fate") }, "campaign.company.heroStart.fate is missing"},
 		{"threshold 0", func(doc map[string]any) { campaignAt(t, doc, "campaign", "progression")["threshold"] = 0.0 }, "campaign.progression.threshold: 0 is outside 1..50"},
 		{"threshold 51", func(doc map[string]any) { campaignAt(t, doc, "campaign", "progression")["threshold"] = 51.0 }, "campaign.progression.threshold: 51 is outside 1..50"},
 		{"threshold missing", func(doc map[string]any) { delete(campaignAt(t, doc, "campaign", "progression"), "threshold") }, "campaign.progression.threshold is missing"},
@@ -463,25 +461,20 @@ func TestCustomRulesetRefusesBadCompanyAndLimitParameters(t *testing.T) {
 		{"limit share missing", func(doc map[string]any) { delete(limitNamed(t, doc, "bow"), "maximumPercentage") }, "limits[0].maximumPercentage is missing"},
 		{"limit roundUp missing", func(doc map[string]any) { delete(limitNamed(t, doc, "bow"), "roundUp") }, "limits[0].roundUp is missing"},
 		{"limit class unknown", func(doc map[string]any) { limitNamed(t, doc, "bow")["classes"] = []any{"bow", "sling"} }, `limits[0].classes[1]: "sling" is not an item class`},
-		{"limit classes missing", func(doc map[string]any) { delete(limitNamed(t, doc, "throwing"), "classes") }, "limits[1].classes is missing"},
-		{"limit keyword unknown", func(doc map[string]any) { limitNamed(t, doc, "cavalry")["value"] = "Elf" }, `limits[2].value: "Elf" is not a keyword the engine counts`},
-		{"creatures per hero missing", func(doc map[string]any) { delete(campaignAt(t, doc, "data", "creatures", "rules"), "maxPerHero") }, "data.creatures.rules.maxPerHero is missing"},
-		{"creatures per hero 100", func(doc map[string]any) { campaignAt(t, doc, "data", "creatures", "rules")["maxPerHero"] = 100.0 }, "data.creatures.rules.maxPerHero: 100 is outside 0..99"},
-		{"creatures per hero 2", func(doc map[string]any) { campaignAt(t, doc, "data", "creatures", "rules")["maxPerHero"] = 2.0 }, "data.creatures.rules.maxPerHero: 2 is not supported"},
-		{"wanderers at once missing", func(doc map[string]any) { delete(campaignAt(t, doc, "data", "wanderers", "rules"), "maxAtOnce") }, "data.wanderers.rules.maxAtOnce is missing"},
-		{"wanderers at once -1", func(doc map[string]any) { campaignAt(t, doc, "data", "wanderers", "rules")["maxAtOnce"] = -1.0 }, "data.wanderers.rules.maxAtOnce: -1 is outside 0..99"},
-		{"path limit -1", func(doc map[string]any) {
-			jsonAt(t, doc, "data", "paths", 5).(map[string]any)["limitPerCompany"] = -1.0
-		}, "limitPerCompany: -1 is outside 0..99"},
+		{"creatures per hero 100", func(doc map[string]any) { campaignAt(t, doc, "creatures", "rules")["maxPerHero"] = 100.0 }, "creatures.rules.maxPerHero: 100 is outside 0..99"},
+		{"wanderers at once -1", func(doc map[string]any) { campaignAt(t, doc, "wanderers", "rules")["maxAtOnce"] = -1.0 }, "wanderers.rules.maxAtOnce: -1 is outside 0..99"},
 		{"cap value 0", func(doc map[string]any) {
 			campaignAt(t, doc, "campaign", "characteristicLimits", "increases", "courageIntelligenceTotalCap")["value"] = 0.0
 		}, "campaign.characteristicLimits.increases.courageIntelligenceTotalCap.value: 0 is outside 1..10"},
+		{"path limit -1", func(doc map[string]any) {
+			jsonAt(t, doc, "paths", 5).(map[string]any)["limit"] = -1.0
+		}, "paths[5].limit: -1 is outside 0..99"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := customRulesetErr(t, tt.mutate)
-			if err == nil || !strings.Contains(err.Error(), tt.want) {
-				t.Errorf("error = %v, want one containing %q", err, tt.want)
+			if err == nil || !strings.Contains(err.Error(), leanWording(tt.want)) {
+				t.Errorf("error = %v, want one containing %q", err, leanWording(tt.want))
 			}
 		})
 	}
@@ -507,4 +500,16 @@ func TestWillMaxOverridesValidated(t *testing.T) {
 			t.Errorf("%s=%v: %v", name, val, err)
 		}
 	}
+}
+
+var outsideRange = regexp.MustCompile(` is outside (-?[0-9.]+\.\.-?[0-9.]+)`)
+
+// leanWording writes the expected message of a bad parameter in the words of the lean decoder ("x: 0 is out of range 1..3", "x: missing").
+func leanWording(want string) string {
+	want = strings.NewReplacer("(0, 100]", "0.01..100", "is not a characteristic", "is not a valid characteristic", "is not an item class", "is not a valid gear class").Replace(want)
+	want = outsideRange.ReplaceAllString(want, " is out of range $1")
+	if p, ok := strings.CutSuffix(want, " is missing"); ok {
+		return p + ": missing"
+	}
+	return want
 }

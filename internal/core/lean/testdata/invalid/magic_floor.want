@@ -1,0 +1,3 @@
+battle_companies.json: magic.maxPerPower: 0 is out of range 1..6
+battle_companies.json: magic.powers["Fortify Spirit"].casting: "1+" is below magic.floor 2: a casting value is never better than the floor
+  hint: raise the casting value or lower magic.floor

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
@@ -51,6 +53,40 @@ func (s *Server) handleCampaignStatus(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleSetCompanyCap changes how many companies each player may have (1 to 4; the organiser and administrators). Success reloads the
+// overview (the settings list and the players' controls show the new number); a refusal is shown on the control.
+func (s *Server) handleSetCompanyCap(w http.ResponseWriter, r *http.Request) {
+	base, ok := s.loadCampaign(w, r, "overview")
+	if !ok {
+		return
+	}
+	user := *userFrom(r.Context())
+	if !core.CanManageCampaign(user, base.Campaign.OrganiserID) {
+		s.refuse(w, r, http.StatusForbidden, "Only the organiser of the campaign or an administrator can change this.")
+		return
+	}
+	n, perr := strconv.Atoi(strings.TrimSpace(r.PostFormValue("companies")))
+	err := perr
+	if perr != nil {
+		err = errors.Join(core.ErrInvalidCampaign, perr)
+		n = 0
+	} else {
+		err = s.campaigns.SetCompaniesPerPlayer(r.Context(), user, base.Campaign.ID, n)
+	}
+	switch {
+	case err == nil:
+		redirect(w, r, "/campaigns/"+itoa(int(base.Campaign.ID)))
+	case errors.Is(err, core.ErrRefused) || errors.Is(err, core.ErrInvalidCampaign):
+		msg := reason(err)
+		if perr != nil {
+			msg = "Enter a number from 1 to " + itoa(core.MaxCompaniesPerPlayer) + "."
+		}
+		s.render.partial(w, http.StatusUnprocessableEntity, "campaign_overview", "companies_cap_card", map[string]any{"CampaignID": base.Campaign.ID, "Cap": base.Campaign.Settings.CompanyCap(), "Error": msg})
+	default:
+		s.fail(w, r, err)
+	}
+}
+
 // inviteAnswer renders the invite block again; base is the campaign as loaded before the change.
 func (s *Server) inviteAnswer(w http.ResponseWriter, r *http.Request, status int, card inviteCard) {
 	s.render.partial(w, status, "campaign_overview", "invite_card", card)
@@ -85,7 +121,7 @@ func (s *Server) handleInvalidateInvites(w http.ResponseWriter, r *http.Request)
 	}
 	card.Active, card.Notice = 0, "No link works any more."
 	if n > 0 {
-		card.Notice = itoa(n) + " link" + map[bool]string{true: "", false: "s"}[n == 1] + " stopped working. The players who joined stay."
+		card.Notice = itoa(n) + " " + core.Plural(n, "link", "links") + " stopped working. The players who joined stay."
 	}
 	s.inviteAnswer(w, r, http.StatusOK, card)
 }

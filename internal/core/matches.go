@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"slices"
-	"sync"
 	"time"
 )
 
@@ -14,14 +13,13 @@ import (
 // Core.Campaigns / the wiring compose it next to the other services.
 type Matches struct {
 	companyDeps
-	matches  matchRepository
-	rulesets rulesetRepository
+	matches matchRepository
 
 	// AftermathStarted, when set, tells whether any company has started the War's Aftermath of a match; ReopenMatch is refused
 	// once one has. The aftermath layer provides it when it is wired; nil means "never".
 	AftermathStarted func(ctx context.Context, campaignID, matchID int64) (bool, error)
 	// CompanyAftermaths, when set, lists the aftermaths a company still has to finish; a company with any cannot start a match
-	// (REVIEW pib.24: no; the lock would stop its roster actions anyway). LiveInit, when set, stores the starting values of the
+	// (its roster actions stay open meanwhile). LiveInit, when set, stores the starting values of the
 	// live mode right after the match is created; its failure is ignored, the first read initialises (LiveService).
 	CompanyAftermaths func(ctx context.Context, campaignID, companyID int64) ([]AftermathRef, error)
 	LiveInit          func(ctx context.Context, campaignID, matchID int64) error
@@ -31,18 +29,13 @@ type Matches struct {
 	EndNotify func(ctx context.Context, ch EndChange)
 
 	ato atoRepository // optional (WithATO): the Against the Odds selection
-
-	mu        sync.Mutex
-	scenarios map[string][]ScenarioInfo // by Battle Companies file hash; files never change
-	selection map[string]ScenarioSelection
-	atoCache  map[string]ATORules // the same for the Against the Odds rules
 }
 
 // NewMatches builds the service. rules is the loader (*Rules).
-func NewMatches(campaigns campaignRepository, companies companyRepository, matches matchRepository, rulesets rulesetRepository, rules ruleSource) *Matches {
+func NewMatches(campaigns campaignRepository, companies companyRepository, matches matchRepository, rules ruleSource) *Matches {
 	return &Matches{
 		companyDeps: companyDeps{campaigns: campaigns, companies: companies, rules: rules, dice: RandomDice{}},
-		matches:     matches, rulesets: rulesets, scenarios: map[string][]ScenarioInfo{}, selection: map[string]ScenarioSelection{},
+		matches:     matches,
 	}
 }
 
@@ -55,7 +48,7 @@ func (s *Matches) Matches(ctx context.Context, id int64) ([]Match, error) {
 	if err != nil {
 		return nil, err
 	}
-	rate, err := s.rater(ctx, id)
+	rate, err := s.rater(ctx, id, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -78,8 +71,8 @@ func (s *Matches) Match(ctx context.Context, id, matchID int64) (Match, error) {
 
 // CreateMatch starts an open match. An error wrapping ErrInvalidMatch when the sides are rejected, ErrRefused when the
 // campaign is finished or a company has an officer that has not chosen its path, ErrNotFound when the user is not in the campaign.
-func (s *Matches) CreateMatch(ctx context.Context, user User, id int64, sides []NewSide) (Match, error) {
-	sides, err := ValidateSides(sides)
+func (s *Matches) CreateMatch(ctx context.Context, user User, id int64, in NewMatch) (Match, error) {
+	sides, err := ValidateSides(in.Sides)
 	if err != nil {
 		return Match{}, err
 	}
@@ -115,7 +108,7 @@ func (s *Matches) CreateMatch(ctx context.Context, user User, id int64, sides []
 			}
 		}
 	}
-	m, err := s.matches.Create(ctx, id, user, sides) // refuses with *CompanyBusyError when a company is in another open match
+	m, err := s.matches.Create(ctx, id, user, NewMatch{Sides: sides, Practice: in.Practice}) // refuses with *CompanyBusyError when a company is in another open match
 	if err != nil {
 		return m, err
 	}
@@ -131,7 +124,7 @@ func (s *Matches) Scenarios(ctx context.Context, id int64) ([]ScenarioInfo, erro
 	if err != nil {
 		return nil, err
 	}
-	return s.scenarioList(ctx, h.BattleCompanies)
+	return s.scenarioList(ctx, h)
 }
 
 // ScenarioSelection is how the campaign's rules pick a scenario by dice: the size of the two dice and the table ranges of the first.
@@ -140,43 +133,19 @@ func (s *Matches) ScenarioSelection(ctx context.Context, id int64) (ScenarioSele
 	if err != nil {
 		return ScenarioSelection{}, err
 	}
-	s.mu.Lock()
-	sel, ok := s.selection[h.BattleCompanies]
-	s.mu.Unlock()
-	if ok {
-		return sel, nil
-	}
-	file, err := s.rulesets.Get(ctx, h.BattleCompanies)
+	rs, err := s.rules.For(ctx, h)
 	if err != nil {
 		return ScenarioSelection{}, err
 	}
-	if sel, err = ParseScenarioSelection(file.Content); err != nil {
-		return ScenarioSelection{}, err
-	}
-	s.mu.Lock()
-	s.selection[h.BattleCompanies] = sel
-	s.mu.Unlock()
-	return sel, nil
+	return rs.BC.Selection(), nil
 }
 
-func (s *Matches) scenarioList(ctx context.Context, hash string) ([]ScenarioInfo, error) {
-	s.mu.Lock()
-	list, ok := s.scenarios[hash]
-	s.mu.Unlock()
-	if ok {
-		return list, nil
-	}
-	file, err := s.rulesets.Get(ctx, hash)
+func (s *Matches) scenarioList(ctx context.Context, h RulesetHashes) ([]ScenarioInfo, error) {
+	rs, err := s.rules.For(ctx, h)
 	if err != nil {
 		return nil, err
 	}
-	if list, err = ParseScenarios(file.Content); err != nil {
-		return nil, err
-	}
-	s.mu.Lock()
-	s.scenarios[hash] = list
-	s.mu.Unlock()
-	return list, nil
+	return rs.BC.Scenarios(), nil
 }
 
 // SetScenario chooses or replaces the scenario; the objectives reported belonged to the old one and are cleared.
@@ -230,7 +199,7 @@ func (s *Matches) SaveResult(ctx context.Context, user User, id, matchID int64, 
 		var info *ScenarioInfo
 		if m.Scenario != nil && m.Scenario.Kind == ScenarioRulebook {
 			if scenarios == nil {
-				if scenarios, err = s.scenarioList(ctx, h.BattleCompanies); err != nil {
+				if scenarios, err = s.scenarioList(ctx, h); err != nil {
 					return err
 				}
 			}
@@ -336,7 +305,7 @@ func (s *Matches) ReopenMatch(ctx context.Context, user User, id, matchID int64,
 		if !m.Ended {
 			return Refuse("This match is not ended.")
 		}
-		if s.AftermathStarted != nil {
+		if s.AftermathStarted != nil && !m.Practice { // a practice match has no aftermath to start
 			started, err := s.AftermathStarted(ctx, id, matchID)
 			if err != nil {
 				return err
@@ -380,7 +349,13 @@ func (s *Matches) complete(ctx context.Context, id int64, m Match) (Match, error
 	if m.History, err = s.matches.Events(ctx, id, m.ID); err != nil {
 		return m, err
 	}
-	rate, err := s.rater(ctx, id)
+	inMatch := map[int64]bool{} // one match shows its own companies: the others of the campaign are not built
+	for _, side := range m.Sides {
+		for _, co := range side.Companies {
+			inMatch[co.ID] = true
+		}
+	}
+	rate, err := s.rater(ctx, id, func(companyID int64) bool { return inMatch[companyID] })
 	if err != nil {
 		return m, err
 	}
@@ -388,7 +363,7 @@ func (s *Matches) complete(ctx context.Context, id int64, m Match) (Match, error
 }
 
 // rater returns a function that fills the rating figures of the companies of a match (each company is read once).
-func (s *Matches) rater(ctx context.Context, id int64) (func(*Match) error, error) {
+func (s *Matches) rater(ctx context.Context, id int64, want func(companyID int64) bool) (func(*Match) error, error) {
 	rs, settings, err := s.ruleset(ctx, id)
 	if err != nil {
 		return nil, err
@@ -400,12 +375,12 @@ func (s *Matches) rater(ctx context.Context, id int64) (func(*Match) error, erro
 			m.Sides[i].Companies = slices.Clone(m.Sides[i].Companies)
 			for k, co := range m.Sides[i].Companies {
 				if figures == nil {
-					if figures, err = s.figures(ctx, id, rs, settings); err != nil {
+					if figures, err = s.figures(ctx, id, rs, settings, want); err != nil {
 						return err
 					}
 				}
 				if r, ok := figures[co.ID]; ok {
-					co.Points, co.FullPoints, co.Units = r.Points, r.FullPoints, r.Units
+					co.Points, co.FullPoints, co.Units, co.FactionLabel = r.Points, r.FullPoints, r.Units, r.FactionLabel
 					m.Sides[i].Companies[k] = co
 				}
 			}

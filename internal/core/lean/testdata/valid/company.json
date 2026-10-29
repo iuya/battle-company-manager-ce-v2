@@ -290,12 +290,6 @@
           "from": "Ranger of Arnor",
           "on": "heroInTheMaking",
           "becomes": "Ranger of the North",
-          "keep": [
-            "Spear"
-          ],
-          "drop": [
-            "Armour"
-          ],
           "statGain": false,
           "pathChoice": "any",
           "text": "Should a Ranger of Arnor Warrior achieve a Hero in the Making result ..."

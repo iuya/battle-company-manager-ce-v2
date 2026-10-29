@@ -1,0 +1,345 @@
+{
+  "schemaVersion": 2,
+  "name": "Custom unit example",
+  "version": "1.0",
+  "extends": "Middle-Earth Strategy Battle Game - 2024",
+  "campaign": {
+    "company": {
+      "maxModels": 15,
+      "leaders": 1,
+      "sergeants": 2,
+      "heroStart": {
+        "might": 1,
+        "will": 1,
+        "fate": 1
+      },
+      "startingInfluence": 0,
+      "equipmentSlots": {
+        "small": 1,
+        "large": 1
+      }
+    },
+    "recruitment": {
+      "die": "d6",
+      "adjust": {
+        "maxPerAttempt": 3,
+        "direction": "up",
+        "costPerPoint": 1
+      },
+      "rare": {
+        "injuredCount": true,
+        "deadCount": false,
+        "promotedCount": false
+      }
+    },
+    "influence": {
+      "gains": {
+        "participating": 2,
+        "draw": 1,
+        "win": 2
+      }
+    },
+    "progression": {
+      "threshold": 5,
+      "warrior": {
+        "roll": "d6",
+        "table": [
+          {
+            "roll": "1-2",
+            "key": "noChange",
+            "name": "No Change"
+          },
+          {
+            "roll": "3-5",
+            "key": "promoted",
+            "name": "Promoted"
+          },
+          {
+            "roll": 6,
+            "key": "heroInTheMaking",
+            "name": "A Hero in the Making"
+          }
+        ],
+        "noPromotion": {
+          "courage": 1,
+          "intelligence": 1,
+          "maximum": 3
+        }
+      },
+      "hero": {
+        "roll": "2d6",
+        "rollsPerProgression": 2,
+        "choose": 1
+      }
+    },
+    "injuries": {
+      "roll": "2d6",
+      "warrior": [
+        {
+          "roll": "2-3",
+          "key": "dead",
+          "name": "Dead"
+        },
+        {
+          "roll": "4-5",
+          "key": "injured",
+          "name": "Injured"
+        },
+        {
+          "roll": "6-11",
+          "key": "fullRecovery",
+          "name": "Full Recovery"
+        },
+        {
+          "roll": 12,
+          "key": "lessonLearned",
+          "name": "Lesson Learned",
+          "grantsExperience": {
+            "dice": "d3"
+          }
+        }
+      ],
+      "hero": [
+        {
+          "roll": 2,
+          "key": "dead",
+          "name": "Dead"
+        },
+        {
+          "roll": "3-11",
+          "key": "fullRecovery",
+          "name": "Full Recovery"
+        },
+        {
+          "roll": 12,
+          "key": "heroic",
+          "name": "Heroic Recovery",
+          "statChanges": [
+            {
+              "stat": "fate",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    "experience": {
+      "gains": [
+        {
+          "key": "participated",
+          "label": "Participating in the scenario",
+          "amount": 1
+        },
+        {
+          "key": "mvp",
+          "label": "MVP",
+          "amount": 1,
+          "dice": "d3"
+        }
+      ]
+    },
+    "breakPoint": {
+      "default": {
+        "percent": 50,
+        "of": "startingModels"
+      },
+      "threshold": {
+        "comparison": "gt"
+      },
+      "whenBroken": {
+        "courageTest": {
+          "dice": "2d6"
+        }
+      }
+    },
+    "rating": {
+      "hero": {
+        "wargear": {
+          "threshold": {
+            "stats": [
+              "attack",
+              "wounds"
+            ],
+            "sumAtLeast": 3
+          }
+        }
+      }
+    },
+    "scenarioSelection": {
+      "die": "d2",
+      "tables": [
+        {
+          "roll": [
+            1,
+            1
+          ],
+          "scenarios": [
+            "Seize Ground",
+            "Chance Encounter"
+          ]
+        },
+        {
+          "roll": [
+            2,
+            2
+          ],
+          "scenarios": [
+            "Hold the Line",
+            "Rescue"
+          ]
+        }
+      ]
+    }
+  },
+  "scenarios": [
+    {
+      "name": "Seize Ground",
+      "description": "Placeholder: describe the scenario."
+    },
+    {
+      "name": "Chance Encounter",
+      "description": "Placeholder: describe the scenario."
+    },
+    {
+      "name": "Hold the Line",
+      "description": "Placeholder: describe the scenario."
+    },
+    {
+      "name": "Rescue",
+      "description": "Placeholder: describe the scenario."
+    }
+  ],
+  "rules": [
+    {
+      "name": "Greenway Lore",
+      "tag": "Passive",
+      "source": "Example",
+      "definition": "Example text, not a Battle Companies rule: a model with this rule may re-roll a failed Courage test once per game."
+    }
+  ],
+  "units": [
+    {
+      "name": "Mahûd Warrior",
+      "tts": {
+        "defaultOptions": [
+          "Spear"
+        ]
+      }
+    },
+    {
+      "name": "Arnor Scout",
+      "aka": [
+        "Scout of Arnor"
+      ],
+      "extends": "Ranger of Arnor",
+      "with": [
+        "Spear"
+      ],
+      "addKeywords": [
+        "Dunedain"
+      ],
+      "note": "A shared unit that builds on a vanilla one: any company of the file may field it by this name."
+    },
+    {
+      "name": "Barrow Hound",
+      "aka": [
+        "Hound of the Barrows"
+      ],
+      "points": 6,
+      "profile": {
+        "movement": 9,
+        "fight": 3,
+        "shoot": "-",
+        "strength": 3,
+        "defence": 4,
+        "attack": 1,
+        "wounds": 1,
+        "courage": 5,
+        "intelligence": 3,
+        "race": [
+          "Hound"
+        ],
+        "unitType": [
+          "Warrior",
+          "Infantry"
+        ],
+        "specialRules": [
+          "Greenway Lore"
+        ]
+      },
+      "definition": "Example text, not a Battle Companies rule: a brand-new unit with no base unit; the app treats its profile like a vanilla one.",
+      "options": [
+        {
+          "name": "Spiked collar",
+          "points": 2
+        }
+      ]
+    }
+  ],
+  "companies": [
+    {
+      "name": "Greenway Wardens",
+      "alignment": "good",
+      "description": "Example company that fields a unit of its own, a shared unit and a brand-new one.",
+      "units": [
+        {
+          "name": "Greenway Watcher",
+          "extends": "Ranger of Arnor",
+          "with": [
+            "Spear"
+          ],
+          "addRules": [
+            "Greenway Lore"
+          ],
+          "addKeywords": [
+            "Dunedain"
+          ],
+          "note": "A Greenway Watcher is a Ranger of Arnor with a spear and the Greenway Lore special rule at no additional cost."
+        }
+      ],
+      "start": {
+        "gold": 4,
+        "units": [
+          {
+            "unit": "Greenway Watcher",
+            "count": 3
+          },
+          {
+            "unit": "Warrior of Arnor",
+            "count": 4
+          },
+          {
+            "unit": "Barrow Hound",
+            "count": 1
+          }
+        ]
+      },
+      "reinforcements": {
+        "influence": 3,
+        "rows": [
+          {
+            "roll": 1,
+            "nothing": true,
+            "blocks": true
+          },
+          {
+            "roll": "2-3",
+            "unit": "Warrior of Arnor"
+          },
+          {
+            "roll": 4,
+            "unit": "Arnor Scout"
+          },
+          {
+            "roll": 5,
+            "unit": "Barrow Hound"
+          },
+          {
+            "roll": 6,
+            "unit": "Greenway Watcher"
+          }
+        ]
+      }
+    }
+  ]
+}

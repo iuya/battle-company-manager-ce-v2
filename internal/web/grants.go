@@ -114,20 +114,8 @@ func (s *Server) handleGrantReward(w http.ResponseWriter, r *http.Request) {
 	if _, err := s.campaigns.GrantReward(r.Context(), user, base.Campaign.ID, companyID, in); err != nil {
 		switch {
 		case errors.Is(err, core.ErrInvalidCompany):
-			for _, msg := range reasons(err) {
-				field := ""
-				switch {
-				case strings.HasPrefix(msg, "the note"):
-					field = "note"
-				case strings.HasPrefix(msg, "Gold"):
-					field = "gold"
-				case strings.HasPrefix(msg, "Influence"):
-					field = "influence"
-				case strings.HasPrefix(msg, "Experience"):
-					field = "experience"
-				case strings.HasPrefix(msg, "choose the unit"):
-					field = "unit"
-				}
+			for _, fr := range fieldReasons(err) {
+				field, msg := fr.Field, fr.Msg
 				if errs[field] != "" {
 					msg = errs[field] + ". " + msg
 				}

@@ -341,14 +341,7 @@ func TestRatingFor(t *testing.T) {
 }
 
 func TestProgressionRulesAreReadFromTheFile(t *testing.T) {
-	content, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Skip("no rules file")
-	}
-	book, err := ParseBattleCompanies(content)
-	if err != nil {
-		t.Fatal(err)
-	}
+	book := shippedRules(t).BC
 	r := book.Progression()
 	if r.Threshold != 5 || len(r.Warrior) != 3 || len(r.Paths) < 10 || !r.LowerIsBetter["courage"] {
 		t.Fatalf("progression: %+v", r.Threshold)
@@ -387,11 +380,7 @@ func TestProgressionRulesAreReadFromTheFile(t *testing.T) {
 }
 
 func TestAHeroMustTakeTheOnlyResultItCanTake(t *testing.T) {
-	content, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Skip("no rules file")
-	}
-	book, _ := ParseBattleCompanies(content)
+	book := shippedRules(t).BC
 	r := book.Progression()
 	sheet := HeroSheet{Path: "Path of the Tactician", Stats: map[string]SheetStat{"attack": {Value: 3, Boost: 2}, "wounds": {Value: 2, Boost: 1}}, Rules: map[string]bool{}, Actions: map[string]bool{}}
 	// a 4 (Attack or Wounds) cannot be taken at the maximum; a 2 (Spy) can: the 2 stands and the 4 is not rerolled
@@ -411,11 +400,7 @@ func TestAHeroMustTakeTheOnlyResultItCanTake(t *testing.T) {
 }
 
 func TestSorcererRowsOfferPowersAndCastingImprovements(t *testing.T) {
-	content, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Skip("no rules file")
-	}
-	book, _ := ParseBattleCompanies(content)
+	book := shippedRules(t).BC
 	r := book.Progression()
 	if len(r.Powers) != 31 || r.CastFloor != 2 || r.CastMax != 2 {
 		t.Fatalf("the spell list: %d powers, floor %d, max %d", len(r.Powers), r.CastFloor, r.CastMax)
@@ -456,10 +441,11 @@ func TestCampaignGlossaryHasEverythingTheRulesFilesDefine(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, err := BuildGlossaryWith(RulesetInfo{}, gl, GlossaryExtras(vanilla, bc))
+	loaded, err := LoadRuleSet(vanilla, bc, gl, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	g := loaded.Glossary
 	if len(g.Terms) < len(base.Terms)+300 {
 		t.Errorf("the campaign glossary adds the rules files' terms: %d vs %d", len(g.Terms), len(base.Terms))
 	}
@@ -531,10 +517,7 @@ func TestCompanyProfilesHaveEverythingForTheBrowser(t *testing.T) {
 		}
 		return b
 	}
-	book, err := ParseBattleCompanies(read("../../definitions/battle_companies/battle_companies.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	book := shippedRules(t).BC
 	vanilla, _ := ParseVanilla(read("../../definitions/vanilla/data2024.json"))
 	profiles := book.Profiles()
 	if len(profiles) != 37 {
@@ -581,10 +564,7 @@ func TestLimitMaxRoundsUpAndCountsTheNewModel(t *testing.T) {
 // Every sentence of a company's "Only this company has" and limits sections is printed once: a rule that a substitution,
 // exchange, free special rule or limit card already shows is not repeated as a "Company rule" card.
 func TestCompanyPageNeverRepeatsASentence(t *testing.T) {
-	book, err := ParseBattleCompanies(readDef(t, "battle_companies/battle_companies.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	book := shippedRules(t).BC
 	key := func(t string) string { return strings.ToLower(strings.Join(strings.Fields(t), " ")) }
 	for _, p := range book.Profiles() {
 		var shown []string
@@ -615,10 +595,7 @@ func TestCompanyPageNeverRepeatsASentence(t *testing.T) {
 
 // The Last Alliance lists the Rivendell Warrior (the document's 2018 "High Elf Warrior"): no card for a unit with its own name.
 func TestLastAllianceHasNoUnitWithItsOwnName(t *testing.T) {
-	book, err := ParseBattleCompanies(readDef(t, "battle_companies/battle_companies.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	book := shippedRules(t).BC
 	p, ok := book.Profile("The Last Alliance")
 	if !ok {
 		t.Fatal("no Last Alliance")
@@ -629,10 +606,7 @@ func TestLastAllianceHasNoUnitWithItsOwnName(t *testing.T) {
 }
 
 func TestCompanyEpigraphOnlyArnor(t *testing.T) {
-	book, err := ParseBattleCompanies(readDef(t, "battle_companies/battle_companies.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	book := shippedRules(t).BC
 	for _, p := range book.Profiles() {
 		if p.Name == "Arnor" {
 			if p.Epigraph == nil || p.Epigraph.Quote != "Leave all that can be spared behind. We travel light." || !strings.HasPrefix(p.Epigraph.Text, "As Arnor fell") {

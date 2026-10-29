@@ -1,7 +1,9 @@
 package core
 
 import (
+	"cmp"
 	"errors"
+	"fmt"
 	"regexp"
 	"slices"
 	"strconv"
@@ -15,8 +17,10 @@ var (
 	ErrInvalidCampaign = errors.New("invalid campaign")
 	ErrInvalidCompany  = errors.New("invalid company")
 	ErrInvalidMatch    = errors.New("invalid match")
-	// ErrHasCompany is returned when a user already has a company in the campaign (only one is allowed).
-	ErrHasCompany = errors.New("you already have a company in this campaign")
+	// ErrCompanyLimit is returned when a user owns as many companies in the campaign as it allows (CampaignSettings.CompanyCap).
+	// ErrCompanyNameTaken is an ErrInvalidCompany: another company of the same owner in the campaign has the name (case ignored).
+	ErrCompanyNameTaken = errors.Join(ErrInvalidCompany, errors.New("You already have a company with that name."))
+	ErrCompanyLimit     = errors.New("you already have all the companies this campaign allows")
 )
 
 type CampaignStatus string
@@ -54,6 +58,21 @@ type CampaignSettings struct {
 	// CustomOnTheirOwnPath gives the units that are On Their Own Path the homebrew "Path of Their Own Making": they start on it
 	// as heroes with 0 Might, 0 Will and 1 Fate, earn experience and level up. Off, they never level up.
 	CustomOnTheirOwnPath bool
+	// CompaniesPerPlayer is how many companies each player may have in the campaign (1 to MaxCompaniesPerPlayer). Zero, the value of
+	// every campaign made before the option existed, reads as 1: use CompanyCap. Unlike the other options the organiser may change it
+	// at any time (Campaigns.SetCompaniesPerPlayer); lowering it only refuses new companies.
+	CompaniesPerPlayer int
+}
+
+// MaxCompaniesPerPlayer is the most companies a campaign can allow each player.
+const MaxCompaniesPerPlayer = 4
+
+// CompanyCap is how many companies a player may own in the campaign: 1 to MaxCompaniesPerPlayer; zero and out of range read as 1.
+func (s CampaignSettings) CompanyCap() int {
+	if s.CompaniesPerPlayer < 1 || s.CompaniesPerPlayer > MaxCompaniesPerPlayer {
+		return 1
+	}
+	return s.CompaniesPerPlayer
 }
 
 // RollRefusal says why a roll the player brought along is not taken, or "" when it is: a result typed in needs ManualRolls and
@@ -77,6 +96,9 @@ func (in CampaignInput) Validate() (CampaignInput, error) {
 	if utf8.RuneCountInString(in.Description) > 280 {
 		return in, errors.Join(ErrInvalidCampaign, errors.New("the description can have at most 280 characters"))
 	}
+	if n := in.Settings.CompaniesPerPlayer; n < 0 || n > MaxCompaniesPerPlayer {
+		return in, errors.Join(ErrInvalidCampaign, fmt.Errorf("a player can have between 1 and %d companies", MaxCompaniesPerPlayer))
+	}
 	return in, nil
 }
 
@@ -86,20 +108,25 @@ type CampaignSummary struct {
 	Name        string
 	Description string
 	Status      CampaignStatus
-	Round       int              // the round being played; 0 before the first one
-	Rounds      int              // planned rounds; 0 when the campaign is open ended
-	Matches     int              // matches played so far
-	Company     *CampaignCompany // the user's company, nil until they create one
+	Round       int // the round being played; 0 before the first one
+	Rounds      int // planned rounds; 0 when the campaign is open ended
+	Matches     int // matches played so far (practice matches excluded)
+	// PracticeMatches counts the practice matches of the campaign, ended or open; they are not in Matches nor in the W/D/L of the companies.
+	PracticeMatches int
+	Companies       []CampaignCompany // the viewer's own companies, oldest first; empty until they create one
 }
 
-// CampaignCompany is a battle company inside a campaign. A user has at most one per campaign.
+// CampaignCompany is a battle company inside a campaign. A user has up to CampaignSettings.CompanyCap() per campaign.
 type CampaignCompany struct {
 	ID      int64
 	Name    string
 	Faction string
-	OwnerID int64
-	Owner   string // the player's display name
-	Points  int    // sum of the point costs of its units that are not injured: this is what the ranking sorts by
+	// FactionLabel is how the pages spell the faction when the rules file gives a label for its name (Lothlórien for Lothlorien); the
+	// repositories leave it empty and the services fill it with the rating. Use FactionName to show it.
+	FactionLabel string
+	OwnerID      int64
+	Owner        string // the player's display name
+	Points       int    // sum of the point costs of its units that are not injured: this is what the ranking sorts by
 	// FullPoints is what Points would be if nobody were injured; zero means the same as Points. The front shows "Points (FullPoints)".
 	FullPoints int
 	Units      int
@@ -108,11 +135,14 @@ type CampaignCompany struct {
 	Losses     int
 }
 
+// FactionName is the faction as the pages show it.
+func (c CampaignCompany) FactionName() string { return cmp.Or(c.FactionLabel, c.Faction) }
+
 func (c CampaignCompany) Played() int { return c.Wins + c.Draws + c.Losses }
 
 // CampaignDetail is a campaign as one of its players sees it on its own page.
 type CampaignDetail struct {
-	CampaignSummary // Company is the viewer's company
+	CampaignSummary // Companies are the viewer's companies
 	Organiser       string
 	OrganiserID     int64
 	Players         int
@@ -125,11 +155,37 @@ type CampaignDetail struct {
 
 // CampaignMember is a member of a campaign, with or without a company.
 type CampaignMember struct {
-	UserID      int64
-	Name        string
-	Organiser   bool
-	CompanyID   int64 // 0: the member has no company yet
-	CompanyName string
+	UserID    int64
+	Name      string
+	Organiser bool
+	Companies []MemberCompany // the member's companies, oldest first; empty: no company yet
+}
+
+// MemberCompany is a company of a member, as the member list shows it.
+type MemberCompany struct {
+	ID   int64
+	Name string
+}
+
+// Own returns the viewer's own company companyID (false for another player's company or one that does not exist).
+func (d CampaignDetail) Own(companyID int64) (CampaignCompany, bool) {
+	for _, c := range d.Companies {
+		if c.ID == companyID {
+			return c, true
+		}
+	}
+	return CampaignCompany{}, false
+}
+
+// Owns says whether the viewer owns the company (Own without the company).
+func (d CampaignDetail) Owns(companyID int64) bool {
+	_, ok := d.Own(companyID)
+	return ok
+}
+
+// CanCreateCompany says whether the viewer may create another company: below the cap and the campaign is not finished.
+func (d CampaignDetail) CanCreateCompany() bool {
+	return d.Status != CampaignFinished && len(d.Companies) < d.Settings.CompanyCap()
 }
 
 // CanManage says whether u manages this campaign: an administrator or the organiser.
@@ -256,6 +312,9 @@ type Match struct {
 	// writes it as the Detail of the "ended" event.
 	EndProposal *EndProposal
 	EndDetail   string
+	// Practice is set when the match is created and never changed: no rewards and no injuries, its aftermath is complete and empty from
+	// the moment it ends (docs/practice-match-spec.md).
+	Practice bool
 }
 
 // Tone says how side i (0-based) came out: "win", "loss", "draw", or "" while the match is open.
@@ -277,6 +336,12 @@ func (m Match) WinnerName() string {
 		return m.Sides[m.Winner-1].Label()
 	}
 	return ""
+}
+
+// NewMatch is the input of CreateMatch: the sides and whether it is a practice match.
+type NewMatch struct {
+	Sides    []NewSide
+	Practice bool
 }
 
 // NewSide is a side of a match being created: an optional name and the ids of its companies.

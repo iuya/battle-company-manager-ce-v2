@@ -302,7 +302,7 @@ progression
         -
           Roll: 3
           Text: "Choice of Magical Power or Improve an existing Magical Power's Casting Value by 1, to a maximum of 2 improvements per Magical Power"
-          Options: [{Type: "oneOf", Amount: 1, OneOf: [{Type: "magicalPower", Amount: 1}, {Type: "improveCastingValue", Amount: 1, MaxPerPower: 2}]}]
+          Options: [{Type: "oneOf", Amount: 1, OneOf: [{Type: "magicalPower", Amount: 1}, {Type: "improveCastingValue", Amount: 1}]}]
         - {Roll: 4, Text: "Improve Attacks or Wounds by 1.", Options: [{Type: "improveStat", Stats: ["attack", "wounds"], Amount: 1}]}
         -
           Roll: 5
@@ -627,16 +627,16 @@ progression
       Rows:
         -
           Roll: 2
-          Text: "Whirl of Attacks (Active) - When rolling a natural 6 for the Duel Roll, this model rolls an additional attack when rolling to Wound. You can not use this rule if the enemy model is trapped."
+          Text: "Whirl of Attacks (Active) - When rolling a natural 6 for their Duel Roll, this Hero increases their Attacks by 1 for that Fight. This rule cannot be used if the enemy model is Trapped."
           Options: [{Type: "specialRule", Amount: 1, Rule: "Whirl of Attacks"}]
         -
           Roll: 3
-          Text: "Lead by Example - If this Hero kills an enemy model, he is treated as a banner for the duration of the next turn."
-          Options: [{Type: "specialRule", Amount: 1, Rule: "Lead by Example"}]
+          Text: "Lead by Example (Their Own Making) (Active) - If this Hero slays an enemy model, they are treated as a banner for the duration of the next turn."
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Lead by Example (Their Own Making)"}]
         -
           Roll: 4
-          Text: "Improve Attacks or Wounds by 1. OR Improve Might, Will, or Fate by 1."
-          Options: [{Type: "improveStat", Stats: ["attack", "wounds"], Amount: 1}, {Type: "improveStat", Stats: ["might", "will", "fate"], Amount: 1}]
+          Text: "Improve Attacks or Wounds by 1. OR improve Might, Will, or Fate by 1."
+          Options: [{Type: "improveStat", Stats: ["attack", "wounds", "might", "will", "fate"], Amount: 1}]
         -
           Roll: 5
           Text: "Improve Courage or Intelligence by 1 (do not take the second result!)"
@@ -644,22 +644,22 @@ progression
         - {Roll: 6, Text: "Improve Strength or Defence by 1.", Options: [{Type: "improveStat", Stats: ["strength", "defence"], Amount: 1}]}
         -
           Roll: 7
-          Text: "Master of Fighting Styles - The Hero has mastered different fighting styles. Before the Duel Roll, the model may use the rules for a two-handed weapon or shielding, even without the equipment. OR Pick an additional Action to add to the Hero's list of Heroic Actions."
-          Options: [{Type: "specialRule", Amount: 1, Rule: "Master of Fighting Styles"}, {Type: "heroicAction", Amount: 1}]
+          Text: "Master of Fighting Styles - The Hero has mastered different fighting styles. Before the Duel Roll, this Hero may use the rules for a two-handed weapon or shielding, even without the equipment. OR pick an additional Action to add to the Hero's list of Heroic Actions (up to a maximum of 5)"
+          Options: [{Type: "specialRule", Amount: 1, Rule: "Master of Fighting Styles"}, {Type: "heroicAction", Amount: 1, MaxTotal: 5}]
         - {Roll: 8, Text: "Improve Fight Value or Shoot Value by 1.", Options: [{Type: "improveStat", Stats: ["fight", "shoot"], Amount: 1}]}
         - {Roll: 9, Text: "Improve Might, Will, or Fate by 1.", Options: [{Type: "improveStat", Stats: ["might", "will", "fate"], Amount: 1}]}
-        - {Roll: 10, Text: "Choice of Minor Special Rule", Options: [{Type: "minorSpecialRule", Amount: 1}]}
+        - {Roll: 10, Text: "Choice of Minor Special Rule (up to a maximum of 2)", Options: [{Type: "minorSpecialRule", Amount: 1, MaxTotal: 2}]}
         -
           Roll: 11
           Text: "Master Duelist (Active) - At the start of a Combat involving this Hero, before any Heroic Strikes are resolved, this Hero may increase their Fight Value to match that of a single enemy model they are Engaged in Combat with."
           Options: [{Type: "specialRule", Amount: 1, Rule: "Master Duelist"}]
         -
           Roll: 12
-          Text: "I shall pass! (Active) - If this Hero wins his Duel Roll, after all models have backed away but before making Strikes, the model may make no Strikes and instead move again up to half its Move Value. If it charges an enemy, it fights as normal. This rule can only be used once per turn."
+          Text: "I shall pass! (Active) - If this Hero wins their Duel Roll, after all models have Backed Away but before making Strikes, this Hero may make no Strikes and instead Move again up to half their Move Value. If they Charge an enemy, they fight as normal. This rule can only be used once per turn. (Inspired by the Barge Brutal Power attack.)"
           Options: [{Type: "specialRule", Amount: 1, Rule: "I shall pass!"}]
       Description: "Homebrew replacement for On Their Own Path: the unit starts on the path with 0 Might, 0 Will and 1 Fate when recruited, earns XP and levels up on this table; it counts as a Hero for levelling and stays a hero in name only for rules that need Might, Will or Fate."
-      Summary: "Path special rules: Whirl of Attacks, Lead by Example, Master of Fighting Styles, Master Duelist and I shall pass!. Level-ups can also give a Minor Special Rule and a new Heroic Action."
-      SpecialRules: ["Whirl of Attacks", "Lead by Example", "Master of Fighting Styles", "Master Duelist", "I shall pass!"]
+      Summary: "Path special rules: Whirl of Attacks, Lead by Example (Their Own Making), Master of Fighting Styles, Master Duelist and I shall pass!. Level-ups can also give a Minor Special Rule and a new Heroic Action."
+      SpecialRules: ["Whirl of Attacks", "Lead by Example (Their Own Making)", "Master of Fighting Styles", "Master Duelist", "I shall pass!"]
       Start: {"fate": 1, "might": 0, "will": 0}
   EndOfPath: {"On Their Own Path": "At Path's End"}
   Peak:
@@ -1196,18 +1196,18 @@ raising a stat by 1 or 2 from value v (boost 0 / boost 2), '-' when it cannot be
   wounds 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
 
 === path Path of Their Own Making: what each 2D6 result offers a fresh hero ===
- 2 ok=no "Whirl of Attacks (Active) - When rolling a natural 6 for the Duel Roll, this model rolls an additional attack when rolling to Wound. You can not use this rule if the enemy model is trapped.": 
- 3 ok=no "Lead by Example - If this Hero kills an enemy model, he is treated as a banner for the duration of the next turn.": 
- 4 ok=yes "Improve Attacks or Wounds by 1. OR Improve Might, Will, or Fate by 1.": stat:attack:-1=Attack 1 → 2; stat:fate:-1=Fate +1; stat:might:-1=Might +1; stat:will:-1=Will +1; stat:wounds:-1=Wounds 1 → 2
+ 2 ok=no "Whirl of Attacks (Active) - When rolling a natural 6 for their Duel Roll, this Hero increases their Attacks by 1 for that Fight. This rule cannot be used if the enemy model is Trapped.": 
+ 3 ok=no "Lead by Example (Their Own Making) (Active) - If this Hero slays an enemy model, they are treated as a banner for the duration of the next turn.": 
+ 4 ok=yes "Improve Attacks or Wounds by 1. OR improve Might, Will, or Fate by 1.": stat:attack:-1=Attack 1 → 2; stat:fate:-1=Fate +1; stat:might:-1=Might +1; stat:will:-1=Will +1; stat:wounds:-1=Wounds 1 → 2
  5 ok=yes "Improve Courage or Intelligence by 1 (do not take the second result!)": stat:courage:1=Courage 7+ → 6+; stat:intelligence:1=Intelligence 7+ → 6+
  6 ok=yes "Improve Strength or Defence by 1.": stat:defence:-1=Defence 5 → 6; stat:strength:-1=Strength 3 → 4
- 7 ok=yes "Master of Fighting Styles - The Hero has mastered different fighting styles. Before the Duel Roll, the model may use the rules for a two-handed weapon or shielding, even without the equipment. OR Pick an additional Action to add to the Hero's list of Heroic Actions.": action:Heroic Accuracy=Heroic Accuracy{A heroic action}; action:Heroic Challenge=Heroic Challenge{A heroic action}; action:Heroic Channelling=Heroic Channelling{A heroic action}; action:Heroic Defence=Heroic Defence{A heroic action}; action:Heroic March=Heroic March{A heroic action}; action:Heroic Resolve=Heroic Resolve{A heroic action}; action:Heroic Strength=Heroic Strength{A heroic action}; action:Heroic Strike=Heroic Strike{A heroic action}
+ 7 ok=yes "Master of Fighting Styles - The Hero has mastered different fighting styles. Before the Duel Roll, this Hero may use the rules for a two-handed weapon or shielding, even without the equipment. OR pick an additional Action to add to the Hero's list of Heroic Actions (up to a maximum of 5)": action:Heroic Accuracy=Heroic Accuracy{A heroic action}; action:Heroic Challenge=Heroic Challenge{A heroic action}; action:Heroic Channelling=Heroic Channelling{A heroic action}; action:Heroic Defence=Heroic Defence{A heroic action}; action:Heroic March=Heroic March{A heroic action}; action:Heroic Resolve=Heroic Resolve{A heroic action}; action:Heroic Strength=Heroic Strength{A heroic action}; action:Heroic Strike=Heroic Strike{A heroic action}
  8 ok=yes "Improve Fight Value or Shoot Value by 1.": stat:fight:-1=Fight 4 → 5; stat:shoot:1=Shoot 4+ → 3+
  9 ok=yes "Improve Might, Will, or Fate by 1.": stat:fate:-1=Fate +1; stat:might:-1=Might +1; stat:will:-1=Will +1
-10 ok=yes "Choice of Minor Special Rule": minor:Cave Dweller=Cave Dweller{A minor special rule}; minor:Expert Rider=Expert Rider{A minor special rule}; minor:Fell Sight=Fell Sight{A minor special rule}; minor:Horse Lord=Horse Lord{A minor special rule}; minor:Master of Reserves=Master of Reserves{A minor special rule}; minor:Mountain Dweller=Mountain Dweller{A minor special rule}; minor:Poisoned Attacks|weapon:Hand weapon=Poisoned Attacks (Hand weapon){A minor special rule}; minor:Resistant to Magic=Resistant to Magic{A minor special rule}; minor:Sharpshooter=Sharpshooter{A minor special rule}; minor:Unyielding Combat Stance=Unyielding Combat Stance{A minor special rule}; minor:Well-aimed Shot=Well-aimed Shot{A minor special rule}; minor:Woodland Creature=Woodland Creature{A minor special rule}
+10 ok=yes "Choice of Minor Special Rule (up to a maximum of 2)": minor:Cave Dweller=Cave Dweller{A minor special rule}; minor:Expert Rider=Expert Rider{A minor special rule}; minor:Fell Sight=Fell Sight{A minor special rule}; minor:Horse Lord=Horse Lord{A minor special rule}; minor:Master of Reserves=Master of Reserves{A minor special rule}; minor:Mountain Dweller=Mountain Dweller{A minor special rule}; minor:Poisoned Attacks|weapon:Hand weapon=Poisoned Attacks (Hand weapon){A minor special rule}; minor:Resistant to Magic=Resistant to Magic{A minor special rule}; minor:Sharpshooter=Sharpshooter{A minor special rule}; minor:Unyielding Combat Stance=Unyielding Combat Stance{A minor special rule}; minor:Well-aimed Shot=Well-aimed Shot{A minor special rule}; minor:Woodland Creature=Woodland Creature{A minor special rule}
 11 ok=no "Master Duelist (Active) - At the start of a Combat involving this Hero, before any Heroic Strikes are resolved, this Hero may increase their Fight Value to match that of a single enemy model they are Engaged in Combat with.": 
-12 ok=no "I shall pass! (Active) - If this Hero wins his Duel Roll, after all models have backed away but before making Strikes, the model may make no Strikes and instead move again up to half its Move Value. If it charges an enemy, it fights as normal. This rule can only be used once per turn.": 
-starting stats map[attack:{1 0} courage:{7 0} defence:{5 0} fate:{1 1} fight:{4 0} intelligence:{7 0} might:{1 1} movement:{6 0} shoot:{4 0} strength:{3 0} will:{1 1} wounds:{1 0}] rules [i shall pass! lead by example master duelist master of fighting styles shieldwall whirl of attacks] actions [] powers map[]
+12 ok=no "I shall pass! (Active) - If this Hero wins their Duel Roll, after all models have Backed Away but before making Strikes, this Hero may make no Strikes and instead Move again up to half their Move Value. If they Charge an enemy, they fight as normal. This rule can only be used once per turn. (Inspired by the Barge Brutal Power attack.)": 
+starting stats map[attack:{1 0} courage:{7 0} defence:{5 0} fate:{1 1} fight:{4 0} intelligence:{7 0} might:{1 1} movement:{6 0} shoot:{4 0} strength:{3 0} will:{1 1} wounds:{1 0}] rules [i shall pass! lead by example (their own making) master duelist master of fighting styles shieldwall whirl of attacks] actions [] powers map[]
 raising a stat by 1 or 2 from value v (boost 0 / boost 2), '-' when it cannot be raised:
   attack 1:2/2,2/2 2:-/-,-/- 3:-/-,-/- 4:-/-,-/- 5:-/-,-/- 6:-/-,-/- 7:-/-,-/- 8:-/-,-/- 9:-/-,-/- 10:-/-,-/-
   courage 1:-/-,-/- 2:-/-,-/- 3:-/-,-/- 4:3/3,3/3 5:4/3,4/3 6:5/4,5/4 7:6/5,6/5 8:7/6,7/6 9:8/7,8/7 10:9/8,9/8

@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-// The fixtures (testdata/valid, testdata/invalid) are the executable catalogue of design section 7. valid/*.json are complete
-// minimal files built from the worked examples of section 4 and must produce no issue; invalid/<case>.json come with <case>.want,
+// The fixtures (testdata/valid, testdata/invalid) are the executable catalogue of the upload errors (docs/definitions.md, "Upload validation"). valid/*.json are complete
+// minimal files built from the worked examples of the format and must produce no issue; invalid/<case>.json come with <case>.want,
 // the exact report text. `go test ./internal/core/lean -run TestInvalidFixtures -update` rewrites the .want files: read the diff,
 // the wording is reviewed there.
 var update = flag.Bool("update", false, "rewrite the .want files of testdata/invalid")

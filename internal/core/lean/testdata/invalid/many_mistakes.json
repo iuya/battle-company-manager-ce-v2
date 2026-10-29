@@ -271,12 +271,14 @@
     },
     {
       "name": "Stand Fast",
-      "aura": {
-        "radius": 6,
-        "kind": "banners",
-        "affects": "friendly",
-        "when": "always"
-      }
+      "auras": [
+        {
+          "radius": 6,
+          "kind": "banners",
+          "affects": "friendly",
+          "when": "always"
+        }
+      ]
     }
   ]
 }

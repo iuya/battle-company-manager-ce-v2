@@ -63,13 +63,13 @@ func OpenWith(ctx context.Context, url string, opt Options) (*Store, error) {
 		pool.Close()
 		return nil, err
 	}
-	// The migrations may run longer than the limits below; every connection opened from now on has them.
+	// The migrations may run longer than the limits below; only connections opened after this have them.
 	guarded.Store(true)
 	pool.Reset()
 	return s, nil
 }
 
-// Limits on what one request can hold in the database (REVIEW: values): a statement (a lock wait included) that runs longer is
+// Limits on what one request can hold in the database (the values are a judgement call): a statement (a lock wait included) that runs longer is
 // cancelled, and a transaction left open and idle is ended and its locks released, so a stuck request cannot wedge the match row
 // or exhaust the pool. Settings given in DATABASE_URL (statement_timeout=...) win.
 const (

@@ -86,10 +86,10 @@ func (w *world) injuryCampaign() {
 		for _, inj := range u.Injuries {
 			switch inj.Key {
 			case "brokenHonour":
-				_, err := w.c().TreatInjury(w.ctx, rohan.user, c.id, u.ID, core.Treatment{Method: "healers", Injury: "brokenHonour"})
+				_, err := w.c().TreatInjury(w.ctx, rohan.user, c.id, rohan.id, u.ID, core.Treatment{Method: "healers", Injury: "brokenHonour"})
 				w.try("healers", err)
 			case "legWound":
-				_, err := w.c().TreatInjury(w.ctx, rohan.user, c.id, u.ID, core.Treatment{Method: "attempt", Injury: "legWound", Roll: 4})
+				_, err := w.c().TreatInjury(w.ctx, rohan.user, c.id, rohan.id, u.ID, core.Treatment{Method: "attempt", Injury: "legWound", Roll: 4})
 				w.try("near miss", err)
 			}
 		}
@@ -97,7 +97,7 @@ func (w *world) injuryCampaign() {
 	// Mordor cannot afford a treatment attempt twice: the first one fails for good
 	for _, u := range w.detail(mordor).Roster {
 		if u.Role == core.RoleLeader && u.Injured {
-			_, err := w.c().TreatInjury(w.ctx, mordor.user, c.id, u.ID, core.Treatment{Method: "attempt", Injury: "justAScratch", Roll: 2})
+			_, err := w.c().TreatInjury(w.ctx, mordor.user, c.id, mordor.id, u.ID, core.Treatment{Method: "attempt", Injury: "justAScratch", Roll: 2})
 			w.try("failed attempt", err)
 		}
 	}
@@ -110,7 +110,7 @@ func (w *world) injuryCampaign() {
 func (w *world) treatWarriors(co *wco) {
 	for _, u := range w.detail(co).Roster {
 		if u.Role == core.RoleWarrior && u.Injured {
-			_, err := w.c().TreatInjury(w.ctx, co.user, co.camp.id, u.ID, core.Treatment{Method: "warrior"})
+			_, err := w.c().TreatInjury(w.ctx, co.user, co.camp.id, co.id, u.ID, core.Treatment{Method: "warrior"})
 			w.try("treat a warrior", err)
 			return
 		}

@@ -145,7 +145,7 @@ func TestAChosenWeaponModifierIsStillTheArmouryItem(t *testing.T) {
 }
 
 // A promotion keeps the Envenom Weapon with its chosen weapon whether or not the new profile lists the weapon (the rule belongs to
-// the weapon's name; owner decision 2026-10-27), and keeps a legacy modifier without a weapon as it is.
+// the weapon's name), and keeps a legacy modifier without a weapon as it is.
 func TestPromotionKeepsAnEnvenomChoice(t *testing.T) {
 	rs := shippedRules(t)
 	c, _ := rs.BC.Company("City of Umbar")
@@ -191,7 +191,7 @@ func TestBuyingAndChoosingTheWeaponOfAnEnvenomWeapon(t *testing.T) {
 	}
 	t.Run("bought with its weapon", func(t *testing.T) {
 		f, s := newUnit()
-		if err := s.BuyEquipmentFor(f.ctx, f.user, 5, 7, "Envenom Weapon (X)", "", "spear"); err != nil {
+		if err := s.BuyEquipmentFor(f.ctx, f.user, 5, 1, 7, "Envenom Weapon (X)", "", "spear"); err != nil {
 			t.Fatal(err)
 		}
 		u := f.unit(t, 7)
@@ -209,14 +209,14 @@ func TestBuyingAndChoosingTheWeaponOfAnEnvenomWeapon(t *testing.T) {
 		if e.Name != "Envenom Weapon (X)" || e.Modifies != "" || !slices.Equal(e.Choices, []string{"Hand weapon", "Spear"}) {
 			t.Fatalf("pending: %+v", e)
 		}
-		if err := s.ChooseModifierWeapon(f.ctx, f.user, 5, 7, e.Name, "Hand weapon"); err != nil {
+		if err := s.ChooseModifierWeapon(f.ctx, f.user, 5, 1, 7, e.Name, "Hand weapon"); err != nil {
 			t.Fatal(err)
 		}
 		e = envenomOf(t, f.unit(t, 7))
 		if e.Modifies != "Hand weapon" || !slices.Equal(poisonRules(f.unit(t, 7)), []string{"Poisoned Attacks (Hand weapon)"}) {
 			t.Fatalf("chosen: %+v", e)
 		}
-		err := s.ChooseModifierWeapon(f.ctx, f.user, 5, 7, e.Name, "Spear")
+		err := s.ChooseModifierWeapon(f.ctx, f.user, 5, 1, 7, e.Name, "Spear")
 		if !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "final") {
 			t.Errorf("a second choice is refused as final: %v", err)
 		}
@@ -229,31 +229,31 @@ func TestBuyingAndChoosingTheWeaponOfAnEnvenomWeapon(t *testing.T) {
 	})
 	t.Run("refusals", func(t *testing.T) {
 		f, s := newUnit()
-		if err := s.BuyEquipmentFor(f.ctx, f.user, 5, 7, "Envenom Weapon (X)", "", "Crossbow"); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Hand weapon, Spear") {
+		if err := s.BuyEquipmentFor(f.ctx, f.user, 5, 1, 7, "Envenom Weapon (X)", "", "Crossbow"); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Hand weapon, Spear") {
 			t.Errorf("a weapon the unit lacks is refused with the choices: %v", err)
 		}
-		if err := s.BuyEquipment(f.ctx, f.user, 5, 7, "Envenom Weapon (X)", ""); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Hand weapon, Spear") {
+		if err := s.BuyEquipment(f.ctx, f.user, 5, 1, 7, "Envenom Weapon (X)", ""); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Hand weapon, Spear") {
 			t.Errorf("a modifier is never bought without its weapon: %v", err)
 		}
 		for _, forged := range []string{"Envenom Weapon (Spear)", "Envenom Weapon (Bow)"} {
-			if err := s.BuyEquipmentFor(f.ctx, f.user, 5, 7, forged, "", "Spear"); !errors.Is(err, ErrNotFound) {
+			if err := s.BuyEquipmentFor(f.ctx, f.user, 5, 1, 7, forged, "", "Spear"); !errors.Is(err, ErrNotFound) {
 				t.Errorf("%s is no armoury item: %v", forged, err)
 			}
 		}
-		if err := s.BuyEquipmentFor(f.ctx, f.user, 5, 7, "Map", "", "Spear"); !errors.Is(err, ErrRefused) {
+		if err := s.BuyEquipmentFor(f.ctx, f.user, 5, 1, 7, "Map", "", "Spear"); !errors.Is(err, ErrRefused) {
 			t.Errorf("Map is for no weapon: %v", err)
 		}
 		if len(f.state.Units[0].Bought) != 1 || f.state.Influence != 12 {
 			t.Errorf("nothing was bought or paid: %+v %d", f.state.Units[0].Bought, f.state.Influence)
 		}
 		f.state.Units[0].Bought = append(f.state.Units[0].Bought, "Envenom Weapon (X)")
-		if err := s.ChooseModifierWeapon(f.ctx, f.user, 5, 7, "Envenom Weapon (X)", "Crossbow"); !errors.Is(err, ErrRefused) {
+		if err := s.ChooseModifierWeapon(f.ctx, f.user, 5, 1, 7, "Envenom Weapon (X)", "Crossbow"); !errors.Is(err, ErrRefused) {
 			t.Errorf("not a weapon of the unit: %v", err)
 		}
-		if err := s.ChooseModifierWeapon(f.ctx, f.user, 5, 7, "Shield", "Spear"); !errors.Is(err, ErrNotFound) {
+		if err := s.ChooseModifierWeapon(f.ctx, f.user, 5, 1, 7, "Shield", "Spear"); !errors.Is(err, ErrNotFound) {
 			t.Errorf("not a weapon modifier: %v", err)
 		}
-		if err := s.ChooseModifierWeapon(f.ctx, f.user, 5, 99, "Envenom Weapon (X)", "Spear"); !errors.Is(err, ErrNotFound) {
+		if err := s.ChooseModifierWeapon(f.ctx, f.user, 5, 1, 99, "Envenom Weapon (X)", "Spear"); !errors.Is(err, ErrNotFound) {
 			t.Errorf("unknown unit: %v", err)
 		}
 	})
@@ -285,28 +285,28 @@ func TestDroppingTheEnvenomedWeaponKeepsTheRuleAndTheItemOwnsIt(t *testing.T) {
 	f := newCompanyFixture(t)
 	f.companyOf("Mordor", 12, []UnitState{{ID: 7, Base: "Mordor Orc Warrior", Role: RoleWarrior, Bought: []string{"Spear"}}})
 	s := f.armoury(t)
-	if err := s.BuyEquipmentFor(f.ctx, f.user, 5, 7, "Envenom Weapon (X)", "", "Spear"); err != nil {
+	if err := s.BuyEquipmentFor(f.ctx, f.user, 5, 1, 7, "Envenom Weapon (X)", "", "Spear"); err != nil {
 		t.Fatal(err)
 	}
 	one := []string{"Poisoned Attacks (Spear)"}
-	if err := s.DropEquipment(f.ctx, f.user, 5, 7, "Spear"); err != nil {
+	if err := s.DropEquipment(f.ctx, f.user, 5, 1, 7, "Spear"); err != nil {
 		t.Fatal(err)
 	}
 	u := f.unit(t, 7)
 	if e := envenomOf(t, u); e.Modifies != "Spear" || len(e.Choices) != 0 || !slices.Equal(poisonRules(u), one) {
 		t.Fatalf("the weapon is gone, the rule stays: %+v %v", e, poisonRules(u))
 	}
-	if err := s.ChooseModifierWeapon(f.ctx, f.user, 5, 7, "Envenom Weapon (Spear)", "Hand weapon"); !errors.Is(err, ErrRefused) {
+	if err := s.ChooseModifierWeapon(f.ctx, f.user, 5, 1, 7, "Envenom Weapon (Spear)", "Hand weapon"); !errors.Is(err, ErrRefused) {
 		t.Errorf("final: %v", err)
 	}
-	if err := s.BuyEquipment(f.ctx, f.user, 5, 7, "Spear", ""); err != nil {
+	if err := s.BuyEquipment(f.ctx, f.user, 5, 1, 7, "Spear", ""); err != nil {
 		t.Fatal(err)
 	}
 	u = f.unit(t, 7)
 	if !slices.Equal(poisonRules(u), one) || slices.Contains(u.PoisonableWeapons, "Spear") {
 		t.Errorf("poisoned again, shown once: %v %v", poisonRules(u), u.PoisonableWeapons)
 	}
-	if err := s.DropEquipment(f.ctx, f.user, 5, 7, "Envenom Weapon (Spear)"); err != nil {
+	if err := s.DropEquipment(f.ctx, f.user, 5, 1, 7, "Envenom Weapon (Spear)"); err != nil {
 		t.Fatal(err)
 	}
 	u = f.unit(t, 7)
@@ -319,11 +319,11 @@ func TestDroppingTheEnvenomedWeaponKeepsTheRuleAndTheItemOwnsIt(t *testing.T) {
 func TestALevelUpCannotForgeThePoisonRule(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 2, []int{10, 3}, false); err != nil {
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 2, []int{10, 3}, false); err != nil {
 		t.Fatal(err)
 	}
 	for _, key := range []string{"minor:Poisoned Attacks|weapon:Lance", "minor:Poisoned Attacks|weapon:Shield", "minor:Poisoned Attacks", "minor:Poisoned Attacks|weapon:"} {
-		if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 2, []string{key}); err == nil {
+		if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 2, []string{key}); err == nil {
 			t.Errorf("%q was accepted", key)
 		}
 	}

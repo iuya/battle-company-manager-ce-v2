@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-// The name resolution pass (design 1, 4.10, 7): every name the file writes is looked up, in order, in the entity's own scope
+// The name resolution pass: every name the file writes is looked up, in order, in the entity's own scope
 // (a company's units and gear), the shared lists of the file, and the lower layers; every entry is classified against the layers
 // below it. Nothing is fuzzy: names compare by NameKey, aliases (aka) resolve to the entity.
 
-// Class says what an entry is relative to the layers below it (design 4.10).
+// Class says what an entry is relative to the layers below it.
 type Class int
 
 const (
@@ -361,6 +361,11 @@ func (r *resolver) references() {
 	for i := range d.Rules {
 		r.ruleRefs(&d.Rules[i], Idx("rules", i))
 	}
+	if d.Magic != nil {
+		for _, name := range SortedKeys(d.Magic.Powers) {
+			r.aurasRefs(d.Magic.Powers[name].Auras, Join(Join("magic.powers", name), "auras"), view{})
+		}
+	}
 	for i := range d.Paths {
 		r.pathRefs(&d.Paths[i], Idx("paths", i))
 	}
@@ -431,7 +436,24 @@ func (r *resolver) rule(name, path string, v view) {
 	if _, ok := r.hoistedAs(name); ok {
 		return
 	}
+	if base := BaseRuleName(name); base != name && r.found(KindRule, base, v) { // a rule written with its argument: Terror (Beast)
+		return
+	}
 	r.mustResolve(KindRule, name, path, v, "rules[], vanilla or the glossary", "define it in rules[]")
+}
+
+// BaseRuleName is a rule written with its argument without the bracket: "Terror (Beast)" is a use of "Terror", "Poisoned Attacks (X)" of
+// "Poisoned Attacks". A name without a trailing bracket is its own base.
+func BaseRuleName(name string) string {
+	n := strings.TrimSpace(name)
+	if !strings.HasSuffix(n, ")") {
+		return name
+	}
+	i := strings.Index(n, "(")
+	if i <= 0 {
+		return name
+	}
+	return strings.TrimSpace(n[:i])
 }
 
 func (r *resolver) hoistedAs(name string) (HoistedRule, bool) {
@@ -527,6 +549,29 @@ func (r *resolver) unitRefs(u *Unit, path string, v view) {
 	for i, k := range u.AddKeywords {
 		r.checked(KindKeyword, k, Idx(Join(path, "addKeywords"), i), v, "vanilla", "")
 	}
+	if c := u.Composite; c != nil {
+		for i, part := range c.Parts {
+			pp := Idx(Join(Join(path, "composite"), "parts"), i)
+			if part.Unit != "" {
+				r.unit(part.Unit, Join(pp, "unit"), v)
+			}
+			if part.Mount != "" {
+				r.checked(KindMount, part.Mount, Join(pp, "mount"), v, "vanilla", "")
+			}
+			for j, w := range part.With {
+				r.optionOrGear(w, part.Unit, Idx(Join(pp, "with"), j), v)
+			}
+		}
+		for i, n := range c.Rules {
+			r.rule(n, Idx(Join(Join(path, "composite"), "rules"), i), v)
+		}
+	}
+	for i, in := range u.Includes {
+		r.unit(in.Name, Join(Idx(Join(path, "includes"), i), "name"), v)
+	}
+	if u.TTS != nil && u.TTS.Foot != "" { // the rider on foot is a unit of the game
+		r.unit(u.TTS.Foot, Join(Join(path, "tts"), "foot"), v)
+	}
 }
 
 func (r *resolver) gearRefs(g *Gear, path string, v view) {
@@ -539,20 +584,33 @@ func (r *resolver) gearRefs(g *Gear, path string, v view) {
 	if g.GrantsForChosenWeapon != nil {
 		r.rule(g.GrantsForChosenWeapon.Rule, Join(Join(path, "grantsForChosenWeapon"), "rule"), v)
 	}
-	if g.Who != nil {
-		for i, n := range g.Who.Units {
-			r.unit(n, Idx(Join(Join(path, "who"), "units"), i), v)
+	r.whoUnits(g.Who, Join(path, "who"), v)
+	if g.Mount != "" {
+		r.checked(KindMount, g.Mount, Join(path, "mount"), v, "vanilla", "")
+	}
+	for i, n := range g.Related {
+		r.mustResolve(KindGear, n, Idx(Join(path, "related"), i), v, "the shared gear or vanilla", "")
+	}
+	if g.Abilities != nil && g.Abilities.DefenceBonus != nil {
+		db, dp := g.Abilities.DefenceBonus, Join(Join(path, "abilities"), "defenceBonus")
+		for i, n := range db.CancelledByItems {
+			r.mustResolve(KindGear, n, Idx(Join(dp, "cancelledByItems"), i), v, "the shared gear or vanilla", "")
+		}
+		for i, l := range db.LiftedByRules {
+			r.rule(l.Rule, Join(Idx(Join(dp, "liftedByRules"), i), "rule"), v)
 		}
 	}
-	r.auraRefs(g.Aura, Join(path, "aura"), v)
+	r.aurasRefs(g.Auras, Join(path, "auras"), v)
 }
 
-func (r *resolver) auraRefs(a *Aura, path string, v view) {
-	if a == nil {
-		return
-	}
-	for i, k := range a.Keywords {
-		r.checked(KindKeyword, k, Idx(Join(path, "keywords"), i), v, "vanilla", "")
+func (r *resolver) aurasRefs(as []Aura, path string, v view) {
+	for i := range as {
+		for j, n := range as[i].Items {
+			r.mustResolve(KindGear, n, Idx(Join(Idx(path, i), "items"), j), v, "the shared gear or vanilla", "")
+		}
+		for j, k := range as[i].Keywords {
+			r.checked(KindKeyword, k, Idx(Join(Idx(path, i), "keywords"), j), v, "vanilla", "")
+		}
 	}
 }
 
@@ -566,7 +624,7 @@ func (r *resolver) ruleRefs(x *Rule, path string) {
 			r.checked(KindKeyword, k, Idx(Join(Join(path, "target"), "bearerKeywords"), i), v, "vanilla", "")
 		}
 	}
-	r.auraRefs(x.Aura, Join(path, "aura"), v)
+	r.aurasRefs(x.Auras, Join(path, "auras"), v)
 }
 
 func (r *resolver) pathRefs(p *Path, path string) {
@@ -579,6 +637,9 @@ func (r *resolver) pathRefs(p *Path, path string) {
 	}
 	if p.HeroicAction != nil {
 		r.rule(*p.HeroicAction, Join(path, "heroicAction"), v)
+	}
+	if p.Rule != "" {
+		r.rule(p.Rule, Join(path, "rule"), v)
 	}
 	for i, n := range p.Spells {
 		r.checked(KindPower, n, Idx(Join(path, "spells"), i), v, "the magic powers of this file or vanilla", "")
@@ -636,7 +697,12 @@ func (r *resolver) companyRefs(c *Company, cp string) {
 				r.unit(row.Unit, Join(p, "unit"), v)
 			}
 			for j, w := range row.With {
-				r.optionOrGear(w, row.Unit, Idx(Join(p, "with"), j), v)
+				if row.Unit != "" {
+					r.optionOrGear(w, row.Unit, Idx(Join(p, "with"), j), v)
+				}
+			}
+			for j, o := range row.Options {
+				r.unit(o.Unit, Join(Idx(Join(p, "options"), j), "unit"), v)
 			}
 		}
 	}
@@ -645,29 +711,82 @@ func (r *resolver) companyRefs(c *Company, cp string) {
 	}
 	if c.Special != nil {
 		chart(c.Special.Rows, Join(Join(cp, "special"), "rows"))
+		for i, b := range c.Special.Buy {
+			r.unit(b.Unit, Join(Idx(Join(Join(cp, "special"), "buy"), i), "unit"), v)
+		}
 	}
 	for i, a := range c.Advancements {
 		ap := Idx(Join(cp, "advancements"), i)
 		r.unit(a.From, Join(ap, "from"), v)
 		for j, t := range a.To {
-			r.unit(t, Idx(Join(ap, "to"), j), v)
+			tp := Idx(Join(ap, "to"), j)
+			r.unit(t.Unit, tp, v)
+			for k, w := range t.With {
+				r.optionOrGear(w, t.Unit, Idx(Join(tp, "with"), k), v)
+			}
+		}
+		for j, w := range a.With {
+			r.optionOrGear(w, a.From, Idx(Join(ap, "with"), j), v)
 		}
 	}
 	for i, h := range c.HeroUpgrades {
+		hp := Idx(Join(cp, "heroUpgrades"), i)
 		if h.Definition == "" {
-			r.rule(h.Name, Join(Idx(Join(cp, "heroUpgrades"), i), "name"), v)
+			r.rule(h.Name, Join(hp, "name"), v)
+		}
+		r.whoUnits(h.Who, Join(hp, "who"), v)
+	}
+	for i, g := range c.Granted {
+		r.rule(g.Rule, Join(Idx(Join(cp, "granted"), i), "rule"), v)
+		r.whoUnits(g.Who, Join(Idx(Join(cp, "granted"), i), "who"), v)
+	}
+	r.whoUnits(c.ElvenWeaponry, Join(cp, "elvenWeaponry"), v)
+	for i, s := range c.Substitutions {
+		r.rule(s.Rule, Join(Idx(Join(cp, "substitutions"), i), "rule"), v)
+		r.rule(s.Target.WithRule, Join(Join(Idx(Join(cp, "substitutions"), i), "target"), "withRule"), v)
+	}
+	for i, x := range c.Exchanges {
+		xp := Idx(Join(cp, "exchanges"), i)
+		r.rule(x.Remove, Join(xp, "remove"), v)
+		r.rule(x.Add, Join(xp, "add"), v)
+	}
+	if l := c.Limits; l != nil {
+		for i, x := range l.Exempt {
+			xp := Idx(Join(Join(cp, "limits"), "exempt"), i)
+			if x.Unit != "" {
+				r.unit(x.Unit, Join(xp, "unit"), v)
+			}
+			if x.Item != "" {
+				r.mustResolve(KindGear, x.Item, Join(xp, "item"), v, "the shared gear or vanilla", "")
+			}
+		}
+		for i, k := range l.Company {
+			r.checked(KindKeyword, k.Keyword, Join(Idx(Join(Join(cp, "limits"), "company"), i), "keyword"), v, "vanilla", "")
+		}
+	}
+	if rc := c.Recruit; rc != nil {
+		for i, f := range rc.Fallback {
+			r.unit(f.Unit, Join(Idx(Join(Join(cp, "recruit"), "fallback"), i), "unit"), v)
+		}
+		for i, x := range rc.Replace {
+			xp := Idx(Join(Join(cp, "recruit"), "replace"), i)
+			if x.Unit != "" {
+				r.unit(x.Unit, Join(xp, "unit"), v)
+			}
+			if x.Alternative != "" {
+				r.unit(x.Alternative, Join(xp, "alternative"), v)
+			}
+		}
+		for i, b := range rc.Balance {
+			bp := Idx(Join(Join(cp, "recruit"), "balance"), i)
+			r.checked(KindKeyword, b.Keyword, Join(bp, "keyword"), v, "vanilla", "")
+			r.checked(KindKeyword, b.NotMoreThan, Join(bp, "notMoreThan"), v, "vanilla", "")
 		}
 	}
 	for i, pr := range c.Promotions {
 		pp := Idx(Join(cp, "promotions"), i)
 		r.unit(pr.From, Join(pp, "from"), v)
 		r.unit(pr.Becomes, Join(pp, "becomes"), v)
-		for j, k := range pr.Keep {
-			r.optionOrGear(k, pr.From, Idx(Join(pp, "keep"), j), v)
-		}
-		for j, k := range pr.Drop {
-			r.optionOrGear(k, pr.From, Idx(Join(pp, "drop"), j), v)
-		}
 	}
 	if c.OwnPath != nil {
 		for i, n := range c.OwnPath.Units {
@@ -675,13 +794,24 @@ func (r *resolver) companyRefs(c *Company, cp string) {
 		}
 	}
 	if c.Heroes != nil {
-		for _, l := range []struct {
-			name  string
-			names []string
-		}{{"allowed", c.Heroes.Allowed}, {"excluded", c.Heroes.Excluded}, {"noStartGain", c.Heroes.NoStartGain}, {"recruitAsHero", c.Heroes.RecruitAsHero}} {
-			for i, n := range l.names {
-				r.unit(n, Idx(Join(Join(cp, "heroes"), l.name), i), v)
-			}
+		r.whoUnits(c.Heroes.Who, Join(Join(cp, "heroes"), "who"), v)
+		for i, n := range c.Heroes.NoStartGain {
+			r.unit(n, Idx(Join(Join(cp, "heroes"), "noStartGain"), i), v)
+		}
+	}
+}
+
+// whoUnits checks that the units a Who names exist.
+func (r *resolver) whoUnits(w *Who, path string, v view) {
+	if w == nil {
+		return
+	}
+	for _, l := range []struct {
+		name  string
+		names []string
+	}{{"units", w.Units}, {"except", w.Except}} {
+		for i, n := range l.names {
+			r.unit(n, Idx(Join(path, l.name), i), v)
 		}
 	}
 }
@@ -701,19 +831,30 @@ func (r *resolver) scenarioSelectionRefs() {
 }
 
 func (r *resolver) whoRefs() {
-	// races named by gear: only checked when the lower layers list races
-	check := func(g []Gear, base string) {
-		for i := range g {
-			if g[i].Who == nil {
-				continue
-			}
-			for j, n := range g[i].Who.Race {
-				r.checked(KindRace, n, Idx(Join(Join(Idx(base, i), "who"), "race"), j), view{}, "vanilla", "")
-			}
+	// races named by a who: only checked when the lower layers list races
+	race := func(w *Who, path string) {
+		if w == nil {
+			return
+		}
+		for j, n := range w.Race {
+			r.checked(KindRace, n, Idx(Join(path, "race"), j), view{}, "vanilla", "")
 		}
 	}
-	check(r.doc.Gear, "gear")
+	gear := func(g []Gear, base string) {
+		for i := range g {
+			race(g[i].Who, Join(Idx(base, i), "who"))
+		}
+	}
+	gear(r.doc.Gear, "gear")
 	for ci := range r.doc.Companies {
-		check(r.doc.Companies[ci].Gear, Join(Idx("companies", ci), "gear"))
+		c, cp := &r.doc.Companies[ci], Idx("companies", ci)
+		gear(c.Gear, Join(cp, "gear"))
+		for i, h := range c.HeroUpgrades {
+			race(h.Who, Join(Idx(Join(cp, "heroUpgrades"), i), "who"))
+		}
+		for i, g := range c.Granted {
+			race(g.Who, Join(Idx(Join(cp, "granted"), i), "who"))
+		}
+		race(c.ElvenWeaponry, Join(cp, "elvenWeaponry"))
 	}
 }

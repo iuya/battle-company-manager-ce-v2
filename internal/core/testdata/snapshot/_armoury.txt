@@ -225,7 +225,6 @@ annotation
 
 item "Throwing weapon"
   Name: "Throwing weapon"
-  AlsoCalled: ["Throwing weapons"]
   Classes: ["throwing"]
   Cost: 1
   Gold: {Warrior: 2, Hero: 5}
@@ -235,14 +234,12 @@ item "Throwing weapon"
 annotation
   Name: "Throwing weapon"
   Classes: ["throwing"]
-  Aliases: ["Throwing weapons"]
   Range: 6
   Strength: 3
   Definition: "6\" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after a full Move (no Move-and-shoot penalty), or once per turn in the Move Phase when Charging (stop 1\" short, throw, then continue the Charge against that target). Counts towards the Throwing Weapon limit, not the Bow limit."
 
 item "Throwing Spears"
   Name: "Throwing Spears"
-  AlsoCalled: ["Throwing Spear", "Throwing spear"]
   Classes: ["throwing"]
   Cost: 1
   Gold: {Warrior: 2, Hero: 5}
@@ -252,7 +249,6 @@ item "Throwing Spears"
 annotation
   Name: "Throwing Spears"
   Classes: ["throwing"]
-  Aliases: ["Throwing Spear", "Throwing spear"]
   Range: 8
   Strength: 3
   Definition: "8\" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after a full Move (no Move-and-shoot penalty), or once per turn in the Move Phase when Charging (stop 1\" short, throw, then continue the Charge against that target). Counts towards the Throwing Weapon limit, not the Bow limit."
@@ -296,17 +292,12 @@ annotation
 
 item "War spear"
   Name: "War spear"
-  AlsoCalled: ["Warspear"]
   Classes: ["spear", "lance"]
   Cost: 1
   Gold: {Warrior: 1, Hero: 5}
   Rating: {Warrior: 1, Hero: 5}
   Description: "Counts as a lance while mounted, and a spear while dismounted"
-annotation
-  Name: "War spear"
-  Classes: ["spear", "lance"]
-  Aliases: ["Warspear"]
-  Definition: "Counts as a lance while mounted, and a spear while dismounted"
+annotation {Name: "War spear", Classes: ["spear", "lance"], Definition: "Counts as a lance while mounted, and a spear while dismounted"}
 
 item "Hand-and-a-half weapon"
   Name: "Hand-and-a-half weapon"
@@ -322,7 +313,7 @@ annotation
 
 item "Two-handed weapon"
   Name: "Two-handed weapon"
-  AlsoCalled: ["Two-handed Axe", "Two-handed axe"]
+  AlsoCalled: ["Two-handed Axe"]
   Classes: ["two_handed"]
   Cost: 1
   Gold: {Warrior: 1, Hero: 5}
@@ -331,7 +322,7 @@ item "Two-handed weapon"
 annotation
   Name: "Two-handed weapon"
   Classes: ["two_handed"]
-  Aliases: ["Two-handed Axe", "Two-handed axe"]
+  Aliases: ["Two-handed Axe"]
   Definition: "Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound rolls when making Strikes."
 
 item "Mattock"
@@ -381,7 +372,6 @@ annotation {Name: "Easterling Halberd", Classes: ["spear", "two_handed"], Defini
 
 item "Flaming Brand"
   Name: "Flaming Brand"
-  AlsoCalled: ["Flaming Brands"]
   Classes: ["melee"]
   Cost: 1
   Gold: {Warrior: 1, Hero: 5}
@@ -391,7 +381,6 @@ item "Flaming Brand"
 annotation
   Name: "Flaming Brand"
   Classes: ["melee"]
-  Aliases: ["Flaming Brands"]
   Grants: ["Terror (Cavalry)", "Terror (Beast)"]
   Definition: "A model with a flaming brand has the Terror (Cavalry) and Terror (Beast) special rules. Additionally, a model with a flaming brand counts as 2 models rather than 1 when working out how many models are within range of an Objective Marker."
 
@@ -429,7 +418,6 @@ annotation
 
 item "Elven hand-and-a-half weapon"
   Name: "Elven hand-and-a-half weapon"
-  AlsoCalled: ["Elven-made Hand-and-a-half Weapon", "Elven-made hand-and-a-half weapon"]
   Classes: ["melee", "two_handed"]
   Cost: 1
   Gold: {Warrior: 1, Hero: 5}
@@ -438,7 +426,6 @@ item "Elven hand-and-a-half weapon"
 annotation
   Name: "Elven hand-and-a-half weapon"
   Classes: ["melee", "two_handed"]
-  Aliases: ["Elven-made Hand-and-a-half Weapon", "Elven-made hand-and-a-half weapon"]
   Definition: "Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound rolls when making Strikes. Elven weapon: If a model fights with an Elven weapon in a Combat, they will be more likely to win the Duel Roll in the result of a Drawn Combat. In these instances, a Good model armed with an Elven weapon will win the roll-off on a 3+, whilst an Evil model armed with an Elven weapon will win the roll-off on a 1-4. If both sides have an Elven weapon, neither side gains the benefit. Some Missile Weapons may also be classed as Elven weapons; however, the above bonus only applies to Melee Weapons."
   Base: "Hand-and-a-half weapon"
   Modifiers: ["elven"]
@@ -492,7 +479,6 @@ annotation
 
 item "Elven throwing weapon"
   Name: "Elven throwing weapon"
-  AlsoCalled: ["Elven throwing weapons"]
   Classes: ["throwing"]
   Cost: 1
   Gold: {Warrior: 2, Hero: 5}
@@ -502,7 +488,6 @@ item "Elven throwing weapon"
 annotation
   Name: "Elven throwing weapon"
   Classes: ["throwing"]
-  Aliases: ["Elven throwing weapons"]
   Range: 6
   Strength: 3
   Definition: "6\" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after a full Move (no Move-and-shoot penalty), or once per turn in the Move Phase when Charging (stop 1\" short, throw, then continue the Charge against that target). Counts towards the Throwing Weapon limit, not the Bow limit. Elven weapon: If a model fights with an Elven weapon in a Combat, they will be more likely to win the Duel Roll in the result of a Drawn Combat. In these instances, a Good model armed with an Elven weapon will win the roll-off on a 3+, whilst an Evil model armed with an Elven weapon will win the roll-off on a 1-4. If both sides have an Elven weapon, neither side gains the benefit. Some Missile Weapons may also be classed as Elven weapons; however, the above bonus only applies to Melee Weapons."

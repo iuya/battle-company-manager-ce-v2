@@ -37,11 +37,11 @@
     <dl class="mt-auto grid gap-x-4 sm:grid-cols-2 gap-y-2 border-t border-line pt-3 text-sm">
       <div>
         <dt class="text-muted">Progress</dt>
-        <dd class="font-medium">{{if .Rounds}}Round {{.Round}} of {{.Rounds}}{{else if .Round}}Round {{.Round}}{{else}}Not started{{end}} · {{.Matches}} {{if eq .Matches 1}}match{{else}}matches{{end}}</dd>
+        <dd class="font-medium">{{if .Rounds}}Round {{.Round}} of {{.Rounds}}{{else if .Round}}Round {{.Round}}{{else}}Not started{{end}} · {{.Matches}} {{if eq .Matches 1}}match{{else}}matches{{end}}{{if .PracticeMatches}} · {{.PracticeMatches}} practice{{end}}</dd>
       </div>
       <div>
-        <dt class="text-muted">Your company</dt>
-        <dd class="font-medium">{{with .Company}}{{.Name}} <span class="font-normal text-muted">({{.Faction}})</span>{{else}}<span class="font-normal text-muted">None yet</span>{{end}}</dd>
+        <dt class="text-muted">{{if gt (len .Companies) 1}}Your companies{{else}}Your company{{end}}</dt>
+        <dd class="font-medium">{{range $i, $c := .Companies}}{{if $i}}, {{end}}{{$c.Name}} <span class="font-normal text-muted">({{$c.FactionName}})</span>{{else}}<span class="font-normal text-muted">None yet</span>{{end}}</dd>
       </div>
     </dl>
   </li>

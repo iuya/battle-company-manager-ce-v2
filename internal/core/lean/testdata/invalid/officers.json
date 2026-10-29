@@ -238,9 +238,11 @@
       },
       "heroUpgrades": [],
       "heroes": {
-        "excluded": [
-          "Ranger of Arnor"
-        ]
+        "who": {
+          "except": [
+            "Ranger of Arnor"
+          ]
+        }
       }
     }
   ]

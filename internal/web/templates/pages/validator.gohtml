@@ -1,0 +1,42 @@
+{{define "title"}}Check rules files · Battle Companies 2nd CE Manager{{end}}
+
+{{/* One file input of the validator. Takes {ID, Name, Label, Hint, Required}. */}}
+{{define "validator_file"}}
+<div class="field">
+  <label for="{{.ID}}">{{.Label}}{{if not .Required}} <span class="text-muted">(optional)</span>{{end}}</label>
+  <input id="{{.ID}}" name="{{.Name}}" type="file" accept=".json,application/json" {{if .Required}}required{{end}} aria-describedby="{{.ID}}-hint" class="block w-full text-sm file:mr-3 file:min-h-10 file:rounded-md file:border file:border-line file:bg-surface file:px-4 file:text-fg">
+  <p id="{{.ID}}-hint" class="text-sm text-muted">{{.Hint}}</p>
+</div>
+{{end}}
+
+{{/* The answer of the check: the report or a plain reason, then which files were used. Takes a *validatorResult (nil: nothing yet). */}}
+{{define "validator_result"}}
+{{with .}}
+{{with .Msg}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+{{with .Report}}<div class="alert {{if .OK}}alert-success{{else}}alert-danger{{end}}">{{template "ruleset_report" .}}</div>{{end}}
+{{if .Sources}}
+<p class="text-sm text-muted">Checked:
+  {{range $i, $s := .Sources}}{{if $i}}; {{end}}{{$s.Label}}: {{if $s.Mine}}your file{{else}}the shipped one{{end}}{{end}}.</p>
+{{end}}
+{{end}}
+{{end}}
+
+{{define "content"}}
+<div class="max-w-xl" x-data @htmx:after-swap="$refs.result.focus()">
+  <p class="text-sm"><a href="/campaigns/new" class="inline-flex min-h-11 items-center">← New campaign</a></p>
+  <h1 class="mt-2">Check rules files</h1>
+  <p class="mt-2 text-muted">Upload your Battle Companies file, and the vanilla file and glossary it goes with if you have your own, to get the list of everything wrong in them. Your Battle Companies file is checked against the vanilla file and glossary you upload here. Nothing is stored and no campaign is created.</p>
+  <form method="post" action="/tools/validate" enctype="multipart/form-data" hx-boost="false"
+        hx-post="/tools/validate" hx-encoding="multipart/form-data" hx-target="#validator-result" hx-swap="innerHTML" hx-disabled-elt="find button"
+        class="card mt-6 space-y-4">
+    {{template "validator_file" (dict "ID" "v-battle" "Name" "battle_companies" "Label" "Battle Companies file" "Required" true "Hint" "Required. At most 16 MB.")}}
+    {{template "validator_file" (dict "ID" "v-vanilla" "Name" "vanilla" "Label" "Vanilla rules file" "Required" false "Hint" (printf "Leave it empty to use the shipped one (%s v%s)." .Vanilla.Name .Vanilla.Version))}}
+    {{template "validator_file" (dict "ID" "v-glossary" "Name" "glossary" "Label" "Glossary" "Required" false "Hint" (printf "Leave it empty to use the shipped one (%s v%s)." .Glossary.Name .Glossary.Version))}}
+    <div class="flex flex-wrap gap-2">
+      <button class="btn btn-primary">Check files</button>
+      <a href="/campaigns/new" class="btn btn-secondary">Back to the new campaign</a>
+    </div>
+  </form>
+  <div id="validator-result" x-ref="result" tabindex="-1" aria-live="polite" class="mt-6 space-y-3 outline-none">{{template "validator_result" .Result}}</div>
+</div>
+{{end}}

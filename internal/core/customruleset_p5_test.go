@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// Slice P5 rows of TestCustomRuleset (docs/definitions-lean-design.md 12.8): the break point comparison and percent, the
+// The break point and promotion rows of TestCustomRuleset (docs/testing.md, "Custom rulesets"): the break point comparison and percent, the
 // no-promotion amounts and the stat an injury row gains.
 
 func valar(t *testing.T, doc map[string]any) map[string]any {
@@ -66,23 +66,23 @@ func TestCustomRulesetRefusesBadBreakPoint(t *testing.T) {
 		mutate func(doc map[string]any)
 		want   string
 	}{
-		{"unknown comparison", func(doc map[string]any) { bp(doc)["threshold"].(map[string]any)["comparison"] = "ge" }, `campaign.breakPoint.threshold.comparison: "ge" is not a comparison; known: gt, gte`},
+		{"unknown comparison", func(doc map[string]any) { bp(doc)["threshold"].(map[string]any)["comparison"] = "ge" }, `campaign.breakPoint.threshold.comparison: "ge" is not a valid comparison; known: gt, gte`},
 		{"percent 0", func(doc map[string]any) { bp(doc)["default"].(map[string]any)["percent"] = 0.0 }, "campaign.breakPoint.default.percent: 0 is outside 1..100"},
 		{"percent 101", func(doc map[string]any) { bp(doc)["default"].(map[string]any)["percent"] = 101.0 }, "campaign.breakPoint.default.percent: 101 is outside 1..100"},
 		{"percent missing", func(doc map[string]any) { delete(bp(doc)["default"].(map[string]any), "percent") }, "campaign.breakPoint.default.percent is missing"},
 		{"company percent 120", func(doc map[string]any) {
-			for _, c := range doc["data"].(map[string]any)["companies"].([]any) {
+			for _, c := range doc["companies"].([]any) {
 				if m := c.(map[string]any); m["name"] == "Muster of Isengard" {
-					m["breakPointPercentage"] = 120.0
+					m["breakPoint"] = 120.0
 				}
 			}
-		}, "data.companies[Muster of Isengard].breakPointPercentage: 120 is outside 1..100"},
+		}, "breakPoint: 120 is outside 1..100"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := customRulesetErr(t, tt.mutate)
-			if err == nil || !strings.Contains(err.Error(), tt.want) {
-				t.Errorf("error = %v, want one containing %q", err, tt.want)
+			if err == nil || !strings.Contains(err.Error(), leanWording(tt.want)) {
+				t.Errorf("error = %v, want one containing %q", err, leanWording(tt.want))
 			}
 		})
 	}
@@ -156,8 +156,8 @@ func TestCustomRulesetRefusesBadNoPromotion(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := customRulesetErr(t, tt.mutate)
-			if err == nil || !strings.Contains(err.Error(), tt.want) {
-				t.Errorf("error = %v, want one containing %q", err, tt.want)
+			if err == nil || !strings.Contains(err.Error(), leanWording(tt.want)) {
+				t.Errorf("error = %v, want one containing %q", err, leanWording(tt.want))
 			}
 		})
 	}
@@ -166,7 +166,7 @@ func TestCustomRulesetRefusesBadNoPromotion(t *testing.T) {
 func TestCustomRulesetInjuryStatGain(t *testing.T) {
 	rowOf := func(t *testing.T, mutate func(doc map[string]any)) (InjuryRow, error) {
 		t.Helper()
-		rules, err := ParseAftermath(customBC(t, mutate))
+		rules, err := customAftermath(t, mutate)
 		if err != nil {
 			return InjuryRow{}, err
 		}
@@ -187,7 +187,7 @@ func TestCustomRulesetInjuryStatGain(t *testing.T) {
 	t.Run("Might instead of Fate, by 2", func(t *testing.T) {
 		r, err := rowOf(t, func(doc map[string]any) {
 			sc := valar(t, doc)["statChanges"].([]any)[0].(map[string]any)
-			sc["stat"], sc["delta"] = "might", 2.0
+			sc["stat"], sc["amount"] = "might", 2.0
 		})
 		if err != nil || r.StatGains["might"] != 2 || r.Fate != 0 || len(r.StatGains) != 1 {
 			t.Errorf("row = %+v, %v", r, err)
@@ -199,21 +199,21 @@ func TestCustomRulesetInjuryStatGain(t *testing.T) {
 		want  string
 	}{
 		"unknown stat":   {"luck", 1.0, `statChanges[0].stat: "luck" is not a characteristic`},
-		"a loss is kept": {"fate", -1.0, "statChanges[0].delta: -1 must be a gain"},
+		"a loss is kept": {"fate", -1.0, "statChanges[0].amount: -1 must be a gain"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			_, err := rowOf(t, func(doc map[string]any) {
 				sc := valar(t, doc)["statChanges"].([]any)[0].(map[string]any)
-				sc["stat"], sc["delta"] = tc.stat, tc.delta
+				sc["stat"], sc["amount"] = tc.stat, tc.delta
 			})
-			if err == nil || !strings.Contains(err.Error(), tc.want) {
-				t.Errorf("error = %v, want one containing %q", err, tc.want)
+			if err == nil || !strings.Contains(err.Error(), leanWording(tc.want)) {
+				t.Errorf("error = %v, want one containing %q", err, leanWording(tc.want))
 			}
 		})
 	}
 }
 
-// The experience of a gain and the Reroll bonus are printed from the rules (H4, H7).
+// The experience of a gain and the Reroll bonus are printed from the rules.
 func TestCustomRulesetExperienceAndRerollFigures(t *testing.T) {
 	rs := customRuleset(t, func(doc map[string]any) {
 		for _, g := range jsonAt(t, doc, "campaign", "experience", "gains").([]any) {
@@ -244,7 +244,7 @@ func TestCustomRulesetExperienceAndRerollFigures(t *testing.T) {
 
 func gearAnnotation(t *testing.T, doc map[string]any, name string) map[string]any {
 	t.Helper()
-	for _, it := range jsonAt(t, doc, "data", "gearAnnotations", "items").([]any) {
+	for _, it := range doc["gear"].([]any) {
 		if m := it.(map[string]any); m["name"] == name {
 			return m
 		}
@@ -253,7 +253,7 @@ func gearAnnotation(t *testing.T, doc map[string]any, name string) map[string]an
 	return nil
 }
 
-// B6, B7: the equipment slots of a model and the slots the Backpack adds come from the file.
+// The equipment slots of a model and the slots the Backpack adds come from the file.
 func TestCustomRulesetEquipmentSlots(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -303,23 +303,23 @@ func TestCustomRulesetRefusesBadSlots(t *testing.T) {
 		{"equipmentSlots missing", func(doc map[string]any) { delete(campaignAt(t, doc, "campaign", "company"), "equipmentSlots") }, "campaign.company.equipmentSlots is missing"},
 		{"Backpack grants 11", func(doc map[string]any) {
 			gearAnnotation(t, doc, "Backpack")["grantsSlots"] = map[string]any{"small": 11.0}
-		}, "data.gearAnnotations.items[Backpack].grantsSlots.small: 11 is outside 0..10"},
+		}, "grantsSlots.small: 11 is outside 0..10"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := customRulesetErr(t, tt.mutate)
-			if err == nil || !strings.Contains(err.Error(), tt.want) {
-				t.Errorf("error = %v, want one containing %q", err, tt.want)
+			if err == nil || !strings.Contains(err.Error(), leanWording(tt.want)) {
+				t.Errorf("error = %v, want one containing %q", err, leanWording(tt.want))
 			}
 		})
 	}
 }
 
-// G3: who may take the Elven-made items is the race the file names.
+// Who may take the Elven-made items is the race the file names.
 func TestCustomRulesetItemRace(t *testing.T) {
 	setRace := func(race string) func(doc map[string]any) {
 		return func(doc map[string]any) {
-			gearAnnotation(t, doc, "Elven spear")["who"] = map[string]any{"race": race}
+			gearAnnotation(t, doc, "Elven spear")["who"] = map[string]any{"race": []any{race}}
 		}
 	}
 	tests := []struct {
@@ -346,11 +346,11 @@ func TestCustomRulesetItemRace(t *testing.T) {
 				w, _ := sh.whyNot(CompanyUnit{Type: unit, Role: RoleHero}, offer)
 				return w
 			}
-			const msg = "Elven-made weaponry is for"
-			if got := strings.HasPrefix(why("Warrior of Minas Tirith"), msg); got != tt.manBlocked {
+			blocked := func(unit string) bool { w := why(unit); return w != "" && !strings.HasPrefix(w, "Costs ") } // the test company has no influence
+			if got := blocked("Warrior of Minas Tirith"); got != tt.manBlocked {
 				t.Errorf("Man blocked = %v (%q), want %v", got, why("Warrior of Minas Tirith"), tt.manBlocked)
 			}
-			if got := strings.HasPrefix(why("Rivendell Warrior"), msg); got != tt.elfBlocked {
+			if got := blocked("Rivendell Warrior"); got != tt.elfBlocked {
 				t.Errorf("Elf blocked = %v (%q), want %v", got, why("Rivendell Warrior"), tt.elfBlocked)
 			}
 			if tt.wantWhyOfMan != "" && why("Warrior of Minas Tirith") != tt.wantWhyOfMan {
@@ -362,9 +362,9 @@ func TestCustomRulesetItemRace(t *testing.T) {
 
 func TestCustomRulesetRefusesUnknownItemRace(t *testing.T) {
 	_, err := customRulesetErr(t, func(doc map[string]any) {
-		gearAnnotation(t, doc, "Elven spear")["who"] = map[string]any{"race": "Quux"}
+		gearAnnotation(t, doc, "Elven spear")["who"] = map[string]any{"race": []any{"Quux"}}
 	})
-	if want := `data.gearAnnotations.items[Elven spear].who.race: "Quux" is not a race of the vanilla data`; err == nil || !strings.Contains(err.Error(), want) {
+	if want := `no race "Quux" in vanilla`; err == nil || !strings.Contains(err.Error(), want) {
 		t.Errorf("error = %v, want one containing %q", err, want)
 	}
 }

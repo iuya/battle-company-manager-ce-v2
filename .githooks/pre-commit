@@ -1,0 +1,40 @@
+#!/usr/bin/env sh
+# Staged-file checks: gofmt, and an obvious-secret scan of the added lines.
+# Runs the beads pre-commit hook first when there is one.
+hook_dir=$(dirname "$0")
+if [ -x "$hook_dir/../.beads/hooks/pre-commit" ]; then
+  "$hook_dir/../.beads/hooks/pre-commit" "$@" || exit $?
+fi
+
+status=0
+
+# 1. gofmt on the staged Go files (skipped when gofmt is not installed).
+if command -v gofmt >/dev/null 2>&1; then
+  go_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.go$' || true)
+  if [ -n "$go_files" ]; then
+    # shellcheck disable=SC2086
+    unformatted=$(gofmt -l $go_files 2>/dev/null || true)
+    if [ -n "$unformatted" ]; then
+      echo "pre-commit: these staged Go files are not gofmt-formatted:" >&2
+      printf '  %s\n' $unformatted >&2
+      echo "  fix with: gofmt -w <file>  (then git add it again)" >&2
+      status=1
+    fi
+  fi
+fi
+
+# 2. Secrets: private keys, AWS access key ids, GitHub tokens in the lines this commit adds.
+# Test fixtures that need such a string can set BCM_SKIP_SECRET_SCAN=1 for that one commit.
+if [ -z "$BCM_SKIP_SECRET_SCAN" ]; then
+  hits=$(git diff --cached -U0 --no-color -- . ':(exclude).githooks' ':(exclude)tests/ci' \
+    | grep -E '^\+' | grep -vE '^\+\+\+' \
+    | grep -E -- '-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{40,}|xox[baprs]-[A-Za-z0-9-]{10,}' || true)
+  if [ -n "$hits" ]; then
+    echo "pre-commit: the staged changes look like they contain a secret (a key, token or password):" >&2
+    printf '%s\n' "$hits" | cut -c1-80 >&2
+    echo "  Remove it and rotate it if it was ever real. For a deliberate fake in a test fixture: BCM_SKIP_SECRET_SCAN=1 git commit ..." >&2
+    status=1
+  fi
+fi
+
+exit $status

@@ -61,18 +61,18 @@
 {{define "cross"}}<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg>{{end}}
 
 {{/* An item in the expanded card: takes {I: item, U: unit, CID: campaign id}. */}}
-{{define "expanded_item"}}{{$u := .U}}{{$cid := .CID}}{{$ro := .RO}}{{with .I}}
+{{define "expanded_item"}}{{$u := .U}}{{$cid := .CID}}{{$co := .CO}}{{$ro := .RO}}{{with .I}}
         <li class="eq-{{.Class}} flex gap-2">
           <span class="mt-1 flex gap-0.5">{{template "gear_icons" .}}</span>
           <div class="min-w-0">
             <p class="font-medium">{{.Name}}{{with .Stats}} <span class="font-normal text-muted">{{.}}</span>{{end}} {{if .Bought}}<span class="badge">Bought</span>{{else}}<span class="badge badge-muted">Starting</span>{{end}}{{with .Size}} <span class="badge badge-muted">{{.}} slot</span>{{end}}</p>
             {{if .Segments}}<p class="text-sm text-muted">{{template "segments" (dict "S" .Segments "CID" $cid)}}</p>{{end}}
-            {{if and .Choices (not .Modifies) (not $ro)}}<form data-lock class="mt-1 flex flex-wrap items-end gap-2" method="post" action="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/equipment/weapon" hx-post="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/equipment/weapon" hx-target="#main" hx-swap="innerHTML show:window:top">
+            {{if and .Choices (not .Modifies) (not $ro)}}<form data-lock class="mt-1 flex flex-wrap items-end gap-2" method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/equipment/weapon" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/equipment/weapon" hx-target="#main" hx-swap="innerHTML show:window:top">
               <input type="hidden" name="item" value="{{.Name}}">{{template "weapon_chooser" (dict "Weapons" .Choices "ID" (printf "weapon-%d-%s" $u.ID .Name) "Chosen" "")}}<button class="btn btn-ghost !min-h-8 !px-2 !text-xs">Choose weapon</button>
             </form>{{else if and .Choices (not .Modifies) $ro}}<p class="text-xs text-muted">No weapon chosen yet.</p>{{end}}
           </div>
           {{if .Drop}}<span class="ml-auto max-w-40 shrink-0 self-start text-right text-xs text-muted">{{if not $ro}}{{.Drop}}{{end}}</span>{{else if not $ro}}
-          <form data-lock class="ml-auto shrink-0 self-start" method="post" action="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/equipment/drop" hx-post="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/equipment/drop" hx-target="#main" hx-swap="innerHTML show:window:top" hx-confirm="Drop {{.Name}}? It is lost for good and nothing is refunded.">
+          <form data-lock class="ml-auto shrink-0 self-start" method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/equipment/drop" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/equipment/drop" hx-target="#main" hx-swap="innerHTML show:window:top" hx-confirm="Drop {{.Name}}? It is lost for good and nothing is refunded.">
             <input type="hidden" name="item" value="{{.Name}}"><button class="btn btn-ghost !min-h-8 !px-2 !text-xs" title="Drop {{.Name}}">Drop</button>
           </form>{{end}}
         </li>
@@ -136,7 +136,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </ul>
 </div>{{end}}{{end}}
 
-{{define "unit_card"}}{{$ap := .AP}}{{$u := .U}}{{$cid := .CID}}{{$wcost := .WCost}}{{$lv := .LV}}{{$lu := .LU}}{{$rn := .RO}}{{$ro := or .RO $lv}}
+{{define "unit_card"}}{{$ap := .AP}}{{$u := .U}}{{$cid := .CID}}{{$co := .CO}}{{$wcost := .WCost}}{{$lv := .LV}}{{$lu := .LU}}{{$rn := .RO}}{{$ro := or .RO $lv}}
 <div class="unit-slot {{if $u.Injured}}unit-away{{end}}" data-unit-id="{{$u.ID}}" :style="expanded === {{$u.ID}} ? 'min-height:' + slotH + 'px' : ''">
 <div class="unit-handle" x-show="formation" x-cloak>
   <span class="flex min-w-0 items-center gap-1.5"><svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg><span class="truncate font-medium">{{$u.Title}}</span></span>
@@ -155,13 +155,13 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
 
   {{/* Promotions waiting: the card's headline, not a footnote. The roll itself is not built yet. */}}
   {{if $ro}}{{else if $u.PathPending}}
-  <button type="button" class="promo" hx-get="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/path" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">
+  <button type="button" class="promo" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/path" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">
     <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8M12 13L6 7M12 13l6-6M6 11.5V7h4.5M18 11.5V7h-4.5"/></svg>
     <span class="min-w-0 flex-1 whitespace-nowrap">Choose a path</span>
     <span class="rounded-full bg-page px-2 py-0.5 text-xs text-fg">Required</span>
   </button>
   {{else if $u.PendingLevelUps}}
-  <button type="button" class="promo" hx-get="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/levelup" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">
+  <button type="button" class="promo" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/levelup" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">
     <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5l2.4 5.6 6.1.6-4.6 4 1.4 6-5.3-3.2-5.3 3.2 1.4-6-4.6-4 6.1-.6zM19 15l.9 2.1 2.1.9-2.1.9L19 21l-.9-2.1-2.1-.9 2.1-.9z"/></svg>
     <span class="min-w-0 flex-1 whitespace-nowrap">Level Up ready!{{if gt $u.PendingLevelUps 1}}<span class="ml-2 rounded-full bg-page/25 px-1.5" title="{{$u.PendingLevelUps}} level-ups waiting">×{{$u.PendingLevelUps}}</span>{{end}}</span>
     <span class="rounded-full bg-page px-2 py-0.5 text-xs text-fg">Roll</span>
@@ -175,7 +175,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
       <h3 class="flex items-center gap-1.5 !text-xl leading-tight">{{template "role_insignia" $u.Role}}
         <span class="min-w-0" x-show="editing !== {{$u.ID}}" {{if not $rn}}@dblclick="editName({{$u.ID}})" title="Double-click to rename"{{end}}>{{$u.Title}}</span>
         {{if not $rn}}<button type="button" class="btn btn-ghost !min-h-7 !px-1.5 text-muted" x-show="expanded === {{$u.ID}} && editing !== {{$u.ID}}" x-cloak @click.stop="editName({{$u.ID}})" aria-label="Rename {{$u.Title}}" title="Rename"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg></button>
-        <form class="flex min-w-0 flex-1 items-center gap-1" x-show="editing === {{$u.ID}}" x-cloak method="post" action="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/rename" hx-post="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/rename" hx-target="#main" hx-swap="innerHTML">
+        <form class="flex min-w-0 flex-1 items-center gap-1" x-show="editing === {{$u.ID}}" x-cloak method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/rename" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/rename" hx-target="#main" hx-swap="innerHTML">
           <input id="rename-{{$u.ID}}" name="name" value="{{$u.Name}}" maxlength="40" placeholder="{{$u.Type}}" aria-label="Name of {{$u.Type}}" class="input !min-h-8 min-w-0 flex-1 !py-0.5 !text-base" @keydown.escape.stop.prevent="editing = null">
           <button class="btn btn-primary !min-h-8 !px-2 !text-xs">Save</button>
           <button type="button" class="btn btn-ghost !min-h-8 !px-2 !text-xs" @click="editing = null">Cancel</button>
@@ -198,8 +198,8 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
       {{if or $u.Injured $u.Injuries}}<p class="mt-1 flex flex-wrap items-center gap-1.5">
         {{if $u.Injured}}<span class="badge !bg-danger-soft !text-danger" title="Misses the next game and does not count towards the company's rating">Out next match</span>{{end}}
         {{range $u.Injuries}}<span class="badge !bg-danger-soft !text-danger has-tip" tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Injury{{if gt .Count 1}} · suffered {{.Count}} times{{end}}" data-tip-text="{{.Text}}">{{.Name}}{{if gt .Count 1}} ×{{.Count}}{{end}}</span>{{end}}
-        {{if $ro}}{{else if $warrior}}{{if $u.Injured}}<form data-lock method="post" action="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/treat" hx-post="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/treat" hx-target="#main" hx-swap="innerHTML show:window:top" hx-confirm="Treat {{$u.Title}}'s injury for {{$wcost}} influence?"><input type="hidden" name="method" value="warrior"><button class="eq-add eq-heal" title="Treat injuries: {{$wcost}} influence, no roll" aria-label="Heal {{$u.Title}} for {{$wcost}} influence">{{template "cross"}}</button></form>{{end}}
-        {{else}}<button type="button" data-lock class="eq-add eq-heal" hx-get="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/treat" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" title="Treat injuries" aria-label="Treat {{$u.Title}}'s injuries">{{template "cross"}}</button>{{end}}
+        {{if $ro}}{{else if $warrior}}{{if $u.Injured}}<form data-lock method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/treat" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/treat" hx-target="#main" hx-swap="innerHTML show:window:top" hx-confirm="Treat {{$u.Title}}'s injury for {{$wcost}} influence?"><input type="hidden" name="method" value="warrior"><button class="eq-add eq-heal" title="Treat injuries: {{$wcost}} influence, no roll" aria-label="Heal {{$u.Title}} for {{$wcost}} influence">{{template "cross"}}</button></form>{{end}}
+        {{else}}<button type="button" data-lock class="eq-add eq-heal" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/treat" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" title="Treat injuries" aria-label="Treat {{$u.Title}}'s injuries">{{template "cross"}}</button>{{end}}
       </p>{{end}}
       {{with $u.LostAbilities}}<p class="mt-1 text-xs text-muted">Lost: {{range $i, $l := .}}{{if $i}}, {{end}}{{if eq $l.Ability "standFast"}}Stand Fast!{{else if eq $l.Ability "heroicActionsOnCompany"}}heroic actions on the company{{else}}{{$l.Ability}}{{end}} ({{$l.Injury}}){{end}}</p>{{end}}
   </div>
@@ -221,7 +221,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   <div x-show="expanded !== {{$u.ID}}" class="space-y-2">
     {{/* Wargear (what takes no slot: mount, weapons, armour) always in the same order (mount, melee, shield, armour, ranged, rest) so units
        compare at a glance; then the slots, and below them the equipment that takes them. Starting items are plain, bought ones carry a +. */}}
-    <p class="flex items-center gap-1.5 text-xs text-muted"><span>Wargear</span>{{if and (not $u.Wanderer) (not $ro)}}<button type="button" data-lock class="eq-add eq-add-sm" hx-get="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/armoury?kind=wargear" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" aria-label="Buy wargear for {{$u.Title}}" title="Buy wargear">+</button>{{end}}</p>
+    <p class="flex items-center gap-1.5 text-xs text-muted"><span>Wargear</span>{{if and (not $u.Wanderer) (not $ro)}}<button type="button" data-lock class="eq-add eq-add-sm" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/armoury?kind=wargear" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" aria-label="Buy wargear for {{$u.Title}}" title="Buy wargear">+</button>{{end}}</p>
     <ul class="flex flex-wrap items-center gap-1.5" aria-label="Wargear">
       {{range $u.Items}}{{if and (not .Upgrade) (not .Size)}}{{template "gear_chip" .}}{{end}}{{end}}
       {{with $u.Creature}}<li class="eq-chip has-tip" tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Creature · not a unit, no injuries" {{with $u.CreatureStats}}data-tip-stats="{{.}}" {{end}}data-tip-text="{{$u.CreatureTip}}">{{template "paw"}}<span>{{.Name}}</span></li>{{end}}
@@ -233,7 +233,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     <ul class="flex flex-wrap gap-1.5" aria-label="Unit upgrades">{{- range $u.Items}}{{if .Upgrade}}<li class="badge badge-gold{{if .Description}} has-tip{{end}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Unit upgrade" data-tip-text="{{.Description}}"{{else}}title="Unit upgrade"{{end}}>{{.Name}}</li>{{end}}{{end -}}</ul>
     {{$sl := $u.Slots}}
     <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted" aria-label="Equipment slots">
-      <span class="inline-flex items-center gap-1.5"><span>Equipment</span>{{if and (not $u.Wanderer) (not $ro)}}<button type="button" data-lock class="eq-add eq-add-sm" hx-get="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/armoury?kind=equipment" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" aria-label="Buy equipment for {{$u.Title}}" title="Buy equipment">+</button>{{end}}</span>
+      <span class="inline-flex items-center gap-1.5"><span>Equipment</span>{{if and (not $u.Wanderer) (not $ro)}}<button type="button" data-lock class="eq-add eq-add-sm" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/armoury?kind=equipment" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" aria-label="Buy equipment for {{$u.Title}}" title="Buy equipment">+</button>{{end}}</span>
       <span class="inline-flex items-center gap-1" title="Large slots used">Large {{range $i := seq 1 $sl.LargeMax}}<span class="pip {{if le $i $sl.LargeUsed}}pip-on{{end}}"></span>{{end}} <span>{{$sl.LargeUsed}}/{{$sl.LargeMax}}</span></span>
       <span class="inline-flex items-center gap-1" title="Small slots used">Small {{range $i := seq 1 $sl.SmallMax}}<span class="pip {{if le $i $sl.SmallUsed}}pip-on{{end}}"></span>{{end}} <span>{{$sl.SmallUsed}}/{{$sl.SmallMax}}</span></span>
     </p>
@@ -278,14 +278,14 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     <section>
       <h4 class="!text-lg">Wargear</h4>
       <ul class="mt-1 space-y-2">
-        {{range $u.Items}}{{if and (not .Upgrade) (not .Size)}}{{template "expanded_item" (dict "I" . "U" $u "CID" $cid "RO" $ro)}}{{end}}{{end}}
+        {{range $u.Items}}{{if and (not .Upgrade) (not .Size)}}{{template "expanded_item" (dict "I" . "U" $u "CID" $cid "CO" $co "RO" $ro)}}{{end}}{{end}}
       </ul>
       <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Unit upgrades">{{- range $u.Items}}{{if .Upgrade}}<li class="badge badge-gold{{if .Description}} has-tip{{end}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Unit upgrade" data-tip-text="{{.Description}}"{{end}}>{{.Name}} <span class="font-normal">· unit upgrade</span></li>{{end}}{{end -}}</ul>
     </section>
     <section>
       <h4 class="!text-lg">Equipment</h4>
       <ul class="mt-1 space-y-2">
-        {{range $u.Items}}{{if and (not .Upgrade) .Size}}{{template "expanded_item" (dict "I" . "U" $u "CID" $cid "RO" $ro)}}{{end}}{{end}}
+        {{range $u.Items}}{{if and (not .Upgrade) .Size}}{{template "expanded_item" (dict "I" . "U" $u "CID" $cid "CO" $co "RO" $ro)}}{{end}}{{end}}
       </ul>
     </section>
     {{with $u.Path}}{{if .Name}}
@@ -348,7 +348,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   {{else if $u.Wanderer}}
   <div class="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3 text-xs">
     <span class="text-muted">Mercenary: no experience</span>
-    {{if and (not $ro) (not $lu)}}<form data-lock method="post" action="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/dismiss" hx-post="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/dismiss" hx-target="#main" hx-swap="innerHTML show:window:top" hx-confirm="Dismiss {{$u.Title}}? The influence is not returned."><button class="btn btn-ghost !min-h-8 !px-2 !text-xs">Dismiss</button></form>{{end}}
+    {{if and (not $ro) (not $lu)}}<form data-lock method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/dismiss" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/dismiss" hx-target="#main" hx-swap="innerHTML show:window:top" hx-confirm="Dismiss {{$u.Title}}? The influence is not returned."><button class="btn btn-ghost !min-h-8 !px-2 !text-xs">Dismiss</button></form>{{end}}
   </div>
   {{else}}
   <div class="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-3 text-xs">

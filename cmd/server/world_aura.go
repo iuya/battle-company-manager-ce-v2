@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 
@@ -17,43 +15,20 @@ import (
 const auraParadeName = "Aura parade: every aura ring a company can carry"
 
 // pathChart is the part of the Battle Companies file the script reads to aim its level-up rolls: the 2D6 chart of each path.
-type pathChart struct {
-	Data struct {
-		Paths []struct {
-			Name        string `json:"name"`
-			Progression []struct {
-				Roll    int `json:"roll"`
-				Options []struct {
-					Type        string `json:"type"`
-					SpecialRule string `json:"specialRule"`
-				} `json:"options"`
-			} `json:"progression"`
-		} `json:"paths"`
-	} `json:"data"`
-}
-
-func (w *world) pathChart() pathChart {
-	raw, err := os.ReadFile("definitions/battle_companies/battle_companies.json")
-	w.must("read the Battle Companies file", err)
-	var c pathChart
-	w.must("parse the paths", json.Unmarshal(raw, &c))
-	return c
-}
-
 // rollFor is the 2D6 sum on which the path offers the choice (a special rule by name, the Sorcerer's powers on their row).
 func (w *world) rollFor(path, key string) int {
 	kind, name, _ := strings.Cut(key, ":")
-	for _, p := range w.pathChart().Data.Paths {
+	for _, p := range w.shippedRules().Doc.Paths {
 		if p.Name != path {
 			continue
 		}
-		for _, row := range p.Progression {
+		for _, row := range p.Rows {
 			for _, o := range row.Options {
 				switch {
-				case kind == "rule" && o.Type == "specialRule" && o.SpecialRule == name:
-					return row.Roll
-				case kind == "power" && o.Type == "oneOf" && row.Roll == 3:
-					return row.Roll
+				case kind == "rule" && o.Rule != nil && o.Rule.Name == name:
+					return row.Roll.Lo
+				case kind == "power" && len(o.OneOf) > 0 && row.Roll.Lo == 3:
+					return row.Roll.Lo
 				}
 			}
 		}
@@ -98,12 +73,12 @@ func (w *world) becomeHero(co *wco, id int64, path, power string) {
 
 // pathOf gives an officer its path (a Sorcerer its first power).
 func (w *world) pathOf(co *wco, id int64, path, power string) {
-	w.must("choose "+path, w.c().ChoosePath(w.ctx, co.user, co.camp.id, id, path, power))
+	w.must("choose "+path, w.c().ChoosePath(w.ctx, co.user, co.camp.id, co.id, id, path, power))
 }
 
 // buy buys the item for the unit with gold, or influence when it has no gold price; false (and a line in the log) when it cannot.
 func (w *world) buy(co *wco, id int64, item string) bool {
-	return w.try("buy "+item, w.c().BuyEquipment(w.ctx, co.user, co.camp.id, id, item, "gold"))
+	return w.try("buy "+item, w.c().BuyEquipment(w.ctx, co.user, co.camp.id, co.id, id, item, "gold"))
 }
 
 // topUp gives the company money for the shopping of the script.
@@ -133,7 +108,9 @@ func (w *world) auraParade() {
 
 // auraUnreachable are the entries of data.auras no company of the app can carry, with the reason (docs/demo-world.md prints them).
 var auraUnreachable = map[string]string{
-	"banner-3": "a plain Banner is not sold: the Battle Companies equipment table replaces it with the Company Standard (data.optionSales notSold)",
+	"keen-sight-12-2":   "the plain Keen Sight rule has a ring of its own in the file; the units of the companies carry the Falcon's rule (keen-sight-12)",
+	"lead-by-example-6": "only Buhrdur (a named character no company has) carries the vanilla Lead by Example ring; the Path of Their Own Making has a rule of its own, Lead by Example (Their Own Making), with no ring",
+	"banner-3":          "a plain Banner is not sold: the Battle Companies equipment table replaces it with the Company Standard (data.optionSales notSold)",
 }
 
 // auraCoverage says (as a gap) which entry of data.auras no company of the parade carries and the list above does not explain.
@@ -198,7 +175,7 @@ func (w *world) auraLothlorien(c *wcamp) {
 	} else { // a Sentinel on the Path of Their Own Making can take the homebrew rule Lead by Example
 		w.xp(co, sentinels[0].ID, 5, "Walked its own way")
 		w.rollLevel(co, sentinels[0], 6)
-		w.gain(co, sentinels[0].ID, "rule:Lead by Example")
+		w.gain(co, sentinels[0].ID, "rule:Lead by Example (Their Own Making)")
 	}
 	w.buyCreature(co, "Falcon")
 	w.show(co)

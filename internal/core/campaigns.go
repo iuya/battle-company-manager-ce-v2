@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strings"
 )
@@ -44,33 +45,42 @@ func (d companyDeps) detail(ctx context.Context, campaignID, companyID int64) (C
 	return BuildDetail(rs, settings, st), rs, nil
 }
 
-// myCompany returns the id of the company the user owns in the campaign; ErrNotFound when the campaign is unknown to them
-// or they have no company in it (so a stranger learns nothing).
-func (d companyDeps) myCompany(ctx context.Context, user User, campaignID int64) (int64, error) {
+// ownCompany returns the id of the company companyID when the user owns it in the campaign: the one helper that resolves and
+// authorises every owner action. ErrNotFound when the campaign is unknown to them or the company is not theirs (another player's,
+// another campaign's, or the organiser probing: a stranger learns nothing).
+func (d companyDeps) ownCompany(ctx context.Context, user User, campaignID, companyID int64) (int64, error) {
 	camp, err := d.campaigns.Get(ctx, user.ID, campaignID)
 	if err != nil {
 		return 0, err
 	}
-	if camp.Company == nil {
+	co, ok := camp.Own(companyID)
+	if !ok {
 		return 0, ErrNotFound
 	}
-	return camp.Company.ID, nil
+	return co.ID, nil
 }
 
-// myCompanyToChange is myCompany for a use case that changes the company: a finished campaign is frozen (matches, companies and
+// ownCompanyToChange is ownCompany for a use case that changes the company: a finished campaign is frozen (matches, companies and
 // grants stay as they were until an administrator reactivates it), so every write is refused with the same reason.
-func (d companyDeps) myCompanyToChange(ctx context.Context, user User, campaignID int64) (int64, error) {
+func (d companyDeps) ownCompanyToChange(ctx context.Context, user User, campaignID, companyID int64) (int64, error) {
+	_, id, err := d.ownedCampaignToChange(ctx, user, campaignID, companyID)
+	return id, err
+}
+
+// ownedCampaignToChange is ownCompanyToChange that also returns the campaign as the user sees it (their other companies included).
+func (d companyDeps) ownedCampaignToChange(ctx context.Context, user User, campaignID, companyID int64) (CampaignDetail, int64, error) {
 	camp, err := d.campaigns.Get(ctx, user.ID, campaignID)
 	if err != nil {
-		return 0, err
+		return camp, 0, err
 	}
-	if camp.Company == nil {
-		return 0, ErrNotFound
+	co, ok := camp.Own(companyID)
+	if !ok {
+		return camp, 0, ErrNotFound
 	}
 	if err := camp.CanPlay(); err != nil {
-		return 0, err
+		return camp, 0, err
 	}
-	return camp.Company.ID, nil
+	return camp, co.ID, nil
 }
 
 // rated fills the rating figures of a company from its rules: the repositories cannot, prices live in the rules files.
@@ -80,19 +90,22 @@ func (d companyDeps) rated(ctx context.Context, campaignID int64, rs *RuleSet, s
 		return co, err
 	}
 	b := BuildDetail(rs, settings, st).CampaignCompany
-	co.Points, co.FullPoints, co.Units = b.Points, b.FullPoints, b.Units
+	co.Points, co.FullPoints, co.Units, co.FactionLabel = b.Points, b.FullPoints, b.Units, b.FactionLabel
 	return co, nil
 }
 
 // figures rates every company of the campaign with a single read of the rosters (rated costs a read per company); the result
-// is by company id, only the Points, FullPoints and Units fields filled.
-func (d companyDeps) figures(ctx context.Context, campaignID int64, rs *RuleSet, settings CampaignSettings) (map[int64]CampaignCompany, error) {
+// is by company id, only the Points, FullPoints and Units fields filled. want, when not nil, picks the companies to build.
+func (d companyDeps) figures(ctx context.Context, campaignID int64, rs *RuleSet, settings CampaignSettings, want func(companyID int64) bool) (map[int64]CampaignCompany, error) {
 	states, err := d.companies.ReadRoster(ctx, campaignID)
 	if err != nil {
 		return nil, err
 	}
 	out := make(map[int64]CampaignCompany, len(states))
 	for _, st := range states {
+		if want != nil && !want(st.Company.ID) { // building a company is the cost: only those asked for
+			continue
+		}
 		out[st.Company.ID] = BuildDetail(rs, settings, st).CampaignCompany
 	}
 	return out, nil
@@ -100,7 +113,7 @@ func (d companyDeps) figures(ctx context.Context, campaignID int64, rs *RuleSet,
 
 // ratedAll fills the rating figures of the companies given (of one campaign) from one read of the campaign's rosters.
 func (d companyDeps) ratedAll(ctx context.Context, campaignID int64, rs *RuleSet, settings CampaignSettings, list []CampaignCompany) error {
-	f, err := d.figures(ctx, campaignID, rs, settings)
+	f, err := d.figures(ctx, campaignID, rs, settings, nil)
 	if err != nil {
 		return err
 	}
@@ -109,7 +122,7 @@ func (d companyDeps) ratedAll(ctx context.Context, campaignID int64, rs *RuleSet
 		if !ok {
 			return ErrNotFound
 		}
-		list[i].Points, list[i].FullPoints, list[i].Units = b.Points, b.FullPoints, b.Units
+		list[i].Points, list[i].FullPoints, list[i].Units, list[i].FactionLabel = b.Points, b.FullPoints, b.Units, b.FactionLabel
 	}
 	return nil
 }
@@ -137,19 +150,15 @@ func (c *Campaigns) List(ctx context.Context, userID int64, withFinished bool) (
 		return nil, err
 	}
 	for i := range list {
-		co := list[i].Company
-		if co == nil {
+		if len(list[i].Companies) == 0 {
 			continue
 		}
 		rs, settings, err := c.ruleset(ctx, list[i].ID)
 		if err == nil {
-			var rated CampaignCompany
-			if rated, err = c.rated(ctx, list[i].ID, rs, settings, *co); err == nil {
-				list[i].Company = &rated
-			}
+			err = c.ratedAll(ctx, list[i].ID, rs, settings, list[i].Companies)
 		}
 		if err != nil { // one campaign whose rules cannot be loaded must not hide the others
-			c.log.Warn("cannot rate the company", "campaign", list[i].ID, "company", co.ID, "err", err)
+			c.log.Warn("cannot rate the companies", "campaign", list[i].ID, "err", err)
 		}
 	}
 	return list, nil
@@ -222,18 +231,16 @@ func (c *Campaigns) Create(ctx context.Context, owner User, in CampaignInput) (C
 // Get returns the campaign as one of its players sees it, with their company rated; ErrNotFound for non-members.
 func (c *Campaigns) Get(ctx context.Context, userID, id int64) (CampaignDetail, error) {
 	d, err := c.campaigns.Get(ctx, userID, id)
-	if err != nil || d.Company == nil {
+	if err != nil || len(d.Companies) == 0 {
 		return d, err
 	}
 	rs, settings, err := c.ruleset(ctx, id)
 	if err != nil {
 		return d, err
 	}
-	rated, err := c.rated(ctx, id, rs, settings, *d.Company)
-	if err != nil {
+	if err := c.ratedAll(ctx, id, rs, settings, d.Companies); err != nil {
 		return d, err
 	}
-	d.Company = &rated
 	return d, nil
 }
 
@@ -266,7 +273,26 @@ func (c *Campaigns) Company(ctx context.Context, id, companyID int64) (CampaignC
 	return c.rated(ctx, id, rs, settings, co)
 }
 
-// Settings returns the settings the campaign is played with; they never change after creation.
+// SetCompaniesPerPlayer changes how many companies each player may have (1 to 4) at any time, up or down. The organiser and
+// administrators may (ErrRefused otherwise, and for a finished campaign); n out of range is ErrInvalidCampaign. Lowering touches no
+// company: players above the new limit keep theirs and cannot create more.
+func (c *Campaigns) SetCompaniesPerPlayer(ctx context.Context, actor User, campaignID int64, n int) error {
+	if n < 1 || n > MaxCompaniesPerPlayer {
+		return errors.Join(ErrInvalidCampaign, fmt.Errorf("a player can have between 1 and %d companies", MaxCompaniesPerPlayer))
+	}
+	return c.campaigns.UpdateSettings(ctx, campaignID, func(organiserID int64, status CampaignStatus, s CampaignSettings) (CampaignSettings, error) {
+		if !CanManageCampaign(actor, organiserID) {
+			return s, Refuse("Only the organiser of the campaign or an administrator can change this.")
+		}
+		if status == CampaignFinished {
+			return s, Refuse("The campaign has ended.")
+		}
+		s.CompaniesPerPlayer = n
+		return s, nil
+	})
+}
+
+// Settings returns the settings the campaign is played with; only CompaniesPerPlayer changes after creation.
 func (c *Campaigns) Settings(ctx context.Context, id int64) (CampaignSettings, error) {
 	_, settings, err := c.campaigns.Hashes(ctx, id)
 	return settings, err
@@ -295,7 +321,7 @@ func (c *Campaigns) HandOver(ctx context.Context, actor User, campaignID, newOrg
 
 // SetCampaignStatus pauses, resumes, ends or reactivates a campaign. The organiser and administrators pause (active to paused), resume
 // (paused to active) and end (active or paused to finished; allowed with open matches, the page warns first); only administrators
-// reactivate a finished campaign (user decision 2026-10-21, mtu.26: an ended campaign is ended for good for the organiser). Ending needs
+// reactivate a finished campaign (an ended campaign is ended for good for the organiser). Ending needs
 // the campaign's name as confirm (the page asks for it after its warnings) and revokes every invitation link; the matches stay exactly
 // as they are, frozen. ErrRefused with the reason otherwise.
 func (c *Campaigns) SetCampaignStatus(ctx context.Context, actor User, campaignID int64, to CampaignStatus, confirm string) error {

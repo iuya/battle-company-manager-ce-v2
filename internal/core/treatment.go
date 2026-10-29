@@ -19,8 +19,8 @@ func NewTreatmentService(campaigns campaignRepository, companies companyReposito
 }
 
 // TreatmentState is the treatment roll of a unit that waits for the player's decision on extra influence, nil when none.
-func (s *TreatmentService) TreatmentState(ctx context.Context, user User, campaignID, unitID int64) (*TreatResult, error) {
-	id, err := s.myCompany(ctx, user, campaignID)
+func (s *TreatmentService) TreatmentState(ctx context.Context, user User, campaignID, companyID, unitID int64) (*TreatResult, error) {
+	id, err := s.ownCompany(ctx, user, campaignID, companyID)
 	if err != nil {
 		return nil, err
 	}
@@ -41,8 +41,8 @@ func (s *TreatmentService) TreatmentState(ctx context.Context, user User, campai
 
 // TreatInjury treats a unit of the user's company. The result says what happened; a failed attempt is not an error: its
 // influence is lost. What the rules do not allow is an error wrapping ErrRefused.
-func (s *TreatmentService) TreatInjury(ctx context.Context, user User, campaignID, unitID int64, t Treatment) (TreatResult, error) {
-	id, err := s.myCompanyToChange(ctx, user, campaignID)
+func (s *TreatmentService) TreatInjury(ctx context.Context, user User, campaignID, companyID, unitID int64, t Treatment) (TreatResult, error) {
+	id, err := s.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return TreatResult{}, err
 	}

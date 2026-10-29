@@ -143,7 +143,7 @@ func seed(ctx context.Context, b *backend, password string) error {
 	}
 
 	// an ended match (its aftermath waived), and an open one with three sides
-	ended, err := c.CreateMatch(ctx, organiser, camp.ID, []core.NewSide{{Companies: []int64{companies[1].ID}}, {Companies: []int64{companies[3].ID}}})
+	ended, err := c.CreateMatch(ctx, organiser, camp.ID, core.NewMatch{Sides: []core.NewSide{{Companies: []int64{companies[1].ID}}, {Companies: []int64{companies[3].ID}}}})
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func seed(ctx context.Context, b *backend, password string) error {
 			return fmt.Errorf("waive the aftermath of %s: %w", co.Name, err)
 		}
 	}
-	if _, err = c.CreateMatch(ctx, organiser, camp.ID, []core.NewSide{{Name: "Gondor", Companies: []int64{companies[1].ID}}, {Name: "Rohan", Companies: []int64{companies[2].ID}}, {Name: "Mordor", Companies: []int64{companies[3].ID}}}); err != nil {
+	if _, err = c.CreateMatch(ctx, organiser, camp.ID, core.NewMatch{Sides: []core.NewSide{{Name: "Gondor", Companies: []int64{companies[1].ID}}, {Name: "Rohan", Companies: []int64{companies[2].ID}}, {Name: "Mordor", Companies: []int64{companies[3].ID}}}}); err != nil {
 		return err
 	}
 	fmt.Printf("Seeded %q. Sign in with any of %s, %s, %s, %s and the password given (default demo-password).\n",
@@ -185,7 +185,7 @@ func choosePaths(ctx context.Context, c *campaignsFacade, user core.User, campai
 		if !u.PathPending {
 			continue
 		}
-		offer, err := c.PathOptions(ctx, user, campaignID, u.ID)
+		offer, err := c.PathOptions(ctx, user, campaignID, companyID, u.ID)
 		if err != nil {
 			return err
 		}
@@ -197,7 +197,7 @@ func choosePaths(ctx context.Context, c *campaignsFacade, user core.User, campai
 			if p.StartPower && len(offer.Powers) > 0 {
 				power = offer.Powers[0].Key
 			}
-			if err := c.ChoosePath(ctx, user, campaignID, u.ID, p.Name, power); err != nil {
+			if err := c.ChoosePath(ctx, user, campaignID, companyID, u.ID, p.Name, power); err != nil {
 				return err
 			}
 			break

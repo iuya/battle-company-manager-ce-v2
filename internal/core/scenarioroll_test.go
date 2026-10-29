@@ -1,23 +1,11 @@
 package core
 
 import (
-	"os"
 	"testing"
 )
 
 func TestScenarioByRollsUsesTheRealFile(t *testing.T) {
-	content, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	list, err := ParseScenarios(content)
-	if err != nil {
-		t.Fatal(err)
-	}
-	sel, err := ParseScenarioSelection(content)
-	if err != nil {
-		t.Fatal(err)
-	}
+	list, sel := shippedRules(t).BC.Scenarios(), shippedRules(t).BC.Selection()
 	cases := []struct {
 		first, second int
 		want          string

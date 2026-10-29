@@ -148,7 +148,7 @@ func TestEffectHeroUpgradesBelongToTheCompanyAndTheirSubgroup(t *testing.T) {
 		}
 	}
 	wolves, _ := rs.BC.Profile("Wolves of Isengard")
-	if wolves.HeroUpgrades[0].Restriction != "Orc" || wolves.HeroUpgrades[1].Restriction != "Warg" {
+	if wolves.HeroUpgrades[0].Restriction() != "Orc" || wolves.HeroUpgrades[1].Restriction() != "Warg" {
 		t.Errorf("restriction subgroups: %+v", wolves.HeroUpgrades)
 	}
 }

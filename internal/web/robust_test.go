@@ -190,7 +190,7 @@ func TestOnceDoesNotSerialiseDifferentPeople(t *testing.T) {
 }
 
 // A request sent twice gets the first answer again, and that answer must still be a valid one when the browser accepts gzip: the
-// replay used to carry the first answer's "Content-Encoding: gzip" header over the uncompressed copy of its body.
+// replay must not carry the first answer's "Content-Encoding: gzip" header over the uncompressed copy of its body.
 func TestOnceReplayOfACompressedAnswerIsDecodable(t *testing.T) {
 	f := newFixture(t, Config{})
 	body := strings.Repeat("<p>a long enough fragment to be compressed</p>", 100)

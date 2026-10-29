@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Caps on the streams one process serves (REVIEW: 10 per user, 50 per match).
+// Caps on the streams one process serves (10 per user, 50 per match).
 const (
 	LiveStreamsPerUser  = 10
 	LiveStreamsPerMatch = 50

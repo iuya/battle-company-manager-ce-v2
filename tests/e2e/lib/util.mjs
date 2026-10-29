@@ -4,7 +4,7 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Finds a campaign's id by (a prefix of) its name from the navigation links of any signed-in page.
 export async function campaignId(s, namePrefix) {
-  await s.goto('/');
+  await s.goto('/campaigns');
   const id = await s.page.evaluate((p) => {
     for (const a of document.querySelectorAll('a[href^="/campaigns/"]')) {
       const m = a.getAttribute('href').match(/^\/campaigns\/(\d+)$/);

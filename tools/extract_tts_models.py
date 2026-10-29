@@ -6,7 +6,7 @@
 Default: the newest ~/Library/Tabletop Simulator/Saves/TS_Save_*.json. Writes only sources/tts/models.json (gitignored: it is the mod's content, so it is
 never committed) as {"models": [...]}: the Nickname of every object in the bag with GUID 24f6d0, stripped, duplicates (case and spaces folded) removed, in
 the save's order. Nothing else is read out of the save and nothing of the mod's scripts or descriptions is kept. The output path is fixed: the tool
-refuses to write if sources/ is not ignored by git. validate_definitions.py and the local-only core test read the file (docs/tabletop-simulator.md).
+refuses to write if sources/ is not ignored by git. validate_definitions.py (tools/lean_checks.py) and the local-only core test read the file (docs/tabletop-simulator.md).
 """
 import argparse
 import json

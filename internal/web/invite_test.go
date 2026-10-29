@@ -19,7 +19,7 @@ func organiserFixture(t *testing.T, u core.User, status core.CampaignStatus) *fi
 	f.camp.EXPECT().Get(gomock.Any(), u.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().Matches(gomock.Any(), int64(7)).Return(nil, nil).AnyTimes()
 	f.camp.EXPECT().Companies(gomock.Any(), int64(7)).Return([]core.CampaignCompany{{ID: 1, OwnerID: gandalf.ID, Owner: "Gandalf"}, {ID: 2, OwnerID: frodo.ID, Owner: "Frodo"}}, nil).AnyTimes()
-	f.camp.EXPECT().Members(gomock.Any(), int64(7)).Return([]core.CampaignMember{{UserID: gandalf.ID, Name: "Gandalf", Organiser: true, CompanyID: 1, CompanyName: "Grey"}, {UserID: frodo.ID, Name: "Frodo", CompanyID: 2, CompanyName: "Shire"}, {UserID: 5, Name: "Pippin"}}, nil).AnyTimes()
+	f.camp.EXPECT().Members(gomock.Any(), int64(7)).Return([]core.CampaignMember{{UserID: gandalf.ID, Name: "Gandalf", Organiser: true, Companies: []core.MemberCompany{{ID: 1, Name: "Grey"}}}, {UserID: frodo.ID, Name: "Frodo", Companies: []core.MemberCompany{{ID: 2, Name: "Shire"}}}, {UserID: 5, Name: "Pippin"}}, nil).AnyTimes()
 	return f
 }
 

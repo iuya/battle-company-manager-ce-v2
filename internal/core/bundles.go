@@ -2,7 +2,6 @@ package core
 
 import (
 	"slices"
-	"strings"
 )
 
 // PartialBundle is a row that names one piece of a profile option of several items ("Shield and Spear") and not the others.
@@ -20,7 +19,7 @@ func itemAs(rs *RuleSet, bcCo BCCompany, name string) GearOffer {
 }
 
 // completeBundle applies the rule that a chart row, a promotion or the starting company which names one piece of a multi-item profile
-// option gives the unit the whole option (user decision 2026-10-21): Iron Hills Warrior (Spear) carries Shield and Spear and is worth
+// option gives the unit the whole option: Iron Hills Warrior (Spear) carries Shield and Spear and is worth
 // the option's points as a bundle. It returns the wargear to add (the pieces the unit does not carry already) and what it found.
 // An exact single-item option for the wargear wins; options no armoury sells (banners) and exchanges are not bundles to complete; of
 // several bundles holding the piece the cheapest is taken.
@@ -40,7 +39,7 @@ func completeBundle(rs *RuleSet, bcCo BCCompany, base VanillaUnit, gear, carried
 	best := -1
 	for i, o := range base.Options {
 		parts := OptionItems(o.Name)
-		if len(parts) < 2 || strings.HasPrefix(strings.ToLower(o.Name), "exchange") {
+		if len(parts) < 2 || ParseOption(o.Name).Exchange {
 			continue
 		}
 		if _, unsold := rs.BC.Unsold(base.Name, o.Name); unsold || rs.BC.Reserved(base.Name, o.Name) {
@@ -65,7 +64,7 @@ func completeBundle(rs *RuleSet, bcCo BCCompany, base VanillaUnit, gear, carried
 	}
 	// a single-item option that is exactly the named wargear wins (a Bow is a Bow, not a bundle with a Bow in it)
 	for _, o := range base.Options {
-		if parts := OptionItems(o.Name); len(parts) == 1 && !strings.HasPrefix(strings.ToLower(o.Name), "exchange") {
+		if parts := OptionItems(o.Name); len(parts) == 1 && !ParseOption(o.Name).Exchange {
 			for _, g := range gear {
 				if GearMatchesOption(itemAs(rs, bcCo, g), parts[0]) {
 					return nil, nil

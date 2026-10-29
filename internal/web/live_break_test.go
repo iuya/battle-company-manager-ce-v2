@@ -19,7 +19,7 @@ func brokenState(lc *core.LiveCompany) {
 }
 
 func livePage(f *fixture) string {
-	return f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	return f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 }
 
 func TestBreakPanelAndTurnButtonForTheOwner(t *testing.T) {
@@ -217,11 +217,11 @@ func TestCompanyPageShowsItsBreakPointRule(t *testing.T) {
 	detail.BreakPointPercent = 66
 	g.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	g.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	g.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	g.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	g.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+	g.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	g.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	g.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	g.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
-	if body := g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String(); !strings.Contains(body, "Break Point: 66% of the starting models") {
+	if body := g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String(); !strings.Contains(body, "Break Point: 66% of the starting models") {
 		t.Error("the company's Break Point rule is shown")
 	}
 }

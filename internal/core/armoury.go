@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 // ArmouryService is the armoury of a company: gear, creatures, wanderers and the Baggage Pony's pack. Purchases are
@@ -58,14 +60,6 @@ func stateUnit(st *CompanyState, id int64) (*UnitState, bool) {
 		return nil, false
 	}
 	return &st.Units[i], true
-}
-
-// lowerFirst makes a reason fit into a sentence.
-func lowerFirst(s string) string {
-	if s == "" {
-		return s
-	}
-	return strings.ToLower(s[:1]) + s[1:]
 }
 
 // canPay says how the company could pay a price: in influence, or in Gold where the thing has a Gold price (0: none).
@@ -155,7 +149,7 @@ func (sh shop) goldPrice(u CompanyUnit, o GearOffer) int {
 	}
 	if v, ok := sh.profileOf(u.Type); ok {
 		for _, opt := range v.Options {
-			if items := OptionItems(opt.Name); len(items) == 1 && !strings.HasPrefix(strings.ToLower(opt.Name), "exchange") && GearMatchesOption(o, opt.Name) && opt.Points > 0 {
+			if items := OptionItems(opt.Name); len(items) == 1 && !ParseOption(opt.Name).Exchange && GearMatchesOption(o, opt.Name) && opt.Points > 0 {
 				return opt.Points
 			}
 		}
@@ -167,7 +161,7 @@ func (sh shop) goldPrice(u CompanyUnit, o GearOffer) int {
 // Brandybuck is a Hobbit Militia), whose options are those of the profile it labels.
 func (sh shop) profileOf(unit string) (VanillaUnit, bool) {
 	profile, _ := sh.rs.BC.Profile(sh.bcC.Name)
-	v, _, ok := resolveUnit(sh.rs, profile, unit)
+	v, _, ok := sh.rs.ResolveUnit(profile, unit)
 	return v, ok
 }
 
@@ -176,17 +170,22 @@ func (sh shop) profileOf(unit string) (VanillaUnit, bool) {
 // Companies armoury rule: "Warrior models may only spend influence in order to match one of their profile's Options");
 // only a unit whose profile is unknown is not restricted.
 func (sh shop) legalWargear(u CompanyUnit, o GearOffer) bool {
-	var options []ChoiceOption
-	if !u.IsHero() {
-		v, ok := sh.profileOf(u.Type)
-		if !ok {
-			return true
-		}
-		options = v.Options
-	} else {
-		options = sh.heroOptions(u)
+	options, known := sh.optionsOf(u)
+	if !known {
+		return true
 	}
 	return slices.ContainsFunc(options, func(opt ChoiceOption) bool { return GearMatchesOption(o, opt.Name) })
+}
+
+// optionsOf are the options a unit may take from: a hero's (see heroOptions), a warrior's those of its own profile (a Beast that is
+// still a warrior only has its profile's options: Wargs and one spider can become heroes). known is false for a warrior whose
+// profile is not known.
+func (sh shop) optionsOf(u CompanyUnit) (options []ChoiceOption, known bool) {
+	if u.IsHero() {
+		return sh.heroOptions(u), true
+	}
+	v, ok := sh.profileOf(u.Type)
+	return v.Options, ok
 }
 
 // heroOptions are the options a hero may take from: those of the profiles in its company's charts, promotions and starting
@@ -251,29 +250,15 @@ func (sh shop) whyNot(u CompanyUnit, o GearOffer) (string, Blocker) {
 			return "Already carried", BlockedByRule
 		}
 	}
-	for _, r := range o.Restrictions {
-		switch r {
-		case "hero":
-			if !u.IsHero() {
-				return "Heroes only", BlockedByRule
-			}
-		case "cavalry":
-			if !u.isCavalry() {
-				return "Cavalry only", BlockedByRule
-			}
-		case "evil", "good":
-			if sh.bcC.Alignment != r {
-				return strings.ToUpper(r[:1]) + r[1:] + " companies only", BlockedByRule
-			}
+	if !o.namesWho() { // a shared item: who may take it comes before the other rules; a company's own item (below) after them
+		if reason := sh.whoReason(u, o); reason != "" {
+			return reason, BlockedByRule
 		}
-	}
-	if reason := sh.elvesOnly(u, o); reason != "" {
-		return reason, BlockedByRule
 	}
 	if u.Kind == KindBeast && !beastMayCarry(o) { // Battle Companies armoury: "Beasts"
 		return "Beasts carry no wargear and only equipment that gives a special rule", BlockedByRule
 	}
-	if o.Only != "" { // a unique item for a kind of model ("Hobbit Heroes: Pony") is not one of the profile's options
+	if o.namesWho() { // a unique item for a kind of model ("Hobbit Heroes: Pony") is not one of the profile's options
 		if reason := sh.uniqueReason(u, o); reason != "" {
 			return reason, BlockedByRule
 		}
@@ -300,40 +285,35 @@ func (sh shop) whyNot(u CompanyUnit, o GearOffer) (string, Blocker) {
 	return "", ""
 }
 
-// uniqueReason says why a unit cannot take a company's unique item that names who may have it ("Hobbit Heroes", "Corsair",
-// "Mahûd") or how many may carry it; empty when it can.
+// namesWho says the offer is a company's own item that names who may have it ("Hobbit Heroes", "Corsair", "Mahûd").
+func (o GearOffer) namesWho() bool { return o.Exclusive && o.Who != nil }
+
+// whoReason says why the unit is not among the models that may take the item (empty when it is). A company that lets its models wear
+// Elven-made weaponry (CompanyProfile.ElvenWeaponry) admits the models it names to the items that are restricted to a race.
+func (sh shop) whoReason(u CompanyUnit, o GearOffer) string {
+	s := sh.subject(u)
+	who := o.Who
+	if p, ok := sh.rs.BC.Profile(sh.bcC.Name); ok && !o.Exclusive && p.ElvenWeaponry != nil && p.ElvenWeaponry.Admits(s) == "" {
+		who = who.WithoutRace()
+	}
+	return who.Admits(s)
+}
+
+// subject is the unit as lean.Who sees it.
+func (sh shop) subject(u CompanyUnit) lean.Subject {
+	profile, _ := sh.rs.BC.Profile(sh.bcC.Name)
+	return subjectOf(sh.rs, profile, sh.bcC.Alignment, u)
+}
+
+// uniqueReason says why a unit cannot take a company's unique item that names who may have it or how many may carry it; empty when it can.
 func (sh shop) uniqueReason(u CompanyUnit, o GearOffer) string {
-	v, known := sh.profileOf(u.Type)
-	switch {
-	case len(o.OnlyUnits) > 0: // by unit identity (War Camel: the Mahûd Warrior, not every Mahûd); a company's own name for a profile counts as the profile
-		if !slices.ContainsFunc(o.OnlyUnits, func(n string) bool { return strings.EqualFold(n, u.Type) || (known && strings.EqualFold(n, v.Name)) }) {
-			return strings.Join(o.OnlyUnits, ", ") + " only"
-		}
-	case o.OnlyKind != nil:
-		if o.OnlyKind.HeroesOnly && !u.IsHero() {
-			return "Heroes only"
-		}
-		if known && o.OnlyKind.Race != "" && !hasKeyword(v, o.OnlyKind.Race) {
-			return o.OnlyKind.Race + " only"
-		}
-	default:
-		only := strings.TrimSpace(o.Only)
-		for _, suffix := range []string{" heroes", " hero"} {
-			if rest, found := strings.CutSuffix(strings.ToLower(only), suffix); found {
-				if !u.IsHero() {
-					return "Heroes only"
-				}
-				only = only[:len(rest)]
-			}
-		}
-		if known && only != "" && !(HeroUpgrade{Restriction: only}).Allows(v) {
-			return only + " only"
-		}
+	if reason := o.Who.Admits(sh.subject(u)); reason != "" {
+		return reason
 	}
 	if o.Limit > 0 {
 		carried := 0
 		for _, r := range sh.d.Roster {
-			if slices.ContainsFunc(r.Equipment, func(e Equipment) bool { return strings.EqualFold(e.Name, o.Name) }) {
+			if slices.ContainsFunc(r.Equipment, func(e Equipment) bool { return sameName(e.Name, o.Name) }) {
 				carried++
 			}
 		}
@@ -346,16 +326,16 @@ func (sh shop) uniqueReason(u CompanyUnit, o GearOffer) string {
 
 // BuyEquipment buys an item for a unit of the user's company with its influence (pay "") or Gold (pay "gold"). What the rules
 // do not allow is an error wrapping ErrRefused with the reason; an item the unit's rules never offer is ErrNotFound.
-func (a *ArmouryService) BuyEquipment(ctx context.Context, user User, campaignID, unitID int64, item, how string) error {
-	return a.BuyEquipmentFor(ctx, user, campaignID, unitID, item, how, "")
+func (a *ArmouryService) BuyEquipment(ctx context.Context, user User, campaignID, companyID, unitID int64, item, how string) error {
+	return a.BuyEquipmentFor(ctx, user, campaignID, companyID, unitID, item, how, "")
 }
 
 // BuyEquipmentFor is BuyEquipment for an item that is a modifier of one weapon (Envenom Weapon): weapon is the weapon of the unit the
 // player chose for it (one of its PoisonableWeapons, in any spelling the item is known by). A weapon modifier is never bought without
 // its weapon (the unit gains the rule only for a weapon chosen from the unit's own, and the choice is final), and a weapon for an item
 // that takes none is refused.
-func (a *ArmouryService) BuyEquipmentFor(ctx context.Context, user User, campaignID, unitID int64, item, how, weapon string) error {
-	id, err := a.myCompanyToChange(ctx, user, campaignID)
+func (a *ArmouryService) BuyEquipmentFor(ctx context.Context, user User, campaignID, companyID, unitID int64, item, how, weapon string) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -372,13 +352,13 @@ func (a *ArmouryService) BuyEquipmentFor(ctx context.Context, user User, campaig
 		if err != nil {
 			return err
 		}
-		i := slices.IndexFunc(items, func(it ArmouryItem) bool { return strings.EqualFold(it.Name, item) })
+		i := slices.IndexFunc(items, func(it ArmouryItem) bool { return sameName(it.Name, item) })
 		if i < 0 { // not offered to this unit: an item of the armoury is refused with the rule that keeps it out, anything else is unknown
 			unit, _ := sh.unit(unitID)
 			for _, offer := range sh.offers() {
-				if strings.EqualFold(offer.Name, item) {
+				if sameName(offer.Name, item) {
 					if why, _ := sh.whyNot(unit, offer); why != "" {
-						return Refuse("%s: %s", offer.Name, lowerFirst(why))
+						return Refuse("%s: %s", offer.Name, LowerFirst(why))
 					}
 					return Refuse("%s cannot take %s.", unit.Title(), offer.Name)
 				}
@@ -387,7 +367,7 @@ func (a *ArmouryService) BuyEquipmentFor(ctx context.Context, user User, campaig
 		}
 		it := items[i]
 		if !it.Buyable() {
-			return Refuse("%s: %s", it.Name, lowerFirst(it.Reason))
+			return Refuse("%s: %s", it.Name, LowerFirst(it.Reason))
 		}
 		stored := it.Name
 		if weapon = strings.TrimSpace(weapon); weapon == "" && it.WeaponModifier {
@@ -433,8 +413,8 @@ func pickWeapon(choices []string, weapon, unit, modifier string) (string, error)
 // is for; weapon is one of the item's Choices. The choice is FINAL: a modifier that has its weapon is refused. The unit gains Poisoned
 // Attacks (<weapon>); the weapon stays the plain item. A locked company, an unknown unit or item and a weapon the unit cannot give the
 // rule to are refused.
-func (a *ArmouryService) ChooseModifierWeapon(ctx context.Context, user User, campaignID, unitID int64, modifier, weapon string) error {
-	id, err := a.myCompanyToChange(ctx, user, campaignID)
+func (a *ArmouryService) ChooseModifierWeapon(ctx context.Context, user User, campaignID, companyID, unitID int64, modifier, weapon string) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -452,7 +432,7 @@ func (a *ArmouryService) ChooseModifierWeapon(ctx context.Context, user User, ca
 			return ErrNotFound
 		}
 		i := slices.IndexFunc(unit.Equipment, func(e Equipment) bool {
-			if !strings.EqualFold(e.Name, strings.TrimSpace(modifier)) {
+			if !sameName(e.Name, strings.TrimSpace(modifier)) {
 				return false
 			}
 			an, ok := rs.BC.Annotation(e.Name)
@@ -473,7 +453,7 @@ func (a *ArmouryService) ChooseModifierWeapon(ctx context.Context, user User, ca
 		u, _ := stateUnit(st, unitID)
 		renamed := ChosenWeaponName(an.Name, w)
 		for _, list := range []*[]string{&u.Bought, &u.Gear} {
-			if j := slices.IndexFunc(*list, func(g string) bool { return strings.EqualFold(g, e.Name) }); j >= 0 {
+			if j := slices.IndexFunc(*list, func(g string) bool { return sameName(g, e.Name) }); j >= 0 {
 				(*list)[j] = renamed
 				return nil
 			}
@@ -485,8 +465,8 @@ func (a *ArmouryService) ChooseModifierWeapon(ctx context.Context, user User, ca
 // DropEquipment makes a unit drop an item it carries, if the Battle Companies rules allow it (DropReason): the item is gone
 // for good, nothing is refunded, its rating leaves the unit's points, and it stops counting against slots and limits, which
 // can make room for another unit to buy a limited item.
-func (a *ArmouryService) DropEquipment(ctx context.Context, user User, campaignID, unitID int64, item string) error {
-	id, err := a.myCompanyToChange(ctx, user, campaignID)
+func (a *ArmouryService) DropEquipment(ctx context.Context, user User, campaignID, companyID, unitID int64, item string) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -508,7 +488,7 @@ func (a *ArmouryService) DropEquipment(ctx context.Context, user User, campaignI
 			return Refuse("%s does not carry %s.", unit.Title(), item)
 		}
 		if why := unit.Equipment[j].Drop; why != "" {
-			return Refuse("%s cannot drop %s: %s.", unit.Title(), item, lowerFirst(why))
+			return Refuse("%s cannot drop %s: %s.", unit.Title(), item, LowerFirst(why))
 		}
 		u, _ := stateUnit(st, unitID)
 		u.Dropped = append(u.Dropped, item)
@@ -521,17 +501,17 @@ func isOfficer(rules CreatureRules, u CompanyUnit) bool {
 }
 
 // creatureReason is why an officer cannot take a creature now; empty when it can.
-func creatureReason(cr CreatureRules, d CompanyDetail, o CreatureOffer, u CompanyUnit) string {
+func creatureReason(cr CreatureRules, d CompanyDetail, o CreatureOffer, u CompanyUnit) (string, Blocker) {
 	switch {
 	case u.Creature != nil:
-		return "Already has " + u.Creature.Name
+		return "Already has " + u.Creature.Name, BlockedByRule
 	case cr.MaxPerHero < 1:
-		return "The rules give no officer a creature"
+		return "The rules give no officer a creature", BlockedByRule
 	}
 	if inf, gold := canPay(d, o.Cost, o.Gold); !inf && !gold {
-		return costReason(d, o.Cost, o.Gold)
+		return costReason(d, o.Cost, o.Gold), BlockedByInfluence
 	}
-	return ""
+	return "", ""
 }
 
 // ArmouryCreatures lists the creatures of the armoury with, for each officer, whether they can take it now.
@@ -554,13 +534,7 @@ func (sh shop) creatures() []ArmouryCreature {
 			if !isOfficer(cr, u) {
 				continue
 			}
-			why := creatureReason(cr, sh.d, o, u)
-			blocker := Blocker("")
-			if strings.HasPrefix(why, "Costs") {
-				blocker = BlockedByInfluence
-			} else if why != "" {
-				blocker = BlockedByRule
-			}
+			why, blocker := creatureReason(cr, sh.d, o, u)
 			entry.Owners = append(entry.Owners, UnitOption{ID: u.ID, Title: u.Title(), Type: u.Type, Role: u.Role, Kind: u.Kind, Reason: why, Blocker: blocker})
 		}
 		out = append(out, entry)
@@ -569,8 +543,8 @@ func (sh shop) creatures() []ArmouryCreature {
 }
 
 // BuyCreature buys a creature for an officer (the leader or a sergeant) of the user's company.
-func (a *ArmouryService) BuyCreature(ctx context.Context, user User, campaignID, ownerID int64, name, how string) error {
-	id, err := a.myCompanyToChange(ctx, user, campaignID)
+func (a *ArmouryService) BuyCreature(ctx context.Context, user User, campaignID, companyID, ownerID int64, name, how string) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -592,7 +566,7 @@ func (a *ArmouryService) BuyCreature(ctx context.Context, user User, campaignID,
 			return Refuse("Only the leader and the sergeants can have a creature.")
 		}
 		if o := list[k].Owners[j]; !o.Able() {
-			return Refuse("%s: %s.", name, lowerFirst(o.Reason))
+			return Refuse("%s: %s.", name, LowerFirst(o.Reason))
 		}
 		if err := pay(st, how, name, list[k].Cost, list[k].Gold, list[k].PayInfluence, list[k].PayGold); err != nil {
 			return err
@@ -627,14 +601,14 @@ func (sh shop) wanderers() []ArmouryWanderer {
 		entry.PayInfluence, entry.PayGold = canPay(sh.d, o.Cost, o.Gold)
 		switch {
 		case hired >= wr.MaxAtOnce:
-			entry.Reason = wandererLimitReason(wr.MaxAtOnce)
+			entry.Reason, entry.Blocker = wandererLimitReason(wr.MaxAtOnce), BlockedByLimit
 		case sh.d.ModelCount() >= sh.d.MaxUnits:
-			entry.Reason = fmt.Sprintf("The company is full (%d of %d units)", sh.d.ModelCount(), sh.d.MaxUnits)
+			entry.Reason, entry.Blocker = fmt.Sprintf("The company is full (%d of %d units)", sh.d.ModelCount(), sh.d.MaxUnits), BlockedBySlots
 		case !entry.PayInfluence && !entry.PayGold:
-			entry.Reason = costReason(sh.d, o.Cost, o.Gold)
+			entry.Reason, entry.Blocker = costReason(sh.d, o.Cost, o.Gold), BlockedByInfluence
 		default:
 			if why, _ := companyBlockFor(sh.rs, sh.bcC, sh.d.Roster, o.AsUnit()); why != "" {
-				entry.Reason = "The company cannot take " + o.Name + ": " + why
+				entry.Reason, entry.Blocker = "The company cannot take "+o.Name+": "+why, BlockedByRule
 			}
 		}
 		out = append(out, entry)
@@ -643,8 +617,8 @@ func (sh shop) wanderers() []ArmouryWanderer {
 }
 
 // HireWanderer hires a wanderer for the user's company: it joins as a hero and counts towards the unit limit.
-func (a *ArmouryService) HireWanderer(ctx context.Context, user User, campaignID int64, name, how string) error {
-	id, err := a.myCompanyToChange(ctx, user, campaignID)
+func (a *ArmouryService) HireWanderer(ctx context.Context, user User, campaignID, companyID int64, name, how string) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -662,7 +636,7 @@ func (a *ArmouryService) HireWanderer(ctx context.Context, user User, campaignID
 			return ErrNotFound
 		}
 		if !list[k].Hirable() {
-			return Refuse("%s: %s.", name, lowerFirst(list[k].Reason))
+			return Refuse("%s: %s.", name, LowerFirst(list[k].Reason))
 		}
 		if err := pay(st, how, name, list[k].Cost, list[k].Gold, list[k].PayInfluence, list[k].PayGold); err != nil {
 			return err
@@ -673,8 +647,8 @@ func (a *ArmouryService) HireWanderer(ctx context.Context, user User, campaignID
 }
 
 // DismissWanderer sends a wanderer of the user's company away; the influence is not returned.
-func (a *ArmouryService) DismissWanderer(ctx context.Context, user User, campaignID, unitID int64) error {
-	id, err := a.myCompanyToChange(ctx, user, campaignID)
+func (a *ArmouryService) DismissWanderer(ctx context.Context, user User, campaignID, companyID, unitID int64) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -694,8 +668,8 @@ func (a *ArmouryService) DismissWanderer(ctx context.Context, user User, campaig
 // Carry stores gear of a unit with the Baggage Pony, takes it back out or swaps it, free of charge. What a unit gets must be
 // something it could buy (its wargear, slots and the company limits), mounts cannot be carried, and the pack holds a limited
 // number of pieces. Only gear that could be dropped can be stored.
-func (a *ArmouryService) Carry(ctx context.Context, user User, campaignID, unitID int64, act CarryAction) error {
-	id, err := a.myCompanyToChange(ctx, user, campaignID)
+func (a *ArmouryService) Carry(ctx context.Context, user User, campaignID, companyID, unitID int64, act CarryAction) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -735,7 +709,7 @@ func (a *ArmouryService) Carry(ctx context.Context, user User, campaignID, unitI
 			case e.Upgrade || slices.ContainsFunc(e.Classes(), func(c EquipmentClass) bool { return slices.Contains(carry.Excludes, c) }):
 				return Refuse("%s cannot be carried by the pony.", e.Name)
 			case e.Drop != "":
-				return Refuse("%s cannot be stored: %s.", e.Name, lowerFirst(e.Drop))
+				return Refuse("%s cannot be stored: %s.", e.Name, LowerFirst(e.Drop))
 			case act.Kind == "store" && sh.d.Pack.Free() < 1:
 				return Refuse("The pack is full (%d pieces).", sh.d.Pack.Capacity)
 			}
@@ -762,7 +736,7 @@ func (a *ArmouryService) Carry(ctx context.Context, user User, campaignID, unitI
 			}
 			offer.Cost = 0 // carrying gear is free
 			if why, _ := after.whyNot(k, offer); why != "" {
-				return Refuse("%s cannot take %s: %s.", unit.Title(), act.Take, lowerFirst(why))
+				return Refuse("%s cannot take %s: %s.", unit.Title(), act.Take, LowerFirst(why))
 			}
 			u.Bought = append(u.Bought, act.Take)
 		}

@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"os"
 	"strings"
 	"testing"
 )
@@ -170,36 +169,8 @@ func TestValidateResult(t *testing.T) {
 	}
 }
 
-func TestParseScenarios(t *testing.T) {
-	doc := `{"scenarios":["B","A","C"],
-	  "data":{"scenarioDetails":[{"name":"A","scoringObjectives":[
-	    {"key":"x","kind":"tiers","options":[{"text":"one","points":1},{"text":"two","points":2}]},
-	    {"key":"y","kind":"each","text":"three","pointsEach":1,"maxCount":3}]}]},
-	  "campaign":{"scenarioSelection":{"tables":[{"scenarios":["A","B"]},{"scenarios":["X","Y"]}]}}}`
-	got, err := ParseScenarios([]byte(doc))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got) != 3 || got[0].Name != "A" || got[1].Name != "B" || got[2].Name != "C" {
-		t.Fatalf("order: %+v", got)
-	}
-	if got[1].Table != 1 || got[1].Roll != 2 || got[2].Table != 0 {
-		t.Errorf("placement: %+v", got)
-	}
-	if len(got[0].Scoring) != 2 || got[0].Scoring[0] != "one two" {
-		t.Errorf("scoring: %+v", got[0].Scoring)
-	}
-}
-
 func TestParseScenariosReadsTheObjectivesOfTheRealFile(t *testing.T) {
-	content, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
-	if err != nil {
-		t.Skip("definitions not available: ", err)
-	}
-	list, err := ParseScenarios(content)
-	if err != nil {
-		t.Fatal(err)
-	}
+	list := shippedRules(t).BC.Scenarios()
 	by := map[string]ScenarioInfo{}
 	for _, sc := range list {
 		by[sc.Name] = sc

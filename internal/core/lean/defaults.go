@@ -1,6 +1,6 @@
 package lean
 
-// Normalise applies the extends engine, then the defaults of design section 3, once. It is idempotent: Normalise on a normalised
+// Normalise applies the extends engine, then the defaults of the format, once. It is idempotent: Normalise on a normalised
 // document changes nothing (the property test pins it). Errors of the extends engine (loops, a unit with no name) go to rep.
 func Normalise(doc *Document, rep *Reporter) {
 	applyExtends(doc, rep)
@@ -21,6 +21,10 @@ func applyDefaults(doc *Document) {
 	}
 	for i := range doc.Gear {
 		gearDefaults(&doc.Gear[i])
+	}
+	if up := doc.ArmourUp; up != nil && up.Gold == nil {
+		r := up.Rating
+		up.Gold = &r
 	}
 	for i := range doc.Units {
 		unitDefaults(&doc.Units[i])

@@ -88,7 +88,7 @@ func within(t *testing.T, name string, samples []sample, b budget) {
 }
 
 // assertQueryCounts reads the main pages' data of every campaign of the loaded demo world (from 2 to 37 companies) and checks that
-// the number of queries does not grow with the number of companies, matches or units (docs/security-and-risks.md, R12).
+// the number of queries does not grow with the number of companies, matches or units (docs/performance.md).
 func assertQueryCounts(ctx context.Context, t *testing.T, b *backend, q *queryCounter, conn *pgx.Conn, admin core.User) {
 	t.Helper()
 	rows, err := conn.Query(ctx, "SELECT id FROM campaigns ORDER BY id")
@@ -167,11 +167,6 @@ func TestQueryCountsOnAPreloadedWorld(t *testing.T) {
 	url := os.Getenv("WORLD_DATABASE_URL")
 	if url == "" {
 		t.Skip("WORLD_DATABASE_URL is not set")
-	}
-	if _, err := os.Stat("definitions"); err != nil {
-		if err := os.Chdir("../.."); err != nil {
-			t.Fatal(err)
-		}
 	}
 	ctx := context.Background()
 	counter := &queryCounter{}

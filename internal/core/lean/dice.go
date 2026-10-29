@@ -6,14 +6,14 @@ import (
 	"strings"
 )
 
-// Limits of a dice specification (design 12.1).
+// Limits of a dice specification.
 const (
 	MaxDiceCount = 10
 	MinDiceSides = 2
 	MaxDiceSides = 100
 )
 
-// DiceSpec is a dice specification [N]dM (design 12.1): Count dice of Sides faces. The zero value is invalid.
+// DiceSpec is a dice specification [N]dM: Count dice of Sides faces. The zero value is invalid.
 type DiceSpec struct{ Count, Sides int }
 
 // ParseDice reads "d6", "D6", "2d6", "10d100". No spaces, no modifier, no concatenated dice: "d66" is refused (a 66-sided die is not a thing, the rulebook means two dice).

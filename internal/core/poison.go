@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Poison (owner decision 2026-10-27): the special rule Poisoned Attacks (<weapon>) belongs to a UNIT, never to the wargear. It
+// Poison: the special rule Poisoned Attacks (<weapon>) belongs to a UNIT, never to the wargear. It
 // comes from the unit's profile, from the Blowpipe (an item that grants it itself), from a level-up (Poisoned Attacks|weapon:<name>)
 // and from Envenom Weapon (data.gearAnnotations grantsRuleForChosenWeapon): the player chooses one weapon of the unit and the unit
 // gains the rule for it. A weapon already named by such a rule cannot be chosen again.
@@ -35,7 +35,7 @@ func ChosenWeaponName(modifier, weapon string) string {
 // weaponRuleOf is the annotation's chosen-weapon rule for the Poisoned Attacks rule, if the data has one.
 func (b *BCBook) weaponRuleOf(rule string) (ChosenWeaponRule, bool) {
 	for _, a := range b.weaponRules {
-		if strings.EqualFold(a.ChosenWeapon.Rule, rule) {
+		if sameName(a.ChosenWeapon.Rule, rule) {
 			return *a.ChosenWeapon, true
 		}
 	}
@@ -75,7 +75,7 @@ func isPoisoned(weapon string, poisoned []string) bool {
 
 // applyWeaponModifiers resolves the weapon modifiers a unit carries (Envenom Weapon): the weapons it could still be given to, and the
 // rule `Poisoned Attacks (<weapon>)` the unit gains for the weapon the modifier names. The choice is final and belongs to the weapon's
-// NAME (owner decision 2026-10-27): the rule stays on the unit when the weapon is dropped or lost in a promotion, and it applies again
+// NAME: the rule stays on the unit when the weapon is dropped or lost in a promotion, and it applies again
 // when the weapon is bought again; only losing the modifier itself loses the rule. A modifier without a weapon (a legacy item) gives no
 // rule and lists the choices. The rule is added to the grants once (the profile's own rule, the Blowpipe's and a level-up's are the
 // same rule and show once). It fills the unit's PoisonableWeapons last.

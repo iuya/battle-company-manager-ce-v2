@@ -31,10 +31,10 @@ func TestValidateOfficers(t *testing.T) {
 		want         []string
 	}{
 		{"no restriction", ``, nil},
-		{"one may lead", `"heroes":{"excluded":["Ranger of Arnor"]},`, nil},
-		{"all excluded", `"heroes":{"excluded":["ranger of arnor","Knight of Arnor"]},`, []string{"companies[0].start: the company has no unit that may lead (heroes.excluded names every starting unit)"}},
-		{"allowed names one", `"heroes":{"allowed":["Knight of Arnor"]},`, nil},
-		{"allowed names none", `"heroes":{"allowed":["Cave Troll"]},`, []string{"companies[0].start: the company has no unit that may lead (heroes.allowed names none of the starting units)"}},
+		{"one may lead", `"heroes":{"who":{"except":["Ranger of Arnor"]}},`, nil},
+		{"all excluded", `"heroes":{"who":{"except":["ranger of arnor","Knight of Arnor"]}},`, []string{"companies[0].start: the company has no unit that may lead (heroes.who.except names every starting unit)"}},
+		{"allowed names one", `"heroes":{"who":{"units":["Knight of Arnor"]}},`, nil},
+		{"allowed names none", `"heroes":{"who":{"units":["Cave Troll"]}},`, []string{"companies[0].start: the company has no unit that may lead (heroes.who.units names none of the starting units)"}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			var got []string

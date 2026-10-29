@@ -1,24 +1,25 @@
 """The concept graph of the three shipped rules files (docs/concept-graph.md): nodes, derived edges, checks.
 
 Used by build_concept_graph.py (writes definitions/concepts/concept_graph.json) and validate_definitions.py. The nodes are the
-terms of the ruleset's glossary exactly as the app builds it (internal/core: GlossaryExtras + BuildGlossaryWith); the port below
-follows those two Go functions line by line, and internal/core/concept_graph_file_test.go checks it against the real thing
-(ids, kinds and text hashes of every node).
+terms of the ruleset's glossary exactly as the app builds it; the app's own loader makes them (`go run ./tools/conceptnodes`, which
+calls core.LoadRuleSet) so that this file never repeats that logic, and internal/core/concept_graph_file_test.go checks every node
+of the generated file against core. The edges are derived here from the lean Battle Companies file (gear, paths) and from
+tools/concepts_curated.json.
 """
 import hashlib
 import json
+import os
 import re
-import unicodedata
+import subprocess
+import tempfile
+from pathlib import Path
 
 GRAPH_VERSION = "1.0"
 CURATED_TYPES = ("grants", "cancels", "lifts", "requires")
 FILES = ("vanilla", "battleCompanies", "glossary")
 SOURCE_FILE = {"Battle Companies": "battleCompanies", "Vanilla": "vanilla", "": "glossary"}
-STAT_ORDER = [("movement", "Move"), ("fight", "Fight"), ("shoot", "Shoot"), ("strength", "Strength"), ("defence", "Defence"),
-              ("attack", "Attacks"), ("wounds", "Wounds"), ("courage", "Courage"), ("intelligence", "Intelligence"),
-              ("might", "Might"), ("will", "Will"), ("fate", "Fate")]
 PARAMETER = re.compile(r"\s*\([^)]*\)\s*")
-
+ROOT = Path(__file__).resolve().parent.parent
 
 # ---- hashes (core.RulesetHash, core.ConceptTextHash) ----
 
@@ -50,248 +51,32 @@ def text_hash(text: str) -> str:
     return hashlib.sha256(" ".join(text.split()).encode("utf-8")).hexdigest()[:16]
 
 
-# ---- the glossary as the app builds it ----
 
-def _str(d, key):
-    v = d.get(key) if isinstance(d, dict) else None
-    return v if isinstance(v, str) else ""
+# ---- the nodes: the glossary as the app builds it ----
 
-
-def _int(d, key):
-    v = d.get(key) if isinstance(d, dict) else None
-    return v if isinstance(v, int) and not isinstance(v, bool) else 0
+_LOADED = {}
 
 
-def _strs(d, key):
-    v = d.get(key) if isinstance(d, dict) else None
-    if not isinstance(v, list):
-        return []
-    out = []
-    for x in v:
-        if not isinstance(x, str):
-            break
-        out.append(x)
-    return out
-
-
-def _items(d, key):
-    v = d.get(key) if isinstance(d, dict) else None
-    items = v.get("items") if isinstance(v, dict) else None
-    return [x for x in items if isinstance(x, dict)] if isinstance(items, list) else []
-
-
-def _dicts(v):
-    return [x for x in v if isinstance(x, dict)] if isinstance(v, list) else []
-
-
-def tidy(s):
-    return " ".join(s.split())
-
-
-def stat_line(raw):
-    parts = []
-    for key, label in STAT_ORDER:
-        v = raw.get(key)
-        if isinstance(v, int) and not isinstance(v, bool) and (v != 0 or key == "attack"):
-            parts.append(f"{label} {v}")
-    return ", ".join(parts)
-
-
-def glossary_extras(vanilla: dict, bc: dict):
-    """core.GlossaryExtras: the terms the vanilla and Battle Companies files define."""
-    out, variants = [], []
-
-    def add(name, category, definition, source, aliases=()):
-        name = name.strip()
-        if name and tidy(definition):
-            out.append({"name": name, "category": category, "aliases": list(aliases), "definition": definition.strip(), "source": source, "weak": False})
-
-    if bc:
-        src = "Battle Companies"
-        data = bc.get("data") if isinstance(bc.get("data"), dict) else {}
-        camp = bc.get("campaign") if isinstance(bc.get("campaign"), dict) else {}
-        for k in _dicts(data.get("keywords")):
-            label = _str(k, "label")
-            if label and label != _str(k, "name"):
-                variants.append((label, _str(k, "definition"), _str(k, "source")))
-                continue
-            add(_str(k, "name"), "special rules", _str(k, "definition"), src)
-        for pr in _dicts(data.get("parameterisedRules")):
-            pattern = _str(pr, "pattern")
-            if pattern and _str(pr, "definition"):
-                add(_str(pr, "name"), "special rules", "Written as " + pattern + ".\n\n" + _str(pr, "definition"), src)
-        for p in _dicts(data.get("paths")):
-            definition = _str(p, "description").strip() or _str(p, "startingNote").strip()
-            if not definition:
-                definition = "A heroic path of Battle Companies: the chart below is what a hero of this path rolls on when it levels up."
-            act = p.get("startingHeroicAction")
-            if isinstance(act, dict):
-                definition += "\n\nStarting heroic action: " + _str(act, "name") + "."
-                add(_str(act, "name"), "heroic actions", _str(act, "definition"), src)
-            add(_str(p, "name"), "paths", definition, src)
-            for row in _dicts(p.get("progression")):
-                for o in _dicts(row.get("options")):
-                    if _str(o, "type") == "specialRule" and _str(o, "specialRule"):
-                        text = _str(row, "text")
-                        if " - " in text:
-                            text = text.split(" - ", 1)[1]
-                        add(_str(o, "specialRule"), "path rules", text + "\n\nGained by heroes of the " + _str(p, "name") + ".", src)
-        magic = data.get("magicalPowers")
-        for pw in _items({"m": magic}, "m") if isinstance(magic, dict) else []:
-            definition = _str(pw, "definition")
-            if _int(pw, "casting") > 0:
-                rng = pw.get("range")
-                rng = f'{rng}"' if isinstance(rng, int) and not isinstance(rng, bool) and rng > 0 else "self"
-                definition += f"\n\nBattle Companies Sorcerer: casting value {_int(pw, 'casting')}+, range {rng}. Duration: {_str(pw, 'duration')}."
-            add(_str(pw, "name"), "magic", definition, src)
-        notes = {}
-        for a in _dicts(_items(data, "gearAnnotations")):
-            n = {"name": _str(a, "name"), "aliases": _strs(a, "aliases"), "def": tidy(_str(a, "definition"))}
-            for k in [n["name"]] + n["aliases"]:
-                notes.setdefault(k.lower(), n)
-
-        def gear_term(it, name, category, weak):
-            if not name:
-                return
-            definition, aliases = "", []
-            if name.lower() in notes:
-                n = notes[name.lower()]
-                definition, aliases, name = n["def"], n["aliases"], n["name"]
-            if not definition:
-                definition = tidy(_str(it, "definition"))
-            price = []
-            if _int(it, "influence") > 0:
-                price.append(f"{_int(it, 'influence')} influence")
-            gold = it.get("gold")
-            if isinstance(gold, dict) and _int(gold, "warrior") + _int(gold, "hero") > 0:
-                price.append(f"{_int(gold, 'warrior')} Gold for a warrior, {_int(gold, 'hero')} for a hero")
-            extra = ""
-            if _str(it, "size"):
-                extra = f" It takes a {_str(it, 'size')} equipment slot."
-            if price:
-                extra = " Battle Companies armory: " + " or ".join(price) + "." + extra
-            if not definition and not extra:
-                return
-            add(name, category, (definition + "\n\n" + extra.strip()).strip(), src, aliases)
-            if weak and out and out[-1]["name"] == name:
-                out[-1]["weak"] = True
-
-        for it in _items(data, "wargear"):
-            for n in _strs(it, "names"):
-                gear_term(it, n, "wargear", True)
-        for it in _items(data, "equipment"):
-            gear_term(it, _str(it, "name"), "equipment", False)
-        for c in _items(data, "creatures"):
-            definition = stat_line(c)
-            if _strs(c, "specialRules"):
-                definition += "\n\nSpecial rules: " + ", ".join(_strs(c, "specialRules")) + "."
-            definition += f"\n\nA creature for a leader or a sergeant. It costs {_int(c, 'influence')} influence and is worth {_int(c, 'points')} points."
-            for n in _strs(c, "notes"):
-                definition += "\n\n" + n
-            add(_str(c, "name"), "creatures", definition, src)
-        for w in _items(data, "wanderers"):
-            definition = stat_line(w)
-            if _strs(w, "wargear"):
-                definition += "\n\nWargear: " + ", ".join(_strs(w, "wargear")) + "."
-            if _strs(w, "heroicActions"):
-                definition += "\n\nHeroic actions: " + ", ".join(_strs(w, "heroicActions")) + "."
-            if _strs(w, "specialRules"):
-                definition += "\n\nSpecial rules: " + ", ".join(_strs(w, "specialRules")) + "."
-            definition += f"\n\nA mercenary hero for a company. It costs {_int(w, 'influence')} influence and is worth {_int(w, 'points')} points."
-            add(_str(w, "name"), "wanderers", definition, src)
-        inj = camp.get("injuries") if isinstance(camp.get("injuries"), dict) else {}
-        for chart in (_dicts(inj.get("hero")), _dicts(inj.get("warrior"))):
-            for i in chart:
-                add(_str(i, "name"), "injuries", _str(i, "text"), src)
-    if vanilla:
-        src = "Vanilla"
-        data = vanilla.get("data") if isinstance(vanilla.get("data"), dict) else {}
-        for k in _dicts(data.get("keywords")):
-            add(_str(k, "name"), "special rules", _str(k, "definition"), src)
-        for p in _dicts(data.get("magicalPowers")):
-            definition = _str(p, "definition")
-            if _str(p, "duration"):
-                definition += "\n\nDuration: " + _str(p, "duration") + "."
-            add(_str(p, "name"), "magic", definition, src)
-        for g in _dicts(data.get("gear")):
-            name = _str(g, "name")
-            if name.startswith("Exchange") or name.startswith("Replace"):
-                continue
-            if _str(g, "type") == "mount":
-                definition = stat_line(g)
-                if _strs(g, "specialRules"):
-                    definition += "\n\nSpecial rules: " + ", ".join(_strs(g, "specialRules")) + "."
-                add(name, "mounts", definition, src)
-                continue
-            add(name, "wargear", _str(g, "definition"), src)
-    for label, definition, source in variants:
-        i = next((n for n, t in enumerate(out) if t["name"] == label), -1)
-        who = source or "Battle Companies"
-        text = "Variant (" + who + "): " + definition.strip()
-        if i >= 0:
-            out[i]["definition"] += "\n\n" + text
-        else:
-            add(label, "special rules", text, "Battle Companies")
-    return out
-
-
-def slugify(s):
-    out, dash = [], False
-    for r in s.lower():
-        if r < "\u0080" and (("a" <= r <= "z") or ("0" <= r <= "9")):
-            out.append(r)
-            dash = False
-        elif not dash and out:
-            out.append("-")
-            dash = True
-    return "".join(out).strip("-")
+def load_terms(raws):
+    """(terms, gear_classes) of the three files (bytes) as core.LoadRuleSet makes them: runs `go run ./tools/conceptnodes`."""
+    key = tuple(hashlib.sha256(r).hexdigest() for r in raws)
+    if key not in _LOADED:
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = []
+            for name, raw in zip(FILES, raws):
+                p = Path(tmp) / f"{name}.json"
+                p.write_bytes(raw)
+                paths.append(str(p))
+            r = subprocess.run(["go", "run", "./tools/conceptnodes", *paths], cwd=ROOT, capture_output=True, text=True, env={**os.environ, "GOTOOLCHAIN": "local"})
+        if r.returncode != 0:
+            raise RuntimeError("go run ./tools/conceptnodes failed (the nodes come from the app's loader; is go on the PATH?): " + r.stderr.strip()[:400])
+        out = json.loads(r.stdout)
+        _LOADED[key] = (out["terms"], out["gearClasses"])
+    return _LOADED[key]
 
 
 def _key(s):
     return s.strip().lower()
-
-
-def glossary_terms(glossary: dict, extras):
-    """core.BuildGlossaryWith, down to what a node needs: id, name, category, aliases, source and the definition text."""
-    terms = [{"name": _str(t, "name"), "category": _str(t, "category"), "aliases": _strs(t, "aliases"), "definition": _str(t, "definition"), "from": ""}
-             for t in _dicts(glossary.get("terms"))]
-    owner = {}
-    from_file = len(terms)
-    for i, t in enumerate(terms):
-        for n in [t["name"]] + t["aliases"]:
-            owner[_key(n)] = i
-    for x in extras:
-        names = [x["name"]] + x["aliases"]
-        at = next((owner[_key(n)] for n in names if _key(n) in owner), -1)
-        if 0 <= at < from_file and x["weak"]:
-            pass
-        elif 0 <= at < from_file and x["source"] == "Battle Companies":
-            t = terms[at]
-            t["category"], t["definition"], t["from"] = x["category"], x["definition"], x["source"]
-            for n in x["aliases"]:
-                if n not in t["aliases"]:
-                    t["aliases"].append(n)
-                owner[_key(n)] = at
-        elif at >= 0:
-            pass
-        else:
-            terms.append({"name": x["name"], "category": x["category"], "aliases": list(x["aliases"]), "definition": x["definition"], "from": x["source"]})
-            for n in names:
-                owner[_key(n)] = len(terms) - 1
-    terms.sort(key=lambda t: (_key(t["category"]).encode(), _key(t["name"]).encode()))  # stable, like slices.SortStableFunc
-    used = set()
-    for t in terms:
-        base = slugify(t["name"])
-        tid, n = base, 2
-        while tid in used or tid == "":
-            tid = f"{base}-{n}"
-            n += 1
-        used.add(tid)
-        t["id"] = tid
-        paras = [p.strip() for p in t["definition"].split("\n\n") if p.strip()]
-        t["text"] = "\n\n".join(paras)
-    return terms
-
 
 def concept_kind(category):
     if category in ("special rules", "path rules"):
@@ -307,17 +92,18 @@ def concept_kind(category):
     return "term"
 
 
-def make_nodes(vanilla: dict, bc: dict, glossary: dict):
+
+def make_nodes(raws):
+    terms, _ = load_terms(raws)
     nodes = []
-    for t in glossary_terms(glossary, glossary_extras(vanilla, bc)):
+    for t in terms:
         kind = concept_kind(t["category"])
-        n = {"id": f"{kind}:{t['id']}", "kind": kind, "name": t["name"], "file": SOURCE_FILE.get(t["from"], "glossary"), "textHash": text_hash(t["text"])}
-        if t["aliases"]:
+        n = {"id": f"{kind}:{t['id']}", "kind": kind, "name": t["name"], "file": SOURCE_FILE.get(t["source"], "glossary"), "textHash": text_hash(t["text"])}
+        if t.get("aliases"):
             n["aliases"] = t["aliases"]
         n["_text"] = t["text"]
         nodes.append(n)
     return nodes
-
 
 class Index:
     """Name lookup over the nodes, like core's byPhrase."""
@@ -346,6 +132,11 @@ class Index:
                 return ids[0]
         return None
 
+    def texts(self, name):
+        """The text of every node named `name` (parameter ignored), joined; None when no node has that name."""
+        ids = self.by_phrase.get(_key(name)) or self.by_phrase.get(_key(PARAMETER.sub(" ", name))) or []
+        return " ".join(self.nodes[i]["_text"] for i in ids) if ids else None
+
     def why_not(self, name):
         ids = self.by_phrase.get(_key(name)) or self.by_phrase.get(_key(PARAMETER.sub(" ", name))) or []
         return f"ambiguous ({', '.join(sorted(ids))})" if len(ids) > 1 else "no such term"
@@ -362,11 +153,10 @@ def sentence_with(text, needle):
     return None
 
 
-def derive_edges(bc: dict, idx: Index):
-    """grants, cancels, lifts and requires the Battle Companies data already states. Returns (edges, skipped) with skipped = [(edge, reason)]."""
+def derive_edges(bc: dict, idx: Index, gear_classes: dict):
+    """grants, cancels, lifts and requires the lean Battle Companies file already states. Returns (edges, skipped) with skipped = [(edge, reason)]."""
     edges, skipped = [], []
-    D = bc["data"]
-    ann = D["gearAnnotations"]["items"]
+    gear = bc["gear"]
 
     def node_of(name):
         return idx.find(name)
@@ -380,75 +170,74 @@ def derive_edges(bc: dict, idx: Index):
             e["via"] = via
         edges.append(e)
 
-    by_name = {a["name"]: a for a in ann}
+    def classes(g):
+        return g.get("classes") or gear_classes.get(g["name"].lower(), [])
 
-    def plain_weapon(name):
+    def plain_weapon(g):
         """A standard weapon (a variant with a modifier such as Elven or poisoned, or a kind of hand-and-a-half weapon) that has no term of
         its own: it gets no node and no edge, by decision, so it is not reported as a gap."""
-        a = by_name.get(name, {})
-        return node_of(name) is None and (a.get("base") or "melee" in a.get("classes", []))
+        return node_of(g["name"]) is None and (g.get("base") or "melee" in classes(g))
 
+    by_name = {g["name"]: g for g in gear}
     # grants: an item gives its bearer a rule
-    for a in ann:
-        frm = node_of(a["name"])
-        if plain_weapon(a["name"]):
+    for g in gear:
+        frm = node_of(g["name"])
+        if plain_weapon(g):
             continue
-        for rule in a.get("grants", []):
+        for rule in g.get("grants", []):
             to = node_of(rule)
             via = None
             if frm and to:
                 via = sentence_with(idx.nodes[frm]["_text"], PARAMETER.sub("", rule).strip()) or None
-            add(frm, to, "grants", via, f"{a['name']} grants {rule}: {'the item is ' + idx.why_not(a['name']) if not frm else 'the rule is ' + idx.why_not(rule)}")
-    for it in D["equipment"]["items"]:  # same fact in the equipment table; duplicates are merged below
-        for rule in it.get("grantsSpecialRules", []):
-            add(node_of(it["name"]), node_of(rule), "grants", None, f"{it['name']} grants {rule}")
+            add(frm, to, "grants", via, f"{g['name']} grants {rule}: {'the item is ' + idx.why_not(g['name']) if not frm else 'the rule is ' + idx.why_not(rule)}")
     # grants: a path gives its starting heroic action and the rules of its chart
-    for p in D["paths"]:
+    for p in bc["paths"]:
         frm = node_of(p["name"])
-        act = p.get("startingHeroicAction")
-        if isinstance(act, dict) and act.get("name"):
-            add(frm, node_of(act["name"]), "grants", f"Starting heroic action: {act['name']}.", f"{p['name']} grants {act['name']}")
-        for row in p["progression"]:
+        act = p.get("heroicAction")
+        if act:
+            add(frm, node_of(act), "grants", f"Starting heroic action: {act}.", f"{p['name']} grants {act}")
+        for row in p.get("rows", []):
             for o in row["options"]:
-                if o["type"] == "specialRule" and o.get("specialRule"):
-                    add(frm, node_of(o["specialRule"]), "grants", f"Gained by heroes of the {p['name']}.", f"{p['name']} grants {o['specialRule']}")
+                rule = o.get("rule")
+                rule = rule.get("name") if isinstance(rule, dict) else rule
+                if rule:
+                    add(frm, node_of(rule), "grants", f"Gained by heroes of the {p['name']}.", f"{p['name']} grants {rule}")
     # cancels and lifts: the defence bonus of a shield (cancelledByClasses/Items, liftedByRules)
     by_class = {}
-    for a in ann:
-        for c in a.get("classes", []):
-            by_class.setdefault(c, []).append(a["name"])
-    for a in ann:
-        shield = node_of(a["name"])
-        for ab in a.get("abilities", []):
-            if ab.get("key") != "defenceBonus":
-                continue
-            for c in ab.get("cancelledByClasses", []):
-                for item in by_class.get(c, []):
-                    if item != a["name"] and not plain_weapon(item):
-                        add(node_of(item), shield, "cancels", f"defence bonus is lost with a {c.replace('_', '-')} weapon", f"{item} cancels {a['name']}")
-            for item in ab.get("cancelledByItems", []):
-                add(node_of(item), shield, "cancels", f"defence bonus is lost with a {item}", f"{item} cancels {a['name']}")
-            for lift in ab.get("liftedByRules", []):
-                what = ", ".join(lift.get("cancels", []))
-                via = f"lifts the loss of the defence bonus caused by: {what}" + (" (while mounted)" if lift.get("whileMounted") else "")
-                add(node_of(lift["rule"]), shield, "lifts", via, f"{lift['rule']} lifts {a['name']}")
+    for g in gear:
+        for c in classes(g):
+            by_class.setdefault(c, []).append(g)
+    for g in gear:
+        shield = node_of(g["name"])
+        ab = (g.get("abilities") or {}).get("defenceBonus")
+        if not ab:
+            continue
+        for c in ab.get("cancelledByClasses", []):
+            for other in by_class.get(c, []):
+                if other["name"] != g["name"] and not plain_weapon(other):
+                    add(node_of(other["name"]), shield, "cancels", f"defence bonus is lost with a {c.replace('_', '-')} weapon", f"{other['name']} cancels {g['name']}")
+        for item in ab.get("cancelledByItems", []):
+            add(node_of(item), shield, "cancels", f"defence bonus is lost with a {item}", f"{item} cancels {g['name']}")
+        for lift in ab.get("liftedByRules", []):
+            what = ", ".join(lift.get("cancels", []))
+            via = f"lifts the loss of the defence bonus caused by: {what}" + (" (while mounted)" if lift.get("whileMounted") else "")
+            add(node_of(lift["rule"]), shield, "lifts", via, f"{lift['rule']} lifts {g['name']}")
     # requires: gear only a mounted model can use, equipment restricted to a kind of model
     cavalry = idx.find("Cavalry")
-    for a in ann:
-        if a.get("requiresMount") and not plain_weapon(a["name"]):
-            add(node_of(a["name"]), cavalry, "requires", "restriction: cavalry", f"{a['name']} requires Cavalry")
+    for g in gear:
+        if g.get("requiresMount") and not plain_weapon(g):
+            add(node_of(g["name"]), cavalry, "requires", "restriction: cavalry", f"{g['name']} requires Cavalry")
     hero = idx.find("Hero")
-    for it in D["equipment"]["items"]:
-        for r in it.get("restrictions", []):
-            target = {"cavalry": cavalry, "hero": hero}.get(r)
-            if r in ("evil", "unique"):
-                continue  # armoury restrictions only: no term, no edge
+    for g in gear:
+        who = g.get("who") or {}
+        restrictions = (["hero"] if who.get("hero") is True else []) + (["cavalry"] if "Cavalry" in who.get("unitTypes", []) else [])
+        for r in restrictions:
+            target = {"cavalry": cavalry, "hero": hero}[r]
             if not target:
-                skipped.append((f"{it['name']} requires {r}", "restriction with no term to point at"))
+                skipped.append((f"{g['name']} requires {r}", "restriction with no term to point at"))
             else:
-                add(node_of(it["name"]), target, "requires", f"restriction: {r}", f"{it['name']} requires {r}")
+                add(node_of(g["name"]), target, "requires", f"restriction: {r}", f"{g['name']} requires {r}")
     return edges, skipped
-
 
 def curated_edges(curated: dict, idx: Index):
     """Resolves tools/concepts_curated.json (names) to edges; every `via` must be a quote of the text of one of the two nodes."""
@@ -477,12 +266,13 @@ def order_edges(edges):
     return out
 
 
+
 def build_graph(raws, curated, name="Concept graph"):
     """raws = (vanilla, bc, glossary) as bytes. Returns (document, report) with report = {'skipped': [...], 'errors': [...]}."""
-    docs = [json.loads(r) for r in raws]
-    nodes = make_nodes(*docs)
+    nodes = make_nodes(raws)
+    _, gear_classes = load_terms(raws)
     idx = Index(nodes)
-    derived, skipped = derive_edges(docs[1], idx)
+    derived, skipped = derive_edges(json.loads(raws[1]), idx, gear_classes)
     hand, errors = curated_edges(curated, idx)
     derived_keys = {(e["from"], e["to"], e["type"]) for e in derived}
     for e in hand:
@@ -511,8 +301,7 @@ def build_graph(raws, curated, name="Concept graph"):
 def check_graph(doc, raws):
     """The checks of docs/concept-graph.md on a graph document against the three files it should describe (as bytes)."""
     errors = []
-    docs = [json.loads(r) for r in raws]
-    nodes = make_nodes(*docs)
+    nodes = make_nodes(raws)
     truth = {n["id"]: n for n in nodes}
     now = dict(zip(FILES, (ruleset_hash(r) for r in raws)))
     for f in FILES:

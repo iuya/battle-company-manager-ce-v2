@@ -23,10 +23,10 @@ func shireWithFallenRanger(f *companyFixture, fallen bool) {
 
 func rollOnly(t *testing.T, f *companyFixture, s *RecruitService, roll int) *RecruitRoll {
 	t.Helper()
-	if err := s.RollRecruit(f.ctx, f.user, 5, roll, false); err != nil {
+	if err := s.RollRecruit(f.ctx, f.user, 5, 1, roll, false); err != nil {
 		t.Fatal(err)
 	}
-	state, err := s.RecruitState(f.ctx, f.user, 5)
+	state, err := s.RecruitState(f.ctx, f.user, 5, 1)
 	if err != nil || state == nil {
 		t.Fatalf("RecruitState = %+v, %v", state, err)
 	}
@@ -98,7 +98,7 @@ func parkTheRanger(t *testing.T, f *companyFixture, s *RecruitService) RecruitRe
 	t.Helper()
 	rollOnly(t, f, s, 5) // two Hobbit Militia
 	before := f.state.Influence
-	res, err := s.ConfirmRecruit(f.ctx, f.user, 5, 0, "ranger")
+	res, err := s.ConfirmRecruit(f.ctx, f.user, 5, 1, 0, "ranger")
 	if err != nil || res.Officers == nil || !strings.Contains(res.Summary, rangerUnit) {
 		t.Fatalf("%+v %v", res, err)
 	}
@@ -124,7 +124,7 @@ func TestPickingTheRangerParksTheArrangement(t *testing.T) {
 	if p.Officers[0].Role != RoleLeader || p.Officers[0].ID != 1 {
 		t.Errorf("the Leader comes first: %+v", p.Officers)
 	}
-	got, err := s.PendingOfficers(f.ctx, f.user, 5)
+	got, err := s.PendingOfficers(f.ctx, f.user, 5, 1)
 	if err != nil || got == nil || got.Drop != 1 {
 		t.Errorf("PendingOfficers = %+v, %v", got, err)
 	}
@@ -137,7 +137,7 @@ func TestPickingTheRangerParksTheArrangement(t *testing.T) {
 	if d := BuildDetail(shippedRules(t), f.settings, f.state); !d.OfficersPending {
 		t.Error("the detail says officers are pending")
 	}
-	if err := s.RollRecruit(f.ctx, f.user, 5, 4, false); err == nil {
+	if err := s.RollRecruit(f.ctx, f.user, 5, 1, 4, false); err == nil {
 		t.Error("no other recruit while the arrangement waits")
 	}
 }
@@ -158,7 +158,7 @@ func TestArrangeOfficers(t *testing.T) {
 			s := f.recruiter(t)
 			threeOfficers(f)
 			parkTheRanger(t, f, s)
-			res, err := s.ArrangeOfficers(f.ctx, f.user, 5, c.a)
+			res, err := s.ArrangeOfficers(f.ctx, f.user, 5, 1, c.a)
 			if err != nil || f.state.Recruit.Officers != nil || !strings.Contains(res.Summary, "no longer an officer") {
 				t.Fatalf("%+v %v", res, err)
 			}
@@ -217,7 +217,7 @@ func TestArrangeOfficersRefusals(t *testing.T) {
 			threeOfficers(f)
 			parkTheRanger(t, f, s)
 			units := slices.Clone(f.state.Units)
-			if _, err := s.ArrangeOfficers(f.ctx, f.user, 5, c.a); err == nil || !strings.Contains(err.Error(), c.want) {
+			if _, err := s.ArrangeOfficers(f.ctx, f.user, 5, 1, c.a); err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Fatalf("want %q, got %v", c.want, err)
 			}
 			if f.state.Recruit.Officers == nil || len(f.state.Units) != len(units) {
@@ -234,7 +234,7 @@ func TestArrangeOfficersRefusals(t *testing.T) {
 		f := newCompanyFixture(t)
 		s := f.recruiter(t)
 		threeOfficers(f)
-		if _, err := s.ArrangeOfficers(f.ctx, f.user, 5, OfficerArrangement{Leader: RangerID}); err == nil || !strings.Contains(err.Error(), "waiting") {
+		if _, err := s.ArrangeOfficers(f.ctx, f.user, 5, 1, OfficerArrangement{Leader: RangerID}); err == nil || !strings.Contains(err.Error(), "waiting") {
 			t.Errorf("%v", err)
 		}
 	})
@@ -269,7 +269,7 @@ func TestArrangeOfficersWithFewerThanThreeOfficers(t *testing.T) {
 				}
 			}
 			parkTheRanger(t, f, s)
-			_, err := s.ArrangeOfficers(f.ctx, f.user, 5, c.a)
+			_, err := s.ArrangeOfficers(f.ctx, f.user, 5, 1, c.a)
 			if c.wantErr != "" {
 				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
 					t.Fatalf("want %q, got %v", c.wantErr, err)
@@ -291,18 +291,18 @@ func TestRangerPickRefusals(t *testing.T) {
 	s := f.recruiter(t)
 	shireWithFallenRanger(f, false)
 	rollOnly(t, f, s, 4)
-	if _, err := s.ConfirmRecruit(f.ctx, f.user, 5, 0, "ranger"); err == nil || !strings.Contains(err.Error(), "cannot be recruited now") {
+	if _, err := s.ConfirmRecruit(f.ctx, f.user, 5, 1, 0, "ranger"); err == nil || !strings.Contains(err.Error(), "cannot be recruited now") {
 		t.Errorf("no offer: %v", err)
 	}
 	for _, old := range []string{"ranger:leader", "ranger:sergeant:2"} {
-		if _, err := s.ConfirmRecruit(f.ctx, f.user, 5, 0, old); err != nil && f.state.Recruit.Officers != nil {
+		if _, err := s.ConfirmRecruit(f.ctx, f.user, 5, 1, 0, old); err != nil && f.state.Recruit.Officers != nil {
 			t.Errorf("%s parked an arrangement", old)
 		}
 	}
 	shireWithFallenRanger(f, true)
 	f.state.Recruit = RecruitProgress{}
 	rollOnly(t, f, s, 1)
-	if _, err := s.ConfirmRecruit(f.ctx, f.user, 5, 0, "ranger"); err == nil {
+	if _, err := s.ConfirmRecruit(f.ctx, f.user, 5, 1, 0, "ranger"); err == nil {
 		t.Error("row 1 cannot be swapped")
 	}
 	// a result that could not join is still swappable and the lower panel does not open
@@ -314,7 +314,7 @@ func TestRangerPickRefusals(t *testing.T) {
 		f2.state.Units[i].ID = int64(i + 1)
 	}
 	rollOnly(t, f2, s2, 5) // two models do not fit in the last place
-	res, err := s2.ConfirmRecruit(f2.ctx, f2.user, 5, 0, "ranger")
+	res, err := s2.ConfirmRecruit(f2.ctx, f2.user, 5, 1, 0, "ranger")
 	if err != nil || res.Lower || f2.state.Recruit.Lower != nil || f2.state.Recruit.Officers == nil {
 		t.Errorf("the Ranger fits: %+v %v", res, err)
 	}
@@ -328,7 +328,7 @@ func TestRangerPickRefusals(t *testing.T) {
 	}
 	rollOnly(t, f3, s3, 4)
 	f3.state.Units = append(f3.state.Units, UnitState{ID: 100, Base: "Hobbit Militia", Role: RoleWarrior})
-	if _, err := s3.ConfirmRecruit(f3.ctx, f3.user, 5, 0, "ranger"); err == nil || !strings.Contains(err.Error(), "cannot join") || f3.state.Recruit.Roll == nil {
+	if _, err := s3.ConfirmRecruit(f3.ctx, f3.user, 5, 1, 0, "ranger"); err == nil || !strings.Contains(err.Error(), "cannot join") || f3.state.Recruit.Roll == nil {
 		t.Errorf("no room for the Ranger: %v", err)
 	}
 }

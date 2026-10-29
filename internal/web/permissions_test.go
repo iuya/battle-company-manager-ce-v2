@@ -14,7 +14,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// The write routes and their guards (bead mqn.163). The routes are read from server.go, so a new POST/PUT/DELETE route is covered
+// The write routes and their guards. The routes are read from server.go, so a new POST/PUT/DELETE route is covered
 // without editing this file: it must be wrapped in s.protected (signed-in accounts only) or s.requireSuperuser, or be listed in
 // publicWrites with the reason it is open. The other layers of the matrix (campaign roles and states) are tested against the real
 // services in cmd/server (TestPermissionMatrix); the web layer only checks the role of the account here.

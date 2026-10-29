@@ -35,11 +35,7 @@ func writeAudit(dir string, vanilla, bc, glossary []byte) error {
 	if err != nil {
 		return err
 	}
-	reviewed, err := core.ParseVanillaAmbiguities(bc)
-	if err != nil {
-		return err
-	}
-	report := core.AuditRules(rs, core.AuditInput{Ambiguities: reviewed, Unreviewed: capture.Found})
+	report := core.AuditRules(rs, core.AuditInput{Ambiguities: core.LeanPins(rs.Doc), Unreviewed: capture.Found})
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}

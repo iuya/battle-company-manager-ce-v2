@@ -4,12 +4,20 @@ import (
 	"sort"
 	"strings"
 	"unicode"
+
+	"golang.org/x/text/unicode/norm"
 )
 
-// NameKey is the comparison form of a name (design 1, "Names are the keys"): lower case, apostrophes dropped, every other run of
-// punctuation or spaces one space. "Lake-Town" and "lake town" are equal; plurals and "made" are NOT folded (that fuzz lives only
-// in the vanilla bridge). An empty result means the name has no letter or digit.
-func NameKey(s string) string {
+// NameKey is the comparison form of a name: lower case, accents dropped, apostrophes dropped, every
+// other run of punctuation or spaces one space. "Lake-Town" and "lake town" are equal, so are "Lothlorien" and "Lothlórien"; plurals and
+// "made" are NOT folded (that fuzz lives only in the vanilla bridge). An empty result means the name has no letter or digit.
+func NameKey(s string) string { return nameKey(s, true) }
+
+// nameKey is NameKey with the accent folding switched on or off (the test of the shipped names compares both).
+func nameKey(s string, fold bool) string {
+	if fold && !isASCII(s) {
+		s = foldAccents(s)
+	}
 	var b strings.Builder
 	space := false
 	for _, r := range s {
@@ -27,6 +35,25 @@ func NameKey(s string) string {
 		}
 	}
 	return b.String()
+}
+
+func isASCII(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] >= 0x80 {
+			return false
+		}
+	}
+	return true
+}
+
+// foldAccents takes the accents off the letters: a letter decomposed (NFD) loses its combining marks (û is u, ó is o).
+func foldAccents(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.Is(unicode.Mn, r) {
+			return -1
+		}
+		return r
+	}, norm.NFD.String(s))
 }
 
 // Slug is the default id of a name: its NameKey with dashes.

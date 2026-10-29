@@ -1,0 +1,55 @@
+name: Rules data
+description: A correction to the Battle Companies rules data, or a question about a custom ruleset
+title: "rules: "
+labels: ["rules-data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The rules live in `definitions/battle_companies/battle_companies.json` (see docs/definitions.md). Quote the rule by name and page or section,
+        but do not paste long passages from copyrighted rulebooks: a short quotation and a reference are enough.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is this about
+      options:
+        - A unit, hero or company has wrong data
+        - A special rule, item, injury or advance is wrong
+        - The app applies a rule differently from the Battle Companies rules
+        - A question about writing or uploading a custom ruleset
+    validations:
+      required: true
+  - type: input
+    id: reference
+    attributes:
+      label: Rule reference
+      description: Company, unit or rule name, and where it is stated (document, page or section).
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What the rules say (expected)
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What the app shows or does (actual)
+      description: Page, screenshot description or JSON path of the entry.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Errata, community rulings or a proposed fix.
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked docs/definitions.md and the current data.
+          required: true
+        - label: I did not paste large parts of a copyrighted rulebook.
+          required: true

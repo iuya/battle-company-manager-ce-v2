@@ -2,7 +2,7 @@ package lean
 
 //go:generate go tool mockgen -typed -source=lower.go -destination=mock_lower_test.go -package=lean
 
-// Kind is a kind of named thing; within a kind a name is unique (design 1).
+// Kind is a kind of named thing; within a kind a name is unique.
 type Kind string
 
 const (
@@ -18,7 +18,7 @@ const (
 	KindMount    Kind = "mount"
 )
 
-// Lower is what the layers below the Battle Companies file know: the vanilla file and the glossary (design plan 3.3). It is
+// Lower is what the layers below the Battle Companies file know: the vanilla file and the glossary. It is
 // declared here, where it is used, and implemented in core over VanillaBook and Glossary; lean never sees their types.
 type Lower interface {
 	// Has reports whether a thing of that kind has that name or alias, compared by NameKey: exact, never fuzzy.

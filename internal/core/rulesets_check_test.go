@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -20,23 +21,25 @@ func asReport(t *testing.T, err error) *RulesetReport {
 	return rep
 }
 
-// TestRulesetsCheckNeverTouchesTheRepository: a dry run of a v1 file reads and writes nothing (the strict mock fails on any call).
+// TestRulesetsCheckNeverTouchesTheRepository: a dry run writes nothing (the strict mock fails on any Insert); a Battle Companies file reads
+// the default vanilla file and glossary to be checked against.
 func TestRulesetsCheckNeverTouchesTheRepository(t *testing.T) {
-	rs, _ := newTestRulesets(t)
+	rs, repo := newTestRulesets(t)
+	withDefaults(t, repo)
 	ctx := context.Background()
 	rep, err := rs.Check(ctx, KindBattleCompanies, []byte(bcFile))
 	if err != nil || len(rep.Issues()) != 0 || rep.Errors() != 0 {
 		t.Fatalf("a valid file: %v %+v", err, rep)
 	}
-	rep, err = rs.Check(ctx, KindBattleCompanies, []byte(`{"name":"BC","version":"1","extends":"V","limits":"no"}`))
+	rep, err = rs.Check(ctx, KindBattleCompanies, []byte(`{"schemaVersion":2,"name":"BC","version":"1","extends":"V","limits":"no"}`))
 	if !errors.Is(err, ErrInvalidRuleset) {
 		t.Fatalf("err %v", err)
 	}
-	if rep.Errors() != 1 || rep.Issues()[0].File != "battle_companies.json" || rep.Issues()[0].Path != "limits" {
+	if rep.Errors() < 1 || !slices.ContainsFunc(rep.Issues(), func(i RulesetIssue) bool { return i.File == "battle_companies.json" && i.Path == "limits" }) {
 		t.Errorf("issue %+v", rep.Issues())
 	}
-	if asReport(t, err).Error() != rep.Error() || !strings.Contains(err.Error(), "/limits") {
-		t.Errorf("the error is the report, with the old wording: %v", err)
+	if asReport(t, err).Error() != rep.Error() || !strings.Contains(err.Error(), "limits") {
+		t.Errorf("the error is the report: %v", err)
 	}
 }
 
@@ -74,16 +77,16 @@ func TestSchemaFailuresAreAllListed(t *testing.T) {
 		bad = append(bad, fmt.Sprintf(`"p%d":"x"`, i))
 	}
 	schemas := map[RulesetKind][]byte{
-		KindVanilla:         testSchemas[KindVanilla],
-		KindBattleCompanies: []byte(`{"type":"object","properties":{` + strings.Join(props, ",") + `,"list":{"type":"array","items":{"type":"integer"}}}}`),
+		KindVanilla:         []byte(`{"type":"object","properties":{` + strings.Join(props, ",") + `,"list":{"type":"array","items":{"type":"integer"}}}}`),
+		KindBattleCompanies: testSchemas[KindBattleCompanies],
 		KindGlossary:        testSchemas[KindGlossary],
 	}
 	rs, err := NewRulesets(NewMockrulesetRepository(gomock.NewController(t)), schemas)
 	if err != nil {
 		t.Fatal(err)
 	}
-	content := `{"name":"BC","version":"1","extends":"V",` + strings.Join(bad, ",") + `,"list":[1,"a",3,"b"]}`
-	rep, cerr := rs.Check(context.Background(), KindBattleCompanies, []byte(content))
+	content := `{"game":"G","appVersion":1,` + strings.Join(bad, ",") + `,"list":[1,"a",3,"b"]}`
+	rep, cerr := rs.Check(context.Background(), KindVanilla, []byte(content))
 	if !errors.Is(cerr, ErrInvalidRuleset) || rep.Errors() != 14 {
 		t.Fatalf("%d errors: %v", rep.Errors(), cerr)
 	}
@@ -121,7 +124,7 @@ func v2Rulesets(t *testing.T, ctx context.Context) (*Rulesets, *MockrulesetRepos
 
 func TestRulesetsCheckAndStoreV2(t *testing.T) {
 	ctx := context.Background()
-	t.Run("a valid v2 file checks clean and is refused for storage, nothing inserted", func(t *testing.T) {
+	t.Run("a valid v2 file checks clean and is stored", func(t *testing.T) {
 		rs, repo, bc := v2Rulesets(t, ctx)
 		hash := mustHash2(string(bc))
 		rep, err := rs.Check(ctx, KindBattleCompanies, bc)
@@ -129,9 +132,18 @@ func TestRulesetsCheckAndStoreV2(t *testing.T) {
 			t.Fatalf("check: %v %v", err, rep.Issues())
 		}
 		repo.EXPECT().Info(ctx, hash).Return(RulesetInfo{}, ErrNotFound)
-		_, err = rs.StoreAs(ctx, User{ID: 1}, KindBattleCompanies, hash, bc) // no Insert expectation: the mock fails on one
-		if !errors.Is(err, ErrRulesetNotPlayable) || !errors.Is(err, ErrInvalidRuleset) || !strings.Contains(err.Error(), "cannot be played by this build yet") {
-			t.Fatalf("store: %v", err)
+		repo.EXPECT().Insert(ctx, gomock.Any()).Return(nil)
+		info, err := rs.StoreAs(ctx, User{ID: 1}, KindBattleCompanies, hash, bc)
+		if err != nil || info.Hash != hash || info.Kind != KindBattleCompanies {
+			t.Fatalf("store: %v %+v", err, info)
+		}
+	})
+	t.Run("a file of the old format is refused with the clear issue", func(t *testing.T) {
+		rs, _, _ := v2Rulesets(t, ctx)
+		old := []byte(`{"name":"x","version":"1","extends":"y"}`)
+		rep, err := rs.Check(ctx, KindBattleCompanies, old)
+		if !errors.Is(err, ErrInvalidRuleset) || len(rep.Issues()) != 1 || !strings.Contains(rep.Issues()[0].Message, "schemaVersion 1 is not supported") {
+			t.Fatalf("check: %v %v", err, rep.Issues())
 		}
 	})
 	t.Run("an invalid v2 file returns every issue and stores nothing", func(t *testing.T) {
@@ -206,6 +218,7 @@ func TestRulesetsStoreAllAsIsAllOrNothing(t *testing.T) {
 	}
 	t.Run("three good files are all inserted in order", func(t *testing.T) {
 		rs, repo := newTestRulesets(t)
+		withDefaults(t, repo)
 		notFound(repo, good...)
 		var inserted []RulesetKind
 		repo.EXPECT().Insert(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, s StoredRuleset) error {
@@ -225,24 +238,26 @@ func TestRulesetsStoreAllAsIsAllOrNothing(t *testing.T) {
 	})
 	t.Run("two good files and one bad store none", func(t *testing.T) {
 		rs, repo := newTestRulesets(t)
-		badBC := []byte(`{"name":"BC","version":"1","extends":"V","limits":"no"}`)
+		withDefaults(t, repo)
+		badBC := []byte(`{"schemaVersion":2,"name":"BC","version":"1","extends":"V","limits":"no"}`)
 		ups := []RulesetUpload{good[0], {KindBattleCompanies, mustHash2(string(badBC)), badBC}, good[2]}
 		notFound(repo, ups...) // and no Insert expectation: the strict mock fails on one
 		infos, err := rs.StoreAllAs(ctx, user, ups)
 		rep := asReport(t, err)
-		if infos != nil || rep.Errors() != 1 || rep.Issues()[0].File != "battle_companies.json" || rep.Issues()[0].Path != "limits" {
+		if infos != nil || rep.Errors() < 1 || !slices.ContainsFunc(rep.Issues(), func(i RulesetIssue) bool { return i.File == "battle_companies.json" && i.Path == "limits" }) {
 			t.Fatalf("%v %+v", infos, rep.Issues())
 		}
 	})
 	t.Run("the problems of several bad files come back together", func(t *testing.T) {
 		rs, repo := newTestRulesets(t)
-		badBC := []byte(`{"name":"BC","version":"1","extends":"V","limits":"no"}`)
+		withDefaults(t, repo)
+		badBC := []byte(`{"schemaVersion":2,"name":"BC","version":"1","extends":"V","limits":"no"}`)
 		badGSchema := []byte(`{"name":"G","version":"1"}`)
 		ups := []RulesetUpload{{KindBattleCompanies, mustHash2(string(badBC)), badBC}, {KindGlossary, mustHash2(string(badGSchema)), badGSchema}}
 		notFound(repo, ups[0])
 		_, err := rs.StoreAllAs(ctx, user, ups)
 		rep := asReport(t, err)
-		if rep.Errors() != 2 || rep.Issues()[0].File != "battle_companies.json" || rep.Issues()[1].File != "glossary.json" {
+		if rep.Errors() < 2 || rep.Issues()[0].File != "battle_companies.json" || rep.Issues()[len(rep.Issues())-1].File != "glossary.json" {
 			t.Errorf("%+v", rep.Issues())
 		}
 	})
@@ -261,16 +276,6 @@ func TestRulesetsStoreAllAsIsAllOrNothing(t *testing.T) {
 		repo.EXPECT().Info(ctx, good[0].Hash).Return(RulesetInfo{}, boom)
 		if _, err := rs.StoreAllAs(ctx, user, good[:1]); !errors.Is(err, boom) || errors.Is(err, ErrInvalidRuleset) {
 			t.Errorf("err %v", err)
-		}
-	})
-	t.Run("a valid v2 file is refused with the others, nothing inserted", func(t *testing.T) {
-		rs, repo, bc := v2Rulesets(t, ctx)
-		ups := []RulesetUpload{good[0], {KindBattleCompanies, mustHash2(string(bc)), bc}}
-		notFound(repo, ups...)
-		_, err := rs.StoreAllAs(ctx, user, ups)
-		rep := asReport(t, err)
-		if rep.Errors() != 1 || !strings.Contains(rep.Issues()[0].Message, "cannot be played by this build yet") || rep.Issues()[0].File != "battle_companies.json" {
-			t.Errorf("%+v", rep.Issues())
 		}
 	})
 	t.Run("an insert failure after the checks is returned as is", func(t *testing.T) {

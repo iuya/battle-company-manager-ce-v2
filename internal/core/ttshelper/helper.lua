@@ -60,7 +60,7 @@ end
 function onSave()
     local figs = {}
     for guid, rec in pairs(state.figs) do
-        figs[guid] = {id = rec.id, b = rec.b, rings = rec.rings}
+        figs[guid] = {id = rec.id, rings = rec.rings}
     end
     return JSON.encode({v = 1, on = state.on, hidden = state.hidden, pal = state.pal, figs = figs})
 end
@@ -93,7 +93,7 @@ local function loadState(saved)
     if type(data.figs) == "table" then
         for guid, rec in pairs(data.figs) do
             if type(guid) == "string" and type(rec) == "table" and type(rec.rings) == "table" then
-                state.figs[guid] = {id = rec.id, b = rec.b, rings = rec.rings, drawn = false}
+                state.figs[guid] = {id = rec.id, rings = rec.rings, drawn = false}
             end
         end
     end
@@ -410,7 +410,7 @@ local function scaleOf(obj)
 end
 
 -- Half of the larger side of the figure's bounds, as the mod's own circle measures: the base
--- plus any overhang. The payload may give the base radius instead.
+-- plus any overhang. A "b" field in an old payload or saved state is ignored.
 local function boundsRadius(obj)
     local ok, b = pcall(function()
         return obj.getBoundsNormalized()
@@ -516,7 +516,7 @@ local function drawFigure(guid)
     local scale = scaleOf(obj)
     local ours = {}
     if state.on then
-        local base = rec.b or boundsRadius(obj)
+        local base = boundsRadius(obj)
         local used = {}
         for _, ring in ipairs(rec.rings) do
             if not state.hidden[ring.k] then

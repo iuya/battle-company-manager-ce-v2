@@ -44,7 +44,7 @@ func (v atoView) Left() int { return v.Gap - v.Spent }
 
 // HardReason is why an option cannot be taken for a reason other than the budget (that one is worked out live in the browser).
 func (v atoView) HardReason(o core.ATOOption) string {
-	if o.Disabled && !strings.HasPrefix(o.Reason, "Needs") {
+	if o.Disabled && !o.OverBudget {
 		return o.Reason
 	}
 	return ""

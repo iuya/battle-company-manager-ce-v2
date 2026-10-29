@@ -1,5 +1,7 @@
 # Operations: backups, restore, upgrades
 
+For whoever runs a server: the first start, the published image, the Content-Security-Policy modes, backups and restore, and what keeps one failure from taking the app down.
+
 All state of the app (accounts, sessions, campaigns, companies, matches, the permanent live log, the uploaded rules files) is in one
 PostgreSQL database; the shipped rules files and the code are in the image or the repository. A backup is therefore a dump of that database.
 Configuration, health checks and the migration command are in [architecture.md](architecture.md) ("Configuration", "Deploying").
@@ -23,7 +25,7 @@ filesystem, all capabilities dropped and `no-new-privileges`.
 
 **TLS and cookies.** Production expects HTTPS in front: a reverse proxy terminates TLS and forwards to the app port. Session, theme and glossary cookies are `Secure` and `Strict-Transport-Security`
 is sent (`SECURE_COOKIES=true`, the compose default and the setting behind a TLS proxy). The server **refuses to start** in production with `SECURE_COOKIES=false` unless `ALLOW_INSECURE_COOKIES=true`
-is also set (a plain-http try-out or private network; uncomment that line in `compose.yaml`). Set `TRUST_PROXY=true` only when the proxy sets `X-Forwarded-For` itself. `CSP_MODE` stays `report` until the owner switches it (next section).
+is also set (a plain-http try-out or private network; uncomment that line in `compose.yaml`). Set `TRUST_PROXY=true` only when the proxy sets `X-Forwarded-For` itself. `CSP_MODE` stays `report` until you switch it (see "Content-Security-Policy" below).
 The variables beyond `POSTGRES_PASSWORD`, `APP_BIND`, `APP_PORT` and `SECURE_COOKIES` are commented in the app's `environment:` in `compose.yaml`; uncomment the ones you change (they then read `.env`).
 
 **Configuration reference.** Every variable the server reads is listed (with default) in `compose.yaml`, `compose.dev.yaml` and `.env.example`; `make check-env-docs` fails when one is missing.
@@ -52,7 +54,7 @@ The image carries the OCI labels `source`, `version`, `revision` (the commit), `
 `docker compose pull app && docker compose up -d --wait`. The rest (database, `.env`, `make prod-user`) is unchanged; `make up` passes `--build`, which is harmless for an image-only service.
 Without compose: `docker pull ghcr.io/iuya/battle-company-manager-ce-v2:1.1.0`. To go back to the local build, swap the lines and run `docker compose up -d --build`.
 
-**Release.** `.github/workflows/release-image.yml` runs when a tag `v*` is pushed (`git tag v1.1.0 && git push origin v1.1.0`, after asking the owner, CLAUDE.md). Jobs, in order:
+**Release.** `.github/workflows/release-image.yml` runs when a tag `v*` is pushed (`git tag v1.1.0 && git push origin v1.1.0`). Jobs, in order:
 `e2e` (the browser tests of `e2e.yml`, called as a reusable workflow: four parallel groups and a final `e2e` job; any failing group stops the release), then `build`, a matrix of two jobs on native runners
 (no QEMU): `linux/amd64` on `ubuntu-latest` and `linux/arm64` on `ubuntu-24.04-arm` (free for public repositories). Each builds its image into its runner, smoke-tests it (starts it read-only against a PostgreSQL service
 container, `/readyz`, `/healthz`, the login page, the built-in healthcheck, the architecture), and only then pushes it by digest (no tag) with the `GITHUB_TOKEN` (permissions: contents read, packages write) and uploads the
@@ -74,7 +76,7 @@ fix forward with a new patch tag rather than re-pushing the same tag.
 ## Content-Security-Policy: report mode, then enforce
 
 Production starts in `CSP_MODE=report` (the default): the browser loads everything, sends each violation to `POST /csp-report` and the app logs one line. Before the switch the browser suite already ran
-the whole app under the blocking policy with no violation (`make e2e-enforce`, [security-and-risks.md](security-and-risks.md) section 1); the week of report mode covers what a suite cannot: real browsers and real data.
+the whole app under the blocking policy with no violation (`make e2e-enforce`); the week of report mode covers what a suite cannot: real browsers and real data.
 
 **What to read after a week** (the app logs to stdout):
 
@@ -96,7 +98,7 @@ docker compose logs --since 168h app | grep "csp violation" | grep -v chrome-ext
 ```
 
 then `docker compose up -d app` (a restart; no migration). The same policy now blocks and `Content-Security-Policy` replaces `Content-Security-Policy-Report-Only`; reports keep arriving (`disposition=enforce`), so read the same log for a day.
-Rollback is the same line with `report` (or `off`) and the same command: nothing else depends on it. The default in the code and in `.env.example` stays `report` until the owner decides.
+Rollback is the same line with `report` (or `off`) and the same command: nothing else depends on it. The default in the code and in `.env.example` is `report`.
 
 ## Backup
 
@@ -168,6 +170,6 @@ needs its own guard, because an unrecovered panic in any goroutine ends the proc
 - **Tests.** `TestMalformedInputNeverCrashesAHandler` (cmd/server, needs `TEST_DATABASE_URL`; about 80 s with the seeding, `SWEEP_FULL=1` tries 23 values and takes about two minutes) sends every route, read from `server.go`, hostile values for every
   form field the handlers and templates know and hostile path ids against the demo world: no 5xx, no logged panic. Run the packages you touch with `go test -race`.
 
-## Not covered
+## Recovery point
 
 Point-in-time recovery (WAL archiving) is not set up: the recovery point is the last dump. If a day of loss becomes unacceptable, move to a managed PostgreSQL with PITR or add `pgBackRest`/WAL-G; the app needs no change.

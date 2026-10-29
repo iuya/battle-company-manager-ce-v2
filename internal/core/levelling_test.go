@@ -24,15 +24,15 @@ func TestAWarriorLevelUpFollowsTheD6Table(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
 	// Dorlas has 5 XP: one roll waiting. A 1 changes nothing but uses the roll.
-	r, err := s.RollLevelUp(f.ctx, f.user, 5, 7, []int{1}, false)
+	r, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 7, []int{1}, false)
 	if err != nil || !r.Done || f.unit(t, 7).Level != 1 {
 		t.Fatalf("a 1: %+v %v", r, err)
 	}
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 7, []int{4}, false); !errors.Is(err, ErrRefused) {
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 7, []int{4}, false); !errors.Is(err, ErrRefused) {
 		t.Errorf("no roll left: %v", err)
 	}
 	// a 6 is a hero in the making: the warrior picks a path and becomes a hero
-	r, err = s.RollLevelUp(f.ctx, f.user, 5, 8, []int{6}, false)
+	r, err = s.RollLevelUp(f.ctx, f.user, 5, 1, 8, []int{6}, false)
 	if err != nil || r.Done || len(r.Offers) != 1 {
 		t.Fatalf("a 6 is a hero in the making: %+v %v", r, err)
 	}
@@ -46,17 +46,17 @@ func TestAWarriorLevelUpFollowsTheD6Table(t *testing.T) {
 	if path == "" {
 		t.Fatalf("it can pick a path: %+v", r.Offers[0].Choices)
 	}
-	if state, _ := s.LevelUpState(f.ctx, f.user, 5, 8); state == nil || state.Kind != "warrior" {
+	if state, _ := s.LevelUpState(f.ctx, f.user, 5, 1, 8); state == nil || state.Kind != "warrior" {
 		t.Errorf("the roll waits for its choice, stored with the unit: %+v", state)
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 8, []string{path}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 8, []string{path}); err != nil {
 		t.Fatal(err)
 	}
 	hero := f.unit(t, 8)
 	if !hero.IsHero() || !hero.HasHeroStats() || hero.Path == nil || "path:"+hero.Path.Name != path {
 		t.Errorf("it is a hero now with Might, Will and Fate: %+v", hero.Role)
 	}
-	if state, _ := s.LevelUpState(f.ctx, f.user, 5, 8); state != nil {
+	if state, _ := s.LevelUpState(f.ctx, f.user, 5, 1, 8); state != nil {
 		t.Errorf("nothing waits any more: %+v", state)
 	}
 }
@@ -65,7 +65,7 @@ func TestTheAppRollsTheDiceWhenNoneAreGiven(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t, 3)
 	f.settings.ManualRolls = false
-	r, err := s.RollLevelUp(f.ctx, f.user, 5, 7, nil, false)
+	r, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 7, nil, false)
 	if err != nil || r.D6 != 3 {
 		t.Errorf("the dice gave a 3: %+v %v", r, err)
 	}
@@ -75,22 +75,22 @@ func TestAHeroLevelUpOffersTwoResultsAndAppliesTheChoice(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
 	// Hador (Shieldbearer, 15 XP, three rolls waiting) rolls a 4 and a 8: both give a stat
-	r, err := s.RollLevelUp(f.ctx, f.user, 5, 2, []int{4, 8}, false)
+	r, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 2, []int{4, 8}, false)
 	if err != nil || r.Done || len(r.Offers) != 2 {
 		t.Fatalf("two offers: %+v %v", r, err)
 	}
-	if st, _ := s.LevelUpState(f.ctx, f.user, 5, 2); st == nil || len(st.Offers) != 2 {
+	if st, _ := s.LevelUpState(f.ctx, f.user, 5, 1, 2); st == nil || len(st.Offers) != 2 {
 		t.Error("the roll waits for the choice")
 	}
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 2, nil, false); !errors.Is(err, ErrRefused) {
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 2, nil, false); !errors.Is(err, ErrRefused) {
 		t.Errorf("finish the first roll: %v", err)
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 2, []string{"stat:made-up:1"}); !errors.Is(err, ErrRefused) {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 2, []string{"stat:made-up:1"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("only an offered result can be chosen: %v", err)
 	}
 	choice := r.Offers[0].Choices[0]
 	before := f.unit(t, 2)
-	done, err := s.ChooseLevelUp(f.ctx, f.user, 5, 2, []string{choice.Key})
+	done, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 2, []string{choice.Key})
 	if err != nil || !done.Done {
 		t.Fatalf("choose: %+v %v", done, err)
 	}
@@ -105,7 +105,7 @@ func TestAHeroLevelUpOffersTwoResultsAndAppliesTheChoice(t *testing.T) {
 	if !changed {
 		t.Errorf("a stat changed: %+v -> %+v", before.Stats, after.Stats)
 	}
-	if err := (func() error { _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 2, []string{choice.Key}); return err })(); !errors.Is(err, ErrRefused) {
+	if err := (func() error { _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 2, []string{choice.Key}); return err })(); !errors.Is(err, ErrRefused) {
 		t.Errorf("nothing left to choose: %v", err)
 	}
 }
@@ -113,27 +113,27 @@ func TestAHeroLevelUpOffersTwoResultsAndAppliesTheChoice(t *testing.T) {
 func TestAnAgainstTheOddsRerollReplacesOneResult(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t, 3, 4) // the new pair: 7
-	if _, err := s.RerollLevelUp(f.ctx, f.user, 5, 2, 0); !errors.Is(err, ErrRefused) {
+	if _, err := s.RerollLevelUp(f.ctx, f.user, 5, 1, 2, 0); !errors.Is(err, ErrRefused) {
 		t.Errorf("nothing to re-roll yet: %v", err)
 	}
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 2, []int{4, 8}, false); err != nil {
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 2, []int{4, 8}, false); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.RerollLevelUp(f.ctx, f.user, 5, 2, 1); !errors.Is(err, ErrRefused) {
+	if _, err := s.RerollLevelUp(f.ctx, f.user, 5, 1, 2, 1); !errors.Is(err, ErrRefused) {
 		t.Errorf("the company has no re-roll: %v", err)
 	}
 	f.state.Rerolls = 1
-	r, err := s.RerollLevelUp(f.ctx, f.user, 5, 2, 1)
+	r, err := s.RerollLevelUp(f.ctx, f.user, 5, 1, 2, 1)
 	if err != nil || len(r.Offers) != 2 || r.Offers[0].Roll != 4 || r.Offers[1].Roll != 7 || len(r.Notes) == 0 {
 		t.Fatalf("the second result was rolled again: %+v %v", r, err)
 	}
 	if f.state.Rerolls != 0 {
 		t.Errorf("the re-roll is spent: %d", f.state.Rerolls)
 	}
-	if _, err := s.RerollLevelUp(f.ctx, f.user, 5, 2, 0); !errors.Is(err, ErrRefused) {
+	if _, err := s.RerollLevelUp(f.ctx, f.user, 5, 1, 2, 0); !errors.Is(err, ErrRefused) {
 		t.Errorf("no re-roll left: %v", err)
 	}
-	if got, _ := s.LevelUpState(f.ctx, f.user, 5, 2); got == nil || got.Offers[1].Roll != 7 {
+	if got, _ := s.LevelUpState(f.ctx, f.user, 5, 1, 2); got == nil || got.Offers[1].Roll != 7 {
 		t.Errorf("the new result is the one stored: %+v", got)
 	}
 }
@@ -142,10 +142,10 @@ func TestAWarriorRerollRollsTheD6Again(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t, 6)
 	f.state.Rerolls = 1
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 8, []int{6}, false); err != nil {
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 8, []int{6}, false); err != nil {
 		t.Fatal(err)
 	}
-	r, err := s.RerollLevelUp(f.ctx, f.user, 5, 8, 0)
+	r, err := s.RerollLevelUp(f.ctx, f.user, 5, 1, 8, 0)
 	if err != nil || r.D6 != 6 || r.Done || f.state.Rerolls != 0 {
 		t.Fatalf("%+v %v", r, err)
 	}
@@ -154,17 +154,17 @@ func TestAWarriorRerollRollsTheD6Again(t *testing.T) {
 func TestANewSorcererChoosesAPowerAndGetsItsHeroicAction(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 8, []int{6}, false); err != nil {
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 8, []int{6}, false); err != nil {
 		t.Fatal(err)
 	}
-	r, err := s.ChooseLevelUp(f.ctx, f.user, 5, 8, []string{"path:Path of the Sorcerer"})
+	r, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 8, []string{"path:Path of the Sorcerer"})
 	if err != nil || r.Done || r.Stage != "startingPower" || len(r.Offers[0].Choices) < 20 {
 		t.Fatalf("a Sorcerer picks its first power from the list: %+v %v", r.Stage, err)
 	}
-	if got, _ := s.LevelUpState(f.ctx, f.user, 5, 8); got == nil || got.Stage != "startingPower" {
+	if got, _ := s.LevelUpState(f.ctx, f.user, 5, 1, 8); got == nil || got.Stage != "startingPower" {
 		t.Error("the half-made choice is stored")
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 8, []string{"power:Black Dart"}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 8, []string{"power:Black Dart"}); err != nil {
 		t.Fatal(err)
 	}
 	hero := f.unit(t, 8)
@@ -183,10 +183,10 @@ func TestANewSorcererChoosesAPowerAndGetsItsHeroicAction(t *testing.T) {
 func TestOnlyOneHeroOfTheCompanyTakesThePathOfTheSorcerer(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 8, []int{6}, false); err != nil {
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 8, []int{6}, false); err != nil {
 		t.Fatal(err)
 	}
-	r, err := s.ChooseLevelUp(f.ctx, f.user, 5, 8, []string{"path:Path of the Sorcerer"})
+	r, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 8, []string{"path:Path of the Sorcerer"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +202,7 @@ func TestOnlyOneHeroOfTheCompanyTakesThePathOfTheSorcerer(t *testing.T) {
 	if fury < 5 {
 		t.Errorf("one choice per species: %d", fury)
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 8, []string{"power:Fury (Mordor Orc)"}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 8, []string{"power:Fury (Mordor Orc)"}); err != nil {
 		t.Fatal(err)
 	}
 	spell := false
@@ -214,7 +214,7 @@ func TestOnlyOneHeroOfTheCompanyTakesThePathOfTheSorcerer(t *testing.T) {
 	}
 	// a second warrior rolling a 6 is not offered the Sorcerer any more
 	f.state.Units = append(f.state.Units, UnitState{ID: 90, Base: "Warrior of Minas Tirith", Role: RoleWarrior, XP: 5})
-	r, err = s.RollLevelUp(f.ctx, f.user, 5, 90, []int{6}, false)
+	r, err = s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{6}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,14 +233,14 @@ func TestAStaleOfferOfTheSorcererPathIsRefusedOnceTheCompanyHasOne(t *testing.T)
 	s := f.leveller(t)
 	f.state.Units = append(f.state.Units, UnitState{ID: 90, Base: "Warrior of Minas Tirith", Role: RoleWarrior, XP: 5})
 	for _, id := range []int64{8, 90} { // both roll their 6 while the path is still free
-		if _, err := s.RollLevelUp(f.ctx, f.user, 5, id, []int{6}, false); err != nil {
+		if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, id, []int{6}, false); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 8, []string{"path:Path of the Sorcerer"}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 8, []string{"path:Path of the Sorcerer"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 90, []string{"path:Path of the Sorcerer"}); !errors.Is(err, ErrRefused) {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 90, []string{"path:Path of the Sorcerer"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("the second Sorcerer is refused: %v", err)
 	}
 }
@@ -248,7 +248,7 @@ func TestAStaleOfferOfTheSorcererPathIsRefusedOnceTheCompanyHasOne(t *testing.T)
 func TestARollAgainResultIsChosenTogetherWithTheOtherOne(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
-	r, err := s.RollLevelUp(f.ctx, f.user, 5, 2, []int{5, 4}, false)
+	r, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 2, []int{5, 4}, false)
 	if err != nil || len(r.Offers) != 2 {
 		t.Fatalf("a 5 and a 4: %+v %v", r, err)
 	}
@@ -268,16 +268,16 @@ func TestARollAgainResultIsChosenTogetherWithTheOtherOne(t *testing.T) {
 	}
 	before := f.unit(t, 2)
 	// a second choice that is not on offer changes nothing
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 2, []string{again.Key, "stat:made-up:1"}); !errors.Is(err, ErrRefused) {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 2, []string{again.Key, "stat:made-up:1"}); !errors.Is(err, ErrRefused) {
 		t.Fatalf("an unavailable second choice: %v", err)
 	}
 	if after := f.unit(t, 2); after.Level != before.Level || len(f.state.Units[1].Progress.Bonus) != 0 {
 		t.Error("nothing was applied")
 	}
-	if got, _ := s.LevelUpState(f.ctx, f.user, 5, 2); got == nil {
+	if got, _ := s.LevelUpState(f.ctx, f.user, 5, 1, 2); got == nil {
 		t.Error("the roll still waits")
 	}
-	done, err := s.ChooseLevelUp(f.ctx, f.user, 5, 2, []string{again.Key, other.Key})
+	done, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 2, []string{again.Key, other.Key})
 	if err != nil || !done.Done {
 		t.Fatalf("both at once: %+v %v", done, err)
 	}
@@ -299,7 +299,7 @@ func TestARollAgainResultIsChosenTogetherWithTheOtherOne(t *testing.T) {
 func TestARollAgainResultCanBeChosenOneAtATime(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
-	r, err := s.RollLevelUp(f.ctx, f.user, 5, 2, []int{5, 4}, false)
+	r, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 2, []int{5, 4}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -309,14 +309,14 @@ func TestARollAgainResultCanBeChosenOneAtATime(t *testing.T) {
 			again = o.Choices[0]
 		}
 	}
-	step, err := s.ChooseLevelUp(f.ctx, f.user, 5, 2, []string{again.Key})
+	step, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 2, []string{again.Key})
 	if err != nil || step.Done || !step.Again || len(step.Offers) != 1 || step.Offers[0].Roll != 4 {
 		t.Fatalf("the other result is offered next: %+v %v", step, err)
 	}
 	if f.unit(t, 2).Level != 0 {
 		t.Error("the roll is not used up yet")
 	}
-	done, err := s.ChooseLevelUp(f.ctx, f.user, 5, 2, []string{step.Offers[0].Choices[0].Key})
+	done, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 2, []string{step.Offers[0].Choices[0].Key})
 	if err != nil || !done.Done || f.unit(t, 2).Level != 1 {
 		t.Fatalf("%+v %v", done, err)
 	}
@@ -325,7 +325,7 @@ func TestARollAgainResultCanBeChosenOneAtATime(t *testing.T) {
 func TestMinorRulesWithATargetAskForOne(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
-	r, err := s.RollLevelUp(f.ctx, f.user, 5, 2, []int{10, 3}, false) // Hador, a sergeant: a 10 offers a minor special rule
+	r, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 2, []int{10, 3}, false) // Hador, a sergeant: a 10 offers a minor special rule
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +347,7 @@ func TestMinorRulesWithATargetAskForOne(t *testing.T) {
 	if len(heroes) == 0 || strings.Contains(strings.Join(heroes, ","), "Hador") {
 		t.Errorf("Combat Synergy is aimed at another hero, never at itself: %v", heroes)
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 2, []string{"minor:Poisoned Attacks|weapon:Hand weapon"}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 2, []string{"minor:Poisoned Attacks|weapon:Hand weapon"}); err != nil {
 		t.Fatal(err)
 	}
 	hador := f.unit(t, 2)
@@ -361,7 +361,7 @@ func TestMinorRulesWithATargetAskForOne(t *testing.T) {
 	if !rule || !poisoned {
 		t.Errorf("the rule and the poisoned weapon: %v %v", rule, poisoned)
 	}
-	r, _ = s.RollLevelUp(f.ctx, f.user, 5, 2, []int{10, 3}, false)
+	r, _ = s.RollLevelUp(f.ctx, f.user, 5, 1, 2, []int{10, 3}, false)
 	var target string
 	for _, c := range r.Offers[0].Choices {
 		if c.Key == "minor:Poisoned Attacks|weapon:Hand weapon" {
@@ -371,7 +371,7 @@ func TestMinorRulesWithATargetAskForOne(t *testing.T) {
 			target = c.Key
 		}
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 2, []string{target}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 2, []string{target}); err != nil {
 		t.Fatal(err)
 	}
 	synergy := func() string {
@@ -398,14 +398,14 @@ func TestMinorRulesWithATargetAskForOne(t *testing.T) {
 func TestAHeroMaySwapAResultForItsCompanysUpgrade(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
-	r, err := s.RollLevelUp(f.ctx, f.user, 5, 2, []int{4, 8}, false)
+	r, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 2, []int{4, 8}, false)
 	if err != nil || r.Upgrade == nil || len(r.Upgrade.Choices) != 1 || r.Upgrade.Choices[0].Key != "upgrade:The Charge of Gondor" {
 		t.Fatalf("the company's upgrade is offered besides the two results: %+v %v", r.Upgrade, err)
 	}
 	if r.Upgrade.Choices[0].Hint == "" {
 		t.Error("with its rule text")
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 2, []string{"upgrade:The Charge of Gondor"}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 2, []string{"upgrade:The Charge of Gondor"}); err != nil {
 		t.Fatal(err)
 	}
 	var rule UnitRule
@@ -417,7 +417,7 @@ func TestAHeroMaySwapAResultForItsCompanysUpgrade(t *testing.T) {
 	if rule.Source != RuleFromCompany || rule.Description == "" {
 		t.Errorf("the hero has the upgrade as a company-exclusive rule: %+v", rule)
 	}
-	r, _ = s.RollLevelUp(f.ctx, f.user, 5, 2, []int{4, 8}, false)
+	r, _ = s.RollLevelUp(f.ctx, f.user, 5, 1, 2, []int{4, 8}, false)
 	if r.Upgrade != nil {
 		t.Error("a hero cannot take its upgrade twice")
 	}
@@ -427,20 +427,20 @@ func TestRollsNeedTheCampaignSettingsForLevelUps(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
 	f.settings = CampaignSettings{ShakeTheTable: true} // typed rolls off
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 2, []int{5, 4}, false); !errors.Is(err, ErrRefused) {
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 2, []int{5, 4}, false); !errors.Is(err, ErrRefused) {
 		t.Errorf("typed level-up rolls need the setting: %v", err)
 	}
-	r, err := s.RollLevelUp(f.ctx, f.user, 5, 2, []int{5, 4}, true)
+	r, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 2, []int{5, 4}, true)
 	if err != nil || len(r.Offers) != 2 || r.Offers[0].Roll != 5 {
 		t.Fatalf("a thrown level-up is the roll: %+v %v", r, err)
 	}
 	f2 := newCompanyFixture(t)
 	s2 := f2.leveller(t)
 	f2.settings = CampaignSettings{}
-	if _, err := s2.RollLevelUp(f2.ctx, f2.user, 5, 2, []int{5, 4}, true); !errors.Is(err, ErrRefused) {
+	if _, err := s2.RollLevelUp(f2.ctx, f2.user, 5, 1, 2, []int{5, 4}, true); !errors.Is(err, ErrRefused) {
 		t.Errorf("not where Shake the table is off: %v", err)
 	}
-	if _, err := s2.RollLevelUp(f2.ctx, f2.user, 5, 2, nil, false); err != nil {
+	if _, err := s2.RollLevelUp(f2.ctx, f2.user, 5, 1, 2, nil, false); err != nil {
 		t.Errorf("a server roll: %v", err)
 	}
 }
@@ -448,26 +448,26 @@ func TestRollsNeedTheCampaignSettingsForLevelUps(t *testing.T) {
 func TestLevelUpRefusals(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
-	if _, err := s.RollLevelUp(f.ctx, User{ID: 8}, 5, 2, []int{5, 4}, false); !errors.Is(err, ErrNotFound) {
+	if _, err := s.RollLevelUp(f.ctx, User{ID: 8}, 5, 1, 2, []int{5, 4}, false); !errors.Is(err, ErrNotFound) {
 		t.Errorf("non-owner: %v", err)
 	}
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 999, []int{5}, false); !errors.Is(err, ErrNotFound) {
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 999, []int{5}, false); !errors.Is(err, ErrNotFound) {
 		t.Errorf("unknown unit: %v", err)
 	}
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 6, []int{5}, false); !errors.Is(err, ErrRefused) {
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 6, []int{5}, false); !errors.Is(err, ErrRefused) {
 		t.Errorf("Cirion has 3 XP: %v", err)
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 2, nil); !errors.Is(err, ErrRefused) {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 2, nil); !errors.Is(err, ErrRefused) {
 		t.Errorf("nothing chosen: %v", err)
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, User{ID: 8}, 5, 2, []string{"stat:x:1"}); !errors.Is(err, ErrNotFound) {
+	if _, err := s.ChooseLevelUp(f.ctx, User{ID: 8}, 5, 1, 2, []string{"stat:x:1"}); !errors.Is(err, ErrNotFound) {
 		t.Errorf("non-owner choosing: %v", err)
 	}
-	if _, err := s.LevelUpState(f.ctx, User{ID: 8}, 5, 2); !errors.Is(err, ErrNotFound) {
+	if _, err := s.LevelUpState(f.ctx, User{ID: 8}, 5, 1, 2); !errors.Is(err, ErrNotFound) {
 		t.Errorf("non-owner state: %v", err)
 	}
 	f.state.Units = append(f.state.Units, UnitState{ID: 91, Base: "Wandering Swordsman", Wanderer: "Wandering Swordsman", Role: RoleHero, XP: 9})
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 91, []int{5, 5}, false); !errors.Is(err, ErrRefused) {
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 91, []int{5, 5}, false); !errors.Is(err, ErrRefused) {
 		t.Errorf("a wanderer gains no experience: %v", err)
 	}
 }
@@ -476,7 +476,7 @@ func TestARangerOfArnorBecomesAHeroAndIsPromotedAtOnce(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
 	f.companyOf("Arnor", 5, []UnitState{{ID: 90, Base: "Ranger of Arnor", Role: RoleWarrior, Gear: []string{"Spear", "Armour"}, XP: 5}})
-	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{6}, false)
+	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{6}, false)
 	if err != nil || len(roll.Offers) != 1 {
 		t.Fatalf("%+v %v", roll, err)
 	}
@@ -485,7 +485,7 @@ func TestARangerOfArnorBecomesAHeroAndIsPromotedAtOnce(t *testing.T) {
 			t.Errorf("there is no promotion without the hero's journey: %+v", ch)
 		}
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 90, []string{"path:Path of the Ranger"}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 90, []string{"path:Path of the Ranger"}); err != nil {
 		t.Fatal(err)
 	}
 	u := f.unit(t, 90)
@@ -524,20 +524,20 @@ func TestAnOfficerChoosesItsPathFromTheCompanyPage(t *testing.T) {
 	if len(officers) != 3 {
 		t.Fatalf("a leader and two sergeants: %d", len(officers))
 	}
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, officers[0].ID, nil, false); !errors.Is(err, ErrRefused) {
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, officers[0].ID, nil, false); !errors.Is(err, ErrRefused) {
 		t.Errorf("the officer cannot level up without a path: %v", err)
 	}
-	offer, err := s.PathOptions(f.ctx, f.user, 5, officers[0].ID)
+	offer, err := s.PathOptions(f.ctx, f.user, 5, 1, officers[0].ID)
 	if err != nil || len(offer.Paths) == 0 || len(offer.Powers) == 0 {
 		t.Fatalf("%+v %v", offer, err)
 	}
-	if err := s.ChoosePath(f.ctx, f.user, 5, officers[0].ID, "Path of the Sorcerer", ""); !errors.Is(err, ErrRefused) {
+	if err := s.ChoosePath(f.ctx, f.user, 5, 1, officers[0].ID, "Path of the Sorcerer", ""); !errors.Is(err, ErrRefused) {
 		t.Errorf("a Sorcerer needs a first power: %v", err)
 	}
-	if err := s.ChoosePath(f.ctx, f.user, 5, officers[0].ID, "Path of Nothing", ""); !errors.Is(err, ErrRefused) {
+	if err := s.ChoosePath(f.ctx, f.user, 5, 1, officers[0].ID, "Path of Nothing", ""); !errors.Is(err, ErrRefused) {
 		t.Errorf("an unknown path: %v", err)
 	}
-	if err := s.ChoosePath(f.ctx, User{ID: 8}, 5, officers[0].ID, "Path of the Soldier", ""); !errors.Is(err, ErrNotFound) {
+	if err := s.ChoosePath(f.ctx, User{ID: 8}, 5, 1, officers[0].ID, "Path of the Soldier", ""); !errors.Is(err, ErrNotFound) {
 		t.Errorf("non-owner: %v", err)
 	}
 	power := offer.Powers[0].Key[len("power:"):]
@@ -546,11 +546,11 @@ func TestAnOfficerChoosesItsPathFromTheCompanyPage(t *testing.T) {
 		if i == 0 {
 			path, pw = "Path of the Sorcerer", power
 		}
-		if err := s.ChoosePath(f.ctx, f.user, 5, o.ID, path, pw); err != nil {
+		if err := s.ChoosePath(f.ctx, f.user, 5, 1, o.ID, path, pw); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := s.ChoosePath(f.ctx, f.user, 5, officers[0].ID, "Path of the Soldier", ""); !errors.Is(err, ErrRefused) {
+	if err := s.ChoosePath(f.ctx, f.user, 5, 1, officers[0].ID, "Path of the Soldier", ""); !errors.Is(err, ErrRefused) {
 		t.Errorf("a path is chosen once: %v", err)
 	}
 	for _, u := range f.detail(t).Roster {
@@ -573,16 +573,16 @@ func TestUnitsOnTheirOwnPathLevelUpAsWarriorsWhenTheCampaignSaysSo(t *testing.T)
 		t.Fatalf("it starts as a warrior that earns experience: %+v", spider)
 	}
 	// a 1 changes nothing and uses the roll
-	r, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{1}, false)
+	r, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{1}, false)
 	if err != nil || !r.Done || f.unit(t, 90).IsHero() {
 		t.Fatalf("a 1: %+v %v", r, err)
 	}
 	// a 6 makes it a hero on its own path at once: no path to choose, no promotion to forgo for
-	r, err = s.RollLevelUp(f.ctx, f.user, 5, 90, []int{6}, false)
+	r, err = s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{6}, false)
 	if err != nil || !r.Done || r.D6 != 6 || r.Result != "heroInTheMaking" {
 		t.Fatalf("a 6 is a hero on the path without a choice: %+v %v", r, err)
 	}
-	if st, _ := s.LevelUpState(f.ctx, f.user, 5, 90); st != nil {
+	if st, _ := s.LevelUpState(f.ctx, f.user, 5, 1, 90); st != nil {
 		t.Errorf("nothing waits for a choice: %+v", st)
 	}
 	hero := f.unit(t, 90)
@@ -602,7 +602,7 @@ func TestUnitsOnTheirOwnPathLevelUpAsWarriorsWhenTheCampaignSaysSo(t *testing.T)
 		t.Errorf("both rolls are used: level %d, pending %d", hero.Level, hero.PendingLevelUps())
 	}
 	f.state.Units[0].XP = 15 // one more roll: now on the path's chart
-	if roll, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{2, 3}, false); err != nil || roll.Kind != "hero" || len(roll.Offers) == 0 {
+	if roll, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{2, 3}, false); err != nil || roll.Kind != "hero" || len(roll.Offers) == 0 {
 		t.Fatalf("as a hero it rolls on the path's chart: %+v %v", roll, err)
 	}
 	// without the option the spider never levels up
@@ -611,7 +611,7 @@ func TestUnitsOnTheirOwnPathLevelUpAsWarriorsWhenTheCampaignSaysSo(t *testing.T)
 	if u := f.unit(t, 90); !u.OwnPath || u.XP != 0 {
 		t.Errorf("on its own path it earns no experience: %+v", u)
 	}
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{6}, false); !errors.Is(err, ErrRefused) {
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{6}, false); !errors.Is(err, ErrRefused) {
 		t.Errorf("on its own path it never levels up: %v", err)
 	}
 }
@@ -631,7 +631,7 @@ func TestAPromotionKeepsTheCompanysNameForTheUnit(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
 	f.companyOf("Osgiliath & Ithilien", 5, []UnitState{{ID: 90, Base: "Ranger of Gondor", Role: RoleWarrior, XP: 5}})
-	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{4}, false)
+	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{4}, false)
 	if err != nil || len(roll.Offers) == 0 {
 		t.Fatalf("%+v %v", roll, err)
 	}
@@ -647,7 +647,7 @@ func TestAPromotionKeepsTheCompanysNameForTheUnit(t *testing.T) {
 	if key == "" {
 		t.Fatalf("no promotion offered: %+v", roll.Offers[0].Choices)
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 90, []string{key}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 90, []string{key}); err != nil {
 		t.Fatal(err)
 	}
 	u := f.unit(t, 90)
@@ -669,7 +669,7 @@ func TestAPromotionThatIsAlreadyDoneIsNotOffered(t *testing.T) {
 		f := newCompanyFixture(t)
 		s := f.leveller(t)
 		f.companyOf("Fiefdoms", 5, []UnitState{{ID: 90, Base: "Knight of Dol Amroth", Role: RoleWarrior, Gear: gear, XP: 5}})
-		roll, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{4}, false)
+		roll, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{4}, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -784,7 +784,7 @@ func TestEveryOwnPathUnitStartsAWarriorAndTakesTheHomebrewPathOnASix(t *testing.
 				if u := f.unit(t, 90); u.OwnPath || u.IsHero() || u.Path != nil || u.PendingLevelUps() != 1 {
 					t.Fatalf("a warrior with a roll waiting: hero %v own %v pending %d", u.IsHero(), u.OwnPath, u.PendingLevelUps())
 				}
-				if r, err := l.RollLevelUp(f.ctx, f.user, 5, 90, []int{6}, false); err != nil || !r.Done {
+				if r, err := l.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{6}, false); err != nil || !r.Done {
 					t.Fatalf("%+v %v", r, err)
 				}
 				u := f.unit(t, 90)

@@ -13,7 +13,7 @@
 {{with .Notice}}<div class="alert {{if $.NoticeErr}}alert-danger{{else}}alert-success{{end}} mt-3" role="{{if $.NoticeErr}}alert{{else}}status{{end}}">{{.}}</div>{{end}}
 <div class="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
   <div>
-    <div class="flex flex-wrap items-center gap-x-3 gap-y-1"><h1>Match {{$m.Number}}</h1>{{template "match_result" $m}}</div>
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1"><h1>Match {{$m.Number}}</h1>{{if $m.Practice}}{{template "practice_badge"}}{{end}}{{template "match_result" $m}}</div>
     <p class="mt-1 text-muted">{{fmtDate $m.PlayedOn}}{{with $m.EndedOn}} · Ended {{fmtDate .}}{{end}}</p>
   </div>
   <div class="flex flex-wrap items-start gap-3">
@@ -28,9 +28,12 @@
   {{end}}
 </div>
 
+{{if $m.Practice}}<p class="alert alert-info mt-4 text-sm" role="note" data-practice-banner>Practice match: no experience, influence, rewards or injuries.</p>{{end}}
 {{if and (eq .Campaign.Status "finished") (not $m.Ended)}}<div class="alert alert-info mt-4" role="status">This campaign has ended, so this match is frozen as it was: it stays open, but nothing can be changed until an administrator reactivates the campaign.</div>{{end}}
 {{if and (not $m.Ended) (ne .Campaign.Status "finished")}}<div id="end-card-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/end/card" hx-trigger="live:match from:body" hx-swap="innerHTML">{{with $m.EndProposal}}{{template "end_card" $}}{{end}}</div>{{end}}
 
+{{range .SamePlayerNotes}}<p class="alert alert-info mt-4 text-sm" role="status" data-same-player>{{.}}</p>
+{{end}}
 <div class="mt-6 flex flex-wrap gap-4">
   {{range $i, $side := $m.Sides}}
   <section class="card min-w-60 flex-1 space-y-2">
@@ -350,6 +353,7 @@
         </label>
         <p class="text-sm text-muted" x-show="fled['{{.ID}}']" {{if not ($d.Result.Company .ID).Fled}}x-cloak{{end}}>The other side claims victory (All is Lost). Saving this does not end the match.</p>
         {{$co := $d.Result.Company .ID}}{{$cid := .ID}}{{$name := .Name}}
+        {{if $.Match.Practice}}<p class="hint">Objectives: recorded only; no reward in a practice match</p>{{end}}
         {{range $.Objectives}}{{$o := .}}
         <div class="rounded-md bg-raised px-3 py-2">
           {{if eq .Max 1}}
@@ -396,11 +400,11 @@
     <li class="space-y-2 py-3 first:pt-0 last:pb-0" {{if .Waive}}x-data="{ waiving: false }"{{end}}>
       <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div class="min-w-0">
-          <p class="flex flex-wrap items-center gap-x-2 gap-y-1"><a href="/campaigns/{{$.Campaign.ID}}/companies/{{.Ref.CompanyID}}" class="font-medium break-words">{{.Ref.CompanyName}}</a> {{template "aftermath_badge" .Ref.Status}}</p>
+          <p class="flex flex-wrap items-center gap-x-2 gap-y-1"><a href="/campaigns/{{$.Campaign.ID}}/companies/{{.Ref.CompanyID}}" class="font-medium break-words">{{.Ref.CompanyName}}</a> {{if $.Match.Practice}}<span class="text-sm text-muted" data-practice-aftermath>Aftermath: nothing to roll (practice match)</span>{{else}}{{template "aftermath_badge" .Ref.Status}}{{end}}</p>
           {{with .Owner}}<p class="text-sm text-muted">{{.}}</p>{{end}}
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <a class="btn {{if and .Edit .Ref.Status.Locks}}btn-primary{{else}}btn-secondary{{end}}" href="/campaigns/{{$.Campaign.ID}}/matches/{{.Ref.MatchID}}/aftermath/{{.Ref.CompanyID}}">{{if and .Edit .Ref.Status.Locks}}{{if eq (printf "%s" .Ref.Status) "pending"}}Start{{else}}Continue{{end}}<span class="sr-only"> the aftermath of {{.Ref.CompanyName}}</span>{{else}}View<span class="sr-only"> the aftermath of {{.Ref.CompanyName}}</span>{{end}}</a>
+          <a class="btn {{if and .Edit .Ref.Status.Locks (not $.Match.Practice)}}btn-primary{{else}}btn-secondary{{end}}" href="/campaigns/{{$.Campaign.ID}}/matches/{{.Ref.MatchID}}/aftermath/{{.Ref.CompanyID}}">{{if and .Edit .Ref.Status.Locks}}{{if eq (printf "%s" .Ref.Status) "pending"}}Start{{else}}Continue{{end}}<span class="sr-only"> the aftermath of {{.Ref.CompanyName}}</span>{{else}}View<span class="sr-only"> the aftermath of {{.Ref.CompanyName}}</span>{{end}}</a>
           {{if .Waive}}<button type="button" class="btn btn-ghost" x-show="!waiving" @click="waiving = true" :aria-expanded="waiving">Waive<span class="sr-only"> the aftermath of {{.Ref.CompanyName}}</span></button>{{end}}
         </div>
       </div>
@@ -469,7 +473,7 @@
 {{define "end_checks_sheet"}}
 <div id="end-checks" data-end-checks>
   <h2 class="!text-2xl pr-10">End checks</h2>
-  <p class="mt-1 text-sm text-muted">What the players settle when the game ends. The objective is worth {{.Checks.ObjectiveXP}} experience, the MVP {{.Checks.MVPXP}}.</p>
+  <p class="mt-1 text-sm text-muted">What the players settle when the game ends. {{if .Checks.Practice}}Recorded only: a practice match awards no experience.{{else}}The objective is worth {{.Checks.ObjectiveXP}} experience, the MVP {{.Checks.MVPXP}}.{{end}}</p>
   {{template "end_checks_body" .}}
   <p class="mt-4"><button type="button" class="btn btn-secondary" @click="closeModal()">Close</button></p>
 </div>
@@ -478,7 +482,7 @@
 {{define "end_checks_card"}}
 <section id="end-checks" data-end-checks class="card mt-6 space-y-3" aria-labelledby="end-checks-title">
   <h2 id="end-checks-title" class="!text-2xl">End checks</h2>
-  <p class="text-sm text-muted">What the players settle when the game ends. The objective is worth {{.Checks.ObjectiveXP}} experience, the MVP {{.Checks.MVPXP}}.</p>
+  <p class="text-sm text-muted">What the players settle when the game ends. {{if .Checks.Practice}}Recorded only: a practice match awards no experience.{{else}}The objective is worth {{.Checks.ObjectiveXP}} experience, the MVP {{.Checks.MVPXP}}.{{end}}</p>
   {{template "end_checks_body" .}}
 </section>
 {{end}}
@@ -545,7 +549,7 @@
 {{define "end_reminder"}}
 <div id="end-reminder" x-data class="alert alert-info mt-2" role="alertdialog" aria-labelledby="end-reminder-title">
   <p id="end-reminder-title" class="font-medium">Propose to end this match?</p>
-  <p class="mt-1 text-sm">The match ends when every player has confirmed. Meanwhile a change to the scenario or the result asks them to confirm again. Afterwards only the organiser or an administrator can change them.</p>
+  <p class="mt-1 text-sm">The match ends when every player has confirmed. Meanwhile a change to the scenario or the result asks them to confirm again. Afterwards only the organiser or an administrator can change them.{{if .Checks.Practice}} No aftermath will follow.{{end}}</p>
   {{with .Checks.Pending}}<p class="mt-2 text-sm font-medium">Still open</p>
   <ul class="list-disc pl-5 text-sm">{{range .}}<li>{{.}}</li>{{end}}</ul>{{end}}
   <form hx-post="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/end/propose" hx-target="#match" hx-swap="outerHTML" class="mt-3 flex flex-wrap gap-2">

@@ -1,0 +1,8 @@
+battle_companies.json: rules[0].bareTarget: bareTarget is the target of the rule written without its bracket, so the rule needs a parameter
+  hint: add "parameter": {"kind": "keyword"}, or use target
+battle_companies.json: rules[0].bareTarget.keywords: the bare form has no keyword to pick, so a target of "enemy-keyword" needs keywords
+  hint: list the keywords, or use "enemy-any"
+battle_companies.json: rules[1].bareTarget: bareTarget needs the target of the bracket form beside it
+  hint: add "target" for the rule written with its bracket
+battle_companies.json: rules[1].bareTarget.keywords: the bare form has no keyword to pick, so a target of "enemy-keyword" needs keywords
+  hint: list the keywords, or use "enemy-any"

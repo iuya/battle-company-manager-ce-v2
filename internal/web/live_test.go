@@ -48,9 +48,9 @@ func liveSetupRoster(t *testing.T, access core.LiveAccess, change func(*core.Liv
 	}
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 	m := core.Match{ID: 3, Number: 3, Revision: 6, Sides: sides, Scenario: &core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Chance Encounter"}}
 	if matchChange != nil {
@@ -72,7 +72,7 @@ func liveSetupRoster(t *testing.T, access core.LiveAccess, change func(*core.Liv
 
 func TestLiveCompanyPageHasBannerZonesAndNoRosterControls(t *testing.T) {
 	f := liveOwnerSetup(t, core.LiveEdit)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	for _, want := range []string{`id="live-banner"`, "Match 3", "is running", "Chance Encounter", "Match log", "locked until the match ends",
 		`id="live-zones"`, `data-seq="12"`, "Retreated", "Failed courage", "Field casualties", "Wounded by Grashnak (Raiders)", "Missed this game", "Cirion",
 		"Return to the battle", `/matches/3/live/1/actions`} {
@@ -102,7 +102,7 @@ func TestLiveCompanyPageHasBannerZonesAndNoRosterControls(t *testing.T) {
 
 func TestLiveCompanyPageForAViewerHasNoControls(t *testing.T) {
 	f := liveOwnerSetup(t, core.LiveNone)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	if !strings.Contains(body, `id="live-banner"`) || !strings.Contains(body, "Retreated") {
 		t.Error("a viewer sees the live page")
 	}
@@ -135,11 +135,11 @@ func TestACompanyInNoOpenMatchIsNotLive(t *testing.T) {
 	d, detail := mineDetail()
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	if strings.Contains(body, "live-banner") || strings.Contains(body, "live-zones") || !strings.Contains(body, "Recruit ·") {
 		t.Error("the usual page")
 	}
@@ -200,14 +200,14 @@ func TestLiveUndoAnswersZonesAndShowsTheDependencyRefusal(t *testing.T) {
 
 func TestTrackersAreButtonsForTheOwnerAndNumbersForAViewer(t *testing.T) {
 	f := liveOwnerSetup(t, core.LiveEdit)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	for _, want := range []string{`data-tracker="wounds"`, `Wounds of Hador down by one`, `"delta":"-1"`, `name="set"`, `max="1"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("owner lacks %q", want)
 		}
 	}
 	g := liveOwnerSetup(t, core.LiveNone)
-	body = g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body = g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	if !strings.Contains(body, `data-tracker="wounds"`) || strings.Contains(body, "down by one") || strings.Contains(body, `name="set"`) {
 		t.Error("a viewer reads the trackers, nothing more")
 	}
@@ -267,16 +267,16 @@ func TestUnitThatLostItsMountIsOnFootWithMountGearStruckThrough(t *testing.T) {
 	g := newFixture(t, Config{})
 	g.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	g.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	g.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	g.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	g.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+	g.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	g.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	g.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	g.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 	g.camp.EXPECT().Match(gomock.Any(), int64(7), int64(3)).Return(core.Match{ID: 3, Number: 3}, nil).AnyTimes()
 	live := func(mounted bool) core.LiveCompany {
 		return core.LiveCompany{MatchID: 3, CompanyID: 1, MatchNumber: 3, Access: core.LiveEdit, Units: []core.LiveUnit{{UnitID: 5, Zone: core.ZoneField, HasMount: true, Mounted: mounted, Wounds: core.LiveStat{Current: 1, Start: 1}}}}
 	}
 	g.camp.EXPECT().Live(gomock.Any(), frodo, int64(7), int64(1)).Return(live(false), nil)
-	body := g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	for _, want := range []string{"On foot", `aria-label="Horse, the mount is lost"`, `aria-label="Lance, needs a mount"`, `aria-label="Cavalry, needs a mount"`, `aria-label="Timid, needs a mount"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("lacks %q", want)
@@ -289,7 +289,7 @@ func TestUnitThatLostItsMountIsOnFootWithMountGearStruckThrough(t *testing.T) {
 		t.Errorf("on foot: the keywords do not change (Cavalry is the icon's, the mount is gear): %s", row)
 	}
 	g.camp.EXPECT().Live(gomock.Any(), frodo, int64(7), int64(1)).Return(live(true), nil)
-	body = g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body = g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	if row := keywordRowOf(body); !strings.Contains(row, ">Man<") || strings.Contains(row, ">Cavalry<") || strings.Contains(body, "Mount: Horse</dt>") {
 		t.Errorf("mounted: the same row: %s", row)
 	}

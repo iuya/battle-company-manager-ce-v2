@@ -18,7 +18,6 @@ type amFixture struct {
 	campaigns *MockcampaignRepository
 	companies *MockcompanyRepository
 	matches   *MockmatchRepository
-	rulesets  *MockrulesetRepository
 	repo      *MockaftermathRepository
 	state     CompanyState
 	rec       AftermathRecord
@@ -37,7 +36,7 @@ func newAmFixture(t *testing.T) *amFixture {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 	f := &amFixture{campaigns: NewMockcampaignRepository(ctrl), companies: NewMockcompanyRepository(ctrl), matches: NewMockmatchRepository(ctrl),
-		rulesets: NewMockrulesetRepository(ctrl), repo: NewMockaftermathRepository(ctrl), state: gondor(), dice: &FixedDice{Rolls: []int{1}}, ctx: context.Background(), settings: CampaignSettings{ManualRolls: true}}
+		repo: NewMockaftermathRepository(ctrl), state: gondor(), dice: &FixedDice{Rolls: []int{1}}, ctx: context.Background(), settings: CampaignSettings{ManualRolls: true}}
 	f.match = Match{ID: 1, Number: 3, Ended: true, Winner: 1, Scenario: &MatchScenario{Kind: ScenarioRulebook, Name: "Rescue"},
 		Result: MatchResult{Decided: true, Winner: 1},
 		Sides: []MatchSide{{Name: "A", Companies: []CampaignCompany{{ID: 1, OwnerID: amOwner, Name: "The White Company"}}},
@@ -52,14 +51,11 @@ func newAmFixture(t *testing.T) *amFixture {
 		}
 		d := CampaignDetail{CampaignSummary: CampaignSummary{ID: 5}, OrganiserID: amOrganiser}
 		if user == amOwner {
-			d.Company = &CampaignCompany{ID: 1}
+			d.Companies = []CampaignCompany{{ID: 1}}
 		}
 		return d, nil
 	}).AnyTimes()
 	f.matches.EXPECT().Get(gomock.Any(), int64(5), int64(1)).DoAndReturn(func(context.Context, int64, int64) (Match, error) { return f.match, nil }).AnyTimes()
-	f.rulesets.EXPECT().Get(gomock.Any(), "bc").DoAndReturn(func(context.Context, string) (StoredRuleset, error) {
-		return StoredRuleset{Content: readDef(t, "battle_companies/battle_companies.json")}, nil
-	}).AnyTimes()
 	f.companies.EXPECT().Read(gomock.Any(), int64(5), int64(1)).DoAndReturn(func(context.Context, int64, int64) (CompanyState, error) { return f.state.Clone(), nil }).AnyTimes()
 	f.repo.EXPECT().Get(gomock.Any(), int64(5), int64(1), int64(1)).DoAndReturn(func(context.Context, int64, int64, int64) (AftermathRecord, error) { return f.rec, nil }).AnyTimes()
 	f.repo.EXPECT().Update(gomock.Any(), int64(5), int64(1), int64(1), gomock.Any()).DoAndReturn(
@@ -72,7 +68,7 @@ func newAmFixture(t *testing.T) *amFixture {
 			f.state, f.rec = st, rec
 			return nil
 		}).AnyTimes()
-	f.svc = NewAftermathService(f.campaigns, f.companies, f.matches, f.rulesets, f.repo, staticRules{shippedRules(t)}, f.dice)
+	f.svc = NewAftermathService(f.campaigns, f.companies, f.matches, f.repo, staticRules{shippedRules(t)}, f.dice)
 	return f
 }
 
@@ -445,26 +441,26 @@ func TestCompanyActionsAreLockedWhileAnAftermathIsPending(t *testing.T) {
 	f.state.Aftermaths = []AftermathRef{{MatchID: 1, MatchNumber: 3, CompanyID: 1, Status: AftermathPending}}
 	arm := NewArmouryService(f.campaigns, f.companies, rules)
 	for name, err := range map[string]error{
-		"buy":      arm.BuyEquipment(f.ctx, f.user, 5, 6, "Shield", ""),
-		"drop":     arm.DropEquipment(f.ctx, f.user, 5, 6, "Bow"),
-		"creature": arm.BuyCreature(f.ctx, f.user, 5, 2, "Baggage Pony", ""),
-		"wanderer": arm.HireWanderer(f.ctx, f.user, 5, "Anybody", ""),
-		"dismiss":  arm.DismissWanderer(f.ctx, f.user, 5, 6),
-		"recruit":  NewRecruitService(f.campaigns, f.companies, rules, &FixedDice{Rolls: []int{3}}).RollRecruit(f.ctx, f.user, 5, 0, false),
+		"buy":      arm.BuyEquipment(f.ctx, f.user, 5, 1, 6, "Shield", ""),
+		"drop":     arm.DropEquipment(f.ctx, f.user, 5, 1, 6, "Bow"),
+		"creature": arm.BuyCreature(f.ctx, f.user, 5, 1, 2, "Baggage Pony", ""),
+		"wanderer": arm.HireWanderer(f.ctx, f.user, 5, 1, "Anybody", ""),
+		"dismiss":  arm.DismissWanderer(f.ctx, f.user, 5, 1, 6),
+		"recruit":  NewRecruitService(f.campaigns, f.companies, rules, &FixedDice{Rolls: []int{3}}).RollRecruit(f.ctx, f.user, 5, 1, 0, false),
 	} {
 		if !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Finish the aftermath of Match 3 first") {
 			t.Errorf("%s: %v", name, err)
 		}
 	}
-	_, err := NewTreatmentService(f.campaigns, f.companies, rules, &FixedDice{}).TreatInjury(f.ctx, f.user, 5, 7, Treatment{Method: "warrior"})
+	_, err := NewTreatmentService(f.campaigns, f.companies, rules, &FixedDice{}).TreatInjury(f.ctx, f.user, 5, 1, 7, Treatment{Method: "warrior"})
 	if !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Finish the aftermath") {
 		t.Errorf("treat: %v", err)
 	}
-	if err := NewCompanyService(f.campaigns, f.companies, rules).RenameCompany(f.ctx, f.user, 5, "Still allowed"); err != nil {
+	if err := NewCompanyService(f.campaigns, f.companies, rules).RenameCompany(f.ctx, f.user, 5, 1, "Still allowed"); err != nil {
 		t.Errorf("renaming: %v", err)
 	}
 	f.state.Aftermaths = nil
-	if err := arm.DropEquipment(f.ctx, f.user, 5, 6, "Bow"); errors.Is(err, ErrRefused) && strings.Contains(err.Error(), "Finish the aftermath") {
+	if err := arm.DropEquipment(f.ctx, f.user, 5, 1, 6, "Bow"); errors.Is(err, ErrRefused) && strings.Contains(err.Error(), "Finish the aftermath") {
 		t.Errorf("unlocked: %v", err)
 	}
 }
@@ -582,11 +578,7 @@ func TestUsePerkIsForTheOwner(t *testing.T) {
 }
 
 func TestScenarioObjectivesSayWhichOnesAreHeldByAModel(t *testing.T) {
-	list, err := ParseScenarios(readDef(t, "battle_companies/battle_companies.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, sc := range list {
+	for _, sc := range shippedRules(t).BC.Scenarios() {
 		for _, o := range sc.Objectives {
 			if want := o.Key == "possessesRelic"; o.Model != want {
 				t.Errorf("%s / %s: Model = %v", sc.Name, o.Key, o.Model)
@@ -719,7 +711,7 @@ func TestAftermathDefaultSheetComesFromTheLiveMatch(t *testing.T) {
 
 func (f *amFixture) mustRules(t *testing.T) AftermathRules {
 	t.Helper()
-	r, err := f.svc.aftermathRules(f.ctx, "bc")
+	r, err := f.svc.aftermathRules(f.ctx, RulesetHashes{BattleCompanies: "bc"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -906,7 +898,7 @@ func TestAHeroInTheMakingNamedSergeantStaysSergeant(t *testing.T) {
 	rs := shippedRules(t)
 	for _, tt := range []struct{ role, want UnitRole }{{RoleWarrior, RoleHero}, {RoleSergeant, RoleSergeant}, {RoleLeader, RoleLeader}} {
 		s := UnitState{Role: tt.role}
-		applyProgress(rs, &s, &Progress{Hero: true, Path: "Path of the Soldier"})
+		applyProgress(rs, BCCompany{}, &s, &Progress{Hero: true, Path: "Path of the Soldier"})
 		if s.Role != tt.want {
 			t.Errorf("a hero holding the %s place is %s, want %s", tt.role, s.Role, tt.want)
 		}

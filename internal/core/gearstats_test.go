@@ -153,7 +153,7 @@ func TestRuleKeyAndLabel(t *testing.T) {
 	if (UnitRule{Name: "Keen Sight (Falcon)", Label: "Keen Sight"}).Shown() != "Keen Sight" || (UnitRule{Name: "X"}).Shown() != "X" {
 		t.Error("Shown")
 	}
-	for _, e := range GlossaryExtras(readDef(t, "vanilla/data2024.json"), readDef(t, "battle_companies/battle_companies.json")) {
+	for _, e := range shippedRules(t).Glossary.Terms {
 		if e.Name == "Keen Sight (Falcon)" {
 			t.Error("the glossary shows the label, never the key")
 		}
@@ -178,7 +178,7 @@ func TestSmallShieldIsANoteNotADefenceChange(t *testing.T) {
 	}
 }
 
-// R8: a conditional bonus (the Pavise's +3, not while Engaged) is text on the item, never added to the unit's Defence.
+// A conditional bonus (the Pavise's +3, not while Engaged) is text on the item, never added to the unit's Defence.
 func TestPaviseIsANoteNotADefenceChange(t *testing.T) {
 	plain := buildFor(t, "Rohan", UnitState{ID: 1, Base: "Warrior of Rohan", Role: RoleWarrior})
 	pavise := buildFor(t, "Rohan", UnitState{ID: 1, Base: "Warrior of Rohan", Role: RoleHero, Bonus: HeroBonus(nil), Bought: []string{"Pavise"}})
