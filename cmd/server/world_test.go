@@ -129,21 +129,32 @@ func TestSeedWorld(t *testing.T) {
 			if len(d.Companies) != want {
 				t.Errorf("%s has %d companies in Two bands, want %d", key, len(d.Companies), want)
 			}
+			if d.Matches != 2 || d.PracticeMatches != 2 {
+				t.Errorf("Two bands counts %d matches and %d practice matches, want 2 and 2", d.Matches, d.PracticeMatches)
+			}
 			if d.CanCreateCompany() != (want < 3) {
 				t.Errorf("%s: CanCreateCompany = %v with %d of 3", key, d.CanCreateCompany(), want)
 			}
 		}
 		matches, err := b.campaigns.Matches(ctx, bands.ID)
-		if err != nil || len(matches) != 2 {
-			t.Fatalf("Two bands has %d matches (%v), want 2", len(matches), err)
+		if err != nil || len(matches) != 4 {
+			t.Fatalf("Two bands has %d matches (%v), want 4", len(matches), err)
 		}
-		same := 0
+		same, practice, openPractice := 0, 0, 0
 		for _, m := range matches {
 			same += len(core.SamePlayers(m.Sides))
+			if m.Practice {
+				practice++
+				openPractice += map[bool]int{false: 1}[m.Ended]
+			}
 		}
-		if same != 1 {
-			t.Errorf("one match has two companies of one player, found %d", same)
+		if same != 3 {
+			t.Errorf("three matches have two companies of one player (two of them practice), found %d", same)
 		}
+		if practice != 2 || openPractice != 1 {
+			t.Errorf("Two bands has %d practice matches (%d open), want 2 (1 open)", practice, openPractice)
+		}
+
 	}
 
 	// everything on: the Wood Elf Sentinels are warriors with experience; one rolled a 6 and is a hero on its own path

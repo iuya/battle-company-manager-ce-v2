@@ -116,6 +116,14 @@ func (w *world) played(c *wcamp, scenario string, o outcome, sides ...[]*wco) co
 	return w.endMatch(c, m)
 }
 
+// playedPractice makes an ended practice match: the same steps as played, but it awards nothing and has no aftermath.
+func (w *world) playedPractice(c *wcamp, scenario string, o outcome, sides ...[]*wco) core.Match {
+	m := w.newPracticeMatch(c, sides...)
+	m = w.rulebook(c, m, scenario)
+	m = w.report(c, m, o)
+	return w.endMatch(c, m)
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Aftermath
 
