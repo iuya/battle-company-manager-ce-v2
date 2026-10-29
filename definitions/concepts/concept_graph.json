@@ -3,7 +3,7 @@
   "version": "1.0",
   "builtFrom": {
     "vanilla": "235fc4d309ccd25441df33be77501f8f67216cc942a5ffbfe414490e0a376546",
-    "battleCompanies": "e222db6f94baeaf1f4880d7858120e6a82f03c84c94997daef79a105c6c3547a",
+    "battleCompanies": "1e293deacb9f565d2bc57d8b525ef42026e8ba7f8b292eb1ae41652c38bf1a72",
     "glossary": "5a364b60627bdca4d19f49e152875ae76fc64cc01f56032ab2da10f56fc3872f"
   },
   "nodes": [
@@ -3458,7 +3458,7 @@
       "kind": "rule",
       "name": "I shall pass!",
       "file": "battleCompanies",
-      "textHash": "697853cd55037f73"
+      "textHash": "56609d3ad14bea9b"
     },
     {
       "id": "rule:if-i-were-to-marry-anyone-it-would-ve-been-her",
@@ -6083,7 +6083,7 @@
       "kind": "rule",
       "name": "Whirl of Attacks",
       "file": "battleCompanies",
-      "textHash": "4ed052b419c7191f"
+      "textHash": "b7cd993ebebb8aa0"
     },
     {
       "id": "rule:whirl-of-blades",
