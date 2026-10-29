@@ -142,6 +142,52 @@ What is left in `core` is small: in the profile of the matches page `BuildDetail
 
 Left alone: the live hub, session cache and goroutine use did not show in any profile; `ParameterisedKeyword`'s regexp replace is 3 % of a page.
 
+## Backend pass at v2.0.0 (`internal/core`)
+
+`BenchmarkPages` on the demo world (130 companies), median of 5, ms per request, MB allocated per request. The full tables with the baseline
+are in [optimization-report.md](optimization-report.md), "Backend pass".
+
+| Page | Before | After |
+|---|---|---|
+| campaign list | 91 ms, 101 MB | 27 ms, 7.4 MB |
+| matches tab | 95 ms, 99 MB | 25 ms, 7.2 MB |
+| campaign overview | 63 ms, 66 MB | 19 ms, 4.9 MB |
+| my company | 43 ms, 40 MB | 20 ms, 5.7 MB |
+| armoury | 57 ms, 46 MB | 23 ms, 9.5 MB |
+| Tabletop Simulator dialog | 42 ms, 40 MB | 13 ms, 3.7 MB |
+| `core.LoadRuleSet` (three shipped files) | 66 ms, 34 MB, 484k allocations | 49 ms, 26 MB, 314k allocations |
+
+What the code does now, and what to keep when changing it:
+
+- **An item is built once per rule set.** `equipmentFor` (the classes, stats, description, grants and icon of a gear name for a company) is the
+  hottest function of every page that builds a company: it ran for every item of every unit, each time scanning the armoury, normalising names
+  and rewriting the description with a regular expression. Its answer depends on the rule set, the company's armoury, the name and two flags only,
+  so `RuleSet.equipment` remembers it (bounded at 20,000 entries). The result's slices are shared: do not write to them.
+- **Rating a company is not building its page.** `companyFigures` returns what `BuildDetail(...).CampaignCompany` returns (points, full points,
+  models, faction label) from the built units, without keywords, auras, limits, recruit charts and cemetery. The campaign list, the overview and
+  the match pages rate every company of a campaign from one read of the rosters; `TestCompanyFiguresEqualBuildDetail` keeps the two equal. A
+  change to what feeds a company's points must go in `buildUnit`, which both use.
+- **Pure helpers allocate nothing in the common case.** `NameKey` has an ASCII path on a stack buffer and returns the string itself when it is
+  a key already; the equipment list and the stat block are sized once; a glossary term remembers its `Summary(n)` per length.
+- **Loading a rule set decodes each file once.** The vanilla file is decoded one time and builds the two books `loadV2` needs (to check the
+  Battle Companies file against, and with the duplicates it pins); a vanilla name is encoded for comparison only when it occurs twice; a field
+  the entry does not have is not decoded (a missing key makes the decoder build and rewrite an error); the glossary sorts by keys worked
+  out once per term; the lean binder builds a field's path only for the fields present.
+- **`encoding/json` against `encoding/json/v2`** (`BenchmarkJSON`, `internal/core/bench_json_test.go`, Go 1.27, median of 6). In Go 1.27
+  `encoding/json` is a layer over v2, so the v1 API and v2 with `DefaultOptionsV1` run the same engine and measure the same (vanilla file
+  decode 4.97 and 4.89 ms, glossary 0.72 and 0.72 ms). v2 with its own defaults decodes 20 to 25 % faster (vanilla 3.9 ms, glossary 0.54 ms,
+  the Battle Companies file into a tree 1.7 against 3.0 ms) but is a different language: case-sensitive field names, an error on a repeated
+  key, strict UTF-8, other `omitempty`, and the lean decoder's error positions and texts come from the v1 token API. The whole gain is
+  1 to 2 ms once per rule set (about 2 to 4 % of a load) and nothing on a request: the Tabletop Simulator payload (6 KB) encodes in 8 µs either
+  way and the event, settings and session JSON in 2 µs. No call site was switched.
+- **Not in the profile any more:** the live hub, the session cache and goroutine use never showed. What is left in a request is PostgreSQL
+  round trips (`kevent`, system calls and thread wake-ups, about half of the CPU samples, waiting included), garbage collection (about 30 %, mostly the roster decode in
+  `internal/postgres` and the template buffers) and template execution.
+
+Two tools for the next pass: `PAGES_DUMP=<dir>` makes `BenchmarkPages` write the body of every benchmarked page, and of the overview, matches
+and armoury page of every campaign, to `<dir>` (77 files); two builds are equal when `diff -r` of the two directories (static `?v=` hashes aside)
+is empty. `go test ./internal/core -run xxx -bench JSON -benchmem -count 6` repeats the JSON comparison.
+
 ## Sidebar list on every full page (follow-up)
 
 `pageBase` now carries the sidebar's campaign list on every full page for a signed-in user (`Server.base` calls `NavCampaigns`; the main page keeps using its own list; htmx content swaps skip it; on error the sidebar falls back to the lazy `/nav/campaigns` fetch). The `/nav/campaigns` round trip is gone from every other page. `make perf REPS=3`, label `nav-before` / `nav-after` (`tests/e2e/out/`), requests and settled time (ms) at 0 / 100 / 300 ms. The server ms and statement columns also moved because the database pass ran at the same time; only requests and settled are this change's.

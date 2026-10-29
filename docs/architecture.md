@@ -69,6 +69,12 @@ option is added to the struct, to this table, to the campaign form and to the Ov
   vanilla. A name vanilla defines twice resolves to the first occurrence unless the Battle Companies file pins another one
   (`vanillaAmbiguities`). The cache is keyed by the hash triple, built once (singleflight) and shared by every campaign with the same
   triple (`MAX_CACHED_RULESETS`); a request never builds a rule set.
+- **Derived values are cached on the rule set, never on company data.** Because a `RuleSet` never changes, what is computed from it alone
+  is remembered on it and cannot go stale: the equipment of an item by company, name and flags (`equipmentFor`, `RuleSet.equipment`, at most
+  20,000 entries, past that it computes without storing), the book's profile list, a glossary term's summaries per length, and the pure name
+  functions (`ItemKey`, `IconFor`, `ParseOption`, bounded as well). The company a page shows changes per request and is built per request
+  (`BuildDetail`); a page that only rates companies (campaign list, overview, match pages) asks `companyFigures`, which builds the units
+  without keywords, auras, limits or recruit charts. Cached values are shared between requests: callers never write to their slices.
 - **`core.Rulesets`** stores uploaded rules files: it recomputes the hash, checks the kind, validates against the JSON schema
   (`ErrInvalidRuleset`; schemas are passed in as bytes and validated with `santhosh-tekuri/jsonschema/v6`), applies the one-edition
   rule for vanilla files (`ErrEditionExists`) and registers the shipped files as defaults at start (`RegisterDefaults`).
