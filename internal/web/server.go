@@ -272,9 +272,11 @@ type rulesets interface {
 	// together as one error wrapping core.ErrInvalidRuleset (errors.As to *core.RulesetReport lists them), and nothing is stored
 	// unless every file is good. The infos come back in the order of the uploads.
 	StoreAllAs(ctx context.Context, uploader core.User, uploads []core.RulesetUpload) ([]core.RulesetInfo, error)
-	// Check validates a file without storing it (the dry run behind "Check this file"): the report lists every problem and
-	// warning; the error is non-nil, wraps core.ErrInvalidRuleset and is that report when the file has errors.
-	Check(ctx context.Context, kind core.RulesetKind, content []byte) (core.RulesetReport, error)
+	// CheckSet validates the files of a set without storing or creating anything (the dry run behind "Check this file" and the
+	// online validator). A nil file is not given: it is not checked, and the Battle Companies file is checked against the
+	// default vanilla file and glossary instead; the files that are given are what it is checked against. One report lists every
+	// problem and warning, grouped by file; the error is non-nil, wraps core.ErrInvalidRuleset and is that report when a file has errors.
+	CheckSet(ctx context.Context, set core.RulesetSet) (core.RulesetReport, error)
 	// ListWithUsage, SetDefault, Delete and PruneUnused are the administration Rules files page; superusers only
 	// (core.ErrRefused otherwise). Delete and PruneUnused spare defaults and files campaigns use.
 	ListWithUsage(ctx context.Context, actor core.User) ([]core.RulesetUsage, error)
@@ -347,6 +349,7 @@ type Server struct {
 	die             func(sides int) int         // the server's die (1..sides); tests replace it
 	ready           func(context.Context) error // the database check of /readyz (SetReadiness)
 	cspReports      *reportLimiter
+	validator       *validatorGate // limits of the online validator (validator.go)
 	recent          recentMatches
 	onceMu          sync.Mutex // guards onceSeen only
 	onceStripes     [onceStripeCount]sync.Mutex
@@ -359,7 +362,7 @@ func NewServer(cfg Config, campaigns campaigns, rulesets rulesets, glossary glos
 		return nil, err
 	}
 	_ = staticFiles() // builds the embedded asset table now: a broken build fails at start, not at the first request
-	return &Server{cfg: cfg, campaigns: campaigns, rulesets: rulesets, glossary: glossary, auth: auth, render: r, throttle: newLoginThrottle(), accountThrottle: newLoginThrottle(), cspReports: newReportLimiter(), die: func(sides int) int { return 1 + rand.IntN(sides) }}, nil
+	return &Server{cfg: cfg, campaigns: campaigns, rulesets: rulesets, glossary: glossary, auth: auth, render: r, throttle: newLoginThrottle(), accountThrottle: newLoginThrottle(), cspReports: newReportLimiter(), validator: newValidatorGate(), die: func(sides int) int { return 1 + rand.IntN(sides) }}, nil
 }
 
 // Handler returns the fully wired http.Handler (routes + middleware).
@@ -488,6 +491,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /account/password", s.protected(s.handleAccountPassword))
 	mux.HandleFunc("POST /account/sessions/sign-out-others", s.protected(s.handleAccountSignOutOthers))
 	mux.HandleFunc("POST /account/close", s.protected(s.handleAccountClose))
+	mux.HandleFunc("GET /tools/validate", s.protected(s.handleValidatorPage))
+	mux.HandleFunc("POST /tools/validate", s.protected(s.handleValidatorCheck))
 	mux.HandleFunc("GET /admin", s.requireSuperuser(s.handleAdmin))
 	mux.HandleFunc("GET /admin/users", s.requireSuperuser(s.handleAdminUsers))
 	mux.HandleFunc("POST /admin/users/{id}/handover", s.requireSuperuser(s.handleAdminHandover))

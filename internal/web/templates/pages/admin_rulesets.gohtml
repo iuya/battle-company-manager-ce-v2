@@ -25,7 +25,7 @@
         <div class="field"><label for="rs-file">File</label>
           <input id="rs-file" name="file" type="file" accept=".json,application/json" required class="block w-full text-sm file:mr-3 file:min-h-10 file:rounded-md file:border file:border-line file:bg-surface file:px-4 file:text-fg"></div>
       </div>
-      <p class="text-sm text-muted">The file is checked against the schema of its kind (at most 16 MB). A file with the same content is stored once. Files are told apart by their content (the short code next to the name), so two files may share a name and version.</p>
+      <p class="text-sm text-muted">The file is checked against the schema of its kind (at most 16 MB). A file with the same content is stored once. To check a Battle Companies file against your own vanilla file and glossary, use the <a href="/tools/validate">rules file checker</a> (open to every player). Files are told apart by their content (the short code next to the name), so two files may share a name and version.</p>
       <div class="flex flex-wrap gap-2">
         <button class="btn btn-primary">Upload</button>
         <button type="button" class="btn btn-secondary" hx-post="/admin/rulesets/check" hx-encoding="multipart/form-data" hx-include="closest form" hx-target="#rs-check-result" hx-swap="outerHTML">Check this file</button>

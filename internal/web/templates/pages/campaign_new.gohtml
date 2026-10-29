@@ -34,7 +34,8 @@
     </div>
     <fieldset class="space-y-3">
       <legend class="text-sm font-medium">Rules</legend>
-      <p class="text-sm text-muted">Use the files the app ships with, or your own.</p>
+      <p class="text-sm text-muted">Use the files the app ships with, or your own.
+        Not sure your file is valid? <a href="/tools/validate" target="_blank" rel="noopener" class="inline-flex min-h-11 items-center">Check it first<span class="sr-only"> (opens in a new tab)</span></a>: nothing is stored and this form stays as it is.</p>
       {{range .Pickers}}{{template "ruleset_picker" .}}{{end}}
     </fieldset>
     {{template "option_group" (dict "Title" "Optional rules" "Scope" "rules" "Options" .Options "Settings" .Input.Settings)}}
