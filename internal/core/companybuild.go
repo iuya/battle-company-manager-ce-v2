@@ -24,7 +24,38 @@ type grant struct {
 // equipmentFor builds an item from what the Battle Companies file says about it: its classes, missile profile and granted
 // rules come from the gear annotations, its slot size, cost and text from the armoury, and, for items only vanilla knows,
 // the text from the vanilla gear list. grants are the special rules the item gives.
-func equipmentFor(rs *RuleSet, bcCo BCCompany, name string, bought, profile, hero bool) (e Equipment, grants []grant) {
+//
+// The answer depends only on the rule set, the company's armoury, the name and the two flags, and a rule set never changes, so it is
+// remembered per rule set (RuleSet.equipment). The slices in the result are shared between calls and are never written to.
+func equipmentFor(rs *RuleSet, bcCo BCCompany, name string, bought, profile, hero bool) (Equipment, []grant) {
+	key := equipmentKey{company: bcCo.Name, unique: len(bcCo.UniqueWargear), name: name, bought: bought, profile: profile}
+	if v, ok := rs.equipment.Load(key); ok {
+		r := v.(equipmentResult)
+		return r.e, r.grants
+	}
+	e, grants := buildEquipment(rs, bcCo, name, bought, profile)
+	if rs.equipmentN.Load() < memoLimit {
+		if _, loaded := rs.equipment.LoadOrStore(key, equipmentResult{e, grants}); !loaded {
+			rs.equipmentN.Add(1)
+		}
+	}
+	return e, grants
+}
+
+type equipmentKey struct {
+	company string
+	unique  int
+	name    string
+	bought  bool
+	profile bool
+}
+
+type equipmentResult struct {
+	e      Equipment
+	grants []grant
+}
+
+func buildEquipment(rs *RuleSet, bcCo BCCompany, name string, bought, profile bool) (e Equipment, grants []grant) {
 	e = Equipment{Name: name, Bought: bought, Profile: profile}
 	a, annotated := rs.BC.Annotation(name)
 	offer, offered := rs.BC.Offer(bcCo, name)
