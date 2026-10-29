@@ -163,7 +163,9 @@ The gallery shows, among the 37 companies (names as in the rules file, recruits 
 - **Pippin**: a **Baggage Pony** with two items in its **pack** (the Pack card), a **Falcon**, and a **Wandering Sage** (see
   [Gaps](#gaps)).
 - **Gimli**: the **bow** and **throwing** limits both at 2 of 2 (the armoury refuses more, with the reason).
-- **Éowyn**: a company at its 15 models with cavalry (the **cavalry** limit counts cavalry units).
+- **Éowyn**: a company at its 15 models with cavalry (the **cavalry** limit counts cavalry units). Rohan's rules leave some models
+  out of the **bow** and **cavalry** limits: each bar reads "2 / 5 · total 4", the 2 left out drawn as **hatched** segments at
+  its right end, explained in the tooltip. Her Rohan companies in the other campaigns show the same.
 - **Sauron** (Helm's Deep): the **race** limit (Elf 4 of 4) and a bow count above its limit, because recruits come with their gear.
 - **Galadriel** (Rivendell): 12 of 12 models and the cavalry limit near full.
 

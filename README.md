@@ -128,4 +128,8 @@ Released under [CC BY-NC-SA 4.0](LICENSE).
 The rules are the *Battle Companies Community 2nd Edition* by the "Middle-earth: SBG Community". `definitions/vanilla/data2024.json` is read-only reference data. This
 repository contains no copyrighted rulebook text beyond that; rulebooks and anything converted from them stay in the gitignored `sources/`.
 
+The unit, rank and equipment icons are from [game-icons.net](https://game-icons.net) under
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) (the horn from SVG Repo, CC0); each icon and its author is credited in
+[internal/web/static/img/CREDITS.md](internal/web/static/img/CREDITS.md).
+
 Not affiliated with Games Workshop.
