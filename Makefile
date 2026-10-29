@@ -1,6 +1,8 @@
 # Variables from .env (gitignored) are exported to the app; the defaults match compose.dev.yaml so a fresh clone just works.
 -include .env
 export
+# A GOROOT inherited from a long-running shell or IDE can name another Go version than go.mod asks for ("go1.26.2 does not match go1.27.3"); the go command finds its own root.
+unexport GOROOT
 # Development database (throwaway credentials, published on localhost). Production is the default compose.yaml: make up / prod-user.
 DC = docker compose -f compose.dev.yaml
 DATABASE_URL ?= postgres://bcm:bcm@localhost:5432/bcm?sslmode=disable
