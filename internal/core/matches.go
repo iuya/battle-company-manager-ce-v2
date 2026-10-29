@@ -71,8 +71,8 @@ func (s *Matches) Match(ctx context.Context, id, matchID int64) (Match, error) {
 
 // CreateMatch starts an open match. An error wrapping ErrInvalidMatch when the sides are rejected, ErrRefused when the
 // campaign is finished or a company has an officer that has not chosen its path, ErrNotFound when the user is not in the campaign.
-func (s *Matches) CreateMatch(ctx context.Context, user User, id int64, sides []NewSide) (Match, error) {
-	sides, err := ValidateSides(sides)
+func (s *Matches) CreateMatch(ctx context.Context, user User, id int64, in NewMatch) (Match, error) {
+	sides, err := ValidateSides(in.Sides)
 	if err != nil {
 		return Match{}, err
 	}
@@ -108,7 +108,7 @@ func (s *Matches) CreateMatch(ctx context.Context, user User, id int64, sides []
 			}
 		}
 	}
-	m, err := s.matches.Create(ctx, id, user, sides) // refuses with *CompanyBusyError when a company is in another open match
+	m, err := s.matches.Create(ctx, id, user, NewMatch{Sides: sides, Practice: in.Practice}) // refuses with *CompanyBusyError when a company is in another open match
 	if err != nil {
 		return m, err
 	}
@@ -305,7 +305,7 @@ func (s *Matches) ReopenMatch(ctx context.Context, user User, id, matchID int64,
 		if !m.Ended {
 			return Refuse("This match is not ended.")
 		}
-		if s.AftermathStarted != nil {
+		if s.AftermathStarted != nil && !m.Practice { // a practice match has no aftermath to start
 			started, err := s.AftermathStarted(ctx, id, matchID)
 			if err != nil {
 				return err

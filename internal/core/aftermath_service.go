@@ -78,6 +78,7 @@ type amEnv struct {
 	outcome                        string
 	fled                           bool
 	access                         AftermathAccess
+	practice                       bool         // a practice match: its aftermath is complete and empty (only Aftermath reads it; every write is refused)
 	finished                       bool         // the campaign is finished: the aftermath can be read, not changed
 	loaned                         []LoanedItem // items loaned to units for this match (a Healer's Kit); electable like carried ones
 	atoBonuses                     []string     // the Against the Odds bonuses the company took, in the file's order, that matter in the aftermath
@@ -107,6 +108,10 @@ func (s *AftermathService) load(ctx context.Context, user User, id, matchID, com
 				co = c
 			}
 		}
+	}
+	if m.Practice { // nothing to roll: no rules are read and the company is never touched
+		return &amEnv{campaignID: id, matchID: matchID, companyID: companyID, user: user, match: m, company: co, practice: true,
+			outcome: outcome, fled: fled, access: AftermathAccessFor(user, m, co, camp.OrganiserID), finished: camp.Status == CampaignFinished}, nil
 	}
 	h, settings, err := s.campaigns.Hashes(ctx, id)
 	if err != nil {
@@ -277,6 +282,9 @@ func (s *AftermathService) write(ctx context.Context, user User, id, matchID, co
 	if err != nil {
 		return Aftermath{}, err
 	}
+	if e.practice {
+		return Aftermath{}, ErrPracticeNothingToRoll
+	}
 	if e.finished {
 		return Aftermath{}, Refuse("The campaign is finished.")
 	}
@@ -308,6 +316,9 @@ func (s *AftermathService) Aftermath(ctx context.Context, user User, id, matchID
 	e, err := s.load(ctx, user, id, matchID, companyID)
 	if err != nil {
 		return Aftermath{}, err
+	}
+	if e.practice {
+		return practiceAftermath(e), nil
 	}
 	rec, err := s.aftermaths.Get(ctx, id, matchID, companyID)
 	if err != nil {

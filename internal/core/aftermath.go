@@ -1113,6 +1113,8 @@ type Aftermath struct {
 	// MVP is the live vote tally for the company (nil without live data or votes): the winner is prefilled on the sheet; on a tie the
 	// owner chooses among Tied (the sheet shows "Tied: Aldor, Brand").
 	MVP *MVPHint
+	// Practice is set for a practice match: the aftermath is done and empty, the page shows the short "nothing to roll" state.
+	Practice bool
 }
 
 // MVPHint is the tally of the MVP votes for one company, for the aftermath sheet.
