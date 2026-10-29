@@ -126,6 +126,39 @@ w('company_typed',doc(rules=[{"name":"Foresight of the Seer","definition":"The h
    "granted":[{"rule":"Fearless","who":{"hero":True,"text":"All Hero models"},"cost":0,"text":"All Hero models gain Fearless."}],
    "elvenWeaponry":{"units":["Ranger of Arnor"],"hero":True},
    "specialRules":["A sentence with no typed form."]}]))
+
+# ---- the injuries tables, typed (rows, effects, treatment) ----
+def injuries_full():
+    return {"roll":"2d6","applies":"Every model removed as a casualty rolls on the chart for its type.","deathOfAHero":"If your Leader is slain ...",
+     "healing":{"hero":"Spend 1 Influence ...","warrior":"Spend 1 Influence to remove the Injured condition."},
+     "warrior":copy.deepcopy(CAMPAIGN["injuries"]["warrior"]),
+     "hero":[
+      {"roll":2,"key":"dead","name":"Dead","text":"The adventure ends here.","effects":["remove"]},
+      {"roll":3,"key":"armWound","name":"Arm Wound","effects":["noShield","noTwoHandedWeapon","noPike","noBow"],"persistent":True,"retireAtCount":2,"healable":True,
+       "disables":[{"kind":"gearClass","classes":["shield","two_handed"]},{"kind":"gearItem","names":["Pike"]}]},
+      {"roll":4,"key":"legWound","name":"Leg Wound","effects":["reduceMovement"],"persistent":True,"retireAtCount":2,"healable":True,"stat":{"movement":-1},
+       "statChanges":[{"stat":"movement","amount":-1,"per":"count","minimum":None}]},
+      {"roll":5,"key":"brokenHonour","name":"Broken Honour","effects":["noStandFast","noHeroicActionsOnCompany"],"persistent":True,"retireAtCount":3,"healable":True,
+       "disables":[{"kind":"ability","key":"standFast"},{"kind":"ability","key":"heroicActionsOnCompany"}],"grantsAtCount":{"2":{"specialRule":"Fearful"}}},
+      {"roll":6,"key":"justAScratch","name":"T'is Just a Scratch","effects":["missNextGame"],"healable":True,"healableBy":["attempt"],"optionalReroll":True,
+       "reroll":{"dice":"2d6","optional":True,"secondResultStands":True,"ifScratchAgainMissNextGame":True}},
+      {"roll":"7-10","key":"fullRecovery","name":"Full Recovery","effects":["fullRecovery","healOneInjury"],"heals":{"choice":"player","count":1,"keys":["armWound","legWound","brokenHonour"]}},
+      {"roll":11,"key":"protection","name":"Protection by the Valar","effects":["fullRecovery"],"stat":{"fate":1},"stat_note":"to the Path's Maximum",
+       "statChanges":[{"stat":"fate","amount":1,"permanent":True,"capAtPathMaximum":True,"raisesPathMaximum":False}]},
+      {"roll":12,"key":"woundsOfAHero","name":"Wounds of a Hero","effects":["fullRecovery"],"grantsInfluence":{"dice":"d6"},"influence":"D6"}],
+     "retirement":{"text":"A hero that would suffer ...","result":"dead"},
+     "rollModifier":{"text":"A modifier is added to the total.","appliesTo":"total2d6","clamp":[2,12],"includesRerolls":True,"replacedBy":"campaign.aftermathEffects[kind=injuryRollReplacement]"},
+     "treatment":{"currency":"influence","phase":"companyManagement",
+      "hero":[{"key":"attempt","cost":1,"text":"Spend 1 Influence and roll a D6.","healable":["armWound","legWound","brokenHonour","justAScratch"],"maxAttempts":None,"removesInjuries":1,
+               "onFailure":{"costKept":True,"effect":"none"},
+               "roll":{"dice":"d6","compare":"gte","target":5,"naturalMaxIsAlwaysEnough":False,
+                       "modifier":{"currency":"influence","direction":"up","perPoint":1,"ceiling":6,"maxPoints":None,"like":"Might point"}}},
+              {"key":"healers","cost":1,"roll":None,"text":"Send the Hero to the healers.","healable":["armWound","legWound","brokenHonour"],"missNextGame":True,"removesInjuries":1}],
+      "warrior":{"key":"treatWarrior","roll":None,"text":"Remove the Injured condition.","cost":1,"removes":"injured","requires":"injured"},
+      "removalEffect":{"choice":"player","countDelta":-1,"derivedEffects":"recomputeFromCounts"}}}
+def with_injuries(inj):
+    d=doc(); d["campaign"]["injuries"]=inj; return d
+w('injuries',with_injuries(injuries_full()))
 print(sorted(os.listdir(out)))
 
 # ---- invalid catalogue (bind level) ----
@@ -205,6 +238,28 @@ wi('path_rows',doc(paths=[{"name":"Path of Test","dice":"2d6","rows":[{"roll":2,
 d=doc(); d['campaign']['scenarioSelection']={"die":"d6","tables":[{"roll":[1,2],"scenarios":["Seize Ground"]},{"roll":[3,5],"scenarios":["Seize Ground","Rescue","Hold the Line","Chance Encounter","Rescue","Seize Ground"]},{"roll":[5,6],"scenarios":[]}]}; wi('scenario_tables',d)
 d=doc(); d['campaign']['progression']['hero']['choose']=3; d['campaign']['progression']['hero']['rollsPerProgression']=2; d['campaign']['company']['leaders']=3; d['campaign']['company']['sergeants']=6; d['campaign']['company']['maxModels']=5; wi('param_cross',d)
 d=doc(); d['campaign']['recruitment']['die']="2d6"; d['campaign']['aftermathEffects']=[{"key":"rendezvous"},{"key":"vantagePoint","range":[1,-1]}]; d['campaign']['progression']['warrior']['table'][0]['key']="noChang"; wi('param_dice',d)
+
+
+# ---- the injuries tables, typed ----
+def bad_injuries(edit):
+    inj=injuries_full(); edit(inj); return with_injuries(inj)
+def rows_edit(inj):
+    h=inj["hero"]
+    h[0]["effects"]=["remove","vanish"]                      # effect code
+    h[1]["retireAtCount"]=0; h[1]["disables"]=[{"kind":"gearClass"},{"kind":"gearItem"},{"kind":"ability"}]
+    h[2]["stat"]={"speed":-1,"fight":40}; h[2]["statChanges"][0]["amount"]=-30
+    h[3]["grantsAtCount"]={"two":{"specialRule":"Fearful"},"0":{"specialRule":"Fearful"}}; h[3]["disables"][0]["key"]="stand"
+    h[5]["heals"]={"choice":"opponent","count":0,"keys":["armWound","armWund"]}
+    h[4]["reroll"]={"optional":True}; h[4]["healableBy"]=[]
+    h[6]["colour"]="red"
+wi('injury_rows',bad_injuries(rows_edit))
+def treat_edit(inj):
+    t=inj["treatment"]; a=t["hero"][0]
+    a["roll"]["target"]=7; a["roll"]["modifier"]["ceiling"]=4; a["healable"]=["armWound","legWund"]
+    t["hero"][1]["key"]="attempt"; t["hero"][1]["cost"]=-1
+    t["hero"].append({"key":"prayer","cost":1}); t["hero"][2]["roll"]={"dice":"d6","target":3,"modifier":{"direction":"down"}}
+    t["warrior"]["cost"]=50; t["warrior"]["removes"]="dead"; t["removalEffect"]["countDelta"]=1
+wi('injury_treatment',bad_injuries(treat_edit))
 
 # ---- header and version ----
 d=doc(); d['schemaVersion']=1; wi('version',d)

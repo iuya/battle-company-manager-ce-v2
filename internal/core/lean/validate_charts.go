@@ -242,6 +242,7 @@ func (v *validator) parameters(c *Campaign) {
 			v.rep.Errorf(p, "[%d,%d]: low is above high", e.Range[0], e.Range[1])
 		}
 	}
+	v.injuryParameters(&c.Injuries)
 	seen := map[string]int{}
 	for i, g := range c.Experience.Gains {
 		if first, dup := seen[g.Key]; dup {
@@ -249,5 +250,82 @@ func (v *validator) parameters(c *Campaign) {
 		} else {
 			seen[g.Key] = i
 		}
+	}
+}
+
+// injuryParameters checks what the types of the injuries tables cannot: the stat keys of a row, the counts of grantsAtCount, what a disable
+// needs for its kind, the injury keys a treatment or a healing result names and the treatment rolls against their dice.
+func (v *validator) injuryParameters(inj *Injuries) {
+	heroKeys := map[string]bool{}
+	for _, r := range inj.Hero {
+		heroKeys[r.Key] = true
+	}
+	known := strings.Split(Characteristics, "|")
+	for _, chart := range []struct {
+		name string
+		rows []InjuryRow
+	}{{"warrior", inj.Warrior}, {"hero", inj.Hero}} {
+		for i, r := range chart.rows {
+			rp := Idx("campaign.injuries."+chart.name, i)
+			for _, stat := range SortedKeys(r.Stat) {
+				p := Join(Join(rp, "stat"), stat)
+				if !inWords(stat, known...) {
+					v.rep.Add(Issue{Path: p, Message: fmt.Sprintf("%q is not a characteristic; known: %s", stat, strings.Join(known, ", ")), Closest: Closest(known, stat)})
+				} else if n := r.Stat[stat]; n < -20 || n > 20 {
+					v.rep.Errorf(p, "%d is out of range -20..20", n)
+				}
+			}
+			for _, count := range SortedKeys(r.GrantsAtCount) {
+				if n, err := strconv.Atoi(count); err != nil || n < 1 || n > 20 {
+					v.rep.Errorf(Join(Join(rp, "grantsAtCount"), count), "%q is not a count; write a whole number 1..20", count)
+				}
+			}
+			for j, d := range r.Disables {
+				dp := Idx(Join(rp, "disables"), j)
+				switch {
+				case d.Kind == "gearClass" && len(d.Classes) == 0:
+					v.rep.Errorf(Join(dp, "classes"), "missing; a gearClass entry lists the classes it disables")
+				case d.Kind == "gearItem" && len(d.Names) == 0:
+					v.rep.Errorf(Join(dp, "names"), "missing; a gearItem entry lists the items it disables")
+				case d.Kind == "ability" && d.Key == "":
+					v.rep.Errorf(Join(dp, "key"), "missing; an ability entry names the ability it takes away (%s)", strings.ReplaceAll(InjuryAbilities, "|", ", "))
+				}
+			}
+			if r.Heals != nil {
+				for j, k := range r.Heals.Keys {
+					if !heroKeys[k] {
+						v.rep.Errorf(Idx(Join(Join(rp, "heals"), "keys"), j), "%q is not the key of a hero injury", k)
+					}
+				}
+			}
+		}
+	}
+	t := &inj.Treatment
+	seen := map[string]bool{}
+	for i, m := range t.Hero {
+		mp := Idx("campaign.injuries.treatment.hero", i)
+		if seen[m.Key] {
+			v.rep.Errorf(Join(mp, "key"), "%q is already used by another treatment", m.Key)
+		}
+		seen[m.Key] = true
+		for j, k := range m.Healable {
+			if !heroKeys[k] {
+				v.rep.Errorf(Idx(Join(mp, "healable"), j), "%q is not the key of a hero injury", k)
+			}
+		}
+		v.treatRoll(m.Roll, Join(mp, "roll"))
+	}
+	v.treatRoll(t.Warrior.Roll, "campaign.injuries.treatment.warrior.roll")
+}
+
+// treatRoll checks a treatment roll against its own dice: the target is a total the dice can reach and the ceiling is not below it.
+func (v *validator) treatRoll(r *TreatRoll, path string) {
+	if r == nil || !r.Dice.Valid() {
+		return
+	}
+	if r.Target < 1 || r.Target > r.Dice.Max() {
+		v.rep.Errorf(Join(path, "target"), "%d is outside 1..%d, the highest roll of %s", r.Target, r.Dice.Max(), r.Dice)
+	} else if c := r.Modifier.Ceiling; c > 0 && c < r.Target {
+		v.rep.Errorf(Join(Join(path, "modifier"), "ceiling"), "%d is below the target %d", c, r.Target)
 	}
 }

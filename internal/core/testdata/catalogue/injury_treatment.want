@@ -1,0 +1,9 @@
+battle_companies.json: campaign.injuries.treatment.hero[1].cost: -1 is out of range 0..20
+battle_companies.json: campaign.injuries.treatment.hero[2].key: "prayer" is not a valid treatment; known: attempt, healers
+battle_companies.json: campaign.injuries.treatment.hero[2].roll.modifier.direction: "down" is not a valid direction; known: up
+battle_companies.json: campaign.injuries.treatment.warrior.cost: 50 is out of range 0..20
+battle_companies.json: campaign.injuries.treatment.warrior.removes: "dead" is not a valid removes; known: injured
+battle_companies.json: campaign.injuries.treatment.removalEffect.countDelta: 1 is out of range -10..0
+battle_companies.json: campaign.injuries.treatment.hero[0].healable[1]: "legWund" is not the key of a hero injury
+battle_companies.json: campaign.injuries.treatment.hero[0].roll.target: 7 is outside 1..6, the highest roll of d6
+battle_companies.json: campaign.injuries.treatment.hero[1].key: "attempt" is already used by another treatment

@@ -192,29 +192,6 @@ func (r AftermathRules) Chart(hero bool) []InjuryRow {
 // injuries charts, the scenario rewards and the items that activate an effect. The charts and the bonuses are the campaign tables as
 // the file stores them (lean Rest/Free) until a parameter slice types them.
 func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, error) {
-	type chartRow struct {
-		Roll       jsonRoll `json:"roll"`
-		Key        string   `json:"key"`
-		Name       string   `json:"name"`
-		Text       string   `json:"text"`
-		Effects    []string `json:"effects"`
-		Persistent bool     `json:"persistent"`
-		RetireAt   int      `json:"retireAtCount"`
-		Optional   bool     `json:"optionalReroll"`
-		Heals      *struct {
-			Keys []string `json:"keys"`
-		} `json:"heals"`
-		GrantsXP *struct {
-			Dice string `json:"dice"`
-		} `json:"grantsExperience"`
-		GrantsInfluence *struct {
-			Dice string `json:"dice"`
-		} `json:"grantsInfluence"`
-		StatChanges []struct {
-			Stat   string `json:"stat"`
-			Amount int    `json:"amount"`
-		} `json:"statChanges"`
-	}
 	type gains struct {
 		Win   int `json:"win"`
 		Other int `json:"other"`
@@ -238,11 +215,6 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 				Win           int `json:"win"`
 			} `json:"gains"`
 		} `json:"influence"`
-		Injuries struct {
-			Roll    string     `json:"roll"`
-			Warrior []chartRow `json:"warrior"`
-			Hero    []chartRow `json:"hero"`
-		} `json:"injuries"`
 		AgainstTheOdds struct {
 			Bonuses []struct {
 				Key    string `json:"key"`
@@ -304,14 +276,14 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 		}
 		rules.Bonuses = append(rules.Bonuses, ob)
 	}
-	convert := func(rows []chartRow, hero bool) ([]InjuryRow, error) {
+	convert := func(rows []lean.InjuryRow, hero bool) ([]InjuryRow, error) {
 		var out []InjuryRow
 		for _, r := range rows {
-			row := InjuryRow{Min: r.Roll[0], Max: r.Roll[1], Key: r.Key, Name: r.Name, Text: r.Text, Persistent: r.Persistent, RetireAt: r.RetireAt}
+			row := InjuryRow{Min: r.Roll.Lo, Max: r.Roll.Hi, Key: r.Key, Name: r.Name, Text: r.Text, Persistent: r.Persistent, RetireAt: r.RetireAtCount}
 			switch {
 			case slices.Contains(r.Effects, "remove"):
 				row.Kind = CasualtyDead
-			case r.Optional:
+			case r.OptionalReroll:
 				row.Kind = CasualtyScratch
 			case r.Persistent:
 				row.Kind = CasualtyInjury
@@ -331,20 +303,14 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 			default:
 				return nil, fmt.Errorf("the injuries chart row %q does nothing the aftermath knows", r.Key)
 			}
-			bonus := func(kind, path, dice string) error {
-				spec, err := ParseDiceAt("campaign.injuries."+map[bool]string{false: "warrior", true: "hero"}[hero]+"["+r.Key+"]."+path+".dice", dice)
-				row.BonusKind, row.BonusDice, row.BonusSpec = kind, strings.ToLower(dice), spec
-				return err
+			bonus := func(kind string, spec lean.DiceSpec) {
+				row.BonusKind, row.BonusDice, row.BonusSpec = kind, strings.ToLower(spec.String()), spec
 			}
-			if r.GrantsXP != nil {
-				if err := bonus("experience", "grantsExperience", r.GrantsXP.Dice); err != nil {
-					return nil, err
-				}
+			if r.GrantsExperience != nil {
+				bonus("experience", r.GrantsExperience.Dice)
 			}
 			if r.GrantsInfluence != nil {
-				if err := bonus("influence", "grantsInfluence", r.GrantsInfluence.Dice); err != nil {
-					return nil, err
-				}
+				bonus("influence", r.GrantsInfluence.Dice)
 			}
 			if !r.Persistent { // a persistent injury keeps its stat changes as the injury itself; a kept row gains the stat for good
 				for j, sc := range r.StatChanges {
@@ -376,13 +342,11 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 		}
 		return out, nil
 	}
-	if rules.InjuryDice, err = diceAt("campaign.injuries.roll", c.Injuries.Roll); err != nil {
+	rules.InjuryDice = d.Campaign.Injuries.Roll
+	if rules.Warrior, err = convert(d.Campaign.Injuries.Warrior, false); err != nil {
 		return AftermathRules{}, errors.Join(ErrInvalidRuleset, err)
 	}
-	if rules.Warrior, err = convert(c.Injuries.Warrior, false); err != nil {
-		return AftermathRules{}, errors.Join(ErrInvalidRuleset, err)
-	}
-	if rules.Hero, err = convert(c.Injuries.Hero, true); err != nil {
+	if rules.Hero, err = convert(d.Campaign.Injuries.Hero, true); err != nil {
 		return AftermathRules{}, errors.Join(ErrInvalidRuleset, err)
 	}
 	for _, e := range c.AftermathEffects {

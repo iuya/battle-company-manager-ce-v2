@@ -1159,6 +1159,21 @@
       ],
       "type": "object"
     },
+    "CountGrant": {
+      "additionalProperties": false,
+      "description": "A special rule a hero gets once it has an injury a given number of times.",
+      "properties": {
+        "specialRule": {
+          "description": "The special rule granted.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "specialRule"
+      ],
+      "type": "object"
+    },
     "CourageTest": {
       "additionalProperties": true,
       "description": "The test a model of a Broken company takes.",
@@ -1835,6 +1850,77 @@
       ],
       "type": "object"
     },
+    "HeroTreatment": {
+      "additionalProperties": false,
+      "description": "One way to treat a hero: an attempt on a die (attempt) or sending the hero to the healers (healers).",
+      "properties": {
+        "cost": {
+          "description": "The Influence the method costs.",
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "healable": {
+          "description": "The injuries (keys of the hero chart) the method can remove.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "key": {
+          "description": "attempt (a roll to remove an injury) or healers (no roll: the hero misses the next game).",
+          "enum": [
+            "attempt",
+            "healers"
+          ],
+          "type": "string"
+        },
+        "maxAttempts": {
+          "description": "The most attempts allowed; null for no limit. Informational; the app puts no limit.",
+          "maximum": 100,
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "missNextGame": {
+          "description": "true: the hero misses the next game.",
+          "type": "boolean"
+        },
+        "onFailure": {
+          "$ref": "#/$defs/TreatFailure",
+          "description": "What a failed attempt costs."
+        },
+        "removesInjuries": {
+          "description": "How many injuries the method removes.",
+          "maximum": 10,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "roll": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TreatRoll"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The roll of an attempt; null for a method with no roll."
+        },
+        "text": {
+          "description": "The rule in words.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "cost"
+      ],
+      "type": "object"
+    },
     "HeroUpgrade": {
       "additionalProperties": false,
       "description": "A rule a hero of the company may take instead of a rolled level-up result.",
@@ -1962,9 +2048,21 @@
       "type": "object"
     },
     "Injuries": {
-      "additionalProperties": true,
-      "description": "The injury charts and the die they are rolled on.",
+      "additionalProperties": false,
+      "description": "The injury charts, the die they are rolled on and the treatments. The chart rows and the treatments are read by the engine; the prose keys (applies, deathOfAHero, healing, retirement, rollModifier) are rule text for the players.",
       "properties": {
+        "applies": {
+          "description": "Who rolls on the charts. Prose shown to the players.",
+          "type": "string"
+        },
+        "deathOfAHero": {
+          "description": "What happens when a Leader is slain. Prose shown to the players.",
+          "type": "string"
+        },
+        "healing": {
+          "$ref": "#/$defs/InjuryHealingText",
+          "description": "How injuries are healed. Prose shown to the players."
+        },
         "hero": {
           "description": "The hero injury chart.",
           "items": {
@@ -1972,9 +2070,21 @@
           },
           "type": "array"
         },
+        "retirement": {
+          "$ref": "#/$defs/InjuryRetirement",
+          "description": "Forced retirement. Prose; the count is the row's retireAtCount."
+        },
         "roll": {
           "$ref": "#/$defs/DiceSpec",
           "description": "The injury die, such as 2d6. Both charts must cover its totals exactly once."
+        },
+        "rollModifier": {
+          "$ref": "#/$defs/InjuryRollModifier",
+          "description": "Modifiers of the injury roll. Prose; the modifier is a campaign.aftermathEffects entry."
+        },
+        "treatment": {
+          "$ref": "#/$defs/InjuryTreatment",
+          "description": "How Influence treats injuries."
         },
         "warrior": {
           "description": "The warrior injury chart.",
@@ -1990,8 +2100,8 @@
       "type": "object"
     },
     "InjuryChange": {
-      "additionalProperties": true,
-      "description": "A characteristic an injury changes.",
+      "additionalProperties": false,
+      "description": "A characteristic an injury changes: a gain on a row that is not a persistent injury, a loss (per count) on one.",
       "properties": {
         "amount": {
           "description": "The change, a positive gain or a negative loss.",
@@ -1999,12 +2109,33 @@
           "minimum": -20,
           "type": "integer"
         },
+        "capAtPathMaximum": {
+          "description": "true: the gain stops at the maximum of the hero's path. Informational; the app does not read it.",
+          "type": "boolean"
+        },
+        "minimum": {
+          "description": "The lowest value the characteristic may reach; null for no floor. Informational; the app does not read it.",
+          "maximum": 20,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "per": {
           "description": "count: the amount is applied once per time the hero has the injury.",
           "enum": [
             "count"
           ],
           "type": "string"
+        },
+        "permanent": {
+          "description": "true: the change stays for good. Informational; a row that is not persistent always keeps its gain.",
+          "type": "boolean"
+        },
+        "raisesPathMaximum": {
+          "description": "true: the gain also raises the path's maximum. Informational; the app does not read it.",
+          "type": "boolean"
         },
         "stat": {
           "description": "The characteristic changed.",
@@ -2031,29 +2162,308 @@
       ],
       "type": "object"
     },
+    "InjuryDisable": {
+      "additionalProperties": false,
+      "description": "What a lasting injury takes from a hero: the benefit of gear of some classes or by name, or an ability.",
+      "properties": {
+        "classes": {
+          "description": "The gear classes, for kind gearClass.",
+          "items": {
+            "enum": [
+              "melee",
+              "spear",
+              "two_handed",
+              "mount",
+              "bow",
+              "armour",
+              "throwing",
+              "shield",
+              "instrument",
+              "consumable",
+              "lance",
+              "banner",
+              "missile",
+              "crossbow",
+              "other"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "key": {
+          "description": "The ability, for kind ability: standFast or heroicActionsOnCompany.",
+          "enum": [
+            "standFast",
+            "heroicActionsOnCompany"
+          ],
+          "type": "string"
+        },
+        "kind": {
+          "description": "gearClass (items of the listed classes give no benefit), gearItem (the named items give none) or ability (the hero loses the ability).",
+          "enum": [
+            "gearClass",
+            "gearItem",
+            "ability"
+          ],
+          "type": "string"
+        },
+        "names": {
+          "description": "The item names, for kind gearItem.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    },
+    "InjuryHealingText": {
+      "additionalProperties": false,
+      "description": "The rulebook text of how injuries are healed. Prose; the app does not read it.",
+      "properties": {
+        "hero": {
+          "description": "How a hero is healed.",
+          "type": "string"
+        },
+        "warrior": {
+          "description": "How a warrior is healed.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "InjuryHeals": {
+      "additionalProperties": false,
+      "description": "What a healing result removes: injuries of the listed keys, chosen by the player.",
+      "properties": {
+        "choice": {
+          "description": "Who chooses the injury healed: player.",
+          "enum": [
+            "player"
+          ],
+          "type": "string"
+        },
+        "count": {
+          "description": "How many injuries are healed.",
+          "maximum": 10,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "keys": {
+          "description": "The keys of the hero injuries that can be healed.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "choice",
+        "count",
+        "keys"
+      ],
+      "type": "object"
+    },
+    "InjuryReroll": {
+      "additionalProperties": false,
+      "description": "The optional second roll of T'is Just a Scratch.",
+      "properties": {
+        "dice": {
+          "$ref": "#/$defs/DiceSpec",
+          "description": "The dice rolled again."
+        },
+        "ifScratchAgainMissNextGame": {
+          "description": "true: a second result of the same row means the hero misses the next game.",
+          "type": "boolean"
+        },
+        "optional": {
+          "description": "true: the player chooses whether to roll again.",
+          "type": "boolean"
+        },
+        "secondResultStands": {
+          "description": "true: the second result applies even if it is worse than the first.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "dice"
+      ],
+      "type": "object"
+    },
+    "InjuryRetirement": {
+      "additionalProperties": false,
+      "description": "What happens to a hero that suffers a persistent injury for the retireAtCount-th time. Prose; the count is the row's retireAtCount.",
+      "properties": {
+        "result": {
+          "description": "The key of the chart row a forced retirement counts as (dead).",
+          "minLength": 1,
+          "type": "string"
+        },
+        "text": {
+          "description": "The rule in words.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "InjuryRollModifier": {
+      "additionalProperties": false,
+      "description": "The rulebook text about modifiers of the injury roll (Healing Herbs). Prose; the modifier itself is a campaign.aftermathEffects entry.",
+      "properties": {
+        "appliesTo": {
+          "description": "What the modifier is added to: total2d6, the total of the injury dice.",
+          "enum": [
+            "total2d6"
+          ],
+          "type": "string"
+        },
+        "clamp": {
+          "description": "[low, high]: the modified total is kept inside these bounds.",
+          "items": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        "includesRerolls": {
+          "description": "true: the modifier also applies to a re-roll.",
+          "type": "boolean"
+        },
+        "replacedBy": {
+          "description": "Where the modifier is defined, for the reader of the file.",
+          "type": "string"
+        },
+        "text": {
+          "description": "The rule in words.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "InjuryRow": {
-      "additionalProperties": true,
-      "description": "A row of an injury chart. The keys that are not listed (effects, persistent, disables, ...) are read by the engine and kept as they are.",
+      "additionalProperties": false,
+      "description": "A row of an injury chart. The engine reads effects (remove, missNextGame, fullRecovery) to decide what the result does, and persistent, retireAtCount, statChanges, disables and grantsAtCount for a hero's lasting injuries.",
       "properties": {
         "cancelsMissedGame": {
           "description": "true: the result cancels the missed next game.",
           "type": "boolean"
         },
+        "clearsAfterGames": {
+          "description": "The injury ends after this many games.",
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "disables": {
+          "description": "What a lasting injury takes from the hero.",
+          "items": {
+            "$ref": "#/$defs/InjuryDisable"
+          },
+          "type": "array"
+        },
+        "effects": {
+          "description": "What the result does. remove (the model dies), missNextGame and fullRecovery decide the result; the others (healOneInjury, reduceMovement, noShield...) label the effect for the reader and are done by the other keys of the row.",
+          "items": {
+            "enum": [
+              "remove",
+              "missNextGame",
+              "fullRecovery",
+              "healOneInjury",
+              "reduceMovement",
+              "noShield",
+              "noTwoHandedWeapon",
+              "noPike",
+              "noBow",
+              "noStandFast",
+              "noHeroicActionsOnCompany"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "experience": {
+          "$ref": "#/$defs/DiceSpec",
+          "description": "The die of grantsExperience in the rulebook's words (D3). The app reads grantsExperience."
+        },
+        "grantsAtCount": {
+          "additionalProperties": {
+            "$ref": "#/$defs/CountGrant"
+          },
+          "description": "Special rules the hero gets from a count of the injury on: {\"2\": {specialRule}}.",
+          "type": "object"
+        },
         "grantsExperience": {
           "$ref": "#/$defs/DiceGrant",
           "description": "Experience rolled on a die when the result comes up."
         },
+        "grantsInfluence": {
+          "$ref": "#/$defs/DiceGrant",
+          "description": "Influence rolled on a die for the company when the result comes up."
+        },
+        "healable": {
+          "description": "true: a treatment can remove the injury.",
+          "type": "boolean"
+        },
+        "healableBy": {
+          "description": "The treatment methods that can remove the injury (a key of campaign.injuries.treatment.hero), for a status such as T'is Just a Scratch.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "heals": {
+          "$ref": "#/$defs/InjuryHeals",
+          "description": "The injuries a healing result removes."
+        },
+        "influence": {
+          "$ref": "#/$defs/DiceSpec",
+          "description": "The die of grantsInfluence in the rulebook's words (D6). The app reads grantsInfluence."
+        },
         "key": {
-          "description": "The key the engine switches on (dead, injured, fullRecovery...).",
+          "description": "The key the engine switches on (dead, injured, fullRecovery...). A row with no effects is read by its key: dead, injured, else a full recovery.",
           "type": "string"
         },
         "name": {
           "description": "The name of the result.",
           "type": "string"
         },
+        "optionalReroll": {
+          "description": "true: the player may roll again on the chart instead of taking the result (T'is Just a Scratch).",
+          "type": "boolean"
+        },
+        "persistent": {
+          "description": "true: the hero keeps the injury and counts how often it suffered it (arm wound, leg wound, broken honour).",
+          "type": "boolean"
+        },
+        "reroll": {
+          "$ref": "#/$defs/InjuryReroll",
+          "description": "How the re-roll of an optionalReroll result works."
+        },
+        "retireAtCount": {
+          "description": "A persistent injury forces the hero to retire at this count, as the Dead result.",
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
         "roll": {
           "$ref": "#/$defs/Roll",
           "description": "The roll or range the row covers."
+        },
+        "stat": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "The characteristics changed, as {characteristic: change}, for the reader of the file. The app reads statChanges.",
+          "type": "object"
         },
         "statChanges": {
           "description": "The characteristics the result changes (a gain on a row that is not a persistent injury, a loss on one).",
@@ -2061,6 +2471,10 @@
             "$ref": "#/$defs/InjuryChange"
           },
           "type": "array"
+        },
+        "stat_note": {
+          "description": "A note on stat, for the reader of the file.",
+          "type": "string"
         },
         "text": {
           "description": "The rule text of the result.",
@@ -2070,6 +2484,42 @@
       "required": [
         "roll"
       ],
+      "type": "object"
+    },
+    "InjuryTreatment": {
+      "additionalProperties": false,
+      "description": "How Influence treats injuries (Battle Companies, Step 3): the hero methods, the warrior's and what removing an injury does.",
+      "properties": {
+        "currency": {
+          "description": "What a treatment costs: influence. Informational; the app spends Influence.",
+          "enum": [
+            "influence"
+          ],
+          "type": "string"
+        },
+        "hero": {
+          "description": "The hero treatments. The engine knows attempt and healers.",
+          "items": {
+            "$ref": "#/$defs/HeroTreatment"
+          },
+          "type": "array"
+        },
+        "phase": {
+          "description": "When a treatment is made: companyManagement. Informational.",
+          "enum": [
+            "companyManagement"
+          ],
+          "type": "string"
+        },
+        "removalEffect": {
+          "$ref": "#/$defs/TreatmentRemoval",
+          "description": "What removing an injury does to the hero's counts."
+        },
+        "warrior": {
+          "$ref": "#/$defs/WarriorTreatment",
+          "description": "The warrior treatment."
+        }
+      },
       "type": "object"
     },
     "KeywordLimit": {
@@ -3542,6 +3992,133 @@
       },
       "type": "object"
     },
+    "TreatFailure": {
+      "additionalProperties": false,
+      "description": "What a failed attempt costs.",
+      "properties": {
+        "costKept": {
+          "description": "true: the Influence is lost on a failure.",
+          "type": "boolean"
+        },
+        "effect": {
+          "description": "none: a failure has no other effect.",
+          "enum": [
+            "none"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "TreatModifier": {
+      "additionalProperties": false,
+      "description": "How extra Influence raises a treatment roll, like a Might point.",
+      "properties": {
+        "ceiling": {
+          "description": "The raised roll never goes above this; 0 for no ceiling. At least the target.",
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "currency": {
+          "description": "influence.",
+          "enum": [
+            "influence"
+          ],
+          "type": "string"
+        },
+        "direction": {
+          "description": "up: Influence raises the roll.",
+          "enum": [
+            "up"
+          ],
+          "type": "string"
+        },
+        "like": {
+          "description": "What the modifier resembles in the rulebook (a Might point).",
+          "type": "string"
+        },
+        "maxPoints": {
+          "description": "The most extra points allowed; null for no limit. Informational; the ceiling limits the roll.",
+          "maximum": 100,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "perPoint": {
+          "description": "The roll gained per extra Influence point.",
+          "maximum": 10,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "TreatRoll": {
+      "additionalProperties": false,
+      "description": "The die of a treatment attempt: the total must reach the target, and extra Influence raises it.",
+      "properties": {
+        "compare": {
+          "description": "gte: the total must be at least the target.",
+          "enum": [
+            "gte"
+          ],
+          "type": "string"
+        },
+        "dice": {
+          "$ref": "#/$defs/DiceSpec",
+          "description": "The dice rolled."
+        },
+        "modifier": {
+          "$ref": "#/$defs/TreatModifier",
+          "description": "How extra Influence raises the roll."
+        },
+        "naturalMaxIsAlwaysEnough": {
+          "description": "true: the highest roll always succeeds. Informational; the app does not read it.",
+          "type": "boolean"
+        },
+        "target": {
+          "description": "The total the roll must reach; a total the dice can show.",
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "dice",
+        "target"
+      ],
+      "type": "object"
+    },
+    "TreatmentRemoval": {
+      "additionalProperties": false,
+      "description": "What removing an injury does to the hero's counts.",
+      "properties": {
+        "choice": {
+          "description": "Who chooses the injury removed: player.",
+          "enum": [
+            "player"
+          ],
+          "type": "string"
+        },
+        "countDelta": {
+          "description": "The change of the injury's count (-1).",
+          "maximum": 0,
+          "minimum": -10,
+          "type": "integer"
+        },
+        "derivedEffects": {
+          "description": "recomputeFromCounts: the effects of the injuries follow from the counts.",
+          "enum": [
+            "recomputeFromCounts"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "TypeDelta": {
       "additionalProperties": false,
       "description": "Unit types added to and removed from a unit.",
@@ -3875,6 +4452,52 @@
         "roll",
         "noPromotion"
       ],
+      "type": "object"
+    },
+    "WarriorTreatment": {
+      "additionalProperties": false,
+      "description": "The treatment of a warrior: the cost in Influence of removing the Injured condition.",
+      "properties": {
+        "cost": {
+          "description": "The Influence the treatment costs.",
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "key": {
+          "description": "A name for the treatment.",
+          "type": "string"
+        },
+        "removes": {
+          "description": "injured: what the treatment removes.",
+          "enum": [
+            "injured"
+          ],
+          "type": "string"
+        },
+        "requires": {
+          "description": "injured: what the warrior must have.",
+          "enum": [
+            "injured"
+          ],
+          "type": "string"
+        },
+        "roll": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TreatRoll"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "null: a warrior is treated without a roll."
+        },
+        "text": {
+          "description": "The rule in words.",
+          "type": "string"
+        }
+      },
       "type": "object"
     },
     "WhenBroken": {

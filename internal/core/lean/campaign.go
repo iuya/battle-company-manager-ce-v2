@@ -120,40 +120,6 @@ type TableRow struct {
 	Rest map[string]any `json:"-" rest:"true"`
 }
 
-// Injuries is `campaign.injuries`.
-type Injuries struct {
-	Roll    DiceSpec       `json:"roll" required:"true"` // D1
-	Warrior []InjuryRow    `json:"warrior,omitempty"`
-	Hero    []InjuryRow    `json:"hero,omitempty"`
-	Rest    map[string]any `json:"-" rest:"true"` // treatment, retirement, rollModifier ...
-}
-
-// InjuryRow is a row of an injury chart.
-type InjuryRow struct {
-	Roll              Roll           `json:"roll" required:"true"`
-	Key               string         `json:"key,omitempty"`
-	Name              string         `json:"name,omitempty"`
-	Text              string         `json:"text,omitempty"`
-	GrantsExperience  *DiceGrant     `json:"grantsExperience,omitempty"` // D2
-	StatChanges       []InjuryChange `json:"statChanges,omitempty"`      // D3
-	CancelsMissedGame bool           `json:"cancelsMissedGame,omitempty"`
-	Rest              map[string]any `json:"-" rest:"true"`
-}
-
-// InjuryChange is a characteristic an injury changes: Amount points, once or Per count of the injury; the other keys
-// of the shipped table (minimum, permanent ...) are kept in Rest until a parameter slice types them.
-type InjuryChange struct {
-	Stat   string         `json:"stat" required:"true" enum:"movement|fight|shoot|strength|defence|attack|wounds|courage|intelligence|might|will|fate" noun:"characteristic"`
-	Amount int            `json:"amount" required:"true" min:"-20" max:"20"`
-	Per    string         `json:"per,omitempty" enum:"count"`
-	Rest   map[string]any `json:"-" rest:"true"`
-}
-
-// DiceGrant is Experience rolled on a die.
-type DiceGrant struct {
-	Dice DiceSpec `json:"dice" required:"true"`
-}
-
 // Experience is `campaign.experience`: the gains. The threshold lives in progression.threshold.
 type Experience struct {
 	Gains []ExperienceGain `json:"gains" required:"true"`

@@ -246,59 +246,262 @@ Found at: `campaign.progression.hero`.
 
 ### Injuries
 
-The injury charts and the die they are rolled on.
+The injury charts, the die they are rolled on and the treatments. The chart rows and the treatments are read by the engine; the prose keys (applies, deathOfAHero, healing, retirement, rollModifier) are rule text for the players.
 
 Found at: `campaign.injuries`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `roll` | [DiceSpec](#dicespec) | yes | - | - | The injury die, such as 2d6. Both charts must cover its totals exactly once. |
+| `applies` | string |  | - | - | Who rolls on the charts. Prose shown to the players. |
+| `deathOfAHero` | string |  | - | - | What happens when a Leader is slain. Prose shown to the players. |
+| `healing` | [InjuryHealingText](#injuryhealingtext) |  | - | - | How injuries are healed. Prose shown to the players. |
 | `hero` | list of [InjuryRow](#injuryrow) |  | - | - | The hero injury chart. |
+| `retirement` | [InjuryRetirement](#injuryretirement) |  | - | - | Forced retirement. Prose; the count is the row's retireAtCount. |
+| `rollModifier` | [InjuryRollModifier](#injuryrollmodifier) |  | - | - | Modifiers of the injury roll. Prose; the modifier is a campaign.aftermathEffects entry. |
+| `treatment` | [InjuryTreatment](#injurytreatment) |  | - | - | How Influence treats injuries. |
 | `warrior` | list of [InjuryRow](#injuryrow) |  | - | - | The warrior injury chart. |
+
+### InjuryHealingText
+
+The rulebook text of how injuries are healed. Prose; the app does not read it.
+
+Found at: `campaign.injuries.healing`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `hero` | string |  | - | - | How a hero is healed. |
+| `warrior` | string |  | - | - | How a warrior is healed. |
 
 ### InjuryRow
 
-A row of an injury chart. The keys that are not listed (effects, persistent, disables, ...) are read by the engine and kept as they are.
+A row of an injury chart. The engine reads effects (remove, missNextGame, fullRecovery) to decide what the result does, and persistent, retireAtCount, statChanges, disables and grantsAtCount for a hero's lasting injuries.
 
 Found at: `campaign.injuries.hero[]`, `campaign.injuries.warrior[]`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `roll` | [Roll](#roll) | yes | - | - | The roll or range the row covers. |
 | `cancelsMissedGame` | boolean |  | - | - | true: the result cancels the missed next game. |
+| `clearsAfterGames` | integer |  | - | 1..20 | The injury ends after this many games. |
+| `disables` | list of [InjuryDisable](#injurydisable) |  | - | - | What a lasting injury takes from the hero. |
+| `effects` | list of string |  | - | `remove`, `missNextGame`, `fullRecovery`, `healOneInjury`, `reduceMovement`, `noShield`, `noTwoHandedWeapon`, `noPike`, `noBow`, `noStandFast`, `noHeroicActionsOnCompany` | What the result does. remove (the model dies), missNextGame and fullRecovery decide the result; the others (healOneInjury, reduceMovement, noShield...) label the effect for the reader and are done by the other keys of the row. |
+| `experience` | [DiceSpec](#dicespec) |  | - | - | The die of grantsExperience in the rulebook's words (D3). The app reads grantsExperience. |
+| `grantsAtCount` | map of [CountGrant](#countgrant) |  | - | - | Special rules the hero gets from a count of the injury on: {"2": {specialRule}}. |
 | `grantsExperience` | [DiceGrant](#dicegrant) |  | - | - | Experience rolled on a die when the result comes up. |
-| `key` | string |  | - | - | The key the engine switches on (dead, injured, fullRecovery...). |
+| `grantsInfluence` | [DiceGrant](#dicegrant) |  | - | - | Influence rolled on a die for the company when the result comes up. |
+| `healable` | boolean |  | - | - | true: a treatment can remove the injury. |
+| `healableBy` | list of string |  | - | at least 1 items | The treatment methods that can remove the injury (a key of campaign.injuries.treatment.hero), for a status such as T'is Just a Scratch. |
+| `heals` | [InjuryHeals](#injuryheals) |  | - | - | The injuries a healing result removes. |
+| `influence` | [DiceSpec](#dicespec) |  | - | - | The die of grantsInfluence in the rulebook's words (D6). The app reads grantsInfluence. |
+| `key` | string |  | - | - | The key the engine switches on (dead, injured, fullRecovery...). A row with no effects is read by its key: dead, injured, else a full recovery. |
 | `name` | string |  | - | - | The name of the result. |
+| `optionalReroll` | boolean |  | - | - | true: the player may roll again on the chart instead of taking the result (T'is Just a Scratch). |
+| `persistent` | boolean |  | - | - | true: the hero keeps the injury and counts how often it suffered it (arm wound, leg wound, broken honour). |
+| `reroll` | [InjuryReroll](#injuryreroll) |  | - | - | How the re-roll of an optionalReroll result works. |
+| `retireAtCount` | integer |  | - | 1..20 | A persistent injury forces the hero to retire at this count, as the Dead result. |
+| `stat` | map of integer |  | - | - | The characteristics changed, as {characteristic: change}, for the reader of the file. The app reads statChanges. |
 | `statChanges` | list of [InjuryChange](#injurychange) |  | - | - | The characteristics the result changes (a gain on a row that is not a persistent injury, a loss on one). |
+| `stat_note` | string |  | - | - | A note on stat, for the reader of the file. |
 | `text` | string |  | - | - | The rule text of the result. |
+
+### InjuryDisable
+
+What a lasting injury takes from a hero: the benefit of gear of some classes or by name, or an ability.
+
+Found at: `campaign.injuries.hero[].disables[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `kind` | string | yes | - | `gearClass`, `gearItem`, `ability` | gearClass (items of the listed classes give no benefit), gearItem (the named items give none) or ability (the hero loses the ability). |
+| `classes` | list of string |  | - | `melee`, `spear`, `two_handed`, `mount`, `bow`, `armour`, `throwing`, `shield`, `instrument`, `consumable`, `lance`, `banner`, `missile`, `crossbow`, `other` | The gear classes, for kind gearClass. |
+| `key` | string |  | - | `standFast`, `heroicActionsOnCompany` | The ability, for kind ability: standFast or heroicActionsOnCompany. |
+| `names` | list of string |  | - | at least 1 items | The item names, for kind gearItem. |
+
+### CountGrant
+
+A special rule a hero gets once it has an injury a given number of times.
+
+Found at: `campaign.injuries.hero[].grantsAtCount.<name>`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `specialRule` | string | yes | - | not empty | The special rule granted. |
 
 ### DiceGrant
 
 Experience or Influence rolled on a die.
 
-Found at: `campaign.injuries.hero[].grantsExperience`.
+Found at: `campaign.injuries.hero[].grantsExperience`, `campaign.injuries.hero[].grantsInfluence`.
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `dice` | [DiceSpec](#dicespec) | yes | - | - | The die rolled. |
 
+### InjuryHeals
+
+What a healing result removes: injuries of the listed keys, chosen by the player.
+
+Found at: `campaign.injuries.hero[].heals`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `choice` | string | yes | - | `player` | Who chooses the injury healed: player. |
+| `count` | integer | yes | - | 1..10 | How many injuries are healed. |
+| `keys` | list of string | yes | - | at least 1 items | The keys of the hero injuries that can be healed. |
+
+### InjuryReroll
+
+The optional second roll of T'is Just a Scratch.
+
+Found at: `campaign.injuries.hero[].reroll`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `dice` | [DiceSpec](#dicespec) | yes | - | - | The dice rolled again. |
+| `ifScratchAgainMissNextGame` | boolean |  | - | - | true: a second result of the same row means the hero misses the next game. |
+| `optional` | boolean |  | - | - | true: the player chooses whether to roll again. |
+| `secondResultStands` | boolean |  | - | - | true: the second result applies even if it is worse than the first. |
+
 ### InjuryChange
 
-A characteristic an injury changes.
+A characteristic an injury changes: a gain on a row that is not a persistent injury, a loss (per count) on one.
 
 Found at: `campaign.injuries.hero[].statChanges[]`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `stat` | string | yes | - | `movement`, `fight`, `shoot`, `strength`, `defence`, `attack`, `wounds`, `courage`, `intelligence`, `might`, `will`, `fate` | The characteristic changed. |
 | `amount` | integer | yes | - | -20..20 | The change, a positive gain or a negative loss. |
+| `capAtPathMaximum` | boolean |  | - | - | true: the gain stops at the maximum of the hero's path. Informational; the app does not read it. |
+| `minimum` | integer or null |  | - | 0..20 | The lowest value the characteristic may reach; null for no floor. Informational; the app does not read it. |
 | `per` | string |  | - | `count` | count: the amount is applied once per time the hero has the injury. |
+| `permanent` | boolean |  | - | - | true: the change stays for good. Informational; a row that is not persistent always keeps its gain. |
+| `raisesPathMaximum` | boolean |  | - | - | true: the gain also raises the path's maximum. Informational; the app does not read it. |
+
+### InjuryRetirement
+
+What happens to a hero that suffers a persistent injury for the retireAtCount-th time. Prose; the count is the row's retireAtCount.
+
+Found at: `campaign.injuries.retirement`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `result` | string |  | - | not empty | The key of the chart row a forced retirement counts as (dead). |
+| `text` | string |  | - | - | The rule in words. |
+
+### InjuryRollModifier
+
+The rulebook text about modifiers of the injury roll (Healing Herbs). Prose; the modifier itself is a campaign.aftermathEffects entry.
+
+Found at: `campaign.injuries.rollModifier`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `appliesTo` | string |  | - | `total2d6` | What the modifier is added to: total2d6, the total of the injury dice. |
+| `clamp` | list of integer |  | - | 0..100; 2..2 items | [low, high]: the modified total is kept inside these bounds. |
+| `includesRerolls` | boolean |  | - | - | true: the modifier also applies to a re-roll. |
+| `replacedBy` | string |  | - | - | Where the modifier is defined, for the reader of the file. |
+| `text` | string |  | - | - | The rule in words. |
+
+### InjuryTreatment
+
+How Influence treats injuries (Battle Companies, Step 3): the hero methods, the warrior's and what removing an injury does.
+
+Found at: `campaign.injuries.treatment`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `currency` | string |  | - | `influence` | What a treatment costs: influence. Informational; the app spends Influence. |
+| `hero` | list of [HeroTreatment](#herotreatment) |  | - | - | The hero treatments. The engine knows attempt and healers. |
+| `phase` | string |  | - | `companyManagement` | When a treatment is made: companyManagement. Informational. |
+| `removalEffect` | [TreatmentRemoval](#treatmentremoval) |  | - | - | What removing an injury does to the hero's counts. |
+| `warrior` | [WarriorTreatment](#warriortreatment) |  | - | - | The warrior treatment. |
+
+### HeroTreatment
+
+One way to treat a hero: an attempt on a die (attempt) or sending the hero to the healers (healers).
+
+Found at: `campaign.injuries.treatment.hero[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `key` | string | yes | - | `attempt`, `healers` | attempt (a roll to remove an injury) or healers (no roll: the hero misses the next game). |
+| `cost` | integer | yes | - | 0..20 | The Influence the method costs. |
+| `healable` | list of string |  | - | at least 1 items | The injuries (keys of the hero chart) the method can remove. |
+| `maxAttempts` | integer or null |  | - | 1..100 | The most attempts allowed; null for no limit. Informational; the app puts no limit. |
+| `missNextGame` | boolean |  | - | - | true: the hero misses the next game. |
+| `onFailure` | [TreatFailure](#treatfailure) |  | - | - | What a failed attempt costs. |
+| `removesInjuries` | integer |  | - | 0..10 | How many injuries the method removes. |
+| `roll` | [TreatRoll](#treatroll) or null |  | - | - | The roll of an attempt; null for a method with no roll. |
+| `text` | string |  | - | - | The rule in words. |
+
+### TreatFailure
+
+What a failed attempt costs.
+
+Found at: `campaign.injuries.treatment.hero[].onFailure`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `costKept` | boolean |  | - | - | true: the Influence is lost on a failure. |
+| `effect` | string |  | - | `none` | none: a failure has no other effect. |
+
+### TreatRoll
+
+The die of a treatment attempt: the total must reach the target, and extra Influence raises it.
+
+Found at: `campaign.injuries.treatment.hero[].roll`, `campaign.injuries.treatment.warrior.roll`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `dice` | [DiceSpec](#dicespec) | yes | - | - | The dice rolled. |
+| `target` | integer | yes | - | 1..100 | The total the roll must reach; a total the dice can show. |
+| `compare` | string |  | - | `gte` | gte: the total must be at least the target. |
+| `modifier` | [TreatModifier](#treatmodifier) |  | - | - | How extra Influence raises the roll. |
+| `naturalMaxIsAlwaysEnough` | boolean |  | - | - | true: the highest roll always succeeds. Informational; the app does not read it. |
+
+### TreatModifier
+
+How extra Influence raises a treatment roll, like a Might point.
+
+Found at: `campaign.injuries.treatment.hero[].roll.modifier`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `ceiling` | integer |  | - | 0..100 | The raised roll never goes above this; 0 for no ceiling. At least the target. |
+| `currency` | string |  | - | `influence` | influence. |
+| `direction` | string |  | - | `up` | up: Influence raises the roll. |
+| `like` | string |  | - | - | What the modifier resembles in the rulebook (a Might point). |
+| `maxPoints` | integer or null |  | - | 0..100 | The most extra points allowed; null for no limit. Informational; the ceiling limits the roll. |
+| `perPoint` | integer |  | - | 0..10 | The roll gained per extra Influence point. |
+
+### TreatmentRemoval
+
+What removing an injury does to the hero's counts.
+
+Found at: `campaign.injuries.treatment.removalEffect`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `choice` | string |  | - | `player` | Who chooses the injury removed: player. |
+| `countDelta` | integer |  | - | -10..0 | The change of the injury's count (-1). |
+| `derivedEffects` | string |  | - | `recomputeFromCounts` | recomputeFromCounts: the effects of the injuries follow from the counts. |
+
+### WarriorTreatment
+
+The treatment of a warrior: the cost in Influence of removing the Injured condition.
+
+Found at: `campaign.injuries.treatment.warrior`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `cost` | integer |  | - | 0..20 | The Influence the treatment costs. |
+| `key` | string |  | - | - | A name for the treatment. |
+| `removes` | string |  | - | `injured` | injured: what the treatment removes. |
+| `requires` | string |  | - | `injured` | injured: what the warrior must have. |
+| `roll` | [TreatRoll](#treatroll) or null |  | - | - | null: a warrior is treated without a roll. |
+| `text` | string |  | - | - | The rule in words. |
 
 ### Experience
 

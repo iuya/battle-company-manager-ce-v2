@@ -1,11 +1,8 @@
 package core
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
-	"strconv"
 	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
@@ -121,13 +118,7 @@ func LeanRating(d *lean.Document, wargear WargearThreshold) (RatingRules, error)
 }
 
 // LeanInjuries are the injury chart and the treatments of a lean document.
-func LeanInjuries(d *lean.Document) (InjuryRules, error) {
-	raw, err := lean.Encode(d.Campaign)
-	if err != nil {
-		return InjuryRules{}, err
-	}
-	return readInjuries(raw)
-}
+func LeanInjuries(d *lean.Document) InjuryRules { return readInjuries(d.Campaign.Injuries) }
 
 // LeanCampaignOptions are the settings the file offers the organiser of a campaign. An option the app does not know or has not
 // implemented is listed, marked Unsupported, with a warning in the log.
@@ -152,35 +143,4 @@ func LeanCampaignOptions(d *lean.Document) ([]CampaignOption, error) {
 		out = append(out, CampaignOption{Key: o.Key, Scope: o.Scope, Label: o.Label, Description: o.Description, Default: o.Default, Unsupported: unsupported})
 	}
 	return out, nil
-}
-
-// jsonRoll reads the roll of a chart row as lean.Encode writes it: a number, "lo-hi" or [lo, hi].
-type jsonRoll [2]int
-
-func (r *jsonRoll) UnmarshalJSON(b []byte) error {
-	var n int
-	if json.Unmarshal(b, &n) == nil {
-		*r = jsonRoll{n, n}
-		return nil
-	}
-	var s string
-	if json.Unmarshal(b, &s) == nil {
-		lo, hi, ok := strings.Cut(s, "-")
-		a, ea := strconv.Atoi(strings.TrimSpace(lo))
-		z, ez := a, error(nil)
-		if ok {
-			z, ez = strconv.Atoi(strings.TrimSpace(hi))
-		}
-		if ea != nil || ez != nil {
-			return fmt.Errorf("%q is not a roll", s)
-		}
-		*r = jsonRoll{a, z}
-		return nil
-	}
-	var pair [2]int
-	if err := json.Unmarshal(b, &pair); err != nil {
-		return fmt.Errorf("%s is not a roll", b)
-	}
-	*r = pair
-	return nil
 }

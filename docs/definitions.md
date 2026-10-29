@@ -133,7 +133,11 @@ the path, in the upload report and at start-up. `lean.ParameterIDs` is the index
 **Dice are data.** Every dice string is an `[N]dM` spec (N 1..10, M 2..100, `d66` refused), parsed once at load with `lean.ParseDice` (`core.DiceSpec`, `core.ParseDiceAt` names the key in the error) and rolled with
 `core.Dice.Roll(spec)`. A table that does not cover the dice of its key is a load error naming the path (`core.CheckCovers`).
 
-**Tables kept in the shipped shape.** `campaign.injuries` rows (with `effects`, persistence, retirement, `disables`, `grantsAtCount`, the treatments), `campaign.aftermathEffects`, `campaign.againstTheOdds`,
+**Typed tables.** `campaign.injuries` is typed (`lean.Injuries`, `campaign_injuries.go`): the rows with their `effects` (a closed vocabulary), persistence and `retireAtCount`, `disables`, `grantsAtCount`, `heals`, the
+dice grants, and the `treatment` methods with their rolls. The upload checks the ranges, the vocabularies and the cross references (a treatment target the dice cannot reach, a `healable` or `heals` key that is no hero injury, a `disables` entry
+without its classes, names or ability) with the path of the key; `core.LeanInjuries` and `core.LeanAftermath` read the typed values.
+
+**Tables still kept in the shipped shape.** `campaign.aftermathEffects`, `campaign.againstTheOdds`,
 `campaign.matchInput`, `campaign.options` and `campaign.characteristicLimits` are read by the engine in the shape of the shipped file (`Rest` maps and `Free` values in the Go model): a custom file changes their numbers and
 texts, copies their structure, and does not invent keys the engine does not know. `campaign.options[]` is the single list of switches (`key`, `scope` `rules` or `app`, `label`, `description`, `default`,
 `implemented`, `swaps`); a reader that does not know a key ignores it and logs a warning. Objects that record a house-rule decision carry `confirmedByUser` and `defaultNotConfirmed` lists.
