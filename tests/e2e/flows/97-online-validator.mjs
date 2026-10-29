@@ -32,7 +32,7 @@ export default async function (h, { only }) {
     await admin.goto('/admin/rulesets');
     before = await cards();
     assert.ok(await admin.page.$('a[href="/tools/validate"]'), 'the rules page links to the checker');
-    await you.goto('/');
+    await you.goto('/campaigns');
     campaigns = await you.page.evaluate(() => document.querySelector('main, #main')?.innerText || '');
     await you.goto('/campaigns/new');
     assert.ok(await you.page.$('a[href="/tools/validate"]'), 'the new-campaign form links to the checker');
@@ -86,7 +86,7 @@ export default async function (h, { only }) {
     assert.ok(text.includes('vanilla.json') && text.includes('not valid JSON'), text);
     assert.ok(text.includes('Vanilla rules data: your file'));
     await swatches();
-    await you.goto('/');
+    await you.goto('/campaigns');
     assert.equal(await you.page.evaluate(() => document.querySelector('main, #main')?.innerText || ''), campaigns, 'no campaign was created');
     await admin.goto('/admin/rulesets');
     assert.equal(await cards(), before, 'no rules file was stored');

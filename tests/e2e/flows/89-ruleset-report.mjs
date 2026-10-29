@@ -67,7 +67,7 @@ export default async function (h, { only }) {
     assert.ok(text.includes('Ranger of Arnor'), 'the closest match is shown');
     assert.equal(await you.page.$eval('input[name=name]', (i) => i.value), name, 'the form keeps the name');
     await swatches(you);
-    await you.goto('/');
+    await you.goto('/campaigns');
     assert.ok(!(await you.has(name)), 'no campaign was created');
     await admin.goto('/admin/rulesets');
     assert.equal(await cards(), before, 'no rules file was stored');

@@ -21,7 +21,7 @@ func TestUnknownAddressIsARenderedNotFoundPage(t *testing.T) {
 	if rec.Code != http.StatusNotFound || !strings.Contains(rec.Header().Get("Content-Type"), "text/html") {
 		t.Fatalf("got %d %q", rec.Code, rec.Header().Get("Content-Type"))
 	}
-	for _, want := range []string{"<h1", "Page not found", `lang="en"`, `href="/"`, "<title>Page not found"} {
+	for _, want := range []string{"<h1", "Page not found", `lang="en"`, `href="/campaigns"`, "<title>Page not found"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the error page lacks %q", want)
 		}

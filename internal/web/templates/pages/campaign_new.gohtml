@@ -19,7 +19,7 @@
 
 {{define "content"}}
 <div class="max-w-xl">
-  <p class="text-sm"><a href="/" class="inline-flex min-h-11 items-center">← Campaigns</a></p>
+  <p class="text-sm"><a href="/campaigns" class="inline-flex min-h-11 items-center">← Campaigns</a></p>
   <h1 class="mt-2">New campaign</h1>
   <form method="post" action="/campaigns" enctype="multipart/form-data" hx-boost="false" class="card mt-6 space-y-4" x-data="{ name: '' }" x-init="name = $refs.name.value">
     {{if .Report}}<div class="alert alert-danger" role="alert">{{template "ruleset_report" .Report}}</div>
@@ -48,7 +48,7 @@
     <p class="text-sm text-muted">You will be the organiser. Once it exists you can share an invite link so players can join.</p>
     <div class="flex flex-wrap gap-2">
       <button :disabled="name.trim() === ''" class="btn btn-primary">Create campaign</button>
-      <a href="/" class="btn btn-secondary">Cancel</a>
+      <a href="/campaigns" class="btn btn-secondary">Cancel</a>
     </div>
   </form>
 </div>

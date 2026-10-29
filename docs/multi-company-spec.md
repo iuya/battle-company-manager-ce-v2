@@ -1,6 +1,6 @@
 # Several companies per player, and opening the last campaign directly (spec)
 
-Status: **steps 1 to 6 and 8 of section 11 are built (backend, database, the company in the URL, the switcher, the setting, the match setup and notes, the demo world, the e2e flow `98-several-companies`); step 7 (the last-campaign cookie and `GET /campaigns`) is the next pull request.** The decisions taken are in section 12 and applied throughout. The feature has two parts:
+Status: **steps 1 to 6 and 8 of section 11 are built (backend, database, the company in the URL, the switcher, the setting, the match setup and notes, the demo world, the e2e flow `98-several-companies`); step 7 (the `bcm-last` cookie, `GET /campaigns`, the link changes, e2e flow `99-last-campaign`) is built too, as section 8 says, with one refinement: a foreign cookie is cleared (the task of issue #2), and a finished campaign is not remembered.** The decisions taken are in section 12 and applied throughout. The feature has two parts:
 (1) a user can have more than one battle company in the same campaign; (2) a cookie remembers the last campaign viewed so the user lands on
 it instead of the campaign list.
 
@@ -293,7 +293,7 @@ only matches of two sides with one company each: unchanged.
 - [ ] If the remembered campaign is finished, no redirect (the user sees the list; finished campaigns are hidden there unless toggled) and
   the cookie is cleared. A paused campaign still redirects.
 - [ ] If the user can no longer open the campaign (`Get` returns `ErrNotFound`), the cookie is cleared and the list renders, no error page.
-- [ ] A cookie of another user (shared browser) is ignored and left alone.
+- [x] A cookie of another user (shared browser) is ignored and cleared (decision of issue #2: the user id inside must be the session user's).
 - [ ] Sign out keeps the cookie (it holds only ids); signing in as someone else ignores it.
 - [ ] 360/768/1280, no visual change except the redirect; the home page shows nothing new. Optionally the list highlights the remembered
   campaign with a "Last opened" chip (cheap, helps a user who came by the brand link).
@@ -387,8 +387,8 @@ rules data read).
 4. Frontend: Overview/Companies/Rankings/Home wording and multi rows; campaign creation form field and the settings edit form (`SetCompaniesPerPlayer`). **Done.**
 5. Frontend: company switcher partial + `/styleguide`, New company page rules. **Done** (the attention dots of 4.1 are not built).
 6. Frontend: match setup "Mine" filter and same-player note; "Same player" note. **Done.**
-7. Frontend: `bcm-last` cookie, `GET /campaigns`, link changes. **Not built** (the alias picks the first company).
-8. Qa: demo world campaign ("Two bands", `docs/demo-world.md`), e2e flow `98-several-companies`, docs (`frontend.md`, `architecture.md`, `demo-world.md`, `testing.md`). **Done** except the `auth.md` cookie row and the `matches.md` wording, which belong with step 7.
+7. Frontend: `bcm-last` cookie, `GET /campaigns`, link changes. **Done** (`internal/web/lastvisit.go`; e2e `99-last-campaign`; the alias opens the last company opened).
+8. Qa: demo world campaign ("Two bands", `docs/demo-world.md`), e2e flow `98-several-companies`, docs (`frontend.md`, `architecture.md`, `demo-world.md`, `testing.md`). **Done** (the `auth.md` cookie row came with step 7; `matches.md` never mentions the list URL).
 
 ## 12. Decisions
 

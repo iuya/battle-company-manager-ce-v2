@@ -145,7 +145,7 @@ that slides over the page (Alpine state `open`, closed by the backdrop, Esc or c
 outside `#main`, so Alpine keeps `path` in step with htmx navigation to mark the current link (`aria-current="page"`).
 
 Sidebar order: **Administration** (superusers only, gold-outlined so it stands apart, a 404 for everybody else),
-Campaigns (`/`, the main page) with a sub-menu of the user's active campaigns, Glossary; at the bottom the user's name, Account and Sign out. The sub-menu shows on the main page and inside any campaign; its items are drawn into every full page (`pageBase.base` asks `NavCampaigns` for a signed-in user, `NavInline`; the main page uses its own list, `NavOwn`), so there is no extra request. An htmx content swap has no sidebar and skips the query; if the list cannot be read the sidebar falls back to fetching `GET /nav/campaigns` on load. The list is refetched there only when it changes (`campaigns-changed`). Only the campaign you are in is expanded, with its pages (Overview, Companies, Rankings,
+Campaigns (`/campaigns`, the list; `/` shows the same list when there is no valid last-campaign cookie, otherwise it redirects to the campaign last opened, see [auth.md](auth.md)) with a sub-menu of the user's active campaigns, Glossary; at the bottom the user's name, Account and Sign out. The sub-menu shows on the main page and inside any campaign; its items are drawn into every full page (`pageBase.base` asks `NavCampaigns` for a signed-in user, `NavInline`; the main page uses its own list, `NavOwn`), so there is no extra request. An htmx content swap has no sidebar and skips the query; if the list cannot be read the sidebar falls back to fetching `GET /nav/campaigns` on load. The list is refetched there only when it changes (`campaigns-changed`). Only the campaign you are in is expanded, with its pages (Overview, Companies, Rankings,
 Matches; the current one marked) under it, and is marked with an accent bar, soft fill and a faint gold glow;
 switching campaign collapses the previous one while the new one expands, both animating their height together (a
 grid-rows 0fr/1fr transition, collapsed lists `inert`; an `x-transition` made the leaving list linger and the sidebar
@@ -158,10 +158,12 @@ Every page ends with the fan-project disclaimer (`partials/footer.gohtml`).
 
 ## Main page: campaigns
 
-`/` lists the user's unfinished campaigns as cards (name, status badge, description, progress, the user's company in
+`/campaigns` (and `/` for a user with no remembered campaign) lists the user's unfinished campaigns as cards (name, status badge, description, progress, the user's company in
 it). "New campaign" (`/campaigns/new`) is shown to users who may create campaigns: admins, superusers, and users with
 the `can_create_campaigns` flag (`User.MayCreateCampaigns`); the server answers 403 to anyone else. Roles are
 `user | admin | superuser`, set with `make grant EMAIL=… ROLE=… [CREATE=1]`.
+
+The brand link in the header (for a signed-in user), the sidebar's "Campaigns" and every "← Campaigns" / "Cancel" / "Back to your campaigns" link point at `/campaigns`, the one address that never redirects, so a user whose `/` jumps to their last campaign can always reach the list. Creating a campaign returns to it.
 
 A "Show finished campaigns" switch adds the finished ones after the active ones (cards dimmed, sidebar entries greyed).
 It is remembered in the browser cookie `bcm-finished` (a one-year preference, nothing is stored server side); the

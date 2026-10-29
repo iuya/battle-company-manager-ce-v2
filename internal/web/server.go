@@ -387,6 +387,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /logout", s.session(s.handleLogout))
 
 	mux.HandleFunc("GET /{$}", s.protected(s.handleHome))
+	mux.HandleFunc("GET /campaigns", s.protected(s.handleCampaignList))
 	mux.HandleFunc("GET /campaigns/new", s.protected(s.handleNewCampaignPage))
 	mux.HandleFunc("POST /campaigns", s.protected(s.handleCreateCampaign))
 	mux.HandleFunc("GET /campaigns/{id}", s.protected(s.handleCampaign("campaign_overview", "overview")))

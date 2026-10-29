@@ -167,6 +167,7 @@ func (s *Server) handleAccountClose(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.clearSessionCookie(w)
+	s.forgetVisit(w)
 	redirect(w, r, "/login?notice=closed")
 }
 

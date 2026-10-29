@@ -1,6 +1,6 @@
 {{/* Header shared by every page of a campaign: name, status and the tabs (the current one comes from .Tab). */}}
 {{define "campaign_header"}}
-<p class="text-sm"><a href="/" class="inline-flex min-h-11 items-center">← Campaigns</a></p>
+<p class="text-sm"><a href="/campaigns" class="inline-flex min-h-11 items-center">← Campaigns</a></p>
 <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
   <h1>{{.Campaign.Name}}</h1>
   {{if eq .Campaign.Status "paused"}}<span class="badge badge-muted">Paused</span>{{else if eq .Campaign.Status "finished"}}<span class="badge badge-muted">Finished</span>{{else}}<span class="badge">Active</span>{{end}}
