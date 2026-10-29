@@ -1,6 +1,6 @@
 # Several companies per player, and opening the last campaign directly (spec)
 
-Status: **planned, nothing built.** The decisions taken are in section 12 and applied throughout. The feature has two parts:
+Status: **steps 1 and 2 of section 11 are built (backend and database); the frontend steps are not.** The decisions taken are in section 12 and applied throughout. The feature has two parts:
 (1) a user can have more than one battle company in the same campaign; (2) a cookie remembers the last campaign viewed so the user lands on
 it instead of the campaign list.
 
@@ -377,8 +377,12 @@ rules data read).
 
 ## 11. Implementation order
 
-1. Backend and database: migration 00024 and `Create` with cap/name check, queries aggregated.
-2. Backend: `CampaignSettings.CompaniesPerPlayer`, `ErrCompanyLimit`, `ownCompany`, signature change of the 30 service methods, mocks.
+1. Backend and database: migration 00024 and `Create` with cap/name check, queries aggregated. **Done.**
+2. Backend: `CampaignSettings.CompaniesPerPlayer`, `ErrCompanyLimit`, `ownCompany`, signature change of the 30 service methods, mocks. **Done**
+   (also `Campaigns.SetCompaniesPerPlayer`, `CampaignDetail.Own/Owns/CanCreateCompany`, `core.SamePlayers`). The web layer compiles against
+   the new interface through one documented seam, `myCompanyOf` / `seamCompany` / `campaignBase.Mine` in `internal/web/campaign.go`
+   (the viewer's first company): step 3 replaces it with the company of the URL; nothing changes for a player with one company. The
+   `CompanyAttention` summary of section 6 is not built.
 3. Frontend: web interface and routes `my-company/{company}`, `ownCompany` helper, alias redirects.
 4. Frontend: Overview/Companies/Rankings/Home wording and multi rows; campaign creation form field and the settings edit form (`SetCompaniesPerPlayer`).
 5. Frontend: company switcher partial + `/styleguide`, New company page rules.

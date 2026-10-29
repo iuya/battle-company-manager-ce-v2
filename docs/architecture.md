@@ -89,7 +89,7 @@ type companyRepository interface {
     Read(ctx, campaignID, companyID int64) (CompanyState, error)
     ReadRoster(ctx, campaignID int64) ([]CompanyState, error) // every company in one statement, for rating lists
     Update(ctx, campaignID, companyID int64, fn func(*CompanyState) error) error
-    Create(ctx, campaignID int64, owner User, c NewCompany) (CampaignCompany, error) // ErrHasCompany on unique (campaign, owner)
+    Create(ctx, campaignID int64, owner User, c NewCompany) (CampaignCompany, error) // ErrCompanyLimit at c.Cap, ErrCompanyNameTaken
 }
 ```
 
@@ -100,11 +100,26 @@ what the pages show (profiles, limits, rating, order), and each action is a func
 `Update`. Rolls come from an injected `Dice` (`D6()`, `Die(sides)`, `Roll(spec)` for an `NdM` spec of the rules file) so tests are
 deterministic (`core.FixedDice`).
 
+A player may own several companies in a campaign (`CampaignSettings.CompaniesPerPlayer`, 1 to 4, default 1, in the settings JSON; the
+organiser or an administrator changes it at any time with `Campaigns.SetCompaniesPerPlayer`, and lowering it only refuses new
+companies). Every owner action takes the company id after the campaign id, `(ctx, user, campaignID, companyID, ...)`, and resolves and
+authorises it through the one helper `companyDeps.ownCompany` / `ownCompanyToChange` (`campaigns.go`): `ErrNotFound` unless the company
+is among `CampaignDetail.Companies`, the viewer's own, so another player's company, an organiser probing and a stranger all learn
+nothing; the changing variant also refuses a finished campaign. `CompanyService.CreateCompany` checks the cap and the owner's company
+names in core and passes `NewCompany.Cap` to `companyRepository.Create`, which repeats both checks in the transaction that holds the
+owner's `campaign_members` row (`SELECT ... FOR UPDATE`), so simultaneous creates never exceed the cap (`ErrCompanyLimit`; a name used
+by another company of the same owner, case ignored, is `ErrCompanyNameTaken`, an `ErrInvalidCompany`). The listing queries (`List`,
+`Get`, `Members`) keep one row per campaign or member and aggregate the companies, oldest first (`CampaignSummary.Companies`,
+`CampaignMember.Companies`). Migration `00024_several_companies.sql` drops the `(campaign_id, owner_id)` unique constraint and adds
+`companies_owner_idx`; its down refuses while a player owns two companies. Matches, live, aftermath, grants and ATO were already keyed
+by company: two companies of one owner may share a side or fight each other, and `core.SamePlayers` / `Match.SamePlayers` tell the web
+layer which owners have several companies in a match (a note, never a refusal). See [multi-company-spec.md](multi-company-spec.md).
+
 The services (`internal/core`, one file each) share `companyDeps` (campaign and company repositories, the rule source, the dice):
 
 | Service | Methods | Notes |
 |---|---|---|
-| `Campaigns` (`campaigns.go`) | `List`, `Create`, `Get`, `Companies`, `Company`, `Settings` | Only users who may create campaigns (`User.MayCreateCampaigns`) create; empty hashes mean the defaults, an unknown or wrong-kind hash is `ErrInvalidCampaign`. `Points`, `FullPoints` and `Units` of every returned company come from `BuildDetail` |
+| `Campaigns` (`campaigns.go`) | `List`, `Create`, `Get`, `Companies`, `Company`, `Settings`, `SetCompaniesPerPlayer` | Only users who may create campaigns (`User.MayCreateCampaigns`) create; empty hashes mean the defaults, an unknown or wrong-kind hash is `ErrInvalidCampaign`. `Points`, `FullPoints` and `Units` of every returned company come from `BuildDetail` |
 | `CompanyService` (`companies.go`) | `CompanyProfiles`, `CreateCompany`, `CompanyDetail`, `RenameCompany`, `RenameUnit`, `SaveFormation` | A new company starts with the rules' `campaign.company.startingInfluence` and the profile's Gold; a user who is not in the campaign gets `ErrNotFound` |
 | `ArmouryService` (`armoury.go`) | `Armoury`, `BuyEquipment`, `DropEquipment`, `BuyCreature`, `HireWanderer`, `DismissWanderer`, `Carry`, ... | Every purchase re-checks inside `Update` on the locked state |
 | `RecruitService` (`recruiting.go`) | `RecruitState`, `RollRecruit`, `ConfirmRecruit`, `ChooseLower`, `RecruitSpecial`, `ChooseOptions`, ... | The recruit in progress is `CompanyState.Recruit` |
