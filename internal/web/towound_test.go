@@ -83,10 +83,13 @@ func TestToWoundButtonAndWindowAreOnTheMatchAndLivePages(t *testing.T) {
 	f := liveOwnerSetup(t, core.LiveEdit)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	win, zones := strings.Index(body, `id="to-wound-dialog"`), strings.Index(body, `id="live-zones"`)
-	for _, want := range []string{`data-to-wound-open`, `hx-get="/campaigns/7/to-wound"`, `hx-trigger="load"`, `aria-modal="true"`} {
+	for _, want := range []string{`data-to-wound-open`, `hx-get="/campaigns/7/to-wound"`, `hx-trigger="tw-load once"`, `aria-modal="true"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("live page lacks %q", want)
 		}
+	}
+	if strings.Contains(body, `id="tw-body" class="mt-2" hx-get="/campaigns/7/to-wound" hx-trigger="load"`) {
+		t.Error("the chart is fetched on every page load, not when it is first wanted")
 	}
 	if win < 0 || zones < 0 || win > zones {
 		t.Errorf("the window (%d) must come before, not inside, #live-zones (%d)", win, zones)
