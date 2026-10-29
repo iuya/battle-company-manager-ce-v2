@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -151,7 +152,7 @@ func (s *Server) handleNewCompanyPage(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if base.Campaign.Company != nil { // one company per player: go and manage it
+	if !base.Campaign.CanCreateCompany() { // at the cap (one company per player by default): go and manage it
 		redirect(w, r, "/campaigns/"+itoa(int(base.Campaign.ID))+"/my-company")
 		return
 	}
@@ -170,8 +171,15 @@ func (s *Server) handleCreateCompany(w http.ResponseWriter, r *http.Request) {
 	in := core.CompanyInput{Name: r.PostFormValue("name"), Faction: r.PostFormValue("faction"), Heroes: startHeroes(r)}
 	_, err := s.campaigns.CreateCompany(r.Context(), *userFrom(r.Context()), base.Campaign.ID, in)
 	switch {
-	case errors.Is(err, core.ErrInvalidCompany) || errors.Is(err, core.ErrHasCompany):
-		view, ok := s.newCompanyPage(w, r, base, in, reason(err))
+	case errors.Is(err, core.ErrInvalidCompany) || errors.Is(err, core.ErrCompanyLimit):
+		msg := reason(err)
+		if errors.Is(err, core.ErrCompanyLimit) {
+			msg = "You already have a company in this campaign."
+			if n := base.Campaign.Settings.CompanyCap(); n > 1 {
+				msg = fmt.Sprintf("You already have the %d companies this campaign allows.", n)
+			}
+		}
+		view, ok := s.newCompanyPage(w, r, base, in, msg)
 		if !ok {
 			return
 		}
@@ -215,7 +223,7 @@ func (s *Server) handleCompany(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, r, err) {
 		return
 	}
-	if base.Campaign.Company != nil && base.Campaign.Company.ID == co.ID {
+	if myCompanyOf(base.Campaign) != nil && myCompanyOf(base.Campaign).ID == co.ID {
 		http.Redirect(w, r, "/campaigns/"+itoa(int(base.Campaign.ID))+"/my-company", http.StatusSeeOther)
 		return
 	}
@@ -361,7 +369,7 @@ func (s *Server) myCompanyPage(w http.ResponseWriter, r *http.Request, status in
 		return
 	}
 	view := myCompanyView{campaignBase: base, Notice: notice, NoticeError: noticeErr}
-	if mine := base.Campaign.Company; mine != nil {
+	if mine := myCompanyOf(base.Campaign); mine != nil {
 		detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, mine.ID)
 		if s.fail(w, r, err) {
 			return
@@ -380,13 +388,13 @@ func (s *Server) myCompanyPage(w http.ResponseWriter, r *http.Request, status in
 		if view.Grants, err = s.grantsCard(r, base, mine.ID, false); s.fail(w, r, err) { // the form is on the page of the other companies; one does not award one's own
 			return
 		}
-		if view.Pending, err = s.campaigns.PendingChoice(r.Context(), *userFrom(r.Context()), base.Campaign.ID); s.fail(w, r, err) {
+		if view.Pending, err = s.campaigns.PendingChoice(r.Context(), *userFrom(r.Context()), base.Campaign.ID, myCompanyID(base.Campaign)); s.fail(w, r, err) {
 			return
 		}
-		if view.Officers, err = s.campaigns.PendingOfficers(r.Context(), *userFrom(r.Context()), base.Campaign.ID); s.fail(w, r, err) {
+		if view.Officers, err = s.campaigns.PendingOfficers(r.Context(), *userFrom(r.Context()), base.Campaign.ID, myCompanyID(base.Campaign)); s.fail(w, r, err) {
 			return
 		}
-		if roll, err := s.campaigns.RecruitState(r.Context(), *userFrom(r.Context()), base.Campaign.ID); s.fail(w, r, err) {
+		if roll, err := s.campaigns.RecruitState(r.Context(), *userFrom(r.Context()), base.Campaign.ID, myCompanyID(base.Campaign)); s.fail(w, r, err) {
 			return
 		} else if roll != nil && !view.Frozen {
 			panel, err := s.recruitPanelFor(r, base.Campaign, "", false)
@@ -456,7 +464,7 @@ func (s *Server) handleNewMatchPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sides := []core.NewSide{{}, {}}
-	if mine := base.Campaign.Company; mine != nil {
+	if mine := myCompanyOf(base.Campaign); mine != nil {
 		sides[0].Companies = []int64{mine.ID} // you are most likely playing
 	}
 	view, err := newMatchForm(base, list, sides, false, "")
@@ -550,4 +558,42 @@ func creatureTip(c core.UnitCreatureRef) string {
 		parts = append(parts, "Special rules: "+strings.Join(c.Rules, ", "))
 	}
 	return strings.Join(append(parts, c.Notes...), "\n\n")
+}
+
+// Mine is the company the owner pages act on (see myCompanyOf); nil until the viewer has created one.
+func (b campaignBase) Mine() *core.CampaignCompany { return myCompanyOf(b.Campaign) }
+
+// myCompanyOf is THE SEAM of the several-companies work (docs/multi-company-spec.md, section 11, step 3): every owner page and action
+// still acts on one company, the viewer's first (oldest). The core services take the company id; the frontend step replaces this
+// with the company named by the URL (/campaigns/{id}/my-company/{company}, one ownCompany helper, 404 when it is not the viewer's).
+// With one company, which is every player today, nothing changes. Nil until the viewer has created one.
+func myCompanyOf(d core.CampaignDetail) *core.CampaignCompany {
+	if len(d.Companies) == 0 {
+		return nil
+	}
+	return &d.Companies[0]
+}
+
+// myCompanyID is myCompanyOf(d).ID, 0 (never a company's id: the services answer ErrNotFound) when the viewer has none.
+func myCompanyID(d core.CampaignDetail) int64 {
+	if mine := myCompanyOf(d); mine != nil {
+		return mine.ID
+	}
+	return 0
+}
+
+// seamCompany resolves the company an owner action acts on, from the campaign id of the URL: the viewer's company (see myCompanyOf);
+// 404 when the viewer is not in the campaign or has no company. It reads the campaign once more than the page handlers do; the
+// frontend step replaces it with the company id of the URL.
+func (s *Server) seamCompany(w http.ResponseWriter, r *http.Request, campaignID int64) (int64, bool) {
+	d, err := s.campaigns.Get(r.Context(), userFrom(r.Context()).ID, campaignID)
+	if s.fail(w, r, err) {
+		return 0, false
+	}
+	mine := myCompanyOf(d)
+	if mine == nil {
+		s.notFound(w, r)
+		return 0, false
+	}
+	return mine.ID, true
 }

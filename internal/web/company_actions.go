@@ -31,11 +31,11 @@ type recruitPanel struct {
 // recruitPanelFor builds the recruit window for the signed-in user's company.
 func (s *Server) recruitPanelFor(r *http.Request, c core.CampaignDetail, errMsg string, animate bool) (recruitPanel, error) {
 	user := *userFrom(r.Context())
-	detail, err := s.campaigns.CompanyDetail(r.Context(), c.ID, c.Company.ID)
+	detail, err := s.campaigns.CompanyDetail(r.Context(), c.ID, myCompanyOf(c).ID)
 	if err != nil {
 		return recruitPanel{}, err
 	}
-	roll, err := s.campaigns.RecruitState(r.Context(), user, c.ID)
+	roll, err := s.campaigns.RecruitState(r.Context(), user, c.ID, myCompanyID(c))
 	if err != nil {
 		return recruitPanel{}, err
 	}
@@ -58,12 +58,12 @@ func (s *Server) showRecruitPanel(w http.ResponseWriter, r *http.Request, status
 	if !ok {
 		return
 	}
-	if base.Campaign.Company == nil {
+	if myCompanyOf(base.Campaign) == nil {
 		s.notFound(w, r)
 		return
 	}
 	// a recruit waiting for its options comes first: reopening the window continues it
-	pending, err := s.campaigns.PendingChoice(r.Context(), *userFrom(r.Context()), base.Campaign.ID)
+	pending, err := s.campaigns.PendingChoice(r.Context(), *userFrom(r.Context()), base.Campaign.ID, myCompanyID(base.Campaign))
 	if s.fail(w, r, err) {
 		return
 	}
@@ -72,7 +72,7 @@ func (s *Server) showRecruitPanel(w http.ResponseWriter, r *http.Request, status
 		return
 	}
 	// so does a Ranger of the North waiting for the officers to be arranged
-	if officers, err := s.campaigns.PendingOfficers(r.Context(), *userFrom(r.Context()), base.Campaign.ID); s.fail(w, r, err) {
+	if officers, err := s.campaigns.PendingOfficers(r.Context(), *userFrom(r.Context()), base.Campaign.ID, myCompanyID(base.Campaign)); s.fail(w, r, err) {
 		return
 	} else if officers != nil {
 		s.render.partial(w, status, "campaign_my_company", "officers_panel", map[string]any{"Campaign": base.Campaign, "Panel": officers, "Error": errMsg})
@@ -95,10 +95,14 @@ func (s *Server) handleRollRecruit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
 	roll, _ := strconv.Atoi(r.PostFormValue("roll")) // empty or 0: random
 	thrown := r.PostFormValue("thrown") != ""        // the browser threw the dice and reports the result
 	perk, _ := strconv.Atoi(r.PostFormValue("perk")) // the Rendezvous bonus: -1, 0 or +1
-	err := s.campaigns.RollRecruitWithPerk(r.Context(), *userFrom(r.Context()), id, roll, thrown, perk)
+	err := s.campaigns.RollRecruitWithPerk(r.Context(), *userFrom(r.Context()), id, cid, roll, thrown, perk)
 	if errors.Is(err, core.ErrRefused) || errors.Is(err, core.ErrInvalidRoll) {
 		s.showRecruitPanel(w, r, http.StatusUnprocessableEntity, reason(err), false)
 		return
@@ -117,8 +121,12 @@ func (s *Server) handleConfirmRecruit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
 	adjust, _ := strconv.Atoi(r.PostFormValue("adjust"))
-	res, err := s.campaigns.ConfirmRecruit(r.Context(), *userFrom(r.Context()), id, adjust, r.PostFormValue("pick"))
+	res, err := s.campaigns.ConfirmRecruit(r.Context(), *userFrom(r.Context()), id, cid, adjust, r.PostFormValue("pick"))
 	s.afterConfirm(w, r, res, err)
 }
 
@@ -128,12 +136,16 @@ func (s *Server) handleChooseLower(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
 	index, err := strconv.Atoi(r.PostFormValue("result"))
 	if err != nil {
 		s.showRecruitPanel(w, r, http.StatusUnprocessableEntity, "Choose one of the results.", false)
 		return
 	}
-	res, err := s.campaigns.ChooseLower(r.Context(), *userFrom(r.Context()), id, index)
+	res, err := s.campaigns.ChooseLower(r.Context(), *userFrom(r.Context()), id, cid, index)
 	s.afterConfirm(w, r, res, err)
 }
 
@@ -160,7 +172,11 @@ func (s *Server) handleRecruit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	res, err := s.campaigns.RecruitSpecial(r.Context(), *userFrom(r.Context()), id, r.PostFormValue("special"))
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
+	res, err := s.campaigns.RecruitSpecial(r.Context(), *userFrom(r.Context()), id, cid, r.PostFormValue("special"))
 	s.afterAction(w, r, res.Summary, err)
 }
 
@@ -170,7 +186,11 @@ func (s *Server) handleChooseOptions(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	res, err := s.campaigns.ChooseOptions(r.Context(), *userFrom(r.Context()), id, r.PostFormValue("option"))
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
+	res, err := s.campaigns.ChooseOptions(r.Context(), *userFrom(r.Context()), id, cid, r.PostFormValue("option"))
 	s.afterAction(w, r, res.Summary, err)
 }
 
@@ -196,15 +216,15 @@ func (s *Server) handleArmouryPanel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	unitID, ok := s.idParam(w, r, "unit")
-	if !ok || base.Campaign.Company == nil {
+	if !ok || myCompanyOf(base.Campaign) == nil {
 		s.notFound(w, r)
 		return
 	}
-	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, base.Campaign.Company.ID)
+	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, myCompanyOf(base.Campaign).ID)
 	if s.fail(w, r, err) {
 		return
 	}
-	items, err := s.campaigns.Armoury(r.Context(), base.Campaign.ID, base.Campaign.Company.ID, unitID)
+	items, err := s.campaigns.Armoury(r.Context(), base.Campaign.ID, myCompanyOf(base.Campaign).ID, unitID)
 	if s.fail(w, r, err) {
 		return
 	}
@@ -223,7 +243,7 @@ func (s *Server) handleArmouryPanel(w http.ResponseWriter, r *http.Request) {
 			panel.Unit, panel.Slots = u, u.Slots()
 		}
 	}
-	creatures, err := s.campaigns.ArmouryCreatures(r.Context(), base.Campaign.ID, base.Campaign.Company.ID)
+	creatures, err := s.campaigns.ArmouryCreatures(r.Context(), base.Campaign.ID, myCompanyOf(base.Campaign).ID)
 	if s.fail(w, r, err) {
 		return
 	}
@@ -242,16 +262,20 @@ func (s *Server) handleArmouryPanel(w http.ResponseWriter, r *http.Request) {
 
 // buyEquipment buys the item with the form's payment and, for a weapon modifier (Envenom Weapon), the weapon the player chose:
 // the buy window and the Armory tab ask for it the same way (the shared weapon_chooser).
-func (s *Server) buyEquipment(r *http.Request, id, unitID int64, item string) error {
+func (s *Server) buyEquipment(r *http.Request, id, cid, unitID int64, item string) error {
 	u := *userFrom(r.Context())
 	if weapon := r.PostFormValue("weapon"); weapon != "" {
-		return s.campaigns.BuyEquipmentFor(r.Context(), u, id, unitID, item, r.PostFormValue("pay"), weapon)
+		return s.campaigns.BuyEquipmentFor(r.Context(), u, id, cid, unitID, item, r.PostFormValue("pay"), weapon)
 	}
-	return s.campaigns.BuyEquipment(r.Context(), u, id, unitID, item, r.PostFormValue("pay"))
+	return s.campaigns.BuyEquipment(r.Context(), u, id, cid, unitID, item, r.PostFormValue("pay"))
 }
 
 func (s *Server) handleBuyEquipment(w http.ResponseWriter, r *http.Request) {
 	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	cid, ok := s.seamCompany(w, r, id)
 	if !ok {
 		return
 	}
@@ -260,7 +284,7 @@ func (s *Server) handleBuyEquipment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	item := r.PostFormValue("item")
-	err := s.buyEquipment(r, id, unitID, item)
+	err := s.buyEquipment(r, id, cid, unitID, item)
 	s.afterAction(w, r, "Bought "+item+".", err)
 }
 
@@ -270,12 +294,16 @@ func (s *Server) handleChooseModifierWeapon(w http.ResponseWriter, r *http.Reque
 	if !ok {
 		return
 	}
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
 	unitID, ok := s.idParam(w, r, "unit")
 	if !ok {
 		return
 	}
 	item, weapon := r.PostFormValue("item"), r.PostFormValue("weapon")
-	err := s.campaigns.ChooseModifierWeapon(r.Context(), *userFrom(r.Context()), id, unitID, item, weapon)
+	err := s.campaigns.ChooseModifierWeapon(r.Context(), *userFrom(r.Context()), id, cid, unitID, item, weapon)
 	s.afterAction(w, r, "Poisoned Attacks now applies to the "+weapon+".", err)
 }
 
@@ -284,12 +312,16 @@ func (s *Server) handleDropEquipment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
 	unitID, ok := s.idParam(w, r, "unit")
 	if !ok {
 		return
 	}
 	item := r.PostFormValue("item")
-	err := s.campaigns.DropEquipment(r.Context(), *userFrom(r.Context()), id, unitID, item)
+	err := s.campaigns.DropEquipment(r.Context(), *userFrom(r.Context()), id, cid, unitID, item)
 	s.afterAction(w, r, "Dropped "+item+".", err)
 }
 
@@ -311,11 +343,11 @@ func (s *Server) showTreatPanel(w http.ResponseWriter, r *http.Request, status i
 	if !ok {
 		return
 	}
-	if base.Campaign.Company == nil {
+	if myCompanyOf(base.Campaign) == nil {
 		s.notFound(w, r)
 		return
 	}
-	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, base.Campaign.Company.ID)
+	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, myCompanyOf(base.Campaign).ID)
 	if s.fail(w, r, err) {
 		return
 	}
@@ -331,7 +363,7 @@ func (s *Server) showTreatPanel(w http.ResponseWriter, r *http.Request, status i
 		return
 	}
 	if result == nil { // a roll that waits for the decision on extra influence is shown again
-		if result, err = s.campaigns.TreatmentState(r.Context(), *userFrom(r.Context()), base.Campaign.ID, unitID); s.fail(w, r, err) {
+		if result, err = s.campaigns.TreatmentState(r.Context(), *userFrom(r.Context()), base.Campaign.ID, myCompanyID(base.Campaign), unitID); s.fail(w, r, err) {
 			return
 		}
 		panel.Result = result
@@ -356,6 +388,10 @@ func (s *Server) handleTreatInjury(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
 	unitID, ok := s.idParam(w, r, "unit")
 	if !ok {
 		return
@@ -367,7 +403,7 @@ func (s *Server) handleTreatInjury(w http.ResponseWriter, r *http.Request) {
 	t.Thrown = r.PostFormValue("thrown") != ""
 	thrown := r.PostFormValue("thrown") != ""
 	user := *userFrom(r.Context())
-	res, err := s.campaigns.TreatInjury(r.Context(), user, id, unitID, t)
+	res, err := s.campaigns.TreatInjury(r.Context(), user, id, cid, unitID, t)
 	if t.Method == "warrior" {
 		s.afterAction(w, r, res.Summary, err)
 		return
@@ -387,7 +423,11 @@ func (s *Server) handleSaveCemetery(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	err := s.campaigns.SaveCemeteryOrder(r.Context(), *userFrom(r.Context()), id, idList(r.PostFormValue("order")))
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
+	err := s.campaigns.SaveCemeteryOrder(r.Context(), *userFrom(r.Context()), id, cid, idList(r.PostFormValue("order")))
 	s.afterAction(w, r, "Cemetery order saved.", err)
 }
 
@@ -408,13 +448,17 @@ func (s *Server) handleSaveFormation(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
 	var order []int64
 	for _, part := range strings.Split(r.PostFormValue("order"), ",") {
 		if n, err := strconv.ParseInt(strings.TrimSpace(part), 10, 64); err == nil {
 			order = append(order, n)
 		}
 	}
-	err := s.campaigns.SaveFormation(r.Context(), *userFrom(r.Context()), id, order)
+	err := s.campaigns.SaveFormation(r.Context(), *userFrom(r.Context()), id, cid, order)
 	s.afterAction(w, r, "Formation saved.", err)
 }
 
@@ -435,11 +479,15 @@ func (s *Server) handleRenameUnit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
 	unitID, ok := s.idParam(w, r, "unit")
 	if !ok {
 		return
 	}
-	err := s.campaigns.RenameUnit(r.Context(), *userFrom(r.Context()), id, unitID, r.PostFormValue("name"))
+	err := s.campaigns.RenameUnit(r.Context(), *userFrom(r.Context()), id, cid, unitID, r.PostFormValue("name"))
 	s.afterAction(w, r, "Renamed.", err)
 }
 
@@ -450,7 +498,7 @@ func (s *Server) handlePathPanel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	unitID, ok := s.idParam(w, r, "unit")
-	if !ok || base.Campaign.Company == nil {
+	if !ok || myCompanyOf(base.Campaign) == nil {
 		s.notFound(w, r)
 		return
 	}
@@ -458,7 +506,7 @@ func (s *Server) handlePathPanel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) showPathPanel(w http.ResponseWriter, r *http.Request, c core.CampaignDetail, unitID int64, status int, errMsg string) {
-	offer, err := s.campaigns.PathOptions(r.Context(), *userFrom(r.Context()), c.ID, unitID)
+	offer, err := s.campaigns.PathOptions(r.Context(), *userFrom(r.Context()), c.ID, myCompanyID(c), unitID)
 	if errors.Is(err, core.ErrRefused) {
 		errMsg, err = reason(err), nil
 	}
@@ -478,7 +526,7 @@ func (s *Server) handleChoosePath(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	err := s.campaigns.ChoosePath(r.Context(), *userFrom(r.Context()), base.Campaign.ID, unitID, r.PostFormValue("path"), r.PostFormValue("power"))
+	err := s.campaigns.ChoosePath(r.Context(), *userFrom(r.Context()), base.Campaign.ID, myCompanyID(base.Campaign), unitID, r.PostFormValue("path"), r.PostFormValue("power"))
 	if errors.Is(err, core.ErrRefused) {
 		s.showPathPanel(w, r, base.Campaign, unitID, http.StatusUnprocessableEntity, reason(err))
 		return
@@ -494,7 +542,11 @@ func (s *Server) handleRenameCompany(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	err := s.campaigns.RenameCompany(r.Context(), *userFrom(r.Context()), id, r.PostFormValue("name"))
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
+	err := s.campaigns.RenameCompany(r.Context(), *userFrom(r.Context()), id, cid, r.PostFormValue("name"))
 	s.afterAction(w, r, "The company has a new name.", err)
 }
 
@@ -502,6 +554,10 @@ func (s *Server) handleRenameCompany(w http.ResponseWriter, r *http.Request) {
 // ("leader", 0 is the Ranger) and for each Sergeant place ("sergeant", repeated).
 func (s *Server) handleArrangeOfficers(w http.ResponseWriter, r *http.Request) {
 	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	cid, ok := s.seamCompany(w, r, id)
 	if !ok {
 		return
 	}
@@ -519,7 +575,7 @@ func (s *Server) handleArrangeOfficers(w http.ResponseWriter, r *http.Request) {
 		}
 		a.Sergeants = append(a.Sergeants, n)
 	}
-	res, err := s.campaigns.ArrangeOfficers(r.Context(), *userFrom(r.Context()), id, a)
+	res, err := s.campaigns.ArrangeOfficers(r.Context(), *userFrom(r.Context()), id, cid, a)
 	if errors.Is(err, core.ErrRefused) {
 		s.showRecruitPanel(w, r, http.StatusUnprocessableEntity, reason(err), false)
 		return

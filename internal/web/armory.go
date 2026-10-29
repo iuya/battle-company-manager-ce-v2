@@ -159,7 +159,7 @@ func (s *Server) armoryPage(w http.ResponseWriter, r *http.Request, status int, 
 		return
 	}
 	view := armoryView{campaignBase: base, Notice: notice, NoticeError: noticeErr}
-	if mine := base.Campaign.Company; mine != nil {
+	if mine := myCompanyOf(base.Campaign); mine != nil {
 		detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, mine.ID)
 		if s.fail(w, r, err) {
 			return
@@ -210,9 +210,13 @@ func (s *Server) handleArmoryBuy(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
 	unitID, _ := strconv.ParseInt(r.PostFormValue("unit"), 10, 64)
 	item := r.PostFormValue("item")
-	err := s.buyEquipment(r, id, unitID, item)
+	err := s.buyEquipment(r, id, cid, unitID, item)
 	switch {
 	case errors.Is(err, core.ErrRefused):
 		s.armoryPage(w, r, http.StatusUnprocessableEntity, reason(err), true)

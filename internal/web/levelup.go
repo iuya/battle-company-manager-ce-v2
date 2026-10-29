@@ -36,11 +36,11 @@ func (s *Server) showLevelPanel(w http.ResponseWriter, r *http.Request, status i
 	if !ok {
 		return
 	}
-	if base.Campaign.Company == nil {
+	if myCompanyOf(base.Campaign) == nil {
 		s.notFound(w, r)
 		return
 	}
-	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, base.Campaign.Company.ID)
+	detail, err := s.campaigns.CompanyDetail(r.Context(), base.Campaign.ID, myCompanyOf(base.Campaign).ID)
 	if s.fail(w, r, err) {
 		return
 	}
@@ -69,7 +69,7 @@ func (s *Server) showLevelPanel(w http.ResponseWriter, r *http.Request, status i
 		return
 	}
 	if roll == nil {
-		if roll, err = s.campaigns.LevelUpState(r.Context(), *userFrom(r.Context()), base.Campaign.ID, unitID); s.fail(w, r, err) {
+		if roll, err = s.campaigns.LevelUpState(r.Context(), *userFrom(r.Context()), base.Campaign.ID, myCompanyID(base.Campaign), unitID); s.fail(w, r, err) {
 			return
 		}
 		panel.Roll = roll
@@ -131,6 +131,10 @@ func (s *Server) handleLevelUpRoll(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
 	unitID, ok := s.idParam(w, r, "unit")
 	if !ok {
 		return
@@ -138,7 +142,7 @@ func (s *Server) handleLevelUpRoll(w http.ResponseWriter, r *http.Request) {
 	entered := enteredRolls(r)
 	own := entered != nil
 	thrown := r.PostFormValue("thrown") != "" // the browser threw the dice (Shake the table) and reports the result
-	roll, err := s.campaigns.RollLevelUp(r.Context(), *userFrom(r.Context()), id, unitID, entered, thrown)
+	roll, err := s.campaigns.RollLevelUp(r.Context(), *userFrom(r.Context()), id, cid, unitID, entered, thrown)
 	switch {
 	case errors.Is(err, core.ErrRefused):
 		s.showLevelPanel(w, r, http.StatusUnprocessableEntity, unitID, nil, false, reason(err))
@@ -153,12 +157,16 @@ func (s *Server) handleLevelUpChoose(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
 	unitID, ok := s.idParam(w, r, "unit")
 	if !ok {
 		return
 	}
 	_ = r.ParseForm()
-	roll, err := s.campaigns.ChooseLevelUp(r.Context(), *userFrom(r.Context()), id, unitID, append(r.PostForm["choice"], r.PostForm["also"]...))
+	roll, err := s.campaigns.ChooseLevelUp(r.Context(), *userFrom(r.Context()), id, cid, unitID, append(r.PostForm["choice"], r.PostForm["also"]...))
 	switch {
 	case errors.Is(err, core.ErrRefused):
 		s.showLevelPanel(w, r, http.StatusUnprocessableEntity, unitID, nil, false, reason(err))
@@ -174,12 +182,16 @@ func (s *Server) handleLevelUpReroll(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	cid, ok := s.seamCompany(w, r, id)
+	if !ok {
+		return
+	}
 	unitID, ok := s.idParam(w, r, "unit")
 	if !ok {
 		return
 	}
 	which, _ := strconv.Atoi(r.PostFormValue("which"))
-	roll, err := s.campaigns.RerollLevelUp(r.Context(), *userFrom(r.Context()), id, unitID, which)
+	roll, err := s.campaigns.RerollLevelUp(r.Context(), *userFrom(r.Context()), id, cid, unitID, which)
 	switch {
 	case errors.Is(err, core.ErrRefused):
 		s.showLevelPanel(w, r, http.StatusUnprocessableEntity, unitID, nil, false, reason(err))
