@@ -319,7 +319,7 @@ Environment variables (loaded by `go-simpler.org/env`; `.env.example` lists them
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `DATABASE_URL` | required (the Makefile defaults to the compose database) | PostgreSQL connection string |
+| `DATABASE_URL` | required (the Makefile defaults to the compose database) | PostgreSQL connection string. Pool settings go in the URL (`?pool_max_conns=N`, `pool_min_conns`, `pool_max_conn_lifetime`, `pool_max_conn_idle_time`): without `pool_max_conns` the pool holds up to the larger of the number of CPUs and 10 connections (the cards of a match page use four side by side; 4 connections made 160 simultaneous match pages 40 % slower than 10). Keep it below the server's `max_connections` divided by the number of instances, less one connection per instance for the live feed |
 | `PORT` | `8080` | HTTP port |
 | `STATIC_MAX_AGE` | `0s` | Cache lifetime of static files requested without their `?v=` hash (`no-cache` when 0; the templates always add the hash, and those requests are cached for a year) |
 | `PERF_TRACE` | `false` | Adds a `Server-Timing` header (time, database statements) to every answer, for `make perf` ([performance.md](performance.md)); development only |
