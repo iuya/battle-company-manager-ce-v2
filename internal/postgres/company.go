@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -374,12 +375,31 @@ func (cs companyStore) loadUnits(ctx context.Context, q querier, ids []int64) (m
 	return out, nil
 }
 
+// rosterQuery is ReadRoster's statement: one row per unit (a company without units has one row with NULL unit columns, which the
+// COALESCEs turn into id 0), the equipment of a unit as three arrays from one probe of unit_equipment. Typed columns instead of one
+// jsonb_build_object document per unit: on the demo world's biggest campaign (37 companies, 536 units) 3.8 ms against 9.2 ms and 350
+// buffers against 1,478 (docs/optimization-report.md, "Database pass").
+const rosterQuery = `
+	SELECT c.id, c.name, c.faction, c.owner_id, u.display_name, c.influence, c.gold, c.rerolls, c.pack, c.unit_order, c.grave_order,
+	       COALESCE(x.id, 0), COALESCE(x.base, ''), COALESCE(x.custom_name, ''), COALESCE(x.role, ''), COALESCE(x.kind, ''), COALESCE(x.path, ''),
+	       COALESCE(x.path_rules, 0), COALESCE(x.level, 0), COALESCE(x.xp, 0), COALESCE(x.points, 0), COALESCE(x.wanderer, ''),
+	       COALESCE(x.creature, ''), COALESCE(x.injured, false), COALESCE(x.sent_to_healers, false),
+	       x.progress, x.injuries, x.data, x.pending, e.gear, e.bought, e.dropped
+	  FROM companies c JOIN users u ON u.id = c.owner_id
+	  LEFT JOIN company_units x ON x.company_id = c.id
+	  LEFT JOIN LATERAL (SELECT array_agg(q.name ORDER BY q.position) FILTER (WHERE q.origin = 'gear') AS gear,
+	                            array_agg(q.name ORDER BY q.position) FILTER (WHERE q.origin = 'bought') AS bought,
+	                            array_agg(q.name ORDER BY q.position) FILTER (WHERE q.origin = 'dropped') AS dropped
+	                       FROM unit_equipment q WHERE q.unit_id = x.id) e ON true
+	 WHERE c.campaign_id = $1 ORDER BY c.id, x.position`
+
+// emptyUnitJSON is what the default of the injuries, data and pending columns reads as: nothing to decode.
+var emptyUnitJSON = []byte(`{"v": 1}`)
+
 // ReadRoster reads the state of every company of the campaign in one statement: the companies' own figures and their units with
 // equipment, enough to rate them. Pending aftermaths, the open match, perks and the cemetery are left out (Read has them).
 func (cs companyStore) ReadRoster(ctx context.Context, campaignID int64) ([]core.CompanyState, error) {
-	rows, err := cs.s.pool.Query(ctx, `SELECT c.id, c.name, c.faction, c.owner_id, u.display_name, c.influence, c.gold, c.rerolls, c.pack, c.unit_order, c.grave_order,
-	            `+unitsJSON+`
-	       FROM companies c JOIN users u ON u.id = c.owner_id WHERE c.campaign_id = $1 ORDER BY c.id`, campaignID)
+	rows, err := cs.s.pool.Query(ctx, rosterQuery, campaignID)
 	if err != nil {
 		return nil, err
 	}
@@ -388,15 +408,52 @@ func (cs companyStore) ReadRoster(ctx context.Context, campaignID int64) ([]core
 	for rows.Next() {
 		var st core.CompanyState
 		co := &st.Company
-		var units []byte
-		if err := rows.Scan(&co.ID, &co.Name, &co.Faction, &co.OwnerID, &co.Owner, &st.Influence, &st.Gold, &st.Rerolls, &st.Pack, &st.Order, &st.Graveyard, &units); err != nil {
+		var u core.UnitState
+		var role, kind string
+		var progress, injuries, data, pending []byte
+		if err := rows.Scan(&co.ID, &co.Name, &co.Faction, &co.OwnerID, &co.Owner, &st.Influence, &st.Gold, &st.Rerolls, &st.Pack, &st.Order, &st.Graveyard,
+			&u.ID, &u.Base, &u.Name, &role, &kind, &u.Path, &u.PathRules, &u.Level, &u.XP, &u.Points, &u.Wanderer, &u.Creature, &u.Injured, &u.SentToHealers,
+			&progress, &injuries, &data, &pending, &u.Gear, &u.Bought, &u.Dropped); err != nil {
 			return nil, err
 		}
-		st.Pack, st.Order, st.Graveyard = nilIfEmpty(st.Pack), nilIfEmpty(st.Order), nilIfEmpty(st.Graveyard)
-		if st.Units, err = decodeUnits(units); err != nil {
-			return nil, fmt.Errorf("company %d units: %w", co.ID, err)
+		if len(out) == 0 || out[len(out)-1].Company.ID != co.ID { // the first row of a company
+			st.Pack, st.Order, st.Graveyard = nilIfEmpty(st.Pack), nilIfEmpty(st.Order), nilIfEmpty(st.Graveyard)
+			out = append(out, st)
 		}
-		out = append(out, st)
+		if u.ID == 0 { // a company without units
+			continue
+		}
+		u.Role, u.Kind = core.UnitRole(role), core.UnitKind(kind)
+		if len(progress) > 0 && string(progress) != "null" {
+			var p progressJSON
+			if err := json.Unmarshal(progress, &p); err != nil {
+				return nil, fmt.Errorf("company %d unit %d progress: %w", co.ID, u.ID, err)
+			}
+			u.Progress = p.P
+		}
+		if !bytes.Equal(injuries, emptyUnitJSON) {
+			var inj injuriesJSON
+			if err := json.Unmarshal(injuries, &inj); err != nil {
+				return nil, fmt.Errorf("company %d unit %d injuries: %w", co.ID, u.ID, err)
+			}
+			u.Injuries = inj.Counts
+		}
+		if !bytes.Equal(data, emptyUnitJSON) {
+			var d unitDataJSON
+			if err := json.Unmarshal(data, &d); err != nil {
+				return nil, fmt.Errorf("company %d unit %d data: %w", co.ID, u.ID, err)
+			}
+			u.Bonus, u.Actions, u.BoughtActions, u.Spells = d.Bonus, d.Actions, d.BoughtActions, d.Spells
+		}
+		if !bytes.Equal(pending, emptyUnitJSON) {
+			var up unitPendingJSON
+			if err := json.Unmarshal(pending, &up); err != nil {
+				return nil, fmt.Errorf("company %d unit %d pending: %w", co.ID, u.ID, err)
+			}
+			u.Pending = up.Pending
+		}
+		last := &out[len(out)-1]
+		last.Units = append(last.Units, u)
 	}
 	return out, rows.Err()
 }
