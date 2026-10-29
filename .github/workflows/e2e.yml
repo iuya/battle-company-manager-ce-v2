@@ -42,10 +42,8 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: tests/e2e/package-lock.json
-      - name: Tailwind CLI (the Makefile's get-tailwind fetches the macOS build)
-        run: |
-          curl -fsSL https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 -o tailwindcss
-          chmod +x tailwindcss
+      - name: Tailwind CLI (the Makefile picks the binary of this machine)
+        run: make get-tailwind
       - name: Browser tests, group ${{ matrix.group }}
         env:
           CHROME_PATH: /usr/bin/google-chrome

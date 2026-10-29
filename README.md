@@ -19,7 +19,7 @@ It is a Go service with PostgreSQL and a server-rendered frontend (Go templates,
 Prerequisites: the Go version in [go.mod](go.mod), Docker (PostgreSQL), Python 3 (rules validation), and Node 20+ with Chrome or Chromium only for the browser tests.
 
 ```bash
-make get-tailwind                                  # once: downloads the Tailwind standalone binary (macOS arm64; see the Makefile for other platforms)
+make get-tailwind                                  # once: downloads the Tailwind standalone binary for this machine (macOS and Linux, x64 and arm64)
 make user EMAIL=you@example.com NAME="Your Name"   # creates an account (asks for a password); there is no sign-up page
 make run                                           # CSS + PostgreSQL + server on http://localhost:8080
 ```
