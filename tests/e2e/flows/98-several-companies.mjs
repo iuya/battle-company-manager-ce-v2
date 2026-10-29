@@ -133,8 +133,11 @@ export default async function (h) {
 
   await h.step('several companies: the chips switch between the companies, in My Company and in the Armory', async () => {
     await pippin.goto(`/campaigns/${cid}/my-company`);
-    assert.equal(path(pippin), `/campaigns/${cid}/my-company/${first}`, 'the alias opens the oldest company');
-    assert.equal((await pippin.page.title()).startsWith(firstName), true, 'with several companies the title names the company');
+    assert.equal(path(pippin), `/campaigns/${cid}/my-company/${second}`, 'the alias opens the company opened last (the bcm-last cookie)');
+    assert.equal((await pippin.page.title()).startsWith(secondName), true, 'with several companies the title names the company');
+    await pippin.click(`${SWITCHER} a`, firstName, { nav: true });
+    assert.equal(path(pippin), `/campaigns/${cid}/my-company/${first}`);
+    assert.ok((await pippin.text()).includes(firstName) && (await chips(pippin))[0].current);
     await pippin.click(`${SWITCHER} a`, secondName, { nav: true });
     assert.equal(path(pippin), `/campaigns/${cid}/my-company/${second}`);
     assert.ok((await pippin.text()).includes(secondName) && (await chips(pippin))[1].current);
