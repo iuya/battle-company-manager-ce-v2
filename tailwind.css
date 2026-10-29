@@ -38,6 +38,11 @@
   --color-success-soft: var(--success-soft);
   --color-warn: var(--warn);
   --color-gold: var(--gold);
+  --color-leader-soft: var(--leader-soft);
+  --color-sergeant: var(--sergeant);
+  --color-sergeant-soft: var(--sergeant-soft);
+  --color-hero: var(--hero);
+  --color-hero-soft: var(--hero-soft);
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-heading: var(--heading-font);
 }
@@ -64,6 +69,11 @@
   --success-soft: #d9ecdc;
   --warn: #8a5a00;
   --gold: #8a6a1f;
+  --leader-soft: #e8e0cd;
+  --sergeant: #2e6b3f;
+  --sergeant-soft: #d5e0d3;
+  --hero: #2c5f94;
+  --hero-soft: #d5dde4;
   --focus: var(--accent-text);
 }
 [data-palette="ember"][data-mode="dark"] {
@@ -83,6 +93,11 @@
   --success-soft: #223a29;
   --warn: #f0c050;
   --gold: #d2ad5c;
+  --leader-soft: #483427;
+  --sergeant: #7cc48d;
+  --sergeant-soft: #263a2c;
+  --hero: #86b6ea;
+  --hero-soft: #26344a;
   --focus: var(--accent-text);
 }
 
@@ -104,6 +119,11 @@
   --success-soft: #d9ecdc;
   --warn: #7d6200;
   --gold: #7d5f14;
+  --leader-soft: #e5dfd0;
+  --sergeant: #2e6b3f;
+  --sergeant-soft: #d5e1d9;
+  --hero: #2c5f94;
+  --hero-soft: #d5dfea;
   --focus: var(--accent-text);
 }
 [data-palette="mithril"][data-mode="dark"] {
@@ -123,6 +143,11 @@
   --success-soft: #223a29;
   --warn: #e8cc6a;
   --gold: #d4af55;
+  --leader-soft: #3d3826;
+  --sergeant: #7cc48d;
+  --sergeant-soft: #233f30;
+  --hero: #86b6ea;
+  --hero-soft: #233a55;
   --focus: var(--accent-text);
 }
 
@@ -144,6 +169,11 @@
   --success-soft: #d9ecdc;
   --warn: #85620a;
   --gold: #80621c;
+  --leader-soft: #e3decd;
+  --sergeant: #2e6b3f;
+  --sergeant-soft: #d3e0d4;
+  --hero: #2c5f94;
+  --hero-soft: #d2dde5;
   --focus: var(--accent-text);
 }
 [data-palette="forest"][data-mode="dark"] {
@@ -163,6 +193,11 @@
   --success-soft: #223a29;
   --warn: #ecc94b;
   --gold: #cfae5c;
+  --leader-soft: #3d3a22;
+  --sergeant: #7cc48d;
+  --sergeant-soft: #24402d;
+  --hero: #86b6ea;
+  --hero-soft: #233a52;
   --focus: var(--accent-text);
 }
 
@@ -251,15 +286,38 @@ html[data-mode="dark"] { color-scheme: dark; }
   /* the base comes first: the tone variants below (same specificity) must win over its background and text colour */
   .badge { @apply inline-flex items-center rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-semibold text-accent-text; }
   .badge-gold { @apply bg-gold/20 text-fg; }
-  /* A unit's place in the company is its frame: leader gold and doubled, sergeant accent and doubled, other heroes a solid
-     accent frame, regular units a thin plain one. */
+  /* A unit's place in the company is its frame, each in its own colour in every palette (as in the earlier app): leader gold
+     and doubled, sergeant green and doubled, other heroes a solid blue frame, regular units a thin plain one. */
   .unit { @apply rounded-xl border border-line; position: relative; }
   .unit-leader { @apply border-2 border-gold; outline: 2px solid color-mix(in srgb, var(--gold) 45%, transparent); outline-offset: 2px; }
-  .unit-sergeant { @apply border-2 border-accent; outline: 2px solid color-mix(in srgb, var(--accent) 40%, transparent); outline-offset: 2px; }
-  .unit-hero { @apply border-2 border-accent; }
+  .unit-sergeant { @apply border-2 border-sergeant; outline: 2px solid color-mix(in srgb, var(--sergeant) 40%, transparent); outline-offset: 2px; }
+  .unit-hero { @apply border-2 border-hero; }
   .insignia-leader { color: var(--gold); }
-  .insignia-sergeant { color: var(--accent-text); }
-  .insignia-hero { color: var(--accent-text); opacity: .8; }
+  .insignia-sergeant { color: var(--sergeant); }
+  .insignia-hero { color: var(--hero); }
+  /* The title plate across the top of a unit card, tinted by the same place (a warrior's is plain) or by danger while the
+     unit is injured. Under a promotion banner it loses its rounded top. */
+  .unit-head { margin: -1rem -1rem 0; padding: .5rem 2rem .5rem 1rem; border-bottom: 1px solid var(--line); border-radius: calc(.75rem - 1px) calc(.75rem - 1px) 0 0; background: color-mix(in srgb, var(--raised) 55%, var(--surface)); }
+  .unit-leader > .unit-head, .unit-sergeant > .unit-head, .unit-hero > .unit-head { border-radius: calc(.75rem - 2px) calc(.75rem - 2px) 0 0; }
+  .unit-leader > .unit-head { background: var(--leader-soft); border-bottom-color: var(--gold); }
+  .unit-sergeant > .unit-head { background: var(--sergeant-soft); border-bottom-color: var(--sergeant); }
+  .unit-hero > .unit-head { background: var(--hero-soft); border-bottom-color: var(--hero); }
+  .unit-injured > .unit-head { background: var(--danger-soft); border-bottom-color: var(--danger); }
+  .unit-fallen > .unit-head { background: transparent; border-bottom-color: var(--line); }
+  .promo + .unit-head { margin-top: -.75rem; border-radius: 0; }
+  /* A profile as on a datasheet: the names on a strip above the values. Might, Will and Fate are a second, accent-framed one
+     with the strip in the soft accent. */
+  .statline { @apply grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center; }
+  .statline > div { @apply min-w-7 border-r border-line bg-surface last:border-r-0 sm:min-w-8; }
+  .statline dt { @apply bg-raised px-0.5 py-1 text-[10px] font-semibold uppercase leading-none text-muted; }
+  .statline dd { @apply px-0.5 py-1.5 text-base font-semibold leading-none; }
+  .statline-hero { @apply border-accent; }
+  .statline-hero > div { @apply min-w-14; }
+  .statline-hero dt { @apply bg-accent-soft px-2; }
+  /* Level and experience: the level on a gold medal, the bar cut into one segment per experience point of a level. */
+  .level-medal { @apply inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full border-2 border-gold bg-surface px-1 font-heading text-base font-bold leading-none text-fg; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gold) 22%, transparent); font-variant-numeric: lining-nums; }
+  .xp-bar { @apply relative h-2.5 min-w-20 flex-1 overflow-hidden rounded-full bg-raised; }
+  .xp-bar::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(100% / var(--seg, 5) - 2px), var(--surface) calc(100% / var(--seg, 5) - 2px) calc(100% / var(--seg, 5))); pointer-events: none; }
   /* The dice tray (static/js/dice.js): a felt-like strip the dice move over; shaken, it jolts. */
   .dice-tray { @apply block h-36 w-full rounded-xl border border-line bg-raised; }
   .dice-shake { animation: dice-shake .4s ease-in-out; }

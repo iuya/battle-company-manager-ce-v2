@@ -7,7 +7,7 @@
    (beast), a horned dragon (monster), an oliphaunt (monstrous cavalry). Takes a core.UnitKind. The earlier outline icons are in
    static/img/archive. */}}
 {{define "kind_icon"}}
-<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-raised text-fg" title="{{.Label}}" role="img" aria-label="{{.Label}}">
+<span class="kind-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-raised text-fg" title="{{.Label}}" role="img" aria-label="{{.Label}}">
   <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true">
     {{if eq (printf "%s" .) "cavalry"}}{{template "horse_path"}}
     {{else if eq (printf "%s" .) "beast"}}<path d="M4.5 2.5l4.7 5.5h5.6l4.7-5.5 1.3 10.2-4.3 4.3-3.1 5.5h-2.8L7.5 17 3.2 12.7zM8 11.4l2.8 1.1-.3 1.1-3-.9zM16 11.4l-2.8 1.1.3 1.1 3-.9zM10.6 17.8h2.8L12 19.7z"/>
@@ -204,7 +204,8 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </button>
   {{end}}
 
-  <div class="mt-1 flex items-start gap-3">
+  {{/* The title plate: what the unit is and its place in the company, tinted by that place. */}}
+  <header class="unit-head flex items-start gap-3 [&_.kind-icon]:bg-surface">
     {{template "kind_icon" $u.Kind}}
     <div class="min-w-0 flex-1">
       <h3 class="flex items-center gap-1.5 !text-xl leading-tight">{{template "role_insignia" $u.Role}}
@@ -217,8 +218,13 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
         </form>{{end}}
       </h3>
       {{if $u.Name}}<p class="mt-0.5 text-sm text-muted">{{$u.Type}}</p>{{end}}
+    </div>
+    <span class="shrink-0 text-sm font-semibold">{{$u.Points}} <span class="font-normal text-muted">pts</span></span>
+  </header>
+
+  <div class="min-w-0">
       {{/* Keywords: race, factions and the types the icon and insignia do not say; a lost mount changes none of them. */}}
-      <div class="mt-1.5">{{template "keyword_row" (dict "K" $u.Keywords "Open" (printf "expanded === %d" $u.ID))}}</div>
+      <div>{{template "keyword_row" (dict "K" $u.Keywords "Open" (printf "expanded === %d" $u.ID))}}</div>
       {{template "kw_applies" $ap}}
       {{if $u.Wanderer}}<p class="mt-1 flex flex-wrap items-center gap-1.5"><span class="badge badge-gold">Wanderer</span>{{if and $lu $lu.Temporary}}<span class="badge badge-gold" title="Taken with Against the Odds for this match only">Temporary</span>{{end}}</p>{{end}}
       {{if and $lu $lu.Temporary $lv.Wanderer}}<p class="mt-1 text-sm">{{$lv.Wanderer.Summary}}</p>{{end}}
@@ -232,18 +238,16 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
         {{else}}<button type="button" data-lock class="eq-add eq-heal" hx-get="/campaigns/{{$cid}}/my-company/units/{{$u.ID}}/treat" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" title="Treat injuries" aria-label="Treat {{$u.Title}}'s injuries">{{template "cross"}}</button>{{end}}
       </p>{{end}}
       {{with $u.LostAbilities}}<p class="mt-1 text-xs text-muted">Lost: {{range $i, $l := .}}{{if $i}}, {{end}}{{if eq $l.Ability "standFast"}}Stand Fast!{{else if eq $l.Ability "heroicActionsOnCompany"}}heroic actions on the company{{else}}{{$l.Ability}}{{end}} ({{$l.Injury}}){{end}}</p>{{end}}
-    </div>
-    <span class="shrink-0 text-sm font-semibold">{{$u.Points}} <span class="font-normal text-muted">pts</span></span>
   </div>
 
   {{/* Attributes: the profile, then (for heroes) Might, Will and Fate. The backend decides which exist. */}}
   <div class="flex flex-wrap justify-center gap-x-3 gap-y-1.5" role="group" aria-label="Attributes">
-    <dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">
-      {{range $u.Stats}}{{if and (not .HeroOnly) (not (and $lu (liveStat .Name)))}}<div class="min-w-7 border-r border-line bg-surface px-0.5 py-1 last:border-r-0 {{if .Gear}}ring-1 ring-inset ring-accent{{end}}" title="{{statTip .Name $u.StatMods}}"><dt class="text-[10px] uppercase leading-none text-muted">{{.Abbr}}</dt><dd class="text-sm font-semibold leading-tight {{if and (gt .Boost 0) (ne .Trail "+")}}tone-win{{else if and (lt .Boost 0) (eq .Trail "+")}}tone-win{{else if ne .Boost 0}}tone-loss{{end}}">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}
+    <dl class="statline">
+      {{range $u.Stats}}{{if and (not .HeroOnly) (not (and $lu (liveStat .Name)))}}<div class="{{if .Gear}}ring-1 ring-inset ring-accent{{end}}" title="{{statTip .Name $u.StatMods}}"><dt>{{.Abbr}}</dt><dd class="{{if and (gt .Boost 0) (ne .Trail "+")}}tone-win{{else if and (lt .Boost 0) (eq .Trail "+")}}tone-win{{else if ne .Boost 0}}tone-loss{{end}}">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}
     </dl>
     {{if and $u.HasHeroStats (not $lu)}}
-    <dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-accent text-center">
-      {{range $u.Stats}}{{if .HeroOnly}}<div class="min-w-14 border-r border-line bg-accent-soft px-2 py-1 last:border-r-0" title="{{.Name}}"><dt class="text-[10px] uppercase leading-none text-muted">{{.Name}}</dt><dd class="text-sm font-semibold leading-tight {{if gt .Boost 0}}tone-win{{end}}">{{.Value}}</dd></div>{{end}}{{end}}
+    <dl class="statline statline-hero">
+      {{range $u.Stats}}{{if .HeroOnly}}<div title="{{.Name}}"><dt>{{.Name}}</dt><dd class="{{if gt .Boost 0}}tone-win{{end}}">{{.Value}}</dd></div>{{end}}{{end}}
     </dl>
     {{end}}
   </div>
@@ -384,8 +388,8 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </div>
   {{else}}
   <div class="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-3 text-xs">
-    <span class="font-semibold">Lvl {{$u.Level}}</span>
-    <div class="h-2 min-w-20 flex-1 overflow-hidden rounded-full bg-raised" role="progressbar" aria-valuemin="0" aria-valuemax="{{$u.LevelEvery}}" aria-valuenow="{{$u.XPInLevel}}" aria-label="Experience"><div class="h-full rounded-full {{if $u.PendingLevelUps}}bg-warn{{else}}bg-accent{{end}}" style="width: {{pct $u.XPInLevel $u.LevelEvery}}%"></div></div>
+    <span class="level-medal" title="Level {{$u.Level}}"><span class="sr-only">Level </span>{{$u.Level}}</span>
+    <div class="xp-bar" style="--seg: {{$u.LevelEvery}}" role="progressbar" aria-valuemin="0" aria-valuemax="{{$u.LevelEvery}}" aria-valuenow="{{$u.XPInLevel}}" aria-label="Experience"><div class="h-full rounded-full {{if $u.PendingLevelUps}}bg-warn{{else}}bg-accent{{end}}" style="width: {{pct $u.XPInLevel $u.LevelEvery}}%"></div></div>
     <span class="text-muted">{{$u.XPInLevel}} / {{$u.LevelEvery}} XP</span>
   </div>
   {{end}}
@@ -405,22 +409,22 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </span>
 </div>
 <article class="card unit unit-fallen flex flex-col gap-3 !p-4">
-  <header class="flex items-start gap-2">
+  <header class="unit-head flex items-start gap-3 [&_.kind-icon]:bg-surface">
     {{template "kind_icon" $u.Kind}}
-    <div class="min-w-0 flex-1"><h3 class="!text-xl leading-tight">{{$u.Title}}</h3>{{if $u.Name}}<p class="text-sm text-muted">{{$u.Type}}</p>{{end}}
-      <div class="mt-1.5">{{template "keyword_row" (dict "K" $u.Keywords)}}</div></div>
+    <div class="min-w-0 flex-1"><h3 class="flex items-center gap-1.5 !text-xl leading-tight">{{template "role_insignia" $u.Role}}{{$u.Title}}</h3>{{if $u.Name}}<p class="text-sm text-muted">{{$u.Type}}</p>{{end}}</div>
     <span class="shrink-0 text-sm font-semibold">{{$u.Points}} <span class="font-normal text-muted">pts</span></span>
   </header>
+  <div>{{template "keyword_row" (dict "K" $u.Keywords)}}</div>
   <p class="rounded-lg border border-line bg-raised px-3 py-1.5 text-sm"><span class="font-semibold">Fell</span> · {{.F.Fate}}{{with .F.Match}} · <span class="text-muted">{{.}}</span>{{end}}{{if .Return}} <span class="badge badge-gold align-middle" title="The company's rule: a reinforcement result may be swapped for a new Ranger of the North, who returns as an officer (Leader to start with)">May return with a reinforcement</span>{{end}}</p>
   <div class="flex flex-wrap justify-center gap-2">
-    <dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">{{range $u.Stats}}{{if not .HeroOnly}}<div class="min-w-7 border-r border-line bg-surface px-0.5 py-1 last:border-r-0"><dt class="text-[10px] uppercase leading-none text-muted">{{.Abbr}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}</dl>
-    {{if $u.HasHeroStats}}<dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-accent text-center">{{range $u.Stats}}{{if .HeroOnly}}<div class="min-w-12 border-r border-line bg-accent-soft px-2 py-1 last:border-r-0"><dt class="text-[10px] uppercase leading-none text-muted">{{.Name}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}</dd></div>{{end}}{{end}}</dl>{{end}}
+    <dl class="statline">{{range $u.Stats}}{{if not .HeroOnly}}<div><dt>{{.Abbr}}</dt><dd>{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}</dl>
+    {{if $u.HasHeroStats}}<dl class="statline statline-hero">{{range $u.Stats}}{{if .HeroOnly}}<div><dt>{{.Name}}</dt><dd>{{.Value}}</dd></div>{{end}}{{end}}</dl>{{end}}
   </div>
   {{with $u.Equipment}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Wargear</span>{{range .}}<span class="eq-chip">{{.Name}}</span>{{end}}</p>{{end}}
   {{with $u.Path}}{{if .Name}}<div class="path-box space-y-1.5"><p class="path-name">{{.Name}}</p>
     <ul class="flex flex-wrap gap-1.5">{{range .HeroicActions}}<li class="act-chip">{{.Name}}</li>{{end}}{{range .Rules}}<li class="rule-chip rule-path" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}>{{.Shown}}</li>{{end}}</ul></div>{{end}}{{end}}
   {{with $u.Rules}}<ul class="flex flex-wrap gap-1.5" aria-label="Special rules">{{range .}}<li class="rule-chip rule-{{.Source}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}>{{.Shown}}</li>{{end}}</ul>{{end}}
-  <p class="mt-auto border-t border-line pt-3 text-xs text-muted">Lvl {{$u.Level}} · {{$u.XP}} XP</p>
+  <p class="mt-auto flex items-center gap-3 border-t border-line pt-3 text-xs text-muted"><span class="level-medal" title="Level {{$u.Level}}"><span class="sr-only">Level </span>{{$u.Level}}</span>{{$u.XP}} XP</p>
 </article>
 </div>
 {{end}}

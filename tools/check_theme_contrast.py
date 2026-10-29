@@ -12,7 +12,9 @@ PAIRS = [("fg", "page", 4.5), ("fg", "surface", 4.5), ("fg", "raised", 4.5), ("m
          ("accent-text", "surface", 4.5), ("accent-text", "accent-soft", 4.5), ("danger", "surface", 4.5),
          ("danger", "danger-soft", 4.5), ("success", "surface", 4.5), ("success", "success-soft", 4.5),
          ("fg", "accent-soft", 4.5), ("fg", "danger-soft", 4.5), ("fg", "success-soft", 4.5), ("accent", "page", 3.0),
-         ("page", "danger", 4.5), ("warn", "surface", 4.5), ("warn", "page", 4.5), ("warn", "raised", 4.5), ("page", "warn", 4.5)]
+         ("page", "danger", 4.5), ("warn", "surface", 4.5), ("warn", "page", 4.5), ("warn", "raised", 4.5), ("page", "warn", 4.5),
+         ("fg", "leader-soft", 4.5), ("muted", "leader-soft", 4.5), ("fg", "sergeant-soft", 4.5), ("muted", "sergeant-soft", 4.5),
+         ("fg", "hero-soft", 4.5), ("muted", "hero-soft", 4.5), ("gold", "surface", 3.0), ("sergeant", "surface", 3.0), ("hero", "surface", 3.0)]
 
 
 def lum(h):

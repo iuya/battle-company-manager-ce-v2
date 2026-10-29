@@ -46,7 +46,8 @@ Colors are **semantic tokens**: CSS variables, exposed to Tailwind as utilities 
 | `accent-soft` | Tinted backgrounds (selected state, badges, info alerts) |
 | `danger`, `success` (+ `-soft`) | Errors and confirmations |
 | `warn` | Draws (yellow); with `success` and `danger` it gives the `tone-win` / `tone-draw` / `tone-loss` classes for results |
-| `gold` | Decoration; the ring background |
+| `gold` | Decoration; the ring background; the leader's frame |
+| `sergeant`, `hero`, `leader-soft`, `sergeant-soft`, `hero-soft` | A unit's place on its card: frame and insignia (leader `gold`, sergeant green, hero blue in every palette) and the tint of its title plate |
 
 **Palettes** (each with a light and a dark variant): **Forest & Gold** (default), **Parchment & Ember** and **Mithril &
 Night**. A palette is selected by `data-palette` and `data-mode` (`light` | `dark`) on the `<html>` element; the same
@@ -273,8 +274,12 @@ joins counts in the numerator and the denominator: 6 models with 2 bows may take
 (`core.OrderUnits`: leader, sergeants, other heroes, regular units, unless the player saved another order).
 
 A card, top to bottom:
-- **Frame and insignia** for the unit's place, with no text tag: leader gold and doubled with a crown, sergeant doubled
-  accent with a star, other heroes solid accent with three chevrons, regular units thin.
+- **Frame and insignia** for the unit's place, with no text tag, each in its own colour in every palette (the rank tokens):
+  leader gold and doubled with a crown, sergeant green and doubled with a star, other heroes solid blue with three
+  chevrons, regular units thin. The shape of the insignia tells them apart without colour.
+- **Title plate** (`.unit-head`) across the top: kind icon, insignia and name, and the points; tinted by the same place
+  (`leader-soft`, `sergeant-soft`, `hero-soft`, a warrior's plain) and by `danger-soft` while the unit is injured (its frame
+  turns danger too). Keywords, injuries and the live badges follow under it.
 - **Kind icon** (top left), a filled silhouette: a knight in a great helm for infantry, a horse for cavalry (the same horse is the
   mount icon in the equipment list), a wolf for beasts, a horned dragon for monsters, an oliphaunt for monstrous cavalry
   (`core.KindOf` from the vanilla unit types). The earlier outline icons are kept in `static/img/archive/`.
@@ -302,7 +307,7 @@ A card, top to bottom:
   know the parameter). The expanded card prints the line (`data-works`) under each rule. An own rule and a rule the table does not list have no line; a
   ruleset without `data.ruleTargets` has plain tooltips. **Nothing is highlighted on the unit's own card** for an enemy rule.
 - **Attributes** from the vanilla file's `stats` list (`VanillaBook.Stats/Profile`): Mv FV SV S D A W C I, then M W F for
-  heroes that have any. Values the company raised are green, lowered red; hovering shows the full name. The backend
+  heroes that have any, as a datasheet profile (`.statline`, `.statline-hero`): the names on a strip above the values. Values the company raised are green, lowered red; hovering shows the full name. The backend
   fills them dynamically; the page just draws what it is given.
 - **Buy buttons**: two small `+` chips (`eq-add eq-add-sm`, text size) open the armoury window filtered with `?kind=wargear`
   (right after the "Wargear" label, which has its own line, items below) or `?kind=equipment` (right after the "Equipment"
@@ -321,7 +326,8 @@ A card, top to bottom:
   (`CompanyUnit.Path`). Magical powers a unit knows from some other source stay among the special rules, after its own rules.
 - **Special rules**, sorted unit, spells, equipment (`core.SortRules`); spells are highlighted with a star,
   their casting value and range; every rule previews its description on hover.
-- **Level and experience**: Lvl and a bar of `XPInLevel / 5` at the bottom. A unit with promotions waiting gets a gold
+- **Level and experience**: the level on a gold medal (`.level-medal`) and a bar of `XPInLevel / 5` cut into one segment per
+  point (`.xp-bar`, `--seg` is `LevelEvery`) at the bottom. A unit with promotions waiting gets a gold
   **"Level Up ready!" banner across the top of its card** (a slow shine, a Roll chip; it is the level-up button). A unit gains a
   level only when its roll is made, so it can have several rolls pending (15 XP at level 0 is "×3",
   `PendingLevelUps`). The banner opens the level-up panel (roll, re-roll, choose; `levelup.go`).
