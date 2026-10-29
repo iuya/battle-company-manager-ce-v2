@@ -65,7 +65,7 @@ Looked at and left alone, with the evidence:
 - **Template cost**: executing the templates is about 5 % of a page's server time (3 ms of 65 ms for my company, `go tool pprof` of `BenchmarkPages`); it is not worth changing.
 - **HTML size**: the company page is 214 KB because every glossary link repeats its tooltip text (`data-tip-text`), the armoury 417 KB (every item lists every unit). After gzip the repetition costs almost nothing (25 and 28 KB), and the browser's parse and layout time did not show in the load times; a tooltip map per page would need changes in JavaScript and templates for no measured gain.
 - **htmx navigation** already returns the page's content block only: one request, 2 to 20 KB, 150 to 370 ms at 300 ms of latency.
-- **The initial sync of the live stream** makes the match page fetch the end card, the end checks and the log a second time (`LiveHub.subscribe` marks everything changed on purpose: nothing is lost between rendering the page and opening the stream). It is after the first paint and the second answers are the same cards; removing it would reopen that race, so it stays.
+- **The initial sync of the live stream** used to make the match page fetch the end card, the end checks and the log a second time after the stream opened (`LiveHub.subscribe` marks everything changed on purpose: nothing is lost between rendering the page and opening the stream). The match page now sends the state its cards were built from and the stream skips that batch when nothing moved ("Database pass at v2.0.0", "The match page's stream").
 
 ## After
 
@@ -208,14 +208,14 @@ At 300 ms every full page except the match page is one round trip (about 300 ms 
 
 Why they were lazy: not because most users do not need them. All four (Against the Odds, secret objectives, end checks, log) are on screen on every visit to a match; they were built as separate `hx-get` slots because the card endpoints already existed for refreshing them (`live:match`, saves) and because at the time they were slow (the ATO card 71 statements and 629 ms, the log 63 statements), which would have held back the whole page. The database pass made them cheap (ATO 13 statements, log 12, end checks 7).
 
-Now the full page (`handleMatch`, `loadMatchCards` in `internal/web/match_cards.go`) builds the four in parallel goroutines and draws them in its own answer. A card that fails to build stays a lazy slot (`hx-trigger="load"`, the old behaviour); the slots keep their `live:match` refresh and the log slot keeps `data-live-match`, so the stream and the answers to writes (`match_body`, which stays lazy) are unchanged. The SSE initial sync stays: `subscribe` still marks everything changed and the page refetches the end checks and the log once after the stream opens (match-level notices carry no sequence number, so the page cannot prove it is current without a `core` change; skipping it would reopen the render-to-subscribe race).
+Now the full page (`handleMatch`, `loadMatchCards` in `internal/web/match_cards.go`) builds the four in parallel goroutines and draws them in its own answer. A card that fails to build stays a lazy slot (`hx-trigger="load"`, the old behaviour); the slots keep their `live:match` refresh and the log slot keeps `data-live-match`, so the stream and the answers to writes (`match_body`, which stays lazy) are unchanged. The SSE initial sync of `subscribe` marks everything changed and the page refetched the end checks and the log once after the stream opened; the page now proves it is current instead ("Database pass at v2.0.0", "The match page's stream").
 
 `make perf ONLY=match REPS=3`, labels `lazy-before` / `lazy-after`, demo world:
 
 | Match page | before | after |
 |---|---|---|
 | requests (doc/xhr/sse) | 8 (1/6/1) | 5 (1/3/1) |
-| serial chain | 3 | 2 for the cards (the initial-sync refetch remains) |
+| serial chain | 3 | 2 for the cards (the initial-sync refetch remained until the generation counter, see the database pass at v2.0.0) |
 | statements | 74 | 70 (the log no longer reloads the match) |
 | server ms, all requests | 380 | 255 |
 | settled ms @ 0 / 100 / 300 | 245 / 364 / 986 | 276 / 396 / 978 |
@@ -262,7 +262,7 @@ The aftermath page asked for the same rows from several services (match 7 times,
 
 `BenchmarkPages/aftermath`, scratch copy of the demo world, `-benchtime 30x`, three runs each: 27 to 14 statements, 33 to 46 ms (median 41) to 26.5 ms. The rendered HTML of all eleven benchmarked pages is byte identical before and after. The other pages are unchanged (match 12, live 26 statements). The htmx actions (`/sheet`, `/start`, ...) were measured too (48 statements for a sheet save, before and after) and are left as they were: their reads happen before and after the write and are not repeated within a step, the bulk is the save itself.
 
-Left for the database layer: `atoStore.Get` loads the whole match to check that it belongs to the campaign (a `SELECT true FROM matches WHERE id AND campaign_id` would do), and `companyStore.save` writes each unit with an UPDATE, DELETE and INSERT (a sheet save is about 35 write statements).
+Both items left for the database layer here (the Against the Odds record loading the whole match, and the unit-by-unit rewrite of a company on every save) are done: see "Database pass at v2.0.0".
 
 Tools: `PERF_SQL=1 go test ./cmd/server -run xxx -bench Pages -benchtime 1x` prints every statement of a page, most frequent first (`BenchmarkPages` also has the ATO and log cards now). The budgets of `TestQueryCountsOnAPreloadedWorld` (`cmd/server/querycount_test.go`) were tightened to the new counts: Get 3, Companies 6, Matches 8, Match 6, CompanyDetail 7, List 3 (all without growing per row).
 
@@ -275,7 +275,30 @@ Numbers and the rejected ideas are in [optimization-report.md](optimization-repo
 - **A closed window does not fetch on load.** The To Wound chart is fetched when the pointer, a touch or the focus reaches a button that opens it, or at the click (`towound.js`, `hx-trigger="tw-load once"`). Content in a dialog that nobody may open should not be a request of every page view.
 - **Hidden panels are templates.** The armoury's per-item unit lists are `<template x-if="open">`: Alpine builds them when "Buy for" opens, and `x-init="htmx.process($el)"` wires their forms (htmx does not watch the DOM, it processes what it swaps). Elements 5,116 to 1,760. Use the same for any list of forms that is hidden until a click and repeated per row.
 - **What is not worth it here**, measured: minifying our scripts (about 4 KB gzip once per release), `@source not` for the vendor scripts (0.3 % of the CSS), the sidebar's Alpine bindings (1.8 ms), whitespace stripping (nothing after gzip), gzip level 9 (5 % of a page for more CPU), `content-visibility` on the armoury (22 ms of layout and style in all).
-- **Open items.** The repeated tooltip texts (`data-tip-text`) are 26 % of my company's HTML and 44 % of its gzip: a per-page table of the distinct texts or brotli would take 30.9 KB to about 22 KB. The match page's chain of three round trips ends in the initial-sync refetch of `LiveHub.subscribe` (a `core` change to remove).
+- **Open items.** The repeated tooltip texts (`data-tip-text`) are 26 % of my company's HTML and 44 % of its gzip: a per-page table of the distinct texts or brotli would take 30.9 KB to about 22 KB.
+
+## Database pass at v2.0.0 (`internal/postgres`, `internal/core`)
+
+Numbers, the rejected ideas and the method are in [optimization-report.md](optimization-report.md), "Database pass". What the code does now and what to keep:
+
+- **Statements are prepared once per connection already.** pgx caches the prepared statement of each connection, so the 1.7 to 4.5 ms of planning that `EXPLAIN` shows for the multi-sub-select statements is paid once per connection and statement, not per request. `BenchmarkPages` at 300 requests per page gives the same time with `plan_cache_mode=force_generic_plan` in the URL as without it; do not set it (a generic plan can pick the wrong index on a skewed table, and there is nothing to win).
+- **A read-only GET opens a read scope.** `readOnly` (`internal/web/session.go`) wraps the GET pages and cards in `server.go`; the services behind them share the campaign, company, match, Against the Odds record, live snapshot, match history and rosters they read (`core.WithReadScope`). Cards built side by side share a load in flight. A new GET handler that only reads gets the wrapper; a handler that writes never does (a write does not invalidate the scope). The scope is why my company went from 16 to 9 statements and the match page from 37 to 12.
+- **A repository method that checks that a match belongs to the campaign does it in the statement that reads what it needs** (`atoStore.Get`, `GameStarted`): never `Matches().Get` for a yes or no.
+- **Rosters are read as typed rows.** `ReadRoster` selects the unit columns and the three equipment lists (one lateral probe of `unit_equipment`) instead of building a JSON document per unit; the four jsonb columns of a unit are decoded only when they hold more than their default (`{"v": 1}`). `Read` (one company) still builds its units as JSON.
+- **Rate only what a page shows.** `companyRepository` may also have `ReadRosterOf(ids)` (found by type assertion, like `Nav`). `Campaigns.List` reads all the player's companies of all campaigns in one statement; `Get`, the match page and the Tabletop Simulator dialog read the ids they rate. A page that lists the whole campaign (`Companies`, the matches tab) still calls `ReadRoster`, which the other readers of the request share.
+- **A company save writes the rows that changed.** `Update` fingerprints the loaded state (`rowsOf`: the company row, every unit with its equipment, every grave, built by the same functions that write them) and `save` skips the rows whose fingerprint is unchanged; a sheet save used to cost an UPDATE, a DELETE and an INSERT per item for every unit. A new column of `company_units` goes into `unitRowOf` and is then in the fingerprint without further work. Rows that are not rewritten keep their stored form (a company never saved keeps `pending = {"v": 1}`, the same state as `{"v":1,"recruit":{...null}}` when decoded).
+- **Pool.** Without `pool_max_conns` in `DATABASE_URL` the pool holds at least 10 connections (`minPoolConns`); pgxpool's default is the number of CPUs, at least 4. With 160 match pages requested at once, 4 connections took 2.8 ms a page, 10 took 2.0 and 20 took 1.8 (`BenchmarkPages/match-parallel`, `&pool_max_conns=N` on `WORLD_DATABASE_URL`). The other pool settings are the URL's (see [architecture.md](architecture.md#configuration)).
+- **Indexes.** Every statement the pages and the live mode run has an index path (`SET enable_seqscan = off` and `EXPLAIN` of the 32 distinct statements of a `BenchmarkPages` run shows no sequential scan outside the harness's own lookup of a campaign by name). The demo world is small, so the planner scans the 40-row tables anyway; nothing was added. `matches_campaign_idx (campaign_id, number DESC)` is covered by the unique `(campaign_id, number)`, but dropping it saves nothing measurable and was left.
+
+### The match page's stream
+
+The match page used to open its event stream with a full initial batch, which made it fetch the end card, the end checks and the log again (three requests, 30 statements, a third round trip: 1.0 s at 300 ms of latency). Now `handleMatch` reads a generation before it builds the cards (`LiveService.LiveGeneration`: the match revision and the live log sequence, `"<revision>.<seq>"`; every notification of the live feed comes from a write that raises one of the two: `matchStore.Update` and `atoStore.Update` raise the revision, `liveStore.Update` the sequence) and writes it on the log slot (`data-live-since`); `live.js` opens `/events?since=<generation>`. `LiveService.SubscribeSince` registers the stream first and reads the state after, so a write in between reaches it as an event or shows in the state read, and sends the full initial batch only when the state moved: a reconnect with the old value, or a change between render and subscribe, still refetches everything. A page without a generation (the company page, a page whose generation could not be read) starts with the full batch as before. Anything that changes what the cards show must raise the revision or the sequence, or notify; a new kind of change that does neither would not reach a page that has the generation.
+
+### Tests
+
+The demo-world tests of `cmd/server` wait for a seed of the world: 99,000 statements, 38 s, almost all of it round trips (`synchronous_commit=off` did not help). Writing only the changed rows halves the statements (45,000) and the seed (22 s). `TestLiveActionsSurviveExtremeValues` 109 to 63 s, `TestMalformedInputNeverCrashesAHandler` 67 to 37 s, `TestSeedWorld` 63 to 32 s, `TestPermissionMatrix` 51 to 29 s, the package 118 to 71 s.
+
+Tools added: `PERF_SQL=1` shows the end of each statement, `PERF_STACK=<text>` prints who runs a statement that contains the text, `BenchmarkPages/match-parallel`, `internal/postgres` `BenchmarkDecodeUnits` and `BenchmarkReadRoster` (`WORLD_DATABASE_URL`).
 
 ## Reading a report
 
