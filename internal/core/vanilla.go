@@ -106,34 +106,51 @@ func ParseVanillaWith(content []byte, reviewed []VanillaAmbiguity, log *slog.Log
 
 // parseVanilla is ParseVanillaWith; pinsOnly is set for a lean document, which reviews duplicates by pinning (vanilla.pins) only.
 func parseVanilla(content []byte, reviewed []VanillaAmbiguity, log *slog.Logger, pinsOnly bool) (*VanillaBook, error) {
-	dups := newDuplicates(reviewed, log)
-	dups.pinsOnly = pinsOnly
-	defer dups.report()
-	var doc struct {
-		Stats []struct {
-			Name   string `json:"name"`
-			Abbr   string `json:"abbreviation"`
-			Trail  string `json:"trail"`
-			ShowIf string `json:"showIf"`
-		} `json:"stats"`
-		Data struct {
-			Heroes   []map[string]json.RawMessage `json:"heroes"`
-			Warriors []map[string]json.RawMessage `json:"warriors"`
-			Gear     []map[string]json.RawMessage `json:"gear"`
-			Keywords []struct {
-				Name       string `json:"name"`
-				Definition string `json:"definition"`
-			} `json:"keywords"`
-			Powers []struct {
-				Name       string `json:"name"`
-				Duration   string `json:"duration"`
-				Definition string `json:"definition"`
-			} `json:"magicalPowers"`
-		} `json:"data"`
+	doc, err := decodeVanilla(content)
+	if err != nil {
+		return nil, err
 	}
+	return doc.book(reviewed, log, pinsOnly), nil
+}
+
+// vanillaDoc is the vanilla file as far as the book reads it. It is read-only once decoded, so one decoded file can build several books
+// (loadV2 builds one to check a Battle Companies file against and one with the duplicates that file pins).
+type vanillaDoc struct {
+	Stats []struct {
+		Name   string `json:"name"`
+		Abbr   string `json:"abbreviation"`
+		Trail  string `json:"trail"`
+		ShowIf string `json:"showIf"`
+	} `json:"stats"`
+	Data struct {
+		Heroes   []map[string]json.RawMessage `json:"heroes"`
+		Warriors []map[string]json.RawMessage `json:"warriors"`
+		Gear     []map[string]json.RawMessage `json:"gear"`
+		Keywords []struct {
+			Name       string `json:"name"`
+			Definition string `json:"definition"`
+		} `json:"keywords"`
+		Powers []struct {
+			Name       string `json:"name"`
+			Duration   string `json:"duration"`
+			Definition string `json:"definition"`
+		} `json:"magicalPowers"`
+	} `json:"data"`
+}
+
+func decodeVanilla(content []byte) (*vanillaDoc, error) {
+	var doc vanillaDoc
 	if err := json.Unmarshal(content, &doc); err != nil {
 		return nil, errors.Join(ErrInvalidRuleset, errors.New("the vanilla file is not valid JSON"))
 	}
+	return &doc, nil
+}
+
+// book builds the vanilla book from the decoded file; the arguments are those of parseVanilla.
+func (doc *vanillaDoc) book(reviewed []VanillaAmbiguity, log *slog.Logger, pinsOnly bool) *VanillaBook {
+	dups := newDuplicates(reviewed, log)
+	dups.pinsOnly = pinsOnly
+	defer dups.report()
 	b := &VanillaBook{units: map[string]VanillaUnit{}, keywords: map[string]string{}, gear: map[string]VanillaGear{}, powers: map[string]VanillaPower{},
 		heroes: map[string]bool{}, available: map[string][]string{}}
 	for _, raw := range doc.Data.Heroes {
@@ -149,7 +166,7 @@ func parseVanilla(content []byte, reviewed []VanillaAmbiguity, log *slog.Logger,
 		}
 		b.stats = append(b.stats, StatDef{Key: strings.ToLower(s.Name), Name: s.Name, Abbr: s.Abbr, Trail: s.Trail, HeroOnly: heroOnly})
 	}
-	for _, raw := range append(doc.Data.Heroes, doc.Data.Warriors...) {
+	for _, raw := range slices.Concat(doc.Data.Heroes, doc.Data.Warriors) {
 		var name string
 		_ = json.Unmarshal(raw["name"], &name)
 		if name == "" || !dups.wins("unit", name, raw) {
@@ -205,7 +222,7 @@ func parseVanilla(content []byte, reviewed []VanillaAmbiguity, log *slog.Logger,
 	for key, st := range dups.seen {
 		b.occurrences[key] = st.count
 	}
-	return b, nil
+	return b
 }
 
 // addUnit reads one unit of the vanilla shape (the flat characteristics, race, faction, unitType, specialRules, wargear, options...) into the book. The
