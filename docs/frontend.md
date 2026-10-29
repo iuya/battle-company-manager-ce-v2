@@ -277,14 +277,20 @@ joins counts in the numerator and the denominator: 6 models with 2 bows may take
 
 A card, top to bottom:
 - **Frame and insignia** for the unit's place, with no text tag, each in its own colour in every palette (the rank tokens):
-  leader gold and doubled with a crown, sergeant green and doubled with a star, other heroes solid blue with three
-  chevrons, regular units thin. The shape of the insignia tells them apart without colour.
+  leader gold and doubled with three rank chevrons, sergeant green and doubled with two, other heroes solid blue with
+  one, regular units thin. The shape of the insignia tells them apart without colour.
 - **Title plate** (`.unit-head`) across the top: kind icon, insignia and name, and the points; tinted by the same place
   (`leader-soft`, `sergeant-soft`, `hero-soft`, a warrior's plain) and by `danger-soft` while the unit is injured (its frame
   turns danger too). Keywords, injuries and the live badges follow under it.
-- **Kind icon** (top left), a filled silhouette: a knight in a great helm for infantry, a horse for cavalry (the same horse is the
-  mount icon in the equipment list), a wolf for beasts, a horned dragon for monsters, an oliphaunt for monstrous cavalry
-  (`core.KindOf` from the vanilla unit types). The earlier outline icons are kept in `static/img/archive/`.
+- **Kind icon** (top left), a filled game-icons.net icon (CC BY 3.0, credited in `static/img/CREDITS.md`): a swordwoman for
+  infantry, a cavalry charge for cavalry, a wolf head for beasts, an orc head for monsters and a dragon head for monstrous
+  cavalry (`core.KindOf` from the vanilla unit types). The equipment and item icons are
+  game-icons.net icons too (the lance is a mounted knight), except the horn of instruments (SVG Repo, CC0) and our own
+  stroke icons for an unknown class or item. Barding is Lorc's armoured horse head, apart from the mount's plainer one. Some items get their own icon by name (`core.IconFor`)
+  instead of their class's: wargs, camels and goats, the armoured horse (the barding head), hand-and-a-half weapons,
+  hammers and mattocks, twin blades, natural weapons (claws, teeth, fangs), the glaive, throwing spears, smoke bombs, the
+  troll chain, the whip, light and heavy armour, small shields and the pavise. Some share a drawing and differ by colour: the
+  Galadhrim Steed is a green horse, the pony a grey one, the halberd gold spears. The earlier icons are kept in `static/img/archive/`.
 - **Name** (units are nameable), **type** and **points** (plain text, no box).
 - **Keyword row** (`keyword_row` in `partials/units.gohtml`, spec [`unit-keywords.md`](unit-keywords.md)), directly under the name and type line:
   chips for the unit's race, factions and the unit types no other part of the card says, at most 5, race first. The web layer (`notShownKeywords`
@@ -675,7 +681,7 @@ starting company, reinforcement and special charts, special units, the promotion
 hero upgrades, special rules, free rules, own-name units, exchanges) and its limits and notes. Every unit named (in the starting
 company, charts, special units and promotions) shows its card on hover or focus (`core.UnitPreview`, drawn from the vanilla profiles;
 a company's own label for a unit is resolved to the profile it is); items and rules show their text. The creation form is part of the
-page. The page ends with **Take command**: three places (a leader with a crown, two sergeants with a star) and, below them, the
+page. The page ends with **Take command**: three places (a leader with three chevrons, two sergeants with two) and, below them, the
 starting models. The player drags three models into the places (SortableJS; a model dropped on a taken place sends the one that was
 there back to the pool) or uses the Leader, Sergeant and Remove buttons of a card, which also work with a keyboard. Models the
 company does not let lead (`startingHeroRestriction`: Lake-town only the Lake-town Guard, Cirith Ungol not the Spider) cannot be

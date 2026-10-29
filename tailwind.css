@@ -437,7 +437,13 @@ html[data-mode="dark"] { color-scheme: dark; }
   .eq-secondary { display: inline-flex; opacity: .65; } .eq-secondary .eq-ic { height: .7rem; width: .7rem; }
   .eq-ic-banner, .eq-ic-instrument, .eq-ic-horn, .eq-ic-drum, .eq-ic-badge { color: var(--eq-banner); } .eq-ic-other { color: var(--muted); }
   /* Specific items by family: gear and tools brown, magic purple and teal, food and herbs green, poison red, the generic ones muted. */
-  .eq-ic-backpack, .eq-ic-rope, .eq-ic-boots, .eq-ic-belt, .eq-ic-cloak, .eq-ic-pelt, .eq-ic-barding, .eq-ic-map { color: var(--eq-mount); }
+  .eq-ic-backpack, .eq-ic-rope, .eq-ic-boots, .eq-ic-belt, .eq-ic-cloak, .eq-ic-pelt, .eq-ic-barding, .eq-ic-map,
+  .eq-ic-warg, .eq-ic-camel, .eq-ic-goat, .eq-ic-armoured-horse { color: var(--eq-mount); }
+  .eq-ic-steed { color: var(--eq-bow); } .eq-ic-pony { color: var(--eq-armour); } /* same horse, told apart by colour */
+  .eq-ic-hammer, .eq-ic-hand-and-a-half, .eq-ic-twin-blades, .eq-ic-claws { color: var(--eq-melee); }
+  .eq-ic-glaive { color: var(--eq-spear); } .eq-ic-halberd { color: var(--gold); }
+  .eq-ic-thrown-spear, .eq-ic-smoke-bomb, .eq-ic-chain, .eq-ic-whip { color: var(--eq-throwing); }
+  .eq-ic-light-armour, .eq-ic-heavy-armour { color: var(--eq-armour); } .eq-ic-small-shield, .eq-ic-pavise { color: var(--eq-shield); }
   .eq-ic-ring, .eq-ic-talisman, .eq-ic-scroll { color: var(--eq-throwing); } .eq-ic-orb { color: var(--eq-crossbow); }
   .eq-ic-herbs, .eq-ic-cram, .eq-ic-brew { color: var(--eq-bow); } .eq-ic-vial, .eq-ic-torch { color: var(--eq-melee); }
   .eq-ic-snare, .eq-ic-blowpipe { color: var(--eq-armour); } .eq-ic-axe { color: var(--eq-melee); }

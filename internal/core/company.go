@@ -159,6 +159,14 @@ var iconRules = []struct {
 	{"torch", []string{"brand", "torch"}}, {"snare", []string{"snares", "traps", "trap!"}}, {"pelt", []string{"pelt", "hide", "fur"}},
 	{"cram", []string{"cram", "lembas", "bread"}}, {"belt", []string{"belt"}}, {"vial", []string{"envenom", "poison", "venom"}},
 	{"blowpipe", []string{"blowpipe"}}, {"axe", []string{"axe"}},
+	{"warg", []string{"warg"}}, {"camel", []string{"camel"}}, {"goat", []string{"goat"}}, // mounts that are not horses
+	{"armoured-horse", []string{"armoured horse"}}, {"steed", []string{"galadhrim steed"}}, {"pony", []string{"pony"}},
+	// weapons and armour drawn more precisely than by their class
+	{"hammer", []string{"hammer", "mattock"}}, {"hand-and-a-half", []string{"hand-and-a-half"}}, {"twin-blades", []string{"twin blades"}},
+	{"claws", []string{"claws", "teeth", "fangs", "talons", "beaks"}}, {"glaive", []string{"glaive"}}, {"halberd", []string{"halberd"}},
+	{"thrown-spear", []string{"throwing spears"}}, {"smoke-bomb", []string{"smoke bomb"}}, {"chain", []string{"chain"}}, {"whip", []string{"whip"}},
+	{"light-armour", []string{"light armour"}}, {"heavy-armour", []string{"heavy armour", "heavy dwarf armour"}},
+	{"small-shield", []string{"small shield", "light shield"}}, {"pavise", []string{"pavise"}},
 }
 
 var iconsByName memo
