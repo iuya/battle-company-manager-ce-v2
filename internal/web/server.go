@@ -403,7 +403,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /campaigns/{id}/handover", s.protected(s.handleHandOver))
 	mux.HandleFunc("GET /join/{token}", s.session(s.handleJoinPage))
 	mux.HandleFunc("POST /join/{token}", s.protected(s.handleJoin))
-	mux.HandleFunc("GET /campaigns/{id}/my-company", s.protected(s.handleMyCompanyAlias))
+	mux.HandleFunc("GET /campaigns/{id}/my-company", s.protected(readOnly(s.handleMyCompanyAlias)))
 	mux.HandleFunc("GET /campaigns/{id}/my-company/{company}", s.protected(readOnly(s.handleMyCompany)))
 	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/perks/{perk}/use", s.protected(s.once(s.handleUsePerk)))
 	mux.HandleFunc("GET /campaigns/{id}/my-company/{company}/recruit", s.protected(s.handleRecruitPanel))
