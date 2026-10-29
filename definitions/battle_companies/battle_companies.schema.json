@@ -1,5 +1,436 @@
 {
   "$defs": {
+    "ATOBonus": {
+      "additionalProperties": false,
+      "description": "One Against the Odds bonus. influence, experience and reroll are plain switches (gains, count); toolKit (kits, purchase), wanderer and ambush are bonuses the app has its own windows for. Any other key is a plain bonus that costs its rating and adds its gains.",
+      "properties": {
+        "affects": {
+          "description": "What a re-roll may re-roll: singleDieOrSingleResult. Informational.",
+          "enum": [
+            "singleDieOrSingleResult"
+          ],
+          "type": "string"
+        },
+        "appliesIn": {
+          "description": "When the bonus acts: setup, game, aftermath or scenarioChoice. A practice match refuses the bonuses that only pay in the aftermath.",
+          "items": {
+            "enum": [
+              "setup",
+              "game",
+              "aftermath",
+              "scenarioChoice"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "carriesOver": {
+          "description": "true: the bonus lasts beyond the match. Informational.",
+          "type": "boolean"
+        },
+        "count": {
+          "description": "How many re-rolls the bonus gives (reroll).",
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "expires": {
+          "description": "When the bonus ends. Informational.",
+          "enum": [
+            "endOfMatchAftermath",
+            "endOfMatch"
+          ],
+          "type": "string"
+        },
+        "gains": {
+          "$ref": "#/$defs/ATOGains",
+          "description": "What the bonus adds after the match."
+        },
+        "grants": {
+          "$ref": "#/$defs/ATOGrant",
+          "description": "What a structured bonus gives."
+        },
+        "key": {
+          "description": "The key of the bonus; unique. influence, experience, reroll, toolKit, wanderer and ambush have their own behaviour.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "kits": {
+          "description": "The kits of the Tool Kit bonus.",
+          "items": {
+            "$ref": "#/$defs/ATOKit"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "The name the players see.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "purchase": {
+          "$ref": "#/$defs/ATOPurchase",
+          "description": "How many kits may be bought (Tool Kit)."
+        },
+        "rating": {
+          "description": "The Rating the bonus adds to the company's rating (for the Tool Kit, per kit).",
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "temporary": {
+          "description": "true: the bonus lasts for one match (wanderer). Informational.",
+          "type": "boolean"
+        },
+        "text": {
+          "description": "The rule in words.",
+          "type": "string"
+        },
+        "usableIn": {
+          "description": "Where a re-roll may be used: game or warsAftermath. Informational.",
+          "items": {
+            "enum": [
+              "game",
+              "warsAftermath"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "rating"
+      ],
+      "type": "object"
+    },
+    "ATOBudget": {
+      "additionalProperties": false,
+      "description": "The rule that the sum of the Ratings of the chosen bonuses may not take the lower company above its opponent's Rating.",
+      "properties": {
+        "inclusive": {
+          "description": "true: the bonuses may take the lower company exactly up to its opponent's Rating (\"must not exceed\"); false: they must leave it below.",
+          "type": "boolean"
+        },
+        "rule": {
+          "description": "ratingAfterBonusesNotAboveOpponent. Informational.",
+          "enum": [
+            "ratingAfterBonusesNotAboveOpponent"
+          ],
+          "type": "string"
+        },
+        "text": {
+          "description": "The rule in words.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "ATOEligible": {
+      "additionalProperties": false,
+      "description": "Who may choose bonuses: the company with the strictly lower Rating, compared before the bonuses.",
+      "properties": {
+        "company": {
+          "description": "lowerRating: the company that chooses. Informational.",
+          "enum": [
+            "lowerRating"
+          ],
+          "type": "string"
+        },
+        "compare": {
+          "description": "strictlyLower: at equal Ratings nobody chooses. Informational.",
+          "enum": [
+            "strictlyLower"
+          ],
+          "type": "string"
+        },
+        "ratingBeforeBonuses": {
+          "description": "true: the comparison is made before the bonuses. Informational.",
+          "type": "boolean"
+        },
+        "text": {
+          "description": "The rule in words.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "ATOGains": {
+      "additionalProperties": false,
+      "description": "The rewards a bonus adds after the match.",
+      "properties": {
+        "experiencePerModel": {
+          "$ref": "#/$defs/ATOReward",
+          "description": "Experience added for every model of the company, by result."
+        },
+        "influence": {
+          "$ref": "#/$defs/ATOReward",
+          "description": "Influence added for the company, by result."
+        }
+      },
+      "type": "object"
+    },
+    "ATOGrant": {
+      "additionalProperties": false,
+      "description": "What a structured bonus gives: loaned equipment (Tool Kit), a temporary model (Wanderer) or the choice of the scenario (Ambush!). The app reads these bonuses by their key; these keys state the rules in data for the reader of the file and are not read.",
+      "properties": {
+        "addsRating": {
+          "description": "true: the loaned items add to the Rating.",
+          "type": "boolean"
+        },
+        "assignAt": {
+          "description": "When the items are handed out: beforeSetup.",
+          "enum": [
+            "beforeSetup"
+          ],
+          "type": "string"
+        },
+        "assignTo": {
+          "description": "Who gets them: anyModelOfTheMatch.",
+          "enum": [
+            "anyModelOfTheMatch"
+          ],
+          "type": "string"
+        },
+        "carriesOver": {
+          "description": "true: the grant lasts beyond the match.",
+          "type": "boolean"
+        },
+        "chosenBy": {
+          "description": "Who chooses the scenario: lowerRatedCompany.",
+          "enum": [
+            "lowerRatedCompany"
+          ],
+          "type": "string"
+        },
+        "count": {
+          "description": "How many models the grant adds.",
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "countsTowardsBreakPoint": {
+          "description": "true: the temporary model counts for the Break Point.",
+          "type": "boolean"
+        },
+        "countsTowardsMaxModels": {
+          "description": "true: the temporary model counts towards the company's size.",
+          "type": "boolean"
+        },
+        "duration": {
+          "description": "How long the choice holds: thisMatch.",
+          "enum": [
+            "thisMatch"
+          ],
+          "type": "string"
+        },
+        "exclusiveWithPermanentWanderer": {
+          "description": "true: a company with a permanent Wanderer cannot take it.",
+          "type": "boolean"
+        },
+        "expires": {
+          "description": "When the grant ends.",
+          "enum": [
+            "endOfMatchAftermath",
+            "endOfMatch"
+          ],
+          "type": "string"
+        },
+        "from": {
+          "description": "Where the choice comes from (data.wanderers.items, scenarios).",
+          "minLength": 1,
+          "type": "string"
+        },
+        "gainsExperience": {
+          "description": "true: the temporary model earns Experience.",
+          "type": "boolean"
+        },
+        "goldCost": {
+          "description": "The Gold it costs.",
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "ignores": {
+          "description": "The rules the loaned items ignore: capacity, alignment.",
+          "items": {
+            "enum": [
+              "capacity",
+              "alignment"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "influenceCost": {
+          "description": "The Influence it costs.",
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "kind": {
+          "description": "loanedEquipment, temporaryModel or chooseScenario.",
+          "enum": [
+            "loanedEquipment",
+            "temporaryModel",
+            "chooseScenario"
+          ],
+          "type": "string"
+        },
+        "oncePerKit": {
+          "description": "true: one of each kit.",
+          "type": "boolean"
+        },
+        "persistsAfterMatch": {
+          "description": "true: the model stays after the match.",
+          "type": "boolean"
+        },
+        "ratingCost": {
+          "description": "bonusRating: it costs the bonus's rating.",
+          "enum": [
+            "bonusRating"
+          ],
+          "type": "string"
+        },
+        "replaces": {
+          "description": "What the choice replaces: scenarioTableRoll.",
+          "enum": [
+            "scenarioTableRoll"
+          ],
+          "type": "string"
+        },
+        "rolesBy": {
+          "description": "How the roles are given: scenarioRules.",
+          "enum": [
+            "scenarioRules"
+          ],
+          "type": "string"
+        },
+        "rollsInjuries": {
+          "description": "true: the temporary model rolls on the injury chart.",
+          "type": "boolean"
+        },
+        "rules": {
+          "description": "The rules of the temporary model in words.",
+          "type": "string"
+        },
+        "stillApplies": {
+          "description": "The restrictions that still apply: heroOnly.",
+          "items": {
+            "enum": [
+              "heroOnly"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "takesRosterSlot": {
+          "description": "true: the temporary model takes a place of the roster.",
+          "type": "boolean"
+        },
+        "usableByTemporaryWanderer": {
+          "description": "true: the temporary Wanderer may use the items.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "ATOKit": {
+      "additionalProperties": false,
+      "description": "A kit of the Tool Kit bonus: the items it lends.",
+      "properties": {
+        "items": {
+          "description": "The items the kit lends.",
+          "items": {
+            "$ref": "#/$defs/ATOKitItem"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "name": {
+          "description": "The name of the kit; the app makes the key of the kit from its first word (Healer's Kit is healer). Unique.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "items"
+      ],
+      "type": "object"
+    },
+    "ATOKitItem": {
+      "additionalProperties": false,
+      "description": "An item of a kit and how many copies the kit holds.",
+      "properties": {
+        "count": {
+          "description": "How many copies the kit holds; default 1.",
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "equipment": {
+          "description": "The name of an equipment item of the file; a name with (X) asks the player for the weapon it is on.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "equipment"
+      ],
+      "type": "object"
+    },
+    "ATOPurchase": {
+      "additionalProperties": false,
+      "description": "How many kits the Tool Kit bonus may be bought for.",
+      "properties": {
+        "chooses": {
+          "description": "oneKit: each purchase is one kit.",
+          "enum": [
+            "oneKit"
+          ],
+          "type": "string"
+        },
+        "distinctKits": {
+          "description": "true: a kit may be bought once. Informational; the app always refuses a kit twice.",
+          "type": "boolean"
+        },
+        "maxPurchases": {
+          "description": "The most kits that may be bought.",
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ratingPerKit": {
+          "description": "true: every kit costs the bonus's rating. Informational; the Tool Kit always does.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "ATOReward": {
+      "additionalProperties": false,
+      "description": "A reward by result.",
+      "properties": {
+        "other": {
+          "description": "The reward for a Draw or a Defeat.",
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "win": {
+          "description": "The reward for a Victory.",
+          "maximum": 20,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "win",
+        "other"
+      ],
+      "type": "object"
+    },
     "Abilities": {
       "additionalProperties": false,
       "description": "The two item abilities the engine reads; every other ability is item text only.",
@@ -129,6 +560,39 @@
       "required": [
         "key"
       ],
+      "type": "object"
+    },
+    "AgainstTheOdds": {
+      "additionalProperties": false,
+      "description": "The bonuses the lower rated company may take after the scenario roll, and the rules of the budget and of who may choose. The bonuses and the budget are read by the engine; the other keys are rule text.",
+      "properties": {
+        "bonuses": {
+          "description": "The bonuses, in the order the players see them.",
+          "items": {
+            "$ref": "#/$defs/ATOBonus"
+          },
+          "type": "array"
+        },
+        "budget": {
+          "$ref": "#/$defs/ATOBudget",
+          "description": "The Rating budget of the bonuses."
+        },
+        "eligible": {
+          "$ref": "#/$defs/ATOEligible",
+          "description": "Who may choose bonuses."
+        },
+        "selectedAt": {
+          "description": "When the bonuses are chosen: afterScenarioRollBeforeSetup. Informational.",
+          "enum": [
+            "afterScenarioRollBeforeSetup"
+          ],
+          "type": "string"
+        },
+        "text": {
+          "description": "The rule in words. Shown to the players.",
+          "type": "string"
+        }
+      },
       "type": "object"
     },
     "ArmourUpgrade": {
@@ -515,7 +979,8 @@
           "type": "array"
         },
         "againstTheOdds": {
-          "description": "The Against the Odds bonuses of the lower-rated company: text, bonuses[{name, key, text, appliesIn, rating, gains, ...}]. Not typed; the shape of the shipped file is read."
+          "$ref": "#/$defs/AgainstTheOdds",
+          "description": "The Against the Odds bonuses of the lower-rated company, and how the budget and the eligibility work."
         },
         "breakPoint": {
           "$ref": "#/$defs/BreakPoint",

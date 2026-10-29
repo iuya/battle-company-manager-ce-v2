@@ -15,11 +15,11 @@ type Campaign struct {
 	ScenarioSelection ScenarioSelection `json:"scenarioSelection" required:"true"`
 	AftermathEffects  []AftermathEffect `json:"aftermathEffects,omitempty"`
 
-	CharacteristicLimits Free `json:"characteristicLimits,omitempty"`
-	AgainstTheOdds       Free `json:"againstTheOdds,omitempty"` // not typed yet
-	Gold                 Free `json:"gold,omitempty"`
-	MatchInput           Free `json:"matchInput,omitempty"` // prose shown to players
-	Options              Free `json:"options,omitempty"`
+	CharacteristicLimits Free           `json:"characteristicLimits,omitempty"`
+	AgainstTheOdds       AgainstTheOdds `json:"againstTheOdds,omitempty"`
+	Gold                 Free           `json:"gold,omitempty"`
+	MatchInput           Free           `json:"matchInput,omitempty"` // prose shown to players
+	Options              Free           `json:"options,omitempty"`
 }
 
 // CompanyRules is `campaign.company`.

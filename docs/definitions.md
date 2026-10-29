@@ -136,8 +136,10 @@ the path, in the upload report and at start-up. `lean.ParameterIDs` is the index
 **Typed tables.** `campaign.injuries` is typed (`lean.Injuries`, `campaign_injuries.go`): the rows with their `effects` (a closed vocabulary), persistence and `retireAtCount`, `disables`, `grantsAtCount`, `heals`, the
 dice grants, and the `treatment` methods with their rolls. The upload checks the ranges, the vocabularies and the cross references (a treatment target the dice cannot reach, a `healable` or `heals` key that is no hero injury, a `disables` entry
 without its classes, names or ability) with the path of the key; `core.LeanInjuries` and `core.LeanAftermath` read the typed values.
+`campaign.againstTheOdds` is typed too (`lean.AgainstTheOdds`, `campaign_ato.go`): the bonuses (key, name, rating, `appliesIn`, `gains`, `count`, the structured `grants`, `kits` and `purchase`), the budget and the eligibility;
+bonus keys and kit names are unique. `core.LeanATO` and `core.LeanAftermath` read the typed values.
 
-**Tables still kept in the shipped shape.** `campaign.aftermathEffects`, `campaign.againstTheOdds`,
+**Tables still kept in the shipped shape.** `campaign.aftermathEffects`,
 `campaign.matchInput`, `campaign.options` and `campaign.characteristicLimits` are read by the engine in the shape of the shipped file (`Rest` maps and `Free` values in the Go model): a custom file changes their numbers and
 texts, copies their structure, and does not invent keys the engine does not know. `campaign.options[]` is the single list of switches (`key`, `scope` `rules` or `app`, `label`, `description`, `default`,
 `implemented`, `swaps`); a reader that does not know a key ignores it and logs a warning. Objects that record a house-rule decision carry `confirmedByUser` and `defaultNotConfirmed` lists.

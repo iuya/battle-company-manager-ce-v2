@@ -243,6 +243,7 @@ func (v *validator) parameters(c *Campaign) {
 		}
 	}
 	v.injuryParameters(&c.Injuries)
+	v.oddsParameters(&c.AgainstTheOdds)
 	seen := map[string]int{}
 	for i, g := range c.Experience.Gains {
 		if first, dup := seen[g.Key]; dup {
@@ -327,5 +328,26 @@ func (v *validator) treatRoll(r *TreatRoll, path string) {
 		v.rep.Errorf(Join(path, "target"), "%d is outside 1..%d, the highest roll of %s", r.Target, r.Dice.Max(), r.Dice)
 	} else if c := r.Modifier.Ceiling; c > 0 && c < r.Target {
 		v.rep.Errorf(Join(Join(path, "modifier"), "ceiling"), "%d is below the target %d", c, r.Target)
+	}
+}
+
+// oddsParameters checks that the bonuses and the kits of Against the Odds are named once each.
+func (v *validator) oddsParameters(a *AgainstTheOdds) {
+	keys := map[string]int{}
+	for i, b := range a.Bonuses {
+		bp := Idx("campaign.againstTheOdds.bonuses", i)
+		if first, dup := keys[b.Key]; dup {
+			v.rep.Errorf(Join(bp, "key"), "%q is already used at campaign.againstTheOdds.bonuses[%d]", b.Key, first)
+		} else {
+			keys[b.Key] = i
+		}
+		kits := map[string]int{}
+		for j, k := range b.Kits {
+			if first, dup := kits[k.Name]; dup {
+				v.rep.Errorf(Join(Idx(Join(bp, "kits"), j), "name"), "%q is already used at %s", k.Name, Join(Idx(Join(bp, "kits"), first), "name"))
+			} else {
+				kits[k.Name] = j
+			}
+		}
 	}
 }

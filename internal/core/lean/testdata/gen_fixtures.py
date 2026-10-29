@@ -159,6 +159,29 @@ def injuries_full():
 def with_injuries(inj):
     d=doc(); d["campaign"]["injuries"]=inj; return d
 w('injuries',with_injuries(injuries_full()))
+
+# ---- Against the Odds, typed ----
+def ato_full():
+    return {"text":"The Battle Company with the lower rating may select bonuses.",
+     "bonuses":[
+      {"name":"Influence","key":"influence","text":"+2 Influence for Victory, +1 for Draw or Defeat.","appliesIn":["aftermath"],"gains":{"influence":{"other":1,"win":2}},"rating":15},
+      {"name":"Experience","key":"experience","text":"+2 Experience per model.","appliesIn":["aftermath"],"gains":{"experiencePerModel":{"other":1,"win":2}},"rating":30},
+      {"name":"Reroll","key":"reroll","text":"Two rerolls.","affects":"singleDieOrSingleResult","appliesIn":["game","aftermath"],"carriesOver":False,"count":2,"expires":"endOfMatchAftermath","rating":15,"usableIn":["game","warsAftermath"]},
+      {"name":"Tool Kit","key":"toolKit","text":"One of each Kit.","appliesIn":["setup","game","aftermath"],
+       "grants":{"kind":"loanedEquipment","addsRating":False,"assignAt":"beforeSetup","assignTo":"anyModelOfTheMatch","carriesOver":False,"expires":"endOfMatchAftermath","ignores":["capacity","alignment"],"oncePerKit":True,"stillApplies":["heroOnly"],"usableByTemporaryWanderer":False},
+       "kits":[{"name":"Healer's Kit","items":[{"count":5,"equipment":"Wondrous Cram"},{"count":2,"equipment":"Healing Herbs"}]}],
+       "purchase":{"chooses":"oneKit","distinctKits":True,"maxPurchases":5,"ratingPerKit":True},"rating":30},
+      {"name":"Wanderer","key":"wanderer","text":"A temporary Wanderer.","appliesIn":["setup","game"],
+       "grants":{"kind":"temporaryModel","count":1,"countsTowardsBreakPoint":True,"countsTowardsMaxModels":False,"exclusiveWithPermanentWanderer":True,"expires":"endOfMatch","from":"data.wanderers.items","gainsExperience":False,"goldCost":0,"influenceCost":0,"persistsAfterMatch":False,"ratingCost":"bonusRating","rollsInjuries":False,"rules":"No Stand Fast.","takesRosterSlot":False},
+       "rating":45,"temporary":True},
+      {"name":"Ambush!","key":"ambush","text":"You choose the scenario.","appliesIn":["scenarioChoice"],
+       "grants":{"kind":"chooseScenario","chosenBy":"lowerRatedCompany","duration":"thisMatch","from":"scenarios","replaces":"scenarioTableRoll","rolesBy":"scenarioRules"},"rating":60}],
+     "budget":{"text":"The sum may not exceed.","inclusive":True,"rule":"ratingAfterBonusesNotAboveOpponent"},
+     "eligible":{"text":"Only the lower company chooses.","company":"lowerRating","compare":"strictlyLower","ratingBeforeBonuses":True},
+     "selectedAt":"afterScenarioRollBeforeSetup"}
+def with_ato(a):
+    d=doc(); d["campaign"]["againstTheOdds"]=a; return d
+w('against_the_odds',with_ato(ato_full()))
 print(sorted(os.listdir(out)))
 
 # ---- invalid catalogue (bind level) ----
@@ -260,6 +283,19 @@ def treat_edit(inj):
     t["hero"].append({"key":"prayer","cost":1}); t["hero"][2]["roll"]={"dice":"d6","target":3,"modifier":{"direction":"down"}}
     t["warrior"]["cost"]=50; t["warrior"]["removes"]="dead"; t["removalEffect"]["countDelta"]=1
 wi('injury_treatment',bad_injuries(treat_edit))
+
+
+def bad_ato(edit):
+    a=ato_full(); edit(a); return with_ato(a)
+def ato_edit(a):
+    b=a["bonuses"]
+    b[0]["appliesIn"]=["aftermath","later"]; b[0]["gains"]["influence"]={"win":50}
+    del b[1]["rating"]; b[1]["key"]="influence"
+    b[2]["count"]=0; b[2]["expires"]="never"
+    b[3]["kits"].append({"name":"Healer's Kit","items":[{"equipment":""}]}); b[3]["purchase"]["maxPurchases"]=0
+    b[4]["grants"]["kind"]="permanentModel"; b[4]["grants"]["colour"]="red"
+    a["budget"]["rule"]="anything"; a["eligible"]["compare"]="lower"; a["selectedAt"]="whenever"
+wi('odds_bonuses',bad_ato(ato_edit))
 
 # ---- header and version ----
 d=doc(); d['schemaVersion']=1; wi('version',d)

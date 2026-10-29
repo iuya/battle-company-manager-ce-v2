@@ -104,35 +104,9 @@ func (r ATORules) Wanderer(name string) (ATOWandererRule, bool) {
 	return r.Wanderers[i], true
 }
 
-// LeanATO reads the Against the Odds rules of a lean document: the bonuses of campaign.againstTheOdds (the table as the file stores it
-// until a parameter slice types it), the equipment the kits name and the wanderers a match may recruit.
+// LeanATO reads the Against the Odds rules of a lean document: the bonuses of campaign.againstTheOdds, the equipment the kits name and the wanderers a match may recruit.
 func LeanATO(d *lean.Document, vanilla *VanillaBook) (ATORules, error) {
-	var ato struct {
-		Budget struct {
-			Inclusive bool `json:"inclusive"`
-		} `json:"budget"`
-		Bonuses []struct {
-			Key       string   `json:"key"`
-			Name      string   `json:"name"`
-			Text      string   `json:"text"`
-			Rating    int      `json:"rating"`
-			Count     int      `json:"count"`
-			AppliesIn []string `json:"appliesIn"`
-			Purchase  struct {
-				Max int `json:"maxPurchases"`
-			} `json:"purchase"`
-			Kits []struct {
-				Name  string `json:"name"`
-				Items []struct {
-					Equipment string `json:"equipment"`
-					Count     int    `json:"count"`
-				} `json:"items"`
-			} `json:"kits"`
-		} `json:"bonuses"`
-	}
-	if err := leanRoundTrip(d.Campaign.AgainstTheOdds, &ato); err != nil {
-		return ATORules{}, errors.Join(ErrInvalidRuleset, err)
-	}
+	ato := d.Campaign.AgainstTheOdds
 	heroOnly, afterGame := map[string]bool{}, map[string]bool{}
 	for _, it := range d.Gear {
 		if it.Kind == "equipment" {
@@ -146,7 +120,7 @@ func LeanATO(d *lean.Document, vanilla *VanillaBook) (ATORules, error) {
 		if b.Key != atoToolKit {
 			continue
 		}
-		r.MaxKits = b.Purchase.Max
+		r.MaxKits = b.Purchase.MaxPurchases
 		for _, k := range b.Kits {
 			kit := ATOKitRule{Key: kitKey(k.Name), Name: k.Name}
 			for _, it := range k.Items {

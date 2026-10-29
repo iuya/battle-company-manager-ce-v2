@@ -71,7 +71,7 @@ Found at: `campaign`.
 | `rating` | [RatingRules](#ratingrules) | yes | - | - | The rating rules. |
 | `scenarioSelection` | [ScenarioSelection](#scenarioselection) | yes | - | - | How a scenario is rolled. |
 | `aftermathEffects` | list of [AftermathEffect](#aftermatheffect) |  | - | - | Rewards and bonuses of the War's Aftermath, keyed by the name a scenario reward or an item points at. |
-| `againstTheOdds` | any |  | - | - | The Against the Odds bonuses of the lower-rated company: text, bonuses[{name, key, text, appliesIn, rating, gains, ...}]. Not typed; the shape of the shipped file is read. |
+| `againstTheOdds` | [AgainstTheOdds](#againsttheodds) |  | - | - | The Against the Odds bonuses of the lower-rated company, and how the budget and the eligibility work. |
 | `characteristicLimits` | any |  | - | - | The ceilings of the characteristics: lowerIsBetter (the stats where a lower number is better), peak (the highest a stat goes, and willMaxOverrides, a path's own Will maximum), average and increases.courageIntelligenceTotalCap {value, includesGear}. Not typed; the shape of the shipped file is read. |
 | `gold` | any |  | - | - | How Gold works. Prose and keys read by the pages; not typed. |
 | `matchInput` | any |  | - | - | What the players enter per match. Prose shown to the players; not typed. |
@@ -669,6 +669,162 @@ Found at: `campaign.aftermathEffects[]`.
 |---|---|---|---|---|---|
 | `key` | string | yes | - | not empty | The key a scenario reward (rewards[].effect) or an item (aftermathEffect) points at. rendezvous and vantagePoint also need a range. |
 | `range` | list of integer |  | - | -6..6; 2..2 items | [low, high], how far the effect moves a die; -6..6. |
+
+### AgainstTheOdds
+
+The bonuses the lower rated company may take after the scenario roll, and the rules of the budget and of who may choose. The bonuses and the budget are read by the engine; the other keys are rule text.
+
+Found at: `campaign.againstTheOdds`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `bonuses` | list of [ATOBonus](#atobonus) |  | - | - | The bonuses, in the order the players see them. |
+| `budget` | [ATOBudget](#atobudget) |  | - | - | The Rating budget of the bonuses. |
+| `eligible` | [ATOEligible](#atoeligible) |  | - | - | Who may choose bonuses. |
+| `selectedAt` | string |  | - | `afterScenarioRollBeforeSetup` | When the bonuses are chosen: afterScenarioRollBeforeSetup. Informational. |
+| `text` | string |  | - | - | The rule in words. Shown to the players. |
+
+### ATOBonus
+
+One Against the Odds bonus. influence, experience and reroll are plain switches (gains, count); toolKit (kits, purchase), wanderer and ambush are bonuses the app has its own windows for. Any other key is a plain bonus that costs its rating and adds its gains.
+
+Found at: `campaign.againstTheOdds.bonuses[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `key` | string | yes | - | not empty | The key of the bonus; unique. influence, experience, reroll, toolKit, wanderer and ambush have their own behaviour. |
+| `name` | string | yes | - | not empty | The name the players see. |
+| `rating` | integer | yes | - | 0..1000 | The Rating the bonus adds to the company's rating (for the Tool Kit, per kit). |
+| `affects` | string |  | - | `singleDieOrSingleResult` | What a re-roll may re-roll: singleDieOrSingleResult. Informational. |
+| `appliesIn` | list of string |  | - | `setup`, `game`, `aftermath`, `scenarioChoice` | When the bonus acts: setup, game, aftermath or scenarioChoice. A practice match refuses the bonuses that only pay in the aftermath. |
+| `carriesOver` | boolean |  | - | - | true: the bonus lasts beyond the match. Informational. |
+| `count` | integer |  | - | 1..20 | How many re-rolls the bonus gives (reroll). |
+| `expires` | string |  | - | `endOfMatchAftermath`, `endOfMatch` | When the bonus ends. Informational. |
+| `gains` | [ATOGains](#atogains) |  | - | - | What the bonus adds after the match. |
+| `grants` | [ATOGrant](#atogrant) |  | - | - | What a structured bonus gives. |
+| `kits` | list of [ATOKit](#atokit) |  | - | - | The kits of the Tool Kit bonus. |
+| `purchase` | [ATOPurchase](#atopurchase) |  | - | - | How many kits may be bought (Tool Kit). |
+| `temporary` | boolean |  | - | - | true: the bonus lasts for one match (wanderer). Informational. |
+| `text` | string |  | - | - | The rule in words. |
+| `usableIn` | list of string |  | - | `game`, `warsAftermath` | Where a re-roll may be used: game or warsAftermath. Informational. |
+
+### ATOGains
+
+The rewards a bonus adds after the match.
+
+Found at: `campaign.againstTheOdds.bonuses[].gains`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `experiencePerModel` | [ATOReward](#atoreward) |  | - | - | Experience added for every model of the company, by result. |
+| `influence` | [ATOReward](#atoreward) |  | - | - | Influence added for the company, by result. |
+
+### ATOReward
+
+A reward by result.
+
+Found at: `campaign.againstTheOdds.bonuses[].gains.experiencePerModel`, `campaign.againstTheOdds.bonuses[].gains.influence`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `win` | integer | yes | - | 0..20 | The reward for a Victory. |
+| `other` | integer | yes | - | 0..20 | The reward for a Draw or a Defeat. |
+
+### ATOGrant
+
+What a structured bonus gives: loaned equipment (Tool Kit), a temporary model (Wanderer) or the choice of the scenario (Ambush!). The app reads these bonuses by their key; these keys state the rules in data for the reader of the file and are not read.
+
+Found at: `campaign.againstTheOdds.bonuses[].grants`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `addsRating` | boolean |  | - | - | true: the loaned items add to the Rating. |
+| `assignAt` | string |  | - | `beforeSetup` | When the items are handed out: beforeSetup. |
+| `assignTo` | string |  | - | `anyModelOfTheMatch` | Who gets them: anyModelOfTheMatch. |
+| `carriesOver` | boolean |  | - | - | true: the grant lasts beyond the match. |
+| `chosenBy` | string |  | - | `lowerRatedCompany` | Who chooses the scenario: lowerRatedCompany. |
+| `count` | integer |  | - | 1..20 | How many models the grant adds. |
+| `countsTowardsBreakPoint` | boolean |  | - | - | true: the temporary model counts for the Break Point. |
+| `countsTowardsMaxModels` | boolean |  | - | - | true: the temporary model counts towards the company's size. |
+| `duration` | string |  | - | `thisMatch` | How long the choice holds: thisMatch. |
+| `exclusiveWithPermanentWanderer` | boolean |  | - | - | true: a company with a permanent Wanderer cannot take it. |
+| `expires` | string |  | - | `endOfMatchAftermath`, `endOfMatch` | When the grant ends. |
+| `from` | string |  | - | not empty | Where the choice comes from (data.wanderers.items, scenarios). |
+| `gainsExperience` | boolean |  | - | - | true: the temporary model earns Experience. |
+| `goldCost` | integer |  | - | 0..1000 | The Gold it costs. |
+| `ignores` | list of string |  | - | `capacity`, `alignment` | The rules the loaned items ignore: capacity, alignment. |
+| `influenceCost` | integer |  | - | 0..1000 | The Influence it costs. |
+| `kind` | string |  | - | `loanedEquipment`, `temporaryModel`, `chooseScenario` | loanedEquipment, temporaryModel or chooseScenario. |
+| `oncePerKit` | boolean |  | - | - | true: one of each kit. |
+| `persistsAfterMatch` | boolean |  | - | - | true: the model stays after the match. |
+| `ratingCost` | string |  | - | `bonusRating` | bonusRating: it costs the bonus's rating. |
+| `replaces` | string |  | - | `scenarioTableRoll` | What the choice replaces: scenarioTableRoll. |
+| `rolesBy` | string |  | - | `scenarioRules` | How the roles are given: scenarioRules. |
+| `rollsInjuries` | boolean |  | - | - | true: the temporary model rolls on the injury chart. |
+| `rules` | string |  | - | - | The rules of the temporary model in words. |
+| `stillApplies` | list of string |  | - | `heroOnly` | The restrictions that still apply: heroOnly. |
+| `takesRosterSlot` | boolean |  | - | - | true: the temporary model takes a place of the roster. |
+| `usableByTemporaryWanderer` | boolean |  | - | - | true: the temporary Wanderer may use the items. |
+
+### ATOKit
+
+A kit of the Tool Kit bonus: the items it lends.
+
+Found at: `campaign.againstTheOdds.bonuses[].kits[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `name` | string | yes | - | not empty | The name of the kit; the app makes the key of the kit from its first word (Healer's Kit is healer). Unique. |
+| `items` | list of [ATOKitItem](#atokititem) | yes | - | at least 1 items | The items the kit lends. |
+
+### ATOKitItem
+
+An item of a kit and how many copies the kit holds.
+
+Found at: `campaign.againstTheOdds.bonuses[].kits[].items[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `equipment` | string | yes | - | not empty | The name of an equipment item of the file; a name with (X) asks the player for the weapon it is on. |
+| `count` | integer |  | - | 1..20 | How many copies the kit holds; default 1. |
+
+### ATOPurchase
+
+How many kits the Tool Kit bonus may be bought for.
+
+Found at: `campaign.againstTheOdds.bonuses[].purchase`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `chooses` | string |  | - | `oneKit` | oneKit: each purchase is one kit. |
+| `distinctKits` | boolean |  | - | - | true: a kit may be bought once. Informational; the app always refuses a kit twice. |
+| `maxPurchases` | integer |  | - | 1..20 | The most kits that may be bought. |
+| `ratingPerKit` | boolean |  | - | - | true: every kit costs the bonus's rating. Informational; the Tool Kit always does. |
+
+### ATOBudget
+
+The rule that the sum of the Ratings of the chosen bonuses may not take the lower company above its opponent's Rating.
+
+Found at: `campaign.againstTheOdds.budget`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `inclusive` | boolean |  | - | - | true: the bonuses may take the lower company exactly up to its opponent's Rating ("must not exceed"); false: they must leave it below. |
+| `rule` | string |  | - | `ratingAfterBonusesNotAboveOpponent` | ratingAfterBonusesNotAboveOpponent. Informational. |
+| `text` | string |  | - | - | The rule in words. |
+
+### ATOEligible
+
+Who may choose bonuses: the company with the strictly lower Rating, compared before the bonuses.
+
+Found at: `campaign.againstTheOdds.eligible`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `company` | string |  | - | `lowerRating` | lowerRating: the company that chooses. Informational. |
+| `compare` | string |  | - | `strictlyLower` | strictlyLower: at equal Ratings nobody chooses. Informational. |
+| `ratingBeforeBonuses` | boolean |  | - | - | true: the comparison is made before the bonuses. Informational. |
+| `text` | string |  | - | - | The rule in words. |
 
 ### ArmourUpgrade
 

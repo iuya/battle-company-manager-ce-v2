@@ -176,7 +176,6 @@ var fieldDocs = map[string]string{
 	"Campaign.scenarioSelection":    "How a scenario is rolled.",
 	"Campaign.aftermathEffects":     "Rewards and bonuses of the War's Aftermath, keyed by the name a scenario reward or an item points at.",
 	"Campaign.characteristicLimits": "The ceilings of the characteristics: lowerIsBetter (the stats where a lower number is better), peak (the highest a stat goes, and willMaxOverrides, a path's own Will maximum), average and increases.courageIntelligenceTotalCap {value, includesGear}. Not typed; the shape of the shipped file is read.",
-	"Campaign.againstTheOdds":       "The Against the Odds bonuses of the lower-rated company: text, bonuses[{name, key, text, appliesIn, rating, gains, ...}]. Not typed; the shape of the shipped file is read.",
 	"Campaign.gold":                 "How Gold works. Prose and keys read by the pages; not typed.",
 	"Campaign.matchInput":           "What the players enter per match. Prose shown to the players; not typed.",
 	"Campaign.options":              "The campaign options the organiser can switch: a list of {key, scope (rules or app), label, description, default, implemented, swaps}. An option key the app does not know is ignored.",

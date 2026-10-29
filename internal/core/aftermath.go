@@ -192,10 +192,6 @@ func (r AftermathRules) Chart(hero bool) []InjuryRow {
 // injuries charts, the scenario rewards and the items that activate an effect. The charts and the bonuses are the campaign tables as
 // the file stores them (lean Rest/Free) until a parameter slice types them.
 func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, error) {
-	type gains struct {
-		Win   int `json:"win"`
-		Other int `json:"other"`
-	}
 	var c struct {
 		Progression struct {
 			Threshold int `json:"threshold"`
@@ -215,19 +211,6 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 				Win           int `json:"win"`
 			} `json:"gains"`
 		} `json:"influence"`
-		AgainstTheOdds struct {
-			Bonuses []struct {
-				Key    string `json:"key"`
-				Name   string `json:"name"`
-				Text   string `json:"text"`
-				Rating int    `json:"rating"`
-				Count  int    `json:"count"`
-				Gains  struct {
-					Influence *gains `json:"influence"`
-					XP        *gains `json:"experiencePerModel"`
-				} `json:"gains"`
-			} `json:"bonuses"`
-		} `json:"againstTheOdds"`
 		AftermathEffects []struct {
 			Key        string `json:"key"`
 			Kind       string `json:"kind"`
@@ -263,12 +246,12 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 	for _, g := range c.Experience.Gains {
 		rules.Gains = append(rules.Gains, XPGain{Key: g.Key, Label: g.Label, Amount: g.Amount, Repeatable: g.Repeatable})
 	}
-	for _, b := range c.AgainstTheOdds.Bonuses {
+	for _, b := range d.Campaign.AgainstTheOdds.Bonuses {
 		ob := OddsBonus{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, Rerolls: b.Count}
 		if g := b.Gains.Influence; g != nil {
 			ob.InfluenceWin, ob.InfluenceOther = g.Win, g.Other
 		}
-		if g := b.Gains.XP; g != nil {
+		if g := b.Gains.ExperiencePerModel; g != nil {
 			ob.ExperienceWin, ob.ExperienceOther = g.Win, g.Other
 		}
 		if b.Key != "reroll" {
