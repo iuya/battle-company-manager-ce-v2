@@ -41,6 +41,7 @@ that describe planned work say so in their first lines. The tables below group t
 | [auth.md](auth.md) | Accounts, sessions, passwords, CSRF, login throttling |
 | [vendored-js.md](vendored-js.md) | The committed third-party scripts and how to update them |
 | [performance.md](performance.md) | Measured page cost and the performance tooling |
+| [optimization-report.md](optimization-report.md) | Baseline and after numbers of the optimization work: data format, runtime, database, build and tests |
 
 ## Operators
 

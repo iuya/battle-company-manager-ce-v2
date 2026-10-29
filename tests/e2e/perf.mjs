@@ -100,7 +100,8 @@ async function measure(s, rec, fn, { observe = 0 } = {}) {
   const nav = await s.page.evaluate(() => {
     const n = performance.getEntriesByType('navigation')[0];
     const fcp = performance.getEntriesByName('first-contentful-paint')[0];
-    return n ? { load: Math.round(n.loadEventEnd), fcp: fcp ? Math.round(fcp.startTime) : null, dom: Math.round(n.domContentLoadedEventEnd) } : {};
+    // ttfb: navigation start to the first byte of the document; nodes: elements in the DOM once the page settled
+    return n ? { load: Math.round(n.loadEventEnd), fcp: fcp ? Math.round(fcp.startTime) : null, dom: Math.round(n.domContentLoadedEventEnd), ttfb: Math.round(n.responseStart), nodes: document.getElementsByTagName('*').length } : { nodes: document.getElementsByTagName('*').length };
   }).catch(() => ({}));
   return { ...rec.summary(), settledMs: Math.max(0, settled), ...nav, background };
 }
@@ -162,7 +163,7 @@ async function main() {
       { name: 'level-up window (click)', user: 'galadriel@example.com', prep: (s) => s.page.goto(`${env.base}/campaigns/${lu}/my-company`, { waitUntil: 'load' }),
         run: async (s) => { await s.click('main button', 'Level Up'); await s.page.waitForFunction((q) => [...document.querySelectorAll(q)].some((e) => e.getBoundingClientRect().width > 0), {}, MODAL); } },
       { name: 'click: overview to my company (htmx)', user: 'eowyn@example.com', prep: (s) => s.page.goto(`${env.base}/campaigns/${m}`, { waitUntil: 'load' }),
-        run: async (s) => { await s.page.evaluate((h) => document.querySelector(`#sidebar a[href="${h}"]`).click(), `/campaigns/${m}/my-company`); await s.page.waitForFunction((h) => location.pathname === h, {}, `/campaigns/${m}/my-company`); } },
+        run: async (s) => { await s.page.evaluate((h) => document.querySelector(`#sidebar a[href^="${h}"]`).click(), `/campaigns/${m}/my-company`); await s.page.waitForFunction((h) => location.pathname.startsWith(h), {}, `/campaigns/${m}/my-company`); } },
       { name: 'click: home to campaign overview (htmx)', user: 'eowyn@example.com', prep: (s) => s.page.goto(`${env.base}/`, { waitUntil: 'load' }),
         run: async (s) => { await s.page.evaluate((h) => document.querySelector(`main a[href="${h}"]`).click(), `/campaigns/${m}`); await s.page.waitForFunction((h) => location.pathname === h, {}, `/campaigns/${m}`); } },
       { name: 'armoury', user: 'eowyn@example.com', run: (s) => s.page.goto(`${env.base}/campaigns/${m}/armory`, { waitUntil: 'load' }) },
@@ -214,11 +215,11 @@ async function main() {
 function printTable(results) {
   const byFlow = new Map();
   for (const r of results) { if (!byFlow.has(r.flow)) byFlow.set(r.flow, []); byFlow.get(r.flow).push(r); }
-  console.log('\n| Flow | Network requests (doc/xhr/sse/static), cached | Chain | KB wire | KB HTML | Server ms | DB stmts | Settled ms @ ' + latencies.join(' / ') + ' | FCP ms @ ' + latencies.join(' / ') + ' |');
-  console.log('|---|---|---|---|---|---|---|---|---|');
+  console.log('\n| Flow | Network requests (doc/xhr/sse/static), cached | Chain | KB wire | KB HTML | Server ms | DB stmts | DOM elements | TTFB ms @ ' + latencies.join(' / ') + ' | FCP ms @ ' + latencies.join(' / ') + ' | Load ms @ ' + latencies.join(' / ') + ' | Settled ms @ ' + latencies.join(' / ') + ' |');
+  console.log('|---|---|---|---|---|---|---|---|---|---|---|---|');
   for (const [f, rs] of byFlow) {
     const a = rs[0];
-    console.log(`| ${f} | ${a.requests} (${a.doc}/${a.xhr}/${a.sse}/${a.static}) +${a.cached} cached | ${a.chain} | ${(a.bytes / 1024).toFixed(1)} | ${(a.htmlBytes / 1024).toFixed(1)} | ${a.serverMs} | ${a.stmts} | ${rs.map((r) => r.settledMs).join(' / ')} | ${rs.map((r) => r.fcp ?? '-').join(' / ')} |`);
+    console.log(`| ${f} | ${a.requests} (${a.doc}/${a.xhr}/${a.sse}/${a.static}) +${a.cached} cached | ${a.chain} | ${(a.bytes / 1024).toFixed(1)} | ${(a.htmlBytes / 1024).toFixed(1)} | ${a.serverMs} | ${a.stmts} | ${a.nodes ?? '-'} | ${rs.map((r) => r.ttfb ?? '-').join(' / ')} | ${rs.map((r) => r.fcp ?? '-').join(' / ')} | ${rs.map((r) => r.load ?? '-').join(' / ')} | ${rs.map((r) => r.settledMs).join(' / ')} |`);
   }
   const live = results.find((r) => r.flow.startsWith('live') && r.background !== undefined);
   if (live) console.log(`\nLive match: ${live.background} extra requests in the 3 s after it settled.`);

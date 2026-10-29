@@ -99,18 +99,69 @@ func BenchmarkPages(b *testing.B) {
 	_, wp := get(admin, wm[:len(wm)-1])
 	aftermath := regexp.MustCompile(fmt.Sprintf(`/campaigns/%d/matches/\d+/aftermath/\d+"`, wardCampaign)).FindString(wp)
 	m := matchesCampaign
+	// The new-company page answers only a member who may still found a company: the first campaign and user of the world it opens for.
+	var newCompanyPath string
+	var newCompanyUser *http.Cookie
+	ids, err := conn.Query(ctx, "SELECT id FROM campaigns ORDER BY id")
+	if err != nil {
+		b.Fatal(err)
+	}
+	var campaignIDs []int64
+	for ids.Next() {
+		var id int64
+		if err := ids.Scan(&id); err != nil {
+			b.Fatal(err)
+		}
+		campaignIDs = append(campaignIDs, id)
+	}
+	ids.Close()
+	for _, id := range campaignIDs {
+		for _, c := range []*http.Cookie{eowyn, admin} {
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", fmt.Sprintf("/campaigns/%d/company/new", id), nil)
+			req.AddCookie(c)
+			h.ServeHTTP(rec, req)
+			if rec.Code == http.StatusOK && newCompanyPath == "" {
+				newCompanyPath, newCompanyUser = req.URL.Path, c
+			}
+		}
+	}
+	if newCompanyPath == "" {
+		b.Fatal("no campaign of the world opens the new-company page")
+	}
+	// /campaigns/{id}/my-company redirects to the company the player opened last (or the oldest): the page measured is the one it leads to.
+	alias := httptest.NewRecorder()
+	aliasReq := httptest.NewRequest("GET", fmt.Sprintf("/campaigns/%d/my-company", m), nil)
+	aliasReq.AddCookie(eowyn)
+	h.ServeHTTP(alias, aliasReq)
+	myCompany := alias.Header().Get("Location")
+	ownCompany := regexp.MustCompile(`/my-company/(\d+)`).FindStringSubmatch(myCompany)
+	if myCompany == "" || ownCompany == nil {
+		b.Fatalf("my-company alias answered %d with Location %q", alias.Code, myCompany)
+	}
 	pages := []struct {
 		name   string
 		c      *http.Cookie
 		target string
 	}{
 		{"home", eowyn, "/"}, {"nav", eowyn, "/nav/campaigns"},
-		{"overview", eowyn, fmt.Sprintf("/campaigns/%d", m)}, {"my-company", eowyn, fmt.Sprintf("/campaigns/%d/my-company", m)},
+		{"overview", eowyn, fmt.Sprintf("/campaigns/%d", m)}, {"my-company", eowyn, myCompany},
 		{"armoury", eowyn, fmt.Sprintf("/campaigns/%d/armory", m)}, {"matches", eowyn, fmt.Sprintf("/campaigns/%d/matches", m)},
 		{"match", admin, matchPath}, {"ato-card", admin, matchPath + "/ato"}, {"log-card", admin, matchPath + "/live/log?card=1"},
 		{"live", admin, livePath}, {"aftermath", admin, aftermath[:len(aftermath)-1]},
+		{"new-company", newCompanyUser, newCompanyPath},
+		{"tts", eowyn, fmt.Sprintf("/campaigns/%d/companies/%s/tts", m, ownCompany[1])},
+		{"tts-no-auras", eowyn, fmt.Sprintf("/campaigns/%d/companies/%s/tts?auras=0", m, ownCompany[1])},
 	}
 	for _, p := range pages {
+		// A page that redirects (the armoury to the company the player opened last) is measured at the address it leads to.
+		probe := httptest.NewRecorder()
+		probeReq := httptest.NewRequest("GET", p.target, nil)
+		probeReq.AddCookie(p.c)
+		h.ServeHTTP(probe, probeReq)
+		if loc := probe.Header().Get("Location"); probe.Code == http.StatusSeeOther && loc != "" {
+			p.target = loc
+		}
 		if code, _ := get(p.c, p.target); code != 200 { // also warms the rule sets
 			b.Fatalf("%s %s: %d", p.name, p.target, code)
 		}
