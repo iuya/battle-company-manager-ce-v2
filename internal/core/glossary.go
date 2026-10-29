@@ -299,14 +299,25 @@ func BuildGlossaryWith(info RulesetInfo, content []byte, extras []ExtraTerm) (Gl
 			}
 		}
 	}
-	// Sorted by category, then by name, whatever order the files list them in.
+	// Sorted by category, then by name, whatever order the files list them in. The keys are worked out once per term, not once per comparison.
 	sortKey := func(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
-	slices.SortStableFunc(doc.Terms, func(a, b rawTerm) int {
-		if c := strings.Compare(sortKey(a.Category), sortKey(b.Category)); c != 0 {
+	type termKey struct{ category, name string }
+	keys := make([]termKey, len(doc.Terms))
+	order := make([]int, len(doc.Terms))
+	for i, t := range doc.Terms {
+		keys[i], order[i] = termKey{sortKey(t.Category), sortKey(t.Name)}, i
+	}
+	slices.SortStableFunc(order, func(a, b int) int {
+		if c := strings.Compare(keys[a].category, keys[b].category); c != 0 {
 			return c
 		}
-		return strings.Compare(sortKey(a.Name), sortKey(b.Name))
+		return strings.Compare(keys[a].name, keys[b].name)
 	})
+	sorted := make([]rawTerm, len(doc.Terms))
+	for i, at := range order {
+		sorted[i] = doc.Terms[at]
+	}
+	doc.Terms = sorted
 	g := Glossary{Info: info, Terms: make([]GlossaryTerm, len(doc.Terms))}
 	if chart, ok, err := ParseToWound(content); ok && err == nil {
 		g.ToWound = &chart
