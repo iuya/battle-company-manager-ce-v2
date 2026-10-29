@@ -55,7 +55,7 @@ func newLiveWorld(t *testing.T, tag string) liveWorld {
 		return c
 	}
 	w.a, w.b = mk(w.org, "Alpha"), mk(w.p2, "Beta")
-	w.match, err = s.Matches().Create(ctx, camp.ID, w.org, []core.NewSide{{Name: "A", Companies: []int64{w.a.ID}}, {Name: "B", Companies: []int64{w.b.ID}}})
+	w.match, err = s.Matches().Create(ctx, camp.ID, w.org, core.NewMatch{Sides: []core.NewSide{{Name: "A", Companies: []int64{w.a.ID}}, {Name: "B", Companies: []int64{w.b.ID}}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -432,7 +432,7 @@ func TestOpenMatchGuards(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, err := matches.Create(w.ctx, w.camp, w.org, []core.NewSide{{Name: "X", Companies: []int64{w.a.ID}}, {Name: "Y", Companies: []int64{foe}}})
+			_, err := matches.Create(w.ctx, w.camp, w.org, core.NewMatch{Sides: []core.NewSide{{Name: "X", Companies: []int64{w.a.ID}}, {Name: "Y", Companies: []int64{foe}}}})
 			errs <- err
 		}()
 	}

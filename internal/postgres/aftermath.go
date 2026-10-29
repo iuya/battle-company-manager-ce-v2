@@ -34,11 +34,11 @@ type aftermathLinesJSON struct {
 // pendingRefs lists the aftermaths of ended matches the company has not finished, oldest first.
 func pendingRefs(ctx context.Context, q querier, companyID int64, name string) ([]core.AftermathRef, error) {
 	rows, err := q.Query(ctx, `
-		SELECT m.id, m.number, COALESCE(a.status, 'pending')
+		SELECT m.id, m.number, CASE WHEN m.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END
 		  FROM match_side_companies sc
 		  JOIN matches m ON m.id = sc.match_id AND m.ended
 		  LEFT JOIN match_aftermaths a ON a.match_id = sc.match_id AND a.company_id = sc.company_id
-		 WHERE sc.company_id = $1 AND COALESCE(a.status, 'pending') NOT IN ('done', 'waived')
+		 WHERE sc.company_id = $1 AND (CASE WHEN m.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END) NOT IN ('done', 'waived')
 		 ORDER BY m.number`, companyID)
 	if err != nil {
 		return nil, err
@@ -59,19 +59,29 @@ func pendingRefs(ctx context.Context, q querier, companyID int64, name string) (
 
 // readRecord reads the record (the zero one when none is stored). The match row is locked shared (the match cannot be reopened
 // meanwhile) and checked to belong to the campaign and to have the company; lock also locks the record for update.
-func readRecord(ctx context.Context, q querier, campaignID, matchID, companyID int64, lock bool) (core.AftermathRecord, error) {
-	rec := core.AftermathRecord{MatchID: matchID, CompanyID: companyID, Status: core.AftermathPending}
-	query := `SELECT m.ended FROM matches m JOIN match_side_companies sc ON sc.match_id = m.id
+func readRecord(ctx context.Context, q querier, campaignID, matchID, companyID int64, lock bool) (rec core.AftermathRecord, practice bool, err error) {
+	rec = core.AftermathRecord{MatchID: matchID, CompanyID: companyID, Status: core.AftermathPending}
+	query := `SELECT m.ended, m.practice, m.ended_on FROM matches m JOIN match_side_companies sc ON sc.match_id = m.id
 	           WHERE m.id = $1 AND m.campaign_id = $2 AND sc.company_id = $3`
 	if lock {
 		query += ` FOR SHARE OF m`
 	}
-	if err := q.QueryRow(ctx, query, matchID, campaignID, companyID).Scan(&rec.MatchEnded); errors.Is(err, pgx.ErrNoRows) {
-		return rec, core.ErrNotFound
+	var endedOn *time.Time
+	if err := q.QueryRow(ctx, query, matchID, campaignID, companyID).Scan(&rec.MatchEnded, &practice, &endedOn); errors.Is(err, pgx.ErrNoRows) {
+		return rec, false, core.ErrNotFound
 	} else if err != nil {
-		return rec, err
+		return rec, false, err
 	}
-	return rec, nil
+	if practice {
+		practiceRecord(&rec, endedOn)
+	}
+	return rec, practice, nil
+}
+
+// practiceRecord is the aftermath of a company in a practice match: done and empty, with one line. It is derived on every read and never stored.
+func practiceRecord(rec *core.AftermathRecord, endedOn *time.Time) {
+	rec.Status, rec.Revision, rec.FinishedAt = core.AftermathDone, 1, endedOn
+	rec.Lines = []core.AftermathLine{{Kind: "note", Text: core.PracticeNothingToRoll}}
 }
 
 func loadRecord(ctx context.Context, q querier, rec *core.AftermathRecord, lock bool) error {
@@ -115,18 +125,24 @@ func (as aftermathStore) Get(ctx context.Context, campaignID, matchID, companyID
 	rec := core.AftermathRecord{MatchID: matchID, CompanyID: companyID, Status: core.AftermathPending}
 	var status *string
 	var revision *int
+	var practice bool
+	var endedOn *time.Time
 	var input, state, lines []byte
 	err := as.s.pool.QueryRow(ctx, `
-		SELECT m.ended, a.status, a.revision, a.input, a.state, a.lines, a.started_at, a.finished_at
+		SELECT m.ended, m.practice, m.ended_on, a.status, a.revision, a.input, a.state, a.lines, a.started_at, a.finished_at
 		  FROM matches m JOIN match_side_companies sc ON sc.match_id = m.id
 		  LEFT JOIN match_aftermaths a ON a.match_id = m.id AND a.company_id = sc.company_id
 		 WHERE m.id = $1 AND m.campaign_id = $2 AND sc.company_id = $3`, matchID, campaignID, companyID).
-		Scan(&rec.MatchEnded, &status, &revision, &input, &state, &lines, &rec.StartedAt, &rec.FinishedAt)
+		Scan(&rec.MatchEnded, &practice, &endedOn, &status, &revision, &input, &state, &lines, &rec.StartedAt, &rec.FinishedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return rec, core.ErrNotFound
 	}
 	if err != nil {
 		return rec, err
+	}
+	if practice {
+		practiceRecord(&rec, endedOn)
+		return rec, nil
 	}
 	if status == nil {
 		return rec, nil
@@ -142,9 +158,12 @@ func (as aftermathStore) Update(ctx context.Context, campaignID, matchID, compan
 		return err
 	}
 	defer tx.Rollback(ctx)
-	rec, err := readRecord(ctx, tx, campaignID, matchID, companyID, true)
+	rec, practice, err := readRecord(ctx, tx, campaignID, matchID, companyID, true)
 	if err != nil {
 		return err
+	}
+	if practice {
+		return core.ErrPracticeNothingToRoll // a practice match has nothing to store; the service refuses first, this keeps the table clean
 	}
 	cs := as.s.Companies()
 	st, err := cs.load(ctx, tx, campaignID, companyID, true)
@@ -190,7 +209,7 @@ func (as aftermathStore) Update(ctx context.Context, campaignID, matchID, compan
 // Statuses lists the companies of the match with their status.
 func (as aftermathStore) Statuses(ctx context.Context, campaignID, matchID int64) ([]core.AftermathRef, error) {
 	rows, err := as.s.pool.Query(ctx, `
-		SELECT c.id, c.name, m.number, m.ended, COALESCE(a.status, 'pending')
+		SELECT c.id, c.name, m.number, m.ended, CASE WHEN m.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END
 		  FROM match_side_companies sc
 		  JOIN matches m ON m.id = sc.match_id
 		  JOIN companies c ON c.id = sc.company_id

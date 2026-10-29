@@ -86,7 +86,7 @@ func newAftermathWorldOn(t *testing.T, s *Store) *aftermathWorld {
 func (w *aftermathWorld) play(t *testing.T, scenario string, objectives map[string]int) core.Match {
 	t.Helper()
 	ctx := t.Context()
-	m, err := w.matches.CreateMatch(ctx, w.org, w.camp.ID, []core.NewSide{{Name: "A", Companies: []int64{w.co1.ID}}, {Name: "B", Companies: []int64{w.co2.ID}}})
+	m, err := w.matches.CreateMatch(ctx, w.org, w.camp.ID, core.NewMatch{Sides: []core.NewSide{{Name: "A", Companies: []int64{w.co1.ID}}, {Name: "B", Companies: []int64{w.co2.ID}}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestAftermathOnPostgres(t *testing.T) {
 	}
 
 	// An open match has no aftermath and locks nothing.
-	open, err := w.matches.CreateMatch(ctx, w.org, id, []core.NewSide{{Name: "A", Companies: []int64{w.co1.ID}}, {Name: "B", Companies: []int64{w.co2.ID}}})
+	open, err := w.matches.CreateMatch(ctx, w.org, id, core.NewMatch{Sides: []core.NewSide{{Name: "A", Companies: []int64{w.co1.ID}}, {Name: "B", Companies: []int64{w.co2.ID}}}})
 	if err != nil {
 		t.Fatal(err)
 	}

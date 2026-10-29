@@ -49,7 +49,7 @@ func TestLiveMatchSurvivesARestart(t *testing.T) {
 		}
 	}
 	matches := core.NewMatches(s.Campaigns(), s.Companies(), s.Matches(), rules)
-	m, err := matches.CreateMatch(ctx, one, camp.ID, []core.NewSide{{Name: "Light", Companies: []int64{a.ID}}, {Name: "Dark", Companies: []int64{b.ID}}})
+	m, err := matches.CreateMatch(ctx, one, camp.ID, core.NewMatch{Sides: []core.NewSide{{Name: "Light", Companies: []int64{a.ID}}, {Name: "Dark", Companies: []int64{b.ID}}}})
 	if err != nil {
 		t.Fatal(err)
 	}
