@@ -12,6 +12,14 @@ func init() {
 }
 
 var campaignTypeDocs = map[string]string{
+	"CampaignOption":         "A setting the file offers the organiser of a campaign: a rule variant (scope rules) or how the app behaves (scope app). The app switches the options it knows by key and lists any other as unsupported.",
+	"OptionSwap":             "The path an option puts in the place of another path (a house rule that swaps one path for another).",
+	"Oaths":                  "The fallback oaths of the companies that have none of their own, one per alignment.",
+	"MatchInput":             "What the players enter per match, described for the people who read the file. The app builds its match forms from its own tables (the experience gains, the scenarios, Against the Odds) and does not read this description.",
+	"MatchAftermath":         "The order in which the War's Aftermath is applied.",
+	"MatchGold":              "What the rulebook says about Gold in a scenario.",
+	"MatchResult":            "How the winner of a match is decided.",
+	"InputField":             "One thing the players enter, per company or per model.",
 	"CharacteristicLimits":   "The ceilings of the characteristics: which ones improve downwards, the highest each one goes, the average profile the hero rating starts from, and the cap on the total improvement of Courage and Intelligence.",
 	"StatLimit":              "How far one characteristic may be improved. A key that is absent sets no limit of that kind. The same shape is used by the overall peak and by a path's maximums.",
 	"PeakLimits":             "The overall limit of each characteristic (one key per characteristic, only those that have one), and the Will maximum some paths have of their own.",
@@ -59,6 +67,56 @@ var campaignTypeDocs = map[string]string{
 }
 
 var campaignFieldDocs = map[string]string{
+	// Options, oaths, match input, gold
+	"Campaign.options":    "The campaign options the organiser can switch. The key decides what the app does: an option key the app does not know is listed as unsupported, with a warning in the log.",
+	"Campaign.matchInput": "What the players enter per match: a description for the people who read the file; the app does not read it.",
+	"Campaign.gold":       "How Gold works, in the words of the file. Open data (any JSON, or absent): the app does not read it; Gold is a number on the company, from start.gold and the organiser's grants.",
+
+	"CampaignOption.key":         "The key of the option; unique. The keys the app knows are heroesDropProfileGear, customOnTheirOwnPath, shakeTheTable and manualRolls.",
+	"CampaignOption.scope":       "rules: a rule variant that changes the game; app: how the app behaves.",
+	"CampaignOption.label":       "The name the campaign form shows.",
+	"CampaignOption.description": "A sentence shown under the label.",
+	"CampaignOption.default":     "true: the option is on in a new campaign.",
+	"CampaignOption.implemented": "false: the file lists the option but the app cannot switch it on. Absent means implemented, if the app knows the key.",
+	"CampaignOption.swaps":       "For an option that puts one path in the place of another.",
+	"OptionSwap.path":            "The path used instead.",
+	"OptionSwap.replaces":        "The path (or rule) it replaces.",
+
+	"CompanyRules.oaths": "Fallback oath texts by alignment (good and evil, each {text, vow}) for a company that has no oath of its own. {name} in the text is replaced by the company's name.",
+	"Oaths.good":         "The oath of a good company.",
+	"Oaths.evil":         "The oath of an evil company.",
+
+	"MatchInput.text":           "What the players enter, in words.",
+	"MatchInput.aftermath":      "How the aftermath is applied.",
+	"MatchInput.gold":           "What the rulebook says about Gold in a scenario.",
+	"MatchInput.perCompany":     "What is entered for each company.",
+	"MatchInput.perModel":       "What is entered for each model.",
+	"MatchInput.result":         "How the winner is decided.",
+	"MatchAftermath.order":      "The steps of the aftermath, in order: injuries, experience, progression, influence.",
+	"MatchAftermath.rewards":    "Where the scenario rewards come from and when they apply.",
+	"MatchGold.text":            "The rule in words.",
+	"MatchGold.scenarioRewards": "true: scenarios reward Gold.",
+	"MatchResult.decidedBy":     "victoryPoints: the company with the most Victory Points wins.",
+	"MatchResult.outcomes":      "The results a match can have: win, draw, loss.",
+	"MatchResult.tie":           "What equal Victory Points are: draw.",
+	"InputField.key":            "The key of the field; unique in its list.",
+	"InputField.text":           "What the players enter, in words.",
+	"InputField.type":           "How it is entered: enum or select (one of the options), multiSelect (several), integer, count, flag (yes or no), flags, scoringObjectives.",
+	"InputField.default":        "The starting value: true or false for a flag, a number for a count, the chosen word for an enum. Open data.",
+	"InputField.options":        "The words to choose from, as a list, or the path of the table they come from. Open data.",
+	"InputField.when":           "When the field is asked for.",
+	"InputField.who":            "Who it concerns.",
+	"InputField.feeds":          "What the field feeds: influence, experience, rerolls, rewards, itemUse, breakPoint, injuries.",
+	"InputField.min":            "The lowest number that can be entered.",
+	"InputField.optional":       "true: the field may stay empty.",
+	"InputField.computed":       "true: the app works it out; nobody enters it.",
+	"InputField.computedFrom":   "What it is worked out from.",
+	"InputField.from":           "Where the entries come from.",
+	"InputField.experience":     "The key of the experience gain (campaign.experience.gains) it records.",
+	"InputField.declaredBy":     "opponent: the other player says.",
+	"InputField.inferred":       "What follows from the field, for the reader of the file.",
+	"InputField.maxPerCompany":  "The most models of one company that can have it.",
+
 	// Characteristic limits
 	"Campaign.characteristicLimits":                      "The ceilings of the characteristics and the average profile.",
 	"CharacteristicLimits.lowerIsBetter":                 "The characteristics where a lower number is better (Shoot, Courage, Intelligence): an improvement lowers them and best, not max, is their limit.",

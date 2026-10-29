@@ -10,11 +10,11 @@
 //	min:"n" max:"n"   inclusive range of an int or a float; for a string or a list the length
 //	rest:"true"       on a map[string]any field: keys the struct does not name are kept there instead of being errors
 //
-// A field of type Free (any) is accepted as is: the section is read by a later slice, which types it. Types that implement Binder
+// A field of type Free (any) is accepted as is: it is open data (prose or JSON), or a section outside the campaign tables that is still read in its original shape; the description of the field says which. Types that implement Binder
 // (DiceSpec, Roll, Rating, RuleRef, Scalar) read polymorphic values.
 package lean
 
-// Free is a value the format does not type yet (its shape is whatever its reader needs).
+// Free is an open value: any JSON, kept as it is.
 type Free = any
 
 // Document is the whole Battle Companies file: the header and the sections.

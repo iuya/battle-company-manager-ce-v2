@@ -1,0 +1,24 @@
+battle_companies.json: campaign.company.oaths.neutral: unknown field
+  hint: known fields: evil, good
+battle_companies.json: campaign.matchInput.aftermath.order[1]: "healing" is not a valid aftermath step; known: injuries, experience, progression, influence
+battle_companies.json: campaign.matchInput.perCompany[0].type: "dropdown" is not a valid type; known: enum, multiSelect, select, integer, count, flag, flags, scoringObjectives
+battle_companies.json: campaign.matchInput.perCompany[2].feeds[0]: "luck" is not a valid table; known: influence, experience, rerolls, rewards, itemUse, breakPoint, injuries
+battle_companies.json: campaign.matchInput.perModel[0].key: missing
+battle_companies.json: campaign.matchInput.perModel[0].colour: unknown field
+  hint: known fields: computed, computedFrom, declaredBy, default, experience, feeds, from, inferred, key, maxPerCompany, min, optional, options, text, type, when, who
+battle_companies.json: campaign.matchInput.perModel[1].declaredBy: "referee" is not a valid declaredBy; known: opponent
+battle_companies.json: campaign.matchInput.result.decidedBy: "dice" is not a valid decidedBy; known: victoryPoints
+battle_companies.json: campaign.matchInput.result.outcomes[1]: "tie" is not a valid outcome; known: win, draw, loss
+battle_companies.json: campaign.matchInput.result.tie: "win" is not a valid tie; known: draw
+battle_companies.json: campaign.options[0].scope: "table" is not a valid scope; known: rules, app
+battle_companies.json: campaign.options[0].label: must not be empty
+battle_companies.json: campaign.options[1].default: expected true or false, got a string
+battle_companies.json: campaign.options[1].swaps.replaces: missing
+battle_companies.json: campaign.options[2].key: missing
+battle_companies.json: campaign.options[2].label: missing
+battle_companies.json: campaign.options[3].implemented: expected true or false, got a string
+battle_companies.json: campaign.options[3].colour: unknown field
+  hint: known fields: default, description, implemented, key, label, scope, swaps
+battle_companies.json: campaign.options[1].key: "a" is already used at campaign.options[0]
+battle_companies.json: campaign.matchInput.perCompany[1].key: "role" is already used at campaign.matchInput.perCompany[0]
+battle_companies.json: campaign.matchInput.perModel[1].experience: "mpv" is not the key of an experience gain; closest: "mvp"

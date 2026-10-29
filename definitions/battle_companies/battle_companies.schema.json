@@ -1266,7 +1266,7 @@
           "description": "The ways to earn Experience."
         },
         "gold": {
-          "description": "How Gold works. Prose and keys read by the pages; not typed."
+          "description": "How Gold works, in the words of the file. Open data (any JSON, or absent): the app does not read it; Gold is a number on the company, from start.gold and the organiser's grants."
         },
         "influence": {
           "$ref": "#/$defs/Influence",
@@ -1277,10 +1277,15 @@
           "description": "The injury charts."
         },
         "matchInput": {
-          "description": "What the players enter per match. Prose shown to the players; not typed."
+          "$ref": "#/$defs/MatchInput",
+          "description": "What the players enter per match: a description for the people who read the file; the app does not read it."
         },
         "options": {
-          "description": "The campaign options the organiser can switch: a list of {key, scope (rules or app), label, description, default, implemented, swaps}. An option key the app does not know is ignored."
+          "description": "The campaign options the organiser can switch. The key decides what the app does: an option key the app does not know is listed as unsupported, with a warning in the log.",
+          "items": {
+            "$ref": "#/$defs/CampaignOption"
+          },
+          "type": "array"
         },
         "progression": {
           "$ref": "#/$defs/Progression",
@@ -1309,6 +1314,55 @@
         "breakPoint",
         "rating",
         "scenarioSelection"
+      ],
+      "type": "object"
+    },
+    "CampaignOption": {
+      "additionalProperties": false,
+      "description": "A setting the file offers the organiser of a campaign: a rule variant (scope rules) or how the app behaves (scope app). The app switches the options it knows by key and lists any other as unsupported.",
+      "properties": {
+        "default": {
+          "description": "true: the option is on in a new campaign.",
+          "type": "boolean"
+        },
+        "description": {
+          "description": "A sentence shown under the label.",
+          "type": "string"
+        },
+        "implemented": {
+          "description": "false: the file lists the option but the app cannot switch it on. Absent means implemented, if the app knows the key.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "key": {
+          "description": "The key of the option; unique. The keys the app knows are heroesDropProfileGear, customOnTheirOwnPath, shakeTheTable and manualRolls.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "label": {
+          "description": "The name the campaign form shows.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "scope": {
+          "description": "rules: a rule variant that changes the game; app: how the app behaves.",
+          "enum": [
+            "rules",
+            "app"
+          ],
+          "type": "string"
+        },
+        "swaps": {
+          "$ref": "#/$defs/OptionSwap",
+          "description": "For an option that puts one path in the place of another."
+        }
+      },
+      "required": [
+        "key",
+        "scope",
+        "label"
       ],
       "type": "object"
     },
@@ -1818,7 +1872,8 @@
           "type": "integer"
         },
         "oaths": {
-          "description": "Fallback oath texts by alignment ({good, evil}, each {text, vow}) for a company that has no oath of its own. {name} in the text is replaced by the company's name."
+          "$ref": "#/$defs/Oaths",
+          "description": "Fallback oath texts by alignment (good and evil, each {text, vow}) for a company that has no oath of its own. {name} in the text is replaced by the company's name."
         },
         "sergeants": {
           "description": "How many Sergeants a company has. Leaders plus sergeants may not exceed maxModels, and the company needs at least one officer.",
@@ -3341,6 +3396,115 @@
       },
       "type": "object"
     },
+    "InputField": {
+      "additionalProperties": false,
+      "description": "One thing the players enter, per company or per model.",
+      "properties": {
+        "computed": {
+          "description": "true: the app works it out; nobody enters it.",
+          "type": "boolean"
+        },
+        "computedFrom": {
+          "description": "What it is worked out from.",
+          "type": "string"
+        },
+        "declaredBy": {
+          "description": "opponent: the other player says.",
+          "enum": [
+            "opponent"
+          ],
+          "type": "string"
+        },
+        "default": {
+          "description": "The starting value: true or false for a flag, a number for a count, the chosen word for an enum. Open data."
+        },
+        "experience": {
+          "description": "The key of the experience gain (campaign.experience.gains) it records.",
+          "type": "string"
+        },
+        "feeds": {
+          "description": "What the field feeds: influence, experience, rerolls, rewards, itemUse, breakPoint, injuries.",
+          "items": {
+            "enum": [
+              "influence",
+              "experience",
+              "rerolls",
+              "rewards",
+              "itemUse",
+              "breakPoint",
+              "injuries"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "from": {
+          "description": "Where the entries come from.",
+          "type": "string"
+        },
+        "inferred": {
+          "description": "What follows from the field, for the reader of the file.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "key": {
+          "description": "The key of the field; unique in its list.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "maxPerCompany": {
+          "description": "The most models of one company that can have it.",
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "min": {
+          "description": "The lowest number that can be entered.",
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "optional": {
+          "description": "true: the field may stay empty.",
+          "type": "boolean"
+        },
+        "options": {
+          "description": "The words to choose from, as a list, or the path of the table they come from. Open data."
+        },
+        "text": {
+          "description": "What the players enter, in words.",
+          "type": "string"
+        },
+        "type": {
+          "description": "How it is entered: enum or select (one of the options), multiSelect (several), integer, count, flag (yes or no), flags, scoringObjectives.",
+          "enum": [
+            "enum",
+            "multiSelect",
+            "select",
+            "integer",
+            "count",
+            "flag",
+            "flags",
+            "scoringObjectives"
+          ],
+          "type": "string"
+        },
+        "when": {
+          "description": "When the field is asked for.",
+          "type": "string"
+        },
+        "who": {
+          "description": "Who it concerns.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "type": "object"
+    },
     "KeywordLimit": {
       "additionalProperties": false,
       "description": "Caps the share of a company that may have a keyword.",
@@ -3477,6 +3641,115 @@
       },
       "type": "object"
     },
+    "MatchAftermath": {
+      "additionalProperties": false,
+      "description": "The order in which the War's Aftermath is applied.",
+      "properties": {
+        "order": {
+          "description": "The steps of the aftermath, in order: injuries, experience, progression, influence.",
+          "items": {
+            "enum": [
+              "injuries",
+              "experience",
+              "progression",
+              "influence"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "rewards": {
+          "description": "Where the scenario rewards come from and when they apply.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "MatchGold": {
+      "additionalProperties": false,
+      "description": "What the rulebook says about Gold in a scenario.",
+      "properties": {
+        "scenarioRewards": {
+          "description": "true: scenarios reward Gold.",
+          "type": "boolean"
+        },
+        "text": {
+          "description": "The rule in words.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "MatchInput": {
+      "additionalProperties": false,
+      "description": "What the players enter per match, described for the people who read the file. The app builds its match forms from its own tables (the experience gains, the scenarios, Against the Odds) and does not read this description.",
+      "properties": {
+        "aftermath": {
+          "$ref": "#/$defs/MatchAftermath",
+          "description": "How the aftermath is applied."
+        },
+        "gold": {
+          "$ref": "#/$defs/MatchGold",
+          "description": "What the rulebook says about Gold in a scenario."
+        },
+        "perCompany": {
+          "description": "What is entered for each company.",
+          "items": {
+            "$ref": "#/$defs/InputField"
+          },
+          "type": "array"
+        },
+        "perModel": {
+          "description": "What is entered for each model.",
+          "items": {
+            "$ref": "#/$defs/InputField"
+          },
+          "type": "array"
+        },
+        "result": {
+          "$ref": "#/$defs/MatchResult",
+          "description": "How the winner is decided."
+        },
+        "text": {
+          "description": "What the players enter, in words.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "MatchResult": {
+      "additionalProperties": false,
+      "description": "How the winner of a match is decided.",
+      "properties": {
+        "decidedBy": {
+          "description": "victoryPoints: the company with the most Victory Points wins.",
+          "enum": [
+            "victoryPoints"
+          ],
+          "type": "string"
+        },
+        "outcomes": {
+          "description": "The results a match can have: win, draw, loss.",
+          "items": {
+            "enum": [
+              "win",
+              "draw",
+              "loss"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tie": {
+          "description": "What equal Victory Points are: draw.",
+          "enum": [
+            "draw"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "NoPromotion": {
       "additionalProperties": false,
       "description": "What a warrior whose promotion roll finds no promotion gains instead.",
@@ -3555,6 +3828,21 @@
       },
       "type": "object"
     },
+    "Oaths": {
+      "additionalProperties": false,
+      "description": "The fallback oaths of the companies that have none of their own, one per alignment.",
+      "properties": {
+        "evil": {
+          "$ref": "#/$defs/Oath",
+          "description": "The oath of an evil company."
+        },
+        "good": {
+          "$ref": "#/$defs/Oath",
+          "description": "The oath of a good company."
+        }
+      },
+      "type": "object"
+    },
     "OptionException": {
       "additionalProperties": false,
       "description": "An option the notSold words would hide, or that is read as another item.",
@@ -3591,6 +3879,27 @@
       "required": [
         "unit",
         "option"
+      ],
+      "type": "object"
+    },
+    "OptionSwap": {
+      "additionalProperties": false,
+      "description": "The path an option puts in the place of another path (a house rule that swaps one path for another).",
+      "properties": {
+        "path": {
+          "description": "The path used instead.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "replaces": {
+          "description": "The path (or rule) it replaces.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "replaces"
       ],
       "type": "object"
     },

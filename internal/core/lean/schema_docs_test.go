@@ -167,9 +167,6 @@ var fieldDocs = map[string]string{
 	"Campaign.rating":            "The rating rules.",
 	"Campaign.scenarioSelection": "How a scenario is rolled.",
 	"Campaign.aftermathEffects":  "Rewards and bonuses of the War's Aftermath, keyed by the name a scenario reward or an item points at.",
-	"Campaign.gold":              "How Gold works. Prose and keys read by the pages; not typed.",
-	"Campaign.matchInput":        "What the players enter per match. Prose shown to the players; not typed.",
-	"Campaign.options":           "The campaign options the organiser can switch: a list of {key, scope (rules or app), label, description, default, implemented, swaps}. An option key the app does not know is ignored.",
 
 	// CompanyRules
 	"CompanyRules.maxModels":         "The most models in a company (a company may set its own maxModels).",
@@ -178,7 +175,6 @@ var fieldDocs = map[string]string{
 	"CompanyRules.heroStart":         "The Might, Will and Fate a new hero starts with.",
 	"CompanyRules.startingInfluence": "The Influence a new company starts with.",
 	"CompanyRules.equipmentSlots":    "The equipment slots of every model before items add any.",
-	"CompanyRules.oaths":             "Fallback oath texts by alignment ({good, evil}, each {text, vow}) for a company that has no oath of its own. {name} in the text is replaced by the company's name.",
 	"HeroGain.might":                 "Might points.",
 	"HeroGain.will":                  "Will points.",
 	"HeroGain.fate":                  "Fate points.",

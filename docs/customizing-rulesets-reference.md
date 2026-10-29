@@ -73,9 +73,9 @@ Found at: `campaign`.
 | `aftermathEffects` | list of [AftermathEffect](#aftermatheffect) |  | - | - | Rewards and bonuses of the War's Aftermath, keyed by the name a scenario reward or an item points at. |
 | `againstTheOdds` | [AgainstTheOdds](#againsttheodds) |  | - | - | The Against the Odds bonuses of the lower-rated company, and how the budget and the eligibility work. |
 | `characteristicLimits` | [CharacteristicLimits](#characteristiclimits) |  | - | - | The ceilings of the characteristics and the average profile. |
-| `gold` | any |  | - | - | How Gold works. Prose and keys read by the pages; not typed. |
-| `matchInput` | any |  | - | - | What the players enter per match. Prose shown to the players; not typed. |
-| `options` | any |  | - | - | The campaign options the organiser can switch: a list of {key, scope (rules or app), label, description, default, implemented, swaps}. An option key the app does not know is ignored. |
+| `gold` | any |  | - | - | How Gold works, in the words of the file. Open data (any JSON, or absent): the app does not read it; Gold is a number on the company, from start.gold and the organiser's grants. |
+| `matchInput` | [MatchInput](#matchinput) |  | - | - | What the players enter per match: a description for the people who read the file; the app does not read it. |
+| `options` | list of [CampaignOption](#campaignoption) |  | - | - | The campaign options the organiser can switch. The key decides what the app does: an option key the app does not know is listed as unsupported, with a warning in the log. |
 
 ### CompanyRules
 
@@ -91,7 +91,7 @@ Found at: `campaign.company`.
 | `heroStart` | [HeroGain](#herogain) | yes | - | - | The Might, Will and Fate a new hero starts with. |
 | `startingInfluence` | integer | yes | - | 0..100 | The Influence a new company starts with. |
 | `equipmentSlots` | [SlotPair](#slotpair) | yes | - | - | The equipment slots of every model before items add any. |
-| `oaths` | any |  | - | - | Fallback oath texts by alignment ({good, evil}, each {text, vow}) for a company that has no oath of its own. {name} in the text is replaced by the company's name. |
+| `oaths` | [Oaths](#oaths) |  | - | - | Fallback oath texts by alignment (good and evil, each {text, vow}) for a company that has no oath of its own. {name} in the text is replaced by the company's name. |
 
 ### HeroGain
 
@@ -115,6 +115,28 @@ Found at: `campaign.company.equipmentSlots`.
 |---|---|---|---|---|---|
 | `small` | integer | yes | - | 0..10 | Small slots. |
 | `large` | integer | yes | - | 0..10 | Large slots. |
+
+### Oaths
+
+The fallback oaths of the companies that have none of their own, one per alignment.
+
+Found at: `campaign.company.oaths`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `evil` | [Oath](#oath) |  | - | - | The oath of an evil company. |
+| `good` | [Oath](#oath) |  | - | - | The oath of a good company. |
+
+### Oath
+
+The oath the player swears when taking command of the company.
+
+Found at: `campaign.company.oaths.evil`, `campaign.company.oaths.good`, `companies[].oath`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `text` | string |  | - | - | The oath. {name} stands exactly once, not at the start or the end, where the company's name goes. |
+| `vow` | string |  | - | - | The label of the button the player presses (1 to 40 characters). |
 
 ### Recruitment
 
@@ -944,6 +966,108 @@ Found at: `campaign.characteristicLimits.peak.attack`, `campaign.characteristicL
 | `max` | integer |  | - | 1..20 | The highest value of a characteristic where higher is better. |
 | `maxIncrease` | integer |  | - | 0..20 | The most points level-ups may add to the profile (without gear). |
 
+### MatchInput
+
+What the players enter per match, described for the people who read the file. The app builds its match forms from its own tables (the experience gains, the scenarios, Against the Odds) and does not read this description.
+
+Found at: `campaign.matchInput`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `aftermath` | [MatchAftermath](#matchaftermath) |  | - | - | How the aftermath is applied. |
+| `gold` | [MatchGold](#matchgold) |  | - | - | What the rulebook says about Gold in a scenario. |
+| `perCompany` | list of [InputField](#inputfield) |  | - | - | What is entered for each company. |
+| `perModel` | list of [InputField](#inputfield) |  | - | - | What is entered for each model. |
+| `result` | [MatchResult](#matchresult) |  | - | - | How the winner is decided. |
+| `text` | string |  | - | - | What the players enter, in words. |
+
+### MatchAftermath
+
+The order in which the War's Aftermath is applied.
+
+Found at: `campaign.matchInput.aftermath`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `order` | list of string |  | - | `injuries`, `experience`, `progression`, `influence` | The steps of the aftermath, in order: injuries, experience, progression, influence. |
+| `rewards` | string |  | - | - | Where the scenario rewards come from and when they apply. |
+
+### MatchGold
+
+What the rulebook says about Gold in a scenario.
+
+Found at: `campaign.matchInput.gold`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `scenarioRewards` | boolean |  | - | - | true: scenarios reward Gold. |
+| `text` | string |  | - | - | The rule in words. |
+
+### InputField
+
+One thing the players enter, per company or per model.
+
+Found at: `campaign.matchInput.perCompany[]`, `campaign.matchInput.perModel[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `key` | string | yes | - | not empty | The key of the field; unique in its list. |
+| `computed` | boolean |  | - | - | true: the app works it out; nobody enters it. |
+| `computedFrom` | string |  | - | - | What it is worked out from. |
+| `declaredBy` | string |  | - | `opponent` | opponent: the other player says. |
+| `default` | any |  | - | - | The starting value: true or false for a flag, a number for a count, the chosen word for an enum. Open data. |
+| `experience` | string |  | - | - | The key of the experience gain (campaign.experience.gains) it records. |
+| `feeds` | list of string |  | - | `influence`, `experience`, `rerolls`, `rewards`, `itemUse`, `breakPoint`, `injuries` | What the field feeds: influence, experience, rerolls, rewards, itemUse, breakPoint, injuries. |
+| `from` | string |  | - | - | Where the entries come from. |
+| `inferred` | list of string |  | - | - | What follows from the field, for the reader of the file. |
+| `maxPerCompany` | integer |  | - | 1..20 | The most models of one company that can have it. |
+| `min` | integer |  | - | 0..100 | The lowest number that can be entered. |
+| `optional` | boolean |  | - | - | true: the field may stay empty. |
+| `options` | any |  | - | - | The words to choose from, as a list, or the path of the table they come from. Open data. |
+| `text` | string |  | - | - | What the players enter, in words. |
+| `type` | string |  | - | `enum`, `multiSelect`, `select`, `integer`, `count`, `flag`, `flags`, `scoringObjectives` | How it is entered: enum or select (one of the options), multiSelect (several), integer, count, flag (yes or no), flags, scoringObjectives. |
+| `when` | string |  | - | - | When the field is asked for. |
+| `who` | string |  | - | - | Who it concerns. |
+
+### MatchResult
+
+How the winner of a match is decided.
+
+Found at: `campaign.matchInput.result`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `decidedBy` | string |  | - | `victoryPoints` | victoryPoints: the company with the most Victory Points wins. |
+| `outcomes` | list of string |  | - | `win`, `draw`, `loss` | The results a match can have: win, draw, loss. |
+| `tie` | string |  | - | `draw` | What equal Victory Points are: draw. |
+
+### CampaignOption
+
+A setting the file offers the organiser of a campaign: a rule variant (scope rules) or how the app behaves (scope app). The app switches the options it knows by key and lists any other as unsupported.
+
+Found at: `campaign.options[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `key` | string | yes | - | not empty | The key of the option; unique. The keys the app knows are heroesDropProfileGear, customOnTheirOwnPath, shakeTheTable and manualRolls. |
+| `scope` | string | yes | - | `rules`, `app` | rules: a rule variant that changes the game; app: how the app behaves. |
+| `label` | string | yes | - | not empty | The name the campaign form shows. |
+| `default` | boolean |  | - | - | true: the option is on in a new campaign. |
+| `description` | string |  | - | - | A sentence shown under the label. |
+| `implemented` | boolean or null |  | - | - | false: the file lists the option but the app cannot switch it on. Absent means implemented, if the app knows the key. |
+| `swaps` | [OptionSwap](#optionswap) |  | - | - | For an option that puts one path in the place of another. |
+
+### OptionSwap
+
+The path an option puts in the place of another path (a house rule that swaps one path for another).
+
+Found at: `campaign.options[].swaps`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `path` | string | yes | - | not empty | The path used instead. |
+| `replaces` | string | yes | - | not empty | The path (or rule) it replaces. |
+
 ### ArmourUpgrade
 
 The rule "Upgrade Armour by one stage": the names of each stage, lowest first, and what an upgrade costs.
@@ -1351,17 +1475,6 @@ Found at: `companies[].notes[]`.
 | `section` | string | yes | - | `startingCompany`, `reinforcements`, `specialChart`, `advancements`, `eliteCompany` | The section of the page: startingCompany, reinforcements, specialChart, advancements or eliteCompany. |
 | `text` | string | yes | - | not empty | The note. |
 | `about` | list of string |  | - | - | The units it is about. |
-
-### Oath
-
-The oath the player swears when taking command of the company.
-
-Found at: `companies[].oath`.
-
-| Key | Type | Required | Default | Allowed | Description |
-|---|---|---|---|---|---|
-| `text` | string |  | - | - | The oath. {name} stands exactly once, not at the start or the end, where the company's name goes. |
-| `vow` | string |  | - | - | The label of the button the player presses (1 to 40 characters). |
 
 ### OwnPath
 

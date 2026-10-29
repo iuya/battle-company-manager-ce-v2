@@ -1,8 +1,7 @@
 package lean
 
 // Campaign holds the engine tables and every rule parameter of the format (docs/definitions.md, "Engine parameters"): a value the engine uses is a field
-// here, required, with its range; there is no code default. ParameterIDs below lists where each parameter lives. Tables whose reader moves in a later slice are Free or
-// carry a `rest` map so the shipped keys survive until that slice types them.
+// here, required, with its range; there is no code default. ParameterIDs below lists where each parameter lives. Only gold and influence.spend are open values.
 type Campaign struct {
 	Company           CompanyRules      `json:"company" required:"true"`
 	Recruitment       Recruitment       `json:"recruitment" required:"true"`
@@ -17,9 +16,9 @@ type Campaign struct {
 
 	CharacteristicLimits CharacteristicLimits `json:"characteristicLimits,omitempty"`
 	AgainstTheOdds       AgainstTheOdds       `json:"againstTheOdds,omitempty"`
-	Gold                 Free                 `json:"gold,omitempty"`
-	MatchInput           Free                 `json:"matchInput,omitempty"` // prose shown to players
-	Options              Free                 `json:"options,omitempty"`
+	Gold                 Free                 `json:"gold,omitempty"` // open data: where Gold comes from; the app does not read it
+	MatchInput           MatchInput           `json:"matchInput,omitempty"`
+	Options              []CampaignOption     `json:"options,omitempty"`
 }
 
 // CompanyRules is `campaign.company`.
@@ -30,7 +29,7 @@ type CompanyRules struct {
 	HeroStart         HeroGain `json:"heroStart" required:"true"`                           // B3
 	StartingInfluence int      `json:"startingInfluence" required:"true" min:"0" max:"100"` // A8
 	EquipmentSlots    SlotPair `json:"equipmentSlots" required:"true"`                      // B6
-	Oaths             Free     `json:"oaths,omitempty"`                                     // fallback oath texts by alignment
+	Oaths             Oaths    `json:"oaths,omitempty"`                                     // fallback oath texts by alignment
 }
 
 // HeroGain is what a new hero starts with.
@@ -67,7 +66,7 @@ type RareRule struct {
 	PromotedCount bool `json:"promotedCount" required:"true"`
 }
 
-// Influence is `campaign.influence`: the gains (read) and the adjustRoll entry's player-facing text.
+// Influence is `campaign.influence`: the gains (read) and spend, free prose about what Influence buys that the app does not read.
 type Influence struct {
 	Gains InfluenceGains `json:"gains" required:"true"`
 	Spend Free           `json:"spend,omitempty"`

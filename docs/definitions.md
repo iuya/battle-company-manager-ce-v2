@@ -145,10 +145,13 @@ bonus keys and kit names are unique. `core.LeanATO` and `core.LeanAftermath` rea
 on Courage and Intelligence. A path's `maximums` has the same `{max, best, maxIncrease}` shape and is typed with it; a key that is not a characteristic is an error.
 `campaign.rating.hero` is typed (`perPoint` lists each characteristic once; the per-rule numbers are ranged and 0 when absent).
 
-**Tables still kept in the shipped shape.**
-`campaign.matchInput` and `campaign.options` are read by the engine in the shape of the shipped file (`Rest` maps and `Free` values in the Go model): a custom file changes their numbers and
-texts, copies their structure, and does not invent keys the engine does not know. `campaign.options[]` is the single list of switches (`key`, `scope` `rules` or `app`, `label`, `description`, `default`,
-`implemented`, `swaps`); a reader that does not know a key ignores it and logs a warning. Objects that record a house-rule decision carry `confirmedByUser` and `defaultNotConfirmed` lists.
+`campaign.options[]` is typed (`lean.CampaignOption`): the single list of switches (`key`, `scope` `rules` or `app`, `label`, `description`, `default`, `implemented`, `swaps`); the app switches the keys it knows and lists any other as unsupported with a warning
+in the log (`core.ParseCampaignOptions` binds the stored file to the lean model). `campaign.company.oaths` is typed (`good` and `evil`, each `{vow, text}`) and read by `leanOath`. `campaign.matchInput` is typed as a description of what the players enter
+(`perCompany[]`, `perModel[]`, `result`, `aftermath.order`); the app builds its match forms from its own tables and does not read it, so a `default` and an `options` of a field stay open values (a flag, a number or a word; a list or the path of a table).
+
+**Open values.** Two campaign values are genuinely open: `campaign.gold` (any JSON describing where Gold comes from; Gold is a number on the company) and `campaign.influence.spend` (prose and data about what Influence buys). The app reads neither; the schema
+accepts anything there and the reference says so. Everything else under `campaign` lists every key it accepts, with its vocabulary and range, and an unknown key is an upload error. Objects that record a house-rule decision carry `confirmedByUser`
+and `defaultNotConfirmed` lists.
 
 ## How the engine applies what it reads
 

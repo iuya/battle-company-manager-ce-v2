@@ -248,6 +248,7 @@ func (v *validator) parameters(c *Campaign) {
 	v.breakParameters(&c.BreakPoint)
 	v.aftermathParameters(c)
 	v.limitParameters(&c.CharacteristicLimits)
+	v.optionParameters(c)
 	seen := map[string]int{}
 	for i, g := range c.Experience.Gains {
 		if first, dup := seen[g.Key]; dup {
@@ -444,6 +445,41 @@ func (v *validator) limitParameters(l *CharacteristicLimits) {
 	for i := range v.doc.Paths {
 		for _, key := range SortedKeys(v.doc.Paths[i].Maximums) {
 			stat(Join(Join(Idx("paths", i), "maximums"), key), key)
+		}
+	}
+}
+
+// optionParameters checks that the options and the match input fields are named once each, and that a field points at an experience gain that exists.
+func (v *validator) optionParameters(c *Campaign) {
+	seen := map[string]int{}
+	for i, o := range c.Options {
+		if first, dup := seen[o.Key]; dup {
+			v.rep.Errorf(Join(Idx("campaign.options", i), "key"), "%q is already used at campaign.options[%d]", o.Key, first)
+		} else {
+			seen[o.Key] = i
+		}
+	}
+	gains := map[string]bool{}
+	var keys []string
+	for _, g := range c.Experience.Gains {
+		gains[g.Key] = true
+		keys = append(keys, g.Key)
+	}
+	for _, list := range []struct {
+		name   string
+		fields []InputField
+	}{{"perCompany", c.MatchInput.PerCompany}, {"perModel", c.MatchInput.PerModel}} {
+		seenKey := map[string]int{}
+		for i, f := range list.fields {
+			p := Idx(Join("campaign.matchInput", list.name), i)
+			if first, dup := seenKey[f.Key]; dup {
+				v.rep.Errorf(Join(p, "key"), "%q is already used at %s[%d]", f.Key, Join("campaign.matchInput", list.name), first)
+			} else {
+				seenKey[f.Key] = i
+			}
+			if f.Experience != "" && len(gains) > 0 && !gains[f.Experience] {
+				v.rep.Add(Issue{Path: Join(p, "experience"), Message: fmt.Sprintf("%q is not the key of an experience gain", f.Experience), Closest: Closest(keys, f.Experience)})
+			}
 		}
 	}
 }

@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"log/slog"
 	"strings"
 
@@ -88,25 +87,14 @@ func LeanInjuries(d *lean.Document) InjuryRules { return readInjuries(d.Campaign
 
 // LeanCampaignOptions are the settings the file offers the organiser of a campaign. An option the app does not know or has not
 // implemented is listed, marked Unsupported, with a warning in the log.
-func LeanCampaignOptions(d *lean.Document) ([]CampaignOption, error) {
-	var list []struct {
-		Key         string `json:"key"`
-		Scope       string `json:"scope"`
-		Label       string `json:"label"`
-		Description string `json:"description"`
-		Default     bool   `json:"default"`
-		Implemented *bool  `json:"implemented"`
-	}
-	if err := leanRoundTrip(d.Campaign.Options, &list); err != nil {
-		return nil, errors.Join(ErrInvalidRuleset, err)
-	}
+func LeanCampaignOptions(d *lean.Document) []CampaignOption {
 	var out []CampaignOption
-	for _, o := range list {
+	for _, o := range d.Campaign.Options {
 		unsupported := !KnownOption(o.Key) || (o.Implemented != nil && !*o.Implemented)
 		if unsupported {
 			slog.Warn("campaign option the app does not support: it cannot be switched on", "option", o.Key)
 		}
 		out = append(out, CampaignOption{Key: o.Key, Scope: o.Scope, Label: o.Label, Description: o.Description, Default: o.Default, Unsupported: unsupported})
 	}
-	return out, nil
+	return out
 }

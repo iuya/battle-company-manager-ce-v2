@@ -220,6 +220,28 @@ d=doc(paths=[{"name":"Path of the Tactician","dice":"2d6","maximums":{"fight":{"
   "rows":[{"roll":r,"options":[{"stat":"fight"}]} for r in range(2,13)]}])
 d["campaign"]["characteristicLimits"]=copy.deepcopy(LIMITS)
 w('limits',d)
+
+# ---- options, oaths, match input and gold, typed ----
+def tables_full():
+    return {"options":[
+      {"key":"heroesDropProfileGear","label":"Heroes may discard any wargear","description":"Heroes may drop wargear that is part of their profile.","default":False,"implemented":True,"scope":"rules"},
+      {"key":"customOnTheirOwnPath","label":"Path of Their Own Making (homebrew)","description":"Units on their own path level up on a homebrew path.","default":False,"implemented":True,"scope":"rules",
+       "swaps":{"path":"Path of Their Own Making","replaces":"On Their Own Path"}},
+      {"key":"shakeTheTable","label":"Shake the table","default":False,"implemented":True,"scope":"app"}],
+     "oaths":{"good":{"vow":"I solemnly vow","text":"Today I take command of this company, {name}."},"evil":{"text":"I take command of {name}."}},
+     "matchInput":{"text":"Per match the players enter ...","aftermath":{"order":["injuries","experience","progression","influence"],"rewards":"campaign.aftermathEffects[]"},
+       "gold":{"text":"No scenario rewards Gold.","scenarioRewards":False},
+       "perCompany":[{"key":"role","text":"Attacker or Defender.","options":["attacker","defender"],"type":"enum","when":"scenario.roles"},
+                     {"key":"victoryPoints","text":"The total scored.","computedFrom":"scenario.scoringObjectives","feeds":["influence"],"min":0,"type":"integer"},
+                     {"key":"fledBroken","text":"All is Lost.","default":False,"feeds":["influence"],"type":"flag"}],
+       "perModel":[{"key":"outcome","text":"What happened.","default":"survived","feeds":["injuries"],"options":["survived","casualty","fled"],"type":"enum"},
+                   {"key":"mvp","text":"MVP","declaredBy":"opponent","default":False,"experience":"mvp","feeds":["experience"],"inferred":["maxPerCompany"],"maxPerCompany":1,"type":"flag"}],
+       "result":{"decidedBy":"victoryPoints","outcomes":["win","draw","loss"],"tie":"draw"}},
+     "gold":{"sources":[{"key":"startingCompany"}],"carryOver":True}}
+d=doc()
+t=tables_full()
+d["campaign"]["options"]=t["options"]; d["campaign"]["matchInput"]=t["matchInput"]; d["campaign"]["gold"]=t["gold"]; d["campaign"]["company"]["oaths"]=t["oaths"]
+w('options_oaths',d)
 print(sorted(os.listdir(out)))
 
 # ---- invalid catalogue (bind level) ----
@@ -370,6 +392,16 @@ lim["peak"]["willMaxOverrides"]={"Path of the Tactician":11,"Path of the Tactiti
 lim["increases"]["courageIntelligenceTotalCap"]={"value":0}; lim["increases"]["strength"]=1
 d["campaign"]["characteristicLimits"]=lim
 wi('limits_table',d)
+
+
+d=doc(); t=tables_full()
+t["options"]=[{"key":"a","scope":"table","label":""},{"key":"a","label":"Again","scope":"app","default":"yes","swaps":{"path":"X"}},{"scope":"app"},{"key":"c","label":"C","scope":"rules","implemented":"no","colour":"red"}]
+t["oaths"]={"good":{"vow":"I vow"},"neutral":{"text":"x"}}
+t["matchInput"]["aftermath"]["order"]=["injuries","healing"]; t["matchInput"]["result"]={"decidedBy":"dice","outcomes":["win","tie"],"tie":"win"}
+t["matchInput"]["perCompany"][0]["type"]="dropdown"; t["matchInput"]["perCompany"][1]["key"]="role"; t["matchInput"]["perCompany"][2]["feeds"]=["luck"]
+t["matchInput"]["perModel"][1]["experience"]="mpv"; t["matchInput"]["perModel"][1]["declaredBy"]="referee"; t["matchInput"]["perModel"][0]["colour"]="red"; del t["matchInput"]["perModel"][0]["key"]
+d["campaign"]["options"]=t["options"]; d["campaign"]["matchInput"]=t["matchInput"]; d["campaign"]["company"]["oaths"]=t["oaths"]
+wi('options_tables',d)
 
 # ---- header and version ----
 d=doc(); d['schemaVersion']=1; wi('version',d)

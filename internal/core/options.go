@@ -1,10 +1,12 @@
 package core
 
 import (
-	"encoding/json"
-	"log/slog"
+	"errors"
+	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 // CampaignOption is a setting a Battle Companies file offers the organiser of a campaign (campaign.options[] of the file):
@@ -47,31 +49,14 @@ func (s CampaignSettings) Enabled(key string) bool {
 
 // ParseCampaignOptions reads the options of a Battle Companies file. An option the app does not know (a newer file, or one
 // somebody made up) or has not implemented is still listed, marked Unsupported so the form can show it as such, with a warning in the log.
+// The file is bound to the lean model (the checks of an upload were made when it was stored), so the options are the typed list.
 func ParseCampaignOptions(content []byte) ([]CampaignOption, error) {
-	var doc struct {
-		Campaign struct {
-			Options []struct {
-				Key         string `json:"key"`
-				Scope       string `json:"scope"`
-				Label       string `json:"label"`
-				Description string `json:"description"`
-				Default     bool   `json:"default"`
-				Implemented *bool  `json:"implemented"`
-			} `json:"options"`
-		} `json:"campaign"`
+	var doc lean.Document
+	var rep lean.Report
+	if !lean.Bind("battle_companies.json", content, &doc, &rep) {
+		return nil, errors.Join(ErrInvalidRuleset, fmt.Errorf("the rules file is not JSON: %s", rep.String()))
 	}
-	if err := json.Unmarshal(content, &doc); err != nil {
-		return nil, err
-	}
-	var out []CampaignOption
-	for _, o := range doc.Campaign.Options {
-		unsupported := !KnownOption(o.Key) || (o.Implemented != nil && !*o.Implemented)
-		if unsupported {
-			slog.Warn("campaign option the app does not support: it cannot be switched on", "option", o.Key)
-		}
-		out = append(out, CampaignOption{Key: o.Key, Scope: o.Scope, Label: o.Label, Description: o.Description, Default: o.Default, Unsupported: unsupported})
-	}
-	return out, nil
+	return LeanCampaignOptions(&doc), nil
 }
 
 // ComposeObjectiveText is the sentence a scoring objective shows: the instruction (what a player notes down at the start of a
