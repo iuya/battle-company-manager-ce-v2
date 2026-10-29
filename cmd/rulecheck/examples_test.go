@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -245,10 +246,9 @@ func asList(v any) []any {
 	return l
 }
 
-// TestUnitFormsInTheApp pins what the app does with the three forms of a unit, which the guide states: a unit built on another is a
-// company's own (units[] of the company) and the app turns it into the base profile with its options and rules; a brand-new unit is accepted
-// by the checker, but the app builds cards from vanilla profiles only, so it cannot field one yet. When this test fails because the
-// app learned to field brand-new units, update the guide ("Units") and the README of the examples, then this test.
+// TestUnitFormsInTheApp pins what the app does with the three forms of a unit, which the guide states: a unit built on another (a company's
+// own or a shared one) becomes the base profile with its options and rules, a brand-new unit is a profile of its own, and the company fields them
+// by name in its starting force and charts.
 func TestUnitFormsInTheApp(t *testing.T) {
 	rs, err := load(t, readFile(t, filepath.Join(examplesDir, "custom-unit.json")))
 	if err != nil {
@@ -262,7 +262,19 @@ func TestUnitFormsInTheApp(t *testing.T) {
 	if !found || alias == nil || alias.Unit != "Ranger of Arnor" || len(alias.AddRules) != 1 || alias.AddRules[0] != "Greenway Lore" || len(alias.Selected) != 1 || alias.Selected[0] != "Spear" {
 		t.Errorf("the company's own unit does not resolve to Ranger of Arnor + Spear + Greenway Lore: %v %+v", found, alias)
 	}
-	if _, _, found := rs.ResolveUnit(p, "Barrow Hound"); found {
-		t.Error("a brand-new unit resolves now: the guide says the app cannot field one")
+	v, alias, found := rs.ResolveUnit(p, "Arnor Scout")
+	if !found || alias == nil || v.Name != "Ranger of Arnor" || len(alias.Selected) != 1 || alias.Selected[0] != "Spear" {
+		t.Errorf("the shared unit does not resolve to Ranger of Arnor + Spear: %v %+v %s", found, alias, v.Name)
+	}
+	v, alias, found = rs.ResolveUnit(p, "Hound of the Barrows")
+	if !found || alias != nil || v.Name != "Barrow Hound" || v.Points != 6 || v.Stats["movement"] != 9 || len(v.Options) != 1 {
+		t.Errorf("the brand-new unit does not resolve to its own profile: %v %+v", found, v)
+	}
+	var fielded []string
+	for _, u := range p.Start {
+		fielded = append(fielded, u.Unit)
+	}
+	if !slices.Contains(fielded, "Barrow Hound") {
+		t.Errorf("the company does not start with the brand-new unit: %v", fielded)
 	}
 }

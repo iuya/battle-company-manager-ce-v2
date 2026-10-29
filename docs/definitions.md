@@ -95,7 +95,7 @@ one space (`Lothlorien` is `Lothlórien`, `Lake-Town` is `Lake Town`); plurals a
 |---|---|---|
 | a name against another, or a map key | `sameName`, `NameKey` | `NameKey`; `aka` lists true synonyms; an `aka` that is a vanilla name of something else is refused |
 | a company's own name for a unit | `CompanyProfile.AliasFor` | the company's own `units[]` entries with `extends` (label unique); a top-level `units[]` entry with `extends` is accepted by the checker but not read as an alias |
-| the vanilla profile of a unit name | `RuleSet.ResolveUnit` | a vanilla name, else the label of one of the company's own units; a brand-new unit (`profile`, no `extends`) does not resolve |
+| the vanilla profile of a unit name | `RuleSet.ResolveUnit` | the company's own units (a unit on another, or a brand-new one), then the shared top-level `units[]`, then vanilla; a brand-new unit (`profile`, no `extends`) is registered as a vanilla-shaped profile when the book is built (`RegisterLeanUnits`) |
 | a company by name | `BCBook.Company` | exact, else folded; `aka` |
 | an item name against an item | `ItemKey`, `namesItem`, `SameItem` | gear identity only: plural s, "made", `&`, case, punctuation; the vanilla file's spellings need a bridge, the Battle Companies file writes exact names or `aka` |
 | keyword spellings of the vanilla file | `keywordSpellings` | a fixed table in the vanilla bridge (the vanilla file is read-only) |

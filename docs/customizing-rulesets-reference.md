@@ -1157,11 +1157,11 @@ Found at: `companies[].units[]`, `units[]`.
 | `models` | integer |  | - | 1..50 | How many models a recruit counts as against the company maximum. |
 | `name` | string |  | - | - | The name of the unit. Default: the name in extends (an annotation). |
 | `note` | string |  | - | - | The sentence the card prints to explain what the unit is. |
-| `options` | any |  | - | - | A brand-new unit: its options. |
+| `options` | any |  | - | - | A brand-new unit: what it may take, as the vanilla file writes its options: a list of {name, points} (and chooseOneKey / requireChooseOneKey for a choose-one group). |
 | `overrides` | boolean |  | - | - | true when this entry deliberately replaces a lower-layer entry (vanilla or the glossary) of the same name. Without it, defining a name that already exists is an error. |
 | `ownPath` | [OwnPath](#ownpath) |  | - | - | Marks the unit as On Their Own Path. |
-| `points` | integer |  | - | 0..10000 | A brand-new unit: its points. |
-| `profile` | any |  | - | - | A brand-new unit: its full profile (movement, fight, ... as the vanilla file writes them). Free-form; the checker only needs a definition when the name exists nowhere below. |
+| `points` | integer |  | - | 0..10000 | A brand-new unit: its points cost. |
+| `profile` | any |  | - | - | A brand-new unit: its full profile, written the way the vanilla file writes one: the characteristics movement, fight, shoot ("-" for none), strength, defence, attack, wounds, courage, intelligence (and might, will, fate for a hero), and the lists race, unitType (both required), faction, specialRules, wargear, heroicActions, magicalPowers and baseSize. The app then treats the unit like a vanilla profile. |
 | `tts` | [UnitTTS](#unittts) |  | - | - | The Tabletop Simulator figure. |
 | `types` | [TypeDelta](#typedelta) |  | - | - | Unit types added and removed. |
 | `with` | list of string |  | - | - | The options of the base unit that are pre-selected (Tookish Hunter = Hobbit Archer with the Bow option). |

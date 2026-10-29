@@ -60,7 +60,7 @@ A **ruleset** is three JSON files the app plays a campaign with:
 | Battle Companies (`definitions/battle_companies/battle_companies.json`) | Everything specific to Battle Companies 2nd CE: companies, charts, items, paths, scenarios, the engine parameters | **Yes**: this is the file you customise |
 | Glossary (`definitions/glossary/mesbg_glossary.json`) | Short reminders of rulebook concepts (the popups) | Rarely |
 
-The Battle Companies file **extends vanilla**: it never redefines a unit, it names a vanilla unit and says what is different. A name the file does not define is
+The Battle Companies file **extends vanilla**: a unit is a vanilla unit plus a delta, or a brand-new unit that vanilla does not have. A name the file does not define is
 looked up in vanilla, then in the glossary. The order when a name is defined more than once is: the entity that embeds the definition, then the Battle Companies
 file, then vanilla. Nothing in vanilla or the glossary refers back to the Battle Companies file.
 
@@ -124,7 +124,7 @@ The same three forms apply to units, items and rules:
 
 1. **Annotate an existing vanilla thing.** Use its exact name and add properties only. This is how the file gives a vanilla item a price and makes it sold, or a vanilla rule a target.
 2. **Extend a thing with a delta.** `"extends": "Ranger of Arnor"` names the base; the entry says what is different. Units use `with`, `addRules`, `addKeywords`; items and companies inherit every field they do not write.
-3. **A brand-new thing with no base.** A full definition and a name nothing below uses. Items and rules are fully supported; for units see section 6.
+3. **A brand-new thing with no base.** A full definition and a name nothing below uses. Items, rules and units are fully supported; for units see section 6.
 
 ## 5. Rules
 
@@ -193,7 +193,7 @@ A special rule is defined **once** in `rules[]` and **named** everywhere else, l
 
 ## 6. Units
 
-Units are never redefined: a unit is a **vanilla unit** plus what the company changes. The three forms:
+A unit is a vanilla unit plus what the company changes, or a unit vanilla does not have. The three forms all work everywhere in the app (company build, armoury, rating, promotion, level-up, live match, aftermath, Tabletop Simulator list). A name is looked up in this order: **the company's own `units`, then the shared top-level `units[]`, then vanilla**. The three forms:
 
 **a. Annotate a vanilla unit** (top-level `units[]`): the vanilla unit's exact name plus properties. The shipped file uses it for Tabletop Simulator figures:
 
@@ -209,7 +209,7 @@ Units are never redefined: a unit is a **vanilla unit** plus what the company ch
 },
 ```
 
-**b. Build a unit on another** (`extends`): a unit that a company calls by its own name. Write it in the **company's own `units`**:
+**b. Build a unit on another** (`extends`): a unit that a company calls by its own name. Write it in the **company's own `units`** (one company), or in the shared top-level `units[]` (every company of the file may field it). A shared unit nobody fields is valid; it can be used later:
 
 <!-- example: custom-unit.json -->
 ```json
@@ -245,9 +245,9 @@ Units are never redefined: a unit is a **vanilla unit** plus what the company ch
     },
 ```
 
-- The app turns a company-local unit into the base unit's vanilla profile with the options and rules applied. **Put units built on another in the company's `units`**, as the shipped file does: the checker also accepts them in the top-level `units[]`, but the app only reads a company's own units for this.
+- The app turns the unit into its base unit's profile with the options and rules applied. A company's own unit with the same name as a shared one wins; a shared or own unit with the name of a vanilla unit needs `"overrides": true`. The base may itself be a unit of the file (own or shared), a brand-new one included.
 
-**c. A brand-new unit** (no `extends`, a name vanilla does not use): `profile`, `points`, `options`, `definition`.
+**c. A brand-new unit** (no `extends`, a name vanilla does not use): `profile`, `points`, `options`, `definition`. The `profile` is written the way the vanilla file writes a profile: the characteristics by name (`movement`, `fight`, `shoot` (`"-"` for none), `strength`, `defence`, `attack`, `wounds`, `courage`, `intelligence`; heroes also `might`, `will`, `fate`) and the words `race`, `faction`, `unitType` (`Warrior` or `Hero`, `Infantry`, `Cavalry`...), `specialRules`, `wargear`, `heroicActions`, `magicalPowers` and `baseSize`. `race` and `unitType` are required; `specialRules` and `wargear` must name rules and items that exist. `points` is the unit's cost and `options` lists what it may take (`name`, `points`, and `chooseOneKey` / `requireChooseOneKey` for a choose-one group), as in vanilla. The app then treats the unit like a vanilla profile, in the starting force, charts, advancements and promotions. It can be company-local or shared; a shared one with a vanilla name needs `"overrides": true` and replaces the vanilla profile.
 
 <!-- example: custom-unit.json -->
 ```json
@@ -266,13 +266,47 @@ Units are never redefined: a unit is a **vanilla unit** plus what the company ch
     "attack": 1,
     "wounds": 1,
     "courage": 5,
-    "intelligence": 3
+    "intelligence": 3,
+    "race": [
+      "Hound"
+    ],
+    "unitType": [
+      "Warrior",
+      "Infantry"
+    ],
+    "specialRules": [
+      "Greenway Lore"
+    ]
   },
-  "definition": "Example text, not a Battle Companies rule: a brand-new unit with no base unit."
+  "definition": "Example text, not a Battle Companies rule: a brand-new unit with no base unit; the app treats its profile like a vanilla one.",
+  "options": [
+    {
+      "name": "Spiked collar",
+      "points": 2
+    }
+  ]
 }
 ```
 
-> **Limit today.** The checker accepts a brand-new unit, but the app builds a model's card from a **vanilla profile**, so a company cannot field a brand-new unit yet (`TestUnitFormsInTheApp` pins this). To field a new unit now, build it on the nearest vanilla unit with form b. This note changes when the app learns to read `profile`.
+A shared unit that builds on a vanilla one is written the same way as form b, in the top-level `units[]`, and fielded by name:
+
+<!-- example: custom-unit.json -->
+```json
+{
+  "name": "Arnor Scout",
+  "aka": [
+    "Scout of Arnor"
+  ],
+  "extends": "Ranger of Arnor",
+  "with": [
+    "Spear"
+  ],
+  "addKeywords": [
+    "Dunedain"
+  ],
+  "note": "A shared unit that builds on a vanilla one: any company of the file may field it by this name."
+}
+```
 
 A unit name that resolves nowhere is an error: `no unit "Greenway Watchr" in this company, the shared units or vanilla; closest: "Greenway Watcher"`.
 

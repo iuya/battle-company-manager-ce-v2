@@ -227,6 +227,20 @@
       }
     },
     {
+      "name": "Arnor Scout",
+      "aka": [
+        "Scout of Arnor"
+      ],
+      "extends": "Ranger of Arnor",
+      "with": [
+        "Spear"
+      ],
+      "addKeywords": [
+        "Dunedain"
+      ],
+      "note": "A shared unit that builds on a vanilla one: any company of the file may field it by this name."
+    },
+    {
       "name": "Barrow Hound",
       "aka": [
         "Hound of the Barrows"
@@ -241,16 +255,32 @@
         "attack": 1,
         "wounds": 1,
         "courage": 5,
-        "intelligence": 3
+        "intelligence": 3,
+        "race": [
+          "Hound"
+        ],
+        "unitType": [
+          "Warrior",
+          "Infantry"
+        ],
+        "specialRules": [
+          "Greenway Lore"
+        ]
       },
-      "definition": "Example text, not a Battle Companies rule: a brand-new unit with no base unit."
+      "definition": "Example text, not a Battle Companies rule: a brand-new unit with no base unit; the app treats its profile like a vanilla one.",
+      "options": [
+        {
+          "name": "Spiked collar",
+          "points": 2
+        }
+      ]
     }
   ],
   "companies": [
     {
       "name": "Greenway Wardens",
       "alignment": "good",
-      "description": "Example company that fields the new unit.",
+      "description": "Example company that fields a unit of its own, a shared unit and a brand-new one.",
       "units": [
         {
           "name": "Greenway Watcher",
@@ -277,6 +307,10 @@
           {
             "unit": "Warrior of Arnor",
             "count": 4
+          },
+          {
+            "unit": "Barrow Hound",
+            "count": 1
           }
         ]
       },
@@ -289,11 +323,19 @@
             "blocks": true
           },
           {
-            "roll": "2-4",
+            "roll": "2-3",
             "unit": "Warrior of Arnor"
           },
           {
-            "roll": "5-6",
+            "roll": 4,
+            "unit": "Arnor Scout"
+          },
+          {
+            "roll": 5,
+            "unit": "Barrow Hound"
+          },
+          {
+            "roll": 6,
             "unit": "Greenway Watcher"
           }
         ]
