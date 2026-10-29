@@ -30,9 +30,11 @@
     {{if .Campaign.CanCreateCompany}}
     <p class="border-t border-line pt-3 text-sm text-muted">Each player can have up to {{$cap}} companies in this campaign.</p>
     <a href="/campaigns/{{.Campaign.ID}}/company/new" class="btn btn-secondary">Create another company</a>
-    {{else if and (gt $cap 1) (ne .Campaign.Status "finished")}}
-    <p class="border-t border-line pt-3 text-sm text-muted" id="company-cap-note">{{if gt (len .Campaign.Companies) $cap}}This campaign now allows {{$cap}} companies per player; you keep your {{len .Campaign.Companies}}.{{else}}You have all {{$cap}} companies this campaign allows.{{end}}</p>
-    {{end}}
+    {{else if ne .Campaign.Status "finished"}}{{if gt (len .Campaign.Companies) $cap}}
+    <p class="border-t border-line pt-3 text-sm text-muted" id="company-cap-note">This campaign now allows {{$cap}} {{if eq $cap 1}}company{{else}}companies{{end}} per player; you keep your {{len .Campaign.Companies}}.</p>
+    {{else if gt $cap 1}}
+    <p class="border-t border-line pt-3 text-sm text-muted" id="company-cap-note">You have all {{$cap}} companies this campaign allows.</p>
+    {{end}}{{end}}
   </section>
   {{else}}
   <section class="card space-y-3">
