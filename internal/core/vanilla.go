@@ -155,7 +155,7 @@ func (doc *vanillaDoc) book(reviewed []VanillaAmbiguity, log *slog.Logger, pinsO
 		heroes: map[string]bool{}, available: map[string][]string{}}
 	for _, raw := range doc.Data.Heroes {
 		var name string
-		_ = json.Unmarshal(raw["name"], &name)
+		unmarshalField(raw, "name", &name)
 		b.heroes[name] = true
 	}
 	heroOnly := false
@@ -168,7 +168,7 @@ func (doc *vanillaDoc) book(reviewed []VanillaAmbiguity, log *slog.Logger, pinsO
 	}
 	for _, raw := range slices.Concat(doc.Data.Heroes, doc.Data.Warriors) {
 		var name string
-		_ = json.Unmarshal(raw["name"], &name)
+		unmarshalField(raw, "name", &name)
 		if name == "" || !dups.wins("unit", name, raw) {
 			continue
 		}
@@ -176,15 +176,15 @@ func (doc *vanillaDoc) book(reviewed []VanillaAmbiguity, log *slog.Logger, pinsO
 	}
 	for _, raw := range doc.Data.Gear {
 		g := VanillaGear{Stats: map[string]int{}}
-		_ = json.Unmarshal(raw["name"], &g.Name)
-		_ = json.Unmarshal(raw["type"], &g.Type)
-		_ = json.Unmarshal(raw["definition"], &g.Definition)
-		_ = json.Unmarshal(raw["race"], &g.Race)
-		_ = json.Unmarshal(raw["faction"], &g.Faction)
-		_ = json.Unmarshal(raw["unitType"], &g.UnitTypes)
-		_ = json.Unmarshal(raw["specialRules"], &g.Rules)
+		unmarshalField(raw, "name", &g.Name)
+		unmarshalField(raw, "type", &g.Type)
+		unmarshalField(raw, "definition", &g.Definition)
+		unmarshalField(raw, "race", &g.Race)
+		unmarshalField(raw, "faction", &g.Faction)
+		unmarshalField(raw, "unitType", &g.UnitTypes)
+		unmarshalField(raw, "specialRules", &g.Rules)
 		var mods []map[string]json.RawMessage
-		_ = json.Unmarshal(raw["modifiesStats"], &mods)
+		unmarshalField(raw, "modifiesStats", &mods)
 		for _, m := range mods {
 			var c StatChange
 			_ = json.Unmarshal(m["stat"], &c.Stat)
@@ -225,6 +225,14 @@ func (doc *vanillaDoc) book(reviewed []VanillaAmbiguity, log *slog.Logger, pinsO
 	return b
 }
 
+// unmarshalField decodes raw[key] into dst; a key the entry does not have leaves dst alone (decoding nothing is an error whose text costs
+// more than the lookup, and every caller ignored it).
+func unmarshalField(raw map[string]json.RawMessage, key string, dst any) {
+	if b, ok := raw[key]; ok {
+		_ = json.Unmarshal(b, dst)
+	}
+}
+
 // addUnit reads one unit of the vanilla shape (the flat characteristics, race, faction, unitType, specialRules, wargear, options...) into the book. The
 // vanilla file and a brand-new unit of a Battle Companies file (RegisterLeanUnits) share this reader, so both give the same VanillaUnit.
 func (b *VanillaBook) addUnit(name string, raw map[string]json.RawMessage) {
@@ -234,18 +242,18 @@ func (b *VanillaBook) addUnit(name string, raw map[string]json.RawMessage) {
 // readUnit is addUnit without storing the unit: a company-local brand-new unit is kept by its company, not in the book.
 func (b *VanillaBook) readUnit(name string, raw map[string]json.RawMessage) VanillaUnit {
 	u := VanillaUnit{Name: name, Stats: map[string]int{}}
-	_ = json.Unmarshal(raw["points"], &u.Points)
-	_ = json.Unmarshal(raw["unitType"], &u.UnitTypes)
-	_ = json.Unmarshal(raw["race"], &u.Race)
-	_ = json.Unmarshal(raw["faction"], &u.Faction)
-	_ = json.Unmarshal(raw["specialRules"], &u.SpecialRules)
-	_ = json.Unmarshal(raw["heroicActions"], &u.HeroicActions)
-	_ = json.Unmarshal(raw["wargear"], &u.Wargear)
-	_ = json.Unmarshal(raw["baseSize"], &u.BaseSize)
+	unmarshalField(raw, "points", &u.Points)
+	unmarshalField(raw, "unitType", &u.UnitTypes)
+	unmarshalField(raw, "race", &u.Race)
+	unmarshalField(raw, "faction", &u.Faction)
+	unmarshalField(raw, "specialRules", &u.SpecialRules)
+	unmarshalField(raw, "heroicActions", &u.HeroicActions)
+	unmarshalField(raw, "wargear", &u.Wargear)
+	unmarshalField(raw, "baseSize", &u.BaseSize)
 	var includes []struct {
 		Name string `json:"name"`
 	}
-	_ = json.Unmarshal(raw["includes"], &includes)
+	unmarshalField(raw, "includes", &includes)
 	for _, in := range includes {
 		u.Includes = append(u.Includes, in.Name)
 	}
@@ -256,7 +264,7 @@ func (b *VanillaBook) readUnit(name string, raw map[string]json.RawMessage) Vani
 		Require   string   `json:"requireChooseOneKey"`
 		Available []string `json:"availableIn"`
 	}
-	_ = json.Unmarshal(raw["options"], &options)
+	unmarshalField(raw, "options", &options)
 	for _, o := range options {
 		u.Options = append(u.Options, ChoiceOption{Name: o.Name, Points: o.Points})
 		if len(o.Available) > 0 {
@@ -273,13 +281,13 @@ func (b *VanillaBook) readUnit(name string, raw map[string]json.RawMessage) Vani
 		Range   int    `json:"range"`
 		Casting int    `json:"casting"`
 	}
-	_ = json.Unmarshal(raw["magicalPowers"], &powers)
+	unmarshalField(raw, "magicalPowers", &powers)
 	for _, p := range powers {
 		u.MagicalPowers = append(u.MagicalPowers, PowerRef{p.Name, p.Range, p.Casting})
 	}
 	for _, s := range b.stats {
 		var v int
-		if json.Unmarshal(raw[s.Key], &v) == nil && raw[s.Key] != nil {
+		if raw[s.Key] != nil && json.Unmarshal(raw[s.Key], &v) == nil {
 			u.Stats[s.Key] = v
 		}
 	}
