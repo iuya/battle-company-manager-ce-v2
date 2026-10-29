@@ -108,7 +108,7 @@ Start at [docs/README.md](docs/README.md). Everything in `docs/`, by audience:
 | [auth.md](docs/auth.md) | Accounts, sessions, passwords, CSRF, login throttling |
 | [vendored-js.md](docs/vendored-js.md) | The committed third-party scripts and how to update them |
 | [performance.md](docs/performance.md) | Measured page cost and the performance tooling |
-| [optimization-report.md](docs/optimization-report.md) | Baseline and after numbers of the optimization work: data format, runtime, database, build and tests |
+| [optimization-report.md](docs/optimization-report.md) | Executive summary of the optimization work (v1.3.0, baseline and final numbers, what changed and why, what did not improve), then the detailed data format, runtime, database, build and test sections |
 
 **Operators**
 
