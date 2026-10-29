@@ -182,6 +182,12 @@ def ato_full():
 def with_ato(a):
     d=doc(); d["campaign"]["againstTheOdds"]=a; return d
 w('against_the_odds',with_ato(ato_full()))
+
+# ---- the hero rating table, typed ----
+d=doc(); d["campaign"]["rating"]={"hero":{"maxMinorSpecialRuleRating":10,"perMinorSpecialRule":5,"perSpecialRule":5,
+  "perPoint":[{"stat":"might","rating":5},{"stat":"fight","rating":5},{"stat":"attack","rating":10},{"stat":"wounds","rating":10}],
+  "wargear":{"threshold":{"stats":["attack","wounds"],"sumAtLeast":3},"text":"Paid at the hero rating."}}}
+w('rating',d)
 print(sorted(os.listdir(out)))
 
 # ---- invalid catalogue (bind level) ----
@@ -296,6 +302,12 @@ def ato_edit(a):
     b[4]["grants"]["kind"]="permanentModel"; b[4]["grants"]["colour"]="red"
     a["budget"]["rule"]="anything"; a["eligible"]["compare"]="lower"; a["selectedAt"]="whenever"
 wi('odds_bonuses',bad_ato(ato_edit))
+
+
+d=doc(); d["campaign"]["rating"]={"hero":{"maxMinorSpecialRuleRating":-1,"perMinorSpecialRule":500,"perSpecialRule":"five","perSpurious":1,
+  "perPoint":[{"stat":"might","rating":5},{"stat":"speed","rating":5},{"stat":"might","rating":6},{"stat":"fate"}],
+  "wargear":{"threshold":{"stats":["attack","wounds"],"sumAtLeast":3}}}}
+wi('rating_table',d)
 
 # ---- header and version ----
 d=doc(); d['schemaVersion']=1; wi('version',d)

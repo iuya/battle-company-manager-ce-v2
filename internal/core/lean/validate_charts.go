@@ -244,6 +244,7 @@ func (v *validator) parameters(c *Campaign) {
 	}
 	v.injuryParameters(&c.Injuries)
 	v.oddsParameters(&c.AgainstTheOdds)
+	v.ratingParameters(&c.Rating)
 	seen := map[string]int{}
 	for i, g := range c.Experience.Gains {
 		if first, dup := seen[g.Key]; dup {
@@ -348,6 +349,18 @@ func (v *validator) oddsParameters(a *AgainstTheOdds) {
 			} else {
 				kits[k.Name] = j
 			}
+		}
+	}
+}
+
+// ratingParameters checks that a characteristic is rated once.
+func (v *validator) ratingParameters(r *RatingRules) {
+	seen := map[string]int{}
+	for i, p := range r.Hero.PerPoint {
+		if first, dup := seen[p.Stat]; dup {
+			v.rep.Errorf(Join(Idx("campaign.rating.hero.perPoint", i), "stat"), "%q is already rated at campaign.rating.hero.perPoint[%d]", p.Stat, first)
+		} else {
+			seen[p.Stat] = i
 		}
 	}
 }

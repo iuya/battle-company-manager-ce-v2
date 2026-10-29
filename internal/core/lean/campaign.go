@@ -168,14 +168,23 @@ type CourageTest struct {
 
 // RatingRules is `campaign.rating`.
 type RatingRules struct {
-	Hero HeroRating     `json:"hero" required:"true"`
-	Rest map[string]any `json:"-" rest:"true"`
+	Hero HeroRating `json:"hero" required:"true"`
 }
 
-// HeroRating is how a hero is rated.
+// HeroRating is how a hero is rated: Rating per point of each characteristic above the shared profile, per special rule and per minor special
+// rule, and when the gear is paid at the hero rating. Absent numbers are 0.
 type HeroRating struct {
-	Wargear WargearRating  `json:"wargear" required:"true"`
-	Rest    map[string]any `json:"-" rest:"true"` // perPoint, perSpecialRule ...
+	Wargear                   WargearRating `json:"wargear" required:"true"`
+	PerPoint                  []RatingPoint `json:"perPoint,omitempty"`
+	PerSpecialRule            int           `json:"perSpecialRule,omitempty" min:"0" max:"100"`
+	PerMinorSpecialRule       int           `json:"perMinorSpecialRule,omitempty" min:"0" max:"100"`
+	MaxMinorSpecialRuleRating int           `json:"maxMinorSpecialRuleRating,omitempty" min:"0" max:"1000"`
+}
+
+// RatingPoint is the Rating one point of a characteristic is worth in a hero.
+type RatingPoint struct {
+	Stat   string `json:"stat" required:"true" enum:"movement|fight|shoot|strength|defence|attack|wounds|courage|intelligence|might|will|fate" noun:"characteristic"`
+	Rating int    `json:"rating" required:"true" min:"0" max:"100"`
 }
 
 // WargearRating decides when a hero pays the hero rating for gear.

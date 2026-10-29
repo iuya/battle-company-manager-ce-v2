@@ -12,6 +12,9 @@ func init() {
 }
 
 var campaignTypeDocs = map[string]string{
+	"RatingRules":        "How companies and heroes are rated.",
+	"HeroRating":         "How a hero is rated: the Rating of each point of a characteristic, of each special rule and minor special rule, and when its gear is paid at the hero rating. A number that is absent is 0.",
+	"RatingPoint":        "The Rating one point of a characteristic is worth in a hero.",
 	"AgainstTheOdds":     "The bonuses the lower rated company may take after the scenario roll, and the rules of the budget and of who may choose. The bonuses and the budget are read by the engine; the other keys are rule text.",
 	"ATOBudget":          "The rule that the sum of the Ratings of the chosen bonuses may not take the lower company above its opponent's Rating.",
 	"ATOEligible":        "Who may choose bonuses: the company with the strictly lower Rating, compared before the bonuses.",
@@ -43,6 +46,16 @@ var campaignTypeDocs = map[string]string{
 }
 
 var campaignFieldDocs = map[string]string{
+	// Rating
+	"RatingRules.hero":                     "How a hero is rated.",
+	"HeroRating.wargear":                   "When a hero pays the hero rating for gear.",
+	"HeroRating.perPoint":                  "The Rating of one point of each characteristic; a characteristic that is not listed adds nothing.",
+	"HeroRating.perSpecialRule":            "The Rating of each special rule of a hero.",
+	"HeroRating.perMinorSpecialRule":       "The Rating of each minor special rule of a hero (a rule with minor: true).",
+	"HeroRating.maxMinorSpecialRuleRating": "The most the minor special rules of one hero add together.",
+	"RatingPoint.stat":                     "The characteristic.",
+	"RatingPoint.rating":                   "The Rating of one point of it.",
+
 	"Campaign.againstTheOdds": "The Against the Odds bonuses of the lower-rated company, and how the budget and the eligibility work.",
 
 	// Injuries

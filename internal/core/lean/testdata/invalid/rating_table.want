@@ -1,0 +1,8 @@
+battle_companies.json: campaign.rating.hero.perPoint[1].stat: "speed" is not a valid characteristic; known: movement, fight, shoot, strength, defence, attack, wounds, courage, intelligence, might, will, fate
+battle_companies.json: campaign.rating.hero.perPoint[3].rating: missing
+battle_companies.json: campaign.rating.hero.perSpecialRule: expected a whole number, got a string
+battle_companies.json: campaign.rating.hero.perMinorSpecialRule: 500 is out of range 0..100
+battle_companies.json: campaign.rating.hero.maxMinorSpecialRuleRating: -1 is out of range 0..1000
+battle_companies.json: campaign.rating.hero.perSpurious: unknown field
+  hint: known fields: maxMinorSpecialRuleRating, perMinorSpecialRule, perPoint, perSpecialRule, wargear
+battle_companies.json: campaign.rating.hero.perPoint[2].stat: "might" is already rated at campaign.rating.hero.perPoint[0]

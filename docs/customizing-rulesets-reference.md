@@ -593,23 +593,23 @@ How companies and heroes are rated.
 
 Found at: `campaign.rating`.
 
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
-
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `hero` | [HeroRating](#herorating) | yes | - | - | How a hero is rated. |
 
 ### HeroRating
 
-How a hero is rated.
+How a hero is rated: the Rating of each point of a characteristic, of each special rule and minor special rule, and when its gear is paid at the hero rating. A number that is absent is 0.
 
 Found at: `campaign.rating.hero`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `wargear` | [WargearRating](#wargearrating) | yes | - | - | When a hero pays the hero rating for gear. |
+| `maxMinorSpecialRuleRating` | integer |  | - | 0..1000 | The most the minor special rules of one hero add together. |
+| `perMinorSpecialRule` | integer |  | - | 0..100 | The Rating of each minor special rule of a hero (a rule with minor: true). |
+| `perPoint` | list of [RatingPoint](#ratingpoint) |  | - | - | The Rating of one point of each characteristic; a characteristic that is not listed adds nothing. |
+| `perSpecialRule` | integer |  | - | 0..100 | The Rating of each special rule of a hero. |
 
 ### WargearRating
 
@@ -632,6 +632,17 @@ Found at: `campaign.rating.hero.wargear.threshold`.
 |---|---|---|---|---|---|
 | `stats` | list of string | yes | - | `movement`, `fight`, `shoot`, `strength`, `defence`, `attack`, `wounds`, `courage`, `intelligence`, `might`, `will`, `fate`; at least 1 items | The characteristics added up. |
 | `sumAtLeast` | integer | yes | - | 0..20 | The sum at which the hero rating applies. |
+
+### RatingPoint
+
+The Rating one point of a characteristic is worth in a hero.
+
+Found at: `campaign.rating.hero.perPoint[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `stat` | string | yes | - | `movement`, `fight`, `shoot`, `strength`, `defence`, `attack`, `wounds`, `courage`, `intelligence`, `might`, `will`, `fate` | The characteristic. |
+| `rating` | integer | yes | - | 0..100 | The Rating of one point of it. |
 
 ### ScenarioSelection
 

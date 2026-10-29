@@ -2302,9 +2302,34 @@
       "type": "object"
     },
     "HeroRating": {
-      "additionalProperties": true,
-      "description": "How a hero is rated.",
+      "additionalProperties": false,
+      "description": "How a hero is rated: the Rating of each point of a characteristic, of each special rule and minor special rule, and when its gear is paid at the hero rating. A number that is absent is 0.",
       "properties": {
+        "maxMinorSpecialRuleRating": {
+          "description": "The most the minor special rules of one hero add together.",
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "perMinorSpecialRule": {
+          "description": "The Rating of each minor special rule of a hero (a rule with minor: true).",
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "perPoint": {
+          "description": "The Rating of one point of each characteristic; a characteristic that is not listed adds nothing.",
+          "items": {
+            "$ref": "#/$defs/RatingPoint"
+          },
+          "type": "array"
+        },
+        "perSpecialRule": {
+          "description": "The Rating of each special rule of a hero.",
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        },
         "wargear": {
           "$ref": "#/$defs/WargearRating",
           "description": "When a hero pays the hero rating for gear."
@@ -3706,8 +3731,43 @@
         }
       ]
     },
+    "RatingPoint": {
+      "additionalProperties": false,
+      "description": "The Rating one point of a characteristic is worth in a hero.",
+      "properties": {
+        "rating": {
+          "description": "The Rating of one point of it.",
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "stat": {
+          "description": "The characteristic.",
+          "enum": [
+            "movement",
+            "fight",
+            "shoot",
+            "strength",
+            "defence",
+            "attack",
+            "wounds",
+            "courage",
+            "intelligence",
+            "might",
+            "will",
+            "fate"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "stat",
+        "rating"
+      ],
+      "type": "object"
+    },
     "RatingRules": {
-      "additionalProperties": true,
+      "additionalProperties": false,
       "description": "How companies and heroes are rated.",
       "properties": {
         "hero": {
