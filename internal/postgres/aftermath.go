@@ -173,10 +173,11 @@ func (as aftermathStore) Update(ctx context.Context, campaignID, matchID, compan
 	if err := loadRecord(ctx, tx, &rec, true); err != nil {
 		return err
 	}
+	was := cs.rowsOf(st)
 	if err := fn(&st, &rec); err != nil {
 		return err
 	}
-	if err := cs.save(ctx, tx, st); err != nil {
+	if err := cs.save(ctx, tx, st, was); err != nil {
 		return err
 	}
 	in, _ := json.Marshal(aftermathInputJSON{1, rec.Input})

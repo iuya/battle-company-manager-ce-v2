@@ -469,26 +469,94 @@ func (cs companyStore) Update(ctx context.Context, campaignID, companyID int64, 
 	if err != nil {
 		return err
 	}
+	was := cs.rowsOf(st) // what the database holds now, to write back only what fn changes
 	if err := fn(&st); err != nil {
 		return err
 	}
-	if err := cs.save(ctx, tx, st); err != nil {
+	if err := cs.save(ctx, tx, st, was); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
 }
 
-// save writes the state back: the company row, then units (UPDATE by id, INSERT new, DELETE removed) and the cemetery.
-func (cs companyStore) save(ctx context.Context, q querier, st core.CompanyState) error {
-	id := st.Company.ID
+// savedRows fingerprints the rows of a company as save would write them: the company row, each unit with its equipment, each grave. A row
+// whose fingerprint did not change since the state was loaded (under the company's row lock, so nobody else changed it) is not written
+// again: a sheet save touches one or two units of a roster of fourteen, and every unit used to cost an UPDATE, a DELETE of its equipment and
+// an INSERT per item.
+type savedRows struct {
+	company string
+	units   map[int64]string // by unit id
+	fallen  map[int64]string // by unit id
+}
+
+func fingerprint(parts ...any) string {
+	b, err := json.Marshal(parts)
+	if err != nil {
+		return "" // never equal to a real fingerprint: the row is written
+	}
+	return string(b)
+}
+
+// rowsOf fingerprints st; nil when it cannot (everything is then written).
+func (cs companyStore) rowsOf(st core.CompanyState) *savedRows {
+	w := &savedRows{units: make(map[int64]string, len(st.Units)), fallen: make(map[int64]string, len(st.Cemetery))}
+	co, err := companyRowArgs(st)
+	if err != nil {
+		return nil
+	}
+	if w.company = fingerprint(co); w.company == "" {
+		return nil
+	}
+	for pos, u := range st.Units {
+		row, err := unitRowOf(st.Company.ID, pos, u)
+		if err != nil || u.ID == 0 {
+			return nil
+		}
+		if w.units[u.ID] = row.sig(); w.units[u.ID] == "" {
+			return nil
+		}
+	}
+	for pos, f := range st.Cemetery {
+		args, err := fallenRowArgs(st.Company.ID, pos, f)
+		if err != nil {
+			return nil
+		}
+		if w.fallen[f.Unit.ID] = fingerprint(args); w.fallen[f.Unit.ID] == "" {
+			return nil
+		}
+	}
+	return w
+}
+
+func companyRowArgs(st core.CompanyState) ([]any, error) {
 	pending, err := json.Marshal(companyPendingJSON{1, st.Recruit})
+	if err != nil {
+		return nil, err
+	}
+	return []any{st.Company.ID, st.Company.Name, st.Company.Faction, st.Influence, st.Gold, st.Rerolls, orEmpty(st.Pack), orEmpty(st.Order), orEmpty(st.Graveyard), pending}, nil
+}
+
+func fallenRowArgs(companyID int64, pos int, f core.FallenUnit) ([]any, error) {
+	snap, err := json.Marshal(snapshotJSON{1, f.Unit})
+	if err != nil {
+		return nil, err
+	}
+	return []any{companyID, f.Unit.ID, pos, f.Fate, f.Match, snap}, nil
+}
+
+// save writes the state back: the company row, then units (UPDATE by id, INSERT new, DELETE removed) and the cemetery. was, when not nil, is
+// what the database held when the state was loaded (rowsOf): rows that are the same are left alone.
+func (cs companyStore) save(ctx context.Context, q querier, st core.CompanyState, was *savedRows) error {
+	id := st.Company.ID
+	co, err := companyRowArgs(st)
 	if err != nil {
 		return err
 	}
-	if _, err := q.Exec(ctx, `UPDATE companies SET name = $2, faction = $3, influence = $4, gold = $5, rerolls = $6, pack = $7,
-		unit_order = $8, grave_order = $9, pending = $10 WHERE id = $1`,
-		id, st.Company.Name, st.Company.Faction, st.Influence, st.Gold, st.Rerolls, orEmpty(st.Pack), orEmpty(st.Order), orEmpty(st.Graveyard), pending); err != nil {
-		return err
+	if was == nil || was.company != fingerprint(co) {
+		if _, err := q.Exec(ctx, `UPDATE companies SET name = $2, faction = $3, influence = $4, gold = $5, rerolls = $6, pack = $7,
+			unit_order = $8, grave_order = $9, pending = $10 WHERE id = $1`, co...); err != nil {
+			return err
+		}
 	}
 
 	if len(st.PerksUsed) > 0 { // a perk is used up in the transaction of the change that uses it, once
@@ -502,43 +570,71 @@ func (cs companyStore) save(ctx context.Context, q querier, st core.CompanyState
 	}
 
 	keep := make([]int64, 0, len(st.Units))
+	kept := make(map[int64]bool, len(st.Units))
 	for _, u := range st.Units {
 		if u.ID != 0 {
 			keep = append(keep, u.ID)
+			kept[u.ID] = true
 		}
 	}
-	if _, err := q.Exec(ctx, `DELETE FROM company_units WHERE company_id = $1 AND NOT (id = ANY($2))`, id, keep); err != nil {
-		return err
+	if was == nil || removed(was.units, kept) {
+		if _, err := q.Exec(ctx, `DELETE FROM company_units WHERE company_id = $1 AND NOT (id = ANY($2))`, id, keep); err != nil {
+			return err
+		}
 	}
 	for pos, u := range st.Units {
-		if err := cs.saveUnit(ctx, q, id, pos, u); err != nil {
+		row, err := unitRowOf(id, pos, u)
+		if err != nil {
+			return err
+		}
+		if was != nil && u.ID != 0 && was.units[u.ID] == row.sig() {
+			continue
+		}
+		if err := cs.writeUnit(ctx, q, id, row, u.ID); err != nil {
 			return err
 		}
 	}
 
 	fallen := make([]int64, 0, len(st.Cemetery))
+	buried := make(map[int64]bool, len(st.Cemetery))
 	for _, f := range st.Cemetery {
 		fallen = append(fallen, f.Unit.ID)
+		buried[f.Unit.ID] = true
 	}
-	if _, err := q.Exec(ctx, `DELETE FROM fallen_units WHERE company_id = $1 AND NOT (unit_id = ANY($2))`, id, fallen); err != nil {
-		return err
+	if was == nil || removed(was.fallen, buried) {
+		if _, err := q.Exec(ctx, `DELETE FROM fallen_units WHERE company_id = $1 AND NOT (unit_id = ANY($2))`, id, fallen); err != nil {
+			return err
+		}
 	}
 	for pos, f := range st.Cemetery {
-		snap, err := json.Marshal(snapshotJSON{1, f.Unit})
+		args, err := fallenRowArgs(id, pos, f)
 		if err != nil {
 			return err
 		}
 		if f.Unit.ID == 0 {
 			return errors.New("a fallen unit needs the id it had on the roster")
 		}
+		if was != nil && was.fallen[f.Unit.ID] == fingerprint(args) {
+			continue
+		}
 		if _, err := q.Exec(ctx, `INSERT INTO fallen_units (company_id, unit_id, position, fate, fell_in, snapshot)
 			VALUES ($1, $2, $3, $4, $5, $6)
 			ON CONFLICT (unit_id) DO UPDATE SET position = $3, fate = $4, fell_in = $5, snapshot = $6
-			WHERE fallen_units.company_id = $1`, id, f.Unit.ID, pos, f.Fate, f.Match, snap); err != nil {
+			WHERE fallen_units.company_id = $1`, args...); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// removed reports whether a row that was stored is not in now.
+func removed(was map[int64]string, now map[int64]bool) bool {
+	for id := range was {
+		if !now[id] {
+			return true
+		}
+	}
+	return false
 }
 
 func orEmpty[T any](s []T) []T {
@@ -548,40 +644,60 @@ func orEmpty[T any](s []T) []T {
 	return s
 }
 
-// saveUnit inserts the unit (id 0, which is then filled by the caller's copy only in the database) or updates it by id.
-func (cs companyStore) saveUnit(ctx context.Context, q querier, companyID int64, pos int, u core.UnitState) error {
+// unitRow is what is written for a unit: the columns in the order of the statements and the three equipment lists.
+type unitRow struct {
+	args                  []any
+	gear, bought, dropped []string
+}
+
+func unitRowOf(companyID int64, pos int, u core.UnitState) (unitRow, error) {
 	var progress []byte
 	if u.Progress != nil {
 		b, err := json.Marshal(progressJSON{1, u.Progress})
 		if err != nil {
-			return err
+			return unitRow{}, err
 		}
 		progress = b
 	}
 	injuries, err := json.Marshal(injuriesJSON{1, u.Injuries})
 	if err != nil {
-		return err
+		return unitRow{}, err
 	}
 	data, err := json.Marshal(unitDataJSON{1, u.Bonus, u.Actions, u.BoughtActions, u.Spells})
 	if err != nil {
-		return err
+		return unitRow{}, err
 	}
 	pending, err := json.Marshal(unitPendingJSON{1, u.Pending})
 	if err != nil {
+		return unitRow{}, err
+	}
+	return unitRow{args: []any{companyID, pos, u.Base, u.Name, string(u.Role), string(u.Kind), u.Path, u.PathRules, u.Level, u.XP, u.Points,
+		u.Wanderer, u.Creature, u.Injured, u.SentToHealers, progress, injuries, data, pending}, gear: u.Gear, bought: u.Bought, dropped: u.Dropped}, nil
+}
+
+// sig is the fingerprint of the row, equipment included.
+func (r unitRow) sig() string { return fingerprint(r.args, r.gear, r.bought, r.dropped) }
+
+// saveUnit inserts the unit (id 0, which is then filled by the caller's copy only in the database) or updates it by id.
+func (cs companyStore) saveUnit(ctx context.Context, q querier, companyID int64, pos int, u core.UnitState) error {
+	row, err := unitRowOf(companyID, pos, u)
+	if err != nil {
 		return err
 	}
-	args := []any{companyID, pos, u.Base, u.Name, string(u.Role), string(u.Kind), u.Path, u.PathRules, u.Level, u.XP, u.Points,
-		u.Wanderer, u.Creature, u.Injured, u.SentToHealers, progress, injuries, data, pending}
-	unitID := u.ID
+	return cs.writeUnit(ctx, q, companyID, row, u.ID)
+}
+
+func (cs companyStore) writeUnit(ctx context.Context, q querier, companyID int64, row unitRow, unitID int64) error {
+	var err error
 	if unitID == 0 {
 		err = q.QueryRow(ctx, `INSERT INTO company_units (company_id, position, base, custom_name, role, kind, path, path_rules, level, xp,
 			points, wanderer, creature, injured, sent_to_healers, progress, injuries, data, pending)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id`, args...).Scan(&unitID)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id`, row.args...).Scan(&unitID)
 	} else {
 		var tag pgconn.CommandTag
 		tag, err = q.Exec(ctx, `UPDATE company_units SET position = $2, base = $3, custom_name = $4, role = $5, kind = $6, path = $7,
 			path_rules = $8, level = $9, xp = $10, points = $11, wanderer = $12, creature = $13, injured = $14, sent_to_healers = $15,
-			progress = $16, injuries = $17, data = $18, pending = $19 WHERE company_id = $1 AND id = $20`, append(args, unitID)...)
+			progress = $16, injuries = $17, data = $18, pending = $19 WHERE company_id = $1 AND id = $20`, append(slices.Clone(row.args), unitID)...)
 		if err == nil && tag.RowsAffected() == 0 {
 			return fmt.Errorf("unit %d is not on the roster of company %d", unitID, companyID)
 		}
@@ -592,7 +708,7 @@ func (cs companyStore) saveUnit(ctx context.Context, q querier, companyID int64,
 	if err != nil {
 		return err
 	}
-	for origin, names := range map[string][]string{"gear": u.Gear, "bought": u.Bought, "dropped": u.Dropped} {
+	for origin, names := range map[string][]string{"gear": row.gear, "bought": row.bought, "dropped": row.dropped} {
 		for i, name := range names {
 			if _, err := q.Exec(ctx, `INSERT INTO unit_equipment (unit_id, origin, position, name) VALUES ($1, $2, $3, $4)`, unitID, origin, i, name); err != nil {
 				return err
