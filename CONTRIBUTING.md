@@ -26,7 +26,7 @@ Keep to **one logical change per pull request**. Unrelated clean-ups go in their
 You need the Go version in `go.mod`, Docker (PostgreSQL for development), Python 3 (`make validate`, tool tests) and, for the browser tests, Node 20+ and Chrome or Chromium.
 
 ```bash
-make get-tailwind                                    # once: the Tailwind standalone binary
+make get-tailwind                                    # once: the Tailwind standalone binary for this machine (macOS and Linux, x64 and arm64)
 make user EMAIL=you@example.com NAME="You"           # an account (no sign-up page)
 make run                                             # http://localhost:8080
 make demo                                            # destructive: empties the dev database and loads the demo world
