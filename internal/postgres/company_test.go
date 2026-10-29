@@ -273,6 +273,11 @@ func TestReadRosterMatchesRead(t *testing.T) {
 			t.Errorf("company %d: ReadRoster %+v differs from Read %+v", id, all[i], one)
 		}
 	}
+	// ReadRosterOf: the companies asked for (an unknown id is left out), the same states as the campaign's roster
+	some, err := companyStore{s}.ReadRosterOf(ctx, []int64{ids[2], ids[0], 999999999})
+	if err != nil || len(some) != 2 || !reflect.DeepEqual(some[0], all[0]) || !reflect.DeepEqual(some[1], all[2]) {
+		t.Errorf("ReadRosterOf = %+v, %v; want companies %d and %d as in the roster", some, err, ids[0], ids[2])
+	}
 }
 
 // Read answers in one statement with JSON; load (used under the row lock by Update) in several. They must give the same state for every

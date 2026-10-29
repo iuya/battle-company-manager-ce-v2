@@ -312,3 +312,67 @@ func TestCampaignsNavCampaignsDoesNotRate(t *testing.T) {
 		t.Fatalf("NavCampaigns = %+v, %v", got, err)
 	}
 }
+
+// rosterByID adds the by-company roster read to a company repository, as the Postgres store has it, and counts the calls.
+type rosterByID struct {
+	companyRepository
+	byID  map[int64]CompanyState
+	calls [][]int64
+}
+
+func (r *rosterByID) ReadRosterOf(_ context.Context, ids []int64) ([]CompanyState, error) {
+	r.calls = append(r.calls, ids)
+	var out []CompanyState
+	for _, id := range ids {
+		if st, ok := r.byID[id]; ok {
+			out = append(out, st)
+		}
+	}
+	return out, nil
+}
+
+// The campaign list rates the player's own companies of every campaign from ONE read of those companies (no ReadRoster, no Read: a
+// call fails), and a page that rates a few companies of a campaign reads only those; the figures are the ones the whole roster gives.
+func TestCampaignsRateOwnCompaniesFromOneRosterRead(t *testing.T) {
+	f := newCampaignFixture(t)
+	ctx := context.Background()
+	f.hashes()
+	repo := &rosterByID{companyRepository: f.companies, byID: map[int64]CompanyState{}}
+	svc := NewCampaigns(f.campaigns, repo, f.rulesets, staticRules{shippedRules(t)}, nil)
+	var list []CampaignSummary
+	for id := int64(1); id <= 3; id++ {
+		st := gondor()
+		st.Company.ID = id * 10
+		repo.byID[st.Company.ID] = st
+		list = append(list, CampaignSummary{ID: id, Name: "c", Companies: []CampaignCompany{{ID: st.Company.ID, Name: "mine"}}})
+	}
+	list = append(list, CampaignSummary{ID: 4, Name: "no company"})
+	f.campaigns.EXPECT().List(ctx, int64(9), true).Return(list, nil)
+	got, err := svc.List(ctx, 9, true)
+	if err != nil || len(got) != 4 {
+		t.Fatalf("List = %+v, %v", got, err)
+	}
+	want := BuildDetail(shippedRules(t), CampaignSettings{}, gondor()).CampaignCompany
+	for _, g := range got[:3] {
+		if c := g.Companies[0]; c.Points != want.Points || c.FullPoints != want.FullPoints || c.Units != want.Units {
+			t.Errorf("campaign %d: %+v, want the figures %+v", g.ID, c, want)
+		}
+	}
+	if len(repo.calls) != 1 || len(repo.calls[0]) != 3 {
+		t.Errorf("one read of the three companies: %v", repo.calls)
+	}
+
+	// a campaign page: its own company only
+	repo.calls = nil
+	f.campaigns.EXPECT().Get(ctx, int64(9), int64(1)).Return(CampaignDetail{CampaignSummary: list[0]}, nil)
+	d, err := svc.Get(ctx, 9, 1)
+	if err != nil || d.Companies[0].Points != want.Points || len(repo.calls) != 1 || len(repo.calls[0]) != 1 {
+		t.Errorf("Get = %+v, %v, reads %v", d.Companies, err, repo.calls)
+	}
+	// a company that is gone from the store is not rated silently
+	delete(repo.byID, 10)
+	f.campaigns.EXPECT().Get(ctx, int64(9), int64(1)).Return(CampaignDetail{CampaignSummary: CampaignSummary{ID: 1, Companies: []CampaignCompany{{ID: 10}}}}, nil)
+	if _, err := svc.Get(ctx, 9, 1); !errors.Is(err, ErrNotFound) {
+		t.Errorf("a listed company that has no roster: %v", err)
+	}
+}

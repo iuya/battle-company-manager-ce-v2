@@ -2,6 +2,9 @@ package core
 
 import (
 	"context"
+	"errors"
+	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -80,6 +83,7 @@ type (
 	campaignCoKey  struct{ campaign, company int64 }
 	hashesKey      struct{ campaign int64 }
 	rosterKey      struct{ campaign int64 }
+	rosterOfKey    string // the company ids, comma separated
 	eventsKey      struct{ campaign, match int64 }
 )
 
@@ -109,6 +113,23 @@ func (r ScopedCompanies) Read(ctx context.Context, campaignID, companyID int64) 
 // ReadRoster is read once per request as well: the figures of the campaign's companies are asked for by every card of a page.
 func (r ScopedCompanies) ReadRoster(ctx context.Context, campaignID int64) ([]CompanyState, error) {
 	return scoped(ctx, rosterKey{campaignID}, func() ([]CompanyState, error) { return r.companyRepository.ReadRoster(ctx, campaignID) })
+}
+
+// errRosterOfUnsupported is what ScopedCompanies.ReadRosterOf answers over a repository without it: the callers read the whole campaign instead.
+var errRosterOfUnsupported = errors.New("the repository cannot read rosters by company")
+
+// ReadRosterOf is remembered per request by the ids asked for (see rosterOfReader). It exists only when the wrapped repository has it.
+func (r ScopedCompanies) ReadRosterOf(ctx context.Context, companyIDs []int64) ([]CompanyState, error) {
+	inner, ok := r.companyRepository.(rosterOfReader)
+	if !ok {
+		return nil, errRosterOfUnsupported
+	}
+	var key strings.Builder
+	for _, id := range companyIDs {
+		key.WriteString(strconv.FormatInt(id, 10))
+		key.WriteByte(',')
+	}
+	return scoped(ctx, rosterOfKey(key.String()), func() ([]CompanyState, error) { return inner.ReadRosterOf(ctx, companyIDs) })
 }
 
 type ScopedATO struct{ atoRepository }

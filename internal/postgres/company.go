@@ -375,11 +375,11 @@ func (cs companyStore) loadUnits(ctx context.Context, q querier, ids []int64) (m
 	return out, nil
 }
 
-// rosterQuery is ReadRoster's statement: one row per unit (a company without units has one row with NULL unit columns, which the
+// rosterQueryFmt is ReadRoster's statement: one row per unit (a company without units has one row with NULL unit columns, which the
 // COALESCEs turn into id 0), the equipment of a unit as three arrays from one probe of unit_equipment. Typed columns instead of one
 // jsonb_build_object document per unit: on the demo world's biggest campaign (37 companies, 536 units) 3.8 ms against 9.2 ms and 350
 // buffers against 1,478 (docs/optimization-report.md, "Database pass").
-const rosterQuery = `
+const rosterQueryFmt = `
 	SELECT c.id, c.name, c.faction, c.owner_id, u.display_name, c.influence, c.gold, c.rerolls, c.pack, c.unit_order, c.grave_order,
 	       COALESCE(x.id, 0), COALESCE(x.base, ''), COALESCE(x.custom_name, ''), COALESCE(x.role, ''), COALESCE(x.kind, ''), COALESCE(x.path, ''),
 	       COALESCE(x.path_rules, 0), COALESCE(x.level, 0), COALESCE(x.xp, 0), COALESCE(x.points, 0), COALESCE(x.wanderer, ''),
@@ -391,7 +391,7 @@ const rosterQuery = `
 	                            array_agg(q.name ORDER BY q.position) FILTER (WHERE q.origin = 'bought') AS bought,
 	                            array_agg(q.name ORDER BY q.position) FILTER (WHERE q.origin = 'dropped') AS dropped
 	                       FROM unit_equipment q WHERE q.unit_id = x.id) e ON true
-	 WHERE c.campaign_id = $1 ORDER BY c.id, x.position`
+	 WHERE ` + "%s" + ` ORDER BY c.id, x.position`
 
 // emptyUnitJSON is what the default of the injuries, data and pending columns reads as: nothing to decode.
 var emptyUnitJSON = []byte(`{"v": 1}`)
@@ -399,7 +399,22 @@ var emptyUnitJSON = []byte(`{"v": 1}`)
 // ReadRoster reads the state of every company of the campaign in one statement: the companies' own figures and their units with
 // equipment, enough to rate them. Pending aftermaths, the open match, perks and the cemetery are left out (Read has them).
 func (cs companyStore) ReadRoster(ctx context.Context, campaignID int64) ([]core.CompanyState, error) {
-	rows, err := cs.s.pool.Query(ctx, rosterQuery, campaignID)
+	return cs.readRoster(ctx, rosterOfCampaign, campaignID)
+}
+
+var (
+	rosterOfCampaign  = fmt.Sprintf(rosterQueryFmt, `c.campaign_id = $1`)
+	rosterOfCompanies = fmt.Sprintf(rosterQueryFmt, `c.id = ANY($1)`)
+)
+
+// ReadRosterOf is ReadRoster for the companies given, whichever campaigns they are in, in one statement; an id that is no company is left
+// out (core.rosterOfReader).
+func (cs companyStore) ReadRosterOf(ctx context.Context, companyIDs []int64) ([]core.CompanyState, error) {
+	return cs.readRoster(ctx, rosterOfCompanies, companyIDs)
+}
+
+func (cs companyStore) readRoster(ctx context.Context, query string, arg any) ([]core.CompanyState, error) {
+	rows, err := cs.s.pool.Query(ctx, query, arg)
 	if err != nil {
 		return nil, err
 	}
