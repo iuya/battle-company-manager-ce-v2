@@ -49,7 +49,7 @@ document.addEventListener('alpine:init', () => {
   function target() {
     const z = zones(), s = slot();
     if (z) return { match: z.dataset.match, campaign: z.dataset.campaign, company: z.dataset.company };
-    if (s) return { match: s.dataset.liveMatch, campaign: s.dataset.campaign, company: '' };
+    if (s) return { match: s.dataset.liveMatch, campaign: s.dataset.campaign, company: '', since: s.dataset.liveSince || '' };
     return null;
   }
   function dot(state, text) {
@@ -129,7 +129,9 @@ document.addEventListener('alpine:init', () => {
     key = k;
     if (document.hidden) return; // opened when the tab is shown
     if (!window.EventSource) { startPolling(); return; }
-    const es = new EventSource(`/campaigns/${t.campaign}/matches/${t.match}/events`);
+    // since: the state the match page's cards were built from; the stream then skips the refetch of cards that are current (a reconnect sends the
+    // same value, so a match that moved on meanwhile is refetched in full).
+    const es = new EventSource(`/campaigns/${t.campaign}/matches/${t.match}/events${t.since ? '?since=' + encodeURIComponent(t.since) : ''}`);
     source = es;
     let lost = false;
     es.onopen = () => { dot('on', 'Live'); if (lost) { lost = false; refresh(); } }; // what happened while the stream was down

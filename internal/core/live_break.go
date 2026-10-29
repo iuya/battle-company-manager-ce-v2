@@ -13,12 +13,12 @@ import (
 // BreakRules are the Break Point rules of the Battle Companies file (campaign.breakPoint).
 type BreakRules struct {
 	DefaultPercent int
-	// Comparison is breakPoint.threshold.comparison (E1): false is "gt" (Broken when the casualties are strictly greater than the Break
+	// Comparison is breakPoint.threshold.comparison: false is "gt" (Broken when the casualties are strictly greater than the Break
 	// Point, exactly the Break Point is not Broken), true is "gte". The Break Point is never rounded (a fixed engine rule): the test is
 	// done on integers, casualties * 100 against percent * startingModels.
 	AtLeast     bool
 	CourageDice string   // whenBroken.courageTest.dice as written, lower case ("2d6")
-	CourageSpec DiceSpec // CourageDice parsed (E4); the zero spec when the file names none
+	CourageSpec DiceSpec // CourageDice parsed; the zero spec when the file names none
 	PassIf      string   // whenBroken.courageTest.passIf, "totalAtLeastCourage"
 	Exceptions  []BreakException
 }
@@ -317,10 +317,10 @@ func (s LiveState) checkBreakAdjust(a LiveAction, company int64) (LiveAction, []
 	if n < 0 {
 		n, more = -n, "fewer"
 	}
-	if a.Field == "casualties" && n != 1 {
-		what = "casualties"
-	} else if n != 1 {
-		what += "s"
+	if a.Field == "casualties" {
+		what = Plural(n, what, "casualties")
+	} else {
+		what = Plural(n, what, what+"s")
 	}
 	text := fmt.Sprintf("%s: %d %s %s", name, n, more, what)
 	if note := strings.TrimSpace(a.Note); note != "" {

@@ -577,8 +577,8 @@ gear "Beaks and Claws (hand weapon)" -> key "beakandclawhandweapon" | annotation
 gear "Bow" -> key "bow" | offer "Bow" size "" also [] | annotation "Bow" | vanilla gear "Bow"
 gear "Claws" -> key "claw" | unknown
 gear "Dunlending War Axe" -> key "dunlendingwaraxe" | offer "Dunlending War Axe" size "" also [] | annotation "Dunlending War Axe"
-gear "Flaming Brand" -> key "flamingbrand" | offer "Flaming Brand" size "" also [Flaming Brands] | annotation "Flaming Brand" | vanilla gear "Flaming Brand"
-gear "Flaming brand" -> key "flamingbrand" | offer "Flaming Brand" size "" also [Flaming Brands] | annotation "Flaming Brand" | vanilla gear "Flaming Brand"
+gear "Flaming Brand" -> key "flamingbrand" | offer "Flaming Brand" size "" also [] | annotation "Flaming Brand" | vanilla gear "Flaming Brand"
+gear "Flaming brand" -> key "flamingbrand" | offer "Flaming Brand" size "" also [] | annotation "Flaming Brand" | vanilla gear "Flaming Brand"
 gear "Hand weapon" -> key "handweapon" | annotation "Hand weapon"
 gear "Heavy Armour" -> key "heavyarmour" | annotation "Heavy Armour" | vanilla gear "Heavy Armour"
 gear "Horse" -> key "horse" | offer "Horse" size "" also [] | annotation "Horse" | vanilla gear "Horse"
@@ -587,8 +587,8 @@ gear "Light shield" -> key "lightshield" | offer "Light Shield" size "" also [] 
 gear "Light shield and flaming brand" -> key "lightshieldandflamingbrand" | unknown
 gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
 gear "Spear" -> key "spear" | offer "Spear" size "" also [] | annotation "Spear"
-gear "Two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe Two-handed axe] | annotation "Two-handed weapon"
-gear "flaming brand" -> key "flamingbrand" | offer "Flaming Brand" size "" also [Flaming Brands] | annotation "Flaming Brand" | vanilla gear "Flaming Brand"
+gear "Two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe] | annotation "Two-handed weapon"
+gear "flaming brand" -> key "flamingbrand" | offer "Flaming Brand" size "" also [] | annotation "Flaming Brand" | vanilla gear "Flaming Brand"
 rule "\"Hold positions, loose the arrows!\"" -> label "\"Hold positions, loose the arrows!\"" | text from bc rule | glossary "\"Hold positions, loose the arrows!\""
 rule "\"Slay their Horses!\"" -> label "\"Slay their Horses!\"" | text from vanilla rule | glossary "\"Slay their Horses!\""
 rule "A Good Sort" -> label "A Good Sort" | text from bc rule | glossary "A Good Sort"

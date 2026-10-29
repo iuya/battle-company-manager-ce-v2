@@ -1,0 +1,3 @@
+battle_companies.json: companies[0].elvenWeaponry.units[0]: no unit "Ranger of Arnr" in this company, the shared units or vanilla; closest: "Ranger of Arnor"
+battle_companies.json: companies[0].elvenWeaponry.except[0]: no unit "Knight of Arnr" in this company, the shared units or vanilla; closest: "Knight of Arnor"
+battle_companies.json: companies[0].elvenWeaponry.race[0]: no race "Elfe" in vanilla; closest: "Elf"

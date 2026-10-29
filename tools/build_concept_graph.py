@@ -4,9 +4,9 @@ of the three shipped rules files, with the hashes that tell the app whether they
 
     python3 tools/build_concept_graph.py [--check]
 
-Run after build_battle_companies.py and build_glossary.py: the graph records the hashes of the files it was built from, and
-`validate_definitions.py` fails when they changed. Derived from the data: item grants, path grants, shield cancellations and
-lifts, gear restrictions. By hand: tools/concepts_curated.json. mentions and see are not stored: the app computes them.
+Run after any change to one of the three files: the graph records the hashes of the files it was built from, and
+`validate_definitions.py` fails when they changed. Derived from the lean Battle Companies file: item grants, path grants, shield cancellations and
+lifts, gear restrictions. The nodes come from the app's loader (`go run ./tools/conceptnodes`). By hand: tools/concepts_curated.json. mentions and see are not stored: the app computes them.
 """
 import argparse
 import json

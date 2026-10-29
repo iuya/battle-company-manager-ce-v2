@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/iuya/battle-company-manager-ce-v2/blob/main/docs/README.md
+    about: Architecture, rules data, testing and operations. Check it before opening an issue.
+  - name: Report a security vulnerability (private)
+    url: https://github.com/iuya/battle-company-manager-ce-v2/security/advisories/new
+    about: Do not open a public issue for a vulnerability. Use GitHub private vulnerability reporting (see SECURITY.md).

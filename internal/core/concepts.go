@@ -151,9 +151,9 @@ func (c *Concepts) Resolve(ctx context.Context, rs RulesetRef, name string) (Con
 	if err != nil {
 		return ConceptRef{}, false
 	}
-	ids := g.byPhrase[phraseKey(name)]
+	ids := g.byPhrase[NameKey(name)]
 	if len(ids) == 0 { // "Hatred (Spirit)" is the rule Hatred
-		ids = g.byPhrase[phraseKey(parameter.ReplaceAllString(name, ""))]
+		ids = g.byPhrase[NameKey(parameter.ReplaceAllString(name, ""))]
 	}
 	switch len(ids) {
 	case 0:

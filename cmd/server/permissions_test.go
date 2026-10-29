@@ -1,6 +1,6 @@
 package main
 
-// The permission matrix (bead mqn.163): every state-changing action of the core services, tried by every kind of account in every
+// The permission matrix: every state-changing action of the core services, tried by every kind of account in every
 // campaign state, against the real services over PostgreSQL (the same wiring as the server). One table, permActions, says for each
 // action who may do it while the campaign is active, paused and finished; every other account must be refused with the expected
 // reason. Anonymous visitors never reach the core: the web layer's own test (internal/web, TestAnonymousWritesRedirectToLogin) covers
@@ -105,7 +105,7 @@ type permAction struct {
 	// prep prepares the game state after the companies exist and before the match is made (money, experience, injuries, a stronger
 	// opponent); nil: nothing
 	prep func(f *permFx)
-	// alsoErr is another error, besides ErrRefused, a refusal may be (ErrHasCompany)
+	// alsoErr is another error, besides ErrRefused, a refusal may be (ErrCompanyLimit)
 	alsoErr error
 }
 
@@ -142,9 +142,9 @@ var permActions = []permAction{
 		_, err := f.c().CreateCompany(f.ctx, a, f.camp.id, core.CompanyInput{Name: "New " + a.DisplayName, Faction: "Arnor"})
 		return err
 	}, allow: [3]permRole{roleNoCompany | roleOrganiser | admins, roleNoCompany | roleOrganiser | admins, 0},
-		roleMsg: "already have a company", alsoErr: core.ErrHasCompany, stateMsg: [3]string{"", "", msgFinished}, fixture: permIdle},
+		roleMsg: "already have all the companies", alsoErr: core.ErrCompanyLimit, stateMsg: [3]string{"", "", msgFinished}, fixture: permIdle},
 	{name: "RenameCompany", run: func(f *permFx, a core.User) error {
-		return f.c().RenameCompany(f.ctx, a, f.camp.id, "Renamed "+a.DisplayName)
+		return f.c().RenameCompany(f.ctx, a, f.camp.id, f.companyOf(a), "Renamed "+a.DisplayName)
 	}, allow: [3]permRole{players, players, 0}, notFound: roleNoCompany | managers, stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
 	{name: "SaveFormation", run: func(f *permFx, a core.User) error {
 		d, err := f.c().CompanyDetail(f.ctx, f.camp.id, f.companyOf(a))
@@ -155,18 +155,18 @@ var permActions = []permAction{
 		for _, u := range d.Roster {
 			order = append(order, u.ID)
 		}
-		return f.c().SaveFormation(f.ctx, a, f.camp.id, order)
+		return f.c().SaveFormation(f.ctx, a, f.camp.id, f.companyOf(a), order)
 	}, allow: [3]permRole{players, players, 0}, notFound: roleNoCompany | managers, stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
 	{name: "SaveCemeteryOrder", run: func(f *permFx, a core.User) error {
-		return f.c().SaveCemeteryOrder(f.ctx, a, f.camp.id, nil)
+		return f.c().SaveCemeteryOrder(f.ctx, a, f.camp.id, f.companyOf(a), nil)
 	}, allow: [3]permRole{players, players, 0}, notFound: roleNoCompany | managers, stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
 	{name: "RenameUnit (a unit of the Rangers)", run: func(f *permFx, a core.User) error {
-		return f.c().RenameUnit(f.ctx, a, f.camp.id, f.unitA().ID, "Renamed")
+		return f.c().RenameUnit(f.ctx, a, f.camp.id, f.companyOf(a), f.unitA().ID, "Renamed")
 	}, allow: [3]permRole{roleOwner, roleOwner, 0}, notFound: members &^ roleOwner, stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
 
 	// -- the Ranger of the North takes command (the Shire fixture: a fallen Ranger and three other officers wait to be arranged)
 	{name: "ArrangeOfficers", fixture: permRanger, run: func(f *permFx, a core.User) error {
-		panel, err := f.c().PendingOfficers(f.ctx, f.u[roleOwner], f.camp.id)
+		panel, err := f.c().PendingOfficers(f.ctx, f.u[roleOwner], f.camp.id, f.a.id)
 		if err != nil || panel == nil {
 			return fmt.Errorf("the fixture has no officers waiting: %v", err)
 		}
@@ -174,13 +174,13 @@ var permActions = []permAction{
 		for _, o := range panel.Officers[:2] {
 			arr.Sergeants = append(arr.Sergeants, o.ID)
 		}
-		_, err = f.c().ArrangeOfficers(f.ctx, a, f.camp.id, arr)
+		_, err = f.c().ArrangeOfficers(f.ctx, a, f.camp.id, f.companyOf(a), arr)
 		return err
 	}, allow: [3]permRole{roleOwner, roleOwner, 0}, notFound: roleNoCompany | managers, roleMsg: "No Ranger of the North is waiting", stateMsg: [3]string{"", "", msgFinished}},
 
 	// -- matches
 	{name: "CreateMatch", fixture: permIdle, run: func(f *permFx, a core.User) error {
-		_, err := f.c().CreateMatch(f.ctx, a, f.camp.id, []core.NewSide{{Name: "A", Companies: []int64{f.a.id}}, {Name: "B", Companies: []int64{f.b.id}}})
+		_, err := f.c().CreateMatch(f.ctx, a, f.camp.id, core.NewMatch{Sides: []core.NewSide{{Name: "A", Companies: []int64{f.a.id}}, {Name: "B", Companies: []int64{f.b.id}}}})
 		return err
 	}, allow: [3]permRole{members, 0, 0}, stateMsg: [3]string{"", msgPaused, msgFinished}},
 	{name: "SetScenario", fixture: permOpen, run: func(f *permFx, a core.User) error {
@@ -230,7 +230,7 @@ var permActions = []permAction{
 
 	// -- what a company does with its money and its units (the owner only; a locked or finished company refuses)
 	{name: "RollRecruit", prep: (*permFx).grantBoth, run: func(f *permFx, a core.User) error {
-		return f.c().RollRecruit(f.ctx, a, f.camp.id, 0, false)
+		return f.c().RollRecruit(f.ctx, a, f.camp.id, f.companyOf(a), 0, false)
 	}, allow: [3]permRole{players, players, 0}, notFound: roleNoCompany | managers, stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
 	{name: "BuyEquipment", prep: (*permFx).grantBoth, run: func(f *permFx, a core.User) error {
 		co := f.companyOf(a)
@@ -245,18 +245,18 @@ var permActions = []permAction{
 			}
 			for _, it := range items {
 				if it.Buyable() && it.PayInfluence {
-					return f.c().BuyEquipment(f.ctx, a, f.camp.id, u.ID, it.Name, "")
+					return f.c().BuyEquipment(f.ctx, a, f.camp.id, f.companyOf(a), u.ID, it.Name, "")
 				}
 			}
 		}
 		return errors.New("the test found nothing to buy")
 	}, allow: [3]permRole{players, players, 0}, notFound: roleNoCompany | managers, stateMsg: [3]string{"", "", msgFinished}},
 	{name: "RollLevelUp (the leader)", prep: (*permFx).xpLeaders, run: func(f *permFx, a core.User) error {
-		_, err := f.c().RollLevelUp(f.ctx, a, f.camp.id, f.leaderOf(f.companyOf(a)), nil, false)
+		_, err := f.c().RollLevelUp(f.ctx, a, f.camp.id, f.companyOf(a), f.leaderOf(f.companyOf(a)), nil, false)
 		return err
 	}, allow: [3]permRole{players, players, 0}, notFound: roleNoCompany | managers, stateMsg: [3]string{"", "", msgFinished}},
 	{name: "TreatInjury (healers)", prep: (*permFx).injureSergeants, run: func(f *permFx, a core.User) error {
-		_, err := f.c().TreatInjury(f.ctx, a, f.camp.id, f.sergeantOf(f.companyOf(a)), core.Treatment{Method: "healers", Injury: "brokenHonour"})
+		_, err := f.c().TreatInjury(f.ctx, a, f.camp.id, f.companyOf(a), f.sergeantOf(f.companyOf(a)), core.Treatment{Method: "healers", Injury: "brokenHonour"})
 		return err
 	}, allow: [3]permRole{players, players, 0}, notFound: roleNoCompany | managers, stateMsg: [3]string{"", "", msgFinished}},
 
@@ -354,7 +354,7 @@ func (f *permFx) strengthenOther() {
 				if !x.PayInfluence {
 					how = "gold"
 				}
-				return f.c().HireWanderer(f.ctx, f.u[roleOther], f.camp.id, x.Name, how)
+				return f.c().HireWanderer(f.ctx, f.u[roleOther], f.camp.id, f.companyOf(f.u[roleOther]), x.Name, how)
 			}
 		}
 		return errors.New("no wanderer to hire")
@@ -375,8 +375,8 @@ func (f *permFx) shireRangerWaits() {
 	}
 	f.w.grant(f.a, 10, 10)
 	f.w.rollWith(4)
-	f.w.must("roll the recruit", f.c().RollRecruit(f.ctx, f.u[roleOwner], f.camp.id, 0, false))
-	_, err := f.c().ConfirmRecruit(f.ctx, f.u[roleOwner], f.camp.id, 0, "ranger")
+	f.w.must("roll the recruit", f.c().RollRecruit(f.ctx, f.u[roleOwner], f.camp.id, f.companyOf(f.u[roleOwner]), 0, false))
+	_, err := f.c().ConfirmRecruit(f.ctx, f.u[roleOwner], f.camp.id, f.companyOf(f.u[roleOwner]), 0, "ranger")
 	f.w.must("choose the Ranger of the North", err)
 }
 
@@ -471,7 +471,7 @@ func TestPermissionMatrix(t *testing.T) {
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL is not set")
 	}
-	t.Chdir("../..") // definitions/ is read relative to the repository root; the other tests of the package chdir on their own
+	t.Parallel() // its own database (a copy of the seeded template), no state shared with the other tests
 	ctx := context.Background()
 	store, err := postgres.OpenWith(ctx, freshDatabase(ctx, t, url), postgres.Options{})
 	if err != nil {

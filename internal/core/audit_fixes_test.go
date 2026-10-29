@@ -384,7 +384,7 @@ func TestRecruitWithABowFollowsTheRoundedUpLimit(t *testing.T) {
 	}
 }
 
-// A row that names one piece of a bundled option gives the whole bundle and costs the option's points (user decision 2026-10-21).
+// A row that names one piece of a bundled option gives the whole bundle and costs the option's points.
 func TestPartialBundleRowsGetTheWholeOption(t *testing.T) {
 	rs := shippedRules(t)
 	hills, _ := rs.BC.Company("Iron Hills")
@@ -433,6 +433,26 @@ func TestPartialBundleRowsGetTheWholeOption(t *testing.T) {
 	for _, f := range flags {
 		if f.Kind == FlagPriceMismatch {
 			t.Errorf("%s / %s: %s", f.Company, f.Subject, f.Detail)
+		}
+	}
+}
+
+// Paths of the Druadan: "All Rohan Hero models" gain Arise, Riders of Rohan!, so a Wose hero does not.
+func TestAriseRidersOfRohanIsForRohanHeroesOnly(t *testing.T) {
+	rs := shippedRules(t)
+	bcCo, ok := rs.BC.Company("Paths of the Druadan")
+	if !ok {
+		t.Fatal("no Paths of the Druadan")
+	}
+	for _, c := range []struct {
+		base string
+		want bool
+	}{{"Rohan Outrider", true}, {"Woses Warrior", false}} {
+		u := buildUnit(rs, bcCo, UnitState{ID: 1, Base: c.base, Role: RoleHero, Bonus: HeroBonus(nil)}, CampaignSettings{})
+		units := []CompanyUnit{u}
+		applyCompanyRules(rs, bcCo, units)
+		if _, got := ruleNamed(units[0], "Arise, Riders of Rohan!"); got != c.want {
+			t.Errorf("%s hero has Arise, Riders of Rohan!: %v, want %v", c.base, got, c.want)
 		}
 	}
 }

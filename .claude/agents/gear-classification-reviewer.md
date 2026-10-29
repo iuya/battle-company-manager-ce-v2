@@ -13,8 +13,7 @@ second pair of eyes; do not assume the curator was right, and do not assume they
 
 ## Read first
 The bead "Gear annotations in the Battle Companies JSON" (`bd show battle-company-manager-ce-v2-a2g`: the brief the
-curator worked from), `docs/definitions.md`, `tools/README.md`, `tools/gear_review.md` (the curator's own table, one row per
-item), and the review bead (`bd list --status=open`, title "Review the curator's gear annotations"). `bd prime` and
+curator worked from), `docs/definitions.md`, `tools/README.md`, and the review bead (`bd list --status=open`, title "Review the curator's gear annotations"). `bd prime` and
 `bd memories` for project decisions.
 
 ## What you may and may not do
@@ -54,5 +53,5 @@ plain words: what you found, how serious it is, and the next command.
 
 ## Working rules
 Track in beads (`bd update <id> --append-notes`, close the review bead only when the findings are resolved), not in
-markdown todo lists. **Git:** commit only your own paths (`git add tools/gear_review .beads/issues.jsonl`) and only when the
+markdown todo lists. **Git:** commit only your own paths (`git add tools/gear_review`) and only when the
 user asks.

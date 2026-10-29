@@ -172,45 +172,16 @@ func TestBonusRollsTheDiceOfTheRow(t *testing.T) {
 	}
 }
 
-func TestParseScenarioSelection(t *testing.T) {
-	sixOf := func(prefix string) string {
-		return `["` + prefix + `1","` + prefix + `2","` + prefix + `3","` + prefix + `4","` + prefix + `5","` + prefix + `6"]`
+func TestLeanScenarioSelection(t *testing.T) {
+	sel := shippedRules(t).BC.Selection()
+	if sel.Die != NdM(1, 6) || len(sel.Tables) != 3 {
+		t.Errorf("the shipped selection: %+v", sel)
 	}
-	eightOf := func(prefix string) string {
-		return `["` + prefix + `1","` + prefix + `2","` + prefix + `3","` + prefix + `4","` + prefix + `5","` + prefix + `6","` + prefix + `7","` + prefix + `8"]`
-	}
-	doc := func(die, tables string) []byte {
-		return []byte(`{"campaign":{"scenarioSelection":{` + die + `"tables":[` + tables + `]}}}`)
-	}
-	tests := []struct {
-		name    string
-		content []byte
-		wantDie DiceSpec
-		tables  int
-		err     string
-	}{
-		{"the shipped shape, no die key yet", doc(``, `{"roll":[1,2],"scenarios":`+sixOf("a")+`},{"roll":[3,4],"scenarios":`+sixOf("b")+`},{"roll":[5,6],"scenarios":`+sixOf("c")+`}`), NdM(1, 6), 3, ""},
-		{"a d8 with two tables of eight", doc(`"die":"d8",`, `{"roll":[1,4],"scenarios":`+eightOf("a")+`},{"roll":[5,8],"scenarios":`+eightOf("b")+`}`), NdM(1, 8), 2, ""},
-		{"no tables", []byte(`{"campaign":{}}`), NdM(1, 6), 0, ""},
-		{"ranges leave a face out", doc(`"die":"d8",`, `{"roll":[1,4],"scenarios":`+eightOf("a")+`},{"roll":[5,7],"scenarios":`+eightOf("b")+`}`), DiceSpec{}, 0, "8 is covered 0 times"},
-		{"six scenarios on a d8 table", doc(`"die":"d8",`, `{"roll":[1,8],"scenarios":`+sixOf("a")+`}`), DiceSpec{}, 0, "6 scenarios, expected 8"},
-		{"two dice", doc(`"die":"2d6",`, `{"roll":[2,12],"scenarios":[]}`), DiceSpec{}, 0, "must be one die"},
-		{"not a spec", doc(`"die":"d6x",`, ``), DiceSpec{}, 0, "campaign.scenarioSelection.die"},
-		{"a range of one number", doc(``, `{"roll":[1],"scenarios":`+sixOf("a")+`}`), DiceSpec{}, 0, "roll must be [low, high]"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sel, err := ParseScenarioSelection(tt.content)
-			if tt.err != "" {
-				if !errors.Is(err, ErrInvalidRuleset) || !strings.Contains(err.Error(), tt.err) {
-					t.Errorf("error = %v, want ErrInvalidRuleset containing %q", err, tt.err)
-				}
-				return
-			}
-			if err != nil || sel.Die != tt.wantDie || len(sel.Tables) != tt.tables {
-				t.Errorf("selection = %+v, %v; want die %s and %d tables", sel, err, tt.wantDie, tt.tables)
-			}
-		})
+	if _, err := customRulesetErr(t, func(doc map[string]any) { // the ranges leave a face out
+		tables := doc["campaign"].(map[string]any)["scenarioSelection"].(map[string]any)["tables"].([]any)
+		tables[2].(map[string]any)["roll"] = []any{5, 5}
+	}); !errors.Is(err, ErrInvalidRuleset) {
+		t.Errorf("ranges that leave a face out must be refused: %v", err)
 	}
 }
 

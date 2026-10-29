@@ -3,6 +3,8 @@ package core
 import (
 	"regexp"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"unicode"
 )
 
@@ -41,9 +43,53 @@ var (
 	optionParens = regexp.MustCompile(`\([^)]*\)`)
 )
 
-// OptionItems are the items a profile option names: "Shield and Spear" is a shield and a spear, "Exchange lance for banner" names
-// the lance and the banner.
-func OptionItems(option string) []string {
+// Option is a profile option name read once: "Shield and Spear" is a shield and a spear, "Exchange lance for banner" names the
+// lance and the banner and gives the banner. Exchange is true for the verbs Exchange, Swap and Replace; Items are all the items it
+// names, Gives the items a unit has to carry to have taken it (the item given for an exchange, else all of them).
+type Option struct {
+	Exchange bool
+	Items    []string
+	Gives    []string
+}
+
+var (
+	optionMemo  sync.Map
+	optionCount atomic.Int64
+)
+
+// ParseOption reads an option name, memoised like ItemKey. The slices are shared: callers do not change them.
+func ParseOption(name string) Option {
+	if v, ok := optionMemo.Load(name); ok {
+		return v.(Option)
+	}
+	o := parseOption(name)
+	if optionCount.Load() < memoLimit {
+		if _, loaded := optionMemo.LoadOrStore(name, o); !loaded {
+			optionCount.Add(1)
+		}
+	}
+	return o
+}
+
+func parseOption(name string) Option {
+	o := Option{Exchange: optionVerb.MatchString(name), Items: optionItems(name)}
+	o.Gives = o.Items
+	if o.Exchange {
+		stripped := optionVerb.ReplaceAllString(name, "")
+		for _, sep := range []string{" for ", " with "} {
+			if _, after, ok := strings.Cut(strings.ToLower(stripped), sep); ok {
+				o.Gives = optionItems(stripped[len(stripped)-len(after):])
+				break
+			}
+		}
+	}
+	return o
+}
+
+// OptionItems are the items a profile option names.
+func OptionItems(option string) []string { return ParseOption(option).Items }
+
+func optionItems(option string) []string {
 	option = optionParens.ReplaceAllString(option, " ")
 	if optionVerb.MatchString(option) {
 		option = optionVerb.ReplaceAllString(option, "")

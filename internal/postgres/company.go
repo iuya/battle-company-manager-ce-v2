@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -141,11 +142,11 @@ const unitsJSON = `(SELECT COALESCE(jsonb_agg(jsonb_build_object('id', x.id, 'ba
 // aftermaths, open match, unused perks, units with their equipment, and cemetery. Same content and order as load.
 const readQuery = `
 	SELECT c.id, c.name, c.faction, c.owner_id, u.display_name, c.influence, c.gold, c.rerolls, c.pack, c.unit_order, c.grave_order, c.pending,
-	       (SELECT COALESCE(jsonb_agg(jsonb_build_array(m.id, m.number, COALESCE(a.status, 'pending')) ORDER BY m.number), '[]')
+	       (SELECT COALESCE(jsonb_agg(jsonb_build_array(m.id, m.number, CASE WHEN m.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END) ORDER BY m.number), '[]')
 	          FROM match_side_companies sc
 	          JOIN matches m ON m.id = sc.match_id AND m.ended
 	          LEFT JOIN match_aftermaths a ON a.match_id = sc.match_id AND a.company_id = sc.company_id
-	         WHERE sc.company_id = c.id AND COALESCE(a.status, 'pending') NOT IN ('done', 'waived')),
+	         WHERE sc.company_id = c.id AND (CASE WHEN m.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END) NOT IN ('done', 'waived')),
 	       (SELECT jsonb_build_array(m.id, m.number) FROM match_side_companies sc JOIN matches m ON m.id = sc.match_id AND NOT m.ended
 	         WHERE sc.company_id = c.id ORDER BY m.number LIMIT 1),
 	       (SELECT COALESCE(jsonb_agg(jsonb_build_array(p.id, COALESCE(p.match_id, 0), COALESCE(p.unit_id, 0), p.effect, p.name, p.text, p.applies)
@@ -374,12 +375,46 @@ func (cs companyStore) loadUnits(ctx context.Context, q querier, ids []int64) (m
 	return out, nil
 }
 
+// rosterQueryFmt is ReadRoster's statement: one row per unit (a company without units has one row with NULL unit columns, which the
+// COALESCEs turn into id 0), the equipment of a unit as three arrays from one probe of unit_equipment. Typed columns instead of one
+// jsonb_build_object document per unit: on the demo world's biggest campaign (37 companies, 536 units) 3.8 ms against 9.2 ms and 350
+// buffers against 1,478 (docs/optimization-report.md, "Database pass").
+const rosterQueryFmt = `
+	SELECT c.id, c.name, c.faction, c.owner_id, u.display_name, c.influence, c.gold, c.rerolls, c.pack, c.unit_order, c.grave_order,
+	       COALESCE(x.id, 0), COALESCE(x.base, ''), COALESCE(x.custom_name, ''), COALESCE(x.role, ''), COALESCE(x.kind, ''), COALESCE(x.path, ''),
+	       COALESCE(x.path_rules, 0), COALESCE(x.level, 0), COALESCE(x.xp, 0), COALESCE(x.points, 0), COALESCE(x.wanderer, ''),
+	       COALESCE(x.creature, ''), COALESCE(x.injured, false), COALESCE(x.sent_to_healers, false),
+	       x.progress, x.injuries, x.data, x.pending, e.gear, e.bought, e.dropped
+	  FROM companies c JOIN users u ON u.id = c.owner_id
+	  LEFT JOIN company_units x ON x.company_id = c.id
+	  LEFT JOIN LATERAL (SELECT array_agg(q.name ORDER BY q.position) FILTER (WHERE q.origin = 'gear') AS gear,
+	                            array_agg(q.name ORDER BY q.position) FILTER (WHERE q.origin = 'bought') AS bought,
+	                            array_agg(q.name ORDER BY q.position) FILTER (WHERE q.origin = 'dropped') AS dropped
+	                       FROM unit_equipment q WHERE q.unit_id = x.id) e ON true
+	 WHERE ` + "%s" + ` ORDER BY c.id, x.position`
+
+// emptyUnitJSON is what the default of the injuries, data and pending columns reads as: nothing to decode.
+var emptyUnitJSON = []byte(`{"v": 1}`)
+
 // ReadRoster reads the state of every company of the campaign in one statement: the companies' own figures and their units with
 // equipment, enough to rate them. Pending aftermaths, the open match, perks and the cemetery are left out (Read has them).
 func (cs companyStore) ReadRoster(ctx context.Context, campaignID int64) ([]core.CompanyState, error) {
-	rows, err := cs.s.pool.Query(ctx, `SELECT c.id, c.name, c.faction, c.owner_id, u.display_name, c.influence, c.gold, c.rerolls, c.pack, c.unit_order, c.grave_order,
-	            `+unitsJSON+`
-	       FROM companies c JOIN users u ON u.id = c.owner_id WHERE c.campaign_id = $1 ORDER BY c.id`, campaignID)
+	return cs.readRoster(ctx, rosterOfCampaign, campaignID)
+}
+
+var (
+	rosterOfCampaign  = fmt.Sprintf(rosterQueryFmt, `c.campaign_id = $1`)
+	rosterOfCompanies = fmt.Sprintf(rosterQueryFmt, `c.id = ANY($1)`)
+)
+
+// ReadRosterOf is ReadRoster for the companies given, whichever campaigns they are in, in one statement; an id that is no company is left
+// out (core.rosterOfReader).
+func (cs companyStore) ReadRosterOf(ctx context.Context, companyIDs []int64) ([]core.CompanyState, error) {
+	return cs.readRoster(ctx, rosterOfCompanies, companyIDs)
+}
+
+func (cs companyStore) readRoster(ctx context.Context, query string, arg any) ([]core.CompanyState, error) {
+	rows, err := cs.s.pool.Query(ctx, query, arg)
 	if err != nil {
 		return nil, err
 	}
@@ -388,15 +423,52 @@ func (cs companyStore) ReadRoster(ctx context.Context, campaignID int64) ([]core
 	for rows.Next() {
 		var st core.CompanyState
 		co := &st.Company
-		var units []byte
-		if err := rows.Scan(&co.ID, &co.Name, &co.Faction, &co.OwnerID, &co.Owner, &st.Influence, &st.Gold, &st.Rerolls, &st.Pack, &st.Order, &st.Graveyard, &units); err != nil {
+		var u core.UnitState
+		var role, kind string
+		var progress, injuries, data, pending []byte
+		if err := rows.Scan(&co.ID, &co.Name, &co.Faction, &co.OwnerID, &co.Owner, &st.Influence, &st.Gold, &st.Rerolls, &st.Pack, &st.Order, &st.Graveyard,
+			&u.ID, &u.Base, &u.Name, &role, &kind, &u.Path, &u.PathRules, &u.Level, &u.XP, &u.Points, &u.Wanderer, &u.Creature, &u.Injured, &u.SentToHealers,
+			&progress, &injuries, &data, &pending, &u.Gear, &u.Bought, &u.Dropped); err != nil {
 			return nil, err
 		}
-		st.Pack, st.Order, st.Graveyard = nilIfEmpty(st.Pack), nilIfEmpty(st.Order), nilIfEmpty(st.Graveyard)
-		if st.Units, err = decodeUnits(units); err != nil {
-			return nil, fmt.Errorf("company %d units: %w", co.ID, err)
+		if len(out) == 0 || out[len(out)-1].Company.ID != co.ID { // the first row of a company
+			st.Pack, st.Order, st.Graveyard = nilIfEmpty(st.Pack), nilIfEmpty(st.Order), nilIfEmpty(st.Graveyard)
+			out = append(out, st)
 		}
-		out = append(out, st)
+		if u.ID == 0 { // a company without units
+			continue
+		}
+		u.Role, u.Kind = core.UnitRole(role), core.UnitKind(kind)
+		if len(progress) > 0 && string(progress) != "null" {
+			var p progressJSON
+			if err := json.Unmarshal(progress, &p); err != nil {
+				return nil, fmt.Errorf("company %d unit %d progress: %w", co.ID, u.ID, err)
+			}
+			u.Progress = p.P
+		}
+		if !bytes.Equal(injuries, emptyUnitJSON) {
+			var inj injuriesJSON
+			if err := json.Unmarshal(injuries, &inj); err != nil {
+				return nil, fmt.Errorf("company %d unit %d injuries: %w", co.ID, u.ID, err)
+			}
+			u.Injuries = inj.Counts
+		}
+		if !bytes.Equal(data, emptyUnitJSON) {
+			var d unitDataJSON
+			if err := json.Unmarshal(data, &d); err != nil {
+				return nil, fmt.Errorf("company %d unit %d data: %w", co.ID, u.ID, err)
+			}
+			u.Bonus, u.Actions, u.BoughtActions, u.Spells = d.Bonus, d.Actions, d.BoughtActions, d.Spells
+		}
+		if !bytes.Equal(pending, emptyUnitJSON) {
+			var up unitPendingJSON
+			if err := json.Unmarshal(pending, &up); err != nil {
+				return nil, fmt.Errorf("company %d unit %d pending: %w", co.ID, u.ID, err)
+			}
+			u.Pending = up.Pending
+		}
+		last := &out[len(out)-1]
+		last.Units = append(last.Units, u)
 	}
 	return out, rows.Err()
 }
@@ -412,26 +484,94 @@ func (cs companyStore) Update(ctx context.Context, campaignID, companyID int64, 
 	if err != nil {
 		return err
 	}
+	was := cs.rowsOf(st) // what the database holds now, to write back only what fn changes
 	if err := fn(&st); err != nil {
 		return err
 	}
-	if err := cs.save(ctx, tx, st); err != nil {
+	if err := cs.save(ctx, tx, st, was); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
 }
 
-// save writes the state back: the company row, then units (UPDATE by id, INSERT new, DELETE removed) and the cemetery.
-func (cs companyStore) save(ctx context.Context, q querier, st core.CompanyState) error {
-	id := st.Company.ID
+// savedRows fingerprints the rows of a company as save would write them: the company row, each unit with its equipment, each grave. A row
+// whose fingerprint did not change since the state was loaded (under the company's row lock, so nobody else changed it) is not written
+// again: a sheet save touches one or two units of a roster of fourteen, and every unit used to cost an UPDATE, a DELETE of its equipment and
+// an INSERT per item.
+type savedRows struct {
+	company string
+	units   map[int64]string // by unit id
+	fallen  map[int64]string // by unit id
+}
+
+func fingerprint(parts ...any) string {
+	b, err := json.Marshal(parts)
+	if err != nil {
+		return "" // never equal to a real fingerprint: the row is written
+	}
+	return string(b)
+}
+
+// rowsOf fingerprints st; nil when it cannot (everything is then written).
+func (cs companyStore) rowsOf(st core.CompanyState) *savedRows {
+	w := &savedRows{units: make(map[int64]string, len(st.Units)), fallen: make(map[int64]string, len(st.Cemetery))}
+	co, err := companyRowArgs(st)
+	if err != nil {
+		return nil
+	}
+	if w.company = fingerprint(co); w.company == "" {
+		return nil
+	}
+	for pos, u := range st.Units {
+		row, err := unitRowOf(st.Company.ID, pos, u)
+		if err != nil || u.ID == 0 {
+			return nil
+		}
+		if w.units[u.ID] = row.sig(); w.units[u.ID] == "" {
+			return nil
+		}
+	}
+	for pos, f := range st.Cemetery {
+		args, err := fallenRowArgs(st.Company.ID, pos, f)
+		if err != nil {
+			return nil
+		}
+		if w.fallen[f.Unit.ID] = fingerprint(args); w.fallen[f.Unit.ID] == "" {
+			return nil
+		}
+	}
+	return w
+}
+
+func companyRowArgs(st core.CompanyState) ([]any, error) {
 	pending, err := json.Marshal(companyPendingJSON{1, st.Recruit})
+	if err != nil {
+		return nil, err
+	}
+	return []any{st.Company.ID, st.Company.Name, st.Company.Faction, st.Influence, st.Gold, st.Rerolls, orEmpty(st.Pack), orEmpty(st.Order), orEmpty(st.Graveyard), pending}, nil
+}
+
+func fallenRowArgs(companyID int64, pos int, f core.FallenUnit) ([]any, error) {
+	snap, err := json.Marshal(snapshotJSON{1, f.Unit})
+	if err != nil {
+		return nil, err
+	}
+	return []any{companyID, f.Unit.ID, pos, f.Fate, f.Match, snap}, nil
+}
+
+// save writes the state back: the company row, then units (UPDATE by id, INSERT new, DELETE removed) and the cemetery. was, when not nil, is
+// what the database held when the state was loaded (rowsOf): rows that are the same are left alone.
+func (cs companyStore) save(ctx context.Context, q querier, st core.CompanyState, was *savedRows) error {
+	id := st.Company.ID
+	co, err := companyRowArgs(st)
 	if err != nil {
 		return err
 	}
-	if _, err := q.Exec(ctx, `UPDATE companies SET name = $2, faction = $3, influence = $4, gold = $5, rerolls = $6, pack = $7,
-		unit_order = $8, grave_order = $9, pending = $10 WHERE id = $1`,
-		id, st.Company.Name, st.Company.Faction, st.Influence, st.Gold, st.Rerolls, orEmpty(st.Pack), orEmpty(st.Order), orEmpty(st.Graveyard), pending); err != nil {
-		return err
+	if was == nil || was.company != fingerprint(co) {
+		if _, err := q.Exec(ctx, `UPDATE companies SET name = $2, faction = $3, influence = $4, gold = $5, rerolls = $6, pack = $7,
+			unit_order = $8, grave_order = $9, pending = $10 WHERE id = $1`, co...); err != nil {
+			return err
+		}
 	}
 
 	if len(st.PerksUsed) > 0 { // a perk is used up in the transaction of the change that uses it, once
@@ -445,43 +585,71 @@ func (cs companyStore) save(ctx context.Context, q querier, st core.CompanyState
 	}
 
 	keep := make([]int64, 0, len(st.Units))
+	kept := make(map[int64]bool, len(st.Units))
 	for _, u := range st.Units {
 		if u.ID != 0 {
 			keep = append(keep, u.ID)
+			kept[u.ID] = true
 		}
 	}
-	if _, err := q.Exec(ctx, `DELETE FROM company_units WHERE company_id = $1 AND NOT (id = ANY($2))`, id, keep); err != nil {
-		return err
+	if was == nil || removed(was.units, kept) {
+		if _, err := q.Exec(ctx, `DELETE FROM company_units WHERE company_id = $1 AND NOT (id = ANY($2))`, id, keep); err != nil {
+			return err
+		}
 	}
 	for pos, u := range st.Units {
-		if err := cs.saveUnit(ctx, q, id, pos, u); err != nil {
+		row, err := unitRowOf(id, pos, u)
+		if err != nil {
+			return err
+		}
+		if was != nil && u.ID != 0 && was.units[u.ID] == row.sig() {
+			continue
+		}
+		if err := cs.writeUnit(ctx, q, id, row, u.ID); err != nil {
 			return err
 		}
 	}
 
 	fallen := make([]int64, 0, len(st.Cemetery))
+	buried := make(map[int64]bool, len(st.Cemetery))
 	for _, f := range st.Cemetery {
 		fallen = append(fallen, f.Unit.ID)
+		buried[f.Unit.ID] = true
 	}
-	if _, err := q.Exec(ctx, `DELETE FROM fallen_units WHERE company_id = $1 AND NOT (unit_id = ANY($2))`, id, fallen); err != nil {
-		return err
+	if was == nil || removed(was.fallen, buried) {
+		if _, err := q.Exec(ctx, `DELETE FROM fallen_units WHERE company_id = $1 AND NOT (unit_id = ANY($2))`, id, fallen); err != nil {
+			return err
+		}
 	}
 	for pos, f := range st.Cemetery {
-		snap, err := json.Marshal(snapshotJSON{1, f.Unit})
+		args, err := fallenRowArgs(id, pos, f)
 		if err != nil {
 			return err
 		}
 		if f.Unit.ID == 0 {
 			return errors.New("a fallen unit needs the id it had on the roster")
 		}
+		if was != nil && was.fallen[f.Unit.ID] == fingerprint(args) {
+			continue
+		}
 		if _, err := q.Exec(ctx, `INSERT INTO fallen_units (company_id, unit_id, position, fate, fell_in, snapshot)
 			VALUES ($1, $2, $3, $4, $5, $6)
 			ON CONFLICT (unit_id) DO UPDATE SET position = $3, fate = $4, fell_in = $5, snapshot = $6
-			WHERE fallen_units.company_id = $1`, id, f.Unit.ID, pos, f.Fate, f.Match, snap); err != nil {
+			WHERE fallen_units.company_id = $1`, args...); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// removed reports whether a row that was stored is not in now.
+func removed(was map[int64]string, now map[int64]bool) bool {
+	for id := range was {
+		if !now[id] {
+			return true
+		}
+	}
+	return false
 }
 
 func orEmpty[T any](s []T) []T {
@@ -491,40 +659,60 @@ func orEmpty[T any](s []T) []T {
 	return s
 }
 
-// saveUnit inserts the unit (id 0, which is then filled by the caller's copy only in the database) or updates it by id.
-func (cs companyStore) saveUnit(ctx context.Context, q querier, companyID int64, pos int, u core.UnitState) error {
+// unitRow is what is written for a unit: the columns in the order of the statements and the three equipment lists.
+type unitRow struct {
+	args                  []any
+	gear, bought, dropped []string
+}
+
+func unitRowOf(companyID int64, pos int, u core.UnitState) (unitRow, error) {
 	var progress []byte
 	if u.Progress != nil {
 		b, err := json.Marshal(progressJSON{1, u.Progress})
 		if err != nil {
-			return err
+			return unitRow{}, err
 		}
 		progress = b
 	}
 	injuries, err := json.Marshal(injuriesJSON{1, u.Injuries})
 	if err != nil {
-		return err
+		return unitRow{}, err
 	}
 	data, err := json.Marshal(unitDataJSON{1, u.Bonus, u.Actions, u.BoughtActions, u.Spells})
 	if err != nil {
-		return err
+		return unitRow{}, err
 	}
 	pending, err := json.Marshal(unitPendingJSON{1, u.Pending})
 	if err != nil {
+		return unitRow{}, err
+	}
+	return unitRow{args: []any{companyID, pos, u.Base, u.Name, string(u.Role), string(u.Kind), u.Path, u.PathRules, u.Level, u.XP, u.Points,
+		u.Wanderer, u.Creature, u.Injured, u.SentToHealers, progress, injuries, data, pending}, gear: u.Gear, bought: u.Bought, dropped: u.Dropped}, nil
+}
+
+// sig is the fingerprint of the row, equipment included.
+func (r unitRow) sig() string { return fingerprint(r.args, r.gear, r.bought, r.dropped) }
+
+// saveUnit inserts the unit (id 0, which is then filled by the caller's copy only in the database) or updates it by id.
+func (cs companyStore) saveUnit(ctx context.Context, q querier, companyID int64, pos int, u core.UnitState) error {
+	row, err := unitRowOf(companyID, pos, u)
+	if err != nil {
 		return err
 	}
-	args := []any{companyID, pos, u.Base, u.Name, string(u.Role), string(u.Kind), u.Path, u.PathRules, u.Level, u.XP, u.Points,
-		u.Wanderer, u.Creature, u.Injured, u.SentToHealers, progress, injuries, data, pending}
-	unitID := u.ID
+	return cs.writeUnit(ctx, q, companyID, row, u.ID)
+}
+
+func (cs companyStore) writeUnit(ctx context.Context, q querier, companyID int64, row unitRow, unitID int64) error {
+	var err error
 	if unitID == 0 {
 		err = q.QueryRow(ctx, `INSERT INTO company_units (company_id, position, base, custom_name, role, kind, path, path_rules, level, xp,
 			points, wanderer, creature, injured, sent_to_healers, progress, injuries, data, pending)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id`, args...).Scan(&unitID)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id`, row.args...).Scan(&unitID)
 	} else {
 		var tag pgconn.CommandTag
 		tag, err = q.Exec(ctx, `UPDATE company_units SET position = $2, base = $3, custom_name = $4, role = $5, kind = $6, path = $7,
 			path_rules = $8, level = $9, xp = $10, points = $11, wanderer = $12, creature = $13, injured = $14, sent_to_healers = $15,
-			progress = $16, injuries = $17, data = $18, pending = $19 WHERE company_id = $1 AND id = $20`, append(args, unitID)...)
+			progress = $16, injuries = $17, data = $18, pending = $19 WHERE company_id = $1 AND id = $20`, append(slices.Clone(row.args), unitID)...)
 		if err == nil && tag.RowsAffected() == 0 {
 			return fmt.Errorf("unit %d is not on the roster of company %d", unitID, companyID)
 		}
@@ -535,7 +723,7 @@ func (cs companyStore) saveUnit(ctx context.Context, q querier, companyID int64,
 	if err != nil {
 		return err
 	}
-	for origin, names := range map[string][]string{"gear": u.Gear, "bought": u.Bought, "dropped": u.Dropped} {
+	for origin, names := range map[string][]string{"gear": row.gear, "bought": row.bought, "dropped": row.dropped} {
 		for i, name := range names {
 			if _, err := q.Exec(ctx, `INSERT INTO unit_equipment (unit_id, origin, position, name) VALUES ($1, $2, $3, $4)`, unitID, origin, i, name); err != nil {
 				return err
@@ -545,7 +733,8 @@ func (cs companyStore) saveUnit(ctx context.Context, q querier, companyID int64,
 	return nil
 }
 
-// Create stores the company and its units for the owner, who must be a member of the campaign.
+// Create stores the company and its units for the owner, who must be a member of the campaign, if the owner is below c.Cap companies
+// there (core.ErrCompanyLimit) and no other company of theirs there has the name (core.ErrCompanyNameTaken).
 func (cs companyStore) Create(ctx context.Context, campaignID int64, owner core.User, c core.NewCompany) (core.CampaignCompany, error) {
 	for _, u := range c.Units {
 		if u.ID != 0 {
@@ -557,15 +746,34 @@ func (cs companyStore) Create(ctx context.Context, campaignID int64, owner core.
 		return core.CampaignCompany{}, err
 	}
 	defer tx.Rollback(ctx)
+	// The member row lock serialises the creates of one player: two simultaneous ones never both pass the count.
+	var locked int64
+	err = tx.QueryRow(ctx, `SELECT user_id FROM campaign_members WHERE campaign_id = $1 AND user_id = $2 FOR UPDATE`, campaignID, owner.ID).Scan(&locked)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return core.CampaignCompany{}, core.ErrNotFound // not a member of that campaign
+	}
+	if err != nil {
+		return core.CampaignCompany{}, err
+	}
+	var owned int
+	var nameTaken bool
+	if err := tx.QueryRow(ctx, `SELECT count(*)::int, COALESCE(bool_or(lower(name) = lower($3)), false) FROM companies WHERE campaign_id = $1 AND owner_id = $2`,
+		campaignID, owner.ID, c.Name).Scan(&owned, &nameTaken); err != nil {
+		return core.CampaignCompany{}, err
+	}
+	switch {
+	case owned >= max(c.Cap, 1):
+		return core.CampaignCompany{}, core.ErrCompanyLimit
+	case nameTaken:
+		return core.CampaignCompany{}, core.ErrCompanyNameTaken
+	}
 	var id int64
 	err = tx.QueryRow(ctx, `INSERT INTO companies (campaign_id, owner_id, name, faction, influence, gold) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
 		campaignID, owner.ID, c.Name, c.Faction, c.Influence, c.Gold).Scan(&id)
 	var pgErr *pgconn.PgError
 	switch {
-	case errors.As(err, &pgErr) && pgErr.Code == uniqueViolation && pgErr.ConstraintName == "companies_campaign_owner_key":
-		return core.CampaignCompany{}, core.ErrHasCompany
 	case errors.As(err, &pgErr) && pgErr.Code == foreignKeyViolation:
-		return core.CampaignCompany{}, core.ErrNotFound // not a member of that campaign
+		return core.CampaignCompany{}, core.ErrNotFound
 	case err != nil:
 		return core.CampaignCompany{}, err
 	}

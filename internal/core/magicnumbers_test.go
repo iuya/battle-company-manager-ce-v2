@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-// Magic-number lint (docs/definitions-lean-design.md 12.8, docs/testing.md "Magic-number lint"). REPORT ONLY until slice P6: it
+// Magic-number lint (docs/testing.md "Magic-number lint"). REPORT ONLY: it
 // logs the count and the worst files and never fails. Promote it with magicNumbersEnforce = true.
 const magicNumbersEnforce = false
 
@@ -28,7 +28,7 @@ var magicAllowList = map[string]string{
 	"ruleset_report.go:3": "issues quoted in the one-line summary of a report (display only)",
 }
 
-// magicForbiddenNames are engine constants that slices P1 to P3 delete; a declaration of one is reported.
+// magicForbiddenNames are engine constants that must come from the rules file; a declaration of one is reported.
 var magicForbiddenNames = []string{"XPPerLevel", "MaxAdjust", "maxSergeants", "defaultLimitRules", "HeroBonus"}
 
 func TestMagicNumbersReport(t *testing.T) {

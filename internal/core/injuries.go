@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
-	"strings"
 )
 
 // InjuryDef is a hero injury of the Battle Companies injury chart, as the rules file describes its effects. Only the
@@ -94,12 +93,12 @@ type TreatResult struct {
 	Summary string
 }
 
-// ParseInjuries reads the injury chart and the treatments of the Battle Companies file.
-func ParseInjuries(content []byte) (InjuryRules, error) {
+// readInjuries reads the injury chart and the treatments of the campaign section of a lean document (lean.Encode of the Campaign).
+func readInjuries(campaign []byte) (InjuryRules, error) {
 	type change struct {
-		Stat  string `json:"stat"`
-		Delta int    `json:"delta"`
-		Per   string `json:"per"`
+		Stat   string `json:"stat"`
+		Amount int    `json:"amount"`
+		Per    string `json:"per"`
 	}
 	type disable struct {
 		Kind    string   `json:"kind"`
@@ -123,41 +122,39 @@ func ParseInjuries(content []byte) (InjuryRules, error) {
 		} `json:"roll"`
 	}
 	var doc struct {
-		Campaign struct {
-			Injuries struct {
-				Hero []struct {
-					Key         string    `json:"key"`
-					Name        string    `json:"name"`
-					Text        string    `json:"text"`
-					Persistent  bool      `json:"persistent"`
-					RetireAt    int       `json:"retireAtCount"`
-					StatChanges []change  `json:"statChanges"`
-					Disables    []disable `json:"disables"`
-					GrantsAt    map[string]struct {
-						SpecialRule string `json:"specialRule"`
-					} `json:"grantsAtCount"`
-					HealableBy []string `json:"healableBy"`
-				} `json:"hero"`
-				Treatment struct {
-					Warrior struct {
-						Cost int `json:"cost"`
-					} `json:"warrior"`
-					Hero []method `json:"hero"`
-				} `json:"treatment"`
-			} `json:"injuries"`
-		} `json:"campaign"`
+		Injuries struct {
+			Hero []struct {
+				Key         string    `json:"key"`
+				Name        string    `json:"name"`
+				Text        string    `json:"text"`
+				Persistent  bool      `json:"persistent"`
+				RetireAt    int       `json:"retireAtCount"`
+				StatChanges []change  `json:"statChanges"`
+				Disables    []disable `json:"disables"`
+				GrantsAt    map[string]struct {
+					SpecialRule string `json:"specialRule"`
+				} `json:"grantsAtCount"`
+				HealableBy []string `json:"healableBy"`
+			} `json:"hero"`
+			Treatment struct {
+				Warrior struct {
+					Cost int `json:"cost"`
+				} `json:"warrior"`
+				Hero []method `json:"hero"`
+			} `json:"treatment"`
+		} `json:"injuries"`
 	}
-	if err := json.Unmarshal(content, &doc); err != nil {
+	if err := json.Unmarshal(campaign, &doc); err != nil {
 		return InjuryRules{}, err
 	}
-	inj := doc.Campaign.Injuries
+	inj := doc.Injuries
 	rules := InjuryRules{WarriorCost: inj.Treatment.Warrior.Cost}
 	for _, h := range inj.Hero {
 		d := InjuryDef{Key: h.Key, Name: h.Name, Text: h.Text, Persistent: h.Persistent, RetireAt: h.RetireAt, HealableBy: h.HealableBy,
 			StatPerCount: map[string]int{}, GrantsAt: map[int]string{}}
 		for _, c := range h.StatChanges {
 			if c.Per == "count" {
-				d.StatPerCount[c.Stat] += c.Delta
+				d.StatPerCount[c.Stat] += c.Amount
 			}
 		}
 		for _, x := range h.Disables {
@@ -236,13 +233,13 @@ func (r InjuryRules) ApplyToUnit(u *CompanyUnit, counts map[string]int, keyword 
 				continue
 			}
 			byClass := slices.ContainsFunc(e.Classes(), func(c EquipmentClass) bool { return slices.Contains(d.DisableClasses, c) })
-			byName := slices.ContainsFunc(d.DisableItems, func(name string) bool { return strings.EqualFold(name, e.Name) })
+			byName := slices.ContainsFunc(d.DisableItems, func(name string) bool { return sameName(name, e.Name) })
 			if byClass || byName {
 				e.Disabled = d.Name
 			}
 		}
 		for at, rule := range d.GrantsAt {
-			if n >= at && !slices.ContainsFunc(u.Rules, func(x UnitRule) bool { return strings.EqualFold(x.Name, rule) }) {
+			if n >= at && !slices.ContainsFunc(u.Rules, func(x UnitRule) bool { return sameName(x.Name, rule) }) {
 				u.Rules = append(u.Rules, UnitRule{Name: rule, Description: keyword(rule), Source: RuleFromEquipment, From: d.Name})
 			}
 		}
@@ -252,7 +249,18 @@ func (r InjuryRules) ApplyToUnit(u *CompanyUnit, counts map[string]int, keyword 
 	}
 }
 
-// InjuryLoss is an ability a hero lost to an injury.
+// The keys of the abilities an injury can take away (the `ability` keys of a disables entry in the data).
+const (
+	AbilityStandFast              = "standFast"
+	AbilityHeroicActionsOnCompany = "heroicActionsOnCompany"
+)
+
+// Lost says whether an injury took the ability (by its data key) away from the unit.
+func (u CompanyUnit) Lost(key string) bool {
+	return slices.ContainsFunc(u.LostAbilities, func(l InjuryLoss) bool { return l.Ability == key })
+}
+
+// InjuryLoss is an ability (by its data key) a hero lost to an injury.
 type InjuryLoss struct{ Ability, Injury string }
 
 // Healable lists the injuries (keys) of a unit a method can remove: the persistent ones it carries, and the missed game of

@@ -201,7 +201,7 @@ func pendingOnMatch(m *core.Match) { m.EndProposal = pendingEnd().EndProposal }
 
 func TestLiveBannerShowsThePendingEndOnTheCompanyPage(t *testing.T) {
 	f := liveSetupMatch(t, core.LiveEdit, nil, pendingOnMatch, pendingSides()...)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	for _, want := range []string{`id="live-end"`, "Ending: waiting for Raiders", "Withdraw", "Keep playing", "/campaigns/7/matches/3/end/withdraw", `name="view" value="banner"`,
 		`/campaigns/7/matches/3/live/end/banner?company=1`, "Cancel the ending first: the match is about to end."} {
 		if !strings.Contains(body, want) {
@@ -215,7 +215,7 @@ func TestLiveBannerShowsThePendingEndOnTheCompanyPage(t *testing.T) {
 
 func TestLiveBannerIsEmptyWithoutAPendingEnd(t *testing.T) {
 	f := liveSetupMatch(t, core.LiveEdit, nil, nil, pendingSides()...)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	if strings.Contains(body, "Ending: waiting") || strings.Contains(body, "turn-blocked") {
 		t.Error("nothing pending")
 	}

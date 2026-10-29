@@ -9,27 +9,12 @@ import (
 // WithATO gives Matches the store of the Against the Odds selection; without it the card is not offered (AgainstTheOdds says so).
 func (s *Matches) WithATO(r atoRepository) *Matches { s.ato = r; return s }
 
-func (s *Matches) atoRules(ctx context.Context, hash string) (ATORules, error) {
-	s.mu.Lock()
-	r, ok := s.atoCache[hash]
-	s.mu.Unlock()
-	if ok {
-		return r, nil
-	}
-	file, err := s.rulesets.Get(ctx, hash)
+func (s *Matches) atoRules(ctx context.Context, h RulesetHashes) (ATORules, error) {
+	rs, err := s.rules.For(ctx, h)
 	if err != nil {
-		return r, err
+		return ATORules{}, err
 	}
-	if r, err = ParseATO(file.Content); err != nil {
-		return r, err
-	}
-	s.mu.Lock()
-	if s.atoCache == nil {
-		s.atoCache = map[string]ATORules{}
-	}
-	s.atoCache[hash] = r
-	s.mu.Unlock()
-	return r, nil
+	return rs.BC.ATO(), nil
 }
 
 // atoSides says who can take bonuses in the match: the lower rated company (side index and company), its opponent and the gap. why is
@@ -76,11 +61,11 @@ func (s *Matches) atoCard(ctx context.Context, user User, camp CampaignDetail, i
 	if err != nil {
 		return card, err
 	}
-	rules, err := s.atoRules(ctx, h.BattleCompanies)
+	rules, err := s.atoRules(ctx, h)
 	if err != nil {
 		return card, err
 	}
-	scenarios, err := s.scenarioList(ctx, h.BattleCompanies)
+	scenarios, err := s.scenarioList(ctx, h)
 	if err != nil {
 		return card, err
 	}
@@ -102,10 +87,15 @@ func (s *Matches) atoCard(ctx context.Context, user User, camp CampaignDetail, i
 		o := ATOOption{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, Taken: rec.Selection.Has(b.Key), AppliesIn: b.AppliesIn}
 		switch {
 		case o.Taken:
+			if m.Practice && atoRewardBonus(b.Key) {
+				o.Reason = ATOPracticeReason // kept as entered, it just does nothing
+			}
+		case m.Practice && atoRewardBonus(b.Key):
+			o.Disabled, o.Reason = true, ATOPracticeReason
 		case b.Key == atoWanderer && hasWanderer:
 			o.Disabled, o.Reason = true, "The company already has a Wanderer."
 		case b.Rating > left || (!rules.Inclusive && b.Rating == left):
-			o.Disabled, o.Reason = true, fmt.Sprintf("Needs %d, %d left", b.Rating, max(left, 0))
+			o.Disabled, o.OverBudget, o.Reason = true, true, fmt.Sprintf("Needs %d, %d left", b.Rating, max(left, 0))
 		}
 		card.Options = append(card.Options, o)
 	}
@@ -165,11 +155,11 @@ func (s *Matches) SaveAgainstTheOdds(ctx context.Context, user User, id, matchID
 	if err != nil {
 		return ATO{}, err
 	}
-	rules, err := s.atoRules(ctx, h.BattleCompanies)
+	rules, err := s.atoRules(ctx, h)
 	if err != nil {
 		return ATO{}, err
 	}
-	scenarios, err := s.scenarioList(ctx, h.BattleCompanies)
+	scenarios, err := s.scenarioList(ctx, h)
 	if err != nil {
 		return ATO{}, err
 	}
@@ -196,6 +186,13 @@ func (s *Matches) SaveAgainstTheOdds(ctx context.Context, user User, id, matchID
 			return ErrMatchChanged
 		}
 		old := st.Record
+		if st.Match.Practice { // a reward bonus cannot be newly taken in a practice match
+			for _, k := range clean.Bonuses {
+				if atoRewardBonus(k) && !old.Selection.Has(k) {
+					return Refuse("%s.", ATOPracticeReason)
+				}
+			}
+		}
 		switch {
 		case clean.Ambush != "":
 			if old.Selection.Ambush == "" { // the scenario it replaces is remembered once

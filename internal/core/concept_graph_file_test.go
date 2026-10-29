@@ -32,10 +32,11 @@ func TestShippedConceptGraphMatchesCore(t *testing.T) {
 		}
 		*x.to = hash
 	}
-	gl, err := BuildGlossaryWith(RulesetInfo{Kind: KindGlossary}, glossary, GlossaryExtras(vanilla, bc))
+	loaded, err := LoadRuleSet(vanilla, bc, glossary, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	gl := loaded.Glossary
 	rs := &RuleSet{Hashes: h, Glossary: gl}
 
 	file, err := ParseConceptFile(graphJSON)

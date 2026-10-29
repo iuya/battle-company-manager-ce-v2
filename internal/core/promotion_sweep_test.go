@@ -18,7 +18,7 @@ func gearOfUnit(rs *RuleSet, c BCCompany, from string) map[string]string {
 			}
 		}
 	}
-	v, alias, ok := resolveUnit(rs, company, from)
+	v, alias, ok := rs.ResolveUnit(company, from)
 	if !ok {
 		return out
 	}
@@ -87,7 +87,7 @@ func TestEveryPromotionAppliesTheOneRule(t *testing.T) {
 			for _, to := range a.To {
 				base := promotedName(rs, c, to)
 				listed := listedNames(rs, c, base, to.Wargear)
-				target, _, _ := resolveUnit(rs, company, base)
+				target, _, _ := rs.ResolveUnit(company, base)
 				us := UnitState{Base: a.FromUnit, Role: RoleWarrior, Gear: slices.Clone(items), Bought: slices.Clone(items)}
 				dropUnlisted(&levelEnv{rs: rs, bcC: c}, &us, base, to.Wargear)
 				// held says whether the unit carries the item after the promotion, in what it stores or in the profile it now has
@@ -96,7 +96,7 @@ func TestEveryPromotionAppliesTheOneRule(t *testing.T) {
 						if SameItem(g, nil, it, nil) || sameSpelling(g, it) {
 							return true
 						}
-						if isExchange(g) && slices.ContainsFunc(optionParts(g), func(p string) bool { return sameSpelling(p, it) }) {
+						if ParseOption(g).Exchange && slices.ContainsFunc(ParseOption(g).Gives, func(p string) bool { return sameSpelling(p, it) }) {
 							return true
 						}
 					}
@@ -155,4 +155,54 @@ func sortedCompanies(rs *RuleSet) []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+// A warrior promoted earlier who then becomes a hero (Progress.Base set and Hero true) keeps exactly the gear the earlier promotion left
+// him: the replacement of the old profile's own wargear by the new one's (replacedWargear) must change nothing for a unit that already
+// lost what its new profile does not list (bead w9ym, REVIEW). Swept over every advancement of every company, with all the gear the
+// old unit could carry, and over the one hero promotion of the data (Arnor, Ranger of Arnor to Ranger of the North).
+func TestAnEarlierPromotedWarriorBecomingAHeroLosesNothingMore(t *testing.T) {
+	rs := shippedRules(t)
+	run := 0
+	for _, n := range sortedCompanies(rs) {
+		c := rs.BC.companies[n]
+		for _, a := range rs.BC.Advancements(c) {
+			var items []string
+			for g := range gearOfUnit(rs, c, a.FromUnit) {
+				items = append(items, g)
+			}
+			sort.Strings(items)
+			for _, to := range a.To {
+				base := promotedName(rs, c, to)
+				for _, hero := range []bool{false, true} {
+					us := UnitState{Base: a.FromUnit, Role: RoleWarrior, Gear: slices.Clone(items), Bought: slices.Clone(items)}
+					dropUnlisted(&levelEnv{rs: rs, bcC: c}, &us, base, to.Wargear) // what the promotion did to the stored state
+					p := &Progress{Base: base, Gear: to.Wargear, Hero: hero, Path: map[bool]string{true: "Path of the Soldier"}[hero]}
+					applyProgress(rs, c, &us, p)
+					if !hero {
+						continue
+					}
+					plain := UnitState{Base: a.FromUnit, Role: RoleWarrior, Gear: slices.Clone(items), Bought: slices.Clone(items)}
+					dropUnlisted(&levelEnv{rs: rs, bcC: c}, &plain, base, to.Wargear)
+					applyProgress(rs, c, &plain, &Progress{Base: base, Gear: to.Wargear})
+					asHero, asWarrior := slices.Sorted(slices.Values(us.Gear)), slices.Sorted(slices.Values(plain.Gear))
+					if !slices.Equal(asHero, asWarrior) {
+						t.Errorf("%s: %s -> %s then hero: gear %v, as a warrior %v", n, a.FromUnit, base, asHero, asWarrior)
+					}
+					run++
+				}
+			}
+		}
+	}
+	if run == 0 {
+		t.Fatal("no advancement swept")
+	}
+	co, _ := rs.BC.Company("Arnor")
+	us := UnitState{Base: "Ranger of Arnor", Role: RoleWarrior, Gear: []string{"Armour", "Spear", "Hand weapon"}}
+	applyProgress(rs, co, &us, &Progress{Base: "Ranger of the North", Hero: true, Path: "Path of the Soldier"})
+	again := UnitState{Base: us.Base, Role: RoleWarrior, Gear: slices.Clone(us.Gear)}
+	applyProgress(rs, co, &again, &Progress{Base: "Ranger of the North", Hero: true, Path: "Path of the Soldier"})
+	if !slices.Equal(us.Gear, []string{"Spear", "Hand weapon"}) || !slices.Equal(again.Gear, us.Gear) {
+		t.Errorf("Arnor: gear %v, applied again to what is left %v", us.Gear, again.Gear)
+	}
 }

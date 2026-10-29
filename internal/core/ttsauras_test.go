@@ -34,7 +34,6 @@ func TestTTSNamesV1StaysByteIdentical(t *testing.T) {
 		ex := rs.TTSList(d, TTSOptions{FootVersions: true, MountFigures: true})
 		plain := rs.TTSNames(d, ex, TTSNamesOptions{Rules: TTSRulesShort})
 		on := rs.DefaultAuraSelection()
-		on.Base = true
 		withSel := rs.TTSNames(d, ex, TTSNamesOptions{Rules: TTSRulesShort, Auras: on})
 		a, _ := plain.JSON()
 		b, _ := withSel.JSON()
@@ -104,9 +103,6 @@ func TestTTSNamesV2Rings(t *testing.T) {
 		if f.Extra == "mount" && len(f.Auras) > 0 {
 			t.Errorf("a mount has rings: %+v", f)
 		}
-		if f.Base != 0 {
-			t.Errorf("base radius sent without the switch: %+v", f)
-		}
 	}
 	want := []TTSRing{{3, "banner", "a", "Commanding Bellow"}, {12, "command", "a", "Voice of Command"}, {6, "enemy", "a", "Furious Tirade, Master of Battle"}}
 	if !slices.Equal(rings["leader"], want) {
@@ -139,24 +135,6 @@ func TestTTSNamesV2Rings(t *testing.T) {
 	for _, f := range only.Figures {
 		if !slices.Equal(ringKinds(f), nil) && !slices.Equal(ringKinds(f), []string{"banner"}) {
 			t.Errorf("kinds %v with only banners on", ringKinds(f))
-		}
-	}
-}
-
-func TestTTSNamesV2Base(t *testing.T) {
-	rs := shippedRules(t)
-	d, ex := rohanRingCompany(t, rs)
-	sel := rs.DefaultAuraSelection()
-	sel.Base = true
-	p := rs.TTSNames(d, ex, TTSNamesOptions{Rules: TTSRulesShort, Auras: sel})
-	for _, f := range p.Figures {
-		switch {
-		case f.Extra == "" && f.Unit == 2 && f.Base != 0.49:
-			t.Errorf("a 25 mm figure: base %v", f.Base)
-		case f.Unit == 3 && f.Base != 0: // Warrior of Rohan has no base size in the vanilla file: the helper measures it
-			t.Errorf("a figure with no base size has base %v", f.Base)
-		case f.Extra == "foot" && f.Base != 0, f.Extra == "mount" && f.Base != 0:
-			t.Errorf("%q figure has base %v", f.Extra, f.Base)
 		}
 	}
 }

@@ -1,11 +1,17 @@
 package postgres
 
 import (
+	"context"
 	"errors"
+	"os"
 	"reflect"
+	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
@@ -34,7 +40,7 @@ func TestCompanies(t *testing.T) {
 	if err != nil || created.Units != 3 {
 		t.Fatalf("create: %+v, %v", created, err)
 	}
-	if _, err := repo.Create(ctx, camp.ID, owner, core.NewCompany{Name: "Again", Faction: "Rohan"}); !errors.Is(err, core.ErrHasCompany) {
+	if _, err := repo.Create(ctx, camp.ID, owner, core.NewCompany{Name: "Again", Faction: "Rohan"}); !errors.Is(err, core.ErrCompanyLimit) {
 		t.Fatalf("duplicate: %v", err)
 	}
 	if _, err := repo.Read(ctx, other.ID, created.ID); !errors.Is(err, core.ErrNotFound) {
@@ -267,6 +273,11 @@ func TestReadRosterMatchesRead(t *testing.T) {
 			t.Errorf("company %d: ReadRoster %+v differs from Read %+v", id, all[i], one)
 		}
 	}
+	// ReadRosterOf: the companies asked for (an unknown id is left out), the same states as the campaign's roster
+	some, err := companyStore{s}.ReadRosterOf(ctx, []int64{ids[2], ids[0], 999999999})
+	if err != nil || len(some) != 2 || !reflect.DeepEqual(some[0], all[0]) || !reflect.DeepEqual(some[1], all[2]) {
+		t.Errorf("ReadRosterOf = %+v, %v; want companies %d and %d as in the roster", some, err, ids[0], ids[2])
+	}
 }
 
 // Read answers in one statement with JSON; load (used under the row lock by Update) in several. They must give the same state for every
@@ -327,4 +338,173 @@ func TestReadEqualsLoad(t *testing.T) {
 		}
 	}
 	t.Logf("%d companies compared", len(ids))
+}
+
+type writeTracer struct {
+	mu  sync.Mutex
+	sql []string
+}
+
+func (w *writeTracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, d pgx.TraceQueryStartData) context.Context {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.sql = append(w.sql, strings.Join(strings.Fields(d.SQL), " "))
+	return ctx
+}
+func (w *writeTracer) TraceQueryEnd(context.Context, *pgx.Conn, pgx.TraceQueryEndData) {}
+
+// writes returns the statements since the last call that change a table, and forgets everything.
+func (w *writeTracer) writes() []string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	var out []string
+	for _, q := range w.sql {
+		if strings.HasPrefix(q, "UPDATE") || strings.HasPrefix(q, "DELETE") || strings.HasPrefix(q, "INSERT") {
+			out = append(out, q)
+		}
+	}
+	w.sql = nil
+	return out
+}
+
+func (w *writeTracer) count(prefix string, writes []string) int {
+	n := 0
+	for _, q := range writes {
+		if strings.HasPrefix(q, prefix) {
+			n++
+		}
+	}
+	return n
+}
+
+// Update writes back only the rows fn changed: a company of fourteen units used to cost an UPDATE, a DELETE of the equipment and an INSERT
+// per item for every unit on every save. What is stored afterwards is exactly what fn left.
+func TestUpdateWritesOnlyWhatChanged(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL not set")
+	}
+	ctx := context.Background()
+	tr := &writeTracer{}
+	s, err := OpenWith(ctx, url, Options{Tracer: tr})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(s.Close)
+	repo := s.Companies()
+	owner := testUser(t, s, ctx, "wr0")
+	camp, err := s.Campaigns().Create(ctx, owner, testNewCampaign(t, s, ctx, "Writes"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	co, err := repo.Create(ctx, camp.ID, owner, core.NewCompany{Name: "Writers", Faction: "Rohan", Gold: 3, Units: []core.UnitState{
+		{Base: "Captain", Role: core.RoleLeader, Gear: []string{"Horse", "Sword"}, Bought: []string{"Banner"}},
+		{Base: "Warrior", Role: core.RoleWarrior, Dropped: []string{"Bow"}},
+		{Base: "Warrior", Role: core.RoleWarrior, Gear: []string{"Spear"}}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr.writes()
+	update := func(fn func(*core.CompanyState)) []string {
+		t.Helper()
+		if err := repo.Update(ctx, camp.ID, co.ID, func(st *core.CompanyState) error { fn(st); return nil }); err != nil {
+			t.Fatal(err)
+		}
+		return tr.writes()
+	}
+	read := func() core.CompanyState {
+		t.Helper()
+		st, err := repo.Read(ctx, camp.ID, co.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return st
+	}
+	before := read()
+	tr.writes()
+
+	if w := update(func(*core.CompanyState) {}); len(w) != 0 {
+		t.Errorf("an update that changes nothing writes nothing: %v", w)
+	}
+	if !reflect.DeepEqual(read().Units, before.Units) {
+		t.Error("units changed by a no-op update")
+	}
+
+	w := update(func(st *core.CompanyState) { st.Gold++ })
+	if tr.count("UPDATE companies", w) != 1 || len(w) != 1 {
+		t.Errorf("a new purse is one UPDATE of the company: %v", w)
+	}
+
+	w = update(func(st *core.CompanyState) { st.Units[1].XP += 5; st.Units[1].Bought = []string{"Shield", "Helm"} })
+	if tr.count("UPDATE company_units", w) != 1 || tr.count("DELETE FROM unit_equipment", w) != 1 || tr.count("INSERT INTO unit_equipment", w) != 3 || tr.count("UPDATE companies", w) != 0 {
+		t.Errorf("one unit changed, one unit written (3 items of equipment): %v", w)
+	}
+	got := read()
+	if got.Units[1].XP != before.Units[1].XP+5 || !slices.Equal(got.Units[1].Bought, []string{"Shield", "Helm"}) || !slices.Equal(got.Units[1].Dropped, []string{"Bow"}) {
+		t.Errorf("the changed unit: %+v", got.Units[1])
+	}
+	if !reflect.DeepEqual(got.Units[0], before.Units[0]) || !reflect.DeepEqual(got.Units[2], before.Units[2]) {
+		t.Error("the other units must be as they were")
+	}
+
+	// reorder: positions are part of a unit's row
+	w = update(func(st *core.CompanyState) { st.Units[0], st.Units[2] = st.Units[2], st.Units[0] })
+	if tr.count("UPDATE company_units", w) != 2 {
+		t.Errorf("two units moved: %v", w)
+	}
+	if got := read(); got.Units[0].ID != before.Units[2].ID || got.Units[2].ID != before.Units[0].ID {
+		t.Errorf("order after the swap: %d %d %d", got.Units[0].ID, got.Units[1].ID, got.Units[2].ID)
+	}
+
+	// a unit added, then one removed into the cemetery
+	w = update(func(st *core.CompanyState) {
+		st.Units = append(st.Units, core.UnitState{Base: "Rider", Role: core.RoleWarrior, Gear: []string{"Horse"}})
+	})
+	if tr.count("INSERT INTO company_units", w) != 1 || tr.count("UPDATE company_units", w) != 0 {
+		t.Errorf("one unit inserted, none rewritten: %v", w)
+	}
+	cur := read()
+	if len(cur.Units) != 4 || !slices.Equal(cur.Units[3].Gear, []string{"Horse"}) {
+		t.Fatalf("units after the insert: %+v", cur.Units)
+	}
+	fallen := cur.Units[1]
+	w = update(func(st *core.CompanyState) {
+		st.Units = slices.Delete(slices.Clone(st.Units), 1, 2)
+		st.Cemetery = append(st.Cemetery, core.FallenUnit{Unit: core.CompanyUnit{ID: fallen.ID, Name: fallen.Base}, Fate: "killed", Match: "Match 1"})
+	})
+	if tr.count("DELETE FROM company_units", w) != 1 || tr.count("INSERT INTO fallen_units", w) != 1 {
+		t.Errorf("one unit removed, one grave written: %v", w)
+	}
+	cur = read()
+	if len(cur.Units) != 3 || len(cur.Cemetery) != 1 || cur.Cemetery[0].Unit.ID != fallen.ID {
+		t.Fatalf("after the burial: %d units, cemetery %+v", len(cur.Units), cur.Cemetery)
+	}
+	if w := update(func(*core.CompanyState) {}); len(w) != 0 {
+		t.Errorf("nothing changed again, nothing written: %v", w)
+	}
+	w = update(func(st *core.CompanyState) { st.Cemetery[0].Fate = "lost" })
+	if tr.count("INSERT INTO fallen_units", w) != 1 || len(w) != 1 || read().Cemetery[0].Fate != "lost" {
+		t.Errorf("a changed grave is one upsert: %v", w)
+	}
+	// a company with no units reads as one company without units
+	other := testUser(t, s, ctx, "wr1")
+	if _, err := s.pool.Exec(ctx, `INSERT INTO campaign_members (campaign_id, user_id, role) VALUES ($1, $2, 'player')`, camp.ID, other.ID); err != nil {
+		t.Fatal(err)
+	}
+	empty, err := repo.Create(ctx, camp.ID, other, core.NewCompany{Name: "Nobody", Faction: "Rohan"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	roster, err := repo.ReadRoster(ctx, camp.ID)
+	if err != nil || len(roster) != 2 {
+		t.Fatalf("roster: %d companies, %v", len(roster), err)
+	}
+	for _, st := range roster {
+		if st.Company.ID == empty.ID && len(st.Units) != 0 {
+			t.Errorf("a company without units: %+v", st.Units)
+		}
+		if st.Company.ID == co.ID && len(st.Units) != 3 {
+			t.Errorf("the company with units: %d", len(st.Units))
+		}
+	}
 }

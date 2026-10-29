@@ -1,0 +1,30 @@
+battle_companies.json: companies[0].units[0].composite.parts[0].unit: no unit "Ranger of Arnr" in this company, the shared units or vanilla; closest: "Ranger of Arnor"
+battle_companies.json: companies[0].units[0].composite.parts[0].with[0]: "Speer" is not an option of "Ranger of Arnr" nor a gear item
+  hint: options come from the vanilla profile; items from gear[]
+battle_companies.json: companies[0].units[0].composite.rules[0]: no rule "Fearles" in rules[], vanilla or the glossary; closest: "Fearless"
+  hint: define it in rules[]
+battle_companies.json: companies[0].units[0].includes[0].name: no unit "Knight of Arnr" in this company, the shared units or vanilla; closest: "Knight of Arnor"
+battle_companies.json: companies[0].advancements[0].from: no unit "Ranger of Arnr" in this company, the shared units or vanilla; closest: "Ranger of Arnor"
+battle_companies.json: companies[0].advancements[0].to[1]: no unit "Ranger of Gondr" in this company, the shared units or vanilla; closest: "Ranger of Gondor"
+battle_companies.json: companies[0].advancements[0].to[1].with[0]: "Speer" is not an option of "Ranger of Gondr" nor a gear item
+  hint: options come from the vanilla profile; items from gear[]
+battle_companies.json: companies[0].heroUpgrades[0].name: no rule "Foresight" in rules[], vanilla or the glossary; closest: "Foresight of the Eldar"
+  hint: define it in rules[]
+battle_companies.json: companies[0].heroUpgrades[0].who.units[0]: no unit "Ranger of Arnr" in this company, the shared units or vanilla; closest: "Ranger of Arnor"
+battle_companies.json: companies[0].granted[0].rule: no rule "Fearles" in rules[], vanilla or the glossary; closest: "Fearless"
+  hint: define it in rules[]
+battle_companies.json: companies[0].substitutions[0].rule: no rule "Loyal to the Captan" in rules[], vanilla or the glossary; closest: "Loyal to the Captain"
+  hint: define it in rules[]
+battle_companies.json: companies[0].limits.company[0].keyword: no keyword "Elv" in vanilla; closest: "Elf"
+battle_companies.json: companies[0].recruit.fallback[0].unit: no unit "Ranger of Arnr" in this company, the shared units or vanilla; closest: "Ranger of Arnor"
+battle_companies.json: companies[0].recruit.replace[1].alternative: no unit "Hobbit Archr" in this company, the shared units or vanilla; closest: "Hobbit Archer"
+battle_companies.json: companies[0].recruit.balance[0].keyword: no keyword "Elv" in vanilla; closest: "Elf"
+battle_companies.json: companies[0].recruit.balance[0].notMoreThan: no keyword "Hobit" in vanilla; closest: "Hobbit"
+battle_companies.json: companies[0].limits.exempt[0]: an exemption names a unit or an item
+battle_companies.json: companies[0].limits.exempt[1].limits[0]: no limit "bows" in limits[]; closest: "bow"
+  hint: known: bow
+battle_companies.json: companies[0].limits.override.cavalry: no limit "cavalry" in limits[]
+  hint: known: bow
+battle_companies.json: companies[0].recruit.replace[0]: a replacement unit needs its roles
+battle_companies.json: companies[0].recruit.replace[2]: a replacement is either a unit with roles (a unit that takes a place once it is slain) or an alternative on a roll of a chart
+  hint: set unit and roles, or chart, roll and alternative

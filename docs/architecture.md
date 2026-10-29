@@ -1,5 +1,9 @@
 # Architecture
 
+How the service is built: the layers, the packages, the data model, the live match design, the request flow, the configuration and the commands.
+Read it first if you are going to change the code. The feature documents ([matches.md](matches.md), [aftermath.md](aftermath.md),
+[live-match.md](live-match.md), ...) describe behaviour; this one describes structure.
+
 A small Go service with a server-rendered frontend and one external dependency: PostgreSQL. It is organised as
 **ports and adapters**: the business logic knows nothing about HTTP or SQL, and talks to both through interfaces.
 
@@ -13,329 +17,304 @@ A small Go service with a server-rendered frontend and one external dependency: 
 
 | Package | Role |
 |---|---|
-| `cmd/server` | `main`: configuration, wiring (`backend.go`), graceful shutdown; the `user` and `seed` commands (see [auth.md](auth.md)); `world*.go` is the demo world script ([demo-world.md](demo-world.md)) |
-| `internal/core` | Business logic: accounts, sessions, campaign rules, password hashing. Declares the repository interfaces it needs |
-| `internal/core/lean` | The lean rules format (`schemaVersion` 2, [definitions-lean-design.md](definitions-lean-design.md)): typed model, strict decoder, name resolution, validation. Pure: it imports only the standard library, never `core`; `core` adapts it (`ruleset_v2.go`) |
+| `cmd/server` | `main`: configuration, wiring (`backend.go`), graceful shutdown; the `user`, `audit`, `seed`, `migrate` and `healthcheck` commands (see [auth.md](auth.md)); `world*.go` is the demo world script ([demo-world.md](demo-world.md)) |
+| `cmd/rulecheck` | Checks a Battle Companies rules file the way an upload does ([definitions.md](definitions.md)) |
+| `internal/core` | Business logic: accounts, sessions, campaigns, companies, matches, rules computation. Declares the repository interfaces it needs |
+| `internal/core/lean` | The Battle Companies file format (`schemaVersion` 2): typed model, strict decoder, name resolution, validation. Pure: it imports only the standard library, never `core`; `core` adapts it (`ruleset_v2.go`) |
 | `internal/postgres` | Persistence adapter (pgx). Implements the core's repository interfaces; embedded goose migrations |
 | `internal/web` | HTTP adapter: routes, handlers, middleware, templates, static assets. Declares the core interfaces it needs |
-| `definitions/` | Rules data as JSON, see [definitions.md](definitions.md) |
-| `tools/` | Python tooling for the definitions, icons and the theme contrast check |
+| `definitions/` | Rules data as JSON with schemas, see [definitions.md](definitions.md) |
+| `tools/` | Python tooling for the definitions, icons and the theme contrast check; `tools/dice3d` builds the 3D dice script |
+| `tests/` | Browser tests (`e2e`), pull request check tests (`ci`), Tabletop Simulator tests (`tts`); see [testing.md](testing.md) |
 
 ## Interfaces live where they are used
 
 Go interfaces are satisfied implicitly, so each package defines the small interface **it** consumes:
 
-- `core` declares `authRepository`; `postgres.Store` satisfies it.
-- `web` declares `auth`, `campaigns` and `rulesets`; `core.Auth` satisfies the first, `cmd/server`'s facade over the core services the second, `core.Rulesets` the third (and `core.Glossaries` the glossary one). `web` also declares `concepts` (the helper popups' graph); `core.Concepts` satisfies it and `cmd/server` hands it over with `Server.SetConcepts` (without it the popup routes are not served).
+- `core` declares `authRepository`, `rulesetRepository`, `campaignRepository`, `companyRepository`, `matchRepository`, ...; `postgres.Store` satisfies them.
+- `web` declares `auth`, `campaigns`, `rulesets` and `concepts`. `core.Auth`, `core.Rulesets` and `core.Concepts` satisfy three of them;
+  `cmd/server` has a facade (`campaignsFacade`) over the core services for the fourth. `core.Glossaries` serves the glossary pages.
 
 Consequences:
 
-- A layer never imports the layer below it for its types except through the core's plain data types (`core.User`,
-  `core.CampaignSummary`).
-- Every layer is tested alone against a generated mock of what it consumes (`go generate ./...`, mockgen with the
-  `-typed` flag; the mocks are `mock_*_test.go` files next to the interface).
-- A page can be designed before its real backend exists: add the method to the web interface, regenerate the mock
-  (`make generate`) and test the handler against it; the core service comes next and nothing in `web` changes.
+- A layer never imports the layer below it for its types except through the core's plain data types (`core.User`, `core.CampaignSummary`).
+- Every layer is tested alone against a generated mock of what it consumes (`make generate`, mockgen with `-typed`; the mocks are
+  `mock_*_test.go` files next to the interface).
+- A page can be designed before its backend exists: add the method to the web interface, regenerate the mock and test the handler
+  against it; the core service comes next and nothing in `web` changes.
 
-## Campaign settings are part of the contract
+## Campaign settings
 
-`core.CampaignSettings` travels through the interfaces the web layer declares: the organiser sets it when creating a campaign
-(`CampaignInput.Settings`), every player reads it (`CampaignDetail.Settings`), nobody changes it afterwards, and the zero
-value is every option off. A backend stores it with the campaign (a JSON column or one column per flag) and enforces what
-it allows; the web layer only hides controls the settings do not offer.
+`core.CampaignSettings` travels through the interfaces the web layer declares: the organiser sets it when creating a campaign, every
+player reads it, nobody changes it afterwards, and the zero value is every option off. The web layer only hides controls the
+settings do not offer; the core enforces them.
 
 | Flag | Default | Effect | Enforced by |
-| --- | --- | --- | --- |
+|---|---|---|---|
 | `HeroesDropProfileGear` | off | heroes may discard any wargear, even what is built into their profile | `DropEquipment` |
-| `ShakeTheTable` | off | the browser throws the dice and decides the roll (client authoritative) | a backend refuses a thrown roll (`thrown` in `RollRecruit`, `Treatment.Thrown`) when off |
-| `ManualRolls` | off | players may type in the result of physical dice | a backend refuses a typed roll (`RollRecruit`, `TreatInjury`, `RollLevelUp`) when off |
+| `ShakeTheTable` | off | the browser throws the dice and decides the roll (client authoritative) | a thrown roll is refused when off |
+| `ManualRolls` | off | players may type in the result of physical dice | a typed roll is refused when off |
 
-`CampaignSettings.RollRefusal(entered, thrown)` holds the rule for the last two so every backend applies the same one. A new
+`CampaignSettings.RollRefusal(entered, thrown)` holds the rule for the last two so every call site applies the same one. A new
 option is added to the struct, to this table, to the campaign form and to the Overview's settings card.
 
 ## Backend design
 
-Everything runs on the real backend; `cmd/server/backend.go` (`newBackend`) builds it over the Postgres store and is the only place
-that knows all the services. The core services are `Rulesets`, the loader `Rules` / `RuleSet`, `Campaigns`, `CompanyService`,
-`ArmouryService`, `RecruitService`, `LevelService`, `TreatmentService`, `CemeteryService`, `Matches`, `AftermathService`, `Invites` and
-`Glossaries` and `Concepts` (the graph, built over the loader and the curated `definitions/concepts/concept_graph.json`, which `loadConceptFile` reads at start: a missing file only drops the curated edges); `campaignsFacade` embeds the first ten (under aliases, so `Matches.Matches` is not hidden by the field name) and so
-satisfies `web.campaigns`, because their method names are disjoint. Wiring details: `CompanyService.WithAftermaths` gives the company
-page its perks and history, `Matches.AftermathStarted` is the aftermath store's `Started` (a match cannot be reopened once a company
-started), and a finished campaign's invite cannot be redeemed (`Redeem` returns `ErrNotFound`). The rules *data* parsers
-(`ParseVanilla`, `ParseBattleCompanies`, `RulesetHash`, `RulesetMeta`, `OrderUnits`, progression and injury rules) are in `core`.
+`cmd/server/backend.go` (`newBackend`) builds the services over the Postgres store; it is the only place that knows all of them.
 
 ### Layers
 
-- **Loader** (`core.Rules`): given the three hashes of a campaign (`RulesetHashes`) returns an immutable `RuleSet`
-  `{Vanilla *VanillaBook, BC *BCBook, Glossary}` built from the stored files (`Rules.For`; `RuleSet.Keyword(embedded, name)` applies entity > BC > vanilla). Resolution order entity > BC > vanilla; a name
-  vanilla defines twice resolves to the first occurrence unless `data.vanillaAmbiguities` pins another; a non-identical
-  duplicate that is not listed logs a warning. Cache keyed by the hash triple, built once (singleflight), shared by every
-  campaign with the same triple. Never hits the database per request.
-- **`core.Rulesets`** implements `web.rulesets` over `rulesetRepository`: recomputes the hash, checks the kind with
-  `RulesetMeta`, validates against the JSON schema (`ErrInvalidRuleset`), applies the vanilla edition rule
-  (`ErrEditionExists`), registers the shipped files as defaults at startup (`RegisterDefaults`). The JSON schemas are passed in as bytes
-  (`NewRulesets(repo, schemas)`), read from disk by `cmd/server` like the definitions; validation uses
-  `santhosh-tekuri/jsonschema/v6`.
-- **`core.Campaigns`** implements the whole `web.campaigns` interface as a facade over focused services that share one
-  `RuleSet` per campaign: campaigns and membership, `Companies` (create, detail, rename, formation), `Recruiting`,
-  `Levelling`, `Armoury`, `Treatment`, `Cemetery`. The facade only routes; each service owns its use cases.
-- **Repositories** (declared in `internal/core/repositories.go`, implemented in `internal/postgres`): `rulesetRepository`
-  and `campaignRepository` today; `companyRepository` below.
+- **Loader** (`core.Rules`): given the three hashes of a campaign (`RulesetHashes`: Vanilla, Battle Companies, glossary) returns an
+  immutable `RuleSet` built from the stored files (`Rules.For`). Name resolution order is entity, then Battle Companies, then
+  vanilla. A name vanilla defines twice resolves to the first occurrence unless the Battle Companies file pins another one
+  (`vanillaAmbiguities`). The cache is keyed by the hash triple, built once (singleflight) and shared by every campaign with the same
+  triple (`MAX_CACHED_RULESETS`); a request never builds a rule set.
+- **Derived values are cached on the rule set, never on company data.** Because a `RuleSet` never changes, what is computed from it alone
+  is remembered on it and cannot go stale: the equipment of an item by company, name and flags (`equipmentFor`, `RuleSet.equipment`, at most
+  20,000 entries, past that it computes without storing), the book's profile list, a glossary term's summaries per length, and the pure name
+  functions (`ItemKey`, `IconFor`, `ParseOption`, bounded as well). The company a page shows changes per request and is built per request
+  (`BuildDetail`); a page that only rates companies (campaign list, overview, match pages) asks `companyFigures`, which builds the units
+  without keywords, auras, limits or recruit charts. Cached values are shared between requests: callers never write to their slices.
+- **`core.Rulesets`** stores uploaded rules files: it recomputes the hash, checks the kind, validates against the JSON schema
+  (`ErrInvalidRuleset`; schemas are passed in as bytes and validated with `santhosh-tekuri/jsonschema/v6`), applies the one-edition
+  rule for vanilla files (`ErrEditionExists`) and registers the shipped files as defaults at start (`RegisterDefaults`).
+- **`core.Campaigns`** implements the campaign side of `web.campaigns` as a facade over focused services that share one `RuleSet` per
+  campaign. The facade only routes; each service owns its use cases (table below).
+- **Repositories** are declared in `internal/core` (`repositories.go`, `match_repository.go`, `aftermath_repository.go`, `ato_repository.go`, the live repository in `live.go`)
+  and implemented in `internal/postgres`. Each is a small type returned by a `Store` accessor because the interfaces share method names.
 
 ### Company aggregate and transactions
 
-A company is one aggregate. All company mutations (spend influence, recruit, buy, level up, treat, reorder, bury) are
-"load, apply rules in memory, save" and must be atomic and serialised per company. The contract is small:
+A company is one aggregate. Every company mutation (spend influence, recruit, buy, level up, treat, reorder, bury) is "load,
+apply the rules in memory, save" and is atomic and serialised per company:
 
 ```go
 // Update runs fn on the company's state inside one transaction holding a row lock on the company, and stores the state fn
 // leaves behind when fn returns nil. Read is the same without the lock and without saving.
 type companyRepository interface {
     Read(ctx, campaignID, companyID int64) (CompanyState, error)
-    ReadRoster(ctx, campaignID int64) ([]CompanyState, error) // every company's units and resources in one statement, for rating lists (no aftermaths, open match, perks, cemetery)
+    ReadRoster(ctx, campaignID int64) ([]CompanyState, error) // every company in one statement, for rating lists
+    // optional, found by type assertion: ReadRosterOf(ctx, companyIDs []int64) ([]CompanyState, error) rates only the companies a page shows
     Update(ctx, campaignID, companyID int64, fn func(*CompanyState) error) error
-    Create(ctx, campaignID int64, owner User, c NewCompany) (CampaignCompany, error) // ErrHasCompany on unique (campaign, owner)
+    Create(ctx, campaignID int64, owner User, c NewCompany) (CampaignCompany, error) // ErrCompanyLimit at c.Cap, ErrCompanyNameTaken
 }
 ```
 
-`CompanyState` is plain data (ids, names, bought items, progress, injuries, resources, pending processes, orders) and
-contains no rules. Rules code in `core` is pure: `BuildDetail(RuleSet, CampaignSettings, CompanyState) CompanyDetail` turns
-state plus rules into what the pages show (profiles, limits, rating, order), and each action is a function
-`(RuleSet, settings, *CompanyState, input) (result, error)`. Refusals are `Refuse(...)` (wraps `ErrRefused`); the service checks
-that the user owns the company before `Update`. Rolls come from an injected `Dice` (`D6()`, `Die(sides)`, `Roll(spec)` for an `NdM` spec of the rules file, `core.RollDice` for the individual dice) so tests are deterministic (`core.FixedDice` feeds one die per result and folds a d2/d3 the way a typed d6 is read);
-`CampaignSettings.RollRefusal` gates typed and thrown rolls.
+`CompanyState` is plain data (ids, names, bought items, progress, injuries, resources, pending processes, orders) and contains no
+rules. Rules code in `core` is pure: `BuildDetail(RuleSet, CampaignSettings, CompanyState) CompanyDetail` turns state plus rules into
+what the pages show (profiles, limits, rating, order), and each action is a function `(RuleSet, settings, *CompanyState, input)
+(result, error)`. Refusals are `Refuse(...)` (they wrap `ErrRefused`); the service checks that the user owns the company before
+`Update`. Rolls come from an injected `Dice` (`D6()`, `Die(sides)`, `Roll(spec)` for an `NdM` spec of the rules file) so tests are
+deterministic (`core.FixedDice`).
+
+A player may own several companies in a campaign (`CampaignSettings.CompaniesPerPlayer`, 1 to 4, default 1, in the settings JSON; the
+organiser or an administrator changes it at any time with `Campaigns.SetCompaniesPerPlayer`, and lowering it only refuses new
+companies). Every owner action takes the company id after the campaign id, `(ctx, user, campaignID, companyID, ...)`, and resolves and
+authorises it through the one helper `companyDeps.ownCompany` / `ownCompanyToChange` (`campaigns.go`): `ErrNotFound` unless the company
+is among `CampaignDetail.Companies`, the viewer's own, so another player's company, an organiser probing and a stranger all learn
+nothing; the changing variant also refuses a finished campaign. `CompanyService.CreateCompany` checks the cap and the owner's company
+names in core and passes `NewCompany.Cap` to `companyRepository.Create`, which repeats both checks in the transaction that holds the
+owner's `campaign_members` row (`SELECT ... FOR UPDATE`), so simultaneous creates never exceed the cap (`ErrCompanyLimit`; a name used
+by another company of the same owner, case ignored, is `ErrCompanyNameTaken`, an `ErrInvalidCompany`). The listing queries (`List`,
+`Get`, `Members`) keep one row per campaign or member and aggregate the companies, oldest first (`CampaignSummary.Companies`,
+`CampaignMember.Companies`). Migration `00024_several_companies.sql` drops the `(campaign_id, owner_id)` unique constraint and adds
+`companies_owner_idx`; its down refuses while a player owns two companies. Matches, live, aftermath, grants and ATO were already keyed
+by company: two companies of one owner may share a side or fight each other, and `core.SamePlayers` / `Match.SamePlayers` tell the web
+layer which owners have several companies in a match (a note, never a refusal). See [multi-company-spec.md](multi-company-spec.md).
 
 The services (`internal/core`, one file each) share `companyDeps` (campaign and company repositories, the rule source, the dice):
 
-| Service | Methods (of `web.campaigns`) | Notes |
+| Service | Methods | Notes |
 |---|---|---|
-| `Campaigns` (`campaigns.go`) | `List`, `Create`, `Get`, `Companies`, `Company`, `Settings` | Only users who may create campaigns (`User.MayCreateCampaigns`) create; empty hashes are the defaults, an unknown or wrong-kind hash is `ErrInvalidCampaign`. `Points`, `FullPoints` and `Units` of every returned company come from `BuildDetail` (the repositories return 0) |
-| `CompanyService` (`companies.go`) | `CompanyProfiles`, `CreateCompany`, `CompanyDetail`, `RenameCompany`, `RenameUnit`, `SaveFormation` | New companies start with the rules' `campaign.company.startingInfluence` (`BCBook.Recruiting()`, 0 in the shipped file) and the profile's Gold; "the user's company" is the one `campaignRepository.Get` reports, so a stranger gets `ErrNotFound` |
-| `ArmouryService` (`armoury.go`) | `Armoury`, `ArmouryEntries`, `BuyEquipment`, `DropEquipment`, `ArmouryCreatures`, `BuyCreature`, `ArmouryWanderers`, `HireWanderer`, `DismissWanderer`, `Carry` | Every purchase re-checks inside `Update` on the locked state |
-| `RecruitService` (`recruiting.go`) | `RecruitState`, `RollRecruit`, `ConfirmRecruit`, `ChooseLower`, `RecruitSpecial`, `PendingChoice`, `ChooseOptions` | The recruit in progress is `CompanyState.Recruit`. A result of several models adds all of them; a "choice" result (take any/above result of the chart, "any 2") reuses the lower-result state (`LowerChoice.Picks`); `pick` is `alt`, `opt:N` or `member` |
+| `Campaigns` (`campaigns.go`) | `List`, `Create`, `Get`, `Companies`, `Company`, `Settings`, `SetCompaniesPerPlayer` | Only users who may create campaigns (`User.MayCreateCampaigns`) create; empty hashes mean the defaults, an unknown or wrong-kind hash is `ErrInvalidCampaign`. `Points`, `FullPoints` and `Units` of every returned company come from `BuildDetail` |
+| `CompanyService` (`companies.go`) | `CompanyProfiles`, `CreateCompany`, `CompanyDetail`, `RenameCompany`, `RenameUnit`, `SaveFormation` | A new company starts with the rules' `campaign.company.startingInfluence` and the profile's Gold; a user who is not in the campaign gets `ErrNotFound` |
+| `ArmouryService` (`armoury.go`) | `Armoury`, `BuyEquipment`, `DropEquipment`, `BuyCreature`, `HireWanderer`, `DismissWanderer`, `Carry`, ... | Every purchase re-checks inside `Update` on the locked state |
+| `RecruitService` (`recruiting.go`) | `RecruitState`, `RollRecruit`, `ConfirmRecruit`, `ChooseLower`, `RecruitSpecial`, `ChooseOptions`, ... | The recruit in progress is `CompanyState.Recruit` |
 | `LevelService` (`levelling.go`) | `LevelUpState`, `RollLevelUp`, `ChooseLevelUp`, `RerollLevelUp`, `PathOptions`, `ChoosePath` | The roll in progress is `UnitState.Pending.Level`; re-rolls spend `CompanyState.Rerolls` |
-| `TreatmentService` (`treatment.go`) | `TreatInjury`, `TreatmentState` | A roll waiting for the extra-influence decision is `UnitState.Pending.Treat`; injury counts are `UnitState.Injuries` |
-| `CemeteryService` (`cemetery.go`) | `SaveCemeteryOrder`; for the casualty flow (no user): `Bury`, `Injure` | The fallen are a frozen `CompanyUnit` snapshot and count towards no limit |
+| `TreatmentService` (`treatment.go`) | `TreatInjury`, `TreatmentState` | A roll waiting for the extra-influence decision is `UnitState.Pending.Treat` |
+| `CemeteryService` (`cemetery.go`) | `SaveCemeteryOrder`, `Bury`, `Injure` | The fallen are a frozen `CompanyUnit` snapshot and count towards no limit |
+| `Matches`, `AftermathService`, `LiveService`, `ATOService` | see [matches.md](matches.md), [aftermath.md](aftermath.md), [live-match.md](live-match.md) | |
+| `Invites`, `Glossaries`, `Concepts` | invite links; glossary pages; the concept graph of the helper popups ([concept-graph.md](concept-graph.md)) | |
 
-`CompanyState` holds what waits between two requests: `Recruit` (`RecruitProgress`: roll, lower-result choice, options choice)
-and each unit's `Pending`. The repository stores them as versioned jsonb (`companies.pending`, `company_units.pending`).
+`CompanyState` also holds what waits between two requests: `Recruit` (roll, lower-result choice, options choice) and each unit's
+`Pending`. They are stored as versioned jsonb.
 
-### Persistence shape (proposal for the database master)
+### Persistence shape
 
-Ids are `BIGINT GENERATED ALWAYS AS IDENTITY`. Unit ids are never reused or shared between roster and cemetery.
+Ids are `BIGINT GENERATED ALWAYS AS IDENTITY`. Unit ids are never reused or shared between roster and cemetery. What is queried or
+constrained (ownership, order, resources, membership, hashes) is a column; progress, injuries and pending processes are versioned
+jsonb because SQL never looks inside them. Prices and rating figures are derived on read, never stored. The schema is in
+`internal/postgres/migrations/` (goose, each with a `Down` section).
 
 | Table | Content |
 |---|---|
-| `rulesets` | `hash` PK, `kind`, `name`, `version`, `size`, `content` (compacted JSON, `bytea`), `uploaded_by`, `is_default`, `created_at`; unique `(kind) WHERE is_default`; index `(kind, name, version)` |
-| `campaigns` | `id`, `name`, `description`, `status`, `round`, `rounds`, `vanilla_hash`, `bc_hash`, `glossary_hash` (FKs to `rulesets`), `settings jsonb`, `created_by`, `created_at` |
-| `campaign_members` | `(campaign_id, user_id)` PK, `role` (organiser, player), `joined_at` |
-| `campaign_invites` | `token_hash` PK (SHA-256, like sessions), `campaign_id`, `created_by`, `expires_at`, `max_uses`, `uses` |
-| `companies` | `id`, `campaign_id`, `owner_id`, `name`, `faction`, `influence`, `gold`, `max_models_override`, `pack jsonb`, `pending jsonb` (recruit roll, lower choice, option choice), `created_at`; unique `(campaign_id, owner_id)` |
-| `company_units` | `id`, `company_id`, `position` (unique per company, deferrable), `base` (vanilla unit name), `custom_name`, `role`, `level`, `xp`, `progress jsonb` (`core.Progress`), `injuries jsonb`, `injured bool`, `sent_to_healers bool`, `pending jsonb` (level roll, treatment), `wanderer`, `creature` |
-| `unit_equipment` | `unit_id`, `name`, `origin` (`bought` or `dropped_profile`) (an Envenom Weapon carries its weapon in its name: `Envenom Weapon (Bow)`); profile wargear is derived from rules, only deviations are stored |
-| `fallen_units` | `id`, `company_id`, `position`, `snapshot jsonb` (profile, wargear, path, level, XP), `fell_in`, `fate`, `fell_at` |
-| `matches`, `match_sides`, `match_side_companies`, `match_objectives`, `match_events`, `grants` | the match layer, see below |
+| `users`, `sessions` | Accounts and sessions ([auth.md](auth.md)) |
+| `rulesets` | `hash` primary key, `kind`, `name`, `version`, `size`, `content` (compacted JSON), `uploaded_by` (NULL for shipped files), `is_default` (one default per kind), `created_at` |
+| `campaigns`, `campaign_members` | The campaign (status, round, three ruleset hashes with composite foreign keys that also check the file kind, `settings` jsonb) and its members (organiser or player) |
+| `campaign_invites` | Invite links: `token_hash` (SHA-256), expiry, `max_uses` (0 is unlimited), `uses`, revoked flag. `Redeem` locks the invite row and a member re-joining does not use it up |
+| `companies` | Name, faction, influence, gold, `pack text[]`, `pending jsonb`, saved roster and cemetery orders (`unit_order`, `grave_order` as `bigint[]`); unique `(campaign, owner)`; the owner is a member of the campaign |
+| `company_units` | One row per model: `position` (its index in `CompanyState.Units`, unique per company, deferrable), base unit, name, role, level, XP, `progress`, `injuries` and `pending` jsonb |
+| `unit_equipment` | Bought and dropped gear only (origins `gear`, `bought`, `dropped`); profile wargear is derived from the rules |
+| `fallen_units` | A frozen snapshot of each fallen model; keeps its roster id in `unit_id` (unique, no foreign key) |
+| `matches`, `match_sides`, `match_side_companies`, `match_objectives`, `match_events`, `match_end_proposal`, `match_end_confirmation` | The match layer. `matches` holds the number (unique per campaign, allocated under a lock on the campaign row), the scenario, the reported result and a `revision`; the end proposal and its confirmations hold a pending end |
+| `grants` | A company's history of awards (cascade with the company) |
+| `match_aftermaths`, `company_perks` | The War's Aftermath record per company and match, and the perks a company holds ([aftermath.md](aftermath.md)) |
+| `match_live`, `match_live_unit`, `match_live_log` | Live match state: see below |
+| `match_ato` | Against the Odds per match: the selection, the scenario Ambush! replaced, a revision |
 
-Implemented: `rulesets` (00005, `Store.Rulesets()`), `campaigns` and `campaign_members` (00006, `Store.Campaigns()` in
-`campaign.go`) and the company tables (00007, `Store.Companies()` in `company.go`). Differences from the proposal above:
-`campaign_invites` (00012, `Store.Invites()` in `invite.go`: `Redeem` locks the invite row, and a member re-joining does not use it up; `Lookup` reads the same row for the confirmation page, which names the campaign, says so when the visitor is already in it and shows an invalid link before confirming) has a 64-hex `token_hash` check and `max_uses` 0 for unlimited; the three hash columns have composite foreign keys that also check the file's kind;
-`settings` is jsonb with a `v`; a company's owner must be a member of the campaign (foreign key); `pack` is `text[]` and the
-saved roster and cemetery orders are `bigint[]` (`unit_order`, `grave_order`); the processes that wait for the player are jsonb `pending` columns on `companies` (the recruit in progress) and `company_units` (a level-up roll, a treatment roll), added by 00011; units keep what is queried in columns and put
-progress, injuries and the rest (bonus, actions, spells) in versioned jsonb; `unit_equipment` has origins `gear`, `bought`,
-`dropped` (no `for_weapon`); a unit's `position` is its index in `CompanyState.Units` (unique per company, deferrable) and
-`Update` locks the company row (`FOR UPDATE`), then UPDATEs by id, INSERTs new units (id 0) and DELETEs the missing ones.
-A fallen unit keeps its roster id in `fallen_units.unit_id` (unique, no foreign key) with a frozen `core.CompanyUnit` snapshot.
-`CampaignCompany.Points` and `FullPoints` are zero from the repositories (prices live in the rules files, not in SQL): the
-service fills them from `BuildDetail`; `Wins/Draws/Losses` and `Matches` stay zero until the matches tables exist.
-Matches (00008, `Store.Matches()` in `match.go`, interface `matchRepository` in `core/match_repository.go`): `matches`
-holds the number (unique per campaign, allocated under a lock on the campaign row), the scenario (`scenario_kind` NULL = none,
-a CHECK keeps one-off text out of rulebook scenarios), the reported result (`decided`, 1-based `winner`, `note`), `ended` /
-`ended_on` and `revision`. `match_sides` has the side name and its optional `victory_points`; `match_side_companies` the company
-(once per match, composite foreign keys make it a company of the match's campaign), its `slot` in the side and `fled`;
-`match_objectives` the completed objectives; `match_events` who ended or reopened it (`detail`: who confirmed the end, or the override and its note); `match_end_proposal` (one per open match: `proposed_by`, `proposed_on`, `notice`, `revision`) and `match_end_confirmation` (one row per company that confirmed: `confirmed_by`, `confirmed_on`, `override`, `note`) hold a pending end (migration 00023; read and written inside `matchStore.Update` with the match, deleted when it ends or is cancelled; a change notifies the live channel with company 0 so every page refetches). `grants` is a company's history of
-awards (cascade with the company). The repository only stores: `Update(campaignID, matchID, by, fn)` locks the match row and
-runs `fn`, where the service applies `Access`, the revision check, `CanEnd` and `ValidateResult`; it bumps the revision,
-stamps `ended_on` and writes the events itself. `AddGrant` adds Gold/Influence to the company and Experience to the unit's XP
-in the same transaction. A company's `Wins/Draws/Losses` and the campaign's `Matches` are counted from the tables
-(only ended matches count for the record); a result entry exists on read only for companies that fled or completed an objective.
-Ruleset notes: Each repository is a small
-type returned by a `Store` accessor, because the interfaces share method names (`Get`, `Insert`). `Insert` ignores
-`RulesetInfo.Default` (the default is only changed by `SetDefault`, which also checks the kind); `uploaded_by` is `NULL` for
-shipped files; `size` is checked against the content length.
+`Update` on the company repository locks the company row (`FOR UPDATE`), UPDATEs units by id, INSERTs new units (id 0) and DELETEs the
+missing ones. `CampaignCompany.Points` and `FullPoints` are zero from the repositories (prices live in the rules files): the service
+fills them from `BuildDetail`. A company's Wins/Draws/Losses and a campaign's match count are counted from the tables, and only
+ended matches count.
 
-Pending processes and progress are `jsonb` because they are opaque to SQL and versioned with the rules code; everything
-queried or constrained (ownership, order, resources, membership, hashes) is a column. Company rating figures (`Points`,
-`Units`, wins) are derived on read, not stored.
+`matchRepository.Update(campaignID, matchID, by, fn)` locks the match row and runs `fn`, where the service applies the access check,
+the revision check, `CanEnd` and `ValidateResult`; it bumps the revision, stamps `ended_on` and writes the events itself. `AddGrant`
+adds Gold or Influence to the company and Experience to the unit in the same transaction. Against the Odds (`Store.ATO()`): `Update`
+locks the match row, stores the scenario Ambush! set (clearing the reported objectives when it changed), the record, and bumps the
+match revision in one transaction.
 
-### Order of work
+## Live match design
 
-Rules infrastructure first (rulesets store, loader), then campaigns, then the company aggregate and the services in the order
-the company page needs them; the last bead (7v5.26) swapped the wiring in `cmd/server` and removed the in-memory `internal/fake`. Dependencies and
-acceptance criteria are in the beads of epic `7v5`.
-
-## Live match (backend built; epic `pib`, spec in [live-match.md](live-match.md))
-
-Contract declarations are in `internal/core/live.go`; the rules of the mode are in the spec, this section is the technical design. Built so far: the fold (`live_fold.go`: `FoldLive`, `LiveState.Check`, `ValidateLog`, `CanUndoEntry`), `LiveService` (`live_service.go`: Init, Live, Apply, Undo, Log, AftermathDefaults, Subscribe), `LiveHub` (`live_hub.go`), the company lock (`CompanyState.Locked` checks `OpenMatch` first; level-ups, paths, carry and special recruits call it), the creation guards (`Matches.CompanyAftermaths`, `Matches.LiveInit`, `*CompanyBusyError` from the repository), the aftermath prefill (`AftermathService.WithLive`, `Aftermath.FromLive`) and the wiring in `cmd/server/backend.go` (the hub starts in `main` and is closed by `RegisterOnShutdown`). Live state survives a restart: only the hub's pending batches are in memory, and every new stream starts with a batch for all companies (`internal/postgres/live_restart_test.go`). Not built: the web layer (SSE handler, routes, pages: beads pib.16-21, pib.30).
+The rules of the mode are in [live-match.md](live-match.md); this section is the technical design. The code: the fold (`live_fold.go`:
+`FoldLive`, `LiveState.Check`, `ValidateLog`, `CanUndoEntry`), `LiveService` (`live_service.go`: Init, Live, Apply, Undo, Log,
+AftermathDefaults, Subscribe), `LiveHub` (`live_hub.go`), the web handlers in `internal/web/live*.go`, the tables in `internal/postgres/live.go`.
 
 ### State is a fold of the log
 
-- Truth is `match_live_unit` (starting values, written once) plus the not-undone rows of `match_live_log`. `FoldLive(inits, entries) LiveState` is pure
-  and in `core`; nothing else mutates state, there is no state cache (a match has hundreds of entries; a fold is microseconds).
-- An entry stores the **action as the player meant it, resolved to deltas**: a "set to" is stored as the delta it meant when applied, so entries commute and an
-  undo in the middle never changes what the others mean. A wound declaration is one entry with all its targets; its effects (target Wounds and Fate, the target's
-  `fatePrevented`, the attacker's `woundedEnemy`, a kill counted when the target `CountsAsKill`, the fall into Field casualties, a mount at 0) are derived by the fold, never stored,
-  so undoing the entry undoes all of them. `CountsAsKill` (Hero or Monster) is a column of `match_live_unit`, decided from `CompanyUnit.Role`/`Kind` when the
-  match opens, so the fold needs no rules data.
-- **Return to the battle** is its own action kind (`return`), not an undo: it clears Retreated/Died and lifts Wounds 0 to 1. This replaces the spec's "undo of
-  the entry that moved it, or a manual +1 when not unique": one rule, always logged, and undoing the return puts the unit back. Experience flags already earned stay.
-- **Apply** (`LiveService.Apply`): in `LiveRepository.Update`, `fn` folds the snapshot, validates the action against the folded state (unit in the Field, target in the
-  Field, Fate available, trackers within `0..start`, `Why`/`Note` limits; refusals are `ErrRefused`, bad input `ErrInvalidLive`), builds the text and `Touches`, and returns
-  `LiveChange{Append}`. **Undo** (`LiveService.Undo`): `fn` removes the entry from the list, **refolds the whole remaining log in order, checking every entry's
-  preconditions again** (the same validation as Apply); the first that fails makes the undo `ErrLiveDepends`. This one mechanism replaces special cases.
-- Both live in `core.LiveService` (`live_service.go`), not in `Matches`: it owns `liveRepository`, `companyRepository`/rules (to compute the starting values) and the
-  hub. `web` declares `liveMatches` (the methods in the spec, with the amendments below).
+- Truth is `match_live_unit` (starting values, written once) plus the not-undone rows of `match_live_log`. `FoldLive(inits, entries)
+  LiveState` is pure and in `core`; nothing else mutates state, and there is no state cache (a match has hundreds of entries; a fold
+  is microseconds). Live state survives a restart: only the hub's pending batches are in memory.
+- An entry stores the **action as the player meant it, resolved to deltas**: a "set to" is stored as the delta it meant when applied,
+  so entries commute and an undo in the middle never changes what the others mean. A wound declaration is one entry with all its
+  targets; its effects (target Wounds and Fate, the attacker's `woundedEnemy`, a kill counted when the target `CountsAsKill`, the fall
+  into Field casualties, a mount at 0) are derived by the fold, never stored, so undoing the entry undoes all of them. `CountsAsKill`
+  (Hero or Monster) is a column of `match_live_unit`, decided when the match opens, so the fold needs no rules data.
+- **Return to the battle** is its own action kind (`return`), not an undo: it clears Retreated and Died and lifts Wounds 0 to 1. It is
+  always logged, and undoing the return puts the unit back. Experience flags already earned stay.
+- **Apply** (`LiveService.Apply`): inside `LiveRepository.Update`, `fn` folds the snapshot, validates the action against the folded state
+  (unit in the Field, target in the Field, Fate available, trackers within `0..start`, text limits; refusals are `ErrRefused`, bad
+  input `ErrInvalidLive`), builds the text and `Touches`, and appends. **Undo** removes the entry, **refolds the whole remaining log
+  in order checking every entry's preconditions again** (the same validation as Apply); the first that fails makes the undo
+  `ErrLiveDepends`. One mechanism, no special cases.
+- Permissions: Apply requires live edit access on the **acting** company (owner, organiser, administrator; none when the match or the
+  campaign has ended); the targets of a wound may be units of any company in the match. Undo is allowed for the owner of the acting
+  company, the owner of any company in `Touches`, the organiser and administrators (`LiveEntry.CanUndo` is computed per viewer).
 
 ### Transactions and locking
 
-- `LiveRepository.Update` takes `SELECT ... FROM matches WHERE id=$1 FOR NO KEY UPDATE`: the same row lock `matchRepository.Update` takes, so a live write cannot
-  interleave with End match (a write after the end is refused with the `Ended` flag read under the lock; the aftermath default never misses an entry), and all writes of a
-  match are serialised (a table has a handful of writers). It does **not** bump `matches.revision`, so a tracker never fails a form with a stale revision.
-- A cross-company wound is one transaction on the match; no company row is locked, because live state is separate from `CompanyState`. Two players on the same unit
-  both succeed (serialised, deltas against the fresh fold). `seq` is a per-match counter in `match_live.seq`, incremented under that lock (no sequence objects, no gaps for appends; an undo also takes a seq, `undone_seq`).
-- Permissions: Apply requires `LiveEdit` on the **acting** company (`LiveAccessFor`: owner, organiser, administrator; none when the match or the campaign has ended); the
-  targets of a wound may be units of any company in the match. Undo is allowed for the owner of the acting company, the owner of any company in `Touches`, the
-  organiser and administrators (`LiveEntry.CanUndo` is computed per viewer).
-- `CreateMatch` initialises the live units (`LiveService.Init`, idempotent, after `matchRepository.Create`); the first read of a match opened before the feature calls the same Init
-  (`ON CONFLICT DO NOTHING`, rosters are locked so both computations agree). If the eager Init fails the match exists and the next read initialises it.
+- `LiveRepository.Update` takes `SELECT ... FROM matches WHERE id=$1 FOR NO KEY UPDATE`, the row lock `matchRepository.Update` also takes,
+  so a live write cannot interleave with End match and all writes of a match are serialised. It does not bump `matches.revision`, so a
+  tracker never fails a form with a stale revision.
+- A cross-company wound is one transaction on the match; no company row is locked, because live state is separate from `CompanyState`.
+  `seq` is a per-match counter in `match_live.seq`, incremented under that lock; an undo also takes a seq (`undone_seq`).
+- `CreateMatch` initialises the live units (`LiveService.Init`, idempotent); a match that has none yet is initialised by its first read.
 
 ### Company lock and creation guards
 
-- **One lock rule.** `CompanyState` gets `OpenMatch *OpenMatchRef`, filled by the company repository when it loads a state (a join of `match_side_companies` and `matches` where
-  `NOT ended`, like `pendingRefs` for `Aftermaths`) and ignored on write. `CompanyState.Locked()` checks it first ("Match N is running; finish it first.", `LockMessageOpenMatch`), then the aftermaths.
-  Every roster action that calls `st.Locked()` today (armoury x5, recruiting, treatment) is locked for free; the missing ones (level-up rolls and choices, path, promote, carry,
-  hire, gold changes: audit in pib.12) get the call. `RenameUnit`, `SaveFormation`, `SaveCemeteryOrder` and organiser grants do not call it. `CompanyDetail.OpenMatch` carries it to the page (banner, hidden controls); there is no separate `OpenMatchOf`.
-- **Creating and reopening** a match: the check "a company is in another open match" is made **inside** `matchRepository.Create` (it already holds the campaign row lock to number
-  the match, so two creates cannot both pass) and inside `Update` when `Ended` turns false (reopen); both return `*CompanyBusyError` (an `ErrRefused`, names company and match).
-  The pending-aftermath check is in the service (`Matches.PendingAftermaths func(ctx, campaignID, companyID) ([]AftermathRef, error)`, wired like `AftermathStarted`, message `LockMessage`); question `pib.24`.
-- An open match with a pending aftermath of an older one cannot happen: the guard above refuses the second match.
+- `CompanyState.OpenMatch` is filled by the company repository when it loads a state (a join of `match_side_companies` and `matches`
+  where the match is not ended) and ignored on write. `CompanyState.Locked()` checks it first ("Match N is running; finish it
+  first."), then the aftermaths. Every roster action that changes the company calls it; `RenameUnit`, `SaveFormation`,
+  `SaveCemeteryOrder` and organiser grants do not.
+- Creating or reopening a match checks "a company is in another open match" inside `matchRepository.Create` and `Update` (which hold the
+  campaign row lock); both return `*CompanyBusyError`. The check for a pending aftermath is in the service (`Matches.PendingAftermaths`).
 
 ### Aftermath prefill
 
-`AftermathService.view` already calls `DefaultSheet(d.Roster)` while the sheet has no saved input. It becomes: if a `liveDefaults` is wired and the match has live data, build the
-sheet from `LiveService.AftermathDefaults(ctx, campaignID, matchID, companyID) ([]ModelSheet, bool, error)` (survived/fled/casualty and the `Gains` flags and counts; `participated` 1;
-absent units skipped; a roster unit missing from the live state gets the old default) and set `Aftermath.FromLive = true`. Once the player saves, `rec.Input` is
-stored and the log is never read again; the badge is shown only while the sheet is the unsaved default (REVIEW: the spec said a badge on every prefilled value; per value
-provenance needs the diff against the defaults and is a later option). Reopening a match recomputes the unsaved default; a started aftermath blocks reopening already.
+While the aftermath sheet has no saved input, `AftermathService` builds it from `LiveService.AftermathDefaults` (survived, fled or
+casualty, the experience flags and counts) and sets `Aftermath.FromLive`. Once the player saves, the saved input is used and the log is
+never read again; the "from the live match" badge shows only while the sheet is the unsaved default.
 
-### Persistence shape (for the database master)
-
-Built in migration `00014_live_match.sql` (`internal/postgres/live.go`: `Store.Live()`, `Store.LiveFeed()`; the open-match guards are in `match.go`, `OpenMatch` is loaded in `company.go`):
+### Persistence (migrations 00014, 00016, 00021)
 
 | Table | Content |
 |---|---|
-| `match_live` | `match_id` PK (FK `matches` ON DELETE CASCADE), `seq bigint NOT NULL DEFAULT 0`, `started_at`. Existence = initialised; `seq` is the counter |
-| `match_live_unit` | PK `(match_id, unit_id)`, `company_id` (composite FK `(match_id, company_id)` to `match_side_companies`), `start_wounds`, `start_might`, `start_will`, `start_fate` (CHECK >= 0), `has_mount`, `mount_wounds`, `counts_as_kill`, `absent`. No FK on `unit_id` (a unit that dies in the aftermath leaves `company_units`, like `fallen_units`) |
-| `match_live_log` | `id` identity PK, `match_id` (FK cascade), `seq`, `company_id`, `unit_id`, `kind` (CHECK in the `LiveKind` values), `payload jsonb` (`{"v":1,...}`, the `LiveAction`), `text`, `touches bigint[]`, `by_user_id` (FK users, SET NULL), `created_at`, `undone_at`, `undone_by` (FK users), `undone_seq` |
+| `match_live` | `match_id` primary key (cascades from `matches`), `seq` counter, `started_at`. Its existence means the match is initialised |
+| `match_live_unit` | Key `(match_id, unit_id)`, `company_id`, `start_wounds`, `start_might`, `start_will`, `start_fate`, `has_mount`, `mount_wounds`, `counts_as_kill`, `absent`. No foreign key on `unit_id` (a unit that dies in the aftermath leaves `company_units`) |
+| `match_live_log` | `id`, `match_id`, `seq`, `company_id`, `unit_id`, `kind` (checked against the `LiveKind` values), `payload jsonb` (the `LiveAction`, versioned), `text`, `touches bigint[]`, `by_user_id`, `created_at`, `undone_at`, `undone_by`, `undone_seq` |
 
-| `match_ato` | `match_id` PK, `company_id` (composite FK `(match_id, company_id)` to `match_side_companies`, cascade), `selection jsonb` (`{"v":1,...}`: bonuses, kits, where each kit item went, the temporary Wanderer, the Ambush! scenario), `previous_scenario jsonb` and `had_previous` (the scenario Ambush! replaced), `revision` (saves of the row), `created_at`, `updated_at` |
+Indexes: `UNIQUE (match_id, seq)` and a partial `(match_id, seq DESC) WHERE undone_at IS NULL` for the fold. Rows live and die with the
+match (cascade); undone rows stay as the audit.
 
-Against the Odds (00022, `Store.ATO()` in `ato.go`, interface `atoRepository` in `core/ato_repository.go`): one row per match for the lower rated company. `Update` locks the match row, hands the service the match, the record and "a live entry exists", and stores the scenario Ambush! set (clearing the reported objectives when it changed), the record (an empty selection deletes the row) and bumps the match revision, all in one transaction; `Get` and `GameStarted` are the reads of the live service and the aftermath. Migration 00021 allows the Break Point and `itemUsed` log kinds.
+### Live sync (server-sent events)
 
-`match_live_unit` and `match_live_log` reference `match_live` (cascade, which in turn cascades from `matches`), so a log row cannot exist before `Init`. Reopening a match (`matchRepository.Update`, `Ended` true to false) locks the campaign row like `Create` before the busy-company check. `LiveFeed` names its connection `application_name = bcm-live-feed`.
+`GET /campaigns/{id}/matches/{match}/events` (`internal/web/live_events.go`):
 
-Indexes: `UNIQUE (match_id, seq)`; partial `(match_id, seq DESC) WHERE undone_at IS NULL` (the log sheet, the fold); `match_live_unit (match_id, company_id)`.
-Retention: rows live and die with the match (cascade); no pruning (a few hundred small rows per match; the log stays readable on the ended match page and undone rows are the audit).
-`matchRepository.Update` also emits `pg_notify('live_match', ...)` (`c` and `s` 0) with kind `ended` when `Ended` changes either way, in its transaction.
-NOTIFY payload `{"m": matchID, "c": companyID, "s": seq, "k": "changed"|"ended"}` (well below the 8000 byte limit); the same transaction emits one per touched company.
-
-### Live sync (SSE)
-
-`GET /campaigns/{id}/matches/{match}/events` (`protected`, GET so no CSRF issue). Feasibility against the current stack, with what must change:
-
-- **Driver**: pgx v5 (pool). Streams hold **no database connection**: all fan-out is in memory. One extra connection outside the pool (`pgx.Connect(ctx, url)`, so a large
-  number of streams never starves `pgxpool`) runs `LISTEN live_match` in `liveFeed.Run`: `WaitForNotification` with a 30 s timeout then a ping, reconnect with backoff 1 s to 30 s, and
-  `onResync()` after every (re)connect because notifications sent meanwhile are lost. The `Store` keeps the URL for it (`Store.LiveFeed()`).
-- **One path, even with one process**: writers only `pg_notify` inside their transaction; the hub is fed by the listener only. No second in-process path, so a single-process
-  deployment tests the multi-process one, and no event is published before the commit.
-- **Hub** (`core.LiveHub`, pure Go, fed by a `liveFeed`; tested with a fake feed): subscribers per match; each subscriber has a mutex-guarded pending `LiveBatch` and a wake channel of
-  capacity 1 (`Next(ctx)` blocks and returns the merged batch), so a slow client costs one batch, never a backlog. A resync marks every subscriber's batch with all of the match's
-  companies. Caps checked in `Subscribe`: 10 per user, 50 per match (`ErrRefused`; the handler answers 429 and the client polls). `Close()` on the hub ends every stream.
-- **Handler** (`internal/web`): checks the user can read the campaign and the match is open (else 404 / an `ended` event and close); sets `Content-Type: text/event-stream`, `Cache-Control: no-cache, no-transform`,
-  `X-Accel-Buffering: no`; writes `retry: 3000` and a comment first and flushes at once so the proxy and `EventSource` open; then loops on `Next`, a 25 s ticker for `: ping`, `ctx.Done()`,
-  and a maximum age of 2 h (the client reconnects, which re-checks the session). Each write sets `http.NewResponseController(w).SetWriteDeadline(now+10s)` and flushes (a dead peer does not pin the goroutine).
-- **Events**: per batch one `event: company-<id>` per company to refetch and one `event: match` (log card), `id: <seq>`, `data: {"seq":41}`; `event: ended` when the match ended or reopened (the page reloads).
-  Event names instead of a company field in the data let htmx triggers (`sse:company-12`) match without JavaScript filter expressions. On connect with `Last-Event-ID` (or without) the server
-  sends one batch for all companies at the current seq: the fetches are idempotent, nothing is replayed.
-- **Authorisation**: at connect (campaign member, match open). No per-event re-check: events hold ids only and every fetch goes through the normal authorised GETs (REVIEW; the spec asked for a re-check per event).
-- **Changes needed in the existing server**: (1) `statusRecorder` in `internal/web/middleware.go` hides `http.Flusher`; add `Unwrap() http.ResponseWriter` so `ResponseController.Flush` works (pib.14).
-  (2) `http.Server` has no `WriteTimeout` (only `ReadHeaderTimeout`): keep it that way. (3) `Shutdown` waits for active requests and SSE never ends: wire `httpSrv.RegisterOnShutdown(live.Close)` so streams
-  return before the 10 s deadline. (4) No compression middleware may wrap the route. (5) `cmd/server` starts `liveFeed.Run` in a goroutine tied to the same signal context.
-- **Reverse proxy**: `X-Accel-Buffering: no` for nginx, the 25 s ping stays below the common 60 s read timeout, Caddy/Traefik flush `text/event-stream` immediately. Over HTTP/1.1 a browser allows 6 connections per origin
-  shared by all tabs: the client closes the stream when the tab is hidden and reopens on `visibilitychange` (pib.21), and the 10 per user cap is a backstop.
-- **htmx**: the `sse` extension (`hx-ext="sse" sse-connect=".../events"`) on the live banner element; the company fragment has `hx-get=".../companies/{c}/live" hx-trigger="sse:company-{c}"`, the log card `sse:match`, the banner `sse:ended`.
-  Writes answer their own tab by htmx swap and put the new `seq` in the fragment, so the tab ignores an event whose seq it already has. Polling fallback `hx-trigger="every 10s"` when `EventSource` errors.
+- **Fan-out is in memory.** Streams hold no database connection. One connection outside the pool (`Store.LiveFeed()`, named
+  `bcm-live-feed`) runs `LISTEN live_match`, waits with a 30 s timeout then pings, reconnects with backoff from 1 s to 30 s, and tells
+  the hub to resync after every reconnect because notifications sent meanwhile are lost.
+- **One path.** Writers only `pg_notify('live_match', {"m": match, "c": company, "s": seq, "k": "changed"|"ended"})` inside their
+  transaction; the hub is fed by the listener only, so no event is published before the commit and a one-process setup exercises the
+  same path as several.
+- **Hub** (`core.LiveHub`): subscribers per match; each has a mutex-guarded pending batch and a wake channel of capacity 1, so a slow
+  client costs one batch, never a backlog. Caps: 10 streams per user, 50 per match (`ErrRefused`; the handler answers 429 and the client
+  polls). `Close()` ends every stream.
+- **Handler**: checks that the user can read the campaign and the match is open; sets `Content-Type: text/event-stream`,
+  `Cache-Control: no-cache, no-transform`, `X-Accel-Buffering: no`; writes `retry: 3000` and flushes at once; loops on the hub with a
+  25 s `: ping`; each write has a 10 s write deadline; a stream ends after 2 h (the client reconnects, which re-checks the session). The
+  server has no `WriteTimeout`, no compression wraps the route and `Shutdown` closes the hub.
+- **Events**: one `event: company-<id>` per company to refetch, `event: match` for the log card, `event: ended` when the match ended or
+  was reopened; `id: <seq>`, `data: {"seq":41}`. On connect the server sends one batch for all companies at the current seq, unless the page sends `?since=<generation>` (the
+  match revision and live sequence its cards were built from, `LiveService.LiveGeneration`) and the match is still in that state
+  (`SubscribeSince` registers first, compares after; the match page uses it, [performance.md](performance.md#the-match-pages-stream)); fetches
+  are idempotent, nothing is replayed. Events carry ids only, and every fetch goes through the normal authorised GET.
+- **Browser**: htmx `sse` extension on the live banner; each company fragment refetches on `sse:company-<id>`, the log card on `sse:match`. A
+  write answers its own tab by swap and carries the new `seq`, so the tab ignores the matching event. The client closes the stream when the
+  tab is hidden and reopens it on `visibilitychange` (a browser allows 6 connections per origin over HTTP/1.1), and polls every 10 s when
+  `EventSource` fails.
+- **Reverse proxy**: `X-Accel-Buffering: no` covers nginx; the ping interval stays below the usual 60 s read timeout.
 
 ## The lean decoder and the upload report
 
-`internal/core/lean` is built beside the old parsers, which stay until the slices of the design move each section (none survives slice 9).
-Its files: `model.go` and `campaign.go` (the contract: one struct per concept, tags `json`, `required`, `enum`, `min`/`max`, `rest`),
-`types.go` and `dice.go` (`Roll`, `Rating`, `RuleRef`, `Scalar`, `DiceSpec`, the polymorphic values, bound through the `Binder` interface),
-`jsontree.go` and `bind.go` (the strict binder: JSON to a tree with duplicate-key and depth checks, then reflection over the model; every error is
-collected with its path), `defaults.go` and `extends.go` (`Normalise`: extends of company, unit, gear and path, then the defaults of design section 3,
-idempotent), `lower.go` and `resolve.go` (`Lower`, the interface the lower layers implement, and `Resolve`: every name looked up in the entity's scope,
-the shared lists and the lower layers, entries classified new / extends / annotation / shadow, inline rules hoisted), `validate.go` and
-`validate_charts.go` (structure, chart coverage by dice spec, parameter ranges), `issue.go` and `closest.go` (`Issue`, `Report`, `NameKey`, `Closest`),
+`internal/core/lean` reads the Battle Companies file (`schemaVersion` 2). Files: `model.go` and `campaign.go` (the contract: one struct per
+concept, tags `json`, `required`, `enum`, `min`/`max`, `rest`), `types.go` and `dice.go` (`Roll`, `Rating`, `RuleRef`, `Scalar`,
+`DiceSpec`, the polymorphic values), `jsontree.go` and `bind.go` (the strict binder: JSON to a tree with duplicate-key and depth checks,
+then reflection over the model; every error is collected with its path), `defaults.go` and `extends.go` (`Normalise`: extends of company,
+unit, gear and path, then the defaults, idempotent), `lower.go` and `resolve.go` (`Lower`, the interface the lower layers implement, and
+`Resolve`: every name looked up in the entity's scope, the shared lists and the lower layers), `validate.go` and `validate_charts.go`
+(structure, chart coverage by dice spec, parameter ranges), `issue.go` and `closest.go` (`Issue`, `Report`, `Closest` for "did you mean"),
 `decode.go` (`Decode`, the one entry point), `encode.go` (the inverse of the binder, for the round-trip test).
 
-`internal/core` adapts it: `ruleset_v2.go` has `DecodeBattleCompanies` and the `lean.Lower` over `VanillaBook` and the glossary;
+`internal/core` adapts it: `ruleset_v2.go` has `DecodeBattleCompanies` and the `lean.Lower` over the vanilla book and the glossary;
 `ruleset_report.go` has `RulesetReport` / `RulesetIssue`, the error of a rejected file (plain data, so `web` never imports `lean`);
-`LoadRuleSet` and `Rules.build` look at `schemaVersion` (absent or 1 is the old path, unchanged) and give a v2 file its report or, when it is clean,
-`ErrRulesetNotPlayable` until slice 9 flips `acceptV2`; `RuleSet.Doc` will carry the typed document to the consumers. The upload
-flow is in [definitions.md](definitions.md#upload-validation).
+`LoadRuleSet` and `Rules.build` decode the file (a file of an older format gets one clear issue) and `loadV2` builds the whole rule set
+from the typed document with the `*_lean.go` readers; `RuleSet.Doc` carries the document. The aftermath, Against the Odds and scenario
+services read their rules from the `RuleSet`, never from the stored bytes. The file format is in [definitions.md](definitions.md) and the
+upload flow in [definitions.md](definitions.md#upload-validation).
 
 ## Request flow
 
-1. `net/http` `ServeMux` (Go 1.22 method + path patterns, no router dependency).
-2. Middleware chain: panic recovery, security headers, request logging, cross-origin (CSRF) protection.
-3. Per route: `session` (resolves the session cookie, never rejects) or `protected` (also redirects visitors who are not
-   signed in to `/login`).
-4. A handler calls the core through its interface and renders a template.
+1. `net/http` `ServeMux` (Go 1.22 method and path patterns, no router dependency).
+2. Middleware chain: panic recovery, security headers, request logging, cross-origin (CSRF) protection, request deadline.
+3. Per route: `session` (resolves the session cookie, never rejects) or `protected` (also redirects visitors who are not signed in to `/login`).
+4. A handler calls the core through its interface and renders a template. A GET page or card that only reads is registered as `protected(readOnly(handler))`: `readOnly` opens a `core.WithReadScope`, so the services it calls read each campaign, company, match, record and roster once per request (and cards built side by side share a load in flight). A handler that writes is never wrapped: a write does not invalidate the scope.
 
-Routes:
+Routes by area (the feature documents list the actions):
 
 | Route | Access | Purpose |
 |---|---|---|
-| `GET /login`, `POST /login` | public (signed-in users are redirected to `/`) | Sign in |
-| `POST /logout` | session | Sign out |
-| `GET /` | signed in | Main page: the user's campaigns |
-| `GET /campaigns/new`, `POST /campaigns` | may create campaigns | New-campaign form and creation |
-| `GET /campaigns/{id}` and `/companies`, `/rankings`, `/matches` | signed in | The campaign's tabs |
-| `GET /rulesets/{hash}` | signed in | Is this rules file already stored? (JSON, lets the browser skip the upload) |
-| `GET /nav/campaigns` | signed in | Items of the sidebar's campaigns sub-menu |
-| `GET/POST /campaigns/{id}/my-company/recruit`, `GET /campaigns/{id}/my-company/units/{unit}/armoury`, `POST …/units/{unit}/equipment` | signed in | Recruit and buy equipment windows and their actions |
-| `GET /campaigns/{id}/company/new`, `POST /campaigns/{id}/company` | signed in | Create your company |
-| `GET /campaigns/{id}/companies/{company}` | signed in | A company's My Company page, read only (own company redirects to My Company) |
-| `GET /campaigns/{id}/matches/{match}/events` | campaign member | Live match stream (SSE, `internal/web/live_events.go`): `company-<id>`, `match`, `ended` events with `{"seq":N}`, `: ping` every 25 s, `429` at the caps, 2 h limit |
-| `GET /campaigns/{id}/matches/new`, `POST /campaigns/{id}/matches`, `GET /campaigns/{id}/matches/{match}` | signed in | New match, match page |
-| `GET /campaigns/{id}/matches/{match}/events` (live design) | signed in, campaign member | Server-Sent Events of a running match, see "Live match" |
-| `GET /glossary`, `GET /campaigns/{id}/glossary`, `GET /account` | signed in | Glossary and account pages, see [frontend.md](frontend.md) and [auth.md](auth.md) |
-| `GET /admin` | superuser | Redirects to `/admin/users` (every `/admin/*` route, POSTs included, is a 404 for everybody else) |
-| `GET /admin/users` | superuser | Accounts list; `?q=&offset=` swapped into the list by htmx (`HX-Target` `user-rows` / `user-more`) |
-| `POST /admin/users/{id}/permissions` | superuser | Role and creation flag; swaps the row (422 with the reason) |
-| `GET /admin/rulesets` | superuser | Stored rules files with usage |
-| `POST /admin/rulesets` | superuser | Upload (multipart `kind`, `file`); swaps the panel |
-| `POST /admin/rulesets/{hash}/default`, `/delete`; `POST /admin/rulesets/prune` | superuser | Make default, delete, delete all unused; swap the panel |
-| `GET /admin/rulesets/{hash}/download` | superuser | The stored file as an attachment |
-| `GET /styleguide` | `STYLEGUIDE=true` (public, off by default) | Design tokens and components, see [frontend.md](frontend.md) |
+| `GET/POST /login`, `POST /logout` | public / session | Sign in and out |
+| `GET /`, `GET /nav/campaigns` | signed in | The user's campaigns; the sidebar sub-menu |
+| `GET /campaigns/new`, `POST /campaigns` | may create campaigns | New campaign |
+| `GET /campaigns/{id}` and `/companies`, `/rankings`, `/matches` | campaign member | The campaign's tabs |
+| `/campaigns/{id}/my-company/{company}/...` | the company's owner (404 for anyone else) | One of your companies: recruit, armoury, level up, path, treatment, formation, cemetery, pack, perks; `/my-company` alone is an alias that opens one |
+| `/campaigns/{id}/companies/{company}` | campaign member | Another company, read only (your own redirects to `/my-company/{company}`) |
+| `/campaigns/{id}/matches/...` | campaign member | Matches, scenario, result, end confirmation, Against the Odds, aftermath ([matches.md](matches.md), [aftermath.md](aftermath.md)) |
+| `/campaigns/{id}/matches/{match}/live/...`, `.../events` | campaign member | Live match actions, log, undo and the event stream |
+| `/join/{token}` | signed in | Redeem an invite link |
+| `GET /glossary`, `/campaigns/{id}/glossary`, `/campaigns/{id}/concepts/...` | signed in | Glossary and helper popups |
+| `GET /campaigns/{id}/companies/{company}/tts`, `GET /tts/helper.zip` | campaign member | Tabletop Simulator army list and helper ([tabletop-simulator.md](tabletop-simulator.md)) |
+| `GET/POST /account...` | signed in | Account page ([auth.md](auth.md)) |
+| `/admin/...` | superuser (a 404 for everybody else) | Users, permissions, rules files ([admin.md](admin.md)) |
+| `GET /styleguide` | `STYLEGUIDE=true` | Design tokens and components ([frontend.md](frontend.md)) |
 | `GET /static/...` | public | Embedded assets |
-| `GET /healthz` | public | Liveness: `200 ok` while the process serves; touches nothing else. `no-store` |
-| `GET /readyz` | public | Readiness: pings the database (2 s); `503 unavailable` when it does not answer (the reason is only logged) |
-| `POST /csp-report` | public (exempt from the cross-origin check) | CSP violation reports: 4 KB body cap, at most 60 logged a minute for the whole server, answers 204 |
+| `GET /healthz` | public | Liveness: `200 ok` while the process serves; touches nothing else |
+| `GET /readyz` | public | Readiness: pings the database (2 s); `503` when it does not answer |
+| `POST /csp-report` | public | Content-Security-Policy violation reports: 4 KB body cap, at most 60 logged a minute |
 
 ## Persistence
 
-`postgres.Open` connects with a pgx pool and applies pending migrations (`internal/postgres/migrations/*.sql`, embedded,
-run by goose) before the server starts. Tables: `users`, `sessions` (the backend design above adds the rest).
+`postgres.Open` connects with a pgx pool and applies pending migrations (`internal/postgres/migrations/*.sql`, embedded, run by goose
+under a Postgres advisory lock, so two instances starting together run each migration once) before the server starts.
 
 ## Configuration
 
@@ -343,51 +322,38 @@ Environment variables (loaded by `go-simpler.org/env`; `.env.example` lists them
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `DATABASE_URL` | required (the Makefile defaults to the compose database) | PostgreSQL connection string |
+| `DATABASE_URL` | required (the Makefile defaults to the compose database) | PostgreSQL connection string. Pool settings go in the URL (`?pool_max_conns=N`, `pool_min_conns`, `pool_max_conn_lifetime`, `pool_max_conn_idle_time`): without `pool_max_conns` the pool holds up to the larger of the number of CPUs and 10 connections (the cards of a match page use four side by side; 4 connections made 160 simultaneous match pages 40 % slower than 10). Keep it below the server's `max_connections` divided by the number of instances, less one connection per instance for the live feed |
 | `PORT` | `8080` | HTTP port |
 | `STATIC_MAX_AGE` | `0s` | Cache lifetime of static files requested without their `?v=` hash (`no-cache` when 0; the templates always add the hash, and those requests are cached for a year) |
 | `PERF_TRACE` | `false` | Adds a `Server-Timing` header (time, database statements) to every answer, for `make perf` ([performance.md](performance.md)); development only |
-| `STYLEGUIDE` | `false` | Serve `/styleguide` (public when on); `make run`, `make dev` and `make demo` set it to `true` |
-| `APP_ENV` | `production` | `production` is secure by default; `development` (set by `make run`, `dev`, `demo`) is for plain http on localhost. Anything else is refused at start |
-| `SECURE_COOKIES` | unset | `Secure` session, theme and glossary cookies, and the `Strict-Transport-Security` header (one year, no `includeSubDomains`). Unset: on in production, off in development. `false` in production is **refused at start** unless `ALLOW_INSECURE_COOKIES=true` (then it starts with a warning). Behind a TLS proxy `true` is the setting |
-| `ALLOW_INSECURE_COOKIES` | `false` | Explicit opt-out that lets production start with `SECURE_COOKIES=false` (plain http on a private network, a try-out) |
-| `MAX_CACHED_RULESETS` | `16` | Parsed rule sets (hash triples) kept in memory, least recently used dropped first; at least 1, anything else is refused at start |
+| `STYLEGUIDE` | `false` | Serve `/styleguide`; `make run`, `make dev` and `make demo` set it to `true` |
+| `APP_ENV` | `production` | `production` is the default; `development` (set by `make run`, `dev`, `demo`) is for plain http on localhost. Anything else is refused at start |
+| `SECURE_COOKIES` | unset | `Secure` session, theme and glossary cookies, and the `Strict-Transport-Security` header. Unset: on in production, off in development. `false` in production is refused at start unless `ALLOW_INSECURE_COOKIES=true` (then it starts with a warning). Behind a TLS proxy `true` is the setting |
+| `ALLOW_INSECURE_COOKIES` | `false` | Lets production start with `SECURE_COOKIES=false` (plain http on a private network, a try-out) |
+| `MAX_CACHED_RULESETS` | `16` | Parsed rule sets (hash triples) kept in memory, least recently used dropped first; at least 1 |
 | `REQUEST_TIMEOUT` | `30s` | Context deadline of every request but the live stream: queries and rule computation stop when it is up or the client leaves, the answer is 503. `0` turns it off; negative is refused at start |
-| `RULES_BUILD_TIMEOUT` | `60s` | Deadline of building a parsed rule set from its three files (see [operations.md](operations.md) "Robustness"); at least `1s`, anything else is refused at start |
+| `RULES_BUILD_TIMEOUT` | `60s` | Deadline of building a parsed rule set from its three files; at least `1s` |
 | `APP_TIMEZONE` | unset | IANA zone for visitors with no account zone and no browser zone (UTC when empty) |
-| `TRUST_PROXY` | `false` | Count login attempts per `X-Forwarded-For` (last entry) instead of the peer address; only behind a reverse proxy that sets it. Production without it logs a warning |
-| `CSP_MODE` | `report` | `off`, `report` (`Content-Security-Policy-Report-Only` and the `/csp-report` logger) or `enforce`; see "Content-Security-Policy" below |
+| `TRUST_PROXY` | `false` | Count login attempts per `X-Forwarded-For` (last entry) instead of the peer address; only behind a reverse proxy that sets it |
+| `CSP_MODE` | `report` | `off`, `report` (`Content-Security-Policy-Report-Only` and the `/csp-report` logger) or `enforce`; see [operations.md](operations.md#content-security-policy-report-mode-then-enforce) |
 | `MIGRATE_ON_START` | `true` | Apply pending migrations when the server starts. `false`: the server only checks and refuses to start on a database that is behind; run `server migrate` (`make migrate`) as a deploy step |
 
 ## Deploying
 
-**Image.** `docker build -t bcm .` builds in three stages (Tailwind CSS, the static Go binary, a distroless `nonroot` runtime with the binary and
-`definitions/`). The container runs as uid 65532, `APP_ENV=production`, and has a `HEALTHCHECK` that runs `server healthcheck` (GET `/readyz` on its own port, no curl needed).
-Plain `docker compose up -d --build` (`make up`) is the production setup: `compose.yaml` (project `bcm`) runs the image next to PostgreSQL on a named volume, read-only, capabilities dropped, no database port; settings in `.env` (`.env.example`), first account with `make prod-user`; see [operations.md](operations.md) ("First start").
-`compose.dev.yaml` is the development database only (published on 127.0.0.1, password `bcm`), which `make run`, `dev`, `demo`, `seed` and the integration tests use; they keep running the server on the host.
-The runtime image is distroless static (no shell), non-root uid 65532, with the base images pinned by digest and Tailwind by version.
+**Image.** `docker build -t bcm .` builds in three stages (Tailwind CSS, the static Go binary, a distroless `nonroot` runtime with the
+binary and `definitions/`). The container runs as uid 65532 with `APP_ENV=production` and has a `HEALTHCHECK` that runs `server
+healthcheck` (GET `/readyz` on its own port). `docker compose up -d --build` (`make up`) is the production setup: `compose.yaml`
+(project `bcm`) runs the image next to PostgreSQL on a named volume, read-only, capabilities dropped, no database port; settings in
+`.env` (`.env.example`), first account with `make prod-user`; see [operations.md](operations.md). `compose.dev.yaml` is the development
+database only (published on 127.0.0.1), which `make run`, `dev`, `demo`, `seed` and the integration tests use while the server runs on the host.
 
-**Behind a reverse proxy (TLS).** Terminate TLS at the proxy (Caddy, nginx, a cloud load balancer) and forward to `:8080`. Set `TRUST_PROXY=true` only if the proxy sets
-`X-Forwarded-For` itself and replaces any value the client sent (the app reads the last entry); leave `SECURE_COOKIES` unset (on in production). Probe `/healthz` for liveness and `/readyz` for readiness.
-Without TLS (a private network) set `SECURE_COOKIES=false` **and** `ALLOW_INSECURE_COOKIES=true`; without the second the server refuses to start, with it it warns.
+**Behind a reverse proxy (TLS).** Terminate TLS at the proxy and forward to `:8080`. Set `TRUST_PROXY=true` only if the proxy sets
+`X-Forwarded-For` itself and replaces any value the client sent; leave `SECURE_COOKIES` unset. Probe `/healthz` for liveness and
+`/readyz` for readiness. Without TLS (a private network) set `SECURE_COOKIES=false` and `ALLOW_INSECURE_COOKIES=true`.
 
-**Migrations.** `postgres.Open` runs goose under a Postgres advisory lock, so two instances starting together run each migration once (the second waits, then finds nothing to do;
-`TestConcurrentMigrations`). For a controlled deploy set `MIGRATE_ON_START=false` on the servers and run `server migrate` (`make migrate`, or `docker compose run --rm app migrate`) first:
-the servers then refuse to start while migrations are pending (`TestSkipMigrationsChecksPending`). Every migration has a `Down` section (`TestMigrationsHaveDown`), but a rollback of data is a
+**Migrations.** For a controlled deploy set `MIGRATE_ON_START=false` on the servers and run `server migrate` (`make migrate`, or
+`docker compose run --rm app migrate`) first: the servers then refuse to start while migrations are pending. A rollback of data is a
 restore: take a backup before upgrading ([operations.md](operations.md)).
-
-## Content-Security-Policy
-
-Sent on every response according to `CSP_MODE` (`internal/web/hardening.go`; the analysis and the staged plan are in [security-and-risks.md](security-and-risks.md) section 1):
-`default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; report-uri /csp-report`.
-`'unsafe-eval'` is there for Alpine's standard build, style `'unsafe-inline'` for the `style=` attributes.
-
-- **Report-only (default; `make run`, `dev`, `demo` set it).** The browser loads everything and posts violations to `/csp-report`, which logs one `csp violation` line (directive, blocked URI, document, source file, line).
-  Use the app for a week (the demo world exercises most pages, including the dice and the live stream) and read the log: `grep "csp violation"`. A `csp reports dropped` line means the rate limit (60 a minute) cut a flood.
-- **What to watch.** `script-src` reports with an empty or `inline` blocked URI (an inline script or handler to move into a file or give a nonce), `worker-src` / `blob:` (the dice), `img-src` / `connect-src` (the live stream is `EventSource` on the same origin),
-  and reports from browser extensions (their `source-file` is `chrome-extension://...`: ignore them).
-- **Switching to enforce.** When a week of use leaves no report that belongs to the app, set `CSP_MODE=enforce` and restart; the same policy then blocks. If something breaks, set it back to `report` (or `off`) and restart: nothing else depends on it.
-  The reports keep flowing in enforce mode so a regression is visible.
 
 ## Commands
 
@@ -396,30 +362,33 @@ Sent on every response according to `CSP_MODE` (`internal/web/hardening.go`; the
 | `make run` | Builds the CSS, starts PostgreSQL (docker compose) and runs the server |
 | `make dev` | Same with live reload (air) and Tailwind in watch mode |
 | `make user EMAIL=… NAME=…` | Creates an account (asks for the password) |
-| `make seed [PASSWORD=…]` | Demo accounts, a campaign with companies and matches for local development; see "Demo data and signing in" in [frontend.md](frontend.md) |
-| `make demo [PASSWORD=…]` | **Destructive: empties the development database** (`db-reset`; every account, campaign and match in it is gone, take `make backup COMPOSE_FILE=compose.dev.yaml` first if it matters), loads the rich demo world (`server seed --world`, [demo-world.md](demo-world.md)) and runs the server on :8080; the output is kept in `tmp/demo-world.txt` |
+| `make grant EMAIL=… ROLE=…` | Changes an account's role (`user`, `admin`, `superuser`; `CREATE=1` lets a user create campaigns) |
+| `make seed [PASSWORD=…]` | Demo accounts, a campaign with companies and matches for local development |
+| `make demo [PASSWORD=…]` | **Destructive: empties the development database**, loads the rich demo world ([demo-world.md](demo-world.md)) and runs the server on :8080; the output is kept in `tmp/demo-world.txt` |
 | `make db-reset` | **Destructive:** drops the development database (all data) and starts an empty one |
 | `make test` | Unit tests (the PostgreSQL tests are skipped) |
-| `make test-integration` | All tests, including the PostgreSQL ones, against the separate `bcm_test` database of the compose PostgreSQL (made by `scripts/dev-initdb.sh` on a new volume, or by `make test-db`); the tests empty it and never touch the development database `bcm` |
+| `make test-integration` | All tests, including the PostgreSQL ones, against the separate `bcm_test` database of the compose PostgreSQL; the tests empty it and never touch the development database `bcm` |
 | `make e2e` | Browser smoke tests on a scratch copy of the demo world ([testing.md](testing.md)) |
-| `make test-db` | Makes sure `bcm_test` exists (an older volume has none) |
-| `make generate` | Regenerates the mocks |
-| `make check-ruleset FILE=…` | Checks a lean rules file like the upload does and prints every problem (`cmd/rulecheck`, [definitions.md](definitions.md#upload-validation)) |
-| `make fuzz` | Explores the lean decoder and the dice parser with go's fuzzer ([testing.md](testing.md)) |
+| `make test-db` | Makes sure `bcm_test` exists |
+| `make generate` | Regenerates the mocks (and the concept graph) |
+| `make validate` | Validates the four rules files: JSON schemas, cross references, the Go validator and the curator checks ([definitions.md](definitions.md)) |
+| `make check-ruleset FILE=…` | Checks a Battle Companies file like the upload does and prints every problem (`cmd/rulecheck`) |
+| `make fuzz` | Explores the decoder and the dice parser with go's fuzzer ([testing.md](testing.md)) |
 | `make css` | Builds `internal/web/static/app.css` (generated, not committed) |
 | `make db-up` / `make db-down` | Starts / stops the development PostgreSQL (`compose.dev.yaml`) |
 | `make migrate` | Applies pending migrations and exits (`server migrate`) |
-| `make backup` / `make restore FILE=… CONFIRM=yes` / `make restore-drill` | `pg_dump` into `backups/`, restore over the database, restore into a scratch database and smoke-check it; see [operations.md](operations.md) |
-| `make vendor-check [ONLINE=1]` | The vendored scripts match `internal/web/vendor.json`; see [vendored-js.md](vendored-js.md) |
-| `make up` (`make up-app`) / `make prod-down` | Production compose (`compose.yaml`): builds the image and starts it with PostgreSQL / stops it, see "Deploying" |
+| `make backup` / `make restore FILE=… CONFIRM=yes` / `make restore-drill` | `pg_dump` into `backups/`, restore over the database, restore into a scratch database and smoke-check it ([operations.md](operations.md)) |
+| `make vendor-check [ONLINE=1]` | The vendored scripts match `internal/web/vendor.json` ([vendored-js.md](vendored-js.md)) |
+| `make up` (`make up-app`) / `make prod-down` | Production compose (`compose.yaml`): builds the image and starts it with PostgreSQL / stops it |
 | `make prod-user EMAIL=… NAME=… [ROLE=superuser]` | Creates the first account in the production container |
 | `make check-env-docs` | Fails when the server reads an environment variable that `compose.yaml`, `compose.dev.yaml` or `.env.example` does not document |
+| `make docs-check` | Checks that every relative link in the Markdown files resolves |
 
 ## Conventions
 
-- Dependencies are kept to what is needed: pgx, goose, `go-simpler.org/env`, `golang.org/x/crypto` (argon2),
-  `golang.org/x/term`, mockgen. Everything else is the standard library.
-- Errors that callers must tell apart are sentinel values in `core` (`ErrInvalidName`, `ErrInvalidCredentials`,
-  `ErrEmailTaken`, `ErrNotFound`…); adapters translate their own errors to them.
+- Dependencies are kept to what is needed: pgx, goose, `go-simpler.org/env`, `golang.org/x/crypto` (argon2), `golang.org/x/term`, a JSON
+  schema validator, mockgen. Everything else is the standard library.
+- Errors that callers must tell apart are sentinel values in `core` (`ErrInvalidName`, `ErrInvalidCredentials`, `ErrEmailTaken`,
+  `ErrNotFound`, ...); adapters translate their own errors to them.
 - Handlers are small: parse input, call the core, render. Rules live in the core.
 - Templates and assets are embedded in the binary (`go:embed`), so one binary is the whole deployment.

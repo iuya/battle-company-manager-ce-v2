@@ -46,3 +46,19 @@ func TestCanGrant(t *testing.T) {
 		t.Errorf("finished: %v", err)
 	}
 }
+
+func TestValidationErrorsCarryTheirField(t *testing.T) {
+	_, err := GrantInput{Gold: 5000}.Validate()
+	fields := map[string]bool{}
+	for _, e := range err.(interface{ Unwrap() []error }).Unwrap()[1:] {
+		fields[FieldOf(e)] = true
+	}
+	for _, f := range []string{"note", "gold"} {
+		if !fields[f] {
+			t.Errorf("no error under %q: %v", f, fields)
+		}
+	}
+	if FieldOf(errors.New("plain")) != "" || FieldOf(nil) != "" {
+		t.Error("an error that is not about a field has none")
+	}
+}

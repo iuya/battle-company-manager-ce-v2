@@ -82,7 +82,7 @@ func (s *Server) handleAdminRulesetCheck(w http.ResponseWriter, r *http.Request)
 		s.serverError(w, r, err)
 		return
 	}
-	rep, err := s.rulesets.Check(r.Context(), kind, content)
+	rep, err := s.rulesets.CheckSet(r.Context(), setOf(kind, content))
 	switch {
 	case err == nil:
 		v := newReportView(rep)
@@ -103,4 +103,18 @@ func (s *Server) handleAdminRulesetCheck(w http.ResponseWriter, r *http.Request)
 type checkResult struct {
 	Report *reportView
 	Msg    string
+}
+
+// setOf is a set holding one file of the given kind (a nil content stays "not given": an empty upload is sent as an empty slice).
+func setOf(kind core.RulesetKind, content []byte) core.RulesetSet {
+	if content == nil {
+		content = []byte{}
+	}
+	switch kind {
+	case core.KindVanilla:
+		return core.RulesetSet{Vanilla: content}
+	case core.KindGlossary:
+		return core.RulesetSet{Glossary: content}
+	}
+	return core.RulesetSet{BattleCompanies: content}
 }

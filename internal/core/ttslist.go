@@ -263,7 +263,7 @@ func (x *ttsBuild) unitLines(u CompanyUnit) []TTSLine {
 		}
 		lines = append(lines, x.standInLine(u, s))
 	default:
-		v, _, ok := resolveUnit(x.rs, x.profile, u.Type)
+		v, _, ok := x.rs.ResolveUnit(x.profile, u.Type)
 		if !ok {
 			x.note(u.ID, TTSNoModel, "%s (%s) is not a standard unit and is not in the list.", u.Title(), u.Type)
 			return nil
@@ -289,7 +289,7 @@ func (x *ttsBuild) unitLines(u CompanyUnit) []TTSLine {
 
 func (x *ttsBuild) standIn(kind, name string) (TTSStandIn, bool) {
 	for _, s := range x.models.StandIns {
-		if s.Kind == kind && strings.EqualFold(s.Name, name) {
+		if s.Kind == kind && sameName(s.Name, name) {
 			return s, true
 		}
 	}
@@ -356,7 +356,7 @@ func (x *ttsBuild) vanillaLines(u CompanyUnit, v VanillaUnit) []TTSLine {
 
 func (x *ttsBuild) rider(unit string) (TTSRider, bool) {
 	for _, r := range x.models.Riders {
-		if strings.EqualFold(r.Unit, unit) {
+		if sameName(r.Unit, unit) {
 			return r, true
 		}
 	}
@@ -372,7 +372,7 @@ func (x *ttsBuild) unitLine(u CompanyUnit, v VanillaUnit) TTSLine {
 	options := x.optionsFor(u, v)
 	for i, o := range options {
 		for _, n := range x.models.Names {
-			if strings.EqualFold(n.Unit, v.Name) && strings.EqualFold(n.From, o) {
+			if sameName(n.Unit, v.Name) && sameName(n.From, o) {
 				options[i] = n.To
 			}
 		}
@@ -380,7 +380,7 @@ func (x *ttsBuild) unitLine(u CompanyUnit, v VanillaUnit) TTSLine {
 	var dropped []string
 	if len(options) == 1 {
 		for _, m := range x.models.MarkerOptions {
-			if strings.EqualFold(m.Unit, v.Name) && strings.EqualFold(m.Option, options[0]) {
+			if sameName(m.Unit, v.Name) && sameName(m.Option, options[0]) {
 				dropped, options = []string{options[0]}, nil
 				x.note(u.ID, TTSApproximate, "%s: the mod has no figure with %s alone, so %s is shown; the name and description still say so.", u.Title(), dropped[0], figureName(newTTSLine(u.ID, v.Name, nil, "")))
 			}
@@ -388,7 +388,7 @@ func (x *ttsBuild) unitLine(u CompanyUnit, v VanillaUnit) TTSLine {
 	}
 	if len(options) == 0 && dropped == nil {
 		for _, d := range x.models.DefaultOptions {
-			if strings.EqualFold(d.Unit, v.Name) {
+			if sameName(d.Unit, v.Name) {
 				options = slices.Clone(d.Options)
 				x.note(u.ID, TTSApproximate, "%s: the mod has no figure for %s, so %s is shown (the closest one the mod has).", u.Title(), figureName(newTTSLine(u.ID, v.Name, nil, "")), figureName(newTTSLine(u.ID, v.Name, options, "")))
 			}
@@ -435,22 +435,6 @@ func splitModel(model string) (string, []string) {
 	return strings.TrimSpace(name), out
 }
 
-// optionParts are the items an option has to be carried to be taken: all of them, or for an exchange ("Exchange shield for banner")
-// the item it gives.
-func optionParts(name string) []string {
-	if optionVerb.MatchString(name) {
-		stripped := optionVerb.ReplaceAllString(name, "")
-		for _, sep := range []string{" for ", " with "} {
-			if _, after, ok := strings.Cut(strings.ToLower(stripped), sep); ok {
-				return OptionItems(stripped[len(stripped)-len(after):])
-			}
-		}
-	}
-	return OptionItems(name)
-}
-
-func isExchange(name string) bool { return optionVerb.MatchString(name) }
-
 // optionsFor are the options of v that u's wargear stands for: whole options first (the one that covers most items), at most one
 // per choose-one group; what is left over goes to the option that holds it, as the closest figure, or is dropped with a note.
 func (x *ttsBuild) optionsFor(u CompanyUnit, v VanillaUnit) []string {
@@ -469,7 +453,7 @@ func (x *ttsBuild) optionsFor(u CompanyUnit, v VanillaUnit) []string {
 	parts := make([][]string, len(v.Options))
 	var cands []cand
 	for i, o := range v.Options {
-		parts[i] = optionParts(o.Name)
+		parts[i] = ParseOption(o.Name).Gives
 		if len(parts[i]) == 0 {
 			continue
 		}
@@ -528,7 +512,7 @@ func (x *ttsBuild) optionsFor(u CompanyUnit, v VanillaUnit) []string {
 					return d
 				}
 			}
-			if d := btoi(isExchange(v.Options[a.i].Name)) - btoi(isExchange(v.Options[b.i].Name)); d != 0 {
+			if d := btoi(ParseOption(v.Options[a.i].Name).Exchange) - btoi(ParseOption(v.Options[b.i].Name).Exchange); d != 0 {
 				return d
 			}
 			return a.i - b.i
@@ -604,7 +588,7 @@ func (x *ttsBuild) markers() map[string]bool {
 	m := map[string]bool{}
 	for _, a := range x.profile.Aliases {
 		for _, o := range a.Selected {
-			m[strings.ToLower(o)] = true
+			m[NameKey(o)] = true
 		}
 	}
 	return m
@@ -617,7 +601,7 @@ func (x *ttsBuild) fallback(u CompanyUnit, v VanillaUnit, l TTSLine) TTSLine {
 	markers := x.markers()
 	var kept, dropped []string
 	for _, o := range l.Options {
-		if markers[strings.ToLower(o)] {
+		if markers[NameKey(o)] {
 			dropped = append(dropped, o)
 		} else {
 			kept = append(kept, o)
@@ -669,12 +653,12 @@ func (x *ttsBuild) closestKey(v VanillaUnit, name string, wanted []string, cat T
 	}
 	points := func(opt string) int {
 		for _, n := range x.models.Names {
-			if strings.EqualFold(n.Unit, v.Name) && strings.EqualFold(n.To, opt) {
+			if sameName(n.Unit, v.Name) && sameName(n.To, opt) {
 				opt = n.From
 			}
 		}
 		for _, o := range v.Options {
-			if strings.EqualFold(o.Name, opt) {
+			if sameName(o.Name, opt) {
 				return o.Points
 			}
 		}
@@ -688,7 +672,7 @@ func (x *ttsBuild) closestKey(v VanillaUnit, name string, wanted []string, cat T
 		}
 		c := cand{key: k}
 		for _, o := range opts {
-			if slices.ContainsFunc(wanted, func(w string) bool { return strings.EqualFold(w, o) }) {
+			if slices.ContainsFunc(wanted, func(w string) bool { return sameName(w, o) }) {
 				c.matched++
 				continue
 			}

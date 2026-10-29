@@ -83,7 +83,7 @@ func TestChoosePathLeavesALegacyOfficersProfileAsItIs(t *testing.T) {
 	f.companyOf("Arnor", 5, []UnitState{{ID: 90, Base: "Ranger of Arnor", Role: RoleLeader, Bonus: HeroBonus(nil)}, {ID: 91, Base: "Ranger of the North", Role: RoleSergeant}})
 	for _, id := range []int64{90, 91} {
 		before := f.unit(t, id).Type
-		if err := l.ChoosePath(f.ctx, f.user, 5, id, "Path of the Soldier", ""); err != nil {
+		if err := l.ChoosePath(f.ctx, f.user, 5, 1, id, "Path of the Soldier", ""); err != nil {
 			t.Fatal(err)
 		}
 		if got := f.unit(t, id).Type; got != before {

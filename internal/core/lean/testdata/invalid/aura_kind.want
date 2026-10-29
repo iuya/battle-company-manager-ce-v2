@@ -1,1 +1,1 @@
-battle_companies.json: rules[0].aura.kind: "banners" is not a valid kind; known: banner, command, support, enemy, utility; closest: "banner"
+battle_companies.json: rules[0].auras[0].kind: "banners" is not a valid kind; known: banner, command, support, enemy, utility; closest: "banner"

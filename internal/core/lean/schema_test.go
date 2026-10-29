@@ -43,10 +43,10 @@ func compileSchema(t *testing.T) *jsonschema.Schema {
 		t.Fatal(err)
 	}
 	c := jsonschema.NewCompiler()
-	if err := c.AddResource("battle_companies.v2.schema.json", doc); err != nil {
+	if err := c.AddResource("battle_companies.schema.json", doc); err != nil {
 		t.Fatal(err)
 	}
-	s, err := c.Compile("battle_companies.v2.schema.json")
+	s, err := c.Compile("battle_companies.schema.json")
 	if err != nil {
 		t.Fatalf("the schema does not compile: %v", err)
 	}
@@ -120,8 +120,14 @@ func checkProp(t *testing.T, where string, sf reflect.StructField, prop map[stri
 		reflect.Float64: "number", reflect.Slice: "array", reflect.Map: "object"}
 	switch typ.Kind() {
 	case reflect.Interface:
-		if len(prop) != 0 && !(len(prop) == 1 && prop["default"] != nil) {
-			t.Errorf("%s: a Free field must be the empty schema, got %v", where, prop)
+		rest := 0 // the description apart, a Free field accepts anything: it has no type, no range, no $ref
+		for k := range prop {
+			if k != "description" {
+				rest++
+			}
+		}
+		if rest != 0 && !(rest == 1 && prop["default"] != nil) {
+			t.Errorf("%s: a Free field must be the empty schema (a description apart), got %v", where, prop)
 		}
 	case reflect.Struct:
 		if prop["$ref"] != "#/$defs/"+typ.Name() {

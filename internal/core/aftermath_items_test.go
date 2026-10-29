@@ -52,7 +52,13 @@ func TestParseAftermathItems(t *testing.T) {
 	if rules.itemName("healingHerbs") != "Healing Herbs" {
 		t.Errorf("item name: %q", rules.itemName("healingHerbs"))
 	}
-	if _, err := ParseAftermath([]byte(`{"campaign":{"aftermathEffects":[],"injuries":{"warrior":[],"hero":[]}},"data":{"equipment":{"items":[{"name":"X","aftermathEffect":"nope"}]}}}`)); !errors.Is(err, ErrInvalidRuleset) {
+	if _, err := customRulesetErr(t, func(doc map[string]any) {
+		for _, g := range doc["gear"].([]any) {
+			if g := g.(map[string]any); g["name"] == "Healing Herbs" {
+				g["aftermathEffect"] = "nope"
+			}
+		}
+	}); !errors.Is(err, ErrInvalidRuleset) {
 		t.Errorf("an item naming an unknown effect must be refused: %v", err)
 	}
 }

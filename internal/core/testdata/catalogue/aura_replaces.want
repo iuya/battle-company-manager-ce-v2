@@ -1,0 +1,5 @@
+battle_companies.json: rules[1].auras[0].replaces[0]: no ring labelled "Stnad Fast" in this file; closest: "Stand Fast"
+  hint: replaces names the label of another ring (its label, else the name of its rule, item or power)
+battle_companies.json: rules[1].auras[0].replaces[1]: a ring cannot replace itself
+battle_companies.json: rules[1].auras[0].replaces[2]: no ring labelled "Heroic Rally" in this file
+  hint: replaces names the label of another ring (its label, else the name of its rule, item or power)

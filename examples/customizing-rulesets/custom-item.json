@@ -1,0 +1,277 @@
+{
+  "schemaVersion": 2,
+  "name": "Custom item example",
+  "version": "1.0",
+  "extends": "Middle-Earth Strategy Battle Game - 2024",
+  "campaign": {
+    "company": {
+      "maxModels": 15,
+      "leaders": 1,
+      "sergeants": 2,
+      "heroStart": {
+        "might": 1,
+        "will": 1,
+        "fate": 1
+      },
+      "startingInfluence": 0,
+      "equipmentSlots": {
+        "small": 1,
+        "large": 1
+      }
+    },
+    "recruitment": {
+      "die": "d6",
+      "adjust": {
+        "maxPerAttempt": 3,
+        "direction": "up",
+        "costPerPoint": 1
+      },
+      "rare": {
+        "injuredCount": true,
+        "deadCount": false,
+        "promotedCount": false
+      }
+    },
+    "influence": {
+      "gains": {
+        "participating": 2,
+        "draw": 1,
+        "win": 2
+      }
+    },
+    "progression": {
+      "threshold": 5,
+      "warrior": {
+        "roll": "d6",
+        "table": [
+          {
+            "roll": "1-2",
+            "key": "noChange",
+            "name": "No Change"
+          },
+          {
+            "roll": "3-5",
+            "key": "promoted",
+            "name": "Promoted"
+          },
+          {
+            "roll": 6,
+            "key": "heroInTheMaking",
+            "name": "A Hero in the Making"
+          }
+        ],
+        "noPromotion": {
+          "courage": 1,
+          "intelligence": 1,
+          "maximum": 3
+        }
+      },
+      "hero": {
+        "roll": "2d6",
+        "rollsPerProgression": 2,
+        "choose": 1
+      }
+    },
+    "injuries": {
+      "roll": "2d6",
+      "warrior": [
+        {
+          "roll": "2-3",
+          "key": "dead",
+          "name": "Dead"
+        },
+        {
+          "roll": "4-5",
+          "key": "injured",
+          "name": "Injured"
+        },
+        {
+          "roll": "6-11",
+          "key": "fullRecovery",
+          "name": "Full Recovery"
+        },
+        {
+          "roll": 12,
+          "key": "lessonLearned",
+          "name": "Lesson Learned",
+          "grantsExperience": {
+            "dice": "d3"
+          }
+        }
+      ],
+      "hero": [
+        {
+          "roll": 2,
+          "key": "dead",
+          "name": "Dead"
+        },
+        {
+          "roll": "3-11",
+          "key": "fullRecovery",
+          "name": "Full Recovery"
+        },
+        {
+          "roll": 12,
+          "key": "heroic",
+          "name": "Heroic Recovery",
+          "statChanges": [
+            {
+              "stat": "fate",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    "experience": {
+      "gains": [
+        {
+          "key": "participated",
+          "label": "Participating in the scenario",
+          "amount": 1
+        },
+        {
+          "key": "mvp",
+          "label": "MVP",
+          "amount": 1,
+          "dice": "d3"
+        }
+      ]
+    },
+    "breakPoint": {
+      "default": {
+        "percent": 50,
+        "of": "startingModels"
+      },
+      "threshold": {
+        "comparison": "gt"
+      },
+      "whenBroken": {
+        "courageTest": {
+          "dice": "2d6"
+        }
+      }
+    },
+    "rating": {
+      "hero": {
+        "wargear": {
+          "threshold": {
+            "stats": [
+              "attack",
+              "wounds"
+            ],
+            "sumAtLeast": 3
+          }
+        }
+      }
+    },
+    "scenarioSelection": {
+      "die": "d2",
+      "tables": [
+        {
+          "roll": [
+            1,
+            1
+          ],
+          "scenarios": [
+            "Seize Ground",
+            "Chance Encounter"
+          ]
+        },
+        {
+          "roll": [
+            2,
+            2
+          ],
+          "scenarios": [
+            "Hold the Line",
+            "Rescue"
+          ]
+        }
+      ]
+    }
+  },
+  "scenarios": [
+    {
+      "name": "Seize Ground",
+      "description": "Placeholder: describe the scenario."
+    },
+    {
+      "name": "Chance Encounter",
+      "description": "Placeholder: describe the scenario."
+    },
+    {
+      "name": "Hold the Line",
+      "description": "Placeholder: describe the scenario."
+    },
+    {
+      "name": "Rescue",
+      "description": "Placeholder: describe the scenario."
+    }
+  ],
+  "gear": [
+    {
+      "name": "Traveller's Lantern",
+      "kind": "equipment",
+      "size": "small",
+      "influence": 1,
+      "rating": 3,
+      "aka": [
+        "Lantern"
+      ],
+      "definition": "Example text, not a Battle Companies rule: the bearer ignores the penalties of darkness."
+    },
+    {
+      "name": "Spear",
+      "kind": "wargear",
+      "classes": [
+        "spear"
+      ],
+      "influence": 1,
+      "rating": {
+        "warrior": 1,
+        "hero": 5
+      },
+      "definition": "Example text, not a Battle Companies rule: the plain spear that Greenway Spear builds on."
+    },
+    {
+      "name": "Greenway Spear",
+      "kind": "wargear",
+      "extends": "Spear",
+      "influence": 1,
+      "rating": {
+        "warrior": 1,
+        "hero": 5
+      },
+      "definition": "Example text, not a Battle Companies rule: a spear that only Rangers of Arnor may carry, and no more than two to a company.",
+      "who": {
+        "units": [
+          "Ranger of Arnor"
+        ],
+        "hero": false
+      },
+      "limit": 2
+    },
+    {
+      "name": "Wayfarer's Pack",
+      "kind": "equipment",
+      "size": "large",
+      "influence": 1,
+      "rating": 2,
+      "definition": "Example text, not a Battle Companies rule: a model with a Wayfarer's Pack may carry two more small pieces of equipment.",
+      "grantsSlots": {
+        "small": 2
+      }
+    },
+    {
+      "name": "Pitchfork",
+      "kind": "wargear",
+      "influence": 1,
+      "rating": 1,
+      "classes": [
+        "melee"
+      ],
+      "note": "No definition: an annotation of the vanilla item. It is now sold for 1 Influence."
+    }
+  ]
+}

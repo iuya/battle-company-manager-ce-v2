@@ -224,7 +224,7 @@ func TestTTSListCatalogue(t *testing.T) {
 			}
 			seen[e.unit] = true
 			check(bcCo, e.unit, nil)
-			v, _, ok := resolveUnit(rs, profile, e.unit)
+			v, _, ok := rs.ResolveUnit(profile, e.unit)
 			if !ok {
 				continue
 			}

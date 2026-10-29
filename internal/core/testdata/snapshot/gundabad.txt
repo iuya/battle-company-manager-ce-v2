@@ -382,7 +382,7 @@ gear "Razor-sharp teeth" -> key "razorsharpteeth" | unknown
 gear "Razor-sharp teeth and talons (hand weapons)" -> key "razorsharpteethandtalonhandweapon" | annotation "Razor-sharp teeth and talons (hand weapons)"
 gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
 gear "Spear" -> key "spear" | offer "Spear" size "" also [] | annotation "Spear"
-gear "Two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe Two-handed axe] | annotation "Two-handed weapon"
+gear "Two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe] | annotation "Two-handed weapon"
 gear "shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shield" | vanilla gear "Shield"
 gear "talons" -> key "talon" | unknown
 rule "\"Hold positions, loose the arrows!\"" -> label "\"Hold positions, loose the arrows!\"" | text from bc rule | glossary "\"Hold positions, loose the arrows!\""

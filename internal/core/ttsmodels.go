@@ -1,9 +1,6 @@
 package core
 
-import (
-	"encoding/json"
-	"errors"
-)
+import ()
 
 // TTSModels is data.ttsModels of the Battle Companies file: the fixed mappings from Battle Companies to the model names of the
 // Tabletop Simulator MESBG FTC mod (docs/tabletop-simulator.md). Short names only; the mod's catalogue is never stored.
@@ -48,69 +45,6 @@ type TTSRider struct {
 
 // TTSName: in Unit, the vanilla option From is written To for the mod.
 type TTSName struct{ Unit, From, To string }
-
-// ParseTTSModels reads data.ttsModels of a Battle Companies file (empty when it has none).
-func ParseTTSModels(bc []byte) (TTSModels, error) {
-	var doc struct {
-		Data struct {
-			TTS struct {
-				StandIns []struct {
-					Kind         string   `json:"kind"`
-					Name         string   `json:"name"`
-					Model        string   `json:"model"`
-					Alternatives []string `json:"alternatives"`
-				} `json:"standIns"`
-				Mounts []struct {
-					Gear         string   `json:"gear"`
-					Model        string   `json:"model"`
-					Alternatives []string `json:"alternatives"`
-					Attacks      int      `json:"attacks"`
-				} `json:"mounts"`
-				Riders []struct {
-					Unit      string `json:"unit"`
-					FootModel string `json:"footModel"`
-					States    bool   `json:"states"`
-				} `json:"riders"`
-				Names []struct {
-					Unit string `json:"unit"`
-					From string `json:"from"`
-					To   string `json:"to"`
-				} `json:"names"`
-				DefaultOptions []struct {
-					Unit    string   `json:"unit"`
-					Options []string `json:"options"`
-				} `json:"defaultOptions"`
-				MarkerOptions []struct {
-					Unit   string `json:"unit"`
-					Option string `json:"option"`
-				} `json:"markerOptions"`
-			} `json:"ttsModels"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(bc, &doc); err != nil {
-		return TTSModels{}, errors.Join(ErrInvalidRuleset, errors.New("the Battle Companies file is not valid JSON"))
-	}
-	var out TTSModels
-	for _, s := range doc.Data.TTS.StandIns {
-		out.StandIns = append(out.StandIns, TTSStandIn{s.Kind, s.Name, s.Model, s.Alternatives})
-	}
-	for _, m := range doc.Data.TTS.Mounts {
-		out.Mounts = append(out.Mounts, TTSMount{m.Gear, m.Model, m.Alternatives, m.Attacks})
-	}
-	for _, r := range doc.Data.TTS.Riders {
-		out.Riders = append(out.Riders, TTSRider{r.Unit, r.FootModel, r.States})
-	}
-	for _, n := range doc.Data.TTS.Names {
-		out.Names = append(out.Names, TTSName{n.Unit, n.From, n.To})
-	}
-	for _, d := range doc.Data.TTS.DefaultOptions {
-		out.DefaultOptions = append(out.DefaultOptions, TTSDefaultOptions{d.Unit, d.Options})
-	}
-	for _, m := range doc.Data.TTS.MarkerOptions {
-		out.MarkerOptions = append(out.MarkerOptions, TTSMarkerOption{m.Unit, m.Option})
-	}
-	return out, nil
-}
 
 // TTSModels gives the fixed mappings to the Tabletop Simulator mod's model names.
 func (b *BCBook) TTSModels() TTSModels { return b.ttsModels }

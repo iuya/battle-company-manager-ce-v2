@@ -48,10 +48,10 @@ type NewCampaign struct {
 }
 
 // campaignRepository keeps campaigns and their membership. Companies are created through the company repository (a company
-// row belongs to a campaign and to a user: at most one per pair, enforced by a unique constraint -> ErrHasCompany).
+// row belongs to a campaign and to a user; a player may own up to CampaignSettings.CompanyCap() of them).
 type campaignRepository interface {
-	// List returns the user's campaigns: unfinished first, then (withFinished) finished, each newest first; Company is the
-	// user's own company in it.
+	// List returns the user's campaigns: unfinished first, then (withFinished) finished, each newest first, one row per campaign;
+	// Companies are the user's own companies in it, oldest first.
 	List(ctx context.Context, userID int64, withFinished bool) ([]CampaignSummary, error)
 	// Create stores the campaign and makes the owner its organiser and first member, atomically.
 	Create(ctx context.Context, owner User, c NewCampaign) (CampaignSummary, error)
@@ -61,7 +61,7 @@ type campaignRepository interface {
 	// Companies lists the campaign's companies with their rating figures; Company returns one.
 	Companies(ctx context.Context, id int64) ([]CampaignCompany, error)
 	Company(ctx context.Context, id, companyID int64) (CampaignCompany, error)
-	// Members lists the campaign's members, the organiser first, then by name, each with the id of their company (0: none).
+	// Members lists the campaign's members once each, the organiser first, then by name, each with their companies (oldest first).
 	// ErrNotFound for an unknown campaign.
 	Members(ctx context.Context, id int64) ([]CampaignMember, error)
 	// Hashes returns the rules file hashes of a campaign (vanilla, Battle Companies, glossary) and its settings; the loader keys on them.
@@ -74,6 +74,9 @@ type campaignRepository interface {
 	// inside it with the current organiser's id and may refuse (its error is returned as is). ErrNotFound for an unknown
 	// campaign; ErrRefused when newOrganiser is not a member of the campaign.
 	HandOver(ctx context.Context, campaignID, newOrganiser int64, allowed func(currentOrganiser int64) error) error
+	// UpdateSettings changes the settings under a lock: fn gets the organiser's id, the status and the current settings and returns the
+	// new ones (or an error, returned as is, changing nothing). ErrNotFound for an unknown campaign.
+	UpdateSettings(ctx context.Context, campaignID int64, fn func(organiserID int64, status CampaignStatus, current CampaignSettings) (CampaignSettings, error)) error
 }
 
 // RulesetHashes names the three files a campaign is played with. It is the key of the loader's cache.
@@ -90,6 +93,8 @@ type companyRepository interface {
 	// Update runs fn on the state inside one transaction holding a row lock on the company, and stores what fn leaves behind
 	// when it returns nil. When fn returns an error nothing is stored and the error is returned as is.
 	Update(ctx context.Context, campaignID, companyID int64, fn func(*CompanyState) error) error
-	// Create stores the company for the owner in the campaign, with its units; ErrHasCompany when the owner already has one there.
+	// Create stores the company for the owner in the campaign, with its units. In one transaction holding the owner's member row it
+	// checks the cap (c.Cap: ErrCompanyLimit when the owner owns that many companies there) and that no other company of the owner
+	// there has the name, ignoring case (ErrInvalidCompany joined with "You already have a company with that name."); ErrNotFound when the owner is not a member.
 	Create(ctx context.Context, campaignID int64, owner User, c NewCompany) (CampaignCompany, error)
 }

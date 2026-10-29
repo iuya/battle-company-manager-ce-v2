@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"slices"
 	"strings"
 	"testing"
@@ -9,14 +10,14 @@ import (
 // promoteTo rolls a promotion for the unit and takes the one called label.
 func promoteTo(t *testing.T, f *companyFixture, s *LevelService, id int64, label string) {
 	t.Helper()
-	roll, err := s.RollLevelUp(f.ctx, f.user, 5, id, []int{4}, false)
+	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 1, id, []int{4}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, o := range roll.Offers {
 		for _, ch := range o.Choices {
 			if strings.HasPrefix(ch.Key, "promo:") && strings.HasPrefix(ch.Label, label) {
-				if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, id, []string{ch.Key}); err != nil {
+				if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, id, []string{ch.Key}); err != nil {
 					t.Fatal(err)
 				}
 				return
@@ -118,7 +119,7 @@ func TestAHeroInTheMakingKeepsItsWargear(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
 	f.companyOf("Halls of Thranduil", 5, []UnitState{{ID: 90, Base: "Mirkwood Elf Warrior", Role: RoleWarrior, Gear: []string{"Elven-made Glaive", "Shield"}, XP: 5}})
-	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 90, []int{6}, false)
+	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{6}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +134,7 @@ func TestAHeroInTheMakingKeepsItsWargear(t *testing.T) {
 	if key == "" {
 		t.Fatalf("no path offered: %+v", roll.Offers)
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 90, []string{key}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 90, []string{key}); err != nil {
 		t.Fatal(err)
 	}
 	u := f.unit(t, 90)
@@ -213,5 +214,54 @@ func TestAnExchangeLabelIsJudgedItemByItem(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// A hero promotion that changes profile replaces the old profile's own wargear by the new one's: the Ranger of Arnor's Armour does not
+// carry over, its Spear (an option of both) does; old stored states that still hold a Progress.Drop list read as before.
+func TestHeroPromotionReplacesTheOldProfilesWargear(t *testing.T) {
+	rs := shippedRules(t)
+	co, ok := rs.BC.Company("Arnor")
+	if !ok {
+		t.Fatal("no Arnor")
+	}
+	for name, stored := range map[string]string{
+		"new state":        `{"Hero":true,"Path":"Path of the Soldier","Base":"Ranger of the North"}`,
+		"old stored state": `{"Hero":true,"Path":"Path of the Soldier","Base":"Ranger of the North","Drop":["Armour"]}`,
+	} {
+		var p Progress
+		if err := json.Unmarshal([]byte(stored), &p); err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		s := UnitState{Base: "Ranger of Arnor", Role: RoleWarrior, Gear: []string{"Armour", "Spear", "Hand weapon"}}
+		applyProgress(rs, co, &s, &p)
+		if s.Base != "Ranger of the North" || !slices.Equal(s.Gear, []string{"Spear", "Hand weapon"}) {
+			t.Errorf("%s: base %q gear %v", name, s.Base, s.Gear)
+		}
+	}
+	if got := replacedWargear(rs, co, "Ranger of Arnor", "Ranger of Arnor"); len(got) != 0 {
+		t.Errorf("nothing is replaced by the same profile: %v", got)
+	}
+	if got := replacedWargear(rs, co, "Nobody", "Ranger of the North"); got != nil {
+		t.Errorf("an unknown profile replaces nothing: %v", got)
+	}
+}
+
+// A company whose key is plainer than its proper name carries a label: the pages show the label, everything else keeps the key.
+func TestACompanyLabelIsWhatThePagesShow(t *testing.T) {
+	rs := shippedRules(t)
+	profile, ok := rs.BC.Profile("Lothlorien")
+	if !ok || profile.Name != "Lothlorien" || profile.DisplayName() != "Lothlórien" {
+		t.Fatalf("the Lothlorien profile: %q shown as %q", profile.Name, profile.DisplayName())
+	}
+	if plain, _ := rs.BC.Profile("Arnor"); plain.DisplayName() != "Arnor" {
+		t.Errorf("a company with no label is shown by its name: %q", plain.DisplayName())
+	}
+	d := BuildDetail(rs, CampaignSettings{}, CompanyState{Company: CampaignCompany{ID: 1, Name: "Golden Wood", Faction: "Lothlorien"}})
+	if got := d.FactionName(); got != "Lothlórien" || d.Faction != "Lothlorien" {
+		t.Errorf("the detail shows %q and keeps the key %q", got, d.Faction)
+	}
+	if got := (CampaignCompany{Faction: "Arnor"}).FactionName(); got != "Arnor" {
+		t.Errorf("no label: %q", got)
 	}
 }

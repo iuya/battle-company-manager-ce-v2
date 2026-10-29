@@ -33,6 +33,7 @@ document.addEventListener('alpine:init', () => {
     tip: { show: false, x: 0, y: 0, title: '', meta: '', text: '' },
     tipTimer: null,
     init() {
+      this.$root.removeAttribute('data-armory-pending'); // the CSS default (unavailable items hidden) gives way to x-show
       try { this.applies = JSON.parse(this.$root.dataset.applies || '{}'); } catch (e) { this.applies = {}; }
       try { if (localStorage.getItem('bcm-armory-mine') === '0') this.mine = false; } catch (e) { /* private window */ }
     },

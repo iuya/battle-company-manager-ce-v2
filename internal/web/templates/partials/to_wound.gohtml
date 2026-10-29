@@ -1,7 +1,7 @@
 {{/* The To Wound chart (docs/matches.md, "To Wound chart"). Three pieces: the button that opens it (to_wound_button, on the match page and in
      the live banner), the window (to_wound_dialog, once per page and outside every region that is swapped or refetched, so nothing
-     closes or replaces it) and its body (to_wound_body, fetched once when the page loads and then kept; static/js/towound.js holds the
-     find control). */}}
+     closes or replaces it) and its body (to_wound_body, fetched once when the pointer, a touch or the focus reaches a button that opens the window, or when it opens,
+     and then kept; static/js/towound.js holds the find control). */}}
 {{define "to_wound_button"}}
 <button type="button" class="btn btn-secondary {{.Class}}" data-to-wound-open aria-haspopup="dialog">To wound</button>
 {{end}}
@@ -14,7 +14,7 @@
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
       <h3 class="!text-2xl pr-10" id="tw-title">To Wound chart</h3>
-      <div id="tw-body" class="mt-2" hx-get="/campaigns/{{.CID}}/to-wound" hx-trigger="load" hx-target="this" hx-swap="innerHTML"><p class="text-muted">Loading…</p></div>
+      <div id="tw-body" class="mt-2" hx-get="/campaigns/{{.CID}}/to-wound" hx-trigger="tw-load once" hx-target="this" hx-swap="innerHTML"><p class="text-muted">Loading…</p></div>
     </div>
   </div>
 </div>

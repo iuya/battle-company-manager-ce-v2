@@ -14,7 +14,6 @@ type matchesFixture struct {
 	campaigns *MockcampaignRepository
 	companies *MockcompanyRepository
 	matches   *MockmatchRepository
-	rulesets  *MockrulesetRepository
 	match     Match // the stored match
 	state     CompanyState
 	ctx       context.Context
@@ -26,7 +25,7 @@ func newMatchesFixture(t *testing.T) *matchesFixture {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 	f := &matchesFixture{campaigns: NewMockcampaignRepository(ctrl), companies: NewMockcompanyRepository(ctrl), matches: NewMockmatchRepository(ctrl),
-		rulesets: NewMockrulesetRepository(ctrl), state: gondor(), ctx: context.Background()}
+		state: gondor(), ctx: context.Background()}
 	f.match = testMatch()
 	f.match.Revision = 3
 	f.campaigns.EXPECT().Hashes(gomock.Any(), int64(5)).Return(RulesetHashes{BattleCompanies: "bc"}, CampaignSettings{}, nil).AnyTimes()
@@ -57,10 +56,7 @@ func newMatchesFixture(t *testing.T) *matchesFixture {
 			f.match = m
 			return m, nil
 		}).AnyTimes()
-	f.rulesets.EXPECT().Get(gomock.Any(), "bc").DoAndReturn(func(context.Context, string) (StoredRuleset, error) {
-		return StoredRuleset{Content: readDef(t, "battle_companies/battle_companies.json")}, nil
-	}).AnyTimes()
-	f.svc = NewMatches(f.campaigns, f.companies, f.matches, f.rulesets, staticRules{shippedRules(t)})
+	f.svc = NewMatches(f.campaigns, f.companies, f.matches, staticRules{shippedRules(t)})
 	return f
 }
 
@@ -234,20 +230,20 @@ func TestMatchesCreate(t *testing.T) {
 	f := newMatchesFixture(t)
 	sides := []NewSide{{Companies: []int64{1}}, {Companies: []int64{2}}}
 	want := []NewSide{{Name: "Side 1", Companies: []int64{1}}, {Name: "Side 2", Companies: []int64{2}}}
-	f.matches.EXPECT().Create(gomock.Any(), int64(5), f.player(), want).Return(f.match, nil)
-	if m, err := f.svc.CreateMatch(f.ctx, f.player(), 5, sides); err != nil || m.ID != 1 {
+	f.matches.EXPECT().Create(gomock.Any(), int64(5), f.player(), NewMatch{Sides: want}).Return(f.match, nil)
+	if m, err := f.svc.CreateMatch(f.ctx, f.player(), 5, NewMatch{Sides: sides}); err != nil || m.ID != 1 {
 		t.Fatalf("CreateMatch = %+v, %v", m, err)
 	}
-	if _, err := f.svc.CreateMatch(f.ctx, f.player(), 5, sides[:1]); !errors.Is(err, ErrInvalidMatch) {
+	if _, err := f.svc.CreateMatch(f.ctx, f.player(), 5, NewMatch{Sides: sides[:1]}); !errors.Is(err, ErrInvalidMatch) {
 		t.Errorf("one side: %v", err)
 	}
 	f.state.Units[1].Path = ""
-	if _, err := f.svc.CreateMatch(f.ctx, f.player(), 5, sides); !errors.Is(err, ErrRefused) {
+	if _, err := f.svc.CreateMatch(f.ctx, f.player(), 5, NewMatch{Sides: sides}); !errors.Is(err, ErrRefused) {
 		t.Errorf("an officer without a path cannot play: %v", err)
 	}
 	f.state.Units[1].Path = "Path of the Warlord"
 	f.state.Recruit.Officers = &OfficerStep{Unit: "Ranger of the North"}
-	if _, err := f.svc.CreateMatch(f.ctx, f.player(), 5, sides); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "arrange the officers") {
+	if _, err := f.svc.CreateMatch(f.ctx, f.player(), 5, NewMatch{Sides: sides}); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "arrange the officers") {
 		t.Errorf("a pending officer arrangement cannot play: %v", err)
 	}
 }
@@ -296,7 +292,7 @@ func TestMatchesFinishedCampaignIsReadOnly(t *testing.T) {
 	admin := User{ID: 5, Role: RoleAdmin}
 	sides := []NewSide{{Companies: []int64{1}}, {Companies: []int64{2}}}
 	calls := map[string]error{}
-	_, calls["create"] = f.svc.CreateMatch(f.ctx, f.player(), 6, sides)
+	_, calls["create"] = f.svc.CreateMatch(f.ctx, f.player(), 6, NewMatch{Sides: sides})
 	_, calls["scenario"] = f.svc.SetScenario(f.ctx, f.player(), 6, 1, 3, ScenarioInput{Kind: ScenarioCustom, Name: "x"})
 	_, calls["clear"] = f.svc.ClearScenario(f.ctx, f.player(), 6, 1, 3)
 	_, calls["result"] = f.svc.SaveResult(f.ctx, f.player(), 6, 1, 3, MatchResult{})
@@ -344,7 +340,7 @@ func TestMatchesPausedCampaignFinishesOpenMatchesButStartsNone(t *testing.T) {
 		a.Company.ID, b.Company.ID = 1, 2
 		return []CompanyState{a, b}, nil
 	}).AnyTimes()
-	_, err := f.svc.CreateMatch(f.ctx, f.player(), 7, []NewSide{{Companies: []int64{1}}, {Companies: []int64{2}}})
+	_, err := f.svc.CreateMatch(f.ctx, f.player(), 7, NewMatch{Sides: []NewSide{{Companies: []int64{1}}, {Companies: []int64{2}}}})
 	if !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "This campaign is paused.") {
 		t.Errorf("a new match in a paused campaign: %v", err)
 	}

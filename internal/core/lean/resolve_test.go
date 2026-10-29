@@ -27,11 +27,11 @@ func issueLines(rep Report) []string {
 
 func TestResolveClassification(t *testing.T) {
 	_, ix, rep := resolved(t, `
-"units":[{"name":"Angmar Warg Rider","tts":{"foot":"x"}},
+"units":[{"name":"Angmar Warg Rider","tts":{"foot":"Ranger of Gondor"}},
          {"name":"Ranger of Ithilien","extends":"Ranger of Gondor"},
          {"name":"Mordor Hound","profile":{"m":1},"points":3},
          {"name":"Ranger of the North","overrides":true,"profile":{"m":1}}],
-"rules":[{"name":"Stand Fast","aura":{"radius":6,"kind":"command","affects":"friendly","when":"always"}},
+"rules":[{"name":"Stand Fast","auras":[{"radius":6,"kind":"command","affects":"friendly","when":"always"}]},
          {"name":"Hatred","overrides":true,"definition":"mine"},
          {"name":"Fresh","definition":"new"}]`, newFakeLower())
 	if len(rep.Issues) != 0 {

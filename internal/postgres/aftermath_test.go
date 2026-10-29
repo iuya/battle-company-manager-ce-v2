@@ -27,7 +27,14 @@ type aftermathWorld struct {
 
 func newAftermathWorld(t *testing.T) *aftermathWorld {
 	t.Helper()
-	s, ctx := testStore(t)
+	s, _ := testStore(t)
+	return newAftermathWorldOn(t, s)
+}
+
+// newAftermathWorldOn is newAftermathWorld on the store given (a scratch database, for the tests that leave a player with several companies).
+func newAftermathWorldOn(t *testing.T, s *Store) *aftermathWorld {
+	t.Helper()
+	ctx := t.Context()
 	w := &aftermathWorld{s: s}
 	w.org, w.p1, w.p2, w.p3 = testUser(t, s, ctx, "aorg"), testUser(t, s, ctx, "aone"), testUser(t, s, ctx, "atwo"), testUser(t, s, ctx, "athree")
 	w.admin = testUser(t, s, ctx, "aadm")
@@ -69,8 +76,8 @@ func newAftermathWorld(t *testing.T) *aftermathWorld {
 			t.Fatal(err)
 		}
 	}
-	w.matches = core.NewMatches(s.Campaigns(), s.Companies(), s.Matches(), s.Rulesets(), rules)
-	w.am = core.NewAftermathService(s.Campaigns(), s.Companies(), s.Matches(), s.Rulesets(), s.Aftermaths(), rules, core.RandomDice{})
+	w.matches = core.NewMatches(s.Campaigns(), s.Companies(), s.Matches(), rules)
+	w.am = core.NewAftermathService(s.Campaigns(), s.Companies(), s.Matches(), s.Aftermaths(), rules, core.RandomDice{})
 	w.matches.AftermathStarted = w.am.Started
 	return w
 }
@@ -79,7 +86,7 @@ func newAftermathWorld(t *testing.T) *aftermathWorld {
 func (w *aftermathWorld) play(t *testing.T, scenario string, objectives map[string]int) core.Match {
 	t.Helper()
 	ctx := t.Context()
-	m, err := w.matches.CreateMatch(ctx, w.org, w.camp.ID, []core.NewSide{{Name: "A", Companies: []int64{w.co1.ID}}, {Name: "B", Companies: []int64{w.co2.ID}}})
+	m, err := w.matches.CreateMatch(ctx, w.org, w.camp.ID, core.NewMatch{Sides: []core.NewSide{{Name: "A", Companies: []int64{w.co1.ID}}, {Name: "B", Companies: []int64{w.co2.ID}}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +127,7 @@ func TestAftermathOnPostgres(t *testing.T) {
 	}
 
 	// An open match has no aftermath and locks nothing.
-	open, err := w.matches.CreateMatch(ctx, w.org, id, []core.NewSide{{Name: "A", Companies: []int64{w.co1.ID}}, {Name: "B", Companies: []int64{w.co2.ID}}})
+	open, err := w.matches.CreateMatch(ctx, w.org, id, core.NewMatch{Sides: []core.NewSide{{Name: "A", Companies: []int64{w.co1.ID}}, {Name: "B", Companies: []int64{w.co2.ID}}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,10 +160,10 @@ func TestAftermathOnPostgres(t *testing.T) {
 		t.Fatalf("pending: %+v %v", pend, err)
 	}
 	leader := first(w.roster(t, w.co1.ID), core.RoleLeader)
-	if err := w.armoury.BuyEquipment(ctx, w.p1, id, leader.ID, "Banner", ""); !errors.Is(err, core.ErrRefused) || !strings.Contains(err.Error(), "Finish the aftermath of Match 2") {
+	if err := w.armoury.BuyEquipment(ctx, w.p1, id, w.co1.ID, leader.ID, "Banner", ""); !errors.Is(err, core.ErrRefused) || !strings.Contains(err.Error(), "Finish the aftermath of Match 2") {
 		t.Fatalf("locked: %v", err)
 	}
-	if err := w.companies.RenameCompany(ctx, w.p1, id, "One Renamed"); err != nil {
+	if err := w.companies.RenameCompany(ctx, w.p1, id, w.co1.ID, "One Renamed"); err != nil {
 		t.Fatalf("renaming stays allowed: %v", err)
 	}
 	if d, _ := w.companies.CompanyDetail(ctx, id, w.co1.ID); len(d.Aftermaths) != 1 {
@@ -305,8 +312,8 @@ func TestAftermathOnPostgres(t *testing.T) {
 	if _, err := w.am.WaiveAftermath(ctx, w.org, id, m2.ID, w.co2.ID, "away"); err != nil {
 		t.Fatal(err)
 	}
-	if err := w.am.UsePerk(ctx, w.p2, id, w.co1.ID, perks[0].ID); !errors.Is(err, core.ErrRefused) {
-		t.Fatalf("another player: %v", err)
+	if err := w.am.UsePerk(ctx, w.p2, id, w.co1.ID, perks[0].ID); !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("another player's company is not found: %v", err)
 	}
 	if err := w.am.UsePerk(ctx, w.p1, id, w.co1.ID, 424242); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("unknown perk: %v", err)

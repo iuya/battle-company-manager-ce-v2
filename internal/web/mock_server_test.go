@@ -160,6 +160,45 @@ func (c *MockliveMatchesLiveCall) DoAndReturn(f func(context.Context, core.User,
 	return c
 }
 
+// LiveGeneration mocks base method.
+func (m *MockliveMatches) LiveGeneration(ctx context.Context, user core.User, id, matchID int64) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LiveGeneration", ctx, user, id, matchID)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LiveGeneration indicates an expected call of LiveGeneration.
+func (mr *MockliveMatchesMockRecorder) LiveGeneration(ctx, user, id, matchID any) *MockliveMatchesLiveGenerationCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LiveGeneration", reflect.TypeOf((*MockliveMatches)(nil).LiveGeneration), ctx, user, id, matchID)
+	return &MockliveMatchesLiveGenerationCall{Call: call}
+}
+
+// MockliveMatchesLiveGenerationCall wrap *gomock.Call
+type MockliveMatchesLiveGenerationCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockliveMatchesLiveGenerationCall) Return(arg0 string, arg1 error) *MockliveMatchesLiveGenerationCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockliveMatchesLiveGenerationCall) Do(f func(context.Context, core.User, int64, int64) (string, error)) *MockliveMatchesLiveGenerationCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockliveMatchesLiveGenerationCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (string, error)) *MockliveMatchesLiveGenerationCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // Log mocks base method.
 func (m *MockliveMatches) Log(ctx context.Context, user core.User, id, matchID, before int64, limit int) ([]core.LiveEntry, error) {
 	m.ctrl.T.Helper()
@@ -393,6 +432,45 @@ func (c *MockliveMatchesSubscribeCall) Do(f func(context.Context, core.User, int
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockliveMatchesSubscribeCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (core.LiveStream, error)) *MockliveMatchesSubscribeCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SubscribeSince mocks base method.
+func (m *MockliveMatches) SubscribeSince(ctx context.Context, user core.User, id, matchID int64, since string) (core.LiveStream, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SubscribeSince", ctx, user, id, matchID, since)
+	ret0, _ := ret[0].(core.LiveStream)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SubscribeSince indicates an expected call of SubscribeSince.
+func (mr *MockliveMatchesMockRecorder) SubscribeSince(ctx, user, id, matchID, since any) *MockliveMatchesSubscribeSinceCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeSince", reflect.TypeOf((*MockliveMatches)(nil).SubscribeSince), ctx, user, id, matchID, since)
+	return &MockliveMatchesSubscribeSinceCall{Call: call}
+}
+
+// MockliveMatchesSubscribeSinceCall wrap *gomock.Call
+type MockliveMatchesSubscribeSinceCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockliveMatchesSubscribeSinceCall) Return(arg0 core.LiveStream, arg1 error) *MockliveMatchesSubscribeSinceCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockliveMatchesSubscribeSinceCall) Do(f func(context.Context, core.User, int64, int64, string) (core.LiveStream, error)) *MockliveMatchesSubscribeSinceCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockliveMatchesSubscribeSinceCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string) (core.LiveStream, error)) *MockliveMatchesSubscribeSinceCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -954,18 +1032,18 @@ func (c *MockcampaignsArmouryWanderersCall) DoAndReturn(f func(context.Context, 
 }
 
 // ArrangeOfficers mocks base method.
-func (m *Mockcampaigns) ArrangeOfficers(ctx context.Context, user core.User, id int64, a core.OfficerArrangement) (core.RecruitResult, error) {
+func (m *Mockcampaigns) ArrangeOfficers(ctx context.Context, user core.User, id, companyID int64, a core.OfficerArrangement) (core.RecruitResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ArrangeOfficers", ctx, user, id, a)
+	ret := m.ctrl.Call(m, "ArrangeOfficers", ctx, user, id, companyID, a)
 	ret0, _ := ret[0].(core.RecruitResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ArrangeOfficers indicates an expected call of ArrangeOfficers.
-func (mr *MockcampaignsMockRecorder) ArrangeOfficers(ctx, user, id, a any) *MockcampaignsArrangeOfficersCall {
+func (mr *MockcampaignsMockRecorder) ArrangeOfficers(ctx, user, id, companyID, a any) *MockcampaignsArrangeOfficersCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ArrangeOfficers", reflect.TypeOf((*Mockcampaigns)(nil).ArrangeOfficers), ctx, user, id, a)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ArrangeOfficers", reflect.TypeOf((*Mockcampaigns)(nil).ArrangeOfficers), ctx, user, id, companyID, a)
 	return &MockcampaignsArrangeOfficersCall{Call: call}
 }
 
@@ -981,29 +1059,29 @@ func (c *MockcampaignsArrangeOfficersCall) Return(arg0 core.RecruitResult, arg1 
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsArrangeOfficersCall) Do(f func(context.Context, core.User, int64, core.OfficerArrangement) (core.RecruitResult, error)) *MockcampaignsArrangeOfficersCall {
+func (c *MockcampaignsArrangeOfficersCall) Do(f func(context.Context, core.User, int64, int64, core.OfficerArrangement) (core.RecruitResult, error)) *MockcampaignsArrangeOfficersCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsArrangeOfficersCall) DoAndReturn(f func(context.Context, core.User, int64, core.OfficerArrangement) (core.RecruitResult, error)) *MockcampaignsArrangeOfficersCall {
+func (c *MockcampaignsArrangeOfficersCall) DoAndReturn(f func(context.Context, core.User, int64, int64, core.OfficerArrangement) (core.RecruitResult, error)) *MockcampaignsArrangeOfficersCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // BuyCreature mocks base method.
-func (m *Mockcampaigns) BuyCreature(ctx context.Context, user core.User, id, ownerID int64, name, pay string) error {
+func (m *Mockcampaigns) BuyCreature(ctx context.Context, user core.User, id, companyID, ownerID int64, name, pay string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BuyCreature", ctx, user, id, ownerID, name, pay)
+	ret := m.ctrl.Call(m, "BuyCreature", ctx, user, id, companyID, ownerID, name, pay)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // BuyCreature indicates an expected call of BuyCreature.
-func (mr *MockcampaignsMockRecorder) BuyCreature(ctx, user, id, ownerID, name, pay any) *MockcampaignsBuyCreatureCall {
+func (mr *MockcampaignsMockRecorder) BuyCreature(ctx, user, id, companyID, ownerID, name, pay any) *MockcampaignsBuyCreatureCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BuyCreature", reflect.TypeOf((*Mockcampaigns)(nil).BuyCreature), ctx, user, id, ownerID, name, pay)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BuyCreature", reflect.TypeOf((*Mockcampaigns)(nil).BuyCreature), ctx, user, id, companyID, ownerID, name, pay)
 	return &MockcampaignsBuyCreatureCall{Call: call}
 }
 
@@ -1019,29 +1097,29 @@ func (c *MockcampaignsBuyCreatureCall) Return(arg0 error) *MockcampaignsBuyCreat
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsBuyCreatureCall) Do(f func(context.Context, core.User, int64, int64, string, string) error) *MockcampaignsBuyCreatureCall {
+func (c *MockcampaignsBuyCreatureCall) Do(f func(context.Context, core.User, int64, int64, int64, string, string) error) *MockcampaignsBuyCreatureCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsBuyCreatureCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string, string) error) *MockcampaignsBuyCreatureCall {
+func (c *MockcampaignsBuyCreatureCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, string, string) error) *MockcampaignsBuyCreatureCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // BuyEquipment mocks base method.
-func (m *Mockcampaigns) BuyEquipment(ctx context.Context, user core.User, id, unitID int64, item, pay string) error {
+func (m *Mockcampaigns) BuyEquipment(ctx context.Context, user core.User, id, companyID, unitID int64, item, pay string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BuyEquipment", ctx, user, id, unitID, item, pay)
+	ret := m.ctrl.Call(m, "BuyEquipment", ctx, user, id, companyID, unitID, item, pay)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // BuyEquipment indicates an expected call of BuyEquipment.
-func (mr *MockcampaignsMockRecorder) BuyEquipment(ctx, user, id, unitID, item, pay any) *MockcampaignsBuyEquipmentCall {
+func (mr *MockcampaignsMockRecorder) BuyEquipment(ctx, user, id, companyID, unitID, item, pay any) *MockcampaignsBuyEquipmentCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BuyEquipment", reflect.TypeOf((*Mockcampaigns)(nil).BuyEquipment), ctx, user, id, unitID, item, pay)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BuyEquipment", reflect.TypeOf((*Mockcampaigns)(nil).BuyEquipment), ctx, user, id, companyID, unitID, item, pay)
 	return &MockcampaignsBuyEquipmentCall{Call: call}
 }
 
@@ -1057,29 +1135,29 @@ func (c *MockcampaignsBuyEquipmentCall) Return(arg0 error) *MockcampaignsBuyEqui
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsBuyEquipmentCall) Do(f func(context.Context, core.User, int64, int64, string, string) error) *MockcampaignsBuyEquipmentCall {
+func (c *MockcampaignsBuyEquipmentCall) Do(f func(context.Context, core.User, int64, int64, int64, string, string) error) *MockcampaignsBuyEquipmentCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsBuyEquipmentCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string, string) error) *MockcampaignsBuyEquipmentCall {
+func (c *MockcampaignsBuyEquipmentCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, string, string) error) *MockcampaignsBuyEquipmentCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // BuyEquipmentFor mocks base method.
-func (m *Mockcampaigns) BuyEquipmentFor(ctx context.Context, user core.User, id, unitID int64, item, pay, weapon string) error {
+func (m *Mockcampaigns) BuyEquipmentFor(ctx context.Context, user core.User, id, companyID, unitID int64, item, pay, weapon string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BuyEquipmentFor", ctx, user, id, unitID, item, pay, weapon)
+	ret := m.ctrl.Call(m, "BuyEquipmentFor", ctx, user, id, companyID, unitID, item, pay, weapon)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // BuyEquipmentFor indicates an expected call of BuyEquipmentFor.
-func (mr *MockcampaignsMockRecorder) BuyEquipmentFor(ctx, user, id, unitID, item, pay, weapon any) *MockcampaignsBuyEquipmentForCall {
+func (mr *MockcampaignsMockRecorder) BuyEquipmentFor(ctx, user, id, companyID, unitID, item, pay, weapon any) *MockcampaignsBuyEquipmentForCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BuyEquipmentFor", reflect.TypeOf((*Mockcampaigns)(nil).BuyEquipmentFor), ctx, user, id, unitID, item, pay, weapon)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BuyEquipmentFor", reflect.TypeOf((*Mockcampaigns)(nil).BuyEquipmentFor), ctx, user, id, companyID, unitID, item, pay, weapon)
 	return &MockcampaignsBuyEquipmentForCall{Call: call}
 }
 
@@ -1095,13 +1173,13 @@ func (c *MockcampaignsBuyEquipmentForCall) Return(arg0 error) *MockcampaignsBuyE
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsBuyEquipmentForCall) Do(f func(context.Context, core.User, int64, int64, string, string, string) error) *MockcampaignsBuyEquipmentForCall {
+func (c *MockcampaignsBuyEquipmentForCall) Do(f func(context.Context, core.User, int64, int64, int64, string, string, string) error) *MockcampaignsBuyEquipmentForCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsBuyEquipmentForCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string, string, string) error) *MockcampaignsBuyEquipmentForCall {
+func (c *MockcampaignsBuyEquipmentForCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, string, string, string) error) *MockcampaignsBuyEquipmentForCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1146,17 +1224,17 @@ func (c *MockcampaignsCancelEndCall) DoAndReturn(f func(context.Context, core.Us
 }
 
 // Carry mocks base method.
-func (m *Mockcampaigns) Carry(ctx context.Context, user core.User, id, unitID int64, a core.CarryAction) error {
+func (m *Mockcampaigns) Carry(ctx context.Context, user core.User, id, companyID, unitID int64, a core.CarryAction) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Carry", ctx, user, id, unitID, a)
+	ret := m.ctrl.Call(m, "Carry", ctx, user, id, companyID, unitID, a)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Carry indicates an expected call of Carry.
-func (mr *MockcampaignsMockRecorder) Carry(ctx, user, id, unitID, a any) *MockcampaignsCarryCall {
+func (mr *MockcampaignsMockRecorder) Carry(ctx, user, id, companyID, unitID, a any) *MockcampaignsCarryCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Carry", reflect.TypeOf((*Mockcampaigns)(nil).Carry), ctx, user, id, unitID, a)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Carry", reflect.TypeOf((*Mockcampaigns)(nil).Carry), ctx, user, id, companyID, unitID, a)
 	return &MockcampaignsCarryCall{Call: call}
 }
 
@@ -1172,30 +1250,30 @@ func (c *MockcampaignsCarryCall) Return(arg0 error) *MockcampaignsCarryCall {
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsCarryCall) Do(f func(context.Context, core.User, int64, int64, core.CarryAction) error) *MockcampaignsCarryCall {
+func (c *MockcampaignsCarryCall) Do(f func(context.Context, core.User, int64, int64, int64, core.CarryAction) error) *MockcampaignsCarryCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsCarryCall) DoAndReturn(f func(context.Context, core.User, int64, int64, core.CarryAction) error) *MockcampaignsCarryCall {
+func (c *MockcampaignsCarryCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, core.CarryAction) error) *MockcampaignsCarryCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // ChooseLevelUp mocks base method.
-func (m *Mockcampaigns) ChooseLevelUp(ctx context.Context, user core.User, id, unitID int64, keys []string) (core.LevelRoll, error) {
+func (m *Mockcampaigns) ChooseLevelUp(ctx context.Context, user core.User, id, companyID, unitID int64, keys []string) (core.LevelRoll, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ChooseLevelUp", ctx, user, id, unitID, keys)
+	ret := m.ctrl.Call(m, "ChooseLevelUp", ctx, user, id, companyID, unitID, keys)
 	ret0, _ := ret[0].(core.LevelRoll)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ChooseLevelUp indicates an expected call of ChooseLevelUp.
-func (mr *MockcampaignsMockRecorder) ChooseLevelUp(ctx, user, id, unitID, keys any) *MockcampaignsChooseLevelUpCall {
+func (mr *MockcampaignsMockRecorder) ChooseLevelUp(ctx, user, id, companyID, unitID, keys any) *MockcampaignsChooseLevelUpCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChooseLevelUp", reflect.TypeOf((*Mockcampaigns)(nil).ChooseLevelUp), ctx, user, id, unitID, keys)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChooseLevelUp", reflect.TypeOf((*Mockcampaigns)(nil).ChooseLevelUp), ctx, user, id, companyID, unitID, keys)
 	return &MockcampaignsChooseLevelUpCall{Call: call}
 }
 
@@ -1211,30 +1289,30 @@ func (c *MockcampaignsChooseLevelUpCall) Return(arg0 core.LevelRoll, arg1 error)
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsChooseLevelUpCall) Do(f func(context.Context, core.User, int64, int64, []string) (core.LevelRoll, error)) *MockcampaignsChooseLevelUpCall {
+func (c *MockcampaignsChooseLevelUpCall) Do(f func(context.Context, core.User, int64, int64, int64, []string) (core.LevelRoll, error)) *MockcampaignsChooseLevelUpCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsChooseLevelUpCall) DoAndReturn(f func(context.Context, core.User, int64, int64, []string) (core.LevelRoll, error)) *MockcampaignsChooseLevelUpCall {
+func (c *MockcampaignsChooseLevelUpCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, []string) (core.LevelRoll, error)) *MockcampaignsChooseLevelUpCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // ChooseLower mocks base method.
-func (m *Mockcampaigns) ChooseLower(ctx context.Context, user core.User, id int64, index int) (core.RecruitResult, error) {
+func (m *Mockcampaigns) ChooseLower(ctx context.Context, user core.User, id, companyID int64, index int) (core.RecruitResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ChooseLower", ctx, user, id, index)
+	ret := m.ctrl.Call(m, "ChooseLower", ctx, user, id, companyID, index)
 	ret0, _ := ret[0].(core.RecruitResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ChooseLower indicates an expected call of ChooseLower.
-func (mr *MockcampaignsMockRecorder) ChooseLower(ctx, user, id, index any) *MockcampaignsChooseLowerCall {
+func (mr *MockcampaignsMockRecorder) ChooseLower(ctx, user, id, companyID, index any) *MockcampaignsChooseLowerCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChooseLower", reflect.TypeOf((*Mockcampaigns)(nil).ChooseLower), ctx, user, id, index)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChooseLower", reflect.TypeOf((*Mockcampaigns)(nil).ChooseLower), ctx, user, id, companyID, index)
 	return &MockcampaignsChooseLowerCall{Call: call}
 }
 
@@ -1250,29 +1328,29 @@ func (c *MockcampaignsChooseLowerCall) Return(arg0 core.RecruitResult, arg1 erro
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsChooseLowerCall) Do(f func(context.Context, core.User, int64, int) (core.RecruitResult, error)) *MockcampaignsChooseLowerCall {
+func (c *MockcampaignsChooseLowerCall) Do(f func(context.Context, core.User, int64, int64, int) (core.RecruitResult, error)) *MockcampaignsChooseLowerCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsChooseLowerCall) DoAndReturn(f func(context.Context, core.User, int64, int) (core.RecruitResult, error)) *MockcampaignsChooseLowerCall {
+func (c *MockcampaignsChooseLowerCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int) (core.RecruitResult, error)) *MockcampaignsChooseLowerCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // ChooseModifierWeapon mocks base method.
-func (m *Mockcampaigns) ChooseModifierWeapon(ctx context.Context, user core.User, id, unitID int64, modifier, weapon string) error {
+func (m *Mockcampaigns) ChooseModifierWeapon(ctx context.Context, user core.User, id, companyID, unitID int64, modifier, weapon string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ChooseModifierWeapon", ctx, user, id, unitID, modifier, weapon)
+	ret := m.ctrl.Call(m, "ChooseModifierWeapon", ctx, user, id, companyID, unitID, modifier, weapon)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ChooseModifierWeapon indicates an expected call of ChooseModifierWeapon.
-func (mr *MockcampaignsMockRecorder) ChooseModifierWeapon(ctx, user, id, unitID, modifier, weapon any) *MockcampaignsChooseModifierWeaponCall {
+func (mr *MockcampaignsMockRecorder) ChooseModifierWeapon(ctx, user, id, companyID, unitID, modifier, weapon any) *MockcampaignsChooseModifierWeaponCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChooseModifierWeapon", reflect.TypeOf((*Mockcampaigns)(nil).ChooseModifierWeapon), ctx, user, id, unitID, modifier, weapon)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChooseModifierWeapon", reflect.TypeOf((*Mockcampaigns)(nil).ChooseModifierWeapon), ctx, user, id, companyID, unitID, modifier, weapon)
 	return &MockcampaignsChooseModifierWeaponCall{Call: call}
 }
 
@@ -1288,30 +1366,30 @@ func (c *MockcampaignsChooseModifierWeaponCall) Return(arg0 error) *Mockcampaign
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsChooseModifierWeaponCall) Do(f func(context.Context, core.User, int64, int64, string, string) error) *MockcampaignsChooseModifierWeaponCall {
+func (c *MockcampaignsChooseModifierWeaponCall) Do(f func(context.Context, core.User, int64, int64, int64, string, string) error) *MockcampaignsChooseModifierWeaponCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsChooseModifierWeaponCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string, string) error) *MockcampaignsChooseModifierWeaponCall {
+func (c *MockcampaignsChooseModifierWeaponCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, string, string) error) *MockcampaignsChooseModifierWeaponCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // ChooseOptions mocks base method.
-func (m *Mockcampaigns) ChooseOptions(ctx context.Context, user core.User, id int64, option string) (core.RecruitResult, error) {
+func (m *Mockcampaigns) ChooseOptions(ctx context.Context, user core.User, id, companyID int64, option string) (core.RecruitResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ChooseOptions", ctx, user, id, option)
+	ret := m.ctrl.Call(m, "ChooseOptions", ctx, user, id, companyID, option)
 	ret0, _ := ret[0].(core.RecruitResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ChooseOptions indicates an expected call of ChooseOptions.
-func (mr *MockcampaignsMockRecorder) ChooseOptions(ctx, user, id, option any) *MockcampaignsChooseOptionsCall {
+func (mr *MockcampaignsMockRecorder) ChooseOptions(ctx, user, id, companyID, option any) *MockcampaignsChooseOptionsCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChooseOptions", reflect.TypeOf((*Mockcampaigns)(nil).ChooseOptions), ctx, user, id, option)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChooseOptions", reflect.TypeOf((*Mockcampaigns)(nil).ChooseOptions), ctx, user, id, companyID, option)
 	return &MockcampaignsChooseOptionsCall{Call: call}
 }
 
@@ -1327,29 +1405,29 @@ func (c *MockcampaignsChooseOptionsCall) Return(arg0 core.RecruitResult, arg1 er
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsChooseOptionsCall) Do(f func(context.Context, core.User, int64, string) (core.RecruitResult, error)) *MockcampaignsChooseOptionsCall {
+func (c *MockcampaignsChooseOptionsCall) Do(f func(context.Context, core.User, int64, int64, string) (core.RecruitResult, error)) *MockcampaignsChooseOptionsCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsChooseOptionsCall) DoAndReturn(f func(context.Context, core.User, int64, string) (core.RecruitResult, error)) *MockcampaignsChooseOptionsCall {
+func (c *MockcampaignsChooseOptionsCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string) (core.RecruitResult, error)) *MockcampaignsChooseOptionsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // ChoosePath mocks base method.
-func (m *Mockcampaigns) ChoosePath(ctx context.Context, user core.User, id, unitID int64, path, power string) error {
+func (m *Mockcampaigns) ChoosePath(ctx context.Context, user core.User, id, companyID, unitID int64, path, power string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ChoosePath", ctx, user, id, unitID, path, power)
+	ret := m.ctrl.Call(m, "ChoosePath", ctx, user, id, companyID, unitID, path, power)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ChoosePath indicates an expected call of ChoosePath.
-func (mr *MockcampaignsMockRecorder) ChoosePath(ctx, user, id, unitID, path, power any) *MockcampaignsChoosePathCall {
+func (mr *MockcampaignsMockRecorder) ChoosePath(ctx, user, id, companyID, unitID, path, power any) *MockcampaignsChoosePathCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChoosePath", reflect.TypeOf((*Mockcampaigns)(nil).ChoosePath), ctx, user, id, unitID, path, power)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChoosePath", reflect.TypeOf((*Mockcampaigns)(nil).ChoosePath), ctx, user, id, companyID, unitID, path, power)
 	return &MockcampaignsChoosePathCall{Call: call}
 }
 
@@ -1365,13 +1443,13 @@ func (c *MockcampaignsChoosePathCall) Return(arg0 error) *MockcampaignsChoosePat
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsChoosePathCall) Do(f func(context.Context, core.User, int64, int64, string, string) error) *MockcampaignsChoosePathCall {
+func (c *MockcampaignsChoosePathCall) Do(f func(context.Context, core.User, int64, int64, int64, string, string) error) *MockcampaignsChoosePathCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsChoosePathCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string, string) error) *MockcampaignsChoosePathCall {
+func (c *MockcampaignsChoosePathCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, string, string) error) *MockcampaignsChoosePathCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1611,18 +1689,18 @@ func (c *MockcampaignsConfirmEndCall) DoAndReturn(f func(context.Context, core.U
 }
 
 // ConfirmRecruit mocks base method.
-func (m *Mockcampaigns) ConfirmRecruit(ctx context.Context, user core.User, id int64, adjust int, pick string) (core.RecruitResult, error) {
+func (m *Mockcampaigns) ConfirmRecruit(ctx context.Context, user core.User, id, companyID int64, adjust int, pick string) (core.RecruitResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ConfirmRecruit", ctx, user, id, adjust, pick)
+	ret := m.ctrl.Call(m, "ConfirmRecruit", ctx, user, id, companyID, adjust, pick)
 	ret0, _ := ret[0].(core.RecruitResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ConfirmRecruit indicates an expected call of ConfirmRecruit.
-func (mr *MockcampaignsMockRecorder) ConfirmRecruit(ctx, user, id, adjust, pick any) *MockcampaignsConfirmRecruitCall {
+func (mr *MockcampaignsMockRecorder) ConfirmRecruit(ctx, user, id, companyID, adjust, pick any) *MockcampaignsConfirmRecruitCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfirmRecruit", reflect.TypeOf((*Mockcampaigns)(nil).ConfirmRecruit), ctx, user, id, adjust, pick)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfirmRecruit", reflect.TypeOf((*Mockcampaigns)(nil).ConfirmRecruit), ctx, user, id, companyID, adjust, pick)
 	return &MockcampaignsConfirmRecruitCall{Call: call}
 }
 
@@ -1638,13 +1716,13 @@ func (c *MockcampaignsConfirmRecruitCall) Return(arg0 core.RecruitResult, arg1 e
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsConfirmRecruitCall) Do(f func(context.Context, core.User, int64, int, string) (core.RecruitResult, error)) *MockcampaignsConfirmRecruitCall {
+func (c *MockcampaignsConfirmRecruitCall) Do(f func(context.Context, core.User, int64, int64, int, string) (core.RecruitResult, error)) *MockcampaignsConfirmRecruitCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsConfirmRecruitCall) DoAndReturn(f func(context.Context, core.User, int64, int, string) (core.RecruitResult, error)) *MockcampaignsConfirmRecruitCall {
+func (c *MockcampaignsConfirmRecruitCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int, string) (core.RecruitResult, error)) *MockcampaignsConfirmRecruitCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1728,18 +1806,18 @@ func (c *MockcampaignsCreateCompanyCall) DoAndReturn(f func(context.Context, cor
 }
 
 // CreateMatch mocks base method.
-func (m *Mockcampaigns) CreateMatch(ctx context.Context, user core.User, id int64, sides []core.NewSide) (core.Match, error) {
+func (m *Mockcampaigns) CreateMatch(ctx context.Context, user core.User, id int64, in core.NewMatch) (core.Match, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateMatch", ctx, user, id, sides)
+	ret := m.ctrl.Call(m, "CreateMatch", ctx, user, id, in)
 	ret0, _ := ret[0].(core.Match)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateMatch indicates an expected call of CreateMatch.
-func (mr *MockcampaignsMockRecorder) CreateMatch(ctx, user, id, sides any) *MockcampaignsCreateMatchCall {
+func (mr *MockcampaignsMockRecorder) CreateMatch(ctx, user, id, in any) *MockcampaignsCreateMatchCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMatch", reflect.TypeOf((*Mockcampaigns)(nil).CreateMatch), ctx, user, id, sides)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMatch", reflect.TypeOf((*Mockcampaigns)(nil).CreateMatch), ctx, user, id, in)
 	return &MockcampaignsCreateMatchCall{Call: call}
 }
 
@@ -1755,13 +1833,13 @@ func (c *MockcampaignsCreateMatchCall) Return(arg0 core.Match, arg1 error) *Mock
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsCreateMatchCall) Do(f func(context.Context, core.User, int64, []core.NewSide) (core.Match, error)) *MockcampaignsCreateMatchCall {
+func (c *MockcampaignsCreateMatchCall) Do(f func(context.Context, core.User, int64, core.NewMatch) (core.Match, error)) *MockcampaignsCreateMatchCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsCreateMatchCall) DoAndReturn(f func(context.Context, core.User, int64, []core.NewSide) (core.Match, error)) *MockcampaignsCreateMatchCall {
+func (c *MockcampaignsCreateMatchCall) DoAndReturn(f func(context.Context, core.User, int64, core.NewMatch) (core.Match, error)) *MockcampaignsCreateMatchCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1806,17 +1884,17 @@ func (c *MockcampaignsDecideCall) DoAndReturn(f func(context.Context, core.User,
 }
 
 // DismissWanderer mocks base method.
-func (m *Mockcampaigns) DismissWanderer(ctx context.Context, user core.User, id, unitID int64) error {
+func (m *Mockcampaigns) DismissWanderer(ctx context.Context, user core.User, id, companyID, unitID int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DismissWanderer", ctx, user, id, unitID)
+	ret := m.ctrl.Call(m, "DismissWanderer", ctx, user, id, companyID, unitID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DismissWanderer indicates an expected call of DismissWanderer.
-func (mr *MockcampaignsMockRecorder) DismissWanderer(ctx, user, id, unitID any) *MockcampaignsDismissWandererCall {
+func (mr *MockcampaignsMockRecorder) DismissWanderer(ctx, user, id, companyID, unitID any) *MockcampaignsDismissWandererCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DismissWanderer", reflect.TypeOf((*Mockcampaigns)(nil).DismissWanderer), ctx, user, id, unitID)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DismissWanderer", reflect.TypeOf((*Mockcampaigns)(nil).DismissWanderer), ctx, user, id, companyID, unitID)
 	return &MockcampaignsDismissWandererCall{Call: call}
 }
 
@@ -1832,29 +1910,29 @@ func (c *MockcampaignsDismissWandererCall) Return(arg0 error) *MockcampaignsDism
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsDismissWandererCall) Do(f func(context.Context, core.User, int64, int64) error) *MockcampaignsDismissWandererCall {
+func (c *MockcampaignsDismissWandererCall) Do(f func(context.Context, core.User, int64, int64, int64) error) *MockcampaignsDismissWandererCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsDismissWandererCall) DoAndReturn(f func(context.Context, core.User, int64, int64) error) *MockcampaignsDismissWandererCall {
+func (c *MockcampaignsDismissWandererCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64) error) *MockcampaignsDismissWandererCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // DropEquipment mocks base method.
-func (m *Mockcampaigns) DropEquipment(ctx context.Context, user core.User, id, unitID int64, item string) error {
+func (m *Mockcampaigns) DropEquipment(ctx context.Context, user core.User, id, companyID, unitID int64, item string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DropEquipment", ctx, user, id, unitID, item)
+	ret := m.ctrl.Call(m, "DropEquipment", ctx, user, id, companyID, unitID, item)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DropEquipment indicates an expected call of DropEquipment.
-func (mr *MockcampaignsMockRecorder) DropEquipment(ctx, user, id, unitID, item any) *MockcampaignsDropEquipmentCall {
+func (mr *MockcampaignsMockRecorder) DropEquipment(ctx, user, id, companyID, unitID, item any) *MockcampaignsDropEquipmentCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DropEquipment", reflect.TypeOf((*Mockcampaigns)(nil).DropEquipment), ctx, user, id, unitID, item)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DropEquipment", reflect.TypeOf((*Mockcampaigns)(nil).DropEquipment), ctx, user, id, companyID, unitID, item)
 	return &MockcampaignsDropEquipmentCall{Call: call}
 }
 
@@ -1870,13 +1948,13 @@ func (c *MockcampaignsDropEquipmentCall) Return(arg0 error) *MockcampaignsDropEq
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsDropEquipmentCall) Do(f func(context.Context, core.User, int64, int64, string) error) *MockcampaignsDropEquipmentCall {
+func (c *MockcampaignsDropEquipmentCall) Do(f func(context.Context, core.User, int64, int64, int64, string) error) *MockcampaignsDropEquipmentCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsDropEquipmentCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string) error) *MockcampaignsDropEquipmentCall {
+func (c *MockcampaignsDropEquipmentCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, string) error) *MockcampaignsDropEquipmentCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -2154,17 +2232,17 @@ func (c *MockcampaignsHandOverCall) DoAndReturn(f func(context.Context, core.Use
 }
 
 // HireWanderer mocks base method.
-func (m *Mockcampaigns) HireWanderer(ctx context.Context, user core.User, id int64, name, pay string) error {
+func (m *Mockcampaigns) HireWanderer(ctx context.Context, user core.User, id, companyID int64, name, pay string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HireWanderer", ctx, user, id, name, pay)
+	ret := m.ctrl.Call(m, "HireWanderer", ctx, user, id, companyID, name, pay)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // HireWanderer indicates an expected call of HireWanderer.
-func (mr *MockcampaignsMockRecorder) HireWanderer(ctx, user, id, name, pay any) *MockcampaignsHireWandererCall {
+func (mr *MockcampaignsMockRecorder) HireWanderer(ctx, user, id, companyID, name, pay any) *MockcampaignsHireWandererCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HireWanderer", reflect.TypeOf((*Mockcampaigns)(nil).HireWanderer), ctx, user, id, name, pay)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HireWanderer", reflect.TypeOf((*Mockcampaigns)(nil).HireWanderer), ctx, user, id, companyID, name, pay)
 	return &MockcampaignsHireWandererCall{Call: call}
 }
 
@@ -2180,13 +2258,13 @@ func (c *MockcampaignsHireWandererCall) Return(arg0 error) *MockcampaignsHireWan
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsHireWandererCall) Do(f func(context.Context, core.User, int64, string, string) error) *MockcampaignsHireWandererCall {
+func (c *MockcampaignsHireWandererCall) Do(f func(context.Context, core.User, int64, int64, string, string) error) *MockcampaignsHireWandererCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsHireWandererCall) DoAndReturn(f func(context.Context, core.User, int64, string, string) error) *MockcampaignsHireWandererCall {
+func (c *MockcampaignsHireWandererCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string, string) error) *MockcampaignsHireWandererCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -2309,18 +2387,18 @@ func (c *MockcampaignsJoinCall) DoAndReturn(f func(context.Context, core.User, s
 }
 
 // LevelUpState mocks base method.
-func (m *Mockcampaigns) LevelUpState(ctx context.Context, user core.User, id, unitID int64) (*core.LevelRoll, error) {
+func (m *Mockcampaigns) LevelUpState(ctx context.Context, user core.User, id, companyID, unitID int64) (*core.LevelRoll, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LevelUpState", ctx, user, id, unitID)
+	ret := m.ctrl.Call(m, "LevelUpState", ctx, user, id, companyID, unitID)
 	ret0, _ := ret[0].(*core.LevelRoll)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LevelUpState indicates an expected call of LevelUpState.
-func (mr *MockcampaignsMockRecorder) LevelUpState(ctx, user, id, unitID any) *MockcampaignsLevelUpStateCall {
+func (mr *MockcampaignsMockRecorder) LevelUpState(ctx, user, id, companyID, unitID any) *MockcampaignsLevelUpStateCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LevelUpState", reflect.TypeOf((*Mockcampaigns)(nil).LevelUpState), ctx, user, id, unitID)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LevelUpState", reflect.TypeOf((*Mockcampaigns)(nil).LevelUpState), ctx, user, id, companyID, unitID)
 	return &MockcampaignsLevelUpStateCall{Call: call}
 }
 
@@ -2336,13 +2414,13 @@ func (c *MockcampaignsLevelUpStateCall) Return(arg0 *core.LevelRoll, arg1 error)
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsLevelUpStateCall) Do(f func(context.Context, core.User, int64, int64) (*core.LevelRoll, error)) *MockcampaignsLevelUpStateCall {
+func (c *MockcampaignsLevelUpStateCall) Do(f func(context.Context, core.User, int64, int64, int64) (*core.LevelRoll, error)) *MockcampaignsLevelUpStateCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsLevelUpStateCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (*core.LevelRoll, error)) *MockcampaignsLevelUpStateCall {
+func (c *MockcampaignsLevelUpStateCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64) (*core.LevelRoll, error)) *MockcampaignsLevelUpStateCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -2421,6 +2499,45 @@ func (c *MockcampaignsLiveCall) Do(f func(context.Context, core.User, int64, int
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsLiveCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (core.LiveCompany, error)) *MockcampaignsLiveCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// LiveGeneration mocks base method.
+func (m *Mockcampaigns) LiveGeneration(ctx context.Context, user core.User, id, matchID int64) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LiveGeneration", ctx, user, id, matchID)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LiveGeneration indicates an expected call of LiveGeneration.
+func (mr *MockcampaignsMockRecorder) LiveGeneration(ctx, user, id, matchID any) *MockcampaignsLiveGenerationCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LiveGeneration", reflect.TypeOf((*Mockcampaigns)(nil).LiveGeneration), ctx, user, id, matchID)
+	return &MockcampaignsLiveGenerationCall{Call: call}
+}
+
+// MockcampaignsLiveGenerationCall wrap *gomock.Call
+type MockcampaignsLiveGenerationCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsLiveGenerationCall) Return(arg0 string, arg1 error) *MockcampaignsLiveGenerationCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsLiveGenerationCall) Do(f func(context.Context, core.User, int64, int64) (string, error)) *MockcampaignsLiveGenerationCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsLiveGenerationCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (string, error)) *MockcampaignsLiveGenerationCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -2700,18 +2817,18 @@ func (c *MockcampaignsOverrideEndCall) DoAndReturn(f func(context.Context, core.
 }
 
 // PathOptions mocks base method.
-func (m *Mockcampaigns) PathOptions(ctx context.Context, user core.User, id, unitID int64) (core.PathOffer, error) {
+func (m *Mockcampaigns) PathOptions(ctx context.Context, user core.User, id, companyID, unitID int64) (core.PathOffer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PathOptions", ctx, user, id, unitID)
+	ret := m.ctrl.Call(m, "PathOptions", ctx, user, id, companyID, unitID)
 	ret0, _ := ret[0].(core.PathOffer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PathOptions indicates an expected call of PathOptions.
-func (mr *MockcampaignsMockRecorder) PathOptions(ctx, user, id, unitID any) *MockcampaignsPathOptionsCall {
+func (mr *MockcampaignsMockRecorder) PathOptions(ctx, user, id, companyID, unitID any) *MockcampaignsPathOptionsCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PathOptions", reflect.TypeOf((*Mockcampaigns)(nil).PathOptions), ctx, user, id, unitID)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PathOptions", reflect.TypeOf((*Mockcampaigns)(nil).PathOptions), ctx, user, id, companyID, unitID)
 	return &MockcampaignsPathOptionsCall{Call: call}
 }
 
@@ -2727,13 +2844,13 @@ func (c *MockcampaignsPathOptionsCall) Return(arg0 core.PathOffer, arg1 error) *
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsPathOptionsCall) Do(f func(context.Context, core.User, int64, int64) (core.PathOffer, error)) *MockcampaignsPathOptionsCall {
+func (c *MockcampaignsPathOptionsCall) Do(f func(context.Context, core.User, int64, int64, int64) (core.PathOffer, error)) *MockcampaignsPathOptionsCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsPathOptionsCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (core.PathOffer, error)) *MockcampaignsPathOptionsCall {
+func (c *MockcampaignsPathOptionsCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64) (core.PathOffer, error)) *MockcampaignsPathOptionsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -2778,18 +2895,18 @@ func (c *MockcampaignsPendingAftermathsCall) DoAndReturn(f func(context.Context,
 }
 
 // PendingChoice mocks base method.
-func (m *Mockcampaigns) PendingChoice(ctx context.Context, user core.User, id int64) (*core.RecruitChoice, error) {
+func (m *Mockcampaigns) PendingChoice(ctx context.Context, user core.User, id, companyID int64) (*core.RecruitChoice, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PendingChoice", ctx, user, id)
+	ret := m.ctrl.Call(m, "PendingChoice", ctx, user, id, companyID)
 	ret0, _ := ret[0].(*core.RecruitChoice)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PendingChoice indicates an expected call of PendingChoice.
-func (mr *MockcampaignsMockRecorder) PendingChoice(ctx, user, id any) *MockcampaignsPendingChoiceCall {
+func (mr *MockcampaignsMockRecorder) PendingChoice(ctx, user, id, companyID any) *MockcampaignsPendingChoiceCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PendingChoice", reflect.TypeOf((*Mockcampaigns)(nil).PendingChoice), ctx, user, id)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PendingChoice", reflect.TypeOf((*Mockcampaigns)(nil).PendingChoice), ctx, user, id, companyID)
 	return &MockcampaignsPendingChoiceCall{Call: call}
 }
 
@@ -2805,30 +2922,30 @@ func (c *MockcampaignsPendingChoiceCall) Return(arg0 *core.RecruitChoice, arg1 e
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsPendingChoiceCall) Do(f func(context.Context, core.User, int64) (*core.RecruitChoice, error)) *MockcampaignsPendingChoiceCall {
+func (c *MockcampaignsPendingChoiceCall) Do(f func(context.Context, core.User, int64, int64) (*core.RecruitChoice, error)) *MockcampaignsPendingChoiceCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsPendingChoiceCall) DoAndReturn(f func(context.Context, core.User, int64) (*core.RecruitChoice, error)) *MockcampaignsPendingChoiceCall {
+func (c *MockcampaignsPendingChoiceCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (*core.RecruitChoice, error)) *MockcampaignsPendingChoiceCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // PendingOfficers mocks base method.
-func (m *Mockcampaigns) PendingOfficers(ctx context.Context, user core.User, id int64) (*core.OfficerPanel, error) {
+func (m *Mockcampaigns) PendingOfficers(ctx context.Context, user core.User, id, companyID int64) (*core.OfficerPanel, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PendingOfficers", ctx, user, id)
+	ret := m.ctrl.Call(m, "PendingOfficers", ctx, user, id, companyID)
 	ret0, _ := ret[0].(*core.OfficerPanel)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PendingOfficers indicates an expected call of PendingOfficers.
-func (mr *MockcampaignsMockRecorder) PendingOfficers(ctx, user, id any) *MockcampaignsPendingOfficersCall {
+func (mr *MockcampaignsMockRecorder) PendingOfficers(ctx, user, id, companyID any) *MockcampaignsPendingOfficersCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PendingOfficers", reflect.TypeOf((*Mockcampaigns)(nil).PendingOfficers), ctx, user, id)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PendingOfficers", reflect.TypeOf((*Mockcampaigns)(nil).PendingOfficers), ctx, user, id, companyID)
 	return &MockcampaignsPendingOfficersCall{Call: call}
 }
 
@@ -2844,13 +2961,13 @@ func (c *MockcampaignsPendingOfficersCall) Return(arg0 *core.OfficerPanel, arg1 
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsPendingOfficersCall) Do(f func(context.Context, core.User, int64) (*core.OfficerPanel, error)) *MockcampaignsPendingOfficersCall {
+func (c *MockcampaignsPendingOfficersCall) Do(f func(context.Context, core.User, int64, int64) (*core.OfficerPanel, error)) *MockcampaignsPendingOfficersCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsPendingOfficersCall) DoAndReturn(f func(context.Context, core.User, int64) (*core.OfficerPanel, error)) *MockcampaignsPendingOfficersCall {
+func (c *MockcampaignsPendingOfficersCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (*core.OfficerPanel, error)) *MockcampaignsPendingOfficersCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -2934,18 +3051,18 @@ func (c *MockcampaignsProposeEndCall) DoAndReturn(f func(context.Context, core.U
 }
 
 // RecruitSpecial mocks base method.
-func (m *Mockcampaigns) RecruitSpecial(ctx context.Context, user core.User, id int64, unit string) (core.RecruitResult, error) {
+func (m *Mockcampaigns) RecruitSpecial(ctx context.Context, user core.User, id, companyID int64, unit string) (core.RecruitResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RecruitSpecial", ctx, user, id, unit)
+	ret := m.ctrl.Call(m, "RecruitSpecial", ctx, user, id, companyID, unit)
 	ret0, _ := ret[0].(core.RecruitResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RecruitSpecial indicates an expected call of RecruitSpecial.
-func (mr *MockcampaignsMockRecorder) RecruitSpecial(ctx, user, id, unit any) *MockcampaignsRecruitSpecialCall {
+func (mr *MockcampaignsMockRecorder) RecruitSpecial(ctx, user, id, companyID, unit any) *MockcampaignsRecruitSpecialCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecruitSpecial", reflect.TypeOf((*Mockcampaigns)(nil).RecruitSpecial), ctx, user, id, unit)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecruitSpecial", reflect.TypeOf((*Mockcampaigns)(nil).RecruitSpecial), ctx, user, id, companyID, unit)
 	return &MockcampaignsRecruitSpecialCall{Call: call}
 }
 
@@ -2961,30 +3078,30 @@ func (c *MockcampaignsRecruitSpecialCall) Return(arg0 core.RecruitResult, arg1 e
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsRecruitSpecialCall) Do(f func(context.Context, core.User, int64, string) (core.RecruitResult, error)) *MockcampaignsRecruitSpecialCall {
+func (c *MockcampaignsRecruitSpecialCall) Do(f func(context.Context, core.User, int64, int64, string) (core.RecruitResult, error)) *MockcampaignsRecruitSpecialCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsRecruitSpecialCall) DoAndReturn(f func(context.Context, core.User, int64, string) (core.RecruitResult, error)) *MockcampaignsRecruitSpecialCall {
+func (c *MockcampaignsRecruitSpecialCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string) (core.RecruitResult, error)) *MockcampaignsRecruitSpecialCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // RecruitState mocks base method.
-func (m *Mockcampaigns) RecruitState(ctx context.Context, user core.User, id int64) (*core.RecruitRoll, error) {
+func (m *Mockcampaigns) RecruitState(ctx context.Context, user core.User, id, companyID int64) (*core.RecruitRoll, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RecruitState", ctx, user, id)
+	ret := m.ctrl.Call(m, "RecruitState", ctx, user, id, companyID)
 	ret0, _ := ret[0].(*core.RecruitRoll)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RecruitState indicates an expected call of RecruitState.
-func (mr *MockcampaignsMockRecorder) RecruitState(ctx, user, id any) *MockcampaignsRecruitStateCall {
+func (mr *MockcampaignsMockRecorder) RecruitState(ctx, user, id, companyID any) *MockcampaignsRecruitStateCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecruitState", reflect.TypeOf((*Mockcampaigns)(nil).RecruitState), ctx, user, id)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecruitState", reflect.TypeOf((*Mockcampaigns)(nil).RecruitState), ctx, user, id, companyID)
 	return &MockcampaignsRecruitStateCall{Call: call}
 }
 
@@ -3000,13 +3117,13 @@ func (c *MockcampaignsRecruitStateCall) Return(arg0 *core.RecruitRoll, arg1 erro
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsRecruitStateCall) Do(f func(context.Context, core.User, int64) (*core.RecruitRoll, error)) *MockcampaignsRecruitStateCall {
+func (c *MockcampaignsRecruitStateCall) Do(f func(context.Context, core.User, int64, int64) (*core.RecruitRoll, error)) *MockcampaignsRecruitStateCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsRecruitStateCall) DoAndReturn(f func(context.Context, core.User, int64) (*core.RecruitRoll, error)) *MockcampaignsRecruitStateCall {
+func (c *MockcampaignsRecruitStateCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (*core.RecruitRoll, error)) *MockcampaignsRecruitStateCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -3051,17 +3168,17 @@ func (c *MockcampaignsRegenerateInviteCall) DoAndReturn(f func(context.Context, 
 }
 
 // RenameCompany mocks base method.
-func (m *Mockcampaigns) RenameCompany(ctx context.Context, user core.User, id int64, name string) error {
+func (m *Mockcampaigns) RenameCompany(ctx context.Context, user core.User, id, companyID int64, name string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RenameCompany", ctx, user, id, name)
+	ret := m.ctrl.Call(m, "RenameCompany", ctx, user, id, companyID, name)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RenameCompany indicates an expected call of RenameCompany.
-func (mr *MockcampaignsMockRecorder) RenameCompany(ctx, user, id, name any) *MockcampaignsRenameCompanyCall {
+func (mr *MockcampaignsMockRecorder) RenameCompany(ctx, user, id, companyID, name any) *MockcampaignsRenameCompanyCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameCompany", reflect.TypeOf((*Mockcampaigns)(nil).RenameCompany), ctx, user, id, name)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameCompany", reflect.TypeOf((*Mockcampaigns)(nil).RenameCompany), ctx, user, id, companyID, name)
 	return &MockcampaignsRenameCompanyCall{Call: call}
 }
 
@@ -3077,29 +3194,29 @@ func (c *MockcampaignsRenameCompanyCall) Return(arg0 error) *MockcampaignsRename
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsRenameCompanyCall) Do(f func(context.Context, core.User, int64, string) error) *MockcampaignsRenameCompanyCall {
+func (c *MockcampaignsRenameCompanyCall) Do(f func(context.Context, core.User, int64, int64, string) error) *MockcampaignsRenameCompanyCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsRenameCompanyCall) DoAndReturn(f func(context.Context, core.User, int64, string) error) *MockcampaignsRenameCompanyCall {
+func (c *MockcampaignsRenameCompanyCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string) error) *MockcampaignsRenameCompanyCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // RenameUnit mocks base method.
-func (m *Mockcampaigns) RenameUnit(ctx context.Context, user core.User, id, unitID int64, name string) error {
+func (m *Mockcampaigns) RenameUnit(ctx context.Context, user core.User, id, companyID, unitID int64, name string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RenameUnit", ctx, user, id, unitID, name)
+	ret := m.ctrl.Call(m, "RenameUnit", ctx, user, id, companyID, unitID, name)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RenameUnit indicates an expected call of RenameUnit.
-func (mr *MockcampaignsMockRecorder) RenameUnit(ctx, user, id, unitID, name any) *MockcampaignsRenameUnitCall {
+func (mr *MockcampaignsMockRecorder) RenameUnit(ctx, user, id, companyID, unitID, name any) *MockcampaignsRenameUnitCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameUnit", reflect.TypeOf((*Mockcampaigns)(nil).RenameUnit), ctx, user, id, unitID, name)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenameUnit", reflect.TypeOf((*Mockcampaigns)(nil).RenameUnit), ctx, user, id, companyID, unitID, name)
 	return &MockcampaignsRenameUnitCall{Call: call}
 }
 
@@ -3115,13 +3232,13 @@ func (c *MockcampaignsRenameUnitCall) Return(arg0 error) *MockcampaignsRenameUni
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsRenameUnitCall) Do(f func(context.Context, core.User, int64, int64, string) error) *MockcampaignsRenameUnitCall {
+func (c *MockcampaignsRenameUnitCall) Do(f func(context.Context, core.User, int64, int64, int64, string) error) *MockcampaignsRenameUnitCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsRenameUnitCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string) error) *MockcampaignsRenameUnitCall {
+func (c *MockcampaignsRenameUnitCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, string) error) *MockcampaignsRenameUnitCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -3244,18 +3361,18 @@ func (c *MockcampaignsRerollCasualtyCall) DoAndReturn(f func(context.Context, co
 }
 
 // RerollLevelUp mocks base method.
-func (m *Mockcampaigns) RerollLevelUp(ctx context.Context, user core.User, id, unitID int64, which int) (core.LevelRoll, error) {
+func (m *Mockcampaigns) RerollLevelUp(ctx context.Context, user core.User, id, companyID, unitID int64, which int) (core.LevelRoll, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RerollLevelUp", ctx, user, id, unitID, which)
+	ret := m.ctrl.Call(m, "RerollLevelUp", ctx, user, id, companyID, unitID, which)
 	ret0, _ := ret[0].(core.LevelRoll)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RerollLevelUp indicates an expected call of RerollLevelUp.
-func (mr *MockcampaignsMockRecorder) RerollLevelUp(ctx, user, id, unitID, which any) *MockcampaignsRerollLevelUpCall {
+func (mr *MockcampaignsMockRecorder) RerollLevelUp(ctx, user, id, companyID, unitID, which any) *MockcampaignsRerollLevelUpCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RerollLevelUp", reflect.TypeOf((*Mockcampaigns)(nil).RerollLevelUp), ctx, user, id, unitID, which)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RerollLevelUp", reflect.TypeOf((*Mockcampaigns)(nil).RerollLevelUp), ctx, user, id, companyID, unitID, which)
 	return &MockcampaignsRerollLevelUpCall{Call: call}
 }
 
@@ -3271,13 +3388,13 @@ func (c *MockcampaignsRerollLevelUpCall) Return(arg0 core.LevelRoll, arg1 error)
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsRerollLevelUpCall) Do(f func(context.Context, core.User, int64, int64, int) (core.LevelRoll, error)) *MockcampaignsRerollLevelUpCall {
+func (c *MockcampaignsRerollLevelUpCall) Do(f func(context.Context, core.User, int64, int64, int64, int) (core.LevelRoll, error)) *MockcampaignsRerollLevelUpCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsRerollLevelUpCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int) (core.LevelRoll, error)) *MockcampaignsRerollLevelUpCall {
+func (c *MockcampaignsRerollLevelUpCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, int) (core.LevelRoll, error)) *MockcampaignsRerollLevelUpCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -3361,18 +3478,18 @@ func (c *MockcampaignsRollCourageCall) DoAndReturn(f func(context.Context, core.
 }
 
 // RollLevelUp mocks base method.
-func (m *Mockcampaigns) RollLevelUp(ctx context.Context, user core.User, id, unitID int64, entered []int, thrown bool) (core.LevelRoll, error) {
+func (m *Mockcampaigns) RollLevelUp(ctx context.Context, user core.User, id, companyID, unitID int64, entered []int, thrown bool) (core.LevelRoll, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RollLevelUp", ctx, user, id, unitID, entered, thrown)
+	ret := m.ctrl.Call(m, "RollLevelUp", ctx, user, id, companyID, unitID, entered, thrown)
 	ret0, _ := ret[0].(core.LevelRoll)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RollLevelUp indicates an expected call of RollLevelUp.
-func (mr *MockcampaignsMockRecorder) RollLevelUp(ctx, user, id, unitID, entered, thrown any) *MockcampaignsRollLevelUpCall {
+func (mr *MockcampaignsMockRecorder) RollLevelUp(ctx, user, id, companyID, unitID, entered, thrown any) *MockcampaignsRollLevelUpCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RollLevelUp", reflect.TypeOf((*Mockcampaigns)(nil).RollLevelUp), ctx, user, id, unitID, entered, thrown)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RollLevelUp", reflect.TypeOf((*Mockcampaigns)(nil).RollLevelUp), ctx, user, id, companyID, unitID, entered, thrown)
 	return &MockcampaignsRollLevelUpCall{Call: call}
 }
 
@@ -3388,29 +3505,29 @@ func (c *MockcampaignsRollLevelUpCall) Return(arg0 core.LevelRoll, arg1 error) *
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsRollLevelUpCall) Do(f func(context.Context, core.User, int64, int64, []int, bool) (core.LevelRoll, error)) *MockcampaignsRollLevelUpCall {
+func (c *MockcampaignsRollLevelUpCall) Do(f func(context.Context, core.User, int64, int64, int64, []int, bool) (core.LevelRoll, error)) *MockcampaignsRollLevelUpCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsRollLevelUpCall) DoAndReturn(f func(context.Context, core.User, int64, int64, []int, bool) (core.LevelRoll, error)) *MockcampaignsRollLevelUpCall {
+func (c *MockcampaignsRollLevelUpCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, []int, bool) (core.LevelRoll, error)) *MockcampaignsRollLevelUpCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // RollRecruit mocks base method.
-func (m *Mockcampaigns) RollRecruit(ctx context.Context, user core.User, id int64, roll int, thrown bool) error {
+func (m *Mockcampaigns) RollRecruit(ctx context.Context, user core.User, id, companyID int64, roll int, thrown bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RollRecruit", ctx, user, id, roll, thrown)
+	ret := m.ctrl.Call(m, "RollRecruit", ctx, user, id, companyID, roll, thrown)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RollRecruit indicates an expected call of RollRecruit.
-func (mr *MockcampaignsMockRecorder) RollRecruit(ctx, user, id, roll, thrown any) *MockcampaignsRollRecruitCall {
+func (mr *MockcampaignsMockRecorder) RollRecruit(ctx, user, id, companyID, roll, thrown any) *MockcampaignsRollRecruitCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RollRecruit", reflect.TypeOf((*Mockcampaigns)(nil).RollRecruit), ctx, user, id, roll, thrown)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RollRecruit", reflect.TypeOf((*Mockcampaigns)(nil).RollRecruit), ctx, user, id, companyID, roll, thrown)
 	return &MockcampaignsRollRecruitCall{Call: call}
 }
 
@@ -3426,29 +3543,29 @@ func (c *MockcampaignsRollRecruitCall) Return(arg0 error) *MockcampaignsRollRecr
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsRollRecruitCall) Do(f func(context.Context, core.User, int64, int, bool) error) *MockcampaignsRollRecruitCall {
+func (c *MockcampaignsRollRecruitCall) Do(f func(context.Context, core.User, int64, int64, int, bool) error) *MockcampaignsRollRecruitCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsRollRecruitCall) DoAndReturn(f func(context.Context, core.User, int64, int, bool) error) *MockcampaignsRollRecruitCall {
+func (c *MockcampaignsRollRecruitCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int, bool) error) *MockcampaignsRollRecruitCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // RollRecruitWithPerk mocks base method.
-func (m *Mockcampaigns) RollRecruitWithPerk(ctx context.Context, user core.User, campaignID int64, roll int, thrown bool, perkAdjust int) error {
+func (m *Mockcampaigns) RollRecruitWithPerk(ctx context.Context, user core.User, campaignID, companyID int64, roll int, thrown bool, perkAdjust int) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RollRecruitWithPerk", ctx, user, campaignID, roll, thrown, perkAdjust)
+	ret := m.ctrl.Call(m, "RollRecruitWithPerk", ctx, user, campaignID, companyID, roll, thrown, perkAdjust)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RollRecruitWithPerk indicates an expected call of RollRecruitWithPerk.
-func (mr *MockcampaignsMockRecorder) RollRecruitWithPerk(ctx, user, campaignID, roll, thrown, perkAdjust any) *MockcampaignsRollRecruitWithPerkCall {
+func (mr *MockcampaignsMockRecorder) RollRecruitWithPerk(ctx, user, campaignID, companyID, roll, thrown, perkAdjust any) *MockcampaignsRollRecruitWithPerkCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RollRecruitWithPerk", reflect.TypeOf((*Mockcampaigns)(nil).RollRecruitWithPerk), ctx, user, campaignID, roll, thrown, perkAdjust)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RollRecruitWithPerk", reflect.TypeOf((*Mockcampaigns)(nil).RollRecruitWithPerk), ctx, user, campaignID, companyID, roll, thrown, perkAdjust)
 	return &MockcampaignsRollRecruitWithPerkCall{Call: call}
 }
 
@@ -3464,13 +3581,13 @@ func (c *MockcampaignsRollRecruitWithPerkCall) Return(arg0 error) *Mockcampaigns
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsRollRecruitWithPerkCall) Do(f func(context.Context, core.User, int64, int, bool, int) error) *MockcampaignsRollRecruitWithPerkCall {
+func (c *MockcampaignsRollRecruitWithPerkCall) Do(f func(context.Context, core.User, int64, int64, int, bool, int) error) *MockcampaignsRollRecruitWithPerkCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsRollRecruitWithPerkCall) DoAndReturn(f func(context.Context, core.User, int64, int, bool, int) error) *MockcampaignsRollRecruitWithPerkCall {
+func (c *MockcampaignsRollRecruitWithPerkCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int, bool, int) error) *MockcampaignsRollRecruitWithPerkCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -3554,17 +3671,17 @@ func (c *MockcampaignsSaveAgainstTheOddsCall) DoAndReturn(f func(context.Context
 }
 
 // SaveCemeteryOrder mocks base method.
-func (m *Mockcampaigns) SaveCemeteryOrder(ctx context.Context, user core.User, id int64, order []int64) error {
+func (m *Mockcampaigns) SaveCemeteryOrder(ctx context.Context, user core.User, id, companyID int64, order []int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SaveCemeteryOrder", ctx, user, id, order)
+	ret := m.ctrl.Call(m, "SaveCemeteryOrder", ctx, user, id, companyID, order)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SaveCemeteryOrder indicates an expected call of SaveCemeteryOrder.
-func (mr *MockcampaignsMockRecorder) SaveCemeteryOrder(ctx, user, id, order any) *MockcampaignsSaveCemeteryOrderCall {
+func (mr *MockcampaignsMockRecorder) SaveCemeteryOrder(ctx, user, id, companyID, order any) *MockcampaignsSaveCemeteryOrderCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveCemeteryOrder", reflect.TypeOf((*Mockcampaigns)(nil).SaveCemeteryOrder), ctx, user, id, order)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveCemeteryOrder", reflect.TypeOf((*Mockcampaigns)(nil).SaveCemeteryOrder), ctx, user, id, companyID, order)
 	return &MockcampaignsSaveCemeteryOrderCall{Call: call}
 }
 
@@ -3580,29 +3697,29 @@ func (c *MockcampaignsSaveCemeteryOrderCall) Return(arg0 error) *MockcampaignsSa
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsSaveCemeteryOrderCall) Do(f func(context.Context, core.User, int64, []int64) error) *MockcampaignsSaveCemeteryOrderCall {
+func (c *MockcampaignsSaveCemeteryOrderCall) Do(f func(context.Context, core.User, int64, int64, []int64) error) *MockcampaignsSaveCemeteryOrderCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsSaveCemeteryOrderCall) DoAndReturn(f func(context.Context, core.User, int64, []int64) error) *MockcampaignsSaveCemeteryOrderCall {
+func (c *MockcampaignsSaveCemeteryOrderCall) DoAndReturn(f func(context.Context, core.User, int64, int64, []int64) error) *MockcampaignsSaveCemeteryOrderCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // SaveFormation mocks base method.
-func (m *Mockcampaigns) SaveFormation(ctx context.Context, user core.User, id int64, order []int64) error {
+func (m *Mockcampaigns) SaveFormation(ctx context.Context, user core.User, id, companyID int64, order []int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SaveFormation", ctx, user, id, order)
+	ret := m.ctrl.Call(m, "SaveFormation", ctx, user, id, companyID, order)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SaveFormation indicates an expected call of SaveFormation.
-func (mr *MockcampaignsMockRecorder) SaveFormation(ctx, user, id, order any) *MockcampaignsSaveFormationCall {
+func (mr *MockcampaignsMockRecorder) SaveFormation(ctx, user, id, companyID, order any) *MockcampaignsSaveFormationCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveFormation", reflect.TypeOf((*Mockcampaigns)(nil).SaveFormation), ctx, user, id, order)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveFormation", reflect.TypeOf((*Mockcampaigns)(nil).SaveFormation), ctx, user, id, companyID, order)
 	return &MockcampaignsSaveFormationCall{Call: call}
 }
 
@@ -3618,13 +3735,13 @@ func (c *MockcampaignsSaveFormationCall) Return(arg0 error) *MockcampaignsSaveFo
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsSaveFormationCall) Do(f func(context.Context, core.User, int64, []int64) error) *MockcampaignsSaveFormationCall {
+func (c *MockcampaignsSaveFormationCall) Do(f func(context.Context, core.User, int64, int64, []int64) error) *MockcampaignsSaveFormationCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsSaveFormationCall) DoAndReturn(f func(context.Context, core.User, int64, []int64) error) *MockcampaignsSaveFormationCall {
+func (c *MockcampaignsSaveFormationCall) DoAndReturn(f func(context.Context, core.User, int64, int64, []int64) error) *MockcampaignsSaveFormationCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -3864,6 +3981,44 @@ func (c *MockcampaignsSetCampaignStatusCall) DoAndReturn(f func(context.Context,
 	return c
 }
 
+// SetCompaniesPerPlayer mocks base method.
+func (m *Mockcampaigns) SetCompaniesPerPlayer(ctx context.Context, actor core.User, campaignID int64, n int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetCompaniesPerPlayer", ctx, actor, campaignID, n)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetCompaniesPerPlayer indicates an expected call of SetCompaniesPerPlayer.
+func (mr *MockcampaignsMockRecorder) SetCompaniesPerPlayer(ctx, actor, campaignID, n any) *MockcampaignsSetCompaniesPerPlayerCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCompaniesPerPlayer", reflect.TypeOf((*Mockcampaigns)(nil).SetCompaniesPerPlayer), ctx, actor, campaignID, n)
+	return &MockcampaignsSetCompaniesPerPlayerCall{Call: call}
+}
+
+// MockcampaignsSetCompaniesPerPlayerCall wrap *gomock.Call
+type MockcampaignsSetCompaniesPerPlayerCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsSetCompaniesPerPlayerCall) Return(arg0 error) *MockcampaignsSetCompaniesPerPlayerCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsSetCompaniesPerPlayerCall) Do(f func(context.Context, core.User, int64, int) error) *MockcampaignsSetCompaniesPerPlayerCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsSetCompaniesPerPlayerCall) DoAndReturn(f func(context.Context, core.User, int64, int) error) *MockcampaignsSetCompaniesPerPlayerCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // SetScenario mocks base method.
 func (m *Mockcampaigns) SetScenario(ctx context.Context, user core.User, id, matchID int64, revision int, in core.ScenarioInput) (core.Match, error) {
 	m.ctrl.T.Helper()
@@ -4016,6 +4171,45 @@ func (c *MockcampaignsSubscribeCall) Do(f func(context.Context, core.User, int64
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsSubscribeCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (core.LiveStream, error)) *MockcampaignsSubscribeCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SubscribeSince mocks base method.
+func (m *Mockcampaigns) SubscribeSince(ctx context.Context, user core.User, id, matchID int64, since string) (core.LiveStream, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SubscribeSince", ctx, user, id, matchID, since)
+	ret0, _ := ret[0].(core.LiveStream)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SubscribeSince indicates an expected call of SubscribeSince.
+func (mr *MockcampaignsMockRecorder) SubscribeSince(ctx, user, id, matchID, since any) *MockcampaignsSubscribeSinceCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeSince", reflect.TypeOf((*Mockcampaigns)(nil).SubscribeSince), ctx, user, id, matchID, since)
+	return &MockcampaignsSubscribeSinceCall{Call: call}
+}
+
+// MockcampaignsSubscribeSinceCall wrap *gomock.Call
+type MockcampaignsSubscribeSinceCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsSubscribeSinceCall) Return(arg0 core.LiveStream, arg1 error) *MockcampaignsSubscribeSinceCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsSubscribeSinceCall) Do(f func(context.Context, core.User, int64, int64, string) (core.LiveStream, error)) *MockcampaignsSubscribeSinceCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsSubscribeSinceCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string) (core.LiveStream, error)) *MockcampaignsSubscribeSinceCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -4177,18 +4371,18 @@ func (c *MockcampaignsTTSNamesCall) DoAndReturn(f func(context.Context, int64, i
 }
 
 // TreatInjury mocks base method.
-func (m *Mockcampaigns) TreatInjury(ctx context.Context, user core.User, id, unitID int64, t core.Treatment) (core.TreatResult, error) {
+func (m *Mockcampaigns) TreatInjury(ctx context.Context, user core.User, id, companyID, unitID int64, t core.Treatment) (core.TreatResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TreatInjury", ctx, user, id, unitID, t)
+	ret := m.ctrl.Call(m, "TreatInjury", ctx, user, id, companyID, unitID, t)
 	ret0, _ := ret[0].(core.TreatResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TreatInjury indicates an expected call of TreatInjury.
-func (mr *MockcampaignsMockRecorder) TreatInjury(ctx, user, id, unitID, t any) *MockcampaignsTreatInjuryCall {
+func (mr *MockcampaignsMockRecorder) TreatInjury(ctx, user, id, companyID, unitID, t any) *MockcampaignsTreatInjuryCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TreatInjury", reflect.TypeOf((*Mockcampaigns)(nil).TreatInjury), ctx, user, id, unitID, t)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TreatInjury", reflect.TypeOf((*Mockcampaigns)(nil).TreatInjury), ctx, user, id, companyID, unitID, t)
 	return &MockcampaignsTreatInjuryCall{Call: call}
 }
 
@@ -4204,30 +4398,30 @@ func (c *MockcampaignsTreatInjuryCall) Return(arg0 core.TreatResult, arg1 error)
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsTreatInjuryCall) Do(f func(context.Context, core.User, int64, int64, core.Treatment) (core.TreatResult, error)) *MockcampaignsTreatInjuryCall {
+func (c *MockcampaignsTreatInjuryCall) Do(f func(context.Context, core.User, int64, int64, int64, core.Treatment) (core.TreatResult, error)) *MockcampaignsTreatInjuryCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsTreatInjuryCall) DoAndReturn(f func(context.Context, core.User, int64, int64, core.Treatment) (core.TreatResult, error)) *MockcampaignsTreatInjuryCall {
+func (c *MockcampaignsTreatInjuryCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, core.Treatment) (core.TreatResult, error)) *MockcampaignsTreatInjuryCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // TreatmentState mocks base method.
-func (m *Mockcampaigns) TreatmentState(ctx context.Context, user core.User, id, unitID int64) (*core.TreatResult, error) {
+func (m *Mockcampaigns) TreatmentState(ctx context.Context, user core.User, id, companyID, unitID int64) (*core.TreatResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TreatmentState", ctx, user, id, unitID)
+	ret := m.ctrl.Call(m, "TreatmentState", ctx, user, id, companyID, unitID)
 	ret0, _ := ret[0].(*core.TreatResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TreatmentState indicates an expected call of TreatmentState.
-func (mr *MockcampaignsMockRecorder) TreatmentState(ctx, user, id, unitID any) *MockcampaignsTreatmentStateCall {
+func (mr *MockcampaignsMockRecorder) TreatmentState(ctx, user, id, companyID, unitID any) *MockcampaignsTreatmentStateCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TreatmentState", reflect.TypeOf((*Mockcampaigns)(nil).TreatmentState), ctx, user, id, unitID)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TreatmentState", reflect.TypeOf((*Mockcampaigns)(nil).TreatmentState), ctx, user, id, companyID, unitID)
 	return &MockcampaignsTreatmentStateCall{Call: call}
 }
 
@@ -4243,13 +4437,13 @@ func (c *MockcampaignsTreatmentStateCall) Return(arg0 *core.TreatResult, arg1 er
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignsTreatmentStateCall) Do(f func(context.Context, core.User, int64, int64) (*core.TreatResult, error)) *MockcampaignsTreatmentStateCall {
+func (c *MockcampaignsTreatmentStateCall) Do(f func(context.Context, core.User, int64, int64, int64) (*core.TreatResult, error)) *MockcampaignsTreatmentStateCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsTreatmentStateCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (*core.TreatResult, error)) *MockcampaignsTreatmentStateCall {
+func (c *MockcampaignsTreatmentStateCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64) (*core.TreatResult, error)) *MockcampaignsTreatmentStateCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -4653,41 +4847,41 @@ func (c *MockrulesetsCampaignOptionsCall) DoAndReturn(f func(context.Context) ([
 	return c
 }
 
-// Check mocks base method.
-func (m *Mockrulesets) Check(ctx context.Context, kind core.RulesetKind, content []byte) (core.RulesetReport, error) {
+// CheckSet mocks base method.
+func (m *Mockrulesets) CheckSet(ctx context.Context, set core.RulesetSet) (core.RulesetReport, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Check", ctx, kind, content)
+	ret := m.ctrl.Call(m, "CheckSet", ctx, set)
 	ret0, _ := ret[0].(core.RulesetReport)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Check indicates an expected call of Check.
-func (mr *MockrulesetsMockRecorder) Check(ctx, kind, content any) *MockrulesetsCheckCall {
+// CheckSet indicates an expected call of CheckSet.
+func (mr *MockrulesetsMockRecorder) CheckSet(ctx, set any) *MockrulesetsCheckSetCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Check", reflect.TypeOf((*Mockrulesets)(nil).Check), ctx, kind, content)
-	return &MockrulesetsCheckCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckSet", reflect.TypeOf((*Mockrulesets)(nil).CheckSet), ctx, set)
+	return &MockrulesetsCheckSetCall{Call: call}
 }
 
-// MockrulesetsCheckCall wrap *gomock.Call
-type MockrulesetsCheckCall struct {
+// MockrulesetsCheckSetCall wrap *gomock.Call
+type MockrulesetsCheckSetCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockrulesetsCheckCall) Return(arg0 core.RulesetReport, arg1 error) *MockrulesetsCheckCall {
+func (c *MockrulesetsCheckSetCall) Return(arg0 core.RulesetReport, arg1 error) *MockrulesetsCheckSetCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockrulesetsCheckCall) Do(f func(context.Context, core.RulesetKind, []byte) (core.RulesetReport, error)) *MockrulesetsCheckCall {
+func (c *MockrulesetsCheckSetCall) Do(f func(context.Context, core.RulesetSet) (core.RulesetReport, error)) *MockrulesetsCheckSetCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockrulesetsCheckCall) DoAndReturn(f func(context.Context, core.RulesetKind, []byte) (core.RulesetReport, error)) *MockrulesetsCheckCall {
+func (c *MockrulesetsCheckSetCall) DoAndReturn(f func(context.Context, core.RulesetSet) (core.RulesetReport, error)) *MockrulesetsCheckSetCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

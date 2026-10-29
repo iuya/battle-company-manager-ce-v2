@@ -17,7 +17,7 @@
    the server rolls and the dice animation shows its result. Where the campaign allows it ("Shake the table") the browser
    can throw the dice instead, the space bar shaking them, and reports the result as the player's roll. Takes {Campaign, Label}. */}}
 {{define "recruit_roll_form"}}
-<form x-ref="rollForm" method="post" action="/campaigns/{{.Campaign.ID}}/my-company/recruit/roll" hx-post="/campaigns/{{.Campaign.ID}}/my-company/recruit/roll" hx-target="#modal-body" hx-swap="innerHTML" class="flex flex-wrap items-end gap-3">
+<form x-ref="rollForm" method="post" action="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/recruit/roll" hx-post="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/recruit/roll" hx-target="#modal-body" hx-swap="innerHTML" class="flex flex-wrap items-end gap-3">
   <input type="hidden" name="thrown" value="" x-ref="thrown">
   {{if .Campaign.Settings.ManualRolls}}<div class="field"><label for="roll">Your roll</label><select id="roll" name="roll" class="input w-44" x-ref="own"><option value="0">Roll for me</option>{{range $n := seq 1 .Sides}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>{{else}}<input type="hidden" name="roll" value="0" x-ref="own">{{end}}
   {{if .Rendezvous}}<div class="field"><label for="perk">Rendezvous <span class="text-muted">(once)</span></label><select id="perk" name="perk" class="input w-44"><option value="0">Not now</option>{{range perkSteps .Perk}}<option value="{{.}}">{{if gt . 0}}+{{end}}{{.}} to the die</option>{{end}}</select></div>{{end}}
@@ -51,7 +51,7 @@
   <h3 class="!text-xl">Choose a lower result</h3>
   <p class="alert alert-info" role="status">You rolled a {{.Roll.Lower.Roll}}: {{.Roll.Lower.Reason}} The influence is spent. Choose any lower result that can join the company.</p>
   {{end}}
-  <form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/recruit/lower" hx-post="/campaigns/{{.Campaign.ID}}/my-company/recruit/lower" hx-target="#modal-body" hx-swap="innerHTML" class="space-y-3">
+  <form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/recruit/lower" hx-post="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/recruit/lower" hx-target="#modal-body" hx-swap="innerHTML" class="space-y-3">
     <fieldset class="divide-y divide-line rounded-lg border border-line">
       <legend class="sr-only">{{if .Roll.Lower.Picks}}Results to choose from{{else}}Lower results{{end}}</legend>
       {{range .Roll.Lower.Rows}}<label class="flex items-start gap-3 px-3 py-2 {{if .Blocked}}text-muted{{else}}cursor-pointer hover:bg-accent-soft{{end}}"><input type="radio" name="result" value="{{.Index}}" class="mt-1" {{if .Blocked}}disabled{{end}} required><span class="min-w-0"><span class="font-semibold">{{.Roll}}</span> <span class="text-xs text-muted">{{.Chart}}</span><br>{{.Text}}{{with .Blocked}}<span class="block text-xs text-danger">Cannot join: {{.}}</span>{{end}}</span></label>{{end}}
@@ -67,7 +67,7 @@
   <div x-show="revealed" x-cloak class="space-y-4">
     <p class="text-lg">You rolled a {{if .Roll.PerkAdjust}}<strong class="text-3xl">{{.Roll.PerkRaw}}</strong>, <span class="badge badge-gold align-middle" title="The perk moved the die">Rendezvous {{if gt .Roll.PerkAdjust 0}}+{{end}}{{.Roll.PerkAdjust}}</span> = <strong class="text-3xl">{{.Roll.Roll}}</strong>{{else}}<strong class="text-3xl">{{.Roll.Roll}}</strong>{{end}}<span x-show="adjust !== 0" x-cloak>, raised to a <strong class="text-3xl" x-text="final"></strong></span></p>
     {{template "recruit_table" (dict "Rows" (or (and (eq .Roll.Stage "special") .Company.Recruit.SpecialChart) .Company.Recruit.Chart) "Live" true)}}
-    <form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/recruit/confirm" hx-post="/campaigns/{{.Campaign.ID}}/my-company/recruit/confirm" hx-target="#modal-body" hx-swap="innerHTML" class="space-y-3" x-data="{ swap: false }">
+    <form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/recruit/confirm" hx-post="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/recruit/confirm" hx-target="#modal-body" hx-swap="innerHTML" class="space-y-3" x-data="{ swap: false }">
       <div>
         {{$adj := .Roll.Adjust}}
         <p class="text-sm font-medium">{{if eq $adj.Direction "up"}}Raise{{else if eq $adj.Direction "down"}}Lower{{else}}Move{{end}} the roll <span class="font-normal text-muted">({{$adj.CostPerPoint}} influence per point, up to {{if $adj.CanRaise}}{{.Roll.Budget}}{{end}}{{if and $adj.CanRaise $adj.CanLower}} up or {{end}}{{if $adj.CanLower}}{{.Roll.BudgetDown}} down{{end}}{{if not $adj.CanLower}} more{{end}} for this recruit; the die moves, whatever the results in between)</span></p>
@@ -105,7 +105,7 @@
   <p class="alert alert-info" role="status">The roll led to the company's special chart. Roll again on it; the price is already paid.</p>
   {{template "recruit_table" (dict "Rows" .Company.Recruit.SpecialChart "Live" false)}}
   <canvas x-ref="canvas" class="dice-tray" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>
-  {{template "recruit_roll_form" (dict "Campaign" .Campaign "Sides" .Company.Recruit.Rules.Sides "Label" "Roll on the special chart")}}
+  {{template "recruit_roll_form" (dict "Campaign" .Campaign "Co" .Co "Sides" .Company.Recruit.Rules.Sides "Label" "Roll on the special chart")}}
 </section>
 
 {{else}}
@@ -122,7 +122,7 @@
   <p class="alert alert-info" role="status">{{.Reason}}</p>
   {{else}}
   <canvas x-ref="canvas" class="dice-tray" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>
-  {{template "recruit_roll_form" (dict "Campaign" .Campaign "Sides" .Company.Recruit.Rules.Sides "Perk" .Company.Recruit.Rules.Rendezvous "Rendezvous" .Rendezvous "Label" (printf "Roll · %d influence" .Company.Recruit.Cost))}}
+  {{template "recruit_roll_form" (dict "Campaign" .Campaign "Co" .Co "Sides" .Company.Recruit.Rules.Sides "Perk" .Company.Recruit.Rules.Rendezvous "Rendezvous" .Rendezvous "Label" (printf "Roll · %d influence" .Company.Recruit.Cost))}}
   {{end}}
 </section>
 
@@ -134,7 +134,7 @@
     <li class="flex flex-wrap items-center justify-between gap-3 px-3 py-2">
       <div><p class="font-medium">{{.Unit}}</p><p class="text-sm text-muted">{{.Cost}} influence{{with .Rare}} · <span class="badge badge-gold" title="The company may have at most {{.}} at once">Rare {{.}}</span>{{end}}</p></div>
       {{if .Reason}}<span class="text-sm text-muted">{{.Reason}}</span>
-      {{else}}<form method="post" action="/campaigns/{{$.Campaign.ID}}/my-company/recruit" hx-post="/campaigns/{{$.Campaign.ID}}/my-company/recruit" hx-target="#main" hx-swap="innerHTML show:window:top"><input type="hidden" name="special" value="{{.Unit}}"><button class="btn btn-primary">Recruit · {{.Cost}} influence</button></form>{{end}}
+      {{else}}<form method="post" action="/campaigns/{{$.Campaign.ID}}/my-company/{{$.Co}}/recruit" hx-post="/campaigns/{{$.Campaign.ID}}/my-company/{{$.Co}}/recruit" hx-target="#main" hx-swap="innerHTML show:window:top"><input type="hidden" name="special" value="{{.Unit}}"><button class="btn btn-primary">Recruit · {{.Cost}} influence</button></form>{{end}}
     </li>
     {{end}}
   </ul>
@@ -147,7 +147,7 @@
 {{/* Treating a hero's injuries: an attempt (the rules' dice against the target, raised with extra influence; the influence is lost when it fails)
    or the healers (no roll, the hero misses the next game). Costs and the target come from the rules file. */}}
 {{define "treat_panel"}}
-{{$r := .Rules}}{{$cid := .Campaign.ID}}{{$uid := .Unit.ID}}
+{{$r := .Rules}}{{$cid := .Campaign.ID}}{{$co := .Co}}{{$uid := .Unit.ID}}
 <div x-data="rollPanel" @keydown.space.window="onSpace($event)" data-roll="{{with .Result}}{{.Roll}}{{else}}0{{end}}" data-dice="{{with .Result}}{{ints .Dice}}{{end}}" data-sides="{{$r.Attempt.TreatDice.Sides}}" data-per-lane="{{$r.Attempt.TreatDice.Count}}" data-animate="{{.Animate}}" data-shake="{{.Campaign.Settings.ShakeTheTable}}">
 <h2 class="!text-2xl">Treat {{.Unit.Title}}</h2>
 <p class="mt-1 text-sm text-muted">The company has <strong class="text-fg">{{.Influence}}</strong> influence.</p>
@@ -160,13 +160,13 @@
     <p class="alert {{if .Pending}}alert-info{{else if .Healed}}alert-success{{else}}alert-danger{{end}}" role="status">{{.Summary}}</p>
     {{if .Pending}}
     {{/* The roll missed by a little: influence may still be spent, now that the roll is known. */}}
-    <form method="post" action="/campaigns/{{$cid}}/my-company/units/{{$uid}}/treat" hx-post="/campaigns/{{$cid}}/my-company/units/{{$uid}}/treat" hx-target="#modal-body" hx-swap="innerHTML" class="mt-3 flex flex-wrap gap-2">
+    <form method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/treat" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/treat" hx-target="#modal-body" hx-swap="innerHTML" class="mt-3 flex flex-wrap gap-2">
       <input type="hidden" name="method" value="attempt"><input type="hidden" name="resolve" value="1">
       <button class="btn btn-primary" name="extra" value="{{.Boost}}">Spend {{.Boost}} more influence</button>
       <button class="btn btn-secondary" name="extra" value="0">Accept the failure</button>
     </form>
     {{else}}
-    <p class="mt-2"><button type="button" class="btn btn-primary" hx-get="/campaigns/{{$cid}}/my-company" hx-target="#main" hx-swap="innerHTML show:window:top" @click="closeModal()">Done</button></p>
+    <p class="mt-2"><button type="button" class="btn btn-primary" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}" hx-target="#main" hx-swap="innerHTML show:window:top" @click="closeModal()">Done</button></p>
     {{end}}
   </div>
 </section>
@@ -178,7 +178,7 @@
   {{if not (and .Result .Result.Rolled .Animate)}}<canvas x-ref="canvas" class="dice-tray mt-3" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>{{end}}
   <div class="mt-3 grid items-stretch gap-3 {{if and .Healers .Attempt}}md:grid-cols-[1fr_auto_1fr]{{end}}">
     {{if .Healers}}
-    <form method="post" action="/campaigns/{{$cid}}/my-company/units/{{$uid}}/treat" hx-post="/campaigns/{{$cid}}/my-company/units/{{$uid}}/treat" hx-target="#modal-body" hx-swap="innerHTML" @click="way = 'healers'" @focusin="way = 'healers'"
+    <form method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/treat" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/treat" hx-target="#modal-body" hx-swap="innerHTML" @click="way = 'healers'" @focusin="way = 'healers'"
           class="space-y-3 rounded-xl border p-4 transition" :class="way === 'healers' ? 'border-accent bg-accent-soft' : 'border-line ' + (way ? 'opacity-60' : '')">
       <h3 class="!text-xl">The healers</h3>
       <p class="text-sm text-muted">Safe: {{$r.Healers.Cost}} influence, no roll, but the hero misses the next match.</p>
@@ -191,7 +191,7 @@
     {{end}}
     {{if and .Healers .Attempt}}<div class="flex items-center justify-center text-2xl font-bold text-muted" aria-hidden="true"><span class="rotate-90 md:rotate-0">&lt;&gt;</span></div>{{end}}
     {{if .Attempt}}
-    <form x-ref="rollForm" method="post" action="/campaigns/{{$cid}}/my-company/units/{{$uid}}/treat" hx-post="/campaigns/{{$cid}}/my-company/units/{{$uid}}/treat" hx-target="#modal-body" hx-swap="innerHTML" @click="way = 'attempt'" @focusin="way = 'attempt'"
+    <form x-ref="rollForm" method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/treat" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/treat" hx-target="#modal-body" hx-swap="innerHTML" @click="way = 'attempt'" @focusin="way = 'attempt'"
           class="space-y-3 rounded-xl border p-4 transition" :class="way === 'attempt' ? 'border-accent bg-accent-soft' : 'border-line ' + (way ? 'opacity-60' : '')">
       <h3 class="!text-xl">Field treatment</h3>
       <p class="text-sm text-muted">Risky: {{$r.Attempt.Cost}} influence and a roll of {{$r.Attempt.Target}}+{{if gt $r.Attempt.TreatDice.Count 1}} on {{$r.Attempt.TreatDice.Display}}{{end}}. The hero plays the next match if it works; the influence is lost if it fails.</p>
@@ -228,7 +228,7 @@
 {{/* A unit's level-up. A warrior rolls its dice (nothing, a promotion, or a hero in the making); a hero rolls its path's dice once for each
    result of the rules file and chooses one of them. The dice come from the rules file (.Spec, .Pairs). "Roll for me" is animated; "I rolled" takes the player's own dice. */}}
 {{define "level_panel"}}
-{{$cid := .Campaign.ID}}{{$uid := .Unit.ID}}{{$hero := .Unit.IsHero}}
+{{$cid := .Campaign.ID}}{{$co := .Co}}{{$uid := .Unit.ID}}{{$hero := .Unit.IsHero}}
 <div x-data="rollPanel" @keydown.space.window="onSpace($event)" data-hero="{{$hero}}" data-sides="{{.Spec.Sides}}" data-per-lane="{{.Spec.Count}}" data-lanes="{{if $hero}}{{.Pairs}}{{else}}1{{end}}" data-roll="{{with .Roll}}{{.D6}}{{else}}0{{end}}" data-dice="{{.Dice}}" data-groups="{{.Groups}}" data-labels="{{.Labels}}" data-animate="{{.Animate}}" data-shake="{{.Campaign.Settings.ShakeTheTable}}">
 <h2 class="!text-2xl">Level up {{.Unit.Title}}</h2>
 <p class="mt-1 text-sm text-muted">{{if $hero}}A hero rolls {{.Pairs}} x {{.Spec.Display}} on its path and chooses one result.{{else}}A warrior rolls {{if eq .Spec.Count 1}}a {{end}}{{.Spec.Display}}: nothing, a promotion, or a hero in the making.{{end}}
@@ -243,11 +243,11 @@
   {{if and .D6 (eq .Result "heroInTheMaking")}}<p class="text-lg">You rolled a <strong class="text-3xl">{{.D6}}</strong>.</p>{{end}}
   <p class="alert alert-success" role="status">{{.Summary}}</p>
   <p class="flex flex-wrap gap-2">
-    {{if gt $.Pending 0}}<button type="button" class="promo promo-btn" hx-get="/campaigns/{{$cid}}/my-company/units/{{$uid}}/levelup" hx-target="#modal-body" hx-swap="innerHTML"><svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5l2.4 5.6 6.1.6-4.6 4 1.4 6-5.3-3.2-5.3 3.2 1.4-6-4.6-4 6.1-.6zM19 15l.9 2.1 2.1.9-2.1.9L19 21l-.9-2.1-2.1-.9 2.1-.9z"/></svg><span>Next level up</span></button>{{end}}
-    <button type="button" class="btn btn-primary" hx-get="/campaigns/{{$cid}}/my-company" hx-target="#main" hx-swap="innerHTML show:window:top" @click="closeModal()">Done</button></p>
+    {{if gt $.Pending 0}}<button type="button" class="promo promo-btn" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/levelup" hx-target="#modal-body" hx-swap="innerHTML"><svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5l2.4 5.6 6.1.6-4.6 4 1.4 6-5.3-3.2-5.3 3.2 1.4-6-4.6-4 6.1-.6zM19 15l.9 2.1 2.1.9-2.1.9L19 21l-.9-2.1-2.1-.9 2.1-.9z"/></svg><span>Next level up</span></button>{{end}}
+    <button type="button" class="btn btn-primary" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}" hx-target="#main" hx-swap="innerHTML show:window:top" @click="closeModal()">Done</button></p>
   {{else}}
   {{if eq .Kind "warrior"}}<p class="text-lg">You rolled a <strong class="text-3xl">{{.D6}}</strong>.</p>{{end}}
-  <form method="post" action="/campaigns/{{$cid}}/my-company/units/{{$uid}}/levelup/choose" hx-post="/campaigns/{{$cid}}/my-company/units/{{$uid}}/levelup/choose" hx-target="#modal-body" hx-swap="innerHTML" class="space-y-4"
+  <form method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/levelup/choose" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/levelup/choose" hx-target="#modal-body" hx-swap="innerHTML" class="space-y-4"
         @invalid.capture="$event.target.closest('details')?.setAttribute('open', '')"
         x-data="{ again: false, from: -1, last: {},
           // A result that asks for the other roll too turns the other result's choices into the second pick. What was already picked
@@ -262,7 +262,7 @@
     {{range $i, $o := $.Offers}}
     <fieldset class="space-y-1 rounded-lg border border-line p-3">
       <legend class="px-1 text-sm font-medium">{{if eq $.Roll.Kind "hero"}}{{if eq $o.Pair 1}}First roll{{else}}Second roll{{end}} · {{$o.Roll}}{{else}}Result{{end}}</legend>
-      {{if and $.Rerolls (not $.Roll.Again)}}<button type="button" class="btn btn-ghost float-right !min-h-8 !px-2 !text-xs" formnovalidate hx-post="/campaigns/{{$cid}}/my-company/units/{{$uid}}/levelup/reroll" hx-vals='{"which": "{{$i}}"}' hx-target="#modal-body" hx-swap="innerHTML" title="Against the Odds: roll this result again ({{$.Rerolls}} left)">Re-roll · Against the Odds</button>{{end}}
+      {{if and $.Rerolls (not $.Roll.Again)}}<button type="button" class="btn btn-ghost float-right !min-h-8 !px-2 !text-xs" formnovalidate hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/levelup/reroll" hx-vals='{"which": "{{$i}}"}' hx-target="#modal-body" hx-swap="innerHTML" title="Against the Odds: roll this result again ({{$.Rerolls}} left)">Re-roll · Against the Odds</button>{{end}}
       {{if $o.Text}}<p class="text-sm text-muted">{{$o.Text}}</p>{{end}}
       <p class="text-sm font-medium text-warn" x-show="again && from !== {{$i}}" x-cloak>Also take one of these (the other result is taken too).</p>
       {{$group := ""}}
@@ -293,7 +293,7 @@
 {{else}}
 {{if .Pending}}
 {{if .Campaign.Settings.ShakeTheTable}}<canvas x-ref="canvas" class="dice-tray mt-4" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>{{end}}
-<form x-ref="rollForm" method="post" action="/campaigns/{{$cid}}/my-company/units/{{$uid}}/levelup/roll" hx-post="/campaigns/{{$cid}}/my-company/units/{{$uid}}/levelup/roll" hx-target="#modal-body" hx-swap="innerHTML" class="mt-5 flex flex-wrap items-end gap-3">
+<form x-ref="rollForm" method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/levelup/roll" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/levelup/roll" hx-target="#modal-body" hx-swap="innerHTML" class="mt-5 flex flex-wrap items-end gap-3">
   <input type="hidden" name="thrown" value="">
   {{if not .Campaign.Settings.ManualRolls}}{{template "dice_zeros" (dict "Count" (or (and $hero .Pairs) 1))}}{{end}}
   {{if .Campaign.Settings.ManualRolls}}{{$spec := .Spec}}
@@ -316,7 +316,7 @@
 {{/* The Baggage Pony's pack: what it carries, and for any member of the company to store an item, take one out or swap them (free,
    what a member gets must be something it could buy). Carried gear gives no benefit. */}}
 {{define "pack_panel"}}
-{{$cid := .Campaign.ID}}
+{{$cid := .Campaign.ID}}{{$co := .Co}}
 <div x-data="{ kind: 'store', unit: '{{with .Members}}{{(index . 0).ID}}{{end}}' }">
 <h2 class="!text-2xl">Baggage Pony</h2>
 <p class="mt-1 text-sm text-muted">Carrying <strong class="text-fg">{{len .Pack.Items}} / {{.Pack.Capacity}}</strong> pieces. Carried gear gives no benefit; mounts cannot be carried.</p>
@@ -327,7 +327,7 @@
 {{if .Pack.Items}}<ul class="mt-2 flex flex-wrap gap-1.5">{{range .Pack.Items}}<li class="eq-chip eq-{{.Class}}"><span>{{.Name}}</span></li>{{end}}</ul>
 {{else}}<p class="mt-2 text-sm text-muted">Nothing yet.</p>{{end}}
 
-<form method="post" action="/campaigns/{{$cid}}/my-company/pack" hx-post="/campaigns/{{$cid}}/my-company/pack" hx-target="#modal-body" hx-swap="innerHTML" class="mt-6 space-y-3">
+<form method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/pack" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/pack" hx-target="#modal-body" hx-swap="innerHTML" class="mt-6 space-y-3">
   <h3 class="!text-xl">Store, take or swap</h3>
   <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Action">
     <label class="btn btn-secondary !min-h-9" :class="kind === 'store' && '!border-accent !bg-accent-soft'"><input type="radio" name="kind" value="store" x-model="kind" class="sr-only">Store an item</label>
@@ -346,7 +346,7 @@
   </div>
   <p class="text-sm text-muted">Free of charge. In the rules each member may do this once each time the company can (after the injuries and before choosing the scenario, or when it starts a turn in base contact with the pony); the app does not count occasions yet.</p>
 </form>
-<p class="mt-4"><button type="button" class="btn btn-primary" hx-get="/campaigns/{{$cid}}/my-company" hx-target="#main" hx-swap="innerHTML show:window:top" @click="closeModal()">Done</button></p>
+<p class="mt-4"><button type="button" class="btn btn-primary" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}" hx-target="#main" hx-swap="innerHTML show:window:top" @click="closeModal()">Done</button></p>
 </div>
 {{end}}
 
@@ -378,7 +378,7 @@
       {{if and .Buyable .WeaponModifier (not $.Unit.PoisonableWeapons)}}
       <span class="max-w-48 text-right text-xs text-muted">{{template "no_weapon_reason" .Name}}</span>
       {{else if .Buyable}}
-      <form method="post" action="/campaigns/{{$.Campaign.ID}}/my-company/units/{{$.Unit.ID}}/equipment" hx-post="/campaigns/{{$.Campaign.ID}}/my-company/units/{{$.Unit.ID}}/equipment">
+      <form method="post" action="/campaigns/{{$.Campaign.ID}}/my-company/{{$.Co}}/units/{{$.Unit.ID}}/equipment" hx-post="/campaigns/{{$.Campaign.ID}}/my-company/{{$.Co}}/units/{{$.Unit.ID}}/equipment">
         <input type="hidden" name="item" value="{{.Name}}">{{if .WeaponModifier}}{{template "weapon_chooser" (dict "Weapons" $.Unit.PoisonableWeapons "ID" (printf "buy-weapon-%d" $.Unit.ID) "Chosen" "")}}{{end}}{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-9" "Cost" .Cost "Gold" .GoldPrice "PayInfluence" .PayInfluence "PayGold" .PayGold)}}
       </form>
       {{else}}
@@ -396,7 +396,7 @@
   <li class="flex flex-wrap items-center justify-between gap-3 px-3 py-2 {{if .Reason}}opacity-60{{end}}" data-find="{{.Name}}" :hidden="!hit($el)">
     <div class="flex items-center gap-2"><span class="text-muted">{{template "paw"}}</span><div><p class="font-medium">{{.Name}}</p><p class="text-xs text-muted">{{.Points}} pts{{with .Rules}} · {{join . ", "}}{{end}}</p></div></div>
     {{if .Reason}}<span class="max-w-48 text-right text-xs text-muted">{{.Reason}}</span>
-    {{else}}<form method="post" action="/campaigns/{{$.Campaign.ID}}/armory/creature" hx-post="/campaigns/{{$.Campaign.ID}}/armory/creature" hx-target="#main" hx-swap="innerHTML show:window:top"><input type="hidden" name="from" value="company"><input type="hidden" name="unit" value="{{$.Unit.ID}}"><input type="hidden" name="name" value="{{.Name}}">{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-9" "Cost" .Cost "Gold" .Gold "PayInfluence" .PayInfluence "PayGold" .PayGold)}}</form>{{end}}
+    {{else}}<form method="post" action="/campaigns/{{$.Campaign.ID}}/armory/creature" hx-post="/campaigns/{{$.Campaign.ID}}/armory/creature" hx-target="#main" hx-swap="innerHTML show:window:top"><input type="hidden" name="company" value="{{$.Co}}"><input type="hidden" name="from" value="company"><input type="hidden" name="unit" value="{{$.Unit.ID}}"><input type="hidden" name="name" value="{{.Name}}">{{template "pay_buttons" (dict "Label" "Buy" "Class" "!min-h-9" "Cost" .Cost "Gold" .Gold "PayInfluence" .PayInfluence "PayGold" .PayGold)}}</form>{{end}}
   </li>
   {{end}}
 </ul>
@@ -408,7 +408,7 @@
 {{define "choice_panel"}}
 <h2 class="!text-2xl">Choose its options</h2>
 <p class="mt-1 text-sm text-muted">A {{.Choice.Unit}} joins the company. A "choice of options" lets it take any option of its profile except those with a banner, war horn or war drum.</p>
-<form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/recruit/choose" hx-post="/campaigns/{{.Campaign.ID}}/my-company/recruit/choose" class="mt-4 space-y-2">
+<form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/recruit/choose" hx-post="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/recruit/choose" class="mt-4 space-y-2">
   <label class="flex min-h-10 items-center gap-3 rounded-lg border border-line px-3 py-2"><input type="radio" name="option" value="" checked class="h-4 w-4 accent-[var(--accent)]"><span class="flex-1">Its base profile</span></label>
   {{range .Choice.Options}}
   <label class="flex min-h-10 items-center gap-3 rounded-lg border border-line px-3 py-2"><input type="radio" name="option" value="{{.Name}}" class="h-4 w-4 accent-[var(--accent)]"><span class="flex-1">{{.Name}}</span><span class="text-sm text-muted">+{{.Points}} {{if eq .Points 1}}pt{{else}}pts{{end}}</span></label>
@@ -423,7 +423,7 @@
 <h2 class="!text-2xl">Choose a path</h2>
 <p class="mt-1 text-sm text-muted">{{.Offer.Unit.Title}} is a {{.Offer.Unit.Role}} of the company and has to follow a path before the company can play. The path decides how it grows; its heroic action comes with it at once. This is final.</p>
 {{with .Error}}<div class="alert alert-danger mt-3" role="alert">{{.}}</div>{{end}}
-<form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/units/{{.Offer.Unit.ID}}/path" hx-post="/campaigns/{{.Campaign.ID}}/my-company/units/{{.Offer.Unit.ID}}/path" hx-target="#modal-body" hx-swap="innerHTML" class="mt-4 space-y-2">
+<form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/units/{{.Offer.Unit.ID}}/path" hx-post="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/units/{{.Offer.Unit.ID}}/path" hx-target="#modal-body" hx-swap="innerHTML" class="mt-4 space-y-2">
   {{range .Offer.Paths}}
   <label {{with .Summary}}title="{{.}}" {{end}}class="flex items-start gap-3 rounded-lg border border-line px-3 py-2 {{if .Blocked}}text-muted{{else}}cursor-pointer hover:bg-accent-soft{{end}}">
     <input type="radio" name="path" value="{{.Name}}" x-model="path" class="mt-1 h-4 w-4 accent-[var(--accent)]" {{if .Blocked}}disabled{{end}} required>
@@ -617,7 +617,7 @@
 <h2 class="!text-2xl">The {{$p.Unit}} takes command</h2>
 <p class="mt-1 text-sm text-muted">He starts as Leader and may stand in any officer place: drag a card to another place, or use the buttons of a card. {{if gt $p.Drop 0}}The company has {{count $p.Leaders "Leader"}} and {{count $p.Sergeants "Sergeant"}}, so {{if eq $p.Drop 1}}one of the old officers stops{{else}}{{$p.Drop}} of the old officers stop{{end}} being an officer: leave {{if eq $p.Drop 1}}him{{else}}them{{end}} in the pool. He stays a Hero and keeps his path, level, experience and gear.{{else}}Places the old officers do not fill stay empty until an officer succession fills them; you may also appoint a Hero from the pool.{{end}}</p>
 {{with .Error}}<div class="alert alert-danger mt-3" role="alert">{{.}}</div>{{end}}
-<form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/recruit/officers" hx-post="/campaigns/{{.Campaign.ID}}/my-company/recruit/officers" hx-target="#modal-body" hx-swap="innerHTML" class="mt-4 space-y-4" @submit="read()">
+<form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/recruit/officers" hx-post="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/recruit/officers" hx-target="#modal-body" hx-swap="innerHTML" class="mt-4 space-y-4" @submit="read()">
   <input type="hidden" name="leader" :value="leader">
   <template x-for="s in sergeants" :key="s"><input type="hidden" name="sergeant" :value="s"></template>
   <div class="mx-auto grid max-w-2xl grid-cols-2 gap-3">

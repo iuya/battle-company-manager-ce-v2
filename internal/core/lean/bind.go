@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-// The strict binder (design plan section 2): JSON to a generic tree (jsontree.go), then reflection over the model, filling it and
+// The strict binder: JSON to a generic tree (jsontree.go), then reflection over the model, filling it and
 // appending an Issue for every mistake instead of stopping at the first. Unknown keys, wrong types, closed vocabularies, ranges and
 // missing required keys are all reported with their JSON path. Tags are described in model.go.
 
@@ -243,19 +243,18 @@ func bindStruct(dst reflect.Value, v any, at string, r *Reporter) {
 	si := infoOf(dst.Type())
 	for i := range si.fields {
 		f := &si.fields[i]
-		path := Join(at, f.name)
 		val, present := obj[f.name]
 		switch {
 		case !present:
 			if f.required {
-				r.Errorf(path, "missing")
+				r.Errorf(Join(at, f.name), "missing")
 			}
 		case val == nil:
 			if f.required {
-				r.Errorf(path, "must not be null; it is required")
+				r.Errorf(Join(at, f.name), "must not be null; it is required")
 			}
 		default:
-			bindValue(dst.Field(f.index), val, path, r, f)
+			bindValue(dst.Field(f.index), val, Join(at, f.name), r, f)
 		}
 	}
 	var unknown []string

@@ -1,0 +1,7 @@
+typos.json: companies[0].colour: unknown field
+  hint: known fields: advancements, aka, alignment, breakPoint, description, elvenWeaponry, epigraph, exchanges, extends, faction, gear, granted, heroUpgrades, heroes, id, label, limits, maxModels, name, notes, oath, ownPath, promotions, recruit, reinforcements, rules, special, specialRules, start, substitutions, units
+typos.json: companies[0].units[0].addRules[0]: no rule "Greenway Lor" in rules[], vanilla or the glossary; closest: "Greenway Lore"
+  hint: define it in rules[]
+typos.json: companies[0].start.units[0].unit: no unit "Greenway Watchr" in this company, the shared units or vanilla; closest: "Greenway Watcher"
+typos.json: companies[0].reinforcements.rows: rolls cover 1-5, 6 is missing (a D6 chart must cover 1-6 exactly once)
+typos.json: 4 errors, 0 warnings

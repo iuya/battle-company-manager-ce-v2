@@ -21,6 +21,7 @@ type liveView struct {
 	Missed     []liveCard // injured at the start: they take no part
 	EndPending bool       // an end of the match is proposed: Start turn is refused
 	End        endBanner  // the pending end, for the sticky banner
+	Practice   bool       // a practice match: the badge and the banner in the match bar
 }
 
 // Broken is whether the company is Broken (its cards show the courage chips).
@@ -103,15 +104,18 @@ func targetUnits(roster []core.CompanyUnit, lc core.LiveCompany) (out []core.Tar
 // viewerSide is the companies of the match that stand on the viewer's side, the viewer's own among them; nil when the viewer has no company
 // in the match or the company asked about is on that side too (nothing of one's own side is an enemy).
 func viewerSide(base campaignBase, m core.Match, companyID int64) []core.CampaignCompany {
-	mine := base.Campaign.Company
-	if mine == nil {
+	mine := base.Campaign.Companies // the company the page acts on, or else any of the viewer's own
+	if base.Current != nil {
+		mine = []core.CampaignCompany{*base.Current}
+	}
+	if len(mine) == 0 {
 		return nil
 	}
 	var viewer, other []core.CampaignCompany
 	for _, side := range m.Sides {
 		hasMine, hasOther := false, false
 		for _, c := range side.Companies {
-			hasMine = hasMine || c.ID == mine.ID
+			hasMine = hasMine || slices.ContainsFunc(mine, func(o core.CampaignCompany) bool { return o.ID == c.ID })
 			hasOther = hasOther || c.ID == companyID
 		}
 		if hasMine {
@@ -170,6 +174,7 @@ func (s *Server) liveFor(r *http.Request, base campaignBase, detail core.Company
 			v.Scenario = match.Scenario.Name
 		}
 		v.EndPending = match.EndProposal != nil
+		v.Practice = match.Practice
 		v.End = s.endBannerFor(r, base, match, lc.CompanyID)
 	}
 	live := map[int64]core.LiveUnit{}
@@ -274,7 +279,7 @@ func (s *Server) liveFragmentViewQuiet(r *http.Request, base campaignBase, detai
 		return myCompanyView{}, err
 	}
 	view := myCompanyView{campaignBase: base, Company: detail, HasCompany: true, Units: unitViews(g, detail.Roster)}
-	view.ReadOnly = base.Campaign.Company == nil || base.Campaign.Company.ID != detail.ID
+	view.ReadOnly = !base.Campaign.Owns(detail.ID)
 	view.Live, err = s.liveFor(r, base, detail, view.Units)
 	return view, err
 }

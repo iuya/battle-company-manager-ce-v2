@@ -108,7 +108,7 @@ func TestNoRuleTargetsNoMarkersAndPlainTooltips(t *testing.T) {
 	if strings.Contains(body, "data-rule-match") || strings.Contains(body, "applies") || !strings.Contains(body, "Orc") {
 		t.Error("without rule targets the enemy shows its chips and no marker")
 	}
-	own := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	own := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	if strings.Contains(own, "data-tip-works") || strings.Contains(own, "Works against") {
 		t.Error("plain tooltips without the table")
 	}
@@ -118,7 +118,7 @@ func TestRuleTooltipsSayWhoTheRuleWorksAgainst(t *testing.T) {
 	h := hater("Hador", 5)
 	h.Rules = append(h.Rules, core.UnitRule{Name: "Fury (Orc)", Description: "Furious.", Works: "friendly models with the Orc keywords", Friends: true})
 	f := liveSetupRoster(t, core.LiveEdit, nil, nil, []core.CompanyUnit{h})
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	for _, want := range []string{
 		"A bonus to wound against the keyword.\n\nWorks against: enemy models with the Orc keyword.",
 		`data-tip-works="Works against: enemy models with the Orc keyword."`,

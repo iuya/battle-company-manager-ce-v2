@@ -98,7 +98,7 @@ export default async function (h) {
     const href = await eowyn.page.$eval('#tts-helper-link', (e) => e.getAttribute('href'));
     assert.equal(href, '/tts/helper.zip');
     // the page is hx-boosted: without hx-boost="false" the click is turned into an htmx request and the zip's bytes are swapped into #main
-    // instead of being downloaded (owner report 2026-10-28): clicking must leave the dialog and the page as they are
+    // instead of being downloaded: clicking must leave the dialog and the page as they are
     assert.equal(await eowyn.page.$eval('#tts-helper-link', (e) => e.getAttribute('hx-boost')), 'false');
     await eowyn.page.click('#tts-helper-link');
     await new Promise((r) => setTimeout(r, 800));

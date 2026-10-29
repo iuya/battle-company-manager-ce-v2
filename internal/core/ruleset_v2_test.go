@@ -43,7 +43,7 @@ func TestVanillaLower(t *testing.T) {
 		{"unit", "Ranger of Arnor", true}, {"unit", "ranger of arnor", true}, {"unit", "Ranger of Arnr", false}, {"unit", "Rangers of Arnor", false},
 		{"rule", "Stand Fast", true}, {"rule", "Heroic Strike", true}, {"rule", "Not A Rule Anywhere", false},
 		{"gear", "Boar spear", true}, {"gear", "Spear of Doom", false},
-		{"race", "Orc", true}, {"keyword", "Orc", true}, {"company", "Arnor", false},
+		{"race", "Orc", true}, {"keyword", "Orc", true}, {"keyword", "Mount", true}, {"keyword", "See Rider", false}, {"company", "Arnor", false},
 	} {
 		if got := l.Has(lean.Kind(c.kind), c.name); got != c.want {
 			t.Errorf("Has(%s, %q) = %v, want %v", c.kind, c.name, got, c.want)
@@ -112,7 +112,7 @@ func TestVanillaLowerDuplicates(t *testing.T) {
 }
 
 // TestDecodeValidFixturesAgainstShippedFiles: every valid fixture of the lean package decodes with no issue against the real
-// vanilla file and glossary, so the worked examples of the design are true for the shipped lower layers.
+// vanilla file and glossary, so the worked examples of the fixtures are true for the shipped lower layers.
 func TestDecodeValidFixturesAgainstShippedFiles(t *testing.T) {
 	book, gl := v2World(t)
 	files, _ := filepath.Glob("lean/testdata/valid/*.json")
@@ -160,17 +160,17 @@ func TestSchemaVersionOf(t *testing.T) {
 	}
 }
 
-func TestOldShippedFileIsVersionOne(t *testing.T) {
+func TestShippedFileIsVersionTwo(t *testing.T) {
 	raw, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if schemaVersionOf(raw) != 1 {
-		t.Error("the shipped file is the old format")
+	if schemaVersionOf(raw) != 2 {
+		t.Error("the shipped file is the lean format")
 	}
 	book, gl := v2World(t)
 	doc, rep := DecodeBattleCompanies("battle_companies.json", raw, book, gl)
-	if doc != nil || rep.OK() || !strings.Contains(rep.String(), "schemaVersion: missing") {
-		t.Errorf("the old file is refused with one clear message:\n%s", rep)
+	if doc == nil || len(rep.Issues) != 0 {
+		t.Errorf("the shipped file decodes with no issue:\n%s", rep)
 	}
 }

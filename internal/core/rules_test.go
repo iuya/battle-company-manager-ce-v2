@@ -23,7 +23,7 @@ func capture() (*slog.Logger, *bytes.Buffer) {
 }
 
 // vanillaWithDuplicates repeats "Song" (differently), "Twin" (identically) and units/gear with the same name.
-const vanillaWithDuplicates = `{"stats":[{"name":"Fight","abbreviation":"F"}],"data":{
+const vanillaWithDuplicates = `{"stats":[{"name":"Fight","abbreviation":"F"},{"name":"Courage","abbreviation":"C"},{"name":"","abbreviation":"|"},{"name":"Might","abbreviation":"M"},{"name":"Will","abbreviation":"W"},{"name":"Fate","abbreviation":"F"}],"data":{
  "heroes":[{"name":"Knight","points":10,"fight":5},{"name":"Knight","points":99,"fight":1}],
  "warriors":[{"name":"Knight","points":50},{"name":"Guard","points":5},{"name":"Guard","points":5}],
  "gear":[{"name":"Axe","type":"axe","definition":"first"},{"name":"axe","type":"axe","definition":"second"}],
@@ -98,20 +98,7 @@ func TestVanillaPinToMissingOccurrenceWarnsAndKeepsFirst(t *testing.T) {
 	}
 }
 
-func TestParseVanillaAmbiguities(t *testing.T) {
-	got, err := ParseVanillaAmbiguities([]byte(`{"data":{"vanillaAmbiguities":[{"kind":"keyword","name":"X","status":"pinned","note":"n","occurrence":2}]}}`))
-	if err != nil || len(got) != 1 || got[0] != (VanillaAmbiguity{"keyword", "X", "pinned", 2}) {
-		t.Errorf("got %+v, %v", got, err)
-	}
-	if got, err := ParseVanillaAmbiguities([]byte(`{}`)); err != nil || got != nil {
-		t.Errorf("none: %v %v", got, err)
-	}
-	if _, err := ParseVanillaAmbiguities([]byte(`{`)); err == nil {
-		t.Error("invalid JSON must fail")
-	}
-}
-
-func readDef(t *testing.T, p string) []byte {
+func readDef(t testing.TB, p string) []byte {
 	t.Helper()
 	b, err := os.ReadFile("../../definitions/" + p)
 	if err != nil {
@@ -138,7 +125,7 @@ func TestRulesForBuildsOncePerTripleUnderConcurrency(t *testing.T) {
 	repo := NewMockrulesetRepository(gomock.NewController(t))
 	release := make(chan struct{})
 	for kind, hash := range map[RulesetKind]string{KindVanilla: hV, KindBattleCompanies: hB, KindGlossary: hG} {
-		content := map[RulesetKind]string{KindVanilla: vanillaWithDuplicates, KindBattleCompanies: `{"name":"BC","version":"1","extends":"V"}`, KindGlossary: `{"name":"G","version":"1","terms":[]}`}[kind]
+		content := map[RulesetKind]string{KindVanilla: vanillaWithDuplicates, KindBattleCompanies: bcFile, KindGlossary: `{"name":"G","version":"1","terms":[]}`}[kind]
 		repo.EXPECT().Get(gomock.Any(), hash).Times(1).DoAndReturn(func(context.Context, string) (StoredRuleset, error) {
 			<-release
 			return StoredRuleset{RulesetInfo: RulesetInfo{Kind: kind, Hash: hash}, Content: []byte(content)}, nil
@@ -175,11 +162,11 @@ func TestRulesForBuildsOncePerTripleUnderConcurrency(t *testing.T) {
 
 func TestRulesForSeparatesTriples(t *testing.T) {
 	repo := NewMockrulesetRepository(gomock.NewController(t))
-	bc := []byte(`{"name":"BC","version":"1","extends":"V"}`)
+	bc := []byte(bcFile)
 	gl := []byte(`{"name":"G","version":"1","terms":[]}`)
 	expectFiles(repo, []byte(vanillaWithDuplicates), bc, gl)
 	other := RulesetHashes{Vanilla: "v2", BattleCompanies: hB, Glossary: hG}
-	repo.EXPECT().Get(gomock.Any(), "v2").Return(StoredRuleset{RulesetInfo: RulesetInfo{Kind: KindVanilla, Hash: "v2"}, Content: []byte(`{"data":{}}`)}, nil)
+	repo.EXPECT().Get(gomock.Any(), "v2").Return(StoredRuleset{RulesetInfo: RulesetInfo{Kind: KindVanilla, Hash: "v2"}, Content: []byte(vanillaStatsOnly)}, nil)
 	repo.EXPECT().Get(gomock.Any(), hB).Return(StoredRuleset{RulesetInfo: RulesetInfo{Kind: KindBattleCompanies, Hash: hB}, Content: bc}, nil)
 	repo.EXPECT().Get(gomock.Any(), hG).Return(StoredRuleset{RulesetInfo: RulesetInfo{Kind: KindGlossary, Hash: hG}, Content: gl}, nil)
 	rules := NewRules(repo, nil)
@@ -192,7 +179,7 @@ func TestRulesForSeparatesTriples(t *testing.T) {
 
 func TestRulesForHonoursPinsFromTheBattleCompaniesFileAndWarns(t *testing.T) {
 	repo := NewMockrulesetRepository(gomock.NewController(t))
-	bc := `{"name":"BC","version":"1","extends":"V","data":{"vanillaAmbiguities":[{"kind":"keyword","name":"Song","status":"pinned","note":"n","occurrence":2}]}}`
+	bc := strings.Replace(bcFile, `"schemaVersion":2,`, `"schemaVersion":2,"vanilla":{"pins":[{"kind":"rule","name":"Song","occurrence":2}]},`, 1)
 	expectFiles(repo, []byte(vanillaWithDuplicates), []byte(bc), []byte(`{"name":"G","version":"1","terms":[]}`))
 	log, out := capture()
 	rs, err := NewRules(repo, log).For(context.Background(), triple)
@@ -202,7 +189,7 @@ func TestRulesForHonoursPinsFromTheBattleCompaniesFileAndWarns(t *testing.T) {
 	if d, _ := rs.Vanilla.Keyword("Song"); d != "v2" {
 		t.Errorf("Song = %q, want the pinned second occurrence", d)
 	}
-	if !strings.Contains(out.String(), "name=Knight") || strings.Contains(out.String(), "name=Song") {
+	if out.Len() != 0 { // a lean file reviews duplicates by pinning only: the others keep the first occurrence quietly
 		t.Errorf("log:\n%s", out)
 	}
 }
@@ -215,7 +202,7 @@ func TestRulesForErrorsAreNotCached(t *testing.T) {
 	if _, err := rules.For(context.Background(), triple); !errors.Is(err, boom) {
 		t.Fatalf("err = %v", err)
 	}
-	expectFiles(repo, []byte(`{"data":{}}`), []byte(`{"name":"BC","version":"1","extends":"V"}`), []byte(`{"name":"G","version":"1","terms":[]}`))
+	expectFiles(repo, []byte(vanillaStatsOnly), []byte(bcFile), []byte(`{"name":"G","version":"1","terms":[]}`))
 	if _, err := rules.For(context.Background(), triple); err != nil {
 		t.Errorf("retry after a failure: %v", err)
 	}
@@ -257,11 +244,7 @@ func TestRulesForStopsWaitingWhenTheContextEnds(t *testing.T) {
 
 func TestRuleSetKeywordOrderEntityThenBCThenVanilla(t *testing.T) {
 	vb, _ := ParseVanilla([]byte(`{"data":{"keywords":[{"name":"Both","definition":"vanilla"},{"name":"OnlyVanilla","definition":"vanilla only"}]}}`))
-	bb, err := ParseBattleCompanies([]byte(`{"name":"BC","version":"1","extends":"V","data":{"keywords":[{"name":"Both","definition":"bc"}]}}`))
-	if err != nil {
-		t.Fatal(err)
-	}
-	rs := &RuleSet{Vanilla: vb, BC: bb}
+	rs := &RuleSet{Vanilla: vb, BC: &BCBook{keywords: map[string]string{"Both": "bc"}}}
 	for _, tt := range []struct{ embedded, name, want string }{
 		{"entity", "Both", "entity"},
 		{"", "Both", "bc"},
@@ -354,12 +337,12 @@ func TestRulesCacheKeepsOnlyTheMostRecentlyUsedSets(t *testing.T) {
 	repo.EXPECT().Get(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, hash string) (StoredRuleset, error) {
 		switch hash {
 		case hB:
-			return StoredRuleset{RulesetInfo: RulesetInfo{Kind: KindBattleCompanies, Hash: hB}, Content: []byte(`{"name":"BC","version":"1","extends":"V"}`)}, nil
+			return StoredRuleset{RulesetInfo: RulesetInfo{Kind: KindBattleCompanies, Hash: hB}, Content: []byte(bcFile)}, nil
 		case hG:
 			return StoredRuleset{RulesetInfo: RulesetInfo{Kind: KindGlossary, Hash: hG}, Content: []byte(`{"name":"G","version":"1","terms":[]}`)}, nil
 		}
 		builds[hash]++
-		return StoredRuleset{RulesetInfo: RulesetInfo{Kind: KindVanilla, Hash: hash}, Content: []byte(`{"data":{}}`)}, nil
+		return StoredRuleset{RulesetInfo: RulesetInfo{Kind: KindVanilla, Hash: hash}, Content: []byte(vanillaStatsOnly)}, nil
 	}).AnyTimes()
 	rules := NewRules(repo, nil)
 	rules.max = 2
@@ -403,11 +386,11 @@ func TestRulesCacheNeverDropsABuildInProgress(t *testing.T) {
 		<-release
 		switch hash {
 		case hB:
-			return StoredRuleset{RulesetInfo: RulesetInfo{Kind: KindBattleCompanies, Hash: hB}, Content: []byte(`{"name":"BC","version":"1","extends":"V"}`)}, nil
+			return StoredRuleset{RulesetInfo: RulesetInfo{Kind: KindBattleCompanies, Hash: hB}, Content: []byte(bcFile)}, nil
 		case hG:
 			return StoredRuleset{RulesetInfo: RulesetInfo{Kind: KindGlossary, Hash: hG}, Content: []byte(`{"name":"G","version":"1","terms":[]}`)}, nil
 		}
-		return StoredRuleset{RulesetInfo: RulesetInfo{Kind: KindVanilla, Hash: hash}, Content: []byte(`{"data":{}}`)}, nil
+		return StoredRuleset{RulesetInfo: RulesetInfo{Kind: KindVanilla, Hash: hash}, Content: []byte(vanillaStatsOnly)}, nil
 	}).AnyTimes()
 	rules := NewRules(repo, nil)
 	rules.max = 1
@@ -448,3 +431,6 @@ func TestRulesWithMaxCached(t *testing.T) {
 		})
 	}
 }
+
+// vanillaStatsOnly is a vanilla file with the characteristics and nothing else: a Battle Companies file's stat names are read against them.
+const vanillaStatsOnly = `{"stats":[{"name":"Fight","abbreviation":"F"},{"name":"Courage","abbreviation":"C"},{"name":"","abbreviation":"|"},{"name":"Might","abbreviation":"M"},{"name":"Will","abbreviation":"W"},{"name":"Fate","abbreviation":"F"}],"data":{}}`

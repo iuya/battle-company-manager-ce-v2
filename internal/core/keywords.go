@@ -121,7 +121,7 @@ func normalizeKeywords(in []string) []string {
 			if to, ok := keywordSpellings[strings.ToLower(w)]; ok {
 				w = to
 			}
-			if w == "" || slices.ContainsFunc(out, func(o string) bool { return strings.EqualFold(o, w) }) {
+			if w == "" || slices.ContainsFunc(out, func(o string) bool { return sameName(o, w) }) {
 				continue
 			}
 			out = append(out, w)
@@ -135,13 +135,13 @@ func (b *VanillaBook) collectRaces() {
 	b.races = map[string]bool{}
 	for _, u := range b.units {
 		for _, r := range normalizeKeywords(u.Race) {
-			b.races[strings.ToLower(r)] = true
+			b.races[NameKey(r)] = true
 		}
 	}
 }
 
 // IsRace says whether the word is the race of some vanilla profile (Man, Goblin, Elf).
-func (b *VanillaBook) IsRace(word string) bool { return b != nil && b.races[strings.ToLower(word)] }
+func (b *VanillaBook) IsRace(word string) bool { return b != nil && b.races[NameKey(word)] }
 
 // keywordSet collects keywords, dropping repeats within a kind.
 type keywordSet struct {
@@ -157,7 +157,7 @@ func (s *keywordSet) add(kind KeywordKind, name, source string) {
 		list = &s.faction
 	}
 	for _, n := range normalizeKeywords([]string{name}) {
-		if !slices.ContainsFunc(*list, func(k UnitKeyword) bool { return strings.EqualFold(k.Name, n) }) {
+		if !slices.ContainsFunc(*list, func(k UnitKeyword) bool { return sameName(k.Name, n) }) {
 			*list = append(*list, UnitKeyword{Name: n, Kind: kind, Source: source})
 		}
 	}
@@ -200,7 +200,7 @@ func (r *RuleSet) UnitKeywords(p CompanyProfile, in UnitKeywordsInput) UnitKeywo
 			}
 		}
 	default:
-		v, alias, ok := resolveUnit(r, p, in.Type)
+		v, alias, ok := r.ResolveUnit(p, in.Type)
 		if !ok {
 			return UnitKeywords{}
 		}
@@ -327,7 +327,7 @@ func withAliasKeywords(rs *RuleSet, v VanillaUnit, a *UnitAlias) VanillaUnit {
 
 // resolveUnitKeywords is resolveUnit with the keywords the alias adds, for the company limits.
 func resolveUnitKeywords(rs *RuleSet, p CompanyProfile, name string) (VanillaUnit, *UnitAlias, bool) {
-	v, a, ok := resolveUnit(rs, p, name)
+	v, a, ok := rs.ResolveUnit(p, name)
 	return withAliasKeywords(rs, v, a), a, ok
 }
 

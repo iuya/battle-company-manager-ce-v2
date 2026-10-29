@@ -389,7 +389,7 @@ func ownerFixture(t *testing.T, units []core.CompanyUnit) *fixture {
 	f := newFixture(t, Config{})
 	d := campaignDetail()
 	d.OrganiserID = 99
-	d.Company = &core.CampaignCompany{ID: 1, Name: "Rangers", OwnerID: frodo.ID}
+	d.Companies = []core.CampaignCompany{{ID: 1, Name: "Rangers", OwnerID: frodo.ID}}
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().Match(gomock.Any(), int64(7), int64(3)).Return(endedMatch(), nil).AnyTimes()
 	f.camp.EXPECT().AftermathRules(gomock.Any(), int64(7)).Return(amRules, nil).AnyTimes()
@@ -407,7 +407,7 @@ func TestLevelUpsStepListsWaitingRollsAndOpensTheWindow(t *testing.T) {
 	f := ownerFixture(t, levelUnits())
 	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(amState(core.AftermathLevelUps, core.AftermathEdit), nil)
 	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
-	for _, want := range []string{"Aldor", "roll", `hx-get="/campaigns/7/my-company/units/10/levelup"`, `id="modal-body"`, "Continue to Finish", "Finish aftermath", `x-show="finish"`} {
+	for _, want := range []string{"Aldor", "roll", `hx-get="/campaigns/7/my-company/1/units/10/levelup"`, `id="modal-body"`, "Continue to Finish", "Finish aftermath", `x-show="finish"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("level-ups step lacks %q", want)
 		}
@@ -464,7 +464,7 @@ func TestFinishedAftermathShowsTheSummaryToEveryone(t *testing.T) {
 	f.camp.EXPECT().FinishAftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1), 2).Return(st, nil)
 	rec := amPost(f, "/finish", url.Values{"revision": {"2"}})
 	body := rec.Body.String()
-	for _, want := range []string{"Aftermath finished.", "The company", "&#43;2 Influence for a Win", "Aldor: &#43;3 Experience", `href="/campaigns/7/my-company"`, "✓"} {
+	for _, want := range []string{"Aftermath finished.", "The company", "&#43;2 Influence for a Win", "Aldor: &#43;3 Experience", `href="/campaigns/7/my-company/1"`, "✓"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("summary lacks %q:\n%s", want, body)
 		}
@@ -482,11 +482,11 @@ func myCompanyWith(t *testing.T, refs []core.AftermathRef) string {
 	detail.Aftermaths = refs
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	return f.do(f.signedIn(httpGet("/campaigns/7/my-company"))).Body.String()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	return f.do(f.signedIn(httpGet("/campaigns/7/my-company/1"))).Body.String()
 }
 
 func TestMyCompanyBannerAndLock(t *testing.T) {
@@ -514,12 +514,12 @@ func TestMyCompanyShowsPerksAndHistoryAndMarksOneUsed(t *testing.T) {
 	detail.History = []core.AftermathLine{{Kind: "influence", Text: "+2 Influence for a Win", Amount: 2, Match: 4, MatchID: 44, On: time.Date(2026, 10, 3, 20, 0, 0, 0, time.UTC)}, {Kind: "experience", Text: "Aldor: +1 Experience", Match: 4, MatchID: 44, On: time.Date(2026, 10, 3, 20, 0, 0, 0, time.UTC)}, {Kind: "injury", Text: "Brand: Injured", Match: 3}}
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	body := f.do(f.signedIn(httpGet("/campaigns/7/my-company"))).Body.String()
-	for _, want := range []string{`id="perks"`, "Rendezvous", "On the next reinforcement roll", `hx-post="/campaigns/7/my-company/perks/5/use"`, "Used (1)", "Vantage Point", "1 October 2026", `id="aftermath-history"`, "Influence for a Win", `<a class="underline" href="/campaigns/7/matches/44">Match 4</a>`, "· 3 Oct 2026", "<h3 class=\"!text-base\">Match 3</h3>"} {
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	body := f.do(f.signedIn(httpGet("/campaigns/7/my-company/1"))).Body.String()
+	for _, want := range []string{`id="perks"`, "Rendezvous", "On the next reinforcement roll", `hx-post="/campaigns/7/my-company/1/perks/5/use"`, "Used (1)", "Vantage Point", "1 October 2026", `id="aftermath-history"`, "Influence for a Win", `<a class="underline" href="/campaigns/7/matches/44">Match 4</a>`, "· 3 Oct 2026", "<h3 class=\"!text-base\">Match 3</h3>"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("My Company lacks %q", want)
 		}
@@ -528,12 +528,12 @@ func TestMyCompanyShowsPerksAndHistoryAndMarksOneUsed(t *testing.T) {
 		t.Error("a used perk has no button")
 	}
 	f.camp.EXPECT().UsePerk(gomock.Any(), frodo, int64(7), int64(1), int64(5)).Return(nil)
-	rec := f.do(f.signedIn(form("/campaigns/7/my-company/perks/5/use", nil)))
+	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/perks/5/use", nil)))
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Perk marked as used.") {
 		t.Errorf("mark used: %d", rec.Code)
 	}
 	f.camp.EXPECT().UsePerk(gomock.Any(), frodo, int64(7), int64(1), int64(6)).Return(core.Refuse("Only the owner of the company can use its perks."))
-	if rec := f.do(f.signedIn(form("/campaigns/7/my-company/perks/6/use", nil))); rec.Code != 422 || !strings.Contains(rec.Body.String(), "Only the owner") {
+	if rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/perks/6/use", nil))); rec.Code != 422 || !strings.Contains(rec.Body.String(), "Only the owner") {
 		t.Errorf("refused: %d", rec.Code)
 	}
 }

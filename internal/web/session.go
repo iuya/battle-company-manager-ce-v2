@@ -108,3 +108,12 @@ func redirect(w http.ResponseWriter, r *http.Request, url string) {
 	}
 	http.Redirect(w, r, url, http.StatusSeeOther)
 }
+
+// readOnly opens a core read scope for the length of a request that only reads (a GET page or card): the services it calls share the
+// company, campaign, match, Against the Odds record and live snapshot they read instead of asking the database again
+// (core.WithReadScope). Never wrap a handler that writes: a write does not invalidate the scope.
+func readOnly(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		next(w, r.WithContext(core.WithReadScope(r.Context())))
+	}
+}

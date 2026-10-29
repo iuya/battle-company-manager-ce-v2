@@ -1,7 +1,7 @@
 # Rules coverage: the rulebook against the app
 
-Every mechanic of the Battle Companies 2nd CE rules and what the app does with it today. Audited on 2026-10-27 against the code
-and the tests (not against older notes). It replaces the first feature map (bead `pdd`).
+Every mechanic of the Battle Companies 2nd CE rules and what the app does with it: where it lives in the code or the docs, and the test that covers it. Read it to find
+where a rule is implemented or to see what the app deliberately leaves to the table.
 
 - **Source** is a line of `sources/battle_companies_rules.txt` (gitignored; read it there, nothing is copied here). `S202` is
   line 202.
@@ -29,7 +29,7 @@ War's Aftermath (1 Injuries, 2 Experience, 3 Progression, 4 Influence), Step 3 C
 | Model maximum (15, 12 for some, per company) | company pages, S1996 | CM | DONE | `companybuild.go` `companyBlock`, effect `maxModels` | `TestEffectMaxModels`, `TestCompanyBlockKeepsToKeywordLimitsAndBalance` |
 | Name each model; roster sheet (profile, equipment, rules, injuries, XP) | S196 | CM | DONE | [frontend.md](frontend.md) "My Company", "Renaming units" | `TestAPromotionKeepsTheCompanysNameForTheUnit`, e2e `30-company`, `82-company-ui` |
 | Optional: You (don't) have my sword (Heroes discard any wargear) | S1398 | CM | DONE | `CampaignSettings.HeroesDropProfileGear`, `DropReason` | `TestTheOptionalRuleLetsHeroesDropProfileGear`, `TestBuildDetailTheOptionalRuleLetsHeroesDropProfileGear` |
-| Optional: Custom Selection (build the starting roster from any model of the charts, 60 points) | S202 | CM | N-A (decided not to build) | custom lists are edited in the rules JSON; the 60-point check is "not planned" in [plan-next.md](plan-next.md) | none |
+| Optional: Custom Selection (build the starting roster from any model of the charts, 60 points) | S202 | CM | N-A (decided not to build) | custom lists are edited in the rules JSON; the 60-point check is not built | none |
 | Optional: Custom Company (organiser edits a company's lists) | S1996 | CM | N-A (decided) | an organiser uploads a changed Battle Companies file ([admin.md](admin.md)); there is no in-app editor | `rulesets_test.go`, `ruleset_test.go` (store and validate an uploaded file) |
 | Company special rules: limit overrides and exemptions, unique wargear, granted rules, units with their own name, rule exchange | S1992 | CM | DONE | `applyCompanyRules` in `companybuild.go`, [frontend.md](frontend.md) "Company rules and hero upgrades" | `TestEffectLimitOverrideRaisesTheShareOfTheCompany`, `TestEffectLimitExemptionLeavesModelsOutOfTheCount`, `TestEffectCompanyLimitKeepsAKeywordToItsShare`, `TestUniqueWargearForAKindOfModelIsBuyable` |
 | Company special rules that act in the game (auras, rule substitutions such as "treat the Leader as Faramir") | S1992 | PH | N-A (played at the table; shown on the cards) | `companies[].effects[]` with `layer` match, shown only | none |
@@ -128,7 +128,7 @@ Details in [live-match.md](live-match.md).
 | Trackers for Wounds, Might, Will, Fate, mount, zones (Field, Retreated, casualties), action trackers that record experience flags | S457-466 | PH | DONE | `live.go`, `live_fold.go`, `live_service.go` | `TestFoldStatsSetAndZones`, `TestCheckRefusesImpossibleStates`, `TestFateBrokenRetreatDiedMountReturn` |
 | Match log with undo; live sync for viewers (SSE) | none (app) | APP | DONE | `live_hub.go`, `live_fold.go` | `TestLiveUndoThatBreaksALaterEntryIsRefused`, `TestLiveSubscribeRules`, `TestHubCoalescesEventsForASlowClient` |
 | Break Point (half the starting models, 66 percent for Muster of Isengard), Broken at the turn boundary, Courage tests, Heroic Resolve | break point rules, S4131 | PH | DONE (the app counts and prompts; players roll) | `live_break.go`, `breakPointPercent` | `TestBreakPointEdges`, `TestBrokenOnlyAtTheTurnBoundaryAndForGood`, `TestCourageTests`, `TestBreakRulesFromTheFile` |
-| All is Lost! (a Broken company flees: the opponent wins and claims the rewards; the fleeing company gets the Influence for taking part) | S225-228 | PH | DONE (decision: its Against the Odds bonuses are kept, see [review-register.md](review-register.md)) | `live_break.go`, `aftermath.go` | `TestAllIsLost`, `TestAllIsLostFightOnAndTheOfferExpires`, `TestAllIsLostKeepsTheExperienceBonus` |
+| All is Lost! (a Broken company flees: the opponent wins and claims the rewards; the fleeing company gets the Influence for taking part) | S225-228 | PH | DONE (the fleeing company keeps its Against the Odds bonuses) | `live_break.go`, `aftermath.go` | `TestAllIsLost`, `TestAllIsLostFightOnAndTheOfferExpires`, `TestAllIsLostKeepsTheExperienceBonus` |
 | MVP voted by the opposing player; objective flags | S466 | PH | DONE | `live_fold.go`, `MVPHint` | `TestMVPVotesTallyAndUndo`, `TestMVPHintForTheAftermathSheet`, `TestLiveObjectiveAndMVPEndChecks` |
 | To Wound chart reference | MESBG | PH | DONE | `towound.go`, [matches.md](matches.md) | `TestToWoundChartOfTheShippedGlossary`, e2e `93-to-wound` |
 | Unit keywords on cards (race, faction, type; mounted state) | none (app) | APP | DONE | `keywords.go`, [unit-keywords.md](unit-keywords.md) | `TestUnitKeywordsCases` (`keywords_test.go`), e2e `79-keywords` |
@@ -141,15 +141,15 @@ Details in [live-match.md](live-match.md).
 | Formation order of the roster | none (app) | CM | DONE | `OrderUnits` | `TestOrderUnitsHonoursTheSavedOrder` |
 | Organiser grants of Gold, Influence, XP with a note | none (app) | APP | DONE | `grant.go` | `TestGrantInputValidate`, `TestMatchesGrants` |
 | Campaign: invite links, members, pause, end, hand over, settings (shake the table, manual rolls, optional rules) | none (app) | APP | DONE | `campaigns.go`, `invites.go`, [admin.md](admin.md), [auth.md](auth.md) | `TestSetCampaignStatusRules`, `TestCampaignsHandOver`, `TestCampaignsSettings` |
-| Calendar, rounds, campaign victory, alliances between companies | none (not in the rulebook) | APP | N-A (decided not to build, [plan-next.md](plan-next.md)) | none | none |
-| Copy a company as a Tabletop Simulator army list | none (app) | CM | DONE | `ttslist.go`, [tabletop-simulator.md](tabletop-simulator.md) | `ttslist_golden_test.go`, e2e `91-tts` |
+| Calendar, rounds, campaign victory, alliances between companies | none (not in the rulebook) | APP | N-A (not built) | none | none |
+| Copy a company as a Tabletop Simulator army list | none (app) | CM | DONE | `ttslist.go`, [tabletop-simulator.md](tabletop-simulator.md) | `ttslist_test.go`, `TestTTSListAllCompanies`, e2e `91-tts` |
 
-## Gaps (what is really missing), in recommended order
+## Differences from the printed rules
 
-No gap is open. Everything marked N-A is decided or physical. The remaining differences are readings the owner already confirmed (raising the die only, the fled
-   company keeping its Against the Odds bonuses, the Mirkwood Warg Marauder as three models) and rules played at the table
-   (auras, rule substitutions, scenario special rules, Maelstrom of Battle arrival rolls).
+No mechanic of the rulebook's loop is missing. Everything marked N-A is physical or played at the table (auras, rule substitutions, scenario special rules, the arrival rolls of Maelstrom of Battle). The deliberate readings are:
 
-Not gaps by decision: Custom Selection and Custom Company (rules file edited instead), Bonus Progression Rolls (no scenario
-grants one in the data; if a future scenario does, feed `campaign.progression.xp.bonusRolls`), calendar, standings beyond the
-points rank, alliances.
+- a reinforcement roll can only be raised with Influence (lowering is the free pick of a lower result);
+- the company that flees with All is Lost keeps its Against the Odds bonuses;
+- the Mirkwood Warg Marauder counts as three models for the Break Point.
+
+Not built by design: Custom Selection and Custom Company (the rules file is edited instead), Bonus Progression Rolls (no scenario grants one in the data; if a future scenario does, feed `campaign.progression.xp.bonusRolls`), a calendar, campaign victory, standings beyond the points rank, and alliances.

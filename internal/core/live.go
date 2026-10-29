@@ -7,9 +7,9 @@ import (
 	"time"
 )
 
-// Live match mode: the contract between the web layer (pib.16-21), the live service (pib.11) and the Postgres adapter (pib.10).
+// Live match mode: the contract between the web layer, the live service and the Postgres adapter.
 // Rules and the design are in docs/live-match.md and docs/architecture.md ("Live match"). This file holds declarations only;
-// the fold of the log, Apply, Undo and the hub are implemented in the beads named there.
+// the fold of the log, Apply, Undo and the hub are implemented in live_fold.go, live_service.go and live_hub.go.
 
 //go:generate go tool mockgen -typed -source=live.go -destination=mock_live_test.go -package=core
 

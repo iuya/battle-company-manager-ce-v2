@@ -121,9 +121,9 @@ func TestCampaignsRateCompaniesFromTheRules(t *testing.T) {
 		}
 	})
 	t.Run("Get", func(t *testing.T) {
-		f.campaigns.EXPECT().Get(ctx, int64(9), int64(5)).Return(CampaignDetail{CampaignSummary: CampaignSummary{ID: 5, Company: &listed}, Settings: CampaignSettings{ManualRolls: true}}, nil)
+		f.campaigns.EXPECT().Get(ctx, int64(9), int64(5)).Return(CampaignDetail{CampaignSummary: CampaignSummary{ID: 5, Companies: []CampaignCompany{listed}}, Settings: CampaignSettings{ManualRolls: true}}, nil)
 		got, err := f.svc.Get(ctx, 9, 5)
-		if err != nil || got.Company.Points != want.Points || !got.Settings.ManualRolls {
+		if err != nil || len(got.Companies) != 1 || got.Companies[0].Points != want.Points || !got.Settings.ManualRolls {
 			t.Errorf("Get = %+v, %v", got, err)
 		}
 		if listed.Points != 0 {
@@ -131,9 +131,9 @@ func TestCampaignsRateCompaniesFromTheRules(t *testing.T) {
 		}
 	})
 	t.Run("List", func(t *testing.T) {
-		f.campaigns.EXPECT().List(ctx, int64(9), true).Return([]CampaignSummary{{ID: 5, Company: &listed}, {ID: 6}}, nil)
+		f.campaigns.EXPECT().List(ctx, int64(9), true).Return([]CampaignSummary{{ID: 5, Companies: []CampaignCompany{listed}}, {ID: 6}}, nil)
 		got, err := f.svc.List(ctx, 9, true)
-		if err != nil || len(got) != 2 || got[0].Company.FullPoints != want.FullPoints || got[1].Company != nil {
+		if err != nil || len(got) != 2 || got[0].Companies[0].FullPoints != want.FullPoints || got[1].Companies != nil {
 			t.Errorf("List = %+v, %v", got, err)
 		}
 	})
@@ -286,10 +286,10 @@ func TestCampaignsCompaniesReadTheRostersOnce(t *testing.T) {
 func TestCampaignsMembers(t *testing.T) {
 	ctx := context.Background()
 	f := newCampaignFixture(t)
-	want := []CampaignMember{{UserID: 1, Name: "Org", Organiser: true, CompanyID: 4, CompanyName: "Rangers"}, {UserID: 2, Name: "No company"}}
+	want := []CampaignMember{{UserID: 1, Name: "Org", Organiser: true, Companies: []MemberCompany{{ID: 4, Name: "Rangers"}, {ID: 6, Name: "Riders"}}}, {UserID: 2, Name: "No company"}}
 	f.campaigns.EXPECT().Members(ctx, int64(5)).Return(want, nil)
 	got, err := f.svc.Members(ctx, 5)
-	if err != nil || len(got) != 2 || got[1].CompanyID != 0 {
+	if err != nil || len(got) != 2 || len(got[0].Companies) != 2 || len(got[1].Companies) != 0 {
 		t.Fatalf("Members = %+v, %v", got, err)
 	}
 	f.campaigns.EXPECT().Members(ctx, int64(6)).Return(nil, ErrNotFound)
@@ -303,12 +303,76 @@ func TestCampaignsNavCampaignsDoesNotRate(t *testing.T) {
 	f := newCampaignFixture(t)
 	ctx := context.Background()
 	f.campaigns.EXPECT().List(ctx, int64(3), true).Return([]CampaignSummary{
-		{ID: 1, Name: "A", Status: CampaignActive, Company: &CampaignCompany{ID: 9}},
+		{ID: 1, Name: "A", Status: CampaignActive, Companies: []CampaignCompany{{ID: 9}}},
 		{ID: 2, Name: "B", Status: CampaignFinished},
 	}, nil)
 	got, err := f.svc.NavCampaigns(ctx, 3, true)
 	want := []CampaignNav{{ID: 1, Name: "A", Status: CampaignActive}, {ID: 2, Name: "B", Status: CampaignFinished}}
 	if err != nil || len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
 		t.Fatalf("NavCampaigns = %+v, %v", got, err)
+	}
+}
+
+// rosterByID adds the by-company roster read to a company repository, as the Postgres store has it, and counts the calls.
+type rosterByID struct {
+	companyRepository
+	byID  map[int64]CompanyState
+	calls [][]int64
+}
+
+func (r *rosterByID) ReadRosterOf(_ context.Context, ids []int64) ([]CompanyState, error) {
+	r.calls = append(r.calls, ids)
+	var out []CompanyState
+	for _, id := range ids {
+		if st, ok := r.byID[id]; ok {
+			out = append(out, st)
+		}
+	}
+	return out, nil
+}
+
+// The campaign list rates the player's own companies of every campaign from ONE read of those companies (no ReadRoster, no Read: a
+// call fails), and a page that rates a few companies of a campaign reads only those; the figures are the ones the whole roster gives.
+func TestCampaignsRateOwnCompaniesFromOneRosterRead(t *testing.T) {
+	f := newCampaignFixture(t)
+	ctx := context.Background()
+	f.hashes()
+	repo := &rosterByID{companyRepository: f.companies, byID: map[int64]CompanyState{}}
+	svc := NewCampaigns(f.campaigns, repo, f.rulesets, staticRules{shippedRules(t)}, nil)
+	var list []CampaignSummary
+	for id := int64(1); id <= 3; id++ {
+		st := gondor()
+		st.Company.ID = id * 10
+		repo.byID[st.Company.ID] = st
+		list = append(list, CampaignSummary{ID: id, Name: "c", Companies: []CampaignCompany{{ID: st.Company.ID, Name: "mine"}}})
+	}
+	list = append(list, CampaignSummary{ID: 4, Name: "no company"})
+	f.campaigns.EXPECT().List(ctx, int64(9), true).Return(list, nil)
+	got, err := svc.List(ctx, 9, true)
+	if err != nil || len(got) != 4 {
+		t.Fatalf("List = %+v, %v", got, err)
+	}
+	want := BuildDetail(shippedRules(t), CampaignSettings{}, gondor()).CampaignCompany
+	for _, g := range got[:3] {
+		if c := g.Companies[0]; c.Points != want.Points || c.FullPoints != want.FullPoints || c.Units != want.Units {
+			t.Errorf("campaign %d: %+v, want the figures %+v", g.ID, c, want)
+		}
+	}
+	if len(repo.calls) != 1 || len(repo.calls[0]) != 3 {
+		t.Errorf("one read of the three companies: %v", repo.calls)
+	}
+
+	// a campaign page: its own company only
+	repo.calls = nil
+	f.campaigns.EXPECT().Get(ctx, int64(9), int64(1)).Return(CampaignDetail{CampaignSummary: list[0]}, nil)
+	d, err := svc.Get(ctx, 9, 1)
+	if err != nil || d.Companies[0].Points != want.Points || len(repo.calls) != 1 || len(repo.calls[0]) != 1 {
+		t.Errorf("Get = %+v, %v, reads %v", d.Companies, err, repo.calls)
+	}
+	// a company that is gone from the store is not rated silently
+	delete(repo.byID, 10)
+	f.campaigns.EXPECT().Get(ctx, int64(9), int64(1)).Return(CampaignDetail{CampaignSummary: CampaignSummary{ID: 1, Companies: []CampaignCompany{{ID: 10}}}}, nil)
+	if _, err := svc.Get(ctx, 9, 1); !errors.Is(err, ErrNotFound) {
+		t.Errorf("a listed company that has no roster: %v", err)
 	}
 }

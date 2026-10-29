@@ -66,7 +66,7 @@ export default async function (h) {
     assert.match(info.glossary || '', new RegExp(`^/campaigns/${cid}/glossary#t-`), 'Open in glossary');
     assert.equal(info.focus, 'concept-title', 'the focus moves into the popup');
     assert.ok(info.back, 'nothing to go back to yet');
-    assert.equal(new URL(galadriel.page.url()).pathname, `/campaigns/${cid}/my-company`, 'the page did not navigate');
+    assert.match(new URL(galadriel.page.url()).pathname, new RegExp(`^/campaigns/${cid}/my-company/\\d+$`), 'the page did not navigate');
   });
 
   await h.step('concepts: a chip swaps the content, Back returns, Escape closes and the focus goes back to the term', async () => {
@@ -226,7 +226,7 @@ export default async function (h) {
     await link.asElement().click();
     await galadriel.page.waitForSelector('.concept-pop #concept-title');
     await waitTitle(galadriel);
-    assert.equal(new URL(galadriel.page.url()).pathname, `/campaigns/${cid}/my-company`, `clicking "${name}" did not leave the page`);
+    assert.match(new URL(galadriel.page.url()).pathname, new RegExp(`^/campaigns/${cid}/my-company/\\d+$`), `clicking "${name}" did not leave the page`);
     assert.ok(await galadriel.page.evaluate(() => !!document.querySelector('.unit-expanded')), 'the card stays open under the popup');
     await galadriel.page.keyboard.press('Escape');
     await popGone(galadriel);

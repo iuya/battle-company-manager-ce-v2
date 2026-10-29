@@ -39,29 +39,29 @@ func TestMatches(t *testing.T) {
 	sides := []core.NewSide{{Name: "Riders", Companies: []int64{a.ID}}, {Name: "Guards", Companies: []int64{b.ID}}}
 
 	// Create: membership, companies of the campaign, no duplicates, numbering.
-	if _, err := repo.Create(ctx, camp.ID, outsider, sides); !errors.Is(err, core.ErrNotFound) {
+	if _, err := repo.Create(ctx, camp.ID, outsider, core.NewMatch{Sides: sides}); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("non-member: %v", err)
 	}
-	if _, err := repo.Create(ctx, 0, org, sides); !errors.Is(err, core.ErrNotFound) {
+	if _, err := repo.Create(ctx, 0, org, core.NewMatch{Sides: sides}); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("unknown campaign: %v", err)
 	}
-	if _, err := repo.Create(ctx, camp.ID, org, []core.NewSide{sides[0], {Name: "X", Companies: []int64{foreign.ID}}}); !errors.Is(err, core.ErrNotFound) {
+	if _, err := repo.Create(ctx, camp.ID, org, core.NewMatch{Sides: []core.NewSide{sides[0], {Name: "X", Companies: []int64{foreign.ID}}}}); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("company of another campaign: %v", err)
 	}
-	if _, err := repo.Create(ctx, camp.ID, org, []core.NewSide{sides[0], {Name: "X", Companies: []int64{a.ID}}}); !errors.Is(err, core.ErrInvalidMatch) {
+	if _, err := repo.Create(ctx, camp.ID, org, core.NewMatch{Sides: []core.NewSide{sides[0], {Name: "X", Companies: []int64{a.ID}}}}); !errors.Is(err, core.ErrInvalidMatch) {
 		t.Fatalf("company twice: %v", err)
 	}
 	if l, _ := repo.List(ctx, camp.ID); len(l) != 0 {
 		t.Fatalf("failed creates leave nothing: %+v", l)
 	}
-	m1, err := repo.Create(ctx, camp.ID, org, sides)
+	m1, err := repo.Create(ctx, camp.ID, org, core.NewMatch{Sides: sides})
 	if err != nil || m1.Number != 1 || m1.Revision != 1 || m1.Ended || m1.Scenario != nil || len(m1.Sides) != 2 ||
 		m1.Sides[0].Name != "Riders" || m1.Sides[1].Companies[0].ID != b.ID || m1.Sides[1].Companies[0].Owner != "mtwo" || m1.PlayedOn.IsZero() {
 		t.Fatalf("create: %+v, %v", m1, err)
 	}
 	// A company is in one open match at a time: m1 is out of the way (raw SQL, so revisions stay) while m2 is created.
 	var busy *core.CompanyBusyError
-	if _, err := repo.Create(ctx, camp.ID, p2, sides); !errors.As(err, &busy) || !errors.Is(err, core.ErrRefused) || busy.Number != 1 || busy.MatchID != m1.ID || busy.Company != "Alpha" {
+	if _, err := repo.Create(ctx, camp.ID, p2, core.NewMatch{Sides: sides}); !errors.As(err, &busy) || !errors.Is(err, core.ErrRefused) || busy.Number != 1 || busy.MatchID != m1.ID || busy.Company != "Alpha" {
 		t.Fatalf("company in an open match: %v", err)
 	}
 	setEnded := func(id int64, ended bool) {
@@ -71,7 +71,7 @@ func TestMatches(t *testing.T) {
 		}
 	}
 	setEnded(m1.ID, true)
-	m2, err := repo.Create(ctx, camp.ID, p2, []core.NewSide{{Name: "B", Companies: []int64{b.ID}}, {Name: "A", Companies: []int64{a.ID}}})
+	m2, err := repo.Create(ctx, camp.ID, p2, core.NewMatch{Sides: []core.NewSide{{Name: "B", Companies: []int64{b.ID}}, {Name: "A", Companies: []int64{a.ID}}}})
 	if err != nil || m2.Number != 2 {
 		t.Fatalf("second: %+v, %v", m2, err)
 	}
@@ -258,7 +258,7 @@ func TestMatchSideRoles(t *testing.T) {
 	if _, err := w.s.pool.Exec(w.ctx, `UPDATE matches SET ended = true, ended_on = now() WHERE id = $1`, w.match.ID); err != nil {
 		t.Fatal(err)
 	}
-	m, err := repo.Create(w.ctx, w.camp, w.org, []core.NewSide{{Name: "A", Companies: []int64{w.a.ID}, Role: "attacker"}, {Name: "B", Companies: []int64{w.b.ID}, Role: "defender"}})
+	m, err := repo.Create(w.ctx, w.camp, w.org, core.NewMatch{Sides: []core.NewSide{{Name: "A", Companies: []int64{w.a.ID}, Role: "attacker"}, {Name: "B", Companies: []int64{w.b.ID}, Role: "defender"}}})
 	if err != nil || m.Sides[0].Role != "attacker" || m.Sides[1].Role != "defender" {
 		t.Fatalf("create with roles: %+v %v", m.Sides, err)
 	}

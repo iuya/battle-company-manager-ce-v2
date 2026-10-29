@@ -20,7 +20,7 @@ tooltip-name | Elven hand-and-a-half weapon | tooltip (bc definition) never says
 tooltip-name | Elven lance | tooltip (bc definition) never says "Elven lance": A Cavalry model using a lance adds 1 to its To Wound rolls when making Strikes i…
 tooltip-name | Elven pike | tooltip (bc definition) never says "Elven pike": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
 tooltip-name | Elven spear | tooltip (bc definition) never says "Elven spear": Support: an Infantry model with it that is not Engaged in Combat can assist a fr…
-tooltip-name | Elven throwing weapons | tooltip (bc definition) never says "Elven throwing weapons": 6" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
+tooltip-name | Elven throwing weapons | tooltip (bc armoury) never says "Elven throwing weapons": Throwing weapon: can be used in the Shoot Phase even after a full Move (no Move-…
 tooltip-name | Elven throwing weapon | tooltip (bc definition) never says "Elven throwing weapon": 6" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
 tooltip-name | Envenom Weapon (X) | tooltip (bc definition) never says "Envenom Weapon (X)": When a model purchases Envenom Weapon, they must decide which weapon on their pr…
 tooltip-name | Esgaroth Bow | tooltip (bc definition) never says "Esgaroth Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
@@ -434,7 +434,7 @@ Elven lance | gear | bc definition |  | 4f2e75d6
 Elven pike | gear | bc definition |  | 5f6060e2
 Elven spear | gear | bc definition |  | a07b16fc
 Elven throwing weapon | gear | bc definition | Elven throwing weapon | 7c19502f
-Elven throwing weapons | gear | bc definition | Elven throwing weapons | 7c19502f
+Elven throwing weapons | gear | bc armoury | Elven throwing weapons | 2fd08784
 Envenom Weapon (X) | gear | bc definition | Envenom Weapon (X) | 15b47736
 Esgaroth Bow | gear | bc definition | Esgaroth Bow | aa321757
 Fell Warg | gear | bc armoury | Fell Warg | a2c5ffdf
@@ -465,7 +465,7 @@ Small Shield | gear | bc definition | Small Shield | cb8c5e2c
 Spear | gear | bc definition | Spear | 761cb2e2
 Throwing Spears | gear | bc definition | Throwing Spear | d5b6b5e7
 Throwing weapon | gear | bc definition | Throwing Weapons | 160baaa6
-Throwing weapons | gear | bc definition | Throwing Weapons | 160baaa6
+Throwing weapons | gear | bc armoury | Throwing Weapons | 6561645c
 Tookish Hunter | gear | bc definition | Tookish Hunter | 25b80f72
 Torching Brand | gear | bc definition | Torching Brand | 85ef5e26
 Traps & Snares | gear | bc definition | Traps & Snares | 69a67031
@@ -501,8 +501,8 @@ gear "Battlin' Brandybuck" -> key "battlinbrandybuck" | annotation "Battlin' Bra
 gear "Dwarf longbow" -> key "dwarflongbow" | offer "Dwarf Longbow" size "" also [] | annotation "Dwarf Longbow" | vanilla gear "Dwarf Longbow"
 gear "Elf bow" -> key "elfbow" | offer "Elf Bow" size "" also [] | annotation "Elf Bow" | vanilla gear "Elf Bow"
 gear "Elven Cloak" -> key "elvencloak" | annotation "Elven Cloak" | vanilla gear "Elven Cloak"
-gear "Elven hand-and-a-half weapon" -> key "elvenhandandahalfweapon" | offer "Elven hand-and-a-half weapon" size "" also [Elven-made Hand-and-a-half Weapon Elven-made hand-and-a-half weapon] | annotation "Elven hand-and-a-half weapon"
-gear "Elven throwing weapons" -> key "elventhrowingweapon" | offer "Elven throwing weapon" size "" also [Elven throwing weapons] | annotation "Elven throwing weapon" | vanilla gear "Elven throwing weapons"
+gear "Elven hand-and-a-half weapon" -> key "elvenhandandahalfweapon" | offer "Elven hand-and-a-half weapon" size "" also [] | annotation "Elven hand-and-a-half weapon"
+gear "Elven throwing weapons" -> key "elventhrowingweapon" | offer "Elven throwing weapon" size "" also [] | vanilla gear "Elven throwing weapons"
 gear "Hand weapon" -> key "handweapon" | annotation "Hand weapon"
 gear "Hand-and-a-half weapon" -> key "handandahalfweapon" | offer "Hand-and-a-half weapon" size "" also [] | annotation "Hand-and-a-half weapon"
 gear "Longbow" -> key "longbow" | offer "Longbow" size "" also [] | annotation "Longbow" | vanilla gear "Longbow"
@@ -511,9 +511,9 @@ gear "Shield" -> key "shield" | offer "Shield" size "" also [] | annotation "Shi
 gear "Shield and Spear" -> key "shieldandspear" | vanilla gear "Shield and Spear"
 gear "Short Bow" -> key "shortbow" | offer "Short Bow" size "" also [] | annotation "Short Bow" | vanilla gear "Short Bow"
 gear "Spear" -> key "spear" | offer "Spear" size "" also [] | annotation "Spear"
-gear "Throwing weapons" -> key "throwingweapon" | offer "Throwing weapon" size "" also [Throwing weapons] | annotation "Throwing weapon" | vanilla gear "Throwing weapons"
+gear "Throwing weapons" -> key "throwingweapon" | offer "Throwing weapon" size "" also [] | vanilla gear "Throwing weapons"
 gear "Tookish Hunter" -> key "tookishhunter" | annotation "Tookish Hunter" | vanilla gear "Tookish Hunter"
-gear "Two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe Two-handed axe] | annotation "Two-handed weapon"
+gear "Two-handed weapon" -> key "twohandedweapon" | offer "Two-handed weapon" size "" also [Two-handed Axe] | annotation "Two-handed weapon"
 gear "War Horn" -> key "warhorn" | annotation "War Horn" | vanilla gear "War Horn"
 gear "Wood Elf spear" -> key "woodelfspear" | annotation "Wood Elf Spear" | vanilla gear "Wood Elf Spear"
 rule "\"Hold positions, loose the arrows!\"" -> label "\"Hold positions, loose the arrows!\"" | text from bc rule | glossary "\"Hold positions, loose the arrows!\""

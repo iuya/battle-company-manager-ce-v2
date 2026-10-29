@@ -21,7 +21,7 @@ func slotTag(t *testing.T, body, id string) string {
 	return body[i : i+strings.Index(body[i:], ">")+1]
 }
 
-// The full match page draws the cards it used to fetch after loading (one round trip fewer); the slots keep only the refresh on
+// The full match page draws its cards inline (one round trip fewer); the slots keep only the refresh on
 // live:match, so nothing fetches on load.
 func TestMatchPageDrawsItsCardsInline(t *testing.T) {
 	f := atoFixture(t)
@@ -45,7 +45,7 @@ func TestMatchPageDrawsItsCardsInline(t *testing.T) {
 	}
 }
 
-// A card that cannot be built inline stays a lazy slot (the old fetch on load), the page itself is fine.
+// A card that cannot be built inline stays a lazy slot (fetched on load), the page itself is fine.
 func TestMatchPageCardThatFailsStaysLazy(t *testing.T) {
 	f := atoFixture(t)
 	f.camp.EXPECT().EndChecks(gomock.Any(), frodo, int64(7), int64(3)).Return(core.EndChecks{}, nil)
@@ -56,5 +56,29 @@ func TestMatchPageCardThatFailsStaysLazy(t *testing.T) {
 	}
 	if tag := slotTag(t, rec.Body.String(), "ato-slot"); !strings.Contains(tag, `hx-trigger="load"`) {
 		t.Errorf("a failed card falls back to the fetch on load: %s", tag)
+	}
+}
+
+// The page names the state its cards were built from, so that its event stream does not fetch them again.
+func TestMatchPageSendsItsGenerationToTheStream(t *testing.T) {
+	f := atoFixture(t)
+	f.camp.EXPECT().LiveGeneration(gomock.Any(), frodo, int64(7), int64(3)).Return("4.41", nil)
+	f.camp.EXPECT().AgainstTheOdds(gomock.Any(), frodo, int64(7), int64(3)).Return(atoCard(), nil)
+	f.camp.EXPECT().EndChecks(gomock.Any(), frodo, int64(7), int64(3)).Return(core.EndChecks{}, nil)
+	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), liveLogPage).Return(logEntries(2, 5), nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	if tag := slotTag(t, body, "live-log-slot"); !strings.Contains(tag, `data-live-since="4.41"`) {
+		t.Errorf("the log slot carries the generation: %s", tag)
+	}
+}
+
+// Without a generation (it could not be read) the slot names none, and the stream starts with a full sync.
+func TestMatchPageWithoutAGenerationNamesNone(t *testing.T) {
+	f := atoFixture(t)
+	f.camp.EXPECT().EndChecks(gomock.Any(), frodo, int64(7), int64(3)).Return(core.EndChecks{}, nil)
+	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), liveLogPage).Return(logEntries(2, 5), nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	if tag := slotTag(t, body, "live-log-slot"); strings.Contains(tag, "data-live-since") {
+		t.Errorf("no generation to send: %s", tag)
 	}
 }

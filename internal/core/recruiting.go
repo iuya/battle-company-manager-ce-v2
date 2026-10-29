@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -36,8 +35,8 @@ func newRecruitEnv(rs *RuleSet, settings CampaignSettings, st CompanyState) recr
 }
 
 // mutate runs a step of the recruit on the locked state of the user's company.
-func (s *RecruitService) mutate(ctx context.Context, user User, campaignID int64, fn func(env recruitEnv, st *CompanyState) error) error {
-	id, err := s.myCompanyToChange(ctx, user, campaignID)
+func (s *RecruitService) mutate(ctx context.Context, user User, campaignID, companyID int64, fn func(env recruitEnv, st *CompanyState) error) error {
+	id, err := s.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -51,8 +50,8 @@ func (s *RecruitService) mutate(ctx context.Context, user User, campaignID int64
 }
 
 // RecruitState is the recruit in progress, nil when there is none.
-func (s *RecruitService) RecruitState(ctx context.Context, user User, campaignID int64) (*RecruitRoll, error) {
-	id, err := s.myCompany(ctx, user, campaignID)
+func (s *RecruitService) RecruitState(ctx context.Context, user User, campaignID, companyID int64) (*RecruitRoll, error) {
+	id, err := s.ownCompany(ctx, user, campaignID, companyID)
 	if err != nil {
 		return nil, err
 	}
@@ -94,8 +93,8 @@ func (s *RecruitService) RecruitState(ctx context.Context, user User, campaignID
 // RollRecruit makes the roll of a recruit (roll 0 is rolled by the app). The first roll pays the company's reinforcement price,
 // whatever it gives; it can then be adjusted with influence and confirmed (ConfirmRecruit). A "special chart" result leads to a
 // second roll, which is free.
-func (s *RecruitService) RollRecruit(ctx context.Context, user User, campaignID int64, roll int, thrown bool) error {
-	return s.RollRecruitWithPerk(ctx, user, campaignID, roll, thrown, 0)
+func (s *RecruitService) RollRecruit(ctx context.Context, user User, campaignID, companyID int64, roll int, thrown bool) error {
+	return s.RollRecruitWithPerk(ctx, user, campaignID, companyID, roll, thrown, 0)
 }
 
 // ErrInvalidRoll is a roll or a perk adjustment the rules do not allow (fit to show).
@@ -123,7 +122,7 @@ func UnusedPerk(perks []Perk, effect string) (Perk, bool) {
 // before the chart lookup. It needs an unused Rendezvous perk, which is used up in the same transaction as the roll (so it cannot be
 // used twice); the roll line says "5, Rendezvous +1 = 6". The perk is for the first reinforcement roll of the aftermath, so only the
 // roll that pays for a new recruit takes it (not the free roll on the special chart).
-func (s *RecruitService) RollRecruitWithPerk(ctx context.Context, user User, campaignID int64, roll int, thrown bool, perkAdjust int) error {
+func (s *RecruitService) RollRecruitWithPerk(ctx context.Context, user User, campaignID, companyID int64, roll int, thrown bool, perkAdjust int) error {
 	rs, settings, err := s.ruleset(ctx, campaignID)
 	if err != nil {
 		return err
@@ -135,7 +134,7 @@ func (s *RecruitService) RollRecruitWithPerk(ctx context.Context, user User, cam
 	if msg := settings.RollRefusal(roll > 0, thrown); msg != "" {
 		return Refuse("%s", msg)
 	}
-	return s.mutate(ctx, user, campaignID, func(env recruitEnv, st *CompanyState) error {
+	return s.mutate(ctx, user, campaignID, companyID, func(env recruitEnv, st *CompanyState) error {
 		if st.Recruit.Roll == nil { // a recruit in progress may be finished; a new one is locked
 			if err := st.Locked(); err != nil {
 				return err
@@ -192,9 +191,9 @@ func (s *RecruitService) RollRecruitWithPerk(ctx context.Context, user User, cam
 // the company's second option, "opt:N" for one of the units of a choice, "member" for the missing member of a team instead of a
 // special chart result. The result is a unit joining, a "choice of options" waiting for the player (Choice), or nothing; a
 // "special chart" result keeps the recruit going (Next), one that cannot join leaves a choice of a lower one (Lower).
-func (s *RecruitService) ConfirmRecruit(ctx context.Context, user User, campaignID int64, adjust int, pick string) (RecruitResult, error) {
+func (s *RecruitService) ConfirmRecruit(ctx context.Context, user User, campaignID, companyID int64, adjust int, pick string) (RecruitResult, error) {
 	var out RecruitResult
-	err := s.mutate(ctx, user, campaignID, func(env recruitEnv, st *CompanyState) error {
+	err := s.mutate(ctx, user, campaignID, companyID, func(env recruitEnv, st *CompanyState) error {
 		rr := st.Recruit.Roll
 		if rr == nil || !rr.Rolled {
 			return Refuse("There is no roll to confirm.")
@@ -273,7 +272,7 @@ func (s *RecruitService) ConfirmRecruit(ctx context.Context, user User, campaign
 				return nil
 			}
 			st.Recruit.Lower = &LowerChoice{Prefix: prefix, Paid: step.Paid, Adjusted: step.Adjusted + abs(points), Roll: final,
-				Reason: res.Text + ": choose from the chart.", Cannot: strings.ToLower(res.Text), Stage: step.Stage, Entries: entries, Picks: picksOf(res.Text)}
+				Reason: res.Text + ": choose from the chart.", Cannot: strings.ToLower(res.Text), Stage: step.Stage, Entries: entries, Picks: max(1, res.Picks)}
 			out = RecruitResult{Roll: final, Summary: prefix + strings.ToLower(res.Text) + ": choose your result.", Lower: true}
 			return nil
 		}
@@ -283,22 +282,10 @@ func (s *RecruitService) ConfirmRecruit(ctx context.Context, user User, campaign
 	return out, err
 }
 
-var picksPattern = regexp.MustCompile(`(?i)\bany (\d)\b`)
-
-// picksOf is how many results a "choice" result lets the player take ("Choose any 2 Hobbits from above").
-func picksOf(text string) int {
-	if m := picksPattern.FindStringSubmatch(text); m != nil {
-		if n, err := strconv.Atoi(m[1]); err == nil && n > 1 {
-			return n
-		}
-	}
-	return 1
-}
-
 // ChooseLower settles a recruit whose result could not join (or was a "choice") with the result the player picked.
-func (s *RecruitService) ChooseLower(ctx context.Context, user User, campaignID int64, index int) (RecruitResult, error) {
+func (s *RecruitService) ChooseLower(ctx context.Context, user User, campaignID, companyID int64, index int) (RecruitResult, error) {
 	var out RecruitResult
-	err := s.mutate(ctx, user, campaignID, func(env recruitEnv, st *CompanyState) error {
+	err := s.mutate(ctx, user, campaignID, companyID, func(env recruitEnv, st *CompanyState) error {
 		low := st.Recruit.Lower
 		if low == nil {
 			return Refuse("There is no recruit waiting for a lower result.")
@@ -335,13 +322,13 @@ func (s *RecruitService) ChooseLower(ctx context.Context, user User, campaignID 
 }
 
 // RecruitSpecial buys one of the company's special units directly for its own influence cost.
-func (s *RecruitService) RecruitSpecial(ctx context.Context, user User, campaignID int64, unit string) (RecruitResult, error) {
+func (s *RecruitService) RecruitSpecial(ctx context.Context, user User, campaignID, companyID int64, unit string) (RecruitResult, error) {
 	var out RecruitResult
-	err := s.mutate(ctx, user, campaignID, func(env recruitEnv, st *CompanyState) error {
+	err := s.mutate(ctx, user, campaignID, companyID, func(env recruitEnv, st *CompanyState) error {
 		if err := st.Locked(); err != nil {
 			return err
 		}
-		i := slices.IndexFunc(env.bcC.SpecialUnits, func(su SpecialUnit) bool { return strings.EqualFold(su.Unit, unit) })
+		i := slices.IndexFunc(env.bcC.SpecialUnits, func(su SpecialUnit) bool { return sameName(su.Unit, unit) })
 		if i < 0 {
 			return ErrNotFound
 		}
@@ -367,8 +354,8 @@ func (s *RecruitService) RecruitSpecial(ctx context.Context, user User, campaign
 }
 
 // PendingChoice is the recruit waiting for its options, nil when there is none.
-func (s *RecruitService) PendingChoice(ctx context.Context, user User, campaignID int64) (*RecruitChoice, error) {
-	id, err := s.myCompany(ctx, user, campaignID)
+func (s *RecruitService) PendingChoice(ctx context.Context, user User, campaignID, companyID int64) (*RecruitChoice, error) {
+	id, err := s.ownCompany(ctx, user, campaignID, companyID)
 	if err != nil {
 		return nil, err
 	}
@@ -385,9 +372,9 @@ func (s *RecruitService) PendingChoice(ctx context.Context, user User, campaignI
 
 // ChooseOptions finishes a "choice of options" recruit: the unit joins with the chosen option (empty for its base profile). A
 // result of several models asks again for the next one.
-func (s *RecruitService) ChooseOptions(ctx context.Context, user User, campaignID int64, option string) (RecruitResult, error) {
+func (s *RecruitService) ChooseOptions(ctx context.Context, user User, campaignID, companyID int64, option string) (RecruitResult, error) {
 	var out RecruitResult
-	err := s.mutate(ctx, user, campaignID, func(env recruitEnv, st *CompanyState) error {
+	err := s.mutate(ctx, user, campaignID, companyID, func(env recruitEnv, st *CompanyState) error {
 		pending := st.Recruit.Choice
 		if pending == nil {
 			return Refuse("There is no recruit waiting for its options.")
@@ -573,7 +560,7 @@ func (env recruitEnv) choiceEntries(stage string, final int, choice Reinforcemen
 		chart []ChartRow
 		name  string
 	}
-	above := strings.Contains(strings.ToLower(choice.Text), "above")
+	above := choice.Scope == "above"
 	sources := []source{{env.bcC.Reinforcements, "Reinforcements"}, {env.bcC.SpecialChart, "Special chart"}}
 	if above && stage == "special" {
 		sources = sources[1:]
@@ -677,8 +664,8 @@ func choiceFor(rs *RuleSet, unit string) *RecruitChoice {
 }
 
 // PendingOfficers is the officer panel of a Ranger of the North waiting to take command, nil when nothing waits.
-func (s *RecruitService) PendingOfficers(ctx context.Context, user User, campaignID int64) (*OfficerPanel, error) {
-	id, err := s.myCompany(ctx, user, campaignID)
+func (s *RecruitService) PendingOfficers(ctx context.Context, user User, campaignID, companyID int64) (*OfficerPanel, error) {
+	id, err := s.ownCompany(ctx, user, campaignID, companyID)
 	if err != nil {
 		return nil, err
 	}
@@ -696,9 +683,9 @@ func (s *RecruitService) PendingOfficers(ctx context.Context, user User, campaig
 // ArrangeOfficers settles the Ranger of the North's arrival: the Ranger joins in the place he was put in, the named units take
 // theirs, and an old officer left out becomes an ordinary Hero keeping everything else. ErrRefused (nothing is stored) when
 // nothing waits or the arrangement is not valid.
-func (s *RecruitService) ArrangeOfficers(ctx context.Context, user User, campaignID int64, a OfficerArrangement) (RecruitResult, error) {
+func (s *RecruitService) ArrangeOfficers(ctx context.Context, user User, campaignID, companyID int64, a OfficerArrangement) (RecruitResult, error) {
 	var out RecruitResult
-	err := s.mutate(ctx, user, campaignID, func(env recruitEnv, st *CompanyState) error {
+	err := s.mutate(ctx, user, campaignID, companyID, func(env recruitEnv, st *CompanyState) error {
 		if st.Recruit.Officers == nil {
 			return Refuse("No Ranger of the North is waiting to take command.")
 		}

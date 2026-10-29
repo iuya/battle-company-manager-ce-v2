@@ -107,7 +107,7 @@ func TestExtends(t *testing.T) {
  {"name":"Elite Arnor","extends":"Arnor","alignment":"good","description":"elite","maxModels":12},
  {"name":"Arnor","alignment":"good","description":"base","faction":"Arnor Realm","oath":{"text":"base oath"},
   "start":{"gold":4,"units":[{"unit":"Ranger","count":3}]},
-  "reinforcements":{"influence":3,"rows":[{"roll":"1-6","unit":"Ranger"}]},"notes":["base note"],
+  "reinforcements":{"influence":3,"rows":[{"roll":"1-6","unit":"Ranger"}]},"notes":[{"section":"startingCompany","text":"base note"}],
   "heroUpgrades":[{"name":"Foresight"}]},
  {"name":"Third","extends":"Elite Arnor","alignment":"evil","description":"t","start":{"gold":9,"units":[{"unit":"Other"}]}}],
 "units":[{"name":"Ranger of Ithilien","extends":"Ranger of Gondor","addRules":["Loyal"]},
@@ -217,6 +217,26 @@ func TestNormaliseIdempotent(t *testing.T) {
 			Normalise(&twice, NewReporter("f", &rep))
 			if !reflect.DeepEqual(*once, twice) || len(rep.Issues) != 0 {
 				t.Errorf("not idempotent:\n%s", rep)
+			}
+		})
+	}
+}
+
+func TestArmourUpgradeGoldDefaultsToTheRating(t *testing.T) {
+	for _, c := range []struct {
+		name, extra string
+		want        Rating
+	}{
+		{"gold = rating", `"armourUpgrade":{"stages":[["None"],["Armour"]],"influence":1,"rating":{"warrior":1,"hero":5}}`, Rating{1, 5}},
+		{"gold kept", `"armourUpgrade":{"stages":[["None"],["Armour"]],"influence":1,"rating":2,"gold":{"warrior":3,"hero":4}}`, Rating{3, 4}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			doc, rep := normalised(t, minimalWith(t, c.extra))
+			if len(rep.Issues) != 0 {
+				t.Fatal(rep)
+			}
+			if got := *doc.ArmourUp.Gold; got != c.want {
+				t.Errorf("gold = %+v, want %+v", got, c.want)
 			}
 		})
 	}

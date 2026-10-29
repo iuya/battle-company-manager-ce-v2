@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
-	"strings"
 )
 
 // FreeEquipment is an armoury item a scenario reward lets a unit take for free (To the Victor the Spoils), with the units that can
@@ -43,7 +42,7 @@ func freeOffers(sh shop, maxValue int) []FreeEquipment {
 // checkFreeEquipment is nil when the unit can take the item as a free one worth at most maxValue, else an error fit to show.
 func checkFreeEquipment(rs *RuleSet, settings CampaignSettings, st CompanyState, maxValue int, item string, unitID int64) error {
 	for _, o := range freeOffers(newShop(rs, settings, st), maxValue) {
-		if !strings.EqualFold(o.Name, item) {
+		if !sameName(o.Name, item) {
 			continue
 		}
 		for _, u := range o.Units {
@@ -75,14 +74,10 @@ func (s *AftermathService) Perks(ctx context.Context, id, companyID int64) ([]Pe
 	return s.aftermaths.Perks(ctx, id, companyID)
 }
 
-// UsePerk marks a perk used. Only the owner of the company does it (REVIEW: manual; the recruit window may apply Rendezvous later).
+// UsePerk marks a perk used. Only the owner of the company does it (applying it is manual; Rendezvous is not applied by the recruit window).
 func (s *AftermathService) UsePerk(ctx context.Context, user User, id, companyID, perkID int64) error {
-	mine, err := s.myCompanyToChange(ctx, user, id)
-	if err != nil {
+	if _, err := s.ownCompanyToChange(ctx, user, id, companyID); err != nil {
 		return err
-	}
-	if mine != companyID {
-		return Refuse("Only the owner of the company can use its perks.")
 	}
 	return s.aftermaths.UsePerk(ctx, id, companyID, perkID)
 }
@@ -102,12 +97,8 @@ func (s *AftermathService) UseVantagePoint(ctx context.Context, user User, id, m
 	if sides := rs.BC.Selection().Die.Sides; second < 1 || second > sides || second+adjust < 1 || second+adjust > sides {
 		return 0, "", errors.Join(ErrInvalidRoll, fmt.Errorf("a %d cannot be moved by %+d", second, adjust))
 	}
-	mine, err := s.myCompanyToChange(ctx, user, id)
-	if err != nil {
+	if _, err := s.ownCompanyToChange(ctx, user, id, companyID); err != nil {
 		return 0, "", err
-	}
-	if mine != companyID {
-		return 0, "", Refuse("Only the owner of the company can use its perks.")
 	}
 	m, err := s.matches.Get(ctx, id, matchID)
 	if err != nil {

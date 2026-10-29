@@ -1,6 +1,6 @@
 # Authentication
 
-Accounts sign in with **email and password**. There is no sign-up page: accounts are created by an administrator with
+How accounts, passwords, sessions and request protection work. Accounts sign in with **email and password**. There is no sign-up page: accounts are created by an administrator with
 the server's command line. A visitor who is not signed in sees the login page; a signed-in user sees the main page.
 
 ## Accounts
@@ -31,6 +31,18 @@ hash, so timing does not reveal which emails exist, and the only failure message
   database cannot be used to impersonate anyone.
 - The token travels in the `bcm_session` cookie: `HttpOnly`, `SameSite=Lax`, `Path=/`, `Secure` when
   `SECURE_COOKIES=true`.
+- **Last campaign (`bcm-last`).** A second cookie remembers where the user was: `<userID>.<campaignID>[.<companyID>]`, base-10
+  ids only (at most 64 characters, parsed strictly; anything else is dropped). `HttpOnly`, `SameSite=Lax`, `Path=/`, `Secure`
+  like the session cookie, 90 days renewed on each write. It is unsigned because it authorises nothing: it is a hint read only
+  after authentication and validated against the database on every read. It is written by full-page GETs of a campaign page
+  the user belongs to (and of one of their own companies, which records the company); never by htmx fragments, event streams
+  or POSTs, and never for a finished campaign. `GET /` for a signed-in user redirects (303) to the campaign Overview from the
+  cookie; the cookie is **cleared** when it is malformed, holds another user's id (the id inside must be the session user's),
+  the campaign is finished, or the user can no longer open it (`ErrNotFound`), and the list is shown instead. A paused
+  campaign still redirects. `GET /campaigns/{id}/my-company` (no company) opens the company recorded for that campaign if it is
+  still the user's own, else their oldest. The campaign list lives at `GET /campaigns`, which never reads the cookie and never
+  redirects, so the brand link, the sidebar's "Campaigns" and "← Campaigns" always reach it. Logging out keeps the cookie (ids
+  only); closing the account clears it. After sign-in `/` applies it unless `?next=` names another page.
 - Sessions last 30 days and are renewed when more than half of that is gone, so regular users stay signed in.
 - **In-memory cache:** every request of a page, htmx partials included, goes through `Auth.Authenticate`. A session
   confirmed within the last minute is answered from memory, so most requests do not touch the database. Logging out
@@ -63,7 +75,7 @@ hash, so timing does not reveal which emails exist, and the only failure message
 
 ## The Account page
 
-`/account` (sidebar, bottom; built, see [frontend.md](frontend.md#account)), for the signed-in user. Mobile first: one column of cards, each its
+`/account` (sidebar, bottom; see [frontend.md](frontend.md#account)) is for the signed-in user. Mobile first: one column of cards, each its
 own htmx form that swaps only itself (422 with the form kept on error).
 
 - **Profile**: display name (1-60 characters, as `CreateUser`); the email is shown read only ("ask an administrator to
@@ -73,17 +85,17 @@ own htmx form that swaps only itself (422 with the form kept on error).
   handler). `Auth.ChangePassword(ctx, userID, current, next, keepToken)` verifies the current one (a wrong one is
   `ErrInvalidCredentials`, throttled in the web layer like login, per user), stores the new hash and **deletes every other
   session** of the user (`keepToken` stays signed in). A success notice says so.
-- **Sessions**: "Sign out everywhere else" (same deletion, without a password change). (The page does not show how many other sessions exist: there is no count query; the notice reports how many ended.)
+- **Sessions**: "Sign out everywhere else" (same deletion, without a password change). The page does not list the other sessions; the notice reports how many ended.
 - **Appearance**: the palette and mode of the settings menu, saved for the account (below).
 - **Close account** (danger card, collapsed): asks the password and the email typed again.
   `Auth.CloseAccount(ctx, userID, password)` **anonymises** the user instead of deleting rows (companies, matches and
   rankings stay intact for the other players): display name "Former player", email replaced by `closed-<id>@invalid`,
   password hash emptied so it cannot sign in, `closed_at` set, every session deleted, companies kept and listed under the
   new name. The old address is free again: it can be registered as a brand-new account that has no link to the closed one
-  (this is intended; the closed account's history stays under "Former player"). Refused with `ErrRefused` (reason fit to show) for the organiser of an unfinished campaign ("Hand over your
+  (the closed account's history stays under "Former player"). Refused with `ErrRefused` (reason fit to show) for the organiser of an unfinished campaign ("Hand over your
   campaigns (on the campaign overview) or finish them first") and for the last superuser. The organiser (or an administrator)
   hands a campaign over with **Hand over the campaign** on its Overview (`POST /campaigns/{id}/handover`, `Campaigns.HandOver`; the
-  players offered are the owners of the campaign's companies). REVIEW: anonymise rather than delete.
+  players offered are the owners of the campaign's companies).
 
 Errors: `ErrInvalidUser` (joined messages fit to show), `ErrInvalidCredentials`, `ErrRefused`. Repository additions:
 `CredentialsByID`, `UpdateDisplayName`, `UpdatePasswordHash`, `DeleteSessionsExcept(userID, keepTokenHash)`, `CloseUser`,
@@ -94,7 +106,7 @@ log in (empty hash, replaced email) and `CredentialsByID` and the update methods
 
 ## Appearance per account
 
-`core.User` gets `Appearance{Palette, Mode string}` (empty = never chosen), loaded with the session so the layout needs no
+`core.User` carries `Appearance{Palette, Mode string}` (empty = never chosen), loaded with the session so the layout needs no
 extra query. Columns `users.palette` and `users.mode` (nullable, checked against the known keys; the known palettes and modes
 live in `core` as `Palettes` and `Modes`, the web layer's picker reads them).
 
@@ -104,10 +116,4 @@ live in `core` as `Palettes` and `Modes`, the web layer's picker reads them).
   silent: the cookie keeps working. `SetAppearance` must also update the in-memory session cache entry.
 - **Login**: a user with no saved appearance adopts the cookie's value (saved on first sign-in, so a choice made on the login
   page is not lost); otherwise the saved value is written to the cookie by the login response. Logging out keeps the cookie.
-- **Anonymous visitors** (the login page): the cookie only, as today.
-
-## Possible evolution
-
-A short-lived signed access token (JWT) plus the existing session as the refresh token would remove the per-minute
-lookup. It was not chosen: the cache gives the same speed, needs no signing key and revokes immediately on logout. It
-can be added in front of the same session logic if claims in the token ever become useful.
+- **Anonymous visitors** (the login page): the cookie only.

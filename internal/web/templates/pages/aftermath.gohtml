@@ -10,6 +10,17 @@
 {{if .Locked}}
   <h1 class="mt-2">Aftermath · {{.Company.Name}}</h1>
   <div class="alert alert-info mt-4" role="status">{{.Locked}}</div>
+{{else if .A.Practice}}
+{{with .Notice}}<div class="alert {{if $.NoticeErr}}alert-danger{{else}}alert-success{{end}} mt-3" role="{{if $.NoticeErr}}alert{{else}}status{{end}}">{{.}}</div>{{end}}
+<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+  <h1 class="break-words">{{.Company.Name}}</h1>
+  {{template "practice_badge"}}
+</div>
+<section class="card mt-4 space-y-2" data-practice-aftermath>
+  <p class="font-medium">Practice match: nothing to roll.</p>
+  <p class="text-sm text-muted">Nothing was awarded and nobody was injured. {{.Company.Name}} is not locked and can recruit, buy, heal and start a new match.</p>
+  <p class="text-sm"><a href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Back to Match {{.Match.Number}}</a></p>
+</section>
 {{else}}
 {{with .Notice}}<div class="alert {{if $.NoticeErr}}alert-danger{{else}}alert-success{{end}} mt-3" role="{{if $.NoticeErr}}alert{{else}}status{{end}}">{{.}}</div>{{end}}
 <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -51,7 +62,7 @@
 </div>
 {{end}}
 
-{{/* A step after the sheet. The current one gets its own block (the injuries, level-ups and finish beads fill them in); others are dimmed or summarised. */}}
+{{/* A step after the sheet. The current one gets its own block (the injuries, level-ups and finish blocks below); others are dimmed or summarised. */}}
 {{define "aftermath_later"}}
 {{$v := .V}}
 <section class="card space-y-2 {{if and (lt $v.Step .Index) (not (and (eq .Index 3) (eq $v.Step 2)))}}border-dashed{{end}}" id="aftermath-step-{{.Index}}">
@@ -64,7 +75,7 @@
   {{else if lt $v.Step .Index}}<p class="text-sm text-muted">{{.Text}}</p>
   {{else if eq .Index 1}}{{template "aftermath_injuries_summary" $v}}
   {{else if eq .Index 3}}{{template "aftermath_summary" $v}}
-  {{else if and (eq .Index 2) $v.Waiting}}<p class="text-sm text-muted">{{len $v.Waiting}} unit{{if ne (len $v.Waiting) 1}}s still have{{else}} still has{{end}} a level-up roll waiting{{if $v.Owner}}: roll {{if ne (len $v.Waiting) 1}}them{{else}}it{{end}} from <a href="/campaigns/{{$v.Campaign.ID}}/my-company">My Company</a>{{end}}.</p>
+  {{else if and (eq .Index 2) $v.Waiting}}<p class="text-sm text-muted">{{len $v.Waiting}} unit{{if ne (len $v.Waiting) 1}}s still have{{else}} still has{{end}} a level-up roll waiting{{if $v.Owner}}: roll {{if ne (len $v.Waiting) 1}}them{{else}}it{{end}} from <a href="/campaigns/{{$v.Campaign.ID}}/my-company{{if $v.Owner}}/{{$v.Company.ID}}{{end}}">My Company</a>{{end}}.</p>
   {{else}}<p class="text-sm text-muted">Done.</p>{{end}}
 </section>
 {{end}}
@@ -210,7 +221,7 @@
   {{range .}}
   <li class="flex flex-wrap items-center justify-between gap-2 py-2">
     <span><span class="font-medium break-words">{{.Title}}</span> <span class="text-sm text-muted">{{.Type}} · {{.PendingLevelUps}} roll{{if ne .PendingLevelUps 1}}s{{end}} waiting</span></span>
-    {{if $.Owner}}<button type="button" class="btn btn-primary" hx-get="/campaigns/{{$cid}}/my-company/units/{{.ID}}/levelup" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Level up<span class="sr-only"> {{.Title}}</span></button>{{end}}
+    {{if $.Owner}}<button type="button" class="btn btn-primary" hx-get="/campaigns/{{$cid}}/my-company/{{$.Company.ID}}/units/{{.ID}}/levelup" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Level up<span class="sr-only"> {{.Title}}</span></button>{{end}}
   </li>
   {{end}}
 </ul>
@@ -285,7 +296,7 @@
   <div><h3 class="!text-lg">{{.Name}}</h3>
     <ul class="mt-1 text-sm">{{range .Lines}}<li class="py-0.5">{{.Text}}{{if .Amount}} <span class="text-muted">({{if gt .Amount 0}}+{{end}}{{.Amount}})</span>{{end}}</li>{{end}}</ul></div>
   {{else}}{{if ne (printf "%s" .A.Status) "waived"}}<p class="text-sm text-muted">Nothing was recorded.</p>{{end}}{{end}}
-  <p class="flex flex-wrap gap-3 text-sm"><a class="btn btn-secondary" href="/campaigns/{{.Campaign.ID}}/my-company">My Company</a><a class="btn btn-ghost" href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Back to the match</a></p>
+  <p class="flex flex-wrap gap-3 text-sm"><a class="btn btn-secondary" href="/campaigns/{{.Campaign.ID}}/my-company{{if .Owner}}/{{.Company.ID}}{{end}}">My Company</a><a class="btn btn-ghost" href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Back to the match</a></p>
 </div>
 {{end}}
 

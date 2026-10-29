@@ -10,7 +10,7 @@ import (
 
 // customRuleset loads the shipped rules files, lets mutate change the Battle Companies document (a generic map: set one
 // parameter, delete one key) and builds a RuleSet through LoadRuleSet, the path production uses. It is the harness of
-// TestCustomRuleset (docs/testing.md, "Custom rulesets"); the docs/definitions-lean-design.md section 12.8 rows use it.
+// TestCustomRuleset (docs/testing.md, "Custom rulesets"); the rows of the engine parameters use it.
 func customRuleset(t *testing.T, mutate func(doc map[string]any)) *RuleSet {
 	t.Helper()
 	rs, err := customRulesetErr(t, mutate)
@@ -47,22 +47,14 @@ func customRulesetErr(t *testing.T, mutate func(doc map[string]any)) (*RuleSet, 
 	return LoadRuleSet(vanilla, bc, glossary, slog.New(slog.DiscardHandler))
 }
 
-// customBC is the shipped Battle Companies file with mutate applied, as bytes (for the parsers that read the file on their own).
-func customBC(t *testing.T, mutate func(doc map[string]any)) []byte {
+// customAftermath is the aftermath rules of the shipped file with mutate applied.
+func customAftermath(t *testing.T, mutate func(doc map[string]any)) (AftermathRules, error) {
 	t.Helper()
-	b, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
+	rs, err := customRulesetErr(t, mutate)
 	if err != nil {
-		t.Skip("definitions not available: ", err)
+		return AftermathRules{}, err
 	}
-	var doc map[string]any
-	if err := json.Unmarshal(b, &doc); err != nil {
-		t.Fatal(err)
-	}
-	mutate(doc)
-	if b, err = json.Marshal(doc); err != nil {
-		t.Fatal(err)
-	}
-	return b
+	return rs.BC.Aftermath(), nil
 }
 
 // jsonAt walks keys (map keys, or slice indexes as ints) down a decoded document.
@@ -89,8 +81,8 @@ func jsonAt(t *testing.T, v any, path ...any) any {
 
 func has(m map[string]any, k string) bool { _, ok := m[k]; return ok }
 
-// TestCustomRuleset has one row per engine parameter (docs/definitions-lean-design.md, 12.8); the parameter slices P1 to P6
-// add theirs. Each row mutates the shipped file and asserts the new behaviour through the built RuleSet.
+// TestCustomRuleset has one row per engine parameter (docs/testing.md, "Custom rulesets"); each
+// row mutates the shipped file and asserts the new behaviour through the built RuleSet.
 func TestCustomRuleset(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -154,13 +146,13 @@ func TestCustomRuleset(t *testing.T) {
 				}
 			},
 			check: func(t *testing.T, rs *RuleSet) {
-				ar, err := ParseAftermath(customBC(t, func(doc map[string]any) {
+				ar, err := customAftermath(t, func(doc map[string]any) {
 					inj := jsonAt(t, doc, "campaign", "injuries").(map[string]any)
 					inj["roll"] = "d12"
 					for _, chart := range []string{"warrior", "hero"} {
 						jsonAt(t, inj, chart, 0).(map[string]any)["roll"].([]any)[0] = 1.0
 					}
-				}))
+				})
 				if err != nil || ar.InjuryDice != (NdM(1, 12)) {
 					t.Fatalf("aftermath rules: %v %v", ar.InjuryDice, err)
 				}
@@ -190,13 +182,13 @@ func TestCustomRuleset(t *testing.T) {
 				}
 			},
 			check: func(t *testing.T, rs *RuleSet) {
-				ar, err := ParseAftermath(customBC(t, func(doc map[string]any) {
+				ar, err := customAftermath(t, func(doc map[string]any) {
 					for _, r := range jsonAt(t, doc, "campaign", "injuries", "warrior").([]any) {
 						if m := r.(map[string]any); m["key"] == "lessonLearned" {
 							m["grantsExperience"].(map[string]any)["dice"] = "d4"
 						}
 					}
-				}))
+				})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -249,9 +241,9 @@ func TestCustomRuleset(t *testing.T) {
 			},
 		},
 		{
-			name: "P1 Rare: injuredUnitsCount false",
+			name: "P1 Rare: injuredCount false",
 			mutate: func(t *testing.T, doc map[string]any) {
-				jsonAt(t, doc, "campaign", "recruitment", "rare").(map[string]any)["injuredUnitsCount"] = false
+				jsonAt(t, doc, "campaign", "recruitment", "rare").(map[string]any)["injuredCount"] = false
 			},
 			check: func(t *testing.T, rs *RuleSet) {
 				if got := rs.BC.Recruiting().Rare; got.Injured || got.Dead || got.Promoted {
@@ -312,13 +304,13 @@ func TestCustomRulesetRefusesBadRecruitingParameters(t *testing.T) {
 		{"unknown direction", func(doc map[string]any) { adjust(doc)["direction"] = "sideways" }, `campaign.recruitment.adjust.direction: "sideways"`},
 		{"adjust section missing", func(doc map[string]any) { delete(jsonAt(t, doc, "campaign", "recruitment").(map[string]any), "adjust") }, "campaign.recruitment.adjust is missing"},
 		{"rare flag missing", func(doc map[string]any) {
-			delete(jsonAt(t, doc, "campaign", "recruitment", "rare").(map[string]any), "deadUnitsCount")
-		}, "campaign.recruitment.rare needs"},
+			delete(jsonAt(t, doc, "campaign", "recruitment", "rare").(map[string]any), "deadCount")
+		}, "campaign.recruitment.rare.deadCount: missing"},
 		{"starting influence too high", func(doc map[string]any) {
 			jsonAt(t, doc, "campaign", "company").(map[string]any)["startingInfluence"] = 101.0
 		}, "campaign.company.startingInfluence: 101 is outside 0..100"},
-		{"a die the charts do not cover", func(doc map[string]any) { jsonAt(t, doc, "campaign", "recruitment").(map[string]any)["die"] = "d8" }, "is covered 0 times"},
-		{"two dice", func(doc map[string]any) { jsonAt(t, doc, "campaign", "recruitment").(map[string]any)["die"] = "2d6" }, "must be one die"},
+		{"a die the charts do not cover", func(doc map[string]any) { jsonAt(t, doc, "campaign", "recruitment").(map[string]any)["die"] = "d8" }, "a D8 chart must cover 1-8 exactly once"},
+		{"two dice", func(doc map[string]any) { jsonAt(t, doc, "campaign", "recruitment").(map[string]any)["die"] = "2d6" }, "a recruiting die is a single die"},
 		{"not a dice spec", func(doc map[string]any) { jsonAt(t, doc, "campaign", "recruitment").(map[string]any)["die"] = "2d6x" }, "campaign.recruitment.die:"},
 		{"perk range inverted", func(doc map[string]any) {
 			for _, e := range jsonAt(t, doc, "campaign", "aftermathEffects").([]any) {
@@ -326,27 +318,27 @@ func TestCustomRulesetRefusesBadRecruitingParameters(t *testing.T) {
 					m["range"] = []any{1.0, -1.0}
 				}
 			}
-		}, "campaign.aftermathEffects[vantagePoint].range"},
+		}, "low is above high"},
 		{"perk range too wide", func(doc map[string]any) {
 			for _, e := range jsonAt(t, doc, "campaign", "aftermathEffects").([]any) {
 				if m := e.(map[string]any); m["key"] == "rendezvous" {
 					m["range"] = []any{-7.0, 1.0}
 				}
 			}
-		}, "campaign.aftermathEffects[rendezvous].range"},
+		}, "-7 is out of range -6..6"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := customRulesetErr(t, tt.mutate)
-			if err == nil || !strings.Contains(err.Error(), tt.want) {
-				t.Errorf("error = %v, want one naming %q", err, tt.want)
+			if err == nil || !strings.Contains(err.Error(), leanWording(tt.want)) {
+				t.Errorf("error = %v, want one naming %q", err, leanWording(tt.want))
 			}
 		})
 	}
 }
 
 // TestCustomRulesetRefusesDiceTheTablesDoNotCover: a dice string that is not a spec, or a table keyed by a roll that does not cover
-// Min..Max of its dice, is an error of the file that names the path (docs/definitions-lean-design.md 12.1).
+// Min..Max of its dice, is an error of the file that names the path.
 func TestCustomRulesetRefusesDiceTheTablesDoNotCover(t *testing.T) {
 	set := func(path ...any) func(v any) func(doc map[string]any) {
 		return func(v any) func(doc map[string]any) {
@@ -365,40 +357,40 @@ func TestCustomRulesetRefusesDiceTheTablesDoNotCover(t *testing.T) {
 		want   string
 	}{
 		{"injury dice 3d6: the charts stop at 12", set("campaign", "injuries", "roll")("3d6"), "campaign.injuries.warrior"},
-		{"injury dice d6: the charts run to 12", set("campaign", "injuries", "roll")("d6"), "outside 1..6"},
-		{"injury dice d12 with charts that start at 2", set("campaign", "injuries", "roll")("d12"), "1 is covered 0 times"},
+		{"injury dice d6: the charts run to 12", set("campaign", "injuries", "roll")("d6"), "is outside 1-6"},
+		{"injury dice d12 with charts that start at 2", set("campaign", "injuries", "roll")("d12"), "a table keyed by D12 must cover 1-12 exactly once"},
 		{"injury dice not a spec", set("campaign", "injuries", "roll")("2d6x"), `campaign.injuries.roll: "2d6x" is not a dice spec`},
 		{"injury dice d66", set("campaign", "injuries", "roll")("d66"), "d66"},
 		{"injury dice missing", func(doc map[string]any) { delete(jsonAt(t, doc, "campaign", "injuries").(map[string]any), "roll") }, "campaign.injuries.roll is missing"},
-		{"warrior dice d8: the table stops at 6", set("campaign", "progression", "warrior", "roll")("d8"), "campaign.progression.warrior.table: 7 is covered 0 times"},
-		{"warrior dice 2d6: the table has no 7 to 12", set("campaign", "progression", "warrior", "roll")("2d6"), "outside 2..12"},
-		{"warrior dice with a table above the dice", set("campaign", "progression", "warrior", "roll")("d4"), "outside 1..4"},
+		{"warrior dice d8: the table stops at 6", set("campaign", "progression", "warrior", "roll")("d8"), "a table keyed by D8 must cover 1-8 exactly once"},
+		{"warrior dice 2d6: the table has no 7 to 12", set("campaign", "progression", "warrior", "roll")("2d6"), "is outside 2-12"},
+		{"warrior dice with a table above the dice", set("campaign", "progression", "warrior", "roll")("d4"), "is outside 1-4"},
 		{"hero dice 3d6: a path without dice of its own stops at 12", func(doc map[string]any) {
 			jsonAt(t, doc, "campaign", "progression", "hero").(map[string]any)["roll"] = "3d6"
-			delete(jsonAt(t, doc, "data", "paths", 0).(map[string]any), "dice")
-		}, "data.paths[Path of the Tactician].progression: row 2-2 is outside 3..18 (the dice are 3d6)"},
+			delete(jsonAt(t, doc, "paths", 0).(map[string]any), "dice")
+		}, "is outside 3-18"},
 		{"hero rolls 0", set("campaign", "progression", "hero", "rollsPerProgression")(0.0), "rollsPerProgression: 0 is outside 1..6"},
 		{"hero rolls 7", set("campaign", "progression", "hero", "rollsPerProgression")(7.0), "rollsPerProgression: 7 is outside 1..6"},
 		{"hero chooses two", set("campaign", "progression", "hero", "choose")(2.0), "campaign.progression.hero.choose: 2 is not supported"},
 		{"a path with dice its rows do not cover", func(doc map[string]any) {
-			jsonAt(t, doc, "data", "paths", 0).(map[string]any)["dice"] = "d12"
-		}, "data.paths[Path of the Tactician].progression"},
+			jsonAt(t, doc, "paths", 0).(map[string]any)["dice"] = "d12"
+		}, "need an option each"},
 		{"courage dice not a spec", set("campaign", "breakPoint", "whenBroken", "courageTest", "dice")("2d6+1"), "campaign.breakPoint.whenBroken.courageTest.dice"},
-		{"scenario die d8: the tables cover 1..6", set("campaign", "scenarioSelection", "die")("d8"), "campaign.scenarioSelection.tables[0]: 6 scenarios, expected 8"},
-		{"scenario die two dice", set("campaign", "scenarioSelection", "die")("2d6"), "must be one die"},
+		{"scenario die d8: the tables cover 1..6", set("campaign", "scenarioSelection", "die")("d8"), "each table lists exactly 8"},
+		{"scenario die two dice", set("campaign", "scenarioSelection", "die")("2d6"), "the scenario die is a single die"},
 		{"bonus dice not a spec", func(doc map[string]any) {
 			for _, r := range jsonAt(t, doc, "campaign", "injuries", "warrior").([]any) {
 				if m := r.(map[string]any); m["key"] == "lessonLearned" {
 					m["grantsExperience"].(map[string]any)["dice"] = "d3d3"
 				}
 			}
-		}, "lessonLearned"},
+		}, "is not a dice spec"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := customRulesetErr(t, tt.mutate)
-			if err == nil || !strings.Contains(err.Error(), tt.want) {
-				t.Errorf("error = %v, want one containing %q", err, tt.want)
+			if err == nil || !strings.Contains(err.Error(), leanWording(tt.want)) {
+				t.Errorf("error = %v, want one containing %q", err, leanWording(tt.want))
 			}
 		})
 	}

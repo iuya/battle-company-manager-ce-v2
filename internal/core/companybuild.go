@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/json"
 	"fmt"
 	"maps"
 	"regexp"
@@ -25,7 +24,38 @@ type grant struct {
 // equipmentFor builds an item from what the Battle Companies file says about it: its classes, missile profile and granted
 // rules come from the gear annotations, its slot size, cost and text from the armoury, and, for items only vanilla knows,
 // the text from the vanilla gear list. grants are the special rules the item gives.
-func equipmentFor(rs *RuleSet, bcCo BCCompany, name string, bought, profile, hero bool) (e Equipment, grants []grant) {
+//
+// The answer depends only on the rule set, the company's armoury, the name and the two flags, and a rule set never changes, so it is
+// remembered per rule set (RuleSet.equipment). The slices in the result are shared between calls and are never written to.
+func equipmentFor(rs *RuleSet, bcCo BCCompany, name string, bought, profile, hero bool) (Equipment, []grant) {
+	key := equipmentKey{company: bcCo.Name, unique: len(bcCo.UniqueWargear), name: name, bought: bought, profile: profile}
+	if v, ok := rs.equipment.Load(key); ok {
+		r := v.(equipmentResult)
+		return r.e, r.grants
+	}
+	e, grants := buildEquipment(rs, bcCo, name, bought, profile)
+	if rs.equipmentN.Load() < memoLimit {
+		if _, loaded := rs.equipment.LoadOrStore(key, equipmentResult{e, grants}); !loaded {
+			rs.equipmentN.Add(1)
+		}
+	}
+	return e, grants
+}
+
+type equipmentKey struct {
+	company string
+	unique  int
+	name    string
+	bought  bool
+	profile bool
+}
+
+type equipmentResult struct {
+	e      Equipment
+	grants []grant
+}
+
+func buildEquipment(rs *RuleSet, bcCo BCCompany, name string, bought, profile bool) (e Equipment, grants []grant) {
 	e = Equipment{Name: name, Bought: bought, Profile: profile}
 	a, annotated := rs.BC.Annotation(name)
 	offer, offered := rs.BC.Offer(bcCo, name)
@@ -104,16 +134,20 @@ func ownPathLevels(rs *RuleSet, settings CampaignSettings, profile CompanyProfil
 }
 
 func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettings) CompanyUnit {
+	return buildUnitFor(rs, bcCo, s, settings, false)
+}
+
+// buildUnitFor is buildUnit; ratingOnly leaves out what is derived from the finished unit and feeds nothing in its rating (the keywords
+// and the auras), for companyFigures.
+func buildUnitFor(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettings, ratingOnly bool) CompanyUnit {
 	book := rs.Vanilla
 	base, found := book.Unit(s.Base)
 	var aliasRules, aliasOptions []string // a company's own name for a profile, with rules added (Ranger of Ithilien) and options selected
 	if !found {
 		if profile, ok := rs.BC.Profile(bcCo.Name); ok {
-			for _, a := range profile.Aliases {
-				if strings.EqualFold(a.Label, s.Base) {
-					if v, ok := book.Unit(a.Unit); ok {
-						base, found, aliasRules, aliasOptions = v, true, a.AddRules, a.Selected
-					}
+			if a, ok := profile.AliasFor(s.Base); ok {
+				if v, ok := book.Unit(a.Unit); ok {
+					base, found, aliasRules, aliasOptions = v, true, a.AddRules, a.Selected
 				}
 			}
 		}
@@ -187,6 +221,9 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 		}
 		return false
 	}
+	if n := len(base.Wargear) + len(s.Gear) + len(s.Bought); n > 0 {
+		u.Equipment = make([]Equipment, 0, n) // an Equipment is a few hundred bytes: grow once
+	}
 	for _, w := range base.Wargear {
 		if !dropped(w) {
 			addItem(w, false, true)
@@ -248,7 +285,7 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 						u.Path.Rules = append(u.Path.Rules, UnitRule{Name: name + " (" + weapon + ")", Description: def + " It applies to the " + weapon + ".", Source: RuleFromPath})
 						u.Path.minorListed++
 						for i := range u.Equipment {
-							if strings.EqualFold(u.Equipment[i].Name, weapon) {
+							if sameName(u.Equipment[i].Name, weapon) {
 								u.Equipment[i].Poisoned = true
 							}
 						}
@@ -290,26 +327,26 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 	grants = applyWeaponModifiers(rs, book, &u, grants)
 	have := map[string]bool{}
 	for _, r := range u.Rules {
-		have[strings.ToLower(r.Name)] = true
+		have[NameKey(r.Name)] = true
 	}
 	for _, g := range grants { // what the Battle Companies armoury says an item grants
-		if !have[strings.ToLower(g.Name)] {
+		if !have[NameKey(g.Name)] {
 			u.Rules = append(u.Rules, g)
-			have[strings.ToLower(g.Name)] = true
+			have[NameKey(g.Name)] = true
 		}
 	}
 	for _, e := range u.Equipment { // vanilla items that are also special rules (Lance, Banner...) grant them too
-		if desc, ok := book.Keyword(e.Name); ok && !have[strings.ToLower(e.Name)] {
+		if desc, ok := book.Keyword(e.Name); ok && !have[NameKey(e.Name)] {
 			u.Rules = append(u.Rules, UnitRule{Name: e.Name, Description: desc, Source: RuleFromEquipment, From: e.Name})
-			have[strings.ToLower(e.Name)] = true
+			have[NameKey(e.Name)] = true
 		}
 	}
 	rs.BC.Injuries().ApplyToUnit(&u, s.Injuries, func(name string) string { d, _ := book.Keyword(name); return d })
 	for _, name := range aliasRules {
-		if !have[strings.ToLower(name)] {
+		if !have[NameKey(name)] {
 			desc, _ := book.Keyword(name)
 			u.Rules = append(u.Rules, UnitRule{Name: name, Description: desc, Source: RuleFromCompany})
-			have[strings.ToLower(name)] = true
+			have[NameKey(name)] = true
 		}
 	}
 	if comp, ok := profile.Composites[s.Base]; ok { // one model on the table that counts as several
@@ -318,10 +355,10 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 			u.Parts = append(u.Parts, UnitPart{Role: part.Role, Name: part.Name, Count: part.Count, Wargear: part.Wargear})
 		}
 		for _, name := range comp.Rules {
-			if !have[strings.ToLower(name)] {
+			if !have[NameKey(name)] {
 				desc, _ := book.Keyword(name)
 				u.Rules = append(u.Rules, UnitRule{Name: name, Description: desc, Source: RuleFromUnit})
-				have[strings.ToLower(name)] = true
+				have[NameKey(name)] = true
 			}
 		}
 	}
@@ -357,6 +394,9 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 			u.Path.HeroicActions = append(u.Path.HeroicActions, HeroicAction{Name: a, Source: ActionFromUnit})
 		}
 	}
+	if ratingOnly {
+		return u
+	}
 	u.Keywords = unitKeywordsOf(rs, profile, s, u) // last: a bought mount makes the rider Cavalry
 	u.LevelEvery = rs.BC.Progression().Threshold
 	u.BaseSlots = rs.BC.Shape().EquipmentSlots
@@ -374,7 +414,7 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 func pointsOf(rs *RuleSet, bcCo BCCompany, base VanillaUnit, u *CompanyUnit) int {
 	stats := map[string]int{}
 	for _, a := range u.Stats {
-		stats[strings.ToLower(a.Name)] = a.Value - a.Gear // the rating counts the earned profile, not what gear adds
+		stats[NameKey(a.Name)] = a.Value - a.Gear // the rating counts the earned profile, not what gear adds
 	}
 	hero := u.IsHero()
 	heroColumn := hero && rs.BC.rating.Wargear.Reached(stats)
@@ -441,7 +481,7 @@ func armourRating(rs *RuleSet, base VanillaUnit, e Equipment) (stages int, isArm
 	}
 	for _, o := range base.Options {
 		for _, part := range OptionItems(o.Name) {
-			if s, ok := up.StageOf(part); ok && !strings.HasPrefix(strings.ToLower(o.Name), "exchange") {
+			if s, ok := up.StageOf(part); ok && !ParseOption(o.Name).Exchange {
 				free = max(free, s)
 			}
 		}
@@ -553,7 +593,7 @@ func recruitInfo(bc BCCompany, rules RecruitRules) RecruitInfo {
 }
 
 // applyProgress puts what level-ups gave a unit onto its spec.
-func applyProgress(rs *RuleSet, s *UnitState, p *Progress) {
+func applyProgress(rs *RuleSet, bcCo BCCompany, s *UnitState, p *Progress) {
 	if p == nil {
 		return
 	}
@@ -561,15 +601,17 @@ func applyProgress(rs *RuleSet, s *UnitState, p *Progress) {
 	s.Level += p.Taken
 	s.Bonus = mergeBonus(s.Bonus, p.Bonus)
 	if p.Base != "" {
-		if s.PromotedFrom == "" && !strings.EqualFold(s.Base, p.Base) {
+		if s.PromotedFrom == "" && !sameName(s.Base, p.Base) {
 			s.PromotedFrom = s.Base
+		}
+		replaced := []string(nil)
+		if p.Hero { // a hero made of a unit that changes profile (Ranger of Arnor to Ranger of the North) swaps wargear profile for profile
+			replaced = replacedWargear(rs, bcCo, s.Base, p.Base)
 		}
 		s.Base = p.Base
 		s.Gear = append(slices.Clone(s.Gear), p.Gear...)
-		for _, lost := range p.Drop {
-			if i := slices.IndexFunc(s.Gear, func(g string) bool { return strings.EqualFold(g, lost) }); i >= 0 {
-				s.Gear = slices.Delete(s.Gear, i, i+1)
-			}
+		for _, lost := range replaced {
+			s.Gear = slices.DeleteFunc(s.Gear, func(g string) bool { return sameSpelling(g, lost) })
 		}
 	}
 	if p.Hero {
@@ -642,12 +684,11 @@ func applyCompanyRules(rs *RuleSet, bcCo BCCompany, units []CompanyUnit) []Compa
 		return nil
 	}
 	for _, g := range profile.Granted {
-		heroesOnly := strings.Contains(strings.ToLower(g.AppliesTo), "hero")
 		for i := range units {
-			if heroesOnly && !units[i].IsHero() {
+			if g.Who.Admits(subjectOf(rs, profile, bcCo.Alignment, units[i])) != "" {
 				continue
 			}
-			if slices.ContainsFunc(units[i].Rules, func(r UnitRule) bool { return strings.EqualFold(r.Name, g.Rule) }) {
+			if slices.ContainsFunc(units[i].Rules, func(r UnitRule) bool { return sameName(r.Name, g.Rule) }) {
 				continue
 			}
 			desc, _ := rs.Vanilla.Keyword(g.Rule)
@@ -662,11 +703,11 @@ func applyCompanyRules(rs *RuleSet, bcCo BCCompany, units []CompanyUnit) []Compa
 	}
 	for _, e := range profile.Exchanges { // Sharkey's Rogues: Hatred (Rohan) becomes Hatred (Hobbit)
 		for i := range units {
-			j := slices.IndexFunc(units[i].Rules, func(r UnitRule) bool { return strings.EqualFold(r.Name, e.Remove) })
+			j := slices.IndexFunc(units[i].Rules, func(r UnitRule) bool { return sameName(r.Name, e.Remove) })
 			if j < 0 {
 				continue
 			}
-			if slices.ContainsFunc(units[i].Rules, func(r UnitRule) bool { return strings.EqualFold(r.Name, e.Add) }) {
+			if slices.ContainsFunc(units[i].Rules, func(r UnitRule) bool { return sameName(r.Name, e.Add) }) {
 				units[i].Rules = slices.Delete(units[i].Rules, j, j+1)
 				continue
 			}
@@ -686,7 +727,7 @@ func applyCompanyRules(rs *RuleSet, bcCo BCCompany, units []CompanyUnit) []Compa
 		used, models := 0, 0
 		for _, u := range units {
 			models += u.ModelCount()
-			if v, _, ok := resolveUnitKeywords(rs, profile, u.Type); ok && slices.ContainsFunc(v.Race, func(r string) bool { return strings.EqualFold(r, l.Keyword) }) {
+			if v, _, ok := resolveUnitKeywords(rs, profile, u.Type); ok && slices.ContainsFunc(v.Race, func(r string) bool { return sameName(r, l.Keyword) }) {
 				used++
 			}
 		}
@@ -698,7 +739,7 @@ func applyCompanyRules(rs *RuleSet, bcCo BCCompany, units []CompanyUnit) []Compa
 
 // hasKeyword says whether a unit counts as the keyword: its race or one of its factions.
 func hasKeyword(v VanillaUnit, keyword string) bool {
-	match := func(k string) bool { return strings.EqualFold(k, keyword) }
+	match := func(k string) bool { return sameName(k, keyword) }
 	return slices.ContainsFunc(v.Race, match) || slices.ContainsFunc(v.Faction, match)
 }
 
@@ -874,43 +915,6 @@ func creaturesOf(rs *RuleSet, owned map[int64]string, pack []string, units []Com
 	return out, carried
 }
 
-// parsePathRules reads the special rules each Battle Companies path unlocks, with their descriptions ("Spy (Active) - text").
-func parsePathRules(bc []byte) map[string][]UnitRule {
-	var doc struct {
-		Data struct {
-			Paths []struct {
-				Name        string `json:"name"`
-				Progression []struct {
-					Text    string `json:"text"`
-					Options []struct {
-						Type        string `json:"type"`
-						SpecialRule string `json:"specialRule"`
-					} `json:"options"`
-				} `json:"progression"`
-			} `json:"paths"`
-		} `json:"data"`
-	}
-	out := map[string][]UnitRule{}
-	if json.Unmarshal(bc, &doc) != nil {
-		return out
-	}
-	for _, p := range doc.Data.Paths {
-		for _, step := range p.Progression {
-			for _, o := range step.Options {
-				if o.Type != "specialRule" {
-					continue
-				}
-				text := step.Text
-				if _, after, ok := strings.Cut(text, " - "); ok {
-					text = after
-				}
-				out[p.Name] = append(out[p.Name], UnitRule{Name: o.SpecialRule, Description: text, Source: RuleFromPath})
-			}
-		}
-	}
-	return out
-}
-
 // PathRules returns the first n special rules a path unlocks, with their descriptions: the rules a hero of that path has gained
 // so far.
 func (b *BCBook) PathRules(path string, n int) []UnitRule {
@@ -935,12 +939,13 @@ func (b *BCBook) pathRuleNamed(path, name string) UnitRule {
 func BuildDetail(rs *RuleSet, settings CampaignSettings, st CompanyState) CompanyDetail {
 	co := st.Company
 	bcCo, _ := rs.BC.Company(co.Faction)
+	co.FactionLabel = bcCo.Label
 	var units []CompanyUnit
 	progress := map[int64]*Progress{}
 	owned := map[int64]string{}
 	for _, us := range st.Units {
 		s := us.Clone()
-		applyProgress(rs, &s, s.Progress)
+		applyProgress(rs, bcCo, &s, s.Progress)
 		s.Injured = s.Injured || s.SentToHealers
 		if s.Injuries == nil {
 			s.Injuries = map[string]int{}
@@ -1015,6 +1020,38 @@ func BuildDetail(rs *RuleSet, settings CampaignSettings, st CompanyState) Compan
 		detail.Recruit.Special[i].Blocked, _ = resultBlock(rs, bcCo, units, st.Cemetery, Reinforcement{Type: "unit", Unit: sp.Unit, Rare: sp.Rare})
 	}
 	return detail
+}
+
+// companyFigures is BuildDetail(rs, settings, st).CampaignCompany without the rest of the detail: the figures a list, the sidebar or a
+// match page rate a company by (Points, FullPoints, Units, FactionLabel). It builds the units as BuildDetail does and leaves out what
+// does not enter those figures: keywords, auras, limits, recruit charts, the cemetery. TestCompanyFiguresEqualBuildDetail holds the
+// two together.
+func companyFigures(rs *RuleSet, settings CampaignSettings, st CompanyState) CampaignCompany {
+	co := st.Company
+	bcCo, _ := rs.BC.Company(co.Faction)
+	co.FactionLabel = bcCo.Label
+	co.Units, co.Points, co.FullPoints = 0, 0, 0
+	for _, us := range st.Units {
+		s := us.Clone()
+		applyProgress(rs, bcCo, &s, s.Progress)
+		s.Injured = s.Injured || s.SentToHealers
+		if s.Injuries == nil {
+			s.Injuries = map[string]int{}
+		}
+		u := buildUnitFor(rs, bcCo, s, settings, true)
+		co.Units += u.ModelCount()
+		co.FullPoints += u.Points
+		if !u.Injured { // an injured model misses the next game: it does not count towards the company's rating
+			co.Points += u.Points
+		}
+		if s.Creature != "" {
+			if o, found := creatureOffer(rs, s.Creature); found {
+				co.Points += o.Points // a creature counts for its points in the rating
+				co.FullPoints += o.Points
+			}
+		}
+	}
+	return co
 }
 
 // breakPointPercent is the company's Break Point percentage: its own rule (Muster of Isengard 66) or the file's default.

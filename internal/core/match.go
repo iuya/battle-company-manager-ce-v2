@@ -53,13 +53,13 @@ func (in ScenarioInput) Validate() (ScenarioInput, error) {
 		return in, errors.Join(ErrInvalidMatch, errors.New("choose a rulebook scenario or describe a one-off one"))
 	}
 	if n := utf8.RuneCountInString(in.Name); n == 0 || n > maxScenarioName {
-		errs = append(errs, errors.New("the name must be between 1 and 60 characters"))
+		errs = append(errs, fieldError("name", "the name must be between 1 and 60 characters"))
 	}
 	if utf8.RuneCountInString(in.Description) > maxScenarioText {
-		errs = append(errs, errors.New("the description can have at most 1000 characters"))
+		errs = append(errs, fieldError("description", "the description can have at most 1000 characters"))
 	}
 	if utf8.RuneCountInString(in.Victory) > maxScenarioText {
-		errs = append(errs, errors.New("how it is won can have at most 1000 characters"))
+		errs = append(errs, fieldError("victory", "how it is won can have at most 1000 characters"))
 	}
 	if len(errs) > 0 {
 		return in, errors.Join(append([]error{ErrInvalidMatch}, errs...)...)
@@ -362,7 +362,7 @@ func (t ScenarioRuleTable) RowFor(value int) int {
 type ScenarioPrize struct{ Name, Who, Text string }
 
 // ScenarioObjective is one tick on the match page, per company: a reward condition of the rules file the players tick
-// (Key and Label are the condition's, Max is 1 for now). Rewards is what completing it earns, for the preview.
+// (Key and Label are the condition's, Max is 1). Rewards is what completing it earns, for the preview.
 type ScenarioObjective struct {
 	Key, Label string
 	Max        int  // 1 for a tick
@@ -399,3 +399,57 @@ func (m Match) NoAccessReason() string {
 	}
 	return "Only the players in this match can change it."
 }
+
+// SamePlayer says that one player owns several companies of a match (several companies per player are allowed in a campaign). It is a
+// note for the match setup and the match page, never a refusal: ValidateSides allows it, a player's own companies may share a side or
+// face each other (docs/multi-company-spec.md, decision 2).
+type SamePlayer struct {
+	OwnerID int64
+	Owner   string
+	// Companies is the number of companies of the player in the match.
+	Companies int
+	// SameSide lists the 0-based sides that hold two or more of the player's companies.
+	SameSide []int
+	// AcrossSides is true when the player has companies on at least two different sides.
+	AcrossSides bool
+}
+
+// SamePlayers lists the players who own two or more companies among the sides, in the order of their first company.
+func SamePlayers(sides []MatchSide) []SamePlayer {
+	type tally struct {
+		SamePlayer
+		perSide map[int]int
+	}
+	var order []int64
+	by := map[int64]*tally{}
+	for i, s := range sides {
+		for _, c := range s.Companies {
+			t := by[c.OwnerID]
+			if t == nil {
+				t = &tally{SamePlayer: SamePlayer{OwnerID: c.OwnerID, Owner: c.Owner}, perSide: map[int]int{}}
+				by[c.OwnerID] = t
+				order = append(order, c.OwnerID)
+			}
+			t.Companies++
+			t.perSide[i]++
+		}
+	}
+	var out []SamePlayer
+	for _, id := range order {
+		t := by[id]
+		if t.Companies < 2 {
+			continue
+		}
+		for i := range sides {
+			if t.perSide[i] >= 2 {
+				t.SameSide = append(t.SameSide, i)
+			}
+		}
+		t.AcrossSides = len(t.perSide) > 1
+		out = append(out, t.SamePlayer)
+	}
+	return out
+}
+
+// SamePlayers is SamePlayers of the match's sides.
+func (m Match) SamePlayers() []SamePlayer { return SamePlayers(m.Sides) }

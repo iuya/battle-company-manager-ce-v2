@@ -1,6 +1,6 @@
 // Content-Security-Policy: the header of the mode the server runs in, and a control that proves the harness sees a violation
 // (otherwise "no violation" in the other flows would prove nothing). Run the whole suite with E2E_CSP_MODE=enforce
-// (`make e2e-enforce`) to see every page, swap, stream and the 3D dice under the enforcing policy (docs/security-and-risks.md).
+// (`make e2e-enforce`) to see every page, swap, stream and the 3D dice under the enforcing policy (docs/operations.md, "Content-Security-Policy").
 import { assert } from '../lib/util.mjs';
 
 export default async function (h) {

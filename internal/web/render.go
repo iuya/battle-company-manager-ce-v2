@@ -41,19 +41,6 @@ func intsCSV(ns []int) string {
 	return strings.Join(parts, ",")
 }
 
-// countWords writes a count and its noun in words: "one Leader", "two Sergeants", "no Sergeants" (the numbers come from the rules).
-func countWords(n int, noun string) string {
-	words := []string{"no", "one", "two", "three", "four", "five", "six"}
-	word := strconv.Itoa(n)
-	if n >= 0 && n < len(words) {
-		word = words[n]
-	}
-	if n != 1 {
-		noun += "s"
-	}
-	return word + " " + noun
-}
-
 // seq returns from, from+1, ... to.
 func seq(from, to int) []int {
 	out := make([]int, 0, to-from+1)
@@ -108,7 +95,7 @@ type navLink struct{ Href, Label, Prefix string }
 func navItem(href, label, prefix string) navLink { return navLink{href, label, prefix} }
 
 func newRenderer() (*renderer, error) {
-	base, err := template.New("").Funcs(template.FuncMap{"upfirst": sentence, "kwRow": keywordRow, "kwMeta": keywordMeta, "kwLabel": keywordLabel, "auraRow": auraRow, "auraText": auraText, "auraLetter": auraLetter, "auraThick": auraThick, "auraOff": auraOff, "auraMeta": auraMeta, "auraLabel": auraLabel, "joinNames": joinNames, "loanedGroups": loanedGroups, "navItem": navItem, "inc": func(i int) int { return i + 1 }, "dec": func(i int) int { return i - 1 }, "ints": intsCSV, "count": countWords, "static": staticURL, "seq": seq, "rollName": rollName, "pairLabel": pairLabel, "dieLabel": dieLabel, "steps": adjustSteps, "perkSteps": perkSteps, "dict": func(kv ...any) map[string]any {
+	base, err := template.New("").Funcs(template.FuncMap{"upfirst": sentence, "kwRow": keywordRow, "kwMeta": keywordMeta, "kwLabel": keywordLabel, "auraRow": auraRow, "auraText": auraText, "auraLetter": auraLetter, "auraThick": auraThick, "auraOff": auraOff, "auraMeta": auraMeta, "auraLabel": auraLabel, "joinNames": joinNames, "loanedGroups": loanedGroups, "navItem": navItem, "inc": func(i int) int { return i + 1 }, "dec": func(i int) int { return i - 1 }, "ints": intsCSV, "count": core.Count, "static": staticURL, "seq": seq, "rollName": rollName, "pairLabel": pairLabel, "dieLabel": dieLabel, "steps": adjustSteps, "perkSteps": perkSteps, "dict": func(kv ...any) map[string]any {
 		m := map[string]any{}
 		for i := 0; i+1 < len(kv); i += 2 {
 			m[kv[i].(string)] = kv[i+1]

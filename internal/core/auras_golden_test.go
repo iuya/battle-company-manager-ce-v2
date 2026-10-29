@@ -113,7 +113,7 @@ func TestUnitAurasAllCompanies(t *testing.T) {
 		}
 		for _, up := range profile.HeroUpgrades { // the company's hero upgrades, on the first unit that may take them
 			for _, e := range ttsEntries(rs, bcCo) {
-				if v, _, ok := resolveUnit(rs, profile, e.unit); ok && up.Allows(v) {
+				if v, _, ok := rs.ResolveUnit(profile, e.unit); ok && up.Allows(v) {
 					u := buildUnit(rs, bcCo, UnitState{ID: 1, Base: e.unit, Role: RoleHero, Gear: slices.Clone(e.wargear), Path: "Path of the Soldier", Progress: &Progress{Upgrades: []string{up.Name}}}, CampaignSettings{})
 					as := rs.UnitAuras(u)
 					check(bcCo.Name+" "+up.Name, as)

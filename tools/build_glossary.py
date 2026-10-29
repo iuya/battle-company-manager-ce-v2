@@ -15,12 +15,21 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-
-from bc.text import norm  # noqa: E402
 import glossary_reference  # noqa: E402
 from glossary_terms import TERMS, KEYWORD_SOURCE, keyword_terms  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def norm(s: str) -> str:
+    """Normalises typography the way the vanilla json does (ASCII quotes, inches as "), collapses whitespace."""
+    s = s.replace("﻿", "").replace(" ", " ")
+    s = re.sub(r"(\d)\s*[”“]", r'\1"', s)
+    s = s.replace("’", "'").replace("‘", "'").replace("“", '"').replace("”", '"')
+    s = s.replace("…", "...")
+    return re.sub(r"[ \t]+", " ", s).strip()
+
+
 GLOSSARY_VERSION = "1.2"  # ours, not the rulebook's: bump it when the content changes
 HEAD = re.compile(r"^(#{2,4}) (.*)$")
 INTRO_ONLY = {"Heroic Actions", "War Beasts", "Turn Sequence"}  # overviews whose sub-sections are separate terms

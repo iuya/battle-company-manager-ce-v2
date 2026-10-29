@@ -29,7 +29,7 @@ func TestEveryEnvVarIsDocumented(t *testing.T) {
 	if len(names) < 10 {
 		t.Fatalf("found only %d variables in the config structs: %v", len(names), names)
 	}
-	for _, file := range []string{"../../compose.yaml", "../../compose.dev.yaml", "../../.env.example"} {
+	for _, file := range []string{"compose.yaml", "compose.dev.yaml", ".env.example"} {
 		b, err := os.ReadFile(file)
 		if err != nil {
 			t.Fatal(err)

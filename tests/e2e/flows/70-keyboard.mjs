@@ -1,4 +1,4 @@
-// Keyboard walk (R10): Tab reaches the controls in order with a visible focus ring, never gets trapped, and a modal sheet keeps the
+// Keyboard walk: Tab reaches the controls in order with a visible focus ring, never gets trapped, and a modal sheet keeps the
 // focus inside, closes on Escape and gives the focus back.
 import { assert, campaignId, MODAL } from '../lib/util.mjs';
 

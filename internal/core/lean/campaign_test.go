@@ -31,7 +31,7 @@ func fieldAt(t *testing.T, path string) (reflect.StructField, bool) {
 	return f, true
 }
 
-// TestParameterIDs: every parameter id of design 12.2 appears exactly once and resolves to a field of the model; the engine
+// TestParameterIDs: every parameter id of the format appears exactly once and resolves to a field of the model; the engine
 // parameters under campaign are required.
 func TestParameterIDs(t *testing.T) {
 	want := []string{"A1", "A2", "A3", "A4", "A7", "A8", "A9", "B1", "B3", "B4", "B6", "B7", "B8", "B9", "B10", "C1", "C2", "C3", "C4", "C5", "D1", "D2", "D3", "E1", "E4", "E6", "F1", "F5", "G3"}

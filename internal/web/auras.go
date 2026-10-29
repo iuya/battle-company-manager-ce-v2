@@ -29,7 +29,7 @@ func auraRow(as []core.Aura, max int) auraRowView {
 }
 
 // auraText is the chip's text: `Aura 6"`.
-func auraText(a core.Aura) string { return "Aura " + auraInches(a.Radius) + `"` }
+func auraText(a core.Aura) string { return "Aura " + core.Inches(a.Radius) + `"` }
 
 // auraLetter is the kind's first letter, the ring's cue that does not rely on colour.
 func auraLetter(a core.Aura) string {
@@ -97,7 +97,7 @@ func auraMeta(a core.Aura) string {
 
 // auraLabel is the chip's accessible name.
 func auraLabel(a core.Aura) string {
-	s := "Aura, " + auraInches(a.Radius) + " inches"
+	s := "Aura, " + core.Inches(a.Radius) + " inches"
 	if a.Label != "" {
 		s += ": " + a.Label
 	}

@@ -33,7 +33,7 @@ type Rulesets struct {
 // caller reads them (from disk today) so core stays free of file access.
 func NewRulesets(repo rulesetRepository, schemas map[RulesetKind][]byte) (*Rulesets, error) {
 	rs := &Rulesets{repo: repo, schemas: map[RulesetKind]*jsonschema.Schema{}}
-	for _, kind := range []RulesetKind{KindVanilla, KindBattleCompanies, KindGlossary} {
+	for _, kind := range []RulesetKind{KindVanilla, KindGlossary} { // the Battle Companies file is checked by the lean decoder, not by a schema
 		raw, ok := schemas[kind]
 		if !ok {
 			return nil, fmt.Errorf("no JSON schema for the %s file", kind)
@@ -70,8 +70,8 @@ func (r *Rulesets) Lookup(ctx context.Context, hash string) (RulesetInfo, error)
 	return r.repo.Info(ctx, hash)
 }
 
-// Find answers "do you already have this file?": the stored file of that kind with that hash. Files are identified by their hash alone
-// (user decision 2026-10-21): name and version are labels, so several files may share them. name and version are kept in the
+// Find answers "do you already have this file?": the stored file of that kind with that hash. Files are identified by their hash alone:
+// name and version are labels, so several files may share them. name and version are kept in the
 // signature for the callers and ignored. ErrNotFound when there is none.
 func (r *Rulesets) Find(ctx context.Context, kind RulesetKind, hash, name, version string) (RulesetInfo, error) {
 	info, err := r.repo.Info(ctx, hash)
@@ -96,7 +96,13 @@ func (r *Rulesets) StoreAs(ctx context.Context, uploader User, kind RulesetKind,
 }
 
 func (r *Rulesets) store(ctx context.Context, kind RulesetKind, hash string, content []byte, uploader int64) (RulesetInfo, error) {
-	p, err := r.prepare(ctx, kind, hash, content)
+	return r.storeAgainst(ctx, kind, hash, content, uploader, nil)
+}
+
+// storeAgainst is store checking a Battle Companies file against the vanilla file and glossary given (the shipped ones, at the start)
+// instead of the defaults of the repository.
+func (r *Rulesets) storeAgainst(ctx context.Context, kind RulesetKind, hash string, content []byte, uploader int64, against *lowers) (RulesetInfo, error) {
+	p, err := r.prepare(ctx, kind, hash, content, against)
 	if err != nil {
 		return RulesetInfo{}, err
 	}
@@ -111,7 +117,7 @@ type prepared struct {
 }
 
 // prepare runs every check of an upload (size, hash, kind, shape, schema or lean decode) without writing anything.
-func (r *Rulesets) prepare(ctx context.Context, kind RulesetKind, hash string, content []byte) (prepared, error) {
+func (r *Rulesets) prepare(ctx context.Context, kind RulesetKind, hash string, content []byte, against *lowers) (prepared, error) {
 	got, err := r.preflightHash(kind, content)
 	if err != nil {
 		return prepared{}, err
@@ -133,10 +139,8 @@ func (r *Rulesets) prepare(ctx context.Context, kind RulesetKind, hash string, c
 	case !errors.Is(err, ErrNotFound):
 		return prepared{}, err
 	}
-	if rep := r.validateFile(ctx, kind, content); rep.Errors() > 0 {
+	if rep := r.validateFile(ctx, kind, content, against); rep.Errors() > 0 {
 		return prepared{}, rep
-	} else if !acceptV2 && kind == KindBattleCompanies && isLeanFile(content) {
-		return prepared{}, ErrRulesetNotPlayable
 	}
 	compact, err := compactJSON(content)
 	if err != nil {
@@ -165,10 +169,27 @@ type RulesetUpload struct {
 // StoreAllAs stores several uploaded files all or nothing: every file is checked first, the problems of all of them are
 // returned together (one report, each issue naming its file), and nothing is inserted unless every file is good. The infos come back in the order of the uploads.
 func (r *Rulesets) StoreAllAs(ctx context.Context, uploader User, uploads []RulesetUpload) ([]RulesetInfo, error) {
+	// a Battle Companies file is checked against the vanilla file and glossary uploaded with it
+	var vanilla, glossary []byte
+	for _, u := range uploads {
+		switch u.Kind {
+		case KindVanilla:
+			vanilla = u.Content
+		case KindGlossary:
+			glossary = u.Content
+		}
+	}
 	preps := make([]prepared, len(uploads))
 	var errs []error
 	for i, u := range uploads {
-		p, err := r.prepare(ctx, u.Kind, u.Hash, u.Content)
+		var against *lowers
+		if u.Kind == KindBattleCompanies {
+			var err error
+			if against, _, err = r.lowersOf(ctx, vanilla, glossary); err != nil {
+				return nil, err
+			}
+		}
+		p, err := r.prepare(ctx, u.Kind, u.Hash, u.Content, against)
 		if err != nil {
 			if !errors.Is(err, ErrInvalidRuleset) {
 				return nil, err // the repository failed: not a problem of the file
@@ -212,25 +233,86 @@ func preflightShape(kind RulesetKind, content []byte) (name, version string, err
 	return RulesetMeta(kind, content)
 }
 
-// Check validates a rules file without storing it and without creating anything (the dry run of the admin "Check this file"
-// button and of the campaign form). The report carries every problem and every warning; the error is non-nil, wraps
-// ErrInvalidRuleset and is that report when the file has errors. A valid schemaVersion 2 file is not an error here: Check says
-// whether the file is right, StoreAs whether this build can play it.
-//
-// REVIEW: a schemaVersion 2 Battle Companies file is checked against the default vanilla file and glossary, not against the other
-// two files the campaign form picked; refine when v2 files become playable (slice 9).
+// Check validates one rules file without storing it: CheckSet with only that file, so a Battle Companies file is checked against
+// the default vanilla file and glossary.
 func (r *Rulesets) Check(ctx context.Context, kind RulesetKind, content []byte) (RulesetReport, error) {
-	if _, err := r.preflightHash(kind, content); err != nil {
-		return failure(kind, err)
+	set := RulesetSet{}
+	if content == nil {
+		content = []byte{}
 	}
-	if _, _, err := preflightShape(kind, content); err != nil {
-		return failure(kind, err)
+	switch kind {
+	case KindVanilla:
+		set.Vanilla = content
+	case KindGlossary:
+		set.Glossary = content
+	case KindBattleCompanies:
+		set.BattleCompanies = content
+	default:
+		return failure(kind, errors.Join(ErrInvalidRuleset, errors.New("unknown kind of rules file")))
 	}
-	rep := r.validateFile(ctx, kind, content)
-	if rep.Errors() > 0 {
-		return *rep, rep
+	return r.CheckSet(ctx, set)
+}
+
+// RulesetSet is the files of one check or one campaign form. A nil file is not given: it is not checked, and a Battle
+// Companies file is then checked against the default (shipped) vanilla file or glossary.
+type RulesetSet struct {
+	Vanilla, Glossary, BattleCompanies []byte
+}
+
+// CheckSet validates the files of a set without storing or creating anything (the dry run of the admin "Check this file" button and
+// of the online validator). Vanilla and glossary are checked against their schemas; the Battle Companies file is checked against
+// the vanilla file and glossary of the SAME set, the default ones for what is not given. One report carries every problem and
+// warning, issues grouped by file in the order vanilla, glossary, Battle Companies; the error is non-nil, wraps ErrInvalidRuleset
+// and is that report when a file has errors. A valid schemaVersion 2 file is not an error here: CheckSet says whether the files
+// are right, StoreAs whether this build can play them.
+func (r *Rulesets) CheckSet(ctx context.Context, set RulesetSet) (RulesetReport, error) {
+	all := &RulesetReport{}
+	reports := 0
+	add := func(rep *RulesetReport) {
+		if reports++; reports == 1 { // one file's own one-line text (schema failures keep their wording) stands for the report
+			all.summary = rep.summary
+		} else {
+			all.summary = ""
+		}
+		all.issues = append(all.issues, rep.issues...)
+		all.truncated += rep.truncated
 	}
-	return *rep, nil
+	files := []struct {
+		kind    RulesetKind
+		content []byte
+	}{{KindVanilla, set.Vanilla}, {KindGlossary, set.Glossary}, {KindBattleCompanies, set.BattleCompanies}}
+	var against *lowers
+	var warns []RulesetIssue
+	for _, f := range files {
+		if f.content == nil {
+			continue
+		}
+		if _, err := r.preflightHash(f.kind, f.content); err != nil {
+			rep, _ := failure(f.kind, err)
+			add(&rep)
+			continue
+		}
+		if _, _, err := preflightShape(f.kind, f.content); err != nil {
+			rep, _ := failure(f.kind, err)
+			add(&rep)
+			continue
+		}
+		if f.kind == KindBattleCompanies {
+			var err error
+			if against, warns, err = r.lowersOf(ctx, set.Vanilla, set.Glossary); err != nil {
+				return RulesetReport{}, err
+			}
+		}
+		rep := r.validateFile(ctx, f.kind, f.content, against)
+		if f.kind == KindBattleCompanies && len(warns) > 0 {
+			rep.issues = append(append([]RulesetIssue(nil), warns...), rep.issues...)
+		}
+		add(rep)
+	}
+	if all.Errors() > 0 {
+		return *all, all
+	}
+	return *all, nil
 }
 
 // failure turns a plain rejection (too large, not JSON, wrong kind of document) into a one-issue report.
@@ -262,18 +344,21 @@ func compactJSON(content []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// validate checks the file against what its kind demands and returns every problem. A Battle Companies file of schemaVersion 2 goes
+// validate checks the file against what its kind demands and returns every problem. A Battle Companies file goes
 // through the lean decoder, against the default vanilla file and glossary; every other file against the JSON schema of its kind
 // (the failures converted to issues, none dropped). The report never is nil.
-func (r *Rulesets) validateFile(ctx context.Context, kind RulesetKind, content []byte) *RulesetReport {
-	if kind == KindBattleCompanies && isLeanFile(content) {
-		return r.validateV2(ctx, content)
+func (r *Rulesets) validateFile(ctx context.Context, kind RulesetKind, content []byte, against *lowers) *RulesetReport {
+	if kind == KindBattleCompanies {
+		if rep, old := oldFormatReport(kind.fileName(), content); old {
+			return rep
+		}
+		return r.validateV2(ctx, content, against)
 	}
 	return r.validateSchema(kind, content)
 }
 
-func (r *Rulesets) validateV2(ctx context.Context, content []byte) *RulesetReport {
-	vanilla, glossary, err := r.defaultLowers(ctx)
+func (r *Rulesets) validateV2(ctx context.Context, content []byte, against *lowers) *RulesetReport {
+	vanilla, glossary, err := r.lowersFor(ctx, against)
 	if err != nil {
 		return &RulesetReport{issues: []RulesetIssue{{File: KindBattleCompanies.fileName(), Message: "the default vanilla and glossary files needed to check this file are not available: " + err.Error()}}}
 	}
@@ -281,32 +366,90 @@ func (r *Rulesets) validateV2(ctx context.Context, content []byte) *RulesetRepor
 	return newRulesetReport(rep)
 }
 
+// lowers are the vanilla book and the glossary a Battle Companies file is checked against.
+type lowers struct {
+	book *VanillaBook
+	gl   Glossary
+}
+
+func (r *Rulesets) lowersFor(ctx context.Context, against *lowers) (*VanillaBook, Glossary, error) {
+	if against != nil {
+		return against.book, against.gl, nil
+	}
+	return r.defaultLowers(ctx)
+}
+
 // defaultLowers builds the vanilla book and the glossary of the default files.
 func (r *Rulesets) defaultLowers(ctx context.Context) (*VanillaBook, Glossary, error) {
-	load := func(kind RulesetKind) (StoredRuleset, error) {
-		info, err := r.repo.Default(ctx, kind)
-		if err != nil {
-			return StoredRuleset{}, fmt.Errorf("no default %s file: %w", kind, err)
-		}
-		return r.repo.Get(ctx, info.Hash)
-	}
-	v, err := load(KindVanilla)
+	book, err := r.defaultBook(ctx)
 	if err != nil {
 		return nil, Glossary{}, err
 	}
-	g, err := load(KindGlossary)
-	if err != nil {
-		return nil, Glossary{}, err
-	}
-	book, err := ParseVanilla(v.Content)
-	if err != nil {
-		return nil, Glossary{}, err
-	}
-	gl, err := BuildGlossary(g.RulesetInfo, g.Content)
+	gl, err := r.defaultGlossary(ctx)
 	if err != nil {
 		return nil, Glossary{}, err
 	}
 	return book, gl, nil
+}
+
+func (r *Rulesets) loadDefault(ctx context.Context, kind RulesetKind) (StoredRuleset, error) {
+	info, err := r.repo.Default(ctx, kind)
+	if err != nil {
+		return StoredRuleset{}, fmt.Errorf("no default %s file: %w", kind, err)
+	}
+	return r.repo.Get(ctx, info.Hash)
+}
+
+func (r *Rulesets) defaultBook(ctx context.Context) (*VanillaBook, error) {
+	v, err := r.loadDefault(ctx, KindVanilla)
+	if err != nil {
+		return nil, err
+	}
+	return ParseVanilla(v.Content)
+}
+
+func (r *Rulesets) defaultGlossary(ctx context.Context) (Glossary, error) {
+	g, err := r.loadDefault(ctx, KindGlossary)
+	if err != nil {
+		return Glossary{}, err
+	}
+	return BuildGlossary(g.RulesetInfo, g.Content)
+}
+
+// lowersOf resolves what a Battle Companies file is checked against from the vanilla and glossary files that come with it
+// (nil: the default one). A supplied file that cannot be read is replaced by the default and said so in the warnings, so the
+// report names the file that is wrong instead of blaming the Battle Companies file for it.
+func (r *Rulesets) lowersOf(ctx context.Context, vanilla, glossary []byte) (*lowers, []RulesetIssue, error) {
+	if vanilla == nil && glossary == nil {
+		return nil, nil, nil
+	}
+	var warns []RulesetIssue
+	against := &lowers{}
+	var err error
+	if vanilla != nil {
+		if against.book, err = ParseVanilla(vanilla); err != nil {
+			against.book = nil
+			warns = append(warns, RulesetIssue{File: KindBattleCompanies.fileName(), Warn: true, Message: "your vanilla file could not be read, so this file was checked against the shipped vanilla file"})
+		}
+	}
+	if against.book == nil {
+		if against.book, err = r.defaultBook(ctx); err != nil {
+			return nil, nil, err
+		}
+	}
+	if glossary != nil {
+		if against.gl, err = BuildGlossary(RulesetInfo{Kind: KindGlossary}, glossary); err != nil {
+			against.gl = Glossary{}
+			glossary = nil
+			warns = append(warns, RulesetIssue{File: KindBattleCompanies.fileName(), Warn: true, Message: "your glossary file could not be read, so this file was checked against the shipped glossary"})
+		}
+	}
+	if glossary == nil {
+		if against.gl, err = r.defaultGlossary(ctx); err != nil {
+			return nil, nil, err
+		}
+	}
+	return against, warns, nil
 }
 
 // validate checks the file against the JSON schema of its kind and returns the report as the error (nil when it passes).
@@ -380,15 +523,22 @@ func schemaPath(parts []string) string {
 // RegisterDefaults stores the files the app ships with and makes them the defaults of their kinds. Called at every start:
 // files already stored and already default are left alone.
 func (r *Rulesets) RegisterDefaults(ctx context.Context, vanilla, bc, glossary []byte) error {
+	// the Battle Companies file is checked against the shipped vanilla file and glossary, which are registered first
+	var against *lowers
+	if book, err := ParseVanilla(vanilla); err == nil {
+		if gl, err := BuildGlossary(RulesetInfo{Kind: KindGlossary}, glossary); err == nil {
+			against = &lowers{book, gl}
+		}
+	}
 	for _, d := range []struct {
 		kind    RulesetKind
 		content []byte
-	}{{KindVanilla, vanilla}, {KindBattleCompanies, bc}, {KindGlossary, glossary}} {
+	}{{KindVanilla, vanilla}, {KindGlossary, glossary}, {KindBattleCompanies, bc}} {
 		hash, err := RulesetHash(d.content)
 		if err != nil {
 			return fmt.Errorf("the shipped %s file: %w", d.kind, err)
 		}
-		info, err := r.store(ctx, d.kind, hash, d.content, 0)
+		info, err := r.storeAgainst(ctx, d.kind, hash, d.content, 0, against)
 		if err != nil {
 			return fmt.Errorf("the shipped %s file: %w", d.kind, err)
 		}

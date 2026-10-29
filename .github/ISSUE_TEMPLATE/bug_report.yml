@@ -1,0 +1,72 @@
+name: Bug report
+description: Something in the app does not work as documented
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. For a security vulnerability do not use this form: see SECURITY.md.
+        For a mistake in the rules data (a unit, a special rule, a number) use the "Rules data" form instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did and what you saw, including any error message.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps from a fresh start. `make demo` data is a good common ground; say which campaign or page.
+      placeholder: |
+        1. Sign in as ...
+        2. Open ...
+        3. Click ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Release tag or image tag (for example 1.1.0), or the commit if you run from source.
+    validations:
+      required: true
+  - type: dropdown
+    id: how-run
+    attributes:
+      label: How you run the app
+      options:
+        - Published image (ghcr.io)
+        - docker compose from a checkout
+        - make run / make dev from source
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      description: For a display problem also the screen width and light or dark theme.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Remove passwords, session cookies and personal data first.
+      render: shell
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and the documentation.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

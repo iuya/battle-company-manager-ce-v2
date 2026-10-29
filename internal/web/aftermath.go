@@ -24,19 +24,6 @@ type aftermathRow struct {
 	Summary string // what a finished aftermath did, or the note of a waived one
 }
 
-// AftermathLabel is the badge text of a status.
-func aftermathLabel(s core.AftermathStatus) string {
-	switch s {
-	case core.AftermathPending:
-		return "Pending"
-	case core.AftermathDone:
-		return "Done"
-	case core.AftermathWaived:
-		return "Waived"
-	}
-	return "In progress"
-}
-
 // aftermathRows gathers the card of an ended match: one row per company. It never fails the page; the error text says what
 // went wrong so the card can show it.
 func (s *Server) aftermathRows(r *http.Request, base campaignBase, m core.Match) ([]aftermathRow, string) {
@@ -59,7 +46,7 @@ func (s *Server) aftermathRows(r *http.Request, base campaignBase, m core.Match)
 		row.Owner = company.Owner
 		row.Edit = core.AftermathAccessFor(user, m, company, base.Campaign.OrganiserID) == core.AftermathEdit
 		row.Waive = ref.Status.Locks() && core.CanWaive(user, base.Campaign.OrganiserID)
-		if ref.Status == core.AftermathDone || ref.Status == core.AftermathWaived {
+		if !m.Practice && (ref.Status == core.AftermathDone || ref.Status == core.AftermathWaived) {
 			if a, err := s.campaigns.Aftermath(r.Context(), user, base.Campaign.ID, m.ID, ref.CompanyID); err == nil {
 				row.Summary = aftermathSummary(a)
 			}
@@ -85,7 +72,7 @@ func aftermathSummary(a core.Aftermath) string {
 				dead++
 			}
 		}
-		parts = append(parts, fmt.Sprintf("%d %s", n, plural(n, "casualty", "casualties")))
+		parts = append(parts, fmt.Sprintf("%d %s", n, core.Plural(n, "casualty", "casualties")))
 		if dead > 0 {
 			parts[len(parts)-1] += fmt.Sprintf(" (%d dead)", dead)
 		}
@@ -101,13 +88,6 @@ func aftermathSummary(a core.Aftermath) string {
 	}
 	parts = append(parts, fmt.Sprintf("%+d Experience", xp), fmt.Sprintf("%+d Influence", inf))
 	return strings.Join(parts, " · ")
-}
-
-func plural(n int, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
 }
 
 // handleWaiveAftermath lets the organiser or an administrator waive a company's aftermath (with a note) from the match page.
@@ -316,7 +296,7 @@ type aftermathView struct {
 
 // Owner is whether the viewer plays this company: the level-up window of My Company works on the viewer's own company.
 func (v aftermathView) Owner() bool {
-	return v.Campaign.Company != nil && v.Campaign.Company.ID == v.Company.ID
+	return v.Campaign.Owns(v.Company.ID)
 }
 
 // Waiting lists the units of the company with level-up rolls waiting.
@@ -741,6 +721,9 @@ func (s *Server) aftermathCtx(w http.ResponseWriter, r *http.Request) (campaignB
 // newAftermathView gathers what the steps need. a is the state to show; an error from the core is returned as is.
 func (s *Server) newAftermathView(r *http.Request, base campaignBase, m core.Match, co core.CampaignCompany, a core.Aftermath) (aftermathView, error) {
 	v := aftermathView{campaignBase: base, Match: m, Company: co, A: a, Result: m.Result.Company(co.ID), Roster: map[int64]core.CompanyUnit{}}
+	if a.Practice { // nothing to roll: the page is the short state, no rules or roster are read
+		return v, nil
+	}
 	var err error
 	if v.Rules, err = s.campaigns.AftermathRules(r.Context(), base.Campaign.ID); err != nil {
 		return v, err
@@ -1132,7 +1115,7 @@ func splitPerks(all []perkView) (unused, used []perkView) {
 
 // handleUsePerk marks a perk used; only the company's owner does it.
 func (s *Server) handleUsePerk(w http.ResponseWriter, r *http.Request) {
-	base, ok := s.loadCampaign(w, r, "my-company")
+	base, ok := s.loadOwn(w, r, "my-company")
 	if !ok {
 		return
 	}
@@ -1140,11 +1123,7 @@ func (s *Server) handleUsePerk(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if base.Campaign.Company == nil {
-		s.refuse(w, r, http.StatusForbidden, "You have no company in this campaign.")
-		return
-	}
-	err := s.campaigns.UsePerk(r.Context(), *userFrom(r.Context()), base.Campaign.ID, base.Campaign.Company.ID, perk)
+	err := s.campaigns.UsePerk(r.Context(), *userFrom(r.Context()), base.Campaign.ID, base.Current.ID, perk)
 	switch {
 	case errors.Is(err, core.ErrRefused):
 		s.myCompanyPage(w, r, http.StatusUnprocessableEntity, reason(err), true)

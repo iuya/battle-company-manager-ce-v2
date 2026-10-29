@@ -65,7 +65,7 @@ type ttsView struct {
 var auraKindOrder = []core.AuraKind{"banner", "command", "support", "enemy", "utility"}
 
 // auraSwitches are the group switches of the Auras section in the order the dialog shows them (the group "always" has none: it is on with
-// the master switch). Default is the owner's choice (docs/aura-ranges.md section 9): declared and conditional on, the others off.
+// the master switch). Defaults as in docs/aura-ranges.md section 9: declared and conditional on, the others off.
 var auraSwitches = []struct {
 	Group, Param string
 	Default      bool // the label and the hint are data.auras.groups[].label and .text
@@ -163,13 +163,10 @@ func (v ttsView) AuraKinds() []auraKindRow {
 func auraRadii(rs []float64) string {
 	parts := make([]string, len(rs))
 	for i, r := range rs {
-		parts[i] = auraInches(r) + `"`
+		parts[i] = core.Inches(r) + `"`
 	}
 	return strings.Join(parts, ", ")
 }
-
-// auraInches writes a radius without a needless fraction: 6, 4.5.
-func auraInches(r float64) string { return strconv.FormatFloat(r, 'f', -1, 64) }
 
 // auraSwitchRow is a group switch with what it does.
 type auraSwitchRow struct {

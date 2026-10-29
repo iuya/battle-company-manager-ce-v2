@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-// MaxDepth is the deepest nesting of arrays and objects the decoder reads (safety limit, design plan section 6).
+// MaxDepth is the deepest nesting of arrays and objects the decoder reads (a limit on what an uploaded file may nest).
 const MaxDepth = 64
 
 // Reporter appends issues of one file to a Report.

@@ -1,5 +1,7 @@
 # The demo world (`make demo`)
 
+A rich development database for exploring and testing the app: many campaigns in every state, with accounts to sign in as. This page lists what each campaign shows and where to click.
+
 `make demo` **destroys the development database's contents** (`make db-reset`; back it up first if you need it), loads the demo world with `server seed --world`, and starts the
 server on http://localhost:8080 (no live reload; for that load the world with `go run ./cmd/server seed --world` and use `make dev`). The
 world is a script, `cmd/server/world*.go`, that drives the **real core services** through `newBackend`: nothing is inserted
@@ -9,7 +11,7 @@ with `ManualRolls`) or fixed (`core.FixedDice` through `demoDice`, campaigns wit
 ```
 make demo                      # empty database, the world, the server on :8080
 make demo PASSWORD=...         # another password for every account (at least 10 characters)
-make seed                      # the minimal demo (docs/frontend.md, "Demo data and signing in"), unchanged
+make seed                      # the minimal demo ([frontend.md](frontend.md#demo-data-and-signing-in))
 go run ./cmd/server seed --world   # load the world into the current database (no reset; does nothing if it is there)
 ```
 
@@ -59,19 +61,36 @@ company, sees "My company"). Page names are those of the navigation: Overview, M
 | **Settings: everything on, own paths level up** | Galadriel | all four settings on; `CustomOnTheirOwnPath`: the Wood Elf Sentinels are warriors that earn experience: one has two level-ups waiting, another rolled a 6 and became a hero on the "Path of Their Own Making" | My company |
 | **Pinned to another edition: Battle Companies 2.1-demo** | Gimli, Bilbo | a campaign pinned to a **forked Battle Companies file** (the app's file with another name and version) while the other campaigns use the default | Overview > Rules card (name, version, short hash); `/admin` > Rules files lists both |
 | **Finished campaign: the Siege of Osgiliath** | Faramir, Sauron | a campaign played to its end (status finished, Round 12 of 12): no invite, no grant, no new match; two matches with finished aftermaths | Overview; Rankings; the home page's "finished" group |
-| **Aura parade: every aura ring a company can carry** | You (Fiefdoms), Éowyn (Rohan), Galadriel (Lothlorien), Sauron (Angmar & Carn Dum) and six gallery accounts (Lake-town, Moria, City of Umbar, Osgiliath & Ithilien, Goblin-Town, Wanderers in the Wild) | ten companies that between them carry **every aura of `data.auras` that a company can reach**, for the smoke test of the rings in Tabletop Simulator; `CustomOnTheirOwnPath` is on (Lead by Example). See [Aura parade](#aura-parade) | My company (as `you`: Fiefdoms; the others under Companies) > the Tabletop Simulator button |
+| **Aura parade: every aura ring a company can carry** | You (Fiefdoms), Éowyn (Rohan), Galadriel (Lothlorien), Sauron (Angmar & Carn Dum) and six gallery accounts (Lake-town, Moria, City of Umbar, Osgiliath & Ithilien, Goblin-Town, Wanderers in the Wild) | ten companies that between them carry **every aura of the data that a company can reach**, for the smoke test of the rings in Tabletop Simulator; `CustomOnTheirOwnPath` is on (Lead by Example). See [Aura parade](#aura-parade) | My company (as `you`: Fiefdoms; the others under Companies) > the Tabletop Simulator button |
 | **Cemetery: the fallen of the Misty Mountains** | Boromir (closed account), Bilbo (The Shire, "Hobbits who lost their Ranger": the Ranger of the North fell in a lost Rescue match against Boromir's company, played through the aftermath: a Hobbit who had rolled Hero in the Making took the Sergeant place the promotion of a Sergeant to Leader left, so the company has the three officers it needs to recruit; the Ranger is in the cemetery, so Recruit may swap a successful result for a new one) | a cemetery with a dead and a retired Sergeant and four dead warriors, in the order the player chose; the owner shown as "Former player" | My company > Cemetery (as `you`: Companies > the company) |
 | **Handed over: Faramir organises now** | Éowyn, Faramir | `Campaigns.HandOver`: created by You, organised by Faramir; You is a player without a company | Overview as `faramir` (organiser buttons) and as `you` (none) |
 | **Faramir's campaign: a small start** | Aragorn, Pippin | a campaign organised by Faramir from the start | Overview as `faramir` |
+| **Two bands: several companies per player** | Éowyn (two companies), Galadriel (three), Gimli, Sauron | the setting `CompaniesPerPlayer` = 3 (default 1 everywhere else), and the two **practice matches** (one ended, one open with a log): see [Two bands](#two-bands) | My Company as `eowyn`, `galadriel`; Matches, the Practice filter |
+
+### Two bands
+
+Step `world_bands.go`, campaign **Two bands: several companies per player** (organiser `you`, `CompaniesPerPlayer` = 3; every other campaign keeps the default of 1). Spec: [multi-company-spec.md](multi-company-spec.md).
+
+| Player | Companies | What it shows |
+|---|---|---|
+| `eowyn` | Eorlings of the Mark (Rohan), Shieldmaidens of the Deep (Helm's Deep) | two companies, below the limit: the chip switcher under the tab bar with a "New company" chip, "Create another company" on the Overview, a third may be created |
+| `galadriel` | Wardens of the Golden Wood (Lothlórien), Scouts of the Hidden Vale (Rivendell), Sentries of the Greenwood (Mirkwood) | three, at the limit: the switcher without a "New company" chip ("All 3 companies created"), "You have all 3 companies this campaign allows." |
+| `gimli`, `sauron` | one each | a player with one company sees exactly what a campaign with the default limit shows: no chip, no new wording |
+
+- **Match 1** (ended, **practice**): Éowyn's two companies against each other, the "Same player" case; the result is entered and the aftermath reads "Practice match: nothing to roll", so neither company is locked by it.
+- **Match 2** (ended): both of Éowyn's companies on one side against Sauron's, a competitive match. The match page says "Same player: both of these companies are Éowyn's."; her first company's aftermath is finished, the second's still to play, and Sauron's is untouched (each is locked on its own).
+- **Match 3** (open): one of Galadriel's companies against Gimli's; her other two are free for a new match.
+- **Match 4** (open, **practice**): Galadriel's other two companies against each other, with a live log (turn 1 and a point of Might spent); their pages show the live state with the Practice badge. The Overview of the campaign counts 2 matches and "2 practice matches"; Éowyn's wins count only Match 2 (see [practice-match-spec.md](practice-match-spec.md)). In the new match form the "Mine" chip narrows the search to the viewer's companies, and putting two companies of one player on a side shows the same note before the match is created.
+- The company id is in every address (`/campaigns/N/my-company/ID`); `/campaigns/N/my-company` alone opens the first company, and another player's company id answers 404.
 
 ### Aura parade
 
-Step `world_aura.go`, campaign **Aura parade: every aura ring a company can carry** (organiser `you`). Spec: [`aura-ranges.md`](aura-ranges.md); data: [`definitions.md`](definitions.md#aura-ranges-dataauras).
+Step `world_aura.go`, campaign **Aura parade: every aura ring a company can carry** (organiser `you`). Spec: [aura-ranges.md](aura-ranges.md); data: [`definitions.md`](definitions.md).
 Every officer's level-ups are typed rolls (`w.gain`: 5 experience, the roll of the path chart that offers the rule, the choice; a warrior becomes a hero with a 6, a Sorcerer names
 its first power), items are bought with gold, so everything is reached through the real services. A company in a campaign belongs to one player and a company has its own upgrades, so the
 auras that depend on the company are spread over ten companies (the three "main" ones carry the items, the paths, the powers and the creature; the six gallery accounts carry one hereditary upgrade
 each). The script prints the auras of every unit and creature (`aura ...` lines) and the Tabletop Simulator export (`Tabletop Simulator: N rings on M of K figures`), and records a gap
-(failing `TestSeedWorld`) when an entry of `data.auras` is carried by no company and `auraUnreachable` (`world_aura.go`) does not explain it. The default selection of the dialog applies
+(failing `TestSeedWorld`) when an aura entry of the data is carried by no company and `auraUnreachable` (`world_aura.go`) does not explain it. The default selection of the dialog applies
 (the `cast`, `target`, `large` and `optional` groups are off), so the spells, the targeting ranges, the war horn's 24" and the Torch ring show once their switches are on.
 
 | Company (account) | What it carries | Auras |
@@ -94,8 +113,8 @@ Every company also shows Stand Fast, With Me! and Loose on its heroes; the Marks
 - **Banner (3")**, the plain item: a Battle Company cannot own it. The Battle Companies equipment table sells the Company Standard instead and the vanilla options "Banner", "War horn" and "War drum"
   are `notSold` (`data.optionSales`). The Company Standard (same 3" ring), the Company Horn and the Company Drum (the same names as the entries `horn-*` and `drum-12`) are carried above. The entry would show
   up in a custom ruleset that sells a banner.
-- The rules the data lists as `receiver-side`, `centred-elsewhere`, `weapon-range`... (`data.auras.excluded`) and the 181 vanilla rules of characters no company can field (`data.auras.unreachable`) are not entries.
-- Everything else of the 52 entries is carried by at least one company above; `Lead by Example` needs the campaign setting `CustomOnTheirOwnPath` (a homebrew path), which this campaign switches on.
+- The rules the data lists as `receiver-side`, `centred-elsewhere`, `weapon-range`... (`excluded` in `tools/data/aura_audit.json`) and the vanilla rules of characters no company can field (`unreachable`) are not entries.
+- Everything else of the entries is carried by at least one company above; the ring of `Lead by Example` is Buhrdur's alone (no company has him), so it is listed among the unreachable entries; the homebrew path's `Lead by Example (Their Own Making)` has no ring and needs the campaign setting `CustomOnTheirOwnPath`, which this campaign switches on.
 
 ### Company types
 
@@ -204,8 +223,7 @@ The Elven Cloak: the Galadhrim of ward 1 (Galadriel) carry it as a unit upgrade 
 States of the wish list that the services cannot produce, or that need raw SQL (the only raw SQL of the world, in
 `world_settings.go` and `world_final.go`, run through one `pgx` connection):
 
-- **Finished and paused campaigns, rounds** (`Round 3 of 12`): no service finishes or pauses a campaign or sets its round;
-  the script updates `campaigns` directly.
+- **Rounds** (`Round 3 of 12`): no service sets a campaign's round; the script updates `campaigns` directly. (Pausing and ending a campaign go through `SetCampaignStatus`.)
 - **Expired and used-up invite links**: `Invites` has no clock to inject and no max-uses option; the script updates
   `campaign_invites` (`expires_at` in the past; `max_uses = uses = 1`). The valid link is real. The secrets are random per
   run: see the end of `tmp/demo-world.txt`.

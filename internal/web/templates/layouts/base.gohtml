@@ -11,6 +11,7 @@
   <link rel="icon" href="{{static "favicon.svg"}}" type="image/svg+xml">
   <link rel="icon" href="{{static "favicon-32.png"}}" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="{{static "apple-touch-icon.png"}}">
+  <link rel="preload" href="{{static "fonts/cormorant-garamond-latin-700.woff2"}}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{static "app.css"}}">
   <script src="{{static "js/tz.js"}}"></script>
   {{/* htmx, the theme store (before Alpine: it registers its stores on alpine:init), the page scripts, SortableJS (MIT) and Alpine, in one file: see bundleScripts in static.go */}}
@@ -33,7 +34,7 @@
       <button type="button" class="btn btn-ghost !px-2 md:hidden" @click="open = true" :aria-expanded="open" aria-controls="sidebar" aria-label="Open menu">
         <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
-      <a href="/" class="flex min-w-0 items-center gap-2 font-heading text-base font-bold leading-tight text-fg no-underline hover:no-underline sm:text-xl"><img src="{{static "favicon.svg"}}" alt="" class="h-8 w-8 shrink-0"><span class="line-clamp-3 sm:line-clamp-2">Battle Companies 2nd Community Edition Manager</span></a>
+      <a href="{{if .User}}/campaigns{{else}}/{{end}}" class="flex min-w-0 items-center gap-2 font-heading text-base font-bold leading-tight text-fg no-underline hover:no-underline sm:text-xl"><img src="{{static "favicon.svg"}}" alt="" class="h-8 w-8 shrink-0"><span class="line-clamp-3 sm:line-clamp-2">Battle Companies 2nd Community Edition Manager</span></a>
       <div class="ml-auto">{{template "theme_menu" .}}</div>
     </div>
   </header>
@@ -49,7 +50,7 @@
 {{else}}
   <header class="border-b border-line bg-surface">
     <div class="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3">
-      <a href="/" class="flex items-center gap-2 font-heading text-base font-bold leading-tight text-fg no-underline hover:no-underline sm:text-xl"><img src="{{static "favicon.svg"}}" alt="" class="h-8 w-8 shrink-0"><span class="line-clamp-3 sm:line-clamp-2">Battle Companies 2nd Community Edition Manager</span></a>
+      <a href="{{if .User}}/campaigns{{else}}/{{end}}" class="flex items-center gap-2 font-heading text-base font-bold leading-tight text-fg no-underline hover:no-underline sm:text-xl"><img src="{{static "favicon.svg"}}" alt="" class="h-8 w-8 shrink-0"><span class="line-clamp-3 sm:line-clamp-2">Battle Companies 2nd Community Edition Manager</span></a>
       <div class="ml-auto">{{template "theme_menu" .}}</div>
     </div>
   </header>

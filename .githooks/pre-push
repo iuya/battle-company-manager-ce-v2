@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+# Pushes straight to main are never allowed: changes reach main through a reviewed pull request
+# (CONTRIBUTING.md). The repository ruleset enforces it on GitHub; this stops the mistake locally.
+# Runs the beads pre-push hook first when there is one (it needs the same stdin).
+hook_dir=$(dirname "$0")
+input=$(cat)
+if [ -x "$hook_dir/../.beads/hooks/pre-push" ]; then
+  printf '%s\n' "$input" | "$hook_dir/../.beads/hooks/pre-push" "$@" || exit $?
+fi
+
+printf '%s\n' "$input" | while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    echo "pre-push: refusing to push to main." >&2
+    echo "  Push a branch and open a pull request instead: git push -u origin <branch>" >&2
+    exit 1
+  fi
+done
+exit $?

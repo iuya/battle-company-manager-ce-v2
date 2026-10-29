@@ -1,0 +1,44 @@
+name: Feature request
+description: Propose a new behaviour or an improvement
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that the app does not let you do well today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you would like to see. Sketches and examples help.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: who
+    attributes:
+      label: Who is it for
+      options:
+        - Players
+        - Campaign organisers
+        - Rules authors (custom Battle Companies file)
+        - Operators (running the server)
+        - Developers
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and docs/ for this idea.
+          required: true
+        - label: I am willing to discuss the design before any code is written (a pull request for a large feature starts from an agreed issue).
+          required: true

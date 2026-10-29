@@ -63,7 +63,7 @@ func TestAdminCheckThisFile(t *testing.T) {
 	f := newFixture(t, Config{})
 	// no problem: a warning is shown, nothing is stored (the mock has no StoreAs expectation)
 	warn := core.NewRulesetReport([]core.RulesetIssue{{File: "glossary.json", Path: "terms[2]", Message: "term is never used", Warn: true}}, 0)
-	f.rs.EXPECT().Check(gomock.Any(), core.KindGlossary, []byte("{}")).Return(*warn, nil)
+	f.rs.EXPECT().CheckSet(gomock.Any(), setOf(core.KindGlossary, []byte("{}"))).Return(*warn, nil)
 	rec := checkUpload(f, "glossary", "{}")
 	body := rec.Body.String()
 	if rec.Code != 200 || !strings.Contains(body, "No problems found, 1 warning") || !strings.Contains(body, "term is never used") || !strings.Contains(body, "alert-success") {
@@ -72,7 +72,7 @@ func TestAdminCheckThisFile(t *testing.T) {
 
 	// every issue is listed with file, path, hint and closest match; the 200 cap counts the rest
 	rep := core.NewRulesetReport(issuesOf(230), 5)
-	f.rs.EXPECT().Check(gomock.Any(), core.KindBattleCompanies, []byte("{}")).Return(*rep, rep)
+	f.rs.EXPECT().CheckSet(gomock.Any(), setOf(core.KindBattleCompanies, []byte("{}"))).Return(*rep, rep)
 	rec = checkUpload(f, "battle_companies", "{}")
 	body = rec.Body.String()
 	for _, want := range []string{"230 problems found", "battle-companies.json", "units[198].name", "Use a name from the vanilla file.", "Closest match", "Warrior of Minas Tirith", "and 35 more not listed", "Nothing was stored."} {
@@ -92,7 +92,7 @@ func TestAdminCheckThisFile(t *testing.T) {
 		t.Errorf("no kind: %d %s", rec.Code, rec.Body)
 	}
 	// a plain rejection without a report keeps its reason
-	f.rs.EXPECT().Check(gomock.Any(), core.KindGlossary, []byte("{")).Return(core.RulesetReport{}, errors.Join(core.ErrInvalidRuleset, errors.New("not valid JSON")))
+	f.rs.EXPECT().CheckSet(gomock.Any(), setOf(core.KindGlossary, []byte("{"))).Return(core.RulesetReport{}, errors.Join(core.ErrInvalidRuleset, errors.New("not valid JSON")))
 	if rec := checkUpload(f, "glossary", "{"); rec.Code != 422 || !strings.Contains(rec.Body.String(), "Not valid JSON") {
 		t.Errorf("plain: %d %s", rec.Code, rec.Body)
 	}

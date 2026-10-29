@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 	"unicode/utf8"
 )
@@ -19,20 +18,16 @@ import (
 type AftermathService struct {
 	companyDeps
 	matches    matchRepository
-	rulesets   rulesetRepository
 	aftermaths aftermathRepository
 	live       liveDefaults  // optional: the default sheet of a match played live
 	ato        atoRepository // optional (WithATO): the Against the Odds selection of the match
-
-	mu     sync.Mutex
-	parsed map[string]AftermathRules // by Battle Companies file hash
 }
 
 // NewAftermathService builds the service. rules is the loader (*Rules); dice rolls the casualties.
-func NewAftermathService(campaigns campaignRepository, companies companyRepository, matches matchRepository, rulesets rulesetRepository,
+func NewAftermathService(campaigns campaignRepository, companies companyRepository, matches matchRepository,
 	aftermaths aftermathRepository, rules ruleSource, dice Dice) *AftermathService {
 	return &AftermathService{companyDeps: companyDeps{campaigns: campaigns, companies: companies, rules: rules, dice: dice},
-		matches: matches, rulesets: rulesets, aftermaths: aftermaths, parsed: map[string]AftermathRules{}}
+		matches: matches, aftermaths: aftermaths}
 }
 
 // liveDefaults is what the aftermath needs from the live mode (implemented by LiveService): the sheet of a company as the match
@@ -53,24 +48,12 @@ func (s *AftermathService) WithATO(r atoRepository) *AftermathService { s.ato = 
 // WithLive lets the unsaved default sheet come from the live match instead of "everyone survived".
 func (s *AftermathService) WithLive(l liveDefaults) *AftermathService { s.live = l; return s }
 
-func (s *AftermathService) aftermathRules(ctx context.Context, hash string) (AftermathRules, error) {
-	s.mu.Lock()
-	r, ok := s.parsed[hash]
-	s.mu.Unlock()
-	if ok {
-		return r, nil
-	}
-	file, err := s.rulesets.Get(ctx, hash)
+func (s *AftermathService) aftermathRules(ctx context.Context, h RulesetHashes) (AftermathRules, error) {
+	rs, err := s.rules.For(ctx, h)
 	if err != nil {
-		return r, err
+		return AftermathRules{}, err
 	}
-	if r, err = ParseAftermath(file.Content); err != nil {
-		return r, err
-	}
-	s.mu.Lock()
-	s.parsed[hash] = r
-	s.mu.Unlock()
-	return r, nil
+	return rs.BC.Aftermath(), nil
 }
 
 // AftermathRules is what the aftermath pages read from the campaign's Battle Companies file; core.ErrNotFound for an unknown campaign.
@@ -79,7 +62,7 @@ func (s *AftermathService) AftermathRules(ctx context.Context, id int64) (Afterm
 	if err != nil {
 		return AftermathRules{}, err
 	}
-	return s.aftermathRules(ctx, h.BattleCompanies)
+	return s.aftermathRules(ctx, h)
 }
 
 // amEnv is everything a step needs, loaded before the transaction.
@@ -95,6 +78,7 @@ type amEnv struct {
 	outcome                        string
 	fled                           bool
 	access                         AftermathAccess
+	practice                       bool         // a practice match: its aftermath is complete and empty (only Aftermath reads it; every write is refused)
 	finished                       bool         // the campaign is finished: the aftermath can be read, not changed
 	loaned                         []LoanedItem // items loaned to units for this match (a Healer's Kit); electable like carried ones
 	atoBonuses                     []string     // the Against the Odds bonuses the company took, in the file's order, that matter in the aftermath
@@ -125,6 +109,10 @@ func (s *AftermathService) load(ctx context.Context, user User, id, matchID, com
 			}
 		}
 	}
+	if m.Practice { // nothing to roll: no rules are read and the company is never touched
+		return &amEnv{campaignID: id, matchID: matchID, companyID: companyID, user: user, match: m, company: co, practice: true,
+			outcome: outcome, fled: fled, access: AftermathAccessFor(user, m, co, camp.OrganiserID), finished: camp.Status == CampaignFinished}, nil
+	}
 	h, settings, err := s.campaigns.Hashes(ctx, id)
 	if err != nil {
 		return nil, err
@@ -133,7 +121,7 @@ func (s *AftermathService) load(ctx context.Context, user User, id, matchID, com
 	if err != nil {
 		return nil, err
 	}
-	rules, err := s.aftermathRules(ctx, h.BattleCompanies)
+	rules, err := s.aftermathRules(ctx, h)
 	if err != nil {
 		return nil, err
 	}
@@ -294,6 +282,9 @@ func (s *AftermathService) write(ctx context.Context, user User, id, matchID, co
 	if err != nil {
 		return Aftermath{}, err
 	}
+	if e.practice {
+		return Aftermath{}, ErrPracticeNothingToRoll
+	}
 	if e.finished {
 		return Aftermath{}, Refuse("The campaign is finished.")
 	}
@@ -325,6 +316,9 @@ func (s *AftermathService) Aftermath(ctx context.Context, user User, id, matchID
 	e, err := s.load(ctx, user, id, matchID, companyID)
 	if err != nil {
 		return Aftermath{}, err
+	}
+	if e.practice {
+		return practiceAftermath(e), nil
 	}
 	rec, err := s.aftermaths.Get(ctx, id, matchID, companyID)
 	if err != nil {
@@ -523,7 +517,7 @@ func consumeItems(e *amEnv, st *CompanyState, rec *AftermathRecord) {
 		}
 		if us, found := stateUnit(st, m.UnitID); found {
 			for _, list := range []*[]string{&us.Bought, &us.Gear} {
-				if i := slices.IndexFunc(*list, func(n string) bool { return slices.Contains(names, strings.ToLower(n)) }); i >= 0 {
+				if i := slices.IndexFunc(*list, func(n string) bool { return slices.Contains(names, NameKey(n)) }); i >= 0 {
 					*list = slices.Delete(*list, i, i+1)
 					break
 				}

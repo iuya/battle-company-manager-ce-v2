@@ -29,7 +29,7 @@ func newCompanyFixture(t *testing.T) *companyFixture {
 		return RulesetHashes{}, f.settings, nil
 	}).AnyTimes()
 	// user 9 owns company 1; any other user is a member without a company
-	f.campaigns.EXPECT().Get(gomock.Any(), int64(9), int64(5)).Return(CampaignDetail{CampaignSummary: CampaignSummary{ID: 5, Company: &CampaignCompany{ID: 1}}}, nil).AnyTimes()
+	f.campaigns.EXPECT().Get(gomock.Any(), int64(9), int64(5)).Return(CampaignDetail{CampaignSummary: CampaignSummary{ID: 5, Companies: []CampaignCompany{{ID: 1}}}}, nil).AnyTimes()
 	f.campaigns.EXPECT().Get(gomock.Any(), int64(8), int64(5)).Return(CampaignDetail{CampaignSummary: CampaignSummary{ID: 5}}, nil).AnyTimes()
 	f.campaigns.EXPECT().Get(gomock.Any(), int64(7), int64(5)).Return(CampaignDetail{}, ErrNotFound).AnyTimes()
 	f.companies.EXPECT().Read(gomock.Any(), int64(5), int64(1)).DoAndReturn(func(context.Context, int64, int64) (CompanyState, error) {
@@ -118,7 +118,7 @@ func TestCreateCompanyRefusals(t *testing.T) {
 		in   CompanyInput
 		want error
 	}{
-		{"has one already", User{ID: 9}, CompanyInput{Name: "A", Faction: "Minas Tirith"}, ErrHasCompany},
+		{"has one already", User{ID: 9}, CompanyInput{Name: "A", Faction: "Minas Tirith"}, ErrCompanyLimit},
 		{"not a member", User{ID: 7}, CompanyInput{Name: "A", Faction: "Minas Tirith"}, ErrNotFound},
 		{"no name", User{ID: 8}, CompanyInput{Name: " ", Faction: "Minas Tirith"}, ErrInvalidCompany},
 		{"no faction", User{ID: 8}, CompanyInput{Name: "A"}, ErrInvalidCompany},
@@ -138,8 +138,8 @@ func TestCreateCompanyRefusals(t *testing.T) {
 func TestCreateCompanyPassesDuplicateFromTheRepository(t *testing.T) {
 	f := newCompanyFixture(t)
 	f.campaigns.EXPECT().Get(gomock.Any(), int64(10), int64(5)).Return(CampaignDetail{}, nil)
-	f.companies.EXPECT().Create(gomock.Any(), int64(5), User{ID: 10}, gomock.Any()).Return(CampaignCompany{}, ErrHasCompany) // a concurrent second request
-	if _, err := f.service(t).CreateCompany(f.ctx, User{ID: 10}, 5, CompanyInput{Name: "A", Faction: "Minas Tirith"}); !errors.Is(err, ErrHasCompany) {
+	f.companies.EXPECT().Create(gomock.Any(), int64(5), User{ID: 10}, gomock.Any()).Return(CampaignCompany{}, ErrCompanyLimit) // a concurrent second request
+	if _, err := f.service(t).CreateCompany(f.ctx, User{ID: 10}, 5, CompanyInput{Name: "A", Faction: "Minas Tirith"}); !errors.Is(err, ErrCompanyLimit) {
 		t.Errorf("err = %v", err)
 	}
 }
@@ -160,17 +160,17 @@ func TestRenameCompany(t *testing.T) {
 	f := newCompanyFixture(t)
 	f.update()
 	s := f.service(t)
-	if err := s.RenameCompany(f.ctx, f.user, 5, "  The Black Company "); err != nil || f.state.Company.Name != "The Black Company" {
+	if err := s.RenameCompany(f.ctx, f.user, 5, 1, "  The Black Company "); err != nil || f.state.Company.Name != "The Black Company" {
 		t.Fatalf("rename: %v, name %q", err, f.state.Company.Name)
 	}
-	if err := s.RenameCompany(f.ctx, f.user, 5, " "); !errors.Is(err, ErrRefused) {
+	if err := s.RenameCompany(f.ctx, f.user, 5, 1, " "); !errors.Is(err, ErrRefused) {
 		t.Errorf("empty name: %v", err)
 	}
-	if err := s.RenameCompany(f.ctx, f.user, 5, strings.Repeat("x", 61)); !errors.Is(err, ErrRefused) {
+	if err := s.RenameCompany(f.ctx, f.user, 5, 1, strings.Repeat("x", 61)); !errors.Is(err, ErrRefused) {
 		t.Errorf("long name: %v", err)
 	}
 	for _, stranger := range []User{{ID: 8}, {ID: 7}} {
-		if err := s.RenameCompany(f.ctx, stranger, 5, "Mine now"); !errors.Is(err, ErrNotFound) {
+		if err := s.RenameCompany(f.ctx, stranger, 5, 1, "Mine now"); !errors.Is(err, ErrNotFound) {
 			t.Errorf("user %d: %v, want ErrNotFound", stranger.ID, err)
 		}
 	}
@@ -183,19 +183,19 @@ func TestRenameUnit(t *testing.T) {
 	f := newCompanyFixture(t)
 	f.update()
 	s := f.service(t)
-	if err := s.RenameUnit(f.ctx, f.user, 5, 6, "  Cirion   the  Bold "); err != nil || f.state.Units[5].Name != "Cirion the Bold" {
+	if err := s.RenameUnit(f.ctx, f.user, 5, 1, 6, "  Cirion   the  Bold "); err != nil || f.state.Units[5].Name != "Cirion the Bold" {
 		t.Fatalf("rename: %v, name %q", err, f.state.Units[5].Name)
 	}
-	if err := s.RenameUnit(f.ctx, f.user, 5, 6, ""); err != nil || f.state.Units[5].Name != "" {
+	if err := s.RenameUnit(f.ctx, f.user, 5, 1, 6, ""); err != nil || f.state.Units[5].Name != "" {
 		t.Errorf("empty name resets: %v, %q", err, f.state.Units[5].Name)
 	}
-	if err := s.RenameUnit(f.ctx, f.user, 5, 6, strings.Repeat("é", 41)); !errors.Is(err, ErrRefused) {
+	if err := s.RenameUnit(f.ctx, f.user, 5, 1, 6, strings.Repeat("é", 41)); !errors.Is(err, ErrRefused) {
 		t.Errorf("long name: %v", err)
 	}
-	if err := s.RenameUnit(f.ctx, f.user, 5, 999, "Ghost"); !errors.Is(err, ErrNotFound) {
+	if err := s.RenameUnit(f.ctx, f.user, 5, 1, 999, "Ghost"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("foreign unit: %v", err)
 	}
-	if err := s.RenameUnit(f.ctx, User{ID: 8}, 5, 6, "Mine"); !errors.Is(err, ErrNotFound) {
+	if err := s.RenameUnit(f.ctx, User{ID: 8}, 5, 1, 6, "Mine"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("non-owner: %v", err)
 	}
 }
@@ -213,7 +213,7 @@ func TestSaveFormation(t *testing.T) {
 	}
 	ordered := append([]int64{all[2], all[0]}, all[1])
 	ordered = append(ordered, all[3:]...)
-	if err := s.SaveFormation(f.ctx, f.user, 5, ordered); err != nil {
+	if err := s.SaveFormation(f.ctx, f.user, 5, 1, ordered); err != nil {
 		t.Fatal(err)
 	}
 	if got := f.state.Order; len(got) != len(all) || got[0] != all[2] || got[1] != all[0] || got[2] != all[1] {
@@ -231,14 +231,14 @@ func TestSaveFormation(t *testing.T) {
 		"empty":      nil,
 	}
 	for name, order := range bad {
-		if err := s.SaveFormation(f.ctx, f.user, 5, order); !errors.Is(err, ErrRefused) {
+		if err := s.SaveFormation(f.ctx, f.user, 5, 1, order); !errors.Is(err, ErrRefused) {
 			t.Errorf("%s: want a refusal, got %v", name, err)
 		}
 		if got := f.state.Order; len(got) != len(saved) || got[0] != saved[0] {
 			t.Errorf("%s: a refused order must change nothing: %v", name, got)
 		}
 	}
-	if err := s.SaveFormation(f.ctx, User{ID: 8}, 5, ordered); !errors.Is(err, ErrNotFound) {
+	if err := s.SaveFormation(f.ctx, User{ID: 8}, 5, 1, ordered); !errors.Is(err, ErrNotFound) {
 		t.Errorf("non-owner: %v", err)
 	}
 }

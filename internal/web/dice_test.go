@@ -10,7 +10,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// The dice of the rules file (docs/definitions-lean-design.md 12.1) size the forms, the headings and the dice tray: no page
+// The dice of the rules file size the forms, the headings and the dice tray: no page
 // has a number of dice or of faces of its own.
 
 func TestScenarioRollFollowsTheDieOfTheRules(t *testing.T) {
@@ -143,8 +143,8 @@ func TestLevelUpFormFollowsTheDiceOfTheRules(t *testing.T) {
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().LevelUpState(gomock.Any(), frodo, int64(7), int64(5)).Return(nil, nil)
-	body := f.do(f.signedIn(httpGet("/campaigns/7/my-company/units/5/levelup"))).Body.String()
+	f.camp.EXPECT().LevelUpState(gomock.Any(), frodo, int64(7), int64(1), int64(5)).Return(nil, nil)
+	body := f.do(f.signedIn(httpGet("/campaigns/7/my-company/1/units/5/levelup"))).Body.String()
 	for _, want := range []string{"rolls 3 x D12", `data-sides="12"`, `data-per-lane="1"`, `data-lanes="3"`, `name="roll3"`, "Pair 3", `<option value="12">I rolled 12</option>`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the hero's level-up form lacks %q", want)

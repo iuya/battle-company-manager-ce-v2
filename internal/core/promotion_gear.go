@@ -2,7 +2,7 @@ package core
 
 import "slices"
 
-// What a promoted warrior carries on (owner rule 2026-10-26). A warrior may only carry what its profile lists, so on a level-up
+// What a promoted warrior carries on. A warrior may only carry what its profile lists, so on a level-up
 // promotion he drops the wargear the new profile does not list: an option (under any spelling the armoury knows or
 // the armoury knows it by), its own wargear, an option its company label selects, or what the promotion itself gives. Equipment
 // (slot items: banners, herbs, cloaks...) always stays. A promotion that makes the unit a hero (Hero in the Making, the hero
@@ -12,7 +12,7 @@ import "slices"
 // what the promotion gives and the armoury items its options are read as.
 func listedNames(rs *RuleSet, bcC BCCompany, newBase string, given []string) []string {
 	company, _ := rs.BC.Profile(bcC.Name)
-	v, alias, ok := resolveUnit(rs, company, newBase)
+	v, alias, ok := rs.ResolveUnit(company, newBase)
 	if !ok {
 		return nil
 	}
@@ -79,8 +79,8 @@ func carriedItems(rs *RuleSet, bcC BCCompany, g string) (items []string, exchang
 	if _, ok := rs.BC.Annotation(g); ok {
 		return []string{g}, false
 	}
-	if isExchange(g) {
-		if parts := optionParts(g); len(parts) > 0 {
+	if ParseOption(g).Exchange {
+		if parts := ParseOption(g).Gives; len(parts) > 0 {
 			return parts, true
 		}
 	}
@@ -102,7 +102,7 @@ func dropUnlisted(env *levelEnv, us *UnitState, newBase string, given []string) 
 	var options []ChoiceOption
 	var wargear []string
 	if company, ok := rs.BC.Profile(bcC.Name); ok {
-		if v, _, ok := resolveUnit(rs, company, newBase); ok {
+		if v, _, ok := rs.ResolveUnit(company, newBase); ok {
 			options, wargear = v.Options, v.Wargear
 		}
 	}
@@ -130,7 +130,9 @@ func dropUnlisted(env *levelEnv, us *UnitState, newBase string, given []string) 
 					continue
 				}
 				names := knownAs(rs, bcC, it)
-				switch i := slices.IndexFunc(options, func(o ChoiceOption) bool { return isExchange(o.Name) && namedIn(names, optionParts(o.Name)) }); {
+				switch i := slices.IndexFunc(options, func(o ChoiceOption) bool {
+					return ParseOption(o.Name).Exchange && namedIn(names, ParseOption(o.Name).Gives)
+				}); {
 				case exchange && i >= 0:
 					add(options[i].Name)
 				case exchange && namedIn(names, wargear):
@@ -143,4 +145,32 @@ func dropUnlisted(env *levelEnv, us *UnitState, newBase string, given []string) 
 		return out
 	}
 	us.Gear, us.Bought = keep(us.Gear), keep(us.Bought)
+}
+
+// replacedWargear are the items a unit that changes profile (a hero promotion: Ranger of Arnor becomes Ranger of the North) loses: the
+// wargear its old profile carried as its own that its new profile does not carry as its own. What the new profile lists as wargear
+// is kept, and so is anything the player chose or bought as an option (the Spear of the Ranger of Arnor stays).
+func replacedWargear(rs *RuleSet, bcCo BCCompany, from, to string) []string {
+	company, _ := rs.BC.Profile(bcCo.Name)
+	old, _, ok := rs.ResolveUnit(company, from)
+	if !ok {
+		return nil
+	}
+	next, _, ok := rs.ResolveUnit(company, to)
+	if !ok {
+		return nil
+	}
+	var own []string
+	for _, n := range next.Wargear {
+		own = append(own, OptionItems(n)...)
+	}
+	var lost []string
+	for _, n := range old.Wargear {
+		for _, it := range OptionItems(n) {
+			if !slices.ContainsFunc(own, func(o string) bool { return sameSpelling(o, it) }) {
+				lost = append(lost, it)
+			}
+		}
+	}
+	return lost
 }

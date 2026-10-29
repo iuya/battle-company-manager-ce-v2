@@ -1,6 +1,7 @@
 # Frontend
 
-Server-rendered Go templates, **htmx** for navigation and partial updates, **Alpine.js** for client-only UI state and
+How the pages are built and how they behave: the design language (theme, components), the page and htmx patterns, and what each
+screen does. Server-rendered Go templates, **htmx** for navigation and partial updates, **Alpine.js** for client-only UI state and
 **Tailwind CSS v4** for styling. No JavaScript build step: htmx and Alpine are vendored in `internal/web/static/js`,
 Tailwind runs as a standalone binary.
 
@@ -84,6 +85,7 @@ Defined in `tailwind.css` (`@layer components`) on top of the tokens:
 | `card` | Raised container |
 | `alert` + `alert-info` / `alert-success` / `alert-danger` | Messages |
 | `badge`, `divider` | Small labels, separators |
+| `practice_badge` (template partial) | The "Practice" pill of a practice match: `badge badge-muted` with an icon and the word, never a win/loss colour; text 12 px; in `/styleguide`. Used on the Matches list, the Overview, the match page, the aftermath page and the live bar |
 
 `/styleguide` (served when `STYLEGUIDE=true`, which `make run`, `make dev` and `make demo` set; off by default) renders every token, a live contrast table, the type scale and all components in
 the active theme. Use it to review any change to the design language.
@@ -129,6 +131,8 @@ served with the same `?v=` on the fonts and images it loads. Text files are gzip
 script goes into that list, not into the layout). Pages and fragments over 1 KB are gzipped for browsers that accept it (`compress.go`; the
 live stream is not).
 
+**Loading rules** (measured in [performance.md](performance.md), "Frontend pass at v2.0.0"): the heading font is preloaded in the layout under the stylesheet's own `{{static}}` address; an address that only redirects (the My Company and Armory tabs without a company) answers a boosted click with the page and `HX-Push-Url` instead (`boostedLink`), keeping the redirect for whole-page requests and history restores; a window that is closed on load fetches its body when first wanted (the To Wound chart: `tw-load`, triggered by `towound.js` from the pointer, touch, focus or click) rather than with `hx-trigger="load"`; a list of forms hidden until a click is a `<template x-if>` whose root calls `htmx.process($el)` in `x-init`; a page that Alpine filters at start is drawn in its default filtered state by CSS first (no layout shift when Alpine starts).
+
 **Alpine** is used for state that never needs the server: menus, show/hide password, enabling a button as you type,
 the theme store. Keep it to that.
 
@@ -144,7 +148,7 @@ that slides over the page (Alpine state `open`, closed by the backdrop, Esc or c
 outside `#main`, so Alpine keeps `path` in step with htmx navigation to mark the current link (`aria-current="page"`).
 
 Sidebar order: **Administration** (superusers only, gold-outlined so it stands apart, a 404 for everybody else),
-Campaigns (`/`, the main page) with a sub-menu of the user's active campaigns, Glossary; at the bottom the user's name, Account and Sign out. The sub-menu shows on the main page and inside any campaign; its items are drawn into every full page (`pageBase.base` asks `NavCampaigns` for a signed-in user, `NavInline`; the main page uses its own list, `NavOwn`), so there is no extra request. An htmx content swap has no sidebar and skips the query; if the list cannot be read the sidebar falls back to fetching `GET /nav/campaigns` on load. The list is refetched there only when it changes (`campaigns-changed`). Only the campaign you are in is expanded, with its pages (Overview, Companies, Rankings,
+Campaigns (`/campaigns`, the list; `/` shows the same list when there is no valid last-campaign cookie, otherwise it redirects to the campaign last opened, see [auth.md](auth.md)) with a sub-menu of the user's active campaigns, Glossary; at the bottom the user's name, Account and Sign out. The sub-menu shows on the main page and inside any campaign; its items are drawn into every full page (`pageBase.base` asks `NavCampaigns` for a signed-in user, `NavInline`; the main page uses its own list, `NavOwn`), so there is no extra request. An htmx content swap has no sidebar and skips the query; if the list cannot be read the sidebar falls back to fetching `GET /nav/campaigns` on load. The list is refetched there only when it changes (`campaigns-changed`). Only the campaign you are in is expanded, with its pages (Overview, Companies, Rankings,
 Matches; the current one marked) under it, and is marked with an accent bar, soft fill and a faint gold glow;
 switching campaign collapses the previous one while the new one expands, both animating their height together (a
 grid-rows 0fr/1fr transition, collapsed lists `inert`; an `x-transition` made the leaving list linger and the sidebar
@@ -157,10 +161,12 @@ Every page ends with the fan-project disclaimer (`partials/footer.gohtml`).
 
 ## Main page: campaigns
 
-`/` lists the user's unfinished campaigns as cards (name, status badge, description, progress, the user's company in
+`/campaigns` (and `/` for a user with no remembered campaign) lists the user's unfinished campaigns as cards (name, status badge, description, progress, the user's company in
 it). "New campaign" (`/campaigns/new`) is shown to users who may create campaigns: admins, superusers, and users with
 the `can_create_campaigns` flag (`User.MayCreateCampaigns`); the server answers 403 to anyone else. Roles are
 `user | admin | superuser`, set with `make grant EMAIL=… ROLE=… [CREATE=1]`.
+
+The brand link in the header (for a signed-in user), the sidebar's "Campaigns" and every "← Campaigns" / "Cancel" / "Back to your campaigns" link point at `/campaigns`, the one address that never redirects, so a user whose `/` jumps to their last campaign can always reach the list. Creating a campaign returns to it.
 
 A "Show finished campaigns" switch adds the finished ones after the active ones (cards dimmed, sidebar entries greyed).
 It is remembered in the browser cookie `bcm-finished` (a one-year preference, nothing is stored server side); the
@@ -178,7 +184,7 @@ campaigns are searched only while "Show finished campaigns" is on.
 `/campaigns/{id}` has seven tabs, each its own URL and page (the header and tabs are the `campaign_header` partial;
 `campaignBase` carries the campaign and the current tab): **Overview** (your company or "create my company", campaign
 facts, rules files, latest matches), **My Company** (your company: the page "Manage company" opens; your company's own
-URL under `/companies/{id}` redirects there), **Armory**, **Companies** (everybody's; another company opens read only, yours redirects to My Company), **Rankings**, **Matches** and **Glossary** (the glossary this campaign is played with). The sidebar lists the
+URL under `/companies/{id}` redirects to `/campaigns/{id}/my-company/{company}`), **Armory**, **Companies** (everybody's; another company opens read only, yours redirects to My Company), **Rankings**, **Matches** and **Glossary** (the glossary this campaign is played with). The sidebar lists the
 same tabs under the campaign you are in.
 
 - **Manage campaign** card on the Overview (`CanManage`: the organiser and administrators; `campaign_manage.go`, template `manage_card`): the
@@ -189,8 +195,38 @@ same tabs under the campaign you are in.
   with **Regenerate** and **Invalidate links** (inline confirm; `POST .../invites/regenerate`, `.../invites/invalidate`); while paused it hides
   "Invite players" and Regenerate. Paused: the Matches tab hides New match (`CampaignDetail.CanStartMatch`) and says why, `/matches/new` is 403, the
   join page says the campaign is paused (`InvitePreview.Paused`; a refused join is 422). Finished: the Matches tab says matches are frozen.
-- A player has one company per campaign: `/campaigns/{id}/company/new` creates it (name, faction) and redirects to the
-  company page when one already exists. A company page shows a management section only to its owner.
+- **Practice matches** ([matches.md](matches.md#practice-matches)): the new-match form has a **Practice match** checkbox (`name=practice`, off by default, `data-practice-box`; a line says what is skipped and that it cannot be changed; the "Same player" note
+  offers "Make it a practice match"); the Matches tab has the filter chips All / Practice n (`?practice=1`) and the badge after the match number; the Overview line "n practice matches" (`data-practice-count`); the match page banner
+  (`data-practice-banner`) and the aftermath block text; the aftermath page short state; the live bar badge. 360 px: the badge sits on the title line and wraps below; no horizontal scroll; semantic tokens only.
+- **Several companies per player** (spec [multi-company-spec.md](multi-company-spec.md), decisions in its section 12). The campaign setting
+  **Companies per player** (1 to 4, default 1; `CampaignSettings.CompanyCap`) is a number field on the creation form (`companies-per-player`, with
+  its help text; empty keeps 1, a value outside 1 to 4 is a 422) and is editable later by the organiser and administrators (`companies_cap_card`
+  in the Campaign settings card of the Overview, `POST /campaigns/{id}/settings/companies`, `SetCompaniesPerPlayer`; success reloads the Overview,
+  a refusal or a non-number shows in an `alert-danger` on the control, 422). The help text states the rule: lowering it only stops new companies,
+  the ones that exist stay and keep playing. Everyone sees the value in the settings list.
+  - **The company is in every owner address**: `/campaigns/{id}/my-company/{company}` and everything under it (recruit, units, formation, cemetery,
+    pack, rename, perks). One helper, `ownCompany` (`campaign.go`), reads `{company}` and answers 404 unless it is one of the viewer's own
+    companies of the campaign (`CampaignDetail.Own`); `loadOwn` is `loadCampaign` plus that check and sets `campaignBase.Current`, `ownCompanyID`
+    is the same for the POSTs. No handler guesses a company, and a stranger or the organiser learns nothing. The bare `GET /campaigns/{id}/my-company`
+    is an **alias**: 303 to the company the player opened last (their oldest until the last-opened cookie exists), or the "Choose your company" page
+    when they have none. The armory takes the company in `?company=ID` (the bare tab 303s to the first) and its buy forms carry a hidden `company`. The
+    templates build every owner address from `campaignBase.OwnPath` (or the `Co` of a window's data).
+  - **Company switcher** (`company_switcher` in `partials/campaign.gohtml`, on `/styleguide`): chips under the tab bar of My Company and the
+    Armory, **only when the viewer owns two or more companies** (`campaignBase.Switcher`); a player with one company sees no chip, no new wording
+    and the same pages as before, whatever the limit. One `chip` link per company (name, the faction from 640 px up; the current one
+    `aria-current="true"` and `chip-on`; plain navigation, `hx-boost="false"`), then a "New company" chip while `CanCreateCompany`, else the note
+    "All N companies created". At 360 px the row scrolls sideways, from 640 px it wraps. With several companies the page title names the company.
+  - **New company** (`/campaigns/{id}/company/new`) opens for a player below the cap (a lowered cap counts the same way); at the cap it redirects to
+    My Company, and a stale POST gets the refusal "You already have the N companies this campaign allows." (422; "a company in this campaign" when
+    the cap is 1). A created company opens at its own address. Creating a company is permanent.
+  - **Overview**: "Your company" (one) or "Your companies" (several), one block per company with Manage company, then "Create another company"
+    below the cap, "You have all N companies this campaign allows." at it, or "This campaign now allows N ... per player; you keep your M." above it
+    after a lowered cap. With a limit of 1 nothing is added. Companies and Rankings mark every company of the viewer "Yours" and show the owner.
+  - **Same player** (`core.SamePlayers`): a non-blocking note on the match page (`matchView.SamePlayerNotes`: "Same player: both of these companies
+    are X's." / "Same player: X plays both sides.") and, live, in the new match form (`match_form.js`: "Both are X's" under a side, "Same player:
+    X plays both sides" across sides). Nothing is refused. The form lists each company with its owner and faction, puts the viewer's own first
+    and has a **Mine** chip that narrows the search to them.
+- A company page shows a management section only to its owner. `/campaigns/{id}/company/new` creates a company (name, faction).
 - **Rankings** sort by the total point cost of a company's units (`core.Rank`; equal points share a rank) and show
   wins/draws/losses, matches played and unit count.
 - **Matches** are listed newest first with their sides (`A + B vs C`) and a result badge (Open, Draw, "<side> won").
@@ -212,8 +248,6 @@ same tabs under the campaign you are in.
   the edit controls (scenario picker and one-off form, result form with objectives, Propose to end and the End card, administrator reopen and history,
   organiser grants, the Aftermath card); see [matches.md](matches.md).
 
-All of it runs on the real backend; `make seed` creates the demo campaign (see "Demo data" below).
-
 ## Rules files (vanilla and Battle Companies)
 
 A campaign is played with a vanilla, a Battle Companies and a glossary rules file (`CampaignDetail.Rulesets`, shown in the
@@ -228,7 +262,7 @@ default file or their own, per kind (`partials/ruleset_picker.gohtml`, `static/j
 3. The handler (`rulesetChoice`) looks the hash up, or stores the upload, which the store must verify (hash and kind)
    before keeping it. Name and version come from `core.RulesetMeta` and are shown in both cases.
 
-The form is `multipart/form-data` and not boosted. Rules files of every kind are identified by their **hash** alone (`GET /rulesets/{hash}` ignores `name` and `version`; `core.Rulesets.Find` keeps them in its signature only): two files with the same name and version coexist, and `name` and `version` are display metadata (the vanilla one reads `game` and `appVersion`, `core.RulesetMeta`). The old "edition exists" conflict (409) is gone from the core; the handlers and the picker's 409 branch are dead code for the frontend implementer to remove.
+The form is `multipart/form-data` and not boosted. Rules files of every kind are identified by their **hash** alone (`GET /rulesets/{hash}` ignores `name` and `version`; `core.Rulesets.Find` keeps them in its signature only): two files with the same name and version coexist, and `name` and `version` are display metadata (the vanilla one reads `game` and `appVersion`, `core.RulesetMeta`).
 
 Wherever a file is shown (picker, overview's Rules card) it reads "name · version" followed by a short-hash label (the
 first 8 characters, `RulesetInfo.ShortHash`), so two files with the same name and version can be told apart.
@@ -251,10 +285,26 @@ known name as a muted chip and the hint. It sits in an `alert-danger` on:
 - the **new-campaign form** (`POST /campaigns`, 422 with the form kept; the three files are all checked before any is stored,
   so the text is "Nothing was stored and no campaign was created."; the browser keeps the name but a file input cannot be
   refilled, so the file is chosen again);
-- the **Check this file** button of the admin upload card: `POST /admin/rulesets/check` runs `rulesets.Check` (a dry run, stores
+- the **Check this file** button of the admin upload card: `POST /admin/rulesets/check` runs `rulesets.CheckSet` (a dry run, stores
   nothing) and swaps `#rs-check-result` under the buttons: 200 `alert-success` ("No problems found", warnings listed) or 422
   with the report. The web layer never imports `lean`; tests build reports with `core.NewRulesetReport`. Flow `89-ruleset-report`
   drives all three at 360/768/1280 in light and dark; `/styleguide` shows a sample.
+
+### Online validator
+
+`/tools/validate` (`validator.go`, `pages/validator.gohtml`) is for every signed-in player. The form has three file inputs, each with its
+`<label>`: **Battle Companies file** (required), **Vanilla rules file** and **Glossary** (optional, the hint names the shipped file used
+when it is left empty). `POST /tools/validate` (multipart `battle_companies`, `vanilla`, `glossary`) runs `rulesets.CheckSet`, so the
+Battle Companies file is checked against the vanilla file and glossary uploaded with it, and answers with the same report partial
+(`alert-success` or 422 `alert-danger`, "Nothing was stored and no campaign was created.") plus a line saying which files were the
+person's own and which the shipped ones. Nothing is written: the page never calls a `Store*` method. The result sits in
+`#validator-result` (`aria-live="polite"`, `tabindex="-1"`, outside the form); htmx swaps its inner HTML and the page script focuses it
+(`@htmx:after-swap`). Without JavaScript the form posts normally and the whole page comes back with the result. Limits: sign-in
+required, 16 MB per file (422 "Choose .json files of at most 16 MB each."), 6 checks a minute per account (`validatorGate.allow`,
+in memory like the login throttle) and 2 checks running at once (`validatorGate.acquire`, no queue); both answer **429** with a
+`Retry-After` and a plain sentence (the layout's alert for an htmx request). Linked from the new-campaign form ("Not sure your file is
+valid? Check it first", opens in a new tab so the form is kept), the admin Rules files page and the guide. Flow `97-online-validator`.
+The page adds no component: it reuses the report partial, `card`, `field` and `alert`, so `/styleguide` is unchanged.
 
 ## Adding a page
 
@@ -277,7 +327,7 @@ A card, top to bottom:
   accent with a star, other heroes solid accent with three chevrons, regular units thin.
 - **Kind icon** (top left), a filled silhouette: a knight in a great helm for infantry, a horse for cavalry (the same horse is the
   mount icon in the equipment list), a wolf for beasts, a horned dragon for monsters, an oliphaunt for monstrous cavalry
-  (`core.KindOf` from the vanilla unit types). The earlier outline icons are kept in `static/img/archive/`.
+  (`core.KindOf` from the vanilla unit types).
 - **Name** (units are nameable), **type** and **points** (plain text, no box).
 - **Keyword row** (`keyword_row` in `partials/units.gohtml`, spec [`unit-keywords.md`](unit-keywords.md)), directly under the name and type line:
   chips for the unit's race, factions and the unit types no other part of the card says, at most 5, race first. The web layer (`notShownKeywords`
@@ -374,12 +424,12 @@ one through `BuyEquipment` with the stage's name replaces the armour the unit we
 stages are never skipped. A warrior (a Beast that is still a warrior included) needs the stage as an option of its profile; a hero only the stages that units
 of its company can have (`armourPool`), so a company without heavy-armoured units never sells Heavy Armour to a hero.
 `ArmourUpgrade.UnitStage` is the stage a unit wears. Frontend: the offers appear in `Armoury` and `ArmouryEntries` like any item
-(their `Reason`/`Blocker` say why not); the Defence change comes with the effective stats (pib.2).
+(their `Reason`/`Blocker` say why not), and the Defence change shows in the effective stats.
 
 **Dropping.** The expanded card has a **Drop** button on equipment the rules let the unit drop (`core.DropReason`);
 otherwise it says why. Battle Companies: equipment (slot items) can always be dropped; a hero freely drops any wargear it
 chose or bought, but wargear of its profile only with the optional rule "heroes may discard any wargear"
-(`heroesMayDropProfileGear`, off in the demo; a campaign setting later); a warrior may drop wargear only if what it then
+(the campaign setting `HeroesDropProfileGear`, off by default); a warrior may drop wargear only if what it then
 carries is another option of its profile (a shield alone, yes; a spear alone, no) and never its profile's wargear.
 Nothing is refunded, but the item's rating leaves the unit's points (a unit's points are its vanilla points plus the rating
 of what it chose or bought: warrior or hero column), and the slot and company limit it used are freed, so another unit can
@@ -429,118 +479,34 @@ and Sergeant places by drag (the card it meets swaps places with it) or with the
 assign buttons. The pool buttons that would do nothing (the Leader button while a locked card holds the place) are `aria-disabled` and describedby
 the locking card's reason. Rows are `startRow.Lock` in `internal/web/companies.go`.
 
-**Ranger of the North replacement (Shire; epic bead `6n1`; first design built by `7rf`, `kbk`, `04t`, `3b2`, now being reworked into the officer reshuffle below).** The Shire starts
-with a Ranger of the North as Leader (fixed: `CompanyProfile.ValidateStart` refuses any other choice with "The Ranger of the North must start as the Leader of the The Shire company."; the form locks him, see "Officer locks on the creation page"), a vanilla Hero (Might, Will, Fate 1 each, so `startingHeroNoStatGain`). The company's rule:
-"if the company's Ranger of the North has been slain, you may swap any successful result on the Reinforcements chart for a Ranger
-of the North, who may immediately take the role of Leader or Sergeant. The company may only ever have a single Ranger of the
-North at any time." The data is the effect `companies[Shire].effects[kind=rangerReplacement]`: `unit`, `max` (1, counted in the
-roster), `role` (`leader`, `sergeant`), `when` (text). Rules answered from the file and the user's decisions:
-- *Condition* (`RangerOffer`): the company has the rule, the roster holds fewer than `max` of `unit`, and the cemetery holds one
-  (`FallenUnit.Unit.Type == unit`, however it fell: Dead or a hero forced to retire). REVIEW: "slain" includes a retirement.
-- *Which results*: any successful row of the chart, so not row 1 "Nobody steps forward" and not a special chart (the Shire has none).
-  The whole result is swapped for one Ranger, also a two-model result ("2 Hobbit Militia") or a choice ("Choose any 2 Hobbits").
-  REVIEW: one Ranger replaces the whole result. The swap is free; the roll's price and any raise are paid as for any roll. The swap
-  is chosen at the confirm of the rolled result, before the company checks whether the result can join, so a result that could not
-  join (over the model maximum, the Shirriff's Rare 12) no longer sends the player to the lower-result panel when the Ranger can
-  join. A lower result chosen afterwards in that panel is not swapped. REVIEW.
-- *The recruit*: a Hero (no Might, Will, Fate gain), vanilla wargear only (the starting armour is a starting company item, not
-  buyable). REVIEW. It joins with no path and chooses it in the usual path window (`PathPending`; the company cannot be put in a
-  match until it has). A direct Hero, not a Hero in the Making: no promotion roll.
-- *Role: Leader to start with, any officer place after* (user decision; the rules text says "Leader or Sergeant"). The panel
-  pre-places the Ranger as Leader, and the player may move him to a Sergeant place (a Sergeant, or the old Leader, then leads). He
-  never leaves the officer places: his card has no remove button and he cannot be the one dropped. Undoing an officer's promotion is not modelled, so instead the officers are
-  **reshuffled**: the old Leader and the two Sergeants (the *other officers*, all active Heroes) are arranged in the two Sergeant
-  places, and the player decides which of the three stops being an officer. That unit becomes an ordinary Hero (`RoleHero`) and
-  keeps everything else: path, level, XP, gear, injuries. The player gets the same officer panel as "Take command" when founding
-  the company (drag and drop between slots, or the Sergeant/Remove buttons of each card), with the Ranger's card pre-placed in the
-  Leader slot, draggable between the three officer places but with no remove button and not accepted by the pool, the old officers
-  in the other places, and the dropped one in the pool of "Heroes who are not officers".
-- *Where the panel appears: a pending step the roll leaves behind, finished in the recruit window.* Picking the swap at confirm pays
-  the roll and the raise, validates that the Ranger can join (`block`), and parks the recruit as `Recruit.Officers` (like
-  `Recruit.Choice`): the window turns into the officer panel and stays open on a reload; it blocks other recruits and the actions
-  the aftermath lock blocks, and `CreateMatch` refuses ("Arrange the officers first"). My Company also shows a banner "Your
-  company is waiting for its new Leader: arrange the officers" that opens the panel. Nothing changes in the roster until the player
-  presses the panel's confirm button (**Appoint**); there is no cancel (the influence is spent and the swap chosen), only
-  **Appoint**, because a company with a pending arrangement is otherwise unusable. REVIEW: pending state rather than a field in
-  the confirm form, to keep the confirm form light on a phone and the arrangement one atomic step.
-- *Fewer than 3 other officers*: the officers of a company are never empty (an officer's death is replaced from the active units),
-  so normally there are exactly three and one is dropped. If there are fewer (older data, k = 1 or 2), nobody is dropped: the
-  Sergeant places the old officers do not fill stay empty (the pool offers the other active Heroes as an optional choice for an
-  empty place, `Candidates`) and the usual officer succession of the aftermath fills them. If k = 0 the Ranger is the lone
-  Leader (or stays where the player put him). REVIEW.
-- *Aftermath and live match*: nothing changes there except that a fallen Ranger shows the hint below. A Ranger dying is an ordinary
-  casualty (a Leader falling still opens the succession of [aftermath.md](aftermath.md)). A recruit is not possible while the
-  aftermath is open (company lock).
+**Ranger of the North replacement (Shire).** The Shire starts with a Ranger of the North as Leader (fixed: `CompanyProfile.ValidateStart` refuses any other
+choice with "The Ranger of the North must start as the Leader of the The Shire company."; the form locks him, see above), a vanilla Hero (Might, Will, Fate 1 each, so
+`startingHeroNoStatGain`). The company's rule: "if the company's Ranger of the North has been slain, you may swap any successful result on the Reinforcements chart
+for a Ranger of the North, who may immediately take the role of Leader or Sergeant. The company may only ever have a single Ranger of the North at any time." The
+data is the effect `companies[Shire].effects[kind=rangerReplacement]` (`unit`, `max`, `role`, `when`). What the app does (`internal/core/recruiting_ranger.go`):
 
-*Flow (360 px first).* Recruit window, rolled and successful result, `RecruitRoll.Ranger != nil`: next to the confirm button a
-radio pair "Take X as rolled" (default) / "Swap for the Ranger of the North (free; he becomes your Leader)". Choosing the swap
-changes the button to "Confirm and arrange officers". After the confirm the window shows the **officer panel**: heading "The Ranger
-of the North takes command", the Leader slot (the Ranger pre-placed, movable to a Sergeant slot, never to the pool), two Sergeant slots, the pool of the one who steps down ("Not an
-officer"), a live line "Name stops being an officer and stays a Hero", **Appoint** (disabled until the arrangement is valid, with
-the reason under it). The panel is a sibling of the "Take command" one: the `officers_panel` / `officer_card` partials of `company_panels.gohtml` and the Alpine/Sortable `officers` component of `static/js/lists.js` (same `.officer-slot` / `.start-card` styles). The Ranger's card is marked `data-keep`: draggable between the three officer places, no remove button, refused by the pool; a card dropped on an occupied place swaps with the one there. The buttons of every card (Leader, Sergeant, Not an officer) are the keyboard path. Cards of old officers carry `data-officer`, and Appoint stays disabled until exactly `Drop` of them are in the pool and a Leader is set. Empty/not offered state: nothing is shown. Errors: `ErrRefused`
-text in the notice. Permissions: the owner only, like every recruit.
-
-*Contract* (consumer interface `internal/web`, implemented by `core.RecruitService`):
-- `RecruitRoll.Ranger *RangerOffer` becomes `RangerOffer{Unit string}` (nil when not offered; filled only for `Stage == "chart"` and a
-  successful rolled row). The role fields (`Roles`, `Holders`, `Full`, `Offers`) and `roleSlots` go away.
-- `ConfirmRecruit(ctx, user, campaignID, adjust, pick)` takes `pick == "ranger"` (no role, no unit id). It swaps the result, pays,
-  checks `block`, stores `Recruit.Officers = &OfficerStep{Unit, Paid, Roll}` and returns `RecruitResult{Summary, Officers *OfficerPanel}`.
-  Refusals (`ErrRefused`): no offer now, not a chart result, the Ranger cannot join (limit text), `rangerPick` of the old
-  `ranger:<role>[:<id>]` form is no longer accepted.
-- `OfficerPanel{Unit string; Leader OfficerCard; Officers []OfficerCard; Candidates []OfficerCard; Drop int}`: `OfficerCard{ID int64; Title string;
-  Role UnitRole; Type string}` (`Distinguish` titles; the Ranger is `Leader` with ID 0). `Officers` are the other officers (Leader and
-  Sergeants, active Heroes), `Candidates` the non-officer active Heroes (only used when `len(Officers) < 3`), `Drop` how many
-  of `Officers` must stop being officers (`max(0, len(Officers)-2)`).
-- New `RecruitService.PendingOfficers(ctx, user, campaignID) (*OfficerPanel, error)`: nil when nothing waits.
-- New `RecruitService.ArrangeOfficers(ctx, user, campaignID, a OfficerArrangement) (RecruitResult, error)`,
-  `OfficerArrangement{Leader int64; Sergeants []int64}`: the unit ids for the Leader place and the Sergeant places (at most 2); the
-  new Ranger is id `0` (`RangerID`), and the panel pre-places him as `Leader`. Validation, all `ErrRefused` and with nothing stored
-  on error: an arrangement waits; ids distinct; each an id of `Officers` or `Candidates`, or `0`; `0` appears exactly once, in
-  `Leader` or in `Sergeants` (the Ranger is in exactly one officer place and is never dropped); `Leader` is set (so exactly one
-  Leader); `len(Sergeants) <= 2`; the units of `Officers` not named number exactly `Drop` (one of the three non-Ranger officers
-  when there are three); with fewer than 3 other officers nobody is dropped and the free places are left empty or filled from
-  `Candidates`. Effect: the Ranger joins (`UnitState{Base: Unit, Role: <the place he was put in>}`, no Bonus, vanilla wargear, path
-  pending); each named unit takes its place's role (so a Sergeant may become Leader, and the Ranger a Sergeant); the units left out
-  become `RoleHero` keeping path and progress; `Recruit.Officers = nil`; summary "The Ranger of the North takes command as Leader.
-  X leads; Y and Z are Sergeants; W is no longer an officer." Formation order stays valid.
-- `CreateMatch` and the other recruit actions refuse while `Recruit.Officers != nil`. `CompanyDetail.OfficersPending bool` drives the My Company banner.
-  Persistence: `Recruit` is part of the company state; if it is stored as JSON no migration is needed (database-master to confirm).
-
-*Backend built (kmn, eye; `internal/core/recruiting_ranger.go`).* As specified above, with these details for `d1z`: `RangerOffer{Unit}` only;
-`ConfirmRecruit(..., "ranger")` returns `RecruitResult.Officers` (the `OfficerPanel`) and stores `RecruitProgress.Officers`
-(`OfficerStep{Unit, Paid, Roll}`, part of the company's pending JSON, so **no migration**; the Postgres round trip is tested);
-`PendingOfficers` / `ArrangeOfficers` are on `core.RecruitService` (add them to the web `campaigns` interface and regenerate its
-mock); `Locked()` refuses with "Arrange the officers first: the Ranger of the North is waiting to take command." for every action the aftermath lock
-blocks, and `CreateMatch` with "<company> cannot play yet: arrange the officers first."; `CompanyDetail.OfficersPending`. Panel:
-`Officers` are sorted Leader first; `Drop` = `max(0, len(Officers)-2)`; the Ranger's card is `ID 0`, `Role Leader`. The arrangement posts
-`Leader` (0 = the Ranger) and `Sergeants`. Refusal texts (`ErrRefused`): "No Ranger of the North is waiting to take command.", "A company has
-at most 2 Sergeants.", "That unit cannot be appointed.", "<name> is named twice.", "The Ranger of the North takes command: he cannot be left out.",
-"Exactly N of the other officers keep their place; the rest stop being officers." (three officers) / "The other officers keep their places."
-(fewer). The summary is "Officers: A as Leader, B as Sergeant, ...; X is no longer an officer." **As built (`d1z`):** the `#ranger-offer` fieldset of the
-recruit window is one pair of radios (as rolled / `pick=ranger`; choosing the swap adds "and arrange the officers" to the Confirm button);
-the confirm answers with the officer panel in the window; `GET .../my-company/recruit` shows it whenever `PendingOfficers` is non-nil (reload resumes);
-`POST .../my-company/recruit/officers` (`leader`, repeated `sergeant`; 0 is the Ranger) calls `ArrangeOfficers` and answers with the whole
-page (a refusal re-renders the panel with the reason, status 422); My Company shows the banner `#officers-banner` while `CompanyDetail.OfficersPending`
-and opens the window by itself on the panel.
-The old pick `ranger:<role>[:<id>]` is gone.
-
-*What had to change in what was first built (commit 117ed16, `04t`, `3b2`).* Backend (`internal/core/recruiting_ranger.go`,
-`recruiting.go`, `company.go`): drop the role/holder/full machinery and `rangerPick`'s role and displaced id, rewrite `joinRanger`
-into the pending step plus `ArrangeOfficers`, `RangerReplacement.Roles` stays parsed but the offer exists only when it contains
-`leader`; the tests of the displaced-holder case are replaced. Web: the `#ranger-offer` fieldset loses the role radios and the
-"who steps down" select (one pair of radios and a hidden `pick=ranger`), gains the officer panel step and the My Company banner. The
-cemetery tag (`RangerMayReturn`, "May return with a reinforcement") and the aftermath alert (`RangerFell`) stay as built; their
-text says the Ranger "returns as your Leader".
-
-*Acceptance.* (1) Offer absent without the rule, without a fallen Ranger, with a Ranger in the roster, on row 1. (2) Swap is free
-(influence only drops by the roll and raise). (3) A result that cannot join is swappable and then the lower panel does not open.
-(4) After Appoint: exactly one Leader and two Sergeants among active Heroes, the Ranger in exactly one of the three places, one old officer a plain Hero with path,
-level, XP, gear and injuries intact; invalid arrangements (Ranger absent, named twice or dropped, a non-officer as Sergeant while three officers exist, a
-duplicate id, the wrong number dropped, no pending step) are refused and store nothing. (5) The Ranger has no Might/Will/Fate bonus,
-a pending path, and blocks `CreateMatch` until chosen; `CreateMatch` also refuses while the arrangement is pending. (6) A pending
-arrangement survives a reload, blocks other recruits, and the banner on My Company opens it. (7) Tests: the Ranger kept as Leader; the Ranger moved to a Sergeant place with the old Leader or a Sergeant as Leader; a Sergeant as Leader with the old Leader dropped. (8) With fewer than 3 other officers
-nobody is dropped and the empty Sergeant places remain. (9) The panel reuses the Take command component and its keyboard
-alternatives; the Ranger card can move between officer places but cannot be removed; 360/768/1280 px, light and dark.
+- **The offer** (`RangerOffer`): the company has the rule, the roster holds fewer than `max` of the unit, and the cemetery holds one (however it fell: Dead or a hero forced
+  to retire). It is made on any successful row of the reinforcement chart (not row 1 and not a special chart), also a two-model result or a choice; one Ranger replaces
+  the whole result. The swap is free; the roll's price and any raise are paid as for any roll. It is chosen at the confirm of the rolled result, before the company checks
+  whether the result can join, so a result that could not join does not send the player to the lower-result panel when the Ranger can join.
+- **The recruit** is a Hero (no Might, Will, Fate gain) with vanilla wargear only, and no path yet: he chooses it in the usual path window (the company cannot be put in a
+  match until he has). He is a direct Hero, not a Hero in the Making: no promotion roll.
+- **Officer reshuffle.** Choosing the swap pays the roll, checks that the Ranger can join and parks the recruit as `Recruit.Officers` (an `OfficerStep`, part of the
+  company's pending JSON): the recruit window turns into the officer panel and stays open on a reload, other recruits and the actions the aftermath lock blocks are
+  refused, and so is `CreateMatch` ("Arrange the officers first"). My Company shows the banner `#officers-banner` ("Your company is waiting for its new Leader") that opens the panel.
+  The panel is a sibling of "Take command" (`officers_panel`, `officer_card` in `company_panels.gohtml`; the Alpine/Sortable `officers` component of `static/js/lists.js`):
+  the Ranger is pre-placed as Leader and can move between the three officer places (drag, or the Leader / Sergeant buttons for the keyboard) but never leaves them: his
+  card has no remove button and the pool refuses him. The old Leader and the two Sergeants (the other officers) fill the other places and the player decides which of the
+  three stops being an officer; that unit becomes an ordinary Hero (`RoleHero`) and keeps path, level, XP, gear and injuries. **Appoint** stays disabled until the
+  arrangement is valid, with the reason under it; there is no cancel, because the influence is spent. With fewer than three other officers nobody is dropped: the Sergeant
+  places left empty can be filled from the other active Heroes (`Candidates`) or by the usual officer succession of the aftermath.
+- **Contract.** `RecruitService.PendingOfficers` returns the `OfficerPanel{Unit, Leader, Officers, Candidates, Drop}` (nil when nothing waits) and
+  `ArrangeOfficers(ctx, user, campaignID, OfficerArrangement{Leader, Sergeants})` applies the arrangement (the Ranger is id `0`); `ConfirmRecruit(..., "ranger")` starts the step.
+  Every invalid arrangement (Ranger left out or named twice, a unit named twice, a non-officer as Sergeant while three officers exist, the wrong number dropped, no pending
+  step) is an `ErrRefused` with nothing stored. The web routes are `GET .../my-company/{company}/recruit` (shows the panel whenever one waits) and
+  `POST .../my-company/{company}/recruit/officers` (`leader`, repeated `sergeant`), which answers with the whole page, or the panel again with the reason and status 422.
+- A fallen Ranger is an ordinary casualty (a Leader falling still opens the succession of [aftermath.md](aftermath.md)); the cemetery tag `RangerMayReturn` says "May return
+  with a reinforcement" and the aftermath alert `RangerFell` says he returns as the Leader.
 
 **Rare units.** A chart row or special unit marked rare (`Rare N` badge in the recruit tables) may be had N times in the company at
 once (the units of that type in the roster). A rare result the company already has the most of cannot join: the player takes a
@@ -557,8 +523,7 @@ app does not know, or that the file marks as not implemented (the homebrew path)
 good and rests in the **Cemetery** section under the Battle company, as it was when it fell (`core.FallenUnit`: its profile, wargear,
 path and level, how it ended and where). The cards only look. The player can reorder them (**Change order**, with drag and drop or
 arrows, saved with `SaveCemeteryOrder`), but a fallen unit never goes back to the roster and a unit of the company cannot be put
-in the cemetery by hand (the two lists are separate Sortable instances, and each save refuses ids of the other list). The demo
-company has two fallen units; the real backend fills the cemetery from the casualty rolls of a match (see its bead).
+in the cemetery by hand (the two lists are separate Sortable instances, and each save refuses ids of the other list). The cemetery is filled from the casualty rolls of the aftermath ([aftermath.md](aftermath.md)).
 
 **Units made of several models.** The Vault Warden Team joins as two units of their own (vanilla `includes`, points from the
 company's `includedUnitPoints`: Iron Shield Bearer 13, Foe Spear Wielder 12), each with its own card, experience and injuries. A
@@ -588,8 +553,7 @@ its options (at the hero rating when its Attacks and Wounds add up to 3 or more)
 are their vanilla points plus their options plus gear. A starting company's points plus its gold are 105 once the officers are chosen. **Injured** units
 (marked on their card) miss the next game and are left out of the company's rating (the Points card says how many).
 
-**Optional rules** are chosen when the campaign is created and shown in its Rules card. For now there is one, "heroes may
-discard any wargear" (`CampaignSettings.HeroesDropProfileGear`).
+**Optional rules** are chosen when the campaign is created and shown in its Rules card (see "Campaign settings" below and [architecture.md](architecture.md#campaign-settings)).
 
 The **expand** button (a small tab flush in the card's corner frame, so it takes no room from the content) maximises one card (only one at a time; click outside, press Esc or the close button to return): it
 shows every item and rule in full, with the glossary terms inside the descriptions linked and previewed on hover
@@ -650,10 +614,9 @@ company's `advancements`); a unit earns a roll every 5 XP and several can wait.
 - A hero that takes a path gets its starting heroic action at once (`paths[].startingHeroicAction`).
 - If only one of the two results can be taken, the player must take it; the unavailable ones are re-rolled only when neither
   can be taken.
-- **Against the Odds** (mock: the company has one re-roll, shown on My Company): while a roll waits for its choice, each result
+- **Re-rolls** (Against the Odds, `CompanyState.Rerolls`, shown on My Company): while a roll waits for its choice, each result
   has a "Re-roll · Against the Odds" button that rolls that result again (a warrior's D6, or a hero's pair).
-- Company Hero Upgrades are not modelled. A new hero's remaining waiting rolls roll on its path at once (the rules say "from
-  the next game on"; the app has no game step yet).
+- A new hero's remaining waiting rolls roll on its path at once (the rules say "from the next game on").
 
 Companies' points are shown as `current (full)`: what counts now, with injured units left out, and in brackets what they
 would be with nobody injured (left out when equal; `CampaignCompany.FullPoints`, template `points`).
@@ -696,22 +659,20 @@ Shire).
 - A **hero upgrade** of the company is offered with every hero level-up as a third option, in a gold frame ("Company hero upgrade"): a
   hero may take it instead of either result, even when neither result can be taken, if it does not have it yet (the Battle Companies
   rule). It appears on the hero as a company-exclusive rule (gold frame, tooltip "Company-exclusive hero upgrade").
-- **Applied now** (`applyCompanyRules`, `buildUnit`): the maximum number of models, limit overrides and exemptions, free special rules
+- **Applied** (`applyCompanyRules`, `buildUnit`): the maximum number of models, limit overrides and exemptions, free special rules
   some models get (Rohan's heroes: shown as company-exclusive rules), units with their own name (resolved to the vanilla profile, with
   the rules the company adds), exclusive wargear (marked company-exclusive in the armory, with its text), and the share of the company a
   keyword may have (a limit bar, and enforced: a reinforcement, special unit or wanderer of that keyword is refused over the limit; a
   reinforcement roll that lands on it spends the influence and nothing joins).
 - **Race balance** (Defenders of the North: Dwarves not more than Dale): a reinforcement that would outnumber is replaced by the highest
-  lower result that does not (the rule lets the player choose any lower result; the demo picks for them and says so).
+  lower result that does not (the rule lets the player choose any lower result; the app takes the highest and says so).
 - **Hero upgrade restrictions** (Fiefdoms' four, Hobbit, Spiders, Orc/Warg) are matched against the hero's vanilla `race`, `faction`,
   unit types and name (`HeroUpgrade.Allows`, plurals count), so a Hobbit of the Wanderers in the Wild is offered both upgrades and the
   others only the open one. A level-up offers one upgrade, and a hero takes each once. What a skill does to units of one kind in a match
   is the player's to apply at the table.
 - **Rule exchanges are applied** to the models (`applyCompanyRules`): Sharkey's Rogues' Hatred (Rohan) is Hatred (Hobbit) on every card.
-- **Displayed only for now:** substitutions of rules, auras and break points (match layer, played at the table, never
-  applied by the app), and, in the management layer, "On Their Own Path" units, Arnor's promotion, Fornost's reinforcement replacement,
-  the Vault Warden Team and the Warg Marauder's three roster slots. The data has them as `companies[].effects[]` with a `layer`
-  (management, match or both).
+- **Played at the table:** substitutions of rules and auras are match-layer rules the app does not apply to the cards. The data has them as
+  `companies[].effects[]` with a `layer` (management, match or both).
 
 ### Renaming units
 
@@ -719,7 +680,7 @@ A unit is renamed by double-clicking its name, or with the pencil next to the na
 extra button, so nothing moves). The name is at most 40 characters; an empty name takes the unit back to its type. Rules that aim at a
 unit use its id, so they follow the new name (`campaigns.RenameUnit`).
 
-### Copy as a Tabletop Simulator army list (built)
+### Copy as a Tabletop Simulator army list
 
 An icon button (two sheets, `tts_button` in `partials/tts.gohtml`, 44 px on a phone) sits in the row of the company's name on My Company, on another
 player's company page (read only, also a frozen campaign) and, because it is the same page, in the live match. Not drawn for a company without units.
@@ -746,7 +707,7 @@ adds the remembered values to the first request and the new ones to every switch
 to selecting the text and `execCommand('copy')`; when both fail the status says "press Ctrl+C" with the text already selected. The warning alert is the new
 `.alert-warn` (border `warn`, surface `raised`); the button, the switches and the alert are in `/styleguide`. Flow `91-tts` drives all of it.
 
-**Level B block** (bead wu3.4, below the notes, only when there is a list): "Name and describe the figures". A second form (`data-tts-form`, a
+**Names block** (below the notes, only when there is a list): "Name and describe the figures". A second form (`data-tts-form`, a
 `fieldset` of three radios `rules` = none | short | full, default none (names only), remembered in the same `localStorage` key) refreshes only `#tts-names-result`; the
 list switches refresh `#tts-result` and, through `hx-select-oob="#tts-names-result:outerHTML"`, the names too (the forms are not swapped, so focus stays).
 The result holds a labelled read-only `<textarea id="tts-names-text">` with the ArmyNames JSON (`core.TTSNames` through `ttsExporter.TTSNames`, given the
@@ -759,8 +720,8 @@ Notebook tab titled exactly `ArmyNames`; spawn from `ArmyList`; select the army 
 `Cache-Control: public, max-age=3600`, behind `protected`, so an anonymous visitor goes to the login) and a collapsed `<details>` "Show the Lua (fallback,
 unverified)" with a read-only text area (`ttshelper.ShowLua()`) and its own copy button. Flow `92-tts-names` drives it.
 
-**Auras section** (bead 4fe.6, spec [`aura-ranges.md`](aura-ranges.md) 4.6; template `tts_auras`, swap target `#tts-auras`, between the rule-text radios and
-`#tts-names-result`). A form (`data-tts-form`) with: the master switch **Draw aura rings** (`name="auras"`, default on, owner decision Q8); a fieldset **Kinds of ring**
+**Auras section** ([`aura-ranges.md`](aura-ranges.md); template `tts_auras`, swap target `#tts-auras`, between the rule-text radios and
+`#tts-names-result`). A form (`data-tts-form`) with: the master switch **Draw aura rings** (`name="auras"`, default on); a fieldset **Kinds of ring**
 with one native checkbox per kind the company has (`name="akind"`, `id="tts-akind-<kind>"`), each row a ring icon (`aura_ring`: the kind's Okabe-Ito colour as the border,
 its first letter B C S E U inside, the enemy kind with the thicker border, so colour is never the only cue), the label and "N rings, radii 3", 6"" from
 `core.AuraSummary` (`TTSAuras`: counted before the limits of 6 per figure and 150 in all, so a ring the limits cut is still counted and its switch (Large rings) stays; the kind shows "no rings drawn with these
@@ -780,14 +741,14 @@ presses Space and checks it). The names JSON is **version 2** only when at least
 ring), another player's company and the plain list. The ring colours are fixed classes (`.aura-k-banner` ... in `tailwind.css`, the palette of the helper), not theme tokens;
 the rest uses the tokens. Both are in `/styleguide` ("Aura rings and chips").
 
-**Aura chips on the unit cards** (bead 4fe.7; `aura_chip` and `aura_row` in `partials/units.gohtml`, helpers in `internal/web/auras.go`). `CompanyUnit.Auras` is filled by core at
+**Aura chips on the unit cards** (`aura_chip` and `aura_row` in `partials/units.gohtml`, helpers in `internal/web/auras.go`). `CompanyUnit.Auras` is filled by core at
 build time (`RuleSet.UnitAuras`: unfiltered, merged by kind and radius, sorted kind then radius). The row sits under the special rules on every `unit_card` (My Company, another
 company's read-only page, the Field cards of a live match) and the expanded card lists them in full under "Auras" (`data-auras-full`: radius, labels, who it affects and when, the
 tip). Not on the compact cards (Retreated, casualties, missed), the fallen cards, the company browser's hover card or the armoury (those have no built unit or are one-line rows).
 A chip (`.aura-chip`, like a rule chip: kind colour on the left edge, a small ring icon with the kind's letter, text `Aura 6"`) is a `has-tip` element (`tabindex="0"`,
 `aria-label` "Aura, 6 inches: Stand Fast, With Me!; works for friendly models, always, needs line of sight", tooltip title = the merged labels, meta "Command - friendly models
 - always - needs line of sight", text = the tips; `data-concept` = the entry's glossary term, so Enter or a click opens the helper popup). At most 3 chips and a `+N` button
-that opens the rest in place (Alpine, `aria-expanded`, "Fewer"). **Decision (bead 4fe.7):** the card shows every aura the unit has, not only the ones the dialog draws by default; a
+that opens the rest in place (Alpine, `aria-expanded`, "Fewer"). The card shows every aura the unit has, not only the ones the dialog draws by default; a
 ring of a group that is off by default (spells, targeting ranges, rings over 12 inches, the Torch) is muted and dashed (`.aura-off`) and its tooltip and label say "off by
 default in Tabletop Simulator", so the card tells what the unit can do and the dialog what is drawn. No row for a unit without an aura. **Hidden by default:** the rows and the expanded "Auras" section stay in the markup but `tailwind.css` hides them (`html:not([data-show-auras]) .unit [data-auras], ... [data-auras-full]`) unless this browser chose them: the toggle **Show auras on unit cards** (section "Unit cards" of `theme_controls`, the Appearance menu and the Account page; `$store.theme.auras` / `setAuras`) writes the cookie `bcm-auras=1` and `theme-init.js` sets `data-show-auras="on"` on `<html>` before the first paint, so there is no flash. Per browser, not in the account. `/styleguide` keeps its chips (not inside a `.unit`). Flow `96-tts-auras` drives both.
 
@@ -798,8 +759,7 @@ in a narrative scenario (a custom one); what is left is kept (`campaign.gold`). 
 rating (`gold` in the file) in Gold and no influence, and wargear can be bought with Gold as well. Slots, limits and
 restrictions still apply. Every buy button of the armory (the tab, a unit's equipment window, creatures, wanderers) offers the
 payments the company can afford: "Buy · N influence" and/or "Buy · G gold" (`pay` field). The Gold, Influence and Re-rolls
-cards of My Company have tooltips saying what they are for and where they come from. There is no screen yet for the organizer
-to grant Gold or for scenario results to award it.
+cards of My Company have tooltips saying what they are for and where they come from. The organiser can grant Gold from the grants card of a company page, and scenario results award it in the aftermath ([matches.md](matches.md)).
 
 ### Glossary and item definitions
 
@@ -818,7 +778,7 @@ roster slot, equipment slot or wargear limit and rolls no injuries, but it count
 card shows a creature chip (tooltip with its stat block) and a small card appears under the units. The **Baggage Pony**
 gives the company a pack (`companyFeature.carryGear`): "Open the pack" lets any member store, take out or swap gear for
 free (`campaigns.Carry`; what a member gets must be something it could buy, mounts and upgrades cannot be carried, gear in the pack still counts towards the bow and throwing limits, and the
-app does not count the "once per occasion" yet). A wanderer is a normal hero card with a Wanderer badge: it counts towards
+app does not count the "once per occasion"). A wanderer is a normal hero card with a Wanderer badge: it counts towards
 the unit limit, has no experience, cannot buy equipment, rolls the hero injuries and can be dismissed (no refund).
 
 Item tooltips read the Battle Companies file's `gearAnnotations[].definition`; a mount's tooltip also has its stat block
@@ -828,7 +788,7 @@ Item tooltips read the Battle Companies file's `gearAnnotations[].definition`; a
 
 The dice are 3D: `static/js/dice3d.js` (three.js draws them, cannon-es rolls them) loads the first time a roll needs it, so other
 pages never pay for it; where WebGL or the file is missing, `static/js/dice.js` falls back to its flat 2D tray. **The number and the
-faces of the dice come from the rules file** (docs/definitions-lean-design.md 12.1), never from a template or script: a roll panel carries
+faces of the dice come from the rules file** ([definitions.md](definitions.md)), never from a template or script: a roll panel carries
 `data-sides` (faces of each die), `data-per-lane` (dice in one roll) and `data-lanes` (rolls side by side, a hero's results), and
 `throwDice({count, sides, groups})` takes them. The 3D dice are cubes, so a roll of d6 uses them; a roll of any other size (d3, d8,
 d12 ...) is drawn by the flat tray, a die with its number (a die of up to six faces shows pips, a bigger one its number). Typed
@@ -854,30 +814,29 @@ rolls are one select per die from `templates/partials/dice.gohtml` (`dice_select
   shown in the Overview): off, every roll panel only has a Roll button and the backend refuses a typed roll.
 - Reduced motion: the dice lie in a row showing their numbers. The style guide has a demo.
 
-### Company management: what is built and what is missing
+### Company pages and the aftermath
 
-Roster, promotions (level-up, advancements) and injuries (Heal) are the cards of My Company above and run on the real
-backend. The company pages and the aftermath ([aftermath.md](aftermath.md)):
+Roster, promotions (level-up, advancements) and injuries (Heal) are the cards of My Company above. Around them ([aftermath.md](aftermath.md)):
 
-- **Aftermath banner** (built, `#aftermath-banner`) at the top of My Company when `CompanyDetail.Aftermaths` is not empty: a link per
+- **Aftermath banner** (`#aftermath-banner`) at the top of My Company when `CompanyDetail.Aftermaths` is not empty: a link per
   match to `/campaigns/{id}/matches/{match}/aftermath/{company}` (Start or Continue). The company is locked: the controls marked
   `data-lock` (Recruit, Armory buy, Drop, Heal, Dismiss) look disabled and, on click, `lockClick` in `company.js` says "Finish the
   aftermath of Match N first." instead of acting (the root's `data-lock` holds the reason, empty when unlocked). The core refuses
   the action too, so a stale page shows the refusal as a notice.
-- **Perks card** (built, `perks_card`): the company's unused scenario perks (name, the relic bearer, text, when it applies) with
-  **Mark used** for the owner (`POST /campaigns/{id}/my-company/perks/{perk}/use`, `UsePerk`); used ones sit under a collapsed
+- **Perks card** (`perks_card`): the company's unused scenario perks (name, the relic bearer, text, when it applies) with
+  **Mark used** for the owner (`POST /campaigns/{id}/my-company/{company}/perks/{perk}/use`, `UsePerk`); used ones sit under a collapsed
   "Used (n)". Empty state when there are none.
-- **History card** (built, `history_card`): the latest 20 aftermath lines (`CompanyDetail.History`), newest first, on both company
-  pages; the grants have their own card. **Built (34m):** the match heading is a link to the match with its date (`fmtDateShort`); the card takes `(dict "Lines" … "CID" campaign id)`. **Contract (ro1):** every `core.AftermathLine` now carries `Match` (number), `MatchID` and `On` (time.Time: when the aftermath was finished, else started, else when the match ended; zero when unknown), on `CompanyDetail.History` and on `Aftermath.Lines` of the match page. Show "Match N" as a link to `/campaigns/{id}/matches/{MatchID}` (not needed on the match page itself) and the date through the user's timezone formatter; the lines of one aftermath share the same values.
+- **History card** (`history_card`): the latest 20 aftermath lines (`CompanyDetail.History`), newest first, on both company
+  pages; the grants have their own card. Every `core.AftermathLine` carries `Match` (number), `MatchID` and `On` (when the aftermath was finished, else started, else when the match ended; zero when unknown), on `CompanyDetail.History` and on `Aftermath.Lines` of the match page. The card shows "Match N" as a link to `/campaigns/{id}/matches/{MatchID}` (not on the match page itself) and the date through the viewer's time zone formatter (`fmtDateShort`); the card takes `(dict "Lines" … "CID" campaign id)`.
 - The company page of somebody else (`/campaigns/{id}/companies/{company}`, from the Companies tab) is the **My Company page, read
   only** (`myCompanyView.ReadOnly`, same template `campaign_my_company`): a "Viewing X, the company of Y. Read only" banner with a
   link back to all companies, the same stats, limits, full unit cards (expandable, tooltips) and cemetery, creatures, perks
   (no "use" button) and history; no rename, recruit, formation, buy, drop, heal, level-up, path, pack or dismiss controls and
-  no buy window. The organiser's award form of the grants card stays. Your own company's URL redirects to My Company.
+  no buy window. The organiser's award form of the grants card stays. Your own company's URL redirects to `/my-company/{company}`.
 
-## Live match (built)
+## Live match
 
-The design is in [live-match.md](live-match.md) and [architecture.md](architecture.md) "Live match"; this is what the pages do now
+The rules of the mode are in [live-match.md](live-match.md) and the technical design in [architecture.md](architecture.md#live-match-design); this is what the pages do
 (`internal/web/live*.go`, `static/js/live.js`, the `live_*` templates in `campaign_my_company.gohtml`, `company_panels.gohtml`,
 `units.gohtml` and `match.gohtml`). `web` declares `liveMatches` (embedded in `campaigns`; `core.LiveService` implements it).
 
@@ -891,7 +850,7 @@ The design is in [live-match.md](live-match.md) and [architecture.md](architectu
     match's last sequence).
   - Another player's company is the same page read only (`ReadOnly`); an editor who is not the owner (organiser, administrator) has the
     trackers and actions on it. Viewers see `current / start` without buttons.
-- **The opponent's keywords and "applies" markers** (`kw_applies`, `keyword_flat` in `partials/units.gohtml`; docs/unit-keywords.md "Rule targets"):
+- **The opponent's keywords and "applies" markers** (`kw_applies`, `keyword_flat` in `partials/units.gohtml`; [unit-keywords.md](unit-keywords.md) "Rule targets"):
   the Field cards, the compact cards and the rows of "Wounded a unit" of an enemy company show the unit's keyword chips (compact cards use the normal
   `keyword_row`; the wound sheet's rows, which sit inside a label, a flat list without tips: `keyword_flat`, `data-keywords-flat`). An enemy Field unit
   that has a keyword named by an enemy-keyword rule of **your side's** units in the Field (Hatred (X), Ancient Enemies (X) and the named rules the table
@@ -911,14 +870,12 @@ The design is in [live-match.md](live-match.md) and [architecture.md](architectu
   Broken courage roll, Retreated, Died, Mount removed/re-added; Fate and Mount only when the unit has them), each opening its sheet
   (`GET .../live/{company}/units/{unit}/sheet/{kind}`, `live_sheet`). **Wounded a unit** lists the enemies in the Field (then the same
   side after a "Friendly fire" divider), with search, Rider/Mount for a mounted target, wounds caused and saved by Fate steppers
-  (`woundSheet` in `live.js`) and a preview sentence in the words of the log. REVIEW: a window, not a bottom sheet or popover (a popover
-  inside the card is clipped by its frame).
-- **Break Point, turns and courage** (36y.15-17, `live_break` in `campaign_my_company.gohtml`, inside `#live-zones` so the SSE refetch refreshes viewers too): a turn row ("Turn 3" or "Turn not started", **Start turn N** for editors: `kind=turn`, `turn=N`; a stale press is the service's 422 toast); a Break Point panel (`<details>`, summary "Break Point 6.5 of 13 · Casualties 4 · 50%" with a "Will break next turn" or "Broken since turn N" badge and a progressbar; open: the casualties by name, the scenario exceptions and, for editors, +/- adjusters for starting models and casualties with a shared note, `kind=breakAdjust`); the **Company broken** banner (`#live-broken`, danger alert, not sticky: it would cover the live banner) with the All is Lost choice as an inline `<details>` (**Flee the battlefield** with a confirm / **Fight on**, editors, while `Break.Offer`) and "Who has tested this turn". Cards of a Broken company show "Test due" / a resolved chip (`CourageDue`: `CourageTurn != Turn`; the chip is `liveView.CourageChip` from `LiveUnit.CourageHow`: "Tested: passed", "Tested: failed", "Auto-pass" for standFast, heroicResolve, chariot, scenario, "Exempt" for engaged, cannotActivate, else "Courage resolved"). The company header (own page and other companies' read-only page, `campaign_my_company.gohtml`) shows "Break Point: N% of the starting models" from `CompanyDetail.BreakPointPercent` (the company's own rule, e.g. 66 for Muster of Isengard, else the file's default; never 0 with real rules) and a primary **Courage test** button that opens the `courage` sheet (`live_courage`): Roll 2D6 (`POST .../units/{unit}/courage/roll`, `RollCourage`, nothing written; typed dice only with ManualRolls; a plain server roll, not the animated dice component), "Record: passed" (`broken`, with Call Stand Fast for Heroes that are not Wanderers) or "Record: failed" (`retreat` why `courage`, confirm), and the six pass or exempt buttons (`courageSkip`). All writes go through the one `actions` route (`liveActionFrom` reads `turn`, `field`+`delta`, `reason`, `flee`, `standFast`, `item`+`index`). REVIEW: the spec's routes `turn`, `break`, `courage`, `allislost` are not separate; the All is Lost choice and "Who has tested" are inline rather than sheets.
-- **Against the Odds items** (36y.10): `LiveUnit.Loaned` is listed under the Wargear of the card, grouped by item ("Climbing ropes ×5", tag "Loaned (Raider's Kit)", "use after the game" for Healing Herbs and Wondrous Cram, struck through and "used" once spent); owned items in `UsedItems` are struck through; the action menu has **Item used** (`item` sheet: the loaned items still to spend, `kind=itemUsed`) when something is left. `LiveCompany.Wanderer` makes a card for the temporary Wanderer (`temporaryUnit`: a roster unit with the synthetic negative id, badges "Wanderer" and "Temporary", the profile summary, Rating as its points, no Dismiss), in the zone its live unit is in, and a wound target in the wound sheet.
-- **Result form** (36y.17): for a company whose result was not reported yet, `prefillLiveDefaults` ticks **Fled** (All is Lost) and the `enemyBroken` objective from `MatchDefaults`, each with the badge "From the live match", and the Fled switch explains "The other side claims victory (All is Lost). Saving this does not end the match." Not built: the company page and My Company do not show the Break Point rule (50% or 66%), because `CompanyDetail` has no field for it yet (a backend bead).
-- **Mount lost**: "On foot" badge; the mount item, the gear with `Equipment.RequiresMount`, the rules the mount gave and the Cavalry rule
-  are struck through (`itemView.Struck`, `ruleView.Struck`, aria-label "needs a mount"). The data flag `requiresMount` is the curator's
-  (pib.15); nothing sets `RequiresMount` yet.
+  (`woundSheet` in `live.js`) and a preview sentence in the words of the log.
+- **Break Point, turns and courage** (`live_break` in `campaign_my_company.gohtml`, inside `#live-zones` so the SSE refetch refreshes viewers too): a turn row ("Turn 3" or "Turn not started", **Start turn N** for editors: `kind=turn`, `turn=N`; a stale press is the service's 422 toast); a Break Point panel (`<details>`, summary "Break Point 6.5 of 13 · Casualties 4 · 50%" with a "Will break next turn" or "Broken since turn N" badge and a progressbar; open: the casualties by name, the scenario exceptions and, for editors, +/- adjusters for starting models and casualties with a shared note, `kind=breakAdjust`); the **Company broken** banner (`#live-broken`, danger alert, not sticky: it would cover the live banner) with the All is Lost choice as an inline `<details>` (**Flee the battlefield** with a confirm / **Fight on**, editors, while `Break.Offer`) and "Who has tested this turn". Cards of a Broken company show "Test due" / a resolved chip (`CourageDue`: `CourageTurn != Turn`; the chip is `liveView.CourageChip` from `LiveUnit.CourageHow`: "Tested: passed", "Tested: failed", "Auto-pass" for standFast, heroicResolve, chariot, scenario, "Exempt" for engaged, cannotActivate, else "Courage resolved"). The company header (own page and other companies' read-only page, `campaign_my_company.gohtml`) shows "Break Point: N% of the starting models" from `CompanyDetail.BreakPointPercent` (the company's own rule, e.g. 66 for Muster of Isengard, else the file's default; never 0 with real rules) and a primary **Courage test** button that opens the `courage` sheet (`live_courage`): Roll 2D6 (`POST .../units/{unit}/courage/roll`, `RollCourage`, nothing written; typed dice only with ManualRolls; a plain server roll, not the animated dice component), "Record: passed" (`broken`, with Call Stand Fast for Heroes that are not Wanderers) or "Record: failed" (`retreat` why `courage`, confirm), and the six pass or exempt buttons (`courageSkip`). All writes go through the one `actions` route (`liveActionFrom` reads `turn`, `field`+`delta`, `reason`, `flee`, `standFast`, `item`+`index`).
+- **Against the Odds items**: `LiveUnit.Loaned` is listed under the Wargear of the card, grouped by item ("Climbing ropes ×5", tag "Loaned (Raider's Kit)", "use after the game" for Healing Herbs and Wondrous Cram, struck through and "used" once spent); owned items in `UsedItems` are struck through; the action menu has **Item used** (`item` sheet: the loaned items still to spend, `kind=itemUsed`) when something is left. `LiveCompany.Wanderer` makes a card for the temporary Wanderer (`temporaryUnit`: a roster unit with the synthetic negative id, badges "Wanderer" and "Temporary", the profile summary, Rating as its points, no Dismiss), in the zone its live unit is in, and a wound target in the wound sheet.
+- **Result form**: for a company whose result was not reported yet, `prefillLiveDefaults` ticks **Fled** (All is Lost) and the `enemyBroken` objective from `MatchDefaults`, each with the badge "From the live match", and the Fled switch explains "The other side claims victory (All is Lost). Saving this does not end the match."
+- **Mount lost**: "On foot" badge; the mount item, the gear with `Equipment.RequiresMount`, the rules the mount gave and the Cavalry
+  rule are struck through (`itemView.Struck`, `ruleView.Struck`, aria-label "needs a mount"). The data flag `requiresMount` comes from the Battle Companies file.
 - **Match log**: `GET .../matches/{match}/live/log` is the sheet (company page; `?company=` so Undo refreshes the zones out of band), `?card=1` the card of
   the match page (below History, drawn inline in the full page, refreshed on `live:match`), `?before=<seq>` the next 30 older rows. Newest first,
   grouped by minute, Undo only where the service says `CanUndo` and the match is open; a dependency refusal shows in the log. After the
@@ -942,8 +899,7 @@ The design is in [live-match.md](live-match.md) and [architecture.md](architectu
   `live:match` (`GET .../live/end/banner?company=`); its forms post with `view=banner&company=` and get the banner back, or `HX-Refresh` when the match ended.
   **Start turn** is disabled with "Cancel the ending first: the match is about to end." while `liveView.EndPending`. The log lines ("Ending cancelled: ...") come
   from the backend and show in the normal log.
-  On the aftermath sheet the prefilled objective shows "From the live match" and the MVP "Voted MVP". REVIEW: a viewer sees the tally only
-  (`EndChecks.Objective` is empty for them); no per-unit vote counts or tie hint on the aftermath sheet (the view has no field for them).
+  On the aftermath sheet the prefilled objective shows "From the live match" and the MVP "Voted MVP".
   The two log/end slots set `hx-target="this"` (the body's inherited `hx-target="#main"` would swap them over the page).
 - **Sync** (`live.js`): one `EventSource` on `/campaigns/{id}/matches/{match}/events` per page that has a live part (`#live-zones` or
   `[data-live-match]`), none elsewhere; an event of the page's company with a `seq` above the zones' `data-seq` refetches the zones (the author's
@@ -969,18 +925,18 @@ The design is in [live-match.md](live-match.md) and [architecture.md](architectu
   "Edit the result" and "Reopen match" on an ended match (`CanManageCampaign`).
 - **Aftermath MVP hint** (`Aftermath.MVP`): above the units of the sheet, the vote lines, who is ticked, or "Tied: ..." with the owner choosing. Revealed secret lines print `SecretLine.Label`.
 - **Admin Users** rows with `AdminUser.Organises` have an "Organises N campaigns" expander listing each campaign (status, players) with a select of the campaign's members except the organiser (`Campaigns.Members`; "Name (Company)" or "Name (no company yet)") and **Hand over** (`POST /admin/users/{id}/handover`: `campaign`, `organiser`, `email`; `Campaigns.HandOver`, administrators need not be members).
-- **Side roles** (Attacker/Defender tags, docs/matches.md): a **Role** select per side on the new-match form (`side-role-N`, not in all vs all) and, on
+- **Side roles** (Attacker/Defender tags, [matches.md](matches.md)): a **Role** select per side on the new-match form (`side-role-N`, not in all vs all) and, on
   the match page, a **Roles** card for editors of an open match (`POST .../matches/{match}/roles` with `role-N`, `.../roles/swap`; 422 with the
   reason when invalid) plus a badge on each side and per company on the result form. Offered only while the scenario is not chosen or has roles
   (`matchView.ShowRoles`); End match with a roles scenario and untagged teams shows "Choose which team attacks and which defends".
 - **Match creation** shows "Company X is already in Match N." with a link (`*core.CompanyBusyError`) or "Finish the aftermath of Match N
   first."; the aftermath sheet shows **From the live match** (heading badge and a line) while it is the unsaved default
-  (`Aftermath.FromLive`; REVIEW: per-value badges are a later option).
+  (`Aftermath.FromLive`).
 
 ## To Wound chart (window)
 
 `partials/to_wound.gohtml` (`to_wound_button`, `to_wound_dialog`, `to_wound_body`), `web/towound.go`, `static/js/towound.js`, the `tw-*` classes in `tailwind.css`; the
-behaviour and the reasons are in [matches.md](matches.md#to-wound-chart-a-window-built).
+behaviour and the reasons are in [matches.md](matches.md#to-wound-chart).
 
 - The button (`data-to-wound-open`) is on the match page (next to the heading, open matches) and in the live banner. `towound.js` turns its click into a window
   event (`open-to-wound`), as `dialog.js` does for `data-open-modal`: no inline handler. The window (`#to-wound-dialog`, `role="dialog" aria-modal="true"`, labelled
@@ -1025,7 +981,7 @@ in a filtered list still finds its target), jumps to the term and highlights it,
 floating **Back to <term>** button returns there (a trail, so it works through several jumps) and **Top** goes to the top.
 Hovering (or focusing) a link previews its term in a small card (name, category, definition as plain text, so previews
 never nest); touch screens just follow the link. A single-word name or alias is linked only when written exactly as in the file ("will" is not the Will term, "Will" is);
-multi-word names stay case insensitive (REVIEW: the case rule applies to every single-word term). `web.glossaries` (`core.Glossaries`, which builds once per file) gives a campaign's glossary, the default one, or one glossary file alone by
+multi-word names stay case insensitive (the case rule applies to every single-word term). `web.glossaries` (`core.Glossaries`, which builds once per file) gives a campaign's glossary, the default one, or one glossary file alone by
 hash (`ByHash`, `core.ErrNotFound` for an unknown hash or a file of another kind).
 
 A row of **category chips** (All plus one per category, `aria-pressed`) sits under the search and combines with it; the
@@ -1036,7 +992,7 @@ The sidebar page can show **another glossary**: a collapsed "Use another glossar
 file the server already knows by hash, or an upload; `POST /glossary`, `rulesetChoice`) keeps the file's hash in the `bcm-glossary`
 cookie (a year, this browser only). With a cookie the page shows that file through `glossaries.ByHash`, says it is not the default
 and offers **Back to the default** (the cookie is cleared); an unknown or malformed hash falls back to the default with a notice and
-drops the cookie. The campaign tab always shows the campaign's own glossary. (An explicit link list in the file would be the alternative to the case rule.)
+drops the cookie. The campaign tab always shows the campaign's own glossary.
 
 ## Helper popup
 
@@ -1076,7 +1032,7 @@ and the tooltip steps aside.
   `html/template`; the script inserts markup in one place only (the fragment) and positions the card through the `style` property
   (allowed under the policy). `TestHelperPopupScriptFitsThePolicy` guards it and the e2e suite runs under `CSP_MODE=enforce`.
 - **Tested:** `internal/web/concepts_test.go` (generated mock of `concepts`: body, groups, folds, escaping, glossary link, caching and 304,
-  404, ambiguous and unknown names, non-members and anonymous visitors) and the e2e flow `87-concepts` (docs/testing.md).
+  404, ambiguous and unknown names, non-members and anonymous visitors) and the e2e flow `87-concepts` ([testing.md](testing.md)).
 
 ## Invite links
 
@@ -1096,7 +1052,7 @@ chosen and 10 Gold / 6 Influence granted: `admin@example.com` (Gandalf, **superu
 `sauron@example.com`. Match 1 (You against Sauron) has ended and the organiser has waived both aftermaths (the note says so), which frees the companies for match 2, an open three-sided match. The seed needs an empty database for this: `make db-reset` first, or `make demo` for the rich world.
 Further accounts: `make user` and `make grant`. For the rich world (every state of every page) use `make demo`; see [demo-world.md](demo-world.md).
 
-## Create company and aftermath sheet details (review3)
+## Create company and aftermath sheet details
 
 - **Locked Leader.** A company whose start list names a Leader that is also its Ranger replacement unit (the Shire's Ranger of the North,
   `startRow.Locked`) shows him in the Leader place with `data-keep`: he cannot be dragged, removed or replaced, the Leader button does

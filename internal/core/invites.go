@@ -12,7 +12,7 @@ import (
 
 //go:generate go tool mockgen -typed -source=invites.go -destination=mock_invites_test.go -package=core
 
-// Defaults of an invite link (REVIEW: bead 7v5.15): it expires after a week and can be used any number of times.
+// Defaults of an invite link (a judgement call): it expires after a week and can be used any number of times.
 const (
 	InviteLifetime = 7 * 24 * time.Hour
 	InviteMaxUses  = 0 // 0: unlimited

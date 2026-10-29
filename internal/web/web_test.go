@@ -91,6 +91,7 @@ func (f *fixture) lazyCards() {
 	f.camp.EXPECT().SecretObjectives(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.SecretView{}, errNo).AnyTimes()
 	f.camp.EXPECT().EndChecks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.EndChecks{}, errNo).AnyTimes()
 	f.camp.EXPECT().Log(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errNo).AnyTimes()
+	f.camp.EXPECT().LiveGeneration(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errNo).AnyTimes() // no generation: the stream starts with a full sync
 }
 
 func (f *fixture) do(r *http.Request) *httptest.ResponseRecorder {
@@ -338,7 +339,7 @@ func TestHomeListsCampaigns(t *testing.T) {
 	f := newFixture(t, Config{})
 	f.camp.EXPECT().List(gomock.Any(), frodo.ID, false).Return([]core.CampaignSummary{
 		{ID: 1, Name: "Siege of Gondor", Status: core.CampaignActive, Round: 2, Rounds: 8, Matches: 3,
-			Company: &core.CampaignCompany{Name: "Rangers", Faction: "Gondor"}},
+			Companies: []core.CampaignCompany{{Name: "Rangers", Faction: "Gondor"}}},
 	}, nil)
 	rec := f.do(f.signedIn(httptest.NewRequest("GET", "/", nil)))
 	body := rec.Body.String()
@@ -349,6 +350,18 @@ func TestHomeListsCampaigns(t *testing.T) {
 	}
 	if strings.Contains(body, "New campaign") || strings.Contains(body, "Administration") {
 		t.Error("a plain user must not see the create button or the administration link")
+	}
+}
+
+func TestHomeShowsTheFactionUnderItsLabel(t *testing.T) {
+	f := newFixture(t, Config{})
+	f.camp.EXPECT().List(gomock.Any(), frodo.ID, false).Return([]core.CampaignSummary{
+		{ID: 1, Name: "Golden Wood", Status: core.CampaignActive, Rounds: 8,
+			Companies: []core.CampaignCompany{{Name: "Galadhrim", Faction: "Lothlorien", FactionLabel: "Lothlórien"}}},
+	}, nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/", nil))).Body.String()
+	if !strings.Contains(body, "Lothlórien") || strings.Contains(body, "(Lothlorien)") {
+		t.Errorf("the faction is shown as its label: %s", body)
 	}
 }
 
@@ -417,7 +430,7 @@ func TestCreateCampaign(t *testing.T) {
 	in := core.CampaignInput{Name: "Rivendell Cup", Description: "Friendly"}
 	f.camp.EXPECT().Create(gomock.Any(), maker, in).Return(core.CampaignSummary{ID: 9}, nil)
 	rec := do(form("/campaigns", url.Values{"name": {"Rivendell Cup"}, "description": {"Friendly"}}))
-	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/" {
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/campaigns" {
 		t.Errorf("success: got %d -> %q", rec.Code, rec.Header().Get("Location"))
 	}
 
@@ -512,8 +525,12 @@ func TestCampaignOverviewShowsRulesets(t *testing.T) {
 func TestCampaignOverviewListsEverySettingWithItsState(t *testing.T) {
 	all, none := core.CampaignSettings{}, core.CampaignSettings{}
 	v := reflect.ValueOf(&all).Elem()
+	toggles := 0 // CompaniesPerPlayer is a number, shown by its own control, not an On/Off badge
 	for i := 0; i < v.NumField(); i++ {
-		v.Field(i).SetBool(true)
+		if v.Field(i).Kind() == reflect.Bool {
+			v.Field(i).SetBool(true)
+			toggles++
+		}
 	}
 	for settings, badge := range map[*core.CampaignSettings]string{&all: ">On</span>", &none: ">Off</span>"} {
 		f := newFixture(t, Config{})
@@ -524,8 +541,8 @@ func TestCampaignOverviewListsEverySettingWithItsState(t *testing.T) {
 		body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7", nil))).Body.String()
 		section := body[strings.Index(body, `id="settings-title"`):]
 		section = section[:strings.Index(section, "</section>")]
-		if got := strings.Count(section, badge); got != v.NumField() {
-			t.Errorf("%d settings shown with %s, want one per setting (%d)", got, badge, v.NumField())
+		if got := strings.Count(section, badge); got != toggles {
+			t.Errorf("%d settings shown with %s, want one per setting (%d)", got, badge, toggles)
 		}
 	}
 }
@@ -569,11 +586,11 @@ func TestCampaignOverviewWithoutCompanyOffersToCreateOne(t *testing.T) {
 func TestCampaignOverviewWithCompanyOffersToManageIt(t *testing.T) {
 	f := newFixture(t, Config{})
 	d := campaignDetail()
-	d.Company = &core.CampaignCompany{ID: 3, Name: "Rangers", Faction: "Gondor"}
+	d.Companies = []core.CampaignCompany{{ID: 3, Name: "Rangers", Faction: "Gondor"}}
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
 	f.camp.EXPECT().Matches(gomock.Any(), int64(7)).Return(nil, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7", nil))).Body.String()
-	if !strings.Contains(body, `href="/campaigns/7/my-company" class="btn btn-primary">Manage company`) || strings.Contains(body, "Create my company") {
+	if !strings.Contains(body, `href="/campaigns/7/my-company/3" class="btn btn-primary">Manage company`) || strings.Contains(body, "Create my company") {
 		t.Errorf("expected manage, not create:\n%s", body)
 	}
 }
@@ -609,14 +626,14 @@ func TestRankingsAreSorted(t *testing.T) {
 func TestOthersCompanyCannotBeManaged(t *testing.T) {
 	f := newFixture(t, Config{})
 	d := campaignDetail()
-	d.Company = &core.CampaignCompany{ID: 1, Name: "Mine", Faction: "Gondor", Owner: "Frodo"}
+	d.Companies = []core.CampaignCompany{{ID: 1, Name: "Mine", Faction: "Gondor", Owner: "Frodo"}}
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).Times(3)
-	f.camp.EXPECT().Company(gomock.Any(), int64(7), int64(1)).Return(*d.Company, nil)
+	f.camp.EXPECT().Company(gomock.Any(), int64(7), int64(1)).Return(d.Companies[0], nil)
 	f.camp.EXPECT().Company(gomock.Any(), int64(7), int64(2)).Return(core.CampaignCompany{ID: 2, Name: "Theirs", Owner: "Sam"}, nil)
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(core.CompanyDetail{CampaignCompany: *d.Company, Influence: 4, Gold: 9,
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(core.CompanyDetail{CampaignCompany: d.Companies[0], Influence: 4, Gold: 9,
 		Limits: []core.CompanyLimit{{Label: "Bows", Used: 1, Max: 2}},
 		Roster: []core.CompanyUnit{
 			{ID: 1, Name: "Beregond", Type: "Captain", Role: core.RoleLeader, Kind: core.KindInfantry, Points: 70, Level: 0, XP: 11, LevelEvery: 5,
@@ -634,10 +651,10 @@ func TestOthersCompanyCannotBeManaged(t *testing.T) {
 
 	// Your own company has its tab: its own page just sends you there.
 	rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/companies/1", nil)))
-	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/campaigns/7/my-company" {
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/campaigns/7/my-company/1" {
 		t.Errorf("own company page: %d -> %q", rec.Code, rec.Header().Get("Location"))
 	}
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	for _, want := range []string{`aria-current="page">My Company`, "Influence", "Gold", "Bows", "1 / 2", "Beregond", "unit-leader", "insignia-leader", "+ Bow", `24&#34; · S2`, "has-tip", "Bodyguard", "rule-spell", "3+", "FV", "path-box", "Path of the Warlord", "Heroic Strike", "+ Heroic March", "Rally the Troops", "Black Dart", "learned through the path", "Lvl 0", "11 / 5 XP", "Level Up ready!", "×2", "unit-corner", "70", `data-tip-title="Elven Cloak"`, `data-tip-text="Stalk Unseen."`, `data-tip-title="Helmingas" data-tip-meta="Unit upgrade" data-tip-text="Guards of the king."`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("My Company tab lacks %q", want)
@@ -671,7 +688,7 @@ func TestMyCompanyTabWithoutCompanyOffersToCreateOne(t *testing.T) {
 func TestArmoryTab(t *testing.T) {
 	f := newFixture(t, Config{})
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory?company=1", nil))).Body.String()
 	if !strings.Contains(body, `aria-current="page">Armory`) {
 		t.Error("the Armory tab should be current")
 	}
@@ -683,19 +700,19 @@ func TestCreateCompanyOnlyOnce(t *testing.T) {
 	f.camp.EXPECT().CompanyProfiles(gomock.Any(), int64(7)).Return([]core.CompanyProfile{{BCCompany: core.BCCompany{Name: "Gondor", Alignment: "good"}}}, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 	in := core.CompanyInput{Name: "Rangers", Faction: "Gondor"}
-	f.camp.EXPECT().CreateCompany(gomock.Any(), frodo, int64(7), in).Return(core.CampaignCompany{}, core.ErrHasCompany)
+	f.camp.EXPECT().CreateCompany(gomock.Any(), frodo, int64(7), in).Return(core.CampaignCompany{}, core.ErrCompanyLimit)
 	rec := f.do(f.signedIn(form("/campaigns/7/company", url.Values{"name": {"Rangers"}, "faction": {"Gondor"}})))
-	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), sentence(core.ErrHasCompany.Error())) {
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "You already have a company in this campaign.") {
 		t.Errorf("got %d", rec.Code)
 	}
 
 	d := campaignDetail()
-	d.Company = &core.CampaignCompany{ID: 5}
+	d.Companies = []core.CampaignCompany{{ID: 5}}
 	f2 := newFixture(t, Config{})
 	f2.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
 	rec = f2.do(f2.signedIn(httptest.NewRequest("GET", "/campaigns/7/company/new", nil)))
 	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/campaigns/7/my-company" {
-		t.Errorf("a player with a company is sent to it: %d -> %q", rec.Code, rec.Header().Get("Location"))
+		t.Errorf("a player at the cap is sent to the alias: %d -> %q", rec.Code, rec.Header().Get("Location"))
 	}
 }
 
@@ -704,7 +721,7 @@ func TestCreateMatchBuildsSidesFromTheForm(t *testing.T) {
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
 	f.camp.EXPECT().Companies(gomock.Any(), int64(7)).Return([]core.CampaignCompany{{ID: 1}, {ID: 2}, {ID: 3}, {ID: 4}}, nil)
 	want := []core.NewSide{{Name: "Gondor", Companies: []int64{1, 3}}, {Companies: []int64{2}}, {Name: "Spies"}}
-	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), want).Return(core.Match{ID: 12}, nil)
+	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), core.NewMatch{Sides: want}).Return(core.Match{ID: 12}, nil)
 	rec := f.do(f.signedIn(form("/campaigns/7/matches", url.Values{
 		"sides": {"3"}, "side-name-1": {"Gondor"}, "side-1": {"1", "3", "99"}, // 99 is not in the campaign: ignored
 		"side-2": {"2"}, "side-name-3": {"Spies"},
@@ -792,7 +809,7 @@ func TestCreateMatchAllVsAll(t *testing.T) {
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
 	f.camp.EXPECT().Companies(gomock.Any(), int64(7)).Return([]core.CampaignCompany{{ID: 1, Name: "A"}, {ID: 2, Name: "B"}, {ID: 3, Name: "C"}}, nil)
 	want := []core.NewSide{{Name: "C", Companies: []int64{3}}, {Name: "A", Companies: []int64{1}}}
-	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), want).Return(core.Match{ID: 5}, nil)
+	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), core.NewMatch{Sides: want}).Return(core.Match{ID: 5}, nil)
 	rec := f.do(f.signedIn(form("/campaigns/7/matches", url.Values{"mode": {"ffa"}, "sides": {"2"}, "side-1": {"3", "1"}})))
 	if rec.Code != http.StatusSeeOther {
 		t.Errorf("got %d", rec.Code)
@@ -864,8 +881,8 @@ func TestGlossaryPages(t *testing.T) {
 
 func mineDetail() (core.CampaignDetail, core.CompanyDetail) {
 	d := campaignDetail()
-	d.Company = &core.CampaignCompany{ID: 1, Name: "Rangers", Faction: "Gondor"}
-	return d, core.CompanyDetail{CampaignCompany: *d.Company, Influence: 4, Gold: 1, MaxUnits: 15,
+	d.Companies = []core.CampaignCompany{{ID: 1, Name: "Rangers", Faction: "Gondor"}}
+	return d, core.CompanyDetail{CampaignCompany: d.Companies[0], Influence: 4, Gold: 1, MaxUnits: 15,
 		Recruit:  core.RecruitInfo{Rules: recruitRules, Cost: 3, Chart: []core.RecruitRow{{Min: 2, Max: 2, Text: "Warrior of Minas Tirith (Shield)"}, {Min: 6, Max: 6, Text: "Roll on the special chart"}}, SpecialChart: []core.RecruitRow{{Min: 1, Max: 3, Text: "Citadel Guard"}}, Notes: []string{"A rare unit the company cannot have is replaced by a lower result."}, Special: []core.SpecialRecruit{{Unit: "Cave Troll", Cost: 15, Rare: 1}}},
 		Roster:   []core.CompanyUnit{{ID: 5, Name: "Hador", Type: "Warrior", Role: core.RoleSergeant, Kind: core.KindInfantry, Points: 8}},
 		RuleDice: testRuleDice}
@@ -879,10 +896,10 @@ func TestRecruitWindowShowsBothChartsApart(t *testing.T) {
 	d, detail := mineDetail()
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/recruit", nil))).Body.String()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/recruit", nil))).Body.String()
 	for _, want := range []string{"3 influence per roll", "Reinforcements", "Warrior of Minas Tirith (Shield)", "Special chart", "Citadel Guard", "rare unit the company cannot have",
 		"Cave Troll", "15 influence", "That costs 15 influence and the company has 4"} {
 		if !strings.Contains(body, want) {
@@ -901,14 +918,14 @@ func TestARecruitIsRolledThenConfirmedInTheWindow(t *testing.T) {
 	detail.Influence = 6
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 
 	// 1. the roll: the window stays and shows the result with its adjustment buttons
-	f.camp.EXPECT().RollRecruitWithPerk(gomock.Any(), frodo, int64(7), 4, false, 0).Return(nil)
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(&core.RecruitRoll{Stage: "chart", Rolled: true, Roll: 4, Budget: 3, Adjust: upToThree}, nil)
-	rec := f.do(f.signedIn(form("/campaigns/7/my-company/recruit/roll", url.Values{"roll": {"4"}})))
+	f.camp.EXPECT().RollRecruitWithPerk(gomock.Any(), frodo, int64(7), int64(1), 4, false, 0).Return(nil)
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(&core.RecruitRoll{Stage: "chart", Rolled: true, Roll: 4, Budget: 3, Adjust: upToThree}, nil)
+	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/recruit/roll", url.Values{"roll": {"4"}})))
 	body := rec.Body.String()
 	for _, want := range []string{"You rolled a", "Raise the roll", "Confirm", "recruit/confirm", `name="adjust"`,
 		`id="company-influence" hx-swap-oob="true">6</p>`} { // the page's balance follows the roll at once (the price leaves it when rolling)
@@ -921,17 +938,17 @@ func TestARecruitIsRolledThenConfirmedInTheWindow(t *testing.T) {
 	}
 
 	// 2. a result that leads to the special chart keeps the window open
-	f.camp.EXPECT().ConfirmRecruit(gomock.Any(), frodo, int64(7), 1, "").Return(core.RecruitResult{Roll: 6, Summary: "special", Next: true}, nil)
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(&core.RecruitRoll{Stage: "special", Roll: 0, Budget: 2, Adjust: upToThree}, nil)
-	rec = f.do(f.signedIn(form("/campaigns/7/my-company/recruit/confirm", url.Values{"adjust": {"1"}})))
+	f.camp.EXPECT().ConfirmRecruit(gomock.Any(), frodo, int64(7), int64(1), 1, "").Return(core.RecruitResult{Roll: 6, Summary: "special", Next: true}, nil)
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(&core.RecruitRoll{Stage: "special", Roll: 0, Budget: 2, Adjust: upToThree}, nil)
+	rec = f.do(f.signedIn(form("/campaigns/7/my-company/1/recruit/confirm", url.Values{"adjust": {"1"}})))
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "special chart") || !strings.Contains(rec.Body.String(), "Roll on the special chart") || rec.Header().Get("HX-Retarget") != "" {
 		t.Errorf("the special chart asks for a second roll in the same window: %d", rec.Code)
 	}
 
 	// 3. the final confirm ends the recruit: the whole page answers and the window goes away
-	f.camp.EXPECT().ConfirmRecruit(gomock.Any(), frodo, int64(7), 0, "").Return(core.RecruitResult{Roll: 2, Summary: "You rolled a 2: a Warrior joins."}, nil)
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	rec = f.do(f.signedIn(form("/campaigns/7/my-company/recruit/confirm", url.Values{"adjust": {"0"}})))
+	f.camp.EXPECT().ConfirmRecruit(gomock.Any(), frodo, int64(7), int64(1), 0, "").Return(core.RecruitResult{Roll: 2, Summary: "You rolled a 2: a Warrior joins."}, nil)
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	rec = f.do(f.signedIn(form("/campaigns/7/my-company/1/recruit/confirm", url.Values{"adjust": {"0"}})))
 	if rec.Code != 200 || rec.Header().Get("HX-Retarget") != "#main" || !strings.Contains(rec.Body.String(), "You rolled a 2: a Warrior joins.") {
 		t.Errorf("the end of a recruit answers with the page: %d, retarget %q", rec.Code, rec.Header().Get("HX-Retarget"))
 	}
@@ -942,11 +959,11 @@ func TestARecruitInProgressReopensItsWindow(t *testing.T) {
 	d, detail := mineDetail()
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).Times(2)
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(&core.RecruitRoll{Stage: "chart", Rolled: true, Roll: 2, Budget: 3, Adjust: upToThree}, nil).Times(2)
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(&core.RecruitRoll{Stage: "chart", Rolled: true, Roll: 2, Budget: 3, Adjust: upToThree}, nil).Times(2)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	if !strings.Contains(body, `data-modal="true"`) || !strings.Contains(body, "You rolled a") {
 		t.Error("a recruit in progress is not lost on reload: its window opens on it")
 	}
@@ -955,14 +972,14 @@ func TestARecruitInProgressReopensItsWindow(t *testing.T) {
 func TestRefusedPurchasesShowTheReason(t *testing.T) {
 	f := newFixture(t, Config{})
 	d, detail := mineDetail()
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).Times(2)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-	f.camp.EXPECT().BuyEquipment(gomock.Any(), frodo, int64(7), int64(5), "Map", gomock.Any()).Return(core.Refuse("Map: no free small slot"))
-	rec := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/equipment", url.Values{"item": {"Map"}})))
+	f.camp.EXPECT().BuyEquipment(gomock.Any(), frodo, int64(7), int64(1), int64(5), "Map", gomock.Any()).Return(core.Refuse("Map: no free small slot"))
+	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/equipment", url.Values{"item": {"Map"}})))
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Map: no free small slot") || !strings.Contains(rec.Body.String(), "alert-danger") {
 		t.Errorf("got %d", rec.Code)
 	}
@@ -979,7 +996,7 @@ func TestArmouryWindow(t *testing.T) {
 		{GearOffer: core.GearOffer{Name: "Badge of Courage", Classes: []core.EquipmentClass{core.EquipOther}, Cost: 2, Size: "small"}, PayInfluence: true, PayGold: true, GoldPrice: 1},
 		{GearOffer: core.GearOffer{Name: "Map", Classes: []core.EquipmentClass{core.EquipOther}, Cost: 1, Size: "small", Restrictions: []string{"hero"}}, Reason: "Heroes only"},
 	}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/units/5/armoury", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/units/5/armoury", nil))).Body.String()
 	for _, want := range []string{"Equipment for Hador", "Buy · 2 influence", "Buy · 1 gold", "Heroes only", "small slot", `name="item" value="Badge of Courage"`, "Armory tab", `type="search"`, "Find an item", `data-find="Badge of Courage `, `data-find="Map `} {
 		if !strings.Contains(body, want) {
 			t.Errorf("armoury window lacks %q", want)
@@ -993,24 +1010,24 @@ func TestArmouryWindow(t *testing.T) {
 func TestAChoiceOfOptionsOpensItsWindow(t *testing.T) {
 	f := newFixture(t, Config{})
 	d, detail := mineDetail()
-	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).Times(2)
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).Times(3)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).Times(2)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).Times(2)
 	pending := &core.RecruitChoice{Unit: "Warrior of Minas Tirith", Options: []core.ChoiceOption{{Name: "Shield and Spear", Points: 2}, {Name: "Bow", Points: 1}}}
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(pending, nil)
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(pending, nil)
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	for _, want := range []string{`data-modal="true"`, "Choose its options", "Shield and Spear", "+2 pts", "Its base profile"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the choice window lacks %q", want)
 		}
 	}
-	f.camp.EXPECT().ChooseOptions(gomock.Any(), frodo, int64(7), "Bow").Return(core.RecruitResult{Summary: "A Warrior of Minas Tirith joins the company with Bow."}, nil)
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	rec := f.do(f.signedIn(form("/campaigns/7/my-company/recruit/choose", url.Values{"option": {"Bow"}})))
+	f.camp.EXPECT().ChooseOptions(gomock.Any(), frodo, int64(7), int64(1), "Bow").Return(core.RecruitResult{Summary: "A Warrior of Minas Tirith joins the company with Bow."}, nil)
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/recruit/choose", url.Values{"option": {"Bow"}})))
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "joins the company with Bow") || strings.Contains(rec.Body.String(), `data-modal="true"`) {
 		t.Errorf("choosing finishes the recruit: %d", rec.Code)
 	}
@@ -1019,14 +1036,14 @@ func TestAChoiceOfOptionsOpensItsWindow(t *testing.T) {
 func TestDroppingEquipment(t *testing.T) {
 	f := newFixture(t, Config{})
 	d, detail := mineDetail()
-	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).Times(2)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-	f.camp.EXPECT().DropEquipment(gomock.Any(), frodo, int64(7), int64(5), "Bow").Return(nil)
-	rec := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/equipment/drop", url.Values{"item": {"Bow"}})))
+	f.camp.EXPECT().DropEquipment(gomock.Any(), frodo, int64(7), int64(1), int64(5), "Bow").Return(nil)
+	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/equipment/drop", url.Values{"item": {"Bow"}})))
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Dropped Bow.") {
 		t.Errorf("got %d", rec.Code)
 	}
@@ -1038,11 +1055,11 @@ func TestExpandedEquipmentCanBeDropped(t *testing.T) {
 	detail.Roster[0].Equipment = []core.Equipment{{Name: "Heavy Armour", Class: core.EquipArmour}}
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	if !strings.Contains(body, `/units/5/equipment/drop`) || !strings.Contains(body, `value="Heavy Armour"`) || !strings.Contains(body, "hx-confirm") {
 		t.Error("a unit can drop what the rules allow, from its expanded card")
 	}
@@ -1054,11 +1071,11 @@ func TestEquipmentThatCannotBeDroppedSaysWhy(t *testing.T) {
 	detail.Roster[0].Equipment = []core.Equipment{{Name: "Heavy Armour", Class: core.EquipArmour, Profile: true, Drop: "Part of its profile"}}
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	if strings.Contains(body, `/units/5/equipment/drop`) || !strings.Contains(body, "Part of its profile") {
 		t.Error("an item the rules do not let the unit drop has no button, only the reason")
 	}
@@ -1086,11 +1103,11 @@ func TestInjuredUnitsAreMarkedAndNotCounted(t *testing.T) {
 	detail.Points = 40
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	for _, want := range []string{"Out next match", "unit-injured", "1 injured, not counted"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
@@ -1112,8 +1129,9 @@ func TestArmoryTabListsEverythingWithTheUnitsThatCanTakeIt(t *testing.T) {
 		{GearOffer: core.GearOffer{Name: "Barding", Classes: []core.EquipmentClass{core.EquipArmour}, Cost: 2, Size: "large", Restrictions: []string{"cavalry"}},
 			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", Role: core.RoleSergeant, Reason: "Cavalry only", Blocker: core.BlockedByRule}}},
 	}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory", nil))).Body.String()
-	for _, want := range []string{"Badge of Courage", "Barding", "Buy for…", "No unit can take it", "Cavalry only", `/armory/buy`, `name="item" value="Badge of Courage"`, "Gives:", "Fearless", `x-data="armory"`} {
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory?company=1", nil))).Body.String()
+	for _, want := range []string{"Badge of Courage", "Barding", "Buy for…", "No unit can take it", "Cavalry only", `/armory/buy`, `name="item" value="Badge of Courage"`, "Gives:", "Fearless", `x-data="armory"`,
+		`<template x-if="open"><ul x-init="htmx.process($el)"`, `data-armory-pending`, `<span x-text="hiddenCount()">1</span> hidden`} { // the unit lists are built when "Buy for" opens them, and htmx wires their forms then
 		if !strings.Contains(body, want) {
 			t.Errorf("armory lacks %q", want)
 		}
@@ -1136,7 +1154,7 @@ func TestArmoryOfALockedCompanyExplainsAndDisablesTheBuyButtons(t *testing.T) {
 		{GearOffer: core.GearOffer{Name: "Badge of Courage", Classes: []core.EquipmentClass{core.EquipOther}, Cost: 2, Size: "small"},
 			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", Role: core.RoleSergeant}}},
 	}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory?company=1", nil))).Body.String()
 	for _, want := range []string{`id="armory-lock"`, "The company is locked.", "Finish the aftermath of Match 3 first.", `disabled title="Finish the aftermath of Match 3 first."`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("a locked armory lacks %q", want)
@@ -1147,19 +1165,19 @@ func TestArmoryOfALockedCompanyExplainsAndDisablesTheBuyButtons(t *testing.T) {
 func TestBuyingFromTheArmory(t *testing.T) {
 	f := newFixture(t, Config{})
 	d, detail := mineDetail()
-	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).Times(2)
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).Times(2)
 	f.camp.EXPECT().ArmouryEntries(gomock.Any(), int64(7), int64(1)).Return(nil, nil).Times(2)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 	f.camp.EXPECT().ArmouryCreatures(gomock.Any(), int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.camp.EXPECT().ArmouryWanderers(gomock.Any(), int64(7), int64(1)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().BuyEquipment(gomock.Any(), frodo, int64(7), int64(5), "Map", gomock.Any()).Return(nil)
-	rec := f.do(f.signedIn(form("/campaigns/7/armory/buy", url.Values{"unit": {"5"}, "item": {"Map"}})))
+	f.camp.EXPECT().BuyEquipment(gomock.Any(), frodo, int64(7), int64(1), int64(5), "Map", gomock.Any()).Return(nil)
+	rec := f.do(f.signedIn(form("/campaigns/7/armory/buy", url.Values{"company": {"1"}, "unit": {"5"}, "item": {"Map"}})))
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Bought Map.") {
 		t.Errorf("got %d", rec.Code)
 	}
-	f.camp.EXPECT().BuyEquipment(gomock.Any(), frodo, int64(7), int64(5), "Seeing Stone", gomock.Any()).Return(core.Refuse("Seeing Stone: heroes only"))
-	rec = f.do(f.signedIn(form("/campaigns/7/armory/buy", url.Values{"unit": {"5"}, "item": {"Seeing Stone"}})))
+	f.camp.EXPECT().BuyEquipment(gomock.Any(), frodo, int64(7), int64(1), int64(5), "Seeing Stone", gomock.Any()).Return(core.Refuse("Seeing Stone: heroes only"))
+	rec = f.do(f.signedIn(form("/campaigns/7/armory/buy", url.Values{"company": {"1"}, "unit": {"5"}, "item": {"Seeing Stone"}})))
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "heroes only") {
 		t.Errorf("refused: %d", rec.Code)
 	}
@@ -1169,7 +1187,7 @@ func TestArmoryTabAsksForTheWeaponOfAWeaponModifier(t *testing.T) {
 	f := newFixture(t, Config{})
 	d, detail := mineDetail()
 	detail.Roster = []core.CompanyUnit{{ID: 5, Name: "Hador", Type: "Warrior", PoisonableWeapons: []string{"Bow", "Sword"}}, {ID: 6, Name: "Bare", Type: "Warrior"}}
-	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).Times(2)
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).Times(3)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).Times(2)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 	f.camp.EXPECT().ArmouryCreatures(gomock.Any(), int64(7), int64(1)).Return(nil, nil).AnyTimes()
@@ -1178,7 +1196,7 @@ func TestArmoryTabAsksForTheWeaponOfAWeaponModifier(t *testing.T) {
 		{GearOffer: core.GearOffer{Name: "Envenom Weapon (X)", Classes: []core.EquipmentClass{core.EquipOther}, Cost: 2, Size: "small", WeaponModifier: true},
 			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", PayInfluence: true}, {ID: 6, Title: "Bare", Type: "Warrior", PayInfluence: true}}},
 	}, nil).Times(2)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory?company=1", nil))).Body.String()
 	for _, want := range []string{`name="weapon"`, `<option value="Bow"`, `<option value="Sword"`, "Choose a weapon", "No weapon left for Envenom Weapon (X)"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("armory lacks %q", want)
@@ -1187,8 +1205,8 @@ func TestArmoryTabAsksForTheWeaponOfAWeaponModifier(t *testing.T) {
 	if strings.Count(body, `name="weapon"`) != 1 {
 		t.Error("only the unit with a weapon gets a chooser; the other gets the reason")
 	}
-	f.camp.EXPECT().BuyEquipmentFor(gomock.Any(), frodo, int64(7), int64(5), "Envenom Weapon (X)", gomock.Any(), "Bow").Return(nil)
-	rec := f.do(f.signedIn(form("/campaigns/7/armory/buy", url.Values{"unit": {"5"}, "item": {"Envenom Weapon (X)"}, "weapon": {"Bow"}})))
+	f.camp.EXPECT().BuyEquipmentFor(gomock.Any(), frodo, int64(7), int64(1), int64(5), "Envenom Weapon (X)", gomock.Any(), "Bow").Return(nil)
+	rec := f.do(f.signedIn(form("/campaigns/7/armory/buy", url.Values{"company": {"1"}, "unit": {"5"}, "item": {"Envenom Weapon (X)"}, "weapon": {"Bow"}})))
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Bought Envenom Weapon (X).") {
 		t.Errorf("got %d", rec.Code)
 	}
@@ -1197,25 +1215,25 @@ func TestArmoryTabAsksForTheWeaponOfAWeaponModifier(t *testing.T) {
 func TestSavingTheFormation(t *testing.T) {
 	f := newFixture(t, Config{})
 	d, detail := mineDetail()
-	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).Times(2)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-	f.camp.EXPECT().SaveFormation(gomock.Any(), frodo, int64(7), []int64{5, 2, 9}).Return(nil)
-	rec := f.do(f.signedIn(form("/campaigns/7/my-company/formation", url.Values{"order": {"5, 2,x,9"}})))
+	f.camp.EXPECT().SaveFormation(gomock.Any(), frodo, int64(7), int64(1), []int64{5, 2, 9}).Return(nil)
+	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/formation", url.Values{"order": {"5, 2,x,9"}})))
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Formation saved.") {
 		t.Errorf("got %d", rec.Code)
 	}
-	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).Times(2)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-	f.camp.EXPECT().SaveFormation(gomock.Any(), frodo, int64(7), []int64{42}).Return(core.Refuse("Unit 42 is not in the company."))
-	if rec := f.do(f.signedIn(form("/campaigns/7/my-company/formation", url.Values{"order": {"42"}}))); rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "not in the company") {
+	f.camp.EXPECT().SaveFormation(gomock.Any(), frodo, int64(7), int64(1), []int64{42}).Return(core.Refuse("Unit 42 is not in the company."))
+	if rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/formation", url.Values{"order": {"42"}}))); rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "not in the company") {
 		t.Errorf("refused: %d", rec.Code)
 	}
 }
@@ -1225,12 +1243,12 @@ func TestUnitCardsCanBeDraggedWhenChangingTheFormation(t *testing.T) {
 	d, detail := mineDetail()
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
-	for _, want := range []string{"Change formation", `data-unit-id="5"`, "unit-handle", "Save formation", `name="order"`, "my-company/formation", "js/app.js"} {
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
+	for _, want := range []string{"Change formation", `data-unit-id="5"`, "unit-handle", "Save formation", `name="order"`, "my-company/1/formation", "js/app.js"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -1242,14 +1260,14 @@ func TestAThrownRollNeedsTheShakeTheTableSetting(t *testing.T) {
 	d, detail := mineDetail()
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 
 	// the page tells the backend the browser threw the dice; the backend refuses when the campaign does not allow it
-	f.camp.EXPECT().RollRecruitWithPerk(gomock.Any(), frodo, int64(7), 5, true, 0).Return(core.Refuse("%s", core.CampaignSettings{}.RollRefusal(true, true)))
-	rec := f.do(f.signedIn(form("/campaigns/7/my-company/recruit/roll", url.Values{"roll": {"5"}, "thrown": {"1"}})))
+	f.camp.EXPECT().RollRecruitWithPerk(gomock.Any(), frodo, int64(7), int64(1), 5, true, 0).Return(core.Refuse("%s", core.CampaignSettings{}.RollRefusal(true, true)))
+	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/recruit/roll", url.Values{"roll": {"5"}, "thrown": {"1"}})))
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "does not let players throw") {
 		t.Errorf("a thrown roll is refused when the organiser did not allow it: %d", rec.Code)
 	}
@@ -1259,9 +1277,9 @@ func TestReopeningTheRecruitWindowContinuesAPendingChoice(t *testing.T) {
 	f := newFixture(t, Config{})
 	d, _ := mineDetail()
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(&core.RecruitChoice{Unit: "Warrior of Minas Tirith", Options: []core.ChoiceOption{{Name: "Bow", Points: 1}}}, nil)
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/recruit", nil))).Body.String()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(&core.RecruitChoice{Unit: "Warrior of Minas Tirith", Options: []core.ChoiceOption{{Name: "Bow", Points: 1}}}, nil)
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/recruit", nil))).Body.String()
 	if !strings.Contains(body, "Choose its options") || strings.Contains(body, "influence per roll") {
 		t.Errorf("the window offers the pending choice, not a new recruit")
 	}
@@ -1276,11 +1294,11 @@ func TestTreatingAHeroShowsTheResultInTheWindow(t *testing.T) {
 	detail.Roster[0].Injuries = []core.UnitInjury{{Key: "armWound", Name: "Arm Wound", Count: 1}}
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().TreatmentState(gomock.Any(), frodo, int64(7), int64(5)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().TreatInjury(gomock.Any(), frodo, int64(7), int64(5), core.Treatment{Method: "attempt", Injury: "armWound", Roll: 0}).
+	f.camp.EXPECT().TreatmentState(gomock.Any(), frodo, int64(7), int64(1), int64(5)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().TreatInjury(gomock.Any(), frodo, int64(7), int64(1), int64(5), core.Treatment{Method: "attempt", Injury: "armWound", Roll: 0}).
 		Return(core.TreatResult{Rolled: true, Roll: 3, Total: 4, Needed: 5, Summary: "Rolled 4 (5 needed): the treatment failed and the influence is lost."}, nil)
 
-	rec := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/treat", url.Values{"method": {"attempt"}, "injury": {"armWound"}})))
+	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/treat", url.Values{"method": {"attempt"}, "injury": {"armWound"}})))
 	body := rec.Body.String()
 	for _, want := range []string{"Treat Hador", "the treatment failed", `data-animate="true"`, `name="injury"`, "Arm Wound", "Done"} {
 		if !strings.Contains(body, want) {
@@ -1292,9 +1310,9 @@ func TestTreatingAHeroShowsTheResultInTheWindow(t *testing.T) {
 	}
 
 	// a roll thrown in the browser is passed on as thrown; the backend refuses it when the organiser did not allow it
-	f.camp.EXPECT().TreatInjury(gomock.Any(), frodo, int64(7), int64(5), core.Treatment{Method: "attempt", Injury: "armWound", Roll: 6, Thrown: true}).
+	f.camp.EXPECT().TreatInjury(gomock.Any(), frodo, int64(7), int64(1), int64(5), core.Treatment{Method: "attempt", Injury: "armWound", Roll: 6, Thrown: true}).
 		Return(core.TreatResult{}, core.Refuse("%s", core.CampaignSettings{}.RollRefusal(true, true)))
-	rec = f.do(f.signedIn(form("/campaigns/7/my-company/units/5/treat", url.Values{"method": {"attempt"}, "injury": {"armWound"}, "roll": {"6"}, "thrown": {"1"}})))
+	rec = f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/treat", url.Values{"method": {"attempt"}, "injury": {"armWound"}, "roll": {"6"}, "thrown": {"1"}})))
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "does not let players throw") {
 		t.Errorf("a thrown roll needs the setting: %d", rec.Code)
 	}
@@ -1309,8 +1327,8 @@ func TestAHeroWithOnlyOneWayToTreatGetsASingleColumn(t *testing.T) {
 	detail.Roster[0].Injuries = []core.UnitInjury{{Key: "justAScratch", Name: "T'is Just a Scratch", Count: 1}}
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().TreatmentState(gomock.Any(), frodo, int64(7), int64(5)).Return(nil, nil).AnyTimes()
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/units/5/treat", nil))).Body.String()
+	f.camp.EXPECT().TreatmentState(gomock.Any(), frodo, int64(7), int64(1), int64(5)).Return(nil, nil).AnyTimes()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/units/5/treat", nil))).Body.String()
 	if !strings.Contains(body, "Field treatment") || strings.Contains(body, "md:grid-cols-[1fr_auto_1fr]") {
 		t.Errorf("one way to treat takes the whole width")
 	}
@@ -1324,24 +1342,24 @@ func TestTheLevelUpWindowRollsAndOffersTheResults(t *testing.T) {
 	detail.Roster[0].XP, detail.Roster[0].LevelEvery = 10, 5
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().LevelUpState(gomock.Any(), frodo, int64(7), int64(5)).Return(nil, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/units/5/levelup", nil))).Body.String()
+	f.camp.EXPECT().LevelUpState(gomock.Any(), frodo, int64(7), int64(1), int64(5)).Return(nil, nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/units/5/levelup", nil))).Body.String()
 	for _, want := range []string{"Level up Hador", "2</strong> rolls waiting", "levelup/roll", "Roll for me"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the roll form lacks %q", want)
 		}
 	}
-	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(5), nil, false).Return(core.LevelRoll{Kind: "warrior", D6: 6, Result: "heroInTheMaking",
+	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(1), int64(5), nil, false).Return(core.LevelRoll{Kind: "warrior", D6: 6, Result: "heroInTheMaking",
 		Offers: []core.LevelOffer{{Roll: 6, Text: "A hero", Choices: []core.LevelChoice{{Key: "path:Path of the Duelist", Label: "Become a hero: Path of the Duelist", Group: "Choose its path"}}}}}, nil)
-	rec := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/levelup/roll", url.Values{"roll": {"0"}})))
+	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/levelup/roll", url.Values{"roll": {"0"}})))
 	body = rec.Body.String()
 	for _, want := range []string{`data-animate="true"`, `data-dice="6"`, "Become a hero: Path of the Duelist", `value="path:Path of the Duelist"`, "levelup/choose"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the offers lack %q", want)
 		}
 	}
-	f.camp.EXPECT().ChooseLevelUp(gomock.Any(), frodo, int64(7), int64(5), []string{"path:Path of the Duelist"}).Return(core.LevelRoll{Kind: "warrior", Done: true, Summary: "Hador becomes a hero."}, nil)
-	body = f.do(f.signedIn(form("/campaigns/7/my-company/units/5/levelup/choose", url.Values{"choice": {"path:Path of the Duelist"}}))).Body.String()
+	f.camp.EXPECT().ChooseLevelUp(gomock.Any(), frodo, int64(7), int64(1), int64(5), []string{"path:Path of the Duelist"}).Return(core.LevelRoll{Kind: "warrior", Done: true, Summary: "Hador becomes a hero."}, nil)
+	body = f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/levelup/choose", url.Values{"choice": {"path:Path of the Duelist"}}))).Body.String()
 	if !strings.Contains(body, "Hador becomes a hero.") || !strings.Contains(body, "Done") {
 		t.Errorf("the result is shown: %s", body)
 	}
@@ -1354,19 +1372,19 @@ func TestTheSorcererPowerStepDoesNotSayToTakeTheOtherRoll(t *testing.T) {
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().LevelUpState(gomock.Any(), frodo, int64(7), int64(5)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().LevelUpState(gomock.Any(), frodo, int64(7), int64(1), int64(5)).Return(nil, nil).AnyTimes()
 	offer := core.LevelOffer{Text: "A Sorcerer adds a magical power.", Choices: []core.LevelChoice{{Key: "power:Immobilise", Label: "Immobilise"}}}
 	step := func(stage string) core.LevelRoll {
 		return core.LevelRoll{Kind: "warrior", Again: true, Stage: stage, Offers: []core.LevelOffer{offer}}
 	}
 	const wording = "says to take the other roll too"
-	f.camp.EXPECT().ChooseLevelUp(gomock.Any(), frodo, int64(7), int64(5), []string{"path:Path of the Sorcerer"}).Return(step("startingPower"), nil)
-	body := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/levelup/choose", url.Values{"choice": {"path:Path of the Sorcerer"}}))).Body.String()
+	f.camp.EXPECT().ChooseLevelUp(gomock.Any(), frodo, int64(7), int64(1), int64(5), []string{"path:Path of the Sorcerer"}).Return(step("startingPower"), nil)
+	body := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/levelup/choose", url.Values{"choice": {"path:Path of the Sorcerer"}}))).Body.String()
 	if !strings.Contains(body, "Immobilise") || strings.Contains(body, wording) {
 		t.Errorf("the first power is offered without the other-roll wording: %s", body)
 	}
-	f.camp.EXPECT().ChooseLevelUp(gomock.Any(), frodo, int64(7), int64(5), []string{"stat:Might:2"}).Return(step(""), nil)
-	body = f.do(f.signedIn(form("/campaigns/7/my-company/units/5/levelup/choose", url.Values{"choice": {"stat:Might:2"}}))).Body.String()
+	f.camp.EXPECT().ChooseLevelUp(gomock.Any(), frodo, int64(7), int64(1), int64(5), []string{"stat:Might:2"}).Return(step(""), nil)
+	body = f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/levelup/choose", url.Values{"choice": {"stat:Might:2"}}))).Body.String()
 	if !strings.Contains(body, wording) {
 		t.Errorf("a hero result that asks for the other roll still says so: %s", body)
 	}
@@ -1378,30 +1396,30 @@ func TestTypedRollsNeedTheCampaignSetting(t *testing.T) {
 	detail.Roster[0].XP, detail.Roster[0].LevelEvery = 10, 5
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().LevelUpState(gomock.Any(), frodo, int64(7), int64(5)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().TreatmentState(gomock.Any(), frodo, int64(7), int64(5)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().LevelUpState(gomock.Any(), frodo, int64(7), int64(1), int64(5)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().TreatmentState(gomock.Any(), frodo, int64(7), int64(1), int64(5)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 
 	// the roll form has only a Roll button
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/units/5/levelup", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/units/5/levelup", nil))).Body.String()
 	if strings.Contains(body, "I rolled") || strings.Contains(body, "Roll for me") || !strings.Contains(body, ">Roll</button>") {
 		t.Errorf("only a Roll button: %s", body)
 	}
 	// a typed roll reaches the backend, which refuses it
 	msg := core.CampaignSettings{}.RollRefusal(true, false)
-	f.camp.EXPECT().RollRecruitWithPerk(gomock.Any(), frodo, int64(7), 4, false, 0).Return(core.Refuse("%s", msg))
-	f.camp.EXPECT().TreatInjury(gomock.Any(), frodo, int64(7), int64(5), core.Treatment{Method: "attempt", Injury: "armWound", Roll: 6}).Return(core.TreatResult{}, core.Refuse("%s", msg))
-	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(5), []int{6}, false).Return(core.LevelRoll{}, core.Refuse("%s", msg))
+	f.camp.EXPECT().RollRecruitWithPerk(gomock.Any(), frodo, int64(7), int64(1), 4, false, 0).Return(core.Refuse("%s", msg))
+	f.camp.EXPECT().TreatInjury(gomock.Any(), frodo, int64(7), int64(1), int64(5), core.Treatment{Method: "attempt", Injury: "armWound", Roll: 6}).Return(core.TreatResult{}, core.Refuse("%s", msg))
+	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(1), int64(5), []int{6}, false).Return(core.LevelRoll{}, core.Refuse("%s", msg))
 	for _, c := range []struct {
 		path string
 		form url.Values
 	}{
-		{"/campaigns/7/my-company/recruit/roll", url.Values{"roll": {"4"}}},
-		{"/campaigns/7/my-company/units/5/treat", url.Values{"method": {"attempt"}, "injury": {"armWound"}, "roll": {"6"}}},
-		{"/campaigns/7/my-company/units/5/levelup/roll", url.Values{"roll": {"6"}}},
+		{"/campaigns/7/my-company/1/recruit/roll", url.Values{"roll": {"4"}}},
+		{"/campaigns/7/my-company/1/units/5/treat", url.Values{"method": {"attempt"}, "injury": {"armWound"}, "roll": {"6"}}},
+		{"/campaigns/7/my-company/1/units/5/levelup/roll", url.Values{"roll": {"6"}}},
 	} {
 		rec := f.do(f.signedIn(form(c.path, c.form)))
 		if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "does not let players enter their own rolls") {
@@ -1423,14 +1441,14 @@ func TestRenamingAUnitReturnsToThePage(t *testing.T) {
 	d, detail := mineDetail()
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
-	f.camp.EXPECT().RenameUnit(gomock.Any(), frodo, int64(7), int64(5), "Hador the Bold").Return(nil)
-	rec := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/rename", url.Values{"name": {"Hador the Bold"}})))
+	f.camp.EXPECT().RenameUnit(gomock.Any(), frodo, int64(7), int64(1), int64(5), "Hador the Bold").Return(nil)
+	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/rename", url.Values{"name": {"Hador the Bold"}})))
 	body := rec.Body.String()
-	if rec.Code != 200 || !strings.Contains(body, "Renamed.") || !strings.Contains(body, `hx-post="/campaigns/7/my-company/units/5/rename"`) {
+	if rec.Code != 200 || !strings.Contains(body, "Renamed.") || !strings.Contains(body, `hx-post="/campaigns/7/my-company/1/units/5/rename"`) {
 		t.Errorf("the page shows the rename form of every unit: %d", rec.Code)
 	}
 }
@@ -1601,7 +1619,7 @@ func TestArmouryWindowSplitsWargearFromEquipmentAndHidesWhatARuleForbids(t *test
 		{GearOffer: core.GearOffer{Name: "Banner", Cost: 3, Size: "large"}, Reason: "Not enough influence"},
 	}, nil).AnyTimes()
 	get := func(q string) string {
-		return f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/units/5/armoury"+q, nil))).Body.String()
+		return f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/units/5/armoury"+q, nil))).Body.String()
 	}
 	wargear := get("?kind=wargear")
 	for _, want := range []string{"Wargear for Hador", `value="Armour"`, "armour upgrade"} {
@@ -1653,9 +1671,9 @@ func TestArmoryFiltersAndTooltips(t *testing.T) {
 		{CreatureOffer: core.CreatureOffer{Name: "Hunting Dog", Cost: 1, Rules: []string{"Fearful"}}}}, nil)
 	f.camp.EXPECT().ArmouryWanderers(gomock.Any(), int64(7), int64(1)).Return([]core.ArmouryWanderer{
 		{WandererOffer: core.WandererOffer{Name: "Wandering Swordsman", Cost: 9, Wargear: []string{"Badge of Courage"}, Rules: []string{"Fearful"}}},
-		{WandererOffer: core.WandererOffer{Name: "Kin of Another Folk", Cost: 9}, Reason: "The company cannot take Kin of Another Folk: evil"},
+		{WandererOffer: core.WandererOffer{Name: "Kin of Another Folk", Cost: 9}, Reason: "The company cannot take Kin of Another Folk: evil", Blocker: core.BlockedByRule},
 	}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory?company=1", nil))).Body.String()
 	for _, want := range []string{
 		`x-data="armory"`, `role="switch"`, `data-main-chip="wargear"`, `data-main-chip="wanderers"`, `data-sub-chip="mount"`,
 		`data-main="equipment" data-sub="other" data-avail="1"`, `data-main="wargear" data-sub="mount" data-avail="0"`, `data-main="wargear" data-sub="melee" data-avail="1"`,
@@ -1696,14 +1714,14 @@ func TestBuyingAndChoosingTheWeaponOfAWeaponModifier(t *testing.T) {
 	t.Run("buy with a weapon", func(t *testing.T) {
 		f := newFixture(t, Config{})
 		d, detail := mineDetail()
-		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 		f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
-		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 		f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-		f.camp.EXPECT().BuyEquipmentFor(gomock.Any(), frodo, int64(7), int64(5), "Envenom Weapon (X)", "", "Bow").Return(nil)
-		rec := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/equipment", url.Values{"item": {"Envenom Weapon (X)"}, "weapon": {"Bow"}})))
+		f.camp.EXPECT().BuyEquipmentFor(gomock.Any(), frodo, int64(7), int64(1), int64(5), "Envenom Weapon (X)", "", "Bow").Return(nil)
+		rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/equipment", url.Values{"item": {"Envenom Weapon (X)"}, "weapon": {"Bow"}})))
 		if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Bought Envenom Weapon (X).") {
 			t.Errorf("got %d", rec.Code)
 		}
@@ -1711,14 +1729,14 @@ func TestBuyingAndChoosingTheWeaponOfAWeaponModifier(t *testing.T) {
 	t.Run("choose a legacy item's weapon", func(t *testing.T) {
 		f := newFixture(t, Config{})
 		d, detail := mineDetail()
-		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 		f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
-		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 		f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-		f.camp.EXPECT().ChooseModifierWeapon(gomock.Any(), frodo, int64(7), int64(5), "Envenom Weapon (X)", "Bow").Return(nil)
-		rec := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/equipment/weapon", url.Values{"item": {"Envenom Weapon (X)"}, "weapon": {"Bow"}})))
+		f.camp.EXPECT().ChooseModifierWeapon(gomock.Any(), frodo, int64(7), int64(1), int64(5), "Envenom Weapon (X)", "Bow").Return(nil)
+		rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/equipment/weapon", url.Values{"item": {"Envenom Weapon (X)"}, "weapon": {"Bow"}})))
 		if rec.Code != 200 || !strings.Contains(rec.Body.String(), "applies to the Bow") {
 			t.Errorf("got %d", rec.Code)
 		}
@@ -1726,21 +1744,21 @@ func TestBuyingAndChoosingTheWeaponOfAWeaponModifier(t *testing.T) {
 	t.Run("the choice is final: a second choice and a purchase without a weapon are refused with the message", func(t *testing.T) {
 		f := newFixture(t, Config{})
 		d, detail := mineDetail()
-		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).Times(2)
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 		f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).Times(2)
-		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).Times(2)
-		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil).Times(2)
+		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).Times(2)
+		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).Times(2)
 		f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).Times(2)
-		f.camp.EXPECT().ChooseModifierWeapon(gomock.Any(), frodo, int64(7), int64(5), "Envenom Weapon (Bow)", "Spear").
+		f.camp.EXPECT().ChooseModifierWeapon(gomock.Any(), frodo, int64(7), int64(1), int64(5), "Envenom Weapon (Bow)", "Spear").
 			Return(core.Refuse("Envenom Weapon (Bow) already has its weapon (Bow): the choice is final."))
-		rec := f.do(f.signedIn(form("/campaigns/7/my-company/units/5/equipment/weapon", url.Values{"item": {"Envenom Weapon (Bow)"}, "weapon": {"Spear"}})))
+		rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/equipment/weapon", url.Values{"item": {"Envenom Weapon (Bow)"}, "weapon": {"Spear"}})))
 		if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "the choice is final") {
 			t.Errorf("second choice: %d", rec.Code)
 		}
-		f.camp.EXPECT().BuyEquipment(gomock.Any(), frodo, int64(7), int64(5), "Envenom Weapon (X)", gomock.Any()).
+		f.camp.EXPECT().BuyEquipment(gomock.Any(), frodo, int64(7), int64(1), int64(5), "Envenom Weapon (X)", gomock.Any()).
 			Return(core.Refuse("Envenom Weapon (X) needs the weapon it is for: choose one of Bow, Hand weapon."))
-		rec = f.do(f.signedIn(form("/campaigns/7/my-company/units/5/equipment", url.Values{"item": {"Envenom Weapon (X)"}})))
+		rec = f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/equipment", url.Values{"item": {"Envenom Weapon (X)"}})))
 		if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "choose one of Bow, Hand weapon") {
 			t.Errorf("no weapon: %d", rec.Code)
 		}
@@ -1749,13 +1767,13 @@ func TestBuyingAndChoosingTheWeaponOfAWeaponModifier(t *testing.T) {
 		f := newFixture(t, Config{})
 		d, detail := mineDetail()
 		detail.Roster[0].Equipment = []core.Equipment{{Name: "Envenom Weapon (Bow)", Class: core.EquipOther, Size: "small", Bought: true, Modifies: "Bow"}}
-		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 		f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
-		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 		f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-		body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+		body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 		if strings.Contains(body, `/units/5/equipment/weapon`) || strings.Contains(body, "Change weapon") || strings.Contains(body, "Choose weapon") {
 			t.Error("the choice is final: nothing to choose or change")
 		}
@@ -1767,13 +1785,13 @@ func TestBuyingAndChoosingTheWeaponOfAWeaponModifier(t *testing.T) {
 		f := newFixture(t, Config{})
 		d, detail := mineDetail()
 		detail.Roster[0].Equipment = []core.Equipment{{Name: "Envenom Weapon (X)", Class: core.EquipOther, Size: "small", Bought: true, Choices: []string{"Bow", "Hand weapon"}}}
-		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 		f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
-		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil)
-		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(nil, nil)
+		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 		f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
-		body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company", nil))).Body.String()
+		body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 		if !strings.Contains(body, `/units/5/equipment/weapon`) || !strings.Contains(body, `<option value="Hand weapon"`) || !strings.Contains(body, "Choose weapon") {
 			t.Error("the card lets the player choose the weapon")
 		}
@@ -1834,11 +1852,11 @@ func TestTheRecruitWindowPrintsTheAdjustmentFromTheRules(t *testing.T) {
 			detail.Recruit.Rules = core.RecruitRules{Adjust: tc.adjust, Sides: 6, Rendezvous: core.PerkRange{Low: -1, High: 1}}
 			f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 			f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
-			f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
-			f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7)).Return(nil, nil).AnyTimes()
+			f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+			f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 			f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
-			f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7)).Return(&core.RecruitRoll{Stage: "chart", Rolled: true, Roll: 3, Budget: tc.budget, BudgetDown: tc.down, Adjust: tc.adjust, Sides: 6}, nil)
-			rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/recruit", nil)))
+			f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(&core.RecruitRoll{Stage: "chart", Rolled: true, Roll: 3, Budget: tc.budget, BudgetDown: tc.down, Adjust: tc.adjust, Sides: 6}, nil)
+			rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/recruit", nil)))
 			body := rec.Body.String()
 			for _, w := range tc.want {
 				if !strings.Contains(body, w) {

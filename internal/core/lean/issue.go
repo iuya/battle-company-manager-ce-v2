@@ -20,10 +20,10 @@ func (s Severity) String() string {
 	return "error"
 }
 
-// MaxIssues is the safety cap of a Report (design plan 3.2): the rest is only counted.
+// MaxIssues is the safety cap of a Report: the rest is only counted.
 const MaxIssues = 1000
 
-// Issue is one problem of an uploaded file (design section 7).
+// Issue is one problem of an uploaded file.
 type Issue struct {
 	File     string // one of the three uploaded files, as the user knows it
 	Path     string // JSON path inside the file: companies[2].start.units[1].unit
@@ -33,7 +33,7 @@ type Issue struct {
 	Severity Severity
 }
 
-// String is the section 7 line: `<file>: <path>: <message>` (a warning starts with `warn: `), the closest match when the message
+// String is the report line: `<file>: <path>: <message>` (a warning starts with `warn: `), the closest match when the message
 // does not name it already, and the hint on a second line.
 func (i Issue) String() string {
 	var b strings.Builder
