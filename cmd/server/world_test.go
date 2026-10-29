@@ -110,6 +110,42 @@ func TestSeedWorld(t *testing.T) {
 		t.Errorf("the finished campaign is %q", s.Status)
 	}
 
+	// several companies per player: the cap is 3, Galadriel is at it, Éowyn below it, and the viewer's own companies are all listed
+	if bands, ok := byName["Two bands: several companies per player"]; !ok {
+		t.Error("the campaign with several companies per player is missing")
+	} else {
+		if set, err := b.campaigns.Settings(ctx, bands.ID); err != nil || set.CompanyCap() != 3 {
+			t.Errorf("Two bands allows %d companies per player (%v), want 3", set.CompanyCap(), err)
+		}
+		for key, want := range map[string]int{"galadriel@example.com": 3, "eowyn@example.com": 2, "gimli@example.com": 1, "sauron@example.com": 1} {
+			_, _, u, err := b.auth.Login(ctx, key, "demo-password")
+			if err != nil {
+				t.Fatal(err)
+			}
+			d, err := b.campaigns.Get(ctx, u.ID, bands.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(d.Companies) != want {
+				t.Errorf("%s has %d companies in Two bands, want %d", key, len(d.Companies), want)
+			}
+			if d.CanCreateCompany() != (want < 3) {
+				t.Errorf("%s: CanCreateCompany = %v with %d of 3", key, d.CanCreateCompany(), want)
+			}
+		}
+		matches, err := b.campaigns.Matches(ctx, bands.ID)
+		if err != nil || len(matches) != 2 {
+			t.Fatalf("Two bands has %d matches (%v), want 2", len(matches), err)
+		}
+		same := 0
+		for _, m := range matches {
+			same += len(core.SamePlayers(m.Sides))
+		}
+		if same != 1 {
+			t.Errorf("one match has two companies of one player, found %d", same)
+		}
+	}
+
 	// everything on: the Wood Elf Sentinels are warriors with experience; one rolled a 6 and is a hero on its own path
 	if all, ok := byName["Settings: everything on, own paths level up"]; !ok {
 		t.Error("the campaign with every setting on is missing")
