@@ -13,7 +13,15 @@ import (
 // before they change, as the rating of a match does).
 type readScope struct {
 	mu sync.Mutex
-	m  map[any]any
+	m  map[any]*scopeEntry
+}
+
+// scopeEntry is one remembered read; done closes when the load has finished, so a second caller that arrives while the first is still
+// reading (the cards of the match page are built side by side) waits for that answer instead of asking the database again.
+type scopeEntry struct {
+	done chan struct{}
+	val  any
+	err  error
 }
 
 type readScopeKey struct{}
@@ -23,27 +31,43 @@ func WithReadScope(ctx context.Context) context.Context {
 	if ctx.Value(readScopeKey{}) != nil {
 		return ctx
 	}
-	return context.WithValue(ctx, readScopeKey{}, &readScope{m: map[any]any{}})
+	return context.WithValue(ctx, readScopeKey{}, &readScope{m: map[any]*scopeEntry{}})
 }
 
-// scoped answers from the context's scope, or loads and remembers (only successful reads). Without a scope it just loads.
+// scoped answers from the context's scope, or loads and remembers (only successful reads: a failed one is forgotten, so the next caller
+// tries again). Callers of the same key that overlap in time share one load. Without a scope it just loads.
 func scoped[T any](ctx context.Context, key any, load func() (T, error)) (T, error) {
 	sc, _ := ctx.Value(readScopeKey{}).(*readScope)
 	if sc == nil {
 		return load()
 	}
 	sc.mu.Lock()
-	v, ok := sc.m[key]
+	e, ok := sc.m[key]
+	if !ok {
+		e = &scopeEntry{done: make(chan struct{})}
+		sc.m[key] = e
+	}
 	sc.mu.Unlock()
 	if ok {
-		return v.(T), nil
+		select {
+		case <-e.done:
+		case <-ctx.Done():
+			var zero T
+			return zero, ctx.Err()
+		}
+		if e.err == nil {
+			return e.val.(T), nil
+		}
+		return load() // the load this one waited for failed: try on its own
 	}
 	out, err := load()
-	if err == nil {
+	e.val, e.err = out, err
+	if err != nil {
 		sc.mu.Lock()
-		sc.m[key] = out
+		delete(sc.m, key)
 		sc.mu.Unlock()
 	}
+	close(e.done)
 	return out, err
 }
 
@@ -55,6 +79,8 @@ type (
 	campaignGetKey struct{ user, campaign int64 }
 	campaignCoKey  struct{ campaign, company int64 }
 	hashesKey      struct{ campaign int64 }
+	rosterKey      struct{ campaign int64 }
+	eventsKey      struct{ campaign, match int64 }
 )
 
 // ScopedMatches, ScopedCompanies, ScopedATO, ScopedLive and ScopedCampaigns wrap a repository so the reads of one request that
@@ -67,12 +93,22 @@ func (r ScopedMatches) Get(ctx context.Context, campaignID, matchID int64) (Matc
 	return scoped(ctx, matchGetKey{campaignID, matchID}, func() (Match, error) { return r.matchRepository.Get(ctx, campaignID, matchID) })
 }
 
+// Events is read once per request too (every complete() of the same match asks for it).
+func (r ScopedMatches) Events(ctx context.Context, campaignID, matchID int64) ([]MatchEvent, error) {
+	return scoped(ctx, eventsKey{campaignID, matchID}, func() ([]MatchEvent, error) { return r.matchRepository.Events(ctx, campaignID, matchID) })
+}
+
 type ScopedCompanies struct{ companyRepository }
 
 func ScopeCompanies(r companyRepository) ScopedCompanies { return ScopedCompanies{r} }
 
 func (r ScopedCompanies) Read(ctx context.Context, campaignID, companyID int64) (CompanyState, error) {
 	return scoped(ctx, companyReadKey{campaignID, companyID}, func() (CompanyState, error) { return r.companyRepository.Read(ctx, campaignID, companyID) })
+}
+
+// ReadRoster is read once per request as well: the figures of the campaign's companies are asked for by every card of a page.
+func (r ScopedCompanies) ReadRoster(ctx context.Context, campaignID int64) ([]CompanyState, error) {
+	return scoped(ctx, rosterKey{campaignID}, func() ([]CompanyState, error) { return r.companyRepository.ReadRoster(ctx, campaignID) })
 }
 
 type ScopedATO struct{ atoRepository }
