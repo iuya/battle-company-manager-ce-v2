@@ -2,8 +2,18 @@
 // Defence (d) in the browser; the chart is plain server-rendered HTML whose cells carry data-s, data-d, data-big, data-tier and data-meaning,
 // so nothing here needs the network and a live refresh cannot touch it. A button with data-to-wound-open asks the window to open (no inline
 // handler: the Content-Security-Policy would block it).
+//
+// The chart is fetched when it is first wanted, not on every page load: the pointer, a touch or the focus reaching a button that opens it
+// starts the request (it has arrived by the time the click lands), and the click itself starts it if nothing did.
+const wantToWound = e => {
+  if (!e.target.closest || !e.target.closest('[data-to-wound-open]')) return false;
+  const body = document.getElementById('tw-body');
+  if (body && !body.dataset.requested) { body.dataset.requested = '1'; htmx.trigger(body, 'tw-load'); }
+  return true;
+};
+for (const type of ['pointerover', 'focusin', 'touchstart']) document.addEventListener(type, wantToWound, { passive: true });
 document.addEventListener('click', e => {
-  if (e.target.closest('[data-to-wound-open]')) window.dispatchEvent(new Event('open-to-wound'));
+  if (wantToWound(e)) window.dispatchEvent(new Event('open-to-wound'));
 });
 
 document.addEventListener('alpine:init', () => {

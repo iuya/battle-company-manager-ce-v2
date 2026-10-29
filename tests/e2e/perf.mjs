@@ -164,6 +164,8 @@ async function main() {
         run: async (s) => { await s.click('main button', 'Level Up'); await s.page.waitForFunction((q) => [...document.querySelectorAll(q)].some((e) => e.getBoundingClientRect().width > 0), {}, MODAL); } },
       { name: 'click: overview to my company (htmx)', user: 'eowyn@example.com', prep: (s) => s.page.goto(`${env.base}/campaigns/${m}`, { waitUntil: 'load' }),
         run: async (s) => { await s.page.evaluate((h) => document.querySelector(`#sidebar a[href^="${h}"]`).click(), `/campaigns/${m}/my-company`); await s.page.waitForFunction((h) => location.pathname.startsWith(h), {}, `/campaigns/${m}/my-company`); } },
+      { name: 'click: overview to armoury (htmx)', user: 'eowyn@example.com', prep: (s) => s.page.goto(`${env.base}/campaigns/${m}`, { waitUntil: 'load' }),
+        run: async (s) => { await s.page.evaluate((h) => document.querySelector(`#sidebar a[href^="${h}"]`).click(), `/campaigns/${m}/armory`); await s.page.waitForFunction((h) => location.pathname.startsWith(h) && location.search.includes('company='), {}, `/campaigns/${m}/armory`); } },
       { name: 'click: home to campaign overview (htmx)', user: 'eowyn@example.com', prep: (s) => s.page.goto(`${env.base}/`, { waitUntil: 'load' }),
         run: async (s) => { await s.page.evaluate((h) => document.querySelector(`main a[href="${h}"]`).click(), `/campaigns/${m}`); await s.page.waitForFunction((h) => location.pathname === h, {}, `/campaigns/${m}`); } },
       { name: 'armoury', user: 'eowyn@example.com', run: (s) => s.page.goto(`${env.base}/campaigns/${m}/armory`, { waitUntil: 'load' }) },

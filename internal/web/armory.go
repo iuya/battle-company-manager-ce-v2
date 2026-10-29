@@ -25,6 +25,23 @@ type armoryView struct {
 	NoticeError bool
 }
 
+// HiddenByDefault is how many items and wanderers the armoury's switch hides before anyone touches it ("Hide what the company cannot
+// take" is on by default): the page is drawn that way before Alpine starts, so nothing moves when it does.
+func (v armoryView) HiddenByDefault() int {
+	n := 0
+	for _, e := range v.Entries {
+		if !e.Avail {
+			n++
+		}
+	}
+	for _, w := range v.Wanderers {
+		if !w.Avail {
+			n++
+		}
+	}
+	return n
+}
+
 // tipChip is a name on an armory card with the text of its tooltip (a special rule, an item, a heroic action); the text is empty
 // when no file explains the name.
 type tipChip struct {
@@ -214,7 +231,16 @@ func (s *Server) handleArmory(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if len(base.Campaign.Companies) > 0 {
-			http.Redirect(w, r, base.ArmoryPath(base.Campaign.Companies[0].ID), http.StatusSeeOther)
+			path := base.ArmoryPath(base.Campaign.Companies[0].ID)
+			if boostedLink(r) { // a click: answer with the armoury now instead of a redirect (see boostedLink)
+				target := r.Clone(r.Context())
+				target.URL.RawQuery = "company=" + itoa(int(base.Campaign.Companies[0].ID))
+				target.Form, target.PostForm = nil, nil
+				w.Header().Set("HX-Push-Url", path)
+				s.armoryPage(w, target, http.StatusOK, "", false)
+				return
+			}
+			http.Redirect(w, r, path, http.StatusSeeOther)
 			return
 		}
 	}

@@ -435,10 +435,24 @@ func (s *Server) handleMyCompanyAlias(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if id, ok := lastCompany(r, base.Campaign); ok { // the one opened last, else the oldest
+		if boostedLink(r) { // a click: answer with the company's page now, a redirect would cost the browser one more round trip
+			target := r.Clone(r.Context())
+			target.SetPathValue("company", itoa(int(id)))
+			w.Header().Set("HX-Push-Url", ownPath(base.Campaign.ID, id))
+			s.handleMyCompany(w, target)
+			return
+		}
 		http.Redirect(w, r, ownPath(base.Campaign.ID, id), http.StatusSeeOther)
 		return
 	}
 	s.render.page(w, r, http.StatusOK, "campaign_my_company", myCompanyView{campaignBase: base})
+}
+
+// boostedLink reports whether the request is a click on a boosted link or form (not the restore of a history entry). An address that
+// redirects can answer such a request with the page it leads to and name the final address in HX-Push-Url: the address bar and the
+// history get the same entry as after the redirect, without the extra round trip. A request for the whole page keeps the redirect.
+func boostedLink(r *http.Request) bool {
+	return r.Header.Get("HX-Boosted") == "true" && r.Header.Get("HX-History-Restore-Request") != "true"
 }
 
 // newMatchView feeds the new-match form (static/js/match_form.js): the campaign's companies to search in and the

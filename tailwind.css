@@ -205,6 +205,8 @@ html[data-mode="dark"] { color-scheme: dark; }
   main { overflow-wrap: anywhere; }
   @media (prefers-reduced-motion: reduce) { *, ::before, ::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
   [x-cloak] { display: none !important; }
+  /* The armoury hides what no unit can take unless the switch is off; until Alpine starts the page is drawn with that default (lists.js removes the mark). */
+  [data-armory-pending] [data-avail="0"] { display: none; }
 }
 
 /* ---- components ---- */
