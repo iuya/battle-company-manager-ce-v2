@@ -2544,7 +2544,7 @@
     },
     {
       "name": "Whirl of Attacks",
-      "definition": "When rolling a natural 6 for their Duel Roll, this Hero increases their Attacks by 1 for that Fight. This rule cannot be used if the enemy model is Trapped.",
+      "definition": "When rolling a natural 6 for their Duel Roll, this Hero rolls an additional attack when rolling to Wound. This rule cannot be used if the enemy model is Trapped.",
       "tag": "Active"
     },
     {
@@ -2553,7 +2553,7 @@
     },
     {
       "name": "I shall pass!",
-      "definition": "If this Hero wins their Duel Roll, after all models have Backed Away but before making Strikes, this Hero may make no Strikes and instead Move again up to half their Move Value. If they Charge an enemy, they fight as normal. This rule can only be used once per turn. (Inspired by the Barge Brutal Power attack.)",
+      "definition": "If this Hero wins their Duel Roll, after all models have Backed Away but before making Strikes, this Hero may make no Strikes and instead Move again up to half their Move Value. If they Charge an enemy, they fight as normal. This rule can only be used once per turn. (Inspired by the Barge Brutal Power attack, for unclarities check page 90 of the Rules Manual.)",
       "tag": "Active"
     },
     {
@@ -7476,6 +7476,7 @@
           "max": 2
         }
       },
+      "note": "The caps on rows 7 and 10 (5 Heroic Actions, 2 Minor Special Rules) are this project's own balancing choice; the homebrew document sets none. Lead by Example (Their Own Making) is tagged Active as a project choice, so that it works like the vanilla rule it is inspired by; the document leaves it untagged.",
       "rows": [
         {
           "roll": 2,
