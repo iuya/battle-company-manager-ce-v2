@@ -199,7 +199,7 @@ func BenchmarkPages(b *testing.B) {
 			counter.mu.Unlock()
 			sort.Slice(all, func(i, j int) bool { return all[i].n > all[j].n })
 			for _, e := range all {
-				fmt.Fprintf(os.Stderr, "%s\t%3d x %.150s\n", p.name, e.n, e.s)
+				fmt.Fprintf(os.Stderr, "%s\t%3d x %s\n", p.name, e.n, abbreviate(e.s))
 			}
 		}
 		b.Run(p.name, func(b *testing.B) {
@@ -214,4 +214,12 @@ func BenchmarkPages(b *testing.B) {
 			b.ReportMetric(float64(size)/1024, "KB")
 		})
 	}
+}
+
+// abbreviate shows the start and the end of a statement: the starts of several statements are alike, the WHERE clauses tell them apart.
+func abbreviate(s string) string {
+	if len(s) <= 170 {
+		return s
+	}
+	return s[:70] + " ... " + s[len(s)-95:]
 }
