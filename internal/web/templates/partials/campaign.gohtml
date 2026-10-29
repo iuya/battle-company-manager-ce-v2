@@ -51,6 +51,9 @@
 {{/* "Scenario: X" or "One-off: X" under the sides of a match; nothing when none is chosen. */}}
 {{define "match_scenario"}}{{with .Scenario}}<span class="block text-sm text-muted break-words">{{if eq .Kind "custom"}}One-off{{else}}Scenario{{end}}: {{.Name}}</span>{{end}}{{end}}
 
+{{/* The Practice badge: neutral tone, icon plus text, never a result colour. Used wherever a practice match appears (docs/frontend.md). */}}
+{{define "practice_badge"}}<span class="badge badge-muted gap-1" data-practice-badge title="No experience, influence, rewards or injuries"><svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>Practice</span>{{end}}
+
 {{define "match_result"}}
 {{if not .Ended}}<span class="badge badge-muted">Open</span>
 {{else if eq .Winner 0}}<span class="badge badge-muted tone-draw">Draw</span>

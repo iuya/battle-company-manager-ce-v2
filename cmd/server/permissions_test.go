@@ -180,7 +180,7 @@ var permActions = []permAction{
 
 	// -- matches
 	{name: "CreateMatch", fixture: permIdle, run: func(f *permFx, a core.User) error {
-		_, err := f.c().CreateMatch(f.ctx, a, f.camp.id, []core.NewSide{{Name: "A", Companies: []int64{f.a.id}}, {Name: "B", Companies: []int64{f.b.id}}})
+		_, err := f.c().CreateMatch(f.ctx, a, f.camp.id, core.NewMatch{Sides: []core.NewSide{{Name: "A", Companies: []int64{f.a.id}}, {Name: "B", Companies: []int64{f.b.id}}}})
 		return err
 	}, allow: [3]permRole{members, 0, 0}, stateMsg: [3]string{"", msgPaused, msgFinished}},
 	{name: "SetScenario", fixture: permOpen, run: func(f *permFx, a core.User) error {

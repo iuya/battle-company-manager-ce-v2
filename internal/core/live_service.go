@@ -637,6 +637,8 @@ type EndChecks struct {
 	Pending   []string            // what the End match reminder lists
 	// ObjectiveXP and MVPXP are what each of the two checks is worth in experience (experience.gains amounts), printed on the card.
 	ObjectiveXP, MVPXP int
+	// Practice: the match is a practice match, nothing is awarded for either check.
+	Practice bool
 }
 
 // CompanyObjectives lists the units of a company that may get the objective (in the Field or Retreated).
@@ -708,7 +710,7 @@ func (s *LiveService) EndChecks(ctx context.Context, user User, id, matchID int6
 		cu := titles[u.UnitID]
 		return EndCheckUnit{UnitID: u.UnitID, Title: cu.Title(), Type: cu.Type, Zone: u.Zone, Wounds: u.Wounds, Has: st.HasObjective(u.UnitID)}
 	}
-	var out EndChecks
+	out := EndChecks{Practice: lc.match.Practice}
 	if lc.rules != nil {
 		out.ObjectiveXP, out.MVPXP = lc.rules.BC.ExperienceGain(GainObjective), lc.rules.BC.ExperienceGain(GainMVP)
 	}

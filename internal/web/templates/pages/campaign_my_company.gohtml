@@ -204,7 +204,8 @@
 {{/* The banner of a company in a running match. Takes {LV, CID}. The dot is driven by the sync script (static/js/live.js). */}}
 {{define "live_banner"}}{{$cid := .CID}}{{$co := .CO}}{{with .LV}}
 <div id="live-banner" data-match="{{.MatchID}}" class="alert alert-info sticky top-[3.75rem] z-10 mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 !py-2" role="status">
-  <span class="min-w-0 font-medium"><a class="underline" href="/campaigns/{{$cid}}/matches/{{.MatchID}}">Match {{.MatchNumber}}</a> is running{{with .Scenario}} <span class="font-normal text-muted">· {{.}}</span>{{end}}</span>
+  <span class="min-w-0 font-medium"><a class="underline" href="/campaigns/{{$cid}}/matches/{{.MatchID}}">Match {{.MatchNumber}}</a> is running{{with .Scenario}} <span class="font-normal text-muted">· {{.}}</span>{{end}}{{if .Practice}} {{template "practice_badge"}}{{end}}</span>
+  {{if .Practice}}<span class="basis-full text-sm" data-practice-banner>Practice match: no experience, influence, rewards or injuries. No aftermath will follow.</span>{{end}}
   <span id="live-dot" class="inline-flex items-center gap-1.5 text-xs text-muted" data-state="off"><span class="live-dot" aria-hidden="true"></span><span id="live-dot-text">Live</span></span>
   <span class="ml-auto flex flex-wrap gap-2">
   {{template "to_wound_button" (dict "Class" "!min-h-9")}}
