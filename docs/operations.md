@@ -58,7 +58,7 @@ Without compose: `docker pull ghcr.io/iuya/battle-company-manager-ce-v2:1.1.0`. 
 
 **Release.** `.github/workflows/release-image.yml` runs when a tag `v*` is pushed (`git tag v1.1.0 && git push origin v1.1.0`). Jobs, in order:
 `e2e` (the browser tests of `e2e.yml`, called as a reusable workflow: four parallel groups and a final `e2e` job; any failing group stops the release), then `build`, a matrix of two jobs on native runners
-(no QEMU): `linux/amd64` on `ubuntu-latest` and `linux/arm64` on `ubuntu-24.04-arm` (free for public repositories). Each builds its image into its runner, smoke-tests it (starts it read-only against a PostgreSQL service
+(no QEMU): `linux/amd64` on `ubuntu-26.04` and `linux/arm64` on `ubuntu-26.04-arm` (free for public repositories). Each builds its image into its runner, smoke-tests it (starts it read-only against a PostgreSQL service
 container, `/readyz`, `/healthz`, the login page, the built-in healthcheck, the architecture), and only then pushes it by digest (no tag) with the `GITHUB_TOKEN` (permissions: contents read, packages write) and uploads the
 digest as an artifact. The `merge` job (tags only) downloads both digests and creates the multi-platform manifest with the tags of the table above (`docker buildx imagetools create`), then inspects it. The build cache (gha) is kept per platform. Running the workflow by hand from the Actions tab is a dry run: the browser tests and both builds with their smoke tests, no login, no push, and `merge` is skipped.
 
