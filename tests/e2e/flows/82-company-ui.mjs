@@ -43,6 +43,53 @@ export default async function (h) {
     await layout(galadriel, 1280, 'light');
   });
 
+  await h.step('unit rename: the pencil opens a focused field across the plate; Enter saves, Escape gives up, a click elsewhere saves, empty is the type', async () => {
+    const cid = await campaignId(galadriel, 'Aftermath ward 1');
+    await galadriel.goto(`/campaigns/${cid}/my-company`);
+    const p = galadriel.page;
+    const id = await p.$eval('main article.unit', (e) => e.id.replace('unit-', ''));
+    const card = `#unit-${id}`, field = `#rename-${id}`;
+    const { original, type } = await p.$eval(field, (e) => ({ original: e.defaultValue, type: e.placeholder }));
+    const title = () => p.$eval(`${card} h3`, (e) => e.innerText.trim());
+    const open = async () => { await p.click(`${card} .unit-rename-btn`); await galadriel.settle(100); };
+    const focused = () => p.evaluate((f) => document.activeElement === document.querySelector(f), field);
+
+    const icon = await p.$eval(`${card} .unit-head > .kind-icon`, (e) => { const r = e.getBoundingClientRect(); return [r.width, r.height]; });
+    assert.deepEqual(icon, [48, 48], 'the kind icon of the title plate is a 3 rem tile');
+
+    await open();
+    assert.ok(await focused(), 'the pencil puts the cursor in the field');
+    const widths = await p.$eval(card, (c, f) => [document.querySelector(f).getBoundingClientRect().width, c.getBoundingClientRect().width], field);
+    assert.ok(widths[0] >= widths[1] * 0.6, `the field takes most of the card: ${widths}`);
+    for (const scheme of ['light', 'dark']) for (const w of SIZES) {
+      await layout(galadriel, w, scheme);
+      assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no horizontal scroll while renaming at ${w}px ${scheme}`);
+      await p.$eval(card, (e) => e.scrollIntoView({ block: 'center' }));
+      await p.screenshot({ path: `out/unit-rename-${w}-${scheme}.png` });
+    }
+    await layout(galadriel, 1280, 'light');
+    await p.keyboard.type('E2E Hirgon');
+    await p.keyboard.press('Enter');
+    await galadriel.settle();
+    assert.match(await title(), /^E2E Hirgon/, 'Enter saves the name');
+
+    await open();
+    await p.keyboard.type('given up');
+    await p.keyboard.press('Escape');
+    await galadriel.settle(100);
+    assert.match(await title(), /^E2E Hirgon/, 'Escape keeps the saved name');
+    await open();
+    assert.equal(await p.$eval(field, (e) => e.value), 'E2E Hirgon', 'the field opens on the saved name, not on what was given up');
+
+    // Cleared and left with a click elsewhere: saved, and the unit is called by its type (then the seeded name comes back).
+    await p.keyboard.press('Backspace');
+    const away = await p.$eval('main h1', (e) => { e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return [r.left + 4, r.top + r.height / 2]; });
+    await p.mouse.click(away[0], away[1]);
+    await galadriel.settle();
+    assert.ok((await title()).startsWith(type), 'an empty name, saved by a click elsewhere, is the unit type');
+    if (original) { await open(); await p.keyboard.type(original); await p.keyboard.press('Enter'); await galadriel.settle(); }
+  });
+
   await h.step('buy window: Find an item filters by name and by alias and says "No item matches your search."', async () => {
     const eowyn = await h.session('eowyn@example.com');
     const cid = await campaignId(eowyn, 'Limits, creatures');

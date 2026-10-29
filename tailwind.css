@@ -297,7 +297,7 @@ html[data-mode="dark"] { color-scheme: dark; }
   .insignia-hero { color: var(--hero); }
   /* The title plate across the top of a unit card, tinted by the same place (a warrior's is plain) or by danger while the
      unit is injured. Under a promotion banner it loses its rounded top. */
-  .unit-head { margin: -1rem -1rem 0; padding: .5rem 2rem .5rem 1rem; border-bottom: 1px solid var(--line); border-radius: calc(.75rem - 1px) calc(.75rem - 1px) 0 0; background: color-mix(in srgb, var(--raised) 55%, var(--surface)); }
+  .unit-head { margin: -1rem -1rem 0; padding: .5rem 2rem .5rem .5rem; border-bottom: 1px solid var(--line); border-radius: calc(.75rem - 1px) calc(.75rem - 1px) 0 0; background: color-mix(in srgb, var(--raised) 55%, var(--surface)); }
   .unit-leader > .unit-head, .unit-sergeant > .unit-head, .unit-hero > .unit-head { border-radius: calc(.75rem - 2px) calc(.75rem - 2px) 0 0; }
   .unit-leader > .unit-head { background: var(--leader-soft); border-bottom-color: var(--gold); }
   .unit-sergeant > .unit-head { background: var(--sergeant-soft); border-bottom-color: var(--sergeant); }
@@ -305,6 +305,16 @@ html[data-mode="dark"] { color-scheme: dark; }
   .unit-injured > .unit-head { background: var(--danger-soft); border-bottom-color: var(--danger); }
   .unit-fallen > .unit-head { background: transparent; border-bottom-color: var(--line); }
   .promo + .unit-head { margin-top: -.75rem; border-radius: 0; }
+  /* A unit's kind (the kind_icon template): a glyph on a small tile. On a card's title plate it fills a bigger fixed tile with
+     almost no inset, centred on the plate: a name over two lines makes the plate taller, never the icon. */
+  .kind-icon { height: 2.25rem; width: 2.25rem; }
+  .kind-icon > svg { height: 1.5rem; width: 1.5rem; }
+  .unit-head > .kind-icon { height: 3rem; width: 3rem; padding: .125rem; align-self: center; }
+  .unit-head > .kind-icon > svg { height: 100%; width: 100%; }
+  /* The pencil after a unit's name: small and in the text flow, so the plate does not grow; a bigger touch area on phones. */
+  .unit-rename-btn { position: relative; display: inline-flex; height: 1.25rem; width: 1.25rem; vertical-align: .1em; margin-left: .25rem; align-items: center; justify-content: center; border-radius: .375rem; color: var(--muted); opacity: .7; }
+  .unit-rename-btn:hover, .unit-rename-btn:focus-visible { color: var(--fg); background: var(--accent-soft); opacity: 1; }
+  @media (pointer: coarse) { .unit-rename-btn::after { content: ""; position: absolute; inset: -.75rem; } }
   /* A profile as on a datasheet: the names on a strip above the values. Might, Will and Fate are a second, accent-framed one
      with the strip in the soft accent. */
   .statline { @apply grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center; }

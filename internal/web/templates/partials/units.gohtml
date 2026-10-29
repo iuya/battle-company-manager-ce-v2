@@ -11,8 +11,8 @@
    (cavalry), a wolf head (beast), an orc head (monster) and a dragon head (monstrous cavalry). Takes a core.UnitKind. The
    earlier icons are in static/img/archive. */}}
 {{define "kind_icon"}}
-<span class="kind-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-raised text-fg" title="{{.Label}}" role="img" aria-label="{{.Label}}">
-  {{template "gi_icon" (dict "N" (or (index (dict "cavalry" "cavalry" "beast" "wolf-head" "monster" "orc-head" "monstrous_cavalry" "dragon-head") (printf "%s" .)) "swordwoman") "C" "h-6 w-6")}}
+<span class="kind-icon flex shrink-0 items-center justify-center rounded-lg bg-raised text-fg" title="{{.Label}}" role="img" aria-label="{{.Label}}">
+  {{template "gi_icon" (dict "N" (or (index (dict "cavalry" "cavalry" "beast" "wolf-head" "monster" "orc-head" "monstrous_cavalry" "dragon-head") (printf "%s" .)) "swordwoman") "C" "")}}
 </span>
 {{end}}
 
@@ -169,21 +169,25 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   {{end}}
 
   {{/* The title plate: what the unit is and its place in the company, tinted by that place. */}}
-  <header class="unit-head flex items-start gap-3 [&_.kind-icon]:bg-surface">
+  <header class="unit-head flex items-start gap-2 [&_.kind-icon]:bg-surface">
     {{template "kind_icon" $u.Kind}}
-    <div class="min-w-0 flex-1">
+    <div class="min-w-0 flex-1" {{if not $rn}}:class="editing === {{$u.ID}} && 'hidden'"{{end}}>
       <h3 class="flex items-center gap-1.5 !text-xl leading-tight">{{template "role_insignia" $u.Role}}
-        <span class="min-w-0" x-show="editing !== {{$u.ID}}" {{if not $rn}}@dblclick="editName({{$u.ID}})" title="Double-click to rename"{{end}}>{{$u.Title}}</span>
-        {{if not $rn}}<button type="button" class="btn btn-ghost !min-h-7 !px-1.5 text-muted" x-show="expanded === {{$u.ID}} && editing !== {{$u.ID}}" x-cloak @click.stop="editName({{$u.ID}})" aria-label="Rename {{$u.Title}}" title="Rename"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg></button>
-        <form class="flex min-w-0 flex-1 items-center gap-1" x-show="editing === {{$u.ID}}" x-cloak method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/rename" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/rename" hx-target="#main" hx-swap="innerHTML">
-          <input id="rename-{{$u.ID}}" name="name" value="{{$u.Name}}" maxlength="40" placeholder="{{$u.Type}}" aria-label="Name of {{$u.Type}}" class="input !min-h-8 min-w-0 flex-1 !py-0.5 !text-base" @keydown.escape.stop.prevent="editing = null">
-          <button class="btn btn-primary !min-h-8 !px-2 !text-xs">Save</button>
-          <button type="button" class="btn btn-ghost !min-h-8 !px-2 !text-xs" @click="editing = null">Cancel</button>
-        </form>{{end}}
+        <span class="min-w-0"><span {{if not $rn}}@dblclick="editName({{$u.ID}})"{{end}}>{{$u.Title}}</span>{{if not $rn}}<button type="button" class="unit-rename-btn" @click.stop="editName({{$u.ID}})" aria-label="Rename {{$u.Title}}" title="Rename"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg></button>{{end}}</span>
       </h3>
       {{if $u.Name}}<p class="mt-0.5 text-sm text-muted">{{$u.Type}}</p>{{end}}
     </div>
-    <span class="shrink-0 text-sm font-semibold">{{$u.Points}} <span class="font-normal text-muted">pts</span></span>
+    <span class="shrink-0 text-sm font-semibold" {{if not $rn}}:class="editing === {{$u.ID}} && 'hidden'"{{end}}>{{$u.Points}} <span class="font-normal text-muted">pts</span></span>
+    {{/* Renaming takes the plate beside the icon, the field across all of it: Enter or Save keeps the name, Escape or Cancel
+       gives up, a click elsewhere saves a change. A :class, not x-show, so the field is there to focus at once. */}}
+    {{if not $rn}}<form class="min-w-0 flex-1" :class="editing === {{$u.ID}} ? '' : 'hidden'" x-cloak @click.outside="leaveName($el)" method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/rename" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/rename" hx-target="#main" hx-swap="innerHTML">
+      <input id="rename-{{$u.ID}}" name="name" value="{{$u.Name}}" maxlength="40" placeholder="{{$u.Type}}" autocomplete="off" aria-label="Name of this {{$u.Type}}" aria-describedby="rename-hint-{{$u.ID}}" class="input !min-h-10 w-full !py-1 font-heading !text-lg font-bold sm:!min-h-9" @keydown.escape.stop.prevent="editing = null">
+      <p id="rename-hint-{{$u.ID}}" class="sr-only">Left empty, it is called {{$u.Type}}.</p>
+      <div class="mt-1.5 flex items-center justify-end gap-1.5">
+        <button type="button" class="btn btn-ghost !min-h-10 shrink-0 !px-2.5 !text-sm !text-fg sm:!min-h-8" @click="editing = null" title="Esc">Cancel</button>
+        <button class="btn btn-primary !min-h-10 shrink-0 !px-3 !text-sm sm:!min-h-8" title="Enter">Save</button>
+      </div>
+    </form>{{end}}
   </header>
 
   <div class="min-w-0">
@@ -373,7 +377,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </span>
 </div>
 <article class="card unit unit-fallen flex flex-col gap-3 !p-4">
-  <header class="unit-head flex items-start gap-3 [&_.kind-icon]:bg-surface">
+  <header class="unit-head flex items-start gap-2 [&_.kind-icon]:bg-surface">
     {{template "kind_icon" $u.Kind}}
     <div class="min-w-0 flex-1"><h3 class="flex items-center gap-1.5 !text-xl leading-tight">{{template "role_insignia" $u.Role}}{{$u.Title}}</h3>{{if $u.Name}}<p class="text-sm text-muted">{{$u.Type}}</p>{{end}}</div>
     <span class="shrink-0 text-sm font-semibold">{{$u.Points}} <span class="font-normal text-muted">pts</span></span>

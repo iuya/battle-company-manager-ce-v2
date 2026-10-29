@@ -331,12 +331,14 @@ A card, top to bottom:
 - **Frame and insignia** for the unit's place, with no text tag, each in its own colour in every palette (the rank tokens):
   leader gold and doubled with three rank chevrons, sergeant green and doubled with two, other heroes solid blue with
   one, regular units thin. The shape of the insignia tells them apart without colour.
-- **Title plate** (`.unit-head`) across the top: kind icon, insignia and name, and the points; tinted by the same place
-  (`leader-soft`, `sergeant-soft`, `hero-soft`, a warrior's plain) and by `danger-soft` while the unit is injured (its frame
-  turns danger too). Keywords, injuries and the live badges follow under it.
-- **Kind icon** (top left), a filled game-icons.net icon (CC BY 3.0, credited in `static/img/CREDITS.md`): a swordwoman for
+- **Title plate** (`.unit-head`) across the top: kind icon, insignia, name with the rename pencil (see "Renaming units"), and
+  the points; tinted by the same place (`leader-soft`, `sergeant-soft`, `hero-soft`, a warrior's plain) and by `danger-soft`
+  while the unit is injured (its frame turns danger too). Keywords, injuries and the live badges follow under it.
+- **Kind icon** (left of the plate), a filled game-icons.net icon (CC BY 3.0, credited in `static/img/CREDITS.md`): a swordwoman for
   infantry, a cavalry charge for cavalry, a wolf head for beasts, an orc head for monsters and a dragon head for monstrous
-  cavalry (`core.KindOf` from the vanilla unit types). The equipment and item icons are
+  cavalry (`core.KindOf` from the vanilla unit types). On the plate it is a fixed 3 rem tile with the glyph almost to its edges,
+  centred: a name that wraps makes the plate taller, never the icon (`.kind-icon`, 2.25 rem elsewhere, and
+  `.unit-head > .kind-icon` in `tailwind.css`). The equipment and item icons are
   game-icons.net icons too (the lance is a mounted knight), except the horn of instruments (SVG Repo, CC0) and our own
   stroke icons for an unknown class or item. Barding is Lorc's armoured horse head, apart from the mount's plainer one. Some items get their own icon by name (`core.IconFor`)
   instead of their class's: wargs, camels and goats, the armoured horse (the barding head), hand-and-a-half weapons,
@@ -692,9 +694,13 @@ Shire).
 
 ### Renaming units
 
-A unit is renamed by double-clicking its name, or with the pencil next to the name on the expanded card (the collapsed card shows no
-extra button, so nothing moves). The name is at most 40 characters; an empty name takes the unit back to its type. Rules that aim at a
-unit use its id, so they follow the new name (`campaigns.RenameUnit`).
+A unit is renamed with the small pencil after its name (in the text flow, so the title plate does not grow; a bigger touch area on
+phones), or by double-clicking the name. The field then takes the plate beside the kind icon, with Cancel and Save under it: Enter
+saves, Escape gives up, and a click elsewhere saves a change (or just closes when nothing changed). It always opens on the saved name.
+The field's placeholder is the unit's type: the name is at most 40 characters and an empty one takes the unit back to its type. Rules
+that aim at a unit use its id, so they follow the new name (`campaigns.RenameUnit`). The form is shown with a `:class`, not
+`x-show`: Alpine shows an element with a `@click.outside` one frame late, which would leave nothing to focus. The browser
+flow `82-company-ui` covers it.
 
 ### Copy as a Tabletop Simulator army list
 
