@@ -30,7 +30,7 @@ func (w *world) finishingTouches() {
 	for i := len(d.Cemetery) - 1; i >= 0; i-- {
 		order = append(order, d.Cemetery[i].Unit.ID)
 	}
-	w.try("order the cemetery", w.c().SaveCemeteryOrder(w.ctx, co.user, c.id, order))
+	w.try("order the cemetery", w.c().SaveCemeteryOrder(w.ctx, co.user, c.id, co.id, order))
 	w.show(co)
 
 	// the Shire whose Ranger of the North was slain: the next reinforcement may swap its result for a new one (Ranger replacement)

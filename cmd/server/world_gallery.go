@@ -119,7 +119,7 @@ func (w *world) buyKind(co *wco, u core.CompanyUnit, n int, sized bool) {
 		if it.PayGold {
 			how = "gold"
 		}
-		if err := w.c().BuyEquipment(w.ctx, co.user, co.camp.id, u.ID, it.Name, how); err == nil {
+		if err := w.c().BuyEquipment(w.ctx, co.user, co.camp.id, co.id, u.ID, it.Name, how); err == nil {
 			n--
 		}
 	}
@@ -153,7 +153,7 @@ func (w *world) galleryCampaign() {
 		w.grant(co, 30, 45)
 		w.grant(co, 0, 30)
 		for unit := range cost[p.Name] {
-			_, err := w.c().RecruitSpecial(w.ctx, co.user, c.id, unit)
+			_, err := w.c().RecruitSpecial(w.ctx, co.user, c.id, co.id, unit)
 			w.try(p.Name+" buys a "+unit, err)
 			w.finishChoice(co)
 		}
@@ -168,7 +168,7 @@ func (w *world) galleryCampaign() {
 // finishChoice answers a pending choice of options with the base profile.
 func (w *world) finishChoice(co *wco) {
 	for i := 0; i < 4; i++ {
-		ch, err := w.c().PendingChoice(w.ctx, co.user, co.camp.id)
+		ch, err := w.c().PendingChoice(w.ctx, co.user, co.camp.id, co.id)
 		if err != nil || ch == nil {
 			return
 		}
@@ -176,7 +176,7 @@ func (w *world) finishChoice(co *wco) {
 		if len(ch.Options) > 0 {
 			opt = ch.Options[0].Name
 		}
-		if _, err := w.c().ChooseOptions(w.ctx, co.user, co.camp.id, opt); err != nil {
+		if _, err := w.c().ChooseOptions(w.ctx, co.user, co.camp.id, co.id, opt); err != nil {
 			return
 		}
 	}

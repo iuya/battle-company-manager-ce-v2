@@ -326,16 +326,16 @@ func (sh shop) uniqueReason(u CompanyUnit, o GearOffer) string {
 
 // BuyEquipment buys an item for a unit of the user's company with its influence (pay "") or Gold (pay "gold"). What the rules
 // do not allow is an error wrapping ErrRefused with the reason; an item the unit's rules never offer is ErrNotFound.
-func (a *ArmouryService) BuyEquipment(ctx context.Context, user User, campaignID, unitID int64, item, how string) error {
-	return a.BuyEquipmentFor(ctx, user, campaignID, unitID, item, how, "")
+func (a *ArmouryService) BuyEquipment(ctx context.Context, user User, campaignID, companyID, unitID int64, item, how string) error {
+	return a.BuyEquipmentFor(ctx, user, campaignID, companyID, unitID, item, how, "")
 }
 
 // BuyEquipmentFor is BuyEquipment for an item that is a modifier of one weapon (Envenom Weapon): weapon is the weapon of the unit the
 // player chose for it (one of its PoisonableWeapons, in any spelling the item is known by). A weapon modifier is never bought without
 // its weapon (the unit gains the rule only for a weapon chosen from the unit's own, and the choice is final), and a weapon for an item
 // that takes none is refused.
-func (a *ArmouryService) BuyEquipmentFor(ctx context.Context, user User, campaignID, unitID int64, item, how, weapon string) error {
-	id, err := a.myCompanyToChange(ctx, user, campaignID)
+func (a *ArmouryService) BuyEquipmentFor(ctx context.Context, user User, campaignID, companyID, unitID int64, item, how, weapon string) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -413,8 +413,8 @@ func pickWeapon(choices []string, weapon, unit, modifier string) (string, error)
 // is for; weapon is one of the item's Choices. The choice is FINAL: a modifier that has its weapon is refused. The unit gains Poisoned
 // Attacks (<weapon>); the weapon stays the plain item. A locked company, an unknown unit or item and a weapon the unit cannot give the
 // rule to are refused.
-func (a *ArmouryService) ChooseModifierWeapon(ctx context.Context, user User, campaignID, unitID int64, modifier, weapon string) error {
-	id, err := a.myCompanyToChange(ctx, user, campaignID)
+func (a *ArmouryService) ChooseModifierWeapon(ctx context.Context, user User, campaignID, companyID, unitID int64, modifier, weapon string) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -465,8 +465,8 @@ func (a *ArmouryService) ChooseModifierWeapon(ctx context.Context, user User, ca
 // DropEquipment makes a unit drop an item it carries, if the Battle Companies rules allow it (DropReason): the item is gone
 // for good, nothing is refunded, its rating leaves the unit's points, and it stops counting against slots and limits, which
 // can make room for another unit to buy a limited item.
-func (a *ArmouryService) DropEquipment(ctx context.Context, user User, campaignID, unitID int64, item string) error {
-	id, err := a.myCompanyToChange(ctx, user, campaignID)
+func (a *ArmouryService) DropEquipment(ctx context.Context, user User, campaignID, companyID, unitID int64, item string) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -543,8 +543,8 @@ func (sh shop) creatures() []ArmouryCreature {
 }
 
 // BuyCreature buys a creature for an officer (the leader or a sergeant) of the user's company.
-func (a *ArmouryService) BuyCreature(ctx context.Context, user User, campaignID, ownerID int64, name, how string) error {
-	id, err := a.myCompanyToChange(ctx, user, campaignID)
+func (a *ArmouryService) BuyCreature(ctx context.Context, user User, campaignID, companyID, ownerID int64, name, how string) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -617,8 +617,8 @@ func (sh shop) wanderers() []ArmouryWanderer {
 }
 
 // HireWanderer hires a wanderer for the user's company: it joins as a hero and counts towards the unit limit.
-func (a *ArmouryService) HireWanderer(ctx context.Context, user User, campaignID int64, name, how string) error {
-	id, err := a.myCompanyToChange(ctx, user, campaignID)
+func (a *ArmouryService) HireWanderer(ctx context.Context, user User, campaignID, companyID int64, name, how string) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -647,8 +647,8 @@ func (a *ArmouryService) HireWanderer(ctx context.Context, user User, campaignID
 }
 
 // DismissWanderer sends a wanderer of the user's company away; the influence is not returned.
-func (a *ArmouryService) DismissWanderer(ctx context.Context, user User, campaignID, unitID int64) error {
-	id, err := a.myCompanyToChange(ctx, user, campaignID)
+func (a *ArmouryService) DismissWanderer(ctx context.Context, user User, campaignID, companyID, unitID int64) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -668,8 +668,8 @@ func (a *ArmouryService) DismissWanderer(ctx context.Context, user User, campaig
 // Carry stores gear of a unit with the Baggage Pony, takes it back out or swaps it, free of charge. What a unit gets must be
 // something it could buy (its wargear, slots and the company limits), mounts cannot be carried, and the pack holds a limited
 // number of pieces. Only gear that could be dropped can be stored.
-func (a *ArmouryService) Carry(ctx context.Context, user User, campaignID, unitID int64, act CarryAction) error {
-	id, err := a.myCompanyToChange(ctx, user, campaignID)
+func (a *ArmouryService) Carry(ctx context.Context, user User, campaignID, companyID, unitID int64, act CarryAction) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}

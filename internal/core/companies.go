@@ -43,8 +43,9 @@ func (s *CompanyService) CompanyProfiles(ctx context.Context, campaignID int64) 
 }
 
 // CreateCompany makes the user's company in the campaign: the starting units of the chosen company with the leader and the two
-// sergeants the player picked (the company's suggestion when none), its Gold and no influence. ErrHasCompany when the user has
-// one already; an error wrapping ErrInvalidCompany for a bad name, an unknown company or a bad choice of officers; ErrNotFound
+// sergeants the player picked (the company's suggestion when none), its Gold and no influence. ErrCompanyLimit when the user owns
+// as many companies as the campaign allows (CampaignSettings.CompanyCap), an ErrInvalidCompany when another company of theirs has
+// the name (case ignored); an error wrapping ErrInvalidCompany for a bad name, an unknown company or a bad choice of officers; ErrNotFound
 // when the user is not in the campaign.
 func (s *CompanyService) CreateCompany(ctx context.Context, user User, campaignID int64, in CompanyInput) (CampaignCompany, error) {
 	in, err := in.Validate()
@@ -58,8 +59,11 @@ func (s *CompanyService) CreateCompany(ctx context.Context, user User, campaignI
 	if err := camp.CanPlay(); err != nil {
 		return CampaignCompany{}, err
 	}
-	if camp.Company != nil {
-		return CampaignCompany{}, ErrHasCompany
+	if len(camp.Companies) >= camp.Settings.CompanyCap() { // the repository checks again, atomically
+		return CampaignCompany{}, ErrCompanyLimit
+	}
+	if slices.ContainsFunc(camp.Companies, func(c CampaignCompany) bool { return strings.EqualFold(c.Name, in.Name) }) {
+		return CampaignCompany{}, ErrCompanyNameTaken
 	}
 	rs, _, err := s.ruleset(ctx, campaignID)
 	if err != nil {
@@ -77,7 +81,7 @@ func (s *CompanyService) CreateCompany(ctx context.Context, user User, campaignI
 	for i := range units {
 		units[i].ID = 0 // the repository numbers the units
 	}
-	co, err := s.companies.Create(ctx, campaignID, user, NewCompany{Name: in.Name, Faction: profile.Name, Influence: rs.BC.Recruiting().StartingInfluence, Gold: profile.StartGold, Units: units})
+	co, err := s.companies.Create(ctx, campaignID, user, NewCompany{Name: in.Name, Faction: profile.Name, Influence: rs.BC.Recruiting().StartingInfluence, Gold: profile.StartGold, Units: units, Cap: camp.Settings.CompanyCap()})
 	if err != nil {
 		return co, err
 	}
@@ -116,14 +120,17 @@ func (s *CompanyService) CompanyDetail(ctx context.Context, campaignID, companyI
 const historyLines = 20
 
 // RenameCompany gives the user's company a new name (1 to 60 characters).
-func (s *CompanyService) RenameCompany(ctx context.Context, user User, campaignID int64, name string) error {
+func (s *CompanyService) RenameCompany(ctx context.Context, user User, campaignID, companyID int64, name string) error {
 	in, err := CompanyInput{Name: name, Faction: "x"}.Validate()
 	if err != nil {
 		return Refuse("The name must be between 1 and 60 characters.")
 	}
-	id, err := s.myCompanyToChange(ctx, user, campaignID)
+	camp, id, err := s.ownedCampaignToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
+	}
+	if slices.ContainsFunc(camp.Companies, func(c CampaignCompany) bool { return c.ID != id && strings.EqualFold(c.Name, in.Name) }) {
+		return ErrCompanyNameTaken
 	}
 	return s.companies.Update(ctx, campaignID, id, func(st *CompanyState) error {
 		st.Company.Name = in.Name
@@ -132,12 +139,12 @@ func (s *CompanyService) RenameCompany(ctx context.Context, user User, campaignI
 }
 
 // RenameUnit gives a unit the name the player chose (empty: back to its type); at most 40 characters.
-func (s *CompanyService) RenameUnit(ctx context.Context, user User, campaignID, unitID int64, name string) error {
+func (s *CompanyService) RenameUnit(ctx context.Context, user User, campaignID, companyID, unitID int64, name string) error {
 	name = strings.Join(strings.Fields(name), " ")
 	if utf8.RuneCountInString(name) > maxUnitName {
 		return Refuse("A name is at most 40 characters.")
 	}
-	id, err := s.myCompanyToChange(ctx, user, campaignID)
+	id, err := s.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}
@@ -153,8 +160,8 @@ func (s *CompanyService) RenameUnit(ctx context.Context, user User, campaignID, 
 
 // SaveFormation stores the order the player put their units in. The order has to list every unit of the company exactly once:
 // an empty order, a repeated id, a missing unit or an id that is not on the roster is refused.
-func (s *CompanyService) SaveFormation(ctx context.Context, user User, campaignID int64, order []int64) error {
-	id, err := s.myCompanyToChange(ctx, user, campaignID)
+func (s *CompanyService) SaveFormation(ctx context.Context, user User, campaignID, companyID int64, order []int64) error {
+	id, err := s.ownCompanyToChange(ctx, user, campaignID, companyID)
 	if err != nil {
 		return err
 	}

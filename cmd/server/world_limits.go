@@ -25,7 +25,7 @@ func (w *world) buyCreature(co *wco, name string) bool {
 			if !cr.PayInfluence && cr.PayGold {
 				how = "gold"
 			}
-			return w.try("buy "+name, w.c().BuyCreature(w.ctx, co.user, co.camp.id, o.ID, name, how))
+			return w.try("buy "+name, w.c().BuyCreature(w.ctx, co.user, co.camp.id, co.id, o.ID, name, how))
 		}
 		w.try("buy "+name, fmt.Errorf("no officer of %s can take it", co.name))
 	}
@@ -46,7 +46,7 @@ func (w *world) hireWanderer(co *wco, name string) bool {
 		if !x.PayInfluence && x.PayGold {
 			how = "gold"
 		}
-		return w.try("hire "+name, w.c().HireWanderer(w.ctx, co.user, co.camp.id, name, how))
+		return w.try("hire "+name, w.c().HireWanderer(w.ctx, co.user, co.camp.id, co.id, name, how))
 	}
 	return false
 }
@@ -81,7 +81,7 @@ func (w *world) fillLimit(co *wco, limit string, class core.EquipmentClass) bool
 			if it.PayGold {
 				how = "gold"
 			}
-			if w.c().BuyEquipment(w.ctx, co.user, co.camp.id, u.ID, it.Name, how) == nil {
+			if w.c().BuyEquipment(w.ctx, co.user, co.camp.id, co.id, u.ID, it.Name, how) == nil {
 				break
 			}
 		}
@@ -117,7 +117,7 @@ func (w *world) limitsCampaign() {
 			u, _ = w.unit(shire, func(x core.CompanyUnit) bool { return x.ID == u.ID })
 			for _, e := range u.Equipment {
 				if e.Size != "" && e.Drop == "" && !e.Upgrade {
-					w.try("store "+e.Name, w.c().Carry(w.ctx, shire.user, c.id, u.ID, core.CarryAction{Kind: "store", Item: e.Name}))
+					w.try("store "+e.Name, w.c().Carry(w.ctx, shire.user, c.id, shire.id, u.ID, core.CarryAction{Kind: "store", Item: e.Name}))
 					break
 				}
 			}

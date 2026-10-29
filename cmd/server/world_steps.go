@@ -9,7 +9,7 @@ var defaultSettings = core.CampaignSettings{ShakeTheTable: true, ManualRolls: tr
 
 // choosePathOf gives one officer the idx-th path it may take (no Sorcerer: that one needs a power).
 func (w *world) choosePathOf(co *wco, u core.CompanyUnit, idx int) {
-	offer, err := w.c().PathOptions(w.ctx, co.user, co.camp.id, u.ID)
+	offer, err := w.c().PathOptions(w.ctx, co.user, co.camp.id, co.id, u.ID)
 	w.must("path options", err)
 	var open []core.PathOption
 	for _, p := range offer.Paths {
@@ -17,7 +17,7 @@ func (w *world) choosePathOf(co *wco, u core.CompanyUnit, idx int) {
 			open = append(open, p)
 		}
 	}
-	w.must("choose path for "+u.Title(), w.c().ChoosePath(w.ctx, co.user, co.camp.id, u.ID, open[idx%len(open)].Name, ""))
+	w.must("choose path for "+u.Title(), w.c().ChoosePath(w.ctx, co.user, co.camp.id, co.id, u.ID, open[idx%len(open)].Name, ""))
 }
 
 // customHeroes picks the last three units that may lead as the leader and the sergeants (not the company's suggestion).

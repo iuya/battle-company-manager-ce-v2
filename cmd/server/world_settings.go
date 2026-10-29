@@ -21,7 +21,7 @@ func (w *world) sql(why, query string, args ...any) {
 // rollLevelServer makes a level-up roll the server rolls (campaigns without typed rolls): the dice are fixed.
 func (w *world) rollLevelServer(co *wco, u core.CompanyUnit, dice ...int) core.LevelRoll {
 	w.rollWith(dice...)
-	r, err := w.c().RollLevelUp(w.ctx, co.user, co.camp.id, u.ID, nil, false)
+	r, err := w.c().RollLevelUp(w.ctx, co.user, co.camp.id, co.id, u.ID, nil, false)
 	w.must("level-up roll of "+u.Title(), err)
 	return r
 }
@@ -56,7 +56,7 @@ func (w *world) settingsCampaigns() {
 	l, _, _ = w.roster(gd)
 	for _, e := range l.Equipment {
 		if e.Profile && e.Drop == "" {
-			w.try("drop "+e.Name, w.c().DropEquipment(w.ctx, gd.user, drop.id, l.ID, e.Name))
+			w.try("drop "+e.Name, w.c().DropEquipment(w.ctx, gd.user, drop.id, gd.id, l.ID, e.Name))
 			break
 		}
 	}

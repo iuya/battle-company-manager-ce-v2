@@ -185,7 +185,7 @@ func choosePaths(ctx context.Context, c *campaignsFacade, user core.User, campai
 		if !u.PathPending {
 			continue
 		}
-		offer, err := c.PathOptions(ctx, user, campaignID, u.ID)
+		offer, err := c.PathOptions(ctx, user, campaignID, companyID, u.ID)
 		if err != nil {
 			return err
 		}
@@ -197,7 +197,7 @@ func choosePaths(ctx context.Context, c *campaignsFacade, user core.User, campai
 			if p.StartPower && len(offer.Powers) > 0 {
 				power = offer.Powers[0].Key
 			}
-			if err := c.ChoosePath(ctx, user, campaignID, u.ID, p.Name, power); err != nil {
+			if err := c.ChoosePath(ctx, user, campaignID, companyID, u.ID, p.Name, power); err != nil {
 				return err
 			}
 			break

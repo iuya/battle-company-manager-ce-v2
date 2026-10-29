@@ -6,13 +6,13 @@ import (
 
 // rollLevel makes a unit's level-up roll with the typed result (a warrior's D6, or the sums of a hero's two 2D6).
 func (w *world) rollLevel(co *wco, u core.CompanyUnit, entered ...int) core.LevelRoll {
-	r, err := w.c().RollLevelUp(w.ctx, co.user, co.camp.id, u.ID, entered, false)
+	r, err := w.c().RollLevelUp(w.ctx, co.user, co.camp.id, co.id, u.ID, entered, false)
 	w.must("level-up roll of "+u.Title(), err)
 	return r
 }
 
 func (w *world) chooseLevel(co *wco, u core.CompanyUnit, keys ...string) core.LevelRoll {
-	r, err := w.c().ChooseLevelUp(w.ctx, co.user, co.camp.id, u.ID, keys)
+	r, err := w.c().ChooseLevelUp(w.ctx, co.user, co.camp.id, co.id, u.ID, keys)
 	w.must("level-up choice of "+u.Title(), err)
 	return r
 }
