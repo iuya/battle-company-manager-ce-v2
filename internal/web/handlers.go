@@ -34,8 +34,35 @@ func showFinished(r *http.Request) bool {
 	return err == nil && c.Value == "1"
 }
 
-// handleHome is the main page: the signed-in user's active campaigns.
+// handleHome is GET /: a signed-in user with a valid bcm-last cookie goes to the campaign Overview they opened last; everyone else
+// sees the campaign list. The cookie is checked against the database every time and cleared when it is malformed, another user's,
+// finished, or the campaign is no longer the user's.
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
+	if _, err := r.Cookie(lastCookie); err == nil {
+		v, ok := parseLastVisit(r)
+		u := userFrom(r.Context())
+		if !ok || v.UserID != u.ID {
+			s.forgetVisit(w)
+		} else {
+			d, err := s.campaigns.Get(r.Context(), u.ID, v.CampaignID)
+			switch {
+			case errors.Is(err, core.ErrNotFound) || (err == nil && d.Status == core.CampaignFinished):
+				s.forgetVisit(w)
+			case err != nil:
+				s.serverError(w, r, err)
+				return
+			default:
+				http.Redirect(w, r, "/campaigns/"+itoa(int(d.ID)), http.StatusSeeOther)
+				return
+			}
+		}
+	}
+	s.handleCampaignList(w, r)
+}
+
+// handleCampaignList is the campaign list, at GET /campaigns and (without a valid last-campaign cookie) at /: the signed-in user's
+// campaigns. It never redirects, so the Campaigns links always reach it.
+func (s *Server) handleCampaignList(w http.ResponseWriter, r *http.Request) {
 	with := showFinished(r)
 	list, err := s.campaigns.List(r.Context(), userFrom(r.Context()).ID, with)
 	if err != nil {
@@ -173,7 +200,7 @@ func (s *Server) handleCreateCampaign(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		s.serverError(w, r, err)
 	default:
-		redirect(w, r, "/")
+		redirect(w, r, "/campaigns")
 	}
 }
 

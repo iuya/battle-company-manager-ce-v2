@@ -429,7 +429,7 @@ func TestCreateCampaign(t *testing.T) {
 	in := core.CampaignInput{Name: "Rivendell Cup", Description: "Friendly"}
 	f.camp.EXPECT().Create(gomock.Any(), maker, in).Return(core.CampaignSummary{ID: 9}, nil)
 	rec := do(form("/campaigns", url.Values{"name": {"Rivendell Cup"}, "description": {"Friendly"}}))
-	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/" {
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/campaigns" {
 		t.Errorf("success: got %d -> %q", rec.Code, rec.Header().Get("Location"))
 	}
 

@@ -40,6 +40,7 @@ func (s *Server) loadCampaign(w http.ResponseWriter, r *http.Request, tab string
 	if s.fail(w, r, err) {
 		return campaignBase{}, false
 	}
+	s.rememberVisit(w, r, c, 0)
 	return campaignBase{pageBase: s.base(r), Campaign: c, Tab: tab}, true
 }
 
@@ -413,15 +414,15 @@ func (s *Server) handleMyCompany(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleMyCompanyAlias is /campaigns/{id}/my-company without a company, the URL of bookmarks, the sidebar and the tab: it sends the
-// viewer to the company they opened last (their first, oldest company until the last-opened cookie exists), and renders the page
+// viewer to the company they opened last (the bcm-last cookie), else their first, oldest company, and renders the page
 // that offers to create one when they have none.
 func (s *Server) handleMyCompanyAlias(w http.ResponseWriter, r *http.Request) {
 	base, ok := s.loadCampaign(w, r, "my-company")
 	if !ok {
 		return
 	}
-	if len(base.Campaign.Companies) > 0 {
-		http.Redirect(w, r, ownPath(base.Campaign.ID, base.Campaign.Companies[0].ID), http.StatusSeeOther)
+	if id, ok := lastCompany(r, base.Campaign); ok { // the one opened last, else the oldest
+		http.Redirect(w, r, ownPath(base.Campaign.ID, id), http.StatusSeeOther)
 		return
 	}
 	s.render.page(w, r, http.StatusOK, "campaign_my_company", myCompanyView{campaignBase: base})
@@ -641,6 +642,7 @@ func (s *Server) loadOwn(w http.ResponseWriter, r *http.Request, tab string) (ca
 		return campaignBase{}, false
 	}
 	base.Current = &co
+	s.rememberVisit(w, r, base.Campaign, co.ID)
 	return base, true
 }
 

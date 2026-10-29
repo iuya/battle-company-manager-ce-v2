@@ -16,7 +16,7 @@
   <a href="/admin" class="nav-link nav-admin mb-2" :aria-current="path.startsWith('/admin') ? 'page' : null" @click="open = false">Administration</a>
   {{end}}
   <nav class="flex flex-col gap-1">
-    {{template "nav_link" (navItem "/" "Campaigns" "/campaigns/new")}}
+    {{template "nav_link" (navItem "/campaigns" "Campaigns" "/campaigns/new")}}
     {{/* The campaigns sub-menu shows while you are on the main page or anywhere inside a campaign. */}}
     <ul x-show="path === '/' || path.startsWith('/campaigns')" x-cloak class="ml-3 flex flex-col gap-0.5 border-l border-line pl-2"
         aria-label="Your campaigns" hx-get="/nav/campaigns" hx-trigger="{{if .NavInline}}campaigns-changed from:body{{else}}load, campaigns-changed from:body{{end}}" hx-target="this" hx-swap="innerHTML">{{if .NavInline}}{{if .NavOwn}}{{template "nav_campaigns" .}}{{else}}{{template "nav_items" .NavList}}{{end}}{{end}}</ul>
