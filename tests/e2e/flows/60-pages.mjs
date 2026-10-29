@@ -35,7 +35,7 @@ export default async function (h) {
     const aft = await first(admin, /\/aftermath\/\d+$/);
     assert.ok(live && aft, `a company page and an aftermath page were found (${live}, ${aft})`);
     for (const [who, path] of [
-      [anon, '/login'], [admin, '/'], [admin, '/campaigns/new'],
+      [anon, '/login'], [admin, '/campaigns'], [admin, '/campaigns/new'],
       [admin, `/campaigns/${m}`], [admin, `/campaigns/${m}/my-company`], [admin, `/campaigns/${m}/armory`],
       [admin, `/campaigns/${m}/companies`], [admin, `/campaigns/${m}/rankings`], [admin, `/campaigns/${m}/matches`],
       [admin, `/campaigns/${m}/glossary`], [admin, match], [admin, live], [admin, aft],
