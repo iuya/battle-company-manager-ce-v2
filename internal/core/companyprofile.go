@@ -57,6 +57,7 @@ type RuleExchange struct{ Remove, Add, Text string }
 // UnitAlias is a unit with a name of its own in a company: a vanilla profile with rules added.
 type UnitAlias struct {
 	Label    string
+	Aka      []string // other spellings of the label
 	Unit     string
 	AddRules []string
 	Selected []string // options of the vanilla unit it has selected (Tookish Hunter): their points are part of the unit
@@ -143,6 +144,7 @@ type CompanyProfile struct {
 	Exchanges      []RuleExchange
 	Substitutions  []string
 	Aliases        []UnitAlias
+	NewUnits       map[string]VanillaUnit // the company's own brand-new units by NameKey (RegisterLeanUnits keeps a name two companies define differently here)
 	KeywordLimits  []KeywordLimit
 	Oath           Oath
 	Epigraph       *Epigraph         // nil for a company without one

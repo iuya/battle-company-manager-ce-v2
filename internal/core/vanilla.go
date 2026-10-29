@@ -155,57 +155,7 @@ func parseVanilla(content []byte, reviewed []VanillaAmbiguity, log *slog.Logger,
 		if name == "" || !dups.wins("unit", name, raw) {
 			continue
 		}
-		u := VanillaUnit{Name: name, Stats: map[string]int{}}
-		_ = json.Unmarshal(raw["points"], &u.Points)
-		_ = json.Unmarshal(raw["unitType"], &u.UnitTypes)
-		_ = json.Unmarshal(raw["race"], &u.Race)
-		_ = json.Unmarshal(raw["faction"], &u.Faction)
-		_ = json.Unmarshal(raw["specialRules"], &u.SpecialRules)
-		_ = json.Unmarshal(raw["heroicActions"], &u.HeroicActions)
-		_ = json.Unmarshal(raw["wargear"], &u.Wargear)
-		_ = json.Unmarshal(raw["baseSize"], &u.BaseSize)
-		var includes []struct {
-			Name string `json:"name"`
-		}
-		_ = json.Unmarshal(raw["includes"], &includes)
-		for _, in := range includes {
-			u.Includes = append(u.Includes, in.Name)
-		}
-		var options []struct {
-			Name      string   `json:"name"`
-			Points    int      `json:"points"`
-			Choose    string   `json:"chooseOneKey"`
-			Require   string   `json:"requireChooseOneKey"`
-			Available []string `json:"availableIn"`
-		}
-		_ = json.Unmarshal(raw["options"], &options)
-		for _, o := range options {
-			u.Options = append(u.Options, ChoiceOption{Name: o.Name, Points: o.Points})
-			if len(o.Available) > 0 {
-				b.available[reservedKey(name, o.Name)] = o.Available
-			}
-			key := OptionKey{Key: o.Choose}
-			if o.Require != "" {
-				key = OptionKey{Key: o.Require, Required: true}
-			}
-			u.OptionKeys = append(u.OptionKeys, key)
-		}
-		var powers []struct {
-			Name    string `json:"name"`
-			Range   int    `json:"range"`
-			Casting int    `json:"casting"`
-		}
-		_ = json.Unmarshal(raw["magicalPowers"], &powers)
-		for _, p := range powers {
-			u.MagicalPowers = append(u.MagicalPowers, PowerRef{p.Name, p.Range, p.Casting})
-		}
-		for _, s := range b.stats {
-			var v int
-			if json.Unmarshal(raw[s.Key], &v) == nil && raw[s.Key] != nil {
-				u.Stats[s.Key] = v
-			}
-		}
-		b.units[name] = u
+		b.addUnit(name, raw)
 	}
 	for _, raw := range doc.Data.Gear {
 		g := VanillaGear{Stats: map[string]int{}}
@@ -256,6 +206,67 @@ func parseVanilla(content []byte, reviewed []VanillaAmbiguity, log *slog.Logger,
 		b.occurrences[key] = st.count
 	}
 	return b, nil
+}
+
+// addUnit reads one unit of the vanilla shape (the flat characteristics, race, faction, unitType, specialRules, wargear, options...) into the book. The
+// vanilla file and a brand-new unit of a Battle Companies file (RegisterLeanUnits) share this reader, so both give the same VanillaUnit.
+func (b *VanillaBook) addUnit(name string, raw map[string]json.RawMessage) {
+	b.units[name] = b.readUnit(name, raw)
+}
+
+// readUnit is addUnit without storing the unit: a company-local brand-new unit is kept by its company, not in the book.
+func (b *VanillaBook) readUnit(name string, raw map[string]json.RawMessage) VanillaUnit {
+	u := VanillaUnit{Name: name, Stats: map[string]int{}}
+	_ = json.Unmarshal(raw["points"], &u.Points)
+	_ = json.Unmarshal(raw["unitType"], &u.UnitTypes)
+	_ = json.Unmarshal(raw["race"], &u.Race)
+	_ = json.Unmarshal(raw["faction"], &u.Faction)
+	_ = json.Unmarshal(raw["specialRules"], &u.SpecialRules)
+	_ = json.Unmarshal(raw["heroicActions"], &u.HeroicActions)
+	_ = json.Unmarshal(raw["wargear"], &u.Wargear)
+	_ = json.Unmarshal(raw["baseSize"], &u.BaseSize)
+	var includes []struct {
+		Name string `json:"name"`
+	}
+	_ = json.Unmarshal(raw["includes"], &includes)
+	for _, in := range includes {
+		u.Includes = append(u.Includes, in.Name)
+	}
+	var options []struct {
+		Name      string   `json:"name"`
+		Points    int      `json:"points"`
+		Choose    string   `json:"chooseOneKey"`
+		Require   string   `json:"requireChooseOneKey"`
+		Available []string `json:"availableIn"`
+	}
+	_ = json.Unmarshal(raw["options"], &options)
+	for _, o := range options {
+		u.Options = append(u.Options, ChoiceOption{Name: o.Name, Points: o.Points})
+		if len(o.Available) > 0 {
+			b.available[reservedKey(name, o.Name)] = o.Available
+		}
+		key := OptionKey{Key: o.Choose}
+		if o.Require != "" {
+			key = OptionKey{Key: o.Require, Required: true}
+		}
+		u.OptionKeys = append(u.OptionKeys, key)
+	}
+	var powers []struct {
+		Name    string `json:"name"`
+		Range   int    `json:"range"`
+		Casting int    `json:"casting"`
+	}
+	_ = json.Unmarshal(raw["magicalPowers"], &powers)
+	for _, p := range powers {
+		u.MagicalPowers = append(u.MagicalPowers, PowerRef{p.Name, p.Range, p.Casting})
+	}
+	for _, s := range b.stats {
+		var v int
+		if json.Unmarshal(raw[s.Key], &v) == nil && raw[s.Key] != nil {
+			u.Stats[s.Key] = v
+		}
+	}
+	return u
 }
 
 // Stats are the attributes the vanilla file declares, in display order.

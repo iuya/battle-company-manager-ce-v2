@@ -44,7 +44,7 @@ w('unit_forms',doc(companies=[{"name":"Osgiliath & Ithilien","alignment":"good",
    "units":[{"name":"Ranger of Ithilien","extends":"Ranger of Gondor","addRules":["Loyal to the Captain"],"note":"A Ranger of Ithilien is a Ranger of Gondor with the Loyal to the Captain special rule at no additional cost."},
             {"name":"Tookish Hunter","extends":"Hobbit Archer","with":["Bow"]}],"ownPath":{"units":["Ranger of Gondor"]},"heroUpgrades":[]}],
   units=[{"name":"Angmar Warg Rider","tts":{"foot":"Angmar Orc Warrior","states":False}},
-         {"name":"Mordor Hound","profile":{"move":9,"fight":3},"points":20,"aka":["Hound of Mordor"],"note":"A brand-new unit with a full definition"}]))
+         {"name":"Mordor Hound","profile":{"movement":9,"fight":3,"shoot":"-","strength":3,"defence":4,"attack":1,"wounds":1,"courage":5,"intelligence":3,"race":["Orc"],"unitType":["Warrior","Infantry"]},"points":20,"aka":["Hound of Mordor"],"note":"A brand-new unit with a full definition"}]))
 w('gear',doc(gear=[
   {"name":"Badge of Courage","kind":"equipment","size":"small","influence":2,"rating":5,"definition":"A model with a Badge of Courage gains the Fearless special rule.","grants":["Fearless"]},
   {"name":"Spear","kind":"wargear","type":"spear","influence":1,"rating":{"warrior":1,"hero":5}},
@@ -172,7 +172,7 @@ c=base_company(); c['heroUpgrades']=[{"name":"Foresight of the Seer"}]; wi('unkn
 wi('duplicate_name',doc(gear=[{"name":"Bow","kind":"wargear","influence":1,"rating":1},{"name":"Sling","kind":"wargear","influence":1,"rating":1},{"name":"Bow","kind":"wargear","influence":1,"rating":1}]))
 wi("silent_shadowing",doc(rules=[{"name":"Fearless","definition":"My own Fearless."}]))
 wi('missing_definition',doc(rules=[{"name":"Fearless","note":"annotation"},{"name":"Foo"}]))
-wi('alias_shadow',doc(units=[{"name":"Mordor Hound","profile":{"move":9},"points":20},{"name":"Ranger of Mordor","extends":"Ranger of Gondor","aka":["Ranger of Gondor"]}]))
+wi('alias_shadow',doc(units=[{"name":"Mordor Hound","profile":{"movement":9,"fight":3,"shoot":"-","strength":3,"defence":4,"attack":1,"wounds":1,"courage":5,"intelligence":3,"race":["Orc"],"unitType":["Warrior","Infantry"]},"points":20},{"name":"Ranger of Mordor","extends":"Ranger of Gondor","aka":["Ranger of Gondor"]}]))
 wi('extends_missing',doc(units=[{"name":"Ranger of Ithilien","extends":"Ranger of Gondr"}]))
 wi('extends_loop',doc(gear=[{"name":"A","extends":"B"},{"name":"B","extends":"C"},{"name":"C","extends":"A"}]))
 wi('annotation_of_nothing',doc(units=[{"name":"Nobody Special","tts":{"foot":"Ranger of Gondor"}}]))
