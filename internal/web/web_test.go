@@ -1129,7 +1129,8 @@ func TestArmoryTabListsEverythingWithTheUnitsThatCanTakeIt(t *testing.T) {
 			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", Role: core.RoleSergeant, Reason: "Cavalry only", Blocker: core.BlockedByRule}}},
 	}, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory?company=1", nil))).Body.String()
-	for _, want := range []string{"Badge of Courage", "Barding", "Buy for…", "No unit can take it", "Cavalry only", `/armory/buy`, `name="item" value="Badge of Courage"`, "Gives:", "Fearless", `x-data="armory"`} {
+	for _, want := range []string{"Badge of Courage", "Barding", "Buy for…", "No unit can take it", "Cavalry only", `/armory/buy`, `name="item" value="Badge of Courage"`, "Gives:", "Fearless", `x-data="armory"`,
+		`<template x-if="open"><ul x-init="htmx.process($el)"`} { // the unit lists are built when "Buy for" opens them, and htmx wires their forms then
 		if !strings.Contains(body, want) {
 			t.Errorf("armory lacks %q", want)
 		}
