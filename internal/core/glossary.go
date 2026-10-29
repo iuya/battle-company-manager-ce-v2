@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 )
@@ -82,7 +83,20 @@ func (t GlossaryTerm) Text() string {
 }
 
 // Summary is the term's definition as plain text, cut at a word boundary after about max characters.
+//
+// A term of a built glossary remembers the answer per length (the glossary never changes), so the tooltips of a page cost one lookup each.
 func (t GlossaryTerm) Summary(max int) string {
+	if t.summaries == nil {
+		return t.summary(max)
+	}
+	if v, ok := t.summaries.Load(max); ok {
+		return v.(string)
+	}
+	v, _ := t.summaries.LoadOrStore(max, t.summary(max))
+	return v.(string)
+}
+
+func (t GlossaryTerm) summary(max int) string {
 	var b strings.Builder
 	for _, para := range t.Paragraphs {
 		for _, seg := range para {
@@ -185,6 +199,8 @@ type GlossaryTerm struct {
 	Pages      []int       // rulebook pages it comes from
 	Path       *PathTable  // for a path: its limits and chart, as tables
 	Source     string      // for terms made from a campaign's rules files: the file they come from
+
+	summaries *sync.Map // Summary(max) by max, shared by the copies of the term; nil on a term not made by BuildGlossaryWith
 }
 
 // Segment is a piece of a definition: plain text, or (TermID set) a mention of another term to link to.
@@ -333,7 +349,7 @@ func BuildGlossaryWith(info RulesetInfo, content []byte, extras []ExtraTerm) (Gl
 			id = slugify(t.Name) + "-" + strconv.Itoa(n)
 		}
 		used[id] = true
-		g.Terms[i] = GlossaryTerm{ID: id, Name: t.Name, Category: t.Category, Aliases: t.Aliases, Source: t.From}
+		g.Terms[i] = GlossaryTerm{ID: id, Name: t.Name, Category: t.Category, Aliases: t.Aliases, Source: t.From, summaries: new(sync.Map)}
 		for _, p := range slices.Concat([]string{t.Name}, t.Aliases) {
 			key := strings.ToLower(strings.TrimSpace(p))
 			if _, dup := byPhrase[key]; !dup && utf8.RuneCountInString(key) >= minLinkLen {
