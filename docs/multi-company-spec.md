@@ -397,7 +397,8 @@ All eight are applied in the sections above.
 1. **Number of companies per player.** A campaign setting, 1 to 4, default 1, set by the campaign creator on the creation form. Existing
    campaigns and anyone who does not touch it see no change.
 2. **Two companies of one player fighting each other.** Allowed and counted like any other match, with a "Same player" note on the setup and
-   the match page. No `ValidateSides` rule.
+   the match page. No `ValidateSides` rule. The note offers "Make it a practice match" ([practice-match-spec.md](practice-match-spec.md)), which ticks the
+   box of the form so that the fight awards nothing and leaves no aftermath.
 3. **Changing the limit later.** Editable at any time by those with permission (organiser, administrators), up or down. Lowering only
    affects new creations: existing companies stay, keep playing, and nothing is deleted.
 4. **Company ids in the URL of every owner action** (`/my-company/{company}/...`). The GET alias keeps bookmarks; old POST URLs stop working at

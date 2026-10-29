@@ -17,7 +17,7 @@ that describe planned work say so in their first lines. The tables below group t
 | [admin.md](admin.md) | The Administration section, campaign status, invitations, handover |
 | [rules-coverage.md](rules-coverage.md) | Which Battle Companies mechanics the app implements, with the tests |
 | [multi-company-spec.md](multi-company-spec.md) | Planned: several companies per player |
-| [practice-match-spec.md](practice-match-spec.md) | Planned: practice matches |
+| [practice-match-spec.md](practice-match-spec.md) | Practice matches: a flag on a match set on the creation form, no rewards, no injuries, an empty derived aftermath (implemented) |
 
 ## Rules authors
 

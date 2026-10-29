@@ -144,6 +144,12 @@ match page, read only and permanent, also after the campaign is finished.
 A unit's zone is derived from state, in this priority: **Retreated** if a not-undone `retreat` entry exists; **Field casualties** if a not-undone `died` entry exists or Wounds are 0; **Field** otherwise. A unit outside the Field cannot act
 or be targeted. **Return to the battle** is its own action kind (`return`): it clears Retreated and Died and lifts Wounds 0 to 1; it is always logged, and undoing it puts the unit back.
 
+## Practice matches in live mode
+
+A [practice match](matches.md#practice-matches) plays exactly like a real one: its companies are locked while it is open, their pages show the same "match active" state with the trackers and counters, the log and the
+secret objectives work. The live bar adds the Practice badge and the line "Practice match: no experience, influence, rewards or injuries. No aftermath will follow." (`liveView.Practice`). The end checks stay (objective, MVP votes) and
+say they are recorded only. When the match ends there is no aftermath feed: the sheet is never built.
+
 ## Aftermath feed
 
 At End match, and for the aftermath sheet built at its first read, the default `AftermathInput.Models` comes from the live state (`LiveService.AftermathDefaults(ctx, id, matchID, companyID) ([]ModelSheet, bool, error)`; the bool is false without live data):

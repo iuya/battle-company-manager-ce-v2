@@ -19,6 +19,22 @@ scenario and result stay in step. A stale revision answers 200 with a notice; a 
 - **Results** are what the players report: who won (or a draw), optional Victory Points per side, which companies fled (All is Lost), and which
   scenario objectives each company completed.
 
+## Practice matches
+
+A match is a **practice match** when its creator ticks **Practice match** on the new-match form (`practice=1`; off by default; "No experience, influence, rewards or
+injuries. The result is only recorded."). It is stored in `matches.practice` (migration 00025), set by `core.NewMatch{Sides, Practice}` in `CreateMatch` and **never changed afterwards**:
+there is no setter, route or button; to change course, end the match and start another. A practice match is otherwise a real match: its companies are in an open match (one at a time,
+`CompanyBusyError`), the company pages show the same live state, the live log, end checks and secret objectives work, ending needs the same confirmations, and an administrator can
+reopen it (`ReopenMatch` ignores the "aftermath started" rule for a practice match, which has none). What it never does: award or spend experience, influence, gold or rerolls, apply
+scenario or Against the Odds rewards, injure, kill, change the rating, consume an item or count toward anything. Its aftermath is derived as complete and empty ([aftermath.md](aftermath.md#practice-matches)).
+
+- **Counts**: wins, draws, losses and the Matches figure exclude practice matches; the Overview adds a muted "n practice matches" line (`CampaignSummary.PracticeMatches`) and the home list "· n practice".
+- **Marks**: the `practice_badge` partial (a neutral pill, icon plus "Practice", never a result colour) after the match number on the Matches list, the Overview's latest matches, the match page header, the aftermath page
+  and the live bar of the company page; a banner "Practice match: no experience, influence, rewards or injuries." on the match page (open and ended) and in the live bar ("No aftermath will follow."). The Matches tab has a filter, `?practice=1` (chips All and Practice with the count).
+- **Pages**: the Aftermath card of an ended practice match says "Aftermath: nothing to roll (practice match)" for each company (no badge, no Start, no Waive); the result form says "Objectives: recorded only; no reward in a practice match"; the end checks say a practice match awards no experience (`EndChecks.Practice`) and the End match reminder adds "No aftermath will follow.".
+- **Against the Odds**: the card stays for its table effects (kits, Wanderer, Ambush!). The reward bonuses (influence, experience, reroll) are disabled with "No reward in a practice match" (`ATOPracticeReason`) and cannot be newly taken (`SaveAgainstTheOdds` refuses); one saved before stays as entered and does nothing. Nothing is consumed.
+- **Multi-company**: a fight between two companies of one player is the natural practice match; the "Same player" note of the form offers "Make it a practice match", which ticks the box (`/matches/new?practice=1` also ticks it).
+
 ## Who may edit
 
 | Viewer | Match open | Match ended |
