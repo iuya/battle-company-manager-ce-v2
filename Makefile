@@ -4,6 +4,9 @@ export
 # Development database (throwaway credentials, published on localhost). Production is the default compose.yaml: make up / prod-user.
 DC = docker compose -f compose.dev.yaml
 DATABASE_URL ?= postgres://bcm:bcm@localhost:5432/bcm?sslmode=disable
+# make run, dev and demo listen on loopback only (no firewall prompt for each new build); make run LISTEN_HOST= opens them to the network,
+# for a phone on the same Wi-Fi.
+LISTEN_HOST ?= 127.0.0.1
 
 CSS_IN  = ./tailwind.css
 CSS_OUT = ./internal/web/static/app.css

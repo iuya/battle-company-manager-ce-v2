@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -20,7 +21,10 @@ import (
 )
 
 type config struct {
-	Port        string `env:"PORT" default:"8080"`
+	Port string `env:"PORT" default:"8080"`
+	// ListenHost is the address the server listens on; empty is every interface (what a container needs). make run, make dev and the
+	// browser tests use 127.0.0.1: a server that only listens on loopback raises no firewall prompt (Windows asks for every new build).
+	ListenHost  string `env:"LISTEN_HOST"`
 	DatabaseURL string `env:"DATABASE_URL,required"`
 	// MigrateOnStart applies the pending migrations when the server starts (the default). Turn it off where the schema is changed
 	// only by "server migrate" (a deploy step): the server then refuses to start on a database that is behind.
@@ -111,7 +115,7 @@ func run() error {
 	srv.SetReadiness(store.Ping)
 	srv.SetConcepts(b.concepts)
 
-	httpSrv := &http.Server{Addr: ":" + cfg.Port, Handler: handlerWrap(srv.Handler()),
+	httpSrv := &http.Server{Addr: net.JoinHostPort(cfg.ListenHost, cfg.Port), Handler: handlerWrap(srv.Handler()),
 		// Slow-client protection. The live stream (SSE) lifts the read deadline and sets a write deadline per write, so it is not cut.
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 60 * time.Second, WriteTimeout: 120 * time.Second, IdleTimeout: 120 * time.Second,
 		MaxHeaderBytes: 64 << 10}

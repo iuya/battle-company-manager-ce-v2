@@ -109,9 +109,10 @@ Alpine, htmx swaps, the live event stream, dice and dialogs are only exercised b
 [puppeteer-core](https://pptr.dev/) through the demo world. It is a separate Node project (its own `package.json` and
 `package-lock.json`, `puppeteer-core` pinned); nothing of it is in the Go module.
 
-**Setup (once).** Node 20+ and a Chrome or Chromium (found in the usual macOS and Linux places; set `CHROME_PATH` otherwise, always
-on Windows: `CHROME_PATH="C:\Program Files\Google\Chrome\Application\chrome.exe"`). `make e2e-install` runs `npm ci` in `tests/e2e`
-(`make e2e` does it when `node_modules` is missing). The compose PostgreSQL must run (`make db-up`, done by the target).
+**Setup (once).** macOS or Linux (CI runs it on Linux; the runner does not start on Windows: check a change there in the browser and
+leave the suite to CI). Node 20+ and a Chrome or Chromium (found in the usual places; set `CHROME_PATH` otherwise). `make e2e-install`
+runs `npm ci` in `tests/e2e` (`make e2e` does it when `node_modules` is missing). The compose PostgreSQL must run (`make db-up`, done by
+the target).
 
 **Run.** `make e2e` (about 6 minutes; `make e2e-enforce` is the same with the server in `CSP_MODE=enforce`, which is what CI runs: a Content-Security-Policy violation of any page, browser event or `/csp-report` log line, fails the step or the run; flow `90-csp`), `make e2e ONLY=match` for the flow files whose name contains `match`. Output goes
 to the terminal: one line per step (`ok` / `FAIL` with the reason). On a failure `tests/e2e/out/` gets, for every signed-in

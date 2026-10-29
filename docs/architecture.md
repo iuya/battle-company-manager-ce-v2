@@ -315,6 +315,7 @@ Environment variables (loaded by `go-simpler.org/env`; `.env.example` lists them
 |---|---|---|
 | `DATABASE_URL` | required (the Makefile defaults to the compose database) | PostgreSQL connection string |
 | `PORT` | `8080` | HTTP port |
+| `LISTEN_HOST` | empty (every interface) | Address the server listens on. Keep it empty in the container (`APP_BIND` limits the host side). `make run`, `make dev` and `make demo` default it to `127.0.0.1`, and the browser tests set it too: a loopback-only server raises no firewall prompt (Windows asks for every new build of `go run` or `air`). `make run LISTEN_HOST=` opens the development server to the network, for a phone on the same Wi-Fi |
 | `STATIC_MAX_AGE` | `0s` | Cache lifetime of static files requested without their `?v=` hash (`no-cache` when 0; the templates always add the hash, and those requests are cached for a year) |
 | `PERF_TRACE` | `false` | Adds a `Server-Timing` header (time, database statements) to every answer, for `make perf` ([performance.md](performance.md)); development only |
 | `STYLEGUIDE` | `false` | Serve `/styleguide`; `make run`, `make dev` and `make demo` set it to `true` |
