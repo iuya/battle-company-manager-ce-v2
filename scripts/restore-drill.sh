@@ -31,9 +31,13 @@ check() { # name, expectation (shell test), actual
 tables="$(psql_scratch -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")"
 check "tables restored" "[ $tables -ge 10 ]" "$tables"
 
-latest="$(ls internal/postgres/migrations/*.sql | sed 's#.*/\([0-9]*\)_.*#\1#' | sort -n | tail -n 1 | sed 's/^0*//')"
 version="$(psql_scratch -c "SELECT coalesce(max(version_id),0) FROM goose_db_version WHERE is_applied")"
-check "schema version" "[ $version -ge 1 ] && [ $version -le $latest ]" "$version (latest migration in this checkout: $latest)"
+if ls internal/postgres/migrations/*.sql > /dev/null 2>&1; then
+  latest="$(ls internal/postgres/migrations/*.sql | sed 's#.*/\([0-9]*\)_.*#\1#' | sort -n | tail -n 1 | sed 's/^0*//')"
+  check "schema version" "[ $version -ge 1 ] && [ $version -le $latest ]" "$version (latest migration in this checkout: $latest)"
+else # an installed server has no checkout: only require that a migration ran
+  check "schema version" "[ $version -ge 1 ]" "$version"
+fi
 
 for t in users campaigns companies matches; do
   n="$(psql_scratch -c "SELECT count(*) FROM $t")"

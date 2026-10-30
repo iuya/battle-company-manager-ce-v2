@@ -1,0 +1,10 @@
+[Unit]
+Description=Dump the Battle Company Manager database
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/bcm
+ExecStart=/opt/bcm/bcm-backup.sh
+TimeoutStartSec=30min

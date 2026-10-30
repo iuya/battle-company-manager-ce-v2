@@ -1,0 +1,10 @@
+[Unit]
+Description=Restore the newest dump into a scratch database and check it
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/bcm
+ExecStart=/opt/bcm/scripts/restore-drill.sh
+TimeoutStartSec=30min

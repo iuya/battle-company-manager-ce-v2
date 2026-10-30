@@ -75,6 +75,41 @@ docker pull ghcr.io/iuya/battle-company-manager-ce-v2:1.1.0 && docker inspect --
 migrated the database, restore the backup taken before the upgrade (Restore, below) rather than only swapping the image. A bad tag can be removed on the package page (*Versions* > delete);
 fix forward with a new patch tag rather than re-pushing the same tag.
 
+## Running the published image on a server
+
+`deploy/` is a kit for one Linux server that always runs the newest stable release without a checkout of the source. It needs Docker with the compose plugin, `curl`, `flock` and systemd; nothing else.
+
+| File | What it is |
+|---|---|
+| `deploy/compose.prod.yaml` | Caddy, the app and PostgreSQL. Installed as `/opt/bcm/compose.yaml`. Only Caddy publishes ports (80, 443 and 443/udp); the app and the database sit on internal networks. The app runs read-only, with every capability dropped, memory, CPU and process limits, `TRUST_PROXY=true` and `SECURE_COOKIES=true`; container logs rotate (10 MB x 5). |
+| `deploy/Caddyfile` | Automatic HTTPS for `SITE_ADDRESS`, HTTP redirected to HTTPS, a 17 MB request cap, the client address handed to the app as `X-Forwarded-For` (replacing whatever the client sent), live streams unbuffered, no `Server` header, admin API off. |
+| `deploy/env.example` | The `/opt/bcm/.env` the installer writes: `SITE_ADDRESS`, a `POSTGRES_PASSWORD` generated on the host, `APP_IMAGE` (kept by the updater), `CSP_MODE`. Mode 0600, never committed. |
+| `deploy/install.sh` | Copies the kit and the backup scripts into `/opt/bcm` (`BCM_DIR` changes it), creates `.env` once, enables the timers. `sudo SITE_ADDRESS=bcm.example.org deploy/install.sh` |
+| `deploy/bcm-update.sh` + `systemd/bcm-update.{service,timer}` | The pull-based updater, every 15 minutes: asks ghcr.io for the digest of the `latest` tag (`UPDATE_TAG` follows another), and when it differs takes a dump, writes `APP_IMAGE=...@sha256:<digest>` into `.env`, pulls, starts, waits for the health check and probes `/readyz` through Caddy. A release that does not become ready is replaced by the previous digest. `UPDATE_DIGEST=sha256:...` deploys an exact digest, `CHECK_ONLY=1` only prints. State is in `/opt/bcm/state` (`current-image`, `previous-image`). The server is therefore always on an immutable digest, never on a moving tag. |
+| `deploy/bcm-backup.sh` + `systemd/bcm-backup.{service,timer}` | Nightly 03:15 dump (14 kept on disk), then the optional off-site hook `/opt/bcm/offsite-hook.sh <dump>`; a failing hook turns the unit red. |
+| `systemd/bcm-restore-drill.{service,timer}` | The monthly restore drill of `scripts/restore-drill.sh` (below). |
+| `deploy/memcheck.sh` | Memory, swap, per-container usage and out-of-memory readings (see Memory below). |
+| `deploy/bootstrap-admin.sh` | The first account: `sudo /opt/bcm/bootstrap-admin.sh you@example.org "Your Name"`. The password is typed at the prompt; it is in no argument, file or log. |
+| `deploy/oracle/` | Oracle Cloud specifics (see "On Oracle Cloud Always Free" below): `host-setup.sh` prepares an Ubuntu 24.04 aarch64 instance (Docker, the host firewall rules for 80/443, a block on the metadata service for containers, swap, security updates, then `install.sh`) and `offsite-oci.sh` is an off-site hook that copies dumps to a private Object Storage bucket with the instance principal. |
+
+**First start.** Point a DNS name at the server (Let's Encrypt validates it), open 80 and 443 in the firewall and nothing else, then run `deploy/install.sh` as above (on Oracle Cloud, `deploy/oracle/host-setup.sh`, which calls it), create the first account with `bootstrap-admin.sh`, and open `https://<name>/`. The first update run starts everything; follow it with `journalctl -u bcm-update`. Check the state with `cat /opt/bcm/state/current-image`, `docker compose -f /opt/bcm/compose.yaml ps` and `systemctl list-timers 'bcm-*'`.
+
+**Memory.** The compose file is sized for a 1 GB server: container limits caddy 64 MB, app 256 MB (`GOMEMLIMIT=200MiB`, `MAX_CACHED_RULESETS=4`) and PostgreSQL 320 MB (`shared_buffers=64MB`, `work_mem=2MB`, `max_connections=20`), 640 MB in all, and a provider script such as `host-setup.sh` adds a 1 GB swap file with `vm.swappiness=10` as a safety net. `/opt/bcm/memcheck.sh` prints memory and swap, a `docker stats` snapshot, container restarts and any out-of-memory kills from the kernel log. On a bigger server raise the three limits and PostgreSQL's settings together.
+
+**Rollback.** `UPDATE_DIGEST=$(cat /opt/bcm/state/previous-image | sed 's/.*@//') /opt/bcm/bcm-update.sh` goes back to the previous release; stop the update timer first (`systemctl stop bcm-update.timer`) or the next run moves forward again. If the newer release migrated the database and the old one refuses it, stop the app and restore the dump taken just before the update (`/opt/bcm/backups`, newest first): see Restore below.
+
+**Tested locally.** `make test-backup-restore` (`scripts/test-backup-restore.sh`) lays out a scratch directory like `/opt/bcm`, starts PostgreSQL there under its own compose project, migrates it, backs up, changes the data, restores, and runs the drill; it removes everything afterwards and needs Docker and Go.
+
+### On Oracle Cloud Always Free
+
+`deploy/oracle/` targets one `VM.Standard.A1.Flex` instance (Arm) running Ubuntu 24.04 in the tenancy's home region, inside the Always Free allowance (in total 2 OCPUs and 12 GB of memory for all A1 instances, 200 GB of boot and block volume, 20 GB of Object Storage, 10 TB of outbound traffic a month; the account is never upgraded to a paid type). Check the limits page of the console and [Always Free Resources](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm) before relying on a number, because Oracle changes them.
+
+- **Sizing.** One OCPU and 3 GB is enough with the shipped container limits. Oracle may reclaim an Always Free instance that stays idle for seven days (CPU 95th percentile, network and, for A1, memory all under 20%); the app is quiet, so size the memory so that real use (`/opt/bcm/memcheck.sh`, the console's memory metric) stays above that share rather than adding load.
+- **Network.** The subnet's security list or network security group allows 80/tcp, 443/tcp and 443/udp from anywhere and nothing else from the internet; port 22 is reachable only from inside the VCN, which is where the Bastion service connects from. Oracle's Ubuntu images also carry their own iptables rules that reject everything but SSH; `host-setup.sh` inserts 80/443 before that reject rule. Use an ephemeral public IPv4 and the name `<a-b-c-d>.sslip.io` for the address a.b.c.d as `SITE_ADDRESS`; a new instance gets a new address and so a new name.
+- **Access.** Interactive access is a Bastion port-forwarding session (or the instance's console connection) with an SSH key kept on the owner's machine; nothing in this repository holds a key or a credential.
+- **Install.** On the instance: `sudo SITE_ADDRESS=<a-b-c-d>.sslip.io BACKUP_BUCKET=<bucket> OCI_NAMESPACE=<namespace> deploy/oracle/host-setup.sh` from an unpacked release; the last two are optional and enable the off-site hook.
+- **Off-site backup.** A dynamic group containing only this instance and a policy limited to one bucket let the instance principal write dumps to a private Object Storage bucket (the Always Free quota is 20 GB and 50,000 requests a month; a dump is a few megabytes). The tenancy and everything in it can disappear, so keep a copy of a dump somewhere outside Oracle as well, and run the restore drill.
+
 ## Content-Security-Policy: report mode, then enforce
 
 Production starts in `CSP_MODE=report` (the default): the browser loads everything, sends each violation to `POST /csp-report` and the app logs one line. Before the switch the browser suite already ran

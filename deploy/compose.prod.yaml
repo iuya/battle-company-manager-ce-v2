@@ -1,0 +1,86 @@
+# Production on a single server: Caddy (TLS, the only published ports) -> app (published image, by digest) -> PostgreSQL.
+# Installed as /opt/bcm/compose.yaml by deploy/install.sh; settings come from /opt/bcm/.env (see deploy/env.example).
+# docs/operations.md, "Running the published image on a server".
+name: bcm
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 64m
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_ADDRESS: "${SITE_ADDRESS:-localhost}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [edge]
+    depends_on:
+      app: { condition: service_healthy }
+    logging: &logging
+      driver: local
+      options: { max-size: "10m", max-file: "5" }
+  app:
+    # The updater (deploy/bcm-update.sh) writes APP_IMAGE=ghcr.io/...@sha256:<digest> into .env.
+    image: "${APP_IMAGE:?APP_IMAGE is not set (repository@sha256:digest, written by bcm-update.sh)}"
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      DATABASE_URL: "postgres://bcm:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set}@postgres:5432/bcm?sslmode=disable"
+      APP_ENV: production
+      SECURE_COOKIES: "true"
+      TRUST_PROXY: "true"
+      CSP_MODE: "${CSP_MODE:-report}"
+      # Memory plan for a 1 GB host: the Go runtime collects harder before it reaches the container limit, and fewer rule sets stay parsed.
+      GOMEMLIMIT: 200MiB
+      MAX_CACHED_RULESETS: "${MAX_CACHED_RULESETS:-4}"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    cpus: 1.0
+    pids_limit: 256
+    # No published port: only Caddy reaches the app, over the edge network.
+    networks: [edge, backend]
+    logging: *logging
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    mem_limit: 320m
+    environment:
+      POSTGRES_USER: bcm
+      POSTGRES_DB: bcm
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set}"
+    # Tuned for a 1 GB host shared with the app and Caddy (limits: caddy 64m + app 256m + postgres 320m = 640 MB).
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "effective_cache_size=192MB", "-c", "work_mem=2MB",
+              "-c", "maintenance_work_mem=32MB", "-c", "max_connections=20", "-c", "wal_buffers=4MB", "-c", "max_wal_size=256MB"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bcm -d bcm"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+      start_period: 10s
+    logging: *logging
+networks:
+  edge: {}
+  backend:
+    internal: true
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
