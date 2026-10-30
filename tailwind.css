@@ -38,11 +38,15 @@
   --color-success-soft: var(--success-soft);
   --color-warn: var(--warn);
   --color-gold: var(--gold);
+  --color-leader: var(--leader);
   --color-leader-soft: var(--leader-soft);
   --color-sergeant: var(--sergeant);
   --color-sergeant-soft: var(--sergeant-soft);
   --color-hero: var(--hero);
   --color-hero-soft: var(--hero-soft);
+  --color-path-melee: var(--path-melee);
+  --color-path-ranged: var(--path-ranged);
+  --color-path-magic: var(--path-magic);
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-heading: var(--heading-font);
 }
@@ -69,11 +73,6 @@
   --success-soft: #d9ecdc;
   --warn: #8a5a00;
   --gold: #8a6a1f;
-  --leader-soft: #e8e0cd;
-  --sergeant: #2e6b3f;
-  --sergeant-soft: #d5e0d3;
-  --hero: #2c5f94;
-  --hero-soft: #d5dde4;
   --focus: var(--accent-text);
 }
 [data-palette="ember"][data-mode="dark"] {
@@ -93,11 +92,6 @@
   --success-soft: #223a29;
   --warn: #f0c050;
   --gold: #d2ad5c;
-  --leader-soft: #483427;
-  --sergeant: #7cc48d;
-  --sergeant-soft: #263a2c;
-  --hero: #86b6ea;
-  --hero-soft: #26344a;
   --focus: var(--accent-text);
 }
 
@@ -119,11 +113,6 @@
   --success-soft: #d9ecdc;
   --warn: #7d6200;
   --gold: #7d5f14;
-  --leader-soft: #e5dfd0;
-  --sergeant: #2e6b3f;
-  --sergeant-soft: #d5e1d9;
-  --hero: #2c5f94;
-  --hero-soft: #d5dfea;
   --focus: var(--accent-text);
 }
 [data-palette="mithril"][data-mode="dark"] {
@@ -143,11 +132,6 @@
   --success-soft: #223a29;
   --warn: #e8cc6a;
   --gold: #d4af55;
-  --leader-soft: #3d3826;
-  --sergeant: #7cc48d;
-  --sergeant-soft: #233f30;
-  --hero: #86b6ea;
-  --hero-soft: #233a55;
   --focus: var(--accent-text);
 }
 
@@ -169,11 +153,6 @@
   --success-soft: #d9ecdc;
   --warn: #85620a;
   --gold: #80621c;
-  --leader-soft: #e3decd;
-  --sergeant: #2e6b3f;
-  --sergeant-soft: #d3e0d4;
-  --hero: #2c5f94;
-  --hero-soft: #d2dde5;
   --focus: var(--accent-text);
 }
 [data-palette="forest"][data-mode="dark"] {
@@ -193,19 +172,15 @@
   --success-soft: #223a29;
   --warn: #ecc94b;
   --gold: #d8b864;
-  --leader-soft: #45401f;
-  --sergeant: #7cc48d;
-  --sergeant-soft: #2a4c35;
-  --hero: #8cbcf0;
-  --hero-soft: #284462;
   --focus: var(--accent-text);
 }
 
 /* ---- high contrast ----
    data-contrast="high" on <html> (theme-init.js) swaps each palette for a stronger one: text at AAA (7:1), borders that
-   read (3:1), and the decoration colour (the gold token: ring, leader frame, medals) moved to the complement of the
-   palette's accent so the two stand apart: pink against Forest's green, cyan against Ember's red; Mithril already pairs
-   blue with yellow and only gets brighter. Each block is matched on <html> itself and on a preview swatch inside it. */
+   read (3:1), the gold decoration (ring, badges, medals) the same amber in every palette, and the focus ring moved to the
+   complement of the palette's accent so it stands apart: pink against Forest's green, cyan against Ember's red; Mithril
+   already pairs blue with yellow. The game colours (leader, paths) are shared too: see below. Each block is matched on
+   <html> itself and on a preview swatch inside it. */
 [data-contrast="high"][data-palette="forest"][data-mode="light"],
 [data-contrast="high"] [data-palette="forest"][data-mode="light"] {
   --page: #f7f9f4;
@@ -223,13 +198,8 @@
   --success: #154d25;
   --success-soft: #d6ecd9;
   --warn: #5e4300;
-  --gold: #a3125f;
-  --leader-soft: #f8dcea;
-  --sergeant: #1b5a2c;
-  --sergeant-soft: #d6e7d7;
-  --hero: #17487f;
-  --hero-soft: #d6e2ef;
-  --focus: var(--gold);
+  --gold: #6b4d00;
+  --focus: #a3125f;
   --ring-opacity: 0.18;
 }
 [data-contrast="high"][data-palette="forest"][data-mode="dark"],
@@ -249,13 +219,8 @@
   --success: #94e3a4;
   --success-soft: #1c3b25;
   --warn: #ffd75e;
-  --gold: #ff8cc6;
-  --leader-soft: #4a1d35;
-  --sergeant: #8fe0a0;
-  --sergeant-soft: #1f4529;
-  --hero: #9ccaff;
-  --hero-soft: #1e3c5c;
-  --focus: var(--gold);
+  --gold: #ffd047;
+  --focus: #ff8cc6;
   --ring-opacity: 0.2;
 }
 [data-contrast="high"][data-palette="ember"][data-mode="light"],
@@ -275,13 +240,8 @@
   --success: #154d25;
   --success-soft: #d6ecd9;
   --warn: #5e4300;
-  --gold: #005f66;
-  --leader-soft: #d3eef0;
-  --sergeant: #1b5a2c;
-  --sergeant-soft: #d6e7d7;
-  --hero: #17487f;
-  --hero-soft: #d6e2ef;
-  --focus: var(--gold);
+  --gold: #6b4d00;
+  --focus: #005f66;
   --ring-opacity: 0.18;
 }
 [data-contrast="high"][data-palette="ember"][data-mode="dark"],
@@ -301,13 +261,8 @@
   --success: #94e3a4;
   --success-soft: #1c3b25;
   --warn: #ffd75e;
-  --gold: #5ee6e6;
-  --leader-soft: #143c40;
-  --sergeant: #8fe0a0;
-  --sergeant-soft: #1f4529;
-  --hero: #9ccaff;
-  --hero-soft: #1e3c5c;
-  --focus: var(--gold);
+  --gold: #ffd047;
+  --focus: #5ee6e6;
   --ring-opacity: 0.2;
 }
 [data-contrast="high"][data-palette="mithril"][data-mode="light"],
@@ -328,11 +283,6 @@
   --success-soft: #d6ecd9;
   --warn: #5a4500;
   --gold: #6b4d00;
-  --leader-soft: #f0e3c0;
-  --sergeant: #1b5a2c;
-  --sergeant-soft: #d6e7d7;
-  --hero: #12437a;
-  --hero-soft: #d3e0f0;
   --focus: var(--hero);
   --ring-opacity: 0.18;
 }
@@ -354,13 +304,61 @@
   --success-soft: #1c3b25;
   --warn: #ffe27a;
   --gold: #ffd047;
+  --focus: var(--accent-text);
+  --ring-opacity: 0.2;
+}
+
+/* ---- game colours ----
+   What a colour means on the table is the same in every palette: the leader (its frame, the command paths such as the
+   Path of the Warlord, Might), the sergeant, the other heroes, and the path kinds (melee red, ranged green, magic blue).
+   They depend only on the mode and the contrast, never on the palette, and are tuned from Mithril dark high contrast.
+   A palette only sets its neutrals, accent, status colours and the gold decoration (ring, badges, medals). Each block is
+   matched on <html> itself and on a preview swatch inside it. */
+:root, [data-mode="light"] {
+  --leader: #7d5f14;
+  --leader-soft: #ece2c6;
+  --sergeant: #2e6b3f;
+  --sergeant-soft: #d5e1d9;
+  --hero: #2c5f94;
+  --hero-soft: #d5dfea;
+  --path-melee: #a8231b;
+  --path-ranged: #2d6a3e;
+  --path-magic: #2c5f94;
+}
+[data-mode="dark"] {
+  --leader: #dcb54f;
+  --leader-soft: #3d3622;
+  --sergeant: #7cc48d;
+  --sergeant-soft: #233f30;
+  --hero: #86b6ea;
+  --hero-soft: #233a55;
+  --path-melee: #ff8f84;
+  --path-ranged: #86c795;
+  --path-magic: #86b6ea;
+}
+[data-contrast="high"][data-mode="light"],
+[data-contrast="high"] [data-mode="light"] {
+  --leader: #6b4d00;
+  --leader-soft: #f0e3c0;
+  --sergeant: #1b5a2c;
+  --sergeant-soft: #d6e7d7;
+  --hero: #12437a;
+  --hero-soft: #d3e0f0;
+  --path-melee: #8e1510;
+  --path-ranged: #154d25;
+  --path-magic: #12437a;
+}
+[data-contrast="high"][data-mode="dark"],
+[data-contrast="high"] [data-mode="dark"] {
+  --leader: #ffd047;
   --leader-soft: #3d3517;
   --sergeant: #8fe0a0;
   --sergeant-soft: #1f4529;
   --hero: #9ccaff;
   --hero-soft: #1e3c5c;
-  --focus: var(--accent-text);
-  --ring-opacity: 0.2;
+  --path-melee: #ffa197;
+  --path-ranged: #94e3a4;
+  --path-magic: #9ccaff;
 }
 
 html[data-mode="light"] { color-scheme: light; }
@@ -450,20 +448,20 @@ html[data-mode="dark"] { color-scheme: dark; }
   /* the base comes first: the tone variants below (same specificity) must win over its background and text colour */
   .badge { @apply inline-flex items-center rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-semibold text-accent-text; }
   .badge-gold { @apply bg-gold/20 text-fg; }
-  /* A unit's place in the company is its frame, each in its own colour in every palette (as in the earlier app): leader gold
+  /* A unit's place in the company is its frame, each in its own game colour, the same in every palette (as in the earlier app): leader amber
      and doubled, sergeant green and doubled, other heroes a solid blue frame, regular units a thin plain one. */
   .unit { @apply rounded-xl border border-line; position: relative; }
-  .unit-leader { @apply border-2 border-gold; outline: 2px solid color-mix(in srgb, var(--gold) 45%, transparent); outline-offset: 2px; }
+  .unit-leader { @apply border-2 border-leader; outline: 2px solid color-mix(in srgb, var(--leader) 45%, transparent); outline-offset: 2px; }
   .unit-sergeant { @apply border-2 border-sergeant; outline: 2px solid color-mix(in srgb, var(--sergeant) 40%, transparent); outline-offset: 2px; }
   .unit-hero { @apply border-2 border-hero; }
-  .insignia-leader { color: var(--gold); }
+  .insignia-leader { color: var(--leader); }
   .insignia-sergeant { color: var(--sergeant); }
   .insignia-hero { color: var(--hero); }
   /* The title plate across the top of a unit card, tinted by the same place (a warrior's is plain) or by danger while the
      unit is injured. Under a promotion banner it loses its rounded top. */
   .unit-head { margin: -1rem -1rem 0; padding: .5rem 2rem .5rem .5rem; border-bottom: 1px solid var(--line); border-radius: calc(.75rem - 1px) calc(.75rem - 1px) 0 0; background: color-mix(in srgb, var(--raised) 55%, var(--surface)); }
   .unit-leader > .unit-head, .unit-sergeant > .unit-head, .unit-hero > .unit-head { border-radius: calc(.75rem - 2px) calc(.75rem - 2px) 0 0; }
-  .unit-leader > .unit-head { background: var(--leader-soft); border-bottom-color: var(--gold); }
+  .unit-leader > .unit-head { background: var(--leader-soft); border-bottom-color: var(--leader); }
   .unit-sergeant > .unit-head { background: var(--sergeant-soft); border-bottom-color: var(--sergeant); }
   .unit-hero > .unit-head { background: var(--hero-soft); border-bottom-color: var(--hero); }
   .unit-injured > .unit-head { background: var(--danger-soft); border-bottom-color: var(--danger); }
@@ -478,26 +476,26 @@ html[data-mode="dark"] { color-scheme: dark; }
   /* A unit's name is the button that renames it: it reads as the title, a dotted underline on hover says it can be changed. */
   .unit-name { font: inherit; color: inherit; text-align: left; cursor: text; border-radius: .25rem; text-decoration: underline dotted transparent; text-underline-offset: .2em; }
   .unit-name:hover, .unit-name:focus-visible { text-decoration-color: var(--muted); }
-  /* A profile as on a datasheet: the names on a strip above the values. Might, Will and Fate are a second, accent-framed one
-     with the strip in the soft accent. */
+  /* A profile as on a datasheet: the names on a strip above the values. Might, Will and Fate are a second one, framed in
+     the muted tone: a unit card carries no palette accent, only game colours and neutrals. */
   .statline { @apply grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center; }
   .statline > div { @apply min-w-7 border-r border-line bg-surface last:border-r-0 sm:min-w-8; }
   .statline dt { @apply bg-raised px-0.5 py-1 text-[10px] font-semibold uppercase leading-none text-muted; }
   .statline dd { @apply px-0.5 py-1.5 text-base font-semibold leading-none; }
-  .statline-hero { @apply border-accent; }
+  .statline-hero { @apply border-muted; }
   .statline-hero > div { @apply min-w-14; }
-  .statline-hero dt { @apply bg-accent-soft px-2; }
+  .statline-hero dt { @apply px-2; }
   /* The trackers of a live match (live_trackers): Might, Will, Fate and Wounds, one per row, left-aligned, as segmented bars like the experience
      one, led by the stat's full name; Wounds as hearts (14 px, inside the same 16 px row). Each stat has its own colour (--tracker), the theme
-     tokens of the path kinds (.path-k-*), so they read in every theme: gold Might (command), hero blue Will (magic), success green Fate
-     (ranged), danger red Wounds (melee, the Soldier's). The bold name and the bar take it; an empty segment or heart is a faint tint of it with a
+     game colours of the path kinds (.path-k-*), the same in every palette: amber Might (command), blue Will (magic), green Fate
+     (ranged), red Wounds (melee, the Soldier's). The bold name and the bar take it; an empty segment or heart is a faint tint of it with a
      thin outline (an inset shadow, so the segment keeps its size). A segment sits in a 22 x 16 px tap area. The rows share one grid (name, bar,
      count; each row a subgrid), so the counts line up in a column after the longest bar. */
   .live-trackers { @apply grid grid-cols-[auto_auto_auto] justify-start; }
-  .tracker { @apply col-span-full grid grid-cols-subgrid items-center; --tracker: var(--gold); }
-  .tracker[data-tracker="will"] { --tracker: var(--hero); }
-  .tracker[data-tracker="fate"] { --tracker: var(--success); }
-  .tracker[data-tracker="wounds"] { --tracker: var(--danger); }
+  .tracker { @apply col-span-full grid grid-cols-subgrid items-center; --tracker: var(--leader); }
+  .tracker[data-tracker="will"] { --tracker: var(--path-magic); }
+  .tracker[data-tracker="fate"] { --tracker: var(--path-ranged); }
+  .tracker[data-tracker="wounds"] { --tracker: var(--path-melee); }
   .tracker-label { @apply w-14 shrink-0 whitespace-nowrap text-xs font-bold leading-none; color: var(--tracker); }
   .tracker-bar { @apply flex; }
   .seg-hit { @apply inline-flex h-4 w-[22px] shrink-0 items-center px-px; }
@@ -526,9 +524,11 @@ html[data-mode="dark"] { color-scheme: dark; }
   .milestone-tick { @apply absolute -right-1.5 -top-1.5 h-5 w-5 rounded-full border-2 border-surface bg-success p-0.5 text-page; }
   .milestone-count { @apply absolute -left-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center gap-0.5 rounded-full border-2 border-surface bg-danger px-1 text-[10px] font-bold leading-none text-page; }
   .xp-bar { @apply relative flex h-2.5 min-w-20 flex-1 overflow-hidden rounded-full bg-raised; }
+  /* The experience of a unit fills in the muted tone (warn while a level-up waits), not the palette accent, which shares its hue with a game colour. */
+  .xp-fill { background: var(--muted); }
   /* The experience earned in a running match, after the fill: the magic path's colour (the Path of the Sorcerer, .path-k-magic). */
-  .xp-match { background: var(--hero); }
-  .xp-match-text { @apply font-semibold text-hero; }
+  .xp-match { background: var(--path-magic); }
+  .xp-match-text { @apply font-semibold text-path-magic; }
   .xp-bar::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(100% / var(--seg, 5) - 2px), var(--surface) calc(100% / var(--seg, 5) - 2px) calc(100% / var(--seg, 5))); pointer-events: none; }
   /* Company limits use the same segmented bar: counted slots filled from the left, hatched slots at the right end for what the
      company's rules leave out. */
@@ -582,16 +582,16 @@ html[data-mode="dark"] { color-scheme: dark; }
   .eq-q { @apply ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-raised text-[10px] font-bold text-muted; }
   .rule-chip { @apply inline-flex items-center gap-1 rounded-md bg-raised px-2 py-0.5 text-xs text-fg; border-left: 3px solid var(--line); }
   .rule-chip[data-tip-title] { cursor: pointer; }
-  .rule-path { border-left-color: var(--accent); }
+  .rule-path { border-left-color: var(--path, var(--muted)); } /* the kind of its path, inside .path-box */
   .rule-equipment { border-left-color: var(--gold); }
   .rule-company { border-left-color: var(--gold); @apply border border-gold bg-warn/10; }
-  .rule-spell { @apply bg-accent-soft text-accent-text; border-left-color: var(--accent); }
+  .rule-spell { border-left-color: var(--path-magic); background: color-mix(in srgb, var(--path-magic) 14%, var(--surface)); }
   /* A hero's path: its icon and name, heroic actions and rules, in a box below the attributes, tinted by the kind of hero the
-     path makes (pathLook): melee red, ranged green, command gold, magic blue, the rest muted. Text-safe tokens in every palette. */
-  .path-k-melee { --path: var(--danger); }
-  .path-k-ranged { --path: var(--success); }
-  .path-k-command { --path: var(--gold); }
-  .path-k-magic { --path: var(--hero); }
+     path makes (pathLook): melee red, ranged green, command amber (the leader's), magic blue, the rest muted. Game colours, the same in every palette. */
+  .path-k-melee { --path: var(--path-melee); }
+  .path-k-ranged { --path: var(--path-ranged); }
+  .path-k-command { --path: var(--leader); }
+  .path-k-magic { --path: var(--path-magic); }
   .path-k-other { --path: var(--muted); }
   .path-box { @apply rounded-lg border p-2; border-color: color-mix(in srgb, var(--path, var(--accent)) 45%, transparent); background: color-mix(in srgb, var(--path, var(--accent)) 8%, var(--surface)); }
   .path-name { @apply flex items-center gap-2 leading-tight; color: var(--path, var(--accent-text)); }

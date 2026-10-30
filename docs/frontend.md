@@ -47,8 +47,9 @@ Colors are **semantic tokens**: CSS variables, exposed to Tailwind as utilities 
 | `accent-soft` | Tinted backgrounds (selected state, badges, info alerts) |
 | `danger`, `success` (+ `-soft`) | Errors and confirmations |
 | `warn` | Draws (yellow); with `success` and `danger` it gives the `tone-win` / `tone-draw` / `tone-loss` classes for results |
-| `gold` | Decoration; the ring background; the leader's frame |
-| `sergeant`, `hero`, `leader-soft`, `sergeant-soft`, `hero-soft` | A unit's place on its card: frame and insignia (leader `gold`, sergeant green, hero blue in every palette; in high contrast the leader takes the palette's complementary colour) and the tint of its title plate |
+| `gold` | Decoration: the ring background, gold badges, the level medal |
+| `leader`, `sergeant`, `hero`, `leader-soft`, `sergeant-soft`, `hero-soft` | Game colours. A unit's place on its card: frame and insignia (leader amber, sergeant green, hero blue) and the tint of its title plate. `leader` is also the command paths (Path of the Warlord) and the Might tracker |
+| `path-melee`, `path-ranged`, `path-magic` | Game colours. The path kinds (red, green, blue) and the Wounds, Fate and Will trackers |
 
 **Palettes** (each with a light and a dark variant): **Forest & Gold** (default), **Parchment & Ember** and **Mithril &
 Night**. A palette is selected by `data-palette` and `data-mode` (`light` | `dark`) on the `<html>` element; the same
@@ -57,12 +58,17 @@ against WCAG AA (4.5:1 for text, 3:1 for the accent). In the dark variants the l
 `surface` sits clearly above `page` (about 1.2:1), `raised` above `surface` (about 1.25:1) and `line` reads against
 `surface` (about 1.9:1 or more), so cards and borders do not melt into the page.
 
+**Game colours.** The leader, sergeant, hero and path tokens mean the same thing on the table whatever the palette, so they
+are not part of a palette: one block per mode and contrast (`[data-mode]`, `[data-contrast="high"] [data-mode]`), tuned from
+Mithril dark high contrast. A unit card carries no palette accent: game colours and neutrals only (the experience bar,
+the Might/Will/Fate frame, path and spell chips, a stat raised by gear). The checker tests each palette together with the game colours of its mode and contrast.
+
 **High contrast.** Every palette and mode also has a high-contrast variant, selected by `data-contrast="high"` on `<html>`
 (the blocks match `<html>` itself and the preview swatches inside it). The checker holds it to AAA: text 7:1, the accent,
-`gold`, `sergeant` and `hero` 4.5:1, and `line` 3:1 against `surface` and `page`. The `gold` token (ring, leader frame,
-medals, gold badges) becomes the complement of the palette's accent so the two stand apart: pink in Forest (green
-accent), cyan in Ember (red accent); Mithril already pairs blue with yellow and only gets brighter and deeper. The
-focus ring takes the same contrasting colour. The **High contrast** checkbox (in `theme_controls`, below the palettes,
+`gold`, `sergeant` and `hero` 4.5:1, and `line` 3:1 against `surface` and `page`. The `gold` token (ring, medals, gold
+badges) is the same amber in every palette. The focus ring takes the complement of the palette's accent so it stands
+apart: pink in Forest (green accent), cyan in Ember (red accent); Mithril already pairs blue with yellow. The game colours
+stay amber, green, blue and red. The **High contrast** checkbox (in `theme_controls`, below the palettes,
 and in the `/styleguide` theme lab; `$store.theme.highContrast` / `setContrast`, input `[data-contrast-toggle]`) writes the
 cookie `bcm-contrast=high|normal`, per browser and not in the account. Without that cookie `theme-init.js` follows the
 operating system's `prefers-contrast: more`.
@@ -343,8 +349,8 @@ where they do not count), with the explanation in the tooltip) and one **card pe
 (`core.OrderUnits`: leader, sergeants, other heroes, regular units, unless the player saved another order).
 
 A card, top to bottom:
-- **Frame and insignia** for the unit's place, with no text tag, each in its own colour in every palette (the rank tokens):
-  leader gold and doubled with three rank chevrons, sergeant green and doubled with two, other heroes solid blue with
+- **Frame and insignia** for the unit's place, with no text tag, each in its own colour in every palette (the game colours):
+  leader amber and doubled with three rank chevrons, sergeant green and doubled with two, other heroes solid blue with
   one, regular units thin. The shape of the insignia tells them apart without colour.
 - **Title plate** (`.unit-head`) across the top: kind icon, the name (a click renames, see "Renaming units") over a second line
   that is always there (the type when the unit has its own name, the points against its right edge, so every plate is the icon's 48 px), and alone on the
@@ -393,7 +399,7 @@ A card, top to bottom:
   know the parameter). The expanded card prints the line (`data-works`) under each rule. An own rule and a rule the table does not list have no line; a
   ruleset without `data.ruleTargets` has plain tooltips. **Nothing is highlighted on the unit's own card** for an enemy rule.
 - **Attributes** from the vanilla file's `stats` list (`VanillaBook.Stats/Profile`): Mv FV SV S D A W C I, then M W F for
-  heroes that have any, as a datasheet profile (`.statline`, `.statline-hero`): the names on a strip above the values. Values the company raised are green, lowered red; hovering shows the full name. The backend
+  heroes that have any, as a datasheet profile (`.statline`, `.statline-hero`, framed in `muted`): the names on a strip above the values. Values the company raised are green, lowered red; hovering shows the full name. The backend
   fills them dynamically; the page just draws what it is given.
 - **Buy buttons**: two small `+` chips (`eq-add eq-add-sm`, text size) open the armoury window filtered with `?kind=wargear`
   (right after the "Wargear" label, which has its own line, items below) or `?kind=equipment` (right after the "Equipment"
@@ -407,15 +413,15 @@ A card, top to bottom:
   (`24" · S2`) and items with rules have a dashed outline and a `?`, with a hover preview.
 - **Path** (every hero, the leader and sergeants included): a box between the equipment and the special rules, headed by the path's icon (one game-icons.net icon per path in a round badge, `path_icon`; also in the
   path window and the fallen card) and its name, the "Path of the" lead small above the rest (`pathLook` in `paths.go`; on the unit card and the fallen card the name alone, beside a smaller badge, `path_name` with Short). Badge
-  and box take the colour of the kind of hero the path makes: melee red (`danger`), ranged green (`success`), command gold,
-  magic blue (`hero`), the rest muted; a path the app does not know gets the medal. The name's tooltip is the glossary's text
+  and box take the colour of the kind of hero the path makes: melee red (`path-melee`), ranged green (`path-ranged`), command
+  amber (`leader`), magic blue (`path-magic`), the rest muted; a path the app does not know gets the medal. The name's tooltip is the glossary's text
   of the path with its characteristic limits and level-up chart, as in the level-up window. Folded, it lists the heroic actions unlocked so far (the unit's own, the path's and those bought later; their text comes
   from the glossary term of the same name) and the special rules the path gave, and the magical powers it taught (the Path of the Sorcerer; a spell icon with
   casting value and range); unfolded, the same heading opens a section that has them in full. Those rules are not repeated below (`CompanyUnit.Path`). Magical powers a unit knows from some other source stay among the special rules, after its own rules.
 - **Special rules**, sorted unit, spells, equipment (`core.SortRules`); spells are highlighted with a star,
   their casting value and range; every rule previews its description on hover.
 - **Level and experience**: the level on a gold medal (`.level-medal`) and a bar of `XPInLevel / 5` cut into one segment per
-  point (`.xp-bar`, `--seg` is `LevelEvery`) at the bottom. A unit with promotions waiting gets a gold
+  point (`.xp-bar`, `--seg` is `LevelEvery`; filled in `muted`, `.xp-fill`, or `warn` while a level-up waits) at the bottom. A unit with promotions waiting gets a gold
   **"Level Up ready!" banner across the top of its card** (a slow shine, a Roll chip; it is the level-up button). A unit gains a
   level only when its roll is made, so it can have several rolls pending (15 XP at level 0 is "×3",
   `PendingLevelUps`). The banner opens the level-up panel (roll, re-roll, choose; `levelup.go`). In a running match the experience earned so

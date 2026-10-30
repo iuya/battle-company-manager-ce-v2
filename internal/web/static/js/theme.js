@@ -96,10 +96,11 @@ document.addEventListener("alpine:init", () => {
   Alpine.data("contrast", () => ({
     rows: [],
     tokens: [],
-    names: ["page", "surface", "raised", "line", "fg", "muted", "accent", "accent-fg", "accent-text", "accent-soft", "danger", "danger-soft", "success", "success-soft", "gold", "leader-soft", "sergeant", "sergeant-soft", "hero", "hero-soft"],
+    names: ["page", "surface", "raised", "line", "fg", "muted", "accent", "accent-fg", "accent-text", "accent-soft", "danger", "danger-soft", "success", "success-soft", "gold", "leader", "leader-soft", "sergeant", "sergeant-soft", "hero", "hero-soft", "path-melee", "path-ranged", "path-magic"],
     pairs: [
       ["fg", "page"], ["fg", "surface"], ["muted", "page"], ["muted", "surface"], ["accent-fg", "accent"],
       ["accent-text", "page"], ["accent-text", "surface"], ["danger", "surface"], ["success", "surface"], ["fg", "accent-soft"], ["muted", "leader-soft"], ["muted", "sergeant-soft"], ["muted", "hero-soft"],
+      ["leader", "surface"], ["path-melee", "surface"], ["path-ranged", "surface"], ["path-magic", "surface"],
     ],
     init() {
       window.addEventListener("themechange", () => this.compute());

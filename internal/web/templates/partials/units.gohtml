@@ -220,7 +220,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   {{/* Attributes: the profile, then (for heroes) Might, Will and Fate. The backend decides which exist. */}}
   <div class="flex flex-wrap justify-center gap-x-3 gap-y-1.5" role="group" aria-label="Attributes">
     <dl class="statline">
-      {{range $u.Stats}}{{if and (not .HeroOnly) (not (and $lu (liveStat .Name)))}}<div class="{{if .Gear}}ring-1 ring-inset ring-accent{{end}}" title="{{statTip .Name $u.StatMods}}"><dt>{{.Abbr}}</dt><dd class="{{if and (gt .Boost 0) (ne .Trail "+")}}tone-win{{else if and (lt .Boost 0) (eq .Trail "+")}}tone-win{{else if ne .Boost 0}}tone-loss{{end}}">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}
+      {{range $u.Stats}}{{if and (not .HeroOnly) (not (and $lu (liveStat .Name)))}}<div class="{{if .Gear}}ring-1 ring-inset ring-muted{{end}}" title="{{statTip .Name $u.StatMods}}"><dt>{{.Abbr}}</dt><dd class="{{if and (gt .Boost 0) (ne .Trail "+")}}tone-win{{else if and (lt .Boost 0) (eq .Trail "+")}}tone-win{{else if ne .Boost 0}}tone-loss{{end}}">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}
     </dl>
     {{if and $u.HasHeroStats (not $lu)}}
     <dl class="statline statline-hero">
@@ -377,7 +377,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     {{/* In a match the experience earned so far follows the bar's fill in the magic path's colour, up to the end of the level; the
        "+N" before the count says how much, also past the level. */}}
     {{$mxp := 0}}{{if $lu}}{{$mxp = $lu.MatchXP}}{{end}}
-    <div class="xp-bar" style="--seg: {{$u.LevelEvery}}" role="progressbar" aria-valuemin="0" aria-valuemax="{{$u.LevelEvery}}" aria-valuenow="{{$u.XPInLevel}}"{{if $mxp}} aria-valuetext="{{$u.XPInLevel}} of {{$u.LevelEvery}}, {{$mxp}} more earned this match"{{end}} aria-label="Experience"><div class="h-full {{if $u.PendingLevelUps}}bg-warn{{else}}bg-accent{{end}}" style="width: {{pct $u.XPInLevel $u.LevelEvery}}%"></div>{{if $mxp}}<div class="xp-match h-full" style="width: {{pct (xpAhead $u.XPInLevel $u.LevelEvery $mxp) $u.LevelEvery}}%"></div>{{end}}</div>
+    <div class="xp-bar" style="--seg: {{$u.LevelEvery}}" role="progressbar" aria-valuemin="0" aria-valuemax="{{$u.LevelEvery}}" aria-valuenow="{{$u.XPInLevel}}"{{if $mxp}} aria-valuetext="{{$u.XPInLevel}} of {{$u.LevelEvery}}, {{$mxp}} more earned this match"{{end}} aria-label="Experience"><div class="h-full {{if $u.PendingLevelUps}}bg-warn{{else}}xp-fill{{end}}" style="width: {{pct $u.XPInLevel $u.LevelEvery}}%"></div>{{if $mxp}}<div class="xp-match h-full" style="width: {{pct (xpAhead $u.XPInLevel $u.LevelEvery $mxp) $u.LevelEvery}}%"></div>{{end}}</div>
     <span class="text-muted">{{if $mxp}}<span class="xp-match-text" title="Earned this match: added in the aftermath">+{{$mxp}}</span> {{end}}{{$u.XPInLevel}} / {{$u.LevelEvery}} XP</span>
   </div>
   {{end}}
