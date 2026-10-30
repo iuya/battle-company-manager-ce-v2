@@ -284,7 +284,25 @@ func (lc liveContext) view(snap LiveSnapshot, user User, co CampaignCompany) Liv
 			out.Absent = append(out.Absent, in.UnitID)
 		}
 	}
+	if lc.rules != nil {
+		for i := range out.Units {
+			out.Units[i].MatchXP = MatchExperience(out.Units[i], lc.rules.BC.ExperienceGain)
+		}
+	}
 	return out
+}
+
+// MatchExperience is what a unit has earned so far in the match: taking part, each gain times its amount, and the objective. amount is
+// the file's experience.gains amount by key.
+func MatchExperience(u LiveUnit, amount func(key string) int) int {
+	xp := amount(participatedKey)
+	for k, n := range u.Gains {
+		xp += n * amount(k)
+	}
+	if u.Objective {
+		xp += amount(GainObjective)
+	}
+	return xp
 }
 
 // Live is the live state of a company in an open match. ErrNotFound when the company is in no open match (the page is the usual one).

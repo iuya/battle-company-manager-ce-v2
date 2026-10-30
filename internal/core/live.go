@@ -35,6 +35,9 @@ type LiveUnit struct {
 	MountWounds               LiveStat       // Start 1 unless the mount's profile says more
 	Gains                     map[string]int // experience earned so far by campaign.experience.gains key (flags 0 or 1)
 	Objective                 bool           // got the objective (an end check, not in Gains: the aftermath adds it)
+	// MatchXP is the experience earned so far, at the file's amounts: taking part, Gains and the objective. The MVP, Against the Odds and
+	// the scenario rewards are only known at the end. Set by the service (0 without a rules file); the card shows it ahead of the bar.
+	MatchXP int
 	// FateEntry and BrokenEntry are the unit's last not-undone fate and broken entries (0 for none): what pressing a lit Fate or Courage
 	// milestone undoes.
 	FateEntry, BrokenEntry int64

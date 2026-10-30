@@ -418,7 +418,10 @@ A card, top to bottom:
   point (`.xp-bar`, `--seg` is `LevelEvery`) at the bottom. A unit with promotions waiting gets a gold
   **"Level Up ready!" banner across the top of its card** (a slow shine, a Roll chip; it is the level-up button). A unit gains a
   level only when its roll is made, so it can have several rolls pending (15 XP at level 0 is "×3",
-  `PendingLevelUps`). The banner opens the level-up panel (roll, re-roll, choose; `levelup.go`).
+  `PendingLevelUps`). The banner opens the level-up panel (roll, re-roll, choose; `levelup.go`). In a running match the experience earned so
+  far (`LiveUnit.MatchXP`, `core.MatchExperience`: taking part, the gains and the objective at the file's amounts; the MVP, Against the Odds
+  and scenario rewards only come at the end) follows the fill in the magic path's colour (`--hero`, `.xp-match`), up to the end of the level,
+  and the count reads "+2 0 / 5 XP" with the "+2" in the same colour (`.xp-match-text`; the bar's `aria-valuetext` says it too).
 
 **Item icons.** Every item has an icon: specific ones by name (backpack, badge, rope, drum, horn, standard, cloak, brew, herbs,
 talisman, map, boots, ring, scroll, seeing stone, torch, snares, pelt, cram, belt, vial, blowpipe, axe, barding;
@@ -912,7 +915,7 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
 - **Trackers** (`live_trackers`, replace W, Might, Will, Fate in the attribute row; `.tracker*`, `.seg-hit` in `tailwind.css`): a segmented bar
   like the experience one, led by the stat's full name (Might, Will, Fate, Wounds), one segment per point of the start value, full up to the
   current one, then `current/start`; Wounds uses hearts instead of segments, inside the same 16 px row. One stat per row,
-  left-aligned so the bars line up: Might, Will and Fate (heroes) in that order, then Wounds, always shown, also when it starts at 1 (a plain
+  left-aligned so the bars line up, and the counts in a column after the longest bar (the rows are subgrids of one grid): Might, Will and Fate (heroes) in that order, then Wounds, always shown, also when it starts at 1 (a plain
   warrior): taking it to 0 makes the unit a Field casualty, as Died does. Each stat has its own colour on its bold name and its bar: the theme tokens of the path kinds (`.path-k-*`), so
   gold Might (command), hero blue Will (magic), success green Fate (ranged) and danger red Wounds (melee, as the Soldier) (an empty segment or heart is a faint tint of it with a thin outline that
   does not change its size). The owner taps a segment (22 x 16 px):

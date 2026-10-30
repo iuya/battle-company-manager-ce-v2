@@ -149,7 +149,7 @@ func TestLoanedItemsTemporaryWandererAndItemUsed(t *testing.T) {
 		lc.Units[0].UsedItems = []string{"Hand weapon"}
 	})
 	body := livePage(f)
-	for _, want := range []string{`aria-label="Loaned items"`, "Dwarven Brew", "Loaned (Raider&#39;s Kit)", `aria-label="Torching Brand, used"`, "use after the game", "Radagast", "Temporary", "Taken with Against the Odds", "F4/2 Courage 6", "45 <span class=\"font-normal text-muted\">pts"} {
+	for _, want := range []string{`aria-label="Loaned items"`, "Dwarven Brew", "Loaned (Raider&#39;s Kit)", `aria-label="Torching Brand, used"`, "use after the game", "Radagast", "Temporary", "Taken with Against the Odds", "F4/2 Courage 6", "<span class=\"font-semibold text-fg\">45</span> pts"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("card lacks %q", want)
 		}

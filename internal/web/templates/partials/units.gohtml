@@ -374,8 +374,11 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   {{else}}
   <div class="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-2 text-xs">
     <span class="level-medal" title="Level {{$u.Level}} · {{$u.XP}} XP in total"><span class="sr-only">Level </span>{{$u.Level}}</span>
-    <div class="xp-bar" style="--seg: {{$u.LevelEvery}}" role="progressbar" aria-valuemin="0" aria-valuemax="{{$u.LevelEvery}}" aria-valuenow="{{$u.XPInLevel}}" aria-label="Experience"><div class="h-full rounded-full {{if $u.PendingLevelUps}}bg-warn{{else}}bg-accent{{end}}" style="width: {{pct $u.XPInLevel $u.LevelEvery}}%"></div></div>
-    <span class="text-muted">{{$u.XPInLevel}} / {{$u.LevelEvery}} XP</span>
+    {{/* In a match the experience earned so far follows the bar's fill in the magic path's colour, up to the end of the level; the
+       "+N" before the count says how much, also past the level. */}}
+    {{$mxp := 0}}{{if $lu}}{{$mxp = $lu.MatchXP}}{{end}}
+    <div class="xp-bar" style="--seg: {{$u.LevelEvery}}" role="progressbar" aria-valuemin="0" aria-valuemax="{{$u.LevelEvery}}" aria-valuenow="{{$u.XPInLevel}}"{{if $mxp}} aria-valuetext="{{$u.XPInLevel}} of {{$u.LevelEvery}}, {{$mxp}} more earned this match"{{end}} aria-label="Experience"><div class="h-full {{if $u.PendingLevelUps}}bg-warn{{else}}bg-accent{{end}}" style="width: {{pct $u.XPInLevel $u.LevelEvery}}%"></div>{{if $mxp}}<div class="xp-match h-full" style="width: {{pct (xpAhead $u.XPInLevel $u.LevelEvery $mxp) $u.LevelEvery}}%"></div>{{end}}</div>
+    <span class="text-muted">{{if $mxp}}<span class="xp-match-text" title="Earned this match: added in the aftermath">+{{$mxp}}</span> {{end}}{{$u.XPInLevel}} / {{$u.LevelEvery}} XP</span>
   </div>
   {{end}}
   {{/* Keywords: race, factions and the types the icon and insignia do not say; a lost mount changes none of them. Seldom needed at
@@ -420,7 +423,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
 
 
 {{/* The trackers of a unit in a running match, as segmented bars like the experience one (`.tracker*`, `.seg-hit` in tailwind.css), each led by
-   the stat's full name: Might, Will and Fate for heroes, always in that order, then Wounds, the model's life, as hearts on a row of the same height; one stat per row, left-aligned so the bars line up, each
+   the stat's full name: Might, Will and Fate for heroes, always in that order, then Wounds, the model's life, as hearts on a row of the same height; one stat per row, left-aligned so the bars line up and the counts form a column after the longest bar, each
    in its own colour in every theme (gold, blue, green, red). Wounds is always shown, also at 1 (a plain warrior): taking it to 0 is how
    the model falls (a Field casualty, like Died). The owner taps a segment: the last full one takes one off, the first empty one adds one, any other sets the value to that
    segment; everybody else only reads. Every tap is one entry in the match log, answered by the zones (htmx). Takes {U, L: core.LiveUnit, LV, CID}. */}}
@@ -454,9 +457,11 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </span>
   <span class="tracker-count" aria-hidden="true">{{$t.Current}}/{{$t.Start}}</span>
   {{else}}
+  <span class="tracker-bar items-center">
   {{if $lv.Edit}}<button type="button" class="btn btn-secondary !min-h-7 !min-w-7 !px-0" aria-label="{{.N}} of {{$u.Title}} down by one" hx-post="{{$base}}" hx-vals='{"kind":"stat","unit":"{{$u.ID}}","stat":"{{.S}}","delta":"-1"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all" {{if le $t.Current 0}}disabled{{end}}>−</button>{{end}}
   <span class="px-2 font-semibold {{if eq $t.Current 0}}text-danger{{end}}">{{$t.Current}}<span class="text-sm font-normal text-muted"> / {{$t.Start}}</span></span>
   {{if $lv.Edit}}<button type="button" class="btn btn-secondary !min-h-7 !min-w-7 !px-0" aria-label="{{.N}} of {{$u.Title}} up by one" hx-post="{{$base}}" hx-vals='{"kind":"stat","unit":"{{$u.ID}}","stat":"{{.S}}","delta":"1"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all" {{if ge $t.Current $t.Start}}disabled{{end}}>+</button>{{end}}
+  </span>
   {{end}}
 </div>
 {{end}}

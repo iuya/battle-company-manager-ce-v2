@@ -304,3 +304,8 @@ func strikeMountGear(u unitView) unitView {
 	}
 	return u
 }
+
+// xpAhead is how much of the experience earned in the match fits in the unit's current level: the rest of the bar at most.
+func xpAhead(inLevel, every, match int) int {
+	return max(0, min(match, every-inLevel))
+}

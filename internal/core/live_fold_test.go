@@ -452,3 +452,23 @@ func TestFoldKeepsTheLastFateAndBrokenEntryOfAUnit(t *testing.T) {
 		t.Errorf("with the later ones undone, the earlier fate entry: %+v", u)
 	}
 }
+
+func TestMatchExperience(t *testing.T) {
+	amounts := map[string]int{participatedKey: 1, GainWoundedEnemy: 1, GainSlainHeroMons: 2, GainObjective: 3, GainMVP: 5}
+	amount := func(k string) int { return amounts[k] }
+	cases := []struct {
+		name string
+		u    LiveUnit
+		want int
+	}{
+		{"taking part only", LiveUnit{}, 1},
+		{"a flag and a repeated count", LiveUnit{Gains: map[string]int{GainWoundedEnemy: 1, GainSlainHeroMons: 2}}, 1 + 1 + 4},
+		{"a gain the file does not pay", LiveUnit{Gains: map[string]int{GainFatePrevented: 1}}, 1},
+		{"the objective", LiveUnit{Objective: true}, 1 + 3},
+	}
+	for _, c := range cases {
+		if got := MatchExperience(c.u, amount); got != c.want {
+			t.Errorf("%s: got %d, want %d", c.name, got, c.want)
+		}
+	}
+}
