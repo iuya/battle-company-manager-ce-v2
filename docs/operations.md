@@ -75,6 +75,28 @@ docker pull ghcr.io/iuya/battle-company-manager-ce-v2:1.1.0 && docker inspect --
 migrated the database, restore the backup taken before the upgrade (Restore, below) rather than only swapping the image. A bad tag can be removed on the package page (*Versions* > delete);
 fix forward with a new patch tag rather than re-pushing the same tag.
 
+## Running the published image on a server
+
+`deploy/` is a kit for one Linux server that always runs the newest stable release without a checkout of the source. It needs Docker with the compose plugin, `curl`, `flock` and systemd; nothing else.
+
+| File | What it is |
+|---|---|
+| `deploy/compose.prod.yaml` | Caddy, the app and PostgreSQL. Installed as `/opt/bcm/compose.yaml`. Only Caddy publishes ports (80, 443 and 443/udp); the app and the database sit on internal networks. The app runs read-only, with every capability dropped, memory, CPU and process limits, `TRUST_PROXY=true` and `SECURE_COOKIES=true`; container logs rotate (10 MB x 5). |
+| `deploy/Caddyfile` | Automatic HTTPS for `SITE_ADDRESS`, HTTP redirected to HTTPS, a 17 MB request cap, the client address handed to the app as `X-Forwarded-For` (replacing whatever the client sent), live streams unbuffered, no `Server` header, admin API off. |
+| `deploy/env.example` | The `/opt/bcm/.env` the installer writes: `SITE_ADDRESS`, a `POSTGRES_PASSWORD` generated on the host, `APP_IMAGE` (kept by the updater), `CSP_MODE`. Mode 0600, never committed. |
+| `deploy/install.sh` | Copies the kit and the backup scripts into `/opt/bcm` (`BCM_DIR` changes it), creates `.env` once, enables the timers. `sudo SITE_ADDRESS=bcm.example.org deploy/install.sh` |
+| `deploy/bcm-update.sh` + `systemd/bcm-update.{service,timer}` | The pull-based updater, every 15 minutes: asks ghcr.io for the digest of the `latest` tag (`UPDATE_TAG` follows another), and when it differs takes a dump, writes `APP_IMAGE=...@sha256:<digest>` into `.env`, pulls, starts, waits for the health check and probes `/readyz` through Caddy. A release that does not become ready is replaced by the previous digest. `UPDATE_DIGEST=sha256:...` deploys an exact digest, `CHECK_ONLY=1` only prints. State is in `/opt/bcm/state` (`current-image`, `previous-image`). The server is therefore always on an immutable digest, never on a moving tag. |
+| `deploy/bcm-backup.sh` + `systemd/bcm-backup.{service,timer}` | Nightly 03:15 dump (14 kept on disk), then the optional off-site hook `/opt/bcm/offsite-hook.sh <dump>`; a failing hook turns the unit red. |
+| `systemd/bcm-restore-drill.{service,timer}` | The monthly restore drill of `scripts/restore-drill.sh` (below). |
+| `deploy/bootstrap-admin.sh` | The first account: `sudo /opt/bcm/bootstrap-admin.sh you@example.org "Your Name"`. The password is typed at the prompt; it is in no argument, file or log. |
+| `deploy/aws/` | Amazon Web Services specifics: `host-setup.sh` prepares an Amazon Linux 2023 instance (Docker, swap, security updates, then `install.sh`) and `offsite-s3.sh` is an off-site hook that copies dumps to a private S3 bucket with the instance role. |
+
+**First start.** Point a DNS name at the server (Let's Encrypt validates it), open 80 and 443 in the firewall and nothing else, then run `deploy/install.sh` as above (on AWS, `deploy/aws/host-setup.sh`, which calls it), create the first account with `bootstrap-admin.sh`, and open `https://<name>/`. The first update run starts everything; follow it with `journalctl -u bcm-update`. Check the state with `cat /opt/bcm/state/current-image`, `docker compose -f /opt/bcm/compose.yaml ps` and `systemctl list-timers 'bcm-*'`.
+
+**Rollback.** `UPDATE_DIGEST=$(cat /opt/bcm/state/previous-image | sed 's/.*@//') /opt/bcm/bcm-update.sh` goes back to the previous release; stop the update timer first (`systemctl stop bcm-update.timer`) or the next run moves forward again. If the newer release migrated the database and the old one refuses it, stop the app and restore the dump taken just before the update (`/opt/bcm/backups`, newest first): see Restore below.
+
+**Tested locally.** `make test-backup-restore` (`scripts/test-backup-restore.sh`) lays out a scratch directory like `/opt/bcm`, starts PostgreSQL there under its own compose project, migrates it, backs up, changes the data, restores, and runs the drill; it removes everything afterwards and needs Docker and Go.
+
 ## Content-Security-Policy: report mode, then enforce
 
 Production starts in `CSP_MODE=report` (the default): the browser loads everything, sends each violation to `POST /csp-report` and the app logs one line. Before the switch the browser suite already ran
