@@ -198,18 +198,24 @@ func TestLiveUndoAnswersZonesAndShowsTheDependencyRefusal(t *testing.T) {
 	}
 }
 
-func TestTrackersAreButtonsForTheOwnerAndNumbersForAViewer(t *testing.T) {
-	f := liveOwnerSetup(t, core.LiveEdit)
+func TestTrackersArePipsForTheOwnerAndMarksForAViewer(t *testing.T) {
+	threeWounds := func(c *core.LiveCompany) { c.Units[0].Wounds = core.LiveStat{Current: 2, Start: 3} }
+	f := liveSetupWith(t, core.LiveEdit, threeWounds)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
-	for _, want := range []string{`data-tracker="wounds"`, `Wounds of Hador down by one`, `"delta":"-1"`, `name="set"`, `max="1"`} {
+	for _, want := range []string{`data-tracker="wounds"`, `aria-label="Wounds of Hador: 2 of 3"`, `Wounds of Hador down by one`, `"delta":"-1"`,
+		`Wounds of Hador up by one`, `"delta":"1"`, `Set Wounds of Hador to 1`, `"set":"1"`, `class="pip-heart is-on"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("owner lacks %q", want)
 		}
 	}
-	g := liveOwnerSetup(t, core.LiveNone)
+	g := liveSetupWith(t, core.LiveNone, threeWounds)
 	body = g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
-	if !strings.Contains(body, `data-tracker="wounds"`) || strings.Contains(body, "down by one") || strings.Contains(body, `name="set"`) {
+	if !strings.Contains(body, `data-tracker="wounds"`) || strings.Contains(body, "down by one") || strings.Contains(body, `"set":`) {
 		t.Error("a viewer reads the trackers, nothing more")
+	}
+	h := liveOwnerSetup(t, core.LiveEdit)
+	if body := h.do(h.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String(); strings.Contains(body, `data-tracker="wounds"`) {
+		t.Error("a model with one wound has no Wounds tracker")
 	}
 }
 

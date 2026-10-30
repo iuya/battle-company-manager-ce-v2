@@ -488,6 +488,24 @@ html[data-mode="dark"] { color-scheme: dark; }
   .statline-hero { @apply border-accent; }
   .statline-hero > div { @apply min-w-14; }
   .statline-hero dt { @apply bg-accent-soft px-2; }
+  /* The trackers of a live match (live_trackers): Might, Will and Fate as dots on one row (or one row each when they do not fit), then
+     Wounds as red hearts on a row of their own. A pip sits in a 28 x 32 px tap area that overlaps the card gap above and below (negative margin), so the rows sit close to the
+     statline and the wargear; full is filled, empty an outline. */
+  .live-trackers { @apply -my-1.5 flex flex-col gap-1; }
+  .tracker-row { @apply flex flex-wrap items-center justify-center gap-x-3; }
+  .tracker-rows { @apply flex flex-col self-center; }
+  .tracker { @apply flex items-center; }
+  .tracker-label { @apply w-6 shrink-0 text-[10px] font-semibold uppercase leading-none text-muted; }
+  .pip-hit { @apply inline-flex h-8 w-7 shrink-0 items-center justify-center rounded-md text-muted; }
+  button.pip-hit:hover { @apply bg-raised; }
+  .tracker-pip { @apply block h-[18px] w-[18px] rounded-full border-2 border-current; }
+  .tracker-pip.is-on { @apply border-fg bg-fg; }
+  .tracker-wounds { @apply border-t border-line pt-1; }
+  .tracker-wounds .tracker-label { @apply w-auto pr-2; }
+  .tracker-wounds .pip-hit { @apply h-9 w-8 text-danger; }
+  .pip-heart { @apply block h-6 w-6; fill: none; stroke: currentColor; stroke-width: 2; }
+  .pip-heart.is-on { fill: currentColor; }
+  .tracker-count { @apply ml-auto pl-2 text-sm text-muted; }
   /* Level and experience: the level on a gold medal, the bar cut into one segment per experience point of a level. */
   .level-medal { @apply inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full border-2 border-gold bg-surface px-1 font-heading text-base font-bold leading-none text-fg; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gold) 22%, transparent); font-variant-numeric: lining-nums; }
   .xp-bar { @apply relative h-2.5 min-w-20 flex-1 overflow-hidden rounded-full bg-raised; }

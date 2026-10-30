@@ -47,7 +47,7 @@ export default async function (h) {
   await h.step('live: a tracker change reaches the viewer through the event stream, and Undo reverts it', async () => {
     await you.goto(`/campaigns/${cid}/companies/${eCo}`);
     await you.waitText('is running');
-    const label = (v) => `[aria-label="Might of Rider of Rohan: ${v} of 1, tap to set"]`;
+    const label = (v) => `[aria-label="Might of Rider of Rohan: ${v} of 1"]`;
     await you.page.waitForSelector(label(1));
     await eowyn.click('main button[aria-label="Might of Rider of Rohan down by one"]', '');
     await you.page.waitForSelector(label(0), { timeout: 8000 });
@@ -172,7 +172,7 @@ export default async function (h) {
     if (streamMode === 'refuse') return req.respond({ status: 429, contentType: 'text/plain', headers: { 'Retry-After': '10' }, body: 'busy' });
     return req.continue();
   });
-  const might = (v) => `[aria-label="Might of Rider of Rohan: ${v} of 1, tap to set"]`;
+  const might = (v) => `[aria-label="Might of Rider of Rohan: ${v} of 1"]`;
 
   await h.step('live: a cut stream shows Reconnecting and the page catches up when it is back', async () => {
     you.allow.push(/connectionfailed|events/i);

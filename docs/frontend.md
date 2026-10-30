@@ -908,8 +908,12 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
   viewer's side and of the company on the page, each read through `Live` and `CompanyDetail`), so the refresh of `#live-zones` redraws the markers and a
   unit that retreats or falls loses its marker; a viewer with no company in the match, and the viewer's own side, get none. Without `data.ruleTargets`
   no rule has targets and nothing is marked. Read errors of the extra companies drop the markers, never the page.
-- **Trackers** (`live_trackers`, replace W, Might, Will, Fate in the attribute row): `-` and `+` (44 px high), a tap on the number opens a
-  "set to" field; the buttons are disabled at 0 and at the start value; the number is red at 0 (and at 1 for Wounds when it started higher).
+- **Trackers** (`live_trackers`, replace W, Might, Will, Fate in the attribute row; `.tracker*`, `.pip-hit`, `.pip-heart` in `tailwind.css`): one pip per point
+  of the start value, full up to the current one. Might, Will and Fate (heroes) keep that order on one row while they add up to 7 pips or
+  fewer and take one row each above that, so none hangs alone at 360 px; Wounds goes last, as red hearts on its own row with `current/start`,
+  and is not shown when it starts at 1 (that model falls through the enemy's Wounded action or Died). The owner taps a pip (28 x 32 px):
+  the last full one is `delta -1` ("... down by one"), the first empty one `delta +1` ("... up by one"), any other `set` to that pip
+  ("Set ... to N"); a viewer gets the same pips as marks. Above 6 pips a tracker falls back to the number between 36 px `-` and `+`.
   Each press is one `POST .../matches/{match}/live/{company}/actions` (`kind=stat`, `unit`, `stat`, `delta` or `set`), answered by
   `live_response`: the zones plus an out-of-band **toast** (`#live-toast`) with the log text and **Undo**, or, on a refusal, 422 with
   the state as it is and the reason as the toast. A viewer's write is 403. Live POSTs are not wrapped in `once()`.
