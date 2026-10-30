@@ -295,6 +295,8 @@ type pathView struct {
 	Actions []actionView
 	Rules   []ruleView
 	Powers  []ruleView // magical powers learned through the path
+	TipText string     // the glossary's text of the path, for the tooltip of its name
+	TipPath string     // and its limits and chart (tipPath)
 }
 
 // unitView is a unit as the company page draws it.
@@ -336,6 +338,9 @@ func unitViews(g core.Glossary, units []core.CompanyUnit) []unitView {
 		}
 		if u.Path != nil {
 			pv := &pathView{Name: u.Path.Name}
+			if term, ok := g.Find(u.Path.Name); ok {
+				pv.TipText, pv.TipPath = term.Text(), tipPath(term.Path)
+			}
 			for _, a := range u.Path.HeroicActions {
 				av := actionView{HeroicAction: a}
 				if term, ok := g.Find(a.Name); ok {

@@ -176,7 +176,7 @@
         <div class="flex flex-wrap justify-center overflow-hidden rounded-lg border border-line text-center">
           <template x-for="l in tip.path.limits" :key="l[0]"><div class="min-w-9 border-r border-line bg-surface px-1.5 py-1"><p class="text-[10px] font-semibold uppercase leading-none text-muted" x-text="l[2]"></p><p class="text-sm font-semibold" x-text="l[1]"></p></div></template>
         </div>
-        <p class="text-xs font-semibold uppercase tracking-wide text-muted">Level-up chart<template x-if="tip.path.dice"> (<span x-text="tip.path.dice"></span>)</template></p>
+        <p class="text-xs font-semibold uppercase tracking-wide text-muted">Level-up chart <span x-show="tip.path.dice">(<span x-text="tip.path.dice"></span>)</span></p>
         <table class="w-full overflow-hidden rounded-lg border border-line text-xs">
           <template x-for="r in tip.path.rows" :key="r.roll"><tr class="border-b border-line last:border-0"><td class="w-8 bg-surface px-1.5 py-1 text-center font-semibold" x-text="r.roll"></td><td class="px-1.5 py-1" x-text="r.text.length > 110 ? r.text.slice(0, 110).replace(/\s+\S*$/, '') + '…' : r.text"></td></tr></template>
         </table>

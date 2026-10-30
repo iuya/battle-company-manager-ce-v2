@@ -384,9 +384,20 @@ html[data-mode="dark"] { color-scheme: dark; }
   .rule-equipment { border-left-color: var(--gold); }
   .rule-company { border-left-color: var(--gold); @apply border border-gold bg-warn/10; }
   .rule-spell { @apply bg-accent-soft text-accent-text; border-left-color: var(--accent); }
-  /* A hero's path: its name, heroic actions and rules, in a tinted box. */
-  .path-box { @apply rounded-lg border border-accent/40 bg-accent-soft/40 p-2; }
-  .path-name { @apply text-xs font-semibold uppercase tracking-wide text-accent-text; }
+  /* A hero's path: its icon and name, heroic actions and rules, in a box below the attributes, tinted by the kind of hero the
+     path makes (pathLook): melee red, ranged green, command gold, magic blue, the rest muted. Text-safe tokens in every palette. */
+  .path-k-melee { --path: var(--danger); }
+  .path-k-ranged { --path: var(--success); }
+  .path-k-command { --path: var(--gold); }
+  .path-k-magic { --path: var(--hero); }
+  .path-k-other { --path: var(--muted); }
+  .path-box { @apply rounded-lg border p-2; border-color: color-mix(in srgb, var(--path, var(--accent)) 45%, transparent); background: color-mix(in srgb, var(--path, var(--accent)) 8%, var(--surface)); }
+  .path-name { @apply flex items-center gap-2 leading-tight; color: var(--path, var(--accent-text)); }
+  .path-name[data-tip-title] { cursor: help; }
+  .path-lead { @apply block text-xs text-muted; }
+  .path-main { @apply block font-heading text-lg font-bold; }
+  .path-icon { @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-page; background: var(--path, var(--accent)); }
+  .path-icon > svg { height: 1.875rem; width: 1.875rem; } /* little margin: the badge is the icon, not a frame round it */
   .act-chip { @apply inline-flex items-center gap-1 rounded-md border border-gold bg-surface px-2 py-0.5 text-xs; }
   .act-chip[data-tip-title] { cursor: pointer; }
   .act-bought { @apply bg-gold/20; }

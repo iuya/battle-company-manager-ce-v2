@@ -26,6 +26,12 @@ Chosen for this app:
   [`wolf-trap`](https://game-icons.net/1x1/lorc/wolf-trap.html) (snare), [`tied-scroll`](https://game-icons.net/1x1/lorc/tied-scroll.html),
   [`horse-head`](https://game-icons.net/1x1/lorc/horse-head.html) (barding; `lorc-horse-head` in the template), [`medal`](https://game-icons.net/1x1/lorc/medal.html) (badge), [`poison-bottle`](https://game-icons.net/1x1/lorc/poison-bottle.html) (vial) by Lorc;
   [`belt`](https://game-icons.net/1x1/lucasms/belt.html) by Lucas.
+- Hero paths: [`bullseye`](https://game-icons.net/1x1/skoll/bullseye.html) (Sharpshooter) by Skoll;
+  [`compass`](https://game-icons.net/1x1/lorc/compass.html) (Tactician), [`crowned-skull`](https://game-icons.net/1x1/lorc/crowned-skull.html) (Claimant), [`padlock`](https://game-icons.net/1x1/lorc/padlock.html) (On Their Own Path), [`arrow-cluster`](https://game-icons.net/1x1/lorc/arrow-cluster.html) (Marksman), [`sword-clash`](https://game-icons.net/1x1/lorc/sword-clash.html) (Soldier),
+  [`wizard-staff`](https://game-icons.net/1x1/lorc/wizard-staff.html) (Sorcerer), [`checked-shield`](https://game-icons.net/1x1/lorc/checked-shield.html) (Shieldbearer),
+  [`boot-prints`](https://game-icons.net/1x1/lorc/boot-prints.html) (Ranger), [`crown`](https://game-icons.net/1x1/lorc/crown.html) (Warlord) by Lorc;
+  [`enrage`](https://game-icons.net/1x1/delapouite/enrage.html) (Berserker),
+  [`fencer`](https://game-icons.net/1x1/delapouite/fencer.html) (Duelist), [`hiking`](https://game-icons.net/1x1/delapouite/hiking.html) (Their Own Making) by Delapouite.
 - Mounts: [`goat`](https://game-icons.net/1x1/skoll/goat.html) by Skoll (goats).
 - Weapons and armour drawn more precisely than by their class: [`claw-slashes`](https://game-icons.net/1x1/lorc/claw-slashes.html) (claws, teeth and fangs), [`crossed-swords`](https://game-icons.net/1x1/lorc/crossed-swords.html) (twin blades), [`thrown-spear`](https://game-icons.net/1x1/lorc/thrown-spear.html) (throwing spears), [`unlit-bomb`](https://game-icons.net/1x1/lorc/unlit-bomb.html) (smoke bombs), [`crossed-chains`](https://game-icons.net/1x1/lorc/crossed-chains.html) (troll chain), [`whip`](https://game-icons.net/1x1/lorc/whip.html), [`leather-vest`](https://game-icons.net/1x1/lorc/leather-vest.html) (light armour), [`breastplate`](https://game-icons.net/1x1/lorc/breastplate.html) (heavy armour) by Lorc;
   [`warhammer`](https://game-icons.net/1x1/delapouite/warhammer.html) (mattock and hammers), [`glaive`](https://game-icons.net/1x1/delapouite/glaive.html),

@@ -427,6 +427,7 @@
   {{range .Offer.Paths}}
   <label {{with .Summary}}title="{{.}}" {{end}}class="flex items-start gap-3 rounded-lg border border-line px-3 py-2 {{if .Blocked}}text-muted{{else}}cursor-pointer hover:bg-accent-soft{{end}}">
     <input type="radio" name="path" value="{{.Name}}" x-model="path" class="mt-1 h-4 w-4 accent-[var(--accent)]" {{if .Blocked}}disabled{{end}} required>
+    {{template "path_icon" .Name}}
     <span class="min-w-0"><span class="font-medium">{{.Name}}</span>{{with .StartAction}} <span class="text-sm text-muted">· heroic action: {{.}}</span>{{end}}{{with .Description}}<span class="block text-sm">{{.}}</span>{{end}}{{with .Summary}}<span class="block text-xs text-muted">{{.}}</span>{{end}}{{with .Blocked}}<span class="block text-xs text-danger">Not available: {{.}}</span>{{end}}</span>
   </label>
   {{end}}

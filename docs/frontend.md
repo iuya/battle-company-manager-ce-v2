@@ -387,11 +387,13 @@ A card, top to bottom:
 - **Equipment**, always sorted mount, melee, shield, armour, ranged, rest (`core.SortEquipment`); each class has its own
   icon and colour, and an item can be several things (a blade-spear shows a spear and a blade icon and counts for each). Starting items are plain, bought ones carry a `+` and an accent fill, items with stats show them
   (`24" · S2`) and items with rules have a dashed outline and a `?`, with a hover preview.
-- **Path** (every hero, the leader and sergeants included): a box between the equipment and the special rules with the
-  path's name, the heroic actions unlocked so far (the unit's own, the path's and those bought later; their text comes
+- **Path** (every hero, the leader and sergeants included): a box between the equipment and the special rules, headed by the path's icon (one game-icons.net icon per path in a round badge, `path_icon`; also in the
+  path window and the fallen card) and its name, the "Path of the" lead small above the rest (`pathLook` in `paths.go`). Badge
+  and box take the colour of the kind of hero the path makes: melee red (`danger`), ranged green (`success`), command gold,
+  magic blue (`hero`), the rest muted; a path the app does not know gets the medal. The name's tooltip is the glossary's text
+  of the path with its characteristic limits and level-up chart, as in the level-up window. Folded, it lists the heroic actions unlocked so far (the unit's own, the path's and those bought later; their text comes
   from the glossary term of the same name) and the special rules the path gave, and the magical powers it taught (the Path of the Sorcerer; a spell icon with
-  casting value and range). Those rules are not repeated below
-  (`CompanyUnit.Path`). Magical powers a unit knows from some other source stay among the special rules, after its own rules.
+  casting value and range); unfolded, the same heading opens a section that has them in full. Those rules are not repeated below (`CompanyUnit.Path`). Magical powers a unit knows from some other source stay among the special rules, after its own rules.
 - **Special rules**, sorted unit, spells, equipment (`core.SortRules`); spells are highlighted with a star,
   their casting value and range; every rule previews its description on hover.
 - **Level and experience**: the level on a gold medal (`.level-medal`) and a bar of `XPInLevel / 5` cut into one segment per
