@@ -128,16 +128,12 @@ export default async function (h) {
     rohan.total = units.reduce((a, u) => a + u.pts, 0);
   });
 
-  await h.step('creation submit: the new companies are on the Companies and Rankings pages with their points', async () => {
+  await h.step('creation submit: the new companies are in the Rankings with their faction and points', async () => {
     for (const [s, title, faction] of [[shire, shireTitle, 'The Shire'], [rohan, rohanTitle, 'Rohan']]) {
-      await organiser.goto(`/campaigns/${cid}/companies`);
-      const card = await organiser.page.$$eval('main li a', (as, t) => as.filter((a) => a.innerText.includes(t)).map((a) => a.innerText.replace(/\s+/g, ' ')), title);
-      assert.equal(card.length, 1, `${title} is on the Companies page`);
-      assert.ok(card[0].includes(faction), `${title} shows its faction`);
-      assert.ok(card[0].includes(`${s.total} pts`), `${title} shows ${s.total} pts, the sum of its units (got "${card[0]}")`);
       await organiser.goto(`/campaigns/${cid}/rankings`);
       const row = await organiser.page.$$eval('main tbody tr', (rs, t) => rs.filter((r) => r.innerText.includes(t)).map((r) => r.innerText.replace(/\s+/g, ' ')), title);
       assert.equal(row.length, 1, `${title} is in the Rankings`);
+      assert.ok(row[0].includes(faction), `${title} shows its faction`);
       assert.ok(row[0].includes(String(s.total)), `the Rankings show ${s.total} points for ${title} (got "${row[0]}")`);
     }
   });
@@ -150,8 +146,8 @@ export default async function (h) {
     // the form page of a member who has a company does not offer another creation either
     await shire.goto(`/campaigns/${cid}/company/new`);
     assert.match(new URL(shire.page.url()).pathname, new RegExp(`^/campaigns/${cid}/my-company/\\d+$`), 'the creation page sends a member with a company to it');
-    await organiser.goto(`/campaigns/${cid}/companies`);
+    await organiser.goto(`/campaigns/${cid}/rankings`);
     assert.ok(!(await organiser.has('Second company')), 'no second company was created');
-    assert.equal(await organiser.page.$$eval('main li a h2', (e) => e.length), 2, 'two companies in the campaign');
+    assert.equal(await organiser.page.$$eval('main tbody tr', (e) => e.length), 2, 'two companies in the campaign');
   });
 }

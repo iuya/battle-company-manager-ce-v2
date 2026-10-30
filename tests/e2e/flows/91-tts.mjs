@@ -99,8 +99,8 @@ export default async function (h) {
 
   await h.step('tts: the switches (a Warg company) change the list without a page load and are remembered', async () => {
     gallery = await campaignId(you, 'Gallery');
-    await you.goto(`/campaigns/${gallery}/companies`);
-    const href = await you.page.evaluate(() => [...document.querySelectorAll('main a[href*="/companies/"]')].find((a) => /Angmar/.test(a.innerText))?.getAttribute('href'));
+    await you.goto(`/campaigns/${gallery}/rankings`);
+    const href = await you.page.evaluate(() => [...document.querySelectorAll('main tbody tr')].find((r) => /Angmar/.test(r.innerText))?.querySelector('a[href*="/companies/"]')?.getAttribute('href'));
     assert.ok(href, 'the Angmar company is in the gallery');
     await you.goto(href);
     await you.page.evaluate(() => localStorage.removeItem('bcm-tts'));
@@ -135,9 +135,9 @@ export default async function (h) {
 
   await h.step('tts: another player\'s company page has the button; the dialog works there', async () => {
     const pippinId = await eowyn.page.evaluate(async (c) => {
-      const html = await (await fetch(`/campaigns/${c}/companies`)).text();
+      const html = await (await fetch(`/campaigns/${c}/rankings`)).text();
       const doc = new DOMParser().parseFromString(html, 'text/html');
-      return [...doc.querySelectorAll('main a[href*="/companies/"]')].find((a) => /Pony Express/.test(a.innerText))?.getAttribute('href');
+      return [...doc.querySelectorAll('main tbody tr')].find((r) => /Pony Express/.test(r.textContent))?.querySelector('a[href*="/companies/"]')?.getAttribute('href');
     }, limits);
     assert.ok(pippinId, 'Pippin\'s company is listed');
     await eowyn.goto(pippinId);

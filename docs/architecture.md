@@ -295,7 +295,7 @@ Routes by area (the feature documents list the actions):
 | `GET/POST /login`, `POST /logout` | public / session | Sign in and out |
 | `GET /`, `GET /nav/campaigns` | signed in | The user's campaigns; the sidebar sub-menu |
 | `GET /campaigns/new`, `POST /campaigns` | may create campaigns | New campaign |
-| `GET /campaigns/{id}` and `/companies`, `/rankings`, `/matches` | campaign member | The campaign's tabs |
+| `GET /campaigns/{id}` and `/rankings`, `/matches` | campaign member | The campaign's tabs (`/companies`, the old Companies tab, redirects to `/rankings`) |
 | `/campaigns/{id}/my-company/{company}/...` | the company's owner (404 for anyone else) | One of your companies: recruit, armoury, level up, path, treatment, formation, cemetery, pack, perks; `/my-company` alone is an alias that opens one |
 | `/campaigns/{id}/companies/{company}` | campaign member | Another company, read only (your own redirects to `/my-company/{company}`) |
 | `/campaigns/{id}/matches/...` | campaign member | Matches, scenario, result, end confirmation, Against the Odds, aftermath ([matches.md](matches.md), [aftermath.md](aftermath.md)) |

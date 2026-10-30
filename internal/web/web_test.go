@@ -820,10 +820,21 @@ func TestNavCampaignsHaveTheirPages(t *testing.T) {
 	f := newFixture(t, Config{})
 	f.nav = []core.CampaignNav{{ID: 4, Name: "Rohan Rising"}}
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/nav/campaigns", nil))).Body.String()
-	for _, want := range []string{`href="/campaigns/4"`, `href="/campaigns/4/companies"`, `href="/campaigns/4/rankings"`, `href="/campaigns/4/matches"`, "inCampaign(4)"} {
+	for _, want := range []string{`href="/campaigns/4"`, `href="/campaigns/4/rankings"`, `href="/campaigns/4/matches"`, "inCampaign(4)"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
+	}
+	if strings.Contains(body, `href="/campaigns/4/companies"`) {
+		t.Error("the Companies tab is gone: the Rankings list the companies")
+	}
+}
+
+func TestOldCompaniesTabRedirectsToTheRankings(t *testing.T) {
+	f := newFixture(t, Config{})
+	rec := f.do(f.signedIn(httpGet("/campaigns/7/companies")))
+	if rec.Code != http.StatusMovedPermanently || rec.Header().Get("Location") != "/campaigns/7/rankings" {
+		t.Errorf("got %d -> %q", rec.Code, rec.Header().Get("Location"))
 	}
 }
 

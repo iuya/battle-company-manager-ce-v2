@@ -154,8 +154,8 @@ export default async function (h) {
   });
 
   await h.step('keywords: another player\'s read-only company page shows the same row and no edit control', async () => {
-    await gimli.goto(`/campaigns/${cid}/companies`);
-    const href = await gimli.page.evaluate(() => [...document.querySelectorAll('main a[href*="/companies/"]')].find((a) => a.innerText.includes('Riders on every horse'))?.getAttribute('href'));
+    await gimli.goto(`/campaigns/${cid}/rankings`);
+    const href = await gimli.page.evaluate(() => [...document.querySelectorAll('main tbody tr')].find((r) => r.innerText.includes('Riders on every horse'))?.querySelector('a[href*="/companies/"]')?.getAttribute('href'));
     assert.ok(href, 'a link to the Rohan company');
     await gimli.goto(href);
     const cs = await cards(gimli);

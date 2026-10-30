@@ -436,7 +436,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/units/{unit}/equipment", s.protected(s.once(s.handleBuyEquipment)))
 	mux.HandleFunc("GET /campaigns/{id}/armory", s.protected(readOnly(s.handleArmory)))
 	mux.HandleFunc("POST /campaigns/{id}/armory/buy", s.protected(s.once(s.handleArmoryBuy)))
-	mux.HandleFunc("GET /campaigns/{id}/companies", s.protected(readOnly(s.handleCampaign("campaign_companies", "companies"))))
+	mux.HandleFunc("GET /campaigns/{id}/companies", s.protected(func(w http.ResponseWriter, r *http.Request) { // the old Companies tab: its list is the Rankings now
+		http.Redirect(w, r, "/campaigns/"+r.PathValue("id")+"/rankings", http.StatusMovedPermanently)
+	}))
 	mux.HandleFunc("GET /campaigns/{id}/rankings", s.protected(readOnly(s.handleCampaign("campaign_rankings", "rankings"))))
 	mux.HandleFunc("GET /campaigns/{id}/matches", s.protected(readOnly(s.handleCampaign("campaign_matches", "matches"))))
 	mux.HandleFunc("GET /campaigns/{id}/company/new", s.protected(s.handleNewCompanyPage))

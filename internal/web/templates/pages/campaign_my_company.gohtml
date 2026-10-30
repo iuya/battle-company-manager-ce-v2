@@ -7,7 +7,7 @@
 <div class="alert alert-info mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2" role="status">
   {{if $.Frozen}}<span>This campaign has ended, so <strong>{{.Name}}</strong> is frozen as it was: you can look at everything, but nothing here can be changed until an administrator reactivates the campaign.</span>
   {{else}}<span>Viewing <strong>{{.Name}}</strong>, the company of {{.Owner}}. Read only: you can look at everything, but nothing here can be changed.</span>{{end}}
-  <a href="/campaigns/{{$.Campaign.ID}}/companies" class="btn btn-secondary !min-h-9">All companies</a>
+  <a href="/campaigns/{{$.Campaign.ID}}/rankings" class="btn btn-secondary !min-h-9">All companies</a>
 </div>
 <div class="relative mt-4 flex flex-wrap items-center gap-x-3 gap-y-1"><h2 class="!text-3xl">{{.Name}}</h2>{{if $.HasCopyButton}}{{template "tts_button" (dict "URL" $.TTSURL "Tip" $.TTSTip)}}{{end}}<span class="badge badge-muted">{{if $.Frozen}}Frozen{{else}}Viewing only{{end}}</span></div>
 {{else}}

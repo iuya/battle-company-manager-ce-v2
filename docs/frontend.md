@@ -151,7 +151,7 @@ that slides over the page (Alpine state `open`, closed by the backdrop, Esc or c
 outside `#main`, so Alpine keeps `path` in step with htmx navigation to mark the current link (`aria-current="page"`).
 
 Sidebar order: **Administration** (superusers only, gold-outlined so it stands apart, a 404 for everybody else),
-Campaigns (`/campaigns`, the list; `/` shows the same list when there is no valid last-campaign cookie, otherwise it redirects to the campaign last opened, see [auth.md](auth.md)) with a sub-menu of the user's active campaigns, Glossary; at the bottom the user's name, Account and Sign out. The sub-menu shows on the main page and inside any campaign; its items are drawn into every full page (`pageBase.base` asks `NavCampaigns` for a signed-in user, `NavInline`; the main page uses its own list, `NavOwn`), so there is no extra request. An htmx content swap has no sidebar and skips the query; if the list cannot be read the sidebar falls back to fetching `GET /nav/campaigns` on load. The list is refetched there only when it changes (`campaigns-changed`). Only the campaign you are in is expanded, with its pages (Overview, Companies, Rankings,
+Campaigns (`/campaigns`, the list; `/` shows the same list when there is no valid last-campaign cookie, otherwise it redirects to the campaign last opened, see [auth.md](auth.md)) with a sub-menu of the user's active campaigns, Glossary; at the bottom the user's name, Account and Sign out. The sub-menu shows on the main page and inside any campaign; its items are drawn into every full page (`pageBase.base` asks `NavCampaigns` for a signed-in user, `NavInline`; the main page uses its own list, `NavOwn`), so there is no extra request. An htmx content swap has no sidebar and skips the query; if the list cannot be read the sidebar falls back to fetching `GET /nav/campaigns` on load. The list is refetched there only when it changes (`campaigns-changed`). Only the campaign you are in is expanded, with its pages (Overview, My Company, Armory, Rankings,
 Matches; the current one marked) under it, and is marked with an accent bar, soft fill and a faint gold glow;
 switching campaign collapses the previous one while the new one expands, both animating their height together (a
 grid-rows 0fr/1fr transition, collapsed lists `inert`; an `x-transition` made the leaving list linger and the sidebar
@@ -184,10 +184,11 @@ campaigns are searched only while "Show finished campaigns" is on.
 
 ## Campaign pages
 
-`/campaigns/{id}` has seven tabs, each its own URL and page (the header and tabs are the `campaign_header` partial;
+`/campaigns/{id}` has six tabs, each its own URL and page (the header and tabs are the `campaign_header` partial;
 `campaignBase` carries the campaign and the current tab): **Overview** (your company or "create my company", campaign
 facts, rules files, latest matches), **My Company** (your company: the page "Manage company" opens; your company's own
-URL under `/companies/{id}` redirects to `/campaigns/{id}/my-company/{company}`), **Armory**, **Companies** (everybody's; another company opens read only, yours redirects to My Company), **Rankings**, **Matches** and **Glossary** (the glossary this campaign is played with). Entering a campaign (its name in the sidebar, its card on the campaign list, the
+URL under `/companies/{id}` redirects to `/campaigns/{id}/my-company/{company}`), **Armory**, **Rankings** (every company of the campaign, by points; another company opens read only, yours redirects to My Company;
+`/campaigns/{id}/companies`, the old Companies tab, redirects here), **Matches** and **Glossary** (the glossary this campaign is played with). Entering a campaign (its name in the sidebar, its card on the campaign list, the
 last-campaign redirect of `/`, an invite link) opens **My Company** (`/campaigns/{id}/my-company`), the page a player uses most; the
 Overview stays the first tab, at `/campaigns/{id}`. The sidebar lists the
 same tabs under the campaign you are in.
@@ -864,9 +865,9 @@ Roster, promotions (level-up, advancements) and injuries (Heal) are the cards of
   "Used (n)". Empty state when there are none.
 - **History card** (`history_card`): the latest 20 aftermath lines (`CompanyDetail.History`), newest first, on both company
   pages; the grants have their own card. Every `core.AftermathLine` carries `Match` (number), `MatchID` and `On` (when the aftermath was finished, else started, else when the match ended; zero when unknown), on `CompanyDetail.History` and on `Aftermath.Lines` of the match page. The card shows "Match N" as a link to `/campaigns/{id}/matches/{MatchID}` (not on the match page itself) and the date through the viewer's time zone formatter (`fmtDateShort`); the card takes `(dict "Lines" … "CID" campaign id)`.
-- The company page of somebody else (`/campaigns/{id}/companies/{company}`, from the Companies tab) is the **My Company page, read
+- The company page of somebody else (`/campaigns/{id}/companies/{company}`, from the Rankings) is the **My Company page, read
   only** (`myCompanyView.ReadOnly`, same template `campaign_my_company`): a "Viewing X, the company of Y. Read only" banner with a
-  link back to all companies, the same stats, limits, full unit cards (expandable, tooltips) and cemetery, creatures, perks
+  link back to all companies (the Rankings), the same stats, limits, full unit cards (expandable, tooltips) and cemetery, creatures, perks
   (no "use" button) and history; no rename, recruit, formation, buy, drop, heal, level-up, path, pack or dismiss controls and
   no buy window. The organiser's award form of the grants card stays. Your own company's URL redirects to `/my-company/{company}`.
 

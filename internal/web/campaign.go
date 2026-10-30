@@ -16,7 +16,7 @@ import (
 type campaignBase struct {
 	pageBase
 	Campaign core.CampaignDetail
-	Tab      string // overview, companies, rankings or matches; empty for pages below a tab
+	Tab      string // overview, my-company, armory, rankings, matches or glossary; empty for pages below a tab
 	// Current is the viewer's company an owner page acts on (see loadOwn); nil on the other pages.
 	Current *core.CampaignCompany
 }
@@ -72,11 +72,6 @@ type overviewView struct {
 	NewOrganisers []handoverCandidate
 }
 
-type companiesView struct {
-	campaignBase
-	Companies []core.CampaignCompany
-}
-
 type rankingsView struct {
 	campaignBase
 	Rows []core.RankedCompany
@@ -121,16 +116,12 @@ func (s *Server) handleCampaign(page, tab string) http.HandlerFunc {
 				}
 			}
 			view = over
-		case "companies", "rankings":
+		case "rankings":
 			list, err := s.campaigns.Companies(ctx, id)
 			if s.fail(w, r, err) {
 				return
 			}
-			if tab == "companies" {
-				view = companiesView{base, list}
-			} else {
-				view = rankingsView{base, core.Rank(list)}
-			}
+			view = rankingsView{base, core.Rank(list)}
 		case "matches":
 			matches, err := s.campaigns.Matches(ctx, id)
 			if s.fail(w, r, err) {
@@ -227,7 +218,7 @@ func (s *Server) newCompanyPage(w http.ResponseWriter, r *http.Request, base cam
 
 // handleCompany shows another player's company: the My Company page, read only. A player's own company lives under its tab.
 func (s *Server) handleCompany(w http.ResponseWriter, r *http.Request) {
-	base, ok := s.loadCampaign(w, r, "companies")
+	base, ok := s.loadCampaign(w, r, "rankings") // the companies are listed in the Rankings
 	if !ok {
 		return
 	}

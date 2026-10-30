@@ -41,7 +41,7 @@ All share the password `demo-password` (or `PASSWORD`). `admin@example.com`, `yo
 ## Campaigns
 
 Open any campaign as `you@example.com` (organiser, sees every button) or as the player named in the table (owner of the
-company, sees "My company"). Page names are those of the navigation: Overview, My company, Companies, Rankings, Matches, Armoury.
+company, sees "My company"). Page names are those of the navigation: Overview, My company, Armoury, Rankings, Matches.
 
 | Campaign (in order of creation) | Players | What it demonstrates | Where to click |
 |---|---|---|---|
