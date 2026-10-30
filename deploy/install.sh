@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Installs the deployment kit into /opt/bcm on a server that already has Docker with the compose plugin, curl and flock (provider-neutral;
-# deploy/aws/host-setup.sh prepares an Amazon Linux 2023 host first). Run as root from a checkout (or an unpacked release) of this repository.
+# a provider script such as deploy/oracle/host-setup.sh prepares the host first). Run as root from a checkout (or an unpacked release) of this repository.
 #
 #   sudo SITE_ADDRESS=bcm.example.org deploy/install.sh
 #
