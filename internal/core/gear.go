@@ -128,37 +128,31 @@ func computeLimits(rules []LimitRule, c BCCompany, units []CompanyUnit, stored .
 			percent = p
 		}
 		base, used, exempt := 0, 0, 0
+		// tally counts one model or item towards the limit, or towards what the exemptions leave out.
+		tally := func(isExempt bool) {
+			if isExempt {
+				exempt++
+			} else {
+				used++
+			}
+		}
 		for _, u := range units {
 			unitExempt := slices.ContainsFunc(c.LimitExemptions, func(e LimitExemption) bool { return e.Unit != "" && e.Unit == u.Type && e.covers(rule.ID) })
 			if !unitExempt {
 				base++
 			}
 			if rule.Keyword == KeywordCavalry && u.isCavalry() {
-				if unitExempt {
-					exempt++
-				} else {
-					used++
-				}
+				tally(unitExempt)
 			}
 			for _, e := range u.Equipment {
-				if !rule.counts(e.Classes()) {
-					continue
-				}
-				if unitExempt || c.exempts(e.Name, rule.ID) {
-					exempt++
-				} else {
-					used++
+				if rule.counts(e.Classes()) {
+					tally(unitExempt || c.exempts(e.Name, rule.ID))
 				}
 			}
 		}
 		for _, e := range stored { // gear in the Baggage Pony's pack still counts towards the item limits
-			if !rule.counts(e.Classes()) {
-				continue
-			}
-			if c.exempts(e.Name, rule.ID) {
-				exempt++
-			} else {
-				used++
+			if rule.counts(e.Classes()) {
+				tally(c.exempts(e.Name, rule.ID))
 			}
 		}
 		out = append(out, CompanyLimit{ID: rule.ID, Label: rule.Label, Used: used, Exempt: exempt, Max: LimitMax(percent, base, rule.RoundUp), Next: LimitMax(percent, base+1, rule.RoundUp),
