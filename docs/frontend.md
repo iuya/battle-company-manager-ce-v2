@@ -904,7 +904,8 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
   - `#live-zones` (`live_zones`): the Field as unit cards, then **Retreated**, **Field casualties** and **Missed this game** as
     one-line headers with a count ("None" when empty) and compact cards (`live_compact`: badge, reason, **Return to the battle** for
     who may edit), then the Cemetery. `GET /campaigns/{id}/companies/{company}/live` answers `#live-zones` alone (its `data-seq` is the
-    match's last sequence).
+    match's last sequence). Every control that answers the zones (trackers, milestones, the turn, the Break Point, the courage and item
+    windows) takes the `hx_zones` attributes: it replaces `#live-zones`, and `hx-sync` queues the presses one at a time.
   - Another player's company is the same page read only (`ReadOnly`); an editor who is not the owner (organiser, administrator) has the
     trackers and actions on it. Viewers see `current / start` without buttons.
 - **The opponent's keywords and "applies" markers** (`kw_applies`, `keyword_flat` in `partials/units.gohtml`; [unit-keywords.md](unit-keywords.md) "Rule targets"):
@@ -930,7 +931,8 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
   Each press is one `POST .../matches/{match}/live/{company}/actions` (`kind=stat`, `unit`, `stat`, `delta` or `set`), answered by
   `live_response`: the zones plus an out-of-band **toast** (`#live-toast`) with the log text and **Undo**, or, on a refusal, 422 with
   the state as it is and the reason as the toast. A viewer's write is 403. Live POSTs are not wrapped in `once()`.
-- **Milestones** row on each field card (`live_actions_menu` and `milestone` in `company_panels.gohtml`, `.milestone*` in `tailwind.css`): Wounded,
+- **Milestones** row on each field card (`liveView.Milestones` in `live_milestones.go` builds them, `live_actions_menu` and `milestone` in
+  `company_panels.gohtml` draw them, `.milestone*` in `tailwind.css`): Wounded,
   Fate, Courage and Objective (`aria-pressed`; off dashed and muted, on filled with the accent and a tick), buttons for editors and marks
   (`role="img"`) for viewers. Wounded opens its sheet, whose `live_recorded` block lists the unit's wound entries with Undo (`UnitLog`:
   the unit's not-undone entries of one kind, filtered in the query); Fate, Courage

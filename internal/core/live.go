@@ -59,6 +59,16 @@ type LiveUnit struct {
 // and one per company.
 func TemporaryUnitID(companyID int64) int64 { return -companyID }
 
+// ItemsToUse are the loaned items the unit can still mark as used (not spent, not for the aftermath).
+func (u LiveUnit) ItemsToUse() (out []LoanedItem) {
+	for _, it := range u.Loaned {
+		if !it.Used && !it.AfterGame {
+			out = append(out, it)
+		}
+	}
+	return out
+}
+
 // LiveUnitInit is what is stored once when the match opens (or lazily at the first read of a match that was open before the
 // feature): the starting values of a unit. Absent units (Injured, AtHealers) take no part and have no entries.
 type LiveUnitInit struct {

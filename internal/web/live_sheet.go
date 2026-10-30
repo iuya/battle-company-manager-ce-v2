@@ -35,16 +35,6 @@ type liveSheet struct {
 	RollErr         string
 }
 
-// ItemsToUse are the loaned items the unit can still mark as used (not spent, not for the aftermath).
-func (v liveSheet) ItemsToUse() (out []core.LoanedItem) {
-	for _, it := range v.Live.Loaned {
-		if !it.Used && !it.AfterGame {
-			out = append(out, it)
-		}
-	}
-	return out
-}
-
 // DiceText is the dice of the roll ("3 + 4").
 func (v liveSheet) DiceText() string {
 	var parts []string

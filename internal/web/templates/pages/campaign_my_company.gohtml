@@ -250,7 +250,7 @@
 <div class="mt-4 space-y-3" id="live-break">
   <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
     <p class="font-medium" id="live-turn">{{if $lv.Turn}}Turn {{$lv.Turn}}{{else}}Turn not started{{end}}</p>
-    {{if $lv.Edit}}<button type="button" class="btn btn-secondary !min-h-11" {{if $lv.EndPending}}disabled aria-describedby="turn-blocked"{{end}} hx-post="{{$act}}" hx-vals='{"kind":"turn","turn":"{{$lv.NextTurn}}"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Start turn {{$lv.NextTurn}}</button>{{if $lv.EndPending}}<p id="turn-blocked" class="basis-full text-sm text-muted">Cancel the ending first: the match is about to end.</p>{{end}}{{end}}
+    {{if $lv.Edit}}<button type="button" class="btn btn-secondary !min-h-11" {{if $lv.EndPending}}disabled aria-describedby="turn-blocked"{{end}} hx-post="{{$act}}" hx-vals='{"kind":"turn","turn":"{{$lv.NextTurn}}"}' {{template "hx_zones"}}>Start turn {{$lv.NextTurn}}</button>{{if $lv.EndPending}}<p id="turn-blocked" class="basis-full text-sm text-muted">Cancel the ending first: the match is about to end.</p>{{end}}{{end}}
   </div>
 
   {{if $b.StartingModels}}
@@ -272,11 +272,11 @@
         <p class="font-medium">Adjust the count <span class="font-normal text-muted">(creatures, Ponies, late arrivals: what the app cannot know)</span></p>
         <div class="field"><label for="break-note">Note (optional)</label><input id="break-note" name="note" maxlength="200" class="input" placeholder="Late arrival"></div>
         <div class="flex flex-wrap items-center gap-2"><span class="min-w-32">Starting models <strong>{{$b.StartingModels}}</strong></span>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"-1"}' hx-include="#break-note" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">−</button>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"1"}' hx-include="#break-note" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">+</button></div>
+          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"-1"}' hx-include="#break-note" {{template "hx_zones"}}>−</button>
+          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"1"}' hx-include="#break-note" {{template "hx_zones"}}>+</button></div>
         <div class="flex flex-wrap items-center gap-2"><span class="min-w-32">Casualties <strong>{{$b.Casualties}}</strong></span>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"-1"}' hx-include="#break-note" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">−</button>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"1"}' hx-include="#break-note" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">+</button></div>
+          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"-1"}' hx-include="#break-note" {{template "hx_zones"}}>−</button>
+          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"1"}' hx-include="#break-note" {{template "hx_zones"}}>+</button></div>
       </div>
       {{end}}
       {{with $b.Exceptions}}<div><p class="font-medium">Scenario exceptions</p><ul class="list-disc pl-5 text-muted">{{range .}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
@@ -294,8 +294,8 @@
       <summary class="flex min-h-11 cursor-pointer items-center font-medium">All is Lost: flee or fight on?</summary>
       <p class="mt-1 text-sm">Decided at the beginning of the turn the company breaks. Your opponent claims victory and full rewards. You earn only the Influence for taking part (the injury rolls and experience still happen).</p>
       <div class="mt-2 flex flex-wrap gap-2">
-        <button type="button" class="btn btn-danger" hx-post="{{$act}}" hx-vals='{"kind":"allIsLost","flee":"1"}' hx-confirm="Flee the battlefield? Every model in the field leaves the table and your opponent claims victory." hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Flee the battlefield</button>
-        <button type="button" class="btn btn-secondary" hx-post="{{$act}}" hx-vals='{"kind":"allIsLost","flee":"0"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Fight on</button>
+        <button type="button" class="btn btn-danger" hx-post="{{$act}}" hx-vals='{"kind":"allIsLost","flee":"1"}' hx-confirm="Flee the battlefield? Every model in the field leaves the table and your opponent claims victory." {{template "hx_zones"}}>Flee the battlefield</button>
+        <button type="button" class="btn btn-secondary" hx-post="{{$act}}" hx-vals='{"kind":"allIsLost","flee":"0"}' {{template "hx_zones"}}>Fight on</button>
       </div>
     </details>
     {{else if $b.Offer}}<p class="text-sm">The owner of the company can decide to flee (All is Lost) this turn.</p>{{end}}
@@ -339,7 +339,7 @@
     </p>
   </div>
   {{if and .LV.Edit (ne .Kind "missed")}}
-  <button type="button" class="btn btn-secondary !min-h-9" hx-post="/campaigns/{{.CID}}/matches/{{.LV.MatchID}}/live/{{.LV.CompanyID}}/actions" hx-vals='{"kind":"return","unit":"{{$u.ID}}"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Return to the battle</button>
+  <button type="button" class="btn btn-secondary !min-h-9" hx-post="/campaigns/{{.CID}}/matches/{{.LV.MatchID}}/live/{{.LV.CompanyID}}/actions" hx-vals='{"kind":"return","unit":"{{$u.ID}}"}' {{template "hx_zones"}}>Return to the battle</button>
   {{end}}
 </li>
 {{end}}
@@ -354,7 +354,7 @@
 <div id="live-toast" hx-swap-oob="true" aria-live="polite" class="pointer-events-none fixed bottom-4 left-1/2 z-[60] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2">
   {{if $t}}<div class="alert {{if $t.Error}}alert-danger{{else}}alert-success{{end}} pointer-events-auto flex items-center gap-3 shadow-lg" role="status" x-data="{ on: true }" x-init="setTimeout(() => on = false, {{if $t.Error}}9000{{else}}7000{{end}})" x-show="on" x-transition.opacity>
     <span class="min-w-0 flex-1">{{$t.Text}}</span>
-    {{if and $t.CanUndo (not $t.Error)}}<button type="button" class="btn btn-secondary !min-h-9 shrink-0" hx-post="/campaigns/{{$t.Campaign}}/matches/{{$t.MatchID}}/live/log/{{$t.EntryID}}/undo" hx-vals='{"company":"{{$t.Company}}"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Undo</button>{{end}}
+    {{if and $t.CanUndo (not $t.Error)}}<button type="button" class="btn btn-secondary !min-h-9 shrink-0" hx-post="/campaigns/{{$t.Campaign}}/matches/{{$t.MatchID}}/live/log/{{$t.EntryID}}/undo" hx-vals='{"company":"{{$t.Company}}"}' {{template "hx_zones"}}>Undo</button>{{end}}
     <button type="button" class="btn btn-ghost !min-h-9 !px-2 shrink-0" @click="on = false" aria-label="Dismiss">×</button>
   </div>{{end}}
 </div>

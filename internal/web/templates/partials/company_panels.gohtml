@@ -445,7 +445,7 @@
 {{/* The window of a live action of a unit in a running match. Takes liveSheet. The form answers the zones of the page (htmx) and closes the
    window; a refusal comes back as a toast with the state as it is. */}}
 {{define "live_sheet"}}{{$u := .Unit}}{{$l := .Live}}{{if eq .Kind "menu"}}{{template "live_menu" .}}{{else if eq .Kind "courage"}}{{template "live_courage" .}}{{else if eq .Kind "item"}}{{template "live_items" .}}{{else}}
-<form method="post" action="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/live/{{.Company}}/actions" hx-post="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/live/{{.Company}}/actions" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all" @htmx:after-request="closeModal()" class="space-y-4"
+<form method="post" action="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/live/{{.Company}}/actions" hx-post="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/live/{{.Company}}/actions" {{template "hx_zones"}} @htmx:after-request="closeModal()" class="space-y-4"
   {{if eq .Kind "wound"}}x-data="woundSheet" data-attacker="{{$u.Title}}" data-xp="{{index .Gains "woundedEnemy"}}"{{else if eq .Kind "fate"}}x-data="{ count: 1, fate: {{$l.Fate.Current}} }"{{end}}>
   <input type="hidden" name="kind" value="{{.Kind}}"><input type="hidden" name="unit" value="{{$u.ID}}">
   {{if eq .Kind "wound"}}
@@ -540,7 +540,7 @@
   <p class="text-sm font-semibold">Recorded this match</p>
   <ul class="mt-2 space-y-1.5">
     {{range .}}<li class="flex items-center gap-3 text-sm"><span class="min-w-0 flex-1">{{.Text}}</span>
-      {{if .CanUndo}}<button type="button" class="btn btn-secondary !min-h-9 shrink-0 !px-3" hx-post="/campaigns/{{$.Campaign}}/matches/{{$.MatchID}}/live/log/{{.ID}}/undo" hx-vals='{"company":"{{$.Company}}"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all" @htmx:after-request="closeModal()" aria-label="Undo: {{.Text}}">Undo</button>{{end}}</li>{{end}}
+      {{if .CanUndo}}<button type="button" class="btn btn-secondary !min-h-9 shrink-0 !px-3" hx-post="/campaigns/{{$.Campaign}}/matches/{{$.MatchID}}/live/log/{{.ID}}/undo" hx-vals='{"company":"{{$.Company}}"}' {{template "hx_zones"}} @htmx:after-request="closeModal()" aria-label="Undo: {{.Text}}">Undo</button>{{end}}</li>{{end}}
   </ul>
   <p class="mt-2 text-xs text-muted">Undo removes it from the match log; the milestone goes out when nothing else earns it.</p>
 </div>
@@ -563,12 +563,12 @@
 <div class="mt-4 space-y-2">
   <p class="text-sm font-medium">Record the result{{if .Roll}} (the roll says {{if .Roll.Passed}}passed{{else}}failed{{end}}){{else}} (rolled at the table){{end}}</p>
   <div class="flex flex-wrap gap-2">
-    <form hx-post="{{$base}}/actions" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all" @htmx:after-request="closeModal()" class="space-y-2">
+    <form hx-post="{{$base}}/actions" {{template "hx_zones"}} @htmx:after-request="closeModal()" class="space-y-2">
       <input type="hidden" name="kind" value="broken"><input type="hidden" name="unit" value="{{$u.ID}}">
       {{if .Hero}}<label class="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" name="standFast" value="1" class="h-4 w-4 accent-[var(--accent)]"> Call Stand Fast</label>{{end}}
       <button class="btn {{if and .Roll .Roll.Passed}}btn-primary{{else}}btn-secondary{{end}}">Record: passed</button>
     </form>
-    <form hx-post="{{$base}}/actions" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all" hx-confirm="{{$u.Title}} flees and is removed as a casualty. Record it?" @htmx:after-request="closeModal()" class="self-end">
+    <form hx-post="{{$base}}/actions" {{template "hx_zones"}} hx-confirm="{{$u.Title}} flees and is removed as a casualty. Record it?" @htmx:after-request="closeModal()" class="self-end">
       <input type="hidden" name="kind" value="retreat"><input type="hidden" name="why" value="courage"><input type="hidden" name="unit" value="{{$u.ID}}">
       <button class="btn {{if and .Roll (not .Roll.Passed)}}btn-primary{{else}}btn-secondary{{end}}">Record: failed</button>
     </form>
@@ -579,7 +579,7 @@
   <p class="text-sm font-medium">Passes without a roll <span class="font-normal text-muted">(no experience)</span></p>
   <ul class="grid gap-2 sm:grid-cols-2">
     {{range $r := list "standFast|Auto-pass: Stand Fast" "heroicResolve|Auto-pass: Heroic Resolve" "chariot|Auto-pass: Chariot" "scenario|Auto-pass: scenario rule" "engaged|Exempt: in combat" "cannotActivate|Exempt: cannot activate"}}
-    <li><form hx-post="{{$base}}/actions" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all" @htmx:after-request="closeModal()">
+    <li><form hx-post="{{$base}}/actions" {{template "hx_zones"}} @htmx:after-request="closeModal()">
       <input type="hidden" name="kind" value="courageSkip"><input type="hidden" name="unit" value="{{$u.ID}}"><input type="hidden" name="reason" value="{{index (split $r "|") 0}}">
       <button class="btn btn-secondary w-full !min-h-11">{{index (split $r "|") 1}}</button></form></li>
     {{end}}
@@ -593,8 +593,8 @@
 <h2 class="!text-2xl pr-10">{{$u.Title}}: item used</h2>
 <p class="mt-1 text-sm text-muted">Strikes the item through on the card and writes it in the match log. Healing Herbs and Wondrous Cram act in the aftermath, so they are not listed.</p>
 <ul class="mt-4 space-y-2">
-  {{range .ItemsToUse}}
-  <li><form hx-post="/campaigns/{{$.Campaign}}/matches/{{$.MatchID}}/live/{{$.Company}}/actions" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all" @htmx:after-request="closeModal()">
+  {{range .Live.ItemsToUse}}
+  <li><form hx-post="/campaigns/{{$.Campaign}}/matches/{{$.MatchID}}/live/{{$.Company}}/actions" {{template "hx_zones"}} @htmx:after-request="closeModal()">
     <input type="hidden" name="kind" value="itemUsed"><input type="hidden" name="unit" value="{{$u.ID}}"><input type="hidden" name="item" value="{{.Item}}"><input type="hidden" name="index" value="{{.Index}}">
     <button class="btn btn-secondary w-full !min-h-11 !justify-between"><span>{{.Item}}{{with .Detail}} ({{.}}){{end}}</span><span class="text-xs text-muted">{{.Kit}}</span></button></form></li>
   {{else}}<li class="text-muted">Nothing left to use.</li>{{end}}
@@ -602,49 +602,39 @@
 <p class="mt-4"><button type="button" class="btn btn-secondary" @click="closeModal()">Close</button></p>
 {{end}}
 
-{{/* The milestones of a unit card in the field: what earns experience in the game, lit once earned (docs/live-match.md "Experience:
-   which actions earn it"), with the icons of the legacy app. Everybody sees them; the owner presses them. Wounded opens the window to pick
-   who was wounded (it can happen again); Fate (only the mark: no Fate point is spent, the Fate tracker is set by hand, so it can be
-   pressed with none left), Courage (a passed Broken courage test) and the objective switch at once: a lit Fate or Courage undoes the unit's
-   last entry of it (LiveUnit.FateEntry, BrokenEntry), and stays lit while an earlier one still earns it (a Fate point saved in a wound
-   declaration has no entry of its own: undone from the log). Below them, for the owner and only while the unit has a loaned item to use,
-   Item used, which opens its window (a popover inside the card would be clipped by its frame, so it lives in the company window). Takes {U, L, LV}. */}}
-{{define "live_actions_menu"}}{{$u := .U}}{{$l := .L}}{{$lv := .LV}}{{$edit := $lv.Edit}}
+{{/* The live part of a unit card's foot: the courage test while one is due (the owner), the milestones (liveView.Milestones; everybody
+   sees them, the owner presses them) and, for the owner while the unit has a loaned item to use, Item used, which opens its window (a
+   popover inside the card would be clipped by its frame, so it lives in the company window). Takes {U, L, LV}. */}}
+{{define "live_actions_menu"}}{{$u := .U}}{{$l := .L}}{{$lv := .LV}}
 {{$sheet := printf "/campaigns/%d/matches/%d/live/%d/units/%d/sheet" $lv.CampaignID $lv.MatchID $lv.CompanyID $u.ID}}
-{{$post := printf "/campaigns/%d/matches/%d/live/%d/actions" $lv.CampaignID $lv.MatchID $lv.CompanyID}}
-{{$undo := printf "/campaigns/%d/matches/%d/live/log" $lv.CampaignID $lv.MatchID}}{{$co := printf `{"company":"%d"}` $lv.CompanyID}}
-{{if and $edit $lv.Broken ($lv.CourageDue $l)}}<button type="button" class="btn btn-primary w-full !min-h-11" hx-get="{{$sheet}}/courage" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Courage test<span class="sr-only"> for {{$u.Title}}</span></button>{{end}}
-{{$fate := gt (index $l.Gains "fatePrevented") 0}}{{$brave := gt (index $l.Gains "brokenCourageTestPassed") 0}}
+{{if and $lv.Edit ($lv.CourageDue $l)}}<button type="button" class="btn btn-primary w-full !min-h-11" hx-get="{{$sheet}}/courage" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Courage test<span class="sr-only"> for {{$u.Title}}</span></button>{{end}}
 <div class="milestones" role="group" aria-label="Milestones of {{$u.Title}}">
-  {{template "milestone" (dict "On" (gt (index $l.Gains "woundedEnemy") 0) "Edit" $edit "Icon" "machete" "Label" "Wounded" "Tip" "Wounded an enemy" "Unit" $u.Title "Get" (printf "%s/wound" $sheet) "Count" (index $l.Gains "slainHeroOrMonster") "CountTip" "Heroes and Monsters slain")}}
-  {{if $l.Fate.Start}}{{if and $fate $l.FateEntry}}{{template "milestone" (dict "On" true "Edit" $edit "Icon" "shield-reflect" "Label" "Fate" "Tip" "Prevented a wound with Fate" "Unit" $u.Title "Post" (printf "%s/%d/undo" $undo $l.FateEntry) "Vals" $co)}}
-  {{else}}{{template "milestone" (dict "On" $fate "Edit" $edit "Icon" "shield-reflect" "Label" "Fate" "Tip" "Prevented a wound with Fate" "Unit" $u.Title "Post" $post "Vals" (printf `{"kind":"fate","unit":"%d","count":"0"}` $u.ID) "Locked" $fate)}}{{end}}{{end}}
-  {{if and $brave $l.BrokenEntry}}{{template "milestone" (dict "On" true "Edit" $edit "Icon" "mighty-force" "Label" "Courage" "Tip" "Passed a Broken courage test" "Unit" $u.Title "Post" (printf "%s/%d/undo" $undo $l.BrokenEntry) "Vals" $co)}}
-  {{else}}{{template "milestone" (dict "On" $brave "Edit" $edit "Icon" "mighty-force" "Label" "Courage" "Tip" "Passed a Broken courage test" "Unit" $u.Title "Post" $post "Vals" (printf `{"kind":"broken","unit":"%d"}` $u.ID) "Locked" $brave)}}{{end}}
-  {{template "milestone" (dict "On" $l.Objective "Edit" $edit "Icon" "flying-flag" "Label" "Objective" "Tip" "Got the objective" "Unit" $u.Title "Post" $post "Vals" (printf `{"kind":"objective","unit":"%d","on":"%s"}` $u.ID (or (and $l.Objective "0") "1")))}}
+  {{range $lv.Milestones $u.ID $l}}{{template "milestone" (dict "M" . "Edit" $lv.Edit "Unit" $u.Title)}}{{end}}
 </div>
-{{if $edit}}{{$items := false}}{{range $l.Loaned}}{{if and (not .Used) (not .AfterGame)}}{{$items = true}}{{end}}{{end}}{{if $items}}
+{{if and $lv.Edit $l.ItemsToUse}}
 <div class="live-actions" role="group" aria-label="Other actions of {{$u.Title}}">
   <button type="button" class="live-action" hx-get="{{$sheet}}/item" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" title="A loaned item was used in the game" aria-label="Item used ({{$u.Title}})"><span class="[&>svg]:h-6 [&>svg]:w-6">{{template "item_icon" "brew"}}</span><span class="milestone-label">Item used</span></button>
 </div>
-{{end}}{{end}}
+{{end}}
 {{end}}
 
-{{/* One milestone of live_actions_menu: lit (filled, with a tick) once earned. For the owner a button: Get opens a window, Post records
-   Vals at once (an action, or the undo of the entry that lit it); Locked (lit and not undone by a press) and Off (cannot be earned now, OffTip says why) disable it. For everybody else a
-   plain mark. Count is a number shown on it (Heroes and Monsters slain). */}}
-{{define "milestone"}}{{$state := printf "%s: not yet" .Tip}}{{if .On}}{{$state = printf "%s: yes" .Tip}}{{end}}
+{{/* One milestone (a milestoneView, M) of live_actions_menu: lit (filled, with a tick) once earned. For the owner (Edit) a button, for
+   everybody else a plain mark. Takes {M, Edit, Unit: the unit's title}. */}}
+{{define "milestone"}}{{$m := .M}}{{$state := printf "%s: not yet" $m.Tip}}{{if $m.On}}{{$state = printf "%s: yes" $m.Tip}}{{end}}
 {{if .Edit}}
-<button type="button" class="milestone" aria-pressed="{{if .On}}true{{else}}false{{end}}" title="{{if .Locked}}{{$state}} (undo it in the match log){{else if .Off}}{{.OffTip}}{{else}}{{$state}}{{end}}" aria-label="{{.Tip}} ({{.Unit}})"
-  {{if or .Locked .Off}}disabled{{else if .Get}}hx-get="{{.Get}}" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()"{{else}}hx-post="{{.Post}}" hx-vals='{{.Vals}}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all"{{end}}>
-  {{template "milestone_face" .}}
+<button type="button" class="milestone" aria-pressed="{{if $m.On}}true{{else}}false{{end}}" title="{{$state}}{{if $m.Locked}} (undo it in the match log){{end}}" aria-label="{{$m.Tip}} ({{.Unit}})"
+  {{if $m.Locked}}disabled{{else if $m.Get}}hx-get="{{$m.Get}}" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()"{{else}}hx-post="{{$m.Post}}" hx-vals='{{$m.Vals}}' {{template "hx_zones"}}{{end}}>
+  {{template "milestone_face" $m}}
 </button>
 {{else}}
-<span class="milestone" data-on="{{if .On}}true{{else}}false{{end}}" title="{{$state}}" role="img" aria-label="{{$state}}">{{template "milestone_face" .}}</span>
+<span class="milestone" data-on="{{if $m.On}}true{{else}}false{{end}}" title="{{$state}}" role="img" aria-label="{{$state}}">{{template "milestone_face" $m}}</span>
 {{end}}
 {{end}}
 
 {{define "milestone_face"}}{{template "gi_icon" (dict "N" .Icon "C" "h-6 w-6 shrink-0")}}<span class="milestone-label">{{.Label}}</span>{{if .On}}<svg class="milestone-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>{{end}}{{if .Count}}<span class="milestone-count" title="{{.CountTip}}">{{template "gi_icon" (dict "N" "death-skull" "C" "h-3 w-3")}}{{.Count}}</span>{{end}}{{end}}
+
+{{/* The attributes of a request that answers the live zones: they replace #live-zones, one request at a time. */}}
+{{define "hx_zones"}}hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all"{{end}}
 
 {{/* The list of actions a unit can take now (hidden: Fate with none left, the mount without one). Takes liveSheet. */}}
 {{define "live_menu"}}{{$u := .Unit}}{{$l := .Live}}{{$base := printf "/campaigns/%d/matches/%d/live/%d/units/%d/sheet" .Campaign .MatchID .Company $u.ID}}
@@ -653,7 +643,7 @@
 <ul class="mt-4 space-y-2" role="menu" aria-label="Actions of {{$u.Title}}">
   {{range $a := list "wound|Wounded a unit|Pick who was wounded and how many wounds." "fate|Passed a fate roll|Spend Fate to prevent a wound." "broken|Passed a Broken courage roll|Earns experience once per game." "retreat|Retreated|Left the table: no injury roll." "died|Died|Without an enemy wound: a fall, a collapse." "mount|Mount|The mount was lost or is back." "courage|Courage test|Roll or record the test of a Broken company." "item|Item used|A loaned item was used in the game."}}
   {{$kind := index (split $a "|") 0}}{{$label := index (split $a "|") 1}}{{$hint := index (split $a "|") 2}}
-  {{if and (or (ne $kind "fate") (gt $l.Fate.Current 0)) (or (ne $kind "courage") $.Broken) (or (ne $kind "item") $.ItemsToUse)}}{{if or (ne $kind "mount") $l.HasMount}}
+  {{if and (or (ne $kind "fate") (gt $l.Fate.Current 0)) (or (ne $kind "courage") $.Broken) (or (ne $kind "item") $l.ItemsToUse)}}{{if or (ne $kind "mount") $l.HasMount}}
   <li role="none"><button type="button" role="menuitem" class="flex min-h-14 w-full flex-col items-start justify-center rounded-lg border border-line px-4 py-2 text-left hover:bg-raised" hx-get="{{$base}}/{{$kind}}" hx-target="#modal-body" hx-swap="innerHTML">
     <span class="font-medium">{{if eq $kind "mount"}}{{if $l.Mounted}}Mount removed{{else}}Mount re-added{{end}}{{else}}{{$label}}{{end}}</span><span class="text-xs text-muted">{{$hint}}</span></button></li>
   {{end}}{{end}}
