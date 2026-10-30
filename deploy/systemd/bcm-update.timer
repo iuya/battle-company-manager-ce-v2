@@ -1,9 +1,9 @@
 [Unit]
-Description=Check for a new release every 15 minutes
+Description=Check for a new release every 5 minutes
 
 [Timer]
 OnBootSec=2min
-OnUnitActiveSec=15min
+OnUnitActiveSec=5min
 RandomizedDelaySec=60
 
 [Install]
