@@ -52,9 +52,9 @@ const defs = [
   ['1-match-page', 'Screen 1: the match page (360 px)', 'Match open, first screen of each design. Same scenario (Chance Encounter), same two companies.',
     std('match', 'cur/m1.png', { cur: 'Header buttons, one card per company, then the scenario card; End checks (27 rows) and the result lie further down.', A: 'Same cards, fewer: both sides in one card, End checks collapsed ("0 of 27 set"), sentences behind (i).', B: 'Accordion cards with one-line summaries; the bar at the bottom holds End checks and Propose to end.', C: 'Scoreboard and log only; every other card moves into the "Match tools" sheet.' }, 'match')],
   ['2-live-company-page', 'Screen 2: the live company page (360 px)', 'Scrolled to the live block (the campaign heading and tabs above it are left out in every frame). 15 units, nothing played yet.',
-    std('live', 'cur/l1.png', { cur: 'Banner, 6 summary tiles, limits, then 15 full unit cards; Actions is the last control of each card (first one far below).', A: 'Banner with one "Match" menu; Actions moves into the header of each card. Cards stay full.', B: 'One compact row per unit (Wounds - / + and Actions); the full card opens on tap. Bar: Start turn, Match menu.', C: 'Dense table: name and Wounds only; a unit opens in a sheet. Bar: Unit actions, Match tools.' }, 'live')],
+    std('live', 'cur/l1.png', { cur: 'Banner, 6 summary tiles, limits, then 15 full unit cards; Actions is the last control of each card (first one far below).', A: 'Banner with one "Match" menu; Actions moves into the header of each card. Cards stay full.', B: 'The full unit card for every unit; counters have a small arrow above (raises) and below (lowers); Actions in the card header. Bar: Start turn, Match menu.', C: 'Dense table: name and Wounds only; a unit opens in a sheet. Bar: Unit actions, Match tools.' }, 'live')],
   ['3-live-actions', 'Screen 3a: the Actions menu during a match (360 px)', 'The sheet that opens from a unit. Viewport 360x800, page behind it dimmed.',
-    std('actions', 'cur/act.png', { cur: 'Centered window, 6 rows of 58 px with hint lines, a cross and a Close button.', A: 'Same window, one 48 px line per row, no hints, no Close button.', B: 'Bottom sheet of 2-column tiles (56 px), label only.', C: 'Bottom sheet with a "quick action" field and a flat list.' }, null)],
+    std('actions', 'cur/act.png', { cur: 'Centered window, 6 rows of 58 px with hint lines, a cross and a Close button.', A: 'Same window, one 48 px line per row, no hints, no Close button.', B: 'Small bottom sheet (about 230 px) of 2-column 44 px tiles, opened from the card header; a popover on desktop.', C: 'Bottom sheet with a "quick action" field and a flat list.' }, null)],
   ['4-live-end-checks', 'Screen 3b: End checks during a match (360 px)', 'The objective and MVP window: 15 + 12 units.',
     std('endchecks', 'cur/end.png', { cur: '27 full-width rows (15 of them end with the word "No"), two sentences, same list as the match page.', A: 'Two-column toggles, a checkmark instead of "No", the sentence behind (i).', B: 'Wrapped toggle chips grouped by company: about 8 lines instead of 27 rows.', C: 'A table: Unit, Got it, MVP; one line per unit.' }, null)],
   ['5-aftermath', 'Screen 4: the aftermath, Sheet step (360 px)', 'First screen of step 1 (Sheet) before starting the aftermath, 15 units.',
@@ -84,7 +84,7 @@ for (const [file, title, sub, s] of defs) {
   const live = [
     stepCol('cur', 'Current', '', 'Full cards, Actions at the bottom of each.', 'cur/l1.png', CUR.live),
     stepCol('A', 'Step 1', 'A: no-regret changes', 'Smaller buttons, Actions in the card header, names and sentences merged. Quick, reversible.', 'out/live-A-360.png', H['live-A']),
-    stepCol('B', 'Step 2', 'B: structure', 'Compact unit rows, sticky bottom bar, bottom-sheet tiles, collapsible cards.', 'out/live-B-360.png', H['live-B']),
+    stepCol('B', 'Step 2', 'B: structure', 'Same full unit cards, arrow counters, Actions pop-up from the card header, sticky bottom bar.', 'out/live-B-360.png', H['live-B']),
   ];
   const match = [
     stepCol('cur', 'Current', '', 'Two company cards, 27-row End checks inline.', 'cur/m1.png', CUR.match),
@@ -92,13 +92,13 @@ for (const [file, title, sub, s] of defs) {
     stepCol('B', 'Step 2', 'B: structure', 'Accordion cards and the bottom action bar.', 'out/match-B-360.png', H['match-B']),
   ];
   const row = (t, cols) => { MAXH = Math.max(...cols.map(c => c.h)); return `<div class="rowt">${t}</div><div class="grid">${cols.map((c, i) => (i ? '<div class="arrow">→</div>' : '') + col({ ...c, rec: c.k === 'B' })).join('')}</div>`; };
-  await shoot('6-b-in-two-steps', `<style>${CSS}.arrow{margin-top:340px}</style><h1>Recommendation: B in two steps (360 px)</h1><p class="sub">Step 1 ships the no-regret changes of design A on today's structure. Step 2 adds B's compact rows, bottom bar and collapsible cards on top.</p>` + row('Live company page', live) + row('Match page', match), 1260, 1.15);
+  await shoot('6-b-in-two-steps', `<style>${CSS}.arrow{margin-top:340px}</style><h1>Recommendation: B in two steps (360 px)</h1><p class="sub">Step 1 ships the no-regret changes of design A on today's structure. Step 2 adds B's bottom bar, arrow counters and the Actions pop-up on top; unit cards stay full.</p>` + row('Live company page', live) + row('Match page', match), 1260, 1.15);
 }
 
 /* ---- desktop B ---- */
 {
   const fr = (img, h) => `<div style="border:3px solid #2f7a3e;border-radius:6px;overflow:hidden;width:1280px;height:900px"><img src="${img}" style="display:block;width:1280px"></div>`;
-  await shoot('7-b-desktop-1280', `<style>${CSS}body{width:1340px}</style><h1>Design B at 1280 px</h1><p class="sub">Match page and live company page. At this width B uses a sticky right panel instead of a bottom bar; on the live page the selected unit's full card and its actions are inline (no sheet). Mouse pointer: 36 px buttons.</p>
+  await shoot('7-b-desktop-1280', `<style>${CSS}body{width:1340px}</style><h1>Design B at 1280 px</h1><p class="sub">Match page and live company page. At this width B uses a sticky right panel instead of a bottom bar; the live page shows the same full unit cards in a grid (three columns at 1280 px), and Actions is a popover anchored to the card's header button (open on the first card). Mouse pointer: 36 px buttons, 26x16 px counter arrows.</p>
 <div class="rowt">Match page (End checks, Result and Roles collapsed, as in the wireframe)</div>${fr('out/match-B-1280.png')}
 <div class="rowt">Live company page (first 900 px; the list continues for 15 units, ${fmt(H['live-B-1280'])} px in all)</div>${fr('out/live-B-1280.png')}`, 1340, 1);
 }
