@@ -36,7 +36,7 @@ def ratio(a, b):
 
 
 def main(path):
-    css = Path(path).read_text()
+    css = Path(path).read_text(encoding="utf-8")
     # a high-contrast block is selected as `[data-contrast="high"] [data-palette=...][data-mode=...]` (among others)
     blocks = re.findall(r'(\[data-contrast="high"\]\s+)?\[data-palette="(\w+)"\]\[data-mode="(\w+)"\]\s*\{(.*?)\}', css, re.S)
     tokens = lambda body: dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6});", body))
