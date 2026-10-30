@@ -14,7 +14,7 @@ dest="${BCM_DIR:-/opt/bcm}"
 install -d -m 0750 "$dest" "$dest/scripts" "$dest/backups" "$dest/state"
 install -m 0644 "$src/deploy/compose.prod.yaml" "$dest/compose.yaml"
 install -m 0644 "$src/deploy/Caddyfile" "$dest/Caddyfile"
-for f in bcm-update.sh bcm-backup.sh bootstrap-admin.sh; do install -m 0750 "$src/deploy/$f" "$dest/$f"; done
+for f in bcm-update.sh bcm-backup.sh bootstrap-admin.sh memcheck.sh; do install -m 0750 "$src/deploy/$f" "$dest/$f"; done
 for f in backup.sh restore.sh restore-drill.sh; do install -m 0750 "$src/scripts/$f" "$dest/scripts/$f"; done
 if [ ! -f "$dest/.env" ]; then
   : "${SITE_ADDRESS:?set SITE_ADDRESS to the public host name}"

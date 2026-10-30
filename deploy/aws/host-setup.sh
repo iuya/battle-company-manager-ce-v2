@@ -32,6 +32,9 @@ if ! swapon --show | grep -q /swapfile; then
   fallocate -l 1G /swapfile && chmod 600 /swapfile && mkswap /swapfile > /dev/null && swapon /swapfile
   echo '/swapfile none swap sw 0 0' >> /etc/fstab
 fi
+# Swap is a safety net on a 1 GB host, not working memory: keep the kernel from using it eagerly (persisted).
+echo 'vm.swappiness = 10' > /etc/sysctl.d/90-bcm-swap.conf
+sysctl -q --system
 
 sed -i 's/^apply_updates = .*/apply_updates = yes/; s/^upgrade_type = .*/upgrade_type = security/' /etc/dnf/automatic.conf
 systemctl enable --now dnf-automatic.timer
