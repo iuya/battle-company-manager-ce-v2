@@ -98,6 +98,9 @@ const (
 var knownEquipmentClasses = []EquipmentClass{EquipMount, EquipMelee, EquipTwoHanded, EquipSpear, EquipLance, EquipShield, EquipArmour, EquipBow, EquipCrossbow,
 	EquipThrowing, EquipMissile, EquipBanner, EquipHorn, EquipConsumable, EquipOther}
 
+// EquipmentClasses is the vocabulary of item classes.
+func EquipmentClasses() []EquipmentClass { return slices.Clone(knownEquipmentClasses) }
+
 // rank is the position of a class in a unit's equipment list: mount first (with its armour right after), then melee
 // weapons (lances included), shield, armour, ranged weapons, and everything else last, so units can be compared at a glance.
 func (c EquipmentClass) rank() int {
@@ -198,6 +201,15 @@ func IconFor(name string, classes []EquipmentClass, size string) string {
 		return "generic-large"
 	}
 	return ""
+}
+
+// IconKeys are the keys IconFor can return, so the page can check it draws every one.
+func IconKeys() []string {
+	keys := []string{"generic-small", "generic-large"}
+	for _, r := range iconRules {
+		keys = append(keys, r.icon)
+	}
+	return keys
 }
 
 // Equipment is something a unit carries: part of its starting options (Bought false) or bought during the campaign.

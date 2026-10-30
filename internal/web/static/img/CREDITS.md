@@ -1,6 +1,6 @@
 # Image credits
 
-Most icons in `templates/partials/units.gohtml` (the `gi_path` template) come from [game-icons.net](https://game-icons.net),
+Most icons in the sprite `gi.svg` (one `<symbol>` per icon, drawn by the `gi_icon` template; which icon draws what is in `internal/web/icons.go`) come from [game-icons.net](https://game-icons.net),
 under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Each links to its page there, which names its author. The horn
 is from [SVG Repo](https://www.svgrepo.com/svg/307020/horn), under CC0.
 
@@ -24,7 +24,7 @@ Chosen for this app:
   [`gem-pendant`](https://game-icons.net/1x1/lorc/gem-pendant.html) (talisman), [`treasure-map`](https://game-icons.net/1x1/lorc/treasure-map.html),
   [`boots`](https://game-icons.net/1x1/lorc/boots.html), [`beer-stein`](https://game-icons.net/1x1/lorc/beer-stein.html) (brew),
   [`wolf-trap`](https://game-icons.net/1x1/lorc/wolf-trap.html) (snare), [`tied-scroll`](https://game-icons.net/1x1/lorc/tied-scroll.html),
-  [`horse-head`](https://game-icons.net/1x1/lorc/horse-head.html) (barding; `lorc-horse-head` in the template), [`medal`](https://game-icons.net/1x1/lorc/medal.html) (badge), [`poison-bottle`](https://game-icons.net/1x1/lorc/poison-bottle.html) (vial) by Lorc;
+  [`horse-head`](https://game-icons.net/1x1/lorc/horse-head.html) (barding; `lorc-horse-head` in the sprite), [`medal`](https://game-icons.net/1x1/lorc/medal.html) (badge), [`poison-bottle`](https://game-icons.net/1x1/lorc/poison-bottle.html) (vial) by Lorc;
   [`belt`](https://game-icons.net/1x1/lucasms/belt.html) by Lucas.
 - Hero paths: [`bullseye`](https://game-icons.net/1x1/skoll/bullseye.html) (Sharpshooter) by Skoll;
   [`compass`](https://game-icons.net/1x1/lorc/compass.html) (Tactician), [`crowned-skull`](https://game-icons.net/1x1/lorc/crowned-skull.html) (Claimant), [`padlock`](https://game-icons.net/1x1/lorc/padlock.html) (On Their Own Path), [`arrow-cluster`](https://game-icons.net/1x1/lorc/arrow-cluster.html) (Marksman), [`sword-clash`](https://game-icons.net/1x1/lorc/sword-clash.html) (Soldier),
@@ -36,9 +36,6 @@ Chosen for this app:
 - Weapons and armour drawn more precisely than by their class: [`claw-slashes`](https://game-icons.net/1x1/lorc/claw-slashes.html) (claws, teeth and fangs), [`crossed-swords`](https://game-icons.net/1x1/lorc/crossed-swords.html) (twin blades), [`thrown-spear`](https://game-icons.net/1x1/lorc/thrown-spear.html) (throwing spears), [`unlit-bomb`](https://game-icons.net/1x1/lorc/unlit-bomb.html) (smoke bombs), [`crossed-chains`](https://game-icons.net/1x1/lorc/crossed-chains.html) (troll chain), [`whip`](https://game-icons.net/1x1/lorc/whip.html), [`leather-vest`](https://game-icons.net/1x1/lorc/leather-vest.html) (light armour), [`breastplate`](https://game-icons.net/1x1/lorc/breastplate.html) (heavy armour) by Lorc;
   [`warhammer`](https://game-icons.net/1x1/delapouite/warhammer.html) (mattock and hammers), [`glaive`](https://game-icons.net/1x1/delapouite/glaive.html),
   [`dragon-shield`](https://game-icons.net/1x1/delapouite/dragon-shield.html) (pavise) by Delapouite.
-- The other live actions of a unit: [`run`](https://game-icons.net/1x1/lorc/run.html) (Fled) and
-  [`william-tell-skull`](https://game-icons.net/1x1/lorc/william-tell-skull.html) (Died) by Lorc; the mount uses the kind icons `swordwoman` (lost mount) and
-  `cavalry` (mount back).
 
 Already used by the legacy Heroes of Middle Age app:
 

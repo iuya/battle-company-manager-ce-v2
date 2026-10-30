@@ -568,13 +568,13 @@ html[data-mode="dark"] { color-scheme: dark; }
   .eq-chip.is-bought { @apply border-accent bg-accent-soft; border-style: solid; }
   .eq-chip.is-bought.has-tip { border-style: dashed; }
   /* The icon of a gear chip, bigger than the h-4 w-4 it is drawn with elsewhere (the expanded card, the armoury). */
-  .eq-chip > .eq-ic, .eq-chip > svg { height: 1.375rem !important; width: 1.375rem !important; }
-  .eq-chip > .eq-secondary .eq-ic { height: .9rem !important; width: .9rem !important; }
+  .eq-chip > .eq-ic { height: 1.375rem; width: 1.375rem; }
+  .eq-chip > .eq-secondary .eq-ic { height: .9rem; width: .9rem; }
   /* "Icons only" (Appearance, cookie bcm-gear=tiles, html[data-gear=tiles] set by theme-init.js): on a unit card a gear chip is an icon
      tile, the name and numbers kept for screen readers and shown in the tooltip (or the title) and on the expanded card. A struck item fades. */
   [data-gear="tiles"] .unit .eq-chip:has(> .eq-ic) { position: relative; height: 2.25rem; min-width: 2.25rem; justify-content: center; gap: 0; border-radius: .5rem; padding: .125rem; }
   [data-gear="tiles"] .unit .eq-chip:has(> .eq-ic) > span:not(.eq-secondary) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  [data-gear="tiles"] .unit .eq-chip > .eq-ic { height: 1.75rem !important; width: 1.75rem !important; }
+  [data-gear="tiles"] .unit .eq-chip > .eq-ic { height: 1.75rem; width: 1.75rem; }
   [data-gear="tiles"] .unit .eq-chip.line-through:has(> .eq-ic) { opacity: .45; }
   /* A unit missing the next match goes to the end of the list (the order is only visual: it comes back by itself). */
   .unit-away { order: 1; }
@@ -667,26 +667,17 @@ html[data-mode="dark"] { color-scheme: dark; }
   .concept-foot { @apply border-t border-line pt-3; }
   .concept-open { overflow: hidden; }
   .concept-skel { @apply h-4 animate-pulse rounded bg-raised; }
-  /* Each class of equipment has its own colour (light and dark tuned separately); an item can show several icons. */
-  .eq-ic-mount { color: var(--eq-mount); } .eq-ic-melee, .eq-ic-two_handed { color: var(--eq-melee); } .eq-ic-spear { color: var(--eq-spear); }
-  .eq-ic-shield { color: var(--eq-shield); } .eq-ic-armour { color: var(--eq-armour); } .eq-ic-bow { color: var(--eq-bow); }
-  .eq-ic-crossbow { color: var(--eq-crossbow); } .eq-ic-throwing { color: var(--eq-throwing); }
-  .eq-ic-lance { color: var(--eq-lance); } .eq-ic-missile { color: var(--eq-missile); } .eq-ic-consumable { color: var(--eq-consumable); }
+  /* Each class of equipment has its own colour (light and dark tuned separately); an item drawn more precisely than by its class
+     takes a class's colour so the colours still group the gear (gearLooks in internal/web/icons.go says which). */
+  .eq-tone-mount { color: var(--eq-mount); } .eq-tone-melee { color: var(--eq-melee); } .eq-tone-spear { color: var(--eq-spear); }
+  .eq-tone-shield { color: var(--eq-shield); } .eq-tone-armour { color: var(--eq-armour); } .eq-tone-bow { color: var(--eq-bow); }
+  .eq-tone-crossbow { color: var(--eq-crossbow); } .eq-tone-throwing { color: var(--eq-throwing); } .eq-tone-lance { color: var(--eq-lance); }
+  .eq-tone-missile { color: var(--eq-missile); } .eq-tone-consumable { color: var(--eq-consumable); } .eq-tone-banner { color: var(--eq-banner); }
+  .eq-tone-gold { color: var(--gold); } .eq-tone-other { color: var(--muted); }
+  /* A gear icon (the gear_icon template): its size here, not in utilities, so a gear chip can make it bigger without !important. */
+  .eq-ic { @apply h-4 w-4 shrink-0; }
   /* The other classes of an item that is several things: smaller and quieter than the first. */
-  .eq-secondary { display: inline-flex; opacity: .65; } .eq-secondary .eq-ic { height: .7rem; width: .7rem; }
-  .eq-ic-banner, .eq-ic-instrument, .eq-ic-horn, .eq-ic-drum, .eq-ic-badge { color: var(--eq-banner); } .eq-ic-other { color: var(--muted); }
-  /* Specific items by family: gear and tools brown, magic purple and teal, food and herbs green, poison red, the generic ones muted. */
-  .eq-ic-backpack, .eq-ic-rope, .eq-ic-boots, .eq-ic-belt, .eq-ic-cloak, .eq-ic-pelt, .eq-ic-barding, .eq-ic-map,
-  .eq-ic-warg, .eq-ic-camel, .eq-ic-goat, .eq-ic-armoured-horse { color: var(--eq-mount); }
-  .eq-ic-steed { color: var(--eq-bow); } .eq-ic-pony { color: var(--eq-armour); } /* same horse, told apart by colour */
-  .eq-ic-hammer, .eq-ic-hand-and-a-half, .eq-ic-twin-blades, .eq-ic-claws { color: var(--eq-melee); }
-  .eq-ic-glaive { color: var(--eq-spear); } .eq-ic-halberd { color: var(--gold); }
-  .eq-ic-thrown-spear, .eq-ic-smoke-bomb, .eq-ic-chain, .eq-ic-whip { color: var(--eq-throwing); }
-  .eq-ic-light-armour, .eq-ic-heavy-armour { color: var(--eq-armour); } .eq-ic-small-shield, .eq-ic-pavise { color: var(--eq-shield); }
-  .eq-ic-ring, .eq-ic-talisman, .eq-ic-scroll { color: var(--eq-throwing); } .eq-ic-orb { color: var(--eq-crossbow); }
-  .eq-ic-herbs, .eq-ic-cram, .eq-ic-brew { color: var(--eq-bow); } .eq-ic-vial, .eq-ic-torch { color: var(--eq-melee); }
-  .eq-ic-snare, .eq-ic-blowpipe { color: var(--eq-armour); } .eq-ic-axe { color: var(--eq-melee); }
-  .eq-ic-generic-small, .eq-ic-generic-large { color: var(--muted); }
+  .eq-secondary { display: inline-flex; opacity: .65; }
   .badge-muted { @apply bg-raised text-muted; }
   /* Keyword chips (docs/unit-keywords.md): race solid and in the body weight, factions muted, unit types outlined, so the groups differ without colour. */
   .kw-block { @apply min-w-0; }

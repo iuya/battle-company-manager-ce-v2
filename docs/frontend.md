@@ -433,7 +433,12 @@ A card, top to bottom:
 talisman, map, boots, ring, scroll, seeing stone, torch, snares, pelt, cram, belt, vial, blowpipe, axe, barding;
 `core.IconFor`), the class icons for weapons, armour, shields, bows and mounts (a blade-spear shows two), and a generic
 **pouch (small)** or **chest (large)** for equipment the rules data adds that has no icon yet. The icons are in
-`partials/units.gohtml` (`item_icon`, `eq_icon`, `gear_icons`); add a name to `iconRules` and a drawing to give a new item its own.
+sprite `static/img/gi.svg` (one `<symbol>` per icon, drawn with `<use href>` by `gi_icon`, so a page carries a reference per icon and
+the browser caches the drawings); `internal/web/icons.go` says which icon draws what (`kindIcons`, `roleLooks`, and `gearLooks` by item
+class and item key, each with a tone: the `.eq-tone-*` colour of a class, so items drawn more precisely than by their class still group
+by colour), and `partials/units.gohtml` draws them (`item_icon`, `eq_icon`, `gear_icons`). To give a new item its own icon, add a name
+to `iconRules`, its key to `gearLooks` and the symbol to the sprite (with its credit in `static/img/CREDITS.md`); `icons_test.go` fails
+on a key with no look, a name missing from the sprite and a symbol nothing draws.
 
 **What the cards read from the data.** An item's classes, granted rules and missile profile come from the Battle Companies
 file's `data.gearAnnotations` (`BCBook.Annotation`), not from guessing its name. The classes are mount, melee, two_handed,
