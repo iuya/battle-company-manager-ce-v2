@@ -689,9 +689,8 @@ html[data-mode="dark"] { color-scheme: dark; }
   /* The badges under the title plate (rules that apply, Wanderer, injuries...): no box, and so no gap, when there are none. */
   .unit-badges:not(:has(*)) { display: none; }
   /* The body of a unit card (wargear, upgrades, equipment, path, special rules): 6 px apart, and 6 px to the foot. A list with nothing in it
-     (no unit upgrades, no loaned items) takes no room. */
+     (no unit upgrades, no loaned items) takes no room: not-has-[*]:hidden on the list. */
   .unit-body { @apply -mb-0.5 space-y-1.5; }
-  .unit-body > ul:not(:has(*)) { display: none !important; } /* over its flex utility */
   .unit-kw { @apply -mt-1.5; }
   .unit-kw .kw-row { @apply gap-x-1 gap-y-1; }
   .unit-kw .kw-chip { @apply px-1.5 py-0 text-[10px] leading-4; }

@@ -217,15 +217,15 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     {{/* Wargear (what takes no slot: mount, weapons, armour) always in the same order (mount, melee, shield, armour, ranged, rest) so units
        compare at a glance; then the slots, and below them the equipment that takes them. Starting items are plain, bought ones carry a +. */}}
     <p class="flex items-center gap-1.5 text-xs text-muted"><span>Wargear</span>{{if and (not $u.Wanderer) (not $ro)}}<button type="button" data-lock class="eq-add eq-add-sm" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/armoury?kind=wargear" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" aria-label="Buy wargear for {{$u.Title}}" title="Buy wargear">+</button>{{end}}</p>
-    <ul class="flex flex-wrap items-center gap-1.5" aria-label="Wargear">
+    <ul class="flex flex-wrap not-has-[*]:hidden items-center gap-1.5" aria-label="Wargear">
       {{range $u.Items}}{{if and (not .Upgrade) (not .Size)}}{{template "gear_chip" .}}{{end}}{{end}}
       {{with $u.Creature}}<li class="eq-chip has-tip" tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Creature · not a unit, no injuries" {{with $u.CreatureStats}}data-tip-stats="{{.}}" {{end}}data-tip-text="{{$u.CreatureTip}}">{{template "paw"}}<span>{{.Name}}</span></li>{{end}}
     </ul>
-    {{if and $lu $lu.Loaned}}<ul class="flex flex-wrap items-center gap-1.5" aria-label="Loaned items">
+    {{if and $lu $lu.Loaned}}<ul class="flex flex-wrap not-has-[*]:hidden items-center gap-1.5" aria-label="Loaned items">
       {{range loanedGroups $lu.Loaned}}<li class="eq-chip {{if .AllUsed}}text-muted line-through{{end}}" {{if .AllUsed}}aria-label="{{.Item}}, used"{{end}}><span>{{.Item}}{{if gt .Count 1}} ×{{.Count}}{{end}}{{with .Detail}} ({{.}}){{end}}</span> <span class="badge badge-gold">Loaned{{with .Kit}} ({{.}}){{end}}</span>{{if .AllUsed}} <span class="text-xs">used</span>{{else if .Used}} <span class="text-xs text-muted">{{.Used}} used</span>{{else if .AfterGame}} <span class="text-xs text-muted">use after the game</span>{{end}}</li>{{end}}
     </ul>{{end}}
     {{/* Named unit upgrades (Helmingas, Hearthguard...) are not gear: badges, not items. */}}
-    <ul class="flex flex-wrap gap-1.5" aria-label="Unit upgrades">{{- range $u.Items}}{{if .Upgrade}}<li class="badge badge-gold{{if .Description}} has-tip{{end}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Unit upgrade" data-tip-text="{{.Description}}"{{else}}title="Unit upgrade"{{end}}>{{.Name}}</li>{{end}}{{end -}}</ul>
+    <ul class="flex flex-wrap not-has-[*]:hidden gap-1.5" aria-label="Unit upgrades">{{- range $u.Items}}{{if .Upgrade}}<li class="badge badge-gold{{if .Description}} has-tip{{end}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Unit upgrade" data-tip-text="{{.Description}}"{{else}}title="Unit upgrade"{{end}}>{{.Name}}</li>{{end}}{{end -}}</ul>
     {{$sl := $u.Slots}}
     {{/* In a match nothing can be bought, so a unit with no equipment shows no Equipment line. */}}
     {{$hasEq := false}}{{range $u.Items}}{{if and (not .Upgrade) .Size}}{{$hasEq = true}}{{end}}{{end}}
@@ -235,7 +235,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
       <span class="inline-flex items-center gap-1" title="Large slots used">Large {{range $i := seq 1 $sl.LargeMax}}<span class="pip {{if le $i $sl.LargeUsed}}pip-on{{end}}"></span>{{end}} <span>{{$sl.LargeUsed}}/{{$sl.LargeMax}}</span></span>
       <span class="inline-flex items-center gap-1" title="Small slots used">Small {{range $i := seq 1 $sl.SmallMax}}<span class="pip {{if le $i $sl.SmallUsed}}pip-on{{end}}"></span>{{end}} <span>{{$sl.SmallUsed}}/{{$sl.SmallMax}}</span></span>
     </p>
-    <ul class="flex flex-wrap gap-1.5" aria-label="Equipment">
+    <ul class="flex flex-wrap not-has-[*]:hidden gap-1.5" aria-label="Equipment">
       {{range $u.Items}}{{if and (not .Upgrade) .Size}}{{template "gear_chip" .}}{{end}}{{end}}
     </ul>
     {{end}}
@@ -249,14 +249,14 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     <div class="path-box path-k-{{(pathLook .Name).Kind}} space-y-1.5">
       {{template "path_name" (dict "N" .Name "Tip" .TipText "Chart" .TipPath "Short" true)}}
       {{if .Actions}}
-      <ul class="flex flex-wrap gap-1.5" aria-label="Heroic actions">
+      <ul class="flex flex-wrap not-has-[*]:hidden gap-1.5" aria-label="Heroic actions">
         {{range .Actions}}
         <li class="act-chip act-{{.Source}}" {{if .Summary}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Heroic action · {{if eq (printf "%s" .Source) "bought"}}bought{{else if eq (printf "%s" .Source) "path"}}unlocked by the path{{else}}of the unit{{end}}" data-tip-text="{{.Summary}}"{{end}}>{{template "bolt_icon"}}<span>{{if eq (printf "%s" .Source) "bought"}}+ {{end}}{{.Name}}</span></li>
         {{end}}
       </ul>
       {{end}}
       {{if or .Rules .Powers}}
-      <ul class="flex flex-wrap gap-1.5" aria-label="Rules and magical powers from the path">
+      <ul class="flex flex-wrap not-has-[*]:hidden gap-1.5" aria-label="Rules and magical powers from the path">
         {{range .Rules}}<li class="rule-chip {{if eq (printf "%s" .Source) "company"}}rule-company{{else}}rule-path{{end}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-meta="{{if eq (printf "%s" .Source) "company"}}Company-exclusive hero upgrade{{else}}From the hero's path{{end}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}><span>{{.Shown}}</span></li>{{end}}
         {{range .Powers}}<li class="rule-chip rule-spell" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Spell · cast {{.Casting}}+ · {{if .Range}}range {{.Range}}&quot;{{else}}self{{end}} · learned through the path" data-tip-text="{{.Description}}"{{end}}>{{template "spell_icon"}}<span>{{.Name}}</span><span class="font-semibold">{{.Casting}}+ · {{if .Range}}{{.Range}}"{{else}}self{{end}}</span></li>{{end}}
       </ul>
@@ -265,7 +265,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     {{end}}{{end}}
 
     {{/* Special rules: the unit's own, then its spells, then those from equipment (the path's are in its own box, just above). */}}
-    <ul class="flex flex-wrap gap-1.5" aria-label="Special rules">
+    <ul class="flex flex-wrap not-has-[*]:hidden gap-1.5" aria-label="Special rules">
       {{range $u.Rules}}
       <li class="rule-chip rule-{{.Source}} {{if .Spell}}rule-spell{{end}} {{if .Struck}}text-muted line-through{{end}}" {{if .Struck}}aria-label="{{.Shown}}, {{.Struck}}"{{end}} {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-meta="{{if .Spell}}Spell · cast {{.Casting}}+ · {{if .Range}}range {{.Range}}&quot;{{else}}self{{end}}{{else if .Mount}}Granted to the {{.Mount}}{{else if eq (printf "%s" .Source) "equipment"}}From {{.From}}{{else if eq (printf "%s" .Source) "company"}}Company-exclusive rule{{else}}Special rule{{end}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}>
         {{if .Spell}}{{template "spell_icon"}}{{end}}{{with .Mount}}<span class="text-muted">{{.}}:</span>{{end}}<span>{{.Shown}}</span>{{if .Spell}}<span class="font-semibold">{{.Casting}}+ · {{if .Range}}{{.Range}}"{{else}}self{{end}}</span>{{end}}
