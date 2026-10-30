@@ -43,7 +43,7 @@ export default async function (h) {
     await layout(galadriel, 1280, 'light');
   });
 
-  await h.step('unit rename: the pencil opens a focused field across the plate; Enter saves, Escape gives up, a click elsewhere saves, empty is the type', async () => {
+  await h.step('unit rename: a click on the name opens a focused field across the plate; Enter saves, Escape gives up, a click elsewhere saves, empty is the type', async () => {
     const cid = await campaignId(galadriel, 'Aftermath ward 1');
     await galadriel.goto(`/campaigns/${cid}/my-company`);
     const p = galadriel.page;
@@ -51,14 +51,14 @@ export default async function (h) {
     const card = `#unit-${id}`, field = `#rename-${id}`;
     const { original, type } = await p.$eval(field, (e) => ({ original: e.defaultValue, type: e.placeholder }));
     const title = () => p.$eval(`${card} h3`, (e) => e.innerText.trim());
-    const open = async () => { await p.click(`${card} .unit-rename-btn`); await galadriel.settle(100); };
+    const open = async () => { await p.click(`${card} .unit-name`); await galadriel.settle(100); };
     const focused = () => p.evaluate((f) => document.activeElement === document.querySelector(f), field);
 
     const icon = await p.$eval(`${card} .unit-head > .kind-icon`, (e) => { const r = e.getBoundingClientRect(); return [r.width, r.height]; });
     assert.deepEqual(icon, [48, 48], 'the kind icon of the title plate is a 3 rem tile');
 
     await open();
-    assert.ok(await focused(), 'the pencil puts the cursor in the field');
+    assert.ok(await focused(), 'the click puts the cursor in the field');
     const widths = await p.$eval(card, (c, f) => [document.querySelector(f).getBoundingClientRect().width, c.getBoundingClientRect().width], field);
     assert.ok(widths[0] >= widths[1] * 0.6, `the field takes most of the card: ${widths}`);
     for (const scheme of ['light', 'dark']) for (const w of SIZES) {

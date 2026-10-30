@@ -65,9 +65,9 @@ export default async function (h) {
     assert.ok(await eowyn.page.$eval('main .unit-slot', (u) => !!u.querySelector('[role=img][aria-label]')), 'the kind icon stays');
     const order = await eowyn.page.$eval('main .unit-slot', (u) => {
       const t = u.querySelector('[data-keywords]'), a = u.querySelector('[aria-label=Wargear]'), b = u.querySelector('.level-medal');
-      return [a.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING, b ? t.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING : 1];
+      return [a.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING, b ? b.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING : 1];
     });
-    assert.ok(order[0] && order[1], 'the row is at the foot of the card: under the wargear, above the experience');
+    assert.ok(order[0] && order[1], 'the row is at the foot of the card: under the wargear and the experience');
   });
 
   await h.step('keywords: Elf and Dwarf companies show their race first; the row wraps and holds at most five chips then +N', async () => {

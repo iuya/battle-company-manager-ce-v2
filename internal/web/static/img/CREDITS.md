@@ -36,6 +36,9 @@ Chosen for this app:
 - Weapons and armour drawn more precisely than by their class: [`claw-slashes`](https://game-icons.net/1x1/lorc/claw-slashes.html) (claws, teeth and fangs), [`crossed-swords`](https://game-icons.net/1x1/lorc/crossed-swords.html) (twin blades), [`thrown-spear`](https://game-icons.net/1x1/lorc/thrown-spear.html) (throwing spears), [`unlit-bomb`](https://game-icons.net/1x1/lorc/unlit-bomb.html) (smoke bombs), [`crossed-chains`](https://game-icons.net/1x1/lorc/crossed-chains.html) (troll chain), [`whip`](https://game-icons.net/1x1/lorc/whip.html), [`leather-vest`](https://game-icons.net/1x1/lorc/leather-vest.html) (light armour), [`breastplate`](https://game-icons.net/1x1/lorc/breastplate.html) (heavy armour) by Lorc;
   [`warhammer`](https://game-icons.net/1x1/delapouite/warhammer.html) (mattock and hammers), [`glaive`](https://game-icons.net/1x1/delapouite/glaive.html),
   [`dragon-shield`](https://game-icons.net/1x1/delapouite/dragon-shield.html) (pavise) by Delapouite.
+- The other live actions of a unit: [`run`](https://game-icons.net/1x1/lorc/run.html) (Fled) and
+  [`william-tell-skull`](https://game-icons.net/1x1/lorc/william-tell-skull.html) (Died) by Lorc; the mount uses the kind icons `swordwoman` (lost mount) and
+  `cavalry` (mount back).
 
 Already used by the legacy Heroes of Middle Age app:
 
@@ -43,4 +46,6 @@ Already used by the legacy Heroes of Middle Age app:
 - Mounts: `camel` (the War Camel).
 - Equipment classes: `horse-head` (mount), `sword-brandish` (hand weapon), `spears`, `viking-shield`,
   `kevlar` (armour), `high-shot` (bow), `crossbow`, `thrown-daggers`, `flying-flag` (banner), `remedy` (consumable).
+- Milestones of a unit in a live match: `machete` (wounded an enemy), `death-skull` (Heroes and Monsters slain), `shield-reflect` (Fate),
+  `mighty-force` (Broken courage test passed), `flying-flag` (objective), all by Lorc.
 - Items: `blade-drag` (hand-and-a-half weapons), `round-shield` (small and light shields), `backpack`, `cape` (cloak), `cannon-shot` (blowpipe), `swap-bag` (a small item with no icon of its own).

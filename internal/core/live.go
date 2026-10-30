@@ -34,6 +34,10 @@ type LiveUnit struct {
 	HasMount, Mounted         bool
 	MountWounds               LiveStat       // Start 1 unless the mount's profile says more
 	Gains                     map[string]int // experience earned so far by campaign.experience.gains key (flags 0 or 1)
+	Objective                 bool           // got the objective (an end check, not in Gains: the aftermath adds it)
+	// FateEntry and BrokenEntry are the unit's last not-undone fate and broken entries (0 for none): what pressing a lit Fate or Courage
+	// milestone undoes.
+	FateEntry, BrokenEntry int64
 	// BreakModels is how many models the unit counts as for the company's Break Point (at least 1). CourageTurn is the turn its courage
 	// was last resolved (a broken, courageSkip or failed-courage retreat entry), StandFastTurn the turn it called Stand Fast. Temporary
 	// is set for the temporary Wanderer of Against the Odds (its UnitID is TemporaryUnitID(company), never a roster id).
@@ -153,7 +157,7 @@ func (k LiveKind) Secret() bool { return k == LiveSecretNominate || k == LiveSec
 //
 //	stat:    UnitID, Stat ("wounds"|"might"|"will"|"fate"), Delta (non-zero) or Set; Set is stored as the Delta it means when applied
 //	wound:   UnitID (the attacker), Targets (at least one)
-//	fate:    UnitID, Count (1 to its current Fate)
+//	fate:    UnitID, Count (0 to its current Fate; 0 only marks the Fate milestone, no Fate is spent)
 //	broken:  UnitID
 //	retreat: UnitID, Why ("courage"|"left"), Note
 //	died:    UnitID, Note

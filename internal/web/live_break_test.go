@@ -122,6 +122,8 @@ func TestLiveActionsCarryTheBreakPointFields(t *testing.T) {
 		{url.Values{"kind": {"courageSkip"}, "unit": {"5"}, "reason": {"engaged"}}, core.LiveAction{Kind: core.LiveCourageSkip, UnitID: 5, Reason: "engaged"}},
 		{url.Values{"kind": {"allIsLost"}, "flee": {"1"}}, core.LiveAction{Kind: core.LiveAllIsLost, Flee: true}},
 		{url.Values{"kind": {"broken"}, "unit": {"5"}, "standFast": {"1"}}, core.LiveAction{Kind: core.LiveBroken, UnitID: 5, StandFast: true}},
+		{url.Values{"kind": {"objective"}, "unit": {"5"}, "on": {"1"}}, core.LiveAction{Kind: core.LiveObjective, UnitID: 5, On: true}},
+		{url.Values{"kind": {"objective"}, "unit": {"5"}, "on": {"0"}}, core.LiveAction{Kind: core.LiveObjective, UnitID: 5}},
 		{url.Values{"kind": {"itemUsed"}, "unit": {"5"}, "item": {"Dwarven Brew"}, "index": {"1"}}, core.LiveAction{Kind: core.LiveItemUsed, UnitID: 5, Item: "Dwarven Brew", Index: 1}},
 	} {
 		f.camp.EXPECT().Apply(gomock.Any(), frodo, int64(7), int64(3), int64(1), c.want).Return(core.LiveCompany{}, core.LiveEntry{ID: 41, Text: "done"}, nil)
@@ -155,6 +157,7 @@ func TestLoanedItemsTemporaryWandererAndItemUsed(t *testing.T) {
 	if strings.Contains(body, "/units/-1/dismiss") {
 		t.Error("the temporary Wanderer cannot be dismissed")
 	}
+	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), 200).Return(nil, nil).AnyTimes() // the window lists what the unit recorded
 	menu := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/menu", nil))).Body.String()
 	if !strings.Contains(menu, "Item used") {
 		t.Error("the menu offers Item used for a unit with an unspent loaned item")

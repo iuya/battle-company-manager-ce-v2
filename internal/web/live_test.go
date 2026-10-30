@@ -198,12 +198,12 @@ func TestLiveUndoAnswersZonesAndShowsTheDependencyRefusal(t *testing.T) {
 	}
 }
 
-func TestTrackersArePipsForTheOwnerAndMarksForAViewer(t *testing.T) {
+func TestTrackersAreSegmentsForTheOwnerAndMarksForAViewer(t *testing.T) {
 	threeWounds := func(c *core.LiveCompany) { c.Units[0].Wounds = core.LiveStat{Current: 2, Start: 3} }
 	f := liveSetupWith(t, core.LiveEdit, threeWounds)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	for _, want := range []string{`data-tracker="wounds"`, `aria-label="Wounds of Hador: 2 of 3"`, `Wounds of Hador down by one`, `"delta":"-1"`,
-		`Wounds of Hador up by one`, `"delta":"1"`, `Set Wounds of Hador to 1`, `"set":"1"`, `class="pip-heart is-on"`} {
+		`Wounds of Hador up by one`, `"delta":"1"`, `Set Wounds of Hador to 1`, `"set":"1"`, `class="tracker-heart is-on"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("owner lacks %q", want)
 		}
@@ -214,13 +214,23 @@ func TestTrackersArePipsForTheOwnerAndMarksForAViewer(t *testing.T) {
 		t.Error("a viewer reads the trackers, nothing more")
 	}
 	h := liveOwnerSetup(t, core.LiveEdit)
-	if body := h.do(h.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String(); strings.Contains(body, `data-tracker="wounds"`) {
-		t.Error("a model with one wound has no Wounds tracker")
+	if body := h.do(h.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String(); !strings.Contains(body, `aria-label="Wounds of Hador: 1 of 1"`) ||
+		!strings.Contains(body, `Wounds of Hador down by one`) {
+		t.Error("a model with one wound has its Wounds tracker too: taking it to 0 is how it falls")
 	}
 }
 
 func TestLiveSheetsOfTheActionsMenu(t *testing.T) {
 	f := liveOwnerSetup(t, core.LiveEdit)
+	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), 200).Return([]core.LiveEntry{
+		{ID: 61, UnitID: 5, Action: core.LiveAction{Kind: core.LiveBroken, UnitID: 5}, Text: "Hador passed a Broken courage test", CanUndo: true},
+		{ID: 62, UnitID: 6, Action: core.LiveAction{Kind: core.LiveBroken, UnitID: 6}, Text: "Brego passed a Broken courage test", CanUndo: true},
+		{ID: 63, UnitID: 5, Action: core.LiveAction{Kind: core.LiveRetreat, UnitID: 5}, Text: "Hador retreated", CanUndo: true},
+	}, nil).AnyTimes()
+	if code, body := liveSheetGet(f, "broken"); code != 200 || !strings.Contains(body, "Recorded this match") || !strings.Contains(body, "/live/log/61/undo") ||
+		strings.Contains(body, "Brego") || strings.Contains(body, "Hador retreated") {
+		t.Errorf("broken: the window lists the unit's own courage entries with Undo, nothing else: %d %s", code, body)
+	}
 	get := func(kind string) (int, string) {
 		rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/"+kind, nil)))
 		return rec.Code, rec.Body.String()
@@ -243,6 +253,11 @@ func TestLiveSheetsOfTheActionsMenu(t *testing.T) {
 	}
 }
 
+func liveSheetGet(f *fixture, kind string) (int, string) {
+	rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/"+kind, nil)))
+	return rec.Code, rec.Body.String()
+}
+
 func TestWoundSheetListsOnlyUnitsInTheField(t *testing.T) {
 	f := liveOwnerSetup(t, core.LiveEdit,
 		core.MatchSide{Name: "Gondor", Companies: []core.CampaignCompany{{ID: 1, Name: "Rangers"}}},
@@ -252,6 +267,7 @@ func TestWoundSheetListsOnlyUnitsInTheField(t *testing.T) {
 		{UnitID: 21, Zone: core.ZoneCasualty, Wounds: core.LiveStat{Start: 1}}}}, nil)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(2)).Return(core.CompanyDetail{Roster: []core.CompanyUnit{
 		{ID: 20, Name: "Grashnak", Type: "Orc Captain", Role: core.RoleLeader}, {ID: 21, Name: "Dead", Type: "Orc"}}}, nil)
+	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), 200).Return(nil, nil).AnyTimes() // the window lists what the unit recorded
 	rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/wound", nil)))
 	body := rec.Body.String()
 	for _, want := range []string{"Grashnak", `data-fate="2"`, `data-mounted="1"`, `data-kill="1"`, "Which part", "Saved by Fate", "Raiders"} {
@@ -413,4 +429,35 @@ func keywordRowOf(body string) string {
 		return ""
 	}
 	return body[i : i+j]
+}
+
+func TestMilestonesLightUpOnTheCardAndOnlyTheOwnerPressesThem(t *testing.T) {
+	lit := func(lc *core.LiveCompany) {
+		lc.Units[0].Fate = core.LiveStat{Current: 1, Start: 2}
+		lc.Units[0].HasMount, lc.Units[0].Mounted = true, true
+		lc.Units[0].Gains = map[string]int{core.GainWoundedEnemy: 1, core.GainSlainHeroMons: 2, core.GainFatePrevented: 1, core.GainBrokenPassed: 1}
+		lc.Units[0].Objective, lc.Units[0].BrokenEntry = true, 44 // Fate was saved in a wound declaration: no entry of its own
+	}
+	f := liveSetupWith(t, core.LiveEdit, lit)
+	body := livePage(f)
+	for _, want := range []string{`aria-label="Milestones of Hador"`, `aria-label="Wounded an enemy (Hador)"`, `aria-pressed="true" title="Wounded an enemy: yes"`,
+		`title="Prevented a wound with Fate: yes (undo it in the match log)"`, `aria-pressed="true" title="Passed a Broken courage test: yes"`,
+		`hx-post="/campaigns/7/matches/3/live/log/44/undo" hx-vals='{&#34;company&#34;:&#34;1&#34;}'`,
+		`aria-pressed="true" title="Got the objective: yes"`,
+		`&#34;kind&#34;:&#34;objective&#34;,&#34;unit&#34;:&#34;5&#34;,&#34;on&#34;:&#34;0&#34;`, "/units/5/sheet/wound", `title="Heroes and Monsters slain"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("owner's card lacks %q", want)
+		}
+	}
+	if strings.Contains(body, "/units/5/sheet/fate") || strings.Contains(body, "/units/5/sheet/broken") || strings.Contains(body, "/units/5/sheet/menu") ||
+		strings.Contains(body, "/units/5/sheet/item") || strings.Contains(body, "/units/5/sheet/mount") || strings.Contains(body, `aria-label="Other actions of Hador"`) ||
+		strings.Contains(body, "/units/5/sheet/retreat") || strings.Contains(body, "/units/5/sheet/died") || strings.Contains(body, "Lost mount") {
+		t.Error("Fate, Courage and the objective act with one press; no menu, no Fled, Died or mount buttons; Item used only with a loaned item to spend")
+	}
+	g := liveSetupWith(t, core.LiveNone, lit)
+	body = livePage(g)
+	if !strings.Contains(body, `role="img" aria-label="Got the objective: yes"`) || strings.Contains(body, "/units/5/sheet/") || strings.Contains(body, "kind&#34;:&#34;objective") {
+		t.Error("a viewer sees the lit milestones and cannot press them")
+	}
 }

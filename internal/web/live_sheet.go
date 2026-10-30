@@ -20,6 +20,8 @@ type liveSheet struct {
 	Live     core.LiveUnit
 	Groups   []woundGroup // wound: who can be wounded, enemies first, then friends
 	Gains    map[string]int
+	// Recorded are the unit's entries of this kind still in the log (wound, fate, broken): the milestone it earned and the way to undo it.
+	Recorded []core.LiveEntry
 
 	// The courage sheet and Item used: the match's turn, whether the company is Broken, who may be offered Stand Fast, the dice rolled for the
 	// test and why a roll was refused.
@@ -161,6 +163,17 @@ func (s *Server) liveSheetFor(w http.ResponseWriter, r *http.Request, kind strin
 			return none, false
 		}
 		sheet.ManualRolls = base.Campaign.Settings.ManualRolls
+	}
+	if kind == "wound" || kind == "fate" || kind == "broken" {
+		entries, err := s.campaigns.Log(r.Context(), user, id, matchID, 0, 200)
+		if s.fail(w, r, err) {
+			return none, false
+		}
+		for _, e := range entries {
+			if e.UnitID == unitID && string(e.Action.Kind) == kind {
+				sheet.Recorded = append(sheet.Recorded, e)
+			}
+		}
 	}
 	if kind == "wound" {
 		if sheet.Groups, err = s.woundTargets(r, id, matchID, companyID, unitID); s.fail(w, r, err) {

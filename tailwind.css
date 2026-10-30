@@ -475,10 +475,9 @@ html[data-mode="dark"] { color-scheme: dark; }
   .kind-icon > svg { height: 1.5rem; width: 1.5rem; }
   .unit-head > .kind-icon { height: 3rem; width: 3rem; padding: .125rem; align-self: center; }
   .unit-head > .kind-icon > svg { height: 100%; width: 100%; }
-  /* The pencil after a unit's name: small and in the text flow, so the plate does not grow; a bigger touch area on phones. */
-  .unit-rename-btn { position: relative; display: inline-flex; height: 1.25rem; width: 1.25rem; vertical-align: .1em; margin-left: .25rem; align-items: center; justify-content: center; border-radius: .375rem; color: var(--muted); opacity: .7; }
-  .unit-rename-btn:hover, .unit-rename-btn:focus-visible { color: var(--fg); background: var(--accent-soft); opacity: 1; }
-  @media (pointer: coarse) { .unit-rename-btn::after { content: ""; position: absolute; inset: -.75rem; } }
+  /* A unit's name is the button that renames it: it reads as the title, a dotted underline on hover says it can be changed. */
+  .unit-name { font: inherit; color: inherit; text-align: left; cursor: text; border-radius: .25rem; text-decoration: underline dotted transparent; text-underline-offset: .2em; }
+  .unit-name:hover, .unit-name:focus-visible { text-decoration-color: var(--muted); }
   /* A profile as on a datasheet: the names on a strip above the values. Might, Will and Fate are a second, accent-framed one
      with the strip in the soft accent. */
   .statline { @apply grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center; }
@@ -488,26 +487,43 @@ html[data-mode="dark"] { color-scheme: dark; }
   .statline-hero { @apply border-accent; }
   .statline-hero > div { @apply min-w-14; }
   .statline-hero dt { @apply bg-accent-soft px-2; }
-  /* The trackers of a live match (live_trackers): Might, Will and Fate as dots on one row (or one row each when they do not fit), then
-     Wounds as red hearts on a row of their own. A pip sits in a 28 x 32 px tap area that overlaps the card gap above and below (negative margin), so the rows sit close to the
-     statline and the wargear; full is filled, empty an outline. */
-  .live-trackers { @apply -my-1.5 flex flex-col gap-1; }
-  .tracker-row { @apply flex flex-wrap items-center justify-center gap-x-3; }
-  .tracker-rows { @apply flex flex-col self-start; } /* one row each: left-aligned, so the pips of the three stats line up */
-  .tracker { @apply flex items-center; }
-  .tracker-label { @apply w-6 shrink-0 text-[10px] font-semibold uppercase leading-none text-muted; }
-  .pip-hit { @apply inline-flex h-8 w-7 shrink-0 items-center justify-center rounded-md text-muted; }
-  button.pip-hit:hover { @apply bg-raised; }
-  .tracker-pip { @apply block h-[18px] w-[18px] rounded-full border-2 border-current; }
-  .tracker-pip.is-on { @apply border-fg bg-fg; }
-  .tracker-wounds { @apply border-t border-line pt-1; }
-  .tracker-wounds .tracker-label { @apply w-auto pr-2; }
-  .tracker-wounds .pip-hit { @apply h-9 w-8 text-danger; }
-  .pip-heart { @apply block h-6 w-6; fill: none; stroke: currentColor; stroke-width: 2; }
-  .pip-heart.is-on { fill: currentColor; }
-  .tracker-count { @apply ml-auto pl-2 text-sm text-muted; }
+  /* The trackers of a live match (live_trackers): Might, Will, Fate and Wounds, one per row, left-aligned, as segmented bars like the experience
+     one, led by the stat's full name; Wounds as hearts (14 px, inside the same 16 px row). Each stat has its own colour (--tracker), the theme
+     tokens of the path kinds (.path-k-*), so they read in every theme: gold Might (command), hero blue Will (magic), success green Fate
+     (ranged), danger red Wounds (melee, the Soldier's). The bold name and the bar take it; an empty segment or heart is a faint tint of it with a
+     thin outline (an inset shadow, so the segment keeps its size). A segment sits in a 22 x 16 px tap area. */
+  .live-trackers { @apply flex flex-col items-start; }
+  .tracker { @apply flex items-center; --tracker: var(--gold); }
+  .tracker[data-tracker="will"] { --tracker: var(--hero); }
+  .tracker[data-tracker="fate"] { --tracker: var(--success); }
+  .tracker[data-tracker="wounds"] { --tracker: var(--danger); }
+  .tracker-label { @apply w-14 shrink-0 whitespace-nowrap text-xs font-bold leading-none; color: var(--tracker); }
+  .tracker-bar { @apply flex; }
+  .seg-hit { @apply inline-flex h-4 w-[22px] shrink-0 items-center px-px; }
+  button.seg-hit:hover .tracker-seg { @apply brightness-125; }
+  .tracker-seg { @apply block h-2.5 w-full rounded-sm; background: color-mix(in srgb, var(--tracker) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tracker) 55%, transparent); }
+  .tracker-seg.is-on { background: var(--tracker); box-shadow: none; }
+  .tracker-heart { @apply block h-3.5 w-full; fill: color-mix(in srgb, var(--tracker) 14%, transparent); stroke: color-mix(in srgb, var(--tracker) 60%, transparent); stroke-width: 2; }
+  .tracker-heart.is-on { fill: var(--tracker); stroke: var(--tracker); }
+  button.seg-hit:hover .tracker-heart { @apply brightness-125; }
+  .tracker-count { @apply pl-2 text-xs text-muted; }
   /* Level and experience: the level on a gold medal, the bar cut into one segment per experience point of a level. */
   .level-medal { @apply inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full border-2 border-gold bg-surface px-1 font-heading text-base font-bold leading-none text-fg; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gold) 22%, transparent); font-variant-numeric: lining-nums; }
+  /* The milestones of a unit in a live match (the live_actions_menu template): what earns experience, as marks the owner presses. Off is a dashed, muted
+     outline; on is filled with the accent, a tick in the corner, so a lit one reads across the table. */
+  .milestones { @apply flex gap-1.5; }
+  .milestone { @apply relative flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-line bg-transparent px-1 py-1 text-muted transition-colors duration-150; }
+  button.milestone:not(:disabled):hover { @apply border-accent text-fg; }
+  .milestone[aria-pressed="true"], .milestone[data-on="true"] { @apply border-solid border-accent bg-accent font-semibold text-accent-fg shadow-sm; }
+  button.milestone[aria-pressed="true"]:not(:disabled):hover { @apply text-accent-fg brightness-110; }
+  .milestone:disabled { @apply cursor-not-allowed opacity-50; }
+  .milestone[aria-pressed="true"]:disabled { @apply cursor-default opacity-100; }
+  /* The other actions of the unit, the row below the milestones: plain buttons, not toggles. */
+  .live-actions { @apply -mt-0.5 flex gap-1.5; }
+  .live-action { @apply flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg border border-line bg-surface px-1 py-1 text-fg transition-colors duration-150 hover:bg-raised; }
+  .milestone-label { @apply max-w-full truncate text-[11px] leading-tight; }
+  .milestone-tick { @apply absolute -right-1.5 -top-1.5 h-5 w-5 rounded-full border-2 border-surface bg-success p-0.5 text-page; }
+  .milestone-count { @apply absolute -left-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center gap-0.5 rounded-full border-2 border-surface bg-danger px-1 text-[10px] font-bold leading-none text-page; }
   .xp-bar { @apply relative h-2.5 min-w-20 flex-1 overflow-hidden rounded-full bg-raised; }
   .xp-bar::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(100% / var(--seg, 5) - 2px), var(--surface) calc(100% / var(--seg, 5) - 2px) calc(100% / var(--seg, 5))); pointer-events: none; }
   /* Company limits use the same segmented bar: counted slots filled from the left, hatched slots at the right end for what the
@@ -672,6 +688,18 @@ html[data-mode="dark"] { color-scheme: dark; }
   .kw-block { @apply min-w-0; }
   /* On a unit card the keyword row sits at the foot, on the right (the full list, when open, stays left aligned). */
   .unit-kw > .kw-block > .kw-row { justify-content: flex-end; }
+  /* The foot of a unit card: the live buttons, the experience and the keywords, pushed to the bottom of the card. The keywords are seldom
+     needed, so they sit small in the bottom corner. */
+  .unit-foot { @apply mt-auto flex flex-col gap-2; }
+  /* The badges under the title plate (rules that apply, Wanderer, injuries...): no box, and so no gap, when there are none. */
+  .unit-badges:not(:has(*)) { display: none; }
+  /* The body of a unit card (wargear, upgrades, equipment, path, special rules): 6 px apart, and 6 px to the foot. A list with nothing in it
+     (no unit upgrades, no loaned items) takes no room. */
+  .unit-body { @apply -mb-0.5 space-y-1.5; }
+  .unit-body > ul:not(:has(*)) { display: none !important; } /* over its flex utility */
+  .unit-kw { @apply -mt-1.5; }
+  .unit-kw .kw-row { @apply gap-x-1 gap-y-1; }
+  .unit-kw .kw-chip { @apply px-1.5 py-0 text-[10px] leading-4; }
   .kw-row { @apply flex flex-wrap items-center gap-x-1.5 gap-y-1.5; }
   .kw-chip { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs leading-snug; }
   .kw-chip.has-tip { cursor: pointer; }

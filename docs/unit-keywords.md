@@ -44,7 +44,7 @@ and the mount block goes. A unit whose own profile is Cavalry (Rider of Rohan, W
 
 ## What the card shows
 
-**Compact row** (at the foot of the card on the right, above the experience line): chips in this order, race first: **race**, **factions**, then **types with no other display**. The web layer draws **no chip** for Hero and Warrior (frame and
+**Compact row** (small, in the bottom right corner of the card, below the experience line): chips in this order, race first: **race**, **factions**, then **types with no other display**. The web layer draws **no chip** for Hero and Warrior (frame and
 insignia), Mount (the gear), Infantry, Cavalry, Beast, War Beast and Monster (the kind icon); Unique, Elite, Swarm, Chariot and the siege types stay. Core still computes and flags all of them (`Hidden`, `Off`).
 The row wraps (no truncation, 360 px up) and shows at most **5** chips, then a `+N` button. Chips are `kw-chip` list items in three shapes so the group does not depend on colour: race solid and bold (`kw-race`),
 faction muted (`kw-faction`), unit type outlined (`kw-type`); the group is also in each chip's `aria-label` ("Race keyword: Elf"). The row is a `ul` with `aria-label="Keywords"`. A unit with no chip draws no row.

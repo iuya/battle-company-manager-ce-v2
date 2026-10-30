@@ -84,22 +84,35 @@ replaced by the normal aftermath banner), connection lost (the page keeps workin
 
 ### Unit card in the Field zone
 
-Everything the card has outside a match, plus:
+Everything the card has outside a match (except the Equipment line of a unit with no equipment: nothing can be bought in a match), plus:
 
-- **Trackers** replace the static W, M, W, F values in the attribute row: `current / start`, a minus and a plus (44 px targets); a tap on the number opens a
-  "set to" field. Wounds, Might, Will and Fate stay within `0..start`; low values use the danger tone. Heroes show M W F, warriors only Wounds.
-- **Wounds -1** from the tracker is a manual change (no xp, no target). At 0 Wounds the unit moves to Field casualties with the toast "Aldor fell. Undo"; the plus
-  button is the way back (logged as "Wounds +1 (manual)").
-- **Actions menu** (a bottom sheet on 360 px, a popover from 768 px):
+- **Trackers** replace the static W, M, W, F values in the attribute row: one segmented bar per stat, a segment per point, tapped to set the value
+  (docs/frontend.md, "Trackers"). Wounds, Might, Will and Fate stay within `0..start`. Heroes show M W F and Wounds, warriors only Wounds; Wounds
+  is always shown, also when it starts at 1, so every model can fall from its card.
+- **Wounds -1** from the tracker is a manual change (no xp, no target). At 0 Wounds the unit moves to Field casualties, as Died does, with the
+  toast "Aldor fell. Undo"; Return to the battle (or the toast's Undo) is the way back.
+- **Milestones** at the foot of the card, with the icons of the legacy app (game-icons.net): **Wounded** (`machete`, with a `death-skull` count
+  of the Heroes and Monsters slain), **Fate** (`shield-reflect`, heroes with Fate), **Courage** (`mighty-force`, a passed Broken courage
+  test) and **Objective** (`flying-flag`). Off is a dashed, muted outline; on (the unit's `Gains` flag, or `LiveUnit.Objective`) is filled
+  with the accent and carries a tick, so a lit one reads across the table. **Wounded** opens the Wounded a unit window (it can happen
+  again; the window starts with "Recorded this match", the unit's wound entries with **Undo**). **Fate**, **Courage** and **Objective**
+  switch on and off with one press and no window: Fate records Passed a fate roll with no point spent (`count=0`: only the mark, so it can be pressed at 0 Fate; the Fate tracker is set by hand), Courage Passed a
+  Broken courage roll, Objective an `objective` action; pressed when lit, Fate and Courage undo the unit's last entry of that kind
+  (`LiveUnit.FateEntry`, `BrokenEntry`, kept by the fold) and stay lit while an earlier one still earns the experience. A Fate point saved
+  in a wound declaration has no entry of its own, so that Fate stays lit and disabled (undo the wound in the log). Viewers see the same row
+  as marks they cannot press.
+- **Other actions**, a second row for editors, icon above the label like the milestones, shown only while the unit has a loaned item to
+  spend: **Item used** opens its window. The card has no button for Retreated, Died or the mount now (the mount comes back in a later change).
+- The actions and their windows:
 
 | Action | Prompt | Effects | Log text |
 |---|---|---|---|
 | Wounded a unit | see below | target wounds, attacker xp flags | "Aldor wounded Grashnak (2 wounds, 1 saved by Fate)" |
-| Passed a fate roll | how many (default 1, at most the current Fate) | Fate -n, `fatePrevented` flag; refused at 0 Fate | "Aldor spent Fate (1 left)" |
-| Passed a Broken courage roll | confirm | `brokenCourageTestPassed` flag; always offered, also before the app says Broken | "Aldor passed a Broken courage test" |
+| Passed a fate roll | none from the milestone (`count=0`: no point spent); its window asks how many (at most the current Fate) | Fate -n (none for 0), `fatePrevented` flag; a count above the current Fate is refused | "Aldor passed a Fate roll" / "Aldor spent Fate (1 left)" |
+| Passed a Broken courage roll | none from the milestone; the Courage test window records it too | `brokenCourageTestPassed` flag; always offered, also before the app says Broken | "Aldor passed a Broken courage test" |
 | Retreated | "Failed a courage roll" / "Left the board", optional note | zone Retreated, outcome `fled` in the aftermath; no injury roll; cannot act or be targeted | "Aldor retreated (failed courage)" |
 | Died | optional note, for deaths not caused by an enemy wound | zone Field casualties with reason "Died"; injury roll later | "Aldor died: ..." |
-| Mount removed / re-added | | Mounted flips | "Aldor lost his mount" |
+| Mount removed / re-added | none: one press | Mounted flips | "Aldor lost his mount" |
 | Item used | see Against the Odds items | strikes a consumable through | "Brand used Dwarven Brew" |
 
 Fate and mount actions are hidden when the unit has no use for them. Units outside the Field have only **Return to the battle**.

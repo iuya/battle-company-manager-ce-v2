@@ -346,8 +346,9 @@ A card, top to bottom:
 - **Frame and insignia** for the unit's place, with no text tag, each in its own colour in every palette (the rank tokens):
   leader gold and doubled with three rank chevrons, sergeant green and doubled with two, other heroes solid blue with
   one, regular units thin. The shape of the insignia tells them apart without colour.
-- **Title plate** (`.unit-head`) across the top: kind icon, insignia, name with the rename pencil (see "Renaming units"), and
-  the points; tinted by the same place (`leader-soft`, `sergeant-soft`, `hero-soft`, a warrior's plain) and by `danger-soft`
+- **Title plate** (`.unit-head`) across the top: kind icon, the name (a click renames, see "Renaming units") over a second line
+  that is always there (the type when the unit has its own name, the points against its right edge, so every plate is the icon's 48 px), and alone on the
+  right the insignia, large (`.unit-rank`, 40 px; a warrior has none); tinted by the same place (`leader-soft`, `sergeant-soft`, `hero-soft`, a warrior's plain) and by `danger-soft`
   while the unit is injured (its frame turns danger too). Injuries and the live badges follow under it.
 - **Kind icon** (left of the plate), a filled game-icons.net icon (CC BY 3.0, credited in `static/img/CREDITS.md`): a swordwoman for
   infantry, a cavalry charge for cavalry, a wolf head for beasts, an orc head for monsters and a dragon head for monstrous
@@ -368,8 +369,8 @@ A card, top to bottom:
   the buttons a sample (`[data-gear-preview]`, a `.unit` list of four chips, hidden from screen readers) shows the chosen style, since it
   follows the same `<html>` attribute.
 - **Name** (units are nameable), **type** and **points** (plain text, no box).
-- **Keyword row** (`keyword_row` in `partials/units.gohtml`, spec [`unit-keywords.md`](unit-keywords.md)), at the foot of the card on the right, just
-  above the experience line (`.unit-kw`: seldom needed at the table, so out of the way; the full list, when open, is left aligned):
+- **Keyword row** (`keyword_row` in `partials/units.gohtml`, spec [`unit-keywords.md`](unit-keywords.md)), in the bottom right corner of the card,
+  below the experience line, with small chips (`.unit-kw` inside `.unit-foot`: seldom needed at the table, so out of the way; the full list, when open, is left aligned):
   chips for the unit's race, factions and the unit types no other part of the card says, at most 5, race first. The web layer (`notShownKeywords`
   in `internal/web/keywords.go`, one set for row and full list) draws **no chip** for Hero and Warrior (frame and insignia), Mount (the gear),
   or Infantry, Cavalry, Beast, War Beast and Monster (the kind icon); Unique, Elite, Swarm, Chariot and the siege types stay. core still computes
@@ -719,8 +720,8 @@ Shire).
 
 ### Renaming units
 
-A unit is renamed with the small pencil after its name (in the text flow, so the title plate does not grow; a bigger touch area on
-phones), or by double-clicking the name. The field then takes the plate beside the kind icon, with Cancel and Save under it: Enter
+A unit is renamed by clicking its name (`.unit-name`, a button that reads as the title; a dotted underline on hover and focus says it
+can be changed). There is no separate pencil. The field then takes the plate beside the kind icon, with Cancel and Save under it: Enter
 saves, Escape gives up, and a click elsewhere saves a change (or just closes when nothing changed). It always opens on the saved name.
 The field's placeholder is the unit's type: the name is at most 40 characters and an empty one takes the unit back to its type. Rules
 that aim at a unit use its id, so they follow the new name (`campaigns.RenameUnit`). The form is shown with a `:class`, not
@@ -908,16 +909,24 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
   viewer's side and of the company on the page, each read through `Live` and `CompanyDetail`), so the refresh of `#live-zones` redraws the markers and a
   unit that retreats or falls loses its marker; a viewer with no company in the match, and the viewer's own side, get none. Without `data.ruleTargets`
   no rule has targets and nothing is marked. Read errors of the extra companies drop the markers, never the page.
-- **Trackers** (`live_trackers`, replace W, Might, Will, Fate in the attribute row; `.tracker*`, `.pip-hit`, `.pip-heart` in `tailwind.css`): one pip per point
-  of the start value, full up to the current one. Might, Will and Fate (heroes) keep that order on one row while they add up to 7 pips or
-  fewer (centred) and take one row each above that (left-aligned, so the pips line up), so none hangs alone at 360 px; Wounds goes last, as red hearts on its own row with `current/start`,
-  and is not shown when it starts at 1 (that model falls through the enemy's Wounded action or Died). The owner taps a pip (28 x 32 px):
-  the last full one is `delta -1` ("... down by one"), the first empty one `delta +1` ("... up by one"), any other `set` to that pip
-  ("Set ... to N"); a viewer gets the same pips as marks. Above 6 pips a tracker falls back to the number between 36 px `-` and `+`.
+- **Trackers** (`live_trackers`, replace W, Might, Will, Fate in the attribute row; `.tracker*`, `.seg-hit` in `tailwind.css`): a segmented bar
+  like the experience one, led by the stat's full name (Might, Will, Fate, Wounds), one segment per point of the start value, full up to the
+  current one, then `current/start`; Wounds uses hearts instead of segments, inside the same 16 px row. One stat per row,
+  left-aligned so the bars line up: Might, Will and Fate (heroes) in that order, then Wounds, always shown, also when it starts at 1 (a plain
+  warrior): taking it to 0 makes the unit a Field casualty, as Died does. Each stat has its own colour on its bold name and its bar: the theme tokens of the path kinds (`.path-k-*`), so
+  gold Might (command), hero blue Will (magic), success green Fate (ranged) and danger red Wounds (melee, as the Soldier) (an empty segment or heart is a faint tint of it with a thin outline that
+  does not change its size). The owner taps a segment (22 x 16 px):
+  the last full one is `delta -1` ("... down by one"), the first empty one `delta +1` ("... up by one"), any other `set` to that segment
+  ("Set ... to N"); a viewer gets the same bars as marks. Above 10 segments a tracker falls back to the number between 28 px `-` and `+`.
   Each press is one `POST .../matches/{match}/live/{company}/actions` (`kind=stat`, `unit`, `stat`, `delta` or `set`), answered by
   `live_response`: the zones plus an out-of-band **toast** (`#live-toast`) with the log text and **Undo**, or, on a refusal, 422 with
   the state as it is and the reason as the toast. A viewer's write is 403. Live POSTs are not wrapped in `once()`.
-- **Actions** button on each field card (editors): opens the company window with the list (Wounded a unit, Passed a fate roll, Passed a
+- **Milestones** row on each field card (`live_actions_menu` and `milestone` in `company_panels.gohtml`, `.milestone*` in `tailwind.css`): Wounded,
+  Fate, Courage and Objective (`aria-pressed`; off dashed and muted, on filled with the accent and a tick), buttons for editors and marks
+  (`role="img"`) for viewers. Wounded opens its sheet, whose `live_recorded` block lists the unit's wound entries with Undo; Fate, Courage
+  and Objective post to the actions route at once (`fate` with `count=0`, only the mark, `broken`, `objective`), and a lit Fate or Courage posts the undo of
+  `LiveUnit.FateEntry` / `BrokenEntry`. Below, `.live-actions` (editors, icon above the label, only while the unit has a loaned item to
+  spend): Item used opens its sheet. The route also serves the list of every action (`sheet/menu`, which no card opens now: Wounded a unit, Passed a fate roll, Passed a
   Broken courage roll, Retreated, Died, Mount removed/re-added; Fate and Mount only when the unit has them), each opening its sheet
   (`GET .../live/{company}/units/{unit}/sheet/{kind}`, `live_sheet`). **Wounded a unit** lists the enemies in the Field (then the same
   side after a "Friendly fire" divider), with search, Rider/Mount for a mounted target, wounds caused and saved by Fate steppers

@@ -46,7 +46,7 @@ func liveActionFrom(r *http.Request) (core.LiveAction, error) {
 			a.Delta = formInt(r, "delta")
 		}
 	case core.LiveFate:
-		a.Count = max(1, formInt(r, "count"))
+		a.Count = max(0, formInt(r, "count")) // 0: the milestone, no Fate spent
 	case core.LiveRetreat:
 		a.Why = r.PostFormValue("why")
 	case core.LiveMount:
@@ -63,6 +63,8 @@ func liveActionFrom(r *http.Request) (core.LiveAction, error) {
 		a.Reason = r.PostFormValue("reason")
 	case core.LiveAllIsLost:
 		a.Flee = r.PostFormValue("flee") == "1"
+	case core.LiveObjective:
+		a.On = r.PostFormValue("on") == "1"
 	case core.LiveItemUsed:
 		a.Item, a.Index = r.PostFormValue("item"), formInt(r, "index")
 	case core.LiveDied, core.LiveReturn:
