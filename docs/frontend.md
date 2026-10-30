@@ -187,7 +187,9 @@ campaigns are searched only while "Show finished campaigns" is on.
 `/campaigns/{id}` has seven tabs, each its own URL and page (the header and tabs are the `campaign_header` partial;
 `campaignBase` carries the campaign and the current tab): **Overview** (your company or "create my company", campaign
 facts, rules files, latest matches), **My Company** (your company: the page "Manage company" opens; your company's own
-URL under `/companies/{id}` redirects to `/campaigns/{id}/my-company/{company}`), **Armory**, **Companies** (everybody's; another company opens read only, yours redirects to My Company), **Rankings**, **Matches** and **Glossary** (the glossary this campaign is played with). The sidebar lists the
+URL under `/companies/{id}` redirects to `/campaigns/{id}/my-company/{company}`), **Armory**, **Companies** (everybody's; another company opens read only, yours redirects to My Company), **Rankings**, **Matches** and **Glossary** (the glossary this campaign is played with). Entering a campaign (its name in the sidebar, its card on the campaign list, the
+last-campaign redirect of `/`, an invite link) opens **My Company** (`/campaigns/{id}/my-company`), the page a player uses most; the
+Overview stays the first tab, at `/campaigns/{id}`. The sidebar lists the
 same tabs under the campaign you are in.
 
 - **Manage campaign** card on the Overview (`CanManage`: the organiser and administrators; `campaign_manage.go`, template `manage_card`): the

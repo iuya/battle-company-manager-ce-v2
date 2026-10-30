@@ -52,7 +52,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 				s.serverError(w, r, err)
 				return
 			default:
-				http.Redirect(w, r, "/campaigns/"+itoa(int(d.ID)), http.StatusSeeOther)
+				http.Redirect(w, r, "/campaigns/"+itoa(int(d.ID))+"/my-company", http.StatusSeeOther)
 				return
 			}
 		}

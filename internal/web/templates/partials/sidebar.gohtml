@@ -38,7 +38,7 @@
 {{define "nav_campaigns"}}{{template "nav_items" .Campaigns}}{{end}}
 {{define "nav_items"}}{{range .}}
 <li hx-target="#main" hx-swap="innerHTML show:window:top">
-  <a href="/campaigns/{{.ID}}" class="nav-link nav-campaign !min-h-11 md:!min-h-9 {{if eq .Status "finished"}}!text-muted{{end}}" :aria-current="inCampaign({{.ID}}) ? 'true' : null" @click="open = false"><span class="truncate">{{.Name}}</span>{{if eq .Status "finished"}}<span class="sr-only"> (finished)</span>{{end}}</a>
+  <a href="/campaigns/{{.ID}}/my-company" class="nav-link nav-campaign !min-h-11 md:!min-h-9 {{if eq .Status "finished"}}!text-muted{{end}}" :aria-current="inCampaign({{.ID}}) ? 'true' : null" @click="open = false"><span class="truncate">{{.Name}}</span>{{if eq .Status "finished"}}<span class="sr-only"> (finished)</span>{{end}}</a>
   {{/* Both lists animate their height together (the open one grows while the other shrinks), so nothing jumps; a collapsed list is inert so its links cannot be tabbed to. */}}
   <div class="grid transition-[grid-template-rows] duration-150 ease-out motion-reduce:transition-none" :class="inCampaign({{.ID}}) ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'" :inert="!inCampaign({{.ID}})">
     <ul class="mb-1 ml-3 mt-0.5 flex min-h-0 flex-col gap-0.5 overflow-hidden border-l border-accent pl-2" aria-label="{{.Name}}">
