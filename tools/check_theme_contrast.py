@@ -15,6 +15,10 @@ PAIRS = [("fg", "page", 4.5), ("fg", "surface", 4.5), ("fg", "raised", 4.5), ("m
          ("page", "danger", 4.5), ("warn", "surface", 4.5), ("warn", "page", 4.5), ("warn", "raised", 4.5), ("page", "warn", 4.5),
          ("fg", "leader-soft", 4.5), ("muted", "leader-soft", 4.5), ("fg", "sergeant-soft", 4.5), ("muted", "sergeant-soft", 4.5),
          ("fg", "hero-soft", 4.5), ("muted", "hero-soft", 4.5), ("gold", "surface", 3.0), ("sergeant", "surface", 3.0), ("hero", "surface", 3.0)]
+# The high-contrast variants ([data-contrast="high"]) raise every bar: text to AAA (7:1), the accent, the gold and the
+# place colours to text level (4.5:1), and the borders to the non-text minimum (3:1 against surface).
+HIGH = {4.5: 7.0, 3.0: 4.5}
+HIGH_EXTRA = [("line", "surface", 3.0), ("line", "page", 3.0)]
 
 
 def lum(h):
@@ -30,14 +34,17 @@ def ratio(a, b):
 
 def main(path):
     css = Path(path).read_text()
-    blocks = re.findall(r'\[data-palette="(\w+)"\]\[data-mode="(\w+)"\]\s*\{(.*?)\}', css, re.S)
+    # a high-contrast block is selected as `[data-contrast="high"] [data-palette=...][data-mode=...]` (among others)
+    blocks = re.findall(r'(\[data-contrast="high"\]\s+)?\[data-palette="(\w+)"\]\[data-mode="(\w+)"\]\s*\{(.*?)\}', css, re.S)
     bad = 0
-    for pal, mode, body in blocks:
+    for high, pal, mode, body in blocks:
         c = dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6});", body))
-        for a, b, need in PAIRS:
+        name = f"{pal}/{mode}" + ("/high" if high else "")
+        pairs = [(a, b, HIGH[n]) for a, b, n in PAIRS] + HIGH_EXTRA if high else PAIRS
+        for a, b, need in pairs:
             r = ratio(c[a], c[b])
             if r < need:
-                print(f"FAIL {pal}/{mode}: {a} on {b} = {r:.2f}:1 (needs {need})")
+                print(f"FAIL {name}: {a} on {b} = {r:.2f}:1 (needs {need})")
                 bad += 1
     print(f"{len(blocks)} palette/mode combinations, {bad} failure(s)")
     return 1 if bad else 0

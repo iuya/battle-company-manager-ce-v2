@@ -30,8 +30,10 @@ document.addEventListener("alpine:init", () => {
       { key: "tiles", name: "Icons only" },
     ],
     gear: "chips", // how the unit cards draw the gear; per browser (cookie bcm-gear)
+    highContrast: false, // the high-contrast variant of the palette; per browser (cookie bcm-contrast), else the OS's prefers-contrast
 
     init() {
+      this.highContrast = document.documentElement.dataset.contrast === "high";
       this.auras = document.documentElement.dataset.showAuras === "on";
       this.gear = document.documentElement.dataset.gear === "tiles" ? "tiles" : "chips";
       // signed in: the account's choice (data-pref, "<palette>.<mode>") wins over this browser's cookie
@@ -53,6 +55,13 @@ document.addEventListener("alpine:init", () => {
       document.cookie = `bcm-auras=${this.auras ? 1 : 0}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
       if (this.auras) document.documentElement.dataset.showAuras = "on";
       else delete document.documentElement.dataset.showAuras;
+    },
+    setContrast(on) {
+      this.highContrast = !!on;
+      document.cookie = `bcm-contrast=${this.highContrast ? "high" : "normal"}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
+      if (this.highContrast) document.documentElement.dataset.contrast = "high";
+      else delete document.documentElement.dataset.contrast;
+      this.apply();
     },
     setGear(g) {
       this.gear = g === "tiles" ? "tiles" : "chips";

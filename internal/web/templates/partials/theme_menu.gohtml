@@ -40,6 +40,10 @@
         </button>
       </template>
     </div>
+    <label class="flex cursor-pointer items-start gap-3 pt-1 text-sm">
+      <input type="checkbox" class="mt-0.5 h-5 w-5 shrink-0 accent-accent" data-contrast-toggle :checked="$store.theme.highContrast" @change="$store.theme.setContrast($event.target.checked)">
+      <span><span class="font-medium">High contrast</span><span class="block text-xs text-muted">Stronger text and borders, and a decoration colour that stands apart from the accent. Saved in this browser.</span></span>
+    </label>
   </div>
   <div class="space-y-2">
     <h3 class="!text-xl">Unit cards</h3>

@@ -10,4 +10,7 @@
   if (/(?:^|; )bcm-auras=1(?:;|$)/.test(document.cookie)) r.dataset.showAuras = "on"; // aura chips on the unit cards: off unless this browser chose them
   if (/(?:^|; )bcm-gear=tiles(?:;|$)/.test(document.cookie)) r.dataset.gear = "tiles"; // gear on the unit cards as icons only: this browser's choice
   r.dataset.mode = dark ? "dark" : "light";
+  // high contrast: this browser's choice (cookie bcm-contrast = high | normal), else what the operating system asks for
+  var c = document.cookie.match(/(?:^|; )bcm-contrast=(high|normal)(?:;|$)/);
+  if (c ? c[1] === "high" : matchMedia("(prefers-contrast: more)").matches) r.dataset.contrast = "high";
 })();

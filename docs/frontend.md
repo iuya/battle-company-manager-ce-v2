@@ -48,7 +48,7 @@ Colors are **semantic tokens**: CSS variables, exposed to Tailwind as utilities 
 | `danger`, `success` (+ `-soft`) | Errors and confirmations |
 | `warn` | Draws (yellow); with `success` and `danger` it gives the `tone-win` / `tone-draw` / `tone-loss` classes for results |
 | `gold` | Decoration; the ring background; the leader's frame |
-| `sergeant`, `hero`, `leader-soft`, `sergeant-soft`, `hero-soft` | A unit's place on its card: frame and insignia (leader `gold`, sergeant green, hero blue in every palette) and the tint of its title plate |
+| `sergeant`, `hero`, `leader-soft`, `sergeant-soft`, `hero-soft` | A unit's place on its card: frame and insignia (leader `gold`, sergeant green, hero blue in every palette; in high contrast the leader takes the palette's complementary colour) and the tint of its title plate |
 
 **Palettes** (each with a light and a dark variant): **Forest & Gold** (default), **Parchment & Ember** and **Mithril &
 Night**. A palette is selected by `data-palette` and `data-mode` (`light` | `dark`) on the `<html>` element; the same
@@ -56,6 +56,16 @@ attributes on any element preview that palette there. `tools/check_theme_contras
 against WCAG AA (4.5:1 for text, 3:1 for the accent). In the dark variants the layers are kept apart on purpose:
 `surface` sits clearly above `page` (about 1.2:1), `raised` above `surface` (about 1.25:1) and `line` reads against
 `surface` (about 1.9:1 or more), so cards and borders do not melt into the page.
+
+**High contrast.** Every palette and mode also has a high-contrast variant, selected by `data-contrast="high"` on `<html>`
+(the blocks match `<html>` itself and the preview swatches inside it). The checker holds it to AAA: text 7:1, the accent,
+`gold`, `sergeant` and `hero` 4.5:1, and `line` 3:1 against `surface` and `page`. The `gold` token (ring, leader frame,
+medals, gold badges) becomes the complement of the palette's accent so the two stand apart: pink in Forest (green
+accent), cyan in Ember (red accent); Mithril already pairs blue with yellow and only gets brighter and deeper. The
+focus ring takes the same contrasting colour. The **High contrast** checkbox (in `theme_controls`, below the palettes,
+and in the `/styleguide` theme lab; `$store.theme.highContrast` / `setContrast`, input `[data-contrast-toggle]`) writes the
+cookie `bcm-contrast=high|normal`, per browser and not in the account. Without that cookie `theme-init.js` follows the
+operating system's `prefers-contrast: more`.
 
 **Mode** is System by default (follows the operating system), or Light / Dark. **Palette** and mode are chosen in the
 settings menu (gear icon in the header) and kept in the `bcm-theme` cookie as `<palette>.<mode>`

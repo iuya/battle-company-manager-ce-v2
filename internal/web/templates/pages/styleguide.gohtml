@@ -27,6 +27,9 @@
         {{end}}
       </div>
     </div>
+    <label class="flex cursor-pointer items-center gap-2 text-sm font-semibold">
+      <input type="checkbox" class="h-5 w-5 accent-accent" :checked="$store.theme.highContrast" @change="$store.theme.setContrast($event.target.checked)"> High contrast
+    </label>
   </section>
 
   {{/* ---- colors ---- */}}
@@ -43,7 +46,7 @@
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-left text-sm">
-        <caption class="pb-2 text-left font-semibold">Contrast (WCAG): text pairs must reach 4.5:1 (AA)</caption>
+        <caption class="pb-2 text-left font-semibold">Contrast (WCAG): text pairs must reach 4.5:1 (AA), 7:1 (AAA) in high contrast</caption>
         <thead class="text-muted"><tr><th class="py-1 pr-4">Foreground</th><th class="pr-4">Background</th><th class="pr-4">Sample</th><th class="pr-4">Ratio</th><th>Level</th></tr></thead>
         <tbody>
           <template x-for="r in rows" :key="r.a + r.b">
