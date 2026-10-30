@@ -5,8 +5,11 @@ screens), the three designs and the recommendation. These pictures let contribut
 voting. Nothing here is built in the app: it is a design discussion, not documentation of the current state.
 
 - **A: density pass.** Same structure, smaller controls, Actions in the unit card header, merged names, sentences behind (i).
-- **B: task-oriented (recommended, in two steps).** Sticky bottom action bar, compact unit rows with Actions on each row,
-  bottom-sheet tiles, accordion cards, an aftermath where only exceptions are opened. Step 1 is A's no-regret changes.
+- **B: task-oriented (recommended, in two steps).** Sticky bottom action bar; on the live page the **full unit card for every unit**
+  (the same card as the non-live company page), Wounds/Might/Will/Fate counters with a small up arrow above the number and a down
+  arrow below it, and Actions as a compact pop-up opened from the card header (a small sheet at 360 px, a popover on desktop);
+  an aftermath where only exceptions are opened. Step 1 is A's no-regret changes. (Revised after the owner's feedback on #24: the
+  first version of B drew compact unit rows with -/+ buttons and a tile sheet.)
 - **C: scoreboard + log.** A scoreboard and the match log on the page, every tool in a drawer (a bottom sheet at 360 px), units as a table.
 
 In every 360 px sheet the columns are **Today | A | B | C**; each frame is the same 360x800 viewport. Under each frame is a bar for the page
@@ -17,12 +20,12 @@ height (the black tick marks one 800 px screen) and, for the live page, where th
 | Picture | What it shows |
 |---|---|
 | [1-match-page.png](1-match-page.png) | Screen 1, the match page, open, at 360 px: Today, A, B, C. |
-| [2-live-company-page.png](2-live-company-page.png) | Screen 2, the live company page with 15 units, at 360 px. Today: 10,376 px and Actions far below; mockups: 5,624 (A), 1,649 (B), 989 px (C). |
-| [3-live-actions.png](3-live-actions.png) | Screen 3a, the Actions menu of a unit: centered window (A), bottom sheet of tiles (B), quick-action field and flat list (C). |
+| [2-live-company-page.png](2-live-company-page.png) | Screen 2, the live company page with 15 units, at 360 px. Today: 10,376 px and Actions far below; mockups: 5,624 (A), 4,859 (B), 989 px (C). |
+| [3-live-actions.png](3-live-actions.png) | Screen 3a, the Actions menu of a unit: centered window (A), small sheet of 44 px tiles from the card header (B), quick-action field and flat list (C). |
 | [4-live-end-checks.png](4-live-end-checks.png) | Screen 3b, End checks (objective and MVP): 27 rows today; two-column toggles (A), chips grouped by company (B), a table (C). |
 | [5-aftermath.png](5-aftermath.png) | Screen 4, the aftermath Sheet step: today 10,973 px; mockups 4,592 (A), 1,313 (B), 1,663 px (C). |
-| [6-b-in-two-steps.png](6-b-in-two-steps.png) | The recommendation: Today, then step 1 (A's no-regret changes), then step 2 (B), for the live page and the match page. |
-| [7-b-desktop-1280.png](7-b-desktop-1280.png) | Design B at 1280 px: the match page (sticky right panel, no bottom bar) and the live company page (list left, selected unit's card and inline actions right, no sheet). |
+| [6-b-in-two-steps.png](6-b-in-two-steps.png) | The recommendation: Today, then step 1 (A's no-regret changes), then step 2 (B: full cards, arrow counters, Actions pop-up), for the live page and the match page. |
+| [7-b-desktop-1280.png](7-b-desktop-1280.png) | Design B at 1280 px: the match page (sticky right panel, no bottom bar) and the live company page (full unit cards in a three-column grid, Actions as a popover under the card header button). |
 | [8-b-dark.png](8-b-dark.png) | Design B at 360 px in light and dark (match page and live page). |
 
 ![The live company page: Today, A, B, C](2-live-company-page.png)
@@ -37,7 +40,10 @@ height (the black tick marks one 800 px screen) and, for the live page, where th
 - **"Today" frames** are crops of the issue's audit screenshots (headless Chrome, scale 1, so slightly softer). Page heights shown for
   Today are the measured ones from the issue. Page heights shown for A, B and C are those of the mockups (the `body` height at 360 px) and are lower
   bounds: a mockup draws only the parts that matter for the comparison. They differ from the issue's estimates (A about 7,500, B about 2,000,
-  C about 1,500 px for the live page) because the mockup of A leaves out the Limits and legend blocks and B and C use rows of about 95 and 65 px.
+  C about 1,500 px for the live page) because the mockup of A leaves out the Limits and legend blocks and C uses rows of about 65 px.
+  B now keeps full cards: **4,859 px is a lower bound for 15 units** (about 280 px per card, 15 cards, plus the header; the leader's card with
+  the Path is about 650 px), against about 2,000 px for the earlier compact-row version. It leaves out the summary tiles, Limits and legend like the
+  other mockups, so the real page is a few hundred px taller. At 1280 px the cards form a three-column grid and the same page is 1,785 px.
 - Rendered with Chrome through the repo's `puppeteer-core`: 360x800 at device scale 2 (frames) and 1280x900 at scale 1 (desktop), light theme
   except picture 8.
 
@@ -50,8 +56,20 @@ height (the black tick marks one 800 px screen) and, for the live page, where th
 - C is drawn at 360 px only. The match page shows the "Match tools" bar closed, and the aftermath ledger is shown as two lines per unit (the
   table with column headers is the 1280 px layout of the wireframe, not drawn). The unit table of the live page has only the Wounds
   stepper at 360 px, as in the wireframe.
-- A and C have no 1280 px picture; B's unit rows are about 95 px tall (the wireframe says about 72) because the Wounds stepper keeps 44 px
-  touch targets.
+- A and C have no 1280 px picture.
+- **B's live cards differ from the earlier wireframe** (compact rows, -/+ steppers, tile sheet, collapsible cards): the card is now the full
+  one for every unit, drawn with race, characteristics, counters, gear, keywords and rules (the keywords and rules of the rank and file units
+  are invented but plausible, the Rider's Path is the one of the other frames). Collapsible cards are dropped on the live page, because
+  the card is what a player reads; a "collapse all" control could be added later and is not drawn.
+- **Counter arrows.** Each counter (Wounds, Might, Will, Fate) shows a small arrow above the number (raises) and below it (lowers),
+  26x16 px on screen, so a card needs one row of four counters of about 80 px instead of two rows of -/+ steppers. The touch target of
+  each arrow is a 44x44 px area (a pseudo-element that extends past the drawn arrow over the label above or the gear below, never over the
+  other arrow); it is drawn dashed on the Wounds counter of the first card. On a mouse the arrows keep their small size. An arrow that
+  cannot act (at the maximum) is dimmed, as the + button is today.
+- **Actions pop-up.** The Actions button sits in the card header (36 px on mouse, 44 px on touch). On a phone it opens a small sheet of six
+  44 px tiles (about 230 px high, the dimmed page and the unit's card behind it, picture 3); from 768 px it is a popover of six 34 px
+  items anchored under that button (picture 7, open on the first card). Neither is a bar under each card. The sticky bottom bar (Start turn,
+  Match menu) stays on a phone and becomes buttons in the header from 768 px.
 - End checks show 12 of the 27 rows (marked in the frame), to keep the frame at one screen.
 - The ring watermark of the real pages is not drawn.
 

@@ -59,6 +59,24 @@ a,.lk{color:var(--accent-text);text-decoration:underline}
 .sb{width:44px;height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);display:inline-flex;align-items:center;justify-content:center;font-size:20px;color:var(--fg);flex:none}
 .sb.dim{color:var(--muted);opacity:.55}
 .sb.t{width:40px;height:40px}
+.cnt{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0 6px}
+.cn{border:1px solid var(--line);border-radius:10px;padding:4px 2px 2px;background:var(--surface);display:flex;flex-direction:column;align-items:center}
+.cn .lb{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);line-height:1.2}
+.cn .v{line-height:1.1;white-space:nowrap}.cn .v b{font-size:19px}.cn .v i{font-style:normal;color:var(--muted);font-size:12px}
+.ar{position:relative;display:inline-flex;align-items:center;justify-content:center;width:26px;height:16px;border-radius:5px;background:var(--raised);color:var(--fg);flex:none}
+.ar svg{width:10px;height:6px}
+.ar.dim{color:var(--muted);opacity:.5}
+.ar:after{content:"";position:absolute;left:50%;width:44px;height:44px;margin-left:-22px}
+.ar.up:after{bottom:0}.ar.dn:after{top:0}
+.cn.show .ar:after{outline:1.5px dashed var(--accent);outline-offset:-1px;border-radius:6px}
+.ugrid{align-items:start;display:grid;grid-template-columns:1fr;gap:0 16px}
+.card-u.live{margin:8px 0}
+.hbtn{position:relative;margin-left:auto;flex:none}
+.pop{position:absolute;z-index:6;right:0;top:calc(100% + 6px);width:190px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px;box-shadow:0 8px 24px rgb(0 0 0/.22)}
+.pop:before{content:"";position:absolute;right:22px;top:-6px;width:10px;height:10px;background:var(--surface);border-left:1px solid var(--line);border-top:1px solid var(--line);transform:rotate(45deg)}
+.pop div{display:flex;align-items:center;min-height:34px;padding:0 10px;border-radius:7px;font-weight:600;font-size:13px}
+.pop div:first-child{background:var(--accent-soft)}
+.sheet.cmp .tiles .b{min-height:44px;font-size:14px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .gear{font-size:12px;color:var(--fg)}
 .gear span{display:inline-flex;align-items:center;gap:3px;border:1px dashed var(--line);border-radius:99px;padding:2px 8px;margin:0 4px 4px 0;background:var(--surface)}
@@ -114,7 +132,10 @@ a,.lk{color:var(--accent-text);text-decoration:underline}
  .dock{display:none}.pad-dock{padding-bottom:40px}
  .sb{width:36px;height:36px}
  .tiles{grid-template-columns:repeat(3,1fr)}
+ .ugrid{grid-template-columns:1fr 1fr}
+ .hbtn .b.on{border-color:var(--accent);background:var(--accent-soft)}
 }
+@media (min-width:1100px){.ugrid{grid-template-columns:repeat(3,1fr)}}
 `;
 
 const U = [
@@ -209,25 +230,40 @@ ${U.map((u, i) => card(u, i, 'A')).join('')}
 </div>`);
 }
 
-function rowB(u, i, sel) {
+const chevU = '<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 5l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const chevD = '<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+/* a counter: up arrow above the number (raises), down arrow below (lowers); full = value at maximum, so the up arrow is dimmed */
+const cnt = (lb, v, mx, show) => `<div class="cn${show ? ' show' : ''}"><span class="lb">${lb}</span><span class="ar up dim">${chevU}</span><span class="v"><b>${v}</b><i> / ${mx}</i></span><span class="ar dn">${chevD}</span></div>`;
+const KW = { L: ['Cavalry', 'Man', 'Hero'], S: ['Infantry', 'Man'], '': ['Infantry', 'Man'] };
+const kwOf = (n, r) => /Rider|Outrider/.test(n) ? ['Cavalry', 'Man'] : /Royal Guard/.test(n) ? ['Infantry', 'Man', 'Bodyguard'] : /Son of Eorl/.test(n) ? ['Cavalry', 'Man', 'Hero'] : KW[r];
+const rulesOf = (n, r, i) => i === 0 ? ['Expert Rider', 'Spear Mastery', 'Arise, Riders of Rohan!'] : /Rider|Outrider|Son of Eorl/.test(n) ? ['Expert Rider'] : /Royal Guard/.test(n) ? ['Shieldwall', 'Bodyguard'] : r === 'S' ? ['Shieldwall', 'Sergeant'] : ['Shieldwall'];
+
+/* the same full unit card as the non-live company page (name, race, characteristics, gear, keywords, rules, XP), plus the live counters and an Actions button in the header */
+function cardLive(u, i, o = {}) {
   const [n, r, p] = u;
-  return `<div class="urow${sel ? ' sel' : ''}"><div class="l1"><span class="nm">${ri(r)}${n} <small>${p}</small></span>${wst}</div>
-<div class="l2"><span class="mu sm-t">Might 1 · Will 1 · Fate 1${i === 0 ? ' · Horse' : ''}</span><button class="b sm">Actions</button><span class="mu" style="width:20px;text-align:center">›</span></div></div>`;
+  const pop = o.pop ? `<div class="pop dsk">${['Wounded', 'Fate roll', 'Broken: passed', 'Retreated', 'Died', 'Mount removed'].map(x => `<div>${x}</div>`).join('')}</div>` : '';
+  const head = `<div class="row" style="flex-wrap:nowrap;gap:8px"><span class="pt">♞</span><div class="nm"><div class="hd" style="font-size:19px;white-space:nowrap">${ri(r)}${n}</div><small class="mu">Man of Rohan · ${p} pts</small></div>
+<span class="hbtn"><button class="b sm${o.pop ? ' on' : ''}">Actions ▾</button>${pop}</span></div>`;
+  const body = `<div style="margin:8px 0 0">${stats}</div>
+  <div class="cnt">${cnt('Wounds', 1, 1, o.show)}${cnt('Might', 1, 1)}${cnt('Will', 1, 1)}${cnt('Fate', 1, 1)}</div>
+  ${o.show ? '<div class="mu" style="font-size:11px;margin:-2px 0 6px">Dashed: the 44 px touch target of the Wounds arrows; the arrows themselves stay 26x16 px.</div>' : ''}
+  <div class="gear">${gearOf(i).map(g => `<span>${g}</span>`).join('')}</div>
+  ${i === 0 ? '<div class="path" style="margin:2px 0 6px">Path of the Tactician</div>' : ''}
+  <div>${kwOf(n, r).map(k => `<span class="kw mu">${k}</span>`).join('')}${rulesOf(n, r, i).map(k => `<span class="kw">${k}</span>`).join('')}</div>
+  <div class="xp"><b>Lvl 0</b><span class="bar"><i style="width:0"></i></span><span class="mu">0 / 5 XP</span></div>`;
+  return `<div class="card-u live${r === 'L' ? ' lead' : ''}">${head}${body}</div>`;
 }
 
-function liveB() {
+function liveB(open = false) {
   const list = `<div>
-<div class="row" style="margin:8px 0 4px"><h2>Field (15)</h2></div>
-${U.map((u, i) => rowB(u, i, i === 0)).join('')}
+<div class="row" style="margin:8px 0 0"><h2>Field (15)</h2></div>
+<div class="ugrid">${U.map((u, i) => cardLive(u, i, { pop: open && i === 0, show: i === 0 })).join('')}</div>
 <div class="row" style="margin-top:8px"><span class="chip s">› Retreated (0)</span><span class="chip s">› Casualties (0)</span></div></div>`;
-  const detail = `<aside class="dsk stick">${card(U[0], 0, 'B')}
-<div class="c" style="margin-top:0"><div class="mu sm-t" style="margin-bottom:6px">Actions for Rider of Rohan (inline, no sheet)</div><div class="chips"><button class="b sm">Wounded</button><button class="b sm">Fate roll</button><button class="b sm">Broken: passed</button><button class="b sm">Retreated</button><button class="b sm">Died</button><button class="b sm">Mount removed</button></div>
-<div class="row" style="margin-top:8px"><button class="b sm">To wound</button><button class="b sm">End checks</button><button class="b sm">Match log</button></div></div></aside>`;
   return page('Live company page, design B', `<div class="pg pad-dock">
 <div class="row" style="gap:10px"><h2 style="font-size:22px">Riders on every horse</h2><span class="mu">Match 1</span><span class="mu"><span class="live-dot"></span>Live</span>
-<span class="dsk row" style="margin-left:auto;gap:10px"><span class="mu">Turn 0</span><button class="b sm p">Start turn 1</button><span style="min-width:220px">${bar75}</span></span></div>
+<span class="dsk row" style="margin-left:auto;gap:10px"><span class="mu">Turn 0</span><button class="b sm">Match ▾</button><button class="b sm p">Start turn 1</button><span style="min-width:220px">${bar75}</span></span></div>
 <div class="mob" style="margin:4px 0 2px"><div class="row" style="flex-wrap:nowrap"><span class="mu" style="white-space:nowrap">Turn not started</span><span class="sp"></span><span style="width:170px">${bar75}</span></div></div>
-<div class="bgrid" style="margin-top:6px"><div>${list}</div>${detail}</div>
+${list}
 <div class="dock mob"><button class="b p">Start turn 1</button><button class="b">Match ▾</button></div></div>`);
 }
 
@@ -253,9 +289,9 @@ ${actNames.map(n => `<div class="lrow" style="min-height:48px;margin:6px 0">${n}
 <div class="mu sm-t" style="margin-top:8px">No Close button: the cross and Esc close it. One line per row, hints are tooltips.</div></div>`);
 }
 function actB() {
-  return overlay(liveB(), `<div class="scrim"></div><div class="sheet"><div class="handle"></div><div class="row" style="flex-wrap:nowrap"><h2 style="flex:1">Rider of Rohan</h2>${xbtn}</div>
-<div class="tiles" style="margin-top:8px">${['Wounded', 'Fate roll', 'Broken: passed', 'Retreated', 'Died', 'Mount'].map(n => `<button class="b">${n}</button>`).join('')}</div>
-<div class="mu sm-t" style="margin:10px 0 0">Bottom sheet, label-only tiles of 56 px, hints as tooltips. "Wounded" opens the target list in the same sheet with a back arrow.</div></div>`);
+  return overlay(liveB(true), `<div class="scrim"></div><div class="sheet cmp"><div class="handle"></div><div class="row" style="flex-wrap:nowrap"><b style="flex:1;font-size:15px">Actions · Rider of Rohan</b>${xbtn}</div>
+<div class="tiles" style="margin-top:2px">${['Wounded', 'Fate roll', 'Broken: passed', 'Retreated', 'Died', 'Mount removed'].map(n => `<button class="b">${n}</button>`).join('')}</div>
+<div class="mu sm-t" style="margin:8px 0 0">Small sheet (about 230 px) opened by the Actions button of the card header. At 768 px and up the same six items are a popover under that button (see the 1280 picture).</div></div>`);
 }
 function actC() {
   return overlay(liveC(), `<div class="scrim"></div><div class="sheet"><div class="handle"></div><div class="row" style="flex-wrap:nowrap"><h2 style="flex:1">Rider of Rohan</h2>${xbtn}</div>
@@ -323,7 +359,7 @@ ${U.map(unit).join('')}
 
 const out = {
   'match-A': matchA, 'match-B': matchB, 'match-C': matchC,
-  'live-A': liveA, 'live-B': liveB, 'live-C': liveC,
+  'live-A': liveA, 'live-B': () => liveB(true), 'live-C': liveC,
   'actions-A': actA, 'actions-B': actB, 'actions-C': actC,
   'endchecks-A': endA, 'endchecks-B': endB, 'endchecks-C': endC,
   'aftermath-A': afterA, 'aftermath-B': afterB, 'aftermath-C': afterC,

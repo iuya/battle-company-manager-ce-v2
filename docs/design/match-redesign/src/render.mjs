@@ -14,7 +14,7 @@ for (const f of fs.readdirSync('pages').filter(f => f.endsWith('.html') && (!onl
   await p.setViewport({ width: 360, height: 800, deviceScaleFactor: 2 });
   await p.goto(url); await p.evaluate(() => document.fonts.ready);
   heights[name] = await p.evaluate(() => Math.round(document.body.getBoundingClientRect().height));
-  heights[name + '-actionsY'] = await p.evaluate(() => { const e = [...document.querySelectorAll('button,span')].find(b => /^(Unit )?[Aa]ctions$/.test(b.textContent.trim()) && b.children.length === 0); return e ? Math.round(e.getBoundingClientRect().top + scrollY) : null; });
+  heights[name + '-actionsY'] = await p.evaluate(() => { const e = [...document.querySelectorAll('button,span')].find(b => /^(Unit )?[Aa]ctions( ▾)?$/.test(b.textContent.trim()) && b.children.length === 0); return e ? Math.round(e.getBoundingClientRect().top + scrollY) : null; });
   const hsx = await p.evaluate(() => document.documentElement.scrollWidth);
   if (hsx > 360) console.log('HORIZONTAL OVERFLOW', name, hsx);
   await p.screenshot({ path: `out/${name}-360.png` });
