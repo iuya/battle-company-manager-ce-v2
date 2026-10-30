@@ -276,14 +276,8 @@ func leanOath(d *lean.Document, c lean.Company, own Oath) Oath {
 	if strings.Contains(own.Text, "{name}") {
 		return own
 	}
-	var byAlignment map[string]struct {
-		Text string `json:"text"`
-		Vow  string `json:"vow"`
-	}
-	if d.Campaign.Company.Oaths != nil && leanRoundTrip(d.Campaign.Company.Oaths, &byAlignment) == nil {
-		if f, ok := byAlignment[c.Alignment]; ok {
-			own = Oath{Text: f.Text, Vow: f.Vow}
-		}
+	if f := d.Campaign.Company.Oaths.ByAlignment(c.Alignment); f != nil {
+		own = Oath{Text: f.Text, Vow: f.Vow}
 	}
 	if strings.Contains(own.Text, "{name}") {
 		return own

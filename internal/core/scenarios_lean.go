@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -35,11 +34,7 @@ func LeanScenarios(d *lean.Document) ([]ScenarioInfo, error) {
 	}
 	effects := map[string]effect{}
 	for _, e := range d.Campaign.AftermathEffects {
-		var x effect
-		x.kind, _ = e.Rest["kind"].(string)
-		x.text, _ = e.Rest["text"].(string)
-		x.amount = restInt(e.Rest["amount"])
-		effects[e.Key] = x
+		effects[e.Key] = effect{kind: e.Kind, text: e.Text, amount: e.Amount}
 	}
 	var out []ScenarioInfo
 	for _, sc := range d.Scenarios {
@@ -172,18 +167,4 @@ func LeanScenarios(d *lean.Document) ([]ScenarioInfo, error) {
 		return a.Roll - b.Roll
 	})
 	return out, nil
-}
-
-// restInt reads a whole number out of a value kept in a Rest map (the decoder keeps numbers as written).
-func restInt(v any) int {
-	switch n := v.(type) {
-	case json.Number:
-		i, _ := n.Int64()
-		return int(i)
-	case float64:
-		return int(n)
-	case int:
-		return n
-	}
-	return 0
 }

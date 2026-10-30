@@ -292,3 +292,59 @@ func TestAMatchOfOnePlayersTwoCompaniesCarriesTheSamePlayerNote(t *testing.T) {
 		t.Errorf("no note when every company has its own player")
 	}
 }
+
+// A click on the sidebar's My Company or Armory link is answered with the page itself and the final address in HX-Push-Url (one round trip
+// instead of two); a request for the whole page, and a history restore, still get the redirect.
+func TestTheAliasesAnswerABoostedClickWithoutARedirect(t *testing.T) {
+	d, detail := mineDetail()
+	boosted := func(target string) *http.Request {
+		r := httptest.NewRequest("GET", target, nil)
+		r.Header.Set("HX-Request", "true")
+		r.Header.Set("HX-Boosted", "true")
+		return r
+	}
+	setup := func() *fixture {
+		f := newFixture(t, Config{})
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
+		f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
+		f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().ArmouryEntries(gomock.Any(), int64(7), int64(1)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().ArmouryCreatures(gomock.Any(), int64(7), int64(1)).Return(nil, nil).AnyTimes()
+		f.camp.EXPECT().ArmouryWanderers(gomock.Any(), int64(7), int64(1)).Return(nil, nil).AnyTimes()
+		f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
+		return f
+	}
+	for _, tc := range []struct{ name, alias, final string }{
+		{"my company", "/campaigns/7/my-company", "/campaigns/7/my-company/1"},
+		{"armory", "/campaigns/7/armory", "/campaigns/7/armory?company=1"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := setup()
+			rec := f.do(f.signedIn(boosted(tc.alias)))
+			if rec.Code != http.StatusOK || rec.Header().Get("HX-Push-Url") != tc.final {
+				t.Fatalf("boosted click: %d, HX-Push-Url %q, Location %q (want 200 and %q)", rec.Code, rec.Header().Get("HX-Push-Url"), rec.Header().Get("Location"), tc.final)
+			}
+			if strings.Contains(rec.Body.String(), "<html") || !strings.Contains(rec.Body.String(), "<title>") {
+				t.Error("an htmx answer is the title and the content block only")
+			}
+			// the same bytes as the page the redirect leads to
+			direct := boosted(tc.final)
+			f2 := setup()
+			if want := f2.do(f2.signedIn(direct)).Body.String(); want != rec.Body.String() {
+				t.Errorf("the answer at the alias differs from the page at %s", tc.final)
+			}
+			f = setup()
+			restore := boosted(tc.alias)
+			restore.Header.Set("HX-History-Restore-Request", "true")
+			if rec := f.do(f.signedIn(restore)); rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != tc.final {
+				t.Errorf("a history restore: %d -> %q", rec.Code, rec.Header().Get("Location"))
+			}
+			f = setup()
+			if rec := f.do(f.signedIn(httptest.NewRequest("GET", tc.alias, nil))); rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != tc.final {
+				t.Errorf("a full page request: %d -> %q", rec.Code, rec.Header().Get("Location"))
+			}
+		})
+	}
+}

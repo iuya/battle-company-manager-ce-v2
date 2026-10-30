@@ -11,7 +11,7 @@ on:
 
 jobs:
   plan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     outputs:
       groups: ${{ steps.groups.outputs.groups }}
@@ -26,7 +26,7 @@ jobs:
   browser:
     needs: plan
     name: browser (${{ matrix.group }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     strategy:
       fail-fast: false # every group reports, whatever the others do
@@ -42,10 +42,8 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: tests/e2e/package-lock.json
-      - name: Tailwind CLI (the Makefile's get-tailwind fetches the macOS build)
-        run: |
-          curl -fsSL https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 -o tailwindcss
-          chmod +x tailwindcss
+      - name: Tailwind CLI (the Makefile picks the binary of this machine)
+        run: make get-tailwind
       - name: Browser tests, group ${{ matrix.group }}
         env:
           CHROME_PATH: /usr/bin/google-chrome
@@ -63,7 +61,7 @@ jobs:
   e2e:
     needs: [plan, browser]
     if: always() # a skipped or failed group must fail this job, not skip it (a skipped required check counts as passed)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - name: Every group passed

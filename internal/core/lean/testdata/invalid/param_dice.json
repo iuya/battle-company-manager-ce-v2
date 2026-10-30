@@ -192,10 +192,12 @@
     },
     "aftermathEffects": [
       {
-        "key": "rendezvous"
+        "key": "rendezvous",
+        "kind": "reinforcementRollModifier"
       },
       {
         "key": "vantagePoint",
+        "kind": "scenarioTableModifier",
         "range": [
           1,
           -1

@@ -1,0 +1,10 @@
+import puppeteer from 'puppeteer-core';
+import fs from 'fs';
+const [,, src, y, h, dst] = process.argv;
+const b = await puppeteer.launch({executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true});
+const p = await b.newPage();
+await p.setViewport({width:360,height:+h});
+const data = fs.readFileSync(src).toString('base64');
+await p.setContent(`<body style="margin:0;overflow:hidden"><img style="position:absolute;top:-${y}px" src="data:image/png;base64,${data}">`);
+await p.screenshot({path: dst});
+await b.close();

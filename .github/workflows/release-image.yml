@@ -1,5 +1,5 @@
 # Builds the Docker image and publishes it to the GitHub Container Registry (ghcr.io/<owner>/<repo>) when a release tag vMAJOR.MINOR.PATCH
-# is pushed. Order: browser tests (e2e.yml, all groups) -> per platform on a NATIVE runner (amd64: ubuntu-latest, arm64: ubuntu-24.04-arm; no QEMU):
+# is pushed. Order: browser tests (e2e.yml, all groups) -> per platform on a NATIVE runner (amd64: ubuntu-26.04, arm64: ubuntu-26.04-arm; no QEMU):
 # build into the runner's daemon, smoke-test it against PostgreSQL, push it by digest -> merge: one multi-platform manifest with the release tags.
 # Run by hand (Actions > release-image > Run workflow) for a dry run: everything except the push. docs/operations.md, "Published image".
 name: release-image
@@ -31,10 +31,10 @@ jobs:
         include:
           - platform: linux/amd64
             pair: linux-amd64
-            runner: ubuntu-latest
+            runner: ubuntu-26.04
           - platform: linux/arm64
             pair: linux-arm64
-            runner: ubuntu-24.04-arm
+            runner: ubuntu-26.04-arm
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     permissions:
@@ -137,7 +137,7 @@ jobs:
   merge:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -179,3 +179,28 @@ jobs:
           docker buildx imagetools create "${tag_args[@]}" "${refs[@]}"
       - name: Inspect the image
         run: docker buildx imagetools inspect ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}
+
+  # The GitHub Release page of the tag, once the image is published: title = the tag, notes = the body of the tagged commit (the Conventional Commit of the
+  # release) plus the image reference. A tag with a hyphen (v2.1.0-rc.1) is marked as a pre-release and never as the latest release. Skipped if the release exists.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: merge
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          IMAGE_NAME: ${{ env.IMAGE }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then echo "release $TAG exists, nothing to do"; exit 0; fi
+          notes="$RUNNER_TEMP/notes.md"
+          { git log -1 --format='%s%n%n%b' "$TAG" | grep -v '^Co-Authored-By'
+            printf '\nImage: `%s:%s` (linux/amd64 and linux/arm64)\n' "$IMAGE_NAME" "${TAG#v}"; } > "$notes"
+          flags=(--latest)
+          case "$TAG" in *-*) flags=(--prerelease --latest=false) ;; esac
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$notes" "${flags[@]}"

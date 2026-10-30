@@ -1,0 +1,18 @@
+battle_companies.json: campaign.injuries.hero[0].effects[1]: "vanish" is not a valid injury effect; known: remove, missNextGame, fullRecovery, healOneInjury, reduceMovement, noShield, noTwoHandedWeapon, noPike, noBow, noStandFast, noHeroicActionsOnCompany
+battle_companies.json: campaign.injuries.hero[1].retireAtCount: 0 is out of range 1..20
+battle_companies.json: campaign.injuries.hero[2].statChanges[0].amount: -30 is out of range -20..20
+battle_companies.json: campaign.injuries.hero[3].disables[0].key: "stand" is not a valid ability; known: standFast, heroicActionsOnCompany; closest: "standFast"
+battle_companies.json: campaign.injuries.hero[4].healableBy: needs at least 1 item, has 0
+battle_companies.json: campaign.injuries.hero[4].reroll.dice: missing
+battle_companies.json: campaign.injuries.hero[5].heals.choice: "opponent" is not a valid choice; known: player
+battle_companies.json: campaign.injuries.hero[5].heals.count: 0 is out of range 1..10
+battle_companies.json: campaign.injuries.hero[6].colour: unknown field
+  hint: known fields: cancelsMissedGame, clearsAfterGames, disables, effects, experience, grantsAtCount, grantsExperience, grantsInfluence, healable, healableBy, heals, influence, key, name, optionalReroll, persistent, reroll, retireAtCount, roll, stat, statChanges, stat_note, text
+battle_companies.json: campaign.injuries.hero[1].disables[0].classes: missing; a gearClass entry lists the classes it disables
+battle_companies.json: campaign.injuries.hero[1].disables[1].names: missing; a gearItem entry lists the items it disables
+battle_companies.json: campaign.injuries.hero[1].disables[2].key: missing; an ability entry names the ability it takes away (standFast, heroicActionsOnCompany)
+battle_companies.json: campaign.injuries.hero[2].stat.fight: 40 is out of range -20..20
+battle_companies.json: campaign.injuries.hero[2].stat.speed: "speed" is not a characteristic; known: movement, fight, shoot, strength, defence, attack, wounds, courage, intelligence, might, will, fate
+battle_companies.json: campaign.injuries.hero[3].grantsAtCount.0: "0" is not a count; write a whole number 1..20
+battle_companies.json: campaign.injuries.hero[3].grantsAtCount.two: "two" is not a count; write a whole number 1..20
+battle_companies.json: campaign.injuries.hero[5].heals.keys[1]: "armWund" is not the key of a hero injury

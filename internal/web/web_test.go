@@ -91,6 +91,7 @@ func (f *fixture) lazyCards() {
 	f.camp.EXPECT().SecretObjectives(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.SecretView{}, errNo).AnyTimes()
 	f.camp.EXPECT().EndChecks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.EndChecks{}, errNo).AnyTimes()
 	f.camp.EXPECT().Log(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errNo).AnyTimes()
+	f.camp.EXPECT().LiveGeneration(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errNo).AnyTimes() // no generation: the stream starts with a full sync
 }
 
 func (f *fixture) do(r *http.Request) *httptest.ResponseRecorder {
@@ -1129,7 +1130,8 @@ func TestArmoryTabListsEverythingWithTheUnitsThatCanTakeIt(t *testing.T) {
 			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", Role: core.RoleSergeant, Reason: "Cavalry only", Blocker: core.BlockedByRule}}},
 	}, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory?company=1", nil))).Body.String()
-	for _, want := range []string{"Badge of Courage", "Barding", "Buy for…", "No unit can take it", "Cavalry only", `/armory/buy`, `name="item" value="Badge of Courage"`, "Gives:", "Fearless", `x-data="armory"`} {
+	for _, want := range []string{"Badge of Courage", "Barding", "Buy for…", "No unit can take it", "Cavalry only", `/armory/buy`, `name="item" value="Badge of Courage"`, "Gives:", "Fearless", `x-data="armory"`,
+		`<template x-if="open"><ul x-init="htmx.process($el)"`, `data-armory-pending`, `<span x-text="hiddenCount()">1</span> hidden`} { // the unit lists are built when "Buy for" opens them, and htmx wires their forms then
 		if !strings.Contains(body, want) {
 			t.Errorf("armory lacks %q", want)
 		}

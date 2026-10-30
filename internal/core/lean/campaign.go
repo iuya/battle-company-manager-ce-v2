@@ -1,8 +1,7 @@
 package lean
 
 // Campaign holds the engine tables and every rule parameter of the format (docs/definitions.md, "Engine parameters"): a value the engine uses is a field
-// here, required, with its range; there is no code default. ParameterIDs below lists where each parameter lives. Tables whose reader moves in a later slice are Free or
-// carry a `rest` map so the shipped keys survive until that slice types them.
+// here, required, with its range; there is no code default. ParameterIDs below lists where each parameter lives. Only gold and influence.spend are open values.
 type Campaign struct {
 	Company           CompanyRules      `json:"company" required:"true"`
 	Recruitment       Recruitment       `json:"recruitment" required:"true"`
@@ -15,11 +14,11 @@ type Campaign struct {
 	ScenarioSelection ScenarioSelection `json:"scenarioSelection" required:"true"`
 	AftermathEffects  []AftermathEffect `json:"aftermathEffects,omitempty"`
 
-	CharacteristicLimits Free `json:"characteristicLimits,omitempty"`
-	AgainstTheOdds       Free `json:"againstTheOdds,omitempty"` // not typed yet
-	Gold                 Free `json:"gold,omitempty"`
-	MatchInput           Free `json:"matchInput,omitempty"` // prose shown to players
-	Options              Free `json:"options,omitempty"`
+	CharacteristicLimits CharacteristicLimits `json:"characteristicLimits,omitempty"`
+	AgainstTheOdds       AgainstTheOdds       `json:"againstTheOdds,omitempty"`
+	Gold                 Free                 `json:"gold,omitempty"` // open data: where Gold comes from; the app does not read it
+	MatchInput           MatchInput           `json:"matchInput,omitempty"`
+	Options              []CampaignOption     `json:"options,omitempty"`
 }
 
 // CompanyRules is `campaign.company`.
@@ -30,7 +29,7 @@ type CompanyRules struct {
 	HeroStart         HeroGain `json:"heroStart" required:"true"`                           // B3
 	StartingInfluence int      `json:"startingInfluence" required:"true" min:"0" max:"100"` // A8
 	EquipmentSlots    SlotPair `json:"equipmentSlots" required:"true"`                      // B6
-	Oaths             Free     `json:"oaths,omitempty"`                                     // fallback oath texts by alignment
+	Oaths             Oaths    `json:"oaths,omitempty"`                                     // fallback oath texts by alignment
 }
 
 // HeroGain is what a new hero starts with.
@@ -67,7 +66,7 @@ type RareRule struct {
 	PromotedCount bool `json:"promotedCount" required:"true"`
 }
 
-// Influence is `campaign.influence`: the gains (read) and the adjustRoll entry's player-facing text.
+// Influence is `campaign.influence`: the gains (read) and spend, free prose about what Influence buys that the app does not read.
 type Influence struct {
 	Gains InfluenceGains `json:"gains" required:"true"`
 	Spend Free           `json:"spend,omitempty"`
@@ -85,15 +84,13 @@ type Progression struct {
 	Threshold int             `json:"threshold" required:"true" min:"1" max:"50"` // C1
 	Warrior   WarriorProgress `json:"warrior" required:"true"`
 	Hero      HeroProgress    `json:"hero" required:"true"`
-	Rest      map[string]any  `json:"-" rest:"true"` // xp, timing, influenceAdjust ... read by later slices
 }
 
 // WarriorProgress is the warrior progression table.
 type WarriorProgress struct {
-	Roll        DiceSpec       `json:"roll" required:"true"` // C2: the table rows cover it
-	Table       []TableRow     `json:"table,omitempty"`
-	NoPromotion NoPromotion    `json:"noPromotion" required:"true"` // C5
-	Rest        map[string]any `json:"-" rest:"true"`
+	Roll        DiceSpec    `json:"roll" required:"true"` // C2: the table rows cover it
+	Table       []TableRow  `json:"table,omitempty"`
+	NoPromotion NoPromotion `json:"noPromotion" required:"true"` // C5
 }
 
 // NoPromotion is what a warrior with no promotion gains.
@@ -105,53 +102,17 @@ type NoPromotion struct {
 
 // HeroProgress is the hero progression.
 type HeroProgress struct {
-	Roll                DiceSpec       `json:"roll" required:"true"`                                // C4
-	RollsPerProgression int            `json:"rollsPerProgression" required:"true" min:"1" max:"6"` // C3
-	Choose              int            `json:"choose" required:"true" min:"1" max:"6"`              // C3
-	Rest                map[string]any `json:"-" rest:"true"`
+	Roll                DiceSpec `json:"roll" required:"true"`                                // C4
+	RollsPerProgression int      `json:"rollsPerProgression" required:"true" min:"1" max:"6"` // C3
+	Choose              int      `json:"choose" required:"true" min:"1" max:"6"`              // C3
 }
 
 // TableRow is a row of a table keyed by a roll; the other keys of the row are read by the slice that owns the table.
 type TableRow struct {
-	Roll Roll           `json:"roll" required:"true"`
-	Key  string         `json:"key,omitempty"`
-	Name string         `json:"name,omitempty"`
-	Text string         `json:"text,omitempty"`
-	Rest map[string]any `json:"-" rest:"true"`
-}
-
-// Injuries is `campaign.injuries`.
-type Injuries struct {
-	Roll    DiceSpec       `json:"roll" required:"true"` // D1
-	Warrior []InjuryRow    `json:"warrior,omitempty"`
-	Hero    []InjuryRow    `json:"hero,omitempty"`
-	Rest    map[string]any `json:"-" rest:"true"` // treatment, retirement, rollModifier ...
-}
-
-// InjuryRow is a row of an injury chart.
-type InjuryRow struct {
-	Roll              Roll           `json:"roll" required:"true"`
-	Key               string         `json:"key,omitempty"`
-	Name              string         `json:"name,omitempty"`
-	Text              string         `json:"text,omitempty"`
-	GrantsExperience  *DiceGrant     `json:"grantsExperience,omitempty"` // D2
-	StatChanges       []InjuryChange `json:"statChanges,omitempty"`      // D3
-	CancelsMissedGame bool           `json:"cancelsMissedGame,omitempty"`
-	Rest              map[string]any `json:"-" rest:"true"`
-}
-
-// InjuryChange is a characteristic an injury changes: Amount points, once or Per count of the injury; the other keys
-// of the shipped table (minimum, permanent ...) are kept in Rest until a parameter slice types them.
-type InjuryChange struct {
-	Stat   string         `json:"stat" required:"true" enum:"movement|fight|shoot|strength|defence|attack|wounds|courage|intelligence|might|will|fate" noun:"characteristic"`
-	Amount int            `json:"amount" required:"true" min:"-20" max:"20"`
-	Per    string         `json:"per,omitempty" enum:"count"`
-	Rest   map[string]any `json:"-" rest:"true"`
-}
-
-// DiceGrant is Experience rolled on a die.
-type DiceGrant struct {
-	Dice DiceSpec `json:"dice" required:"true"`
+	Roll Roll   `json:"roll" required:"true"`
+	Key  string `json:"key,omitempty"`
+	Name string `json:"name,omitempty"`
+	Text string `json:"text,omitempty"`
 }
 
 // Experience is `campaign.experience`: the gains. The threshold lives in progression.threshold.
@@ -171,16 +132,16 @@ type ExperienceGain struct {
 
 // BreakPoint is `campaign.breakPoint`.
 type BreakPoint struct {
-	Default    BreakDefault   `json:"default" required:"true"`
-	Threshold  BreakThreshold `json:"threshold" required:"true"`
-	WhenBroken WhenBroken     `json:"whenBroken" required:"true"`
-	Rest       map[string]any `json:"-" rest:"true"` // startingModels, casualty ... fixed choices documented, prose
+	Default            BreakDefault     `json:"default" required:"true"`
+	Threshold          BreakThreshold   `json:"threshold" required:"true"`
+	WhenBroken         WhenBroken       `json:"whenBroken" required:"true"`
+	ScenarioExceptions []BreakException `json:"scenarioExceptions,omitempty"`
 }
 
 // BreakDefault is the Break Point of a company with none of its own.
 type BreakDefault struct {
 	Percent int    `json:"percent" required:"true" min:"1" max:"100"`
-	Of      string `json:"of,omitempty"`
+	Of      string `json:"of,omitempty" enum:"startingModels"`
 }
 
 // BreakThreshold is the comparison against the Break Point.
@@ -190,26 +151,45 @@ type BreakThreshold struct {
 
 // WhenBroken is what happens to a broken company.
 type WhenBroken struct {
-	CourageTest CourageTest    `json:"courageTest" required:"true"`
-	Rest        map[string]any `json:"-" rest:"true"`
+	CourageTest CourageTest `json:"courageTest" required:"true"`
 }
 
 // CourageTest is the test a model of a broken company takes.
 type CourageTest struct {
-	Dice DiceSpec       `json:"dice" required:"true"`
-	Rest map[string]any `json:"-" rest:"true"`
+	Dice   DiceSpec `json:"dice" required:"true"`
+	PassIf string   `json:"passIf,omitempty" enum:"totalAtLeastCourage"`
+}
+
+// BreakException is a scenario, or a scenario setting, that changes the Courage tests or the count of a Broken company. The live match
+// shows its text; effect and who word it when there is no text.
+type BreakException struct {
+	Text            string `json:"text,omitempty"`
+	Scenario        string `json:"scenario,omitempty" min:"1"`
+	ScenarioSetting string `json:"scenarioSetting,omitempty" min:"1"`
+	Rule            string `json:"rule,omitempty"`
+	Effect          string `json:"effect,omitempty" enum:"noCourageTest|autoPassCourage|notCountedForBreakPoint|yetToArriveCountAsOnTheBattlefield"`
+	Who             string `json:"who,omitempty" enum:"modelsOnTheHill|defenderWithin6OfTheGate|defenderBaggagePonies|neutralModels|ownModelsNotArrived"`
 }
 
 // RatingRules is `campaign.rating`.
 type RatingRules struct {
-	Hero HeroRating     `json:"hero" required:"true"`
-	Rest map[string]any `json:"-" rest:"true"`
+	Hero HeroRating `json:"hero" required:"true"`
 }
 
-// HeroRating is how a hero is rated.
+// HeroRating is how a hero is rated: Rating per point of each characteristic above the shared profile, per special rule and per minor special
+// rule, and when the gear is paid at the hero rating. Absent numbers are 0.
 type HeroRating struct {
-	Wargear WargearRating  `json:"wargear" required:"true"`
-	Rest    map[string]any `json:"-" rest:"true"` // perPoint, perSpecialRule ...
+	Wargear                   WargearRating `json:"wargear" required:"true"`
+	PerPoint                  []RatingPoint `json:"perPoint,omitempty"`
+	PerSpecialRule            int           `json:"perSpecialRule,omitempty" min:"0" max:"100"`
+	PerMinorSpecialRule       int           `json:"perMinorSpecialRule,omitempty" min:"0" max:"100"`
+	MaxMinorSpecialRuleRating int           `json:"maxMinorSpecialRuleRating,omitempty" min:"0" max:"1000"`
+}
+
+// RatingPoint is the Rating one point of a characteristic is worth in a hero.
+type RatingPoint struct {
+	Stat   string `json:"stat" required:"true" enum:"movement|fight|shoot|strength|defence|attack|wounds|courage|intelligence|might|will|fate" noun:"characteristic"`
+	Rating int    `json:"rating" required:"true" min:"0" max:"100"`
 }
 
 // WargearRating decides when a hero pays the hero rating for gear.
@@ -228,20 +208,12 @@ type WargearThreshold struct {
 type ScenarioSelection struct {
 	Die    DiceSpec        `json:"die" required:"true"` // Count 1
 	Tables []ScenarioTable `json:"tables" required:"true"`
-	Rest   map[string]any  `json:"-" rest:"true"` // text, layout, maelstromOfBattle
 }
 
 // ScenarioTable is one table of scenarios picked by the first die.
 type ScenarioTable struct {
 	Roll      Roll     `json:"roll" required:"true"`
 	Scenarios []string `json:"scenarios" required:"true"`
-}
-
-// AftermathEffect is an entry of `campaign.aftermathEffects`; Range is read for rendezvous and vantagePoint.
-type AftermathEffect struct {
-	Key   string         `json:"key" required:"true" min:"1"`
-	Range []int          `json:"range,omitempty" min:"2" max:"2" emin:"-6" emax:"6"`
-	Rest  map[string]any `json:"-" rest:"true"`
 }
 
 // ParameterIDs maps each engine parameter id of the format to the json path (under campaign unless it starts with a top-level

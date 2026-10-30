@@ -227,8 +227,8 @@ func TestCustomRulesetRefusesBadTreatmentDice(t *testing.T) {
 		mutate func(doc map[string]any)
 		want   string
 	}{
-		{"dice missing", func(doc map[string]any) { delete(attempt(doc), "dice") }, "campaign.injuries.treatment.hero[attempt].roll.dice is missing"},
-		{"not a spec", func(doc map[string]any) { attempt(doc)["dice"] = "2d6+1" }, `campaign.injuries.treatment.hero[attempt].roll.dice: "2d6+1" is not a dice spec`},
+		{"dice missing", func(doc map[string]any) { delete(attempt(doc), "dice") }, "campaign.injuries.treatment.hero[0].roll.dice: missing"},
+		{"not a spec", func(doc map[string]any) { attempt(doc)["dice"] = "2d6+1" }, `campaign.injuries.treatment.hero[0].roll.dice: "2d6+1" is not a dice spec`},
 		{"target above the highest roll", func(doc map[string]any) { attempt(doc)["target"] = 7.0 }, "roll.target: 7 is outside 1..6, the highest roll of d6"},
 		{"target 0", func(doc map[string]any) { attempt(doc)["target"] = 0.0 }, "roll.target: 0 is outside 1..6"},
 		{"ceiling below the target", func(doc map[string]any) { attempt(doc)["modifier"].(map[string]any)["ceiling"] = 4.0 }, "roll.modifier.ceiling: 4 is below the target 5"},

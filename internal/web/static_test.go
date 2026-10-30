@@ -103,6 +103,20 @@ func TestPagesLinkStaticFilesByVersionedAddress(t *testing.T) {
 	}
 }
 
+// The heading font is preloaded under the address the stylesheet loads it from (otherwise the browser fetches it twice), so it is on
+// the page before the first paint and the headings do not change height when it arrives.
+func TestLayoutPreloadsTheHeadingFontUnderTheStylesheetsAddress(t *testing.T) {
+	f := newFixture(t, Config{})
+	body := f.do(httptest.NewRequest("GET", "/login", nil)).Body.String()
+	font := staticURL("fonts/cormorant-garamond-latin-700.woff2")
+	if want := `<link rel="preload" href="` + font + `" as="font" type="font/woff2" crossorigin>`; !strings.Contains(body, want) {
+		t.Errorf("no font preload %s", want)
+	}
+	if !strings.Contains(getStatic(f, "/static/app.css", nil).Body.String(), `url("`+font+`")`) {
+		t.Error("the stylesheet loads the heading font from another address than the preload")
+	}
+}
+
 func TestScriptBundleHoldsEveryPageScriptInOrder(t *testing.T) {
 	files := staticFiles()
 	b := string(files[bundleName].data)

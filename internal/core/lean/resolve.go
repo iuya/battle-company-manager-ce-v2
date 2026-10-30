@@ -373,6 +373,8 @@ func (r *resolver) references() {
 		r.companyRefs(&d.Companies[i], Idx("companies", i))
 	}
 	r.scenarioSelectionRefs()
+	r.breakExceptionRefs()
+	r.aftermathEffectRefs()
 	r.whoRefs()
 }
 
@@ -825,6 +827,39 @@ func (r *resolver) scenarioSelectionRefs() {
 			}
 			iss := Issue{Path: p, Message: fmt.Sprintf("no scenario %q in scenarios[]", n), Hint: "define it in scenarios[]"}
 			iss.Closest = Closest(r.candidates(KindScenario, view{}), n)
+			r.rep.Add(iss)
+		}
+	}
+}
+
+// breakExceptionRefs: an exception of the Break Point names a scenario of scenarios[], spelled as the scenario spells it (the live match compares the names).
+func (r *resolver) breakExceptionRefs() {
+	for i, e := range r.doc.Campaign.BreakPoint.ScenarioExceptions {
+		if e.Scenario == "" {
+			continue
+		}
+		p := Join(Idx("campaign.breakPoint.scenarioExceptions", i), "scenario")
+		ent, ok := r.ix.Lookup(KindScenario, e.Scenario, "")
+		switch {
+		case !ok:
+			iss := Issue{Path: p, Message: fmt.Sprintf("no scenario %q in scenarios[]", e.Scenario), Hint: "define it in scenarios[]"}
+			iss.Closest = Closest(r.candidates(KindScenario, view{}), e.Scenario)
+			r.rep.Add(iss)
+		case ent.Name != e.Scenario:
+			r.rep.Add(Issue{Path: p, Message: fmt.Sprintf("%q is not spelled as the scenario is; write %q", e.Scenario, ent.Name), Closest: ent.Name})
+		}
+	}
+}
+
+// aftermathEffectRefs: an effect that belongs to a scenario names a scenario of scenarios[].
+func (r *resolver) aftermathEffectRefs() {
+	for i, e := range r.doc.Campaign.AftermathEffects {
+		if e.Scenario == "" {
+			continue
+		}
+		if _, ok := r.ix.Lookup(KindScenario, e.Scenario, ""); !ok {
+			iss := Issue{Path: Join(Idx("campaign.aftermathEffects", i), "scenario"), Message: fmt.Sprintf("no scenario %q in scenarios[]", e.Scenario), Hint: "define it in scenarios[]"}
+			iss.Closest = Closest(r.candidates(KindScenario, view{}), e.Scenario)
 			r.rep.Add(iss)
 		}
 	}

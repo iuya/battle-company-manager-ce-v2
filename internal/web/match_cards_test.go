@@ -58,3 +58,27 @@ func TestMatchPageCardThatFailsStaysLazy(t *testing.T) {
 		t.Errorf("a failed card falls back to the fetch on load: %s", tag)
 	}
 }
+
+// The page names the state its cards were built from, so that its event stream does not fetch them again.
+func TestMatchPageSendsItsGenerationToTheStream(t *testing.T) {
+	f := atoFixture(t)
+	f.camp.EXPECT().LiveGeneration(gomock.Any(), frodo, int64(7), int64(3)).Return("4.41", nil)
+	f.camp.EXPECT().AgainstTheOdds(gomock.Any(), frodo, int64(7), int64(3)).Return(atoCard(), nil)
+	f.camp.EXPECT().EndChecks(gomock.Any(), frodo, int64(7), int64(3)).Return(core.EndChecks{}, nil)
+	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), liveLogPage).Return(logEntries(2, 5), nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	if tag := slotTag(t, body, "live-log-slot"); !strings.Contains(tag, `data-live-since="4.41"`) {
+		t.Errorf("the log slot carries the generation: %s", tag)
+	}
+}
+
+// Without a generation (it could not be read) the slot names none, and the stream starts with a full sync.
+func TestMatchPageWithoutAGenerationNamesNone(t *testing.T) {
+	f := atoFixture(t)
+	f.camp.EXPECT().EndChecks(gomock.Any(), frodo, int64(7), int64(3)).Return(core.EndChecks{}, nil)
+	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), liveLogPage).Return(logEntries(2, 5), nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	if tag := slotTag(t, body, "live-log-slot"); strings.Contains(tag, "data-live-since") {
+		t.Errorf("no generation to send: %s", tag)
+	}
+}

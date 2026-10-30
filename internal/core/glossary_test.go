@@ -182,3 +182,22 @@ func TestLinkingCaseRules(t *testing.T) {
 		t.Error("Find stays case insensitive")
 	}
 }
+
+func TestSummaryIsRememberedPerLengthAndEqualsTheFreshText(t *testing.T) {
+	g, err := BuildGlossary(RulesetInfo{}, []byte(`{"terms":[{"name":"Alpha","category":"x","definition":"One two three four five six seven eight nine ten.\n\nEleven twelve thirteen."}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	term, _ := g.Find("Alpha")
+	for _, max := range []int{10, 25, 400} {
+		fresh := term.summary(max)
+		for range 2 {
+			if got := term.Summary(max); got != fresh {
+				t.Fatalf("Summary(%d) = %q, want %q", max, got, fresh)
+			}
+		}
+	}
+	if (GlossaryTerm{Paragraphs: term.Paragraphs}).Summary(25) != term.summary(25) {
+		t.Fatal("a term without a memo must compute the same text")
+	}
+}

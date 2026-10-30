@@ -89,34 +89,73 @@ func (d companyDeps) rated(ctx context.Context, campaignID int64, rs *RuleSet, s
 	if err != nil {
 		return co, err
 	}
-	b := BuildDetail(rs, settings, st).CampaignCompany
+	b := companyFigures(rs, settings, st)
 	co.Points, co.FullPoints, co.Units, co.FactionLabel = b.Points, b.FullPoints, b.Units, b.FactionLabel
 	return co, nil
 }
 
-// figures rates every company of the campaign with a single read of the rosters (rated costs a read per company); the result
-// is by company id, only the Points, FullPoints and Units fields filled. want, when not nil, picks the companies to build.
-func (d companyDeps) figures(ctx context.Context, campaignID int64, rs *RuleSet, settings CampaignSettings, want func(companyID int64) bool) (map[int64]CampaignCompany, error) {
-	states, err := d.companies.ReadRoster(ctx, campaignID)
-	if err != nil {
-		return nil, err
+// rosterOfReader is implemented by a repository that can read the rosters of some companies by id, whichever campaigns they are in, in one
+// statement. A page that rates a few companies (the player's own on the campaign list, the companies of one match) then does not read, build
+// and discard the whole campaign.
+type rosterOfReader interface {
+	ReadRosterOf(ctx context.Context, companyIDs []int64) ([]CompanyState, error)
+}
+
+// roster reads the states of the companies ids names (all of the campaign when ids is empty).
+func (d companyDeps) roster(ctx context.Context, campaignID int64, ids []int64) ([]CompanyState, error) {
+	if len(ids) > 0 {
+		if r, ok := d.companies.(rosterOfReader); ok {
+			sts, err := r.ReadRosterOf(ctx, ids)
+			if !errors.Is(err, errRosterOfUnsupported) {
+				return sts, err
+			}
+		}
 	}
+	return d.companies.ReadRoster(ctx, campaignID)
+}
+
+// figuresOf rates states by company id, only the Points, FullPoints, Units and FactionLabel fields filled. want, when not nil, picks the
+// companies to build.
+func figuresOf(states []CompanyState, rs *RuleSet, settings CampaignSettings, want func(companyID int64) bool) map[int64]CampaignCompany {
 	out := make(map[int64]CampaignCompany, len(states))
 	for _, st := range states {
 		if want != nil && !want(st.Company.ID) { // building a company is the cost: only those asked for
 			continue
 		}
-		out[st.Company.ID] = BuildDetail(rs, settings, st).CampaignCompany
+		out[st.Company.ID] = companyFigures(rs, settings, st)
 	}
-	return out, nil
+	return out
 }
 
-// ratedAll fills the rating figures of the companies given (of one campaign) from one read of the campaign's rosters.
-func (d companyDeps) ratedAll(ctx context.Context, campaignID int64, rs *RuleSet, settings CampaignSettings, list []CampaignCompany) error {
-	f, err := d.figures(ctx, campaignID, rs, settings, nil)
+// figures rates the companies of the campaign with a single read of the rosters (rated costs a read per company); the result is by
+// company id. want, when not nil, picks the companies to build; ids, when not empty, are the only ones that are read at all (a superset of
+// what want accepts).
+func (d companyDeps) figures(ctx context.Context, campaignID int64, rs *RuleSet, settings CampaignSettings, want func(companyID int64) bool, ids []int64) (map[int64]CampaignCompany, error) {
+	states, err := d.roster(ctx, campaignID, ids)
+	if err != nil {
+		return nil, err
+	}
+	return figuresOf(states, rs, settings, want), nil
+}
+
+// ratedAll fills the rating figures of the companies given (of one campaign) from one read of their rosters. whole says that the list is
+// every company of the campaign: the campaign's roster is then read as a whole, which the other readers of one request share.
+func (d companyDeps) ratedAll(ctx context.Context, campaignID int64, rs *RuleSet, settings CampaignSettings, list []CampaignCompany, whole bool) error {
+	var ids []int64
+	if !whole {
+		ids = make([]int64, len(list))
+		for i := range list {
+			ids[i] = list[i].ID
+		}
+	}
+	f, err := d.figures(ctx, campaignID, rs, settings, nil, ids)
 	if err != nil {
 		return err
 	}
+	return fill(f, list)
+}
+
+func fill(f map[int64]CampaignCompany, list []CampaignCompany) error {
 	for i := range list {
 		b, ok := f[list[i].ID]
 		if !ok {
@@ -149,13 +188,41 @@ func (c *Campaigns) List(ctx context.Context, userID int64, withFinished bool) (
 	if err != nil {
 		return nil, err
 	}
+	// the player's own companies of every campaign are read in one statement when the repository can
+	var all []int64
+	for i := range list {
+		for _, co := range list[i].Companies {
+			all = append(all, co.ID)
+		}
+	}
+	var states map[int64]CompanyState
+	if r, ok := c.companies.(rosterOfReader); ok && len(all) > 0 {
+		if sts, err := r.ReadRosterOf(ctx, all); errors.Is(err, errRosterOfUnsupported) {
+			states = nil
+		} else if err != nil {
+			c.log.Warn("cannot read the companies' rosters", "err", err) // each campaign then tries on its own
+		} else {
+			states = make(map[int64]CompanyState, len(sts))
+			for _, st := range sts {
+				states[st.Company.ID] = st
+			}
+		}
+	}
 	for i := range list {
 		if len(list[i].Companies) == 0 {
 			continue
 		}
 		rs, settings, err := c.ruleset(ctx, list[i].ID)
-		if err == nil {
-			err = c.ratedAll(ctx, list[i].ID, rs, settings, list[i].Companies)
+		if err == nil && states != nil {
+			own := make([]CompanyState, 0, len(list[i].Companies))
+			for _, co := range list[i].Companies {
+				if st, ok := states[co.ID]; ok {
+					own = append(own, st)
+				}
+			}
+			err = fill(figuresOf(own, rs, settings, nil), list[i].Companies)
+		} else if err == nil {
+			err = c.ratedAll(ctx, list[i].ID, rs, settings, list[i].Companies, false)
 		}
 		if err != nil { // one campaign whose rules cannot be loaded must not hide the others
 			c.log.Warn("cannot rate the companies", "campaign", list[i].ID, "err", err)
@@ -238,7 +305,7 @@ func (c *Campaigns) Get(ctx context.Context, userID, id int64) (CampaignDetail, 
 	if err != nil {
 		return d, err
 	}
-	if err := c.ratedAll(ctx, id, rs, settings, d.Companies); err != nil {
+	if err := c.ratedAll(ctx, id, rs, settings, d.Companies, false); err != nil {
 		return d, err
 	}
 	return d, nil
@@ -254,7 +321,7 @@ func (c *Campaigns) Companies(ctx context.Context, id int64) ([]CampaignCompany,
 	if err != nil {
 		return nil, err
 	}
-	if err := c.ratedAll(ctx, id, rs, settings, list); err != nil {
+	if err := c.ratedAll(ctx, id, rs, settings, list, true); err != nil {
 		return nil, err
 	}
 	return list, nil

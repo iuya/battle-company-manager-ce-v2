@@ -93,6 +93,16 @@ func (h *LiveHub) resync() {
 
 // subscribe opens a stream of a match whose companies are given; its first batch refetches all of them (initial sync).
 func (h *LiveHub) subscribe(userID, matchID int64, companies []int64, seq int64) (LiveStream, error) {
+	s, err := h.open(userID, matchID, companies, seq, true)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+// open registers a stream; initial says whether its first batch refetches every company. Without it the stream is registered and silent: the
+// caller compares the state of the match with the one its page was built from and calls markAll when they differ (SubscribeSince).
+func (h *LiveHub) open(userID, matchID int64, companies []int64, seq int64, initial bool) (*liveStream, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	switch {
@@ -104,7 +114,9 @@ func (h *LiveHub) subscribe(userID, matchID int64, companies []int64, seq int64)
 		return nil, Refuse("Too many people are watching this match live; the page updates every few seconds instead.")
 	}
 	s := &liveStream{hub: h, user: userID, match: matchID, companies: slices.Clone(companies), wake: make(chan struct{}, 1), done: make(chan struct{})}
-	s.markAll(seq)
+	if initial {
+		s.markAll(seq)
+	}
 	h.streams[s] = struct{}{}
 	h.perUser[userID]++
 	h.perMatch[matchID]++

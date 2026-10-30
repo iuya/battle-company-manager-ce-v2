@@ -24,7 +24,38 @@ type grant struct {
 // equipmentFor builds an item from what the Battle Companies file says about it: its classes, missile profile and granted
 // rules come from the gear annotations, its slot size, cost and text from the armoury, and, for items only vanilla knows,
 // the text from the vanilla gear list. grants are the special rules the item gives.
-func equipmentFor(rs *RuleSet, bcCo BCCompany, name string, bought, profile, hero bool) (e Equipment, grants []grant) {
+//
+// The answer depends only on the rule set, the company's armoury, the name and the two flags, and a rule set never changes, so it is
+// remembered per rule set (RuleSet.equipment). The slices in the result are shared between calls and are never written to.
+func equipmentFor(rs *RuleSet, bcCo BCCompany, name string, bought, profile, hero bool) (Equipment, []grant) {
+	key := equipmentKey{company: bcCo.Name, unique: len(bcCo.UniqueWargear), name: name, bought: bought, profile: profile}
+	if v, ok := rs.equipment.Load(key); ok {
+		r := v.(equipmentResult)
+		return r.e, r.grants
+	}
+	e, grants := buildEquipment(rs, bcCo, name, bought, profile)
+	if rs.equipmentN.Load() < memoLimit {
+		if _, loaded := rs.equipment.LoadOrStore(key, equipmentResult{e, grants}); !loaded {
+			rs.equipmentN.Add(1)
+		}
+	}
+	return e, grants
+}
+
+type equipmentKey struct {
+	company string
+	unique  int
+	name    string
+	bought  bool
+	profile bool
+}
+
+type equipmentResult struct {
+	e      Equipment
+	grants []grant
+}
+
+func buildEquipment(rs *RuleSet, bcCo BCCompany, name string, bought, profile bool) (e Equipment, grants []grant) {
 	e = Equipment{Name: name, Bought: bought, Profile: profile}
 	a, annotated := rs.BC.Annotation(name)
 	offer, offered := rs.BC.Offer(bcCo, name)
@@ -103,6 +134,12 @@ func ownPathLevels(rs *RuleSet, settings CampaignSettings, profile CompanyProfil
 }
 
 func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettings) CompanyUnit {
+	return buildUnitFor(rs, bcCo, s, settings, false)
+}
+
+// buildUnitFor is buildUnit; ratingOnly leaves out what is derived from the finished unit and feeds nothing in its rating (the keywords
+// and the auras), for companyFigures.
+func buildUnitFor(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettings, ratingOnly bool) CompanyUnit {
 	book := rs.Vanilla
 	base, found := book.Unit(s.Base)
 	var aliasRules, aliasOptions []string // a company's own name for a profile, with rules added (Ranger of Ithilien) and options selected
@@ -183,6 +220,9 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 			return true
 		}
 		return false
+	}
+	if n := len(base.Wargear) + len(s.Gear) + len(s.Bought); n > 0 {
+		u.Equipment = make([]Equipment, 0, n) // an Equipment is a few hundred bytes: grow once
 	}
 	for _, w := range base.Wargear {
 		if !dropped(w) {
@@ -353,6 +393,9 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 		for _, a := range base.HeroicActions {
 			u.Path.HeroicActions = append(u.Path.HeroicActions, HeroicAction{Name: a, Source: ActionFromUnit})
 		}
+	}
+	if ratingOnly {
+		return u
 	}
 	u.Keywords = unitKeywordsOf(rs, profile, s, u) // last: a bought mount makes the rider Cavalry
 	u.LevelEvery = rs.BC.Progression().Threshold
@@ -977,6 +1020,38 @@ func BuildDetail(rs *RuleSet, settings CampaignSettings, st CompanyState) Compan
 		detail.Recruit.Special[i].Blocked, _ = resultBlock(rs, bcCo, units, st.Cemetery, Reinforcement{Type: "unit", Unit: sp.Unit, Rare: sp.Rare})
 	}
 	return detail
+}
+
+// companyFigures is BuildDetail(rs, settings, st).CampaignCompany without the rest of the detail: the figures a list, the sidebar or a
+// match page rate a company by (Points, FullPoints, Units, FactionLabel). It builds the units as BuildDetail does and leaves out what
+// does not enter those figures: keywords, auras, limits, recruit charts, the cemetery. TestCompanyFiguresEqualBuildDetail holds the
+// two together.
+func companyFigures(rs *RuleSet, settings CampaignSettings, st CompanyState) CampaignCompany {
+	co := st.Company
+	bcCo, _ := rs.BC.Company(co.Faction)
+	co.FactionLabel = bcCo.Label
+	co.Units, co.Points, co.FullPoints = 0, 0, 0
+	for _, us := range st.Units {
+		s := us.Clone()
+		applyProgress(rs, bcCo, &s, s.Progress)
+		s.Injured = s.Injured || s.SentToHealers
+		if s.Injuries == nil {
+			s.Injuries = map[string]int{}
+		}
+		u := buildUnitFor(rs, bcCo, s, settings, true)
+		co.Units += u.ModelCount()
+		co.FullPoints += u.Points
+		if !u.Injured { // an injured model misses the next game: it does not count towards the company's rating
+			co.Points += u.Points
+		}
+		if s.Creature != "" {
+			if o, found := creatureOffer(rs, s.Creature); found {
+				co.Points += o.Points // a creature counts for its points in the rating
+				co.FullPoints += o.Points
+			}
+		}
+	}
+	return co
 }
 
 // breakPointPercent is the company's Break Point percentage: its own rule (Muster of Isengard 66) or the file's default.

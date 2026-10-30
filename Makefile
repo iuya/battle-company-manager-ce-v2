@@ -1,6 +1,8 @@
 # Variables from .env (gitignored) are exported to the app; the defaults match compose.dev.yaml so a fresh clone just works.
 -include .env
 export
+# A GOROOT inherited from a long-running shell or IDE can name another Go version than go.mod asks for ("go1.26.2 does not match go1.27.3"); the go command finds its own root.
+unexport GOROOT
 # Development database (throwaway credentials, published on localhost). Production is the default compose.yaml: make up / prod-user.
 DC = docker compose -f compose.dev.yaml
 DATABASE_URL ?= postgres://bcm:bcm@localhost:5432/bcm?sslmode=disable
@@ -192,6 +194,18 @@ db-down:
 tidy:
 	go mod tidy
 
+# make get-tailwind [TAILWIND_VERSION=v4.3.3]   the Tailwind standalone binary for this machine (macOS arm64/x64, Linux x64/arm64) into ./tailwindcss; default: the latest release
+TAILWIND_VERSION ?= latest
 get-tailwind:
-	curl -sL https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-macos-arm64 -o tailwindcss
-	chmod +x tailwindcss
+	@os=$$(uname -s); arch=$$(uname -m); \
+	case "$$os-$$arch" in \
+	  Darwin-arm64) asset=macos-arm64 ;; \
+	  Darwin-x86_64) asset=macos-x64 ;; \
+	  Linux-x86_64) asset=linux-x64 ;; \
+	  Linux-aarch64|Linux-arm64) asset=linux-arm64 ;; \
+	  *) echo "get-tailwind: no standalone binary known for $$os $$arch; download one from https://github.com/tailwindlabs/tailwindcss/releases and save it as ./tailwindcss (chmod +x)" >&2; exit 1 ;; \
+	esac; \
+	if [ "$(TAILWIND_VERSION)" = latest ]; then url=https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-$$asset; \
+	else url=https://github.com/tailwindlabs/tailwindcss/releases/download/$(TAILWIND_VERSION)/tailwindcss-$$asset; fi; \
+	echo "get-tailwind: $$url"; \
+	curl -fsSL "$$url" -o tailwindcss && chmod +x tailwindcss

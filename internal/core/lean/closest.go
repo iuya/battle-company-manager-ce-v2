@@ -15,7 +15,10 @@ func NameKey(s string) string { return nameKey(s, true) }
 
 // nameKey is NameKey with the accent folding switched on or off (the test of the shipped names compares both).
 func nameKey(s string, fold bool) string {
-	if fold && !isASCII(s) {
+	if isASCII(s) {
+		return asciiNameKey(s)
+	}
+	if fold {
 		s = foldAccents(s)
 	}
 	var b strings.Builder
@@ -35,6 +38,37 @@ func nameKey(s string, fold bool) string {
 		}
 	}
 	return b.String()
+}
+
+// asciiNameKey is nameKey for a name of ASCII bytes only: a stack buffer, no rune decoding, and the string itself when it is a key already.
+func asciiNameKey(s string) string {
+	var stack [96]byte
+	buf := stack[:0]
+	space := false
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c == '\'' || c == '`':
+		case c >= 'a' && c <= 'z' || c >= '0' && c <= '9':
+			if space && len(buf) > 0 {
+				buf = append(buf, ' ')
+			}
+			space = false
+			buf = append(buf, c)
+		case c >= 'A' && c <= 'Z':
+			if space && len(buf) > 0 {
+				buf = append(buf, ' ')
+			}
+			space = false
+			buf = append(buf, c+'a'-'A')
+		default:
+			space = true
+		}
+	}
+	if string(buf) == s { // no allocation: the compiler does not copy for a comparison
+		return s
+	}
+	return string(buf)
 }
 
 func isASCII(s string) bool {

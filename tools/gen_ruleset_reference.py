@@ -66,6 +66,9 @@ class Ref:
 
     def type_of(self, p):
         """The type column of a property."""
+        if "anyOf" in p:  # an object or an explicit null
+            alts = [a for a in p["anyOf"] if a.get("type") != "null"]
+            return self.type_of(alts[0]) + " or null"
         if "$ref" in p:
             n = self.name(p["$ref"])
             return self.link(n) if (n in self.forms or "properties" in self.defs[n]) else n
@@ -146,6 +149,9 @@ def walk(schema, ref):
             child = p
             sub = path + ("." if path else "") + k
             while True:
+                if "anyOf" in child:  # an object or an explicit null
+                    child = [a for a in child["anyOf"] if a.get("type") != "null"][0]
+                    continue
                 if "$ref" in child:
                     n = ref.name(child["$ref"])
                     d = ref.defs[n]

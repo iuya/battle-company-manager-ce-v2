@@ -20,6 +20,12 @@ func TestATOStore(t *testing.T) {
 	if _, err := ato.Get(w.ctx, w.camp, w.match.ID+9999); !errors.Is(err, core.ErrNotFound) {
 		t.Errorf("another campaign's or unknown match: %v", err)
 	}
+	if _, err := ato.GameStarted(w.ctx, w.camp, w.match.ID+9999); !errors.Is(err, core.ErrNotFound) {
+		t.Errorf("GameStarted of an unknown match: %v", err)
+	}
+	if _, err := ato.GameStarted(w.ctx, w.camp+9999, w.match.ID); !errors.Is(err, core.ErrNotFound) {
+		t.Errorf("GameStarted of a match of another campaign: %v", err)
+	}
 	// the match has a rolled scenario and a reported objective
 	if _, err := w.s.Matches().Update(w.ctx, w.camp, w.match.ID, w.org, func(m *core.Match) error {
 		m.Scenario = &core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Rolled"}

@@ -19,7 +19,7 @@ It is a Go service with PostgreSQL and a server-rendered frontend (Go templates,
 Prerequisites: the Go version in [go.mod](go.mod), Docker (PostgreSQL), Python 3 (rules validation), and Node 20+ with Chrome or Chromium only for the browser tests.
 
 ```bash
-make get-tailwind                                  # once: downloads the Tailwind standalone binary (macOS arm64; see the Makefile for other platforms)
+make get-tailwind                                  # once: downloads the Tailwind standalone binary for this machine (macOS and Linux, x64 and arm64)
 make user EMAIL=you@example.com NAME="Your Name"   # creates an account (asks for a password); there is no sign-up page
 make run                                           # CSS + PostgreSQL + server on http://localhost:8080
 ```
@@ -108,6 +108,7 @@ Start at [docs/README.md](docs/README.md). Everything in `docs/`, by audience:
 | [auth.md](docs/auth.md) | Accounts, sessions, passwords, CSRF, login throttling |
 | [vendored-js.md](docs/vendored-js.md) | The committed third-party scripts and how to update them |
 | [performance.md](docs/performance.md) | Measured page cost and the performance tooling |
+| [optimization-report.md](docs/optimization-report.md) | Executive summary of the optimization work (v1.3.0, baseline and final numbers, what changed and why, what did not improve), then the detailed data format, runtime, database, build and test sections |
 
 **Operators**
 

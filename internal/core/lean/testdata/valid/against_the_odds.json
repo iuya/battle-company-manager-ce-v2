@@ -1,0 +1,371 @@
+{
+  "schemaVersion": 2,
+  "name": "Fixture",
+  "version": "1.0",
+  "extends": "Middle-Earth Strategy Battle Game - 2024",
+  "campaign": {
+    "company": {
+      "maxModels": 15,
+      "leaders": 1,
+      "sergeants": 2,
+      "heroStart": {
+        "might": 1,
+        "will": 1,
+        "fate": 1
+      },
+      "startingInfluence": 0,
+      "equipmentSlots": {
+        "small": 1,
+        "large": 1
+      }
+    },
+    "recruitment": {
+      "die": "d6",
+      "adjust": {
+        "maxPerAttempt": 3,
+        "direction": "up",
+        "costPerPoint": 1
+      },
+      "rare": {
+        "injuredCount": true,
+        "deadCount": false,
+        "promotedCount": false
+      }
+    },
+    "influence": {
+      "gains": {
+        "participating": 2,
+        "draw": 1,
+        "win": 2
+      }
+    },
+    "progression": {
+      "threshold": 5,
+      "warrior": {
+        "roll": "d6",
+        "table": [
+          {
+            "roll": "1-2",
+            "key": "noChange",
+            "name": "No Change"
+          },
+          {
+            "roll": "3-5",
+            "key": "promoted",
+            "name": "Promoted"
+          },
+          {
+            "roll": 6,
+            "key": "heroInTheMaking",
+            "name": "A Hero in the Making"
+          }
+        ],
+        "noPromotion": {
+          "courage": 1,
+          "intelligence": 1,
+          "maximum": 3
+        }
+      },
+      "hero": {
+        "roll": "2d6",
+        "rollsPerProgression": 2,
+        "choose": 1
+      }
+    },
+    "injuries": {
+      "roll": "2d6",
+      "warrior": [
+        {
+          "roll": "2-3",
+          "key": "dead",
+          "name": "Dead"
+        },
+        {
+          "roll": "4-5",
+          "key": "injured",
+          "name": "Injured"
+        },
+        {
+          "roll": "6-11",
+          "key": "fullRecovery",
+          "name": "Full Recovery"
+        },
+        {
+          "roll": 12,
+          "key": "lessonLearned",
+          "name": "Lesson Learned",
+          "grantsExperience": {
+            "dice": "d3"
+          }
+        }
+      ],
+      "hero": [
+        {
+          "roll": 2,
+          "key": "dead",
+          "name": "Dead"
+        },
+        {
+          "roll": "3-11",
+          "key": "fullRecovery",
+          "name": "Full Recovery"
+        },
+        {
+          "roll": 12,
+          "key": "heroic",
+          "name": "Heroic Recovery",
+          "statChanges": [
+            {
+              "stat": "fate",
+              "amount": 1
+            }
+          ]
+        }
+      ]
+    },
+    "experience": {
+      "gains": [
+        {
+          "key": "participated",
+          "label": "Participating in the scenario",
+          "amount": 1
+        },
+        {
+          "key": "mvp",
+          "label": "MVP",
+          "amount": 1,
+          "dice": "d3"
+        }
+      ]
+    },
+    "breakPoint": {
+      "default": {
+        "percent": 50,
+        "of": "startingModels"
+      },
+      "threshold": {
+        "comparison": "gt"
+      },
+      "whenBroken": {
+        "courageTest": {
+          "dice": "2d6"
+        }
+      }
+    },
+    "rating": {
+      "hero": {
+        "wargear": {
+          "threshold": {
+            "stats": [
+              "attack",
+              "wounds"
+            ],
+            "sumAtLeast": 3
+          }
+        }
+      }
+    },
+    "scenarioSelection": {
+      "die": "d2",
+      "tables": [
+        {
+          "roll": [
+            1,
+            1
+          ],
+          "scenarios": [
+            "Seize Ground",
+            "Chance Encounter"
+          ]
+        },
+        {
+          "roll": [
+            2,
+            2
+          ],
+          "scenarios": [
+            "Hold the Line",
+            "Rescue"
+          ]
+        }
+      ]
+    },
+    "againstTheOdds": {
+      "text": "The Battle Company with the lower rating may select bonuses.",
+      "bonuses": [
+        {
+          "name": "Influence",
+          "key": "influence",
+          "text": "+2 Influence for Victory, +1 for Draw or Defeat.",
+          "appliesIn": [
+            "aftermath"
+          ],
+          "gains": {
+            "influence": {
+              "other": 1,
+              "win": 2
+            }
+          },
+          "rating": 15
+        },
+        {
+          "name": "Experience",
+          "key": "experience",
+          "text": "+2 Experience per model.",
+          "appliesIn": [
+            "aftermath"
+          ],
+          "gains": {
+            "experiencePerModel": {
+              "other": 1,
+              "win": 2
+            }
+          },
+          "rating": 30
+        },
+        {
+          "name": "Reroll",
+          "key": "reroll",
+          "text": "Two rerolls.",
+          "affects": "singleDieOrSingleResult",
+          "appliesIn": [
+            "game",
+            "aftermath"
+          ],
+          "carriesOver": false,
+          "count": 2,
+          "expires": "endOfMatchAftermath",
+          "rating": 15,
+          "usableIn": [
+            "game",
+            "warsAftermath"
+          ]
+        },
+        {
+          "name": "Tool Kit",
+          "key": "toolKit",
+          "text": "One of each Kit.",
+          "appliesIn": [
+            "setup",
+            "game",
+            "aftermath"
+          ],
+          "grants": {
+            "kind": "loanedEquipment",
+            "addsRating": false,
+            "assignAt": "beforeSetup",
+            "assignTo": "anyModelOfTheMatch",
+            "carriesOver": false,
+            "expires": "endOfMatchAftermath",
+            "ignores": [
+              "capacity",
+              "alignment"
+            ],
+            "oncePerKit": true,
+            "stillApplies": [
+              "heroOnly"
+            ],
+            "usableByTemporaryWanderer": false
+          },
+          "kits": [
+            {
+              "name": "Healer's Kit",
+              "items": [
+                {
+                  "count": 5,
+                  "equipment": "Wondrous Cram"
+                },
+                {
+                  "count": 2,
+                  "equipment": "Healing Herbs"
+                }
+              ]
+            }
+          ],
+          "purchase": {
+            "chooses": "oneKit",
+            "distinctKits": true,
+            "maxPurchases": 5,
+            "ratingPerKit": true
+          },
+          "rating": 30
+        },
+        {
+          "name": "Wanderer",
+          "key": "wanderer",
+          "text": "A temporary Wanderer.",
+          "appliesIn": [
+            "setup",
+            "game"
+          ],
+          "grants": {
+            "kind": "temporaryModel",
+            "count": 1,
+            "countsTowardsBreakPoint": true,
+            "countsTowardsMaxModels": false,
+            "exclusiveWithPermanentWanderer": true,
+            "expires": "endOfMatch",
+            "from": "data.wanderers.items",
+            "gainsExperience": false,
+            "goldCost": 0,
+            "influenceCost": 0,
+            "persistsAfterMatch": false,
+            "ratingCost": "bonusRating",
+            "rollsInjuries": false,
+            "rules": "No Stand Fast.",
+            "takesRosterSlot": false
+          },
+          "rating": 45,
+          "temporary": true
+        },
+        {
+          "name": "Ambush!",
+          "key": "ambush",
+          "text": "You choose the scenario.",
+          "appliesIn": [
+            "scenarioChoice"
+          ],
+          "grants": {
+            "kind": "chooseScenario",
+            "chosenBy": "lowerRatedCompany",
+            "duration": "thisMatch",
+            "from": "scenarios",
+            "replaces": "scenarioTableRoll",
+            "rolesBy": "scenarioRules"
+          },
+          "rating": 60
+        }
+      ],
+      "budget": {
+        "text": "The sum may not exceed.",
+        "inclusive": true,
+        "rule": "ratingAfterBonusesNotAboveOpponent"
+      },
+      "eligible": {
+        "text": "Only the lower company chooses.",
+        "company": "lowerRating",
+        "compare": "strictlyLower",
+        "ratingBeforeBonuses": true
+      },
+      "selectedAt": "afterScenarioRollBeforeSetup"
+    }
+  },
+  "scenarios": [
+    {
+      "name": "Seize Ground",
+      "description": "..."
+    },
+    {
+      "name": "Chance Encounter",
+      "description": "..."
+    },
+    {
+      "name": "Hold the Line",
+      "description": "..."
+    },
+    {
+      "name": "Rescue",
+      "description": "..."
+    }
+  ]
+}

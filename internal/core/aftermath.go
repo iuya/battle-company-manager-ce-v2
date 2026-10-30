@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -189,100 +188,10 @@ func (r AftermathRules) Chart(hero bool) []InjuryRow {
 }
 
 // LeanAftermath reads the aftermath rules of a lean document: experience gains, influence gains, Against the Odds bonuses, the
-// injuries charts, the scenario rewards and the items that activate an effect. The charts and the bonuses are the campaign tables as
-// the file stores them (lean Rest/Free) until a parameter slice types them.
+// injuries charts, the scenario rewards and the items that activate an effect.
 func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, error) {
-	type chartRow struct {
-		Roll       jsonRoll `json:"roll"`
-		Key        string   `json:"key"`
-		Name       string   `json:"name"`
-		Text       string   `json:"text"`
-		Effects    []string `json:"effects"`
-		Persistent bool     `json:"persistent"`
-		RetireAt   int      `json:"retireAtCount"`
-		Optional   bool     `json:"optionalReroll"`
-		Heals      *struct {
-			Keys []string `json:"keys"`
-		} `json:"heals"`
-		GrantsXP *struct {
-			Dice string `json:"dice"`
-		} `json:"grantsExperience"`
-		GrantsInfluence *struct {
-			Dice string `json:"dice"`
-		} `json:"grantsInfluence"`
-		StatChanges []struct {
-			Stat   string `json:"stat"`
-			Amount int    `json:"amount"`
-		} `json:"statChanges"`
-	}
-	type gains struct {
-		Win   int `json:"win"`
-		Other int `json:"other"`
-	}
-	var c struct {
-		Progression struct {
-			Threshold int `json:"threshold"`
-		} `json:"progression"`
-		Experience struct {
-			Gains []struct {
-				Key        string `json:"key"`
-				Label      string `json:"label"`
-				Amount     int    `json:"amount"`
-				Repeatable bool   `json:"repeatable"`
-			} `json:"gains"`
-		} `json:"experience"`
-		Influence struct {
-			Gains struct {
-				Participating int `json:"participating"`
-				Draw          int `json:"draw"`
-				Win           int `json:"win"`
-			} `json:"gains"`
-		} `json:"influence"`
-		Injuries struct {
-			Roll    string     `json:"roll"`
-			Warrior []chartRow `json:"warrior"`
-			Hero    []chartRow `json:"hero"`
-		} `json:"injuries"`
-		AgainstTheOdds struct {
-			Bonuses []struct {
-				Key    string `json:"key"`
-				Name   string `json:"name"`
-				Text   string `json:"text"`
-				Rating int    `json:"rating"`
-				Count  int    `json:"count"`
-				Gains  struct {
-					Influence *gains `json:"influence"`
-					XP        *gains `json:"experiencePerModel"`
-				} `json:"gains"`
-			} `json:"bonuses"`
-		} `json:"againstTheOdds"`
-		AftermathEffects []struct {
-			Key        string `json:"key"`
-			Kind       string `json:"kind"`
-			Amount     int    `json:"amount"`
-			MaxValue   int    `json:"maxInfluenceValue"`
-			When       string `json:"when"`
-			Text       string `json:"text"`
-			Scenario   string `json:"scenario"`
-			SourceBase string `json:"source"`
-			Modifier   int    `json:"modifier"`
-			Clamp      []int  `json:"clamp"`
-			Stackable  bool   `json:"stackable"`
-			NoRoll     bool   `json:"noRoll"`
-			Result     string `json:"result"`
-			Activated  struct {
-				Carrier  string   `json:"carrier"`
-				Requires []string `json:"requires"`
-			} `json:"activatedBy"`
-		} `json:"aftermathEffects"`
-	}
-	raw, err := lean.Encode(d.Campaign)
-	if err != nil {
-		return AftermathRules{}, err
-	}
-	if err := json.Unmarshal(raw, &c); err != nil {
-		return AftermathRules{}, err
-	}
+	c := d.Campaign
+	var err error
 	rules := AftermathRules{
 		LevelEvery:    c.Progression.Threshold,
 		Participating: c.Influence.Gains.Participating, Draw: c.Influence.Gains.Draw, Win: c.Influence.Gains.Win,
@@ -296,7 +205,7 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 		if g := b.Gains.Influence; g != nil {
 			ob.InfluenceWin, ob.InfluenceOther = g.Win, g.Other
 		}
-		if g := b.Gains.XP; g != nil {
+		if g := b.Gains.ExperiencePerModel; g != nil {
 			ob.ExperienceWin, ob.ExperienceOther = g.Win, g.Other
 		}
 		if b.Key != "reroll" {
@@ -304,14 +213,14 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 		}
 		rules.Bonuses = append(rules.Bonuses, ob)
 	}
-	convert := func(rows []chartRow, hero bool) ([]InjuryRow, error) {
+	convert := func(rows []lean.InjuryRow, hero bool) ([]InjuryRow, error) {
 		var out []InjuryRow
 		for _, r := range rows {
-			row := InjuryRow{Min: r.Roll[0], Max: r.Roll[1], Key: r.Key, Name: r.Name, Text: r.Text, Persistent: r.Persistent, RetireAt: r.RetireAt}
+			row := InjuryRow{Min: r.Roll.Lo, Max: r.Roll.Hi, Key: r.Key, Name: r.Name, Text: r.Text, Persistent: r.Persistent, RetireAt: r.RetireAtCount}
 			switch {
 			case slices.Contains(r.Effects, "remove"):
 				row.Kind = CasualtyDead
-			case r.Optional:
+			case r.OptionalReroll:
 				row.Kind = CasualtyScratch
 			case r.Persistent:
 				row.Kind = CasualtyInjury
@@ -331,20 +240,14 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 			default:
 				return nil, fmt.Errorf("the injuries chart row %q does nothing the aftermath knows", r.Key)
 			}
-			bonus := func(kind, path, dice string) error {
-				spec, err := ParseDiceAt("campaign.injuries."+map[bool]string{false: "warrior", true: "hero"}[hero]+"["+r.Key+"]."+path+".dice", dice)
-				row.BonusKind, row.BonusDice, row.BonusSpec = kind, strings.ToLower(dice), spec
-				return err
+			bonus := func(kind string, spec lean.DiceSpec) {
+				row.BonusKind, row.BonusDice, row.BonusSpec = kind, strings.ToLower(spec.String()), spec
 			}
-			if r.GrantsXP != nil {
-				if err := bonus("experience", "grantsExperience", r.GrantsXP.Dice); err != nil {
-					return nil, err
-				}
+			if r.GrantsExperience != nil {
+				bonus("experience", r.GrantsExperience.Dice)
 			}
 			if r.GrantsInfluence != nil {
-				if err := bonus("influence", "grantsInfluence", r.GrantsInfluence.Dice); err != nil {
-					return nil, err
-				}
+				bonus("influence", r.GrantsInfluence.Dice)
 			}
 			if !r.Persistent { // a persistent injury keeps its stat changes as the injury itself; a kept row gains the stat for good
 				for j, sc := range r.StatChanges {
@@ -376,9 +279,7 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 		}
 		return out, nil
 	}
-	if rules.InjuryDice, err = diceAt("campaign.injuries.roll", c.Injuries.Roll); err != nil {
-		return AftermathRules{}, errors.Join(ErrInvalidRuleset, err)
-	}
+	rules.InjuryDice = c.Injuries.Roll
 	if rules.Warrior, err = convert(c.Injuries.Warrior, false); err != nil {
 		return AftermathRules{}, errors.Join(ErrInvalidRuleset, err)
 	}
@@ -386,8 +287,8 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 		return AftermathRules{}, errors.Join(ErrInvalidRuleset, err)
 	}
 	for _, e := range c.AftermathEffects {
-		eff := RewardEffect{Key: e.Key, Kind: e.Kind, Text: e.Text, Amount: e.Amount, MaxValue: e.MaxValue, When: e.When,
-			Modifier: e.Modifier, Stackable: e.Stackable, Carrier: e.Activated.Carrier, Requires: e.Activated.Requires, Result: e.Result, NoRoll: e.NoRoll}
+		eff := RewardEffect{Key: e.Key, Kind: e.Kind, Text: e.Text, Amount: e.Amount, MaxValue: e.MaxInfluenceValue, When: e.When,
+			Modifier: e.Modifier, Stackable: e.Stackable, Carrier: e.ActivatedBy.Carrier, Requires: e.ActivatedBy.Requires, Result: e.Result, NoRoll: e.NoRoll}
 		if len(e.Clamp) == 2 {
 			eff.ClampMin, eff.ClampMax = e.Clamp[0], e.Clamp[1]
 		}

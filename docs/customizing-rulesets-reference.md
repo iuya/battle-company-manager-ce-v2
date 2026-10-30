@@ -71,11 +71,11 @@ Found at: `campaign`.
 | `rating` | [RatingRules](#ratingrules) | yes | - | - | The rating rules. |
 | `scenarioSelection` | [ScenarioSelection](#scenarioselection) | yes | - | - | How a scenario is rolled. |
 | `aftermathEffects` | list of [AftermathEffect](#aftermatheffect) |  | - | - | Rewards and bonuses of the War's Aftermath, keyed by the name a scenario reward or an item points at. |
-| `againstTheOdds` | any |  | - | - | The Against the Odds bonuses of the lower-rated company: text, bonuses[{name, key, text, appliesIn, rating, gains, ...}]. Not typed; the shape of the shipped file is read. |
-| `characteristicLimits` | any |  | - | - | The ceilings of the characteristics: lowerIsBetter (the stats where a lower number is better), peak (the highest a stat goes, and willMaxOverrides, a path's own Will maximum), average and increases.courageIntelligenceTotalCap {value, includesGear}. Not typed; the shape of the shipped file is read. |
-| `gold` | any |  | - | - | How Gold works. Prose and keys read by the pages; not typed. |
-| `matchInput` | any |  | - | - | What the players enter per match. Prose shown to the players; not typed. |
-| `options` | any |  | - | - | The campaign options the organiser can switch: a list of {key, scope (rules or app), label, description, default, implemented, swaps}. An option key the app does not know is ignored. |
+| `againstTheOdds` | [AgainstTheOdds](#againsttheodds) |  | - | - | The Against the Odds bonuses of the lower-rated company, and how the budget and the eligibility work. |
+| `characteristicLimits` | [CharacteristicLimits](#characteristiclimits) |  | - | - | The ceilings of the characteristics and the average profile. |
+| `gold` | any |  | - | - | How Gold works, in the words of the file. Open data (any JSON, or absent): the app does not read it; Gold is a number on the company, from start.gold and the organiser's grants. |
+| `matchInput` | [MatchInput](#matchinput) |  | - | - | What the players enter per match: a description for the people who read the file; the app does not read it. |
+| `options` | list of [CampaignOption](#campaignoption) |  | - | - | The campaign options the organiser can switch. The key decides what the app does: an option key the app does not know is listed as unsupported, with a warning in the log. |
 
 ### CompanyRules
 
@@ -91,7 +91,7 @@ Found at: `campaign.company`.
 | `heroStart` | [HeroGain](#herogain) | yes | - | - | The Might, Will and Fate a new hero starts with. |
 | `startingInfluence` | integer | yes | - | 0..100 | The Influence a new company starts with. |
 | `equipmentSlots` | [SlotPair](#slotpair) | yes | - | - | The equipment slots of every model before items add any. |
-| `oaths` | any |  | - | - | Fallback oath texts by alignment ({good, evil}, each {text, vow}) for a company that has no oath of its own. {name} in the text is replaced by the company's name. |
+| `oaths` | [Oaths](#oaths) |  | - | - | Fallback oath texts by alignment (good and evil, each {text, vow}) for a company that has no oath of its own. {name} in the text is replaced by the company's name. |
 
 ### HeroGain
 
@@ -115,6 +115,28 @@ Found at: `campaign.company.equipmentSlots`.
 |---|---|---|---|---|---|
 | `small` | integer | yes | - | 0..10 | Small slots. |
 | `large` | integer | yes | - | 0..10 | Large slots. |
+
+### Oaths
+
+The fallback oaths of the companies that have none of their own, one per alignment.
+
+Found at: `campaign.company.oaths`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `evil` | [Oath](#oath) |  | - | - | The oath of an evil company. |
+| `good` | [Oath](#oath) |  | - | - | The oath of a good company. |
+
+### Oath
+
+The oath the player swears when taking command of the company.
+
+Found at: `campaign.company.oaths.evil`, `campaign.company.oaths.good`, `companies[].oath`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `text` | string |  | - | - | The oath. {name} stands exactly once, not at the start or the end, where the company's name goes. |
+| `vow` | string |  | - | - | The label of the button the player presses (1 to 40 characters). |
 
 ### Recruitment
 
@@ -161,7 +183,7 @@ Found at: `campaign.influence`.
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `gains` | [InfluenceGains](#influencegains) | yes | - | - | The Influence earned after a match. |
-| `spend` | any |  | - | - | What Influence buys: player-facing text and the adjustRoll entry. Not typed; the app prints it. |
+| `spend` | any |  | - | - | What Influence buys, as free player-facing prose and data (a list of {key, name, text, ...}). Genuinely open: the app does not read or print it. |
 
 ### InfluenceGains
 
@@ -177,11 +199,9 @@ Found at: `campaign.influence.gains`.
 
 ### Progression
 
-Experience, level-ups and the dice of the warrior and hero progression. The keys that are not listed (xp, timing, ...) are read by the app and kept as they are.
+Experience, level-ups and the dice of the warrior and hero progression.
 
 Found at: `campaign.progression`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
@@ -194,8 +214,6 @@ Found at: `campaign.progression`.
 The warrior progression: the die, its table and what a warrior with no promotion gains.
 
 Found at: `campaign.progression.warrior`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
@@ -217,11 +235,9 @@ Found at: `campaign.progression.warrior.noPromotion`.
 
 ### TableRow
 
-A row of a table keyed by a roll. The other keys of a row are read by the part of the app that owns the table.
+A row of the warrior progression table.
 
 Found at: `campaign.progression.warrior.table[]`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
@@ -236,8 +252,6 @@ The hero progression: the dice rolled and how many results the player keeps.
 
 Found at: `campaign.progression.hero`.
 
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
-
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `roll` | [DiceSpec](#dicespec) | yes | - | - | The die of a path table (a path may name its own). |
@@ -246,59 +260,262 @@ Found at: `campaign.progression.hero`.
 
 ### Injuries
 
-The injury charts and the die they are rolled on.
+The injury charts, the die they are rolled on and the treatments. The chart rows and the treatments are read by the engine; the prose keys (applies, deathOfAHero, healing, retirement, rollModifier) are rule text for the players.
 
 Found at: `campaign.injuries`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `roll` | [DiceSpec](#dicespec) | yes | - | - | The injury die, such as 2d6. Both charts must cover its totals exactly once. |
+| `applies` | string |  | - | - | Who rolls on the charts. Prose shown to the players. |
+| `deathOfAHero` | string |  | - | - | What happens when a Leader is slain. Prose shown to the players. |
+| `healing` | [InjuryHealingText](#injuryhealingtext) |  | - | - | How injuries are healed. Prose shown to the players. |
 | `hero` | list of [InjuryRow](#injuryrow) |  | - | - | The hero injury chart. |
+| `retirement` | [InjuryRetirement](#injuryretirement) |  | - | - | Forced retirement. Prose; the count is the row's retireAtCount. |
+| `rollModifier` | [InjuryRollModifier](#injuryrollmodifier) |  | - | - | Modifiers of the injury roll. Prose; the modifier is a campaign.aftermathEffects entry. |
+| `treatment` | [InjuryTreatment](#injurytreatment) |  | - | - | How Influence treats injuries. |
 | `warrior` | list of [InjuryRow](#injuryrow) |  | - | - | The warrior injury chart. |
+
+### InjuryHealingText
+
+The rulebook text of how injuries are healed. Prose; the app does not read it.
+
+Found at: `campaign.injuries.healing`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `hero` | string |  | - | - | How a hero is healed. |
+| `warrior` | string |  | - | - | How a warrior is healed. |
 
 ### InjuryRow
 
-A row of an injury chart. The keys that are not listed (effects, persistent, disables, ...) are read by the engine and kept as they are.
+A row of an injury chart. The engine reads effects (remove, missNextGame, fullRecovery) to decide what the result does, and persistent, retireAtCount, statChanges, disables and grantsAtCount for a hero's lasting injuries.
 
 Found at: `campaign.injuries.hero[]`, `campaign.injuries.warrior[]`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `roll` | [Roll](#roll) | yes | - | - | The roll or range the row covers. |
 | `cancelsMissedGame` | boolean |  | - | - | true: the result cancels the missed next game. |
+| `clearsAfterGames` | integer |  | - | 1..20 | The injury ends after this many games. |
+| `disables` | list of [InjuryDisable](#injurydisable) |  | - | - | What a lasting injury takes from the hero. |
+| `effects` | list of string |  | - | `remove`, `missNextGame`, `fullRecovery`, `healOneInjury`, `reduceMovement`, `noShield`, `noTwoHandedWeapon`, `noPike`, `noBow`, `noStandFast`, `noHeroicActionsOnCompany` | What the result does. remove (the model dies), missNextGame and fullRecovery decide the result; the others (healOneInjury, reduceMovement, noShield...) label the effect for the reader and are done by the other keys of the row. |
+| `experience` | [DiceSpec](#dicespec) |  | - | - | The die of grantsExperience in the rulebook's words (D3). The app reads grantsExperience. |
+| `grantsAtCount` | map of [CountGrant](#countgrant) |  | - | - | Special rules the hero gets from a count of the injury on: {"2": {specialRule}}. |
 | `grantsExperience` | [DiceGrant](#dicegrant) |  | - | - | Experience rolled on a die when the result comes up. |
-| `key` | string |  | - | - | The key the engine switches on (dead, injured, fullRecovery...). |
+| `grantsInfluence` | [DiceGrant](#dicegrant) |  | - | - | Influence rolled on a die for the company when the result comes up. |
+| `healable` | boolean |  | - | - | true: a treatment can remove the injury. |
+| `healableBy` | list of string |  | - | at least 1 items | The treatment methods that can remove the injury (a key of campaign.injuries.treatment.hero), for a status such as T'is Just a Scratch. |
+| `heals` | [InjuryHeals](#injuryheals) |  | - | - | The injuries a healing result removes. |
+| `influence` | [DiceSpec](#dicespec) |  | - | - | The die of grantsInfluence in the rulebook's words (D6). The app reads grantsInfluence. |
+| `key` | string |  | - | - | The key the engine switches on (dead, injured, fullRecovery...). A row with no effects is read by its key: dead, injured, else a full recovery. |
 | `name` | string |  | - | - | The name of the result. |
+| `optionalReroll` | boolean |  | - | - | true: the player may roll again on the chart instead of taking the result (T'is Just a Scratch). |
+| `persistent` | boolean |  | - | - | true: the hero keeps the injury and counts how often it suffered it (arm wound, leg wound, broken honour). |
+| `reroll` | [InjuryReroll](#injuryreroll) |  | - | - | How the re-roll of an optionalReroll result works. |
+| `retireAtCount` | integer |  | - | 1..20 | A persistent injury forces the hero to retire at this count, as the Dead result. |
+| `stat` | map of integer |  | - | - | The characteristics changed, as {characteristic: change}, for the reader of the file. The app reads statChanges. |
 | `statChanges` | list of [InjuryChange](#injurychange) |  | - | - | The characteristics the result changes (a gain on a row that is not a persistent injury, a loss on one). |
+| `stat_note` | string |  | - | - | A note on stat, for the reader of the file. |
 | `text` | string |  | - | - | The rule text of the result. |
+
+### InjuryDisable
+
+What a lasting injury takes from a hero: the benefit of gear of some classes or by name, or an ability.
+
+Found at: `campaign.injuries.hero[].disables[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `kind` | string | yes | - | `gearClass`, `gearItem`, `ability` | gearClass (items of the listed classes give no benefit), gearItem (the named items give none) or ability (the hero loses the ability). |
+| `classes` | list of string |  | - | `melee`, `spear`, `two_handed`, `mount`, `bow`, `armour`, `throwing`, `shield`, `instrument`, `consumable`, `lance`, `banner`, `missile`, `crossbow`, `other` | The gear classes, for kind gearClass. |
+| `key` | string |  | - | `standFast`, `heroicActionsOnCompany` | The ability, for kind ability: standFast or heroicActionsOnCompany. |
+| `names` | list of string |  | - | at least 1 items | The item names, for kind gearItem. |
+
+### CountGrant
+
+A special rule a hero gets once it has an injury a given number of times.
+
+Found at: `campaign.injuries.hero[].grantsAtCount.<name>`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `specialRule` | string | yes | - | not empty | The special rule granted. |
 
 ### DiceGrant
 
 Experience or Influence rolled on a die.
 
-Found at: `campaign.injuries.hero[].grantsExperience`.
+Found at: `campaign.injuries.hero[].grantsExperience`, `campaign.injuries.hero[].grantsInfluence`.
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `dice` | [DiceSpec](#dicespec) | yes | - | - | The die rolled. |
 
+### InjuryHeals
+
+What a healing result removes: injuries of the listed keys, chosen by the player.
+
+Found at: `campaign.injuries.hero[].heals`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `choice` | string | yes | - | `player` | Who chooses the injury healed: player. |
+| `count` | integer | yes | - | 1..10 | How many injuries are healed. |
+| `keys` | list of string | yes | - | at least 1 items | The keys of the hero injuries that can be healed. |
+
+### InjuryReroll
+
+The optional second roll of T'is Just a Scratch.
+
+Found at: `campaign.injuries.hero[].reroll`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `dice` | [DiceSpec](#dicespec) | yes | - | - | The dice rolled again. |
+| `ifScratchAgainMissNextGame` | boolean |  | - | - | true: a second result of the same row means the hero misses the next game. |
+| `optional` | boolean |  | - | - | true: the player chooses whether to roll again. |
+| `secondResultStands` | boolean |  | - | - | true: the second result applies even if it is worse than the first. |
+
 ### InjuryChange
 
-A characteristic an injury changes.
+A characteristic an injury changes: a gain on a row that is not a persistent injury, a loss (per count) on one.
 
 Found at: `campaign.injuries.hero[].statChanges[]`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `stat` | string | yes | - | `movement`, `fight`, `shoot`, `strength`, `defence`, `attack`, `wounds`, `courage`, `intelligence`, `might`, `will`, `fate` | The characteristic changed. |
 | `amount` | integer | yes | - | -20..20 | The change, a positive gain or a negative loss. |
+| `capAtPathMaximum` | boolean |  | - | - | true: the gain stops at the maximum of the hero's path. Informational; the app does not read it. |
+| `minimum` | integer or null |  | - | 0..20 | The lowest value the characteristic may reach; null for no floor. Informational; the app does not read it. |
 | `per` | string |  | - | `count` | count: the amount is applied once per time the hero has the injury. |
+| `permanent` | boolean |  | - | - | true: the change stays for good. Informational; a row that is not persistent always keeps its gain. |
+| `raisesPathMaximum` | boolean |  | - | - | true: the gain also raises the path's maximum. Informational; the app does not read it. |
+
+### InjuryRetirement
+
+What happens to a hero that suffers a persistent injury for the retireAtCount-th time. Prose; the count is the row's retireAtCount.
+
+Found at: `campaign.injuries.retirement`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `result` | string |  | - | not empty | The key of the chart row a forced retirement counts as (dead). |
+| `text` | string |  | - | - | The rule in words. |
+
+### InjuryRollModifier
+
+The rulebook text about modifiers of the injury roll (Healing Herbs). Prose; the modifier itself is a campaign.aftermathEffects entry.
+
+Found at: `campaign.injuries.rollModifier`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `appliesTo` | string |  | - | `total2d6` | What the modifier is added to: total2d6, the total of the injury dice. |
+| `clamp` | list of integer |  | - | 0..100; 2..2 items | [low, high]: the modified total is kept inside these bounds. |
+| `includesRerolls` | boolean |  | - | - | true: the modifier also applies to a re-roll. |
+| `replacedBy` | string |  | - | - | Where the modifier is defined, for the reader of the file. |
+| `text` | string |  | - | - | The rule in words. |
+
+### InjuryTreatment
+
+How Influence treats injuries (Battle Companies, Step 3): the hero methods, the warrior's and what removing an injury does.
+
+Found at: `campaign.injuries.treatment`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `currency` | string |  | - | `influence` | What a treatment costs: influence. Informational; the app spends Influence. |
+| `hero` | list of [HeroTreatment](#herotreatment) |  | - | - | The hero treatments. The engine knows attempt and healers. |
+| `phase` | string |  | - | `companyManagement` | When a treatment is made: companyManagement. Informational. |
+| `removalEffect` | [TreatmentRemoval](#treatmentremoval) |  | - | - | What removing an injury does to the hero's counts. |
+| `warrior` | [WarriorTreatment](#warriortreatment) |  | - | - | The warrior treatment. |
+
+### HeroTreatment
+
+One way to treat a hero: an attempt on a die (attempt) or sending the hero to the healers (healers).
+
+Found at: `campaign.injuries.treatment.hero[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `key` | string | yes | - | `attempt`, `healers` | attempt (a roll to remove an injury) or healers (no roll: the hero misses the next game). |
+| `cost` | integer | yes | - | 0..20 | The Influence the method costs. |
+| `healable` | list of string |  | - | at least 1 items | The injuries (keys of the hero chart) the method can remove. |
+| `maxAttempts` | integer or null |  | - | 1..100 | The most attempts allowed; null for no limit. Informational; the app puts no limit. |
+| `missNextGame` | boolean |  | - | - | true: the hero misses the next game. |
+| `onFailure` | [TreatFailure](#treatfailure) |  | - | - | What a failed attempt costs. |
+| `removesInjuries` | integer |  | - | 0..10 | How many injuries the method removes. |
+| `roll` | [TreatRoll](#treatroll) or null |  | - | - | The roll of an attempt; null for a method with no roll. |
+| `text` | string |  | - | - | The rule in words. |
+
+### TreatFailure
+
+What a failed attempt costs.
+
+Found at: `campaign.injuries.treatment.hero[].onFailure`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `costKept` | boolean |  | - | - | true: the Influence is lost on a failure. |
+| `effect` | string |  | - | `none` | none: a failure has no other effect. |
+
+### TreatRoll
+
+The die of a treatment attempt: the total must reach the target, and extra Influence raises it.
+
+Found at: `campaign.injuries.treatment.hero[].roll`, `campaign.injuries.treatment.warrior.roll`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `dice` | [DiceSpec](#dicespec) | yes | - | - | The dice rolled. |
+| `target` | integer | yes | - | 1..100 | The total the roll must reach; a total the dice can show. |
+| `compare` | string |  | - | `gte` | gte: the total must be at least the target. |
+| `modifier` | [TreatModifier](#treatmodifier) |  | - | - | How extra Influence raises the roll. |
+| `naturalMaxIsAlwaysEnough` | boolean |  | - | - | true: the highest roll always succeeds. Informational; the app does not read it. |
+
+### TreatModifier
+
+How extra Influence raises a treatment roll, like a Might point.
+
+Found at: `campaign.injuries.treatment.hero[].roll.modifier`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `ceiling` | integer |  | - | 0..100 | The raised roll never goes above this; 0 for no ceiling. At least the target. |
+| `currency` | string |  | - | `influence` | influence. |
+| `direction` | string |  | - | `up` | up: Influence raises the roll. |
+| `like` | string |  | - | - | What the modifier resembles in the rulebook (a Might point). |
+| `maxPoints` | integer or null |  | - | 0..100 | The most extra points allowed; null for no limit. Informational; the ceiling limits the roll. |
+| `perPoint` | integer |  | - | 0..10 | The roll gained per extra Influence point. |
+
+### TreatmentRemoval
+
+What removing an injury does to the hero's counts.
+
+Found at: `campaign.injuries.treatment.removalEffect`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `choice` | string |  | - | `player` | Who chooses the injury removed: player. |
+| `countDelta` | integer |  | - | -10..0 | The change of the injury's count (-1). |
+| `derivedEffects` | string |  | - | `recomputeFromCounts` | recomputeFromCounts: the effects of the injuries follow from the counts. |
+
+### WarriorTreatment
+
+The treatment of a warrior: the cost in Influence of removing the Injured condition.
+
+Found at: `campaign.injuries.treatment.warrior`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `cost` | integer |  | - | 0..20 | The Influence the treatment costs. |
+| `key` | string |  | - | - | A name for the treatment. |
+| `removes` | string |  | - | `injured` | injured: what the treatment removes. |
+| `requires` | string |  | - | `injured` | injured: what the warrior must have. |
+| `roll` | [TreatRoll](#treatroll) or null |  | - | - | null: a warrior is treated without a roll. |
+| `text` | string |  | - | - | The rule in words. |
 
 ### Experience
 
@@ -327,17 +544,16 @@ Found at: `campaign.experience.gains[]`.
 
 ### BreakPoint
 
-When a company is Broken and what happens then.
+When a company is Broken and what happens then, and the scenarios that change it.
 
 Found at: `campaign.breakPoint`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `default` | [BreakDefault](#breakdefault) | yes | - | - | The Break Point of a company with none of its own. |
 | `threshold` | [BreakThreshold](#breakthreshold) | yes | - | - | How casualties are compared. |
 | `whenBroken` | [WhenBroken](#whenbroken) | yes | - | - | What happens when the company is Broken. |
+| `scenarioExceptions` | list of [BreakException](#breakexception) |  | - | - | The scenarios, and scenario settings, that change the Courage tests or the count of a Broken company; the live match lists them. |
 
 ### BreakDefault
 
@@ -348,7 +564,7 @@ Found at: `campaign.breakPoint.default`.
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `percent` | integer | yes | - | 1..100 | The share of the starting models that must be lost. |
-| `of` | string |  | - | - | What the share is taken of; startingModels. |
+| `of` | string |  | - | `startingModels` | What the share is taken of: startingModels. |
 
 ### BreakThreshold
 
@@ -366,8 +582,6 @@ What happens to a Broken company.
 
 Found at: `campaign.breakPoint.whenBroken`.
 
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
-
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `courageTest` | [CourageTest](#couragetest) | yes | - | - | The Courage test of a Broken company. |
@@ -378,11 +592,25 @@ The test a model of a Broken company takes.
 
 Found at: `campaign.breakPoint.whenBroken.courageTest`.
 
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
-
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `dice` | [DiceSpec](#dicespec) | yes | - | - | The dice rolled; the model passes with a total at least its Courage. |
+| `passIf` | string |  | - | `totalAtLeastCourage` | totalAtLeastCourage, the only pass rule the app implements. A live match refuses to roll a Courage test when it is missing. |
+
+### BreakException
+
+A scenario, or a scenario setting, that changes the Courage tests or the count of a Broken company. The live match of that scenario shows the text.
+
+Found at: `campaign.breakPoint.scenarioExceptions[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `effect` | string |  | - | `noCourageTest`, `autoPassCourage`, `notCountedForBreakPoint`, `yetToArriveCountAsOnTheBattlefield` | What the exception does: noCourageTest, autoPassCourage, notCountedForBreakPoint or yetToArriveCountAsOnTheBattlefield. |
+| `rule` | string |  | - | - | The name of the scenario rule that causes it, for the reader and the generated sentence. |
+| `scenario` | string |  | - | not empty | The scenario the exception belongs to, spelled as in scenarios[]. Write this or scenarioSetting. |
+| `scenarioSetting` | string |  | - | not empty | The scenario setting the exception belongs to: a scenario rule listed in a scenario's usesRules, such as Maelstrom of Battle; compared without case. Write this or scenario. |
+| `text` | string |  | - | - | The sentence the live match shows. Without it the app words the exception from effect and who. |
+| `who` | string |  | - | `modelsOnTheHill`, `defenderWithin6OfTheGate`, `defenderBaggagePonies`, `neutralModels`, `ownModelsNotArrived` | Who it concerns: modelsOnTheHill, defenderWithin6OfTheGate, defenderBaggagePonies, neutralModels or ownModelsNotArrived. |
 
 ### RatingRules
 
@@ -390,23 +618,23 @@ How companies and heroes are rated.
 
 Found at: `campaign.rating`.
 
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
-
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `hero` | [HeroRating](#herorating) | yes | - | - | How a hero is rated. |
 
 ### HeroRating
 
-How a hero is rated.
+How a hero is rated: the Rating of each point of a characteristic, of each special rule and minor special rule, and when its gear is paid at the hero rating. A number that is absent is 0.
 
 Found at: `campaign.rating.hero`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `wargear` | [WargearRating](#wargearrating) | yes | - | - | When a hero pays the hero rating for gear. |
+| `maxMinorSpecialRuleRating` | integer |  | - | 0..1000 | The most the minor special rules of one hero add together. |
+| `perMinorSpecialRule` | integer |  | - | 0..100 | The Rating of each minor special rule of a hero (a rule with minor: true). |
+| `perPoint` | list of [RatingPoint](#ratingpoint) |  | - | - | The Rating of one point of each characteristic; a characteristic that is not listed adds nothing. |
+| `perSpecialRule` | integer |  | - | 0..100 | The Rating of each special rule of a hero. |
 
 ### WargearRating
 
@@ -430,13 +658,22 @@ Found at: `campaign.rating.hero.wargear.threshold`.
 | `stats` | list of string | yes | - | `movement`, `fight`, `shoot`, `strength`, `defence`, `attack`, `wounds`, `courage`, `intelligence`, `might`, `will`, `fate`; at least 1 items | The characteristics added up. |
 | `sumAtLeast` | integer | yes | - | 0..20 | The sum at which the hero rating applies. |
 
+### RatingPoint
+
+The Rating one point of a characteristic is worth in a hero.
+
+Found at: `campaign.rating.hero.perPoint[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `stat` | string | yes | - | `movement`, `fight`, `shoot`, `strength`, `defence`, `attack`, `wounds`, `courage`, `intelligence`, `might`, `will`, `fate` | The characteristic. |
+| `rating` | integer | yes | - | 0..100 | The Rating of one point of it. |
+
 ### ScenarioSelection
 
 How the scenario of a match is rolled: a first die picks a table, a second die picks the scenario in it.
 
 Found at: `campaign.scenarioSelection`.
-
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
@@ -456,16 +693,380 @@ Found at: `campaign.scenarioSelection.tables[]`.
 
 ### AftermathEffect
 
-A reward or bonus of the War's Aftermath (a scenario reward, an Against the Odds bonus, a consumable). The keys that are not listed are read by the engine and kept as they are.
+A reward or bonus of the War's Aftermath: a scenario reward (kind influence, experience or freeEquipment), a consumable item (injuryRollModifier, injuryRollReplacement), a die modifier (rendezvous and vantagePoint, by key) or the effect of an Against the Odds bonus. The kind and the keys the engine acts on are listed first; the others state the rule in data for the reader of the file.
 
 Found at: `campaign.aftermathEffects[]`.
 
-*Open object*: keys that are not listed are kept as they are (the app reads some of them).
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `key` | string | yes | - | not empty | The key a scenario reward (rewards[].effect) or an item (aftermathEffect) points at; unique. rendezvous and vantagePoint also need a range. |
+| `kind` | string | yes | - | `rerolls`, `influence`, `experiencePerModel`, `injuryRollModifier`, `injuryRollReplacement`, `reinforcementRollModifier`, `freeEquipment`, `experience`, `scenarioTableModifier`, `magicalPower` | What the effect is. influence and experience pay a scenario reward (amount); freeEquipment lets a model take an item worth at most maxInfluenceValue; injuryRollModifier and injuryRollReplacement are consumables; reinforcementRollModifier and scenarioTableModifier move a die (rendezvous, vantagePoint); rerolls, experiencePerModel and magicalPower are rules the players apply. |
+| `activatedBy` | [ActivatedBy](#activatedby) |  | - | - | Who may use a consumable and when. |
+| `amount` | integer |  | - | 0..100 | The Influence or Experience Points a reward gives (kind influence or experience). |
+| `applies` | string |  | - | `eachInjuryRoll` | eachInjuryRoll: the modifier applies to every injury roll of the company. |
+| `choice` | string |  | - | `player` | player: the player decides whether to use it. |
+| `clamp` | list of integer |  | - | 0..100; 2..2 items | [low, high]: the modified injury total is held to this range. |
+| `consumes` | string |  | - | `oneItem`, `thisItem` | oneItem or thisItem: what is used up when the effect is used. |
+| `count` | integer |  | - | 1..20 | How many re-rolls (kind rerolls). |
+| `die` | string |  | - | `second` | second: the modifier moves the second die of the scenario table. Informational. |
+| `gains` | [ATOReward](#atoreward) |  | - | - | The Influence or Experience by result of an Against the Odds bonus: win for a Victory, other for a Draw or Defeat. |
+| `ignoresWill` | boolean |  | - | - | true: the power works even when the model has no Will left. Informational. |
+| `includesHealOneInjury` | boolean |  | - | - | true: a Full Recovery from the effect also heals one injury. Informational. |
+| `includesHeroReroll` | boolean |  | - | - | true: the modifier also applies to a hero's re-roll. Informational. |
+| `maxInfluenceValue` | integer |  | - | 0..100 | freeEquipment: the most Influence the free item may cost. |
+| `modifier` | integer |  | - | -12..12 | injuryRollModifier: added to the injury total. |
+| `noRoll` | boolean |  | - | - | injuryRollReplacement: true means the model does not roll on the chart. |
+| `power` | string |  | - | not empty | magicalPower: the power granted. |
+| `range` | list of integer |  | - | -6..6; 2..2 items | [low, high], how far the effect moves a die; -6..6. |
+| `result` | string |  | - | not empty | injuryRollReplacement: the key of the injury result the model counts as having rolled; required for that kind. |
+| `rolls` | integer |  | - | 1..20 | How many rolls the die modifier applies to. |
+| `scenario` | string |  | - | not empty | The scenario the effect belongs to, as named in scenarios[]. |
+| `source` | string |  | - | - | Where the rule comes from in the rulebook, for the reader of the file. |
+| `stackable` | boolean |  | - | - | false: only one of the effect counts per aftermath. |
+| `text` | string |  | - | - | The rule in words, shown to the players. |
+| `to` | string |  | - | `leader` | leader: the reward goes to the Leader. |
+| `usableIn` | list of string |  | - | `game`, `warsAftermath` | Where a re-roll may be used: game or warsAftermath. |
+| `usesPerAftermath` | integer |  | - | 1..20 | How often the effect may be used in one aftermath. Informational. |
+| `when` | string |  | - | `beforeInjuryRolls`, `firstReinforcementRollThisAftermath`, `nextScenarioTableRoll`, `nextGame` | When a perk or consumable is used: beforeInjuryRolls, firstReinforcementRollThisAftermath, nextScenarioTableRoll or nextGame. |
+| `who` | string |  | - | not empty | Who gets the effect, in words of the data (victor, lowerRatedCompany ...). Open: the app does not read it. |
+
+### ActivatedBy
+
+Who may use a consumable item and when.
+
+Found at: `campaign.aftermathEffects[].activatedBy`.
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
-| `key` | string | yes | - | not empty | The key a scenario reward (rewards[].effect) or an item (aftermathEffect) points at. rendezvous and vantagePoint also need a range. |
-| `range` | list of integer |  | - | -6..6; 2..2 items | [low, high], how far the effect moves a die; -6..6. |
+| `carrier` | string |  | - | `hero`, `anyModel` | hero: only a hero may use it; anyModel: any model. |
+| `fledModelIs` | string |  | - | `notCasualty` | notCasualty: a model that fled the board is not a casualty. Informational. |
+| `requires` | list of string |  | - | `participated`, `casualty`, `notCasualty` | What must hold: participated (the model took part), casualty, notCasualty. |
+
+### ATOReward
+
+A reward by result.
+
+Found at: `campaign.aftermathEffects[].gains`, `campaign.againstTheOdds.bonuses[].gains.experiencePerModel`, `campaign.againstTheOdds.bonuses[].gains.influence`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `win` | integer | yes | - | 0..20 | The reward for a Victory. |
+| `other` | integer | yes | - | 0..20 | The reward for a Draw or a Defeat. |
+
+### AgainstTheOdds
+
+The bonuses the lower rated company may take after the scenario roll, and the rules of the budget and of who may choose. The bonuses and the budget are read by the engine; the other keys are rule text.
+
+Found at: `campaign.againstTheOdds`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `bonuses` | list of [ATOBonus](#atobonus) |  | - | - | The bonuses, in the order the players see them. |
+| `budget` | [ATOBudget](#atobudget) |  | - | - | The Rating budget of the bonuses. |
+| `eligible` | [ATOEligible](#atoeligible) |  | - | - | Who may choose bonuses. |
+| `selectedAt` | string |  | - | `afterScenarioRollBeforeSetup` | When the bonuses are chosen: afterScenarioRollBeforeSetup. Informational. |
+| `text` | string |  | - | - | The rule in words. Shown to the players. |
+
+### ATOBonus
+
+One Against the Odds bonus. influence, experience and reroll are plain switches (gains, count); toolKit (kits, purchase), wanderer and ambush are bonuses the app has its own windows for. Any other key is a plain bonus that costs its rating and adds its gains.
+
+Found at: `campaign.againstTheOdds.bonuses[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `key` | string | yes | - | not empty | The key of the bonus; unique. influence, experience, reroll, toolKit, wanderer and ambush have their own behaviour. |
+| `name` | string | yes | - | not empty | The name the players see. |
+| `rating` | integer | yes | - | 0..1000 | The Rating the bonus adds to the company's rating (for the Tool Kit, per kit). |
+| `affects` | string |  | - | `singleDieOrSingleResult` | What a re-roll may re-roll: singleDieOrSingleResult. Informational. |
+| `appliesIn` | list of string |  | - | `setup`, `game`, `aftermath`, `scenarioChoice` | When the bonus acts: setup, game, aftermath or scenarioChoice. A practice match refuses the bonuses that only pay in the aftermath. |
+| `carriesOver` | boolean |  | - | - | true: the bonus lasts beyond the match. Informational. |
+| `count` | integer |  | - | 1..20 | How many re-rolls the bonus gives (reroll). |
+| `expires` | string |  | - | `endOfMatchAftermath`, `endOfMatch` | When the bonus ends. Informational. |
+| `gains` | [ATOGains](#atogains) |  | - | - | What the bonus adds after the match. |
+| `grants` | [ATOGrant](#atogrant) |  | - | - | What a structured bonus gives. |
+| `kits` | list of [ATOKit](#atokit) |  | - | - | The kits of the Tool Kit bonus. |
+| `purchase` | [ATOPurchase](#atopurchase) |  | - | - | How many kits may be bought (Tool Kit). |
+| `temporary` | boolean |  | - | - | true: the bonus lasts for one match (wanderer). Informational. |
+| `text` | string |  | - | - | The rule in words. |
+| `usableIn` | list of string |  | - | `game`, `warsAftermath` | Where a re-roll may be used: game or warsAftermath. Informational. |
+
+### ATOGains
+
+The rewards a bonus adds after the match.
+
+Found at: `campaign.againstTheOdds.bonuses[].gains`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `experiencePerModel` | [ATOReward](#atoreward) |  | - | - | Experience added for every model of the company, by result. |
+| `influence` | [ATOReward](#atoreward) |  | - | - | Influence added for the company, by result. |
+
+### ATOGrant
+
+What a structured bonus gives: loaned equipment (Tool Kit), a temporary model (Wanderer) or the choice of the scenario (Ambush!). The app reads these bonuses by their key; these keys state the rules in data for the reader of the file and are not read.
+
+Found at: `campaign.againstTheOdds.bonuses[].grants`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `addsRating` | boolean |  | - | - | true: the loaned items add to the Rating. |
+| `assignAt` | string |  | - | `beforeSetup` | When the items are handed out: beforeSetup. |
+| `assignTo` | string |  | - | `anyModelOfTheMatch` | Who gets them: anyModelOfTheMatch. |
+| `carriesOver` | boolean |  | - | - | true: the grant lasts beyond the match. |
+| `chosenBy` | string |  | - | `lowerRatedCompany` | Who chooses the scenario: lowerRatedCompany. |
+| `count` | integer |  | - | 1..20 | How many models the grant adds. |
+| `countsTowardsBreakPoint` | boolean |  | - | - | true: the temporary model counts for the Break Point. |
+| `countsTowardsMaxModels` | boolean |  | - | - | true: the temporary model counts towards the company's size. |
+| `duration` | string |  | - | `thisMatch` | How long the choice holds: thisMatch. |
+| `exclusiveWithPermanentWanderer` | boolean |  | - | - | true: a company with a permanent Wanderer cannot take it. |
+| `expires` | string |  | - | `endOfMatchAftermath`, `endOfMatch` | When the grant ends. |
+| `from` | string |  | - | not empty | Where the choice comes from (data.wanderers.items, scenarios). |
+| `gainsExperience` | boolean |  | - | - | true: the temporary model earns Experience. |
+| `goldCost` | integer |  | - | 0..1000 | The Gold it costs. |
+| `ignores` | list of string |  | - | `capacity`, `alignment` | The rules the loaned items ignore: capacity, alignment. |
+| `influenceCost` | integer |  | - | 0..1000 | The Influence it costs. |
+| `kind` | string |  | - | `loanedEquipment`, `temporaryModel`, `chooseScenario` | loanedEquipment, temporaryModel or chooseScenario. |
+| `oncePerKit` | boolean |  | - | - | true: one of each kit. |
+| `persistsAfterMatch` | boolean |  | - | - | true: the model stays after the match. |
+| `ratingCost` | string |  | - | `bonusRating` | bonusRating: it costs the bonus's rating. |
+| `replaces` | string |  | - | `scenarioTableRoll` | What the choice replaces: scenarioTableRoll. |
+| `rolesBy` | string |  | - | `scenarioRules` | How the roles are given: scenarioRules. |
+| `rollsInjuries` | boolean |  | - | - | true: the temporary model rolls on the injury chart. |
+| `rules` | string |  | - | - | The rules of the temporary model in words. |
+| `stillApplies` | list of string |  | - | `heroOnly` | The restrictions that still apply: heroOnly. |
+| `takesRosterSlot` | boolean |  | - | - | true: the temporary model takes a place of the roster. |
+| `usableByTemporaryWanderer` | boolean |  | - | - | true: the temporary Wanderer may use the items. |
+
+### ATOKit
+
+A kit of the Tool Kit bonus: the items it lends.
+
+Found at: `campaign.againstTheOdds.bonuses[].kits[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `name` | string | yes | - | not empty | The name of the kit; the app makes the key of the kit from its first word (Healer's Kit is healer). Unique. |
+| `items` | list of [ATOKitItem](#atokititem) | yes | - | at least 1 items | The items the kit lends. |
+
+### ATOKitItem
+
+An item of a kit and how many copies the kit holds.
+
+Found at: `campaign.againstTheOdds.bonuses[].kits[].items[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `equipment` | string | yes | - | not empty | The name of an equipment item of the file; a name with (X) asks the player for the weapon it is on. |
+| `count` | integer |  | - | 1..20 | How many copies the kit holds; default 1. |
+
+### ATOPurchase
+
+How many kits the Tool Kit bonus may be bought for.
+
+Found at: `campaign.againstTheOdds.bonuses[].purchase`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `chooses` | string |  | - | `oneKit` | oneKit: each purchase is one kit. |
+| `distinctKits` | boolean |  | - | - | true: a kit may be bought once. Informational; the app always refuses a kit twice. |
+| `maxPurchases` | integer |  | - | 1..20 | The most kits that may be bought. |
+| `ratingPerKit` | boolean |  | - | - | true: every kit costs the bonus's rating. Informational; the Tool Kit always does. |
+
+### ATOBudget
+
+The rule that the sum of the Ratings of the chosen bonuses may not take the lower company above its opponent's Rating.
+
+Found at: `campaign.againstTheOdds.budget`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `inclusive` | boolean |  | - | - | true: the bonuses may take the lower company exactly up to its opponent's Rating ("must not exceed"); false: they must leave it below. |
+| `rule` | string |  | - | `ratingAfterBonusesNotAboveOpponent` | ratingAfterBonusesNotAboveOpponent. Informational. |
+| `text` | string |  | - | - | The rule in words. |
+
+### ATOEligible
+
+Who may choose bonuses: the company with the strictly lower Rating, compared before the bonuses.
+
+Found at: `campaign.againstTheOdds.eligible`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `company` | string |  | - | `lowerRating` | lowerRating: the company that chooses. Informational. |
+| `compare` | string |  | - | `strictlyLower` | strictlyLower: at equal Ratings nobody chooses. Informational. |
+| `ratingBeforeBonuses` | boolean |  | - | - | true: the comparison is made before the bonuses. Informational. |
+| `text` | string |  | - | - | The rule in words. |
+
+### CharacteristicLimits
+
+The ceilings of the characteristics: which ones improve downwards, the highest each one goes, the average profile the hero rating starts from, and the cap on the total improvement of Courage and Intelligence.
+
+Found at: `campaign.characteristicLimits`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `average` | map of integer |  | - | - | The average value of each characteristic of a profile ({attack: 1, courage: 7 ...}); the base the hero rating counts points above. A characteristic that is absent is not counted. |
+| `increases` | [CharacteristicIncrease](#characteristicincrease) |  | - | - | Limits on the improvements a hero adds up. |
+| `lowerIsBetter` | list of string |  | - | `movement`, `fight`, `shoot`, `strength`, `defence`, `attack`, `wounds`, `courage`, `intelligence`, `might`, `will`, `fate` | The characteristics where a lower number is better (Shoot, Courage, Intelligence): an improvement lowers them and best, not max, is their limit. |
+| `peak` | [PeakLimits](#peaklimits) |  | - | - | The highest each characteristic goes, whatever the path. |
+
+### CharacteristicIncrease
+
+Limits on the improvements a hero adds up.
+
+Found at: `campaign.characteristicLimits.increases`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `courageIntelligenceTotalCap` | [TotalCap](#totalcap) |  | - | - | The cap on the total improvement of Courage and Intelligence. |
+
+### TotalCap
+
+The most Courage and Intelligence may be improved in total from the unmodified profile.
+
+Found at: `campaign.characteristicLimits.increases.courageIntelligenceTotalCap`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `value` | integer | yes | - | 1..10 | The most points, 1..10, Courage and Intelligence may be improved in total. |
+| `includesGear` | boolean |  | - | - | true: the improvement from gear counts in the total. |
+
+### PeakLimits
+
+The overall limit of each characteristic (one key per characteristic, only those that have one), and the Will maximum some paths have of their own.
+
+Found at: `campaign.characteristicLimits.peak`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `attack` | [StatLimit](#statlimit) |  | - | - | The limit of Attacks. |
+| `courage` | [StatLimit](#statlimit) |  | - | - | The limit of Courage. |
+| `defence` | [StatLimit](#statlimit) |  | - | - | The limit of Defence. |
+| `fate` | [StatLimit](#statlimit) |  | - | - | The limit of Fate. |
+| `fight` | [StatLimit](#statlimit) |  | - | - | The limit of Fight. |
+| `intelligence` | [StatLimit](#statlimit) |  | - | - | The limit of Intelligence. |
+| `might` | [StatLimit](#statlimit) |  | - | - | The limit of Might. |
+| `movement` | [StatLimit](#statlimit) |  | - | - | The limit of Movement. |
+| `shoot` | [StatLimit](#statlimit) |  | - | - | The limit of Shoot. |
+| `strength` | [StatLimit](#statlimit) |  | - | - | The limit of Strength. |
+| `will` | [StatLimit](#statlimit) |  | - | - | The limit of Will. |
+| `willMaxOverrides` | map of integer |  | - | - | The Will maximum a path has of its own, by path name (1..10); it replaces the peak's Will maximum for heroes of that path. |
+| `wounds` | [StatLimit](#statlimit) |  | - | - | The limit of Wounds. |
+
+### StatLimit
+
+How far one characteristic may be improved. A key that is absent sets no limit of that kind. The same shape is used by the overall peak and by a path's maximums.
+
+Found at: `campaign.characteristicLimits.peak.attack`, `campaign.characteristicLimits.peak.courage`, `campaign.characteristicLimits.peak.defence`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `best` | integer |  | - | 1..20 | The best (lowest) value of a characteristic where lower is better. |
+| `max` | integer |  | - | 1..20 | The highest value of a characteristic where higher is better. |
+| `maxIncrease` | integer |  | - | 0..20 | The most points level-ups may add to the profile (without gear). |
+
+### MatchInput
+
+What the players enter per match, described for the people who read the file. The app builds its match forms from its own tables (the experience gains, the scenarios, Against the Odds) and does not read this description.
+
+Found at: `campaign.matchInput`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `aftermath` | [MatchAftermath](#matchaftermath) |  | - | - | How the aftermath is applied. |
+| `gold` | [MatchGold](#matchgold) |  | - | - | What the rulebook says about Gold in a scenario. |
+| `perCompany` | list of [InputField](#inputfield) |  | - | - | What is entered for each company. |
+| `perModel` | list of [InputField](#inputfield) |  | - | - | What is entered for each model. |
+| `result` | [MatchResult](#matchresult) |  | - | - | How the winner is decided. |
+| `text` | string |  | - | - | What the players enter, in words. |
+
+### MatchAftermath
+
+The order in which the War's Aftermath is applied.
+
+Found at: `campaign.matchInput.aftermath`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `order` | list of string |  | - | `injuries`, `experience`, `progression`, `influence` | The steps of the aftermath, in order: injuries, experience, progression, influence. |
+| `rewards` | string |  | - | - | Where the scenario rewards come from and when they apply. |
+
+### MatchGold
+
+What the rulebook says about Gold in a scenario.
+
+Found at: `campaign.matchInput.gold`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `scenarioRewards` | boolean |  | - | - | true: scenarios reward Gold. |
+| `text` | string |  | - | - | The rule in words. |
+
+### InputField
+
+One thing the players enter, per company or per model.
+
+Found at: `campaign.matchInput.perCompany[]`, `campaign.matchInput.perModel[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `key` | string | yes | - | not empty | The key of the field; unique in its list. |
+| `computed` | boolean |  | - | - | true: the app works it out; nobody enters it. |
+| `computedFrom` | string |  | - | - | What it is worked out from. |
+| `declaredBy` | string |  | - | `opponent` | opponent: the other player says. |
+| `default` | any |  | - | - | The starting value: true or false for a flag, a number for a count, the chosen word for an enum. Open data. |
+| `experience` | string |  | - | - | The key of the experience gain (campaign.experience.gains) it records. |
+| `feeds` | list of string |  | - | `influence`, `experience`, `rerolls`, `rewards`, `itemUse`, `breakPoint`, `injuries` | What the field feeds: influence, experience, rerolls, rewards, itemUse, breakPoint, injuries. |
+| `from` | string |  | - | - | Where the entries come from. |
+| `inferred` | list of string |  | - | - | What follows from the field, for the reader of the file. |
+| `maxPerCompany` | integer |  | - | 1..20 | The most models of one company that can have it. |
+| `min` | integer |  | - | 0..100 | The lowest number that can be entered. |
+| `optional` | boolean |  | - | - | true: the field may stay empty. |
+| `options` | any |  | - | - | The words to choose from, as a list, or the path of the table they come from. Open data. |
+| `text` | string |  | - | - | What the players enter, in words. |
+| `type` | string |  | - | `enum`, `multiSelect`, `select`, `integer`, `count`, `flag`, `flags`, `scoringObjectives` | How it is entered: enum or select (one of the options), multiSelect (several), integer, count, flag (yes or no), flags, scoringObjectives. |
+| `when` | string |  | - | - | When the field is asked for. |
+| `who` | string |  | - | - | Who it concerns. |
+
+### MatchResult
+
+How the winner of a match is decided.
+
+Found at: `campaign.matchInput.result`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `decidedBy` | string |  | - | `victoryPoints` | victoryPoints: the company with the most Victory Points wins. |
+| `outcomes` | list of string |  | - | `win`, `draw`, `loss` | The results a match can have: win, draw, loss. |
+| `tie` | string |  | - | `draw` | What equal Victory Points are: draw. |
+
+### CampaignOption
+
+A setting the file offers the organiser of a campaign: a rule variant (scope rules) or how the app behaves (scope app). The app switches the options it knows by key and lists any other as unsupported.
+
+Found at: `campaign.options[]`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `key` | string | yes | - | not empty | The key of the option; unique. The keys the app knows are heroesDropProfileGear, customOnTheirOwnPath, shakeTheTable and manualRolls. |
+| `scope` | string | yes | - | `rules`, `app` | rules: a rule variant that changes the game; app: how the app behaves. |
+| `label` | string | yes | - | not empty | The name the campaign form shows. |
+| `default` | boolean |  | - | - | true: the option is on in a new campaign. |
+| `description` | string |  | - | - | A sentence shown under the label. |
+| `implemented` | boolean or null |  | - | - | false: the file lists the option but the app cannot switch it on. Absent means implemented, if the app knows the key. |
+| `swaps` | [OptionSwap](#optionswap) |  | - | - | For an option that puts one path in the place of another. |
+
+### OptionSwap
+
+The path an option puts in the place of another path (a house rule that swaps one path for another).
+
+Found at: `campaign.options[].swaps`.
+
+| Key | Type | Required | Default | Allowed | Description |
+|---|---|---|---|---|---|
+| `path` | string | yes | - | not empty | The path used instead. |
+| `replaces` | string | yes | - | not empty | The path (or rule) it replaces. |
 
 ### ArmourUpgrade
 
@@ -874,17 +1475,6 @@ Found at: `companies[].notes[]`.
 | `section` | string | yes | - | `startingCompany`, `reinforcements`, `specialChart`, `advancements`, `eliteCompany` | The section of the page: startingCompany, reinforcements, specialChart, advancements or eliteCompany. |
 | `text` | string | yes | - | not empty | The note. |
 | `about` | list of string |  | - | - | The units it is about. |
-
-### Oath
-
-The oath the player swears when taking command of the company.
-
-Found at: `companies[].oath`.
-
-| Key | Type | Required | Default | Allowed | Description |
-|---|---|---|---|---|---|
-| `text` | string |  | - | - | The oath. {name} stands exactly once, not at the start or the end, where the company's name goes. |
-| `vow` | string |  | - | - | The label of the button the player presses (1 to 40 characters). |
 
 ### OwnPath
 
@@ -1340,7 +1930,7 @@ Found at: `paths[]`.
 | `kind` | string |  | `"heroic"` | `heroic`, `custom`, `endOfPath` | heroic (default): offered to heroes. custom: the homebrew path an option hands out, hidden. endOfPath: no table, only rule. |
 | `limit` | integer |  | - | 0..99 | The most heroes of a company that may take the path (the Sorcerer: 1). |
 | `mastery` | string |  | - | - | The name of the Mastery rule. |
-| `maximums` | any |  | - | - | The ceilings per characteristic, as {stat: {max, maxIncrease, best}} with numbers: max is the highest value the stat may reach, maxIncrease the most points level-ups may add to the profile, best the best (lowest) value of a stat where lower is better, such as 3 for Courage 3+. Not typed. |
+| `maximums` | map of [StatLimit](#statlimit) |  | - | - | The ceilings per characteristic, as {stat: {max, maxIncrease, best}}: max is the highest value the stat may reach, maxIncrease the most points level-ups may add to the profile, best the best (lowest) value of a stat where lower is better, such as 3 for Courage 3+. They apply together with the overall peak. |
 | `note` | string |  | - | - | A note for the people who read the file; the app may show it next to the entry. |
 | `rows` | list of [PathRow](#pathrow) |  | - | - | The table, one row per roll. |
 | `rule` | string |  | - | - | The rule of an endOfPath path (At Path's End). |

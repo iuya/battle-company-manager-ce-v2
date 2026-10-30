@@ -134,6 +134,8 @@ served with the same `?v=` on the fonts and images it loads. Text files are gzip
 script goes into that list, not into the layout). Pages and fragments over 1 KB are gzipped for browsers that accept it (`compress.go`; the
 live stream is not).
 
+**Loading rules** (measured in [performance.md](performance.md), "Frontend pass at v2.0.0"): the heading font is preloaded in the layout under the stylesheet's own `{{static}}` address; an address that only redirects (the My Company and Armory tabs without a company) answers a boosted click with the page and `HX-Push-Url` instead (`boostedLink`), keeping the redirect for whole-page requests and history restores; a window that is closed on load fetches its body when first wanted (the To Wound chart: `tw-load`, triggered by `towound.js` from the pointer, touch, focus or click) rather than with `hx-trigger="load"`; a list of forms hidden until a click is a `<template x-if>` whose root calls `htmx.process($el)` in `x-init`; a page that Alpine filters at start is drawn in its default filtered state by CSS first (no layout shift when Alpine starts).
+
 **Alpine** is used for state that never needs the server: menus, show/hide password, enabling a button as you type,
 the theme store. Keep it to that.
 
