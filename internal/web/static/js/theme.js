@@ -1,14 +1,20 @@
-// Theme state (palette, light/dark/system mode, heading font) shared by every Alpine component through $store.theme.
-// The <html> attributes are first set by the inline script in the layout's <head>, before the first paint (no flash);
-// this store takes over once Alpine starts. The choice lives in localStorage ("bcm-theme"), per browser.
-// Appearance state (palette + light/dark/system mode) shared by every Alpine component through $store.theme.
-// It is kept in a cookie ("bcm-theme", value "<palette>.<mode>") so the server can read it too: once there are
-// accounts it will be stored in the database for logged-in users and this cookie only covers anonymous visitors.
-// The <html> attributes are first set by the inline script in the layout's <head>, before the first paint (no flash);
-// this store takes over once Alpine starts.
+// Appearance state shared by every Alpine component through $store.theme: the palette and the light/dark/system mode (cookie
+// "bcm-theme", value "<palette>.<mode>", and the account's choice when signed in), and the per-browser choices of high contrast,
+// the gear style and the aura chips (cookies bcm-contrast, bcm-gear, bcm-auras). The <html> attributes are first set by
+// theme-init.js before the first paint (no flash); this store takes over once Alpine starts.
 document.addEventListener("alpine:init", () => {
   const COOKIE = "bcm-theme";
   const dark = matchMedia("(prefers-color-scheme: dark)");
+  const root = document.documentElement;
+  // writeCookie keeps a choice in this browser for a year.
+  const writeCookie = (name, value) => {
+    document.cookie = `${name}=${value}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
+  };
+  // setFlag sets the data attribute of <html> that the CSS follows, or removes it when off.
+  const setFlag = (key, on, value) => {
+    if (on) root.dataset[key] = value;
+    else delete root.dataset[key];
+  };
   const readCookie = () => {
     const m = document.cookie.match(new RegExp("(?:^|; )" + COOKIE + "=([^;]*)"));
     const [palette, mode] = m ? decodeURIComponent(m[1]).split(".") : [];
@@ -33,11 +39,11 @@ document.addEventListener("alpine:init", () => {
     highContrast: false, // the high-contrast variant of the palette; per browser (cookie bcm-contrast), else the OS's prefers-contrast
 
     init() {
-      this.highContrast = document.documentElement.dataset.contrast === "high";
-      this.auras = document.documentElement.dataset.showAuras === "on";
-      this.gear = document.documentElement.dataset.gear === "tiles" ? "tiles" : "chips";
+      this.highContrast = root.dataset.contrast === "high";
+      this.auras = root.dataset.showAuras === "on";
+      this.gear = root.dataset.gear === "tiles" ? "tiles" : "chips";
       // signed in: the account's choice (data-pref, "<palette>.<mode>") wins over this browser's cookie
-      const pref = (document.documentElement.dataset.pref || "").split(".");
+      const pref = (root.dataset.pref || "").split(".");
       const saved = pref[0] ? { palette: pref[0], mode: pref[1] } : readCookie();
       if (this.palettes.some((p) => p.key === saved.palette)) this.palette = saved.palette;
       if (this.modes.includes(saved.mode)) this.mode = saved.mode;
@@ -46,32 +52,28 @@ document.addEventListener("alpine:init", () => {
     },
     set(key, value) {
       this[key] = value;
-      document.cookie = `${COOKIE}=${this.palette}.${this.mode}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
+      writeCookie(COOKIE, `${this.palette}.${this.mode}`);
       this.apply();
       this.save();
     },
     setAuras(on) {
       this.auras = !!on;
-      document.cookie = `bcm-auras=${this.auras ? 1 : 0}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
-      if (this.auras) document.documentElement.dataset.showAuras = "on";
-      else delete document.documentElement.dataset.showAuras;
+      writeCookie("bcm-auras", this.auras ? 1 : 0);
+      setFlag("showAuras", this.auras, "on");
     },
     setContrast(on) {
       this.highContrast = !!on;
-      document.cookie = `bcm-contrast=${this.highContrast ? "high" : "normal"}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
-      if (this.highContrast) document.documentElement.dataset.contrast = "high";
-      else delete document.documentElement.dataset.contrast;
+      writeCookie("bcm-contrast", this.highContrast ? "high" : "normal");
+      setFlag("contrast", this.highContrast, "high");
       this.apply();
     },
     setGear(g) {
       this.gear = g === "tiles" ? "tiles" : "chips";
-      document.cookie = `bcm-gear=${this.gear}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
-      if (this.gear === "tiles") document.documentElement.dataset.gear = "tiles";
-      else delete document.documentElement.dataset.gear;
+      writeCookie("bcm-gear", this.gear);
+      setFlag("gear", this.gear === "tiles", "tiles");
     },
     // Signed in: keep the choice in the account too. A failure is silent; the cookie keeps working.
     save() {
-      const root = document.documentElement;
       if (!root.dataset.auth) return;
       root.dataset.pref = `${this.palette}.${this.mode}`;
       fetch("/account/appearance", { method: "PUT", credentials: "same-origin", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ palette: this.palette, mode: this.mode }) }).catch(() => {});
@@ -80,7 +82,6 @@ document.addEventListener("alpine:init", () => {
       return this.mode === "system" ? (dark.matches ? "dark" : "light") : this.mode;
     },
     apply() {
-      const root = document.documentElement;
       root.dataset.palette = this.palette;
       root.dataset.mode = this.resolvedMode;
       const meta = document.querySelector('meta[name="theme-color"]');
