@@ -126,6 +126,122 @@ w('company_typed',doc(rules=[{"name":"Foresight of the Seer","definition":"The h
    "granted":[{"rule":"Fearless","who":{"hero":True,"text":"All Hero models"},"cost":0,"text":"All Hero models gain Fearless."}],
    "elvenWeaponry":{"units":["Ranger of Arnor"],"hero":True},
    "specialRules":["A sentence with no typed form."]}]))
+
+# ---- the injuries tables, typed (rows, effects, treatment) ----
+def injuries_full():
+    return {"roll":"2d6","applies":"Every model removed as a casualty rolls on the chart for its type.","deathOfAHero":"If your Leader is slain ...",
+     "healing":{"hero":"Spend 1 Influence ...","warrior":"Spend 1 Influence to remove the Injured condition."},
+     "warrior":copy.deepcopy(CAMPAIGN["injuries"]["warrior"]),
+     "hero":[
+      {"roll":2,"key":"dead","name":"Dead","text":"The adventure ends here.","effects":["remove"]},
+      {"roll":3,"key":"armWound","name":"Arm Wound","effects":["noShield","noTwoHandedWeapon","noPike","noBow"],"persistent":True,"retireAtCount":2,"healable":True,
+       "disables":[{"kind":"gearClass","classes":["shield","two_handed"]},{"kind":"gearItem","names":["Pike"]}]},
+      {"roll":4,"key":"legWound","name":"Leg Wound","effects":["reduceMovement"],"persistent":True,"retireAtCount":2,"healable":True,"stat":{"movement":-1},
+       "statChanges":[{"stat":"movement","amount":-1,"per":"count","minimum":None}]},
+      {"roll":5,"key":"brokenHonour","name":"Broken Honour","effects":["noStandFast","noHeroicActionsOnCompany"],"persistent":True,"retireAtCount":3,"healable":True,
+       "disables":[{"kind":"ability","key":"standFast"},{"kind":"ability","key":"heroicActionsOnCompany"}],"grantsAtCount":{"2":{"specialRule":"Fearful"}}},
+      {"roll":6,"key":"justAScratch","name":"T'is Just a Scratch","effects":["missNextGame"],"healable":True,"healableBy":["attempt"],"optionalReroll":True,
+       "reroll":{"dice":"2d6","optional":True,"secondResultStands":True,"ifScratchAgainMissNextGame":True}},
+      {"roll":"7-10","key":"fullRecovery","name":"Full Recovery","effects":["fullRecovery","healOneInjury"],"heals":{"choice":"player","count":1,"keys":["armWound","legWound","brokenHonour"]}},
+      {"roll":11,"key":"protection","name":"Protection by the Valar","effects":["fullRecovery"],"stat":{"fate":1},"stat_note":"to the Path's Maximum",
+       "statChanges":[{"stat":"fate","amount":1,"permanent":True,"capAtPathMaximum":True,"raisesPathMaximum":False}]},
+      {"roll":12,"key":"woundsOfAHero","name":"Wounds of a Hero","effects":["fullRecovery"],"grantsInfluence":{"dice":"d6"},"influence":"D6"}],
+     "retirement":{"text":"A hero that would suffer ...","result":"dead"},
+     "rollModifier":{"text":"A modifier is added to the total.","appliesTo":"total2d6","clamp":[2,12],"includesRerolls":True,"replacedBy":"campaign.aftermathEffects[kind=injuryRollReplacement]"},
+     "treatment":{"currency":"influence","phase":"companyManagement",
+      "hero":[{"key":"attempt","cost":1,"text":"Spend 1 Influence and roll a D6.","healable":["armWound","legWound","brokenHonour","justAScratch"],"maxAttempts":None,"removesInjuries":1,
+               "onFailure":{"costKept":True,"effect":"none"},
+               "roll":{"dice":"d6","compare":"gte","target":5,"naturalMaxIsAlwaysEnough":False,
+                       "modifier":{"currency":"influence","direction":"up","perPoint":1,"ceiling":6,"maxPoints":None,"like":"Might point"}}},
+              {"key":"healers","cost":1,"roll":None,"text":"Send the Hero to the healers.","healable":["armWound","legWound","brokenHonour"],"missNextGame":True,"removesInjuries":1}],
+      "warrior":{"key":"treatWarrior","roll":None,"text":"Remove the Injured condition.","cost":1,"removes":"injured","requires":"injured"},
+      "removalEffect":{"choice":"player","countDelta":-1,"derivedEffects":"recomputeFromCounts"}}}
+def with_injuries(inj):
+    d=doc(); d["campaign"]["injuries"]=inj; return d
+w('injuries',with_injuries(injuries_full()))
+
+# ---- Against the Odds, typed ----
+def ato_full():
+    return {"text":"The Battle Company with the lower rating may select bonuses.",
+     "bonuses":[
+      {"name":"Influence","key":"influence","text":"+2 Influence for Victory, +1 for Draw or Defeat.","appliesIn":["aftermath"],"gains":{"influence":{"other":1,"win":2}},"rating":15},
+      {"name":"Experience","key":"experience","text":"+2 Experience per model.","appliesIn":["aftermath"],"gains":{"experiencePerModel":{"other":1,"win":2}},"rating":30},
+      {"name":"Reroll","key":"reroll","text":"Two rerolls.","affects":"singleDieOrSingleResult","appliesIn":["game","aftermath"],"carriesOver":False,"count":2,"expires":"endOfMatchAftermath","rating":15,"usableIn":["game","warsAftermath"]},
+      {"name":"Tool Kit","key":"toolKit","text":"One of each Kit.","appliesIn":["setup","game","aftermath"],
+       "grants":{"kind":"loanedEquipment","addsRating":False,"assignAt":"beforeSetup","assignTo":"anyModelOfTheMatch","carriesOver":False,"expires":"endOfMatchAftermath","ignores":["capacity","alignment"],"oncePerKit":True,"stillApplies":["heroOnly"],"usableByTemporaryWanderer":False},
+       "kits":[{"name":"Healer's Kit","items":[{"count":5,"equipment":"Wondrous Cram"},{"count":2,"equipment":"Healing Herbs"}]}],
+       "purchase":{"chooses":"oneKit","distinctKits":True,"maxPurchases":5,"ratingPerKit":True},"rating":30},
+      {"name":"Wanderer","key":"wanderer","text":"A temporary Wanderer.","appliesIn":["setup","game"],
+       "grants":{"kind":"temporaryModel","count":1,"countsTowardsBreakPoint":True,"countsTowardsMaxModels":False,"exclusiveWithPermanentWanderer":True,"expires":"endOfMatch","from":"data.wanderers.items","gainsExperience":False,"goldCost":0,"influenceCost":0,"persistsAfterMatch":False,"ratingCost":"bonusRating","rollsInjuries":False,"rules":"No Stand Fast.","takesRosterSlot":False},
+       "rating":45,"temporary":True},
+      {"name":"Ambush!","key":"ambush","text":"You choose the scenario.","appliesIn":["scenarioChoice"],
+       "grants":{"kind":"chooseScenario","chosenBy":"lowerRatedCompany","duration":"thisMatch","from":"scenarios","replaces":"scenarioTableRoll","rolesBy":"scenarioRules"},"rating":60}],
+     "budget":{"text":"The sum may not exceed.","inclusive":True,"rule":"ratingAfterBonusesNotAboveOpponent"},
+     "eligible":{"text":"Only the lower company chooses.","company":"lowerRating","compare":"strictlyLower","ratingBeforeBonuses":True},
+     "selectedAt":"afterScenarioRollBeforeSetup"}
+def with_ato(a):
+    d=doc(); d["campaign"]["againstTheOdds"]=a; return d
+w('against_the_odds',with_ato(ato_full()))
+
+# ---- the hero rating table, typed ----
+d=doc(); d["campaign"]["rating"]={"hero":{"maxMinorSpecialRuleRating":10,"perMinorSpecialRule":5,"perSpecialRule":5,
+  "perPoint":[{"stat":"might","rating":5},{"stat":"fight","rating":5},{"stat":"attack","rating":10},{"stat":"wounds","rating":10}],
+  "wargear":{"threshold":{"stats":["attack","wounds"],"sumAtLeast":3},"text":"Paid at the hero rating."}}}
+w('rating',d)
+
+# ---- the Break Point exceptions, typed ----
+d=doc(); d["campaign"]["breakPoint"]["scenarioExceptions"]=[
+  {"text":"Models standing on the hill never take Courage tests for being Broken.","effect":"noCourageTest","rule":"Defend the Hill","scenario":"Hold the Line","who":"modelsOnTheHill"},
+  {"effect":"yetToArriveCountAsOnTheBattlefield","scenarioSetting":"Maelstrom of Battle","who":"ownModelsNotArrived"}]
+d["campaign"]["breakPoint"]["whenBroken"]["courageTest"]["passIf"]="totalAtLeastCourage"
+w('break_exceptions',d)
+
+# ---- the aftermath effects, typed ----
+d=doc(); d["campaign"]["aftermathEffects"]=[
+  {"key":"rerollBonus","kind":"rerolls","text":"Two re-rolls.","count":2,"source":"campaign.againstTheOdds.bonuses[key=reroll]","usableIn":["game","warsAftermath"],"who":"lowerRatedCompany"},
+  {"key":"influenceBonus","kind":"influence","text":"+2 Influence for a Victory.","gains":{"other":1,"win":2},"who":"lowerRatedCompany"},
+  {"key":"healingHerbs","kind":"injuryRollModifier","text":"+1 to every Injury roll.","activatedBy":{"carrier":"hero","fledModelIs":"notCasualty","requires":["participated","notCasualty"]},
+   "applies":"eachInjuryRoll","choice":"player","clamp":[2,12],"consumes":"oneItem","includesHeroReroll":True,"modifier":1,"stackable":False,"usesPerAftermath":1,"when":"beforeInjuryRolls","who":"allCompanyModels"},
+  {"key":"wondrousCram","kind":"injuryRollReplacement","text":"Counts as Full Recovery.","activatedBy":{"carrier":"anyModel","requires":["participated","casualty"]},"choice":"player","consumes":"thisItem","includesHealOneInjury":True,"noRoll":True,"result":"fullRecovery","when":"beforeInjuryRolls","who":"carrier"},
+  {"key":"rendezvous","kind":"reinforcementRollModifier","text":"+1 / -1.","range":[-1,1],"rolls":1,"scenario":"Chance Encounter","when":"firstReinforcementRollThisAftermath","who":"victor"},
+  {"key":"toTheVictorTheSpoils","kind":"freeEquipment","text":"A free item.","maxInfluenceValue":2,"scenario":"Rescue","who":"companyThatScoresAllObjectives"},
+  {"key":"survivalOfTheFittest","kind":"experience","text":"One more Experience.","amount":1,"scenario":"Rescue","to":"leader","who":"eachCompanyWhoseLeaderSurvives"},
+  {"key":"vantagePoint","kind":"scenarioTableModifier","text":"+1 / -1.","die":"second","range":[-1,1],"scenario":"Seize Ground","when":"nextScenarioTableRoll","who":"victor"},
+  {"key":"aFinalBlessing","kind":"magicalPower","text":"The Relic bearer gains the power.","ignoresWill":True,"power":"Fortify Spirit","scenario":"Hold the Line","when":"nextGame","who":"modelInPossessionOfRelic"}]
+w('aftermath_effects',d)
+
+# ---- the characteristic limits, typed ----
+LIMITS={"lowerIsBetter":["shoot","courage","intelligence"],
+  "average":{"attack":1,"courage":7,"defence":3,"fight":4,"intelligence":7,"movement":6,"shoot":4,"strength":3,"wounds":1},
+  "increases":{"courageIntelligenceTotalCap":{"includesGear":True,"value":3}},
+  "peak":{"attack":{"max":3},"courage":{"best":3},"defence":{"maxIncrease":1},"fate":{"max":3},"fight":{"max":9},"intelligence":{"best":3},"might":{"max":3},"movement":{"maxIncrease":2},
+          "shoot":{"best":2},"strength":{"maxIncrease":1},"will":{"max":3},"wounds":{"max":3},"willMaxOverrides":{"Path of the Tactician":6}}}
+d=doc(paths=[{"name":"Path of the Tactician","dice":"2d6","maximums":{"fight":{"maxIncrease":3},"shoot":{"best":3}},
+  "rows":[{"roll":r,"options":[{"stat":"fight"}]} for r in range(2,13)]}])
+d["campaign"]["characteristicLimits"]=copy.deepcopy(LIMITS)
+w('limits',d)
+
+# ---- options, oaths, match input and gold, typed ----
+def tables_full():
+    return {"options":[
+      {"key":"heroesDropProfileGear","label":"Heroes may discard any wargear","description":"Heroes may drop wargear that is part of their profile.","default":False,"implemented":True,"scope":"rules"},
+      {"key":"customOnTheirOwnPath","label":"Path of Their Own Making (homebrew)","description":"Units on their own path level up on a homebrew path.","default":False,"implemented":True,"scope":"rules",
+       "swaps":{"path":"Path of Their Own Making","replaces":"On Their Own Path"}},
+      {"key":"shakeTheTable","label":"Shake the table","default":False,"implemented":True,"scope":"app"}],
+     "oaths":{"good":{"vow":"I solemnly vow","text":"Today I take command of this company, {name}."},"evil":{"text":"I take command of {name}."}},
+     "matchInput":{"text":"Per match the players enter ...","aftermath":{"order":["injuries","experience","progression","influence"],"rewards":"campaign.aftermathEffects[]"},
+       "gold":{"text":"No scenario rewards Gold.","scenarioRewards":False},
+       "perCompany":[{"key":"role","text":"Attacker or Defender.","options":["attacker","defender"],"type":"enum","when":"scenario.roles"},
+                     {"key":"victoryPoints","text":"The total scored.","computedFrom":"scenario.scoringObjectives","feeds":["influence"],"min":0,"type":"integer"},
+                     {"key":"fledBroken","text":"All is Lost.","default":False,"feeds":["influence"],"type":"flag"}],
+       "perModel":[{"key":"outcome","text":"What happened.","default":"survived","feeds":["injuries"],"options":["survived","casualty","fled"],"type":"enum"},
+                   {"key":"mvp","text":"MVP","declaredBy":"opponent","default":False,"experience":"mvp","feeds":["experience"],"inferred":["maxPerCompany"],"maxPerCompany":1,"type":"flag"}],
+       "result":{"decidedBy":"victoryPoints","outcomes":["win","draw","loss"],"tie":"draw"}},
+     "gold":{"sources":[{"key":"startingCompany"}],"carryOver":True}}
+d=doc()
+t=tables_full()
+d["campaign"]["options"]=t["options"]; d["campaign"]["matchInput"]=t["matchInput"]; d["campaign"]["gold"]=t["gold"]; d["campaign"]["company"]["oaths"]=t["oaths"]
+w('options_oaths',d)
 print(sorted(os.listdir(out)))
 
 # ---- invalid catalogue (bind level) ----
@@ -204,7 +320,88 @@ wi('path_rows',doc(paths=[{"name":"Path of Test","dice":"2d6","rows":[{"roll":2,
                            {"name":"Path of Dice","dice":"d6","rows":[{"roll":"1-3","options":[{"stat":"fight"}]}]}]))
 d=doc(); d['campaign']['scenarioSelection']={"die":"d6","tables":[{"roll":[1,2],"scenarios":["Seize Ground"]},{"roll":[3,5],"scenarios":["Seize Ground","Rescue","Hold the Line","Chance Encounter","Rescue","Seize Ground"]},{"roll":[5,6],"scenarios":[]}]}; wi('scenario_tables',d)
 d=doc(); d['campaign']['progression']['hero']['choose']=3; d['campaign']['progression']['hero']['rollsPerProgression']=2; d['campaign']['company']['leaders']=3; d['campaign']['company']['sergeants']=6; d['campaign']['company']['maxModels']=5; wi('param_cross',d)
-d=doc(); d['campaign']['recruitment']['die']="2d6"; d['campaign']['aftermathEffects']=[{"key":"rendezvous"},{"key":"vantagePoint","range":[1,-1]}]; d['campaign']['progression']['warrior']['table'][0]['key']="noChang"; wi('param_dice',d)
+d=doc(); d['campaign']['recruitment']['die']="2d6"; d['campaign']['aftermathEffects']=[{"key":"rendezvous","kind":"reinforcementRollModifier"},{"key":"vantagePoint","kind":"scenarioTableModifier","range":[1,-1]}]; d['campaign']['progression']['warrior']['table'][0]['key']="noChang"; wi('param_dice',d)
+
+
+# ---- the injuries tables, typed ----
+def bad_injuries(edit):
+    inj=injuries_full(); edit(inj); return with_injuries(inj)
+def rows_edit(inj):
+    h=inj["hero"]
+    h[0]["effects"]=["remove","vanish"]                      # effect code
+    h[1]["retireAtCount"]=0; h[1]["disables"]=[{"kind":"gearClass"},{"kind":"gearItem"},{"kind":"ability"}]
+    h[2]["stat"]={"speed":-1,"fight":40}; h[2]["statChanges"][0]["amount"]=-30
+    h[3]["grantsAtCount"]={"two":{"specialRule":"Fearful"},"0":{"specialRule":"Fearful"}}; h[3]["disables"][0]["key"]="stand"
+    h[5]["heals"]={"choice":"opponent","count":0,"keys":["armWound","armWund"]}
+    h[4]["reroll"]={"optional":True}; h[4]["healableBy"]=[]
+    h[6]["colour"]="red"
+wi('injury_rows',bad_injuries(rows_edit))
+def treat_edit(inj):
+    t=inj["treatment"]; a=t["hero"][0]
+    a["roll"]["target"]=7; a["roll"]["modifier"]["ceiling"]=4; a["healable"]=["armWound","legWund"]
+    t["hero"][1]["key"]="attempt"; t["hero"][1]["cost"]=-1
+    t["hero"].append({"key":"prayer","cost":1}); t["hero"][2]["roll"]={"dice":"d6","target":3,"modifier":{"direction":"down"}}
+    t["warrior"]["cost"]=50; t["warrior"]["removes"]="dead"; t["removalEffect"]["countDelta"]=1
+wi('injury_treatment',bad_injuries(treat_edit))
+
+
+def bad_ato(edit):
+    a=ato_full(); edit(a); return with_ato(a)
+def ato_edit(a):
+    b=a["bonuses"]
+    b[0]["appliesIn"]=["aftermath","later"]; b[0]["gains"]["influence"]={"win":50}
+    del b[1]["rating"]; b[1]["key"]="influence"
+    b[2]["count"]=0; b[2]["expires"]="never"
+    b[3]["kits"].append({"name":"Healer's Kit","items":[{"equipment":""}]}); b[3]["purchase"]["maxPurchases"]=0
+    b[4]["grants"]["kind"]="permanentModel"; b[4]["grants"]["colour"]="red"
+    a["budget"]["rule"]="anything"; a["eligible"]["compare"]="lower"; a["selectedAt"]="whenever"
+wi('odds_bonuses',bad_ato(ato_edit))
+
+
+d=doc(); d["campaign"]["rating"]={"hero":{"maxMinorSpecialRuleRating":-1,"perMinorSpecialRule":500,"perSpecialRule":"five","perSpurious":1,
+  "perPoint":[{"stat":"might","rating":5},{"stat":"speed","rating":5},{"stat":"might","rating":6},{"stat":"fate"}],
+  "wargear":{"threshold":{"stats":["attack","wounds"],"sumAtLeast":3}}}}
+wi('rating_table',d)
+
+
+d=doc(); d["campaign"]["breakPoint"]["scenarioExceptions"]=[
+  {"text":"x","scenario":"Hold the Lyne","effect":"noCourageTest"},
+  {"text":"x","scenario":"Rescue","scenarioSetting":"Maelstrom of Battle"},
+  {"text":"x"},{"scenario":"Rescue","effect":"noCourageTest"},
+  {"text":"x","scenario":"rescue","effect":"vanish","who":"everyone","colour":"red"}]
+d["campaign"]["breakPoint"]["whenBroken"]["courageTest"]["passIf"]="always"; d["campaign"]["breakPoint"]["default"]["of"]="allModels"
+wi('break_exceptions',d)
+
+
+d=doc(); d["campaign"]["aftermathEffects"]=[
+  {"key":"a"},{"key":"b","kind":"bonus"},{"key":"b","kind":"influence","amount":500},
+  {"key":"c","kind":"injuryRollReplacement"},{"key":"d","kind":"injuryRollReplacement","result":"fullRecovry"},
+  {"key":"e","kind":"experience","scenario":"Rescu","when":"later","to":"sergeant","colour":"red","activatedBy":{"carrier":"everyone","requires":["alive"]},"modifier":40,"clamp":[2]},
+  {"key":"f","kind":"freeEquipment","gains":{"win":1}}]
+d["campaign"]["progression"]["xp"]=1; d["campaign"]["progression"]["warrior"]["timing"]="x"
+d["campaign"]["scenarioSelection"]["text"]="x"; d["campaign"]["progression"]["warrior"]["table"][0]["extra"]=True
+wi('aftermath_effects',d)
+
+
+d=doc(paths=[{"name":"Path of the Tactician","dice":"2d6","maximums":{"luck":{"max":3},"fight":{"maxIncrease":-1,"most":2}},
+  "rows":[{"roll":r,"options":[{"stat":"fight"}]} for r in range(2,13)]}])
+lim=copy.deepcopy(LIMITS)
+lim["lowerIsBetter"]=["shoot","luck"]; lim["average"]={"attack":1,"speed":6,"fight":40}
+lim["peak"]["luck"]={"max":3}; lim["peak"]["fight"]={"max":0}; lim["peak"]["will"]={"max":3,"best":30}
+lim["peak"]["willMaxOverrides"]={"Path of the Tactician":11,"Path of the Tactitian":6}
+lim["increases"]["courageIntelligenceTotalCap"]={"value":0}; lim["increases"]["strength"]=1
+d["campaign"]["characteristicLimits"]=lim
+wi('limits_table',d)
+
+
+d=doc(); t=tables_full()
+t["options"]=[{"key":"a","scope":"table","label":""},{"key":"a","label":"Again","scope":"app","default":"yes","swaps":{"path":"X"}},{"scope":"app"},{"key":"c","label":"C","scope":"rules","implemented":"no","colour":"red"}]
+t["oaths"]={"good":{"vow":"I vow"},"neutral":{"text":"x"}}
+t["matchInput"]["aftermath"]["order"]=["injuries","healing"]; t["matchInput"]["result"]={"decidedBy":"dice","outcomes":["win","tie"],"tie":"win"}
+t["matchInput"]["perCompany"][0]["type"]="dropdown"; t["matchInput"]["perCompany"][1]["key"]="role"; t["matchInput"]["perCompany"][2]["feeds"]=["luck"]
+t["matchInput"]["perModel"][1]["experience"]="mpv"; t["matchInput"]["perModel"][1]["declaredBy"]="referee"; t["matchInput"]["perModel"][0]["colour"]="red"; del t["matchInput"]["perModel"][0]["key"]
+d["campaign"]["options"]=t["options"]; d["campaign"]["matchInput"]=t["matchInput"]; d["campaign"]["company"]["oaths"]=t["oaths"]
+wi('options_tables',d)
 
 # ---- header and version ----
 d=doc(); d['schemaVersion']=1; wi('version',d)

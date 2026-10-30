@@ -1,0 +1,12 @@
+battle_companies.json: campaign.breakPoint.default.of: "allModels" is not a valid of; known: startingModels
+battle_companies.json: campaign.breakPoint.whenBroken.courageTest.passIf: "always" is not a valid passIf; known: totalAtLeastCourage
+battle_companies.json: campaign.breakPoint.scenarioExceptions[4].effect: "vanish" is not a valid effect; known: noCourageTest, autoPassCourage, notCountedForBreakPoint, yetToArriveCountAsOnTheBattlefield
+battle_companies.json: campaign.breakPoint.scenarioExceptions[4].who: "everyone" is not a valid who; known: modelsOnTheHill, defenderWithin6OfTheGate, defenderBaggagePonies, neutralModels, ownModelsNotArrived
+battle_companies.json: campaign.breakPoint.scenarioExceptions[4].colour: unknown field
+  hint: known fields: effect, rule, scenario, scenarioSetting, text, who
+battle_companies.json: campaign.breakPoint.scenarioExceptions[0].scenario: no scenario "Hold the Lyne" in scenarios[]; closest: "Hold the Line"
+  hint: define it in scenarios[]
+battle_companies.json: campaign.breakPoint.scenarioExceptions[4].scenario: "rescue" is not spelled as the scenario is; write "Rescue"
+battle_companies.json: campaign.breakPoint.scenarioExceptions[1].scenarioSetting: an exception names a scenario or a scenario setting, not both
+battle_companies.json: campaign.breakPoint.scenarioExceptions[2].scenario: missing; an exception names a scenario or a scenarioSetting
+battle_companies.json: campaign.breakPoint.scenarioExceptions[3].text: missing; an exception needs a text, or an effect and a who to word it from

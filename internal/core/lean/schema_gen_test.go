@@ -127,6 +127,22 @@ func tagNum(sf reflect.StructField, key string) (any, bool) {
 // null there and nowhere else. The binder also ignores null on any other optional key; the schema is stricter on purpose, a null
 // that means nothing is a mistake the curator should see.
 func typeSchema(t reflect.Type, sf reflect.StructField, defs map[reflect.Type]bool) map[string]any {
+	if sf.Tag.Get("nullable") != "true" {
+		return typeSchemaOf(t, sf, defs)
+	}
+	// nullable:"true": the shipped file writes an explicit null for "none" (a treatment without a roll, no limit on the attempts)
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	out := typeSchemaOf(t, sf, defs)
+	if _, ref := out["$ref"]; ref {
+		return map[string]any{"anyOf": []any{out, map[string]any{"type": "null"}}}
+	}
+	out["type"] = []any{out["type"], "null"}
+	return out
+}
+
+func typeSchemaOf(t reflect.Type, sf reflect.StructField, defs map[reflect.Type]bool) map[string]any {
 	nullable := false
 	for t.Kind() == reflect.Pointer {
 		t = t.Elem()

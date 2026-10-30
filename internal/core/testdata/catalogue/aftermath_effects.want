@@ -1,0 +1,25 @@
+battle_companies.json: campaign.progression.warrior.table[0].extra: unknown field
+  hint: known fields: key, name, roll, text
+battle_companies.json: campaign.progression.warrior.timing: unknown field
+  hint: known fields: noPromotion, roll, table
+battle_companies.json: campaign.progression.xp: unknown field
+  hint: known fields: hero, threshold, warrior
+battle_companies.json: campaign.scenarioSelection.text: unknown field
+  hint: known fields: die, tables
+battle_companies.json: campaign.aftermathEffects[0].kind: missing
+battle_companies.json: campaign.aftermathEffects[1].kind: "bonus" is not a valid kind; known: rerolls, influence, experiencePerModel, injuryRollModifier, injuryRollReplacement, reinforcementRollModifier, freeEquipment, experience, scenarioTableModifier, magicalPower
+battle_companies.json: campaign.aftermathEffects[2].amount: 500 is out of range 0..100
+battle_companies.json: campaign.aftermathEffects[5].to: "sergeant" is not a valid to; known: leader
+battle_companies.json: campaign.aftermathEffects[5].when: "later" is not a valid when; known: beforeInjuryRolls, firstReinforcementRollThisAftermath, nextScenarioTableRoll, nextGame
+battle_companies.json: campaign.aftermathEffects[5].activatedBy.carrier: "everyone" is not a valid carrier; known: hero, anyModel
+battle_companies.json: campaign.aftermathEffects[5].activatedBy.requires[0]: "alive" is not a valid condition; known: participated, casualty, notCasualty
+battle_companies.json: campaign.aftermathEffects[5].clamp: needs exactly 2 items, has 1
+battle_companies.json: campaign.aftermathEffects[5].modifier: 40 is out of range -12..12
+battle_companies.json: campaign.aftermathEffects[5].colour: unknown field
+  hint: known fields: activatedBy, amount, applies, choice, clamp, consumes, count, die, gains, ignoresWill, includesHealOneInjury, includesHeroReroll, key, kind, maxInfluenceValue, modifier, noRoll, power, range, result, rolls, scenario, source, stackable, text, to, usableIn, usesPerAftermath, when, who
+battle_companies.json: campaign.aftermathEffects[6].gains.other: missing
+battle_companies.json: campaign.aftermathEffects[5].scenario: no scenario "Rescu" in scenarios[]; closest: "Rescue"
+  hint: define it in scenarios[]
+battle_companies.json: campaign.aftermathEffects[2].key: "b" is already used at campaign.aftermathEffects[1]
+battle_companies.json: campaign.aftermathEffects[3].result: missing; a replacement says which injury result the model counts as having rolled
+battle_companies.json: campaign.aftermathEffects[4].result: "fullRecovry" is not the key of an injury result

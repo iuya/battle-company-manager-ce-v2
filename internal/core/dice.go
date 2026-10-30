@@ -136,11 +136,3 @@ func sumOf(dice []int) int {
 	}
 	return n
 }
-
-// diceAt is ParseDiceAt for a key the file must carry: an empty string is "missing".
-func diceAt(path, s string) (DiceSpec, error) {
-	if s == "" {
-		return DiceSpec{}, fmt.Errorf("%s is missing", path)
-	}
-	return ParseDiceAt(path, s)
-}

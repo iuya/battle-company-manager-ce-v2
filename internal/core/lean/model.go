@@ -10,11 +10,11 @@
 //	min:"n" max:"n"   inclusive range of an int or a float; for a string or a list the length
 //	rest:"true"       on a map[string]any field: keys the struct does not name are kept there instead of being errors
 //
-// A field of type Free (any) is accepted as is: the section is read by a later slice, which types it. Types that implement Binder
+// A field of type Free (any) is accepted as is: it is open data (prose or JSON), or a section outside the campaign tables that is still read in its original shape; the description of the field says which. Types that implement Binder
 // (DiceSpec, Roll, Rating, RuleRef, Scalar) read polymorphic values.
 package lean
 
-// Free is a value the format does not type yet (its shape is whatever its reader needs).
+// Free is an open value: any JSON, kept as it is.
 type Free = any
 
 // Document is the whole Battle Companies file: the header and the sections.
@@ -617,23 +617,23 @@ type Power struct {
 
 // Path is a heroic path.
 type Path struct {
-	Name         string    `json:"name" required:"true" min:"1"`
-	ID           string    `json:"id,omitempty"`
-	Aka          []string  `json:"aka,omitempty"`
-	Kind         string    `json:"kind,omitempty" enum:"heroic|custom|endOfPath"` // default heroic
-	Extends      string    `json:"extends,omitempty"`
-	Dice         DiceSpec  `json:"dice,omitempty"` // default campaign.progression.hero.roll
-	Description  string    `json:"description,omitempty"`
-	Maximums     Free      `json:"maximums,omitempty"`
-	Mastery      string    `json:"mastery,omitempty"`
-	HeroicAction *string   `json:"heroicAction,omitempty"`
-	Signature    []string  `json:"signature,omitempty"`
-	Spells       []string  `json:"spells,omitempty"`
-	Rows         []PathRow `json:"rows,omitempty"`
-	Limit        int       `json:"limit,omitempty" min:"0" max:"99"`
-	Note         string    `json:"note,omitempty"`
-	Start        *HeroGain `json:"start,omitempty"` // Might, Will and Fate a unit starts on the path with, when it is not the usual heroStart (the homebrew path)
-	Rule         string    `json:"rule,omitempty"`  // the rule of a path that is the end of the road (kind endOfPath): At Path's End
+	Name         string               `json:"name" required:"true" min:"1"`
+	ID           string               `json:"id,omitempty"`
+	Aka          []string             `json:"aka,omitempty"`
+	Kind         string               `json:"kind,omitempty" enum:"heroic|custom|endOfPath"` // default heroic
+	Extends      string               `json:"extends,omitempty"`
+	Dice         DiceSpec             `json:"dice,omitempty"` // default campaign.progression.hero.roll
+	Description  string               `json:"description,omitempty"`
+	Maximums     map[string]StatLimit `json:"maximums,omitempty"`
+	Mastery      string               `json:"mastery,omitempty"`
+	HeroicAction *string              `json:"heroicAction,omitempty"`
+	Signature    []string             `json:"signature,omitempty"`
+	Spells       []string             `json:"spells,omitempty"`
+	Rows         []PathRow            `json:"rows,omitempty"`
+	Limit        int                  `json:"limit,omitempty" min:"0" max:"99"`
+	Note         string               `json:"note,omitempty"`
+	Start        *HeroGain            `json:"start,omitempty"` // Might, Will and Fate a unit starts on the path with, when it is not the usual heroStart (the homebrew path)
+	Rule         string               `json:"rule,omitempty"`  // the rule of a path that is the end of the road (kind endOfPath): At Path's End
 }
 
 // PathRow is the result of one roll on a path; Text is derived when absent.

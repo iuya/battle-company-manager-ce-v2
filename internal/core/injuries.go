@@ -1,9 +1,10 @@
 package core
 
 import (
-	"encoding/json"
-	"fmt"
 	"slices"
+	"strconv"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 // InjuryDef is a hero injury of the Battle Companies injury chart, as the rules file describes its effects. Only the
@@ -93,64 +94,12 @@ type TreatResult struct {
 	Summary string
 }
 
-// readInjuries reads the injury chart and the treatments of the campaign section of a lean document (lean.Encode of the Campaign).
-func readInjuries(campaign []byte) (InjuryRules, error) {
-	type change struct {
-		Stat   string `json:"stat"`
-		Amount int    `json:"amount"`
-		Per    string `json:"per"`
-	}
-	type disable struct {
-		Kind    string   `json:"kind"`
-		Classes []string `json:"classes"`
-		Names   []string `json:"names"`
-		Key     string   `json:"key"`
-	}
-	type method struct {
-		Key          string   `json:"key"`
-		Cost         int      `json:"cost"`
-		Healable     []string `json:"healable"`
-		MissNextGame bool     `json:"missNextGame"`
-		Text         string   `json:"text"`
-		Roll         *struct {
-			Dice     string `json:"dice"`
-			Target   int    `json:"target"`
-			Modifier struct {
-				PerPoint int `json:"perPoint"`
-				Ceiling  int `json:"ceiling"`
-			} `json:"modifier"`
-		} `json:"roll"`
-	}
-	var doc struct {
-		Injuries struct {
-			Hero []struct {
-				Key         string    `json:"key"`
-				Name        string    `json:"name"`
-				Text        string    `json:"text"`
-				Persistent  bool      `json:"persistent"`
-				RetireAt    int       `json:"retireAtCount"`
-				StatChanges []change  `json:"statChanges"`
-				Disables    []disable `json:"disables"`
-				GrantsAt    map[string]struct {
-					SpecialRule string `json:"specialRule"`
-				} `json:"grantsAtCount"`
-				HealableBy []string `json:"healableBy"`
-			} `json:"hero"`
-			Treatment struct {
-				Warrior struct {
-					Cost int `json:"cost"`
-				} `json:"warrior"`
-				Hero []method `json:"hero"`
-			} `json:"treatment"`
-		} `json:"injuries"`
-	}
-	if err := json.Unmarshal(campaign, &doc); err != nil {
-		return InjuryRules{}, err
-	}
-	inj := doc.Injuries
+// readInjuries reads the injury chart and the treatments of the campaign section of a lean document. The document is validated
+// (lean.Decode): the treatment rolls are checked against their dice there.
+func readInjuries(inj lean.Injuries) InjuryRules {
 	rules := InjuryRules{WarriorCost: inj.Treatment.Warrior.Cost}
 	for _, h := range inj.Hero {
-		d := InjuryDef{Key: h.Key, Name: h.Name, Text: h.Text, Persistent: h.Persistent, RetireAt: h.RetireAt, HealableBy: h.HealableBy,
+		d := InjuryDef{Key: h.Key, Name: h.Name, Text: h.Text, Persistent: h.Persistent, RetireAt: h.RetireAtCount, HealableBy: h.HealableBy,
 			StatPerCount: map[string]int{}, GrantsAt: map[int]string{}}
 		for _, c := range h.StatChanges {
 			if c.Per == "count" {
@@ -169,9 +118,8 @@ func readInjuries(campaign []byte) (InjuryRules, error) {
 				d.DisableAbilities = append(d.DisableAbilities, x.Key)
 			}
 		}
-		for n, g := range h.GrantsAt {
-			var count int
-			if _, err := fmt.Sscan(n, &count); err == nil && g.SpecialRule != "" {
+		for n, g := range h.GrantsAtCount {
+			if count, err := strconv.Atoi(n); err == nil {
 				d.GrantsAt[count] = g.SpecialRule
 			}
 		}
@@ -179,23 +127,8 @@ func readInjuries(campaign []byte) (InjuryRules, error) {
 	}
 	for _, m := range inj.Treatment.Hero {
 		tm := TreatMethod{Key: m.Key, Cost: m.Cost, Healable: m.Healable, MissNextGame: m.MissNextGame, Text: m.Text}
-		if m.Roll != nil {
-			tm.Target, tm.PerPoint, tm.Ceiling = m.Roll.Target, m.Roll.Modifier.PerPoint, m.Roll.Modifier.Ceiling
-			path := "campaign.injuries.treatment.hero[" + m.Key + "].roll"
-			if m.Roll.Dice == "" {
-				return InjuryRules{}, fmt.Errorf("%s.dice is missing", path)
-			}
-			spec, err := ParseDiceAt(path+".dice", m.Roll.Dice)
-			if err != nil {
-				return InjuryRules{}, err
-			}
-			tm.TreatDice = spec
-			switch {
-			case tm.Target < 1 || tm.Target > spec.Max():
-				return InjuryRules{}, fmt.Errorf("%s.target: %d is outside 1..%d, the highest roll of %s", path, tm.Target, spec.Max(), spec)
-			case tm.Ceiling > 0 && tm.Ceiling < tm.Target:
-				return InjuryRules{}, fmt.Errorf("%s.modifier.ceiling: %d is below the target %d", path, tm.Ceiling, tm.Target)
-			}
+		if r := m.Roll; r != nil {
+			tm.Target, tm.PerPoint, tm.Ceiling, tm.TreatDice = r.Target, r.Modifier.PerPoint, r.Modifier.Ceiling, r.Dice
 		}
 		switch m.Key {
 		case "attempt":
@@ -204,7 +137,7 @@ func readInjuries(campaign []byte) (InjuryRules, error) {
 			rules.Healers = tm
 		}
 	}
-	return rules, nil
+	return rules
 }
 
 // ApplyInjuries is what a hero's injury counts do to it: its stats change, gear and rules are lost or granted. It returns the

@@ -242,12 +242,244 @@ func (v *validator) parameters(c *Campaign) {
 			v.rep.Errorf(p, "[%d,%d]: low is above high", e.Range[0], e.Range[1])
 		}
 	}
+	v.injuryParameters(&c.Injuries)
+	v.oddsParameters(&c.AgainstTheOdds)
+	v.ratingParameters(&c.Rating)
+	v.breakParameters(&c.BreakPoint)
+	v.aftermathParameters(c)
+	v.limitParameters(&c.CharacteristicLimits)
+	v.optionParameters(c)
 	seen := map[string]int{}
 	for i, g := range c.Experience.Gains {
 		if first, dup := seen[g.Key]; dup {
 			v.rep.Errorf(Join(Idx("campaign.experience.gains", i), "key"), "%q is already used at campaign.experience.gains[%d]", g.Key, first)
 		} else {
 			seen[g.Key] = i
+		}
+	}
+}
+
+// injuryParameters checks what the types of the injuries tables cannot: the stat keys of a row, the counts of grantsAtCount, what a disable
+// needs for its kind, the injury keys a treatment or a healing result names and the treatment rolls against their dice.
+func (v *validator) injuryParameters(inj *Injuries) {
+	heroKeys := map[string]bool{}
+	for _, r := range inj.Hero {
+		heroKeys[r.Key] = true
+	}
+	known := strings.Split(Characteristics, "|")
+	for _, chart := range []struct {
+		name string
+		rows []InjuryRow
+	}{{"warrior", inj.Warrior}, {"hero", inj.Hero}} {
+		for i, r := range chart.rows {
+			rp := Idx("campaign.injuries."+chart.name, i)
+			for _, stat := range SortedKeys(r.Stat) {
+				p := Join(Join(rp, "stat"), stat)
+				if !inWords(stat, known...) {
+					v.rep.Add(Issue{Path: p, Message: fmt.Sprintf("%q is not a characteristic; known: %s", stat, strings.Join(known, ", ")), Closest: Closest(known, stat)})
+				} else if n := r.Stat[stat]; n < -20 || n > 20 {
+					v.rep.Errorf(p, "%d is out of range -20..20", n)
+				}
+			}
+			for _, count := range SortedKeys(r.GrantsAtCount) {
+				if n, err := strconv.Atoi(count); err != nil || n < 1 || n > 20 {
+					v.rep.Errorf(Join(Join(rp, "grantsAtCount"), count), "%q is not a count; write a whole number 1..20", count)
+				}
+			}
+			for j, d := range r.Disables {
+				dp := Idx(Join(rp, "disables"), j)
+				switch {
+				case d.Kind == "gearClass" && len(d.Classes) == 0:
+					v.rep.Errorf(Join(dp, "classes"), "missing; a gearClass entry lists the classes it disables")
+				case d.Kind == "gearItem" && len(d.Names) == 0:
+					v.rep.Errorf(Join(dp, "names"), "missing; a gearItem entry lists the items it disables")
+				case d.Kind == "ability" && d.Key == "":
+					v.rep.Errorf(Join(dp, "key"), "missing; an ability entry names the ability it takes away (%s)", strings.ReplaceAll(InjuryAbilities, "|", ", "))
+				}
+			}
+			if r.Heals != nil {
+				for j, k := range r.Heals.Keys {
+					if !heroKeys[k] {
+						v.rep.Errorf(Idx(Join(Join(rp, "heals"), "keys"), j), "%q is not the key of a hero injury", k)
+					}
+				}
+			}
+		}
+	}
+	t := &inj.Treatment
+	seen := map[string]bool{}
+	for i, m := range t.Hero {
+		mp := Idx("campaign.injuries.treatment.hero", i)
+		if seen[m.Key] {
+			v.rep.Errorf(Join(mp, "key"), "%q is already used by another treatment", m.Key)
+		}
+		seen[m.Key] = true
+		for j, k := range m.Healable {
+			if !heroKeys[k] {
+				v.rep.Errorf(Idx(Join(mp, "healable"), j), "%q is not the key of a hero injury", k)
+			}
+		}
+		v.treatRoll(m.Roll, Join(mp, "roll"))
+	}
+	v.treatRoll(t.Warrior.Roll, "campaign.injuries.treatment.warrior.roll")
+}
+
+// treatRoll checks a treatment roll against its own dice: the target is a total the dice can reach and the ceiling is not below it.
+func (v *validator) treatRoll(r *TreatRoll, path string) {
+	if r == nil || !r.Dice.Valid() {
+		return
+	}
+	if r.Target < 1 || r.Target > r.Dice.Max() {
+		v.rep.Errorf(Join(path, "target"), "%d is outside 1..%d, the highest roll of %s", r.Target, r.Dice.Max(), r.Dice)
+	} else if c := r.Modifier.Ceiling; c > 0 && c < r.Target {
+		v.rep.Errorf(Join(Join(path, "modifier"), "ceiling"), "%d is below the target %d", c, r.Target)
+	}
+}
+
+// oddsParameters checks that the bonuses and the kits of Against the Odds are named once each.
+func (v *validator) oddsParameters(a *AgainstTheOdds) {
+	keys := map[string]int{}
+	for i, b := range a.Bonuses {
+		bp := Idx("campaign.againstTheOdds.bonuses", i)
+		if first, dup := keys[b.Key]; dup {
+			v.rep.Errorf(Join(bp, "key"), "%q is already used at campaign.againstTheOdds.bonuses[%d]", b.Key, first)
+		} else {
+			keys[b.Key] = i
+		}
+		kits := map[string]int{}
+		for j, k := range b.Kits {
+			if first, dup := kits[k.Name]; dup {
+				v.rep.Errorf(Join(Idx(Join(bp, "kits"), j), "name"), "%q is already used at %s", k.Name, Join(Idx(Join(bp, "kits"), first), "name"))
+			} else {
+				kits[k.Name] = j
+			}
+		}
+	}
+}
+
+// ratingParameters checks that a characteristic is rated once.
+func (v *validator) ratingParameters(r *RatingRules) {
+	seen := map[string]int{}
+	for i, p := range r.Hero.PerPoint {
+		if first, dup := seen[p.Stat]; dup {
+			v.rep.Errorf(Join(Idx("campaign.rating.hero.perPoint", i), "stat"), "%q is already rated at campaign.rating.hero.perPoint[%d]", p.Stat, first)
+		} else {
+			seen[p.Stat] = i
+		}
+	}
+}
+
+// breakParameters checks the scenario exceptions of the Break Point: each names a scenario or a scenario setting, and says what it does in
+// its text or in its effect and who.
+func (v *validator) breakParameters(b *BreakPoint) {
+	for i, e := range b.ScenarioExceptions {
+		p := Idx("campaign.breakPoint.scenarioExceptions", i)
+		switch {
+		case e.Scenario != "" && e.ScenarioSetting != "":
+			v.rep.Errorf(Join(p, "scenarioSetting"), "an exception names a scenario or a scenario setting, not both")
+		case e.Scenario == "" && e.ScenarioSetting == "":
+			v.rep.Errorf(Join(p, "scenario"), "missing; an exception names a scenario or a scenarioSetting")
+		}
+		if e.Text == "" && (e.Effect == "" || e.Who == "") {
+			v.rep.Errorf(Join(p, "text"), "missing; an exception needs a text, or an effect and a who to word it from")
+		}
+	}
+}
+
+// aftermathParameters checks the effects of the War's Aftermath: a key is defined once, and a replacement says which chart result it counts as.
+func (v *validator) aftermathParameters(c *Campaign) {
+	chart := map[string]bool{}
+	for _, rows := range [][]InjuryRow{c.Injuries.Warrior, c.Injuries.Hero} {
+		for _, r := range rows {
+			chart[r.Key] = true
+		}
+	}
+	seen := map[string]int{}
+	for i, e := range c.AftermathEffects {
+		p := Idx("campaign.aftermathEffects", i)
+		if first, dup := seen[e.Key]; dup {
+			v.rep.Errorf(Join(p, "key"), "%q is already used at campaign.aftermathEffects[%d]", e.Key, first)
+		} else {
+			seen[e.Key] = i
+		}
+		switch {
+		case e.Kind == "injuryRollReplacement" && e.Result == "":
+			v.rep.Errorf(Join(p, "result"), "missing; a replacement says which injury result the model counts as having rolled")
+		case e.Result != "" && len(chart) > 0 && !chart[e.Result]:
+			v.rep.Errorf(Join(p, "result"), "%q is not the key of an injury result", e.Result)
+		}
+	}
+}
+
+// limitParameters checks the keys of the characteristic limits that are maps (a characteristic, a path) and their ranges.
+func (v *validator) limitParameters(l *CharacteristicLimits) {
+	known := strings.Split(Characteristics, "|")
+	stat := func(path, key string) bool {
+		if inWords(key, known...) {
+			return true
+		}
+		v.rep.Add(Issue{Path: path, Message: fmt.Sprintf("%q is not a characteristic; known: %s", key, strings.Join(known, ", ")), Closest: Closest(known, key)})
+		return false
+	}
+	for _, key := range SortedKeys(l.Average) {
+		p := Join("campaign.characteristicLimits.average", key)
+		if stat(p, key) && (l.Average[key] < 0 || l.Average[key] > 30) {
+			v.rep.Errorf(p, "%d is out of range 0..30", l.Average[key])
+		}
+	}
+	paths := map[string]bool{}
+	var names []string
+	for _, p := range v.doc.Paths {
+		paths[p.Name] = true
+		names = append(names, p.Name)
+	}
+	for _, name := range SortedKeys(l.Peak.WillMaxOverrides) {
+		p := Join("campaign.characteristicLimits.peak.willMaxOverrides", name)
+		switch n := l.Peak.WillMaxOverrides[name]; {
+		case !paths[name]:
+			v.rep.Add(Issue{Path: p, Message: fmt.Sprintf("%q is not a path of paths[]", name), Closest: Closest(names, name)})
+		case n < 1 || n > 10:
+			v.rep.Errorf(p, "%d is out of range 1..10", n)
+		}
+	}
+	for i := range v.doc.Paths {
+		for _, key := range SortedKeys(v.doc.Paths[i].Maximums) {
+			stat(Join(Join(Idx("paths", i), "maximums"), key), key)
+		}
+	}
+}
+
+// optionParameters checks that the options and the match input fields are named once each, and that a field points at an experience gain that exists.
+func (v *validator) optionParameters(c *Campaign) {
+	seen := map[string]int{}
+	for i, o := range c.Options {
+		if first, dup := seen[o.Key]; dup {
+			v.rep.Errorf(Join(Idx("campaign.options", i), "key"), "%q is already used at campaign.options[%d]", o.Key, first)
+		} else {
+			seen[o.Key] = i
+		}
+	}
+	gains := map[string]bool{}
+	var keys []string
+	for _, g := range c.Experience.Gains {
+		gains[g.Key] = true
+		keys = append(keys, g.Key)
+	}
+	for _, list := range []struct {
+		name   string
+		fields []InputField
+	}{{"perCompany", c.MatchInput.PerCompany}, {"perModel", c.MatchInput.PerModel}} {
+		seenKey := map[string]int{}
+		for i, f := range list.fields {
+			p := Idx(Join("campaign.matchInput", list.name), i)
+			if first, dup := seenKey[f.Key]; dup {
+				v.rep.Errorf(Join(p, "key"), "%q is already used at %s[%d]", f.Key, Join("campaign.matchInput", list.name), first)
+			} else {
+				seenKey[f.Key] = i
+			}
+			if f.Experience != "" && len(gains) > 0 && !gains[f.Experience] {
+				v.rep.Add(Issue{Path: Join(p, "experience"), Message: fmt.Sprintf("%q is not the key of an experience gain", f.Experience), Closest: Closest(keys, f.Experience)})
+			}
 		}
 	}
 }

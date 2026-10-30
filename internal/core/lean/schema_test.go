@@ -110,6 +110,20 @@ func checkProp(t *testing.T, where string, sf reflect.StructField, prop map[stri
 		typ = typ.Elem()
 		nullable = typ.Kind() == reflect.String || typ.Kind() == reflect.Bool
 	}
+	if sf.Tag.Get("nullable") == "true" { // an explicit null is allowed: anyOf [$ref, null] for an object, a type list otherwise
+		if any_, ok := prop["anyOf"].([]any); ok {
+			if len(any_) != 2 || !reflect.DeepEqual(any_[1], map[string]any{"type": "null"}) {
+				t.Errorf("%s: a nullable object is anyOf [$ref, null], got %v", where, prop)
+				return
+			}
+			first, _ := any_[0].(map[string]any)
+			if first["$ref"] != "#/$defs/"+typ.Name() {
+				t.Errorf("%s: expected $ref #/$defs/%s, got %v", where, typ.Name(), first["$ref"])
+			}
+			return
+		}
+		nullable = true
+	}
 	if _, ok := polymorphic[typ]; ok {
 		if prop["$ref"] != "#/$defs/"+typ.Name() {
 			t.Errorf("%s: a %s is expected as $ref #/$defs/%s, got %v", where, typ.Name(), typ.Name(), prop)

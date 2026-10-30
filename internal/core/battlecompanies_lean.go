@@ -17,18 +17,12 @@ func LeanBook(d *lean.Document, vb *VanillaBook, gl Glossary) (*BCBook, error) {
 	var err error
 	var wargear WargearThreshold
 	b.shape, wargear, b.limitRules = LeanCompanyRules(d)
-	if b.rating, err = LeanRating(d, wargear); err != nil {
-		return nil, err
-	}
+	b.rating = LeanRating(d, wargear)
 	b.rating.heroStats = vb.HeroStats()
-	if b.breakRules, err = LeanBreakRules(d); err != nil {
-		return nil, err
-	}
+	b.breakRules = LeanBreakRules(d)
 	b.recruit = LeanRecruitRules(d)
 	b.selection = LeanScenarioSelection(d)
-	if b.injuries, err = LeanInjuries(d); err != nil {
-		return nil, err
-	}
+	b.injuries = LeanInjuries(d)
 	if b.ato, err = LeanATO(d, vb); err != nil {
 		return nil, err
 	}

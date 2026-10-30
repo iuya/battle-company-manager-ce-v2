@@ -1,0 +1,16 @@
+battle_companies.json: campaign.againstTheOdds.bonuses[0].appliesIn[1]: "later" is not a valid phase; known: setup, game, aftermath, scenarioChoice
+battle_companies.json: campaign.againstTheOdds.bonuses[0].gains.influence.win: 50 is out of range 0..20
+battle_companies.json: campaign.againstTheOdds.bonuses[0].gains.influence.other: missing
+battle_companies.json: campaign.againstTheOdds.bonuses[1].rating: missing
+battle_companies.json: campaign.againstTheOdds.bonuses[2].count: 0 is out of range 1..20
+battle_companies.json: campaign.againstTheOdds.bonuses[2].expires: "never" is not a valid expires; known: endOfMatchAftermath, endOfMatch
+battle_companies.json: campaign.againstTheOdds.bonuses[3].kits[1].items[0].equipment: must not be empty
+battle_companies.json: campaign.againstTheOdds.bonuses[3].purchase.maxPurchases: 0 is out of range 1..20
+battle_companies.json: campaign.againstTheOdds.bonuses[4].grants.kind: "permanentModel" is not a valid kind; known: loanedEquipment, temporaryModel, chooseScenario
+battle_companies.json: campaign.againstTheOdds.bonuses[4].grants.colour: unknown field
+  hint: known fields: addsRating, assignAt, assignTo, carriesOver, chosenBy, count, countsTowardsBreakPoint, countsTowardsMaxModels, duration, exclusiveWithPermanentWanderer, expires, from, gainsExperience, goldCost, ignores, influenceCost, kind, oncePerKit, persistsAfterMatch, ratingCost, replaces, rolesBy, rollsInjuries, rules, stillApplies, takesRosterSlot, usableByTemporaryWanderer
+battle_companies.json: campaign.againstTheOdds.budget.rule: "anything" is not a valid rule; known: ratingAfterBonusesNotAboveOpponent
+battle_companies.json: campaign.againstTheOdds.eligible.compare: "lower" is not a valid compare; known: strictlyLower; closest: "strictlyLower"
+battle_companies.json: campaign.againstTheOdds.selectedAt: "whenever" is not a valid selectedAt; known: afterScenarioRollBeforeSetup
+battle_companies.json: campaign.againstTheOdds.bonuses[1].key: "influence" is already used at campaign.againstTheOdds.bonuses[0]
+battle_companies.json: campaign.againstTheOdds.bonuses[3].kits[1].name: "Healer's Kit" is already used at campaign.againstTheOdds.bonuses[3].kits[0].name

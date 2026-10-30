@@ -1,0 +1,440 @@
+{
+  "schemaVersion": 2,
+  "name": "Fixture",
+  "version": "1.0",
+  "extends": "Middle-Earth Strategy Battle Game - 2024",
+  "campaign": {
+    "company": {
+      "maxModels": 15,
+      "leaders": 1,
+      "sergeants": 2,
+      "heroStart": {
+        "might": 1,
+        "will": 1,
+        "fate": 1
+      },
+      "startingInfluence": 0,
+      "equipmentSlots": {
+        "small": 1,
+        "large": 1
+      }
+    },
+    "recruitment": {
+      "die": "d6",
+      "adjust": {
+        "maxPerAttempt": 3,
+        "direction": "up",
+        "costPerPoint": 1
+      },
+      "rare": {
+        "injuredCount": true,
+        "deadCount": false,
+        "promotedCount": false
+      }
+    },
+    "influence": {
+      "gains": {
+        "participating": 2,
+        "draw": 1,
+        "win": 2
+      }
+    },
+    "progression": {
+      "threshold": 5,
+      "warrior": {
+        "roll": "d6",
+        "table": [
+          {
+            "roll": "1-2",
+            "key": "noChange",
+            "name": "No Change"
+          },
+          {
+            "roll": "3-5",
+            "key": "promoted",
+            "name": "Promoted"
+          },
+          {
+            "roll": 6,
+            "key": "heroInTheMaking",
+            "name": "A Hero in the Making"
+          }
+        ],
+        "noPromotion": {
+          "courage": 1,
+          "intelligence": 1,
+          "maximum": 3
+        }
+      },
+      "hero": {
+        "roll": "2d6",
+        "rollsPerProgression": 2,
+        "choose": 1
+      }
+    },
+    "injuries": {
+      "roll": "2d6",
+      "applies": "Every model removed as a casualty rolls on the chart for its type.",
+      "deathOfAHero": "If your Leader is slain ...",
+      "healing": {
+        "hero": "Spend 1 Influence ...",
+        "warrior": "Spend 1 Influence to remove the Injured condition."
+      },
+      "warrior": [
+        {
+          "roll": "2-3",
+          "key": "dead",
+          "name": "Dead"
+        },
+        {
+          "roll": "4-5",
+          "key": "injured",
+          "name": "Injured"
+        },
+        {
+          "roll": "6-11",
+          "key": "fullRecovery",
+          "name": "Full Recovery"
+        },
+        {
+          "roll": 12,
+          "key": "lessonLearned",
+          "name": "Lesson Learned",
+          "grantsExperience": {
+            "dice": "d3"
+          }
+        }
+      ],
+      "hero": [
+        {
+          "roll": 2,
+          "key": "dead",
+          "name": "Dead",
+          "text": "The adventure ends here.",
+          "effects": [
+            "remove"
+          ]
+        },
+        {
+          "roll": 3,
+          "key": "armWound",
+          "name": "Arm Wound",
+          "effects": [
+            "noShield",
+            "noTwoHandedWeapon",
+            "noPike",
+            "noBow"
+          ],
+          "persistent": true,
+          "retireAtCount": 2,
+          "healable": true,
+          "disables": [
+            {
+              "kind": "gearClass",
+              "classes": [
+                "shield",
+                "two_handed"
+              ]
+            },
+            {
+              "kind": "gearItem",
+              "names": [
+                "Pike"
+              ]
+            }
+          ]
+        },
+        {
+          "roll": 4,
+          "key": "legWound",
+          "name": "Leg Wound",
+          "effects": [
+            "reduceMovement"
+          ],
+          "persistent": true,
+          "retireAtCount": 2,
+          "healable": true,
+          "stat": {
+            "movement": -1
+          },
+          "statChanges": [
+            {
+              "stat": "movement",
+              "amount": -1,
+              "per": "count",
+              "minimum": null
+            }
+          ]
+        },
+        {
+          "roll": 5,
+          "key": "brokenHonour",
+          "name": "Broken Honour",
+          "effects": [
+            "noStandFast",
+            "noHeroicActionsOnCompany"
+          ],
+          "persistent": true,
+          "retireAtCount": 3,
+          "healable": true,
+          "disables": [
+            {
+              "kind": "ability",
+              "key": "standFast"
+            },
+            {
+              "kind": "ability",
+              "key": "heroicActionsOnCompany"
+            }
+          ],
+          "grantsAtCount": {
+            "2": {
+              "specialRule": "Fearful"
+            }
+          }
+        },
+        {
+          "roll": 6,
+          "key": "justAScratch",
+          "name": "T'is Just a Scratch",
+          "effects": [
+            "missNextGame"
+          ],
+          "healable": true,
+          "healableBy": [
+            "attempt"
+          ],
+          "optionalReroll": true,
+          "reroll": {
+            "dice": "2d6",
+            "optional": true,
+            "secondResultStands": true,
+            "ifScratchAgainMissNextGame": true
+          }
+        },
+        {
+          "roll": "7-10",
+          "key": "fullRecovery",
+          "name": "Full Recovery",
+          "effects": [
+            "fullRecovery",
+            "healOneInjury"
+          ],
+          "heals": {
+            "choice": "player",
+            "count": 1,
+            "keys": [
+              "armWound",
+              "legWound",
+              "brokenHonour"
+            ]
+          }
+        },
+        {
+          "roll": 11,
+          "key": "protection",
+          "name": "Protection by the Valar",
+          "effects": [
+            "fullRecovery"
+          ],
+          "stat": {
+            "fate": 1
+          },
+          "stat_note": "to the Path's Maximum",
+          "statChanges": [
+            {
+              "stat": "fate",
+              "amount": 1,
+              "permanent": true,
+              "capAtPathMaximum": true,
+              "raisesPathMaximum": false
+            }
+          ]
+        },
+        {
+          "roll": 12,
+          "key": "woundsOfAHero",
+          "name": "Wounds of a Hero",
+          "effects": [
+            "fullRecovery"
+          ],
+          "grantsInfluence": {
+            "dice": "d6"
+          },
+          "influence": "D6"
+        }
+      ],
+      "retirement": {
+        "text": "A hero that would suffer ...",
+        "result": "dead"
+      },
+      "rollModifier": {
+        "text": "A modifier is added to the total.",
+        "appliesTo": "total2d6",
+        "clamp": [
+          2,
+          12
+        ],
+        "includesRerolls": true,
+        "replacedBy": "campaign.aftermathEffects[kind=injuryRollReplacement]"
+      },
+      "treatment": {
+        "currency": "influence",
+        "phase": "companyManagement",
+        "hero": [
+          {
+            "key": "attempt",
+            "cost": 1,
+            "text": "Spend 1 Influence and roll a D6.",
+            "healable": [
+              "armWound",
+              "legWund"
+            ],
+            "maxAttempts": null,
+            "removesInjuries": 1,
+            "onFailure": {
+              "costKept": true,
+              "effect": "none"
+            },
+            "roll": {
+              "dice": "d6",
+              "compare": "gte",
+              "target": 7,
+              "naturalMaxIsAlwaysEnough": false,
+              "modifier": {
+                "currency": "influence",
+                "direction": "up",
+                "perPoint": 1,
+                "ceiling": 4,
+                "maxPoints": null,
+                "like": "Might point"
+              }
+            }
+          },
+          {
+            "key": "attempt",
+            "cost": -1,
+            "roll": null,
+            "text": "Send the Hero to the healers.",
+            "healable": [
+              "armWound",
+              "legWound",
+              "brokenHonour"
+            ],
+            "missNextGame": true,
+            "removesInjuries": 1
+          },
+          {
+            "key": "prayer",
+            "cost": 1,
+            "roll": {
+              "dice": "d6",
+              "target": 3,
+              "modifier": {
+                "direction": "down"
+              }
+            }
+          }
+        ],
+        "warrior": {
+          "key": "treatWarrior",
+          "roll": null,
+          "text": "Remove the Injured condition.",
+          "cost": 50,
+          "removes": "dead",
+          "requires": "injured"
+        },
+        "removalEffect": {
+          "choice": "player",
+          "countDelta": 1,
+          "derivedEffects": "recomputeFromCounts"
+        }
+      }
+    },
+    "experience": {
+      "gains": [
+        {
+          "key": "participated",
+          "label": "Participating in the scenario",
+          "amount": 1
+        },
+        {
+          "key": "mvp",
+          "label": "MVP",
+          "amount": 1,
+          "dice": "d3"
+        }
+      ]
+    },
+    "breakPoint": {
+      "default": {
+        "percent": 50,
+        "of": "startingModels"
+      },
+      "threshold": {
+        "comparison": "gt"
+      },
+      "whenBroken": {
+        "courageTest": {
+          "dice": "2d6"
+        }
+      }
+    },
+    "rating": {
+      "hero": {
+        "wargear": {
+          "threshold": {
+            "stats": [
+              "attack",
+              "wounds"
+            ],
+            "sumAtLeast": 3
+          }
+        }
+      }
+    },
+    "scenarioSelection": {
+      "die": "d2",
+      "tables": [
+        {
+          "roll": [
+            1,
+            1
+          ],
+          "scenarios": [
+            "Seize Ground",
+            "Chance Encounter"
+          ]
+        },
+        {
+          "roll": [
+            2,
+            2
+          ],
+          "scenarios": [
+            "Hold the Line",
+            "Rescue"
+          ]
+        }
+      ]
+    }
+  },
+  "scenarios": [
+    {
+      "name": "Seize Ground",
+      "description": "..."
+    },
+    {
+      "name": "Chance Encounter",
+      "description": "..."
+    },
+    {
+      "name": "Hold the Line",
+      "description": "..."
+    },
+    {
+      "name": "Rescue",
+      "description": "..."
+    }
+  ]
+}

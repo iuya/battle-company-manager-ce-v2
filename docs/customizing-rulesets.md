@@ -870,7 +870,7 @@ A **parameter override** is a change of one of these values. Influence cap 5 ins
 
 In your copy of the shipped file the change is a single value at a path, e.g. `campaign.recruitment.adjust.maxPerAttempt` from `3` to `5`; the test `TestParameterOverrideWorksInTheShippedFile` does exactly that to the shipped file and checks the engine reads 5. Out of range gives `campaign.recruitment.adjust.maxPerAttempt: 40 is out of range 0..20`.
 
-**What the file cannot change.** Some rules are in the engine, not in the file: the injury result keys the app switches on (`dead`, `injured`, `fullRecovery`, ...), how the lower-result rule of the charts works, that the Break Point is never rounded, how the live match applies a Courage test. The tables that carry those keys (`campaign.injuries`, `aftermathEffects`, `characteristicLimits`, `againstTheOdds`, `matchInput`) are read by the app in the shape of the shipped file: change their numbers and texts, copy their structure, and do not invent keys the engine does not know.
+**What the file cannot change.** Some rules are in the engine, not in the file: the injury result keys the app switches on (`dead`, `injured`, `fullRecovery`, ...), how the lower-result rule of the charts works, that the Break Point is never rounded, how the live match applies a Courage test. The campaign tables (injuries, Against the Odds, aftermath effects, the Break Point, characteristic limits, options, match input) are typed: every key is listed in the reference and checked, and an unknown key is an error. Do not expect a new key or a new vocabulary word to change what the engine does: it acts on the words the reference lists.
 
 ## 12. The validation loop and the error report
 
