@@ -66,6 +66,7 @@ company, sees "My company"). Page names are those of the navigation: Overview, M
 | **Handed over: Faramir organises now** | Éowyn, Faramir | `Campaigns.HandOver`: created by You, organised by Faramir; You is a player without a company | Overview as `faramir` (organiser buttons) and as `you` (none) |
 | **Faramir's campaign: a small start** | Aragorn, Pippin | a campaign organised by Faramir from the start | Overview as `faramir` |
 | **Two bands: several companies per player** | Éowyn (two companies), Galadriel (three), Gimli, Sauron | the setting `CompaniesPerPlayer` = 3 (default 1 everywhere else), and the two **practice matches** (one ended, one open with a log): see [Two bands](#two-bands) | My Company as `eowyn`, `galadriel`; Matches, the Practice filter |
+| **Veterans: heroes with long trackers and full paths** | You (Minas Tirith), Éowyn (Rohan, its Leader on the Path of the Warlord with Might, Will, Fate and Wounds at their maximum of 3) | every hero levelled up twenty times (the roll of its path chart that offers Might, Will, Fate or Wounds in turn, up to their limit of 3, then a rule, heroic action or power), in an open match of Hold the Line played live on turn 2 with some Might, Will, Fate and Wounds spent: long tracker bars with full and empty segments and crowded path boxes. Step `world_veterans.go` | My Company as `you` or `eowyn` |
 
 ### Two bands
 
