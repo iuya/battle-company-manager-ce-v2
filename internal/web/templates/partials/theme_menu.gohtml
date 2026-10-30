@@ -51,6 +51,13 @@
                   :aria-pressed="$store.theme.gear === g.key" :data-gear-option="g.key" @click="$store.theme.setGear(g.key)" x-text="g.name"></button>
         </template>
       </div>
+      {{/* A sample of a unit card's gear: inside .unit it follows html[data-gear] like the real cards. */}}
+      <ul class="unit flex flex-wrap items-center gap-1.5 bg-surface p-2" aria-hidden="true" data-gear-preview>
+        <li class="eq-chip eq-melee">{{template "eq_icon" "melee"}}<span>Sword</span></li>
+        <li class="eq-chip eq-shield">{{template "eq_icon" "shield"}}<span>Shield</span></li>
+        <li class="eq-chip eq-armour">{{template "eq_icon" "armour"}}<span>Armour</span></li>
+        <li class="eq-chip eq-bow">{{template "eq_icon" "bow"}}<span>Bow</span></li>
+      </ul>
       <p class="text-xs text-muted">Icons only keeps the names in the tooltips and the expanded card. Saved in this browser.</p>
     </div>
     <label class="flex cursor-pointer items-start gap-3 text-sm">

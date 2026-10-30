@@ -351,7 +351,9 @@ A card, top to bottom:
   Appearance menu and the Account page; `$store.theme.gear` / `setGear`, buttons `[data-gear-option]`): "Icon and name" (default) or "Icons only",
   which writes the cookie `bcm-gear=tiles`; `theme-init.js` then sets `data-gear="tiles"` on `<html>` before the first paint and `tailwind.css`
   draws every gear chip with an icon on a unit card as a 2.25 rem tile with a 1.75 rem icon. The name and numbers stay in the chip for screen
-  readers (visually hidden) and show in its tooltip, or in its `title` when the item has no tooltip, and on the expanded card; a struck item fades.
+  readers (visually hidden) and show in its tooltip, or in its `title` when the item has no tooltip, and on the expanded card; a struck item fades. Below
+  the buttons a sample (`[data-gear-preview]`, a `.unit` list of four chips, hidden from screen readers) shows the chosen style, since it
+  follows the same `<html>` attribute.
 - **Name** (units are nameable), **type** and **points** (plain text, no box).
 - **Keyword row** (`keyword_row` in `partials/units.gohtml`, spec [`unit-keywords.md`](unit-keywords.md)), at the foot of the card on the right, just
   above the experience line (`.unit-kw`: seldom needed at the table, so out of the way; the full list, when open, is left aligned):
