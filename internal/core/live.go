@@ -317,6 +317,8 @@ type liveRepository interface {
 	Update(ctx context.Context, campaignID, matchID int64, by User, fn func(LiveSnapshot) (LiveChange, error)) (LiveEntry, error)
 	// Log lists not-undone entries, newest first, with Seq below `before` (0: from the newest).
 	Log(ctx context.Context, campaignID, matchID, before int64, limit int) ([]LiveEntry, error)
+	// UnitLog lists a unit's not-undone entries of one kind, newest first.
+	UnitLog(ctx context.Context, campaignID, matchID, unitID int64, kind LiveKind) ([]LiveEntry, error)
 }
 
 // liveFeed is the listening side of the NOTIFY: one dedicated connection, outside the pool, reconnecting with backoff. It calls

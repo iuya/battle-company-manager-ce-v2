@@ -26,6 +26,8 @@ type liveMatches interface {
 	Undo(ctx context.Context, user core.User, id, matchID, entryID, companyID int64) (core.LiveCompany, error)
 	// Log lists the not-undone entries newest first; before is a seq to page from (0: the newest). It also works after the match.
 	Log(ctx context.Context, user core.User, id, matchID, before int64, limit int) ([]core.LiveEntry, error)
+	// UnitLog lists a unit's not-undone entries of one kind, newest first, like Log.
+	UnitLog(ctx context.Context, user core.User, id, matchID, unitID int64, kind core.LiveKind) ([]core.LiveEntry, error)
 	// Subscribe feeds the SSE handler; core.ErrRefused at the stream caps.
 	Subscribe(ctx context.Context, user core.User, id, matchID int64) (core.LiveStream, error)
 	// LiveGeneration names the state of an open match that the cards of its page show; the page reads it before it builds them and sends

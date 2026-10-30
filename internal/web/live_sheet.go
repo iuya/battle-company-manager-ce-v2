@@ -165,14 +165,8 @@ func (s *Server) liveSheetFor(w http.ResponseWriter, r *http.Request, kind strin
 		sheet.ManualRolls = base.Campaign.Settings.ManualRolls
 	}
 	if kind == "wound" || kind == "fate" || kind == "broken" {
-		entries, err := s.campaigns.Log(r.Context(), user, id, matchID, 0, 200)
-		if s.fail(w, r, err) {
+		if sheet.Recorded, err = s.campaigns.UnitLog(r.Context(), user, id, matchID, unitID, core.LiveKind(kind)); s.fail(w, r, err) {
 			return none, false
-		}
-		for _, e := range entries {
-			if e.UnitID == unitID && string(e.Action.Kind) == kind {
-				sheet.Recorded = append(sheet.Recorded, e)
-			}
 		}
 	}
 	if kind == "wound" {

@@ -222,14 +222,11 @@ func TestTrackersAreSegmentsForTheOwnerAndMarksForAViewer(t *testing.T) {
 
 func TestLiveSheetsOfTheActionsMenu(t *testing.T) {
 	f := liveOwnerSetup(t, core.LiveEdit)
-	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), 200).Return([]core.LiveEntry{
+	f.camp.EXPECT().UnitLog(gomock.Any(), frodo, int64(7), int64(3), int64(5), core.LiveBroken).Return([]core.LiveEntry{
 		{ID: 61, UnitID: 5, Action: core.LiveAction{Kind: core.LiveBroken, UnitID: 5}, Text: "Hador passed a Broken courage test", CanUndo: true},
-		{ID: 62, UnitID: 6, Action: core.LiveAction{Kind: core.LiveBroken, UnitID: 6}, Text: "Brego passed a Broken courage test", CanUndo: true},
-		{ID: 63, UnitID: 5, Action: core.LiveAction{Kind: core.LiveRetreat, UnitID: 5}, Text: "Hador retreated", CanUndo: true},
 	}, nil).AnyTimes()
-	if code, body := liveSheetGet(f, "broken"); code != 200 || !strings.Contains(body, "Recorded this match") || !strings.Contains(body, "/live/log/61/undo") ||
-		strings.Contains(body, "Brego") || strings.Contains(body, "Hador retreated") {
-		t.Errorf("broken: the window lists the unit's own courage entries with Undo, nothing else: %d %s", code, body)
+	if code, body := liveSheetGet(f, "broken"); code != 200 || !strings.Contains(body, "Recorded this match") || !strings.Contains(body, "/live/log/61/undo") {
+		t.Errorf("broken: the window lists the unit's own courage entries with Undo: %d %s", code, body)
 	}
 	get := func(kind string) (int, string) {
 		rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/"+kind, nil)))
@@ -267,7 +264,7 @@ func TestWoundSheetListsOnlyUnitsInTheField(t *testing.T) {
 		{UnitID: 21, Zone: core.ZoneCasualty, Wounds: core.LiveStat{Start: 1}}}}, nil)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(2)).Return(core.CompanyDetail{Roster: []core.CompanyUnit{
 		{ID: 20, Name: "Grashnak", Type: "Orc Captain", Role: core.RoleLeader}, {ID: 21, Name: "Dead", Type: "Orc"}}}, nil)
-	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), 200).Return(nil, nil).AnyTimes() // the window lists what the unit recorded
+	f.camp.EXPECT().UnitLog(gomock.Any(), frodo, int64(7), int64(3), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes() // the window lists what the unit recorded
 	rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/wound", nil)))
 	body := rec.Body.String()
 	for _, want := range []string{"Grashnak", `data-fate="2"`, `data-mounted="1"`, `data-kill="1"`, "Which part", "Saved by Fate", "Raiders"} {

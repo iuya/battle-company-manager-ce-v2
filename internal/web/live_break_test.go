@@ -157,7 +157,7 @@ func TestLoanedItemsTemporaryWandererAndItemUsed(t *testing.T) {
 	if strings.Contains(body, "/units/-1/dismiss") {
 		t.Error("the temporary Wanderer cannot be dismissed")
 	}
-	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), 200).Return(nil, nil).AnyTimes() // the window lists what the unit recorded
+	f.camp.EXPECT().UnitLog(gomock.Any(), frodo, int64(7), int64(3), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes() // the window lists what the unit recorded
 	menu := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/menu", nil))).Body.String()
 	if !strings.Contains(menu, "Item used") {
 		t.Error("the menu offers Item used for a unit with an unspent loaned item")

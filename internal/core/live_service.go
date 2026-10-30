@@ -551,6 +551,20 @@ func (s *LiveService) Undo(ctx context.Context, user User, id, matchID, entryID,
 // Log lists the not-undone entries, newest first, readable by every member of the campaign, also after the match (the log is kept
 // for good). CanUndo is set for the user.
 func (s *LiveService) Log(ctx context.Context, user User, id, matchID, before int64, limit int) ([]LiveEntry, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	return s.entries(ctx, user, id, matchID, func() ([]LiveEntry, error) { return s.live.Log(ctx, id, matchID, before, limit) })
+}
+
+// UnitLog lists a unit's not-undone entries of one kind (what lit a milestone), newest first, with Log's visibility and CanUndo.
+func (s *LiveService) UnitLog(ctx context.Context, user User, id, matchID, unitID int64, kind LiveKind) ([]LiveEntry, error) {
+	return s.entries(ctx, user, id, matchID, func() ([]LiveEntry, error) { return s.live.UnitLog(ctx, id, matchID, unitID, kind) })
+}
+
+// entries reads log entries for a member of the campaign: read lists them; the other players' secret objectives are left out while
+// the match is open, and CanUndo is set for the user.
+func (s *LiveService) entries(ctx context.Context, user User, id, matchID int64, read func() ([]LiveEntry, error)) ([]LiveEntry, error) {
 	lc, err := s.context(ctx, user, id, matchID)
 	if err != nil {
 		return nil, err
@@ -560,10 +574,7 @@ func (s *LiveService) Log(ctx context.Context, user User, id, matchID, before in
 			return nil, err
 		}
 	}
-	if limit <= 0 || limit > 200 {
-		limit = 50
-	}
-	list, err := s.live.Log(ctx, id, matchID, before, limit)
+	list, err := read()
 	if err != nil {
 		return nil, err
 	}

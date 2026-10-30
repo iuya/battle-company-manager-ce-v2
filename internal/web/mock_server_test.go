@@ -514,6 +514,45 @@ func (c *MockliveMatchesUndoCall) DoAndReturn(f func(context.Context, core.User,
 	return c
 }
 
+// UnitLog mocks base method.
+func (m *MockliveMatches) UnitLog(ctx context.Context, user core.User, id, matchID, unitID int64, kind core.LiveKind) ([]core.LiveEntry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnitLog", ctx, user, id, matchID, unitID, kind)
+	ret0, _ := ret[0].([]core.LiveEntry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnitLog indicates an expected call of UnitLog.
+func (mr *MockliveMatchesMockRecorder) UnitLog(ctx, user, id, matchID, unitID, kind any) *MockliveMatchesUnitLogCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnitLog", reflect.TypeOf((*MockliveMatches)(nil).UnitLog), ctx, user, id, matchID, unitID, kind)
+	return &MockliveMatchesUnitLogCall{Call: call}
+}
+
+// MockliveMatchesUnitLogCall wrap *gomock.Call
+type MockliveMatchesUnitLogCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockliveMatchesUnitLogCall) Return(arg0 []core.LiveEntry, arg1 error) *MockliveMatchesUnitLogCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockliveMatchesUnitLogCall) Do(f func(context.Context, core.User, int64, int64, int64, core.LiveKind) ([]core.LiveEntry, error)) *MockliveMatchesUnitLogCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockliveMatchesUnitLogCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, core.LiveKind) ([]core.LiveEntry, error)) *MockliveMatchesUnitLogCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // MockttsExporter is a mock of ttsExporter interface.
 type MockttsExporter struct {
 	ctrl     *gomock.Controller
@@ -4483,6 +4522,45 @@ func (c *MockcampaignsUndoCall) Do(f func(context.Context, core.User, int64, int
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsUndoCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, int64) (core.LiveCompany, error)) *MockcampaignsUndoCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UnitLog mocks base method.
+func (m *Mockcampaigns) UnitLog(ctx context.Context, user core.User, id, matchID, unitID int64, kind core.LiveKind) ([]core.LiveEntry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnitLog", ctx, user, id, matchID, unitID, kind)
+	ret0, _ := ret[0].([]core.LiveEntry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnitLog indicates an expected call of UnitLog.
+func (mr *MockcampaignsMockRecorder) UnitLog(ctx, user, id, matchID, unitID, kind any) *MockcampaignsUnitLogCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnitLog", reflect.TypeOf((*Mockcampaigns)(nil).UnitLog), ctx, user, id, matchID, unitID, kind)
+	return &MockcampaignsUnitLogCall{Call: call}
+}
+
+// MockcampaignsUnitLogCall wrap *gomock.Call
+type MockcampaignsUnitLogCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsUnitLogCall) Return(arg0 []core.LiveEntry, arg1 error) *MockcampaignsUnitLogCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsUnitLogCall) Do(f func(context.Context, core.User, int64, int64, int64, core.LiveKind) ([]core.LiveEntry, error)) *MockcampaignsUnitLogCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsUnitLogCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, core.LiveKind) ([]core.LiveEntry, error)) *MockcampaignsUnitLogCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

@@ -932,7 +932,8 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
   the state as it is and the reason as the toast. A viewer's write is 403. Live POSTs are not wrapped in `once()`.
 - **Milestones** row on each field card (`live_actions_menu` and `milestone` in `company_panels.gohtml`, `.milestone*` in `tailwind.css`): Wounded,
   Fate, Courage and Objective (`aria-pressed`; off dashed and muted, on filled with the accent and a tick), buttons for editors and marks
-  (`role="img"`) for viewers. Wounded opens its sheet, whose `live_recorded` block lists the unit's wound entries with Undo; Fate, Courage
+  (`role="img"`) for viewers. Wounded opens its sheet, whose `live_recorded` block lists the unit's wound entries with Undo (`UnitLog`:
+  the unit's not-undone entries of one kind, filtered in the query); Fate, Courage
   and Objective post to the actions route at once (`fate` with `count=0`, only the mark, `broken`, `objective`), and a lit Fate or Courage posts the undo of
   `LiveUnit.FateEntry` / `BrokenEntry`. Below, `.live-actions` (editors, icon above the label, only while the unit has a loaned item to
   spend): Item used opens its sheet. The route also serves the list of every action (`sheet/menu`, which no card opens now: Wounded a unit, Passed a fate roll, Passed a

@@ -91,6 +91,7 @@ func (f *fixture) lazyCards() {
 	f.camp.EXPECT().SecretObjectives(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.SecretView{}, errNo).AnyTimes()
 	f.camp.EXPECT().EndChecks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.EndChecks{}, errNo).AnyTimes()
 	f.camp.EXPECT().Log(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errNo).AnyTimes()
+	f.camp.EXPECT().UnitLog(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errNo).AnyTimes()
 	f.camp.EXPECT().LiveGeneration(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errNo).AnyTimes() // no generation: the stream starts with a full sync
 }
 
