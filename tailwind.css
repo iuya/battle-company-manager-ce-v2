@@ -493,7 +493,7 @@ html[data-mode="dark"] { color-scheme: dark; }
      statline and the wargear; full is filled, empty an outline. */
   .live-trackers { @apply -my-1.5 flex flex-col gap-1; }
   .tracker-row { @apply flex flex-wrap items-center justify-center gap-x-3; }
-  .tracker-rows { @apply flex flex-col self-center; }
+  .tracker-rows { @apply flex flex-col self-start; } /* one row each: left-aligned, so the pips of the three stats line up */
   .tracker { @apply flex items-center; }
   .tracker-label { @apply w-6 shrink-0 text-[10px] font-semibold uppercase leading-none text-muted; }
   .pip-hit { @apply inline-flex h-8 w-7 shrink-0 items-center justify-center rounded-md text-muted; }
@@ -580,6 +580,9 @@ html[data-mode="dark"] { color-scheme: dark; }
   .path-main { @apply block font-heading text-lg font-bold; }
   .path-icon { @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-page; background: var(--path, var(--accent)); }
   .path-icon > svg { height: 1.875rem; width: 1.875rem; } /* little margin: the badge is the icon, not a frame round it */
+  /* On a unit card the path takes less room: no "Path of the" lead, so the name sits level with a smaller icon. */
+  .path-name-short .path-icon { @apply h-7 w-7; }
+  .path-name-short .path-icon > svg { height: 1.375rem; width: 1.375rem; }
   .act-chip { @apply inline-flex items-center gap-1 rounded-md border border-gold bg-surface px-2 py-0.5 text-xs; }
   .act-chip[data-tip-title] { cursor: pointer; }
   .act-bought { @apply bg-gold/20; }

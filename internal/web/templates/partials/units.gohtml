@@ -54,9 +54,9 @@
 {{define "path_icon"}}{{$l := pathLook .}}<span class="path-icon path-k-{{$l.Kind}}">{{template "gi_icon" (dict "N" $l.Icon "C" "")}}</span>{{end}}
 
 {{/* The heading of a hero's path box: its icon and name, the "Path of the" lead small above the rest, and (with Tip) the path's
-   text, limits and level-up chart in the tooltip. Takes {N: the name, Tip: the glossary text, Chart: tipPath's JSON}; the box
-   around it carries path-k-{kind} for its colour. */}}
-{{define "path_name"}}{{$l := pathLook .N}}<span class="path-name" {{if .Tip}}tabindex="0" data-concept data-tip-title="{{.N}}" data-tip-meta="Hero's path" data-tip-text="{{.Tip}}"{{with .Chart}} data-tip-path="{{.}}"{{end}}{{end}}>{{template "path_icon" .N}}<span class="min-w-0">{{with $l.Lead}}<span class="path-lead">{{.}} </span>{{end}}<span class="path-main">{{$l.Main}}</span></span></span>{{end}}
+   text, limits and level-up chart in the tooltip. Takes {N: the name, Tip: the glossary text, Chart: tipPath's JSON, Short: on a
+   unit card, the name alone (no lead) beside a smaller icon}; the box around it carries path-k-{kind} for its colour. */}}
+{{define "path_name"}}{{$l := pathLook .N}}<span class="path-name{{if .Short}} path-name-short{{end}}" {{if .Tip}}tabindex="0" data-concept data-tip-title="{{.N}}" data-tip-meta="Hero's path" data-tip-text="{{.Tip}}"{{with .Chart}} data-tip-path="{{.}}"{{end}}{{end}}>{{template "path_icon" .N}}<span class="min-w-0">{{if not .Short}}{{with $l.Lead}}<span class="path-lead">{{.}} </span>{{end}}{{end}}<span class="path-main">{{$l.Main}}</span></span></span>{{end}}
 
 {{/* A description with the glossary terms it mentions as links (previewed on hover). Takes {S: []segView, CID: campaign id}. */}}
 {{define "segments"}}{{range .S}}{{if .TermID}}<a href="/campaigns/{{$.CID}}/glossary#t-{{.TermID}}" class="term-link" hx-boost="false" data-concept data-tip-title="{{.TipTitle}}" data-tip-text="{{.TipText}}">{{.Text}}</a>{{else}}{{.Text}}{{end}}{{end}}{{end}}
@@ -259,7 +259,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
        (also those bought later) and the rules it gave. */}}
     {{with $u.Path}}{{if .Name}}
     <div class="path-box path-k-{{(pathLook .Name).Kind}} space-y-1.5">
-      {{template "path_name" (dict "N" .Name "Tip" .TipText "Chart" .TipPath)}}
+      {{template "path_name" (dict "N" .Name "Tip" .TipText "Chart" .TipPath "Short" true)}}
       {{if .Actions}}
       <ul class="flex flex-wrap gap-1.5" aria-label="Heroic actions">
         {{range .Actions}}
@@ -402,7 +402,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     {{if $u.HasHeroStats}}<dl class="statline statline-hero">{{range $u.Stats}}{{if .HeroOnly}}<div><dt>{{.Name}}</dt><dd>{{.Value}}</dd></div>{{end}}{{end}}</dl>{{end}}
   </div>
   {{with $u.Equipment}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Wargear</span>{{range .}}<span class="eq-chip">{{.Name}}</span>{{end}}</p>{{end}}
-  {{with $u.Path}}{{if .Name}}<div class="path-box path-k-{{(pathLook .Name).Kind}} space-y-1.5">{{template "path_name" (dict "N" .Name)}}
+  {{with $u.Path}}{{if .Name}}<div class="path-box path-k-{{(pathLook .Name).Kind}} space-y-1.5">{{template "path_name" (dict "N" .Name "Short" true)}}
     <ul class="flex flex-wrap gap-1.5">{{range .HeroicActions}}<li class="act-chip">{{template "bolt_icon"}}<span>{{.Name}}</span></li>{{end}}{{range .Rules}}<li class="rule-chip rule-path" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}>{{.Shown}}</li>{{end}}</ul></div>{{end}}{{end}}
   {{with $u.Rules}}<ul class="flex flex-wrap gap-1.5" aria-label="Special rules">{{range .}}<li class="rule-chip rule-{{.Source}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}>{{.Shown}}</li>{{end}}</ul>{{end}}
   <p class="mt-auto flex items-center gap-3 border-t border-line pt-3 text-xs text-muted"><span class="level-medal" title="Level {{$u.Level}}"><span class="sr-only">Level </span>{{$u.Level}}</span>{{$u.XP}} XP</p>
@@ -412,8 +412,8 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
 
 
 {{/* The trackers of a unit in a running match, as pips (`.tracker*`, `.pip-hit`, `.pip-heart` in tailwind.css): Might, Will and Fate for heroes, always
-   in that order, on one row while they add up to 7 pips or fewer (what fits a 360 px card) and one row each above that, so a stat never
-   hangs alone; then Wounds, the model's life, as hearts on a row of its own. Wounds of 1 is not shown: that model falls through the
+   in that order, on one row while they add up to 7 pips or fewer (what fits a 360 px card) and one row each above that (left-aligned, so the
+   pips line up), so a stat never hangs alone; then Wounds, the model's life, as hearts on a row of its own. Wounds of 1 is not shown: that model falls through the
    enemy's Wounded action or Died. The owner taps a pip: the last full one takes one off, the first empty one adds one, any other sets the
    value to that pip; everybody else only reads. Every tap is one entry in the match log, answered by the zones (htmx). Takes
    {U, L: core.LiveUnit, LV, CID}. */}}

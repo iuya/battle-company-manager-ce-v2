@@ -405,7 +405,7 @@ A card, top to bottom:
   icon and colour, and an item can be several things (a blade-spear shows a spear and a blade icon and counts for each). Starting items are plain, bought ones carry a `+` and an accent fill, items with stats show them
   (`24" · S2`) and items with rules have a dashed outline and a `?`, with a hover preview.
 - **Path** (every hero, the leader and sergeants included): a box between the equipment and the special rules, headed by the path's icon (one game-icons.net icon per path in a round badge, `path_icon`; also in the
-  path window and the fallen card) and its name, the "Path of the" lead small above the rest (`pathLook` in `paths.go`). Badge
+  path window and the fallen card) and its name, the "Path of the" lead small above the rest (`pathLook` in `paths.go`; on the unit card and the fallen card the name alone, beside a smaller badge, `path_name` with Short). Badge
   and box take the colour of the kind of hero the path makes: melee red (`danger`), ranged green (`success`), command gold,
   magic blue (`hero`), the rest muted; a path the app does not know gets the medal. The name's tooltip is the glossary's text
   of the path with its characteristic limits and level-up chart, as in the level-up window. Folded, it lists the heroic actions unlocked so far (the unit's own, the path's and those bought later; their text comes
@@ -910,7 +910,7 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
   no rule has targets and nothing is marked. Read errors of the extra companies drop the markers, never the page.
 - **Trackers** (`live_trackers`, replace W, Might, Will, Fate in the attribute row; `.tracker*`, `.pip-hit`, `.pip-heart` in `tailwind.css`): one pip per point
   of the start value, full up to the current one. Might, Will and Fate (heroes) keep that order on one row while they add up to 7 pips or
-  fewer and take one row each above that, so none hangs alone at 360 px; Wounds goes last, as red hearts on its own row with `current/start`,
+  fewer (centred) and take one row each above that (left-aligned, so the pips line up), so none hangs alone at 360 px; Wounds goes last, as red hearts on its own row with `current/start`,
   and is not shown when it starts at 1 (that model falls through the enemy's Wounded action or Died). The owner taps a pip (28 x 32 px):
   the last full one is `delta -1` ("... down by one"), the first empty one `delta +1` ("... up by one"), any other `set` to that pip
   ("Set ... to N"); a viewer gets the same pips as marks. Above 6 pips a tracker falls back to the number between 36 px `-` and `+`.
