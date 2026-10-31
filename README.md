@@ -84,8 +84,8 @@ Start at [docs/README.md](docs/README.md). Everything in `docs/`, by audience:
 | [tabletop-simulator.md](docs/tabletop-simulator.md) | Taking a company into Tabletop Simulator |
 | [admin.md](docs/admin.md) | The Administration section, campaign status, invitations, handover |
 | [rules-coverage.md](docs/rules-coverage.md) | Which Battle Companies mechanics the app implements |
-| [multi-company-spec.md](docs/multi-company-spec.md) | Planned: several companies per player |
-| [practice-match-spec.md](docs/practice-match-spec.md) | Planned: practice matches |
+| [multi-company-spec.md](docs/multi-company-spec.md) | Several companies per player (up to a campaign setting), the company in the URL, and opening the last campaign directly (implemented) |
+| [practice-match-spec.md](docs/practice-match-spec.md) | Practice matches: no rewards, no injuries, an empty aftermath (implemented) |
 
 **Rules authors (customising the Battle Companies JSON)**
 
@@ -108,6 +108,8 @@ Start at [docs/README.md](docs/README.md). Everything in `docs/`, by audience:
 | [auth.md](docs/auth.md) | Accounts, sessions, passwords, CSRF, login throttling |
 | [vendored-js.md](docs/vendored-js.md) | The committed third-party scripts and how to update them |
 | [performance.md](docs/performance.md) | Measured page cost and the performance tooling |
+| [design/match-redesign](docs/design/match-redesign/README.md) | Pictures of the three proposals for the match and live-match pages (a design discussion, not the current app) |
+| [design/cards-redesign](docs/design/cards-redesign/README.md) | Before and after screenshots of the unit card redesign: rank plates, icons, live trackers, dark and high contrast |
 | [optimization-report.md](docs/optimization-report.md) | Executive summary of the optimization work (v1.3.0, baseline and final numbers, what changed and why, what did not improve), then the detailed data format, runtime, database, build and test sections |
 
 **Operators**

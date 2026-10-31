@@ -37,6 +37,9 @@ Chosen for this app:
   [`warhammer`](https://game-icons.net/1x1/delapouite/warhammer.html) (mattock and hammers), [`glaive`](https://game-icons.net/1x1/delapouite/glaive.html),
   [`dragon-shield`](https://game-icons.net/1x1/delapouite/dragon-shield.html) (pavise) by Delapouite.
 
+Drawn for this app (no licence to credit): `diamond` (the other item class), `parcel` (an item class the app does not know) and
+`elven-leaf` (the mark on an Elven weapon's icon).
+
 Already used by the legacy Heroes of Middle Age app:
 
 - Kind of unit: `wolf-head` (beast, also the warg mounts).
