@@ -48,6 +48,12 @@ func TestCompanyLimits(t *testing.T) {
 	if !reflect.DeepEqual(limits, want) {
 		t.Errorf("got %+v, want %+v", limits, want)
 	}
+	if s := (CompanyLimit{Used: 4, Max: 3, Exempt: 1}).Segments(); s != 5 { // over the limit the bar grows to show every counted one
+		t.Errorf("segments over the limit: %d", s)
+	}
+	if s := (CompanyLimit{}).Segments(); s != 1 {
+		t.Errorf("an empty limit still draws one segment: %d", s)
+	}
 	if limits[0].Full() || !(CompanyLimit{Used: 3, Max: 3}).Full() {
 		t.Error("Full")
 	}
@@ -160,8 +166,8 @@ func TestLimitExemptionsLeaveModelsOutOfTheCountAndTheBase(t *testing.T) {
 	for _, l := range computeLimits(shippedRules(t).BC.limitRules, rohan, units) {
 		switch l.ID {
 		case "bow", "cavalry":
-			if l.Used != 0 || l.Max != 1 {
-				t.Errorf("%s: the riders do not count and 2 warriors make a maximum of 1: %+v", l.ID, l)
+			if l.Used != 0 || l.Max != 1 || l.Exempt != 10 || l.Total() != 10 || l.Segments() != 11 {
+				t.Errorf("%s: the riders do not count (but are tallied as exempt) and 2 warriors make a maximum of 1: %+v", l.ID, l)
 			}
 		case "throwing":
 			if l.Max != 4 { // nobody is exempt from this one: 12 models
@@ -173,7 +179,7 @@ func TestLimitExemptionsLeaveModelsOutOfTheCountAndTheBase(t *testing.T) {
 	whip := Equipment{Name: "Whip", Class: EquipThrowing, Also: []EquipmentClass{EquipMelee}}
 	rogues := BCCompany{LimitExemptions: []LimitExemption{{Item: "Whip", Limits: []string{"throwing"}}}}
 	units = []CompanyUnit{{Equipment: []Equipment{whip}}, {Equipment: []Equipment{whip}}, {}}
-	if l := computeLimits(shippedRules(t).BC.limitRules, rogues, units)[1]; l.Used != 0 || l.Max != 1 {
+	if l := computeLimits(shippedRules(t).BC.limitRules, rogues, units)[1]; l.Used != 0 || l.Exempt != 2 || l.Max != 1 {
 		t.Errorf("whips are free: %+v", l)
 	}
 	// a company's own share for a limit (Osgiliath: bows 50%)
@@ -221,6 +227,31 @@ func TestIconFor(t *testing.T) {
 		{"Seeing Stone", []EquipmentClass{EquipOther}, "small", "orb"},
 		{"Traps & Snares", []EquipmentClass{EquipOther}, "large", "snare"},
 		{"Axe of Lossarnach", []EquipmentClass{EquipMelee}, "", "axe"},
+		{"Fell Warg", []EquipmentClass{EquipMount}, "", "warg"},
+		{"War Camel", []EquipmentClass{EquipMount}, "", "camel"},
+		{"War goat", []EquipmentClass{EquipMount}, "", "goat"},
+		{"Horse", []EquipmentClass{EquipMount}, "", ""},
+		{"Armoured horse", []EquipmentClass{EquipMount}, "", "armoured-horse"},
+		{"Galadhrim Steed", []EquipmentClass{EquipMount}, "", "steed"},
+		{"Pony", []EquipmentClass{EquipMount}, "", "pony"},
+		{"Hand-and-a-half hammer", []EquipmentClass{EquipMelee, EquipTwoHanded}, "", "hammer"},
+		{"Elven-made Hand-and-a-half sword", []EquipmentClass{EquipMelee, EquipTwoHanded}, "", "hand-and-a-half"},
+		{"Mattock", []EquipmentClass{EquipTwoHanded}, "", "hammer"},
+		{"Twin Blades", []EquipmentClass{EquipMelee}, "", "twin-blades"},
+		{"Razor-sharp teeth and talons (hand weapons)", []EquipmentClass{EquipMelee}, "", "claws"},
+		{"Beaks and Claws (hand weapon)", []EquipmentClass{EquipMelee}, "", "claws"},
+		{"Elven Glaive", []EquipmentClass{EquipSpear}, "", "glaive"},
+		{"Easterling Halberd", []EquipmentClass{EquipSpear, EquipTwoHanded}, "", ""}, // drawn by its classes: spears and a two-handed axe
+		{"Throwing Spears", []EquipmentClass{EquipThrowing}, "", "thrown-spear"},
+		{"Smoke Bombs", []EquipmentClass{EquipThrowing}, "", "smoke-bomb"},
+		{"Troll Chain", []EquipmentClass{EquipThrowing}, "", "chain"},
+		{"Whip", []EquipmentClass{EquipMelee, EquipThrowing}, "", "whip"},
+		{"Light Armour", []EquipmentClass{EquipArmour}, "", "light-armour"},
+		{"Heavy Dwarf Armour", []EquipmentClass{EquipArmour}, "", "heavy-armour"},
+		{"Armour", []EquipmentClass{EquipArmour}, "", ""},
+		{"Small Shield", []EquipmentClass{EquipShield}, "", "small-shield"},
+		{"Pavise", []EquipmentClass{EquipShield}, "", "pavise"},
+		{"Elven hand weapon", []EquipmentClass{EquipMelee}, "", ""},
 		{"Sword", []EquipmentClass{EquipMelee}, "", ""},                         // drawn by its class
 		{"Odd Trinket", []EquipmentClass{EquipOther}, "small", "generic-small"}, // a new item still gets an icon
 		{"Strange Crate", []EquipmentClass{EquipOther}, "large", "generic-large"},
@@ -228,6 +259,18 @@ func TestIconFor(t *testing.T) {
 	} {
 		if got := IconFor(c.name, c.classes, c.size); got != c.want {
 			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
+func TestIsElvenWeapon(t *testing.T) {
+	for name, want := range map[string]bool{
+		"Elven hand weapon": true, "Elven-made Hand-and-a-half sword": true, "Elven-made Glaive": true, "Elven lance": true,
+		"Elven throwing weapon": true, "Wood Elf Spear": true, "Twin Elven Blades": true,
+		"Elven Cloak": false, "Spear": false, "Elf bow": false,
+	} {
+		if got := IsElvenWeapon(name); got != want {
+			t.Errorf("%s: got %v, want %v", name, got, want)
 		}
 	}
 }

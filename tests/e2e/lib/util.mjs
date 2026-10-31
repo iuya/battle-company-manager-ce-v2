@@ -7,7 +7,7 @@ export async function campaignId(s, namePrefix) {
   await s.goto('/campaigns');
   const id = await s.page.evaluate((p) => {
     for (const a of document.querySelectorAll('a[href^="/campaigns/"]')) {
-      const m = a.getAttribute('href').match(/^\/campaigns\/(\d+)$/);
+      const m = a.getAttribute('href').match(/^\/campaigns\/(\d+)(?:\/my-company)?$/); // the lists link to My Company
       if (m && a.innerText.trim().startsWith(p)) return m[1];
     }
     return null;

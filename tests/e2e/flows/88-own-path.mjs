@@ -52,7 +52,7 @@ export default async function (h) {
     await layout(galadriel, 1280, 'light');
     await galadriel.click(MODAL + ' button', '=Done');
     await galadriel.goto(`/campaigns/${cid}/my-company`);
-    const heroes = (await cardOf(galadriel, 'Wood Elf Sentinel')).filter((t) => /path of their own making/i.test(t) && /fate/i.test(t));
+    const heroes = (await cardOf(galadriel, 'Wood Elf Sentinel')).filter((t) => /their own making/i.test(t) && /fate/i.test(t));
     assert.ok(heroes.length >= 2, `the Sentinel that rolled the 6 and the one the demo made are heroes on the path (${heroes.length})`);
   });
 

@@ -46,6 +46,7 @@ services:
       # --- its line (the ${...} form takes the value from .env, or the default after :-). cmd/server/envdocs_test.go (make check-env-docs)
       # --- fails when the server gains a variable that is not listed here, in compose.dev.yaml and in .env.example.
       # PORT: 8080                                   # port the server listens on inside the container (change APP_PORT for the host side)
+      # LISTEN_HOST:                                 # keep it empty here (every interface): the container must be reachable; APP_BIND is the host side
       # ALLOW_INSECURE_COOKIES: ${ALLOW_INSECURE_COOKIES:-false}   # true: let production start with SECURE_COOKIES=false (plain http, private network)
       # TRUST_PROXY: ${TRUST_PROXY:-false}           # true only behind a reverse proxy that sets X-Forwarded-For; login attempts are counted per client
       # CSP_MODE: ${CSP_MODE:-report}                # off | report | enforce, Content-Security-Policy (docs/operations.md, "Content-Security-Policy")

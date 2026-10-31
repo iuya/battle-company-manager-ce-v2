@@ -379,18 +379,29 @@ func nilIfZero(id int64) *int64 {
 
 // Log lists the not-undone entries, newest first, below the seq `before` (0: from the newest).
 func (ls liveStore) Log(ctx context.Context, campaignID, matchID, before int64, limit int) ([]core.LiveEntry, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	return ls.entries(ctx, campaignID, matchID, `AND ($2::bigint = 0 OR l.seq < $2::bigint) ORDER BY l.seq DESC LIMIT $3`, before, limit)
+}
+
+// UnitLog lists a unit's not-undone entries of one kind, newest first.
+func (ls liveStore) UnitLog(ctx context.Context, campaignID, matchID, unitID int64, kind core.LiveKind) ([]core.LiveEntry, error) {
+	return ls.entries(ctx, campaignID, matchID, `AND l.unit_id = $2 AND l.kind = $3 ORDER BY l.seq DESC`, unitID, string(kind))
+}
+
+// entries lists the not-undone entries of a match of the campaign (core.ErrNotFound for another campaign's match) that the rest of the
+// query (more conditions and the order, its arguments from $2) selects.
+func (ls liveStore) entries(ctx context.Context, campaignID, matchID int64, rest string, args ...any) ([]core.LiveEntry, error) {
 	var exists bool
 	if err := ls.s.pool.QueryRow(ctx, `SELECT true FROM matches WHERE id = $1 AND campaign_id = $2`, matchID, campaignID).Scan(&exists); errors.Is(err, pgx.ErrNoRows) {
 		return nil, core.ErrNotFound
 	} else if err != nil {
 		return nil, err
 	}
-	if limit <= 0 {
-		limit = 50
-	}
 	rows, err := ls.s.pool.Query(ctx, `
 		SELECT `+liveEntryColumns+` FROM match_live_log l LEFT JOIN users u ON u.id = l.by_user_id
-		 WHERE l.match_id = $1 AND l.undone_at IS NULL AND ($2::bigint = 0 OR l.seq < $2::bigint) ORDER BY l.seq DESC LIMIT $3`, matchID, before, limit)
+		 WHERE l.match_id = $1 AND l.undone_at IS NULL `+rest, append([]any{matchID}, args...)...)
 	if err != nil {
 		return nil, err
 	}

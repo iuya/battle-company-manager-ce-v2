@@ -60,7 +60,7 @@ func TestHomeRedirectsToTheLastCampaignAfterValidatingIt(t *testing.T) {
 	f := newFixture(t, Config{})
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
 	rec := f.do(f.signedIn(withLast(httptest.NewRequest("GET", "/", nil), "1.7.4")))
-	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/campaigns/7" {
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/campaigns/7/my-company" {
 		t.Fatalf("got %d -> %q", rec.Code, rec.Header().Get("Location"))
 	}
 	if lastSet(rec) != nil {

@@ -91,6 +91,7 @@ func (f *fixture) lazyCards() {
 	f.camp.EXPECT().SecretObjectives(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.SecretView{}, errNo).AnyTimes()
 	f.camp.EXPECT().EndChecks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.EndChecks{}, errNo).AnyTimes()
 	f.camp.EXPECT().Log(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errNo).AnyTimes()
+	f.camp.EXPECT().UnitLog(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errNo).AnyTimes()
 	f.camp.EXPECT().LiveGeneration(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errNo).AnyTimes() // no generation: the stream starts with a full sync
 }
 
@@ -655,7 +656,7 @@ func TestOthersCompanyCannotBeManaged(t *testing.T) {
 		t.Errorf("own company page: %d -> %q", rec.Code, rec.Header().Get("Location"))
 	}
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
-	for _, want := range []string{`aria-current="page">My Company`, "Influence", "Gold", "Bows", "1 / 2", "Beregond", "unit-leader", "insignia-leader", "+ Bow", `24&#34; · S2`, "has-tip", "Bodyguard", "rule-spell", "3+", "FV", "path-box", "Path of the Warlord", "Heroic Strike", "+ Heroic March", "Rally the Troops", "Black Dart", "learned through the path", "Lvl 0", "11 / 5 XP", "Level Up ready!", "×2", "unit-corner", "70", `data-tip-title="Elven Cloak"`, `data-tip-text="Stalk Unseen."`, `data-tip-title="Helmingas" data-tip-meta="Unit upgrade" data-tip-text="Guards of the king."`} {
+	for _, want := range []string{`aria-current="page">My Company`, "Influence", "Gold", "Bows", "1 / 2", "Beregond", "unit-leader", "insignia-leader", "+ Bow", `24&#34; · S2`, "has-tip", "Bodyguard", "rule-spell", "3+", "FV", "path-box path-k-command", `<span class="min-w-0"><span class="path-main">Warlord</span>`, "Heroic Strike", "+ Heroic March", "Rally the Troops", "Black Dart", "learned through the path", `title="Level 0 · 11 XP in total"`, "11 / 5 XP", "Level Up ready!", "×2", "unit-corner", "70", `data-tip-title="Elven Cloak"`, `data-tip-text="Stalk Unseen."`, `data-tip-title="Helmingas" data-tip-meta="Unit upgrade" data-tip-text="Guards of the king."`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("My Company tab lacks %q", want)
 		}
@@ -820,10 +821,21 @@ func TestNavCampaignsHaveTheirPages(t *testing.T) {
 	f := newFixture(t, Config{})
 	f.nav = []core.CampaignNav{{ID: 4, Name: "Rohan Rising"}}
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/nav/campaigns", nil))).Body.String()
-	for _, want := range []string{`href="/campaigns/4"`, `href="/campaigns/4/companies"`, `href="/campaigns/4/rankings"`, `href="/campaigns/4/matches"`, "inCampaign(4)"} {
+	for _, want := range []string{`href="/campaigns/4"`, `href="/campaigns/4/rankings"`, `href="/campaigns/4/matches"`, "inCampaign(4)"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
+	}
+	if strings.Contains(body, `href="/campaigns/4/companies"`) {
+		t.Error("the Companies tab is gone: the Rankings list the companies")
+	}
+}
+
+func TestOldCompaniesTabRedirectsToTheRankings(t *testing.T) {
+	f := newFixture(t, Config{})
+	rec := f.do(f.signedIn(httpGet("/campaigns/7/companies")))
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/campaigns/7/rankings" {
+		t.Errorf("got %d -> %q", rec.Code, rec.Header().Get("Location"))
 	}
 }
 

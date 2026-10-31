@@ -8,7 +8,7 @@
     <a href="/campaigns" class="btn btn-secondary">Go to my campaigns</a>
     {{else if .Preview.Member}}
     <p class="text-muted">You are already in <strong class="break-words text-fg">{{.Preview.CampaignName}}</strong>; this link has nothing more to do for you.</p>
-    <a href="/campaigns/{{.Preview.CampaignID}}" class="btn btn-primary">Open the campaign</a>
+    <a href="/campaigns/{{.Preview.CampaignID}}/my-company" class="btn btn-primary">Open the campaign</a>
     {{else if .Preview.Paused}}
     <p class="text-muted">You were invited to <strong class="break-words text-fg">{{.Preview.CampaignName}}</strong>, but the campaign is paused: nobody can join until the organiser resumes it. Open this link again later.</p>
     <a href="/campaigns" class="btn btn-secondary">Go to my campaigns</a>

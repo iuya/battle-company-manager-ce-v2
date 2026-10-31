@@ -118,7 +118,8 @@ func (e LimitExemption) covers(limit string) bool { return slices.Contains(e.Lim
 
 // computeLimits counts each limit by class and derives its maximum from the models that count: bow and crossbow items for the
 // Bow limit, throwing items for the Throwing limit (missiles count against neither) and the Cavalry keyword for Cavalry. A
-// model exempted from a limit is left out of its count and of its base; an exempt item is not counted.
+// model exempted from a limit is left out of its count and of its base; an exempt item is not counted. What the exemptions leave
+// out is still tallied (Exempt), so the page can show the company's whole number of bows, throwing weapons or cavalry.
 func computeLimits(rules []LimitRule, c BCCompany, units []CompanyUnit, stored ...Equipment) []CompanyLimit {
 	var out []CompanyLimit
 	for _, rule := range rules {
@@ -126,27 +127,35 @@ func computeLimits(rules []LimitRule, c BCCompany, units []CompanyUnit, stored .
 		if p, ok := c.LimitOverrides[rule.ID]; ok {
 			percent = p
 		}
-		base, used := 0, 0
-		for _, u := range units {
-			if slices.ContainsFunc(c.LimitExemptions, func(e LimitExemption) bool { return e.Unit != "" && e.Unit == u.Type && e.covers(rule.ID) }) {
-				continue
-			}
-			base++
-			if rule.Keyword == KeywordCavalry && u.isCavalry() {
+		base, used, exempt := 0, 0, 0
+		// tally counts one model or item towards the limit, or towards what the exemptions leave out.
+		tally := func(isExempt bool) {
+			if isExempt {
+				exempt++
+			} else {
 				used++
 			}
+		}
+		for _, u := range units {
+			unitExempt := slices.ContainsFunc(c.LimitExemptions, func(e LimitExemption) bool { return e.Unit != "" && e.Unit == u.Type && e.covers(rule.ID) })
+			if !unitExempt {
+				base++
+			}
+			if rule.Keyword == KeywordCavalry && u.isCavalry() {
+				tally(unitExempt)
+			}
 			for _, e := range u.Equipment {
-				if rule.counts(e.Classes()) && !c.exempts(e.Name, rule.ID) {
-					used++
+				if rule.counts(e.Classes()) {
+					tally(unitExempt || c.exempts(e.Name, rule.ID))
 				}
 			}
 		}
 		for _, e := range stored { // gear in the Baggage Pony's pack still counts towards the item limits
-			if rule.counts(e.Classes()) && !c.exempts(e.Name, rule.ID) {
-				used++
+			if rule.counts(e.Classes()) {
+				tally(c.exempts(e.Name, rule.ID))
 			}
 		}
-		out = append(out, CompanyLimit{ID: rule.ID, Label: rule.Label, Used: used, Max: LimitMax(percent, base, rule.RoundUp), Next: LimitMax(percent, base+1, rule.RoundUp),
+		out = append(out, CompanyLimit{ID: rule.ID, Label: rule.Label, Used: used, Exempt: exempt, Max: LimitMax(percent, base, rule.RoundUp), Next: LimitMax(percent, base+1, rule.RoundUp),
 			LimitClasses: rule.Classes, LimitKeyword: rule.Keyword})
 	}
 	return out

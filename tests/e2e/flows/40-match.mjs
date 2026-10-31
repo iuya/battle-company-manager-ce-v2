@@ -47,7 +47,7 @@ export default async function (h) {
   await h.step('live: a tracker change reaches the viewer through the event stream, and Undo reverts it', async () => {
     await you.goto(`/campaigns/${cid}/companies/${eCo}`);
     await you.waitText('is running');
-    const label = (v) => `[aria-label="Might of Rider of Rohan: ${v} of 1, tap to set"]`;
+    const label = (v) => `[aria-label="Might of Rider of Rohan: ${v} of 1"]`;
     await you.page.waitForSelector(label(1));
     await eowyn.click('main button[aria-label="Might of Rider of Rohan down by one"]', '');
     await you.page.waitForSelector(label(0), { timeout: 8000 });
@@ -55,37 +55,39 @@ export default async function (h) {
     await you.page.waitForSelector(label(1), { timeout: 8000 });
   });
 
-  await h.step('live: the actions menu of a mounted hero', async () => {
-    await eowyn.click('main button', '=Actions');
-    await eowyn.click(MODAL + ' button', 'Mount removed');
-    await eowyn.click(MODAL + ' button', '=Confirm');
+  await h.step('live: the mount action of a mounted hero', async () => {
+    await eowyn.liveMount(false); // no button on the card for now: the action it sent
     await eowyn.waitText('On foot');
     await you.page.waitForFunction(() => document.body.innerText.includes('On foot'), { timeout: 8000 });
   });
 
-  await h.step('live: a menu entry clicked the instant it is swapped in still sends its request', async () => {
-    // htmx wires a swapped fragment when it settles (20 ms later): without htmx_ready.js a click inside that gap did nothing.
+  await h.step('live: a button clicked the instant it is swapped in still sends its request', async () => {
+    // htmx wires a swapped fragment when it settles (20 ms later): without htmx_ready.js a click inside that gap did nothing. The
+    // objective switch of the second unit swaps the zones in; its Wounded milestone is clicked in that gap.
+    const objective = () => eowyn.page.evaluateHandle(() => [...document.querySelectorAll('main button')].filter((b) => b.getAttribute('aria-label')?.startsWith('Got the objective ('))[1]);
     await eowyn.page.evaluate(() => {
       window.__sent = [];
       document.body.addEventListener('htmx:beforeRequest', (e) => window.__sent.push(e.detail.requestConfig.path));
-      document.body.addEventListener('htmx:afterSwap', function once() {
-        const entry = [...document.querySelectorAll('#modal-body [role=menuitem]')].find((b) => b.innerText.includes('Wounded a unit'));
+      document.body.addEventListener('htmx:afterSwap', function once(e) {
+        if (e.detail.target?.id !== 'live-zones') return;
+        const entry = [...document.querySelectorAll('#live-zones button')].filter((b) => b.getAttribute('aria-label')?.startsWith('Wounded an enemy ('))[1];
         if (!entry) return;
         document.body.removeEventListener('htmx:afterSwap', once);
         setTimeout(() => entry.click(), 0); // after this swap, before the 20 ms settle timer of htmx
       });
     });
-    const actions = await eowyn.page.evaluateHandle(() => [...document.querySelectorAll('main button')].filter((b) => b.innerText.trim() === 'Actions')[1]);
-    await actions.asElement().click();
+    await (await objective()).asElement().click();
     await eowyn.page.waitForFunction(() => window.__sent.some((p) => /sheet\/wound$/.test(p)), { timeout: 8000 })
-      .catch(() => { throw new Error('the entry clicked at the moment of the swap sent no request'); });
+      .catch(() => { throw new Error('the button clicked at the moment of the swap sent no request'); });
     await eowyn.waitText('Pick who was wounded');
     await eowyn.click(MODAL + ' button', '=Close');
+    await eowyn.settle(400);
+    await (await objective()).asElement().click(); // the objective back off
     await eowyn.settle(400);
   });
 
   await h.step('live: a click that straddles a live refresh still lands (the swap waits for the pointer)', async () => {
-    // Press on Actions, make the zones refresh while the button is held, release: without live.js holding the swap the pressed
+    // Press on Wounded, make the zones refresh while the button is held, release: without live.js holding the swap the pressed
     // button is gone by mouseup and no click is fired. The refresh is forced through htmx on the same URL the SSE refresh uses.
     const p = eowyn.page;
     await p.evaluate(() => {
@@ -93,7 +95,7 @@ export default async function (h) {
       zones.dataset.probe = 'old';
       window.__swaps = 0; window.__clicked = 0;
       document.body.addEventListener('htmx:beforeSwap', (e) => { if (e.detail.target?.id === 'live-zones') window.__swaps++; });
-      const b = [...zones.querySelectorAll('button')].find((x) => x.innerText.trim() === 'Actions');
+      const b = [...zones.querySelectorAll('button')].find((x) => x.getAttribute('aria-label')?.startsWith('Wounded an enemy ('));
       b.dataset.probe = 'pressed';
       b.addEventListener('click', () => window.__clicked++);
       b.scrollIntoView({ block: 'center' });
@@ -118,21 +120,18 @@ export default async function (h) {
     await p.waitForFunction(() => document.getElementById('live-zones')?.dataset.probe !== 'old', { timeout: 8000 })
       .catch(() => { throw new Error('the held refresh was never applied after the release'); });
     await p.waitForFunction((m) => [...document.querySelectorAll(m)].some((d) => d.getBoundingClientRect().height), { timeout: 8000 }, MODAL)
-      .catch(() => { throw new Error('the click that straddled the refresh did not open the menu'); });
-    // Leave a sheet, not the menu, as the last content of the window: the next step looks for the menu entry and must not find a stale one.
-    await eowyn.click(MODAL + ' button', 'Wounded a unit');
+      .catch(() => { throw new Error('the click that straddled the refresh did not open the window'); });
     await eowyn.waitText('Pick who was wounded');
     await eowyn.click(MODAL + ' button', '=Close');
     await p.waitForFunction((m) => ![...document.querySelectorAll(m)].some((d) => d.getBoundingClientRect().height), { timeout: 4000 }, MODAL)
-      .catch(() => { throw new Error('the menu did not close'); });
+      .catch(() => { throw new Error('the window did not close'); });
     await eowyn.settle(400);
   });
 
   await h.step('live: wound an enemy unit from the other company (preview, confirm)', async () => {
     const actions = await eowyn.page.$$('main button');
-    const idx = await eowyn.page.evaluate(() => [...document.querySelectorAll('main button')].map((b, i) => [b, i]).filter(([b]) => b.innerText.trim() === 'Actions').map(([, i]) => i)[1]);
+    const idx = await eowyn.page.evaluate(() => [...document.querySelectorAll('main button')].map((b, i) => [b, i]).filter(([b]) => b.getAttribute('aria-label')?.startsWith('Wounded an enemy (')).map(([, i]) => i)[1]);
     await actions[idx].click();
-    await eowyn.click(MODAL + ' button', 'Wounded a unit');
     await eowyn.click(MODAL + ' label', 'Dwarf Warrior');
     await eowyn.click(MODAL + ' button', '=Confirm');
     await sauron.page.waitForFunction(() => /Field casualties|Wounded by/i.test(document.body.innerText), { timeout: 8000 });
@@ -140,9 +139,7 @@ export default async function (h) {
   });
 
   await h.step('live: a unit retreats (failed courage) and returns to the battle', async () => {
-    const idx = await sauron.page.evaluate(() => [...document.querySelectorAll('main button')].map((b, i) => [b, i]).filter(([b]) => b.innerText.trim() === 'Actions').map(([, i]) => i)[0]);
-    await (await sauron.page.$$('main button'))[idx].click();
-    await sauron.click(MODAL + ' button', 'Retreated');
+    await sauron.liveSheet('retreat'); // no Fled button on the card: its window
     await sauron.click(MODAL + ' button', '=Retreated');
     await sauron.waitText('Failed courage');
     await eowyn.goto(`/campaigns/${cid}/companies/${sCo}`);
@@ -172,7 +169,7 @@ export default async function (h) {
     if (streamMode === 'refuse') return req.respond({ status: 429, contentType: 'text/plain', headers: { 'Retry-After': '10' }, body: 'busy' });
     return req.continue();
   });
-  const might = (v) => `[aria-label="Might of Rider of Rohan: ${v} of 1, tap to set"]`;
+  const might = (v) => `[aria-label="Might of Rider of Rohan: ${v} of 1"]`;
 
   await h.step('live: a cut stream shows Reconnecting and the page catches up when it is back', async () => {
     you.allow.push(/connectionfailed|events/i);

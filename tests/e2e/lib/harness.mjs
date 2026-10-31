@@ -29,6 +29,25 @@ export class Session {
     await this.page.waitForFunction((t) => !document.body.innerText.includes(t), { timeout }, text)
       .catch(() => { throw new Error(`text still present after ${timeout} ms: "${text}"`); });
   }
+  // Retreated and Died have no button on a live card: open their window the way the card's Wounded milestone opens its own (the same sheet
+  // route with another kind), through htmx in the page. unitID: a field unit of the page's company; by default the first one.
+  async liveSheet(kind, unitID) {
+    await this.page.evaluate((kind, id) => {
+      const btn = [...document.querySelectorAll('main .unit-slot button[hx-get$="/sheet/wound"]')].find((b) => id == null || b.closest('.unit-slot').dataset.unitId === String(id));
+      if (!btn) throw new Error(`no field unit ${id ?? ''} with a Wounded milestone`);
+      htmx.ajax('GET', btn.getAttribute('hx-get').replace(/\/wound$/, `/${kind}`), { target: '#modal-body', swap: 'innerHTML' });
+      window.dispatchEvent(new CustomEvent('open-modal'));
+    }, kind, unitID ?? null);
+  }
+  // The mount switch has no button on a live card for now (a GitHub issue brings it back): send its action as that button did, to the
+  // actions route the milestones post to. unitID: by default the first field unit.
+  async liveMount(mounted, unitID) {
+    await this.page.evaluate((mounted, id) => {
+      const btn = [...document.querySelectorAll('main .unit-slot button[aria-label^="Got the objective ("]')].find((b) => id == null || b.closest('.unit-slot').dataset.unitId === String(id));
+      if (!btn) throw new Error(`no field unit ${id ?? ''} with an Objective milestone`);
+      htmx.ajax('POST', btn.getAttribute('hx-post'), { target: '#live-zones', swap: 'outerHTML', values: { kind: 'mount', unit: btn.closest('.unit-slot').dataset.unitId, mounted: mounted ? '1' : '0' } });
+    }, mounted, unitID ?? null);
+  }
   // Clicks the first visible element matching css whose text contains `text` (exact when text starts with =).
   // A swap can replace the element between finding it and pressing it ("Node is detached"): find it again, as a person would.
   async click(css, text, opts = {}) {

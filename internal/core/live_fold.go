@@ -77,6 +77,14 @@ func FoldLiveWith(inits []LiveUnitInit, entries []LiveEntry, cfg LiveFoldConfig)
 	s := newLiveState(inits, cfg)
 	for _, e := range entries {
 		s.apply(e.Action, e.CompanyID, e.ByUserID)
+		if u := s.units[e.Action.UnitID]; u != nil {
+			switch e.Action.Kind {
+			case LiveFate:
+				u.FateEntry = e.ID
+			case LiveBroken:
+				u.BrokenEntry = e.ID
+			}
+		}
 	}
 	return s
 }
@@ -139,6 +147,7 @@ func (s LiveState) Unit(id int64) (LiveUnit, bool) {
 		out.Gains[k] = v
 	}
 	out.Loaned, out.UsedItems = slices.Clone(u.Loaned), slices.Clone(u.UsedItems)
+	out.Objective = s.objective[id]
 	return out, true
 }
 
@@ -331,8 +340,7 @@ func (s LiveState) apply(a LiveAction, byCompany, voter int64) {
 			}
 		}
 	case LiveFate:
-		n := min(max(a.Count, 1), u.Fate.Current)
-		u.Fate.Current -= n
+		u.Fate.Current -= min(a.Count, u.Fate.Current) // Count 0 only marks the milestone: the Fate tracker is set by hand
 		u.Gains[GainFatePrevented] = 1
 	case LiveBroken:
 		u.Gains[GainBrokenPassed] = 1
@@ -520,13 +528,17 @@ func (s LiveState) CheckAs(a LiveAction, byCompany int64, voter LiveVoter) (reso
 		if err := inField(); err != nil {
 			return a, nil, "", err
 		}
-		if a.Count < 1 || a.Count > 9 {
-			return a, nil, "", invalid("Fate points spent are from 1 to 9.")
+		if a.Count < 0 || a.Count > 9 {
+			return a, nil, "", invalid("Fate points spent are from 0 to 9.")
 		}
 		if u.Fate.Current < a.Count {
 			return a, nil, "", Refuse("%s has %d Fate left.", who, u.Fate.Current)
 		}
-		text = fmt.Sprintf("%s spent Fate (%d left)", who, u.Fate.Current-a.Count)
+		if a.Count == 0 {
+			text = who + " passed a Fate roll"
+		} else {
+			text = fmt.Sprintf("%s spent Fate (%d left)", who, u.Fate.Current-a.Count)
+		}
 	case LiveBroken:
 		if err := inField(); err != nil {
 			return a, nil, "", err

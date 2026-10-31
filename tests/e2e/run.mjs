@@ -6,7 +6,7 @@ import { Harness, clearOut } from './lib/harness.mjs';
 import { readdirSync, readFileSync } from 'node:fs';
 import { loadGroups, checkGroups } from './lib/groups.mjs';
 import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const args = process.argv.slice(2);
 const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : process.env.E2E_ONLY;
@@ -41,7 +41,7 @@ try {
   const files = readdirSync(dir).filter((f) => f.endsWith('.mjs') && (!only || f.includes(only)) && (!members || members.includes(f.replace(/\.mjs$/, '')))).sort();
   const shared = {}; // flows hand objects to later flows (the campaign and the match they created)
   for (const f of files) {
-    const mod = await import(join(dir, f));
+    const mod = await import(pathToFileURL(join(dir, f)).href); // a file URL: a bare Windows path is not one
     console.log(`\n${f.replace(/\.mjs$/, '')}`);
     try { await mod.default(h, { shared, env }); }
     catch (e) { console.log(`  FAIL  ${f}: ${e.stack || e}`); h.results.push({ name: f, ok: false, error: String(e.message) }); await h.dump(f); }

@@ -72,7 +72,7 @@ func TestJoinPage(t *testing.T) {
 	}
 	f.camp.EXPECT().Join(gomock.Any(), frodo, "tok-123").Return(int64(7), nil)
 	rec = f.do(f.signedIn(form("/join/tok-123", nil)))
-	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/campaigns/7" {
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/campaigns/7/my-company" {
 		t.Errorf("joined: %d %q", rec.Code, rec.Header().Get("Location"))
 	}
 	f.camp.EXPECT().Join(gomock.Any(), frodo, "old").Return(int64(0), core.ErrNotFound)
@@ -86,7 +86,7 @@ func TestJoinPageForAMemberAndForAnInvalidLink(t *testing.T) {
 	f := newFixture(t, Config{})
 	f.camp.EXPECT().Preview(gomock.Any(), frodo, "tok").Return(core.InvitePreview{CampaignID: 7, CampaignName: "Rohan Rising", Member: true}, nil)
 	body := f.do(f.signedIn(httpGet("/join/tok"))).Body.String()
-	if !strings.Contains(body, "already in") || !strings.Contains(body, `href="/campaigns/7"`) || strings.Contains(body, "Join the campaign") {
+	if !strings.Contains(body, "already in") || !strings.Contains(body, `href="/campaigns/7/my-company"`) || strings.Contains(body, "Join the campaign") {
 		t.Errorf("a member is told so and gets a link: %s", body)
 	}
 	f.camp.EXPECT().Preview(gomock.Any(), frodo, "old").Return(core.InvitePreview{}, core.ErrNotFound)

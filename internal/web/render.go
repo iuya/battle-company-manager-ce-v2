@@ -95,7 +95,7 @@ type navLink struct{ Href, Label, Prefix string }
 func navItem(href, label, prefix string) navLink { return navLink{href, label, prefix} }
 
 func newRenderer() (*renderer, error) {
-	base, err := template.New("").Funcs(template.FuncMap{"upfirst": sentence, "kwRow": keywordRow, "kwMeta": keywordMeta, "kwLabel": keywordLabel, "auraRow": auraRow, "auraText": auraText, "auraLetter": auraLetter, "auraThick": auraThick, "auraOff": auraOff, "auraMeta": auraMeta, "auraLabel": auraLabel, "joinNames": joinNames, "loanedGroups": loanedGroups, "navItem": navItem, "inc": func(i int) int { return i + 1 }, "dec": func(i int) int { return i - 1 }, "ints": intsCSV, "count": core.Count, "static": staticURL, "seq": seq, "rollName": rollName, "pairLabel": pairLabel, "dieLabel": dieLabel, "steps": adjustSteps, "perkSteps": perkSteps, "dict": func(kv ...any) map[string]any {
+	base, err := template.New("").Funcs(template.FuncMap{"upfirst": sentence, "kwRow": keywordRow, "kwMeta": keywordMeta, "kwLabel": keywordLabel, "auraRow": auraRow, "auraText": auraText, "auraLetter": auraLetter, "auraThick": auraThick, "auraOff": auraOff, "auraMeta": auraMeta, "auraLabel": auraLabel, "joinNames": joinNames, "loanedGroups": loanedGroups, "navItem": navItem, "inc": func(i int) int { return i + 1 }, "dec": func(i int) int { return i - 1 }, "xpAhead": xpAhead, "ints": intsCSV, "count": core.Count, "static": staticURL, "seq": seq, "rollName": rollName, "pairLabel": pairLabel, "dieLabel": dieLabel, "steps": adjustSteps, "perkSteps": perkSteps, "dict": func(kv ...any) map[string]any {
 		m := map[string]any{}
 		for i := 0; i+1 < len(kv); i += 2 {
 			m[kv[i].(string)] = kv[i+1]
@@ -106,7 +106,7 @@ func newRenderer() (*renderer, error) {
 			return 0
 		}
 		return min(100, used*100/max)
-	}, "gear": func(v any) []string { l, _ := v.([]string); return l }, "join": strings.Join, "statTip": statTip, "list": func(v ...string) []string { return v }, "liveStat": func(name string) bool { return slices.Contains([]string{"Wounds", "Might", "Will", "Fate"}, name) }, "hasScope": func(opts []core.CampaignOption, scope string) bool {
+	}, "gear": func(v any) []string { l, _ := v.([]string); return l }, "join": strings.Join, "statTip": statTip, "list": func(v ...string) []string { return v }, "pathLook": pathLook, "iconHref": iconHref, "kindIcon": kindIcon, "roleLook": roleLook, "gearLook": gearLook, "itemLook": itemLook, "liveStat": func(name string) bool { return slices.Contains([]string{"Wounds", "Might", "Will", "Fate"}, name) }, "hasScope": func(opts []core.CampaignOption, scope string) bool {
 		return slices.ContainsFunc(opts, func(o core.CampaignOption) bool { return o.Scope == scope })
 	}, "split": strings.Split, "jsstr": jsstr, "fmtDate": timeFuncs(time.UTC)["fmtDate"], "fmtDateShort": timeFuncs(time.UTC)["fmtDateShort"], "fmtDateTime": timeFuncs(time.UTC)["fmtDateTime"], "navTab": func(id int64, tab, label string) navTab { return navTab{id, tab, label} }}).ParseFS(assets, "templates/layouts/*.gohtml", "templates/partials/*.gohtml")
 	if err != nil {

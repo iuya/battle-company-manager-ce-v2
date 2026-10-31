@@ -97,7 +97,7 @@ func TestCheckRefusesImpossibleStates(t *testing.T) {
 		"unknown stat":      {LiveAction{Kind: LiveStatChange, UnitID: 1, Stat: "luck", Delta: 1}, 1, ErrInvalidLive},
 		"fate at 0":         {LiveAction{Kind: LiveFate, UnitID: 2, Count: 1}, 1, ErrRefused},
 		"fate over current": {LiveAction{Kind: LiveFate, UnitID: 1, Count: 3}, 1, ErrRefused},
-		"fate count 0":      {LiveAction{Kind: LiveFate, UnitID: 1}, 1, ErrInvalidLive},
+		"fate count -1":     {LiveAction{Kind: LiveFate, UnitID: 1, Count: -1}, 1, ErrInvalidLive},
 		"absent unit":       {LiveAction{Kind: LiveBroken, UnitID: 13}, 2, ErrRefused},
 		"unknown unit":      {LiveAction{Kind: LiveBroken, UnitID: 99}, 1, ErrRefused},
 		"other company":     {LiveAction{Kind: LiveBroken, UnitID: 10}, 1, ErrRefused},
@@ -200,6 +200,11 @@ func TestFateBrokenRetreatDiedMountReturn(t *testing.T) {
 	u := unit(t, s, 1)
 	if u.Fate.Current != 1 || u.Gains[GainFatePrevented] != 1 || u.Gains[GainBrokenPassed] != 1 || u.Mounted || !u.HasMount {
 		t.Errorf("%+v", u)
+	}
+	// Count 0 only marks the milestone, even with no Fate left
+	_, s = play(t, step{LiveAction{Kind: LiveStatChange, UnitID: 1, Stat: "fate", Set: new(int)}, 1}, step{LiveAction{Kind: LiveFate, UnitID: 1}, 1})
+	if u := unit(t, s, 1); u.Fate.Current != 0 || u.Gains[GainFatePrevented] != 1 {
+		t.Errorf("fate mark: %+v", u)
 	}
 	_, s = play(t, step{LiveAction{Kind: LiveMount, UnitID: 1, Mounted: false}, 1}, step{LiveAction{Kind: LiveMount, UnitID: 1, Mounted: true}, 1})
 	if !unit(t, s, 1).Mounted {
@@ -430,6 +435,40 @@ func TestMVPVotesTallyAndUndo(t *testing.T) {
 	for user, want := range map[int64]bool{100: true, 20: false, 99: true} {
 		if got := CanUndoEntry(User{ID: user}, e, owners, 99); got != want {
 			t.Errorf("user %d: %v", user, got)
+		}
+	}
+}
+
+func TestFoldKeepsTheLastFateAndBrokenEntryOfAUnit(t *testing.T) {
+	entries, s := play(t,
+		step{LiveAction{Kind: LiveFate, UnitID: 1, Count: 1}, 1},
+		step{LiveAction{Kind: LiveBroken, UnitID: 1}, 1},
+		step{LiveAction{Kind: LiveFate, UnitID: 1, Count: 1}, 1},
+	)
+	if u := unit(t, s, 1); u.FateEntry != 3 || u.BrokenEntry != 2 {
+		t.Errorf("the last entries: %+v", u)
+	}
+	if u := unit(t, FoldLive(liveInits(), entries[:1]), 1); u.FateEntry != 1 || u.BrokenEntry != 0 {
+		t.Errorf("with the later ones undone, the earlier fate entry: %+v", u)
+	}
+}
+
+func TestMatchExperience(t *testing.T) {
+	amounts := map[string]int{participatedKey: 1, GainWoundedEnemy: 1, GainSlainHeroMons: 2, GainObjective: 3, GainMVP: 5}
+	amount := func(k string) int { return amounts[k] }
+	cases := []struct {
+		name string
+		u    LiveUnit
+		want int
+	}{
+		{"taking part only", LiveUnit{}, 1},
+		{"a flag and a repeated count", LiveUnit{Gains: map[string]int{GainWoundedEnemy: 1, GainSlainHeroMons: 2}}, 1 + 1 + 4},
+		{"a gain the file does not pay", LiveUnit{Gains: map[string]int{GainFatePrevented: 1}}, 1},
+		{"the objective", LiveUnit{Objective: true}, 1 + 3},
+	}
+	for _, c := range cases {
+		if got := MatchExperience(c.u, amount); got != c.want {
+			t.Errorf("%s: got %d, want %d", c.name, got, c.want)
 		}
 	}
 }

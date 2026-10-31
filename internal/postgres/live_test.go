@@ -151,6 +151,15 @@ func TestLiveInitReadLog(t *testing.T) {
 	if log, _ = live.Log(w.ctx, w.camp, w.match.ID, 0, 1); len(log) != 1 || log[0].Seq != 2 {
 		t.Fatalf("log limit: %+v", log)
 	}
+	if log, err = live.UnitLog(w.ctx, w.camp, w.match.ID, ua, core.LiveWound); err != nil || len(log) != 1 || log[0].ID != e2.ID {
+		t.Fatalf("unit log: the unit's entries of the kind only: %+v, %v", log, err)
+	}
+	if log, _ = live.UnitLog(w.ctx, w.camp, w.match.ID, w.unitsOf[w.b.ID][1], core.LiveWound); len(log) != 0 {
+		t.Fatalf("unit log of another unit: %+v", log)
+	}
+	if _, err := live.UnitLog(w.ctx, w.camp+1000, w.match.ID, ua, core.LiveWound); !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("unit log of another campaign's match: %v", err)
+	}
 
 	undone, err := live.Update(w.ctx, w.camp, w.match.ID, w.org, func(s core.LiveSnapshot) (core.LiveChange, error) {
 		return core.LiveChange{Undo: s.Entries[0].ID}, nil

@@ -132,9 +132,8 @@ export default async function (h) {
   await h.step('rule targets: "Wounded a unit" lists the enemy units with their keywords and the markers', async () => {
     await gimli.goto(`/campaigns/${cid}/companies/${dCo}`);
     await gimli.waitText('is running');
-    const idx = await gimli.page.evaluate(() => [...document.querySelectorAll('main button')].map((b, i) => [b, i]).filter(([b]) => b.innerText.trim() === 'Actions').map(([, i]) => i)[0]);
+    const idx = await gimli.page.evaluate(() => [...document.querySelectorAll('main button')].map((b, i) => [b, i]).filter(([b]) => b.getAttribute('aria-label')?.startsWith('Wounded an enemy (')).map(([, i]) => i)[0]);
     await (await gimli.page.$$('main button'))[idx].click();
-    await gimli.click(MODAL + ' button', 'Wounded a unit');
     await gimli.waitText('Pick who was wounded');
     const rows = await gimli.page.$$eval(MODAL + ' [role=radiogroup] li', (l) => l.map((li) => ({
       name: li.querySelector('.font-medium')?.textContent.trim(), kws: [...li.querySelectorAll('[data-keywords-flat] .kw-chip')].map((c) => c.textContent.trim()),
@@ -159,15 +158,12 @@ export default async function (h) {
     const victim = before[0].title;
     await radagast.goto(`/campaigns/${cid}/companies/${mCo}`);
     await radagast.waitText('is running');
-    const idx = await radagast.page.evaluate((title) => {
+    const id = await radagast.page.evaluate((title) => {
       const slots = [...document.querySelectorAll('#live-zones .unit-slot')];
-      const slot = slots.find((u) => (u.querySelector('h3')?.innerText || '').trim() === title && u.querySelector('[data-keywords] li.kw-chip')?.textContent.includes('Orc'));
-      const btn = [...slot.querySelectorAll('button')].find((b) => b.innerText.trim() === 'Actions');
-      return [...document.querySelectorAll('main button')].indexOf(btn);
+      return slots.find((u) => (u.querySelector('h3')?.innerText || '').trim() === title && u.querySelector('[data-keywords] li.kw-chip')?.textContent.includes('Orc'))?.dataset.unitId;
     }, victim);
-    assert.ok(idx >= 0, 'the Actions button of the Orc');
-    await (await radagast.page.$$('main button'))[idx].click();
-    await radagast.click(MODAL + ' button', 'Retreated');
+    assert.ok(id, 'the card of the Orc');
+    await radagast.liveSheet('retreat', id); // no Fled button on the card: its window
     await radagast.click(MODAL + ' button', '=Retreated');
     await radagast.waitText('Failed courage');
     // Gimli's page is refreshed by the event stream: one marker fewer, the rest are still there

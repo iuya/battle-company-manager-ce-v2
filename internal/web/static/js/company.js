@@ -183,9 +183,21 @@ document.addEventListener('alpine:init', () => {
         this.cancelFormation();
       }
     },
-    // Renaming a unit: double-click its name, or the pencil on the expanded card.
+    // Renaming a unit: the pencil after its name, or a double-click on the name. It always opens on the saved name, never on
+    // what was typed and given up before; a click elsewhere saves a change and just closes otherwise.
     editing: null,
-    async editName(id) { this.hideTip(); this.editing = id; await this.$nextTick(); const i = document.getElementById('rename-' + id); if (i) { i.focus(); i.select(); } },
+    async editName(id) {
+      this.hideTip();
+      const i = document.getElementById('rename-' + id);
+      if (i) i.value = i.defaultValue;
+      this.editing = id;
+      await this.$nextTick();
+      if (i) { i.focus(); i.select(); }
+    },
+    leaveName(form) {
+      const i = form.elements.name;
+      if (i.value !== i.defaultValue) form.requestSubmit(); else this.editing = null;
+    },
     openModal() { this.hideTip(); this.modal = true; },
     closeModal() { this.modal = false; },
 

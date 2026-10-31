@@ -26,6 +26,8 @@ type liveMatches interface {
 	Undo(ctx context.Context, user core.User, id, matchID, entryID, companyID int64) (core.LiveCompany, error)
 	// Log lists the not-undone entries newest first; before is a seq to page from (0: the newest). It also works after the match.
 	Log(ctx context.Context, user core.User, id, matchID, before int64, limit int) ([]core.LiveEntry, error)
+	// UnitLog lists a unit's not-undone entries of one kind, newest first, like Log.
+	UnitLog(ctx context.Context, user core.User, id, matchID, unitID int64, kind core.LiveKind) ([]core.LiveEntry, error)
 	// Subscribe feeds the SSE handler; core.ErrRefused at the stream caps.
 	Subscribe(ctx context.Context, user core.User, id, matchID int64) (core.LiveStream, error)
 	// LiveGeneration names the state of an open match that the cards of its page show; the page reads it before it builds them and sends
@@ -436,7 +438,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/units/{unit}/equipment", s.protected(s.once(s.handleBuyEquipment)))
 	mux.HandleFunc("GET /campaigns/{id}/armory", s.protected(readOnly(s.handleArmory)))
 	mux.HandleFunc("POST /campaigns/{id}/armory/buy", s.protected(s.once(s.handleArmoryBuy)))
-	mux.HandleFunc("GET /campaigns/{id}/companies", s.protected(readOnly(s.handleCampaign("campaign_companies", "companies"))))
+	mux.HandleFunc("GET /campaigns/{id}/companies", s.protected(func(w http.ResponseWriter, r *http.Request) { // the old Companies tab: its list is the Rankings now
+		http.Redirect(w, r, "/campaigns/"+r.PathValue("id")+"/rankings", http.StatusSeeOther)
+	}))
 	mux.HandleFunc("GET /campaigns/{id}/rankings", s.protected(readOnly(s.handleCampaign("campaign_rankings", "rankings"))))
 	mux.HandleFunc("GET /campaigns/{id}/matches", s.protected(readOnly(s.handleCampaign("campaign_matches", "matches"))))
 	mux.HandleFunc("GET /campaigns/{id}/company/new", s.protected(s.handleNewCompanyPage))

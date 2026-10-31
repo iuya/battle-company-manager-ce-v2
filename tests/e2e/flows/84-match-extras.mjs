@@ -106,9 +106,7 @@ export default async function (h) {
     const kw0 = await kwOf();
     assert.equal(kw0.row[0], 'Man', `the Rider's keywords start with the race: ${kw0.row}`);
     assert.ok(!kw0.all.some((k) => ['Cavalry', 'Mount', 'Hero', 'Warrior', 'Infantry'].includes(k)) && !kw0.groups.some((g) => g.startsWith('Mount')), `no obvious keyword: ${kw0.all}`);
-    await eowyn.click('main button', '=Actions');
-    await eowyn.click(MODAL + ' button', 'Mount removed');
-    await eowyn.click(MODAL + ' button', '=Confirm');
+    await eowyn.liveMount(false); // no button on the card for now: the action it sent
     await eowyn.waitText('On foot');
     const after = await cards(eowyn);
     assert.equal(after.filter((c) => c.onFoot).length, 1, 'one unit is on foot');
