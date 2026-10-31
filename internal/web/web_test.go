@@ -834,7 +834,7 @@ func TestNavCampaignsHaveTheirPages(t *testing.T) {
 func TestOldCompaniesTabRedirectsToTheRankings(t *testing.T) {
 	f := newFixture(t, Config{})
 	rec := f.do(f.signedIn(httpGet("/campaigns/7/companies")))
-	if rec.Code != http.StatusMovedPermanently || rec.Header().Get("Location") != "/campaigns/7/rankings" {
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/campaigns/7/rankings" {
 		t.Errorf("got %d -> %q", rec.Code, rec.Header().Get("Location"))
 	}
 }
