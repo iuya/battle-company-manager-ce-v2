@@ -13,6 +13,8 @@ type loginThrottle struct {
 	window time.Duration
 	fails  map[string][]time.Time
 	now    func() time.Time
+	// perAccount and perAddress are how many failures in the window block one key or one whole address.
+	perAccount, perAddress int
 }
 
 const (
@@ -21,8 +23,11 @@ const (
 	maxThrottleKeys    = 50_000 // memory bound of the table
 )
 
-func newLoginThrottle() *loginThrottle {
-	return &loginThrottle{window: 10 * time.Minute, fails: map[string][]time.Time{}, now: time.Now}
+func newLoginThrottle() *loginThrottle { return newThrottle(maxFailsPerAccount, maxFailsPerAddress) }
+
+// newThrottle makes a throttle with its own limits (the registration and recovery pages use the login ones, on their own tables).
+func newThrottle(perAccount, perAddress int) *loginThrottle {
+	return &loginThrottle{window: 10 * time.Minute, fails: map[string][]time.Time{}, now: time.Now, perAccount: perAccount, perAddress: perAddress}
 }
 
 func keys(ip, email string) (account, address string) {
@@ -50,7 +55,7 @@ func (t *loginThrottle) blocked(ip, email string) bool {
 	account, address := keys(ip, email)
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return len(t.prune(account)) >= maxFailsPerAccount || len(t.prune(address)) >= maxFailsPerAddress
+	return len(t.prune(account)) >= t.perAccount || len(t.prune(address)) >= t.perAddress
 }
 
 func (t *loginThrottle) fail(ip, email string) {

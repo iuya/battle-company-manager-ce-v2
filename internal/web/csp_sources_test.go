@@ -62,6 +62,9 @@ func TestHelperPopupScriptFitsThePolicy(t *testing.T) {
 	if strings.Count(src, "innerHTML") != 1 {
 		t.Error("concepts.js must insert markup in one place only: the popup html the server made")
 	}
+	if !slices.Contains(bundleScripts, "js/copylink.js") {
+		t.Error("copylink.js is not in bundleScripts")
+	}
 	if !slices.Contains(bundleScripts, "js/concepts.js") {
 		t.Error("concepts.js is not in bundleScripts")
 	}

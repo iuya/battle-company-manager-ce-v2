@@ -8,16 +8,18 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// The administration section (docs/admin.md): superusers only, a 404 for everybody else (requireSuperuser), two pages
-// under one sub-navigation. Every action is an htmx form that swaps its own row or card.
+// The administration section (docs/admin.md): Users and Invitations for administrators and superusers (requireAdmin), Rules files
+// and the recovery links for superusers only (requireSuperuser); a 404 for everybody else, under one sub-navigation. Every action
+// is an htmx form that swaps its own row or card.
 
 type adminBase struct {
 	pageBase
-	Section string // "users" or "rulesets": the current tab
+	Section string // "users", "invitations" or "rulesets": the current tab
 }
 
 func (s *Server) adminBase(r *http.Request, section string) adminBase {
@@ -55,6 +57,7 @@ func (l adminUserList) NextURL() string {
 // refusal are what was submitted) and the notice or error of the last save.
 type adminUserRow struct {
 	U         core.AdminUser
+	Viewer    core.User // who looks at the page: decides which controls the row offers
 	Self      bool
 	Role      core.Role
 	CanCreate bool
@@ -66,6 +69,47 @@ type adminUserRow struct {
 	HandoverOpen  bool
 	HandoverMsg   string
 	HandoverError bool
+	// Recovery link card (superusers): the last request's outcome, and the one-time message of a link just made.
+	RecoveryOpen bool
+	RecoveryMsg  string
+	RecoveryErr  bool
+	Link         *shownLink
+}
+
+// CanOrganiser says the Organiser switch is the viewer's to use on this account: administrators and superusers, on plain
+// users and organisers (the service decides again).
+func (r adminUserRow) CanOrganiser() bool {
+	return !r.U.Closed && r.Viewer.MayAdminister() && (r.U.Role == core.RoleUser || r.CanAdministrator())
+}
+
+// CanAdministrator says the Administrator switch is the viewer's to use: superusers, on plain users, organisers and administrators.
+func (r adminUserRow) CanAdministrator() bool {
+	return !r.U.Closed && r.Viewer.IsSuperuser() && (r.U.Role == core.RoleUser || r.U.Role == core.RoleAdmin)
+}
+
+// HasForm is whether the row offers the permission form at all.
+func (r adminUserRow) HasForm() bool { return r.CanOrganiser() || r.CanAdministrator() }
+
+// PermissionNote is the muted line of an open account the viewer cannot change.
+func (r adminUserRow) PermissionNote() string {
+	switch {
+	case r.U.Closed || r.HasForm():
+		return ""
+	case r.U.Role == core.RoleSuperuser && r.Viewer.IsSuperuser():
+		return "Set from the console (make grant)."
+	case r.U.Role == core.RoleSuperuser:
+		return "Superusers are set from the console."
+	default:
+		return "Administrators are managed by superusers."
+	}
+}
+
+// CanRecover says the row offers recovery links: superusers, for any other open account.
+func (r adminUserRow) CanRecover() bool { return !r.U.Closed && r.Viewer.IsSuperuser() && !r.Self }
+
+// RecoveryPending is whether the account has a live link.
+func (r adminUserRow) RecoveryPending() bool {
+	return r.U.Recovery != nil && r.U.Recovery.State == core.RecoveryPending
 }
 
 // withCandidates loads the possible new organisers of the campaigns the row's user organises.
@@ -83,8 +127,8 @@ func (s *Server) withCandidates(r *http.Request, row adminUserRow) (adminUserRow
 	return row, nil
 }
 
-func newUserRow(u core.AdminUser, self int64) adminUserRow {
-	return adminUserRow{U: u, Self: u.ID == self, Role: u.Role, CanCreate: u.CanCreateCampaigns || u.Role != core.RoleUser}
+func newUserRow(u core.AdminUser, viewer core.User) adminUserRow {
+	return adminUserRow{U: u, Viewer: viewer, Self: u.ID == viewer.ID, Role: u.Role, CanCreate: u.CanCreateCampaigns}
 }
 
 func (s *Server) userList(r *http.Request, q string, offset int) (adminUserList, bool, error) {
@@ -95,7 +139,7 @@ func (s *Server) userList(r *http.Request, q string, offset int) (adminUserList,
 	}
 	list := adminUserList{Q: q, Total: total}
 	for _, u := range users {
-		row, err := s.withCandidates(r, newUserRow(u, me.ID))
+		row, err := s.withCandidates(r, newUserRow(u, me))
 		if err != nil {
 			return adminUserList{}, false, err
 		}
@@ -127,6 +171,30 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 	s.render.page(w, r, http.StatusOK, "admin_users", adminUsersView{adminBase: s.adminBase(r, "users"), Q: q, List: list})
 }
 
+// userRowFor looks the account up for a row to draw again after an action: the email the form carries (display only) narrows the
+// list, an unknown id is a 404 (ok false, the answer is written).
+func (s *Server) userRowFor(w http.ResponseWriter, r *http.Request, me core.User, id int64) (adminUserRow, bool) {
+	rows, _, err := s.auth.ListUsers(r.Context(), me, r.PostFormValue("email"), 200, 0)
+	if s.fail(w, r, err) {
+		return adminUserRow{}, false
+	}
+	for _, u := range rows {
+		if u.ID != id {
+			continue
+		}
+		row, err := s.withCandidates(r, newUserRow(u, me))
+		if s.fail(w, r, err) {
+			return adminUserRow{}, false
+		}
+		return row, true
+	}
+	s.notFound(w, r)
+	return adminUserRow{}, false
+}
+
+// handleAdminPermissions saves the two switches of the permission form. The form posts role=admin when the Administrator switch
+// is on and nothing otherwise; whatever else arrives (a forged role=superuser) goes to the service, which answers 403 for every
+// cell of the permission matrix the actor may not use. The Organiser switch is can_create.
 func (s *Server) handleAdminPermissions(w http.ResponseWriter, r *http.Request) {
 	me := *userFrom(r.Context())
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
@@ -135,44 +203,105 @@ func (s *Server) handleAdminPermissions(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	role := core.Role(r.PostFormValue("role"))
+	if role == "" {
+		role = core.RoleUser
+	}
 	can := r.PostFormValue("can_create") == "on" && role == core.RoleUser
-	// The row to draw is looked up by the email the form carries (display only); an unknown id is a 404.
-	find := func() (core.AdminUser, bool, error) {
-		rows, _, err := s.auth.ListUsers(r.Context(), me, r.PostFormValue("email"), 200, 0)
-		if err != nil {
-			return core.AdminUser{}, false, err
-		}
-		for _, u := range rows {
-			if u.ID == id {
-				return u, true, nil
-			}
-		}
-		return core.AdminUser{}, false, nil
-	}
 	err = s.auth.SetUserPermissions(r.Context(), me, id, role, can)
-	u, ok, ferr := find()
-	if ferr != nil {
-		s.fail(w, r, ferr)
+	if errors.Is(err, core.ErrForbidden) || (err != nil && !errors.Is(err, core.ErrRefused) && !errors.Is(err, core.ErrInvalidUser)) {
+		s.fail(w, r, err)
 		return
 	}
+	row, ok := s.userRowFor(w, r, me, id)
 	if !ok {
-		s.notFound(w, r)
 		return
 	}
-	row, rerr := s.withCandidates(r, newUserRow(u, me.ID))
-	if s.fail(w, r, rerr) {
-		return
-	}
-	switch {
-	case errors.Is(err, core.ErrRefused), errors.Is(err, core.ErrInvalidUser):
-		row.Role, row.CanCreate, row.Open, row.Err = role, can || role != core.RoleUser, true, reason(err)
+	if err != nil { // a refusal of the state (closed account, last superuser) or an unknown role: the form stays open with what was sent
+		row.Role, row.CanCreate, row.Open, row.Err = role, can, true, reason(err)
 		s.render.partial(w, http.StatusUnprocessableEntity, "admin_users", "admin_user_row", row)
-		return
-	case s.fail(w, r, err):
 		return
 	}
 	row.Notice = "Saved"
 	s.render.partial(w, http.StatusOK, "admin_users", "admin_user_row", row)
+}
+
+// shownLink is a link that was just made: the message to copy, shown once (docs/auth.md, "Single-use links").
+type shownLink struct {
+	Message string
+	Expires time.Time
+}
+
+// absoluteURL is a path of this site as a full address, for the messages an administrator copies (the scheme follows the proxy).
+func absoluteURL(r *http.Request, path string) string {
+	scheme := "http"
+	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	return scheme + "://" + r.Host + path
+}
+
+// noStore marks an answer that carries a secret: nothing keeps a copy of it.
+func noStore(w http.ResponseWriter) { w.Header().Set("Cache-Control", "no-store") }
+
+// recoveryTTL reads the expiry select of the recovery card: a number of hours, 0 for the service's default.
+func recoveryTTL(r *http.Request) time.Duration {
+	h, _ := strconv.Atoi(r.PostFormValue("hours"))
+	return time.Duration(max(h, 0)) * time.Hour
+}
+
+// handleAdminRecovery makes a recovery link for an account and answers the row with the message to hand over (superusers only).
+func (s *Server) handleAdminRecovery(w http.ResponseWriter, r *http.Request) {
+	me := *userFrom(r.Context())
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		s.notFound(w, r)
+		return
+	}
+	link, err := s.recovery.Generate(r.Context(), me, id, recoveryTTL(r))
+	s.recoveryAnswer(w, r, me, id, err, func(row *adminUserRow) {
+		row.Link = &shownLink{Message: recoveryMessage(r, link), Expires: link.ExpiresAt}
+		noStore(w)
+	})
+}
+
+// handleAdminRecoveryRevoke revokes the account's pending link (superusers only).
+func (s *Server) handleAdminRecoveryRevoke(w http.ResponseWriter, r *http.Request) {
+	me := *userFrom(r.Context())
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		s.notFound(w, r)
+		return
+	}
+	err = s.recovery.Revoke(r.Context(), me, id)
+	s.recoveryAnswer(w, r, me, id, err, func(row *adminUserRow) { row.RecoveryMsg = "The link is revoked." })
+}
+
+// recoveryAnswer draws the row again after a recovery action: a refusal (own account, closed account, no pending link, expiry out of
+// range) is a 422 with its reason, the matrix of who may is a 403, success runs ok on the row.
+func (s *Server) recoveryAnswer(w http.ResponseWriter, r *http.Request, me core.User, id int64, err error, ok func(*adminUserRow)) {
+	refused := errors.Is(err, core.ErrRefused) || errors.Is(err, core.ErrInvalidInput)
+	if err != nil && !refused {
+		s.fail(w, r, err)
+		return
+	}
+	row, found := s.userRowFor(w, r, me, id)
+	if !found {
+		return
+	}
+	row.RecoveryOpen = true
+	if refused {
+		row.RecoveryMsg, row.RecoveryErr = reason(err), true
+		s.render.partial(w, http.StatusUnprocessableEntity, "admin_users", "admin_user_row", row)
+		return
+	}
+	ok(&row)
+	s.render.partial(w, http.StatusOK, "admin_users", "admin_user_row", row)
+}
+
+// recoveryMessage is the text a superuser pastes to the person: the link and when it stops working.
+func recoveryMessage(r *http.Request, l core.RecoveryLink) string {
+	return "Open this link to set a new password: " + absoluteURL(r, "/recover/"+url.PathEscape(l.Token)) +
+		"\nIt works once and expires on " + l.ExpiresAt.In(locationFrom(r.Context())).Format("2 January 2006, 15:04") + "."
 }
 
 // ---- Rules files ----
@@ -393,27 +522,16 @@ func (s *Server) handleAdminHandover(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	rows, _, lerr := s.auth.ListUsers(r.Context(), me, r.PostFormValue("email"), 200, 0)
-	if s.fail(w, r, lerr) {
+	row, ok := s.userRowFor(w, r, me, id)
+	if !ok {
 		return
 	}
-	for _, u := range rows {
-		if u.ID != id {
-			continue
-		}
-		row, rerr := s.withCandidates(r, newUserRow(u, me.ID))
-		if s.fail(w, r, rerr) {
-			return
-		}
-		row.HandoverOpen = true
-		status := http.StatusOK
-		if err != nil {
-			status, row.HandoverMsg, row.HandoverError = http.StatusUnprocessableEntity, reason(err), true
-		} else {
-			row.HandoverMsg = "Handed over."
-		}
-		s.render.partial(w, status, "admin_users", "admin_user_row", row)
-		return
+	row.HandoverOpen = true
+	status := http.StatusOK
+	if err != nil {
+		status, row.HandoverMsg, row.HandoverError = http.StatusUnprocessableEntity, reason(err), true
+	} else {
+		row.HandoverMsg = "Handed over."
 	}
-	s.notFound(w, r)
+	s.render.partial(w, status, "admin_users", "admin_user_row", row)
 }

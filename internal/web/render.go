@@ -190,7 +190,9 @@ func (r *renderer) write(w http.ResponseWriter, status int, buf *bytes.Buffer, e
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Add("Vary", "HX-Request, HX-History-Restore-Request") // same URL, different body: keep caches honest
-	w.Header().Set("Cache-Control", "private, no-cache")             // pages depend on who is signed in
+	if w.Header().Get("Cache-Control") == "" {
+		w.Header().Set("Cache-Control", "private, no-cache")
+	} // pages depend on who is signed in
 	w.WriteHeader(status)
 	buf.WriteTo(w)
 }

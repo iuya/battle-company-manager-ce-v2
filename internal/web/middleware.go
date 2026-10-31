@@ -16,6 +16,20 @@ import (
 
 func itoa(i int) string { return strconv.Itoa(i) }
 
+// tokenRoutes are the path prefixes whose next segment is a secret (a campaign invitation, an account invitation, a recovery link).
+var tokenRoutes = []string{"/join/", "/register/", "/recover/"}
+
+// logPath is the path to write in a log line: the route pattern ("/register/{token}") for the routes whose path holds a secret,
+// never the secret itself, otherwise the path as it is.
+func logPath(r *http.Request) string {
+	for _, prefix := range tokenRoutes {
+		if strings.HasPrefix(r.URL.Path, prefix) {
+			return prefix + "{token}"
+		}
+	}
+	return r.URL.Path
+}
+
 type statusRecorder struct {
 	http.ResponseWriter
 	status int
@@ -35,7 +49,7 @@ func logger(next http.Handler) http.Handler {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
-		slog.InfoContext(r.Context(), "request", "method", r.Method, "path", r.URL.Path, "status", rec.status, "took", time.Since(start))
+		slog.InfoContext(r.Context(), "request", "method", r.Method, "path", logPath(r), "status", rec.status, "took", time.Since(start))
 	})
 }
 
@@ -46,7 +60,7 @@ func (s *Server) recoverer(next http.Handler) http.Handler {
 				if v == http.ErrAbortHandler {
 					panic(v) // the handler asked net/http to drop the connection quietly
 				}
-				slog.ErrorContext(r.Context(), "panic", "value", v, "method", r.Method, "path", r.URL.Path, "stack", string(debug.Stack()))
+				slog.ErrorContext(r.Context(), "panic", "value", v, "method", r.Method, "path", logPath(r), "stack", string(debug.Stack()))
 				s.refuse(w, r, http.StatusInternalServerError, "")
 			}
 		}()

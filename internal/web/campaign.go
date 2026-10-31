@@ -45,13 +45,15 @@ func (s *Server) loadCampaign(w http.ResponseWriter, r *http.Request, tab string
 	return campaignBase{pageBase: s.base(r), Campaign: c, Tab: tab}, true
 }
 
-// fail answers 404 for core.ErrNotFound and 500 for anything else; it reports whether err was non-nil.
+// fail answers 404 for core.ErrNotFound, 403 for core.ErrForbidden (with its reason) and 500 for anything else; it reports whether err was non-nil.
 func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) bool {
 	switch {
 	case err == nil:
 		return false
 	case errors.Is(err, core.ErrNotFound):
 		s.notFound(w, r)
+	case errors.Is(err, core.ErrForbidden):
+		s.refuse(w, r, http.StatusForbidden, reason(err))
 	default:
 		s.serverError(w, r, err)
 	}

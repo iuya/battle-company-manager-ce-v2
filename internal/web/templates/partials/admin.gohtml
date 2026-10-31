@@ -3,6 +3,18 @@
 <h1>Administration</h1>
 <nav class="mt-4 flex overflow-x-auto border-b border-line" aria-label="Administration">
   <a href="/admin/users" class="tab" {{if eq .Section "users"}}aria-current="page"{{end}}>Users</a>
-  <a href="/admin/rulesets" class="tab" {{if eq .Section "rulesets"}}aria-current="page"{{end}}>Rules files</a>
+  <a href="/admin/invitations" class="tab" {{if eq .Section "invitations"}}aria-current="page"{{end}}>Invitations</a>
+  {{if .User.IsSuperuser}}<a href="/admin/rulesets" class="tab" {{if eq .Section "rulesets"}}aria-current="page"{{end}}>Rules files</a>{{end}}
 </nav>
+{{end}}
+
+{{/* The message to hand over, ready to copy, in a read-only box (selectable when the clipboard is unavailable). Takes ID, Label, Message, Hint. The component is static/js/copylink.js. */}}
+{{define "copy_message"}}
+<div class="space-y-2" x-data="copyLink" data-copy-message>
+  <div class="field"><label for="{{.ID}}">{{.Label}}</label>
+    <textarea id="{{.ID}}" x-ref="msg" class="input" rows="4" readonly @focus="$el.select()">{{.Message}}</textarea>
+    <p class="hint">{{.Hint}}</p></div>
+  <button type="button" class="btn btn-secondary" @click="copy()"><span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied</span></button>
+  <p class="sr-only" role="status" x-text="copied ? 'Message copied' : ''"></p>
+</div>
 {{end}}

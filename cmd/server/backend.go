@@ -47,13 +47,15 @@ type campaignsFacade struct {
 
 // backend is everything the server and the seed command use, built over one store.
 type backend struct {
-	campaigns  *campaignsFacade
-	store      *postgres.Store
-	rulesets   *core.Rulesets
-	glossaries *core.Glossaries
-	concepts   *core.Concepts // the helper popups' graph (docs/concept-graph.md)
-	auth       *core.Auth
-	liveHub    *core.LiveHub // main starts it (Start) and closes it on shutdown
+	campaigns   *campaignsFacade
+	store       *postgres.Store
+	rulesets    *core.Rulesets
+	glossaries  *core.Glossaries
+	concepts    *core.Concepts // the helper popups' graph (docs/concept-graph.md)
+	auth        *core.Auth
+	invitations *core.AccountInvitations // account invitations (docs/auth.md)
+	recovery    *core.Recovery           // password recovery links
+	liveHub     *core.LiveHub            // main starts it (Start) and closes it on shutdown
 }
 
 // rulesCacheMax is MAX_CACHED_RULESETS as run read it; 0 (the commands that do not load the server config) keeps core's default.
@@ -116,6 +118,7 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 		return nil, err
 	}
 
+	auth := core.NewAuth(store)
 	return &backend{
 		campaigns: &campaignsFacade{
 			campaignsSvc: core.NewCampaigns(camps, comps, store.Rulesets(), rules, log),
@@ -131,12 +134,14 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 			liveSvc:      live,
 			ttsSvc:       core.NewTTSService(camps, comps, rules).WithCatalogue(ttsCatalogue(log)),
 		},
-		liveHub:    hub,
-		store:      store,
-		rulesets:   rulesets,
-		glossaries: core.NewGlossaries(camps, rules, store.Rulesets()),
-		concepts:   core.NewConcepts(rules, curated, log),
-		auth:       core.NewAuth(store),
+		liveHub:     hub,
+		store:       store,
+		rulesets:    rulesets,
+		glossaries:  core.NewGlossaries(camps, rules, store.Rulesets()),
+		concepts:    core.NewConcepts(rules, curated, log),
+		auth:        auth,
+		invitations: core.NewAccountInvitations(store.AccountInvitations()),
+		recovery:    core.NewRecovery(store.Recovery(), auth),
 	}, nil
 }
 

@@ -25,6 +25,7 @@ var publicWrites = map[string]string{
 	"POST /login":             "signing in",
 	"POST /logout":            "signing out of whatever session there is",
 	"PUT /account/appearance": "the theme of a signed-out visitor is kept in a cookie",
+	"POST /register/{token}":  "registering with an account invitation; the token is the credential, throttled",
 }
 
 var routeRe = regexp.MustCompile(`mux\.HandleFunc\("((?:POST|PUT|DELETE|PATCH) [^"]+)", (s\.\w+)\(`)
@@ -73,18 +74,23 @@ func TestAnonymousWritesRedirectToLogin(t *testing.T) {
 	}
 }
 
-func TestOnlySuperusersReachTheAdministrationWrites(t *testing.T) {
+func TestOnlyAdministratorsReachTheAdministrationWrites(t *testing.T) {
 	f := newFixture(t, Config{})
 	checked := 0
 	for _, r := range writeRoutes(t) {
 		isAdminPath := strings.Contains(r.pattern, " /admin/")
-		if isAdminPath != (r.guard == "s.requireSuperuser") {
-			t.Errorf("%s is guarded by %s: /admin/ routes and s.requireSuperuser go together", r.pattern, r.guard)
+		isAdminGuard := r.guard == "s.requireSuperuser" || r.guard == "s.requireAdmin"
+		if isAdminPath != isAdminGuard {
+			t.Errorf("%s is guarded by %s: /admin/ routes and s.requireAdmin or s.requireSuperuser go together", r.pattern, r.guard)
 		}
-		if r.guard != "s.requireSuperuser" {
+		if !isAdminGuard {
 			continue
 		}
-		for _, role := range []core.Role{core.RoleUser, core.RoleAdmin} {
+		roles := []core.Role{core.RoleUser, core.RoleAdmin}
+		if r.guard == "s.requireAdmin" {
+			roles = roles[:1] // administrators reach these (the service decides each cell); the guard keeps everybody else out
+		}
+		for _, role := range roles {
 			user := frodo
 			user.Role = role
 			f.auth.EXPECT().Authenticate(gomock.Any(), "tok-"+string(role)).Return(user, time.Time{}, nil).AnyTimes()

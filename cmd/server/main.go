@@ -114,6 +114,7 @@ func run() error {
 	}
 	srv.SetReadiness(store.Ping)
 	srv.SetConcepts(b.concepts)
+	srv.SetAccountLinks(b.invitations, b.recovery)
 
 	httpSrv := &http.Server{Addr: net.JoinHostPort(cfg.ListenHost, cfg.Port), Handler: handlerWrap(srv.Handler()),
 		// Slow-client protection. The live stream (SSE) lifts the read deadline and sets a write deadline per write, so it is not cut.

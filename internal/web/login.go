@@ -23,8 +23,11 @@ func (s *Server) handleLoginPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	view := loginView{pageBase: s.base(r), Next: safeNext(r.URL.Query().Get("next"))}
-	if r.URL.Query().Get("notice") == "closed" {
+	switch r.URL.Query().Get("notice") {
+	case "closed":
 		view.Notice = "Your account is closed. Your companies stay in their campaigns under “Former player”."
+	case "password-set":
+		view.Notice = "Your password was changed. Sign in with the new one."
 	}
 	s.render.page(w, r, http.StatusOK, "login", view)
 }
