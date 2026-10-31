@@ -170,6 +170,52 @@ func assertQueryCounts(ctx context.Context, t *testing.T, b *backend, q *queryCo
 	within(t, "Match (match page)", matchOne, budget{6, 0})
 	within(t, "CompanyDetail (company page)", detail, budget{7, 0})
 	within(t, "List (home page)", home, budget{3, 0})
+	assertAccountQueryCounts(ctx, t, b, q, admin)
+}
+
+// assertAccountQueryCounts checks what the account links cost: a session answered from the cache costs no statement at all (the
+// pending-recovery fact rides on the cache entry, so nothing is asked per request), and the Users and Invitations pages read their
+// rows (recovery status, creators, accounts made through an invitation) in a fixed number of statements.
+func assertAccountQueryCounts(ctx context.Context, t *testing.T, b *backend, q *queryCounter, admin core.User) {
+	t.Helper()
+	token, _, _, err := b.auth.Login(ctx, "admin@example.com", "demo-password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := b.auth.Authenticate(ctx, token); err != nil { // fills the cache
+		t.Fatal(err)
+	}
+	if n := q.measure(func() {
+		for range 5 {
+			if _, _, err := b.auth.Authenticate(ctx, token); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}); n != 0 {
+		t.Errorf("a session cache hit ran %d statements, want 0", n)
+	}
+	var pages []sample
+	for _, limit := range []int{5, 25, 200} {
+		var rows []core.AdminUser
+		n := q.measure(func() {
+			if rows, _, err = b.auth.ListUsers(ctx, admin, "", limit, 0); err != nil {
+				t.Fatal(err)
+			}
+		})
+		pages = append(pages, sample{len(rows), n})
+	}
+	within(t, "ListUsers (Users page)", pages, budget{3, 0})
+	pages = nil
+	for _, limit := range []int{2, 25, 200} {
+		var rows []core.AccountInvitation
+		n := q.measure(func() {
+			if rows, _, err = b.invitations.List(ctx, admin, core.InvitationFilter{}, limit, 0); err != nil {
+				t.Fatal(err)
+			}
+		})
+		pages = append(pages, sample{len(rows), n})
+	}
+	within(t, "AccountInvitations.List (Invitations page)", pages, budget{3, 0})
 }
 
 // TestQueryCountsOnAPreloadedWorld is the quick way to run the checks above while tuning a query: point WORLD_DATABASE_URL at a
