@@ -159,18 +159,34 @@ func newAuth(repo authRepository, now func() time.Time, p argonParams) *Auth {
 
 func normalizeEmail(email string) string { return strings.ToLower(strings.TrimSpace(email)) }
 
-// CreateUser validates and registers a user. There is no sign-up page: accounts are created with the server's CLI.
-func (a *Auth) CreateUser(ctx context.Context, email, displayName, password string) (User, error) {
-	email = normalizeEmail(email)
-	if addr, err := mail.ParseAddress(email); err != nil || addr.Address != email {
-		return User{}, errors.Join(ErrInvalidUser, errors.New("the email address is not valid"))
+// validateAccount checks the fields of a new account and returns the normalised email and name. Every problem is reported
+// (ErrInvalidUser joined with one message each). checkEmail is false when the address comes from an invitation.
+func validateAccount(email, displayName, password string, checkEmail bool) (string, string, error) {
+	var problems []error
+	if checkEmail {
+		email = normalizeEmail(email)
+		if addr, err := mail.ParseAddress(email); err != nil || addr.Address != email {
+			problems = append(problems, errors.New("the email address is not valid"))
+		}
 	}
 	displayName = strings.TrimSpace(displayName)
 	if n := utf8.RuneCountInString(displayName); n == 0 || n > 60 {
-		return User{}, errors.Join(ErrInvalidUser, errors.New("the name must be between 1 and 60 characters"))
+		problems = append(problems, errors.New("the name must be between 1 and 60 characters"))
 	}
 	if n := utf8.RuneCountInString(password); n < minPasswordLen || n > maxPasswordLen {
-		return User{}, errors.Join(ErrInvalidUser, errors.New("the password must be between 10 and 128 characters"))
+		problems = append(problems, errors.New("the password must be between 10 and 128 characters"))
+	}
+	if len(problems) > 0 {
+		return "", "", errors.Join(append([]error{ErrInvalidUser}, problems...)...)
+	}
+	return email, displayName, nil
+}
+
+// CreateUser validates and registers a user (the console: accounts are otherwise made through invitations).
+func (a *Auth) CreateUser(ctx context.Context, email, displayName, password string) (User, error) {
+	email, displayName, err := validateAccount(email, displayName, password, true)
+	if err != nil {
+		return User{}, err
 	}
 	hash, err := hashPassword(password, a.argon)
 	if err != nil {
