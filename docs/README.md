@@ -42,7 +42,6 @@ that describe planned work say so in their first lines. The tables below group t
 | [vendored-js.md](vendored-js.md) | The committed third-party scripts and how to update them |
 | [performance.md](performance.md) | Measured page cost and the performance tooling |
 | [design/match-redesign](design/match-redesign/README.md) | Pictures of the three proposals for the match and live-match pages (a design discussion, not the current app) |
-| [design/cards-redesign](design/cards-redesign/README.md) | Before and after screenshots of the unit card redesign: rank plates, icons, live trackers, dark and high contrast |
 | [optimization-report.md](optimization-report.md) | Executive summary of the optimization work (v1.3.0, baseline and final numbers, what changed and why, what did not improve), then the detailed data format, runtime, database, build and test sections |
 
 ## Operators

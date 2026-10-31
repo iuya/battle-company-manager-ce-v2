@@ -109,7 +109,6 @@ Start at [docs/README.md](docs/README.md). Everything in `docs/`, by audience:
 | [vendored-js.md](docs/vendored-js.md) | The committed third-party scripts and how to update them |
 | [performance.md](docs/performance.md) | Measured page cost and the performance tooling |
 | [design/match-redesign](docs/design/match-redesign/README.md) | Pictures of the three proposals for the match and live-match pages (a design discussion, not the current app) |
-| [design/cards-redesign](docs/design/cards-redesign/README.md) | Before and after screenshots of the unit card redesign: rank plates, icons, live trackers, dark and high contrast |
 | [optimization-report.md](docs/optimization-report.md) | Executive summary of the optimization work (v1.3.0, baseline and final numbers, what changed and why, what did not improve), then the detailed data format, runtime, database, build and test sections |
 
 **Operators**
