@@ -1,7 +1,8 @@
 # Authentication
 
-How accounts, passwords, sessions and request protection work. Accounts sign in with **email and password**. There is no sign-up page: accounts are created by an administrator with
-the server's command line. A visitor who is not signed in sees the login page; a signed-in user sees the main page.
+How accounts, passwords, sessions and request protection work. Accounts sign in with **email and password**. There is no open sign-up page: an administrator invites people to create an account
+([Account invitations](#account-invitations)), a superuser hands out recovery links ([Password recovery](#password-recovery)), and the
+server's command line makes the first accounts. A visitor who is not signed in sees the login page; a signed-in user sees the main page.
 
 ## Accounts
 
@@ -10,13 +11,72 @@ make user EMAIL=you@example.com NAME="Your Name"      # or: server user create -
 ```
 
 `make grant EMAIL=… ROLE=user|admin|superuser [CREATE=1]` sets the global role and whether a plain user may create
-campaigns (columns `role`, `can_create_campaigns`). Like the superuser-only `Auth.SetUserPermissions` of the administration
-section ([admin.md](admin.md)) it refuses closed accounts and demoting the last open superuser.
+campaigns (columns `role`, `can_create_campaigns`). It is **the only way to a superuser**: the web interface never creates, changes or
+demotes one. `Auth.SetUserPermissions` of the Users page follows the permission matrix of [admin.md](admin.md#roles) (administrators make
+organisers, superusers also make administrators); both paths refuse closed accounts and demoting the last open superuser, drop the user's
+cached sessions and write an audit event.
 
 The password is read from the terminal without echo (twice), or from stdin when piped. It must be 10–128 characters (no
 composition rules; the upper bound keeps argon2 from being fed unbounded input). Emails are trimmed and lower-cased and
-unique case-insensitively. Forgot-password is not implemented (it needs email delivery, which the service does not
-have).
+unique case-insensitively. The service sends no email, so invitation and recovery links are handed over by hand by an administrator or a
+superuser. Registration and `make user` share one validator (`validateAccount`), which reports every problem at once.
+
+## Account invitations
+
+An administrator or superuser makes an **account invitation** on the Invitations page ([admin.md](admin.md#invitations)): *named* (one use, tied
+to an email; the person chooses a display name and a password) or *anonymous* (up to 1-50 accounts, each person gives their own email).
+Expiry 1 hour to 30 days (the page offers 1, 3, 7, 14, 30; default 7). The public page is `GET/POST /register/{token}`:
+
+- the token (32 random bytes, 43 URL-safe characters) is stored **only as a SHA-256 hash** (`account_invitations.token_hash`, `BYTEA`); the
+  raw token exists in the response that shows it once. It is never logged: the request log writes the route (`/register/{token}`), as it does for
+  `/recover/{token}` and `/join/{token}`.
+- a named link carries `?email=` **for people to read only**: the page and the service take the address from the stored invitation and ignore the query.
+- in one transaction the service locks the invitation row, re-checks it, creates the account (role `user`, the invitation's creation flag), a
+  session, the use row and the audit event, and increments `uses`; two concurrent uses of a one-use link cannot both win. Password hashing
+  (argon2) runs before the transaction and only for a link that looked usable.
+- the new person is **signed in at once** (the session cookie is set) and lands on the campaigns page.
+- **Every failure of the link is the same**: a malformed, unknown, used, expired or revoked token, and an address that already has an account,
+  show the generic page **"Talk with the administrator."** (`core.ErrLinkUnusable`; status 404 on GET, 422 on POST, 429 when throttled), so the form
+  cannot be used to find out which addresses have an account. Field mistakes of a valid link (name 1-60, email format, password 10-128, the
+  two passwords) are shown on the form. A signed-in visitor opening a link is sent to `/`; the token is not touched.
+- the answers carry `Cache-Control: no-store`, `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex`.
+- the registration form is **throttled** per address and link (5 failures in 10 minutes) and per address (20), in memory, like the login
+  throttle; the key uses a fingerprint of the token, never the email.
+
+Known limit: the holder of a valid anonymous link learns from the generic error versus success that an address exists; the throttle and the use
+limit bound it.
+
+## Password recovery
+
+A **superuser** makes a single-use "set a new password" link for any other open account from the Users page ([admin.md](admin.md#recovery-links));
+administrators cannot make or revoke one, and nobody makes one for their own account (the Account page changes it). Expiry 1 hour to 7 days
+(the page offers 1, 3, 7 days; default 1 day). An account has at most one pending link: a new one replaces the old (reason `replaced`).
+
+- the token is stored as a hash like an invitation's and shown once, in a ready-to-copy message; the public page is `GET/POST /recover/{token}`
+  (new password twice). On success the password is replaced, **every session of the user is dropped**, the link is spent and the person is sent
+  to the login page with a notice: **no automatic sign-in**, the link alone never opens a session.
+- the link is **invalidated if the person signs in correctly, or opens the app with a valid session, before using it** (reasons `login`, `access`):
+  `Auth.Login` invalidates it after the password is verified (a failed password does nothing, and a failure of the update fails the login
+  closed), and `Auth.Authenticate` does so for a session whose cache entry says a link is pending. That fact rides on the session cache entry,
+  filled by the same query on a cache miss, so a cache hit with no pending link costs **zero extra queries**. `Recovery.Generate` sets the flag
+  on the user's hot cache entries so a person browsing right now is caught on the next request. `/recover/{token}` is registered without the
+  session middleware and never reads the cookie, so a request made with the link is not an app access. Closing an account invalidates its link (`closed`).
+- states, derived: pending, used, revoked, invalidated (with the reason), expired. The Users page shows the latest link of each account.
+- a wrong, used, expired, revoked or invalidated link shows the same generic page as invitations; the form has its own throttle (5 and 20 as above;
+  a success resets the key).
+- a superuser can make a link for another superuser or administrator (a compromised superuser can take over any account; accepted).
+
+Limits: the throttles and the session cache are per process. With several app instances a recovery link can survive an app access on another
+instance for at most the 60 seconds of the cache, and the throttle limits multiply (documented in [operations.md](operations.md)).
+
+## Audit
+
+`audit_events` (migration 00026) records, in the same transaction as the change: role changes (web, with who and from/to, or `source=console` for
+`make grant`), invitations created, revoked and used (subject: the new account), recovery links created, revoked, used and invalidated (source
+`public` or `system`). `detail` has a closed list of keys per action and never holds a token, a hash, a password or an email address. There is no
+viewer page: the Invitations list reads who created and revoked each invitation and the accounts made through it, and the Users page shows the
+recovery status. Unused revoked or expired invitations and ended recovery links are deleted 90 days after they ended by the housekeeping of
+`Auth.Login` (`PurgeStaleTokens`); used invitations and the audit events are kept.
 
 ## Passwords
 
@@ -54,6 +114,15 @@ hash, so timing does not reveal which emails exist, and the only failure message
 
 - **CSRF:** Go's `http.CrossOriginProtection` rejects cross-site state-changing requests (`Sec-Fetch-Site` / `Origin`),
   together with the `SameSite=Lax` cookie.
+- **Throttles:** each is in memory per process, window 10 minutes, per account key and per address.
+
+  | Throttle | Account key | Per key | Per address |
+  |---|---|---|---|
+  | Login | address + email | 5 | 20 |
+  | Account page password | user | 5 | 20 |
+  | Registration (`/register/{token}`) | address + token fingerprint | 5 | 20 |
+  | Recovery (`/recover/{token}`) | address + token fingerprint | 5 | 20 |
+
 - **Login throttling:** failed logins are counted in memory per address+email (5 per 10 minutes) and per address (20);
   beyond that the login page answers `429` without checking the password. A success resets the account counter. The address is
   the peer's; behind a reverse proxy set `TRUST_PROXY=true` and the last `X-Forwarded-For` entry is used instead (otherwise all
@@ -71,6 +140,9 @@ hash, so timing does not reveal which emails exist, and the only failure message
 | Tables and queries | `internal/postgres/migrations/00002_users_sessions.sql`, `internal/postgres/auth.go` |
 | Cookie, middleware | `internal/web/session.go` |
 | Login and logout handlers, throttle | `internal/web/login.go`, `throttle.go` |
+| Roles matrix, single-use tokens, audit | `internal/core/roles.go`, `token.go`, `accountaudit.go` |
+| Account invitations, recovery links | `internal/core/account_invitations.go`, `recovery.go`; `internal/postgres` (migrations 00026-00028) |
+| Invitations page, registration and set-password pages | `internal/web/admin_invitations.go`, `register.go`, `static/js/copylink.js` |
 | Account command | `cmd/server/user.go` |
 
 ## The Account page

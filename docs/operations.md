@@ -14,7 +14,7 @@ Plain `docker compose up -d` (the default `compose.yaml`, project `bcm`) is the 
 cp .env.example .env                      # set POSTGRES_PASSWORD (openssl rand -hex 24); everything else has a default
 docker compose up -d --build --wait       # make up: builds the image, starts PostgreSQL on the named volume, then the app
 curl -s localhost:8080/readyz             # ok
-make prod-user EMAIL=you@example.org NAME="You" ROLE=superuser     # the first account (there is no sign-up page); asks for the password
+make prod-user EMAIL=you@example.org NAME="You" ROLE=superuser     # the first account (later accounts join through an administrator's invitation link); asks for the password
 ```
 
 `make prod-user` runs `docker compose run --rm app user create --email ... --name ...` (the password is read from the terminal, or from one line of stdin with `-T`) and, with `ROLE=`,
@@ -136,6 +136,14 @@ docker compose logs --since 168h app | grep "csp violation" | grep -v chrome-ext
 
 then `docker compose up -d app` (a restart; no migration). The same policy now blocks and `Content-Security-Policy` replaces `Content-Security-Policy-Report-Only`; reports keep arriving (`disposition=enforce`), so read the same log for a day.
 Rollback is the same line with `report` (or `off`) and the same command: nothing else depends on it. The default in the code and in `.env.example` is `report`.
+
+## Account links: logs, audit, retention, several instances
+
+- **Logs never hold a link secret.** The request and panic logs write the route (`/register/{token}`, `/recover/{token}`, `/join/{token}`) instead of the path.
+- **Audit and retention.** `audit_events` is kept for ever and holds no secret. The housekeeping of `Auth.Login` deletes unused revoked or expired account
+  invitations and ended recovery links 90 days after they ended; used invitations stay. A named invitation keeps its email after the account is closed.
+- **One instance.** The throttles (login, registration, recovery) and the session cache are per process. With more than one app instance the limits multiply
+  and a recovery link can survive an app access on another instance for up to 60 seconds (the session cache lifetime). The current deployment runs one instance.
 
 ## Backup
 

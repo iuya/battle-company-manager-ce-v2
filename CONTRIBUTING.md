@@ -27,7 +27,7 @@ You need the Go version in `go.mod`, Docker (PostgreSQL for development), Python
 
 ```bash
 make get-tailwind                                    # once: the Tailwind standalone binary for this machine (macOS and Linux, x64 and arm64)
-make user EMAIL=you@example.com NAME="You"           # an account (no sign-up page)
+make user EMAIL=you@example.com NAME="You"           # an account (others join through an invitation link)
 make run                                             # http://localhost:8080
 make demo                                            # destructive: empties the dev database and loads the demo world
 ```

@@ -1,24 +1,48 @@
 # Administration
 
-Who may do what beyond playing: the Administration section (users and rules files), the powers of a campaign's organiser, the campaign
-status (active, paused, finished) and the organiser handover. Read it if you run a server or organise campaigns.
+Who may do what beyond playing: the Administration section (users, invitations, recovery links and rules files), the powers of a campaign's
+organiser, the campaign status (active, paused, finished) and the organiser handover. Read it if you run a server or organise campaigns.
 
 ## Roles
 
-| Role | Can |
-|---|---|
-| `user` | Play. Creates campaigns only when the account has the "can create campaigns" flag |
-| `admin` | Also creates campaigns and edits any match or aftermath |
-| `superuser` | Everything an admin does, and sees the Administration section |
+There are four access levels, named in `core` (`roles.go`: `Level`, `Actor`, `RoleChangeAllowed`, one pure function the tests walk cell by cell):
 
-Roles are set in the Administration section or with `make grant EMAIL=... ROLE=user|admin|superuser [CREATE=1]` ([auth.md](auth.md)).
+| Level | Stored as | Can |
+|---|---|---|
+| **User** | `role=user`, `can_create_campaigns=false` | Play |
+| **Organiser** | `role=user`, `can_create_campaigns=true` | Also create campaigns and manage them |
+| **Administrator** | `role=admin` | Also edit any match or aftermath, see the Users and Invitations pages, make organisers |
+| **Superuser** | `role=superuser` | Everything an administrator does, and make administrators, make rules-file changes and generate recovery links |
+
+("Organiser" here is the global permission to create campaigns; the organiser of one campaign is a different thing, see [Who manages a campaign](#who-manages-a-campaign).)
+A superuser exists only through the console (`make grant EMAIL=... ROLE=superuser`, [auth.md](auth.md)): **the web interface can never create, change
+or demote one**, not even a superuser's own account. Who may change whom through the web (the service checks it again; hiding a control is not the protection):
+
+| Actor \ target | User / Organiser | Administrator | Superuser |
+|---|---|---|---|
+| Administrator | to Organiser or back | refused (403) | refused (403) |
+| Superuser | to Organiser or Administrator and back | to User, Organiser | refused (403) |
+| Console (`make grant`) | any level | any level | any level |
+
+State rules for every actor: a closed account is refused ("This account is closed"), demoting the last open superuser is refused (console only
+in practice), promoting to administrator keeps the stored creation flag so a later demotion restores it, a change that changes nothing writes
+nothing, and every change drops the user's cached sessions and writes an audit event (who, whom, from and to; `source=console` for `make grant`).
 
 ## The Administration section
 
-`/admin` is for superusers; it answers 404 to everybody else, POSTs included (`requireSuperuser`). It has two pages under one
-sub-navigation (tabs on a phone, a row of links on a desktop): **Users** (`/admin/users`) and **Rules files** (`/admin/rulesets`);
-`/admin` redirects to Users. The pages follow [frontend.md](frontend.md): one column at 360 px, theme tokens only, every action an htmx
-form that swaps its own row or card, 422 with the form kept on error. The code is in `internal/web/admin.go` and
+`/admin` is for administrators and superusers; it answers 404 to everybody else, POSTs included. Under one sub-navigation (tabs on a phone, a row
+of links on a desktop):
+
+| Page | User, organiser | Administrator | Superuser |
+|---|---|---|---|
+| **Users** (`/admin/users`) | 404 | list, search, hand over a campaign, Organiser switch | also the Administrator switch and recovery links |
+| **Invitations** (`/admin/invitations`) | 404 | create, list, revoke | the same |
+| **Rules files** (`/admin/rulesets`) | 404 | 404 | yes |
+
+`/admin` redirects to Users. The sidebar's Administration link is shown to administrators and superusers. Guards: `requireAdmin` (Users and
+Invitations) and `requireSuperuser` (Rules files, recovery links). A signed-in administrator whose request the matrix refuses (a forged form) gets
+**403**; a state refusal is a 422 with the form kept. The pages follow [frontend.md](frontend.md): one column at 360 px, theme tokens only, every
+action an htmx form that swaps its own row or card. The code is in `internal/web/admin.go`, `admin_invitations.go`, `register.go` and
 `templates/pages/admin_*.gohtml`.
 
 ### Users
@@ -27,16 +51,48 @@ The accounts, open ones first by display name, then closed ones (greyed, with no
 (`GET /admin/users?q=&offset=`, swapped into the list, 25 per page, "Show more"). A row shows the display name, email, role badge,
 "Can create campaigns" badge, the number of campaigns the user takes part in and the creation date.
 
-A collapsed **Edit permissions** form on an open account sets the role (`user`, `admin`, `superuser`) and the "Can create campaigns"
-checkbox (disabled and checked for admins and superusers, as `User.MayCreateCampaigns` ignores the flag for them).
-`POST /admin/users/{id}/permissions` swaps the row with a notice. The service (`Auth.SetUserPermissions`) refuses a closed account and
-demoting the last open superuser ("Make someone else a superuser first"), and drops the user's cached sessions so the change applies at once.
+A collapsed **Edit permissions** form shows only the switches the viewer may use: an administrator has the **Organiser** switch on users and
+organisers; a superuser also has the **Administrator** switch on users, organisers and administrators (Organiser is shown checked and disabled
+while Administrator is on, "Administrators always can"). There is no Superuser option anywhere. On accounts the viewer cannot change the row says
+why ("Administrators are managed by superusers.", "Superusers are set from the console."). The form posts `role=admin` when the Administrator switch
+is on (nothing otherwise) and `can_create`; `POST /admin/users/{id}/permissions` swaps the row with a notice, `Auth.SetUserPermissions` decides.
 
-There is no delete, password reset or email change: accounts are created and recovered with the command line (`make user`, `make grant`),
-because the service sends no email.
+Superusers also get a collapsed **Recovery link** card on every other open account, see [Recovery links](#recovery-links).
 
 A user who organises campaigns has an "Organises N campaigns" expander listing each campaign (status, players) with a select of the
 campaign's members and **Hand over** (`POST /admin/users/{id}/handover`).
+
+There is no delete or email change; the service sends no email, so links are handed over by hand.
+
+### Invitations
+
+Account invitations (not to be mistaken for the campaign invitation links below) let an administrator invite a person to **create an account**.
+The page has the creation card, then a filter row (All, Pending, Used, Expired, Revoked) and the list (cards, 25 at a time):
+kind, email or "Anyone with the link", state badge, "Created by NAME on DATE", expiry, "used N of M", the display names of the accounts made
+through it, and **Revoke** (inline confirmation) on pending ones.
+
+| | Named | Anonymous |
+|---|---|---|
+| Who | one person, one use, tied to an email (default kind) | anyone with the link, each with their own email |
+| Limit | 1 use | 1 to 50 accounts (default 10) |
+| Expiry | 1, 3, 7 (default), 14 or 30 days (service: 1 hour to 30 days) | the same |
+| Option | "Can create campaigns" gives the new account the organiser flag | the same |
+
+`POST /admin/invitations` shows the **message to send** once in a read-only box with a **Copy** button ("Open this link to create your account:
+https://HOST/register/TOKEN?email=ADDRESS / It works once and expires on DATE."): the token is stored only as a hash, never listed, and not
+shown again; a lost link is revoked and made again. A named invitation for an address that already has an account is refused with a clear message
+here (administrators can already list the accounts). `POST /admin/invitations/{id}/revoke` works on pending invitations only. States are derived,
+never stored: revoked, used, expired, pending (in that precedence). The public side is in [auth.md](auth.md).
+
+### Recovery links
+
+A superuser opens an account's **Recovery link** card on the Users page and presses **Generate link** (inline confirmation: "This replaces any
+earlier link for NAME"), choosing the expiry (1 day by default, 3 or 7 days). The message ("Open this link to set a new password: ...") appears once
+in the row, with **Copy**. The card's status line says: pending until DATE and who made it, used, expired, revoked by NAME, or invalidated
+(the person signed in; the person opened the app; replaced by a newer link; the account was closed). **Revoke link** (confirmation) stops a
+pending link. Rules: superusers only (an administrator gets 404 and no card), a closed account and the superuser's own account have none (use the
+Account page), one pending link per account (a new one replaces the old). Routes: `POST /admin/users/{id}/recovery` and `.../recovery/revoke`.
+What happens when the person uses the link is in [auth.md](auth.md).
 
 ### Rules files
 
@@ -59,7 +115,7 @@ A rejected upload lists every problem (file, path, message, hint, closest known 
 rendering is described in [frontend.md](frontend.md) ("The rules file report"). Organisers upload from the new-campaign form as well.
 
 The methods are on `core.Rulesets` (`ListWithUsage`, `SetDefault`, `Delete`, `PruneUnused`, `Download`, `Check`, `Store`/`StoreAs`, which record the uploader); each takes the acting user and refuses
-anyone who is not a superuser.
+anyone who is not a superuser (administrators do not see this page).
 
 ## Campaign management
 
@@ -67,7 +123,7 @@ anyone who is not a superuser.
 
 `core.CanManageCampaign(user, organiserID)` is true for an administrator, a superuser and the campaign's **organiser** (the creator, unless
 the campaign was handed over). The organiser manages like an admin inside that campaign only; the Administration section, user
-permissions and rules files stay with administrators and superusers.
+permissions, invitations and rules files stay with administrators and superusers.
 
 | Action | Who |
 |---|---|
