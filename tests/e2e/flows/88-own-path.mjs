@@ -64,6 +64,7 @@ export default async function (h) {
       const titles = await organiser.page.$$eval('#company-info .badge[title^="On Their Own Path"]', (b) => b.map((x) => x.title));
       assert.ok(titles.length > 0 && titles.every((t) => /earns experience/.test(t)), `badges say they earn experience with the setting (${titles.length})`);
       assert.match(await organiser.page.$eval('#company-info', (e) => e.innerText), /warriors that earn experience in this campaign/);
+      assert.ok(await organiser.page.$('#company-info a[href$="/glossary#t-path-of-their-own-making"]'), 'the note links the Path of Their Own Making');
     }
     const plain = await campaignId(organiser, 'Aftermath ward 1').catch(() => null);
     if (plain) {

@@ -3,6 +3,7 @@ package web
 import (
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -92,5 +93,66 @@ func TestTheCreationPreviewKeepsTheOfficersAsTheyAreAndTheOwnPathBadgeFollowsThe
 		if got != custom || (!custom && !strings.Contains(lorien, "do not become heroes and earn no experience")) {
 			t.Errorf("custom=%v: the own-path wording is wrong (earns=%v)", custom, got)
 		}
+	}
+}
+
+var glossaryHref = regexp.MustCompile(`/campaigns/7/glossary#t-([a-z0-9-]+)`)
+
+// Every glossary link of the creation preview opens an article that says something, and the own-path note links to the path the
+// campaign plays (issue 35: it linked the vanilla end-of-path term, which has no text of its own to show beside empty tables).
+func TestEveryGlossaryLinkOfTheCreationPreviewOpensAnArticle(t *testing.T) {
+	rs := shippedRules(t)
+	gl := rs.GlossaryWithUnits()
+	for _, custom := range []bool{false, true} {
+		f := newFixture(t, Config{})
+		d := campaignDetail()
+		d.Settings.CustomOnTheirOwnPath = custom
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
+		f.camp.EXPECT().CompanyProfiles(gomock.Any(), int64(7)).Return(rs.BC.Profiles(), nil).AnyTimes()
+		f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(gl, nil).AnyTimes()
+		for _, p := range rs.BC.Profiles() {
+			body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/company/info?c="+url.QueryEscape(p.Name), nil))).Body.String()
+			for _, m := range glossaryHref.FindAllStringSubmatch(body, -1) {
+				term, ok := gl.Term(m[1])
+				if !ok {
+					t.Errorf("%s (custom=%v): the link #t-%s has no article", p.Name, custom, m[1])
+				} else if len(term.Paragraphs) == 0 && (term.Path == nil || len(term.Path.Limits)+len(term.Path.Rows) == 0) {
+					t.Errorf("%s (custom=%v): the article %s is empty", p.Name, custom, m[1])
+				}
+			}
+			if len(p.OnTheirOwnPath) == 0 {
+				continue
+			}
+			want := "on-their-own-path"
+			if custom {
+				want = "path-of-their-own-making"
+			}
+			if !strings.Contains(body, "/campaigns/7/glossary#t-"+want+`"`) {
+				t.Errorf("%s (custom=%v): the own-path note does not link #t-%s", p.Name, custom, want)
+			}
+		}
+	}
+}
+
+// An end-of-path term has a text and no limits or chart: the glossary draws no empty tables under it.
+func TestAnEndOfPathArticleHasNoEmptyTables(t *testing.T) {
+	rs := shippedRules(t)
+	f := newFixture(t, Config{})
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil).AnyTimes()
+	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(rs.GlossaryWithUnits(), nil).AnyTimes()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/glossary", nil))).Body.String()
+	article := func(id string) string {
+		i := strings.Index(body, `<article id="t-`+id+`"`)
+		if i < 0 {
+			t.Fatalf("no article %s", id)
+		}
+		return body[i : i+strings.Index(body[i:], "</article>")]
+	}
+	if a := article("on-their-own-path"); strings.Contains(a, "Level-up chart") || strings.Contains(a, "Characteristic limits") || !strings.Contains(a, "Not a real path") || !strings.Contains(a, "gains no experience") || !strings.Contains(a, "cannot be promoted to a hero") {
+		t.Error("On Their Own Path draws empty tables or lacks its text")
+	}
+	if a := article("path-of-their-own-making"); !strings.Contains(a, "Level-up chart") || !strings.Contains(a, "Characteristic limits") ||
+		!strings.Contains(a, "A real path") || !strings.Contains(a, "given this path automatically") {
+		t.Error("the Path of Their Own Making keeps its limits and chart and says it is a real path given on promotion")
 	}
 }

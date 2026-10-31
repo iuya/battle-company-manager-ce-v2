@@ -7433,14 +7433,14 @@
     {
       "name": "On Their Own Path",
       "kind": "endOfPath",
-      "description": "The end of the road: a unit that is On Their Own Path stays a warrior, earns no XP and never levels up.",
+      "description": "Not a real path: it marks a unit that is On Their Own Path. Such a unit gains no experience and cannot be promoted to a hero; it stays a warrior. (A campaign can switch on the homebrew Path of Their Own Making, which changes this.)",
       "maximums": {},
       "rule": "At Path's End"
     },
     {
       "name": "Path of Their Own Making",
       "kind": "custom",
-      "description": "Homebrew replacement for On Their Own Path: the unit starts on the path with 0 Might, 0 Will and 1 Fate when recruited, earns XP and levels up on this table; it counts as a Hero for levelling and stays a hero in name only for rules that need Might, Will or Fate.",
+      "description": "A real path, used only when the campaign switches on this homebrew option. A unit that is On Their Own Path then earns experience and levels up as a warrior; when it promotes to a hero (a 6 on the warrior table) it is given this path automatically, with 0 Might, 0 Will and 1 Fate. It levels up on this table and counts as a Hero for levelling, but stays a hero in name only for rules that need Might, Will or Fate.",
       "maximums": {
         "attack": {
           "max": 2
