@@ -273,15 +273,30 @@ func (p *CompanyProfile) tidyAdvancements() {
 // name, drawn from the vanilla profiles (a company's own label for a unit is resolved to the unit it is).
 func (p CompanyProfile) WithPreviews(vanilla *VanillaBook) CompanyProfile {
 	p.Previews = map[string]UnitPreview{}
-	add := func(unit string, wargear []string) {
-		if unit == "" {
-			return
-		}
-		key := PreviewKey(unit, wargear)
+	for _, m := range p.mentionedUnits() {
+		key := PreviewKey(m.unit, m.wargear)
 		if _, done := p.Previews[key]; !done {
-			pv := p.preview(vanilla, unit, wargear)
+			pv := p.preview(vanilla, m.unit, m.wargear)
 			pv.ID = fmt.Sprintf("pv%d", len(p.Previews)+1)
 			p.Previews[key] = pv
+		}
+	}
+	return p
+}
+
+// unitMention is a unit a company page names, with the wargear it is given there.
+type unitMention struct {
+	unit    string
+	wargear []string
+}
+
+// mentionedUnits lists every unit the company names, in the order of its page: the starting company, the charts, the special units and the
+// promotions (a unit may come up several times, with different wargear).
+func (p CompanyProfile) mentionedUnits() []unitMention {
+	var out []unitMention
+	add := func(unit string, wargear []string) {
+		if unit != "" {
+			out = append(out, unitMention{unit, wargear})
 		}
 	}
 	for _, s := range p.Start {
@@ -301,7 +316,7 @@ func (p CompanyProfile) WithPreviews(vanilla *VanillaBook) CompanyProfile {
 			add(t.Name(), t.Wargear)
 		}
 	}
-	return p
+	return out
 }
 
 func (p CompanyProfile) preview(vanilla *VanillaBook, unit string, wargear []string) UnitPreview {

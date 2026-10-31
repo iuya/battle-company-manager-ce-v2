@@ -29,6 +29,10 @@ type RuleSet struct {
 	// equipment remembers equipmentFor per item (see there); the set never changes, so nothing in it can go stale.
 	equipment  sync.Map
 	equipmentN atomic.Int64
+
+	// baseUnits remembers BaseUnits: built on first use, the set never changes.
+	baseOnce  sync.Once
+	baseUnits []BaseUnit
 }
 
 // Keyword returns the definition of a special rule: the one embedded in the entity that uses it (a unit's own rule, a hero
