@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"path"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -21,11 +22,18 @@ var tokenRoutes = []string{"/join/", "/register/", "/recover/"}
 
 // logPath is the path to write in a log line: the route pattern ("/register/{token}") for the routes whose path holds a secret,
 // never the secret itself, otherwise the path as it is.
+//
+// The match is made on the cleaned path, anywhere in it: the mux redirects "//register/x" or "/a/../register/x" to the canonical
+// address, and the redirected request would otherwise be logged with the secret as sent.
 func logPath(r *http.Request) string {
+	clean := path.Clean("/" + r.URL.Path)
 	for _, prefix := range tokenRoutes {
-		if strings.HasPrefix(r.URL.Path, prefix) {
+		if strings.HasPrefix(clean, prefix) {
 			return prefix + "{token}"
 		}
+	}
+	if strings.Contains(strings.ToLower(clean), "/register/") || strings.Contains(strings.ToLower(clean), "/recover/") || strings.Contains(clean, "/join/") {
+		return "{path with a token}"
 	}
 	return r.URL.Path
 }

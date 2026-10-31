@@ -458,3 +458,15 @@ func TestTokenRoutesAreRedactedInLogs(t *testing.T) {
 		}
 	}
 }
+
+// TestLogPathRedactsUncleanPaths: a token behind a path the mux would redirect ("//register/x", "/a/../recover/x") is not logged either.
+func TestLogPathRedactsUncleanPaths(t *testing.T) {
+	for _, p := range []string{"//register/" + secretT, "/x/../recover/" + secretT, "/./join/" + secretT, "/a//join//" + secretT, "/REGISTER/" + secretT} {
+		if got := logPath(httptest.NewRequest("GET", p, nil)); strings.Contains(got, secretT) {
+			t.Errorf("logPath(%q) = %q holds the secret", p, got)
+		}
+	}
+	if got := logPath(httptest.NewRequest("GET", "/campaigns/3", nil)); got != "/campaigns/3" {
+		t.Errorf("an ordinary path changed: %q", got)
+	}
+}
