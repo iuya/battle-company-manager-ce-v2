@@ -2,6 +2,7 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 
@@ -93,6 +94,7 @@ func (s *Server) handleChooseGlossary(w http.ResponseWriter, r *http.Request) {
 type campaignGlossaryView struct {
 	campaignBase
 	Glossary core.Glossary
+	UnitsURL string // where the unit cards are fetched from the first time they are wanted
 }
 
 // handleCampaignGlossary is the Glossary tab of a campaign: the glossary the campaign is played with.
@@ -105,5 +107,26 @@ func (s *Server) handleCampaignGlossary(w http.ResponseWriter, r *http.Request) 
 	if s.fail(w, r, err) {
 		return
 	}
-	s.render.page(w, r, http.StatusOK, "campaign_glossary", campaignGlossaryView{campaignBase: base, Glossary: g})
+	s.render.page(w, r, http.StatusOK, "campaign_glossary", campaignGlossaryView{campaignBase: base, Glossary: g, UnitsURL: fmt.Sprintf("/campaigns/%d/glossary/units", base.Campaign.ID)})
+}
+
+// handleCampaignGlossaryUnits is the unit cards of the campaign's glossary, as the fragment the Glossary tab puts where its placeholder is
+// (they are 0.5 MB of HTML, so the page leaves them out until they are wanted). Same access as the tab: a member of the campaign.
+func (s *Server) handleCampaignGlossaryUnits(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	if _, err := s.campaigns.Get(r.Context(), userFrom(r.Context()).ID, id); s.fail(w, r, err) {
+		return
+	}
+	g, err := s.glossary.ForCampaign(r.Context(), id)
+	if s.fail(w, r, err) {
+		return
+	}
+	if len(g.Units) == 0 {
+		s.notFound(w, r)
+		return
+	}
+	s.render.partial(w, http.StatusOK, "campaign_glossary", "glossary_units", g)
 }

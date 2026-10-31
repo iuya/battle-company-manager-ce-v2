@@ -469,3 +469,22 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
 
 {{/* Why a weapon modifier (Envenom Weapon) cannot be bought: the unit has no weapon left it could be for. */}}
 {{define "no_weapon_reason"}}No weapon left for {{.}}: every weapon of this unit is poisoned already or cannot be.{{end}}
+
+{{/* The card of a unit as the company page shows it in a tooltip (and the glossary shows in full): its profile, wargear, rules and heroic actions.
+   Takes a core.UnitPreview. unit_preview_body is everything under the name line, so the glossary puts its own heading above it. */}}
+{{define "unit_preview"}}
+<div class="space-y-2">
+  <div class="flex items-start gap-2">{{template "kind_icon" .Kind}}<div class="min-w-0 flex-1"><p class="font-heading text-lg font-bold leading-tight">{{.Name}}</p>{{with .Types}}<p class="text-xs text-muted">{{join . " · "}}</p>{{end}}</div>{{if .Points}}<span class="shrink-0 text-sm font-semibold">{{.Points}} <span class="font-normal text-muted">pts</span></span>{{end}}</div>
+  {{template "unit_preview_body" .}}
+</div>
+{{end}}
+{{define "unit_preview_body"}}
+  {{template "keyword_row" (dict "K" .Keywords "Static" true)}}
+  {{if .Stats}}<div class="flex flex-wrap justify-center gap-2">
+    <dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">{{range .Stats}}{{if not .HeroOnly}}<div class="min-w-7 border-r border-line bg-surface px-0.5 py-1 last:border-r-0"><dt class="text-[10px] uppercase leading-none text-muted">{{.Abbr}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}</dl>
+    {{if .HasHeroStats}}<dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-accent text-center">{{range .Stats}}{{if .HeroOnly}}<div class="min-w-12 border-r border-line bg-accent-soft px-2 py-1 last:border-r-0"><dt class="text-[10px] uppercase leading-none text-muted">{{.Name}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}</dd></div>{{end}}{{end}}</dl>{{end}}
+  </div>{{end}}
+  {{with .Wargear}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Wargear</span>{{range .}}<span class="eq-chip">{{upfirst .}}</span>{{end}}</p>{{end}}
+  {{with .HeroicActions}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Heroic actions</span>{{range .}}<span class="act-chip">{{.}}</span>{{end}}</p>{{end}}
+  {{with .Rules}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Special rules</span>{{range .}}<span class="rule-chip rule-unit">{{.}}</span>{{end}}</p>{{end}}
+{{end}}

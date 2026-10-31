@@ -494,6 +494,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /glossary", s.protected(s.handleGlossary))
 	mux.HandleFunc("POST /glossary", s.protected(s.handleChooseGlossary))
 	mux.HandleFunc("GET /campaigns/{id}/glossary", s.protected(s.handleCampaignGlossary))
+	mux.HandleFunc("GET /campaigns/{id}/glossary/units", s.protected(s.handleCampaignGlossaryUnits))
 	if s.concepts != nil {
 		mux.HandleFunc("GET /campaigns/{id}/concepts/resolve", s.protected(s.handleConceptByName))
 		mux.HandleFunc("GET /campaigns/{id}/concepts/{concept}", s.protected(s.handleConcept))
