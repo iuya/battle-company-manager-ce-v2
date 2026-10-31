@@ -49,7 +49,8 @@ func (s *Store) CreateUser(ctx context.Context, email, displayName, passwordHash
 	return u, err
 }
 
-func (s *Store) SetUserPermissionsByID(ctx context.Context, userID int64, role core.Role, canCreateCampaigns bool) error {
+// TEMPORARY (database-master replaces it): the audit entry is not written yet.
+func (s *Store) SetUserPermissionsByID(ctx context.Context, userID int64, role core.Role, canCreateCampaigns bool, _ core.AuditEntry) error {
 	tag, err := s.pool.Exec(ctx, `UPDATE users SET role = $2, can_create_campaigns = $3 WHERE id = $1 AND closed_at IS NULL`,
 		userID, string(role), canCreateCampaigns)
 	if err == nil && tag.RowsAffected() == 0 {
@@ -153,7 +154,8 @@ func (s *Store) CreateSession(ctx context.Context, tokenHash []byte, userID int6
 	return err
 }
 
-func (s *Store) UserBySession(ctx context.Context, tokenHash []byte, now time.Time) (core.User, time.Time, error) {
+// TEMPORARY (database-master replaces it): recoveryPending is always false until migration 00028 exists.
+func (s *Store) UserBySession(ctx context.Context, tokenHash []byte, now time.Time) (core.User, time.Time, bool, error) {
 	var u core.User
 	var expires time.Time
 	err := s.pool.QueryRow(ctx,
@@ -162,10 +164,18 @@ func (s *Store) UserBySession(ctx context.Context, tokenHash []byte, now time.Ti
 		  WHERE s.token_hash = $1 AND s.expires_at > $2`, tokenHash, now).
 		Scan(append(userDest(&u), &expires)...)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return core.User{}, time.Time{}, core.ErrNotFound
+		return core.User{}, time.Time{}, false, core.ErrNotFound
 	}
-	return u, expires, err
+	return u, expires, false, err
 }
+
+// InvalidateRecovery is TEMPORARY (database-master replaces it with migration 00028): there are no recovery links yet.
+func (s *Store) InvalidateRecovery(ctx context.Context, userID int64, reason core.RecoveryReason, now time.Time) (int, error) {
+	return 0, nil
+}
+
+// PurgeStaleTokens is TEMPORARY (database-master replaces it with migrations 00027 and 00028): there are no tokens yet.
+func (s *Store) PurgeStaleTokens(ctx context.Context, before time.Time) error { return nil }
 
 func (s *Store) ExtendSession(ctx context.Context, tokenHash []byte, expiresAt time.Time) error {
 	_, err := s.pool.Exec(ctx, `UPDATE sessions SET expires_at = $2 WHERE token_hash = $1`, tokenHash, expiresAt)

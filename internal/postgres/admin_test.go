@@ -79,14 +79,14 @@ func TestAdminUsers(t *testing.T) {
 	if _, _, err := s.UserByID(ctx, -1); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("unknown: %v", err)
 	}
-	if err := s.SetUserPermissionsByID(ctx, amy.ID, core.RoleAdmin, true); err != nil {
+	if err := s.SetUserPermissionsByID(ctx, amy.ID, core.RoleAdmin, true, core.AuditEntry{}); err != nil {
 		t.Fatal(err)
 	}
 	if u, _, _ := s.UserByID(ctx, amy.ID); u.Role != core.RoleAdmin || !u.CanCreateCampaigns {
 		t.Fatalf("%+v", u)
 	}
 	for _, id := range []int64{-1, gone.ID} {
-		if err := s.SetUserPermissionsByID(ctx, id, core.RoleAdmin, false); !errors.Is(err, core.ErrNotFound) {
+		if err := s.SetUserPermissionsByID(ctx, id, core.RoleAdmin, false, core.AuditEntry{}); !errors.Is(err, core.ErrNotFound) {
 			t.Fatalf("%d: %v", id, err)
 		}
 	}

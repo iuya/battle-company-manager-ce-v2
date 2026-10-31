@@ -47,23 +47,23 @@ func TestUsersAndSessions(t *testing.T) {
 	if err := s.CreateSession(ctx, tok, u.ID, now.Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}
-	su, exp, err := s.UserBySession(ctx, tok, now)
+	su, exp, _, err := s.UserBySession(ctx, tok, now)
 	if err != nil || su.ID != u.ID || !exp.Equal(now.Add(time.Hour)) {
 		t.Fatalf("got %+v %v %v", su, exp, err)
 	}
-	if _, _, err := s.UserBySession(ctx, tok, now.Add(2*time.Hour)); !errors.Is(err, core.ErrNotFound) {
+	if _, _, _, err := s.UserBySession(ctx, tok, now.Add(2*time.Hour)); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("an expired session must not resolve, got %v", err)
 	}
 	if err := s.ExtendSession(ctx, tok, now.Add(3*time.Hour)); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := s.UserBySession(ctx, tok, now.Add(2*time.Hour)); err != nil {
+	if _, _, _, err := s.UserBySession(ctx, tok, now.Add(2*time.Hour)); err != nil {
 		t.Fatalf("an extended session must resolve, got %v", err)
 	}
 	if err := s.DeleteExpiredSessions(ctx, now.Add(4*time.Hour)); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := s.UserBySession(ctx, tok, now); !errors.Is(err, core.ErrNotFound) {
+	if _, _, _, err := s.UserBySession(ctx, tok, now); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("a purged session must be gone, got %v", err)
 	}
 	_ = s.DeleteSession(ctx, tok)
@@ -81,14 +81,14 @@ func TestAccount(t *testing.T) {
 	}
 
 	// appearance: empty until chosen, then loaded with the session; the database refuses unknown keys
-	got, _, err := s.UserBySession(ctx, tokA, now)
+	got, _, _, err := s.UserBySession(ctx, tokA, now)
 	if err != nil || got.Appearance != (core.Appearance{}) {
 		t.Fatalf("never chosen: %+v %v", got.Appearance, err)
 	}
 	if err := s.SetAppearance(ctx, u.ID, "ember", "dark"); err != nil {
 		t.Fatal(err)
 	}
-	if got, _, _ = s.UserBySession(ctx, tokA, now); got.Appearance != (core.Appearance{Palette: "ember", Mode: "dark"}) {
+	if got, _, _, _ = s.UserBySession(ctx, tokA, now); got.Appearance != (core.Appearance{Palette: "ember", Mode: "dark"}) {
 		t.Fatalf("appearance: %+v", got.Appearance)
 	}
 	if _, err := s.pool.Exec(ctx, `UPDATE users SET palette = 'bogus', mode = 'dark' WHERE id = $1`, u.ID); err == nil {
@@ -99,19 +99,19 @@ func TestAccount(t *testing.T) {
 	}
 
 	// time zone: automatic until chosen, cleared with ""
-	if got, _, _ = s.UserBySession(ctx, tokA, now); got.Timezone != "" {
+	if got, _, _, _ = s.UserBySession(ctx, tokA, now); got.Timezone != "" {
 		t.Fatalf("automatic: %q", got.Timezone)
 	}
 	if err := s.SetTimezone(ctx, u.ID, "Pacific/Auckland"); err != nil {
 		t.Fatal(err)
 	}
-	if got, _, _ = s.UserBySession(ctx, tokA, now); got.Timezone != "Pacific/Auckland" {
+	if got, _, _, _ = s.UserBySession(ctx, tokA, now); got.Timezone != "Pacific/Auckland" {
 		t.Fatalf("timezone: %q", got.Timezone)
 	}
 	if err := s.SetTimezone(ctx, u.ID, ""); err != nil {
 		t.Fatal(err)
 	}
-	if got, _, _ = s.UserBySession(ctx, tokA, now); got.Timezone != "" {
+	if got, _, _, _ = s.UserBySession(ctx, tokA, now); got.Timezone != "" {
 		t.Fatalf("cleared: %q", got.Timezone)
 	}
 	if err := s.SetTimezone(ctx, -1, "UTC"); !errors.Is(err, core.ErrNotFound) {
@@ -131,10 +131,10 @@ func TestAccount(t *testing.T) {
 	if n, err := s.DeleteSessionsExcept(ctx, u.ID, tokA); err != nil || n != 1 {
 		t.Fatalf("deleted %d, %v", n, err)
 	}
-	if _, _, err := s.UserBySession(ctx, tokB, now); !errors.Is(err, core.ErrNotFound) {
+	if _, _, _, err := s.UserBySession(ctx, tokB, now); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("the other session must be gone: %v", err)
 	}
-	if _, _, err := s.UserBySession(ctx, tokA, now); err != nil {
+	if _, _, _, err := s.UserBySession(ctx, tokA, now); err != nil {
 		t.Fatalf("the kept session must stay: %v", err)
 	}
 
@@ -155,7 +155,7 @@ func TestAccount(t *testing.T) {
 	if err := s.CloseUser(ctx, u.ID, "Former player", fmt.Sprintf("closed-%d@invalid", u.ID), now); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := s.UserBySession(ctx, tokA, now); !errors.Is(err, core.ErrNotFound) {
+	if _, _, _, err := s.UserBySession(ctx, tokA, now); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("closing deletes every session: %v", err)
 	}
 	if _, err := s.CredentialsByID(ctx, u.ID); !errors.Is(err, core.ErrNotFound) {

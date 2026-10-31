@@ -76,6 +76,9 @@ func (a Appearance) Valid() bool {
 
 func (u User) IsSuperuser() bool { return u.Role == RoleSuperuser }
 
+// MayAdminister says the user sees the Administration section: administrators and superusers.
+func (u User) MayAdminister() bool { return u.Role == RoleAdmin || u.Role == RoleSuperuser }
+
 func (u User) MayCreateCampaigns() bool {
 	return u.Role == RoleAdmin || u.Role == RoleSuperuser || u.CanCreateCampaigns
 }
@@ -91,8 +94,9 @@ type Credentials struct {
 type authRepository interface {
 	// CreateUser returns ErrEmailTaken when the (case-insensitive) email exists.
 	CreateUser(ctx context.Context, email, displayName, passwordHash string) (User, error)
-	// SetUserPermissionsByID returns ErrNotFound when there is no such user.
-	SetUserPermissionsByID(ctx context.Context, userID int64, role Role, canCreateCampaigns bool) error
+	// SetUserPermissionsByID changes the role and the flag and writes the audit entry in the same transaction; ErrNotFound when
+	// there is no such open user.
+	SetUserPermissionsByID(ctx context.Context, userID int64, role Role, canCreateCampaigns bool, audit AuditEntry) error
 	// UserByID returns the user, closed accounts included (closed is true for them), or ErrNotFound.
 	UserByID(ctx context.Context, userID int64) (user User, closed bool, err error)
 	// ListUsers returns the accounts whose name or email contains q (case-insensitive, empty: all): open ones by display
@@ -101,8 +105,15 @@ type authRepository interface {
 	// UserByEmail returns ErrNotFound when there is no such user.
 	UserByEmail(ctx context.Context, email string) (Credentials, error)
 	CreateSession(ctx context.Context, tokenHash []byte, userID int64, expiresAt time.Time) error
-	// UserBySession returns ErrNotFound when the session does not exist or expired before now.
-	UserBySession(ctx context.Context, tokenHash []byte, now time.Time) (User, time.Time, error)
+	// UserBySession returns ErrNotFound when the session does not exist or expired before now. recoveryPending says the user has
+	// a live (pending, unexpired at now) recovery link; it is part of the same query, so it costs no extra round trip.
+	UserBySession(ctx context.Context, tokenHash []byte, now time.Time) (user User, expires time.Time, recoveryPending bool, err error)
+	// InvalidateRecovery marks the user's live recovery link (if any) invalidated for reason (RecoveryByLogin or RecoveryByAccess)
+	// and, when n > 0, writes a recovery.invalidated entry (source system) in the same transaction. Normally n is 0.
+	InvalidateRecovery(ctx context.Context, userID int64, reason RecoveryReason, now time.Time) (n int, err error)
+	// PurgeStaleTokens deletes the invitations that were never used and ended (revoked or expired) before the cutoff and the
+	// terminal recovery links older than it. Invitations that made an account and audit_events are kept.
+	PurgeStaleTokens(ctx context.Context, before time.Time) error
 	ExtendSession(ctx context.Context, tokenHash []byte, expiresAt time.Time) error
 	DeleteSession(ctx context.Context, tokenHash []byte) error
 	DeleteExpiredSessions(ctx context.Context, now time.Time) error
@@ -211,7 +222,7 @@ func (a *Auth) setPermissions(ctx context.Context, userID int64, role Role, canC
 			return Refuse("This is the last superuser; make someone else a superuser first")
 		}
 	}
-	if err := a.repo.SetUserPermissionsByID(ctx, userID, role, canCreateCampaigns); err != nil {
+	if err := a.repo.SetUserPermissionsByID(ctx, userID, role, canCreateCampaigns, AuditEntry{}); err != nil {
 		return err
 	}
 	a.cache.dropUser(userID, "")
@@ -224,6 +235,8 @@ type AdminUser struct {
 	Campaigns int // campaigns the user is a member of, in any status
 	CreatedAt time.Time
 	Closed    bool // the account is closed; the other fields are the anonymised ones
+	// Recovery is the account's latest recovery link, filled for superusers only (nil: never had one, or the caller may not see it).
+	Recovery *RecoveryStatus
 	// Organises are the campaigns the user is the organiser of (any status), for the Users page: an administrator hands them over
 	// from there (Campaigns.HandOver), also when not a member.
 	Organises []OrganisedCampaign
@@ -305,7 +318,7 @@ func (a *Auth) Authenticate(ctx context.Context, token string) (user User, renew
 
 	entry, ok := a.cache.get(key, now)
 	if !ok {
-		user, expires, err := a.repo.UserBySession(ctx, h, now)
+		user, expires, _, err := a.repo.UserBySession(ctx, h, now)
 		if errors.Is(err, ErrNotFound) {
 			return User{}, time.Time{}, ErrNoSession
 		}
