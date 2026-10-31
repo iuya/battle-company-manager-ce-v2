@@ -15,7 +15,7 @@ make seed                      # the minimal demo ([frontend.md](frontend.md#dem
 go run ./cmd/server seed --world   # load the world into the current database (no reset; does nothing if it is there)
 ```
 
-What the script printed (accounts, the three invite links with their secrets, gaps, and a line per company it built) is kept in
+What the script printed (accounts, the three invite links and the pending account invitation and recovery links with their secrets, gaps, and a line per company it built) is kept in
 `tmp/demo-world.txt`. The seed is idempotent in the sense that it does nothing when the first campaign exists; `make demo` is
 repeatable because it starts from an empty database. Test: `TestSeedWorld` in `cmd/server/world_test.go` (needs
 `TEST_DATABASE_URL` (a scratch database, never the development one); it fails when the script meets a state it cannot reach, and checks the gallery, the finished campaign and the
@@ -29,13 +29,18 @@ All share the password `demo-password` (or `PASSWORD`). `admin@example.com`, `yo
 | Email | Role | What it shows |
 |---|---|---|
 | `admin@example.com` | superuser | `/admin`, reopening matches, waiving aftermaths; a member of every campaign |
-| `steward@example.com` | admin | the same powers on campaigns, none over users and rules files; a member of every campaign |
+| `steward@example.com` | administrator | the same powers on campaigns; sees the **Users** and **Invitations** pages and the Organiser switch; no rules-file powers and no recovery links (superusers only); a member of every campaign |
 | `you@example.com` | user, may create campaigns | organises nearly every campaign: grants, matches, invites |
 | `faramir@example.com` | user, may create campaigns | organises one campaign, receives another by handover |
 | `eowyn@example.com`, `sauron@example.com`, `aragorn@example.com`, `gimli@example.com`, `bilbo@example.com`, `galadriel@example.com`, `radagast@example.com` | user | the players; each has a company in many campaigns (see below) |
 | `pippin@example.com` | user, **cannot** create campaigns | no "New campaign" button; plays in a few campaigns and used the one-use invite link |
 | `frodo@example.com` | user, may create campaigns | in no campaign: the empty home page. Open the valid invite link as him |
 | `boromir@example.com` | **closed** account | closed at the end of the script (`Auth.CloseAccount`): the campaign "Cemetery" shows him as "Former player" and the address no longer signs in |
+| `invitee@example.com` | **no account yet** | the address of the pending named account invitation: open its printed link to register (the invitation may create campaigns) |
+| `newcomer@example.com` | user | made through a named invitation (used) |
+| `guest.one@example.com`, `guest.two@example.com` | user | made through the anonymous invitation (2 of 5 uses) |
+| `recover-pending@example.com` | user | has a **pending** recovery link. **Signing in as this account, or opening the app with a session of it, invalidates the link**: do not sign in as it if you want to use the link |
+| `recover-used@`, `recover-expired@`, `recover-revoked@`, `recover-login@`, `recover-access@`, `recover-replaced@example.com` | user | one recovery link each in the state the address says; dedicated accounts that nothing else signs in with (`recover-used@` still signs in with the demo password) |
 | `<company>@example.com` | user | the gallery: one account per Battle Company (`minas-tirith@`, `osgiliath-ithilien@`, `goblin-town@`, `wanderers-in-the-wild@` ...) |
 
 ## Campaigns
@@ -220,6 +225,34 @@ Dwarves' Sergeant is dead and two Warriors are tied for the most Experience (bot
 and both Sergeants (the Leader comes from the Warriors, then the Sergeants). The answer is mandatory in every case (no "nobody"); the promoted Warrior takes
 its path on My Company once the aftermath is finished (before that the path window says "Finish the aftermath ... first").
 The Elven Cloak: the Galadhrim of ward 1 (Galadriel) carry it as a unit upgrade badge with a tooltip.
+
+## Account invitations and recovery links
+
+Step `world_adminstates.go` (`adminStates`) makes every state through the real services (`AccountInvitations`, `Recovery`, `Auth`)
+with injected clocks, so there is no raw SQL and no gap. Administration > Invitations (administrators and superusers) and
+Administration > Users (the recovery column is for superusers) show them. The secrets of the pending links are printed at the end of
+the script (and kept in `tmp/demo-world.txt`), under "Account invitation links".
+
+| Invitation | State | How it is made |
+|---|---|---|
+| named, `invitee@example.com` | **pending** | created by `admin`; the printed link `/register/<token>?email=invitee@example.com` registers the account |
+| anonymous, 5 uses | **pending, 2 of 5 used** | created by `steward`; `guest.one@` and `guest.two@` registered through it with the real `Register`; the printed link `/register/<token>` makes a third |
+| named, `newcomer@example.com` | **used** | registered through `Register` |
+| named, `latecomer@example.com` | **expired** | the service clock is 10 days back, expiry 1 day |
+| named, `withdrawn@example.com` | **revoked** | created by `steward`, revoked by `admin` |
+
+| Account | Recovery link | How it is made |
+|---|---|---|
+| `recover-pending@` | **pending** | `Recovery.Generate`; the printed link is `/recover/<token>`. **Signing in as this account, or opening the app as it, invalidates the link** |
+| `recover-used@` | **used** | `SetPassword` with the demo password, so the account still signs in |
+| `recover-expired@` | **expired** | generated by a service whose clock is 10 days back, 1 hour to live |
+| `recover-revoked@` | **revoked** | `Generate`, then `Revoke` |
+| `recover-login@` | **invalidated** (reason: login) | `Generate`, then `Auth.Login` |
+| `recover-access@` | **invalidated** (reason: access) | a session first (`Login`), then `Generate`, then `Auth.Authenticate` with that session |
+| `recover-replaced@` | **pending** (newer link) | two links in a row: the first is replaced (reason: replaced) and its token no longer works; the Users page shows only the latest link of an account |
+
+The second run of the seed does nothing for these states (the world exists already), and the accounts above are not among the
+accounts the script signs in with, so the pending link survives re-seeding.
 
 ## Gaps
 
