@@ -33,6 +33,10 @@ type RuleSet struct {
 	// baseUnits remembers BaseUnits: built on first use, the set never changes.
 	baseOnce  sync.Once
 	baseUnits []BaseUnit
+
+	// glossUnits remembers GlossaryWithUnits.
+	glossUnitsOnce sync.Once
+	glossUnits     Glossary
 }
 
 // Keyword returns the definition of a special rule: the one embedded in the entity that uses it (a unit's own rule, a hero

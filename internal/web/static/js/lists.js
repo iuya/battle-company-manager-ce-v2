@@ -179,6 +179,15 @@ document.addEventListener('alpine:init', () => {
       const el = document.getElementById(id);
       if (el) { el.scrollIntoView({ block: 'start' }); if (el.hasAttribute('tabindex')) el.focus({ preventScroll: true }); } // a unit card takes the focus, so a keyboard user goes on from it
       history.replaceState(history.state, '', '#' + id);
+      // The page is hundreds of thousands of pixels long and its text is set in web fonts that may still be loading: when they arrive the
+      // lines above the card change height and the card moves off the top (a card far down the page ended up a screen below it). Once the
+      // fonts are in, scroll again if the card moved, unless the reader has gone elsewhere meanwhile (a different target, or a scroll of their own).
+      if (el && document.fonts) {
+        const y = window.scrollY, top = el.getBoundingClientRect().top;
+        await document.fonts.ready;
+        await new Promise((r) => requestAnimationFrame(() => r()));
+        if (location.hash === '#' + id && el.isConnected && Math.abs(el.getBoundingClientRect().top - top) > 4 && Math.abs(window.scrollY - y) < 4) el.scrollIntoView({ block: 'start' });
+      }
     },
 
     onClick(e) {
@@ -213,12 +222,16 @@ document.addEventListener('alpine:init', () => {
     },
     hideTip() { clearTimeout(this.tipTimer); this.tip.show = false; },
     async showTip(a, id) {
-      const art = document.getElementById(id);
-      const def = art && art.querySelector('[data-def]');
-      if (!def) return;
-      let text = def.innerText.trim().replace(/\s+/g, ' ');
-      if (text.length > 480) text = text.slice(0, 480).replace(/\s+\S*$/, '') + '…';
-      this.tip = { show: true, x: 0, y: 0, name: art.dataset.name, category: art.dataset.category, text };
+      if (a.dataset.tipTitle) { // a unit named in a definition carries its own profile: its card may not be in the page yet
+        this.tip = { show: true, x: 0, y: 0, name: a.dataset.tipTitle, category: a.dataset.tipMeta || 'unit', text: a.dataset.tipText || '' };
+      } else {
+        const art = document.getElementById(id);
+        const def = art && art.querySelector('[data-def]');
+        if (!def) return;
+        let text = def.innerText.trim().replace(/\s+/g, ' ');
+        if (text.length > 480) text = text.slice(0, 480).replace(/\s+\S*$/, '') + '…';
+        this.tip = { show: true, x: 0, y: 0, name: art.dataset.name, category: art.dataset.category, text };
+      }
       await this.$nextTick();
       const box = this.$refs.tip;
       if (!box || !a.isConnected) { this.tip.show = false; return; } // the page was swapped while the tip waited
