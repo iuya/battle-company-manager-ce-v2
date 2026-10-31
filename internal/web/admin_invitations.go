@@ -122,10 +122,16 @@ func (s *Server) handleAdminInvitationCreate(w http.ResponseWriter, r *http.Requ
 		card.Kind = "named"
 	}
 	card.Email, card.MaxUses, card.Can = strings.TrimSpace(r.PostFormValue("email")), strings.TrimSpace(r.PostFormValue("max_uses")), r.PostFormValue("can_create") == "on"
-	if d, err := strconv.Atoi(r.PostFormValue("days")); err == nil {
+	expiry := time.Duration(0)
+	if v := strings.TrimSpace(r.PostFormValue("days")); v != "" {
+		d, err := strconv.Atoi(v)
+		if err != nil || d < 0 {
+			d = -1 // the service answers with its range message
+		}
 		card.Days = d
+		expiry = time.Duration(max(min(d, maxClampUnits), -1)) * 24 * time.Hour
 	}
-	in := core.NewAccountInvitation{Kind: core.InvitationKind(card.Kind), Email: card.Email, CanCreateCampaigns: card.Can, Expiry: time.Duration(card.Days) * 24 * time.Hour}
+	in := core.NewAccountInvitation{Kind: core.InvitationKind(card.Kind), Email: card.Email, CanCreateCampaigns: card.Can, Expiry: expiry}
 	if card.Kind == "anonymous" {
 		n, err := strconv.Atoi(card.MaxUses)
 		if err != nil {
@@ -138,7 +144,7 @@ func (s *Server) handleAdminInvitationCreate(w http.ResponseWriter, r *http.Requ
 	created, err := s.invitations.Create(r.Context(), me, in)
 	switch {
 	case errors.Is(err, core.ErrRefused), errors.Is(err, core.ErrInvalidInput):
-		card.Err = reason(err)
+		card.Err = strings.Join(reasons(err), ". ") + "."
 		s.render.partial(w, http.StatusUnprocessableEntity, "admin_invitations", "admin_invitation_create", card)
 		return
 	case s.fail(w, r, err):

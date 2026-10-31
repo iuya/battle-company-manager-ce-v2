@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
@@ -248,10 +249,22 @@ func absoluteURL(r *http.Request, path string) string {
 func noStore(w http.ResponseWriter) { w.Header().Set("Cache-Control", "no-store") }
 
 // recoveryTTL reads the expiry select of the recovery card: a number of hours, 0 for the service's default.
+// A missing value is 0 (the default); anything else that is not a number of hours, or is negative, is a negative duration the
+// service refuses with its range message. Values are clamped before the multiplication so a huge number cannot wrap around.
 func recoveryTTL(r *http.Request) time.Duration {
-	h, _ := strconv.Atoi(r.PostFormValue("hours"))
-	return time.Duration(max(h, 0)) * time.Hour
+	v := strings.TrimSpace(r.PostFormValue("hours"))
+	if v == "" {
+		return 0
+	}
+	h, err := strconv.Atoi(v)
+	if err != nil || h < 0 {
+		return -time.Hour
+	}
+	return time.Duration(min(h, maxClampUnits)) * time.Hour
 }
+
+// maxClampUnits bounds a number of hours or days from a form before it becomes a time.Duration (far above any allowed range).
+const maxClampUnits = 100_000
 
 // handleAdminRecovery makes a recovery link for an account and answers the row with the message to hand over (superusers only).
 func (s *Server) handleAdminRecovery(w http.ResponseWriter, r *http.Request) {
