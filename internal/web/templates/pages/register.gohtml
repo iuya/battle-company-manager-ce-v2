@@ -21,7 +21,7 @@
         <label for="reg-password">Password</label>
         <div class="relative">
           <input id="reg-password" name="password" :type="show ? 'text' : 'password'" type="password" class="input pr-16" autocomplete="new-password" x-model="pw" required>
-          <button type="button" class="btn btn-ghost absolute inset-y-0 right-0 !px-3 !py-0 text-xs" @click="show = !show" :aria-pressed="show" aria-label="Show passwords" x-text="show ? 'Hide' : 'Show'">Show</button>
+          <button type="button" class="btn btn-ghost absolute inset-y-0 right-0 !px-3 !py-0 text-xs" @click="show = !show" :aria-label="show ? 'Hide passwords' : 'Show passwords'" aria-label="Show passwords" x-text="show ? 'Hide' : 'Show'">Show</button>
         </div>
         <p class="hint">10 to 128 characters.</p>
       </div>

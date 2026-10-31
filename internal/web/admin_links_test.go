@@ -490,3 +490,45 @@ func TestInvitationMessageSingular(t *testing.T) {
 		t.Errorf("message: %q", got)
 	}
 }
+
+// TestInvitationFormShowsEveryProblem: all the reasons the service joined are on the form, not only the last.
+func TestInvitationFormShowsEveryProblem(t *testing.T) {
+	f := newFixture(t, Config{})
+	f.inv.EXPECT().Create(gomock.Any(), stewardS, gomock.Any()).Return(core.CreatedAccountInvitation{},
+		errors.Join(core.ErrInvalidInput, errors.New("the invitation must expire between 1 hour and 30 days from now"), errors.New("the email address is not valid")))
+	rec := f.do(htmxReq(f.asUser(form("/admin/invitations", url.Values{"kind": {"named"}, "email": {"x"}, "days": {"7"}}), stewardS), "invitation-create"))
+	b := rec.Body.String()
+	if rec.Code != 422 || !strings.Contains(b, "must expire between 1 hour and 30 days from now.") || !strings.Contains(b, "email address is not valid.") {
+		t.Errorf("%d %s", rec.Code, b)
+	}
+}
+
+// TestFormDurationsAreClampedAndNegativesRefused: a negative or huge number of days or hours reaches the service as an out-of-range
+// duration (its message is shown), never as a wrapped-around one or a silent default.
+func TestFormDurationsAreClampedAndNegativesRefused(t *testing.T) {
+	for in, want := range map[string]time.Duration{"": 0, "-3": -time.Hour, "abc": -time.Hour, "48": 48 * time.Hour, "99999999999999": maxClampUnits * time.Hour} {
+		r := form("/x", url.Values{"hours": {in}})
+		if got := recoveryTTL(r); got != want {
+			t.Errorf("hours %q: %v, want %v", in, got, want)
+		}
+	}
+	f := newFixture(t, Config{})
+	for days, want := range map[string]time.Duration{"-5": -24 * time.Hour, "99999999999999": maxClampUnits * 24 * time.Hour} {
+		f.inv.EXPECT().Create(gomock.Any(), stewardS, core.NewAccountInvitation{Kind: core.InvitationNamed, Email: "a@x.me", Expiry: want}).
+			Return(core.CreatedAccountInvitation{}, errors.Join(core.ErrInvalidInput, errors.New("the invitation must expire between 1 hour and 30 days from now")))
+		rec := f.do(htmxReq(f.asUser(form("/admin/invitations", url.Values{"kind": {"named"}, "email": {"a@x.me"}, "days": {days}}), stewardS), "invitation-create"))
+		if rec.Code != 422 || !strings.Contains(rec.Body.String(), "must expire between") {
+			t.Errorf("days %s: %d", days, rec.Code)
+		}
+	}
+}
+
+// TestCopyMessageHasAFailureNotice: when the clipboard is refused the person is told the text is selected.
+func TestCopyMessageHasAFailureNotice(t *testing.T) {
+	f := newFixture(t, Config{})
+	f.inv.EXPECT().Create(gomock.Any(), stewardS, gomock.Any()).Return(core.CreatedAccountInvitation{AccountInvitation: core.AccountInvitation{Kind: core.InvitationAnonymous, MaxUses: 2, ExpiresAt: time.Now().Add(time.Hour)}, Token: secretT}, nil)
+	rec := f.do(htmxReq(f.asUser(form("/admin/invitations", url.Values{"kind": {"anonymous"}, "max_uses": {"2"}, "days": {"1"}}), stewardS), "invitation-create"))
+	if !strings.Contains(rec.Body.String(), `x-show="failed"`) || !strings.Contains(rec.Body.String(), "press Ctrl+C") {
+		t.Errorf("no copy failure notice: %s", rec.Body)
+	}
+}

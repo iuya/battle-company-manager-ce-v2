@@ -15,6 +15,7 @@
     <textarea id="{{.ID}}" x-ref="msg" class="input" rows="4" readonly @focus="$el.select()">{{.Message}}</textarea>
     <p class="hint">{{.Hint}}</p></div>
   <button type="button" class="btn btn-secondary" @click="copy()"><span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied</span></button>
+  <p class="text-sm font-medium text-danger" role="status" x-show="failed" x-cloak>The browser did not allow copying. The message is selected: press Ctrl+C (Cmd+C on a Mac).</p>
   <p class="sr-only" role="status" x-text="copied ? 'Message copied' : ''"></p>
 </div>
 {{end}}
