@@ -164,6 +164,8 @@ async function main() {
       { name: 'Aftermath', user: A, path: aftermath },
       { name: 'Tabletop Simulator dialog, aura rings on', user: E, path: `/campaigns/${m}/companies/${companyId}/tts`, htmx: true, fragment: true },
       { name: 'Tabletop Simulator dialog, aura rings off', user: E, path: `/campaigns/${m}/companies/${companyId}/tts?auras=0`, htmx: true, fragment: true },
+      { name: 'Administration: Users (superuser)', user: A, path: '/admin/users' },
+      ...(process.env.PT_NO_INVITATIONS ? [] : [{ name: 'Administration: Invitations (superuser)', user: A, path: '/admin/invitations' }]), // PT_NO_INVITATIONS=1 on a tree before the page existed
     ];
 
     // First visit of every page (rule sets get loaded, caches fill), then the memory figure "after the demo world is loaded".
