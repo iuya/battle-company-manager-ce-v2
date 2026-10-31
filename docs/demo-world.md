@@ -38,7 +38,7 @@ All share the password `demo-password` (or `PASSWORD`). `admin@example.com`, `yo
 | `boromir@example.com` | **closed** account | closed at the end of the script (`Auth.CloseAccount`): the campaign "Cemetery" shows him as "Former player" and the address no longer signs in |
 | `invitee@example.com` | **no account yet** | the address of the pending named account invitation: open its printed link to register (the invitation may create campaigns) |
 | `newcomer@example.com` | user | made through a named invitation (used) |
-| `guest.one@example.com`, `guest.two@example.com` | user | made through the anonymous invitation (2 of 5 uses) |
+| `guest.one@example.com`, `guest.two@example.com` | user | made through the anonymous invitation (2 of 5 used, 3 left) |
 | `recover-pending@example.com` | user | has a **pending** recovery link. **Signing in as this account, or opening the app with a session of it, invalidates the link**: do not sign in as it if you want to use the link |
 | `recover-used@`, `recover-expired@`, `recover-revoked@`, `recover-login@`, `recover-access@`, `recover-replaced@example.com` | user | one recovery link each in the state the address says; dedicated accounts that nothing else signs in with (`recover-used@` still signs in with the demo password) |
 | `<company>@example.com` | user | the gallery: one account per Battle Company (`minas-tirith@`, `osgiliath-ithilien@`, `goblin-town@`, `wanderers-in-the-wild@` ...) |

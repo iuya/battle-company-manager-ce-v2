@@ -79,7 +79,7 @@ func (w *world) adminStates() {
 
 	w.accountLinks = append(w.accountLinks,
 		"pending named      /register/"+named.Token+"?email="+invitePendingEmail+"   (no account yet; may create campaigns)",
-		"anonymous, 3 of 5  /register/"+anon.Token+"   (two accounts made: "+inviteGuestOneEmail+", "+inviteGuestTwoEmail+")")
+		"anonymous, 2 of 5 used  /register/"+anon.Token+"   (two accounts made: "+inviteGuestOneEmail+", "+inviteGuestTwoEmail+")")
 
 	// Recovery links, each on its own account
 	ids := map[string]core.User{}
@@ -125,6 +125,6 @@ func (w *world) adminStates() {
 var adminStateAccounts = [][2]string{
 	{invitePendingEmail, "Pending named account invitation: no account yet (open the printed link)"},
 	{inviteUsedEmail, "Made through a named invitation (used)"},
-	{inviteGuestOneEmail + ", " + inviteGuestTwoEmail, "Made through the anonymous invitation (3 of 5 uses left)"},
+	{inviteGuestOneEmail + ", " + inviteGuestTwoEmail, "Made through the anonymous invitation (2 of 5 used, 3 left)"},
 	{"recover-<state>@example.com", "One recovery link per state: pending (never sign in as it), used, expired, revoked, login, access, replaced"},
 }
