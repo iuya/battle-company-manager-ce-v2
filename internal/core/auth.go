@@ -179,8 +179,8 @@ func (a *Auth) CreateUser(ctx context.Context, email, displayName, password stri
 	return a.repo.CreateUser(ctx, email, displayName, hash)
 }
 
-// SetPermissions changes a user's global role and campaign-creation permission (used by the CLI). The checks of
-// SetUserPermissions apply, without an actor.
+// SetPermissions changes a user's global role and campaign-creation permission (used by the CLI, make grant): the console may
+// make anybody anything, including a superuser, subject to the state rules of SetUserPermissions.
 func (a *Auth) SetPermissions(ctx context.Context, email string, role Role, canCreateCampaigns bool) error {
 	if !role.Valid() {
 		return errors.Join(ErrInvalidUser, errors.New("the role must be user, admin or superuser"))
@@ -189,29 +189,46 @@ func (a *Auth) SetPermissions(ctx context.Context, email string, role Role, canC
 	if err != nil {
 		return err
 	}
-	return a.setPermissions(ctx, rec.ID, role, canCreateCampaigns)
+	return a.setPermissions(ctx, ActorConsole, nil, rec.ID, role, canCreateCampaigns)
 }
 
-// SetUserPermissions changes the role and the creation flag of the user with that id. ErrRefused (with a reason fit to
-// show) unless actor is a superuser, for a closed account and for demoting the last open superuser; ErrInvalidUser for an
-// unknown role; ErrNotFound for an unknown id. The user's cached sessions are dropped so the change applies at once.
+// SetUserPermissions changes the role and the creation flag of the user with that id as actor, following RoleChangeAllowed:
+// ErrForbidden (with a reason fit to show) when the matrix refuses, which includes every request for the superuser role
+// (superusers are set from the console only); ErrRefused for a closed account and for demoting the last open superuser;
+// ErrInvalidUser for an unknown role; ErrNotFound for an unknown id. A change that changes nothing succeeds without a write.
+// Promotion to administrator keeps the stored flag. The user's cached sessions are dropped so the change applies at once, and
+// the change is audited in the same transaction.
 func (a *Auth) SetUserPermissions(ctx context.Context, actor User, userID int64, role Role, canCreateCampaigns bool) error {
-	if !actor.IsSuperuser() {
-		return Refuse("Only a superuser can change permissions")
-	}
 	if !role.Valid() {
-		return errors.Join(ErrInvalidUser, errors.New("the role must be user, admin or superuser"))
+		return errors.Join(ErrInvalidUser, errors.New("the role must be user or admin"))
 	}
-	return a.setPermissions(ctx, userID, role, canCreateCampaigns)
+	if !actor.MayAdminister() {
+		return RoleChangeAllowed(ActorOf(actor), LevelPlain, LevelPlain)
+	}
+	if role == RoleSuperuser {
+		return RoleChangeAllowed(ActorOf(actor), LevelPlain, LevelSuperuser)
+	}
+	id := actor.ID
+	return a.setPermissions(ctx, ActorOf(actor), &id, userID, role, canCreateCampaigns)
 }
 
-func (a *Auth) setPermissions(ctx context.Context, userID int64, role Role, canCreateCampaigns bool) error {
+func (a *Auth) setPermissions(ctx context.Context, actor Actor, actorID *int64, userID int64, role Role, canCreateCampaigns bool) error {
 	target, closed, err := a.repo.UserByID(ctx, userID)
 	if err != nil {
 		return err
 	}
+	from, to := LevelOf(target.Role, target.CanCreateCampaigns), LevelOf(role, canCreateCampaigns)
+	if err := RoleChangeAllowed(actor, from, to); err != nil {
+		return err
+	}
 	if closed {
 		return Refuse("This account is closed")
+	}
+	if from == to {
+		return nil // nothing changes, nothing is recorded
+	}
+	if to == LevelAdministrator || to == LevelSuperuser {
+		canCreateCampaigns = target.CanCreateCampaigns // a later demotion restores what the account had
 	}
 	if target.Role == RoleSuperuser && role != RoleSuperuser {
 		others, err := a.repo.OtherSuperusers(ctx, userID)
@@ -222,7 +239,12 @@ func (a *Auth) setPermissions(ctx context.Context, userID int64, role Role, canC
 			return Refuse("This is the last superuser; make someone else a superuser first")
 		}
 	}
-	if err := a.repo.SetUserPermissionsByID(ctx, userID, role, canCreateCampaigns, AuditEntry{}); err != nil {
+	source := AuditWeb
+	if actor == ActorConsole {
+		source = AuditConsole
+	}
+	audit := RoleChangedAudit(a.now(), source, actorID, userID, target.Role, role, target.CanCreateCampaigns, canCreateCampaigns)
+	if err := a.repo.SetUserPermissionsByID(ctx, userID, role, canCreateCampaigns, audit); err != nil {
 		return err
 	}
 	a.cache.dropUser(userID, "")
@@ -257,17 +279,30 @@ const (
 
 // ListUsers returns the accounts matching q (case-insensitive substring of name or email, empty: all), open ones first by
 // display name, then closed ones. limit (default 25, at most 200) and offset page it; total is the number of matches.
-// ErrRefused unless actor is a superuser.
+// ErrForbidden unless actor is an administrator or a superuser; the recovery status of each account is for superusers only.
 func (a *Auth) ListUsers(ctx context.Context, actor User, q string, limit, offset int) (rows []AdminUser, total int, err error) {
-	if !actor.IsSuperuser() {
-		return nil, 0, Refuse("Only a superuser can list the accounts")
+	if !actor.MayAdminister() {
+		return nil, 0, Forbid("Only administrators can list the accounts")
 	}
 	if limit <= 0 {
 		limit = defaultUserPage
 	}
 	limit = min(limit, maxUserPage)
 	offset = max(offset, 0)
-	return a.repo.ListUsers(ctx, strings.TrimSpace(q), limit, offset)
+	rows, total, err = a.repo.ListUsers(ctx, strings.TrimSpace(q), limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	now := a.now()
+	for i := range rows {
+		switch {
+		case !actor.IsSuperuser():
+			rows[i].Recovery = nil
+		case rows[i].Recovery != nil:
+			rows[i].Recovery.State = rows[i].Recovery.StateAt(now)
+		}
+	}
+	return rows, total, nil
 }
 
 // Login checks the credentials and opens a session. It returns the token to store in the browser cookie and when
