@@ -1,0 +1,86 @@
+{{define "title"}}Invitations · Administration · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+{{template "admin_head" .}}
+<div class="mt-6 max-w-xl">{{template "admin_invitation_create" .Create}}</div>
+<h2 class="mt-8 !text-xl">Invitations</h2>
+<nav class="mt-3 flex flex-wrap gap-2" aria-label="Filter invitations">
+  {{range .List.States}}<a href="/admin/invitations{{if .Value}}?state={{.Value}}{{end}}" class="chip no-underline hover:no-underline {{if eq .Value $.List.State}}chip-on{{end}}" {{if eq .Value $.List.State}}aria-current="true"{{end}} hx-get="/admin/invitations?state={{.Value}}" hx-target="#invitation-list" hx-swap="innerHTML" hx-push-url="false">{{.Label}}</a>{{end}}
+</nav>
+<div id="invitation-list" class="mt-4" aria-live="polite" hx-get="/admin/invitations?state={{.List.State}}" hx-trigger="invitations-changed from:body" hx-target="this" hx-swap="innerHTML" hx-push-url="false">{{template "admin_invitation_list" .List}}</div>
+<p class="mt-6 max-w-xl text-sm text-muted">The service sends no email: hand the message to the person yourself. A link that does not work shows only “Talk with the administrator.”, whatever the reason; this list shows the real state.</p>
+{{end}}
+
+{{define "admin_invitation_list"}}
+<p class="text-sm text-muted">{{.Total}} {{if eq .Total 1}}invitation{{else}}invitations{{end}}</p>
+<ul class="mt-3 space-y-3">{{template "admin_invitation_page" .}}</ul>
+{{end}}
+
+{{define "admin_invitation_page"}}
+{{range .Rows}}{{template "admin_invitation_row" .}}{{else}}<li class="text-muted">No invitations.</li>{{end}}
+{{if .Next}}<li id="invitation-more"><button type="button" class="btn btn-secondary" hx-get="{{.NextURL}}" hx-target="#invitation-more" hx-swap="outerHTML" hx-push-url="false">Show more</button></li>{{end}}
+{{end}}
+
+{{define "admin_invitation_error"}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+
+{{/* One invitation. Takes an invitationRow. */}}
+{{define "admin_invitation_row"}}
+{{$i := .I}}
+<li id="invitation-{{$i.ID}}" class="card !p-4" data-state="{{$i.State}}">
+  <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+    <h3 class="!text-lg break-all">{{if eq (print $i.Kind) "named"}}{{$i.Email}}{{else}}Anyone with the link{{end}}</h3>
+    <span class="badge badge-muted">{{if eq (print $i.Kind) "named"}}Named{{else}}Anonymous{{end}}</span>
+    <span class="badge {{if eq (print $i.State) "pending"}}badge-warn{{else if eq (print $i.State) "used"}}badge-success{{else}}badge-muted{{end}}">{{$i.State}}</span>
+    {{if $i.CanCreateCampaigns}}<span class="badge">Can create campaigns</span>{{end}}
+  </div>
+  <p class="mt-1 text-sm text-muted">Created by {{$i.CreatedByName}} on {{fmtDateShort $i.CreatedAt}} · expires {{fmtDateShort $i.ExpiresAt}} · used {{$i.Uses}} of {{$i.MaxUses}}</p>
+  {{if $i.RevokedAt}}<p class="text-sm text-muted">Revoked by {{$i.RevokedByName}} on {{fmtDateShort $i.RevokedAt}}</p>{{end}}
+  {{with $i.Accounts}}<p class="text-sm text-muted">Accounts: {{range $n, $a := .}}{{if $n}}, {{end}}{{$a.DisplayName}}{{end}}</p>{{end}}
+  <div id="invitation-{{$i.ID}}-msg" class="mt-2">{{with .Err}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}</div>
+  {{if .Pending}}
+  <form hx-post="/admin/invitations/{{$i.ID}}/revoke" hx-target="#invitation-{{$i.ID}}" hx-swap="outerHTML" class="mt-2" x-data="{ ask: false }">
+    <button type="button" class="btn btn-secondary" x-show="!ask" @click="ask = true">Revoke</button>
+    <div x-show="ask" x-cloak class="alert alert-info space-y-2" role="alertdialog" aria-label="Revoke the invitation?">
+      <p class="text-sm">The link stops working. Revoke this invitation?</p>
+      <div class="flex flex-wrap gap-2"><button type="button" class="btn btn-secondary" @click="ask = false">Cancel</button><button class="btn btn-danger">Revoke</button></div>
+    </div>
+  </form>
+  {{end}}
+</li>
+{{end}}
+
+{{/* The creation card; after a success it holds the message to copy and a fresh form. Takes an invitationCard. */}}
+{{define "admin_invitation_create"}}
+<section id="invitation-create" class="card space-y-4">
+  <h2 class="!text-xl">Invite someone</h2>
+  {{with .Link}}
+  <div class="alert alert-success" role="status">Invitation created. Send this message to the person.</div>
+  {{template "copy_message" (dict "ID" "invitation-message" "Label" "Message to send" "Message" .Message "Hint" "Shown only now. Lost it? Revoke the invitation and make another.")}}
+  {{end}}
+  <form hx-post="/admin/invitations" hx-target="#invitation-create" hx-swap="outerHTML" class="space-y-4" x-data="{ kind: '{{.Kind}}' }" novalidate>
+    <input type="hidden" name="nonce" value="{{.Nonce}}">
+    {{with .Err}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+    <fieldset class="space-y-1">
+      <legend class="text-sm font-medium">Kind</legend>
+      <label class="flex min-h-11 items-start gap-3 text-sm"><input type="radio" name="kind" value="named" x-model="kind" {{if eq .Kind "named"}}checked{{end}} class="mt-1 h-5 w-5 accent-[var(--accent)]"><span><span class="font-medium">Named (one person)</span><span class="block text-muted">One use, tied to an email address.</span></span></label>
+      <label class="flex min-h-11 items-start gap-3 text-sm"><input type="radio" name="kind" value="anonymous" x-model="kind" {{if eq .Kind "anonymous"}}checked{{end}} class="mt-1 h-5 w-5 accent-[var(--accent)]"><span><span class="font-medium">Anonymous (anyone with the link)</span><span class="block text-muted">Each person registers with their own email, up to a limit.</span></span></label>
+    </fieldset>
+    <div class="field" x-show="kind === 'named'" {{if ne .Kind "named"}}x-cloak{{end}}>
+      <label for="inv-email">Email address</label>
+      <input id="inv-email" name="email" type="email" class="input" value="{{.Email}}" autocomplete="off" autocapitalize="none" spellcheck="false">
+    </div>
+    <div class="field" x-show="kind === 'anonymous'" {{if ne .Kind "anonymous"}}x-cloak{{end}}>
+      <label for="inv-max">Maximum accounts</label>
+      <input id="inv-max" name="max_uses" type="number" min="1" max="50" inputmode="numeric" class="input" value="{{.MaxUses}}" {{with index .Errors "max_uses"}}aria-invalid="true" aria-describedby="inv-max-err"{{end}}>
+      {{with index .Errors "max_uses"}}<p id="inv-max-err" class="text-xs font-medium text-danger">{{.}}</p>{{end}}
+    </div>
+    <div class="field">
+      <label for="inv-days">Expires in</label>
+      <select id="inv-days" name="days" class="input">
+        <option value="1" {{if eq .Days 1}}selected{{end}}>1 day</option><option value="3" {{if eq .Days 3}}selected{{end}}>3 days</option><option value="7" {{if eq .Days 7}}selected{{end}}>7 days</option><option value="14" {{if eq .Days 14}}selected{{end}}>14 days</option><option value="30" {{if eq .Days 30}}selected{{end}}>30 days</option>
+      </select>
+    </div>
+    <label class="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" name="can_create" {{if .Can}}checked{{end}} class="mt-1 h-5 w-5 accent-[var(--accent)]"><span><span class="font-medium">Can create campaigns</span><span class="block text-muted">The new account is an organiser.</span></span></label>
+    <button class="btn btn-primary">Create invitation</button>
+  </form>
+</section>
+{{end}}

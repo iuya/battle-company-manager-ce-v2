@@ -17,6 +17,9 @@ type cachedSession struct {
 	user    User
 	expires time.Time // when the session itself expires
 	checked time.Time // when it was last confirmed against the database
+	// recoveryPending says the user has a live password recovery link that the next authenticated request must invalidate.
+	// UserBySession fills it on a miss; Recovery.Generate sets it on the cached entries; Authenticate clears it.
+	recoveryPending bool
 }
 
 // sessionCache lets the many requests of a page (htmx partials included) skip the database: a session confirmed less
@@ -83,6 +86,18 @@ func (c *sessionCache) dropUser(userID int64, keep string) {
 	for k, e := range c.m {
 		if e.user.ID == userID && (keep == "" || k != keep) {
 			delete(c.m, k)
+		}
+	}
+}
+
+// setRecoveryPending sets the recovery flag of every cached session of userID.
+func (c *sessionCache) setRecoveryPending(userID int64, pending bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for k, e := range c.m {
+		if e.user.ID == userID {
+			e.recoveryPending = pending
+			c.m[k] = e
 		}
 	}
 }

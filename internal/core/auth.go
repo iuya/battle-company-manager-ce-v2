@@ -10,6 +10,7 @@ import (
 	"net/mail"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 )
@@ -31,6 +32,10 @@ const (
 	minPasswordLen = 10
 	maxPasswordLen = 128 // argon2 is deliberately expensive: do not let a request choose an unbounded input
 	sessionTTL     = 30 * 24 * time.Hour
+	// staleTokenAge is how long an unused invitation or a terminal recovery link is kept after it ended.
+	staleTokenAge = 90 * 24 * time.Hour
+	// purgeEvery is how often (per process) a login also purges them: the work is housekeeping, not something every login pays.
+	purgeEvery = time.Hour
 )
 
 // Role is a user's global role. Per-campaign roles (organiser, player) are a separate matter.
@@ -76,6 +81,9 @@ func (a Appearance) Valid() bool {
 
 func (u User) IsSuperuser() bool { return u.Role == RoleSuperuser }
 
+// MayAdminister says the user sees the Administration section: administrators and superusers.
+func (u User) MayAdminister() bool { return u.Role == RoleAdmin || u.Role == RoleSuperuser }
+
 func (u User) MayCreateCampaigns() bool {
 	return u.Role == RoleAdmin || u.Role == RoleSuperuser || u.CanCreateCampaigns
 }
@@ -91,8 +99,9 @@ type Credentials struct {
 type authRepository interface {
 	// CreateUser returns ErrEmailTaken when the (case-insensitive) email exists.
 	CreateUser(ctx context.Context, email, displayName, passwordHash string) (User, error)
-	// SetUserPermissionsByID returns ErrNotFound when there is no such user.
-	SetUserPermissionsByID(ctx context.Context, userID int64, role Role, canCreateCampaigns bool) error
+	// SetUserPermissionsByID changes the role and the flag and writes the audit entry in the same transaction; ErrNotFound when
+	// there is no such open user.
+	SetUserPermissionsByID(ctx context.Context, userID int64, role Role, canCreateCampaigns bool, audit AuditEntry) error
 	// UserByID returns the user, closed accounts included (closed is true for them), or ErrNotFound.
 	UserByID(ctx context.Context, userID int64) (user User, closed bool, err error)
 	// ListUsers returns the accounts whose name or email contains q (case-insensitive, empty: all): open ones by display
@@ -101,8 +110,15 @@ type authRepository interface {
 	// UserByEmail returns ErrNotFound when there is no such user.
 	UserByEmail(ctx context.Context, email string) (Credentials, error)
 	CreateSession(ctx context.Context, tokenHash []byte, userID int64, expiresAt time.Time) error
-	// UserBySession returns ErrNotFound when the session does not exist or expired before now.
-	UserBySession(ctx context.Context, tokenHash []byte, now time.Time) (User, time.Time, error)
+	// UserBySession returns ErrNotFound when the session does not exist or expired before now. recoveryPending says the user has
+	// a live (pending, unexpired at now) recovery link; it is part of the same query, so it costs no extra round trip.
+	UserBySession(ctx context.Context, tokenHash []byte, now time.Time) (user User, expires time.Time, recoveryPending bool, err error)
+	// InvalidateRecovery marks the user's live recovery link (if any) invalidated for reason (RecoveryByLogin or RecoveryByAccess)
+	// and, when n > 0, writes a recovery.invalidated entry (source system) in the same transaction. Normally n is 0.
+	InvalidateRecovery(ctx context.Context, userID int64, reason RecoveryReason, now time.Time) (n int, err error)
+	// PurgeStaleTokens deletes the invitations that were never used and ended (revoked or expired) before the cutoff and the
+	// terminal recovery links older than it. Invitations that made an account and audit_events are kept.
+	PurgeStaleTokens(ctx context.Context, before time.Time) error
 	ExtendSession(ctx context.Context, tokenHash []byte, expiresAt time.Time) error
 	DeleteSession(ctx context.Context, tokenHash []byte) error
 	DeleteExpiredSessions(ctx context.Context, now time.Time) error
@@ -135,6 +151,9 @@ type Auth struct {
 	cache *sessionCache
 	// dummyHash is verified when the email is unknown so that both outcomes take the same time.
 	dummyHash string
+	// purgeMu guards purgeAt, when the stale invitations and recovery links were last purged (at most once per purgeEvery).
+	purgeMu sync.Mutex
+	purgeAt time.Time
 }
 
 func NewAuth(repo authRepository) *Auth {
@@ -148,18 +167,34 @@ func newAuth(repo authRepository, now func() time.Time, p argonParams) *Auth {
 
 func normalizeEmail(email string) string { return strings.ToLower(strings.TrimSpace(email)) }
 
-// CreateUser validates and registers a user. There is no sign-up page: accounts are created with the server's CLI.
-func (a *Auth) CreateUser(ctx context.Context, email, displayName, password string) (User, error) {
-	email = normalizeEmail(email)
-	if addr, err := mail.ParseAddress(email); err != nil || addr.Address != email {
-		return User{}, errors.Join(ErrInvalidUser, errors.New("the email address is not valid"))
+// validateAccount checks the fields of a new account and returns the normalised email and name. Every problem is reported
+// (ErrInvalidUser joined with one message each). checkEmail is false when the address comes from an invitation.
+func validateAccount(email, displayName, password string, checkEmail bool) (string, string, error) {
+	var problems []error
+	if checkEmail {
+		email = normalizeEmail(email)
+		if addr, err := mail.ParseAddress(email); err != nil || addr.Address != email {
+			problems = append(problems, errors.New("the email address is not valid"))
+		}
 	}
 	displayName = strings.TrimSpace(displayName)
 	if n := utf8.RuneCountInString(displayName); n == 0 || n > 60 {
-		return User{}, errors.Join(ErrInvalidUser, errors.New("the name must be between 1 and 60 characters"))
+		problems = append(problems, errors.New("the name must be between 1 and 60 characters"))
 	}
 	if n := utf8.RuneCountInString(password); n < minPasswordLen || n > maxPasswordLen {
-		return User{}, errors.Join(ErrInvalidUser, errors.New("the password must be between 10 and 128 characters"))
+		problems = append(problems, errors.New("the password must be between 10 and 128 characters"))
+	}
+	if len(problems) > 0 {
+		return "", "", errors.Join(append([]error{ErrInvalidUser}, problems...)...)
+	}
+	return email, displayName, nil
+}
+
+// CreateUser validates and registers a user (the console: accounts are otherwise made through invitations).
+func (a *Auth) CreateUser(ctx context.Context, email, displayName, password string) (User, error) {
+	email, displayName, err := validateAccount(email, displayName, password, true)
+	if err != nil {
+		return User{}, err
 	}
 	hash, err := hashPassword(password, a.argon)
 	if err != nil {
@@ -168,8 +203,8 @@ func (a *Auth) CreateUser(ctx context.Context, email, displayName, password stri
 	return a.repo.CreateUser(ctx, email, displayName, hash)
 }
 
-// SetPermissions changes a user's global role and campaign-creation permission (used by the CLI). The checks of
-// SetUserPermissions apply, without an actor.
+// SetPermissions changes a user's global role and campaign-creation permission (used by the CLI, make grant): the console may
+// make anybody anything, including a superuser, subject to the state rules of SetUserPermissions.
 func (a *Auth) SetPermissions(ctx context.Context, email string, role Role, canCreateCampaigns bool) error {
 	if !role.Valid() {
 		return errors.Join(ErrInvalidUser, errors.New("the role must be user, admin or superuser"))
@@ -178,29 +213,46 @@ func (a *Auth) SetPermissions(ctx context.Context, email string, role Role, canC
 	if err != nil {
 		return err
 	}
-	return a.setPermissions(ctx, rec.ID, role, canCreateCampaigns)
+	return a.setPermissions(ctx, ActorConsole, nil, rec.ID, role, canCreateCampaigns)
 }
 
-// SetUserPermissions changes the role and the creation flag of the user with that id. ErrRefused (with a reason fit to
-// show) unless actor is a superuser, for a closed account and for demoting the last open superuser; ErrInvalidUser for an
-// unknown role; ErrNotFound for an unknown id. The user's cached sessions are dropped so the change applies at once.
+// SetUserPermissions changes the role and the creation flag of the user with that id as actor, following RoleChangeAllowed:
+// ErrForbidden (with a reason fit to show) when the matrix refuses, which includes every request for the superuser role
+// (superusers are set from the console only); ErrRefused for a closed account and for demoting the last open superuser;
+// ErrInvalidUser for an unknown role; ErrNotFound for an unknown id. A change that changes nothing succeeds without a write.
+// Promotion to administrator keeps the stored flag. The user's cached sessions are dropped so the change applies at once, and
+// the change is audited in the same transaction.
 func (a *Auth) SetUserPermissions(ctx context.Context, actor User, userID int64, role Role, canCreateCampaigns bool) error {
-	if !actor.IsSuperuser() {
-		return Refuse("Only a superuser can change permissions")
-	}
 	if !role.Valid() {
-		return errors.Join(ErrInvalidUser, errors.New("the role must be user, admin or superuser"))
+		return errors.Join(ErrInvalidUser, errors.New("the role must be user or admin"))
 	}
-	return a.setPermissions(ctx, userID, role, canCreateCampaigns)
+	if !actor.MayAdminister() {
+		return RoleChangeAllowed(ActorOf(actor), LevelPlain, LevelPlain)
+	}
+	if role == RoleSuperuser {
+		return RoleChangeAllowed(ActorOf(actor), LevelPlain, LevelSuperuser)
+	}
+	id := actor.ID
+	return a.setPermissions(ctx, ActorOf(actor), &id, userID, role, canCreateCampaigns)
 }
 
-func (a *Auth) setPermissions(ctx context.Context, userID int64, role Role, canCreateCampaigns bool) error {
+func (a *Auth) setPermissions(ctx context.Context, actor Actor, actorID *int64, userID int64, role Role, canCreateCampaigns bool) error {
 	target, closed, err := a.repo.UserByID(ctx, userID)
 	if err != nil {
 		return err
 	}
+	from, to := LevelOf(target.Role, target.CanCreateCampaigns), LevelOf(role, canCreateCampaigns)
+	if err := RoleChangeAllowed(actor, from, to); err != nil {
+		return err
+	}
 	if closed {
 		return Refuse("This account is closed")
+	}
+	if from == to {
+		return nil // nothing changes, nothing is recorded
+	}
+	if to == LevelAdministrator || to == LevelSuperuser {
+		canCreateCampaigns = target.CanCreateCampaigns // a later demotion restores what the account had
 	}
 	if target.Role == RoleSuperuser && role != RoleSuperuser {
 		others, err := a.repo.OtherSuperusers(ctx, userID)
@@ -211,7 +263,12 @@ func (a *Auth) setPermissions(ctx context.Context, userID int64, role Role, canC
 			return Refuse("This is the last superuser; make someone else a superuser first")
 		}
 	}
-	if err := a.repo.SetUserPermissionsByID(ctx, userID, role, canCreateCampaigns); err != nil {
+	source := AuditWeb
+	if actor == ActorConsole {
+		source = AuditConsole
+	}
+	audit := RoleChangedAudit(a.now(), source, actorID, userID, target.Role, role, target.CanCreateCampaigns, canCreateCampaigns)
+	if err := a.repo.SetUserPermissionsByID(ctx, userID, role, canCreateCampaigns, audit); err != nil {
 		return err
 	}
 	a.cache.dropUser(userID, "")
@@ -224,6 +281,8 @@ type AdminUser struct {
 	Campaigns int // campaigns the user is a member of, in any status
 	CreatedAt time.Time
 	Closed    bool // the account is closed; the other fields are the anonymised ones
+	// Recovery is the account's latest recovery link, filled for superusers only (nil: never had one, or the caller may not see it).
+	Recovery *RecoveryStatus
 	// Organises are the campaigns the user is the organiser of (any status), for the Users page: an administrator hands them over
 	// from there (Campaigns.HandOver), also when not a member.
 	Organises []OrganisedCampaign
@@ -244,17 +303,30 @@ const (
 
 // ListUsers returns the accounts matching q (case-insensitive substring of name or email, empty: all), open ones first by
 // display name, then closed ones. limit (default 25, at most 200) and offset page it; total is the number of matches.
-// ErrRefused unless actor is a superuser.
+// ErrForbidden unless actor is an administrator or a superuser; the recovery status of each account is for superusers only.
 func (a *Auth) ListUsers(ctx context.Context, actor User, q string, limit, offset int) (rows []AdminUser, total int, err error) {
-	if !actor.IsSuperuser() {
-		return nil, 0, Refuse("Only a superuser can list the accounts")
+	if !actor.MayAdminister() {
+		return nil, 0, Forbid("Only administrators can list the accounts")
 	}
 	if limit <= 0 {
 		limit = defaultUserPage
 	}
 	limit = min(limit, maxUserPage)
 	offset = max(offset, 0)
-	return a.repo.ListUsers(ctx, strings.TrimSpace(q), limit, offset)
+	rows, total, err = a.repo.ListUsers(ctx, strings.TrimSpace(q), limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	now := a.now()
+	for i := range rows {
+		switch {
+		case !actor.IsSuperuser():
+			rows[i].Recovery = nil
+		case rows[i].Recovery != nil:
+			rows[i].Recovery.State = rows[i].Recovery.StateAt(now)
+		}
+	}
+	return rows, total, nil
 }
 
 // Login checks the credentials and opens a session. It returns the token to store in the browser cookie and when
@@ -285,10 +357,19 @@ func (a *Auth) Login(ctx context.Context, email, password string) (token string,
 	token = base64.RawURLEncoding.EncodeToString(raw)
 	now := a.now()
 	expires = now.Add(sessionTTL)
+	// Signing in with the password makes a pending recovery link pointless: it stops working before the session exists, and
+	// whichever of this and the link's own use locks the row first wins.
+	if _, err := a.repo.InvalidateRecovery(ctx, rec.ID, RecoveryByLogin, now); err != nil {
+		return "", time.Time{}, User{}, err
+	}
+	a.cache.setRecoveryPending(rec.ID, false)
 	if err := a.repo.CreateSession(ctx, hashToken(token), rec.ID, expires); err != nil {
 		return "", time.Time{}, User{}, err
 	}
 	_ = a.repo.DeleteExpiredSessions(ctx, now) // housekeeping; a failure must not fail the login
+	if a.purgeDue(now) {
+		_ = a.repo.PurgeStaleTokens(ctx, now.Add(-staleTokenAge)) // same
+	}
 	return token, expires, rec.User, nil
 }
 
@@ -305,14 +386,23 @@ func (a *Auth) Authenticate(ctx context.Context, token string) (user User, renew
 
 	entry, ok := a.cache.get(key, now)
 	if !ok {
-		user, expires, err := a.repo.UserBySession(ctx, h, now)
+		user, expires, pending, err := a.repo.UserBySession(ctx, h, now)
 		if errors.Is(err, ErrNotFound) {
 			return User{}, time.Time{}, ErrNoSession
 		}
 		if err != nil {
 			return User{}, time.Time{}, err
 		}
-		entry = cachedSession{user: user, expires: expires, checked: now}
+		entry = cachedSession{user: user, expires: expires, checked: now, recoveryPending: pending}
+	}
+	if entry.recoveryPending {
+		// Any authenticated request makes a pending recovery link pointless. The flag rides on the cache entry, so the normal
+		// case (no link) costs nothing, and a pending link costs one UPDATE, once. A failure is an error (fail closed).
+		if _, err := a.repo.InvalidateRecovery(ctx, entry.user.ID, RecoveryByAccess, now); err != nil {
+			return User{}, time.Time{}, err
+		}
+		a.cache.setRecoveryPending(entry.user.ID, false)
+		entry.recoveryPending = false
 	}
 	if entry.expires.Sub(now) < sessionTTL/2 {
 		renewed = now.Add(sessionTTL)
@@ -503,4 +593,22 @@ func userZone(u *User) string {
 		return ""
 	}
 	return u.Timezone
+}
+
+// forgetUser and setRecoveryPending make *Auth the sessionControl of the Recovery service: Auth owns the session cache.
+func (a *Auth) forgetUser(userID int64) { a.cache.dropUser(userID, "") }
+
+func (a *Auth) setRecoveryPending(userID int64, pending bool) {
+	a.cache.setRecoveryPending(userID, pending)
+}
+
+// purgeDue says whether the purge of stale tokens should run now, and records that it did: at most once per purgeEvery.
+func (a *Auth) purgeDue(now time.Time) bool {
+	a.purgeMu.Lock()
+	defer a.purgeMu.Unlock()
+	if !a.purgeAt.IsZero() && now.Sub(a.purgeAt) < purgeEvery {
+		return false
+	}
+	a.purgeAt = now
+	return true
 }

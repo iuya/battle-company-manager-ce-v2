@@ -166,15 +166,15 @@ Signed-in pages sit in a shell: a sticky top bar (menu button below `md`, name, 
 that slides over the page (Alpine state `open`, closed by the backdrop, Esc or choosing a link). The sidebar lives
 outside `#main`, so Alpine keeps `path` in step with htmx navigation to mark the current link (`aria-current="page"`).
 
-Sidebar order: **Administration** (superusers only, gold-outlined so it stands apart, a 404 for everybody else),
+Sidebar order: **Administration** (administrators and superusers, gold-outlined so it stands apart, a 404 for everybody else),
 Campaigns (`/campaigns`, the list; `/` shows the same list when there is no valid last-campaign cookie, otherwise it redirects to the campaign last opened, see [auth.md](auth.md)) with a sub-menu of the user's active campaigns, Glossary; at the bottom the user's name, Account and Sign out. The sub-menu shows on the main page and inside any campaign; its items are drawn into every full page (`pageBase.base` asks `NavCampaigns` for a signed-in user, `NavInline`; the main page uses its own list, `NavOwn`), so there is no extra request. An htmx content swap has no sidebar and skips the query; if the list cannot be read the sidebar falls back to fetching `GET /nav/campaigns` on load. The list is refetched there only when it changes (`campaigns-changed`). Only the campaign you are in is expanded, with its pages (Overview, My Company, Armory, Rankings,
 Matches; the current one marked) under it, and is marked with an accent bar, soft fill and a faint gold glow;
 switching campaign collapses the previous one while the new one expands, both animating their height together (a
 grid-rows 0fr/1fr transition, collapsed lists `inert`; an `x-transition` made the leaving list linger and the sidebar
 jump) (Alpine `inCampaign` / `onTab` on the shell, from the current path). The shell also sets `path` when you click a link
-(`navigate`), not only when the page has loaded, so the sidebar answers at once on a slow connection. Administration (superusers
-only, gold-marked) opens `/admin`, whose tabs (Users, Rules files; the sidebar entry stays marked on both) are the
-`admin_head` partial; both pages are described in [admin.md](admin.md). Signed-out pages (login) get only the top bar.
+(`navigate`), not only when the page has loaded, so the sidebar answers at once on a slow connection. Administration (administrators and
+superusers, gold-marked) opens `/admin`, whose tabs (Users, Invitations, and Rules files for superusers only; the sidebar entry stays marked on all) are the
+`admin_head` partial; the pages are described in [admin.md](admin.md). Signed-out pages (login) get only the top bar.
 
 Every page ends with the fan-project disclaimer (`partials/footer.gohtml`).
 
@@ -183,7 +183,7 @@ Every page ends with the fan-project disclaimer (`partials/footer.gohtml`).
 `/campaigns` (and `/` for a user with no remembered campaign) lists the user's unfinished campaigns as cards (name, status badge, description, progress, the user's company in
 it). "New campaign" (`/campaigns/new`) is shown to users who may create campaigns: admins, superusers, and users with
 the `can_create_campaigns` flag (`User.MayCreateCampaigns`); the server answers 403 to anyone else. Roles are
-`user | admin | superuser`, set with `make grant EMAIL=… ROLE=… [CREATE=1]`.
+`user | admin | superuser`, set in the Administration section (organiser and administrator switches) or with `make grant EMAIL=… ROLE=… [CREATE=1]` (the only way to a superuser).
 
 The brand link in the header (for a signed-in user), the sidebar's "Campaigns" and every "← Campaigns" / "Cancel" / "Back to your campaigns" link point at `/campaigns`, the one address that never redirects, so a user whose `/` jumps to their last campaign can always reach the list. Creating a campaign returns to it.
 
@@ -1150,6 +1150,26 @@ and the tooltip steps aside.
   (allowed under the policy). `TestHelperPopupScriptFitsThePolicy` guards it and the e2e suite runs under `CSP_MODE=enforce`.
 - **Tested:** `internal/web/concepts_test.go` (generated mock of `concepts`: body, groups, folds, escaping, glossary link, caching and 304,
   404, ambiguous and unknown names, non-members and anonymous visitors) and the e2e flow `87-concepts` ([testing.md](testing.md)).
+
+## Account invitations, recovery links and the copy component
+
+Three screens for the single-use links of [auth.md](auth.md). All are one column at 360 px, tokens only, 44 px targets, htmx swaps of their own card.
+
+- **Invitations** (`templates/pages/admin_invitations.gohtml`, `admin_invitations.go`): the creation card first (kind radios Named/Anonymous, email or
+  "Maximum accounts", "Expires in" select, "Can create campaigns" checkbox; a 422 keeps what was typed), then filter chips (a link each, swapping
+  `#invitation-list`) and one card per invitation with the state badge (`data-state`), creator, dates, "used N of M" and an inline-confirmed
+  **Revoke** (a refusal goes to the row's message slot through `HX-Retarget`). A successful create answers the card with the message and sends
+  `HX-Trigger: invitations-changed`, which reloads the list.
+- **Users page**: the permission form has `role="switch"` checkboxes shown per actor and target (never a disabled-only control, no Superuser
+  option), a muted note where the viewer has no control, and, for superusers, the **Recovery link** card (status line with `data-recovery-state`,
+  expiry select, Generate/Revoke with inline `role="alertdialog"` confirmations, the one-time message).
+- **Public pages** `register.gohtml`, `recover.gohtml`, `link_unusable.gohtml`: a card like the login's, plain forms (`hx-boost="false"`, so a 422 is a
+  full page), password and confirmation with Show/Hide and a client-side match hint, and for a named invitation the stored email read-only. Every answer
+  from these routes is `Cache-Control: no-store` plus `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex` (`secretPage`).
+- **Copy component** (`static/js/copylink.js`, in `bundleScripts`, `x-data="copyLink"`; partial `copy_message`): a read-only `<textarea>` with the
+  message (selectable where the Clipboard API is missing, e.g. plain http on a LAN) and a **Copy** button that calls `navigator.clipboard.writeText`
+  and falls back to selecting the text; "Copied" feedback in a live region. No inline script, and the attributes hold only fixed text: the message
+  is element content, escaped.
 
 ## Invite links
 

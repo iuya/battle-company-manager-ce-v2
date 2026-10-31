@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"path"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -15,6 +16,27 @@ import (
 )
 
 func itoa(i int) string { return strconv.Itoa(i) }
+
+// tokenRoutes are the path prefixes whose next segment is a secret (a campaign invitation, an account invitation, a recovery link).
+var tokenRoutes = []string{"/join/", "/register/", "/recover/"}
+
+// logPath is the path to write in a log line: the route pattern ("/register/{token}") for the routes whose path holds a secret,
+// never the secret itself, otherwise the path as it is.
+//
+// The match is made on the cleaned path, anywhere in it: the mux redirects "//register/x" or "/a/../register/x" to the canonical
+// address, and the redirected request would otherwise be logged with the secret as sent.
+func logPath(r *http.Request) string {
+	clean := path.Clean("/" + r.URL.Path)
+	for _, prefix := range tokenRoutes {
+		if strings.HasPrefix(clean, prefix) {
+			return prefix + "{token}"
+		}
+	}
+	if strings.Contains(strings.ToLower(clean), "/register/") || strings.Contains(strings.ToLower(clean), "/recover/") || strings.Contains(clean, "/join/") {
+		return "{path with a token}"
+	}
+	return r.URL.Path
+}
 
 type statusRecorder struct {
 	http.ResponseWriter
@@ -35,7 +57,7 @@ func logger(next http.Handler) http.Handler {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
-		slog.InfoContext(r.Context(), "request", "method", r.Method, "path", r.URL.Path, "status", rec.status, "took", time.Since(start))
+		slog.InfoContext(r.Context(), "request", "method", r.Method, "path", logPath(r), "status", rec.status, "took", time.Since(start))
 	})
 }
 
@@ -46,7 +68,7 @@ func (s *Server) recoverer(next http.Handler) http.Handler {
 				if v == http.ErrAbortHandler {
 					panic(v) // the handler asked net/http to drop the connection quietly
 				}
-				slog.ErrorContext(r.Context(), "panic", "value", v, "method", r.Method, "path", r.URL.Path, "stack", string(debug.Stack()))
+				slog.ErrorContext(r.Context(), "panic", "value", v, "method", r.Method, "path", logPath(r), "stack", string(debug.Stack()))
 				s.refuse(w, r, http.StatusInternalServerError, "")
 			}
 		}()

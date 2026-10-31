@@ -48,6 +48,7 @@ func BenchmarkPages(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
+	srv.SetAccountLinks(be.invitations, be.recovery)
 	h := srv.Handler()
 	cookie := func(email string) *http.Cookie {
 		tok, _, _, err := be.auth.Login(ctx, email, "demo-password")

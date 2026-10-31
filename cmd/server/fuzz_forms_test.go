@@ -61,6 +61,7 @@ func TestMalformedInputNeverCrashesAHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	srv.SetAccountLinks(b.invitations, b.recovery)
 	h := srv.Handler()
 
 	// real ids for the path placeholders
@@ -325,6 +326,7 @@ func TestHostileUploadsAnswer4xx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	srv.SetAccountLinks(b.invitations, b.recovery)
 	h := srv.Handler()
 
 	good, err := os.ReadFile("definitions/glossary/mesbg_glossary.json")

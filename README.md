@@ -20,7 +20,7 @@ Prerequisites: the Go version in [go.mod](go.mod), Docker (PostgreSQL), Python 3
 
 ```bash
 make get-tailwind                                  # once: downloads the Tailwind standalone binary for this machine (macOS and Linux, x64 and arm64)
-make user EMAIL=you@example.com NAME="Your Name"   # creates an account (asks for a password); there is no sign-up page
+make user EMAIL=you@example.com NAME="Your Name"   # creates an account (asks for a password); other people join through an administrator's invitation link
 make run                                           # CSS + PostgreSQL + server on http://localhost:8080
 ```
 

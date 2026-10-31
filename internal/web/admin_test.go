@@ -30,10 +30,16 @@ func htmxReq(r *http.Request, target string) *http.Request {
 	return r
 }
 
-func TestAdminIsSuperuserOnly(t *testing.T) {
-	routes := [][2]string{{"GET", "/admin"}, {"GET", "/admin/users"}, {"POST", "/admin/users/1/permissions"}, {"POST", "/admin/users/1/handover"}, {"GET", "/admin/rulesets"},
-		{"POST", "/admin/rulesets"}, {"POST", "/admin/rulesets/prune"}, {"GET", "/admin/rulesets/h/download"}, {"POST", "/admin/rulesets/h/default"}, {"POST", "/admin/rulesets/h/delete"}}
+func TestAdminSectionGuards(t *testing.T) {
+	super := [][2]string{{"GET", "/admin/rulesets"}, {"POST", "/admin/rulesets"}, {"POST", "/admin/rulesets/prune"}, {"GET", "/admin/rulesets/h/download"}, {"POST", "/admin/rulesets/h/default"},
+		{"POST", "/admin/rulesets/h/delete"}, {"POST", "/admin/users/1/recovery"}, {"POST", "/admin/users/1/recovery/revoke"}}
+	all := append([][2]string{{"GET", "/admin"}, {"GET", "/admin/users"}, {"POST", "/admin/users/1/permissions"}, {"POST", "/admin/users/1/handover"}, {"GET", "/admin/invitations"},
+		{"POST", "/admin/invitations"}, {"POST", "/admin/invitations/1/revoke"}}, super...)
 	for _, role := range []core.Role{core.RoleUser, core.RoleAdmin} {
+		routes := all
+		if role == core.RoleAdmin {
+			routes = super // administrators reach Users and Invitations; Rules files and recovery links stay superuser-only
+		}
 		f := newFixture(t, Config{})
 		u := frodo
 		u.Role = role
@@ -127,7 +133,6 @@ func TestAdminPermissions(t *testing.T) {
 func TestAdminPermissionsUnknownUser(t *testing.T) {
 	f := newFixture(t, Config{})
 	f.auth.EXPECT().SetUserPermissions(gomock.Any(), superG, int64(77), core.RoleUser, false).Return(core.ErrNotFound)
-	f.auth.EXPECT().ListUsers(gomock.Any(), superG, "x", 200, 0).Return(nil, 0, nil)
 	if rec := f.do(f.asSuper(form("/admin/users/77/permissions", url.Values{"role": {"user"}, "email": {"x"}}))); rec.Code != 404 {
 		t.Errorf("%d", rec.Code)
 	}

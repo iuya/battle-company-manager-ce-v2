@@ -27,6 +27,8 @@ type fixture struct {
 	rs   *Mockrulesets
 	gl   *Mockglossaries
 	auth *Mockauth
+	inv  *MockaccountInvitations
+	rec  *Mockrecoveries
 	// selection is how the rules pick a scenario by dice (the default: the shipped rules, testSelection).
 	selection core.ScenarioSelection
 	// grants is what the company pages read as the company's history of awards (the default: none).
@@ -45,7 +47,7 @@ type fixture struct {
 
 func newFixture(t *testing.T, cfg Config) *fixture {
 	ctrl := gomock.NewController(t)
-	f := &fixture{selection: testSelection, camp: NewMockcampaigns(ctrl), rs: NewMockrulesets(ctrl), gl: NewMockglossaries(ctrl), auth: NewMockauth(ctrl)}
+	f := &fixture{selection: testSelection, camp: NewMockcampaigns(ctrl), rs: NewMockrulesets(ctrl), gl: NewMockglossaries(ctrl), auth: NewMockauth(ctrl), inv: NewMockaccountInvitations(ctrl), rec: NewMockrecoveries(ctrl)}
 	f.rs.EXPECT().CampaignOptions(gomock.Any()).Return([]core.CampaignOption{
 		{Key: "heroesDropProfileGear", Scope: "rules", Label: "Heroes may discard any wargear", Description: "Even what is built into their profile."},
 		{Key: "shakeTheTable", Scope: "app", Label: "Shake the table", Description: "Throw the dice in the browser."},
@@ -67,6 +69,7 @@ func newFixture(t *testing.T, cfg Config) *fixture {
 	if f.srv, err = NewServer(cfg, f.camp, f.rs, f.gl, f.auth); err != nil {
 		t.Fatal(err)
 	}
+	f.srv.SetAccountLinks(f.inv, f.rec)
 	return f
 }
 

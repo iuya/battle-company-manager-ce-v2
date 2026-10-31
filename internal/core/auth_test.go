@@ -78,9 +78,13 @@ func TestAuth_Login(t *testing.T) {
 		a, repo := newTestAuth(t)
 		repo.EXPECT().UserByEmail(gomock.Any(), "frodo@shire.me").Return(rec, nil)
 		var stored []byte
-		repo.EXPECT().CreateSession(gomock.Any(), gomock.Any(), int64(7), t0.Add(sessionTTL)).
-			DoAndReturn(func(_ context.Context, h []byte, _ int64, _ time.Time) error { stored = h; return nil })
+		gomock.InOrder(
+			repo.EXPECT().InvalidateRecovery(gomock.Any(), int64(7), RecoveryByLogin, t0).Return(0, nil),
+			repo.EXPECT().CreateSession(gomock.Any(), gomock.Any(), int64(7), t0.Add(sessionTTL)).
+				DoAndReturn(func(_ context.Context, h []byte, _ int64, _ time.Time) error { stored = h; return nil }),
+		)
 		repo.EXPECT().DeleteExpiredSessions(gomock.Any(), t0).Return(nil)
+		repo.EXPECT().PurgeStaleTokens(gomock.Any(), t0.Add(-staleTokenAge)).Return(nil)
 
 		token, expires, user, err := a.Login(context.Background(), " Frodo@shire.me", "a long enough password")
 		if err != nil || user.ID != 7 || !expires.Equal(t0.Add(sessionTTL)) {
@@ -109,7 +113,7 @@ func TestAuth_Authenticate(t *testing.T) {
 
 	t.Run("a young session is left alone", func(t *testing.T) {
 		a, repo := newTestAuth(t)
-		repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(u, t0.Add(sessionTTL-time.Hour), nil)
+		repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(u, t0.Add(sessionTTL-time.Hour), false, nil)
 		got, renewed, err := a.Authenticate(ctx, "tok")
 		if err != nil || got != u || !renewed.IsZero() {
 			t.Fatalf("got %+v %v %v", got, renewed, err)
@@ -118,7 +122,7 @@ func TestAuth_Authenticate(t *testing.T) {
 
 	t.Run("a session in its second half is renewed", func(t *testing.T) {
 		a, repo := newTestAuth(t)
-		repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(u, t0.Add(sessionTTL/2-time.Hour), nil)
+		repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(u, t0.Add(sessionTTL/2-time.Hour), false, nil)
 		repo.EXPECT().ExtendSession(gomock.Any(), hashToken("tok"), t0.Add(sessionTTL)).Return(nil)
 		_, renewed, err := a.Authenticate(ctx, "tok")
 		if err != nil || !renewed.Equal(t0.Add(sessionTTL)) {
@@ -128,7 +132,7 @@ func TestAuth_Authenticate(t *testing.T) {
 
 	t.Run("unknown or empty tokens", func(t *testing.T) {
 		a, repo := newTestAuth(t)
-		repo.EXPECT().UserBySession(gomock.Any(), hashToken("old"), t0).Return(User{}, time.Time{}, ErrNotFound)
+		repo.EXPECT().UserBySession(gomock.Any(), hashToken("old"), t0).Return(User{}, time.Time{}, false, ErrNotFound)
 		if _, _, err := a.Authenticate(ctx, "old"); !errors.Is(err, ErrNoSession) {
 			t.Fatalf("got %v", err)
 		}
@@ -155,7 +159,7 @@ func TestAuth_Authenticate_IsCached(t *testing.T) {
 	a, repo, now := newClockedAuth(t)
 
 	// one database lookup serves every request of the next minute
-	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(u, t0.Add(sessionTTL), nil)
+	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(u, t0.Add(sessionTTL), false, nil)
 	for i := 0; i < 5; i++ {
 		if got, _, err := a.Authenticate(ctx, "tok"); err != nil || got != u {
 			t.Fatalf("request %d: %+v %v", i, got, err)
@@ -164,7 +168,7 @@ func TestAuth_Authenticate_IsCached(t *testing.T) {
 
 	// after the cache TTL the session is confirmed again; here it was revoked in the meantime
 	*now = t0.Add(sessionCacheTTL)
-	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), *now).Return(User{}, time.Time{}, ErrNotFound)
+	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), *now).Return(User{}, time.Time{}, false, ErrNotFound)
 	if _, _, err := a.Authenticate(ctx, "tok"); !errors.Is(err, ErrNoSession) {
 		t.Fatalf("got %v", err)
 	}
@@ -173,7 +177,7 @@ func TestAuth_Authenticate_IsCached(t *testing.T) {
 func TestAuth_Logout_RevokesImmediately(t *testing.T) {
 	ctx := context.Background()
 	a, repo, _ := newClockedAuth(t)
-	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(User{ID: 1}, t0.Add(sessionTTL), nil)
+	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(User{ID: 1}, t0.Add(sessionTTL), false, nil)
 	if _, _, err := a.Authenticate(ctx, "tok"); err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +186,7 @@ func TestAuth_Logout_RevokesImmediately(t *testing.T) {
 		t.Fatal(err)
 	}
 	// the cached entry is gone, so the next request asks the database, which no longer has the session
-	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(User{}, time.Time{}, ErrNotFound)
+	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(User{}, time.Time{}, false, ErrNotFound)
 	if _, _, err := a.Authenticate(ctx, "tok"); !errors.Is(err, ErrNoSession) {
 		t.Fatalf("got %v", err)
 	}
@@ -192,7 +196,7 @@ func TestAuth_Authenticate_CacheRespectsSessionExpiry(t *testing.T) {
 	ctx := context.Background()
 	a, repo, now := newClockedAuth(t)
 	// the session ends 10 seconds from now, well inside the cache TTL
-	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(User{ID: 1}, t0.Add(10*time.Second), nil)
+	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(User{ID: 1}, t0.Add(10*time.Second), false, nil)
 	repo.EXPECT().ExtendSession(gomock.Any(), hashToken("tok"), t0.Add(sessionTTL)).Return(nil)
 	if _, renewed, err := a.Authenticate(ctx, "tok"); err != nil || renewed.IsZero() {
 		t.Fatalf("a nearly expired session is renewed: %v %v", renewed, err)
@@ -225,7 +229,7 @@ func TestMayCreateCampaigns(t *testing.T) {
 func TestAuth_UpdateProfile(t *testing.T) {
 	ctx := context.Background()
 	a, repo, _ := newClockedAuth(t)
-	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(User{ID: 7, DisplayName: "Frodo"}, t0.Add(sessionTTL), nil)
+	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(User{ID: 7, DisplayName: "Frodo"}, t0.Add(sessionTTL), false, nil)
 	if _, _, err := a.Authenticate(ctx, "tok"); err != nil {
 		t.Fatal(err)
 	}
@@ -282,7 +286,7 @@ func TestAuth_SignOutOthers_DropsCachedSessions(t *testing.T) {
 	ctx := context.Background()
 	a, repo, _ := newClockedAuth(t)
 	for _, tok := range []string{"mine", "other"} {
-		repo.EXPECT().UserBySession(gomock.Any(), hashToken(tok), t0).Return(User{ID: 7}, t0.Add(sessionTTL), nil)
+		repo.EXPECT().UserBySession(gomock.Any(), hashToken(tok), t0).Return(User{ID: 7}, t0.Add(sessionTTL), false, nil)
 		if _, _, err := a.Authenticate(ctx, tok); err != nil {
 			t.Fatal(err)
 		}
@@ -295,7 +299,7 @@ func TestAuth_SignOutOthers_DropsCachedSessions(t *testing.T) {
 	if _, _, err := a.Authenticate(ctx, "mine"); err != nil {
 		t.Fatal(err)
 	}
-	repo.EXPECT().UserBySession(gomock.Any(), hashToken("other"), t0).Return(User{}, time.Time{}, ErrNotFound)
+	repo.EXPECT().UserBySession(gomock.Any(), hashToken("other"), t0).Return(User{}, time.Time{}, false, ErrNotFound)
 	if _, _, err := a.Authenticate(ctx, "other"); !errors.Is(err, ErrNoSession) {
 		t.Fatalf("got %v", err)
 	}
@@ -363,7 +367,7 @@ func TestAuth_Login_ClosedAccountFails(t *testing.T) {
 func TestAuth_SetAppearance(t *testing.T) {
 	ctx := context.Background()
 	a, repo, _ := newClockedAuth(t)
-	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(User{ID: 7}, t0.Add(sessionTTL), nil)
+	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(User{ID: 7}, t0.Add(sessionTTL), false, nil)
 	if u, _, err := a.Authenticate(ctx, "tok"); err != nil || u.Appearance != (Appearance{}) {
 		t.Fatalf("never chosen must be empty: %+v %v", u, err)
 	}
@@ -385,7 +389,7 @@ func TestAuth_SetAppearance(t *testing.T) {
 func TestAuth_SetTimezone(t *testing.T) {
 	ctx := context.Background()
 	a, repo, _ := newClockedAuth(t)
-	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(User{ID: 7}, t0.Add(sessionTTL), nil)
+	repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(User{ID: 7}, t0.Add(sessionTTL), false, nil)
 	if u, _, err := a.Authenticate(ctx, "tok"); err != nil || u.Timezone != "" {
 		t.Fatalf("automatic until chosen: %+v %v", u, err)
 	}
@@ -431,101 +435,24 @@ func TestUserLocationPrefersTheSavedZone(t *testing.T) {
 	}
 }
 
-func TestAuth_SetUserPermissions(t *testing.T) {
-	ctx := context.Background()
-	super := User{ID: 1, Role: RoleSuperuser}
-	open := func(role Role) (User, bool, error) { return User{ID: 7, Role: role}, false, nil }
-
-	t.Run("only a superuser", func(t *testing.T) {
-		a, _ := newTestAuth(t)
-		for _, actor := range []User{{ID: 1, Role: RoleAdmin}, {ID: 1, Role: RoleUser}} {
-			if err := a.SetUserPermissions(ctx, actor, 7, RoleAdmin, false); !errors.Is(err, ErrRefused) {
-				t.Errorf("%v: got %v", actor.Role, err)
-			}
-		}
-	})
-	t.Run("bad role", func(t *testing.T) {
-		a, _ := newTestAuth(t)
-		if err := a.SetUserPermissions(ctx, super, 7, "boss", false); !errors.Is(err, ErrInvalidUser) {
-			t.Fatalf("got %v", err)
-		}
-	})
-	t.Run("unknown id", func(t *testing.T) {
-		a, repo := newTestAuth(t)
-		repo.EXPECT().UserByID(gomock.Any(), int64(7)).Return(User{}, false, ErrNotFound)
-		if err := a.SetUserPermissions(ctx, super, 7, RoleAdmin, false); !errors.Is(err, ErrNotFound) {
-			t.Fatalf("got %v", err)
-		}
-	})
-	t.Run("closed account", func(t *testing.T) {
-		a, repo := newTestAuth(t)
-		repo.EXPECT().UserByID(gomock.Any(), int64(7)).Return(User{ID: 7}, true, nil)
-		if err := a.SetUserPermissions(ctx, super, 7, RoleAdmin, false); !errors.Is(err, ErrRefused) {
-			t.Fatalf("got %v", err)
-		}
-	})
-	t.Run("last superuser cannot be demoted", func(t *testing.T) {
-		a, repo := newTestAuth(t)
-		repo.EXPECT().UserByID(gomock.Any(), int64(7)).Return(open(RoleSuperuser))
-		repo.EXPECT().OtherSuperusers(gomock.Any(), int64(7)).Return(0, nil)
-		if err := a.SetUserPermissions(ctx, User{ID: 7, Role: RoleSuperuser}, 7, RoleAdmin, false); !errors.Is(err, ErrRefused) {
-			t.Fatalf("got %v", err)
-		}
-	})
-	t.Run("a superuser with a colleague may be demoted, and the cache is dropped", func(t *testing.T) {
-		a, repo, _ := newClockedAuth(t)
-		repo.EXPECT().UserBySession(gomock.Any(), hashToken("tok"), t0).Return(User{ID: 7, Role: RoleSuperuser}, t0.Add(sessionTTL), nil).Times(2)
-		if _, _, err := a.Authenticate(ctx, "tok"); err != nil {
+// TestAuth_Login_PurgesStaleTokensAtMostOncePerHour: the purge is housekeeping; a second login within the hour skips it.
+func TestAuth_Login_PurgesStaleTokensAtMostOncePerHour(t *testing.T) {
+	hash, _ := hashPassword("a long enough password", fastArgon)
+	rec := Credentials{User: User{ID: 7, Email: "frodo@shire.me"}, PasswordHash: hash}
+	a, repo, now := newClockedAuth(t)
+	repo.EXPECT().UserByEmail(gomock.Any(), "frodo@shire.me").Return(rec, nil).Times(3)
+	repo.EXPECT().InvalidateRecovery(gomock.Any(), int64(7), RecoveryByLogin, gomock.Any()).Return(0, nil).Times(3)
+	repo.EXPECT().CreateSession(gomock.Any(), gomock.Any(), int64(7), gomock.Any()).Return(nil).Times(3)
+	repo.EXPECT().DeleteExpiredSessions(gomock.Any(), gomock.Any()).Return(nil).Times(3)
+	repo.EXPECT().PurgeStaleTokens(gomock.Any(), gomock.Any()).Return(nil).Times(2) // the first login and the one after an hour
+	login := func() {
+		if _, _, _, err := a.Login(context.Background(), "frodo@shire.me", "a long enough password"); err != nil {
 			t.Fatal(err)
-		}
-		repo.EXPECT().UserByID(gomock.Any(), int64(7)).Return(open(RoleSuperuser))
-		repo.EXPECT().OtherSuperusers(gomock.Any(), int64(7)).Return(1, nil)
-		repo.EXPECT().SetUserPermissionsByID(gomock.Any(), int64(7), RoleUser, true).Return(nil)
-		if err := a.SetUserPermissions(ctx, super, 7, RoleUser, true); err != nil {
-			t.Fatal(err)
-		}
-		if _, _, err := a.Authenticate(ctx, "tok"); err != nil { // second lookup proves the cache entry was dropped
-			t.Fatal(err)
-		}
-	})
-	t.Run("promotion needs no superuser count", func(t *testing.T) {
-		a, repo := newTestAuth(t)
-		repo.EXPECT().UserByID(gomock.Any(), int64(7)).Return(open(RoleUser))
-		repo.EXPECT().SetUserPermissionsByID(gomock.Any(), int64(7), RoleSuperuser, false).Return(nil)
-		if err := a.SetUserPermissions(ctx, super, 7, RoleSuperuser, false); err != nil {
-			t.Fatal(err)
-		}
-	})
-	t.Run("the CLI path shares the checks", func(t *testing.T) {
-		a, repo := newTestAuth(t)
-		repo.EXPECT().UserByEmail(gomock.Any(), "a@b.c").Return(Credentials{User: User{ID: 7, Role: RoleSuperuser}}, nil)
-		repo.EXPECT().UserByID(gomock.Any(), int64(7)).Return(open(RoleSuperuser))
-		repo.EXPECT().OtherSuperusers(gomock.Any(), int64(7)).Return(0, nil)
-		if err := a.SetPermissions(ctx, " A@b.c ", RoleUser, false); !errors.Is(err, ErrRefused) {
-			t.Fatalf("got %v", err)
-		}
-		repo.EXPECT().UserByEmail(gomock.Any(), "x@b.c").Return(Credentials{}, ErrNotFound)
-		if err := a.SetPermissions(ctx, "x@b.c", RoleUser, false); !errors.Is(err, ErrNotFound) {
-			t.Fatalf("got %v", err)
-		}
-		if err := a.SetPermissions(ctx, "a@b.c", "boss", false); !errors.Is(err, ErrInvalidUser) {
-			t.Fatalf("got %v", err)
-		}
-	})
-}
-
-func TestAuth_ListUsers(t *testing.T) {
-	ctx := context.Background()
-	a, repo := newTestAuth(t)
-	if _, _, err := a.ListUsers(ctx, User{Role: RoleAdmin}, "", 25, 0); !errors.Is(err, ErrRefused) {
-		t.Fatalf("got %v", err)
-	}
-	want := []AdminUser{{User: User{ID: 1}, Campaigns: 2}}
-	for _, c := range []struct{ limit, offset, wantLimit, wantOffset int }{{0, -3, 25, 0}, {10, 20, 10, 20}, {5000, 0, 200, 0}} {
-		repo.EXPECT().ListUsers(gomock.Any(), "bob", c.wantLimit, c.wantOffset).Return(want, 41, nil)
-		rows, total, err := a.ListUsers(ctx, User{Role: RoleSuperuser}, " bob ", c.limit, c.offset)
-		if err != nil || total != 41 || len(rows) != 1 {
-			t.Fatalf("%+v: %v %d %v", c, rows, total, err)
 		}
 	}
+	login()
+	*now = now.Add(59 * time.Minute)
+	login()
+	*now = now.Add(2 * time.Minute)
+	login()
 }

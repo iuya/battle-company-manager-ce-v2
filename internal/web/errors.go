@@ -63,10 +63,10 @@ func (s *Server) handleNotFound(w http.ResponseWriter, r *http.Request) {
 func (s *Server) serverError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
 		// The time is up (REQUEST_TIMEOUT) or the client left: not a bug. 503 tells a proxy and the person to try again.
-		slog.WarnContext(r.Context(), "request gave up", "path", r.URL.Path, "err", err)
+		slog.WarnContext(r.Context(), "request gave up", "path", logPath(r), "err", err)
 		s.refuse(w, r, http.StatusServiceUnavailable, "")
 		return
 	}
-	slog.ErrorContext(r.Context(), "request failed", "path", r.URL.Path, "err", err)
+	slog.ErrorContext(r.Context(), "request failed", "path", logPath(r), "err", err)
 	s.refuse(w, r, http.StatusInternalServerError, "")
 }

@@ -1,0 +1,37 @@
+{{define "title"}}Create your account · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+<div class="mx-auto mt-6 max-w-sm sm:mt-12">
+  <div class="card space-y-5">
+    <h1 class="!text-3xl">Create your account</h1>
+    <form method="post" action="/register/{{.Token}}" hx-boost="false" class="space-y-5" x-data="{ show: false, pw: '', confirm: '' }" novalidate>
+      {{if .Errors}}<div class="alert alert-danger" role="alert" id="register-error"><ul class="list-disc pl-5">{{range .Errors}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+      <div class="field">
+        <label for="reg-email">Email</label>
+        {{if eq (print .Kind) "named"}}
+        <input id="reg-email" type="email" class="input" value="{{.StoredEmail}}" readonly autocomplete="username">
+        {{else}}
+        <input id="reg-email" name="email" type="email" class="input" value="{{.Email}}" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+        {{end}}
+      </div>
+      <div class="field">
+        <label for="reg-name">Display name</label>
+        <input id="reg-name" name="name" class="input" value="{{.Name}}" maxlength="60" autocomplete="nickname" required>
+      </div>
+      <div class="field">
+        <label for="reg-password">Password</label>
+        <div class="relative">
+          <input id="reg-password" name="password" :type="show ? 'text' : 'password'" type="password" class="input pr-16" autocomplete="new-password" x-model="pw" required>
+          <button type="button" class="btn btn-ghost absolute inset-y-0 right-0 !px-3 !py-0 text-xs" @click="show = !show" :aria-label="show ? 'Hide passwords' : 'Show passwords'" aria-label="Show passwords" x-text="show ? 'Hide' : 'Show'">Show</button>
+        </div>
+        <p class="hint">10 to 128 characters.</p>
+      </div>
+      <div class="field">
+        <label for="reg-confirm">Password again</label>
+        <input id="reg-confirm" name="confirm" :type="show ? 'text' : 'password'" type="password" class="input" autocomplete="new-password" x-model="confirm" required>
+        <p class="text-xs font-medium text-danger" x-show="confirm !== '' && confirm !== pw" x-cloak>The two passwords do not match.</p>
+      </div>
+      <button type="submit" class="btn btn-primary w-full">Create account</button>
+    </form>
+  </div>
+</div>
+{{end}}

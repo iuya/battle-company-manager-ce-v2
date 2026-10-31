@@ -149,6 +149,9 @@ jsonb because SQL never looks inside them. Prices and rating figures are derived
 | Table | Content |
 |---|---|
 | `users`, `sessions` | Accounts and sessions ([auth.md](auth.md)) |
+| `audit_events` | Role changes, invitations and recovery links: who, what, when, never a secret ([auth.md](auth.md#audit)) |
+| `account_invitations`, `account_invitation_uses` | Named and anonymous account invitations (token hash, expiry, uses) and the accounts made through them |
+| `password_recovery_links` | Single-use recovery links (token hash, at most one live per user) |
 | `rulesets` | `hash` primary key, `kind`, `name`, `version`, `size`, `content` (compacted JSON), `uploaded_by` (NULL for shipped files), `is_default` (one default per kind), `created_at` |
 | `campaigns`, `campaign_members` | The campaign (status, round, three ruleset hashes with composite foreign keys that also check the file kind, `settings` jsonb) and its members (organiser or player) |
 | `campaign_invites` | Invite links: `token_hash` (SHA-256), expiry, `max_uses` (0 is unlimited), `uses`, revoked flag. `Redeem` locks the invite row and a member re-joining does not use it up |
@@ -305,12 +308,26 @@ Routes by area (the feature documents list the actions):
 | `GET /campaigns/{id}/glossary/units` | campaign member | The unit cards of the campaign's glossary (a fragment fetched when wanted) |
 | `GET /campaigns/{id}/companies/{company}/tts`, `GET /tts/helper.zip` | campaign member | Tabletop Simulator army list and helper ([tabletop-simulator.md](tabletop-simulator.md)) |
 | `GET/POST /account...` | signed in | Account page ([auth.md](auth.md)) |
-| `/admin/...` | superuser (a 404 for everybody else) | Users, permissions, rules files ([admin.md](admin.md)) |
+| `/admin/users...` (incl. `POST .../permissions`, `.../handover`) | administrator or superuser (404 for everybody else; 403 when the permission matrix refuses a forged form) | Users, roles ([admin.md](admin.md)) |
+| `POST /admin/users/{id}/recovery`, `.../recovery/revoke` | superuser | Make or revoke a password recovery link |
+| `GET/POST /admin/invitations...` | administrator or superuser | Account invitations: create, list, revoke |
+| `/admin/rulesets...` | superuser | Rules files |
+| `GET/POST /register/{token}` | public (a signed-in visitor is sent home) | Register with an account invitation; signs the new account in |
+| `GET/POST /recover/{token}` | public, no session read | Set a new password with a recovery link |
 | `GET /styleguide` | `STYLEGUIDE=true` | Design tokens and components ([frontend.md](frontend.md)) |
 | `GET /static/...` | public | Embedded assets |
 | `GET /healthz` | public | Liveness: `200 ok` while the process serves; touches nothing else |
 | `GET /readyz` | public | Readiness: pings the database (2 s); `503` when it does not answer |
 | `POST /csp-report` | public | Content-Security-Policy violation reports: 4 KB body cap, at most 60 logged a minute |
+
+### Single-use tokens
+
+Account invitations and recovery links share one design (`internal/core/token.go`): 32 random bytes (43 URL-safe characters), stored only as a
+SHA-256 `BYTEA` (`UNIQUE`, length-checked) and compared again in constant time, shown once; expiry and every timestamp come from the service
+clock (`core.WithClock`, `core.WithRandom` let tests and the demo world control time and tokens); the state (pending, used, expired, revoked,
+invalidated) is derived, never stored; a use is one transaction that locks the row, re-checks it and does the side effect; and every public
+failure is `core.ErrLinkUnusable`, "Talk with the administrator.". The request log writes `/register/{token}` for these routes, never the secret.
+See [auth.md](auth.md).
 
 ## Persistence
 

@@ -355,8 +355,13 @@ type Server struct {
 	glossary  glossaries
 	concepts  concepts // the helper popups' graph; nil serves no popup (SetConcepts)
 	auth      auth
-	render    *renderer
-	throttle  *loginThrottle
+	// invitations and recovery are the account links (SetAccountLinks); the registration and set-password pages count their wrong
+	// attempts in their own throttles.
+	invitations                       accountInvitations
+	recovery                          recoveries
+	render                            *renderer
+	throttle                          *loginThrottle
+	registerThrottle, recoverThrottle *loginThrottle
 	// accountThrottle limits wrong current passwords on the Account page, per signed-in user.
 	accountThrottle *loginThrottle
 	die             func(sides int) int         // the server's die (1..sides); tests replace it
@@ -375,7 +380,7 @@ func NewServer(cfg Config, campaigns campaigns, rulesets rulesets, glossary glos
 		return nil, err
 	}
 	_ = staticFiles() // builds the embedded asset table now: a broken build fails at start, not at the first request
-	return &Server{cfg: cfg, campaigns: campaigns, rulesets: rulesets, glossary: glossary, auth: auth, render: r, throttle: newLoginThrottle(), accountThrottle: newLoginThrottle(), cspReports: newReportLimiter(), validator: newValidatorGate(), die: func(sides int) int { return 1 + rand.IntN(sides) }}, nil
+	return &Server{cfg: cfg, campaigns: campaigns, rulesets: rulesets, glossary: glossary, auth: auth, render: r, throttle: newLoginThrottle(), accountThrottle: newLoginThrottle(), registerThrottle: newLinkThrottle(), recoverThrottle: newLinkThrottle(), cspReports: newReportLimiter(), validator: newValidatorGate(), die: func(sides int) int { return 1 + rand.IntN(sides) }}, nil
 }
 
 // Handler returns the fully wired http.Handler (routes + middleware).
@@ -512,10 +517,19 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /account/close", s.protected(s.handleAccountClose))
 	mux.HandleFunc("GET /tools/validate", s.protected(s.handleValidatorPage))
 	mux.HandleFunc("POST /tools/validate", s.protected(s.handleValidatorCheck))
-	mux.HandleFunc("GET /admin", s.requireSuperuser(s.handleAdmin))
-	mux.HandleFunc("GET /admin/users", s.requireSuperuser(s.handleAdminUsers))
-	mux.HandleFunc("POST /admin/users/{id}/handover", s.requireSuperuser(s.handleAdminHandover))
-	mux.HandleFunc("POST /admin/users/{id}/permissions", s.requireSuperuser(s.handleAdminPermissions))
+	mux.HandleFunc("GET /admin", s.requireAdmin(s.handleAdmin))
+	mux.HandleFunc("GET /admin/users", s.requireAdmin(s.handleAdminUsers))
+	mux.HandleFunc("POST /admin/users/{id}/handover", s.requireAdmin(s.handleAdminHandover))
+	mux.HandleFunc("POST /admin/users/{id}/permissions", s.requireAdmin(s.handleAdminPermissions))
+	mux.HandleFunc("POST /admin/users/{id}/recovery", s.requireSuperuser(s.once(s.handleAdminRecovery)))
+	mux.HandleFunc("POST /admin/users/{id}/recovery/revoke", s.requireSuperuser(s.once(s.handleAdminRecoveryRevoke)))
+	mux.HandleFunc("GET /admin/invitations", s.requireAdmin(s.handleAdminInvitations))
+	mux.HandleFunc("POST /admin/invitations", s.requireAdmin(s.once(s.handleAdminInvitationCreate)))
+	mux.HandleFunc("POST /admin/invitations/{id}/revoke", s.requireAdmin(s.once(s.handleAdminInvitationRevoke)))
+	mux.HandleFunc("GET /register/{token}", s.session(s.handleRegisterPage))
+	mux.HandleFunc("POST /register/{token}", s.session(s.handleRegister))
+	mux.HandleFunc("GET /recover/{token}", s.handleRecoverPage) // no s.session: a request made with the link is not an app access
+	mux.HandleFunc("POST /recover/{token}", s.handleRecover)
 	mux.HandleFunc("GET /admin/rulesets", s.requireSuperuser(s.handleAdminRulesets))
 	mux.HandleFunc("POST /admin/rulesets", s.requireSuperuser(s.handleAdminRulesetUpload))
 	mux.HandleFunc("POST /admin/rulesets/check", s.requireSuperuser(s.handleAdminRulesetCheck))

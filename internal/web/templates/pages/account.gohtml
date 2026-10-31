@@ -61,7 +61,7 @@
   <div class="relative">
     <input id="{{.ID}}" name="{{.Name}}" :type="show ? 'text' : 'password'" type="password" class="input pr-16" autocomplete="{{.Auto}}" required {{with .Model}}x-model="{{.}}"{{end}}
            {{with index .Errors .Name}}aria-invalid="true" aria-describedby="{{$.ID}}-err"{{end}}>
-    <button type="button" class="btn btn-ghost absolute inset-y-0 right-0 !px-3 !py-0 text-xs" @click="show = !show" :aria-pressed="show" aria-label="Show passwords" x-text="show ? 'Hide' : 'Show'">Show</button>
+    <button type="button" class="btn btn-ghost absolute inset-y-0 right-0 !px-3 !py-0 text-xs" @click="show = !show" :aria-label="show ? 'Hide passwords' : 'Show passwords'" aria-label="Show passwords" x-text="show ? 'Hide' : 'Show'">Show</button>
   </div>
   {{with index .Errors .Name}}<p class="error" id="{{$.ID}}-err" role="alert">{{.}}</p>{{end}}
   {{with .Hint}}<p class="hint">{{.}}</p>{{end}}</div>

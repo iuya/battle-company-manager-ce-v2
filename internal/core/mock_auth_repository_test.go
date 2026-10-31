@@ -348,6 +348,45 @@ func (c *MockauthRepositoryExtendSessionCall) DoAndReturn(f func(context.Context
 	return c
 }
 
+// InvalidateRecovery mocks base method.
+func (m *MockauthRepository) InvalidateRecovery(ctx context.Context, userID int64, reason RecoveryReason, now time.Time) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "InvalidateRecovery", ctx, userID, reason, now)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// InvalidateRecovery indicates an expected call of InvalidateRecovery.
+func (mr *MockauthRepositoryMockRecorder) InvalidateRecovery(ctx, userID, reason, now any) *MockauthRepositoryInvalidateRecoveryCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvalidateRecovery", reflect.TypeOf((*MockauthRepository)(nil).InvalidateRecovery), ctx, userID, reason, now)
+	return &MockauthRepositoryInvalidateRecoveryCall{Call: call}
+}
+
+// MockauthRepositoryInvalidateRecoveryCall wrap *gomock.Call
+type MockauthRepositoryInvalidateRecoveryCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockauthRepositoryInvalidateRecoveryCall) Return(n int, err error) *MockauthRepositoryInvalidateRecoveryCall {
+	c.Call = c.Call.Return(n, err)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockauthRepositoryInvalidateRecoveryCall) Do(f func(context.Context, int64, RecoveryReason, time.Time) (int, error)) *MockauthRepositoryInvalidateRecoveryCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockauthRepositoryInvalidateRecoveryCall) DoAndReturn(f func(context.Context, int64, RecoveryReason, time.Time) (int, error)) *MockauthRepositoryInvalidateRecoveryCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // ListUsers mocks base method.
 func (m *MockauthRepository) ListUsers(ctx context.Context, q string, limit, offset int) ([]AdminUser, int, error) {
 	m.ctrl.T.Helper()
@@ -466,6 +505,44 @@ func (c *MockauthRepositoryOtherSuperusersCall) DoAndReturn(f func(context.Conte
 	return c
 }
 
+// PurgeStaleTokens mocks base method.
+func (m *MockauthRepository) PurgeStaleTokens(ctx context.Context, before time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PurgeStaleTokens", ctx, before)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PurgeStaleTokens indicates an expected call of PurgeStaleTokens.
+func (mr *MockauthRepositoryMockRecorder) PurgeStaleTokens(ctx, before any) *MockauthRepositoryPurgeStaleTokensCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PurgeStaleTokens", reflect.TypeOf((*MockauthRepository)(nil).PurgeStaleTokens), ctx, before)
+	return &MockauthRepositoryPurgeStaleTokensCall{Call: call}
+}
+
+// MockauthRepositoryPurgeStaleTokensCall wrap *gomock.Call
+type MockauthRepositoryPurgeStaleTokensCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockauthRepositoryPurgeStaleTokensCall) Return(arg0 error) *MockauthRepositoryPurgeStaleTokensCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockauthRepositoryPurgeStaleTokensCall) Do(f func(context.Context, time.Time) error) *MockauthRepositoryPurgeStaleTokensCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockauthRepositoryPurgeStaleTokensCall) DoAndReturn(f func(context.Context, time.Time) error) *MockauthRepositoryPurgeStaleTokensCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // SetAppearance mocks base method.
 func (m *MockauthRepository) SetAppearance(ctx context.Context, userID int64, palette, mode string) error {
 	m.ctrl.T.Helper()
@@ -543,17 +620,17 @@ func (c *MockauthRepositorySetTimezoneCall) DoAndReturn(f func(context.Context, 
 }
 
 // SetUserPermissionsByID mocks base method.
-func (m *MockauthRepository) SetUserPermissionsByID(ctx context.Context, userID int64, role Role, canCreateCampaigns bool) error {
+func (m *MockauthRepository) SetUserPermissionsByID(ctx context.Context, userID int64, role Role, canCreateCampaigns bool, audit AuditEntry) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetUserPermissionsByID", ctx, userID, role, canCreateCampaigns)
+	ret := m.ctrl.Call(m, "SetUserPermissionsByID", ctx, userID, role, canCreateCampaigns, audit)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetUserPermissionsByID indicates an expected call of SetUserPermissionsByID.
-func (mr *MockauthRepositoryMockRecorder) SetUserPermissionsByID(ctx, userID, role, canCreateCampaigns any) *MockauthRepositorySetUserPermissionsByIDCall {
+func (mr *MockauthRepositoryMockRecorder) SetUserPermissionsByID(ctx, userID, role, canCreateCampaigns, audit any) *MockauthRepositorySetUserPermissionsByIDCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUserPermissionsByID", reflect.TypeOf((*MockauthRepository)(nil).SetUserPermissionsByID), ctx, userID, role, canCreateCampaigns)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUserPermissionsByID", reflect.TypeOf((*MockauthRepository)(nil).SetUserPermissionsByID), ctx, userID, role, canCreateCampaigns, audit)
 	return &MockauthRepositorySetUserPermissionsByIDCall{Call: call}
 }
 
@@ -569,13 +646,13 @@ func (c *MockauthRepositorySetUserPermissionsByIDCall) Return(arg0 error) *Mocka
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockauthRepositorySetUserPermissionsByIDCall) Do(f func(context.Context, int64, Role, bool) error) *MockauthRepositorySetUserPermissionsByIDCall {
+func (c *MockauthRepositorySetUserPermissionsByIDCall) Do(f func(context.Context, int64, Role, bool, AuditEntry) error) *MockauthRepositorySetUserPermissionsByIDCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockauthRepositorySetUserPermissionsByIDCall) DoAndReturn(f func(context.Context, int64, Role, bool) error) *MockauthRepositorySetUserPermissionsByIDCall {
+func (c *MockauthRepositorySetUserPermissionsByIDCall) DoAndReturn(f func(context.Context, int64, Role, bool, AuditEntry) error) *MockauthRepositorySetUserPermissionsByIDCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -737,13 +814,14 @@ func (c *MockauthRepositoryUserByIDCall) DoAndReturn(f func(context.Context, int
 }
 
 // UserBySession mocks base method.
-func (m *MockauthRepository) UserBySession(ctx context.Context, tokenHash []byte, now time.Time) (User, time.Time, error) {
+func (m *MockauthRepository) UserBySession(ctx context.Context, tokenHash []byte, now time.Time) (User, time.Time, bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UserBySession", ctx, tokenHash, now)
 	ret0, _ := ret[0].(User)
 	ret1, _ := ret[1].(time.Time)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret2, _ := ret[2].(bool)
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
 }
 
 // UserBySession indicates an expected call of UserBySession.
@@ -759,19 +837,19 @@ type MockauthRepositoryUserBySessionCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockauthRepositoryUserBySessionCall) Return(arg0 User, arg1 time.Time, arg2 error) *MockauthRepositoryUserBySessionCall {
-	c.Call = c.Call.Return(arg0, arg1, arg2)
+func (c *MockauthRepositoryUserBySessionCall) Return(user User, expires time.Time, recoveryPending bool, err error) *MockauthRepositoryUserBySessionCall {
+	c.Call = c.Call.Return(user, expires, recoveryPending, err)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockauthRepositoryUserBySessionCall) Do(f func(context.Context, []byte, time.Time) (User, time.Time, error)) *MockauthRepositoryUserBySessionCall {
+func (c *MockauthRepositoryUserBySessionCall) Do(f func(context.Context, []byte, time.Time) (User, time.Time, bool, error)) *MockauthRepositoryUserBySessionCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockauthRepositoryUserBySessionCall) DoAndReturn(f func(context.Context, []byte, time.Time) (User, time.Time, error)) *MockauthRepositoryUserBySessionCall {
+func (c *MockauthRepositoryUserBySessionCall) DoAndReturn(f func(context.Context, []byte, time.Time) (User, time.Time, bool, error)) *MockauthRepositoryUserBySessionCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

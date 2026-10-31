@@ -1,0 +1,25 @@
+{{define "title"}}Set a new password · Battle Companies 2nd CE Manager{{end}}
+{{define "content"}}
+<div class="mx-auto mt-6 max-w-sm sm:mt-12">
+  <div class="card space-y-5">
+    <h1 class="!text-3xl">Set a new password</h1>
+    <form method="post" action="/recover/{{.Token}}" hx-boost="false" class="space-y-5" x-data="{ show: false, pw: '', confirm: '' }" novalidate>
+      {{if .Errors}}<div class="alert alert-danger" role="alert" id="recover-error"><ul class="list-disc pl-5">{{range .Errors}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+      <div class="field">
+        <label for="rec-password">New password</label>
+        <div class="relative">
+          <input id="rec-password" name="password" :type="show ? 'text' : 'password'" type="password" class="input pr-16" autocomplete="new-password" x-model="pw" required>
+          <button type="button" class="btn btn-ghost absolute inset-y-0 right-0 !px-3 !py-0 text-xs" @click="show = !show" :aria-label="show ? 'Hide passwords' : 'Show passwords'" aria-label="Show passwords" x-text="show ? 'Hide' : 'Show'">Show</button>
+        </div>
+        <p class="hint">10 to 128 characters.</p>
+      </div>
+      <div class="field">
+        <label for="rec-confirm">New password again</label>
+        <input id="rec-confirm" name="confirm" :type="show ? 'text' : 'password'" type="password" class="input" autocomplete="new-password" x-model="confirm" required>
+        <p class="text-xs font-medium text-danger" x-show="confirm !== '' && confirm !== pw" x-cloak>The two passwords do not match.</p>
+      </div>
+      <button type="submit" class="btn btn-primary w-full">Change password</button>
+    </form>
+  </div>
+</div>
+{{end}}

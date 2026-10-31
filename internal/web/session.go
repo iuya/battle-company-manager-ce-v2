@@ -98,6 +98,17 @@ func (s *Server) requireSuperuser(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
+// requireAdmin answers 404 to everybody who is not an administrator or a superuser (Users and Invitations pages).
+func (s *Server) requireAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return s.protected(func(w http.ResponseWriter, r *http.Request) {
+		if !userFrom(r.Context()).MayAdminister() {
+			s.notFound(w, r)
+			return
+		}
+		next(w, r)
+	})
+}
+
 // redirect sends the browser to url. For htmx requests it asks for a full page load (HX-Redirect) so the whole
 // layout, including the header that depends on who is signed in, is rendered again.
 func redirect(w http.ResponseWriter, r *http.Request, url string) {
