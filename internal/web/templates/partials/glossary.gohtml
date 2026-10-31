@@ -29,7 +29,7 @@
       </div>
       {{with .Aliases}}<p class="text-sm text-muted">Also: {{join . ", "}}</p>{{end}}
       <div class="mt-2 space-y-2" data-def>
-        {{range .Paragraphs}}<p>{{range .}}{{if .TermID}}<a href="#t-{{.TermID}}">{{.Text}}</a>{{else}}{{.Text}}{{end}}{{end}}</p>{{end}}
+        {{range .Paragraphs}}<p>{{range .}}{{if .TermID}}<a href="#t-{{.TermID}}">{{.Text}}</a>{{else if .UnitID}}{{template "glossary_unit_link" (dict "G" $.Glossary "S" .)}}{{else}}{{.Text}}{{end}}{{end}}</p>{{end}}
       </div>
       {{with .Path}}
       {{/* A path, as in the rulebook: the limits of its heroes, then the chart a level-up rolls on. */}}
@@ -42,7 +42,7 @@
       <div class="mt-1 overflow-x-auto rounded-lg border border-line">
         <table class="w-full text-sm">
           <thead class="bg-raised text-xs uppercase text-muted"><tr><th class="w-16 px-3 py-1.5 text-center font-semibold">{{if .PathDice.Valid}}{{.PathDice.Display}}{{else}}Roll{{end}}</th><th class="px-3 py-1.5 text-left font-semibold">Result</th></tr></thead>
-          <tbody class="divide-y divide-line">{{range .Rows}}<tr><td class="px-3 py-2 text-center text-base font-semibold">{{.Roll}}</td><td class="px-3 py-2">{{range .Segments}}{{if .TermID}}<a href="#t-{{.TermID}}">{{.Text}}</a>{{else}}{{.Text}}{{end}}{{end}}</td></tr>{{end}}</tbody>
+          <tbody class="divide-y divide-line">{{range .Rows}}<tr><td class="px-3 py-2 text-center text-base font-semibold">{{.Roll}}</td><td class="px-3 py-2">{{range .Segments}}{{if .TermID}}<a href="#t-{{.TermID}}">{{.Text}}</a>{{else if .UnitID}}{{template "glossary_unit_link" (dict "G" $.Glossary "S" .)}}{{else}}{{.Text}}{{end}}{{end}}</td></tr>{{end}}</tbody>
         </table>
       </div>
       {{end}}
@@ -67,7 +67,7 @@
   <div x-ref="tip" x-show="tip.show" x-cloak role="tooltip" class="card pointer-events-none fixed z-30 w-80 max-w-[calc(100vw-1rem)] !p-3 text-sm shadow-lg" :style="`left: ${tip.x}px; top: ${tip.y}px`">
     <p class="font-heading text-lg font-bold leading-tight" x-text="tip.name"></p>
     <p class="text-xs text-muted" x-text="tip.category"></p>
-    <p class="mt-1" x-text="tip.text"></p>
+    <p class="mt-1 whitespace-pre-line" x-text="tip.text"></p>
   </div>
 
   {{/* Where you came from, and the top of the glossary. */}}
@@ -77,6 +77,10 @@
   </div>
 </div>
 {{end}}
+
+{{/* A unit named in a definition: a link to its card (the glossary component jumps to it, fetching the cards first when they are not in
+   the page yet) that previews the unit's profile in short, from its own data-tip-* since the card may not be in the page. Takes {G: core.Glossary, S: core.Segment}. */}}
+{{define "glossary_unit_link"}}{{with $u := .G.UnitCard .S.UnitID}}<a href="#{{$u.ID}}" class="unit-link" data-tip-title="{{$u.Name}}" data-tip-meta="{{$u.TipMeta}}" data-tip-text="{{$u.TipText}}">{{$.S.Text}}</a>{{else}}{{.S.Text}}{{end}}{{end}}
 
 {{/* The base unit cards of a campaign glossary, in the redesigned unit card (title plate, datasheet profile, body, keyword foot; static, so no trackers), one per unit, each with the
    stable anchor core.UnitAnchor gives its name (#u-warrior-of-minas-tirith). Takes core.Glossary (.Units). Fetched by the glossary

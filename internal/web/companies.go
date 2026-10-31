@@ -21,18 +21,8 @@ type companyInfoView struct {
 	glossary core.Glossary
 }
 
-// Linked cuts a text into pieces, linking the glossary terms it mentions.
-func (v companyInfoView) Linked(text string) []segView {
-	var out []segView
-	for _, seg := range v.glossary.Link(text) {
-		piece := segView{Text: seg.Text, TermID: seg.TermID}
-		if term, ok := v.glossary.Term(seg.TermID); ok {
-			piece.TipTitle, piece.TipText = term.Name, term.Summary(tipLength)
-		}
-		out = append(out, piece)
-	}
-	return out
-}
+// Linked cuts a text into pieces, linking the glossary terms and the base units it mentions.
+func (v companyInfoView) Linked(text string) []segView { return segViews(v.glossary, text, tipLength) }
 
 // tipLength is how much of a term a hover preview shows: enough for a rule, not for a chapter.
 const tipLength = 900
