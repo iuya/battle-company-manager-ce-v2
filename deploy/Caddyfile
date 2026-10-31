@@ -1,0 +1,31 @@
+# Caddy in front of the app: automatic HTTPS (Let's Encrypt), HTTP redirected to HTTPS, HTTP/2 and HTTP/3.
+{
+	admin off
+}
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	# Uploads of rules files are capped by the app at 16 MiB; nothing larger is forwarded.
+	request_body {
+		max_size 17MB
+	}
+
+	header {
+		-Server
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Cross-Origin-Opener-Policy "same-origin"
+	}
+
+	# The app counts login attempts per client address: hand it the real peer, never what the client claims.
+	reverse_proxy app:8080 {
+		header_up X-Forwarded-For {remote_host}
+		# Live match streams (server-sent events) must not be buffered.
+		flush_interval -1
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

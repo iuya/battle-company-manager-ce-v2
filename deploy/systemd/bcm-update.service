@@ -1,0 +1,11 @@
+[Unit]
+Description=Move the Battle Company Manager to the newest stable release (by digest)
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/bcm
+ExecStart=/opt/bcm/bcm-update.sh
+TimeoutStartSec=20min

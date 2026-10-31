@@ -13,7 +13,7 @@ LISTEN_HOST ?= 127.0.0.1
 CSS_IN  = ./tailwind.css
 CSS_OUT = ./internal/web/static/app.css
 
-.PHONY: hooks hooks-test validate concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs docs-check migrate up up-app prod-user prod-down backup restore restore-drill vendor-check dice3d user grant seed demo fuzz check-ruleset ruleset-reference db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
+.PHONY: hooks hooks-test validate concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs docs-check migrate up up-app prod-user prod-down test-backup-restore backuprestore restore-drill vendor-check dice3d user grant seed demo fuzz check-ruleset ruleset-reference db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
 
 # make user EMAIL=you@example.com NAME="Your Name"   (asks for the password)
 user: db-up
@@ -57,6 +57,10 @@ prod-user:
 
 prod-down:
 	docker compose down
+
+# make test-backup-restore   backup, restore and restore drill against a scratch PostgreSQL laid out like a server (Docker + Go; docs/operations.md)
+test-backup-restore:
+	scripts/test-backup-restore.sh
 
 # Drops the development database (all data) and starts an empty one; seed it again afterwards.
 db-reset:
