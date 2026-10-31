@@ -76,6 +76,12 @@ The rules the app uses live in `definitions/battle_companies/battle_companies.js
 `definitions/vanilla/data2024.json`, which is read-only. Run `make validate` and the snapshot test, and quote the rule you follow in the pull request.
 Do not add text copied from copyrighted rulebooks; short names and numbers with a reference are fine. Details: [docs/definitions.md](docs/definitions.md).
 
+## The demo world
+
+Every new feature or change of behaviour must be reachable in the demo world (`make demo`), so reviewers and the browser tests can see it without
+setting it up by hand. Extend a campaign, company or match in `cmd/server/world_*.go` and describe it in [docs/demo-world.md](docs/demo-world.md); a
+state the services cannot produce is recorded there as a gap, with the reason. The pull request says how the demo world covers the change.
+
 ## Documentation
 
 `docs/` describes the current state of the app, not its history. Update the page that covers your change in the same pull request. UI changes follow
