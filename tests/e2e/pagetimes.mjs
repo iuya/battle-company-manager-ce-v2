@@ -156,6 +156,8 @@ async function main() {
       { name: 'Campaign glossary', user: E, path: `/campaigns/${m}/glossary` },
       { name: 'Glossary (sidebar)', user: E, path: '/glossary' },
       { name: 'Glossary unit cards (fetched on demand)', user: E, path: `/campaigns/${m}/glossary/units`, htmx: true, fragment: true },
+      { name: 'Company page: Arnor (rule texts with unit names)', user: newCompany.user, path: `${newCompany.path.replace(/new$/, 'info')}?c=Arnor`, htmx: true, fragment: true },
+      { name: 'Company page: Fornost (rule texts with unit names)', user: newCompany.user, path: `${newCompany.path.replace(/new$/, 'info')}?c=Fornost`, htmx: true, fragment: true },
       { name: 'New company', user: newCompany.user, path: newCompany.path },
       { name: 'Match page', user: A, path: match },
       { name: 'Live match (company page)', user: A, path: live },
