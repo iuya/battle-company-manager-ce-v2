@@ -78,9 +78,13 @@ func TestAuth_Login(t *testing.T) {
 		a, repo := newTestAuth(t)
 		repo.EXPECT().UserByEmail(gomock.Any(), "frodo@shire.me").Return(rec, nil)
 		var stored []byte
-		repo.EXPECT().CreateSession(gomock.Any(), gomock.Any(), int64(7), t0.Add(sessionTTL)).
-			DoAndReturn(func(_ context.Context, h []byte, _ int64, _ time.Time) error { stored = h; return nil })
+		gomock.InOrder(
+			repo.EXPECT().InvalidateRecovery(gomock.Any(), int64(7), RecoveryByLogin, t0).Return(0, nil),
+			repo.EXPECT().CreateSession(gomock.Any(), gomock.Any(), int64(7), t0.Add(sessionTTL)).
+				DoAndReturn(func(_ context.Context, h []byte, _ int64, _ time.Time) error { stored = h; return nil }),
+		)
 		repo.EXPECT().DeleteExpiredSessions(gomock.Any(), t0).Return(nil)
+		repo.EXPECT().PurgeStaleTokens(gomock.Any(), t0.Add(-staleTokenAge)).Return(nil)
 
 		token, expires, user, err := a.Login(context.Background(), " Frodo@shire.me", "a long enough password")
 		if err != nil || user.ID != 7 || !expires.Equal(t0.Add(sessionTTL)) {

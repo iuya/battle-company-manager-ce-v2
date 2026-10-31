@@ -31,6 +31,8 @@ const (
 	minPasswordLen = 10
 	maxPasswordLen = 128 // argon2 is deliberately expensive: do not let a request choose an unbounded input
 	sessionTTL     = 30 * 24 * time.Hour
+	// staleTokenAge is how long an unused invitation or a terminal recovery link is kept after it ended.
+	staleTokenAge = 90 * 24 * time.Hour
 )
 
 // Role is a user's global role. Per-campaign roles (organiser, player) are a separate matter.
@@ -349,10 +351,17 @@ func (a *Auth) Login(ctx context.Context, email, password string) (token string,
 	token = base64.RawURLEncoding.EncodeToString(raw)
 	now := a.now()
 	expires = now.Add(sessionTTL)
+	// Signing in with the password makes a pending recovery link pointless: it stops working before the session exists, and
+	// whichever of this and the link's own use locks the row first wins.
+	if _, err := a.repo.InvalidateRecovery(ctx, rec.ID, RecoveryByLogin, now); err != nil {
+		return "", time.Time{}, User{}, err
+	}
+	a.cache.setRecoveryPending(rec.ID, false)
 	if err := a.repo.CreateSession(ctx, hashToken(token), rec.ID, expires); err != nil {
 		return "", time.Time{}, User{}, err
 	}
-	_ = a.repo.DeleteExpiredSessions(ctx, now) // housekeeping; a failure must not fail the login
+	_ = a.repo.DeleteExpiredSessions(ctx, now)                // housekeeping; a failure must not fail the login
+	_ = a.repo.PurgeStaleTokens(ctx, now.Add(-staleTokenAge)) // same
 	return token, expires, rec.User, nil
 }
 
@@ -369,14 +378,23 @@ func (a *Auth) Authenticate(ctx context.Context, token string) (user User, renew
 
 	entry, ok := a.cache.get(key, now)
 	if !ok {
-		user, expires, _, err := a.repo.UserBySession(ctx, h, now)
+		user, expires, pending, err := a.repo.UserBySession(ctx, h, now)
 		if errors.Is(err, ErrNotFound) {
 			return User{}, time.Time{}, ErrNoSession
 		}
 		if err != nil {
 			return User{}, time.Time{}, err
 		}
-		entry = cachedSession{user: user, expires: expires, checked: now}
+		entry = cachedSession{user: user, expires: expires, checked: now, recoveryPending: pending}
+	}
+	if entry.recoveryPending {
+		// Any authenticated request makes a pending recovery link pointless. The flag rides on the cache entry, so the normal
+		// case (no link) costs nothing, and a pending link costs one UPDATE, once. A failure is an error (fail closed).
+		if _, err := a.repo.InvalidateRecovery(ctx, entry.user.ID, RecoveryByAccess, now); err != nil {
+			return User{}, time.Time{}, err
+		}
+		a.cache.setRecoveryPending(entry.user.ID, false)
+		entry.recoveryPending = false
 	}
 	if entry.expires.Sub(now) < sessionTTL/2 {
 		renewed = now.Add(sessionTTL)
@@ -567,4 +585,11 @@ func userZone(u *User) string {
 		return ""
 	}
 	return u.Timezone
+}
+
+// forgetUser and setRecoveryPending make *Auth the sessionControl of the Recovery service: Auth owns the session cache.
+func (a *Auth) forgetUser(userID int64) { a.cache.dropUser(userID, "") }
+
+func (a *Auth) setRecoveryPending(userID int64, pending bool) {
+	a.cache.setRecoveryPending(userID, pending)
 }
