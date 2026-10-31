@@ -21,7 +21,7 @@ Code: `internal/core/concept_graph.go` and `concepts.go` (`core.Concepts`), the 
 | `scenario` | scenario | Seize Ground |
 | `term` | anything else (heroic actions, phases, characteristics) | Heroic March, Stand Fast, Move phase |
 
-Units are not nodes; their cards are in the campaign glossary under their own anchors (`core.UnitAnchor`, [frontend.md](frontend.md#glossary-and-item-definitions)). A node is a reference, not a copy: the text stays in the glossary. Ambiguous names (Fear, Wound, ...) have one node per meaning and are never auto-linked.
+Units are not nodes; their cards are in the campaign glossary under their own anchors (`core.UnitAnchor`, [frontend.md](frontend.md#glossary-and-item-definitions)). A unit named in a rule text is linked by the glossary linker (a `UnitID` segment next to the `TermID` ones, [frontend.md](frontend.md#unit-names-in-texts)), not by the graph: the popup's own text is made from the ruleset's glossary file and does not link units, and a unit is never a `mentions` edge. A node is a reference, not a copy: the text stays in the glossary. Ambiguous names (Fear, Wound, ...) have one node per meaning and are never auto-linked.
 
 **Edges** (`from`, `to`, `type`, `via`):
 

@@ -851,6 +851,27 @@ glossary (a bare file, no campaign) has none.
   `glossary_units` fragment, which replaces the placeholder (`htmx.ajax` from `loadUnits` in `static/js/lists.js`, one request however many things ask). The button, choosing
   the Units chip, typing in the search, opening `?c=units` and an address with `#u-...` all fetch them. The tab and the fragment are two of the pages `node tests/e2e/pagetimes.mjs` measures ([performance.md](performance.md)): the tab stays at about 27 ms of server time and 1.5 MB (198 KB gzip), the fragment is 7.5 ms and 365 KB (19 KB gzip).
 
+#### Unit names in texts
+
+A unit named in a rule or glossary text is a link to its card in the campaign glossary, with a tooltip, like a glossary term. The campaign's glossary (`core.RuleSet.GlossaryWithUnits`, built once per
+rule set, `glossary_units.go`) has the base units in its linker, so `Glossary.Link` and the definitions of its terms return `Segment`s with a `UnitID` (the card's anchor) next to the `TermID` ones. Where a text is
+shown through `linkText` / `companyInfoView.Linked` (`segViews`) the unit's tooltip comes with the link, so there is no request on hover:
+
+- **Matching.** Exact names only, the ones in `BaseUnits()` (so only the units of the ruleset in use): whole words (`isWordRune` boundaries, a hyphen is part of a name, never inside another word), case insensitive for names of
+  several words and exactly as spelled for a name of one word (`Ruffian`, `Spectre`, `Werewolf`, `Crebain`, `Helminga`), at least three characters, the longest name first (`Erebor Dwarf Warrior` is one unit, not a `Dwarf Warrior` in it; a
+  glossary term inside a unit name, `Dwarf`, `Warrior`, is part of the name), each unit linked once per text. A name that is also a glossary term (`Fell Warg`, `Lorien Guard`, `Tookish Hunter`, `Warg Marauder`: the wargear and the rule) stays the term.
+  There are no aliases or plurals: the data has none for units (a company's "base profile" is not another name for it). A name two companies give to different profiles links to the first card (`UnitAnchor(name)`).
+- **The link.** `<a class="term-link unit-link" href="/campaigns/{id}/glossary#u-…" hx-boost="false" data-tip-title data-tip-meta data-tip-text>`, from the `segments` template: a full load, so the browser jumps to the card and the
+  glossary component fetches the cards if needed, scrolls, highlights and focuses it. It has no `data-concept` (a unit is not a concept in the graph), so a click follows the link where a term opens the helper popup.
+  On the glossary page itself the link is the in-page `#u-…` one (`glossary_unit_link`) with its own `data-tip-*`, since the card may not be loaded: its preview reads them first (`showTip` in `lists.js`).
+- **The tooltip** is the unit's profile in short (`BaseUnit.TipMeta`: types and points; `TipText`: the characteristics on one line, then "Made of", "Wargear", "Heroic actions" and "Special rules" a line each), about 300 bytes
+  per link on the page. The card in the glossary has the rest (options, the companies that name it). Hover and keyboard focus show it in the page's own tooltip (the company browser, the unit cards, the glossary), Escape hides it,
+  a touch screen follows the link to the card. A unit with no card is plain text: a glossary without units (the sidebar glossary, a ruleset whose companies name none) links no unit.
+- **Where.** Every text cut by the campaign glossary: the company pages' rule texts and notes (the Arnor promotion), rule, item and path descriptions on the unit cards, the level-up choices and the definitions on the glossary tab.
+  After an in-page jump the glossary scrolls again once the web fonts are in (the page is 280,000 px long and the lines above a far card change height when the fonts arrive).
+- **Tested:** `internal/core/glossary_units_test.go` (the matcher: names inside other names and other words, case, punctuation and hyphens, the same name twice, terms, the shipped ruleset), `internal/web/unitlinks_test.go`
+  (generated mock of `glossaries`: the Arnor page, a ruleset without cards, the glossary page) and the e2e flow `102-unit-links` ([testing.md](testing.md)).
+
 ### Creatures and wanderers
 
 The Armory tab lists **creatures** (for the leader and the sergeants, one each, at most 3 per company; `data.creatures`) and
@@ -1077,7 +1098,7 @@ in a filtered list still finds its target), jumps to the term and highlights it,
 floating **Back to <term>** button returns there (a trail, so it works through several jumps) and **Top** goes to the top.
 Hovering (or focusing) a link previews its term in a small card (name, category, definition as plain text, so previews
 never nest); touch screens just follow the link. A single-word name or alias is linked only when written exactly as in the file ("will" is not the Will term, "Will" is);
-multi-word names stay case insensitive (the case rule applies to every single-word term). `web.glossaries` (`core.Glossaries`, which builds once per file) gives a campaign's glossary, the default one, or one glossary file alone by
+multi-word names stay case insensitive (the case rule applies to every single-word term). A campaign's glossary also links the unit names its texts mention to the unit cards ([Unit names in texts](#unit-names-in-texts)). `web.glossaries` (`core.Glossaries`, which builds once per file) gives a campaign's glossary, the default one, or one glossary file alone by
 hash (`ByHash`, `core.ErrNotFound` for an unknown hash or a file of another kind).
 
 A row of **category chips** (All plus one per category, `aria-pressed`) sits under the search and combines with it; the

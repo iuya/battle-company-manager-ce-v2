@@ -256,6 +256,9 @@ func (s *Server) handleCompany(w http.ResponseWriter, r *http.Request) {
 // segView is a piece of a description: plain text, or a mention of a glossary term with what its preview shows.
 type segView struct {
 	Text, TermID, TipTitle, TipText string
+	// UnitID is the anchor of a base unit's card in the campaign glossary when the text names the unit (core.UnitAnchor); the tooltip
+	// is then the unit's profile in short (TipMeta: types and points; TipText: the profile line, wargear and rules).
+	UnitID, TipMeta string
 }
 
 // itemView and ruleView are equipment and special rules with their descriptions cut into segView pieces.
@@ -300,13 +303,20 @@ type unitView struct {
 	Path          *pathView // heroes only
 }
 
-// linkText cuts text into pieces, linking the glossary terms it mentions.
-func linkText(g core.Glossary, text string) []segView {
+// linkText cuts text into pieces, linking the glossary terms and the base units it mentions.
+func linkText(g core.Glossary, text string) []segView { return segViews(g, text, 320) }
+
+// segViews is linkText with the length of a term's tooltip chosen. A unit the glossary has no card for (it cannot happen for a text cut by
+// the same glossary) is left as plain text rather than linking to nothing.
+func segViews(g core.Glossary, text string, tip int) []segView {
 	var out []segView
 	for _, seg := range g.Link(text) {
 		v := segView{Text: seg.Text, TermID: seg.TermID}
 		if term, ok := g.Term(seg.TermID); ok {
-			v.TipTitle, v.TipText = term.Name, term.Summary(320)
+			v.TipTitle, v.TipText = term.Name, term.Summary(tip)
+		}
+		if u := g.UnitCard(seg.UnitID); seg.UnitID != "" && u != nil {
+			v.UnitID, v.TipTitle, v.TipMeta, v.TipText = u.ID, u.Name, u.TipMeta(), u.TipText()
 		}
 		out = append(out, v)
 	}

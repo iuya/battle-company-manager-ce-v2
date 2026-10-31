@@ -43,8 +43,9 @@
    unit card, the name alone (no lead) beside a smaller icon}; the box around it carries path-k-{kind} for its colour. */}}
 {{define "path_name"}}{{$l := pathLook .N}}<span class="path-name{{if .Short}} path-name-short{{end}}" {{if .Tip}}tabindex="0" data-concept data-tip-title="{{.N}}" data-tip-meta="Hero's path" data-tip-text="{{.Tip}}"{{with .Chart}} data-tip-path="{{.}}"{{end}}{{end}}>{{template "path_icon" .N}}<span class="min-w-0">{{if not .Short}}{{with $l.Lead}}<span class="path-lead">{{.}} </span>{{end}}{{end}}<span class="path-main">{{$l.Main}}</span></span></span>{{end}}
 
-{{/* A description with the glossary terms it mentions as links (previewed on hover). Takes {S: []segView, CID: campaign id}. */}}
-{{define "segments"}}{{range .S}}{{if .TermID}}<a href="/campaigns/{{$.CID}}/glossary#t-{{.TermID}}" class="term-link" hx-boost="false" data-concept data-tip-title="{{.TipTitle}}" data-tip-text="{{.TipText}}">{{.Text}}</a>{{else}}{{.Text}}{{end}}{{end}}{{end}}
+{{/* A description with the glossary terms and the base units it mentions as links (previewed on hover; a unit links to its card in the
+   campaign glossary and previews its profile). Takes {S: []segView, CID: campaign id}. */}}
+{{define "segments"}}{{range .S}}{{if .UnitID}}<a href="/campaigns/{{$.CID}}/glossary#{{.UnitID}}" class="term-link unit-link" hx-boost="false" data-tip-title="{{.TipTitle}}" data-tip-meta="{{.TipMeta}}" data-tip-text="{{.TipText}}">{{.Text}}</a>{{else if .TermID}}<a href="/campaigns/{{$.CID}}/glossary#t-{{.TermID}}" class="term-link" hx-boost="false" data-concept data-tip-title="{{.TipTitle}}" data-tip-text="{{.TipText}}">{{.Text}}</a>{{else}}{{.Text}}{{end}}{{end}}{{end}}
 
 {{/* ---- The unit card. Takes {U: unitView, CID: campaign id}; the page's `company` component (static/js/company.js) expands it. ---- */}}
 {{/* One item of a unit: its icon, name and numbers; the dashed border says it has a tooltip (rules, slot, numbers). */}}
