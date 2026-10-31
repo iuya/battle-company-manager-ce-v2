@@ -54,6 +54,8 @@ type world struct {
 	users map[string]core.User
 	gaps  []string
 	links []string
+	// accountLinks are the pending account invitation and recovery links of adminStates (printed with their secrets)
+	accountLinks []string
 	// exec runs raw SQL for the few states no service reaches (nil: those states are skipped)
 	exec func(ctx context.Context, query string, args ...any) error
 	// scenarios of the default Battle Companies file, by name
@@ -419,6 +421,7 @@ func seedWorld(ctx context.Context, b *backend, dice *demoDice, password string,
 		{"cemetery, invites and handover", w.finishingTouches},
 		{"several companies per player", w.bandsCampaign},
 		{"veterans with long trackers", w.veteransCampaign},
+		{"account invitations and recovery links", w.adminStates},
 	} {
 		fmt.Fprintln(out, "==", step.name)
 		step.run()

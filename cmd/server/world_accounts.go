@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
@@ -20,7 +21,7 @@ type worldAccount struct {
 
 var worldAccounts = []worldAccount{
 	{"admin", "admin@example.com", "Gandalf", core.RoleSuperuser, true, "Superuser: /admin, reopen matches, waive aftermaths, every campaign action"},
-	{"steward", "steward@example.com", "Denethor", core.RoleAdmin, true, "Admin (not superuser): administers campaigns, no rules-file or user powers"},
+	{"steward", "steward@example.com", "Denethor", core.RoleAdmin, true, "Administrator (not superuser): administers campaigns; sees Users and Invitations and the Organiser switch; no rules-file or recovery-link powers"},
 	{"you", "you@example.com", "You", core.RoleUser, true, "Organiser of most campaigns (grants, matches, invites); also plays in a few"},
 	{"faramir", "faramir@example.com", "Faramir", core.RoleUser, true, "Can create campaigns; organises one campaign and, after the handover, another"},
 	{"eowyn", "eowyn@example.com", "Éowyn", core.RoleUser, false, "Player in many campaigns; cannot create campaigns"},
@@ -53,17 +54,25 @@ func (w *world) printAccounts() {
 		}
 		fmt.Fprintf(w.out, "  %-24s %-10s %s\n", a.email, role, a.shows)
 	}
+	for _, a := range adminStateAccounts {
+		fmt.Fprintf(w.out, "  %-24s %-10s %s\n", a[0], "user", a[1])
+	}
 	fmt.Fprintf(w.out, "  %-24s %-10s %s\n", "<company>@example.com", "user", "Gallery: one player per Battle Company (e.g. minas-tirith@example.com, goblin-town@example.com)")
 	fmt.Fprintln(w.out, "\nSign in at http://localhost:8080 and read docs/demo-world.md for what to click.")
 }
 
 func (w *world) printLinks() {
-	if len(w.links) == 0 {
+	printLinkList(w.out, "Invite links", w.links)
+	printLinkList(w.out, "Account invitation links", w.accountLinks)
+}
+
+func printLinkList(out io.Writer, heading string, links []string) {
+	if len(links) == 0 {
 		return
 	}
-	fmt.Fprintln(w.out, "\nInvite links (the secret is shown only now; prefix with http://localhost:8080):")
-	for _, l := range w.links {
-		fmt.Fprintln(w.out, "  "+l)
+	fmt.Fprintf(out, "\n%s (the secret is shown only now; prefix with http://localhost:8080):\n", heading)
+	for _, l := range links {
+		fmt.Fprintln(out, "  "+l)
 	}
 }
 

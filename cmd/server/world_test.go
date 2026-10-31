@@ -93,6 +93,7 @@ func TestSeedWorld(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	checkAdminStates(t, ctx, b, admin)
 	list, err := b.campaigns.List(ctx, you.ID, true)
 	if err != nil {
 		t.Fatal(err)
@@ -301,4 +302,88 @@ func TestSeedWorld(t *testing.T) {
 		t.Error("the Shire company of the cemetery is missing")
 	}
 	t.Run("queries do not grow with the data", func(t *testing.T) { assertQueryCounts(ctx, t, b, counter, conn, admin) })
+}
+
+// checkAdminStates asserts every state of the account invitations and recovery links through the services' list methods.
+func checkAdminStates(t *testing.T, ctx context.Context, b *backend, admin core.User) {
+	t.Helper()
+	invs, _, err := b.invitations.List(ctx, admin, core.InvitationFilter{}, 200, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	type want struct {
+		kind  core.InvitationKind
+		state core.InvitationState
+		uses  int
+		max   int
+	}
+	got := map[string]core.AccountInvitation{}
+	for _, in := range invs {
+		key := in.Email
+		if in.Kind == core.InvitationAnonymous {
+			key = "anonymous"
+		}
+		got[key] = in
+	}
+	for key, w := range map[string]want{
+		invitePendingEmail: {core.InvitationNamed, core.InvitationPending, 0, 1},
+		inviteUsedEmail:    {core.InvitationNamed, core.InvitationUsed, 1, 1},
+		inviteExpiredEmail: {core.InvitationNamed, core.InvitationExpired, 0, 1},
+		inviteRevokedEmail: {core.InvitationNamed, core.InvitationRevoked, 0, 1},
+		"anonymous":        {core.InvitationAnonymous, core.InvitationPending, 2, 5},
+	} {
+		in, ok := got[key]
+		switch {
+		case !ok:
+			t.Errorf("no invitation %q", key)
+		case in.Kind != w.kind || in.State != w.state || in.Uses != w.uses || in.MaxUses != w.max:
+			t.Errorf("invitation %q is %s %s %d/%d, want %s %s %d/%d", key, in.Kind, in.State, in.Uses, in.MaxUses, w.kind, w.state, w.uses, w.max)
+		}
+	}
+	if in := got["anonymous"]; len(in.Accounts) != 2 {
+		t.Errorf("the anonymous invitation made %d accounts, want 2", len(in.Accounts))
+	}
+	if in := got[inviteUsedEmail]; len(in.Accounts) != 1 {
+		t.Errorf("the used invitation made %d accounts, want 1", len(in.Accounts))
+	}
+	for _, e := range []string{inviteUsedEmail, inviteGuestOneEmail, inviteGuestTwoEmail} {
+		if _, _, _, err := b.auth.Login(ctx, e, "demo-password"); err != nil {
+			t.Errorf("%s made through an invitation cannot sign in: %v", e, err)
+		}
+	}
+	for _, e := range []string{invitePendingEmail, inviteExpiredEmail, inviteRevokedEmail} {
+		if _, _, _, err := b.auth.Login(ctx, e, "demo-password"); err == nil {
+			t.Errorf("%s has an account although its invitation was not used", e)
+		}
+	}
+
+	rows, _, err := b.auth.ListUsers(ctx, admin, "recover-", 200, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	status := map[string]*core.RecoveryStatus{}
+	for _, r := range rows {
+		status[r.Email] = r.Recovery
+	}
+	for _, s := range recoveryStates {
+		r := status[recoveryEmail(s.key)]
+		switch {
+		case r == nil:
+			t.Errorf("%s has no recovery link", recoveryEmail(s.key))
+		case r.State != s.state:
+			t.Errorf("%s: link is %s, want %s", recoveryEmail(s.key), r.State, s.state)
+		}
+	}
+	for key, reason := range map[string]core.RecoveryReason{"login": core.RecoveryByLogin, "access": core.RecoveryByAccess} {
+		if r := status[recoveryEmail(key)]; r != nil && r.Reason != reason {
+			t.Errorf("%s: invalidated by %q, want %q", recoveryEmail(key), r.Reason, reason)
+		}
+	}
+	if _, _, _, err := b.auth.Login(ctx, recoveryEmail("used"), "demo-password"); err != nil {
+		t.Errorf("the account with the used link cannot sign in: %v", err)
+	}
+	// the world stays usable: the pending named invitation and the pending recovery link are still pending
+	if r := status[recoveryPendingEmail]; r == nil || r.State != core.RecoveryPending {
+		t.Errorf("the pending recovery link is %+v", r)
+	}
 }
