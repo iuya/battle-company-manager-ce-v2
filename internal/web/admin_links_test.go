@@ -367,20 +367,31 @@ func TestRegisterSignedInVisitorIsSentHome(t *testing.T) {
 
 func TestRegisterAndRecoverAreThrottled(t *testing.T) {
 	f := newFixture(t, Config{})
-	f.inv.EXPECT().Preview(gomock.Any(), secretT).Return(core.InvitationPreview{}, core.ErrLinkUnusable).Times(maxFailsPerAccount)
-	for range maxFailsPerAccount {
+	// looking at dead links is cheap and never counts, however often
+	f.inv.EXPECT().Preview(gomock.Any(), secretT).Return(core.InvitationPreview{}, core.ErrLinkUnusable).Times(maxFailsPerAddress + 1)
+	for range maxFailsPerAddress + 1 {
 		if rec := f.do(httptest.NewRequest("GET", "/register/"+secretT, nil)); rec.Code != 404 {
+			t.Fatalf("a GET must not be throttled: %d", rec.Code)
+		}
+	}
+	// failed attempts to use a link do
+	f.inv.EXPECT().Register(gomock.Any(), secretT, gomock.Any()).Return(core.RegisteredSession{}, core.ErrLinkUnusable).Times(maxFailsPerAccount)
+	reg := func() *httptest.ResponseRecorder {
+		return f.do(form("/register/"+secretT, url.Values{"email": {"a@example.com"}, "name": {"A"}, "password": {"longenough1"}, "confirm": {"longenough1"}}))
+	}
+	for range maxFailsPerAccount {
+		if rec := reg(); rec.Code != 422 {
 			t.Fatalf("%d", rec.Code)
 		}
 	}
-	rec := f.do(httptest.NewRequest("GET", "/register/"+secretT, nil))
+	rec := reg()
 	if rec.Code != http.StatusTooManyRequests || !strings.Contains(rec.Body.String(), "Too many attempts") {
 		t.Errorf("register throttle: %d", rec.Code)
 	}
 	assertSecretHeaders(t, rec)
-	f.rec.EXPECT().Preview(gomock.Any(), secretT).Return(core.ErrLinkUnusable).Times(maxFailsPerAccount)
+	f.rec.EXPECT().SetPassword(gomock.Any(), secretT, gomock.Any()).Return(core.ErrLinkUnusable).Times(maxFailsPerAccount)
 	for range maxFailsPerAccount {
-		f.do(httptest.NewRequest("GET", "/recover/"+secretT, nil))
+		f.do(form("/recover/"+secretT, url.Values{"password": {"longenough1"}, "confirm": {"longenough1"}}))
 	}
 	if rec = f.do(form("/recover/"+secretT, url.Values{"password": {"a"}, "confirm": {"a"}})); rec.Code != http.StatusTooManyRequests {
 		t.Errorf("recover throttle: %d", rec.Code)

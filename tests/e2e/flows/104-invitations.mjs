@@ -141,9 +141,12 @@ export default async function (h, { only }) {
   await h.step('invitations: the registration is throttled per link', async () => {
     const s = await stranger();
     const bad = '/register/' + 'z'.repeat(43);
-    let last = 0;
-    for (let i = 0; i < 6; i++) { const r = await s.page.goto(s.url(bad)); last = r.status(); }
-    assert.equal(last, 429);
+    // looking at a dead link never counts; failed attempts to register with it do
+    for (let i = 0; i < 7; i++) assert.equal((await s.page.goto(s.url(bad))).status(), 404);
+    await s.page.goto(s.url('/login'));
+    const codes = await s.page.evaluate(async (u) => { const out = []; for (let i = 0; i < 6; i++) out.push((await fetch(u, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'email=a%40example.com&name=A&password=longenough1&confirm=longenough1' })).status); return out; }, bad);
+    assert.deepEqual(codes, [422, 422, 422, 422, 422, 429]);
+    assert.equal((await s.page.goto(s.url(bad))).status(), 429);
     assert.ok(await s.has('Too many attempts'));
   }, { only });
 

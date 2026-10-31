@@ -380,7 +380,7 @@ func NewServer(cfg Config, campaigns campaigns, rulesets rulesets, glossary glos
 		return nil, err
 	}
 	_ = staticFiles() // builds the embedded asset table now: a broken build fails at start, not at the first request
-	return &Server{cfg: cfg, campaigns: campaigns, rulesets: rulesets, glossary: glossary, auth: auth, render: r, throttle: newLoginThrottle(), accountThrottle: newLoginThrottle(), registerThrottle: newLoginThrottle(), recoverThrottle: newLoginThrottle(), cspReports: newReportLimiter(), validator: newValidatorGate(), die: func(sides int) int { return 1 + rand.IntN(sides) }}, nil
+	return &Server{cfg: cfg, campaigns: campaigns, rulesets: rulesets, glossary: glossary, auth: auth, render: r, throttle: newLoginThrottle(), accountThrottle: newLoginThrottle(), registerThrottle: newLinkThrottle(), recoverThrottle: newLinkThrottle(), cspReports: newReportLimiter(), validator: newValidatorGate(), die: func(sides int) int { return 1 + rand.IntN(sides) }}, nil
 }
 
 // Handler returns the fully wired http.Handler (routes + middleware).

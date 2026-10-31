@@ -43,8 +43,8 @@ Expiry 1 hour to 30 days (the page offers 1, 3, 7, 14, 30; default 7). The publi
 - the registration form is **throttled** per address and link (5 failures in 10 minutes) and per address (20), in memory, like the login
   throttle; the key uses a fingerprint of the token, never the email.
 
-Known limit: the holder of a valid anonymous link learns from the generic error versus success that an address exists; the throttle and the use
-limit bound it.
+Known limits: the holder of a valid anonymous link learns from the generic error versus success that an address exists (the throttles and the use
+limit bound it), and can register an address that is not theirs (there is no email verification: the person it belongs to is then told by the administrator).
 
 ## Password recovery
 
@@ -116,12 +116,18 @@ hash, so timing does not reveal which emails exist, and the only failure message
   together with the `SameSite=Lax` cookie.
 - **Throttles:** each is in memory per process, window 10 minutes, per account key and per address.
 
-  | Throttle | Account key | Per key | Per address |
-  |---|---|---|---|
-  | Login | address + email | 5 | 20 |
-  | Account page password | user | 5 | 20 |
-  | Registration (`/register/{token}`) | address + token fingerprint | 5 | 20 |
-  | Recovery (`/recover/{token}`) | address + token fingerprint | 5 | 20 |
+  | Throttle | Account key | Per key | Per address | Per link |
+  |---|---|---|---|---|
+  | Login | address + email | 5 | 20 | - |
+  | Account page password | user | 5 | 20 | - |
+  | Registration (`/register/{token}`) | address + token fingerprint | 5 | 20 | 30 |
+  | Recovery (`/recover/{token}`) | address + token fingerprint | 5 | 20 | 30 |
+
+  On the link pages only a failed **attempt** (a POST that the link refuses: dead link, address taken) counts; looking at a dead link
+  (GET) is cheap and never counts, so nobody can lock the page out by requesting it. The per-link cap counts the failures of one link
+  whatever the address, so rotating addresses does not give a holder of a link more guesses at which emails exist. Behind a reverse
+  proxy `TRUST_PROXY=true` is required: otherwise every visitor shares the proxy's address and 20 failed attempts from anyone block the
+  link pages for everybody for 10 minutes.
 
 - **Login throttling:** failed logins are counted in memory per address+email (5 per 10 minutes) and per address (20);
   beyond that the login page answers `429` without checking the password. A success resets the account counter. The address is

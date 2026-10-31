@@ -49,8 +49,7 @@ func (s *Server) handleRegisterPage(w http.ResponseWriter, r *http.Request) {
 	}
 	pre, err := s.invitations.Preview(r.Context(), token)
 	switch {
-	case errors.Is(err, core.ErrLinkUnusable):
-		s.registerThrottle.fail(ip, key)
+	case errors.Is(err, core.ErrLinkUnusable): // a look at a dead link is cheap and does not count: only attempts to use one do
 		s.unusable(w, r, http.StatusNotFound, core.TalkToAdministrator)
 		return
 	case err != nil:
@@ -134,7 +133,6 @@ func (s *Server) handleRecoverPage(w http.ResponseWriter, r *http.Request) {
 	err := s.recovery.Preview(r.Context(), token)
 	switch {
 	case errors.Is(err, core.ErrLinkUnusable):
-		s.recoverThrottle.fail(ip, key)
 		s.unusable(w, r, http.StatusNotFound, core.TalkToAdministrator)
 		return
 	case err != nil:

@@ -94,6 +94,10 @@ pending link. Rules: superusers only (an administrator gets 404 and no card), a 
 Account page), one pending link per account (a new one replaces the old). Routes: `POST /admin/users/{id}/recovery` and `.../recovery/revoke`.
 What happens when the person uses the link is in [auth.md](auth.md).
 
+**A superuser can take over another superuser's account** (or an administrator's) by generating a link and setting the password through it:
+superusers are peers and the audit trail records who made the link, but nothing prevents it. Use it deliberately, and only for a person who
+asked for it.
+
 ### Rules files
 
 The stored rules files ([definitions.md](definitions.md), table `rulesets`), grouped by kind (Vanilla, Battle Companies, Glossary), newest
