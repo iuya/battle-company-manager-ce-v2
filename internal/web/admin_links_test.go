@@ -470,3 +470,12 @@ func TestLogPathRedactsUncleanPaths(t *testing.T) {
 		t.Errorf("an ordinary path changed: %q", got)
 	}
 }
+
+// TestInvitationMessageSingular: "up to 1 person", not "1 people".
+func TestInvitationMessageSingular(t *testing.T) {
+	c := core.CreatedAccountInvitation{AccountInvitation: core.AccountInvitation{Kind: core.InvitationAnonymous, MaxUses: 1, ExpiresAt: time.Date(2026, 11, 1, 10, 0, 0, 0, time.UTC)}, Token: secretT}
+	got := invitationMessage(httptest.NewRequest("GET", "/", nil), c)
+	if !strings.Contains(got, "up to 1 person and") {
+		t.Errorf("message: %q", got)
+	}
+}

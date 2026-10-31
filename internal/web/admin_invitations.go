@@ -159,7 +159,11 @@ func invitationMessage(r *http.Request, c core.CreatedAccountInvitation) string 
 	if c.Kind == core.InvitationNamed {
 		return "Open this link to create your account: " + link + "?email=" + url.QueryEscape(c.Email) + "\nIt works once and expires on " + when + "."
 	}
-	return "Open this link to create your account: " + link + "\nIt works for up to " + strconv.Itoa(c.MaxUses) + " people and expires on " + when + "."
+	who := strconv.Itoa(c.MaxUses) + " people"
+	if c.MaxUses == 1 {
+		who = "1 person"
+	}
+	return "Open this link to create your account: " + link + "\nIt works for up to " + who + " and expires on " + when + "."
 }
 
 // handleAdminInvitationRevoke revokes a pending invitation and answers its row. A refusal (already used, expired or revoked) is a
