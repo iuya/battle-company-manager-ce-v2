@@ -104,9 +104,11 @@ export default async function (h) {
     assert.deepEqual(at, { focus: 'u-cave-troll', hash: '#u-cave-troll' });
   });
 
-  for (const scheme of ['light', 'dark']) {
+  for (const [scheme, contrast] of [['light', 'normal'], ['dark', 'normal'], ['light', 'high'], ['dark', 'high']]) {
     for (const w of SIZES) {
-      await h.step(`glossary units at ${w} px, ${scheme}: no horizontal scroll, cards fit, axe clean (not at 768)`, async () => {
+      await h.step(`glossary units at ${w} px, ${scheme}${contrast === 'high' ? ', high contrast' : ''}: no horizontal scroll, cards fit, axe clean (not at 768)`, async () => {
+        const ck = { name: 'bcm-contrast', value: contrast, url: admin.h.base };
+        if (admin.page.setCookie) await admin.page.setCookie(ck); else await admin.ctx.setCookie(ck);
         await layout(admin, w, scheme, w === 360 ? 780 : 900);
         await admin.goto(`${gl}?c=units#u-warrior-of-minas-tirith`);
         await admin.page.waitForSelector('#u-warrior-of-minas-tirith', { timeout: 8000 });
@@ -114,17 +116,19 @@ export default async function (h) {
         assert.ok(await admin.noHScroll(), 'no horizontal scroll');
         const over = await admin.page.evaluate(() => [...document.querySelectorAll('article[data-unit]')].filter((a) => a.offsetParent !== null && a.scrollWidth > a.clientWidth + 1).map((a) => a.id));
         assert.deepEqual(over, [], 'no card overflows');
-        await admin.page.screenshot({ path: `out/glossary-units-${w}-${scheme}.png` });
+        await admin.page.screenshot({ path: `out/glossary-units-${w}-${scheme}${contrast === 'high' ? '-high' : ''}.png` });
         if (w !== 768) { // axe takes about 18 s on this page (1,400 terms); 60-pages does the same at 360 and 1280 px
           await admin.page.evaluate(axeSource);
           const res = await admin.page.evaluate(() => axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] }, resultTypes: ['violations'] })
             .then((r) => r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${v.id} (${v.impact}, ${v.nodes.length}) ${v.nodes.slice(0, 2).map((n) => n.target.join(' ')).join(' | ')}`)));
           assert.deepEqual(res, []);
         }
+        assert.equal(await admin.page.evaluate(() => document.documentElement.dataset.contrast || ''), contrast === 'high' ? 'high' : '', 'the contrast applied');
         admin.issues();
       });
     }
   }
+  await admin.page.deleteCookie({ name: 'bcm-contrast', url: admin.h.base }).catch(() => {});
 
   await h.step('glossary units: the placeholder at 360 px (the first screen of the tab), light and dark, axe clean', async () => {
     for (const scheme of ['light', 'dark']) {

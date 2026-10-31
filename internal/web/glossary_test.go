@@ -130,7 +130,7 @@ func TestCampaignGlossaryUnitCards(t *testing.T) {
 	}
 	for _, want := range []string{
 		`<article id="u-helminga" tabindex="-1" data-name="Helminga" data-aliases="Rohan Royal Guard|Rohan|Helm&#39;s Deep" data-category="units"`,
-		`<h3 class="!text-2xl">Helminga</h3>`, "A company's own version of the Rohan Royal Guard", `id="units"`, "2 cards", "9 <span",
+		`<h3 class="!text-xl leading-tight">Helminga</h3>`, `class="unit-head`, `<dl class="statline">`, `unit-kw`, "unit-warrior", "A company's own version of the Rohan Royal Guard", `id="units"`, "2 cards", `<span class="font-semibold text-fg">9</span> pts`,
 		"Stand Fast", "May take", "Spear", "+1 pts", "Named by Rohan, Helm&#39;s Deep", "Picked men of the Hall.",
 		`id="u-vault-warden-team"`, "Made of", "Iron Shield Bearer",
 	} {
