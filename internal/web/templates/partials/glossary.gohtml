@@ -6,14 +6,15 @@
      @hashchange.window="onHash()" @scroll.window.passive="scrolled = window.scrollY > 400" @keydown.escape.window="hideTip()">
   <p class="mt-4 text-sm text-muted">{{.Glossary.Info.Name}}{{with .Glossary.Info.Version}} · v{{.}}{{end}}
     <span class="badge badge-muted ml-1 align-middle font-mono" title="Identifies this exact file: {{.Glossary.Info.Hash}}">{{.Glossary.Info.ShortHash}}</span>
-    · {{len .Glossary.Terms}} terms</p>
+    · {{len .Glossary.Terms}} terms{{with .Glossary.Units}} · {{len .}} units{{end}}</p>
   <div class="mt-3 flex flex-wrap gap-3">
     <label for="glossary-search" class="sr-only">Search the glossary</label>
     <input id="glossary-search" type="search" x-model="q" placeholder="Search terms…" autocomplete="off" class="input sm:max-w-sm">
   </div>
-  {{if gt (len .Glossary.Categories) 1}}<div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filter by category" data-chips>
+  {{if or .Glossary.Units (gt (len .Glossary.Categories) 1)}}<div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filter by category" data-chips>
     <button type="button" class="btn btn-secondary !min-h-11 !px-3 sm:!min-h-9" :class="cat === '' && '!border-accent !bg-accent-soft'" :aria-pressed="cat === ''" @click="cat = ''">All</button>
     {{range .Glossary.Categories}}<button type="button" class="btn btn-secondary !min-h-11 !px-3 sm:!min-h-9 capitalize" data-chip="{{.}}" :class="cat === $el.dataset.chip && '!border-accent !bg-accent-soft'" :aria-pressed="cat === $el.dataset.chip" @click="cat = $el.dataset.chip">{{.}}</button>{{end}}
+    {{if .Glossary.Units}}<button type="button" class="btn btn-secondary !min-h-11 !px-3 sm:!min-h-9" data-chip="units" :class="cat === $el.dataset.chip && '!border-accent !bg-accent-soft'" :aria-pressed="cat === $el.dataset.chip" @click="cat = $el.dataset.chip">Units</button>{{end}}
   </div>{{end}}
   <p class="mt-6 text-muted" x-show="noMatch()" x-cloak role="status">No term matches<template x-if="q.trim()"><span> “<span x-text="q"></span>”</span></template><template x-if="cat"><span> in <span class="capitalize" x-text="cat"></span></span></template>.
     <button type="button" class="btn btn-ghost !min-h-9 !px-3" @click="q = ''; cat = ''">Clear the filters</button></p>
@@ -50,6 +51,16 @@
       {{with .Source}}<p class="mt-1 text-xs text-muted">From the {{.}} rules file</p>{{end}}
     </article>
     {{end}}
+    {{with .Glossary.Units}}
+    {{/* The unit cards are not in the page: 120 cards are 0.5 MB of HTML on top of a page that is already large, so they are fetched
+       (GET .../glossary/units, the glossary_units partial) the first time they are wanted: the Units chip, a search, a #u- address or this
+       button (static/js/lists.js, loadUnits). */}}
+    <div id="glossary-units" data-units-pending x-show="!cat || cat === 'units'">
+      <h2 id="units" class="!text-xl pt-4">Units <span class="text-base font-normal text-muted">{{len .}} cards, one for each unit the companies recruit</span></h2>
+      <p class="mt-2 text-muted">Profile, wargear, options and rules of every unit a company recruits.</p>
+      <button type="button" class="btn btn-secondary mt-3" data-url="{{$.UnitsURL}}" :disabled="loadingUnits" @click="loadUnits()"><span x-show="!loadingUnits">Show the {{len .}} unit cards</span><span x-show="loadingUnits" x-cloak role="status">Loading the unit cards…</span></button>
+    </div>
+    {{end}}
   </div>
 
   {{/* Preview of the term under the pointer (plain text, so there are never nested previews). */}}
@@ -64,5 +75,34 @@
     <button type="button" class="btn btn-secondary shadow-lg" x-show="trail.length" @click="back()">← Back to <span x-text="trail.length ? trail[trail.length - 1].name : ''"></span></button>
     <button type="button" class="btn btn-secondary shadow-lg" x-show="scrolled" @click="top()">↑ Top</button>
   </div>
+</div>
+{{end}}
+
+{{/* The base unit cards of a campaign's glossary: the same card as the new-company hover (unit_preview_body), one per unit, each with the
+   stable anchor core.UnitAnchor gives its name (#u-warrior-of-minas-tirith). Takes core.Glossary (.Units). Fetched by the glossary
+   component and put where the placeholder was; searched by name, base profile and company, filtered by the Units chip like a category. */}}
+{{define "glossary_units"}}
+<div id="glossary-units" class="space-y-3">
+  <h2 id="units" class="!text-xl pt-4" data-heading="units" x-show="catShows($el.dataset.heading)">Units <span class="text-base font-normal text-muted">{{len .Units}} cards, one for each unit the companies recruit</span></h2>
+  {{range .Units}}
+    <article id="{{.ID}}" tabindex="-1" data-name="{{.Name}}" data-aliases="{{with .Base}}{{.}}|{{end}}{{join .Companies "|"}}" data-category="units" data-unit x-show="shows($el)" :class="hl === $el.id && 'term-hl'" class="term card scroll-mt-20 !p-4 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+    <div class="flex items-start gap-3">
+      {{template "kind_icon" .Preview.Kind}}
+      <div class="min-w-0 flex-1">
+        <h3 class="!text-2xl">{{.Name}}</h3>
+        {{with .Preview.Types}}<p class="text-xs text-muted">{{join . " · "}}</p>{{end}}
+        {{with .Base}}<p class="text-sm text-muted">A company's own version of the {{.}}</p>{{end}}
+      </div>
+      {{if .Preview.Points}}<span class="shrink-0 text-sm font-semibold">{{.Preview.Points}} <span class="font-normal text-muted">pts</span></span>{{end}}
+    </div>
+    <div class="mt-2 space-y-2">
+      {{template "unit_preview_body" .Preview}}
+      {{with .Includes}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Made of</span>{{range .}}<span class="eq-chip">{{.}}</span>{{end}}</p>{{end}}
+      {{with .Options}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">May take</span>{{range .}}<span class="eq-chip">{{upfirst .Name}}{{if .Points}} <span class="text-muted">+{{.Points}} pts</span>{{end}}</span>{{end}}</p>{{end}}
+      {{with .Text}}<p class="text-sm" data-def>{{.}}</p>{{end}}
+    </div>
+    <p class="mt-3 text-xs text-muted">Named by {{join .Companies ", "}}</p>
+  </article>
+  {{end}}
 </div>
 {{end}}

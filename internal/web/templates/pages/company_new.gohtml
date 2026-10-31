@@ -52,21 +52,6 @@
 {{/* A unit named in a company's page: hovering it shows its card. Takes {P: profile, U: unit name, W: wargear}. */}}
 {{define "unit_ref"}}{{$pv := .P.Preview .U (gear .W)}}<span class="unit-ref" tabindex="0" {{if $pv.ID}}data-preview="{{$pv.ID}}"{{end}}>{{.U}}</span>{{if .P.OnOwnPath .U}} {{if .C}}<span class="badge badge-muted" title="On Their Own Path: in this campaign it is a warrior that earns experience and becomes a hero on the Path of Their Own Making on a roll of 6">On Their Own Path</span>{{else}}<span class="badge badge-muted" title="On Their Own Path: it never becomes a hero and earns no experience">On Their Own Path</span>{{end}}{{end}}{{end}}
 
-{{/* The card of a unit as the company page shows it in a tooltip: its profile, wargear, rules and heroic actions. */}}
-{{define "unit_preview"}}
-<div class="space-y-2">
-  <div class="flex items-start gap-2">{{template "kind_icon" .Kind}}<div class="min-w-0 flex-1"><p class="font-heading text-lg font-bold leading-tight">{{.Name}}</p>{{with .Types}}<p class="text-xs text-muted">{{join . " · "}}</p>{{end}}</div>{{if .Points}}<span class="shrink-0 text-sm font-semibold">{{.Points}} <span class="font-normal text-muted">pts</span></span>{{end}}</div>
-  {{template "keyword_row" (dict "K" .Keywords "Static" true)}}
-  {{if .Stats}}<div class="flex flex-wrap justify-center gap-2">
-    <dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">{{range .Stats}}{{if not .HeroOnly}}<div class="min-w-7 border-r border-line bg-surface px-0.5 py-1 last:border-r-0"><dt class="text-[10px] uppercase leading-none text-muted">{{.Abbr}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}</dl>
-    {{if .HasHeroStats}}<dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-accent text-center">{{range .Stats}}{{if .HeroOnly}}<div class="min-w-12 border-r border-line bg-accent-soft px-2 py-1 last:border-r-0"><dt class="text-[10px] uppercase leading-none text-muted">{{.Name}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}</dd></div>{{end}}{{end}}</dl>{{end}}
-  </div>{{end}}
-  {{with .Wargear}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Wargear</span>{{range .}}<span class="eq-chip">{{upfirst .}}</span>{{end}}</p>{{end}}
-  {{with .HeroicActions}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Heroic actions</span>{{range .}}<span class="act-chip">{{.}}</span>{{end}}</p>{{end}}
-  {{with .Rules}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Special rules</span>{{range .}}<span class="rule-chip rule-unit">{{.}}</span>{{end}}</p>{{end}}
-</div>
-{{end}}
-
 {{/* One company: what it is, what it starts with, what it can recruit and become, and what only it has. The creation form sits
    in the header; the controls for the leader and the sergeants are in the starting company below and belong to it
    (the `form` attribute). */}}
