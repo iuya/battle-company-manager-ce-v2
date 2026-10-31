@@ -10,6 +10,7 @@ import (
 	"net/mail"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 )
@@ -33,6 +34,8 @@ const (
 	sessionTTL     = 30 * 24 * time.Hour
 	// staleTokenAge is how long an unused invitation or a terminal recovery link is kept after it ended.
 	staleTokenAge = 90 * 24 * time.Hour
+	// purgeEvery is how often (per process) a login also purges them: the work is housekeeping, not something every login pays.
+	purgeEvery = time.Hour
 )
 
 // Role is a user's global role. Per-campaign roles (organiser, player) are a separate matter.
@@ -148,6 +151,9 @@ type Auth struct {
 	cache *sessionCache
 	// dummyHash is verified when the email is unknown so that both outcomes take the same time.
 	dummyHash string
+	// purgeMu guards purgeAt, when the stale invitations and recovery links were last purged (at most once per purgeEvery).
+	purgeMu sync.Mutex
+	purgeAt time.Time
 }
 
 func NewAuth(repo authRepository) *Auth {
@@ -360,8 +366,10 @@ func (a *Auth) Login(ctx context.Context, email, password string) (token string,
 	if err := a.repo.CreateSession(ctx, hashToken(token), rec.ID, expires); err != nil {
 		return "", time.Time{}, User{}, err
 	}
-	_ = a.repo.DeleteExpiredSessions(ctx, now)                // housekeeping; a failure must not fail the login
-	_ = a.repo.PurgeStaleTokens(ctx, now.Add(-staleTokenAge)) // same
+	_ = a.repo.DeleteExpiredSessions(ctx, now) // housekeeping; a failure must not fail the login
+	if a.purgeDue(now) {
+		_ = a.repo.PurgeStaleTokens(ctx, now.Add(-staleTokenAge)) // same
+	}
 	return token, expires, rec.User, nil
 }
 
@@ -592,4 +600,15 @@ func (a *Auth) forgetUser(userID int64) { a.cache.dropUser(userID, "") }
 
 func (a *Auth) setRecoveryPending(userID int64, pending bool) {
 	a.cache.setRecoveryPending(userID, pending)
+}
+
+// purgeDue says whether the purge of stale tokens should run now, and records that it did: at most once per purgeEvery.
+func (a *Auth) purgeDue(now time.Time) bool {
+	a.purgeMu.Lock()
+	defer a.purgeMu.Unlock()
+	if !a.purgeAt.IsZero() && now.Sub(a.purgeAt) < purgeEvery {
+		return false
+	}
+	a.purgeAt = now
+	return true
 }

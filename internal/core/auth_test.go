@@ -434,3 +434,25 @@ func TestUserLocationPrefersTheSavedZone(t *testing.T) {
 		t.Errorf("Auckland: %d", h)
 	}
 }
+
+// TestAuth_Login_PurgesStaleTokensAtMostOncePerHour: the purge is housekeeping; a second login within the hour skips it.
+func TestAuth_Login_PurgesStaleTokensAtMostOncePerHour(t *testing.T) {
+	hash, _ := hashPassword("a long enough password", fastArgon)
+	rec := Credentials{User: User{ID: 7, Email: "frodo@shire.me"}, PasswordHash: hash}
+	a, repo, now := newClockedAuth(t)
+	repo.EXPECT().UserByEmail(gomock.Any(), "frodo@shire.me").Return(rec, nil).Times(3)
+	repo.EXPECT().InvalidateRecovery(gomock.Any(), int64(7), RecoveryByLogin, gomock.Any()).Return(0, nil).Times(3)
+	repo.EXPECT().CreateSession(gomock.Any(), gomock.Any(), int64(7), gomock.Any()).Return(nil).Times(3)
+	repo.EXPECT().DeleteExpiredSessions(gomock.Any(), gomock.Any()).Return(nil).Times(3)
+	repo.EXPECT().PurgeStaleTokens(gomock.Any(), gomock.Any()).Return(nil).Times(2) // the first login and the one after an hour
+	login := func() {
+		if _, _, _, err := a.Login(context.Background(), "frodo@shire.me", "a long enough password"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	login()
+	*now = now.Add(59 * time.Minute)
+	login()
+	*now = now.Add(2 * time.Minute)
+	login()
+}

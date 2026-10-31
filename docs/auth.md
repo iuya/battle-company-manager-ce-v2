@@ -76,7 +76,7 @@ instance for at most the 60 seconds of the cache, and the throttle limits multip
 `public` or `system`). `detail` has a closed list of keys per action and never holds a token, a hash, a password or an email address. There is no
 viewer page: the Invitations list reads who created and revoked each invitation and the accounts made through it, and the Users page shows the
 recovery status. Unused revoked or expired invitations and ended recovery links are deleted 90 days after they ended by the housekeeping of
-`Auth.Login` (`PurgeStaleTokens`); used invitations and the audit events are kept.
+`Auth.Login` (`PurgeStaleTokens`, at most once an hour per process); used invitations and the audit events are kept.
 
 ## Passwords
 
