@@ -148,10 +148,11 @@ func TestAnEndOfPathArticleHasNoEmptyTables(t *testing.T) {
 		}
 		return body[i : i+strings.Index(body[i:], "</article>")]
 	}
-	if a := article("on-their-own-path"); strings.Contains(a, "Level-up chart") || strings.Contains(a, "Characteristic limits") || !strings.Contains(a, "never levels up") {
+	if a := article("on-their-own-path"); strings.Contains(a, "Level-up chart") || strings.Contains(a, "Characteristic limits") || !strings.Contains(a, "Not a real path") || !strings.Contains(a, "gains no experience") || !strings.Contains(a, "cannot be promoted to a hero") {
 		t.Error("On Their Own Path draws empty tables or lacks its text")
 	}
-	if a := article("path-of-their-own-making"); !strings.Contains(a, "Level-up chart") || !strings.Contains(a, "Characteristic limits") {
-		t.Error("the Path of Their Own Making keeps its limits and chart")
+	if a := article("path-of-their-own-making"); !strings.Contains(a, "Level-up chart") || !strings.Contains(a, "Characteristic limits") ||
+		!strings.Contains(a, "A real path") || !strings.Contains(a, "given this path automatically") {
+		t.Error("the Path of Their Own Making keeps its limits and chart and says it is a real path given on promotion")
 	}
 }

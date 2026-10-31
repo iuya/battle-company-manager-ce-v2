@@ -3,7 +3,7 @@
   "version": "1.0",
   "builtFrom": {
     "vanilla": "235fc4d309ccd25441df33be77501f8f67216cc942a5ffbfe414490e0a376546",
-    "battleCompanies": "1e293deacb9f565d2bc57d8b525ef42026e8ba7f8b292eb1ae41652c38bf1a72",
+    "battleCompanies": "08e21e60a94a349ab7a6b950540daf931b704fd60e28f946110d54a248aaf788",
     "glossary": "5a364b60627bdca4d19f49e152875ae76fc64cc01f56032ab2da10f56fc3872f"
   },
   "nodes": [
@@ -1438,7 +1438,7 @@
       "kind": "path",
       "name": "On Their Own Path",
       "file": "battleCompanies",
-      "textHash": "5f81ca8bb22e7e5d"
+      "textHash": "f0e05094da1f138a"
     },
     {
       "id": "path:path-of-the-berserker",
@@ -1522,7 +1522,7 @@
       "kind": "path",
       "name": "Path of Their Own Making",
       "file": "battleCompanies",
-      "textHash": "d75fb7dc92021b81"
+      "textHash": "a4cb742bd3ddf3ff"
     },
     {
       "id": "rule:a-bad-influence",

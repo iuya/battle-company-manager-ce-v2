@@ -55,8 +55,9 @@ type CampaignSettings struct {
 	// ManualRolls lets players type in a roll they made with physical dice ("I rolled a 4"). Off, every roll panel has only
 	// a Roll button and the server rolls. Like ShakeTheTable it takes the player's word for the result.
 	ManualRolls bool
-	// CustomOnTheirOwnPath gives the units that are On Their Own Path the homebrew "Path of Their Own Making": they start on it
-	// as heroes with 0 Might, 0 Will and 1 Fate, earn experience and level up. Off, they never level up.
+	// CustomOnTheirOwnPath gives the units that are On Their Own Path the homebrew "Path of Their Own Making": they earn
+	// experience and level up as warriors; a 6 promotes them to heroes on that path (0 Might, 0 Will, 1 Fate), given automatically.
+	// Off, they never level up.
 	CustomOnTheirOwnPath bool
 	// CompaniesPerPlayer is how many companies each player may have in the campaign (1 to MaxCompaniesPerPlayer). Zero, the value of
 	// every campaign made before the option existed, reads as 1: use CompanyCap. Unlike the other options the organiser may change it
