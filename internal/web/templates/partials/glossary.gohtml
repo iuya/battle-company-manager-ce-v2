@@ -31,8 +31,8 @@
       <div class="mt-2 space-y-2" data-def>
         {{range .Paragraphs}}<p>{{range .}}{{if .TermID}}<a href="#t-{{.TermID}}">{{.Text}}</a>{{else if .UnitID}}{{template "glossary_unit_link" (dict "G" $.Glossary "S" .)}}{{else}}{{.Text}}{{end}}{{end}}</p>{{end}}
       </div>
-      {{with .Path}}
-      {{/* A path, as in the rulebook: the limits of its heroes, then the chart a level-up rolls on. */}}
+      {{with .Path}}{{if or .Limits .Rows}}
+      {{/* A path, as in the rulebook: the limits of its heroes, then the chart a level-up rolls on. An end-of-path term (On Their Own Path) has neither: just its text. */}}
       <h4 class="mt-4 !text-lg">Characteristic limits</h4>
       <div class="mt-1 flex justify-center"><dl class="flex w-fit max-w-full flex-wrap justify-center overflow-hidden rounded-lg border border-line text-center text-sm">
         {{range .Limits}}<div class="min-w-12 border-r border-line px-2.5 py-1.5 last:border-r-0"><dt class="text-xs font-semibold uppercase text-muted">{{if .TermID}}<a href="#t-{{.TermID}}" title="{{.Stat}}">{{.Abbr}}</a>{{else}}<abbr title="{{.Stat}}">{{.Abbr}}</abbr>{{end}}</dt><dd class="font-semibold">{{.Limit}}</dd></div>{{end}}
@@ -45,7 +45,7 @@
           <tbody class="divide-y divide-line">{{range .Rows}}<tr><td class="px-3 py-2 text-center text-base font-semibold">{{.Roll}}</td><td class="px-3 py-2">{{range .Segments}}{{if .TermID}}<a href="#t-{{.TermID}}">{{.Text}}</a>{{else if .UnitID}}{{template "glossary_unit_link" (dict "G" $.Glossary "S" .)}}{{else}}{{.Text}}{{end}}{{end}}</td></tr>{{end}}</tbody>
         </table>
       </div>
-      {{end}}
+      {{end}}{{end}}
       {{with .See}}<p class="mt-3 text-sm"><span class="text-muted">See also:</span> {{range $i, $r := .}}{{if $i}}, {{end}}<a href="#t-{{$r.ID}}">{{$r.Name}}</a>{{end}}</p>{{end}}
       {{with .Pages}}<p class="mt-1 text-xs text-muted">Rulebook page{{if gt (len .) 1}}s{{end}} {{range $i, $p := .}}{{if $i}}, {{end}}{{$p}}{{end}}</p>{{end}}
       {{with .Source}}<p class="mt-1 text-xs text-muted">From the {{.}} rules file</p>{{end}}
