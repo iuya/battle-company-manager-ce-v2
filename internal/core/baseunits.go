@@ -39,10 +39,12 @@ func (r *RuleSet) BaseUnits() []BaseUnit {
 }
 
 // GlossaryWithUnits is the rule set's glossary with the unit cards of its companies: what a campaign's Glossary tab shows.
+//
+// The units are known to its links too (glossary_units.go): a text that names one links to the card. Built once per rule set; a rule
+// set with no units has the glossary file's own glossary.
 func (r *RuleSet) GlossaryWithUnits() Glossary {
-	g := r.Glossary
-	g.Units = r.BaseUnits()
-	return g
+	r.glossUnitsOnce.Do(func() { r.glossUnits = r.Glossary.withUnits(r.BaseUnits()) })
+	return r.glossUnits
 }
 
 func (r *RuleSet) buildBaseUnits() []BaseUnit {

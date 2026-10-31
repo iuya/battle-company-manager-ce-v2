@@ -20,7 +20,8 @@ type Glossary struct {
 	byID  map[string]int
 
 	// Units are the base unit cards of a campaign's glossary (RuleSet.GlossaryWithUnits); empty for a glossary file on its own.
-	Units []BaseUnit
+	Units    []BaseUnit
+	unitByID map[string]int
 
 	// ToWound is the To Wound Chart of the file (reference.toWound); nil when the file has none or a broken one (the chart is then not offered).
 	ToWound *ToWoundChart
@@ -126,6 +127,9 @@ type linker struct {
 	// exact holds, for single-word names and aliases, the spelling in the file: a single word is linked only when written
 	// exactly so ("Will" is the Will term, "will" is the ordinary word). Multi-word phrases are case insensitive.
 	exact map[string]string
+	// units holds, for a campaign's glossary, the base units a text may name: lower-cased unit name -> the anchor of its card
+	// (UnitAnchor). Only names the glossary has no term for are in it, so a term always wins. Nil for a glossary file on its own.
+	units map[string]string
 }
 
 func isWordRune(r rune) bool { return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r) }
@@ -168,15 +172,21 @@ func (l *linker) segments(para string, linked map[string]bool) []Segment {
 			}
 			matched = end
 			target := l.byPhrase[phrase]
+			unit := ""
+			key := target
+			if target == "" {
+				unit = l.units[phrase]
+				key = "unit:" + unit
+			}
 			mention := para[i:end]
-			if linked[target] || (!strings.Contains(mention, " ") && l.exact[phrase] != mention) {
+			if linked[key] || (!strings.Contains(mention, " ") && l.exact[phrase] != mention) {
 				break // a single word is linked only as the file spells it: "will" is most likely just the ordinary word
 			}
-			linked[target] = true
+			linked[key] = true
 			if i > last {
 				segs = append(segs, Segment{Text: para[last:i]})
 			}
-			segs = append(segs, Segment{Text: mention, TermID: target})
+			segs = append(segs, Segment{Text: mention, TermID: target, UnitID: unit})
 			last = end
 			break
 		}
@@ -206,10 +216,12 @@ type GlossaryTerm struct {
 	summaries *sync.Map // Summary(max) by max, shared by the copies of the term; nil on a term not made by BuildGlossaryWith
 }
 
-// Segment is a piece of a definition: plain text, or (TermID set) a mention of another term to link to.
+// Segment is a piece of a definition: plain text, a mention of another term to link to (TermID set), or the name of a base unit
+// of the campaign's rule set (UnitID set: the anchor of its card, UnitAnchor). Never both.
 type Segment struct {
 	Text   string
 	TermID string
+	UnitID string
 }
 
 type TermRef struct{ ID, Name string }
