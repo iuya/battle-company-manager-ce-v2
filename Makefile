@@ -13,7 +13,7 @@ LISTEN_HOST ?= 127.0.0.1
 CSS_IN  = ./tailwind.css
 CSS_OUT = ./internal/web/static/app.css
 
-.PHONY: hooks hooks-test validate concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs docs-check migrate up up-app prod-user prod-down test-backup-restore backuprestore restore-drill vendor-check dice3d user grant seed demo fuzz check-ruleset ruleset-reference db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
+.PHONY: hooks hooks-test validate tools-bin concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs docs-check migrate up up-app prod-user prod-down test-backup-restore backuprestore restore-drill vendor-check dice3d user grant seed demo fuzz check-ruleset ruleset-reference db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
 
 # make user EMAIL=you@example.com NAME="Your Name"   (asks for the password)
 user: db-up
@@ -117,6 +117,13 @@ hooks-test:
 
 validate:
 	python3 tools/validate_definitions.py
+
+# make tools-bin   builds the Go tools the Python checks call (cmd/rulecheck, tools/conceptnodes) once into tmp/bin and prints how to use them: for a machine whose
+# Application Control blocks the executables `go run` builds in a temporary folder (RULECHECK and CONCEPTNODES name a prebuilt binary; docs/collaborating.md, "Working on Windows")
+tools-bin:
+	go build -o tmp/bin/rulecheck$(shell go env GOEXE) ./cmd/rulecheck
+	go build -o tmp/bin/conceptnodes$(shell go env GOEXE) ./tools/conceptnodes
+	@echo "built tmp/bin. Then: RULECHECK=$(CURDIR)/tmp/bin/rulecheck$(shell go env GOEXE) CONCEPTNODES=$(CURDIR)/tmp/bin/conceptnodes$(shell go env GOEXE) make test"
 
 # make concept-graph   regenerates definitions/concepts/concept_graph.json from the three rules files (run it after rebuilding
 # any of them: the graph records their hashes) and checks the definitions (docs/definitions.md)
