@@ -263,6 +263,18 @@ func TestIconFor(t *testing.T) {
 	}
 }
 
+func TestIsElvenWeapon(t *testing.T) {
+	for name, want := range map[string]bool{
+		"Elven hand weapon": true, "Elven-made Hand-and-a-half sword": true, "Elven-made Glaive": true, "Elven lance": true,
+		"Elven throwing weapon": true, "Wood Elf Spear": true, "Twin Elven Blades": true,
+		"Elven Cloak": false, "Spear": false, "Elf bow": false,
+	} {
+		if got := IsElvenWeapon(name); got != want {
+			t.Errorf("%s: got %v, want %v", name, got, want)
+		}
+	}
+}
+
 func TestChoosableOptionsAreTheOnesTheArmourySells(t *testing.T) {
 	rs := shippedRules(t)
 	names := func(unit string) []string {

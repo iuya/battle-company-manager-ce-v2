@@ -106,7 +106,7 @@ func newRenderer() (*renderer, error) {
 			return 0
 		}
 		return min(100, used*100/max)
-	}, "gear": func(v any) []string { l, _ := v.([]string); return l }, "join": strings.Join, "statTip": statTip, "list": func(v ...string) []string { return v }, "pathLook": pathLook, "iconHref": iconHref, "kindIcon": kindIcon, "roleLook": roleLook, "gearLook": gearLook, "liveStat": func(name string) bool { return slices.Contains([]string{"Wounds", "Might", "Will", "Fate"}, name) }, "hasScope": func(opts []core.CampaignOption, scope string) bool {
+	}, "gear": func(v any) []string { l, _ := v.([]string); return l }, "join": strings.Join, "statTip": statTip, "list": func(v ...string) []string { return v }, "pathLook": pathLook, "iconHref": iconHref, "kindIcon": kindIcon, "roleLook": roleLook, "gearLook": gearLook, "itemLook": itemLook, "liveStat": func(name string) bool { return slices.Contains([]string{"Wounds", "Might", "Will", "Fate"}, name) }, "hasScope": func(opts []core.CampaignOption, scope string) bool {
 		return slices.ContainsFunc(opts, func(o core.CampaignOption) bool { return o.Scope == scope })
 	}, "split": strings.Split, "jsstr": jsstr, "fmtDate": timeFuncs(time.UTC)["fmtDate"], "fmtDateShort": timeFuncs(time.UTC)["fmtDateShort"], "fmtDateTime": timeFuncs(time.UTC)["fmtDateTime"], "navTab": func(id int64, tab, label string) navTab { return navTab{id, tab, label} }}).ParseFS(assets, "templates/layouts/*.gohtml", "templates/partials/*.gohtml")
 	if err != nil {

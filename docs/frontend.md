@@ -367,7 +367,10 @@ A card, top to bottom:
   hammers and mattocks, twin blades, natural weapons (claws, teeth, fangs), the glaive, throwing spears, smoke bombs, the
   troll chain, the whip, light and heavy armour, small shields and the pavise. Some share a drawing and differ by colour: the
   Galadhrim Steed is a green horse, the pony a grey one. An item without its own icon shows one per class, the later ones
-  smaller: the halberd is spears and a two-handed axe. The earlier icons are kept in `static/img/archive/`.
+  smaller: the halberd is spears and a two-handed axe. The main icon of an Elven weapon (`core.IsElvenWeapon`: Elven and
+  Elven-made weapons, the Wood Elf Spear), which wins a drawn combat's roll-off more often, carries a small green leaf on its
+  corner (our own `elven-leaf`, the `M` mark of `gi_icon`) and keeps its class's colour, since nearly every weapon of an elven
+  company is one. The earlier icons are kept in `static/img/archive/`.
   In a gear chip of the card the icon is 1.375 rem. **Gear style**, a per-browser choice in the "Unit cards" section of `theme_controls` (the
   Appearance menu and the Account page; `$store.theme.gear` / `setGear`, buttons `[data-gear-option]`): "Icon and name" (default) or "Icons only",
   which writes the cookie `bcm-gear=tiles`; `theme-init.js` then sets `data-gear="tiles"` on `<html>` before the first paint and `tailwind.css`

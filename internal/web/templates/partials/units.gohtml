@@ -1,8 +1,8 @@
 {{/* ---- Icons, coloured by their parent (currentColor): filled icons of the sprite static/img/gi.svg (icons.go) and a few 24x24
    stroke icons of our own. ---- */}}
 
-{{/* An icon of the sprite. Takes {N: name, C: the svg classes}. */}}
-{{define "gi_icon"}}<svg class="{{.C}}" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true"><use href="{{iconHref .N}}"/></svg>{{end}}
+{{/* An icon of the sprite. Takes {N: name, C: the svg classes, M: an optional mark drawn on its bottom-right corner}. */}}
+{{define "gi_icon"}}<svg class="{{.C}}" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true"><use href="{{iconHref .N}}"/>{{with .M}}<use class="gi-mark" href="{{iconHref .}}" x="272" y="272" width="240" height="240"/>{{end}}</svg>{{end}}
 
 {{/* The kind of unit as a filled icon (kindIcon). Takes a core.UnitKind. The earlier icons are in static/img/archive. */}}
 {{define "kind_icon"}}
@@ -24,8 +24,11 @@
 {{/* A gear icon in its tone. Takes a gearLookView. */}}
 {{define "gear_icon"}}{{template "gi_icon" (dict "N" .Icon "C" (printf "eq-ic eq-tone-%s" .Tone))}}{{end}}
 
+{{/* The main icon of an item, with its mark (a leaf on an Elven weapon). Takes an itemLookView. */}}
+{{define "item_main_icon"}}{{template "gi_icon" (dict "N" .Icon "C" (printf "eq-ic eq-tone-%s" .Tone) "M" .Mark)}}{{end}}
+
 {{/* The icon(s) of an item (core.Equipment or core.ArmouryItem): its own, or one per class (a blade-spear shows two). */}}
-{{define "gear_icons"}}{{if .Icon}}{{template "item_icon" .Icon}}{{else}}{{range $i, $c := .Classes}}{{if $i}}<span class="eq-secondary" title="Also {{$c}}">{{template "eq_icon" $c}}</span>{{else}}{{template "eq_icon" $c}}{{end}}{{end}}{{end}}{{end}}
+{{define "gear_icons"}}{{$n := .Name}}{{if .Icon}}{{template "item_main_icon" (itemLook .Icon $n)}}{{else}}{{range $i, $c := .Classes}}{{if $i}}<span class="eq-secondary" title="Also {{$c}}">{{template "eq_icon" $c}}</span>{{else}}{{template "item_main_icon" (itemLook $c $n)}}{{end}}{{end}}{{end}}{{end}}
 
 {{define "bolt_icon"}}<svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 2L5 13.5h5.5L9.5 22 19 9.5h-5.8z"/></svg>{{end}}
 

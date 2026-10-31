@@ -32,6 +32,7 @@ func TestIconSpriteMatchesTheIconsInUse(t *testing.T) {
 		used[l.Icon] = "gear " + k
 	}
 	used[gearLook("no such key").Icon] = "unknown gear"
+	used[elvenMark] = "the Elven weapon mark"
 	for name := range pathLooks {
 		used[pathLook(name).Icon] = name
 	}
@@ -89,5 +90,14 @@ func TestIconSpriteMatchesTheIconsInUse(t *testing.T) {
 		if !slices.Contains(tones, l.Tone) {
 			t.Errorf("gear %q has the tone %q, which has no eq-tone-* rule", k, l.Tone)
 		}
+	}
+}
+
+func TestItemLookMarksElvenWeapons(t *testing.T) {
+	if got := itemLook("melee", "Elven hand weapon"); got != (itemLookView{gearLook("melee"), elvenMark}) {
+		t.Errorf("Elven hand weapon: got %+v, want the class's look with a leaf", got)
+	}
+	if got := itemLook("melee", "Sword"); got != (itemLookView{gearLookView: gearLook("melee")}) {
+		t.Errorf("Sword: got %+v, want its class's look and no mark", got)
 	}
 }

@@ -203,6 +203,12 @@ func IconFor(name string, classes []EquipmentClass, size string) string {
 	return ""
 }
 
+// IsElvenWeapon says whether an item is an Elven weapon (Elven-made), whose wielder wins the roll-off of a drawn combat more
+// often. The Wood Elf Spear is an Elven spear; an Elven Cloak is not a weapon.
+func IsElvenWeapon(name string) bool {
+	return hasWord(name, "elven!", "wood elf spear") && !hasWord(name, "cloak")
+}
+
 // IconKeys are the keys IconFor can return, so the page can check it draws every one.
 func IconKeys() []string {
 	keys := []string{"generic-small", "generic-large"}

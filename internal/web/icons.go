@@ -79,3 +79,22 @@ func gearLook(key any) gearLookView {
 	}
 	return gearLookView{"parcel", "other"}
 }
+
+// itemLookView is the main icon of a named item: its look and a small mark drawn on its corner, or none (Mark empty).
+type itemLookView struct {
+	gearLookView
+	Mark string
+}
+
+// elvenMark marks an Elven weapon (core.IsElvenWeapon), which wins the roll-off of a drawn combat more often: a green leaf. The
+// icon keeps its class's colour, so the colours still group the gear of an elven company, where nearly every weapon is Elven.
+const elvenMark = "elven-leaf"
+
+// itemLook is the look of an item's main icon: gearLook of its key or class, with a leaf for an Elven weapon.
+func itemLook(key any, name string) itemLookView {
+	l := itemLookView{gearLookView: gearLook(key)}
+	if core.IsElvenWeapon(name) {
+		l.Mark = elvenMark
+	}
+	return l
+}

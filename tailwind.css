@@ -674,6 +674,8 @@ html[data-mode="dark"] { color-scheme: dark; }
   .eq-tone-crossbow { color: var(--eq-crossbow); } .eq-tone-throwing { color: var(--eq-throwing); } .eq-tone-lance { color: var(--eq-lance); }
   .eq-tone-missile { color: var(--eq-missile); } .eq-tone-consumable { color: var(--eq-consumable); } .eq-tone-banner { color: var(--eq-banner); }
   .eq-tone-gold { color: var(--gold); } .eq-tone-other { color: var(--muted); }
+  /* A mark on an icon's corner (gi_icon): the Elven weapon's green leaf, ringed in the surface colour to stand off the drawing. */
+  .gi-mark { color: var(--eq-bow); stroke: var(--surface); stroke-width: 3px; paint-order: stroke; }
   /* A gear icon (the gear_icon template): its size here, not in utilities, so a gear chip can make it bigger without !important. */
   .eq-ic { @apply h-4 w-4 shrink-0; }
   /* The other classes of an item that is several things: smaller and quieter than the first. */
