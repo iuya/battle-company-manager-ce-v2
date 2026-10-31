@@ -19,6 +19,9 @@ type Glossary struct {
 	link  *linker
 	byID  map[string]int
 
+	// Units are the base unit cards of a campaign's glossary (RuleSet.GlossaryWithUnits); empty for a glossary file on its own.
+	Units []BaseUnit
+
 	// ToWound is the To Wound Chart of the file (reference.toWound); nil when the file has none or a broken one (the chart is then not offered).
 	ToWound *ToWoundChart
 }

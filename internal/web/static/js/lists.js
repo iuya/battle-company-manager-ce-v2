@@ -115,6 +115,8 @@ document.addEventListener('alpine:init', () => {
 
   Alpine.data('glossary', () => ({
     ...search(),
+    unitsLoad: null,  // the request for the unit cards, once made (campaign glossary: they are not in the page until wanted)
+    loadingUnits: false,
     trail: [],        // the terms you followed links from, newest last: what "Back" returns to
     hl: '',           // the term you jumped to (highlighted)
     scrolled: false,  // far enough down to offer "Top"
@@ -130,13 +132,40 @@ document.addEventListener('alpine:init', () => {
         if (v) u.searchParams.set('c', v); else u.searchParams.delete('c');
         history.replaceState(history.state, '', u);
       });
-      if (location.hash.startsWith('#t-')) this.reveal(location.hash.slice(1));
+      // the unit cards are fetched the first time they are wanted: the Units chip, a search, a #u- address
+      this.$watch('cat', v => { if (v === 'units') this.loadUnits(); });
+      this.$watch('q', v => { if (v.trim()) this.loadUnits(); });
+      if (this.cat === 'units') this.loadUnits();
+      if (this.isTarget(location.hash)) this.reveal(location.hash.slice(1));
     },
+
+    // Fetches the unit cards into the place of the placeholder (one request, however many things ask); resolves when they are in the
+    // page, or at once when the page has none to fetch.
+    loadUnits() {
+      const box = this.$root.querySelector('[data-units-pending] button[data-url]');
+      if (!box) return this.unitsLoad || Promise.resolve();
+      if (!this.unitsLoad) {
+        this.loadingUnits = true;
+        this.unitsLoad = htmx.ajax('GET', box.dataset.url, { target: '#glossary-units', swap: 'outerHTML' })
+          .catch(() => { this.unitsLoad = null; }) // the shell shows the error; the button asks again
+          .finally(() => { this.loadingUnits = false; });
+      }
+      return this.unitsLoad;
+    },
+
+    // while the cards are on their way a search or the Units chip has nothing to report yet
+    noMatch() {
+      if (this.$root.querySelector('[data-units-pending]') && (this.cat === 'units' || this.q.trim())) return false;
+      return [...this.$root.querySelectorAll('[data-name]')].every(el => !this.shows(el)) && this.$root.querySelector('[data-name]') !== null;
+    },
+
+    // a term (#t-...) or a unit card (#u-..., core.UnitAnchor)
+    isTarget(h) { return h.startsWith('#t-') || h.startsWith('#u-'); },
 
     termOf(el) {
       const a = el && el.closest ? el.closest('a') : null;
       const href = a && a.getAttribute('href');
-      return href && href.startsWith('#t-') ? { a, id: href.slice(1) } : null;
+      return href && this.isTarget(href) ? { a, id: href.slice(1) } : null;
     },
 
     // Shows the term even when the search hid it, then scrolls to it. (Clearing the search has to be rendered before the
@@ -145,9 +174,10 @@ document.addEventListener('alpine:init', () => {
       this.q = '';
       this.cat = '';
       this.hl = id;
+      if (id.startsWith('u-')) await this.loadUnits();
       await this.$nextTick();
       const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ block: 'start' });
+      if (el) { el.scrollIntoView({ block: 'start' }); if (el.hasAttribute('tabindex')) el.focus({ preventScroll: true }); } // a unit card takes the focus, so a keyboard user goes on from it
       history.replaceState(history.state, '', '#' + id);
     },
 
@@ -166,7 +196,7 @@ document.addEventListener('alpine:init', () => {
       history.replaceState(history.state, '', location.pathname + location.search);
       window.scrollTo({ top: 0 });
     },
-    onHash() { if (location.hash.startsWith('#t-')) this.reveal(location.hash.slice(1)); },
+    onHash() { if (this.isTarget(location.hash)) this.reveal(location.hash.slice(1)); },
 
     // Hover (or keyboard focus) on a link previews its term: plain text only, so previews never nest. Not on touch
     // screens, where a tap simply follows the link.

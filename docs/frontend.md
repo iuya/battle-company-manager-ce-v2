@@ -836,6 +836,21 @@ and heroic actions, creatures, wanderers and injuries, sorted by category and th
 glossary file. When a name is defined in several places Battle Companies wins (it is a game mode built on the base rules): its term replaces
 the glossary file's term of the same name; the glossary file wins over the vanilla file.
 
+**Unit cards.** A campaign's Glossary tab also has a card for every base unit its ruleset's companies name (`core.RuleSet.BaseUnits`, `core.Glossary.Units`: the units of the
+starting companies, charts, special units and promotions, one card per distinct name; 120 in the shipped ruleset), under a "Units" heading, with a "Units" chip in the category
+filter (`?c=units`) and the search finding them by name, by the base profile of a company's own version (Helminga: Rohan Royal Guard) and by company. A card is the redesigned unit card as a static reference (`glossary_units` in `partials/glossary.gohtml`, with the card's own classes: the title plate with the kind icon, name, type and points, tinted for a hero; the datasheet `statline`; the body with wargear, heroic actions and special rules; the keyword foot), without trackers, experience or rename. Besides what the new-company hover card shows it has the
+options the profile may take (with their points), the units a bundle brings (Vault Warden Team), the company's own text and "Named by" the companies that use it. The sidebar
+glossary (a bare file, no campaign) has none.
+
+- **Stable anchors.** Each card is `<article id="u-<name>" tabindex="-1">`; `core.UnitAnchor(name)` makes the id: `u-` and the `NameKey` of the name with dashes
+  (`u-warrior-of-minas-tirith`). A link to a unit is `/campaigns/{id}/glossary#<UnitAnchor>` with `hx-boost="false"` like a term link. Two companies that give one name to different
+  profiles get one card each, the later anchored with the company's name. In the page, `#u-` links are handled like `#t-` ones: the search and category clear, the card is brought
+  into view, highlighted and takes the focus.
+- **Fetched on demand.** The 120 cards are 0.37 MB of HTML (19 KB gzip, 3.1 KB a card), on top of a tab that is already 1.5 MB, so the tab leaves them out: it counts them and
+  shows a placeholder with a "Show the N unit cards" button. `GET /campaigns/{id}/glossary/units` (a campaign member; 404 for a ruleset without units) returns the cards as the
+  `glossary_units` fragment, which replaces the placeholder (`htmx.ajax` from `loadUnits` in `static/js/lists.js`, one request however many things ask). The button, choosing
+  the Units chip, typing in the search, opening `?c=units` and an address with `#u-...` all fetch them. The tab and the fragment are two of the pages `node tests/e2e/pagetimes.mjs` measures ([performance.md](performance.md)): the tab stays at about 27 ms of server time and 1.5 MB (198 KB gzip), the fragment is 7.5 ms and 365 KB (19 KB gzip).
+
 ### Creatures and wanderers
 
 The Armory tab lists **creatures** (for the leader and the sergeants, one each, at most 3 per company; `data.creatures`) and

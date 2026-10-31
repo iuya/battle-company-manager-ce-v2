@@ -111,11 +111,11 @@ async function main() {
     const E = 'eowyn@example.com', A = 'admin@example.com';
     const campaigns = {};
     const list = await get(env.base, '/campaigns', { user: E });
-    for (const m of list.text.matchAll(/href="\/campaigns\/(\d+)"[^>]*>([\s\S]*?)<\/a>/g)) campaigns[m[2].replace(/<[^>]+>/g, '').trim()] = m[1];
+    for (const m of list.text.matchAll(/href="\/campaigns\/(\d+)(?:\/my-company)?"[^>]*>([\s\S]*?)<\/a>/g)) campaigns[m[2].replace(/<[^>]+>/g, '').trim()] = m[1];
     const adminList = await get(env.base, '/campaigns', { user: A });
     const adminCampaigns = {};
-    for (const m of adminList.text.matchAll(/href="\/campaigns\/(\d+)"[^>]*>([\s\S]*?)<\/a>/g)) adminCampaigns[m[2].replace(/<[^>]+>/g, '').trim()] = m[1];
-    const byPrefix = (map, p) => { const k = Object.keys(map).find((n) => n.startsWith(p)); if (!k) throw new Error('no campaign ' + p); return map[k]; };
+    for (const m of adminList.text.matchAll(/href="\/campaigns\/(\d+)(?:\/my-company)?"[^>]*>([\s\S]*?)<\/a>/g)) adminCampaigns[m[2].replace(/<[^>]+>/g, '').trim()] = m[1];
+    const byPrefix = (map, p) => { const k = Object.keys(map).find((n) => n.startsWith(p)); if (!k) throw new Error('no campaign ' + p + ' in ' + JSON.stringify(Object.keys(map))); return map[k]; };
     const m = byPrefix(campaigns, 'Matches: every scenario');
     const am = byPrefix(adminCampaigns, 'Aftermath ward 1'), mm = byPrefix(adminCampaigns, 'Matches: every scenario');
     const links = (text, re) => [...new Set([...text.matchAll(/href="([^"]+)"/g)].map((x) => x[1]).filter((x) => re.test(x)))];
@@ -153,6 +153,9 @@ async function main() {
       { name: 'My Company', user: E, path: `/campaigns/${m}/my-company/${companyId}` },
       { name: 'Matches tab', user: E, path: `/campaigns/${m}/matches` },
       { name: 'Armory', user: E, path: `/campaigns/${m}/armory` },
+      { name: 'Campaign glossary', user: E, path: `/campaigns/${m}/glossary` },
+      { name: 'Glossary (sidebar)', user: E, path: '/glossary' },
+      { name: 'Glossary unit cards (fetched on demand)', user: E, path: `/campaigns/${m}/glossary/units`, htmx: true, fragment: true },
       { name: 'New company', user: newCompany.user, path: newCompany.path },
       { name: 'Match page', user: A, path: match },
       { name: 'Live match (company page)', user: A, path: live },

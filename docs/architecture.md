@@ -302,6 +302,7 @@ Routes by area (the feature documents list the actions):
 | `/campaigns/{id}/matches/{match}/live/...`, `.../events` | campaign member | Live match actions, log, undo and the event stream |
 | `/join/{token}` | signed in | Redeem an invite link |
 | `GET /glossary`, `/campaigns/{id}/glossary`, `/campaigns/{id}/concepts/...` | signed in | Glossary and helper popups |
+| `GET /campaigns/{id}/glossary/units` | campaign member | The unit cards of the campaign's glossary (a fragment fetched when wanted) |
 | `GET /campaigns/{id}/companies/{company}/tts`, `GET /tts/helper.zip` | campaign member | Tabletop Simulator army list and helper ([tabletop-simulator.md](tabletop-simulator.md)) |
 | `GET/POST /account...` | signed in | Account page ([auth.md](auth.md)) |
 | `/admin/...` | superuser (a 404 for everybody else) | Users, permissions, rules files ([admin.md](admin.md)) |

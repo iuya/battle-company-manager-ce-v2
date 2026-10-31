@@ -6,14 +6,15 @@
      @hashchange.window="onHash()" @scroll.window.passive="scrolled = window.scrollY > 400" @keydown.escape.window="hideTip()">
   <p class="mt-4 text-sm text-muted">{{.Glossary.Info.Name}}{{with .Glossary.Info.Version}} · v{{.}}{{end}}
     <span class="badge badge-muted ml-1 align-middle font-mono" title="Identifies this exact file: {{.Glossary.Info.Hash}}">{{.Glossary.Info.ShortHash}}</span>
-    · {{len .Glossary.Terms}} terms</p>
+    · {{len .Glossary.Terms}} terms{{with .Glossary.Units}} · {{len .}} units{{end}}</p>
   <div class="mt-3 flex flex-wrap gap-3">
     <label for="glossary-search" class="sr-only">Search the glossary</label>
     <input id="glossary-search" type="search" x-model="q" placeholder="Search terms…" autocomplete="off" class="input sm:max-w-sm">
   </div>
-  {{if gt (len .Glossary.Categories) 1}}<div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filter by category" data-chips>
+  {{if or .Glossary.Units (gt (len .Glossary.Categories) 1)}}<div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filter by category" data-chips>
     <button type="button" class="btn btn-secondary !min-h-11 !px-3 sm:!min-h-9" :class="cat === '' && '!border-accent !bg-accent-soft'" :aria-pressed="cat === ''" @click="cat = ''">All</button>
     {{range .Glossary.Categories}}<button type="button" class="btn btn-secondary !min-h-11 !px-3 sm:!min-h-9 capitalize" data-chip="{{.}}" :class="cat === $el.dataset.chip && '!border-accent !bg-accent-soft'" :aria-pressed="cat === $el.dataset.chip" @click="cat = $el.dataset.chip">{{.}}</button>{{end}}
+    {{if .Glossary.Units}}<button type="button" class="btn btn-secondary !min-h-11 !px-3 sm:!min-h-9" data-chip="units" :class="cat === $el.dataset.chip && '!border-accent !bg-accent-soft'" :aria-pressed="cat === $el.dataset.chip" @click="cat = $el.dataset.chip">Units</button>{{end}}
   </div>{{end}}
   <p class="mt-6 text-muted" x-show="noMatch()" x-cloak role="status">No term matches<template x-if="q.trim()"><span> “<span x-text="q"></span>”</span></template><template x-if="cat"><span> in <span class="capitalize" x-text="cat"></span></span></template>.
     <button type="button" class="btn btn-ghost !min-h-9 !px-3" @click="q = ''; cat = ''">Clear the filters</button></p>
@@ -50,6 +51,16 @@
       {{with .Source}}<p class="mt-1 text-xs text-muted">From the {{.}} rules file</p>{{end}}
     </article>
     {{end}}
+    {{with .Glossary.Units}}
+    {{/* The unit cards are not in the page: 120 cards are 0.37 MB of HTML on top of a page that is already large, so they are fetched
+       (GET .../glossary/units, the glossary_units partial) the first time they are wanted: the Units chip, a search, a #u- address or this
+       button (static/js/lists.js, loadUnits). */}}
+    <div id="glossary-units" data-units-pending x-show="!cat || cat === 'units'">
+      <h2 id="units" class="!text-xl pt-4">Units <span class="text-base font-normal text-muted">{{len .}} cards, one for each unit the companies recruit</span></h2>
+      <p class="mt-2 text-muted">Profile, wargear, options and rules of every unit a company recruits.</p>
+      <button type="button" class="btn btn-secondary mt-3" data-url="{{$.UnitsURL}}" :disabled="loadingUnits" @click="loadUnits()"><span x-show="!loadingUnits">Show the {{len .}} unit cards</span><span x-show="loadingUnits" x-cloak role="status">Loading the unit cards…</span></button>
+    </div>
+    {{end}}
   </div>
 
   {{/* Preview of the term under the pointer (plain text, so there are never nested previews). */}}
@@ -64,5 +75,45 @@
     <button type="button" class="btn btn-secondary shadow-lg" x-show="trail.length" @click="back()">← Back to <span x-text="trail.length ? trail[trail.length - 1].name : ''"></span></button>
     <button type="button" class="btn btn-secondary shadow-lg" x-show="scrolled" @click="top()">↑ Top</button>
   </div>
+</div>
+{{end}}
+
+{{/* The base unit cards of a campaign glossary, in the redesigned unit card (title plate, datasheet profile, body, keyword foot; static, so no trackers), one per unit, each with the
+   stable anchor core.UnitAnchor gives its name (#u-warrior-of-minas-tirith). Takes core.Glossary (.Units). Fetched by the glossary
+   component and put where the placeholder was; searched by name, base profile and company, filtered by the Units chip like a category. */}}
+{{define "glossary_units"}}
+<div id="glossary-units" class="space-y-3">
+  <h2 id="units" class="!text-xl pt-4" data-heading="units" x-show="catShows($el.dataset.heading)">Units <span class="text-base font-normal text-muted">{{len .Units}} cards, one for each unit the companies recruit</span></h2>
+  {{range .Units}}
+  <article id="{{.ID}}" tabindex="-1" data-name="{{.Name}}" data-aliases="{{with .Base}}{{.}}|{{end}}{{join .Companies "|"}}" data-category="units" data-unit x-show="shows($el)" :class="hl === $el.id && 'term-hl'" class="term card unit unit-{{if .Preview.HasHeroStats}}hero{{else}}warrior{{end}} flex scroll-mt-20 flex-col gap-2 !p-4 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+    {{/* The new unit card, as a static reference (docs/frontend.md, "Unit card"): the title plate (tinted for a hero), the datasheet profile, the body and the keyword foot; no trackers, experience or rename. */}}
+    <header class="unit-head flex items-start gap-2 [&_.kind-icon]:bg-surface">
+      {{template "kind_icon" .Preview.Kind}}
+      <div class="min-w-0 flex-1">
+        <h3 class="!text-xl leading-tight">{{.Name}}</h3>
+        <p class="unit-sub mt-0.5 flex items-baseline justify-between gap-2 text-sm text-muted"><span class="min-w-0">{{with .Preview.Types}}{{join . " · "}}{{end}}</span>{{if .Preview.Points}}<span class="shrink-0 whitespace-nowrap"><span class="font-semibold text-fg">{{.Preview.Points}}</span> pts</span>{{end}}</p>
+      </div>
+    </header>
+    {{with .Base}}<p class="text-sm text-muted">A company's own version of the {{.}}</p>{{end}}
+    {{if .Preview.Stats}}<div class="flex flex-wrap justify-center gap-x-3 gap-y-1.5" role="group" aria-label="Attributes">
+      <dl class="statline">{{range .Preview.Stats}}{{if not .HeroOnly}}<div><dt>{{.Abbr}}</dt><dd>{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}</dl>
+      {{if .Preview.HasHeroStats}}<dl class="statline statline-hero">{{range .Preview.Stats}}{{if .HeroOnly}}<div><dt>{{.Name}}</dt><dd>{{.Value}}</dd></div>{{end}}{{end}}</dl>{{end}}
+    </div>{{end}}
+    <div class="unit-body">
+      {{with .Preview.Wargear}}<p class="flex items-center gap-1.5 text-xs text-muted"><span>Wargear</span></p>
+      <ul class="flex flex-wrap items-center gap-1.5" aria-label="Wargear">{{range .}}<li class="eq-chip"><span>{{upfirst .}}</span></li>{{end}}</ul>{{end}}
+      {{with .Includes}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Made of</span>{{range .}}<span class="eq-chip">{{.}}</span>{{end}}</p>{{end}}
+      {{with .Options}}<p class="flex items-center gap-1.5 text-xs text-muted"><span>May take</span></p>
+      <ul class="flex flex-wrap items-center gap-1.5" aria-label="Options">{{range .}}<li class="eq-chip"><span>{{upfirst .Name}}</span>{{if .Points}}<span class="text-muted">+{{.Points}} pts</span>{{end}}</li>{{end}}</ul>{{end}}
+      {{with .Preview.HeroicActions}}<ul class="flex flex-wrap gap-1.5" aria-label="Heroic actions">{{range .}}<li class="act-chip">{{template "bolt_icon"}}<span>{{.}}</span></li>{{end}}</ul>{{end}}
+      {{with .Preview.Rules}}<ul class="flex flex-wrap gap-1.5" aria-label="Special rules">{{range .}}<li class="rule-chip rule-unit"><span>{{.}}</span></li>{{end}}</ul>{{end}}
+      {{with .Text}}<p class="text-sm" data-def>{{.}}</p>{{end}}
+    </div>
+    <div class="unit-foot">
+      <p class="border-t border-line pt-2 text-xs text-muted">Named by {{join .Companies ", "}}</p>
+      <div class="unit-kw">{{template "keyword_row" (dict "K" .Preview.Keywords "Static" true)}}</div>
+    </div>
+  </article>
+  {{end}}
 </div>
 {{end}}

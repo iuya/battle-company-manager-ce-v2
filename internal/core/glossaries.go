@@ -67,5 +67,5 @@ func (g *Glossaries) ForCampaign(ctx context.Context, campaignID int64) (Glossar
 	if err != nil {
 		return Glossary{}, err
 	}
-	return rs.Glossary, nil
+	return rs.GlossaryWithUnits(), nil
 }
