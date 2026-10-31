@@ -149,7 +149,7 @@
     <ul class="list-inside list-disc space-y-1 text-sm">
       {{range $p.LimitLines}}<li>{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</li>{{end}}
       {{range $k, $v := $p.LimitOverrides}}<li>This company may have up to {{$v}}% of its models with a {{$k}} (the usual limit is lower).</li>{{end}}
-      {{if $p.OnTheirOwnPath}}<li>Units marked <span class="badge badge-muted">On Their Own Path</span> {{if $custom}}are warriors that earn experience in this campaign and become heroes on the Path of Their Own Making on a roll of 6{{else}}do not become heroes and earn no experience{{end}} (<a class="term-link" hx-boost="false" href="/campaigns/{{$cid}}/glossary#t-on-their-own-path">glossary</a>).</li>{{end}}
+      {{if $p.OnTheirOwnPath}}<li>Units marked <span class="badge badge-muted">On Their Own Path</span> {{if $custom}}are warriors that earn experience in this campaign and become heroes on the Path of Their Own Making on a roll of 6{{else}}do not become heroes and earn no experience{{end}} (<a class="term-link" hx-boost="false" href="/campaigns/{{$cid}}/glossary#t-{{if $custom}}path-of-their-own-making{{else}}on-their-own-path{{end}}">glossary</a>).</li>{{end}}
       {{range $.Notes.Limits}}<li>{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</li>{{end}}
     </ul>
   </section>
