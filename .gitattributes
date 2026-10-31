@@ -1,0 +1,11 @@
+# Line endings: LF in the working tree on every platform. Golden snapshots, the vendored scripts (hashed by TestVendoredJSMatchesManifest),
+# the rules JSON (hashed into the concept graph) and the shell scripts (a CR breaks them) are compared byte for byte.
+# Without this, Git for Windows (core.autocrlf=true) checks them out with CRLF and the tests fail. docs/collaborating.md, "Windows".
+* text=auto eol=lf
+
+# Never convert binaries.
+*.png binary
+*.woff2 binary
+*.zip binary
+*.ico binary
+*.pdf binary

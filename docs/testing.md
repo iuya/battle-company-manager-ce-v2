@@ -22,7 +22,7 @@ game is only exercised by playing ([tabletop-simulator.md](tabletop-simulator.md
 ## Definitions tooling (Python, `tools/`)
 
 `make test` ends with `cd tools && python3 -m unittest test_extract_tts_models test_to_wound test_lean_checks test_concept_graph`. They need `python3` and `go`
-on the PATH (the glossary nodes come from `go run ./tools/conceptnodes`, the app's own loader) and read the shipped files, so they also prove the shipped files:
+on the PATH (the glossary nodes come from `go run ./tools/conceptnodes`, the app's own loader; `CONCEPTNODES` and, for `cmd/rulecheck`, `RULECHECK` name a prebuilt binary instead: `make tools-bin`, [collaborating.md](collaborating.md#7-working-on-windows)) and read the shipped files, so they also prove the shipped files:
 
 | Module | What it proves |
 |---|---|

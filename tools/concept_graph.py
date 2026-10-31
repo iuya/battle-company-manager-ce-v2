@@ -54,6 +54,13 @@ def text_hash(text: str) -> str:
 
 # ---- the nodes: the glossary as the app builds it ----
 
+def go_tool(package, env_var):
+    """The command that runs one of the repository's Go tools: the prebuilt binary named by the environment variable when it is set,
+    else `go run <package>`. A machine whose Application Control policy blocks the executables `go run` builds in a temporary folder
+    builds the tool once (`go build -o tmp/bin/<name>.exe <package>`) and points the variable at it (CONTRIBUTING.md, "Windows")."""
+    prebuilt = os.environ.get(env_var)
+    return [prebuilt] if prebuilt else ["go", "run", package]
+
 _LOADED = {}
 
 
@@ -67,9 +74,9 @@ def load_terms(raws):
                 p = Path(tmp) / f"{name}.json"
                 p.write_bytes(raw)
                 paths.append(str(p))
-            r = subprocess.run(["go", "run", "./tools/conceptnodes", *paths], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", env={**os.environ, "GOTOOLCHAIN": "local"})
+            r = subprocess.run([*go_tool("./tools/conceptnodes", "CONCEPTNODES"), *paths], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", env={**os.environ, "GOTOOLCHAIN": "local"})
         if r.returncode != 0:
-            raise RuntimeError("go run ./tools/conceptnodes failed (the nodes come from the app's loader; is go on the PATH?): " + r.stderr.strip()[:400])
+            raise RuntimeError("tools/conceptnodes failed (the nodes come from the app's loader; is go on the PATH, or CONCEPTNODES a built binary?): " + r.stderr.strip()[:400])
         out = json.loads(r.stdout)
         _LOADED[key] = (out["terms"], out["gearClasses"])
     return _LOADED[key]
