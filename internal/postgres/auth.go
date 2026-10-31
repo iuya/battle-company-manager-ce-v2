@@ -49,14 +49,25 @@ func (s *Store) CreateUser(ctx context.Context, email, displayName, passwordHash
 	return u, err
 }
 
-// TEMPORARY (database-master replaces it): the audit entry is not written yet.
-func (s *Store) SetUserPermissionsByID(ctx context.Context, userID int64, role core.Role, canCreateCampaigns bool, _ core.AuditEntry) error {
-	tag, err := s.pool.Exec(ctx, `UPDATE users SET role = $2, can_create_campaigns = $3 WHERE id = $1 AND closed_at IS NULL`,
+// SetUserPermissionsByID changes the role and the flag of an open account and writes the audit entry in the same transaction.
+func (s *Store) SetUserPermissionsByID(ctx context.Context, userID int64, role core.Role, canCreateCampaigns bool, audit core.AuditEntry) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	tag, err := tx.Exec(ctx, `UPDATE users SET role = $2, can_create_campaigns = $3 WHERE id = $1 AND closed_at IS NULL`,
 		userID, string(role), canCreateCampaigns)
-	if err == nil && tag.RowsAffected() == 0 {
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
 		return core.ErrNotFound
 	}
-	return err
+	if err := insertAudit(ctx, tx, audit); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (s *Store) UserByID(ctx context.Context, userID int64) (core.User, bool, error) {
@@ -83,11 +94,16 @@ func (s *Store) ListUsers(ctx context.Context, q string, limit, offset int) ([]c
 		return nil, 0, err
 	}
 	rows, err := s.pool.Query(ctx,
-		`SELECT `+userColumns+`, u.created_at, u.closed_at,
-		        (SELECT count(*) FROM campaign_members m WHERE m.user_id = u.id)
+		`SELECT `+strings.ReplaceAll(userColumns, "id, email, display_name, role, can_create_campaigns, palette, mode, timezone", "u.id, u.email, u.display_name, u.role, u.can_create_campaigns, u.palette, u.mode, u.timezone")+`, u.created_at, u.closed_at,
+		        (SELECT count(*) FROM campaign_members m WHERE m.user_id = u.id),
+		        l.id, l.created_at, l.expires_at, coalesce(lc.display_name, ''), l.used_at, l.revoked_at, coalesce(lr.display_name, ''),
+		        l.invalidated_at, coalesce(l.invalidated_reason, '')
 		   FROM users u
-		  WHERE display_name ILIKE $1 OR email ILIKE $1
-		  ORDER BY closed_at IS NOT NULL, lower(display_name), id
+		   LEFT JOIN LATERAL (SELECT * FROM password_recovery_links x WHERE x.user_id = u.id ORDER BY x.created_at DESC, x.id DESC LIMIT 1) l ON true
+		   LEFT JOIN users lc ON lc.id = l.created_by
+		   LEFT JOIN users lr ON lr.id = l.revoked_by
+		  WHERE u.display_name ILIKE $1 OR u.email ILIKE $1
+		  ORDER BY u.closed_at IS NOT NULL, lower(u.display_name), u.id
 		  LIMIT $2 OFFSET $3`, pattern, limit, offset)
 	if err != nil {
 		return nil, 0, err
@@ -97,10 +113,19 @@ func (s *Store) ListUsers(ctx context.Context, q string, limit, offset int) ([]c
 	for rows.Next() {
 		var u core.AdminUser
 		var closedAt *time.Time
-		if err := rows.Scan(append(userDest(&u.User), &u.CreatedAt, &closedAt, &u.Campaigns)...); err != nil {
+		var link core.RecoveryStatus
+		var linkID *int64
+		var linkCreated, linkExpires *time.Time
+		var reason string
+		if err := rows.Scan(append(userDest(&u.User), &u.CreatedAt, &closedAt, &u.Campaigns, &linkID, &linkCreated, &linkExpires,
+			&link.CreatedByName, &link.UsedAt, &link.RevokedAt, &link.RevokedByName, &link.InvalidatedAt, &reason)...); err != nil {
 			return nil, 0, err
 		}
 		u.Closed = closedAt != nil
+		if linkID != nil { // raw timestamps: the core derives the state from its clock
+			link.ID, link.CreatedAt, link.ExpiresAt, link.Reason = *linkID, *linkCreated, *linkExpires, core.RecoveryReason(reason)
+			u.Recovery = &link
+		}
 		out = append(out, u)
 	}
 	if err := rows.Err(); err != nil {
@@ -154,28 +179,51 @@ func (s *Store) CreateSession(ctx context.Context, tokenHash []byte, userID int6
 	return err
 }
 
-// TEMPORARY (database-master replaces it): recoveryPending is always false until migration 00028 exists.
+// UserBySession resolves a session. recoveryPending is part of the same query (an EXISTS on the partial unique index of the
+// pending links), so it costs no extra round trip.
 func (s *Store) UserBySession(ctx context.Context, tokenHash []byte, now time.Time) (core.User, time.Time, bool, error) {
 	var u core.User
 	var expires time.Time
+	var pending bool
 	err := s.pool.QueryRow(ctx,
-		`SELECT u.id, u.email, u.display_name, u.role, u.can_create_campaigns, u.palette, u.mode, u.timezone, s.expires_at
+		`SELECT u.id, u.email, u.display_name, u.role, u.can_create_campaigns, u.palette, u.mode, u.timezone, s.expires_at,
+		        EXISTS (SELECT 1 FROM password_recovery_links r
+		                 WHERE r.user_id = u.id AND r.used_at IS NULL AND r.revoked_at IS NULL AND r.invalidated_at IS NULL AND r.expires_at > $2)
 		   FROM sessions s JOIN users u ON u.id = s.user_id
 		  WHERE s.token_hash = $1 AND s.expires_at > $2`, tokenHash, now).
-		Scan(append(userDest(&u), &expires)...)
+		Scan(append(userDest(&u), &expires, &pending)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return core.User{}, time.Time{}, false, core.ErrNotFound
 	}
-	return u, expires, false, err
+	return u, expires, pending, err
 }
 
-// InvalidateRecovery is TEMPORARY (database-master replaces it with migration 00028): there are no recovery links yet.
+// InvalidateRecovery marks the user's pending link (if any) invalidated for reason and, in the same statement, writes the
+// recovery.invalidated entry (source system); n is the number of links changed, normally 0. A racing use of the link
+// locks the row first or finds it invalidated, never both.
 func (s *Store) InvalidateRecovery(ctx context.Context, userID int64, reason core.RecoveryReason, now time.Time) (int, error) {
-	return 0, nil
+	tag, err := s.pool.Exec(ctx, `
+		WITH inv AS (
+		    UPDATE password_recovery_links SET invalidated_at = $3, invalidated_reason = $2
+		     WHERE user_id = $1 AND `+unfinished+` AND expires_at > $3 RETURNING id)
+		INSERT INTO audit_events (at, source, action, subject_user_id, target_kind, target_id, detail)
+		SELECT $3, 'system', 'recovery.invalidated', $1, 'recovery_link', id, jsonb_build_object('reason', $2::text) FROM inv`,
+		userID, string(reason), now)
+	return int(tag.RowsAffected()), err
 }
 
-// PurgeStaleTokens is TEMPORARY (database-master replaces it with migrations 00027 and 00028): there are no tokens yet.
-func (s *Store) PurgeStaleTokens(ctx context.Context, before time.Time) error { return nil }
+// PurgeStaleTokens deletes the invitations that were never used and ended (revoked or expired) before the cutoff, and the
+// recovery links that ended (used, revoked, invalidated or expired) before it. Invitations that made an account and the audit
+// trail are kept.
+func (s *Store) PurgeStaleTokens(ctx context.Context, before time.Time) error {
+	if _, err := s.pool.Exec(ctx, `
+		DELETE FROM account_invitations WHERE uses = 0 AND least(coalesce(revoked_at, expires_at), expires_at) < $1`, before); err != nil {
+		return err
+	}
+	_, err := s.pool.Exec(ctx, `
+		DELETE FROM password_recovery_links WHERE coalesce(used_at, revoked_at, invalidated_at, expires_at) < $1`, before)
+	return err
+}
 
 func (s *Store) ExtendSession(ctx context.Context, tokenHash []byte, expiresAt time.Time) error {
 	_, err := s.pool.Exec(ctx, `UPDATE sessions SET expires_at = $2 WHERE token_hash = $1`, tokenHash, expiresAt)
@@ -243,6 +291,16 @@ func (s *Store) CloseUser(ctx context.Context, userID int64, displayName, email 
 		return core.ErrNotFound
 	}
 	if _, err := tx.Exec(ctx, `DELETE FROM sessions WHERE user_id = $1`, userID); err != nil {
+		return err
+	}
+	// A closed account has no password to recover: its pending link ends as 'closed' (the users row is locked by the UPDATE above).
+	if _, err := tx.Exec(ctx, `
+		WITH inv AS (
+		    UPDATE password_recovery_links SET invalidated_at = $2, invalidated_reason = 'closed'
+		     WHERE user_id = $1 AND `+unfinished+` RETURNING id)
+		INSERT INTO audit_events (at, source, action, subject_user_id, target_kind, target_id, detail)
+		SELECT $2, 'system', 'recovery.invalidated', $1, 'recovery_link', id, jsonb_build_object('reason', 'closed'::text) FROM inv`,
+		userID, now); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
