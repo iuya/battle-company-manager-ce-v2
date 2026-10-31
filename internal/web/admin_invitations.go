@@ -32,6 +32,7 @@ type invitationCard struct {
 	Days    int
 	MaxUses string
 	Can     bool
+	Nonce   string // see adminUserRow.Nonce
 	Err     string
 	Errors  map[string]string
 	Link    *shownLink
@@ -60,7 +61,9 @@ type invitationRow struct {
 // Pending says the invitation still works (it offers Revoke).
 func (r invitationRow) Pending() bool { return r.I.State == core.InvitationPending }
 
-func newInvitationCard() invitationCard { return invitationCard{Kind: "named", Days: 7, MaxUses: "10"} }
+func newInvitationCard() invitationCard {
+	return invitationCard{Kind: "named", Days: 7, MaxUses: "10", Nonce: nonce()}
+}
 
 func (s *Server) invitationList(r *http.Request, state string, offset int) (invitationList, error) {
 	f := core.InvitationFilter{State: core.InvitationState(state)}

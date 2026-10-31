@@ -56,6 +56,7 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	srv.SetAccountLinks(b.invitations, b.recovery)
 	h := srv.Handler()
 
 	ints := func(q string, args ...any) []int64 {

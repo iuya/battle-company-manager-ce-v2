@@ -103,7 +103,7 @@
     </p>
     {{else}}<p class="text-sm text-muted">No recovery link was made for this account.</p>{{end}}
     <form hx-post="/admin/users/{{$u.ID}}/recovery" hx-target="#user-{{$u.ID}}" hx-swap="outerHTML" class="space-y-2">
-      <input type="hidden" name="email" value="{{$u.Email}}">
+      <input type="hidden" name="email" value="{{$u.Email}}"><input type="hidden" name="nonce" value="{{.Nonce}}">
       <div class="field"><label for="rec-hours-{{$u.ID}}">Link works for</label>
         <select id="rec-hours-{{$u.ID}}" name="hours" class="input"><option value="24" selected>1 day</option><option value="72">3 days</option><option value="168">7 days</option></select></div>
       <button type="button" class="btn btn-secondary" x-show="!askNew" @click="askNew = true">Generate link</button>
@@ -114,7 +114,7 @@
     </form>
     {{if .RecoveryPending}}
     <form hx-post="/admin/users/{{$u.ID}}/recovery/revoke" hx-target="#user-{{$u.ID}}" hx-swap="outerHTML" class="space-y-2">
-      <input type="hidden" name="email" value="{{$u.Email}}">
+      <input type="hidden" name="email" value="{{$u.Email}}"><input type="hidden" name="nonce" value="{{.Nonce}}">
       <button type="button" class="btn btn-secondary" x-show="!askRevoke" @click="askRevoke = true">Revoke link</button>
       <div x-show="askRevoke" x-cloak class="alert alert-info space-y-2" role="alertdialog" aria-label="Revoke the recovery link?">
         <p class="text-sm">The pending link stops working. Revoke it?</p>

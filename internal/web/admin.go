@@ -59,6 +59,7 @@ type adminUserRow struct {
 	U         core.AdminUser
 	Viewer    core.User // who looks at the page: decides which controls the row offers
 	Self      bool
+	Nonce     string // differs every time the row is drawn: a double click repeats it (answered once), a deliberate second request does not
 	Role      core.Role
 	CanCreate bool
 	Open      bool // the form is expanded
@@ -128,7 +129,7 @@ func (s *Server) withCandidates(r *http.Request, row adminUserRow) (adminUserRow
 }
 
 func newUserRow(u core.AdminUser, viewer core.User) adminUserRow {
-	return adminUserRow{U: u, Viewer: viewer, Self: u.ID == viewer.ID, Role: u.Role, CanCreate: u.CanCreateCampaigns}
+	return adminUserRow{U: u, Viewer: viewer, Nonce: nonce(), Self: u.ID == viewer.ID, Role: u.Role, CanCreate: u.CanCreateCampaigns}
 }
 
 func (s *Server) userList(r *http.Request, q string, offset int) (adminUserList, bool, error) {
@@ -224,6 +225,9 @@ func (s *Server) handleAdminPermissions(w http.ResponseWriter, r *http.Request) 
 	row.Notice = "Saved"
 	s.render.partial(w, http.StatusOK, "admin_users", "admin_user_row", row)
 }
+
+// nonce is a value that differs between two draws of a form.
+func nonce() string { return strconv.FormatInt(time.Now().UnixNano(), 36) }
 
 // shownLink is a link that was just made: the message to copy, shown once (docs/auth.md, "Single-use links").
 type shownLink struct {

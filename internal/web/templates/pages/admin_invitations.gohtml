@@ -57,6 +57,7 @@
   {{template "copy_message" (dict "ID" "invitation-message" "Label" "Message to send" "Message" .Message "Hint" "Shown only now. Lost it? Revoke the invitation and make another.")}}
   {{end}}
   <form hx-post="/admin/invitations" hx-target="#invitation-create" hx-swap="outerHTML" class="space-y-4" x-data="{ kind: '{{.Kind}}' }" novalidate>
+    <input type="hidden" name="nonce" value="{{.Nonce}}">
     {{with .Err}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
     <fieldset class="space-y-1">
       <legend class="text-sm font-medium">Kind</legend>
