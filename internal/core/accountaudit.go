@@ -78,12 +78,23 @@ func InvitationUsedAudit(at time.Time, newUserID, invitationID int64) AuditEntry
 	return AuditEntry{At: at, Source: AuditPublic, Action: AuditInvitationUsed, SubjectUserID: ptr(newUserID), TargetKind: AuditTargetInvitation, TargetID: invitationID, Detail: map[string]string{}}
 }
 
-// RecoveryCreatedAudit records a recovery link for the user; replaced says an earlier live link was replaced. The repository
-// sets TargetID to the new link's id.
-func RecoveryCreatedAudit(at time.Time, actorID, userID int64, expires time.Time, replaced bool) AuditEntry {
+// RecoveryCreatedAudit records a recovery link for the user. The repository sets TargetID to the new link's id and, once it
+// knows whether it replaced an earlier live link, calls WithReplaced.
+func RecoveryCreatedAudit(at time.Time, actorID, userID int64, expires time.Time) AuditEntry {
 	return AuditEntry{At: at, Source: AuditWeb, ActorID: ptr(actorID), Action: AuditRecoveryCreated, SubjectUserID: ptr(userID), TargetKind: AuditTargetRecoveryLink, Detail: map[string]string{
-		"expires_at": expires.UTC().Format(time.RFC3339), "replaced": strconv.FormatBool(replaced),
+		"expires_at": expires.UTC().Format(time.RFC3339), "replaced": "false",
 	}}
+}
+
+// WithReplaced sets the replaced detail of a recovery.created entry (a copy; the original is unchanged).
+func (e AuditEntry) WithReplaced(replaced bool) AuditEntry {
+	d := make(map[string]string, len(e.Detail))
+	for k, v := range e.Detail {
+		d[k] = v
+	}
+	d["replaced"] = strconv.FormatBool(replaced)
+	e.Detail = d
+	return e
 }
 
 // RecoveryRevokedAudit records the revoking of the user's live link; the repository sets TargetID to that link's id.

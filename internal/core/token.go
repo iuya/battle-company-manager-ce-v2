@@ -24,6 +24,8 @@ var (
 	ErrInvalidInput = errors.New("invalid input")
 	// ErrConflict means a concurrent change got there first (e.g. another recovery link was just made for the account).
 	ErrConflict = errors.New("conflict")
+	// ErrAccountClosed is returned by a repository asked to act on a closed account.
+	ErrAccountClosed = errors.New("account closed")
 	// ErrNotPending is returned by a repository that cannot revoke an invitation that is not pending; see NotPendingError.
 	ErrNotPending = errors.New("not pending")
 )
