@@ -366,7 +366,8 @@ A card, top to bottom:
   instead of their class's: wargs, camels and goats, the armoured horse (the barding head), hand-and-a-half weapons,
   hammers and mattocks, twin blades, natural weapons (claws, teeth, fangs), the glaive, throwing spears, smoke bombs, the
   troll chain, the whip, light and heavy armour, small shields and the pavise. Some share a drawing and differ by colour: the
-  Galadhrim Steed is a green horse, the pony a grey one, the halberd gold spears. The earlier icons are kept in `static/img/archive/`.
+  Galadhrim Steed is a green horse, the pony a grey one. An item without its own icon shows one per class, the later ones
+  smaller: the halberd is spears and a two-handed axe. The earlier icons are kept in `static/img/archive/`.
   In a gear chip of the card the icon is 1.375 rem. **Gear style**, a per-browser choice in the "Unit cards" section of `theme_controls` (the
   Appearance menu and the Account page; `$store.theme.gear` / `setGear`, buttons `[data-gear-option]`): "Icon and name" (default) or "Icons only",
   which writes the cookie `bcm-gear=tiles`; `theme-init.js` then sets `data-gear="tiles"` on `<html>` before the first paint and `tailwind.css`

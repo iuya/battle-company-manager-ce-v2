@@ -241,7 +241,7 @@ func TestIconFor(t *testing.T) {
 		{"Razor-sharp teeth and talons (hand weapons)", []EquipmentClass{EquipMelee}, "", "claws"},
 		{"Beaks and Claws (hand weapon)", []EquipmentClass{EquipMelee}, "", "claws"},
 		{"Elven Glaive", []EquipmentClass{EquipSpear}, "", "glaive"},
-		{"Easterling Halberd", []EquipmentClass{EquipSpear, EquipTwoHanded}, "", "halberd"},
+		{"Easterling Halberd", []EquipmentClass{EquipSpear, EquipTwoHanded}, "", ""}, // drawn by its classes: spears and a two-handed axe
 		{"Throwing Spears", []EquipmentClass{EquipThrowing}, "", "thrown-spear"},
 		{"Smoke Bombs", []EquipmentClass{EquipThrowing}, "", "smoke-bomb"},
 		{"Troll Chain", []EquipmentClass{EquipThrowing}, "", "chain"},

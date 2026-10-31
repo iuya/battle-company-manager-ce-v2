@@ -63,8 +63,7 @@ var gearLooks = map[string]gearLookView{
 	"steed": {"horse-head", "bow"}, "pony": {"horse-head", "armour"}, // the same horse, told apart by colour
 	"axe": {"magic-axe", "melee"}, "hammer": {"warhammer", "melee"}, "hand-and-a-half": {"blade-drag", "melee"},
 	"twin-blades": {"crossed-swords", "melee"}, "claws": {"claw-slashes", "melee"}, "torch": {"torch", "melee"}, "vial": {"poison-bottle", "melee"},
-	"glaive": {"glaive", "spear"}, "halberd": {"spears", "gold"},
-	"thrown-spear": {"thrown-spear", "throwing"}, "smoke-bomb": {"unlit-bomb", "throwing"}, "chain": {"crossed-chains", "throwing"},
+	"glaive": {"glaive", "spear"}, "thrown-spear": {"thrown-spear", "throwing"}, "smoke-bomb": {"unlit-bomb", "throwing"}, "chain": {"crossed-chains", "throwing"},
 	"whip": {"whip", "throwing"}, "talisman": {"gem-pendant", "throwing"}, "ring": {"ring", "throwing"}, "scroll": {"tied-scroll", "throwing"},
 	"light-armour": {"leather-vest", "armour"}, "heavy-armour": {"breastplate", "armour"}, "blowpipe": {"cannon-shot", "armour"}, "snare": {"wolf-trap", "armour"},
 	"small-shield": {"round-shield", "shield"}, "pavise": {"dragon-shield", "shield"},
