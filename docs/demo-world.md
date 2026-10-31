@@ -233,6 +233,9 @@ States of the wish list that the services cannot produce, or that need raw SQL (
 
 ## Extending the world
 
+The rule of the project: every new feature or change of behaviour is covered here (see CONTRIBUTING.md). Add the state to the world, list it in this
+file, and note anything the services cannot produce under Gaps.
+
 `seedWorld` (`world.go`) runs the steps in order; each campaign is a function in `world_*.go` that creates its campaign, companies
 and matches with helpers (`w.campaign`, `w.company`, `w.recruit`, `w.played`, `w.settle`, `w.rollLevel` ...). A step that the rules
 may refuse uses `w.try` (it prints and goes on); a step that must work uses `w.must` (it aborts the script). A state the services
