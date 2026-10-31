@@ -31,6 +31,7 @@
 - [ ] `make test` passes
 - [ ] Documentation under `docs/` is updated, or the change needs none
 - [ ] Rules-data changes are validated with `make validate`, or the change touches no rules data
+- [ ] The demo world (`make demo`, docs/demo-world.md) covers the change, or the change has nothing to see in it
 - [ ] UI changes are checked at 360, 768 and 1280 px in light and dark (docs/frontend.md), or the change has no UI
 - [ ] No secrets, tokens or personal data are included
 - [ ] Licence and copyright: I wrote this or have the right to contribute it under CC BY-NC-SA 4.0, and it contains no copyrighted rulebook text

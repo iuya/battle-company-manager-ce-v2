@@ -62,7 +62,7 @@ func TestRuleCheck(t *testing.T) {
 		if code, _, errOut := runCheck(t); code != 2 || !strings.Contains(errOut, "usage") {
 			t.Errorf("no argument: %d %q", code, errOut)
 		}
-		if code, _, errOut := runCheck(t, "/nonexistent.json"); code != 2 || !strings.Contains(errOut, "no such file") {
+		if code, _, errOut := runCheck(t, "/nonexistent.json"); code != 2 || !strings.Contains(errOut, "open /nonexistent.json") {
 			t.Errorf("missing file: %d %q", code, errOut)
 		}
 		var o, e bytes.Buffer

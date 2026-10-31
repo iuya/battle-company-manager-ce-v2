@@ -27,6 +27,9 @@
         {{end}}
       </div>
     </div>
+    <label class="flex cursor-pointer items-center gap-2 text-sm font-semibold">
+      <input type="checkbox" class="h-5 w-5 accent-accent" :checked="$store.theme.highContrast" @change="$store.theme.setContrast($event.target.checked)"> High contrast
+    </label>
   </section>
 
   {{/* ---- colors ---- */}}
@@ -43,7 +46,7 @@
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-left text-sm">
-        <caption class="pb-2 text-left font-semibold">Contrast (WCAG): text pairs must reach 4.5:1 (AA)</caption>
+        <caption class="pb-2 text-left font-semibold">Contrast (WCAG): text pairs must reach 4.5:1 (AA), 7:1 (AAA) in high contrast</caption>
         <thead class="text-muted"><tr><th class="py-1 pr-4">Foreground</th><th class="pr-4">Background</th><th class="pr-4">Sample</th><th class="pr-4">Ratio</th><th>Level</th></tr></thead>
         <tbody>
           <template x-for="r in rows" :key="r.a + r.b">
@@ -152,6 +155,15 @@
     <div class="grid gap-4 md:grid-cols-2">
       {{range .Keywords}}<div class="card space-y-2 !p-4"><p class="text-xs text-muted">{{.Label}}</p>{{template "keyword_row" (dict "K" .K "Open" .Open "Static" .Static)}}</div>{{end}}
       <div class="card space-y-2 !p-4"><p class="text-xs text-muted">An enemy unit in a live match: a rule of your side's units names one of its keywords (tooltip, Enter opens the rule's popup)</p>{{template "kw_applies" .Applies}}</div>
+    </div>
+  </section>
+
+  {{/* ---- hero paths: the heading of the path box on a unit card, one icon per path ---- */}}
+  <section id="sg-paths" class="space-y-4" aria-labelledby="sg-paths-h">
+    <h2 id="sg-paths-h">Hero paths</h2>
+    <p class="text-sm text-muted">The heading of the path box, above a hero's special rules, coloured by the kind of hero: melee, ranged, command, magic, other. A path the app does not know (here the Path of the Smith) gets the medal.</p>
+    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {{range (list "Path of the Tactician" "Path of the Sharpshooter" "Path of the Soldier" "Path of the Marksman" "Path of the Claimant" "Path of the Sorcerer" "Path of the Shieldbearer" "Path of the Ranger" "Path of the Warlord" "Path of the Berserker" "Path of the Duelist" "Path of Their Own Making" "On Their Own Path" "Path of the Smith")}}<div class="path-box path-k-{{(pathLook .).Kind}}">{{template "path_name" (dict "N" .)}}</div>{{end}}
     </div>
   </section>
 

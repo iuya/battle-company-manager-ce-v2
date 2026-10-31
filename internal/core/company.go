@@ -98,6 +98,9 @@ const (
 var knownEquipmentClasses = []EquipmentClass{EquipMount, EquipMelee, EquipTwoHanded, EquipSpear, EquipLance, EquipShield, EquipArmour, EquipBow, EquipCrossbow,
 	EquipThrowing, EquipMissile, EquipBanner, EquipHorn, EquipConsumable, EquipOther}
 
+// EquipmentClasses is the vocabulary of item classes.
+func EquipmentClasses() []EquipmentClass { return slices.Clone(knownEquipmentClasses) }
+
 // rank is the position of a class in a unit's equipment list: mount first (with its armour right after), then melee
 // weapons (lances included), shield, armour, ranged weapons, and everything else last, so units can be compared at a glance.
 func (c EquipmentClass) rank() int {
@@ -159,6 +162,14 @@ var iconRules = []struct {
 	{"torch", []string{"brand", "torch"}}, {"snare", []string{"snares", "traps", "trap!"}}, {"pelt", []string{"pelt", "hide", "fur"}},
 	{"cram", []string{"cram", "lembas", "bread"}}, {"belt", []string{"belt"}}, {"vial", []string{"envenom", "poison", "venom"}},
 	{"blowpipe", []string{"blowpipe"}}, {"axe", []string{"axe"}},
+	{"warg", []string{"warg"}}, {"camel", []string{"camel"}}, {"goat", []string{"goat"}}, // mounts that are not horses
+	{"armoured-horse", []string{"armoured horse"}}, {"steed", []string{"galadhrim steed"}}, {"pony", []string{"pony"}},
+	// weapons and armour drawn more precisely than by their class
+	{"hammer", []string{"hammer", "mattock"}}, {"hand-and-a-half", []string{"hand-and-a-half"}}, {"twin-blades", []string{"twin blades"}},
+	{"claws", []string{"claws", "teeth", "fangs", "talons", "beaks"}}, {"glaive", []string{"glaive"}},
+	{"thrown-spear", []string{"throwing spears"}}, {"smoke-bomb", []string{"smoke bomb"}}, {"chain", []string{"chain"}}, {"whip", []string{"whip"}},
+	{"light-armour", []string{"light armour"}}, {"heavy-armour", []string{"heavy armour", "heavy dwarf armour"}},
+	{"small-shield", []string{"small shield", "light shield"}}, {"pavise", []string{"pavise"}},
 }
 
 var iconsByName memo
@@ -190,6 +201,21 @@ func IconFor(name string, classes []EquipmentClass, size string) string {
 		return "generic-large"
 	}
 	return ""
+}
+
+// IsElvenWeapon says whether an item is an Elven weapon (Elven-made), whose wielder wins the roll-off of a drawn combat more
+// often. The Wood Elf Spear is an Elven spear; an Elven Cloak is not a weapon.
+func IsElvenWeapon(name string) bool {
+	return hasWord(name, "elven!", "wood elf spear") && !hasWord(name, "cloak")
+}
+
+// IconKeys are the keys IconFor can return, so the page can check it draws every one.
+func IconKeys() []string {
+	keys := []string{"generic-small", "generic-large"}
+	for _, r := range iconRules {
+		keys = append(keys, r.icon)
+	}
+	return keys
 }
 
 // Equipment is something a unit carries: part of its starting options (Bought false) or bought during the campaign.
@@ -520,8 +546,11 @@ type CompanyLimit struct {
 	ID    string // the limit's id in the rules file (bow, throwing, cavalry)
 	Label string
 	Used  int
-	Max   int // the most the company's models now allow
-	Next  int // the most when one more model has joined (it counts in numerator and denominator): where a recruit is checked
+	// Exempt is how many the company has that its rules leave out of the count (Riders of Rohan and the Bow limit, Whips and the
+	// Throwing limit): Used + Exempt is the company's whole number.
+	Exempt int
+	Max    int // the most the company's models now allow
+	Next   int // the most when one more model has joined (it counts in numerator and denominator): where a recruit is checked
 	// LimitClasses are the item classes the limit counts and LimitKeyword the unit keyword it counts instead (limits[].classes, type keyword).
 	LimitClasses []EquipmentClass
 	LimitKeyword string
@@ -531,6 +560,13 @@ type CompanyLimit struct {
 func (l CompanyLimit) RoomForNew() bool { return l.Used+1 <= l.Next }
 
 func (l CompanyLimit) Full() bool { return l.Used >= l.Max }
+
+// Total is the company's whole number, counted or not.
+func (l CompanyLimit) Total() int { return l.Used + l.Exempt }
+
+// Segments is how many slots the page's bar has: one per allowed model (or per counted one when over the limit) and one per
+// exempt one, at least one so an empty limit still draws.
+func (l CompanyLimit) Segments() int { return max(1, max(l.Used, l.Max)+l.Exempt) }
 
 // CompanyDetail is a company with everything its page shows.
 type CompanyDetail struct {

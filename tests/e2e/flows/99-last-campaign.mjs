@@ -38,7 +38,7 @@ export default async function (h) {
     assert.ok(c.expires > Date.now() / 1000 + 80 * 86400, 'about 90 days');
     assert.equal(await eowyn.page.evaluate(() => document.cookie.includes('bcm-last')), false, 'scripts cannot read it');
     await eowyn.goto('/');
-    assert.equal(pathOf(eowyn), `/campaigns/${bands}`, 'the Overview of the last campaign');
+    assert.match(pathOf(eowyn), new RegExp(`^/campaigns/${bands}/my-company(/\\d+)?$`), 'My Company of the last campaign');
   });
 
   await h.step('last campaign: the brand link, "Campaigns" in the sidebar and "← Campaigns" reach the list, which never redirects', async () => {
@@ -94,11 +94,11 @@ export default async function (h) {
     // a valid one for the same user still works afterwards
     await sauron.goto(`/campaigns/${bands}`);
     await sauron.goto('/');
-    assert.equal(pathOf(sauron), `/campaigns/${bands}`);
+    assert.match(pathOf(sauron), new RegExp(`^/campaigns/${bands}/my-company(/\\d+)?$`), 'My Company of the last campaign');
     // a finished campaign opened from the list is not remembered
     {
       await sauron.goto(`/campaigns/${finished}`);
-      assert.ok((await lastCookie(sauron)).value.endsWith('.' + bands), 'still the previous campaign');
+      assert.equal((await lastCookie(sauron)).value.split('.')[1], String(bands), 'still the previous campaign'); // "user.campaign[.company]"
     }
   });
 

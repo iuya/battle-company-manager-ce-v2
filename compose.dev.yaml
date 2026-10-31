@@ -21,6 +21,7 @@ services:
 # the whole configuration (cmd/server/envdocs_test.go, make check-env-docs, keeps this list complete); the Makefile sets the first
 # ones for development, the rest come from the environment or .env.
 #   PORT=8080                    port the server listens on
+#   LISTEN_HOST=                 address it listens on, empty for every interface; the Makefile sets 127.0.0.1 (make run LISTEN_HOST= opens it)
 #   DATABASE_URL=postgres://bcm:bcm@localhost:5432/bcm?sslmode=disable   (the Makefile default for this database)
 #   APP_ENV=development          production (default when unset) | development; make run, dev and demo set development
 #   SECURE_COOKIES=              unset: on in production, off in development; true | false

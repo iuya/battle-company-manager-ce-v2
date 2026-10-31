@@ -16,7 +16,7 @@ that describe planned work say so in their first lines. The tables below group t
 | [tabletop-simulator.md](tabletop-simulator.md) | Taking a company into Tabletop Simulator: army list, figure names and descriptions, the helper |
 | [admin.md](admin.md) | The Administration section, campaign status, invitations, handover |
 | [rules-coverage.md](rules-coverage.md) | Which Battle Companies mechanics the app implements, with the tests |
-| [multi-company-spec.md](multi-company-spec.md) | Planned: several companies per player |
+| [multi-company-spec.md](multi-company-spec.md) | Several companies per player (up to a campaign setting), the company in the URL, and opening the last campaign directly (implemented) |
 | [practice-match-spec.md](practice-match-spec.md) | Practice matches: a flag on a match set on the creation form, no rewards, no injuries, an empty derived aftermath (implemented) |
 
 ## Rules authors
@@ -41,6 +41,7 @@ that describe planned work say so in their first lines. The tables below group t
 | [auth.md](auth.md) | Accounts, sessions, passwords, CSRF, login throttling |
 | [vendored-js.md](vendored-js.md) | The committed third-party scripts and how to update them |
 | [performance.md](performance.md) | Measured page cost and the performance tooling |
+| [design/match-redesign](design/match-redesign/README.md) | Pictures of the three proposals for the match and live-match pages (a design discussion, not the current app) |
 | [optimization-report.md](optimization-report.md) | Executive summary of the optimization work (v1.3.0, baseline and final numbers, what changed and why, what did not improve), then the detailed data format, runtime, database, build and test sections |
 
 ## Operators

@@ -226,7 +226,7 @@ func hostileWorld(t *testing.T) (*fixture, []string) {
 	f.gl.EXPECT().Default(anyCtx).Return(core.Glossary{}, nil).AnyTimes()
 
 	return f, []string{
-		"/", "/?finished=1", "/campaigns/new", "/campaigns/7", "/campaigns/7/companies", "/campaigns/7/rankings", "/campaigns/7/matches",
+		"/", "/?finished=1", "/campaigns/new", "/campaigns/7", "/campaigns/7/rankings", "/campaigns/7/matches",
 		"/campaigns/7/my-company/1", "/campaigns/7/my-company/1/recruit", "/campaigns/7/companies/2", "/campaigns/7/armory",
 		"/campaigns/7/company/new", "/campaigns/7/company/info?c=Minas+Tirith", "/campaigns/7/matches/new", "/campaigns/7/matches/3",
 		"/campaigns/7/matches/3/scenario", "/campaigns/7/glossary", "/glossary", "/account", "/admin", "/admin/users", "/admin/rulesets",

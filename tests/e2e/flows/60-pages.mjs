@@ -37,7 +37,7 @@ export default async function (h) {
     for (const [who, path] of [
       [anon, '/login'], [admin, '/campaigns'], [admin, '/campaigns/new'],
       [admin, `/campaigns/${m}`], [admin, `/campaigns/${m}/my-company`], [admin, `/campaigns/${m}/armory`],
-      [admin, `/campaigns/${m}/companies`], [admin, `/campaigns/${m}/rankings`], [admin, `/campaigns/${m}/matches`],
+      [admin, `/campaigns/${m}/rankings`], [admin, `/campaigns/${m}/matches`],
       [admin, `/campaigns/${m}/glossary`], [admin, match], [admin, live], [admin, aft],
       [admin, `/campaigns/${ids['Level-ups waiting']}/my-company`],
       [admin, `/campaigns/${m}/company/new`], [admin, '/glossary'], [admin, '/account'], [admin, '/admin'],

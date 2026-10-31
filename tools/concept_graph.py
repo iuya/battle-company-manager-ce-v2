@@ -67,7 +67,7 @@ def load_terms(raws):
                 p = Path(tmp) / f"{name}.json"
                 p.write_bytes(raw)
                 paths.append(str(p))
-            r = subprocess.run(["go", "run", "./tools/conceptnodes", *paths], cwd=ROOT, capture_output=True, text=True, env={**os.environ, "GOTOOLCHAIN": "local"})
+            r = subprocess.run(["go", "run", "./tools/conceptnodes", *paths], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", env={**os.environ, "GOTOOLCHAIN": "local"})
         if r.returncode != 0:
             raise RuntimeError("go run ./tools/conceptnodes failed (the nodes come from the app's loader; is go on the PATH?): " + r.stderr.strip()[:400])
         out = json.loads(r.stdout)

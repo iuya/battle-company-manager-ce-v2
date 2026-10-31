@@ -295,7 +295,7 @@ Routes by area (the feature documents list the actions):
 | `GET/POST /login`, `POST /logout` | public / session | Sign in and out |
 | `GET /`, `GET /nav/campaigns` | signed in | The user's campaigns; the sidebar sub-menu |
 | `GET /campaigns/new`, `POST /campaigns` | may create campaigns | New campaign |
-| `GET /campaigns/{id}` and `/companies`, `/rankings`, `/matches` | campaign member | The campaign's tabs |
+| `GET /campaigns/{id}` and `/rankings`, `/matches` | campaign member | The campaign's tabs (`/companies`, the old Companies tab, redirects to `/rankings`) |
 | `/campaigns/{id}/my-company/{company}/...` | the company's owner (404 for anyone else) | One of your companies: recruit, armoury, level up, path, treatment, formation, cemetery, pack, perks; `/my-company` alone is an alias that opens one |
 | `/campaigns/{id}/companies/{company}` | campaign member | Another company, read only (your own redirects to `/my-company/{company}`) |
 | `/campaigns/{id}/matches/...` | campaign member | Matches, scenario, result, end confirmation, Against the Odds, aftermath ([matches.md](matches.md), [aftermath.md](aftermath.md)) |
@@ -325,6 +325,7 @@ Environment variables (loaded by `go-simpler.org/env`; `.env.example` lists them
 |---|---|---|
 | `DATABASE_URL` | required (the Makefile defaults to the compose database) | PostgreSQL connection string. Pool settings go in the URL (`?pool_max_conns=N`, `pool_min_conns`, `pool_max_conn_lifetime`, `pool_max_conn_idle_time`): without `pool_max_conns` the pool holds up to the larger of the number of CPUs and 10 connections (the cards of a match page use four side by side; 4 connections made 160 simultaneous match pages 40 % slower than 10). Keep it below the server's `max_connections` divided by the number of instances, less one connection per instance for the live feed |
 | `PORT` | `8080` | HTTP port |
+| `LISTEN_HOST` | empty (every interface) | Address the server listens on. Keep it empty in the container (`APP_BIND` limits the host side). `make run`, `make dev` and `make demo` default it to `127.0.0.1`, and the browser tests set it too: a loopback-only server raises no firewall prompt (Windows asks for every new build of `go run` or `air`). `make run LISTEN_HOST=` opens the development server to the network, for a phone on the same Wi-Fi |
 | `STATIC_MAX_AGE` | `0s` | Cache lifetime of static files requested without their `?v=` hash (`no-cache` when 0; the templates always add the hash, and those requests are cached for a year) |
 | `PERF_TRACE` | `false` | Adds a `Server-Timing` header (time, database statements) to every answer, for `make perf` ([performance.md](performance.md)); development only |
 | `STYLEGUIDE` | `false` | Serve `/styleguide`; `make run`, `make dev` and `make demo` set it to `true` |

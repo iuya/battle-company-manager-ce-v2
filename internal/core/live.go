@@ -34,6 +34,13 @@ type LiveUnit struct {
 	HasMount, Mounted         bool
 	MountWounds               LiveStat       // Start 1 unless the mount's profile says more
 	Gains                     map[string]int // experience earned so far by campaign.experience.gains key (flags 0 or 1)
+	Objective                 bool           // got the objective (an end check, not in Gains: the aftermath adds it)
+	// MatchXP is the experience earned so far, at the file's amounts: taking part, Gains and the objective. The MVP, Against the Odds and
+	// the scenario rewards are only known at the end. Set by the service (0 without a rules file); the card shows it ahead of the bar.
+	MatchXP int
+	// FateEntry and BrokenEntry are the unit's last not-undone fate and broken entries (0 for none): what pressing a lit Fate or Courage
+	// milestone undoes.
+	FateEntry, BrokenEntry int64
 	// BreakModels is how many models the unit counts as for the company's Break Point (at least 1). CourageTurn is the turn its courage
 	// was last resolved (a broken, courageSkip or failed-courage retreat entry), StandFastTurn the turn it called Stand Fast. Temporary
 	// is set for the temporary Wanderer of Against the Odds (its UnitID is TemporaryUnitID(company), never a roster id).
@@ -51,6 +58,16 @@ type LiveUnit struct {
 // TemporaryUnitID is the id of the temporary Wanderer a company took with Against the Odds: negative, so that it never meets a roster id,
 // and one per company.
 func TemporaryUnitID(companyID int64) int64 { return -companyID }
+
+// ItemsToUse are the loaned items the unit can still mark as used (not spent, not for the aftermath).
+func (u LiveUnit) ItemsToUse() (out []LoanedItem) {
+	for _, it := range u.Loaned {
+		if !it.Used && !it.AfterGame {
+			out = append(out, it)
+		}
+	}
+	return out
+}
 
 // LiveUnitInit is what is stored once when the match opens (or lazily at the first read of a match that was open before the
 // feature): the starting values of a unit. Absent units (Injured, AtHealers) take no part and have no entries.
@@ -153,7 +170,7 @@ func (k LiveKind) Secret() bool { return k == LiveSecretNominate || k == LiveSec
 //
 //	stat:    UnitID, Stat ("wounds"|"might"|"will"|"fate"), Delta (non-zero) or Set; Set is stored as the Delta it means when applied
 //	wound:   UnitID (the attacker), Targets (at least one)
-//	fate:    UnitID, Count (1 to its current Fate)
+//	fate:    UnitID, Count (0 to its current Fate; 0 only marks the Fate milestone, no Fate is spent)
 //	broken:  UnitID
 //	retreat: UnitID, Why ("courage"|"left"), Note
 //	died:    UnitID, Note
@@ -310,6 +327,8 @@ type liveRepository interface {
 	Update(ctx context.Context, campaignID, matchID int64, by User, fn func(LiveSnapshot) (LiveChange, error)) (LiveEntry, error)
 	// Log lists not-undone entries, newest first, with Seq below `before` (0: from the newest).
 	Log(ctx context.Context, campaignID, matchID, before int64, limit int) ([]LiveEntry, error)
+	// UnitLog lists a unit's not-undone entries of one kind, newest first.
+	UnitLog(ctx context.Context, campaignID, matchID, unitID int64, kind LiveKind) ([]LiveEntry, error)
 }
 
 // liveFeed is the listening side of the NOTIFY: one dedicated connection, outside the pool, reconnecting with backoff. It calls

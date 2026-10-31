@@ -120,6 +120,19 @@ func (f *fakeLive) Log(_ context.Context, _, matchID, before int64, limit int) (
 	return out, nil
 }
 
+func (f *fakeLive) UnitLog(_ context.Context, _, matchID, unitID int64, kind LiveKind) ([]LiveEntry, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var out []LiveEntry
+	for _, e := range f.snapshot(matchID).Entries {
+		if e.UnitID == unitID && e.Action.Kind == kind {
+			out = append(out, e)
+		}
+	}
+	slices.Reverse(out)
+	return out, nil
+}
+
 // fakeFeed is a liveFeed driven by the test.
 type fakeFeed struct {
 	mu       sync.Mutex

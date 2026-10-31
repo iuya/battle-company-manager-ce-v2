@@ -36,7 +36,7 @@ hash, so timing does not reveal which emails exist, and the only failure message
   like the session cookie, 90 days renewed on each write. It is unsigned because it authorises nothing: it is a hint read only
   after authentication and validated against the database on every read. It is written by full-page GETs of a campaign page
   the user belongs to (and of one of their own companies, which records the company); never by htmx fragments, event streams
-  or POSTs, and never for a finished campaign. `GET /` for a signed-in user redirects (303) to the campaign Overview from the
+  or POSTs, and never for a finished campaign. `GET /` for a signed-in user redirects (303) to My Company of the campaign from the
   cookie; the cookie is **cleared** when it is malformed, holds another user's id (the id inside must be the session user's),
   the campaign is finished, or the user can no longer open it (`ErrNotFound`), and the list is shown instead. A paused
   campaign still redirects. `GET /campaigns/{id}/my-company` (no company) opens the company recorded for that campaign if it is

@@ -41,7 +41,7 @@ All share the password `demo-password` (or `PASSWORD`). `admin@example.com`, `yo
 ## Campaigns
 
 Open any campaign as `you@example.com` (organiser, sees every button) or as the player named in the table (owner of the
-company, sees "My company"). Page names are those of the navigation: Overview, My company, Companies, Rankings, Matches, Armoury.
+company, sees "My company"). Page names are those of the navigation: Overview, My company, Armoury, Rankings, Matches.
 
 | Campaign (in order of creation) | Players | What it demonstrates | Where to click |
 |---|---|---|---|
@@ -66,6 +66,7 @@ company, sees "My company"). Page names are those of the navigation: Overview, M
 | **Handed over: Faramir organises now** | Éowyn, Faramir | `Campaigns.HandOver`: created by You, organised by Faramir; You is a player without a company | Overview as `faramir` (organiser buttons) and as `you` (none) |
 | **Faramir's campaign: a small start** | Aragorn, Pippin | a campaign organised by Faramir from the start | Overview as `faramir` |
 | **Two bands: several companies per player** | Éowyn (two companies), Galadriel (three), Gimli, Sauron | the setting `CompaniesPerPlayer` = 3 (default 1 everywhere else), and the two **practice matches** (one ended, one open with a log): see [Two bands](#two-bands) | My Company as `eowyn`, `galadriel`; Matches, the Practice filter |
+| **Veterans: heroes with long trackers and full paths** | You (Minas Tirith), Éowyn (Rohan, its Leader on the Path of the Warlord with Might, Will, Fate and Wounds at their maximum of 3) | every hero levelled up twenty times (the roll of its path chart that offers Might, Will, Fate or Wounds in turn, up to their limit of 3, then a rule, heroic action or power), in an open match of Hold the Line played live on turn 2 with some Might, Will, Fate and Wounds spent: long tracker bars with full and empty segments and crowded path boxes. Step `world_veterans.go` | My Company as `you` or `eowyn` |
 
 ### Two bands
 
@@ -163,7 +164,9 @@ The gallery shows, among the 37 companies (names as in the rules file, recruits 
 - **Pippin**: a **Baggage Pony** with two items in its **pack** (the Pack card), a **Falcon**, and a **Wandering Sage** (see
   [Gaps](#gaps)).
 - **Gimli**: the **bow** and **throwing** limits both at 2 of 2 (the armoury refuses more, with the reason).
-- **Éowyn**: a company at its 15 models with cavalry (the **cavalry** limit counts cavalry units).
+- **Éowyn**: a company at its 15 models with cavalry (the **cavalry** limit counts cavalry units). Rohan's rules leave some models
+  out of the **bow** and **cavalry** limits: each bar reads "2 / 5 · total 4", the 2 left out drawn as **hatched** segments at
+  its right end, explained in the tooltip. Her Rohan companies in the other campaigns show the same.
 - **Sauron** (Helm's Deep): the **race** limit (Elf 4 of 4) and a bow count above its limit, because recruits come with their gear.
 - **Galadriel** (Rivendell): 12 of 12 models and the cavalry limit near full.
 
@@ -232,6 +235,9 @@ States of the wish list that the services cannot produce, or that need raw SQL (
 - **A join request awaiting approval**: joining is by invite link only; the "pending join" state is a member with no company.
 
 ## Extending the world
+
+The rule of the project: every new feature or change of behaviour is covered here (see CONTRIBUTING.md). Add the state to the world, list it in this
+file, and note anything the services cannot produce under Gaps.
 
 `seedWorld` (`world.go`) runs the steps in order; each campaign is a function in `world_*.go` that creates its campaign, companies
 and matches with helpers (`w.campaign`, `w.company`, `w.recruit`, `w.played`, `w.settle`, `w.rollLevel` ...). A step that the rules

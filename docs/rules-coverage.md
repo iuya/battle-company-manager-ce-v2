@@ -95,7 +95,7 @@ War's Aftermath (1 Injuries, 2 Experience, 3 Progression, 4 Influence), Step 3 C
 | Hero rating: Warrior profile points, 5 per Might, Will, Fate and per Move, Fight, Strength, Defence, 10 per Attack and Wound, 5 per special rule and 5 per minor special rule (with or without a target, at most 10 in all; a rule an item grants, Envenom Weapon's Poisoned Attacks, is the item's and does not count), nothing for Shoot, Courage, Intelligence, heroic actions, magical powers; advancements up to the average profile add nothing | S1407-1420, S560 | CM | DONE | `BCBook.HeroRating`, `pointsOf`, `UnitPath.MinorRules` | `TestHeroRatingOfGearOutsideTheProfileAndItsOptions`, `TestHeroRatingOfMinorSpecialRules` |
 | Hero wargear and equipment: free when in the base profile or its Options; paid at the hero column once Attacks plus Wounds reach 3; armour stages | S1421-1445 | CM | DONE | `pointsOf`, `armourRating` | `TestHeroArmourInsideTheOptionsIsFree`, `TestArmourUpgradesAreOfferedOneStageAtATimeInEveryCompany` |
 | Company rating is the sum, Injured models excluded (shown as "Points (full points)") | S1403 | CM | DONE | `BuildDetail`, `MatchSide.Rating` (injured counted for the comparison) | `TestBuildDetailInjuredUnitsLeaveTheRatingButNotFullPoints`, `TestCampaignsRateCompaniesFromTheRules` |
-| Company standings by points | none (app) | APP | DONE | `Rank` in `campaign.go`, Companies tab | `TestRank` |
+| Company standings by points | none (app) | APP | DONE | `Rank` in `campaign.go`, Rankings tab | `TestRank` |
 
 ## 6. The game: scenarios, Against the Odds, the match (Step 1, S218-300, S5247-)
 

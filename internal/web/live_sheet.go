@@ -20,6 +20,8 @@ type liveSheet struct {
 	Live     core.LiveUnit
 	Groups   []woundGroup // wound: who can be wounded, enemies first, then friends
 	Gains    map[string]int
+	// Recorded are the unit's entries of this kind still in the log (wound, fate, broken): the milestone it earned and the way to undo it.
+	Recorded []core.LiveEntry
 
 	// The courage sheet and Item used: the match's turn, whether the company is Broken, who may be offered Stand Fast, the dice rolled for the
 	// test and why a roll was refused.
@@ -31,16 +33,6 @@ type liveSheet struct {
 	CourageDice     core.DiceSpec // the dice of the Courage test (campaign.breakPoint.whenBroken.courageTest.dice)
 	Roll            *core.CourageRoll
 	RollErr         string
-}
-
-// ItemsToUse are the loaned items the unit can still mark as used (not spent, not for the aftermath).
-func (v liveSheet) ItemsToUse() (out []core.LoanedItem) {
-	for _, it := range v.Live.Loaned {
-		if !it.Used && !it.AfterGame {
-			out = append(out, it)
-		}
-	}
-	return out
 }
 
 // DiceText is the dice of the roll ("3 + 4").
@@ -161,6 +153,11 @@ func (s *Server) liveSheetFor(w http.ResponseWriter, r *http.Request, kind strin
 			return none, false
 		}
 		sheet.ManualRolls = base.Campaign.Settings.ManualRolls
+	}
+	if kind == "wound" || kind == "fate" || kind == "broken" {
+		if sheet.Recorded, err = s.campaigns.UnitLog(r.Context(), user, id, matchID, unitID, core.LiveKind(kind)); s.fail(w, r, err) {
+			return none, false
+		}
 	}
 	if kind == "wound" {
 		if sheet.Groups, err = s.woundTargets(r, id, matchID, companyID, unitID); s.fail(w, r, err) {

@@ -40,9 +40,30 @@
         </button>
       </template>
     </div>
+    <label class="flex cursor-pointer items-start gap-3 pt-1 text-sm">
+      <input type="checkbox" class="mt-0.5 h-5 w-5 shrink-0 accent-accent" data-contrast-toggle :checked="$store.theme.highContrast" @change="$store.theme.setContrast($event.target.checked)">
+      <span><span class="font-medium">High contrast</span><span class="block text-xs text-muted">Stronger text and borders, and a decoration colour that stands apart from the accent. Saved in this browser.</span></span>
+    </label>
   </div>
   <div class="space-y-2">
     <h3 class="!text-xl">Unit cards</h3>
+    <div class="space-y-1">
+      <p class="text-sm font-medium" id="gear-style-label">Gear</p>
+      <div class="grid grid-cols-2 gap-1" role="group" aria-labelledby="gear-style-label" data-gear-toggle>
+        <template x-for="g in $store.theme.gears" :key="g.key">
+          <button type="button" class="btn btn-secondary !px-2 !text-sm" :class="$store.theme.gear === g.key && '!border-accent !bg-accent-soft'"
+                  :aria-pressed="$store.theme.gear === g.key" :data-gear-option="g.key" @click="$store.theme.setGear(g.key)" x-text="g.name"></button>
+        </template>
+      </div>
+      {{/* A sample of a unit card's gear: inside .unit it follows html[data-gear] like the real cards. */}}
+      <ul class="unit flex flex-wrap items-center gap-1.5 bg-surface p-2" aria-hidden="true" data-gear-preview>
+        <li class="eq-chip eq-melee">{{template "eq_icon" "melee"}}<span>Sword</span></li>
+        <li class="eq-chip eq-shield">{{template "eq_icon" "shield"}}<span>Shield</span></li>
+        <li class="eq-chip eq-armour">{{template "eq_icon" "armour"}}<span>Armour</span></li>
+        <li class="eq-chip eq-bow">{{template "eq_icon" "bow"}}<span>Bow</span></li>
+      </ul>
+      <p class="text-xs text-muted">Icons only keeps the names in the tooltips and the expanded card. Saved in this browser.</p>
+    </div>
     <label class="flex cursor-pointer items-start gap-3 text-sm">
       <input type="checkbox" class="mt-0.5 h-5 w-5 shrink-0 accent-accent" data-auras-toggle :checked="$store.theme.auras" @change="$store.theme.setAuras($event.target.checked)">
       <span><span class="font-medium">Show auras on unit cards</span><span class="block text-xs text-muted">The aura chips and the Auras section of an expanded card. Saved in this browser.</span></span>

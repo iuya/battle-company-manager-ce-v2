@@ -60,7 +60,7 @@ def rulecheck(bc_path, vanilla_path, glossary_path):
     """Runs the Go validator on the Battle Companies file. Returns (errors, warnings) as printed lines."""
     cmd = ["go", "run", "./cmd/rulecheck", "-vanilla", str(vanilla_path), "-glossary", str(glossary_path), str(bc_path)]
     try:
-        r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+        r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, encoding="utf-8")  # Go prints UTF-8 whatever the locale
     except FileNotFoundError:
         return ["go is not on the PATH: the Battle Companies file is checked by `go run ./cmd/rulecheck`"], []
     errors, warnings, blocks = [], [], []

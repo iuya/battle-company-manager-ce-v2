@@ -167,9 +167,9 @@ export default async function (h) {
     assert.ok(!(await pippin.has('New company')), 'without a "New company" chip');
     const r = await post(pippin, `/campaigns/${cid}/company`, 'faction=Rohan&name=Third&leader=0&sergeant=1&sergeant=2');
     assert.equal(r.status, 422, 'a new company is refused above the limit');
-    await organiser.goto(`/campaigns/${cid}/companies`);
-    assert.equal(await organiser.page.$$eval('main li a h2', (e) => e.length), 3, 'the Companies page lists the 3 companies of the campaign');
-    assert.equal(await organiser.page.$$eval('main li a', (as) => as.filter((a) => a.innerText.includes('Pippin')).length), 2, 'with the owner name on each');
+    await organiser.goto(`/campaigns/${cid}/rankings`);
+    assert.equal(await organiser.page.$$eval('main tbody tr', (e) => e.length), 3, 'the Rankings list the 3 companies of the campaign');
+    assert.equal(await organiser.page.$$eval('main tbody tr', (rs) => rs.filter((r) => r.innerText.includes('Pippin')).length), 2, 'with the owner name on each');
   });
 
   let bands;

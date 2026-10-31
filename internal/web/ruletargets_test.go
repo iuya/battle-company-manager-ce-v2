@@ -36,6 +36,7 @@ func TestWoundSheetShowsEnemyKeywordsAndWhichRulesApply(t *testing.T) {
 		{ID: 20, Name: "Grashnak", Type: "Orc Captain", Role: core.RoleLeader, Keywords: orcKeywords()},
 		{ID: 22, Name: "Hunter", Type: "Haradrim", Keywords: core.UnitKeywords{Model: []core.UnitKeyword{kw("Man", core.KeywordRace, "Keywords"), kw("Harad", core.KeywordFaction, "Keywords")}}},
 		{ID: 23, Name: "Dead", Type: "Orc", Keywords: orcKeywords()}}}, nil)
+	f.camp.EXPECT().UnitLog(gomock.Any(), frodo, int64(7), int64(3), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes() // the window lists what the unit recorded
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/wound", nil))).Body.String()
 	if got := len(regexp.MustCompile(markerRe).FindAllString(body, -1)); got != 1 {
 		t.Fatalf("%d Hatred (Orc) markers, want 1 (Grashnak only; Terror names no keyword, the Haradrim is no Orc)\n%s", got, body)

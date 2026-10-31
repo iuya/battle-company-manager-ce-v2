@@ -47,12 +47,31 @@ Colors are **semantic tokens**: CSS variables, exposed to Tailwind as utilities 
 | `accent-soft` | Tinted backgrounds (selected state, badges, info alerts) |
 | `danger`, `success` (+ `-soft`) | Errors and confirmations |
 | `warn` | Draws (yellow); with `success` and `danger` it gives the `tone-win` / `tone-draw` / `tone-loss` classes for results |
-| `gold` | Decoration; the ring background |
+| `gold` | Decoration: the ring background, gold badges, the level medal |
+| `leader`, `sergeant`, `hero`, `leader-soft`, `sergeant-soft`, `hero-soft` | Game colours. A unit's place on its card: frame and insignia (leader amber, sergeant green, hero blue) and the tint of its title plate. `leader` is also the command paths (Path of the Warlord) and the Might tracker |
+| `path-melee`, `path-ranged`, `path-magic` | Game colours. The path kinds (red, green, blue) and the Wounds, Fate and Will trackers |
 
 **Palettes** (each with a light and a dark variant): **Forest & Gold** (default), **Parchment & Ember** and **Mithril &
 Night**. A palette is selected by `data-palette` and `data-mode` (`light` | `dark`) on the `<html>` element; the same
 attributes on any element preview that palette there. `tools/check_theme_contrast.py` checks every palette and mode
-against WCAG AA (4.5:1 for text, 3:1 for the accent).
+against WCAG AA (4.5:1 for text, 3:1 for the accent). In the dark variants the layers are kept apart on purpose:
+`surface` sits clearly above `page` (about 1.2:1), `raised` above `surface` (about 1.25:1) and `line` reads against
+`surface` (about 1.9:1 or more), so cards and borders do not melt into the page.
+
+**Game colours.** The leader, sergeant, hero and path tokens mean the same thing on the table whatever the palette, so they
+are not part of a palette: one block per mode and contrast (`[data-mode]`, `[data-contrast="high"] [data-mode]`), tuned from
+Mithril dark high contrast. A unit card carries no palette accent: game colours and neutrals only (the experience bar,
+the Might/Will/Fate frame, path and spell chips, a stat raised by gear). The checker tests each palette together with the game colours of its mode and contrast.
+
+**High contrast.** Every palette and mode also has a high-contrast variant, selected by `data-contrast="high"` on `<html>`
+(the blocks match `<html>` itself and the preview swatches inside it). The checker holds it to AAA: text 7:1, the accent,
+`gold`, `sergeant` and `hero` 4.5:1, and `line` 3:1 against `surface` and `page`. The `gold` token (ring, medals, gold
+badges) is the same amber in every palette. The focus ring takes the complement of the palette's accent so it stands
+apart: pink in Forest (green accent), cyan in Ember (red accent); Mithril already pairs blue with yellow. The game colours
+stay amber, green, blue and red. The **High contrast** checkbox (in `theme_controls`, below the palettes,
+and in the `/styleguide` theme lab; `$store.theme.highContrast` / `setContrast`, input `[data-contrast-toggle]`) writes the
+cookie `bcm-contrast=high|normal`, per browser and not in the account. Without that cookie `theme-init.js` follows the
+operating system's `prefers-contrast: more`.
 
 **Mode** is System by default (follows the operating system), or Light / Dark. **Palette** and mode are chosen in the
 settings menu (gear icon in the header) and kept in the `bcm-theme` cookie as `<palette>.<mode>`
@@ -148,7 +167,7 @@ that slides over the page (Alpine state `open`, closed by the backdrop, Esc or c
 outside `#main`, so Alpine keeps `path` in step with htmx navigation to mark the current link (`aria-current="page"`).
 
 Sidebar order: **Administration** (superusers only, gold-outlined so it stands apart, a 404 for everybody else),
-Campaigns (`/campaigns`, the list; `/` shows the same list when there is no valid last-campaign cookie, otherwise it redirects to the campaign last opened, see [auth.md](auth.md)) with a sub-menu of the user's active campaigns, Glossary; at the bottom the user's name, Account and Sign out. The sub-menu shows on the main page and inside any campaign; its items are drawn into every full page (`pageBase.base` asks `NavCampaigns` for a signed-in user, `NavInline`; the main page uses its own list, `NavOwn`), so there is no extra request. An htmx content swap has no sidebar and skips the query; if the list cannot be read the sidebar falls back to fetching `GET /nav/campaigns` on load. The list is refetched there only when it changes (`campaigns-changed`). Only the campaign you are in is expanded, with its pages (Overview, Companies, Rankings,
+Campaigns (`/campaigns`, the list; `/` shows the same list when there is no valid last-campaign cookie, otherwise it redirects to the campaign last opened, see [auth.md](auth.md)) with a sub-menu of the user's active campaigns, Glossary; at the bottom the user's name, Account and Sign out. The sub-menu shows on the main page and inside any campaign; its items are drawn into every full page (`pageBase.base` asks `NavCampaigns` for a signed-in user, `NavInline`; the main page uses its own list, `NavOwn`), so there is no extra request. An htmx content swap has no sidebar and skips the query; if the list cannot be read the sidebar falls back to fetching `GET /nav/campaigns` on load. The list is refetched there only when it changes (`campaigns-changed`). Only the campaign you are in is expanded, with its pages (Overview, My Company, Armory, Rankings,
 Matches; the current one marked) under it, and is marked with an accent bar, soft fill and a faint gold glow;
 switching campaign collapses the previous one while the new one expands, both animating their height together (a
 grid-rows 0fr/1fr transition, collapsed lists `inert`; an `x-transition` made the leaving list linger and the sidebar
@@ -181,10 +200,13 @@ campaigns are searched only while "Show finished campaigns" is on.
 
 ## Campaign pages
 
-`/campaigns/{id}` has seven tabs, each its own URL and page (the header and tabs are the `campaign_header` partial;
+`/campaigns/{id}` has six tabs, each its own URL and page (the header and tabs are the `campaign_header` partial;
 `campaignBase` carries the campaign and the current tab): **Overview** (your company or "create my company", campaign
 facts, rules files, latest matches), **My Company** (your company: the page "Manage company" opens; your company's own
-URL under `/companies/{id}` redirects to `/campaigns/{id}/my-company/{company}`), **Armory**, **Companies** (everybody's; another company opens read only, yours redirects to My Company), **Rankings**, **Matches** and **Glossary** (the glossary this campaign is played with). The sidebar lists the
+URL under `/companies/{id}` redirects to `/campaigns/{id}/my-company/{company}`), **Armory**, **Rankings** (every company of the campaign, by points; another company opens read only, yours redirects to My Company;
+`/campaigns/{id}/companies`, the old Companies tab, redirects here), **Matches** and **Glossary** (the glossary this campaign is played with). Entering a campaign (its name in the sidebar, its card on the campaign list, the
+last-campaign redirect of `/`, an invite link) opens **My Company** (`/campaigns/{id}/my-company`), the page a player uses most; the
+Overview stays the first tab, at `/campaigns/{id}`. The sidebar lists the
 same tabs under the campaign you are in.
 
 - **Manage campaign** card on the Overview (`CanManage`: the organiser and administrators; `campaign_manage.go`, template `manage_card`): the
@@ -319,17 +341,46 @@ The page adds no component: it reuses the report partial, `card`, `field` and `a
 The My Company tab shows, in this order, a row of Points, Units (current / the company's maximum), Matches and W / D / L, a row
 of Influence, Gold and the limits, (bows and crossbows, throwing weapons and
 cavalry: a third of the company by default, `limits[]` of the rules file through `BCBook.Limits`; `CompanyLimit.Next` is the maximum once one more model has joined, because a model that
-joins counts in the numerator and the denominator: 6 models with 2 bows may take a 7th bow model, `RoomForNew`) and one **card per unit**, in the company's order
+joins counts in the numerator and the denominator: 6 models with 2 bows may take a 7th bow model, `RoomForNew`; each limit is a
+segmented bar like the experience one, `.xp-bar.limit-bar` with `--seg` = `CompanyLimit.Segments`: one segment per allowed model, the
+counted ones filled from the left, and at the right end one **hatched** segment (`.limit-exempt`) per model or item the
+company's exemptions leave out, `CompanyLimit.Exempt`; the numbers then read "0 / 2 · total 1" (a Rider of Rohan in a company
+where they do not count), with the explanation in the tooltip) and one **card per unit**, in the company's order
 (`core.OrderUnits`: leader, sergeants, other heroes, regular units, unless the player saved another order).
 
 A card, top to bottom:
-- **Frame and insignia** for the unit's place, with no text tag: leader gold and doubled with a crown, sergeant doubled
-  accent with a star, other heroes solid accent with three chevrons, regular units thin.
-- **Kind icon** (top left), a filled silhouette: a knight in a great helm for infantry, a horse for cavalry (the same horse is the
-  mount icon in the equipment list), a wolf for beasts, a horned dragon for monsters, an oliphaunt for monstrous cavalry
-  (`core.KindOf` from the vanilla unit types).
+- **Frame and insignia** for the unit's place, with no text tag, each in its own colour in every palette (the game colours):
+  leader amber and doubled with three rank chevrons, sergeant green and doubled with two, other heroes solid blue with
+  one, regular units thin. The shape of the insignia tells them apart without colour.
+- **Title plate** (`.unit-head`) across the top: kind icon, the name (a click renames, see "Renaming units") over a second line
+  that is always there (the type when the unit has its own name, the points against its right edge, so every plate is the icon's 48 px), and alone on the
+  right the insignia, large (`.unit-rank`, 40 px; a warrior has none); tinted by the same place (`leader-soft`, `sergeant-soft`, `hero-soft`, a warrior's plain) and by `danger-soft`
+  while the unit is injured (its frame turns danger too). Injuries and the live badges follow under it.
+- **Kind icon** (left of the plate), a filled game-icons.net icon (CC BY 3.0, credited in `static/img/CREDITS.md`): a swordwoman for
+  infantry, a cavalry charge for cavalry, a wolf head for beasts, an orc head for monsters and a dragon head for monstrous
+  cavalry (`core.KindOf` from the vanilla unit types). On the plate it is a fixed 3 rem tile with the glyph almost to its edges,
+  centred: a name that wraps makes the plate taller, never the icon (`.kind-icon`, 2.25 rem elsewhere, and
+  `.unit-head > .kind-icon` in `tailwind.css`). The equipment and item icons are
+  game-icons.net icons too (the lance is a mounted knight), except the horn of instruments (SVG Repo, CC0) and our own
+  stroke icons for an unknown class or item. Barding is Lorc's armoured horse head, apart from the mount's plainer one. Some items get their own icon by name (`core.IconFor`)
+  instead of their class's: wargs, camels and goats, the armoured horse (the barding head), hand-and-a-half weapons,
+  hammers and mattocks, twin blades, natural weapons (claws, teeth, fangs), the glaive, throwing spears, smoke bombs, the
+  troll chain, the whip, light and heavy armour, small shields and the pavise. Some share a drawing and differ by colour: the
+  Galadhrim Steed is a green horse, the pony a grey one. An item without its own icon shows one per class, the later ones
+  smaller: the halberd is spears and a two-handed axe. The main icon of an Elven weapon (`core.IsElvenWeapon`: Elven and
+  Elven-made weapons, the Wood Elf Spear), which wins a drawn combat's roll-off more often, carries a small green leaf on its
+  corner (our own `elven-leaf`, the `M` mark of `gi_icon`) and keeps its class's colour, since nearly every weapon of an elven
+  company is one. The earlier icons are kept in `static/img/archive/`.
+  In a gear chip of the card the icon is 1.375 rem. **Gear style**, a per-browser choice in the "Unit cards" section of `theme_controls` (the
+  Appearance menu and the Account page; `$store.theme.gear` / `setGear`, buttons `[data-gear-option]`): "Icon and name" (default) or "Icons only",
+  which writes the cookie `bcm-gear=tiles`; `theme-init.js` then sets `data-gear="tiles"` on `<html>` before the first paint and `tailwind.css`
+  draws every gear chip with an icon on a unit card as a 2.25 rem tile with a 1.75 rem icon. The name and numbers stay in the chip for screen
+  readers (visually hidden) and show in its tooltip, or in its `title` when the item has no tooltip, and on the expanded card; a struck item fades. Below
+  the buttons a sample (`[data-gear-preview]`, a `.unit` list of four chips, hidden from screen readers) shows the chosen style, since it
+  follows the same `<html>` attribute.
 - **Name** (units are nameable), **type** and **points** (plain text, no box).
-- **Keyword row** (`keyword_row` in `partials/units.gohtml`, spec [`unit-keywords.md`](unit-keywords.md)), directly under the name and type line:
+- **Keyword row** (`keyword_row` in `partials/units.gohtml`, spec [`unit-keywords.md`](unit-keywords.md)), in the bottom right corner of the card,
+  below the experience line, with small chips (`.unit-kw` inside `.unit-foot`: seldom needed at the table, so out of the way; the full list, when open, is left aligned):
   chips for the unit's race, factions and the unit types no other part of the card says, at most 5, race first. The web layer (`notShownKeywords`
   in `internal/web/keywords.go`, one set for row and full list) draws **no chip** for Hero and Warrior (frame and insignia), Mount (the gear),
   or Infantry, Cavalry, Beast, War Beast and Monster (the kind icon); Unique, Elite, Swarm, Chariot and the siege types stay. core still computes
@@ -352,7 +403,7 @@ A card, top to bottom:
   know the parameter). The expanded card prints the line (`data-works`) under each rule. An own rule and a rule the table does not list have no line; a
   ruleset without `data.ruleTargets` has plain tooltips. **Nothing is highlighted on the unit's own card** for an enemy rule.
 - **Attributes** from the vanilla file's `stats` list (`VanillaBook.Stats/Profile`): Mv FV SV S D A W C I, then M W F for
-  heroes that have any. Values the company raised are green, lowered red; hovering shows the full name. The backend
+  heroes that have any, as a datasheet profile (`.statline`, `.statline-hero`, framed in `muted`): the names on a strip above the values. Values the company raised are green, lowered red; hovering shows the full name. The backend
   fills them dynamically; the page just draws what it is given.
 - **Buy buttons**: two small `+` chips (`eq-add eq-add-sm`, text size) open the armoury window filtered with `?kind=wargear`
   (right after the "Wargear" label, which has its own line, items below) or `?kind=equipment` (right after the "Equipment"
@@ -364,23 +415,34 @@ A card, top to bottom:
 - **Equipment**, always sorted mount, melee, shield, armour, ranged, rest (`core.SortEquipment`); each class has its own
   icon and colour, and an item can be several things (a blade-spear shows a spear and a blade icon and counts for each). Starting items are plain, bought ones carry a `+` and an accent fill, items with stats show them
   (`24" · S2`) and items with rules have a dashed outline and a `?`, with a hover preview.
-- **Path** (every hero, the leader and sergeants included): a box between the equipment and the special rules with the
-  path's name, the heroic actions unlocked so far (the unit's own, the path's and those bought later; their text comes
+- **Path** (every hero, the leader and sergeants included): a box between the equipment and the special rules, headed by the path's icon (one game-icons.net icon per path in a round badge, `path_icon`; also in the
+  path window and the fallen card) and its name, the "Path of the" lead small above the rest (`pathLook` in `paths.go`; on the unit card and the fallen card the name alone, beside a smaller badge, `path_name` with Short). Badge
+  and box take the colour of the kind of hero the path makes: melee red (`path-melee`), ranged green (`path-ranged`), command
+  amber (`leader`), magic blue (`path-magic`), the rest muted; a path the app does not know gets the medal. The name's tooltip is the glossary's text
+  of the path with its characteristic limits and level-up chart, as in the level-up window. Folded, it lists the heroic actions unlocked so far (the unit's own, the path's and those bought later; their text comes
   from the glossary term of the same name) and the special rules the path gave, and the magical powers it taught (the Path of the Sorcerer; a spell icon with
-  casting value and range). Those rules are not repeated below
-  (`CompanyUnit.Path`). Magical powers a unit knows from some other source stay among the special rules, after its own rules.
+  casting value and range); unfolded, the same heading opens a section that has them in full. Those rules are not repeated below (`CompanyUnit.Path`). Magical powers a unit knows from some other source stay among the special rules, after its own rules.
 - **Special rules**, sorted unit, spells, equipment (`core.SortRules`); spells are highlighted with a star,
   their casting value and range; every rule previews its description on hover.
-- **Level and experience**: Lvl and a bar of `XPInLevel / 5` at the bottom. A unit with promotions waiting gets a gold
+- **Level and experience**: the level on a gold medal (`.level-medal`) and a bar of `XPInLevel / 5` cut into one segment per
+  point (`.xp-bar`, `--seg` is `LevelEvery`; filled in `muted`, `.xp-fill`, or `warn` while a level-up waits) at the bottom. A unit with promotions waiting gets a gold
   **"Level Up ready!" banner across the top of its card** (a slow shine, a Roll chip; it is the level-up button). A unit gains a
   level only when its roll is made, so it can have several rolls pending (15 XP at level 0 is "×3",
-  `PendingLevelUps`). The banner opens the level-up panel (roll, re-roll, choose; `levelup.go`).
+  `PendingLevelUps`). The banner opens the level-up panel (roll, re-roll, choose; `levelup.go`). In a running match the experience earned so
+  far (`LiveUnit.MatchXP`, `core.MatchExperience`: taking part, the gains and the objective at the file's amounts; the MVP, Against the Odds
+  and scenario rewards only come at the end) follows the fill in the magic path's colour (`--hero`, `.xp-match`), up to the end of the level,
+  and the count reads "+2 0 / 5 XP" with the "+2" in the same colour (`.xp-match-text`; the bar's `aria-valuetext` says it too).
 
 **Item icons.** Every item has an icon: specific ones by name (backpack, badge, rope, drum, horn, standard, cloak, brew, herbs,
 talisman, map, boots, ring, scroll, seeing stone, torch, snares, pelt, cram, belt, vial, blowpipe, axe, barding;
 `core.IconFor`), the class icons for weapons, armour, shields, bows and mounts (a blade-spear shows two), and a generic
 **pouch (small)** or **chest (large)** for equipment the rules data adds that has no icon yet. The icons are in
-`partials/units.gohtml` (`item_icon`, `eq_icon`, `gear_icons`); add a name to `iconRules` and a drawing to give a new item its own.
+sprite `static/img/gi.svg` (one `<symbol>` per icon, drawn with `<use href>` by `gi_icon`, so a page carries a reference per icon and
+the browser caches the drawings); `internal/web/icons.go` says which icon draws what (`kindIcons`, `roleLooks`, and `gearLooks` by item
+class and item key, each with a tone: the `.eq-tone-*` colour of a class, so items drawn more precisely than by their class still group
+by colour), and `partials/units.gohtml` draws them (`item_icon`, `eq_icon`, `gear_icons`). To give a new item its own icon, add a name
+to `iconRules`, its key to `gearLooks` and the symbol to the sprite (with its credit in `static/img/CREDITS.md`); `icons_test.go` fails
+on a key with no look, a name missing from the sprite and a symbol nothing draws.
 
 **What the cards read from the data.** An item's classes, granted rules and missile profile come from the Battle Companies
 file's `data.gearAnnotations` (`BCBook.Annotation`), not from guessing its name. The classes are mount, melee, two_handed,
@@ -630,7 +692,7 @@ starting company, reinforcement and special charts, special units, the promotion
 hero upgrades, special rules, free rules, own-name units, exchanges) and its limits and notes. Every unit named (in the starting
 company, charts, special units and promotions) shows its card on hover or focus (`core.UnitPreview`, drawn from the vanilla profiles;
 a company's own label for a unit is resolved to the profile it is); items and rules show their text. The creation form is part of the
-page. The page ends with **Take command**: three places (a leader with a crown, two sergeants with a star) and, below them, the
+page. The page ends with **Take command**: three places (a leader with three chevrons, two sergeants with two) and, below them, the
 starting models. The player drags three models into the places (SortableJS; a model dropped on a taken place sends the one that was
 there back to the pool) or uses the Leader, Sergeant and Remove buttons of a card, which also work with a keyboard. Models the
 company does not let lead (`startingHeroRestriction`: Lake-town only the Lake-town Guard, Cirith Ungol not the Spider) cannot be
@@ -676,9 +738,13 @@ Shire).
 
 ### Renaming units
 
-A unit is renamed by double-clicking its name, or with the pencil next to the name on the expanded card (the collapsed card shows no
-extra button, so nothing moves). The name is at most 40 characters; an empty name takes the unit back to its type. Rules that aim at a
-unit use its id, so they follow the new name (`campaigns.RenameUnit`).
+A unit is renamed by clicking its name (`.unit-name`, a button that reads as the title; a dotted underline on hover and focus says it
+can be changed). There is no separate pencil. The field then takes the plate beside the kind icon, with Cancel and Save under it: Enter
+saves, Escape gives up, and a click elsewhere saves a change (or just closes when nothing changed). It always opens on the saved name.
+The field's placeholder is the unit's type: the name is at most 40 characters and an empty one takes the unit back to its type. Rules
+that aim at a unit use its id, so they follow the new name (`campaigns.RenameUnit`). The form is shown with a `:class`, not
+`x-show`: Alpine shows an element with a `@click.outside` one frame late, which would leave nothing to focus. The browser
+flow `82-company-ui` covers it.
 
 ### Copy as a Tabletop Simulator army list
 
@@ -844,9 +910,9 @@ Roster, promotions (level-up, advancements) and injuries (Heal) are the cards of
   "Used (n)". Empty state when there are none.
 - **History card** (`history_card`): the latest 20 aftermath lines (`CompanyDetail.History`), newest first, on both company
   pages; the grants have their own card. Every `core.AftermathLine` carries `Match` (number), `MatchID` and `On` (when the aftermath was finished, else started, else when the match ended; zero when unknown), on `CompanyDetail.History` and on `Aftermath.Lines` of the match page. The card shows "Match N" as a link to `/campaigns/{id}/matches/{MatchID}` (not on the match page itself) and the date through the viewer's time zone formatter (`fmtDateShort`); the card takes `(dict "Lines" … "CID" campaign id)`.
-- The company page of somebody else (`/campaigns/{id}/companies/{company}`, from the Companies tab) is the **My Company page, read
+- The company page of somebody else (`/campaigns/{id}/companies/{company}`, from the Rankings) is the **My Company page, read
   only** (`myCompanyView.ReadOnly`, same template `campaign_my_company`): a "Viewing X, the company of Y. Read only" banner with a
-  link back to all companies, the same stats, limits, full unit cards (expandable, tooltips) and cemetery, creatures, perks
+  link back to all companies (the Rankings), the same stats, limits, full unit cards (expandable, tooltips) and cemetery, creatures, perks
   (no "use" button) and history; no rename, recruit, formation, buy, drop, heal, level-up, path, pack or dismiss controls and
   no buy window. The organiser's award form of the grants card stays. Your own company's URL redirects to `/my-company/{company}`.
 
@@ -863,7 +929,8 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
   - `#live-zones` (`live_zones`): the Field as unit cards, then **Retreated**, **Field casualties** and **Missed this game** as
     one-line headers with a count ("None" when empty) and compact cards (`live_compact`: badge, reason, **Return to the battle** for
     who may edit), then the Cemetery. `GET /campaigns/{id}/companies/{company}/live` answers `#live-zones` alone (its `data-seq` is the
-    match's last sequence).
+    match's last sequence). Every control that answers the zones (trackers, milestones, the turn, the Break Point, the courage and item
+    windows) takes the `hx_zones` attributes: it replaces `#live-zones`, and `hx-sync` queues the presses one at a time.
   - Another player's company is the same page read only (`ReadOnly`); an editor who is not the owner (organiser, administrator) has the
     trackers and actions on it. Viewers see `current / start` without buttons.
 - **The opponent's keywords and "applies" markers** (`kw_applies`, `keyword_flat` in `partials/units.gohtml`; [unit-keywords.md](unit-keywords.md) "Rule targets"):
@@ -877,12 +944,26 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
   viewer's side and of the company on the page, each read through `Live` and `CompanyDetail`), so the refresh of `#live-zones` redraws the markers and a
   unit that retreats or falls loses its marker; a viewer with no company in the match, and the viewer's own side, get none. Without `data.ruleTargets`
   no rule has targets and nothing is marked. Read errors of the extra companies drop the markers, never the page.
-- **Trackers** (`live_trackers`, replace W, Might, Will, Fate in the attribute row): `-` and `+` (44 px high), a tap on the number opens a
-  "set to" field; the buttons are disabled at 0 and at the start value; the number is red at 0 (and at 1 for Wounds when it started higher).
+- **Trackers** (`live_trackers`, replace W, Might, Will, Fate in the attribute row; `.tracker*`, `.seg-hit` in `tailwind.css`): a segmented bar
+  like the experience one, led by the stat's full name (Might, Will, Fate, Wounds), one segment per point of the start value, full up to the
+  current one, then `current/start`; Wounds uses hearts instead of segments, inside the same 16 px row. One stat per row,
+  left-aligned so the bars line up, and the counts in a column after the longest bar (the rows are subgrids of one grid): Might, Will and Fate (heroes) in that order, then Wounds, always shown, also when it starts at 1 (a plain
+  warrior): taking it to 0 makes the unit a Field casualty, as Died does. Each stat has its own colour on its bold name and its bar: the theme tokens of the path kinds (`.path-k-*`), so
+  gold Might (command), hero blue Will (magic), success green Fate (ranged) and danger red Wounds (melee, as the Soldier) (an empty segment or heart is a faint tint of it with a thin outline that
+  does not change its size). The owner taps a segment (22 x 16 px):
+  the last full one is `delta -1` ("... down by one"), the first empty one `delta +1` ("... up by one"), any other `set` to that segment
+  ("Set ... to N"); a viewer gets the same bars as marks. Above 10 segments a tracker falls back to the number between 28 px `-` and `+`.
   Each press is one `POST .../matches/{match}/live/{company}/actions` (`kind=stat`, `unit`, `stat`, `delta` or `set`), answered by
   `live_response`: the zones plus an out-of-band **toast** (`#live-toast`) with the log text and **Undo**, or, on a refusal, 422 with
   the state as it is and the reason as the toast. A viewer's write is 403. Live POSTs are not wrapped in `once()`.
-- **Actions** button on each field card (editors): opens the company window with the list (Wounded a unit, Passed a fate roll, Passed a
+- **Milestones** row on each field card (`liveView.Milestones` in `live_milestones.go` builds them, `live_actions_menu` and `milestone` in
+  `company_panels.gohtml` draw them, `.milestone*` in `tailwind.css`): Wounded,
+  Fate, Courage and Objective (`aria-pressed`; off dashed and muted, on filled with the accent and a tick), buttons for editors and marks
+  (`role="img"`) for viewers. Wounded opens its sheet, whose `live_recorded` block lists the unit's wound entries with Undo (`UnitLog`:
+  the unit's not-undone entries of one kind, filtered in the query); Fate, Courage
+  and Objective post to the actions route at once (`fate` with `count=0`, only the mark, `broken`, `objective`), and a lit Fate or Courage posts the undo of
+  `LiveUnit.FateEntry` / `BrokenEntry`. Below, `.live-actions` (editors, icon above the label, only while the unit has a loaned item to
+  spend): Item used opens its sheet. The route also serves the list of every action (`sheet/menu`, which no card opens now: Wounded a unit, Passed a fate roll, Passed a
   Broken courage roll, Retreated, Died, Mount removed/re-added; Fate and Mount only when the unit has them), each opening its sheet
   (`GET .../live/{company}/units/{unit}/sheet/{kind}`, `live_sheet`). **Wounded a unit** lists the enemies in the Field (then the same
   side after a "Friendly fire" divider), with search, Rider/Mount for a mounted target, wounds caused and saved by Fate steppers

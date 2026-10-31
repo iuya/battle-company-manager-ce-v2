@@ -30,7 +30,7 @@
   {{range .Campaigns}}
   <li data-name="{{.Name}}" x-show="shows($el)" class="card relative flex flex-col gap-3 hover:bg-raised {{if eq .Status "finished"}}opacity-75{{end}}">
     <div class="flex items-start justify-between gap-3">
-      <h2 class="!text-2xl"><a href="/campaigns/{{.ID}}" class="text-fg no-underline after:absolute after:inset-0 hover:no-underline">{{.Name}}</a></h2>
+      <h2 class="!text-2xl"><a href="/campaigns/{{.ID}}/my-company" class="text-fg no-underline after:absolute after:inset-0 hover:no-underline">{{.Name}}</a></h2>
       {{if eq .Status "paused"}}<span class="badge badge-muted shrink-0">Paused</span>{{else if eq .Status "finished"}}<span class="badge badge-muted shrink-0">Finished</span>{{else}}<span class="badge shrink-0">Active</span>{{end}}
     </div>
     {{with .Description}}<p class="text-sm text-muted">{{.}}</p>{{end}}

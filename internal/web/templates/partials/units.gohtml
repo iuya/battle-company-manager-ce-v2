@@ -1,89 +1,47 @@
-{{/* ---- Icons. Everything is a 24x24 stroke icon coloured by its parent (currentColor). ---- */}}
+{{/* ---- Icons, coloured by their parent (currentColor): filled icons of the sprite static/img/gi.svg (icons.go) and a few 24x24
+   stroke icons of our own. ---- */}}
 
-{{/* The horse head used for cavalry units and for mounts. */}}
-{{define "horse_path"}}<path d="M4 22v-2c0-.6.4-1 1-1h1.2C6.4 15.5 8 13.2 9.5 12 8 12 6.4 11.6 5.4 11.3L3.6 8.6 9.6 3.8 10.8 1.6 13 3.7c4.3 1 7.5 4.7 7.5 9.5V19c.6 0 1 .4 1 1v2zM12.3 6.8a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8z"/>{{end}}
+{{/* An icon of the sprite. Takes {N: name, C: the svg classes, M: an optional mark drawn on its bottom-right corner}. */}}
+{{define "gi_icon"}}<svg class="{{.C}}" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true"><use href="{{iconHref .N}}"/>{{with .M}}<use class="gi-mark" href="{{iconHref .}}" x="272" y="272" width="240" height="240"/>{{end}}</svg>{{end}}
 
-{{/* The kind of unit as a filled silhouette: a knight in a great helm (infantry), a horse (cavalry, also the mount icon), a wolf
-   (beast), a horned dragon (monster), an oliphaunt (monstrous cavalry). Takes a core.UnitKind. The earlier outline icons are in
-   static/img/archive. */}}
+{{/* The kind of unit as a filled icon (kindIcon). Takes a core.UnitKind. The earlier icons are in static/img/archive. */}}
 {{define "kind_icon"}}
-<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-raised text-fg" title="{{.Label}}" role="img" aria-label="{{.Label}}">
-  <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true">
-    {{if eq (printf "%s" .) "cavalry"}}{{template "horse_path"}}
-    {{else if eq (printf "%s" .) "beast"}}<path d="M4.5 2.5l4.7 5.5h5.6l4.7-5.5 1.3 10.2-4.3 4.3-3.1 5.5h-2.8L7.5 17 3.2 12.7zM8 11.4l2.8 1.1-.3 1.1-3-.9zM16 11.4l-2.8 1.1.3 1.1 3-.9zM10.6 17.8h2.8L12 19.7z"/>
-    {{else if eq (printf "%s" .) "monster"}}<path d="M8 7C5 7 2.5 5 2 1.5c3 1 6 1.8 8.5 3zM16 7c3 0 5.5-2 6-5.5-3 1-6 1.8-8.5 3zM5.7 11L2 12.6l4 2.2zM18.3 11l3.7 1.6-4 2.2z"/><path d="M12 4c3.6 0 6.5 1.8 6.5 5.5 0 2-.8 3.4-1.7 4.5l-.8 3.2L12 22l-4-4.8-.8-3.2C6.3 12.9 5.5 11.5 5.5 9.5 5.5 5.8 8.4 4 12 4zM7.6 8.6l3.4 1.5-.2 1.2-3.7-1.1zM16.4 8.6L13 10.1l.2 1.2 3.7-1.1zM10.3 13.4a.7.7 0 1 0 0 1.4.7.7 0 0 0 0-1.4zM13.7 13.4a.7.7 0 1 0 0 1.4.7.7 0 0 0 0-1.4zM8.6 17h6.8l-.8 1.6H9.4z"/><path d="M9.4 17l.5 2.6 1-1.5zM14.6 17l-.5 2.6-1-1.5z"/>
-    {{else if eq (printf "%s" .) "monstrous_cavalry"}}<path d="M8 6.5C3.3 4.2 1 7.6 1.8 12.6c.8 4.6 4.2 5.9 6.2 4.4zM16 6.5c4.7-2.3 7 1.1 6.2 6.1-.8 4.6-4.2 5.9-6.2 4.4z"/><path d="M12 3C9.2 3 7.3 4.5 7.3 7V12c0 2 1.2 2.8 2.7 3.2V20c0 1.8 1 3 2.3 3s2.2-1.2 2.2-3v-4.8c1.5-.4 2.7-1.2 2.7-3.2V7c0-2.5-1.9-4-4.7-4zM9.3 8.4a1 1 0 1 0 0 2 1 1 0 0 0 0-2zM14.7 8.4a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/><path d="M8.6 14.6C6.4 15.8 5.1 17.9 5.1 20.6c1.4-.5 3.9-2.1 4.7-4.6zM15.4 14.6c2.2 1.2 3.5 3.3 3.5 6-1.4-.5-3.9-2.1-4.7-4.6z"/>
-    {{else}}<path d="M6.5 2.5h11l1 11.5c0 3-2 5.2-3.6 6.2H9.1C7.5 19.2 5.5 17 5.5 14zM7.8 8.4h8.4V10H7.8zM11.2 10h1.6v6.5h-1.6z"/><path d="M2.5 22c.4-2.7 2.3-4 4.8-4.5l1.6 1.4h6.2l1.6-1.4c2.5.5 4.4 1.8 4.8 4.5z"/>{{end}}
-  </svg>
+<span class="kind-icon flex shrink-0 items-center justify-center rounded-lg bg-raised text-fg" title="{{.Label}}" role="img" aria-label="{{.Label}}">
+  {{template "gi_icon" (dict "N" (kindIcon .) "C" "")}}
 </span>
 {{end}}
 
-{{/* A military insignia for the unit's place in the company: a crown for the leader, a star for a sergeant, three chevrons for another hero. Takes the role. */}}
-{{define "role_insignia"}}
-{{if eq (printf "%s" .) "leader"}}<svg class="insignia insignia-leader h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="Leader"><title>Leader</title><path d="M3 8l4.6 4.2L12 4.5l4.4 7.7L21 8l-1.8 10H4.8zM5 19.5h14V21H5z"/></svg>
-{{else if eq (printf "%s" .) "sergeant"}}<svg class="insignia insignia-sergeant h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="Sergeant"><title>Sergeant</title><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z"/></svg>
-{{else if eq (printf "%s" .) "hero"}}<svg class="insignia insignia-hero h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Hero"><title>Hero</title><path d="M4.5 8l7.5-4.5L19.5 8M4.5 13.5L12 9l7.5 4.5M4.5 19L12 14.5 19.5 19"/></svg>{{end}}
-{{end}}
+{{/* A military insignia for the unit's place in the company (roleLook); nothing for a warrior. Takes the role. */}}
+{{define "role_insignia"}}{{$r := .}}{{with roleLook .}}{{if .Icon}}<svg class="insignia insignia-{{$r}} h-5 w-5 shrink-0" viewBox="0 0 512 512" fill="currentColor" role="img" aria-label="{{.Label}}"><title>{{.Label}}</title><use href="{{iconHref .Icon}}"/></svg>{{end}}{{end}}{{end}}
 
-{{/* A class of equipment. Takes a core.EquipmentClass. */}}
-{{define "eq_icon"}}
-{{if eq (printf "%s" .) "mount"}}<svg class="eq-ic eq-ic-mount h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true">{{template "horse_path"}}</svg>{{else}}
-<svg class="eq-ic eq-ic-{{.}} h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-  {{if eq (printf "%s" .) "melee"}}<path d="M20 4L9 15M7 11l6 6M5.5 18.5L9 15"/>
-  {{else if eq (printf "%s" .) "two_handed"}}<path d="M21 3L8 16M6.5 11.5l6 6M4 20l4-4"/>
-  {{else if eq (printf "%s" .) "spear"}}<path d="M4 20L17 7M15 5l5-2-2 5z"/>
-  {{else if eq (printf "%s" .) "lance"}}<path d="M3 21L19 5M14 8l6-1-3 5zM17 3l4 4"/>
-  {{else if eq (printf "%s" .) "missile"}}<path d="M4 20L19 5M17 3l4 4M3 21l2-2"/>
-  {{else if eq (printf "%s" .) "consumable"}}<path d="M10 3h4M11 3v6l-5 9a2 2 0 0 0 1.700 3h8.600a2 2 0 0 0 1.700-3l-5-9V3M8.500 15h7"/>
-  {{else if eq (printf "%s" .) "shield"}}<path d="M12 3l7 3v5c0 4.5-3 7.5-7 9.5-4-2-7-5-7-9.5V6z"/>
-  {{else if eq (printf "%s" .) "armour"}}<path d="M8 4L4 7l2 4h2v9h8v-9h2l2-4-4-3c-.5 1.5-2 2.5-4 2.5S8.5 5.5 8 4z"/>
-  {{else if eq (printf "%s" .) "bow"}}<path d="M6 3c9 2 14 8 14 18M6 3l14 18M3 21L21 3"/>
-  {{else if eq (printf "%s" .) "crossbow"}}<path d="M3 9c5-4 13-4 18 0M12 7v13M3 9l9 4 9-4"/>
-  {{else if eq (printf "%s" .) "throwing"}}<path d="M5 20L15 10M13 4c3 0 6 2 7 5-2 2-5 2-7 1z"/>
-  {{else if eq (printf "%s" .) "banner"}}<path d="M6 21V3M6 4h13l-3 4 3 4H6"/>
-  {{else if eq (printf "%s" .) "instrument"}}<path d="M3 14l12-6v10zM15 10c3 0 5 1 6 2-1 1-3 2-6 2"/>
-  {{else}}<path d="M12 4l8 8-8 8-8-8z"/>{{end}}
-</svg>{{end}}
-{{end}}
+{{/* A class of equipment (gearLook). Takes a core.EquipmentClass or its name. */}}
+{{define "eq_icon"}}{{template "gear_icon" (gearLook .)}}{{end}}
 
-{{/* Icons for specific items (a ring, a scroll, boots...), by key (core.IconFor). "generic-small" and "generic-large" draw any
-   piece of equipment that has no icon of its own yet: a pouch and a chest. */}}
-{{define "item_icon"}}
-{{if eq . "banner"}}{{template "eq_icon" "banner"}}{{else if eq . "horn"}}{{template "eq_icon" "instrument"}}{{else if eq . "instrument"}}{{template "eq_icon" "instrument"}}{{else}}
-<svg class="eq-ic eq-ic-{{.}} h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-  {{if eq . "backpack"}}<path d="M8 8c0-2.8 1.8-5 4-5s4 2.2 4 5M6 8h12v13H6zM9 14h6v4H9z"/>
-  {{else if eq . "badge"}}<circle cx="12" cy="9" r="4.5"/><path d="M9 13.5L7 21l5-3 5 3-2-7.5"/>
-  {{else if eq . "barding"}}<path d="M4 9l8-5 8 5v6l-8 5-8-5zM12 4v16M4 12h16"/>
-  {{else if eq . "rope"}}<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M20 12h2M12 20v2"/>
-  {{else if eq . "drum"}}<ellipse cx="12" cy="7" rx="7" ry="3"/><path d="M5 7v9c0 1.7 3.1 3 7 3s7-1.3 7-3V7M5 12l14 4M19 12L5 16"/>
-  {{else if eq . "cloak"}}<path d="M8 4h8l4 16-8-3-8 3zM9 4v3h6V4"/>
-  {{else if eq . "brew"}}<path d="M6 7h10v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM16 9h2a2 2 0 0 1 0 4h-2M9 3v2M12 3v2"/>
-  {{else if eq . "herbs"}}<path d="M12 21V8M12 13c-3.5 0-5.500-2.200-5.500-5.500C10 7.500 12 9.500 12 13zM12 17c3.500 0 5.500-2.200 5.500-5.500C14 11.500 12 13.500 12 17z"/>
-  {{else if eq . "talisman"}}<path d="M12 3l6 6-6 12L6 9zM6 9h12"/>
-  {{else if eq . "map"}}<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/>
-  {{else if eq . "boots"}}<path d="M7 3h6v8l6 3v5H5v-3l2-1z"/>
-  {{else if eq . "ring"}}<circle cx="12" cy="14.5" r="6"/><path d="M9 6.500l3-3.500 3 3.500-3 3z"/>
-  {{else if eq . "scroll"}}<path d="M7 4h10v13a3 3 0 0 0 3 3H9a2 2 0 0 1-2-2zM7 4a2 2 0 0 0-2 2v1h2M10 8h4M10 11h4M10 14h2"/>
-  {{else if eq . "orb"}}<circle cx="12" cy="10.500" r="6.500"/><path d="M8 20h8M9 8a4 4 0 0 1 3-1.500"/>
-  {{else if eq . "torch"}}<path d="M12 21v-6M12 3c1 3.500 4 5 4 9a4 4 0 0 1-8 0c0-2 1-3 2-4 0 2 1 2 1.500 1C11 7 11 5 12 3z"/>
-  {{else if eq . "snare"}}<path d="M3 15l3-5 3 5 3-5 3 5 3-5 3 5M3 19h18M6 15v4M12 15v4M18 15v4"/>
-  {{else if eq . "pelt"}}<path d="M5 6l4-2 3 2 3-2 4 2-2.500 4 2.500 4-3 6-4-2-4 2-3-6 2.500-4z"/>
-  {{else if eq . "cram"}}<path d="M5 12a7 5 0 0 1 14 0v6H5zM9 9.500v2.500M12 8.500V12M15 9.500V12"/>
-  {{else if eq . "belt"}}<path d="M3 9h18v6H3zM9.500 8v8h5V8z"/>
-  {{else if eq . "vial"}}<path d="M10 3h4M11 3v6l-5 9a2 2 0 0 0 1.700 3h8.600a2 2 0 0 0 1.700-3l-5-9V3M8.500 15h7"/>
-  {{else if eq . "blowpipe"}}<path d="M4 20L19 5M17 3l4 4M3 21l2-2"/>
-  {{else if eq . "axe"}}<path d="M6 21L16 9M13 4c3.500-.5 6.500 1.500 8 5-3 2-6 2-8 .5z"/>
-  {{else if eq . "generic-small"}}<path d="M9 3.500h6l-1.500 3h-3zM8.500 6.500C5 10 5 14.500 8 17.500c1.300 1.300 2.700 2 4 2s2.700-.7 4-2c3-3 3-7.500-.5-11z"/>
-  {{else}}<path d="M3 8l9-4 9 4v10l-9 4-9-4zM3 8l9 4 9-4M12 12v10"/>{{end}}
-</svg>{{end}}
-{{end}}
+{{/* Icons for specific items (a ring, a scroll, boots...), by key (core.IconFor, gearLook). "generic-small" and "generic-large" draw
+   any piece of equipment that has no icon of its own yet: a bag and a box. */}}
+{{define "item_icon"}}{{template "gear_icon" (gearLook .)}}{{end}}
+
+{{/* A gear icon in its tone. Takes a gearLookView. */}}
+{{define "gear_icon"}}{{template "gi_icon" (dict "N" .Icon "C" (printf "eq-ic eq-tone-%s" .Tone))}}{{end}}
+
+{{/* The main icon of an item, with its mark (a leaf on an Elven weapon). Takes an itemLookView. */}}
+{{define "item_main_icon"}}{{template "gi_icon" (dict "N" .Icon "C" (printf "eq-ic eq-tone-%s" .Tone) "M" .Mark)}}{{end}}
 
 {{/* The icon(s) of an item (core.Equipment or core.ArmouryItem): its own, or one per class (a blade-spear shows two). */}}
-{{define "gear_icons"}}{{if .Icon}}{{template "item_icon" .Icon}}{{else}}{{range $i, $c := .Classes}}{{if $i}}<span class="eq-secondary" title="Also {{$c}}">{{template "eq_icon" $c}}</span>{{else}}{{template "eq_icon" $c}}{{end}}{{end}}{{end}}{{end}}
+{{define "gear_icons"}}{{$n := .Name}}{{if .Icon}}{{template "item_main_icon" (itemLook .Icon $n)}}{{else}}{{range $i, $c := .Classes}}{{if $i}}<span class="eq-secondary" title="Also {{$c}}">{{template "eq_icon" $c}}</span>{{else}}{{template "item_main_icon" (itemLook $c $n)}}{{end}}{{end}}{{end}}{{end}}
 
 {{define "bolt_icon"}}<svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 2L5 13.5h5.5L9.5 22 19 9.5h-5.8z"/></svg>{{end}}
 
 {{define "spell_icon"}}<svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2 6.5L20.5 10 14 12l-2 8-2-8-6.5-2L10 8.5z"/></svg>{{end}}
+
+{{/* A hero's path as a game-icons.net icon in a round badge, one per path so they tell apart at a glance, coloured by the kind of
+   hero it makes (pathLook, see static/img/CREDITS.md). Takes the path's name. */}}
+{{define "path_icon"}}{{$l := pathLook .}}<span class="path-icon path-k-{{$l.Kind}}">{{template "gi_icon" (dict "N" $l.Icon "C" "")}}</span>{{end}}
+
+{{/* The heading of a hero's path box: its icon and name, the "Path of the" lead small above the rest, and (with Tip) the path's
+   text, limits and level-up chart in the tooltip. Takes {N: the name, Tip: the glossary text, Chart: tipPath's JSON, Short: on a
+   unit card, the name alone (no lead) beside a smaller icon}; the box around it carries path-k-{kind} for its colour. */}}
+{{define "path_name"}}{{$l := pathLook .N}}<span class="path-name{{if .Short}} path-name-short{{end}}" {{if .Tip}}tabindex="0" data-concept data-tip-title="{{.N}}" data-tip-meta="Hero's path" data-tip-text="{{.Tip}}"{{with .Chart}} data-tip-path="{{.}}"{{end}}{{end}}>{{template "path_icon" .N}}<span class="min-w-0">{{if not .Short}}{{with $l.Lead}}<span class="path-lead">{{.}} </span>{{end}}{{end}}<span class="path-main">{{$l.Main}}</span></span></span>{{end}}
 
 {{/* A description with the glossary terms it mentions as links (previewed on hover). Takes {S: []segView, CID: campaign id}. */}}
 {{define "segments"}}{{range .S}}{{if .TermID}}<a href="/campaigns/{{$.CID}}/glossary#t-{{.TermID}}" class="term-link" hx-boost="false" data-concept data-tip-title="{{.TipTitle}}" data-tip-text="{{.TipText}}">{{.Text}}</a>{{else}}{{.Text}}{{end}}{{end}}{{end}}
@@ -115,7 +73,7 @@
 {{end}}{{end}}
 
 {{define "gear_chip"}}
-<li class="eq-chip eq-{{.Class}} {{if and .Bought (not .Size)}}is-bought{{end}} {{if or .Description .Size .MountStats}}has-tip{{end}} {{if or .Disabled .Struck}}text-muted line-through{{end}}" {{if .Disabled}}title="No benefit while the hero has {{.Disabled}}"{{else if .Struck}}title="{{.Struck}}" aria-label="{{.Name}}, {{.Struck}}"{{end}} {{if or .Description .Size .MountStats}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="{{if .Exclusive}}Company-exclusive · {{end}}{{if .MountStats}}Mount{{else if .Bought}}Bought{{else}}Starting equipment{{end}}{{with .Size}} · {{.}} slot{{end}}{{with .Stats}} · {{.}}{{end}}"{{with .TipStats}} data-tip-stats="{{.}}"{{end}} data-tip-text="{{.Description}}{{range $i, $r := .MountRules}}{{if $i}}, {{else}}
+<li class="eq-chip eq-{{.Class}} {{if and .Bought (not .Size)}}is-bought{{end}} {{if or .Description .Size .MountStats}}has-tip{{end}} {{if or .Disabled .Struck}}text-muted line-through{{end}}" {{if .Disabled}}title="No benefit while the hero has {{.Disabled}}"{{else if .Struck}}title="{{.Struck}}" aria-label="{{.Name}}, {{.Struck}}"{{else if not (or .Description .Size .MountStats)}}title="{{.Name}}{{with .Stats}} · {{.}}{{end}}"{{end}} {{if or .Description .Size .MountStats}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="{{if .Exclusive}}Company-exclusive · {{end}}{{if .MountStats}}Mount{{else if .Bought}}Bought{{else}}Starting equipment{{end}}{{with .Size}} · {{.}} slot{{end}}{{with .Stats}} · {{.}}{{end}}"{{with .TipStats}} data-tip-stats="{{.}}"{{end}} data-tip-text="{{.Description}}{{range $i, $r := .MountRules}}{{if $i}}, {{else}}
 
 Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   {{template "gear_icons" .}}<span>{{if and .Bought (not .Size)}}+ {{end}}{{if .Modifies}}{{.Modifies}} · envenomed{{else}}{{.Name}}{{if .Poisoned}} · poisoned{{end}}{{end}}</span>{{with .Stats}}<span class="text-muted">{{.}}</span>{{end}}
@@ -181,7 +139,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     <button type="button" class="btn btn-ghost !min-h-7 !px-2" @click="move($el, 1)" aria-label="Move {{$u.Title}} later" title="Later">→</button>
   </span>
 </div>
-<article id="unit-{{$u.ID}}" class="card unit unit-{{$u.Role}} {{if $u.Injured}}unit-injured{{end}} flex flex-col gap-3 !p-4" :class="expanded === {{$u.ID}} && 'unit-expanded'">
+<article id="unit-{{$u.ID}}" class="card unit unit-{{$u.Role}} {{if $u.Injured}}unit-injured{{end}} flex flex-col gap-2 !p-4" :class="expanded === {{$u.ID}} && 'unit-expanded'">
 
   {{/* The expand button is part of the frame: a small tab flush in the top-right corner, taking no room from the content. */}}
   <button type="button" class="unit-corner" @click.stop="toggle({{$u.ID}}, $el)" :aria-expanded="expanded === {{$u.ID}}" :aria-label="expanded === {{$u.ID}} ? 'Close' : 'Expand unit'" :title="expanded === {{$u.ID}} ? 'Close' : 'Expand'">
@@ -204,21 +162,31 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </button>
   {{end}}
 
-  <div class="mt-1 flex items-start gap-3">
+  {{/* The title plate: what the unit is and its place in the company, tinted by that place. */}}
+  <header class="unit-head flex items-start gap-2 [&_.kind-icon]:bg-surface">
     {{template "kind_icon" $u.Kind}}
-    <div class="min-w-0 flex-1">
-      <h3 class="flex items-center gap-1.5 !text-xl leading-tight">{{template "role_insignia" $u.Role}}
-        <span class="min-w-0" x-show="editing !== {{$u.ID}}" {{if not $rn}}@dblclick="editName({{$u.ID}})" title="Double-click to rename"{{end}}>{{$u.Title}}</span>
-        {{if not $rn}}<button type="button" class="btn btn-ghost !min-h-7 !px-1.5 text-muted" x-show="expanded === {{$u.ID}} && editing !== {{$u.ID}}" x-cloak @click.stop="editName({{$u.ID}})" aria-label="Rename {{$u.Title}}" title="Rename"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg></button>
-        <form class="flex min-w-0 flex-1 items-center gap-1" x-show="editing === {{$u.ID}}" x-cloak method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/rename" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/rename" hx-target="#main" hx-swap="innerHTML">
-          <input id="rename-{{$u.ID}}" name="name" value="{{$u.Name}}" maxlength="40" placeholder="{{$u.Type}}" aria-label="Name of {{$u.Type}}" class="input !min-h-8 min-w-0 flex-1 !py-0.5 !text-base" @keydown.escape.stop.prevent="editing = null">
-          <button class="btn btn-primary !min-h-8 !px-2 !text-xs">Save</button>
-          <button type="button" class="btn btn-ghost !min-h-8 !px-2 !text-xs" @click="editing = null">Cancel</button>
-        </form>{{end}}
-      </h3>
-      {{if $u.Name}}<p class="mt-0.5 text-sm text-muted">{{$u.Type}}</p>{{end}}
-      {{/* Keywords: race, factions and the types the icon and insignia do not say; a lost mount changes none of them. */}}
-      <div class="mt-1.5">{{template "keyword_row" (dict "K" $u.Keywords "Open" (printf "expanded === %d" $u.ID))}}</div>
+    <div class="min-w-0 flex-1" {{if not $rn}}:class="editing === {{$u.ID}} && 'hidden'"{{end}}>
+      {{/* The name is the way to rename the unit: a click opens the field (see the form below). */}}
+      <h3 class="!text-xl leading-tight">{{if $rn}}{{$u.Title}}{{else}}<button type="button" class="unit-name" @click.stop="editName({{$u.ID}})" title="Click to rename" aria-description="Click to rename">{{$u.Title}}</button>{{end}}</h3>
+      {{/* Always a second line, so every plate is the kind icon's height: the type (when the unit has its own name) and, against the
+         right edge where they are easy to find, the points. */}}
+      <p class="unit-sub mt-0.5 flex items-baseline justify-between gap-2 text-sm text-muted"><span class="min-w-0 truncate">{{if $u.Name}}{{$u.Type}}{{end}}</span><span class="shrink-0 whitespace-nowrap"><span class="font-semibold text-fg">{{$u.Points}}</span> pts</span></p>
+    </div>
+    {{/* The unit's place in the company, a large insignia alone on the right; a warrior has none and its name takes the room. */}}
+    {{if ne (printf "%s" $u.Role) "warrior"}}<span class="unit-rank shrink-0 self-center [&>svg]:h-10 [&>svg]:w-10" {{if not $rn}}:class="editing === {{$u.ID}} && 'hidden'"{{end}}>{{template "role_insignia" $u.Role}}</span>{{end}}
+    {{/* Renaming takes the plate beside the icon, the field across all of it: Enter or Save keeps the name, Escape or Cancel
+       gives up, a click elsewhere saves a change. A :class, not x-show, so the field is there to focus at once. */}}
+    {{if not $rn}}<form class="min-w-0 flex-1" :class="editing === {{$u.ID}} ? '' : 'hidden'" x-cloak @click.outside="leaveName($el)" method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/rename" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/rename" hx-target="#main" hx-swap="innerHTML">
+      <input id="rename-{{$u.ID}}" name="name" value="{{$u.Name}}" maxlength="40" placeholder="{{$u.Type}}" autocomplete="off" aria-label="Name of this {{$u.Type}}" aria-describedby="rename-hint-{{$u.ID}}" class="input !min-h-10 w-full !py-1 font-heading !text-lg font-bold sm:!min-h-9" @keydown.escape.stop.prevent="editing = null">
+      <p id="rename-hint-{{$u.ID}}" class="sr-only">Left empty, it is called {{$u.Type}}.</p>
+      <div class="mt-1.5 flex items-center justify-end gap-1.5">
+        <button type="button" class="btn btn-ghost !min-h-10 shrink-0 !px-2.5 !text-sm !text-fg sm:!min-h-8" @click="editing = null" title="Esc">Cancel</button>
+        <button class="btn btn-primary !min-h-10 shrink-0 !px-3 !text-sm sm:!min-h-8" title="Enter">Save</button>
+      </div>
+    </form>{{end}}
+  </header>
+
+  <div class="unit-badges min-w-0">
       {{template "kw_applies" $ap}}
       {{if $u.Wanderer}}<p class="mt-1 flex flex-wrap items-center gap-1.5"><span class="badge badge-gold">Wanderer</span>{{if and $lu $lu.Temporary}}<span class="badge badge-gold" title="Taken with Against the Odds for this match only">Temporary</span>{{end}}</p>{{end}}
       {{if and $lu $lu.Temporary $lv.Wanderer}}<p class="mt-1 text-sm">{{$lv.Wanderer.Summary}}</p>{{end}}
@@ -232,61 +200,66 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
         {{else}}<button type="button" data-lock class="eq-add eq-heal" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/treat" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" title="Treat injuries" aria-label="Treat {{$u.Title}}'s injuries">{{template "cross"}}</button>{{end}}
       </p>{{end}}
       {{with $u.LostAbilities}}<p class="mt-1 text-xs text-muted">Lost: {{range $i, $l := .}}{{if $i}}, {{end}}{{if eq $l.Ability "standFast"}}Stand Fast!{{else if eq $l.Ability "heroicActionsOnCompany"}}heroic actions on the company{{else}}{{$l.Ability}}{{end}} ({{$l.Injury}}){{end}}</p>{{end}}
-    </div>
-    <span class="shrink-0 text-sm font-semibold">{{$u.Points}} <span class="font-normal text-muted">pts</span></span>
   </div>
 
   {{/* Attributes: the profile, then (for heroes) Might, Will and Fate. The backend decides which exist. */}}
   <div class="flex flex-wrap justify-center gap-x-3 gap-y-1.5" role="group" aria-label="Attributes">
-    <dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">
-      {{range $u.Stats}}{{if and (not .HeroOnly) (not (and $lu (liveStat .Name)))}}<div class="min-w-7 border-r border-line bg-surface px-0.5 py-1 last:border-r-0 {{if .Gear}}ring-1 ring-inset ring-accent{{end}}" title="{{statTip .Name $u.StatMods}}"><dt class="text-[10px] uppercase leading-none text-muted">{{.Abbr}}</dt><dd class="text-sm font-semibold leading-tight {{if and (gt .Boost 0) (ne .Trail "+")}}tone-win{{else if and (lt .Boost 0) (eq .Trail "+")}}tone-win{{else if ne .Boost 0}}tone-loss{{end}}">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}
+    <dl class="statline">
+      {{range $u.Stats}}{{if and (not .HeroOnly) (not (and $lu (liveStat .Name)))}}<div class="{{if .Gear}}ring-1 ring-inset ring-muted{{end}}" title="{{statTip .Name $u.StatMods}}"><dt>{{.Abbr}}</dt><dd class="{{if and (gt .Boost 0) (ne .Trail "+")}}tone-win{{else if and (lt .Boost 0) (eq .Trail "+")}}tone-win{{else if ne .Boost 0}}tone-loss{{end}}">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}
     </dl>
     {{if and $u.HasHeroStats (not $lu)}}
-    <dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-accent text-center">
-      {{range $u.Stats}}{{if .HeroOnly}}<div class="min-w-14 border-r border-line bg-accent-soft px-2 py-1 last:border-r-0" title="{{.Name}}"><dt class="text-[10px] uppercase leading-none text-muted">{{.Name}}</dt><dd class="text-sm font-semibold leading-tight {{if gt .Boost 0}}tone-win{{end}}">{{.Value}}</dd></div>{{end}}{{end}}
+    <dl class="statline statline-hero">
+      {{range $u.Stats}}{{if .HeroOnly}}<div title="{{.Name}}"><dt>{{.Name}}</dt><dd class="{{if gt .Boost 0}}tone-win{{end}}">{{.Value}}</dd></div>{{end}}{{end}}
     </dl>
     {{end}}
   </div>
   {{range $u.StatMods}}{{if and (eq .Delta 0) .Note}}<p class="text-center text-xs text-muted" data-stat-note>{{.From}}: {{.Note}}</p>{{end}}{{end}}
   {{if $lu}}{{template "live_trackers" (dict "U" $u "L" $lu "LV" $lv "CID" $cid)}}{{end}}
 
-  <div x-show="expanded !== {{$u.ID}}" class="space-y-2">
+  <div x-show="expanded !== {{$u.ID}}" class="unit-body">
     {{/* Wargear (what takes no slot: mount, weapons, armour) always in the same order (mount, melee, shield, armour, ranged, rest) so units
        compare at a glance; then the slots, and below them the equipment that takes them. Starting items are plain, bought ones carry a +. */}}
     <p class="flex items-center gap-1.5 text-xs text-muted"><span>Wargear</span>{{if and (not $u.Wanderer) (not $ro)}}<button type="button" data-lock class="eq-add eq-add-sm" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/armoury?kind=wargear" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" aria-label="Buy wargear for {{$u.Title}}" title="Buy wargear">+</button>{{end}}</p>
-    <ul class="flex flex-wrap items-center gap-1.5" aria-label="Wargear">
+    <ul class="flex flex-wrap not-has-[*]:hidden items-center gap-1.5" aria-label="Wargear">
       {{range $u.Items}}{{if and (not .Upgrade) (not .Size)}}{{template "gear_chip" .}}{{end}}{{end}}
       {{with $u.Creature}}<li class="eq-chip has-tip" tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Creature · not a unit, no injuries" {{with $u.CreatureStats}}data-tip-stats="{{.}}" {{end}}data-tip-text="{{$u.CreatureTip}}">{{template "paw"}}<span>{{.Name}}</span></li>{{end}}
     </ul>
-    {{if and $lu $lu.Loaned}}<ul class="flex flex-wrap items-center gap-1.5" aria-label="Loaned items">
+    {{if and $lu $lu.Loaned}}<ul class="flex flex-wrap not-has-[*]:hidden items-center gap-1.5" aria-label="Loaned items">
       {{range loanedGroups $lu.Loaned}}<li class="eq-chip {{if .AllUsed}}text-muted line-through{{end}}" {{if .AllUsed}}aria-label="{{.Item}}, used"{{end}}><span>{{.Item}}{{if gt .Count 1}} ×{{.Count}}{{end}}{{with .Detail}} ({{.}}){{end}}</span> <span class="badge badge-gold">Loaned{{with .Kit}} ({{.}}){{end}}</span>{{if .AllUsed}} <span class="text-xs">used</span>{{else if .Used}} <span class="text-xs text-muted">{{.Used}} used</span>{{else if .AfterGame}} <span class="text-xs text-muted">use after the game</span>{{end}}</li>{{end}}
     </ul>{{end}}
     {{/* Named unit upgrades (Helmingas, Hearthguard...) are not gear: badges, not items. */}}
-    <ul class="flex flex-wrap gap-1.5" aria-label="Unit upgrades">{{- range $u.Items}}{{if .Upgrade}}<li class="badge badge-gold{{if .Description}} has-tip{{end}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Unit upgrade" data-tip-text="{{.Description}}"{{else}}title="Unit upgrade"{{end}}>{{.Name}}</li>{{end}}{{end -}}</ul>
+    <ul class="flex flex-wrap not-has-[*]:hidden gap-1.5" aria-label="Unit upgrades">{{- range $u.Items}}{{if .Upgrade}}<li class="badge badge-gold{{if .Description}} has-tip{{end}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Unit upgrade" data-tip-text="{{.Description}}"{{else}}title="Unit upgrade"{{end}}>{{.Name}}</li>{{end}}{{end -}}</ul>
     {{$sl := $u.Slots}}
+    {{/* In a match nothing can be bought, so a unit with no equipment shows no Equipment line. */}}
+    {{$hasEq := false}}{{range $u.Items}}{{if and (not .Upgrade) .Size}}{{$hasEq = true}}{{end}}{{end}}
+    {{if or (not $lu) $hasEq}}
     <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted" aria-label="Equipment slots">
       <span class="inline-flex items-center gap-1.5"><span>Equipment</span>{{if and (not $u.Wanderer) (not $ro)}}<button type="button" data-lock class="eq-add eq-add-sm" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/armoury?kind=equipment" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" aria-label="Buy equipment for {{$u.Title}}" title="Buy equipment">+</button>{{end}}</span>
       <span class="inline-flex items-center gap-1" title="Large slots used">Large {{range $i := seq 1 $sl.LargeMax}}<span class="pip {{if le $i $sl.LargeUsed}}pip-on{{end}}"></span>{{end}} <span>{{$sl.LargeUsed}}/{{$sl.LargeMax}}</span></span>
       <span class="inline-flex items-center gap-1" title="Small slots used">Small {{range $i := seq 1 $sl.SmallMax}}<span class="pip {{if le $i $sl.SmallUsed}}pip-on{{end}}"></span>{{end}} <span>{{$sl.SmallUsed}}/{{$sl.SmallMax}}</span></span>
     </p>
-    <ul class="flex flex-wrap gap-1.5" aria-label="Equipment">
+    <ul class="flex flex-wrap not-has-[*]:hidden gap-1.5" aria-label="Equipment">
       {{range $u.Items}}{{if and (not .Upgrade) .Size}}{{template "gear_chip" .}}{{end}}{{end}}
     </ul>
+    {{end}}
 
     {{/* A unit made of several models on one card: its parts, and how many models it counts as. */}}
     {{with $u.Parts}}<p class="flex flex-wrap items-center gap-1.5" aria-label="Made of"><span class="text-xs text-muted">One model, made of</span>{{range .}}<span class="eq-chip" {{if .Wargear}}title="{{join .Wargear ", "}}"{{end}}>{{.Count}}× {{.Name}}{{if .Wargear}} <span class="text-muted">({{join .Wargear ", "}})</span>{{end}}</span>{{end}}<span class="badge badge-muted">counts as {{$u.ModelCount}} models</span></p>{{end}}
 
-    {{/* The hero's path: its name, the heroic actions unlocked so far (also those bought later) and the rules it gave. */}}
+    {{/* The hero's path, above the special rules: its icon and name (the tooltip has its chart), the heroic actions unlocked so far
+       (also those bought later) and the rules it gave. */}}
     {{with $u.Path}}{{if .Name}}
-    <div class="path-box space-y-1.5">
-      <p class="path-name">{{.Name}}</p>
-      <ul class="flex flex-wrap gap-1.5" aria-label="Heroic actions">
+    <div class="path-box path-k-{{(pathLook .Name).Kind}} space-y-1.5">
+      {{template "path_name" (dict "N" .Name "Tip" .TipText "Chart" .TipPath "Short" true)}}
+      {{if .Actions}}
+      <ul class="flex flex-wrap not-has-[*]:hidden gap-1.5" aria-label="Heroic actions">
         {{range .Actions}}
         <li class="act-chip act-{{.Source}}" {{if .Summary}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Heroic action · {{if eq (printf "%s" .Source) "bought"}}bought{{else if eq (printf "%s" .Source) "path"}}unlocked by the path{{else}}of the unit{{end}}" data-tip-text="{{.Summary}}"{{end}}>{{template "bolt_icon"}}<span>{{if eq (printf "%s" .Source) "bought"}}+ {{end}}{{.Name}}</span></li>
         {{end}}
       </ul>
+      {{end}}
       {{if or .Rules .Powers}}
-      <ul class="flex flex-wrap gap-1.5" aria-label="Rules and magical powers from the path">
+      <ul class="flex flex-wrap not-has-[*]:hidden gap-1.5" aria-label="Rules and magical powers from the path">
         {{range .Rules}}<li class="rule-chip {{if eq (printf "%s" .Source) "company"}}rule-company{{else}}rule-path{{end}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-meta="{{if eq (printf "%s" .Source) "company"}}Company-exclusive hero upgrade{{else}}From the hero's path{{end}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}><span>{{.Shown}}</span></li>{{end}}
         {{range .Powers}}<li class="rule-chip rule-spell" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Spell · cast {{.Casting}}+ · {{if .Range}}range {{.Range}}&quot;{{else}}self{{end}} · learned through the path" data-tip-text="{{.Description}}"{{end}}>{{template "spell_icon"}}<span>{{.Name}}</span><span class="font-semibold">{{.Casting}}+ · {{if .Range}}{{.Range}}"{{else}}self{{end}}</span></li>{{end}}
       </ul>
@@ -294,8 +267,8 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     </div>
     {{end}}{{end}}
 
-    {{/* Special rules: the unit's own, then its spells, then those from equipment (the path's are in its own box). */}}
-    <ul class="flex flex-wrap gap-1.5" aria-label="Special rules">
+    {{/* Special rules: the unit's own, then its spells, then those from equipment (the path's are in its own box, just above). */}}
+    <ul class="flex flex-wrap not-has-[*]:hidden gap-1.5" aria-label="Special rules">
       {{range $u.Rules}}
       <li class="rule-chip rule-{{.Source}} {{if .Spell}}rule-spell{{end}} {{if .Struck}}text-muted line-through{{end}}" {{if .Struck}}aria-label="{{.Shown}}, {{.Struck}}"{{end}} {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-meta="{{if .Spell}}Spell · cast {{.Casting}}+ · {{if .Range}}range {{.Range}}&quot;{{else}}self{{end}}{{else if .Mount}}Granted to the {{.Mount}}{{else if eq (printf "%s" .Source) "equipment"}}From {{.From}}{{else if eq (printf "%s" .Source) "company"}}Company-exclusive rule{{else}}Special rule{{end}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}>
         {{if .Spell}}{{template "spell_icon"}}{{end}}{{with .Mount}}<span class="text-muted">{{.}}:</span>{{end}}<span>{{.Shown}}</span>{{if .Spell}}<span class="font-semibold">{{.Casting}}+ · {{if .Range}}{{.Range}}"{{else}}self{{end}}</span>{{end}}
@@ -321,8 +294,8 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
       </ul>
     </section>
     {{with $u.Path}}{{if .Name}}
-    <section class="path-box space-y-2">
-      <h4 class="!text-lg path-name !normal-case">{{.Name}}</h4>
+    <section class="path-box path-k-{{(pathLook .Name).Kind}} space-y-2">
+      <h4>{{template "path_name" (dict "N" .Name "Tip" .TipText "Chart" .TipPath)}}</h4>
       {{if .Actions}}
       <ul class="space-y-1.5">
         {{range .Actions}}
@@ -374,21 +347,29 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </div>
 
   {{/* Level and experience: 5 XP per level-up roll; a unit can have several rolls waiting, and only gains the level when it rolls (the promotion banner at the top). */}}
-  {{if and $lv $lv.Edit $lu}}{{template "live_actions_menu" (dict "U" $u "LV" $lv "L" $lu)}}{{end}}
+  <div class="unit-foot">
+  {{if and $lv $lu}}{{template "live_actions_menu" (dict "U" $u "LV" $lv "L" $lu)}}{{end}}
   {{if $u.OwnPath}}
-  <div class="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3 text-xs"><span class="text-muted">On its own path: no experience</span></div>
+  <div class="mt-auto flex items-center justify-between gap-3 border-t border-line pt-2 text-xs"><span class="text-muted">On its own path: no experience</span></div>
   {{else if $u.Wanderer}}
-  <div class="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3 text-xs">
+  <div class="mt-auto flex items-center justify-between gap-3 border-t border-line pt-2 text-xs">
     <span class="text-muted">Mercenary: no experience</span>
     {{if and (not $ro) (not $lu)}}<form data-lock method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/dismiss" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/dismiss" hx-target="#main" hx-swap="innerHTML show:window:top" hx-confirm="Dismiss {{$u.Title}}? The influence is not returned."><button class="btn btn-ghost !min-h-8 !px-2 !text-xs">Dismiss</button></form>{{end}}
   </div>
   {{else}}
-  <div class="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-3 text-xs">
-    <span class="font-semibold">Lvl {{$u.Level}}</span>
-    <div class="h-2 min-w-20 flex-1 overflow-hidden rounded-full bg-raised" role="progressbar" aria-valuemin="0" aria-valuemax="{{$u.LevelEvery}}" aria-valuenow="{{$u.XPInLevel}}" aria-label="Experience"><div class="h-full rounded-full {{if $u.PendingLevelUps}}bg-warn{{else}}bg-accent{{end}}" style="width: {{pct $u.XPInLevel $u.LevelEvery}}%"></div></div>
-    <span class="text-muted">{{$u.XPInLevel}} / {{$u.LevelEvery}} XP</span>
+  <div class="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-2 text-xs">
+    <span class="level-medal" title="Level {{$u.Level}} · {{$u.XP}} XP in total"><span class="sr-only">Level </span>{{$u.Level}}</span>
+    {{/* In a match the experience earned so far follows the bar's fill in the magic path's colour, up to the end of the level; the
+       "+N" before the count says how much, also past the level. */}}
+    {{$mxp := 0}}{{if $lu}}{{$mxp = $lu.MatchXP}}{{end}}
+    <div class="xp-bar" style="--seg: {{$u.LevelEvery}}" role="progressbar" aria-valuemin="0" aria-valuemax="{{$u.LevelEvery}}" aria-valuenow="{{$u.XPInLevel}}"{{if $mxp}} aria-valuetext="{{$u.XPInLevel}} of {{$u.LevelEvery}}, {{$mxp}} more earned this match"{{end}} aria-label="Experience"><div class="h-full {{if $u.PendingLevelUps}}bg-warn{{else}}xp-fill{{end}}" style="width: {{pct $u.XPInLevel $u.LevelEvery}}%"></div>{{if $mxp}}<div class="xp-match h-full" style="width: {{pct (xpAhead $u.XPInLevel $u.LevelEvery $mxp) $u.LevelEvery}}%"></div>{{end}}</div>
+    <span class="text-muted">{{if $mxp}}<span class="xp-match-text" title="Earned this match: added in the aftermath">+{{$mxp}}</span> {{end}}{{$u.XPInLevel}} / {{$u.LevelEvery}} XP</span>
   </div>
   {{end}}
+  {{/* Keywords: race, factions and the types the icon and insignia do not say; a lost mount changes none of them. Seldom needed at
+     the table, so small, in the bottom corner of the card, below the experience. */}}
+  <div class="unit-kw">{{template "keyword_row" (dict "K" $u.Keywords "Open" (printf "expanded === %d" $u.ID))}}</div>
+  </div>
 </article>
 </div>
 {{end}}
@@ -405,64 +386,74 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </span>
 </div>
 <article class="card unit unit-fallen flex flex-col gap-3 !p-4">
-  <header class="flex items-start gap-2">
+  <header class="unit-head flex items-start gap-2 [&_.kind-icon]:bg-surface">
     {{template "kind_icon" $u.Kind}}
-    <div class="min-w-0 flex-1"><h3 class="!text-xl leading-tight">{{$u.Title}}</h3>{{if $u.Name}}<p class="text-sm text-muted">{{$u.Type}}</p>{{end}}
-      <div class="mt-1.5">{{template "keyword_row" (dict "K" $u.Keywords)}}</div></div>
+    <div class="min-w-0 flex-1"><h3 class="flex items-center gap-1.5 !text-xl leading-tight">{{template "role_insignia" $u.Role}}{{$u.Title}}</h3>{{if $u.Name}}<p class="text-sm text-muted">{{$u.Type}}</p>{{end}}</div>
     <span class="shrink-0 text-sm font-semibold">{{$u.Points}} <span class="font-normal text-muted">pts</span></span>
   </header>
+  <div>{{template "keyword_row" (dict "K" $u.Keywords)}}</div>
   <p class="rounded-lg border border-line bg-raised px-3 py-1.5 text-sm"><span class="font-semibold">Fell</span> · {{.F.Fate}}{{with .F.Match}} · <span class="text-muted">{{.}}</span>{{end}}{{if .Return}} <span class="badge badge-gold align-middle" title="The company's rule: a reinforcement result may be swapped for a new Ranger of the North, who returns as an officer (Leader to start with)">May return with a reinforcement</span>{{end}}</p>
   <div class="flex flex-wrap justify-center gap-2">
-    <dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">{{range $u.Stats}}{{if not .HeroOnly}}<div class="min-w-7 border-r border-line bg-surface px-0.5 py-1 last:border-r-0"><dt class="text-[10px] uppercase leading-none text-muted">{{.Abbr}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}</dl>
-    {{if $u.HasHeroStats}}<dl class="grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-accent text-center">{{range $u.Stats}}{{if .HeroOnly}}<div class="min-w-12 border-r border-line bg-accent-soft px-2 py-1 last:border-r-0"><dt class="text-[10px] uppercase leading-none text-muted">{{.Name}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}</dd></div>{{end}}{{end}}</dl>{{end}}
+    <dl class="statline">{{range $u.Stats}}{{if not .HeroOnly}}<div><dt>{{.Abbr}}</dt><dd>{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}</dl>
+    {{if $u.HasHeroStats}}<dl class="statline statline-hero">{{range $u.Stats}}{{if .HeroOnly}}<div><dt>{{.Name}}</dt><dd>{{.Value}}</dd></div>{{end}}{{end}}</dl>{{end}}
   </div>
   {{with $u.Equipment}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Wargear</span>{{range .}}<span class="eq-chip">{{.Name}}</span>{{end}}</p>{{end}}
-  {{with $u.Path}}{{if .Name}}<div class="path-box space-y-1.5"><p class="path-name">{{.Name}}</p>
-    <ul class="flex flex-wrap gap-1.5">{{range .HeroicActions}}<li class="act-chip">{{.Name}}</li>{{end}}{{range .Rules}}<li class="rule-chip rule-path" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}>{{.Shown}}</li>{{end}}</ul></div>{{end}}{{end}}
+  {{with $u.Path}}{{if .Name}}<div class="path-box path-k-{{(pathLook .Name).Kind}} space-y-1.5">{{template "path_name" (dict "N" .Name "Short" true)}}
+    <ul class="flex flex-wrap gap-1.5">{{range .HeroicActions}}<li class="act-chip">{{template "bolt_icon"}}<span>{{.Name}}</span></li>{{end}}{{range .Rules}}<li class="rule-chip rule-path" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}>{{.Shown}}</li>{{end}}</ul></div>{{end}}{{end}}
   {{with $u.Rules}}<ul class="flex flex-wrap gap-1.5" aria-label="Special rules">{{range .}}<li class="rule-chip rule-{{.Source}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}>{{.Shown}}</li>{{end}}</ul>{{end}}
-  <p class="mt-auto border-t border-line pt-3 text-xs text-muted">Lvl {{$u.Level}} · {{$u.XP}} XP</p>
+  <p class="mt-auto flex items-center gap-3 border-t border-line pt-3 text-xs text-muted"><span class="level-medal" title="Level {{$u.Level}}"><span class="sr-only">Level </span>{{$u.Level}}</span>{{$u.XP}} XP</p>
 </article>
 </div>
 {{end}}
 
 
-{{/* The trackers of a unit in a running match: Wounds for everybody, Might, Will and Fate for heroes, each `current / start`. The owner
-   gets - and + (44 px) and a "set to" field behind the number; everybody else only reads. Every press is one entry in the match log,
-   answered by the zones (htmx). Takes {U, L: core.LiveUnit, LV, CID}. */}}
+{{/* The trackers of a unit in a running match, as segmented bars like the experience one (`.tracker*`, `.seg-hit` in tailwind.css), each led by
+   the stat's full name: Might, Will and Fate for heroes, always in that order, then Wounds, the model's life, as hearts on a row of the same height; one stat per row, left-aligned so the bars line up and the counts form a column after the longest bar, each
+   in its own colour in every theme (gold, blue, green, red). Wounds is always shown, also at 1 (a plain warrior): taking it to 0 is how
+   the model falls (a Field casualty, like Died). The owner taps a segment: the last full one takes one off, the first empty one adds one, any other sets the value to that
+   segment; everybody else only reads. Every tap is one entry in the match log, answered by the zones (htmx). Takes {U, L: core.LiveUnit, LV, CID}. */}}
 {{define "live_trackers"}}{{$u := .U}}{{$l := .L}}{{$lv := .LV}}
-<div class="grid grid-cols-2 gap-2" role="group" aria-label="Match trackers">
-  {{template "live_tracker" (dict "S" "wounds" "N" "Wounds" "T" $l.Wounds "U" $u "LV" $lv "Danger" true)}}
-  {{if $u.HasHeroStats}}
+{{$hero := and $u.HasHeroStats (or $l.Might.Start $l.Will.Start $l.Fate.Start)}}{{$wounds := gt $l.Wounds.Start 0}}
+{{if or $hero $wounds}}
+<div class="live-trackers" role="group" aria-label="Match trackers">
+  {{if $hero}}
   {{template "live_tracker" (dict "S" "might" "N" "Might" "T" $l.Might "U" $u "LV" $lv)}}
   {{template "live_tracker" (dict "S" "will" "N" "Will" "T" $l.Will "U" $u "LV" $lv)}}
   {{template "live_tracker" (dict "S" "fate" "N" "Fate" "T" $l.Fate "U" $u "LV" $lv)}}
   {{end}}
+  {{if $wounds}}{{template "live_tracker" (dict "S" "wounds" "N" "Wounds" "T" $l.Wounds "U" $u "LV" $lv "Heart" true)}}{{end}}
 </div>
 {{end}}
+{{end}}
 
+{{/* One tracker: its name, a segment per point of the start value (a heart for Wounds) and the count. Above 10 segments it falls back to the number between
+   - and +. */}}
 {{define "live_tracker"}}{{$t := .T}}{{$lv := .LV}}{{$u := .U}}
 {{if $t.Start}}
 {{$base := printf "/campaigns/%d/matches/%d/live/%d/actions" .LV.CampaignID .LV.MatchID .LV.CompanyID}}
-<div class="rounded-lg border border-line bg-surface px-2 py-1.5" x-data="{ setting: false }" data-tracker="{{.S}}">
-  <p class="text-[10px] uppercase leading-none text-muted">{{.N}}</p>
-  <div class="mt-1 flex items-center justify-between gap-1">
-    {{if $lv.Edit}}<button type="button" class="btn btn-secondary !min-h-11 !min-w-10 !px-0 text-lg" aria-label="{{.N}} of {{$u.Title}} down by one" hx-post="{{$base}}" hx-vals='{"kind":"stat","unit":"{{$u.ID}}","stat":"{{.S}}","delta":"-1"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all" {{if le $t.Current 0}}disabled{{end}}>−</button>{{end}}
-    <button type="button" class="min-w-0 flex-1 whitespace-nowrap rounded-md px-0.5 text-center {{if $lv.Edit}}hover:bg-raised{{else}}cursor-default{{end}}" {{if $lv.Edit}}@click="setting = !setting" aria-label="{{.N}} of {{$u.Title}}: {{$t.Current}} of {{$t.Start}}, tap to set"{{else}}aria-label="{{.N}}: {{$t.Current}} of {{$t.Start}}"{{end}}>
-      <span class="whitespace-nowrap text-xl font-semibold leading-tight {{if or (eq $t.Current 0) (and .Danger (eq $t.Current 1) (gt $t.Start 1))}}text-danger{{end}}">{{$t.Current}}</span><span class="whitespace-nowrap text-sm text-muted"> / {{$t.Start}}</span>
-    </button>
-    {{if $lv.Edit}}<button type="button" class="btn btn-secondary !min-h-11 !min-w-10 !px-0 text-lg" aria-label="{{.N}} of {{$u.Title}} up by one" hx-post="{{$base}}" hx-vals='{"kind":"stat","unit":"{{$u.ID}}","stat":"{{.S}}","delta":"1"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all" {{if ge $t.Current $t.Start}}disabled{{end}}>+</button>{{end}}
-  </div>
-  {{if $lv.Edit}}
-  <form x-show="setting" x-cloak class="mt-1.5 flex items-center gap-1.5" hx-post="{{$base}}" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all" @submit="setting = false">
-    <input type="hidden" name="kind" value="stat"><input type="hidden" name="unit" value="{{$u.ID}}"><input type="hidden" name="stat" value="{{.S}}">
-    <label class="sr-only" for="set-{{$u.ID}}-{{.S}}">Set {{.N}} of {{$u.Title}} to</label>
-    <input id="set-{{$u.ID}}-{{.S}}" name="set" type="number" inputmode="numeric" min="0" max="{{$t.Start}}" value="{{$t.Current}}" required class="input !min-h-9 w-16 !px-2 !py-1">
-    <button class="btn btn-primary !min-h-9 !px-3">Set</button>
-  </form>
+<div class="tracker" role="group" data-tracker="{{.S}}" aria-label="{{.N}} of {{$u.Title}}: {{$t.Current}} of {{$t.Start}}">
+  <span class="tracker-label" aria-hidden="true">{{.N}}</span>
+  {{if le $t.Start 10}}
+  <span class="tracker-bar">
+  {{range $n := seq 1 $t.Start}}{{$on := le $n $t.Current}}
+  {{if $lv.Edit}}<button type="button" class="seg-hit" {{if eq $n $t.Current}}aria-label="{{$.N}} of {{$u.Title}} down by one" hx-vals='{"kind":"stat","unit":"{{$u.ID}}","stat":"{{$.S}}","delta":"-1"}'{{else if eq $n (inc $t.Current)}}aria-label="{{$.N}} of {{$u.Title}} up by one" hx-vals='{"kind":"stat","unit":"{{$u.ID}}","stat":"{{$.S}}","delta":"1"}'{{else}}aria-label="Set {{$.N}} of {{$u.Title}} to {{$n}}" hx-vals='{"kind":"stat","unit":"{{$u.ID}}","stat":"{{$.S}}","set":"{{$n}}"}'{{end}} hx-post="{{$base}}" {{template "hx_zones"}}>{{template "tracker_seg" (dict "On" $on "Heart" $.Heart)}}</button>
+  {{else}}<span class="seg-hit">{{template "tracker_seg" (dict "On" $on "Heart" $.Heart)}}</span>{{end}}
+  {{end}}
+  </span>
+  <span class="tracker-count" aria-hidden="true">{{$t.Current}}/{{$t.Start}}</span>
+  {{else}}
+  <span class="tracker-bar items-center">
+  {{if $lv.Edit}}<button type="button" class="btn btn-secondary !min-h-7 !min-w-7 !px-0" aria-label="{{.N}} of {{$u.Title}} down by one" hx-post="{{$base}}" hx-vals='{"kind":"stat","unit":"{{$u.ID}}","stat":"{{.S}}","delta":"-1"}' {{template "hx_zones"}} {{if le $t.Current 0}}disabled{{end}}>−</button>{{end}}
+  <span class="px-2 font-semibold {{if eq $t.Current 0}}text-danger{{end}}">{{$t.Current}}<span class="text-sm font-normal text-muted"> / {{$t.Start}}</span></span>
+  {{if $lv.Edit}}<button type="button" class="btn btn-secondary !min-h-7 !min-w-7 !px-0" aria-label="{{.N}} of {{$u.Title}} up by one" hx-post="{{$base}}" hx-vals='{"kind":"stat","unit":"{{$u.ID}}","stat":"{{.S}}","delta":"1"}' {{template "hx_zones"}} {{if ge $t.Current $t.Start}}disabled{{end}}>+</button>{{end}}
+  </span>
   {{end}}
 </div>
 {{end}}
 {{end}}
+
+{{/* One segment of a tracker bar, or a heart for Wounds; full when On. */}}
+{{define "tracker_seg"}}{{if .Heart}}<svg class="tracker-heart{{if .On}} is-on{{end}}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.6-4.6-9.5-9.3C1 7.6 3.2 4 6.8 4c2.1 0 3.8 1.2 5.2 3 1.4-1.8 3.1-3 5.2-3 3.6 0 5.8 3.6 4.3 7.2-1.9 4.7-9.5 9.3-9.5 9.3z"/></svg>{{else}}<span class="tracker-seg{{if .On}} is-on{{end}}"></span>{{end}}{{end}}
 
 {{/* The weapon a rule with a weapon parameter (Poisoned Attacks) is given to: one of the unit's eligible weapons. Takes {Weapons, ID, Chosen}. */}}
 {{define "weapon_chooser"}}<div class="field !mb-0"><label for="{{.ID}}" class="text-xs">Weapon</label><select id="{{.ID}}" name="weapon" class="input !min-h-9" required>{{if not .Chosen}}<option value="" disabled selected>Choose a weapon</option>{{end}}{{range .Weapons}}<option value="{{.}}" {{if eq . $.Chosen}}selected{{end}}>{{.}}</option>{{end}}</select></div>{{end}}

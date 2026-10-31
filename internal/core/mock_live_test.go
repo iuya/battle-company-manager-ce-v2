@@ -255,6 +255,45 @@ func (c *MockliveRepositoryReadCall) DoAndReturn(f func(context.Context, int64, 
 	return c
 }
 
+// UnitLog mocks base method.
+func (m *MockliveRepository) UnitLog(ctx context.Context, campaignID, matchID, unitID int64, kind LiveKind) ([]LiveEntry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnitLog", ctx, campaignID, matchID, unitID, kind)
+	ret0, _ := ret[0].([]LiveEntry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnitLog indicates an expected call of UnitLog.
+func (mr *MockliveRepositoryMockRecorder) UnitLog(ctx, campaignID, matchID, unitID, kind any) *MockliveRepositoryUnitLogCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnitLog", reflect.TypeOf((*MockliveRepository)(nil).UnitLog), ctx, campaignID, matchID, unitID, kind)
+	return &MockliveRepositoryUnitLogCall{Call: call}
+}
+
+// MockliveRepositoryUnitLogCall wrap *gomock.Call
+type MockliveRepositoryUnitLogCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockliveRepositoryUnitLogCall) Return(arg0 []LiveEntry, arg1 error) *MockliveRepositoryUnitLogCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockliveRepositoryUnitLogCall) Do(f func(context.Context, int64, int64, int64, LiveKind) ([]LiveEntry, error)) *MockliveRepositoryUnitLogCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockliveRepositoryUnitLogCall) DoAndReturn(f func(context.Context, int64, int64, int64, LiveKind) ([]LiveEntry, error)) *MockliveRepositoryUnitLogCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // Update mocks base method.
 func (m *MockliveRepository) Update(ctx context.Context, campaignID, matchID int64, by User, fn func(LiveSnapshot) (LiveChange, error)) (LiveEntry, error) {
 	m.ctrl.T.Helper()

@@ -64,10 +64,10 @@ export default async function (h) {
     assert.ok(rider.groups.includes('Race') && rider.groups.includes('Faction'), `groups: ${rider.groups}`);
     assert.ok(await eowyn.page.$eval('main .unit-slot', (u) => !!u.querySelector('[role=img][aria-label]')), 'the kind icon stays');
     const order = await eowyn.page.$eval('main .unit-slot', (u) => {
-      const t = u.querySelector('[data-keywords]'), a = u.querySelector('h3'), b = u.querySelector('[aria-label=Wargear]');
-      return [a.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING, t.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING];
+      const t = u.querySelector('[data-keywords]'), a = u.querySelector('[aria-label=Wargear]'), b = u.querySelector('.level-medal');
+      return [a.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING, b ? b.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING : 1];
     });
-    assert.ok(order[0] && order[1], 'the row is under the name and above the wargear');
+    assert.ok(order[0] && order[1], 'the row is at the foot of the card: under the wargear and the experience');
   });
 
   await h.step('keywords: Elf and Dwarf companies show their race first; the row wraps and holds at most five chips then +N', async () => {
@@ -154,8 +154,8 @@ export default async function (h) {
   });
 
   await h.step('keywords: another player\'s read-only company page shows the same row and no edit control', async () => {
-    await gimli.goto(`/campaigns/${cid}/companies`);
-    const href = await gimli.page.evaluate(() => [...document.querySelectorAll('main a[href*="/companies/"]')].find((a) => a.innerText.includes('Riders on every horse'))?.getAttribute('href'));
+    await gimli.goto(`/campaigns/${cid}/rankings`);
+    const href = await gimli.page.evaluate(() => [...document.querySelectorAll('main tbody tr')].find((r) => r.innerText.includes('Riders on every horse'))?.querySelector('a[href*="/companies/"]')?.getAttribute('href'));
     assert.ok(href, 'a link to the Rohan company');
     await gimli.goto(href);
     const cs = await cards(gimli);

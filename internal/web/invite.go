@@ -93,5 +93,5 @@ func (s *Server) handleJoin(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	redirect(w, r, "/campaigns/"+strconv.FormatInt(id, 10))
+	redirect(w, r, "/campaigns/"+strconv.FormatInt(id, 10)+"/my-company")
 }

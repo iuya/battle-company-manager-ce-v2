@@ -7,7 +7,7 @@
 <div class="alert alert-info mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2" role="status">
   {{if $.Frozen}}<span>This campaign has ended, so <strong>{{.Name}}</strong> is frozen as it was: you can look at everything, but nothing here can be changed until an administrator reactivates the campaign.</span>
   {{else}}<span>Viewing <strong>{{.Name}}</strong>, the company of {{.Owner}}. Read only: you can look at everything, but nothing here can be changed.</span>{{end}}
-  <a href="/campaigns/{{$.Campaign.ID}}/companies" class="btn btn-secondary !min-h-9">All companies</a>
+  <a href="/campaigns/{{$.Campaign.ID}}/rankings" class="btn btn-secondary !min-h-9">All companies</a>
 </div>
 <div class="relative mt-4 flex flex-wrap items-center gap-x-3 gap-y-1"><h2 class="!text-3xl">{{.Name}}</h2>{{if $.HasCopyButton}}{{template "tts_button" (dict "URL" $.TTSURL "Tip" $.TTSTip)}}{{end}}<span class="badge badge-muted">{{if $.Frozen}}Frozen{{else}}Viewing only{{end}}</span></div>
 {{else}}
@@ -57,9 +57,9 @@
     <h3 class="!text-xl">Limits <span class="text-sm font-normal text-muted">used / maximum</span></h3>
     <ul class="grid gap-3 sm:grid-cols-3">
       {{range .Limits}}
-      <li>
-        <p class="flex items-baseline justify-between text-sm"><span>{{.Label}}</span><span class="font-semibold {{if .Full}}tone-draw{{end}}">{{.Used}} / {{.Max}}</span></p>
-        <div class="mt-1 h-2 overflow-hidden rounded-full bg-raised" role="presentation"><div class="h-full rounded-full {{if .Full}}bg-warn{{else}}bg-accent{{end}}" style="width: {{pct .Used .Max}}%"></div></div>
+      <li{{if .Exempt}} class="has-tip" tabindex="0" data-tip-title="{{.Label}}" data-tip-meta="Limit" data-tip-text="The company has {{.Total}}: {{.Used}} count towards the limit of {{.Max}}, and {{.Exempt}} (the hatched segments) do not, because the company's rules leave them out."{{end}}>
+        <p class="flex items-baseline justify-between gap-2 text-sm"><span>{{.Label}}</span><span class="whitespace-nowrap"><span class="font-semibold {{if .Full}}tone-draw{{end}}">{{.Used}} / {{.Max}}</span>{{if .Exempt}}<span class="text-xs text-muted"> · total {{.Total}}</span>{{end}}</span></p>
+        <div class="xp-bar limit-bar mt-1" style="--seg: {{.Segments}}" role="img" aria-label="{{.Used}} of {{.Max}} used{{if .Exempt}}, and {{.Exempt}} more that do not count ({{.Total}} in all){{end}}"><div class="h-full {{if .Full}}bg-warn{{else}}bg-accent{{end}}" style="width: calc(100% * {{.Used}} / {{.Segments}})"></div>{{if .Exempt}}<div class="limit-exempt ml-auto h-full" style="width: calc(100% * {{.Exempt}} / {{.Segments}})"></div>{{end}}</div>
         {{if not .RoomForNew}}<p class="mt-1 text-xs text-muted">No room for another such model: a new recruit counts too, and the maximum is {{.Next}} then.</p>{{end}}
       </li>
       {{end}}
@@ -176,7 +176,7 @@
         <div class="flex flex-wrap justify-center overflow-hidden rounded-lg border border-line text-center">
           <template x-for="l in tip.path.limits" :key="l[0]"><div class="min-w-9 border-r border-line bg-surface px-1.5 py-1"><p class="text-[10px] font-semibold uppercase leading-none text-muted" x-text="l[2]"></p><p class="text-sm font-semibold" x-text="l[1]"></p></div></template>
         </div>
-        <p class="text-xs font-semibold uppercase tracking-wide text-muted">Level-up chart<template x-if="tip.path.dice"> (<span x-text="tip.path.dice"></span>)</template></p>
+        <p class="text-xs font-semibold uppercase tracking-wide text-muted">Level-up chart <span x-show="tip.path.dice">(<span x-text="tip.path.dice"></span>)</span></p>
         <table class="w-full overflow-hidden rounded-lg border border-line text-xs">
           <template x-for="r in tip.path.rows" :key="r.roll"><tr class="border-b border-line last:border-0"><td class="w-8 bg-surface px-1.5 py-1 text-center font-semibold" x-text="r.roll"></td><td class="px-1.5 py-1" x-text="r.text.length > 110 ? r.text.slice(0, 110).replace(/\s+\S*$/, '') + '…' : r.text"></td></tr></template>
         </table>
@@ -250,7 +250,7 @@
 <div class="mt-4 space-y-3" id="live-break">
   <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
     <p class="font-medium" id="live-turn">{{if $lv.Turn}}Turn {{$lv.Turn}}{{else}}Turn not started{{end}}</p>
-    {{if $lv.Edit}}<button type="button" class="btn btn-secondary !min-h-11" {{if $lv.EndPending}}disabled aria-describedby="turn-blocked"{{end}} hx-post="{{$act}}" hx-vals='{"kind":"turn","turn":"{{$lv.NextTurn}}"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Start turn {{$lv.NextTurn}}</button>{{if $lv.EndPending}}<p id="turn-blocked" class="basis-full text-sm text-muted">Cancel the ending first: the match is about to end.</p>{{end}}{{end}}
+    {{if $lv.Edit}}<button type="button" class="btn btn-secondary !min-h-11" {{if $lv.EndPending}}disabled aria-describedby="turn-blocked"{{end}} hx-post="{{$act}}" hx-vals='{"kind":"turn","turn":"{{$lv.NextTurn}}"}' {{template "hx_zones"}}>Start turn {{$lv.NextTurn}}</button>{{if $lv.EndPending}}<p id="turn-blocked" class="basis-full text-sm text-muted">Cancel the ending first: the match is about to end.</p>{{end}}{{end}}
   </div>
 
   {{if $b.StartingModels}}
@@ -272,11 +272,11 @@
         <p class="font-medium">Adjust the count <span class="font-normal text-muted">(creatures, Ponies, late arrivals: what the app cannot know)</span></p>
         <div class="field"><label for="break-note">Note (optional)</label><input id="break-note" name="note" maxlength="200" class="input" placeholder="Late arrival"></div>
         <div class="flex flex-wrap items-center gap-2"><span class="min-w-32">Starting models <strong>{{$b.StartingModels}}</strong></span>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"-1"}' hx-include="#break-note" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">−</button>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"1"}' hx-include="#break-note" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">+</button></div>
+          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"-1"}' hx-include="#break-note" {{template "hx_zones"}}>−</button>
+          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"1"}' hx-include="#break-note" {{template "hx_zones"}}>+</button></div>
         <div class="flex flex-wrap items-center gap-2"><span class="min-w-32">Casualties <strong>{{$b.Casualties}}</strong></span>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"-1"}' hx-include="#break-note" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">−</button>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"1"}' hx-include="#break-note" hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">+</button></div>
+          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"-1"}' hx-include="#break-note" {{template "hx_zones"}}>−</button>
+          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"1"}' hx-include="#break-note" {{template "hx_zones"}}>+</button></div>
       </div>
       {{end}}
       {{with $b.Exceptions}}<div><p class="font-medium">Scenario exceptions</p><ul class="list-disc pl-5 text-muted">{{range .}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
@@ -294,8 +294,8 @@
       <summary class="flex min-h-11 cursor-pointer items-center font-medium">All is Lost: flee or fight on?</summary>
       <p class="mt-1 text-sm">Decided at the beginning of the turn the company breaks. Your opponent claims victory and full rewards. You earn only the Influence for taking part (the injury rolls and experience still happen).</p>
       <div class="mt-2 flex flex-wrap gap-2">
-        <button type="button" class="btn btn-danger" hx-post="{{$act}}" hx-vals='{"kind":"allIsLost","flee":"1"}' hx-confirm="Flee the battlefield? Every model in the field leaves the table and your opponent claims victory." hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Flee the battlefield</button>
-        <button type="button" class="btn btn-secondary" hx-post="{{$act}}" hx-vals='{"kind":"allIsLost","flee":"0"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Fight on</button>
+        <button type="button" class="btn btn-danger" hx-post="{{$act}}" hx-vals='{"kind":"allIsLost","flee":"1"}' hx-confirm="Flee the battlefield? Every model in the field leaves the table and your opponent claims victory." {{template "hx_zones"}}>Flee the battlefield</button>
+        <button type="button" class="btn btn-secondary" hx-post="{{$act}}" hx-vals='{"kind":"allIsLost","flee":"0"}' {{template "hx_zones"}}>Fight on</button>
       </div>
     </details>
     {{else if $b.Offer}}<p class="text-sm">The owner of the company can decide to flee (All is Lost) this turn.</p>{{end}}
@@ -339,7 +339,7 @@
     </p>
   </div>
   {{if and .LV.Edit (ne .Kind "missed")}}
-  <button type="button" class="btn btn-secondary !min-h-9" hx-post="/campaigns/{{.CID}}/matches/{{.LV.MatchID}}/live/{{.LV.CompanyID}}/actions" hx-vals='{"kind":"return","unit":"{{$u.ID}}"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Return to the battle</button>
+  <button type="button" class="btn btn-secondary !min-h-9" hx-post="/campaigns/{{.CID}}/matches/{{.LV.MatchID}}/live/{{.LV.CompanyID}}/actions" hx-vals='{"kind":"return","unit":"{{$u.ID}}"}' {{template "hx_zones"}}>Return to the battle</button>
   {{end}}
 </li>
 {{end}}
@@ -354,7 +354,7 @@
 <div id="live-toast" hx-swap-oob="true" aria-live="polite" class="pointer-events-none fixed bottom-4 left-1/2 z-[60] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2">
   {{if $t}}<div class="alert {{if $t.Error}}alert-danger{{else}}alert-success{{end}} pointer-events-auto flex items-center gap-3 shadow-lg" role="status" x-data="{ on: true }" x-init="setTimeout(() => on = false, {{if $t.Error}}9000{{else}}7000{{end}})" x-show="on" x-transition.opacity>
     <span class="min-w-0 flex-1">{{$t.Text}}</span>
-    {{if and $t.CanUndo (not $t.Error)}}<button type="button" class="btn btn-secondary !min-h-9 shrink-0" hx-post="/campaigns/{{$t.Campaign}}/matches/{{$t.MatchID}}/live/log/{{$t.EntryID}}/undo" hx-vals='{"company":"{{$t.Company}}"}' hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all">Undo</button>{{end}}
+    {{if and $t.CanUndo (not $t.Error)}}<button type="button" class="btn btn-secondary !min-h-9 shrink-0" hx-post="/campaigns/{{$t.Campaign}}/matches/{{$t.MatchID}}/live/log/{{$t.EntryID}}/undo" hx-vals='{"company":"{{$t.Company}}"}' {{template "hx_zones"}}>Undo</button>{{end}}
     <button type="button" class="btn btn-ghost !min-h-9 !px-2 shrink-0" @click="on = false" aria-label="Dismiss">×</button>
   </div>{{end}}
 </div>
