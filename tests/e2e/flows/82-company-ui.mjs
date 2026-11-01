@@ -171,7 +171,7 @@ export default async function (h) {
     assert.ok(!(await none()), 'the empty message is gone');
   });
 
-  await h.step('armoury: the switch hiding what the company cannot take is on by default and remembered; main categories disable the item chips that do not apply', async () => {
+  await h.step('armoury: the switch hiding what the company could never take is on by default and remembered; main categories disable the item chips that do not apply', async () => {
     const pippin = await h.session('pippin@example.com');
     const cid = await campaignId(pippin, 'Limits, creatures');
     const page = pippin.page;
@@ -182,10 +182,10 @@ export default async function (h) {
     await pippin.goto(`/campaigns/${cid}/armory`);
     assert.equal(await sw(), 'true', 'the switch is on by default');
     let items = await visible('li[data-avail]');
-    assert.ok(items.some((i) => i.avail === '0') && items.some((i) => i.avail === '1'), 'the list has items the company can and cannot take');
-    assert.ok(items.filter((i) => i.avail === '0').every((i) => !i.shown), 'items nobody can take are hidden while the switch is on');
-    assert.ok(items.filter((i) => i.avail === '1').every((i) => i.shown), 'items someone can take are shown');
-    assert.match(await pippin.text(), /hidden because no one in the company can take them/);
+    assert.ok(items.some((i) => i.avail === '0') && items.some((i) => i.avail === '1'), 'the list has items the company can and could never take');
+    assert.ok(items.filter((i) => i.avail === '0').every((i) => !i.shown), 'items no unit could ever take are hidden while the switch is on');
+    assert.ok(items.filter((i) => i.avail === '1').every((i) => i.shown), 'items some unit could take (now or later) are shown');
+    assert.match(await pippin.text(), /hidden because no unit of the company could ever take them/);
     // off: they show, and the choice survives a reload
     await pippin.click('button[role=switch]');
     assert.equal(await sw(), 'false');
