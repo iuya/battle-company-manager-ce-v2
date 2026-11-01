@@ -164,3 +164,39 @@ func TestValidationMessagesLandUnderTheirField(t *testing.T) {
 		}
 	}
 }
+
+// ownCompanyPage serves the My Company page of company 1 (the viewer's own) of campaign 7, organised by user 99.
+func ownCompanyPage(t *testing.T, viewer core.User, status core.CampaignStatus) string {
+	t.Helper()
+	f := newFixture(t, Config{})
+	d, detail := mineDetail()
+	d.OrganiserID, d.Status = organiser.ID, status
+	f.camp.EXPECT().Get(gomock.Any(), viewer.ID, int64(7)).Return(d, nil).AnyTimes()
+	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), viewer, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), viewer, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), viewer, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
+	return f.do(f.signedInAs(viewer, httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
+}
+
+// The organiser and administrators award their own company from the Grants card at the bottom of its page; players never see the form.
+func TestGrantsFormIsOnTheOwnCompanyPageOfTheOrganiserAndAdministrators(t *testing.T) {
+	for _, u := range []core.User{organiser, sauron, {ID: 78, DisplayName: "Root", Role: core.RoleSuperuser}} {
+		body := ownCompanyPage(t, u, core.CampaignActive)
+		for _, want := range []string{"Grant reward", `hx-post="/campaigns/7/companies/1/grants"`, `name="gold"`, `name="note"`, "Hador"} {
+			if !strings.Contains(body, want) {
+				t.Errorf("%s misses %q on their own company", u.DisplayName, want)
+			}
+		}
+		if strings.Index(body, `id="grants"`) < strings.Index(body, `id="history`) && strings.Contains(body, `id="history`) {
+			t.Error("the Grants card stays at the bottom, after the history")
+		}
+	}
+	if body := ownCompanyPage(t, frodo, core.CampaignActive); !strings.Contains(body, `id="grants"`) || strings.Contains(body, "Grant reward") {
+		t.Error("a plain player sees the Grants history but not the form on their own company")
+	}
+	if body := ownCompanyPage(t, organiser, core.CampaignFinished); strings.Contains(body, "Grant reward") {
+		t.Error("a finished campaign offers no form")
+	}
+}

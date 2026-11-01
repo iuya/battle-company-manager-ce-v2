@@ -249,7 +249,7 @@ func (s *Server) handleCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	view.PerksUnused, view.PerksUsed = splitPerks(perkViews(detail.Perks, detail.Roster))
-	if view.Grants, err = s.grantsCard(r, base, co.ID, true); s.fail(w, r, err) { // the organiser's award form stays: it is not the company's to change
+	if view.Grants, err = s.grantsCard(r, base, co.ID, true); s.fail(w, r, err) { // the organiser's award form: CanGrant decides
 		return
 	}
 	s.render.page(w, r, http.StatusOK, "campaign_my_company", view)
@@ -408,7 +408,7 @@ func (s *Server) myCompanyPage(w http.ResponseWriter, r *http.Request, status in
 		return
 	}
 	view.PerksUnused, view.PerksUsed = splitPerks(perkViews(detail.Perks, detail.Roster))
-	if view.Grants, err = s.grantsCard(r, base, mine.ID, false); s.fail(w, r, err) { // the form is on the page of the other companies; one does not award one's own
+	if view.Grants, err = s.grantsCard(r, base, mine.ID, true); s.fail(w, r, err) { // the organiser and administrators award their own company too (CanGrant decides)
 		return
 	}
 	if view.Pending, err = s.campaigns.PendingChoice(r.Context(), user, base.Campaign.ID, mine.ID); s.fail(w, r, err) {

@@ -4,6 +4,6 @@
     "core": ["10-accounts", "20-campaign", "30-company", "40-match", "50-ranger", "70-keyboard", "79-keywords", "81-aftermath-ui", "82-company-ui", "90-csp"],
     "pages": ["60-pages", "61-card-variants", "103-admin-roles", "105-recovery"],
     "creation": ["80-creation", "83-fallback", "84-match-extras", "85-creation-submit", "86-dice3d", "87-concepts", "88-own-path", "89-ruleset-report", "97-online-validator", "98-several-companies", "99-last-campaign", "100-practice-match"],
-    "rules": ["101-glossary-units", "102-unit-links", "104-invitations", "106-armoury-possible", "91-tts", "92-tts-names", "93-to-wound", "94-envenom", "95-keyword-targets", "96-tts-auras"]
+    "rules": ["101-glossary-units", "102-unit-links", "104-invitations", "106-armoury-possible", "107-organiser-awards-own","91-tts", "92-tts-names", "93-to-wound", "94-envenom", "95-keyword-targets", "96-tts-auras"]
   }
 }

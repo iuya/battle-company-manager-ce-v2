@@ -485,3 +485,19 @@ func TestObjectiveLabel(t *testing.T) {
 		}
 	}
 }
+
+// The core only asks CanGrant: the organiser may award their own company (GitHub issue 60), a plain player may not.
+func TestMatchesOrganiserGrantsTheirOwnCompany(t *testing.T) {
+	f := newMatchesFixture(t)
+	org := User{ID: matchOrganiser, DisplayName: "Org"}
+	f.matches.EXPECT().AddGrant(gomock.Any(), int64(5), org, gomock.Any()).DoAndReturn(func(_ context.Context, _ int64, _ User, g Grant) (Grant, error) {
+		g.ID = 9
+		return g, nil
+	})
+	if g, err := f.svc.GrantReward(f.ctx, org, 5, 1, GrantInput{Gold: 3, Note: "Own purse"}); err != nil || g.ID != 9 {
+		t.Fatalf("the organiser awards their own company: %+v, %v", g, err)
+	}
+	if _, err := f.svc.GrantReward(f.ctx, f.player(), 5, 1, GrantInput{Gold: 3, Note: "Own purse"}); !errors.Is(err, ErrRefused) {
+		t.Errorf("a player cannot award even their own company: %v", err)
+	}
+}
