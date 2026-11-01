@@ -4,6 +4,9 @@
 #
 #   sudo SITE_ADDRESS=203-0-113-7.sslip.io [BACKUP_BUCKET=my-bucket OCI_NAMESPACE=mynamespace] deploy/oracle/host-setup.sh
 #
+# DUCKDNS_DOMAIN=bc-manager-ce (the subdomain only) is passed on to install.sh: it installs the DuckDNS updater and its timer, which keep that name on the
+# instance's public IP; the token file is created by the owner by hand (install.sh prints the command), never by this script.
+#
 # What it does: Docker (Ubuntu packages) with the compose plugin, the host firewall rules for 80/443 that Oracle's Ubuntu images need,
 # a rule that keeps containers away from the instance metadata service, 1 GiB swap, Docker log rotation, automatic security updates and
 # the optional Object Storage off-site hook, and cosign (pinned version, checksum-verified download) so that the updater verifies the signature
