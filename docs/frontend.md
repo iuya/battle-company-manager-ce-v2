@@ -456,15 +456,35 @@ item but a modifier: the unit gains Poisoned Attacks (<the weapon the player cho
 keyword) with a company's `limitExemptions` (an exempt unit is left out of the count and of the base the maximum is worked
 out on) and `limitOverrides` (`BCBook.Limits`).
 
-**The Armory tab** lists every item the company's armoury sells, whether or not a unit can take it now, with its cost, slot
-size, text and what it gives. **Buy for…** opens the company's units: those that can take it have a Buy button, the others
-are shadowed with the reason (heroes only, cavalry only, no free slot, a limit full, not enough influence...). An item
-nobody can take says so and still shows who is refused and why. A search box filters by name and alias.
+**The Armory tab** lists every purchase the company could ever make, whether or not a unit can take it now, with its cost, slot
+size, text and what it gives; it leaves out only what no unit could ever buy. **Buy for…** opens the company's units: those that can
+take it have a Buy button, the others are shadowed with the reason (heroes only, cavalry only, no free slot, a limit full, not enough
+influence...). An item that is possible but that no unit can take now is **greyed**: its name is muted, the button reads "No unit can
+take it now" and is `aria-disabled="true"` (still focusable, it still opens the per-unit reasons: not a dead end) and `aria-describedby` the
+sentence under the item's text (`ArmouryEntry.Why`: what stops each kind of unit, then who could take it later, e.g. "No unit can take it
+now: already wears this armour or better (Warrior of Arnor); not an option of its profile (Ranger of Arnor). A Ranger of the North may take
+it after Armour."). A search box filters by name and alias.
 
-Filters (Alpine `armory`, in the browser): a switch **Hide what <company> cannot take** (ON by default, remembered in `localStorage`
-`bcm-armory-mine`, styled like the main page's "Show finished campaigns" switch) hides the items every unit of the company is ruled
-out of (`UnitOption.Blocker == BlockedByRule` for all: another company's goat or Fell Warg) and the wanderers the company cannot take;
-lacking influence or a slot does not hide anything. Main category chips (All, Wargear, Equipment, Creatures, Wanderers) and, under
+**What is possible** is decided in core in one place (`shop.possible` through `shop.entries`, `core/armoury_possible.go`): an item is
+possible in a company when some unit that can exist in it could buy it under the rules, whatever the units carry or the influence and slots
+now. The units that can exist (`shop.candidates`) are the ones the company has and, from the same sources as a hero's options (`heroOptions`:
+reinforcement and special charts, advancements, promotions, starting company, walked once by `shop.reachable`), a warrior of every profile it
+recruits and a hero of every profile a hero can be (a profile a promotion replaces is no hero: the Ranger of Arnor becomes a Ranger of the
+North), with nothing carried and an empty roster, so "already carried", a unique item's count and the roster of the day never make an item
+impossible. Wargear and equipment: a candidate no rule rules out (`whyNot` is the one source: hero or warrior, who may take it, the Beast
+rule, a warrior's profile options and a hero's company-wide ones). An armour upgrade: a candidate wearing less than the stage whose
+profile (a warrior) or company (a hero, `armourPool`) has every stage from the one above its own up to it, as armour goes one stage at a
+time. Creatures: possible unless the rules give no officer one. Wanderers: possible unless the company could not hire it even with an
+empty roster (the models it may have, a keyword's share of them; the balance between two races is met by hiring the other). Examples:
+in a fresh Arnor company Armour and Heavy Armour are possible (a Ranger of the North may buy them) while no unit can take them now, and no
+Warg or halberd is ever possible; in the Shire Armour is possible and Heavy Armour is not; in Rohan and Moria every profile starts in
+Armour or better, so Armour is not possible and Heavy Armour is.
+
+Filters (Alpine `armory`, in the browser): a switch **Hide what <company> could never take** (ON by default, remembered in `localStorage`
+`bcm-armory-mine`, styled like the main page's "Show finished campaigns" switch) hides the items, creatures and wanderers that are not
+possible (`data-avail="0"`, from `ArmouryEntry.Possible`; another company's goat or Fell Warg) and says how many; with the switch off they
+show, and every purchase that is possible shows either way: lacking influence, a slot, a unit that can take it now, or a stage to climb does
+not hide anything. Main category chips (All, Wargear, Equipment, Creatures, Wanderers) and, under
 them, the item category chips (Melee, Ranged, Armour and shields, Mounts, Consumables, Banners and horns, Other: the item's first class,
 `subOf`); picking a main category disables the item categories it has no items in (`data-applies`), so Creatures and Wanderers have none.
 The names on creature and wanderer cards (special rules, wargear, heroic actions) carry a tooltip when a file explains them: the armory's
@@ -486,7 +506,8 @@ one through `BuyEquipment` with the stage's name replaces the armour the unit we
 stages are never skipped. A warrior (a Beast that is still a warrior included) needs the stage as an option of its profile; a hero only the stages that units
 of its company can have (`armourPool`), so a company without heavy-armoured units never sells Heavy Armour to a hero.
 `ArmourUpgrade.UnitStage` is the stage a unit wears. Frontend: the offers appear in `Armoury` and `ArmouryEntries` like any item
-(their `Reason`/`Blocker` say why not), and the Defence change shows in the effective stats.
+(their `Reason`/`Blocker` say why not) and, like any item, in the Armory tab whenever they are possible in the company even if every unit
+wears the stage or cannot reach it now (see above); the Defence change shows in the effective stats.
 
 **Dropping.** The expanded card has a **Drop** button on equipment the rules let the unit drop (`core.DropReason`);
 otherwise it says why. Battle Companies: equipment (slot items) can always be dropped; a hero freely drops any wargear it
@@ -881,7 +902,10 @@ card shows a creature chip (tooltip with its stat block) and a small card appear
 gives the company a pack (`companyFeature.carryGear`): "Open the pack" lets any member store, take out or swap gear for
 free (`campaigns.Carry`; what a member gets must be something it could buy, mounts and upgrades cannot be carried, gear in the pack still counts towards the bow and throwing limits, and the
 app does not count the "once per occasion"). A wanderer is a normal hero card with a Wanderer badge: it counts towards
-the unit limit, has no experience, cannot buy equipment, rolls the hero injuries and can be dismissed (no refund).
+the unit limit, has no experience, cannot buy equipment, rolls the hero injuries and can be dismissed (no refund). A creature nobody can take now and a wanderer
+that cannot be hired now (the company is full, not enough influence) stay listed, greyed like an item, with the reason (`aria-disabled`
+button described by it); only the ones that are not possible in the company (the rules give no officer a creature; the company could not
+hire the wanderer even with an empty roster) are hidden by the Armory's switch.
 
 Item tooltips read the Battle Companies file's `gearAnnotations[].definition`; a mount's tooltip also has its stat block
 (`gearAnnotations[].profile`, the vanilla mount entry).
