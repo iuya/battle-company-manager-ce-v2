@@ -7,7 +7,12 @@ import (
 
 func armourShop(t *testing.T, company string) (shop, CompanyState) {
 	t.Helper()
-	rs := shippedRules(t)
+	return armourShopOf(t, shippedRules(t), company)
+}
+
+// armourShopOf is the shop of a fresh company of the faction under the rule set.
+func armourShopOf(t *testing.T, rs *RuleSet, company string) (shop, CompanyState) {
+	t.Helper()
 	p, _ := rs.BC.Profile(company)
 	st := CompanyState{Company: CampaignCompany{ID: 1, Name: company, Faction: company}, Influence: 20, Gold: 20, Units: StartingUnits(p, p.DefaultHeroes())}
 	for i := range st.Units {

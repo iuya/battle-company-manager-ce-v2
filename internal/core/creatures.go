@@ -109,6 +109,7 @@ type ArmouryCreature struct {
 	StatBlock             []Attribute
 	Owners                []UnitOption
 	Reason                string // why nobody can (company-wide), empty otherwise
+	Possible              bool   // the rules let an officer of the company have a creature at all
 }
 
 // ArmouryWanderer is a wanderer of the armoury and whether it can be hired now.
@@ -118,6 +119,7 @@ type ArmouryWanderer struct {
 	StatBlock             []Attribute
 	Reason                string
 	Blocker               Blocker // what stops the hire; empty when it can be hired
+	Possible              bool    // the company could hire it with a roster in which nothing else stands in the way (influence, room and today's units aside)
 }
 
 // Hirable says the wanderer can be hired now.

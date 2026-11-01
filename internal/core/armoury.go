@@ -21,15 +21,22 @@ func NewArmouryService(campaigns campaignRepository, companies companyRepository
 
 // shop is a company as the armoury sees it: its rules, its page data and its Battle Companies profile.
 type shop struct {
-	rs  *RuleSet
-	d   CompanyDetail
-	bcC BCCompany
+	rs   *RuleSet
+	d    CompanyDetail
+	bcC  BCCompany
+	memo *shopMemo // what is worked out once per shop (nil: not kept)
+}
+
+// shopMemo keeps the options of the heroes and the armour pools of a shop, which the armoury asks for once per unit and item.
+type shopMemo struct {
+	hero map[string][]ChoiceOption // by unit type
+	pool map[string]map[int][]string
 }
 
 func newShop(rs *RuleSet, settings CampaignSettings, st CompanyState) shop {
 	d := BuildDetail(rs, settings, st)
 	bcCo, _ := rs.BC.Company(st.Company.Faction)
-	return shop{rs: rs, d: d, bcC: bcCo}
+	return shop{rs: rs, d: d, bcC: bcCo, memo: &shopMemo{hero: map[string][]ChoiceOption{}, pool: map[string]map[int][]string{}}}
 }
 
 func (sh shop) unit(id int64) (CompanyUnit, bool) {
@@ -125,18 +132,7 @@ func (a *ArmouryService) ArmouryEntries(ctx context.Context, campaignID, company
 	if err != nil {
 		return nil, err
 	}
-	var out []ArmouryEntry
-	for _, offer := range sh.offers() {
-		entry := ArmouryEntry{GearOffer: offer, Icon: IconFor(offer.Name, offer.Classes, offer.Size)}
-		for _, u := range sh.d.Roster {
-			reason, blocker := sh.whyNot(u, offer)
-			opt := UnitOption{ID: u.ID, Title: u.Title(), Type: u.Type, Role: u.Role, Kind: u.Kind, Reason: reason, Blocker: blocker, GoldPrice: sh.goldPrice(u, offer)}
-			opt.PayInfluence, opt.PayGold = canPay(sh.d, offer.Cost, opt.GoldPrice)
-			entry.Units = append(entry.Units, opt)
-		}
-		out = append(out, entry)
-	}
-	return out, nil
+	return sh.entries(), nil
 }
 
 // goldPrice is what the unit pays in Gold for the item: its rating. A warrior is worth its MESBG points, so for wargear that is
@@ -192,9 +188,14 @@ func (sh shop) optionsOf(u CompanyUnit) (options []ChoiceOption, known bool) {
 // company (a hero may buy any wargear available to a member of its company, start units included), what those profiles start
 // with, and its own profile.
 func (sh shop) heroOptions(u CompanyUnit) []ChoiceOption {
+	if sh.memo != nil {
+		if o, ok := sh.memo.hero[u.Type]; ok {
+			return o
+		}
+	}
 	var options []ChoiceOption
 	seen := map[string]bool{}
-	add := func(unit string) {
+	add := func(unit string, _ reachRole) {
 		if v, ok := sh.profileOf(unit); ok && !seen[unit] {
 			seen[unit] = true
 			options = append(options, v.Options...)
@@ -203,34 +204,11 @@ func (sh shop) heroOptions(u CompanyUnit) []ChoiceOption {
 			}
 		}
 	}
-	for _, chart := range [][]ChartRow{sh.bcC.Reinforcements, sh.bcC.SpecialChart} {
-		for _, r := range chart {
-			add(r.Result.Unit)
-			for _, c := range r.Result.Options {
-				add(c.Unit)
-			}
-		}
+	sh.reachable(add, func(w string) { options = append(options, ChoiceOption{Name: w}) })
+	add(u.Type, reachRecruit)
+	if sh.memo != nil {
+		sh.memo.hero[u.Type] = options
 	}
-	for _, adv := range sh.rs.BC.Advancements(sh.bcC) { // "including those that could be promoted"
-		for _, to := range adv.To {
-			add(to.Unit)
-			for _, w := range to.Wargear {
-				options = append(options, ChoiceOption{Name: w})
-			}
-		}
-	}
-	if profile, ok := sh.rs.BC.Profile(sh.bcC.Name); ok {
-		for _, s := range profile.Start {
-			add(s.Unit)
-			for _, w := range s.Wargear {
-				options = append(options, ChoiceOption{Name: w})
-			}
-		}
-		for _, p := range profile.Promotions {
-			add(p.Becomes)
-		}
-	}
-	add(u.Type)
 	return options
 }
 
@@ -527,7 +505,7 @@ func (sh shop) creatures() []ArmouryCreature {
 	cr, offers := sh.rs.BC.Creatures()
 	var out []ArmouryCreature
 	for _, o := range offers {
-		entry := ArmouryCreature{CreatureOffer: o, StatBlock: creatureStats(sh.rs, o)}
+		entry := ArmouryCreature{CreatureOffer: o, StatBlock: creatureStats(sh.rs, o), Possible: cr.MaxPerHero >= 1}
 		entry.Keywords = sh.rs.UnitKeywords(CompanyProfile{}, UnitKeywordsInput{Creature: o.Name})
 		entry.PayInfluence, entry.PayGold = canPay(sh.d, o.Cost, o.Gold)
 		for _, u := range sh.d.Roster {
@@ -597,6 +575,10 @@ func (sh shop) wanderers() []ArmouryWanderer {
 	var out []ArmouryWanderer
 	for _, o := range offers {
 		entry := ArmouryWanderer{WandererOffer: o, StatBlock: sh.rs.Vanilla.Profile(o.AsUnit(), true, nil)}
+		// possible: nothing but the roster of the day stands in the way (the models a company may have, a keyword's share of it); the
+		// balance between two races is met by hiring the other one
+		why, kind := companyBlockFor(sh.rs, sh.bcC, nil, o.AsUnit())
+		entry.Possible = why == "" || kind == blockBalance
 		entry.Keywords = sh.rs.UnitKeywords(CompanyProfile{}, UnitKeywordsInput{Wanderer: o.Name})
 		entry.PayInfluence, entry.PayGold = canPay(sh.d, o.Cost, o.Gold)
 		switch {
