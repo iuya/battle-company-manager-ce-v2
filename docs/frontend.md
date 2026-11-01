@@ -409,6 +409,12 @@ A card, top to bottom:
   (right after the "Wargear" label, which has its own line, items below) or `?kind=equipment` (right after the "Equipment"
   label, before the slot pips). The window lists only that half, hides what a rule forbids (`ArmouryItem.Offered`), shows armour
   upgrades (`GearOffer.ArmourStage`) as rows with an "armour upgrade" badge and gives the reason for the others. A search field ("Find an item", name and aliases, creatures too) narrows the list in the browser. Read-only cards have no chips.
+- **Item descriptions are linked text**: wherever an item's description is drawn (the unit card's expanded item, the buy window, the Armory tab and its
+  "Gives:" line, the free equipment the aftermath offers) it goes through `itemText` (`campaign.go`) and the `segments` template: every glossary term
+  and base unit it names is a `term-link` with the usual tooltip. `Glossary.LinkExcept` never links the item's own names (its name, its `AlsoCalled`
+  / `Spellings`, with plural and possessive forms: the Backpack's text keeps "Backpack" plain) and, for text of items, links the single-word names of
+  weapon and wargear terms in any case (a "lance" in the War spear's text). Tooltips (chips, `data-tip-text`) stay plain text. The live match card's
+  "Item used" window lists names only.
 - **Effective stats**: `Attribute.Value` already includes the gear; a characteristic with `Attribute.Gear != 0` has an accent
   ring and its tooltip (`statTip`) lists the `CompanyUnit.StatMods` (`+1 from Shield`, `Shield: cancelled by a bow`). Rule
   chips and tooltips print `UnitRule.Shown()` (the label), never the key. A limit with no `RoomForNew` says a new recruit would not fit.
