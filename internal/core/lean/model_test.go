@@ -26,7 +26,7 @@ func walkTypes(t reflect.Type, seen map[reflect.Type]bool, visit func(reflect.Ty
 // are well formed (numeric min/max, min <= max, enum values non-empty, rest only on map[string]any).
 func TestModelTags(t *testing.T) {
 	walkTypes(reflect.TypeOf(Document{}), map[reflect.Type]bool{}, func(st reflect.Type) {
-		if st == reflect.TypeOf(DiceSpec{}) || st == reflect.TypeOf(Roll{}) || st == reflect.TypeOf(Rating{}) || st == reflect.TypeOf(RuleRef{}) {
+		if st == reflect.TypeOf(DiceSpec{}) || st == reflect.TypeOf(Roll{}) || st == reflect.TypeOf(Rating{}) || st == reflect.TypeOf(RuleRef{}) || st == reflect.TypeOf(Share{}) {
 			return // polymorphic: bound by their Binder
 		}
 		names := map[string]bool{}

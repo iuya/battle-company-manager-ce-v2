@@ -20,6 +20,7 @@ func VersionIssue(file string, got int) Issue {
 func Validate(doc *Document, ix *Index, lower Lower, rep *Reporter) {
 	v := &validator{doc: doc, ix: ix, lower: lower, rep: rep}
 	v.structure()
+	v.shares()
 	v.charts()
 }
 

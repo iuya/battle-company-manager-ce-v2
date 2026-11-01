@@ -96,11 +96,11 @@ w('vanilla_section',doc(vanilla={"pins":[{"kind":"hero","name":"Peregrin Took","
    "mounts":{"Warg":{"race":["Warg"],"faction":["Mordor"]}},
    "options":{"notSold":["banner","war horn","war drum"],"exceptions":[{"unit":"Cave Troll","option":"Hand-and-a-half hammer","readAs":"Hand-and-a-half Weapon"},{"unit":"Cave Troll","option":"Troll Spear","ownItem":"Troll Spear"},{"unit":"Ranger of the North","option":"Armour","granted":True}]}},
    ))
-w('limits_followers',doc(limits=[{"id":"bow","type":"bow","property":"all","maximumPercentage":33.33,"roundUp":True,"classes":["bow","crossbow"],"label":"bows (heroes included)"}],
+w('limits_followers',doc(limits=[{"id":"bow","type":"bow","property":"all","share":"1/3","roundUp":True,"classes":["bow","crossbow"],"label":"bows (heroes included)"}],
    creatures={"rules":{"maxPerHero":1}},wanderers={"rules":{"maxAtOnce":1}}))
 w('company_typed',doc(rules=[{"name":"Foresight of the Seer","definition":"The hero may re-roll ...","source":"Fornost Hero Upgrade"}],
   gear=[{"name":"Spear","kind":"wargear","type":"spear","influence":1,"rating":1},{"name":"Armour","kind":"wargear","type":"armour","influence":1,"rating":1},{"name":"Bow","kind":"wargear","type":"bow","influence":1,"rating":1}],
-  limits=[{"id":"bow","type":"bow","property":"all","maximumPercentage":33.33,"roundUp":True,"classes":["bow","crossbow"],"label":"bows (heroes included)"}],
+  limits=[{"id":"bow","type":"bow","property":"all","share":"1/3","roundUp":True,"classes":["bow","crossbow"],"label":"bows (heroes included)"}],
   companies=[{"name":"Fornost","alignment":"good","description":"...",
    "notes":[{"section":"reinforcements","text":"What the page says about the chart."},{"section":"startingCompany","text":"A note.","about":["Tookish Hunter"]}],
    "start":{"gold":2,"units":[{"unit":"Ranger of Arnor","role":"leader","with":["Spear"]},{"unit":"Tookish Hunter","count":2,"role":"heroInTheMaking"},{"unit":"Warrior of Arnor","count":3}]},
@@ -436,7 +436,7 @@ c['recruit']={"fallback":[{"unit":"Ranger of Arnr","when":"wouldExceedMaxModels"
 c['limits']={"exempt":[{"limits":["bow"]},{"unit":"Rider of Rohan","limits":["bows"]}],"override":{"cavalry":50},"company":[{"keyword":"Elv","percent":33}]}
 c['substitutions']=[{"appliesTo":"Models","target":{"role":"leader"},"treatedAs":"Faramir","rule":"Loyal to the Captan","text":"x"}]
 c['granted']=[{"rule":"Fearles","who":{"text":"All"},"text":"x"}]
-wi('company_typed',doc(companies=[c],limits=[{"id":"bow","type":"bow","property":"all","maximumPercentage":33.33,"roundUp":True,"classes":["bow","crossbow"],"label":"bows"}]))
+wi('company_typed',doc(companies=[c],limits=[{"id":"bow","type":"bow","property":"all","share":"1/3","roundUp":True,"classes":["bow","crossbow"],"label":"bows"}]))
 
 c=base_company(); c['elvenWeaponry']={"units":["Ranger of Arnr"],"race":["Elfe"],"except":["Knight of Arnr"]}
 wi('elven_weaponry',doc(companies=[c]))

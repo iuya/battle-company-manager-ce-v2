@@ -85,6 +85,13 @@ var polymorphic = map[reflect.Type]map[string]any{
 			},
 		},
 	},
+	reflect.TypeOf(Share{}): {
+		"description": "A share as an integer fraction \"1/3\" (numerator 0.., denominator 1.." + strconv.Itoa(MaxShareDen) + ", at most 1), or a number, which is a percent converted to the exact fraction over 100 (50 is 1/2, 66 is 33/50).",
+		"oneOf": []any{
+			map[string]any{"type": "string", "pattern": `^\s*[0-9]+\s*/\s*[0-9]+\s*$`},
+			map[string]any{"type": "number", "minimum": 0, "maximum": 100},
+		},
+	},
 	reflect.TypeOf(Scalar("")): {
 		"description": "A string or a number read as text (the rulebook version).",
 		"oneOf": []any{
