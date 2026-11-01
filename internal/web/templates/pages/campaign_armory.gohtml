@@ -53,8 +53,8 @@
             {{range .Restrictions}}<span class="badge badge-muted">{{.}}</span>{{end}}</p>
           {{if .AlsoCalled}}<p class="text-xs text-muted">Also: {{join .AlsoCalled ", "}}</p>{{end}}
           {{with .Stats}}<p class="mt-1 text-sm font-medium">{{.}}</p>{{end}}
-          {{if .Description}}<p class="mt-1 text-sm text-muted">{{.Description}}</p>{{end}}
-          {{if .Grants}}<p class="mt-1 text-sm"><span class="text-muted">{{if eq .GrantedTo "mount"}}Gives its mount:{{else}}Gives:{{end}}</span> {{join .Grants ", "}}</p>{{end}}
+          {{if .Segments}}<p class="mt-1 text-sm text-muted">{{template "segments" (dict "S" .Segments "CID" $.Campaign.ID)}}</p>{{end}}
+          {{if .Grants}}<p class="mt-1 text-sm"><span class="text-muted">{{if eq .GrantedTo "mount"}}Gives its mount:{{else}}Gives:{{end}}</span> {{template "segments" (dict "S" .GrantSegs "CID" $.Campaign.ID)}}</p>{{end}}
           {{if .Why}}<p id="armory-why-{{$ei}}" class="mt-2 text-sm text-muted">{{.Why}}</p>{{end}}
         </div>
         <div class="ml-auto flex shrink-0 flex-col items-end gap-1">

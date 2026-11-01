@@ -196,10 +196,16 @@ type armouryPanel struct {
 	Co        int64
 	Unit      core.CompanyUnit
 	Slots     core.Slots
-	Items     []core.ArmouryItem
+	Items     []armouryItemView
 	Influence int
 	Kind      string           // "wargear" or "equipment": which half of the armoury the window shows; empty shows both
 	Creatures []creatureChoice // what an officer can also take: creatures
+}
+
+// armouryItemView is an item of the buy window with its description cut into text and glossary links (the item's own name is never one).
+type armouryItemView struct {
+	core.ArmouryItem
+	Segments []segView
 }
 
 // creatureChoice is a creature and whether this officer can take it.
@@ -225,6 +231,11 @@ func (s *Server) handleArmouryPanel(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, r, err) {
 		return
 	}
+	g, err := s.glossary.ForCampaign(r.Context(), base.Campaign.ID)
+	if err != nil && !errors.Is(err, core.ErrNotFound) {
+		s.fail(w, r, err)
+		return
+	}
 	panel := armouryPanel{Campaign: base.Campaign, Co: base.Current.ID, Influence: detail.Influence}
 	if k := r.URL.Query().Get("kind"); k == "wargear" || k == "equipment" {
 		panel.Kind = k
@@ -232,7 +243,7 @@ func (s *Server) handleArmouryPanel(w http.ResponseWriter, r *http.Request) {
 	for _, it := range items {
 		// What a rule forbids is not shown; the rest is, with the reason when it cannot be bought now.
 		if it.Offered() && (panel.Kind == "" || (panel.Kind == "equipment") == (it.Size != "")) {
-			panel.Items = append(panel.Items, it)
+			panel.Items = append(panel.Items, armouryItemView{ArmouryItem: it, Segments: itemText(g, it.Description, append([]string{it.Name}, it.AlsoCalled...)...)})
 		}
 	}
 	for _, u := range detail.Roster {

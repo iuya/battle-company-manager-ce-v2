@@ -372,7 +372,7 @@
         <span class="badge badge-muted">{{if .Size}}{{.Size}} slot{{else}}wargear{{end}}</span>{{if .ArmourStage}} <span class="badge badge-gold" title="Replaces the armour the model wears">armour upgrade</span>{{end}}{{if .Exclusive}} <span class="badge badge-gold" title="Only your company can buy it">Company-exclusive</span>{{end}}
         {{range .Restrictions}}<span class="badge badge-muted">{{.}}</span>{{end}}</p>
       {{if .AlsoCalled}}<p class="text-xs text-muted">Also: {{join .AlsoCalled ", "}}</p>{{end}}
-      {{if .Description}}<p class="mt-0.5 line-clamp-2 text-sm text-muted">{{.Description}}</p>{{end}}
+      {{if .Segments}}<p class="mt-0.5 line-clamp-2 text-sm text-muted">{{template "segments" (dict "S" .Segments "CID" $.Campaign.ID)}}</p>{{end}}
     </div>
     <div class="ml-auto flex shrink-0 flex-col items-end gap-1">
       {{if and .Buyable .WeaponModifier (not $.Unit.PoisonableWeapons)}}

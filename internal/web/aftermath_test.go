@@ -434,8 +434,12 @@ func TestFinishStepOffersFreeEquipmentAndRefusesWhileOpen(t *testing.T) {
 	st.Preview.Rewards = []core.RewardApply{{Key: "spoils", Name: "To the Victor the Spoils", Kind: "freeEquipment", MaxValue: 2, Decision: true}, {Key: "cargo", Name: "Cargo", Kind: "influence", Amount: 1}}
 	st.Pending = st.Preview.Rewards[:1]
 	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(st, nil)
-	f.camp.EXPECT().FreeEquipmentOffers(gomock.Any(), int64(7), int64(1), 2).Return([]core.FreeEquipment{{GearOffer: core.GearOffer{Name: "Shield", Cost: 1, Size: "small"}, Units: []core.UnitOption{{ID: 10, Title: "Aldor"}}}}, nil)
+	f.camp.EXPECT().FreeEquipmentOffers(gomock.Any(), int64(7), int64(1), 2).Return([]core.FreeEquipment{{GearOffer: core.GearOffer{Name: "Shield", Cost: 1, Size: "small", Description: itemWarSpear}, Units: []core.UnitOption{{ID: 10, Title: "Aldor"}}}}, nil)
+	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(shippedRules(t).GlossaryWithUnits(), nil).AnyTimes()
 	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
+	if got := strings.Join(linkTextsIn(body, "while mounted and a"), ","); got != "lance,spear" {
+		t.Errorf("the offered item's description links: %q", got)
+	}
 	for _, want := range []string{"To the Victor the Spoils", "Choose one item worth at most 2 Influence", `value="Shield"`, `value="10"`, `name="key" value="spoils"`, "Choose the free equipment first", "+1 Influence"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("finish lacks %q", want)
