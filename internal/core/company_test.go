@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 func ids(units []CompanyUnit) []int64 {
@@ -183,7 +185,7 @@ func TestLimitExemptionsLeaveModelsOutOfTheCountAndTheBase(t *testing.T) {
 		t.Errorf("whips are free: %+v", l)
 	}
 	// a company's own share for a limit (Osgiliath: bows 50%)
-	osgiliath := BCCompany{LimitOverrides: map[string]float64{"bow": 50}}
+	osgiliath := BCCompany{LimitOverrides: map[string]lean.Share{"bow": {Num: 1, Den: 2}}}
 	if l := computeLimits(shippedRules(t).BC.limitRules, osgiliath, make([]CompanyUnit, 6))[0]; l.Max != 3 {
 		t.Errorf("50%% of 6: %+v", l)
 	}
@@ -554,11 +556,11 @@ func TestCompanyProfilesHaveEverythingForTheBrowser(t *testing.T) {
 
 func TestLimitMaxRoundsUpAndCountsTheNewModel(t *testing.T) {
 	for _, c := range []struct {
-		percent float64
+		share   lean.Share
 		n, want int
-	}{{33.33, 6, 2}, {33.33, 7, 3}, {33.33, 9, 3}, {33.33, 10, 4}, {33, 6, 2}, {33, 9, 3}, {33, 12, 4}, {33.33, 0, 0}, {50, 5, 3}} {
-		if got := LimitMax(c.percent, c.n, true); got != c.want {
-			t.Errorf("LimitMax(%v, %d) = %d, want %d", c.percent, c.n, got, c.want)
+	}{{lean.Share{Num: 1, Den: 3}, 6, 2}, {lean.Share{Num: 1, Den: 3}, 7, 3}, {lean.Share{Num: 1, Den: 3}, 9, 3}, {lean.Share{Num: 1, Den: 3}, 10, 4}, {lean.Share{Num: 33, Den: 100}, 6, 2}, {lean.Share{Num: 33, Den: 100}, 9, 3}, {lean.Share{Num: 33, Den: 100}, 12, 4}, {lean.Share{Num: 1, Den: 3}, 0, 0}, {lean.Share{Num: 1, Den: 2}, 5, 3}} {
+		if got := LimitMax(c.share, c.n, true); got != c.want {
+			t.Errorf("LimitMax(%v, %d) = %d, want %d", c.share, c.n, got, c.want)
 		}
 	}
 	bow := Equipment{Name: "Bow", Class: EquipBow}

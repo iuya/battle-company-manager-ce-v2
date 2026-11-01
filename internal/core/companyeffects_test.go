@@ -3,6 +3,8 @@ package core
 import (
 	"slices"
 	"testing"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 // The company effects of the Battle Companies file (companies[].effects) as BuildDetail and the recruit code read them. One
@@ -75,7 +77,7 @@ func TestEffectLimitExemptionLeavesModelsOutOfTheCount(t *testing.T) {
 func TestEffectCompanyLimitKeepsAKeywordToItsShare(t *testing.T) {
 	rs := shippedRules(t)
 	profile, _ := rs.BC.Profile("Helm's Deep")
-	if len(profile.KeywordLimits) != 1 || profile.KeywordLimits[0].Keyword != "Elf" || profile.KeywordLimits[0].Percent != 33 {
+	if len(profile.KeywordLimits) != 1 || profile.KeywordLimits[0].Keyword != "Elf" || profile.KeywordLimits[0].Share != (lean.Share{Num: 33, Den: 100}) {
 		t.Fatalf("Helm's Deep limits: %+v", profile.KeywordLimits)
 	}
 	bcCo, _ := rs.BC.Company("Helm's Deep")

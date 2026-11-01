@@ -2,6 +2,8 @@ package core
 
 import (
 	"testing"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
 func TestBattleCompaniesBook(t *testing.T) {
@@ -92,7 +94,7 @@ func TestGearAnnotationsFromTheFile(t *testing.T) {
 		t.Errorf("Rohan's riders are exempt: %+v", rohan.LimitExemptions)
 	}
 	osg, _ := b.Company("Osgiliath & Ithilien")
-	if osg.LimitOverrides["bow"] != 50 {
+	if osg.LimitOverrides["bow"] != (lean.Share{Num: 1, Den: 2}) {
 		t.Errorf("Osgiliath's bow share: %+v", osg.LimitOverrides)
 	}
 	// an offer takes its classes from the annotations, not from its name

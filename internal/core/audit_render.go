@@ -211,7 +211,7 @@ func renderCompany(c CompanyAudit) string {
 		m.line("- Unit %s is %s with %s, options selected [%s]: %s", a.Label, a.Unit, strings.Join(a.AddRules, ", "), strings.Join(a.Selected, ", "), a.Text)
 	}
 	for _, k := range p.KeywordLimits {
-		m.line("- Keyword limit %s %.0f%%: %s", k.Keyword, k.Percent, k.Text)
+		m.line("- Keyword limit %s %s: %s", k.Keyword, k.Share.Text(), k.Text)
 	}
 	for _, b := range p.Balance {
 		m.line("- Balance: %s not more than %s", b.Keyword, b.NotMoreThan)
@@ -233,7 +233,7 @@ func renderCompany(c CompanyAudit) string {
 	sort.Strings(ids)
 	for _, k := range ids {
 		m.line("")
-		m.line("Own share for limit %s: %v%%", k, p.LimitOverrides[k])
+		m.line("Own share for limit %s: %s", k, p.LimitOverrides[k].Text())
 	}
 	for _, e := range p.LimitExemptions {
 		m.line("")

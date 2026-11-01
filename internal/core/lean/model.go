@@ -57,7 +57,7 @@ type Company struct {
 	Oath           *Oath          `json:"oath,omitempty"`
 	Extends        string         `json:"extends,omitempty"`
 	MaxModels      int            `json:"maxModels,omitempty" min:"1" max:"50"` // default campaign.company.maxModels; Elite 12
-	BreakPoint     int            `json:"breakPoint,omitempty" min:"1" max:"100"`
+	BreakPoint     Share          `json:"breakPoint,omitempty"`                 // a whole percent as a number (66) or a fraction ("33/50"); default campaign.breakPoint.default
 	Start          *Start         `json:"start,omitempty"`
 	Reinforcements *Chart         `json:"reinforcements,omitempty"`
 	Special        *SpecialChart  `json:"special,omitempty"`
@@ -237,9 +237,9 @@ type Balance struct {
 
 // CompanyLimit overrides the limits of one company.
 type CompanyLimit struct {
-	Exempt   []Exempt           `json:"exempt,omitempty"`   // models or items that do not count towards limits
-	Override map[string]float64 `json:"override,omitempty"` // a limit's own share for this company, by limit id (Osgiliath: bow 50)
-	Company  []KeywordLimit     `json:"company,omitempty"`  // no more than a share of the company may have a keyword (Helm's Deep: Elf 33)
+	Exempt   []Exempt         `json:"exempt,omitempty"`   // models or items that do not count towards limits
+	Override map[string]Share `json:"override,omitempty"` // a limit's own share for this company, by limit id (Osgiliath: bow "1/2")
+	Company  []KeywordLimit   `json:"company,omitempty"`  // no more than a share of the company may have a keyword (Helm's Deep: Elf 33)
 }
 
 // Exempt says a unit or an item does not count towards some limits (Riders of Rohan: bow and cavalry).
@@ -253,7 +253,8 @@ type Exempt struct {
 // KeywordLimit caps the share of a company that may have a keyword.
 type KeywordLimit struct {
 	Keyword string  `json:"keyword" required:"true" min:"1"`
-	Percent float64 `json:"percent" required:"true" min:"0" max:"100"`
+	Share   Share   `json:"share,omitempty"`                     // "1/3"; or the percent below, not both
+	Percent float64 `json:"percent,omitempty" min:"0" max:"100"` // a percent, converted to the exact fraction over 100
 	Text    string  `json:"text,omitempty"`
 }
 
@@ -495,7 +496,8 @@ type Limit struct {
 	Type              string   `json:"type,omitempty" enum:"bow|throwingWeapon|keyword|class"`
 	Value             string   `json:"value,omitempty"`
 	Property          string   `json:"property,omitempty"`
-	MaximumPercentage float64  `json:"maximumPercentage" required:"true" min:"0.01" max:"100"`
+	Share             Share    `json:"share,omitempty"`                                  // "1/3"; or maximumPercentage, not both
+	MaximumPercentage float64  `json:"maximumPercentage,omitempty" min:"0.01" max:"100"` // a percent, converted to the exact fraction over 100
 	RoundUp           bool     `json:"roundUp" required:"true"`
 	Classes           []string `json:"classes,omitempty" enum:"melee|spear|two_handed|mount|bow|armour|throwing|shield|instrument|consumable|lance|banner|missile|crossbow|other" noun:"gear class"`
 	Label             string   `json:"label,omitempty"`

@@ -140,7 +140,7 @@
     },
     "breakPoint": {
       "default": {
-        "percent": 40,
+        "share": "2/5",
         "of": "startingModels"
       },
       "threshold": {

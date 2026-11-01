@@ -79,7 +79,7 @@ type BCCompany struct {
 	UniqueWargear     []GearOffer
 	RecruitNotes      []string // what the company page says about its reinforcements
 	LimitExemptions   []LimitExemption
-	LimitOverrides    map[string]float64 // a company's own share for a limit, by limit id (Osgiliath: bows 50)
+	LimitOverrides    map[string]lean.Share // a company's own share for a limit, by limit id (Osgiliath: bows 1/2)
 }
 
 // ChartRow is one line of a D6 chart: rolls Min to Max give Result.

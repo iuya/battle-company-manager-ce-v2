@@ -732,7 +732,7 @@ func applyCompanyRules(rs *RuleSet, bcCo BCCompany, units []CompanyUnit) []Compa
 			}
 		}
 		limits = append(limits, CompanyLimit{ID: "keyword-" + strings.ToLower(l.Keyword), Label: l.Keyword + " models", Used: used,
-			Max: LimitMax(l.Percent, models, true), Next: LimitMax(l.Percent, models+1, true)}) // a company's keyword share is always rounded up
+			Max: LimitMax(l.Share, models, true), Next: LimitMax(l.Share, models+1, true)}) // a company's keyword share is always rounded up
 	}
 	return limits
 }
@@ -791,8 +791,8 @@ func companyBlockFor(rs *RuleSet, bcCo BCCompany, roster []CompanyUnit, v Vanill
 			continue
 		}
 		have := countKeyword(rs, profile, roster, l.Keyword)
-		if max := LimitMax(l.Percent, models+n, true); have+1 > max { // the new model counts in both numerator and denominator
-			return fmt.Sprintf("the company may have at most %d %s models (%v%% of %d, rounded up) and has %d", max, l.Keyword, l.Percent, models+n, have), blockLimit
+		if max := LimitMax(l.Share, models+n, true); have+1 > max { // the new model counts in both numerator and denominator
+			return fmt.Sprintf("the company may have at most %d %s models (%s of %d, rounded up) and has %d", max, l.Keyword, l.Share.Text(), models+n, have), blockLimit
 		}
 	}
 	for _, b := range profile.Balance {

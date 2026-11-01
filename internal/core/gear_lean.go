@@ -242,7 +242,8 @@ func LeanFollowerRules(d *lean.Document) (CreatureRules, WandererRules) {
 func LeanLimitRules(limits []lean.Limit) []LimitRule {
 	var out []LimitRule
 	for _, l := range limits {
-		r := LimitRule{ID: l.ID, Label: limitLabel(l.Label), Percent: l.MaximumPercentage, RoundUp: l.RoundUp}
+		share, _ := l.LimitShare() // a share the check refused never gets here
+		r := LimitRule{ID: l.ID, Label: limitLabel(l.Label), Share: share, RoundUp: l.RoundUp}
 		if l.Type == "keyword" {
 			r.Keyword = l.Value
 		} else {

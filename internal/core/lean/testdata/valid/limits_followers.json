@@ -214,7 +214,7 @@
       "id": "bow",
       "type": "bow",
       "property": "all",
-      "maximumPercentage": 33.33,
+      "share": "1/3",
       "roundUp": true,
       "classes": [
         "bow",

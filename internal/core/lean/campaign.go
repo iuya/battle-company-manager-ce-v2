@@ -140,7 +140,8 @@ type BreakPoint struct {
 
 // BreakDefault is the Break Point of a company with none of its own.
 type BreakDefault struct {
-	Percent int    `json:"percent" required:"true" min:"1" max:"100"`
+	Percent int    `json:"percent,omitempty" min:"1" max:"100"`
+	Share   Share  `json:"share,omitempty"` // "1/2"; or percent, not both: a whole percent either way
 	Of      string `json:"of,omitempty" enum:"startingModels"`
 }
 
@@ -232,7 +233,7 @@ var ParameterIDs = map[string]string{
 	"B4":  "campaign.company.maxModels",
 	"B6":  "campaign.company.equipmentSlots",
 	"B7":  "gear[].grantsSlots",
-	"B8":  "limits[].maximumPercentage",
+	"B8":  "limits[].share",
 	"B9":  "limits[].roundUp",
 	"B10": "creatures.rules.maxPerHero",
 	"C1":  "campaign.progression.threshold",
@@ -245,7 +246,7 @@ var ParameterIDs = map[string]string{
 	"D3":  "campaign.injuries.warrior[].statChanges[].stat",
 	"E1":  "campaign.breakPoint.threshold.comparison",
 	"E4":  "campaign.breakPoint.whenBroken.courageTest.dice",
-	"E6":  "campaign.breakPoint.default.percent",
+	"E6":  "campaign.breakPoint.default",
 	"F1":  "campaign.rating.hero.wargear.threshold.sumAtLeast",
 	"F5":  "campaign.scenarioSelection.die",
 	"G3":  "gear[].who.race",

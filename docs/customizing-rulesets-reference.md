@@ -563,8 +563,9 @@ Found at: `campaign.breakPoint.default`.
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
-| `percent` | integer | yes | - | 1..100 | The share of the starting models that must be lost. |
 | `of` | string |  | - | `startingModels` | What the share is taken of: startingModels. |
+| `percent` | integer |  | - | 1..100 | The share of the starting models that must be lost, as a whole percent. Write this or share. |
+| `share` | Share |  | - | - | The share of the starting models that must be lost, as a fraction that is a whole percent ("1/2"). Write this or percent. |
 
 ### BreakThreshold
 
@@ -1132,7 +1133,7 @@ Found at: `companies[]`.
 | `alignment` | string | yes | - | `good`, `evil` | good or evil. |
 | `advancements` | list of [Advancement](#advancement) |  | - | - | The promotions of the company's units. |
 | `aka` | list of string |  | - | - | Other spellings of the same name (true synonyms only). A spelling that already is a vanilla name is refused. |
-| `breakPoint` | integer |  | - | 1..100 | This company's own Break Point percent (Muster of Isengard: 66); default campaign.breakPoint.default.percent. |
+| `breakPoint` | Share |  | - | - | This company's own Break Point (Muster of Isengard: "33/50", 66 percent); a whole percent, as a fraction or a percent number; default campaign.breakPoint.default. |
 | `description` | string |  | - | - | The text at the head of the company's page. |
 | `elvenWeaponry` | [Who](#who) |  | - | - | The models of the company that may also buy and wear Elven-made weaponry, which is otherwise restricted to Elf models. An empty object means every model. A company's own unique wargear keeps its own who. |
 | `epigraph` | [Epigraph](#epigraph) |  | - | - | The quote and flavour sentence that head the company's rules. |
@@ -1437,7 +1438,7 @@ Found at: `companies[].limits`.
 |---|---|---|---|---|---|
 | `company` | list of [KeywordLimit](#keywordlimit) |  | - | - | No more than a share of the company may have a keyword. |
 | `exempt` | list of [Exempt](#exempt) |  | - | - | Models or items that do not count towards limits. |
-| `override` | map of number |  | - | - | A limit's own share for this company, by limit id (Osgiliath: bow 50). |
+| `override` | map of Share |  | - | - | A limit's own share for this company, by limit id (Osgiliath: bow "1/2"); a fraction, or a percent number converted to the exact fraction over 100. |
 
 ### KeywordLimit
 
@@ -1448,7 +1449,8 @@ Found at: `companies[].limits.company[]`.
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `keyword` | string | yes | - | not empty | The keyword. |
-| `percent` | number | yes | - | 0..100 | The most, as a share of the company. |
+| `percent` | number |  | - | 0..100 | The most, as a percent of the company, converted to the exact fraction over 100 (Helm's Deep: 33 is 33/100). Write this or share. |
+| `share` | Share |  | - | - | The most, as a share of the company: a fraction like "1/3". Write this or percent. |
 | `text` | string |  | - | - | The rulebook sentence. |
 
 ### Exempt
@@ -1878,11 +1880,12 @@ Found at: `limits[]`.
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `id` | string | yes | - | not empty | The id a company's limits refer to. |
-| `maximumPercentage` | number | yes | - | 0.01..100 | The most, as a share of the company (0.01 to 100). |
 | `roundUp` | boolean | yes | - | - | true: a fraction rounds up. |
 | `classes` | list of string |  | - | `melee`, `spear`, `two_handed`, `mount`, `bow`, `armour`, `throwing`, `shield`, `instrument`, `consumable`, `lance`, `banner`, `missile`, `crossbow`, `other` | The item classes that count. |
 | `label` | string |  | - | - | The words the pages use. |
+| `maximumPercentage` | number |  | - | 0.01..100 | The most, as a percent of the company (0.01 to 100), converted to the exact fraction over 100 (33.33 is 3333/10000, not 1/3: write share). Write this or share. |
 | `property` | string |  | - | - | What counts: all models. |
+| `share` | Share |  | - | - | The most, as a share of the company: a fraction like "1/3". Write this or maximumPercentage. |
 | `type` | string |  | - | `bow`, `throwingWeapon`, `keyword`, `class` | bow, throwingWeapon, keyword or class. |
 | `value` | string |  | - | - | For a keyword limit, the keyword. |
 

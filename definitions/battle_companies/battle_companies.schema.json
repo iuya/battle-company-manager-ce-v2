@@ -1096,15 +1096,16 @@
           "type": "string"
         },
         "percent": {
-          "description": "The share of the starting models that must be lost.",
+          "description": "The share of the starting models that must be lost, as a whole percent. Write this or share.",
           "maximum": 100,
           "minimum": 1,
           "type": "integer"
+        },
+        "share": {
+          "$ref": "#/$defs/Share",
+          "description": "The share of the starting models that must be lost, as a fraction that is a whole percent (\"1/2\"). Write this or percent."
         }
       },
-      "required": [
-        "percent"
-      ],
       "type": "object"
     },
     "BreakException": {
@@ -1632,10 +1633,8 @@
           "type": "string"
         },
         "breakPoint": {
-          "description": "This company's own Break Point percent (Muster of Isengard: 66); default campaign.breakPoint.default.percent.",
-          "maximum": 100,
-          "minimum": 1,
-          "type": "integer"
+          "$ref": "#/$defs/Share",
+          "description": "This company's own Break Point (Muster of Isengard: \"33/50\", 66 percent); a whole percent, as a fraction or a percent number; default campaign.breakPoint.default."
         },
         "description": {
           "description": "The text at the head of the company's page.",
@@ -1805,9 +1804,9 @@
         },
         "override": {
           "additionalProperties": {
-            "type": "number"
+            "$ref": "#/$defs/Share"
           },
-          "description": "A limit's own share for this company, by limit id (Osgiliath: bow 50).",
+          "description": "A limit's own share for this company, by limit id (Osgiliath: bow \"1/2\"); a fraction, or a percent number converted to the exact fraction over 100.",
           "type": "object"
         }
       },
@@ -3515,10 +3514,14 @@
           "type": "string"
         },
         "percent": {
-          "description": "The most, as a share of the company.",
+          "description": "The most, as a percent of the company, converted to the exact fraction over 100 (Helm's Deep: 33 is 33/100). Write this or share.",
           "maximum": 100,
           "minimum": 0,
           "type": "number"
+        },
+        "share": {
+          "$ref": "#/$defs/Share",
+          "description": "The most, as a share of the company: a fraction like \"1/3\". Write this or percent."
         },
         "text": {
           "description": "The rulebook sentence.",
@@ -3526,8 +3529,7 @@
         }
       },
       "required": [
-        "keyword",
-        "percent"
+        "keyword"
       ],
       "type": "object"
     },
@@ -3569,7 +3571,7 @@
           "type": "string"
         },
         "maximumPercentage": {
-          "description": "The most, as a share of the company (0.01 to 100).",
+          "description": "The most, as a percent of the company (0.01 to 100), converted to the exact fraction over 100 (33.33 is 3333/10000, not 1/3: write share). Write this or share.",
           "maximum": 100,
           "minimum": 0.01,
           "type": "number"
@@ -3581,6 +3583,10 @@
         "roundUp": {
           "description": "true: a fraction rounds up.",
           "type": "boolean"
+        },
+        "share": {
+          "$ref": "#/$defs/Share",
+          "description": "The most, as a share of the company: a fraction like \"1/3\". Write this or maximumPercentage."
         },
         "type": {
           "description": "bow, throwingWeapon, keyword or class.",
@@ -3599,7 +3605,6 @@
       },
       "required": [
         "id",
-        "maximumPercentage",
         "roundUp"
       ],
       "type": "object"
@@ -4924,6 +4929,20 @@
         "points"
       ],
       "type": "object"
+    },
+    "Share": {
+      "description": "A share as an integer fraction \"1/3\" (numerator 0.., denominator 1..1000000, at most 1), or a number, which is a percent converted to the exact fraction over 100 (50 is 1/2, 66 is 33/50).",
+      "oneOf": [
+        {
+          "pattern": "^\\s*[0-9]+\\s*/\\s*[0-9]+\\s*$",
+          "type": "string"
+        },
+        {
+          "maximum": 100,
+          "minimum": 0,
+          "type": "number"
+        }
+      ]
     },
     "SlotPair": {
       "additionalProperties": false,
