@@ -22,6 +22,13 @@ if [ ! -f "$dest/.env" ]; then
   { echo "SITE_ADDRESS=$SITE_ADDRESS"; echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"; echo "APP_IMAGE="; echo "CSP_MODE=${CSP_MODE:-report}"; } > "$dest/.env"
   chmod 600 "$dest/.env"
 fi
+# REQUIRE_SIGNATURE=1 (or 0) given in the environment is written to .env, where bcm-update.sh reads it (docs/operations.md, "Signed images").
+if [ -n "${REQUIRE_SIGNATURE:-}" ]; then
+  [[ "$REQUIRE_SIGNATURE" =~ ^[01]$ ]] || { echo "REQUIRE_SIGNATURE must be 0 or 1" >&2; exit 2; }
+  tmp="$(mktemp "$dest/.env.XXXXXX")"
+  { grep -v '^REQUIRE_SIGNATURE=' "$dest/.env" || true; echo "REQUIRE_SIGNATURE=$REQUIRE_SIGNATURE"; } > "$tmp"
+  chmod 600 "$tmp"; mv "$tmp" "$dest/.env"
+fi
 if [ -d /run/systemd/system ]; then
   for u in "$src"/deploy/systemd/*; do install -m 0644 "$u" /etc/systemd/system/; done
   sed -i "s#/opt/bcm#$dest#g" /etc/systemd/system/bcm-*.service
