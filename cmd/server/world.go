@@ -421,6 +421,8 @@ func seedWorld(ctx context.Context, b *backend, dice *demoDice, password string,
 		{"cemetery, invites and handover", w.finishingTouches},
 		{"several companies per player", w.bandsCampaign},
 		{"veterans with long trackers", w.veteransCampaign},
+		{"Fog of War live notes and retreats", w.fogCampaign},
+		{"a lowered company limit", w.loweredLimit},
 		{"account invitations and recovery links", w.adminStates},
 	} {
 		fmt.Fprintln(out, "==", step.name)

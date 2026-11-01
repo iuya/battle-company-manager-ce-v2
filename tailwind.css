@@ -637,7 +637,7 @@ html[data-mode="dark"] { color-scheme: dark; }
   .exclusive { @apply rounded-lg border border-dashed border-accent bg-surface px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]; }
   .exclusive-gold { @apply border-solid border-gold bg-warn/10; }
   .exclusive-label { @apply mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-accent-text; }
-  .exclusive-gold .exclusive-label { @apply text-gold; }
+  .exclusive-gold .exclusive-label { color: color-mix(in srgb, var(--gold) 65%, var(--fg)); } /* gold, pulled toward the text colour: the pale gold box needs 4.5:1 */
   .eq-heal { @apply border-solid border-danger text-danger hover:bg-danger-soft; }
   .pip { @apply inline-block h-2.5 w-2.5 rounded-sm border border-accent; }
   .pip-on { @apply bg-accent; }

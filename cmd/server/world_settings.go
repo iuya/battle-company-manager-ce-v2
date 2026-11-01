@@ -111,6 +111,9 @@ func (w *world) forkedEdition() {
 	w.must("fork", err)
 	hash, err := core.RulesetHash(fork)
 	w.must("hash", err)
+	report, err := w.b.rulesets.Check(w.ctx, core.KindBattleCompanies, fork) // the dry run of the admin "Check this file": the upload is valid
+	w.must("check the forked file", err)
+	fmt.Fprintf(w.out, "  forked file checked: %d issues\n", len(report.Issues()))
 	info, err := w.b.rulesets.StoreAs(w.ctx, w.user("admin"), core.KindBattleCompanies, hash, fork)
 	w.must("store the forked file", err)
 	c := w.campaignWith("you", "Pinned to another edition: Battle Companies 2.1-demo",

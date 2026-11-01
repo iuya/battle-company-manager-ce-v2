@@ -301,6 +301,7 @@ func TestSeedWorld(t *testing.T) {
 	if !found {
 		t.Error("the Shire company of the cemetery is missing")
 	}
+	checkLiveAndLimit(t, ctx, b, byName, you)
 	t.Run("queries do not grow with the data", func(t *testing.T) { assertQueryCounts(ctx, t, b, counter, conn, admin) })
 }
 
@@ -385,5 +386,81 @@ func checkAdminStates(t *testing.T, ctx context.Context, b *backend, admin core.
 	// the world stays usable: the pending named invitation and the pending recovery link are still pending
 	if r := status[recoveryPendingEmail]; r == nil || r.State != core.RecoveryPending {
 		t.Errorf("the pending recovery link is %+v", r)
+	}
+}
+
+// checkLiveAndLimit asserts the Fog of War game (secret notes, the zones of retreated and fallen units, the live Tabletop Simulator
+// export with a second warband) and the campaign whose limit was lowered after companies existed.
+func checkLiveAndLimit(t *testing.T, ctx context.Context, b *backend, byName map[string]core.CampaignSummary, you core.User) {
+	t.Helper()
+	fog, ok := byName[fogName]
+	if !ok {
+		t.Fatal("the Fog of War campaign is missing")
+	}
+	matches, err := b.campaigns.Matches(ctx, fog.ID)
+	if err != nil || len(matches) != 1 {
+		t.Fatalf("Fog of War matches: %v %v", matches, err)
+	}
+	view, err := b.campaigns.SecretObjectives(ctx, you, fog.ID, matches[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.Revealed || len(view.Others) == 0 {
+		t.Errorf("the secret notes of an open match are hidden from a stranger: %+v", view)
+	}
+	cos, err := b.campaigns.Companies(ctx, fog.ID)
+	if err != nil || len(cos) != 2 {
+		t.Fatalf("Fog of War companies: %v %v", cos, err)
+	}
+	for _, c := range cos {
+		_, _, owner, err := b.auth.Login(ctx, map[string]string{"Dwarves who keep their counsel": "gimli@example.com", "Rangers of the silent road": "aragorn@example.com"}[c.Name], "demo-password")
+		if err != nil {
+			t.Fatal(err)
+		}
+		own, err := b.campaigns.SecretObjectives(ctx, owner, fog.ID, matches[0].ID)
+		if err != nil || len(own.Lines) == 0 {
+			t.Errorf("%s sees no secret note of their own: %v %+v", c.Name, err, own)
+		}
+		lc, err := b.campaigns.Live(ctx, owner, fog.ID, c.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := 0
+		for _, u := range lc.Units {
+			if u.Zone == core.ZoneRetreated || u.Zone == core.ZoneCasualty {
+				out++
+			}
+		}
+		if out == 0 {
+			t.Errorf("%s has no unit that left the table", c.Name)
+		}
+		exp, err := b.campaigns.TTSExport(ctx, fog.ID, c.ID, &core.TTSLive{Units: lc.Units, Absent: lc.Absent}, core.TTSOptions{})
+		if err != nil || len(exp.Warbands) != 2 {
+			t.Errorf("%s: the live export has %d warbands (%v), want 2", c.Name, len(exp.Warbands), err)
+		}
+	}
+
+	low, ok := byName[loweredName]
+	if !ok {
+		t.Fatal("the campaign with a lowered limit is missing")
+	}
+	if set, err := b.campaigns.Settings(ctx, low.ID); err != nil || set.CompanyCap() != 2 {
+		t.Errorf("the lowered limit is %d (%v), want 2", set.CompanyCap(), err)
+	}
+	for key, want := range map[string]struct {
+		n      int
+		create bool
+	}{"galadriel@example.com": {3, false}, "eowyn@example.com": {2, false}, "aragorn@example.com": {1, true}} {
+		_, _, u, err := b.auth.Login(ctx, key, "demo-password")
+		if err != nil {
+			t.Fatal(err)
+		}
+		d, err := b.campaigns.Get(ctx, u.ID, low.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(d.Companies) != want.n || d.CanCreateCompany() != want.create {
+			t.Errorf("%s has %d companies and may create another: %v; want %d and %v", key, len(d.Companies), d.CanCreateCompany(), want.n, want.create)
+		}
 	}
 }

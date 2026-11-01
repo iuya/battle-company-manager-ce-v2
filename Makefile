@@ -13,7 +13,7 @@ LISTEN_HOST ?= 127.0.0.1
 CSS_IN  = ./tailwind.css
 CSS_OUT = ./internal/web/static/app.css
 
-.PHONY: hooks hooks-test validate tools-bin concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs docs-check migrate up up-app prod-user prod-down test-backup-restore backuprestore restore-drill vendor-check dice3d user grant seed demo fuzz check-ruleset ruleset-reference db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
+.PHONY: hooks hooks-test deploy-test validate tools-bin concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs docs-check migrate up up-app prod-user prod-down test-backup-restore backuprestore restore-drill vendor-check dice3d user grant seed demo fuzz check-ruleset ruleset-reference db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
 
 # make user EMAIL=you@example.com NAME="Your Name"   (asks for the password)
 user: db-up
@@ -114,6 +114,10 @@ hooks:
 
 hooks-test:
 	sh tests/ci/githooks.test.sh
+
+# make deploy-test   the updater's signature verification and the deploy kit scripts against stub docker/curl/cosign (docs/operations.md, "Signed images")
+deploy-test:
+	bash tests/ci/deploy.test.sh
 
 validate:
 	python3 tools/validate_definitions.py

@@ -119,9 +119,7 @@ export default async function (h) {
         assert.ok(tip && tip.left >= 0 && tip.right <= tip.w && tip.top >= 0 && tip.bottom <= tip.h, `the tooltip fits the window: ${JSON.stringify(tip)}`);
         await aragorn.page.screenshot({ path: `out/unit-links-${w}-${scheme}${contrast === 'high' ? '-high' : ''}.png` });
         await aragorn.page.evaluate(axeSource);
-        // `.exclusive-gold > .exclusive-label` ("Hero upgrade", gold 11 px text on the pale gold box) is just under 4.5:1 in the light theme: a
-        // colour of the page that is not this feature's; it is filed apart and left out here so that this flow checks the unit links.
-        const res = await aragorn.page.evaluate(() => axe.run({ exclude: [['.exclusive-gold > .exclusive-label']] }, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] }, resultTypes: ['violations'] })
+        const res = await aragorn.page.evaluate(() => axe.run({ runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] }, resultTypes: ['violations'] })
           .then((r) => r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${v.id} (${v.impact}, ${v.nodes.length}) ${v.nodes.slice(0, 2).map((n) => n.target.join(' ')).join(' | ')}`)));
         assert.deepEqual(res, []);
         assert.equal(await aragorn.page.evaluate(() => document.documentElement.dataset.contrast || ''), contrast === 'high' ? 'high' : '', 'the contrast applied');

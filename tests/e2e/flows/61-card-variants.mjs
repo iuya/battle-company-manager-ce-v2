@@ -8,9 +8,6 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 const axeSource = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8');
-// A company locked by a waiting aftermath draws its controls half transparent on purpose (inactive components are exempt from
-// WCAG 1.4.3; see the data-lock rule in tailwind.css), so axe leaves them out.
-const LOCKED = '[data-lock]:not([data-lock=""]) [data-lock]';
 const SIZES = [[360, 780], [768, 1024], [1280, 900]];
 // light/dark x contrast x gear; the default look (light and dark, normal contrast, chips) is 60-pages.
 const LOOKS = [
@@ -39,6 +36,41 @@ export default async function (h) {
     const inj = await campaignId(eowyn, 'Injuries and treatment');
     urls.push(...companies.map((p) => [admin, p]), [admin, match], [admin, `/campaigns/${vet}/rankings`],
       [galadriel, `/campaigns/${ward}/my-company`], [eowyn, `/campaigns/${inj}/my-company`]);
+  });
+
+  await h.step('locked company: the controls the aftermath locks are disabled to assistive technology and ignore clicks and keys', async () => {
+    const ward = await campaignId(galadriel, 'Aftermath ward 1');
+    await galadriel.goto(`/campaigns/${ward}/my-company`);
+    await galadriel.settle(300);
+    const sel = '[data-lock]:not([data-lock=""]) [data-lock]';
+    const state = () => galadriel.page.evaluate((q) => [...document.querySelectorAll(q)].map((e) => {
+      const ctl = e.matches('button, a, input, select') ? [e] : [...e.querySelectorAll('button, a[href], input:not([type=hidden]), select')];
+      return { n: ctl.length, off: ctl.filter((c) => c.getAttribute('aria-disabled') === 'true').length };
+    }), sel);
+    const before = await state();
+    assert.ok(before.length > 0, 'the page has locked controls');
+    for (const b of before) assert.ok(b.n > 0 && b.n === b.off, `every control of a locked element is aria-disabled: ${JSON.stringify(before)}`);
+    // a click and Enter / Space on one do nothing but say why
+    const btn = await galadriel.page.$(`${sel}[hx-get], ${sel} button[hx-get]`) || await galadriel.page.$(`${sel} button`);
+    assert.ok(btn, 'a locked button');
+    const url = galadriel.page.url();
+    await btn.evaluate((e) => e.scrollIntoView({ block: 'center' }));
+    await btn.click();
+    await galadriel.settle(300);
+    for (const key of ['Enter', 'Space']) {
+      await btn.focus();
+      await galadriel.page.keyboard.press(key);
+      await galadriel.settle(300);
+    }
+    assert.equal(galadriel.page.url(), url, 'nothing was submitted');
+    assert.ok(!(await galadriel.page.evaluate(() => document.body.classList.contains('overflow-hidden'))), 'no window opened');
+    assert.ok(/aftermath/i.test(await galadriel.page.evaluate(() => document.body.innerText)), 'the reason is on the page');
+    // an htmx swap of the page (a refresh of the company) keeps the attribute
+    await galadriel.page.evaluate(() => htmx.ajax('GET', location.pathname, { target: '#main', swap: 'innerHTML' }));
+    await galadriel.settle(600);
+    const after = await state();
+    assert.ok(after.length > 0 && after.every((b) => b.n > 0 && b.n === b.off), `still aria-disabled after a swap: ${JSON.stringify(after)}`);
+    galadriel.issues();
   });
 
   const look = async (l, w, ht) => {
@@ -89,10 +121,10 @@ export default async function (h) {
           const m = await open(s, path, l);
           if (m) bad.push(m);
           await s.page.evaluate(axeSource);
-          const res = await s.page.evaluate((locked) => axe.run({ include: [['body']], exclude: [[locked]] }, {
+          const res = await s.page.evaluate(() => axe.run({ include: [['body']] }, {
             runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] }, resultTypes: ['violations'],
           }).then((r) => r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
-            .map((v) => ({ id: v.id, impact: v.impact, n: v.nodes.length, sample: v.nodes.slice(0, 2).map((x) => x.target.join(' ') + ' :: ' + (x.any[0]?.message || x.all[0]?.message || x.none[0]?.message || '')) }))), LOCKED);
+            .map((v) => ({ id: v.id, impact: v.impact, n: v.nodes.length, sample: v.nodes.slice(0, 2).map((x) => x.target.join(' ') + ' :: ' + (x.any[0]?.message || x.all[0]?.message || x.none[0]?.message || '')) }))));
           s.issues();
           for (const v of res) bad.push(`${path}: ${v.id} (${v.impact}, ${v.n} nodes) ${v.sample.join(' | ')}`);
         }

@@ -922,7 +922,7 @@ Roster, promotions (level-up, advancements) and injuries (Heal) are the cards of
 
 - **Aftermath banner** (`#aftermath-banner`) at the top of My Company when `CompanyDetail.Aftermaths` is not empty: a link per
   match to `/campaigns/{id}/matches/{match}/aftermath/{company}` (Start or Continue). The company is locked: the controls marked
-  `data-lock` (Recruit, Armory buy, Drop, Heal, Dismiss) look disabled and, on click, `lockClick` in `company.js` says "Finish the
+  `data-lock` (Recruit, Armory buy, Drop, Heal, Dismiss) look disabled, are exposed as `aria-disabled="true"` (set by `syncLock` in `company.js` on the buttons and fields inside them, described by the banner, and re-set after any htmx swap inside the page by a `MutationObserver`; this also exempts the dimmed look from the contrast rule) and, on click or Enter or Space, `lockClick` in `company.js` says "Finish the
   aftermath of Match N first." instead of acting (the root's `data-lock` holds the reason, empty when unlocked). The core refuses
   the action too, so a stale page shows the refusal as a notice.
 - **Perks card** (`perks_card`): the company's unused scenario perks (name, the relic bearer, text, when it applies) with
