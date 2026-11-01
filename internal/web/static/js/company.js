@@ -117,10 +117,29 @@ document.addEventListener('alpine:init', () => {
       clearTimeout(this.noticeTimer);
       this.noticeTimer = setTimeout(() => { this.notice = ''; }, 4000);
     },
+    // The same controls are exposed to assistive technology as disabled (aria-disabled, which also exempts their dimmed look from the
+    // contrast rule), described by the aftermath banner; run again when htmx swaps part of the page, so a refresh keeps the attribute.
+    syncLock() {
+      const locked = !!this.$el.dataset.lock;
+      const banner = document.getElementById('aftermath-banner') ? 'aftermath-banner' : '';
+      this.$el.querySelectorAll('[data-lock]').forEach(el => {
+        const ctl = el.matches('button, a, input, select, textarea') ? [el] : [...el.querySelectorAll('button, a[href], input:not([type=hidden]), select, textarea')];
+        for (const c of ctl) {
+          if (locked) {
+            if (c.getAttribute('aria-disabled') !== 'true') c.setAttribute('aria-disabled', 'true');
+            if (banner && !c.hasAttribute('aria-describedby')) c.setAttribute('aria-describedby', banner);
+          } else if (c.hasAttribute('aria-disabled')) {
+            c.removeAttribute('aria-disabled');
+          }
+        }
+      });
+    },
     tip: { show: false, x: 0, y: 0, title: '', meta: '', text: '', stats: [], path: null },
     tipTimer: null,
 
     init() {
+      this.syncLock();
+      new MutationObserver(() => this.syncLock()).observe(this.$el, { childList: true, subtree: true });
       this.modal = this.$el.dataset.modal === 'true'; // a recruit is waiting for its options: the window opens by itself
       const lock = () => document.body.classList.toggle('overflow-hidden', this.expanded !== null || this.modal);
       this.$watch('expanded', lock);
