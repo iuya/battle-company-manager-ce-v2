@@ -5,8 +5,9 @@
 #   UPDATE_DIGEST=sha256:<64 hex> ...      deploy exactly this digest (manual deploy, or a rollback to state/previous-image)
 #   UPDATE_TAG=1.2.0 ...                   follow another tag than "latest"
 #   CHECK_ONLY=1 ...                       print what would change and stop
+#   REQUIRE_SIGNATURE=1 (here or in .env)  verify the cosign signature of the digest first; refuse an unsigned or foreign image
 #
-# Order: lock, resolve, dump the database, write APP_IMAGE into .env, pull, `up --wait`, probe /readyz through Caddy. A failed start puts
+# Order: lock, resolve, verify the signature (when required), dump the database, write APP_IMAGE into .env, pull, `up --wait`, probe /readyz through Caddy. A failed start puts
 # the previous digest back. Migrations are forward-only: if the new release migrated the database and the old image refuses it, restore the
 # dump printed in the message (docs/operations.md, "Rollback"). Registry access is anonymous (the package is public); nothing here reads a secret.
 set -euo pipefail
@@ -42,6 +43,25 @@ current="$(sed -n 's/^APP_IMAGE=//p' .env | tail -n 1)"
 if [ "$current" = "$target" ]; then echo "up to date: $target"; exit 0; fi
 echo "update: ${current:-none} -> $target"
 [ "${CHECK_ONLY:-}" != "1" ] || exit 0
+
+# Signature of the image: keyless cosign, made by this repository's release workflow on a v* tag (GitHub OIDC). Checked before anything is
+# changed, pulled or started. Off unless REQUIRE_SIGNATURE=1 in the environment or in .env; when on, any failure (no cosign, no signature,
+# another signer) stops here.
+require="${REQUIRE_SIGNATURE:-$(sed -n 's/^REQUIRE_SIGNATURE=//p' .env | tail -n 1)}"
+if [ "$require" = 1 ]; then
+  cosign="${COSIGN_BIN:-cosign}"
+  command -v "$cosign" > /dev/null || { echo "signature verification: REQUIRED but $cosign is not installed; refusing $target" >&2; exit 1; }
+  signer="${SIGNER_REPO:-$path}"
+  identity="^https://github\\.com/${signer//./\\.}/\\.github/workflows/release-image\\.yml@refs/tags/v[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?\$"
+  if "$cosign" verify --certificate-identity-regexp "$identity" --certificate-oidc-issuer https://token.actions.githubusercontent.com "$target" > /dev/null; then
+    echo "signature verification: ON, $target is signed by the release workflow of $signer"
+  else
+    echo "signature verification: ON and FAILED for $target; not deploying" >&2
+    exit 1
+  fi
+else
+  echo "signature verification: off (REQUIRE_SIGNATURE is not 1)"
+fi
 
 set_image() { # rewrite the APP_IMAGE line of .env atomically
   local tmp; tmp="$(mktemp .env.XXXXXX)"
