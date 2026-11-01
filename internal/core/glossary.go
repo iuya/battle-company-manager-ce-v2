@@ -73,6 +73,45 @@ func (g Glossary) Link(text string) []Segment {
 	return g.link.segments(text, map[string]bool{})
 }
 
+// LinkExcept is Link for the text of something that has names of its own (an item's description): what the names stand for is never
+// linked, so "A model with a Backpack..." in the Backpack stays plain. A name also stands for its plural and possessive forms
+// ("Spears", "Backpack's") and for itself without a parameter in brackets.
+func (g Glossary) LinkExcept(text string, names ...string) []Segment {
+	if g.link == nil {
+		return []Segment{{Text: text}}
+	}
+	linked := map[string]bool{}
+	for _, n := range names {
+		for _, key := range g.link.keysOf(n) {
+			linked[key] = true
+		}
+	}
+	return g.link.segmentsLoose(text, linked, true)
+}
+
+// keysOf is the linked-set keys (a term id, or "unit:"+anchor) a name stands for, in its own form and in the singular.
+func (l *linker) keysOf(name string) []string {
+	name = strings.ToLower(strings.TrimSpace(parameter.ReplaceAllString(name, "")))
+	cands := []string{name}
+	for _, suffix := range []string{"'s", "’s", "s'", "es", "s"} {
+		if strings.HasSuffix(name, suffix) {
+			cands = append(cands, strings.TrimSuffix(name, suffix))
+		}
+	}
+	if strings.HasSuffix(name, "ies") {
+		cands = append(cands, strings.TrimSuffix(name, "ies")+"y")
+	}
+	var keys []string
+	for _, c := range cands {
+		if id := l.byPhrase[c]; id != "" {
+			keys = append(keys, id)
+		} else if u := l.units[c]; u != "" {
+			keys = append(keys, "unit:"+u)
+		}
+	}
+	return keys
+}
+
 // Text is the term's definition as plain text, one paragraph per line break pair.
 func (t GlossaryTerm) Text() string {
 	var paras []string
@@ -130,6 +169,8 @@ type linker struct {
 	// units holds, for a campaign's glossary, the base units a text may name: lower-cased unit name -> the anchor of its card
 	// (UnitAnchor). Only names the glossary has no term for are in it, so a term always wins. Nil for a glossary file on its own.
 	units map[string]string
+	// gear holds the single-word names and aliases (lower-cased) of the terms about weapons and wargear: LinkExcept links them in any case.
+	gear map[string]bool
 }
 
 func isWordRune(r rune) bool { return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r) }
@@ -137,6 +178,12 @@ func isWordRune(r rune) bool { return r == '_' || unicode.IsLetter(r) || unicode
 // segments cuts para into plain text and links. linked holds the targets already linked in this text (each is linked
 // once) and is updated.
 func (l *linker) segments(para string, linked map[string]bool) []Segment {
+	return l.segmentsLoose(para, linked, false)
+}
+
+// segmentsLoose is segments with, when loose is set, the names of weapons and wargear (Lance, Spear) linked in any case: an item's
+// text says "a lance" where the rules say "Lance".
+func (l *linker) segmentsLoose(para string, linked map[string]bool, loose bool) []Segment {
 	var segs []Segment
 	last := 0
 	for i := 0; i < len(para); {
@@ -179,7 +226,7 @@ func (l *linker) segments(para string, linked map[string]bool) []Segment {
 				key = "unit:" + unit
 			}
 			mention := para[i:end]
-			if linked[key] || (!strings.Contains(mention, " ") && l.exact[phrase] != mention) {
+			if linked[key] || (!strings.Contains(mention, " ") && l.exact[phrase] != mention && !(loose && l.gear[phrase])) {
 				break // a single word is linked only as the file spells it: "will" is most likely just the ordinary word
 			}
 			linked[key] = true
@@ -357,6 +404,7 @@ func BuildGlossaryWith(info RulesetInfo, content []byte, extras []ExtraTerm) (Gl
 	byPhrase := map[string]string{} // lower-cased name or alias -> term id
 	used := map[string]bool{}
 	exact := map[string]string{}
+	gear := map[string]bool{}
 	var phrases []string
 	for i, t := range doc.Terms {
 		id := slugify(t.Name)
@@ -372,13 +420,16 @@ func BuildGlossaryWith(info RulesetInfo, content []byte, extras []ExtraTerm) (Gl
 				phrases = append(phrases, key)
 				if spelled := strings.TrimSpace(p); !strings.Contains(spelled, " ") {
 					exact[key] = spelled
+					if t.Category == "weapons" || t.Category == "wargear" {
+						gear[key] = true
+					}
 				}
 			}
 		}
 	}
 	if len(phrases) > 0 {
 		slices.SortFunc(phrases, func(a, b string) int { return len(b) - len(a) }) // longest first, so "Stand Fast" beats "Stand"
-		l := &linker{byFirst: map[string][]string{}, byPhrase: byPhrase, exact: exact}
+		l := &linker{byFirst: map[string][]string{}, byPhrase: byPhrase, exact: exact, gear: gear}
 		for _, p := range phrases {
 			first := p
 			if k := strings.IndexFunc(p, func(r rune) bool { return !isWordRune(r) }); k >= 0 {
