@@ -24,9 +24,9 @@ document.addEventListener('alpine:init', () => {
 
   Alpine.data('listSearch', search);
 
-  // The Armory: search, a switch that hides what no unit of the company can take (on by default, remembered in the browser), the main
+  // The Armory: search, a switch that hides what no unit of the company could ever take (on by default, remembered in the browser), the main
   // categories and, under them, the item categories that apply to the one picked. Items carry data-main, data-sub and data-avail
-  // ("0": a rule rules every unit out). Names on the creature and wanderer cards carry data-tip-* for the tooltip.
+  // ("0": no unit that can exist in the company could ever buy it, core's ArmouryEntry.Possible). Names on the creature and wanderer cards carry data-tip-* for the tooltip.
   Alpine.data('armory', () => ({
     ...search(),
     main: '', sub: '', mine: true, applies: {},

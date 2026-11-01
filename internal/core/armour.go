@@ -67,6 +67,12 @@ func (sh shop) offers() []GearOffer {
 
 // armourNames are the names of the armour of a stage that the company's units can have (its pool), empty if none can.
 func (sh shop) armourPool(u CompanyUnit) map[int][]string {
+	key := u.Type + "|" + string(u.Role)
+	if sh.memo != nil {
+		if pool, ok := sh.memo.pool[key]; ok {
+			return pool
+		}
+	}
 	up := sh.rs.BC.ArmourUpgrade()
 	pool := map[int][]string{}
 	options, _ := sh.optionsOf(u)
@@ -79,6 +85,9 @@ func (sh shop) armourPool(u CompanyUnit) map[int][]string {
 				pool[s] = append(pool[s], part)
 			}
 		}
+	}
+	if sh.memo != nil {
+		sh.memo.pool[key] = pool
 	}
 	return pool
 }

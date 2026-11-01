@@ -755,6 +755,12 @@ type ArmouryEntry struct {
 	GearOffer
 	Icon  string
 	Units []UnitOption
+	// Possible says some unit that can exist in the company could buy the item under the rules, whatever it carries, the influence
+	// or the free slots now (shop.possible). An item that is not possible is one no unit can ever buy: the armoury leaves it out.
+	Possible bool
+	// Why is the one sentence for a possible item nobody can take now: what stops the units of the company and who could take it
+	// later. Empty when some unit can buy it now.
+	Why string
 }
 
 // CanBuy says whether some unit can buy the item now.

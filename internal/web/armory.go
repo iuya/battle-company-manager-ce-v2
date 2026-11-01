@@ -25,12 +25,17 @@ type armoryView struct {
 	NoticeError bool
 }
 
-// HiddenByDefault is how many items and wanderers the armoury's switch hides before anyone touches it ("Hide what the company cannot
-// take" is on by default): the page is drawn that way before Alpine starts, so nothing moves when it does.
+// HiddenByDefault is how many items, creatures and wanderers the armoury's switch hides before anyone touches it ("Hide what the
+// company could never take" is on by default): the page is drawn that way before Alpine starts, so nothing moves when it does.
 func (v armoryView) HiddenByDefault() int {
 	n := 0
 	for _, e := range v.Entries {
 		if !e.Avail {
+			n++
+		}
+	}
+	for _, c := range v.Creatures {
+		if !c.Avail {
 			n++
 		}
 	}
@@ -53,12 +58,27 @@ type armoryRow struct {
 	core.ArmouryEntry
 	Main  string // wargear | equipment
 	Sub   string // the item category (armorySub.Key)
-	Avail bool   // some unit of the company can take it, now or once it can pay: not just a rule that rules every unit out
+	Avail bool   // possible in this company (core.ArmouryEntry.Possible): some unit that can exist in it could buy it, now or later
 }
 
 type armoryCreature struct {
 	core.ArmouryCreature
+	Avail     bool // possible in this company: the rules give an officer a creature
 	RuleChips []tipChip
+}
+
+// Why is the sentence for a creature nobody can take now: what stops each officer.
+func (c armoryCreature) Why() string {
+	var reasons []string
+	for _, o := range c.Owners {
+		if o.Reason != "" && !slices.Contains(reasons, o.Reason) {
+			reasons = append(reasons, o.Reason)
+		}
+	}
+	if len(reasons) == 0 {
+		return "Nobody can take it now."
+	}
+	return "Nobody can take it now: " + core.LowerFirst(strings.Join(reasons, "; ")) + "."
 }
 
 type armoryWanderer struct {
@@ -97,13 +117,14 @@ func subOf(classes []core.EquipmentClass) string {
 	return "other"
 }
 
-// armoryRows places the items in the filters. An item is out of reach when a rule rules out every unit of the company (the goat
-// of another company's riders, a Fell Warg for a company without wargs): lacking influence or a free slot is not.
+// armoryRows places the items in the filters. An item is out of reach when no unit that can exist in the company could ever buy it
+// (the goat of another company's riders, a Fell Warg for a company without wargs); lacking influence, a free slot, or every unit
+// already carrying it is not: core decides (ArmouryEntry.Possible).
 func armoryRows(entries []core.ArmouryEntry) ([]armoryRow, []armorySub, string) {
 	has := map[string]map[string]bool{"wargear": {}, "equipment": {}, "creatures": {}, "wanderers": {}}
 	rows := make([]armoryRow, len(entries))
 	for i, e := range entries {
-		r := armoryRow{ArmouryEntry: e, Main: "wargear", Sub: subOf(e.Classes), Avail: len(e.Units) == 0 || slices.ContainsFunc(e.Units, func(u core.UnitOption) bool { return u.Blocker != core.BlockedByRule })}
+		r := armoryRow{ArmouryEntry: e, Main: "wargear", Sub: subOf(e.Classes), Avail: e.Possible}
 		if e.Size != "" {
 			r.Main = "equipment"
 		}
@@ -192,7 +213,6 @@ func (s *Server) armoryPage(w http.ResponseWriter, r *http.Request, status int, 
 		if s.fail(w, r, err) {
 			return
 		}
-		entries = offeredEntries(entries)
 		view.Company, view.HasCompany = detail, true
 		view.Weapons = map[int64][]string{}
 		for _, u := range detail.Roster {
@@ -210,14 +230,14 @@ func (s *Server) armoryPage(w http.ResponseWriter, r *http.Request, status int, 
 			return
 		}
 		for _, c := range creatures {
-			view.Creatures = append(view.Creatures, armoryCreature{ArmouryCreature: c, RuleChips: tips.chips(c.Rules, "Special rule")})
+			view.Creatures = append(view.Creatures, armoryCreature{ArmouryCreature: c, Avail: c.Possible, RuleChips: tips.chips(c.Rules, "Special rule")})
 		}
 		wanderers, err := s.campaigns.ArmouryWanderers(r.Context(), base.Campaign.ID, mine.ID)
 		if s.fail(w, r, err) {
 			return
 		}
 		for _, wd := range wanderers {
-			view.Wanderers = append(view.Wanderers, armoryWanderer{ArmouryWanderer: wd, Avail: wd.Blocker != core.BlockedByRule,
+			view.Wanderers = append(view.Wanderers, armoryWanderer{ArmouryWanderer: wd, Avail: wd.Possible,
 				RuleChips: tips.chips(wd.Rules, "Special rule"), WargearChips: tips.chips(wd.Wargear, "Wargear"), ActionChips: tips.chips(wd.HeroicActions, "Heroic action")})
 		}
 	}
@@ -267,17 +287,4 @@ func (s *Server) handleArmoryBuy(w http.ResponseWriter, r *http.Request) {
 	default:
 		s.armoryPage(w, r, http.StatusOK, "Bought "+item+".", false)
 	}
-}
-
-// offeredEntries leaves out the armour upgrades no unit can ever take (the model already wears that stage, the company has no unit
-// with it): they are synthetic offers, not items of the book. Everything else stays with the reason it cannot be bought.
-func offeredEntries(entries []core.ArmouryEntry) []core.ArmouryEntry {
-	var out []core.ArmouryEntry
-	for _, e := range entries {
-		if e.ArmourStage > 0 && !slices.ContainsFunc(e.Units, func(u core.UnitOption) bool { return u.Blocker != core.BlockedByRule }) {
-			continue
-		}
-		out = append(out, e)
-	}
-	return out
 }

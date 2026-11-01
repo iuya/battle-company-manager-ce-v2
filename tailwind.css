@@ -412,6 +412,8 @@ html[data-mode="dark"] { color-scheme: dark; }
   .btn-secondary { @apply border-line bg-surface text-fg hover:bg-raised; }
   .btn-ghost { @apply text-accent-text hover:bg-accent-soft; }
   .btn-danger { @apply bg-danger text-page hover:brightness-110; }
+  /* A button that has no action now but is not a dead end (the armoury's "No unit can take it now" still opens the reasons): greyed with tokens, not dimmed, exposed as aria-disabled. */
+  .btn[aria-disabled="true"] { @apply cursor-not-allowed border-line bg-raised text-muted hover:bg-raised; }
   .field { @apply flex flex-col gap-1.5; }
   .field > label { @apply text-sm font-medium; }
   .field .hint { @apply text-xs text-muted; }
