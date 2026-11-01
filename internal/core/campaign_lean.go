@@ -56,10 +56,16 @@ func LeanScenarioSelection(d *lean.Document) ScenarioSelection {
 	return sel
 }
 
+// defaultBreakPercent is the file's default Break Point as a whole percent.
+func defaultBreakPercent(d lean.BreakDefault) int {
+	s, _ := d.DefaultShare()
+	return wholePercent(s)
+}
+
 // LeanBreakRules are the break point rules of a lean document.
 func LeanBreakRules(d *lean.Document) BreakRules {
 	bp := d.Campaign.BreakPoint
-	r := BreakRules{DefaultPercent: bp.Default.Percent, AtLeast: bp.Threshold.Comparison == "gte",
+	r := BreakRules{DefaultPercent: defaultBreakPercent(bp.Default), AtLeast: bp.Threshold.Comparison == "gte",
 		CourageDice: strings.ToLower(bp.WhenBroken.CourageTest.Dice.String()), CourageSpec: bp.WhenBroken.CourageTest.Dice}
 	r.PassIf = bp.WhenBroken.CourageTest.PassIf
 	for _, e := range bp.ScenarioExceptions {

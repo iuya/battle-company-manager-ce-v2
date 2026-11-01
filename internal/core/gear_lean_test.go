@@ -158,8 +158,8 @@ func TestLeanLimitRules(t *testing.T) {
 		{ID: "cavalry", Type: "keyword", Value: "Cavalry", MaximumPercentage: 33.33, RoundUp: true, Label: "Cavalry"},
 	})
 	want := []LimitRule{
-		{ID: "bow", Label: "Bows", Percent: 33.33, RoundUp: true, Classes: []EquipmentClass{EquipBow, EquipCrossbow}},
-		{ID: "cavalry", Label: "Cavalry", Percent: 33.33, RoundUp: true, Keyword: "Cavalry"},
+		{ID: "bow", Label: "Bows", Share: lean.Share{Num: 3333, Den: 10000}, RoundUp: true, Classes: []EquipmentClass{EquipBow, EquipCrossbow}},
+		{ID: "cavalry", Label: "Cavalry", Share: lean.Share{Num: 3333, Den: 10000}, RoundUp: true, Keyword: "Cavalry"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v\nwant %+v", got, want)

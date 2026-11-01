@@ -123,7 +123,7 @@ func (o Oath) Split() (before, after string) {
 // KeywordLimit caps the share of a company that may have a keyword (Helm's Deep: Elves, 33%).
 type KeywordLimit struct {
 	Keyword string
-	Percent float64
+	Share   lean.Share // the most, as an exact fraction of the company
 	Text    string
 }
 

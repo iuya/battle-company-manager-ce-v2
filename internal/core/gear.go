@@ -1,7 +1,7 @@
 package core
 
 import (
-	"math"
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 	"slices"
 	"strconv"
 )
@@ -93,7 +93,7 @@ func isSteedArmour(name string) bool { return sameName(name, "Barding") }
 type LimitRule struct {
 	ID      string
 	Label   string
-	Percent float64
+	Share   lean.Share // the most, as an exact fraction of the models
 	RoundUp bool
 	// Classes are the item classes the limit counts (limits[].classes); Keyword is the unit keyword it counts instead (limits[]
 	// type "keyword": Cavalry). Exactly one of them is set.
@@ -123,9 +123,9 @@ func (e LimitExemption) covers(limit string) bool { return slices.Contains(e.Lim
 func computeLimits(rules []LimitRule, c BCCompany, units []CompanyUnit, stored ...Equipment) []CompanyLimit {
 	var out []CompanyLimit
 	for _, rule := range rules {
-		percent := rule.Percent
+		share := rule.Share
 		if p, ok := c.LimitOverrides[rule.ID]; ok {
-			percent = p
+			share = p
 		}
 		base, used, exempt := 0, 0, 0
 		// tally counts one model or item towards the limit, or towards what the exemptions leave out.
@@ -155,7 +155,7 @@ func computeLimits(rules []LimitRule, c BCCompany, units []CompanyUnit, stored .
 				tally(c.exempts(e.Name, rule.ID))
 			}
 		}
-		out = append(out, CompanyLimit{ID: rule.ID, Label: rule.Label, Used: used, Exempt: exempt, Max: LimitMax(percent, base, rule.RoundUp), Next: LimitMax(percent, base+1, rule.RoundUp),
+		out = append(out, CompanyLimit{ID: rule.ID, Label: rule.Label, Used: used, Exempt: exempt, Max: LimitMax(share, base, rule.RoundUp), Next: LimitMax(share, base+1, rule.RoundUp),
 			LimitClasses: rule.Classes, LimitKeyword: rule.Keyword})
 	}
 	return out
@@ -171,9 +171,6 @@ func (c BCCompany) exempts(item, limit string) bool {
 // LimitMax is the most models a limit allows in a group of n models: the share of n, rounded up when the rule says so (Battle
 // Companies: "a third of the models" is 2 of 6 and 3 of 7) and down otherwise. A model joining the company counts in n, so a limit
 // that is full at n models may have room at n+1 (CompanyLimit.Next).
-func LimitMax(percent float64, n int, roundUp bool) int {
-	if roundUp {
-		return int(math.Ceil(percent/100*float64(n) - 1e-9))
-	}
-	return int(math.Floor(percent/100*float64(n) + 1e-9))
+func LimitMax(share lean.Share, n int, roundUp bool) int {
+	return share.Of(n, roundUp) // integers only: (n*num + den - 1) / den up, n*num / den down
 }

@@ -59,6 +59,13 @@ func TestCustomRulesetBreakComparison(t *testing.T) {
 	}
 }
 
+// breakPercent writes the file's default Break Point the older way, as a percent (the shipped file writes "share").
+func breakPercent(bp map[string]any, percent float64) {
+	d := bp["default"].(map[string]any)
+	delete(d, "share")
+	d["percent"] = percent
+}
+
 func TestCustomRulesetRefusesBadBreakPoint(t *testing.T) {
 	bp := func(doc map[string]any) map[string]any { return campaignAt(t, doc, "campaign", "breakPoint") }
 	tests := []struct {
@@ -67,16 +74,18 @@ func TestCustomRulesetRefusesBadBreakPoint(t *testing.T) {
 		want   string
 	}{
 		{"unknown comparison", func(doc map[string]any) { bp(doc)["threshold"].(map[string]any)["comparison"] = "ge" }, `campaign.breakPoint.threshold.comparison: "ge" is not a valid comparison; known: gt, gte`},
-		{"percent 0", func(doc map[string]any) { bp(doc)["default"].(map[string]any)["percent"] = 0.0 }, "campaign.breakPoint.default.percent: 0 is outside 1..100"},
-		{"percent 101", func(doc map[string]any) { bp(doc)["default"].(map[string]any)["percent"] = 101.0 }, "campaign.breakPoint.default.percent: 101 is outside 1..100"},
-		{"percent missing", func(doc map[string]any) { delete(bp(doc)["default"].(map[string]any), "percent") }, "campaign.breakPoint.default.percent is missing"},
+		{"percent 0", func(doc map[string]any) { breakPercent(bp(doc), 0.0) }, "campaign.breakPoint.default.percent: 0 is outside 1..100"},
+		{"percent 101", func(doc map[string]any) { breakPercent(bp(doc), 101.0) }, "campaign.breakPoint.default.percent: 101 is outside 1..100"},
+		{"percent missing", func(doc map[string]any) { delete(bp(doc)["default"].(map[string]any), "share") }, "campaign.breakPoint.default: the default Break Point needs a share"},
+		{"share not a whole percent", func(doc map[string]any) { bp(doc)["default"].(map[string]any)["share"] = "1/3" }, "campaign.breakPoint.default.share: the Break Point 1/3 is 33.33 percent; it must be a whole percent"},
+		{"share 0", func(doc map[string]any) { bp(doc)["default"].(map[string]any)["share"] = "0/1" }, "campaign.breakPoint.default.share: the Break Point must be above 0"},
 		{"company percent 120", func(doc map[string]any) {
 			for _, c := range doc["companies"].([]any) {
 				if m := c.(map[string]any); m["name"] == "Muster of Isengard" {
 					m["breakPoint"] = 120.0
 				}
 			}
-		}, "breakPoint: 120 is outside 1..100"},
+		}, "breakPoint: 120 is more than 100 percent"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

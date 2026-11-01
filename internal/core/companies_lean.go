@@ -93,9 +93,22 @@ func leanChart(rows []lean.ChartRow, own map[string]lean.Unit) []ChartRow {
 	return out
 }
 
+// keywordShare is the share a keyword limit of a company allows (the check refused one that cannot be read).
+func keywordShare(k lean.KeywordLimit) lean.Share {
+	s, _ := k.KeywordShare()
+	return s
+}
+
+// wholePercent is a Break Point share as a whole percent, the form the live match and the pages count in (the check refuses any
+// other); 0 for no share.
+func wholePercent(s lean.Share) int {
+	p, _ := s.WholePercent()
+	return p
+}
+
 func leanCompany(d *lean.Document, vb *VanillaBook, c lean.Company, text func(string) (string, bool), gear LeanGearTable) (BCCompany, CompanyProfile) {
 	own := leanOwnUnits(d, c)
-	bc := BCCompany{Name: c.Name, Label: c.Label, Alignment: c.Alignment, MaxModels: c.MaxModels, LimitOverrides: map[string]float64{}}
+	bc := BCCompany{Name: c.Name, Label: c.Label, Alignment: c.Alignment, MaxModels: c.MaxModels, LimitOverrides: map[string]lean.Share{}}
 	if c.Reinforcements != nil {
 		bc.ReinforcementCost = c.Reinforcements.Influence
 		bc.Reinforcements = leanChart(c.Reinforcements.Rows, own)
@@ -121,7 +134,7 @@ func leanCompany(d *lean.Document, vb *VanillaBook, c lean.Company, text func(st
 	}
 	bc.UniqueWargear = gear.Local[c.Name]
 
-	p := CompanyProfile{BCCompany: bc, Description: strings.TrimSpace(c.Description), BreakPoint: c.BreakPoint, Rules: slicesClone(c.SpecialRules)}
+	p := CompanyProfile{BCCompany: bc, Description: strings.TrimSpace(c.Description), BreakPoint: wholePercent(c.BreakPoint), Rules: slicesClone(c.SpecialRules)}
 	if c.Start != nil {
 		p.StartGold = c.Start.Gold
 		for _, u := range c.Start.Units {
@@ -172,7 +185,7 @@ func leanCompany(d *lean.Document, vb *VanillaBook, c lean.Company, text func(st
 	}
 	if l := c.Limits; l != nil {
 		for _, k := range l.Company {
-			p.KeywordLimits = append(p.KeywordLimits, KeywordLimit{Keyword: k.Keyword, Percent: k.Percent, Text: k.Text})
+			p.KeywordLimits = append(p.KeywordLimits, KeywordLimit{Keyword: k.Keyword, Share: keywordShare(k), Text: k.Text})
 		}
 	}
 	for _, n := range c.Notes {

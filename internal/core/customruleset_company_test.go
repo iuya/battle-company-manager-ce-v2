@@ -27,6 +27,14 @@ func limitNamed(t *testing.T, doc map[string]any, id string) map[string]any {
 	return nil
 }
 
+// limitPercent writes a limit's share the older way, as maximumPercentage (the shipped file writes "share").
+func limitPercent(t *testing.T, doc map[string]any, id string, percent float64) {
+	t.Helper()
+	l := limitNamed(t, doc, id)
+	delete(l, "share")
+	l["maximumPercentage"] = percent
+}
+
 // rosterOf is a roster with the given roles, one unit each.
 func rosterOf(roles ...UnitRole) []CompanyUnit {
 	var out []CompanyUnit
@@ -246,7 +254,7 @@ func p2p3Rows(t *testing.T) []struct {
 			}
 		}},
 		{"P3 B8: maximumPercentage 50", func(t *testing.T, doc map[string]any) {
-			limitNamed(t, doc, "bow")["maximumPercentage"] = 50.0
+			limitPercent(t, doc, "bow", 50.0)
 		}, func(t *testing.T, rs *RuleSet) {
 			if l := limit(rs, "bow", infantry(t, 6)); l.Max != 3 || l.Next != 4 {
 				t.Errorf("half of 6, and of 7 rounded up: %+v", l)
@@ -275,7 +283,7 @@ func p2p3Rows(t *testing.T) []struct {
 			}
 		}},
 		{"P3 B9: the cavalry limit counts the keyword", func(t *testing.T, doc map[string]any) {
-			limitNamed(t, doc, "cavalry")["maximumPercentage"] = 50.0
+			limitPercent(t, doc, "cavalry", 50.0)
 		}, func(t *testing.T, rs *RuleSet) {
 			units := infantry(t, 4)
 			units[0].Kind = KindCavalry
@@ -456,9 +464,11 @@ func TestCustomRulesetRefusesBadCompanyAndLimitParameters(t *testing.T) {
 		{"wargear threshold missing", func(doc map[string]any) {
 			delete(campaignAt(t, doc, "campaign", "rating", "hero", "wargear"), "threshold")
 		}, "campaign.rating.hero.wargear.threshold is missing"},
-		{"limit share 0", func(doc map[string]any) { limitNamed(t, doc, "bow")["maximumPercentage"] = 0.0 }, "limits[0].maximumPercentage: 0 is outside (0, 100]"},
-		{"limit share 101", func(doc map[string]any) { limitNamed(t, doc, "throwing")["maximumPercentage"] = 101.0 }, "limits[1].maximumPercentage: 101 is outside (0, 100]"},
-		{"limit share missing", func(doc map[string]any) { delete(limitNamed(t, doc, "bow"), "maximumPercentage") }, "limits[0].maximumPercentage is missing"},
+		{"limit share 0", func(doc map[string]any) { limitPercent(t, doc, "bow", 0.0) }, "limits[0].maximumPercentage: 0 is outside (0, 100]"},
+		{"limit share 101", func(doc map[string]any) { limitPercent(t, doc, "throwing", 101.0) }, "limits[1].maximumPercentage: 101 is outside (0, 100]"},
+		{"limit share missing", func(doc map[string]any) { delete(limitNamed(t, doc, "bow"), "share") }, "limits[0]: the limit needs a share"},
+		{"limit share both ways", func(doc map[string]any) { limitNamed(t, doc, "bow")["maximumPercentage"] = 50.0 }, "limits[0].share: write the share of the limit as"},
+		{"limit share denominator 0", func(doc map[string]any) { limitNamed(t, doc, "bow")["share"] = "1/0" }, "limits[0].share: the denominator of 1/0 must be above 0"},
 		{"limit roundUp missing", func(doc map[string]any) { delete(limitNamed(t, doc, "bow"), "roundUp") }, "limits[0].roundUp is missing"},
 		{"limit class unknown", func(doc map[string]any) { limitNamed(t, doc, "bow")["classes"] = []any{"bow", "sling"} }, `limits[0].classes[1]: "sling" is not an item class`},
 		{"creatures per hero 100", func(doc map[string]any) { campaignAt(t, doc, "creatures", "rules")["maxPerHero"] = 100.0 }, "creatures.rules.maxPerHero: 100 is outside 0..99"},

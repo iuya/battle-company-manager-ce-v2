@@ -69,6 +69,13 @@ type legacyGranted struct {
 	Text      string
 }
 
+// legacyKeyword is a keyword limit as the goldens show it, with its share as a percent.
+type legacyKeyword struct {
+	Keyword string
+	Percent float64
+	Text    string
+}
+
 type legacyStart struct{ Allowed, Excluded []string }
 
 // legacyView is the value a golden shows for v: the old shape of the types that carry a Who, v itself for the others.
@@ -101,6 +108,10 @@ func legacyView(v reflect.Value) reflect.Value {
 			units = x.Who.Units
 		}
 		return reflect.ValueOf(legacyUpgrade{Name: x.Name, Flavour: x.Flavour, Rule: x.Rule, Text: x.Text, Restriction: x.Restriction(), Units: units})
+	case lean.Share: // the goldens were written when a share was a percent number (50, 66, 33)
+		return reflect.ValueOf(x.Percent())
+	case KeywordLimit:
+		return reflect.ValueOf(legacyKeyword{Keyword: x.Keyword, Percent: x.Share.Percent(), Text: x.Text})
 	case GrantedRule:
 		return reflect.ValueOf(legacyGranted{Rule: x.Rule, AppliesTo: x.AppliesTo(), Cost: x.Cost, Text: x.Text})
 	}
