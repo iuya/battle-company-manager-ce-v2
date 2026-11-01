@@ -153,7 +153,7 @@ export default async function (h) {
     await pippin.click(`${SWITCHER} a`, 'Renamed second band', { nav: true });
     assert.equal(path(pippin), `/campaigns/${cid}/armory?company=${second}`);
     assert.ok((await chips(pippin))[1].current, 'the chip of the armory in view is marked');
-    assert.ok(await pippin.has('Renamed second band can buy'), 'the armory is that company\'s');
+    assert.ok(await pippin.has('Renamed second band could ever buy'), 'the armory is that company\'s');
   });
 
   await h.step('several companies: lowering the limit keeps the companies and only refuses new ones', async () => {
