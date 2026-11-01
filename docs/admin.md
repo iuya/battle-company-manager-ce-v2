@@ -10,8 +10,8 @@ There are four access levels, named in `core` (`roles.go`: `Level`, `Actor`, `Ro
 | Level | Stored as | Can |
 |---|---|---|
 | **User** | `role=user`, `can_create_campaigns=false` | Play |
-| **Organiser** | `role=user`, `can_create_campaigns=true` | Also create campaigns and manage them |
-| **Administrator** | `role=admin` | Also edit any match or aftermath, see the Users and Invitations pages, make organisers |
+| **Organiser** | `role=user`, `can_create_campaigns=true` | Also create campaigns and, within a campaign they organise, hold the manager powers of an administrator: edit any match or aftermath, waive an aftermath, grants (their own company too), invitations, pause and end |
+| **Administrator** | `role=admin` | The manager powers of an organiser (edit any match or aftermath, waive an aftermath, grants, invitations, pause and end) in every campaign, and the Users and Invitations pages, make organisers |
 | **Superuser** | `role=superuser` | Everything an administrator does, and make administrators, make rules-file changes and generate recovery links |
 
 ("Organiser" here is the global permission to create campaigns; the organiser of one campaign is a different thing, see [Who manages a campaign](#who-manages-a-campaign).)
