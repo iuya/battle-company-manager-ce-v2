@@ -33,7 +33,7 @@ type grantsCard struct {
 // UnitName is the title of the unit an experience grant went to, empty when unknown.
 func (c grantsCard) UnitName(id int64) string { return c.Names[id] }
 
-// grantsCard loads the card of a company for the viewer; form says whether the page offers the form to those who may use it. The roster is read only when the form or the history needs a unit's name.
+// grantsCard loads the card of a company for the viewer; form says whether the page offers the form to those who may use it (the organiser and administrators on any company, their own included). The roster is read only when the form or the history needs a unit's name.
 func (s *Server) grantsCard(r *http.Request, base campaignBase, companyID int64, form bool) (grantsCard, error) {
 	c := grantsCard{CampaignID: base.Campaign.ID, CompanyID: companyID, CanGrant: form && base.Campaign.CanGrant(*userFrom(r.Context())) == nil}
 	var err error
