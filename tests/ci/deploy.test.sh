@@ -74,12 +74,77 @@ grep -q 'docker' "$tmp/log"; check "no cosign: no docker call" 1 $?
 run REQUIRE_SIGNATURE=1 SIGNER_REPO=someone/fork > /dev/null
 grep -qF -- 'someone/fork/\.github/workflows/release-image\.yml' "$tmp/log"; check "SIGNER_REPO: identity follows" 0 $?
 
+# DuckDNS updater (deploy/duckdns/duckdns-update.sh) against stub curl and getent: the token never reaches an argument, the output or the log.
+secret=11111111-2222-3333-4444-555555555555
+dstubs="$tmp/dstubs"; mkdir -p "$dstubs"
+cat > "$dstubs/curl" <<'EOF2'
+#!/bin/sh
+echo "curl $*" >> "$STUB_LOG"
+case " $* " in
+  *" -K - "*) cat >> "$STUB_STDIN"; echo "${STUB_ANSWER:-OK}"; [ "${STUB_ANSWER:-OK}" = OK ] || exit 22 ;;
+  *) [ -n "${STUB_IP:-}" ] && echo "$STUB_IP" || exit 6 ;;
+esac
+EOF2
+cat > "$dstubs/getent" <<'EOF2'
+#!/bin/sh
+[ -n "${STUB_DNS:-}" ] && echo "$STUB_DNS STREAM bc-manager-ce.duckdns.org"
+exit 0
+EOF2
+chmod +x "$dstubs"/*
+drun() { # env assignments...; state in $tmp/dd/state (set STATE_IP to pre-fill, STATE_AGE_MIN to age it); output in $tmp/dout, curl arguments in $tmp/log, stdin in $tmp/stdin
+  local d="$tmp/dd" a STATE_IP="" STATE_AGE_MIN="" NO_TOKEN=""
+  for a in "$@"; do case "$a" in STATE_IP=* | STATE_AGE_MIN=* | NO_TOKEN=*) eval "$a" ;; esac; done
+  rm -rf "$d"; mkdir -p "$d/state"
+  [ -z "${STATE_IP:-}" ] || { echo "$STATE_IP" > "$d/state/duckdns-ip"; touch -t "$(date -d "-${STATE_AGE_MIN:-1} minutes" +%Y%m%d%H%M 2> /dev/null || date -v-"${STATE_AGE_MIN:-1}"M +%Y%m%d%H%M)" "$d/state/duckdns-ip"; }
+  [ "${NO_TOKEN:-}" = 1 ] || printf '%s\n' "$secret" > "$d/token"
+  : > "$tmp/log"; : > "$tmp/stdin"
+  env PATH="$dstubs:$PATH" STUB_LOG="$tmp/log" STUB_STDIN="$tmp/stdin" BCM_DIR="$d" TOKEN_FILE="$d/token" DUCKDNS_DOMAIN=bc-manager-ce "$@" bash "$root/deploy/duckdns/duckdns-update.sh" > "$tmp/dout" 2>&1
+  echo $?
+}
+calls() { grep -c 'token\|duckdns.org/update' "$tmp/log" || true; }
+leaks() { grep -c "$secret" "$tmp/dout" "$tmp/log" "$tmp/dd/state/duckdns-ip" 2> /dev/null | awk -F: '{s+=$2} END{print s+0}'; }
+
+check "duckdns first run: exit 0" 0 "$(drun STUB_IP=203.0.113.7 STUB_DNS=198.51.100.1)"
+grep -q 'OK name=bc-manager-ce ip=203.0.113.7' "$tmp/dout"; check "duckdns first run: OK line" 0 $?
+grep -qF "token=$secret" "$tmp/stdin"; check "duckdns first run: token went in on stdin" 0 $?
+check "duckdns first run: token in no output, argument or state" 0 "$(leaks)"
+grep -q -- '-K - --fail --silent --show-error --max-time 20' "$tmp/log"; check "duckdns: curl flags" 0 $?
+grep -qE -- ' -v|--verbose' "$tmp/log"; check "duckdns: curl not verbose" 1 $?
+check "duckdns first run: state written" "203.0.113.7" "$(cat "$tmp/dd/state/duckdns-ip")"
+
+check "duckdns unchanged: exit 0" 0 "$(drun STUB_IP=203.0.113.7 STUB_DNS=203.0.113.7 STATE_IP=203.0.113.7 STATE_AGE_MIN=30)"
+grep -q 'unchanged' "$tmp/dout"; check "duckdns unchanged: says so" 0 $?
+check "duckdns unchanged: no DuckDNS call" 0 "$(grep -c -- '-K -' "$tmp/log" || true)"
+
+check "duckdns IP changed: exit 0" 0 "$(drun STUB_IP=203.0.113.9 STUB_DNS=203.0.113.7 STATE_IP=203.0.113.7 STATE_AGE_MIN=30)"
+check "duckdns IP changed: one DuckDNS call" 1 "$(grep -c -- '-K -' "$tmp/log")"
+check "duckdns IP changed: state follows" "203.0.113.9" "$(cat "$tmp/dd/state/duckdns-ip")"
+
+check "duckdns stale DNS, state says current: exit 0" 0 "$(drun STUB_IP=203.0.113.7 STUB_DNS=198.51.100.1 STATE_IP=203.0.113.7 STATE_AGE_MIN=30)"
+check "duckdns stale DNS: DuckDNS called" 1 "$(grep -c -- '-K -' "$tmp/log")"
+drun STUB_IP=203.0.113.7 STUB_DNS=198.51.100.1 STATE_IP=203.0.113.7 STATE_AGE_MIN=2 > /dev/null
+check "duckdns just updated, DNS not settled: no call" 0 "$(grep -c -- '-K -' "$tmp/log" || true)"
+drun STUB_IP=203.0.113.7 STUB_DNS=203.0.113.7 STATE_IP=203.0.113.7 STATE_AGE_MIN=1500 > /dev/null
+check "duckdns daily refresh: DuckDNS called" 1 "$(grep -c -- '-K -' "$tmp/log")"
+
+check "duckdns KO: exit 1" 1 "$(drun STUB_IP=203.0.113.7 STUB_DNS=198.51.100.1 STUB_ANSWER=KO)"
+grep -q 'KO name=bc-manager-ce' "$tmp/dout"; check "duckdns KO: log line" 0 $?
+check "duckdns KO: no secret in output" 0 "$(leaks)"
+[ -e "$tmp/dd/state/duckdns-ip" ]; check "duckdns KO: no state, so the next run retries" 1 $?
+check "duckdns no IP lookup answers: exit 1" 1 "$(drun STUB_DNS=198.51.100.1)"
+check "duckdns no IP lookup answers: DuckDNS not called" 0 "$(grep -c -- '-K -' "$tmp/log" || true)"
+
+check "duckdns no token file: exit 0" 0 "$(drun NO_TOKEN=1 STUB_IP=203.0.113.7)"
+grep -q 'no token file yet' "$tmp/dout"; check "duckdns no token file: log line" 0 $?
+check "duckdns no token file: curl not called" 0 "$(wc -l < "$tmp/log" | tr -d ' ')"
+check "duckdns bad name: exit 1" 1 "$(drun DUCKDNS_DOMAIN='a&b' STUB_IP=203.0.113.7)"
+
 # install.sh: REQUIRE_SIGNATURE is validated before anything else runs in a real install; here only the syntax of the kit scripts.
-for f in deploy/bcm-update.sh deploy/install.sh deploy/oracle/host-setup.sh deploy/oracle/offsite-oci.sh tests/ci/deploy.test.sh; do
+for f in deploy/bcm-update.sh deploy/install.sh deploy/duckdns/duckdns-update.sh deploy/oracle/host-setup.sh deploy/oracle/offsite-oci.sh tests/ci/deploy.test.sh; do
   bash -n "$root/$f"; check "bash -n $f" 0 $?
 done
 if command -v shellcheck > /dev/null; then
-  shellcheck -S warning "$root"/deploy/bcm-update.sh "$root"/deploy/install.sh; check "shellcheck" 0 $?
+  shellcheck -S warning "$root"/deploy/bcm-update.sh "$root"/deploy/install.sh "$root"/deploy/duckdns/duckdns-update.sh; check "shellcheck" 0 $?
 fi
 
 # The workflow: valid YAML, the signing permission on the merge job only.

@@ -1,0 +1,32 @@
+[Unit]
+Description=Point the DuckDNS name at this host's public IP
+After=network-online.target
+Wants=network-online.target
+
+# A failure only shows in the journal and in systemctl; the timer runs it again in five minutes.
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/bcm
+EnvironmentFile=/opt/bcm/duckdns.env
+ExecStart=/opt/bcm/duckdns-update.sh
+TimeoutStartSec=2min
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+LockPersonality=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+CapabilityBoundingSet=
+ReadOnlyPaths=/etc/bcm
+ReadWritePaths=/opt/bcm/state

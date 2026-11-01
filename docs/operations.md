@@ -123,6 +123,41 @@ It prints the verified claims on success and exits non-zero otherwise. `make dep
 - **Install.** On the instance: `sudo SITE_ADDRESS=<a-b-c-d>.sslip.io BACKUP_BUCKET=<bucket> OCI_NAMESPACE=<namespace> deploy/oracle/host-setup.sh` from an unpacked release; the last two are optional and enable the off-site hook. The OCI command-line tool it installs for that hook (`OCI_CLI_VERSION`, default 3.95.1) takes a few minutes and prints nothing while pip works; the script says so first. The script also installs cosign and turns the signature check on; while the newest release in the registry predates signing, pass `REQUIRE_SIGNATURE=0` (a server that is already running is not affected).
 - **Off-site backup.** A dynamic group containing only this instance and a policy limited to one bucket let the instance principal write dumps to a private Object Storage bucket (the Always Free quota is 20 GB and 50,000 requests a month; a dump is a few megabytes). The tenancy and everything in it can disappear, so keep a copy of a dump somewhere outside Oracle as well, and run the restore drill.
 
+### A DuckDNS name that follows the IP
+
+An ephemeral public IP changes when the instance is stopped and started or recreated, and a name such as `<a-b-c-d>.sslip.io` changes with it. A free [DuckDNS](https://www.duckdns.org) name, here `bc-manager-ce.duckdns.org`, stays and is pointed at the new address by a small updater on the host.
+
+**Current behaviour.** `deploy/duckdns/duckdns-update.sh` (installed as `/opt/bcm/duckdns-update.sh`) runs from `bcm-duckdns.timer` two minutes after boot and every five minutes (up to 30 seconds of random delay). Each run looks up the host's public IPv4 address with a plain HTTPS request (`api.ipify.org`, then `checkip.amazonaws.com`, then `icanhazip.com`; several providers so that one being down does not stop it, and no cloud metadata service so that it works on any host) and asks the host's resolver what the name resolves to (`getent ahostsv4`). It calls DuckDNS only when the address differs from the one it set last time (`/opt/bcm/state/duckdns-ip`), when DNS does not answer with the current address (a stale record is fixed even if the state file says otherwise; not within ten minutes of an update, which is DNS propagation), once a day as a refresh, or when the previous call failed (no state is written on a failure, so the next run retries). The call is `https://www.duckdns.org/update?domains=<name>&token=<token>&ip=` with an empty `ip`, for which DuckDNS uses the address the request comes from; it answers `OK` or `KO` (DuckDNS, "[spec](https://www.duckdns.org/spec.jsp)", read on 2026-11-01; its auto-detection is IPv4 only, and the page states no rate limit, so the updater stays at one call per change, per day and per retry). The log has one line per run (`journalctl -u bcm-duckdns`): `OK`, `KO`, `unchanged` or `no token file yet`, with the name and the IP the host sees, and never the token or the URL.
+
+**The token is a secret.** It lives only in `/etc/bcm/duckdns.token` (root, mode 600), which the owner creates by typing the token once on the host. The script hands it to `curl -K -` on the standard input through the shell builtin `printf`, so it is on no command line (`ps`), in no environment variable, and in no log or journal entry; curl's error text is discarded because it can echo a URL. The unit runs as a one-shot with `NoNewPrivileges`, `ProtectSystem=strict` (only `/opt/bcm/state` writable, `/etc/bcm` read-only), `PrivateTmp`, `PrivateDevices`, an empty capability set, a system-call filter and only IP and local sockets. Nobody pastes the token into chat, an issue, a pull request or CI.
+
+**One-time steps at DuckDNS (the owner).** Sign in at [duckdns.org](https://www.duckdns.org) with one of its sign-in providers, add the subdomain `bc-manager-ce` (any free name works; use it without `.duckdns.org` below), and copy the token shown at the top of the page. Keep it secret: anyone holding it can repoint every name of the account. If it leaks, generate a new one on the page and recreate the file.
+
+**Enable.** Give the subdomain to the installer, which installs the script and the timer and enables the timer but does not create the token file:
+
+```
+sudo SITE_ADDRESS=<current name> DUCKDNS_DOMAIN=bc-manager-ce deploy/oracle/host-setup.sh     # or deploy/install.sh on another host
+```
+
+It prints the one line the owner then runs on the host (the prompt hides the typing):
+
+```
+sudo install -d -m 700 /etc/bcm && read -rsp 'DuckDNS token: ' t && printf %s "$t" | sudo install -m 600 /dev/stdin /etc/bcm/duckdns.token; unset t
+sudo systemctl start bcm-duckdns.service
+```
+
+Until the file exists the timer only logs `no token file yet` and does nothing else. On a host that is already installed, run the same command again (it keeps `.env` and the data) with `DUCKDNS_DOMAIN`.
+
+**Check.** `systemctl list-timers 'bcm-duckdns*'` shows the next run; `journalctl -u bcm-duckdns -n 20` the last ones; `getent hosts bc-manager-ce.duckdns.org` must print the public IP of the instance. A failed run shows in `systemctl --failed` and heals on the next one.
+
+**Serve the app under the name.** `SITE_ADDRESS` stays a single name (the updater's readiness probe uses it). Once `getent hosts` resolves the DuckDNS name to the instance, set `SITE_ADDRESS=bc-manager-ce.duckdns.org` in `/opt/bcm/.env` and run `docker compose up -d` in `/opt/bcm`. Consequences: the old name stops working; the session cookies of the old host stop working, so everyone logs in again; invitation and recovery links already handed out name the old host in their text, but the token in them is not tied to a host, so replace the old host by the new one in the address (or create a new link); Caddy asks Let's Encrypt for the certificate on the first request, so the DNS name must resolve before that. Do not hammer it: Let's Encrypt limits failed validations and certificates per name. DuckDNS's name servers occasionally time out, and then issuance fails; wait and retry later (`docker compose logs caddy`).
+
+**When the IP changes.** The address is replaced at the next timer run: the app is unreachable by name for at most about five minutes (plus the DNS cache time of the clients) and then comes back by itself. Caddy keeps its certificate because it belongs to the name, not to the address; there is no new issuance.
+
+**Alternative.** An Oracle reserved public IP keeps one address through restarts and recreation, so a name would not have to follow anything; check Oracle's current documentation and the Always Free limits page for what it costs and how many are included before relying on it, because this repository does not verify that. The DuckDNS updater needs no cloud account action at all and works on any host.
+
+**Tested.** `make deploy-test` runs the script against stub `curl` and `getent`: the token appears in no output, argument or state, no call when the address is unchanged and DNS matches, a call when it differs or DNS is stale, `KO` handling and retry, a missing token file. It does not call DuckDNS, and the unit's sandboxing options are not exercised there.
+
 ## Content-Security-Policy: report mode, then enforce
 
 Production starts in `CSP_MODE=report` (the default): the browser loads everything, sends each violation to `POST /csp-report` and the app logs one line. Before the switch the browser suite already ran
