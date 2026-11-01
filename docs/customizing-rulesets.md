@@ -647,7 +647,7 @@ Rules that the rulebook prints on a company page are typed fields, so the engine
 
 | Key | What it does |
 |---|---|
-| `limits` | `exempt[{unit \| item, limits[]}]` (a model that does not count towards a limit), `override {limit id: percent}` (a limit's own share for this company), `company[{keyword, percent}]` (no more than that share may have a keyword). The ids are those of the top-level `limits[]` |
+| `limits` | `exempt[{unit \| item, limits[]}]` (a model that does not count towards a limit), `override {limit id: share}` (a limit's own share for this company), `company[{keyword, share}]` (no more than that share may have a keyword). A share is a fraction, see [Shares](#shares-fractions-not-percentages). The ids are those of the top-level `limits[]` |
 | `heroes` | `who` (only `units`/`except` count): the starting units that may be made heroes; `noStartGain`; `recruitAsHero` (every recruit joins as a Hero in the Making) |
 | `recruit` | `fallback`, `replace` (a unit that takes an officer's place, or an alternative on a roll), `balance` (a keyword may not outnumber another) |
 | `granted` | `{rule, who?, cost?, text}`: a rule the company's models get for free |
@@ -667,7 +667,7 @@ Rules that the rulebook prints on a company page are typed fields, so the engine
 },
 "limits": {
   "override": {
-    "bow": 50
+    "bow": "1/2"
   }
 },
 ```
@@ -822,7 +822,7 @@ Everything the engine uses as a number, a die or a switch is a key of `campaign`
 | `campaign.progression.hero.roll`, `.rollsPerProgression`, `.choose` | `2d6`, 2, 1 | 1..6; choose at most rolls | Dice of a path table, results rolled, results kept |
 | `campaign.injuries.roll` and `.warrior`, `.hero` | `2d6`; the two charts | rows cover the die | The injury charts |
 | `campaign.experience.gains` | seven gains of 1 | key unique, `amount` 0..20 | The ways to earn Experience |
-| `campaign.breakPoint.default.percent` | 50 | 1..100 | The Break Point (a company may set its own `breakPoint`) |
+| `campaign.breakPoint.default.share` (or `.percent`) | `"1/2"` (50) | a whole percent, 1..100 | The Break Point (a company may set its own `breakPoint`, `"33/50"` for 66 percent) |
 | `campaign.breakPoint.threshold.comparison` | `gt` | `gt`, `gte` | `gte` makes exactly the Break Point Broken |
 | `campaign.breakPoint.whenBroken.courageTest.dice` | `2d6` | a dice spec | The Courage test of a Broken company |
 | `campaign.rating.hero.wargear.threshold` | stats attack, wounds; sum 3 | characteristics; 0..20 | A hero whose listed stats add up to this pays the hero rating for gear |
@@ -830,7 +830,7 @@ Everything the engine uses as a number, a die or a switch is a key of `campaign`
 | `campaign.aftermathEffects[rendezvous \| vantagePoint].range` | [-1, 1] | -6..6 | How far the perk moves a die |
 | `magic.floor`, `magic.maxPerPower` | 2, 2 | 1..6 each | A casting value never improves below the floor; improvements per power |
 | `creatures.rules.maxPerHero`, `wanderers.rules.maxAtOnce` | 1, 1 | 0..99 | Counts of creatures and wanderers |
-| `limits[].maximumPercentage`, `.roundUp` | 33.33, true | 0.01..100 | The bow, throwing-weapon and Cavalry limits |
+| `limits[].share` (or `.maximumPercentage`), `.roundUp` | `"1/3"`, true | above 0 up to 1 (0.01..100 percent) | The bow, throwing-weapon and Cavalry limits |
 | `armourUpgrade` | influence 1, rating hero 5 / warrior 1 | 0..100 | Cost of one stage of armour |
 | `paths[].limit` | 1 on the Sorcerer | 0..99 | Heroes of a company that may take the path |
 
@@ -871,6 +871,24 @@ A **parameter override** is a change of one of these values. Influence cap 5 ins
 In your copy of the shipped file the change is a single value at a path, e.g. `campaign.recruitment.adjust.maxPerAttempt` from `3` to `5`; the test `TestParameterOverrideWorksInTheShippedFile` does exactly that to the shipped file and checks the engine reads 5. Out of range gives `campaign.recruitment.adjust.maxPerAttempt: 40 is out of range 0..20`.
 
 **What the file cannot change.** Some rules are in the engine, not in the file: the injury result keys the app switches on (`dead`, `injured`, `fullRecovery`, ...), how the lower-result rule of the charts works, that the Break Point is never rounded, how the live match applies a Courage test. The campaign tables (injuries, Against the Odds, aftermath effects, the Break Point, characteristic limits, options, match input) are typed: every key is listed in the reference and checked, and an unknown key is an error. Do not expect a new key or a new vocabulary word to change what the engine does: it acts on the words the reference lists.
+
+### Shares: fractions, not percentages
+
+A limit, a keyword limit of a company and a Break Point are parts of a whole. They are written as an **integer fraction in a string**: `"1/3"`, `"1/2"`, `"2/3"`, `"3/4"`. The numerator is 0 or more, the denominator is 1 or more (at most 1,000,000), the share may not be above 1, and the fraction need not be in lowest terms (`"2/4"` is `"1/2"`). The engine turns a share into a count with whole numbers only: the most models of `n` is `(n * numerator + denominator - 1) / denominator` rounded up (`"roundUp": true`) or `n * numerator / denominator` rounded down, so a third of 6 is exactly 2 whichever way it rounds.
+
+| Where | Fraction key | Older percent key (still accepted) |
+|---|---|---|
+| `limits[]` | `share` | `maximumPercentage` (0.01..100) |
+| `companies[].limits.company[]` | `share` | `percent` (0..100) |
+| `companies[].limits.override` | the value: `"bow": "1/2"` | the value as a number: `"bow": 50` |
+| `campaign.breakPoint.default` | `share` | `percent` (1..100) |
+| `companies[].breakPoint` | the value: `"33/50"` | the value as a number: `66` |
+
+Write one of the two keys of a limit, a keyword limit or the default Break Point, never both (a limit with neither is an error too). A **percent is converted to the exact fraction over 100** in lowest terms and nothing else: `50` is `1/2`, `66` is `33/50`, `33` is `33/100` and `33.33` is `3333/10000`, which is **not** a third. Up to 1,000,000 as denominator, so a percent has at most four decimals. A file written with percents therefore keeps giving the numbers it gave before.
+
+The check warns when a percent is a rounding of a simple fraction (denominator up to 12, within 0.1 percentage points), because that is almost always a mistake: `limits[0].maximumPercentage: 33.33 looks like 1/3: write `1/3``. A warning never blocks the upload. A percent that is exactly a simple fraction (50, 25, 12.5) and a deliberate one like 33 or 66 do not warn.
+
+The live match counts casualties against whole percents (`casualties * 100` against `percent * startingModels`), so a **Break Point share must be a whole percent**: `"1/2"` and `"33/50"` are, `"1/3"` (33.33 percent) is refused with that reason. A limit share may be any fraction.
 
 ## 12. The validation loop and the error report
 
