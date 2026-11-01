@@ -672,6 +672,24 @@ formation editor shows the real order). The Heal button is a round red cross, li
 The card lists wargear (no slot) first, then the slots line, then the equipment that takes the slots with the "+"
 button; an item with a tooltip has a dashed border.
 
+### Path carousel
+
+A leader or sergeant without a path chooses it in the path window (`path_panel`, `handleChoosePath`, `pathCards` in `company_actions.go`, flow `109-path-carousel`), a carousel.
+On top, every path is a tab (icon and name) on one strip, a `role="radiogroup"` of radios named `path` (Tab, the arrow keys, Enter and screen readers work natively; a tab's
+accessible name is the full path name); the strip scrolls inside its own box and slides to centre the selected tab. Exactly one is always selected (the first available one at
+the start). Below, the paths are cards stacked in one grid cell (Alpine `pathCarousel` in `static/js/company.js` gives each `data-rel`, its place against the selection): the
+selected card is in front and whole, the previous and next ones sit behind it, smaller (scale .86), half transparent and blurred, partly covered; the others are away and invisible.
+Choosing (a tab, the side buttons, the arrow keys, a swipe on the stack, or a click on a card behind) moves the cards with a 0.3 s transform and opacity transition (the card in front has an 85% background, not opacity, so its text keeps the contrast; the ones behind are blurred 2 px, also under reduced motion); under
+`prefers-reduced-motion` they just switch. Two **floating previous/next buttons** (`.path-float`, a sticky bar at the middle of the window over the stack, 44 px, overlapping only the card's margin) share `step()` and the disabled state with the buttons at the sides of the strip, so they stay in reach when the card is scrolled. The cards behind are `aria-hidden` with an `inert` body, so they cannot be focused or read; a click on one only selects it.
+
+A card shows all the app knows of the path: its description; **Path Limits**, the most each characteristic can reach, from the glossary term's limits: the profile's (F, S, D, A, W, C...)
+in a `statline` and, stacked under it as a second row as on a hero's card (`statline-hero`), Might, Will and Fate (the same classes as the unit card, `.path-limits` only stacks them); the **starting heroic action** and, for a Sorcerer, **Starting power**
+(neither is a row of the chart); and the whole **level-up chart** ("Level-up: roll 2D6") as a list of bordered rows (`border-line`), one per roll, with the usual glossary links. The chart already names every
+Mastery and special rule the path unlocks, so they are not listed again. A row that offers alternatives shows each on its own line with a small "or" divider: `splitAlternatives`
+cuts the chart's text at the file's upper-case " OR ", at ", or improve " and before "Pick an additional" in a "Choice of" row, and leaves an ordinary "or" inside a sentence alone.
+A blocked path shows the reason and "Take this path" is off. A Sorcerer's "First magical power" select stays a second step under the stack. The form is the same as ever: `POST .../units/{unit}/path` with `path` (and `power`); the choice is final. Styles: `.path-carousel`,
+`.path-strip`, `.path-tab`, `.path-stage`, `.path-card` in `tailwind.css`.
+
 ### Level-up
 
 The "Level Up ready!" banner of a card opens the level-up window (`level_panel`). The rules are read from the Battle

@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
@@ -517,7 +519,102 @@ func (s *Server) showPathPanel(w http.ResponseWriter, r *http.Request, base camp
 	if s.fail(w, r, err) {
 		return
 	}
-	s.render.partial(w, status, "campaign_my_company", "path_panel", map[string]any{"Campaign": base.Campaign, "Co": base.Current.ID, "Offer": offer, "Error": errMsg})
+	g, err := s.glossary.ForCampaign(r.Context(), base.Campaign.ID) // the texts link to the campaign's glossary
+	if s.fail(w, r, err) {
+		return
+	}
+	s.render.partial(w, status, "campaign_my_company", "path_panel", map[string]any{"Campaign": base.Campaign, "Co": base.Current.ID, "Offer": offer, "Cards": pathCards(g, offer.Paths), "Error": errMsg})
+}
+
+// pathCard is one path of the carousel with all that is known of it: what PathOffer holds plus the glossary's limits and chart. The chart
+// already names every rule and Mastery the path unlocks, so they are not listed again.
+type pathCard struct {
+	core.PathOption
+	Look     pathLookView
+	Heroic   []segView // the heroic action it starts with, linked (it is not a row of the chart)
+	Desc     []segView
+	Limits   []core.PathTableLimit // the most each characteristic of the profile can reach
+	Hero     []core.PathTableLimit // the most Might, Will and Fate can reach, shown as on a hero's card
+	Dice     string                // the dice its chart is rolled with
+	Rows     []pathRowView
+	HasChart bool
+}
+
+// pathRowView is one result of the chart; Alts are its alternatives (one when the row offers a single thing), each linked.
+type pathRowView struct {
+	Roll int
+	Alts [][]segView
+}
+
+func pathCards(g core.Glossary, paths []core.PathOption) []pathCard {
+	out := make([]pathCard, len(paths))
+	for i, p := range paths {
+		c := pathCard{PathOption: p, Look: pathLook(p.Name), Desc: linkText(g, p.Description)}
+		if p.StartAction != "" {
+			c.Heroic = linkText(g, p.StartAction)
+		}
+		if term, ok := g.Find(p.Name); ok && term.Path != nil {
+			for _, l := range term.Path.Limits {
+				if l.Stat == "Might" || l.Stat == "Will" || l.Stat == "Fate" {
+					c.Hero = append(c.Hero, l)
+				} else {
+					c.Limits = append(c.Limits, l)
+				}
+			}
+			if term.Path.PathDice.Valid() {
+				c.Dice = term.Path.PathDice.Display()
+			}
+			for _, row := range term.Path.Rows {
+				var text strings.Builder
+				for _, seg := range row.Segments {
+					text.WriteString(seg.Text)
+				}
+				rv := pathRowView{Roll: row.Roll}
+				for _, alt := range splitAlternatives(text.String()) {
+					rv.Alts = append(rv.Alts, linkText(g, alt))
+				}
+				c.Rows = append(c.Rows, rv)
+			}
+			c.HasChart = len(c.Rows) > 0
+		}
+		out[i] = c
+	}
+	return out
+}
+
+// splitAlternatives cuts the text of a chart row into the alternatives the data writes: at an upper-case " OR " (the file's own marker), at
+// ", or improve " (a second result of an "Improve..." row) and before " Pick an additional " in a row that starts "Choice of" (a minor rule or a
+// heroic action). An ordinary lower-case "or" inside a sentence ("Improve Might or Fate by 1") is left alone.
+func splitAlternatives(text string) []string {
+	var out []string
+	for _, a := range strings.Split(text, " OR ") {
+		if head, tail, ok := strings.Cut(a, ", or improve "); ok {
+			out = append(out, head, "Improve "+tail)
+			continue
+		}
+		out = append(out, a)
+	}
+	var split []string
+	for _, a := range out {
+		if strings.HasPrefix(a, "Choice of") {
+			if head, tail, ok := strings.Cut(a, " Pick an additional "); ok {
+				split = append(split, head, "Pick an additional "+tail)
+				continue
+			}
+		}
+		split = append(split, a)
+	}
+	var clean []string
+	for _, a := range split {
+		if a = strings.TrimSpace(a); a != "" {
+			r, n := utf8.DecodeRuneInString(a)
+			clean = append(clean, string(unicode.ToUpper(r))+a[n:]) // an alternative starts a sentence
+		}
+	}
+	if len(clean) == 0 {
+		return []string{text}
+	}
+	return clean
 }
 
 // handleChoosePath gives the officer the path the player chose.

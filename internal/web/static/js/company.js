@@ -1,6 +1,42 @@
 // The My Company page: expanding one unit card at a time, previews on hover, the level-up button, the windows (recruit,
 // equipment) and changing the formation of the units (drag and drop with SortableJS, or the arrows of each handle).
 document.addEventListener('alpine:init', () => {
+  // The path carousel of the "Choose a path" window: the radios of the strip are the state (path = the selected radio's value, always one);
+  // step() moves to the neighbour, the strip slides to centre the selected tab (no slide under prefers-reduced-motion), a swipe on the details
+  // moves too (the cards of the stack take their place from rel(): 0 in front, +-1 behind, +-2 away). A blocked path can be looked at but not taken.
+  Alpine.data('pathCarousel', () => ({
+    path: '', names: [], x0: null,
+    init() {
+      const radios = [...this.$root.querySelectorAll('input[name=path]')];
+      this.names = radios.map(r => r.value);
+      this.path = this.$root.dataset.start || this.names[0] || '';
+      this.$watch('path', () => this.$nextTick(() => this.center()));
+      this.$nextTick(() => this.center(true));
+    },
+    get index() { return this.names.indexOf(this.path); },
+    get radio() { return [...this.$root.querySelectorAll('input[name=path]')].find(r => r.value === this.path); },
+    get sorcerer() { return !!this.radio && this.radio.dataset.sorcerer === '1'; },
+    get blocked() { return !this.radio || this.radio.dataset.blocked === '1'; },
+    step(d) {
+      const i = Math.min(this.names.length - 1, Math.max(0, this.index + d));
+      this.path = this.names[i];
+      this.$nextTick(() => this.radio && this.radio.focus({ preventScroll: true }));
+    },
+    center(now) {
+      const strip = this.$refs.strip, tab = this.radio && this.radio.closest('label');
+      if (!strip || !tab || !strip.clientWidth) return;
+      const left = tab.offsetLeft - (strip.clientWidth - tab.offsetWidth) / 2;
+      const calm = now || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      strip.scrollTo({ left: Math.max(0, left), behavior: calm ? 'auto' : 'smooth' });
+    },
+    rel(i) { return Math.max(-2, Math.min(2, i - this.index)); },
+    swipeStart(e) { this.x0 = e.changedTouches[0].clientX; },
+    swipeEnd(e) {
+      if (this.x0 === null) return;
+      const dx = e.changedTouches[0].clientX - this.x0; this.x0 = null;
+      if (Math.abs(dx) > 50) this.step(dx < 0 ? 1 : -1);
+    },
+  }));
   // A window with a roll in it (recruiting, treating a hero's injuries): the dice (static/js/dice.js), the roll the player may adjust, and the chart row it lands on.
   Alpine.data('rollPanel', () => ({
     ...window.diceMixin(),

@@ -4,6 +4,7 @@ import (
 	"html"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 
@@ -140,7 +141,7 @@ func TestAnOfficerChoosesItsPathInAWindow(t *testing.T) {
 		Powers: []core.LevelChoice{{Key: "power:Aura of Command", Label: "Aura of Command"}}}
 	f.camp.EXPECT().PathOptions(gomock.Any(), frodo, int64(7), int64(1), int64(5)).Return(offer, nil).AnyTimes()
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/units/5/path", nil))).Body.String()
-	for _, want := range []string{"Choose a path", "Path of the Soldier", `name="path"`, "Not available: the company already has a hero", "First magical power", "Hardened fighters.", `title="Adds no Heroic Action. Heroic Combat Mastery."`} {
+	for _, want := range []string{"Choose a path", "Path of the Soldier", `name="path"`, "Not available: the company already has a hero", "First magical power", "Hardened fighters.", `data-rel="0"`, `aria-hidden`, `inert`, `role="radiogroup"`, "Previous path", "Next path", "path-float", "data-float", `data-start="Path of the Soldier"`, `data-sorcerer="1" data-blocked="1"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the window lacks %q", want)
 		}
@@ -258,5 +259,45 @@ func TestTheCreationPageShowsTheOfficerLocksAndTheirReasons(t *testing.T) {
 	rohan := page("Rohan")
 	if strings.Contains(rohan, "data-lock-note") {
 		t.Error("Rohan has no locks")
+	}
+}
+
+func TestAPathCardHoldsEverythingTheAppKnowsOfThePath(t *testing.T) {
+	g, err := core.BuildGlossaryWith(core.RulesetInfo{}, []byte(`{"terms":[]}`), []core.ExtraTerm{
+		{Name: "Path of the Soldier", Category: "paths", Definition: "Fighters.", Path: &core.PathData{
+			Limits:   []core.PathLimit{{Stat: "Fight", Abbr: "F", Limit: "+3 / 9"}, {Stat: "Might", Abbr: "M", Limit: "3"}, {Stat: "Fate", Abbr: "Fa", Limit: "2"}},
+			Rows:     []core.PathChartRow{{Roll: 2, Text: "+1 Might"}, {Roll: 7, Text: "Heroic Move Mastery (Active) - A bonus. OR improve Will by 1."}},
+			PathDice: core.NdM(2, 6)}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cards := pathCards(g, []core.PathOption{{Name: "Path of the Soldier", StartAction: "Heroic Strike", Blocked: "full"}, {Name: "Unknown"}})
+	c := cards[0]
+	if len(c.Limits) != 1 || c.Limits[0].Limit != "+3 / 9" || len(c.Hero) != 2 || c.Hero[0].Stat != "Might" {
+		t.Errorf("the limits are the profile's and, on their own, Might, Will and Fate: %+v %+v", c.Limits, c.Hero)
+	}
+	if c.Dice != "2D6" || len(c.Rows) != 2 || !c.HasChart || len(c.Heroic) == 0 || c.Blocked != "full" {
+		t.Errorf("the card lacks something: %+v", c)
+	}
+	if len(c.Rows[0].Alts) != 1 || len(c.Rows[1].Alts) != 2 {
+		t.Errorf("the alternatives of the rows: %+v", c.Rows)
+	}
+	if cards[1].HasChart || len(cards[1].Limits) != 0 {
+		t.Error("a path the glossary does not know has no chart")
+	}
+}
+
+func TestARowOfTheChartIsSplitAtItsAlternativesOnly(t *testing.T) {
+	for text, want := range map[string][]string{
+		"Improve Might or Fate by 1 (do not take the second result!)":                       {"Improve Might or Fate by 1 (do not take the second result!)"},
+		"Heroic Move Mastery (Active) - Bonus. OR improve Will by 1.":                       {"Heroic Move Mastery (Active) - Bonus.", "Improve Will by 1."},
+		"Improve Might or Fate by 1, or improve Will by 2 (to a Maximum of 6 Will)!":        {"Improve Might or Fate by 1", "Improve Will by 2 (to a Maximum of 6 Will)!"},
+		"Choice of Minor Special Rule (up to 4) Pick an additional Action to add (up to 5)": {"Choice of Minor Special Rule (up to 4)", "Pick an additional Action to add (up to 5)"},
+		"Spy (Active) - Sneaks.": {"Spy (Active) - Sneaks."},
+	} {
+		if got := splitAlternatives(text); !slices.Equal(got, want) {
+			t.Errorf("%q: %q, want %q", text, got, want)
+		}
 	}
 }
