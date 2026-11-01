@@ -394,7 +394,7 @@
     "breakPoint": {
       "default": {
         "of": "startingModels",
-        "percent": 50
+        "share": "1/2"
       },
       "scenarioExceptions": [
         {
@@ -1356,9 +1356,9 @@
         "crossbow"
       ],
       "id": "bow",
-      "maximumPercentage": 33.33,
       "property": "all",
       "roundUp": true,
+      "share": "1/3",
       "type": "bow"
     },
     {
@@ -1367,17 +1367,17 @@
         "throwing"
       ],
       "id": "throwing",
-      "maximumPercentage": 33.33,
       "property": "all",
       "roundUp": true,
+      "share": "1/3",
       "type": "throwingWeapon"
     },
     {
       "label": "Cavalry",
       "id": "cavalry",
-      "maximumPercentage": 33.33,
       "property": "all",
       "roundUp": true,
+      "share": "1/3",
       "type": "keyword",
       "value": "Cavalry"
     }
@@ -9492,7 +9492,7 @@
       ],
       "limits": {
         "override": {
-          "bow": 50
+          "bow": "1/2"
         }
       },
       "notes": [
@@ -10241,7 +10241,7 @@
           {
             "text": "No more than 33% of your company may include models with the Elf keyword.",
             "keyword": "Elf",
-            "percent": 33
+            "share": "33/100"
           }
         ]
       },
@@ -12462,7 +12462,7 @@
           ]
         }
       ],
-      "breakPoint": 66,
+      "breakPoint": "33/50",
       "heroUpgrades": [
         {
           "name": "There will be no dawn for Men",
@@ -12585,7 +12585,7 @@
       ],
       "limits": {
         "override": {
-          "cavalry": 66
+          "cavalry": "33/50"
         }
       },
       "maxModels": 12,
@@ -13310,7 +13310,7 @@
       ],
       "limits": {
         "override": {
-          "bow": 50
+          "bow": "1/2"
         }
       },
       "notes": [
