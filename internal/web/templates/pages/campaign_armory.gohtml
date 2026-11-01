@@ -14,7 +14,7 @@
   <div class="mt-4 flex flex-wrap items-end justify-between gap-3">
     <div>
       <h2 class="!text-2xl">Armory</h2>
-      <p class="mt-1 text-sm text-muted">Everything {{.Company.Name}} can buy, whether or not a unit can take it now. Influence <strong class="text-fg">{{.Company.Influence}}</strong> · Gold <strong class="text-fg">{{.Company.Gold}}</strong>.</p>
+      <p class="mt-1 text-sm text-muted">Everything {{.Company.Name}} could ever buy, whether or not a unit can take it now; what no unit can take now is greyed, with the reason. Influence <strong class="text-fg">{{.Company.Influence}}</strong> · Gold <strong class="text-fg">{{.Company.Gold}}</strong>.</p>
     </div>
     <div class="w-full sm:w-72">
       <label for="armory-search" class="sr-only">Search the armory</label>
@@ -28,7 +28,7 @@
       <span class="relative h-6 w-11 shrink-0 rounded-full border border-line transition-colors" :class="mine ? 'bg-accent' : 'bg-raised'" aria-hidden="true">
         <span class="absolute left-0.5 top-0.5 h-4.5 w-4.5 rounded-full bg-surface shadow transition-transform" :class="mine && 'translate-x-5'"></span>
       </span>
-      <span>Hide what {{.Company.Name}} cannot take</span>
+      <span>Hide what {{.Company.Name}} could never take</span>
     </button>
     <div class="flex flex-wrap gap-2" role="group" aria-label="Filter by kind">
       <button type="button" class="btn btn-secondary !min-h-11 !px-3 sm:!min-h-9" :class="main === '' && '!border-accent !bg-accent-soft'" :aria-pressed="main === ''" @click="pickMain('')">All</button>
@@ -38,27 +38,28 @@
       {{range .Subs}}<button type="button" class="chip" data-sub-chip="{{.Key}}" :class="[sub === '{{.Key}}' && 'chip-on', !subApplies('{{.Key}}') && 'opacity-40']" :aria-pressed="sub === '{{.Key}}'" :disabled="!subApplies('{{.Key}}')" @click="sub = sub === '{{.Key}}' ? '' : '{{.Key}}'">{{.Label}}</button>{{end}}
     </div>
     {{/* Drawn as the switch's default leaves it (on): the items no unit can take are hidden by CSS until Alpine starts, and this line is there with its count. */}}
-    <p class="text-xs text-muted" x-show="mine && hiddenCount() > 0"{{if not .HiddenByDefault}} x-cloak{{end}} role="status"><span x-text="hiddenCount()">{{if .HiddenByDefault}}{{.HiddenByDefault}}{{end}}</span> hidden because no one in the company can take them. <button type="button" class="underline" @click="toggleMine()">Show them</button></p>
+    <p class="text-xs text-muted" x-show="mine && hiddenCount() > 0"{{if not .HiddenByDefault}} x-cloak{{end}} role="status"><span x-text="hiddenCount()">{{if .HiddenByDefault}}{{.HiddenByDefault}}{{end}}</span> hidden because no unit of the company could ever take them. <button type="button" class="underline" @click="toggleMine()">Show them</button></p>
   </div>
   <p class="mt-6 text-muted" x-show="noMatch()" x-cloak role="status">Nothing matches the filters. <button type="button" class="btn btn-ghost !min-h-9 !px-3" @click="clear()">Clear the filters</button></p>
 
-  <ul class="mt-4 space-y-3">
+  <ul id="armory-items" class="mt-4 space-y-3">
     {{range $ei, $e := .Entries}}{{$item := .Name}}{{$cost := .Cost}}{{$wm := .WeaponModifier}}
     <li data-name="{{.Name}}" data-aliases="{{join .AlsoCalled "|"}}" data-main="{{.Main}}" data-sub="{{.Sub}}" data-avail="{{if .Avail}}1{{else}}0{{end}}" x-show="shows($el)" x-data="{ open: false }" class="card !p-4">
       <div class="flex flex-wrap items-start gap-x-3 gap-y-2">
         <span class="mt-1 flex gap-0.5">{{template "gear_icons" .}}</span>
-        <div class="min-w-0 flex-1">
-          <p class="font-medium">{{.Name}}
+        <div class="min-w-0 flex-[1_1_14rem]">
+          <p class="font-medium{{if not .CanBuy}} text-muted{{end}}">{{.Name}}
             <span class="badge badge-muted">{{if .Size}}{{.Size}} slot{{else}}wargear{{end}}</span>{{if .ArmourStage}} <span class="badge badge-gold" title="Replaces the armour the model wears">armour upgrade</span>{{end}}{{if .Exclusive}} <span class="badge badge-gold" title="Only your company can buy it">Company-exclusive</span>{{end}}
             {{range .Restrictions}}<span class="badge badge-muted">{{.}}</span>{{end}}</p>
           {{if .AlsoCalled}}<p class="text-xs text-muted">Also: {{join .AlsoCalled ", "}}</p>{{end}}
           {{with .Stats}}<p class="mt-1 text-sm font-medium">{{.}}</p>{{end}}
           {{if .Description}}<p class="mt-1 text-sm text-muted">{{.Description}}</p>{{end}}
           {{if .Grants}}<p class="mt-1 text-sm"><span class="text-muted">{{if eq .GrantedTo "mount"}}Gives its mount:{{else}}Gives:{{end}}</span> {{join .Grants ", "}}</p>{{end}}
+          {{if .Why}}<p id="armory-why-{{$ei}}" class="mt-2 text-sm text-muted">{{.Why}}</p>{{end}}
         </div>
         <div class="ml-auto flex shrink-0 flex-col items-end gap-1">
           <span class="text-sm font-semibold">{{.Cost}} influence{{if .Gold.Warrior}} · <span title="Gold price: warrior / hero">{{.Gold.Warrior}}{{if ne .Gold.Warrior .Gold.Hero}} / {{.Gold.Hero}}{{end}} gold</span>{{end}}</span>
-          <button type="button" class="btn {{if .CanBuy}}btn-primary{{else}}btn-secondary{{end}} !min-h-9" @click="open = !open" :aria-expanded="open" {{if $.Company.LockMessage}}disabled title="{{$.Company.LockMessage}}"{{end}}>{{if .CanBuy}}Buy for…{{else}}No unit can take it{{end}}</button>
+          <button type="button" class="btn {{if .CanBuy}}btn-primary{{else}}btn-secondary{{end}} !min-h-9" @click="open = !open" :aria-expanded="open" {{if not .CanBuy}}aria-disabled="true"{{with .Why}} aria-describedby="armory-why-{{$ei}}"{{end}} {{end}}{{if $.Company.LockMessage}}disabled title="{{$.Company.LockMessage}}"{{end}}>{{if .CanBuy}}Buy for…{{else}}No unit can take it now{{end}}</button>
         </div>
       </div>
       <template x-if="open"><ul x-init="htmx.process($el)" class="mt-3 divide-y divide-line rounded-lg border border-line" aria-label="Units">
@@ -83,12 +84,12 @@
   <h2 class="mt-10 !text-2xl">Creatures</h2>
   <p class="mt-1 text-sm text-muted">Bought for the leader or a sergeant, one each. They are not units: they take no slot of the company, no equipment slot and roll no injuries.</p>
   <ul class="mt-4 space-y-3">
-    {{range .Creatures}}{{$name := .Name}}{{$ccost := .Cost}}{{$cgold := .Gold}}{{$cinf := .PayInfluence}}{{$cgd := .PayGold}}
-    <li data-name="{{.Name}}" data-aliases="creature" data-main="creatures" data-avail="1" x-show="shows($el)" x-data="{ open: false }" class="card !p-4">
+    {{range $ci, $c := .Creatures}}{{$name := .Name}}{{$ccost := .Cost}}{{$cgold := .Gold}}{{$cinf := .PayInfluence}}{{$cgd := .PayGold}}
+    <li data-name="{{.Name}}" data-aliases="creature" data-main="creatures" data-avail="{{if .Avail}}1{{else}}0{{end}}" x-show="shows($el)" x-data="{ open: false }" class="card !p-4">
       <div class="flex flex-wrap items-start gap-x-3 gap-y-2">
         <span class="mt-1 text-muted">{{template "paw"}}</span>
-        <div class="min-w-0 flex-1 space-y-2">
-          <p class="font-medium">{{.Name}} <span class="badge badge-muted">creature</span> <span class="text-sm font-normal text-muted">{{.Points}} pts</span></p>
+        <div class="min-w-0 flex-[1_1_14rem] space-y-2">
+          <p class="font-medium{{if not .CanTake}} text-muted{{end}}">{{.Name}} <span class="badge badge-muted">creature</span> <span class="text-sm font-normal text-muted">{{.Points}} pts</span></p>
           {{template "keyword_row" (dict "K" .Keywords)}}
           <dl class="inline-grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">
             {{range .StatBlock}}<div class="min-w-8 border-r border-line bg-surface px-0.5 py-1 last:border-r-0" title="{{.Name}}"><dt class="text-[10px] uppercase leading-none text-muted">{{.Abbr}}</dt><dd class="text-sm font-semibold leading-tight">{{.Value}}{{.Trail}}</dd></div>{{end}}
@@ -96,10 +97,11 @@
           {{with .RuleChips}}<div class="flex flex-wrap items-center gap-1.5"><span class="text-sm text-muted">Special rules:</span><ul class="flex flex-wrap gap-1.5" aria-label="Special rules">{{template "armory_chips" (dict "L" . "Cls" "rule-chip")}}</ul></div>{{end}}
           {{if .Carry}}<p class="text-sm text-muted">Gives the whole company a pack of {{.Carry.Capacity}} pieces: any member can store, take out or swap gear for free.</p>{{end}}
           {{range .Notes}}<p class="text-sm text-muted">{{.}}</p>{{end}}
+          {{if not .CanTake}}<p id="armory-creature-why-{{$ci}}" class="text-sm text-muted">{{.Why}}</p>{{end}}
         </div>
         <div class="ml-auto flex shrink-0 flex-col items-end gap-1">
           <span class="text-sm font-semibold">{{.Cost}} influence</span>
-          <button type="button" class="btn {{if .CanTake}}btn-primary{{else}}btn-secondary{{end}} !min-h-9" @click="open = !open" :aria-expanded="open" {{if $.Company.LockMessage}}disabled title="{{$.Company.LockMessage}}"{{end}}>{{if .CanTake}}Buy for…{{else}}Nobody can take it{{end}}</button>
+          <button type="button" class="btn {{if .CanTake}}btn-primary{{else}}btn-secondary{{end}} !min-h-9" @click="open = !open" :aria-expanded="open" {{if not .CanTake}}aria-disabled="true" aria-describedby="armory-creature-why-{{$ci}}" {{end}}{{if $.Company.LockMessage}}disabled title="{{$.Company.LockMessage}}"{{end}}>{{if .CanTake}}Buy for…{{else}}Nobody can take it now{{end}}</button>
         </div>
       </div>
       <template x-if="open"><ul x-init="htmx.process($el)" class="mt-3 divide-y divide-line rounded-lg border border-line" aria-label="Officers">
@@ -123,11 +125,11 @@
   <h2 class="mt-10 !text-2xl">Wanderers</h2>
   <p class="mt-1 text-sm text-muted">Mercenary heroes that fight for the company. One at a time; they count as a unit, cannot buy equipment, gain no experience and can be dismissed (the influence is not returned).</p>
   <ul class="mt-4 space-y-3">
-    {{range .Wanderers}}
+    {{range $wi, $w := .Wanderers}}
     <li data-name="{{.Name}}" data-aliases="wanderer" data-main="wanderers" data-avail="{{if .Avail}}1{{else}}0{{end}}" x-show="shows($el)" class="card !p-4">
       <div class="flex flex-wrap items-start gap-x-3 gap-y-2">
-        <div class="min-w-0 flex-1 space-y-2">
-          <p class="font-medium">{{.Name}} <span class="badge badge-gold">wanderer</span> <span class="text-sm font-normal text-muted">{{.Points}} pts</span></p>
+        <div class="min-w-0 flex-[1_1_14rem] space-y-2">
+          <p class="font-medium{{if not .Hirable}} text-muted{{end}}">{{.Name}} <span class="badge badge-gold">wanderer</span> <span class="text-sm font-normal text-muted">{{.Points}} pts</span></p>
           {{template "keyword_row" (dict "K" .Keywords)}}
           <div class="flex flex-wrap items-center gap-2">
             <dl class="inline-grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">
@@ -145,7 +147,7 @@
         <div class="ml-auto flex shrink-0 flex-col items-end gap-1">
           <span class="text-sm font-semibold">{{.Cost}} influence or {{.Gold}} gold</span>
           {{if .Hirable}}<form {{if $.Company.LockMessage}}inert class="opacity-50" title="{{$.Company.LockMessage}}"{{end}} method="post" action="/campaigns/{{$.Campaign.ID}}/armory/wanderer" hx-post="/campaigns/{{$.Campaign.ID}}/armory/wanderer"><input type="hidden" name="company" value="{{$.Company.ID}}"><input type="hidden" name="name" value="{{.Name}}">{{template "pay_buttons" (dict "Label" "Hire" "Class" "!min-h-9" "Cost" .Cost "Gold" .Gold "PayInfluence" .PayInfluence "PayGold" .PayGold)}}</form>
-          {{else}}<span class="max-w-48 text-right text-xs text-muted">{{.Reason}}</span>{{end}}
+          {{else}}<button type="button" class="btn btn-secondary !min-h-9" aria-disabled="true" aria-describedby="armory-wanderer-why-{{$wi}}">Cannot hire now</button><span id="armory-wanderer-why-{{$wi}}" class="max-w-48 text-right text-xs text-muted">{{.Reason}}</span>{{end}}
         </div>
       </div>
     </li>

@@ -1140,19 +1140,69 @@ func TestArmoryTabListsEverythingWithTheUnitsThatCanTakeIt(t *testing.T) {
 	f.camp.EXPECT().ArmouryWanderers(gomock.Any(), int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	f.camp.EXPECT().ArmouryEntries(gomock.Any(), int64(7), int64(1)).Return([]core.ArmouryEntry{
 		{GearOffer: core.GearOffer{Name: "Badge of Courage", Classes: []core.EquipmentClass{core.EquipOther}, Cost: 2, Size: "small", Grants: []string{"Fearless"}},
-			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", Role: core.RoleSergeant}}},
+			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", Role: core.RoleSergeant}}, Possible: true},
 		{GearOffer: core.GearOffer{Name: "Barding", Classes: []core.EquipmentClass{core.EquipArmour}, Cost: 2, Size: "large", Restrictions: []string{"cavalry"}},
 			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", Role: core.RoleSergeant, Reason: "Cavalry only", Blocker: core.BlockedByRule}}},
 	}, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory?company=1", nil))).Body.String()
 	for _, want := range []string{"Badge of Courage", "Barding", "Buy for…", "No unit can take it", "Cavalry only", `/armory/buy`, `name="item" value="Badge of Courage"`, "Gives:", "Fearless", `x-data="armory"`,
-		`<template x-if="open"><ul x-init="htmx.process($el)"`, `data-armory-pending`, `<span x-text="hiddenCount()">1</span> hidden`} { // the unit lists are built when "Buy for" opens them, and htmx wires their forms then
+		`<template x-if="open"><ul x-init="htmx.process($el)"`, `data-armory-pending`, `<span x-text="hiddenCount()">1</span> hidden`,
+		`data-name="Barding" data-aliases="" data-main="equipment" data-sub="armour" data-avail="0"`, `data-name="Badge of Courage" data-aliases="" data-main="equipment" data-sub="other" data-avail="1"`} { // the unit lists are built when "Buy for" opens them, and htmx wires their forms then
 		if !strings.Contains(body, want) {
 			t.Errorf("armory lacks %q", want)
 		}
 	}
 	if strings.Contains(body, `name="item" value="Barding"`) {
 		t.Error("a unit that cannot take an item has no buy button")
+	}
+}
+
+// A possible purchase nobody can make now is listed, greyed, with its reason: an impossible one is hidden by the switch but is still
+// in the page (an armour upgrade is no exception), and a buyable one keeps its button.
+func TestArmoryListsPossiblePurchasesGreyedWithTheirReason(t *testing.T) {
+	f := newFixture(t, Config{})
+	d, detail := mineDetail()
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
+	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
+	f.camp.EXPECT().ArmouryCreatures(gomock.Any(), int64(7), int64(1)).Return([]core.ArmouryCreature{
+		{CreatureOffer: core.CreatureOffer{Name: "Hunting Dog", Cost: 1}, Possible: true,
+			Owners: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", Role: core.RoleSergeant, Reason: "Already has Falcon", Blocker: core.BlockedByRule}}},
+		{CreatureOffer: core.CreatureOffer{Name: "Wolf", Cost: 1}}}, nil)
+	f.camp.EXPECT().ArmouryWanderers(gomock.Any(), int64(7), int64(1)).Return([]core.ArmouryWanderer{
+		{WandererOffer: core.WandererOffer{Name: "Wandering Swordsman", Cost: 9}, Possible: true, Reason: "The company is full (12 of 12 units)", Blocker: core.BlockedBySlots},
+		{WandererOffer: core.WandererOffer{Name: "Kin of Another Folk", Cost: 9}, Reason: "The company cannot take Kin of Another Folk: evil", Blocker: core.BlockedByRule},
+	}, nil)
+	why := "No unit can take it now: already wears this armour or better (Warrior of Arnor). A Ranger of the North may take it after Armour."
+	f.camp.EXPECT().ArmouryEntries(gomock.Any(), int64(7), int64(1)).Return([]core.ArmouryEntry{
+		{GearOffer: core.GearOffer{Name: "Heavy Armour", Classes: []core.EquipmentClass{core.EquipArmour}, Cost: 1, ArmourStage: 2},
+			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior of Arnor", Reason: "Already wears this armour or better", Blocker: core.BlockedByRule}}, Possible: true, Why: why},
+		{GearOffer: core.GearOffer{Name: "Badge of Courage", Classes: []core.EquipmentClass{core.EquipOther}, Cost: 2, Size: "small"},
+			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", Role: core.RoleSergeant}}, Possible: true},
+		{GearOffer: core.GearOffer{Name: "Mithril Armour", Classes: []core.EquipmentClass{core.EquipArmour}, Cost: 1, ArmourStage: 3},
+			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior of Arnor", Reason: "Already wears this armour or better", Blocker: core.BlockedByRule}}},
+	}, nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory?company=1", nil))).Body.String()
+	for _, want := range []string{
+		`data-name="Heavy Armour" data-aliases="" data-main="wargear" data-sub="armour" data-avail="1"`,
+		`id="armory-why-0"`, why, `aria-disabled="true" aria-describedby="armory-why-0"`, `No unit can take it now</button>`,
+		`data-name="Mithril Armour" data-aliases="" data-main="wargear" data-sub="armour" data-avail="0"`,
+		`data-name="Hunting Dog" data-aliases="creature" data-main="creatures" data-avail="1"`, `Nobody can take it now: already has Falcon.`, `aria-disabled="true" aria-describedby="armory-creature-why-0"`,
+		`data-name="Wolf" data-aliases="creature" data-main="creatures" data-avail="0"`,
+		`data-name="Wandering Swordsman" data-aliases="wanderer" data-main="wanderers" data-avail="1"`, `The company is full (12 of 12 units)`, `aria-disabled="true" aria-describedby="armory-wanderer-why-0"`,
+		`data-name="Kin of Another Folk" data-aliases="wanderer" data-main="wanderers" data-avail="0"`,
+		`<span x-text="hiddenCount()">3</span> hidden`, `Hide what Rangers could never take`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("armory lacks %q", want)
+		}
+	}
+	if n := strings.Count(body, `aria-disabled="true" aria-describedby="armory-why-`); n != 1 {
+		t.Errorf("the possible item nobody can take now is described by its reason: %d", n)
+	}
+	badge := body[strings.Index(body, `data-name="Badge of Courage"`):]
+	if strings.Contains(badge[:strings.Index(badge, "</li>")], "aria-disabled") {
+		t.Error("an item some unit can buy has an enabled button")
 	}
 }
 
@@ -1676,16 +1726,16 @@ func TestArmoryFiltersAndTooltips(t *testing.T) {
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
 	f.camp.EXPECT().ArmouryEntries(gomock.Any(), int64(7), int64(1)).Return([]core.ArmouryEntry{
 		{GearOffer: core.GearOffer{Name: "Badge of Courage", Classes: []core.EquipmentClass{core.EquipOther}, Cost: 2, Size: "small", Description: "Be brave."},
-			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior"}}},
+			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior"}}, Possible: true},
 		{GearOffer: core.GearOffer{Name: "Goat", Classes: []core.EquipmentClass{core.EquipMount}, Cost: 4},
 			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", Reason: "No such option", Blocker: core.BlockedByRule}}},
 		{GearOffer: core.GearOffer{Name: "Sword", Classes: []core.EquipmentClass{core.EquipMelee}, Cost: 1},
-			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", Reason: "Costs 1", Blocker: core.BlockedByInfluence}}},
+			Units: []core.UnitOption{{ID: 5, Title: "Hador", Type: "Warrior", Reason: "Costs 1", Blocker: core.BlockedByInfluence}}, Possible: true},
 	}, nil)
 	f.camp.EXPECT().ArmouryCreatures(gomock.Any(), int64(7), int64(1)).Return([]core.ArmouryCreature{
-		{CreatureOffer: core.CreatureOffer{Name: "Hunting Dog", Cost: 1, Rules: []string{"Fearful"}}}}, nil)
+		{CreatureOffer: core.CreatureOffer{Name: "Hunting Dog", Cost: 1, Rules: []string{"Fearful"}}, Possible: true}}, nil)
 	f.camp.EXPECT().ArmouryWanderers(gomock.Any(), int64(7), int64(1)).Return([]core.ArmouryWanderer{
-		{WandererOffer: core.WandererOffer{Name: "Wandering Swordsman", Cost: 9, Wargear: []string{"Badge of Courage"}, Rules: []string{"Fearful"}}},
+		{WandererOffer: core.WandererOffer{Name: "Wandering Swordsman", Cost: 9, Wargear: []string{"Badge of Courage"}, Rules: []string{"Fearful"}}, Possible: true},
 		{WandererOffer: core.WandererOffer{Name: "Kin of Another Folk", Cost: 9}, Reason: "The company cannot take Kin of Another Folk: evil", Blocker: core.BlockedByRule},
 	}, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/armory?company=1", nil))).Body.String()
