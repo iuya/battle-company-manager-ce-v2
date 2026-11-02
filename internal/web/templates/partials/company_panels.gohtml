@@ -372,7 +372,7 @@
         <span class="badge badge-muted">{{if .Size}}{{.Size}} slot{{else}}wargear{{end}}</span>{{if .ArmourStage}} <span class="badge badge-gold" title="Replaces the armour the model wears">armour upgrade</span>{{end}}{{if .Exclusive}} <span class="badge badge-gold" title="Only your company can buy it">Company-exclusive</span>{{end}}
         {{range .Restrictions}}<span class="badge badge-muted">{{.}}</span>{{end}}</p>
       {{if .AlsoCalled}}<p class="text-xs text-muted">Also: {{join .AlsoCalled ", "}}</p>{{end}}
-      {{if .Description}}<p class="mt-0.5 line-clamp-2 text-sm text-muted">{{.Description}}</p>{{end}}
+      {{if .Segments}}<p class="mt-0.5 line-clamp-2 text-sm text-muted">{{template "segments" (dict "S" .Segments "CID" $.Campaign.ID)}}</p>{{end}}
     </div>
     <div class="ml-auto flex shrink-0 flex-col items-end gap-1">
       {{if and .Buyable .WeaponModifier (not $.Unit.PoisonableWeapons)}}
@@ -417,27 +417,68 @@
 </form>
 {{end}}
 
-{{/* A leader or sergeant chooses its path (a Sorcerer also its first magical power). Takes {Campaign, Offer: core.PathOffer, Error}. */}}
-{{define "path_panel"}}
-<div x-data="{ path: '' , sorcerer: [{{range .Offer.Paths}}{{if .StartPower}}{{jsstr .Name}},{{end}}{{end}}] }">
-<h2 class="!text-2xl">Choose a path</h2>
+{{/* A leader or sergeant chooses its path (a Sorcerer also its first magical power) from a carousel: every path on one strip (a radio
+   group, so the arrow keys, Enter and screen readers work natively), exactly one selected; below, the paths as cards in a stack: the selected one in front and in full
+   (limits, chart, heroic action, Mastery, rules), the neighbours behind it, smaller and faded (aria-hidden, inert; a click on one selects it). Previous and next buttons
+   at the sides and floating ones over the stack that follow the scroll, swipe on the stack. A blocked path can be looked at but not taken. Takes {Campaign, Co, Offer: core.PathOffer, Cards: []pathCard, Error}.
+   Component `pathCarousel` in static/js/company.js. */}}
+{{define "path_panel"}}{{$cid := .Campaign.ID}}
+<div x-data="pathCarousel" data-start="{{range .Offer.Paths}}{{if not .Blocked}}{{.Name}}{{break}}{{end}}{{end}}">
+<h2 class="!text-2xl pr-10">Choose a path</h2>
 <p class="mt-1 text-sm text-muted">{{.Offer.Unit.Title}} is a {{.Offer.Unit.Role}} of the company and has to follow a path before the company can play. The path decides how it grows; its heroic action comes with it at once. This is final.</p>
 {{with .Error}}<div class="alert alert-danger mt-3" role="alert">{{.}}</div>{{end}}
-<form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/units/{{.Offer.Unit.ID}}/path" hx-post="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/units/{{.Offer.Unit.ID}}/path" hx-target="#modal-body" hx-swap="innerHTML" class="mt-4 space-y-2">
-  {{range .Offer.Paths}}
-  <label {{with .Summary}}title="{{.}}" {{end}}class="flex items-start gap-3 rounded-lg border border-line px-3 py-2 {{if .Blocked}}text-muted{{else}}cursor-pointer hover:bg-accent-soft{{end}}">
-    <input type="radio" name="path" value="{{.Name}}" x-model="path" class="mt-1 h-4 w-4 accent-[var(--accent)]" {{if .Blocked}}disabled{{end}} required>
-    {{template "path_icon" .Name}}
-    <span class="min-w-0"><span class="font-medium">{{.Name}}</span>{{with .StartAction}} <span class="text-sm text-muted">· heroic action: {{.}}</span>{{end}}{{with .Description}}<span class="block text-sm">{{.}}</span>{{end}}{{with .Summary}}<span class="block text-xs text-muted">{{.}}</span>{{end}}{{with .Blocked}}<span class="block text-xs text-danger">Not available: {{.}}</span>{{end}}</span>
-  </label>
-  {{end}}
-  <div class="field" x-show="sorcerer.includes(path)" x-cloak>
+<form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/units/{{.Offer.Unit.ID}}/path" hx-post="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/units/{{.Offer.Unit.ID}}/path" hx-target="#modal-body" hx-swap="innerHTML" class="mt-4">
+  <div class="path-carousel">
+    <button type="button" class="btn btn-secondary path-nav" @click="step(-1)" :disabled="index <= 0" aria-label="Previous path"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="path-strip" x-ref="strip" role="radiogroup" aria-label="Paths">
+      {{range $i, $c := .Cards}}
+      <label class="path-tab path-k-{{$c.Look.Kind}}" :class="path === {{jsstr $c.Name}} && 'is-on'">
+        <input type="radio" name="path" value="{{$c.Name}}" x-model="path" class="sr-only" required data-sorcerer="{{if $c.StartPower}}1{{end}}" data-blocked="{{if $c.Blocked}}1{{end}}">
+        {{template "path_icon" $c.Name}}<span class="path-tab-name">{{with $c.Look.Lead}}<span class="sr-only">{{.}} </span>{{end}}{{$c.Look.Main}}</span>{{if $c.Blocked}}<span class="sr-only">(not available)</span>{{end}}
+      </label>
+      {{end}}
+    </div>
+    <button type="button" class="btn btn-secondary path-nav" @click="step(1)" :disabled="index >= names.length - 1" aria-label="Next path"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+  <div class="path-deck mt-3">
+  <div class="path-float"><div>
+    <button type="button" class="btn btn-secondary path-nav" data-float @click="step(-1)" :disabled="index <= 0" aria-label="Previous path"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button type="button" class="btn btn-secondary path-nav" data-float @click="step(1)" :disabled="index >= names.length - 1" aria-label="Next path"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div></div>
+  <div class="path-stage" @touchstart.passive="swipeStart($event)" @touchend.passive="swipeEnd($event)">
+    {{range $i, $c := .Cards}}
+    <div class="path-card path-k-{{$c.Look.Kind}}" data-rel="{{if eq $i 0}}0{{else}}1{{end}}" :data-rel="rel({{$i}})" :aria-hidden="rel({{$i}}) !== 0 ? 'true' : null" @click="rel({{$i}}) !== 0 && (path = names[{{$i}}])">
+      <div class="path-card-body" :inert="rel({{$i}}) !== 0" data-path="{{$c.Name}}">
+        <h3 class="path-name !text-xl">{{template "path_icon" $c.Name}}<span>{{$c.Name}}</span></h3>
+        {{with $c.Blocked}}<p class="alert alert-danger mt-2 text-sm">Not available: {{.}}</p>{{end}}
+        {{if $c.Desc}}<p class="mt-2 text-sm">{{template "segments" (dict "S" $c.Desc "CID" $cid)}}</p>{{end}}
+        {{if or $c.Limits $c.Hero}}
+        <p class="path-h">Path Limits</p>
+        <div class="path-limits" role="group" aria-label="Path Limits">
+          {{if $c.Limits}}<dl class="statline">{{range $c.Limits}}<div title="{{.Stat}}"><dt>{{.Abbr}}</dt><dd>{{.Limit}}</dd></div>{{end}}</dl>{{end}}
+          {{if $c.Hero}}<dl class="statline statline-hero">{{range $c.Hero}}<div title="{{.Stat}}"><dt>{{.Stat}}</dt><dd>{{.Limit}}</dd></div>{{end}}</dl>{{end}}
+        </div>
+        {{end}}
+        {{if or $c.Heroic $c.StartPower}}<dl class="path-facts">
+          {{if $c.Heroic}}<div><dt>Starting heroic action</dt><dd>{{template "segments" (dict "S" $c.Heroic "CID" $cid)}}</dd></div>{{end}}
+          {{if $c.StartPower}}<div><dt>Starting power</dt><dd>One magical power of your choice.</dd></div>{{end}}
+        </dl>{{end}}
+        {{if $c.HasChart}}
+        <p class="path-h">Level-up{{with $c.Dice}}: roll {{.}}{{end}}</p>
+        <ol class="path-rows">{{range $c.Rows}}<li><span class="path-roll">{{.Roll}}</span><span class="path-alts">{{range $i, $alt := .Alts}}{{if $i}}<span class="path-or">or</span>{{end}}<span class="path-alt">{{template "segments" (dict "S" $alt "CID" $cid)}}</span>{{end}}</span></li>{{end}}</ol>
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+  </div>
+  </div>
+  <div class="field mt-3" x-show="sorcerer" x-cloak>
     <label for="power">First magical power</label>
-    <select id="power" name="power" class="input" :disabled="!sorcerer.includes(path)">
+    <select id="power" name="power" class="input" :disabled="!sorcerer">
       {{range .Offer.Powers}}<option value="{{slice .Key 6}}">{{.Label}}</option>{{end}}
     </select>
   </div>
-  <button class="btn btn-primary mt-2">Take this path</button>
+  <button class="btn btn-primary mt-4" :disabled="blocked">Take this path</button>
 </form>
 </div>
 {{end}}

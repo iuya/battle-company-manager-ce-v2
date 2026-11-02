@@ -59,6 +59,9 @@ type armoryRow struct {
 	Main  string // wargear | equipment
 	Sub   string // the item category (armorySub.Key)
 	Avail bool   // possible in this company (core.ArmouryEntry.Possible): some unit that can exist in it could buy it, now or later
+	// Segments is the description cut into text and glossary links (the item's own name is never one); GrantSegs the rules it gives.
+	Segments  []segView
+	GrantSegs []segView
 }
 
 type armoryCreature struct {
@@ -120,11 +123,16 @@ func subOf(classes []core.EquipmentClass) string {
 // armoryRows places the items in the filters. An item is out of reach when no unit that can exist in the company could ever buy it
 // (the goat of another company's riders, a Fell Warg for a company without wargs); lacking influence, a free slot, or every unit
 // already carrying it is not: core decides (ArmouryEntry.Possible).
-func armoryRows(entries []core.ArmouryEntry) ([]armoryRow, []armorySub, string) {
+func armoryRows(g core.Glossary, entries []core.ArmouryEntry) ([]armoryRow, []armorySub, string) {
 	has := map[string]map[string]bool{"wargear": {}, "equipment": {}, "creatures": {}, "wanderers": {}}
 	rows := make([]armoryRow, len(entries))
 	for i, e := range entries {
 		r := armoryRow{ArmouryEntry: e, Main: "wargear", Sub: subOf(e.Classes), Avail: e.Possible}
+		names := append([]string{e.Name}, e.AlsoCalled...)
+		r.Segments = itemText(g, e.Description, names...)
+		if len(e.Grants) > 0 {
+			r.GrantSegs = itemText(g, strings.Join(e.Grants, ", "), names...)
+		}
 		if e.Size != "" {
 			r.Main = "equipment"
 		}
@@ -218,12 +226,12 @@ func (s *Server) armoryPage(w http.ResponseWriter, r *http.Request, status int, 
 		for _, u := range detail.Roster {
 			view.Weapons[u.ID] = u.PoisonableWeapons
 		}
-		view.Entries, view.Subs, view.Applies = armoryRows(entries)
 		g, err := s.glossary.ForCampaign(r.Context(), base.Campaign.ID) // rules are explained by the campaign's glossary
 		if err != nil && !errors.Is(err, core.ErrNotFound) {
 			s.fail(w, r, err)
 			return
 		}
+		view.Entries, view.Subs, view.Applies = armoryRows(g, entries)
 		tips := newArmoryTips(g, entries)
 		creatures, err := s.campaigns.ArmouryCreatures(r.Context(), base.Campaign.ID, mine.ID)
 		if s.fail(w, r, err) {

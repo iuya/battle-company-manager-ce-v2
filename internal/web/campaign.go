@@ -311,8 +311,18 @@ func linkText(g core.Glossary, text string) []segView { return segViews(g, text,
 // segViews is linkText with the length of a term's tooltip chosen. A unit the glossary has no card for (it cannot happen for a text cut by
 // the same glossary) is left as plain text rather than linking to nothing.
 func segViews(g core.Glossary, text string, tip int) []segView {
+	return viewSegments(g, g.Link(text), tip)
+}
+
+// itemText is linkText for the description of an item: the item's own names (its name and its other spellings) are never linked, and
+// the names of weapons are linked in any case ("a lance").
+func itemText(g core.Glossary, text string, names ...string) []segView {
+	return viewSegments(g, g.LinkExcept(text, names...), 320)
+}
+
+func viewSegments(g core.Glossary, segs []core.Segment, tip int) []segView {
 	var out []segView
-	for _, seg := range g.Link(text) {
+	for _, seg := range segs {
 		v := segView{Text: seg.Text, TermID: seg.TermID}
 		if term, ok := g.Term(seg.TermID); ok {
 			v.TipTitle, v.TipText = term.Name, term.Summary(tip)
@@ -334,7 +344,7 @@ func unitViews(g core.Glossary, units []core.CompanyUnit) []unitView {
 			v.CreatureTip = creatureTip(*u.Creature)
 		}
 		for _, e := range u.Equipment {
-			v.Items = append(v.Items, itemView{Equipment: e, Segments: linkText(g, e.Description), TipStats: tipStats(e.MountStats)})
+			v.Items = append(v.Items, itemView{Equipment: e, Segments: itemText(g, e.Description, append([]string{e.Name}, e.Spellings...)...), TipStats: tipStats(e.MountStats)})
 		}
 		for _, r := range u.Rules {
 			v.Rules = append(v.Rules, ruleView{UnitRule: r, Segments: linkText(g, r.Description)})

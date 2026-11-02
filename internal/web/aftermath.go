@@ -290,8 +290,8 @@ type aftermathView struct {
 
 	Animate map[int64]bool // the casualties the server just rolled: their dice are shown rolling first
 
-	ShowFinish bool                            // the Finish block is open (the player continued, or no level-up roll waits)
-	Offers     map[string][]core.FreeEquipment // free equipment to choose from, by the key of the reward that offers it
+	ShowFinish bool                       // the Finish block is open (the player continued, or no level-up roll waits)
+	Offers     map[string][]freeOfferView // free equipment to choose from, by the key of the reward that offers it
 }
 
 // Owner is whether the viewer plays this company: the level-up window of My Company works on the viewer's own company.
@@ -718,6 +718,12 @@ func (s *Server) aftermathCtx(w http.ResponseWriter, r *http.Request) (campaignB
 	return base, m, core.CampaignCompany{}, false
 }
 
+// freeOfferView is an item the aftermath offers for free, its description cut into text and glossary links.
+type freeOfferView struct {
+	core.FreeEquipment
+	Segments []segView
+}
+
 // newAftermathView gathers what the steps need. a is the state to show; an error from the core is returned as is.
 func (s *Server) newAftermathView(r *http.Request, base campaignBase, m core.Match, co core.CampaignCompany, a core.Aftermath) (aftermathView, error) {
 	v := aftermathView{campaignBase: base, Match: m, Company: co, A: a, Result: m.Result.Company(co.ID), Roster: map[int64]core.CompanyUnit{}}
@@ -745,13 +751,25 @@ func (s *Server) newAftermathView(r *http.Request, base campaignBase, m core.Mat
 	}
 	v.fillUnits(a.Input, nil)
 	if v.Edit() && a.Status == core.AftermathLevelUps && len(a.Pending) > 0 {
-		v.Offers = map[string][]core.FreeEquipment{}
+		v.Offers = map[string][]freeOfferView{}
+		var g core.Glossary
+		loaded := false
 		for _, rw := range a.Pending {
 			if rw.Kind != "freeEquipment" {
 				continue
 			}
-			if v.Offers[rw.Key], err = s.campaigns.FreeEquipmentOffers(r.Context(), base.Campaign.ID, co.ID, rw.MaxValue); err != nil {
+			offers, err := s.campaigns.FreeEquipmentOffers(r.Context(), base.Campaign.ID, co.ID, rw.MaxValue)
+			if err != nil {
 				return v, err
+			}
+			if len(offers) > 0 && !loaded { // the descriptions link to the campaign's glossary
+				loaded = true
+				if g, err = s.glossary.ForCampaign(r.Context(), base.Campaign.ID); err != nil && !errors.Is(err, core.ErrNotFound) {
+					return v, err
+				}
+			}
+			for _, o := range offers {
+				v.Offers[rw.Key] = append(v.Offers[rw.Key], freeOfferView{FreeEquipment: o, Segments: itemText(g, o.Description, append([]string{o.Name}, o.AlsoCalled...)...)})
 			}
 		}
 	}

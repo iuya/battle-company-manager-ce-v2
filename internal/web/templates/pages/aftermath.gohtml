@@ -277,7 +277,7 @@
     <legend class="text-sm font-semibold">Choose one item worth at most {{$r.MaxValue}} Influence, and who takes it.</legend>
     {{range $o := index $v.Offers $r.Key}}
     <div class="rounded-lg border border-line bg-surface p-2" :class="item === {{jsstr $o.Name}} && '!border-accent'">
-      <label class="flex min-h-11 items-start gap-3"><input type="radio" name="item-{{$r.Key}}" value="{{$o.Name}}" x-model="item" class="mt-1 h-5 w-5 accent-[var(--accent)]"><span><span class="font-medium">{{$o.Name}}</span> <span class="text-xs text-muted">worth {{$o.Cost}}{{if $o.Size}} · {{$o.Size}}{{end}}</span>{{with $o.Description}}<span class="block text-muted">{{.}}</span>{{end}}</span></label>
+      <label class="flex min-h-11 items-start gap-3"><input type="radio" name="item-{{$r.Key}}" value="{{$o.Name}}" x-model="item" class="mt-1 h-5 w-5 accent-[var(--accent)]"><span><span class="font-medium">{{$o.Name}}</span> <span class="text-xs text-muted">worth {{$o.Cost}}{{if $o.Size}} · {{$o.Size}}{{end}}</span>{{with $o.Segments}}<span class="block text-muted">{{template "segments" (dict "S" . "CID" $v.Campaign.ID)}}</span>{{end}}</span></label>
       <div class="mt-1 flex flex-wrap gap-2" x-show="item === {{jsstr $o.Name}}" x-cloak>
         {{range $o.Units}}<label class="inline-flex"><input type="radio" class="peer sr-only" name="unit-{{$r.Key}}" value="{{.ID}}" x-model="unit"><span class="btn btn-secondary !min-h-11 !px-3 peer-checked:!border-accent peer-checked:!bg-accent-soft peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">{{.Title}}</span></label>{{end}}
       </div>

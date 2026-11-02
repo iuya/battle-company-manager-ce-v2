@@ -42,6 +42,7 @@ func (l *linker) withUnits(units []BaseUnit) *linker {
 		for k, v := range l.exact {
 			out.exact[k] = v
 		}
+		out.gear = l.gear
 	}
 	touched := map[string]bool{}
 	for _, u := range units {

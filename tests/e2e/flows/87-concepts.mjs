@@ -199,7 +199,8 @@ export default async function (h) {
 
   await h.step('concepts: the armoury and a campaign page without a popup keep working (terms there open it too, links still go to the glossary)', async () => {
     await galadriel.goto(`/campaigns/${cid}/armory`);
-    const t = await galadriel.page.$('main [data-concept][data-tip-title]');
+    const th = await galadriel.page.evaluateHandle(() => [...document.querySelectorAll('main [data-concept][data-tip-title]')].find((a) => { const r = a.getBoundingClientRect(); return r.width && r.height && getComputedStyle(a).visibility !== 'hidden'; }) || null);
+    const t = th.asElement();
     assert.ok(t, 'the armoury has terms that open the popup');
     await t.evaluate((e) => e.scrollIntoView({ block: 'center' }));
     await t.click();

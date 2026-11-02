@@ -605,6 +605,49 @@ html[data-mode="dark"] { color-scheme: dark; }
   /* On a unit card the path takes less room: no "Path of the" lead, so the name sits level with a smaller icon. */
   .path-name-short .path-icon { @apply h-7 w-7; }
   .path-name-short .path-icon > svg { height: 1.375rem; width: 1.375rem; }
+
+  /* The path carousel (path_panel): side buttons round a strip that scrolls inside its own box; the selected tab is raised. */
+  .path-carousel { @apply flex items-center gap-1.5; }
+  .path-nav { @apply !min-h-11 !min-w-11 shrink-0 !px-0; }
+  .path-strip { @apply flex min-w-0 flex-1 gap-1.5 overflow-x-auto py-1; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .path-strip::-webkit-scrollbar { display: none; }
+  .path-tab { @apply flex min-h-11 shrink-0 cursor-pointer flex-col items-center gap-1 rounded-lg border border-line bg-surface px-2 py-1.5 text-xs text-fg; width: 5.25rem; }
+  .path-tab:hover { @apply bg-raised; }
+  .path-tab.is-on { @apply border-accent bg-accent-soft font-semibold; }
+  .path-tab:focus-within { @apply outline outline-2 outline-offset-2; outline-color: var(--accent); }
+  .path-tab-name { @apply text-center leading-tight; overflow-wrap: anywhere; }
+  /* The stack of cards: all in one grid cell; data-rel is the place against the selected card (0 front and whole, +-1 behind it, smaller and faded, +-2 away). */
+  .path-stage { @apply relative grid overflow-hidden py-1; touch-action: pan-y; }
+  .path-card { @apply w-4/5 justify-self-center self-start; grid-area: 1 / 1; transition: transform 0.3s ease, opacity 0.3s ease; }
+  .path-card-body { @apply rounded-lg border border-line p-3; background: color-mix(in srgb, var(--surface) 85%, transparent); } /* the card in front is a little see-through: the background only, so the text keeps its contrast */
+  .path-card[data-rel="0"] { z-index: 3; }
+  .path-card[data-rel="0"] .path-card-body { @apply border-accent; }
+  .path-card[data-rel="-1"], .path-card[data-rel="1"] { z-index: 2; opacity: 0.55; filter: blur(2px); cursor: pointer; max-height: 14rem; overflow: hidden; }
+  .path-card[data-rel="-1"] { transform: translateX(-42%) scale(0.86); transform-origin: right top; }
+  .path-card[data-rel="1"] { transform: translateX(42%) scale(0.86); transform-origin: left top; }
+  .path-card[data-rel="-2"], .path-card[data-rel="2"] { z-index: 1; opacity: 0; visibility: hidden; pointer-events: none; max-height: 14rem; overflow: hidden; }
+  .path-card[data-rel="-2"] { transform: translateX(-60%) scale(0.7); }
+  .path-card[data-rel="2"] { transform: translateX(60%) scale(0.7); }
+  /* The floating arrows: a layer over the stack whose inner bar sticks at the middle of the window, so the arrows stay in reach while the card is scrolled. */
+  .path-deck { @apply relative; }
+  .path-float { @apply pointer-events-none absolute inset-0 z-[5]; }
+  .path-float > div { @apply pointer-events-none sticky flex items-center justify-between; top: calc(50vh - 1.375rem); height: 2.75rem; margin-inline: -0.375rem; }
+  .path-float .path-nav { @apply pointer-events-auto shadow-md; }
+  .path-h { @apply mt-3 text-xs font-semibold uppercase tracking-wide text-muted; }
+  .path-limits { @apply mt-1 flex flex-col items-center gap-1.5; } /* the profile row, then Might, Will and Fate: two stacked statlines */
+  .path-limits { max-width: 100%; }
+  .path-limits .statline { max-width: 100%; }
+  .path-limits .statline > div { @apply min-w-0; }
+  .path-limits dd { @apply whitespace-nowrap px-0 text-xs sm:text-sm; } /* the box is narrow at 360 px: "(+3)" must not break */
+  .path-facts { @apply mt-3 space-y-1.5 text-sm; }
+  .path-facts dt { @apply text-xs font-semibold uppercase tracking-wide text-muted; }
+  .path-rows { @apply mt-1 space-y-1.5 text-sm; }
+  .path-rows li { @apply flex gap-2 rounded-md border border-line p-1.5; }
+  .path-alts { @apply min-w-0 flex-1; }
+  .path-alt { @apply block; }
+  .path-or { @apply my-0.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line; }
+  .path-roll { @apply w-6 shrink-0 self-start rounded bg-raised text-center text-xs font-semibold leading-5; }
+  @media (prefers-reduced-motion: reduce) { .path-card { transition: none; } }
   .act-chip { @apply inline-flex items-center gap-1 rounded-md border border-gold bg-surface px-2 py-0.5 text-xs; }
   .act-chip[data-tip-title] { cursor: pointer; }
   .act-bought { @apply bg-gold/20; }
