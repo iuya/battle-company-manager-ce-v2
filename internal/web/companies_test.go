@@ -141,7 +141,7 @@ func TestAnOfficerChoosesItsPathInAWindow(t *testing.T) {
 		Powers: []core.LevelChoice{{Key: "power:Aura of Command", Label: "Aura of Command"}}}
 	f.camp.EXPECT().PathOptions(gomock.Any(), frodo, int64(7), int64(1), int64(5)).Return(offer, nil).AnyTimes()
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/units/5/path", nil))).Body.String()
-	for _, want := range []string{"Choose a path", "Path of the Soldier", `name="path"`, "Not available: the company already has a hero", "First magical power", "Hardened fighters.", `data-rel="0"`, `aria-hidden`, `inert`, `role="radiogroup"`, "Previous path", "Next path", "path-float", "data-float", `data-start="Path of the Soldier"`, `data-sorcerer="1" data-blocked="1"`} {
+	for _, want := range []string{"Choose a path", "Path of the Soldier", `name="path"`, "Not available: the company already has a hero", "First magical power", "Hardened fighters.", `data-rel="0"`, `aria-hidden`, `inert`, `role="radiogroup"`, "Previous path", "Next path", "Select magical power", `name="power" value="Aura of Command"`, "path-float", "data-float", `data-start="Path of the Soldier"`, `data-sorcerer="1" data-blocked="1"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the window lacks %q", want)
 		}
@@ -299,5 +299,45 @@ func TestARowOfTheChartIsSplitAtItsAlternativesOnly(t *testing.T) {
 		if got := splitAlternatives(text); !slices.Equal(got, want) {
 			t.Errorf("%q: %q, want %q", text, got, want)
 		}
+	}
+}
+
+func TestEveryPowerOfThePathPanelCarriesItsWholeDescription(t *testing.T) {
+	long := strings.Repeat("The Hero chooses a model within range and it suffers a Strength 4 hit. ", 30) // far longer than any summary cut
+	gl, err := core.BuildGlossaryWith(core.RulesetInfo{}, []byte(`{"terms":[]}`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	views := powerViews(gl, []core.LevelChoice{
+		{Key: "power:Aura of Command", Label: "Aura of Command", Hint: long},
+		{Key: "power:Fury (Orc)", Label: "Fury (Orc)", Hint: "Short text."},
+	})
+	if len(views) != 2 || views[0].Value != "Aura of Command" || views[1].Value != "Fury (Orc)" {
+		t.Fatalf("the powers: %+v", views)
+	}
+	for i, want := range []string{long, "Short text."} {
+		var got strings.Builder
+		for _, seg := range views[i].Segments {
+			got.WriteString(seg.Text)
+		}
+		if got.String() != want {
+			t.Errorf("power %d is cut or empty: %d of %d characters", i, got.Len(), len(want))
+		}
+	}
+}
+
+func TestALevelUpPowerChoiceShowsTheWholeDefinition(t *testing.T) {
+	long := strings.Repeat("The caster picks a model within range and it suffers a hit. ", 20)
+	gl, err := core.BuildGlossaryWith(core.RulesetInfo{}, []byte(`{"terms":[]}`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	views := offerViews(gl, []core.LevelOffer{{Roll: 7, Choices: []core.LevelChoice{{Key: "power:Banishment", Label: "Banishment", Hint: long}}}})
+	var got strings.Builder
+	for _, seg := range views[0].Choices[0].Segments {
+		got.WriteString(seg.Text)
+	}
+	if got.String() != long {
+		t.Errorf("the power is cut: %d of %d characters", got.Len(), len(long))
 	}
 }

@@ -470,13 +470,31 @@
     {{end}}
   </div>
   </div>
-  <div class="field mt-3" x-show="sorcerer" x-cloak>
-    <label for="power">First magical power</label>
-    <select id="power" name="power" class="input" :disabled="!sorcerer">
-      {{range .Offer.Powers}}<option value="{{slice .Key 6}}">{{.Label}}</option>{{end}}
-    </select>
+  <div class="mt-3 rounded-lg border border-line p-3" x-show="sorcerer" x-cloak>
+    <p class="text-sm font-medium" id="power-label">First magical power</p>
+    <p class="mt-1 text-sm" x-show="power" x-cloak><strong id="power-chosen" x-text="powerLabel"></strong></p>
+    <button type="button" class="btn btn-secondary mt-2" id="power-open" @click="picking = true" aria-haspopup="dialog" aria-describedby="power-label"><span x-text="power ? 'Change' : 'Select magical power'"></span></button>
+    <p class="mt-1 text-xs text-muted" x-show="!power" x-cloak>A Sorcerer begins with one: choose it before taking the path.</p>
   </div>
-  <button class="btn btn-primary mt-4" :disabled="blocked">Take this path</button>
+  <div x-show="picking" x-cloak role="dialog" aria-modal="true" aria-labelledby="power-title" class="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/60 p-3 sm:p-6" @click.self="picking = false" @keydown.escape.stop.prevent="picking = false">
+    <div class="card relative my-4 w-full max-w-2xl !p-4 sm:!p-6">
+      <button type="button" class="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-md text-muted hover:bg-raised hover:text-fg" @click="picking = false" aria-label="Close the list of powers">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h3 class="!text-xl pr-10" id="power-title">Select a magical power</h3>
+      <p class="mt-1 text-sm text-muted">The Sorcerer begins with one power. Every power is described in full.</p>
+      <div class="mt-3 space-y-2" role="radiogroup" aria-labelledby="power-title" @keydown.enter.prevent="picking = false">
+        {{range .Powers}}
+        <label class="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-line px-3 py-2 hover:bg-raised" :class="power === {{jsstr .Value}} && '!border-accent bg-accent-soft'">
+          <input type="radio" name="power" value="{{.Value}}" data-label="{{.Label}}" x-model="power" :disabled="!sorcerer" class="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]" @click="pickPower($event)">
+          <span class="min-w-0 flex-1"><span class="block font-medium">{{.Label}}</span><span class="power-text mt-0.5 block text-sm">{{template "segments" (dict "S" .Segments "CID" $cid)}}</span></span>
+        </label>
+        {{end}}
+      </div>
+      <button type="button" class="btn btn-primary mt-4" :disabled="!power" @click="picking = false">Use this power</button>
+    </div>
+  </div>
+  <button class="btn btn-primary mt-4" :disabled="blocked || needsPower">Take this path</button>
 </form>
 </div>
 {{end}}

@@ -226,6 +226,9 @@ func offerViews(g core.Glossary, offers []core.LevelOffer) []offerView {
 					if strings.HasPrefix(c.Key, "path:") { // a path is chosen by its name; the tooltip has its whole chart
 						v.TipText = term.Text()
 						v.TipPath = tipPath(term.Path)
+					} else if strings.HasPrefix(c.Key, "power:") { // a power is chosen by what it does: its whole description, never cut
+						v.TipText = term.Text()
+						v.Segments = linkText(g, powerText(g, c))
 					} else {
 						v.TipText = term.Summary(700)
 						text := term.Summary(240)

@@ -5,7 +5,7 @@ document.addEventListener('alpine:init', () => {
   // step() moves to the neighbour, the cards of the stack slide to the new place (--r, --dur; no slide under prefers-reduced-motion), a swipe on the details
   // moves too (the cards of the stack take their place from rel(): 0 in front, +-1 behind, +-2 away). A blocked path can be looked at but not taken.
   Alpine.data('pathCarousel', () => ({
-    path: '', names: [], x0: null, dur: 300, moving: false, timer: null,
+    path: '', power: '', picking: false, names: [], x0: null, dur: 300, moving: false, timer: null,
     init() {
       const radios = [...this.$root.querySelectorAll('input[name=path]')];
       this.names = radios.map(r => r.value);
@@ -30,6 +30,9 @@ document.addEventListener('alpine:init', () => {
       this.$nextTick(() => this.radio && this.radio.focus({ preventScroll: true }));
     },
     rel(i) { return Math.max(-2, Math.min(2, i - this.index)); },
+    get powerLabel() { const r = [...this.$root.querySelectorAll('input[name=power]')].find(x => x.value === this.power); return r ? r.dataset.label : ''; },
+    get needsPower() { return this.sorcerer && !this.power; },
+    pickPower(e) { if (e.detail > 0) this.picking = false; }, // a click chooses and closes; the arrow keys only move through the list (Enter or the button closes)
     off(i) { return i - this.index; },
     swipeStart(e) { this.x0 = e.changedTouches[0].clientX; },
     swipeEnd(e) {

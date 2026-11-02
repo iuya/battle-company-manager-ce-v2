@@ -113,16 +113,69 @@ export default async function (h, { only }) {
     await s.page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
   }, { only });
 
-  await h.step('path carousel: a Sorcerer names its first magical power under the selection', async () => {
+  const POWERS = MODAL + ' [aria-labelledby="power-title"]';
+  const openPowers = async () => {
+    await s.click('#power-open', '');
+    await s.page.waitForSelector(POWERS, { visible: true });
+    await s.settle(200);
+  };
+
+  await h.step('path carousel: a Sorcerer opens the list of powers, every one in full, and the choice fills the panel', async () => {
     await open();
     const sorc = 'Path of the Sorcerer';
     await s.click(STRIP + ' label', 'Sorcerer');
     assert.equal(await picked(s), sorc);
-    await s.page.waitForSelector(MODAL + ' #power', { visible: true });
+    await s.page.waitForSelector('#power-open', { visible: true });
+    assert.match(await s.page.$eval('#power-open', (e) => e.innerText), /Select magical power/);
+    assert.ok(await s.page.$$eval(MODAL + ' form > button.btn-primary', (b) => b.every((x) => x.disabled)), 'no path without a power for a Sorcerer');
+    await openPowers();
+    const list = await s.page.$$eval(POWERS + ' label', (l) => l.map((x) => { const t = x.querySelector('.power-text'); return { text: t.innerText.trim(), links: t.querySelectorAll('a.term-link').length, clamp: getComputedStyle(t).webkitLineClamp, cut: t.scrollHeight > t.clientHeight + 1, name: x.querySelector('.font-medium').innerText.trim() }; }));
+    assert.ok(list.length >= 3, 'every power of the Sorcerer is listed');
+    assert.ok(list.every((p) => p.text.length > 40 && p.clamp === 'none' && !p.cut && !/(\.\.\.|…)$/.test(p.text)), 'each description is whole, never cut');
+    assert.ok(list.some((p) => p.links > 0), 'terms are linked');
+    assert.equal(await s.page.$$eval(POWERS + ' input[type=radio][name=power]', (r) => r.length), list.length, 'real radio inputs');
+    assert.equal(await s.page.$eval(POWERS + ' [role=radiogroup]', (e) => !!e.getAttribute('aria-labelledby')), true);
+    // the focus is trapped in the list; Escape closes only the list
+    for (let i = 0; i < 40; i++) await s.page.keyboard.press('Tab');
+    assert.ok(await s.page.evaluate((c) => !!document.activeElement.closest(c), '[aria-labelledby="power-title"]'), 'the focus stays in the list');
+    await s.page.keyboard.press('Escape');
+    await s.settle(300);
+    assert.ok(await s.page.$(MODAL + ' [name=path]'), 'the path window is still open');
+    assert.ok(!(await s.page.$eval(POWERS, (e) => e.getClientRects().length > 0)), 'the list is closed');
+    assert.equal(await s.page.evaluate(() => document.activeElement.id), 'power-open', 'the focus is back on the button');
+    // a click on a power chooses it and closes the list
+    await openPowers();
+    await s.page.click(POWERS + ' label:nth-of-type(2)');
+    await s.settle(300);
+    assert.ok(!(await s.page.$eval(POWERS, (e) => e.getClientRects().length > 0)), 'a click closes the list');
+    assert.equal(await s.page.$eval('#power-chosen', (e) => e.innerText.trim()), list[1].name, 'the panel shows the chosen power');
+    assert.match(await s.page.$eval('#power-open', (e) => e.innerText), /Change/);
+    // the arrow keys move through the list without closing it
+    await openPowers();
+    await s.page.focus(POWERS + ' input:checked');
+    await s.page.keyboard.press('ArrowDown');
+    await s.settle(200);
+    assert.ok(await s.page.$eval(POWERS, (e) => e.getClientRects().length > 0), 'an arrow key does not close the list');
+    await s.page.keyboard.press('Enter');
+    await s.settle(300);
+    assert.ok(await s.page.$$eval(MODAL + ' form > button.btn-primary', (b) => b.every((x) => !x.disabled)), 'the path can be taken now');
     const other = (await names()).find((v) => v !== sorc);
     await s.click(STRIP + ' label', short(other));
     await s.settle(200);
-    assert.ok(!(await s.page.$eval(MODAL + ' #power', (e) => e.getClientRects().length > 0)), 'the power select is only for the Sorcerer');
+    assert.ok(!(await s.page.$eval('#power-open', (e) => e.getClientRects().length > 0)), 'the power is only for the Sorcerer');
+  }, { only });
+
+  await h.step('path carousel: taking the Sorcerer path with a chosen power assigns both', async () => {
+    await open();
+    await s.click(STRIP + ' label', 'Sorcerer');
+    await openPowers();
+    const name = await s.page.$eval(POWERS + ' label:nth-of-type(3) .font-medium', (e) => e.innerText.trim());
+    await s.page.click(POWERS + ' label:nth-of-type(3)');
+    await s.settle(300);
+    await s.click(MODAL + ' form > button.btn-primary', 'Take this path');
+    await s.waitText('The path is chosen');
+    assert.ok(await s.has('Sorcerer'), 'the officer is a Sorcerer');
+    assert.ok(await s.has(name.split(/[ ·(]/)[0]), 'with its first power');
   }, { only });
 
   await eachLook(h, 'path carousel', only, async (w, scheme, contrast, axeHere) => {
@@ -134,6 +187,13 @@ export default async function (h, { only }) {
     assert.ok(await s.page.$eval(MODAL, (e) => e.scrollWidth <= e.clientWidth + 1), 'no horizontal scroll in the window');
     assert.ok(await s.page.evaluate(() => !!document.activeElement && document.activeElement.closest('[role=dialog]') !== null), 'focus is inside the window');
     if (axeHere) assert.deepEqual(await axeScoped(s, [MODAL]), [], 'axe on the window');
+    if (axeHere && await s.page.$('.path-card')) { // the list of powers of a Sorcerer, in this look
+      await s.click(STRIP + ' label', 'Sorcerer');
+      await openPowers();
+      assert.ok(await s.noHScroll(), 'no horizontal scroll with the list open');
+      assert.deepEqual(await axeScoped(s, [POWERS]), [], 'axe on the list of powers');
+      await s.page.keyboard.press('Escape');
+    }
   });
 
   await h.step('path carousel: Enter takes the selected path, which is final', async () => {

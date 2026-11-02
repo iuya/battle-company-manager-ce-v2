@@ -687,7 +687,7 @@ in a `statline` and, stacked under it as a second row as on a hero's card (`stat
 (neither is a row of the chart); and the whole **level-up chart** ("Level-up: roll 2D6") as a list of bordered rows (`border-line`), one per roll, with the usual glossary links. The chart already names every
 Mastery and special rule the path unlocks, so they are not listed again. A row that offers alternatives shows each on its own line with a small "or" divider: `splitAlternatives`
 cuts the chart's text at the file's upper-case " OR ", at ", or improve " and before "Pick an additional" in a "Choice of" row, and leaves an ordinary "or" inside a sentence alone.
-A blocked path shows the reason and "Take this path" is off. A Sorcerer's "First magical power" select stays a second step under the stack. The form is the same as ever: `POST .../units/{unit}/path` with `path` (and `power`); the choice is final. Styles: `.path-carousel`,
+A blocked path shows the reason and "Take this path" is off. A Sorcerer's first magical power stays a second step under the stack: a **"Select magical power"** button ("Change" once one is chosen, with the chosen name shown) opens a second window (`role="dialog"`, a window inside the path window; `dialog.js` keeps a stack, so the focus is trapped in the inner one, Escape closes only it and the focus goes back to the button) listing every power the Sorcerer can begin with as real radio inputs named `power` in a `radiogroup`, each with its **whole description** (`powerViews`: the rules file's definition, never cut, as glossary links), so the player knows what each does. A click on a power chooses it and closes the list; the arrow keys only move through it, Enter or "Use this power" closes it. "Take this path" stays off for a Sorcerer until a power is chosen; the radios are disabled (not submitted) for any other path. The form is the same as ever: `POST .../units/{unit}/path` with `path` (and `power`); the choice is final. Styles: `.path-carousel`,
 `.path-strip`, `.path-tab`, `.path-stage`, `.path-card` in `tailwind.css`.
 
 ### Level-up
@@ -711,7 +711,7 @@ company's `advancements`); a unit earns a roll every 5 XP and several can wait.
   knows; an improvement lowers a power's casting value by 1 (5+ becomes 4+), at most twice per power and never below 2+
   (`castingRule`). A new Sorcerer (Hero in the Making on that path) also picks its first power. Fury is learned for a species (one choice per "Fury (Species)"), and a path with a company limit (the Sorcerer: 1) is not offered once the company has that many heroes on it. The backend must provide the
   eligible list and the improvements; the app only renders the choice (a collapsible list with each power's casting and
-  range, its definition on hover).
+  range and its whole definition, never cut, with glossary links; also on hover).
 - **Minor rules with a target.** Poisoned Attacks asks which weapon (one choice per weapon that is not poisoned yet, by a rule, a
   level-up or Envenom Weapon) and Combat Synergy which other hero of the company (the Battle Companies wording: "this Hero and X").
   The choice is stored with the target (`Progress.Minor` entries such as `Poisoned Attacks|weapon:Bow` and `Combat Synergy|unit:7`);
