@@ -429,8 +429,7 @@
 {{with .Error}}<div class="alert alert-danger mt-3" role="alert">{{.}}</div>{{end}}
 <form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/units/{{.Offer.Unit.ID}}/path" hx-post="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/units/{{.Offer.Unit.ID}}/path" hx-target="#modal-body" hx-swap="innerHTML" class="mt-4">
   <div class="path-carousel">
-    <button type="button" class="btn btn-secondary path-nav" @click="step(-1)" :disabled="index <= 0" aria-label="Previous path"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
-    <div class="path-strip" x-ref="strip" role="radiogroup" aria-label="Paths">
+    <div class="path-strip" role="radiogroup" aria-label="Paths">
       {{range $i, $c := .Cards}}
       <label class="path-tab path-k-{{$c.Look.Kind}}" :class="path === {{jsstr $c.Name}} && 'is-on'">
         <input type="radio" name="path" value="{{$c.Name}}" x-model="path" class="sr-only" required data-sorcerer="{{if $c.StartPower}}1{{end}}" data-blocked="{{if $c.Blocked}}1{{end}}">
@@ -438,16 +437,15 @@
       </label>
       {{end}}
     </div>
-    <button type="button" class="btn btn-secondary path-nav" @click="step(1)" :disabled="index >= names.length - 1" aria-label="Next path"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
   </div>
   <div class="path-deck mt-3">
   <div class="path-float"><div>
     <button type="button" class="btn btn-secondary path-nav" data-float @click="step(-1)" :disabled="index <= 0" aria-label="Previous path"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
     <button type="button" class="btn btn-secondary path-nav" data-float @click="step(1)" :disabled="index >= names.length - 1" aria-label="Next path"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
   </div></div>
-  <div class="path-stage" @touchstart.passive="swipeStart($event)" @touchend.passive="swipeEnd($event)">
+  <div class="path-stage" :class="moving && 'is-moving'" :style="`--dur:${dur}ms`" @touchstart.passive="swipeStart($event)" @touchend.passive="swipeEnd($event)">
     {{range $i, $c := .Cards}}
-    <div class="path-card path-k-{{$c.Look.Kind}}" data-rel="{{if eq $i 0}}0{{else}}1{{end}}" :data-rel="rel({{$i}})" :aria-hidden="rel({{$i}}) !== 0 ? 'true' : null" @click="rel({{$i}}) !== 0 && (path = names[{{$i}}])">
+    <div class="path-card path-k-{{$c.Look.Kind}}" data-rel="{{if eq $i 0}}0{{else}}1{{end}}" :data-rel="rel({{$i}})" :style="`--r:${off({{$i}})}`" :aria-hidden="rel({{$i}}) !== 0 ? 'true' : null" @click="rel({{$i}}) !== 0 && (path = names[{{$i}}])">
       <div class="path-card-body" :inert="rel({{$i}}) !== 0" data-path="{{$c.Name}}">
         <h3 class="path-name !text-xl">{{template "path_icon" $c.Name}}<span>{{$c.Name}}</span></h3>
         {{with $c.Blocked}}<p class="alert alert-danger mt-2 text-sm">Not available: {{.}}</p>{{end}}
