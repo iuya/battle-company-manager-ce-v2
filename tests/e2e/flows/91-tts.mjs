@@ -170,7 +170,7 @@ export default async function (h) {
       await you.goto(`/campaigns/${gallery}/matches/new`);
       const pick = async (side, t) => {
         await you.page.evaluate((side, t) => {
-          let el = document.querySelector(`[name=side-name-${side}]`);
+          let el = document.querySelector(`section[aria-label="Side ${side}"]`);
           while (el && ![...el.querySelectorAll('button')].some((b) => b.innerText.includes(t))) el = el.parentElement;
           [...el.querySelectorAll('button')].find((b) => b.innerText.includes(t)).click();
         }, side, t);

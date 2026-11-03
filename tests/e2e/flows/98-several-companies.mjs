@@ -205,9 +205,14 @@ export default async function (h) {
     assert.ok(await eowyn.has('Eorlings of the Mark') && await eowyn.has('Shieldmaidens of the Deep') && await eowyn.has('Vanguard of the Black Gate'), 'all three companies are on it');
     // the form: side 1 starts with her first company
     await eowyn.goto(`/campaigns/${bands}/matches/new`);
-    assert.ok(await eowyn.has('Mine'), 'the Mine chip is there for a player with companies');
-    const search = (i) => `section:nth-of-type(${i}) input[type=search]`;
     await eowyn.page.waitForSelector('input[type=search]');
+    assert.ok(!(await eowyn.page.$$eval('main button', (bs) => bs.some((b) => b.innerText.trim() === 'Mine'))), 'no Mine chip: her companies are marked instead');
+    // her own are marked "Yours" and listed first on side 1; once one is placed there, side 2 lists them last
+    const order = (side) => eowyn.page.$$eval(`section[aria-label="Side ${side}"] ul[role=listbox] button`, (bs) => bs.map((b) => b.hasAttribute('data-own') && b.getAttribute('data-own') !== 'false'));
+    const own1 = await order(1), own2 = await order(2);
+    assert.ok(own1.includes(true) && (own1.indexOf(false) === -1 || own1.lastIndexOf(true) < own1.indexOf(false)), `side 1: her companies first: ${own1}`);
+    assert.ok(own2.includes(true) && own2.lastIndexOf(false) < own2.indexOf(true), `side 2: her companies last: ${own2}`);
+    assert.ok(await eowyn.page.$$eval('section[aria-label="Side 1"] ul[role=listbox] button[data-own]', (bs) => bs.some((b) => b.innerText.includes('Yours'))), 'her companies carry the Yours badge');
     const boxes = await eowyn.page.$$('input[type=search]');
     await boxes[1].click();
     await boxes[1].type('Shield');
@@ -219,12 +224,6 @@ export default async function (h) {
     await (await eowyn.page.$$('input[type=search]'))[0].type('Shield');
     await eowyn.click('ul[role=listbox] button', 'Shieldmaidens of the Deep');
     await eowyn.waitText("Both are Éowyn's");
-    void search;
-    // Mine narrows the search to her own
-    await eowyn.click('button', '=Mine');
-    await (await eowyn.page.$$('input[type=search]'))[1].click();
-    const listed = await eowyn.page.$$eval('ul[role=listbox] li[role=option]', (l) => l.filter((x) => x.getBoundingClientRect().height).map((x) => x.innerText));
-    assert.ok(listed.length === 0 || listed.every((t) => t.includes('Éowyn')), `Mine lists only her companies: ${listed}`);
   });
 
   for (const scheme of ['light', 'dark']) for (const w of SIZES) {

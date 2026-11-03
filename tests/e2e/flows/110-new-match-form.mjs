@@ -1,0 +1,64 @@
+// The new match form (docs/matches.md, "New match"; docs/simplify-matches-spec.md, phase 1), in the demo world's "Two bands" campaign: the
+// scenario the server rolled with Roll again, Choose another and One-off, the player's own companies marked and ordered, no side names or
+// roles, and the page at 360/768/1280 px in light and dark. Nothing is created: the form writes nothing until Create match.
+import { assert, campaignId, layout, SIZES } from '../lib/util.mjs';
+
+export default async function (h) {
+  const eowyn = h.sessions.find((s) => s.email === 'eowyn@example.com') || await h.session('eowyn@example.com', { height: 1800 });
+  let bands;
+  const scenarioName = (s) => s.page.$eval('#new-scenario input[name=scenario-name]', (i) => i.value).catch(() => '');
+
+  await h.step('new match: two sides with the company search only, her own company already on side 1, a rolled scenario', async () => {
+    bands = await campaignId(eowyn, 'Two bands');
+    await eowyn.goto(`/campaigns/${bands}/matches/new`);
+    await eowyn.page.waitForSelector('section[aria-label="Side 2"]');
+    assert.equal(await eowyn.page.$$eval('main form section[aria-label^="Side "]', (s) => s.length), 2, 'two side blocks');
+    assert.ok(!(await eowyn.page.$('[name^=side-name], [name^=role-]')), 'no side names, no roles');
+    assert.equal(await eowyn.page.$$eval('section[aria-label="Side 1"] ul[aria-label="Companies on this side"] li', (l) => l.length), 1, 'her first company is on side 1');
+    assert.ok(await eowyn.page.$('[data-practice-box]') && await eowyn.page.$('[data-ffa-box]') && await eowyn.page.$('[data-add-side]'), 'Practice, All vs all and + Add side');
+    assert.ok(await scenarioName(eowyn), 'a scenario is already rolled');
+    assert.match(await eowyn.page.$eval('#new-scenario', (e) => e.innerText), /Rolled \d \(table \d\) and \d/, 'with its dice');
+  });
+
+  await h.step('new match: her own companies are marked "Yours", first on side 1 and last on side 2', async () => {
+    const own = (side) => eowyn.page.$$eval(`section[aria-label="Side ${side}"] ul[role=listbox] button`, (bs) => bs.map((b) => b.getAttribute('data-own') === 'true'));
+    const one = await own(1), two = await own(2);
+    assert.ok(two.includes(true) && two.includes(false), `side 2 lists hers and others: ${two}`);
+    assert.ok(two.lastIndexOf(false) < two.indexOf(true), `side 2: hers last once one is placed: ${two}`);
+    assert.ok(!one.includes(true) || one.indexOf(false) === -1 || one.lastIndexOf(true) < one.indexOf(false), `side 1: hers first: ${one}`);
+    assert.ok(await eowyn.page.$$eval('ul[role=listbox] button[data-own=true]', (bs) => bs.every((b) => /Yours/.test(b.innerText))), 'the Yours badge');
+    assert.ok(!(await eowyn.page.$$eval('main button', (bs) => bs.some((b) => b.innerText.trim() === 'Mine'))), 'no Mine chip');
+  });
+
+  await h.step('new match: Roll again rolls both dice without writing anything; Choose another and One-off replace the scenario', async () => {
+    for (let i = 0; i < 4; i++) {
+      await eowyn.click('#new-scenario button', 'Roll again');
+      await eowyn.settle(300);
+      assert.ok(await scenarioName(eowyn), 'a scenario after every roll');
+    }
+    assert.ok(eowyn.reqs.every((r) => !/> POST \/campaigns\/\d+\/matches$/.test(r)), 'no match was created');
+    await eowyn.click('#new-scenario button', 'Choose another');
+    await eowyn.page.waitForSelector('#new-scenario input[type=search]');
+    await eowyn.click('#new-scenario button', 'Rescue');
+    await eowyn.settle(300);
+    assert.equal(await scenarioName(eowyn), 'Rescue', 'one press sets it');
+    assert.match(await eowyn.page.$eval('#new-scenario', (e) => e.innerText), /Chosen/);
+    await eowyn.click('#new-scenario button', 'One-off scenario');
+    await eowyn.page.waitForSelector('#new-scenario-name');
+    assert.equal(await eowyn.page.$eval('#new-scenario input[name=scenario-kind]', (i) => i.value), 'custom');
+    await eowyn.click('#new-scenario button', 'Roll instead');
+    await eowyn.settle(300);
+    assert.ok(await scenarioName(eowyn), 'rolled again from the one-off form');
+  });
+
+  for (const scheme of ['light', 'dark']) for (const w of SIZES) {
+    await h.step(`new match: the form at ${w} px, ${scheme}: no horizontal scroll`, async () => {
+      await layout(eowyn, w, scheme);
+      await eowyn.goto(`/campaigns/${bands}/matches/new`);
+      await eowyn.page.waitForSelector('#new-scenario');
+      assert.ok(await eowyn.noHScroll(), `no horizontal scroll at ${w}px ${scheme}`);
+      await eowyn.page.screenshot({ path: `out/new-match-${w}-${scheme}.png`, fullPage: true });
+    });
+  }
+  await layout(eowyn, 1280, 'light');
+}

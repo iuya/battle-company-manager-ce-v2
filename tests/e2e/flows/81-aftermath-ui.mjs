@@ -48,8 +48,7 @@ export default async function (h) {
     assert.ok(names.length >= 3);
     const set = { 0: 'survived', 1: 'casualty', 2: 'fled' };
     for (const [i, v] of Object.entries(set)) await page.evaluate((n, v) => document.querySelector(`input[name="${n}"][value="${v}"]`).click(), names[i], v);
-    await sauron.click('button', 'Save sheet', { nav: false });
-    await sauron.settle(400);
+    await sauron.settle(900); // the sheet saves itself (debounced) on every change
     await sauron.click('button', '=Start aftermath');
     await sauron.settle(500);
     await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { if (d.innerText.includes('The sheet')) d.open = true; }));

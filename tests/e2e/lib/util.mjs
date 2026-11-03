@@ -46,3 +46,45 @@ export function contrast(fg, bg, under = [255, 255, 255]) {
   const L1 = lum(over(fg)), L2 = lum(over(bg));
   return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
 }
+
+// Ending a match (docs/matches.md, "The sheets"): the End match sheet (winner, MVP of every opposing company, note) and the Confirm sheet.
+// `mvp` is the index of the unit voted in every ballot (the first by default); null votes nothing (a practice match needs no vote).
+async function voteInSheet(s, mvp) {
+  if (mvp === null) return;
+  await s.page.evaluate((m, i) => {
+    for (const ballot of document.querySelectorAll(m + ' [data-mvp-ballot]')) {
+      const units = [...ballot.querySelectorAll('[role=listbox] button')];
+      (units[i] || units[0])?.click();
+    }
+  }, MODAL, mvp);
+  await s.settle(150);
+}
+
+// Opens End match on the match page and proposes the end: winner is the label of a side ("Rohan + Gondor") or "Draw".
+export async function endMatch(s, matchPath, winner, { mvp = 0 } = {}) {
+  await s.goto(matchPath);
+  await s.click('main [data-end-match]', '');
+  await s.page.waitForSelector(MODAL + ' [data-end-sheet]');
+  await s.click(MODAL + ' label', winner);
+  await voteInSheet(s, mvp);
+  await s.click(MODAL + ' [data-end-sheet] button.btn-primary', '=End match');
+  await s.settle(600);
+}
+
+// Opens Confirm on the match page (an end is pending) and confirms with the viewer's MVP votes.
+export async function confirmEnd(s, matchPath, { mvp = 0 } = {}) {
+  await s.goto(matchPath);
+  await s.click('main [data-confirm-end]', '');
+  await s.page.waitForSelector(MODAL + ' [data-end-sheet]');
+  await voteInSheet(s, mvp);
+  await s.click(MODAL + ' [data-end-sheet] button.btn-primary', '=Confirm');
+  await s.settle(600);
+}
+
+// Sets the scenario of an open match before the game: Change scenario, Choose another, then the scenario's button.
+export async function chooseScenario(s, name) {
+  await s.click('main [data-change-scenario]', '').catch(() => {}); // a match without a scenario shows the choices at once
+  await s.click('main [data-choose-another]', '');
+  await s.click('main #scenario button', name);
+  await s.waitText(name);
+}

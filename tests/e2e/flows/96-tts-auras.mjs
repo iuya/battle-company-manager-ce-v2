@@ -340,10 +340,10 @@ export default async function (h) {
     await you.goto(`/campaigns/${parade}/my-company`);
     if (!(await you.page.$('#live-zones'))) {
       await you.goto(`/campaigns/${parade}/matches/new`);
-      await you.page.waitForSelector('[name=side-name-2]');
+      await you.page.waitForSelector('section[aria-label="Side 2"]');
       const pick = async (side, t) => {
         await you.page.evaluate((side, t) => {
-          let el = document.querySelector(`[name=side-name-${side}]`);
+          let el = document.querySelector(`section[aria-label="Side ${side}"]`);
           while (el && ![...el.querySelectorAll('button')].some((b) => b.innerText.includes(t))) el = el.parentElement;
           [...el.querySelectorAll('button')].find((b) => b.innerText.includes(t)).click();
         }, side, t);

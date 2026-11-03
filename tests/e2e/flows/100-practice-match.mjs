@@ -2,7 +2,7 @@
 // Éowyn's own two companies, Match 4 an open one of two of Galadriel's. The flow reads the badge, banner and counts, plays Match 4 through
 // (scenario, result, the live match, the end), checks that nothing was awarded and the companies are free, makes a new practice match with
 // the checkbox of the form, lets an administrator reopen and end one again, and checks the pages at 360/768/1280 px, light and dark, with axe.
-import { assert, campaignId, layout, SIZES } from '../lib/util.mjs';
+import { assert, campaignId, layout, SIZES, MODAL, endMatch, confirmEnd, chooseScenario } from '../lib/util.mjs';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
@@ -42,17 +42,16 @@ export default async function (h) {
     });
   };
 
-  await h.step('practice: the Matches list marks practice matches, the filter lists them, the Overview counts them apart', async () => {
+  await h.step('practice: the Matches list marks practice matches with a badge (no Practice filter), the Overview counts them apart', async () => {
     bands = await campaignId(you, 'Two bands');
     await you.goto(`/campaigns/${bands}/matches`);
     const all = await matchLinks(you);
     assert.equal(all.length, 4, `four matches: ${JSON.stringify(all)}`);
     assert.equal(await you.page.$$eval('main li [data-practice-badge]', (e) => e.length), 2, 'two rows carry the Practice badge');
-    assert.ok((await you.page.$eval('[data-filter-practice]', (a) => a.innerText)).includes('2'), 'the chip shows the count');
-    await you.click('[data-filter-practice]', 'Practice', { nav: true });
-    const only = await matchLinks(you);
-    assert.equal(only.length, 2, `the Practice filter lists two: ${JSON.stringify(only)}`);
-    assert.ok(only.every((m) => /Practice/.test(m.text)));
+    assert.ok(!(await you.page.$('[data-filter-practice]')), 'no Practice filter: the filters are Mine, Open and Ended');
+    assert.ok(await you.page.$('[data-filter=mine]') && await you.page.$('[data-filter=open]') && await you.page.$('[data-filter=ended]'));
+    const only = all.filter((m) => /Practice/.test(m.text));
+    assert.equal(only.length, 2, `two practice rows: ${JSON.stringify(all)}`);
     ended = Math.min(...only.map((m) => m.id));
     open = Math.max(...only.map((m) => m.id));
     assert.ok(only.find((m) => m.id === ended).text.includes('won'), 'the ended practice match shows its result');
@@ -112,30 +111,20 @@ export default async function (h) {
     }
   });
 
-  await h.step('practice: play it through: scenario, result, the live match, the end checks and the end', async () => {
-    await galadriel.goto(`/campaigns/${bands}/matches/${open}`);
-    await galadriel.click('main button', 'Choose scenario');
-    await galadriel.click('main label', 'Chance Encounter');
-    await galadriel.click('main button', 'Use this scenario');
-    await galadriel.waitText('Chance Encounter');
+  await h.step('practice: play it through: the live match and End match without an MVP vote', async () => {
     await galadriel.goto(`/campaigns/${bands}/companies/${vale}`);
     await galadriel.waitText('is running');
-    await galadriel.click('main button', 'End checks');
-    await galadriel.waitText('Recorded only: a practice match awards no experience.');
-    await galadriel.page.keyboard.press('Escape');
-    await galadriel.goto(`/campaigns/${bands}/matches/${open}`);
-    await galadriel.click('main label', 'Draw');
-    assert.ok(await galadriel.has('Objectives: recorded only; no reward in a practice match'), 'the result form says so');
-    await galadriel.click('main button', 'Save result');
-    await galadriel.click('main button', 'Propose to end');
-    await galadriel.waitText('No aftermath will follow.');
-    await galadriel.click('main button', 'Propose anyway');
-    // the player owns both companies: one tap confirms them both
-    await galadriel.page.waitForFunction(() => document.body.innerText.includes('Ended') || [...document.querySelectorAll('button')].some((b) => b.innerText.includes('Confirm the end')), { timeout: 8000 });
-    if (!(await galadriel.has('Ended'))) {
-      await galadriel.click('main button', 'Confirm the end');
-      await galadriel.waitText('Ended');
-    }
+    const path = `/campaigns/${bands}/matches/${open}`;
+    await galadriel.goto(path);
+    // the demo match started without a scenario (an older match): it can still get one, and must, to end
+    if (await galadriel.has('Choose the scenario before ending the match.')) await chooseScenario(galadriel, 'Chance Encounter');
+    await galadriel.click('main [data-end-match]', '');
+    await galadriel.page.waitForSelector(MODAL + ' [data-end-sheet]');
+    assert.ok(await galadriel.has('No aftermath will follow.'), 'the sheet says so');
+    // the player owns both companies: one End match ends it, and a practice match needs no MVP
+    await endMatch(galadriel, path, 'Draw', { mvp: null });
+    await galadriel.goto(path);
+    await galadriel.waitText('Ended');
     assert.ok(await galadriel.has(BANNER), 'the banner stays after the end');
     const lines = await galadriel.page.$$eval('[data-practice-aftermath]', (e) => e.length);
     assert.equal(lines, 2, 'each company: nothing to roll');
@@ -164,17 +153,16 @@ export default async function (h) {
     assert.ok(await admin.has('Reopen match'), 'the administrator may reopen it');
     await admin.click('main button', 'Reopen match');
     await admin.waitGone('Reopen match');
-    assert.ok(!(await admin.has('Ended ')) || await admin.has('Propose to end'), 'the match is open again');
-    await admin.click('main button', 'Propose to end');
-    await admin.click('main button', 'Propose anyway');
+    assert.ok(await admin.page.$('main [data-end-match]'), 'the match is open again');
+    await endMatch(admin, `/campaigns/${bands}/matches/${open}`, 'Draw', { mvp: null });
     // the match page lists "Ended by..." from the first end: the Reopen button of the administrator is what says it is ended now
-    await admin.page.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => /Reopen match|Confirm the end|End without confirmation/.test(b.innerText)), { timeout: 8000 });
+    await admin.page.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => /Reopen match|^Confirm$|End without confirmation/.test(b.innerText)), { timeout: 8000 });
     if (!(await admin.has('Reopen match'))) {
       if (await admin.has('End without confirmation')) {
         await admin.click('button', 'End without confirmation');
         await admin.fill('#override-note', 'Practice reopened by the e2e');
         await admin.click('#override-form button', 'End the match');
-      } else await admin.click('main button', 'Confirm the end');
+      } else await confirmEnd(admin, `/campaigns/${bands}/matches/${open}`, { mvp: null });
       await admin.waitText('Reopen match');
     }
     assert.ok(await admin.has(BANNER) && (await admin.page.$$('[data-practice-aftermath]')).length === 2, 'ended again, still nothing to roll');
@@ -211,7 +199,7 @@ export default async function (h) {
   await h.step('practice: a viewer sees the badge and banner and no action', async () => {
     await sauron.goto(`/campaigns/${bands}/matches/${newMatch}`);
     assert.ok(await sauron.has(BANNER) && await sauron.page.$('[data-practice-badge]'));
-    assert.ok(!(await sauron.has('Propose to end')) && !(await sauron.has('Save result')), 'a viewer has no action');
+    assert.ok(!(await sauron.page.$('main [data-end-match]')) && !(await sauron.has('Save result')), 'a viewer has no action');
     await sauron.goto(`/campaigns/${bands}/matches/${ended}`);
     assert.ok(await sauron.has(BANNER) && !(await sauron.has('Reopen match')));
   });
@@ -219,7 +207,7 @@ export default async function (h) {
   for (const scheme of ['light', 'dark']) for (const w of SIZES) {
     await h.step(`practice: the pages at ${w} px, ${scheme}: no horizontal scroll, axe clean`, async () => {
       const pages = [
-        [you, `/campaigns/${bands}/matches`, 'main', 'list'], [you, `/campaigns/${bands}/matches?practice=1`, 'main', null],
+        [you, `/campaigns/${bands}/matches`, 'main', 'list'], [you, `/campaigns/${bands}/matches?filter=ended`, 'main', null],
         [you, `/campaigns/${bands}`, 'main', null], [sauron, `/campaigns/${bands}/matches/${newMatch}`, 'main', 'match'],
         [eowyn, `/campaigns/${bands}/matches/${ended}`, 'main', null],
         [galadriel, `/campaigns/${bands}/matches/new?practice=1`, 'main', null], [galadriel, `/campaigns/${bands}/companies/${vale}`, 'main', null],

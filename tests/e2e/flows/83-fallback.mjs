@@ -102,17 +102,10 @@ export default async function (h) {
     const modal = await gimli.page.$eval('#modal-body', (m) => m.innerText);
     assert.match(modal, /is a sergeant of the company and has to follow a path/i);
     assert.ok(await gimli.page.$$eval(MODAL + ' input[name=path]', (r) => r.length >= 2 && r.every((x) => x.required)), 'at least two paths, a choice is required');
-    // a path cannot be taken while the aftermath is open: the refusal says so and nothing changes
-    gimli.allow.push(/422/);
-    await gimli.click(MODAL + ' label', '');
-    await gimli.click(MODAL + ' button', 'Take this path');
-    await gimli.settle(400);
-    assert.match(await gimli.page.$eval('#modal-body', (m) => m.innerText), /Finish the aftermath of Match 1 first\./);
     await gimli.page.keyboard.press('Escape');
-    // finish the aftermath, then the path can be taken
+    // the last answer finished the aftermath on its own (nothing else to decide), so the path can be taken at once
     await open(gimli, 'Dwarves with two equal veterans');
-    await gimli.click('button', 'Finish aftermath');
-    await gimli.settle(500);
+    assert.ok(await gimli.page.$('[data-change-summary]'), 'the aftermath finished by itself after the last decision');
     await gimli.goto(`/campaigns/${cid}/my-company`);
     await gimli.click('main button.promo', 'Choose a path');
     await gimli.page.waitForSelector(MODAL + ' form input[name=path]', { visible: true });
