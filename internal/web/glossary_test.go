@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -161,5 +163,57 @@ func TestCampaignGlossaryUnitCardsAccess(t *testing.T) {
 	// signed out: the sign-in page, never the cards
 	if rec := f.do(httptest.NewRequest("GET", "/campaigns/7/glossary/units", nil)); rec.Code != http.StatusSeeOther && rec.Code != http.StatusUnauthorized {
 		t.Errorf("anonymous: %d", rec.Code)
+	}
+}
+
+// A unit card of the shipped ruleset links what it names as the company page's unit cards do: its special rules, wargear and keywords are chips with
+// a tooltip and the helper popup (data-concept), the Goblin Mercenary's Chittering Hordes among them, and its own text never links its own name.
+func TestUnitCardsLinkTheirRulesAndGear(t *testing.T) {
+	f := newFixture(t, Config{})
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
+	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(shippedRules(t).GlossaryWithUnits(), nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/glossary/units", nil))).Body.String()
+	start := strings.Index(body, `<article id="u-goblin-mercenary"`)
+	if start < 0 {
+		t.Fatal("no Goblin Mercenary card")
+	}
+	card := body[start : start+strings.Index(body[start:], "</article>")]
+	for _, name := range []string{"Chittering Hordes", "Cave Dweller", "Mercenary Ambush", "Armour", "Hand weapon"} {
+		re := regexp.MustCompile(`<li class="[^"]*has-tip" tabindex="0" data-concept data-tip-title="` + name + `" data-tip-meta="[^"]+" data-tip-text="[^"]{20,}"`)
+		if !re.MatchString(card) {
+			t.Errorf("%s has no tooltip and popup in the Goblin Mercenary card", name)
+		}
+	}
+	if !strings.Contains(card, `data-concept="Goblin keyword"`) {
+		t.Error("the keywords carry their tooltips too")
+	}
+}
+
+// What a unit's own text names is linked, never the unit itself.
+func TestUnitCardTextLinksButNotItself(t *testing.T) {
+	g := shippedRules(t).GlossaryWithUnits()
+	var units []core.BaseUnit
+	for _, u := range g.Units {
+		if u.Name == "Goblin Mercenary" {
+			u.Text = "A Goblin Mercenary has Chittering Hordes and fights beside a Goblin Mercenary Captain."
+			units = append(units, u)
+		}
+	}
+	g.Units = units
+	v := newUnitCardsView(g, 7)
+	var linked []string
+	for _, s := range v.Units[0].Text {
+		if s.UnitID == "u-goblin-mercenary" {
+			t.Errorf("the unit links its own name: %+v", s)
+		}
+		if s.TermID != "" || s.UnitID != "" {
+			linked = append(linked, s.Text)
+		}
+	}
+	if !slices.Contains(linked, "Chittering Hordes") {
+		t.Errorf("the unit's text links its rule: %q", linked)
+	}
+	if len(v.Units[0].Wargear) != 2 || v.Units[0].Wargear[0].Tip == "" {
+		t.Errorf("a wargear name the glossary defines carries its tip: %+v", v.Units[0].Wargear)
 	}
 }

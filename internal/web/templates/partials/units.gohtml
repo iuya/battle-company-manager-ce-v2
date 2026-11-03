@@ -99,8 +99,8 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
 {{/* The keyword row of a unit: at most 5 chips (race, factions, the unit types the kind icon and the insignia do not say: see notShownKeywords) and a +N
    button (the chips past five) that opens the full list in place (groups Race, Faction, Unit type). Takes {K: core.UnitKeywords, Open: an Alpine
    expression that keeps the full list open ("" for never; the expanded card passes "expanded === ID"), Static: true for the hover card (everything
-   shown, no buttons, no tips)}. No row for a unit without chips. */}}
-{{define "keyword_row"}}{{$v := kwRow .K 5}}{{if or $v.Shown $v.Race $v.Faction $v.Type}}{{$static := .Static}}{{$open := or .Open "false"}}
+   shown, no buttons, no tips unless Tips is true: the glossary's unit cards)}. No row for a unit without chips. */}}
+{{define "keyword_row"}}{{$v := kwRow .K 5}}{{if or $v.Shown $v.Race $v.Faction $v.Type}}{{$static := .Static}}{{$tips := or .Tips (not .Static)}}{{$open := or .Open "false"}}
 <div class="kw-block"{{if not $static}} x-data="{ all: false }"{{end}} data-keywords>
   {{if not $static}}<ul class="kw-row" aria-label="Keywords" x-show="!(all || {{$open}})">
     {{range $v.Shown}}{{template "keyword_chip" (dict "K" . "Part" "" "Tip" true)}}{{end}}
@@ -108,9 +108,9 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </ul>{{end}}
   <div class="kw-full" role="group" aria-label="All keywords"{{if not $static}} x-cloak x-show="all || {{$open}}"{{end}}>
     <dl class="kw-groups">
-      {{with $v.Race}}<div><dt>Race</dt><dd><ul class="kw-row" aria-label="Race">{{range .}}{{template "keyword_chip" (dict "K" . "Part" "" "Tip" (not $static))}}{{end}}</ul></dd></div>{{end}}
-      {{with $v.Faction}}<div><dt>Faction</dt><dd><ul class="kw-row" aria-label="Faction">{{range .}}{{template "keyword_chip" (dict "K" . "Part" "" "Tip" (not $static))}}{{end}}</ul></dd></div>{{end}}
-      {{with $v.Type}}<div><dt>Unit type</dt><dd><ul class="kw-row" aria-label="Unit type">{{range .}}{{template "keyword_chip" (dict "K" . "Part" "" "Tip" (not $static))}}{{end}}</ul></dd></div>{{end}}
+      {{with $v.Race}}<div><dt>Race</dt><dd><ul class="kw-row" aria-label="Race">{{range .}}{{template "keyword_chip" (dict "K" . "Part" "" "Tip" $tips)}}{{end}}</ul></dd></div>{{end}}
+      {{with $v.Faction}}<div><dt>Faction</dt><dd><ul class="kw-row" aria-label="Faction">{{range .}}{{template "keyword_chip" (dict "K" . "Part" "" "Tip" $tips)}}{{end}}</ul></dd></div>{{end}}
+      {{with $v.Type}}<div><dt>Unit type</dt><dd><ul class="kw-row" aria-label="Unit type">{{range .}}{{template "keyword_chip" (dict "K" . "Part" "" "Tip" $tips)}}{{end}}</ul></dd></div>{{end}}
     </dl>
     {{if not $static}}<button type="button" class="btn btn-ghost !min-h-7 !px-2 !text-xs" x-show="!({{$open}})" @click.stop="all = false" aria-expanded="true">Fewer keywords</button>{{end}}
   </div>

@@ -168,6 +168,12 @@ document.addEventListener('alpine:init', () => {
       return href && this.isTarget(href) ? { a, id: href.slice(1) } : null;
     },
 
+    // A chip of a unit card (a rule, a piece of wargear) previews what the glossary says about it from its own data-tip-*; a click opens the helper popup (concepts.js).
+    chipOf(el) {
+      const c = el && el.closest ? el.closest('[data-concept][data-tip-title]') : null;
+      return c && !c.matches('a') ? { a: c, id: '' } : null;
+    },
+
     // Shows the term even when the search hid it, then scrolls to it. (Clearing the search has to be rendered before the
     // jump, which is why a plain #fragment link did nothing in a filtered list.)
     async reveal(id) {
@@ -211,13 +217,13 @@ document.addEventListener('alpine:init', () => {
     // screens, where a tap simply follows the link.
     over(e) {
       if (!window.matchMedia('(hover: hover)').matches) return;
-      const t = this.termOf(e.target);
+      const t = this.termOf(e.target) || this.chipOf(e.target);
       if (!t) return;
       clearTimeout(this.tipTimer);
       this.tipTimer = setTimeout(() => this.showTip(t.a, t.id), 200);
     },
     out(e) {
-      if (!this.termOf(e.target)) return;
+      if (!this.termOf(e.target) && !this.chipOf(e.target)) return;
       this.hideTip();
     },
     hideTip() { clearTimeout(this.tipTimer); this.tip.show = false; },
