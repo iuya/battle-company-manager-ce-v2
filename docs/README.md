@@ -1,7 +1,10 @@
 # Battle Companies 2nd CE Manager: documentation
 
-A manager for the *Middle-earth Strategy Battle Game* **Battle Companies 2nd Community Edition** game mode: campaigns, companies and matches. These pages describe the app as it is. Pages
-that describe planned work say so in their first lines. The tables below group them by who they are for; the same map is in the [README](../README.md#documentation).
+The index of the documentation of the Battle Companies 2nd CE Manager, an app for running campaigns, companies and matches of the *Middle-earth Strategy Battle Game* **Battle Companies 2nd Community Edition** game mode.
+
+These pages describe the app as it is.
+A page that describes planned work says so in its first lines.
+The tables group the pages by who they are for; the same map is in the [README](../README.md#documentation).
 
 ## Players and organisers
 
@@ -16,8 +19,8 @@ that describe planned work say so in their first lines. The tables below group t
 | [tabletop-simulator.md](tabletop-simulator.md) | Taking a company into Tabletop Simulator: army list, figure names and descriptions, the helper |
 | [admin.md](admin.md) | The Administration section, campaign status, invitations, handover |
 | [rules-coverage.md](rules-coverage.md) | Which Battle Companies mechanics the app implements, with the tests |
-| [multi-company-spec.md](multi-company-spec.md) | Several companies per player (up to a campaign setting), the company in the URL, and opening the last campaign directly (implemented) |
-| [practice-match-spec.md](practice-match-spec.md) | Practice matches: a flag on a match set on the creation form, no rewards, no injuries, an empty derived aftermath (implemented) |
+| [multi-company-spec.md](multi-company-spec.md) | Several companies per player (up to a campaign setting), the company in the URL, and opening the last campaign directly |
+| [practice-match-spec.md](practice-match-spec.md) | Practice matches: a flag on a match set on the creation form, no rewards, no injuries, an empty derived aftermath |
 
 ## Rules authors
 
@@ -42,7 +45,7 @@ that describe planned work say so in their first lines. The tables below group t
 | [vendored-js.md](vendored-js.md) | The committed third-party scripts and how to update them |
 | [performance.md](performance.md) | Measured page cost and the performance tooling |
 | [design/match-redesign](design/match-redesign/README.md) | Pictures of the three proposals for the match and live-match pages (a design discussion, not the current app) |
-| [optimization-report.md](optimization-report.md) | Executive summary of the optimization work (v1.3.0, baseline and final numbers, what changed and why, what did not improve), then the detailed data format, runtime, database, build and test sections |
+| [optimization-report.md](optimization-report.md) | The optimization work: executive summary (baseline and final numbers, what changed and why, what did not improve), then the data format, runtime, database, build and test sections |
 
 ## Operators
 

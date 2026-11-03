@@ -1,32 +1,43 @@
 # Optimization report
 
-What the optimization work of release 2.0.0 changed, in numbers. Every figure was taken on one machine with the tools of this repository
-([Method](#method), [Reproducing the numbers](#reproducing-the-numbers)). Three states are compared:
+A point-in-time report of the optimization work of release 2.0.0 (backend, frontend and database passes), in numbers.
+It is for maintainers who want to know what was measured, what was kept and what was rejected, and how to repeat the measurement.
 
-- **v1.3.0**, the release before the lean data format (column "v1.3.0", only where a number could be taken from that release's files; `-` otherwise);
-- **Baseline**, the local tag `1.5.0-pre-optimization` (release/v2.0.0 at `b3300b3`, after "practice matches", PR #12): the lean data format is in, nothing else is optimized;
-- **Final**, the tip of release/v2.0.0 (`03103b9`, PRs #14 to #16: backend, frontend and database passes), measured with the same commands as the baseline.
+Every figure was taken on one machine with the tools of this repository ([Method](#method), [Reproducing the numbers](#reproducing-the-numbers)).
+Three states are compared:
 
-Rules and screens are the same in all three states apart from what the releases added; the rendered pages of the baseline and the final tree are
-byte identical apart from the static-file hashes and the attributes listed in [Frontend pass](#frontend-pass) and [Database pass](#database-pass), and
-the golden snapshots and every test are as they were. How the speed pass of the earlier releases measured and what it changed (static files, gzip,
-one script bundle) is in [performance.md](performance.md).
+- **v1.3.0**: the release before the lean data format. Its column appears only where a number could be taken from that release's files; `-` otherwise.
+- **Baseline**: the local tag `1.5.0-pre-optimization` (release/v2.0.0 at `b3300b3`, after "practice matches", PR #12).
+  The lean data format is in; nothing else is optimized.
+- **Final**: the tip of release/v2.0.0 (`03103b9`, PRs #14 to #16: backend, frontend and database passes), measured with the same commands as the baseline.
 
-Contents: [Executive summary](#executive-summary), [What changed and why](#what-changed-and-why), [What did not improve](#what-did-not-improve),
-[Method](#method), [A. Data format](#a-data-format), [B. Runtime](#b-runtime), [C. Database](#c-database), [D. Build and test](#d-build-and-test),
-[What is heaviest at the baseline](#what-is-heaviest-at-the-baseline), [Backend pass](#backend-pass), [Frontend pass](#frontend-pass),
-[Database pass](#database-pass), [Reproducing the numbers](#reproducing-the-numbers).
+Rules and screens are the same in all three states, apart from what the releases added.
+The rendered pages of the baseline and the final tree are byte identical, apart from the static-file hashes and the attributes listed in [Frontend pass](#frontend-pass) and [Database pass](#database-pass).
+The golden snapshots and every test are as they were.
+
+How the speed pass of the earlier releases measured and what it changed (static files, gzip, one script bundle) is in [performance.md](performance.md).
+
+Contents:
+
+- [Executive summary](#executive-summary), [What changed and why](#what-changed-and-why), [What did not improve](#what-did-not-improve)
+- [Method](#method)
+- Measurements: [A. Data format](#a-data-format), [B. Runtime](#b-runtime), [C. Database](#c-database), [D. Build and test](#d-build-and-test)
+- [What is heaviest at the baseline](#what-is-heaviest-at-the-baseline)
+- The passes: [Backend pass](#backend-pass), [Frontend pass](#frontend-pass), [Database pass](#database-pass)
+- [Reproducing the numbers](#reproducing-the-numbers)
 
 ## Executive summary
 
 Times are medians (see [Method](#method)); "Change" is final against baseline, negative is better. The percentage for the v1.3.0 column is in the text of the
 sections where it matters.
 
-**Pages: the server answers 3 to 20 times faster.** The campaign list went from 91.5 ms to 4.7 ms of server time, the matches tab from 88.9 to 12.8 ms,
-My Company from 40.7 to 10.1 ms, the match page from 23.4 to 8.7 ms; the statements of a page fell by up to 82 %, and a whole
-`BenchmarkPages` run now runs 2,517 statements that take 528 ms in PostgreSQL where it ran 4,159 that took 1,934 ms. In the browser, with 300 ms of latency,
-the match page settles in 386 ms instead of 1,002 ms, a tab click in 370 ms instead of 678 ms, a live match in 407 ms instead of 701 ms. A page that is one round
-trip away from the browser (campaign list, overview, matches) was already at its latency floor and stays there.
+**Pages: the server answers 3 to 20 times faster.**
+
+- Server time: the campaign list went from 91.5 ms to 4.7 ms, the matches tab from 88.9 to 12.8 ms, My Company from 40.7 to 10.1 ms, and the match page from 23.4 to 8.7 ms.
+- Statements: a page issues up to 82 % fewer.
+  A whole `BenchmarkPages` run issues 2,517 statements that take 528 ms in PostgreSQL, where it issued 4,159 that took 1,934 ms.
+- In the browser, with 300 ms of latency: the match page settles in 386 ms instead of 1,002 ms, a tab click in 370 ms instead of 678 ms, and a live match in 407 ms instead of 701 ms.
+- A page that is one round trip away from the browser (campaign list, overview, matches) was already at its latency floor and stays there.
 
 ### Data format and code
 
@@ -196,6 +207,26 @@ Statements are counted by the same tool for both states, so their counts are exa
 
 `make test` runs the PostgreSQL tests too when the compose database is up, because the Makefile exports `TEST_DATABASE_URL` to every command;
 `go test ./...` run by hand without that variable skips them. Both are reported.
+
+## What is heaviest at the baseline
+
+Facts the optimization passes started from (the baseline numbers above; profile from `go test ./cmd/server -bench 'Pages/(home|matches|overview|tts$|armoury|my-company)$'
+-cpuprofile`):
+
+- **Server time is Go CPU and garbage collection, not the database.** On the campaign list, matches tab and overview the page costs
+  64 to 95 ms with 5 to 11 statements and 100 MB, 99 MB and 66 MB allocated per request; the garbage collector's mark work is about 45 % of the
+  CPU of those benchmarks. `companyDeps.figures` (`BuildDetail` for every company to rate it) is 27 % of the time, `buildUnit` 26 %,
+  `equipmentFor` 17 %, `completeBundle` 9 %, `BCBook.Offer` 8 %.
+- **Largest pages:** the armoury is 449 KB of HTML (28 KB gzip), my company and the live company page 250 KB (29 to 31 KB gzip) with
+  1,943 and 2,343 DOM elements; the armoury has 5,115 elements.
+- **Slowest in the browser at 300 ms:** the match page settles at 1.0 s (three links in its chain, 68 statements across its htmx cards);
+  my company and the armoury load at 0.7 s with two document requests (the alias redirect); the login flow 1.7 s.
+- **Rule-set load:** 65 ms and 34 MB for the three files per content hash, more than v1.3.0 (56 ms, 19 MB); the decoder is 7 ms of it, the
+  rest is building the book, glossary and the second vanilla parse.
+- **Statement shapes:** the multi-sub-select statements cost more to plan (1.7 to 4.5 ms) than to execute (0.2 to 5 ms); the largest
+  execution is the campaign roster read (5 ms, 1,478 buffers).
+- **Tests:** `make test` is 140 s, of which `cmd/server` with the database is 132 s (four long tests that run side by side);
+  `internal/core` and `internal/web` take about 30 s each without a database. The end-to-end suite is 19 minutes locally.
 
 ## A. Data format
 
@@ -581,26 +612,6 @@ parallel, so the longest (creation, 575 s) sets the time; job `plan` 6 s, `pr-ch
 560 s wall (-5.7 %), creation again the longest (540 s); `plan` 7 s, `pr-check` 8 s, gate 3 s. The PRs between them: #13 (measuring tools only, no application change) 505 s, #14 (backend) 521 s,
 #15 (frontend) 514 s. The 90 s spread between PRs with the same suite is the runners'. A CI job spends about 15 to 20 s
 on checkout, Go, Node and the Tailwind binary before the tests. The pull-request workflows do not run the Go unit tests.
-
-## What is heaviest at the baseline
-
-Facts the optimization passes started from (the baseline numbers above; profile from `go test ./cmd/server -bench 'Pages/(home|matches|overview|tts$|armoury|my-company)$'
--cpuprofile`):
-
-- **Server time is Go CPU and garbage collection, not the database.** On the campaign list, matches tab and overview the page costs
-  64 to 95 ms with 5 to 11 statements and 100 MB, 99 MB and 66 MB allocated per request; the garbage collector's mark work is about 45 % of the
-  CPU of those benchmarks. `companyDeps.figures` (`BuildDetail` for every company to rate it) is 27 % of the time, `buildUnit` 26 %,
-  `equipmentFor` 17 %, `completeBundle` 9 %, `BCBook.Offer` 8 %.
-- **Largest pages:** the armoury is 449 KB of HTML (28 KB gzip), my company and the live company page 250 KB (29 to 31 KB gzip) with
-  1,943 and 2,343 DOM elements; the armoury has 5,115 elements.
-- **Slowest in the browser at 300 ms:** the match page settles at 1.0 s (three links in its chain, 68 statements across its htmx cards);
-  my company and the armoury load at 0.7 s with two document requests (the alias redirect); the login flow 1.7 s.
-- **Rule-set load:** 65 ms and 34 MB for the three files per content hash, more than v1.3.0 (56 ms, 19 MB); the decoder is 7 ms of it, the
-  rest is building the book, glossary and the second vanilla parse.
-- **Statement shapes:** the multi-sub-select statements cost more to plan (1.7 to 4.5 ms) than to execute (0.2 to 5 ms); the largest
-  execution is the campaign roster read (5 ms, 1,478 buffers).
-- **Tests:** `make test` is 140 s, of which `cmd/server` with the database is 132 s (four long tests that run side by side);
-  `internal/core` and `internal/web` take about 30 s each without a database. The end-to-end suite is 19 minutes locally.
 
 ## Backend pass
 

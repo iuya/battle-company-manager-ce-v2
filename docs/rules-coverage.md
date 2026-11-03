@@ -1,21 +1,44 @@
 # Rules coverage: the rulebook against the app
 
-Every mechanic of the Battle Companies 2nd CE rules and what the app does with it: where it lives in the code or the docs, and the test that covers it. Read it to find
-where a rule is implemented or to see what the app deliberately leaves to the table.
+This page lists every mechanic of the Battle Companies 2nd CE rules and what the app does with it.
+For each one it names where the behaviour lives in the code or the docs, and which test covers it.
+Use it to find where a rule is implemented, or to see what the app deliberately leaves to the table.
 
-- **Source** is a line of `sources/battle_companies_rules.txt` (gitignored; read it there, nothing is copied here). `S202` is
-  line 202.
-- **Layer**: **CM** company management (roster, resources, between games); **PH** match and the phases around it (the game, the
-  War's Aftermath); **APP** app design, not a rule.
-- **Status**: **DONE** built and tested; **PARTIAL** built in part (the gap is named); **TODO** not built; **N-A** not in the
-  rulebook, played on the table, or decided not to build.
-- **Where** is the core file (`internal/core/`) or the docs page that holds the behaviour; **Test** is the test that covers it
-  (core tests unless a path says otherwise; `e2e` is the browser suite in `tests/e2e/flows`, see [testing.md](testing.md)).
-  Rules numbers and texts come from `definitions/` ([definitions.md](definitions.md)), never from constants in the code.
+## How to read the tables
 
-The rulebook has no campaign calendar, end, ranking or alliances: its loop is Muster, then repeat Step 1 Play a Game, Step 2
-War's Aftermath (1 Injuries, 2 Experience, 3 Progression, 4 Influence), Step 3 Company Management, Step 4 Calculate Ratings
-(S298-302, S1357, S1400). Kits exist only as Against the Odds items; "retirement" is an outcome of the injury chart.
+- **Source** is a line of `sources/battle_companies_rules.txt`, which is gitignored: read it there, nothing is copied here.
+  `S202` means line 202.
+- **Layer** is one of:
+  - **CM**: company management (roster, resources, between games);
+  - **PH**: the match and the phases around it (the game, the War's Aftermath);
+  - **APP**: app design, not a rule.
+- **Status** is one of:
+  - **DONE**: built and tested;
+  - **PARTIAL**: built in part, with the gap named;
+  - **TODO**: not built;
+  - **N-A**: not in the rulebook, played on the table, or decided not to build.
+- **Where** is the core file (`internal/core/`) or the docs page that holds the behaviour.
+- **Test** is the test that covers it.
+  Tests are core tests unless a path says otherwise; `e2e` is the browser suite in `tests/e2e/flows` ([testing.md](testing.md)).
+
+Rules numbers and texts come from `definitions/` ([definitions.md](definitions.md)), never from constants in the code.
+
+## The rulebook's loop
+
+The rulebook has no campaign calendar, end, ranking or alliances.
+Its loop is:
+
+1. Muster.
+2. Then repeat:
+   1. Step 1, Play a Game.
+   2. Step 2, War's Aftermath: 1 Injuries, 2 Experience, 3 Progression, 4 Influence.
+   3. Step 3, Company Management.
+   4. Step 4, Calculate Ratings.
+
+The lines are S298-302, S1357 and S1400.
+Kits exist only as Against the Odds items, and "retirement" is an outcome of the injury chart.
+
+Contents: [1 Muster](#1-muster-and-company-creation), [2 Recruiting](#2-recruiting-rarity-and-limits-step-3-s1357-1397), [3 Injuries](#3-injuries-and-the-injury-charts-step-21-s302-358), [4 Experience and progression](#4-experience-progression-promotions-step-22-and-23-s450-614), [5 Influence and rating](#5-influence-gold-hero-rating-and-points-step-24-and-step-4), [6 The game](#6-the-game-scenarios-against-the-odds-the-match-step-1-s218-300-s5247-), [7 Live tools](#7-the-live-match-tools-companion-at-the-table), [8 App design](#8-company-management-and-campaign-structure-that-are-app-design), [Differences](#differences-from-the-printed-rules).
 
 ## 1. Muster and company creation
 
@@ -146,10 +169,17 @@ Details in [live-match.md](live-match.md).
 
 ## Differences from the printed rules
 
-No mechanic of the rulebook's loop is missing. Everything marked N-A is physical or played at the table (auras, rule substitutions, scenario special rules, the arrival rolls of Maelstrom of Battle). The deliberate readings are:
+No mechanic of the rulebook's loop is missing.
+Everything marked N-A is physical or played at the table: auras, rule substitutions, scenario special rules, and the arrival rolls of Maelstrom of Battle.
 
-- a reinforcement roll can only be raised with Influence (lowering is the free pick of a lower result);
-- the company that flees with All is Lost keeps its Against the Odds bonuses;
-- the Mirkwood Warg Marauder counts as three models for the Break Point.
+The deliberate readings are:
 
-Not built by design: Custom Selection and Custom Company (the rules file is edited instead), Bonus Progression Rolls (no scenario grants one in the data; if a future scenario does, feed `campaign.progression.xp.bonusRolls`), a calendar, campaign victory, standings beyond the points rank, and alliances.
+- A reinforcement roll can only be raised with Influence. Lowering is the free pick of a lower result.
+- The company that flees with All is Lost keeps its Against the Odds bonuses.
+- The Mirkwood Warg Marauder counts as three models for the Break Point.
+
+Not built, by design:
+
+- Custom Selection and Custom Company: the rules file is edited instead.
+- Bonus Progression Rolls: no scenario grants one in the data. If a future scenario does, feed `campaign.progression.xp.bonusRolls`.
+- A calendar, campaign victory, standings beyond the points rank, and alliances.

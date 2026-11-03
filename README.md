@@ -3,9 +3,11 @@
 [![e2e](https://github.com/iuya/battle-company-manager-ce-v2/actions/workflows/e2e.yml/badge.svg)](https://github.com/iuya/battle-company-manager-ce-v2/actions/workflows/e2e.yml)
 [![release-image](https://github.com/iuya/battle-company-manager-ce-v2/actions/workflows/release-image.yml/badge.svg)](https://github.com/iuya/battle-company-manager-ce-v2/actions/workflows/release-image.yml)
 
-A web app to run campaigns of the *Middle-earth Strategy Battle Game* **Battle Companies 2nd Community Edition** game mode. Organisers create campaigns, players
-build and grow their companies, and everyone records matches and their aftermath (injuries, experience, level-ups, influence) from a phone at the table.
+A web app to run campaigns of the *Middle-earth Strategy Battle Game* **Battle Companies 2nd Community Edition** game mode.
+Organisers create campaigns, players build and grow their companies, and everyone records matches and their aftermath (injuries, experience, level-ups, influence) from a phone at the table.
+
 It is a Go service with PostgreSQL and a server-rendered frontend (Go templates, htmx, Alpine.js, Tailwind).
+This page is the entry point: how to run the app, how to test it, and where each document lives.
 
 - Campaigns, companies and matches for all the Battle Companies, with the rules applied by the app.
 - Live match mode: trackers, casualties and a match log with undo, synced between players.
@@ -16,18 +18,27 @@ It is a Go service with PostgreSQL and a server-rendered frontend (Go templates,
 
 ## Quick start
 
-Prerequisites: the Go version in [go.mod](go.mod), Docker (PostgreSQL), Python 3 (rules validation), and Node 20+ with Chrome or Chromium only for the browser tests.
+You need:
+
+- the Go version in [go.mod](go.mod);
+- Docker, for PostgreSQL;
+- Python 3, for the rules validation;
+- Node 20+ and Chrome or Chromium, only for the browser tests.
 
 ```bash
-make get-tailwind                                  # once: downloads the Tailwind standalone binary for this machine (macOS and Linux, x64 and arm64)
-make user EMAIL=you@example.com NAME="Your Name"   # creates an account (asks for a password); other people join through an administrator's invitation link
-make run                                           # CSS + PostgreSQL + server on http://localhost:8080
+make get-tailwind                                  # once: download the Tailwind standalone binary (macOS and Linux, x64 and arm64)
+make user EMAIL=you@example.com NAME="Your Name"   # create an account; asks for a password
+make run                                           # build the CSS, start PostgreSQL and the server on http://localhost:8080
 ```
 
-- `make dev` is the same with live reload.
+Other people join through an administrator's invitation link, so there is no sign-up page.
+
+Other ways to start:
+
+- `make dev` is the same as `make run` with live reload.
 - `make seed` loads a small demo (accounts and one campaign).
-- `make demo` **empties the development database**, loads a rich demo world (many campaigns in every state) and starts the server. Sign in as
-  `admin@example.com` with `demo-password`; see [docs/demo-world.md](docs/demo-world.md).
+- `make demo` **empties the development database**, loads a rich demo world (many campaigns in every state) and starts the server.
+  Sign in as `admin@example.com` with `demo-password`; see [docs/demo-world.md](docs/demo-world.md).
 
 ## Run the published image
 
@@ -37,16 +48,21 @@ Every release publishes `ghcr.io/iuya/battle-company-manager-ce-v2` (linux/amd64
 docker pull ghcr.io/iuya/battle-company-manager-ce-v2:latest
 ```
 
-For a real deployment use `compose.yaml` with the image (or build from the checkout): `cp .env.example .env`, set `POSTGRES_PASSWORD`, `docker compose up -d --wait`,
-then `make prod-user EMAIL=... NAME=... ROLE=superuser` for the first account. Production mode has secure cookies, HSTS, a Content-Security-Policy and `/healthz`
-and `/readyz` probes. Details, backups and upgrades: [docs/operations.md](docs/operations.md).
+For a real deployment, use `compose.yaml` with the image (or build from the checkout):
+
+1. `cp .env.example .env` and set `POSTGRES_PASSWORD`.
+2. `docker compose up -d --wait`.
+3. `make prod-user EMAIL=... NAME=... ROLE=superuser` creates the first account.
+
+Production mode has secure cookies, HSTS, a Content-Security-Policy and `/healthz` and `/readyz` probes.
+Details, backups and upgrades: [docs/operations.md](docs/operations.md).
 
 ## Tests
 
 ```bash
 make test               # unit tests (Go and the Python tools)
 make test-integration   # everything, including the PostgreSQL tests (starts the compose database)
-make e2e                # browser tests in headless Chrome (make e2e-install first; make e2e-enforce runs under the blocking CSP)
+make e2e                # browser tests in headless Chrome (run make e2e-install first; make e2e-enforce runs under the blocking CSP)
 make validate           # rules data: JSON Schemas, validators, glossary and concept graph
 ```
 
@@ -84,8 +100,8 @@ Start at [docs/README.md](docs/README.md). Everything in `docs/`, by audience:
 | [tabletop-simulator.md](docs/tabletop-simulator.md) | Taking a company into Tabletop Simulator |
 | [admin.md](docs/admin.md) | The Administration section, campaign status, invitations, handover |
 | [rules-coverage.md](docs/rules-coverage.md) | Which Battle Companies mechanics the app implements |
-| [multi-company-spec.md](docs/multi-company-spec.md) | Several companies per player (up to a campaign setting), the company in the URL, and opening the last campaign directly (implemented) |
-| [practice-match-spec.md](docs/practice-match-spec.md) | Practice matches: no rewards, no injuries, an empty aftermath (implemented) |
+| [multi-company-spec.md](docs/multi-company-spec.md) | Several companies per player (up to a campaign setting), the company in the URL, and opening the last campaign directly |
+| [practice-match-spec.md](docs/practice-match-spec.md) | Practice matches: no rewards, no injuries, an empty aftermath |
 
 **Rules authors (customising the Battle Companies JSON)**
 
@@ -109,7 +125,7 @@ Start at [docs/README.md](docs/README.md). Everything in `docs/`, by audience:
 | [vendored-js.md](docs/vendored-js.md) | The committed third-party scripts and how to update them |
 | [performance.md](docs/performance.md) | Measured page cost and the performance tooling |
 | [design/match-redesign](docs/design/match-redesign/README.md) | Pictures of the three proposals for the match and live-match pages (a design discussion, not the current app) |
-| [optimization-report.md](docs/optimization-report.md) | Executive summary of the optimization work (v1.3.0, baseline and final numbers, what changed and why, what did not improve), then the detailed data format, runtime, database, build and test sections |
+| [optimization-report.md](docs/optimization-report.md) | The optimization work: executive summary (baseline and final numbers, what changed and why, what did not improve), then the data format, runtime, database, build and test sections |
 
 **Operators**
 
@@ -120,15 +136,17 @@ Start at [docs/README.md](docs/README.md). Everything in `docs/`, by audience:
 
 ## Contributing
 
-Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md), [docs/collaborating.md](docs/collaborating.md) (a guide for working with coding agents)
-and the [Code of Conduct](CODE_OF_CONDUCT.md). Only maintainers review and merge.
+Issues and pull requests are welcome.
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [docs/collaborating.md](docs/collaborating.md) (a guide for working with coding agents) and the [Code of Conduct](CODE_OF_CONDUCT.md).
+Only maintainers review and merge.
 
 ## Licence and credits
 
 Released under [CC BY-NC-SA 4.0](LICENSE).
 
-The rules are the *Battle Companies Community 2nd Edition* by the "Middle-earth: SBG Community". `definitions/vanilla/data2024.json` is read-only reference data. This
-repository contains no copyrighted rulebook text beyond that; rulebooks and anything converted from them stay in the gitignored `sources/`.
+The rules are the *Battle Companies Community 2nd Edition* by the "Middle-earth: SBG Community".
+`definitions/vanilla/data2024.json` is read-only reference data.
+This repository contains no copyrighted rulebook text beyond that; rulebooks and anything converted from them stay in the gitignored `sources/`.
 
 The unit, rank and equipment icons are from [game-icons.net](https://game-icons.net) under
 [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) (the horn from SVG Repo, CC0); each icon and its author is credited in

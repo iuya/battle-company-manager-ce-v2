@@ -1,9 +1,40 @@
 # Frontend
 
-How the pages are built and how they behave: the design language (theme, components), the page and htmx patterns, and what each
-screen does. Server-rendered Go templates, **htmx** for navigation and partial updates, **Alpine.js** for client-only UI state and
-**Tailwind CSS v4** for styling. No JavaScript build step: htmx and Alpine are vendored in `internal/web/static/js`,
-Tailwind runs as a standalone binary.
+How the web pages are built, how they behave and what each screen does.
+It is for developers who change templates, styles or scripts, and for anyone who wants to know how a screen works.
+
+The stack is server-rendered Go templates, **htmx** for navigation and partial updates, **Alpine.js** for client-only UI state and **Tailwind CSS v4** for styling.
+There is no JavaScript build step: htmx and Alpine are vendored in `internal/web/static/js`, and Tailwind runs as a standalone binary.
+
+## Contents
+
+**Design language**
+[Principles](#principles) ·
+[Responsive design](#responsive-design) ·
+[Theme](#theme) ·
+[Components](#components)
+
+**Page patterns**
+[Pages and htmx](#pages-and-htmx) ·
+[App shell and navigation](#app-shell-and-navigation) ·
+[Adding a page](#adding-a-page)
+
+**Screens**
+[Main page: campaigns](#main-page-campaigns) ·
+[Campaign pages](#campaign-pages) ·
+[Rules files](#rules-files-vanilla-and-battle-companies) ·
+[My Company: units](#my-company-units) ·
+[Live match](#live-match) ·
+[To Wound chart](#to-wound-chart-window) ·
+[Account](#account) ·
+[Glossary](#glossary) ·
+[Helper popup](#helper-popup) ·
+[Account invitations, recovery links and the copy component](#account-invitations-recovery-links-and-the-copy-component) ·
+[Invite links](#invite-links) ·
+[Demo data and signing in](#demo-data-and-signing-in) ·
+[Create company and aftermath sheet details](#create-company-and-aftermath-sheet-details)
+
+Inside "My Company: units": [the unit card](#the-unit-card), [the Armory tab](#the-armory-tab), [recruiting](#recruiting), [healing](#healing-and-injuries), [the path carousel](#path-carousel), [level-up](#level-up), [choosing a company](#choosing-a-company), [copy as a Tabletop Simulator army list](#copy-as-a-tabletop-simulator-army-list), [gold](#gold), [glossary and item definitions](#glossary-and-item-definitions) and [dice](#dice).
 
 ## Principles
 
@@ -14,7 +45,7 @@ Tailwind runs as a standalone binary.
    [Responsive design](#responsive-design).
 3. **Cheap to load.** Body text uses the system font. One self-hosted web font (headings), no framework, small CSS,
    embedded assets with cache headers.
-4. **Accessible.** Colors pass WCAG AA, controls are keyboard reachable with a visible focus ring, form fields have
+4. **Accessible.** Colours pass WCAG AA, controls are keyboard reachable with a visible focus ring, form fields have
    labels, errors use `role="alert"`.
 
 ## Responsive design
@@ -27,14 +58,19 @@ Responsive behaviour is a requirement of every page, not a finishing touch.
   `overflow-x-auto` wrapper or becomes stacked cards on small screens.
 - **Touch friendly.** Targets are at least 40 px tall on phones, with room between them.
 - **The header collapses.** Below `sm:` the navigation links and Sign out move into a menu, leaving room for the brand.
-- **Text wraps, never truncates** important content (names, rules). `main` has `overflow-wrap: anywhere`, so a 60-character name without spaces breaks instead of widening the page. The campaign tab bar scrolls sideways on a phone, with an edge fade where there is more and the current tab brought into view (`static/js/tabs.js`). Filter chips, steppers and `summary` rows are 44 px tall on phones. Small controls (the unit card corner tab, the item add chip) get an invisible larger touch area on coarse pointers. Headings are set for the narrow case and may break
-  deliberately (the login heading breaks after "Battle Companies").
+- **Text wraps, never truncates** important content (names, rules).
+  `main` has `overflow-wrap: anywhere`, so a 60-character name without spaces breaks instead of widening the page.
+  Headings are set for the narrow case and may break deliberately (the login heading breaks after "Battle Companies").
+- **Phone details.**
+  - The campaign tab bar scrolls sideways, with an edge fade where there is more and the current tab brought into view (`static/js/tabs.js`).
+  - Filter chips, steppers and `summary` rows are 44 px tall.
+  - Small controls (the unit card corner tab, the item add chip) get an invisible larger touch area on coarse pointers.
 - **Background and images scale with the viewport** (`vmin`/`vw` units, `max-*` limits), never with fixed pixel sizes.
 - **Check a page at 360, 768 and 1280 px** (and in both modes) before it is done.
 
 ## Theme
 
-Colors are **semantic tokens**: CSS variables, exposed to Tailwind as utilities (`bg-page`, `text-fg`, `border-line`,
+Colours are **semantic tokens**: CSS variables, exposed to Tailwind as utilities (`bg-page`, `text-fg`, `border-line`,
 `bg-accent`…). Components use only these names, never raw colors, so a palette is one block of variables in
 `tailwind.css`.
 
@@ -43,53 +79,89 @@ Colors are **semantic tokens**: CSS variables, exposed to Tailwind as utilities 
 | `page` / `surface` / `raised` | Page background / cards, header, inputs / hover and secondary areas |
 | `fg` / `muted` / `line` | Text / secondary text / borders |
 | `accent` / `accent-fg` | Primary action background / text on it |
-| `accent-text` | Accent-colored text and links on `page` or `surface` |
+| `accent-text` | Accent-coloured text and links on `page` or `surface` |
 | `accent-soft` | Tinted backgrounds (selected state, badges, info alerts) |
 | `danger`, `success` (+ `-soft`) | Errors and confirmations |
-| `warn` | Draws (yellow); with `success` and `danger` it gives the `tone-win` / `tone-draw` / `tone-loss` classes for results |
+| `warn` | Draws (yellow). With `success` and `danger` it gives the `tone-win` / `tone-draw` / `tone-loss` classes for results |
 | `gold` | Decoration: the ring background, gold badges, the level medal |
 | `leader`, `sergeant`, `hero`, `leader-soft`, `sergeant-soft`, `hero-soft` | Game colours. A unit's place on its card: frame and insignia (leader amber, sergeant green, hero blue) and the tint of its title plate. `leader` is also the command paths (Path of the Warlord) and the Might tracker |
 | `path-melee`, `path-ranged`, `path-magic` | Game colours. The path kinds (red, green, blue) and the Wounds, Fate and Will trackers |
 
-**Palettes** (each with a light and a dark variant): **Forest & Gold** (default), **Parchment & Ember** and **Mithril &
-Night**. A palette is selected by `data-palette` and `data-mode` (`light` | `dark`) on the `<html>` element; the same
+### Palettes
+
+There are three palettes, each with a light and a dark variant:
+
+- **Forest & Gold** (default)
+- **Parchment & Ember**
+- **Mithril & Night**
+
+A palette is selected by `data-palette` and `data-mode` (`light` | `dark`) on the `<html>` element; the same
 attributes on any element preview that palette there. `tools/check_theme_contrast.py` checks every palette and mode
-against WCAG AA (4.5:1 for text, 3:1 for the accent). In the dark variants the layers are kept apart on purpose:
+against WCAG AA (Web Content Accessibility Guidelines level AA: 4.5:1 for text, 3:1 for the accent).
+
+In the dark variants the layers are kept apart on purpose:
 `surface` sits clearly above `page` (about 1.2:1), `raised` above `surface` (about 1.25:1) and `line` reads against
 `surface` (about 1.9:1 or more), so cards and borders do not melt into the page.
 
-**Game colours.** The leader, sergeant, hero and path tokens mean the same thing on the table whatever the palette, so they
+### Game colours
+
+The leader, sergeant, hero and path tokens mean the same thing on the table whatever the palette, so they
 are not part of a palette: one block per mode and contrast (`[data-mode]`, `[data-contrast="high"] [data-mode]`), tuned from
-Mithril dark high contrast. A unit card carries no palette accent: game colours and neutrals only (the experience bar,
-the Might/Will/Fate frame, path and spell chips, a stat raised by gear). The checker tests each palette together with the game colours of its mode and contrast.
+Mithril dark high contrast.
 
-**High contrast.** Every palette and mode also has a high-contrast variant, selected by `data-contrast="high"` on `<html>`
-(the blocks match `<html>` itself and the preview swatches inside it). The checker holds it to AAA: text 7:1, the accent,
-`gold`, `sergeant` and `hero` 4.5:1, and `line` 3:1 against `surface` and `page`. The `gold` token (ring, medals, gold
-badges) is the same amber in every palette. The focus ring takes the complement of the palette's accent so it stands
-apart: pink in Forest (green accent), cyan in Ember (red accent); Mithril already pairs blue with yellow. The game colours
-stay amber, green, blue and red. The **High contrast** checkbox (in `theme_controls`, below the palettes,
-and in the `/styleguide` theme lab; `$store.theme.highContrast` / `setContrast`, input `[data-contrast-toggle]`) writes the
-cookie `bcm-contrast=high|normal`, per browser and not in the account. Without that cookie `theme-init.js` follows the
-operating system's `prefers-contrast: more`.
+A unit card carries no palette accent: game colours and neutrals only (the experience bar,
+the Might/Will/Fate frame, path and spell chips, a stat raised by gear).
+The checker tests each palette together with the game colours of its mode and contrast.
 
-**Mode** is System by default (follows the operating system), or Light / Dark. **Palette** and mode are chosen in the
-settings menu (gear icon in the header) and kept in the `bcm-theme` cookie as `<palette>.<mode>`
-(for example `forest.dark`). An inline script in the layout's `<head>` applies it before the first paint, so there is
-no flash. `static/js/theme.js` holds the shared Alpine store (`$store.theme`). Signed-in users also have it stored in
-their account ([auth.md](auth.md), "Appearance per account"): the layout puts `data-auth` and `data-pref` on `<html>`, the head
-script and the store prefer `data-pref` to the cookie, `$store.theme.set` also calls `PUT /account/appearance` (silent on
-failure), and sign-in saves the browser's cookie to an account that never chose, or writes the saved look to the cookie. The
-Account page's Appearance card reuses the menu's `theme_controls` partial.
+### High contrast
 
-**Typography.** Headings use self-hosted *Cormorant Garamond* (600/700, `font-display: swap`) with lining numerals so
+Every palette and mode also has a high-contrast variant, selected by `data-contrast="high"` on `<html>`.
+The blocks match `<html>` itself and the preview swatches inside it.
+
+The checker holds the variant to WCAG AAA:
+
+- text 7:1;
+- the accent, `gold`, `sergeant` and `hero` 4.5:1;
+- `line` 3:1 against `surface` and `page`.
+
+Other rules of the variant:
+
+- The `gold` token (ring, medals, gold badges) is the same amber in every palette.
+- The focus ring takes the complement of the palette's accent so it stands apart: pink in Forest (green accent), cyan in Ember (red accent). Mithril already pairs blue with yellow.
+- The game colours stay amber, green, blue and red.
+
+The **High contrast** checkbox sits in `theme_controls`, below the palettes, and in the `/styleguide` theme lab.
+It is wired to `$store.theme.highContrast` / `setContrast` and the input `[data-contrast-toggle]`.
+It writes the cookie `bcm-contrast=high|normal`, per browser and not in the account.
+Without that cookie `theme-init.js` follows the operating system's `prefers-contrast: more`.
+
+### Choosing a palette and mode
+
+**Mode** is System by default (it follows the operating system), or Light or Dark.
+Palette and mode are chosen in the settings menu (gear icon in the header) and kept in the `bcm-theme` cookie as `<palette>.<mode>` (for example `forest.dark`).
+
+- An inline script in the layout's `<head>` applies the choice before the first paint, so there is no flash.
+- `static/js/theme.js` holds the shared Alpine store (`$store.theme`).
+- Signed-in users also have the choice stored in their account ([auth.md](auth.md), "Appearance per account").
+  - The layout puts `data-auth` and `data-pref` on `<html>`, and the head script and the store prefer `data-pref` to the cookie.
+  - `$store.theme.set` also calls `PUT /account/appearance` (silent on failure).
+  - Sign-in saves the browser's cookie to an account that never chose, or writes the saved look to the cookie.
+- The Account page's Appearance card reuses the menu's `theme_controls` partial.
+
+### Typography
+
+Headings use self-hosted *Cormorant Garamond* (600/700, `font-display: swap`) with lining numerals so
 digits match the capitals. Body text uses the system UI font.
 
-**Ring background.** `body::before` paints `static/img/ring-text.svg` (the One Ring inscription) centered on the
+### Ring background
+
+`body::before` paints `static/img/ring-text.svg` (the One Ring inscription) centered on the
 viewport in the palette's `gold` at low opacity, through a CSS mask. In landscape the whole ring fits the screen; in
 portrait it is sized by the width so it shows around the cards. Cards and the header are opaque and cover it.
 
-**Icons.** The favicon and app icons are traced from the inscription (`tools/build_icons.py`): `favicon.svg` (bold, for
+### Icons
+
+The favicon and app icons are traced from the inscription (`tools/build_icons.py`): `favicon.svg` (bold, for
 tabs), `icon.svg` (finer, large uses), PNG fallbacks and `ring-text.svg`. The ring is gold on a transparent
 background so it reads on light and dark pages; only `apple-touch-icon.png` is opaque, because iOS would paint it black.
 
@@ -106,8 +178,9 @@ Defined in `tailwind.css` (`@layer components`) on top of the tokens:
 | `badge`, `divider` | Small labels, separators |
 | `practice_badge` (template partial) | The "Practice" pill of a practice match: `badge badge-muted` with an icon and the word, never a win/loss colour; text 12 px; in `/styleguide`. Used on the Matches list, the Overview, the match page, the aftermath page and the live bar |
 
-`/styleguide` (served when `STYLEGUIDE=true`, which `make run`, `make dev` and `make demo` set; off by default) renders every token, a live contrast table, the type scale and all components in
-the active theme. Use it to review any change to the design language.
+`/styleguide` renders every token, a live contrast table, the type scale and all components in the active theme.
+Use it to review any change to the design language.
+It is served only when `STYLEGUIDE=true`, which `make run`, `make dev` and `make demo` set.
 
 ## Pages and htmx
 
@@ -127,10 +200,10 @@ htmx request that swaps only `#main`:
   `content`; htmx lifts the title into `document.title`. Responses carry `Vary: HX-Request`.
 - A **partial update** (for example a form that refreshes one panel) returns just the partial and the form targets it with
   `hx-target`/`hx-swap`.
-- **Links to a glossary term** (`/campaigns/N/glossary#t-...`, from a tooltip chip or a "Glossary" link) carry `hx-boost="false"`: a boosted swap runs the glossary component before the address has its `#fragment` and scrolls to the top, so the term was never reached. A full load lets the browser jump and the component highlight the term.
+- **Links to a glossary term** (`/campaigns/N/glossary#t-...`, from a tooltip chip or a "Glossary" link) carry `hx-boost="false"`: a boosted swap would run the glossary component before the address has its `#fragment`, and scroll to the top instead of the term. A full load lets the browser jump and the component highlight the term.
 - **Wargear names** are lower case in the rules file; the `upfirst` template function (`sentence`) gives them a capital wherever the company chooser shows them (the same helper as for messages).
-- **Swapped content is wired at once.** htmx reads the `hx-*` attributes of a swapped-in fragment only when it settles (20 ms after the swap), and a click in that gap sends nothing (seen: a sheet menu entry that did nothing under load). `static/js/htmx_ready.js` calls `htmx.process` on the swap target in `htmx:afterSwap`, so the new buttons work from the moment they are on screen. The e2e step "a menu entry clicked the instant it is swapped in" holds it.
-- **A live refresh waits for the pointer.** Every refresh of `#live-zones` replaces the Actions buttons, so a click whose mousedown and mouseup straddle a swap got no click event (the pressed element was gone). `static/js/live.js` holds the swap of a refresh (`GET .../live` into `#live-zones`, dropped in `htmx:beforeSwap`) while a pointer is down inside the zones or a request started from inside them (a menu or sheet being opened) is still running, and fetches the zones once more right after `pointerup`/`pointercancel`/`dragend`/the request's `loadend` (the latest state; nothing stale is kept). A hold ends by itself after 2.5 s, so a lost `pointerup` cannot freeze the live view. The e2e step "a click that straddles a live refresh still lands" (`40-match`) presses, forces a refresh, checks the pressed button is still there, releases and expects the click and then the new zones.
+- **Swapped content is wired at once.** htmx reads the `hx-*` attributes of a swapped-in fragment only when it settles (20 ms after the swap), and a click in that gap would send nothing (a sheet menu entry that did nothing under load). `static/js/htmx_ready.js` calls `htmx.process` on the swap target in `htmx:afterSwap`, so the new buttons work from the moment they are on screen. The e2e step "a menu entry clicked the instant it is swapped in" holds it.
+- **A live refresh waits for the pointer.** Every refresh of `#live-zones` replaces the Actions buttons, so a click whose mousedown and mouseup straddle a swap would get no click event (the pressed element is gone). `static/js/live.js` holds the swap of a refresh (`GET .../live` into `#live-zones`, dropped in `htmx:beforeSwap`) while a pointer is down inside the zones or a request started from inside them (a menu or sheet being opened) is still running, and fetches the zones once more right after `pointerup`/`pointercancel`/`dragend`/the request's `loadend` (the latest state; nothing stale is kept). A hold ends by itself after 2.5 s, so a lost `pointerup` cannot freeze the live view. The e2e step "a click that straddles a live refresh still lands" (`40-match`) presses, forces a refresh, checks the pressed button is still there, releases and expects the click and then the new zones.
 - **Double submit.** `static/js/submit.js` disables a form's buttons while its request is in flight and ignores a second submit. On the server, making a match or a campaign is deduplicated for 10 s (the same person, the same content opens the first one), and the actions that spend or roll (recruit, level-up, purchases, hires, treatment, perks, grants, invites, aftermath rolls and decisions) run behind `Server.once` (`internal/web/dedupe.go`): a request identical (same address and body) to the same person's previous guarded request, within 3 s, gets that answer instead of running again; any other request in between ends the match, so confirming a recruit, rolling on the special chart and confirming again runs both confirms.
 - **Refusals and failures** go through `Server.refuse` / `notFound` (`internal/web/errors.go`), keeping the status code: a full page request gets the `error` page in the layout (title, heading, the reason, a way back: the campaigns, or Sign in for a visitor), an htmx request gets the short plain text that the layout's error banner shows. A 5xx logs its cause and shows a fixed sentence. A catch-all route makes unknown addresses a rendered 404.
 - **Validation errors** are returned with status `422` and swapped in place (htmx is configured to swap 422). Any other
@@ -140,19 +213,48 @@ htmx request that swaps only `#main`:
 - **Sign-in and sign-out** answer htmx requests with `HX-Redirect` (a full page load) so the header, which depends on
   who is signed in, is drawn again. A protected page requested without a session does the same toward `/login`.
 
-**Windows** (`role="dialog" aria-modal="true"`, shown by `x-show`) are handled by `static/js/dialog.js`: focus moves into the window when it opens, Tab stays inside it and focus returns to the opener when it closes; the page closes it on Escape and the backdrop and locks the body scroll while it is open. Its close button is 44 px square. In running text (`p`, `li`, `td`, `dd`) links are underlined, so colour is not the only cue.
+### Windows
 
-**Static files** (`internal/web/static.go`, [performance.md](performance.md)). Templates name them with `{{static "js/x.js"}}`, which adds `?v=<content hash>`;
-a request with the current hash is `Cache-Control: public, max-age=31536000, immutable`, so a page costs no request for them. `app.css` is
-served with the same `?v=` on the fonts and images it loads. Text files are gzipped at start and served with an ETag (304 on a match);
-`STATIC_MAX_AGE` only governs addresses without `?v=`. Pages load three scripts: `theme-init.js` and `tz.js` (head, synchronous) and
-`js/app.js`, a bundle made at start of htmx, the theme store, the page scripts, SortableJS and Alpine in the order of `bundleScripts` (a new
-script goes into that list, not into the layout). Pages and fragments over 1 KB are gzipped for browsers that accept it (`compress.go`; the
-live stream is not).
+Windows (`role="dialog" aria-modal="true"`, shown by `x-show`) are handled by `static/js/dialog.js`:
 
-**Loading rules** (measured in [performance.md](performance.md), "Frontend pass at v2.0.0"): the heading font is preloaded in the layout under the stylesheet's own `{{static}}` address; an address that only redirects (the My Company and Armory tabs without a company) answers a boosted click with the page and `HX-Push-Url` instead (`boostedLink`), keeping the redirect for whole-page requests and history restores; a window that is closed on load fetches its body when first wanted (the To Wound chart: `tw-load`, triggered by `towound.js` from the pointer, touch, focus or click) rather than with `hx-trigger="load"`; a list of forms hidden until a click is a `<template x-if>` whose root calls `htmx.process($el)` in `x-init`; a page that Alpine filters at start is drawn in its default filtered state by CSS first (no layout shift when Alpine starts).
+- Focus moves into the window when it opens, Tab stays inside it, and focus returns to the opener when it closes.
+- Escape and a click on the backdrop close it, and the body scroll is locked while it is open.
+- Windows can nest.
+  `dialog.js` keeps a stack of open windows and treats the innermost shown one as the active window.
+  Focus stays trapped in the inner window, Escape closes only that one, and focus goes back to the control that opened it (the Sorcerer's "Select magical power" list inside the path window, see [Path carousel](#path-carousel)).
+- The close button is 44 px square.
+- In running text (`p`, `li`, `td`, `dd`) links are underlined, so colour is not the only cue.
 
-**Alpine** is used for state that never needs the server: menus, show/hide password, enabling a button as you type,
+### Static files
+
+Static files are served by `internal/web/static.go` (measurements in [performance.md](performance.md)).
+
+- Templates name a file with `{{static "js/x.js"}}`, which adds `?v=<content hash>`.
+- A request with the current hash is `Cache-Control: public, max-age=31536000, immutable`, so a page costs no request for the file.
+- `app.css` is served with the same `?v=` on the fonts and images it loads.
+- Text files are gzipped at start and served with an ETag (304 on a match).
+  `STATIC_MAX_AGE` only governs addresses without `?v=`.
+- Pages load three scripts:
+  - `theme-init.js` and `tz.js` (in the head, synchronous);
+  - `js/app.js`, a bundle made at start of htmx, the theme store, the page scripts, SortableJS and Alpine, in the order of `bundleScripts`.
+    A new script goes into that list, not into the layout.
+- Pages and fragments over 1 KB are gzipped for browsers that accept it (`compress.go`; the live stream is not).
+
+### Loading rules
+
+These rules keep pages cheap to load (measured in [performance.md](performance.md), "Frontend pass at v2.0.0").
+
+- The heading font is preloaded in the layout under the stylesheet's own `{{static}}` address.
+- An address that only redirects (the My Company and Armory tabs without a company) answers a boosted click with the page and `HX-Push-Url` (`boostedLink`).
+  Whole-page requests and history restores keep the redirect.
+- A window that is closed on load fetches its body when first wanted, rather than with `hx-trigger="load"`.
+  The To Wound chart does this with `tw-load`, triggered by `towound.js` from the pointer, touch, focus or click.
+- A list of forms hidden until a click is a `<template x-if>` whose root calls `htmx.process($el)` in `x-init`.
+- A page that Alpine filters at start is drawn in its default filtered state by CSS first, so nothing shifts when Alpine starts.
+
+### Alpine
+
+Alpine is used for state that never needs the server: menus, show/hide password, enabling a button as you type,
 the theme store. Keep it to that.
 
 Text that comes from a rules file or from users must never be written inside quotes in an Alpine expression (`x-data`, `:class`,
@@ -170,7 +272,7 @@ Sidebar order: **Administration** (administrators and superusers, gold-outlined 
 Campaigns (`/campaigns`, the list; `/` shows the same list when there is no valid last-campaign cookie, otherwise it redirects to the campaign last opened, see [auth.md](auth.md)) with a sub-menu of the user's active campaigns, Glossary; at the bottom the user's name, Account and Sign out. The sub-menu shows on the main page and inside any campaign; its items are drawn into every full page (`pageBase.base` asks `NavCampaigns` for a signed-in user, `NavInline`; the main page uses its own list, `NavOwn`), so there is no extra request. An htmx content swap has no sidebar and skips the query; if the list cannot be read the sidebar falls back to fetching `GET /nav/campaigns` on load. The list is refetched there only when it changes (`campaigns-changed`). Only the campaign you are in is expanded, with its pages (Overview, My Company, Armory, Rankings,
 Matches; the current one marked) under it, and is marked with an accent bar, soft fill and a faint gold glow;
 switching campaign collapses the previous one while the new one expands, both animating their height together (a
-grid-rows 0fr/1fr transition, collapsed lists `inert`; an `x-transition` made the leaving list linger and the sidebar
+grid-rows 0fr/1fr transition with collapsed lists `inert`; an `x-transition` would let the leaving list linger and make the sidebar
 jump) (Alpine `inCampaign` / `onTab` on the shell, from the current path). The shell also sets `path` when you click a link
 (`navigate`), not only when the page has loaded, so the sidebar answers at once on a slow connection. Administration (administrators and
 superusers, gold-marked) opens `/admin`, whose tabs (Users, Invitations, and Rules files for superusers only; the sidebar entry stays marked on all) are the
@@ -200,14 +302,23 @@ campaigns are searched only while "Show finished campaigns" is on.
 
 ## Campaign pages
 
-`/campaigns/{id}` has six tabs, each its own URL and page (the header and tabs are the `campaign_header` partial;
-`campaignBase` carries the campaign and the current tab): **Overview** (your company or "create my company", campaign
-facts, rules files, latest matches), **My Company** (your company: the page "Manage company" opens; your company's own
-URL under `/companies/{id}` redirects to `/campaigns/{id}/my-company/{company}`), **Armory**, **Rankings** (every company of the campaign, by points; another company opens read only, yours redirects to My Company;
-`/campaigns/{id}/companies`, the old Companies tab, redirects here), **Matches** and **Glossary** (the glossary this campaign is played with). Entering a campaign (its name in the sidebar, its card on the campaign list, the
-last-campaign redirect of `/`, an invite link) opens **My Company** (`/campaigns/{id}/my-company`), the page a player uses most; the
-Overview stays the first tab, at `/campaigns/{id}`. The sidebar lists the
-same tabs under the campaign you are in.
+`/campaigns/{id}` has six tabs.
+Each tab is its own URL and page.
+The header and tabs are the `campaign_header` partial, and `campaignBase` carries the campaign and the current tab.
+The sidebar lists the same tabs under the campaign you are in.
+
+| Tab | What it shows |
+|---|---|
+| **Overview** (`/campaigns/{id}`) | Your company (or "create my company"), campaign facts, rules files, latest matches |
+| **My Company** | Your company: the page "Manage company" opens. Your company's own URL under `/companies/{id}` redirects to `/campaigns/{id}/my-company/{company}` |
+| **Armory** | What the company can buy |
+| **Rankings** | Every company of the campaign, by points. Another company opens read only; yours redirects to My Company. `/campaigns/{id}/companies` redirects here |
+| **Matches** | The campaign's matches |
+| **Glossary** | The glossary this campaign is played with |
+
+Entering a campaign opens **My Company** (`/campaigns/{id}/my-company`), the page a player uses most.
+This covers its name in the sidebar, its card on the campaign list, the last-campaign redirect of `/` and an invite link.
+The Overview stays the first tab.
 
 - **Manage campaign** card on the Overview (`CanManage`: the organiser and administrators; `campaign_manage.go`, template `manage_card`): the
   status badge; **Pause** / **Resume** with one inline confirmation; **End campaign** in three steps (consequences from
@@ -256,7 +367,7 @@ same tabs under the campaign you are in.
   (`Match.Tone`). Wins/draws/losses are shown as green/yellow/red numbers wherever they appear (`wdl` partial).
 - **New match** (`/campaigns/{id}/matches/new`, `static/js/match_form.js`): choose the number of sides (2 to 8), name
   each one (blank means "Side N") and search the campaign's companies to add to it; added companies are chips that can
-  be removed, and a company already on a side no longer shows up in the searches (Enter in a search box adds the first match instead of submitting the form). **All vs all** turns the sides into one
+  be removed, and a company already on a side does not show up in the searches (Enter in a search box adds the first match instead of submitting the form). **All vs all** turns the sides into one
   pool of companies (with an "Add every company" button) where each company fights alone: the handler turns each into a
   side named after it (`mode=ffa`). The form is posted as `sides`,
   `side-name-N` and one `side-N` per company; `core.ValidateSides` checks that every side has a company and none repeats.
@@ -338,17 +449,32 @@ The page adds no component: it reuses the report partial, `card`, `field` and `a
 
 ## My Company: units
 
-The My Company tab shows, in this order, a row of Points, Units (current / the company's maximum), Matches and W / D / L, a row
-of Influence, Gold and the limits, (bows and crossbows, throwing weapons and
-cavalry: a third of the company by default, `limits[]` of the rules file through `BCBook.Limits`; `CompanyLimit.Next` is the maximum once one more model has joined, because a model that
-joins counts in the numerator and the denominator: 6 models with 2 bows may take a 7th bow model, `RoomForNew`; each limit is a
-segmented bar like the experience one, `.xp-bar.limit-bar` with `--seg` = `CompanyLimit.Segments`: one segment per allowed model, the
-counted ones filled from the left, and at the right end one **hatched** segment (`.limit-exempt`) per model or item the
-company's exemptions leave out, `CompanyLimit.Exempt`; the numbers then read "0 / 2 · total 1" (a Rider of Rohan in a company
-where they do not count), with the explanation in the tooltip) and one **card per unit**, in the company's order
-(`core.OrderUnits`: leader, sergeants, other heroes, regular units, unless the player saved another order).
+The My Company tab is the page a player uses most.
+Company pages are built by `core.BuildDetail` from the stored company state and the campaign's rules files.
+
+From top to bottom the tab shows:
+
+1. A row of **Points**, **Units** (current / the company's maximum), **Matches** and **W / D / L**.
+2. A row of **Influence**, **Gold** and the **limits**.
+3. One **card per unit**, in the company's order (`core.OrderUnits`: leader, sergeants, other heroes, regular units, unless the player saved another order).
+
+### Company limits
+
+The limits cover bows and crossbows, throwing weapons and cavalry.
+By default each is a third of the company; the numbers are the `limits[]` of the rules file, read through `BCBook.Limits`.
+
+- `CompanyLimit.Next` is the maximum once one more model has joined.
+  A model that joins counts in the numerator and the denominator, so 6 models with 2 bows may take a 7th bow model (`RoomForNew`).
+- Each limit is a segmented bar like the experience one (`.xp-bar.limit-bar`, with `--seg` = `CompanyLimit.Segments`).
+  There is one segment per allowed model, and the counted ones are filled from the left.
+- At the right end there is one **hatched** segment (`.limit-exempt`) per model or item that the company's exemptions leave out (`CompanyLimit.Exempt`).
+  The numbers then read "0 / 2 · total 1" (a Rider of Rohan in a company where they do not count), with the explanation in the tooltip.
+- A limit with no `RoomForNew` says a new recruit would not fit.
+
+### The unit card
 
 A card, top to bottom:
+
 - **Frame and insignia** for the unit's place, with no text tag, each in its own colour in every palette (the game colours):
   leader amber and doubled with three rank chevrons, sergeant green and doubled with two, other heroes solid blue with
   one, regular units thin. The shape of the insignia tells them apart without colour.
@@ -370,7 +496,7 @@ A card, top to bottom:
   smaller: the halberd is spears and a two-handed axe. The main icon of an Elven weapon (`core.IsElvenWeapon`: Elven and
   Elven-made weapons, the Wood Elf Spear), which wins a drawn combat's roll-off more often, carries a small green leaf on its
   corner (our own `elven-leaf`, the `M` mark of `gi_icon`) and keeps its class's colour, since nearly every weapon of an elven
-  company is one. The earlier icons are kept in `static/img/archive/`.
+  company is one. Unused icon files are kept in `static/img/archive/`.
   In a gear chip of the card the icon is 1.375 rem. **Gear style**, a per-browser choice in the "Unit cards" section of `theme_controls` (the
   Appearance menu and the Account page; `$store.theme.gear` / `setGear`, buttons `[data-gear-option]`): "Icon and name" (default) or "Icons only",
   which writes the cookie `bcm-gear=tiles`; `theme-init.js` then sets `data-gear="tiles"` on `<html>` before the first paint and `tailwind.css`
@@ -439,7 +565,9 @@ A card, top to bottom:
   and scenario rewards only come at the end) follows the fill in the magic path's colour (`--hero`, `.xp-match`), up to the end of the level,
   and the count reads "+2 0 / 5 XP" with the "+2" in the same colour (`.xp-match-text`; the bar's `aria-valuetext` says it too).
 
-**Item icons.** Every item has an icon: specific ones by name (backpack, badge, rope, drum, horn, standard, cloak, brew, herbs,
+### Item icons
+
+Every item has an icon: specific ones by name (backpack, badge, rope, drum, horn, standard, cloak, brew, herbs,
 talisman, map, boots, ring, scroll, seeing stone, torch, snares, pelt, cram, belt, vial, blowpipe, axe, barding;
 `core.IconFor`), the class icons for weapons, armour, shields, bows and mounts (a blade-spear shows two), and a generic
 **pouch (small)** or **chest (large)** for equipment the rules data adds that has no icon yet. The icons are in
@@ -450,7 +578,9 @@ by colour), and `partials/units.gohtml` draws them (`item_icon`, `eq_icon`, `gea
 to `iconRules`, its key to `gearLooks` and the symbol to the sprite (with its credit in `static/img/CREDITS.md`); `icons_test.go` fails
 on a key with no look, a name missing from the sprite and a symbol nothing draws.
 
-**What the cards read from the data.** An item's classes, granted rules and missile profile come from the Battle Companies
+### What the cards read from the data
+
+An item's classes, granted rules and missile profile come from the Battle Companies
 file's `data.gearAnnotations` (`BCBook.Annotation`), not from guessing its name. The classes are mount, melee, two_handed,
 spear, lance (a cavalry spear, sorted with the melee weapons), shield, armour, bow, crossbow, throwing, missile (the
 blowpipe: a ranged weapon that counts against no limit), banner, instrument, consumable (scrolls, herbs, brew, cram) and
@@ -462,7 +592,9 @@ item but a modifier: the unit gains Poisoned Attacks (<the weapon the player cho
 keyword) with a company's `limitExemptions` (an exempt unit is left out of the count and of the base the maximum is worked
 out on) and `limitOverrides` (`BCBook.Limits`).
 
-**The Armory tab** lists every purchase the company could ever make, whether or not a unit can take it now, with its cost, slot
+### The Armory tab
+
+The Armory tab lists every purchase the company could ever make, whether or not a unit can take it now, with its cost, slot
 size, text and what it gives; it leaves out only what no unit could ever buy. **Buy for…** opens the company's units: those that can
 take it have a Buy button, the others are shadowed with the reason (heroes only, cavalry only, no free slot, a limit full, not enough
 influence...). An item that is possible but that no unit can take now is **greyed**: its name is muted, the button reads "No unit can
@@ -471,7 +603,9 @@ sentence under the item's text (`ArmouryEntry.Why`: what stops each kind of unit
 now: already wears this armour or better (Warrior of Arnor); not an option of its profile (Ranger of Arnor). A Ranger of the North may take
 it after Armour."). A search box filters by name and alias.
 
-**What is possible** is decided in core in one place (`shop.possible` through `shop.entries`, `core/armoury_possible.go`): an item is
+### What is possible in the Armory
+
+What is possible is decided in core in one place (`shop.possible` through `shop.entries`, `core/armoury_possible.go`): an item is
 possible in a company when some unit that can exist in it could buy it under the rules, whatever the units carry or the influence and slots
 now. The units that can exist (`shop.candidates`) are the ones the company has and, from the same sources as a hero's options (`heroOptions`:
 reinforcement and special charts, advancements, promotions, starting company, walked once by `shop.reachable`), a warrior of every profile it
@@ -486,7 +620,10 @@ in a fresh Arnor company Armour and Heavy Armour are possible (a Ranger of the N
 Warg or halberd is ever possible; in the Shire Armour is possible and Heavy Armour is not; in Rohan and Moria every profile starts in
 Armour or better, so Armour is not possible and Heavy Armour is.
 
-Filters (Alpine `armory`, in the browser): a switch **Hide what <company> could never take** (ON by default, remembered in `localStorage`
+#### Armory filters
+
+The filters are the Alpine component `armory`, so they work in the browser.
+A switch **Hide what <company> could never take** (ON by default, remembered in `localStorage`
 `bcm-armory-mine`, styled like the main page's "Show finished campaigns" switch) hides the items, creatures and wanderers that are not
 possible (`data-avail="0"`, from `ArmouryEntry.Possible`; another company's goat or Fell Warg) and says how many; with the switch off they
 show, and every purchase that is possible shows either way: lacking influence, a slot, a unit that can take it now, or a stage to climb does
@@ -496,7 +633,9 @@ them, the item category chips (Melee, Ranged, Armour and shields, Mounts, Consum
 The names on creature and wanderer cards (special rules, wargear, heroic actions) carry a tooltip when a file explains them: the armory's
 own item text (aliases too) or the glossary term; a name nothing explains has none.
 
-**Equipment slots.** Battle Companies equipment takes a slot: a model carries one large and one small item, and a Backpack
+### Equipment slots
+
+Battle Companies equipment takes a slot: a model carries one large and one small item, and a Backpack
 (large) holds three more small ones (`CompanyUnit.Slots`, `GearOffer.Size`). Wargear (weapons, armour, mounts) takes none. A
 card shows its slots as pips (`Large ■ 1/1`, `Small □ 0/1`), and a **+** after its equipment opens a window with what the
 company's armoury sells (`Armoury`: the common wargear and equipment plus the company's unique wargear), each item with
@@ -506,7 +645,9 @@ profile does not have: a warrior may only buy wargear matching one of its profil
 profiles in its company's charts, promotions and starting company (`heroOptions`); a Beast takes no wargear and only equipment that grants exactly one special rule (Trophy Pelt, Badge of Courage), `beastMayCarry`; a warrior promoted to any profile loses the wargear that profile does not list, by item identity, see [aftermath.md](aftermath.md#wargear-on-a-promotion) (the Mirkwood Elf Warrior's Elven-made glaive on becoming a Mirkwood Elf Knight: gone for good, `dropUnlisted`; a hero Knight buys it back); a profile without options, such as the Guard of the Fountain Court, buys no wargear, a Mattock is not the Two-handed weapon option). An item that only lacks influence, a free slot or room under a company limit (bows, throwing weapons) is listed with that
 reason (`ArmouryItem.Blocker`): a full limit is not a rule against the unit.
 
-**Armour upgrades** (`core/armour.go`, `data.wargear.armourUpgrade`): the shop adds one offer per armour stage above the first
+### Armour upgrades
+
+Armour upgrades (`core/armour.go`, `data.wargear.armourUpgrade`): the shop adds one offer per armour stage above the first
 (`GearOffer.ArmourStage` > 0: "Armour", "Heavy Armour"; 1 influence or Gold, rating per stage: 1 until a hero's Attacks + Wounds reach 3, then 5, and no extra rating for a stage that its profile or its Options already have, BC "Calculate Rating"; the option itself costs its MESBG points for a warrior and a hero alike). Buying
 one through `BuyEquipment` with the stage's name replaces the armour the unit wears (the old one is dropped) with the next stage;
 stages are never skipped. A warrior (a Beast that is still a warrior included) needs the stage as an option of its profile; a hero only the stages that units
@@ -515,7 +656,9 @@ of its company can have (`armourPool`), so a company without heavy-armoured unit
 (their `Reason`/`Blocker` say why not) and, like any item, in the Armory tab whenever they are possible in the company even if every unit
 wears the stage or cannot reach it now (see above); the Defence change shows in the effective stats.
 
-**Dropping.** The expanded card has a **Drop** button on equipment the rules let the unit drop (`core.DropReason`);
+### Dropping equipment
+
+The expanded card has a **Drop** button on equipment the rules let the unit drop (`core.DropReason`);
 otherwise it says why. Battle Companies: equipment (slot items) can always be dropped; a hero freely drops any wargear it
 chose or bought, but wargear of its profile only with the optional rule "heroes may discard any wargear"
 (the campaign setting `HeroesDropProfileGear`, off by default); a warrior may drop wargear only if what it then
@@ -525,7 +668,9 @@ of what it chose or bought: warrior or hero column), and the slot and company li
 buy the limited item. Buying spends the company's
 influence and may grant special rules (`grantsSpecialRules` in the Battle Companies file). Every item the company can buy is in the Armory tab.
 
-**Recruiting.** The **Recruit** button above the units opens a window that stays open through the whole recruit:
+### Recruiting
+
+The **Recruit** button above the units opens a window that stays open through the whole recruit:
 1. It shows the company's **reinforcement chart** and, if it has one, its **special chart** as a separate table, the
    company's own notes about reinforcements, and the price per roll (it differs per company: 2, 3 or 4). Companies with
    special units list them below, bought directly at their own cost (Moria's Cave Troll is 15).
@@ -555,7 +700,9 @@ cannot recruit beyond its maximum (15, or 12 for many) nor without enough influe
 open; their forms answer with the window again (`HX-Retarget` sends the final answer to the whole page) and
 `core.ErrRefused` carries the reason when the rules say no.
 
-**Officer locks on the creation page.** Everything the server forces on the choice of officers is blocked in the page too, from one source:
+### Officer locks on the creation page
+
+Everything the server forces on the choice of officers is blocked in the page too, from one source:
 `CompanyProfile.OfficerLocks()` (core, `startingcompany.go`) gives, per place of the starting company, an `OfficerLock{Kind, Reason}`:
 `leader` (the Shire's Ranger of the North: must start as the Leader), `officer` (a unit that is a hero by its profile, `startingHeroNoStatGain`:
 Helm's Deep's Ranger of the North: must be Leader or Sergeant), `barred` (a Hero in the Making of Wanderers in the Wild, a unit On Their Own
@@ -568,7 +715,9 @@ and Sergeant places by drag (the card it meets swaps places with it) or with the
 assign buttons. The pool buttons that would do nothing (the Leader button while a locked card holds the place) are `aria-disabled` and describedby
 the locking card's reason. Rows are `startRow.Lock` in `internal/web/companies.go`.
 
-**Ranger of the North replacement (Shire).** The Shire starts with a Ranger of the North as Leader (fixed: `CompanyProfile.ValidateStart` refuses any other
+### Ranger of the North replacement (Shire)
+
+The Shire starts with a Ranger of the North as Leader (fixed: `CompanyProfile.ValidateStart` refuses any other
 choice with "The Ranger of the North must start as the Leader of the The Shire company."; the form locks him, see above), a vanilla Hero (Might, Will, Fate 1 each, so
 `startingHeroNoStatGain`). The company's rule: "if the company's Ranger of the North has been slain, you may swap any successful result on the Reinforcements chart
 for a Ranger of the North, who may immediately take the role of Leader or Sergeant. The company may only ever have a single Ranger of the North at any time." The
@@ -597,24 +746,32 @@ data is the effect `companies[Shire].effects[kind=rangerReplacement]` (`unit`, `
 - A fallen Ranger is an ordinary casualty (a Leader falling still opens the succession of [aftermath.md](aftermath.md)); the cemetery tag `RangerMayReturn` says "May return
   with a reinforcement" and the aftermath alert `RangerFell` says he returns as the Leader.
 
-**Rare units.** A chart row or special unit marked rare (`Rare N` badge in the recruit tables) may be had N times in the company at
+### Rare units
+
+A chart row or special unit marked rare (`Rare N` badge in the recruit tables) may be had N times in the company at
 once (the units of that type in the roster). A rare result the company already has the most of cannot join: the player takes a
 lower result of the same chart (or cannot buy the special unit), like any other result that cannot join. A result that offers
 several units (`unitChoice`, the Wanderers' Hobbits: Hobbit Militia, Hobbit Shirriff, Tookish Hunter, Battlin' Brandybuck) lets the
 player pick one the company does not have yet (each is rare 1 as a profile); with all four it cannot join.
 
-**Campaign settings.** The options an organiser can switch on when creating a campaign (`heroesDropProfileGear`, `shakeTheTable`,
+### Campaign settings
+
+The options an organiser can switch on when creating a campaign (`heroesDropProfileGear`, `shakeTheTable`,
 `manualRolls`) are listed in the Battle Companies file (`campaign.options[]`: key, scope, label, description, default,
 implemented); the form is drawn from that list (`core.ParseCampaignOptions`, grouped by scope: rules, app). An option whose key the
 app does not know, or that the file marks as not implemented (the homebrew path), is listed struck through and disabled with an "unknown setting" tag (its tooltip says the app may need updating or the rule in the file may be wrong), and logged as a warning.
 
-**The cemetery.** A unit that dies (a casualty roll of Dead, a hero retiring on its second arm or leg wound) leaves the roster for
+### The cemetery
+
+A unit that dies (a casualty roll of Dead, a hero retiring on its second arm or leg wound) leaves the roster for
 good and rests in the **Cemetery** section under the Battle company, as it was when it fell (`core.FallenUnit`: its profile, wargear,
 path and level, how it ended and where). The cards only look. The player can reorder them (**Change order**, with drag and drop or
 arrows, saved with `SaveCemeteryOrder`), but a fallen unit never goes back to the roster and a unit of the company cannot be put
 in the cemetery by hand (the two lists are separate Sortable instances, and each save refuses ids of the other list). The cemetery is filled from the casualty rolls of the aftermath ([aftermath.md](aftermath.md)).
 
-**Units made of several models.** The Vault Warden Team joins as two units of their own (vanilla `includes`, points from the
+### Units made of several models
+
+The Vault Warden Team joins as two units of their own (vanilla `includes`, points from the
 company's `includedUnitPoints`: Iron Shield Bearer 13, Foe Spear Wielder 12), each with its own card, experience and injuries. A
 `compositeModel` (the Warg Marauder: three Goblin riders and a Warg on one Cavalry card) is one unit that counts as `Slots` models
 against the company's maximum (`CompanyUnit.Models`; `CompanyDetail.ModelCount`) and shows its parts on the card; it counts once for
@@ -624,7 +781,9 @@ are instead ordinary warriors that earn experience (`CompanyUnit.OwnPath` is fal
 company's label for a unit, like the Goblin Hulk), so they are matched exactly. A `heroPromotion` (Arnor) makes the unit change profile
 and become a hero in one step, with no extra Might, Will and Fate.
 
-**Formation.** The order of the units comes from the backend: the default (leader, sergeants, other heroes, regular units) until
+### Formation
+
+The order of the units comes from the backend: the default (leader, sergeants, other heroes, regular units) until
 the player orders their company, and their saved order for good after that (`core.OrderUnits`; units they have not placed,
 such as new recruits, follow at the end in the default order). **Change formation**, next to the unit count, puts a handle above
 every card: drag it (SortableJS, `static/js/sortable.min.js`, MIT, with its pointer-based drag so it feels the same with a
@@ -632,7 +791,9 @@ mouse and on touch screens) or use the arrows on the handle (keyboard friendly).
 new order (`SaveFormation`, which refuses an order that is empty, repeats a unit, misses one or names a unit of another company) and the page comes back in that order; **Cancel** (or Escape, when nothing else is open) puts the
 cards back. Meanwhile the cards themselves do not react.
 
-**Rating and injuries.** A unit's points are its Battle Companies rating: a warrior is its MESBG points plus the option its
+### Rating and injuries
+
+A unit's points are its Battle Companies rating: a warrior is its MESBG points plus the option its
 wargear amounts to plus the rating of its equipment; a hero built from a warrior profile is that profile's points plus
 5 per point of Might, Will, Fate, Movement, Fight, Strength and Defence and 10 per point of Attack and Wounds above the
 profile and above the average Battle Company profile, plus 5 per special rule its path gave and 5 per minor special rule it took at level-up, those at most 10 together (`BCBook.HeroRating`; Envenom Weapon's rule is the item's and does not count), plus
@@ -642,7 +803,9 @@ its options (at the hero rating when its Attacks and Wounds add up to 3 or more)
 are their vanilla points plus their options plus gear. A starting company's points plus its gold are 105 once the officers are chosen. **Injured** units
 (marked on their card) miss the next game and are left out of the company's rating (the Points card says how many).
 
-**Optional rules** are chosen when the campaign is created and shown in its Rules card (see "Campaign settings" below and [architecture.md](architecture.md#campaign-settings)).
+### Optional rules and the expanded card
+
+Optional rules are chosen when the campaign is created and shown in its Rules card (see "Campaign settings" above and [architecture.md](architecture.md#campaign-settings)).
 
 The **expand** button (a small tab flush in the card's corner frame, so it takes no room from the content) maximises one card (only one at a time; click outside, press Esc or the close button to return): it
 shows every item and rule in full, with the glossary terms inside the descriptions linked and previewed on hover
@@ -674,21 +837,90 @@ button; an item with a tooltip has a dashed border.
 
 ### Path carousel
 
-A leader or sergeant without a path chooses it in the path window (`path_panel`, `handleChoosePath`, `pathCards` in `company_actions.go`, flow `109-path-carousel`), a carousel.
-On top, every path is a small button (a small icon and the name on one line) in a **mosaic**: a wrapping grid (`.path-strip`, columns of at least 7.75rem, so 2 at 360 px and more as the window widens) with every path visible at once and no scrolling, a `role="radiogroup"` of radios named `path` (Tab, the arrow keys, Enter and screen readers work natively; a tab's
-accessible name is the full path name); the selected button is marked (`.is-on`); the previous and next arrows are only the floating ones beside the card. Exactly one is always selected (the first available one at
-the start). Below, the paths are cards stacked in one grid cell (Alpine `pathCarousel` in `static/js/company.js` gives each `data-rel`, its place against the selection clamped to -2..2 for the look at rest, and `--r`, the same place unclamped, that the transform is computed from): the
-selected card is in front and whole, the previous and next ones sit behind it, smaller (scale .86), half transparent and blurred, partly covered; the others are away and invisible.
-Choosing (a tab, the floating arrows, the arrow keys, a swipe on the stack, or a click on a card behind) moves the cards with a transform and opacity transition whose length (`--dur`) grows with the distance (0.2 s plus 0.08 s per step, at most 0.6 s): a jump of five sweeps the cards past each other, the ones in between seen going by (blurred, faint, `.is-moving`) and gone again at rest (the card in front has an 85% background, not opacity, so its text keeps the contrast; the ones behind are blurred 2 px, also under reduced motion); under
-`prefers-reduced-motion` they just switch (`--dur` is 0). Two **floating previous/next buttons** (`.path-float`, a sticky bar at the middle of the window over the stack, 44 px, overlapping only the card's margin) share `step()` and the disabled state with the buttons at the sides of the strip, so they stay in reach when the card is scrolled. The cards behind are `aria-hidden` with an `inert` body, so they cannot be focused or read; a click on one only selects it.
+A leader or sergeant without a path chooses it in the path window.
+The window is a carousel with a mosaic of every path above it.
 
-A card shows all the app knows of the path: its description; **Path Limits**, the most each characteristic can reach, from the glossary term's limits: the profile's (F, S, D, A, W, C...)
-in a `statline` and, stacked under it as a second row as on a hero's card (`statline-hero`), Might, Will and Fate (the same classes as the unit card, `.path-limits` only stacks them); the **starting heroic action** and, for a Sorcerer, **Starting power**
-(neither is a row of the chart); and the whole **level-up chart** ("Level-up: roll 2D6") as a list of bordered rows (`border-line`), one per roll, with the usual glossary links. The chart already names every
-Mastery and special rule the path unlocks, so they are not listed again. A row that offers alternatives shows each on its own line with a small "or" divider: `splitAlternatives`
-cuts the chart's text at the file's upper-case " OR ", at ", or improve " and before "Pick an additional" in a "Choice of" row, and leaves an ordinary "or" inside a sentence alone.
-A blocked path shows the reason and "Take this path" is off. A Sorcerer's first magical power stays a second step under the stack: a **"Select magical power"** button ("Change" once one is chosen, with the chosen name shown) opens a second window (`role="dialog"`, a window inside the path window; `dialog.js` keeps a stack, so the focus is trapped in the inner one, Escape closes only it and the focus goes back to the button) listing every power the Sorcerer can begin with as real radio inputs named `power` in a `radiogroup`, each with its **whole description** (`powerViews`: the rules file's definition, never cut, as glossary links), so the player knows what each does. A click on a power chooses it and closes the list; the arrow keys only move through it, Enter or "Use this power" closes it. "Take this path" stays off for a Sorcerer until a power is chosen; the radios are disabled (not submitted) for any other path. The form is the same as ever: `POST .../units/{unit}/path` with `path` (and `power`); the choice is final. Styles: `.path-carousel`,
-`.path-strip`, `.path-tab`, `.path-stage`, `.path-card` in `tailwind.css`.
+Code: `path_panel`, `handleChoosePath` and `pathCards` (`company_actions.go`); flow `109-path-carousel`.
+
+#### The mosaic
+
+On top, every path is a small button (a small icon and the name on one line).
+
+- The buttons form a wrapping grid (`.path-strip`, columns of at least 7.75 rem), so there are 2 columns at 360 px and more as the window widens.
+- Every path is visible at once, with no scrolling.
+- The grid is a `role="radiogroup"` of radios named `path`, so Tab, the arrow keys, Enter and screen readers work natively.
+  A button's accessible name is the full path name.
+- The selected button is marked (`.is-on`).
+  Exactly one is always selected: the first available path at the start.
+
+#### The cards
+
+Below the mosaic, the paths are cards stacked in one grid cell.
+The Alpine component `pathCarousel` (`static/js/company.js`) gives each card two values:
+
+- `data-rel`, its place against the selection, clamped to -2..2 for the look at rest;
+- `--r`, the same place unclamped, from which the transform is computed.
+
+At rest:
+
+- The selected card is in front and whole.
+- The previous and next cards sit behind it: smaller (scale .86), half transparent, blurred and partly covered.
+- The other cards are away and invisible.
+- The cards behind are `aria-hidden` with an `inert` body, so they cannot be focused or read.
+  A click on one only selects it.
+
+#### Moving between paths
+
+A path is chosen with a tab, the floating arrows, the arrow keys, a swipe on the stack, or a click on a card behind.
+The cards then move with a transform and opacity transition.
+
+- The length of the transition (`--dur`) grows with the distance: 0.2 s plus 0.08 s per step, at most 0.6 s.
+- A jump of five sweeps the cards past each other.
+  The cards in between are seen going by (blurred and faint, `.is-moving`) and are gone again at rest.
+- The card in front has an 85% background, not opacity, so its text keeps its contrast.
+  The cards behind are blurred 2 px, also under reduced motion.
+- Under `prefers-reduced-motion` the cards just switch (`--dur` is 0).
+
+Two **floating previous/next buttons** (`.path-float`) sit in a sticky bar at the middle of the window over the stack.
+They are 44 px and overlap only the card's margin, so they stay in reach when the card is scrolled.
+They share `step()` and the disabled state with the buttons at the sides of the mosaic.
+
+#### What a card shows
+
+A card shows everything the app knows of the path:
+
+- its description;
+- **Path Limits**, the most each characteristic can reach, from the glossary term's limits.
+  The profile's limits (F, S, D, A, W, C...) are in a `statline`.
+  Might, Will and Fate are stacked under it as a second row, as on a hero's card (`statline-hero`; `.path-limits` only stacks them);
+- the **starting heroic action** and, for a Sorcerer, **Starting power** (neither is a row of the chart);
+- the whole **level-up chart** ("Level-up: roll 2D6") as a list of bordered rows (`border-line`), one per roll, with the usual glossary links.
+  The chart already names every Mastery and special rule the path unlocks, so they are not listed again.
+
+A row that offers alternatives shows each on its own line with a small "or" divider.
+`splitAlternatives` cuts the chart's text at the file's upper-case " OR ", at ", or improve " and before "Pick an additional" in a "Choice of" row.
+An ordinary "or" inside a sentence is left alone.
+
+A blocked path shows the reason, and "Take this path" is off.
+
+#### Select magical power (Sorcerer)
+
+A Sorcerer's first magical power is a second step under the stack.
+
+1. A **"Select magical power"** button opens a second window inside the path window.
+   Once a power is chosen, the button reads "Change" and the chosen name is shown.
+2. The window is a `role="dialog"`.
+   `dialog.js` keeps a stack, so focus is trapped in the inner window, Escape closes only it, and focus goes back to the button.
+3. The window lists every power the Sorcerer can begin with as real radio inputs named `power` in a `radiogroup`.
+   Each shows its **whole description** (`powerViews`: the rules file's definition, never cut, with glossary links), so the player knows what each power does.
+4. A click on a power chooses it and closes the list.
+   The arrow keys only move through the list; Enter or "Use this power" closes it.
+5. "Take this path" stays off for a Sorcerer until a power is chosen.
+   The radios are disabled (and not submitted) for any other path.
+
+The form posts `POST .../units/{unit}/path` with `path` (and `power`). The choice is final.
+
+Styles: `.path-carousel`, `.path-strip`, `.path-tab`, `.path-stage` and `.path-card` in `tailwind.css`.
 
 ### Level-up
 
@@ -749,7 +981,9 @@ final; the name can be changed later from My Company (the pencil by its name, `R
 checks one leader, two sergeants, distinct models that may lead. A hero starts with a point of Might, Will and Fate, except the
 units the company lists in `startingHeroNoStatGain` (Ranger of the North in Helm's Deep and the Shire).
 
-**Choosing a path later.** The leader and the sergeants start as heroes without a path (`CompanyUnit.PathPending`): their cards
+#### Choosing a path later
+
+The leader and the sergeants start as heroes without a path (`CompanyUnit.PathPending`): their cards
 carry a "Choose a path" banner that opens the same kind of window as a hero in the making (`PathOptions`, `ChoosePath`: paths that
 are at their limit are listed with the reason, and a Sorcerer chooses its first magical power). The path's heroic action comes with
 it. A pending officer cannot level up and the company cannot be put in a match until every hero has a path (`CreateMatch` refuses). A hero starts with a point of Might, Will and Fate and its
@@ -815,10 +1049,13 @@ The switches (Riders on foot = `foot`, Mounts that fight as figures of their own
 (`hx-get` on change, `hx-select="#tts-result"`, `hx-swap="outerHTML"`) so focus stays on the switch. `static/js/tts.js` (in the bundle, no inline handlers)
 adds the remembered values to the first request and the new ones to every switch request (`htmx:configRequest`), keeps them in `localStorage` key `bcm-tts`
 (`{"foot":"1","mounts":"1","rules":"none"}`, every access in try/catch: without storage the defaults apply) and copies with `navigator.clipboard.writeText`, falling back
-to selecting the text and `execCommand('copy')`; when both fail the status says "press Ctrl+C" with the text already selected. The warning alert is the new
+to selecting the text and `execCommand('copy')`; when both fail the status says "press Ctrl+C" with the text already selected. The warning alert is
 `.alert-warn` (border `warn`, surface `raised`); the button, the switches and the alert are in `/styleguide`. Flow `91-tts` drives all of it.
 
-**Names block** (below the notes, only when there is a list): "Name and describe the figures". A second form (`data-tts-form`, a
+#### Names block
+
+The names block, "Name and describe the figures", sits below the notes and appears only when there is a list.
+It is a second form (`data-tts-form`, a
 `fieldset` of three radios `rules` = none | short | full, default none (names only), remembered in the same `localStorage` key) refreshes only `#tts-names-result`; the
 list switches refresh `#tts-result` and, through `hx-select-oob="#tts-names-result:outerHTML"`, the names too (the forms are not swapped, so focus stays).
 The result holds a labelled read-only `<textarea id="tts-names-text">` with the ArmyNames JSON (`core.TTSNames` through `ttsExporter.TTSNames`, given the
@@ -831,7 +1068,9 @@ Notebook tab titled exactly `ArmyNames`; spawn from `ArmyList`; select the army 
 `Cache-Control: public, max-age=3600`, behind `protected`, so an anonymous visitor goes to the login) and a collapsed `<details>` "Show the Lua (fallback,
 unverified)" with a read-only text area (`ttshelper.ShowLua()`) and its own copy button. Flow `92-tts-names` drives it.
 
-**Auras section** ([`aura-ranges.md`](aura-ranges.md); template `tts_auras`, swap target `#tts-auras`, between the rule-text radios and
+#### Auras section
+
+The auras section ([`aura-ranges.md`](aura-ranges.md)) is the template `tts_auras`, swap target `#tts-auras`, between the rule-text radios and
 `#tts-names-result`). A form (`data-tts-form`) with: the master switch **Draw aura rings** (`name="auras"`, default on); a fieldset **Kinds of ring**
 with one native checkbox per kind the company has (`name="akind"`, `id="tts-akind-<kind>"`), each row a ring icon (`aura_ring`: the kind's Okabe-Ito colour as the border,
 its first letter B C S E U inside, the enemy kind with the thicker border, so colour is never the only cue), the label and "N rings, radii 3", 6"" from
@@ -852,7 +1091,11 @@ presses Space and checks it). The names JSON is **version 2** only when at least
 ring), another player's company and the plain list. The ring colours are fixed classes (`.aura-k-banner` ... in `tailwind.css`, the palette of the helper), not theme tokens;
 the rest uses the tokens. Both are in `/styleguide` ("Aura rings and chips").
 
-**Aura chips on the unit cards** (`aura_chip` and `aura_row` in `partials/units.gohtml`, helpers in `internal/web/auras.go`). `CompanyUnit.Auras` is filled by core at
+#### Aura chips on the unit cards
+
+Aura chips are drawn by `aura_chip` and `aura_row` in `partials/units.gohtml`, with helpers in `internal/web/auras.go`.
+
+`CompanyUnit.Auras` is filled by core at
 build time (`RuleSet.UnitAuras`: unfiltered, merged by kind and radius, sorted kind then radius). The row sits under the special rules on every `unit_card` (My Company, another
 company's read-only page, the Field cards of a live match) and the expanded card lists them in full under "Auras" (`data-auras-full`: radius, labels, who it affects and when, the
 tip). Not on the compact cards (Retreated, casualties, missed), the fallen cards, the company browser's hover card or the armoury (those have no built unit or are one-line rows).
@@ -865,7 +1108,7 @@ default in Tabletop Simulator", so the card tells what the unit can do and the d
 
 ### Gold
 
-Gold is given to some companies in their starting company, as a special victory reward of some scenarios, and by the organizer
+Gold is given to some companies in their starting company, as a special victory reward of some scenarios, and by the organiser
 in a narrative scenario (a custom one); what is left is kept (`campaign.gold`). Equipment, creatures and wanderers cost their
 rating (`gold` in the file) in Gold and no influence, and wargear can be bought with Gold as well. Slots, limits and
 restrictions still apply. Every buy button of the armory (the tab, a unit's equipment window, creatures, wanderers) offers the
@@ -990,113 +1233,265 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
 (`internal/web/live*.go`, `static/js/live.js`, the `live_*` templates in `campaign_my_company.gohtml`, `company_panels.gohtml`,
 `units.gohtml` and `match.gohtml`). `web` declares `liveMatches` (embedded in `campaigns`; `core.LiveService` implements it).
 
-- **Company page of a company in an open match** (`CompanyDetail.OpenMatch` says so; `liveFor` loads `Live`): the same page with
-  - `#live-banner` (sticky under the app bar): "Match N is running" with the scenario, the sync dot, **To wound** (opens the To Wound chart window, below), **End checks** (everybody) and, for who may edit, **Match log**;
-  - the roster locked like read only (no recruit, buy chips, heal, level-up, drop, dismiss; rename stays) with the line "The company is
-    locked until the match ends"; "Change formation" is hidden while live (the grid is re-rendered by the sync);
-  - `#live-zones` (`live_zones`): the Field as unit cards, then **Retreated**, **Field casualties** and **Missed this game** as
-    one-line headers with a count ("None" when empty) and compact cards (`live_compact`: badge, reason, **Return to the battle** for
-    who may edit), then the Cemetery. `GET /campaigns/{id}/companies/{company}/live` answers `#live-zones` alone (its `data-seq` is the
-    match's last sequence). Every control that answers the zones (trackers, milestones, the turn, the Break Point, the courage and item
-    windows) takes the `hx_zones` attributes: it replaces `#live-zones`, and `hx-sync` queues the presses one at a time.
-  - Another player's company is the same page read only (`ReadOnly`); an editor who is not the owner (organiser, administrator) has the
-    trackers and actions on it. Viewers see `current / start` without buttons.
-- **The opponent's keywords and "applies" markers** (`kw_applies`, `keyword_flat` in `partials/units.gohtml`; [unit-keywords.md](unit-keywords.md) "Rule targets"):
-  the Field cards, the compact cards and the rows of "Wounded a unit" of an enemy company show the unit's keyword chips (compact cards use the normal
-  `keyword_row`; the wound sheet's rows, which sit inside a label, a flat list without tips: `keyword_flat`, `data-keywords-flat`). An enemy Field unit
-  that has a keyword named by an enemy-keyword rule of **your side's** units in the Field (Hatred (X), Ancient Enemies (X) and the named rules the table
-  marks `enemy-keyword`; not `enemy-any` rules such as Terror) gets a `.kw-applies` marker "Hatred (Orc) applies" per rule: an accent outline plus
-  the text, `has-tip` (`tabindex="0"`, tooltip "Your Aldor and Hama have Hatred (Orc). This unit has the Orc keyword, so the rule works against it.",
-  Enter opens the helper popup for the rule), in a `ul[data-rule-matches]` under the keyword row; the sheet's rows show the same text in a plain span.
-  The reverse (the enemy's rules against you) is not shown. `liveFor` computes it (`enemyMatches`: `core.RuleMatches` over the Field units of the
-  viewer's side and of the company on the page, each read through `Live` and `CompanyDetail`), so the refresh of `#live-zones` redraws the markers and a
-  unit that retreats or falls loses its marker; a viewer with no company in the match, and the viewer's own side, get none. Without `data.ruleTargets`
-  no rule has targets and nothing is marked. Read errors of the extra companies drop the markers, never the page.
-- **Trackers** (`live_trackers`, replace W, Might, Will, Fate in the attribute row; `.tracker*`, `.seg-hit` in `tailwind.css`): a segmented bar
-  like the experience one, led by the stat's full name (Might, Will, Fate, Wounds), one segment per point of the start value, full up to the
-  current one, then `current/start`; Wounds uses hearts instead of segments, inside the same 16 px row. One stat per row,
-  left-aligned so the bars line up, and the counts in a column after the longest bar (the rows are subgrids of one grid): Might, Will and Fate (heroes) in that order, then Wounds, always shown, also when it starts at 1 (a plain
-  warrior): taking it to 0 makes the unit a Field casualty, as Died does. Each stat has its own colour on its bold name and its bar: the theme tokens of the path kinds (`.path-k-*`), so
-  gold Might (command), hero blue Will (magic), success green Fate (ranged) and danger red Wounds (melee, as the Soldier) (an empty segment or heart is a faint tint of it with a thin outline that
-  does not change its size). The owner taps a segment (22 x 16 px):
-  the last full one is `delta -1` ("... down by one"), the first empty one `delta +1` ("... up by one"), any other `set` to that segment
-  ("Set ... to N"); a viewer gets the same bars as marks. Above 10 segments a tracker falls back to the number between 28 px `-` and `+`.
-  Each press is one `POST .../matches/{match}/live/{company}/actions` (`kind=stat`, `unit`, `stat`, `delta` or `set`), answered by
-  `live_response`: the zones plus an out-of-band **toast** (`#live-toast`) with the log text and **Undo**, or, on a refusal, 422 with
-  the state as it is and the reason as the toast. A viewer's write is 403. Live POSTs are not wrapped in `once()`.
-- **Milestones** row on each field card (`liveView.Milestones` in `live_milestones.go` builds them, `live_actions_menu` and `milestone` in
-  `company_panels.gohtml` draw them, `.milestone*` in `tailwind.css`): Wounded,
-  Fate, Courage and Objective (`aria-pressed`; off dashed and muted, on filled with the accent and a tick), buttons for editors and marks
-  (`role="img"`) for viewers. Wounded opens its sheet, whose `live_recorded` block lists the unit's wound entries with Undo (`UnitLog`:
-  the unit's not-undone entries of one kind, filtered in the query); Fate, Courage
-  and Objective post to the actions route at once (`fate` with `count=0`, only the mark, `broken`, `objective`), and a lit Fate or Courage posts the undo of
-  `LiveUnit.FateEntry` / `BrokenEntry`. Below, `.live-actions` (editors, icon above the label, only while the unit has a loaned item to
-  spend): Item used opens its sheet. The route also serves the list of every action (`sheet/menu`, which no card opens now: Wounded a unit, Passed a fate roll, Passed a
-  Broken courage roll, Retreated, Died, Mount removed/re-added; Fate and Mount only when the unit has them), each opening its sheet
-  (`GET .../live/{company}/units/{unit}/sheet/{kind}`, `live_sheet`). **Wounded a unit** lists the enemies in the Field (then the same
-  side after a "Friendly fire" divider), with search, Rider/Mount for a mounted target, wounds caused and saved by Fate steppers
-  (`woundSheet` in `live.js`) and a preview sentence in the words of the log.
-- **Break Point, turns and courage** (`live_break` in `campaign_my_company.gohtml`, inside `#live-zones` so the SSE refetch refreshes viewers too): a turn row ("Turn 3" or "Turn not started", **Start turn N** for editors: `kind=turn`, `turn=N`; a stale press is the service's 422 toast); a Break Point panel (`<details>`, summary "Break Point 6.5 of 13 · Casualties 4 · 50%" with a "Will break next turn" or "Broken since turn N" badge and a progressbar; open: the casualties by name, the scenario exceptions and, for editors, +/- adjusters for starting models and casualties with a shared note, `kind=breakAdjust`); the **Company broken** banner (`#live-broken`, danger alert, not sticky: it would cover the live banner) with the All is Lost choice as an inline `<details>` (**Flee the battlefield** with a confirm / **Fight on**, editors, while `Break.Offer`) and "Who has tested this turn". Cards of a Broken company show "Test due" / a resolved chip (`CourageDue`: `CourageTurn != Turn`; the chip is `liveView.CourageChip` from `LiveUnit.CourageHow`: "Tested: passed", "Tested: failed", "Auto-pass" for standFast, heroicResolve, chariot, scenario, "Exempt" for engaged, cannotActivate, else "Courage resolved"). The company header (own page and other companies' read-only page, `campaign_my_company.gohtml`) shows "Break Point: N% of the starting models" from `CompanyDetail.BreakPointPercent` (the company's own rule, e.g. 66 for Muster of Isengard, else the file's default; never 0 with real rules) and a primary **Courage test** button that opens the `courage` sheet (`live_courage`): Roll 2D6 (`POST .../units/{unit}/courage/roll`, `RollCourage`, nothing written; typed dice only with ManualRolls; a plain server roll, not the animated dice component), "Record: passed" (`broken`, with Call Stand Fast for Heroes that are not Wanderers) or "Record: failed" (`retreat` why `courage`, confirm), and the six pass or exempt buttons (`courageSkip`). All writes go through the one `actions` route (`liveActionFrom` reads `turn`, `field`+`delta`, `reason`, `flee`, `standFast`, `item`+`index`).
-- **Against the Odds items**: `LiveUnit.Loaned` is listed under the Wargear of the card, grouped by item ("Climbing ropes ×5", tag "Loaned (Raider's Kit)", "use after the game" for Healing Herbs and Wondrous Cram, struck through and "used" once spent); owned items in `UsedItems` are struck through; the action menu has **Item used** (`item` sheet: the loaned items still to spend, `kind=itemUsed`) when something is left. `LiveCompany.Wanderer` makes a card for the temporary Wanderer (`temporaryUnit`: a roster unit with the synthetic negative id, badges "Wanderer" and "Temporary", the profile summary, Rating as its points, no Dismiss), in the zone its live unit is in, and a wound target in the wound sheet.
-- **Result form**: for a company whose result was not reported yet, `prefillLiveDefaults` ticks **Fled** (All is Lost) and the `enemyBroken` objective from `MatchDefaults`, each with the badge "From the live match", and the Fled switch explains "The other side claims victory (All is Lost). Saving this does not end the match."
-- **Mount lost**: "On foot" badge; the mount item, the gear with `Equipment.RequiresMount`, the rules the mount gave and the Cavalry
-  rule are struck through (`itemView.Struck`, `ruleView.Struck`, aria-label "needs a mount"). The data flag `requiresMount` comes from the Battle Companies file.
-- **Match log**: `GET .../matches/{match}/live/log` is the sheet (company page; `?company=` so Undo refreshes the zones out of band), `?card=1` the card of
-  the match page (below History, drawn inline in the full page, refreshed on `live:match`), `?before=<seq>` the next 30 older rows. Newest first,
-  grouped by minute, Undo only where the service says `CanUndo` and the match is open; a dependency refusal shows in the log. After the
-  match the card stays (read only, permanent); an ended match recorded after the fact says it has no log.
-- **End checks** (`live_end.go`, `end_*` templates in `match.gohtml`): the sheet (banner button, `GET .../matches/{match}/live/end?company=`) and the card on
-  the match page (`?card=1`, `#end-checks-slot`, refreshed on `live:match`, empty once the match ended) show `core.EndChecks`: per own company a
-  switch per unit "Got the objective" (`POST .../live/{company}/objective`, `unit`, `on`), per opposing company a radio list "Select MVP" with "No
-  MVP" (`POST .../live/{company}/mvp`, `unit`; 0 withdraws) and the vote tally (a tie says the owner picks in the aftermath). Every write answers
-  the body again with a message and Undo (`from=end|endcard` of the shared undo route); a refusal is 422, a user with nothing to set gets 403.
-  **Propose to end** is a button that fetches `.../live/end/reminder?revision=` (what is still open, **Go back** / **Propose anyway**; never blocks;
-  `POST .../end/propose`).
-- **Ending a match by confirmation** (`match.go` `handleEnd`, `live_end_banner.go`; templates `end_card`, `end_propose` in `match.gohtml`, `end_override` in
-  `partials/end.gohtml`, `end_banner` in `campaign_my_company.gohtml`). Routes (all `revision`, 422 refusal, stale revision answers the current state):
-  `POST .../matches/{match}/end/propose|confirm|withdraw|cancel|override` (override also `note`, trimmed, 1-200). `core.EndAccessFor` (via `endAccess`) hides the
-  controls; the service enforces. Match page: the header button is hidden while an end is pending and the **End card** (`#end-card-slot`, refreshed on
-  `live:match` through `GET .../end/card`, which also sends the header button out of band) lists one row per company (**Confirmed** with who and when / **Waiting**),
-  the reset notice, **Confirm the end** (owner of a waiting company), **Withdraw my confirmation**, **Keep playing** (any participant, organiser, admin) and, for
-  the organiser or an administrator while somebody waits, the quiet **End without confirmation...** that opens the warning and the note field (the dialog stays
-  open with the error on a missing note). Viewers see rows without buttons. The history line of an ended match carries `MatchEvent.Detail`.
-  Company page: `#live-end` inside the sticky `#live-banner` ("Ending: waiting for Gorgoroth", same actions, override included) is fetched on load and on
-  `live:match` (`GET .../live/end/banner?company=`); its forms post with `view=banner&company=` and get the banner back, or `HX-Refresh` when the match ended.
-  **Start turn** is disabled with "Cancel the ending first: the match is about to end." while `liveView.EndPending`. The log lines ("Ending cancelled: ...") come
-  from the backend and show in the normal log.
-  On the aftermath sheet the prefilled objective shows "From the live match" and the MVP "Voted MVP".
-  The two log/end slots set `hx-target="this"` (the body's inherited `hx-target="#main"` would swap them over the page).
-- **Sync** (`live.js`): one `EventSource` on `/campaigns/{id}/matches/{match}/events` per page that has a live part (`#live-zones` or
-  `[data-live-match]`), none elsewhere; an event of the page's company with a `seq` above the zones' `data-seq` refetches the zones (the author's
-  own change is ignored); `ended` reloads the page; the stream is closed while the tab is hidden and reopened (with a refetch) when shown;
-  the dot is green "Live", pulsing grey "Reconnecting" (the browser retries every 3 s; when the stream is back the page refetches what it
-  missed, the state is in Postgres); when the stream is refused (caps) or unsupported the page polls every 10 s.
-- **Secret objectives** (`secret.go`, `secret_card` in `match.gohtml`; only for a scenario with `ScoringObjectives[].Secret`, i.e. Fog of War): the card
-  (`GET .../matches/{match}/secret`, drawn inline in the full page; the endpoint serves the refresh and the fallback) lists, for each company the viewer owns, each secret objective with a nomination
-  form (a select of own or enemy Heroes without the Leader unless he is the only Hero, or a text box for the terrain piece) and a tier radio
-  list ("Not reached yet" clears); `POST .../secret/{company}` (`kind=nominate|done`, `key`, `unit`/`note`/`tier`) applies the live action, with an
-  Undo (`from=secret`). While the match is open nothing of other players is shown but "Noted already: <companies>" (privacy is the service's);
-  after End match the card lists everybody's. On the result form of an ended match the Victory Points of a side with none reported are prefilled
-  from `SecretScore` with the badge "From the live match" (editable, saved only with Save result).
-- **Perks in the rolls**: the recruit roll form shows **Rendezvous** (Not now / +1 / -1, field `perk`, `RollRecruitWithPerk`) while the company has an unused
-  Rendezvous (`core.UnusedPerk(detail.Perks, ...)`; the free roll on the special chart does not offer it); after a scenario roll ("Roll for it") the
-  panel offers **Vantage Point** +1 / -1 on the second die to an owner of a company in the match with an unused one (`POST .../scenario/roll` with
-  `vantage`=company, `adjust`; the dice posted are the ones on show, so the typed-roll setting does not apply; `UseVantagePoint` returns the moved die and the line shown).
-  The recruit window shows the moved die as "4, Rendezvous +1 = 5" (`RecruitRoll.PerkRaw/PerkAdjust`).
-- **Gear notes on the card**: a `StatMod` with `Delta` 0 and a `Note` (the Small Shield's "+1 Defence against strikes only") prints as a muted line under the
-  attributes (`data-stat-note`), besides the characteristic's tooltip, so it shows on a phone too.
-- **Finished campaigns are frozen in the UI**: My company is read only with the notice "frozen as it was" (`myCompanyView.Frozen`, badge "Frozen"; no recruit window),
-  an open match says it stays open but cannot change, and shows no End checks, Roles or secret objectives cards. The organiser (not only administrators) sees
-  "Edit the result" and "Reopen match" on an ended match (`CanManageCampaign`).
-- **Aftermath MVP hint** (`Aftermath.MVP`): above the units of the sheet, the vote lines, who is ticked, or "Tied: ..." with the owner choosing. Revealed secret lines print `SecretLine.Label`.
-- **Admin Users** rows with `AdminUser.Organises` have an "Organises N campaigns" expander listing each campaign (status, players) with a select of the campaign's members except the organiser (`Campaigns.Members`; "Name (Company)" or "Name (no company yet)") and **Hand over** (`POST /admin/users/{id}/handover`: `campaign`, `organiser`, `email`; `Campaigns.HandOver`, administrators need not be members).
-- **Side roles** (Attacker/Defender tags, [matches.md](matches.md)): a **Role** select per side on the new-match form (`side-role-N`, not in all vs all) and, on
-  the match page, a **Roles** card for editors of an open match (`POST .../matches/{match}/roles` with `role-N`, `.../roles/swap`; 422 with the
-  reason when invalid) plus a badge on each side and per company on the result form. Offered only while the scenario is not chosen or has roles
-  (`matchView.ShowRoles`); End match with a roles scenario and untagged teams shows "Choose which team attacks and which defends".
-- **Match creation** shows "Company X is already in Match N." with a link (`*core.CompanyBusyError`) or "Finish the aftermath of Match N
-  first."; the aftermath sheet shows **From the live match** (heading badge and a line) while it is the unsaved default
-  (`Aftermath.FromLive`).
+### Company page in an open match
+
+A company in an open match (`CompanyDetail.OpenMatch`; `liveFor` loads its `Live` state) gets the usual company page with:
+- `#live-banner` (sticky under the app bar): "Match N is running" with the scenario, the sync dot, **To wound** (opens the To Wound chart window, below), **End checks** (everybody) and, for who may edit, **Match log**;
+- the roster locked like read only (no recruit, buy chips, heal, level-up, drop, dismiss; rename stays) with the line "The company is
+  locked until the match ends"; "Change formation" is hidden while live (the grid is re-rendered by the sync);
+- `#live-zones` (`live_zones`): the Field as unit cards, then **Retreated**, **Field casualties** and **Missed this game** as
+  one-line headers with a count ("None" when empty) and compact cards (`live_compact`: badge, reason, **Return to the battle** for
+  who may edit), then the Cemetery. `GET /campaigns/{id}/companies/{company}/live` answers `#live-zones` alone (its `data-seq` is the
+  match's last sequence). Every control that answers the zones (trackers, milestones, the turn, the Break Point, the courage and item
+  windows) takes the `hx_zones` attributes: it replaces `#live-zones`, and `hx-sync` queues the presses one at a time.
+- Another player's company is the same page read only (`ReadOnly`); an editor who is not the owner (organiser, administrator) has the
+  trackers and actions on it. Viewers see `current / start` without buttons.
+
+### The opponent's keywords and "applies" markers
+
+Code: `kw_applies`, `keyword_flat` in `partials/units.gohtml`; [unit-keywords.md](unit-keywords.md) "Rule targets".
+
+The Field cards, the compact cards and the rows of "Wounded a unit" of an enemy company show the unit's keyword chips (compact cards use the normal
+`keyword_row`; the wound sheet's rows, which sit inside a label, a flat list without tips: `keyword_flat`, `data-keywords-flat`). An enemy Field unit
+that has a keyword named by an enemy-keyword rule of **your side's** units in the Field (Hatred (X), Ancient Enemies (X) and the named rules the table
+marks `enemy-keyword`; not `enemy-any` rules such as Terror) gets a `.kw-applies` marker "Hatred (Orc) applies" per rule: an accent outline plus
+the text, `has-tip` (`tabindex="0"`, tooltip "Your Aldor and Hama have Hatred (Orc). This unit has the Orc keyword, so the rule works against it.",
+Enter opens the helper popup for the rule), in a `ul[data-rule-matches]` under the keyword row; the sheet's rows show the same text in a plain span.
+The reverse (the enemy's rules against you) is not shown. `liveFor` computes it (`enemyMatches`: `core.RuleMatches` over the Field units of the
+viewer's side and of the company on the page, each read through `Live` and `CompanyDetail`), so the refresh of `#live-zones` redraws the markers and a
+unit that retreats or falls loses its marker; a viewer with no company in the match, and the viewer's own side, get none. Without `data.ruleTargets`
+no rule has targets and nothing is marked. Read errors of the extra companies drop the markers, never the page.
+
+### Trackers
+
+Code: `live_trackers`, `.tracker*` and `.seg-hit` in `tailwind.css`.
+Trackers replace the static W, Might, Will and Fate values in the attribute row.
+
+Each tracker is a segmented bar like the experience one:
+
+- It is led by the stat's full name (Might, Will, Fate, Wounds).
+- It has one segment per point of the start value, full up to the current one, then `current/start`.
+- Wounds uses hearts instead of segments, inside the same 16 px row.
+- Above 10 segments a tracker falls back to the number between 28 px `-` and `+` buttons.
+
+Layout:
+
+- One stat per row, left-aligned so the bars line up, with the counts in a column after the longest bar (the rows are subgrids of one grid).
+- The order is Might, Will and Fate (heroes only), then Wounds.
+- Wounds is always shown, also when it starts at 1 (a plain warrior).
+  Taking it to 0 makes the unit a Field casualty, as Died does.
+
+Colour: each stat has its own colour on its bold name and its bar, from the theme tokens of the path kinds (`.path-k-*`):
+
+- gold Might (command);
+- hero-blue Will (magic);
+- success-green Fate (ranged);
+- danger-red Wounds (melee, as the Soldier).
+
+An empty segment or heart is a faint tint of that colour with a thin outline that does not change its size.
+
+Pressing a segment (22 x 16 px) is the owner's way to change a value:
+
+- the last full segment is `delta -1` ("... down by one");
+- the first empty segment is `delta +1` ("... up by one");
+- any other segment is `set` to that segment ("Set ... to N").
+
+A viewer gets the same bars as marks, without buttons.
+
+Each press is one `POST .../matches/{match}/live/{company}/actions` (`kind=stat`, `unit`, `stat`, `delta` or `set`), answered by `live_response`:
+
+- the zones plus an out-of-band **toast** (`#live-toast`) with the log text and **Undo**;
+- or, on a refusal, 422 with the state as it is and the reason as the toast.
+
+A viewer's write is 403. Live POSTs are not wrapped in `once()`.
+
+### Milestones
+
+Row on each field card (`liveView.Milestones` in `live_milestones.go` builds them, `live_actions_menu` and `milestone` in
+`company_panels.gohtml` draw them, `.milestone*` in `tailwind.css`): Wounded,
+Fate, Courage and Objective (`aria-pressed`; off dashed and muted, on filled with the accent and a tick), buttons for editors and marks
+(`role="img"`) for viewers. Wounded opens its sheet, whose `live_recorded` block lists the unit's wound entries with Undo (`UnitLog`:
+the unit's not-undone entries of one kind, filtered in the query); Fate, Courage
+and Objective post to the actions route at once (`fate` with `count=0`, only the mark, `broken`, `objective`), and a lit Fate or Courage posts the undo of
+`LiveUnit.FateEntry` / `BrokenEntry`. Below, `.live-actions` (editors, icon above the label, only while the unit has a loaned item to
+spend): Item used opens its sheet. The route also serves the list of every action (`sheet/menu`, which no card opens: Wounded a unit, Passed a fate roll, Passed a
+Broken courage roll, Retreated, Died, Mount removed/re-added; Fate and Mount only when the unit has them), each opening its sheet
+(`GET .../live/{company}/units/{unit}/sheet/{kind}`, `live_sheet`). **Wounded a unit** lists the enemies in the Field (then the same
+side after a "Friendly fire" divider), with search, Rider/Mount for a mounted target, wounds caused and saved by Fate steppers
+(`woundSheet` in `live.js`) and a preview sentence in the words of the log.
+
+### Break Point, turns and courage
+
+Code: `live_break` in `campaign_my_company.gohtml`, inside `#live-zones` so the SSE (server-sent events) refetch refreshes viewers too.
+The rules are in [live-match.md](live-match.md#company-break-point-in-play).
+
+**Turn row.**
+It reads "Turn 3" or "Turn not started".
+Editors get **Start turn N** (`kind=turn`, `turn=N`).
+A stale press is the service's 422 toast.
+
+**Break Point panel.**
+It is a `<details>` element.
+
+- The summary reads "Break Point 6.5 of 13 · Casualties 4 · 50%", with a "Will break next turn" or "Broken since turn N" badge and a progressbar.
+- Opened, it lists the casualties by name and the scenario exceptions.
+- Editors also get +/- adjusters for starting models and casualties, with a shared note (`kind=breakAdjust`).
+
+**Company broken banner** (`#live-broken`).
+It is a danger alert and is not sticky, because a sticky banner would cover the live banner.
+
+- It holds the All is Lost choice as an inline `<details>`: **Flee the battlefield** (with a confirmation) or **Fight on**, for editors, while `Break.Offer` is set.
+- It also shows "Who has tested this turn".
+
+**Cards of a Broken company** show "Test due" until the unit's courage is resolved this turn (`CourageDue`: `CourageTurn != Turn`).
+Then they show a chip (`liveView.CourageChip`, from `LiveUnit.CourageHow`):
+
+- "Tested: passed" or "Tested: failed";
+- "Auto-pass" for `standFast`, `heroicResolve`, `chariot` and `scenario`;
+- "Exempt" for `engaged` and `cannotActivate`;
+- otherwise "Courage resolved".
+
+**Company header.**
+On the company's own page and on another company's read-only page it shows "Break Point: N% of the starting models".
+The percentage is `CompanyDetail.BreakPointPercent`: the company's own rule (for example 66 for Muster of Isengard), else the file's default, and never 0 with real rules.
+
+**Courage test button.**
+A primary **Courage test** button in the header opens the `courage` sheet (`live_courage`):
+
+1. **Roll 2D6** (`POST .../units/{unit}/courage/roll`, `RollCourage`).
+   Nothing is written. Typed dice are accepted only with ManualRolls. It is a plain server roll, not the animated dice component.
+2. **Record: passed** (`broken`, with Call Stand Fast for Heroes that are not Wanderers) or **Record: failed** (`retreat` with reason `courage`, after a confirmation).
+3. The six pass-or-exempt buttons (`courageSkip`).
+
+All writes go through the one `actions` route (`liveActionFrom` reads `turn`, `field` + `delta`, `reason`, `flee`, `standFast`, `item` + `index`).
+
+### Against the Odds items
+
+- `LiveUnit.Loaned` is listed under the Wargear of the card, grouped by item ("Climbing ropes ×5", tag "Loaned (Raider's Kit)").
+  "use after the game" marks Healing Herbs and Wondrous Cram. A spent item is struck through and marked "used".
+- Owned items in `UsedItems` are struck through.
+- The action menu has **Item used** (the `item` sheet lists the loaned items still to spend, `kind=itemUsed`) when something is left.
+- `LiveCompany.Wanderer` makes a card for the temporary Wanderer (`temporaryUnit`).
+  It is a roster unit with a synthetic negative id, badges "Wanderer" and "Temporary", the profile summary, Rating as its points and no Dismiss.
+  It sits in the zone its live unit is in, and is a wound target in the wound sheet.
+
+### Result form
+
+For a company whose result was not reported yet, `prefillLiveDefaults` ticks **Fled** (All is Lost) and the `enemyBroken` objective from `MatchDefaults`, each with the badge "From the live match", and the Fled switch explains "The other side claims victory (All is Lost). Saving this does not end the match."
+
+### Mount lost
+
+A unit that lost its mount gets an "On foot" badge.
+These are struck through (`itemView.Struck`, `ruleView.Struck`, `aria-label` "needs a mount"):
+
+- the mount item;
+- the gear with `Equipment.RequiresMount`;
+- the rules the mount gave;
+- the Cavalry rule.
+
+The data flag `requiresMount` comes from the Battle Companies file.
+
+### Match log
+
+`GET .../matches/{match}/live/log` is the sheet (company page; `?company=` so Undo refreshes the zones out of band), `?card=1` the card of
+the match page (below History, drawn inline in the full page, refreshed on `live:match`), `?before=<seq>` the next 30 older rows. Newest first,
+grouped by minute, Undo only where the service says `CanUndo` and the match is open; a dependency refusal shows in the log. After the
+match the card stays (read only, permanent); an ended match recorded after the fact says it has no log.
+
+### End checks
+
+Code: `live_end.go`, `end_*` templates in `match.gohtml`.
+
+The sheet (banner button, `GET .../matches/{match}/live/end?company=`) and the card on
+the match page (`?card=1`, `#end-checks-slot`, refreshed on `live:match`, empty once the match ended) show `core.EndChecks`: per own company a
+switch per unit "Got the objective" (`POST .../live/{company}/objective`, `unit`, `on`), per opposing company a radio list "Select MVP" with "No
+MVP" (`POST .../live/{company}/mvp`, `unit`; 0 withdraws) and the vote tally (a tie says the owner picks in the aftermath). Every write answers
+the body again with a message and Undo (`from=end|endcard` of the shared undo route); a refusal is 422, a user with nothing to set gets 403.
+**Propose to end** is a button that fetches `.../live/end/reminder?revision=` (what is still open, **Go back** / **Propose anyway**; never blocks;
+`POST .../end/propose`).
+
+### Ending a match by confirmation
+
+(`match.go` `handleEnd`, `live_end_banner.go`; templates `end_card`, `end_propose` in `match.gohtml`, `end_override` in
+`partials/end.gohtml`, `end_banner` in `campaign_my_company.gohtml`). Routes (all `revision`, 422 refusal, stale revision answers the current state):
+`POST .../matches/{match}/end/propose|confirm|withdraw|cancel|override` (override also `note`, trimmed, 1-200). `core.EndAccessFor` (via `endAccess`) hides the
+controls; the service enforces. Match page: the header button is hidden while an end is pending and the **End card** (`#end-card-slot`, refreshed on
+`live:match` through `GET .../end/card`, which also sends the header button out of band) lists one row per company (**Confirmed** with who and when / **Waiting**),
+the reset notice, **Confirm the end** (owner of a waiting company), **Withdraw my confirmation**, **Keep playing** (any participant, organiser, admin) and, for
+the organiser or an administrator while somebody waits, the quiet **End without confirmation...** that opens the warning and the note field (the dialog stays
+open with the error on a missing note). Viewers see rows without buttons. The history line of an ended match carries `MatchEvent.Detail`.
+Company page: `#live-end` inside the sticky `#live-banner` ("Ending: waiting for Gorgoroth", same actions, override included) is fetched on load and on
+`live:match` (`GET .../live/end/banner?company=`); its forms post with `view=banner&company=` and get the banner back, or `HX-Refresh` when the match ended.
+**Start turn** is disabled with "Cancel the ending first: the match is about to end." while `liveView.EndPending`. The log lines ("Ending cancelled: ...") come
+from the backend and show in the normal log.
+On the aftermath sheet the prefilled objective shows "From the live match" and the MVP "Voted MVP".
+The two log/end slots set `hx-target="this"` (the body's inherited `hx-target="#main"` would swap them over the page).
+
+### Sync
+
+Code: `live.js`.
+
+One `EventSource` on `/campaigns/{id}/matches/{match}/events` per page that has a live part (`#live-zones` or
+`[data-live-match]`), none elsewhere; an event of the page's company with a `seq` above the zones' `data-seq` refetches the zones (the author's
+own change is ignored); `ended` reloads the page; the stream is closed while the tab is hidden and reopened (with a refetch) when shown;
+the dot is green "Live", pulsing grey "Reconnecting" (the browser retries every 3 s; when the stream is back the page refetches what it
+missed, the state is in Postgres); when the stream is refused (caps) or unsupported the page polls every 10 s.
+
+### Secret objectives
+
+Code: `secret.go`, `secret_card` in `match.gohtml`; only for a scenario with `ScoringObjectives[].Secret`, i.e. Fog of War.
+
+The card
+(`GET .../matches/{match}/secret`, drawn inline in the full page; the endpoint serves the refresh and the fallback) lists, for each company the viewer owns, each secret objective with a nomination
+form (a select of own or enemy Heroes without the Leader unless he is the only Hero, or a text box for the terrain piece) and a tier radio
+list ("Not reached yet" clears); `POST .../secret/{company}` (`kind=nominate|done`, `key`, `unit`/`note`/`tier`) applies the live action, with an
+Undo (`from=secret`). While the match is open nothing of other players is shown but "Noted already: <companies>" (privacy is the service's);
+after End match the card lists everybody's. On the result form of an ended match the Victory Points of a side with none reported are prefilled
+from `SecretScore` with the badge "From the live match" (editable, saved only with Save result).
+
+### Perks in the rolls
+
+The recruit roll form shows **Rendezvous** (Not now / +1 / -1, field `perk`, `RollRecruitWithPerk`) while the company has an unused
+Rendezvous (`core.UnusedPerk(detail.Perks, ...)`; the free roll on the special chart does not offer it); after a scenario roll ("Roll for it") the
+panel offers **Vantage Point** +1 / -1 on the second die to an owner of a company in the match with an unused one (`POST .../scenario/roll` with
+`vantage`=company, `adjust`; the dice posted are the ones on show, so the typed-roll setting does not apply; `UseVantagePoint` returns the moved die and the line shown).
+The recruit window shows the moved die as "4, Rendezvous +1 = 5" (`RecruitRoll.PerkRaw/PerkAdjust`).
+
+### Gear notes on the card
+
+A `StatMod` with `Delta` 0 and a `Note` (the Small Shield's "+1 Defence against strikes only") prints as a muted line under the
+attributes (`data-stat-note`), besides the characteristic's tooltip, so it shows on a phone too.
+
+### Finished campaigns are frozen
+
+My company is read only with the notice "frozen as it was" (`myCompanyView.Frozen`, badge "Frozen"; no recruit window),
+an open match says it stays open but cannot change, and shows no End checks, Roles or secret objectives cards. The organiser (not only administrators) sees
+"Edit the result" and "Reopen match" on an ended match (`CanManageCampaign`).
+
+### Aftermath MVP hint
+
+Code: `Aftermath.MVP`.
+
+Above the units of the sheet, the vote lines, who is ticked, or "Tied: ..." with the owner choosing. Revealed secret lines print `SecretLine.Label`.
+
+### Admin Users: handing over a campaign
+
+Rows with `AdminUser.Organises` have an "Organises N campaigns" expander listing each campaign (status, players) with a select of the campaign's members except the organiser (`Campaigns.Members`; "Name (Company)" or "Name (no company yet)") and **Hand over** (`POST /admin/users/{id}/handover`: `campaign`, `organiser`, `email`; `Campaigns.HandOver`, administrators need not be members).
+
+### Side roles
+
+Code: Attacker/Defender tags, [matches.md](matches.md).
+
+A **Role** select per side on the new-match form (`side-role-N`, not in all vs all) and, on
+the match page, a **Roles** card for editors of an open match (`POST .../matches/{match}/roles` with `role-N`, `.../roles/swap`; 422 with the
+reason when invalid) plus a badge on each side and per company on the result form. Offered only while the scenario is not chosen or has roles
+(`matchView.ShowRoles`); End match with a roles scenario and untagged teams shows "Choose which team attacks and which defends".
+
+### Match creation refusals
+
+Shows "Company X is already in Match N." with a link (`*core.CompanyBusyError`) or "Finish the aftermath of Match N
+first."; the aftermath sheet shows **From the live match** (heading badge and a line) while it is the unsaved default
+(`Aftermath.FromLive`).
 
 ## To Wound chart (window)
 

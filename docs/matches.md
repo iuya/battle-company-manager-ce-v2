@@ -1,13 +1,33 @@
 # Matches: scenario, results and ending
 
 How a match is recorded: the scenario, the reported result, who may edit what, Against the Odds before the game, and how a match ends.
-It describes the match page `/campaigns/{id}/matches/{match}` and the Go types and methods behind it (`core.Matches`). What a match does to
-the companies afterwards (injury rolls, experience, influence) is the War's Aftermath, in [aftermath.md](aftermath.md); while a match is
-open its companies are in live mode ([live-match.md](live-match.md)).
+It is for players and organisers who use the match page, and for developers who change it.
 
-Code: `internal/core/match.go`, `matches.go`, `match_end.go`, `ato*.go`; `internal/web/match.go`, `ato.go`; `internal/postgres/match.go`, `ato.go`
-(tables in [architecture.md](architecture.md)). A write answers with the whole `#match` block, which htmx swaps in, so the header badge,
-scenario and result stay in step. A stale revision answers 200 with a notice; a viewer who cannot edit gets 403; an editor with invalid input gets 422 with the form kept.
+It describes the match page `/campaigns/{id}/matches/{match}` and the Go types and methods behind it (`core.Matches`).
+
+- What a match does to the companies afterwards (injury rolls, experience, influence) is the War's Aftermath, in [aftermath.md](aftermath.md).
+- While a match is open, its companies are in live mode ([live-match.md](live-match.md)).
+
+Code: `internal/core/match.go`, `matches.go`, `match_end.go`, `ato*.go`; `internal/web/match.go`, `ato.go`; `internal/postgres/match.go`, `ato.go` (tables in [architecture.md](architecture.md)).
+
+How a write is answered:
+
+- A write answers with the whole `#match` block, which htmx swaps in, so the header badge, scenario and result stay in step.
+- A stale revision answers 200 with a notice.
+- A viewer who cannot edit gets 403.
+- An editor with invalid input gets 422 with the form kept.
+
+## Contents
+
+- [Concepts](#concepts)
+- [Practice matches](#practice-matches)
+- [Who may edit](#who-may-edit)
+- [Go contract](#go-contract)
+- [The match page](#the-match-page): [scenario picker](#scenario-picker), [one-off scenario form](#one-off-scenario-form), [To wound chart](#to-wound-chart)
+- [Team tags and secret objectives](#team-tags-and-secret-objectives)
+- [Against the Odds](#against-the-odds)
+- [Organiser grants and scenario rewards](#organiser-grants-and-scenario-rewards)
+- [Ending a match](#ending-a-match)
 
 ## Concepts
 
@@ -21,12 +41,31 @@ scenario and result stay in step. A stale revision answers 200 with a notice; a 
 
 ## Practice matches
 
-A match is a **practice match** when its creator ticks **Practice match** on the new-match form (`practice=1`; off by default; "No experience, influence, rewards or
-injuries. The result is only recorded."). It is stored in `matches.practice` (migration 00025), set by `core.NewMatch{Sides, Practice}` in `CreateMatch` and **never changed afterwards**:
-there is no setter, route or button; to change course, end the match and start another. A practice match is otherwise a real match: its companies are in an open match (one at a time,
-`CompanyBusyError`), the company pages show the same live state, the live log, end checks and secret objectives work, ending needs the same confirmations, and an administrator can
-reopen it (`ReopenMatch` ignores the "aftermath started" rule for a practice match, which has none). What it never does: award or spend experience, influence, gold or rerolls, apply
-scenario or Against the Odds rewards, injure, kill, change the rating, consume an item or count toward anything. Its aftermath is derived as complete and empty ([aftermath.md](aftermath.md#practice-matches)).
+A match is a **practice match** when its creator ticks **Practice match** on the new-match form.
+The box is off by default, and a line under it says: "No experience, influence, rewards or injuries. The result is only recorded."
+
+What a practice match is:
+
+- It is a real match in every other way.
+  Its companies are in an open match (one at a time, `CompanyBusyError`), and the company pages show the same live state.
+  The live log, end checks and secret objectives work, and ending needs the same confirmations.
+- An administrator can reopen it.
+  `ReopenMatch` ignores the "aftermath started" rule for a practice match, because it has none.
+
+What it never does:
+
+- award or spend experience, influence, gold or rerolls;
+- apply scenario or Against the Odds rewards;
+- injure or kill a unit, change the rating, or consume an item;
+- count toward anything.
+
+Its aftermath is derived as complete and empty ([aftermath.md](aftermath.md#practice-matches)).
+
+The flag is fixed when the match is created.
+There is no setter, route or button; to change course, end the match and start another.
+
+Implementation: the form posts `practice=1`.
+It is stored in `matches.practice` (migration 00025) and set by `core.NewMatch{Sides, Practice}` in `CreateMatch`.
 
 - **Counts**: wins, draws, losses and the Matches figure exclude practice matches; the Overview adds a muted "n practice matches" line (`CampaignSummary.PracticeMatches`) and the home list "· n practice".
 - **Marks**: the `practice_badge` partial (a neutral pill, icon plus "Practice", never a result colour) after the match number on the Matches list, the Overview's latest matches, the match page header, the aftermath page
@@ -109,7 +148,7 @@ interface all take the acting `core.User` and return `ErrNotFound` for an unknow
 starting positions, how the game ends, special rules, roles) and `Prizes` (rewards that follow from the result: Rendezvous, Vantage Point, Survival of the Fittest; shown, not ticked).
 
 A `ScenarioObjective` is one tick per company on the result form: a reward condition of the rules file that the players tick
-(`data.scenarioDetails[].rewards[]` with a `companyFlag` condition). Today those are Scavenge the Battlefield (free equipment), Baggage Train
+(`data.scenarioDetails[].rewards[]` with a `companyFlag` condition). Those are Scavenge the Battlefield (free equipment), Baggage Train
 (1 Influence) and Relic of Ages Past. Rewards that follow from the result itself (`victory`, `leaderNotRemoved`) are not ticks; they belong to the aftermath. Objective fields are posted as
 `obj-<company id>-<key>`.
 
@@ -237,7 +276,24 @@ GrantReward(ctx, user, id, companyID, core.GrantInput) (core.Grant, error) // or
 Grants(ctx, id, companyID) ([]core.Grant, error)                           // newest first, visible to every player
 ```
 
-Scenario rewards are not granted by the match page: they are shown as a preview ("Completing this earns 1 Gold") and become `Grant`s of kind `scenario` when the aftermath is applied ([aftermath.md](aftermath.md)). The company page has a **Grants** card (also on the owner's My Company tab) and, on another company's page, a **Grant reward** form for the organiser and administrators (Gold, Influence, Experience and a unit, a note) on every company page, one's own included (the card stays at the bottom of the My Company tab); a player never sees the form, and neither does anyone in a finished campaign. `core.GrantInput.Validate` checks the note, that there is something to give, amounts within +-1000 Gold / +-100 Influence and Experience, and a unit for experience; a result below zero Gold or Influence is refused. `core.CampaignDetail.CanGrant` is shared by every caller. `POST .../companies/{company}/grants` answers the card again.
+Scenario rewards are not granted by the match page.
+They are shown as a preview ("Completing this earns 1 Gold") and become `Grant`s of kind `scenario` when the aftermath is applied ([aftermath.md](aftermath.md)).
+
+Where grants appear:
+
+- Every company page has a **Grants** card.
+  On the owner's My Company tab it sits at the bottom.
+- The organiser and administrators also get a **Grant reward** form on every company page, their own included.
+  The form takes Gold, Influence, Experience with a unit, and a note.
+- A player never sees the form, and neither does anyone in a finished campaign.
+
+Validation:
+
+- `core.GrantInput.Validate` checks the note, that there is something to give, amounts within +-1000 Gold and +-100 Influence and Experience, and a unit for experience.
+- A result below zero Gold or Influence is refused.
+- `core.CampaignDetail.CanGrant` is shared by every caller.
+
+`POST .../companies/{company}/grants` answers the card again.
 
 ## Ending a match
 

@@ -5,7 +5,7 @@ import "time"
 // PracticeNothingToRoll is the line of the aftermath of a practice match and the reason every write to it is refused.
 const PracticeNothingToRoll = "Practice match: nothing to roll."
 
-// ErrPracticeNothingToRoll is the refusal of every aftermath write on a practice match (docs/practice-match-spec.md, section 3).
+// ErrPracticeNothingToRoll is the refusal of every aftermath write on a practice match (docs/practice-match-spec.md).
 var ErrPracticeNothingToRoll = Refuse("%s", PracticeNothingToRoll)
 
 // practiceAftermath is the aftermath of a company in a practice match: done, empty, never stored. The repository derives the same status.
