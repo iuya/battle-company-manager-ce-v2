@@ -137,7 +137,7 @@ armoury size 62 (common 62 + unique 0)
 -- Erebor Dwarf Warrior (Shield)
 from: start
 vanilla Erebor Dwarf Warrior: 9 points, types Warrior, Infantry, race Dwarf, faction Erebor
-profile: Mv 5" · FV 4 · SV 4+ · S 3 · D 6 · A 1 · W 1 · C 6+ · I 7+
+profile: Mv 5" · FV 4 · SV 4+ · S 3 · D 7 · A 1 · W 1 · C 6+ · I 7+
 rules: Mountain Dweller | actions:  | wargear: Heavy Armour, Hand weapon
 keywords: Dwarf/race/profile, Erebor/faction/profile, Warrior/type/profile, Infantry/type/profile
 option "Shield and Spear" 2 pts, buyable yes
@@ -179,7 +179,7 @@ hero refused: 27 not an option of the profile; 8 for other reasons: set 6e99fa67
 -- Warrior of Dale (Shield, Spear)
 from: start
 vanilla Warrior of Dale: 7 points, types Warrior, Infantry, race Man, faction Dale
-profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 7+ · I 7+
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 5 · A 1 · W 1 · C 7+ · I 7+
 rules: Hatred (Dragon) | actions:  | wargear: Armour, Hand weapon
 keywords: Man/race/profile, Dale/faction/profile, Warrior/type/profile, Infantry/type/profile
 option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options

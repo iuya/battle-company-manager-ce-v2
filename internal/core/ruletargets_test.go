@@ -161,7 +161,7 @@ func TestRuleTargetsOverAllCompanies(t *testing.T) {
 	known := map[string]bool{}
 	var rules = map[string]RuleWorks{}
 	for _, p := range rs.BC.Profiles() {
-		p = rs.withPreviewKeywords(p.WithPreviews(rs.Vanilla))
+		p = rs.finishPreviews(p.WithPreviews(rs.Vanilla))
 		for _, pv := range p.Previews {
 			for _, w := range pv.Keywords.Model {
 				known[strings.ToLower(w.Name)] = true

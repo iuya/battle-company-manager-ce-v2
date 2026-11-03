@@ -163,7 +163,7 @@ hero refused: 0 not an option of the profile; 52 for other reasons: set 804c5b2a
 -- Isengard Warg Rider (Shield)
 from: start
 vanilla Isengard Warg Rider: 11 points, types Warrior, Cavalry, race Orc, faction Isengard
-profile: Mv 6" · FV 3 · SV 5+ · S 3 · D 4 · A 1 · W 1 · C 8+ · I 8+
+profile: Mv 6" · FV 3 · SV 5+ · S 3 · D 5 · A 1 · W 1 · C 8+ · I 8+
 rules:  | actions:  | wargear: Armour, Hand weapon, Warg
 keywords: Orc/race/profile, Isengard/faction/profile, Warrior/type/profile, Cavalry/type/profile
 option "Shield & throwing spears" 2 pts, buyable yes

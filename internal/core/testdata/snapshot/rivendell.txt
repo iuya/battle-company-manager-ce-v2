@@ -193,7 +193,7 @@ hero refused: 30 not an option of the profile; 4 for other reasons: set 1607ea6b
 -- Rivendell Warrior (Elven spear, Shield)
 from: reinforcements 3
 vanilla Rivendell Warrior: 9 points, types Warrior, Infantry, race Elf, faction Rivendell
-profile: Mv 6" · FV 5 · SV 3+ · S 3 · D 5 · A 1 · W 1 · C 5+ · I 5+
+profile: Mv 6" · FV 5 · SV 3+ · S 3 · D 6 · A 1 · W 1 · C 5+ · I 5+
 rules: Woodland Creature | actions:  | wargear: Heavy Armour, Elven hand-and-a-half weapon
 keywords: Elf/race/profile, Rivendell/faction/profile, Warrior/type/profile, Infantry/type/profile
 option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
@@ -220,7 +220,7 @@ alias
   Selected: ["Noldorian Exile"]
   Text: "Noldorin Exile is a Lothlorien Warrior with the Noldorian Exile option selected. The option costs 1 point. In the base game only Gildor Inglorion can take it; this company's rules allow it."
 vanilla Lothlorien Warrior: 8 points, types Warrior, Infantry, race Elf, faction Lothlorien
-profile: Mv 6" · FV 5 · SV 3+ · S 3 · D 3 · A 1 · W 1 · C 5+ · I 6+
+profile: Mv 8" · FV 5 · SV 3+ · S 3 · D 3 · A 1 · W 1 · C 5+ · I 6+
 rules: Woodland Creature | actions:  | wargear: Elven hand-and-a-half weapon, Elven Cloak
 keywords: Elf/race/profile, Lothlórien/faction/profile, Warrior/type/profile, Infantry/type/profile
 option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options

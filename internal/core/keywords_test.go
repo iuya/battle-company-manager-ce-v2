@@ -283,7 +283,7 @@ func TestPreviewsOfferingsAndFallenCarryKeywords(t *testing.T) {
 	rs := shippedRules(t)
 	// previews
 	p, _ := rs.BC.Profile("Goblin-Town")
-	p = rs.withPreviewKeywords(p.WithPreviews(rs.Vanilla))
+	p = rs.finishPreviews(p.WithPreviews(rs.Vanilla))
 	found := false
 	for _, pv := range p.Previews {
 		if pv.Name == "Goblin Hulk" {

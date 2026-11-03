@@ -196,7 +196,7 @@ func AuditRules(rs *RuleSet, in AuditInput) AuditReport {
 	table := newItemTable(rs)
 	var out AuditReport
 	for _, p := range rs.BC.Profiles() {
-		out.Companies = append(out.Companies, auditCompany(rs, in, table, p.WithPreviews(rs.Vanilla)))
+		out.Companies = append(out.Companies, auditCompany(rs, in, table, rs.finishPreviews(p.WithPreviews(rs.Vanilla))))
 	}
 	return out
 }
@@ -307,6 +307,13 @@ func auditCompany(rs *RuleSet, in AuditInput, table itemTable, p CompanyProfile)
 		}
 		hero := rs.Vanilla.HeroProfile(v.Stats)
 		ua.Stats = rs.Vanilla.Profile(v, hero, nil)
+		if len(ua.Stats) > 0 {
+			role := RoleWarrior
+			if hero {
+				role = RoleHero
+			}
+			ua.Stats = recruitStats(rs, p.BCCompany, r.name, "", r.wargear, role)
+		}
 		ua.CanLead, ua.OwnPath = p.CanLead(r.name), p.OnOwnPath(r.name)
 
 		us := CompanyState{Company: CampaignCompany{ID: 1, Name: p.Name, Faction: p.Name}, Influence: auditInfluence, Gold: auditInfluence,

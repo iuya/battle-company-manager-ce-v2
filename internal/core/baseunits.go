@@ -101,6 +101,13 @@ func (r *RuleSet) baseUnit(p CompanyProfile, name string, vu VanillaUnit, alias 
 	pv := UnitPreview{Key: PreviewKey(name, nil), Name: name, Points: vu.Points, Types: vu.UnitTypes, Kind: KindOf(vu.UnitTypes),
 		Wargear: slices.Clone(vu.Wargear), Rules: slices.Clone(vu.SpecialRules), HeroicActions: vu.HeroicActions}
 	pv.Stats = r.Vanilla.Profile(vu, r.Vanilla.HeroProfile(vu.Stats), nil)
+	if len(pv.Stats) > 0 { // with the changes of the gear the unit comes with (the roster's stats)
+		role := RoleWarrior
+		if pv.HasHeroStats() {
+			role = RoleHero
+		}
+		pv.Stats = recruitStats(r, p.BCCompany, name, "", nil, role)
+	}
 	var selected []string
 	if alias != nil {
 		if !sameName(alias.Unit, name) {
