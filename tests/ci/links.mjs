@@ -19,8 +19,8 @@ function walk(dir, found) {
   return found;
 }
 
-// Lines of a Markdown file outside fenced code blocks, with inline code spans blanked.
-function proseLines(text) {
+// Lines of a Markdown file outside fenced code blocks, with inline code spans blanked unless keepCode is set.
+function proseLines(text, keepCode = false) {
   let fence = null;
   return text.split('\n').map((line) => {
     const m = line.match(/^\s*(```+|~~~+)/);
@@ -29,7 +29,7 @@ function proseLines(text) {
       else if (m[1][0] === fence) fence = null;
       return '';
     }
-    return fence ? '' : line.replace(/`[^`]*`/g, (c) => ' '.repeat(c.length));
+    return fence ? '' : keepCode ? line : line.replace(/`[^`]*`/g, (c) => ' '.repeat(c.length));
   });
 }
 
@@ -37,7 +37,7 @@ function proseLines(text) {
 function anchors(text) {
   const seen = new Map();
   const out = new Set();
-  for (const line of proseLines(text)) {
+  for (const line of proseLines(text, true)) {
     const m = line.match(/^#{1,6}\s+(.*?)\s*#*\s*$/);
     if (!m) continue;
     const plain = m[1].replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[`*_]/g, '');
