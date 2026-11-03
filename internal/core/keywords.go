@@ -345,29 +345,47 @@ func resolveUnitKeywords(rs *RuleSet, p CompanyProfile, name string) (VanillaUni
 // WithPreviews makes it.
 func (r *RuleSet) finishPreviews(p CompanyProfile) CompanyProfile {
 	for key, pv := range p.Previews {
-		if len(pv.Stats) > 0 {
-			role := RoleWarrior
-			if pv.HasHeroStats() {
-				role = RoleHero
-			}
-			var gear []string
-			if _, g, ok := strings.Cut(key, "|"); ok && g != "" {
-				gear = strings.Split(g, ",")
-			}
-			u := recruitUnit(r, p.BCCompany, pv.Name, "", gear, role)
-			pv.Stats = u.Stats
-			pv.RuleCards = u.Rules
-			pv.Rules = pv.Rules[:0:0]
-			for _, ru := range u.Rules {
-				pv.Rules = append(pv.Rules, ru.Shown())
-			}
-			pv.Wargear = pv.Wargear[:0:0]
-			for _, e := range u.Equipment {
-				pv.Wargear = append(pv.Wargear, e.Name)
+		pv = r.finishPreview(p, key, pv)
+		if vu, _, ok := r.ResolveUnit(p, pv.Name); ok && len(vu.Includes) > 0 { // a bundle (Vault Warden Team) shows the card of each member
+			for _, m := range vu.Includes {
+				mkey := PreviewKey(m, nil)
+				mv := r.finishPreview(p, mkey, p.preview(r.Vanilla, m, nil))
+				for _, mp := range p.IncludedPoints[pv.Name] { // a member is worth the points its company's bundle gives it
+					if sameName(mp.Name, m) {
+						mv.Points += mp.Points
+					}
+				}
+				pv.Members = append(pv.Members, mv)
 			}
 		}
-		pv.Keywords = r.UnitKeywords(p, UnitKeywordsInput{Type: pv.Name})
 		p.Previews[key] = pv
 	}
 	return p
+}
+
+// finishPreview is one preview with its keywords and the characteristics, rules and wargear the roster gives the unit.
+func (r *RuleSet) finishPreview(p CompanyProfile, key string, pv UnitPreview) UnitPreview {
+	if len(pv.Stats) > 0 {
+		role := RoleWarrior
+		if pv.HasHeroStats() {
+			role = RoleHero
+		}
+		var gear []string
+		if _, g, ok := strings.Cut(key, "|"); ok && g != "" {
+			gear = strings.Split(g, ",")
+		}
+		u := recruitUnit(r, p.BCCompany, pv.Name, "", gear, role)
+		pv.Stats = u.Stats
+		pv.RuleCards = u.Rules
+		pv.Rules = pv.Rules[:0:0]
+		for _, ru := range u.Rules {
+			pv.Rules = append(pv.Rules, ru.Shown())
+		}
+		pv.Wargear = pv.Wargear[:0:0]
+		for _, e := range u.Equipment {
+			pv.Wargear = append(pv.Wargear, e.Name)
+		}
+	}
+	pv.Keywords = r.UnitKeywords(p, UnitKeywordsInput{Type: pv.Name})
+	return pv
 }

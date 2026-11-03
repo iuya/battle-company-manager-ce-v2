@@ -64,6 +64,9 @@
   {{with .Wargear}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Wargear</span>{{range .}}<span class="eq-chip">{{upfirst .}}</span>{{end}}</p>{{end}}
   {{with .HeroicActions}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Heroic actions</span>{{range .}}<span class="act-chip">{{.}}</span>{{end}}</p>{{end}}
   {{with .RuleCards}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Special rules</span>{{range .}}<span class="rule-chip rule-{{.Source}}" {{if .Description}}tabindex="0" data-concept data-tip-title="{{.Shown}}" data-tip-meta="{{if .Mount}}Granted to the {{.Mount}}{{else if eq (printf "%s" .Source) "equipment"}}From {{.From}}{{else}}Special rule{{end}}" data-tip-text="{{.TipText}}"{{with .WorksLine}} data-tip-works="{{.}}"{{end}}{{end}}>{{.Shown}}</span>{{end}}</p>{{else}}{{with .Rules}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Special rules</span>{{range .}}<span class="rule-chip rule-unit">{{.}}</span>{{end}}</p>{{end}}{{end}}
+  {{with .Members}}<div class="space-y-2" aria-label="Made of"><p class="text-xs text-muted">Made of {{len .}} models, each with its own profile and points</p>
+    {{range .}}<div class="rounded-lg border border-line bg-surface p-2">{{template "unit_preview" .}}</div>{{end}}
+  </div>{{end}}
 </div>
 {{end}}
 

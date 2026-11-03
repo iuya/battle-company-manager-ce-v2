@@ -133,3 +133,25 @@ func TestPreviewShowsTheChangesOfAnOption(t *testing.T) {
 		}
 	}
 }
+
+// The preview of a bundle (the Vault Warden Team of Durin's Folk) carries a card for each member, with a profile and the points its company gives it.
+func TestPreviewOfABundleHasItsMembers(t *testing.T) {
+	rs := shippedRules(t)
+	for _, p := range rs.BC.Profiles() {
+		if p.Name != "Durin's Folk" {
+			continue
+		}
+		p = rs.finishPreviews(p.WithPreviews(rs.Vanilla))
+		pv := p.Preview("Vault Warden Team", nil)
+		if len(pv.Members) != 2 {
+			t.Fatalf("Vault Warden Team members = %d, want 2", len(pv.Members))
+		}
+		for _, m := range pv.Members {
+			if len(m.Stats) == 0 || m.Points == 0 || m.Name == "" {
+				t.Errorf("member %+v lacks a profile or its points", m)
+			}
+		}
+		return
+	}
+	t.Fatal("no Durin's Folk")
+}
