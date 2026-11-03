@@ -121,8 +121,8 @@ func (sh shop) armourReason(u CompanyUnit, o GearOffer) (string, Blocker) {
 		}
 		return "Not an option of its profile", BlockedByRule
 	}
-	if inf, gold := canPay(sh.d, o.Cost, o.Gold.For(u.IsHero())); !inf && !gold {
-		return costReason(sh.d, o.Cost, o.Gold.For(u.IsHero())), BlockedByInfluence
+	if price := sh.goldPrice(u, o); !canPayEither(sh.d, o.Cost, price) {
+		return costReason(sh.d, o.Cost, price), BlockedByInfluence
 	}
 	return "", ""
 }

@@ -545,7 +545,7 @@ func snapshotUnit(s *snap, rs *RuleSet, c CompanyAudit, u UnitAudit, sets map[st
 			it := o.Item
 			reason, gold, own, via := o.WarriorReason, o.WarriorGold, it.Gold.Warrior, o.DerivedByWarrior
 			if role == "hero" {
-				reason, gold, own, via = o.HeroReason, o.HeroGold, it.Gold.Hero, o.DerivedByHero
+				reason, gold, own, via = o.HeroReason, o.HeroGold, it.Gold.Warrior, o.DerivedByHero
 			}
 			switch {
 			case reason == "" && it.Size == "":

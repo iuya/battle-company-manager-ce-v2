@@ -177,7 +177,7 @@ may lead yes | own path no | hero upgrades: Savage Charge
 warrior can buy wargear (2): Orc Bow via Orc bow; Throwing Spears (gold 1, item 2) via Shield & throwing spears
 warrior can buy equipment (19): set b9bf299f
 warrior refused: 28 not an option of the profile; 13 for other reasons: set 11f1129f
-hero can buy wargear (2): Orc Bow via Orc bow; Throwing Spears via Shield & throwing spears
+hero can buy wargear (2): Orc Bow via Orc bow; Throwing Spears (gold 1, item 2) via Shield & throwing spears
 hero can buy equipment (25): set 9d5ad3fe
 hero refused: 28 not an option of the profile; 7 for other reasons: set f45d3738
 
@@ -198,7 +198,7 @@ may lead yes | own path no | hero upgrades: Savage Charge
 warrior can buy wargear (2): Throwing Spears (gold 1, item 2) via Shield & throwing spears; Shield via Shield & throwing spears
 warrior can buy equipment (19): set b9bf299f
 warrior refused: 28 not an option of the profile; 13 for other reasons: set d653430f
-hero can buy wargear (2): Throwing Spears via Shield & throwing spears; Shield via Shield & throwing spears
+hero can buy wargear (2): Throwing Spears (gold 1, item 2) via Shield & throwing spears; Shield via Shield & throwing spears
 hero can buy equipment (25): set 9d5ad3fe
 hero refused: 28 not an option of the profile; 7 for other reasons: set 502f56db
 
@@ -219,7 +219,7 @@ may lead yes | own path no | hero upgrades: Savage Charge
 warrior can buy wargear (3): Orc Bow via Orc bow; Throwing Spears (gold 1, item 2) via Shield & throwing spears; Shield via Shield & throwing spears
 warrior can buy equipment (19): set b9bf299f
 warrior refused: 28 not an option of the profile; 12 for other reasons: set 3d1aa6bc
-hero can buy wargear (3): Orc Bow via Orc bow; Throwing Spears via Shield & throwing spears; Shield via Shield & throwing spears
+hero can buy wargear (3): Orc Bow via Orc bow; Throwing Spears (gold 1, item 2) via Shield & throwing spears; Shield via Shield & throwing spears
 hero can buy equipment (25): set 9d5ad3fe
 hero refused: 28 not an option of the profile; 6 for other reasons: set 1965935c
 

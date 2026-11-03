@@ -267,7 +267,7 @@ promotes to: Rohan Outrider
 warrior can buy wargear (1): Horse (gold 5, item 10) via Horse
 warrior can buy equipment (17): set 5e464f5b
 warrior refused: 30 not an option of the profile; 14 for other reasons: set 0e457bca
-hero can buy wargear (4): Armoured horse via Armoured horse; Horse via Horse; Throwing Spears via Throwing spears; Shield via Shield
+hero can buy wargear (4): Armoured horse via Armoured horse; Horse (gold 5, item 10) via Horse; Throwing Spears via Throwing spears; Shield via Shield
 hero can buy equipment (23): set e39fbb31
 hero refused: 27 not an option of the profile; 8 for other reasons: set 7c55058f
 
@@ -289,7 +289,7 @@ promotes to: Rohan Royal Guard
 warrior can buy wargear (2): Horse (gold 5, item 10) via Horse; Throwing Spears via Throwing spears
 warrior can buy equipment (17): set 5e464f5b
 warrior refused: 29 not an option of the profile; 14 for other reasons: set 45f112fd
-hero can buy wargear (4): Armoured horse via Armoured horse; Horse via Horse; Bow via Bow; Throwing Spears via Throwing spears
+hero can buy wargear (4): Armoured horse via Armoured horse; Horse (gold 5, item 10) via Horse; Bow via Bow; Throwing Spears via Throwing spears
 hero can buy equipment (23): set e39fbb31
 hero refused: 27 not an option of the profile; 8 for other reasons: set 28300529
 

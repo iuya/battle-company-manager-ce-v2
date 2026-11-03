@@ -242,7 +242,7 @@ may lead yes | own path no | hero upgrades: The Charge of Gondor
 warrior can buy wargear (2): Longbow (gold 1, item 2) via Longbow; Spear via Spear
 warrior can buy equipment (17): set 5e464f5b
 warrior refused: 30 not an option of the profile; 13 for other reasons: set a73a183e
-hero can buy wargear (6): Horse via Horse; Bow via Bow; Longbow via Longbow; Spear via Shield and Spear; Lance via Exchange lance and shield for banner; Shield via War horn and Shield
+hero can buy wargear (6): Horse via Horse; Bow via Bow; Longbow (gold 1, item 2) via Longbow; Spear via Shield and Spear; Lance via Exchange lance and shield for banner; Shield via War horn and Shield
 hero can buy equipment (23): set e39fbb31
 hero refused: 26 not an option of the profile; 7 for other reasons: set 3033d39e
 
