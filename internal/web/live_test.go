@@ -128,6 +128,14 @@ func TestLiveFragmentIsTheZonesOnly(t *testing.T) {
 	if rec := g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/companies/1/live", nil))); rec.Code != http.StatusNotFound {
 		t.Errorf("a company in no match has no live fragment: %d", rec.Code)
 	}
+	// the live refresh of a page whose match has just ended reloads it
+	h := newFixture(t, Config{})
+	h.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+	h.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
+	h.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
+	if rec := htmxGet(h, "/campaigns/7/companies/1/live"); rec.Code != http.StatusOK || rec.Header().Get("HX-Refresh") != "true" {
+		t.Errorf("the refresh after the end reloads the page: %d %q", rec.Code, rec.Header().Get("HX-Refresh"))
+	}
 }
 
 func TestACompanyInNoOpenMatchIsNotLive(t *testing.T) {

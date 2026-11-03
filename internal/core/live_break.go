@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// The company Break Point in play (docs/live-match.md, "Company break point in play"): the counts, the turn boundary at which a
-// company becomes Broken, the courage tests of a Broken company and the All is Lost offer. Everything here is part of the pure fold
+// The company Break Point in play (docs/live-match.md, "Company break point in play"): the counts, the moment a company becomes Broken
+// (as soon as its casualties exceed the Break Point; there are no turns) and the courage tests of a Broken company. Everything here is part of the pure fold
 // of the live log; the numbers that come from the rules file (the percent, the scenario exceptions) and from the rosters (how many
 // models a unit counts as) are given in a LiveFoldConfig.
 
@@ -116,12 +116,8 @@ type LiveBreak struct {
 	Percent        int
 	StartingModels int
 	Casualties     int
-	Threshold100   int // Percent * StartingModels: the Break Point is Threshold100 / 100
-	Broken         bool
-	BrokenAtTurn   int  // 0 when not Broken
-	WillBreak      bool // the casualties are above the Break Point and the company is not Broken yet: it will be at the next turn
-	Offer          bool // the All is Lost offer is open
-	Fled           bool // it chose to flee
+	Threshold100   int  // Percent * StartingModels: the Break Point is Threshold100 / 100
+	Broken         bool // the casualties exceed the Break Point now; an undo that takes them back under makes it whole again
 	Exceptions     []string
 }
 
@@ -143,14 +139,8 @@ var courageSkipReasons = map[string]string{
 // exempt reasons are not passes: the model does not test at all.
 func courageExempt(reason string) bool { return reason == "engaged" || reason == "cannotActivate" }
 
-type liveMeta struct{ turn int } // match-level state, shared by the copies of a LiveState value
-
 type breakState struct {
 	adjStart, adjCasualties int
-	broken                  bool
-	brokenAt                int
-	decided                 bool // an allIsLost entry exists
-	fled                    bool
 }
 
 // casualtiesOf counts the models of the company that fell: Field casualties and the units that fled after failing a Courage test.
@@ -195,33 +185,13 @@ func (c BreakConfig) exceeded(casualties, models int) bool {
 	return casualties*100 > c.Percent*models
 }
 
-// Turn is the last started turn (0 before the first).
-func (s LiveState) Turn() int { return s.m.turn }
-
-// Break is a company's Break Point state.
+// Break is a company's Break Point state: Broken as soon as the casualties exceed the Break Point (docs/simplify-matches-spec.md, D10).
 func (s LiveState) Break(company int64) LiveBreak {
-	cfg, st := s.cfg.Break[company], s.brk(company)
-	b := LiveBreak{Percent: cfg.Percent, StartingModels: s.startingModels(company), Casualties: s.casualtiesOf(company), Broken: st.broken,
-		BrokenAtTurn: st.brokenAt, Fled: st.fled, Exceptions: cfg.Exceptions}
+	cfg := s.cfg.Break[company]
+	b := LiveBreak{Percent: cfg.Percent, StartingModels: s.startingModels(company), Casualties: s.casualtiesOf(company), Exceptions: cfg.Exceptions}
 	b.Threshold100 = b.Percent * b.StartingModels
-	b.WillBreak = !b.Broken && b.Percent > 0 && cfg.exceeded(b.Casualties, b.StartingModels)
-	b.Offer = b.Broken && st.brokenAt == s.m.turn && !st.decided
+	b.Broken = b.Percent > 0 && cfg.exceeded(b.Casualties, b.StartingModels)
 	return b
-}
-
-// startTurn is the fold of a turn entry: the number advances and every company that fails the test (the integer test, once
-// per turn, at this entry) becomes Broken for good.
-func (s LiveState) startTurn(n int) {
-	s.m.turn = n
-	for company, st := range s.breaks {
-		cfg := s.cfg.Break[company]
-		if st.broken || cfg.Percent <= 0 {
-			continue
-		}
-		if cfg.exceeded(s.casualtiesOf(company), s.startingModels(company)) {
-			st.broken, st.brokenAt = true, n
-		}
-	}
 }
 
 // fleeBattlefield removes every unit of the company that is still in the Field: they leave the board (not casualties).
@@ -256,25 +226,6 @@ func (s LiveState) companyName(id int64) string {
 		}
 	}
 	return fmt.Sprintf("company %d", id)
-}
-
-// checkTurn validates a turn entry and words it, naming the companies it breaks.
-func (s LiveState) checkTurn(a LiveAction) (LiveAction, []int64, string, error) {
-	switch {
-	case a.Turn <= s.m.turn:
-		return a, nil, "", Refuse("Turn %d has already started.", a.Turn)
-	case a.Turn != s.m.turn+1:
-		return a, nil, "", invalid("The next turn is %d.", s.m.turn+1)
-	}
-	sim := s.clone()
-	sim.startTurn(a.Turn)
-	text := fmt.Sprintf("Turn %d started", a.Turn)
-	for _, id := range s.companyIDs() {
-		if !s.brk(id).broken && sim.brk(id).broken {
-			text += fmt.Sprintf(": %s is Broken", s.companyName(id))
-		}
-	}
-	return a, nil, text, nil
 }
 
 func (s LiveState) companyIDs() []int64 {
@@ -327,18 +278,4 @@ func (s LiveState) checkBreakAdjust(a LiveAction, company int64) (LiveAction, []
 		text += " (" + note + ")"
 	}
 	return a, nil, text, nil
-}
-
-func (s LiveState) checkAllIsLost(a LiveAction, company int64) (LiveAction, []int64, string, error) {
-	if !s.knowsCompany(company) {
-		return a, nil, "", Refuse("That company is not in this match.")
-	}
-	if !s.Break(company).Offer {
-		return a, nil, "", Refuse("There is nothing to flee from yet.")
-	}
-	name := s.companyName(company)
-	if a.Flee {
-		return a, nil, name + " fled the battlefield (All is Lost)", nil
-	}
-	return a, nil, name + " fights on", nil
 }

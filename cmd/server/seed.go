@@ -154,7 +154,7 @@ func seed(ctx context.Context, b *backend, password string) error {
 	if ended, err = c.SetScenario(ctx, organiser, camp.ID, ended.ID, ended.Revision, core.ScenarioInput{Kind: core.ScenarioRulebook, Name: scenarios[0].Name}); err != nil {
 		return err
 	}
-	if ended, err = c.SaveResult(ctx, organiser, camp.ID, ended.ID, ended.Revision, core.MatchResult{Decided: true, Winner: 1, Sides: make([]core.SideResult, 2)}); err != nil {
+	if ended, err = c.SaveResult(ctx, organiser, camp.ID, ended.ID, ended.Revision, core.MatchResult{Decided: true, Winner: 1}); err != nil {
 		return err
 	}
 	if _, err = endNow(ctx, c, organiser, camp.ID, ended.ID, ended.Revision); err != nil {
@@ -207,13 +207,39 @@ func choosePaths(ctx context.Context, c *campaignsFacade, user core.User, campai
 }
 
 // endNow ends a match in the demo data and the seed: the organiser proposes, and overrides the companies of other players, with a note.
-func endNow(ctx context.Context, c interface {
-	ProposeEnd(ctx context.Context, user core.User, id, matchID int64, revision int) (core.Match, error)
-	OverrideEnd(ctx context.Context, user core.User, id, matchID int64, revision int, note string) (core.Match, error)
-}, organiser core.User, campaignID, matchID int64, revision int) (core.Match, error) {
+func endNow(ctx context.Context, c *campaignsFacade, organiser core.User, campaignID, matchID int64, revision int) (core.Match, error) {
+	if err := voteMissing(ctx, c, campaignID, matchID); err != nil {
+		return core.Match{}, err
+	}
 	m, err := c.ProposeEnd(ctx, organiser, campaignID, matchID, revision)
 	if err != nil || m.Ended {
 		return m, err
 	}
 	return c.OverrideEnd(ctx, organiser, campaignID, matchID, m.Revision, "Demo data: ended without the players' confirmation")
+}
+
+// voteMissing casts the MVP votes a competitive match still needs before it can end (docs/simplify-matches-spec.md, D7): each owner
+// votes the first unit of every opposing company that took part, as the demo data does not say who stood out.
+func voteMissing(ctx context.Context, c *campaignsFacade, campaignID, matchID int64) error {
+	missing, err := c.liveSvc.MissingVotes(ctx, campaignID, matchID, 0)
+	if err != nil {
+		return err
+	}
+	for _, v := range missing {
+		voter := core.User{ID: v.OwnerID, DisplayName: v.Owner}
+		lc, err := c.Live(ctx, voter, campaignID, v.CompanyID)
+		if err != nil {
+			return fmt.Errorf("the live state of %s: %w", v.Company, err)
+		}
+		for _, u := range lc.Units {
+			if u.Temporary {
+				continue
+			}
+			if _, _, err := c.Apply(ctx, voter, campaignID, matchID, v.CompanyID, core.LiveAction{Kind: core.LiveMVPVote, UnitID: u.UnitID}); err != nil {
+				return fmt.Errorf("%s votes the MVP of %s: %w", v.Owner, v.Company, err)
+			}
+			break
+		}
+	}
+	return nil
 }

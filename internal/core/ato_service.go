@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 )
@@ -48,6 +49,22 @@ func (s *Matches) AgainstTheOdds(ctx context.Context, user User, id, matchID int
 }
 
 func (s *Matches) atoCard(ctx context.Context, user User, camp CampaignDetail, id int64, m Match) (ATO, error) {
+	if _, _, why := atoSides(m); why != "" || s.ato == nil {
+		return s.atoCardWith(ctx, user, camp, id, m, ATORecord{}, false)
+	}
+	rec, err := s.ato.Get(ctx, id, m.ID)
+	if err != nil {
+		return ATO{MatchID: m.ID, Revision: m.Revision}, err
+	}
+	started, err := s.atoStarted(ctx, id, m.ID)
+	if err != nil {
+		return ATO{MatchID: m.ID, Revision: m.Revision}, err
+	}
+	return s.atoCardWith(ctx, user, camp, id, m, rec, started)
+}
+
+// atoCardWith builds the card from the stored record and whether the game has started.
+func (s *Matches) atoCardWith(ctx context.Context, user User, camp CampaignDetail, id int64, m Match, rec ATORecord, started bool) (ATO, error) {
 	card := ATO{MatchID: m.ID, Revision: m.Revision}
 	lower, higher, why := atoSides(m)
 	if why != "" || s.ato == nil {
@@ -65,14 +82,6 @@ func (s *Matches) atoCard(ctx context.Context, user User, camp CampaignDetail, i
 	if err != nil {
 		return card, err
 	}
-	scenarios, err := s.scenarioList(ctx, h)
-	if err != nil {
-		return card, err
-	}
-	rec, err := s.ato.Get(ctx, id, m.ID)
-	if err != nil {
-		return card, err
-	}
 	d, _, err := s.detail(ctx, id, lower.ID)
 	if err != nil {
 		return card, err
@@ -81,6 +90,7 @@ func (s *Matches) atoCard(ctx context.Context, user User, camp CampaignDetail, i
 	card.OwnRating, card.OppRating, card.OppName, card.Gap = lower.Points, higher.Points, higher.Name, higher.Points-lower.Points
 	card.Selection = rec.Selection
 	card.Spent = rec.Selection.Spent(rules)
+	card.Inclusive = rules.Inclusive
 	hasWanderer := slices.ContainsFunc(d.Roster, func(u CompanyUnit) bool { return u.Wanderer })
 	left := card.Gap - card.Spent
 	for _, b := range rules.Bonuses {
@@ -107,11 +117,6 @@ func (s *Matches) atoCard(ctx context.Context, user User, camp CampaignDetail, i
 		if !Absent(u) {
 			card.Models = append(card.Models, ATOModel{UnitID: u.ID, Name: u.Title(), Type: u.Type, Hero: u.IsHero()})
 		}
-	}
-	_ = scenarios
-	started, err := s.atoStarted(ctx, id, m.ID)
-	if err != nil {
-		return card, err
 	}
 	if started {
 		card.Locked, card.LockedWhy = true, "The game has started."
@@ -224,4 +229,96 @@ func (s *Matches) SaveAgainstTheOdds(ctx context.Context, user User, id, matchID
 		return ATO{}, err
 	}
 	return s.AgainstTheOdds(ctx, user, id, matchID)
+}
+
+// PreviewAgainstTheOdds is the Against the Odds block of the new match form for these sides, before the match exists
+// (docs/simplify-matches-spec.md, D9): the card the match page would show with nothing taken yet. It is editable (Access ATOEdit) only
+// for the owner of the lower rated company; Eligible is false (with Why) unless the sides are two companies with different ratings.
+func (s *Matches) PreviewAgainstTheOdds(ctx context.Context, user User, id int64, sides []NewSide, practice bool) (ATO, error) {
+	camp, err := s.campaigns.Get(ctx, user.ID, id)
+	if err != nil {
+		return ATO{}, err
+	}
+	return s.previewATO(ctx, user, camp, id, sides, practice)
+}
+
+func (s *Matches) previewATO(ctx context.Context, user User, camp CampaignDetail, id int64, sides []NewSide, practice bool) (ATO, error) {
+	m := Match{Practice: practice}
+	var ids []int64
+	for _, side := range sides {
+		var ms MatchSide
+		for _, cid := range side.Companies {
+			d, _, err := s.detail(ctx, id, cid)
+			if err != nil {
+				return ATO{}, err
+			}
+			ms.Companies = append(ms.Companies, d.CampaignCompany)
+			ids = append(ids, cid)
+		}
+		m.Sides = append(m.Sides, ms)
+	}
+	slices.Sort(ids)
+	rate, err := s.rater(ctx, id, func(companyID int64) bool { return slices.Contains(ids, companyID) }, ids)
+	if err != nil {
+		return ATO{}, err
+	}
+	if err := rate(&m); err != nil {
+		return ATO{}, err
+	}
+	card, err := s.atoCardWith(ctx, user, camp, id, m, ATORecord{}, false)
+	if err != nil {
+		return card, err
+	}
+	if lower, _, why := atoSides(m); why == "" && (lower.OwnerID != user.ID || user.ID == 0) {
+		card.Access = ATONone // the underdog chooses on the match page
+	}
+	return card, nil
+}
+
+// newMatchATO checks the bonuses taken on the new match form and returns them cleaned, with the company they belong to: the creator
+// owns the lower rated company, the bonuses need no detail (Tool Kit and the Wanderer are added on the match page), the budget holds.
+func (s *Matches) newMatchATO(ctx context.Context, user User, camp CampaignDetail, id int64, sides []NewSide, practice bool, sel ATOSelection) (NewMatchATO, error) {
+	card, err := s.previewATO(ctx, user, camp, id, sides, practice)
+	if err != nil {
+		return NewMatchATO{}, err
+	}
+	switch {
+	case !card.Eligible:
+		return NewMatchATO{}, Refuse("%s", card.Why)
+	case card.Access != ATOEdit:
+		return NewMatchATO{}, Refuse("Only the owner of %s can take its Against the Odds bonuses here; they can do it on the match page.", card.CompanyName)
+	}
+	for _, key := range sel.Bonuses {
+		switch {
+		case key == atoToolKit || key == atoWanderer:
+			return NewMatchATO{}, errors.Join(ErrInvalidMatch, fmt.Errorf("add %s on the match page", key))
+		case practice && atoRewardBonus(key):
+			return NewMatchATO{}, Refuse("%s.", ATOPracticeReason)
+		}
+	}
+	h, _, err := s.campaigns.Hashes(ctx, id)
+	if err != nil {
+		return NewMatchATO{}, err
+	}
+	rules, err := s.atoRules(ctx, h)
+	if err != nil {
+		return NewMatchATO{}, err
+	}
+	scenarios, err := s.scenarioList(ctx, h)
+	if err != nil {
+		return NewMatchATO{}, err
+	}
+	names := make([]string, len(scenarios))
+	for i, sc := range scenarios {
+		names[i] = sc.Name
+	}
+	d, _, err := s.detail(ctx, id, card.CompanyID)
+	if err != nil {
+		return NewMatchATO{}, err
+	}
+	clean, err := sel.Validate(rules, d.Roster, card.Gap, names)
+	if err != nil {
+		return NewMatchATO{}, err
+	}
+	return NewMatchATO{Selection: clean, CompanyID: card.CompanyID}, nil
 }

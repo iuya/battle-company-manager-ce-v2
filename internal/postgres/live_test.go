@@ -544,8 +544,8 @@ func TestLiveEndChecksAndSecretEntries(t *testing.T) {
 	}
 }
 
-// The kinds of the Break Point and the Against the Odds items: every field of the payload survives, a match-level
-// turn entry (company 0, unit 0) is stored, undo works on them, and a kind nobody declared is still refused by the constraint.
+// The kinds of the Break Point and the Against the Odds items: every field of the payload survives, undo works on them, and a kind
+// nobody declared is still refused by the constraint.
 func TestLiveBreakPointAndItemKinds(t *testing.T) {
 	w := newLiveWorld(t, "brk")
 	live := w.s.Live()
@@ -554,11 +554,9 @@ func TestLiveBreakPointAndItemKinds(t *testing.T) {
 	}
 	ua := w.unitsOf[w.a.ID][0]
 	actions := []core.LiveEntry{
-		{CompanyID: 0, Text: "Turn 2", Action: core.LiveAction{Kind: core.LiveTurn, Turn: 2}},
 		{CompanyID: w.a.ID, Text: "adj", Action: core.LiveAction{Kind: core.LiveBreakAdjust, Field: "casualties", Delta: -1, Note: "pony"}},
 		{CompanyID: w.a.ID, UnitID: ua, Text: "skip", Action: core.LiveAction{Kind: core.LiveCourageSkip, UnitID: ua, Reason: "standFast"}},
 		{CompanyID: w.a.ID, UnitID: ua, Text: "passed", Action: core.LiveAction{Kind: core.LiveBroken, UnitID: ua, StandFast: true}},
-		{CompanyID: w.a.ID, Text: "flee", Action: core.LiveAction{Kind: core.LiveAllIsLost, Flee: true}},
 		{CompanyID: w.a.ID, UnitID: ua, Text: "used", Action: core.LiveAction{Kind: core.LiveItemUsed, UnitID: ua, Item: "Dwarven Brew", Index: 2}},
 	}
 	var last core.LiveEntry
@@ -597,7 +595,7 @@ func TestLiveBreakPointAndItemKinds(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer again.Close()
-	if re, err := again.Live().Read(w.ctx, w.camp, w.match.ID); err != nil || len(re.Entries) != len(actions)-1 || re.Entries[0].Action.Turn != 2 {
+	if re, err := again.Live().Read(w.ctx, w.camp, w.match.ID); err != nil || len(re.Entries) != len(actions)-1 || re.Entries[0].Action.Field != "casualties" {
 		t.Fatalf("after a restart: %v %+v", err, re.Entries)
 	}
 	if _, err := w.append(t, w.org, core.LiveEntry{CompanyID: w.a.ID, Text: "x", Action: core.LiveAction{Kind: "nonsense"}}); !errors.Is(err, core.ErrInvalidLive) {

@@ -191,7 +191,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
       {{template "kw_applies" $ap}}
       {{if $u.Wanderer}}<p class="mt-1 flex flex-wrap items-center gap-1.5"><span class="badge badge-gold">Wanderer</span>{{if and $lu $lu.Temporary}}<span class="badge badge-gold" title="Taken with Against the Odds for this match only">Temporary</span>{{end}}</p>{{end}}
       {{if and $lu $lu.Temporary $lv.Wanderer}}<p class="mt-1 text-sm">{{$lv.Wanderer.Summary}}</p>{{end}}
-      {{if and $lu $lv $lv.Broken}}<p class="mt-1">{{if $lv.CourageDue $lu}}<span class="badge !bg-danger-soft !text-danger" title="This unit tests Courage before it does anything else this turn">Test due</span>{{else}}<span class="badge badge-muted" title="Its courage is resolved for this turn">{{$lv.CourageChip $lu}}</span>{{end}}</p>{{end}}
+      {{if and $lu $lv $lv.Broken}}<p class="mt-1">{{if $lv.CourageDue $lu}}<span class="badge !bg-danger-soft !text-danger" title="This unit tests Courage before it does anything else">Test due</span>{{else}}<span class="badge badge-muted" title="How its last courage test went">{{$lv.CourageChip $lu}}</span>{{end}}</p>{{end}}
       {{if and $lu $lu.HasMount (not $lu.Mounted)}}<p class="mt-1"><span class="badge badge-muted" title="The mount is lost: what needs it is struck through">On foot</span></p>{{end}}
       {{$warrior := eq (printf "%s" $u.Role) "warrior"}}
       {{if or $u.Injured $u.Injuries}}<p class="mt-1 flex flex-wrap items-center gap-1.5">

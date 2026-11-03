@@ -50,8 +50,7 @@ func (w *aftermathWorld) finish(t *testing.T, m core.Match) core.Match {
 	if m, err = w.matches.SetScenario(ctx, w.org, w.camp.ID, m.ID, m.Revision, core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Scavenge the Battlefield"}); err != nil {
 		t.Fatal(err)
 	}
-	three, one := 3, 1
-	res := core.MatchResult{Decided: true, Winner: 1, Sides: []core.SideResult{{VictoryPoints: &three}, {VictoryPoints: &one}}}
+	res := core.MatchResult{Decided: true, Winner: 1}
 	if m, err = w.matches.SaveResult(ctx, w.org, w.camp.ID, m.ID, m.Revision, res); err != nil {
 		t.Fatal(err)
 	}

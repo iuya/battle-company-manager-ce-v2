@@ -156,11 +156,9 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 		"mount":   {map[string]string{"kind": "mount", "unit": str(hero), "mounted": "0"}, map[string][]string{"unit": unitIDs, "mounted": bools}},
 		"return":  {map[string]string{"kind": "return", "unit": str(au[2].UnitID)}, map[string][]string{"unit": unitIDs}},
 		"broken":  {map[string]string{"kind": "broken", "unit": str(hero), "standFast": "1"}, map[string][]string{"unit": unitIDs, "standFast": bools}},
-		"turn":    {map[string]string{"kind": "turn", "turn": "1"}, map[string][]string{"turn": numbers}},
 		"breakAdjust": {map[string]string{"kind": "breakAdjust", "field": "start", "delta": "1"},
 			map[string][]string{"field": texts, "delta": numbers}},
 		"courageSkip": {map[string]string{"kind": "courageSkip", "unit": str(hero), "reason": "engaged"}, map[string][]string{"unit": unitIDs, "reason": append([]string{"standFast", "engaged"}, texts...)}},
-		"allIsLost":   {map[string]string{"kind": "allIsLost", "flee": "0"}, map[string][]string{"flee": bools}},
 		"itemUsed":    {map[string]string{"kind": "itemUsed", "unit": str(hero), "item": "Healing Potion", "index": "0"}, map[string][]string{"unit": unitIDs, "item": texts, "index": numbers}},
 		"unknown":     {map[string]string{"kind": "objective", "unit": str(hero)}, map[string][]string{"kind": append([]string{"objective", "mvpVote", "secretNominate", "endProposed", "endConfirmed", "endOverride"}, texts...)}},
 	}
@@ -183,8 +181,8 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 				}
 			}
 			br := lc.Break
-			if br.StartingModels < 0 || br.Casualties < 0 || br.Threshold100 < 0 || br.Percent < 0 || br.StartingModels > 10000 || br.Casualties > 10000 || lc.Turn < 0 || lc.Turn > 1000 {
-				failures = append(failures, fmt.Sprintf("after %s: company %d break %+v turn %d", what, co, br, lc.Turn))
+			if br.StartingModels < 0 || br.Casualties < 0 || br.Threshold100 < 0 || br.Percent < 0 || br.StartingModels > 10000 || br.Casualties > 10000 {
+				failures = append(failures, fmt.Sprintf("after %s: company %d break %+v", what, co, br))
 			}
 		}
 		if _, err := b.campaigns.Log(ctx, admin, camp, mt, 0, 50); err != nil {

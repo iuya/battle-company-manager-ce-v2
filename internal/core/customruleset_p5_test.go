@@ -40,10 +40,6 @@ func TestCustomRulesetBreakComparison(t *testing.T) {
 			b := newBP(t, 12, 50)
 			b.cfg.Break[1] = BreakConfig{AtLeast: rules.AtLeast, Percent: 50}
 			b.fall(6)
-			if got := b.state().Break(1); got.WillBreak != tt.wantBroken {
-				t.Errorf("WillBreak = %v, want %v", got.WillBreak, tt.wantBroken)
-			}
-			b.turn()
 			if got := b.state().Break(1).Broken; got != tt.wantBroken {
 				t.Errorf("Broken = %v, want %v", got, tt.wantBroken)
 			}
@@ -51,7 +47,6 @@ func TestCustomRulesetBreakComparison(t *testing.T) {
 			b = newBP(t, 12, 50)
 			b.cfg.Break[1] = BreakConfig{AtLeast: rules.AtLeast, Percent: 50}
 			b.fall(5)
-			b.turn()
 			if b.state().Break(1).Broken {
 				t.Error("5 of 12 casualties must not break the company")
 			}

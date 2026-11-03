@@ -163,7 +163,8 @@ two or more companies. A player with a single company sees no chip and no change
 ### 4.3 Match setup, opponent selection
 
 The new-match form already picks companies from the whole campaign into sides; nothing limits a player to "their" company. Changes:
-a "Mine" quick filter, the owner shown on each result, and a non-blocking "Same player" note: under a side that holds two companies of one
+the viewer's own companies marked "Yours" and listed first (the "Mine" chip that came first was replaced by this, see
+[simplify-matches-spec.md](simplify-matches-spec.md), D16), the owner shown on each result, and a non-blocking "Same player" note: under a side that holds two companies of one
 player ("Both are Ana's"), and between the sides when one player owns companies on both ("Same player: Ana plays both sides"). Nothing is
 refused; `ValidateSides` is unchanged.
 

@@ -40,7 +40,7 @@ func (w *world) settingsCampaigns() {
 	_, _, ws := w.roster(ro)
 	w.xp(ro, ws[0].ID, 5, "Won the duel at the ford")
 	w.rollLevelServer(ro, ws[0], 4) // a promotion to choose, or nothing
-	m := w.played(srv, "Fog of War", outcome{winner: 1, vp: []int{3, 1}}, []*wco{ro}, []*wco{or})
+	m := w.played(srv, "Fog of War", outcome{winner: 1}, []*wco{ro}, []*wco{or})
 	l, _, ows := w.roster(or)
 	in := w.sheet(or)
 	set(&in, l.ID, core.OutcomeCasualty, nil)
@@ -133,7 +133,7 @@ func (w *world) finishedCampaign() {
 		w.grant(co, 6, 12)
 	}
 	for i, win := range []int{1, 2} {
-		m := w.played(c, []string{"Seize Ground", "Plunder the Supplies"}[i], outcome{winner: win, vp: []int{4 + i, 3}}, []*wco{a}, []*wco{b})
+		m := w.played(c, []string{"Seize Ground", "Plunder the Supplies"}[i], outcome{winner: win}, []*wco{a}, []*wco{b})
 		for _, co := range []*wco{a, b} {
 			_, _, ws := w.roster(co)
 			in := w.sheet(co)

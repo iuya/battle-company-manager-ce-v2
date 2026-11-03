@@ -497,18 +497,16 @@ type AftermathContext struct {
 	Roster   []CompanyUnit
 }
 
-// CompanyOutcome is "win", "draw" or "loss" for the company in an ended match, and whether it fled (All is Lost, which counts
-// as a loss). ok is false when the company is not in the match.
+// CompanyOutcome is "win", "draw" or "loss" for the company in an ended match. fled is always false: All is Lost is reported as the
+// other side's win (docs/simplify-matches-spec.md, D3); it stays for the aftermaths that recorded it. ok is false when the company is
+// not in the match.
 func CompanyOutcome(m Match, companyID int64) (outcome string, fled, ok bool) {
 	for i, s := range m.Sides {
 		for _, c := range s.Companies {
 			if c.ID != companyID {
 				continue
 			}
-			fled = m.Result.Company(companyID).Fled
 			switch {
-			case fled:
-				return "loss", true, true
 			case m.Winner == 0:
 				return "draw", false, true
 			case m.Winner == i+1:

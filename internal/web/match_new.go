@@ -1,0 +1,381 @@
+package web
+
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"slices"
+	"strconv"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
+)
+
+// The new match form (docs/matches.md, "New match"; docs/simplify-matches-spec.md, phase 1): two sides with the company search only,
+// one options block (Practice, + Add side, All vs all), the scenario the server already rolled and, for a 1 v 1 whose lower rated company
+// is the creator's, the Against the Odds bonuses that need no detail. Nothing is written until Create match.
+
+// newMatchView feeds the form (static/js/match_form.js): the campaign's companies to search in and the sides as they currently are,
+// both as JSON in data attributes, the scenario card and, after a failed create, the Against the Odds block as it was ticked.
+type newMatchView struct {
+	campaignBase
+	CompaniesJSON string
+	SidesJSON     string
+	FFA           bool // all vs all: the first "side" is just the pool of companies, each of which fights alone
+	Error         string
+	Busy          *core.OpenMatchRef // the open match a refused company is in, to link to
+	Companies     int                // how many companies the campaign has; under two there is nobody to match
+	Practice      bool               // the "Practice match" box is ticked (set on the form only; nothing can change it afterwards)
+	Scenario      newScenarioView
+	ATO           *newATOView // the Against the Odds block drawn with the page (after a failed create); nil: the form loads it
+	MaxSides      int
+}
+
+// TooFew is whether the campaign has too few companies for a match.
+func (v newMatchView) TooFew() bool { return v.Companies < minMatchCompanies }
+
+// newScenarioView is the scenario card of the form. Mode "" shows the scenario (with the dice when the server rolled it), "pick" the
+// rulebook's list by table (one press sets it), "custom" the one-off fields. The card's hidden inputs carry the choice to Create match.
+type newScenarioView struct {
+	CampaignID int64
+	Mode       string
+	Info       *core.ScenarioInfo // the rulebook scenario on show; nil for none or a one-off
+	Custom     core.ScenarioInput // the one-off fields
+	Dice       [2]int             // the server's roll; zero when the scenario was chosen
+	Table      int
+	Groups     []scenarioGroup
+	Ambush     bool // Against the Odds Ambush! is ticked: the scenario is a free choice of the rulebook's
+	Err        map[string]string
+	Note       string
+}
+
+// RollText says where the scenario on show comes from: the dice the server rolled, or the table and roll it sits at when it was chosen.
+func (v newScenarioView) RollText() string {
+	switch {
+	case v.Info == nil:
+		return ""
+	case v.Dice[0] > 0:
+		return "Rolled " + itoa(v.Dice[0]) + " (table " + itoa(v.Table) + ") and " + itoa(v.Dice[1])
+	case v.Info.Table > 0 && v.Info.Roll > 0:
+		return "Chosen · table " + itoa(v.Info.Table) + ", second die " + itoa(v.Info.Roll)
+	}
+	return "Chosen"
+}
+
+// newATOView is the Against the Odds block of the form: the card for the two companies, only for the owner of the lower rated one.
+type newATOView struct {
+	Card  core.ATO
+	Taken map[string]bool
+}
+
+// Options are the bonuses the gap affords (the others are not offered at all); Tool Kit and the Wanderer are completed on the match page.
+func (v newATOView) Options() (out []core.ATOOption) {
+	for _, o := range v.Card.Options {
+		if !o.OverBudget {
+			out = append(out, o)
+		}
+	}
+	return out
+}
+
+// Later says whether a bonus needs details only the match page asks for (kits and their items, which Wanderer).
+func (v newATOView) Later(key string) bool { return key == "toolKit" || key == "wanderer" }
+
+func newMatchForm(base campaignBase, companies []core.CampaignCompany, sides []core.NewSide, ffa bool, errMsg string) (newMatchView, error) {
+	list := make([]map[string]any, len(companies))
+	for i, c := range companies {
+		list[i] = map[string]any{"id": c.ID, "name": c.Name, "owner": c.Owner, "ownerId": c.OwnerID, "faction": c.FactionName(), "mine": base.Campaign.Owns(c.ID)}
+	}
+	state := make([]map[string]any, len(sides))
+	for i, sd := range sides {
+		ids := sd.Companies
+		if ids == nil {
+			ids = []int64{}
+		}
+		state[i] = map[string]any{"ids": ids}
+	}
+	cj, err := json.Marshal(list)
+	if err != nil {
+		return newMatchView{}, err
+	}
+	sj, err := json.Marshal(state)
+	if err != nil {
+		return newMatchView{}, err
+	}
+	return newMatchView{campaignBase: base, CompaniesJSON: string(cj), SidesJSON: string(sj), FFA: ffa, Error: errMsg, Companies: len(companies),
+		Scenario: newScenarioView{CampaignID: base.Campaign.ID}, MaxSides: 8}, nil
+}
+
+func (s *Server) handleNewMatchPage(w http.ResponseWriter, r *http.Request) {
+	base, ok := s.loadCampaign(w, r, "")
+	if !ok {
+		return
+	}
+	if err := base.Campaign.CanStartMatch(); err != nil {
+		s.refuse(w, r, http.StatusForbidden, reason(err))
+		return
+	}
+	list, err := s.campaigns.Companies(r.Context(), base.Campaign.ID)
+	if s.fail(w, r, err) {
+		return
+	}
+	sides := []core.NewSide{{}, {}}
+	if mine := base.Campaign.Companies; len(mine) > 0 {
+		sides[0].Companies = []int64{mine[0].ID} // you are most likely playing; with several companies the first
+	}
+	view, err := newMatchForm(base, list, sides, false, "")
+	if s.fail(w, r, err) {
+		return
+	}
+	if view.Scenario, err = s.rolledScenario(r, base.Campaign.ID); s.fail(w, r, err) {
+		return
+	}
+	view.Practice = r.URL.Query().Get("practice") == "1"
+	s.render.page(w, r, http.StatusOK, "match_new", view)
+}
+
+// rolledScenario rolls both dice of the scenario selection (always the server's dice: the form asks nothing) until they point at a
+// scenario of the rules file, a few tries at most.
+func (s *Server) rolledScenario(r *http.Request, id int64) (newScenarioView, error) {
+	v := newScenarioView{CampaignID: id}
+	list, err := s.campaigns.Scenarios(r.Context(), id)
+	if err != nil {
+		return v, err
+	}
+	sel, err := s.campaigns.ScenarioSelection(r.Context(), id)
+	if err != nil {
+		return v, err
+	}
+	if sel.Die.Sides <= 0 || len(list) == 0 {
+		v.Note = "The rules of this campaign list no scenarios to roll for: describe a one-off one, or leave it for the match page."
+		return v, nil
+	}
+	for range 10 {
+		d1, d2 := s.die(sel.Die.Sides), s.die(sel.Die.Sides)
+		if sc, ok := core.ScenarioByRolls(sel, list, d1, d2); ok {
+			v.Info, v.Dice, v.Table = &sc, [2]int{d1, d2}, sel.Table(d1)
+			return v, nil
+		}
+	}
+	v.Note = "The dice found no scenario of this campaign's rules: choose one."
+	return v, nil
+}
+
+// scenarioFromForm reads the scenario the card's hidden inputs (or the one-off fields) carry; nil when none.
+func scenarioFromForm(r *http.Request) *core.ScenarioInput {
+	switch kind := core.ScenarioKind(r.FormValue("scenario-kind")); kind {
+	case core.ScenarioRulebook:
+		if name := r.FormValue("scenario-name"); name != "" {
+			return &core.ScenarioInput{Kind: kind, Name: name}
+		}
+	case core.ScenarioCustom:
+		return &core.ScenarioInput{Kind: kind, Name: r.FormValue("scenario-name"), Description: r.FormValue("scenario-description"), Victory: r.FormValue("scenario-victory")}
+	}
+	return nil
+}
+
+// scenarioCardFor is the card that shows the scenario in (a rulebook name, a one-off or none).
+func (s *Server) scenarioCardFor(r *http.Request, id int64, in *core.ScenarioInput, mode string, ambush bool) (newScenarioView, error) {
+	v := newScenarioView{CampaignID: id, Mode: mode, Ambush: ambush}
+	list, err := s.campaigns.Scenarios(r.Context(), id)
+	if err != nil {
+		return v, err
+	}
+	if in != nil {
+		switch in.Kind {
+		case core.ScenarioRulebook:
+			if i := slices.IndexFunc(list, func(sc core.ScenarioInfo) bool { return sc.Name == in.Name }); i >= 0 {
+				v.Info = &list[i]
+			}
+		case core.ScenarioCustom:
+			v.Custom = *in
+		}
+	}
+	if ambush && v.Info == nil && mode == "" {
+		v.Mode = "pick"
+	}
+	if v.Mode == "pick" {
+		v.Groups = groupScenarios(list)
+	}
+	return v, nil
+}
+
+// handleNewScenarioCard answers the scenario card of the form: ?mode=pick (the list) or custom (the one-off fields), or a rulebook
+// scenario by ?name= (what a press in the list chose). The scenario the card held comes along (hx-include) so Cancel keeps it.
+func (s *Server) handleNewScenarioCard(w http.ResponseWriter, r *http.Request) {
+	base, ok := s.loadCampaign(w, r, "")
+	if !ok {
+		return
+	}
+	mode := r.FormValue("mode")
+	if mode != "" && mode != "pick" && mode != "custom" {
+		s.notFound(w, r)
+		return
+	}
+	in := scenarioFromForm(r)
+	if name := r.URL.Query().Get("name"); name != "" {
+		in = &core.ScenarioInput{Kind: core.ScenarioRulebook, Name: name}
+	}
+	if mode == "custom" && (in == nil || in.Kind != core.ScenarioCustom) {
+		in = &core.ScenarioInput{Kind: core.ScenarioCustom}
+	}
+	v, err := s.scenarioCardFor(r, base.Campaign.ID, in, mode, r.FormValue("ambush") == "1")
+	if s.fail(w, r, err) {
+		return
+	}
+	s.render.partial(w, http.StatusOK, "match_new", "new_scenario", v)
+}
+
+// handleNewScenarioRoll rolls again (both dice, no question) and answers the card.
+func (s *Server) handleNewScenarioRoll(w http.ResponseWriter, r *http.Request) {
+	base, ok := s.loadCampaign(w, r, "")
+	if !ok {
+		return
+	}
+	v, err := s.rolledScenario(r, base.Campaign.ID)
+	if s.fail(w, r, err) {
+		return
+	}
+	s.render.partial(w, http.StatusOK, "match_new", "new_scenario", v)
+}
+
+// handleNewATO answers the Against the Odds block for the companies a and b (one each side): empty unless the viewer owns the lower
+// rated one and there is a gap (docs/simplify-matches-spec.md, D9).
+func (s *Server) handleNewATO(w http.ResponseWriter, r *http.Request) {
+	base, ok := s.loadCampaign(w, r, "")
+	if !ok {
+		return
+	}
+	a, _ := strconv.ParseInt(r.URL.Query().Get("a"), 10, 64)
+	b, _ := strconv.ParseInt(r.URL.Query().Get("b"), 10, 64)
+	v, err := s.newATO(r, base, []core.NewSide{{Companies: []int64{a}}, {Companies: []int64{b}}}, r.URL.Query().Get("practice") == "1", nil)
+	if s.fail(w, r, err) {
+		return
+	}
+	if v == nil {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	s.render.partial(w, http.StatusOK, "match_new", "new_ato", *v)
+}
+
+// newATO is the block for the sides, nil when it is not shown (not a 1 v 1, equal ratings, the viewer is not the underdog's owner).
+func (s *Server) newATO(r *http.Request, base campaignBase, sides []core.NewSide, practice bool, taken []string) (*newATOView, error) {
+	if len(sides) != 2 || len(sides[0].Companies) != 1 || len(sides[1].Companies) != 1 || sides[0].Companies[0] == sides[1].Companies[0] ||
+		sides[0].Companies[0] <= 0 || sides[1].Companies[0] <= 0 {
+		return nil, nil
+	}
+	card, err := s.campaigns.PreviewAgainstTheOdds(r.Context(), *userFrom(r.Context()), base.Campaign.ID, sides, practice)
+	if errors.Is(err, core.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !card.Eligible || card.Access != core.ATOEdit {
+		return nil, nil
+	}
+	v := &newATOView{Card: card, Taken: map[string]bool{}}
+	for _, k := range taken {
+		v.Taken[k] = true
+	}
+	return v, nil
+}
+
+func (s *Server) handleCreateMatch(w http.ResponseWriter, r *http.Request) {
+	base, ok := s.loadCampaign(w, r, "")
+	if !ok {
+		return
+	}
+	if err := base.Campaign.CanStartMatch(); err != nil {
+		s.refuse(w, r, http.StatusForbidden, reason(err))
+		return
+	}
+	list, err := s.campaigns.Companies(r.Context(), base.Campaign.ID)
+	if s.fail(w, r, err) {
+		return
+	}
+	known := map[int64]bool{}
+	for _, c := range list {
+		known[c.ID] = true
+	}
+	ffa := r.PostFormValue("mode") == "ffa"
+	n, _ := strconv.Atoi(r.PostFormValue("sides"))
+	sides := make([]core.NewSide, max(2, min(n, 8)))
+	for i := range sides {
+		for _, v := range r.PostForm["side-"+itoa(i+1)] {
+			if id, err := strconv.ParseInt(v, 10, 64); err == nil && known[id] {
+				sides[i].Companies = append(sides[i].Companies, id)
+			}
+		}
+	}
+	form := sides
+	if ffa { // all vs all: the companies of the pool (side 1) each become a side of their own
+		sides = nil
+		for _, id := range form[0].Companies {
+			sides = append(sides, core.NewSide{Companies: []int64{id}})
+		}
+	}
+	user := *userFrom(r.Context())
+	practice := r.PostFormValue("practice") == "1"
+	scenario := scenarioFromForm(r)
+	in := core.NewMatch{Sides: sides, Practice: practice, Scenario: scenario}
+	taken := slices.DeleteFunc(slices.Clone(r.PostForm["ato"]), func(k string) bool { return k == "" })
+	if len(taken) > 0 && !ffa {
+		sel := core.ATOSelection{Bonuses: taken}
+		if slices.Contains(taken, "ambush") && scenario != nil && scenario.Kind == core.ScenarioRulebook {
+			sel.Ambush = scenario.Name
+		}
+		in.ATO = &core.NewMatchATO{Selection: sel}
+	}
+	matchID, err := s.recent.create([]any{"match", user.ID, base.Campaign.ID, sides, practice, scenario, taken}, func() (int64, error) {
+		m, err := s.campaigns.CreateMatch(r.Context(), user, base.Campaign.ID, in)
+		return m.ID, err
+	})
+	switch {
+	case errors.Is(err, core.ErrInvalidMatch) || errors.Is(err, core.ErrRefused):
+		msg := reason(err)
+		if errors.Is(err, core.ErrInvalidMatch) {
+			msg = joinReasons(err)
+		}
+		view, jerr := newMatchForm(base, list, form, ffa, msg)
+		if s.fail(w, r, jerr) {
+			return
+		}
+		view.Practice = practice
+		var busy *core.CompanyBusyError
+		if errors.As(err, &busy) {
+			view.Busy = &busy.OpenMatchRef
+		}
+		mode := ""
+		if scenario != nil && scenario.Kind == core.ScenarioCustom {
+			mode = "custom"
+		}
+		if view.Scenario, jerr = s.scenarioCardFor(r, base.Campaign.ID, scenario, mode, slices.Contains(taken, "ambush")); s.fail(w, r, jerr) {
+			return
+		}
+		if scenario != nil && scenario.Kind == core.ScenarioCustom {
+			view.Scenario.Err = scenarioErrors(err)
+		}
+		if !ffa {
+			if view.ATO, jerr = s.newATO(r, base, sides, practice, taken); s.fail(w, r, jerr) {
+				return
+			}
+		}
+		s.render.page(w, r, http.StatusUnprocessableEntity, "match_new", view)
+	case s.fail(w, r, err):
+	default:
+		redirect(w, r, "/campaigns/"+itoa(int(base.Campaign.ID))+"/matches/"+itoa(int(matchID)))
+	}
+}
+
+// joinReasons is the sentences of an error built with errors.Join(sentinel, reason...), as one message.
+func joinReasons(err error) string {
+	out := ""
+	for i, r := range reasons(err) {
+		if i > 0 {
+			out += " "
+		}
+		out += r
+	}
+	return out
+}

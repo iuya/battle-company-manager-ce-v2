@@ -41,12 +41,11 @@ type LiveUnit struct {
 	// FateEntry and BrokenEntry are the unit's last not-undone fate and broken entries (0 for none): what pressing a lit Fate or Courage
 	// milestone undoes.
 	FateEntry, BrokenEntry int64
-	// BreakModels is how many models the unit counts as for the company's Break Point (at least 1). CourageTurn is the turn its courage
-	// was last resolved (a broken, courageSkip or failed-courage retreat entry), StandFastTurn the turn it called Stand Fast. Temporary
+	// BreakModels is how many models the unit counts as for the company's Break Point (at least 1). Temporary
 	// is set for the temporary Wanderer of Against the Odds (its UnitID is TemporaryUnitID(company), never a roster id).
-	BreakModels, CourageTurn, StandFastTurn int
-	Temporary                               bool
-	// CourageHow is how the courage of CourageTurn was resolved: "passed" (tested), "failed" (tested, retreated), or the courageSkip reason
+	BreakModels int
+	Temporary   bool
+	// CourageHow is how the unit's last courage test was resolved: "passed" (tested), "failed" (tested, retreated), or the courageSkip reason
 	// (standFast, heroicResolve, chariot, scenario: automatic passes; engaged, cannotActivate: exemptions). Empty before any.
 	CourageHow string
 	// Loaned are the items a Tool Kit put on the unit for this match (Used when an itemUsed entry spent it); UsedItems the names of the
@@ -91,7 +90,6 @@ type LiveCompany struct {
 	Access             LiveAccess
 	Break              LiveBreak          // the company's Break Point state
 	Wanderer           *TemporaryWanderer // the temporary Wanderer this company took with Against the Odds, nil without
-	Turn               int                // match level: the last started turn, 0 before the first
 }
 
 // LiveAccess is what the viewer may do with a company's live state; the page only hides controls with it.
@@ -133,11 +131,14 @@ const (
 	LiveSecretDone     LiveKind = "secretDone"     // the tier the player reports at the end
 
 	// The company Break Point in play and the Against the Odds items (epic 36y; docs/live-match.md).
-	LiveTurn        LiveKind = "turn"        // a new turn starts (Turn); match level, company 0
 	LiveBreakAdjust LiveKind = "breakAdjust" // the manual correction of a company's starting models or casualties (Field, Delta, Note)
 	LiveCourageSkip LiveKind = "courageSkip" // a Broken company's unit passes or is exempt from the courage test without a roll (UnitID, Reason)
-	LiveAllIsLost   LiveKind = "allIsLost"   // a Broken company flees the battlefield (Flee true) or fights on (false)
 	LiveItemUsed    LiveKind = "itemUsed"    // a loaned or owned consumable used during the game (UnitID, Item, Index)
+
+	// Kinds older logs may hold and that can no longer be written (docs/simplify-matches-spec.md, D10 and D14): a "turn" entry is
+	// ignored by the fold; an "allIsLost" entry with Flee still takes the company's units in the Field off the board.
+	liveTurnLegacy      LiveKind = "turn"
+	liveAllIsLostLegacy LiveKind = "allIsLost"
 
 	// Informational entries about a pending end of the match (epic 6uh): written by the app, shown in the log, never undone and never
 	// part of the fold.
@@ -196,9 +197,9 @@ type LiveAction struct {
 	Tier         int
 	// TargetCompanyID is the company an mvpVote is about.
 	TargetCompanyID int64
-	// Turn is the number of the turn a turn entry starts (1 for the first). Field is "start" or "casualties" for a breakAdjust.
+	// Turn is what an older turn entry started (no longer written). Field is "start" or "casualties" for a breakAdjust.
 	// StandFast is set on a broken entry when the Hero called Stand Fast. Reason is a courageSkip's reason (standFast|heroicResolve|
-	// chariot|scenario|engaged|cannotActivate). Flee is an allIsLost's answer. Item and Index name the consumable of an itemUsed.
+	// chariot|scenario|engaged|cannotActivate). Flee is an older allIsLost's answer. Item and Index name the consumable of an itemUsed.
 	Turn      int
 	Field     string
 	StandFast bool
@@ -347,10 +348,9 @@ type CourageRoll struct {
 	Passed  bool
 }
 
-// LiveMatchDefaults are what the live log says about the result form of the match: which companies chose to flee (All is Lost) and
-// for which companies every opposing company is Broken at the end of the game (the enemyBroken scenario objective).
+// LiveMatchDefaults are what the live log says about the result of the match: for which companies every opposing company is Broken at
+// the end of the game (the enemyBroken scenario objective).
 type LiveMatchDefaults struct {
-	Fled        map[int64]bool
 	EnemyBroken map[int64]bool
 }
 

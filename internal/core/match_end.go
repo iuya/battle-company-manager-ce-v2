@@ -97,7 +97,7 @@ func matchCompanies(m Match) []CampaignCompany {
 	return out
 }
 
-// resetEnd drops every confirmation of a pending end except the proposer's, after a change of the scenario, the result, the roles or the
+// resetEnd drops every confirmation of a pending end except the proposer's, after a change of the scenario, the result or the
 // Against the Odds selection; by is who changed it. It does nothing when no end is pending.
 func (m *Match) resetEnd(by string, what string) {
 	p := m.EndProposal
@@ -134,19 +134,54 @@ func companyNames(list []EndConfirmation) string {
 	return strings.Join(names, ", ")
 }
 
-// checkEnd is CanEnd plus the rule that a scenario with an Attacker and a Defender needs both teams tagged.
-func checkEnd(m *Match, scenarios []ScenarioInfo) error {
+// MissingVote is an MVP vote still to be made before a competitive match can end (docs/simplify-matches-spec.md, D7): the owner of a
+// company of the match has not voted a unit of the opposing company Company.
+type MissingVote struct {
+	OwnerID   int64
+	Owner     string
+	CompanyID int64
+	Company   string
+}
+
+// checkEnd is CanEnd plus the mandatory MVP of a competitive match: voter (a user id) must have voted one unit of every opposing company,
+// and with voter 0 every owner must have. A practice match, or a service without MissingVotes, needs no vote.
+func (s *Matches) checkEnd(ctx context.Context, m *Match, id, voter int64) error {
 	if err := m.CanEnd(); err != nil {
 		return err
 	}
-	if m.Scenario != nil && m.Scenario.Kind == ScenarioRulebook && len(m.Sides) == 2 {
-		if i := slices.IndexFunc(scenarios, func(sc ScenarioInfo) bool { return sc.Name == m.Scenario.Name }); i >= 0 && scenarios[i].HasRoles() {
-			if m.Sides[0].Role == "" || m.Sides[1].Role == "" {
-				return errors.Join(ErrInvalidMatch, errors.New("Choose which team attacks and which defends"))
-			}
+	if m.Practice || s.MissingVotes == nil {
+		return nil
+	}
+	missing, err := s.MissingVotes(ctx, id, m.ID, voter)
+	if err != nil {
+		return err
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	var names []string
+	for _, v := range missing {
+		if voter != 0 {
+			names = append(names, v.Company)
+		} else {
+			names = append(names, v.Owner+" for "+v.Company)
 		}
 	}
-	return nil
+	if voter != 0 {
+		return Refuse("Vote the MVP of %s first.", joinAnd(names))
+	}
+	return Refuse("The MVP is still to be voted: %s.", joinAnd(names))
+}
+
+// joinAnd writes "a", "a and b", "a, b and c".
+func joinAnd(list []string) string {
+	switch len(list) {
+	case 0:
+		return ""
+	case 1:
+		return list[0]
+	}
+	return strings.Join(list[:len(list)-1], ", ") + " and " + list[len(list)-1]
 }
 
 // EndChange is what happened to a pending end, for the live log and the hub (EndNotify).
@@ -169,16 +204,12 @@ func (s *Matches) notifyEnd(ctx context.Context, ch EndChange) {
 // ProposeEnd starts the end: CanEnd runs at once (ErrRefused / ErrInvalidMatch with its reasons), the proposer's own companies confirm,
 // and when nobody is left waiting the match ends at once.
 func (s *Matches) ProposeEnd(ctx context.Context, user User, id, matchID int64, revision int) (Match, error) {
-	scenarios, err := s.Scenarios(ctx, id)
-	if err != nil {
-		return Match{}, err
-	}
 	var change EndChange
 	m, err := s.edit(ctx, user, id, matchID, revision, func(m *Match) error {
 		if m.EndProposal != nil {
 			return Refuse("The end of this match has already been proposed.")
 		}
-		if err := checkEnd(m, scenarios); err != nil {
+		if err := s.checkEnd(ctx, m, id, user.ID); err != nil {
 			return err
 		}
 		now := time.Now()
@@ -192,6 +223,9 @@ func (s *Matches) ProposeEnd(ctx context.Context, user User, id, matchID int64, 
 		}
 		change = EndChange{Kind: "endProposed", By: user, CampaignID: id, MatchID: matchID, Text: user.DisplayName + " proposed to end the match"}
 		if len(p.Waiting()) == 0 {
+			if err := s.checkEnd(ctx, m, id, 0); err != nil {
+				return err
+			}
 			m.finishEnd("confirmed by " + companyNames(p.Companies))
 			change.Kind = "ended"
 			return nil
@@ -207,10 +241,6 @@ func (s *Matches) ProposeEnd(ctx context.Context, user User, id, matchID int64, 
 
 // ConfirmEnd confirms the companies of the user that wait; the last confirmation ends the match.
 func (s *Matches) ConfirmEnd(ctx context.Context, user User, id, matchID int64, revision int) (Match, error) {
-	scenarios, err := s.Scenarios(ctx, id)
-	if err != nil {
-		return Match{}, err
-	}
 	var change EndChange
 	m, err := s.edit(ctx, user, id, matchID, revision, func(m *Match) error {
 		p := m.EndProposal
@@ -219,6 +249,9 @@ func (s *Matches) ConfirmEnd(ctx context.Context, user User, id, matchID int64, 
 		}
 		if !p.WaitingOn(user.ID) {
 			return Refuse("You have no company waiting to confirm.")
+		}
+		if err := s.checkEnd(ctx, m, id, user.ID); err != nil {
+			return err
 		}
 		next := *p
 		next.Companies = slices.Clone(p.Companies)
@@ -233,7 +266,7 @@ func (s *Matches) ConfirmEnd(ctx context.Context, user User, id, matchID int64, 
 		next.Notice = ""
 		change = EndChange{Kind: "endConfirmed", By: user, CampaignID: id, MatchID: matchID, CompanyIDs: mine, Text: user.DisplayName + " confirmed the end"}
 		if len(next.Waiting()) == 0 {
-			if err := checkEnd(m, scenarios); err != nil {
+			if err := s.checkEnd(ctx, m, id, 0); err != nil {
 				return err
 			}
 			m.finishEnd("confirmed by " + companyNames(next.Companies))
@@ -339,10 +372,6 @@ func (s *Matches) OverrideEnd(ctx context.Context, user User, id, matchID int64,
 	if !camp.CanManage(user) {
 		return Match{}, Refuse("Only the organiser of the campaign or an administrator can end a match without its players' confirmation.")
 	}
-	scenarios, err := s.Scenarios(ctx, id)
-	if err != nil {
-		return Match{}, err
-	}
 	var change EndChange
 	m, err := s.edit(ctx, user, id, matchID, revision, func(m *Match) error {
 		p := m.EndProposal
@@ -366,7 +395,7 @@ func (s *Matches) OverrideEnd(ctx context.Context, user User, id, matchID int64,
 		if len(overridden) == 0 {
 			return Refuse("Every company has confirmed already.")
 		}
-		if err := checkEnd(m, scenarios); err != nil {
+		if err := m.CanEnd(); err != nil { // the override needs no MVP votes
 			return err
 		}
 		m.finishEnd(fmt.Sprintf("overriding %s: %s", companyNames(overridden), note))

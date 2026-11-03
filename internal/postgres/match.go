@@ -94,11 +94,11 @@ func fillMatch(m *core.Match, sidesJSON, companiesJSON, proposalJSON, confirmati
 		if err := unmarshalAll(r[:], &side.Name, &vp, &side.Role); err != nil {
 			return err
 		}
+		_ = vp // Victory Points of older matches are no longer read (docs/simplify-matches-spec.md, D3)
 		m.Sides = append(m.Sides, side)
-		m.Result.Sides = append(m.Result.Sides, core.SideResult{VictoryPoints: vp})
 	}
 
-	// Companies of the sides, with what was reported for them.
+	// Companies of the sides (the fled flag of older matches is no longer read).
 	var companies [][8]json.RawMessage
 	if err := json.Unmarshal(companiesJSON, &companies); err != nil {
 		return err
@@ -111,9 +111,6 @@ func fillMatch(m *core.Match, sidesJSON, companiesJSON, proposalJSON, confirmati
 			return err
 		}
 		m.Sides[pos].Companies = append(m.Sides[pos].Companies, c)
-		if fled {
-			m.Result.Companies = append(m.Result.Companies, core.CompanyResult{CompanyID: c.ID, Fled: true})
-		}
 	}
 
 	// The pending end, with one entry per company of the match (a company without a confirmation row is waiting).
@@ -153,7 +150,7 @@ func fillMatch(m *core.Match, sidesJSON, companiesJSON, proposalJSON, confirmati
 		m.EndProposal = &p
 	}
 
-	// Objectives, merged into the company entries (one per company that fled or completed something).
+	// Objectives, one company entry per company that completed something.
 	var objectives [][3]json.RawMessage
 	if err := json.Unmarshal(objectivesJSON, &objectives); err != nil {
 		return err
@@ -257,14 +254,20 @@ func (ms matchStore) Create(ctx context.Context, campaignID int64, by core.User,
 		return core.Match{}, err
 	}
 	var id int64
+	var kind *string
+	var sc core.MatchScenario
+	if in.Scenario != nil {
+		k := string(in.Scenario.Kind)
+		kind, sc = &k, *in.Scenario
+	}
 	if err := tx.QueryRow(ctx, `
-		INSERT INTO matches (campaign_id, number, created_by, practice)
-		VALUES ($1, (SELECT coalesce(max(number), 0) + 1 FROM matches WHERE campaign_id = $1), $2, $3) RETURNING id`,
-		campaignID, by.ID, in.Practice).Scan(&id); err != nil {
+		INSERT INTO matches (campaign_id, number, created_by, practice, scenario_kind, scenario_name, scenario_description, scenario_victory)
+		VALUES ($1, (SELECT coalesce(max(number), 0) + 1 FROM matches WHERE campaign_id = $1), $2, $3, $4, $5, $6, $7) RETURNING id`,
+		campaignID, by.ID, in.Practice, kind, sc.Name, sc.Description, sc.Victory).Scan(&id); err != nil {
 		return core.Match{}, err
 	}
 	for pos, side := range in.Sides {
-		if _, err := tx.Exec(ctx, `INSERT INTO match_sides (match_id, position, name, role) VALUES ($1, $2, $3, $4)`, id, pos, side.Name, nullRole(side.Role)); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO match_sides (match_id, position, name) VALUES ($1, $2, $3)`, id, pos, side.Name); err != nil {
 			return core.Match{}, err
 		}
 		for slot, companyID := range side.Companies {
@@ -287,6 +290,16 @@ func (ms matchStore) Create(ctx context.Context, campaignID int64, by core.User,
 	}
 	if err := busyCompany(ctx, tx, campaignID, id); err != nil {
 		return core.Match{}, err
+	}
+	if in.ATO != nil && !in.ATO.Selection.Empty() { // the Against the Odds bonuses taken on the form, stored with the match
+		sel, err := encodeSelection(in.ATO.Selection)
+		if err != nil {
+			return core.Match{}, err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO match_ato (match_id, company_id, selection, previous_scenario, had_previous) VALUES ($1, $2, $3, NULL, false)`,
+			id, in.ATO.CompanyID, sel); err != nil {
+			return core.Match{}, err
+		}
 	}
 	list, err := ms.load(ctx, tx, `m.id = $1`, false, id)
 	if err != nil || len(list) == 0 {
@@ -358,9 +371,6 @@ func (ms matchStore) Update(ctx context.Context, campaignID, matchID int64, by c
 			return core.Match{}, err
 		}
 	}
-	if len(m.Result.Sides) != 0 && len(m.Result.Sides) != len(before.Sides) {
-		return core.Match{}, errors.New("postgres: result sides do not match the match's sides")
-	}
 	var kind *string
 	var sc core.MatchScenario
 	if m.Scenario != nil {
@@ -376,44 +386,15 @@ func (ms matchStore) Update(ctx context.Context, campaignID, matchID int64, by c
 		matchID, kind, sc.Name, sc.Description, sc.Victory, m.Result.Decided, m.Result.Winner, m.Result.Note, m.Ended); err != nil {
 		return core.Match{}, err
 	}
-	rolesChanged := false
-	for pos := range before.Sides {
-		rolesChanged = rolesChanged || (pos < len(m.Sides) && m.Sides[pos].Role != before.Sides[pos].Role)
-	}
-	if rolesChanged { // clear first: swapping Attacker and Defender passes through a state the unique index forbids
-		if _, err := tx.Exec(ctx, `UPDATE match_sides SET role = NULL WHERE match_id = $1`, matchID); err != nil {
-			return core.Match{}, err
-		}
-		for pos, side := range m.Sides {
-			if side.Role != "" {
-				if _, err := tx.Exec(ctx, `UPDATE match_sides SET role = $3 WHERE match_id = $1 AND position = $2`, matchID, pos, side.Role); err != nil {
-					return core.Match{}, err
-				}
-			}
-		}
-	}
-	for pos := range before.Sides {
-		var vp *int16
-		if pos < len(m.Result.Sides) && m.Result.Sides[pos].VictoryPoints != nil {
-			v := int16(*m.Result.Sides[pos].VictoryPoints)
-			vp = &v
-		}
-		if _, err := tx.Exec(ctx, `UPDATE match_sides SET victory_points = $3 WHERE match_id = $1 AND position = $2`, matchID, pos, vp); err != nil {
-			return core.Match{}, err
-		}
-	}
-	if _, err := tx.Exec(ctx, `UPDATE match_side_companies SET fled = false WHERE match_id = $1`, matchID); err != nil {
-		return core.Match{}, err
-	}
 	if _, err := tx.Exec(ctx, `DELETE FROM match_objectives WHERE match_id = $1`, matchID); err != nil {
 		return core.Match{}, err
 	}
 	for _, c := range m.Result.Companies {
-		tag, err := tx.Exec(ctx, `UPDATE match_side_companies SET fled = $3 WHERE match_id = $1 AND company_id = $2`, matchID, c.CompanyID, c.Fled)
-		if err != nil {
+		var known bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM match_side_companies WHERE match_id = $1 AND company_id = $2)`, matchID, c.CompanyID).Scan(&known); err != nil {
 			return core.Match{}, err
 		}
-		if tag.RowsAffected() == 0 {
+		if !known {
 			return core.Match{}, errors.Join(core.ErrInvalidMatch, errors.New("a company in the result is not in this match"))
 		}
 		for key, n := range c.Objectives {
@@ -594,12 +575,4 @@ func (ms matchStore) Grants(ctx context.Context, campaignID, companyID int64) ([
 		out = append(out, g)
 	}
 	return out, rows.Err()
-}
-
-// nullRole stores no tag as NULL.
-func nullRole(role string) *string {
-	if role == "" {
-		return nil
-	}
-	return &role
 }

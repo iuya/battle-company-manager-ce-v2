@@ -63,11 +63,6 @@ func (b *bp) fall(n int) { // n more units of company 1 die
 	}
 }
 
-func (b *bp) turn() string {
-	b.t.Helper()
-	return b.do(0, LiveAction{Kind: LiveTurn, Turn: b.state().Turn() + 1})
-}
-
 func TestBreakPointEdges(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -90,85 +85,64 @@ func TestBreakPointEdges(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			b := newBP(t, tt.models, tt.percent)
 			b.fall(tt.casualties)
-			if got := b.state().Break(1); got.Broken || got.Casualties != tt.casualties || got.StartingModels != tt.models {
-				t.Fatalf("before the turn: %+v", got)
-			}
-			if got := b.state().Break(1); got.WillBreak != tt.broken {
-				t.Errorf("WillBreak = %v, want %v", got.WillBreak, tt.broken)
-			}
-			b.turn()
 			got := b.state().Break(1)
-			if got.Broken != tt.broken || got.BreakPoint() != tt.breakPoint {
-				t.Errorf("after the turn: %+v (Break Point %s), want broken=%v %s", got, got.BreakPoint(), tt.broken, tt.breakPoint)
-			}
-			if tt.broken && (got.BrokenAtTurn != 1 || !got.Offer || got.WillBreak) {
-				t.Errorf("broken state: %+v", got)
+			if got.Broken != tt.broken || got.Casualties != tt.casualties || got.StartingModels != tt.models || got.BreakPoint() != tt.breakPoint {
+				t.Errorf("%+v (Break Point %s), want broken=%v %s", got, got.BreakPoint(), tt.broken, tt.breakPoint)
 			}
 		})
 	}
 }
 
-func TestBrokenOnlyAtTheTurnBoundaryAndForGood(t *testing.T) {
+func TestBrokenAsSoonAsTheCasualtiesExceedTheBreakPoint(t *testing.T) {
 	b := newBP(t, 13, 50)
-	b.fall(7)
+	b.fall(6)
 	if b.state().Break(1).Broken {
-		t.Fatal("casualties alone never break a company: only a turn entry tests")
+		t.Fatal("6 of 13 is not above the Break Point")
 	}
-	text := b.turn()
-	if text != "Turn 1 started: Alpha is Broken" {
-		t.Errorf("text: %q", text)
+	b.fall(1)
+	if !b.state().Break(1).Broken {
+		t.Fatal("the seventh casualty breaks the company at once: there are no turns")
 	}
-	// a unit returns to the battle: the casualties drop, the company stays Broken
+	// a unit returns to the battle: the casualties drop under the Break Point and the company is whole again
 	b.do(1, LiveAction{Kind: LiveReturn, UnitID: 1})
-	b.do(1, LiveAction{Kind: LiveReturn, UnitID: 2})
-	b.turn()
-	got := b.state().Break(1)
-	if !got.Broken || got.BrokenAtTurn != 1 || got.Casualties != 5 || got.Offer {
-		t.Errorf("Broken is permanent: %+v", got)
+	if got := b.state().Break(1); got.Broken || got.Casualties != 6 {
+		t.Errorf("back under the Break Point: %+v", got)
+	}
+	// undoing the casualty that broke it is the fold without it
+	b.do(1, LiveAction{Kind: LiveDied, UnitID: 1})
+	rest := b.entries[:len(b.entries)-1]
+	if err := ValidateLogWith(b.inits, rest, b.cfg); err != nil {
+		t.Fatalf("the log without the last casualty is valid: %v", err)
+	}
+	if got := FoldLiveWith(b.inits, rest, b.cfg).Break(1); got.Broken {
+		t.Errorf("after the undo: %+v", got)
 	}
 	if b.state().Break(2).Broken {
 		t.Error("the other company has no casualties")
 	}
-	if tx := b.turn(); strings.Contains(tx, "Broken") {
-		t.Errorf("a company already Broken is not announced again: %q", tx)
-	}
 }
 
-func TestUndoingTheTurnUnbreaksTheCompany(t *testing.T) {
+func TestOlderTurnAndAllIsLostEntries(t *testing.T) {
 	b := newBP(t, 13, 50)
 	b.fall(7)
-	b.turn()
-	if !b.state().Break(1).Broken {
-		t.Fatal("setup")
+	if _, err := b.try(0, LiveAction{Kind: liveTurnLegacy, Turn: 1}); !errors.Is(err, ErrInvalidLive) {
+		t.Errorf("a turn entry can no longer be written: %v", err)
 	}
-	rest := b.entries[:len(b.entries)-1] // the log without the turn entry
-	if err := ValidateLogWith(b.inits, rest, b.cfg); err != nil {
-		t.Fatalf("the log without the turn is valid: %v", err)
+	if _, err := b.try(1, LiveAction{Kind: liveAllIsLostLegacy, Flee: true}); !errors.Is(err, ErrInvalidLive) {
+		t.Errorf("All is Lost can no longer be written: %v", err)
 	}
-	if got := FoldLiveWith(b.inits, rest, b.cfg).Break(1); got.Broken || !got.WillBreak {
-		t.Errorf("after the undo: %+v", got)
+	// an older log still folds: the turn is ignored, the company that fled left the board
+	old := append(append([]LiveEntry{}, b.entries...),
+		LiveEntry{ID: 90, Seq: 90, CompanyID: 0, Action: LiveAction{Kind: liveTurnLegacy, Turn: 1}},
+		LiveEntry{ID: 91, Seq: 91, CompanyID: 1, Action: LiveAction{Kind: liveAllIsLostLegacy, Flee: true}})
+	s := FoldLiveWith(b.inits, old, b.cfg)
+	if got := s.Break(1); !got.Broken || got.Casualties != 7 {
+		t.Errorf("the turn changes nothing and leaving the board adds no casualties: %+v", got)
 	}
-	// but a casualty cannot be undone from under an All is Lost that depends on... see TestAllIsLost; here a later turn depends on the first
-	b.turn()
-	if err := ValidateLogWith(b.inits, append(append([]LiveEntry{}, b.entries[:7]...), b.entries[8:]...), b.cfg); !errors.Is(err, ErrLiveDepends) {
-		t.Errorf("turn 2 needs turn 1: %v", err)
-	}
-}
-
-func TestTurnEntriesAreCheckedForStaleness(t *testing.T) {
-	b := newBP(t, 13, 50)
-	if _, err := b.try(0, LiveAction{Kind: LiveTurn, Turn: 2}); !errors.Is(err, ErrInvalidLive) {
-		t.Errorf("the first turn is 1: %v", err)
-	}
-	b.turn()
-	if _, err := b.try(0, LiveAction{Kind: LiveTurn, Turn: 1}); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Turn 1 has already started") {
-		t.Errorf("a second press is refused: %v", err)
-	}
-	if _, err := b.try(0, LiveAction{Kind: LiveTurn, Turn: 3}); !errors.Is(err, ErrInvalidLive) {
-		t.Errorf("a turn cannot be skipped: %v", err)
-	}
-	if b.state().Turn() != 1 {
-		t.Errorf("turn %d", b.state().Turn())
+	for i := int64(8); i <= 13; i++ {
+		if x, _ := s.Unit(i); x.Zone != ZoneRetreated || x.Reason != "Left the board" {
+			t.Errorf("unit %d should have left the board: %+v", i, x)
+		}
 	}
 }
 
@@ -211,11 +185,11 @@ func TestBreakPointModelsAndExtras(t *testing.T) {
 	}
 	b.do(1, LiveAction{Kind: LiveBreakAdjust, Field: "casualties", Delta: 2})
 	got := b.state().Break(1)
-	if got.StartingModels != 6 || got.Casualties != 4 {
-		t.Errorf("adjusted: %+v", got)
+	if got.StartingModels != 6 || got.Casualties != 4 || !got.Broken {
+		t.Errorf("adjusted (4 of 6 is above the Break Point): %+v", got)
 	}
 	// undo of the adjustment is just the fold without it
-	if got := FoldLiveWith(b.inits, b.entries[:len(b.entries)-2], b.cfg).Break(1); got.StartingModels != 7 || got.Casualties != 2 {
+	if got := FoldLiveWith(b.inits, b.entries[:len(b.entries)-2], b.cfg).Break(1); got.StartingModels != 7 || got.Casualties != 2 || got.Broken {
 		t.Errorf("without the adjustments: %+v", got)
 	}
 	for _, bad := range []LiveAction{
@@ -232,7 +206,7 @@ func TestBreakPointModelsAndExtras(t *testing.T) {
 	if _, err := b.try(9, LiveAction{Kind: LiveBreakAdjust, Field: "start", Delta: 1}); !errors.Is(err, ErrRefused) {
 		t.Errorf("a company that is not in the match: %v", err)
 	}
-	if got := FoldLive(b.inits, nil).Break(1); got.Percent != 0 || got.WillBreak {
+	if got := FoldLive(b.inits, nil).Break(1); got.Percent != 0 || got.Broken {
 		t.Errorf("without a config nothing ever breaks: %+v", got)
 	}
 }
@@ -240,27 +214,21 @@ func TestBreakPointModelsAndExtras(t *testing.T) {
 func TestCourageTests(t *testing.T) {
 	b := newBP(t, 4, 50)
 	b.cfg.NoStandFast = map[int64]bool{2: true}
-	b.fall(0)
 	b.do(1, LiveAction{Kind: LiveDied, UnitID: 3})
 	b.do(1, LiveAction{Kind: LiveDied, UnitID: 4})
-	b.turn() // Broken at turn 1 (2 of 4 is not above half: 3 needed) -> not Broken, so tests are optional
 	if b.state().Break(1).Broken {
-		t.Fatal("setup: 2 of 4")
+		t.Fatal("setup: 2 of 4 is not above half")
 	}
 	b.do(1, LiveAction{Kind: LiveDied, UnitID: 2})
-	b.turn() // turn 2: 3 of 4
 	if !b.state().Break(1).Broken {
-		t.Fatal("setup: Broken at turn 2")
+		t.Fatal("setup: 3 of 4 breaks it")
 	}
 	u := func(id int64) LiveUnit { x, _ := b.state().Unit(id); return x }
-	if u(1).CourageTurn != 0 {
-		t.Fatalf("not resolved yet: %+v", u(1))
+	if u(1).CourageHow != "" {
+		t.Fatalf("not tested yet: %+v", u(1))
 	}
 	b.do(1, LiveAction{Kind: LiveBroken, UnitID: 1, StandFast: true})
-	if x := u(1); x.CourageHow != "passed" {
-		t.Errorf("CourageHow after a pass: %q", x.CourageHow)
-	}
-	if x := u(1); x.CourageTurn != 2 || x.StandFastTurn != 2 || x.Gains[GainBrokenPassed] != 1 {
+	if x := u(1); x.CourageHow != "passed" || x.Gains[GainBrokenPassed] != 1 {
 		t.Errorf("a rolled pass: %+v", x)
 	}
 	if _, err := b.try(1, LiveAction{Kind: LiveBroken, UnitID: 1, StandFast: true}); err != nil {
@@ -271,7 +239,7 @@ func TestCourageTests(t *testing.T) {
 	if text != "unit 1 passes courage automatically (Heroic Resolve)" {
 		t.Errorf("text: %q", text)
 	}
-	if x := u(1); x.CourageTurn != 2 || x.CourageHow != "heroicResolve" {
+	if x := u(1); x.CourageHow != "heroicResolve" {
 		t.Errorf("%+v", x)
 	}
 	s := b.state()
@@ -289,11 +257,10 @@ func TestCourageTests(t *testing.T) {
 	if _, err := b.try(1, LiveAction{Kind: LiveBroken, UnitID: 2, StandFast: true}); !errors.Is(err, ErrRefused) {
 		t.Errorf("a Warrior or Wanderer cannot call Stand Fast: %v", err)
 	}
-	// a failed test: the unit flees as a casualty and its courage is resolved this turn
+	// a failed test: the unit flees as a casualty
 	b2 := newBP(t, 4, 50)
-	b2.turn()
 	b2.do(1, LiveAction{Kind: LiveRetreat, UnitID: 1, Why: "courage"})
-	if x, _ := b2.state().Unit(1); x.CourageTurn != 1 || x.CourageHow != "failed" || x.Zone != ZoneRetreated {
+	if x, _ := b2.state().Unit(1); x.CourageHow != "failed" || x.Zone != ZoneRetreated {
 		t.Errorf("failed courage: %+v", x)
 	}
 	// a skip never earns the experience flag
@@ -303,72 +270,9 @@ func TestCourageTests(t *testing.T) {
 	}
 }
 
-func TestAllIsLost(t *testing.T) {
-	b := newBP(t, 13, 50)
-	if _, err := b.try(1, LiveAction{Kind: LiveAllIsLost, Flee: true}); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "nothing to flee from") {
-		t.Errorf("no offer yet: %v", err)
-	}
-	b.fall(7)
-	b.turn()
-	if got := b.state().Break(1); !got.Offer || got.Fled {
-		t.Fatalf("the offer is open the turn the company breaks: %+v", got)
-	}
-	if _, err := b.try(2, LiveAction{Kind: LiveAllIsLost, Flee: true}); !errors.Is(err, ErrRefused) {
-		t.Errorf("the other company has no offer: %v", err)
-	}
-	if text := b.do(1, LiveAction{Kind: LiveAllIsLost, Flee: true}); text != "Alpha fled the battlefield (All is Lost)" {
-		t.Errorf("text: %q", text)
-	}
-	got := b.state().Break(1)
-	if !got.Fled || got.Offer {
-		t.Fatalf("fled: %+v", got)
-	}
-	for i := int64(8); i <= 13; i++ {
-		if x, _ := b.state().Unit(i); x.Zone != ZoneRetreated || x.Reason != "Left the board" {
-			t.Errorf("unit %d should have left the board: %+v", i, x)
-		}
-	}
-	if got.Casualties != 7 {
-		t.Errorf("leaving the board adds no casualties: %+v", got)
-	}
-	if _, err := b.try(1, LiveAction{Kind: LiveAllIsLost, Flee: false}); !errors.Is(err, ErrRefused) {
-		t.Errorf("once only: %v", err)
-	}
-	// undo the flee: the units are back and the offer is open again
-	if got := FoldLiveWith(b.inits, b.entries[:len(b.entries)-1], b.cfg).Break(1); got.Fled || !got.Offer {
-		t.Errorf("after the undo: %+v", got)
-	}
-}
-
-func TestAllIsLostFightOnAndTheOfferExpires(t *testing.T) {
-	b := newBP(t, 13, 50)
-	b.fall(7)
-	b.turn()
-	if text := b.do(1, LiveAction{Kind: LiveAllIsLost, Flee: false}); text != "Alpha fights on" {
-		t.Errorf("text: %q", text)
-	}
-	if got := b.state().Break(1); got.Offer || got.Fled {
-		t.Errorf("fought on: %+v", got)
-	}
-	if x, _ := b.state().Unit(8); x.Zone != ZoneField {
-		t.Errorf("fighting on keeps the units: %+v", x)
-	}
-	// and an unanswered offer is gone at the next turn
-	b2 := newBP(t, 13, 50)
-	b2.fall(7)
-	b2.turn()
-	b2.turn()
-	if got := b2.state().Break(1); got.Offer || !got.Broken {
-		t.Errorf("the offer lasts until the next turn: %+v", got)
-	}
-	if _, err := b2.try(1, LiveAction{Kind: LiveAllIsLost, Flee: true}); !errors.Is(err, ErrRefused) {
-		t.Errorf("too late: %v", err)
-	}
-}
-
-func TestCanUndoATurnEntry(t *testing.T) {
+func TestCanUndoAnOlderTurnEntry(t *testing.T) {
 	owners := map[int64]int64{1: 10, 2: 20}
-	turn := LiveEntry{CompanyID: 0, Action: LiveAction{Kind: LiveTurn, Turn: 1}}
+	turn := LiveEntry{CompanyID: 0, Action: LiveAction{Kind: liveTurnLegacy, Turn: 1}}
 	for _, tt := range []struct {
 		user User
 		want bool
@@ -402,7 +306,7 @@ func TestBreakRulesFromTheFile(t *testing.T) {
 	}
 }
 
-func TestLiveServiceTurnAndBreakPoint(t *testing.T) {
+func TestLiveServiceBreakPoint(t *testing.T) {
 	f := newLiveFixture(t)
 	lc, err := f.svc.Live(f.ctx, f.user(liveOwner1), 5, 1)
 	if err != nil {
@@ -412,35 +316,15 @@ func TestLiveServiceTurnAndBreakPoint(t *testing.T) {
 	for _, u := range lc.Units {
 		present += u.BreakModels
 	}
-	if lc.Break.Percent != 50 || lc.Break.StartingModels != present || present < 5 || lc.Break.Broken || lc.Turn != 0 {
+	if lc.Break.Percent != 50 || lc.Break.StartingModels != present || present < 5 || lc.Break.Broken {
 		t.Fatalf("the starting count comes from the roster: %+v (%d present)", lc.Break, present)
 	}
-	// a stranger and a company-less user cannot press the button; either owner of a company in the match can
-	if _, _, err := f.svc.Apply(f.ctx, f.user(7), 5, 1, 1, LiveAction{Kind: LiveTurn, Turn: 1}); !errors.Is(err, ErrRefused) {
-		t.Errorf("a stranger: %v", err)
-	}
-	lc, e, err := f.svc.Apply(f.ctx, f.user(liveOwner2), 5, 1, 2, LiveAction{Kind: LiveTurn, Turn: 1})
-	if err != nil || e.CompanyID != 0 || e.UnitID != 0 || e.Text != "Turn 1 started" || lc.Turn != 1 {
-		t.Fatalf("turn 1: %+v %+v %v", lc, e, err)
-	}
-	// the other player pressing the same turn a moment later is refused, and sees the turn on their own company
-	if _, _, err := f.svc.Apply(f.ctx, f.user(liveOwner1), 5, 1, 1, LiveAction{Kind: LiveTurn, Turn: 1}); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "already started") {
-		t.Errorf("stale: %v", err)
-	}
-	mine, _ := f.svc.Live(f.ctx, f.user(liveOwner1), 5, 1)
-	if mine.Turn != 1 {
-		t.Errorf("the turn is match level: %d", mine.Turn)
-	}
-	// the first owner can undo the second owner's turn entry (it belongs to the whole match)
-	if _, err := f.svc.Undo(f.ctx, f.user(liveOwner1), 5, 1, e.ID, 1); err != nil {
-		t.Fatalf("undo: %v", err)
-	}
-	if mine, _ = f.svc.Live(f.ctx, f.user(liveOwner1), 5, 1); mine.Turn != 0 {
-		t.Errorf("after the undo: %d", mine.Turn)
+	if _, _, err := f.svc.Apply(f.ctx, f.user(liveOwner1), 5, 1, 1, LiveAction{Kind: liveTurnLegacy, Turn: 1}); !errors.Is(err, ErrInvalidLive) {
+		t.Errorf("there are no turns: %v", err)
 	}
 	// a Warrior cannot call Stand Fast
 	var warrior int64
-	for _, u := range mine.Units {
+	for _, u := range lc.Units {
 		if u.UnitID%100 >= 6 { // the gondor() warriors have ids 6.. in their company
 			warrior = u.UnitID
 			break
@@ -533,24 +417,11 @@ func TestMatchDefaults(t *testing.T) {
 		}
 	}
 	d, ok, err := f.svc.MatchDefaults(f.ctx, 5, 1)
-	if err != nil || !ok || len(d.Fled) != 0 || len(d.EnemyBroken) != 0 {
-		t.Fatalf("not Broken before a turn: %+v %v %v", d, ok, err)
+	if err != nil || !ok || !d.EnemyBroken[1] || d.EnemyBroken[2] || d.EnemyBroken[3] {
+		t.Errorf("every company of the other team is Broken as soon as it falls: %+v %v %v", d, ok, err)
 	}
-	if _, _, err := f.svc.Apply(f.ctx, f.user(liveOwner1), 5, 1, 1, LiveAction{Kind: LiveTurn, Turn: 1}); err != nil {
-		t.Fatal(err)
-	}
-	d, _, _ = f.svc.MatchDefaults(f.ctx, 5, 1)
-	if !d.EnemyBroken[1] || d.EnemyBroken[2] || d.EnemyBroken[3] || len(d.Fled) != 0 {
-		t.Errorf("every company of the other team is Broken: %+v", d)
-	}
-	if lc, _ := f.svc.Live(f.ctx, f.user(liveOwner2), 5, 2); !lc.Break.Broken || !lc.Break.Offer {
+	if lc, _ := f.svc.Live(f.ctx, f.user(liveOwner2), 5, 2); !lc.Break.Broken {
 		t.Fatalf("company 2: %+v", lc.Break)
-	}
-	if _, _, err := f.svc.Apply(f.ctx, f.user(liveOwner2), 5, 1, 2, LiveAction{Kind: LiveAllIsLost, Flee: true}); err != nil {
-		t.Fatal(err)
-	}
-	if d, _, _ = f.svc.MatchDefaults(f.ctx, 5, 1); !d.Fled[2] || d.Fled[1] {
-		t.Errorf("company 2 fled: %+v", d)
 	}
 }
 

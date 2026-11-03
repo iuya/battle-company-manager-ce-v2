@@ -88,20 +88,18 @@ func TestMatches(t *testing.T) {
 	}
 
 	// Update: scenario, result, objectives.
-	vp := 12
 	got, err := repo.Update(ctx, camp.ID, m1.ID, org, func(m *core.Match) error {
 		m.Scenario = &core.MatchScenario{Kind: core.ScenarioCustom, Name: "Ambush", Description: "d", Victory: "v"}
 		m.Result = core.MatchResult{Decided: true, Winner: 1, Note: "close",
-			Sides:     []core.SideResult{{VictoryPoints: &vp}, {}},
-			Companies: []core.CompanyResult{{CompanyID: b.ID, Fled: true}, {CompanyID: a.ID, Objectives: map[string]int{"allCargo": 1}}}}
+			Companies: []core.CompanyResult{{CompanyID: b.ID}, {CompanyID: a.ID, Objectives: map[string]int{"allCargo": 1}}}}
 		m.Winner = 1
 		return nil
 	})
 	if err != nil || got.Revision != 2 || got.Winner != 1 || got.Scenario == nil || *got.Scenario != (core.MatchScenario{Kind: core.ScenarioCustom, Name: "Ambush", Description: "d", Victory: "v"}) {
 		t.Fatalf("update: %+v, %v", got, err)
 	}
-	want := core.MatchResult{Decided: true, Winner: 1, Note: "close", Sides: []core.SideResult{{VictoryPoints: &vp}, {}},
-		Companies: []core.CompanyResult{{CompanyID: a.ID, Objectives: map[string]int{"allCargo": 1}}, {CompanyID: b.ID, Fled: true}}}
+	want := core.MatchResult{Decided: true, Winner: 1, Note: "close",
+		Companies: []core.CompanyResult{{CompanyID: a.ID, Objectives: map[string]int{"allCargo": 1}}}}
 	if !reflect.DeepEqual(got.Result, want) {
 		t.Fatalf("result round trip: %+v want %+v", got.Result, want)
 	}
@@ -115,7 +113,7 @@ func TestMatches(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := repo.Update(ctx, camp.ID, m1.ID, org, func(m *core.Match) error {
-		m.Result.Companies = []core.CompanyResult{{CompanyID: foreign.ID, Fled: true}}
+		m.Result.Companies = []core.CompanyResult{{CompanyID: foreign.ID, Objectives: map[string]int{"allCargo": 1}}}
 		return nil
 	}); !errors.Is(err, core.ErrInvalidMatch) {
 		t.Fatalf("foreign company in result: %v", err)
@@ -146,7 +144,7 @@ func TestMatches(t *testing.T) {
 		t.Fatalf("end: %+v, %v", got, err)
 	}
 	if _, err := repo.Update(ctx, camp.ID, m2.ID, p2, func(m *core.Match) error {
-		m.Result = core.MatchResult{Decided: true, Winner: 0, Sides: []core.SideResult{{}, {}}}
+		m.Result = core.MatchResult{Decided: true, Winner: 0}
 		m.Ended = true
 		return nil
 	}); err != nil {
@@ -251,34 +249,34 @@ func TestGrants(t *testing.T) {
 	}
 }
 
-func TestMatchSideRoles(t *testing.T) {
-	w := newLiveWorld(t, "roles")
+// The new match form creates the match with its scenario and the Against the Odds bonuses in one transaction
+// (docs/simplify-matches-spec.md, D4 and D9).
+func TestCreateMatchStoresTheScenarioAndAgainstTheOdds(t *testing.T) {
+	w := newLiveWorld(t, "create")
 	repo := w.s.Matches()
-	// the live world already holds an open match with both companies; end it and make a new one with tags
+	// the live world already holds an open match with both companies; end it to make a new one
 	if _, err := w.s.pool.Exec(w.ctx, `UPDATE matches SET ended = true, ended_on = now() WHERE id = $1`, w.match.ID); err != nil {
 		t.Fatal(err)
 	}
-	m, err := repo.Create(w.ctx, w.camp, w.org, core.NewMatch{Sides: []core.NewSide{{Name: "A", Companies: []int64{w.a.ID}, Role: "attacker"}, {Name: "B", Companies: []int64{w.b.ID}, Role: "defender"}}})
-	if err != nil || m.Sides[0].Role != "attacker" || m.Sides[1].Role != "defender" {
-		t.Fatalf("create with roles: %+v %v", m.Sides, err)
+	sc := core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Ambush"}
+	m, err := repo.Create(w.ctx, w.camp, w.org, core.NewMatch{Sides: []core.NewSide{{Name: "Side 1", Companies: []int64{w.a.ID}}, {Name: "Side 2", Companies: []int64{w.b.ID}}},
+		Scenario: &sc, ATO: &core.NewMatchATO{CompanyID: w.a.ID, Selection: core.ATOSelection{Bonuses: []string{"ambush", "influence"}, Ambush: "Ambush"}}})
+	if err != nil || m.Scenario == nil || *m.Scenario != sc || m.Revision != 1 {
+		t.Fatalf("create: %+v %v", m.Scenario, err)
 	}
-	if _, err := w.s.pool.Exec(w.ctx, `UPDATE match_sides SET role = 'attacker' WHERE match_id = $1 AND position = 1`, m.ID); err == nil {
-		t.Error("the unique index allows one attacker per match")
+	rec, err := w.s.ATO().Get(w.ctx, w.camp, m.ID)
+	if err != nil || rec.CompanyID != w.a.ID || !rec.Selection.Has("influence") || rec.Selection.Ambush != "Ambush" || rec.HadPrevious || rec.Previous != nil {
+		t.Fatalf("the selection is stored with the match: %+v %v", rec, err)
 	}
-	swapped, err := repo.Update(w.ctx, w.camp, m.ID, w.org, func(x *core.Match) error {
-		x.Sides = append([]core.MatchSide(nil), x.Sides...)
-		x.Sides[0].Role, x.Sides[1].Role = x.Sides[1].Role, x.Sides[0].Role
-		return nil
-	})
-	if err != nil || swapped.Sides[0].Role != "defender" || swapped.Sides[1].Role != "attacker" {
-		t.Fatalf("swap: %+v %v", swapped.Sides, err)
+	// without either, nothing is stored for them
+	if _, err := w.s.pool.Exec(w.ctx, `UPDATE matches SET ended = true, ended_on = now() WHERE id = $1`, m.ID); err != nil {
+		t.Fatal(err)
 	}
-	cleared, err := repo.Update(w.ctx, w.camp, m.ID, w.org, func(x *core.Match) error {
-		x.Sides = append([]core.MatchSide(nil), x.Sides...)
-		x.Sides[0].Role, x.Sides[1].Role = "", ""
-		return nil
-	})
-	if err != nil || cleared.Sides[0].Role != "" || cleared.Sides[1].Role != "" {
-		t.Fatalf("clear: %+v %v", cleared.Sides, err)
+	plain, err := repo.Create(w.ctx, w.camp, w.org, core.NewMatch{Sides: []core.NewSide{{Name: "Side 1", Companies: []int64{w.a.ID}}, {Name: "Side 2", Companies: []int64{w.b.ID}}}})
+	if err != nil || plain.Scenario != nil {
+		t.Fatalf("plain: %+v %v", plain.Scenario, err)
+	}
+	if rec, err := w.s.ATO().Get(w.ctx, w.camp, plain.ID); err != nil || rec.CompanyID != 0 {
+		t.Fatalf("no selection: %+v %v", rec, err)
 	}
 }

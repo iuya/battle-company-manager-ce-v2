@@ -69,7 +69,8 @@ func (b campaignBase) CanInvite() bool {
 
 type overviewView struct {
 	campaignBase
-	Recent []core.Match
+	Recent   []core.Match
+	YourTurn []yourTurn // what waits on the viewer (docs/simplify-matches-spec.md, D12)
 	// NewOrganisers are the players the viewer could hand the campaign over to (empty when they may not hand over).
 	NewOrganisers []handoverCandidate
 }
@@ -81,11 +82,69 @@ type rankingsView struct {
 
 type matchesView struct {
 	campaignBase
-	Matches   []core.Match // what the list shows: every match, or only the practice ones with the Practice filter
+	Matches   []core.Match // what the list shows: every match, or those of the filter
 	Companies int          // how many companies the campaign has: a match needs at least two
-	// PracticeOnly is the Practice filter (?practice=1); Practice counts the campaign's practice matches for the chip.
-	PracticeOnly bool
-	Practice     int
+	// Filter is the chip on (?filter=mine, open or ended; "" for every match).
+	Filter   string
+	YourTurn []yourTurn
+}
+
+// yourTurn is one line of the Your turn list: a match that waits on the viewer.
+type yourTurn struct {
+	Text string // "Confirm the end of Match 25", "Start the aftermath of Match 3"
+	URL  string
+	Who  string // the viewer's company it is about, when they have several
+}
+
+// yourTurns lists what waits on the viewer: the ends they must confirm (with their MVP votes) and the aftermaths of their companies that
+// are pending or in progress.
+func (s *Server) yourTurns(r *http.Request, base campaignBase, matches []core.Match) ([]yourTurn, error) {
+	u := userFrom(r.Context())
+	if u == nil {
+		return nil, nil
+	}
+	id := base.Campaign.ID
+	var out []yourTurn
+	for _, m := range matches {
+		if !m.Ended && m.EndProposal != nil && m.EndProposal.WaitingOn(u.ID) && base.Campaign.Status != core.CampaignFinished {
+			text := "Confirm the end of Match " + itoa(m.Number)
+			if !m.Practice {
+				text = "Vote the MVP and confirm the end of Match " + itoa(m.Number)
+			}
+			out = append(out, yourTurn{Text: text, URL: "/campaigns/" + itoa(int(id)) + "/matches/" + itoa(int(m.ID))})
+		}
+	}
+	several := len(base.Campaign.Companies) > 1
+	for _, co := range base.Campaign.Companies {
+		refs, err := s.campaigns.PendingAftermaths(r.Context(), id, co.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, ref := range refs {
+			verb := "Continue"
+			if ref.Status == core.AftermathPending {
+				verb = "Start"
+			}
+			t := yourTurn{Text: verb + " the aftermath of Match " + itoa(ref.MatchNumber), URL: "/campaigns/" + itoa(int(id)) + "/matches/" + itoa(int(ref.MatchID)) + "/aftermath/" + itoa(int(co.ID))}
+			if several {
+				t.Who = co.Name
+			}
+			out = append(out, t)
+		}
+	}
+	return out, nil
+}
+
+// mine says whether the viewer owns a company of the match.
+func mine(base campaignBase, m core.Match) bool {
+	for _, side := range m.Sides {
+		for _, c := range side.Companies {
+			if base.Campaign.Owns(c.ID) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // minMatchCompanies is how many companies a campaign needs before a match can be opened.
@@ -112,6 +171,9 @@ func (s *Server) handleCampaign(page, tab string) http.HandlerFunc {
 				return
 			}
 			over := overviewView{campaignBase: base, Recent: matches[:min(len(matches), 3)]}
+			if over.YourTurn, err = s.yourTurns(r, base, matches); s.fail(w, r, err) {
+				return
+			}
 			if base.CanInvite() {
 				if over.NewOrganisers, err = s.handoverCandidates(r, base.Campaign.ID, base.Campaign.OrganiserID); s.fail(w, r, err) {
 					return
@@ -133,14 +195,19 @@ func (s *Server) handleCampaign(page, tab string) http.HandlerFunc {
 			if s.fail(w, r, err) {
 				return
 			}
-			mv := matchesView{campaignBase: base, Matches: matches, Companies: len(list), PracticeOnly: r.URL.Query().Get("practice") == "1"}
-			for _, m := range matches {
-				if m.Practice {
-					mv.Practice++
-				}
+			mv := matchesView{campaignBase: base, Matches: matches, Companies: len(list), Filter: r.URL.Query().Get("filter")}
+			if mv.YourTurn, err = s.yourTurns(r, base, matches); s.fail(w, r, err) {
+				return
 			}
-			if mv.PracticeOnly {
-				mv.Matches = slices.DeleteFunc(slices.Clone(matches), func(m core.Match) bool { return !m.Practice })
+			switch mv.Filter {
+			case "mine":
+				mv.Matches = slices.DeleteFunc(slices.Clone(matches), func(m core.Match) bool { return !mine(base, m) })
+			case "open":
+				mv.Matches = slices.DeleteFunc(slices.Clone(matches), func(m core.Match) bool { return m.Ended })
+			case "ended":
+				mv.Matches = slices.DeleteFunc(slices.Clone(matches), func(m core.Match) bool { return !m.Ended })
+			default:
+				mv.Filter = ""
 			}
 			view = mv
 		}
@@ -471,137 +538,6 @@ func (s *Server) handleMyCompanyAlias(w http.ResponseWriter, r *http.Request) {
 // history get the same entry as after the redirect, without the extra round trip. A request for the whole page keeps the redirect.
 func boostedLink(r *http.Request) bool {
 	return r.Header.Get("HX-Boosted") == "true" && r.Header.Get("HX-History-Restore-Request") != "true"
-}
-
-// newMatchView feeds the new-match form (static/js/match_form.js): the campaign's companies to search in and the
-// sides as they currently are, both as JSON in data attributes.
-type newMatchView struct {
-	campaignBase
-	CompaniesJSON string
-	SidesJSON     string
-	FFA           bool // all vs all: the first "side" is just the pool of companies, each of which fights alone
-	Error         string
-	Busy          *core.OpenMatchRef // the open match a refused company is in, to link to
-	Companies     int                // how many companies the campaign has; under two there is nobody to match
-	Practice      bool               // the "Practice match" box is ticked (set on the form only; nothing can change it afterwards)
-}
-
-// TooFew is whether the campaign has too few companies for a match.
-func (v newMatchView) TooFew() bool { return v.Companies < minMatchCompanies }
-
-func newMatchForm(base campaignBase, companies []core.CampaignCompany, sides []core.NewSide, ffa bool, errMsg string) (newMatchView, error) {
-	list := make([]map[string]any, len(companies))
-	for i, c := range companies {
-		list[i] = map[string]any{"id": c.ID, "name": c.Name, "owner": c.Owner, "ownerId": c.OwnerID, "faction": c.FactionName(), "mine": base.Campaign.Owns(c.ID)}
-	}
-	state := make([]map[string]any, len(sides))
-	for i, sd := range sides {
-		ids := sd.Companies
-		if ids == nil {
-			ids = []int64{}
-		}
-		state[i] = map[string]any{"name": sd.Name, "ids": ids, "role": sd.Role}
-	}
-	cj, err := json.Marshal(list)
-	if err != nil {
-		return newMatchView{}, err
-	}
-	sj, err := json.Marshal(state)
-	if err != nil {
-		return newMatchView{}, err
-	}
-	return newMatchView{campaignBase: base, CompaniesJSON: string(cj), SidesJSON: string(sj), FFA: ffa, Error: errMsg, Companies: len(companies)}, nil
-}
-
-func (s *Server) handleNewMatchPage(w http.ResponseWriter, r *http.Request) {
-	base, ok := s.loadCampaign(w, r, "")
-	if !ok {
-		return
-	}
-	if err := base.Campaign.CanStartMatch(); err != nil {
-		s.refuse(w, r, http.StatusForbidden, reason(err))
-		return
-	}
-	list, err := s.campaigns.Companies(r.Context(), base.Campaign.ID)
-	if s.fail(w, r, err) {
-		return
-	}
-	sides := []core.NewSide{{}, {}}
-	if mine := base.Campaign.Companies; len(mine) > 0 {
-		sides[0].Companies = []int64{mine[0].ID} // you are most likely playing; with several companies the first
-	}
-	view, err := newMatchForm(base, list, sides, false, "")
-	if s.fail(w, r, err) {
-		return
-	}
-	view.Practice = r.URL.Query().Get("practice") == "1"
-	s.render.page(w, r, http.StatusOK, "match_new", view)
-}
-
-func (s *Server) handleCreateMatch(w http.ResponseWriter, r *http.Request) {
-	base, ok := s.loadCampaign(w, r, "")
-	if !ok {
-		return
-	}
-	if err := base.Campaign.CanStartMatch(); err != nil {
-		s.refuse(w, r, http.StatusForbidden, reason(err))
-		return
-	}
-	list, err := s.campaigns.Companies(r.Context(), base.Campaign.ID)
-	if s.fail(w, r, err) {
-		return
-	}
-	known := map[int64]bool{}
-	for _, c := range list {
-		known[c.ID] = true
-	}
-	ffa := r.PostFormValue("mode") == "ffa"
-	n, _ := strconv.Atoi(r.PostFormValue("sides"))
-	sides := make([]core.NewSide, max(2, min(n, 8)))
-	for i := range sides {
-		sides[i].Name = r.PostFormValue("side-name-" + itoa(i+1))
-		if role := r.PostFormValue("side-role-" + itoa(i+1)); core.ValidRole(role) && !ffa {
-			sides[i].Role = role
-		}
-		for _, v := range r.PostForm["side-"+itoa(i+1)] {
-			if id, err := strconv.ParseInt(v, 10, 64); err == nil && known[id] {
-				sides[i].Companies = append(sides[i].Companies, id)
-			}
-		}
-	}
-	form := sides
-	if ffa { // all vs all: the companies of the pool (side 1) each become a side of their own
-		names := map[int64]string{}
-		for _, c := range list {
-			names[c.ID] = c.Name
-		}
-		sides = nil
-		for _, id := range form[0].Companies {
-			sides = append(sides, core.NewSide{Name: names[id], Companies: []int64{id}})
-		}
-	}
-	user := *userFrom(r.Context())
-	practice := r.PostFormValue("practice") == "1"
-	matchID, err := s.recent.create([]any{"match", user.ID, base.Campaign.ID, sides, practice}, func() (int64, error) {
-		m, err := s.campaigns.CreateMatch(r.Context(), user, base.Campaign.ID, core.NewMatch{Sides: sides, Practice: practice})
-		return m.ID, err
-	})
-	switch {
-	case errors.Is(err, core.ErrInvalidMatch) || errors.Is(err, core.ErrRefused):
-		view, jerr := newMatchForm(base, list, form, ffa, reason(err))
-		if s.fail(w, r, jerr) {
-			return
-		}
-		view.Practice = practice
-		var busy *core.CompanyBusyError
-		if errors.As(err, &busy) {
-			view.Busy = &busy.OpenMatchRef
-		}
-		s.render.page(w, r, http.StatusUnprocessableEntity, "match_new", view)
-	case s.fail(w, r, err):
-	default:
-		redirect(w, r, "/campaigns/"+itoa(int(base.Campaign.ID))+"/matches/"+itoa(int(matchID)))
-	}
 }
 
 // tipStats is a stat block as JSON pairs of label and value for the tooltip; empty when there is none.

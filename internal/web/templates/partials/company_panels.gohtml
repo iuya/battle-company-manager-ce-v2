@@ -590,8 +590,7 @@
 {{/* The courage test of a unit of a Broken company: roll (nothing is written), record the outcome, or pass without a roll. Takes liveSheet. */}}
 {{define "live_courage"}}{{$u := .Unit}}{{$base := printf "/campaigns/%d/matches/%d/live/%d" .Campaign .MatchID .Company}}
 <h2 class="!text-2xl pr-10">Courage test: {{$u.Title}}</h2>
-<p class="mt-1 text-sm text-muted">A Broken model tests Courage ({{.CourageDice.Display}}, at least its Courage) before it does anything else.{{if .Live.CourageTurn}}{{if eq .Live.CourageTurn .Turn}} Its test is already resolved this turn.{{end}}{{end}}</p>
-{{if and (not .Hero) .StandFastCalled}}<p class="alert alert-info mt-3" role="status">A Hero called Stand Fast this turn: Warriors within 6" in line of sight pass automatically.</p>{{end}}
+<p class="mt-1 text-sm text-muted">A Broken model tests Courage ({{.CourageDice.Display}}, at least its Courage) before it does anything else, every turn.{{if not .Hero}} When a Hero calls Stand Fast, Warriors within 6" in line of sight pass automatically.{{end}}</p>
 {{with .RollErr}}<p class="alert alert-danger mt-3" role="alert">{{.}}</p>{{end}}
 <form class="mt-4 space-y-3" hx-post="{{$base}}/units/{{$u.ID}}/courage/roll" hx-target="#modal-body" hx-swap="innerHTML">
   {{if .ManualRolls}}<div class="flex flex-wrap items-end gap-3">
@@ -648,7 +647,7 @@
    popover inside the card would be clipped by its frame, so it lives in the company window). Takes {U, L, LV}. */}}
 {{define "live_actions_menu"}}{{$u := .U}}{{$l := .L}}{{$lv := .LV}}
 {{$sheet := printf "/campaigns/%d/matches/%d/live/%d/units/%d/sheet" $lv.CampaignID $lv.MatchID $lv.CompanyID $u.ID}}
-{{if and $lv.Edit ($lv.CourageDue $l)}}<button type="button" class="btn btn-primary w-full !min-h-11" hx-get="{{$sheet}}/courage" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Courage test<span class="sr-only"> for {{$u.Title}}</span></button>{{end}}
+{{if and $lv.Edit ($lv.CourageTest $l)}}<button type="button" class="btn btn-primary w-full !min-h-11" hx-get="{{$sheet}}/courage" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Courage test<span class="sr-only"> for {{$u.Title}}</span></button>{{end}}
 <div class="milestones" role="group" aria-label="Milestones of {{$u.Title}}">
   {{range $lv.Milestones $u.ID $l}}{{template "milestone" (dict "M" . "Edit" $lv.Edit "Unit" $u.Title)}}{{end}}
 </div>

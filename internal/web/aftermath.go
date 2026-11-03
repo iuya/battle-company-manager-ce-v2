@@ -290,8 +290,7 @@ type aftermathView struct {
 
 	Animate map[int64]bool // the casualties the server just rolled: their dice are shown rolling first
 
-	ShowFinish bool                       // the Finish block is open (the player continued, or no level-up roll waits)
-	Offers     map[string][]freeOfferView // free equipment to choose from, by the key of the reward that offers it
+	Offers map[string][]freeOfferView // free equipment to choose from, by the key of the reward that offers it
 }
 
 // Owner is whether the viewer plays this company: the level-up window of My Company works on the viewer's own company.
@@ -533,18 +532,100 @@ func (v aftermathView) Note(c core.Casualty) string {
 // Edit is whether the viewer may change the aftermath.
 func (v aftermathView) Edit() bool { return v.A.Access == core.AftermathEdit }
 
-// Step is the index of the current step: 0 Sheet, 1 Injuries, 2 Level-ups (Finish follows on Continue), 4 when it is all over.
+// Step is the index of the current step: 0 Sheet, 1 Injuries, 3 Rewards (a scenario reward waits for a choice; otherwise the aftermath
+// finishes on its own), 4 when it is all over. Level-ups (2) never hold the aftermath: their rolls wait on the unit cards.
 func (v aftermathView) Step() int {
 	switch v.A.Status {
 	case core.AftermathInjuries:
 		return 1
 	case core.AftermathLevelUps:
-		return 2
+		return 3
 	case core.AftermathDone, core.AftermathWaived:
 		return 4 // every step is behind
 	}
 	return 0
 }
+
+// aftermathStep is one step of the stepper.
+type aftermathStep struct {
+	Name  string
+	Index int
+}
+
+// Steps are the steps that apply (docs/simplify-matches-spec.md, D15): Injuries only with a casualty, Level-ups only with a roll waiting,
+// Rewards only while a scenario reward waits for a choice.
+func (v aftermathView) Steps() []aftermathStep {
+	out := []aftermathStep{{"Sheet", 0}}
+	if v.HasInjuries() {
+		out = append(out, aftermathStep{"Injuries", 1})
+	}
+	if v.HasLevelUps() {
+		out = append(out, aftermathStep{"Level-ups", 2})
+	}
+	if v.A.Status == core.AftermathLevelUps {
+		out = append(out, aftermathStep{"Rewards", 3})
+	}
+	return append(out, aftermathStep{"Done", 4})
+}
+
+// HasInjuries says whether the aftermath has (or, on the sheet, will have) a casualty roll.
+func (v aftermathView) HasInjuries() bool {
+	if v.Step() == 0 {
+		return v.Casualties() > 0
+	}
+	return len(v.A.Casualties) > 0
+}
+
+// HasLevelUps says whether a level-up roll waits once the experience is given.
+func (v aftermathView) HasLevelUps() bool {
+	return v.Step() >= 3 && v.A.Status != core.AftermathWaived && len(v.Waiting()) > 0
+}
+
+// ChangeSummary is the first line of a finished aftermath: "+7 XP, +5 Influence, 1 dead, 2 level-ups ready".
+func (v aftermathView) ChangeSummary() string {
+	xp, influence, dead := 0, 0, 0
+	for _, l := range v.A.Lines {
+		switch l.Kind {
+		case "experience":
+			xp += l.Amount
+		case "influence":
+			influence += l.Amount
+		}
+	}
+	for _, c := range v.A.Casualties {
+		if c.Kind == core.CasualtyDead || c.Kind == core.CasualtyRetired {
+			dead++
+		}
+	}
+	var parts []string
+	if xp != 0 {
+		parts = append(parts, fmt.Sprintf("%+d XP", xp))
+	}
+	if influence != 0 {
+		parts = append(parts, fmt.Sprintf("%+d Influence", influence))
+	}
+	if dead > 0 {
+		parts = append(parts, fmt.Sprintf("%d dead", dead))
+	}
+	if n := len(v.Waiting()); n > 0 {
+		parts = append(parts, fmt.Sprintf("%d level-up%s ready", n, map[bool]string{true: "", false: "s"}[n == 1]))
+	}
+	if len(parts) == 0 {
+		return "Nothing changed"
+	}
+	return strings.Join(parts, ", ")
+}
+
+// Earned says whether the unit's sheet shows the gain (a review shows only what was earned; "+ add" opens the rest).
+func (v aftermathView) Earned(m core.ModelSheet, key string) bool {
+	if key == "mvp" {
+		return m.Gains["mvp"] > 0 || v.MVP() == m.UnitID
+	}
+	return m.Gains[key] > 0
+}
+
+// Review says whether the sheet is a review of what the live log produced: each unit shows only what it earned.
+func (v aftermathView) Review() bool { return v.A.FromLive }
 
 // Editing is whether the Sheet step shows its form.
 func (v aftermathView) Editing() bool { return v.Edit() && v.Step() == 0 }
@@ -677,8 +758,6 @@ func (v aftermathView) UnitName(id int64) string { return v.Roster[id].Title() }
 // OutcomeText is the header's badge text.
 func (v aftermathView) OutcomeText() string {
 	switch {
-	case v.A.Fled:
-		return "Fled (All is Lost)"
 	case v.A.Outcome == "win":
 		return "Win"
 	case v.A.Outcome == "draw":
@@ -689,7 +768,7 @@ func (v aftermathView) OutcomeText() string {
 
 func (v aftermathView) OutcomeTone() string {
 	switch {
-	case v.A.Fled, v.A.Outcome == "loss":
+	case v.A.Outcome == "loss":
 		return "loss"
 	case v.A.Outcome == "win":
 		return "win"
@@ -773,7 +852,6 @@ func (s *Server) newAftermathView(r *http.Request, base campaignBase, m core.Mat
 			}
 		}
 	}
-	v.ShowFinish = a.Status == core.AftermathLevelUps && (len(v.Waiting()) == 0 || !v.Edit()) // a reader has no button to continue: the step is open for them
 	return v, nil
 }
 
@@ -929,13 +1007,48 @@ func (s *Server) handleSheet(start bool) http.HandlerFunc {
 		} else {
 			a, err = s.campaigns.SaveAftermath(r.Context(), user, base.Campaign.ID, m.ID, co.ID, revisionOf(r), in)
 		}
+		auto := !start && r.URL.Query().Get("auto") == "1"
+		if err != nil && auto && (errors.Is(err, core.ErrInvalidAftermath) || errors.Is(err, core.ErrAftermathChanged)) {
+			cur, gerr := s.campaigns.Aftermath(r.Context(), user, base.Campaign.ID, m.ID, co.ID) // the bar says what is wrong; the sheet stays as typed
+			if s.fail(w, r, gerr) {
+				return
+			}
+			v, verr := s.newAftermathView(r, base, m, co, cur)
+			if s.fail(w, r, verr) {
+				return
+			}
+			v.A.Input = in
+			if errors.Is(err, core.ErrAftermathChanged) {
+				v.Problems = []string{"Somebody changed this aftermath meanwhile: reload the page."}
+			} else {
+				v.Problems = reasons(err)
+			}
+			s.render.partial(w, http.StatusUnprocessableEntity, "aftermath", "aftermath_bar", v)
+			return
+		}
 		if err != nil {
 			s.aftermathFailed(w, r, base, m, co, err, &in)
 			return
 		}
+		if auto { // the sheet saves itself: only the bar (preview, revision) comes back
+			v, err := s.newAftermathView(r, base, m, co, a)
+			if s.fail(w, r, err) {
+				return
+			}
+			v.Notice = "Saved."
+			s.render.partial(w, http.StatusOK, "aftermath", "aftermath_bar", v)
+			return
+		}
 		notice := "Sheet saved."
 		if start {
-			notice = "Aftermath started: the sheet is locked and the casualty rolls come next."
+			switch a.Status {
+			case core.AftermathDone:
+				notice = "Aftermath finished: nothing was left to decide."
+			case core.AftermathInjuries:
+				notice = "Aftermath started: roll the casualties one by one."
+			default:
+				notice = "Aftermath started."
+			}
 		}
 		s.aftermathAnswer(w, r, http.StatusOK, base, m, co, a, notice, false, nil)
 	}
@@ -1053,7 +1166,7 @@ func (s *Server) handleDecide(w http.ResponseWriter, r *http.Request) {
 	if ans.Kind == "scratch" && ans.Answer == "reroll" {
 		animate[unit] = true
 	}
-	s.aftermathAnswer(w, r, http.StatusOK, base, m, co, a, "", false, func(v *aftermathView) { v.Animate = animate; v.ShowFinish = v.ShowFinish || ans.Kind == "reward" })
+	s.aftermathAnswer(w, r, http.StatusOK, base, m, co, a, "", false, func(v *aftermathView) { v.Animate = animate })
 }
 
 // handleFinishAftermath applies the influence and rewards and unlocks the company. A refusal (a decision is still open) is shown
@@ -1071,7 +1184,7 @@ func (s *Server) handleFinishAftermath(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if cur.Access == core.AftermathEdit {
-				s.aftermathAnswer(w, r, http.StatusUnprocessableEntity, base, m, co, cur, reason(err), true, func(v *aftermathView) { v.ShowFinish = true })
+				s.aftermathAnswer(w, r, http.StatusUnprocessableEntity, base, m, co, cur, reason(err), true, nil)
 				return
 			}
 		}

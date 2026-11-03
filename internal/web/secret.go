@@ -43,13 +43,14 @@ type secretView struct {
 	EntryID  int64
 }
 
-// secretObjectivesOf are the secret scoring objectives of the match's scenario that a company with this tag scores.
-func secretObjectivesOf(info *core.ScenarioInfo, role string) []core.ScoringObjective {
+// secretObjectivesOf are the secret scoring objectives of the match's scenario. The players settle Attacker and Defender at the table,
+// so every company sees them all.
+func secretObjectivesOf(info *core.ScenarioInfo) []core.ScoringObjective {
 	if info == nil {
 		return nil
 	}
 	var out []core.ScoringObjective
-	for _, o := range info.ObjectivesFor(role) {
+	for _, o := range info.ScoringObjectives {
 		if o.Secret {
 			out = append(out, o)
 		}
@@ -58,7 +59,7 @@ func secretObjectivesOf(info *core.ScenarioInfo, role string) []core.ScoringObje
 }
 
 // hasSecret is whether the scenario has secret objectives (the card is shown only then).
-func hasSecret(info *core.ScenarioInfo) bool { return len(secretObjectivesOf(info, "")) > 0 }
+func hasSecret(info *core.ScenarioInfo) bool { return len(secretObjectivesOf(info)) > 0 }
 
 // ShowSecret is whether the match page has the secret objectives card.
 func (v matchView) ShowSecret() bool {
@@ -106,7 +107,7 @@ func (s *Server) secretCard(r *http.Request, id int64, m core.Match) (secretView
 				continue
 			}
 			sc := secretCompany{ID: co.ID, Name: co.Name}
-			for _, o := range secretObjectivesOf(info, side.Role) {
+			for _, o := range secretObjectivesOf(info) {
 				so := secretObjective{ScoringObjective: o}
 				for _, l := range view.Lines {
 					if l.CompanyID == co.ID && l.Key == o.Key {

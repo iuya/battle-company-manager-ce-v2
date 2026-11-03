@@ -31,21 +31,22 @@
 <p class="mt-1 text-muted">The War's Aftermath of <a href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Match {{.Match.Number}}</a>{{with .Match.Scenario}} · {{.Name}}{{end}}{{with .Company.Owner}} · {{.}}{{end}}</p>
 {{if not .Edit}}<p class="mt-1 text-sm text-muted">You can read this aftermath but not change it.</p>{{end}}
 
-{{/* the stepper: the current step is open, earlier ones are summaries, later ones are dimmed */}}
-{{$step := .Step}}
-<ol class="mt-5 grid grid-cols-4 gap-1 text-center text-xs sm:text-sm" aria-label="Steps">
-  {{range $i, $name := (split "Sheet,Injuries,Level-ups,Finish" ",")}}
-  <li class="rounded-md border px-1 py-2 {{if eq $i $step}}border-accent bg-accent-soft font-semibold{{else if lt $i $step}}border-line bg-raised{{else}}border-line text-muted{{end}}" {{if eq $i $step}}aria-current="step"{{end}}>
-    <span class="block text-base font-semibold">{{if lt $i $step}}✓{{else}}{{inc $i}}{{end}}</span>{{$name}}
+{{/* the stepper: only the steps that apply (an empty one is skipped); the current step is open, earlier ones are summaries */}}
+{{$step := .Step}}{{$steps := .Steps}}
+<ol class="mt-5 flex gap-1 text-center text-xs sm:text-sm" aria-label="Steps">
+  {{range $n, $st := $steps}}{{$i := $st.Index}}
+  <li class="min-w-0 flex-1 rounded-md border px-1 py-2 {{if eq $i $step}}border-accent bg-accent-soft font-semibold{{else if lt $i $step}}border-line bg-raised{{else}}border-line text-muted{{end}}" {{if eq $i $step}}aria-current="step"{{end}} data-step="{{$st.Name}}">
+    <span class="block text-base font-semibold">{{if lt $i $step}}✓{{else}}{{inc $n}}{{end}}</span>{{$st.Name}}
   </li>
   {{end}}
 </ol>
 
-<div class="mt-6 space-y-6" x-effect="document.body.classList.toggle('overflow-hidden', modal)" x-data="{ finish: {{.ShowFinish}}, modal: false, openModal() { this.modal = true }, closeModal() { this.modal = false; htmx.ajax('GET', location.pathname, { target: '#main', swap: 'innerHTML' }) } }" @keydown.escape.window="if (modal) closeModal()">
+<div class="mt-6 space-y-6" x-effect="document.body.classList.toggle('overflow-hidden', modal)" x-data="{ modal: false, openModal() { this.modal = true }, closeModal() { this.modal = false; htmx.ajax('GET', location.pathname, { target: '#main', swap: 'innerHTML' }) } }" @keydown.escape.window="if (modal) closeModal()">
+  {{if eq .Step 4}}{{template "aftermath_done" .}}{{end}}
   {{template "aftermath_sheet" .}}
-  {{template "aftermath_later" (dict "V" . "Index" 1 "Title" "Injuries" "Text" "A casualty roll for every unit marked as a casualty.")}}
-  {{template "aftermath_later" (dict "V" . "Index" 2 "Title" "Level-ups" "Text" "Units that crossed an experience threshold roll for their level-up.")}}
-  {{template "aftermath_later" (dict "V" . "Index" 3 "Title" "Finish" "Text" "Influence and scenario rewards are applied and the company is unlocked.")}}
+  {{if .HasInjuries}}{{template "aftermath_later" (dict "V" . "Index" 1 "Title" "Injuries" "Text" "A casualty roll for every unit marked as a casualty.")}}{{end}}
+  {{if eq .Step 3}}<section class="card space-y-2" id="aftermath-step-3"><h2 class="!text-xl">Rewards</h2>{{template "aftermath_finish" .}}</section>{{end}}
+  {{if and .HasLevelUps (ne .Step 4)}}<section class="card space-y-2" id="aftermath-step-2"><h2 class="!text-xl">Level-ups</h2>{{template "aftermath_levelups" .}}</section>{{end}}
   {{if .Owner}}
   {{/* The level-up window of My Company, opened here (its endpoints and panel are the same). */}}
   <div x-show="modal" x-cloak x-transition.opacity class="fixed inset-0 z-[55] flex items-start justify-center overflow-y-auto bg-black/60 p-3 sm:p-6" @click.self="closeModal()">
@@ -62,21 +63,28 @@
 </div>
 {{end}}
 
-{{/* A step after the sheet. The current one gets its own block (the injuries, level-ups and finish blocks below); others are dimmed or summarised. */}}
+{{/* The Injuries step: open while it is the current step, a summary once it is behind, dimmed before. */}}
 {{define "aftermath_later"}}
 {{$v := .V}}
-<section class="card space-y-2 {{if and (lt $v.Step .Index) (not (and (eq .Index 3) (eq $v.Step 2)))}}border-dashed{{end}}" id="aftermath-step-{{.Index}}">
-  <h2 class="!text-xl">{{inc .Index}}. {{.Title}}</h2>
-  {{if and (eq .Index 3) (eq $v.Step 2)}}
-    <p class="text-sm text-muted" x-show="!finish">{{.Text}} Continue from the level-ups to get here.</p>
-    <div x-show="finish" x-cloak>{{template "aftermath_finish" $v}}</div>
-  {{else if eq $v.Step .Index}}
-    {{if eq .Index 1}}{{template "aftermath_injuries" $v}}{{else if eq .Index 2}}{{template "aftermath_levelups" $v}}{{else}}{{template "aftermath_finish" $v}}{{end}}
+<section class="card space-y-2 {{if lt $v.Step .Index}}border-dashed{{end}}" id="aftermath-step-{{.Index}}">
+  <h2 class="!text-xl">{{.Title}}</h2>
+  {{if eq $v.Step .Index}}{{template "aftermath_injuries" $v}}
   {{else if lt $v.Step .Index}}<p class="text-sm text-muted">{{.Text}}</p>
-  {{else if eq .Index 1}}{{template "aftermath_injuries_summary" $v}}
-  {{else if eq .Index 3}}{{template "aftermath_summary" $v}}
-  {{else if and (eq .Index 2) $v.Waiting}}<p class="text-sm text-muted">{{len $v.Waiting}} unit{{if ne (len $v.Waiting) 1}}s still have{{else}} still has{{end}} a level-up roll waiting{{if $v.Owner}}: roll {{if ne (len $v.Waiting) 1}}them{{else}}it{{end}} from <a href="/campaigns/{{$v.Campaign.ID}}/my-company{{if $v.Owner}}/{{$v.Company.ID}}{{end}}">My Company</a>{{end}}.</p>
-  {{else}}<p class="text-sm text-muted">Done.</p>{{end}}
+  {{else}}{{template "aftermath_injuries_summary" $v}}{{end}}
+</section>
+{{end}}
+
+{{/* The first block of a finished aftermath: the summary of changes, the level-up rolls waiting and every line. */}}
+{{define "aftermath_done"}}
+<section class="card space-y-3" id="aftermath-done">
+  <h2 class="!text-xl">Done</h2>
+  {{if eq (printf "%s" .A.Status) "waived"}}<p class="font-medium">Waived: nothing was applied.</p>
+  {{else}}<p class="text-lg font-semibold" data-change-summary>{{.ChangeSummary}}</p>{{end}}
+  {{if .HasLevelUps}}{{template "aftermath_levelups" .}}{{end}}
+  <details class="group">
+    <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium"><span>Everything that changed</span><span class="text-muted group-open:hidden">Show</span><span class="hidden text-muted group-open:inline">Hide</span></summary>
+    {{template "aftermath_summary" .}}
+  </details>
 </section>
 {{end}}
 
@@ -228,7 +236,6 @@
 {{if not $.Owner}}<p class="text-sm text-muted">The owner of the company rolls these from My Company.</p>{{end}}
 <p class="text-sm text-muted">Rolls do not have to be done now: they stay waiting on the unit cards.</p>
 {{else}}<p class="text-muted">No level-up roll is waiting.</p>{{end}}
-<div class="flex flex-wrap items-center gap-3">{{if $.Edit}}<button type="button" class="btn btn-primary" x-show="!finish" @click="finish = true">Continue to Finish</button>{{end}}</div>
 {{end}}
 
 {{/* The Finish step: what will be applied, the decisions the rewards need, and the button. */}}
@@ -239,7 +246,6 @@
     {{if .A.Preview.Influence}}<ul class="mt-1 text-sm">{{range .A.Preview.Influence}}<li class="flex justify-between gap-3 border-b border-line py-1"><span>{{.Text}}</span><span class="font-medium">{{if gt .Amount 0}}+{{end}}{{.Amount}}</span></li>{{end}}
       <li class="flex justify-between gap-3 py-1 font-semibold"><span>Total</span><span>{{if gt .Influence 0}}+{{end}}{{.Influence}}</span></li></ul>
     {{else}}<p class="text-sm text-muted">No influence this time.</p>{{end}}
-    {{if .A.Fled}}<p class="mt-1 text-sm text-muted">All is Lost: the company gets participation only, no victory, bonus or scenario rewards.</p>{{end}}
   </div>
   {{with .A.Preview.Rewards}}
   <div><h3 class="!text-lg">Scenario rewards</h3>
@@ -258,13 +264,7 @@
     </ul>
   </div>
   {{end}}
-  {{if .Edit}}
-  <form hx-post="{{$base}}/finish" hx-target="#aftermath-page" hx-swap="outerHTML" class="space-y-2">
-    <input type="hidden" name="revision" value="{{.A.Revision}}">
-    {{if .A.Pending}}<p class="text-sm text-muted">Choose the free equipment first.</p>{{end}}
-    <button class="btn btn-primary" {{if .A.Pending}}disabled{{end}}>Finish aftermath</button>
-  </form>
-  {{end}}
+  {{if .Edit}}<p class="text-sm text-muted">The aftermath finishes as soon as the choice is made.</p>{{end}}
 </div>
 {{end}}
 
@@ -296,7 +296,7 @@
   <div><h3 class="!text-lg">{{.Name}}</h3>
     <ul class="mt-1 text-sm">{{range .Lines}}<li class="py-0.5">{{.Text}}{{if .Amount}} <span class="text-muted">({{if gt .Amount 0}}+{{end}}{{.Amount}})</span>{{end}}</li>{{end}}</ul></div>
   {{else}}{{if ne (printf "%s" .A.Status) "waived"}}<p class="text-sm text-muted">Nothing was recorded.</p>{{end}}{{end}}
-  <p class="flex flex-wrap gap-3 text-sm"><a class="btn btn-secondary" href="/campaigns/{{.Campaign.ID}}/my-company{{if .Owner}}/{{.Company.ID}}{{end}}">My Company</a><a class="btn btn-ghost" href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Back to the match</a></p>
+  <p class="flex flex-wrap gap-3 text-sm">{{if .Owner}}<a class="btn btn-secondary" href="/campaigns/{{.Campaign.ID}}/my-company/{{.Company.ID}}">My Company</a>{{end}}<a class="btn btn-ghost" href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Back to the match</a></p>
 </div>
 {{end}}
 
@@ -304,7 +304,7 @@
 {{define "aftermath_sheet"}}
 <section class="card space-y-4" id="aftermath-sheet">
   <h2 class="!text-xl">1. Sheet{{if .A.FromLive}} <span class="badge badge-gold align-middle" title="Outcomes and experience come from the match as it was played (the trackers and the log); change anything that is not right">From the live match</span>{{end}}</h2>
-  {{if .A.FromLive}}<p class="text-sm text-muted">Prefilled from the live match: who retreated or fell, and the experience earned by wounding, Fate and Broken courage tests. Change anything that is not right; saving makes the sheet yours.</p>{{end}}
+  {{if .A.FromLive}}<p class="text-sm text-muted">Prefilled from the live match: who retreated or fell, and the experience earned by wounding, Fate and Broken courage tests. Change anything that is not right: the sheet saves itself.</p>{{end}}
   {{if .Editing}}{{template "aftermath_sheet_form" .}}
   {{else}}
     <p class="text-sm text-muted">{{.Participants}} took part · {{.Casualties}} casualt{{if eq .Casualties 1}}y{{else}}ies{{end}}{{if .CanReopenSheet}} · the sheet is locked{{end}}</p>
@@ -324,7 +324,7 @@
 
 {{define "aftermath_result"}}
 <div class="rounded-xl border border-line bg-raised p-3 text-sm space-y-1">
-  <p><span class="font-medium">Match result:</span> {{.OutcomeText}}{{if .A.Fled}}, the company left the battlefield{{end}}. <a href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Change it on the match page</a>{{if .Match.Ended}} (administrators only){{end}}.</p>
+  <p><span class="font-medium">Match result:</span> {{.OutcomeText}}. <a href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Change it on the match page</a>{{if .Match.Ended}} (administrators only){{end}}.</p>
   {{if .RelicTicked}}<p>The company holds the Relic.</p>{{end}}
 </div>
 {{end}}
@@ -353,24 +353,21 @@
 
 {{/* The form. State: per card outcome and took; on the form the MVP and Relic holder (one each). */}}
 {{define "aftermath_sheet_form"}}
-<form hx-post="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/aftermath/{{.Company.ID}}/sheet" hx-target="#aftermath-page" hx-swap="outerHTML" class="space-y-5"
+<form hx-post="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/aftermath/{{.Company.ID}}/sheet?auto=1" hx-trigger="change delay:500ms" hx-target="#aftermath-bar" hx-swap="outerHTML" hx-sync="this:replace" class="space-y-5" data-autosave
       x-data="{ mvp: '{{with .MVP}}{{.}}{{end}}', relic: '{{with .Relic}}{{.}}{{end}}', relicNeeded: {{.RelicTicked}}, uses: {{.Elected}},
         names: {{.UnitNames}}, taken(key, id) { const u = Object.keys(this.uses).find(u => u !== String(id) && this.uses[u] === key); return u ? this.names[u] : '' },
         get startReason() { return this.relicNeeded && !this.relic ? 'Choose who holds the Relic.' : ''; } }" novalidate>
-  <input type="hidden" name="revision" value="{{.A.Revision}}">
   {{template "aftermath_result" .}}
   {{if .Problems}}<div class="alert alert-danger" role="alert"><ul class="list-disc pl-4">{{range .Problems}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
 
-  {{if .Rules.Bonuses}}
-  <fieldset class="min-w-0 space-y-2">
+  {{if .Rules.Bonuses}}{{$anyTaken := false}}{{range .Rules.Bonuses}}{{if $.A.Input.Taken .Key}}{{$anyTaken = true}}{{end}}{{end}}
+  <fieldset class="min-w-0 space-y-2" id="aftermath-ato">
     <legend class="text-lg font-semibold font-heading">Against the Odds{{if .A.FromMatch}} <span class="badge badge-gold align-middle" title="Ticked from what the company took on the match page; change anything that is not right">From the match</span>{{end}}</legend>
-    <p class="text-sm text-muted">Tick the bonuses the company took. Only some of them have an effect on the aftermath.</p>
-    {{range .Rules.Bonuses}}
-    <label class="flex min-h-11 items-start gap-3 rounded-md border border-line px-3 py-2 text-sm">
-      <input type="checkbox" name="odds" value="{{.Key}}" class="mt-0.5 h-5 w-5 accent-[var(--accent)]" {{if $.A.Input.Taken .Key}}checked{{end}}>
-      <span><span class="font-medium">{{.Name}}</span> <span class="text-muted">(rating {{.Rating}})</span><br><span class="text-muted">{{if .Effective}}{{.Text}}{{else}}No effect on the aftermath.{{end}}</span></span>
-    </label>
-    {{end}}
+    {{range .Rules.Bonuses}}{{if $.A.Input.Taken .Key}}{{template "aftermath_odds" (dict "B" . "On" true)}}{{end}}{{end}}
+    {{if not $anyTaken}}<p class="text-sm text-muted">No bonus taken.</p>{{end}}
+    <details class="text-sm"><summary class="flex min-h-11 cursor-pointer items-center font-medium">+ add a bonus</summary>
+      <div class="space-y-2">{{range .Rules.Bonuses}}{{if not ($.A.Input.Taken .Key)}}{{template "aftermath_odds" (dict "B" . "On" false)}}{{end}}{{end}}</div>
+    </details>
   </fieldset>
   {{end}}
 
@@ -399,24 +396,27 @@
       </div>
       <label class="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" name="took-{{$id}}" value="1" x-model="took" class="h-5 w-5 accent-[var(--accent)]"> Took part</label>
       <p class="text-xs font-semibold uppercase text-muted">Earned experience</p>
-      <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Experience earned by {{.Unit.Title}}">
-        {{$sheet := .Sheet}}
-        {{range $.Gains}}
+      {{$sheet := .Sheet}}{{$review := $.Review}}
+      <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Experience earned by {{.Unit.Title}}" {{if $review}}x-data="{ more: false }"{{end}}>
+        {{range $.Gains}}{{$shown := or (not $review) ($.Earned $sheet .Key)}}
+        <span class="contents" {{if not $shown}}x-show="more" x-cloak{{end}}>
         {{if .Repeatable}}
         <div class="inline-flex max-w-full flex-wrap items-center gap-0.5 rounded-full border border-line bg-surface py-0.5 pl-3 pr-1 text-xs" x-data="{ n: {{index $sheet.Gains .Key}} }" :class="!took && 'opacity-50'">
           <span>{{.Label}}</span>
-          <button type="button" class="btn btn-ghost !min-h-11 !min-w-11 !px-2 sm:!min-h-7 sm:!min-w-7" :disabled="!took || n <= 0" @click="n--" aria-label="Fewer: {{.Label}}">−</button>
+          <button type="button" class="btn btn-ghost !min-h-11 !min-w-11 !px-2 sm:!min-h-7 sm:!min-w-7" :disabled="!took || n <= 0" @click="n--; $nextTick(() => $dispatch('change'))" aria-label="Fewer: {{.Label}}">−</button>
           <input type="number" name="gain-{{$id}}-{{.Key}}" x-model.number="n" min="0" max="9" readonly :disabled="!took" class="w-6 bg-transparent text-center text-sm font-semibold" aria-label="{{.Label}}">
-          <button type="button" class="btn btn-ghost !min-h-11 !min-w-11 !px-2 sm:!min-h-7 sm:!min-w-7" :disabled="!took || n >= 9" @click="n++" aria-label="More: {{.Label}}">+</button>
+          <button type="button" class="btn btn-ghost !min-h-11 !min-w-11 !px-2 sm:!min-h-7 sm:!min-w-7" :disabled="!took || n >= 9" @click="n++; $nextTick(() => $dispatch('change'))" aria-label="More: {{.Label}}">+</button>
         </div>
         {{else if eq .Key "mvp"}}
         <label class="inline-flex max-w-full"><input type="checkbox" class="peer sr-only" name="gain-{{$id}}-mvp" value="1" :disabled="!took" :checked="mvp === '{{$id}}'" @change="mvp = $event.target.checked ? '{{$id}}' : ''">
           <span class="chip cursor-pointer !text-fg peer-checked:border-accent peer-checked:bg-accent-soft peer-checked:before:mr-1 peer-checked:before:content-['✓'] peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">{{.Label}}{{if and $.A.FromLive $sheet.Took (index $sheet.Gains "mvp")}} <span class="badge badge-gold" title="The opposing players voted for this unit">Voted MVP</span>{{end}}</span></label>
         {{else}}
         <label class="inline-flex max-w-full"><input type="checkbox" class="peer sr-only" name="gain-{{$id}}-{{.Key}}" value="1" :disabled="!took" {{if index $sheet.Gains .Key}}checked{{end}}>
-          <span class="chip cursor-pointer !text-fg peer-checked:border-accent peer-checked:bg-accent-soft peer-checked:before:mr-1 peer-checked:before:content-['✓'] peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">{{.Label}}{{if and $.A.FromLive (eq .Key "objective") (index $sheet.Gains .Key)}} <span class="badge badge-gold" title="Set in the End checks of the live match">From the live match</span>{{end}}</span></label>
+          <span class="chip cursor-pointer !text-fg peer-checked:border-accent peer-checked:bg-accent-soft peer-checked:before:mr-1 peer-checked:before:content-['✓'] peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">{{.Label}}{{if and $.A.FromLive (eq .Key "objective") (index $sheet.Gains .Key)}} <span class="badge badge-gold" title="Set when the match ended">From the live match</span>{{end}}</span></label>
         {{end}}
+        </span>
         {{end}}
+        {{if $review}}<button type="button" class="chip" x-show="!more" @click="more = true" data-add-gain>+ add</button>{{end}}
         {{if $.RelicTicked}}
         <label class="inline-flex" x-show="outcome !== 'casualty'"><input type="checkbox" class="peer sr-only" name="relic" value="{{$id}}" :checked="relic === '{{$id}}'" @change="relic = $event.target.checked ? '{{$id}}' : ''">
           <span class="chip cursor-pointer !text-fg peer-checked:border-accent peer-checked:bg-accent-soft peer-checked:before:mr-1 peer-checked:before:content-['✓'] peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">Holds the Relic</span></label>
@@ -426,7 +426,7 @@
       <div class="rounded-md border border-line px-3 py-1" x-data="{ key: {{jsstr .Key}} }">
         <label class="flex min-h-11 items-start gap-3 py-2 text-sm">
           <input type="checkbox" class="mt-0.5 h-5 w-5 accent-[var(--accent)]" :checked="uses['{{$id}}'] === key" :disabled="reason(key) !== ''{{if not .Stackable}} || taken(key, '{{$id}}') !== ''{{end}}"
-                 @change="if ($event.target.checked) uses['{{$id}}'] = key; else delete uses['{{$id}}']">
+                 @change="if ($event.target.checked) uses['{{$id}}'] = key; else delete uses['{{$id}}']; $nextTick(() => $dispatch('change'))">
           <span><span class="font-medium">{{.Label}}</span>{{if .Loaned}} <span class="badge badge-gold">From the Healer's Kit</span>{{end}}</span>
         </label>
         {{with .Text}}<details class="text-sm"><summary class="flex min-h-11 cursor-pointer items-center text-accent-text">What it does</summary><p class="pb-2 text-muted">{{.}}</p></details>{{end}}
@@ -440,15 +440,27 @@
   </div>
   {{template "aftermath_absent" .}}
 
-  {{/* Preview of the saved sheet, sticky on phones. */}}
-  <div class="sticky bottom-0 z-10 -mx-4 space-y-2 border-t border-line bg-surface px-4 py-3 md:static md:mx-0 md:rounded-xl md:border" id="aftermath-bar">
-    <p class="text-sm" aria-live="polite"><span class="font-medium">Saved sheet:</span> Experience <strong>{{.XP}}</strong> across {{len .A.Preview.Experience}} unit{{if ne (len .A.Preview.Experience) 1}}s{{end}} · Influence <strong>{{.Influence}}</strong> · {{.A.Preview.Rolls}} injury roll{{if ne .A.Preview.Rolls 1}}s{{end}}.{{with .A.Preview.Items}} Items: {{range $i, $l := .}}{{if $i}}; {{end}}{{$l.Text}}{{end}}.{{end}} <span class="text-muted">Save to update.</span></p>
-    {{with .A.Preview.Rewards}}<ul class="text-sm text-muted" aria-label="Scenario rewards that will apply">{{range .}}<li>{{$.RewardText .}}</li>{{end}}</ul>{{end}}
-    <p class="text-sm font-medium text-danger" x-show="startReason" x-text="startReason" x-cloak></p>
-    <div class="flex flex-wrap gap-2">
-      <button class="btn btn-secondary">Save sheet</button>
-      <button type="button" class="btn btn-primary" hx-post="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/aftermath/{{.Company.ID}}/start" hx-include="closest form" hx-target="#aftermath-page" hx-swap="outerHTML" hx-confirm="Start the aftermath? The sheet is locked until the first casualty is rolled." :disabled="startReason !== ''">Start aftermath</button>
-    </div>
-  </div>
+  {{template "aftermath_bar" .}}
 </form>
+{{end}}
+
+{{/* The bar under the sheet, sticky on phones: what the saved sheet gives and Start aftermath. The sheet saves itself on every change and
+   this is what the save answers (with the new revision). Takes aftermathView. */}}
+{{define "aftermath_bar"}}
+<div class="sticky bottom-0 z-10 -mx-4 space-y-2 border-t border-line bg-surface px-4 py-3 md:static md:mx-0 md:rounded-xl md:border" id="aftermath-bar">
+  <input type="hidden" name="revision" value="{{.A.Revision}}">
+  {{if .Problems}}<div class="alert alert-danger" role="alert"><ul class="list-disc pl-4">{{range .Problems}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+  <p class="text-sm" aria-live="polite">Experience <strong>{{.XP}}</strong> across {{len .A.Preview.Experience}} unit{{if ne (len .A.Preview.Experience) 1}}s{{end}} · Influence <strong>{{.Influence}}</strong> · {{.A.Preview.Rolls}} injury roll{{if ne .A.Preview.Rolls 1}}s{{end}}.{{with .A.Preview.Items}} Items: {{range $i, $l := .}}{{if $i}}; {{end}}{{$l.Text}}{{end}}.{{end}} <span class="text-muted" data-saved>{{with .Notice}}{{.}}{{else}}Saved as you go.{{end}}</span></p>
+  {{with .A.Preview.Rewards}}<ul class="text-sm text-muted" aria-label="Scenario rewards that will apply">{{range .}}<li>{{$.RewardText .}}</li>{{end}}</ul>{{end}}
+  <p class="text-sm font-medium text-danger" x-show="startReason" x-text="startReason" x-cloak></p>
+  <button type="button" class="btn btn-primary" hx-post="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/aftermath/{{.Company.ID}}/start" hx-include="closest form" hx-target="#aftermath-page" hx-swap="outerHTML" hx-sync="closest form:queue last" hx-confirm="Start the aftermath? The sheet is locked until the first casualty is rolled." :disabled="startReason !== ''">Start aftermath</button>
+</div>
+{{end}}
+
+{{/* One Against the Odds bonus of the sheet. Takes {B: the bonus rule, On: ticked}. */}}
+{{define "aftermath_odds"}}{{$b := .B}}
+<label class="flex min-h-11 items-start gap-3 rounded-md border border-line px-3 py-2 text-sm">
+  <input type="checkbox" name="odds" value="{{$b.Key}}" class="mt-0.5 h-5 w-5 accent-[var(--accent)]" {{if .On}}checked{{end}}>
+  <span><span class="font-medium">{{$b.Name}}</span> <span class="text-muted">(rating {{$b.Rating}})</span><br><span class="text-muted">{{if $b.Effective}}{{$b.Text}}{{else}}No effect on the aftermath.{{end}}</span></span>
+</label>
 {{end}}

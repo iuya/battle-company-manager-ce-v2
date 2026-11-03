@@ -37,8 +37,7 @@ type LiveState struct {
 	votes     map[voteKey]int64        // the unit a voter (user) chose as MVP of a company; the last not-undone vote counts
 	secrets   map[secretKey]SecretNote // what a company noted for each secret objective (the last not-undone entries count)
 	cfg       LiveFoldConfig           // what the rosters and the rules file add (Break Point percent, models per unit)
-	breaks    map[int64]*breakState    // by company: the manual corrections, Broken, the All is Lost answer
-	m         *liveMeta                // the turn
+	breaks    map[int64]*breakState    // by company: the manual corrections of the Break Point counts
 	// UnitName and CompanyName turn ids into words for reasons and log texts; unset, ids are shown.
 	UnitName    func(id int64) string
 	CompanyName func(id int64) string
@@ -91,7 +90,7 @@ func FoldLiveWith(inits []LiveUnitInit, entries []LiveEntry, cfg LiveFoldConfig)
 
 func newLiveState(inits []LiveUnitInit, cfg LiveFoldConfig) LiveState {
 	s := LiveState{units: map[int64]*liveUnit{}, objective: map[int64]bool{}, votes: map[voteKey]int64{}, secrets: map[secretKey]SecretNote{},
-		cfg: cfg, breaks: map[int64]*breakState{}, m: &liveMeta{}}
+		cfg: cfg, breaks: map[int64]*breakState{}}
 	for _, in := range inits {
 		s.breaks[in.CompanyID] = &breakState{}
 		u := &liveUnit{company: in.CompanyID, countsAsKill: in.CountsAsKill, absent: in.Absent}
@@ -197,7 +196,7 @@ func (s LiveState) unitNameWithCompany(id int64) string {
 // clone copies the state so that Check can try an action without changing it.
 func (s LiveState) clone() LiveState {
 	c := LiveState{order: s.order, units: make(map[int64]*liveUnit, len(s.units)), objective: maps.Clone(s.objective), votes: maps.Clone(s.votes), secrets: maps.Clone(s.secrets), UnitName: s.UnitName, CompanyName: s.CompanyName,
-		cfg: s.cfg, breaks: make(map[int64]*breakState, len(s.breaks)), m: &liveMeta{turn: s.m.turn}}
+		cfg: s.cfg, breaks: make(map[int64]*breakState, len(s.breaks))}
 	for id, b := range s.breaks {
 		cp := *b
 		c.breaks[id] = &cp
@@ -264,8 +263,7 @@ func (s LiveState) apply(a LiveAction, byCompany, voter int64) {
 		return
 	}
 	switch a.Kind {
-	case LiveTurn:
-		s.startTurn(a.Turn)
+	case liveTurnLegacy: // an older log: there are no turns any more
 		return
 	case LiveBreakAdjust:
 		if b := s.breaks[byCompany]; b != nil {
@@ -276,13 +274,9 @@ func (s LiveState) apply(a LiveAction, byCompany, voter int64) {
 			}
 		}
 		return
-	case LiveAllIsLost:
-		if b := s.breaks[byCompany]; b != nil {
-			b.decided = true
-			if a.Flee {
-				b.fled = true
-				s.fleeBattlefield(byCompany)
-			}
+	case liveAllIsLostLegacy: // an older log: the company that fled left the board
+		if a.Flee && s.breaks[byCompany] != nil {
+			s.fleeBattlefield(byCompany)
 		}
 		return
 	}
@@ -292,7 +286,6 @@ func (s LiveState) apply(a LiveAction, byCompany, voter int64) {
 	}
 	switch a.Kind {
 	case LiveCourageSkip:
-		u.CourageTurn = s.m.turn
 		u.CourageHow = a.Reason
 	case LiveItemUsed:
 		if i := u.loanedIndex(a.Item, a.Index); i >= 0 {
@@ -344,14 +337,9 @@ func (s LiveState) apply(a LiveAction, byCompany, voter int64) {
 		u.Gains[GainFatePrevented] = 1
 	case LiveBroken:
 		u.Gains[GainBrokenPassed] = 1
-		u.CourageTurn = s.m.turn
 		u.CourageHow = "passed"
-		if a.StandFast {
-			u.StandFastTurn = s.m.turn
-		}
 	case LiveRetreat:
 		if a.Why == "courage" {
-			u.CourageTurn = s.m.turn
 			u.CourageHow = "failed"
 			u.retreat = "Failed courage"
 		} else {
@@ -405,12 +393,10 @@ func (s LiveState) CheckAs(a LiveAction, byCompany int64, voter LiveVoter) (reso
 	switch a.Kind {
 	case LiveMVPVote:
 		return s.checkVote(a, byCompany, voter)
-	case LiveTurn:
-		return s.checkTurn(a)
 	case LiveBreakAdjust:
 		return s.checkBreakAdjust(a, byCompany)
-	case LiveAllIsLost:
-		return s.checkAllIsLost(a, byCompany)
+	case liveTurnLegacy, liveAllIsLostLegacy:
+		return a, nil, "", invalid("Turns and All is Lost are settled at the table now.")
 	}
 	if a.Kind.Secret() {
 		return s.checkSecret(a, byCompany, voter)
@@ -830,7 +816,7 @@ func CanUndoEntry(u User, e LiveEntry, owners map[int64]int64, organiserID int64
 	if CanManageCampaign(u, organiserID) {
 		return true
 	}
-	if e.Action.Kind == LiveTurn { // the turn belongs to the whole match: any player of it
+	if e.Action.Kind == liveTurnLegacy { // an older turn entry belongs to the whole match: any player of it
 		for _, owner := range owners {
 			if owner != 0 && owner == u.ID {
 				return true

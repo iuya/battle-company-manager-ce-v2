@@ -192,14 +192,11 @@ var permActions = []permAction{
 		return err
 	}, allow: [3]permRole{players | managers, players | managers, 0}, roleMsg: "Only the players in this match", stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
 	{name: "SaveResult", fixture: permOpen, run: func(f *permFx, a core.User) error {
-		_, err := f.c().SaveResult(f.ctx, a, f.camp.id, f.match.ID, f.rev(), core.MatchResult{Decided: true, Winner: 2, Sides: make([]core.SideResult, 2)})
-		return err
-	}, allow: [3]permRole{players | managers, players | managers, 0}, roleMsg: "Only the players in this match", stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
-	{name: "SetSideRoles", fixture: permOpen, run: func(f *permFx, a core.User) error {
-		_, err := f.c().SetSideRoles(f.ctx, a, f.camp.id, f.match.ID, f.rev(), []string{core.RoleAttacker, core.RoleDefender})
+		_, err := f.c().SaveResult(f.ctx, a, f.camp.id, f.match.ID, f.rev(), core.MatchResult{Decided: true, Winner: 2})
 		return err
 	}, allow: [3]permRole{players | managers, players | managers, 0}, roleMsg: "Only the players in this match", stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
 	{name: "ProposeEnd", fixture: permOpen, run: func(f *permFx, a core.User) error {
+		_ = voteMissing(f.ctx, f.c(), f.camp.id, f.match.ID) // a competitive match ends with the MVP votes in place
 		_, err := f.c().ProposeEnd(f.ctx, a, f.camp.id, f.match.ID, f.rev())
 		return err
 	}, allow: [3]permRole{players | managers, players | managers, 0}, roleMsg: "Only the players in this match", stateMsg: [3]string{"", "", msgFinished}},
@@ -449,6 +446,10 @@ func permBuild(w *world, users map[permRole]core.User, fixture permFixture, prep
 	}
 	switch fixture {
 	case permProposed:
+		w.must("vote the MVPs", voteMissing(w.ctx, w.c(), camp.id, f.match.ID)) // an end needs every owner's votes (D7)
+		cur, err := w.c().Match(w.ctx, camp.id, f.match.ID)
+		w.must("read the match", err)
+		f.match = cur
 		m, err := w.c().ProposeEnd(w.ctx, users[roleOther], camp.id, f.match.ID, f.match.Revision)
 		w.must("propose the end", err)
 		f.match = m

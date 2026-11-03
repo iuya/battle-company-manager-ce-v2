@@ -93,8 +93,7 @@ func (w *aftermathWorld) play(t *testing.T, scenario string, objectives map[stri
 	if m, err = w.matches.SetScenario(ctx, w.org, w.camp.ID, m.ID, m.Revision, core.ScenarioInput{Kind: core.ScenarioRulebook, Name: scenario}); err != nil {
 		t.Fatal(err)
 	}
-	three, one := 3, 1
-	res := core.MatchResult{Decided: true, Winner: 1, Sides: []core.SideResult{{VictoryPoints: &three}, {VictoryPoints: &one}},
+	res := core.MatchResult{Decided: true, Winner: 1,
 		Companies: []core.CompanyResult{{CompanyID: w.co1.ID, Objectives: objectives}}}
 	if m, err = w.matches.SaveResult(ctx, w.org, w.camp.ID, m.ID, m.Revision, res); err != nil {
 		t.Fatal(err)
@@ -273,8 +272,11 @@ func TestAftermathOnPostgres(t *testing.T) {
 	if p, _ := w.am.PendingAftermaths(ctx, id, w.co1.ID); len(p) != 0 {
 		t.Errorf("unlocked: %+v", p)
 	}
-	if _, err := w.am.FinishAftermath(ctx, w.p1, id, m.ID, w.co1.ID, a.Revision); !errors.Is(err, core.ErrRefused) {
-		t.Errorf("finish twice: %v", err)
+	if again, err := w.am.FinishAftermath(ctx, w.p1, id, m.ID, w.co1.ID, a.Revision); err != nil || again.Status != core.AftermathDone {
+		t.Errorf("finishing a finished aftermath changes nothing: %+v %v", again, err)
+	}
+	if d2, _ := w.companies.CompanyDetail(ctx, id, w.co1.ID); d2.Influence != d.Influence {
+		t.Errorf("finish twice gives nothing twice: %d -> %d", d.Influence, d2.Influence)
 	}
 
 	// Waive: only the organiser and administrators; the company is unlocked without effects.
@@ -299,11 +301,8 @@ func TestAftermathOnPostgres(t *testing.T) {
 	// Perks: a victory in Chance Encounter leaves one, bound to the owner; only the owner uses it.
 	m2 := w.play(t, "Chance Encounter", nil)
 	a, _ = w.am.Aftermath(ctx, w.p1, id, m2.ID, w.co1.ID)
-	if a, err = w.am.StartAftermath(ctx, w.p1, id, m2.ID, w.co1.ID, a.Revision, a.Input); err != nil || a.Status != core.AftermathLevelUps {
-		t.Fatalf("no casualties goes straight on: %+v %v", a, err)
-	}
-	if _, err = w.am.FinishAftermath(ctx, w.p1, id, m2.ID, w.co1.ID, a.Revision); err != nil {
-		t.Fatal(err)
+	if a, err = w.am.StartAftermath(ctx, w.p1, id, m2.ID, w.co1.ID, a.Revision, a.Input); err != nil || a.Status != core.AftermathDone {
+		t.Fatalf("no casualties and nothing to choose: Start aftermath finishes it: %+v %v", a, err)
 	}
 	perks, err := w.am.Perks(ctx, id, w.co1.ID)
 	if err != nil || len(perks) != 1 || perks[0].Effect != "rendezvous" || perks[0].UsedOn != nil || perks[0].MatchID != m2.ID {

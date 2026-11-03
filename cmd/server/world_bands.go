@@ -23,18 +23,17 @@ func (w *world) bandsCampaign() {
 	}
 
 	// A practice match between Éowyn's own two companies (the "Same player" case): nothing to roll, so neither is locked afterwards
-	w.playedPractice(c, "Chance Encounter", outcome{winner: 1, vp: []int{4, 2}, note: "Éowyn trained her two bands against each other."}, []*wco{mark}, []*wco{deep})
+	w.playedPractice(c, "Chance Encounter", outcome{winner: 1, note: "Éowyn trained her two bands against each other."}, []*wco{mark}, []*wco{deep})
 
 	// Éowyn's two companies fight on one side; each has its own aftermath, one done and one still to play
-	m := w.played(c, "Seize Ground", outcome{winner: 1, vp: []int{6, 3}, note: "Both of Éowyn's bands took the field."}, []*wco{mark, deep}, []*wco{gate})
+	m := w.played(c, "Seize Ground", outcome{winner: 1, note: "Both of Éowyn's bands took the field."}, []*wco{mark, deep}, []*wco{gate})
 	w.settle(mark, m, w.sheet(mark), nil, true)
 
 	// Galadriel's first company is in an open match; her other two are free, as is Éowyn's pair now locked by its aftermath
 	w.newMatch(c, []*wco{wood}, []*wco{mountain})
 
-	// An open practice match between two of Galadriel's other companies, with a live log: a turn and a point of Might spent
+	// An open practice match between two of Galadriel's other companies, with a live log: a point of Might spent
 	open := w.newPracticeMatch(c, []*wco{vale}, []*wco{green})
-	w.must("start turn 1", w.liveApply(vale, open, core.LiveAction{Kind: core.LiveTurn, Turn: 1}))
 	if hero, ok := w.unit(vale, func(u core.CompanyUnit) bool { return u.IsHero() }); ok {
 		w.must("spend Might", w.liveApply(vale, open, core.LiveAction{Kind: core.LiveStatChange, UnitID: hero.ID, Stat: "might", Delta: -1}))
 	}

@@ -16,7 +16,7 @@ func (w *world) aftermathCampaigns() {
 
 func (w *world) aftermathWardOne() {
 	c := w.campaign("you", "Aftermath ward 1: every step of the War's Aftermath",
-		"Eight companies, four ended matches: aftermath not started, a draft sheet, a Scratch waiting for an answer, a fallen Leader waiting for a successor, level-ups waiting with a free item to choose, one finished with a perk, one waived, one company that fled.", defaultSettings)
+		"Eight companies, four ended matches: aftermath not started, a draft sheet, a Scratch waiting for an answer, a fallen Leader waiting for a successor, level-ups waiting with a free item to choose, one finished with a perk, one waived, one fled (reported as the other side's win).", defaultSettings)
 	cos := w.pool(c, [][3]string{
 		{"eowyn", "Rohirrim waiting at the gate", "Rohan"},
 		{"sauron", "Orcs with a half-filled sheet", "Mordor"},
@@ -30,7 +30,7 @@ func (w *world) aftermathWardOne() {
 	rohan, mordor, arnor, loth, dwarf, shire, mir, wild := cos[0], cos[1], cos[2], cos[3], cos[4], cos[5], cos[6], cos[7]
 
 	// match 1: Rohan has not started, Mordor saved a draft
-	m1 := w.played(c, "Seize Ground", outcome{winner: 1, vp: []int{5, 2}}, []*wco{rohan}, []*wco{mordor})
+	m1 := w.played(c, "Seize Ground", outcome{winner: 1}, []*wco{rohan}, []*wco{mordor})
 	in := w.sheet(mordor)
 	l, s, ws := w.roster(mordor)
 	set(&in, l.ID, core.OutcomeSurvived, map[string]int{"woundedEnemy": 1, "slainHeroOrMonster": 2})
@@ -41,7 +41,7 @@ func (w *world) aftermathWardOne() {
 	w.saveSheet(mordor, m1, in)
 
 	// match 2: a hero's Scratch waits for the player; a Leader falls and the company must name a successor
-	m2 := w.played(c, "Chance Encounter", outcome{winner: 1, vp: []int{4, 4}, note: "Decided on the tie-break."}, []*wco{arnor}, []*wco{loth})
+	m2 := w.played(c, "Chance Encounter", outcome{winner: 1, note: "Decided on the tie-break."}, []*wco{arnor}, []*wco{loth})
 	l, s, ws = w.roster(arnor)
 	in = w.sheet(arnor)
 	set(&in, s[0].ID, core.OutcomeCasualty, nil)
@@ -54,7 +54,7 @@ func (w *world) aftermathWardOne() {
 	w.settle(loth, m2, in, map[int64][3]int{l.ID: {1, 1, 1}}, false) // 2: dead; the sergeants may take over
 
 	// match 3: level-ups waiting, and a free item to choose (all the markers scored)
-	m3 := w.played(c, "Scavenge the Battlefield", outcome{winner: 1, vp: []int{9, 3},
+	m3 := w.played(c, "Scavenge the Battlefield", outcome{winner: 1,
 		ticks: map[*wco]map[string]int{dwarf: {"allObjectiveMarkers": 1}}}, []*wco{dwarf}, []*wco{shire})
 	l, s, ws = w.roster(dwarf)
 	in = w.sheet(dwarf)
@@ -70,8 +70,8 @@ func (w *world) aftermathWardOne() {
 	set(&in, ws[0].ID, core.OutcomeCasualty, nil)
 	w.settle(shire, m3, in, map[int64][3]int{ws[0].ID: {3, 5, 1}}, true) // finished
 
-	// match 4: Mirkwood fled (All is Lost); Wanderers hold the Relic and finish with its blessing
-	m4 := w.played(c, "Relic of Ages Past", outcome{winner: 2, vp: []int{0, 6}, fled: []*wco{mir},
+	// match 4: Mirkwood fled the field (All is Lost, reported as the Wanderers' win); Wanderers hold the Relic and finish with its blessing
+	m4 := w.played(c, "Relic of Ages Past", outcome{winner: 2,
 		ticks: map[*wco]map[string]int{wild: {"possessesRelic": 1}}, note: "The Wargs ran at the first volley."}, []*wco{mir}, []*wco{wild})
 	in = w.sheet(wild)
 	l, _, ws = w.roster(wild)
@@ -105,7 +105,7 @@ func (w *world) aftermathWardTwo() {
 	rohan, mordor, arnor, loth, iron, shire := cos[0], cos[1], cos[2], cos[3], cos[4], cos[5]
 
 	// a draw; Mordor was the Underdog and took Influence, Experience and the re-rolls
-	m1 := w.played(c, "Seize Ground", outcome{draw: true, vp: []int{3, 3}}, []*wco{rohan}, []*wco{mordor})
+	m1 := w.played(c, "Seize Ground", outcome{draw: true}, []*wco{rohan}, []*wco{mordor})
 	in := w.sheet(rohan)
 	l, s, ws := w.roster(rohan)
 	set(&in, ws[0].ID, core.OutcomeCasualty, nil)
@@ -123,7 +123,7 @@ func (w *world) aftermathWardTwo() {
 	_ = l
 
 	// a Leader fell in Arnor: the successor and a new Sergeant chosen, finished
-	m2 := w.played(c, "Rescue", outcome{winner: 1, vp: []int{5, 1}}, []*wco{arnor}, []*wco{loth})
+	m2 := w.played(c, "Rescue", outcome{winner: 1}, []*wco{arnor}, []*wco{loth})
 	l, s, _ = w.roster(arnor)
 	in = w.sheet(arnor)
 	set(&in, l.ID, core.OutcomeCasualty, nil)
@@ -144,13 +144,13 @@ func (w *world) aftermathWardTwo() {
 	w.settle(loth, m2, in, nil, true)
 
 	// scenario rewards: the Elves win the Secure the Area and get the vantage point perk; the Dwarves score all the cargo
-	m3 := w.played(c, "Secure the Area", outcome{winner: 1, vp: []int{6, 2}}, []*wco{loth}, []*wco{rohan})
+	m3 := w.played(c, "Secure the Area", outcome{winner: 1}, []*wco{loth}, []*wco{rohan})
 	w.settle(loth, m3, w.sheet(loth), nil, true)
-	m4 := w.played(c, "Baggage Train", outcome{winner: 1, vp: []int{8, 2}, ticks: map[*wco]map[string]int{iron: {"allCargo": 1}}}, []*wco{iron}, []*wco{shire})
+	m4 := w.played(c, "Baggage Train", outcome{winner: 1, ticks: map[*wco]map[string]int{iron: {"allCargo": 1}}}, []*wco{iron}, []*wco{shire})
 	w.settle(iron, m4, w.sheet(iron), nil, true)
 	w.settle(shire, m4, w.sheet(shire), nil, true) // the Hobbits' aftermath is done before they play again
 	// (Mordor's first aftermath is still open, so the Hobbits' next game is against the Dwarves, whose aftermath is done)
-	m5 := w.played(c, "Chance Encounter", outcome{winner: 2, vp: []int{1, 6}}, []*wco{iron}, []*wco{shire})
+	m5 := w.played(c, "Chance Encounter", outcome{winner: 2}, []*wco{iron}, []*wco{shire})
 	w.settle(iron, m5, w.sheet(iron), nil, true)
 	w.settle(shire, m5, w.sheet(shire), nil, true)
 
@@ -186,7 +186,7 @@ func (w *world) aftermathWardThree() {
 	_, _, ws = w.roster(arnor)
 	w.xp(arnor, ws[0].ID, 4, "Scouted the road")
 
-	m := w.played(c, "Seize Ground", outcome{winner: 2, vp: []int{1, 6}}, []*wco{mordor, dwarf, arnor}, []*wco{elves})
+	m := w.played(c, "Seize Ground", outcome{winner: 2}, []*wco{mordor, dwarf, arnor}, []*wco{elves})
 	// the sheets: everybody survives except the officers named, who are casualties and roll a 2 (dead)
 	fall := func(co *wco, sergeantsToo, leader bool) core.Aftermath {
 		l, s, _ := w.roster(co)

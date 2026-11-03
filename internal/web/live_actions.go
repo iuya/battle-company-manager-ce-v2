@@ -55,14 +55,10 @@ func liveActionFrom(r *http.Request) (core.LiveAction, error) {
 		a.Targets = []core.WoundTarget{{UnitID: formID(r, "target"), Part: r.PostFormValue("part"), Caused: formInt(r, "caused"), SavedByFate: formInt(r, "saved")}}
 	case core.LiveBroken:
 		a.StandFast = r.PostFormValue("standFast") == "1"
-	case core.LiveTurn:
-		a.Turn = formInt(r, "turn")
 	case core.LiveBreakAdjust:
 		a.Field, a.Delta = r.PostFormValue("field"), formInt(r, "delta")
 	case core.LiveCourageSkip:
 		a.Reason = r.PostFormValue("reason")
-	case core.LiveAllIsLost:
-		a.Flee = r.PostFormValue("flee") == "1"
 	case core.LiveObjective:
 		a.On = r.PostFormValue("on") == "1"
 	case core.LiveItemUsed:
@@ -121,10 +117,6 @@ func (s *Server) handleLiveUndo(w http.ResponseWriter, r *http.Request) {
 	_, err := s.campaigns.Undo(r.Context(), *userFrom(r.Context()), id, matchID, entryID, companyID)
 	if r.PostFormValue("from") == "secret" {
 		s.answerSecretUndo(w, r, id, matchID, err)
-		return
-	}
-	if from := r.PostFormValue("from"); from == "end" || from == "endcard" {
-		s.answerEndUndo(w, r, id, matchID, companyID, from == "endcard", err)
 		return
 	}
 	if from := r.PostFormValue("from"); from == "log" || from == "card" { // pressed in the log: it answers with the log

@@ -5,21 +5,25 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// The sticky banner of a pending end on every company page of the match (docs/live-match.md "Ending a match while live"). It posts to the
-// match's end routes with view=banner and company=<page's company>, and those answer the banner again.
+// The part of the sticky live banner that every change of the match refreshes (docs/live-match.md "Ending a match while live"): the
+// companies that are Broken ("Minas Morgul is broken (8 of 15 casualties)") and the pending end with Confirm, which opens the Confirm
+// sheet. Its other buttons post to the match's end routes with view=banner and company=<page's company>, and those answer the banner again.
 
-// endBanner is what the banner shows; zero (Pending false) shows nothing.
+// endBanner is what the banner shows; zero shows nothing.
 type endBanner struct {
 	Campaign, MatchID, Company int64
 	Revision                   int
 	Pending                    bool
 	Proposal                   *core.EndProposal
+	Result                     string // what the pending end reports: "Rohan won", "Draw"
 	Access                     core.EndAccess
+	Broken                     []string // "Minas Morgul is broken (8 of 15 casualties)", for every Broken company of the match
 	Notice                     string
 	NoticeErr                  bool
 	OverrideNote, OverrideErr  string
@@ -37,7 +41,16 @@ func (b endBanner) WaitingNames() string {
 func (s *Server) endBannerFor(r *http.Request, base campaignBase, m core.Match, company int64) endBanner {
 	b := endBanner{Campaign: base.Campaign.ID, MatchID: m.ID, Company: company, Revision: m.Revision}
 	if m.EndProposal != nil && !m.Ended {
-		b.Pending, b.Proposal, b.Access = true, m.EndProposal, endAccess(r, base, m)
+		b.Pending, b.Proposal, b.Access, b.Result = true, m.EndProposal, endAccess(r, base, m), proposedResult(m)
+	}
+	if !m.Ended {
+		if breaks, err := s.campaigns.MatchBreaks(r.Context(), base.Campaign.ID, m.ID); err == nil { // an extra: a failed read shows none
+			for _, co := range matchCompanies(m) {
+				if br, ok := breaks[co.ID]; ok && br.Broken {
+					b.Broken = append(b.Broken, fmt.Sprintf("%s is broken (%d of %d casualties)", co.Name, br.Casualties, br.StartingModels))
+				}
+			}
+		}
 	}
 	return b
 }
@@ -48,7 +61,8 @@ func (s *Server) handleEndBanner(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	s.answerEndBanner(w, r, http.StatusOK, base, m, formID(r, "company"), "", false, "", "")
+	company, _ := strconv.ParseInt(r.URL.Query().Get("company"), 10, 64)
+	s.answerEndBanner(w, r, http.StatusOK, base, m, company, "", false, "", "")
 }
 
 func (s *Server) answerEndBanner(w http.ResponseWriter, r *http.Request, status int, base campaignBase, m core.Match, company int64, notice string, isErr bool, note, noteErr string) {

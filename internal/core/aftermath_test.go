@@ -388,9 +388,9 @@ func TestCompanyOutcome(t *testing.T) {
 		winner  int
 		fled    bool
 		outcome string
-	}{{1, 1, false, "win"}, {2, 1, false, "loss"}, {1, 0, false, "draw"}, {2, 0, false, "draw"}, {2, 1, true, "loss"}} {
+	}{{1, 1, false, "win"}, {2, 1, false, "loss"}, {1, 0, false, "draw"}, {2, 0, false, "draw"}} {
 		m.Winner = c.winner
-		m.Result = MatchResult{Companies: []CompanyResult{{CompanyID: c.id, Fled: c.fled}}}
+		m.Result = MatchResult{Companies: []CompanyResult{{CompanyID: c.id}}}
 		if got, fled, ok := CompanyOutcome(m, c.id); !ok || got != c.outcome || fled != c.fled {
 			t.Errorf("%+v: %s %v %v", c, got, fled, ok)
 		}

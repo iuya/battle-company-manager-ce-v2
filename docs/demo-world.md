@@ -71,8 +71,8 @@ company, sees "My company"). Page names are those of the navigation: Overview, M
 | **Handed over: Faramir organises now** | Éowyn, Faramir | `Campaigns.HandOver`: created by You, organised by Faramir; You is a player without a company | Overview as `faramir` (organiser buttons) and as `you` (none) |
 | **Faramir's campaign: a small start** | Aragorn, Pippin | a campaign organised by Faramir from the start | Overview as `faramir` |
 | **Two bands: several companies per player** | Éowyn (two companies), Galadriel (three), Gimli, Sauron | the setting `CompaniesPerPlayer` = 3 (default 1 everywhere else), and the two **practice matches** (one ended, one open with a log): see [Two bands](#two-bands) | My Company as `eowyn`, `galadriel`; Matches, the Practice filter |
-| **Veterans: heroes with long trackers and full paths** | You (Minas Tirith), Éowyn (Rohan, its Leader on the Path of the Warlord with Might, Will, Fate and Wounds at their maximum of 3) | every hero levelled up twenty times (the roll of its path chart that offers Might, Will, Fate or Wounds in turn, up to their limit of 3, then a rule, heroic action or power), in an open match of Hold the Line played live on turn 2 with some Might, Will, Fate and Wounds spent: long tracker bars with full and empty segments and crowded path boxes. Step `world_veterans.go` | My Company as `you` or `eowyn` |
-| **Fog of War: secret notes, retreats and the dead** | Gimli (Durin's Folk), Aragorn (Arnor) | an open Fog of War match on turn 2 with the **secret objectives** noted down by each player (an own Hero, an enemy Hero, a terrain piece; Aragorn also reported a tier), **Retreated** and **Field casualties** zones filled (a retreat, a courage retreat, a death, and a unit that returned); the live Tabletop Simulator export of each company has **two warbands** (the units out of the fight form the second). Step `world_live.go`; a stranger sees only that others have secret notes | Matches > the match, as `gimli` or `aragorn` (own notes) and as `you` (hidden); My company > the Tabletop Simulator button of the live company |
+| **Veterans: heroes with long trackers and full paths** | You (Minas Tirith), Éowyn (Rohan, its Leader on the Path of the Warlord with Might, Will, Fate and Wounds at their maximum of 3) | every hero levelled up twenty times (the roll of its path chart that offers Might, Will, Fate or Wounds in turn, up to their limit of 3, then a rule, heroic action or power), in an open match of Hold the Line played live with some Might, Will, Fate and Wounds spent: long tracker bars with full and empty segments and crowded path boxes. Step `world_veterans.go` | My Company as `you` or `eowyn` |
+| **Fog of War: secret notes, retreats and the dead** | Gimli (Durin's Folk), Aragorn (Arnor) | an open Fog of War match with the **secret objectives** noted down by each player (an own Hero, an enemy Hero, a terrain piece; Aragorn also reported a tier), **Retreated** and **Field casualties** zones filled (a retreat, a courage retreat, a death, and a unit that returned), and the Rangers **Broken** (their casualties exceed the Break Point: both players' banners say so); the live Tabletop Simulator export of each company has **two warbands** (the units out of the fight form the second). Step `world_live.go`; a stranger sees only that others have secret notes | Matches > the match, as `gimli` or `aragorn` (own notes) and as `you` (hidden); My company > the Tabletop Simulator button of the live company |
 | **Lowered limit: more companies than the campaign allows now** | Galadriel (three companies), Éowyn (two), Aragorn (one) | `Campaigns.SetCompaniesPerPlayer` lowered the limit from 3 to 2 after the companies existed: Galadriel keeps three and cannot create more, Éowyn is at the limit, Aragorn may add one. Step `world_live.go` | Overview as each player: "Create another company" or the full wording |
 
 ### Two bands
@@ -88,7 +88,7 @@ Step `world_bands.go`, campaign **Two bands: several companies per player** (org
 - **Match 1** (ended, **practice**): Éowyn's two companies against each other, the "Same player" case; the result is entered and the aftermath reads "Practice match: nothing to roll", so neither company is locked by it.
 - **Match 2** (ended): both of Éowyn's companies on one side against Sauron's, a competitive match. The match page says "Same player: both of these companies are Éowyn's."; her first company's aftermath is finished, the second's still to play, and Sauron's is untouched (each is locked on its own).
 - **Match 3** (open): one of Galadriel's companies against Gimli's; her other two are free for a new match.
-- **Match 4** (open, **practice**): Galadriel's other two companies against each other, with a live log (turn 1 and a point of Might spent); their pages show the live state with the Practice badge. The Overview of the campaign counts 2 matches and "2 practice matches"; Éowyn's wins count only Match 2 (see [practice-match-spec.md](practice-match-spec.md)). In the new match form the "Mine" chip narrows the search to the viewer's companies, and putting two companies of one player on a side shows the same note before the match is created.
+- **Match 4** (open, **practice**): Galadriel's other two companies against each other, with a live log (a point of Might spent); their pages show the live state with the Practice badge. The Overview of the campaign counts 2 matches and "2 practice matches"; Éowyn's wins count only Match 2 (see [practice-match-spec.md](practice-match-spec.md)). In the new match form the viewer's own companies are marked "Yours" and listed first (last on the other sides once one is placed), and putting two companies of one player on a side shows the same note before the match is created.
 - The company id is in every address (`/campaigns/N/my-company/ID`); `/campaigns/N/my-company` alone opens the first company, and another player's company id answers 404.
 
 ### Aura parade
@@ -188,15 +188,19 @@ for the next match. Every match that must stay open or unfinished has companies 
 "Matches: every scenario and every state" has 24 matches; open the Matches page and filter by state:
 
 - Match 1: **open, no scenario**.
-- Matches 2 to 19: **one per rulebook scenario**, all 18 (the three tables of six). Every fourth (scenarios 1, 5, 9, 13, 17) is
-  **open with the scenario chosen and nothing reported**; the others have a **winner and Victory Points**, the other side
-  winning, or a **draw** (by turn), and are **ended with the aftermaths waived**. The scenarios with tickable objectives
-  (**Scavenge the Battlefield**, **Relic of Ages Past**, **Baggage Train**, and the Rescue / Chance Encounter rewards) have
-  their objective ticked for the first company when they have a result: open the match and look at the result form.
+- Matches 2 to 19: **one per rulebook scenario**, all 18 (the three tables of six), each created with its scenario as the new
+  match form does. Every fourth (scenarios 1, 5, 9, 13, 17) is **open with the scenario chosen and nothing reported** (the
+  *preparing* phase); the others have a **winner**, the other side winning, or a **draw**, and are **ended with the aftermaths
+  waived**. The scenarios with reward ticks (**Scavenge the Battlefield**, **Relic of Ages Past**, **Baggage Train**) have
+  their objective ticked for the first company when they have a result.
 - A **one-off scenario** ("The Bridge of Sighs") with description and victory conditions, result entered, ended.
 - A **three-sided match** (The Wolves Attack, third side wins), ended.
 - A **two-sided match with two companies per side**, open.
 - **Result entered, not ended** (Show of Strength): the next click is "End match".
+- **Against the Odds chosen at creation**: the owner of the lower rated company took a bonus on the new match form.
+- **Played live, end pending** (`sheetEnd`): the end proposed through the End match sheet (winner and the proposer's MVP vote), waiting
+  for the rival's Confirm (the *ending* phase; Your turn on the rival's Matches page).
+- **Played live and ended through the sheets**: End match, then the rival's Confirm with their own MVP vote.
 - **Ended, aftermath not started** (Chance Encounter): both companies are locked until it is played.
 - **Ended, reopened by an administrator, result corrected** (Hold the Line): the match history shows end, reopen and the new
   result; the match is open again.
@@ -208,12 +212,12 @@ Ward 1 (matches 1 to 4 of the campaign):
 | Match | Company (owner) | State |
 |---|---|---|
 | 1, Seize Ground | Rohirrim waiting at the gate (Éowyn) | **not started** |
-| | Orcs with a half-filled sheet (Sauron) | **draft sheet** saved (a casualty, a unit that fled, Against the Odds: Influence) |
+| | Orcs with a half-filled sheet (Sauron) | **draft sheet** saved (a casualty, a unit that left the board, Against the Odds: Influence) |
 | 2, Chance Encounter | Rangers with a Scratch to decide (Aragorn) | **injuries**: a Sergeant's *Just a Scratch* waits for "roll again / miss the next game" |
 | | Galadhrim whose Leader fell (Galadriel) | **injuries**: the Leader is dead; **succession** waits for a new Leader |
 | 3, Scavenge the Battlefield | Dwarves with level-ups to roll (Gimli) | **level-ups**: experience applied, level-up rolls waiting, and the **free equipment** reward (all markers scored) to choose before finishing |
 | | Hobbits who finished (Bilbo) | **finished** |
-| 4, Relic of Ages Past | Wild Wargs that fled (Radagast) | **All is Lost**: the company fled; its aftermath **waived** by the organiser with a note |
+| 4, Relic of Ages Past | Wild Wargs that fled (Radagast) | **All is Lost**, reported as the Wanderers' win; its aftermath **waived** by the organiser with a note |
 | | Pippin's patient company (Pippin) | **finished**, with the Relic bearer's perk *A Final Blessing* in the company's perks |
 
 Ward 2 (a company in the next match has finished its aftermath, so the Hobbits' last game is against the Dwarves): a **draw** (Rohan finished; the Underdog Mordor took the three **Against the Odds** bonuses, has two **re-rolls**, one used
@@ -225,7 +229,7 @@ Ward 3 (one match, three companies on one side): the **Warrior-to-Hero fallback*
 the match, casualties rolled with typed dice): the Orcs' Sergeant is dead and one Warrior is ahead in Experience (offered alone, already chosen), the
 Dwarves' Sergeant is dead and two Warriors are tied for the most Experience (both listed, none chosen, an answer is required), and the Rangers lost the Leader
 and both Sergeants (the Leader comes from the Warriors, then the Sergeants). The answer is mandatory in every case (no "nobody"); the promoted Warrior takes
-its path on My Company once the aftermath is finished (before that the path window says "Finish the aftermath ... first").
+its path on My Company once the aftermath is finished; the last answer finishes it on its own (before that the path window says "Finish the aftermath ... first").
 The Elven Cloak: the Galadhrim of ward 1 (Galadriel) carry it as a unit upgrade badge with a tooltip.
 
 ## Account invitations and recovery links

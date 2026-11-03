@@ -17,7 +17,7 @@ import (
 func endedMatch() core.Match {
 	m := editableMatch()
 	m.Ended = true
-	m.Result = core.MatchResult{Decided: true, Winner: 1, Sides: make([]core.SideResult, 2)}
+	m.Result = core.MatchResult{Decided: true, Winner: 1}
 	return m
 }
 
@@ -46,7 +46,7 @@ func TestAftermathCardForAPlayer(t *testing.T) {
 	}
 	// frodo owns Rangers (Start) but not Raiders (View); no Waive for a player
 	card := body[strings.Index(body, `id="aftermath"`):]
-	if !strings.Contains(card, `/aftermath/1">Start<`) || !strings.Contains(card, `/aftermath/2">View<`) {
+	if !strings.Contains(card, `/aftermath/1">Start aftermath<`) || !strings.Contains(card, `/aftermath/2">View<`) {
 		t.Errorf("Start for the owner and View for the others:\n%s", card)
 	}
 	if strings.Contains(card, "Waive") {
@@ -158,7 +158,7 @@ func TestAftermathPageEditorSeesTheSheetForm(t *testing.T) {
 	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(amState(core.AftermathPending, core.AftermathEdit), nil)
 	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
 	for _, want := range []string{"Aldor", "Brand", `name="unit" value="10"`, `name="outcome-10" value="casualty"`, `name="took-10"`, `name="gain-10-mvp"`, `name="gain-10-slain"`, `name="odds" value="toolkit"`, "No effect on the aftermath.",
-		`hx-post="/campaigns/7/matches/3/aftermath/1/sheet"`, `/aftermath/1/start`, `name="revision" value="2"`, "Missed this game", "Cirion", `aria-current="step"`} {
+		`hx-post="/campaigns/7/matches/3/aftermath/1/sheet?auto=1"`, `/aftermath/1/start`, `name="revision" value="2"`, "Missed this game", "Cirion", `aria-current="step"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("sheet lacks %q", want)
 		}
@@ -256,7 +256,7 @@ func TestSheetStaleAndRefused(t *testing.T) {
 func TestReopenSheet(t *testing.T) {
 	f := amFixture(t)
 	f.camp.EXPECT().ReopenSheet(gomock.Any(), frodo, int64(7), int64(3), int64(1), 2).Return(amState(core.AftermathSheet, core.AftermathEdit), nil)
-	if rec := amPost(f, "/reopen-sheet", url.Values{"revision": {"2"}}); rec.Code != 200 || !strings.Contains(rec.Body.String(), "The sheet is open again.") || !strings.Contains(rec.Body.String(), "Save sheet") {
+	if rec := amPost(f, "/reopen-sheet", url.Values{"revision": {"2"}}); rec.Code != 200 || !strings.Contains(rec.Body.String(), "The sheet is open again.") || !strings.Contains(rec.Body.String(), "Start aftermath") {
 		t.Errorf("%d\n%s", rec.Code, rec.Body.String())
 	}
 }
@@ -347,8 +347,8 @@ func TestRerollDecideAndContinue(t *testing.T) {
 		t.Errorf("decide: %d", rec.Code)
 	}
 	f.camp.EXPECT().Decide(gomock.Any(), frodo, int64(7), int64(3), int64(1), core.AftermathAnswer{Kind: "continue"}).Return(amState(core.AftermathLevelUps, core.AftermathEdit), nil)
-	if rec := amPost(f, "/decide", url.Values{"kind": {"continue"}}); rec.Code != 200 || !strings.Contains(rec.Body.String(), "Level-ups") {
-		t.Errorf("continue: %d", rec.Code)
+	if rec := amPost(f, "/decide", url.Values{"kind": {"continue"}}); rec.Code != 200 || !strings.Contains(rec.Body.String(), `id="aftermath-step-3"`) {
+		t.Errorf("continue: %d (a reward choice is open: the Rewards step)", rec.Code)
 	}
 	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(st, nil)
 	if rec := amPost(f, "/decide", url.Values{"kind": {"scratch"}, "unit": {"10"}}); rec.Code != 422 || !strings.Contains(rec.Body.String(), "Choose an answer") {
@@ -407,7 +407,7 @@ func TestLevelUpsStepListsWaitingRollsAndOpensTheWindow(t *testing.T) {
 	f := ownerFixture(t, levelUnits())
 	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(amState(core.AftermathLevelUps, core.AftermathEdit), nil)
 	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
-	for _, want := range []string{"Aldor", "roll", `hx-get="/campaigns/7/my-company/1/units/10/levelup"`, `id="modal-body"`, "Continue to Finish", "Finish aftermath", `x-show="finish"`} {
+	for _, want := range []string{"Aldor", "roll", `hx-get="/campaigns/7/my-company/1/units/10/levelup"`, `id="modal-body"`, `data-step="Level-ups"`, `data-step="Rewards"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("level-ups step lacks %q", want)
 		}
@@ -418,12 +418,12 @@ func TestLevelUpsStepForAReaderHasNoContinueButtonAndTheSummaryCountsWaitingRoll
 	f := ownerFixture(t, levelUnits())
 	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(amState(core.AftermathLevelUps, core.AftermathNone), nil)
 	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
-	if strings.Contains(body, ">Continue to Finish<") {
-		t.Error("a reader gets no Continue button")
+	if strings.Contains(body, "Finish aftermath") || strings.Contains(body, "Start aftermath") {
+		t.Error("a reader gets no button to move the aftermath on")
 	}
 	g := ownerFixture(t, levelUnits())
 	g.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(amState(core.AftermathDone, core.AftermathEdit), nil)
-	if body := g.do(g.signedIn(httpGet(amPath))).Body.String(); !strings.Contains(body, "1 unit still has a level-up roll waiting") {
+	if body := g.do(g.signedIn(httpGet(amPath))).Body.String(); !strings.Contains(body, "1 level-up ready") {
 		t.Errorf("the finished summary must say that a roll is waiting")
 	}
 }
@@ -440,7 +440,7 @@ func TestFinishStepOffersFreeEquipmentAndRefusesWhileOpen(t *testing.T) {
 	if got := strings.Join(linkTextsIn(body, "while mounted and a"), ","); got != "lance,spear" {
 		t.Errorf("the offered item's description links: %q", got)
 	}
-	for _, want := range []string{"To the Victor the Spoils", "Choose one item worth at most 2 Influence", `value="Shield"`, `value="10"`, `name="key" value="spoils"`, "Choose the free equipment first", "+1 Influence"} {
+	for _, want := range []string{"To the Victor the Spoils", "Choose one item worth at most 2 Influence", `value="Shield"`, `value="10"`, `name="key" value="spoils"`, "The aftermath finishes as soon as the choice is made.", "+1 Influence"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("finish lacks %q", want)
 		}
@@ -456,7 +456,7 @@ func TestFinishStepOffersFreeEquipmentAndRefusesWhileOpen(t *testing.T) {
 	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(st, nil)
 	f.camp.EXPECT().FreeEquipmentOffers(gomock.Any(), int64(7), int64(1), 2).Return(nil, nil)
 	rec := amPost(f, "/finish", url.Values{"revision": {"2"}})
-	if rec.Code != 422 || !strings.Contains(rec.Body.String(), "Choose the free equipment first.") || !strings.Contains(rec.Body.String(), "finish: true") {
+	if rec.Code != 422 || !strings.Contains(rec.Body.String(), "Choose the free equipment first.") {
 		t.Errorf("refused: %d", rec.Code)
 	}
 }

@@ -45,7 +45,7 @@ func (w *world) injuryCampaign() {
 	}
 	w.must("bury a warrior", w.c().Bury(w.ctx, c.id, arnor.id, wr[0].ID, "Dead", "an old skirmish"))
 
-	m := w.played(c, "Seize Ground", outcome{winner: 1, vp: []int{5, 2}, note: "Rohan held three of the five markers."}, []*wco{rohan}, []*wco{mordor})
+	m := w.played(c, "Seize Ground", outcome{winner: 1, note: "Rohan held three of the five markers."}, []*wco{rohan}, []*wco{mordor})
 
 	// Rohan: every kind of result on the heroes' and the warriors' chart
 	l, s, ws := w.roster(rohan)

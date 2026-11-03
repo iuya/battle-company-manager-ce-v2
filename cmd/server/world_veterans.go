@@ -99,7 +99,7 @@ func veteranChoice(r core.LevelRoll, prefer string) string {
 
 // veteransCampaign loads the campaign: You's Minas Tirith against Éowyn's Rohan (its Leader on the Path of the Warlord, which ends
 // with Might, Will, Fate and Wounds at their maximum of 3), every hero levelled up twenty times, the match open and
-// live on turn 2 with some Might, Will, Fate and Wounds spent, so the bars show full and empty segments.
+// live with some Might, Will, Fate and Wounds spent, so the bars show full and empty segments.
 func (w *world) veteransCampaign() {
 	c := w.campaign("you", veteransName,
 		"For checking how the live cards look with big heroes: every hero has levelled up twenty times (hero stats first, then rules and heroic actions), and the match is being played.", defaultSettings)
@@ -118,9 +118,7 @@ func (w *world) veteransCampaign() {
 		}
 	}
 
-	m := w.rulebook(c, w.newMatch(c, []*wco{gondor}, []*wco{rohan}), "Hold the Line")
-	w.must("start turn 1", w.liveApply(gondor, m, core.LiveAction{Kind: core.LiveTurn, Turn: 1}))
-	w.try("start turn 2", w.liveApply(gondor, m, core.LiveAction{Kind: core.LiveTurn, Turn: 2}))
+	m := w.newMatchOn(c, "Hold the Line", []*wco{gondor}, []*wco{rohan})
 	for _, co := range []*wco{gondor, rohan} {
 		l, s, _ := w.roster(co)
 		for i, u := range append([]core.CompanyUnit{l}, s...) {

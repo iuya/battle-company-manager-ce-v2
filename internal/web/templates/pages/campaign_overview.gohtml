@@ -1,6 +1,7 @@
 {{define "title"}}{{.Campaign.Name}} · Battle Companies 2nd CE Manager{{end}}
 {{define "content"}}
 {{template "campaign_header" .}}
+{{template "your_turn" .YourTurn}}
 <div class="mt-6 grid gap-4 lg:grid-cols-2">
   {{$cap := .Campaign.Settings.CompanyCap}}
   {{if .Campaign.Companies}}
@@ -110,11 +111,7 @@
   </div>
   {{if .Recent}}
   <ul class="card mt-3 divide-y divide-line !p-0">
-    {{range .Recent}}
-    <li><a href="/campaigns/{{$.Campaign.ID}}/matches/{{.ID}}" class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-fg no-underline hover:bg-raised hover:no-underline">
-      <span class="min-w-0">{{template "match_sides" .}}{{template "match_scenario" .}}</span><span class="flex flex-wrap items-center gap-2">{{if .Practice}}{{template "practice_badge"}}{{end}}{{template "match_result" .}}</span>
-    </a></li>
-    {{end}}
+    {{range .Recent}}{{template "match_row" (dict "M" . "CID" $.Campaign.ID)}}{{end}}
   </ul>
   {{else}}<p class="mt-3 text-muted">No matches yet.</p>{{end}}
 </section>

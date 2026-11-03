@@ -274,7 +274,7 @@ func (lc liveContext) state(snap LiveSnapshot) LiveState {
 
 func (lc liveContext) view(snap LiveSnapshot, user User, co CampaignCompany) LiveCompany {
 	st := lc.state(snap)
-	out := LiveCompany{MatchID: snap.MatchID, CompanyID: co.ID, MatchNumber: lc.match.Number, Seq: snap.Seq, Units: st.Company(co.ID), Access: lc.access(user, co), Break: st.Break(co.ID), Turn: st.Turn()}
+	out := LiveCompany{MatchID: snap.MatchID, CompanyID: co.ID, MatchNumber: lc.match.Number, Seq: snap.Seq, Units: st.Company(co.ID), Access: lc.access(user, co), Break: st.Break(co.ID)}
 	if lc.temp != nil && lc.tempCo == co.ID {
 		w := *lc.temp
 		out.Wanderer = &w
@@ -340,9 +340,6 @@ func (s *LiveService) Apply(ctx context.Context, user User, id, matchID, company
 	if !ok {
 		return LiveCompany{}, LiveEntry{}, ErrNotFound
 	}
-	if a.Kind == LiveTurn && lc.match.EndProposal != nil {
-		return LiveCompany{}, LiveEntry{}, Refuse("Cancel the ending first: the match is about to end.")
-	}
 	if a.Kind == LiveMVPVote { // the voter is an opponent, not an editor of the company voted on
 		a.TargetCompanyID = companyID
 		err = lc.mayVote(user, co)
@@ -373,11 +370,7 @@ func (s *LiveService) Apply(ctx context.Context, user User, id, matchID, company
 		if secretText != "" {
 			text = secretText
 		}
-		entryCompany := companyID
-		if a.Kind == LiveTurn { // a turn belongs to the match, not to the company that pressed the button
-			entryCompany = 0
-		}
-		return LiveChange{Append: &LiveEntry{MatchID: matchID, CompanyID: entryCompany, UnitID: a.UnitID, Touches: touches, Action: res, Text: text}}, nil
+		return LiveChange{Append: &LiveEntry{MatchID: matchID, CompanyID: companyID, UnitID: a.UnitID, Touches: touches, Action: res, Text: text}}, nil
 	})
 	if err != nil {
 		return LiveCompany{}, LiveEntry{}, err
@@ -1149,8 +1142,8 @@ func (s *LiveService) readState(ctx context.Context, id, matchID int64) (LiveSta
 	return lc.state(snap), true, nil
 }
 
-// MatchDefaults is what the live log says about the match's result form: the companies that fled (All is Lost) and those whose
-// opponents are all Broken at the end. The second result is false when the match has no live data.
+// MatchDefaults is what the live log says about the match's result: the companies whose opponents are all Broken at the end. The
+// second result is false when the match has no live data.
 func (s *LiveService) MatchDefaults(ctx context.Context, id, matchID int64) (LiveMatchDefaults, bool, error) {
 	st, ok, err := s.readState(ctx, id, matchID)
 	if err != nil || !ok {
@@ -1160,12 +1153,9 @@ func (s *LiveService) MatchDefaults(ctx context.Context, id, matchID int64) (Liv
 	if err != nil {
 		return LiveMatchDefaults{}, false, err
 	}
-	out := LiveMatchDefaults{Fled: map[int64]bool{}, EnemyBroken: map[int64]bool{}}
+	out := LiveMatchDefaults{EnemyBroken: map[int64]bool{}}
 	for i, side := range m.Sides {
 		for _, co := range side.Companies {
-			if st.Break(co.ID).Fled {
-				out.Fled[co.ID] = true
-			}
 			enemies, broken := 0, 0
 			for j, other := range m.Sides {
 				if j == i {
@@ -1184,4 +1174,72 @@ func (s *LiveService) MatchDefaults(ctx context.Context, id, matchID int64) (Liv
 		}
 	}
 	return out, true, nil
+}
+
+// MatchBreaks is the Break Point state of every company of the match, by company: what the live banner of every viewer shows ("Minas
+// Morgul is broken (8 of 15 casualties)"). Empty when the match has no live data.
+func (s *LiveService) MatchBreaks(ctx context.Context, id, matchID int64) (map[int64]LiveBreak, error) {
+	st, ok, err := s.readState(ctx, id, matchID)
+	if err != nil || !ok {
+		return nil, err
+	}
+	out := map[int64]LiveBreak{}
+	for company := range st.breaks {
+		out[company] = st.Break(company)
+	}
+	return out, nil
+}
+
+// MissingVotes lists the MVP votes a competitive match still needs before it can end (docs/simplify-matches-spec.md, D7): for the owner
+// ownerID (0: every owner of a company of the match), each opposing company with units that took part that they have not voted for. It
+// is what Matches.MissingVotes is set to. A match without live data has no ballots, so nothing is missing.
+func (s *LiveService) MissingVotes(ctx context.Context, id, matchID, ownerID int64) ([]MissingVote, error) {
+	snap, err := s.live.Read(ctx, id, matchID)
+	if errors.Is(err, ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	m, err := s.matches.Get(ctx, id, matchID)
+	if err != nil {
+		return nil, err
+	}
+	if m.Practice {
+		return nil, nil
+	}
+	if !snap.Initialised {
+		if err := s.initMatch(ctx, id, m); err != nil {
+			return nil, err
+		}
+		if snap, err = s.live.Read(ctx, id, matchID); err != nil {
+			return nil, err
+		}
+	}
+	lc, err := s.build(ctx, id, CampaignDetail{}, m)
+	if err != nil {
+		return nil, err
+	}
+	st := lc.state(snap)
+	var owners []CampaignCompany // one entry per owner, in the match's order
+	for _, side := range m.Sides {
+		for _, co := range side.Companies {
+			if co.OwnerID != 0 && (ownerID == 0 || co.OwnerID == ownerID) && !slices.ContainsFunc(owners, func(o CampaignCompany) bool { return o.OwnerID == co.OwnerID }) {
+				owners = append(owners, co)
+			}
+		}
+	}
+	var out []MissingVote
+	for _, o := range owners {
+		voter := User{ID: o.OwnerID}
+		for _, side := range m.Sides {
+			for _, co := range side.Companies {
+				if !lc.opposing(voter, co.ID) || len(st.Company(co.ID)) == 0 || st.Vote(o.OwnerID, co.ID) != 0 {
+					continue
+				}
+				out = append(out, MissingVote{OwnerID: o.OwnerID, Owner: o.Owner, CompanyID: co.ID, Company: co.Name})
+			}
+		}
+	}
+	return out, nil
 }

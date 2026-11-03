@@ -10,7 +10,7 @@ that describe planned work say so in their first lines. The tables below group t
 | [demo-world.md](demo-world.md) | The demo world: what each campaign shows, which account to use and where to click |
 | [matches.md](matches.md) | Matches: scenario, results, Against the Odds, ending a match by confirmation, who may edit |
 | [aftermath.md](aftermath.md) | The War's Aftermath: injuries, experience, level-ups, influence, rewards |
-| [live-match.md](live-match.md) | Live match mode: trackers, casualties, Break Point, end checks, log with undo |
+| [live-match.md](live-match.md) | Live match mode: trackers, casualties, Break Point, objective and MVP, log with undo |
 | [unit-keywords.md](unit-keywords.md) | Race, faction and unit-type keywords on the unit cards, and who a rule works against |
 | [aura-ranges.md](aura-ranges.md) | Aura ranges: which rules draw a ring, the chips on the cards, the rings in Tabletop Simulator |
 | [tabletop-simulator.md](tabletop-simulator.md) | Taking a company into Tabletop Simulator: army list, figure names and descriptions, the helper |
@@ -18,6 +18,7 @@ that describe planned work say so in their first lines. The tables below group t
 | [rules-coverage.md](rules-coverage.md) | Which Battle Companies mechanics the app implements, with the tests |
 | [multi-company-spec.md](multi-company-spec.md) | Several companies per player (up to a campaign setting), the company in the URL, and opening the last campaign directly (implemented) |
 | [practice-match-spec.md](practice-match-spec.md) | Practice matches: a flag on a match set on the creation form, no rewards, no injuries, an empty derived aftermath (implemented) |
+| [simplify-matches-spec.md](simplify-matches-spec.md) | Simpler matches: scenario and Against the Odds at creation, no roles, VP or turns, one-sheet ending with a mandatory MVP, a lighter aftermath (implemented on `feat/simplify-matches`, being tested) |
 
 ## Rules authors
 

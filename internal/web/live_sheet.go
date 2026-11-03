@@ -23,16 +23,14 @@ type liveSheet struct {
 	// Recorded are the unit's entries of this kind still in the log (wound, fate, broken): the milestone it earned and the way to undo it.
 	Recorded []core.LiveEntry
 
-	// The courage sheet and Item used: the match's turn, whether the company is Broken, who may be offered Stand Fast, the dice rolled for the
-	// test and why a roll was refused.
-	Turn            int
-	Broken          bool
-	Hero            bool // may call Stand Fast (a Hero that is not a Wanderer; the service refuses the rest with a sentence)
-	StandFastCalled bool // a Hero called Stand Fast this turn: the Warriors' hint
-	ManualRolls     bool
-	CourageDice     core.DiceSpec // the dice of the Courage test (campaign.breakPoint.whenBroken.courageTest.dice)
-	Roll            *core.CourageRoll
-	RollErr         string
+	// The courage sheet and Item used: whether the company is Broken, who may be offered Stand Fast, the dice rolled for the test and why
+	// a roll was refused.
+	Broken      bool
+	Hero        bool // may call Stand Fast (a Hero that is not a Wanderer; the service refuses the rest with a sentence)
+	ManualRolls bool
+	CourageDice core.DiceSpec // the dice of the Courage test (campaign.breakPoint.whenBroken.courageTest.dice)
+	Roll        *core.CourageRoll
+	RollErr     string
 }
 
 // DiceText is the dice of the roll ("3 + 4").
@@ -123,7 +121,7 @@ func (s *Server) liveSheetFor(w http.ResponseWriter, r *http.Request, kind strin
 	if s.fail(w, r, err) {
 		return none, false
 	}
-	sheet := liveSheet{Campaign: id, MatchID: matchID, Company: companyID, Kind: kind, Turn: lc.Turn, Broken: lc.Break.Broken}
+	sheet := liveSheet{Campaign: id, MatchID: matchID, Company: companyID, Kind: kind, Broken: lc.Break.Broken}
 	for _, u := range detail.Roster {
 		if u.ID == unitID {
 			sheet.Unit = u
@@ -135,9 +133,6 @@ func (s *Server) liveSheetFor(w http.ResponseWriter, r *http.Request, kind strin
 	for _, u := range lc.Units {
 		if u.UnitID == unitID {
 			sheet.Live = u
-		}
-		if lc.Turn > 0 && u.StandFastTurn == lc.Turn {
-			sheet.StandFastCalled = true
 		}
 	}
 	if sheet.Unit.ID == 0 || sheet.Live.UnitID == 0 {

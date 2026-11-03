@@ -18,15 +18,14 @@ func (w *world) liveAs(co *wco, m core.Match, a core.LiveAction) error {
 // filled and the Tabletop Simulator export of the live match puts those units in a second warband.
 func (w *world) fogCampaign() {
 	c := w.campaign("you", fogName,
-		"An open Fog of War game on turn 2: each player has secret notes only they see until the match ends, one report of a tier, units that left the table and one that returned.", defaultSettings)
+		"An open Fog of War game: each player has secret notes only they see until the match ends, one report of a tier, units that left the table and one that returned, and the Rangers are Broken.", defaultSettings)
 	dwarves := w.company(c, "gimli", "Dwarves who keep their counsel", "Durin's Folk", true)
 	rangers := w.company(c, "aragorn", "Rangers of the silent road", "Arnor", true)
 	for _, co := range []*wco{dwarves, rangers} {
 		w.grant(co, 10, 30)
 		w.recruitAll(co)
 	}
-	m := w.rulebook(c, w.newMatch(c, []*wco{dwarves}, []*wco{rangers}), "Fog of War")
-	w.must("start turn 1", w.liveApply(dwarves, m, core.LiveAction{Kind: core.LiveTurn, Turn: 1}))
+	m := w.newMatchOn(c, "Fog of War", []*wco{dwarves}, []*wco{rangers})
 
 	_, ds, dw := w.roster(dwarves)
 	_, rs, rw := w.roster(rangers)
@@ -42,13 +41,22 @@ func (w *world) fogCampaign() {
 	w.try("Rangers note an enemy hero", w.liveAs(rangers, m, core.LiveAction{Kind: core.LiveSecretNominate, ObjectiveKey: "enemyHeroHarmed", UnitID: ds[len(ds)-1].ID}))
 	w.try("Rangers report a tier", w.liveAs(rangers, m, core.LiveAction{Kind: core.LiveSecretDone, ObjectiveKey: "ownHeroSurvives", Tier: 1}))
 
-	w.try("start turn 2", w.liveApply(dwarves, m, core.LiveAction{Kind: core.LiveTurn, Turn: 2}))
 	// zones: a Dwarf left the table, a Ranger fled a courage test, another died, and one Dwarf came back
 	w.try("a Dwarf retreats", w.liveAs(dwarves, m, core.LiveAction{Kind: core.LiveRetreat, UnitID: dw[0].ID, Why: "left", Note: "Carried the message away"}))
 	w.try("a second Dwarf retreats", w.liveAs(dwarves, m, core.LiveAction{Kind: core.LiveRetreat, UnitID: dw[1].ID, Why: "left"}))
 	w.try("it returns", w.liveAs(dwarves, m, core.LiveAction{Kind: core.LiveReturn, UnitID: dw[1].ID}))
 	w.try("a Ranger fails a courage test", w.liveAs(rangers, m, core.LiveAction{Kind: core.LiveRetreat, UnitID: rw[0].ID, Why: "courage"}))
 	w.try("a Ranger dies", w.liveAs(rangers, m, core.LiveAction{Kind: core.LiveDied, UnitID: rw[1].ID, Note: "Fell from the tower"}))
+	// the Rangers lose more Warriors until their casualties exceed the Break Point: Broken at once, for both players to see
+	for _, u := range rw[2:] {
+		if lc, err := w.c().Live(w.ctx, rangers.user, c.id, rangers.id); err != nil || lc.Break.Broken {
+			break
+		}
+		w.try("a Ranger falls", w.liveAs(rangers, m, core.LiveAction{Kind: core.LiveDied, UnitID: u.ID, Note: "Lost in the fog"}))
+	}
+	if lc, err := w.c().Live(w.ctx, rangers.user, c.id, rangers.id); err != nil || !lc.Break.Broken {
+		w.gap("Fog of War live: the Rangers are not Broken (too few Warriors to lose)")
+	}
 	w.show(dwarves)
 	w.show(rangers)
 }

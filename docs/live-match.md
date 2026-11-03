@@ -1,7 +1,7 @@
 # Live match mode
 
 What happens to a company's pages while a match is running: trackers for Wounds, Might, Will and Fate, actions that also earn experience, the
-Retreated and Field casualties zones, a match log with undo, end checks (objective and MVP), the Break Point, Against the Odds items, and live
+Retreated and Field casualties zones, a match log with undo, the objective and MVP entries that the End match sheet reviews, the Break Point, Against the Odds items, and live
 updates for the other players watching. The match record (scenario, result, ending) is in [matches.md](matches.md); what the finished match does
 to the companies is in [aftermath.md](aftermath.md); the technical design (fold, locking, event stream) is in
 [architecture.md](architecture.md#live-match-design); the pages are described in [frontend.md](frontend.md#live-match).
@@ -31,7 +31,7 @@ Code: `internal/core/live.go`, `live_fold.go`, `live_service.go`, `live_hub.go`,
 | `slainHeroOrMonster` | "Each enemy Hero or Monster they slay" | count, repeatable | +1 per enemy **Hero or Monster** the unit slays, every time. Slaying a Warrior earns nothing |
 | `fatePrevented` | "Preventing a Wound by spending a Fate point" | flag | the first Fate point the unit spends to prevent a wound |
 | `brokenCourageTestPassed` | "Rolling for and then passing a Courage test for being Broken" | flag | the first Broken courage test it passes (only a rolled pass; automatic passes and exemptions earn nothing) |
-| `participated`, `objective`, `mvp` | | flags | `participated` defaults on in the aftermath sheet; `objective` and `mvp` come from the end checks below |
+| `participated`, `objective`, `mvp` | | flags | `participated` defaults on in the aftermath sheet; `objective` and `mvp` come from the live log (see "Objective and MVP") |
 
 A wound on an enemy **mount** counts as wounding an enemy (the rulebook note says a rider's xp is attributed by the unit, not by the model on the table). A unit
 is a Hero when `CompanyUnit.Role` is a hero role and a Monster when `Kind` is monster; the kill is credited to the unit named in the action, never split.
@@ -67,9 +67,12 @@ has ended"). Undo follows the entry: the owner of its acting company, the owner 
 
 Applies to the owner's My Company tab and to every other player's view of the company. Top to bottom:
 
-1. **Live banner**, sticky below the app bar: "Match N is running" with the scenario name when chosen, a link to the match, a live-connection dot (green "Live",
-   grey "Reconnecting...") and the buttons **To wound** ([matches.md](matches.md#to-wound-chart); its window is a sibling of the banner and outside `#live-zones`,
-   so a live refresh never closes it), **End checks** and, for who may edit, **Match log**. On 360 px the banner is two or three lines.
+1. **Live banner**, sticky below the app bar: "Match N" with the scenario name, a link to the match, a live-connection dot (green "Live",
+   grey "Reconnecting..."), **View ▾** (the companies of the match; each opens that company's page in match mode, the current one marked;
+   on another company's page a "← Back to mine" link), **To wound** ([matches.md](matches.md#to-wound-chart); its window is a sibling of the
+   banner and outside `#live-zones`, so a live refresh never closes it) and, for who may edit, **Match log** and **End match** (the End match
+   sheet, [matches.md](matches.md#the-sheets)). Under it `#live-end` names every Broken company ("Minas Morgul is broken (8 of 15
+   casualties)") and the pending end with **Confirm**. On 360 px the banner is two or three lines.
 2. **Locked notice** instead of the buy, recruit and heal controls (hidden, not disabled): "The company is locked until the match ends." Counters stay.
 3. **Battle company**: the units in the Field zone in the company's order, as unit cards plus trackers.
 4. **Retreated** (a one-line header with a count, "None" when empty): compact cards (name, type, a "Retreated" badge with the reason "Failed courage" or "Left
@@ -160,7 +163,7 @@ or be targeted. **Return to the battle** is its own action kind (`return`): it c
 ## Practice matches in live mode
 
 A [practice match](matches.md#practice-matches) plays exactly like a real one: its companies are locked while it is open, their pages show the same "match active" state with the trackers and counters, the log and the
-secret objectives work. The live bar adds the Practice badge and the line "Practice match: no experience, influence, rewards or injuries. No aftermath will follow." (`liveView.Practice`). The end checks stay (objective, MVP votes) and
+secret objectives work. The live bar adds the Practice badge and the line "Practice match: no experience, influence, rewards or injuries. No aftermath will follow." (`liveView.Practice`). The objective entries stay, no MVP vote is asked, and
 say they are recorded only. When the match ends there is no aftermath feed: the sheet is never built.
 
 ## Aftermath feed
@@ -168,7 +171,7 @@ say they are recorded only. When the match ends there is no aftermath feed: the 
 At End match, and for the aftermath sheet built at its first read, the default `AftermathInput.Models` comes from the live state (`LiveService.AftermathDefaults(ctx, id, matchID, companyID) ([]ModelSheet, bool, error)`; the bool is false without live data):
 
 - `Outcome`: Field gives `survived`; Retreated gives `fled` (no injury roll); Field casualties give `casualty`.
-- `Gains`: `woundedEnemy`, `fatePrevented`, `brokenCourageTestPassed` from the flags, `slainHeroOrMonster` from the count, `objective` and `mvp` from the end checks; `participated` stays on.
+- `Gains`: `woundedEnemy`, `fatePrevented`, `brokenCourageTestPassed` from the flags, `slainHeroOrMonster` from the count, `objective` and `mvp` from the live log (the votes' tally); `participated` stays on.
 - The sheet shows the badge "From the live match" while it is the unsaved default; the player can change anything and saving the sheet never reads the log again. A match with no live data behaves as if there were no live mode.
 - After the match ends the trackers disappear. Live state survives server restarts: all state is in PostgreSQL and the hub only notifies.
 
@@ -197,101 +200,95 @@ type liveMatches interface {
 Concurrency: every write is a single transaction that appends the entry and bumps `Seq`; two players hitting the same unit at once both succeed (deltas), which is the normal case at a table. No per-write revision is required; the page re-renders the
 card from the returned state.
 
-Routes (htmx, CSRF as elsewhere): `POST /campaigns/{id}/matches/{match}/live/{company}/actions` (form fields by kind; answers the zones and a toast), `POST .../live/log/{entry}/undo`, `GET .../live/log` (the sheet; `?card=1` the match page
-card; `?before=<seq>` older rows), `GET /campaigns/{id}/companies/{company}/live` (the whole live section; what the stream triggers), `GET .../events` (SSE), `GET .../live/{company}/units/{unit}/sheet/{kind}` (an action sheet).
+Routes (htmx, CSRF as elsewhere): `POST /campaigns/{id}/matches/{match}/live/{company}/actions` (form fields by kind; answers the zones and a toast), `POST .../live/log/{entry}/undo`, `GET .../live/log` (the sheet; `?card=1` the Log card of the match page; `?before=<seq>` older rows), `GET /campaigns/{id}/companies/{company}/live` (the whole live section; what the stream triggers), `GET .../events` (SSE), `GET .../live/{company}/units/{unit}/sheet/{kind}` (an action sheet).
 
-## End checks: objective and MVP
+## Objective and MVP
 
-Two things the players settle when the game ends, both worth experience (`objective` and `mvp`, 1 xp each) and both recorded in the live log, so they undo, show in the log and feed the aftermath sheet. They are available at any time while the
-match is open, from the live banner button **End checks** and as a card on the match page; **Propose to end** first reminds the editor of what is still open ("No unit has the objective yet · you have not voted for Hador") with *Go back* and
-*Propose anyway*; it never blocks.
+Two things the players settle when the game ends, both worth experience (`objective` and `mvp`, 1 xp each) and both recorded in the live log, so they undo, show in the log and feed the aftermath sheet. The objective is set from the unit
+cards' Objective milestone during the game; both are reviewed in the End match and Confirm sheets ([matches.md](matches.md#the-sheets)): the MVP vote is **mandatory** to end a competitive match, and the sheet shows the units with the objective as chips to switch.
 
-### Got objective (per unit)
+### Objective (per unit)
 
 - A flag per unit, so several units of a company can have it; each earns 1 xp. Set by the owner of the company, an administrator or the organiser (`LiveAccessFor == LiveEdit` on that company); a viewer sees the units that have it, read only.
 - Listed: the units of the company being edited that are in the Field or Retreated zone (a unit that left by the board edge may count; casualties and "Missed this game" cannot). The owner sees their own company; an administrator or organiser sees one list per company.
-- Control: a checklist (a switch per unit, 44 px rows) that changes at once with a toast "Hador: got the objective. Undo". Setting it again is refused (the page treats it as a no-op); switching off is its own entry. Log text: "Aldor got the objective" / "Aldor no longer has the objective".
+- Control: the Objective milestone of the unit card, and the chips of the sheet. Setting it again is refused (the page treats it as a no-op); switching off is its own entry. Log text: "Aldor got the objective" / "Aldor no longer has the objective".
 
-### Select MVP
+### MVP
 
 - "Being declared MVP by the opposing player after the game." With several sides, "opposing" is every company of a different side.
-- **Who votes**: a user who owns at least one company in the match, once per opposing company: one unit of that company that took part (Field, Retreated or Field casualty), or "No MVP" (clears the vote). Administrators and the organiser vote only through a company they own; they can undo any vote.
+- **Who votes**: a user who owns at least one company in the match, once per opposing company: one unit of that company that took part (Field, Retreated or Field casualty), chosen in a searchable combobox of the sheet. There is no "No MVP": a competitive match does not end until every owner voted (`LiveService.MissingVotes`). Administrators and the organiser vote only through a company they own; they can undo any vote.
 - Voting again replaces the earlier vote (the fold keeps the last not-undone vote per `(voter, target company)`); undoing the new vote restores the earlier one. After End match the votes are frozen.
 - **Tally** (per target company, computed by the fold, never stored): the unit with the most votes is the company's MVP. A tie gives no automatic MVP: the aftermath sheet shows "Tied: Aldor, Brand" and the owner picks one. No votes: no MVP. Votes are shown in the log and on the card, like every other live fact.
 - Log text: "Frodo voted Aldor as MVP of Hador" / "Frodo withdrew the MVP vote for Hador". `CanUndoEntry` for a vote: the voter, administrators and the organiser. The aftermath sheet's `mvp` is prefilled with the winning unit and the badge "Voted MVP (2 votes)".
 
 New `LiveAction` kinds: `objective` (`UnitID`, `On`) and `mvpVote` (`TargetCompanyID`, `UnitID`, 0 withdraws). The fold gains `HasObjective`, `Vote` and `MVPTally` (`LiveState.CheckAs` with `LiveVoter`). Both are refused once the match has ended.
 
+`MissingVotes(ctx, id, matchID, ownerID)` lists, per owner (0: every owner), the opposing companies they have not voted yet (`MissingVote{OwnerID, Owner, CompanyID, Company}`); a practice match needs none.
+
 ```go
-EndChecks(ctx, user, id, matchID int64) (core.EndChecks, error) // ErrNotFound when the match is not open or the viewer is not in the campaign
+EndChecks(ctx, user, id, matchID int64) (core.EndChecks, error) // what the sheets read; ErrNotFound when the match is not open
 type EndChecks struct {
     Objective []CompanyObjectives // companies the viewer may edit
     MVP       []MVPBallot         // one per company of an opposing side of any company the viewer owns
     Tally     []MVPTally          // every company of the match: unit -> votes, Winner, Tied
-    Pending   []string            // what the reminder lists
 }
 ```
 
-Errors: `ErrRefused` ("Only the owner of this company can change it"; "You can only vote for companies of the other teams"; "You have no company in this match"), `ErrInvalidLive` (unit not in the company or not eligible). Routes: `GET .../live/end` (sheet or `?card=1`),
-`POST .../live/{company}/objective` (`unit`, `on`), `POST .../live/{company}/mvp` (`unit`, 0 withdraws).
+Errors: `ErrRefused` ("Only the owner of this company can change it"; "You can only vote for companies of the other teams"; "You have no company in this match"), `ErrInvalidLive` (unit not in the company or not eligible). The sheets post the votes and objective switches as live actions together with the end (`POST .../end/propose`, `/end/confirm`).
 
 ## Company Break Point in play
 
-The Rules Manual's Break Point is half the models of the starting force; a company whose casualties **exceed** it at the **start of a turn** is Broken for the rest of the game, tests Courage at every activation, and may flee (All is Lost). Muster
-of Isengard uses 66%. Data: `campaign.breakPoint` (`default.percent`, `threshold`, `startingModels`, `casualties`, `whenBroken`, `allIsLost`, `experience`, `scenarioExceptions`) and `companies[].effects[kind=breakPoint].percent` ([definitions.md](definitions.md)).
-The app is a **companion, not a simulator**: it counts from the log, flips the state when the players say a new turn starts, and prompts the tests; it never decides an activation.
+The Rules Manual's Break Point is half the models of the starting force; a company whose casualties **exceed** it is Broken and tests Courage at every activation. Muster
+of Isengard uses 66%. Data: `campaign.breakPoint` (`default.percent`, `threshold`, `startingModels`, `casualties`, `whenBroken`, `experience`, `scenarioExceptions`) and `companies[].effects[kind=breakPoint].percent` ([definitions.md](definitions.md)).
+The app is a **companion, not a simulator**: it counts from the log, shows the state and prompts the tests; it never decides an activation and tracks no turns.
 
 ### What is counted
 
 - **Starting models** of a company = its models in the match + its creatures + the temporary Wanderer + models yet to arrive (Maelstrom of Battle); never neutral models. Each roster unit counts `BreakModels` (default 1; a Cavalry model, a Chariot and a War Beast with its Commander are the
   units' own counts; the Mirkwood Warg Marauder card counts as 3, one per rider). Units absent at the start are not in the match.
 - **Casualties** = units in Field casualties + units Retreated with the reason "Failed courage" (weighted by their model count) + the manual adjustment. A unit that **left the board** and a mount removed alone are not casualties. Undo and Return to the battle subtract again.
-- **Break Point** = `percent x StartingModels / 100`, shown with one decimal ("6.5"). **Broken** iff `casualties * 100 > percent * StartingModels`, tested **only** inside a `turn` entry.
+- **Break Point** = `percent x StartingModels / 100`, shown with one decimal ("6.5"). **Broken** iff `casualties * 100 > percent * StartingModels`, at every step of the fold: a company is Broken as soon as its casualties exceed the Break Point and whole again if an undo or Return to the battle takes them back under.
 - The manual **adjustment** is a logged action `breakAdjust` (`Field` "start" or "casualties", `Delta` -9..+9, never below one starting model or below no casualties, `Note` 0-200) for creatures killed, Ponies not counted, models yet to arrive and composite cards.
 
-### Turn boundary and Broken
+### Broken, for every viewer
 
-`turn` is a match-level action: **Start turn N** on the live banner (any editor of a company in the match). It carries the number it starts; a stale press is refused ("Turn 3 has already started") and a number that is not the next is `ErrInvalidLive`. The fold evaluates the test for each company at that
-entry; a company that fails and was not Broken becomes Broken with `BrokenAtTurn = N`, permanently. Undoing the `turn` entry un-breaks the companies it broke. The app never infers a turn: a table that never presses the button never gets Broken, and the card then shows only the counts. Before
-the button is pressed the panel warns "Hador will be Broken at the start of the next turn (7 casualties, Break Point 6.5)".
+There is no turn tracking (no Start turn, no turn number). When a write makes a company Broken the hub event refreshes every open page of the match, and the live banner of every viewer names it ("Minas Morgul is broken (8 of 15 casualties)", `MatchBreaks`); it goes when the company is whole again. Older logs that hold `turn` entries still fold (the entries are ignored).
 
 ### Screens
 
 1. **Break Point panel** on the company page (collapsed to one line, also on the match page's live card): "Break Point 6.5 of 13 · Casualties 4 · 50%" with a thin meter (text first), the percent labelled as the company rule. Opened, it shows the starting models with the **+/- adjustment** (editors, with a note),
    the casualties by name, the scenario exceptions (Defend the Hill: models on the hill do not test; Let nothing through!: the Defender within 6" of the Gate passes automatically; Only a Pony After All: Baggage Ponies do not count for the Defender; Neutral Third-Party: no tests; Maelstrom of Battle: models yet
    to arrive count as on the board) and the break point log lines. The company header shows "Break Point: N% of the starting models" (`CompanyDetail.BreakPointPercent`, the company's own rule or the file's default).
-2. **Turn row** in the live banner: "Start turn 4" (44 px), or a "Turn 3" label.
-3. **Company broken banner** (below the live banner, for everybody): "Hador is Broken (turn 4). Every model tests Courage before it does anything else. Models in combat, or that cannot activate, do not test." with the All is Lost choice while the offer is open and "Who has tested this turn" (the table's checklist; no rule).
-4. **Unit cards of a Broken company** in the Field show "Test due" (danger tone, text) until the unit's courage is resolved this turn, then "Tested: passed", "Tested: failed", "Auto-pass" or "Exempt". The company header has a **Courage test** button that opens a sheet:
+2. **Broken notice** in the live banner (for everybody): "Hador is broken (7 of 13 casualties)"; the Break Point panel says "Every model tests Courage before it does anything else. Models in combat, or that cannot activate, do not test."
+3. **Unit cards of a Broken company** in the Field offer a **Courage test** and show "Test due" until the unit has a recorded test, then "Tested: passed", "Tested: failed", "Auto-pass" or "Exempt" (the last result; players test again at the table as often as the rules say). The sheet:
    - **Roll** 2D6 against the unit's Courage (`RollCourage`, which writes nothing; a typed roll is "I rolled" with two dice fields as `RollRefusal` permits): "7 against Courage 4: passed", then **Record: passed** or **Record: failed**. Players may also just tap the outcome.
-   - **Passed** (`broken` action) earns `brokenCourageTestPassed` once. A Hero offers **Call Stand Fast** (not for a Hero with Broken Honour or a Wanderer); Warriors then get the hint "A Hero called Stand Fast this turn: Warriors within 6" in line of sight pass automatically".
+   - **Passed** (`broken` action) earns `brokenCourageTestPassed` once. A Hero offers **Call Stand Fast** (not for a Hero with Broken Honour or a Wanderer); it is logged, and Warriors pass with the `standFast` reason.
    - **Failed**: the `retreat` action with reason "Failed courage": the unit flees, counts as a casualty, outcome `fled`, no injury roll, no experience.
    - **Passes without a roll** (`courageSkip`, reason `standFast`, `heroicResolve`, `chariot`, `scenario`, `engaged`, `cannotActivate`; the last two are exemptions): no experience. Heroic Resolve does not touch the Might tracker.
-5. **All is Lost offer**: from the turn the company became Broken until the next `turn` entry: **Flee the battlefield** / **Fight on**. Text: "Your opponent claims victory and full rewards. You earn only the Influence for taking part (the injury rolls and experience still happen)". Flee retreats every Field unit as "Left the
-   board" (not casualties) and marks the company `Fled`; the match page's result form prefills "Fled" with the hint "The other side claims victory (All is Lost)" and does not end the match. Only editors of the company; undoing the flee restores everything. `allIsLost` is refused when no offer is open.
+
+There is no All is Lost action: a company that leaves the field is reported by the players as the other side's win ([matches.md](matches.md#concepts)); its units can still retreat one by one ("Left the board").
 
 ### Log and fold
 
 ```go
-LiveTurn        LiveKind = "turn"        // Turn; match level, company 0
 LiveBreakAdjust LiveKind = "breakAdjust" // Field "start"|"casualties", Delta, Note
 LiveCourageSkip LiveKind = "courageSkip" // UnitID, Reason
-LiveAllIsLost   LiveKind = "allIsLost"   // Flee bool
 ```
 
-`LiveAction` carries `Turn`, `Field`, `StandFast` (on a `broken` action: this Hero called Stand Fast), `Reason`, `Flee`, `Item` and `Index`. `FoldLiveWith(inits, entries, LiveFoldConfig)` and `ValidateLogWith` take what the log does not hold: per company `BreakConfig{Percent, Extra, Exceptions}` (the company's own
+`LiveAction` carries `Field`, `StandFast` (on a `broken` action: this Hero called Stand Fast), `Reason`, `Item` and `Index`. Old `turn` entries are ignored by the fold; old `allIsLost` flee entries still take the units off the board, and new ones are refused. `FoldLiveWith(inits, entries, LiveFoldConfig)` and `ValidateLogWith` take what the log does not hold: per company `BreakConfig{Percent, Extra, Exceptions}` (the company's own
 `breakPointPercentage` or `campaign.breakPoint.default.percent`; `Extra` is the company's creatures; the exceptions are the match scenario's `scenarioExceptions` as sentences), `BreakModels` per unit and `NoStandFast` (non-Heroes, Wanderers, a Hero whose injuries took Stand Fast away). The service builds the config at every read
-(`liveContext.breakConfig`); nothing is stored. `FoldLive` is the same with no config, and then nothing ever breaks. `LiveState.Break(company)` returns `LiveBreak{Percent, StartingModels, Casualties, Broken, BrokenAtTurn, WillBreak, Offer, Fled, Exceptions}` (`BreakPoint()` as "6.5") and `LiveState.Turn()`;
-`LiveCompany` carries `Break` and `Turn`; `LiveUnit` carries `BreakModels`, `CourageTurn`, `CourageHow`, `StandFastTurn` and `Temporary`. Migration `00021_live_break_point_kinds.sql` allows the kinds. `broken` and `courageSkip` are allowed even when the company is not Broken, so tables without turn tracking keep working; both are refused for a unit outside the Field.
+(`liveContext.breakConfig`); nothing is stored. `FoldLive` is the same with no config, and then nothing ever breaks. `LiveState.Break(company)` returns `LiveBreak{Percent, StartingModels, Casualties, Threshold100, Broken, Exceptions}` (`BreakPoint()` as "6.5");
+`LiveCompany` carries `Break`; `LiveUnit` carries `BreakModels`, `CourageHow` and `Temporary`. Migration `00021_live_break_point_kinds.sql` allows the kinds. `broken` and `courageSkip` are allowed even when the company is not Broken (the table may count differently); both are refused for a unit outside the Field.
 
 ```go
 RollCourage(ctx, user, id, matchID, unitID int64, entered []int, thrown bool) (core.CourageRoll, error) // writes nothing; honours RollRefusal; the unit must be in the Field and have a Courage
 type CourageRoll struct{ Dice []int; Total, Courage int; Passed bool }
-MatchDefaults(ctx, id, matchID int64) (core.LiveMatchDefaults, bool, error) // Fled and EnemyBroken per company; false without live data
+MatchDefaults(ctx, id, matchID int64) (core.LiveMatchDefaults, bool, error) // EnemyBroken per company; false without live data
+MatchBreaks(ctx, id, matchID int64) (map[int64]core.LiveBreak, error)        // the Break Point of every company, for the banner
 ```
 
-`RollCourage` requires `campaign.breakPoint.whenBroken.courageTest.dice` to be `2d6` and `passIf` `totalAtLeastCourage`. `EnemyBroken` (every company of every other side is Broken at the end) prefills the `enemyBroken` scenario objective on the result form, with the badge "From the live match"; the editor can change it. Routes: the `actions` route
-carries `turn`, `breakAdjust`, `courageSkip`, `allIsLost` and the rest; `POST .../live/{company}/units/{unit}/courage/roll` rolls.
+`RollCourage` requires `campaign.breakPoint.whenBroken.courageTest.dice` to be `2d6` and `passIf` `totalAtLeastCourage`. `EnemyBroken` (every company of every other side is Broken at the end) prefills the `enemyBroken` scenario objective of the End match sheet. Routes: the `actions` route
+carries `breakAdjust`, `courageSkip` and the rest; `POST .../live/{company}/units/{unit}/courage/roll` rolls.
 
 ## Against the Odds items in a live match
 
@@ -308,11 +305,11 @@ The match's Against the Odds record ([matches.md](matches.md#against-the-odds)) 
 
 The match ends only when every participant confirms ([matches.md](matches.md#ending-a-match)). While live:
 
-- **Banner.** When a proposal is pending, every company page of the match (owners and viewers, live via the `match` event) shows `#live-end` in the sticky live banner: "Ending the match: Hador confirmed, waiting for Gorgoroth." The waiting owner gets **Confirm the end** and **Keep playing**, a confirmed owner **Withdraw**,
-  the organiser and administrators the override, viewers no buttons.
-- **What is allowed while pending.** The end checks stay open: `objective`, `mvpVote` and the secret-objective entries are accepted and do **not** cancel the proposal. **Any other action or undo** cancels the proposal first (confirmations dropped, a log line "Ending cancelled: Aldor wounded Grashnak"), so the game is never played under
-  a confirmed end. The cancellation happens after the game entry is stored, in a second transaction. **Start turn** is refused while pending ("Cancel the ending first: the match is about to end.").
+- **Banner.** When a proposal is pending, every company page of the match (owners and viewers, live via the `match` event; `GET .../live/end/banner?company=N`) shows `#live-end` in the sticky live banner: "Hador proposes to end: Rohan won · Waiting for Gorgoroth". The waiting owner gets **Confirm** (the Confirm sheet) and **Keep playing**, a confirmed owner **Withdraw**,
+  the organiser and administrators the override, viewers no buttons. End match is hidden while an end is pending.
+- **What is allowed while pending.** `objective`, `mvpVote` and the secret-objective entries are accepted and do **not** cancel the proposal. **Any other action or undo** cancels the proposal first (confirmations dropped, a log line "Ending cancelled: Aldor wounded Grashnak"), so the game is never played under
+  a confirmed end. The cancellation happens after the game entry is stored, in a second transaction.
 - **Log.** Informational entries `endProposed`, `endConfirmed`, `endWithdrawn`, `endCancelled`, `endOverride` appear in the log with the company colour and the author (`LiveKind.Informational()`): written by `LiveService.RecordEnd` from `Matches.EndNotify`, skipped by the fold, not undoable and refused when a player posts them. `LiveService.WithEnds` makes
   `Apply` and `Undo` cancel a pending end after any entry that is not an end check (`LiveKind.EndCheckKind()`). Migration `00023` allows the kinds. Every proposal change notifies the live channel with company 0, so open pages refetch; the last confirmation emits `ended`.
-- Whether a company is Broken, `Fled` and `EnemyBroken` are read from the fold at the moment the match ends; a Fled company still confirms the end like any other. The prefilled result values are a result change like any other: editing them resets the confirmations except the proposer's.
+- Whether a company is Broken and `EnemyBroken` are read from the fold at the moment the match ends. Changing the result in the Confirm sheet resets the confirmations except the proposer's.
 - The aftermath starts when the match ends and `AftermathDefaults` reads the final fold.

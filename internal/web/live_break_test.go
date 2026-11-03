@@ -12,9 +12,7 @@ import (
 )
 
 func brokenState(lc *core.LiveCompany) {
-	lc.Turn = 4
-	lc.Units[0].CourageTurn = 3 // Hador has not tested this turn
-	lc.Break = core.LiveBreak{Percent: 50, StartingModels: 13, Casualties: 7, Threshold100: 650, Broken: true, BrokenAtTurn: 4, Offer: true,
+	lc.Break = core.LiveBreak{Percent: 50, StartingModels: 13, Casualties: 7, Threshold100: 650, Broken: true,
 		Exceptions: []string{"Models on the hill do not test."}}
 }
 
@@ -22,20 +20,21 @@ func livePage(f *fixture) string {
 	return f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 }
 
-func TestBreakPanelAndTurnButtonForTheOwner(t *testing.T) {
+func TestBreakPanelForTheOwnerHasNoTurns(t *testing.T) {
 	f := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) {
-		lc.Turn = 3
-		lc.Break = core.LiveBreak{Percent: 50, StartingModels: 13, Casualties: 7, Threshold100: 650, WillBreak: true, Exceptions: []string{"Models on the hill do not test."}}
+		lc.Break = core.LiveBreak{Percent: 50, StartingModels: 13, Casualties: 6, Threshold100: 650, Exceptions: []string{"Models on the hill do not test."}}
 	})
 	body := livePage(f)
-	for _, want := range []string{"Turn 3", "Start turn 4", `"kind":"turn","turn":"4"`, "Break Point 6.5 of 13 · Casualties 7 · 50%", "Will break next turn", "will be Broken at the start of the next turn (7 casualties, Break Point 6.5)",
-		`"kind":"breakAdjust","field":"start","delta":"-1"`, `"field":"casualties","delta":"1"`, `id="break-note"`, "Models on the hill do not test.", `role="progressbar"`, "Hador"} {
+	for _, want := range []string{"Break Point 6.5 of 13 · Casualties 6 · 50%", `"kind":"breakAdjust","field":"start","delta":"-1"`, `"field":"casualties","delta":"1"`, `id="break-note"`,
+		"Models on the hill do not test.", `role="progressbar"`, "Hador"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("break panel lacks %q", want)
 		}
 	}
-	if strings.Contains(body, `id="live-broken"`) || strings.Contains(body, "Test due") {
-		t.Error("not Broken: no banner, no chips")
+	for _, banned := range []string{`id="live-broken"`, "Test due", "Start turn", "Turn not started", `"kind":"turn"`, "Will break"} {
+		if strings.Contains(body, banned) {
+			t.Errorf("not Broken and no turns: no %q", banned)
+		}
 	}
 }
 
@@ -44,39 +43,38 @@ func TestBreakPanelForAViewerHasNoButtons(t *testing.T) {
 		lc.Break = core.LiveBreak{Percent: 66, StartingModels: 13, Casualties: 2, Threshold100: 858}
 	})
 	body := livePage(f)
-	if !strings.Contains(body, "Break Point 8.5 of 13") || !strings.Contains(body, "this company's own rule") || !strings.Contains(body, "Turn not started") {
+	if !strings.Contains(body, "Break Point 8.5 of 13") || !strings.Contains(body, "this company's own rule") {
 		t.Error("viewer reads the panel")
 	}
-	for _, banned := range []string{"Start turn", `"kind":"breakAdjust"`, `id="break-note"`} {
+	for _, banned := range []string{`"kind":"breakAdjust"`, `id="break-note"`} {
 		if strings.Contains(body, banned) {
 			t.Errorf("a viewer has no %q", banned)
 		}
 	}
 }
 
-func TestBrokenBannerChipsAndAllIsLostOffer(t *testing.T) {
+func TestBrokenBannerAndChipsWithoutAllIsLost(t *testing.T) {
 	f := liveSetupWith(t, core.LiveEdit, brokenState)
 	body := livePage(f)
-	for _, want := range []string{`id="live-broken"`, "The company is Broken (turn 4)", "Every model tests Courage before it does anything else", "All is Lost: flee or fight on?", `"kind":"allIsLost","flee":"1"`, `"flee":"0"`, "Flee the battlefield",
-		"Who has tested this turn", ">Test due<", "Courage test", "/units/5/sheet/courage", "Broken since turn 4"} {
+	for _, want := range []string{`id="live-broken"`, "The company is Broken (7 of 13 casualties)", "Every model tests Courage before it does anything else", ">Test due<", "Courage test", "/units/5/sheet/courage", "report the other side as the winner"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("broken page lacks %q", want)
 		}
 	}
-	// once resolved this turn the chip changes and the primary button goes
-	g := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) { brokenState(lc); lc.Units[0].CourageTurn = 4 })
-	body = livePage(g)
-	if strings.Contains(body, "/units/5/sheet/courage") || !strings.Contains(body, "Courage resolved") {
-		t.Error("resolved this turn: chip says so and no Courage test button")
+	for _, banned := range []string{"Flee the battlefield", `"kind":"allIsLost"`, "Who has tested this turn", "since turn"} {
+		if strings.Contains(body, banned) {
+			t.Errorf("no All is Lost offer and no turns: %q", banned)
+		}
 	}
-	// the offer closes at the next turn; a viewer cannot decide
-	h := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) { brokenState(lc); lc.Break.Offer = false; lc.Break.Fled = true })
-	if body = livePage(h); strings.Contains(body, "Flee the battlefield") || !strings.Contains(body, "fled the battlefield") {
-		t.Error("no offer after it closed; the fled company says so")
+	// once tested the chip says how, and the test stays offered (it is taken again every turn)
+	g := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) { brokenState(lc); lc.Units[0].CourageHow = "passed" })
+	body = livePage(g)
+	if !strings.Contains(body, "/units/5/sheet/courage") || !strings.Contains(body, ">Tested: passed<") {
+		t.Error("tested: the chip says so and the Courage test is still there")
 	}
 	v := liveSetupWith(t, core.LiveNone, brokenState)
-	if body = livePage(v); strings.Contains(body, "Flee the battlefield") || !strings.Contains(body, "The owner of the company can decide") || !strings.Contains(body, `id="live-broken"`) {
-		t.Error("a viewer sees the banner but cannot decide")
+	if body = livePage(v); !strings.Contains(body, `id="live-broken"`) || strings.Contains(body, "/units/5/sheet/courage") {
+		t.Error("a viewer sees the banner but cannot test")
 	}
 }
 
@@ -117,10 +115,8 @@ func TestLiveActionsCarryTheBreakPointFields(t *testing.T) {
 		v    url.Values
 		want core.LiveAction
 	}{
-		{url.Values{"kind": {"turn"}, "turn": {"5"}}, core.LiveAction{Kind: core.LiveTurn, Turn: 5}},
 		{url.Values{"kind": {"breakAdjust"}, "field": {"start"}, "delta": {"-1"}, "note": {"Pony"}}, core.LiveAction{Kind: core.LiveBreakAdjust, Field: "start", Delta: -1, Note: "Pony"}},
 		{url.Values{"kind": {"courageSkip"}, "unit": {"5"}, "reason": {"engaged"}}, core.LiveAction{Kind: core.LiveCourageSkip, UnitID: 5, Reason: "engaged"}},
-		{url.Values{"kind": {"allIsLost"}, "flee": {"1"}}, core.LiveAction{Kind: core.LiveAllIsLost, Flee: true}},
 		{url.Values{"kind": {"broken"}, "unit": {"5"}, "standFast": {"1"}}, core.LiveAction{Kind: core.LiveBroken, UnitID: 5, StandFast: true}},
 		{url.Values{"kind": {"objective"}, "unit": {"5"}, "on": {"1"}}, core.LiveAction{Kind: core.LiveObjective, UnitID: 5, On: true}},
 		{url.Values{"kind": {"objective"}, "unit": {"5"}, "on": {"0"}}, core.LiveAction{Kind: core.LiveObjective, UnitID: 5}},
@@ -131,10 +127,11 @@ func TestLiveActionsCarryTheBreakPointFields(t *testing.T) {
 			t.Errorf("%v: %d", c.want.Kind, rec.Code)
 		}
 	}
-	f.camp.EXPECT().Apply(gomock.Any(), frodo, int64(7), int64(3), int64(1), core.LiveAction{Kind: core.LiveTurn, Turn: 4}).Return(core.LiveCompany{}, core.LiveEntry{}, core.Refuse("Turn 4 has already started."))
-	rec := f.do(f.signedIn(form("/campaigns/7/matches/3/live/1/actions", url.Values{"kind": {"turn"}, "turn": {"4"}})))
-	if rec.Code != 422 || !strings.Contains(rec.Body.String(), "Turn 4 has already started.") {
-		t.Errorf("stale turn: %d", rec.Code)
+	for _, kind := range []string{"turn", "allIsLost"} { // there are no turns and no All is Lost action any more
+		rec := f.do(f.signedIn(form("/campaigns/7/matches/3/live/1/actions", url.Values{"kind": {kind}, "turn": {"4"}, "flee": {"1"}})))
+		if rec.Code != 422 || !strings.Contains(rec.Body.String(), "Unknown action.") {
+			t.Errorf("%s: %d", kind, rec.Code)
+		}
 	}
 }
 
@@ -178,32 +175,9 @@ func TestLoanedItemsTemporaryWandererAndItemUsed(t *testing.T) {
 	}
 }
 
-func TestResultFormIsPrefilledFromTheLiveMatch(t *testing.T) {
-	m := editableMatch()
-	m.Scenario = &core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Hold"}
-	f2 := matchWrite(t, m)
-	f2.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return([]core.ScenarioInfo{{Name: "Hold", Objectives: []core.ScenarioObjective{{Key: "enemyBroken", Label: "Enemy Broken", Max: 1}}}}, nil).AnyTimes()
-	f2.liveDefaults = &core.LiveMatchDefaults{Fled: map[int64]bool{1: true}, EnemyBroken: map[int64]bool{2: true}}
-	body := f2.do(f2.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
-	for _, want := range []string{`<span class="badge badge-gold">From the live match</span>`, "The other side claims victory (All is Lost)", `name="fled-1" value="1"`, `&#34;fled&#34;:true`, "Every opposing company was Broken at the end of the game"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("result form lacks %q", want)
-		}
-	}
-	if n := strings.Count(body, "Every opposing company was Broken"); n != 1 {
-		t.Errorf("the enemyBroken tick is prefilled once (for company 2), got %d", n)
-	}
-	// without live data nothing is prefilled
-	g := matchWrite(t, m)
-	g.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return([]core.ScenarioInfo{{Name: "Hold", Objectives: []core.ScenarioObjective{{Key: "enemyBroken", Label: "Enemy Broken", Max: 1}}}}, nil).AnyTimes()
-	if body := g.do(g.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String(); strings.Contains(body, "Every opposing company was Broken") || strings.Contains(body, "badge badge-gold\">From the live match") {
-		t.Error("no live data, no prefill")
-	}
-}
-
 func TestCourageChipSaysHowItWasResolved(t *testing.T) {
-	for how, want := range map[string]string{"passed": "Tested: passed", "failed": "Tested: failed", "heroicResolve": "Auto-pass", "scenario": "Auto-pass", "engaged": "Exempt", "cannotActivate": "Exempt", "": "Courage resolved"} {
-		f := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) { brokenState(lc); lc.Units[0].CourageTurn = 4; lc.Units[0].CourageHow = how })
+	for how, want := range map[string]string{"passed": "Tested: passed", "failed": "Tested: failed", "heroicResolve": "Auto-pass", "scenario": "Auto-pass", "engaged": "Exempt", "cannotActivate": "Exempt", "": "Test due"} {
+		f := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) { brokenState(lc); lc.Units[0].CourageHow = how })
 		if body := livePage(f); !strings.Contains(body, ">"+want+"<") {
 			t.Errorf("how %q: chip lacks %q", how, want)
 		}

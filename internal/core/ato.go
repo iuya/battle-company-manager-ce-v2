@@ -372,6 +372,7 @@ type ATO struct {
 	OppName            string
 	Gap                int
 	Spent              int
+	Inclusive          bool // the bonuses may cost exactly the gap (ATORules.Inclusive)
 	Options            []ATOOption
 	Kits               []ATOKit
 	Wanderers          []ATOWandererRule

@@ -36,12 +36,18 @@ type fixture struct {
 	// aftermaths is what the match page's Aftermath card reads (the default: none).
 	aftermaths   []core.AftermathRef
 	aftermathErr error
-	// liveDefaults is what the result form reads from the live match (the default: no live data).
+	// liveDefaults is what the End match sheet reads from the live match (the default: no live data).
 	liveDefaults *core.LiveMatchDefaults
+	// started says the game of an open match has begun (the Playing phase); breaks is the Break Point of its companies.
+	started bool
+	breaks  map[int64]core.LiveBreak
+	// pending is what the Your turn list reads as each company's unfinished aftermaths (the default: none).
+	pending map[int64][]core.AftermathRef
 	// nav is what the sidebar's campaign list reads (the default: none); navErr makes it fail.
 	nav          []core.CampaignNav
 	navErr       error
 	cardsStubbed bool // lazyCards ran
+	formStubbed  bool // newMatchStubs ran
 	navFinished  bool // the withFinished the last NavCampaigns call was given
 }
 
@@ -65,6 +71,11 @@ func newFixture(t *testing.T, cfg Config) *fixture {
 		return f.nav, f.navErr
 	}).AnyTimes()
 	f.camp.EXPECT().ScenarioSelection(gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64) (core.ScenarioSelection, error) { return f.selection, nil }).AnyTimes()
+	f.camp.EXPECT().MatchStarted(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64, int64) (bool, error) { return f.started, nil }).AnyTimes()
+	f.camp.EXPECT().MatchBreaks(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64, int64) (map[int64]core.LiveBreak, error) { return f.breaks, nil }).AnyTimes()
+	f.camp.EXPECT().PendingAftermaths(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _, company int64) ([]core.AftermathRef, error) {
+		return f.pending[company], nil
+	}).AnyTimes()
 	var err error
 	if f.srv, err = NewServer(cfg, f.camp, f.rs, f.gl, f.auth); err != nil {
 		t.Fatal(err)
@@ -82,6 +93,9 @@ func (f *fixture) signedIn(r *http.Request) *http.Request {
 
 var matchPageRe = regexp.MustCompile(`^/campaigns/\d+/matches/\d+$`)
 
+// newMatchRe are the new match form and its parts: they read the scenarios (to roll one) and the Against the Odds preview.
+var newMatchRe = regexp.MustCompile(`^/campaigns/\d+/matches(/new(/.*)?)?$`)
+
 // lazyCards makes the cards the full match page draws inline fail (registered after the test's own expectations, so those win), which
 // leaves their slots lazy: the tests of other things need not stub them.
 func (f *fixture) lazyCards() {
@@ -98,9 +112,23 @@ func (f *fixture) lazyCards() {
 	f.camp.EXPECT().LiveGeneration(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errNo).AnyTimes() // no generation: the stream starts with a full sync
 }
 
+// newMatchStubs gives the new match form the test scenarios and no Against the Odds block (registered after the test's own
+// expectations, so those win).
+func (f *fixture) newMatchStubs() {
+	if f.formStubbed {
+		return
+	}
+	f.formStubbed = true
+	f.camp.EXPECT().Scenarios(gomock.Any(), gomock.Any()).Return(testScenarios, nil).AnyTimes()
+	f.camp.EXPECT().PreviewAgainstTheOdds(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.ATO{Why: "not stubbed"}, nil).AnyTimes()
+}
+
 func (f *fixture) do(r *http.Request) *httptest.ResponseRecorder {
 	if r.Method == http.MethodGet && matchPageRe.MatchString(r.URL.Path) && r.Header.Get("HX-Request") == "" {
 		f.lazyCards()
+	}
+	if newMatchRe.MatchString(r.URL.Path) && (r.Method == http.MethodPost || strings.HasPrefix(r.URL.Path, "/campaigns/7/matches/new")) {
+		f.newMatchStubs()
 	}
 	rec := httptest.NewRecorder()
 	f.srv.Handler().ServeHTTP(rec, r)
@@ -724,7 +752,7 @@ func TestCreateMatchBuildsSidesFromTheForm(t *testing.T) {
 	f := newFixture(t, Config{})
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
 	f.camp.EXPECT().Companies(gomock.Any(), int64(7)).Return([]core.CampaignCompany{{ID: 1}, {ID: 2}, {ID: 3}, {ID: 4}}, nil)
-	want := []core.NewSide{{Name: "Gondor", Companies: []int64{1, 3}}, {Companies: []int64{2}}, {Name: "Spies"}}
+	want := []core.NewSide{{Companies: []int64{1, 3}}, {Companies: []int64{2}}, {}} // the form has no side names: Side N is the core's
 	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), core.NewMatch{Sides: want}).Return(core.Match{ID: 12}, nil)
 	rec := f.do(f.signedIn(form("/campaigns/7/matches", url.Values{
 		"sides": {"3"}, "side-name-1": {"Gondor"}, "side-1": {"1", "3", "99"}, // 99 is not in the campaign: ignored
@@ -770,8 +798,8 @@ func TestCreateMatchInvalid(t *testing.T) {
 	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), gomock.Any()).
 		Return(core.Match{}, errors.Join(core.ErrInvalidMatch, errors.New("every side needs at least one company")))
 	rec := f.do(f.signedIn(form("/campaigns/7/matches", url.Values{"sides": {"2"}, "side-1": {"1"}})))
-	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "every side needs") {
-		t.Errorf("got %d", rec.Code)
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Every side needs at least one company") {
+		t.Errorf("got %d\n%s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -812,7 +840,7 @@ func TestCreateMatchAllVsAll(t *testing.T) {
 	f := newFixture(t, Config{})
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
 	f.camp.EXPECT().Companies(gomock.Any(), int64(7)).Return([]core.CampaignCompany{{ID: 1, Name: "A"}, {ID: 2, Name: "B"}, {ID: 3, Name: "C"}}, nil)
-	want := []core.NewSide{{Name: "C", Companies: []int64{3}}, {Name: "A", Companies: []int64{1}}}
+	want := []core.NewSide{{Companies: []int64{3}}, {Companies: []int64{1}}}
 	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), core.NewMatch{Sides: want}).Return(core.Match{ID: 5}, nil)
 	rec := f.do(f.signedIn(form("/campaigns/7/matches", url.Values{"mode": {"ffa"}, "sides": {"2"}, "side-1": {"3", "1"}})))
 	if rec.Code != http.StatusSeeOther {
@@ -1595,7 +1623,7 @@ func TestMatchPageWithoutScenario(t *testing.T) {
 	}}
 	path, f := matchFixture(t, frodo, m)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", path, nil))).Body.String()
-	for _, want := range []string{"No scenario yet.", "Who won?", "Open"} {
+	for _, want := range []string{"No scenario yet", "Roll again", "Open"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -1614,19 +1642,17 @@ func TestMatchPageWithoutScenario(t *testing.T) {
 
 func TestMatchPageShowsScenarioAndResult(t *testing.T) {
 	now := time.Date(2026, 10, 3, 0, 0, 0, 0, time.UTC)
-	vp := 7
 	m := core.Match{ID: 4, Number: 4, Ended: true, Winner: 2, EndedOn: &now,
 		Scenario: &core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Seize Ground"},
 		Sides: []core.MatchSide{
 			{Name: "Gondor", Companies: []core.CampaignCompany{{ID: 1, Name: "Rangers"}}},
 			{Name: "Mordor", Companies: []core.CampaignCompany{{ID: 2, Name: "Raiders"}}},
 		},
-		Result: core.MatchResult{Decided: true, Winner: 2, Note: "<b>close</b>", Sides: []core.SideResult{{}, {VictoryPoints: &vp}},
-			Companies: []core.CompanyResult{{CompanyID: 1, Fled: true}}}}
+		Result: core.MatchResult{Decided: true, Winner: 2, Note: "<b>close</b>"}}
 	path, f := matchFixture(t, frodo, m)
 	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return([]core.ScenarioInfo{{Name: "Seize Ground", Scoring: []string{"Hold the objectives"}}}, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", path, nil))).Body.String()
-	for _, want := range []string{"Seize Ground", "How it is scored", "Hold the objectives", "Ended 3 October 2026", `>Fled</span>`, "&lt;b&gt;close&lt;/b&gt;", `<span class="tone-win">Mordor</span> won`, "This match has ended."} {
+	for _, want := range []string{"Seize Ground", "How it is scored", "Hold the objectives", "Ended 3 October 2026", "&lt;b&gt;close&lt;/b&gt;", `<span class="tone-win">Raiders</span> won`, `data-phase="ended"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}

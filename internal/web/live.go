@@ -18,16 +18,27 @@ type liveView struct {
 	Field      []liveCard
 	Retreated  []liveCard
 	Casualties []liveCard
-	Missed     []liveCard // injured at the start: they take no part
-	EndPending bool       // an end of the match is proposed: Start turn is refused
-	End        endBanner  // the pending end, for the sticky banner
-	Practice   bool       // a practice match: the badge and the banner in the match bar
+	Missed     []liveCard             // injured at the start: they take no part
+	End        endBanner              // the pending end and the Broken companies, for the sticky banner
+	Practice   bool                   // a practice match: the badge and the banner in the match bar
+	Companies  []core.CampaignCompany // every company of the match, for View ▾ (this one is marked)
+	Mine       int64                  // the viewer's own company in the match when this page is another one ("← Back to mine"); 0 otherwise
+	Own        map[int64]bool         // the viewer's companies among them: their pages are My Company
+}
+
+// PagePath is the page of a company of the match: My Company for the viewer's own, the company page in match mode otherwise.
+func (v liveView) PagePath(companyID int64) string {
+	if v.Own[companyID] {
+		return ownPath(v.CampaignID, companyID)
+	}
+	return "/campaigns/" + itoa(int(v.CampaignID)) + "/companies/" + itoa(int(companyID))
 }
 
 // Broken is whether the company is Broken (its cards show the courage chips).
 func (v liveView) Broken() bool { return v.Break.Broken }
 
-// CourageChip is the chip text of a Broken company's unit whose courage is resolved this turn: how it was resolved.
+// CourageChip is the chip text of a Broken company's unit: how its last courage test was resolved (there are no turns: the players
+// know when it tests again).
 func (v liveView) CourageChip(l core.LiveUnit) string {
 	switch l.CourageHow {
 	case "passed":
@@ -42,13 +53,16 @@ func (v liveView) CourageChip(l core.LiveUnit) string {
 	return "Courage resolved"
 }
 
-// CourageDue is whether a unit of a Broken company still has to test this turn.
+// CourageDue is whether a unit of a Broken company has not tested its courage yet in this match.
 func (v liveView) CourageDue(l core.LiveUnit) bool {
-	return v.Break.Broken && l.Zone == core.ZoneField && l.CourageTurn != v.Turn
+	return v.Break.Broken && l.Zone == core.ZoneField && l.CourageHow == ""
 }
 
-// NextTurn is the number "Start turn N" would start.
-func (v liveView) NextTurn() int { return v.Turn + 1 }
+// CourageTest is whether the card offers the Courage test: every unit of a Broken company in the Field (it tests again each turn; the
+// players know when).
+func (v liveView) CourageTest(l core.LiveUnit) bool {
+	return v.Break.Broken && l.Zone == core.ZoneField
+}
 
 // MeterPct is how far the casualties are towards the Break Point, held to 100.
 func (v liveView) MeterPct() int {
@@ -66,18 +80,6 @@ func (v liveView) FailedCourage() (out []liveCard) {
 		}
 	}
 	return out
-}
-
-// ToTest lists the Field units of a Broken company that have not resolved their courage this turn first, then the others.
-func (v liveView) ToTest() (t struct{ Due, Done []liveCard }) {
-	for _, c := range v.Field {
-		if v.CourageDue(c.L) {
-			t.Due = append(t.Due, c)
-		} else {
-			t.Done = append(t.Done, c)
-		}
-	}
-	return t
 }
 
 // liveCard is a unit with its live state (zero L for a unit that is not in the match).
@@ -173,9 +175,17 @@ func (s *Server) liveFor(r *http.Request, base campaignBase, detail core.Company
 		if match.Scenario != nil {
 			v.Scenario = match.Scenario.Name
 		}
-		v.EndPending = match.EndProposal != nil
 		v.Practice = match.Practice
 		v.End = s.endBannerFor(r, base, match, lc.CompanyID)
+		v.Companies, v.Own = matchCompanies(match), map[int64]bool{}
+		for _, co := range v.Companies {
+			if base.Campaign.Owns(co.ID) {
+				v.Own[co.ID] = true
+				if v.Mine == 0 && !base.Campaign.Owns(lc.CompanyID) {
+					v.Mine = co.ID
+				}
+			}
+		}
 	}
 	live := map[int64]core.LiveUnit{}
 	for _, u := range lc.Units {
@@ -251,8 +261,17 @@ func (s *Server) handleLiveFragment(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, r, err) {
 		return
 	}
-	view, ok := s.liveFragmentView(w, r, base, detail)
-	if !ok {
+	view, err := s.liveFragmentViewQuiet(r, base, detail)
+	if s.fail(w, r, err) {
+		return
+	}
+	if view.Live == nil {
+		if r.Header.Get("HX-Request") != "" { // the match ended while the page was open: it becomes the page of an ended match
+			w.Header().Set("HX-Refresh", "true")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		s.notFound(w, r)
 		return
 	}
 	s.render.partial(w, http.StatusOK, "campaign_my_company", "live_zones", view)

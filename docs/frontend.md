@@ -200,7 +200,8 @@ campaigns are searched only while "Show finished campaigns" is on.
 
 ## Campaign pages
 
-`/campaigns/{id}` has six tabs, each its own URL and page (the header and tabs are the `campaign_header` partial;
+`/campaigns/{id}` has six tabs, each its own URL and page (the header and tabs are the `campaign_header` partial: the campaign
+title on one line on every inner page, the description only on the Overview;
 `campaignBase` carries the campaign and the current tab): **Overview** (your company or "create my company", campaign
 facts, rules files, latest matches), **My Company** (your company: the page "Manage company" opens; your company's own
 URL under `/companies/{id}` redirects to `/campaigns/{id}/my-company/{company}`), **Armory**, **Rankings** (every company of the campaign, by points; another company opens read only, yours redirects to My Company;
@@ -218,7 +219,7 @@ same tabs under the campaign you are in.
   "Invite players" and Regenerate. Paused: the Matches tab hides New match (`CampaignDetail.CanStartMatch`) and says why, `/matches/new` is 403, the
   join page says the campaign is paused (`InvitePreview.Paused`; a refused join is 422). Finished: the Matches tab says matches are frozen.
 - **Practice matches** ([matches.md](matches.md#practice-matches)): the new-match form has a **Practice match** checkbox (`name=practice`, off by default, `data-practice-box`; a line says what is skipped and that it cannot be changed; the "Same player" note
-  offers "Make it a practice match"); the Matches tab has the filter chips All / Practice n (`?practice=1`) and the badge after the match number; the Overview line "n practice matches" (`data-practice-count`); the match page banner
+  offers "Make it a practice match"); the Matches tab shows the badge on the row (no Practice filter); the Overview line "n practice matches" (`data-practice-count`); the match page banner
   (`data-practice-banner`) and the aftermath block text; the aftermath page short state; the live bar badge. 360 px: the badge sits on the title line and wraps below; no horizontal scroll; semantic tokens only.
 - **Several companies per player** (spec [multi-company-spec.md](multi-company-spec.md), decisions in its section 12). The campaign setting
   **Companies per player** (1 to 4, default 1; `CampaignSettings.CompanyCap`) is a number field on the creation form (`companies-per-player`, with
@@ -246,29 +247,34 @@ same tabs under the campaign you are in.
     after a lowered cap. With a limit of 1 nothing is added. Companies and Rankings mark every company of the viewer "Yours" and show the owner.
   - **Same player** (`core.SamePlayers`): a non-blocking note on the match page (`matchView.SamePlayerNotes`: "Same player: both of these companies
     are X's." / "Same player: X plays both sides.") and, live, in the new match form (`match_form.js`: "Both are X's" under a side, "Same player:
-    X plays both sides" across sides). Nothing is refused. The form lists each company with its owner and faction, puts the viewer's own first
-    and has a **Mine** chip that narrows the search to them.
+    X plays both sides" across sides). Nothing is refused. The form lists each company with its owner and faction and marks the viewer's own
+    (accent border, "Yours" badge): first, and last on the other sides once one of them is placed.
 - A company page shows a management section only to its owner. `/campaigns/{id}/company/new` creates a company (name, faction).
 - **Rankings** sort by the total point cost of a company's units (`core.Rank`; equal points share a rank) and show
   wins/draws/losses, matches played and unit count.
-- **Matches** are listed newest first with their sides (`A + B vs C`) and a result badge (Open, Draw, "<side> won").
-  Names are coloured by outcome: the winning side green, losing sides red, every side yellow after a draw
-  (`Match.Tone`). Wins/draws/losses are shown as green/yellow/red numbers wherever they appear (`wdl` partial).
-- **New match** (`/campaigns/{id}/matches/new`, `static/js/match_form.js`): choose the number of sides (2 to 8), name
-  each one (blank means "Side N") and search the campaign's companies to add to it; added companies are chips that can
-  be removed, and a company already on a side no longer shows up in the searches (Enter in a search box adds the first match instead of submitting the form). **All vs all** turns the sides into one
-  pool of companies (with an "Add every company" button) where each company fights alone: the handler turns each into a
-  side named after it (`mode=ffa`). The form is posted as `sides`,
-  `side-name-N` and one `side-N` per company; `core.ValidateSides` checks that every side has a company and none repeats.
-  Any player of the campaign can create a match. A campaign with fewer than two companies offers no "New match" (the matches page says what is needed) and the form page says the same instead of showing the form; a finished campaign offers and accepts none.
-- **Match page** (`/campaigns/{id}/matches/{match}`): header (result badge, date, "Ended <date>"), side
-  cards (reported Victory Points, a "Fled" badge per company), **Scenario** card (empty state, a rulebook scenario with
+- **Matches** (`pages/campaign_matches.gohtml`): a **Your turn** list on top (`yourTurns`, partial `your_turn`; also on the Overview):
+  the matches that wait on the viewer, as buttons ("Vote the MVP and confirm the end of Match 25", "Start the aftermath of Match 3",
+  "Continue the aftermath of Match 4", with the company when the viewer has several); nothing when nothing waits. Then the filter chips
+  **Mine** / **Open** / **Ended** (`?filter=mine|open|ended`; no chip on lists every match) and the list, newest first, one compact row per
+  match (partial `match_row`): its sides (`A + B vs C`), "Match N · scenario", the Practice badge and the result badge (Open, Draw,
+  "<side> won"). Names are coloured by outcome: the winning side green, losing sides red, every side yellow after a draw (`Match.Tone`).
+  Wins/draws/losses are shown as green/yellow/red numbers wherever they appear (`wdl` partial).
+- **New match** (`/campaigns/{id}/matches/new`, `internal/web/match_new.go`, `static/js/match_form.js`): two side blocks with the company search
+  only (added companies are chips that can be removed, a company already on a side no longer shows up, Enter adds the first result),
+  **Practice match**, **+ Add side** (up to 8), **All vs all** (one pool where each company fights alone, with "Add every company";
+  `mode=ffa`), the scenario card the server rolled (Roll again, Choose another, One-off scenario) and, for the owner of the lower rated of
+  two companies, the Against the Odds block. The form is posted as `sides`, one `side-N` per company, the scenario fields and `ato`;
+  `core.ValidateSides` checks that every side has a company and none repeats. Any player of the campaign can create a match. A campaign
+  with fewer than two companies offers no "New match" (the matches page says what is needed) and the form page says the same instead of
+  showing the form; a finished campaign offers and accepts none. See [matches.md](matches.md#new-match).
+- **Match page** (`/campaigns/{id}/matches/{match}`): only the current phase is open (preparing, playing, ending, ended; `data-phase`):
+  header (result badge, date, "Ended <date>"), the scoreboard (one row per side, no VP, no roles), **Scenario** card (a rulebook scenario with
   "How it is scored" collapsed, or a one-off with its description and victory text escaped, `whitespace-pre-line`; the folded Special rules print the rule
   tables of the file (`ScenarioText.Table`, template `rule_table`: Strange Aura by D6, the Tame the Beast Monster Budget with the row of the
-  companies' combined rating marked) and the rules a scenario `usesRules` by name) and
-  **Result** card (outcome as reported, note). The view carries the viewer's `core.MatchAccess` (`Match.Access`), which decides
-  the edit controls (scenario picker and one-off form, result form with objectives, Propose to end and the End card, administrator reopen and history,
-  organiser grants, the Aftermath card); see [matches.md](matches.md).
+  companies' combined rating marked) and the rules a scenario `usesRules` by name), **Go to my company** and **End match** while playing,
+  the End card while an end is pending, and the result, Aftermath card and note once ended; History and the match log share one collapsed
+  **Log** card. The End match and Confirm sheets open in the page's window (`sheet_dialog`, `#modal-body`). The view carries the viewer's
+  `core.MatchAccess` (`Match.Access`), which decides the edit controls; see [matches.md](matches.md).
 
 ## Rules files (vanilla and Battle Companies)
 
@@ -991,13 +997,13 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
 `units.gohtml` and `match.gohtml`). `web` declares `liveMatches` (embedded in `campaigns`; `core.LiveService` implements it).
 
 - **Company page of a company in an open match** (`CompanyDetail.OpenMatch` says so; `liveFor` loads `Live`): the same page with
-  - `#live-banner` (sticky under the app bar): "Match N is running" with the scenario, the sync dot, **To wound** (opens the To Wound chart window, below), **End checks** (everybody) and, for who may edit, **Match log**;
+  - `#live-banner` (sticky under the app bar): "Match N" with the scenario, the sync dot, **View ▾** (`details[data-view-menu]`: the companies of the match, each linking to its page in match mode, the current one `aria-current="page"`; "← Back to mine" on another company's page), **To wound** (opens the To Wound chart window, below) and, for who may edit, **Match log** and **End match** (opens the End match sheet in the page's window; hidden while an end is pending);
   - the roster locked like read only (no recruit, buy chips, heal, level-up, drop, dismiss; rename stays) with the line "The company is
     locked until the match ends"; "Change formation" is hidden while live (the grid is re-rendered by the sync);
   - `#live-zones` (`live_zones`): the Field as unit cards, then **Retreated**, **Field casualties** and **Missed this game** as
     one-line headers with a count ("None" when empty) and compact cards (`live_compact`: badge, reason, **Return to the battle** for
     who may edit), then the Cemetery. `GET /campaigns/{id}/companies/{company}/live` answers `#live-zones` alone (its `data-seq` is the
-    match's last sequence). Every control that answers the zones (trackers, milestones, the turn, the Break Point, the courage and item
+    match's last sequence; once the match has ended an htmx request gets `HX-Refresh`, so an open page becomes the ended one). Every control that answers the zones (trackers, milestones, the Break Point, the courage and item
     windows) takes the `hx_zones` attributes: it replaces `#live-zones`, and `hx-sync` queues the presses one at a time.
   - Another player's company is the same page read only (`ReadOnly`); an editor who is not the owner (organiser, administrator) has the
     trackers and actions on it. Viewers see `current / start` without buttons.
@@ -1036,33 +1042,31 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
   (`GET .../live/{company}/units/{unit}/sheet/{kind}`, `live_sheet`). **Wounded a unit** lists the enemies in the Field (then the same
   side after a "Friendly fire" divider), with search, Rider/Mount for a mounted target, wounds caused and saved by Fate steppers
   (`woundSheet` in `live.js`) and a preview sentence in the words of the log.
-- **Break Point, turns and courage** (`live_break` in `campaign_my_company.gohtml`, inside `#live-zones` so the SSE refetch refreshes viewers too): a turn row ("Turn 3" or "Turn not started", **Start turn N** for editors: `kind=turn`, `turn=N`; a stale press is the service's 422 toast); a Break Point panel (`<details>`, summary "Break Point 6.5 of 13 · Casualties 4 · 50%" with a "Will break next turn" or "Broken since turn N" badge and a progressbar; open: the casualties by name, the scenario exceptions and, for editors, +/- adjusters for starting models and casualties with a shared note, `kind=breakAdjust`); the **Company broken** banner (`#live-broken`, danger alert, not sticky: it would cover the live banner) with the All is Lost choice as an inline `<details>` (**Flee the battlefield** with a confirm / **Fight on**, editors, while `Break.Offer`) and "Who has tested this turn". Cards of a Broken company show "Test due" / a resolved chip (`CourageDue`: `CourageTurn != Turn`; the chip is `liveView.CourageChip` from `LiveUnit.CourageHow`: "Tested: passed", "Tested: failed", "Auto-pass" for standFast, heroicResolve, chariot, scenario, "Exempt" for engaged, cannotActivate, else "Courage resolved"). The company header (own page and other companies' read-only page, `campaign_my_company.gohtml`) shows "Break Point: N% of the starting models" from `CompanyDetail.BreakPointPercent` (the company's own rule, e.g. 66 for Muster of Isengard, else the file's default; never 0 with real rules) and a primary **Courage test** button that opens the `courage` sheet (`live_courage`): Roll 2D6 (`POST .../units/{unit}/courage/roll`, `RollCourage`, nothing written; typed dice only with ManualRolls; a plain server roll, not the animated dice component), "Record: passed" (`broken`, with Call Stand Fast for Heroes that are not Wanderers) or "Record: failed" (`retreat` why `courage`, confirm), and the six pass or exempt buttons (`courageSkip`). All writes go through the one `actions` route (`liveActionFrom` reads `turn`, `field`+`delta`, `reason`, `flee`, `standFast`, `item`+`index`).
+- **Break Point and courage** (`live_break` in `campaign_my_company.gohtml`, inside `#live-zones` so the SSE refetch refreshes viewers too): no turn row. A Break Point panel (`<details>`, summary "Break Point 6.5 of 13 · Casualties 4 · 50%" with a "Broken" badge and a progressbar; open: the casualties by name, the scenario exceptions and, for editors, +/- adjusters for starting models and casualties with a shared note, `kind=breakAdjust`). The broken notice of every viewer is in `#live-end` of the banner ("Rangers is broken (8 of 15 casualties)", `endBanner.Broken`). Cards of a Broken company in the Field offer the **Courage test** (`CourageTest`) and show "Test due" until the unit has a recorded test (`CourageDue`), then a chip from `LiveUnit.CourageHow` (`liveView.CourageChip`: "Tested: passed", "Tested: failed", "Auto-pass" for standFast, heroicResolve, chariot, scenario, "Exempt" for engaged, cannotActivate). The company header (own page and other companies' read-only page) shows "Break Point: N% of the starting models" from `CompanyDetail.BreakPointPercent` (the company's own rule, e.g. 66 for Muster of Isengard, else the file's default). The `courage` sheet (`live_courage`): Roll 2D6 (`POST .../units/{unit}/courage/roll`, `RollCourage`, nothing written; typed dice only with ManualRolls; a plain server roll, not the animated dice component), "Record: passed" (`broken`, with Call Stand Fast for Heroes that are not Wanderers) or "Record: failed" (`retreat` why `courage`, confirm), and the six pass or exempt buttons (`courageSkip`). All writes go through the one `actions` route (`liveActionFrom` reads `field`+`delta`, `reason`, `standFast`, `item`+`index`).
 - **Against the Odds items**: `LiveUnit.Loaned` is listed under the Wargear of the card, grouped by item ("Climbing ropes ×5", tag "Loaned (Raider's Kit)", "use after the game" for Healing Herbs and Wondrous Cram, struck through and "used" once spent); owned items in `UsedItems` are struck through; the action menu has **Item used** (`item` sheet: the loaned items still to spend, `kind=itemUsed`) when something is left. `LiveCompany.Wanderer` makes a card for the temporary Wanderer (`temporaryUnit`: a roster unit with the synthetic negative id, badges "Wanderer" and "Temporary", the profile summary, Rating as its points, no Dismiss), in the zone its live unit is in, and a wound target in the wound sheet.
-- **Result form**: for a company whose result was not reported yet, `prefillLiveDefaults` ticks **Fled** (All is Lost) and the `enemyBroken` objective from `MatchDefaults`, each with the badge "From the live match", and the Fled switch explains "The other side claims victory (All is Lost). Saving this does not end the match."
+- **End match sheet**: for a company whose result was not reported yet, the `enemyBroken` reward tick comes prefilled from `MatchDefaults`.
 - **Mount lost**: "On foot" badge; the mount item, the gear with `Equipment.RequiresMount`, the rules the mount gave and the Cavalry
   rule are struck through (`itemView.Struck`, `ruleView.Struck`, aria-label "needs a mount"). The data flag `requiresMount` comes from the Battle Companies file.
-- **Match log**: `GET .../matches/{match}/live/log` is the sheet (company page; `?company=` so Undo refreshes the zones out of band), `?card=1` the card of
-  the match page (below History, drawn inline in the full page, refreshed on `live:match`), `?before=<seq>` the next 30 older rows. Newest first,
+- **Match log**: `GET .../matches/{match}/live/log` is the sheet (company page; `?company=` so Undo refreshes the zones out of band), `?card=1` the log of
+  the match page's collapsed **Log** card (with History, drawn inline in the full page, refreshed on `live:match`), `?before=<seq>` the next 30 older rows. Newest first,
   grouped by minute, Undo only where the service says `CanUndo` and the match is open; a dependency refusal shows in the log. After the
   match the card stays (read only, permanent); an ended match recorded after the fact says it has no log.
-- **End checks** (`live_end.go`, `end_*` templates in `match.gohtml`): the sheet (banner button, `GET .../matches/{match}/live/end?company=`) and the card on
-  the match page (`?card=1`, `#end-checks-slot`, refreshed on `live:match`, empty once the match ended) show `core.EndChecks`: per own company a
-  switch per unit "Got the objective" (`POST .../live/{company}/objective`, `unit`, `on`), per opposing company a radio list "Select MVP" with "No
-  MVP" (`POST .../live/{company}/mvp`, `unit`; 0 withdraws) and the vote tally (a tie says the owner picks in the aftermath). Every write answers
-  the body again with a message and Undo (`from=end|endcard` of the shared undo route); a refusal is 422, a user with nothing to set gets 403.
-  **Propose to end** is a button that fetches `.../live/end/reminder?revision=` (what is still open, **Go back** / **Propose anyway**; never blocks;
-  `POST .../end/propose`).
+- **End match and Confirm sheets** (`end_sheet.go`, template `end_sheet` in `match.gohtml`; [matches.md](matches.md#the-sheets)): `GET .../matches/{match}/end/sheet[?company=]`
+  in the window of the match page or the live company page. The winner as buttons, one MVP combobox per opposing company (`unitPick` in
+  `match_form.js`, posted as `mvp-<company>`), the objective chips of the viewer's companies, the reward ticks and the note; posted to
+  `POST .../end/propose` or `/end/confirm` (with `revision`), which answers `HX-Redirect` to the match page, or the sheet again with the
+  reasons (422).
 - **Ending a match by confirmation** (`match.go` `handleEnd`, `live_end_banner.go`; templates `end_card`, `end_propose` in `match.gohtml`, `end_override` in
   `partials/end.gohtml`, `end_banner` in `campaign_my_company.gohtml`). Routes (all `revision`, 422 refusal, stale revision answers the current state):
   `POST .../matches/{match}/end/propose|confirm|withdraw|cancel|override` (override also `note`, trimmed, 1-200). `core.EndAccessFor` (via `endAccess`) hides the
   controls; the service enforces. Match page: the header button is hidden while an end is pending and the **End card** (`#end-card-slot`, refreshed on
   `live:match` through `GET .../end/card`, which also sends the header button out of band) lists one row per company (**Confirmed** with who and when / **Waiting**),
-  the reset notice, **Confirm the end** (owner of a waiting company), **Withdraw my confirmation**, **Keep playing** (any participant, organiser, admin) and, for
+  the reset notice, **Confirm** (owner of a waiting company: opens the Confirm sheet), **Withdraw my confirmation**, **Keep playing** (any participant, organiser, admin) and, for
   the organiser or an administrator while somebody waits, the quiet **End without confirmation...** that opens the warning and the note field (the dialog stays
   open with the error on a missing note). Viewers see rows without buttons. The history line of an ended match carries `MatchEvent.Detail`.
   Company page: `#live-end` inside the sticky `#live-banner` ("Ending: waiting for Gorgoroth", same actions, override included) is fetched on load and on
   `live:match` (`GET .../live/end/banner?company=`); its forms post with `view=banner&company=` and get the banner back, or `HX-Refresh` when the match ended.
-  **Start turn** is disabled with "Cancel the ending first: the match is about to end." while `liveView.EndPending`. The log lines ("Ending cancelled: ...") come
+  The log lines ("Ending cancelled: ...") come
   from the backend and show in the normal log.
   On the aftermath sheet the prefilled objective shows "From the live match" and the MVP "Voted MVP".
   The two log/end slots set `hx-target="this"` (the body's inherited `hx-target="#main"` would swap them over the page).

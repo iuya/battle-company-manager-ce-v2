@@ -55,7 +55,7 @@ func (w *world) finishingTouches() {
 	if h, _ := w.unit(shire, func(u core.CompanyUnit) bool { return u.Role == core.RoleHero }); h.ID == 0 {
 		w.gap("%s: the Hobbit who rolled a 6 is not a Hero in the Making", shire.name)
 	}
-	m := w.played(c, "Rescue", outcome{winner: 2, vp: []int{1, 5}, note: "The Hobbits lost their Ranger and the field."}, []*wco{shire}, []*wco{co})
+	m := w.played(c, "Rescue", outcome{winner: 2, note: "The Hobbits lost their Ranger and the field."}, []*wco{shire}, []*wco{co})
 	rl, _, _ := w.roster(shire)
 	in := w.sheet(shire)
 	set(&in, rl.ID, core.OutcomeCasualty, nil)
