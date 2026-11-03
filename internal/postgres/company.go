@@ -378,7 +378,7 @@ func (cs companyStore) loadUnits(ctx context.Context, q querier, ids []int64) (m
 // rosterQueryFmt is ReadRoster's statement: one row per unit (a company without units has one row with NULL unit columns, which the
 // COALESCEs turn into id 0), the equipment of a unit as three arrays from one probe of unit_equipment. Typed columns instead of one
 // jsonb_build_object document per unit: on the demo world's biggest campaign (37 companies, 536 units) 3.8 ms against 9.2 ms and 350
-// buffers against 1,478 (docs/optimization-report.md, "Database pass").
+// buffers against 1,478 (issue #68, "Database pass").
 const rosterQueryFmt = `
 	SELECT c.id, c.name, c.faction, c.owner_id, u.display_name, c.influence, c.gold, c.rerolls, c.pack, c.unit_order, c.grave_order,
 	       COALESCE(x.id, 0), COALESCE(x.base, ''), COALESCE(x.custom_name, ''), COALESCE(x.role, ''), COALESCE(x.kind, ''), COALESCE(x.path, ''),

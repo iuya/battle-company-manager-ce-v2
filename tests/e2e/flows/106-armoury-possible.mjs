@@ -1,4 +1,4 @@
-// The armoury lists every purchase a company could ever make and hides only the impossible ones (docs/frontend.md, "The Armory tab"; GitHub issue 57).
+// The armoury lists every purchase a company could ever make and hides only the impossible ones (docs/frontend-company.md, "The Armory tab"; GitHub issue 57).
 // Aragorn's fresh Arnor company of "Companies being built": its officers are Warriors of Arnor in Heavy Armour and its warriors may not take armour, so
 // no unit can buy Armour or Heavy Armour now, yet a Ranger of the North may. Both are listed, greyed, with the reason (aria-disabled, described by the
 // reason, reachable with the keyboard, still opening the per-unit reasons); a Warg and a halberd, which no Arnor unit can ever have, are hidden by the

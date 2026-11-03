@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// The Shire's Ranger of the North replacement (docs/frontend.md, "Ranger of the North replacement"): when the company's Ranger
+// The Shire's Ranger of the North replacement (docs/frontend-company-building.md, "Ranger of the North replacement"): when the company's Ranger
 // has been slain, any successful reinforcement result may be swapped for a new one. He starts as the Leader (he may be put in a
 // Sergeant place instead) and never leaves the officer places, so the officers are reshuffled: the old Leader and Sergeants fill
 // the other places and, when there are three of them, one stops being an officer and is an ordinary Hero. The rule is data (the

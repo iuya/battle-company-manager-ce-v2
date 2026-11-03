@@ -1,21 +1,39 @@
 # Tabletop Simulator export
 
-How a Battle Company is taken from this app into Tabletop Simulator (TTS), where many players use the Workshop mod *MESBG FTC - Version 0.4*.
-There are two levels:
+This page explains how a Battle Company is taken from this app into Tabletop Simulator (TTS), where many players use the Workshop mod *MESBG FTC - Version 0.4*.
+It is for developers; players use the dialog described in [Copy as a Tabletop Simulator army list](#copy-as-a-tabletop-simulator-army-list) below.
 
-- **Army list.** A copy button next to the company name (My Company, another player's company, the live match) copies the whole company as a text
-  list of the closest vanilla unit for each Battle Companies (BC) unit, because the mod can only spawn vanilla models. Riders are one line; a mount
-  that can fight on its own (Attacks above 0: wargs) also gets a figure line.
-- **Names and descriptions.** A small helper object in TTS gives each spawned figure this app's name and description (BC name, promoted hero name, path,
-  wargear, rules, stats, injuries) and, optionally, aura rings ([aura-ranges.md](aura-ranges.md)).
+The export has two levels:
 
-Both are built. What is not verified is how the current Workshop version of the mod reads the list; see [What remains to verify](#what-remains-to-verify).
-The web dialog is described in [frontend.md](frontend.md#copy-as-a-tabletop-simulator-army-list).
+- **Army list.**
+  A copy button next to the company name copies the whole company as a text list.
+  The button is on My Company, another player's company and the live match.
+  Each Battle Companies (BC) unit becomes the closest vanilla unit, because the mod can only spawn vanilla models.
+  Riders are one line.
+  A mount that can fight on its own (Attacks above 0, such as wargs) also gets a figure line.
+- **Names and descriptions.**
+  A small helper object in TTS gives each spawned figure this app's name and description: BC name, promoted hero name, path, wargear, rules, stats and injuries.
+  Optionally it also draws aura rings ([aura-ranges.md](aura-ranges.md)).
+
+What is not verified is how the current Workshop version of the mod reads the list; see [What remains to verify](#what-remains-to-verify).
+
+Contents:
+
+- [How the mod works](#how-the-mod-works)
+- [The text format](#the-text-format)
+- [Mapping a BC unit to a vanilla unit](#mapping-a-bc-unit-to-a-vanilla-unit)
+- [Core](#core)
+- [Web](#web)
+- [Names and descriptions](#names-and-descriptions)
+- [The helper](#the-helper)
+- [Why not other approaches](#why-not-other-approaches)
+- [What remains to verify](#what-remains-to-verify)
 
 ## How the mod works
 
-This is what the mod's scripts do, read from saved games that embed them; it is the ground for the list format. The mod's own code and model list are not
-copied into the repository.
+This section describes what the mod's scripts do.
+It was read from saved games that embed them, and it is the ground for the list format.
+The mod's own code and model list are not copied into the repository.
 
 1. **Input.** The *Spawn Army* button sits on one table object. It reads the **Notebook tab whose title is exactly `ArmyList`** (`getNotebookTabs()`), else it
    broadcasts `Notebook page 'ArmyList' not found.` The player creates the tab once and pastes into it.
@@ -30,13 +48,20 @@ copied into the repository.
    Afterwards the player sees `N Models | B Break | R Remaining` (N = every figure spawned, B = N/2 + 1, R = N/4).
 6. **No hook for text.** There is no suffix, comment or note syntax: extra text becomes part of the lookup key and the model is not found. Naming the figures therefore needs a script of our own, not a richer list.
 
-The bag holds about 1760 objects (about 1480 distinct keys). Most keys are exactly a vanilla unit name with options that exist in the vanilla file; options are mostly alphabetical. A unit whose options are
-all "choose one" has **no bare model** (`Mirkwood Elf Warrior:` does not exist, only `...: Shield`, `...: Elf Bow`, `...: Elven Glaive`). About 490 bag models carry TTS *States* (the mounted rider can be
-changed to the rider on foot). Players often name and describe models by hand: Nickname `[b]Name[/b] (56)` and a Description in TTS rich text (`[FFCC00][b]M[-][/b] 6 | ...`); the markup is `[RRGGBB]...[-]`, `[b]`, `[i]`.
+About the bag:
+
+- It holds about 1760 objects (about 1480 distinct keys).
+- Most keys are exactly a vanilla unit name with options that exist in the vanilla file; options are mostly alphabetical.
+- A unit whose options are all "choose one" has **no bare model**.
+  `Mirkwood Elf Warrior:` does not exist; only `...: Shield`, `...: Elf Bow` and `...: Elven Glaive` do.
+- About 490 bag models carry TTS *States* (the mounted rider can be changed to the rider on foot).
+
+Players often name and describe models by hand, with a Nickname such as `[b]Name[/b] (56)` and a Description in TTS rich text (`[FFCC00][b]M[-][/b] 6 | ...`).
+The markup is `[RRGGBB]...[-]`, `[b]` and `[i]`.
 
 ## The text format
 
-```
+```text
 (Hero Name: Option A, Option B)
     (3x Warrior Name: Option)
     (1x Other Warrior: )
@@ -49,12 +74,25 @@ changed to the rider on foot). Players often name and describe models by hand: N
 
 ## Mapping a BC unit to a vanilla unit
 
-A BC unit is a `CompanyUnit` (`internal/core/company.go`): `Type` is a BC name that resolves to a vanilla key (or to a company alias), `Equipment` holds what it carries, `Path` the hero's path, `Parts` the
-models of a composite unit. Over the 37 companies the vocabulary is about 128 unit names: most are vanilla names as is, 8 are legacy renames resolved through the company alias, 5 are a preselected option
-(Tookish Hunter, Battlin' Brandybuck, Helminga, Lorien Guard, Noldorin Exile), 2 are a vanilla unit plus an invisible rule; 19 cavalry units have a vanilla mount; wanderers (4) and creatures (3) have no model
-in the bag and use approved stand-ins. The implementation computes all of this; nothing is hard-coded from these counts.
+A BC unit is a `CompanyUnit` (`internal/core/company.go`):
 
-### Rules
+- `Type` is a BC name that resolves to a vanilla key or to a company alias;
+- `Equipment` holds what it carries;
+- `Path` is the hero's path;
+- `Parts` are the models of a composite unit.
+
+Over the 37 companies the vocabulary is about 128 unit names:
+
+- most are vanilla names as they are;
+- 8 are legacy renames resolved through the company alias;
+- 5 are a preselected option (Tookish Hunter, Battlin' Brandybuck, Helminga, Lorien Guard, Noldorin Exile);
+- 2 are a vanilla unit plus an invisible rule;
+- 19 cavalry units have a vanilla mount;
+- wanderers (4) and creatures (3) have no model in the bag and use approved stand-ins.
+
+The implementation computes all of this; nothing is hard-coded from these counts.
+
+### Mapping rules
 
 1. **Name**: `CompanyUnit.Type`, then the alias `unit`, then the vanilla name byte for byte as in the vanilla file, then through the `tts` data below when the mod's model has another name or no 1:1 model exists.
 2. **Options**: from `Equipment` and the alias's `selectedOptions`, find the vanilla options of the unit by normalised name, expanding `includes` ("Shield and Spear" = Shield + Spear), at most one per
@@ -67,8 +105,11 @@ in the bag and use approved stand-ins. The implementation computes all of this; 
    - *Otherwise* two or three versions (a switch in the dialog, default on): the mounted line, a follower line of the on-foot model (`foot` model of the unit, same options when the foot unit has them) and, when
      the mount has **Attacks above 0** in the vanilla `gear` entry (Warg, Fell Warg; Fell beast, Great Eagle), a line for the mount alone. The data decides the Attacks, never a list. Mounts with 0 Attacks
      (horses, camels, goats, ponies) get no figure.
-   - Support in the bag: states on every key (Rider of Rohan, Son of Eorl, Mirkwood Elf Knight, Hunter Orc Warg Rider: the last two states are rider on foot and Fell Warg alone), on some keys (treated as none:
-     the on-foot line is added), or none (on-foot line from the table; the three warg riders also get their Fell Warg line). A foot unit that bought a Warg or Fell Warg gets a mount-alone line.
+   - State support in the bag varies:
+     - states on every key (Rider of Rohan, Son of Eorl, Mirkwood Elf Knight, Hunter Orc Warg Rider; for the last, the states are rider on foot and Fell Warg alone);
+     - states on some keys, treated as none, so the on-foot line is added;
+     - no states: the on-foot line comes from the table, and the three warg riders also get their Fell Warg line.
+   - A foot unit that bought a Warg or Fell Warg gets a mount-alone line.
    - The mod counts every spawned figure, so `N Models | Break | Remaining` is too high by the number of extra figures; the dialog states the real numbers ("14 models + 3 extra figures. Break Point: 7 (50% of 14)").
 5. **Notes, not guesses**: every approximation is a note to the player and every stand-in is a "shown as" note.
 
@@ -98,44 +139,154 @@ func (r *RuleSet) TTSList(d CompanyDetail, opts TTSOptions) TTSExport
 func (r *RuleSet) TTSLiveList(d CompanyDetail, live TTSLive, opts TTSOptions) TTSExport // live match
 ```
 
-- `TTSOptions{FootVersions, MountFigures bool; Catalogue TTSCatalogue}`. `TTSExport{Text, Warbands []TTSWarband, Notes []TTSNote, Models, ExtraFigures, BreakPercent, BreakPoint string}`; `Lines()` flattens the warbands.
-  `Models` are the figures of units and creatures in the list (a stand-in counts, a unit without a model does not), `ExtraFigures` the on-foot and mount figures the switches add. `BreakPoint` is the app's rule
-  (`percent x Models / 100`, one decimal, "6.5") with the company's `BreakPointPercent` or the file's default.
-- `TTSLine{UnitIDs, Name, Count, Options, Key, Extra}`; `Line.Text(hero)` writes `(Name: A, B)` for the first line and `(3x Name: A, B)` otherwise. `TTSNote` kinds: `noModel`, `optionDropped`, `shownAs`,
-  `approximate`, `hasStates`, `extraFigure`, `fallen`.
-- The mapping follows the rules above: whole options first, an exchange option by the item it gives; a leftover item goes to the option that holds it (`approximate`) or is dropped (`optionDropped`; armour and
-  equipment slots are silent); a required choose-one group nobody took gets its cheapest option (`approximate`: the mod has no bare figure). Brackets are removed, accents kept, options sorted.
-- Live: `TTSLive{Units, Absent}`. Units retreated, fallen or absent are the second warband (`Fallen`) after the main one, with one `fallen` note; the plain `TTSList` ignores all of it.
-- `core.TTSService` (`ttsservice.go`) loads the company and the campaign's `*RuleSet` and calls these; the web layer declares `ttsExporter` with `TTSExport`, `TTSNames` and `TTSAuras`. The `CustomRules` flag
-  (a campaign whose vanilla or Battle Companies file is not the shipped one: "some unit names may not exist in the mod") is the web layer's.
-- Tests: `ttslist_test.go`, `TestTTSListAllCompanies` (every start, reinforcement, special-chart, special and advancement entry of the 37 companies against `testdata/tts_golden.txt`; `go test ./internal/core -run
-  TTSListAll -update-tts` rewrites it, review the diff) and the local-only `TestTTSListCatalogue`, which reads `sources/tts/models.json` when it exists.
+Types:
+
+- `TTSOptions{FootVersions, MountFigures bool; Catalogue TTSCatalogue}`.
+- `TTSExport{Text, Warbands []TTSWarband, Notes []TTSNote, Models, ExtraFigures, BreakPercent, BreakPoint string}`.
+  `Lines()` flattens the warbands.
+  - `Models` counts the figures of units and creatures in the list: a stand-in counts, a unit without a model does not.
+  - `ExtraFigures` counts the on-foot and mount figures the switches add.
+  - `BreakPoint` is the app's rule (`percent x Models / 100`, one decimal, "6.5") with the company's `BreakPointPercent` or the file's default.
+- `TTSLine{UnitIDs, Name, Count, Options, Key, Extra}`.
+  `Line.Text(hero)` writes `(Name: A, B)` for the first line and `(3x Name: A, B)` otherwise.
+- `TTSNote` kinds: `noModel`, `optionDropped`, `shownAs`, `approximate`, `hasStates`, `extraFigure`, `fallen`.
+
+Mapping follows the rules above:
+
+- Whole options come first; an exchange option is chosen by the item it gives.
+- A leftover item goes to the option that holds it (`approximate`) or is dropped (`optionDropped`).
+  Armour and equipment slots are dropped silently.
+- A required choose-one group that nobody took gets its cheapest option (`approximate`), because the mod has no bare figure.
+- Brackets are removed, accents kept, options sorted.
+
+Live lists use `TTSLive{Units, Absent}`.
+Units that retreated, fell or are absent form a second warband (`Fallen`) after the main one, with one `fallen` note.
+The plain `TTSList` ignores all of it.
+
+Service and web wiring:
+
+- `core.TTSService` (`ttsservice.go`) loads the company and the campaign's `*RuleSet` and calls these functions.
+- The web layer declares `ttsExporter` with `TTSExport`, `TTSNames` and `TTSAuras`.
+- The `CustomRules` flag belongs to the web layer.
+  It marks a campaign whose vanilla or Battle Companies file is not the shipped one, and shows "some unit names may not exist in the mod".
+
+Tests:
+
+- `ttslist_test.go`.
+- `TestTTSListAllCompanies` checks every start, reinforcement, special-chart, special and advancement entry of the 37 companies against `testdata/tts_golden.txt`.
+  Rewrite the golden with `go test ./internal/core -run TTSListAll -update-tts` and review the diff.
+- The local-only `TestTTSListCatalogue` reads `sources/tts/models.json` when it exists.
 
 ## Web
 
-`GET /campaigns/{id}/companies/{company}/tts[?live=1&foot=0|1&mounts=0|1&rules=none|short|full&auras=...]` (`internal/web/tts.go`, `partials/tts.gohtml`, `static/js/tts.js`) is an htmx fragment, member-only like
-the company page, `Cache-Control: private, no-cache`. The tooltip of the button reads:
+`GET /campaigns/{id}/companies/{company}/tts[?live=1&foot=0|1&mounts=0|1&rules=none|short|full&auras=...]` returns an htmx fragment.
+It lives in `internal/web/tts.go`, `partials/tts.gohtml` and `static/js/tts.js`.
+It is member-only like the company page and sends `Cache-Control: private, no-cache`.
+
+The button's tooltip reads:
 
 > Copy this company as an army list for Tabletop Simulator. Each unit becomes the closest standard MESBG model, because the Tabletop Simulator mod can only spawn standard models. Paste it into a Notebook tab named
 > ArmyList and press Spawn Army. Names, paths, injuries and special rules are not carried over.
 
-The dialog (title "Army list for Tabletop Simulator"), its switches ("Riders on foot", "Mounts that fight as figures of their own"), the copy buttons, the notes and the helper block are described in
-[frontend.md](frontend.md#copy-as-a-tabletop-simulator-army-list). An empty company has no button; a company with no unit that has a model says "None of these units has a standard model"; in a live match the
-list uses the units as they are now, fallen units in the second warband with a note each. `GET /tts/helper.zip` (`handleTTSHelper`, behind `protected`) serves the helper download.
-Tests: `internal/web/tts_test.go`, `internal/core/ttsservice_test.go`, flows `91-tts`, `92-tts-names`, `96-tts-auras` ([testing.md](testing.md)).
+The dialog is described in [Copy as a Tabletop Simulator army list](#copy-as-a-tabletop-simulator-army-list) below.
+Its title is "Army list for Tabletop Simulator", and it has the switches "Riders on foot" and "Mounts that fight as figures of their own", the copy buttons, the notes and the helper block.
+
+Special cases:
+
+- An empty company has no button.
+- A company with no unit that has a model says "None of these units has a standard model".
+- In a live match, the list uses the units as they are now, with fallen units in the second warband and a note each.
+
+`GET /tts/helper.zip` (`handleTTSHelper`, behind `protected`) serves the helper download.
+
+Tests: `internal/web/tts_test.go`, `internal/core/ttsservice_test.go`, and flows `91-tts`, `92-tts-names` and `96-tts-auras` ([testing.md](testing.md)).
+
+## Copy as a Tabletop Simulator army list
+
+An icon button (two sheets, `tts_button` in `partials/tts.gohtml`, 44 px on a phone) sits in the row of the company's name on My Company, on another
+player's company page (read only, also a frozen campaign) and, because it is the same page, in the live match. Not drawn for a company without units.
+Its tooltip is plain CSS (`group-hover` and `group-focus-within`, a `role="tooltip"` span that `aria-describedby` points to; it is outside the company
+component, so the `has-tip` machinery does not reach it) with the exact text of [tabletop-simulator.md](tabletop-simulator.md); the `aria-label` is the
+short "Copy as an army list for Tabletop Simulator". It opens a window (`role="dialog" aria-modal`, the window pattern of [frontend.md](frontend.md#windows): `dialog.js` moves the focus in and
+back, Escape and the backdrop close, the body scroll is locked) whose content is fetched by htmx from
+`GET /campaigns/{id}/companies/{company}/tts` (`?live=1` for a company in an open match: the units that are retreated, casualties or absent go in a second
+warband, `core.TTSLiveList`; a match that ended meanwhile gives the plain list). Whoever may open the campaign may ask (`loadCampaign` and `Company`: the
+404 of the company page for a stranger). The handler (`web/tts.go`) calls the minimal `ttsExporter` interface (`core.TTSService`, mocked by `make generate`).
+
+The window: a short title, the three numbered steps (Notebook tab titled `ArmyList`, paste, Spawn Army), a warning "This campaign uses a changed rules file, so
+some unit names may not exist in the mod" when the campaign's vanilla or Battle Companies file is not the shipped default (`customRules`, from
+`CampaignDetail.Rulesets[].Default`), two switches (`tts_switch`: a real `<input type="checkbox" role="switch" class="peer sr-only">`, so the keyboard and
+screen readers have a native control), then the result (`#tts-result`): a read-only monospace `<textarea id="tts-text">`, **Copy to clipboard** and a polite
+live region `#tts-status`, the count line ("15 models + 2 extra figures. Break Point: 7.5 (50% of 15). The mod's own message counts every figure it spawns:
+it will report 17 models") and the notes grouped by kind with their headings (Not in the list, Left out, Shown as, Closest model, Dismounting, Extra figures,
+Second warband), one sentence per unit (core writes the unit's name into each). No model at all: "None of these units has a standard model" and no copy.
+
+The switches (Riders on foot = `foot`, Mounts that fight as figures of their own = `mounts`, both default on, query values 0/1) refresh only `#tts-result`
+(`hx-get` on change, `hx-select="#tts-result"`, `hx-swap="outerHTML"`) so focus stays on the switch. `static/js/tts.js` (in the bundle, no inline handlers)
+adds the remembered values to the first request and the new ones to every switch request (`htmx:configRequest`), keeps them in `localStorage` key `bcm-tts`
+(`{"foot":"1","mounts":"1","rules":"none"}`, every access in try/catch: without storage the defaults apply) and copies with `navigator.clipboard.writeText`, falling back
+to selecting the text and `execCommand('copy')`; when both fail the status says "press Ctrl+C" with the text already selected. The warning alert is
+`.alert-warn` (border `warn`, surface `raised`); the button, the switches and the alert are in `/styleguide`. Flow `91-tts` drives all of it.
+
+### Names block
+
+The names block, "Name and describe the figures", sits below the notes and appears only when there is a list.
+It is a second form (`data-tts-form`, a
+`fieldset` of three radios `rules` = none | short | full, default none (names only), remembered in the same `localStorage` key) refreshes only `#tts-names-result`; the
+list switches refresh `#tts-result` and, through `hx-select-oob="#tts-names-result:outerHTML"`, the names too (the forms are not swapped, so focus stays).
+The result holds a labelled read-only `<textarea id="tts-names-text">` with the ArmyNames JSON (`core.TTSNames` through `ttsExporter.TTSNames`, given the
+export the handler already built, so the list and the names agree, live variant and fallen marker included), **Copy names** with its own polite live region
+`#tts-names-status` (same clipboard and select fallback; `data-tts-copy` names the text area and `data-tts-status` the region), the line "N figures, 9.4 KB of
+24 KB, rule texts: short", and note boxes for `rulesLowered`, `descriptionCut` and `tooLarge` (the last one `.alert-warn`). The changed-rules warning above applies
+to both blocks. Under it four numbered steps (install the helper once with the Saved Objects folder of macOS, Windows and Linux (unverified); paste into a
+Notebook tab titled exactly `ArmyNames`; spawn from `ArmyList`; select the army and press Apply names, Re-apply explained), the link "Download the helper"
+(`GET /tts/helper.zip`, `handleTTSHelper`: `ttshelper.Zip()` through `http.ServeContent` with `ETag`, `application/zip`, `Content-Disposition: attachment`,
+`Cache-Control: public, max-age=3600`, behind `protected`, so an anonymous visitor goes to the login) and a collapsed `<details>` "Show the Lua (fallback,
+unverified)" with a read-only text area (`ttshelper.ShowLua()`) and its own copy button. Flow `92-tts-names` drives it.
+
+### Auras section
+
+The auras section ([`aura-ranges.md`](aura-ranges.md)) is the template `tts_auras`, swap target `#tts-auras`, between the rule-text radios and
+`#tts-names-result`). A form (`data-tts-form`) with: the master switch **Draw aura rings** (`name="auras"`, default on); a fieldset **Kinds of ring**
+with one native checkbox per kind the company has (`name="akind"`, `id="tts-akind-<kind>"`), each row a ring icon (`aura_ring`: the kind's Okabe-Ito colour as the border,
+its first letter B C S E U inside, the enemy kind with the thicker border, so colour is never the only cue), the label and "N rings, radii 3", 6"" from
+`core.AuraSummary` (`TTSAuras`: counted before the limits of 6 per figure and 150 in all, so a ring the limits cut is still counted and its switch (Large rings) stays; the kind shows "no rings drawn with these
+settings" when none is); a fieldset **Which rules** with a switch per group that has at least one ring in the company: Rules that need an action (`adeclared`, default
+on), Rules that need an event (`aconditional`, on), Spells in effect (`acast`), Targeting ranges (`atarget`), Large rings over 12 inches (`alarge`) and Optional rings
+(`aoptional`), all off, each with "adds N rings" (or "N rings" when on). A group with no ring in the company has no switch. Under the form: the totals line
+(`#tts-auras-total`: "16 rings on 7 figures, 1 left out (limit 6 per figure, 150 in all)") and the legend (`dl[data-tts-legend]`: kind, colour name, the sentence of
+`data.auras.kinds`, "thick line" for the enemy kind). With the master switch off only the switch is drawn; a company with no aura at all shows "This company has no aura ranges."
+instead. Query parameters of the dialog route: `auras=1|0`, `akinds=banner,command,...` (the kinds that are on; absent: all), `adeclared`, `aconditional`, `acast`, `atarget`,
+`alarge`, `aoptional` (`1|0`); `ttsAuraSelection` builds the `core.AuraSelection`, which goes to `ttsExporter.TTSAuras` (counts) and to `TTSNamesOptions.Auras` (the payload).
+`tts.js` remembers all of it in `bcm-tts` (the kinds the player switched off as `akoff`, so a kind the next company lacks keeps its setting, and sends `akinds` only when
+one is off) and adds it to every dialog request. The section is swapped on its own (`hx-select="#tts-auras"`) and refreshes the names through `hx-select-oob`; the list
+switches (foot, mounts) refresh `#tts-auras` too, because the figures change. The inputs keep their ids, so htmx gives the focus back after a swap (flow `96-tts-auras`
+presses Space and checks it). The names JSON is **version 2** only when at least one ring is selected, else version 1 (an older helper keeps working); a v2 payload shows
+`#tts-helper-v2` ("Download the helper again ... an older helper says that it is older than the app") inside `#tts-names-result`, the step list tells what the **Rings**,
+**B C S E U** and **Redraw** buttons of the helper do, and the note kind `aurasLeftOut` is shown as "Aura rings left out". Works for the live variant (a fallen unit has no
+ring), another player's company and the plain list. The ring colours are fixed classes (`.aura-k-banner` ... in `tailwind.css`, the palette of the helper), not theme tokens;
+the rest uses the tokens. Both are in `/styleguide` ("Aura rings and chips").
 
 ## Names and descriptions
 
-The spawner gives each figure the exact line text as Nickname, leaves Description and GMNotes alone and no other script of the mod reads names, so renaming figures is safe. The flow:
+The spawner gives each figure the exact line text as Nickname and leaves Description and GMNotes alone.
+No other script of the mod reads names, so renaming figures is safe.
 
-1. The app's dialog has a second block, "Name and describe the figures": a text area with JSON, **Copy names**, and a download link for the helper. Both texts come from the same switches, so they agree.
-2. In TTS the player pastes the list in the tab `ArmyList` and presses *Spawn Army*; pastes the JSON in a second tab **`ArmyNames`**; drag-selects the army (or not) and presses **Apply names** on the helper object
-   (installed once). A summary appears: `Named 14 of 14 figures`. (A second tab, because the spawner would treat JSON in `ArmyList` as hero lines.)
+The flow for a player:
+
+1. In the app's dialog, the second block "Name and describe the figures" has a text area with JSON, a **Copy names** button and a download link for the helper.
+   Both texts come from the same switches, so they agree.
+2. In TTS, paste the list into the tab `ArmyList` and press *Spawn Army*.
+3. Paste the JSON into a second tab named **`ArmyNames`**.
+   A second tab is needed because the spawner would treat JSON in `ArmyList` as hero lines.
+4. Drag-select the army (or not) and press **Apply names** on the helper object, which is installed once.
+5. A summary appears: `Named 14 of 14 figures`.
 
 ### The `ArmyNames` payload
 
-`(*RuleSet).TTSNames(d, exp, TTSNamesOptions{Rules, Auras}) TTSNamesPayload` (`internal/core/ttsnames.go`, pure; `TTSNamesPayload.JSON()` is compact and deterministic). Rules is `none` (names only, the
-default), `short` or `full`; empty or unknown is `none`.
+`(*RuleSet).TTSNames(d, exp, TTSNamesOptions{Rules, Auras}) TTSNamesPayload` lives in `internal/core/ttsnames.go`.
+It is pure, and `TTSNamesPayload.JSON()` is compact and deterministic.
+`Rules` is `none` (names only, the default), `short` or `full`; empty or unknown reads as `none`.
 
 ```json
 {"v":1,"company":"The Last Alliance","figures":[
@@ -143,72 +294,211 @@ default), `short` or `full`; empty or unknown is `none`.
  {"k":"fell warg:","l":"Fell Warg: ","u":124,"x":"mount","o":0,"n":"[b]Grub[/b]'s Fell Warg","d":"..."} ]}
 ```
 
-- `figures` has **one entry per figure, in spawn order** (the lines of the export in warband order, each line expanded `Count` times; a merged `3x` line gives three entries). `k` is the folded key (lower case,
-  single spaces), `l` the nickname the spawner gives (the list line without brackets and count), `u` the company unit id, `x` the extra kind (`""`, `foot`, `mount`), `o` the 0-based occurrence among entries with the
-  same `k`, `n` the Nickname, `d` the Description. The payload also carries `Rules`, `Size` and `Notes` (not in the JSON): `rulesLowered`, `descriptionCut`, `tooLarge`, `aurasLeftOut`.
-- `n` is `[b]` + unit title + `[/b]` + ` (points)`; a promoted hero keeps its own name; a stand-in adds ` ~ as Captain of Dale`; an on-foot figure adds ` (on foot)`; a mount is `<owner>'s <mount>`; a creature is
-  `[b]Owner[/b]'s Creature (points)`. **Named unit upgrades** (Hearthguard, Helmingas, Lorien Guard...: the reserved options of the vanilla file and the options a unit alias selects) get no line of their own and name
-  the unit (a Khazad Guard with Hearthguard is `[b]Hearthguard[/b] (12)`); their stat changes and granted rules are in the profile (`TestTTSNamesUnitUpgrades`).
-- `d` is TTS rich text, the same for every rule-text level (the level only changes the Rules texts):
-  1. Header in italic, parts joined with ` · `: role and path (`Leader · Path of the Tactician`, `Warrior`, `Warrior · On Their Own Path`), `on foot` for a rider on foot; a creature is `Creature of <owner>`, a mount
-     `Mount of <owner>`. Level and XP are not shown. A fallen unit of a live list starts with the red `Fallen` line.
-  2. A stat table of two lines (bold names Mv FV SV S D A W C I, then the values; cells joined with ` | ` and padded with spaces so the columns line up in the proportional tooltip font). Better values are green
-     `44BA26`, worse red `E03C31` (inverted for `+` stats). Creatures and mounts use the same table.
-  3. For heroes `[00CCFF]Might 1  Will 1  Fate 1[-]`.
-  4. Sections, one line each and only when not empty: `Mount:`, `Wargear:` (items without a slot), `Equipment:` (items that take a slot), `Heroic actions:` (only the path's), `Rules:`, `Injuries:` (red).
-  Text from users and rules is made safe: `[` and `]` become `(` and `)`, control characters go.
-- **Width-aware padding** (`internal/core/ttsfont.go`): each column is as wide as its widest cell and each cell gets `round((width - cellWidth) / 5)` spaces (a space is 5 px) before the ` | `. The widths are
-  measurements in the game (bold M 16, v 10, F 10, V 12, S 10, D 13, A 12, W 17, C 10, I 5; regular digits 11, `+` 10, `"` 7, space 5, `|` 6; unknown characters 8 regular and 12 bold). A test checks that for all stat
-  tables of the 37 companies the bars of the two lines are at most 3 px apart by the model.
-- **Rule texts** are the card's definitions cut to the first sentence, at most 160 characters (`short`), `none` or `full`. The payload limit is **24 KB** (about 230-300 characters of description per figure with
-  names only, 380-800 with short texts; JSON escaping adds about 5%); above it the generator lowers `full`, then `short`, to `none` and says so. A description is capped at 900 characters (cut with `...`). The
-  Notebook's own limit is undocumented; the helper accepts up to 262144 characters.
-- **Payload version.** `v` is 2 only when at least one aura ring is written, otherwise the payload is the v1 shape byte for byte (`TestTTSNamesV1StaysByteIdentical`).
+`figures` has **one entry per figure, in spawn order**.
+That is the lines of the export in warband order, each line expanded `Count` times, so a merged `3x` line gives three entries.
+
+| Key | Meaning |
+|---|---|
+| `k` | the folded key (lower case, single spaces) |
+| `l` | the nickname the spawner gives (the list line without brackets and count) |
+| `u` | the company unit id |
+| `x` | the extra kind: `""`, `foot` or `mount` |
+| `o` | the 0-based occurrence among entries with the same `k` |
+| `n` | the Nickname |
+| `d` | the Description |
+
+The payload also carries `Rules`, `Size` and `Notes`, which are not in the JSON.
+The note kinds are `rulesLowered`, `descriptionCut`, `tooLarge` and `aurasLeftOut`.
+
+#### Nicknames
+
+`n` is `[b]` + unit title + `[/b]` + ` (points)`, with these variations:
+
+- a promoted hero keeps its own name;
+- a stand-in adds ` ~ as Captain of Dale`;
+- an on-foot figure adds ` (on foot)`;
+- a mount is `<owner>'s <mount>`;
+- a creature is `[b]Owner[/b]'s Creature (points)`.
+
+**Named unit upgrades** (Hearthguard, Helmingas, Lorien Guard...) get no line of their own and name the unit.
+They are the reserved options of the vanilla file and the options a unit alias selects.
+A Khazad Guard with Hearthguard is `[b]Hearthguard[/b] (12)`.
+Their stat changes and granted rules are in the profile (`TestTTSNamesUnitUpgrades`).
+
+#### Descriptions
+
+`d` is TTS rich text, the same for every rule-text level (the level only changes the Rules texts).
+It has these parts:
+
+1. A header in italic, with parts joined by ` · `:
+   - role and path (`Leader · Path of the Tactician`, `Warrior`, `Warrior · On Their Own Path`);
+   - `on foot` for a rider on foot;
+   - `Creature of <owner>` for a creature, `Mount of <owner>` for a mount.
+
+   Level and XP are not shown.
+   A fallen unit of a live list starts with the red `Fallen` line.
+2. A stat table of two lines: bold names Mv FV SV S D A W C I, then the values.
+   Cells are joined with ` | ` and padded with spaces so the columns line up in the proportional tooltip font.
+   Better values are green `44BA26` and worse red `E03C31` (inverted for `+` stats).
+   Creatures and mounts use the same table.
+3. For heroes, `[00CCFF]Might 1  Will 1  Fate 1[-]`.
+4. Sections of one line each, only when not empty: `Mount:`, `Wargear:` (items without a slot), `Equipment:` (items that take a slot), `Heroic actions:` (only the path's), `Rules:`, and `Injuries:` (red).
+
+Text from users and rules is made safe: `[` and `]` become `(` and `)`, and control characters go.
+
+**Width-aware padding** (`internal/core/ttsfont.go`):
+
+- Each column is as wide as its widest cell.
+- Each cell gets `round((width - cellWidth) / 5)` spaces (a space is 5 px) before the ` | `.
+- The widths are measurements in the game: bold M 16, v 10, F 10, V 12, S 10, D 13, A 12, W 17, C 10, I 5; regular digits 11, `+` 10, `"` 7, space 5, `|` 6; unknown characters 8 regular and 12 bold.
+- A test checks that for all stat tables of the 37 companies the bars of the two lines are at most 3 px apart by the model.
+
+#### Rule texts and size limits
+
+- Rule texts are the card's definitions cut to the first sentence, at most 160 characters (`short`), or `none`, or `full`.
+- The payload limit is **24 KB**.
+  That is about 230-300 characters of description per figure with names only, and 380-800 with short texts.
+  JSON escaping adds about 5%.
+- Above the limit, the generator lowers `full`, then `short`, to `none`, and says so.
+- A description is capped at 900 characters (cut with `...`).
+- The Notebook's own limit is undocumented; the helper accepts up to 262144 characters.
+
+#### Payload version
+
+`v` is 2 only when at least one aura ring is written.
+Otherwise the payload is the version 1 shape byte for byte (`TestTTSNamesV1StaysByteIdentical`).
 
 ### Aura rings in the payload
 
-Spec and classification: [aura-ranges.md](aura-ranges.md). `TTSNamesOptions.Auras` is a `core.AuraSelection` (the zero value writes none; `DefaultAuraSelection()` reads the defaults of `data.auras`).
-Per figure `a:[{"r":3,"k":"banner","w":"a","n":"Banner"}]` (radius in inches, kind id, when: `a` always, `d` declared, `x` conditional, `c` cast, `t` target; labels joined). There is no base size: the helper
-measures the figure's bounds. Rings go to the rider figure of a unit and its on-foot version and to a creature's own figure; never to a mount, a unit of the fallen warband, and of a bundle only the first. Limits,
-in this order: **6 rings per figure** (the kinds in data order, then the smaller radius) and **150 in the payload** (the helper's own hard limits are 6 and 200), then the 24 KB rule: rule texts are lowered first and
-when the payload with rings is still too big the rings are given up (the payload falls back to v1) with the note `aurasLeftOut`. A ring costs about 45 bytes. `RuleSet.CompanyAuraSummary(d, sel)` and
-`TTSService.TTSAuras(ctx, campaignID, companyID, live, opts, sel)` give the dialog the kinds the company has, the rings and radii, the totals and what each switch adds (`AuraSelection` has an `Optional` switch for the Torch).
-Tests: `ttsauras_test.go`, `ttsglue_test.go`. The campaign "Aura parade" of the demo world carries every aura a company can reach ([demo-world.md](demo-world.md#aura-parade)).
+The specification and classification are in [aura-ranges.md](aura-ranges.md).
+
+- `TTSNamesOptions.Auras` is a `core.AuraSelection`.
+  The zero value writes none, and `DefaultAuraSelection()` reads the defaults of `data.auras`.
+- Per figure: `a:[{"r":3,"k":"banner","w":"a","n":"Banner"}]`.
+  The keys are radius in inches, kind id, when (`a` always, `d` declared, `x` conditional, `c` cast, `t` target) and labels joined.
+- There is no base size; the helper measures the figure's bounds.
+- Rings go to the rider figure of a unit and its on-foot version, and to a creature's own figure.
+  They never go to a mount or a unit of the fallen warband, and a bundle gets them only on the first figure.
+- Limits, in this order:
+  1. **6 rings per figure** (the kinds in data order, then the smaller radius);
+  2. **150 in the payload** (the helper's own hard limits are 6 and 200);
+  3. the 24 KB rule: rule texts are lowered first, and if the payload with rings is still too big the rings are given up (the payload falls back to version 1) with the note `aurasLeftOut`.
+
+  A ring costs about 45 bytes.
+- `RuleSet.CompanyAuraSummary(d, sel)` and `TTSService.TTSAuras(ctx, campaignID, companyID, live, opts, sel)` give the dialog the kinds the company has, the rings and radii, the totals and what each switch adds.
+  `AuraSelection` has an `Optional` switch for the Torch.
+
+Tests: `ttsauras_test.go` and `ttsglue_test.go`.
+The demo campaign "Aura parade" carries every aura a company can reach ([demo-world.md](demo-world.md#aura-parade)).
 
 ## The helper
 
-`internal/core/ttshelper` (pure, no web, no repository):
+`internal/core/ttshelper` is pure: no web, no repository.
 
-- `helper.lua` is the script, embedded with `go:embed`, in the common subset of Lua 5.1 and 5.2 (MoonSharp): no `goto`, integer division, bit operators or `string.pack`. `ttshelper.Script()` returns it and
-  `ShowLua()` is the text of the "Show the Lua" fallback. `SavedObjectJSON()` is the Saved Object (the envelope has the keys of real Saved Objects; the one object is a locked built-in `BlockRectangle` named "BC names
-  helper" with the how-to as Description, the tag `BCHelper` and the script); `PNG()` is the 256x256 icon; `Zip()` holds `BC names helper.json` and `BC names helper.png` with fixed timestamps; `ETag()` serves the download.
-- **Installing.** The player unzips the download into the Saved Objects folder (macOS `~/Library/Tabletop Simulator/Saves/Saved Objects`, Windows `Documents\My Games\Tabletop Simulator\Saves\Saved Objects`, Linux
-  `~/.local/share/Tabletop Simulator/Saves/Saved Objects` (not verified)), then in TTS opens **Objects > Saved Objects** and clicks "BC names helper"; it appears at the pointer and can stay in the menu for every game.
-  Without the file: spawn any block, right-click it, Scripting, paste the Lua, Save & Play, **before** spawning an army (unverified).
-- **Reading.** The tab `ArmyNames` of the pressing player's colour wins, else the first. Errors go to the presser in red: tab missing; invalid JSON ("paste it again; the tab may have been cut at N characters"); `v`
-  unknown ("This helper is older than the app (names format N). Download the helper again from the app."). The helper reads `v` 1 and 2.
-- **Finding the figures.** Candidates are the figures the player selected or, if none, every object on the table, minus the helper and minus objects already tagged `BCNamed`, whose folded Nickname (lower case, single
-  spaces, accented Latin-1 capitals folded too) equals the `k` of some entry. Identical nicknames are grouped; within a group the figures are sorted into **spawn-grid order** (rows by `floor(z / 0.55 + 0.5)`, then x)
-  and paired with the entries in list order. Identical figures are interchangeable, so a player who moved some only gets the names in another order of identical figures, never a wrong name for a different model.
-  Extra on-foot and mount figures have their own keys. States: version 1 names the current state only and says so ("N figures have states").
-- **Setting.** `setName`, `setDescription`, `setGMNotes("bc-unit:<u>")` (`:foot` or `:mount` for extra figures, plus `/<n>` when figures still share the id), `addTag("BCNamed")`. The script never moves, clones or destroys an object.
-- **Buttons.** **Apply names** names only untagged figures ("0 new, 14 already named" the second time); **Re-apply** ignores the tag and finds figures by GM notes first, then by Nickname, so changed data (a new
-  injury) can be sent again. Summary to everybody: green when every figure was named, orange with `Not found: key (n)`, `n more figures than names ... were left alone`, `N figures named like the list were left alone
-  (not selected)`; with no match at all it prints the first three Nicknames on the table.
-- **Rings.** One closed line of 48 segments (49 points) per ring with `Object.setVectorLines`, in the figure's local space, so it moves with it. Radius `r + base - 0.0225` where base is `max(size.x, size.z) / 2` of
-  `getBoundsNormalized()` (the mod's own circle measures the same); 1 inch = 1 world unit; x, y, z and the thickness are divided by `getScale().x`. Thickness 0.045 (enemy 0.06), local height `0.1 + 0.015 * kind index`,
-  a second ring of the same radius on a figure is 0.03 larger. Colours (Okabe-Ito): banner `F0E442`, command `E69F00`, support `56B4E9`, enemy `D55E00`, utility `CC79A7`.
-  `setVectorLines` replaces all lines, so the helper reads `getVectorLines()`, drops its own lines (a kind's colour and thickness times the scale), appends the new ones and sets the result; the mod's own green circle
-  stays. If the lines cannot be read it overwrites and says so once. The helper keeps `guid -> rings` and saves it with the game (`onSave`, with the on/off state, the hidden kinds and the payload palette);
-  `onLoad` redraws 3 seconds later (the mod's figure scripts clear their lines at 2 seconds); a state change moves the entry to the new GUID; a destroyed figure drops it. Buttons: **Rings: on/off**, **Redraw**, and one
-  coloured button per kind (B C S E U). Message: `Rings drawn for 14 figures (31 rings).`
-- **Tests** (no game, no `lua` binary): `internal/core/ttshelper/*_test.go` run the script in gopher-lua (`github.com/yuin/gopher-lua`, test-only) against a fake TTS API (`ttshelper/ttsfake`) and a simulation of the
-  spawner's grid; fixtures `tests/tts/rohan_list.txt`, `tests/tts/rohan_names.json` and `tests/tts/rohan_names_v2.json`. A lint test bans the unsupported Lua forms and the functions that move, clone, rescale or destroy
-  objects. `internal/core/ttsglue_test.go` feeds the real `TTSList` and `TTSNames` output of all 37 companies (also with every unit doubled so lines merge, with mount figures, and a live list with a fallen
-  second warband) through the helper: every figure named exactly once and in the right figure, nothing unmatched, a second Apply names nothing, Re-apply renames all. What the fake cannot show (MoonSharp
-  differences, the real API) is checked in the game.
+- `helper.lua` is the script, embedded with `go:embed`.
+  It uses the common subset of Lua 5.1 and 5.2 (MoonSharp), so no `goto`, integer division, bit operators or `string.pack`.
+- `ttshelper.Script()` returns the script, and `ShowLua()` is the text of the "Show the Lua" fallback.
+- `SavedObjectJSON()` is the Saved Object.
+  Its envelope has the keys of real Saved Objects.
+  The one object is a locked built-in `BlockRectangle` named "BC names helper", with the how-to as Description, the tag `BCHelper` and the script.
+- `PNG()` is the 256x256 icon.
+- `Zip()` holds `BC names helper.json` and `BC names helper.png` with fixed timestamps.
+- `ETag()` serves the download.
 
-## Design alternatives not taken
+### Installing the helper
+
+1. Unzip the download into the Saved Objects folder:
+   - macOS: `~/Library/Tabletop Simulator/Saves/Saved Objects`
+   - Windows: `Documents\My Games\Tabletop Simulator\Saves\Saved Objects`
+   - Linux: `~/.local/share/Tabletop Simulator/Saves/Saved Objects` (not verified)
+2. In TTS, open **Objects > Saved Objects** and click "BC names helper".
+3. The helper appears at the pointer. It can stay in the menu for every game.
+
+Without the file (unverified): spawn any block, right-click it, choose Scripting, paste the Lua and Save & Play, **before** spawning an army.
+
+### Reading the names
+
+- The tab `ArmyNames` of the pressing player's colour wins; otherwise the first tab is used.
+- Errors go to the presser in red:
+  - the tab is missing;
+  - invalid JSON ("paste it again; the tab may have been cut at N characters");
+  - an unknown `v` ("This helper is older than the app (names format N). Download the helper again from the app.").
+- The helper reads `v` 1 and 2.
+
+### Finding the figures
+
+Candidates are the figures the player selected or, if none, every object on the table.
+The helper itself and objects already tagged `BCNamed` are left out.
+A candidate matches when its folded Nickname equals the `k` of some entry.
+Folding means lower case, single spaces, and accented Latin-1 capitals folded too.
+
+Identical nicknames are grouped.
+Within a group the figures are sorted into **spawn-grid order** (rows by `floor(z / 0.55 + 0.5)`, then x) and paired with the entries in list order.
+Identical figures are interchangeable.
+So a player who moved some figures only gets the names in another order of identical figures, never a wrong name for a different model.
+
+Extra on-foot and mount figures have their own keys.
+Version 1 names the current state only and says so ("N figures have states").
+
+### Setting names
+
+The helper calls `setName`, `setDescription`, `setGMNotes("bc-unit:<u>")` and `addTag("BCNamed")`.
+The GM notes get `:foot` or `:mount` for extra figures, plus `/<n>` when figures still share the id.
+The script never moves, clones or destroys an object.
+
+### Buttons
+
+- **Apply names** names only untagged figures ("0 new, 14 already named" the second time).
+- **Re-apply** ignores the tag and finds figures by GM notes first, then by Nickname, so changed data (a new injury) can be sent again.
+
+The summary goes to everybody:
+
+- green when every figure was named;
+- orange with `Not found: key (n)`, `n more figures than names ... were left alone`, or `N figures named like the list were left alone (not selected)`;
+- with no match at all, the first three Nicknames on the table.
+
+### Rings
+
+Each ring is one closed line of 48 segments (49 points) set with `Object.setVectorLines` in the figure's local space, so it moves with the figure.
+
+- Radius: `r + base - 0.0225`, where base is `max(size.x, size.z) / 2` of `getBoundsNormalized()` (the mod's own circle measures the same).
+- Scale: 1 inch = 1 world unit; x, y, z and the thickness are divided by `getScale().x`.
+- Thickness 0.045 (enemy 0.06); local height `0.1 + 0.015 * kind index`; a second ring of the same radius on a figure is 0.03 larger.
+- Colours (Okabe-Ito): banner `F0E442`, command `E69F00`, support `56B4E9`, enemy `D55E00`, utility `CC79A7`.
+
+`setVectorLines` replaces all lines.
+So the helper reads `getVectorLines()`, drops its own lines (a kind's colour and thickness times the scale), appends the new ones and sets the result.
+The mod's own green circle stays.
+If the lines cannot be read, the helper overwrites and says so once.
+
+The helper keeps `guid -> rings` and saves it with the game (`onSave`), with the on/off state, the hidden kinds and the payload palette.
+
+- `onLoad` redraws 3 seconds later, because the mod's figure scripts clear their lines at 2 seconds.
+- A state change moves the entry to the new GUID.
+- A destroyed figure drops its entry.
+
+Buttons are **Rings: on/off**, **Redraw**, and one coloured button per kind (B C S E U).
+The message reads `Rings drawn for 14 figures (31 rings).`
+
+### Helper tests
+
+The tests need no game and no `lua` binary.
+`internal/core/ttshelper/*_test.go` run the script in gopher-lua (`github.com/yuin/gopher-lua`, test-only) against a fake TTS API (`ttshelper/ttsfake`) and a simulation of the spawner's grid.
+The fixtures are `tests/tts/rohan_list.txt`, `tests/tts/rohan_names.json` and `tests/tts/rohan_names_v2.json`.
+A lint test bans the unsupported Lua forms and the functions that move, clone, rescale or destroy objects.
+
+`internal/core/ttsglue_test.go` feeds the real `TTSList` and `TTSNames` output of all 37 companies through the helper.
+It also covers every unit doubled so lines merge, mount figures, and a live list with a fallen second warband.
+It checks that:
+
+- every figure is named exactly once and in the right figure;
+- nothing is unmatched;
+- a second Apply names nothing;
+- Re-apply renames all.
+
+What the fake cannot show (MoonSharp differences, the real API) is checked in the game.
+
+## Why not other approaches
 
 | Alternative | Why not |
 |---|---|
@@ -221,7 +511,7 @@ Tests: `ttsauras_test.go`, `ttsglue_test.go`. The campaign "Aura parade" of the 
 
 ## What remains to verify
 
-These depend on the game itself and are checked by playing:
+These depend on the game itself, so they are checked by playing:
 
 1. **Same spawner?** In a fresh game with the current Workshop version, right-click the *Spawn Army* object, Scripting; check it reads the tab `ArmyList` and compares names as described.
 2. **Does the output spawn?** Paste the dialog's list of three companies, press Spawn Army, and look for `Could not find:` lines and the model count message.
@@ -231,5 +521,11 @@ These depend on the game itself and are checked by playing:
 5. **Rings:** the scale against the mod's own circle, the wipe at load, the merge with the mod's lines, a state change, pickup/rotate/scale, and the layout of the new buttons on the block face
    ([aura-ranges.md](aura-ranges.md)).
 
-Known risks: the mod changes its naming or GUIDs (the helper then reports "not found" and names nothing; it never breaks the army), the Notebook has an unknown size limit, MoonSharp differs from
-gopher-lua in details (strings, `#`, error text), states lose names, and two armies with the same figures (the selection guard).
+Known risks:
+
+- The mod changes its naming or GUIDs.
+  The helper then reports "not found" and names nothing; it never breaks the army.
+- The Notebook has an unknown size limit.
+- MoonSharp differs from gopher-lua in details (strings, `#`, error text).
+- States lose names.
+- Two armies have the same figures (the selection guard).

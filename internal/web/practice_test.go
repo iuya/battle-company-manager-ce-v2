@@ -12,7 +12,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// Practice matches (docs/practice-match-spec.md): the flag comes from the creation form only, the badge and banner mark the match, and
+// Practice matches (docs/practice-matches.md): the flag comes from the creation form only, the badge and banner mark the match, and
 // the aftermath is the short "nothing to roll" state.
 
 func practiceMatch(ended bool) core.Match {

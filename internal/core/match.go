@@ -402,7 +402,7 @@ func (m Match) NoAccessReason() string {
 
 // SamePlayer says that one player owns several companies of a match (several companies per player are allowed in a campaign). It is a
 // note for the match setup and the match page, never a refusal: ValidateSides allows it, a player's own companies may share a side or
-// face each other (docs/multi-company-spec.md, decision 2).
+// face each other (docs/multi-company.md).
 type SamePlayer struct {
 	OwnerID int64
 	Owner   string

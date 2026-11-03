@@ -90,7 +90,7 @@
   <h2 id="units" class="!text-xl pt-4" data-heading="units" x-show="catShows($el.dataset.heading)">Units <span class="text-base font-normal text-muted">{{len .Units}} cards, one for each unit the companies recruit</span></h2>
   {{range .Units}}
   <article id="{{.ID}}" tabindex="-1" data-name="{{.Name}}" data-aliases="{{with .Base}}{{.}}|{{end}}{{join .Companies "|"}}" data-category="units" data-unit x-show="shows($el)" :class="hl === $el.id && 'term-hl'" class="term card unit unit-{{if .Preview.HasHeroStats}}hero{{else}}warrior{{end}} flex scroll-mt-20 flex-col gap-2 !p-4 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
-    {{/* The new unit card, as a static reference (docs/frontend.md, "Unit card"): the title plate (tinted for a hero), the datasheet profile, the body and the keyword foot; no trackers, experience or rename. */}}
+    {{/* The new unit card, as a static reference (docs/frontend-company.md, "The unit card"): the title plate (tinted for a hero), the datasheet profile, the body and the keyword foot; no trackers, experience or rename. */}}
     <header class="unit-head flex items-start gap-2 [&_.kind-icon]:bg-surface">
       {{template "kind_icon" .Preview.Kind}}
       <div class="min-w-0 flex-1">

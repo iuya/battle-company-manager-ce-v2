@@ -1,4 +1,4 @@
-// Open the last campaign directly (docs/auth.md, "Last campaign"; docs/multi-company-spec.md, section 8). In the demo world: a fresh
+// Open the last campaign directly (docs/auth.md, "Last campaign"; docs/multi-company.md). In the demo world: a fresh
 // browser sees the campaign list at "/", opening a campaign makes "/" land on it, opening a second company makes the My Company alias
 // land on that one, the brand link and the "Campaigns" links reach the list (which never redirects), and a cookie that is another
 // user's, malformed, finished or for a campaign the user cannot open is ignored, cleared, and the list shows.

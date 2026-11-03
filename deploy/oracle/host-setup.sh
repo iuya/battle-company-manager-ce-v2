@@ -10,7 +10,7 @@
 # What it does: Docker (Ubuntu packages) with the compose plugin, the host firewall rules for 80/443 that Oracle's Ubuntu images need,
 # a rule that keeps containers away from the instance metadata service, 1 GiB swap, Docker log rotation, automatic security updates and
 # the optional Object Storage off-site hook, and cosign (pinned version, checksum-verified download) so that the updater verifies the signature
-# of every release image before it starts it (REQUIRE_SIGNATURE=0 leaves that off; docs/operations.md, "Signed images"). It creates no user, key
+# of every release image before it starts it (REQUIRE_SIGNATURE=0 leaves that off; docs/releases.md, "Signed images"). It creates no user, key
 # or secret; the instance principal (not keys) reaches Object Storage. Tested on Ubuntu 26.04 (Python 3.14, Docker 29, compose 2.40, Ubuntu packages).
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "run as root" >&2; exit 2; }

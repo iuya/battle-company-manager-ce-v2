@@ -4,7 +4,7 @@
 #   CONFIRM=yes scripts/restore.sh backups/bcm-....dump        (make restore FILE=... CONFIRM=yes)
 #
 # Stop the app first (docker compose stop app, or the server process): it keeps connections and writes. Take a fresh backup
-# before restoring over live data. With PGDUMP_LOCAL=1 the host's pg_restore and DATABASE_URL are used. See docs/operations.md.
+# before restoring over live data. With PGDUMP_LOCAL=1 the host's pg_restore and DATABASE_URL are used. See docs/backup-restore.md.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

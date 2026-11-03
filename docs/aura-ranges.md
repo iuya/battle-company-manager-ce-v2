@@ -1,43 +1,83 @@
 # Aura ranges
 
-How the ranges of auras (a banner, Stand Fast, "within 3" of this model" rules) are classified, drawn as rings around the miniatures in Tabletop Simulator (TTS) and shown as chips on the unit
-cards. This page is the contract between the definitions (the `auras` of rules, items and powers), core (`UnitAuras`, `TTSNames` v2), the Lua helper and the web layer. Related:
-[tabletop-simulator.md](tabletop-simulator.md) (list, names payload, helper), [unit-keywords.md](unit-keywords.md) (chips, rule targets), [definitions.md](definitions.md) (rules data),
-[frontend.md](frontend.md#copy-as-a-tabletop-simulator-army-list) (dialog and chips).
+An aura is a ring of fixed radius around a miniature (a banner, Stand Fast, "within 3" of this model" rules).
+This page explains how the app classifies auras, draws them as rings around miniatures in Tabletop Simulator (TTS) and shows them as chips on the unit cards.
+It is the contract between the definitions (the `auras` of rules, items and powers), core (`UnitAuras`, `TTSNames` version 2), the Lua helper and the web layer.
 
-Status: built end to end (data, core, payload, helper, dialog, card chips, tests). What is not verified is the drawing in the game itself; see [Smoke tests](#smoke-tests-in-tabletop-simulator).
+Related: [tabletop-simulator.md](tabletop-simulator.md) (list, names payload, helper), [unit-keywords.md](unit-keywords.md) (chips, rule targets), [definitions.md](definitions.md) (rules data), [tabletop-simulator.md](tabletop-simulator.md#copy-as-a-tabletop-simulator-army-list) (dialog), [Aura chips](#aura-chips-on-the-unit-cards) (cards).
+
+The whole path is built and tested: data, core, payload, helper, dialog, card chips.
+What no test can show is how the rings look in the game itself; see [Smoke tests](#smoke-tests-in-tabletop-simulator).
+
+Contents:
+
+- [Summary](#summary)
+- [What is an aura in this app's data](#what-is-an-aura-in-this-apps-data)
+- [Drawing it in Tabletop Simulator](#drawing-it-in-tabletop-simulator)
+- [Design](#design)
+- [Smoke tests](#smoke-tests-in-tabletop-simulator)
+- [Defaults](#defaults)
 
 ## Summary
 
-- An **aura** is a fixed radius, in inches from the edge of the bearer's base, inside which models are affected or eligible by a rule or an item the bearer has (a banner, a Hero's Stand Fast, "friendly
-  models within 3" of this Hero ..."). Not an aura: a weapon's range, "choose a model in the same combat", a radius around somebody else (the rule's receiver side), around an objective or a target.
-- **Scale: 1 inch = 1.0 TTS world unit** (high confidence). A ring is a TTS vector line (`setVectorLines`) in the figure's own space, so it moves, turns and is picked up with the figure with no tracking code.
-  This is how the Age of Sigmar workshop table draws its aura rings and how the FTC mod's own range circle works.
-- The data is a curated table of `auras` on the rules, items and powers that draw them (curator-owned); core turns it into `[]Aura` per unit (`RuleSet.UnitAuras`); the same list feeds three consumers:
-  the unit cards (a chip "Aura 6"" with tooltip), the **Auras** section of the TTS dialog (kinds, legend, switches) and the names payload (**version 2**, field `a` per figure), which the helper draws.
-- One hazard: the FTC mod's own script on every figure **wipes all vector lines of the figure** (it calls `setVectorLines({})` two seconds after load, and on its hot keys). The helper therefore
-  (re)draws after that, merges with the lines that exist and offers a Redraw button.
+- An **aura** is a fixed radius, in inches from the edge of the bearer's base.
+  Inside it, models are affected by, or eligible for, a rule or an item the bearer has.
+  Examples: a banner, a Hero's Stand Fast, "friendly models within 3" of this Hero".
+- These are **not** auras: a weapon's range, "choose a model in the same combat", and a radius around somebody else (the receiver side of a rule), an objective or a target.
+- **Scale: 1 inch = 1.0 TTS world unit** (high confidence).
+- A ring is a TTS vector line (`setVectorLines`) in the figure's own space, so it moves, turns and is picked up with the figure and needs no tracking code.
+  The Age of Sigmar workshop table draws its aura rings this way, and so does the FTC mod's own range circle.
+- The data is a curated table of `auras` on the rules, items and powers that draw them (curator-owned).
+  Core turns it into `[]Aura` per unit (`RuleSet.UnitAuras`).
+  The same list feeds three consumers:
+  1. the unit cards (a chip "Aura 6"" with a tooltip);
+  2. the **Auras** section of the TTS dialog (kinds, legend, switches);
+  3. the names payload (**version 2**, field `a` per figure), which the helper draws.
+- One hazard: the FTC mod's own script on every figure **wipes all vector lines of the figure**.
+  It calls `setVectorLines({})` two seconds after load, and on its hot keys.
+  So the helper draws after that, merges with the lines that exist and offers a Redraw button.
 
 ## What is an aura in this app's data
 
-Most special rules that mention a range belong to **named characters** (Gandalf, Thranduil...) that no Battle Company unit has; they are out of scope until a company can field the character, and the
-validator lists them as `unreachable`, not as errors. Thirteen reachable vanilla rules are **receiver-side**: the unit gets a bonus "whilst within X" of a named hero, a General or a Hero of its faction
-(King's Guard, Riders of Eorl, Arise, Riders of Rohan!, Pride of Dol Amroth, Loyal to the Captain, Warrior of the Dragon Cult, Favour of the War Chief, Protectors of the White Tree, Everyone has a Price,
-Onwards Men of Esgaroth, The Honour of Lamedon, King's Knights). The ring would have to be on the source, which is not the bearer (and may not exist in a company), so they draw no ring. The Hero
-abilities of the **paths** (the main source of BC auras) are copied as text in the path progression and as keywords. There is no machine-readable radius anywhere in the rulebooks, so the table is curated
-(like the rule targets) with a validator that keeps it honest.
+There is no machine-readable radius anywhere in the rulebooks.
+So the table is curated, like the rule targets, and a validator keeps it honest.
+
+Three groups of rules are not drawn:
+
+- **Named characters** (Gandalf, Thranduil...).
+  Most special rules that mention a range belong to them, and no Battle Company unit has them.
+  They are out of scope until a company can field the character; the validator lists them as `unreachable`, not as errors.
+- **Receiver-side rules.**
+  Thirteen reachable vanilla rules give the unit a bonus "whilst within X" of a named hero, a General or a Hero of its faction.
+  The ring would have to be on the source, which is not the bearer and may not exist in a company, so they draw no ring.
+  The rules are King's Guard, Riders of Eorl, Arise, Riders of Rohan!, Pride of Dol Amroth, Loyal to the Captain, Warrior of the Dragon Cult, Favour of the War Chief, Protectors of the White Tree, Everyone has a Price, Onwards Men of Esgaroth, The Honour of Lamedon and King's Knights.
+
+The Hero abilities of the **paths** are the main source of Battle Company auras.
+The path progression copies them as text and as keywords, and the aura table draws their rings.
 
 ### The criterion
 
 A rule or item gets a **ring** when all of these hold:
 
-1. the radius is a number of inches written in the rule text, measured from the bearer (rulebook "Measuring": between the closest parts of the bases, so the ring is drawn at the radius **plus the bearer's base radius**);
-2. the radius is centred on the bearer (not on a target, an objective, a marker, the table edge, or another model);
-3. it decides which models are affected or eligible (everything in the area, or the candidates for a trigger).
+1. The radius is a number of inches written in the rule text, measured from the bearer.
+   The rulebook ("Measuring") measures between the closest parts of the bases, so the ring is drawn at the radius **plus the bearer's base radius**.
+2. The radius is centred on the bearer, not on a target, an objective, a marker, the table edge or another model.
+3. It decides which models are affected or eligible: everything in the area, or the candidates for a trigger.
 
-Not rings: line of sight and engagement ("in the same combat", "Supporting"), base contact, weapon ranges, "up to its Move Value", Control Zone (1", every model), and anything with no number. **Line of sight**
-does not stop a ring: the ring shows the radius and the tooltip says "needs line of sight". **Bearer state** (alive, standing) does not change the radius: a figure removed from the table takes its ring with it, and the live
-list's fallen units get no ring.
+These never get a ring:
+
+- line of sight and engagement ("in the same combat", "Supporting");
+- base contact and weapon ranges;
+- "up to its Move Value";
+- the Control Zone (1", every model);
+- anything with no number.
+
+Two conditions do not change a ring:
+
+- **Line of sight** does not stop a ring.
+  The ring shows the radius and the tooltip says "needs line of sight".
+- **Bearer state** (alive, standing) does not change the radius.
+  A figure removed from the table takes its ring with it, and the live list's fallen units get no ring.
 
 ### Fields of an aura
 
@@ -54,7 +94,8 @@ list's fallen units get no ring.
 
 ### Rings
 
-"Source" is the card text the player knows. `D` is the default in the dialog.
+Each row names its "Source" (the card text the player knows).
+`D` is the default in the dialog.
 
 **Items (the unit carries the item; class from the item annotations)**
 
@@ -149,34 +190,66 @@ Rings of the same kind and radius on one figure merge into one ring with the lab
   `Global.setVectorLines` takes world positions. `getVectorLines()` returns the current lines. The call **replaces every line of the object**; there is no add.
 - A line is a child of the object: it moves, turns and lifts with it with no script running. Points scale with the object, so a figure scaled 1.5 needs `points / scale` and `thickness / scale` (the FTC mod's own firing-arc script divides by `getScale().x` for the same reason).
 - Events a script can use: `onObjectPickUp`, `onObjectDrop`, `onObjectDestroy`, `onObjectSpawn`, `onObjectStateChange(object, old_state_guid)`.
-- Rejected alternatives: **decals** (flat textures, no thickness or colour variation); **custom tiles** or child objects (must be moved with the figure: collisions and physics); **XML UI** (not for circles on the table); `Global.setVectorLines` with a tracking loop (needs a timer per figure, drifts, lags).
+- Alternatives that do not work as well:
+  - **decals**: flat textures with no thickness or colour variation;
+  - **custom tiles** or child objects: they must be moved with the figure, which brings collisions and physics;
+  - **XML UI**: not meant for circles on the table;
+  - `Global.setVectorLines` with a tracking loop: it needs a timer per figure, drifts and lags.
 - Cost: a ring of 48 segments is 49 points; the FTC mod puts one such circle on each of its 1605 bag figures. Drawing is a one-off cost per press of a button; the helper draws in chunks of 10 figures per frame.
 
 ### What the installed mods show
 
-1. **FTC mod, the circle on each figure** (script on most bag models): numpad 1 and 2 step a ring through `{0,1,2,3,4,5,6,8,10,12,18,24}` inches, numpad 3 shows or hides it. Its comment says "inches measured
-   **from the edge of the base**" and the code is `radius = distance + baseOffset` with `baseOffset = max(bounds.size.x, bounds.size.z) / 2` from `getBounds()`, no conversion factor. Colour `{0,0.8,0.4}`, 64 steps, thickness
-   0.05, local height 0.1. **It calls `self.setVectorLines({})` two seconds after load and whenever the ring is hidden or stepped**: every aura drawn on the same figure is wiped by it.
+1. **FTC mod, the circle on each figure** (a script on most bag models).
+   - Numpad 1 and 2 step a ring through `{0,1,2,3,4,5,6,8,10,12,18,24}` inches; numpad 3 shows or hides it.
+   - Its comment says "inches measured **from the edge of the base**".
+     The code is `radius = distance + baseOffset` with `baseOffset = max(bounds.size.x, bounds.size.z) / 2` from `getBounds()`, with no conversion factor.
+   - Colour `{0,0.8,0.4}`, 64 steps, thickness 0.05, local height 0.1.
+   - **It calls `self.setVectorLines({})` two seconds after load and whenever the ring is hidden or stepped.**
+     Every aura drawn on the same figure is wiped by it.
 2. **FTC spawner:** figures are laid out 1.1 apart, which for 25 mm bases (0.98") is base contact plus a hair.
 3. **AoS coherency tool** (a locked block with an Aura panel): converts base sizes in mm to world units with `0.0393701`, draws rings on the model itself with `setVectorLines` at `radius + base semi-axis - half the
    line width`, points divided by the model's scale, ring list kept on the model so it survives save and load. Only the technique is shared; the code here is our own.
 
 ### Scale
 
-**1 inch = 1.0 world unit.** Evidence: the FTC range circle adds `distance` to a half-size taken from `getBounds()` with no factor and is labelled inches; its firing-arc script says "TTS units (inch)"; the AoS tool
-converts millimetres to world units with the mm-to-inch constant; the FTC spawner spaces 25 mm bases 1.1 apart. Confidence is high (about 95%) but not yet seen in the game (smoke test 1). The mesh bounds are the base plus
-any overhang (weapons, wings): the FTC circle takes the same value, so our rings agree with the mod's own circle. The app sends no base size; the helper measures the bounds itself.
+**1 inch = 1.0 world unit.**
+
+Evidence:
+
+- the FTC range circle adds `distance` to a half-size taken from `getBounds()` with no factor, and is labelled inches;
+- its firing-arc script says "TTS units (inch)";
+- the AoS tool converts millimetres to world units with the mm-to-inch constant;
+- the FTC spawner spaces 25 mm bases 1.1 apart.
+
+Confidence is high (about 95%) but the scale has not been seen in the game yet (smoke test 1).
+
+The mesh bounds are the base plus any overhang (weapons, wings).
+The FTC circle takes the same value, so our rings agree with the mod's own circle.
+The app sends no base size; the helper measures the bounds itself.
 
 ## Design
 
 ### Data
 
-Curated `auras` on the rules, items and magic powers that draw them (several where a thing draws several rings: Enchanting Song, War Horn) in the lean Battle Companies file, plus the top-level `auras {kinds, groups}`
-vocabulary tables; the schema and the curator checks are described in [definitions.md](definitions.md). A ring has `radius`, `kind`, `affects`, `when`, `los`, `keywords`, `bearer`, `replaces`, a one-sentence `tip` and the
-glossary `concept` its chip opens. The working list of what was considered and left out (and why) is `tools/data/aura_audit.json`. Checks: every named source exists, every radius appears as `N"` in the text of its source,
-kinds and group defaults are exactly the vocabulary, ids are unique, and every rule, item, path rule or power reachable by a Battle Companies unit whose text matches a range pattern is either a ring, listed as
-excluded with a reason, or listed as `unreachable` (so a new company that can field a character fails the check). Tests: `TestAuraRadiiInRuleText` and the golden `testdata/auras_golden.txt` (every unit the 37 companies
-can have, a hero on each path with every rule unlocked, and each company hero upgrade; `go test ./internal/core -run UnitAurasAll -update-auras` rewrites it).
+The lean Battle Companies file carries curated `auras` on the rules, items and magic powers that draw them.
+A thing that draws several rings (Enchanting Song, War Horn) has several entries.
+The top-level `auras {kinds, groups}` tables hold the vocabulary.
+The schema and the curator checks are described in [definitions.md](definitions.md).
+
+A ring has these properties: `radius`, `kind`, `affects`, `when`, `los`, `keywords`, `bearer`, `replaces`, a one-sentence `tip`, and the glossary `concept` its chip opens.
+The list of what was considered and left out, with reasons, is `tools/data/aura_audit.json`.
+
+The validator checks that:
+
+- every named source exists;
+- every radius appears as `N"` in the text of its source;
+- kinds and group defaults are exactly the vocabulary, and ids are unique;
+- every rule, item, path rule or power that a Battle Companies unit can reach, and whose text matches a range pattern, is a ring, is listed as excluded with a reason, or is listed as `unreachable`.
+  A new company that can field a character therefore fails the check.
+
+Tests: `TestAuraRadiiInRuleText` and the golden file `testdata/auras_golden.txt`.
+The golden covers every unit the 37 companies can have, a hero on each path with every rule unlocked, and each company hero upgrade.
+Rewrite it with `go test ./internal/core -run UnitAurasAll -update-auras`.
 
 ### Core
 
@@ -202,63 +275,167 @@ func (r *RuleSet) CreatureAuras(c CompanyCreature) []Aura
 func (r *RuleSet) CompanyAuraSummary(d CompanyDetail, sel AuraSelection) AuraSummary
 ```
 
-`UnitAuras` is pure over the built `CompanyUnit` and `RuleSet`: item entries match by item name, alias or class on the unit's current equipment; rule and path entries match by name on `Rules` and the unlocked `Path.Rules`
-(never a mount's rule); the `hero` source matches units whose current profile has the Hero type; powers match the unit's known powers; a creature figure matches by the creature's rules. `replaces` is applied before
-merging and the result does not depend on mounted state or live state. `AuraSelection` filters by kind and group **before** the merge (`DefaultAuraSelection()` reads the data defaults). `CompanyUnit.Auras` carries
-the unfiltered list to the cards.
+`UnitAuras` is pure over the built `CompanyUnit` and `RuleSet`.
+It matches entries like this:
 
-`AuraSummary{Kinds, Rings, Figures, LeftOut, Counts, Notes}` is what the dialog shows: per kind that exists in the company its rings and radii (`AuraKindSummary{Kind, Label, Text, RGB, Rings, Radii}`), the totals, and in `Counts`
-how many rings each switch (declared, conditional, cast, target, large, optional) adds (or removes when it is on). Counts come before the limits: a ring the limits cut is still counted and its switch stays.
+- item entries by item name, alias or class on the unit's current equipment;
+- rule and path entries by name on `Rules` and the unlocked `Path.Rules` (never a mount's rule);
+- the `hero` source on units whose current profile has the Hero type;
+- powers on the unit's known powers;
+- a creature figure by the creature's rules.
+
+`replaces` is applied before merging.
+The result does not depend on mounted state or live state.
+
+`AuraSelection` filters by kind and group **before** the merge (`DefaultAuraSelection()` reads the data defaults).
+`CompanyUnit.Auras` carries the unfiltered list to the cards.
+
+`AuraSummary{Kinds, Rings, Figures, LeftOut, Counts, Notes}` is what the dialog shows:
+
+- per kind that exists in the company, its rings and radii (`AuraKindSummary{Kind, Label, Text, RGB, Rings, Radii}`);
+- the totals;
+- in `Counts`, how many rings each switch (declared, conditional, cast, target, large, optional) adds, or removes when it is on.
+
+Counts come before the limits: a ring the limits cut is still counted and its switch stays.
 
 ### The names payload, version 2
 
-`TTSNamesPayload.Version` is 2 only when at least one ring is selected and written; otherwise the payload is the v1 shape byte for byte, so an old helper keeps working. Per figure:
+`TTSNamesPayload.Version` is 2 only when at least one ring is selected and written.
+Otherwise the payload is the version 1 shape byte for byte, so an old helper keeps working.
+Per figure:
 
 ```json
 {"k":"warrior of rohan: banner","l":"Warrior of Rohan: Banner","u":12,"x":"","o":0,"n":"...","d":"...",
  "a":[{"r":3,"k":"banner","w":"a","n":"Banner"}]}
 ```
 
-`a` lists the rings (omitted when none): `r` radius in inches, `k` kind id, `w` when (`a` always, `d` declared, `x` conditional, `c` cast, `t` target), `n` labels joined. The top-level `auras` object (palette, cap) is
-optional and not written by the app; the helper has the same palette built in. Rings attach to the **rider figure** of a unit and its on-foot version, to a creature's own figure, never to a mount or a fallen unit, and
-for a bundle (Iron Shield Bearer + Foe Spear Wielder) only the first figure. Core applies these limits in order: at most **6 rings per figure** (kinds in the data's order, then the smaller radius) and **150** in the payload
-(the helper's own hard limits are 6 and 200), then the 24 KB rule (rule texts lowered first; if still too big the rings are given up and the payload falls back to v1). The note kind is `aurasLeftOut`. The helper accepts `v`
-1 and 2; any other value prints "This helper is older than the app (names format N). Download the helper again from the app."
+`a` lists the rings and is omitted when there are none:
+
+- `r`: radius in inches;
+- `k`: kind id;
+- `w`: when (`a` always, `d` declared, `x` conditional, `c` cast, `t` target);
+- `n`: labels joined.
+
+The top-level `auras` object (palette, cap) is optional and the app does not write it; the helper has the same palette built in.
+
+Which figures get rings:
+
+- the **rider figure** of a unit and its on-foot version;
+- a creature's own figure;
+- never a mount or a fallen unit;
+- for a bundle (Iron Shield Bearer + Foe Spear Wielder), only the first figure.
+
+Core applies these limits in order:
+
+1. at most **6 rings per figure** (kinds in the data's order, then the smaller radius);
+2. at most **150** in the payload (the helper's own hard limits are 6 and 200);
+3. the 24 KB rule: rule texts are lowered first, and if the payload is still too big the rings are given up and it falls back to version 1.
+
+The note kind is `aurasLeftOut`.
+The helper accepts `v` 1 and 2.
+Any other value prints "This helper is older than the app (names format N). Download the helper again from the app."
 
 ### The helper
 
-`internal/core/ttshelper/helper.lua` (Lua 5.1/5.2 common subset). Behaviour:
+The script is `internal/core/ttshelper/helper.lua`, written in the common subset of Lua 5.1 and 5.2.
 
-- **Draw.** *Apply names* and *Re-apply* draw the rings of every figure they name (when rings are on). A ring is one closed line of 48 segments, colour of its kind, thickness `0.045` (enemy `0.06`; the FTC circle is 0.05, so the helper
-  can recognise its own lines), local height `0.1 + 0.015 * kindIndex`, radius `r + baseRadius - 0.0225` (the outer edge of the line lands on the range), x and z divided by `getScale().x`, thickness divided too. Two rings of the same
-  radius on one figure are drawn 0.03 apart.
-- **Merge, not replace.** The helper reads `getVectorLines()` (inside `pcall`), drops its own lines (a kind's colour and thickness), appends the new ones and sets the result. If the lines cannot be read it sets only its own and says
-  once that the mod's circle may disappear.
-- **Remember.** A table `guid -> rings` is saved in `onSave` with the on/off state, the hidden kinds and the payload palette. `onLoad` redraws after **3 seconds** (the figures' own scripts clear their lines after 2).
-  `onObjectStateChange(newObj, oldGuid)` moves the entry to the new GUID and redraws after 3 s; `onObjectDestroy` drops it; figures that are not on the table (in a bag) are skipped.
-- **Buttons** (block face): **Rings: on/off**, **Redraw** (a press restores our lines after the mod's hot keys wiped them) and one small coloured button per kind (B C S E U; the letter is in brackets while the kind is hidden). Each
-  press redraws the remembered figures, 10 per frame. Summary: `Rings drawn for 14 figures (31 rings).` and `N rings left out (limit 6 per figure, 200 in all).`
-- **Never** moves, clones, rescales or destroys objects; it only sets vector lines (and name, description, notes and tag as in [tabletop-simulator.md](tabletop-simulator.md)).
+**Draw.**
+*Apply names* and *Re-apply* draw the rings of every figure they name, when rings are on.
+Each ring is one closed line of 48 segments:
 
-**Palette** (Okabe-Ito, colour-blind friendly, not green because the mod's circle is green): banner `F0E442` yellow, command `E69F00` orange, support `56B4E9` sky blue, enemy `D55E00` vermillion (with the thicker line), utility
-`CC79A7` reddish purple. Colour is never the only cue: the enemy kind is thicker, the app legend names every kind and radius, and the helper's kind buttons carry a one-letter label. Dashed rings would need one line per
-dash and are not drawn.
+- colour of its kind;
+- thickness `0.045` (enemy `0.06`; the FTC circle is 0.05, so the helper can recognise its own lines);
+- local height `0.1 + 0.015 * kindIndex`;
+- radius `r + baseRadius - 0.0225`, so the outer edge of the line lands on the range;
+- x, z and thickness divided by `getScale().x`.
+
+Two rings of the same radius on one figure are drawn 0.03 apart.
+
+**Merge, not replace.**
+The helper reads `getVectorLines()` inside `pcall`, drops its own lines (a kind's colour and thickness), appends the new ones and sets the result.
+If the lines cannot be read, it sets only its own and says once that the mod's circle may disappear.
+
+**Remember.**
+A table `guid -> rings` is saved in `onSave`, with the on/off state, the hidden kinds and the payload palette.
+
+- `onLoad` redraws after **3 seconds**, because the figures' own scripts clear their lines after 2.
+- `onObjectStateChange(newObj, oldGuid)` moves the entry to the new GUID and redraws after 3 seconds.
+- `onObjectDestroy` drops the entry.
+- Figures that are not on the table (in a bag) are skipped.
+
+**Buttons** (on the block face):
+
+- **Rings: on/off**;
+- **Redraw**, which restores our lines after the mod's hot keys wiped them;
+- one small coloured button per kind (B C S E U); the letter is in brackets while the kind is hidden.
+
+Each press redraws the remembered figures, 10 per frame.
+The summary reads `Rings drawn for 14 figures (31 rings).` and `N rings left out (limit 6 per figure, 200 in all).`
+
+**Never** moves, clones, rescales or destroys objects.
+It only sets vector lines, plus name, description, notes and tag as in [tabletop-simulator.md](tabletop-simulator.md).
+
+**Palette** (Okabe-Ito, colour-blind friendly, and not green because the mod's circle is green):
+
+| Kind | Hex | Colour |
+|---|---|---|
+| banner | `F0E442` | yellow |
+| command | `E69F00` | orange |
+| support | `56B4E9` | sky blue |
+| enemy | `D55E00` | vermillion, with the thicker line |
+| utility | `CC79A7` | reddish purple |
+
+Colour is never the only cue.
+The enemy kind is thicker, the app legend names every kind and radius, and the helper's kind buttons carry a one-letter label.
+Dashed rings would need one line per dash and are not drawn.
 
 ### App side
 
-**TTS dialog, "Auras" section** (in the names block, mobile first): a switch **Draw aura rings** (default on when the company has a ring; with none the section says "This company has no aura ranges."); one row per **kind that
-exists in the company** (a ring icon in the kind's colour with its letter, the label, "N rings, radii 3", 6"" and a checkbox); switches for the **groups** that have at least one ring in the company: Rules that need an action
-(declared, on), Rules that need an event (conditional, on), Spells in effect (cast, off), Targeting ranges (target, off), Large rings over 12" (off) and Optional rings (the Torch, off), each saying how many rings it adds;
-a **legend** (kind, colour name, one sentence, "Rings are measured from the edge of the base"); and a line "16 rings on 7 figures, 1 left out (limit 6 per figure, 150 in all)". The switches re-render the names block by htmx and are
-remembered in `localStorage`. Query parameters of `GET /campaigns/{id}/companies/{company}/tts`: `auras=1|0`, `akinds=banner,command,...` (the kinds that are on; absent: all), `adeclared`, `aconditional`, `acast`, `atarget`,
-`alarge`, `aoptional` (`1|0`). The web interface method is `ttsExporter.TTSAuras(ctx, campaignID, companyID, live, TTSOptions, AuraSelection)`.
+**TTS dialog, "Auras" section.**
+The section sits in the names block and is mobile first.
+It contains:
 
-**Unit cards** (My Company, another company, the live match; not the compact company overview, the fallen cards, the armoury or the company browser): an **Auras** row under the special rules with the merged auras of the unit
-as chips (`aura-chip`, `has-tip`, `tabindex="0"`): text `Aura 6"`, a ring icon as the shape cue and `aria-label` "Aura, 6 inches: Stand Fast, With Me!, Take Aim; works for friendly models, always, needs line of sight". Tooltip title is the
-merged labels, meta `friendly · always · needs line of sight`, text the entries' `tip`; `data-concept` opens the glossary popup. At most 3 chips and a `+N` that expands in place. The card shows every aura the unit has,
-and marks the groups that are off by default in the dialog (muted and dashed, with "off by default in Tabletop Simulator" in the tooltip). The chips are hidden by default and shown by a per-browser setting, **Show auras on unit
-cards** (cookie `bcm-auras`, in the appearance settings; the Auras section of an expanded card follows it). The ring colours are fixed CSS classes (`.aura-k-banner` ...), not theme tokens. `/styleguide` shows them
-("Aura rings and chips").
+- a switch **Draw aura rings**, on by default when the company has a ring.
+  With no rings the section says "This company has no aura ranges."
+- one row per **kind that exists in the company**: a ring icon in the kind's colour with its letter, the label, "N rings, radii 3", 6"" and a checkbox;
+- switches for the **groups** that have at least one ring in the company, each saying how many rings it adds:
+  - Rules that need an action (declared, on);
+  - Rules that need an event (conditional, on);
+  - Spells in effect (cast, off);
+  - Targeting ranges (target, off);
+  - Large rings over 12" (off);
+  - Optional rings (the Torch, off);
+- a **legend**: kind, colour name, one sentence, and "Rings are measured from the edge of the base";
+- a line such as "16 rings on 7 figures, 1 left out (limit 6 per figure, 150 in all)".
+
+The switches re-render the names block by htmx and are remembered in `localStorage`.
+They are query parameters of `GET /campaigns/{id}/companies/{company}/tts`:
+
+- `auras=1|0`;
+- `akinds=banner,command,...` (the kinds that are on; absent means all);
+- `adeclared`, `aconditional`, `acast`, `atarget`, `alarge`, `aoptional` (each `1|0`).
+
+The web interface method is `ttsExporter.TTSAuras(ctx, campaignID, companyID, live, TTSOptions, AuraSelection)`.
+
+**Unit cards.**
+Chips appear on My Company, another company and the live match.
+They do not appear on the compact company overview, the fallen cards, the armoury or the company browser.
+
+An **Auras** row under the special rules shows the unit's merged auras as chips (`aura-chip`, `has-tip`, `tabindex="0"`):
+
+- The text is `Aura 6"`, with a ring icon as the shape cue.
+- The `aria-label` reads "Aura, 6 inches: Stand Fast, With Me!, Take Aim; works for friendly models, always, needs line of sight".
+- The tooltip title is the merged labels, the meta is `friendly · always · needs line of sight`, and the text is the entries' `tip`.
+- `data-concept` opens the glossary popup.
+- At most 3 chips show, then a `+N` that expands in place.
+
+The card shows every aura the unit has.
+It marks the groups that are off by default in the dialog: muted and dashed, with "off by default in Tabletop Simulator" in the tooltip.
+
+The chips are hidden by default.
+A per-browser setting, **Show auras on unit cards** (cookie `bcm-auras`, in the appearance settings), shows them; the Auras section of an expanded card follows it.
+The ring colours are fixed CSS classes (`.aura-k-banner` ...), not theme tokens.
+`/styleguide` shows them under "Aura rings and chips".
 
 ### Tests
 
@@ -283,6 +460,21 @@ cards** (cookie `bcm-auras`, in the appearance settings; the Auras section of an
 | An old helper with a v2 payload | the version rule; the dialog tells to download the helper again |
 | The data wrongly says a rule is an aura | the explicit excluded list with reasons; ambiguous entries default off |
 
+## Aura chips on the unit cards
+
+Aura chips are drawn by `aura_chip` and `aura_row` in `partials/units.gohtml`, with helpers in `internal/web/auras.go`.
+
+`CompanyUnit.Auras` is filled by core at
+build time (`RuleSet.UnitAuras`: unfiltered, merged by kind and radius, sorted kind then radius). The row sits under the special rules on every `unit_card` (My Company, another
+company's read-only page, the Field cards of a live match) and the expanded card lists them in full under "Auras" (`data-auras-full`: radius, labels, who it affects and when, the
+tip). Not on the compact cards (Retreated, casualties, missed), the fallen cards, the company browser's hover card or the armoury (those have no built unit or are one-line rows).
+A chip (`.aura-chip`, like a rule chip: kind colour on the left edge, a small ring icon with the kind's letter, text `Aura 6"`) is a `has-tip` element (`tabindex="0"`,
+`aria-label` "Aura, 6 inches: Stand Fast, With Me!; works for friendly models, always, needs line of sight", tooltip title = the merged labels, meta "Command - friendly models
+- always - needs line of sight", text = the tips; `data-concept` = the entry's glossary term, so Enter or a click opens the helper popup). At most 3 chips and a `+N` button
+that opens the rest in place (Alpine, `aria-expanded`, "Fewer"). The card shows every aura the unit has, not only the ones the dialog draws by default; a
+ring of a group that is off by default (spells, targeting ranges, rings over 12 inches, the Torch) is muted and dashed (`.aura-off`) and its tooltip and label say "off by
+default in Tabletop Simulator", so the card tells what the unit can do and the dialog what is drawn. No row for a unit without an aura. **Hidden by default:** the rows and the expanded "Auras" section stay in the markup but `tailwind.css` hides them (`html:not([data-show-auras]) .unit [data-auras], ... [data-auras-full]`) unless this browser chose them: the toggle **Show auras on unit cards** (section "Unit cards" of `theme_controls`, the Appearance menu and the Account page; `$store.theme.auras` / `setAuras`) writes the cookie `bcm-auras=1` and `theme-init.js` sets `data-show-auras="on"` on `<html>` before the first paint, so there is no flash. Per browser, not in the account. `/styleguide` keeps its chips (not inside a `.unit`). Flow `96-tts-auras` drives both.
+
 ## Smoke tests in Tabletop Simulator
 
 These are checked by playing; they are the part that no test can show.
@@ -298,7 +490,7 @@ These are checked by playing; they are the part that no test can show.
 9. **Re-apply** after changing the company (buy a banner): old rings vanish, new ones appear; a figure removed from the table leaves no ring behind.
 10. **Old helper** with a v2 payload asks for a new download; the new helper with a v1 payload draws nothing and breaks nothing.
 
-## Defaults taken
+## Defaults
 
 | Question | Default |
 |---|---|

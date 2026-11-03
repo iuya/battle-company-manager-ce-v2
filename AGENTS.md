@@ -1,51 +1,24 @@
 # Agent Instructions
 
-This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
+These are the instructions for any coding agent that is not Claude Code. They are short on purpose: [CLAUDE.md](CLAUDE.md) holds the
+project rules and applies to every agent. Read it first. It covers the build and test commands, the architecture, commit and pull request
+conventions, the release flow, and where designs, security notes and documentation go (designs in GitHub issues, never in `docs/`).
 
-> **Architecture in one line:** Issues live in a local Dolt database
-> (`.beads/dolt/`); cross-machine sync uses `bd dolt push/pull` (a
-> git-compatible protocol), stored under `refs/dolt/data` on the Dolt
-> remote, which here is a **private** repository (never the public one).
-> `.beads/issues.jsonl` is a local, ignored export, not the wire protocol.
->
-> See [sync-concepts](https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md)
-> for the one-screen overview and anti-patterns (don't treat JSONL as the
-> source of truth; don't `bd import` during normal operation; don't
-> reach for third-party Dolt hosting before trying the default).
-
-## Quick Reference
-
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work atomically
-bd close <id>         # Complete work
-bd dolt push          # Push beads data to remote
-```
+Then read [docs/README.md](docs/README.md) and the page for the area you work on, and run `bd prime` for the issue-tracker workflow.
 
 ## Non-Interactive Shell Commands
 
-**ALWAYS use non-interactive flags** with file operations to avoid hanging on confirmation prompts.
+Shell commands such as `cp`, `mv` and `rm` may be aliased to interactive mode and hang waiting for y/n. Use the forced forms:
 
-Shell commands like `cp`, `mv`, and `rm` may be aliased to include `-i` (interactive) mode on some systems, causing the agent to hang indefinitely waiting for y/n input.
-
-**Use these forms instead:**
 ```bash
-# Force overwrite without prompting
-cp -f source dest           # NOT: cp source dest
-mv -f source dest           # NOT: mv source dest
-rm -f file                  # NOT: rm file
-
-# For recursive operations
-rm -rf directory            # NOT: rm -r directory
-cp -rf source dest          # NOT: cp -r source dest
+cp -f source dest      # not: cp source dest
+mv -f source dest      # not: mv source dest
+rm -f file             # not: rm file
+rm -rf directory       # not: rm -r directory
+cp -rf source dest     # not: cp -r source dest
 ```
 
-**Other commands that may prompt:**
-- `scp` - use `-o BatchMode=yes` for non-interactive
-- `ssh` - use `-o BatchMode=yes` to fail instead of prompting
-- `apt-get` - use `-y` flag
-- `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
+Other commands that may prompt: `scp` and `ssh` (use `-o BatchMode=yes`), `apt-get` (use `-y`), `brew` (set `HOMEBREW_NO_AUTO_UPDATE=1`).
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:46cd31e7 -->
 ## Beads Issue Tracker

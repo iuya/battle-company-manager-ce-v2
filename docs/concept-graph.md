@@ -1,16 +1,32 @@
 # Concept graph (helper popups)
 
-A directed, labelled graph over the concepts of the rules files (special rules, wargear, equipment, paths, powers, scenario terms), and the helper popup that uses it: tap a term and read what the rules say
-about it and what it is linked to. This page is the contract between the curator (data), the backend (loader) and the frontend (popup). The popup and its endpoints are described in
-[frontend.md](frontend.md#helper-popup); the rules files and the generated graph file in [definitions.md](definitions.md).
+The concept graph links the concepts of the rules files (special rules, wargear, equipment, paths, powers, scenario terms) to each other.
+It powers the helper popup: tap a term and read what the rules say about it and what it is linked to.
 
-Code: `internal/core/concept_graph.go` and `concepts.go` (`core.Concepts`), the interface `concepts` in `internal/web/concepts.go`, `partials/concept.gohtml`, `static/js/concepts.js`; the generator
-`tools/build_concept_graph.py` with the curated list `tools/concepts_curated.json`; the generated `definitions/concepts/concept_graph.json` and its schema; the e2e flow `87-concepts`.
+This page is the contract between the curator (data), the backend (loader) and the frontend (popup).
+It is for developers and rules curators.
+The popup and its endpoints are described in [frontend-glossary.md](frontend-glossary.md#helper-popup).
+The rules files and the generated graph file are described in [definitions.md](definitions.md).
+
+Contents: [What it is](#what-it-is), [Generation, storage and loading](#generation-storage-and-loading), [Go contract](#go-contract), [Size](#size), [Tests](#tests), [Defaults](#defaults).
+
+Where the code lives:
+
+- `internal/core/concept_graph.go` and `concepts.go` (`core.Concepts`).
+- The interface `concepts` in `internal/web/concepts.go`, the template `partials/concept.gohtml` and `static/js/concepts.js`.
+- The generator `tools/build_concept_graph.py`, with the curated list `tools/concepts_curated.json`.
+- The generated `definitions/concepts/concept_graph.json` and its schema.
+- The e2e flow `87-concepts`.
 
 ## What it is
 
-**Nodes** are the terms of the ruleset's glossary, which already holds the vanilla and Battle Companies special rules, wargear, equipment, paths, powers and so on as extra terms. A node id is
-`<kind>:<glossary term id>`; the kind comes from the term's category:
+### Nodes
+
+Nodes are the terms of the ruleset's glossary.
+The glossary already holds the vanilla and Battle Companies special rules, wargear, equipment, paths and powers as extra terms.
+
+A node id is `<kind>:<glossary term id>`.
+The kind comes from the term's category:
 
 | kind | category | examples |
 |---|---|---|
@@ -21,9 +37,17 @@ Code: `internal/core/concept_graph.go` and `concepts.go` (`core.Concepts`), the 
 | `scenario` | scenario | Seize Ground |
 | `term` | anything else (heroic actions, phases, characteristics) | Heroic March, Stand Fast, Move phase |
 
-Units are not nodes; their cards are in the campaign glossary under their own anchors (`core.UnitAnchor`, [frontend.md](frontend.md#glossary-and-item-definitions)). A unit named in a rule text is linked by the glossary linker (a `UnitID` segment next to the `TermID` ones, [frontend.md](frontend.md#unit-names-in-texts)), not by the graph: the popup's own text is made from the ruleset's glossary file and does not link units, and a unit is never a `mentions` edge. A node is a reference, not a copy: the text stays in the glossary. Ambiguous names (Fear, Wound, ...) have one node per meaning and are never auto-linked.
+A node is a reference, not a copy: the text stays in the glossary.
+Ambiguous names (Fear, Wound, ...) have one node per meaning and are never auto-linked.
 
-**Edges** (`from`, `to`, `type`, `via`):
+Units are not nodes.
+Their cards are in the campaign glossary under their own anchors (`core.UnitAnchor`, [frontend-glossary.md](frontend-glossary.md#glossary-and-item-definitions)).
+The glossary linker links a unit named in a rule text, using a `UnitID` segment next to the `TermID` ones ([frontend-glossary.md](frontend-glossary.md#unit-names-in-texts)).
+The graph does not do this: the popup's own text is made from the ruleset's glossary file and does not link units, and a unit is never a `mentions` edge.
+
+### Edges
+
+An edge has the fields `from`, `to`, `type` and `via`.
 
 | type | meaning | produced by |
 |---|---|---|
@@ -34,32 +58,107 @@ Units are not nodes; their cards are in the campaign glossary under their own an
 | `lifts` | `from` removes a restriction `to` | curated only |
 | `requires` | `from` only works with `to` (a heroic action needs Might; a spell needs a Wizard) | curated only |
 
-Direction follows the file dependency rule: no edge goes from a vanilla or glossary node into a Battle Companies node (Battle Companies may point to vanilla and glossary). `via` is a short piece of the source
-text (or a short description of the data field) so the popup can say why ("Elven Cloak grants Stealthy"); `cancels`, `lifts` and `requires` always have one. The 54 shield `cancels` edges are explicit (one per cancelling item and shield);
-the popup groups them by display.
+`via` is a short piece of the source text, or a short description of the data field.
+The popup uses it to say why two nodes are linked ("Elven Cloak grants Stealthy").
+`cancels`, `lifts` and `requires` always have one.
 
-The engine does not read the graph; it reads the typed data. The graph serves the popup (and later, "what gives me X" through reverse edges).
+Direction follows the file dependency rule.
+No edge goes from a vanilla or glossary node into a Battle Companies node.
+Battle Companies nodes may point to vanilla and glossary nodes.
+
+The 54 shield `cancels` edges are explicit, one per cancelling item and shield.
+The popup groups them by display.
+
+### What the graph is for
+
+The engine does not read the graph; it reads the typed data.
+The graph serves the popup, and later "what gives me X" questions through reverse edges.
 
 ## Generation, storage and loading
 
-- **Generator** (`make concept-graph`, which also validates): `tools/build_concept_graph.py` reads the three rules files and writes `definitions/concepts/concept_graph.json`. It collects the nodes, matches names and aliases
-  with the same rules as `core.BuildGlossary`, derives `grants`, `cancels` and `see` from typed fields, and merges the curated list `tools/concepts_curated.json` (each curated edge with a `via` quote). Output is
-  deterministic (sorted), so diffs are reviewable. No rulebook text beyond short `via` quotes. Run it after rebuilding any rules file, because the graph records their hashes.
-- **File shape:** `{name, version, builtFrom: {vanilla, battleCompanies, glossary} (sha256 of the compacted files, the same hashes as the ruleset triple), nodes: [{id, kind, name, aliases?, file, textHash}], edges: [{from, to, type, via?}], ambiguous: [{alias, candidates[]}]}`.
-  `file` (vanilla, battleCompanies, glossary) says where the term's text comes from, for the direction rule. Only `grants`, `cancels`, `lifts` and `requires` are stored; `mentions` and `see` are not. Node text is not stored. `ambiguous[]` is empty for the shipped files.
-  `textHash` is the first 16 hex digits of the SHA-256 of the node's glossary text (`GlossaryTerm.Text()`, paragraphs joined by a blank line) with white space collapsed (`core.ConceptTextHash`).
-- **Validation** (`tools/validate_definitions.py`, `make validate`): schema; every edge endpoint is a node; every node resolves to an existing entry in its file; the direction rule; no duplicate edges; `builtFrom` equals
-  the current hashes and every node's `textHash` equals the hash of its text in the shipped files (a stale graph fails); `cancels`, `lifts` and `requires` have a `via`; ambiguous aliases never appear as `mentions`.
-- **Loader.** `core.Concepts` (`NewConcepts(rules, curatedFile, log)`) builds the graph per ruleset triple on first use from `Rules.For`: cached per triple, built once under concurrency, a failed or panicked build
-  (`safely`) is an error and not cached, at most `MAX_CACHED_RULESETS` graphs stay in memory (least recently used out). `cmd/server` reads the curated file at start (`loadConceptFile`; a missing file only drops the
-  curated edges) and hands the graph to the server with `Server.SetConcepts`; without it the popup routes are not served and terms keep their tooltips.
-  1. **Exact `builtFrom` match:** the file's edges are taken without per-edge checks (an edge to an unknown node is still refused).
-  2. **Different triple** (a custom ruleset): an edge is kept only when both endpoints still resolve (same id, else the file node's name or an alias naming exactly one node of the same kind) and the `textHash` of the
-     edge's `from` node equals the hash of the ruleset's current text for it. Changed or missing text drops the edge; the loader never guesses or repairs.
-  3. **Always:** `mentions` and `see` are computed from the ruleset's own text and unioned with the surviving curated edges, so new rules and renamed terms still link. Nodes that exist only in the ruleset get mentions only. A
-     fully different ruleset keeps no curated edge but its mentions work.
-  4. One log line per build with node and edge counts and kept and dropped counts by type; `Concepts.Stats` returns them.
-- A name or alias claimed by more than one node is ambiguous: it is never linked (neither as a mention segment nor as an edge) and `Resolve` answers its `Candidates`.
+### Generator
+
+`make concept-graph` runs `tools/build_concept_graph.py` and then validates.
+The generator reads the three rules files and writes `definitions/concepts/concept_graph.json`.
+
+It does the following:
+
+1. Collects the nodes.
+2. Matches names and aliases with the same rules as `core.BuildGlossary`.
+3. Derives `grants`, `cancels` and `see` from typed fields.
+4. Merges the curated list `tools/concepts_curated.json` (each curated edge has a `via` quote).
+
+The output is deterministic (sorted), so diffs are reviewable.
+It holds no rulebook text beyond short `via` quotes.
+Run the generator after rebuilding any rules file, because the graph records their hashes.
+
+### File shape
+
+```json
+{
+  "name": "...",
+  "version": "...",
+  "builtFrom": { "vanilla": "...", "battleCompanies": "...", "glossary": "..." },
+  "nodes": [ { "id": "...", "kind": "...", "name": "...", "aliases": [], "file": "...", "textHash": "..." } ],
+  "edges": [ { "from": "...", "to": "...", "type": "...", "via": "..." } ],
+  "ambiguous": [ { "alias": "...", "candidates": [] } ]
+}
+```
+
+- `builtFrom` holds the SHA-256 of each compacted file, the same hashes as the ruleset triple.
+- `aliases` and `via` are optional.
+- `file` (`vanilla`, `battleCompanies` or `glossary`) says where the term's text comes from, for the direction rule.
+- `textHash` is the first 16 hex digits of the SHA-256 of the node's glossary text, with white space collapsed (`core.ConceptTextHash`).
+  The glossary text is `GlossaryTerm.Text()`: paragraphs joined by a blank line.
+- Only `grants`, `cancels`, `lifts` and `requires` edges are stored.
+  `mentions` and `see` are not.
+- Node text is not stored.
+- `ambiguous[]` is empty for the shipped files.
+
+### Validation
+
+`tools/validate_definitions.py` (`make validate`) checks:
+
+- The schema.
+- Every edge endpoint is a node.
+- Every node resolves to an existing entry in its file.
+- The direction rule.
+- No duplicate edges.
+- `builtFrom` equals the current hashes, and every node's `textHash` equals the hash of its text in the shipped files (a stale graph fails).
+- `cancels`, `lifts` and `requires` have a `via`.
+- Ambiguous aliases never appear as `mentions`.
+
+### Loader
+
+`core.Concepts` (`NewConcepts(rules, curatedFile, log)`) builds the graph per ruleset triple on first use, from `Rules.For`.
+
+- The graph is cached per triple and built once under concurrency.
+- A failed or panicked build (`safely`) is an error and is not cached.
+- At most `MAX_CACHED_RULESETS` graphs stay in memory (least recently used out).
+- `cmd/server` reads the curated file at start (`loadConceptFile`).
+  A missing file only drops the curated edges.
+- `cmd/server` hands the graph to the server with `Server.SetConcepts`.
+  Without it the popup routes are not served and terms keep their tooltips.
+
+How the loader treats the edges of the generated file:
+
+1. **Exact `builtFrom` match.**
+   The file's edges are taken without per-edge checks (an edge to an unknown node is still refused).
+2. **Different triple (a custom ruleset).**
+   An edge is kept only when both endpoints still resolve and the `textHash` of the edge's `from` node equals the hash of the ruleset's current text for it.
+   An endpoint resolves when it has the same id, or when the file node's name or an alias names exactly one node of the same kind.
+   Changed or missing text drops the edge.
+   The loader never guesses or repairs.
+3. **Always.**
+   `mentions` and `see` are computed from the ruleset's own text and unioned with the surviving curated edges, so new rules and renamed terms still link.
+   Nodes that exist only in the ruleset get mentions only.
+   A fully different ruleset keeps no curated edge, but its mentions work.
+4. **Logging.**
+   Each build writes one log line with node and edge counts and the kept and dropped counts by type.
+   `Concepts.Stats` returns them.
+
+A name or alias claimed by more than one node is ambiguous.
+It is never linked (neither as a mention segment nor as an edge), and `Resolve` answers its `Candidates`.
 
 ## Go contract
 
@@ -85,23 +184,38 @@ type ConceptRef struct {
 }
 ```
 
-`core.RulesetRef` is `core.RulesetHashes`. HTTP: `GET /campaigns/{id}/concepts/{conceptID}` and `GET /campaigns/{id}/concepts/resolve?name=` return the popup fragment, with `Cache-Control: private, max-age=3600` and an ETag from the ruleset triple;
-the pages' terms carry a displayed name, so the server resolves it and the markup needs no id lookup. Details of the popup (content groups, folding of chips that share a `via`, behaviour, accessibility) are in
-[frontend.md](frontend.md#helper-popup).
+`core.RulesetRef` is `core.RulesetHashes`.
+
+Two HTTP routes return the popup fragment:
+
+- `GET /campaigns/{id}/concepts/{conceptID}`
+- `GET /campaigns/{id}/concepts/resolve?name=`
+
+Both send `Cache-Control: private, max-age=3600` and an ETag from the ruleset triple.
+The pages' terms carry a displayed name, so the server resolves it and the markup needs no id lookup.
+
+The popup's content groups, the folding of chips that share a `via`, its behaviour and its accessibility are in [frontend-glossary.md](frontend-glossary.md#helper-popup).
 
 ## Size
 
-For the shipped files (about 2.3 MB of JSON; roughly 250 glossary terms, 105 Battle Companies keywords, hundreds of vanilla rules and items) the graph is held once per ruleset triple in memory as adjacency maps (a few MB).
-Nothing is sent whole to the browser: the popup loads one concept (a few KB) on demand, and the page keeps the fetched concepts in memory for Back.
+The shipped files are about 2.3 MB of JSON.
+They hold roughly 250 glossary terms, 105 Battle Companies keywords and hundreds of vanilla rules and items.
+
+The graph is held once per ruleset triple in memory as adjacency maps (a few MB).
+Nothing is sent whole to the browser.
+The popup loads one concept (a few KB) on demand, and the page keeps the fetched concepts in memory for Back.
 
 ## Tests
 
-`internal/core/concepts_test.go` (ambiguous alias, parameterised rule, unknown id, no graph, modified text, deleted rule, renamed alias, added rule, fully different ruleset, concurrency, bounded cache, panic),
-`internal/web/concepts_test.go` (body, groups, folds, escaping, glossary link, caching and 304, 404, ambiguous and unknown names, non-members and anonymous visitors), `tools/test_concept_graph.py` and the e2e flow `87-concepts`.
+- `internal/core/concepts_test.go`: ambiguous alias, parameterised rule, unknown id, no graph, modified text, deleted rule, renamed alias, added rule, fully different ruleset, concurrency, bounded cache, panic.
+- `internal/web/concepts_test.go`: body, groups, folds, escaping, glossary link, caching and 304, 404, ambiguous and unknown names, non-members and anonymous visitors.
+- `tools/test_concept_graph.py`.
+- The e2e flow `87-concepts`.
 
 ## Defaults
 
-- Mentions are computed at load for any ruleset; the generated file adds the reviewed edges (`cancels`, `lifts`, `requires`), reused edge by edge by custom rulesets, so some curated links may be missing in modified rulesets.
+- Mentions are computed at load for any ruleset.
+- The generated file adds the reviewed edges (`cancels`, `lifts`, `requires`). Custom rulesets reuse them edge by edge, so some curated links may be missing in modified rulesets.
 - `mentions` link per term, first occurrence only (as the glossary does).
 - The graph file lives in `definitions/concepts/` (a fourth kind of file, never uploaded by users).
 - Hover keeps the tooltip on desktop; a click, tap or Enter opens the popup.

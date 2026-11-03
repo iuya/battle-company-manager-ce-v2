@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Keeps a DuckDNS name pointing at this host's public IPv4 address (docs/operations.md, "A DuckDNS name that follows the IP").
+# Keeps a DuckDNS name pointing at this host's public IPv4 address (docs/deploy-server.md, "A DuckDNS name that follows the IP").
 # Run by bcm-duckdns.timer as root; DUCKDNS_DOMAIN (the subdomain, e.g. bc-manager-ce) comes from /opt/bcm/duckdns.env.
 #
 # The token is a secret. It is read from a root-only file (TOKEN_FILE, default /etc/bcm/duckdns.token) and handed to curl on its standard
@@ -23,7 +23,7 @@ log() { echo "duckdns: $*"; }
 
 [[ "$name" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]] || { log "KO DUCKDNS_DOMAIN is not a valid subdomain"; exit 1; }
 if [ ! -r "$token_file" ]; then
-  log "no token file yet ($token_file); see docs/operations.md, \"A DuckDNS name that follows the IP\""
+  log "no token file yet ($token_file); see docs/deploy-server.md, \"A DuckDNS name that follows the IP\""
   exit 0
 fi
 token="$(tr -d '[:space:]' < "$token_file")"

@@ -1,25 +1,36 @@
 # The demo world (`make demo`)
 
-A rich development database for exploring and testing the app: many campaigns in every state, with accounts to sign in as. This page lists what each campaign shows and where to click.
+A rich development database for exploring and testing the app: many campaigns in every state, with accounts to sign in as.
+This page is for developers, reviewers and testers. It lists what each campaign shows and where to click.
 
-`make demo` **destroys the development database's contents** (`make db-reset`; back it up first if you need it), loads the demo world with `server seed --world`, and starts the
-server on http://localhost:8080 (no live reload; for that load the world with `go run ./cmd/server seed --world` and use `make dev`). The
-world is a script, `cmd/server/world*.go`, that drives the **real core services** through `newBackend`: nothing is inserted
-behind their back except the few states listed under [Gaps](#gaps). Every die that decides an outcome is typed in (campaigns
-with `ManualRolls`) or fixed (`core.FixedDice` through `demoDice`, campaigns without), so the world is the same every run.
+## Loading the world
 
-```
-make demo                      # empty database, the world, the server on :8080
-make demo PASSWORD=...         # another password for every account (at least 10 characters)
-make seed                      # the minimal demo ([frontend.md](frontend.md#demo-data-and-signing-in))
+`make demo` **destroys the development database's contents** (`make db-reset`; back it up first if you need it).
+It loads the demo world with `server seed --world` and starts the server on http://localhost:8080, without live reload.
+For live reload, load the world with `go run ./cmd/server seed --world` and use `make dev`.
+
+```bash
+make demo                          # empty database, the world, the server on :8080
+make demo PASSWORD=...             # another password for every account (at least 10 characters)
+make seed                          # the minimal demo (see frontend-account.md, "Demo data and signing in")
 go run ./cmd/server seed --world   # load the world into the current database (no reset; does nothing if it is there)
 ```
 
-What the script printed (accounts, the three invite links and the pending account invitation and recovery links with their secrets, gaps, and a line per company it built) is kept in
-`tmp/demo-world.txt`. The seed is idempotent in the sense that it does nothing when the first campaign exists; `make demo` is
-repeatable because it starts from an empty database. Test: `TestSeedWorld` in `cmd/server/world_test.go` (needs
-`TEST_DATABASE_URL` (a scratch database, never the development one); it fails when the script meets a state it cannot reach, and checks the gallery, the finished campaign and the
-aftermath stages).
+The minimal demo is described in [frontend-account.md](frontend-account.md#demo-data-and-signing-in).
+
+The world is a script, `cmd/server/world*.go`, that drives the **real core services** through `newBackend`.
+Nothing is inserted behind their back except the few states listed under [Gaps](#gaps).
+Every die that decides an outcome is typed in (campaigns with `ManualRolls`) or fixed (`core.FixedDice` through `demoDice`, campaigns without), so the world is the same every run.
+
+The script prints the accounts, the three invite links, the pending account invitation and recovery links with their secrets, the gaps, and a line per company it built.
+That output is kept in `tmp/demo-world.txt`.
+
+The seed does nothing when the first campaign exists, so running it twice is harmless.
+`make demo` is repeatable because it starts from an empty database.
+
+Test: `TestSeedWorld` in `cmd/server/world_test.go`.
+It needs `TEST_DATABASE_URL` (a scratch database, never the development one).
+It fails when the script meets a state it cannot reach, and it checks the gallery, the finished campaign and the aftermath stages.
 
 ## Accounts
 
@@ -35,7 +46,7 @@ All share the password `demo-password` (or `PASSWORD`). `admin@example.com`, `yo
 | `eowyn@example.com`, `sauron@example.com`, `aragorn@example.com`, `gimli@example.com`, `bilbo@example.com`, `galadriel@example.com`, `radagast@example.com` | user | the players; each has a company in many campaigns (see below) |
 | `pippin@example.com` | user, **cannot** create campaigns | no "New campaign" button; plays in a few campaigns and used the one-use invite link |
 | `frodo@example.com` | user, may create campaigns | in no campaign: the empty home page. Open the valid invite link as him |
-| `boromir@example.com` | **closed** account | closed at the end of the script (`Auth.CloseAccount`): the campaign "Cemetery" shows him as "Former player" and the address no longer signs in |
+| `boromir@example.com` | **closed** account | closed at the end of the script (`Auth.CloseAccount`): the campaign "Cemetery" shows him as "Former player" and the address cannot sign in |
 | `invitee@example.com` | **no account yet** | the address of the pending named account invitation: open its printed link to register (the invitation may create campaigns) |
 | `newcomer@example.com` | user | made through a named invitation (used) |
 | `guest.one@example.com`, `guest.two@example.com` | user | made through the anonymous invitation (2 of 5 used, 3 left) |
@@ -45,12 +56,12 @@ All share the password `demo-password` (or `PASSWORD`). `admin@example.com`, `yo
 
 ## Campaigns
 
-Open any campaign as `you@example.com` (organiser, sees every button) or as the player named in the table (owner of the
-company, sees "My company"). Page names are those of the navigation: Overview, My company, Armoury, Rankings, Matches.
+Open any campaign as `you@example.com` (the organiser, who sees every button) or as the player named in the table (the owner of the company, who sees "My company").
+Page names are those of the navigation: Overview, My company, Armoury, Rankings, Matches.
 
 | Campaign (in order of creation) | Players | What it demonstrates | Where to click |
 |---|---|---|---|
-| **Brand new campaign: no companies yet** | Aragorn joined, no company | the empty campaign: no ranking, no matches; a member without a company ("pending join"); the company browser of the campaign's rules, where the Arnor and Fornost rule texts name units: **unit names in texts are links** to the glossary's unit cards with a tooltip ([frontend.md](frontend.md#unit-names-in-texts)) | Overview as `aragorn`: "Create your company", pick Arnor: "Ranger of Arnor" and "Ranger of the North" in the company rule; hover or Tab to one for its profile, click for its card |
+| **Brand new campaign: no companies yet** | Aragorn joined, no company | the empty campaign: no ranking, no matches; a member without a company ("pending join"); the company browser of the campaign's rules, where the Arnor and Fornost rule texts name units: **unit names in texts are links** to the glossary's unit cards with a tooltip ([frontend-glossary.md](frontend-glossary.md#unit-names-in-texts)) | Overview as `aragorn`: "Create your company", pick Arnor: "Ranger of Arnor" and "Ranger of the North" in the company rule; hover or Tab to one for its profile, click for its card |
 | **Companies being built: paths still to choose** | Éowyn (Rohan), Sauron (Mordor), Aragorn (Arnor), Gimli (Durin's Folk), Bilbo (no company) | officers with **no path** (Éowyn), **one path chosen** (Sauron: the Leader only), a company ready to play, Gimli's own choice of Leader and Sergeants, a member who has not built a company; a match cannot be opened for a company with a path pending | My company as `eowyn`: the pending officers ask for a path (**"Choose a path" opens the path carousel**, with the Path of the Sorcerer and its "Select magical power" window listing every power in full; flow `109-path-carousel`); Matches > New match with Éowyn's company is refused; Armoury as `aragorn` (his Arnor company is fresh: every unit wears Armour or better or may not take it): **Armour and Heavy Armour are listed greyed with the reason** (a Ranger of the North may take them later), no Warg or halberd (flow `106-armoury-possible`); the same Armoury and the "+" equipment window of a unit show **Mountain Boots, War spear, Company Drum and Backpack with their glossary terms linked** (the Backpack's own name stays plain; flow `108-item-glossary-links`) |
 | **Gallery: all 37 Battle Companies, a few games in** | one gallery account per company | all 37 factions with the same treatment: officers on different paths, a recruit on **every row** of the reinforcement chart and of the special chart, the company's special units, a piece of gear for the Leader. See [Company types](#company-types) | Companies; open a company, My company as its gallery account |
 | **Injuries and treatment: every wound on the chart** | Éowyn (Rohan), Sauron (Mordor), Aragorn (Arnor) | see [Injuries](#injuries-and-treatment) | My company of each |
@@ -77,7 +88,7 @@ company, sees "My company"). Page names are those of the navigation: Overview, M
 
 ### Two bands
 
-Step `world_bands.go`, campaign **Two bands: several companies per player** (organiser `you`, `CompaniesPerPlayer` = 3; every other campaign keeps the default of 1). Spec: [multi-company-spec.md](multi-company-spec.md).
+Step `world_bands.go`, campaign **Two bands: several companies per player** (organiser `you`, `CompaniesPerPlayer` = 3; every other campaign keeps the default of 1). Spec: [multi-company.md](multi-company.md).
 
 | Player | Companies | What it shows |
 |---|---|---|
@@ -88,18 +99,28 @@ Step `world_bands.go`, campaign **Two bands: several companies per player** (org
 - **Match 1** (ended, **practice**): Éowyn's two companies against each other, the "Same player" case; the result is entered and the aftermath reads "Practice match: nothing to roll", so neither company is locked by it.
 - **Match 2** (ended): both of Éowyn's companies on one side against Sauron's, a competitive match. The match page says "Same player: both of these companies are Éowyn's."; her first company's aftermath is finished, the second's still to play, and Sauron's is untouched (each is locked on its own).
 - **Match 3** (open): one of Galadriel's companies against Gimli's; her other two are free for a new match.
-- **Match 4** (open, **practice**): Galadriel's other two companies against each other, with a live log (turn 1 and a point of Might spent); their pages show the live state with the Practice badge. The Overview of the campaign counts 2 matches and "2 practice matches"; Éowyn's wins count only Match 2 (see [practice-match-spec.md](practice-match-spec.md)). In the new match form the "Mine" chip narrows the search to the viewer's companies, and putting two companies of one player on a side shows the same note before the match is created.
+- **Match 4** (open, **practice**): Galadriel's other two companies against each other, with a live log (turn 1 and a point of Might spent); their pages show the live state with the Practice badge. The Overview of the campaign counts 2 matches and "2 practice matches"; Éowyn's wins count only Match 2 (see [practice-matches.md](practice-matches.md)). In the new match form the "Mine" chip narrows the search to the viewer's companies, and putting two companies of one player on a side shows the same note before the match is created.
 - The company id is in every address (`/campaigns/N/my-company/ID`); `/campaigns/N/my-company` alone opens the first company, and another player's company id answers 404.
 
 ### Aura parade
 
 Step `world_aura.go`, campaign **Aura parade: every aura ring a company can carry** (organiser `you`). Spec: [aura-ranges.md](aura-ranges.md); data: [`definitions.md`](definitions.md).
-Every officer's level-ups are typed rolls (`w.gain`: 5 experience, the roll of the path chart that offers the rule, the choice; a warrior becomes a hero with a 6, a Sorcerer names
-its first power), items are bought with gold, so everything is reached through the real services. A company in a campaign belongs to one player and a company has its own upgrades, so the
-auras that depend on the company are spread over ten companies (the three "main" ones carry the items, the paths, the powers and the creature; the six gallery accounts carry one hereditary upgrade
-each). The script prints the auras of every unit and creature (`aura ...` lines) and the Tabletop Simulator export (`Tabletop Simulator: N rings on M of K figures`), and records a gap
-(failing `TestSeedWorld`) when an aura entry of the data is carried by no company and `auraUnreachable` (`world_aura.go`) does not explain it. The default selection of the dialog applies
-(the `cast`, `target`, `large` and `optional` groups are off), so the spells, the targeting ranges, the war horn's 24" and the Torch ring show once their switches are on.
+
+Everything is reached through the real services:
+
+- Every officer's level-ups are typed rolls (`w.gain`: 5 experience, the roll of the path chart that offers the rule, the choice).
+  A warrior becomes a hero with a 6, and a Sorcerer names its first power.
+- Items are bought with gold.
+
+A company belongs to one player in a campaign and has its own upgrades, so the auras that depend on the company are spread over ten companies.
+The three "main" companies carry the items, the paths, the powers and the creature.
+The six gallery accounts carry one hereditary upgrade each.
+
+The script prints the auras of every unit and creature (`aura ...` lines) and the Tabletop Simulator export (`Tabletop Simulator: N rings on M of K figures`).
+It records a gap (failing `TestSeedWorld`) when an aura entry of the data is carried by no company and `auraUnreachable` (`world_aura.go`) does not explain it.
+
+The default selection of the dialog applies: the `cast`, `target`, `large` and `optional` groups are off.
+The spells, the targeting ranges, the war horn's 24" and the Torch ring show once their switches are on.
 
 | Company (account) | What it carries | Auras |
 |---|---|---|
@@ -179,11 +200,13 @@ The gallery shows, among the 37 companies (names as in the rules file, recruits 
 
 ### Matches
 
-A company is in **one open match at a time**, and a company with an aftermath still to play cannot start a new match. The
-script therefore plays the matches that end with six pool companies (Éowyn, Sauron, Aragorn, Galadriel, Gimli, Bilbo) and
-**waives their aftermaths** through the organiser's waive path (`WaiveAftermath`, note "Not played in the demo"), which frees them
-for the next match. Every match that must stay open or unfinished has companies of its own, played by gallery accounts
-(`<company>@example.com`, joined to this campaign). The aftermath wards play the aftermaths for real.
+A company is in **one open match at a time**, and a company with an aftermath still to play cannot start a new match.
+
+The script therefore plays the matches that end with six pool companies (Éowyn, Sauron, Aragorn, Galadriel, Gimli, Bilbo).
+It **waives their aftermaths** through the organiser's waive path (`WaiveAftermath`, note "Not played in the demo"), which frees them for the next match.
+
+Every match that must stay open or unfinished has companies of its own, played by gallery accounts (`<company>@example.com`, joined to this campaign).
+The aftermath wards play the aftermaths for real.
 
 "Matches: every scenario and every state" has 24 matches; open the Matches page and filter by state:
 
@@ -230,10 +253,10 @@ The Elven Cloak: the Galadhrim of ward 1 (Galadriel) carry it as a unit upgrade 
 
 ## Account invitations and recovery links
 
-Step `world_adminstates.go` (`adminStates`) makes every state through the real services (`AccountInvitations`, `Recovery`, `Auth`)
-with injected clocks, so there is no raw SQL and no gap. Administration > Invitations (administrators and superusers) and
-Administration > Users (the recovery column is for superusers) show them. The secrets of the pending links are printed at the end of
-the script (and kept in `tmp/demo-world.txt`), under "Account invitation links".
+Step `world_adminstates.go` (`adminStates`) makes every state through the real services (`AccountInvitations`, `Recovery`, `Auth`) with injected clocks, so there is no raw SQL and no gap.
+
+Administration > Invitations (administrators and superusers) and Administration > Users (the recovery column is for superusers) show them.
+The secrets of the pending links are printed at the end of the script, under "Account invitation links", and kept in `tmp/demo-world.txt`.
 
 | Invitation | State | How it is made |
 |---|---|---|
@@ -253,8 +276,8 @@ the script (and kept in `tmp/demo-world.txt`), under "Account invitation links".
 | `recover-access@` | **invalidated** (reason: access) | a session first (`Login`), then `Generate`, then `Auth.Authenticate` with that session |
 | `recover-replaced@` | **pending** (newer link) | two links in a row: the first is replaced (reason: replaced) and its token no longer works; the Users page shows only the latest link of an account |
 
-The second run of the seed does nothing for these states (the world exists already), and the accounts above are not among the
-accounts the script signs in with, so the pending link survives re-seeding.
+A second run of the seed does nothing for these states, because the world exists already.
+The accounts above are not among the accounts the script signs in with, so the pending link survives re-seeding.
 
 ## Gaps
 
@@ -271,11 +294,13 @@ States of the wish list that the services cannot produce, or that need raw SQL (
 
 ## Extending the world
 
-The rule of the project: every new feature or change of behaviour is covered here (see CONTRIBUTING.md). Add the state to the world, list it in this
-file, and note anything the services cannot produce under Gaps.
+Every new feature or change of behaviour is covered here (see [CONTRIBUTING.md](../CONTRIBUTING.md#the-demo-world)).
+Add the state to the world, list it in this file, and note anything the services cannot produce under [Gaps](#gaps).
 
-`seedWorld` (`world.go`) runs the steps in order; each campaign is a function in `world_*.go` that creates its campaign, companies
-and matches with helpers (`w.campaign`, `w.company`, `w.recruit`, `w.played`, `w.settle`, `w.rollLevel` ...). A step that the rules
-may refuse uses `w.try` (it prints and goes on); a step that must work uses `w.must` (it aborts the script). A state the services
-cannot reach is recorded with `w.gap`, which `TestSeedWorld` turns into a failure, so a new gap has to be documented here and
-accepted deliberately. Dice: type the result when the campaign allows it, otherwise `w.rollWith(...)` fixes the server's dice.
+`seedWorld` (`world.go`) runs the steps in order.
+Each campaign is a function in `world_*.go` that creates its campaign, companies and matches with helpers (`w.campaign`, `w.company`, `w.recruit`, `w.played`, `w.settle`, `w.rollLevel` ...).
+
+- A step the rules may refuse uses `w.try`: it prints and goes on.
+- A step that must work uses `w.must`: it aborts the script.
+- A state the services cannot reach is recorded with `w.gap`. `TestSeedWorld` turns it into a failure, so a new gap has to be documented here and accepted deliberately.
+- Dice: type the result when the campaign allows it, otherwise `w.rollWith(...)` fixes the server's dice.

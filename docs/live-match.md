@@ -1,13 +1,45 @@
 # Live match mode
 
-What happens to a company's pages while a match is running: trackers for Wounds, Might, Will and Fate, actions that also earn experience, the
-Retreated and Field casualties zones, a match log with undo, end checks (objective and MVP), the Break Point, Against the Odds items, and live
-updates for the other players watching. The match record (scenario, result, ending) is in [matches.md](matches.md); what the finished match does
-to the companies is in [aftermath.md](aftermath.md); the technical design (fold, locking, event stream) is in
-[architecture.md](architecture.md#live-match-design); the pages are described in [frontend.md](frontend.md#live-match).
+What a company's pages do while its match is running.
+It is for players, organisers and developers who want to know how the live tools behave and what they record.
 
-Code: `internal/core/live.go`, `live_fold.go`, `live_service.go`, `live_hub.go`, `live_break.go`; `internal/web/live*.go`; tables `match_live`,
-`match_live_unit`, `match_live_log` (and `match_ato` for Against the Odds).
+While a match is open, a company's page gains:
+
+- trackers for Wounds, Might, Will and Fate;
+- actions that also earn experience;
+- the Retreated and Field casualties zones;
+- a match log with undo;
+- end checks (objective and MVP, "most valuable player");
+- the Break Point;
+- Against the Odds items;
+- live updates for the other players watching.
+
+Related pages:
+
+- The match record (scenario, result, ending) is in [matches.md](matches.md).
+- What the finished match does to the companies is in [aftermath.md](aftermath.md).
+- The technical design (fold, locking, event stream) is in [architecture.md](architecture.md#live-match-design).
+- The pages themselves are described in [frontend-live-match.md](frontend-live-match.md).
+
+Code: `internal/core/live.go`, `live_fold.go`, `live_service.go`, `live_hub.go`, `live_break.go`; `internal/web/live*.go`.
+Tables: `match_live`, `match_live_unit`, `match_live_log` (and `match_ato` for Against the Odds).
+
+## Contents
+
+- [Principles](#principles)
+- [Experience: which actions earn it](#experience-which-actions-earn-it)
+- [Who may do what](#who-may-do-what)
+- [Match start rules](#match-start-rules)
+- [Screens](#screens-mobile-first-360-px-up): the [company page](#company-page-in-a-live-match), the [unit card](#unit-card-in-the-field-zone), [Wounded a unit](#wounded-a-unit-the-only-cross-company-action), [Mount removed / re-added](#mount-removed--re-added) and the [match log](#match-log)
+- [Zones](#zones)
+- [Practice matches in live mode](#practice-matches-in-live-mode)
+- [Aftermath feed](#aftermath-feed)
+- [Live sync for viewers](#live-sync-for-viewers)
+- [Go contracts](#go-contracts)
+- [End checks: objective and MVP](#end-checks-objective-and-mvp)
+- [Company Break Point in play](#company-break-point-in-play)
+- [Against the Odds items in a live match](#against-the-odds-items-in-a-live-match)
+- [Ending a match while live](#ending-a-match-while-live)
 
 ## Principles
 
@@ -19,7 +51,7 @@ Code: `internal/core/live.go`, `live_fold.go`, `live_service.go`, `live_hub.go`,
   are permissive and revertible; the only refusals are impossible states (a stat outside `0..start`, spending Fate at 0, acting with or targeting a
   unit that is not in the Field).
 - **Not live, not changed.** A company that is in no open match has its normal page, no live connection and no trackers.
-- The live view adds to the company page; cards keep every existing element.
+- **The live view adds to the page.** Cards keep every existing element.
 
 ## Experience: which actions earn it
 
@@ -87,11 +119,11 @@ replaced by the normal aftermath banner), connection lost (the page keeps workin
 Everything the card has outside a match (except the Equipment line of a unit with no equipment: nothing can be bought in a match), plus:
 
 - **Trackers** replace the static W, M, W, F values in the attribute row: one segmented bar per stat, a segment per point, tapped to set the value
-  (docs/frontend.md, "Trackers"). Wounds, Might, Will and Fate stay within `0..start`. Heroes show M W F and Wounds, warriors only Wounds; Wounds
+  ([frontend-live-match.md](frontend-live-match.md#trackers)). Wounds, Might, Will and Fate stay within `0..start`. Heroes show M W F and Wounds, warriors only Wounds; Wounds
   is always shown, also when it starts at 1, so every model can fall from its card.
 - **Wounds -1** from the tracker is a manual change (no xp, no target). At 0 Wounds the unit moves to Field casualties, as Died does, with the
   toast "Aldor fell. Undo"; Return to the battle (or the toast's Undo) is the way back.
-- **Milestones** at the foot of the card, with the icons of the legacy app (game-icons.net): **Wounded** (`machete`, with a `death-skull` count
+- **Milestones** at the foot of the card, with game-icons.net icons: **Wounded** (`machete`, with a `death-skull` count
   of the Heroes and Monsters slain), **Fate** (`shield-reflect`, heroes with Fate), **Courage** (`mighty-force`, a passed Broken courage
   test) and **Objective** (`flying-flag`). Off is a dashed, muted outline; on (the unit's `Gains` flag, or `LiveUnit.Objective`) is filled
   with the accent and carries a tick, so a lit one reads across the table. **Wounded** opens the Wounded a unit window (it can happen
@@ -102,7 +134,7 @@ Everything the card has outside a match (except the Equipment line of a unit wit
   in a wound declaration has no entry of its own, so that Fate stays lit and disabled (undo the wound in the log). Viewers see the same row
   as marks they cannot press.
 - **Other actions**, a second row for editors, icon above the label like the milestones, shown only while the unit has a loaned item to
-  spend: **Item used** opens its window. The card has no button for Retreated, Died or the mount now (the mount comes back in a later change).
+  spend: **Item used** opens its window. The card has no button for Retreated, Died or the mount.
 - The actions and their windows:
 
 | Action | Prompt | Effects | Log text |
@@ -220,7 +252,9 @@ match is open, from the live banner button **End checks** and as a card on the m
 - **Tally** (per target company, computed by the fold, never stored): the unit with the most votes is the company's MVP. A tie gives no automatic MVP: the aftermath sheet shows "Tied: Aldor, Brand" and the owner picks one. No votes: no MVP. Votes are shown in the log and on the card, like every other live fact.
 - Log text: "Frodo voted Aldor as MVP of Hador" / "Frodo withdrew the MVP vote for Hador". `CanUndoEntry` for a vote: the voter, administrators and the organiser. The aftermath sheet's `mvp` is prefilled with the winning unit and the badge "Voted MVP (2 votes)".
 
-New `LiveAction` kinds: `objective` (`UnitID`, `On`) and `mvpVote` (`TargetCompanyID`, `UnitID`, 0 withdraws). The fold gains `HasObjective`, `Vote` and `MVPTally` (`LiveState.CheckAs` with `LiveVoter`). Both are refused once the match has ended.
+The end checks use two `LiveAction` kinds: `objective` (`UnitID`, `On`) and `mvpVote` (`TargetCompanyID`, `UnitID`, 0 withdraws).
+The fold exposes `HasObjective`, `Vote` and `MVPTally` (`LiveState.CheckAs` with `LiveVoter`).
+Both kinds are refused once the match has ended.
 
 ```go
 EndChecks(ctx, user, id, matchID int64) (core.EndChecks, error) // ErrNotFound when the match is not open or the viewer is not in the campaign

@@ -89,7 +89,7 @@ func TestSkipMigrationsChecksPending(t *testing.T) {
 	s.Close()
 }
 
-// Every migration documents how to undo itself (the only rollback besides a restore, docs/operations.md).
+// Every migration documents how to undo itself (the only rollback besides a restore, docs/backup-restore.md).
 func TestMigrationsHaveDown(t *testing.T) {
 	entries, err := migrations.ReadDir("migrations")
 	if err != nil {

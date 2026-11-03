@@ -314,7 +314,7 @@ type Match struct {
 	EndProposal *EndProposal
 	EndDetail   string
 	// Practice is set when the match is created and never changed: no rewards and no injuries, its aftermath is complete and empty from
-	// the moment it ends (docs/practice-match-spec.md).
+	// the moment it ends (docs/practice-matches.md).
 	Practice bool
 }
 

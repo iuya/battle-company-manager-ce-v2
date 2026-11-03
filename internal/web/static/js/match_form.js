@@ -1,7 +1,7 @@
 // The new-match form: pick the number of sides, name them, and search the campaign's companies to put on each side.
 // State comes from the data-companies / data-sides attributes (JSON) and goes back to the server as plain form fields:
 // sides, side-name-N, side-role-N (Attacker/Defender tag, optional) and one side-N field per company; in all vs all mode, mode=ffa and the pool as side-1.
-// A player may own several companies (docs/multi-company-spec.md): the search shows owner and faction beside the name, "Mine" narrows it to the
+// A player may own several companies (docs/multi-company.md): the search shows owner and faction beside the name, "Mine" narrows it to the
 // viewer's own, and a non-blocking "Same player" note names a player who has two companies on one side or companies on several sides.
 document.addEventListener('alpine:init', () => {
   Alpine.data('matchForm', () => ({

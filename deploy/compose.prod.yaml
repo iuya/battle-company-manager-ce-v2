@@ -1,6 +1,6 @@
 # Production on a single server: Caddy (TLS, the only published ports) -> app (published image, by digest) -> PostgreSQL.
 # Installed as /opt/bcm/compose.yaml by deploy/install.sh; settings come from /opt/bcm/.env (see deploy/env.example).
-# docs/operations.md, "Running the published image on a server".
+# docs/deploy-server.md, "Running the published image on a server".
 name: bcm
 services:
   caddy:
