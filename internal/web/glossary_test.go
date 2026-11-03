@@ -134,7 +134,7 @@ func TestCampaignGlossaryUnitCards(t *testing.T) {
 		`<article id="u-helminga" tabindex="-1" data-name="Helminga" data-aliases="Rohan Royal Guard|Rohan|Helm&#39;s Deep" data-category="units"`,
 		`<h3 class="!text-xl leading-tight">Helminga</h3>`, `class="unit-head`, `<dl class="statline">`, `unit-kw`, "unit-warrior", "A company's own version of the Rohan Royal Guard", `id="units"`, "2 cards", `<span class="font-semibold text-fg">9</span> pts`,
 		"Stand Fast", "May take", "Spear", "+1 pts", "Named by Rohan, Helm&#39;s Deep", "Picked men of the Hall.",
-		`id="u-vault-warden-team"`, "Made of", "Iron Shield Bearer",
+		`id="u-vault-warden-team"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the unit cards lack %q", want)
@@ -215,5 +215,36 @@ func TestUnitCardTextLinksButNotItself(t *testing.T) {
 	}
 	if len(v.Units[0].Wargear) != 2 || v.Units[0].Wargear[0].Tip == "" {
 		t.Errorf("a wargear name the glossary defines carries its tip: %+v", v.Units[0].Wargear)
+	}
+}
+
+// The Vault Warden Team's card shows the cards of both models it is made of, each with its own stats and points, and each links to the
+// model's own card.
+func TestBundleCardShowsItsMembers(t *testing.T) {
+	f := newFixture(t, Config{})
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
+	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(shippedRules(t).GlossaryWithUnits(), nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/glossary/units", nil))).Body.String()
+	start := strings.Index(body, `<article id="u-vault-warden-team"`)
+	if start < 0 {
+		t.Fatal("no Vault Warden Team card")
+	}
+	card := body[start : start+strings.Index(body[start:], "</article>")]
+	for _, m := range []string{"Iron Shield Bearer", "Foe Spear Wielder"} {
+		if !strings.Contains(card, `<a href="#u-`+strings.ReplaceAll(strings.ToLower(m), " ", "-")+`" class="unit-link">`+m+`</a>`) {
+			t.Errorf("no member card or link for %s", m)
+		}
+		if !strings.Contains(body, `<article id="u-`+strings.ReplaceAll(strings.ToLower(m), " ", "-")+`"`) {
+			t.Errorf("%s has no card of its own", m)
+		}
+	}
+	if n := strings.Count(card, `data-member="`); n != 2 {
+		t.Errorf("%d member cards", n)
+	}
+	if n := strings.Count(card, `<dl class="statline">`); n < 2 {
+		t.Errorf("%d stat lines in the bundle card", n)
+	}
+	if strings.Contains(card, "eq-chip\">Iron Shield Bearer") {
+		t.Error("the members are still a text line")
 	}
 }
