@@ -1,7 +1,7 @@
 # Tabletop Simulator export
 
 This page explains how a Battle Company is taken from this app into Tabletop Simulator (TTS), where many players use the Workshop mod *MESBG FTC - Version 0.4*.
-It is for developers; players use the dialog described in [frontend.md](frontend.md#copy-as-a-tabletop-simulator-army-list).
+It is for developers; players use the dialog described in [Copy as a Tabletop Simulator army list](#copy-as-a-tabletop-simulator-army-list) below.
 
 The export has two levels:
 
@@ -188,7 +188,7 @@ The button's tooltip reads:
 > Copy this company as an army list for Tabletop Simulator. Each unit becomes the closest standard MESBG model, because the Tabletop Simulator mod can only spawn standard models. Paste it into a Notebook tab named
 > ArmyList and press Spawn Army. Names, paths, injuries and special rules are not carried over.
 
-The dialog is described in [frontend.md](frontend.md#copy-as-a-tabletop-simulator-army-list).
+The dialog is described in [Copy as a Tabletop Simulator army list](#copy-as-a-tabletop-simulator-army-list) below.
 Its title is "Army list for Tabletop Simulator", and it has the switches "Riders on foot" and "Mounts that fight as figures of their own", the copy buttons, the notes and the helper block.
 
 Special cases:
@@ -200,6 +200,72 @@ Special cases:
 `GET /tts/helper.zip` (`handleTTSHelper`, behind `protected`) serves the helper download.
 
 Tests: `internal/web/tts_test.go`, `internal/core/ttsservice_test.go`, and flows `91-tts`, `92-tts-names` and `96-tts-auras` ([testing.md](testing.md)).
+
+## Copy as a Tabletop Simulator army list
+
+An icon button (two sheets, `tts_button` in `partials/tts.gohtml`, 44 px on a phone) sits in the row of the company's name on My Company, on another
+player's company page (read only, also a frozen campaign) and, because it is the same page, in the live match. Not drawn for a company without units.
+Its tooltip is plain CSS (`group-hover` and `group-focus-within`, a `role="tooltip"` span that `aria-describedby` points to; it is outside the company
+component, so the `has-tip` machinery does not reach it) with the exact text of [tabletop-simulator.md](tabletop-simulator.md); the `aria-label` is the
+short "Copy as an army list for Tabletop Simulator". It opens a window (`role="dialog" aria-modal`, the window pattern of [frontend.md](frontend.md#windows): `dialog.js` moves the focus in and
+back, Escape and the backdrop close, the body scroll is locked) whose content is fetched by htmx from
+`GET /campaigns/{id}/companies/{company}/tts` (`?live=1` for a company in an open match: the units that are retreated, casualties or absent go in a second
+warband, `core.TTSLiveList`; a match that ended meanwhile gives the plain list). Whoever may open the campaign may ask (`loadCampaign` and `Company`: the
+404 of the company page for a stranger). The handler (`web/tts.go`) calls the minimal `ttsExporter` interface (`core.TTSService`, mocked by `make generate`).
+
+The window: a short title, the three numbered steps (Notebook tab titled `ArmyList`, paste, Spawn Army), a warning "This campaign uses a changed rules file, so
+some unit names may not exist in the mod" when the campaign's vanilla or Battle Companies file is not the shipped default (`customRules`, from
+`CampaignDetail.Rulesets[].Default`), two switches (`tts_switch`: a real `<input type="checkbox" role="switch" class="peer sr-only">`, so the keyboard and
+screen readers have a native control), then the result (`#tts-result`): a read-only monospace `<textarea id="tts-text">`, **Copy to clipboard** and a polite
+live region `#tts-status`, the count line ("15 models + 2 extra figures. Break Point: 7.5 (50% of 15). The mod's own message counts every figure it spawns:
+it will report 17 models") and the notes grouped by kind with their headings (Not in the list, Left out, Shown as, Closest model, Dismounting, Extra figures,
+Second warband), one sentence per unit (core writes the unit's name into each). No model at all: "None of these units has a standard model" and no copy.
+
+The switches (Riders on foot = `foot`, Mounts that fight as figures of their own = `mounts`, both default on, query values 0/1) refresh only `#tts-result`
+(`hx-get` on change, `hx-select="#tts-result"`, `hx-swap="outerHTML"`) so focus stays on the switch. `static/js/tts.js` (in the bundle, no inline handlers)
+adds the remembered values to the first request and the new ones to every switch request (`htmx:configRequest`), keeps them in `localStorage` key `bcm-tts`
+(`{"foot":"1","mounts":"1","rules":"none"}`, every access in try/catch: without storage the defaults apply) and copies with `navigator.clipboard.writeText`, falling back
+to selecting the text and `execCommand('copy')`; when both fail the status says "press Ctrl+C" with the text already selected. The warning alert is
+`.alert-warn` (border `warn`, surface `raised`); the button, the switches and the alert are in `/styleguide`. Flow `91-tts` drives all of it.
+
+### Names block
+
+The names block, "Name and describe the figures", sits below the notes and appears only when there is a list.
+It is a second form (`data-tts-form`, a
+`fieldset` of three radios `rules` = none | short | full, default none (names only), remembered in the same `localStorage` key) refreshes only `#tts-names-result`; the
+list switches refresh `#tts-result` and, through `hx-select-oob="#tts-names-result:outerHTML"`, the names too (the forms are not swapped, so focus stays).
+The result holds a labelled read-only `<textarea id="tts-names-text">` with the ArmyNames JSON (`core.TTSNames` through `ttsExporter.TTSNames`, given the
+export the handler already built, so the list and the names agree, live variant and fallen marker included), **Copy names** with its own polite live region
+`#tts-names-status` (same clipboard and select fallback; `data-tts-copy` names the text area and `data-tts-status` the region), the line "N figures, 9.4 KB of
+24 KB, rule texts: short", and note boxes for `rulesLowered`, `descriptionCut` and `tooLarge` (the last one `.alert-warn`). The changed-rules warning above applies
+to both blocks. Under it four numbered steps (install the helper once with the Saved Objects folder of macOS, Windows and Linux (unverified); paste into a
+Notebook tab titled exactly `ArmyNames`; spawn from `ArmyList`; select the army and press Apply names, Re-apply explained), the link "Download the helper"
+(`GET /tts/helper.zip`, `handleTTSHelper`: `ttshelper.Zip()` through `http.ServeContent` with `ETag`, `application/zip`, `Content-Disposition: attachment`,
+`Cache-Control: public, max-age=3600`, behind `protected`, so an anonymous visitor goes to the login) and a collapsed `<details>` "Show the Lua (fallback,
+unverified)" with a read-only text area (`ttshelper.ShowLua()`) and its own copy button. Flow `92-tts-names` drives it.
+
+### Auras section
+
+The auras section ([`aura-ranges.md`](aura-ranges.md)) is the template `tts_auras`, swap target `#tts-auras`, between the rule-text radios and
+`#tts-names-result`). A form (`data-tts-form`) with: the master switch **Draw aura rings** (`name="auras"`, default on); a fieldset **Kinds of ring**
+with one native checkbox per kind the company has (`name="akind"`, `id="tts-akind-<kind>"`), each row a ring icon (`aura_ring`: the kind's Okabe-Ito colour as the border,
+its first letter B C S E U inside, the enemy kind with the thicker border, so colour is never the only cue), the label and "N rings, radii 3", 6"" from
+`core.AuraSummary` (`TTSAuras`: counted before the limits of 6 per figure and 150 in all, so a ring the limits cut is still counted and its switch (Large rings) stays; the kind shows "no rings drawn with these
+settings" when none is); a fieldset **Which rules** with a switch per group that has at least one ring in the company: Rules that need an action (`adeclared`, default
+on), Rules that need an event (`aconditional`, on), Spells in effect (`acast`), Targeting ranges (`atarget`), Large rings over 12 inches (`alarge`) and Optional rings
+(`aoptional`), all off, each with "adds N rings" (or "N rings" when on). A group with no ring in the company has no switch. Under the form: the totals line
+(`#tts-auras-total`: "16 rings on 7 figures, 1 left out (limit 6 per figure, 150 in all)") and the legend (`dl[data-tts-legend]`: kind, colour name, the sentence of
+`data.auras.kinds`, "thick line" for the enemy kind). With the master switch off only the switch is drawn; a company with no aura at all shows "This company has no aura ranges."
+instead. Query parameters of the dialog route: `auras=1|0`, `akinds=banner,command,...` (the kinds that are on; absent: all), `adeclared`, `aconditional`, `acast`, `atarget`,
+`alarge`, `aoptional` (`1|0`); `ttsAuraSelection` builds the `core.AuraSelection`, which goes to `ttsExporter.TTSAuras` (counts) and to `TTSNamesOptions.Auras` (the payload).
+`tts.js` remembers all of it in `bcm-tts` (the kinds the player switched off as `akoff`, so a kind the next company lacks keeps its setting, and sends `akinds` only when
+one is off) and adds it to every dialog request. The section is swapped on its own (`hx-select="#tts-auras"`) and refreshes the names through `hx-select-oob`; the list
+switches (foot, mounts) refresh `#tts-auras` too, because the figures change. The inputs keep their ids, so htmx gives the focus back after a swap (flow `96-tts-auras`
+presses Space and checks it). The names JSON is **version 2** only when at least one ring is selected, else version 1 (an older helper keeps working); a v2 payload shows
+`#tts-helper-v2` ("Download the helper again ... an older helper says that it is older than the app") inside `#tts-names-result`, the step list tells what the **Rings**,
+**B C S E U** and **Redraw** buttons of the helper do, and the note kind `aurasLeftOut` is shown as "Aura rings left out". Works for the live variant (a fallen unit has no
+ring), another player's company and the plain list. The ring colours are fixed classes (`.aura-k-banner` ... in `tailwind.css`, the palette of the helper), not theme tokens;
+the rest uses the tokens. Both are in `/styleguide` ("Aura rings and chips").
 
 ## Names and descriptions
 

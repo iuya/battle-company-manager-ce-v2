@@ -144,7 +144,7 @@ The organiser or an administrator changes it at any time with `Campaigns.SetComp
   Two companies of one owner may share a side or fight each other.
   `core.SamePlayers` / `Match.SamePlayers` tell the web layer which owners have several companies in a match (a note, never a refusal).
 
-See [multi-company-spec.md](multi-company-spec.md).
+See [multi-company.md](multi-company.md).
 
 The services (`internal/core`, one file each) share `companyDeps` (campaign and company repositories, the rule source, the dice):
 
@@ -387,7 +387,7 @@ Environment variables (loaded by `go-simpler.org/env`; `.env.example` lists them
 | `RULES_BUILD_TIMEOUT` | `60s` | Deadline of building a parsed rule set from its three files; at least `1s` |
 | `APP_TIMEZONE` | unset | IANA zone for visitors with no account zone and no browser zone (UTC when empty) |
 | `TRUST_PROXY` | `false` | Count login attempts per `X-Forwarded-For` (last entry) instead of the peer address; only behind a reverse proxy that sets it |
-| `CSP_MODE` | `report` | `off`, `report` (`Content-Security-Policy-Report-Only` and the `/csp-report` logger) or `enforce`; see [operations.md](operations.md#content-security-policy-report-mode-then-enforce) |
+| `CSP_MODE` | `report` | `off`, `report` (`Content-Security-Policy-Report-Only` and the `/csp-report` logger) or `enforce`; see [csp.md](csp.md) |
 | `MIGRATE_ON_START` | `true` | Apply pending migrations when the server starts. `false`: the server only checks and refuses to start on a database that is behind; run `server migrate` (`make migrate`) as a deploy step |
 
 ## Deploying
@@ -415,7 +415,7 @@ See [operations.md](operations.md).
 
 **Migrations.** For a controlled deploy set `MIGRATE_ON_START=false` on the servers and run `server migrate` (`make migrate`, or
 `docker compose run --rm app migrate`) first: the servers then refuse to start while migrations are pending. A rollback of data is a
-restore: take a backup before upgrading ([operations.md](operations.md)).
+restore: take a backup before upgrading ([backup-restore.md](backup-restore.md)).
 
 ## Commands
 
@@ -439,7 +439,7 @@ restore: take a backup before upgrading ([operations.md](operations.md)).
 | `make css` | Builds `internal/web/static/app.css` (generated, not committed) |
 | `make db-up` / `make db-down` | Starts / stops the development PostgreSQL (`compose.dev.yaml`) |
 | `make migrate` | Applies pending migrations and exits (`server migrate`) |
-| `make backup` / `make restore FILE=… CONFIRM=yes` / `make restore-drill` | `pg_dump` into `backups/`, restore over the database, restore into a scratch database and smoke-check it ([operations.md](operations.md)) |
+| `make backup` / `make restore FILE=… CONFIRM=yes` / `make restore-drill` | `pg_dump` into `backups/`, restore over the database, restore into a scratch database and smoke-check it ([backup-restore.md](backup-restore.md)) |
 | `make vendor-check [ONLINE=1]` | The vendored scripts match `internal/web/vendor.json` ([vendored-js.md](vendored-js.md)) |
 | `make up` (`make up-app`) / `make prod-down` | Production compose (`compose.yaml`): builds the image and starts it with PostgreSQL / stops it |
 | `make prod-user EMAIL=… NAME=… [ROLE=superuser]` | Creates the first account in the production container |

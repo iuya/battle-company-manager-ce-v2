@@ -14,7 +14,7 @@ Two commands check them:
 
 | File | What | Source |
 |---|---|---|
-| `alpine.min.js` | Alpine.js (standard build; needs `'unsafe-eval'` in the Content-Security-Policy, see [operations.md](operations.md#content-security-policy-report-mode-then-enforce)) | jsDelivr, npm `alpinejs` `dist/cdn.min.js` |
+| `alpine.min.js` | Alpine.js (standard build; needs `'unsafe-eval'` in the Content-Security-Policy, see [csp.md](csp.md)) | jsDelivr, npm `alpinejs` `dist/cdn.min.js` |
 | `htmx.min.js` | htmx | jsDelivr, npm `htmx.org` `dist/htmx.min.js` |
 | `sortable.min.js` | SortableJS | jsDelivr, npm `sortablejs` `Sortable.min.js` |
 | `dice3d.js` | three.js and cannon-es cut down for the 3D dice, built by `tools/dice3d` (`make dice3d`, needs node) | built here |

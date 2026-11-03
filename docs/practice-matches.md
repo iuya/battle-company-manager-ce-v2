@@ -2,9 +2,8 @@
 
 A practice match is a game that awards nothing and injures nobody.
 This page describes how it works, for developers and organisers.
-It is written as a specification, which is why the file name ends in `-spec`.
 
-Related: [matches.md](matches.md), [live-match.md](live-match.md), [aftermath.md](aftermath.md), [multi-company-spec.md](multi-company-spec.md), [demo-world.md](demo-world.md#two-bands).
+Related: [matches.md](matches.md), [live-match.md](live-match.md), [aftermath.md](aftermath.md), [multi-company.md](multi-company.md), [demo-world.md](demo-world.md#two-bands).
 
 Contents:
 
@@ -168,7 +167,7 @@ func (s *Matches) CreateMatch(ctx context.Context, user User, id int64, in NewMa
 
 ## Interaction with several companies
 
-- A practice match is the natural way for one player's two companies to fight, or to test a build ([multi-company-spec.md](multi-company-spec.md)).
+- A practice match is the natural way for one player's two companies to fight, or to test a build ([multi-company.md](multi-company.md)).
   A competitive same-player match is still allowed.
 - An ended practice match never locks a company.
   While it is open, its companies are locked like in any open match, one open match per company.

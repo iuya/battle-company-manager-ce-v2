@@ -359,7 +359,7 @@ Contents: [Items and prices](#items-and-prices) | [Stats and poison](#stats-and-
   - A Warrior is promoted to Hero only when no Hero is available (most Experience, ties by Rating then the controlling player).
     It gains Might, Will and Fate.
   - A Hero promoted to fill a place stays a Hero.
-  - The Shire's Ranger replacement is the one case that displaces an officer ([frontend.md](frontend.md)).
+  - The Shire's Ranger replacement is the one case that displaces an officer ([frontend-company-building.md](frontend-company-building.md#ranger-of-the-north-replacement-shire)).
   - A unit On Its Own Path is never an officer.
 - **Starting company** adds up to 105: 60 points of rating and gold, plus 5 each for Might, Will and Fate of 3 heroes.
   - The checker does not test it; `TestStartingCompanyPointsPlusGoldAre105InEveryCompany` does.
@@ -469,7 +469,7 @@ Every problem is collected and returned; none stops the report early.
    - Nothing is stored and no campaign is created.
    - `StoreAllAs` checks every uploaded file before inserting any.
 4. **The dry run** is `CheckSet` (`Check` is its one-file form).
-   - It sits behind the admin page's **Check this file** and the online validator at `/tools/validate` ([frontend.md](frontend.md#online-validator)).
+   - It sits behind the admin page's **Check this file** and the online validator at `/tools/validate` ([frontend-campaigns.md](frontend-campaigns.md#online-validator)).
    - It takes the three contents (nil: not given), returns one report with the issues grouped by file (vanilla, glossary, Battle Companies) and never writes.
    - At start-up the shipped Battle Companies file is checked against the shipped vanilla file and glossary, which are registered first (`RegisterDefaults`).
 

@@ -6,7 +6,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// The aura chips of the unit cards (docs/aura-ranges.md section 4.6, docs/frontend.md): a row of "Aura 6"" chips under the special rules, one per
+// The aura chips of the unit cards (docs/aura-ranges.md section 4.6 and "Aura chips on the unit cards"): a row of "Aura 6"" chips under the special rules, one per
 // merged aura of the unit (core.Unit.Auras, from core.RuleSet.UnitAuras). Nothing is computed here but the words.
 
 // auraMax is how many chips the row shows before the "+N" button.

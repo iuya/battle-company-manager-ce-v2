@@ -37,7 +37,7 @@ func (c *Config) Resolve() error {
 	}
 	if c.Production() && !c.SecureCookies && !c.AllowInsecureCookies {
 		return errors.New("refusing to start: production with insecure cookies; set SECURE_COOKIES=true (behind a TLS-terminating proxy), " +
-			"or ALLOW_INSECURE_COOKIES=true to accept session cookies over plain http (docs/operations.md)")
+			"or ALLOW_INSECURE_COOKIES=true to accept session cookies over plain http (docs/operations.md, TLS and cookies)")
 	}
 	if c.RequestTimeout < 0 {
 		return fmt.Errorf("REQUEST_TIMEOUT %s: want 0 (off) or a positive duration", c.RequestTimeout)
@@ -96,7 +96,7 @@ func (s *Server) handleReadyz(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.WriteString(w, "ok\n")
 }
 
-// cspPolicy is the policy of docs/operations.md, "Content-Security-Policy": everything from our own origin, no plugins, no framing, and
+// cspPolicy is the policy of docs/csp.md: everything from our own origin, no plugins, no framing, and
 // 'unsafe-eval' / style 'unsafe-inline' only because Alpine's standard build and the style= attributes need them.
 const cspPolicy = "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; " +
 	"font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; " +

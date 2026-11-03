@@ -9,7 +9,7 @@
 #
 # Order: lock, resolve, verify the signature (when required), dump the database, write APP_IMAGE into .env, pull, `up --wait`, probe /readyz through Caddy. A failed start puts
 # the previous digest back. Migrations are forward-only: if the new release migrated the database and the old image refuses it, restore the
-# dump printed in the message (docs/operations.md, "Rollback"). Registry access is anonymous (the package is public); nothing here reads a secret.
+# dump printed in the message (docs/deploy-server.md, "Roll back on a server"). Registry access is anonymous (the package is public); nothing here reads a secret.
 set -euo pipefail
 cd "$(dirname "$0")"
 

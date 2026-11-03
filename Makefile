@@ -58,7 +58,7 @@ prod-user:
 prod-down:
 	docker compose down
 
-# make test-backup-restore   backup, restore and restore drill against a scratch PostgreSQL laid out like a server (Docker + Go; docs/operations.md)
+# make test-backup-restore   backup, restore and restore drill against a scratch PostgreSQL laid out like a server (Docker + Go; docs/backup-restore.md)
 test-backup-restore:
 	scripts/test-backup-restore.sh
 
@@ -77,7 +77,7 @@ dev: css db-up
 css:
 	./tailwindcss build -i $(CSS_IN) -o $(CSS_OUT) --minified
 
-# make backup [KEEP=14]   pg_dump of the production compose database into backups/ (COMPOSE_FILE=compose.dev.yaml for the development one; docs/operations.md)
+# make backup [KEEP=14]   pg_dump of the production compose database into backups/ (COMPOSE_FILE=compose.dev.yaml for the development one; docs/backup-restore.md)
 backup:
 	KEEP=$(or $(KEEP),14) scripts/backup.sh
 
@@ -115,7 +115,7 @@ hooks:
 hooks-test:
 	sh tests/ci/githooks.test.sh
 
-# make deploy-test   the updater's signature verification and the deploy kit scripts against stub docker/curl/cosign (docs/operations.md, "Signed images")
+# make deploy-test   the updater's signature verification and the deploy kit scripts against stub docker/curl/cosign (docs/releases.md, "Signed images")
 deploy-test:
 	bash tests/ci/deploy.test.sh
 
@@ -173,7 +173,7 @@ e2e: db-up css
 	cd tests/e2e && node run.mjs $(if $(ONLY),--only $(ONLY)) $(if $(GROUP),--group $(GROUP))
 
 # make e2e-enforce [ONLY=match]   the same suite with the server in CSP_MODE=enforce (E2E_CSP_MODE=enforce): every page, swap, stream and the 3D dice run under the
-# blocking Content-Security-Policy, and a violation (browser event or /csp-report line) fails the step (docs/operations.md, "Content-Security-Policy"). CI runs this one.
+# blocking Content-Security-Policy, and a violation (browser event or /csp-report line) fails the step (docs/csp.md). CI runs this one.
 e2e-enforce:
 	$(MAKE) e2e E2E_CSP_MODE=enforce
 

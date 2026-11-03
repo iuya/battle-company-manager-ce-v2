@@ -1,4 +1,4 @@
-// Several companies per player (docs/multi-company-spec.md). In a throwaway campaign: the organiser raises "Companies per player" from 1,
+// Several companies per player (docs/multi-company.md). In a throwaway campaign: the organiser raises "Companies per player" from 1,
 // a player creates a second company, the chip switcher appears only with two companies and switches between them, the company id is in
 // the address (another player's company is 404, the bare address is an alias), lowering the limit keeps the companies. In the demo world's
 // "Two bands": the switcher for Éowyn and Galadriel (not for Gimli), the "Same player" notes of a match and of the new match form.

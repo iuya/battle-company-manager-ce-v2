@@ -50,7 +50,7 @@ If you run `bd` in your own clone, `bd init` creates your own local database; it
 ### Specs first
 
 A feature starts as a spec with acceptance criteria and the interface contract.
-The domain expert writes `docs/<feature>-spec.md`, for example [practice-match-spec.md](practice-match-spec.md).
+The domain expert writes `docs/<feature>-spec.md`, for example [practice-matches.md](practice-matches.md).
 Planners agree the core and persistence contracts, then a coder implements one bead at a time, test first, against mocks.
 Large features start from an agreed issue.
 
@@ -148,7 +148,7 @@ Then run the gates above yourself instead of trusting the report.
 
 ### Agents that are not Claude Code
 
-[AGENTS.md](../AGENTS.md) carries the same rules in a tool-neutral form:
+[AGENTS.md](../AGENTS.md) is the short entry point for them and points to `CLAUDE.md`:
 
 - read `CLAUDE.md`;
 - use `bd`;

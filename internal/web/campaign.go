@@ -630,7 +630,7 @@ func creatureTip(c core.UnitCreatureRef) string {
 // other page.
 func (b campaignBase) Own() *core.CampaignCompany { return b.Current }
 
-// Switcher is whether the company chips show: the viewer owns two or more companies of the campaign (docs/multi-company-spec.md, 4.1).
+// Switcher is whether the company chips show: the viewer owns two or more companies of the campaign (docs/multi-company.md, 4.1).
 func (b campaignBase) Switcher() bool { return len(b.Campaign.Companies) > 1 }
 
 // OwnPath is the URL root of the owner pages of the company the page acts on: /campaigns/{id}/my-company/{company}.

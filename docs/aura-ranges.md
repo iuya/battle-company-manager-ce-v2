@@ -4,7 +4,7 @@ An aura is a ring of fixed radius around a miniature (a banner, Stand Fast, "wit
 This page explains how the app classifies auras, draws them as rings around miniatures in Tabletop Simulator (TTS) and shows them as chips on the unit cards.
 It is the contract between the definitions (the `auras` of rules, items and powers), core (`UnitAuras`, `TTSNames` version 2), the Lua helper and the web layer.
 
-Related: [tabletop-simulator.md](tabletop-simulator.md) (list, names payload, helper), [unit-keywords.md](unit-keywords.md) (chips, rule targets), [definitions.md](definitions.md) (rules data), [frontend.md](frontend.md#copy-as-a-tabletop-simulator-army-list) (dialog and chips).
+Related: [tabletop-simulator.md](tabletop-simulator.md) (list, names payload, helper), [unit-keywords.md](unit-keywords.md) (chips, rule targets), [definitions.md](definitions.md) (rules data), [tabletop-simulator.md](tabletop-simulator.md#copy-as-a-tabletop-simulator-army-list) (dialog), [Aura chips](#aura-chips-on-the-unit-cards) (cards).
 
 The whole path is built and tested: data, core, payload, helper, dialog, card chips.
 What no test can show is how the rings look in the game itself; see [Smoke tests](#smoke-tests-in-tabletop-simulator).
@@ -459,6 +459,21 @@ The ring colours are fixed CSS classes (`.aura-k-banner` ...), not theme tokens.
 | The curated radii drift from the rules | the validator and the rule-text radius test |
 | An old helper with a v2 payload | the version rule; the dialog tells to download the helper again |
 | The data wrongly says a rule is an aura | the explicit excluded list with reasons; ambiguous entries default off |
+
+## Aura chips on the unit cards
+
+Aura chips are drawn by `aura_chip` and `aura_row` in `partials/units.gohtml`, with helpers in `internal/web/auras.go`.
+
+`CompanyUnit.Auras` is filled by core at
+build time (`RuleSet.UnitAuras`: unfiltered, merged by kind and radius, sorted kind then radius). The row sits under the special rules on every `unit_card` (My Company, another
+company's read-only page, the Field cards of a live match) and the expanded card lists them in full under "Auras" (`data-auras-full`: radius, labels, who it affects and when, the
+tip). Not on the compact cards (Retreated, casualties, missed), the fallen cards, the company browser's hover card or the armoury (those have no built unit or are one-line rows).
+A chip (`.aura-chip`, like a rule chip: kind colour on the left edge, a small ring icon with the kind's letter, text `Aura 6"`) is a `has-tip` element (`tabindex="0"`,
+`aria-label` "Aura, 6 inches: Stand Fast, With Me!; works for friendly models, always, needs line of sight", tooltip title = the merged labels, meta "Command - friendly models
+- always - needs line of sight", text = the tips; `data-concept` = the entry's glossary term, so Enter or a click opens the helper popup). At most 3 chips and a `+N` button
+that opens the rest in place (Alpine, `aria-expanded`, "Fewer"). The card shows every aura the unit has, not only the ones the dialog draws by default; a
+ring of a group that is off by default (spells, targeting ranges, rings over 12 inches, the Torch) is muted and dashed (`.aura-off`) and its tooltip and label say "off by
+default in Tabletop Simulator", so the card tells what the unit can do and the dialog what is drawn. No row for a unit without an aura. **Hidden by default:** the rows and the expanded "Auras" section stay in the markup but `tailwind.css` hides them (`html:not([data-show-auras]) .unit [data-auras], ... [data-auras-full]`) unless this browser chose them: the toggle **Show auras on unit cards** (section "Unit cards" of `theme_controls`, the Appearance menu and the Account page; `$store.theme.auras` / `setAuras`) writes the cookie `bcm-auras=1` and `theme-init.js` sets `data-show-auras="on"` on `<html>` before the first paint, so there is no flash. Per browser, not in the account. `/styleguide` keeps its chips (not inside a `.unit`). Flow `96-tts-auras` drives both.
 
 ## Smoke tests in Tabletop Simulator
 

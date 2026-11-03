@@ -19,7 +19,7 @@ Related pages:
 - The match record (scenario, result, ending) is in [matches.md](matches.md).
 - What the finished match does to the companies is in [aftermath.md](aftermath.md).
 - The technical design (fold, locking, event stream) is in [architecture.md](architecture.md#live-match-design).
-- The pages themselves are described in [frontend.md](frontend.md#live-match).
+- The pages themselves are described in [frontend-live-match.md](frontend-live-match.md).
 
 Code: `internal/core/live.go`, `live_fold.go`, `live_service.go`, `live_hub.go`, `live_break.go`; `internal/web/live*.go`.
 Tables: `match_live`, `match_live_unit`, `match_live_log` (and `match_ato` for Against the Odds).
@@ -119,7 +119,7 @@ replaced by the normal aftermath banner), connection lost (the page keeps workin
 Everything the card has outside a match (except the Equipment line of a unit with no equipment: nothing can be bought in a match), plus:
 
 - **Trackers** replace the static W, M, W, F values in the attribute row: one segmented bar per stat, a segment per point, tapped to set the value
-  ([frontend.md](frontend.md#trackers)). Wounds, Might, Will and Fate stay within `0..start`. Heroes show M W F and Wounds, warriors only Wounds; Wounds
+  ([frontend-live-match.md](frontend-live-match.md#trackers)). Wounds, Might, Will and Fate stay within `0..start`. Heroes show M W F and Wounds, warriors only Wounds; Wounds
   is always shown, also when it starts at 1, so every model can fall from its card.
 - **Wounds -1** from the tracker is a manual change (no xp, no target). At 0 Wounds the unit moves to Field casualties, as Died does, with the
   toast "Aldor fell. Undo"; Return to the battle (or the toast's Undo) is the way back.

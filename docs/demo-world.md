@@ -12,11 +12,11 @@ For live reload, load the world with `go run ./cmd/server seed --world` and use 
 ```bash
 make demo                          # empty database, the world, the server on :8080
 make demo PASSWORD=...             # another password for every account (at least 10 characters)
-make seed                          # the minimal demo (see frontend.md, "Demo data and signing in")
+make seed                          # the minimal demo (see frontend-account.md, "Demo data and signing in")
 go run ./cmd/server seed --world   # load the world into the current database (no reset; does nothing if it is there)
 ```
 
-The minimal demo is described in [frontend.md](frontend.md#demo-data-and-signing-in).
+The minimal demo is described in [frontend-account.md](frontend-account.md#demo-data-and-signing-in).
 
 The world is a script, `cmd/server/world*.go`, that drives the **real core services** through `newBackend`.
 Nothing is inserted behind their back except the few states listed under [Gaps](#gaps).
@@ -61,7 +61,7 @@ Page names are those of the navigation: Overview, My company, Armoury, Rankings,
 
 | Campaign (in order of creation) | Players | What it demonstrates | Where to click |
 |---|---|---|---|
-| **Brand new campaign: no companies yet** | Aragorn joined, no company | the empty campaign: no ranking, no matches; a member without a company ("pending join"); the company browser of the campaign's rules, where the Arnor and Fornost rule texts name units: **unit names in texts are links** to the glossary's unit cards with a tooltip ([frontend.md](frontend.md#unit-names-in-texts)) | Overview as `aragorn`: "Create your company", pick Arnor: "Ranger of Arnor" and "Ranger of the North" in the company rule; hover or Tab to one for its profile, click for its card |
+| **Brand new campaign: no companies yet** | Aragorn joined, no company | the empty campaign: no ranking, no matches; a member without a company ("pending join"); the company browser of the campaign's rules, where the Arnor and Fornost rule texts name units: **unit names in texts are links** to the glossary's unit cards with a tooltip ([frontend-glossary.md](frontend-glossary.md#unit-names-in-texts)) | Overview as `aragorn`: "Create your company", pick Arnor: "Ranger of Arnor" and "Ranger of the North" in the company rule; hover or Tab to one for its profile, click for its card |
 | **Companies being built: paths still to choose** | Éowyn (Rohan), Sauron (Mordor), Aragorn (Arnor), Gimli (Durin's Folk), Bilbo (no company) | officers with **no path** (Éowyn), **one path chosen** (Sauron: the Leader only), a company ready to play, Gimli's own choice of Leader and Sergeants, a member who has not built a company; a match cannot be opened for a company with a path pending | My company as `eowyn`: the pending officers ask for a path (**"Choose a path" opens the path carousel**, with the Path of the Sorcerer and its "Select magical power" window listing every power in full; flow `109-path-carousel`); Matches > New match with Éowyn's company is refused; Armoury as `aragorn` (his Arnor company is fresh: every unit wears Armour or better or may not take it): **Armour and Heavy Armour are listed greyed with the reason** (a Ranger of the North may take them later), no Warg or halberd (flow `106-armoury-possible`); the same Armoury and the "+" equipment window of a unit show **Mountain Boots, War spear, Company Drum and Backpack with their glossary terms linked** (the Backpack's own name stays plain; flow `108-item-glossary-links`) |
 | **Gallery: all 37 Battle Companies, a few games in** | one gallery account per company | all 37 factions with the same treatment: officers on different paths, a recruit on **every row** of the reinforcement chart and of the special chart, the company's special units, a piece of gear for the Leader. See [Company types](#company-types) | Companies; open a company, My company as its gallery account |
 | **Injuries and treatment: every wound on the chart** | Éowyn (Rohan), Sauron (Mordor), Aragorn (Arnor) | see [Injuries](#injuries-and-treatment) | My company of each |
@@ -88,7 +88,7 @@ Page names are those of the navigation: Overview, My company, Armoury, Rankings,
 
 ### Two bands
 
-Step `world_bands.go`, campaign **Two bands: several companies per player** (organiser `you`, `CompaniesPerPlayer` = 3; every other campaign keeps the default of 1). Spec: [multi-company-spec.md](multi-company-spec.md).
+Step `world_bands.go`, campaign **Two bands: several companies per player** (organiser `you`, `CompaniesPerPlayer` = 3; every other campaign keeps the default of 1). Spec: [multi-company.md](multi-company.md).
 
 | Player | Companies | What it shows |
 |---|---|---|
@@ -99,7 +99,7 @@ Step `world_bands.go`, campaign **Two bands: several companies per player** (org
 - **Match 1** (ended, **practice**): Éowyn's two companies against each other, the "Same player" case; the result is entered and the aftermath reads "Practice match: nothing to roll", so neither company is locked by it.
 - **Match 2** (ended): both of Éowyn's companies on one side against Sauron's, a competitive match. The match page says "Same player: both of these companies are Éowyn's."; her first company's aftermath is finished, the second's still to play, and Sauron's is untouched (each is locked on its own).
 - **Match 3** (open): one of Galadriel's companies against Gimli's; her other two are free for a new match.
-- **Match 4** (open, **practice**): Galadriel's other two companies against each other, with a live log (turn 1 and a point of Might spent); their pages show the live state with the Practice badge. The Overview of the campaign counts 2 matches and "2 practice matches"; Éowyn's wins count only Match 2 (see [practice-match-spec.md](practice-match-spec.md)). In the new match form the "Mine" chip narrows the search to the viewer's companies, and putting two companies of one player on a side shows the same note before the match is created.
+- **Match 4** (open, **practice**): Galadriel's other two companies against each other, with a live log (turn 1 and a point of Might spent); their pages show the live state with the Practice badge. The Overview of the campaign counts 2 matches and "2 practice matches"; Éowyn's wins count only Match 2 (see [practice-matches.md](practice-matches.md)). In the new match form the "Mine" chip narrows the search to the viewer's companies, and putting two companies of one player on a side shows the same note before the match is created.
 - The company id is in every address (`/campaigns/N/my-company/ID`); `/campaigns/N/my-company` alone opens the first company, and another player's company id answers 404.
 
 ### Aura parade

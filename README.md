@@ -55,7 +55,7 @@ For a real deployment, use `compose.yaml` with the image (or build from the chec
 3. `make prod-user EMAIL=... NAME=... ROLE=superuser` creates the first account.
 
 Production mode has secure cookies, HSTS, a Content-Security-Policy and `/healthz` and `/readyz` probes.
-Details, backups and upgrades: [docs/operations.md](docs/operations.md).
+Details, backups and upgrades: [docs/operations.md](docs/operations.md), [docs/backup-restore.md](docs/backup-restore.md), [docs/releases.md](docs/releases.md).
 
 ## Tests
 
@@ -100,8 +100,8 @@ Start at [docs/README.md](docs/README.md). Everything in `docs/`, by audience:
 | [tabletop-simulator.md](docs/tabletop-simulator.md) | Taking a company into Tabletop Simulator |
 | [admin.md](docs/admin.md) | The Administration section, campaign status, invitations, handover |
 | [rules-coverage.md](docs/rules-coverage.md) | Which Battle Companies mechanics the app implements |
-| [multi-company-spec.md](docs/multi-company-spec.md) | Several companies per player (up to a campaign setting), the company in the URL, and opening the last campaign directly |
-| [practice-match-spec.md](docs/practice-match-spec.md) | Practice matches: no rewards, no injuries, an empty aftermath |
+| [multi-company.md](docs/multi-company.md) | Several companies per player (up to a campaign setting), the company in the URL, and opening the last campaign directly |
+| [practice-matches.md](docs/practice-matches.md) | Practice matches: no rewards, no injuries, an empty aftermath |
 
 **Rules authors (customising the Battle Companies JSON)**
 
@@ -119,19 +119,29 @@ Start at [docs/README.md](docs/README.md). Everything in `docs/`, by audience:
 |---|---|
 | [collaborating.md](docs/collaborating.md) | How to work on the project, with or without a coding agent |
 | [architecture.md](docs/architecture.md) | Layers, packages, persistence, configuration, commands |
-| [frontend.md](docs/frontend.md) | Design language, page and htmx patterns, responsive rules |
+| [frontend.md](docs/frontend.md) | Design language, tokens, themes, responsive rules, components, page and htmx/Alpine patterns, and the map of the screen pages |
+| [frontend-company.md](docs/frontend-company.md) | My Company: the roster, unit cards, Armory, equipment, healing, formation, Gold, creatures |
+| [frontend-company-building.md](docs/frontend-company-building.md) | Recruiting, the creation page, choosing a company, company rules |
+| [frontend-level-up.md](docs/frontend-level-up.md) | Choosing a path (mosaic and carousel), the magical power window, level-up |
+| [frontend-live-match.md](docs/frontend-live-match.md) | The live match screens |
+| [frontend-glossary.md](docs/frontend-glossary.md) | The Glossary tab, unit-name links, the helper popup |
+| [frontend-campaigns.md](docs/frontend-campaigns.md) | Campaign list and pages, rules files and the validator, hand-over |
+| [frontend-account.md](docs/frontend-account.md) | Account, invitation and recovery links, the demo sign-in |
 | [testing.md](docs/testing.md) | Test commands, golden snapshots, browser tests |
 | [auth.md](docs/auth.md) | Accounts, sessions, passwords, CSRF, login throttling |
 | [vendored-js.md](docs/vendored-js.md) | The committed third-party scripts and how to update them |
 | [performance.md](docs/performance.md) | Measured page cost and the performance tooling |
-| [design/match-redesign](docs/design/match-redesign/README.md) | Pictures of the three proposals for the match and live-match pages (a design discussion, not the current app) |
-| [optimization-report.md](docs/optimization-report.md) | The optimization work: executive summary (baseline and final numbers, what changed and why, what did not improve), then the data format, runtime, database, build and test sections |
 
 **Operators**
 
 | Document | What it covers |
 |---|---|
-| [operations.md](docs/operations.md) | First start, the published image, backups, restore, robustness |
+| [operations.md](docs/operations.md) | First start, configuration, accounts and the map of the operations pages |
+| [releases.md](docs/releases.md) | The published image, tags, how a release is built, signed images, rolling back an image |
+| [deploy-server.md](docs/deploy-server.md) | The server kit: first start on a server, the updater, memory, Oracle Cloud Always Free, DuckDNS |
+| [backup-restore.md](docs/backup-restore.md) | What to back up, backups, restore and the restore drill |
+| [csp.md](docs/csp.md) | Content-Security-Policy: report mode, then enforce |
+| [robustness.md](docs/robustness.md) | Goroutines, LISTEN/NOTIFY, server limits, the database, boot versus run |
 | [SECURITY.md](SECURITY.md) | How to report a vulnerability |
 
 ## Contributing

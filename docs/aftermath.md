@@ -115,7 +115,7 @@ States (`AftermathStatus`): `pending` (nothing saved), `sheet` (draft saved), `i
      company with nobody left to lead has no question. The Warrior question has no "nobody" answer: `Aftermath.Succession` with `NeedSergeant`
      and `Fallback` set is the mandatory question (radios of `Fallback`; the templates `aftermath_succession` and `aftermath_fallback` list each
      Warrior with its Experience and points, preselect a single one and say when several are tied), `NeedSergeant` with `SergeantOptions` the optional Hero question.
-   - **The Shire's Ranger of the North.** Nothing special happens when he falls: he goes to the cemetery like any Hero (a fallen Leader opens the succession). The summary says he may return with a reinforcement; see "Ranger of the North replacement" in [frontend.md](frontend.md).
+   - **The Shire's Ranger of the North.** Nothing special happens when he falls: he goes to the cemetery like any Hero (a fallen Leader opens the succession). The summary says he may return with a reinforcement; see "Ranger of the North replacement" in [frontend-company-building.md](frontend-company-building.md#ranger-of-the-north-replacement-shire).
    - When every casualty is final and every decision is made, the server applies **experience** and moves to `levelups`. If re-rolls are left,
      the step waits for `Decide` with kind `continue`; using the last re-roll closes the step on its own.
 4. **Experience** (automatic). Each surviving unit that took part gets the sum of its gains (`campaign.experience.gains[].amount` times the
@@ -276,7 +276,7 @@ units that still share a title are numbered ("Warrior of Rohan 2"), a name the p
   (they do not stack)", and a carrier that does not qualify shows the reason ("Casualties cannot use Healing Herbs"). The form posts `unit` ids, per unit `outcome-<id>`, `took-<id>`, `gain-<id>-<key>`, `item-<id>`, a single `relic` and `odds`.
   A sticky bottom bar on phones (an inline card from `md`) shows the preview of the *saved* sheet ("XP +N across M units, Influence +N, K injury rolls", the scenario rewards, "Items: Herbs +1, 1 Cram") with **Save** and **Start aftermath**
   (disabled with the reason while invalid, or while the Relic is ticked but unassigned). Messages that start with a unit's title appear on that unit's card, the others on top (422, the typed sheet kept). Absent units appear below
-  as "Missed this game, back next match". When the sheet is the unsaved default of a live match it shows "From the live match" and the MVP vote lines (`Aftermath.MVP`: the winner is prefilled, a tie shows "Tied: ..." and the owner chooses).
+  as "Missed this game, back next match". When the sheet is the unsaved default of a live match it shows "From the live match" and the MVP vote lines (`Aftermath.MVP`: the winner is prefilled, a tie shows "Tied: ..." and the owner chooses; the lines show who is ticked, and revealed secret lines print `SecretLine.Label`).
 - **Injuries** (`aftermath_injuries`, `aftermath_casualty`, `aftermath_decision`, `aftermath_succession`). One card per casualty with the dice component, **Roll {injury dice}** (`POST .../roll` with `unit`, `roll`, `roll2`, `thrown`), **Roll all**
   when two or more wait (the server rolls; only the unrolled dice animate), the result with its bonus die, the chart (collapsed, the row of the roll highlighted), a tombstone note for the fallen, the open decision (`POST .../decide`
   with `kind`, `unit`, `answer`), **Re-roll · Against the Odds** (`POST .../reroll`) with the count left, and the Leader's succession and new Sergeant questions. A Herbs banner reads "Healing Herbs: +1 to every injury roll (the total stops
@@ -288,7 +288,7 @@ units that still share a title are numbered ("Warrior of Rohan 2"), a name the p
 
 The match page has an **Aftermath card** once the match has ended (`aftermath_card`): one row per company with its status badge (Pending / In progress / Done / Waived), **Start** or **Continue** for an editor, **View** for everybody
 else, the one-line summary of a finished or waived one and, for the organiser and administrators on an unfinished one, **Waive** (an inline form with the note, `POST .../aftermath/{company}/waive`). My Company and the company page get the
-banner, the perks card and the history ([frontend.md](frontend.md)). The History card groups the lines by match ("Match 4", newest first); the repository takes whole aftermaths until it has at least 20 lines. Every `AftermathLine` is filled with
+banner, the perks card and the history ([frontend-company.md](frontend-company.md#company-pages-and-the-aftermath)). The History card groups the lines by match ("Match 4", newest first); the repository takes whole aftermaths until it has at least 20 lines. Every `AftermathLine` is filled with
 `Match`, `MatchID` and `On` when it is read; they are not stored in the lines JSON.
 
 ## Wargear on a promotion

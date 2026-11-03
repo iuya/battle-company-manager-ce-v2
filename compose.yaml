@@ -30,7 +30,7 @@ services:
     # image: ghcr.io/iuya/battle-company-manager-ce-v2:latest   # latest stable release; pin one with :1.1.0 (exact), :1.1 (newest patch) or :1
     # pull_policy: always                                         # check the registry on every `up` (default `missing` keeps a cached image)
     #     Then: docker compose pull app && docker compose up -d --wait. Switching back to (a) needs `docker compose up -d --build`.
-    #     Details, platforms and rollback: docs/operations.md, "Published image".
+    #     Details, platforms and rollback: docs/releases.md, "Published image".
     restart: unless-stopped
     depends_on:
       postgres: { condition: service_healthy }
@@ -49,7 +49,7 @@ services:
       # LISTEN_HOST:                                 # keep it empty here (every interface): the container must be reachable; APP_BIND is the host side
       # ALLOW_INSECURE_COOKIES: ${ALLOW_INSECURE_COOKIES:-false}   # true: let production start with SECURE_COOKIES=false (plain http, private network)
       # TRUST_PROXY: ${TRUST_PROXY:-false}           # true only behind a reverse proxy that sets X-Forwarded-For; login attempts are counted per client
-      # CSP_MODE: ${CSP_MODE:-report}                # off | report | enforce, Content-Security-Policy (docs/operations.md, "Content-Security-Policy")
+      # CSP_MODE: ${CSP_MODE:-report}                # off | report | enforce, Content-Security-Policy (docs/csp.md)
       # MIGRATE_ON_START: ${MIGRATE_ON_START:-true}  # false: refuse to start on a database that is behind; run `docker compose run --rm app migrate` first
       # MAX_CACHED_RULESETS: ${MAX_CACHED_RULESETS:-16}   # parsed rule sets kept in memory (a few MB each), least recently used dropped; at least 1
       # REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-30s}    # a request that works longer is cancelled (queries stop, answer 503); 0 = no limit; the live stream is exempt

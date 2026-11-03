@@ -1,4 +1,4 @@
-// The "Choose a path" window is a carousel (GitHub issue 63; docs/frontend.md, "Path carousel"): every path on one strip (a radio group), exactly one selected
+// The "Choose a path" window is a carousel (GitHub issue 63; docs/frontend-level-up.md, "Path carousel"): every path on one strip (a radio group), exactly one selected
 // and shown below with its details, the floating previous/next arrows, the arrow keys, the first magical power of a Sorcerer under the selection, no horizontal scroll
 // in the 360 x 640 window, axe clean in every look. Eowyn's Rohan company in "Companies being built" has officers without a path.
 import { assert, campaignId, MODAL } from '../lib/util.mjs';

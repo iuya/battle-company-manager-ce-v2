@@ -5,7 +5,7 @@
 #
 # Default: runs pg_dump inside the compose "postgres" service (no client tools needed on the host). With PGDUMP_LOCAL=1 it runs the
 # host's pg_dump against DATABASE_URL instead (a managed or remote database). Environment: KEEP (default 14), COMPOSE_SERVICE
-# (default postgres), PGUSER/PGDATABASE for the compose mode (default bcm/bcm). See docs/operations.md.
+# (default postgres), PGUSER/PGDATABASE for the compose mode (default bcm/bcm). See docs/backup-restore.md.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -36,7 +36,7 @@ fi
 mv "$tmp" "$out"
 echo "backup written: $out ($(wc -c < "$out" | tr -d ' ') bytes)"
 
-# Retention: the newest $keep dumps stay (a copy off the machine is on you, see docs/operations.md).
+# Retention: the newest $keep dumps stay (a copy off the machine is on you, see docs/backup-restore.md).
 ls -1t "$dir"/bcm-*.dump 2>/dev/null | tail -n +"$((keep + 1))" | while read -r old; do
   echo "removing old backup: $old"
   rm -f "$old"

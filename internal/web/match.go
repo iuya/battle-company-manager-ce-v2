@@ -21,7 +21,7 @@ type scenarioGroup struct {
 	Scenarios []core.ScenarioInfo
 }
 
-// SamePlayerNotes are the "Same player" notes of the match page (docs/multi-company-spec.md, 4.3): a player who owns two or more of its
+// SamePlayerNotes are the "Same player" notes of the match page (docs/multi-company.md, 4.3): a player who owns two or more of its
 // companies. Never a refusal; the match counts like any other. Empty when no player has several.
 func (v matchView) SamePlayerNotes() []string {
 	var notes []string

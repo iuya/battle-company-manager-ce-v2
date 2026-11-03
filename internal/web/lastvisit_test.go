@@ -11,7 +11,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// The last-campaign memory (docs/multi-company-spec.md): the bcm-last cookie, validated on every read.
+// The last-campaign memory (docs/multi-company.md): the bcm-last cookie, validated on every read.
 
 func withLast(r *http.Request, v string) *http.Request {
 	r.AddCookie(&http.Cookie{Name: lastCookie, Value: v})

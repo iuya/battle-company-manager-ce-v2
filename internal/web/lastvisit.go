@@ -8,7 +8,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// The last-campaign memory (docs/multi-company-spec.md): a cookie holding three ids, "<user>.<campaign>[.<company>]". It is
+// The last-campaign memory (docs/multi-company.md): a cookie holding three ids, "<user>.<campaign>[.<company>]". It is
 // unsigned and authorises nothing: GET / and the My Company alias validate it against the database on every read, and it is cleared when
 // it is malformed, another user's, finished or no longer the user's.
 

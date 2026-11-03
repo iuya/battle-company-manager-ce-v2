@@ -1,4 +1,4 @@
-// The campaign Glossary tab holds a card for every base unit the companies of the ruleset name (docs/frontend.md, "Glossary and item
+// The campaign Glossary tab holds a card for every base unit the companies of the ruleset name (docs/frontend-glossary.md, "Glossary and item
 // definitions"). The cards are not in the page (they are half a megabyte): the page says how many there are and fetches them the first
 // time they are wanted (the button, the Units chip, a search, a #u- address). Checked here: the count equals the cards, each card has a stable
 // anchor (#u-warrior-of-minas-tirith) that a full load and a link inside the page both reach (the card is fetched, shown even when a search hid

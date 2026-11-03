@@ -2,9 +2,8 @@
 
 A player can run more than one Battle Company in the same campaign, and the app reopens the last campaign a player looked at.
 This page describes both features for developers and organisers.
-It is written as a specification, which is why the file name ends in `-spec`.
 
-Related: [practice-match-spec.md](practice-match-spec.md) (games that award nothing), [matches.md](matches.md), [aftermath.md](aftermath.md), [demo-world.md](demo-world.md#two-bands), [frontend.md](frontend.md), [auth.md](auth.md).
+Related: [practice-matches.md](practice-matches.md) (games that award nothing), [matches.md](matches.md), [aftermath.md](aftermath.md), [demo-world.md](demo-world.md#two-bands), [frontend.md](frontend.md), [auth.md](auth.md).
 
 Contents:
 
@@ -85,7 +84,7 @@ The app resolves the open questions like this:
 7. **Two companies of one player may fight each other**, on the same side or on opposite sides.
    The match setup shows a non-blocking "Same player" note, and `ValidateSides` does not forbid it.
    The match counts like any other.
-   For a game with no consequences, the note offers "Make it a practice match" ([practice-match-spec.md](practice-match-spec.md)).
+   For a game with no consequences, the note offers "Make it a practice match" ([practice-matches.md](practice-matches.md)).
 
 ## Persistence
 

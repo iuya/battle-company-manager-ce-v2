@@ -80,11 +80,6 @@ How it behaves:
 - **Throttle.** The registration form is throttled per address and link (5 failures in 10 minutes) and per address (20), in memory, like the login throttle.
   The key uses a fingerprint of the token, never the email.
 
-Known limits:
-
-- The holder of a valid anonymous link learns from the generic error versus success that an address exists. The throttles and the use limit bound this.
-- The holder can register an address that is not theirs. There is no email verification; the administrator tells the person it belongs to.
-
 ## Password recovery
 
 A **superuser** makes a single-use "set a new password" link for any other open account from the Users page ([admin.md](admin.md#recovery-links)).
@@ -94,7 +89,6 @@ A **superuser** makes a single-use "set a new password" link for any other open 
 - Expiry is 1 hour to 7 days (the page offers 1, 3, 7 days; default 1 day).
 - An account has at most one pending link. A new one replaces the old (reason `replaced`).
 - A superuser can make a link for another superuser or administrator.
-  A compromised superuser can therefore take over any account; this is accepted.
 
 How it behaves:
 
@@ -218,7 +212,7 @@ A second cookie remembers where the user was: `<userID>.<campaignID>[.<companyID
 
 ## The Account page
 
-`/account` (sidebar, bottom; see [frontend.md](frontend.md#account)) is for the signed-in user.
+`/account` (sidebar, bottom; see [frontend-account.md](frontend-account.md#account)) is for the signed-in user.
 It is mobile first: one column of cards, each its own htmx form that swaps only itself (422 with the form kept on error).
 
 - **Profile**: display name (1-60 characters, as `CreateUser`); the email is shown read only ("ask an administrator to

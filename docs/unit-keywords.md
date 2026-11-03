@@ -7,7 +7,7 @@ Why show keywords at all?
 A card already has a kind icon (infantry, cavalry, beast, monster, monstrous cavalry).
 But rules such as Hatred (X), Ancient Enemies (X), Fury (X), Terror (X) and "whilst this model has the Cavalry keyword" act on, or for, models with a given keyword.
 
-Related: [frontend.md](frontend.md) (cards, tooltips, helper popup), [concept-graph.md](concept-graph.md), [definitions.md](definitions.md), [live-match.md](live-match.md).
+Related: [frontend-company.md](frontend-company.md) (cards, tooltips), [frontend-glossary.md](frontend-glossary.md#helper-popup) (helper popup), [concept-graph.md](concept-graph.md), [definitions.md](definitions.md), [live-match.md](live-match.md).
 
 Contents:
 
@@ -204,7 +204,7 @@ The web layer:
 - styles `.kw-*` in `tailwind.css`;
 - tests `keywords_test.go` and `live_test.go`, and the e2e flows `79-keywords` and `84-match-extras`.
 
-The card layout is in [frontend.md](frontend.md).
+The card layout is in [frontend-company.md](frontend-company.md#the-unit-card).
 
 ### Oracle test
 

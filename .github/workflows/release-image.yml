@@ -1,7 +1,7 @@
 # Builds the Docker image and publishes it to the GitHub Container Registry (ghcr.io/<owner>/<repo>) when a release tag vMAJOR.MINOR.PATCH
 # is pushed. Order: browser tests (e2e.yml, all groups) -> per platform on a NATIVE runner (amd64: ubuntu-26.04, arm64: ubuntu-26.04-arm; no QEMU):
 # build into the runner's daemon, smoke-test it against PostgreSQL, push it by digest -> merge: one multi-platform manifest with the release tags, signed keylessly (cosign).
-# Run by hand (Actions > release-image > Run workflow) for a dry run: everything except the push. docs/operations.md, "Published image".
+# Run by hand (Actions > release-image > Run workflow) for a dry run: everything except the push. docs/releases.md, "Published image".
 name: release-image
 on:
   push:

@@ -23,7 +23,7 @@ if [ ! -f "$dest/.env" ]; then
   { echo "SITE_ADDRESS=$SITE_ADDRESS"; echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"; echo "APP_IMAGE="; echo "CSP_MODE=${CSP_MODE:-report}"; } > "$dest/.env"
   chmod 600 "$dest/.env"
 fi
-# REQUIRE_SIGNATURE=1 (or 0) given in the environment is written to .env, where bcm-update.sh reads it (docs/operations.md, "Signed images").
+# REQUIRE_SIGNATURE=1 (or 0) given in the environment is written to .env, where bcm-update.sh reads it (docs/releases.md, "Signed images").
 if [ -n "${REQUIRE_SIGNATURE:-}" ]; then
   [[ "$REQUIRE_SIGNATURE" =~ ^[01]$ ]] || { echo "REQUIRE_SIGNATURE must be 0 or 1" >&2; exit 2; }
   tmp="$(mktemp "$dest/.env.XXXXXX")"
@@ -53,7 +53,7 @@ Create the token file yourself, once, on this host (the prompt hides what you ty
 
   sudo install -d -m 700 /etc/bcm && read -rsp 'DuckDNS token: ' t && printf %s "\$t" | sudo install -m 600 /dev/stdin /etc/bcm/duckdns.token; unset t
 
-Then: sudo systemctl start bcm-duckdns.service; journalctl -u bcm-duckdns -n 5. To serve the app under the name see docs/operations.md.
+Then: sudo systemctl start bcm-duckdns.service; journalctl -u bcm-duckdns -n 5. To serve the app under the name see docs/deploy-server.md.
 MSG
 fi
 echo "installed in $dest; next: $dest/bootstrap-admin.sh you@example.org \"Your Name\""

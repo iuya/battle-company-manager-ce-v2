@@ -5,7 +5,7 @@ It powers the helper popup: tap a term and read what the rules say about it and 
 
 This page is the contract between the curator (data), the backend (loader) and the frontend (popup).
 It is for developers and rules curators.
-The popup and its endpoints are described in [frontend.md](frontend.md#helper-popup).
+The popup and its endpoints are described in [frontend-glossary.md](frontend-glossary.md#helper-popup).
 The rules files and the generated graph file are described in [definitions.md](definitions.md).
 
 Contents: [What it is](#what-it-is), [Generation, storage and loading](#generation-storage-and-loading), [Go contract](#go-contract), [Size](#size), [Tests](#tests), [Defaults](#defaults).
@@ -41,8 +41,8 @@ A node is a reference, not a copy: the text stays in the glossary.
 Ambiguous names (Fear, Wound, ...) have one node per meaning and are never auto-linked.
 
 Units are not nodes.
-Their cards are in the campaign glossary under their own anchors (`core.UnitAnchor`, [frontend.md](frontend.md#glossary-and-item-definitions)).
-The glossary linker links a unit named in a rule text, using a `UnitID` segment next to the `TermID` ones ([frontend.md](frontend.md#unit-names-in-texts)).
+Their cards are in the campaign glossary under their own anchors (`core.UnitAnchor`, [frontend-glossary.md](frontend-glossary.md#glossary-and-item-definitions)).
+The glossary linker links a unit named in a rule text, using a `UnitID` segment next to the `TermID` ones ([frontend-glossary.md](frontend-glossary.md#unit-names-in-texts)).
 The graph does not do this: the popup's own text is made from the ruleset's glossary file and does not link units, and a unit is never a `mentions` edge.
 
 ### Edges
@@ -194,7 +194,7 @@ Two HTTP routes return the popup fragment:
 Both send `Cache-Control: private, max-age=3600` and an ETag from the ruleset triple.
 The pages' terms carry a displayed name, so the server resolves it and the markup needs no id lookup.
 
-The popup's content groups, the folding of chips that share a `via`, its behaviour and its accessibility are in [frontend.md](frontend.md#helper-popup).
+The popup's content groups, the folding of chips that share a `via`, its behaviour and its accessibility are in [frontend-glossary.md](frontend-glossary.md#helper-popup).
 
 ## Size
 

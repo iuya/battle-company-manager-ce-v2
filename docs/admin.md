@@ -59,7 +59,7 @@ The sidebar's Administration link is shown to administrators and superusers.
 - **Guards.** `requireAdmin` covers Users and Invitations; `requireSuperuser` covers Rules files and recovery links.
 - **Refusals.** A signed-in administrator whose request the matrix refuses (a forged form) gets **403**.
   A state refusal is a 422 with the form kept.
-- **Layout.** The pages follow [frontend.md](frontend.md): one column at 360 px, theme tokens only, every action an htmx form that swaps its own row or card.
+- **Layout.** The pages follow [frontend.md](frontend.md) and [frontend-campaigns.md](frontend-campaigns.md): one column at 360 px, theme tokens only, every action an htmx form that swaps its own row or card.
 - **Code.** `internal/web/admin.go`, `admin_invitations.go`, `register.go` and `templates/pages/admin_*.gohtml`.
 
 ### Users
@@ -174,7 +174,7 @@ Two files with the same name and version but different content coexist, and the 
 | Action | Route | Rule |
 |---|---|---|
 | Upload | `POST /admin/rulesets` (multipart `kind`, `file`) | The server hashes the file, validates it against the schema of its kind and stores it (at most 16 MB). Outcome in the card: stored, already stored, or the rejection |
-| Check this file | `POST /admin/rulesets/check` | The same validation as a dry run (`Rulesets.CheckSet` with the one file); stores nothing. To check a Battle Companies file against your own vanilla file and glossary, every player (not only superusers) can use the online validator at `/tools/validate` ([frontend.md](frontend.md#online-validator)); it stores nothing either |
+| Check this file | `POST /admin/rulesets/check` | The same validation as a dry run (`Rulesets.CheckSet` with the one file); stores nothing. To check a Battle Companies file against your own vanilla file and glossary, every player (not only superusers) can use the online validator at `/tools/validate` ([frontend-campaigns.md](frontend-campaigns.md#online-validator)); it stores nothing either |
 | Make default | `POST /admin/rulesets/{hash}/default` | New campaigns and the glossary picker start from the default; existing campaigns keep their files |
 | Download | `GET /admin/rulesets/{hash}/download` | The stored file as an attachment |
 | Delete | `POST /admin/rulesets/{hash}/delete` | Only when no campaign uses the file and it is not a default (confirm step); the database foreign keys back the check |
@@ -182,7 +182,7 @@ Two files with the same name and version but different content coexist, and the 
 
 A rejected upload lists every problem and stores nothing.
 Each problem shows the file, path, message, hint and closest known name; 200 are shown and the rest counted.
-The rendering is described in [frontend.md](frontend.md) ("The rules file report").
+The rendering is described in [frontend-campaigns.md](frontend-campaigns.md#the-rules-file-report) ("The rules file report").
 Organisers upload from the new-campaign form as well.
 
 The methods are on `core.Rulesets`: `ListWithUsage`, `SetDefault`, `Delete`, `PruneUnused`, `Download`, `Check`, and `Store`/`StoreAs` (which record the uploader).
@@ -275,4 +275,4 @@ The zone is the first of these that is set:
 3. `APP_TIMEZONE`;
 4. UTC.
 
-The Account page has the selector ([frontend.md](frontend.md#account)); `Auth.SetTimezone` validates the IANA name.
+The Account page has the selector ([frontend-account.md](frontend-account.md#account)); `Auth.SetTimezone` validates the IANA name.

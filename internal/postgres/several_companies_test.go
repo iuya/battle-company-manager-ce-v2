@@ -12,7 +12,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// Several companies per player (docs/multi-company-spec.md).
+// Several companies per player (docs/multi-company.md).
 
 // seatedCampaign makes a campaign with the given cap (CompaniesPerPlayer) and the players as members.
 func seatedCampaign(t *testing.T, s *Store, capacity int, players ...core.User) (core.CampaignSummary, core.User) {
