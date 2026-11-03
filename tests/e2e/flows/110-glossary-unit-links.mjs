@@ -35,6 +35,18 @@ export default async function (h) {
     await admin.settle(300);
   });
 
+  await h.step('glossary unit links: a mount on a card shows its stat block and special rules in the tooltip', async () => {
+    await admin.fill('#glossary-search', 'Rider of Rohan');
+    await admin.page.waitForSelector('#u-rider-of-rohan', { timeout: 8000 });
+    await admin.settle(300);
+    const tip = await admin.page.$eval('#u-rider-of-rohan [data-concept][data-tip-title="Horse"]', (e) => `${e.dataset.tipMeta}\n${e.dataset.tipText}`);
+    assert.match(tip, /^Mount\n/, `the Horse is a mount: ${tip}`);
+    assert.match(tip, /\bMv \d+/, `the tooltip has its stat block: ${tip}`);
+    await admin.fill('#glossary-search', 'Goblin Mercenary');
+    await admin.page.waitForSelector(CARD, { timeout: 8000 });
+    await admin.settle(300);
+  });
+
   await h.step('glossary unit links: hover shows what Chittering Hordes does, a click opens the helper popup', async () => {
     const sel = chip('Chittering Hordes');
     await admin.page.$eval(sel, (e) => e.scrollIntoView({ block: 'center' }));

@@ -20,8 +20,17 @@ type BaseUnit struct {
 	Includes []string
 	// Options is what the profile may take, with the points each costs (the options a company's own version already has are in the wargear).
 	Options []ChoiceOption
+	// Mounts are the mounts among the wargear and the options (Horse, Warg), each with the profile it brings, as the company page's tooltip shows it.
+	Mounts []BaseMount
 	// Companies are the display names of the companies that name the unit, in the order of the file.
 	Companies []string
+}
+
+// BaseMount is a mount named on a unit's card, with its own stat block and special rules.
+type BaseMount struct {
+	Name  string
+	Stats []Attribute
+	Rules []string
 }
 
 // UnitAnchor is the fragment of a unit's card in the campaign glossary: "u-" and the NameKey of the name with dashes, so
@@ -153,5 +162,27 @@ func (r *RuleSet) baseUnit(p CompanyProfile, name string, vu VanillaUnit, alias 
 	}
 	pv.Keywords = r.UnitKeywords(p, UnitKeywordsInput{Type: name})
 	u.Preview = pv
+	names := slices.Clone(pv.Wargear)
+	for _, o := range u.Options {
+		names = append(names, OptionItems(o.Name)...)
+	}
+	for _, n := range names {
+		if m, ok := r.baseMount(n); ok && !slices.ContainsFunc(u.Mounts, func(x BaseMount) bool { return sameName(x.Name, n) }) {
+			u.Mounts = append(u.Mounts, m)
+		}
+	}
 	return u
+}
+
+// baseMount is the mount a piece of gear is, with the stat block and special rules of its profile; false for anything else.
+func (r *RuleSet) baseMount(gear string) (BaseMount, bool) {
+	a, ok := r.BC.Annotation(gear)
+	if !ok || a.MountProfile == "" {
+		return BaseMount{}, false
+	}
+	m := BaseMount{Name: gear, Stats: r.Vanilla.MountProfile(a.MountProfile)}
+	if g, ok := r.Vanilla.Gear(a.MountProfile); ok {
+		m.Rules = slices.Clone(g.Rules)
+	}
+	return m, len(m.Stats) > 0 || len(m.Rules) > 0
 }

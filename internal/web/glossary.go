@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
@@ -162,13 +164,13 @@ func newUnitCardsView(g core.Glossary, cid int64) unitCardsView {
 	for i, u := range g.Units {
 		c := unitCardView{BaseUnit: u}
 		for _, n := range u.Preview.Wargear {
-			c.Wargear = append(c.Wargear, termChip(g, n))
+			c.Wargear = append(c.Wargear, mountChip(termChip(g, n), u.Mounts))
 		}
 		for _, n := range u.Preview.Rules {
 			c.Rules = append(c.Rules, termChip(g, n))
 		}
 		for _, o := range u.Options {
-			c.Options = append(c.Options, optionChipView{Chip: termChip(g, o.Name), Points: o.Points})
+			c.Options = append(c.Options, optionChipView{Chip: mountChip(termChip(g, o.Name), u.Mounts), Points: o.Points})
 		}
 		if u.Text != "" {
 			c.Text = viewSegments(g, g.LinkExcept(u.Text, u.Name), 320)
@@ -194,6 +196,31 @@ func termChip(g core.Glossary, name string) chipView {
 	c := chipView{Name: name}
 	if t, ok := g.Find(name); ok {
 		c.Meta, c.Tip = t.Category, t.Summary(320)
+	}
+	return c
+}
+
+// mountChip adds a mount's stat block and special rules to the tooltip of its chip, as the company page's tooltip of the mount shows them.
+func mountChip(c chipView, mounts []core.BaseMount) chipView {
+	for _, m := range mounts {
+		if !strings.EqualFold(m.Name, c.Name) {
+			continue
+		}
+		var lines []string
+		if len(m.Stats) > 0 {
+			parts := make([]string, len(m.Stats))
+			for i, a := range m.Stats {
+				parts[i] = a.Abbr + " " + strconv.Itoa(a.Value) + a.Trail
+			}
+			lines = append(lines, strings.Join(parts, " · "))
+		}
+		if len(m.Rules) > 0 {
+			lines = append(lines, "Special rules: "+strings.Join(m.Rules, ", "))
+		}
+		if c.Tip != "" {
+			lines = append(lines, c.Tip)
+		}
+		c.Meta, c.Tip = "Mount", strings.Join(lines, "\n\n")
 	}
 	return c
 }
