@@ -33,7 +33,7 @@ func TestUnitKeywordsCases(t *testing.T) {
 		row     []string
 		mount   string
 	}{
-		{"goblin hulk gets Goblin in the race group", "Goblin-Town", UnitKeywordsInput{Type: "Goblin Hulk"}, []string{"Ogre", "Goblin", "Gundabad", "Warrior", "Infantry", "Monster"}, []string{"Ogre", "Goblin", "Gundabad", "Monster"}, ""},
+		{"goblin hulk is a Goblin, not an Ogre", "Goblin-Town", UnitKeywordsInput{Type: "Goblin Hulk"}, []string{"Goblin", "Gundabad", "Warrior", "Infantry", "Monster"}, []string{"Goblin", "Gundabad", "Monster"}, ""},
 		{"warg marauder is cavalry, not infantry", "Mirkwood", UnitKeywordsInput{Type: "Warg Marauder"}, nil, nil, ""},
 		{"hunter orc warrior takes the fill-in", "Dol Guldur", UnitKeywordsInput{Type: "Hunter Orc Warrior"}, []string{"Orc", "Gundabad", "Warrior", "Infantry"}, []string{"Orc", "Gundabad"}, ""},
 		{"vault warden team is its first member", "Durin's Folk", UnitKeywordsInput{Type: "Vault Warden Team"}, nil, nil, ""},
@@ -242,8 +242,30 @@ func TestAliasKeywordsCountForLimits(t *testing.T) {
 	if !ok || a == nil || !hasKeyword(v, "Goblin") {
 		t.Fatalf("hulk should count as a Goblin: %+v", v)
 	}
-	if plain, _ := rs.Vanilla.Unit("Gundabad Ogre"); hasKeyword(plain, "Goblin") {
+	if hasKeyword(v, "Ogre") {
+		t.Errorf("the hulk replaces the Ogre race: %+v", v.Race)
+	}
+	if plain, _ := rs.Vanilla.Unit("Gundabad Ogre"); hasKeyword(plain, "Goblin") || !hasKeyword(plain, "Ogre") {
 		t.Error("the vanilla ogre must not change")
+	}
+	// who-tests (Hatred (Goblin), a rule for Ogres) see the replaced race
+	s := subjectOf(rs, p, "evil", CompanyUnit{Type: "Goblin Hulk"})
+	if !slices.Contains(s.Race, "Goblin") || slices.Contains(s.Race, "Ogre") || slices.Contains(s.Keywords, "Ogre") {
+		t.Errorf("subject of the hulk = %+v", s)
+	}
+}
+
+func TestAliasRaceReplacesProfileRace(t *testing.T) {
+	rs := shippedRules(t)
+	p, _ := rs.BC.Profile("Goblin-Town")
+	hulk := rs.UnitKeywords(p, UnitKeywordsInput{Type: "Goblin Hulk"})
+	race := names(hulk.Group(KeywordRace))
+	if !slices.Equal(race, []string{"Goblin"}) {
+		t.Errorf("hulk race = %v, want [Goblin]", race)
+	}
+	ogre := names(rs.UnitKeywords(p, UnitKeywordsInput{Type: "Gundabad Ogre"}).Group(KeywordRace))
+	if !slices.Contains(ogre, "Ogre") {
+		t.Errorf("a plain Gundabad Ogre stays an Ogre: %v", ogre)
 	}
 }
 

@@ -222,6 +222,12 @@ func (r *RuleSet) UnitKeywords(p CompanyProfile, in UnitKeywordsInput) UnitKeywo
 			set.add(KeywordType, t, src)
 		}
 		if alias != nil {
+			if len(alias.Race) > 0 { // the alias is what the unit is: its race replaces the profile's
+				set.race = nil
+				for _, w := range alias.Race {
+					set.add(KeywordRace, w, KeywordFromCompany)
+				}
+			}
 			for _, w := range alias.Keywords {
 				if r.Vanilla.IsRace(w) {
 					set.add(KeywordRace, w, KeywordFromCompany)
@@ -308,13 +314,16 @@ func generatedKeywordText(name string, kind KeywordKind) string {
 	return name + " is " + what + ". Rules that name it (Hatred (" + name + "), Ancient Enemies (" + name + ")) apply to models that have it."
 }
 
-// withAliasKeywords is the profile a company's alias stands for with the keywords it adds (Goblin Hulk: Goblin), as company limits
+// withAliasKeywords is the profile a company's alias stands for with the keywords it adds, and the race it gives instead of the profile's (Goblin Hulk: Goblin), as company limits
 // count them.
 func withAliasKeywords(rs *RuleSet, v VanillaUnit, a *UnitAlias) VanillaUnit {
-	if a == nil || len(a.Keywords) == 0 {
+	if a == nil || len(a.Keywords)+len(a.Race) == 0 {
 		return v
 	}
 	v.Race, v.Faction = slices.Clone(v.Race), slices.Clone(v.Faction)
+	if len(a.Race) > 0 {
+		v.Race = slices.Clone(a.Race)
+	}
 	for _, w := range a.Keywords {
 		if rs.Vanilla.IsRace(w) {
 			v.Race = append(v.Race, w)

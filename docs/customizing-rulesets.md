@@ -178,7 +178,7 @@ The same three forms apply to units, items and rules:
 1. **Annotate an existing vanilla thing.** Use its exact name and add properties only.
   This is how the file gives a vanilla item a price and makes it sold, or a vanilla rule a target.
 2. **Extend a thing with a delta.** `"extends": "Ranger of Arnor"` names the base; the entry says what is different.
-  Units use `with`, `addRules`, `addKeywords`; items and companies inherit every field they do not write.
+  Units use `with`, `addRules`, `addKeywords`, `race`; items and companies inherit every field they do not write.
 3. **A brand-new thing with no base.** A full definition and a name nothing below uses. Items, rules and units are fully supported; for units see section 6.
 
 ## 5. Rules
@@ -309,7 +309,8 @@ A shared unit nobody fields is valid; it can be used later:
 - `extends` names a vanilla unit (or another unit of the file).
 - `with` pre-selects options of the base unit by their vanilla names. An option the base does not have is an error, with the closest option.
 - `addRules` names rules (section 5).
-- `addKeywords` adds keywords.
+- `addKeywords` adds keywords (a faction, say).
+- `race` gives the unit these race keywords **instead of** those of the unit it extends: the Goblin Hulk is a Gundabad Ogre that is a Goblin and no longer an Ogre, so Hatred (Goblin) applies to it and Hatred (Ogre) does not. Each must be a race of the vanilla file; `race` without `extends` is an error.
 - `types` adds or removes unit types.
 - `models` says how many roster slots a recruit counts as.
 - `composite` makes one model that counts as several (the Warg Marauder).

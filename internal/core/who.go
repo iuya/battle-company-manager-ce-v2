@@ -12,7 +12,7 @@ import (
 // types of its profile (a company's own name for a profile counts as that profile), Cavalry for a model that rides, and the alignment
 // of the company.
 func subjectOf(rs *RuleSet, profile CompanyProfile, alignment string, u CompanyUnit) lean.Subject {
-	v, _, known := rs.ResolveUnit(profile, u.Type)
+	v, _, known := resolveUnitKeywords(rs, profile, u.Type)
 	s := vanillaSubject(v, known)
 	s.Names = []string{u.Type}
 	if known {

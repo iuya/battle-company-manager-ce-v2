@@ -312,6 +312,7 @@ type Unit struct {
 	With        []string   `json:"with,omitempty"` // options pre-selected
 	AddRules    []string   `json:"addRules,omitempty"`
 	AddKeywords []string   `json:"addKeywords,omitempty"`
+	Race        []string   `json:"race,omitempty"` // the race keywords, replacing those of the unit it extends (Goblin Hulk)
 	Note        string     `json:"note,omitempty"`
 	Types       *TypeDelta `json:"types,omitempty"`
 	Composite   *Composite `json:"composite,omitempty"`               // one model on the table that counts as several (Warg Marauder)

@@ -170,7 +170,7 @@ func leanCompany(d *lean.Document, vb *VanillaBook, c lean.Company, text func(st
 		p.Substitutions = append(p.Substitutions, s.Text)
 	}
 	for _, u := range leanUnitAliases(d, c) { // a unit that builds on another, the company's own or a shared one, is an alias
-		p.Aliases = append(p.Aliases, UnitAlias{Label: u.Name, Aka: u.Aka, Unit: u.Extends, AddRules: u.AddRules, Selected: u.With, Keywords: u.AddKeywords, Text: u.Note})
+		p.Aliases = append(p.Aliases, UnitAlias{Label: u.Name, Aka: u.Aka, Unit: u.Extends, AddRules: u.AddRules, Selected: u.With, Keywords: u.AddKeywords, Race: u.Race, Text: u.Note})
 	}
 	for _, u := range c.Units { // a brand-new unit of the company's own
 		if newUnitProfile(u) {

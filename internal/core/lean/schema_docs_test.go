@@ -375,6 +375,7 @@ var fieldDocs = map[string]string{
 	"Unit.with":                   "The options of the base unit that are pre-selected (Tookish Hunter = Hobbit Archer with the Bow option).",
 	"Unit.addRules":               "Special rules added at no cost.",
 	"Unit.addKeywords":            "Keywords added.",
+	"Unit.race":                   "The race keywords of the unit, replacing those of the unit it extends (Goblin Hulk: a Gundabad Ogre that is a Goblin, no longer an Ogre). Only with extends.",
 	"Unit.types":                  "Unit types added and removed.",
 	"Unit.composite":              "Makes the unit one model that counts as several.",
 	"Unit.includes":               "The units this one is made of, with their points.",
