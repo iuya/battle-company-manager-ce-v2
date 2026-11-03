@@ -103,10 +103,10 @@ The first thing the updater logs (`journalctl -u bcm-update`) is which mode ran:
 
 **Enable the check.** Set `REQUIRE_SIGNATURE=1` in `/opt/bcm/.env` (or in the environment of one run) and put `cosign` on the host `PATH` (`COSIGN_BIN` names another location).
 
-- `deploy/oracle/host-setup.sh` does both.
+- A provider-specific host setup can do both.
   It downloads the pinned cosign release (`COSIGN_VERSION`, v3.1.4; another version needs its `COSIGN_SHA256`) and checks the SHA-256 before installing it to `/usr/local/bin`.
   `install.sh` writes `REQUIRE_SIGNATURE=1`.
-  `REQUIRE_SIGNATURE=0` in the environment of `host-setup.sh` skips both.
+  `REQUIRE_SIGNATURE=0` in the environment of such a setup skips both.
 - On another host, install cosign from its release page with the checksum, then run `echo REQUIRE_SIGNATURE=1 >> /opt/bcm/.env`.
 - An existing server without the line keeps updating without the check.
 

@@ -74,7 +74,7 @@ Raise it only if a superuser uploads many rules files that campaigns pin; lower 
 |---|---|
 | [backup-restore.md](backup-restore.md) | What to back up, backup, restore, the restore drill, the recovery point |
 | [releases.md](releases.md) | The published image, how a release is built, tags, signed images, rolling back an image |
-| [deploy-server.md](deploy-server.md) | The server kit: updater, memory, rollback, Oracle Cloud Always Free, DuckDNS |
+| [deploy-server.md](deploy-server.md) | The server kit: updater, memory, rollback |
 | [csp.md](csp.md) | Content-Security-Policy: report mode, then enforce |
 | [robustness.md](robustness.md) | Guards, limits and timeouts that keep one failure from taking the app down |
 | [architecture.md](architecture.md) | Configuration, health checks, the migration command |

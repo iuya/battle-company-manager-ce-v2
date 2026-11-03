@@ -137,7 +137,7 @@ Start at [docs/README.md](docs/README.md). Everything in `docs/`, by audience:
 |---|---|
 | [operations.md](docs/operations.md) | First start, configuration, accounts and the map of the operations pages |
 | [releases.md](docs/releases.md) | The published image, tags, how a release is built, signed images, rolling back an image |
-| [deploy-server.md](docs/deploy-server.md) | The server kit: first start on a server, the updater, memory, Oracle Cloud Always Free, DuckDNS |
+| [deploy-server.md](docs/deploy-server.md) | The server kit: first start on a server, the updater, memory, rollback |
 | [backup-restore.md](docs/backup-restore.md) | What to back up, backups, restore and the restore drill |
 | [csp.md](docs/csp.md) | Content-Security-Policy: report mode, then enforce |
 | [robustness.md](docs/robustness.md) | Goroutines, LISTEN/NOTIFY, server limits, the database, boot versus run |
