@@ -58,7 +58,7 @@ The tables group the pages by who they are for; the same map is in the [README](
 |---|---|
 | [operations.md](operations.md) | First start, configuration, accounts and the map of the operations pages |
 | [releases.md](releases.md) | The published image, tags, how a release is built, signed images, rolling back an image |
-| [deploy-server.md](deploy-server.md) | The server kit: first start on a server, the updater, memory, Oracle Cloud Always Free, DuckDNS |
+| [deploy-server.md](deploy-server.md) | The server kit: first start on a server, the updater, memory, rollback |
 | [backup-restore.md](backup-restore.md) | What to back up, backups, restore and the restore drill |
 | [csp.md](csp.md) | Content-Security-Policy: report mode, then enforce |
 | [robustness.md](robustness.md) | Goroutines, LISTEN/NOTIFY, server limits, the database, boot versus run |

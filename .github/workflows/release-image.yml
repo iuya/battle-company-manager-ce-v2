@@ -182,7 +182,7 @@ jobs:
         run: docker buildx imagetools inspect ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}
 
       # Keyless signature of the digest of the multi-platform manifest (what deploy/bcm-update.sh deploys): the certificate names this workflow
-      # on this tag, issued by the OIDC provider of the CI service; no key exists. The cosign version is the one deploy/oracle/host-setup.sh installs.
+      # on this tag, issued by the OIDC provider of the CI service; no key exists.
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
         with:
