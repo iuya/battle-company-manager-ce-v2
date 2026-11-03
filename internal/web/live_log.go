@@ -11,16 +11,14 @@ import (
 
 const liveLogPage = 30
 
-// liveLogView is a page of the match log: the sheet of a company page, or the card of the match page. Newest first.
+// liveLogView is a page of the match log, the card of the match page. Newest first.
 type liveLogView struct {
 	Campaign int64
 	MatchID  int64
-	Company  int64 // the company page the viewer is on (undo refreshes its zones); 0 on the match page
 	Entries  []liveLogRow
 	Older    int64 // seq to page from when there are older entries; 0 when this is the last page
 	Error    string
 	Ended    bool
-	Card     bool // the match page's card, not the sheet
 	More     bool // rows only (a later page appended to the list)
 }
 
@@ -83,8 +81,8 @@ func logHeading(t time.Time, loc *time.Location) string {
 	return t.Format("2 Jan 15:04")
 }
 
-// handleLiveLog answers the match log: the sheet (for a company page), the card of the match page (?card=1) or, with ?before=, the
-// next older rows. A member of the campaign may read it, also after the match ended.
+// handleLiveLog answers the card of the match log or, with ?before=, the next older rows. A member of the campaign may read it, also
+// after the match ended.
 func (s *Server) handleLiveLog(w http.ResponseWriter, r *http.Request) {
 	id, ok := s.idParam(w, r, "id")
 	if !ok {
@@ -99,22 +97,16 @@ func (s *Server) handleLiveLog(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, r, err) {
 		return
 	}
-	v.Card = r.URL.Query().Get("card") == "1"
-	v.Company, _ = strconv.ParseInt(r.URL.Query().Get("company"), 10, 64)
 	v.More = before > 0
-	name := "live_log_sheet"
-	switch {
-	case v.More:
+	name := "live_log_card"
+	if v.More {
 		name = "live_log_rows"
-	case v.Card:
-		name = "live_log_card"
 	}
 	s.render.partial(w, http.StatusOK, "match", name, v)
 }
 
-// answerLogUndo is the answer to an Undo pressed in the log: the log again (with the reason when it was refused) and, on a company
-// page, its zones out of band.
-func (s *Server) answerLogUndo(w http.ResponseWriter, r *http.Request, id, matchID, companyID int64, card bool, undoErr error) {
+// answerLogUndo is the answer to an Undo pressed in the log: the log again, with the reason when it was refused.
+func (s *Server) answerLogUndo(w http.ResponseWriter, r *http.Request, id, matchID int64, undoErr error) {
 	status := http.StatusOK
 	msg := ""
 	switch {
@@ -131,23 +123,6 @@ func (s *Server) answerLogUndo(w http.ResponseWriter, r *http.Request, id, match
 	if s.fail(w, r, err) {
 		return
 	}
-	v.Company, v.Error, v.Card = companyID, msg, card
-	name := "live_log_sheet"
-	if card {
-		name = "live_log_card"
-	}
-	parts := []renderPart{{"match", name, v}}
-	if companyID != 0 && undoErr == nil { // the zones of the company page, swapped out of band
-		if base, ok := s.loadCampaign(w, r, "my-company"); ok {
-			if detail, err := s.campaigns.CompanyDetail(r.Context(), id, companyID); err == nil {
-				if view, err := s.liveFragmentViewQuiet(r, base, detail); err == nil && view.Live != nil {
-					view.OOB = true
-					parts = append(parts, renderPart{"campaign_my_company", "live_zones", view})
-				}
-			}
-		} else {
-			return
-		}
-	}
-	s.render.partials(w, status, parts...)
+	v.Error = msg
+	s.render.partial(w, status, "match", "live_log_card", v)
 }

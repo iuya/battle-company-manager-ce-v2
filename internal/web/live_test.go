@@ -34,8 +34,17 @@ func liveSetupMatch(t *testing.T, access core.LiveAccess, change func(*core.Live
 // liveSetupRoster is liveSetupMatch with its own roster for the viewer's company (nil: Hador, Aldor, Baran and Cirion).
 func liveSetupRoster(t *testing.T, access core.LiveAccess, change func(*core.LiveCompany), matchChange func(*core.Match), roster []core.CompanyUnit, sides ...core.MatchSide) *fixture {
 	t.Helper()
+	return liveSetupDetail(t, access, change, matchChange, roster, nil, sides...)
+}
+
+// liveSetupDetail is liveSetupRoster that also changes the company the mock serves.
+func liveSetupDetail(t *testing.T, access core.LiveAccess, change func(*core.LiveCompany), matchChange func(*core.Match), roster []core.CompanyUnit, detailChange func(*core.CompanyDetail), sides ...core.MatchSide) *fixture {
+	t.Helper()
 	f := newFixture(t, Config{})
 	d, detail := mineDetail()
+	if detailChange != nil {
+		detailChange(&detail)
+	}
 	detail.OpenMatch = &core.OpenMatchRef{MatchID: 3, Number: 3}
 	detail.Roster = []core.CompanyUnit{
 		{ID: 5, Name: "Hador", Type: "Warrior", Role: core.RoleSergeant, Kind: core.KindInfantry, Points: 8},
@@ -73,14 +82,14 @@ func liveSetupRoster(t *testing.T, access core.LiveAccess, change func(*core.Liv
 func TestLiveCompanyPageHasBannerZonesAndNoRosterControls(t *testing.T) {
 	f := liveOwnerSetup(t, core.LiveEdit)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
-	for _, want := range []string{`id="live-banner"`, "Match 3", "is running", "Chance Encounter", "Match log", "locked until the match ends",
+	for _, want := range []string{`id="live-banner"`, "Match 3", "is running", "Chance Encounter", "data-go-match", "Wound chart", "data-end-match", "locked until the match ends",
 		`id="live-zones"`, `data-seq="12"`, "Retreated", "Failed courage", "Field casualties", "Wounded by Grashnak (Raiders)", "Missed this game", "Cirion",
 		"Return to the battle", `/matches/3/live/1/actions`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("live page lacks %q", want)
 		}
 	}
-	for _, banned := range []string{"Recruit ·", "Change formation", "Buy equipment", "Buy wargear", "Heal "} {
+	for _, banned := range []string{"Recruit ·", "Change formation", "Buy equipment", "Buy wargear", "Heal ", "Match log", "data-view-menu", ">Points</dt>", ">Limits <", ">Influence</p>", ">Gold</p>", "units</span></h2>"} {
 		if strings.Contains(body, banned) {
 			t.Errorf("a company in a running match has no %q", banned)
 		}
@@ -100,13 +109,38 @@ func TestLiveCompanyPageHasBannerZonesAndNoRosterControls(t *testing.T) {
 	}
 }
 
+// A match in play keeps the re-rolls, which are spent during the game, and nothing else of the resources.
+func TestLiveCompanyPageKeepsTheRerolls(t *testing.T) {
+	f := liveSetupDetail(t, core.LiveEdit, nil, nil, nil, func(d *core.CompanyDetail) { d.Rerolls = 2 })
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
+	if !strings.Contains(body, ">Re-rolls</p>") || strings.Contains(body, ">Influence</p>") {
+		t.Errorf("in play only the re-rolls stay: %t %t", strings.Contains(body, ">Re-rolls</p>"), strings.Contains(body, ">Influence</p>"))
+	}
+}
+
+// One chip per company of the match, whatever the page: the viewer's own opens My Company, the current one is marked.
+func TestLiveBannerHasAChipPerCompany(t *testing.T) {
+	f := liveOwnerSetup(t, core.LiveEdit,
+		core.MatchSide{Name: "Gondor", Companies: []core.CampaignCompany{{ID: 1, Name: "Rangers", Owner: "Frodo"}}},
+		core.MatchSide{Name: "Mordor", Companies: []core.CampaignCompany{{ID: 2, Name: "Raiders", Owner: "Sauron"}}})
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
+	for _, want := range []string{`data-match-companies`, `href="/campaigns/7/my-company/1"`, `aria-current="page"`, `href="/campaigns/7/companies/2"`, "Raiders", "Sauron"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the chips lack %q", want)
+		}
+	}
+	if strings.Count(body, `aria-current="page"><span class="max-w-[11rem]`) != 1 {
+		t.Error("only the company on the page is marked")
+	}
+}
+
 func TestLiveCompanyPageForAViewerHasNoControls(t *testing.T) {
 	f := liveOwnerSetup(t, core.LiveNone)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
 	if !strings.Contains(body, `id="live-banner"`) || !strings.Contains(body, "Retreated") {
 		t.Error("a viewer sees the live page")
 	}
-	for _, banned := range []string{"Match log</button>", "Return to the battle"} {
+	for _, banned := range []string{"data-end-match", "Return to the battle"} {
 		if strings.Contains(body, banned) {
 			t.Errorf("a viewer has no %q", banned)
 		}
@@ -333,28 +367,28 @@ func logEntries(n int, from int64) []core.LiveEntry {
 	return out
 }
 
-func TestLiveLogSheetListsEntriesNewestFirstWithUndoForWhoMay(t *testing.T) {
+func TestLiveLogListsEntriesNewestFirstWithUndoForWhoMay(t *testing.T) {
 	f := liveOwnerSetup(t, core.LiveEdit, core.MatchSide{Name: "Gondor", Companies: []core.CampaignCompany{{ID: 1, Name: "Rangers"}}})
 	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), liveLogPage).Return(logEntries(3, 12), nil)
-	rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/log?company=1", nil)))
+	rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/log", nil)))
 	body := rec.Body.String()
 	if rec.Code != 200 || !strings.Contains(body, "Match log") || !strings.Contains(body, "Hador: Wounds -1 (manual)") || strings.Count(body, "/live/log/12/undo") != 1 || strings.Contains(body, "/live/log/11/undo") {
 		t.Errorf("%d %s", rec.Code, body)
 	}
-	if !strings.Contains(body, `"company":"1"`) || strings.Contains(body, "Show older") || !strings.Contains(body, "14:32") {
-		t.Errorf("sheet: %s", body)
+	if strings.Contains(body, "Show older") || !strings.Contains(body, "14:32") {
+		t.Errorf("log: %s", body)
 	}
 }
 
 func TestLiveLogPagesAndStaysAfterTheMatchEnds(t *testing.T) {
 	f := liveOwnerSetup(t, core.LiveNone)
 	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), liveLogPage).Return(logEntries(liveLogPage, 100), nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/log?card=1", nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/log", nil))).Body.String()
 	if !strings.Contains(body, "Show older entries") || !strings.Contains(body, "before=71") {
 		t.Errorf("a full page offers the older ones: %s", body)
 	}
 	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(71), liveLogPage).Return(logEntries(2, 70), nil)
-	rows := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/log?before=71&card=1", nil))).Body.String()
+	rows := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/log?before=71", nil))).Body.String()
 	if strings.Contains(rows, "<section") || !strings.Contains(rows, "<li") || strings.Contains(rows, "Show older") {
 		t.Errorf("an older page is rows only: %s", rows)
 	}
@@ -364,28 +398,28 @@ func TestLiveLogPagesAndStaysAfterTheMatchEnds(t *testing.T) {
 	g.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	g.camp.EXPECT().Match(gomock.Any(), int64(7), int64(3)).Return(core.Match{ID: 3, Number: 3, Ended: true}, nil).AnyTimes()
 	g.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), liveLogPage).Return(logEntries(2, 5), nil)
-	body = g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/log?card=1", nil))).Body.String()
+	body = g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/log", nil))).Body.String()
 	if strings.Contains(body, "/undo") || !strings.Contains(body, "Hador: Wounds -1 (manual)") {
 		t.Errorf("ended: %s", body)
 	}
 	g.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), liveLogPage).Return(nil, nil)
-	if body := g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/log?card=1", nil))).Body.String(); !strings.Contains(body, "recorded after the fact") {
+	if body := g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/log", nil))).Body.String(); !strings.Contains(body, "recorded after the fact") {
 		t.Errorf("no log: %s", body)
 	}
 }
 
-func TestUndoFromTheLogAnswersTheLogAndTheZonesOutOfBand(t *testing.T) {
+func TestUndoFromTheLogAnswersTheLog(t *testing.T) {
 	f := liveOwnerSetup(t, core.LiveEdit, core.MatchSide{Name: "Gondor", Companies: []core.CampaignCompany{{ID: 1, Name: "Rangers"}}})
-	f.camp.EXPECT().Undo(gomock.Any(), frodo, int64(7), int64(3), int64(12), int64(1)).Return(core.LiveCompany{}, nil)
+	f.camp.EXPECT().Undo(gomock.Any(), frodo, int64(7), int64(3), int64(12), int64(0)).Return(core.LiveCompany{}, nil)
 	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), liveLogPage).Return(logEntries(1, 11), nil).Times(2)
-	rec := f.do(f.signedIn(form("/campaigns/7/matches/3/live/log/12/undo", url.Values{"company": {"1"}, "from": {"log"}})))
+	rec := f.do(f.signedIn(form("/campaigns/7/matches/3/live/log/12/undo", url.Values{"from": {"card"}})))
 	body := rec.Body.String()
-	if rec.Code != 200 || !strings.Contains(body, `id="live-log"`) || !strings.Contains(body, `id="live-zones" hx-swap-oob="true"`) {
+	if rec.Code != 200 || !strings.Contains(body, `id="live-log"`) || strings.Contains(body, "live-zones") {
 		t.Errorf("%d %.400s", rec.Code, body)
 	}
-	f.camp.EXPECT().Undo(gomock.Any(), frodo, int64(7), int64(3), int64(11), int64(1)).Return(core.LiveCompany{}, core.ErrLiveDepends)
-	rec = f.do(f.signedIn(form("/campaigns/7/matches/3/live/log/11/undo", url.Values{"company": {"1"}, "from": {"log"}})))
-	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "later change depends on it") || strings.Contains(rec.Body.String(), "live-zones") {
+	f.camp.EXPECT().Undo(gomock.Any(), frodo, int64(7), int64(3), int64(11), int64(0)).Return(core.LiveCompany{}, core.ErrLiveDepends)
+	rec = f.do(f.signedIn(form("/campaigns/7/matches/3/live/log/11/undo", url.Values{"from": {"card"}})))
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "later change depends on it") {
 		t.Errorf("%d %.300s", rec.Code, rec.Body.String())
 	}
 }

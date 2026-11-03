@@ -272,8 +272,8 @@ same tabs under the campaign you are in.
   "How it is scored" collapsed, or a one-off with its description and victory text escaped, `whitespace-pre-line`; the folded Special rules print the rule
   tables of the file (`ScenarioText.Table`, template `rule_table`: Strange Aura by D6, the Tame the Beast Monster Budget with the row of the
   companies' combined rating marked) and the rules a scenario `usesRules` by name), **Go to my company** and **End match** while playing,
-  the End card while an end is pending, and the result, Aftermath card and note once ended; History and the match log share one collapsed
-  **Log** card. The End match and Confirm sheets open in the page's window (`sheet_dialog`, `#modal-body`). The view carries the viewer's
+  the End card while an end is pending, and the result, Aftermath card and note once ended; History and the match log share one
+  **Log** card; it and the scenario (with its sections) are open while playing or ending and folded otherwise (`matchView.InProgress`). The End match and Confirm sheets open in the page's window (`sheet_dialog`, `#modal-body`). The view carries the viewer's
   `core.MatchAccess` (`Match.Access`), which decides the edit controls; see [matches.md](matches.md).
 
 ## Rules files (vanilla and Battle Companies)
@@ -997,7 +997,7 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
 `units.gohtml` and `match.gohtml`). `web` declares `liveMatches` (embedded in `campaigns`; `core.LiveService` implements it).
 
 - **Company page of a company in an open match** (`CompanyDetail.OpenMatch` says so; `liveFor` loads `Live`): the same page with
-  - `#live-banner` (sticky under the app bar): "Match N" with the scenario, the sync dot, **View ▾** (`details[data-view-menu]`: the companies of the match, each linking to its page in match mode, the current one `aria-current="page"`; "← Back to mine" on another company's page), **To wound** (opens the To Wound chart window, below) and, for who may edit, **Match log** and **End match** (opens the End match sheet in the page's window; hidden while an end is pending);
+  - `#live-banner` (sticky under the app bar): "Match N" with the scenario, the sync dot, **Go to match** (`data-go-match`), **Wound chart** (opens the Wound chart window, below), for who may edit **End match** (opens the End match sheet in the page's window; hidden while an end is pending), and `nav[data-match-companies]`: one chip per company of the match with its owner, each linking to its page in match mode, the current one `chip-on`, with a tick and `aria-current="page"`;
   - the roster locked like read only (no recruit, buy chips, heal, level-up, drop, dismiss; rename stays) with the line "The company is
     locked until the match ends"; "Change formation" is hidden while live (the grid is re-rendered by the sync);
   - `#live-zones` (`live_zones`): the Field as unit cards, then **Retreated**, **Field casualties** and **Missed this game** as
@@ -1047,8 +1047,8 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
 - **End match sheet**: for a company whose result was not reported yet, the `enemyBroken` reward tick comes prefilled from `MatchDefaults`.
 - **Mount lost**: "On foot" badge; the mount item, the gear with `Equipment.RequiresMount`, the rules the mount gave and the Cavalry
   rule are struck through (`itemView.Struck`, `ruleView.Struck`, aria-label "needs a mount"). The data flag `requiresMount` comes from the Battle Companies file.
-- **Match log**: `GET .../matches/{match}/live/log` is the sheet (company page; `?company=` so Undo refreshes the zones out of band), `?card=1` the log of
-  the match page's collapsed **Log** card (with History, drawn inline in the full page, refreshed on `live:match`), `?before=<seq>` the next 30 older rows. Newest first,
+- **Match log**: `GET .../matches/{match}/live/log` is the log of
+  the match page's **Log** card (with History, drawn inline in the full page, refreshed on `live:match`), `?before=<seq>` the next 30 older rows. Newest first,
   grouped by minute, Undo only where the service says `CanUndo` and the match is open; a dependency refusal shows in the log. After the
   match the card stays (read only, permanent); an ended match recorded after the fact says it has no log.
 - **End match and Confirm sheets** (`end_sheet.go`, template `end_sheet` in `match.gohtml`; [matches.md](matches.md#the-sheets)): `GET .../matches/{match}/end/sheet[?company=]`
@@ -1102,10 +1102,10 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
   first."; the aftermath sheet shows **From the live match** (heading badge and a line) while it is the unsaved default
   (`Aftermath.FromLive`).
 
-## To Wound chart (window)
+## Wound chart (window)
 
 `partials/to_wound.gohtml` (`to_wound_button`, `to_wound_dialog`, `to_wound_body`), `web/towound.go`, `static/js/towound.js`, the `tw-*` classes in `tailwind.css`; the
-behaviour and the reasons are in [matches.md](matches.md#to-wound-chart).
+behaviour and the reasons are in [matches.md](matches.md#wound-chart).
 
 - The button (`data-to-wound-open`) is on the match page (next to the heading, open matches) and in the live banner. `towound.js` turns its click into a window
   event (`open-to-wound`), as `dialog.js` does for `data-open-modal`: no inline handler. The window (`#to-wound-dialog`, `role="dialog" aria-modal="true"`, labelled

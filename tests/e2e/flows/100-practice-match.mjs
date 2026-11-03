@@ -34,12 +34,14 @@ export default async function (h) {
   const companyIds = (s) => s.page.$$eval('main a[href*="/companies/"]', (as) => [...new Set(as.map((a) => Number(a.getAttribute('href').match(/companies\/(\d+)/)[1])))]);
   // What an aftermath could change on a company page: its resources, the injured and the experience on its cards.
   const figures = async (s, co) => {
+    // the balance from the Armory: a company page in a match does not show it
+    await s.goto(`/campaigns/${bands}/armory?company=${co}`);
+    const balance = await s.page.$eval('main', (m) => m.innerText.match(/Influence\s*(-?\d+)\s*·\s*Gold\s*(-?\d+)/)?.slice(1));
     await s.goto(`/campaigns/${bands}/companies/${co}`);
-    return s.page.evaluate(() => {
+    return s.page.evaluate((balance) => {
       const t = document.querySelector('main').innerText;
-      const num = (label) => (t.match(new RegExp(label + '\\s*\\n?\\s*(-?\\d+)')) || [])[1];
-      return { influence: num('Influence'), gold: num('Gold'), injured: (t.match(/Injured/g) || []).length, xp: (t.match(/\d+\s*(?:XP|Experience)/gi) || []).join('|'), units: num('Units') };
-    });
+      return { balance, injured: (t.match(/Injured/g) || []).length, xp: (t.match(/\d+\s*(?:XP|Experience)/gi) || []).join('|') };
+    }, balance);
   };
 
   await h.step('practice: the Matches list marks practice matches with a badge (no Practice filter), the Overview counts them apart', async () => {

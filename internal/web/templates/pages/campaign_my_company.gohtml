@@ -42,16 +42,17 @@
 {{with $.Live}}{{template "live_banner" (dict "LV" . "CID" $.Campaign.ID "CO" $.Company.ID)}}
 {{/* Beside the banner, not in it (the sticky banner is a stacking context) and outside #live-zones, which the live refresh swaps: it stays open. */}}
 {{template "to_wound_dialog" (dict "CID" $.Campaign.ID)}}{{end}}
-{{template "company_stats" (dict "Company" .CampaignCompany "Max" .MaxUnits "Injured" .InjuredUnits)}}
+{{if not $.Live}}{{template "company_stats" (dict "Company" .CampaignCompany "Max" .MaxUnits "Injured" .InjuredUnits)}}{{end}}
 
 {{/* One component for the resources and the units: the tooltips, the windows and the formation. */}}
 <div x-data="company" @open-modal.window="openModal()" @close-modal.window="closeModal()" data-lock="{{.LockMessage}}" @click.capture="lockClick($event)" data-modal="{{if or $.Pending $.Recruiting $.Officers}}true{{end}}" @mouseover="over($event)" @mouseout="out($event)" @focusin="over($event)" @focusout="out($event)" @keydown.escape.window="close()">
-{{/* Resources and limits */}}
+{{/* Resources and limits; a match in play keeps only the re-rolls, which are spent during the game. */}}
+{{if $.Live}}{{if .Rerolls}}<section class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Resources">{{template "rerolls_card" .}}</section>{{end}}{{else}}
 <section class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" aria-label="Resources">
   <div class="grid {{if .Rerolls}}grid-cols-3{{else}}grid-cols-2{{end}} gap-3">
     <div class="card has-tip !p-4" tabindex="0" data-tip-title="Influence" data-tip-meta="Resource" data-tip-text="Spent on recruiting, on equipment, creatures and wanderers from the armory, on treating injuries and on adjusting reinforcement rolls. The company earns it from its matches and from some injury results."><p class="text-sm text-muted">Influence</p><p class="text-3xl font-semibold" id="company-influence">{{.Influence}}</p></div>
     <div class="card has-tip !p-4" tabindex="0" data-tip-title="Gold" data-tip-meta="Resource" data-tip-text="Gold is given to some companies in their starting company, as a special victory reward in some scenarios, or by the organizer in a narrative scenario. It buys equipment, creatures and wanderers at their rating in Gold (no influence) and extra wargear for models. Slots and limits still apply, and what is left is kept."><p class="text-sm text-muted">Gold</p><p class="text-3xl font-semibold">{{.Gold}}</p></div>
-    {{if .Rerolls}}<div class="card has-tip !p-4" tabindex="0" data-tip-title="Re-rolls" data-tip-meta="Against the Odds" data-tip-text="They come from the Against the Odds bonus Reroll, which the company with the lower rating may pick after the scenario roll (it costs {{.RuleDice.RerollRating}} rating): {{.RuleDice.RerollCount}} re-rolls, usable during the game or in the War's Aftermath, each for a single die or a single result such as a level-up roll. No other rule grants them. Spare ones do not carry over to the next match. (The other Against the Odds bonuses give influence, experience, a tool kit, a temporary wanderer or the choice of scenario.)"><p class="text-sm text-muted">Re-rolls</p><p class="text-3xl font-semibold">{{.Rerolls}}</p></div>{{end}}
+    {{if .Rerolls}}{{template "rerolls_card" .}}{{end}}
   </div>
   <div class="card space-y-3 !p-4">
     <h3 class="!text-xl">Limits <span class="text-sm font-normal text-muted">used / maximum</span></h3>
@@ -66,12 +67,13 @@
     </ul>
   </div>
 </section>
+{{end}}
 
 {{/* The units */}}
 <section class="mt-8">
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <h2 class="!text-2xl">Battle company <span class="text-base font-normal text-muted">{{.ModelCount}} / {{.MaxUnits}} units</span></h2>
+      <h2 class="!text-2xl">Battle company{{if not $.Live}} <span class="text-base font-normal text-muted">{{.ModelCount}} / {{.MaxUnits}} units</span>{{end}}</h2>
     </div>
     <div class="flex flex-wrap items-center gap-2">
     {{if and (not $.ReadOnly) (not $.Live)}}<button type="button" class="btn btn-secondary" x-show="!formation" @click="startFormation()">Change formation</button>
@@ -201,28 +203,28 @@
 {{end}}
 {{end}}
 
+{{/* The re-rolls of a company, with what they are. Takes the company. */}}
+{{define "rerolls_card"}}<div class="card has-tip !p-4" tabindex="0" data-tip-title="Re-rolls" data-tip-meta="Against the Odds" data-tip-text="They come from the Against the Odds bonus Reroll, which the company with the lower rating may pick after the scenario roll (it costs {{.RuleDice.RerollRating}} rating): {{.RuleDice.RerollCount}} re-rolls, usable during the game or in the War's Aftermath, each for a single die or a single result such as a level-up roll. No other rule grants them. Spare ones do not carry over to the next match. (The other Against the Odds bonuses give influence, experience, a tool kit, a temporary wanderer or the choice of scenario.)"><p class="text-sm text-muted">Re-rolls</p><p class="text-3xl font-semibold">{{.Rerolls}}</p></div>{{end}}
+
 {{/* The banner of a company in a running match (docs/live-match.md, "Company page in a live match"). Takes {LV, CID}: Match N and the
-   scenario, the live dot (driven by the sync script, static/js/live.js), View ▾ (the other companies of the match, each in match mode),
-   To wound, Match log and End match; below, what every change of the match refreshes (the Broken companies and a pending end). */}}
+   scenario, the live dot (driven by the sync script, static/js/live.js), Go to match, Wound chart and End match, one chip per company of the
+   match (the one on this page marked); below, what every change of the match refreshes (the Broken companies and a pending end). */}}
 {{define "live_banner"}}{{$cid := .CID}}{{$co := .CO}}{{with .LV}}{{$lv := .}}
-<div id="live-banner" data-match="{{.MatchID}}" class="alert alert-info sticky top-[3.75rem] z-10 mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 !py-2" role="status">
+<div id="live-banner" data-match="{{.MatchID}}" class="alert alert-info sticky top-[3.75rem] z-10 mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 !py-2" role="status">
   <span class="min-w-0 font-medium"><a class="underline" href="/campaigns/{{$cid}}/matches/{{.MatchID}}">Match {{.MatchNumber}}</a> is running{{with .Scenario}} <span class="font-normal text-muted">· {{.}}</span>{{end}}{{if .Practice}} {{template "practice_badge"}}{{end}}</span>
   {{if .Practice}}<span class="basis-full text-sm" data-practice-banner>Practice match: no experience, influence, rewards or injuries. No aftermath will follow.</span>{{end}}
   <span id="live-dot" class="inline-flex items-center gap-1.5 text-xs text-muted" data-state="off"><span class="live-dot" aria-hidden="true"></span><span id="live-dot-text">Live</span></span>
-  <span class="ml-auto flex flex-wrap items-center gap-2">
-  {{with .Mine}}<a class="btn btn-ghost !min-h-9" href="{{$lv.PagePath .}}" data-back-mine>← Back to mine</a>{{end}}
-  {{if gt (len .Companies) 1}}
-  <details class="relative" data-view-menu>
-    <summary class="btn btn-secondary !min-h-9 list-none">View <span aria-hidden="true">▾</span></summary>
-    <ul class="card absolute right-0 z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] !p-1 shadow-lg" aria-label="Companies of the match">
-      {{range .Companies}}<li><a href="{{$lv.PagePath .ID}}" class="flex min-h-11 items-center justify-between gap-3 rounded-md px-3 py-2 hover:bg-raised {{if eq .ID $lv.CompanyID}}font-semibold{{end}}" {{if eq .ID $lv.CompanyID}}aria-current="page"{{end}}><span class="min-w-0 break-words">{{.Name}}</span><span class="shrink-0 text-xs text-muted">{{if eq .ID $lv.CompanyID}}this page{{else}}{{.Owner}}{{end}}</span></a></li>{{end}}
-    </ul>
-  </details>
-  {{end}}
-  {{template "to_wound_button" (dict "Class" "!min-h-9")}}
-  {{if .Edit}}<button type="button" class="btn btn-secondary !min-h-9" hx-get="/campaigns/{{$cid}}/matches/{{.MatchID}}/live/log?company={{.CompanyID}}" hx-target="#modal-body" hx-swap="innerHTML" data-open-modal>Match log</button>{{end}}
-  {{if and .Edit (not .End.Pending)}}<button type="button" class="btn btn-primary !min-h-9" hx-get="/campaigns/{{$cid}}/matches/{{.MatchID}}/end/sheet?company={{.CompanyID}}" hx-target="#modal-body" hx-swap="innerHTML" data-open-modal data-end-match>End match</button>{{end}}
+  {{/* On a phone one row of equal buttons and one sideways row of chips: the banner is sticky, so it has to stay short. */}}
+  <span class="grid w-full auto-cols-fr grid-flow-col gap-1.5 sm:ml-auto sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-2">
+  <a class="btn btn-secondary !min-h-9 !px-1 sm:!px-4" href="/campaigns/{{$cid}}/matches/{{.MatchID}}" data-go-match>Go to match</a>
+  {{template "to_wound_button" (dict "Class" "!min-h-9 !px-1 sm:!px-4")}}
+  {{if and .Edit (not .End.Pending)}}<button type="button" class="btn btn-primary !min-h-9 !px-1 sm:!px-4" hx-get="/campaigns/{{$cid}}/matches/{{.MatchID}}/end/sheet?company={{.CompanyID}}" hx-target="#modal-body" hx-swap="innerHTML" data-open-modal data-end-match>End match</button>{{end}}
   </span>
+  {{if gt (len .Companies) 1}}
+  <nav class="flex min-w-0 basis-full gap-1.5 overflow-x-auto [scrollbar-width:none] sm:flex-wrap sm:overflow-visible" aria-label="Companies of the match" data-match-companies>
+    {{range .Companies}}<a href="{{$lv.PagePath .ID}}" class="chip shrink-0 !text-fg {{if eq .ID $lv.CompanyID}}chip-on before:mr-1 before:content-['✓']{{end}}" {{if eq .ID $lv.CompanyID}}aria-current="page"{{end}}><span class="max-w-[11rem] truncate sm:max-w-[16rem]">{{.Name}}</span><span class="hidden pl-1 font-normal text-muted sm:inline">· {{.Owner}}</span></a>{{end}}
+  </nav>
+  {{end}}
   <div id="live-end" class="basis-full empty:hidden" hx-target="this" hx-get="/campaigns/{{$cid}}/matches/{{.MatchID}}/live/end/banner?company={{.CompanyID}}" hx-trigger="live:match from:body" hx-swap="innerHTML">{{template "end_banner" .End}}</div>
 </div>
 {{end}}{{end}}

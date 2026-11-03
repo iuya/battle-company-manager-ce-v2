@@ -68,12 +68,12 @@ has ended"). Undo follows the entry: the owner of its acting company, the owner 
 Applies to the owner's My Company tab and to every other player's view of the company. Top to bottom:
 
 1. **Live banner**, sticky below the app bar: "Match N" with the scenario name, a link to the match, a live-connection dot (green "Live",
-   grey "Reconnecting..."), **View ▾** (the companies of the match; each opens that company's page in match mode, the current one marked;
-   on another company's page a "← Back to mine" link), **To wound** ([matches.md](matches.md#to-wound-chart); its window is a sibling of the
-   banner and outside `#live-zones`, so a live refresh never closes it) and, for who may edit, **Match log** and **End match** (the End match
-   sheet, [matches.md](matches.md#the-sheets)). Under it `#live-end` names every Broken company ("Minas Morgul is broken (8 of 15
-   casualties)") and the pending end with **Confirm**. On 360 px the banner is two or three lines.
-2. **Locked notice** instead of the buy, recruit and heal controls (hidden, not disabled): "The company is locked until the match ends." Counters stay.
+   grey "Reconnecting..."), **Go to match** (the match log is on that page), **Wound chart** ([matches.md](matches.md#wound-chart); its window is a sibling of the
+   banner and outside `#live-zones`, so a live refresh never closes it) and, for who may edit, **End match** (the End match sheet,
+   [matches.md](matches.md#the-sheets)). Below, one chip per company of the match with its owner: each opens that company's page in match mode,
+   the current one marked with a tick. Under it `#live-end` names every Broken company ("Minas Morgul is broken (8 of 15
+   casualties)") and the pending end with **Confirm**. On 360 px the buttons share one row and the chips scroll sideways, without the owners, so the sticky banner stays short.
+2. **Locked notice** instead of the buy, recruit and heal controls (hidden, not disabled): "The company is locked until the match ends." The company stats (points, units, matches, wins), Influence, Gold and the limits are not shown during the match; Re-rolls stay when the company has any, because they are spent during the game.
 3. **Battle company**: the units in the Field zone in the company's order, as unit cards plus trackers.
 4. **Retreated** (a one-line header with a count, "None" when empty): compact cards (name, type, a "Retreated" badge with the reason "Failed courage" or "Left
    the board") with **Return to the battle** for editors.
@@ -150,7 +150,7 @@ xp, no injury; a mount that is a company creature, such as the Baggage Pony, is 
 
 ### Match log
 
-A bottom sheet on 360 px (a side panel from 1280), reached from the live banner and from the match page (a "Live log" card below History, read only for viewers). Newest first, grouped by minute; each row: time, text, the author's company
+On the match page, in the **Log** card below History (read only for viewers); the live banner has **Go to match**. Newest first, grouped by minute; each row: time, text, the author's company
 colour dot and **Undo** for who may. Undone entries disappear from the log and stay in the database for audit (`undone_by`, `undone_at`). Empty state: "Nothing has happened yet." Undoing an entry recomputes the state; later entries stay as
 long as they remain valid. If undoing would make a later entry impossible, the undo is refused with "A later change depends on it; undo that first". Manual tracker changes appear in the log like actions. After the match the log stays on the
 match page, read only and permanent, also after the campaign is finished.

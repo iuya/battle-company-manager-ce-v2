@@ -145,11 +145,17 @@ export default async function (h) {
     await sauron.waitGone('Failed courage');
   });
 
-  await h.step('live: the match log', async () => {
+  await h.step('live: the company page has no stats and no log; a chip changes company and Go to match opens the log', async () => {
     await eowyn.goto(`/campaigns/${cid}/companies/${eCo}`);
-    await eowyn.click('main button', 'Match log');
+    assert.ok(!(await eowyn.has('Match log')) && !(await eowyn.page.$('#company-influence')), 'no log and no resources in play');
+    assert.ok(await eowyn.page.$('#live-banner [data-match-companies] [aria-current="page"]'), 'the company on the page is marked');
+    await eowyn.click(`#live-banner [data-match-companies] a[href$="/companies/${sCo}"]`, '');
+    await eowyn.page.waitForFunction((co) => document.getElementById('live-zones')?.dataset.company === String(co), { timeout: 8000 }, sCo);
+    await eowyn.click('#live-banner [data-go-match]', '');
+    await eowyn.page.waitForSelector('#log[open] #live-log');
     await eowyn.waitText('wounded');
-    await eowyn.page.keyboard.press('Escape');
+    assert.ok(await eowyn.page.$('#scenario-folded[open]'), 'the scenario is open while the match is played');
+    await eowyn.goto(`/campaigns/${cid}/companies/${eCo}`);
   });
 
   // The stream is cut with request interception: aborted = a network error (the browser keeps retrying), refused = HTTP 429 (the

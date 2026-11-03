@@ -50,7 +50,6 @@ func (s *Server) loadMatchCards(r *http.Request, v *matchView) {
 	}
 	run(func() {
 		if lv, err := s.logViewOf(r, id, m, 0); err == nil {
-			lv.Card = true
 			c.Log = &lv
 		}
 	})

@@ -21,8 +21,7 @@ type liveView struct {
 	Missed     []liveCard             // injured at the start: they take no part
 	End        endBanner              // the pending end and the Broken companies, for the sticky banner
 	Practice   bool                   // a practice match: the badge and the banner in the match bar
-	Companies  []core.CampaignCompany // every company of the match, for View ▾ (this one is marked)
-	Mine       int64                  // the viewer's own company in the match when this page is another one ("← Back to mine"); 0 otherwise
+	Companies  []core.CampaignCompany // every company of the match, for its chips (this one is marked)
 	Own        map[int64]bool         // the viewer's companies among them: their pages are My Company
 }
 
@@ -181,9 +180,6 @@ func (s *Server) liveFor(r *http.Request, base campaignBase, detail core.Company
 		for _, co := range v.Companies {
 			if base.Campaign.Owns(co.ID) {
 				v.Own[co.ID] = true
-				if v.Mine == 0 && !base.Campaign.Owns(lc.CompanyID) {
-					v.Mine = co.ID
-				}
 			}
 		}
 	}

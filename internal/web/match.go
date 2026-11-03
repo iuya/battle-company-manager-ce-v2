@@ -740,3 +740,6 @@ func (s *Server) handleReopenMatch(w http.ResponseWriter, r *http.Request) {
 	}
 	s.answer(w, r, http.StatusOK, base, updated, "", "Match reopened.", false, nil)
 }
+
+// InProgress is whether the game is being played (or its end is pending): the scenario and the log stay open.
+func (v matchView) InProgress() bool { return v.Phase == phasePlaying || v.Phase == phaseEnding }

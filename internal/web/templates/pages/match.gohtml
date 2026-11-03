@@ -23,8 +23,8 @@
 {{end}}
 
 {{/* Everything below the back link. A write answers with this alone and htmx swaps it for #match, so the badge, the scenario and the result
-   never disagree. Only the current phase is open: Preparing (scenario, Against the Odds), Playing (Go to my company, End match), Ending
-   (the pending end) and Ended (result, aftermath); the rest is folded. */}}
+   never disagree. Only the current phase is open: Preparing (scenario, Against the Odds), Playing (Go to my company, End match, the scenario
+   and the log), Ending (the pending end, the scenario and the log) and Ended (result, aftermath); the rest is folded. */}}
 {{define "match_body"}}
 {{$m := .Match}}
 <div id="match" data-phase="{{.Phase}}">
@@ -61,7 +61,7 @@
   {{if .AdminOnEnded}}{{template "result_admin" .}}{{end}}
   {{end}}
   {{if and (not $m.Scenario) .ScenarioOpen}}{{template "scenario_card" .}}{{else}}
-  <details class="card mt-6" id="scenario-folded">
+  <details class="card mt-6" id="scenario-folded" {{if .InProgress}}open{{end}}>
     <summary class="flex min-h-11 cursor-pointer items-center justify-between gap-3"><span class="font-heading text-xl break-words">Scenario{{with $m.Scenario}} · {{.Name}}{{end}}</span><span class="shrink-0 text-sm text-muted">Details</span></summary>
     <div class="mt-3">{{template "scenario_info" .}}</div>
   </details>{{end}}
@@ -69,7 +69,7 @@
 
 {{if .ShowSecret}}<div id="secret-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/secret" hx-trigger="{{if and .Cards .Cards.Secret}}none{{else}}load{{end}}" hx-swap="innerHTML">{{if .Cards}}{{with .Cards.Secret}}{{template "secret_card" .}}{{end}}{{end}}</div>{{end}}
 
-<details class="card mt-6" id="log">
+<details class="card mt-6" id="log" {{if .InProgress}}open{{end}}>
   <summary class="flex min-h-11 cursor-pointer items-center justify-between gap-3"><span class="font-heading text-xl">Log</span><span class="text-sm text-muted">History and match log</span></summary>
   {{with $m.History}}
   <div class="mt-3 space-y-2" id="history">
@@ -168,7 +168,7 @@
       {{end}}
       {{with $.Info.About}}
       {{if .Roles}}<p class="mt-2 text-sm text-muted">This scenario has an {{index .Roles 0}} and a {{index .Roles 1}}: settle them at the table.</p>{{end}}
-      <details class="mt-2 rounded-lg border border-line px-3 py-2"><summary class="flex min-h-11 cursor-pointer items-center text-sm font-medium">About this scenario</summary>
+      <details class="mt-2 rounded-lg border border-line px-3 py-2" {{if $.InProgress}}open{{end}}><summary class="flex min-h-11 cursor-pointer items-center text-sm font-medium">About this scenario</summary>
         <div class="mt-2 space-y-3 text-sm">
           {{with .Outline}}<p class="font-medium break-words">{{.}}</p>{{end}}
           {{with .Description}}<p class="whitespace-pre-line break-words">{{.}}</p>{{end}}
@@ -176,7 +176,7 @@
         </div>
       </details>
       {{with .Rules}}
-      <details class="mt-2 rounded-lg border border-line px-3 py-2"><summary class="flex min-h-11 cursor-pointer items-center text-sm font-medium">Special rules</summary>
+      <details class="mt-2 rounded-lg border border-line px-3 py-2" {{if $.InProgress}}open{{end}}><summary class="flex min-h-11 cursor-pointer items-center text-sm font-medium">Special rules</summary>
         <div class="mt-2 space-y-3 text-sm">
           {{range .}}<div><h3 class="text-sm font-medium text-muted">{{.Title}}</h3><p class="whitespace-pre-line break-words">{{.Text}}</p>{{with .Table}}{{template "rule_table" (dict "T" . "Combined" $.Combined)}}{{end}}</div>{{end}}
           {{with $.Info.About.Uses}}<p class="text-muted">Also in play, as the rulebook has them: {{join . ", "}}.</p>{{end}}
@@ -185,7 +185,7 @@
       {{end}}
       {{end}}
       {{if $.Info.Scoring}}
-      <details class="mt-2 rounded-lg border border-line px-3 py-2"><summary class="flex min-h-11 cursor-pointer items-center text-sm font-medium">How it is scored</summary>
+      <details class="mt-2 rounded-lg border border-line px-3 py-2" {{if $.InProgress}}open{{end}}><summary class="flex min-h-11 cursor-pointer items-center text-sm font-medium">How it is scored</summary>
         <ul class="mt-2 list-disc space-y-1 pl-5 text-sm">{{range $.Info.Scoring}}<li>{{.}}</li>{{end}}</ul>
       </details>
       {{end}}
@@ -364,17 +364,8 @@
 </section>
 {{end}}
 
-{{/* The match log. The sheet of a company page (opened from the live banner), the card of the match page and the rows of an older page.
-   The log is kept for good: after the match it stays here, read only. Takes liveLogView. */}}
-{{define "live_log_sheet"}}
-<div id="live-log" data-live-log>
-  <h2 class="!text-2xl pr-10">Match log</h2>
-  <p class="mt-1 text-sm text-muted">Newest first. Undo takes an entry out; what came later stays as long as it still fits.</p>
-  {{template "live_log_body" .}}
-  <p class="mt-4"><button type="button" class="btn btn-secondary" @click="closeModal()">Close</button></p>
-</div>
-{{end}}
-
+{{/* The match log: the card of the match page and the rows of an older page. The log is kept for good: after the match it stays here, read
+   only. Takes liveLogView. */}}
 {{define "live_log_card"}}
 <section id="live-log" data-live-log class="card mt-6 space-y-3" aria-labelledby="live-log-title">
   <h2 id="live-log-title" class="!text-2xl">Match log</h2>
@@ -397,15 +388,15 @@
 <li class="flex items-start gap-3 px-3 py-2">
   <span class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style="background: hsl({{.Hue}} 55% 50%)" title="{{.Company}}" aria-hidden="true"></span>
   <div class="min-w-0 flex-1"><p class="break-words text-sm">{{.Text}}</p><p class="text-xs text-muted">{{.Company}}{{with .By}} · {{.}}{{end}}</p></div>
-  {{if and .CanUndo (not $v.Ended)}}<button type="button" class="btn btn-secondary !min-h-9 shrink-0 !px-3 !text-xs" hx-post="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/live/log/{{.ID}}/undo" hx-vals='{"company":"{{$v.Company}}","from":"{{if $v.Card}}card{{else}}log{{end}}"}' hx-target="#live-log" hx-swap="outerHTML" hx-sync="this:queue all" aria-label="Undo: {{.Text}}">Undo</button>{{end}}
+  {{if and .CanUndo (not $v.Ended)}}<button type="button" class="btn btn-secondary !min-h-9 shrink-0 !px-3 !text-xs" hx-post="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/live/log/{{.ID}}/undo" hx-vals='{"from":"card"}' hx-target="#live-log" hx-swap="outerHTML" hx-sync="this:queue all" aria-label="Undo: {{.Text}}">Undo</button>{{end}}
 </li>
 {{end}}
-{{if .Older}}<li class="px-3 py-2 text-center"><button type="button" class="btn btn-ghost !min-h-9" hx-get="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/live/log?before={{.Older}}&company={{$v.Company}}{{if $v.Card}}&card=1{{end}}" hx-target="closest li" hx-swap="outerHTML">Show older entries</button></li>{{end}}
+{{if .Older}}<li class="px-3 py-2 text-center"><button type="button" class="btn btn-ghost !min-h-9" hx-get="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/live/log?before={{.Older}}" hx-target="closest li" hx-swap="outerHTML">Show older entries</button></li>{{end}}
 {{end}}
 
 {{/* The log card on the match page: loaded after the page, refreshed when the match changes (the sync script fires live:match). */}}
 {{define "live_log_slot"}}
-<div id="live-log-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/live/log?card=1" {{$lazy := not (and .Cards .Cards.Log)}}{{if or $lazy (not .Match.Ended)}}hx-trigger="{{if $lazy}}load{{end}}{{if not .Match.Ended}}{{if $lazy}}, {{end}}live:match from:body{{end}}" {{end}}hx-swap="innerHTML" {{if not .Match.Ended}}data-live-match="{{.Match.ID}}" data-campaign="{{.Campaign.ID}}"{{with .LiveSince}} data-live-since="{{.}}"{{end}}{{end}}>{{if .Cards}}{{with .Cards.Log}}{{template "live_log_card" .}}{{end}}{{end}}</div>
+<div id="live-log-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/live/log" {{$lazy := not (and .Cards .Cards.Log)}}{{if or $lazy (not .Match.Ended)}}hx-trigger="{{if $lazy}}load{{end}}{{if not .Match.Ended}}{{if $lazy}}, {{end}}live:match from:body{{end}}" {{end}}hx-swap="innerHTML" {{if not .Match.Ended}}data-live-match="{{.Match.ID}}" data-campaign="{{.Campaign.ID}}"{{with .LiveSince}} data-live-since="{{.}}"{{end}}{{end}}>{{if .Cards}}{{with .Cards.Log}}{{template "live_log_card" .}}{{end}}{{end}}</div>
 {{end}}
 
 {{/* The End match button, hidden while an end is pending. The card's slot sends it again out of band when the match changes. Takes V (matchView) and OOB. */}}

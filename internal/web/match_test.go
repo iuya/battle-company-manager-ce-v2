@@ -757,14 +757,14 @@ func TestEndMatchButtonIsDisabledWithTheReason(t *testing.T) {
 	}
 }
 
-// Only the current phase is open: Playing folds the scenario, shows Go to my company, To wound and End match large, and marks a Broken company.
-func TestPlayingPhaseFoldsTheScenarioAndMarksTheBroken(t *testing.T) {
+// Only the current phase is open: Playing keeps the scenario and the log open, shows Go to my company, Wound chart and End match large, and marks a Broken company.
+func TestPlayingPhaseOpensTheScenarioAndLogAndMarksTheBroken(t *testing.T) {
 	m := readyToEnd()
 	f := matchWriteOwning(t, m)
 	f.started = true
 	f.breaks = map[int64]core.LiveBreak{2: {Broken: true, Casualties: 8, StartingModels: 15}, 1: {Casualties: 1, StartingModels: 12}}
 	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
-	for _, want := range []string{`data-phase="playing"`, `id="scenario-folded"`, "Go to my company", "To wound", "data-end-match", `title="8 of 15 casualties">Broken</span>`} {
+	for _, want := range []string{`data-phase="playing"`, `id="scenario-folded" open`, `id="log" open`, "Go to my company", "Wound chart", "data-end-match", `title="8 of 15 casualties">Broken</span>`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("playing: missing %q", want)
 		}

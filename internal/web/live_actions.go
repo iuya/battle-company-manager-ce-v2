@@ -119,8 +119,8 @@ func (s *Server) handleLiveUndo(w http.ResponseWriter, r *http.Request) {
 		s.answerSecretUndo(w, r, id, matchID, err)
 		return
 	}
-	if from := r.PostFormValue("from"); from == "log" || from == "card" { // pressed in the log: it answers with the log
-		s.answerLogUndo(w, r, id, matchID, companyID, from == "card", err)
+	if r.PostFormValue("from") == "card" { // pressed in the log: it answers with the log
+		s.answerLogUndo(w, r, id, matchID, err)
 		return
 	}
 	if err == nil {

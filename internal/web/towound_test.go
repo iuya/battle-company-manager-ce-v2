@@ -62,7 +62,7 @@ func TestToWoundBodyWithoutAChartSaysSo(t *testing.T) {
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
 	rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/to-wound", nil)))
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "has no To Wound chart") || strings.Contains(rec.Body.String(), "data-roll") {
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "has no Wound chart") || strings.Contains(rec.Body.String(), "data-roll") {
 		t.Errorf("%d %q", rec.Code, rec.Body.String())
 	}
 }

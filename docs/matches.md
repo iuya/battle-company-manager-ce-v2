@@ -152,19 +152,19 @@ The page shows only the current **phase** (`matchView.Phase`, `data-phase` on `#
 | Phase | When | Shown |
 |---|---|---|
 | `preparing` | open, no live entry | scoreboard, scenario card (**Change scenario**), Against the Odds card when eligible |
-| `playing` | a live entry exists | scoreboard, **Go to my company** (the viewer's live company page), To wound, **End match**; the scenario folded to its name |
-| `ending` | an end is pending | the End card with **Confirm** for whoever must confirm (see "Ending a match") |
+| `playing` | a live entry exists | scoreboard, **Go to my company** (the viewer's live company page), Wound chart, **End match**; the scenario and the log open |
+| `ending` | an end is pending | the End card with **Confirm** for whoever must confirm (see "Ending a match"); the scenario and the log open |
 | `ended` | ended | scoreboard with the result, the Aftermath card, the note; the organiser and administrators get the result form |
 
 1. **Header**: `Match N`, result badge (Open / Draw / "<companies> won"), date, "Ended <date>".
 2. **Scoreboard**: one compact row per side, its companies (links) and the result badge.
 3. **Scenario card**: a one-off shows a badge and its description and victory conditions as escaped plain paragraphs. A rulebook scenario shows
-   **What the result earns** and three collapsed sections: **About this scenario**, **Special rules** and **How it is scored** (rule tables of
+   **What the result earns** and three sections, collapsed except while the game is played or its end is pending: **About this scenario**, **Special rules** and **How it is scored** (rule tables of
    the file are drawn as tables). The secret objectives (Fog of War) are in this card.
 4. **Against the Odds card** (open matches; read only on an ended match that has one).
 5. **Result** (ended matches): the winner and the note; the organiser and administrators get the form (winner radio group, the reward ticks
    of the scenario, note, **Save result**), which edits it without redoing the aftermath.
-6. **Log** (collapsed, at the bottom): the history (`Match.History`, a `MatchEvent{Kind "ended"|"reopened", By, On, Detail}` per transition)
+6. **Log** (at the bottom, open while the game is played or its end is pending, collapsed otherwise): the history (`Match.History`, a `MatchEvent{Kind "ended"|"reopened", By, On, Detail}` per transition)
    and the match log. Managers get **Reopen match** while no company has started or waived its aftermath.
 
 States of every card: empty, editing, read only, stale (`ErrMatchChanged`: notice on top, form reloaded), error (`ErrInvalidMatch` / `ErrRefused` reasons beside the field or on top). Every campaign player can read the page; a non-member gets a 404.
@@ -181,10 +181,10 @@ scenario**. Once a live entry exists the scenario is fixed (`SetScenario` refuse
 
 Fields: **Name** (required, 60), **Description** (1000), **How it is won** (1000), with the helper text "Players are trusted: the app does not check the victory conditions. It is kept with this match only." The same form edits it later. Text is rendered escaped with line breaks kept. A one-off scenario has no rewards; the organiser grants those.
 
-### To wound chart
+### Wound chart
 
-An open match has a **To wound** button beside the heading; the live company page has the same one in its banner. It opens the rulebook's To Wound Chart (Strength rows by Defence columns) in a window, so a player can check a roll without leaving the match.
-The chart is `reference.toWound` of the campaign's glossary file ([definitions.md](definitions.md)); `core.Glossary.ToWound` carries it, so a campaign with another glossary file has that file's chart, and a file without one answers "This campaign's rules file has no To Wound chart.". Code: `partials/to_wound.gohtml`, `internal/web/towound.go`, `static/js/towound.js`.
+An open match has a **Wound chart** button beside the heading; the live company page has the same one in its banner. It opens the rulebook's To Wound Chart (Strength rows by Defence columns) in a window, so a player can check a roll without leaving the match.
+The chart is `reference.toWound` of the campaign's glossary file ([definitions.md](definitions.md)); `core.Glossary.ToWound` carries it, so a campaign with another glossary file has that file's chart, and a file without one answers "This campaign's rules file has no Wound chart.". Code: `partials/to_wound.gohtml`, `internal/web/towound.go`, `static/js/towound.js`.
 
 - **A window, not a tab**: the live company page is long and its zones are refetched by the event stream; a window opened by an always reachable button covers neither, and it sits outside `#match` and `#live-zones`, so a write or a live refresh never closes it. Its body is fetched once when the page loads (`GET /campaigns/{id}/to-wound`, any member) and is static HTML after that, so it works while the event stream is down.
 - **Find control**: two steppers, the attacker's Strength and the target's Defence; the result is shown large ("4+", "6+ then 4+", "Cannot wound") with the chart's own notation, the row, column and cell are marked in the table, and tapping a cell sets both. No unit is preselected.
