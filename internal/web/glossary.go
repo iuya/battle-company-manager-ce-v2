@@ -143,7 +143,8 @@ type unitCardView struct {
 	Wargear []chipView
 	Rules   []chipView
 	Options []optionChipView
-	Text    []segView // the company's own words, with the glossary terms and the other units linked; never the unit's own name
+	Members []unitCardView // the cards of the units a bundle is made of (Vault Warden Team), each with its own profile and points
+	Text    []segView      // the company's own words, with the glossary terms and the other units linked; never the unit's own name
 }
 
 // chipView is a name on a card (a rule, a piece of wargear) with what the glossary says about it: Tip is empty for a name the glossary does not define.
@@ -173,6 +174,17 @@ func newUnitCardsView(g core.Glossary, cid int64) unitCardsView {
 			c.Text = viewSegments(g, g.LinkExcept(u.Text, u.Name), 320)
 		}
 		v.Units[i] = c
+	}
+	byID := map[string]unitCardView{}
+	for _, c := range v.Units {
+		byID[c.ID] = c
+	}
+	for i, c := range v.Units {
+		for _, m := range c.Includes {
+			if mc, ok := byID[core.UnitAnchor(m)]; ok {
+				v.Units[i].Members = append(v.Units[i].Members, mc)
+			}
+		}
 	}
 	return v
 }

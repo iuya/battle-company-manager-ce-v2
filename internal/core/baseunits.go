@@ -57,6 +57,7 @@ func (r *RuleSet) buildBaseUnits() []BaseUnit {
 	}
 	var out []BaseUnit
 	byKey := map[string][]seen{}
+	var from []CompanyProfile // the company that first named each card, to resolve the members of a bundle
 	for _, p := range r.BC.Profiles() {
 		done := map[string]bool{}
 		for _, m := range p.mentionedUnits() {
@@ -81,6 +82,31 @@ func (r *RuleSet) buildBaseUnits() []BaseUnit {
 			}
 			byKey[key] = append(byKey[key], seen{len(out), sign})
 			out = append(out, u)
+			from = append(from, p)
+		}
+	}
+	// The members of a bundle (Iron Shield Bearer and Foe Spear Wielder of the Vault Warden Team) are never named on their own, but the
+	// bundle's card shows them and the texts link them: each gets a card, named by the companies that name the bundle.
+	for i := 0; i < len(out); i++ { // out grows as members are added; a member that is itself a bundle is followed too
+		for _, member := range out[i].Includes {
+			key := NameKey(member)
+			if len(byKey[key]) > 0 {
+				continue
+			}
+			vu, alias, ok := r.ResolveUnit(from[i], member)
+			if !ok {
+				continue
+			}
+			m := r.baseUnit(from[i], member, vu, alias)
+			m.Companies = slices.Clone(out[i].Companies)
+			for _, mp := range from[i].IncludedPoints[out[i].Name] { // a member is worth the points its company's bundle gives it (the vanilla row has none)
+				if sameName(mp.Name, member) {
+					m.Preview.Points += mp.Points
+				}
+			}
+			byKey[key] = append(byKey[key], seen{len(out), unitSignature(vu, alias)})
+			out = append(out, m)
+			from = append(from, from[i])
 		}
 	}
 	slices.SortStableFunc(out, func(a, b BaseUnit) int { return strings.Compare(NameKey(a.Name), NameKey(b.Name)) })

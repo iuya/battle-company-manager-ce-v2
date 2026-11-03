@@ -19,10 +19,14 @@ glossary file. When a name is defined in several places Battle Companies wins (i
 the glossary file's term of the same name; the glossary file wins over the vanilla file.
 
 **Unit cards.** A campaign's Glossary tab also has a card for every base unit its ruleset's companies name (`core.RuleSet.BaseUnits`, `core.Glossary.Units`: the units of the
-starting companies, charts, special units and promotions, one card per distinct name; 120 in the shipped ruleset), under a "Units" heading, with a "Units" chip in the category
+starting companies, charts, special units and promotions, one card per distinct name; 122 in the shipped ruleset, the two models of the Vault Warden Team among them), under a "Units" heading, with a "Units" chip in the category
 filter (`?c=units`) and the search finding them by name, by the base profile of a company's own version (Helminga: Rohan Royal Guard) and by company. A card is the redesigned unit card as a static reference (`glossary_units` in `partials/glossary.gohtml`, with the card's own classes: the title plate with the kind icon, name, type and points, tinted for a hero; the datasheet `statline`; the body with wargear, heroic actions and special rules; the keyword foot), without trackers, experience or rename. Besides what the new-company hover card shows it has the
-options the profile may take (with their points), the units a bundle brings (Vault Warden Team), the company's own text and "Named by" the companies that use it. The sidebar
+options the profile may take (with their points), the company's own text and "Named by" the companies that use it. The sidebar
 glossary (a bare file, no campaign) has none.
+
+- **Bundles.** A unit sold as one that counts as several models (the Vault Warden Team: Iron Shield Bearer and Foe Spear Wielder, `BaseUnit.Includes`) shows the unit card of each member inside its own card (`Members` of `unitCardView`,
+  `data-member`, the `glossary_unit_inner` partial the card itself uses: stat line, wargear, rules, keywords, each member's own points), not a line of names; the member's name links to the member's own card. The members have articles of their own
+  (`RuleSet.buildBaseUnits` adds the members of every bundle, named by the companies that name the bundle), so search finds them and any text that names them links them. Each member's profile is `Vanilla.Profile`, as every card's.
 
 - **Names on a card link like the company page's cards.** The fragment's data is `unitCardsView` (`internal/web/glossary.go`): each wargear name, option name and special rule of a card is a chip made by the `glossary_chip` partial with the
   attributes the company page's chips carry (`tabindex="0"`, `data-concept`, `data-tip-title`, `data-tip-meta` the term's category, `data-tip-text` its definition, from `Glossary.Find`, which also reads "Fury (2)" as Fury), so hover and focus
@@ -33,7 +37,7 @@ glossary (a bare file, no campaign) has none.
   (`u-warrior-of-minas-tirith`). A link to a unit is `/campaigns/{id}/glossary#<UnitAnchor>` with `hx-boost="false"` like a term link. Two companies that give one name to different
   profiles get one card each, the later anchored with the company's name. In the page, `#u-` links are handled like `#t-` ones: the search and category clear, the card is brought
   into view, highlighted and takes the focus.
-- **Fetched on demand.** The 120 cards are 0.37 MB of HTML (19 KB gzip, 3.1 KB a card), on top of a tab that is already 1.5 MB, so the tab leaves them out: it counts them and
+- **Fetched on demand.** The 122 cards are 0.37 MB of HTML (19 KB gzip, 3.1 KB a card), on top of a tab that is already 1.5 MB, so the tab leaves them out: it counts them and
   shows a placeholder with a "Show the N unit cards" button. `GET /campaigns/{id}/glossary/units` (a campaign member; 404 for a ruleset without units) returns the cards as the
   `glossary_units` fragment, which replaces the placeholder (`htmx.ajax` from `loadUnits` in `static/js/lists.js`, one request however many things ask). The button, choosing
   the Units chip, typing in the search, opening `?c=units` and an address with `#u-...` all fetch them. The tab and the fragment are two of the pages `node tests/e2e/pagetimes.mjs` measures ([performance.md](performance.md)): the tab stays at about 27 ms of server time and 1.5 MB (198 KB gzip), the fragment is 7.5 ms and 365 KB (19 KB gzip).
