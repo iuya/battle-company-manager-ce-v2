@@ -241,7 +241,7 @@ An item that only lacks influence, a free slot or room under a company limit (bo
 ## Armour upgrades
 
 Armour upgrades (`core/armour.go`, `data.wargear.armourUpgrade`): the shop adds one offer per armour stage above the first
-(`GearOffer.ArmourStage` > 0: "Armour", "Heavy Armour"; 1 influence or Gold, rating per stage: 1 until a hero's Attacks + Wounds reach 3, then 5, and no extra rating for a stage that its profile or its Options already have, BC "Calculate Rating"; the option itself costs its MESBG points for a warrior and a hero alike). Buying
+(`GearOffer.ArmourStage` > 0: "Armour", "Heavy Armour"; 1 influence or Gold, rating per stage: 1 until a hero's Attacks + Wounds reach 3, then 5, and no extra rating for a stage that its profile or its Options already have, BC "Calculate Rating"; Gold price: the armoury's first value, the same for every unit). Buying
 one through `BuyEquipment` with the stage's name replaces the armour the unit wears (the old one is dropped) with the next stage;
 stages are never skipped. A warrior (a Beast that is still a warrior included) needs the stage as an option of its profile; a hero only the stages that units
 of its company can have (`armourPool`), so a company without heavy-armoured units never sells Heavy Armour to a hero.
@@ -363,8 +363,13 @@ flow `82-company-ui` covers it.
 ## Gold
 
 Gold is given to some companies in their starting company, as a special victory reward of some scenarios, and by the organiser
-in a narrative scenario (a custom one); what is left is kept (`campaign.gold`). Equipment, creatures and wanderers cost their
-rating (`gold` in the file) in Gold and no influence, and wargear can be bought with Gold as well. Slots, limits and
+in a narrative scenario (a custom one); what is left is kept (`campaign.gold`). Equipment, creatures and wanderers cost the first value of
+their rating (`gold` in the file: the warrior value) in Gold and no influence, and wargear can be bought with Gold as well.
+One price function, `shop.goldPrice`, serves the armory lists, the buy and the refusal reasons: every unit, warrior or hero,
+pays the armoury's first value; the second value only changes a hero's rating. The exception is wargear that is on its own one
+of the unit's own profile's options, which costs that option's points, lower or higher (a Dwarf Ranger pays 1 for a Dwarf
+Longbow, a Dwarf Warrior or a hero of another profile pays the armoury's 2; Arnor's starting leader pays 1 for a Torching
+Brand). The armory and the company creation page show one Gold number. Slots, limits and
 restrictions still apply. Every buy button of the armory (the tab, a unit's equipment window, creatures, wanderers) offers the
 payments the company can afford: "Buy · N influence" and/or "Buy · G gold" (`pay` field). The Gold, Influence and Re-rolls
 cards of My Company have tooltips saying what they are for and where they come from. The organiser can grant Gold from the grants card of a company page, and scenario results award it in the aftermath ([matches.md](matches.md)).

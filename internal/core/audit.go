@@ -277,7 +277,7 @@ func auditCompany(rs *RuleSet, in AuditInput, table itemTable, p CompanyProfile)
 	for _, o := range armoury {
 		ca.Armoury = append(ca.Armoury, OfferAudit{GearOffer: o, Tip: gearTip(rs, p.BCCompany, o.Name)})
 		if o.Cost <= 0 {
-			flag(FlagPriceMissing, o.Name, "influence cost %d (gold %d/%d)", o.Cost, o.Gold.Warrior, o.Gold.Hero)
+			flag(FlagPriceMissing, o.Name, "influence cost %d (gold %d)", o.Cost, o.Gold.Warrior)
 		}
 	}
 
@@ -346,7 +346,7 @@ func auditCompany(rs *RuleSet, in AuditInput, table itemTable, p CompanyProfile)
 			uo.Item = offer
 			uo.WarriorReason, _ = sh.whyNot(ua.Warrior, offer)
 			uo.HeroReason, _ = sh.whyNot(ua.Hero, offer)
-			uo.WarriorGold, uo.HeroGold = sh.goldPrice(ua.Warrior, offer), offer.Gold.Hero
+			uo.WarriorGold, uo.HeroGold = sh.goldPrice(ua.Warrior, offer), sh.goldPrice(ua.Hero, offer)
 			uo.DerivedByWarrior = derivation(offer, p, v.Options, v)
 			uo.DerivedByHero = derivation(offer, p, heroOptions, v)
 			if offer.Size == "" && !offer.namesWho() && uo.WarriorReason == "" && uo.DerivedByWarrior == "" {

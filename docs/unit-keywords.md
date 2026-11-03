@@ -38,7 +38,7 @@ So a rule for Man models affects the rider but not the Mount.
 | vanilla `data.heroes[]` and `data.warriors[]` | `race[]` (27 values), `faction[]` (52 spellings, some of them variants of the same word: `Khazad-dum`/`Khazad-Dum`, `Lothlorien`/`Lothlórien`, `The Iron Hills`/`Iron Hills`, `Misty Mountains`/`The Misty Mountains`; `Fellowship, Dunedain` is one string for two factions; `*` and `None` are placeholders), `unitType[]` (14 values: Infantry, Hero, Unique, Warrior, Monster, Cavalry, Beast, Elite, War Beast, Swarm, Chariot, siege types). `core.VanillaUnit` has `Race`, `Faction`, `UnitTypes` |
 | vanilla `data.gear[type=mount]` | the mount's own `race[]` (Horse, Warg, Camel, Fell Beast...), `faction[]` (Rohan, Gundabad..., or `See Rider`) and `unitType[]` (Mount, Chariot, Hero+Mount, Monster); five mounts have none |
 | Battle Companies `unitFillIns` | race, faction and unit type for a vanilla unit that has none (Hunter Orc Warrior), applied by the loader |
-| Battle Companies unit alias / special unit `addKeywords` | a keyword a company adds to a vanilla unit: the Goblin Hulk (Gundabad Ogre + Goblin, Goblin-town) |
+| Battle Companies unit alias / special unit `addKeywords`, `race` | `addKeywords`: a keyword a company adds to a vanilla unit. `race`: the race keywords the unit has instead of the profile's: the Goblin Hulk (a Gundabad Ogre that is a Goblin and not an Ogre, Goblin-town) |
 | Battle Companies `unitTypes` company effect | the company's change of unit types (Mirkwood's Warg Marauder: Cavalry added, Infantry removed) |
 | creatures and wanderers | creatures have `unitType` only (Beast, Infantry, Warrior); wanderers have `unitType` only and it contains the race (`Man, Infantry, Hero`) |
 | glossary terms | `Keywords` (the section above) and the unit types `Hero`, `Warrior`, `Infantry`, `Cavalry`, `Beast`, `Elite`, `Unique`, `Swarm`, `Mount`. No term for any race or faction, nor for `Monster` or `Chariot` |
@@ -61,7 +61,7 @@ A rider's keywords are the race, faction and unit types of the unit's **current*
 Then, in order:
 
 1. **Fill-ins** for a profile with none; an included bundle takes the first member's.
-2. **Company alias deltas**: `addKeywords` of the alias the unit was recruited under (the Goblin Hulk gets Goblin, in the race group because it is a race word). A race word goes to the race group, anything else to the faction group; the company's keyword limits count the added keyword too.
+2. **Company alias deltas**: the alias the unit was recruited under. Its `race` replaces the race group of the profile (the Goblin Hulk is a Goblin, no longer an Ogre); its `addKeywords` add to it (a race word goes to the race group, anything else to the faction group). The company's keyword limits, the "who" tests of rules and the hero upgrades see the same race.
 3. **Company unit-type changes** (the `unitTypes` effect).
 4. **Promotion to a hero** (level-up advancement or officer): the unit takes the hero profile (`CompanyUnit.Type`), so its race, factions and types are those of that profile; nothing is merged with the old profile.
 5. **Options and wargear** do not add keywords. A **bought mount** adds the **Cavalry** unit-type keyword to the rider and the mount gets its own keyword list.
@@ -150,7 +150,7 @@ type UnitKeyword struct {
     Name    string // display spelling, variants merged
     Kind    KeywordKind
     Hidden  bool   // left out of the compact row (Hero, Warrior, Infantry, Unique, Mount)
-    Source  string // "profile", "company" (alias addKeywords, unitTypes effect), "fillIn", "mount"
+    Source  string // "profile", "company" (alias race and addKeywords, unitTypes effect), "fillIn", "mount"
     Text    string // tooltip text, already resolved
     Concept string // data-concept value
     Off     bool   // set by OnFoot on Cavalry
@@ -214,7 +214,7 @@ That covers the starting company, reinforcement and special charts, special unit
 Each result is compared with a keyword set computed independently from the raw JSON files:
 
 - the vanilla `race`, `faction` and `unitType` of the resolved profile;
-- plus `addKeywords`, `unitTypes` effects and fill-ins;
+- with the alias `race` in place of the profile's race, plus `addKeywords`, `unitTypes` effects and fill-ins;
 - after the same normalisation table.
 
 The test also asserts that the races, factions and types over all companies equal the measured set, so a data change that adds a keyword is noticed.

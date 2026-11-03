@@ -91,7 +91,7 @@ func (r *RuleSet) buildBaseUnits() []BaseUnit {
 func unitSignature(vu VanillaUnit, a *UnitAlias) string {
 	s := vu.Name
 	if a != nil {
-		s += "|" + strings.Join(a.AddRules, ",") + "|" + strings.Join(a.Selected, ",") + "|" + a.Text
+		s += "|" + strings.Join(a.AddRules, ",") + "|" + strings.Join(a.Selected, ",") + "|" + strings.Join(a.Keywords, ",") + "|" + strings.Join(a.Race, ",") + "|" + a.Text
 	}
 	return s
 }

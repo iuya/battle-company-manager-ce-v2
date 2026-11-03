@@ -3142,6 +3142,7 @@ Example:
 | `ownPath` | [OwnPath](#ownpath) | no | - | - | Marks the unit as On Their Own Path. |
 | `points` | integer | no | - | 0..10000 | A brand-new unit: its points cost. |
 | `profile` | any | no | - | - | A brand-new unit: its full profile, written the way the vanilla file writes one: the characteristics movement, fight, shoot ("-" for none), strength, defence, attack, wounds, courage, intelligence (and might, will, fate for a hero), and the lists race, unitType (both required), faction, specialRules, wargear, heroicActions, magicalPowers and baseSize. The app then treats the unit like a vanilla profile. |
+| `race` | list of string | no | - | - | The race keywords of the unit, replacing those of the unit it extends (Goblin Hulk: a Gundabad Ogre that is a Goblin, no longer an Ogre). Only with extends. |
 | `tts` | [UnitTTS](#unittts) | no | - | - | The Tabletop Simulator figure. |
 | `types` | [TypeDelta](#typedelta) | no | - | - | Unit types added and removed. |
 | `with` | list of string | no | - | - | The options of the base unit that are pre-selected (Tookish Hunter = Hobbit Archer with the Bow option). |

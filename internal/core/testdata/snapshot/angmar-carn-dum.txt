@@ -316,7 +316,7 @@ may lead yes | own path no | hero upgrades: Show of Strength
 warrior can buy wargear (3): Orc Bow via Orc bow; Throwing Spears (gold 1, item 2) via Shield and throwing spears; Shield via Shield and throwing spears
 warrior can buy equipment (19): set b9bf299f
 warrior refused: 28 not an option of the profile; 12 for other reasons: set 3d1aa6bc
-hero can buy wargear (5): Orc Bow via Orc bow; Throwing Spears via Shield and throwing spears; Spear via Spear; Two-handed weapon via Two-handed weapon; Shield via Shield
+hero can buy wargear (5): Orc Bow via Orc bow; Throwing Spears (gold 1, item 2) via Shield and throwing spears; Spear via Spear; Two-handed weapon via Two-handed weapon; Shield via Shield
 hero can buy equipment (25): set 9d5ad3fe
 hero refused: 26 not an option of the profile; 6 for other reasons: set 1965935c
 

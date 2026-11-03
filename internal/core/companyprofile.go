@@ -62,6 +62,7 @@ type UnitAlias struct {
 	AddRules []string
 	Selected []string // options of the vanilla unit it has selected (Tookish Hunter): their points are part of the unit
 	Keywords []string // keywords the company adds to the vanilla unit (Goblin Hulk: Goblin); a race word goes to the race group
+	Race     []string // the race keywords of the unit, replacing the profile's (Goblin Hulk: Goblin, no longer an Ogre)
 	Text     string
 }
 

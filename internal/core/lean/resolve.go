@@ -551,6 +551,12 @@ func (r *resolver) unitRefs(u *Unit, path string, v view) {
 	for i, k := range u.AddKeywords {
 		r.checked(KindKeyword, k, Idx(Join(path, "addKeywords"), i), v, "vanilla", "")
 	}
+	if len(u.Race) > 0 && u.Extends == "" {
+		r.rep.Errorf(Join(path, "race"), `"race" replaces the race of the unit it extends, so the unit needs an "extends"`)
+	}
+	for i, k := range u.Race {
+		r.checked(KindRace, k, Idx(Join(path, "race"), i), v, "vanilla", "")
+	}
 	if c := u.Composite; c != nil {
 		for i, part := range c.Parts {
 			pp := Idx(Join(Join(path, "composite"), "parts"), i)

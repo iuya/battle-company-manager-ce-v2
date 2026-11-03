@@ -179,7 +179,7 @@ promotes to: Rohan Outrider
 warrior can buy wargear (1): Horse (gold 5, item 10) via Horse
 warrior can buy equipment (17): set 5e464f5b
 warrior refused: 30 not an option of the profile; 14 for other reasons: set 0e457bca
-hero can buy wargear (5): Horse via Horse; Blowpipe via Blowpipe; Throwing Spears via War horn, shield, and throwing spears; Spear via Spear; Shield via War horn, shield, and throwing spears
+hero can buy wargear (5): Horse (gold 5, item 10) via Horse; Blowpipe via Blowpipe; Throwing Spears via War horn, shield, and throwing spears; Spear via Spear; Shield via War horn, shield, and throwing spears
 hero can buy equipment (23): set e39fbb31
 hero refused: 26 not an option of the profile; 8 for other reasons: set 7c55058f
 

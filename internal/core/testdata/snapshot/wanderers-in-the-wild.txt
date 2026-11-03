@@ -350,7 +350,7 @@ may lead yes | own path no | hero upgrades: You Have My Sword
 warrior can buy wargear (3): Longbow (gold 1, item 2) via Longbow; Spear via Shield and Spear; Shield via Shield and Spear
 warrior can buy equipment (17): set 5e464f5b
 warrior refused: 29 not an option of the profile; 13 for other reasons: set a73a183e
-hero can buy wargear (9): Short Bow via Short Bow; Elf Bow via Elf bow; Longbow via Longbow; Dwarf Longbow via Dwarf longbow; Throwing weapon via Throwing weapons; Spear via Shield and Spear; Hand-and-a-half weapon via Hand-and-a-half weapon; Two-handed weapon via Two-handed weapon; Shield via Shield and Spear
+hero can buy wargear (9): Short Bow via Short Bow; Elf Bow via Elf bow; Longbow (gold 1, item 2) via Longbow; Dwarf Longbow via Dwarf longbow; Throwing weapon via Throwing weapons; Spear via Shield and Spear; Hand-and-a-half weapon via Hand-and-a-half weapon; Two-handed weapon via Two-handed weapon; Shield via Shield and Spear
 hero can buy equipment (23): set e39fbb31
 hero refused: 23 not an option of the profile; 7 for other reasons: set 3033d39e
 
@@ -370,7 +370,7 @@ may lead yes | own path no | hero upgrades: You Have My Sword
 warrior can buy wargear (3): Dwarf Longbow (gold 1, item 2) via Dwarf longbow; Throwing weapon (gold 1, item 2) via Throwing weapons; Two-handed weapon via Two-handed weapon
 warrior can buy equipment (17): set 5e464f5b
 warrior refused: 29 not an option of the profile; 13 for other reasons: set a73a183e
-hero can buy wargear (9): Short Bow via Short Bow; Elf Bow via Elf bow; Longbow via Longbow; Dwarf Longbow via Dwarf longbow; Throwing weapon via Throwing weapons; Spear via Shield and Spear; Hand-and-a-half weapon via Hand-and-a-half weapon; Two-handed weapon via Two-handed weapon; Shield via Shield and Spear
+hero can buy wargear (9): Short Bow via Short Bow; Elf Bow via Elf bow; Longbow via Longbow; Dwarf Longbow (gold 1, item 2) via Dwarf longbow; Throwing weapon (gold 1, item 2) via Throwing weapons; Spear via Shield and Spear; Hand-and-a-half weapon via Hand-and-a-half weapon; Two-handed weapon via Two-handed weapon; Shield via Shield and Spear
 hero can buy equipment (23): set e39fbb31
 hero refused: 23 not an option of the profile; 7 for other reasons: set 3033d39e
 

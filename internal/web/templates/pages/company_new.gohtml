@@ -125,7 +125,7 @@
       {{range $p.UniqueWargear}}
       <div class="exclusive">
         <p class="exclusive-label">Exclusive wargear</p><p class="font-medium">{{upfirst .Name}}</p>
-        <p class="text-sm text-muted">{{.Cost}} influence · rating {{.Rating.Warrior}} / {{.Rating.Hero}}{{if .Gold.Warrior}} · {{.Gold.Warrior}} / {{.Gold.Hero}} Gold{{end}}</p>
+        <p class="text-sm text-muted">{{.Cost}} influence · rating {{.Rating.Warrior}} / {{.Rating.Hero}}{{if .Gold.Warrior}} · {{.Gold.Warrior}} Gold{{end}}</p>
         {{with index $.Tips .Name}}<p class="mt-1 text-sm">{{template "segments" (dict "S" ($.Linked .) "CID" $cid)}}</p>{{end}}
       </div>{{end}}
       {{range $p.HeroUpgrades}}

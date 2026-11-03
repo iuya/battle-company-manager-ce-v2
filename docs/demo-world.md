@@ -110,7 +110,7 @@ Everything is reached through the real services:
 
 - Every officer's level-ups are typed rolls (`w.gain`: 5 experience, the roll of the path chart that offers the rule, the choice).
   A warrior becomes a hero with a 6, and a Sorcerer names its first power.
-- Items are bought with gold.
+- Items are bought with gold. Every Gold price is the armoury's first value (or the option's points for a unit's own option); any company created from Arnor or Durin's Folk with its starting Gold shows it in the armory (a Torching Brand for 1 Gold, not the hero value).
 
 A company belongs to one player in a campaign and has its own upgrades, so the auras that depend on the company are spread over ten companies.
 The three "main" companies carry the items, the paths, the powers and the creature.
