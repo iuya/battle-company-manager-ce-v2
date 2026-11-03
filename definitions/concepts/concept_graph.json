@@ -36,13 +36,6 @@
       "textHash": "d2e654766a91e152"
     },
     {
-      "id": "item:armoured-horse",
-      "kind": "item",
-      "name": "Armoured horse",
-      "file": "battleCompanies",
-      "textHash": "58c3cd1ea7b87454"
-    },
-    {
       "id": "item:ash",
       "kind": "item",
       "name": "Ash",
@@ -54,28 +47,28 @@
       "kind": "item",
       "name": "Axe of Lossarnach",
       "file": "battleCompanies",
-      "textHash": "cd665eeb4ad5f8e2"
+      "textHash": "681d11ce33a94cba"
     },
     {
       "id": "item:backpack",
       "kind": "item",
       "name": "Backpack",
       "file": "battleCompanies",
-      "textHash": "d641f66fc5dbfaaa"
+      "textHash": "ab9ca27248836b6b"
     },
     {
       "id": "item:badge-of-courage",
       "kind": "item",
       "name": "Badge of Courage",
       "file": "battleCompanies",
-      "textHash": "5ea79e0b16f652fe"
+      "textHash": "3c0af9ecdd978376"
     },
     {
       "id": "item:baggage-pony",
       "kind": "item",
       "name": "Baggage Pony",
       "file": "battleCompanies",
-      "textHash": "38bb36d273b14244"
+      "textHash": "1a04f4f927852a88"
     },
     {
       "id": "item:banner",
@@ -114,7 +107,7 @@
       "kind": "item",
       "name": "Barding",
       "file": "battleCompanies",
-      "textHash": "e6592cce14103794"
+      "textHash": "ed0998d4bd35b623"
     },
     {
       "id": "item:beech",
@@ -198,42 +191,42 @@
       "kind": "item",
       "name": "Climbing ropes",
       "file": "battleCompanies",
-      "textHash": "fdfe2b2a19f48c94"
+      "textHash": "82289fcdb11c0ea1"
     },
     {
       "id": "item:company-drum",
       "kind": "item",
       "name": "Company Drum",
       "file": "battleCompanies",
-      "textHash": "acb655e5e0cb42ae"
+      "textHash": "9247c516970532ec"
     },
     {
       "id": "item:company-horn",
       "kind": "item",
       "name": "Company Horn",
       "file": "battleCompanies",
-      "textHash": "6e0635306d302ffd"
+      "textHash": "c01dec616f21d3db"
     },
     {
       "id": "item:company-instrument",
       "kind": "item",
       "name": "Company Instrument",
       "file": "battleCompanies",
-      "textHash": "0d92a21aabb1f566"
+      "textHash": "a1ded504bfeb4282"
     },
     {
       "id": "item:company-standard",
       "kind": "item",
       "name": "Company Standard",
       "file": "battleCompanies",
-      "textHash": "eab95368eec13aeb"
+      "textHash": "4635749add85db46"
     },
     {
       "id": "item:concealing-cloak",
       "kind": "item",
       "name": "Concealing Cloak",
       "file": "battleCompanies",
-      "textHash": "63133e5b679c405b"
+      "textHash": "bf9d5b65a4a7d27d"
     },
     {
       "id": "item:crown-of-morgul",
@@ -261,7 +254,7 @@
       "kind": "item",
       "name": "Dunlending War Axe",
       "file": "battleCompanies",
-      "textHash": "650de75c4aa2918a"
+      "textHash": "a6991aa15a3b0138"
     },
     {
       "id": "item:durin-s-axe",
@@ -282,35 +275,35 @@
       "kind": "item",
       "name": "Dwarf Bow",
       "file": "battleCompanies",
-      "textHash": "8acfbd63ff354b23"
+      "textHash": "9c49176f115c0d2a"
     },
     {
       "id": "item:dwarf-longbow",
       "kind": "item",
       "name": "Dwarf Longbow",
       "file": "battleCompanies",
-      "textHash": "dad840b29e7e44fd"
+      "textHash": "17fd0303c06e279c"
     },
     {
       "id": "item:dwarven-brew",
       "kind": "item",
       "name": "Dwarven Brew",
       "file": "battleCompanies",
-      "textHash": "42f3dde45c828f84"
+      "textHash": "b23cbf0da9ef7d40"
     },
     {
       "id": "item:easterling-halberd",
       "kind": "item",
       "name": "Easterling Halberd",
       "file": "battleCompanies",
-      "textHash": "a16ee60fd48a685f"
+      "textHash": "bf8977256b848e1b"
     },
     {
       "id": "item:elf-bow",
       "kind": "item",
       "name": "Elf Bow",
       "file": "battleCompanies",
-      "textHash": "dad840b29e7e44fd"
+      "textHash": "17fd0303c06e279c"
     },
     {
       "id": "item:elven-cloak",
@@ -349,7 +342,7 @@
       "kind": "item",
       "name": "Envenom Weapon (X)",
       "file": "battleCompanies",
-      "textHash": "721fd18fc4aecdc8"
+      "textHash": "ea4afbd339b21afb"
     },
     {
       "id": "item:equipment",
@@ -363,7 +356,7 @@
       "kind": "item",
       "name": "Esgaroth Bow",
       "file": "battleCompanies",
-      "textHash": "dad840b29e7e44fd"
+      "textHash": "17fd0303c06e279c"
     },
     {
       "id": "item:exquisite-mithril-armour",
@@ -377,14 +370,7 @@
       "kind": "item",
       "name": "Falcon",
       "file": "battleCompanies",
-      "textHash": "cff6033a15adcebb"
-    },
-    {
-      "id": "item:fell-warg",
-      "kind": "item",
-      "name": "Fell Warg",
-      "file": "battleCompanies",
-      "textHash": "2e4e79f42d52ae8a"
+      "textHash": "2d17bb27895587b9"
     },
     {
       "id": "item:fiery-lash",
@@ -412,7 +398,7 @@
       "kind": "item",
       "name": "Flaming Brand",
       "file": "battleCompanies",
-      "textHash": "14e3e819eab1f283"
+      "textHash": "893515a819d39a5e"
     },
     {
       "id": "item:foe-spear",
@@ -461,7 +447,7 @@
       "kind": "item",
       "name": "Galadhrim Steed",
       "file": "battleCompanies",
-      "textHash": "2b5753f224e54dc3"
+      "textHash": "916942c895675766"
     },
     {
       "id": "item:glamdring",
@@ -476,13 +462,6 @@
       "name": "Gnarled Hide",
       "file": "vanilla",
       "textHash": "37964b2db8bdee72"
-    },
-    {
-      "id": "item:goat",
-      "kind": "item",
-      "name": "Goat",
-      "file": "battleCompanies",
-      "textHash": "58c3cd1ea7b87454"
     },
     {
       "id": "item:grasper-keeper",
@@ -517,7 +496,7 @@
       "kind": "item",
       "name": "Healing Herbs",
       "file": "battleCompanies",
-      "textHash": "90c655533f420e0c"
+      "textHash": "8e5e81064963ea5b"
     },
     {
       "id": "item:hearing-trumpet",
@@ -601,13 +580,6 @@
       "textHash": "fb28080ff62804b0"
     },
     {
-      "id": "item:horse",
-      "kind": "item",
-      "name": "Horse",
-      "file": "battleCompanies",
-      "textHash": "2e4e79f42d52ae8a"
-    },
-    {
       "id": "item:horse-and-throwing-spears",
       "kind": "item",
       "name": "Horse and throwing spears",
@@ -626,7 +598,7 @@
       "kind": "item",
       "name": "Hunting Dog",
       "file": "battleCompanies",
-      "textHash": "44e78a1ab60d3167"
+      "textHash": "866d71593b159749"
     },
     {
       "id": "item:iron-shield",
@@ -682,7 +654,7 @@
       "kind": "item",
       "name": "Longbow",
       "file": "battleCompanies",
-      "textHash": "dad840b29e7e44fd"
+      "textHash": "17fd0303c06e279c"
     },
     {
       "id": "item:lorien-guard",
@@ -696,21 +668,21 @@
       "kind": "item",
       "name": "Lucky Talisman",
       "file": "battleCompanies",
-      "textHash": "d6f48fe1b4973aac"
+      "textHash": "cc8e4508ed89c46c"
     },
     {
       "id": "item:map",
       "kind": "item",
       "name": "Map",
       "file": "battleCompanies",
-      "textHash": "c60b9fb1c5a50973"
+      "textHash": "2d827538aed1d11c"
     },
     {
       "id": "item:mattock",
       "kind": "item",
       "name": "Mattock",
       "file": "battleCompanies",
-      "textHash": "1336cd5ef8a8206a"
+      "textHash": "8fa0ff442204eef7"
     },
     {
       "id": "item:merry-pippin",
@@ -769,7 +741,7 @@
       "kind": "item",
       "name": "Mountain Boots",
       "file": "battleCompanies",
-      "textHash": "7ab20a4f32e8bf6a"
+      "textHash": "773101153faa588a"
     },
     {
       "id": "item:narsil",
@@ -818,7 +790,7 @@
       "kind": "item",
       "name": "Orc Bow",
       "file": "battleCompanies",
-      "textHash": "3379e810b7b09380"
+      "textHash": "8d519d27d08c22e2"
     },
     {
       "id": "item:orcrist",
@@ -895,7 +867,7 @@
       "kind": "item",
       "name": "Ring of Warding",
       "file": "battleCompanies",
-      "textHash": "04b654494e066a3f"
+      "textHash": "b0a9410fdfb44cdc"
     },
     {
       "id": "item:royal-standard-of-rohan",
@@ -930,14 +902,14 @@
       "kind": "item",
       "name": "Scroll of Courage",
       "file": "battleCompanies",
-      "textHash": "51e838011fe2b9d8"
+      "textHash": "a53f772e44a8a4e1"
     },
     {
       "id": "item:scroll-of-hidden-paths",
       "kind": "item",
       "name": "Scroll of Hidden Paths",
       "file": "battleCompanies",
-      "textHash": "f2933cd20cb6f960"
+      "textHash": "3ba8a8ead28e60a3"
     },
     {
       "id": "item:scythe-gauntlets",
@@ -958,7 +930,7 @@
       "kind": "item",
       "name": "Seeing Stone",
       "file": "battleCompanies",
-      "textHash": "a70dee8eb194fa34"
+      "textHash": "5a2f7737c2fdeb45"
     },
     {
       "id": "item:severed-heads",
@@ -1003,7 +975,7 @@
       "kind": "item",
       "name": "Short Bow",
       "file": "battleCompanies",
-      "textHash": "3379e810b7b09380"
+      "textHash": "8d519d27d08c22e2"
     },
     {
       "id": "item:sigils-of-defiance",
@@ -1017,7 +989,7 @@
       "kind": "item",
       "name": "Small Shield",
       "file": "battleCompanies",
-      "textHash": "b0d89519fba89ed7"
+      "textHash": "cf80005754183110"
     },
     {
       "id": "item:smoke-bombs",
@@ -1204,7 +1176,7 @@
       "kind": "item",
       "name": "Torching Brand",
       "file": "battleCompanies",
-      "textHash": "8cb7c325b810ebee"
+      "textHash": "ce1afd3b2087ef07"
     },
     {
       "id": "item:torozul",
@@ -1225,7 +1197,7 @@
       "kind": "item",
       "name": "Traps & Snares",
       "file": "battleCompanies",
-      "textHash": "e54c401427af7fb1"
+      "textHash": "c28cd35a885af850"
     },
     {
       "id": "item:troll-chain",
@@ -1253,7 +1225,7 @@
       "kind": "item",
       "name": "Trophy Pelt",
       "file": "battleCompanies",
-      "textHash": "8f1c2cd43dcbb7d4"
+      "textHash": "1feae9d04db57f91"
     },
     {
       "id": "item:tusk-weapons",
@@ -1281,7 +1253,7 @@
       "kind": "item",
       "name": "Uruk-Hai Bow",
       "file": "battleCompanies",
-      "textHash": "8acfbd63ff354b23",
+      "textHash": "9c49176f115c0d2a",
       "aliases": [
         "Uruk bow"
       ]
@@ -1298,28 +1270,28 @@
       "kind": "item",
       "name": "Wandering Marksman",
       "file": "battleCompanies",
-      "textHash": "89df1127e94f2e72"
+      "textHash": "3de997238e9d2042"
     },
     {
       "id": "item:wandering-sage",
       "kind": "item",
       "name": "Wandering Sage",
       "file": "battleCompanies",
-      "textHash": "c3929f577ffdf614"
+      "textHash": "0fac67d2dd6e010f"
     },
     {
       "id": "item:wandering-scavenger",
       "kind": "item",
       "name": "Wandering Scavenger",
       "file": "battleCompanies",
-      "textHash": "5a414dc11fd91481"
+      "textHash": "7aa25b49dce12751"
     },
     {
       "id": "item:wandering-swordsman",
       "kind": "item",
       "name": "Wandering Swordsman",
       "file": "battleCompanies",
-      "textHash": "bda99f7ba312ba9f"
+      "textHash": "d2305d76728fa58c"
     },
     {
       "id": "item:war-drum",
@@ -1371,13 +1343,6 @@
       "textHash": "9ac31588555a2160"
     },
     {
-      "id": "item:warg",
-      "kind": "item",
-      "name": "Warg",
-      "file": "battleCompanies",
-      "textHash": "2e4e79f42d52ae8a"
-    },
-    {
       "id": "item:wargear",
       "kind": "item",
       "name": "Wargear",
@@ -1403,7 +1368,7 @@
       "kind": "item",
       "name": "Wondrous Cram",
       "file": "battleCompanies",
-      "textHash": "b10d63a08adcbc21"
+      "textHash": "0e93507fcadc1046"
     },
     {
       "id": "item:wood-elf-spear",
@@ -1417,7 +1382,7 @@
       "kind": "item",
       "name": "Woodland Belt",
       "file": "battleCompanies",
-      "textHash": "a8c6685b95b74e70"
+      "textHash": "895223c4c3591f48"
     },
     {
       "id": "item:wyrm-magic",
@@ -6291,6 +6256,13 @@
       "textHash": "4721bcf2d986e6b7"
     },
     {
+      "id": "term:armoured-horse",
+      "kind": "term",
+      "name": "Armoured horse",
+      "file": "vanilla",
+      "textHash": "397a652334e90d51"
+    },
+    {
       "id": "term:arnor-keyword",
       "kind": "term",
       "name": "Arnor keyword",
@@ -7131,6 +7103,13 @@
       "textHash": "b1e7625dbc044dae"
     },
     {
+      "id": "term:fell-warg",
+      "kind": "term",
+      "name": "Fell Warg",
+      "file": "vanilla",
+      "textHash": "347024acaaae61da"
+    },
+    {
       "id": "term:fight-phase",
       "kind": "term",
       "name": "Fight Phase",
@@ -7492,6 +7471,13 @@
       "name": "Hobbit keyword",
       "file": "glossary",
       "textHash": "0fe8c6fe68c42b3d"
+    },
+    {
+      "id": "term:horse",
+      "kind": "term",
+      "name": "Horse",
+      "file": "vanilla",
+      "textHash": "5b6a0c3d4caf0baa"
     },
     {
       "id": "term:horse-keyword",
@@ -9036,6 +9022,13 @@
       ]
     },
     {
+      "id": "term:warg",
+      "kind": "term",
+      "name": "Warg",
+      "file": "vanilla",
+      "textHash": "9faf780ac99760f6"
+    },
+    {
       "id": "term:warg-keyword",
       "kind": "term",
       "name": "Warg keyword",
@@ -9398,11 +9391,6 @@
       "via": "defence bonus is lost with a bow weapon"
     },
     {
-      "from": "item:fell-warg",
-      "to": "rule:fell-sight",
-      "type": "grants"
-    },
-    {
       "from": "item:flaming-brand",
       "to": "rule:terror",
       "type": "grants",
@@ -9413,16 +9401,6 @@
       "to": "rule:woodland-creature",
       "type": "grants",
       "via": "This is an armoured horse that also has the Woodland Creature special rule."
-    },
-    {
-      "from": "item:goat",
-      "to": "rule:devastating-charge",
-      "type": "grants"
-    },
-    {
-      "from": "item:goat",
-      "to": "rule:mountain-dweller",
-      "type": "grants"
     },
     {
       "from": "item:healing-herbs",
@@ -9566,7 +9544,7 @@
       "from": "item:traps-snares",
       "to": "rule:master-of-traps",
       "type": "grants",
-      "via": "A model with Traps & Snares gains the Master of Traps special rule (page 19 of the Armies of Middle-Earth manual) Battle Companies armory: 4 influence or 20 Gold for a warrior, 20 for a hero."
+      "via": "A model with Traps & Snares gains the Master of Traps special rule (page 19 of the Armies of Middle-Earth manual) It takes a large equipment slot."
     },
     {
       "from": "item:trophy-pelt",
@@ -10082,6 +10060,12 @@
       "to": "item:shields",
       "type": "cancels",
       "via": "defence bonus is lost with a crossbow weapon"
+    },
+    {
+      "from": "term:fell-warg",
+      "to": "rule:fell-sight",
+      "type": "grants",
+      "via": "Move 10, Fight 3, Shoot 6, Strength 4, Defence 4, Attacks 1, Wounds 1, Courage 8, Intelligence 7 Special rules: Fell Sight."
     },
     {
       "from": "term:hand-and-a-half-weapon",
