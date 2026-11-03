@@ -24,6 +24,11 @@ filter (`?c=units`) and the search finding them by name, by the base profile of 
 options the profile may take (with their points), the units a bundle brings (Vault Warden Team), the company's own text and "Named by" the companies that use it. The sidebar
 glossary (a bare file, no campaign) has none.
 
+- **Names on a card link like the company page's cards.** The fragment's data is `unitCardsView` (`internal/web/glossary.go`): each wargear name, option name and special rule of a card is a chip made by the `glossary_chip` partial with the
+  attributes the company page's chips carry (`tabindex="0"`, `data-concept`, `data-tip-title`, `data-tip-meta` the term's category, `data-tip-text` its definition, from `Glossary.Find`, which also reads "Fury (2)" as Fury), so hover and focus
+  show the tooltip and a click, a tap or Enter opens the helper popup (see [Helper popup](#helper-popup)); a name the glossary does not define stays a plain chip. On the glossary page the `glossary` component previews a chip from its own `data-tip-*` (`chipOf` in `static/js/lists.js`) while the popup comes from `concepts.js`. The keyword chips take their tooltips and popups from the same `keyword_row`
+  partial the company page uses (`Tips`). The company's own text on a card is cut by `Glossary.LinkExcept` through `viewSegments` and drawn by the `segments` partial: glossary terms and other units are links, the unit's own name never is. The ruleset's own glossary
+  is used, so a Battle Companies campaign links the Battle Companies definitions.
 - **Stable anchors.** Each card is `<article id="u-<name>" tabindex="-1">`; `core.UnitAnchor(name)` makes the id: `u-` and the `NameKey` of the name with dashes
   (`u-warrior-of-minas-tirith`). A link to a unit is `/campaigns/{id}/glossary#<UnitAnchor>` with `hx-boost="false"` like a term link. Two companies that give one name to different
   profiles get one card each, the later anchored with the company's name. In the page, `#u-` links are handled like `#t-` ones: the search and category clear, the card is brought
@@ -119,7 +124,7 @@ and the tooltip steps aside.
   `html/template`; the script inserts markup in one place only (the fragment) and positions the card through the `style` property
   (allowed under the policy). `TestHelperPopupScriptFitsThePolicy` guards it and the e2e suite runs under `CSP_MODE=enforce`.
 - **Tested:** `internal/web/concepts_test.go` (generated mock of `concepts`: body, groups, folds, escaping, glossary link, caching and 304,
-  404, ambiguous and unknown names, non-members and anonymous visitors) and the e2e flow `87-concepts` ([testing.md](testing.md)).
+  404, ambiguous and unknown names, non-members and anonymous visitors) `internal/web/glossary_test.go` (the Goblin Mercenary card's chips and the unit's own name) and the e2e flows `87-concepts` and `110-glossary-unit-links` ([testing.md](testing.md)).
 
 
 See also: [concept-graph.md](concept-graph.md) (the popup's data), [unit-keywords.md](unit-keywords.md), [definitions.md](definitions.md), [frontend.md](frontend.md).
