@@ -222,7 +222,29 @@ func (s *Server) handleNewScenarioCard(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, r, err) {
 		return
 	}
+	if r.URL.Query().Get("name") == "" {
+		if err := s.keepDice(r, base.Campaign.ID, &v); s.fail(w, r, err) {
+			return
+		}
+	}
 	s.render.partial(w, http.StatusOK, "match_new", "new_scenario", v)
+}
+
+// keepDice puts back the server's roll the card carried (scenario-die, the first die) when it still points at the scenario on show,
+// so Cancel in the list shows "Rolled ..." again rather than "Chosen".
+func (s *Server) keepDice(r *http.Request, id int64, v *newScenarioView) error {
+	d, _ := strconv.Atoi(r.FormValue("scenario-die"))
+	if d <= 0 || v.Info == nil {
+		return nil
+	}
+	sel, err := s.campaigns.ScenarioSelection(r.Context(), id)
+	if err != nil {
+		return err
+	}
+	if sel.Valid(d) && sel.Table(d) == v.Info.Table {
+		v.Dice, v.Table = [2]int{d, v.Info.Roll}, v.Info.Table
+	}
+	return nil
 }
 
 // handleNewScenarioRoll rolls again (both dice, no question) and answers the card.

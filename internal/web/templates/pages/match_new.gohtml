@@ -111,7 +111,12 @@
       <button type="button" class="btn btn-secondary" hx-get="{{$base}}/scenario?mode=pick" hx-target="#new-scenario" hx-swap="outerHTML">Choose from the rulebook</button>
     </div>
   {{else if eq .Mode "pick"}}
-    {{with .Info}}<input type="hidden" name="scenario-kind" value="rulebook"><input type="hidden" name="scenario-name" value="{{.Name}}">{{end}}
+    {{with .Info}}<input type="hidden" name="scenario-kind" value="rulebook"><input type="hidden" name="scenario-name" value="{{.Name}}">{{if gt (index $.Dice 0) 0}}<input type="hidden" name="scenario-die" value="{{index $.Dice 0}}">{{end}}
+    {{else}}{{with $.Custom.Name}}<input type="hidden" name="scenario-kind" value="custom"><input type="hidden" name="scenario-name" value="{{$.Custom.Name}}"><input type="hidden" name="scenario-description" value="{{$.Custom.Description}}"><input type="hidden" name="scenario-victory" value="{{$.Custom.Victory}}">{{end}}{{end}}
+    {{if or .Info .Custom.Name}}<div class="flex items-center justify-between gap-2">
+      <p class="min-w-0 break-words text-sm"><span class="text-muted">Now:</span> <span class="font-medium">{{with .Info}}{{.Name}}{{else}}{{.Custom.Name}}{{end}}</span></p>
+      <button type="button" class="btn btn-ghost shrink-0" hx-get="{{$base}}/scenario{{if .Ambush}}?ambush=1{{end}}" hx-include="#new-scenario" hx-target="#new-scenario" hx-swap="outerHTML" data-cancel-pick>Cancel</button>
+    </div>{{end}}
     <div x-data="listSearch" class="space-y-3">
       <div class="field">
         <label for="new-scenario-search">Search the scenarios</label>
@@ -137,7 +142,7 @@
     </div>{{end}}
   {{else}}
     {{with .Info}}
-    <input type="hidden" name="scenario-kind" value="rulebook"><input type="hidden" name="scenario-name" value="{{.Name}}">
+    <input type="hidden" name="scenario-kind" value="rulebook"><input type="hidden" name="scenario-name" value="{{.Name}}">{{if gt (index $.Dice 0) 0}}<input type="hidden" name="scenario-die" value="{{index $.Dice 0}}">{{end}}
     <p class="text-lg font-medium break-words" data-scenario="{{.Name}}">{{.Name}}</p>
     <p class="text-sm text-muted">{{$.RollText}}</p>
     {{with .Scoring}}<p class="line-clamp-2 text-sm text-muted">{{index . 0}}</p>{{end}}

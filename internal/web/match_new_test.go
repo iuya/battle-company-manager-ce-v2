@@ -68,6 +68,23 @@ func TestNewMatchScenarioRollAgainChooseAnotherAndOneOff(t *testing.T) {
 	}
 }
 
+func TestNewMatchScenarioListCancelKeepsTheRolledScenario(t *testing.T) {
+	f := newMatchFixture(t)
+	body := htmxGet(f, "/campaigns/7/matches/new/scenario?mode=pick&scenario-kind=rulebook&scenario-name=Chance+Encounter&scenario-die=1").Body.String()
+	for _, want := range []string{"data-cancel-pick", `name="scenario-die" value="1"`, `name="scenario-name" value="Chance Encounter"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the list lacks %q:\n%s", want, body)
+		}
+	}
+	body = htmxGet(f, "/campaigns/7/matches/new/scenario?scenario-kind=rulebook&scenario-name=Chance+Encounter&scenario-die=1").Body.String()
+	if !strings.Contains(body, `data-scenario="Chance Encounter"`) || !strings.Contains(body, "Rolled 1 (table 1) and 2") {
+		t.Errorf("Cancel shows the rolled scenario again:\n%s", body)
+	}
+	if body := htmxGet(f, "/campaigns/7/matches/new/scenario?mode=pick").Body.String(); strings.Contains(body, "data-cancel-pick") {
+		t.Errorf("nothing to go back to, no Cancel")
+	}
+}
+
 func TestCreateMatchCarriesTheScenarioAndAgainstTheOdds(t *testing.T) {
 	f := newMatchFixture(t)
 	want := core.NewMatch{Sides: []core.NewSide{{Companies: []int64{1}}, {Companies: []int64{2}}},

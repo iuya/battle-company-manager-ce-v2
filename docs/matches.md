@@ -136,7 +136,8 @@ A `ScenarioObjective` is one tick per company on the End match sheet: a reward c
 - **Options**: **Practice match**, **+ Add side** (up to 8; an added side has Remove) and **All vs all** (every company on its own side).
 - **Scenario card**: the scenario the server rolled when the page was drawn (both dice, always the server's, whatever `ManualRolls` /
   `ShakeTheTable` say), with the dice ("Rolled 3 (table 2) and 5"), and **Roll again** (`POST .../matches/new/scenario-roll`, both dice, no
-  question), **Choose another** (`GET .../matches/new/scenario?mode=pick`, the list grouped by table, one press sets it with `?name=`) and
+  question), **Choose another** (`GET .../matches/new/scenario?mode=pick`, the list grouped by table, one press sets it with `?name=`; its
+  **Cancel** brings back the scenario the card held, the server's dice included, which the card carries as `scenario-die`) and
   **One-off scenario** (`?mode=custom`). The card's hidden inputs (`scenario-kind`, `scenario-name` and the one-off fields) go with the form.
 - **Against the Odds block** (`GET .../matches/new/ato?a=&b=`, loaded when each side holds exactly one company): only when the creator owns
   the lower rated company and there is a gap; it lists only the bonuses the gap affords. Reroll, Influence, Experience and Ambush! are
