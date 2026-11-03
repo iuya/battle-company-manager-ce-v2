@@ -582,7 +582,7 @@ func (sh shop) wanderers() []ArmouryWanderer {
 	}
 	var out []ArmouryWanderer
 	for _, o := range offers {
-		entry := ArmouryWanderer{WandererOffer: o, StatBlock: sh.rs.Vanilla.Profile(o.AsUnit(), true, nil)}
+		entry := ArmouryWanderer{WandererOffer: o, StatBlock: recruitStats(sh.rs, sh.bcC, "", o.Name, nil, RoleHero)}
 		// possible: nothing but the roster of the day stands in the way (the models a company may have, a keyword's share of it); the
 		// balance between two races is met by hiring the other one
 		why, kind := companyBlockFor(sh.rs, sh.bcC, nil, o.AsUnit())

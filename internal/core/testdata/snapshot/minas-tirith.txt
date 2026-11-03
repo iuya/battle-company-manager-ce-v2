@@ -162,7 +162,7 @@ hero refused: 26 not an option of the profile; 9 for other reasons: set 6f607d9d
 -- Warrior of Minas Tirith (Spear, Shield)
 from: start; reinforcements 4
 vanilla Warrior of Minas Tirith: 8 points, types Warrior, Infantry, race Man, faction Gondor
-profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 5 · A 1 · W 1 · C 7+ · I 7+
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 6 · A 1 · W 1 · C 7+ · I 7+
 rules: Shieldwall | actions:  | wargear: Heavy Armour, Hand weapon
 keywords: Man/race/profile, Gondor/faction/profile, Warrior/type/profile, Infantry/type/profile
 option "War horn and Shield" 26 pts, buyable yes | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
@@ -185,7 +185,7 @@ hero refused: 26 not an option of the profile; 9 for other reasons: set 8aa8b518
 -- Warrior of Minas Tirith (Shield)
 from: start; reinforcements 2
 vanilla Warrior of Minas Tirith: 8 points, types Warrior, Infantry, race Man, faction Gondor
-profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 5 · A 1 · W 1 · C 7+ · I 7+
+profile: Mv 6" · FV 4 · SV 4+ · S 3 · D 6 · A 1 · W 1 · C 7+ · I 7+
 rules: Shieldwall | actions:  | wargear: Heavy Armour, Hand weapon
 keywords: Man/race/profile, Gondor/faction/profile, Warrior/type/profile, Infantry/type/profile
 option "War horn and Shield" 26 pts, buyable yes | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options

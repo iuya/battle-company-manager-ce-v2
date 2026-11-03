@@ -272,7 +272,7 @@ alias
   Selected: ["Battlin' Brandybuck"]
   Text: "Battlin' Brandybuck is a Hobbit Militia with the Battlin' Brandybuck option selected. The option costs 1 point. In the base game only Meriadoc Brandybuck, Captain of the Shire can take it; this company's rules allow it."
 vanilla Hobbit Militia: 4 points, types Warrior, Infantry, race Hobbit, faction Shire
-profile: Mv 4" · FV 1 · SV 3+ · S 2 · D 3 · A 1 · W 1 · C 7+ · I 8+
+profile: Mv 4" · FV 1 · SV 3+ · S 3 · D 3 · A 1 · W 1 · C 7+ · I 8+
 rules: Resistant to Magic, Throw Stones (range 8", Strength 1) | actions:  | wargear: Hand weapon
 keywords: Hobbit/race/profile, Shire/faction/profile, Warrior/type/profile, Infantry/type/profile
 option "Battlin' Brandybuck" 1 pts, buyable no | reserved
@@ -319,7 +319,7 @@ alias
   Selected: ["Battlin' Brandybuck"]
   Text: "Battlin' Brandybuck is a Hobbit Militia with the Battlin' Brandybuck option selected. The option costs 1 point. In the base game only Meriadoc Brandybuck, Captain of the Shire can take it; this company's rules allow it."
 vanilla Hobbit Militia: 4 points, types Warrior, Infantry, race Hobbit, faction Shire
-profile: Mv 4" · FV 1 · SV 3+ · S 2 · D 3 · A 1 · W 1 · C 7+ · I 8+
+profile: Mv 4" · FV 1 · SV 3+ · S 3 · D 3 · A 1 · W 1 · C 7+ · I 8+
 rules: Resistant to Magic, Throw Stones (range 8", Strength 1) | actions:  | wargear: Hand weapon
 keywords: Hobbit/race/profile, Shire/faction/profile, Warrior/type/profile, Infantry/type/profile
 option "Battlin' Brandybuck" 1 pts, buyable no | reserved

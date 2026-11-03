@@ -193,6 +193,7 @@ type UnitPreview struct {
 	Stats         []Attribute
 	Wargear       []string
 	Rules         []string
+	RuleCards     []UnitRule // the rules with their text, as the roster card lists them (filled with the stats: see RuleSet.finishPreviews)
 	HeroicActions []string
 }
 

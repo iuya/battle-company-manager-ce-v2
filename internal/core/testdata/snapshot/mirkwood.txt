@@ -234,7 +234,7 @@ hero refused: 25 not an option of the profile; 7 for other reasons: set 105f2b23
 -- Mordor Orc Warrior (Shield)
 from: start
 vanilla Mordor Orc Warrior: 5 points, types Warrior, Infantry, race Orc, faction Mordor
-profile: Mv 6" · FV 3 · SV 5+ · S 3 · D 4 · A 1 · W 1 · C 8+ · I 8+
+profile: Mv 6" · FV 3 · SV 5+ · S 3 · D 5 · A 1 · W 1 · C 8+ · I 8+
 rules:  | actions:  | wargear: Armour, Hand weapon
 keywords: Orc/race/profile, Mordor/faction/profile, Warrior/type/profile, Infantry/type/profile
 option "Banner" 25 pts, buyable no | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options

@@ -340,10 +340,32 @@ func resolveUnitKeywords(rs *RuleSet, p CompanyProfile, name string) (VanillaUni
 	return withAliasKeywords(rs, v, a), a, ok
 }
 
-// withPreviewKeywords gives each unit preview of a profile its keyword set (no mount, no state: a preview is the unit as it is
-// recruited). p.Previews must be its own map, as WithPreviews makes it.
-func (r *RuleSet) withPreviewKeywords(p CompanyProfile) CompanyProfile {
+// finishPreviews gives each unit preview of a profile its keyword set and its characteristics with the changes of its gear (no mount, no
+// state: a preview is the unit as it is recruited, with the stats the roster shows for it). p.Previews must be its own map, as
+// WithPreviews makes it.
+func (r *RuleSet) finishPreviews(p CompanyProfile) CompanyProfile {
 	for key, pv := range p.Previews {
+		if len(pv.Stats) > 0 {
+			role := RoleWarrior
+			if pv.HasHeroStats() {
+				role = RoleHero
+			}
+			var gear []string
+			if _, g, ok := strings.Cut(key, "|"); ok && g != "" {
+				gear = strings.Split(g, ",")
+			}
+			u := recruitUnit(r, p.BCCompany, pv.Name, "", gear, role)
+			pv.Stats = u.Stats
+			pv.RuleCards = u.Rules
+			pv.Rules = pv.Rules[:0:0]
+			for _, ru := range u.Rules {
+				pv.Rules = append(pv.Rules, ru.Shown())
+			}
+			pv.Wargear = pv.Wargear[:0:0]
+			for _, e := range u.Equipment {
+				pv.Wargear = append(pv.Wargear, e.Name)
+			}
+		}
 		pv.Keywords = r.UnitKeywords(p, UnitKeywordsInput{Type: pv.Name})
 		p.Previews[key] = pv
 	}

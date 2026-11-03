@@ -97,8 +97,10 @@ file (`CompanyProfiles`, `core.CompanyProfile`): a searchable list with an align
 on the right (loaded as a fragment, `company/info?c=NAME`): history, facts (models, reinforcement cost, starting gold, break point),
 starting company, reinforcement and special charts, special units, the promotion table, what only the company has (exclusive wargear,
 hero upgrades, special rules, free rules, own-name units, exchanges) and its limits and notes. Every unit named (in the starting
-company, charts, special units and promotions) shows its card on hover or focus (`core.UnitPreview`, drawn from the vanilla profiles;
-a company's own label for a unit is resolved to the profile it is); items and rules show their text. The creation form is part of the
+company, charts, special units and promotions) shows its card on hover or focus (`core.UnitPreview`: the unit as it is recruited, built as the roster builds it, so its
+characteristics include the changes of its wargear and option (a shield's +1 Defence, the Noldorin Exile's Movement), and its wargear and
+special rules (granted by gear, option or company, with their tooltips) are the ones its roster card lists; a company's own label for a
+unit is resolved to the profile it is); items and rules show their text. The creation form is part of the
 page. The page ends with **Take command**: three places (a leader with three chevrons, two sergeants with two) and, below them, the
 starting models. The player drags three models into the places (SortableJS; a model dropped on a taken place sends the one that was
 there back to the pool) or uses the Leader, Sergeant and Remove buttons of a card, which also work with a keyboard. Models the

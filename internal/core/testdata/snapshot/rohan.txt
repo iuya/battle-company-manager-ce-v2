@@ -207,7 +207,7 @@ hero refused: 27 not an option of the profile; 8 for other reasons: set 7c55058f
 -- Warrior of Rohan (Throwing Spears, Shield)
 from: start; reinforcements 3
 vanilla Warrior of Rohan: 6 points, types Warrior, Infantry, race Man, faction Rohan
-profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 7+ · I 6+
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 5 · A 1 · W 1 · C 7+ · I 6+
 rules: Spear Mastery | actions:  | wargear: Armour, Hand weapon
 keywords: Man/race/profile, Rohan/faction/profile, Warrior/type/profile, Infantry/type/profile
 option "War horn, shield, and throwing spears" 28 pts, buyable yes | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options
@@ -231,7 +231,7 @@ hero refused: 27 not an option of the profile; 9 for other reasons: set a0c13a62
 -- Warrior of Rohan (Shield)
 from: start; reinforcements 2
 vanilla Warrior of Rohan: 6 points, types Warrior, Infantry, race Man, faction Rohan
-profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 4 · A 1 · W 1 · C 7+ · I 6+
+profile: Mv 6" · FV 3 · SV 4+ · S 3 · D 5 · A 1 · W 1 · C 7+ · I 6+
 rules: Spear Mastery | actions:  | wargear: Armour, Hand weapon
 keywords: Man/race/profile, Rohan/faction/profile, Warrior/type/profile, Infantry/type/profile
 option "War horn, shield, and throwing spears" 28 pts, buyable yes | unsold: notSold: a banner, war horn or war drum: the Battle Companies equipment sells the Company Standard, Company Horn and Company Drum instead, and a 'Choice of Options' excludes these options

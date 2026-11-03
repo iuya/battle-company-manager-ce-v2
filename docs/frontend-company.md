@@ -100,7 +100,7 @@ A card, top to bottom:
   changes nothing here (Cavalry and the mount are not chips; the kind icon does not change on dismount either). A unit with no chip draws no row. Not on
   the aftermath/level-up windows; the live compact cards (Retreated, Field casualties, Missed) have the row too, so the opponent's units are readable
   there. Fallen cards show the same row. The company browser's unit hover card (`unit_preview`)
-  shows the full list in plain, always open, non-interactive chips (`Static`; that card cannot be pointed at). The armoury's wanderer cards use the
+  shows the unit's stats with the changes of its gear (the same as its roster card, `core.recruitUnit`) and its special rules with tooltips; it shows the full list in plain, always open, non-interactive chips (`Static`; that card cannot be pointed at). The armoury's wanderer cards use the
   row; a creature (types only, all of them icon types) has none. Tap targets: the chips get the invisible 44 px coarse-pointer area of the corner
   tab. `/styleguide` shows the states.
 - **Who a rule works against** (spec [`unit-keywords.md`](unit-keywords.md) "Rule targets"): the rule chips of the card (the unit's own, the path's) carry
