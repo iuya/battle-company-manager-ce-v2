@@ -56,9 +56,6 @@ build
 # Copyrighted rulebooks and derived text: never commit
 sources/
 
-# Python bytecode
-__pycache__/
-
 # Built output of tools/dice3d is committed; its dependencies are not
 tools/dice3d/node_modules/
 

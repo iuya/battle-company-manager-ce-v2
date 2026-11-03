@@ -1,12 +1,12 @@
 # Testing
 
-How the project is tested, for contributors who write or run tests: the commands, the Go unit and integration tests, the golden snapshots of the rules data, the Python checks of the definitions, and the headless-browser smoke tests (`make e2e`).
+How the project is tested, for contributors who write or run tests: the commands, the Go unit and integration tests, the golden snapshots of the rules data, the Go checks of the definitions tooling, and the headless-browser smoke tests (`make e2e`).
 
 Contents:
 
 - [Commands](#commands)
 - [Tabletop Simulator helper](#tabletop-simulator-helper-lua-tests)
-- [Definitions tooling (Python)](#definitions-tooling-python)
+- [Definitions tooling](#definitions-tooling)
 - [Golden snapshot of the Battle Companies rules](#golden-snapshot-of-the-battle-companies-rules)
 - [The lean decoder](#the-lean-decoder)
 - [Custom rulesets and the magic-number lint](#custom-rulesets-and-the-magic-number-lint)
@@ -16,7 +16,7 @@ Contents:
 
 | Command | What it runs |
 |---|---|
-| `make test` | Go unit tests (the PostgreSQL ones are skipped) and the Python tests of `tools/` (below) |
+| `make test` | Go unit tests (the PostgreSQL ones are skipped), including the tests of the programs under `tools/` (below) |
 | `make test-integration` | All Go tests against the `bcm_test` database of the compose PostgreSQL. In `cmd/server` the demo world is seeded once per run into a template database (`testmain_test.go`) and the two fuzz tests run side by side on copies of it; `go test ./cmd/server` takes about 2 minutes |
 | `make docs-check` | Every relative link of the Markdown files (README, CONTRIBUTING, `docs/`, `tools/`, `examples/`) resolves, headings in `#fragments` included (`tests/ci/links.mjs`; part of `make test`) |
 | `make validate` | The four rules files: JSON Schemas, the Go validator on the Battle Companies file, the curator's checks, the glossary and the concept graph (below) |
@@ -33,27 +33,25 @@ The script runs against a fake Tabletop Simulator API and a simulation of the ar
 It needs no game and no Lua binary, and runs with `make test`.
 The real game is only exercised by playing ([tabletop-simulator.md](tabletop-simulator.md#what-remains-to-verify)).
 
-## Definitions tooling (Python)
+## Definitions tooling
 
-`make test` ends with:
+The programs under `tools/` ([tools/README.md](../tools/README.md)) are Go, and their tests run with the rest of `go test ./...` (`make test`); `go test ./tools/...` runs only these.
+The tests read the shipped files, so they also prove the shipped files.
+`tools/validate` calls the app's own validator in-process, so they need only `go`.
 
-```bash
-cd tools && python3 -m unittest test_extract_tts_models test_to_wound test_lean_checks test_concept_graph test_ruleset_reference
-```
-
-The tests need `python3` and `go` on the `PATH`, and they read the shipped files, so they also prove the shipped files.
-The glossary nodes come from `go run ./tools/conceptnodes`, the app's own loader.
-`CONCEPTNODES` and, for `cmd/rulecheck`, `RULECHECK` name a prebuilt binary instead (`make tools-bin`; see [collaborating.md](collaborating.md#7-working-on-windows)).
-
-| Module | What it proves |
+| Package | What it proves |
 |---|---|
-| `test_lean_checks.py` | Company texts (repeated rules, parse artefacts), aura rings (vocabulary tables, group follows `when`/radius, radius written in the text, the war horn's sum), rule-target keywords, the Tabletop Simulator models against the local catalogue; and `tools/validate_definitions.py` itself: 0 errors on the shipped files, exit 1 on a dangling unit name and on an unknown key |
-| `test_concept_graph.py` | The shipped concept graph is current and what the build writes (deterministic), and each graph check fails on its own corruption (dangling edge, stale hash, wrong direction, missing `via`...) |
-| `test_to_wound.py` | The To Wound Chart of the glossary: complete grid, allowed values, monotonic |
-| `test_extract_tts_models.py` | The Tabletop Simulator saved-game extractor and the catalogue format the validator reads |
-| `test_ruleset_reference.py` | The generated rules-file reference is current and leaves no key out |
+| `tools/validate` | `make validate` itself: 0 errors on the shipped files, exit 1 on a dangling unit name, an unknown key, a missing key, a wrong schema version, a stale graph, a glossary defect |
+| `tools/internal/leancheck` | Company texts (repeated rules, parse artefacts), aura rings (vocabulary tables, group follows `when`/radius, radius written in the text, the war horn's sum), rule-target keywords, the Tabletop Simulator models against the local catalogue |
+| `tools/internal/conceptgraph` | The shipped concept graph is current and what the build writes (deterministic), and each graph check fails on its own corruption (dangling edge, stale hash, wrong direction, missing `via`...) |
+| `tools/internal/glossaryref` | The To Wound Chart of the glossary (complete grid, allowed values, monotonic), the term list, and that the committed glossary is what the build writes |
+| `tools/internal/ttsmodels` | The Tabletop Simulator saved-game extractor and the catalogue format the validator reads |
+| `tools/internal/rulesref` | The generated rules-file reference is current and leaves no key out |
+| `tools/leanfixtures` | The committed lean fixtures are what the generator writes, deterministically |
+| `tools/themecontrast`, `tools/icons` | The WCAG ratio and the shipped palettes; the trace parser and the icon markup |
 
 `make validate` is the same checks on the shipped files without the corruption tests; `TestShippedConceptGraphMatchesCore` (Go) checks the generated graph file against core.
+Where Application Control blocks the executables `go run` and `go test` build, see [collaborating.md](collaborating.md#7-working-on-windows).
 
 ## Golden snapshot of the Battle Companies rules
 
@@ -84,8 +82,7 @@ Tests are table-driven.
 
 - **Fixtures.** `testdata/valid/*.json` are complete minimal files built from the worked examples of the format; each decodes with no
   issue, in the lean package against the fake world and in `internal/core` against the shipped vanilla file and glossary. `testdata/invalid/<case>.json`
-  come with `<case>.want`, the exact report text, one per row of the catalogue of validation messages. `testdata/gen_fixtures.py` writes the inputs
-  (`python3 -I internal/core/lean/testdata/gen_fixtures.py`); `go test ./internal/core/lean -run TestInvalidFixtures -update` rewrites the `.want`
+  come with `<case>.want`, the exact report text, one per row of the catalogue of validation messages. `go run ./tools/leanfixtures` writes the inputs; `go test ./internal/core/lean -run TestInvalidFixtures -update` rewrites the `.want`
   files, and the diff is read: the wording is reviewed there.
 - **Cross-file checks.** `internal/core/rulesets_checkset_test.go`: three different custom files (a vanilla file renaming a unit, a glossary with an
   extra rule, a Battle Companies file using both) pass together through `Rulesets.CheckSet` and `StoreAllAs`, and fail against the shipped

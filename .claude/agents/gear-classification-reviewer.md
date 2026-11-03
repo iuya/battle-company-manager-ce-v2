@@ -39,7 +39,7 @@ curator worked from), `docs/definitions.md`, `tools/README.md`, and the review b
    shields); list inconsistencies. Check the enum and that the first class is the most specific.
 5. **Coverage.** Every item reachable from a company has exactly one annotation; nothing annotated that does not exist; the
    curator's coverage report matches the data.
-6. Run `python3 tools/validate_definitions.py` (0 errors expected) and report anything it misses.
+6. Run `make validate` (0 errors expected) and report anything it misses.
 
 ## Output
 Write `tools/gear_review/findings.md`:

@@ -14,7 +14,7 @@ import (
 
 // The JSON Schema of the lean format (definitions/battle_companies/battle_companies.schema.json) is GENERATED from the Go
 // model by this file, never written by hand: model.go and campaign.go are the contract, and a hand-kept copy would drift. The
-// committed file exists for the Python validator, editors and the curator; schema_test.go fails when it differs from what this
+// committed file exists for tools/validate, editors and the curator; schema_test.go fails when it differs from what this
 // generator makes from the model, and checks the model against the file again with a second, independent reading.
 //
 //	go test ./internal/core/lean -run TestSchemaUpToDate -update-schema    rewrites the file

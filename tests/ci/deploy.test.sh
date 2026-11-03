@@ -147,19 +147,12 @@ if command -v shellcheck > /dev/null; then
   shellcheck -S warning "$root"/deploy/bcm-update.sh "$root"/deploy/install.sh "$root"/deploy/duckdns/duckdns-update.sh; check "shellcheck" 0 $?
 fi
 
-# The workflow: valid YAML, the signing permission on the merge job only.
-if command -v python3 > /dev/null && python3 -c 'import yaml' 2> /dev/null; then
-  python3 - "$root/.github/workflows/release-image.yml" <<'EOF'
-import sys, yaml
-wf = yaml.safe_load(open(sys.argv[1]))
-with_oidc = [n for n, j in wf["jobs"].items() if "id-token" in (j.get("permissions") or {})]
-assert with_oidc == ["merge"], with_oidc
-assert "id-token" not in (wf.get("permissions") or {})
-steps = [s.get("name") for s in wf["jobs"]["merge"]["steps"]]
-assert "Sign the image digest" in steps and steps.index("Sign the image digest") > steps.index("Create the manifest list")
-EOF
-  check "release-image.yml: id-token only on merge, signing after the manifest" 0 $?
-fi
+# The workflow: the signing permission (id-token) is written once, in the merge job, and the signing step comes after the manifest list.
+wf="$root/.github/workflows/release-image.yml"
+[ "$(grep -c "^ *id-token: write" "$wf")" = 1 ]; check "release-image.yml: id-token written once" 0 $?
+awk '/^  [a-z-]+:$/ { job = $1 } /^ *id-token: write/ { print job }' "$wf" | grep -qx "merge:"; check "release-image.yml: id-token only on merge" 0 $?
+m=$(grep -n "name: Create the manifest list" "$wf" | cut -d: -f1); s=$(grep -n "name: Sign the image digest" "$wf" | cut -d: -f1)
+[ -n "$m" ] && [ -n "$s" ] && [ "$s" -gt "$m" ]; check "release-image.yml: signing after the manifest" 0 $?
 
 echo "deploy tests: $pass passed, $fail failed"
 [ "$fail" = 0 ]

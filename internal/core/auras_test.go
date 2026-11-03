@@ -343,7 +343,7 @@ func TestAuraRadiiInRuleText(t *testing.T) {
 	checked := 0
 	for _, e := range rs.BC.Auras().Entries {
 		if e.Source.Type == "hero" || e.Source.Type == "heroicAction" {
-			continue // the glossary and the path's Heroic Action text; checked by tools/validate_definitions.py
+			continue // the glossary and the path's Heroic Action text; checked by tools/validate
 		}
 		s := text(e)
 		if s == "" {

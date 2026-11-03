@@ -1107,7 +1107,7 @@ A limit share may be any fraction.
 make check-ruleset FILE=my-ruleset.json
 make check-ruleset FILE=my-ruleset.json VANILLA=my-vanilla.json GLOSSARY=my-glossary.json   # when you also customise those
 make validate     # the shipped files: schemas, cross references, curator checks (the repository's own gate)
-make test         # the Go and Python tests, including these examples
+make test         # the Go tests, including these examples
 ```
 
 `make check-ruleset` is the same check the upload runs.

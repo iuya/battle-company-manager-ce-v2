@@ -13,7 +13,7 @@ import (
 // the other. Having the same stats, the same class or the same price never makes two items one: a Pike is not a Spear, an Elf
 // bow is not a Longbow, a Light Shield is not a Shield (data.gearAnnotations, `relatedTo`).
 
-// ItemKey is the identity of an item name; the same normalisation as `item_key` in tools/bc/gear.py (with spaces removed).
+// ItemKey is the identity of an item name: lower-cased and normalised, with spaces removed.
 func ItemKey(name string) string { return itemKeys.get(name, itemKey) }
 
 var itemKeys memo

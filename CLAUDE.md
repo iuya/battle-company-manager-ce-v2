@@ -68,7 +68,7 @@ make test              # unit tests
 make test-integration  # all tests incl. PostgreSQL ones (starts the compose database)
 make generate          # regenerate mocks (mockgen) after changing a consumer interface
 make user EMAIL=you@example.com NAME="You"   # create an account (no sign-up page)
-python3 tools/validate_definitions.py        # rules JSON schemas + cross references
+make validate                       # rules JSON schemas + cross references (go run ./tools/validate)
 ```
 
 ## Architecture Overview

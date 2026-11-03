@@ -29,7 +29,6 @@ You need:
 
 - the Go version in `go.mod`;
 - Docker, for the development PostgreSQL;
-- Python 3, for `make validate` and the tool tests;
 - Node 20+ and Chrome or Chromium, for the browser tests.
 
 ```bash
@@ -42,7 +41,7 @@ make demo                                   # destructive: empties the dev datab
 **Windows.** Use WSL2 (Ubuntu) with Docker Desktop's WSL integration, and clone inside the Linux file system; the whole suite runs there.
 
 Natively, `go vet`, `gofmt` and `go test ./...` run.
-If Application Control blocks the executables that `go run` builds, `make tools-bin` and the `RULECHECK` and `CONCEPTNODES` variables work around it.
+If Application Control blocks the executables that `go run` builds, `make tools-bin` builds the tools into `tmp/bin` to run from there.
 Details and troubleshooting: [docs/collaborating.md](docs/collaborating.md#7-working-on-windows).
 
 See the [README](README.md) for more and [docs/architecture.md](docs/architecture.md) for how the code is organised.
@@ -74,7 +73,7 @@ Each hook runs the [beads](docs/collaborating.md) hook of `.beads/hooks` first, 
 ```bash
 gofmt -l .                # prints nothing
 go vet ./...
-make test                 # unit tests and python tool tests
+make test                 # unit tests, the tools' tests included
 make test-integration     # when you touch internal/postgres (starts the compose database)
 make validate             # when you touch definitions/ or tools/
 make e2e-enforce          # when you touch templates, handlers or JavaScript
