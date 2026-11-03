@@ -14,7 +14,7 @@ Where the code lives:
 
 - `internal/core/concept_graph.go` and `concepts.go` (`core.Concepts`).
 - The interface `concepts` in `internal/web/concepts.go`, the template `partials/concept.gohtml` and `static/js/concepts.js`.
-- The generator `tools/build_concept_graph.py`, with the curated list `tools/concepts_curated.json`.
+- The generator `tools/conceptgraph` (shared code in `tools/internal/conceptgraph`), with the curated list `tools/concepts_curated.json`.
 - The generated `definitions/concepts/concept_graph.json` and its schema.
 - The e2e flow `87-concepts`.
 
@@ -78,7 +78,7 @@ The graph serves the popup, and later "what gives me X" questions through revers
 
 ### Generator
 
-`make concept-graph` runs `tools/build_concept_graph.py` and then validates.
+`make concept-graph` runs `go run ./tools/conceptgraph` and then validates.
 The generator reads the three rules files and writes `definitions/concepts/concept_graph.json`.
 
 It does the following:
@@ -117,7 +117,7 @@ Run the generator after rebuilding any rules file, because the graph records the
 
 ### Validation
 
-`tools/validate_definitions.py` (`make validate`) checks:
+`tools/validate` (`make validate`) checks:
 
 - The schema.
 - Every edge endpoint is a node.
@@ -209,7 +209,7 @@ The popup loads one concept (a few KB) on demand, and the page keeps the fetched
 
 - `internal/core/concepts_test.go`: ambiguous alias, parameterised rule, unknown id, no graph, modified text, deleted rule, renamed alias, added rule, fully different ruleset, concurrency, bounded cache, panic.
 - `internal/web/concepts_test.go`: body, groups, folds, escaping, glossary link, caching and 304, 404, ambiguous and unknown names, non-members and anonymous visitors.
-- `tools/test_concept_graph.py`.
+- `tools/internal/conceptgraph/conceptgraph_test.go`.
 - The e2e flow `87-concepts`.
 
 ## Defaults

@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-// The generated graph (tools/build_concept_graph.py) must describe the shipped triple the way core sees it: the Python port of the
-// glossary build is checked here against the real one, node by node.
+// The generated graph (go run ./tools/conceptgraph) must describe the shipped triple the way core sees it: its nodes are checked here
+// against core, node by node.
 func TestShippedConceptGraphMatchesCore(t *testing.T) {
 	read := func(path string) []byte {
 		b, err := os.ReadFile(path)
@@ -44,7 +44,7 @@ func TestShippedConceptGraphMatchesCore(t *testing.T) {
 		t.Fatalf("ParseConceptFile refuses the generated file: %v", err)
 	}
 	if file.BuiltFrom.Vanilla != h.Vanilla || file.BuiltFrom.BattleCompanies != h.BattleCompanies || file.BuiltFrom.Glossary != h.Glossary {
-		t.Errorf("builtFrom %+v is not the hashes of the shipped files %+v (run tools/build_concept_graph.py)", file.BuiltFrom, h)
+		t.Errorf("builtFrom %+v is not the hashes of the shipped files %+v (run make concept-graph)", file.BuiltFrom, h)
 	}
 
 	want := map[string]*conceptNode{}

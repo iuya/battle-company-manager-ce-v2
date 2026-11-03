@@ -36,7 +36,7 @@ It follows the **ports and adapters** pattern: the business logic knows nothing 
 | `internal/postgres` | Persistence adapter (pgx). Implements the core's repository interfaces; embedded goose migrations |
 | `internal/web` | HTTP adapter: routes, handlers, middleware, templates, static assets. Declares the core interfaces it needs |
 | `definitions/` | Rules data as JSON with schemas, see [definitions.md](definitions.md) |
-| `tools/` | Python tooling for the definitions, icons and the theme contrast check; `tools/dice3d` builds the 3D dice script |
+| `tools/` | Go programs for the definitions, glossary, concept graph, icons and the theme contrast check; `tools/dice3d` builds the 3D dice script |
 | `tests/` | Browser tests (`e2e`), pull request check tests (`ci`), Tabletop Simulator tests (`tts`); see [testing.md](testing.md) |
 
 ## Interfaces live where they are used

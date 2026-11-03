@@ -94,7 +94,7 @@ There are three palettes, each with a light and a dark variant:
 - **Mithril & Night**
 
 A palette is selected by `data-palette` and `data-mode` (`light` | `dark`) on the `<html>` element; the same
-attributes on any element preview that palette there. `tools/check_theme_contrast.py` checks every palette and mode
+attributes on any element preview that palette there. `tools/themecontrast` checks every palette and mode
 against WCAG AA (Web Content Accessibility Guidelines level AA: 4.5:1 for text, 3:1 for the accent).
 
 In the dark variants the layers are kept apart on purpose:
@@ -159,7 +159,7 @@ portrait it is sized by the width so it shows around the cards. Cards and the he
 
 ### Icons
 
-The favicon and app icons are traced from the inscription (`tools/build_icons.py`): `favicon.svg` (bold, for
+The favicon and app icons are traced from the inscription (`tools/icons`): `favicon.svg` (bold, for
 tabs), `icon.svg` (finer, large uses), PNG fallbacks and `ring-text.svg`. The ring is gold on a transparent
 background so it reads on light and dark pages; only `apple-touch-icon.png` is opaque, because iOS would paint it black.
 

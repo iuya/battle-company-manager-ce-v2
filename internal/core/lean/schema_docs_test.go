@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// The descriptions of the schema (and so of docs/customizing-rulesets-reference.md, which tools/gen_ruleset_reference.py makes from the
+// The descriptions of the schema (and so of docs/customizing-rulesets-reference.md, which `go run ./tools/rulesref` makes from the
 // schema). typeDocs says what a section or object is; fieldDocs says what a key means, as "Type.jsonName" (Type is the Go struct name,
 // the key of $defs in the schema). commonDocs is the fallback by json name for the keys that mean the same everywhere. A new field of
 // the model needs a description here: TestSchemaFieldsAreDescribed fails without one, and the schema is regenerated with

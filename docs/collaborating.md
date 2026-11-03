@@ -18,7 +18,7 @@ Contents: [1. Where everything is](#1-where-everything-is), [2. How we build](#2
 | `cmd/server` | `main`, wiring, the `user`, `seed`, `migrate`, `audit` commands, the demo world script |
 | `cmd/rulecheck` | Checks a Battle Companies file like the upload does (`make check-ruleset`) |
 | `definitions/` | Rules data: `battle_companies/battle_companies.json` (lean, the one you edit) and its `.schema.json`, `vanilla/` (read-only), `glossary/`, `concepts/` |
-| `tools/` | Python tooling for the definitions, glossary, concept graph, icons, theme contrast ([tools/README.md](../tools/README.md)) |
+| `tools/` | Go programs for the definitions, glossary, concept graph, icons, theme contrast ([tools/README.md](../tools/README.md)) |
 | `tests/e2e` | Browser tests (puppeteer-core, headless Chrome) against the demo world; `tests/ci` tests the pull request check |
 | `docs/` | Documentation of the current state; specs of designed features (`*-spec.md`) |
 | `.claude/agents` | Specialist agent roles (section 3) |
@@ -69,7 +69,7 @@ Large features start from an agreed issue.
 ```bash
 gofmt -l .                # prints nothing
 go vet ./...
-make test                 # unit tests, python tool tests, e2e group check
+make test                 # unit tests (the tools included), docs links, e2e group check
 make validate             # rules data, if you touched definitions/ or tools/
 make test-integration     # if you touched internal/postgres or SQL
 make e2e-enforce          # if you touched templates, handlers or JS (blocking CSP)
@@ -190,7 +190,7 @@ Maintainers review, approve and merge. Expect questions, and answer them in the 
 
 Supported: **WSL2 with Ubuntu and Docker Desktop's WSL integration**.
 Inside it everything in this repository runs as on Linux (`make test`, `make test-integration`, `make validate`, `make e2e-enforce`).
-Native Windows (PowerShell, `cmd`, Git Bash) is supported only for the Go gates.
+Native Windows (PowerShell, `cmd`, Git Bash) is supported only for the Go gates, which include `go run ./tools/validate`.
 
 Nobody has verified the Windows paths on a Windows machine yet (issue #34 tracks the confirmation).
 This section is what the code and a Windows cross-compile show.
@@ -198,7 +198,7 @@ This section is what the code and a Windows cross-compile show.
 ### Set-up (once)
 
 1. Install WSL2 and Ubuntu (`wsl --install -d Ubuntu`), and Docker Desktop with Settings, Resources, WSL integration on for the Ubuntu distribution.
-2. Inside Ubuntu: `sudo apt install build-essential python3 curl git`, Go (the version of `go.mod`), Node 20+, and Chrome or Chromium (or set `CHROME_PATH` to a Linux Chrome).
+2. Inside Ubuntu: `sudo apt install build-essential curl git`, Go (the version of `go.mod`), Node 20+, and Chrome or Chromium (or set `CHROME_PATH` to a Linux Chrome).
 3. Clone **inside the Linux file system** (`~/src/battle-company-manager-ce-v2`), not under `/mnt/c`: the files are LF, `make` and the bash scripts work, and builds are much faster.
    `.gitattributes` asks for LF on every platform; a clone made from the Windows side with an older Git setting may still carry CRLF (see the table).
 4. `make get-tailwind`, then `make test`.
@@ -219,7 +219,7 @@ These do not run natively; use WSL2 for them:
 
 | Symptom | Cause and fix |
 |---|---|
-| `test_lean_checks` or `test_concept_graph` fail with "rulecheck could not run" or "tools/conceptnodes failed", an "Access denied", "blocked by your organization" or Application Control / WDAC / Smart App Control message | The policy blocks the executable `go run` builds in a temporary folder. Build the tools once to a normal folder and point the checks at them: `make tools-bin`, then `RULECHECK=$PWD/tmp/bin/rulecheck.exe CONCEPTNODES=$PWD/tmp/bin/conceptnodes.exe make test` (the same two variables work for `python3 tools/validate_definitions.py`).<br>Rebuild after changing Go code in `cmd/rulecheck`, `tools/conceptnodes` or `internal/core`.<br>In WSL2 the Linux binaries run inside the VM and the Windows policy does not apply.<br>If `go test ./...` itself is blocked, the test binaries are blocked too: ask for an exception for the Go build cache folder (`go env GOCACHE`) or use WSL2 |
+| `go run ./tools/validate` or `go test` fails with an "Access denied", "blocked by your organization" or Application Control / WDAC / Smart App Control message | The policy blocks the executable `go run` builds in a temporary folder. Build the tools once to a normal folder: `make tools-bin`, then run `tmp/bin/validate.exe`, `tmp/bin/conceptgraph.exe`, `tmp/bin/glossary.exe` or `tmp/bin/rulesref.exe` (the other tools: `go build -o tmp/bin/ ./tools/<name>`).<br>Rebuild after changing Go code in `tools/` or `internal/core`.<br>In WSL2 the Linux binaries run inside the VM and the Windows policy does not apply.<br>If `go test ./...` itself is blocked, the test binaries are blocked too: ask for an exception for the Go build cache folder (`go env GOCACHE`) or use WSL2 |
 | `go test` fails on golden snapshots, `TestVendoredJSMatchesManifest` or `TestSchemaUpToDate`, or `make validate` reports a stale hash, with no change of yours | CRLF line endings in the working tree. A fresh clone gets LF from `.gitattributes`; an older clone keeps CRLF: commit or stash your work, then `git rm --cached -r .` and `git reset --hard`, or clone again |
 | `bash\r: No such file or directory`, `$'\r': command not found` | A shell script with CRLF; same fix as above |
 | `docker: command not found` or `Cannot connect to the Docker daemon` inside WSL | Docker Desktop is stopped, or WSL integration is off for this distribution (Settings, Resources, WSL integration) |

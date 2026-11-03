@@ -122,8 +122,8 @@ The mod's model-key catalogue is never committed. Everything that has no 1:1 nam
   `Captain of Dale`, Wandering Marksman `Ruffian: Bow`, Wandering Scavenger `Goblin Mercenary Captain`, Wandering Sage `Malbeth the Seer`, Baggage Pony `Bill the Pony`, Falcon `Crebain`, Hunting Dog `Fang`.
 - `units[].tts {foot, states, options, defaultOptions, alternatives, marker, model}` on a shared unit that only annotates a vanilla one: the on-foot model and whether the mod has dismount states (`all`, `some`, `none`)
   for the cavalry units, spelling differences between a vanilla option and the mod's (`Elven-made glaive` is `Elven Glaive` for the Mirkwood Elf Warrior), and the defaults below.
-- The validator (`tools/validate_definitions.py`, `make validate`) checks that every unit, option and model name exists in the vanilla file and, **only if** the gitignored `sources/tts/models.json` exists, that every
-  model is a key of it. `tools/extract_tts_models.py` writes that file from a local TTS save (`python3 -I tools/extract_tts_models.py [save.json]`; it refuses to write unless the file is under `sources/tts/` and git ignores it, and keeps only the stripped nicknames).
+- The validator (`tools/validate`, `make validate`) checks that every unit, option and model name exists in the vanilla file and, **only if** the gitignored `sources/tts/models.json` exists, that every
+  model is a key of it. `go run ./tools/ttsmodels [save.json]` writes that file from a local TTS save ( it refuses to write unless the file is under `sources/tts/` and git ignores it, and keeps only the stripped nicknames).
 
 **Keys the bag does not have.** Three gaps are fixed mappings (`defaultOptions`, `markerOptions`), applied always and each with an `approximate` note: a Lorien Guard with no other option requests the bare
 `Galadhrim Warrior:`; a `Mahûd Warrior` with no option requests `Mahûd Warrior: Spear`; a `Rohirrim Traitor` with no option requests `Rohirrim Traitor: Shield`. As a second safety net, when `TTSOptions.Catalogue` is

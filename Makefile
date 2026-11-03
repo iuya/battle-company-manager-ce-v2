@@ -104,8 +104,6 @@ audit:
 generate: concept-graph
 	go generate ./...
 
-# make validate   checks the four rules files: JSON Schemas, the Go validator on the Battle Companies file (cmd/rulecheck), the curator's own
-# checks (tools/lean_checks.py), the glossary and the concept graph (tools/README.md). Needs no database; jsonschema is optional.
 # make hooks   turns on the git hooks of .githooks/ for this clone: Conventional Commits subject, gofmt, a secret scan and no push to main.
 # They run the beads hooks (.beads/hooks) first, so beads keeps working. make hooks-test tests them in a throwaway repository.
 hooks:
@@ -119,25 +117,25 @@ hooks-test:
 deploy-test:
 	bash tests/ci/deploy.test.sh
 
+# make validate   checks the four rules files: JSON Schemas, the Battle Companies file with the app's own validator, the curator's own checks, the
+# glossary and the concept graph (tools/README.md). Needs no database.
 validate:
-	python3 tools/validate_definitions.py
+	go run ./tools/validate
 
-# make tools-bin   builds the Go tools the Python checks call (cmd/rulecheck, tools/conceptnodes) once into tmp/bin and prints how to use them: for a machine whose
-# Application Control blocks the executables `go run` builds in a temporary folder (RULECHECK and CONCEPTNODES name a prebuilt binary; docs/collaborating.md, "Working on Windows")
+# make tools-bin   builds the Go tools (tools/validate, tools/conceptgraph, tools/glossary, tools/rulesref) once into tmp/bin and prints how to run them: for a machine whose
+# Application Control blocks the executables `go run` builds in a temporary folder (docs/collaborating.md, "Working on Windows")
 tools-bin:
-	go build -o tmp/bin/rulecheck$(shell go env GOEXE) ./cmd/rulecheck
-	go build -o tmp/bin/conceptnodes$(shell go env GOEXE) ./tools/conceptnodes
-	@echo "built tmp/bin. Then: RULECHECK=$(CURDIR)/tmp/bin/rulecheck$(shell go env GOEXE) CONCEPTNODES=$(CURDIR)/tmp/bin/conceptnodes$(shell go env GOEXE) make test"
+	go build -o tmp/bin/ ./tools/validate ./tools/conceptgraph ./tools/glossary ./tools/rulesref
+	@echo "built tmp/bin: run tmp/bin/validate, tmp/bin/conceptgraph, tmp/bin/glossary, tmp/bin/rulesref instead of make validate, concept-graph and ruleset-reference"
 
 # make concept-graph   regenerates definitions/concepts/concept_graph.json from the three rules files (run it after rebuilding
 # any of them: the graph records their hashes) and checks the definitions (docs/definitions.md)
 concept-graph:
-	python3 tools/build_concept_graph.py
-	python3 tools/validate_definitions.py
+	go run ./tools/conceptgraph
+	go run ./tools/validate
 
 test: e2e-check-groups docs-check
 	go test ./...
-	cd tools && python3 -m unittest test_extract_tts_models test_to_wound test_lean_checks test_concept_graph test_ruleset_reference
 
 # Runs everything, including the postgres integration tests, against the bcm_test database of the compose PostgreSQL: the tests empty it, the development database (bcm) is never touched.
 TEST_DATABASE_URL ?= postgres://bcm:bcm@localhost:5432/bcm_test?sslmode=disable
@@ -153,7 +151,7 @@ check-ruleset:
 
 # make ruleset-reference   rewrites docs/customizing-rulesets-reference.md from battle_companies.schema.json (make test fails when it is stale; the schema itself: go test ./internal/core/lean -run TestSchemaUpToDate -update-schema)
 ruleset-reference:
-	python3 tools/gen_ruleset_reference.py
+	go run ./tools/rulesref
 
 # make fuzz [FUZZTIME=1m]   explores the lean decoder and the dice parser with go's fuzzer (the seed corpus already runs in make test; docs/testing.md)
 fuzz:

@@ -5,7 +5,7 @@
    a palette is one block of variables. The <html> element carries data-palette and data-mode (light|dark, already
    resolved from the user's System/Light/Dark choice); the same attributes on any element preview that palette
    (settings menu swatches). See static/js/theme.js.
-   tools/check_theme_contrast.py verifies every palette against WCAG AA.
+   `go run ./tools/themecontrast` verifies every palette against WCAG AA.
    ========================================================================================================== */
 
 @font-face {

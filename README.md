@@ -22,7 +22,6 @@ You need:
 
 - the Go version in [go.mod](go.mod);
 - Docker, for PostgreSQL;
-- Python 3, for the rules validation;
 - Node 20+ and Chrome or Chromium, only for the browser tests.
 
 ```bash
@@ -60,7 +59,7 @@ Details, backups and upgrades: [docs/operations.md](docs/operations.md), [docs/b
 ## Tests
 
 ```bash
-make test               # unit tests (Go and the Python tools)
+make test               # unit tests (the Go tools included)
 make test-integration   # everything, including the PostgreSQL tests (starts the compose database)
 make e2e                # browser tests in headless Chrome (run make e2e-install first; make e2e-enforce runs under the blocking CSP)
 make validate           # rules data: JSON Schemas, validators, glossary and concept graph
@@ -78,7 +77,7 @@ More in [docs/testing.md](docs/testing.md).
 | `internal/postgres` | PostgreSQL persistence and migrations |
 | `internal/web` | HTTP handlers, templates, htmx/Alpine and static assets |
 | `definitions/` | Rules data in JSON, with schemas |
-| `tools/` | Python tooling for the rules data, icons and theme checks |
+| `tools/` | Go programs for the rules data, icons and theme checks |
 | `tests/` | Browser tests (`e2e`), pull request check tests (`ci`), Tabletop Simulator tests (`tts`) |
 | `docs/` | Documentation |
 | `scripts/` | Backup and restore scripts |
