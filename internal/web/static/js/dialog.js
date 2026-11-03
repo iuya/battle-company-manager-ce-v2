@@ -9,17 +9,30 @@
   const inClosedDetails = e => { const c = e.closest('details:not([open])'); return !!c && !(e.tagName === 'SUMMARY' && e.parentElement === c); };
   const focusables = d => [...d.querySelectorAll(FOCUSABLE)].filter(e => e.getClientRects().length > 0 && !inClosedDetails(e));
 
+  const stack = []; // a window opened inside another (the magical power list in the path window): what to go back to when it closes
+  function enter(open) {
+    opener = document.activeElement;
+    current = open;
+    const first = focusables(open)[0];
+    (first || open).focus({ preventScroll: true });
+  }
+
   function sync() {
-    const open = [...document.querySelectorAll('[role="dialog"][aria-modal="true"]:not([data-focus-managed])')].find(shown) || null;
+    const open = [...document.querySelectorAll('[role="dialog"][aria-modal="true"]:not([data-focus-managed])')].filter(shown).pop() || null; // the innermost shown
     if (open === current) return;
-    if (open) {
-      opener = document.activeElement;
-      current = open;
-      const first = focusables(open)[0];
-      (first || open).focus({ preventScroll: true });
+    if (open && current && current.contains(open)) { // a window inside the open one traps the focus until it closes
+      stack.push({ current, opener });
+      enter(open);
+    } else if (open && stack.length && stack[stack.length - 1].current === open) { // the inner one closed: the outer one is the window again
+      const back = opener;
+      ({ current, opener } = stack.pop());
+      if (back && back.isConnected && back.focus) back.focus({ preventScroll: true });
+    } else if (open) {
+      stack.length = 0;
+      enter(open);
     } else {
       const back = opener;
-      current = null; opener = null;
+      current = null; opener = null; stack.length = 0;
       if (back && back.isConnected && back.focus) back.focus({ preventScroll: true });
     }
   }
