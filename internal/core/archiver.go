@@ -51,6 +51,7 @@ type Archiver struct {
 	campaigns campaignRepository
 	companies companyRepository
 	matches   matchRepository
+	aftermath aftermathRepository
 	rulesets  rulesetRepository
 	rules     ruleSource
 	archives  archiveRepository
@@ -59,11 +60,11 @@ type Archiver struct {
 }
 
 // NewArchiver builds the service. rules is the loader (*Rules).
-func NewArchiver(campaigns campaignRepository, companies companyRepository, matches matchRepository, rulesets rulesetRepository, rules ruleSource, archives archiveRepository, log *slog.Logger) *Archiver {
+func NewArchiver(campaigns campaignRepository, companies companyRepository, matches matchRepository, aftermath aftermathRepository, rulesets rulesetRepository, rules ruleSource, archives archiveRepository, log *slog.Logger) *Archiver {
 	if log == nil {
 		log = slog.Default()
 	}
-	return &Archiver{campaigns: campaigns, companies: companies, matches: matches, rulesets: rulesets, rules: rules, archives: archives, now: time.Now, log: log}
+	return &Archiver{campaigns: campaigns, companies: companies, matches: matches, aftermath: aftermath, rulesets: rulesets, rules: rules, archives: archives, now: time.Now, log: log}
 }
 
 // Archive reads a finished campaign, prunes its rules, checks that the pruned rules build the same companies as the full ones, and stores
@@ -84,7 +85,7 @@ func (a *Archiver) Archive(ctx context.Context, campaignID int64) error {
 		return fmt.Errorf("the rules of the campaign: %w", err)
 	}
 	src := ArchiveSource{CampaignID: h.ID, Name: h.Name, Description: h.Description, Round: h.Round, Rounds: h.Rounds, Settings: h.Settings, EndedAt: a.now().UTC(),
-		Events: map[int64][]MatchEvent{}, Grants: map[int64][]Grant{}}
+		Events: map[int64][]MatchEvent{}, Grants: map[int64][]Grant{}, History: map[int64][]ArchivedLine{}}
 	for _, f := range []struct {
 		kind RulesetKind
 		hash string
@@ -113,6 +114,13 @@ func (a *Archiver) Archive(ctx context.Context, campaignID int64) error {
 		}
 		if len(grants) > 0 {
 			src.Grants[c.ID] = grants
+		}
+		lines, err := a.aftermath.History(ctx, campaignID, c.ID, 1<<20)
+		if err != nil {
+			return fmt.Errorf("aftermath log of company %d: %w", c.ID, err)
+		}
+		for _, l := range lines {
+			src.History[c.ID] = append(src.History[c.ID], ArchivedLine{AftermathLine: l, MatchID: l.MatchID, On: l.On})
 		}
 	}
 	if src.Matches, err = a.matches.List(ctx, campaignID); err != nil {

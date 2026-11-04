@@ -106,7 +106,7 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 	camps, comps, matches, aftermaths := core.ScopeCampaigns(store.Campaigns()), core.ScopeCompanies(store.Companies()), core.ScopeMatches(store.Matches()), store.Aftermaths()
 	atoRepo, liveRepo := core.ScopeATO(store.ATO()), core.ScopeLive(store.Live())
 
-	archiver := core.NewArchiver(camps, comps, matches, store.Rulesets(), rules, store.Archives(), log)
+	archiver := core.NewArchiver(camps, comps, matches, aftermaths, store.Rulesets(), rules, store.Archives(), log)
 	aftermath := core.NewAftermathService(camps, comps, matches, aftermaths, rules, dice).WithATO(atoRepo)
 	matchSvc := core.NewMatches(camps, comps, matches, rules).WithATO(atoRepo)
 	matchSvc.AftermathStarted = aftermaths.Started           // a match cannot be reopened once a company started its aftermath

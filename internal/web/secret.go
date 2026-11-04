@@ -62,7 +62,7 @@ func hasSecret(info *core.ScenarioInfo) bool { return len(secretObjectivesOf(inf
 
 // ShowSecret is whether the match page has the secret objectives card.
 func (v matchView) ShowSecret() bool {
-	return hasSecret(v.Info) && (v.Campaign.Status != core.CampaignFinished || v.Match.Ended) // a frozen open match takes no notes
+	return hasSecret(v.Info) && !v.Campaign.Archived && (v.Campaign.Status != core.CampaignFinished || v.Match.Ended) // a frozen open match takes no notes
 }
 
 // secretCard builds the card for the viewer.

@@ -346,5 +346,15 @@ func (as aftermathStore) History(ctx context.Context, campaignID, companyID int6
 			out = append(out, l)
 		}
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil || len(out) > 0 {
+		return out, err
+	}
+	if archived, err := as.s.isArchived(ctx, campaignID); err != nil || !archived { // no lines: none were written, or they are in the archive
+		return out, err
+	}
+	a, err := as.s.archiveOf(ctx, campaignID)
+	if err != nil {
+		return nil, err
+	}
+	return a.Lines(companyID, limit), nil
 }

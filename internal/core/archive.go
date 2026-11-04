@@ -46,7 +46,33 @@ type Archive struct {
 	// Events is the history of ending and reopening of each match, by match id; Grants the history of each company, by company id.
 	Events map[int64][]MatchEvent
 	Grants map[int64][]Grant
-	Rules  ArchiveRules
+	// History is each company's aftermath log (what the War's Aftermath did to it), newest aftermath first, by company id.
+	History map[int64][]ArchivedLine
+	Rules   ArchiveRules
+}
+
+// ArchivedLine is an AftermathLine with the two fields it does not store (MatchID and On are set when the lines are read).
+type ArchivedLine struct {
+	AftermathLine
+	MatchID int64
+	On      time.Time
+}
+
+// Lines turns the archived lines back into the log a company page shows: whole aftermaths, newest first, at most limit lines (a whole
+// aftermath at a time, like the log of a live company).
+func (a Archive) Lines(companyID int64, limit int) []AftermathLine {
+	var out []AftermathLine
+	var last int64 = -1
+	for _, l := range a.History[companyID] {
+		if l.MatchID != last && len(out) >= limit {
+			break
+		}
+		last = l.MatchID
+		ln := l.AftermathLine
+		ln.MatchID, ln.On = l.MatchID, l.On
+		out = append(out, ln)
+	}
+	return out
 }
 
 // ArchiveRules is the pruned rules triple; each file keeps the format of the original, so the same loader reads it.
@@ -238,6 +264,7 @@ type ArchiveSource struct {
 	Matches           []Match
 	Events            map[int64][]MatchEvent
 	Grants            map[int64][]Grant
+	History           map[int64][]ArchivedLine
 }
 
 // BuildArchive makes the archive of an ended campaign: the states, the matches and the pruned files. States are stripped of what only an
@@ -248,7 +275,7 @@ func BuildArchive(rs *RuleSet, src ArchiveSource) (Archive, error) {
 		return Archive{}, err
 	}
 	a := Archive{Version: ArchiveFormat, CampaignID: src.CampaignID, Name: src.Name, Description: src.Description, Round: src.Round, Rounds: src.Rounds,
-		EndedAt: src.EndedAt, Settings: src.Settings, Files: src.Files, Matches: src.Matches, Events: src.Events, Grants: src.Grants}
+		EndedAt: src.EndedAt, Settings: src.Settings, Files: src.Files, Matches: src.Matches, Events: src.Events, Grants: src.Grants, History: src.History}
 	for _, st := range src.States {
 		st = st.Clone()
 		st.Recruit, st.Aftermaths, st.Perks, st.PerksUsed, st.OpenMatch = RecruitProgress{}, nil, nil, nil, nil

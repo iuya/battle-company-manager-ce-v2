@@ -37,16 +37,16 @@ func pageData(t *testing.T, ctx context.Context, b *backend, viewer core.User, i
 	c := b.campaigns
 	d, err := c.Get(ctx, viewer.ID, id)
 	// the rules files are the archive's own; what a management dialog counts (open matches, links) only an open campaign has
-	put("campaign", d, err, "Rulesets", "Archived", "OpenMatches", "PendingAftermaths", "ActiveInvites")
+	put("campaign", d, err, "Rulesets", "Hashes", "Archived", "OpenMatches", "PendingAftermaths", "ActiveInvites")
 	cs, err := c.Companies(ctx, id)
 	put("companies", cs, err)
 	ms, err := c.Members(ctx, id)
 	put("members", ms, err)
 	for _, co := range cs {
 		cd, err := c.CompanyDetail(ctx, id, co.ID)
-		// what only a company in an open campaign has: aftermaths to finish, perks to use, the live match, the lines of the aftermath log, and the dice
+		// what only a company in an open campaign has: aftermaths to finish, perks to use, the live match, and the dice
 		// a level-up rolls per path (the paths a campaign did not use are not in its archive)
-		put(fmt.Sprintf("company %d", co.ID), cd, err, "Aftermaths", "OpenMatch", "Perks", "History", "RuleDice")
+		put(fmt.Sprintf("company %d", co.ID), cd, err, "Aftermaths", "OpenMatch", "Perks", "RuleDice")
 		gr, err := c.Grants(ctx, id, co.ID)
 		put(fmt.Sprintf("grants %d", co.ID), gr, err)
 	}
