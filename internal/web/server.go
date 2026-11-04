@@ -248,7 +248,7 @@ type campaigns interface {
 	// makes one new link (shown once). Managers only; RegenerateInvite is refused while the campaign is paused.
 	InvalidateInvites(ctx context.Context, actor core.User, campaignID int64) (int, error)
 	RegenerateInvite(ctx context.Context, actor core.User, campaignID int64) (core.Invite, error)
-	// SetCampaignStatus pauses, resumes, ends (confirm = the exact campaign name) or reactivates (administrators only) a campaign;
+	// SetCampaignStatus pauses, resumes, ends for good (confirm = the exact campaign name; the campaign becomes an archive) a campaign;
 	// core.ErrRefused with the reason otherwise.
 	SetCampaignStatus(ctx context.Context, actor core.User, campaignID int64, to core.CampaignStatus, confirm string) error
 	Join(ctx context.Context, user core.User, token string) (int64, error)

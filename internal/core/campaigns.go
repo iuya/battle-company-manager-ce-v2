@@ -263,9 +263,10 @@ func (c *Campaigns) List(ctx context.Context, userID int64, withFinished bool) (
 
 // CampaignNav is a campaign as the sidebar lists it.
 type CampaignNav struct {
-	ID     int64
-	Name   string
-	Status CampaignStatus
+	ID       int64
+	Name     string
+	Status   CampaignStatus
+	Archived bool // an ended campaign kept as a document (docs/archive.md): the sidebar lists the pages it has
 }
 
 // campaignNavLister is implemented by a repository that can list the sidebar's campaigns in one statement.
@@ -285,7 +286,7 @@ func (c *Campaigns) NavCampaigns(ctx context.Context, userID int64, withFinished
 	}
 	out := make([]CampaignNav, len(list))
 	for i, g := range list {
-		out[i] = CampaignNav{ID: g.ID, Name: g.Name, Status: g.Status}
+		out[i] = CampaignNav{ID: g.ID, Name: g.Name, Status: g.Status, Archived: g.Archived}
 	}
 	return out, nil
 }

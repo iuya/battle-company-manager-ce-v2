@@ -14,7 +14,7 @@ import (
 func TestManageCardIsForManagersAndShowsTheEndingSteps(t *testing.T) {
 	f := organiserFixture(t, gandalf, core.CampaignActive)
 	body := f.do(f.signedInAs(gandalf, httpGet("/campaigns/7"))).Body.String()
-	for _, want := range []string{`id="manage"`, "Pause campaign", "End campaign…", "Step 1 of 3", "Step 2 of 3", "Step 3 of 3", "End the campaign for good", `data-name="Siege"`, "Only an administrator can reactivate"} {
+	for _, want := range []string{`id="manage"`, "Pause campaign", "End campaign…", "Step 1 of 3", "Step 2 of 3", "Step 3 of 3", "End the campaign for good", `data-name="Siege"`, "Ending is final", "read-only archive"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("manage card lacks %q", want)
 		}
@@ -31,12 +31,12 @@ func TestManageCardIsForManagersAndShowsTheEndingSteps(t *testing.T) {
 func TestManageCardOfAFinishedCampaign(t *testing.T) {
 	f := organiserFixture(t, gandalf, core.CampaignFinished)
 	body := f.do(f.signedInAs(gandalf, httpGet("/campaigns/7"))).Body.String()
-	if !strings.Contains(body, "only an administrator can reactivate it") || strings.Contains(body, "Reactivate campaign") || strings.Contains(body, "End campaign…") {
+	if !strings.Contains(body, "data-archive-note") || strings.Contains(body, "Reactivate campaign") || strings.Contains(body, "End campaign…") {
 		t.Error("organiser of an ended campaign: final")
 	}
 	g := organiserFixture(t, sauron, core.CampaignFinished)
-	if body := g.do(g.signedInAs(sauron, httpGet("/campaigns/7"))).Body.String(); !strings.Contains(body, "Reactivate campaign") {
-		t.Error("an administrator can reactivate")
+	if body := g.do(g.signedInAs(sauron, httpGet("/campaigns/7"))).Body.String(); strings.Contains(body, "Reactivate campaign") {
+		t.Error("nobody reactivates an ended campaign, an administrator neither")
 	}
 	p := organiserFixture(t, gandalf, core.CampaignPaused)
 	if body := p.do(p.signedInAs(gandalf, httpGet("/campaigns/7"))).Body.String(); !strings.Contains(body, "Resume campaign") || strings.Contains(body, "Invite players") {

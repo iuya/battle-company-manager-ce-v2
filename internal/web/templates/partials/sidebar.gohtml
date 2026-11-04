@@ -44,7 +44,7 @@
     <ul class="mb-1 ml-3 mt-0.5 flex min-h-0 flex-col gap-0.5 overflow-hidden border-l border-accent pl-2" aria-label="{{.Name}}">
       {{template "nav_tab" (navTab .ID "" "Overview")}}
       {{template "nav_tab" (navTab .ID "my-company" "My Company")}}
-      {{template "nav_tab" (navTab .ID "armory" "Armory")}}
+      {{if not .Archived}}{{template "nav_tab" (navTab .ID "armory" "Armory")}}{{end}}
       {{template "nav_tab" (navTab .ID "rankings" "Rankings")}}
       {{template "nav_tab" (navTab .ID "matches" "Matches")}}
       {{template "nav_tab" (navTab .ID "glossary" "Glossary")}}

@@ -117,6 +117,7 @@ type CampaignSummary struct {
 	// PracticeMatches counts the practice matches of the campaign, ended or open; they are not in Matches nor in the W/D/L of the companies.
 	PracticeMatches int
 	Companies       []CampaignCompany // the viewer's own companies, oldest first; empty until they create one
+	Archived        bool              // ended and kept as a document (CampaignDetail.Archived)
 }
 
 // CampaignCompany is a battle company inside a campaign. A user has up to CampaignSettings.CompanyCap() per campaign.

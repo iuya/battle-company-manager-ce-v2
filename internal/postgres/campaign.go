@@ -107,7 +107,8 @@ func (cs campaignStore) List(ctx context.Context, userID int64, withFinished boo
 	rows, err := cs.s.pool.Query(ctx, `
 		SELECT g.id, g.name, g.description, g.status, g.round, g.rounds,
 		       COALESCE(g.archived_matches, (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND NOT x.practice))::int,
-		       COALESCE(g.archived_practice, (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND x.practice))::int, `+ownCompaniesJSON+`
+		       COALESCE(g.archived_practice, (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND x.practice))::int, `+ownCompaniesJSON+`,
+		       g.archived_at IS NOT NULL
 		  FROM campaign_members m
 		  JOIN campaigns g ON g.id = m.campaign_id
 		 WHERE m.user_id = $1 AND ($2 OR g.status <> 'finished')
@@ -121,7 +122,7 @@ func (cs campaignStore) List(ctx context.Context, userID int64, withFinished boo
 		var c core.CampaignSummary
 		var status string
 		var raw []byte
-		if err := rows.Scan(&c.ID, &c.Name, &c.Description, &status, &c.Round, &c.Rounds, &c.Matches, &c.PracticeMatches, &raw); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Description, &status, &c.Round, &c.Rounds, &c.Matches, &c.PracticeMatches, &raw, &c.Archived); err != nil {
 			return nil, err
 		}
 		c.Status = core.CampaignStatus(status)
@@ -137,7 +138,7 @@ func (cs campaignStore) List(ctx context.Context, userID int64, withFinished boo
 // Nav lists the user's campaigns for the sidebar, in List's order, with id, name and status only: one statement, no company figures.
 func (cs campaignStore) Nav(ctx context.Context, userID int64, withFinished bool) ([]core.CampaignNav, error) {
 	rows, err := cs.s.pool.Query(ctx, `
-		SELECT g.id, g.name, g.status
+		SELECT g.id, g.name, g.status, g.archived_at IS NOT NULL
 		  FROM campaign_members m JOIN campaigns g ON g.id = m.campaign_id
 		 WHERE m.user_id = $1 AND ($2 OR g.status <> 'finished')
 		 ORDER BY (g.status = 'finished'), g.created_at DESC, g.id DESC`, userID, withFinished)
@@ -149,7 +150,7 @@ func (cs campaignStore) Nav(ctx context.Context, userID int64, withFinished bool
 	for rows.Next() {
 		var n core.CampaignNav
 		var status string
-		if err := rows.Scan(&n.ID, &n.Name, &status); err != nil {
+		if err := rows.Scan(&n.ID, &n.Name, &status, &n.Archived); err != nil {
 			return nil, err
 		}
 		n.Status = core.CampaignStatus(status)
