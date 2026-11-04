@@ -1003,7 +1003,7 @@ func BuildDetail(rs *RuleSet, settings CampaignSettings, st CompanyState) Compan
 		co.Points += cr.Points // a creature counts for its points in the rating
 		co.FullPoints += cr.Points
 	}
-	detail := CompanyDetail{CampaignCompany: co, Influence: st.Influence, Gold: st.Gold, Limits: append(rs.BC.Limits(bcCo, units, stored...), companyLimits...),
+	detail := CompanyDetail{CampaignCompany: co, Influence: st.Influence, Gold: st.Gold, Formation: st.Order, Limits: append(rs.BC.Limits(bcCo, units, stored...), companyLimits...),
 		MaxUnits: bcCo.MaxModels, Roster: units, Recruit: recruitInfo(bcCo, rs.BC.Recruiting()), InjuredUnits: injured, Settings: settings, Injuries: rs.BC.Injuries(), RuleDice: ruleDice(rs), Creatures: creatures, Pack: pack, Rerolls: st.Rerolls, Aftermaths: st.Aftermaths, OpenMatch: st.OpenMatch, OfficersPending: st.Recruit.Officers != nil, BreakPointPercent: breakPointPercent(rs, co.Faction)}
 	for _, chart := range []struct {
 		rows []RecruitRow

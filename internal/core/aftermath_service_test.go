@@ -167,7 +167,7 @@ func TestAftermathLeaderFallsAndSuccessionIsAskedFor(t *testing.T) {
 	f := newAmFixture(t)
 	f.start(t, casualties(1))
 	a := f.roll(t, 1, 1, 1) // 2: Dead
-	if a.Status != AftermathInjuries || a.Succession == nil || !a.Succession.NeedLeader || !slices.Equal(a.Succession.LeaderOptions, []int64{2, 3}) {
+	if a.Status != AftermathInjuries || a.Succession == nil || !a.Succession.NeedLeader || !slices.Equal(a.Succession.LeaderOptions, []int64{3, 2}) {
 		t.Fatalf("the Leader fell: %+v", a.Succession)
 	}
 	if len(f.state.Cemetery) != 1 || f.state.Cemetery[0].Fate != "Dead" || f.state.Cemetery[0].Match != "Match 3, Rescue" {
@@ -611,16 +611,16 @@ func TestAftermathRerollAndBonusDieCanBeTyped(t *testing.T) {
 		t.Fatalf("a die is 1 to 6: %v", err)
 	}
 	a, err := f.svc.RerollCasualty(f.ctx, f.owner(), 5, 1, 1, 8, []int{6, 6}, false) // typed: 12, Lesson Learned
-	if err != nil || a.Casualties[0].Total != 12 {
-		t.Fatalf("typed re-roll: %+v %v", a.Casualties[0], err)
+	if err != nil || a.Casualties[1].Total != 12 {
+		t.Fatalf("typed re-roll: %+v %v", a.Casualties[1], err)
 	}
-	if d := a.Casualties[0].Decision; d == nil || d.Kind != "bonus" {
-		t.Fatalf("the re-rolled result asks for its own bonus die: %+v", a.Casualties[0])
+	if d := a.Casualties[1].Decision; d == nil || d.Kind != "bonus" {
+		t.Fatalf("the re-rolled result asks for its own bonus die: %+v", a.Casualties[1])
 	}
 	f.dice.Rolls, f.dice.n = []int{6}, 0
 	a, err = f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, AftermathAnswer{UnitID: 8, Kind: "bonus", Answer: "0"}) // roll it for me: a 6 is a 3 on a D3
-	if err != nil || a.Casualties[0].Bonus != 3 {
-		t.Fatalf("server die: %+v %v", a.Casualties[0], err)
+	if err != nil || a.Casualties[1].Bonus != 3 {
+		t.Fatalf("server die: %+v %v", a.Casualties[1], err)
 	}
 	if _, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, AftermathAnswer{UnitID: 8, Kind: "bonus", Answer: "1"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("answered twice: %v", err)
@@ -781,7 +781,7 @@ func TestAftermathDeadSergeantIsReplacedByAHeroOptionally(t *testing.T) {
 	f := newAmFixture(t)
 	f.start(t, casualties(3)) // Cene, a Sergeant; Dal (4) is a Hero
 	a := f.roll(t, 3, 1, 1)   // Dead
-	if a.Status != AftermathInjuries || a.Succession == nil || a.Succession.NeedLeader || !a.Succession.NeedSergeant || !slices.Equal(a.Succession.SergeantOptions, []int64{4, 5}) {
+	if a.Status != AftermathInjuries || a.Succession == nil || a.Succession.NeedLeader || !a.Succession.NeedSergeant || !slices.Equal(a.Succession.SergeantOptions, []int64{5, 4}) {
 		t.Fatalf("the Leader lives, a Sergeant place is open: %+v", a.Succession)
 	}
 	a, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, AftermathAnswer{Kind: "sergeant", Answer: ""})

@@ -174,7 +174,9 @@ func (v aftermathView) UnitResults() []unitResult {
 		return nil
 	}
 	var casualties, played, out []unitResult
-	for _, m := range v.A.Input.Models {
+	models := slices.Clone(v.A.Input.Models)
+	slices.SortStableFunc(models, func(a, b core.ModelSheet) int { return v.order[a.UnitID] - v.order[b.UnitID] })
+	for _, m := range models {
 		r := v.unitResult(m)
 		_, isCasualty := v.casualty(m.UnitID)
 		switch {

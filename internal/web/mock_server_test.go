@@ -3553,6 +3553,44 @@ func (c *MockcampaignsRerollLevelUpCall) DoAndReturn(f func(context.Context, cor
 	return c
 }
 
+// ResetFormation mocks base method.
+func (m *Mockcampaigns) ResetFormation(ctx context.Context, user core.User, id, companyID int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetFormation", ctx, user, id, companyID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResetFormation indicates an expected call of ResetFormation.
+func (mr *MockcampaignsMockRecorder) ResetFormation(ctx, user, id, companyID any) *MockcampaignsResetFormationCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetFormation", reflect.TypeOf((*Mockcampaigns)(nil).ResetFormation), ctx, user, id, companyID)
+	return &MockcampaignsResetFormationCall{Call: call}
+}
+
+// MockcampaignsResetFormationCall wrap *gomock.Call
+type MockcampaignsResetFormationCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsResetFormationCall) Return(arg0 error) *MockcampaignsResetFormationCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsResetFormationCall) Do(f func(context.Context, core.User, int64, int64) error) *MockcampaignsResetFormationCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsResetFormationCall) DoAndReturn(f func(context.Context, core.User, int64, int64) error) *MockcampaignsResetFormationCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // RollCasualty mocks base method.
 func (m *Mockcampaigns) RollCasualty(ctx context.Context, user core.User, id, matchID, companyID, unitID int64, entered []int, thrown bool) (core.Aftermath, error) {
 	m.ctrl.T.Helper()

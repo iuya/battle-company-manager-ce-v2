@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -279,6 +280,7 @@ type aftermathView struct {
 	Absent  []core.CompanyUnit
 	Roster  map[int64]core.CompanyUnit
 	fallen  map[int64]core.CompanyUnit // the cemetery: a casualty buried by its result keeps its card on the page
+	order   map[int64]int              // each unit's place in the company's order, the fallen included
 
 	// RangerFell: the company's Ranger of the North fell in this match and a reinforcement may bring one back (an informational line).
 	RangerFell bool
@@ -322,8 +324,37 @@ func (v aftermathView) Waiting() (out []core.CompanyUnit) {
 			out = append(out, unit)
 		}
 	}
-	slices.SortFunc(out, func(a, b core.CompanyUnit) int { return strings.Compare(a.Title(), b.Title()) })
+	slices.SortFunc(out, func(a, b core.CompanyUnit) int {
+		return cmp.Or(v.casualtiesFirst(a.ID, b.ID), strings.Compare(a.Title(), b.Title()))
+	})
 	return out
+}
+
+// companyOrder gives each unit its place in the company's order. The fallen count too (OrderUnits treats them like the units the
+// formation does not name), so that a casualty buried by its result keeps a sensible place among the others.
+func companyOrder(detail core.CompanyDetail) map[int64]int {
+	units := slices.Clone(detail.Roster)
+	for _, f := range detail.Cemetery {
+		units = append(units, f.Unit)
+	}
+	order := make(map[int64]int, len(units))
+	for i, u := range core.OrderUnits(units, detail.Formation) {
+		order[u.ID] = i
+	}
+	return order
+}
+
+// casualtiesFirst compares two units for the lists after the sheet: the casualties of the match, then the company's order.
+func (v aftermathView) casualtiesFirst(a, b int64) int {
+	_, ca := v.casualty(a)
+	_, cb := v.casualty(b)
+	switch {
+	case ca && !cb:
+		return -1
+	case cb && !ca:
+		return 1
+	}
+	return v.order[a] - v.order[b]
 }
 
 // Chosen says whether the player already answered the decision of a reward (it is not in Pending any more).
@@ -824,6 +855,7 @@ func (s *Server) newAftermathView(r *http.Request, base campaignBase, m core.Mat
 	for _, f := range detail.Cemetery {
 		v.fallen[f.Unit.ID] = f.Unit
 	}
+	v.order = companyOrder(detail)
 	if detail.RangerMayReturn {
 		where := fmt.Sprintf("Match %d", m.Number)
 		for _, f := range detail.Cemetery {
@@ -852,6 +884,7 @@ func (s *Server) newAftermathView(r *http.Request, base campaignBase, m core.Mat
 				}
 			}
 			for _, o := range offers {
+				slices.SortStableFunc(o.Units, func(a, b core.UnitOption) int { return v.casualtiesFirst(a.ID, b.ID) })
 				v.Offers[rw.Key] = append(v.Offers[rw.Key], freeOfferView{FreeEquipment: o, Segments: itemText(g, o.Description, append([]string{o.Name}, o.AlsoCalled...)...)})
 			}
 		}
@@ -874,6 +907,9 @@ func (v *aftermathView) fillUnits(in core.AftermathInput, errs map[int64]string)
 			v.Absent = append(v.Absent, u)
 		}
 	}
+	// a sheet saved before the formation changed still follows the company's order now
+	slices.SortStableFunc(v.Units, func(a, b sheetUnit) int { return v.order[a.Unit.ID] - v.order[b.Unit.ID] })
+	slices.SortStableFunc(v.Absent, func(a, b core.CompanyUnit) int { return v.order[a.ID] - v.order[b.ID] })
 }
 
 // handleAftermath shows a company's aftermath. An open match shows the locked state.

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"cmp"
+	"slices"
+
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
@@ -16,6 +19,10 @@ func (w *world) roster(co *wco) (leader core.CompanyUnit, sergeants, warriors []
 			warriors = append(warriors, u)
 		}
 	}
+	// in the order they joined, not the card order: the script picks units by place, and points must not change who it picks
+	byID := func(a, b core.CompanyUnit) int { return cmp.Compare(a.ID, b.ID) }
+	slices.SortFunc(sergeants, byID)
+	slices.SortFunc(warriors, byID)
 	return
 }
 

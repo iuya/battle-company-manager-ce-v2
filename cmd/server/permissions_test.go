@@ -157,6 +157,9 @@ var permActions = []permAction{
 		}
 		return f.c().SaveFormation(f.ctx, a, f.camp.id, f.companyOf(a), order)
 	}, allow: [3]permRole{players, players, 0}, notFound: roleNoCompany | managers, stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
+	{name: "ResetFormation", run: func(f *permFx, a core.User) error {
+		return f.c().ResetFormation(f.ctx, a, f.camp.id, f.companyOf(a))
+	}, allow: [3]permRole{players, players, 0}, notFound: roleNoCompany | managers, stateMsg: [3]string{"", "", msgFinished}},
 	{name: "SaveCemeteryOrder", run: func(f *permFx, a core.User) error {
 		return f.c().SaveCemeteryOrder(f.ctx, a, f.camp.id, f.companyOf(a), nil)
 	}, allow: [3]permRole{players, players, 0}, notFound: roleNoCompany | managers, stateMsg: [3]string{"", "", msgFinished}, repeatable: true},

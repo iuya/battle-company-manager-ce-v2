@@ -1,6 +1,7 @@
 package core
 
 import (
+	"cmp"
 	"fmt"
 	"regexp"
 	"slices"
@@ -577,6 +578,8 @@ type CompanyDetail struct {
 	MaxUnits  int           // the most models the company may have (it differs per company)
 	Recruit   RecruitInfo   // what recruiting costs and can give
 	Roster    []CompanyUnit // the units, in the company's order (see OrderUnits)
+	// Formation is the order the player saved (unit ids; empty: the default order).
+	Formation []int64
 	// InjuredUnits is how many units are injured; their points are left out of the company's rating (Points).
 	InjuredUnits int
 	Settings     CampaignSettings
@@ -801,11 +804,13 @@ func (a ArmouryItem) Buyable() bool { return a.Reason == "" }
 func (a ArmouryItem) Offered() bool { return a.Blocker != BlockedByRule }
 
 // OrderUnits puts units in the company's order. By default the leader comes first, then the sergeants, then the other
-// heroes, then the regular units (each group in its given order). saved holds unit ids in the order the player chose
-// (persisted by the backend); units it names come first in that order, new units follow in the default order.
+// heroes, then the regular units; within a group, the most points first and then by name. saved holds unit ids in the order
+// the player chose (persisted by the backend); units it names come first in that order, new units follow in the default order.
 func OrderUnits(units []CompanyUnit, saved []int64) []CompanyUnit {
 	out := slices.Clone(units)
-	slices.SortStableFunc(out, func(a, b CompanyUnit) int { return a.Role.order() - b.Role.order() })
+	slices.SortStableFunc(out, func(a, b CompanyUnit) int {
+		return cmp.Or(a.Role.order()-b.Role.order(), b.Points-a.Points, strings.Compare(NameKey(a.Title()), NameKey(b.Title())))
+	})
 	sortBySaved(out, saved, func(u CompanyUnit) int64 { return u.ID })
 	return out
 }

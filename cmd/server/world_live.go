@@ -13,6 +13,15 @@ func (w *world) liveAs(co *wco, m core.Match, a core.LiveAction) error {
 	return err
 }
 
+// reverseFormation saves the company's roster back to front, so a player's own order is plain to see beside the default one.
+func (w *world) reverseFormation(co *wco) {
+	var order []int64
+	for _, u := range w.detail(co).Roster {
+		order = append([]int64{u.ID}, order...)
+	}
+	w.try("save a formation", w.c().SaveFormation(w.ctx, co.user, co.camp.id, co.id, order))
+}
+
 // fogCampaign plays Fog of War live: both players noted down their secret objectives (a Hero of their own, an enemy Hero and a terrain
 // piece), one reported a tier, and units retreated, died and one came back, so the Retreated and Field casualties zones are
 // filled and the Tabletop Simulator export of the live match puts those units in a second warband.
@@ -25,6 +34,7 @@ func (w *world) fogCampaign() {
 		w.grant(co, 10, 30)
 		w.recruitAll(co)
 	}
+	w.reverseFormation(dwarves) // the live match follows a saved order inside each zone; the Rangers keep the default one
 	m := w.newMatchOn(c, "Fog of War", []*wco{dwarves}, []*wco{rangers})
 
 	_, ds, dw := w.roster(dwarves)

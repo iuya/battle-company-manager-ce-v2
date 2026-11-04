@@ -128,7 +128,7 @@ The services (`internal/core`, one file each) share `companyDeps` (campaign and 
 | Service | Methods | Notes |
 |---|---|---|
 | `Campaigns` (`campaigns.go`) | `List`, `Create`, `Get`, `Companies`, `Company`, `Settings`, `SetCompaniesPerPlayer` | Only users who may create campaigns (`User.MayCreateCampaigns`) create; empty hashes mean the defaults, an unknown or wrong-kind hash is `ErrInvalidCampaign`. `Points`, `FullPoints` and `Units` of every returned company come from `BuildDetail` |
-| `CompanyService` (`companies.go`) | `CompanyProfiles`, `CreateCompany`, `CompanyDetail`, `RenameCompany`, `RenameUnit`, `SaveFormation` | A new company starts with the rules' `campaign.company.startingInfluence` and the profile's Gold; a user who is not in the campaign gets `ErrNotFound` |
+| `CompanyService` (`companies.go`) | `CompanyProfiles`, `CreateCompany`, `CompanyDetail`, `RenameCompany`, `RenameUnit`, `SaveFormation`, `ResetFormation` | A new company starts with the rules' `campaign.company.startingInfluence` and the profile's Gold; a user who is not in the campaign gets `ErrNotFound` |
 | `ArmouryService` (`armoury.go`) | `Armoury`, `BuyEquipment`, `DropEquipment`, `BuyCreature`, `HireWanderer`, `DismissWanderer`, `Carry`, ... | Every purchase re-checks inside `Update` on the locked state |
 | `RecruitService` (`recruiting.go`) | `RecruitState`, `RollRecruit`, `ConfirmRecruit`, `ChooseLower`, `RecruitSpecial`, `ChooseOptions`, ... | The recruit in progress is `CompanyState.Recruit` |
 | `LevelService` (`levelling.go`) | `LevelUpState`, `RollLevelUp`, `ChooseLevelUp`, `RerollLevelUp`, `PathOptions`, `ChoosePath` | The roll in progress is `UnitState.Pending.Level`; re-rolls spend `CompanyState.Rerolls` |
@@ -242,7 +242,7 @@ AftermathDefaults, Subscribe), `LiveHub` (`live_hub.go`), the web handlers in `i
 
 - `CompanyState.OpenMatch` is filled by the company repository when it loads a state (a join of `match_side_companies` and `matches`
   where the match is not ended) and ignored on write. `CompanyState.Locked()` checks it first ("Match N is running; finish it
-  first."), then the aftermaths. Every roster action that changes the company calls it; `RenameUnit`, `SaveFormation`,
+  first."), then the aftermaths. Every roster action that changes the company calls it; `RenameUnit`, `SaveFormation`, `ResetFormation`,
   `SaveCemeteryOrder` and organiser grants do not.
 - Creating or reopening a match checks "a company is in another open match" inside `matchRepository.Create` and `Update` (which hold the
   campaign row lock); both return `*CompanyBusyError`. The check for a pending aftermath is in the service (`Matches.PendingAftermaths`).

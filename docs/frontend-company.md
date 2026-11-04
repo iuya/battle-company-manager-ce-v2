@@ -298,13 +298,13 @@ and become a hero in one step, with no extra Might, Will and Fate.
 
 ## Formation
 
-The order of the units comes from the backend: the default (leader, sergeants, other heroes, regular units) until
-the player orders their company, and their saved order for good after that (`core.OrderUnits`; units they have not placed,
-such as new recruits, follow at the end in the default order). **Change formation**, next to the unit count, puts a handle above
+The order of the units comes from the backend: the default (leader, sergeants, other heroes, regular units; within each group the most points first, then by name) until
+the player orders their company, and their saved order after that (`core.OrderUnits`; units they have not placed,
+such as new recruits, follow at the end in the default order). A match uses the same order inside each of its zones, and the aftermath too (its lists after the sheet put the casualties first). **Change formation**, next to the unit count, puts a handle above
 every card: drag it (SortableJS, `static/js/sortable.min.js`, MIT, with its pointer-based drag so it feels the same with a
 mouse and on touch screens) or use the arrows on the handle (keyboard friendly). **Save formation** sends the ids in their
 new order (`SaveFormation`, which refuses an order that is empty, repeats a unit, misses one or names a unit of another company) and the page comes back in that order; **Cancel** (or Escape, when nothing else is open) puts the
-cards back. Meanwhile the cards themselves do not react.
+cards back. Meanwhile the cards themselves do not react. A company with a saved order also has **Restore default order** there (`ResetFormation`), which forgets it.
 
 ## Rating and injuries
 

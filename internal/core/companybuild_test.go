@@ -349,12 +349,13 @@ func TestBuildDetailSavedOrderTakesPriority(t *testing.T) {
 		return out
 	}
 	st := gondor()
-	if got := ids(st); got[0] != 1 || got[1] != 2 || got[2] != 3 {
-		t.Fatalf("the default order is leader, sergeants, heroes, then the regular units: %v", got)
+	// the leader, the sergeants, the heroes, the regular units; within each the most points, then the name
+	if got := ids(st); !slices.Equal(got, []int64{1, 3, 2, 5, 4, 9, 8, 6, 7, 11, 10}) {
+		t.Fatalf("the default order is role, points, name: %v", got)
 	}
 	st.Order = []int64{6, 2, 3, 4, 5, 1}
 	got := ids(st)
-	if got[0] != 6 || got[5] != 1 || got[6] != 7 || got[len(got)-1] != 11 {
+	if !slices.Equal(got, []int64{6, 2, 3, 4, 5, 1, 9, 8, 7, 11, 10}) {
 		t.Errorf("the saved order, then the others in the default order: %v", got)
 	}
 	st.Units = append(st.Units, UnitState{ID: 100, Base: "Warrior of Minas Tirith", Role: RoleWarrior})

@@ -161,7 +161,7 @@ Details in [live-match.md](live-match.md).
 | Mechanic | Source | Layer | Status | Where | Test |
 |---|---|---|---|---|---|
 | Cemetery of the dead and retired | none (app) | CM | DONE | `cemetery.go` | `TestSaveCemeteryOrder`, `TestTheFallenCountTowardsNoLimit` |
-| Formation order of the roster | none (app) | CM | DONE | `OrderUnits` | `TestOrderUnitsHonoursTheSavedOrder` |
+| Formation order of the roster | none (app) | CM | DONE | `OrderUnits`, `ResetFormation` | `TestOrderUnitsWithinARole`, `TestOrderUnitsHonoursTheSavedOrder`, `TestSaveFormation` |
 | Organiser grants of Gold, Influence, XP with a note | none (app) | APP | DONE | `grant.go` | `TestGrantInputValidate`, `TestMatchesGrants` |
 | Campaign: invite links, members, pause, end, hand over, settings (shake the table, manual rolls, optional rules) | none (app) | APP | DONE | `campaigns.go`, `invites.go`, [admin.md](admin.md), [auth.md](auth.md) | `TestSetCampaignStatusRules`, `TestCampaignsHandOver`, `TestCampaignsSettings` |
 | Calendar, rounds, campaign victory, alliances between companies | none (not in the rulebook) | APP | N-A (not built) | none | none |

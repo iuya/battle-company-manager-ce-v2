@@ -187,6 +187,18 @@ func (s *CompanyService) SaveFormation(ctx context.Context, user User, campaignI
 	})
 }
 
+// ResetFormation forgets the order the player saved: the company goes back to the default order (OrderUnits).
+func (s *CompanyService) ResetFormation(ctx context.Context, user User, campaignID, companyID int64) error {
+	id, err := s.ownCompanyToChange(ctx, user, campaignID, companyID)
+	if err != nil {
+		return err
+	}
+	return s.companies.Update(ctx, campaignID, id, func(st *CompanyState) error {
+		st.Order = nil
+		return nil
+	})
+}
+
 // cleanOrder drops repeated ids and refuses unknown ones.
 func cleanOrder(order []int64, known map[int64]bool, where string) ([]int64, error) {
 	seen := map[int64]bool{}

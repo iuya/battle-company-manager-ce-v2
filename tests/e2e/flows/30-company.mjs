@@ -65,5 +65,10 @@ export default async function (h) {
     await eowyn.settle(500);
     await eowyn.goto(`/campaigns/${c2}/my-company`);
     assert.deepEqual(await ids(), moved, 'the order survives a reload');
+    await eowyn.click('main button', 'Change formation');
+    await eowyn.click('main button', 'Restore default order');
+    await eowyn.settle(500);
+    await eowyn.goto(`/campaigns/${c2}/my-company`);
+    assert.deepEqual(await ids(), before, 'Restore default order brings the default order back');
   });
 }

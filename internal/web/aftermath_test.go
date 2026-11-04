@@ -494,6 +494,9 @@ func TestEveryUnitShowsWhatTheMatchDidToIt(t *testing.T) {
 	if !strings.Contains(body, `id="casualty-11"`) || strings.Index(body, `id="casualty-11"`) > strings.Index(body, `data-unit-result="13"`) {
 		t.Error("the casualty comes before the others")
 	}
+	if strings.Index(body, `data-unit-result="10"`) > strings.Index(body, `data-unit-result="13"`) {
+		t.Error("the units follow the company's order, not the order of the sheet")
+	}
 	fled := result(t, body, 13)
 	for _, want := range []string{"Fled", `xp-match-text">+4<`, "Objective", "Slain", `class="milestone-count"`, ">2</span>"} {
 		if !strings.Contains(fled, want) {
@@ -947,5 +950,66 @@ func TestSavedSheetColoursEachOutcome(t *testing.T) {
 func TestAftermathViewLevelEveryFromTheRules(t *testing.T) {
 	if got := (aftermathView{Rules: core.AftermathRules{LevelEvery: 4}}).LevelEvery(); got != 4 {
 		t.Errorf("LevelEvery = %d, want 4 with an empty roster", got)
+	}
+}
+
+// The sheet follows the company's order, whatever order it was saved in; the lists after it put the casualties first.
+func TestAftermathListsFollowTheCompanyOrder(t *testing.T) {
+	order := companyOrder(core.CompanyDetail{
+		Roster:    []core.CompanyUnit{{ID: 2, Role: core.RoleWarrior}, {ID: 1, Role: core.RoleLeader}, {ID: 3, Role: core.RoleWarrior}},
+		Cemetery:  []core.FallenUnit{{Unit: core.CompanyUnit{ID: 4, Role: core.RoleSergeant}}},
+		Formation: []int64{3, 2, 1},
+	})
+	if got := []int{order[3], order[2], order[1], order[4]}; !slices.Equal(got, []int{0, 1, 2, 3}) {
+		t.Errorf("the saved order leads, the fallen follow: %v", order)
+	}
+
+	roster := map[int64]core.CompanyUnit{}
+	for _, id := range []int64{1, 2, 3} {
+		roster[id] = core.CompanyUnit{ID: id, Name: fmt.Sprintf("Unit %d", 4-id), XP: 100, Level: 0}
+	}
+	v := aftermathView{Roster: roster, order: map[int64]int{1: 0, 2: 1, 3: 2}, A: core.Aftermath{
+		Casualties: []core.Casualty{{UnitID: 3}},
+		Absent:     []int64{2, 1},
+	}}
+	v.fillUnits(core.AftermathInput{Models: []core.ModelSheet{{UnitID: 3}, {UnitID: 1}}}, nil)
+	if len(v.Units) != 2 || v.Units[0].Unit.ID != 1 || v.Units[1].Unit.ID != 3 {
+		t.Errorf("the sheet stays in the company's order, the casualty included: %+v", v.Units)
+	}
+	if len(v.Absent) != 2 || v.Absent[0].ID != 1 {
+		t.Errorf("who missed the game follows the company's order: %+v", v.Absent)
+	}
+	ids := []int64{1, 2, 3}
+	slices.SortFunc(ids, v.casualtiesFirst)
+	if !slices.Equal(ids, []int64{3, 1, 2}) {
+		t.Errorf("after the sheet the casualties come first, then the company's order: %v", ids)
+	}
+}
+
+// Restore default order appears only when the company has a saved order, and forgets it.
+func TestRestoreDefaultOrder(t *testing.T) {
+	f := newFixture(t, Config{})
+	d, detail := mineDetail()
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
+	page := func(formation []int64) string {
+		detail.Formation = formation
+		f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
+		return f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
+	}
+	if strings.Contains(page(nil), "Restore default order") {
+		t.Error("a company in the default order has nothing to restore")
+	}
+	if body := page([]int64{5}); !strings.Contains(body, "Restore default order") || !strings.Contains(body, "my-company/1/formation/reset") {
+		t.Error("a saved order can be given up")
+	}
+	f.camp.EXPECT().ResetFormation(gomock.Any(), frodo, int64(7), int64(1)).Return(nil)
+	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
+	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/formation/reset", url.Values{})))
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Default order restored.") {
+		t.Errorf("got %d", rec.Code)
 	}
 }

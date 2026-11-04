@@ -449,6 +449,20 @@ func (s *Server) handleSaveFormation(w http.ResponseWriter, r *http.Request) {
 	s.afterAction(w, r, "Formation saved.", err)
 }
 
+// handleResetFormation forgets the saved unit order, back to the default one.
+func (s *Server) handleResetFormation(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	cid, ok := s.ownCompanyID(w, r, id)
+	if !ok {
+		return
+	}
+	err := s.campaigns.ResetFormation(r.Context(), *userFrom(r.Context()), id, cid)
+	s.afterAction(w, r, "Default order restored.", err)
+}
+
 // afterAction shows the My Company page again: with the notice when it worked, or the reason when the rules refused.
 func (s *Server) afterAction(w http.ResponseWriter, r *http.Request, done string, err error) {
 	switch {

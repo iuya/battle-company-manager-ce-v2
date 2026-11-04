@@ -111,6 +111,8 @@ type campaigns interface {
 	// over the default order for good; units it does not name (recruited since) follow in the default order. Unknown ids come
 	// back as an error wrapping core.ErrRefused.
 	SaveFormation(ctx context.Context, user core.User, id, companyID int64, order []int64) error
+	// ResetFormation forgets the saved order: the company goes back to the default order.
+	ResetFormation(ctx context.Context, user core.User, id, companyID int64) error
 	// SaveCemeteryOrder stores the order of the fallen units, the same way; the cemetery and the roster stay apart.
 	SaveCemeteryOrder(ctx context.Context, user core.User, id, companyID int64, order []int64) error
 	// BuyEquipment, the steps of a recruit and RecruitSpecial spend the company's influence; what the rules do not allow
@@ -423,6 +425,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /campaigns/{id}/my-company/{company}/recruit", s.protected(s.handleRecruitPanel))
 	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/recruit", s.protected(s.handleRecruit))
 	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/formation", s.protected(s.handleSaveFormation))
+	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/formation/reset", s.protected(s.handleResetFormation))
 	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/cemetery", s.protected(s.handleSaveCemetery))
 	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/recruit/roll", s.protected(s.once(s.handleRollRecruit)))
 	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/recruit/confirm", s.protected(s.once(s.handleConfirmRecruit)))

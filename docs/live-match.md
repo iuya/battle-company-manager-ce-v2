@@ -87,7 +87,7 @@ has ended"). Undo follows the entry: the owner of its acting company, the owner 
    already in Match N." (with a link). Also while a company has a pending aftermath of an earlier match ("Finish the aftermath of Match N first").
 2. **Companies are locked while the match is open**: every roster action (recruit, buy, drop, heal, creatures, wanderers, level-up rolls, promote, carry,
    gold changes, choosing a path) returns `ErrRefused` "Match N is running; finish it first", like the aftermath lock (one rule in `CompanyState.Locked`).
-   Renaming units, the formation order, the cemetery order and organiser grants stay allowed.
+   Renaming units, the formation order (saving it or restoring the default), the cemetery order and organiser grants stay allowed.
 3. **Who is in the match**: every unit of the company that is not `Injured` or at the healers at start; those are listed under "Missed this game" and take
    no part (no xp).
 4. **Initial values** are taken when the match opens: Wounds, Might, Will, Fate from the unit's current profile (`CompanyUnit.Stats`, so promotions and path
@@ -106,7 +106,7 @@ Applies to the owner's My Company tab and to every other player's view of the co
    the current one marked with a tick. Under it `#live-end` names every Broken company ("Minas Morgul is broken (8 of 15
    casualties)") and the pending end with **Confirm**. On 360 px the buttons share one row and the chips scroll sideways, without the owners, so the sticky banner stays short.
 2. **Locked notice** instead of the buy, recruit and heal controls (hidden, not disabled): "The company is locked until the match ends." The company stats (points, units, matches, wins), Influence, Gold and the limits are not shown during the match; Re-rolls stay when the company has any, because they are spent during the game.
-3. **Battle company**: the units in the Field zone in the company's order, as unit cards plus trackers.
+3. **Battle company**: the units in the Field zone in the company's order (`core.OrderUnits`: the saved formation, or role, points and name), as unit cards plus trackers. The other zones use the same order, and the units that do not take part come last.
 4. **Retreated** (a one-line header with a count, "None" when empty): compact cards (name, type, a "Retreated" badge with the reason "Failed courage" or "Left
    the board") with **Return to the battle** for editors.
 5. **Field casualties**: units at 0 Wounds or marked Died. Compact card with a "Casualty" badge (reason "Wounded by <unit> (Company)", "Died: <note>", "Wounds

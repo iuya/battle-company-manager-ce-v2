@@ -62,6 +62,9 @@ func TestCompanyActionsAreLockedWhileAMatchIsRunning(t *testing.T) {
 	if err := svc.SaveFormation(f.ctx, f.user, 5, 1, order); err != nil {
 		t.Errorf("formation: %v", err)
 	}
+	if err := svc.ResetFormation(f.ctx, f.user, 5, 1); err != nil {
+		t.Errorf("default order: %v", err)
+	}
 	if err := NewCemeteryService(f.campaigns, f.companies, rules).SaveCemeteryOrder(f.ctx, f.user, 5, 1, nil); err != nil {
 		t.Errorf("cemetery order: %v", err)
 	}
@@ -158,7 +161,7 @@ func TestFinishedCampaignRefusesEveryCompanyWrite(t *testing.T) {
 		"recruit": rec.RollRecruit(ctx, user, 5, 1, 0, false), "special": special, "treat": treat,
 		"level": rollLevel, "choose": chooseLevel, "reroll": rerollLevel, "path": lvl.ChoosePath(ctx, user, 5, 1, 1, "Path of the Warlord", ""),
 		"rename company": co.RenameCompany(ctx, user, 5, 1, "New name"), "rename unit": co.RenameUnit(ctx, user, 5, 1, 1, "Bold"),
-		"formation": co.SaveFormation(ctx, user, 5, 1, []int64{1}), "cemetery order": NewCemeteryService(campaigns, companies, rules).SaveCemeteryOrder(ctx, user, 5, 1, nil),
+		"formation": co.SaveFormation(ctx, user, 5, 1, []int64{1}), "default order": co.ResetFormation(ctx, user, 5, 1), "cemetery order": NewCemeteryService(campaigns, companies, rules).SaveCemeteryOrder(ctx, user, 5, 1, nil),
 		"perk": (&AftermathService{companyDeps: companyDeps{campaigns: campaigns}}).UsePerk(ctx, user, 5, 1, 1),
 	} {
 		if !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "The campaign is finished.") {
