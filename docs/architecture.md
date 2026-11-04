@@ -382,6 +382,7 @@ Environment variables (loaded by `go-simpler.org/env`; `.env.example` lists them
 | `APP_ENV` | `production` | `production` is the default; `development` (set by `make run`, `dev`, `demo`) is for plain http on localhost. Anything else is refused at start |
 | `SECURE_COOKIES` | unset | `Secure` session, theme and glossary cookies, and the `Strict-Transport-Security` header. Unset: on in production, off in development. `false` in production is refused at start unless `ALLOW_INSECURE_COOKIES=true` (then it starts with a warning). Behind a TLS proxy `true` is the setting |
 | `ALLOW_INSECURE_COOKIES` | `false` | Lets production start with `SECURE_COOKIES=false` (plain http on a private network, a try-out) |
+| `CAMPAIGN_LIMIT` | `10` | Unfinished (active or paused) campaigns an account without a limit of its own may organise; at least 1. A superuser sets another number per account ([admin.md](admin.md), "Campaign limit") |
 | `MAX_CACHED_RULESETS` | `16` | Parsed rule sets (hash triples) kept in memory, least recently used dropped first; at least 1 |
 | `REQUEST_TIMEOUT` | `30s` | Context deadline of every request but the live stream: queries and rule computation stop when it is up or the client leaves, the answer is 503. `0` turns it off; negative is refused at start |
 | `RULES_BUILD_TIMEOUT` | `60s` | Deadline of building a parsed rule set from its three files; at least `1s` |

@@ -169,6 +169,11 @@ func (cs campaignStore) Create(ctx context.Context, owner core.User, c core.NewC
 		return core.CampaignSummary{}, err
 	}
 	defer tx.Rollback(ctx)
+	if q, err := lockedQuota(ctx, tx, owner.ID, c.DefaultLimit); err != nil {
+		return core.CampaignSummary{}, err
+	} else if q.Full() {
+		return core.CampaignSummary{}, core.ErrCampaignLimit
+	}
 	out := core.CampaignSummary{Name: c.Name, Description: c.Description, Status: core.CampaignActive, Rounds: c.Rounds}
 	err = tx.QueryRow(ctx, `
 		INSERT INTO campaigns (name, description, rounds, vanilla_hash, bc_hash, glossary_hash, settings, created_by)
@@ -347,7 +352,7 @@ func (cs campaignStore) Members(ctx context.Context, id int64) ([]core.CampaignM
 	return out, rows.Err()
 }
 
-func (cs campaignStore) HandOver(ctx context.Context, campaignID, newOrganiser int64, allowed func(currentOrganiser int64) error) error {
+func (cs campaignStore) HandOver(ctx context.Context, campaignID, newOrganiser int64, defaultLimit int, allowed func(currentOrganiser int64) error) error {
 	tx, err := cs.s.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -373,6 +378,17 @@ func (cs campaignStore) HandOver(ctx context.Context, campaignID, newOrganiser i
 	}
 	if err != nil {
 		return err
+	}
+	var status string
+	if err := tx.QueryRow(ctx, `SELECT status FROM campaigns WHERE id = $1`, campaignID).Scan(&status); err != nil {
+		return err
+	}
+	if status != string(core.CampaignFinished) { // a finished campaign counts for nobody
+		if q, err := lockedQuota(ctx, tx, newOrganiser, defaultLimit); err != nil {
+			return err
+		} else if q.Full() {
+			return core.ErrCampaignLimit
+		}
 	}
 	// the partial unique index allows one organiser: demote before promoting
 	if _, err := tx.Exec(ctx, `UPDATE campaign_members SET role = 'player' WHERE campaign_id = $1 AND user_id = $2`, campaignID, current); err != nil {
@@ -458,4 +474,38 @@ func (cs campaignStore) UpdateSettings(ctx context.Context, campaignID int64, fn
 		cs.s.hashesSize.Add(-1)
 	}
 	return nil
+}
+
+// Quota counts the unfinished campaigns an account organises against its limit.
+func (cs campaignStore) Quota(ctx context.Context, userID int64, defaultLimit int) (core.CampaignQuota, error) {
+	return quotaOf(ctx, cs.s.pool, userID, defaultLimit, "")
+}
+
+type rowQuerier interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+// lockedQuota is Quota under a lock on the account's row, so two creations (or a creation and a hand-over) cannot both take the last place.
+func lockedQuota(ctx context.Context, tx pgx.Tx, userID int64, defaultLimit int) (core.CampaignQuota, error) {
+	return quotaOf(ctx, tx, userID, defaultLimit, " FOR UPDATE OF u")
+}
+
+func quotaOf(ctx context.Context, q rowQuerier, userID int64, defaultLimit int, lock string) (core.CampaignQuota, error) {
+	var own *int
+	var open int
+	err := q.QueryRow(ctx, `
+		SELECT u.max_campaigns, (SELECT count(*) FROM campaign_members m JOIN campaigns g ON g.id = m.campaign_id
+		                          WHERE m.user_id = u.id AND m.role = 'organiser' AND g.status <> 'finished')::int
+		  FROM users u WHERE u.id = $1`+lock, userID).Scan(&own, &open)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return core.CampaignQuota{}, core.ErrNotFound
+	}
+	if err != nil {
+		return core.CampaignQuota{}, err
+	}
+	out := core.CampaignQuota{Open: open, Limit: defaultLimit}
+	if own != nil {
+		out.Limit, out.Own = *own, true
+	}
+	return out, nil
 }

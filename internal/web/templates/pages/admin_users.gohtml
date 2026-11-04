@@ -77,6 +77,7 @@
   </details>
   {{else if .PermissionNote}}<p class="mt-3 text-sm text-muted">{{.PermissionNote}}</p>
   {{end}}
+  {{if .CanLimit}}{{template "admin_campaign_limit" .}}{{end}}
   {{if .CanRecover}}{{template "admin_recovery" .}}{{end}}
 </li>
 {{end}}
@@ -123,5 +124,22 @@
     </form>
     {{end}}
   </div>
+</details>
+{{end}}
+
+{{/* The campaign limit card of one account (superusers): how many unfinished campaigns it may organise. Takes the adminUserRow. */}}
+{{define "admin_campaign_limit"}}
+{{$u := .U}}
+<details class="mt-3" {{if .LimitOpen}}open{{end}} data-campaign-limit>
+  <summary class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md text-sm font-medium text-accent-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Campaign limit <span class="badge badge-muted">{{if $u.MaxCampaigns}}{{$u.MaxCampaigns}}{{else}}default{{end}}</span></summary>
+  <form hx-post="/admin/users/{{$u.ID}}/campaign-limit" hx-target="#user-{{$u.ID}}" hx-swap="outerHTML" class="mt-2 space-y-2" novalidate>
+    <input type="hidden" name="email" value="{{$u.Email}}">
+    {{with .LimitErr}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+    <p class="text-sm text-muted">Organises {{.OpenOrganised}} unfinished {{if eq .OpenOrganised 1}}campaign{{else}}campaigns{{end}}. Ended campaigns do not count; lowering the limit never touches the ones that exist, it only refuses new ones.</p>
+    <div class="field max-w-xs"><label for="lim-{{$u.ID}}">Unfinished campaigns it may organise</label>
+      <input id="lim-{{$u.ID}}" name="max_campaigns" type="text" inputmode="numeric" class="input" value="{{if .LimitErr}}{{.LimitSent}}{{else if $u.MaxCampaigns}}{{$u.MaxCampaigns}}{{end}}" placeholder="Server default" autocomplete="off"></div>
+    <p class="text-xs text-muted">Leave empty for the server's default (CAMPAIGN_LIMIT). 0 forbids new campaigns.</p>
+    <button class="btn btn-secondary">Save limit</button>
+  </form>
 </details>
 {{end}}

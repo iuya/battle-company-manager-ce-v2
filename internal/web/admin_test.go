@@ -32,7 +32,7 @@ func htmxReq(r *http.Request, target string) *http.Request {
 
 func TestAdminSectionGuards(t *testing.T) {
 	super := [][2]string{{"GET", "/admin/rulesets"}, {"POST", "/admin/rulesets"}, {"POST", "/admin/rulesets/prune"}, {"GET", "/admin/rulesets/h/download"}, {"POST", "/admin/rulesets/h/default"},
-		{"POST", "/admin/rulesets/h/delete"}, {"POST", "/admin/users/1/recovery"}, {"POST", "/admin/users/1/recovery/revoke"}}
+		{"POST", "/admin/rulesets/h/delete"}, {"POST", "/admin/users/1/recovery"}, {"POST", "/admin/users/1/recovery/revoke"}, {"POST", "/admin/users/1/campaign-limit"}}
 	all := append([][2]string{{"GET", "/admin"}, {"GET", "/admin/users"}, {"POST", "/admin/users/1/permissions"}, {"POST", "/admin/users/1/handover"}, {"GET", "/admin/invitations"},
 		{"POST", "/admin/invitations"}, {"POST", "/admin/invitations/1/revoke"}}, super...)
 	for _, role := range []core.Role{core.RoleUser, core.RoleAdmin} {
@@ -274,5 +274,30 @@ func TestAdminUsersListsOrganisedCampaignsAndHandsThemOver(t *testing.T) {
 	rec = f.do(f.asSuper(form("/admin/users/50/handover", url.Values{"campaign": {"7"}, "organiser": {"52"}, "email": {"faramir@x.me"}})))
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "not in the campaign") {
 		t.Errorf("refused: %d", rec.Code)
+	}
+}
+
+func TestAdminCampaignLimit(t *testing.T) {
+	f := newFixture(t, Config{})
+	post := func(v url.Values) *httptest.ResponseRecorder {
+		return f.do(htmxReq(f.asSuper(form("/admin/users/1/campaign-limit", v)), "user-1"))
+	}
+	f.auth.EXPECT().ListUsers(gomock.Any(), superG, frodo.Email, 200, 0).Return(adminUsers()[1:2], 1, nil).Times(3)
+
+	three := 3
+	f.auth.EXPECT().SetMaxCampaigns(gomock.Any(), superG, int64(1), &three).Return(nil)
+	rec := post(url.Values{"max_campaigns": {" 3 "}, "email": {frodo.Email}})
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Saved") || !strings.Contains(rec.Body.String(), "data-campaign-limit") {
+		t.Errorf("save: %d %s", rec.Code, rec.Body)
+	}
+	// empty: back to the server's default
+	f.auth.EXPECT().SetMaxCampaigns(gomock.Any(), superG, int64(1), (*int)(nil)).Return(nil)
+	post(url.Values{"max_campaigns": {""}, "email": {frodo.Email}})
+	// not a number: the service refuses with its range, the card stays open with what was typed
+	bad := -1
+	f.auth.EXPECT().SetMaxCampaigns(gomock.Any(), superG, int64(1), &bad).Return(errors.Join(core.ErrInvalidUser, errors.New("the limit must be a number from 0 to 1000")))
+	rec = post(url.Values{"max_campaigns": {"many"}, "email": {frodo.Email}})
+	if body := rec.Body.String(); rec.Code != 422 || !strings.Contains(body, "from 0 to 1000") || !strings.Contains(body, `value="many"`) || !strings.Contains(body, "data-campaign-limit") {
+		t.Errorf("refused: %d %s", rec.Code, body)
 	}
 }

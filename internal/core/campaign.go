@@ -21,6 +21,8 @@ var (
 	// ErrCompanyNameTaken is an ErrInvalidCompany: another company of the same owner in the campaign has the name (case ignored).
 	ErrCompanyNameTaken = errors.Join(ErrInvalidCompany, errors.New("You already have a company with that name."))
 	ErrCompanyLimit     = errors.New("you already have all the companies this campaign allows")
+	// ErrCampaignLimit is returned when an account already organises as many unfinished campaigns as it may (CampaignQuota.Limit).
+	ErrCampaignLimit = errors.Join(ErrRefused, errors.New("You already organise all the campaigns you may have open. End one to create another."))
 )
 
 type CampaignStatus string

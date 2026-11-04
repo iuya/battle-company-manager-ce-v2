@@ -31,6 +31,8 @@ type fixture struct {
 	rec  *Mockrecoveries
 	// selection is how the rules pick a scenario by dice (the default: the shipped rules, testSelection).
 	selection core.ScenarioSelection
+	quota     core.CampaignQuota // what Quota answers; the zero value is replaced by one open of ten
+
 	// grants is what the company pages read as the company's history of awards (the default: none).
 	grants []core.Grant
 	// aftermaths is what the match page's Aftermath card reads (the default: none).
@@ -65,6 +67,12 @@ func newFixture(t *testing.T, cfg Config) *fixture {
 		return f.nav, f.navErr
 	}).AnyTimes()
 	f.camp.EXPECT().ScenarioSelection(gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64) (core.ScenarioSelection, error) { return f.selection, nil }).AnyTimes()
+	f.camp.EXPECT().Quota(gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64) (core.CampaignQuota, error) {
+		if f.quota == (core.CampaignQuota{}) {
+			return core.CampaignQuota{Open: 1, Limit: 10}, nil
+		}
+		return f.quota, nil
+	}).AnyTimes()
 	var err error
 	if f.srv, err = NewServer(cfg, f.camp, f.rs, f.gl, f.auth); err != nil {
 		t.Fatal(err)
@@ -1934,5 +1942,28 @@ func TestTheRecruitWindowPrintsTheAdjustmentFromTheRules(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// At the limit the new-campaign page explains instead of offering the form, and a post creates nothing and stores no upload.
+func TestNewCampaignAtTheLimit(t *testing.T) {
+	f := newFixture(t, Config{})
+	f.quota = core.CampaignQuota{Open: 3, Limit: 3, Own: true}
+	f.camp.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+	f.rs.EXPECT().CampaignOptions(gomock.Any()).Return(nil, nil).AnyTimes()
+	f.rs.EXPECT().Default(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, k core.RulesetKind) (core.RulesetInfo, error) {
+		return core.RulesetInfo{Kind: k, Name: "Shipped", Hash: "h"}, nil
+	}).AnyTimes()
+	f.auth.EXPECT().Authenticate(gomock.Any(), "tok").Return(core.User{ID: 3, DisplayName: "Elrond", CanCreateCampaigns: true}, time.Time{}, nil).AnyTimes()
+	get := httptest.NewRequest("GET", "/campaigns/new", nil)
+	get.AddCookie(&http.Cookie{Name: sessionCookie, Value: "tok"})
+	body := f.do(get).Body.String()
+	if !strings.Contains(body, "You organise 3 of the 3 unfinished campaigns") || !strings.Contains(body, "all the campaigns you may have open") || strings.Contains(body, `action="/campaigns"`) {
+		t.Errorf("page at the limit: %s", body)
+	}
+	post := form("/campaigns", url.Values{"name": {"One more"}})
+	post.AddCookie(&http.Cookie{Name: sessionCookie, Value: "tok"})
+	if rec := f.do(post); rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "All the campaigns you may have open") && !strings.Contains(rec.Body.String(), "all the campaigns you may have open") {
+		t.Errorf("post at the limit: %d %s", rec.Code, rec.Body)
 	}
 }

@@ -52,6 +52,8 @@ Uncomment the ones you change; they then read `.env`.
 Every variable the server reads is listed, with its default, in `compose.yaml`, `compose.dev.yaml` and `.env.example`.
 `make check-env-docs` fails when one is missing.
 
+`CAMPAIGN_LIMIT` (default 10, at least 1) is how many unfinished campaigns an account without a limit of its own may organise ([admin.md](admin.md), "Campaign limit").
+
 `MAX_CACHED_RULESETS` (default 16, at least 1) caps how many parsed rule sets stay in memory.
 A rule set is a few MB and there is one per distinct hash triple of rules files; the least recently used is dropped first.
 Raise it only if a superuser uploads many rules files that campaigns pin; lower it on a very small host.
