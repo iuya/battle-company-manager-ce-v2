@@ -49,7 +49,9 @@ func (v *validator) charts() {
 		}
 		v.chart(Join(Idx("paths", i), "rows"), rs, p.Dice, "path")
 	}
-	v.scenarioTables(&c.ScenarioSelection)
+	if !v.doc.Archive {
+		v.scenarioTables(&c.ScenarioSelection)
+	}
 }
 
 func inWords(s string, words ...string) bool {

@@ -140,6 +140,7 @@ var fieldDocs = map[string]string{
 	"Document.name":          "The name of the ruleset as the admin page and the campaign form list it.",
 	"Document.version":       "The version of the ruleset, a string such as \"1.1\" (a number is read as text). With the name and the short hash it tells two uploads apart.",
 	"Document.credit":        "Who wrote the rules this file transcribes: a list of {name, author, version}. Informational; the app does not read it.",
+	"Document.archive":       "Set by the app, never by hand, on the pruned copy of the rules an ended campaign keeps as an archive: the scenario selection tables may then be empty, since no match is rolled again.",
 	"Document.extends":       "The name of the vanilla file the ruleset is played with, such as \"Middle-Earth Strategy Battle Game - 2024\". Write it: the upload uses this key to recognise a Battle Companies file (the checker alone does not need it). The file is not merged with anything.",
 	"Document.campaign":      "The engine parameters and tables.",
 	"Document.rules":         "The special rules (keywords) that Battle Companies defines or annotates, each defined once and named everywhere else.",
