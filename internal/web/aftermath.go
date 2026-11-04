@@ -1123,6 +1123,49 @@ func (s *Server) handleSheet(start bool) http.HandlerFunc {
 	}
 }
 
+// handleBeginAftermath is Start aftermath from outside the page (the match page, Your turn, the My Company banner): it starts the
+// aftermath with the prefilled sheet and opens the page on its first step; "Edit the sheet again" is the way back to the sheet. The sheet
+// opens instead when only the player can fill it in (needsSheet) or the core does not accept it as it is (the Relic has no holder yet).
+func (s *Server) handleBeginAftermath(w http.ResponseWriter, r *http.Request) {
+	base, m, co, ok := s.aftermathCtx(w, r)
+	if !ok {
+		return
+	}
+	user := *userFrom(r.Context())
+	page := matchPath(base.Campaign.ID, m.ID) + "/aftermath/" + itoa(int(co.ID))
+	a, err := s.campaigns.Aftermath(r.Context(), user, base.Campaign.ID, m.ID, co.ID)
+	if errors.Is(err, core.ErrRefused) {
+		redirect(w, r, page) // the page says why
+		return
+	}
+	if s.fail(w, r, err) {
+		return
+	}
+	if a.Status != core.AftermathPending { // a second press, or somebody else, has already moved it on
+		redirect(w, r, page)
+		return
+	}
+	if a.Access != core.AftermathEdit {
+		s.refuse(w, r, http.StatusForbidden, "Only the owner of the company can start its aftermath.")
+		return
+	}
+	if needsSheet(a) {
+		redirect(w, r, page)
+		return
+	}
+	_, err = s.campaigns.StartAftermath(r.Context(), user, base.Campaign.ID, m.ID, co.ID, a.Revision, a.Input)
+	if err != nil && !errors.Is(err, core.ErrInvalidAftermath) && !errors.Is(err, core.ErrAftermathChanged) && !errors.Is(err, core.ErrRefused) && s.fail(w, r, err) {
+		return
+	}
+	redirect(w, r, page)
+}
+
+// needsSheet says that a pending aftermath cannot start without the player: nothing about the game was recorded, so the sheet is the only
+// account of it and, with no casualty, starting would finish it for good; or the MVP votes tied and the owner chooses.
+func needsSheet(a core.Aftermath) bool {
+	return a.Input.Blank() || (a.MVP != nil && len(a.MVP.Tied) > 0)
+}
+
 // handleReopenSheet unlocks the sheet again before the first casualty roll.
 func (s *Server) handleReopenSheet(w http.ResponseWriter, r *http.Request) {
 	base, m, co, ok := s.aftermathCtx(w, r)

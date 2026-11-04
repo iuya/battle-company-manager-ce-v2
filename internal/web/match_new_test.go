@@ -167,7 +167,7 @@ func TestYourTurnListsWhatWaitsOnTheViewer(t *testing.T) {
 	f.pending = map[int64][]core.AftermathRef{1: {{MatchID: 3, MatchNumber: 3, CompanyID: 1, Status: core.AftermathPending}}}
 	for _, path := range []string{"/campaigns/7/matches", "/campaigns/7"} {
 		body := f.do(f.signedIn(httpGet(path))).Body.String()
-		for _, want := range []string{`id="your-turn"`, "Vote the MVP and confirm the end of Match 25", `href="/campaigns/7/matches/25"`, "Start the aftermath of Match 3", `href="/campaigns/7/matches/3/aftermath/1"`} {
+		for _, want := range []string{`id="your-turn"`, "Vote the MVP and confirm the end of Match 25", `href="/campaigns/7/matches/25"`, "Start the aftermath of Match 3", `action="/campaigns/7/matches/3/aftermath/1/begin"`} {
 			if !strings.Contains(body, want) {
 				t.Errorf("%s lacks %q", path, want)
 			}

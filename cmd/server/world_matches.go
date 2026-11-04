@@ -138,6 +138,15 @@ func (w *world) matchCampaign() {
 	t = w.spare(c, 2)
 	w.played(c, "Chance Encounter", outcome{winner: 2}, []*wco{t[0]}, []*wco{t[1]})
 
+	// played live and ended, the aftermath not started: Start aftermath skips the sheet, into the casualty's roll for one and the summary for the other
+	t = w.spare(c, 2)
+	m = w.newMatchOn(c, "Hold the Line", []*wco{t[0]}, []*wco{t[1]})
+	_, _, warriors := w.roster(t[0])
+	w.try("a Warrior falls", w.liveAs(t[0], m, core.LiveAction{Kind: core.LiveDied, UnitID: warriors[0].ID, Note: "Fell holding the line"}))
+	_, _, warriors = w.roster(t[1])
+	w.try("a Warrior leaves the table", w.liveAs(t[1], m, core.LiveAction{Kind: core.LiveRetreat, UnitID: warriors[0].ID, Why: "left"}))
+	w.endThroughSheets(c, m, t[0], t[1], true)
+
 	// ended and reopened by an administrator: the history shows both; open again, so the companies are in it
 	t = w.spare(c, 2)
 	m = w.played(c, "Hold the Line", outcome{draw: true}, []*wco{t[0]}, []*wco{t[1]})
@@ -188,6 +197,18 @@ func (w *world) sheetEnd(c *wcamp, x, y *wco, confirm bool) {
 	if l, _, _ := w.roster(x); l.ID != 0 { // the game has started: a point of Might spent
 		w.try("spend Might", w.liveAs(x, m, core.LiveAction{Kind: core.LiveStatChange, UnitID: l.ID, Stat: "might", Delta: -1}))
 	}
+	if m = w.endThroughSheets(c, m, x, y, confirm); !confirm {
+		return
+	}
+	for _, co := range []*wco{x, y} { // their aftermaths are waived so the companies are free
+		_, err := w.c().WaiveAftermath(w.ctx, c.org, c.id, m.ID, co.id, "Not played in the demo: waived to free the company")
+		w.must("waive the aftermath of "+co.name, err)
+	}
+}
+
+// endThroughSheets is the end of the End match and Confirm sheets: the result, the proposer's MVP vote and the proposal; with confirm, the
+// rival's vote and Confirm too.
+func (w *world) endThroughSheets(c *wcamp, m core.Match, x, y *wco, confirm bool) core.Match {
 	vote := func(voter, of *wco) {
 		if l, _, _ := w.roster(of); l.ID != 0 {
 			_, _, err := w.c().Apply(w.ctx, voter.user, c.id, m.ID, of.id, core.LiveAction{Kind: core.LiveMVPVote, UnitID: l.ID})
@@ -200,13 +221,10 @@ func (w *world) sheetEnd(c *wcamp, x, y *wco, confirm bool) {
 	m, err = w.c().ProposeEnd(w.ctx, x.user, c.id, m.ID, m.Revision)
 	w.must("End match", err)
 	if !confirm {
-		return
+		return m
 	}
 	vote(y, x)
 	m, err = w.c().ConfirmEnd(w.ctx, y.user, c.id, m.ID, m.Revision)
 	w.must("Confirm", err)
-	for _, co := range []*wco{x, y} { // their aftermaths are waived so the companies are free
-		_, err := w.c().WaiveAftermath(w.ctx, c.org, c.id, m.ID, co.id, "Not played in the demo: waived to free the company")
-		w.must("waive the aftermath of "+co.name, err)
-	}
+	return m
 }

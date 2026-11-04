@@ -93,6 +93,7 @@ type matchesView struct {
 type yourTurn struct {
 	Text string // "Confirm the end of Match 25", "Start the aftermath of Match 3"
 	URL  string
+	Post bool   // URL is an action to send (Start the aftermath), not a page to open
 	Who  string // the viewer's company it is about, when they have several
 }
 
@@ -121,11 +122,10 @@ func (s *Server) yourTurns(r *http.Request, base campaignBase, matches []core.Ma
 			return nil, err
 		}
 		for _, ref := range refs {
-			verb := "Continue"
+			t := yourTurn{Text: "Continue the aftermath of Match " + itoa(ref.MatchNumber), URL: matchPath(id, ref.MatchID) + "/aftermath/" + itoa(int(co.ID))}
 			if ref.Status == core.AftermathPending {
-				verb = "Start"
+				t.Text, t.URL, t.Post = "Start the aftermath of Match "+itoa(ref.MatchNumber), t.URL+"/begin", true
 			}
-			t := yourTurn{Text: verb + " the aftermath of Match " + itoa(ref.MatchNumber), URL: matchPath(id, ref.MatchID) + "/aftermath/" + itoa(int(co.ID))}
 			if several {
 				t.Who = co.Name
 			}

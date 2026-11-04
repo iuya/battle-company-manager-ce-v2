@@ -209,7 +209,7 @@ It **waives their aftermaths** through the organiser's waive path (`WaiveAfterma
 Every match that must stay open or unfinished has companies of its own, played by gallery accounts (`<company>@example.com`, joined to this campaign).
 The aftermath wards play the aftermaths for real.
 
-"Matches: every scenario and every state" has 24 matches; open the Matches page and filter by state:
+"Matches: every scenario and every state" has 28 matches; open the Matches page and filter by state:
 
 - Match 1: **open, no scenario**.
 - Matches 2 to 19: **one per rulebook scenario**, all 18 (the three tables of six), each created with its scenario as the new
@@ -225,7 +225,8 @@ The aftermath wards play the aftermaths for real.
 - **Played live, end pending** (`sheetEnd`): the end proposed through the End match sheet (winner and the proposer's MVP vote), waiting
   for the rival's Confirm (the *ending* phase; Your turn on the rival's Matches page).
 - **Played live and ended through the sheets**: End match, then the rival's Confirm with their own MVP vote.
-- **Ended, aftermath not started** (Chance Encounter): both companies are locked until it is played.
+- **Ended, aftermath not started** (Chance Encounter): both companies are locked until it is played. Nothing was tracked, so **Start aftermath** opens the sheet.
+- **Played live and ended, aftermath not started** (Hold the Line): **Start aftermath** skips the sheet. The first company has a Warrior who fell, so it lands on the injury roll, with **Edit the sheet again**; the second has a Warrior who left the table and no casualty, so it lands on the summary.
 - **Ended, reopened by an administrator, result corrected** (Hold the Line): the match history shows end, reopen and the new
   result; the match is open again.
 
@@ -235,7 +236,7 @@ Ward 1 (matches 1 to 4 of the campaign):
 
 | Match | Company (owner) | State |
 |---|---|---|
-| 1, Seize Ground | Rohirrim waiting at the gate (Éowyn) | **not started** |
+| 1, Seize Ground | Rohirrim waiting at the gate (Éowyn) | **not started**; nothing was tracked, so **Start aftermath** opens the sheet |
 | | Orcs with a half-filled sheet (Sauron) | **draft sheet** saved (a casualty, a unit that left the board, Against the Odds: Influence) |
 | 2, Chance Encounter | Rangers with a Scratch to decide (Aragorn) | **injuries**: a Sergeant's *Just a Scratch* waits for "roll again / miss the next game" |
 | | Galadhrim whose Leader fell (Galadriel) | **injuries**: the Leader is dead; **succession** waits for a new Leader |

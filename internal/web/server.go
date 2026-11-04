@@ -497,6 +497,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/override", s.protected(s.handleEnd(endOverride)))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/reopen", s.protected(s.handleReopenMatch))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/aftermath/{company}", s.protected(s.handleAftermath))
+	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/aftermath/{company}/begin", s.protected(s.handleBeginAftermath))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/aftermath/{company}/sheet", s.protected(s.handleSheet(false)))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/aftermath/{company}/start", s.protected(s.handleSheet(true)))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/aftermath/{company}/reopen-sheet", s.protected(s.handleReopenSheet))

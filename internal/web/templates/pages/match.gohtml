@@ -344,7 +344,11 @@
           {{with .Owner}}<p class="text-sm text-muted">{{.}}</p>{{end}}
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <a class="btn {{if and .Edit .Ref.Status.Locks (not $.Match.Practice)}}btn-primary{{else}}btn-secondary{{end}}" href="/campaigns/{{$.Campaign.ID}}/matches/{{.Ref.MatchID}}/aftermath/{{.Ref.CompanyID}}">{{if and .Edit .Ref.Status.Locks}}{{if eq (printf "%s" .Ref.Status) "pending"}}Start aftermath{{else}}Continue{{end}}<span class="sr-only"> of {{.Ref.CompanyName}}</span>{{else}}View<span class="sr-only"> the aftermath of {{.Ref.CompanyName}}</span>{{end}}</a>
+          {{if and .Edit (eq (printf "%s" .Ref.Status) "pending")}}
+          <form method="post" action="/campaigns/{{$.Campaign.ID}}/matches/{{.Ref.MatchID}}/aftermath/{{.Ref.CompanyID}}/begin" class="contents"><button class="btn btn-primary">Start aftermath<span class="sr-only"> of {{.Ref.CompanyName}}</span></button></form>
+          {{else}}
+          <a class="btn {{if and .Edit .Ref.Status.Locks (not $.Match.Practice)}}btn-primary{{else}}btn-secondary{{end}}" href="/campaigns/{{$.Campaign.ID}}/matches/{{.Ref.MatchID}}/aftermath/{{.Ref.CompanyID}}">{{if and .Edit .Ref.Status.Locks}}Continue<span class="sr-only"> of {{.Ref.CompanyName}}</span>{{else}}View<span class="sr-only"> the aftermath of {{.Ref.CompanyName}}</span>{{end}}</a>
+          {{end}}
           {{if .Waive}}<button type="button" class="btn btn-ghost" x-show="!waiving" @click="waiving = true" :aria-expanded="waiving">Waive<span class="sr-only"> the aftermath of {{.Ref.CompanyName}}</span></button>{{end}}
         </div>
       </div>

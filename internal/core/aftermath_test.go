@@ -569,3 +569,26 @@ func TestExperienceSkipsWanderers(t *testing.T) {
 		t.Errorf("an ordinary unit has %d level-ups waiting", n)
 	}
 }
+
+func TestAftermathInputBlank(t *testing.T) {
+	took := map[string]int{participatedKey: 1}
+	tests := []struct {
+		name string
+		in   AftermathInput
+		want bool
+	}{
+		{"everybody survived and took part", AftermathInput{Models: []ModelSheet{{Outcome: OutcomeSurvived, Gains: took}, {Outcome: OutcomeSurvived, Gains: map[string]int{}}}}, true},
+		{"a gain switched off", AftermathInput{Models: []ModelSheet{{Outcome: OutcomeSurvived, Gains: map[string]int{participatedKey: 1, GainWoundedEnemy: 0}}}}, true},
+		{"only what the End match sheets ask", AftermathInput{Models: []ModelSheet{{Outcome: OutcomeSurvived, Gains: map[string]int{participatedKey: 1, GainMVP: 1, GainObjective: 1}}}}, true},
+		{"a casualty", AftermathInput{Models: []ModelSheet{{Outcome: OutcomeCasualty, Gains: took}}}, false},
+		{"a unit that fled", AftermathInput{Models: []ModelSheet{{Outcome: OutcomeFled, Gains: took}}}, false},
+		{"a gain tracked in the game", AftermathInput{Models: []ModelSheet{{Outcome: OutcomeSurvived, Gains: map[string]int{participatedKey: 1, GainWoundedEnemy: 1}}}}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.in.Blank(); got != tt.want {
+				t.Errorf("Blank() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

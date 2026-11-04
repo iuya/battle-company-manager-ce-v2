@@ -35,7 +35,7 @@
 {{with .Aftermaths}}{{if not $.ReadOnly}}
 <section class="alert alert-info mt-4 space-y-2" role="region" aria-label="Aftermath to finish" id="aftermath-banner">
   <p class="font-medium">The War's Aftermath is waiting. The company is locked (no recruiting, buying, dropping or healing) until each one is finished.</p>
-  <ul class="flex flex-wrap gap-2">{{range .}}<li><a class="btn btn-primary !min-h-9" href="/campaigns/{{$.Campaign.ID}}/matches/{{.MatchID}}/aftermath/{{.CompanyID}}">Match {{.MatchNumber}}: {{if eq (printf "%s" .Status) "pending"}}Start{{else}}Continue{{end}} the aftermath</a></li>{{end}}</ul>
+  <ul class="flex flex-wrap gap-2">{{range .}}<li>{{if eq (printf "%s" .Status) "pending"}}<form method="post" action="/campaigns/{{$.Campaign.ID}}/matches/{{.MatchID}}/aftermath/{{.CompanyID}}/begin"><button class="btn btn-primary !min-h-9">Match {{.MatchNumber}}: Start the aftermath</button></form>{{else}}<a class="btn btn-primary !min-h-9" href="/campaigns/{{$.Campaign.ID}}/matches/{{.MatchID}}/aftermath/{{.CompanyID}}">Match {{.MatchNumber}}: Continue the aftermath</a>{{end}}</li>{{end}}</ul>
 </section>
 {{end}}{{end}}
 

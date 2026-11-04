@@ -139,4 +139,31 @@ export default async function (h) {
     }
     assert.ok(done, 'the second match of the ward');
   });
+
+  await h.step('Start aftermath on the match page: a blank sheet opens with nothing started; a match played live skips it, into the roll or the summary', async () => {
+    const admin = await h.session('admin@example.com');
+    const cid = await campaignId(admin, 'Matches: every scenario and every state');
+    await admin.goto(`/campaigns/${cid}/matches`);
+    const matches = await admin.page.$$eval('main a[href]', (a) => [...new Set(a.map((x) => x.getAttribute('href')).filter((x) => /\/matches\/\d+$/.test(x)))]);
+    const pending = {};
+    for (const m of matches) {
+      await admin.goto(m);
+      const n = await admin.page.$$eval('#aftermath form[action$="/begin"]', (f) => f.length);
+      if (n) pending[/Chance Encounter/.test(await admin.text()) ? 'blank' : 'live'] = m;
+    }
+    assert.ok(pending.blank && pending.live, `both demo matches wait: ${JSON.stringify(pending)}`);
+    const start = async (m) => {
+      await admin.goto(m);
+      await admin.page.click('#aftermath form[action$="/begin"] button');
+      await admin.page.waitForFunction(() => /\/aftermath\/\d+$/.test(location.pathname), { timeout: 8000 });
+      await admin.settle(300);
+      return admin.page.evaluate(() => ({ sheet: document.querySelectorAll('main fieldset.unit').length > 0, edit: document.body.innerText.includes('Edit the sheet again'), done: !!document.querySelector('[data-change-summary]') }));
+    };
+    assert.deepEqual(await start(pending.blank), { sheet: true, edit: false, done: false }, 'nothing was tracked: the sheet opens');
+    await admin.goto(pending.blank);
+    assert.equal(await admin.page.$$eval('#aftermath form[action$="/begin"]', (f) => f.length), 2, 'and nothing started');
+    assert.deepEqual(await start(pending.live), { sheet: false, edit: true, done: false }, 'a casualty: on to its roll, with the way back to the sheet');
+    assert.deepEqual(await start(pending.live), { sheet: false, edit: false, done: true }, 'no casualty: on to the summary');
+    await admin.close?.();
+  });
 }

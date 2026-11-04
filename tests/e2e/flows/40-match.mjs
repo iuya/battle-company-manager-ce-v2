@@ -206,17 +206,23 @@ export default async function (h) {
     await sauron.waitText('Ended');
   });
 
-  await h.step('aftermath: no casualties, Start aftermath finishes it at once', async () => {
-    await eowyn.goto(`/campaigns/${cid}/matches/${mid}/aftermath/${eCo}`);
-    await eowyn.click('main button', 'Start aftermath');
+  await h.step('aftermath: no casualties, Start aftermath on the match page finishes it at once', async () => {
+    await eowyn.goto(`/campaigns/${cid}/matches/${mid}`);
+    await eowyn.click('#aftermath button', 'Start aftermath');
     await eowyn.settle(600);
     await eowyn.page.waitForSelector('[data-change-summary]');
     await eowyn.goto(`/campaigns/${cid}/my-company`);
     assert.ok(!(await eowyn.has('The company is locked until the match ends')), 'the company is unlocked');
   });
 
-  await h.step('aftermath: the other player rolls for an injury and the aftermath finishes on its own', async () => {
-    await sauron.goto(`/campaigns/${cid}/matches/${mid}/aftermath/${sCo}`);
+  await h.step('aftermath: Start aftermath on the match page skips the sheet; the other player can go back to it, rolls for an injury and the aftermath finishes on its own', async () => {
+    await sauron.goto(`/campaigns/${cid}/matches/${mid}`);
+    await sauron.click('#aftermath button', 'Start aftermath');
+    await sauron.waitText('Edit the sheet again');
+    assert.ok(new URL(sauron.page.url()).pathname.endsWith(`/aftermath/${sCo}`), 'the aftermath page opens');
+    assert.equal(await sauron.page.$$eval('main fieldset.unit', (f) => f.length), 0, 'the sheet is not the step in front of the player');
+    await sauron.click('main button', 'Edit the sheet again');
+    await sauron.page.waitForSelector('main fieldset.unit');
     await sauron.click('main button', 'Start aftermath');
     await sauron.settle(500);
     const dice = await sauron.page.$$('main select');

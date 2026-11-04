@@ -340,6 +340,22 @@ type ModelSheet struct {
 	UsesItem string `json:",omitempty"`
 }
 
+// Blank says that the sheet records nothing about how the game went: everybody survived, and the only gains are taking part and what the
+// End match sheets ask of every match (the MVP, the objective). It is what a match nobody tracked gives, so nothing tells whether it is true.
+func (in AftermathInput) Blank() bool {
+	for _, m := range in.Models {
+		if m.Outcome != OutcomeSurvived {
+			return false
+		}
+		for k, n := range m.Gains {
+			if k != participatedKey && k != GainMVP && k != GainObjective && n != 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // Took says whether the unit took part (the "participated" gain).
 func (m ModelSheet) Took() bool { return m.Gains[participatedKey] > 0 }
 

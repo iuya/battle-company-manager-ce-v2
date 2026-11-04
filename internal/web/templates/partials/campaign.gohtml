@@ -61,7 +61,7 @@
 {{define "your_turn"}}{{if .}}
 <section class="alert alert-info mt-4 space-y-2" aria-labelledby="your-turn-title" id="your-turn">
   <h2 id="your-turn-title" class="!text-lg">Your turn</h2>
-  <ul class="flex flex-wrap gap-2">{{range .}}<li><a class="btn btn-primary !min-h-9" href="{{.URL}}">{{.Text}}{{with .Who}} <span class="font-normal">· {{.}}</span>{{end}}</a></li>{{end}}</ul>
+  <ul class="flex flex-wrap gap-2">{{range .}}<li>{{if .Post}}<form method="post" action="{{.URL}}"><button class="btn btn-primary !min-h-9">{{.Text}}{{with .Who}} <span class="font-normal">· {{.}}</span>{{end}}</button></form>{{else}}<a class="btn btn-primary !min-h-9" href="{{.URL}}">{{.Text}}{{with .Who}} <span class="font-normal">· {{.}}</span>{{end}}</a>{{end}}</li>{{end}}</ul>
 </section>
 {{end}}{{end}}
 

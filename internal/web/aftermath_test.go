@@ -48,7 +48,7 @@ func TestAftermathCardForAPlayer(t *testing.T) {
 	}
 	// frodo owns Rangers (Start) but not Raiders (View); no Waive for a player
 	card := body[strings.Index(body, `id="aftermath"`):]
-	if !strings.Contains(card, `/aftermath/1">Start aftermath<`) || !strings.Contains(card, `/aftermath/2">View<`) {
+	if !strings.Contains(card, `/aftermath/1/begin"`) || !strings.Contains(card, `/aftermath/2">View<`) {
 		t.Errorf("Start for the owner and View for the others:\n%s", card)
 	}
 	if strings.Contains(card, "Waive") {
@@ -219,6 +219,49 @@ func TestSaveAndStartTheSheet(t *testing.T) {
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Aftermath started") || !strings.Contains(rec.Body.String(), "Edit the sheet again") {
 		t.Errorf("start: %d\n%s", rec.Code, rec.Body.String())
 	}
+}
+
+// Start aftermath from the match page: the prefilled sheet starts at once and the page opens on its first step.
+func TestBeginAftermathStartsWithThePrefilledSheet(t *testing.T) {
+	f := amFixture(t)
+	a := amState(core.AftermathPending, core.AftermathEdit)
+	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(a, nil)
+	f.camp.EXPECT().StartAftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1), 2, a.Input).Return(amState(core.AftermathInjuries, core.AftermathEdit), nil)
+	if rec := amPost(f, "/begin", nil); rec.Code != http.StatusNoContent || rec.Header().Get("HX-Redirect") != amPath {
+		t.Errorf("%d %q\n%s", rec.Code, rec.Header().Get("HX-Redirect"), rec.Body.String())
+	}
+}
+
+// The sheet opens instead, with nothing started, when the player has something to say first. A rejected sheet and a second press land on the page too.
+func TestBeginAftermathOpensThePageWithoutStarting(t *testing.T) {
+	tied := amState(core.AftermathPending, core.AftermathEdit)
+	tied.MVP = &core.MVPHint{Tied: []int64{10, 11}}
+	blank := amState(core.AftermathPending, core.AftermathEdit)
+	blank.Input.Models[1].Outcome = core.OutcomeSurvived
+	for name, a := range map[string]core.Aftermath{"nothing recorded": blank, "tied MVP votes": tied, "already started": amState(core.AftermathInjuries, core.AftermathEdit), "saved sheet": amState(core.AftermathSheet, core.AftermathEdit)} {
+		t.Run(name, func(t *testing.T) {
+			f := amFixture(t)
+			f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(a, nil)
+			if rec := amPost(f, "/begin", nil); rec.Code != http.StatusNoContent || rec.Header().Get("HX-Redirect") != amPath {
+				t.Errorf("%d %q", rec.Code, rec.Header().Get("HX-Redirect"))
+			}
+		})
+	}
+	t.Run("the sheet is refused", func(t *testing.T) {
+		f := amFixture(t)
+		f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(amState(core.AftermathPending, core.AftermathEdit), nil)
+		f.camp.EXPECT().StartAftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1), 2, gomock.Any()).Return(core.Aftermath{}, errors.Join(core.ErrInvalidAftermath, errors.New("say which unit holds the Relic")))
+		if rec := amPost(f, "/begin", nil); rec.Code != http.StatusNoContent || rec.Header().Get("HX-Redirect") != amPath {
+			t.Errorf("%d %q", rec.Code, rec.Header().Get("HX-Redirect"))
+		}
+	})
+	t.Run("a reader cannot start it", func(t *testing.T) {
+		f := amFixture(t)
+		f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(amState(core.AftermathPending, core.AftermathNone), nil)
+		if rec := amPost(f, "/begin", nil); rec.Code != http.StatusForbidden {
+			t.Errorf("%d", rec.Code)
+		}
+	})
 }
 
 func TestSheetErrorsComeBesideTheUnitAndKeepWhatWasTyped(t *testing.T) {
