@@ -157,6 +157,9 @@ type CampaignDetail struct {
 	// Archived says the campaign has ended for good and is a read-only document (docs/archive.md): nothing in it can change, and the pages
 	// that need live data (live matches, aftermaths, the armoury, recruiting) are not offered.
 	Archived bool
+	// Hashes key the rule set of the campaign in the loader. They are the hashes of Rulesets, except for an archive, whose rules are its own
+	// pruned copy under hashes of their own.
+	Hashes RulesetHashes
 }
 
 // CampaignMember is a member of a campaign, with or without a company.

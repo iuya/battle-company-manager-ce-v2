@@ -243,10 +243,12 @@ func (cs campaignStore) Get(ctx context.Context, userID, id int64) (core.Campaig
 		if d.Rulesets, err = cs.s.archivedFiles(ctx, id); err != nil {
 			return core.CampaignDetail{}, err
 		}
+		d.Hashes = archiveHashes(id)
 	} else {
 		for _, i := range infos {
 			d.Rulesets = append(d.Rulesets, core.RulesetInfo{Kind: core.RulesetKind(i.kind), Hash: i.hash, Name: i.name, Version: i.version, Default: i.def})
 		}
+		d.Hashes = core.RulesetHashes{Vanilla: infos[0].hash, BattleCompanies: infos[1].hash, Glossary: infos[2].hash}
 	}
 	if d.Companies, err = readOwnCompanies(ownRaw); err != nil {
 		return core.CampaignDetail{}, err
