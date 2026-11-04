@@ -259,7 +259,7 @@ func BuildArchive(rs *RuleSet, src ArchiveSource) (Archive, error) {
 	}
 }
 
-var missingName = regexp.MustCompile(`no (unit|rule|gear|path|power|spell|scenario|keyword|item) "([^"]+)"`)
+var missingName = regexp.MustCompile(`no (unit|rule|gear|path|power|spell|scenario|keyword|item|ring labelled) "([^"]+)"`)
 
 // absorb adds the names a loading error says are missing to the use; false when it found none that was not there already.
 func (u *ArchiveUse) absorb(err error) bool {
@@ -270,6 +270,14 @@ func (u *ArchiveUse) absorb(err error) bool {
 	grew := false
 	for _, is := range rep.Issues() {
 		for _, m := range missingName.FindAllStringSubmatch(is.Message, -1) {
+			if m[1] == "ring labelled" { // the label of an aura of a rule, an item or a power: keep all three that may carry it
+				for _, set := range []map[string]bool{u.Rules, u.Gear, u.Powers} {
+					set[baseName(m[2])] = true
+				}
+				u.Terms[baseName(m[2])] = true
+				grew = true
+				continue
+			}
 			set := map[string]map[string]bool{"unit": u.Units, "rule": u.Rules, "gear": u.Gear, "item": u.Gear, "path": u.Paths, "power": u.Powers, "spell": u.Powers,
 				"scenario": u.Scenarios, "keyword": u.Keywords}[m[1]]
 			n := baseName(m[2])
@@ -385,6 +393,52 @@ func closeUse(rs *RuleSet, rawBC []byte, use *ArchiveUse) error {
 	for _, g := range jlist(doc, "gear") {
 		if use.Gear[baseName(nameOf(g))] {
 			collect(g, "", func(r string) { use.add(use.Rules, r) })
+		}
+	}
+	// A rule whose rings every hero draws ("Stand Fast", from: hero) is on no unit's list, and a ring that replaces another names its label: both
+	// stay with the rules that carry the rings.
+	labels := map[string]string{} // label (or rule name) of a ring -> the rule that carries it
+	// The engine reads some entries whatever the units carry: the minor abilities a level-up names with a parameter (Combat Synergy: the rule
+	// text is the definition of the minor rule), and the weapon modifier (Envenom Weapon) with the rule it gives (Poisoned Attacks), which
+	// decides what a weapon can be given. They are a few lines each.
+	for _, r := range jlist(doc, "rules") {
+		if m := r.(obj); m["minor"] != nil || m["parameter"] != nil {
+			use.add(use.Rules, nameOf(r))
+		}
+	}
+	for _, g := range jlist(doc, "gear") {
+		if cw, ok := g.(obj)["grantsForChosenWeapon"].(obj); ok {
+			use.add(use.Gear, nameOf(g))
+			use.add(use.Rules, str(cw["rule"]))
+		}
+	}
+	for _, r := range jlist(doc, "rules") {
+		for _, a := range jlist(r.(obj), "auras") {
+			am := a.(obj)
+			if str(am["from"]) == "hero" {
+				use.add(use.Rules, nameOf(r))
+			}
+			l := str(am["label"])
+			if l == "" {
+				l = nameOf(r)
+			}
+			labels[baseName(l)] = nameOf(r)
+		}
+	}
+	for grew := true; grew; {
+		grew = false
+		for _, r := range jlist(doc, "rules") {
+			if !use.Rules[baseName(nameOf(r))] {
+				continue
+			}
+			for _, a := range jlist(r.(obj), "auras") {
+				for _, rep := range jlist(a.(obj), "replaces") {
+					if owner, ok := labels[baseName(str(rep))]; ok && !use.Rules[baseName(owner)] {
+						use.add(use.Rules, owner)
+						grew = true
+					}
+				}
+			}
 		}
 	}
 	for _, r := range jlist(doc, "rules") {
@@ -590,6 +644,13 @@ func pruneBC(raw []byte, use *ArchiveUse) (json.RawMessage, error) {
 		scenarios[n] = true
 	}
 	o["archive"] = true
+	// the Rendezvous and Vantage Point ranges are parameters of the recruit rules that name the scenario they come from: those scenarios stay,
+	// so the archive gives the same rules as the file did
+	for _, e := range jlist(o["campaign"].(obj), "aftermathEffects") {
+		if k := str(e.(obj)["key"]); (k == PerkRendezvous || k == PerkVantagePoint) && str(e.(obj)["scenario"]) != "" {
+			scenarios[baseName(str(e.(obj)["scenario"]))] = true
+		}
+	}
 	if c, ok := o["campaign"].(obj); ok {
 		if sel, ok := c["scenarioSelection"].(obj); ok {
 			sel["tables"] = []any{}
@@ -746,6 +807,9 @@ func digestUnit(u CompanyUnit) string {
 	}
 	for _, k := range u.Keywords.Model {
 		fmt.Fprintf(&b, "<%s:%s>", k.Name, k.Text)
+	}
+	for _, a := range u.Auras {
+		fmt.Fprintf(&b, "(%s|%s|%v|%v|%s|%s)", a.ID, a.Label, a.Entries, a.Radius, a.Tip, strings.Join(a.Rules, ","))
 	}
 	return b.String()
 }
