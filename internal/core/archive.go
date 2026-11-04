@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -233,17 +234,50 @@ func BuildArchive(rs *RuleSet, src ArchiveSource) (Archive, error) {
 		st.Recruit, st.Aftermaths, st.Perks, st.PerksUsed, st.OpenMatch = RecruitProgress{}, nil, nil, nil, nil
 		a.Companies = append(a.Companies, st)
 	}
-	var err error
-	if a.Rules.Vanilla, err = pruneVanilla(rs, src.Raw.Vanilla, use); err != nil {
-		return a, fmt.Errorf("vanilla: %w", err)
+	// The loader is the judge of what must stay: a name it misses (a rule a kept item grants, a unit a figure file names) is added to the use
+	// and the files are pruned again, until the triple loads. The closure above makes this rare; the loop makes it safe.
+	for round := 0; ; round++ {
+		var err error
+		if a.Rules.Vanilla, err = pruneVanilla(rs, src.Raw.Vanilla, use); err != nil {
+			return a, fmt.Errorf("vanilla: %w", err)
+		}
+		if a.Rules.BattleCompanies, err = pruneBC(src.Raw.BattleCompanies, use); err != nil {
+			return a, fmt.Errorf("battle companies: %w", err)
+		}
+		if a.Rules.Glossary, err = pruneGlossary(rs, src.Raw.Glossary, use); err != nil {
+			return a, fmt.Errorf("glossary: %w", err)
+		}
+		_, err = a.LoadPruned()
+		if err == nil {
+			return a, nil
+		}
+		if round >= 12 || !use.absorb(err) {
+			return a, fmt.Errorf("the pruned rules do not load: %w", err)
+		}
 	}
-	if a.Rules.BattleCompanies, err = pruneBC(src.Raw.BattleCompanies, use); err != nil {
-		return a, fmt.Errorf("battle companies: %w", err)
+}
+
+var missingName = regexp.MustCompile(`no (unit|rule|gear|path|power|spell|scenario|keyword|item) "([^"]+)"`)
+
+// absorb adds the names a loading error says are missing to the use; false when it found none that was not there already.
+func (u *ArchiveUse) absorb(err error) bool {
+	var rep *RulesetReport
+	if !errors.As(err, &rep) {
+		return false
 	}
-	if a.Rules.Glossary, err = pruneGlossary(rs, src.Raw.Glossary, use); err != nil {
-		return a, fmt.Errorf("glossary: %w", err)
+	grew := false
+	for _, is := range rep.Issues() {
+		for _, m := range missingName.FindAllStringSubmatch(is.Message, -1) {
+			set := map[string]map[string]bool{"unit": u.Units, "rule": u.Rules, "gear": u.Gear, "item": u.Gear, "path": u.Paths, "power": u.Powers, "spell": u.Powers,
+				"scenario": u.Scenarios, "keyword": u.Keywords}[m[1]]
+			n := baseName(m[2])
+			if !set[n] || !u.Terms[n] {
+				set[n], u.Terms[n] = true, true
+				grew = true
+			}
+		}
 	}
-	return a, nil
+	return grew
 }
 
 // closeUse adds what the loader insists on once the kept pieces are chosen: the units a kept company's charts and advancements name (a company
@@ -282,6 +316,63 @@ func closeUse(rs *RuleSet, rawBC []byte, use *ArchiveUse) error {
 			if key == "rule" || key == "withRule" {
 				into(x)
 			}
+		}
+	}
+	// a company stays whole, so the gear its charts, starting units and promotions name stays too (a name that is no gear matches nothing)
+	for _, c := range jlist(doc, "companies") {
+		if !use.Companies[baseName(nameOf(c))] {
+			continue
+		}
+		var gear func(v any, key string)
+		gear = func(v any, key string) {
+			switch x := v.(type) {
+			case obj:
+				for k, e := range x {
+					gear(e, k)
+				}
+			case []any:
+				for _, e := range x {
+					gear(e, key)
+				}
+			case string:
+				switch key {
+				case "with", "equipment", "wargear", "gear", "drops", "replaces", "item", "items":
+					use.add(use.Gear, x)
+				}
+			}
+		}
+		gear(c, "")
+	}
+	// kept gear names other gear (what cancels it, what it is priced as): follow those names to the end; the file is small and a name is a name
+	allGear := map[string]bool{}
+	for _, g := range jlist(doc, "gear") {
+		allGear[baseName(nameOf(g))] = true
+	}
+	for grew := true; grew; {
+		grew = false
+		for _, g := range jlist(doc, "gear") {
+			if !use.Gear[baseName(nameOf(g))] {
+				continue
+			}
+			var walk func(v any)
+			walk = func(v any) {
+				switch x := v.(type) {
+				case obj:
+					for _, e := range x {
+						walk(e)
+					}
+				case []any:
+					for _, e := range x {
+						walk(e)
+					}
+				case string:
+					if n := baseName(x); allGear[n] && !use.Gear[n] {
+						use.add(use.Gear, x)
+						grew = true
+					}
+				}
+			}
+			walk(g)
 		}
 	}
 	for _, p := range jlist(doc, "paths") {
