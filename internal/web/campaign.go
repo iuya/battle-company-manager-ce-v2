@@ -70,7 +70,7 @@ func (b campaignBase) CanInvite() bool {
 type overviewView struct {
 	campaignBase
 	Recent   []core.Match
-	YourTurn []yourTurn // what waits on the viewer (docs/frontend.md, "Matches")
+	YourTurn []yourTurn // what waits on the viewer (docs/frontend-campaigns.md, "Matches")
 	// NewOrganisers are the players the viewer could hand the campaign over to (empty when they may not hand over).
 	NewOrganisers []handoverCandidate
 }
@@ -559,7 +559,7 @@ func creatureTip(c core.UnitCreatureRef) string {
 // other page.
 func (b campaignBase) Own() *core.CampaignCompany { return b.Current }
 
-// Switcher is whether the company chips show: the viewer owns two or more companies of the campaign (docs/frontend.md, "Company switcher").
+// Switcher is whether the company chips show: the viewer owns two or more companies of the campaign (docs/frontend-campaigns.md, "Company switcher").
 func (b campaignBase) Switcher() bool { return len(b.Campaign.Companies) > 1 }
 
 // OwnPath is the URL root of the owner pages of the company the page acts on: /campaigns/{id}/my-company/{company}.

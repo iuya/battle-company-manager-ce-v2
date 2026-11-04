@@ -4,7 +4,7 @@ Status: **implemented, awaiting the owner's manual test: all five phases written
 phase, Conventional Commits). The owner agreed every decision below in a design session on 2026-11-03; phases 1 to 5 are the
 order of work. When a phase lands, update this status line and the docs it names, and keep [matches.md](matches.md),
 [live-match.md](live-match.md) and [aftermath.md](aftermath.md) describing the app as it then is. Related:
-[practice-match-spec.md](practice-match-spec.md), [multi-company-spec.md](multi-company-spec.md), [demo-world.md](demo-world.md).
+[practice-matches.md](practice-matches.md), [multi-company.md](multi-company.md), [demo-world.md](demo-world.md).
 
 Why: a match takes too many clicks, and every page shows more than the player needs at that moment. Measured at 375 px on the demo
 world before the change: the open match page is ~4,500 px tall (nine cards at once: two side cards, scenario, roles, Against the Odds,
@@ -67,7 +67,7 @@ Acceptance:
 Demo world and tests: the "Matches: every scenario and every state" campaign keeps matches created through the new input (scenario at
 creation), one with Against the Odds chosen at creation (`cmd/server/world_matches.go`); e2e `40-match`, `84-match-extras`, `98-several-companies`
 and `100-practice-match` updated, a new flow for the form (roll again, choose another, own companies order). Docs: [matches.md](matches.md)
-(match page header, scenario picker, new match), [multi-company-spec.md](multi-company-spec.md) (the Mine chip).
+(match page header, scenario picker, new match), [multi-company.md](multi-company.md) (the Mine chip).
 
 ## 3. Phase 2: match page
 
@@ -187,7 +187,7 @@ All five phases were written in one pass on `feat/simplify-matches`; nothing is 
   - Phase 5: compact campaign header; Your turn list (`yourTurns`, `your_turn`, `match_row` partials) on Matches and Overview; filters `?filter=mine|open|ended`; aftermath stepper shows only the applicable steps (`Steps`, `HasInjuries`, `HasLevelUps`), Done block with `ChangeSummary`, sheet review (`Review`, `Earned`, "+ add"), Against the Odds only taken bonuses (+ add), autosave (`/sheet?auto=1` answers `aftermath_bar`), no Finish button.
 - **Demo world** (`cmd/server/world_*.go`, `seed.go`): no VP, Fled, roles or turns; `endNow` casts the missing MVP votes (`voteMissing`); `played` creates the match with its scenario (`newMatchOn`); matches campaign adds Against the Odds at creation (`atoAtCreation`), an end pending confirmation and one ended through the sheets (`sheetEnd`); the Fog of War Rangers become Broken.
 - **Tests**: `make test` and `make test-integration` pass (core, web, postgres, cmd/server). New: `internal/web/match_new_test.go` (form, scenario card, Against the Odds block, Your turn), `internal/core/simplify_matches_test.go` (`CreateMatch` with scenario and Against the Odds, `PreviewAgainstTheOdds`, the scenario fixed once the game started, `LiveService.MissingVotes`), the free equipment choice finishing the aftermath, the vote tests in `match_end_test.go`.
-- **Docs**: `matches.md`, `live-match.md`, `aftermath.md`, `frontend.md`, `demo-world.md`, `multi-company-spec.md`, `docs/README.md`.
+- **Docs**: `matches.md`, `live-match.md`, `aftermath.md`, `frontend.md`, `demo-world.md`, `multi-company.md`, `docs/README.md`.
 - **e2e**: `40-match`, `81-aftermath-ui`, `83-fallback`, `84-match-extras`, `98-several-companies`, `100-practice-match` updated; new `110-new-match-form`; shared helpers `endMatch`, `confirmEnd`, `chooseScenario` in `tests/e2e/lib/util.mjs`; the runner names the server binary `.exe` on Windows.
 
 ### Left to do

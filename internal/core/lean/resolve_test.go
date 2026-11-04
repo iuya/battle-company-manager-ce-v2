@@ -200,3 +200,19 @@ func TestResolveMockLowerExactLookups(t *testing.T) {
 		t.Fatal(rep)
 	}
 }
+
+func TestResolveUnitRaceNeedsExtends(t *testing.T) {
+	_, _, rep := resolved(t, `"units":[{"name":"Goblin Brute","extends":"Ranger of Gondor","race":["Orc"]}]`, newFakeLower())
+	if len(rep.Issues) != 0 {
+		t.Fatalf("race on a unit with extends: %v", issueLines(rep))
+	}
+	_, _, rep = resolved(t, `"units":[{"name":"Goblin Brute","race":["Orc"],"profile":{"m":1},"points":3}]`, newFakeLower())
+	_, _, rep2 := resolved(t, `"units":[{"name":"Goblin Brute","extends":"Ranger of Gondor","race":["Goblin"]}]`, newFakeLower())
+	if l := strings.Join(issueLines(rep2), "\n"); !strings.Contains(l, `no race "Goblin"`) {
+		t.Errorf("an unknown race must be refused: %v", l)
+	}
+	lines := issueLines(rep)
+	if len(lines) == 0 || !strings.Contains(strings.Join(lines, "\n"), `needs an "extends"`) {
+		t.Errorf("race without extends must be refused: %v", lines)
+	}
+}

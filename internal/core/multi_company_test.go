@@ -9,7 +9,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// Several companies per player (docs/architecture.md, "Several companies per player"): the cap setting, the single ownership helper, creation rules, and
+// Several companies per player (docs/multi-company.md): the cap setting, the single ownership helper, creation rules, and
 // two companies of one owner in the services, in a match and in its aftermath.
 
 func TestCompanyCapReadsAbsentAndOutOfRangeAsOne(t *testing.T) {

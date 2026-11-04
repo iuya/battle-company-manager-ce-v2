@@ -1,37 +1,60 @@
 # Rules coverage: the rulebook against the app
 
-Every mechanic of the Battle Companies 2nd CE rules and what the app does with it: where it lives in the code or the docs, and the test that covers it. Read it to find
-where a rule is implemented or to see what the app deliberately leaves to the table.
+This page lists every mechanic of the Battle Companies 2nd CE rules and what the app does with it.
+For each one it names where the behaviour lives in the code or the docs, and which test covers it.
+Use it to find where a rule is implemented, or to see what the app deliberately leaves to the table.
 
-- **Source** is a line of `sources/battle_companies_rules.txt` (gitignored; read it there, nothing is copied here). `S202` is
-  line 202.
-- **Layer**: **CM** company management (roster, resources, between games); **PH** match and the phases around it (the game, the
-  War's Aftermath); **APP** app design, not a rule.
-- **Status**: **DONE** built and tested; **PARTIAL** built in part (the gap is named); **TODO** not built; **N-A** not in the
-  rulebook, played on the table, or decided not to build.
-- **Where** is the core file (`internal/core/`) or the docs page that holds the behaviour; **Test** is the test that covers it
-  (core tests unless a path says otherwise; `e2e` is the browser suite in `tests/e2e/flows`, see [testing.md](testing.md)).
-  Rules numbers and texts come from `definitions/` ([definitions.md](definitions.md)), never from constants in the code.
+## How to read the tables
 
-The rulebook has no campaign calendar, end, ranking or alliances: its loop is Muster, then repeat Step 1 Play a Game, Step 2
-War's Aftermath (1 Injuries, 2 Experience, 3 Progression, 4 Influence), Step 3 Company Management, Step 4 Calculate Ratings
-(S298-302, S1357, S1400). Kits exist only as Against the Odds items; "retirement" is an outcome of the injury chart.
+- **Source** is a line of `sources/battle_companies_rules.txt`, which is gitignored: read it there, nothing is copied here.
+  `S202` means line 202.
+- **Layer** is one of:
+  - **CM**: company management (roster, resources, between games);
+  - **PH**: the match and the phases around it (the game, the War's Aftermath);
+  - **APP**: app design, not a rule.
+- **Status** is one of:
+  - **DONE**: built and tested;
+  - **PARTIAL**: built in part, with the gap named;
+  - **TODO**: not built;
+  - **N-A**: not in the rulebook, played on the table, or decided not to build.
+- **Where** is the core file (`internal/core/`) or the docs page that holds the behaviour.
+- **Test** is the test that covers it.
+  Tests are core tests unless a path says otherwise; `e2e` is the browser suite in `tests/e2e/flows` ([testing.md](testing.md)).
+
+Rules numbers and texts come from `definitions/` ([definitions.md](definitions.md)), never from constants in the code.
+
+## The rulebook's loop
+
+The rulebook has no campaign calendar, end, ranking or alliances.
+Its loop is:
+
+1. Muster.
+2. Then repeat:
+   1. Step 1, Play a Game.
+   2. Step 2, War's Aftermath: 1 Injuries, 2 Experience, 3 Progression, 4 Influence.
+   3. Step 3, Company Management.
+   4. Step 4, Calculate Ratings.
+
+The lines are S298-302, S1357 and S1400.
+Kits exist only as Against the Odds items, and "retirement" is an outcome of the injury chart.
+
+Contents: [1 Muster](#1-muster-and-company-creation), [2 Recruiting](#2-recruiting-rarity-and-limits-step-3-s1357-1397), [3 Injuries](#3-injuries-and-the-injury-charts-step-21-s302-358), [4 Experience and progression](#4-experience-progression-promotions-step-22-and-23-s450-614), [5 Influence and rating](#5-influence-gold-hero-rating-and-points-step-24-and-step-4), [6 The game](#6-the-game-scenarios-against-the-odds-the-match-step-1-s218-300-s5247-), [7 Live tools](#7-the-live-match-tools-companion-at-the-table), [8 App design](#8-company-management-and-campaign-structure-that-are-app-design), [Differences](#differences-from-the-printed-rules).
 
 ## 1. Muster and company creation
 
 | Mechanic | Source | Layer | Status | Where | Test |
 |---|---|---|---|---|---|
-| Choose one of the Battle Companies and its starting company (units, wargear, gold) | S190-203 | CM | DONE | `startingcompany.go`, `companies.go` `CreateCompany`, [frontend.md](frontend.md) "Choosing a company" | `TestTheCreationFormGivesTheLeaderAndSergeants` (web) |
+| Choose one of the Battle Companies and its starting company (units, wargear, gold) | S190-203 | CM | DONE | `startingcompany.go`, `companies.go` `CreateCompany`, [frontend-company-building.md](frontend-company-building.md) "Choosing a company" | `TestTheCreationFormGivesTheLeaderAndSergeants` (web) |
 | Starting 60 points of rating and gold, the 105 total with the three officers' Might, Will, Fate | S2062 (Creating Custom Companies) | CM | DONE | `startingcompany.go`; the data adds up for every company, a company that does not is in `startingTotalExceptions` | `TestStartingCompanyPointsPlusGoldAre105InEveryCompany` |
-| Starting gold spent in the Armoury | S214 | CM | DONE | `armoury.go` (gold as a currency), [frontend.md](frontend.md) "Gold" | `TestEquipmentCanBeBoughtWithGold`, `TestWarriorGoldPriceIsTheOptionsPoints` |
+| Starting gold spent in the Armoury: the initial rating (first value) is the Gold value for warriors and heroes; a unit pays its own profile option's points for that option ("lower/higher point value", Dwarf Rangers pay 1pt for a Longbow) | S214 | CM | DONE | `armoury.go` `goldPrice` (gold as a currency), [frontend-company.md](frontend-company.md) "Gold" | `TestEquipmentCanBeBoughtWithGold`, `TestGoldPriceIsTheFirstValueOrTheOptionsPoints`, `TestGoldAffordabilityFollowsThePrice` |
 | Select the Heroes: one Leader and two Sergeants, new Heroes with 1 Might, Will, Fate; the rest are Heroes in the Making | S204-213 | CM | DONE | `StartingUnits`, `ValidateStart`, `OfficerLock` in `startingcompany.go`, `companybuild.go` | `TestStartingOfficersKeepTheirProfileAndGainMightWillAndFate`, `TestOfficerLocksAgreeWithValidateStartInEveryCompany`, `TestShireRangerStartsAsLeader` |
 | Heroes' path chosen on becoming a Hero, with its starting heroic action (Sorcerer: a first power, only one Sorcerer) | S505-515, S963 | CM | DONE | the officer picks it from the company page right after creation (`WithPath`, `LevelService.ChoosePath`); a unit with no path yet is `PathPending` | `TestAnOfficerChoosesItsPathFromTheCompanyPage`, `TestANewSorcererChoosesAPowerAndGetsItsHeroicAction`, `TestOnlyOneHeroOfTheCompanyTakesThePathOfTheSorcerer` |
 | Model maximum (15, 12 for some, per company) | company pages, S1996 | CM | DONE | `companybuild.go` `companyBlock`, effect `maxModels` | `TestEffectMaxModels`, `TestCompanyBlockKeepsToKeywordLimitsAndBalance` |
-| Name each model; roster sheet (profile, equipment, rules, injuries, XP) | S196 | CM | DONE | [frontend.md](frontend.md) "My Company", "Renaming units" | `TestAPromotionKeepsTheCompanysNameForTheUnit`, e2e `30-company`, `82-company-ui` |
+| Name each model; roster sheet (profile, equipment, rules, injuries, XP) | S196 | CM | DONE | [frontend-company.md](frontend-company.md) "My Company", "Renaming units" | `TestAPromotionKeepsTheCompanysNameForTheUnit`, e2e `30-company`, `82-company-ui` |
 | Optional: You (don't) have my sword (Heroes discard any wargear) | S1398 | CM | DONE | `CampaignSettings.HeroesDropProfileGear`, `DropReason` | `TestTheOptionalRuleLetsHeroesDropProfileGear`, `TestBuildDetailTheOptionalRuleLetsHeroesDropProfileGear` |
 | Optional: Custom Selection (build the starting roster from any model of the charts, 60 points) | S202 | CM | N-A (decided not to build) | custom lists are edited in the rules JSON; the 60-point check is not built | none |
 | Optional: Custom Company (organiser edits a company's lists) | S1996 | CM | N-A (decided) | an organiser uploads a changed Battle Companies file ([admin.md](admin.md)); there is no in-app editor | `rulesets_test.go`, `ruleset_test.go` (store and validate an uploaded file) |
-| Company special rules: limit overrides and exemptions, unique wargear, granted rules, units with their own name, rule exchange | S1992 | CM | DONE | `applyCompanyRules` in `companybuild.go`, [frontend.md](frontend.md) "Company rules and hero upgrades" | `TestEffectLimitOverrideRaisesTheShareOfTheCompany`, `TestEffectLimitExemptionLeavesModelsOutOfTheCount`, `TestEffectCompanyLimitKeepsAKeywordToItsShare`, `TestUniqueWargearForAKindOfModelIsBuyable` |
+| Company special rules: limit overrides and exemptions, unique wargear, granted rules, units with their own name, rule exchange | S1992 | CM | DONE | `applyCompanyRules` in `companybuild.go`, [frontend-company-building.md](frontend-company-building.md) "Company rules and hero upgrades" | `TestEffectLimitOverrideRaisesTheShareOfTheCompany`, `TestEffectLimitExemptionLeavesModelsOutOfTheCount`, `TestEffectCompanyLimitKeepsAKeywordToItsShare`, `TestUniqueWargearForAKindOfModelIsBuyable` |
 | Company special rules that act in the game (auras, rule substitutions such as "treat the Leader as Faramir") | S1992 | PH | N-A (played at the table; shown on the cards) | `companies[].effects[]` with `layer` match, shown only | none |
 | On Their Own Path (no experience, no promotion; creatures too) | S1994, S1717 | CM | DONE | `OwnPath`, `ownPathLevels`; optional homebrew path when `CustomOnTheirOwnPath` | `TestEffectOnTheirOwnPath`, `TestUnitsOnTheirOwnPathLevelUpAsWarriorsWhenTheCampaignSaysSo`, `TestOwnPathUnitsAreNeverOfficersOrHeroesInTheMaking`, e2e `88-own-path` |
 
@@ -49,7 +72,7 @@ War's Aftermath (1 Injuries, 2 Experience, 3 Progression, 4 Influence), Step 3 C
 | Company-specific recruiting (Vault Warden Team, Warg Marauder, Fornost alternative, Ranger of the North return, model-count units) | company pages | CM | DONE | `recruiting.go`, `recruiting_ranger.go`, `companyprofile.go` effects | `TestAVaultWardenTeamJoinsAsTwoUnitsOfTheirOwn`, `TestAWargMarauderTakesThreePlaces`, `TestFornostMayTakeAHobbitArcherInsteadOnA2To6`, `TestArrangeOfficers`, e2e `50-ranger` |
 | Rendezvous perk adjusts the first reinforcement roll (plus or minus 1) | scenario text | CM | DONE | `RollRecruitWithPerk`, `aftermath_perks.go` | `TestRollsNeedTheCampaignSettings`, `TestScenarioRewardsAtFinish` |
 | Treat Injuries: 1 Influence removes a Warrior's Injured; a Hero attempt on 5+ (extra Influence modifies); send to the healers (misses the next game, removes one injury) | S1380-1384 | CM | DONE | `treatment.go` | `TestTreatingAWarriorsInjuryCostsInfluence`, `TestTreatingAHeroByAttemptOrByTheHealers`, `TestAnInjuryCountGoesDownOneAtATimeAndTheEffectsFollow` |
-| Visit the Armoury: wargear (Warriors only their Options, Heroes any wargear of the charts), armour upgrade stages, equipment, no swapping between models, dropping wargear | S1385-1397, S1446-1710 | CM | DONE | `armoury.go`, `armour.go`, `DropReason`, [frontend.md](frontend.md) "My Company: units" | `TestBuyingEquipmentSpendsInfluenceAndTakesASlot`, `TestArmourUpgradeReplacesTheArmourWithTheNextStage`, `TestDroppingFollowsTheBattleCompaniesRules`, `TestAWarriorMayOnlyDropGearWhenWhatIsLeftIsAnOption` |
+| Visit the Armoury: wargear (Warriors only their Options, Heroes any wargear of the charts), armour upgrade stages, equipment, no swapping between models, dropping wargear | S1385-1397, S1446-1710 | CM | DONE | `armoury.go`, `armour.go`, `DropReason`, [frontend-company.md](frontend-company.md) "My Company: units" | `TestBuyingEquipmentSpendsInfluenceAndTakesASlot`, `TestArmourUpgradeReplacesTheArmourWithTheNextStage`, `TestDroppingFollowsTheBattleCompaniesRules`, `TestAWarriorMayOnlyDropGearWhenWhatIsLeftIsAnOption` |
 | Creatures: only Leader or Sergeants, a company maximum, On Their Own Path, die with their Hero, Baggage Pony pack and swap | S1710-1803 | CM | DONE (the Fly creatures' Handler's Glove rule is shown as text, played at the table) | `creatures.go`, `armoury.go`, `cemetery.go` | `TestCreaturesGoToOfficersAndTakeNoSlots`, `TestTheBaggagePonyStoresAndSwapsGear`, `TestBuildDetailCreaturesGoToOfficersAndTakeNoSlots` |
 | Wanderers: hired for Influence, one at a time (data `maxAtOnce`), Heroes without Stand Fast or heroic actions on the company, no experience or advancement | S1804-1830 | CM | DONE: hire and dismiss work, levelling refuses a Wanderer, the aftermath credits it no experience and its card never shows Level up ready | `armoury.go` `HireWanderer`, `levelling.go`, `aftermath.go` `Experience`, `CompanyUnit.PendingLevelUps` | `TestWanderersJoinAsUnitsAndCanBeDismissed`, `TestExperienceSkipsWanderers` |
 | Unique Wargear of a company | S1990 | CM | DONE | `battlecompanies.go`, armoury | `TestUniqueWargearSpelledAsTheCompanyPageDoes` |
@@ -146,10 +169,17 @@ Details in [live-match.md](live-match.md).
 
 ## Differences from the printed rules
 
-No mechanic of the rulebook's loop is missing. Everything marked N-A is physical or played at the table (auras, rule substitutions, scenario special rules, the arrival rolls of Maelstrom of Battle). The deliberate readings are:
+No mechanic of the rulebook's loop is missing.
+Everything marked N-A is physical or played at the table: auras, rule substitutions, scenario special rules, and the arrival rolls of Maelstrom of Battle.
 
-- a reinforcement roll can only be raised with Influence (lowering is the free pick of a lower result);
-- the company that flees with All is Lost keeps its Against the Odds bonuses;
-- the Mirkwood Warg Marauder counts as three models for the Break Point.
+The deliberate readings are:
 
-Not built by design: Custom Selection and Custom Company (the rules file is edited instead), Bonus Progression Rolls (no scenario grants one in the data; if a future scenario does, feed `campaign.progression.xp.bonusRolls`), a calendar, campaign victory, standings beyond the points rank, and alliances.
+- A reinforcement roll can only be raised with Influence. Lowering is the free pick of a lower result.
+- The company that flees with All is Lost keeps its Against the Odds bonuses.
+- The Mirkwood Warg Marauder counts as three models for the Break Point.
+
+Not built, by design:
+
+- Custom Selection and Custom Company: the rules file is edited instead.
+- Bonus Progression Rolls: no scenario grants one in the data. If a future scenario does, feed `campaign.progression.xp.bonusRolls`.
+- A calendar, campaign victory, standings beyond the points rank, and alliances.

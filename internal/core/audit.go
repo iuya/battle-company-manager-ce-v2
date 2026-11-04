@@ -196,7 +196,7 @@ func AuditRules(rs *RuleSet, in AuditInput) AuditReport {
 	table := newItemTable(rs)
 	var out AuditReport
 	for _, p := range rs.BC.Profiles() {
-		out.Companies = append(out.Companies, auditCompany(rs, in, table, p.WithPreviews(rs.Vanilla)))
+		out.Companies = append(out.Companies, auditCompany(rs, in, table, rs.finishPreviews(p.WithPreviews(rs.Vanilla))))
 	}
 	return out
 }
@@ -277,7 +277,7 @@ func auditCompany(rs *RuleSet, in AuditInput, table itemTable, p CompanyProfile)
 	for _, o := range armoury {
 		ca.Armoury = append(ca.Armoury, OfferAudit{GearOffer: o, Tip: gearTip(rs, p.BCCompany, o.Name)})
 		if o.Cost <= 0 {
-			flag(FlagPriceMissing, o.Name, "influence cost %d (gold %d/%d)", o.Cost, o.Gold.Warrior, o.Gold.Hero)
+			flag(FlagPriceMissing, o.Name, "influence cost %d (gold %d)", o.Cost, o.Gold.Warrior)
 		}
 	}
 
@@ -307,6 +307,13 @@ func auditCompany(rs *RuleSet, in AuditInput, table itemTable, p CompanyProfile)
 		}
 		hero := rs.Vanilla.HeroProfile(v.Stats)
 		ua.Stats = rs.Vanilla.Profile(v, hero, nil)
+		if len(ua.Stats) > 0 {
+			role := RoleWarrior
+			if hero {
+				role = RoleHero
+			}
+			ua.Stats = recruitStats(rs, p.BCCompany, r.name, "", r.wargear, role)
+		}
 		ua.CanLead, ua.OwnPath = p.CanLead(r.name), p.OnOwnPath(r.name)
 
 		us := CompanyState{Company: CampaignCompany{ID: 1, Name: p.Name, Faction: p.Name}, Influence: auditInfluence, Gold: auditInfluence,
@@ -346,7 +353,7 @@ func auditCompany(rs *RuleSet, in AuditInput, table itemTable, p CompanyProfile)
 			uo.Item = offer
 			uo.WarriorReason, _ = sh.whyNot(ua.Warrior, offer)
 			uo.HeroReason, _ = sh.whyNot(ua.Hero, offer)
-			uo.WarriorGold, uo.HeroGold = sh.goldPrice(ua.Warrior, offer), offer.Gold.Hero
+			uo.WarriorGold, uo.HeroGold = sh.goldPrice(ua.Warrior, offer), sh.goldPrice(ua.Hero, offer)
 			uo.DerivedByWarrior = derivation(offer, p, v.Options, v)
 			uo.DerivedByHero = derivation(offer, p, heroOptions, v)
 			if offer.Size == "" && !offer.namesWho() && uo.WarriorReason == "" && uo.DerivedByWarrior == "" {

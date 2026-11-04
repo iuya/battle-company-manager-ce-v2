@@ -495,7 +495,7 @@ func (s *Server) showPathPanel(w http.ResponseWriter, r *http.Request, base camp
 	if s.fail(w, r, err) {
 		return
 	}
-	s.render.partial(w, status, "campaign_my_company", "path_panel", map[string]any{"Campaign": base.Campaign, "Co": base.Current.ID, "Offer": offer, "Cards": pathCards(g, offer.Paths), "Error": errMsg})
+	s.render.partial(w, status, "campaign_my_company", "path_panel", map[string]any{"Campaign": base.Campaign, "Co": base.Current.ID, "Offer": offer, "Cards": pathCards(g, offer.Paths), "Powers": powerViews(g, offer.Powers), "Error": errMsg})
 }
 
 // pathCard is one path of the carousel with all that is known of it: what PathOffer holds plus the glossary's limits and chart. The chart
@@ -550,6 +550,32 @@ func pathCards(g core.Glossary, paths []core.PathOption) []pathCard {
 			c.HasChart = len(c.Rows) > 0
 		}
 		out[i] = c
+	}
+	return out
+}
+
+// powerView is a magical power a Sorcerer can begin with, with its whole description (never cut) as glossary links.
+type powerView struct {
+	Value    string // what the form submits as "power": the name
+	Label    string
+	Segments []segView
+}
+
+// powerText is the whole text of a power: the definition the rules file gives, else the glossary's term of it.
+func powerText(gl core.Glossary, c core.LevelChoice) string {
+	if c.Hint != "" {
+		return c.Hint
+	}
+	if term, ok := gl.Find(choiceTerm(c.Key)); ok {
+		return term.Text()
+	}
+	return ""
+}
+
+func powerViews(gl core.Glossary, powers []core.LevelChoice) []powerView {
+	out := make([]powerView, len(powers))
+	for i, c := range powers {
+		out[i] = powerView{Value: strings.TrimPrefix(c.Key, "power:"), Label: c.Label, Segments: linkText(gl, powerText(gl, c))}
 	}
 	return out
 }

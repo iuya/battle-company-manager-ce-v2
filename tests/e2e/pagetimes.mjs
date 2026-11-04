@@ -1,4 +1,4 @@
-// Server-side cost of the main pages, taken over plain HTTP (no browser): docs/optimization-report.md, "Method".
+// Server-side cost of the main pages, taken over plain HTTP (no browser): issue #68, "Method".
 // `node pagetimes.mjs [--label name] [--reps 20] [--warm 5]`. Same scratch-database environment as the smoke tests (lib/env.mjs), the server
 // started with PERF_TRACE=true so that every answer carries Server-Timing (app ms to the first byte, database ms and statements).
 // For each page: the median of --reps requests after --warm warm-up requests of the Server-Timing figures, the wall time of the request as

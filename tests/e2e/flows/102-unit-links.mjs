@@ -1,4 +1,4 @@
-// Unit names in rule texts link to the unit's card in the campaign glossary, with a tooltip (docs/frontend.md, "Glossary and item definitions",
+// Unit names in rule texts link to the unit's card in the campaign glossary, with a tooltip (docs/frontend-glossary.md, "Glossary and item definitions",
 // docs/concept-graph.md). Checked on the Arnor company page of "Brand new campaign" (its special rule promotes the Ranger of Arnor to the Ranger of
 // the North): both names are links to #u-... with the profile in the tooltip (hover and keyboard focus, Escape), the terms next to them still open
 // the helper popup, the link is followed by a full load that reaches the card focused (the cards are fetched on demand), a name inside another word is

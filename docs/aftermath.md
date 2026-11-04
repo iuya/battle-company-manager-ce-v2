@@ -1,30 +1,60 @@
 # The War's Aftermath
 
-What a finished match does to the companies: injury rolls for casualties, experience, level-ups, influence, scenario rewards and the
-Against the Odds bonuses. It describes the aftermath page and the Go types and methods behind it. The match layer that comes before it
-(scenario, results, ending) is in [matches.md](matches.md); the default sheet of a match played in live mode comes from its log
-([live-match.md](live-match.md)).
+What a finished match does to the companies: injury rolls for casualties, experience, level-ups, influence, scenario rewards and the Against the Odds bonuses.
+It is for players who fill in an aftermath, and for developers who change the rules or the page.
 
-Code: `internal/core/aftermath.go`, `aftermath_service.go`, `aftermath_perks.go`, `aftermath_items.go`, `aftermath_repository.go`,
-`promotion_gear.go`; `internal/postgres/aftermath.go`; `internal/web/aftermath.go` with `templates/pages/aftermath.gohtml` and
-`partials/aftermath.gohtml`.
+It describes the aftermath page and the Go types and methods behind it.
 
-Rules come from the Battle Companies file (`campaign.matchInput`, `campaign.injuries`, `campaign.experience`, `campaign.progression`,
-`campaign.influence`, `campaign.againstTheOdds`, `campaign.aftermathEffects`, scenario `rewards[]`; see [definitions.md](definitions.md)),
-never from constants in the code. The order is `campaign.matchInput.aftermath.order`: **injuries, experience, progression, influence**;
-scenario rewards follow their `condition`. `core.ParseAftermath` reads them into `AftermathRules`; a chart that does not cover 2-12 exactly once is `ErrInvalidRuleset`.
+- The match layer that comes before it (scenario, results, ending) is in [matches.md](matches.md).
+- The default sheet of a match played in live mode comes from its log ([live-match.md](live-match.md)).
+
+Code: `internal/core/aftermath.go`, `aftermath_service.go`, `aftermath_perks.go`, `aftermath_items.go`, `aftermath_repository.go`, `promotion_gear.go`; `internal/postgres/aftermath.go`; `internal/web/aftermath.go` with `templates/pages/aftermath.gohtml` and `partials/aftermath.gohtml`.
+
+## Contents
+
+- [Rules data](#rules-data)
+- [Practice matches](#practice-matches)
+- [Principles](#principles)
+- [Flow](#flow): the six steps from sheet to finish
+- [Healing Herbs, Wondrous Cram and the Against the Odds items](#healing-herbs-wondrous-cram-and-the-against-the-odds-items)
+- [Perks in the rolls](#perks-in-the-rolls)
+- [Go contract](#go-contract)
+- [The aftermath page](#the-aftermath-page)
+- [Wargear on a promotion](#wargear-on-a-promotion)
+
+## Rules data
+
+Rules come from the Battle Companies file, never from constants in the code.
+The sections used are `campaign.matchInput`, `campaign.injuries`, `campaign.experience`, `campaign.progression`, `campaign.influence`, `campaign.againstTheOdds`, `campaign.aftermathEffects` and the scenario `rewards[]` (see [definitions.md](definitions.md)).
+
+- The order of the steps is `campaign.matchInput.aftermath.order`: **injuries, experience, progression, influence**.
+- Scenario rewards follow their `condition`.
+- `core.ParseAftermath` reads the data into `AftermathRules`.
+  A chart that does not cover 2-12 exactly once is `ErrInvalidRuleset`.
 
 ## Practice matches
 
-The aftermath of a **practice match** ([matches.md](matches.md#practice-matches)) is complete and empty from the moment the match ends, and nothing is stored for it. It is **derived**: the repository reads
-the status of a company in a practice match as `done` (`CASE WHEN m.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END` in `pendingRefs`, the company read, `Statuses` and the campaign's pending count), so
-`AftermathStatus.Locks()` is false and the lock, "cannot start a match" and the organiser's pending figure need no special case. `aftermathStore.Get` returns the record `done`, revision 1, no input, one line
-"Practice match: nothing to roll." and `FinishedAt` = the match's end; no `match_aftermaths` row is ever written (`aftermathStore.Update` refuses a practice match too).
+The aftermath of a **practice match** ([matches.md](matches.md#practice-matches)) is complete and empty from the moment the match ends.
+Nothing is stored for it.
 
-`AftermathService.Aftermath` returns that record (`Aftermath.Practice`, no rules or company read), and every write (`SaveAftermath`, `StartAftermath`, `RollCasualty`, `RerollCasualty`, `Decide`, `FinishAftermath`,
-`ReopenSheet`, `WaiveAftermath`) answers `ErrPracticeNothingToRoll` ("Practice match: nothing to roll.") before any rule is read and without touching the company: roster, resources, `Injured` flags, cemetery,
-experience and influence are the same before and after. The page `GET .../aftermath/{company}` shows the short state (badge, the line, "Nothing was awarded and nobody was injured.", a link back to the match; no sheet,
-stepper or waive); a write route answers 422 with the line for an editor and 403 for a reader. `LiveMatches.AftermathDefaults` is never read for it.
+The record is **derived**:
+
+- The repository reads the status of a company in a practice match as `done`.
+  The expression is `CASE WHEN m.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END` in `pendingRefs`, the company read, `Statuses` and the campaign's pending count.
+  So `AftermathStatus.Locks()` is false, and the lock, "cannot start a match" and the organiser's pending figure need no special case.
+- `aftermathStore.Get` returns the record `done`, revision 1, no input, one line "Practice match: nothing to roll." and `FinishedAt` = the match's end.
+- No `match_aftermaths` row is ever written (`aftermathStore.Update` refuses a practice match too).
+
+`AftermathService.Aftermath` returns that record (`Aftermath.Practice`, no rules or company read).
+Every write answers `ErrPracticeNothingToRoll` ("Practice match: nothing to roll.") before any rule is read and without touching the company:
+
+- the writes are `SaveAftermath`, `StartAftermath`, `RollCasualty`, `RerollCasualty`, `Decide`, `FinishAftermath`, `ReopenSheet` and `WaiveAftermath`;
+- roster, resources, `Injured` flags, cemetery, experience and influence are the same before and after.
+
+The page `GET .../aftermath/{company}` shows the short state: the badge, the line, "Nothing was awarded and nobody was injured." and a link back to the match.
+There is no sheet, stepper or waive.
+A write route answers 422 with the line for an editor and 403 for a reader.
+`LiveMatches.AftermathDefaults` is never read for it.
 
 It is derived rather than stored because a `done` row would need a write in every way a match can end, with a window between the end and the write, and `ReopenMatch` would refuse: a row counts as a started aftermath.
 
@@ -88,7 +118,7 @@ States (`AftermathStatus`): `pending` (nothing saved), `sheet` (draft saved), `i
      company with nobody left to lead has no question. The Warrior question has no "nobody" answer: `Aftermath.Succession` with `NeedSergeant`
      and `Fallback` set is the mandatory question (radios of `Fallback`; the templates `aftermath_succession` and `aftermath_fallback` list each
      Warrior with its Experience and points, preselect a single one and say when several are tied), `NeedSergeant` with `SergeantOptions` the optional Hero question.
-   - **The Shire's Ranger of the North.** Nothing special happens when he falls: he goes to the cemetery like any Hero (a fallen Leader opens the succession). The summary says he may return with a reinforcement; see "Ranger of the North replacement" in [frontend.md](frontend.md).
+   - **The Shire's Ranger of the North.** Nothing special happens when he falls: he goes to the cemetery like any Hero (a fallen Leader opens the succession). The summary says he may return with a reinforcement; see "Ranger of the North replacement" in [frontend-company-building.md](frontend-company-building.md#ranger-of-the-north-replacement-shire).
    - When every casualty is final and every decision is made, the server applies **experience** and moves on. If re-rolls are left,
      the step waits for `Decide` with kind `continue`; using the last re-roll closes the step on its own.
 4. **Experience** (automatic). Each surviving unit that took part gets the sum of its gains (`campaign.experience.gains[].amount` times the
@@ -264,7 +294,7 @@ units that still share a title are numbered ("Warrior of Rohan 2"), a name the p
 
 The match page has an **Aftermath card** once the match has ended (`aftermath_card`): one row per company with its status badge (Pending / In progress / Done / Waived), **Start aftermath** or **Continue** for an editor, **View** for everybody
 else, the one-line summary of a finished or waived one and, for the organiser and administrators on an unfinished one, **Waive** (an inline form with the note, `POST .../aftermath/{company}/waive`). My Company and the company page get the
-banner, the perks card and the history ([frontend.md](frontend.md)). The History card groups the lines by match ("Match 4", newest first); the repository takes whole aftermaths until it has at least 20 lines. Every `AftermathLine` is filled with
+banner, the perks card and the history ([frontend-company.md](frontend-company.md#company-pages-and-the-aftermath)). The History card groups the lines by match ("Match 4", newest first); the repository takes whole aftermaths until it has at least 20 lines. Every `AftermathLine` is filled with
 `Match`, `MatchID` and `On` when it is read; they are not stored in the lines JSON.
 
 ## Wargear on a promotion

@@ -1,4 +1,4 @@
-// Practice matches (docs/matches.md, "Practice matches"), in the demo world's "Two bands" campaign: Match 1 is an ended practice match of
+// Practice matches (docs/practice-matches.md), in the demo world's "Two bands" campaign: Match 1 is an ended practice match of
 // Éowyn's own two companies, Match 4 an open one of two of Galadriel's. The flow reads the badge, banner and counts, plays Match 4 through
 // (scenario, result, the live match, the end), checks that nothing was awarded and the companies are free, makes a new practice match with
 // the checkbox of the form, lets an administrator reopen and end one again, and checks the pages at 360/768/1280 px, light and dark, with axe.

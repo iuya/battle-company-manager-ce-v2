@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// The descriptions of the schema (and so of docs/customizing-rulesets-reference.md, which tools/gen_ruleset_reference.py makes from the
+// The descriptions of the schema (and so of docs/customizing-rulesets-reference.md, which `go run ./tools/rulesref` makes from the
 // schema). typeDocs says what a section or object is; fieldDocs says what a key means, as "Type.jsonName" (Type is the Go struct name,
 // the key of $defs in the schema). commonDocs is the fallback by json name for the keys that mean the same everywhere. A new field of
 // the model needs a description here: TestSchemaFieldsAreDescribed fails without one, and the schema is regenerated with
@@ -375,6 +375,7 @@ var fieldDocs = map[string]string{
 	"Unit.with":                   "The options of the base unit that are pre-selected (Tookish Hunter = Hobbit Archer with the Bow option).",
 	"Unit.addRules":               "Special rules added at no cost.",
 	"Unit.addKeywords":            "Keywords added.",
+	"Unit.race":                   "The race keywords of the unit, replacing those of the unit it extends (Goblin Hulk: a Gundabad Ogre that is a Goblin, no longer an Ogre). Only with extends.",
 	"Unit.types":                  "Unit types added and removed.",
 	"Unit.composite":              "Makes the unit one model that counts as several.",
 	"Unit.includes":               "The units this one is made of, with their points.",

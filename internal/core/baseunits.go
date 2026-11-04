@@ -20,8 +20,17 @@ type BaseUnit struct {
 	Includes []string
 	// Options is what the profile may take, with the points each costs (the options a company's own version already has are in the wargear).
 	Options []ChoiceOption
+	// Mounts are the mounts among the wargear and the options (Horse, Warg), each with the profile it brings, as the company page's tooltip shows it.
+	Mounts []BaseMount
 	// Companies are the display names of the companies that name the unit, in the order of the file.
 	Companies []string
+}
+
+// BaseMount is a mount named on a unit's card, with its own stat block and special rules.
+type BaseMount struct {
+	Name  string
+	Stats []Attribute
+	Rules []string
 }
 
 // UnitAnchor is the fragment of a unit's card in the campaign glossary: "u-" and the NameKey of the name with dashes, so
@@ -57,6 +66,7 @@ func (r *RuleSet) buildBaseUnits() []BaseUnit {
 	}
 	var out []BaseUnit
 	byKey := map[string][]seen{}
+	var from []CompanyProfile // the company that first named each card, to resolve the members of a bundle
 	for _, p := range r.BC.Profiles() {
 		done := map[string]bool{}
 		for _, m := range p.mentionedUnits() {
@@ -81,6 +91,31 @@ func (r *RuleSet) buildBaseUnits() []BaseUnit {
 			}
 			byKey[key] = append(byKey[key], seen{len(out), sign})
 			out = append(out, u)
+			from = append(from, p)
+		}
+	}
+	// The members of a bundle (Iron Shield Bearer and Foe Spear Wielder of the Vault Warden Team) are never named on their own, but the
+	// bundle's card shows them and the texts link them: each gets a card, named by the companies that name the bundle.
+	for i := 0; i < len(out); i++ { // out grows as members are added; a member that is itself a bundle is followed too
+		for _, member := range out[i].Includes {
+			key := NameKey(member)
+			if len(byKey[key]) > 0 {
+				continue
+			}
+			vu, alias, ok := r.ResolveUnit(from[i], member)
+			if !ok {
+				continue
+			}
+			m := r.baseUnit(from[i], member, vu, alias)
+			m.Companies = slices.Clone(out[i].Companies)
+			for _, mp := range from[i].IncludedPoints[out[i].Name] { // a member is worth the points its company's bundle gives it (the vanilla row has none)
+				if sameName(mp.Name, member) {
+					m.Preview.Points += mp.Points
+				}
+			}
+			byKey[key] = append(byKey[key], seen{len(out), unitSignature(vu, alias)})
+			out = append(out, m)
+			from = append(from, from[i])
 		}
 	}
 	slices.SortStableFunc(out, func(a, b BaseUnit) int { return strings.Compare(NameKey(a.Name), NameKey(b.Name)) })
@@ -91,7 +126,7 @@ func (r *RuleSet) buildBaseUnits() []BaseUnit {
 func unitSignature(vu VanillaUnit, a *UnitAlias) string {
 	s := vu.Name
 	if a != nil {
-		s += "|" + strings.Join(a.AddRules, ",") + "|" + strings.Join(a.Selected, ",") + "|" + a.Text
+		s += "|" + strings.Join(a.AddRules, ",") + "|" + strings.Join(a.Selected, ",") + "|" + strings.Join(a.Keywords, ",") + "|" + strings.Join(a.Race, ",") + "|" + a.Text
 	}
 	return s
 }
@@ -101,6 +136,13 @@ func (r *RuleSet) baseUnit(p CompanyProfile, name string, vu VanillaUnit, alias 
 	pv := UnitPreview{Key: PreviewKey(name, nil), Name: name, Points: vu.Points, Types: vu.UnitTypes, Kind: KindOf(vu.UnitTypes),
 		Wargear: slices.Clone(vu.Wargear), Rules: slices.Clone(vu.SpecialRules), HeroicActions: vu.HeroicActions}
 	pv.Stats = r.Vanilla.Profile(vu, r.Vanilla.HeroProfile(vu.Stats), nil)
+	if len(pv.Stats) > 0 { // with the changes of the gear the unit comes with (the roster's stats)
+		role := RoleWarrior
+		if pv.HasHeroStats() {
+			role = RoleHero
+		}
+		pv.Stats = recruitStats(r, p.BCCompany, name, "", nil, role)
+	}
 	var selected []string
 	if alias != nil {
 		if !sameName(alias.Unit, name) {
@@ -120,5 +162,27 @@ func (r *RuleSet) baseUnit(p CompanyProfile, name string, vu VanillaUnit, alias 
 	}
 	pv.Keywords = r.UnitKeywords(p, UnitKeywordsInput{Type: name})
 	u.Preview = pv
+	names := slices.Clone(pv.Wargear)
+	for _, o := range u.Options {
+		names = append(names, OptionItems(o.Name)...)
+	}
+	for _, n := range names {
+		if m, ok := r.baseMount(n); ok && !slices.ContainsFunc(u.Mounts, func(x BaseMount) bool { return sameName(x.Name, n) }) {
+			u.Mounts = append(u.Mounts, m)
+		}
+	}
 	return u
+}
+
+// baseMount is the mount a piece of gear is, with the stat block and special rules of its profile; false for anything else.
+func (r *RuleSet) baseMount(gear string) (BaseMount, bool) {
+	a, ok := r.BC.Annotation(gear)
+	if !ok || a.MountProfile == "" {
+		return BaseMount{}, false
+	}
+	m := BaseMount{Name: gear, Stats: r.Vanilla.MountProfile(a.MountProfile)}
+	if g, ok := r.Vanilla.Gear(a.MountProfile); ok {
+		m.Rules = slices.Clone(g.Rules)
+	}
+	return m, len(m.Stats) > 0 || len(m.Rules) > 0
 }

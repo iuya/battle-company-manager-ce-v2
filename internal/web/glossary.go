@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
@@ -128,5 +130,97 @@ func (s *Server) handleCampaignGlossaryUnits(w http.ResponseWriter, r *http.Requ
 		s.notFound(w, r)
 		return
 	}
-	s.render.partial(w, http.StatusOK, "campaign_glossary", "glossary_units", g)
+	s.render.partial(w, http.StatusOK, "campaign_glossary", "glossary_units", newUnitCardsView(g, id))
+}
+
+// unitCardsView is the unit cards of a campaign's glossary with their wargear, rules, options and text linked like the unit cards of the company page.
+type unitCardsView struct {
+	CID   int64
+	Units []unitCardView
+}
+
+// unitCardView is a base unit card with its names turned into chips that carry the tooltip and the helper popup, and its own text linked.
+type unitCardView struct {
+	core.BaseUnit
+	Wargear []chipView
+	Rules   []chipView
+	Options []optionChipView
+	Members []unitCardView // the cards of the units a bundle is made of (Vault Warden Team), each with its own profile and points
+	Text    []segView      // the company's own words, with the glossary terms and the other units linked; never the unit's own name
+}
+
+// chipView is a name on a card (a rule, a piece of wargear) with what the glossary says about it: Tip is empty for a name the glossary does not define.
+type chipView struct {
+	Name, Meta, Tip string
+}
+
+type optionChipView struct {
+	Chip   chipView
+	Points int
+}
+
+func newUnitCardsView(g core.Glossary, cid int64) unitCardsView {
+	v := unitCardsView{CID: cid, Units: make([]unitCardView, len(g.Units))}
+	for i, u := range g.Units {
+		c := unitCardView{BaseUnit: u}
+		for _, n := range u.Preview.Wargear {
+			c.Wargear = append(c.Wargear, mountChip(termChip(g, n), u.Mounts))
+		}
+		for _, n := range u.Preview.Rules {
+			c.Rules = append(c.Rules, termChip(g, n))
+		}
+		for _, o := range u.Options {
+			c.Options = append(c.Options, optionChipView{Chip: mountChip(termChip(g, o.Name), u.Mounts), Points: o.Points})
+		}
+		if u.Text != "" {
+			c.Text = viewSegments(g, g.LinkExcept(u.Text, u.Name), 320)
+		}
+		v.Units[i] = c
+	}
+	byID := map[string]unitCardView{}
+	for _, c := range v.Units {
+		byID[c.ID] = c
+	}
+	for i, c := range v.Units {
+		for _, m := range c.Includes {
+			if mc, ok := byID[core.UnitAnchor(m)]; ok {
+				v.Units[i].Members = append(v.Units[i].Members, mc)
+			}
+		}
+	}
+	return v
+}
+
+// termChip is a name with the glossary term it stands for (the way a rule names it, parameter and all), as the tooltip of a chip.
+func termChip(g core.Glossary, name string) chipView {
+	c := chipView{Name: name}
+	if t, ok := g.Find(name); ok {
+		c.Meta, c.Tip = t.Category, t.Summary(320)
+	}
+	return c
+}
+
+// mountChip adds a mount's stat block and special rules to the tooltip of its chip, as the company page's tooltip of the mount shows them.
+func mountChip(c chipView, mounts []core.BaseMount) chipView {
+	for _, m := range mounts {
+		if !strings.EqualFold(m.Name, c.Name) {
+			continue
+		}
+		var lines []string
+		if len(m.Stats) > 0 {
+			parts := make([]string, len(m.Stats))
+			for i, a := range m.Stats {
+				parts[i] = a.Abbr + " " + strconv.Itoa(a.Value) + a.Trail
+			}
+			lines = append(lines, strings.Join(parts, " · "))
+		}
+		if len(m.Rules) > 0 {
+			lines = append(lines, "Special rules: "+strings.Join(m.Rules, ", "))
+		}
+		if c.Tip != "" {
+			lines = append(lines, c.Tip)
+		}
+		c.Meta, c.Tip = "Mount", strings.Join(lines, "\n\n")
+	}
+	return c
 }

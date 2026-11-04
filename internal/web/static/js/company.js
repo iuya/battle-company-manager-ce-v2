@@ -1,17 +1,24 @@
 // The My Company page: expanding one unit card at a time, previews on hover, the level-up button, the windows (recruit,
 // equipment) and changing the formation of the units (drag and drop with SortableJS, or the arrows of each handle).
 document.addEventListener('alpine:init', () => {
-  // The path carousel of the "Choose a path" window: the radios of the strip are the state (path = the selected radio's value, always one);
-  // step() moves to the neighbour, the strip slides to centre the selected tab (no slide under prefers-reduced-motion), a swipe on the details
+  // The path carousel of the "Choose a path" window: the radios of the mosaic are the state (path = the selected radio's value, always one);
+  // step() moves to the neighbour, the cards of the stack slide to the new place (--r, --dur; no slide under prefers-reduced-motion), a swipe on the details
   // moves too (the cards of the stack take their place from rel(): 0 in front, +-1 behind, +-2 away). A blocked path can be looked at but not taken.
   Alpine.data('pathCarousel', () => ({
-    path: '', names: [], x0: null,
+    path: '', power: '', picking: false, names: [], x0: null, dur: 300, moving: false, timer: null,
     init() {
       const radios = [...this.$root.querySelectorAll('input[name=path]')];
       this.names = radios.map(r => r.value);
       this.path = this.$root.dataset.start || this.names[0] || '';
-      this.$watch('path', () => this.$nextTick(() => this.center()));
-      this.$nextTick(() => this.center(true));
+      // a jump of several paths plays longer (proportional to the distance, at most 0.6 s) with the cards in between going by; none under reduced motion
+      this.$watch('path', (now, was) => {
+        const far = Math.abs(this.names.indexOf(now) - this.names.indexOf(was));
+        const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        this.dur = calm ? 0 : Math.min(600, 200 + 80 * far);
+        clearTimeout(this.timer);
+        this.moving = !calm && far > 1;
+        if (this.moving) this.timer = setTimeout(() => { this.moving = false; }, this.dur);
+      });
     },
     get index() { return this.names.indexOf(this.path); },
     get radio() { return [...this.$root.querySelectorAll('input[name=path]')].find(r => r.value === this.path); },
@@ -22,14 +29,11 @@ document.addEventListener('alpine:init', () => {
       this.path = this.names[i];
       this.$nextTick(() => this.radio && this.radio.focus({ preventScroll: true }));
     },
-    center(now) {
-      const strip = this.$refs.strip, tab = this.radio && this.radio.closest('label');
-      if (!strip || !tab || !strip.clientWidth) return;
-      const left = tab.offsetLeft - (strip.clientWidth - tab.offsetWidth) / 2;
-      const calm = now || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      strip.scrollTo({ left: Math.max(0, left), behavior: calm ? 'auto' : 'smooth' });
-    },
     rel(i) { return Math.max(-2, Math.min(2, i - this.index)); },
+    get powerLabel() { const r = [...this.$root.querySelectorAll('input[name=power]')].find(x => x.value === this.power); return r ? r.dataset.label : ''; },
+    get needsPower() { return this.sorcerer && !this.power; },
+    pickPower(e) { if (e.detail > 0) this.picking = false; }, // a click chooses and closes; the arrow keys only move through the list (Enter or the button closes)
+    off(i) { return i - this.index; },
     swipeStart(e) { this.x0 = e.changedTouches[0].clientX; },
     swipeEnd(e) {
       if (this.x0 === null) return;

@@ -596,7 +596,7 @@ func upgradesOf(rs *RuleSet, bcCo BCCompany, u CompanyUnit) []HeroUpgrade {
 	if !ok {
 		return nil
 	}
-	vanilla, _, _ := rs.ResolveUnit(p, u.Type) // a company's own name for a profile (Tookish Hunter) is that profile's race too
+	vanilla, _, _ := resolveUnitKeywords(rs, p, u.Type) // a company's own name for a profile (Tookish Hunter) is that profile's race too
 	var out []HeroUpgrade
 	for _, h := range p.HeroUpgrades {
 		if h.Allows(vanilla) { // some upgrades belong to one race (a Hobbit may take both of the Wanderers' upgrades, the others one)

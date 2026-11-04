@@ -137,6 +137,21 @@ func buildUnit(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettin
 	return buildUnitFor(rs, bcCo, s, settings, false)
 }
 
+// recruitStats are the characteristics of a unit as it is recruited with the given wargear: what the roster shows for it, the gear's
+// changes included (a shield's +1 Defence, a unit upgrade's modifier). Every unit preview (the choose-a-company page, the charts, the
+// promotions, the glossary, the audit, the mercenaries) takes its Stats from here, so a preview and the roster cannot differ. role is
+// RoleHero for a unit whose profile is a hero's (Might, Will and Fate); wanderer names a mercenary offer. Nil when the unit is unknown.
+func recruitStats(rs *RuleSet, bcCo BCCompany, unit, wanderer string, wargear []string, role UnitRole) []Attribute {
+	return recruitUnit(rs, bcCo, unit, wanderer, wargear, role).Stats
+}
+
+// recruitUnit is the unit as it is recruited, built as the roster builds it: its stats, wargear and special rules are what its card shows.
+func recruitUnit(rs *RuleSet, bcCo BCCompany, unit, wanderer string, wargear []string, role UnitRole) CompanyUnit {
+	units := []CompanyUnit{buildUnitFor(rs, bcCo, UnitState{Base: unit, Wanderer: wanderer, Role: role, Gear: slices.Clone(wargear)}, CampaignSettings{}, true)}
+	applyCompanyRules(rs, bcCo, units) // the rules the company gives or swaps (Woodland Creature, Sharkey's Hatred (Hobbit))
+	return units[0]
+}
+
 // buildUnitFor is buildUnit; ratingOnly leaves out what is derived from the finished unit and feeds nothing in its rating (the keywords
 // and the auras), for companyFigures.
 func buildUnitFor(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSettings, ratingOnly bool) CompanyUnit {

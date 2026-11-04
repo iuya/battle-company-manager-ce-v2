@@ -31,6 +31,7 @@
       <div class="mt-2 space-y-2" data-def>
         {{range .Paragraphs}}<p>{{range .}}{{if .TermID}}<a href="#t-{{.TermID}}">{{.Text}}</a>{{else if .UnitID}}{{template "glossary_unit_link" (dict "G" $.Glossary "S" .)}}{{else}}{{.Text}}{{end}}{{end}}</p>{{end}}
       </div>
+      {{if and $.Glossary.ToWound (eq .ID "to-wound-chart")}}{{template "to_wound_static" (toWoundTable $.Glossary.ToWound)}}{{end}}
       {{with .Path}}{{if or .Limits .Rows}}
       {{/* A path, as in the rulebook: the limits of its heroes, then the chart a level-up rolls on. An end-of-path term (On Their Own Path) has neither: just its text. */}}
       <h4 class="mt-4 !text-lg">Characteristic limits</h4>
@@ -85,16 +86,17 @@
 {{/* The base unit cards of a campaign glossary, in the redesigned unit card (title plate, datasheet profile, body, keyword foot; static, so no trackers), one per unit, each with the
    stable anchor core.UnitAnchor gives its name (#u-warrior-of-minas-tirith). Takes core.Glossary (.Units). Fetched by the glossary
    component and put where the placeholder was; searched by name, base profile and company, filtered by the Units chip like a category. */}}
-{{define "glossary_units"}}
-<div id="glossary-units" class="space-y-3">
-  <h2 id="units" class="!text-xl pt-4" data-heading="units" x-show="catShows($el.dataset.heading)">Units <span class="text-base font-normal text-muted">{{len .Units}} cards, one for each unit the companies recruit</span></h2>
-  {{range .Units}}
-  <article id="{{.ID}}" tabindex="-1" data-name="{{.Name}}" data-aliases="{{with .Base}}{{.}}|{{end}}{{join .Companies "|"}}" data-category="units" data-unit x-show="shows($el)" :class="hl === $el.id && 'term-hl'" class="term card unit unit-{{if .Preview.HasHeroStats}}hero{{else}}warrior{{end}} flex scroll-mt-20 flex-col gap-2 !p-4 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
-    {{/* The new unit card, as a static reference (docs/frontend.md, "Unit card"): the title plate (tinted for a hero), the datasheet profile, the body and the keyword foot; no trackers, experience or rename. */}}
+{{/* A name on a unit card (wargear, an option, a special rule) as the company page's chips are: with what the glossary says about it as the tooltip and the helper popup (data-concept). Takes C (the chipView), Class and optionally Points. */}}
+{{define "glossary_chip"}}{{$c := .C}}<li class="{{.Class}}{{if $c.Tip}} has-tip{{end}}" {{if $c.Tip}}tabindex="0" data-concept data-tip-title="{{$c.Name}}" data-tip-meta="{{$c.Meta}}" data-tip-text="{{$c.Tip}}"{{end}}><span>{{upfirst $c.Name}}</span>{{if .Points}}<span class="text-muted">+{{.Points}} pts</span>{{end}}</li>{{end}}
+
+{{/* The inside of a unit card, shared by the card of a unit and the member cards of a bundle. Takes U (the unitCardView), CID and Member (a member card: no "Named by", its name links to its own card). */}}
+{{define "glossary_unit_inner"}}
+{{with $.U}}
+    {{/* The new unit card, as a static reference (docs/frontend-company.md, "The unit card"): the title plate (tinted for a hero), the datasheet profile, the body and the keyword foot; no trackers, experience or rename. */}}
     <header class="unit-head flex items-start gap-2 [&_.kind-icon]:bg-surface">
       {{template "kind_icon" .Preview.Kind}}
       <div class="min-w-0 flex-1">
-        <h3 class="!text-xl leading-tight">{{.Name}}</h3>
+        <h3 class="!text-xl leading-tight">{{if $.Member}}<a href="#{{.ID}}" class="unit-link">{{.Name}}</a>{{else}}{{.Name}}{{end}}</h3>
         <p class="unit-sub mt-0.5 flex items-baseline justify-between gap-2 text-sm text-muted"><span class="min-w-0">{{with .Preview.Types}}{{join . " · "}}{{end}}</span>{{if .Preview.Points}}<span class="shrink-0 whitespace-nowrap"><span class="font-semibold text-fg">{{.Preview.Points}}</span> pts</span>{{end}}</p>
       </div>
     </header>
@@ -104,19 +106,32 @@
       {{if .Preview.HasHeroStats}}<dl class="statline statline-hero">{{range .Preview.Stats}}{{if .HeroOnly}}<div><dt>{{.Name}}</dt><dd>{{.Value}}</dd></div>{{end}}{{end}}</dl>{{end}}
     </div>{{end}}
     <div class="unit-body">
-      {{with .Preview.Wargear}}<p class="flex items-center gap-1.5 text-xs text-muted"><span>Wargear</span></p>
-      <ul class="flex flex-wrap items-center gap-1.5" aria-label="Wargear">{{range .}}<li class="eq-chip"><span>{{upfirst .}}</span></li>{{end}}</ul>{{end}}
-      {{with .Includes}}<p class="flex flex-wrap items-center gap-1.5"><span class="text-xs text-muted">Made of</span>{{range .}}<span class="eq-chip">{{.}}</span>{{end}}</p>{{end}}
-      {{with .Options}}<p class="flex items-center gap-1.5 text-xs text-muted"><span>May take</span></p>
-      <ul class="flex flex-wrap items-center gap-1.5" aria-label="Options">{{range .}}<li class="eq-chip"><span>{{upfirst .Name}}</span>{{if .Points}}<span class="text-muted">+{{.Points}} pts</span>{{end}}</li>{{end}}</ul>{{end}}
+      {{with .Wargear}}<p class="flex items-center gap-1.5 text-xs text-muted"><span>Wargear</span></p>
+      <ul class="flex flex-wrap items-center gap-1.5" aria-label="Wargear">{{range .}}{{template "glossary_chip" (dict "C" . "Class" "eq-chip")}}{{end}}</ul>{{end}}
+            {{with .Options}}<p class="flex items-center gap-1.5 text-xs text-muted"><span>May take</span></p>
+      <ul class="flex flex-wrap items-center gap-1.5" aria-label="Options">{{range .}}{{template "glossary_chip" (dict "C" .Chip "Class" "eq-chip" "Points" .Points)}}{{end}}</ul>{{end}}
       {{with .Preview.HeroicActions}}<ul class="flex flex-wrap gap-1.5" aria-label="Heroic actions">{{range .}}<li class="act-chip">{{template "bolt_icon"}}<span>{{.}}</span></li>{{end}}</ul>{{end}}
-      {{with .Preview.Rules}}<ul class="flex flex-wrap gap-1.5" aria-label="Special rules">{{range .}}<li class="rule-chip rule-unit"><span>{{.}}</span></li>{{end}}</ul>{{end}}
-      {{with .Text}}<p class="text-sm" data-def>{{.}}</p>{{end}}
+      {{with .Rules}}<ul class="flex flex-wrap gap-1.5" aria-label="Special rules">{{range .}}{{template "glossary_chip" (dict "C" . "Class" "rule-chip rule-unit")}}{{end}}</ul>{{end}}
+      {{with .Text}}<p class="text-sm" data-def>{{template "segments" (dict "S" . "CID" $.CID)}}</p>{{end}}
     </div>
+    {{with .Members}}<section class="flex flex-col gap-2" aria-label="Made of"><p class="text-xs text-muted">Made of {{len .}} models, each with its own profile and points</p>
+      {{range .}}<div data-member="{{.ID}}" class="unit {{if .Preview.HasHeroStats}}unit-hero{{else}}unit-warrior{{end}} flex flex-col gap-2 bg-surface !p-4">
+        {{template "glossary_unit_inner" (dict "U" . "CID" $.CID "Member" true)}}
+      </div>{{end}}
+    </section>{{end}}
     <div class="unit-foot">
-      <p class="border-t border-line pt-2 text-xs text-muted">Named by {{join .Companies ", "}}</p>
-      <div class="unit-kw">{{template "keyword_row" (dict "K" .Preview.Keywords "Static" true)}}</div>
+      {{if not $.Member}}<p class="border-t border-line pt-2 text-xs text-muted">Named by {{join .Companies ", "}}</p>{{end}}
+      <div class="unit-kw">{{template "keyword_row" (dict "K" .Preview.Keywords "Static" true "Tips" true)}}</div>
     </div>
+{{end}}
+{{end}}
+
+{{define "glossary_units"}}
+<div id="glossary-units" class="space-y-3">
+  <h2 id="units" class="!text-xl pt-4" data-heading="units" x-show="catShows($el.dataset.heading)">Units <span class="text-base font-normal text-muted">{{len .Units}} cards, one for each unit the companies recruit</span></h2>
+  {{$cid := .CID}}{{range .Units}}
+  <article id="{{.ID}}" tabindex="-1" data-name="{{.Name}}" data-aliases="{{with .Base}}{{.}}|{{end}}{{join .Companies "|"}}" data-category="units" data-unit x-show="shows($el)" :class="hl === $el.id && 'term-hl'" class="term card unit unit-{{if .Preview.HasHeroStats}}hero{{else}}warrior{{end}} flex scroll-mt-20 flex-col gap-2 !p-4 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+    {{template "glossary_unit_inner" (dict "U" . "CID" $cid)}}
   </article>
   {{end}}
 </div>

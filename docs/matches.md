@@ -1,16 +1,38 @@
 # Matches: scenario, results and ending
 
 How a match is recorded: the scenario, the reported result, who may edit what, Against the Odds before the game, and how a match ends.
-It describes the match page `/campaigns/{id}/matches/{match}` and the Go types and methods behind it (`core.Matches`). What a match does to
-the companies afterwards (injury rolls, experience, influence) is the War's Aftermath, in [aftermath.md](aftermath.md); while a match is
-open its companies are in live mode ([live-match.md](live-match.md)).
+It is for players and organisers who use the match page, and for developers who change it.
+
+It describes the match page `/campaigns/{id}/matches/{match}` and the Go types and methods behind it (`core.Matches`).
 
 The aim is few presses and short pages: after the game at the table, a normal match takes **End match → Confirm → Start aftermath**, stopping
 only for real decisions, and every page shows only what the player needs at that moment.
 
-Code: `internal/core/match.go`, `matches.go`, `match_end.go`, `ato*.go`; `internal/web/match.go`, `match_new.go`, `end_sheet.go`, `ato.go`; `internal/postgres/match.go`, `ato.go`
-(tables in [architecture.md](architecture.md)). A write answers with the whole `#match` block, which htmx swaps in, so the header badge,
-scenario and result stay in step. A stale revision answers 200 with a notice; a viewer who cannot edit gets 403; an editor with invalid input gets 422 with the form kept.
+- What a match does to the companies afterwards (injury rolls, experience, influence) is the War's Aftermath, in [aftermath.md](aftermath.md).
+- While a match is open, its companies are in live mode ([live-match.md](live-match.md)).
+
+Code: `internal/core/match.go`, `matches.go`, `match_end.go`, `ato*.go`; `internal/web/match.go`, `match_new.go`, `end_sheet.go`, `ato.go`; `internal/postgres/match.go`, `ato.go` (tables in [architecture.md](architecture.md)).
+
+How a write is answered:
+
+- A write answers with the whole `#match` block, which htmx swaps in, so the header badge, scenario and result stay in step.
+- A stale revision answers 200 with a notice.
+- A viewer who cannot edit gets 403.
+- An editor with invalid input gets 422 with the form kept.
+
+## Contents
+
+- [Concepts](#concepts)
+- [Practice matches](#practice-matches)
+- [Several companies of one player](#several-companies-of-one-player)
+- [Who may edit](#who-may-edit)
+- [Go contract](#go-contract)
+- [New match](#new-match)
+- [The match page](#the-match-page): [change scenario](#change-scenario), [one-off scenario form](#one-off-scenario-form), [Wound chart](#wound-chart)
+- [Secret objectives (Fog of War)](#secret-objectives-fog-of-war)
+- [Against the Odds](#against-the-odds)
+- [Organiser grants and scenario rewards](#organiser-grants-and-scenario-rewards)
+- [Ending a match](#ending-a-match)
 
 ## Concepts
 
@@ -38,6 +60,8 @@ there is no setter, route or button; to change course, end the match and start a
 `CompanyBusyError`), the company pages show the same live state, the live log and secret objectives work, ending needs the same confirmations (but no MVP vote), and an administrator can
 reopen it (`ReopenMatch` ignores the "aftermath started" rule for a practice match, which has none). What it never does: award or spend experience, influence, gold or rerolls, apply
 scenario or Against the Odds rewards, injure, kill, change the rating, consume an item or count toward anything. Its aftermath is derived as complete and empty ([aftermath.md](aftermath.md#practice-matches)).
+
+The whole feature is in [practice-matches.md](practice-matches.md).
 
 - **Nothing moves on**: the aftermath is what heals, so a model Injured before the game does not recover by missing it. Wounds, Might, Will and Fate spent in the game are match state, derived from the log, and never reach the company. The organiser's grants do not depend on matches and stay allowed.
 - **Counts**: wins, draws, losses and the Matches figure exclude practice matches; the Overview adds a muted "n practice matches" line (`CampaignSummary.PracticeMatches`) and the home list "· n practice".
@@ -137,7 +161,7 @@ interface all take the acting `core.User` and return `ErrNotFound` for an unknow
 starting positions, how the game ends, special rules, roles) and `Prizes` (rewards that follow from the result: Rendezvous, Vantage Point, Survival of the Fittest; shown, not ticked).
 
 A `ScenarioObjective` is one tick per company on the End match sheet: a reward condition of the rules file that the players tick
-(`data.scenarioDetails[].rewards[]` with a `companyFlag` condition). Today those are Scavenge the Battlefield (free equipment), Baggage Train
+(`data.scenarioDetails[].rewards[]` with a `companyFlag` condition). Those are Scavenge the Battlefield (free equipment), Baggage Train
 (1 Influence) and Relic of Ages Past. Rewards that follow from the result itself (`victory`, `leaderNotRemoved`) are not ticks; they belong to the aftermath. Objective fields are posted as
 `tick-<company id>-<key>`.
 
@@ -280,7 +304,24 @@ GrantReward(ctx, user, id, companyID, core.GrantInput) (core.Grant, error) // or
 Grants(ctx, id, companyID) ([]core.Grant, error)                           // newest first, visible to every player
 ```
 
-Scenario rewards are not granted by the match page: they are shown as a preview ("Completing this earns 1 Gold") and become `Grant`s of kind `scenario` when the aftermath is applied ([aftermath.md](aftermath.md)). The company page has a **Grants** card (also on the owner's My Company tab) and, on another company's page, a **Grant reward** form for the organiser and administrators (Gold, Influence, Experience and a unit, a note) on every company page, one's own included (the card stays at the bottom of the My Company tab); a player never sees the form, and neither does anyone in a finished campaign. `core.GrantInput.Validate` checks the note, that there is something to give, amounts within +-1000 Gold / +-100 Influence and Experience, and a unit for experience; a result below zero Gold or Influence is refused. `core.CampaignDetail.CanGrant` is shared by every caller. `POST .../companies/{company}/grants` answers the card again.
+Scenario rewards are not granted by the match page.
+They are shown as a preview ("Completing this earns 1 Gold") and become `Grant`s of kind `scenario` when the aftermath is applied ([aftermath.md](aftermath.md)).
+
+Where grants appear:
+
+- Every company page has a **Grants** card.
+  On the owner's My Company tab it sits at the bottom.
+- The organiser and administrators also get a **Grant reward** form on every company page, their own included.
+  The form takes Gold, Influence, Experience with a unit, and a note.
+- A player never sees the form, and neither does anyone in a finished campaign.
+
+Validation:
+
+- `core.GrantInput.Validate` checks the note, that there is something to give, amounts within +-1000 Gold and +-100 Influence and Experience, and a unit for experience.
+- A result below zero Gold or Influence is refused.
+- `core.CampaignDetail.CanGrant` is shared by every caller.
+
+`POST .../companies/{company}/grants` answers the card again.
 
 ## Ending a match
 
@@ -354,4 +395,4 @@ OverrideEnd(ctx, user, id, matchID, revision, note string) (core.Match, error) /
 
 All five run through the match `edit` path, so the revision check, `MatchEdit` access and the finished-campaign refusal apply. `finishEnd` is the step the last confirm, a single-owner propose and the override share: it sets `Ended`, records the history and starts the aftermath lock. Every proposal change bumps `Match.Revision`, calls `Match.resetEnd` where a result changes, and notifies the live hub through `Matches.EndNotify` (event `match`). The live mode cancels a pending end with `CancelPendingEnd` (no revision).
 
-History: `MatchEvent.Detail` is "confirmed by Rangers, Raiders" or "overriding Raiders: note". Routes (all with `revision`): `POST /campaigns/{id}/matches/{match}/end/propose` and `/end/confirm` (the sheets), `/end/withdraw`, `/end/cancel`, `/end/override` (the page swaps `#match`). Storage: `match_end_proposal` and `match_end_confirmation` (migration 00023). The page templates and the live banner are described in [frontend.md](frontend.md). The demo data and the seed end matches with `voteMissing`, `ProposeEnd` plus `OverrideEnd` (`endNow` in `cmd/server/seed.go`).
+History: `MatchEvent.Detail` is "confirmed by Rangers, Raiders" or "overriding Raiders: note". Routes (all with `revision`): `POST /campaigns/{id}/matches/{match}/end/propose` and `/end/confirm` (the sheets), `/end/withdraw`, `/end/cancel`, `/end/override` (the page swaps `#match`). Storage: `match_end_proposal` and `match_end_confirmation` (migration 00023). The page templates and the live banner are described in [frontend-live-match.md](frontend-live-match.md#ending-a-match-by-confirmation). The demo data and the seed end matches with `voteMissing`, `ProposeEnd` plus `OverrideEnd` (`endNow` in `cmd/server/seed.go`).

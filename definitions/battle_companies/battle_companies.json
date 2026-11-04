@@ -14104,11 +14104,11 @@
       "units": [
         {
           "name": "Goblin Hulk",
-          "addKeywords": [
+          "extends": "Gundabad Ogre",
+          "race": [
             "Goblin"
           ],
-          "extends": "Gundabad Ogre",
-          "note": "Goblin Hulk uses the profile of the Gundabad Ogre with the Goblin keyword added (a Battle Companies addition). It is hired for 15 Influence Points (Rare 1)."
+          "note": "Goblin Hulk uses the profile of the Gundabad Ogre with the Goblin keyword (a Battle Companies addition): it is a Goblin, not an Ogre. It is hired for 15 Influence Points (Rare 1)."
         }
       ]
     },

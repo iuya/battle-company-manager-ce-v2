@@ -81,22 +81,12 @@ func rawInt(raw map[string]json.RawMessage, key string) (n int) {
 	return
 }
 
-// gearTermText is the text of the glossary term of a piece of gear: what it says, then its price in the Battle Companies armoury and the
-// slot it takes. It is false when there is nothing to say.
-func gearTermText(def string, influence int, gold Rating, size string) (string, bool) {
-	var price []string
-	if influence > 0 {
-		price = append(price, fmt.Sprintf("%d influence", influence))
-	}
-	if gold.Warrior+gold.Hero > 0 {
-		price = append(price, fmt.Sprintf("%d Gold for a warrior, %d for a hero", gold.Warrior, gold.Hero))
-	}
+// gearTermText is the text of the glossary term of a piece of gear: what it says, then the slot it takes. Prices belong to the armoury,
+// which reads them from the rules data, not from the glossary. It is false when there is nothing to say.
+func gearTermText(def string, size string) (string, bool) {
 	extra := ""
 	if size != "" {
 		extra = fmt.Sprintf(" It takes a %s equipment slot.", size)
-	}
-	if len(price) > 0 {
-		extra = " Battle Companies armory: " + strings.Join(price, " or ") + "." + extra
 	}
 	if def == "" && extra == "" {
 		return "", false
@@ -110,7 +100,7 @@ func creatureTermText(c map[string]json.RawMessage) string {
 	if r := rawStrings(c, "specialRules"); len(r) > 0 {
 		def += "\n\nSpecial rules: " + strings.Join(r, ", ") + "."
 	}
-	def += fmt.Sprintf("\n\nA creature for a leader or a sergeant. It costs %d influence and is worth %d points.", rawInt(c, "influence"), rawInt(c, "points"))
+	def += "\n\nA creature for a leader or a sergeant."
 	for _, n := range rawStrings(c, "notes") {
 		def += "\n\n" + n
 	}
@@ -129,7 +119,7 @@ func wandererTermText(w map[string]json.RawMessage) string {
 	if r := rawStrings(w, "specialRules"); len(r) > 0 {
 		def += "\n\nSpecial rules: " + strings.Join(r, ", ") + "."
 	}
-	def += fmt.Sprintf("\n\nA mercenary hero for a company. It costs %d influence and is worth %d points.", rawInt(w, "influence"), rawInt(w, "points"))
+	def += "\n\nA mercenary hero for a company."
 	return def
 }
 

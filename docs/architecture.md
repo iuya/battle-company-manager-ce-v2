@@ -1,11 +1,23 @@
 # Architecture
 
-How the service is built: the layers, the packages, the data model, the live match design, the request flow, the configuration and the commands.
-Read it first if you are going to change the code. The feature documents ([matches.md](matches.md), [aftermath.md](aftermath.md),
-[live-match.md](live-match.md), ...) describe behaviour; this one describes structure.
+How the service is built: layers, packages, data model, live match design, request flow, configuration and commands.
+Read it first if you are going to change the code.
+The feature documents ([matches.md](matches.md), [aftermath.md](aftermath.md), [live-match.md](live-match.md), ...) describe behaviour; this one describes structure.
 
-A small Go service with a server-rendered frontend and one external dependency: PostgreSQL. It is organised as
-**ports and adapters**: the business logic knows nothing about HTTP or SQL, and talks to both through interfaces.
+- [Overview](#overview)
+- [Packages](#packages)
+- [Interfaces live where they are used](#interfaces-live-where-they-are-used)
+- [Campaign settings](#campaign-settings)
+- [Backend design](#backend-design)
+- [Live match design](#live-match-design)
+- [The lean decoder and the upload report](#the-lean-decoder-and-the-upload-report)
+- [Request flow](#request-flow)
+- [Persistence](#persistence), [Configuration](#configuration), [Deploying](#deploying), [Commands](#commands), [Conventions](#conventions)
+
+## Overview
+
+The service is a small Go program with a server-rendered frontend and one external dependency: PostgreSQL.
+It follows the **ports and adapters** pattern: the business logic knows nothing about HTTP or SQL, and talks to both through interfaces.
 
 ```
  browser ──HTTP──▶  internal/web  ──interface──▶  internal/core  ──interface──▶  internal/postgres ──▶ PostgreSQL
@@ -24,7 +36,7 @@ A small Go service with a server-rendered frontend and one external dependency: 
 | `internal/postgres` | Persistence adapter (pgx). Implements the core's repository interfaces; embedded goose migrations |
 | `internal/web` | HTTP adapter: routes, handlers, middleware, templates, static assets. Declares the core interfaces it needs |
 | `definitions/` | Rules data as JSON with schemas, see [definitions.md](definitions.md) |
-| `tools/` | Python tooling for the definitions, icons and the theme contrast check; `tools/dice3d` builds the 3D dice script |
+| `tools/` | Go programs for the definitions, glossary, concept graph, icons and the theme contrast check; `tools/dice3d` builds the 3D dice script |
 | `tests/` | Browser tests (`e2e`), pull request check tests (`ci`), Tabletop Simulator tests (`tts`); see [testing.md](testing.md) |
 
 ## Interfaces live where they are used
@@ -37,17 +49,20 @@ Go interfaces are satisfied implicitly, so each package defines the small interf
 
 Consequences:
 
-- A layer never imports the layer below it for its types except through the core's plain data types (`core.User`, `core.CampaignSummary`).
-- Every layer is tested alone against a generated mock of what it consumes (`make generate`, mockgen with `-typed`; the mocks are
-  `mock_*_test.go` files next to the interface).
-- A page can be designed before its backend exists: add the method to the web interface, regenerate the mock and test the handler
-  against it; the core service comes next and nothing in `web` changes.
+- A layer imports the layer below it only for the core's plain data types (`core.User`, `core.CampaignSummary`).
+- Every layer is tested alone against a generated mock of what it consumes.
+  `make generate` runs mockgen with `-typed`; the mocks are `mock_*_test.go` files next to the interface.
+- A page can be designed before its backend exists:
+  1. Add the method to the web interface.
+  2. Regenerate the mock and test the handler against it.
+  3. Write the core service; nothing in `web` changes.
 
 ## Campaign settings
 
-`core.CampaignSettings` travels through the interfaces the web layer declares: the organiser sets it when creating a campaign, every
-player reads it, nobody changes it afterwards, and the zero value is every option off. The web layer only hides controls the
-settings do not offer; the core enforces them.
+`core.CampaignSettings` travels through the interfaces the web layer declares.
+The organiser sets it when creating a campaign and every player reads it.
+The zero value is every option off.
+The web layer only hides controls the settings do not offer; the core enforces them.
 
 | Flag | Default | Effect | Enforced by |
 |---|---|---|---|
@@ -55,8 +70,8 @@ settings do not offer; the core enforces them.
 | `ShakeTheTable` | off | the browser throws the dice and decides the roll (client authoritative) | a thrown roll is refused when off |
 | `ManualRolls` | off | players may type in the result of physical dice | a typed roll is refused when off |
 
-`CampaignSettings.RollRefusal(entered, thrown)` holds the rule for the last two so every call site applies the same one. A new
-option is added to the struct, to this table, to the campaign form and to the Overview's settings card.
+`CampaignSettings.RollRefusal(entered, thrown)` holds the rule for the last two so every call site applies the same one.
+To add an option, add it to the struct, to this table, to the campaign form and to the Overview's settings card.
 
 ## Backend design
 
@@ -85,8 +100,9 @@ option is added to the struct, to this table, to the campaign form and to the Ov
 
 ### Company aggregate and transactions
 
-A company is one aggregate. Every company mutation (spend influence, recruit, buy, level up, treat, reorder, bury) is "load,
-apply the rules in memory, save" and is atomic and serialised per company:
+A company is one aggregate.
+Every company mutation (spend influence, recruit, buy, level up, treat, reorder, bury) is "load, apply the rules in memory, save".
+Each is atomic and serialised per company:
 
 ```go
 // Update runs fn on the company's state inside one transaction holding a row lock on the company, and stores the state fn
@@ -139,7 +155,7 @@ by another company of the same owner, case ignored, is `ErrCompanyNameTaken`, an
 `CampaignMember.Companies`). Migration `00024_several_companies.sql` drops the `(campaign_id, owner_id)` unique constraint and adds
 `companies_owner_idx`; its down refuses while a player owns two companies. Matches, live, aftermath, grants and ATO were already keyed
 by company: two companies of one owner may share a side or fight each other, and `core.SamePlayers` / `Match.SamePlayers` tell the web
-layer which owners have several companies in a match (a note, never a refusal; [matches.md](matches.md#several-companies-of-one-player)).
+layer which owners have several companies in a match (a note, never a refusal; [matches.md](matches.md#several-companies-of-one-player)). The whole feature is in [multi-company.md](multi-company.md).
 
 The company id is in the path of every owner address (`/my-company/{company}/...`) because a hidden field or a cookie would let an htmx fragment or a second tab act on another company than the one on screen.
 
@@ -165,7 +181,7 @@ jsonb because SQL never looks inside them. Prices and rating figures are derived
 | `rulesets` | `hash` primary key, `kind`, `name`, `version`, `size`, `content` (compacted JSON), `uploaded_by` (NULL for shipped files), `is_default` (one default per kind), `created_at` |
 | `campaigns`, `campaign_members` | The campaign (status, round, three ruleset hashes with composite foreign keys that also check the file kind, `settings` jsonb) and its members (organiser or player) |
 | `campaign_invites` | Invite links: `token_hash` (SHA-256), expiry, `max_uses` (0 is unlimited), `uses`, revoked flag. `Redeem` locks the invite row and a member re-joining does not use it up |
-| `companies` | Name, faction, influence, gold, `pack text[]`, `pending jsonb`, saved roster and cemetery orders (`unit_order`, `grave_order` as `bigint[]`); unique `(campaign, owner)`; the owner is a member of the campaign |
+| `companies` | Name, faction, influence, gold, `pack text[]`, `pending jsonb`, saved roster and cemetery orders (`unit_order`, `grave_order` as `bigint[]`); the owner is a member of the campaign (several companies per owner are allowed) |
 | `company_units` | One row per model: `position` (its index in `CompanyState.Units`, unique per company, deferrable), base unit, name, role, level, XP, `progress`, `injuries` and `pending` jsonb |
 | `unit_equipment` | Bought and dropped gear only (origins `gear`, `bought`, `dropped`); profile wargear is derived from the rules |
 | `fallen_units` | A frozen snapshot of each fallen model; keeps its roster id in `unit_id` (unique, no foreign key) |
@@ -278,21 +294,30 @@ match (cascade); undone rows stay as the audit.
 
 ## The lean decoder and the upload report
 
-`internal/core/lean` reads the Battle Companies file (`schemaVersion` 2). Files: `model.go` and `campaign.go` (the contract: one struct per
-concept, tags `json`, `required`, `enum`, `min`/`max`, `rest`), `types.go` and `dice.go` (`Roll`, `Rating`, `RuleRef`, `Scalar`,
-`DiceSpec`, the polymorphic values), `jsontree.go` and `bind.go` (the strict binder: JSON to a tree with duplicate-key and depth checks,
-then reflection over the model; every error is collected with its path), `defaults.go` and `extends.go` (`Normalise`: extends of company,
-unit, gear and path, then the defaults, idempotent), `lower.go` and `resolve.go` (`Lower`, the interface the lower layers implement, and
-`Resolve`: every name looked up in the entity's scope, the shared lists and the lower layers), `validate.go` and `validate_charts.go`
-(structure, chart coverage by dice spec, parameter ranges), `issue.go` and `closest.go` (`Issue`, `Report`, `Closest` for "did you mean"),
-`decode.go` (`Decode`, the one entry point), `encode.go` (the inverse of the binder, for the round-trip test).
+`internal/core/lean` reads the Battle Companies file (`schemaVersion` 2).
+`Decode` (`decode.go`) is the one entry point. The files are:
 
-`internal/core` adapts it: `ruleset_v2.go` has `DecodeBattleCompanies` and the `lean.Lower` over the vanilla book and the glossary;
-`ruleset_report.go` has `RulesetReport` / `RulesetIssue`, the error of a rejected file (plain data, so `web` never imports `lean`);
-`LoadRuleSet` and `Rules.build` decode the file (a file of an older format gets one clear issue) and `loadV2` builds the whole rule set
-from the typed document with the `*_lean.go` readers; `RuleSet.Doc` carries the document. The aftermath, Against the Odds and scenario
-services read their rules from the `RuleSet`, never from the stored bytes. The file format is in [definitions.md](definitions.md) and the
-upload flow in [definitions.md](definitions.md#upload-validation).
+| Files | Role |
+|---|---|
+| `model.go`, `campaign.go` | The contract: one struct per concept, with tags `json`, `required`, `enum`, `min`/`max`, `rest` |
+| `types.go`, `dice.go` | `Roll`, `Rating`, `RuleRef`, `Scalar`, `DiceSpec` and the other polymorphic values |
+| `jsontree.go`, `bind.go` | The strict binder: JSON to a tree with duplicate-key and depth checks, then reflection over the model. Every error is collected with its path |
+| `defaults.go`, `extends.go` | `Normalise`: extends of company, unit, gear and path, then the defaults. Idempotent |
+| `lower.go`, `resolve.go` | `Lower` (the interface the lower layers implement) and `Resolve` (every name looked up in the entity's scope, the shared lists and the lower layers) |
+| `validate.go`, `validate_charts.go` | Structure, chart coverage by dice spec, parameter ranges |
+| `issue.go`, `closest.go` | `Issue`, `Report`, and `Closest` for "did you mean" |
+| `encode.go` | The inverse of the binder, for the round-trip test |
+
+`internal/core` adapts the package:
+
+- `ruleset_v2.go` has `DecodeBattleCompanies` and the `lean.Lower` over the vanilla book and the glossary.
+- `ruleset_report.go` has `RulesetReport` / `RulesetIssue`, the error of a rejected file.
+  They are plain data, so `web` never imports `lean`.
+- `LoadRuleSet` and `Rules.build` decode the file (a file of an older format gets one clear issue).
+- `loadV2` builds the whole rule set from the typed document with the `*_lean.go` readers; `RuleSet.Doc` carries the document.
+- The aftermath, Against the Odds and scenario services read their rules from the `RuleSet`, never from the stored bytes.
+
+The file format is in [definitions.md](definitions.md) and the upload flow in [definitions.md](definitions.md#upload-validation).
 
 ## Request flow
 
@@ -308,7 +333,7 @@ Routes by area (the feature documents list the actions):
 | `GET/POST /login`, `POST /logout` | public / session | Sign in and out |
 | `GET /`, `GET /nav/campaigns` | signed in | The user's campaigns; the sidebar sub-menu |
 | `GET /campaigns/new`, `POST /campaigns` | may create campaigns | New campaign |
-| `GET /campaigns/{id}` and `/rankings`, `/matches` | campaign member | The campaign's tabs (`/companies`, the old Companies tab, redirects to `/rankings`) |
+| `GET /campaigns/{id}` and `/rankings`, `/matches` | campaign member | The campaign's tabs (`/companies` redirects to `/rankings`) |
 | `/campaigns/{id}/my-company/{company}/...` | the company's owner (404 for anyone else) | One of your companies: recruit, armoury, level up, path, treatment, formation, cemetery, pack, perks; `/my-company` alone is an alias that opens one |
 | `/campaigns/{id}/companies/{company}` | campaign member | Another company, read only (your own redirects to `/my-company/{company}`) |
 | `/campaigns/{id}/matches/...` | campaign member | Matches, scenario, result, end confirmation, Against the Odds, aftermath ([matches.md](matches.md), [aftermath.md](aftermath.md)) |
@@ -364,17 +389,27 @@ Environment variables (loaded by `go-simpler.org/env`; `.env.example` lists them
 | `RULES_BUILD_TIMEOUT` | `60s` | Deadline of building a parsed rule set from its three files; at least `1s` |
 | `APP_TIMEZONE` | unset | IANA zone for visitors with no account zone and no browser zone (UTC when empty) |
 | `TRUST_PROXY` | `false` | Count login attempts per `X-Forwarded-For` (last entry) instead of the peer address; only behind a reverse proxy that sets it |
-| `CSP_MODE` | `report` | `off`, `report` (`Content-Security-Policy-Report-Only` and the `/csp-report` logger) or `enforce`; see [operations.md](operations.md#content-security-policy-report-mode-then-enforce) |
+| `CSP_MODE` | `report` | `off`, `report` (`Content-Security-Policy-Report-Only` and the `/csp-report` logger) or `enforce`; see [csp.md](csp.md) |
 | `MIGRATE_ON_START` | `true` | Apply pending migrations when the server starts. `false`: the server only checks and refuses to start on a database that is behind; run `server migrate` (`make migrate`) as a deploy step |
 
 ## Deploying
 
-**Image.** `docker build -t bcm .` builds in three stages (Tailwind CSS, the static Go binary, a distroless `nonroot` runtime with the
-binary and `definitions/`). The container runs as uid 65532 with `APP_ENV=production` and has a `HEALTHCHECK` that runs `server
-healthcheck` (GET `/readyz` on its own port). `docker compose up -d --build` (`make up`) is the production setup: `compose.yaml`
-(project `bcm`) runs the image next to PostgreSQL on a named volume, read-only, capabilities dropped, no database port; settings in
-`.env` (`.env.example`), first account with `make prod-user`; see [operations.md](operations.md). `compose.dev.yaml` is the development
-database only (published on 127.0.0.1), which `make run`, `dev`, `demo`, `seed` and the integration tests use while the server runs on the host.
+**Image.** `docker build -t bcm .` builds in three stages:
+
+1. Tailwind CSS.
+2. The static Go binary.
+3. A distroless `nonroot` runtime with the binary and `definitions/`.
+
+The container runs as uid 65532 with `APP_ENV=production`.
+Its `HEALTHCHECK` runs `server healthcheck` (GET `/readyz` on its own port).
+
+**Production compose.** `docker compose up -d --build` (`make up`) is the production setup.
+`compose.yaml` (project `bcm`) runs the image next to PostgreSQL on a named volume, read-only, capabilities dropped, with no database port.
+Settings are in `.env` (see `.env.example`); create the first account with `make prod-user`.
+See [operations.md](operations.md).
+
+**Development compose.** `compose.dev.yaml` holds only the development database, published on 127.0.0.1.
+`make run`, `dev`, `demo`, `seed` and the integration tests use it while the server runs on the host.
 
 **Behind a reverse proxy (TLS).** Terminate TLS at the proxy and forward to `:8080`. Set `TRUST_PROXY=true` only if the proxy sets
 `X-Forwarded-For` itself and replaces any value the client sent; leave `SECURE_COOKIES` unset. Probe `/healthz` for liveness and
@@ -382,7 +417,7 @@ database only (published on 127.0.0.1), which `make run`, `dev`, `demo`, `seed` 
 
 **Migrations.** For a controlled deploy set `MIGRATE_ON_START=false` on the servers and run `server migrate` (`make migrate`, or
 `docker compose run --rm app migrate`) first: the servers then refuse to start while migrations are pending. A rollback of data is a
-restore: take a backup before upgrading ([operations.md](operations.md)).
+restore: take a backup before upgrading ([backup-restore.md](backup-restore.md)).
 
 ## Commands
 
@@ -406,7 +441,7 @@ restore: take a backup before upgrading ([operations.md](operations.md)).
 | `make css` | Builds `internal/web/static/app.css` (generated, not committed) |
 | `make db-up` / `make db-down` | Starts / stops the development PostgreSQL (`compose.dev.yaml`) |
 | `make migrate` | Applies pending migrations and exits (`server migrate`) |
-| `make backup` / `make restore FILE=… CONFIRM=yes` / `make restore-drill` | `pg_dump` into `backups/`, restore over the database, restore into a scratch database and smoke-check it ([operations.md](operations.md)) |
+| `make backup` / `make restore FILE=… CONFIRM=yes` / `make restore-drill` | `pg_dump` into `backups/`, restore over the database, restore into a scratch database and smoke-check it ([backup-restore.md](backup-restore.md)) |
 | `make vendor-check [ONLINE=1]` | The vendored scripts match `internal/web/vendor.json` ([vendored-js.md](vendored-js.md)) |
 | `make up` (`make up-app`) / `make prod-down` | Production compose (`compose.yaml`): builds the image and starts it with PostgreSQL / stops it |
 | `make prod-user EMAIL=… NAME=… [ROLE=superuser]` | Creates the first account in the production container |

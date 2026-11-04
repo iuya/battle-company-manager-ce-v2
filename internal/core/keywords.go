@@ -222,6 +222,12 @@ func (r *RuleSet) UnitKeywords(p CompanyProfile, in UnitKeywordsInput) UnitKeywo
 			set.add(KeywordType, t, src)
 		}
 		if alias != nil {
+			if len(alias.Race) > 0 { // the alias is what the unit is: its race replaces the profile's
+				set.race = nil
+				for _, w := range alias.Race {
+					set.add(KeywordRace, w, KeywordFromCompany)
+				}
+			}
 			for _, w := range alias.Keywords {
 				if r.Vanilla.IsRace(w) {
 					set.add(KeywordRace, w, KeywordFromCompany)
@@ -308,13 +314,16 @@ func generatedKeywordText(name string, kind KeywordKind) string {
 	return name + " is " + what + ". Rules that name it (Hatred (" + name + "), Ancient Enemies (" + name + ")) apply to models that have it."
 }
 
-// withAliasKeywords is the profile a company's alias stands for with the keywords it adds (Goblin Hulk: Goblin), as company limits
+// withAliasKeywords is the profile a company's alias stands for with the keywords it adds, and the race it gives instead of the profile's (Goblin Hulk: Goblin), as company limits
 // count them.
 func withAliasKeywords(rs *RuleSet, v VanillaUnit, a *UnitAlias) VanillaUnit {
-	if a == nil || len(a.Keywords) == 0 {
+	if a == nil || len(a.Keywords)+len(a.Race) == 0 {
 		return v
 	}
 	v.Race, v.Faction = slices.Clone(v.Race), slices.Clone(v.Faction)
+	if len(a.Race) > 0 {
+		v.Race = slices.Clone(a.Race)
+	}
 	for _, w := range a.Keywords {
 		if rs.Vanilla.IsRace(w) {
 			v.Race = append(v.Race, w)
@@ -331,12 +340,52 @@ func resolveUnitKeywords(rs *RuleSet, p CompanyProfile, name string) (VanillaUni
 	return withAliasKeywords(rs, v, a), a, ok
 }
 
-// withPreviewKeywords gives each unit preview of a profile its keyword set (no mount, no state: a preview is the unit as it is
-// recruited). p.Previews must be its own map, as WithPreviews makes it.
-func (r *RuleSet) withPreviewKeywords(p CompanyProfile) CompanyProfile {
+// finishPreviews gives each unit preview of a profile its keyword set and its characteristics with the changes of its gear (no mount, no
+// state: a preview is the unit as it is recruited, with the stats the roster shows for it). p.Previews must be its own map, as
+// WithPreviews makes it.
+func (r *RuleSet) finishPreviews(p CompanyProfile) CompanyProfile {
 	for key, pv := range p.Previews {
-		pv.Keywords = r.UnitKeywords(p, UnitKeywordsInput{Type: pv.Name})
+		pv = r.finishPreview(p, key, pv)
+		if vu, _, ok := r.ResolveUnit(p, pv.Name); ok && len(vu.Includes) > 0 { // a bundle (Vault Warden Team) shows the card of each member
+			for _, m := range vu.Includes {
+				mkey := PreviewKey(m, nil)
+				mv := r.finishPreview(p, mkey, p.preview(r.Vanilla, m, nil))
+				for _, mp := range p.IncludedPoints[pv.Name] { // a member is worth the points its company's bundle gives it
+					if sameName(mp.Name, m) {
+						mv.Points += mp.Points
+					}
+				}
+				pv.Members = append(pv.Members, mv)
+			}
+		}
 		p.Previews[key] = pv
 	}
 	return p
+}
+
+// finishPreview is one preview with its keywords and the characteristics, rules and wargear the roster gives the unit.
+func (r *RuleSet) finishPreview(p CompanyProfile, key string, pv UnitPreview) UnitPreview {
+	if len(pv.Stats) > 0 {
+		role := RoleWarrior
+		if pv.HasHeroStats() {
+			role = RoleHero
+		}
+		var gear []string
+		if _, g, ok := strings.Cut(key, "|"); ok && g != "" {
+			gear = strings.Split(g, ",")
+		}
+		u := recruitUnit(r, p.BCCompany, pv.Name, "", gear, role)
+		pv.Stats = u.Stats
+		pv.RuleCards = u.Rules
+		pv.Rules = pv.Rules[:0:0]
+		for _, ru := range u.Rules {
+			pv.Rules = append(pv.Rules, ru.Shown())
+		}
+		pv.Wargear = pv.Wargear[:0:0]
+		for _, e := range u.Equipment {
+			pv.Wargear = append(pv.Wargear, e.Name)
+		}
+	}
+	pv.Keywords = r.UnitKeywords(p, UnitKeywordsInput{Type: pv.Name})
+	return pv
 }

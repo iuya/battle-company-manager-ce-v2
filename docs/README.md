@@ -1,7 +1,10 @@
 # Battle Companies 2nd CE Manager: documentation
 
-A manager for the *Middle-earth Strategy Battle Game* **Battle Companies 2nd Community Edition** game mode: campaigns, companies and matches. These pages describe the app as it is. Pages
-that describe planned work say so in their first lines. The tables below group them by who they are for; the same map is in the [README](../README.md#documentation).
+The index of the documentation of the Battle Companies 2nd CE Manager, an app for running campaigns, companies and matches of the *Middle-earth Strategy Battle Game* **Battle Companies 2nd Community Edition** game mode.
+
+These pages describe the app as it is.
+A page that describes planned work says so in its first lines.
+The tables group the pages by who they are for; the same map is in the [README](../README.md#documentation).
 
 ## Players and organisers
 
@@ -16,6 +19,8 @@ that describe planned work say so in their first lines. The tables below group t
 | [tabletop-simulator.md](tabletop-simulator.md) | Taking a company into Tabletop Simulator: army list, figure names and descriptions, the helper |
 | [admin.md](admin.md) | The Administration section, campaign status, invitations, handover |
 | [rules-coverage.md](rules-coverage.md) | Which Battle Companies mechanics the app implements, with the tests |
+| [multi-company.md](multi-company.md) | Several companies per player (up to a campaign setting), the company in the URL, and opening the last campaign directly |
+| [practice-matches.md](practice-matches.md) | Practice matches: a flag on a match set on the creation form, no rewards, no injuries, an empty derived aftermath |
 
 ## Rules authors
 
@@ -34,19 +39,29 @@ that describe planned work say so in their first lines. The tables below group t
 |---|---|
 | [collaborating.md](collaborating.md) | How to work on the project, with or without a coding agent |
 | [architecture.md](architecture.md) | Layers, packages, persistence, the live match design, configuration, commands |
-| [frontend.md](frontend.md) | Design language, page and htmx patterns, responsive rules, the screens |
+| [frontend.md](frontend.md) | Design language, tokens, themes, responsive rules, components, page and htmx/Alpine patterns, and the map of the screen pages |
+| [frontend-company.md](frontend-company.md) | My Company: the roster, unit cards, Armory, equipment, healing, formation, Gold, creatures |
+| [frontend-company-building.md](frontend-company-building.md) | Recruiting, the creation page, choosing a company, company rules |
+| [frontend-level-up.md](frontend-level-up.md) | Choosing a path (mosaic and carousel), the magical power window, level-up |
+| [frontend-live-match.md](frontend-live-match.md) | The live match screens |
+| [frontend-glossary.md](frontend-glossary.md) | The Glossary tab, unit-name links, the helper popup |
+| [frontend-campaigns.md](frontend-campaigns.md) | Campaign list and pages, rules files and the validator, hand-over |
+| [frontend-account.md](frontend-account.md) | Account, invitation and recovery links, the demo sign-in |
 | [testing.md](testing.md) | Test commands, golden snapshots, the browser tests |
 | [auth.md](auth.md) | Accounts, sessions, passwords, CSRF, login throttling |
 | [vendored-js.md](vendored-js.md) | The committed third-party scripts and how to update them |
 | [performance.md](performance.md) | Measured page cost and the performance tooling |
-| [design/match-redesign](design/match-redesign/README.md) | Pictures of the three proposals for the match and live-match pages (a design discussion, not the current app) |
-| [optimization-report.md](optimization-report.md) | Executive summary of the optimization work (v1.3.0, baseline and final numbers, what changed and why, what did not improve), then the detailed data format, runtime, database, build and test sections |
 
 ## Operators
 
 | Document | What it covers |
 |---|---|
-| [operations.md](operations.md) | First start, the published image, Content-Security-Policy modes, backups, restore, robustness |
+| [operations.md](operations.md) | First start, configuration, accounts and the map of the operations pages |
+| [releases.md](releases.md) | The published image, tags, how a release is built, signed images, rolling back an image |
+| [deploy-server.md](deploy-server.md) | The server kit: first start on a server, the updater, memory, rollback |
+| [backup-restore.md](backup-restore.md) | What to back up, backups, restore and the restore drill |
+| [csp.md](csp.md) | Content-Security-Policy: report mode, then enforce |
+| [robustness.md](robustness.md) | Goroutines, LISTEN/NOTIFY, server limits, the database, boot versus run |
 | [architecture.md](architecture.md) | Configuration variables, deploying, migrations |
 | [admin.md](admin.md) | Users, roles and rules files in the Administration section |
 | [auth.md](auth.md) | Creating accounts and the sign-in rules |

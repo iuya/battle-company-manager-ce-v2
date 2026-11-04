@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -132,7 +134,7 @@ func TestCampaignGlossaryUnitCards(t *testing.T) {
 		`<article id="u-helminga" tabindex="-1" data-name="Helminga" data-aliases="Rohan Royal Guard|Rohan|Helm&#39;s Deep" data-category="units"`,
 		`<h3 class="!text-xl leading-tight">Helminga</h3>`, `class="unit-head`, `<dl class="statline">`, `unit-kw`, "unit-warrior", "A company's own version of the Rohan Royal Guard", `id="units"`, "2 cards", `<span class="font-semibold text-fg">9</span> pts`,
 		"Stand Fast", "May take", "Spear", "+1 pts", "Named by Rohan, Helm&#39;s Deep", "Picked men of the Hall.",
-		`id="u-vault-warden-team"`, "Made of", "Iron Shield Bearer",
+		`id="u-vault-warden-team"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the unit cards lack %q", want)
@@ -161,5 +163,99 @@ func TestCampaignGlossaryUnitCardsAccess(t *testing.T) {
 	// signed out: the sign-in page, never the cards
 	if rec := f.do(httptest.NewRequest("GET", "/campaigns/7/glossary/units", nil)); rec.Code != http.StatusSeeOther && rec.Code != http.StatusUnauthorized {
 		t.Errorf("anonymous: %d", rec.Code)
+	}
+}
+
+// A unit card of the shipped ruleset links what it names as the company page's unit cards do: its special rules, wargear and keywords are chips with
+// a tooltip and the helper popup (data-concept), the Goblin Mercenary's Chittering Hordes among them, and its own text never links its own name.
+func TestUnitCardsLinkTheirRulesAndGear(t *testing.T) {
+	f := newFixture(t, Config{})
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
+	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(shippedRules(t).GlossaryWithUnits(), nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/glossary/units", nil))).Body.String()
+	start := strings.Index(body, `<article id="u-goblin-mercenary"`)
+	if start < 0 {
+		t.Fatal("no Goblin Mercenary card")
+	}
+	card := body[start : start+strings.Index(body[start:], "</article>")]
+	for _, name := range []string{"Chittering Hordes", "Cave Dweller", "Mercenary Ambush", "Armour", "Hand weapon"} {
+		re := regexp.MustCompile(`<li class="[^"]*has-tip" tabindex="0" data-concept data-tip-title="` + name + `" data-tip-meta="[^"]+" data-tip-text="[^"]{20,}"`)
+		if !re.MatchString(card) {
+			t.Errorf("%s has no tooltip and popup in the Goblin Mercenary card", name)
+		}
+	}
+	if !strings.Contains(card, `data-concept="Goblin keyword"`) {
+		t.Error("the keywords carry their tooltips too")
+	}
+}
+
+// What a unit's own text names is linked, never the unit itself.
+func TestUnitCardTextLinksButNotItself(t *testing.T) {
+	g := shippedRules(t).GlossaryWithUnits()
+	var units []core.BaseUnit
+	for _, u := range g.Units {
+		if u.Name == "Goblin Mercenary" {
+			u.Text = "A Goblin Mercenary has Chittering Hordes and fights beside a Goblin Mercenary Captain."
+			units = append(units, u)
+		}
+	}
+	g.Units = units
+	v := newUnitCardsView(g, 7)
+	var linked []string
+	for _, s := range v.Units[0].Text {
+		if s.UnitID == "u-goblin-mercenary" {
+			t.Errorf("the unit links its own name: %+v", s)
+		}
+		if s.TermID != "" || s.UnitID != "" {
+			linked = append(linked, s.Text)
+		}
+	}
+	if !slices.Contains(linked, "Chittering Hordes") {
+		t.Errorf("the unit's text links its rule: %q", linked)
+	}
+	if len(v.Units[0].Wargear) != 2 || v.Units[0].Wargear[0].Tip == "" {
+		t.Errorf("a wargear name the glossary defines carries its tip: %+v", v.Units[0].Wargear)
+	}
+}
+
+// The Vault Warden Team's card shows the cards of both models it is made of, each with its own stats and points, and each links to the
+// model's own card.
+func TestBundleCardShowsItsMembers(t *testing.T) {
+	f := newFixture(t, Config{})
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
+	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(shippedRules(t).GlossaryWithUnits(), nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/glossary/units", nil))).Body.String()
+	start := strings.Index(body, `<article id="u-vault-warden-team"`)
+	if start < 0 {
+		t.Fatal("no Vault Warden Team card")
+	}
+	card := body[start : start+strings.Index(body[start:], "</article>")]
+	for _, m := range []string{"Iron Shield Bearer", "Foe Spear Wielder"} {
+		if !strings.Contains(card, `<a href="#u-`+strings.ReplaceAll(strings.ToLower(m), " ", "-")+`" class="unit-link">`+m+`</a>`) {
+			t.Errorf("no member card or link for %s", m)
+		}
+		if !strings.Contains(body, `<article id="u-`+strings.ReplaceAll(strings.ToLower(m), " ", "-")+`"`) {
+			t.Errorf("%s has no card of its own", m)
+		}
+	}
+	if n := strings.Count(card, `data-member="`); n != 2 {
+		t.Errorf("%d member cards", n)
+	}
+	if n := strings.Count(card, `<dl class="statline">`); n < 2 {
+		t.Errorf("%d stat lines in the bundle card", n)
+	}
+	if strings.Contains(card, "eq-chip\">Iron Shield Bearer") {
+		t.Error("the members are still a text line")
+	}
+}
+
+func TestMountChipAddsTheProfile(t *testing.T) {
+	m := []core.BaseMount{{Name: "Horse", Stats: []core.Attribute{{Abbr: "M", Value: 10, Trail: `"`}, {Abbr: "D", Value: 4}}, Rules: []string{"Fast"}}}
+	c := mountChip(chipView{Name: "horse", Meta: "wargear", Tip: "A steed."}, m)
+	if c.Meta != "Mount" || c.Tip != "M 10\" · D 4\n\nSpecial rules: Fast\n\nA steed." {
+		t.Errorf("chip = %+v", c)
+	}
+	if got := mountChip(chipView{Name: "Shield", Tip: "x"}, m); got.Tip != "x" || got.Meta != "" {
+		t.Errorf("a name that is no mount changed: %+v", got)
 	}
 }

@@ -12,7 +12,7 @@ import (
 )
 
 // practiceWorld is the aftermath world with a second company for player one (companies per player 2): a practice match between a
-// player's two companies is the same-player case of docs/matches.md, "Practice matches".
+// player's two companies is the same-player case of docs/practice-matches.md.
 func practiceWorld(t *testing.T) (*aftermathWorld, core.CampaignCompany) {
 	t.Helper()
 	s, _ := scratchStore(t)

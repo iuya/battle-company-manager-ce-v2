@@ -2,7 +2,7 @@ package main
 
 import "github.com/iuya/battle-company-manager-ce-v2/internal/core"
 
-// bandsCampaign is the campaign where a player may have several companies (docs/architecture.md, "Several companies per player"): the setting is 3, Galadriel
+// bandsCampaign is the campaign where a player may have several companies (docs/multi-company.md): the setting is 3, Galadriel
 // has all three, Éowyn two (so she may create another), Gimli and Sauron one. Éowyn's two companies play on one side against Sauron
 // in a match that ended, one aftermath finished and the other still to play (each is locked on its own); Galadriel's first company is
 // in an open match while her other two are free. The chip switcher shows for Éowyn and Galadriel, not for Gimli or Sauron.

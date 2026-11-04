@@ -1,12 +1,45 @@
 # Customizing rulesets
 
-How to write your own Battle Companies rules: new rules, items, units, paths, companies and scenarios, or just different numbers. The guide is for people
-and for coding agents that help them; it starts with a short section for agents.
+This guide shows how to write your own Battle Companies rules: new rules, items, units, paths, companies and scenarios, or just different numbers.
+It is for rules authors, who need not be programmers, and for coding agents that help them.
+Each section gives one concept and a worked example.
 
-- The tutorial (this page) explains the concepts, one worked example each.
-- [customizing-rulesets-reference.md](customizing-rulesets-reference.md) lists **every key** with its type, default, allowed values and meaning. It is generated from the schema.
-- [examples/customizing-rulesets](../examples/customizing-rulesets/README.md) holds the example files this page quotes. They are complete files, tested on every `make test`.
+**Start here if you are new:**
+
+1. Read [What a ruleset is](#1-what-a-ruleset-is) and [The file](#2-the-file-layout-and-sections).
+2. Copy `minimal.json` (small) or the shipped file (the whole game).
+3. Change one thing, using the section for that thing (rules, units, items, paths, companies, scenarios or engine parameters).
+4. Check the file after each change ([The validation loop](#12-the-validation-loop-and-the-error-report)).
+5. Upload it ([Uploading and using a ruleset](#13-uploading-and-using-a-ruleset)).
+
+Coding agents: begin with the next section, "For agents".
+
+Related pages:
+
+- The guide (this page) explains the concepts, with one worked example each.
+- [customizing-rulesets-reference.md](customizing-rulesets-reference.md) lists **every key** with its type, default, allowed values and meaning.
+  It is generated from the schema.
+- [examples/customizing-rulesets](../examples/customizing-rulesets/README.md) holds the example files this page quotes.
+  They are complete files, tested on every `make test`.
 - [definitions.md](definitions.md) is the engine side: how the app reads and applies the file.
+
+**Contents**
+
+- [For agents](#for-agents)
+- [1. What a ruleset is](#1-what-a-ruleset-is)
+- [2. The file: layout and sections](#2-the-file-layout-and-sections)
+- [3. Names, `aka`, `id` and `overrides`](#3-names-aka-id-and-overrides)
+- [4. Three ways to define a thing](#4-three-ways-to-define-a-thing)
+- [5. Rules](#5-rules)
+- [6. Units](#6-units)
+- [7. Items](#7-items)
+- [8. Paths](#8-paths)
+- [9. Companies](#9-companies)
+- [10. Scenarios and scoring](#10-scenarios-and-scoring)
+- [11. Engine parameters](#11-engine-parameters)
+- [12. The validation loop and the error report](#12-the-validation-loop-and-the-error-report)
+- [13. Uploading and using a ruleset](#13-uploading-and-using-a-ruleset)
+
 
 ## For agents
 
@@ -16,25 +49,38 @@ JSON object, `schemaVersion` 2, that the app loads next to the shipped vanilla f
 **The loop.**
 
 1. Read the schema (`definitions/battle_companies/battle_companies.schema.json`) or the [reference](customizing-rulesets-reference.md) for the section you touch.
-2. Copy the nearest example from `examples/customizing-rulesets/` (or the nearest entry of `definitions/battle_companies/battle_companies.json`) and edit the copy. Do not write an entry from memory.
+2.
+  Copy the nearest example from `examples/customizing-rulesets/` (or the nearest entry of `definitions/battle_companies/battle_companies.json`) and edit the copy.
+  Do not write an entry from memory.
 3. Check: `make check-ruleset FILE=path/to/file.json`. It prints every problem and exits 1 when there is an error.
-4. Fix by error path: `companies[0].start.units[1].unit` is `companies` list, item 0, `start`, `units` item 1, key `unit` (indexes start at 0). Fix that place, not another one.
+4.
+  Fix by error path: `companies[0].start.units[1].unit` is `companies` list, item 0, `start`, `units` item 1, key `unit` (indexes start at 0).
+  Fix that place, not another one.
 5. Repeat until `0 errors, 0 warnings`. Then, if the file is the shipped one or a copy of it that is going to ship, `make validate` and `make test`.
 
 **Rules of thumb.**
 
-- Start from a copy of the shipped file for a real campaign (about 460 KB, complete: every company, item, path and scenario of the rulebook). Use `examples/customizing-rulesets/minimal.json` to learn or to build something small.
+- Start from a copy of the shipped file for a real campaign (about 460 KB, complete: every company, item, path and scenario of the rulebook).
+  Use `examples/customizing-rulesets/minimal.json` to learn or to build something small.
 - A name is the key of its entry. Unit, item, rule, path, scenario and company names must be unique in their list and are compared without case, accents or punctuation.
-- Use the same spelling as vanilla for anything vanilla already has (a vanilla unit, option, keyword, item). The error report offers a `closest` name; it is a suggestion, not a fix: check it against the user's intent before taking it.
-- Reference a rule **by name** (`"addRules": ["Greenway Lore"]`) and define it once in `rules[]`. Write a rule inline only where the format has a place for it (a path result, a hero upgrade).
-- Unknown keys are errors, never ignored, and so are numbers out of range and words outside a closed vocabulary. Do not leave stray keys, comments or placeholder fields in the file. JSON has no comments.
+- Use the same spelling as vanilla for anything vanilla already has (a vanilla unit, option, keyword, item).
+  The error report offers a `closest` name; it is a suggestion, not a fix: check it against the user's intent before taking it.
+- Reference a rule **by name** (`"addRules": ["Greenway Lore"]`) and define it once in `rules[]`.
+  Write a rule inline only where the format has a place for it (a path result, a hero upgrade).
+- Unknown keys are errors, never ignored, and so are numbers out of range and words outside a closed vocabulary.
+  Do not leave stray keys, comments or placeholder fields in the file.
+  JSON has no comments.
 - Charts must cover their dice exactly once: a D6 chart has rows for 1 to 6, no gap, no overlap.
 - A change that adds data is one edit to one list. Keep each change small and check after each one.
 
 **Never.**
 
-- Never edit `definitions/vanilla/data2024.json`: it is a third-party store. A change to something vanilla defines is an entry in the Battle Companies file (an annotation, or `"overrides": true`).
-- Never invent rules text. Rule, item and scenario texts are copied from the rulebook the user has. If the user has no text, leave the `definition` out and say so, or ask. The texts in the examples are placeholders, marked as such.
+- Never edit `definitions/vanilla/data2024.json`: it is a third-party store.
+  A change to something vanilla defines is an entry in the Battle Companies file (an annotation, or `"overrides": true`).
+- Never invent rules text.
+  Rule, item and scenario texts are copied from the rulebook the user has.
+  If the user has no text, leave the `definition` out and say so, or ask.
+  The texts in the examples are placeholders, marked as such.
 - The rulebook is the authority. When it and a file disagree, or the rulebook is ambiguous, show the user both versions and let them choose.
 - Never hand-edit the generated files: `battle_companies.schema.json` and `customizing-rulesets-reference.md`.
 - Never commit the rulebook, the Battle Companies document or text converted from them. They stay in `sources/`, which git ignores.
@@ -111,24 +157,34 @@ make check-ruleset FILE=my-ruleset.json
 ## 3. Names, `aka`, `id` and `overrides`
 
 - **A name is the key of its entry.** Everywhere the file refers to something (a chart row to a unit, a hero upgrade to a rule, a scenario table to a scenario), it writes the name.
-- **Names compare folded**: case, accents, apostrophes and punctuation do not count (`Lothlorien` is `Lothlórien`, `Lake-Town` is `Lake Town`). Plurals are not folded: `Spear` and `Spears` are different names.
+- **Names compare folded**: case, accents, apostrophes and punctuation do not count (`Lothlorien` is `Lothlórien`, `Lake-Town` is `Lake Town`).
+  Plurals are not folded: `Spear` and `Spears` are different names.
 - **Names are unique** within a list (all `gear`, all `rules`, ...). A company's own `units`, `rules` and `gear` form their own scope on top of the shared list.
 - **`aka`** lists true synonyms of the same entry. An `aka` that is already the name of something else (a vanilla unit, another item) is an error: it would shadow it.
 - **`label`** is how the pages spell a name when the key is plainer. It must be the same name once accents, case and punctuation are folded.
 - **`id`** is generated from the name. Leave it out.
-- **Annotating or replacing something below.** A name that vanilla or the glossary already defines may be used in two ways. *Annotation*: the entry has **no definition**, it only adds properties (a price, a class, a target, a Tabletop Simulator figure) to the lower thing. *Replacement*: the entry has a definition and `"overrides": true`. A definition without `overrides` for a name that exists below is an error ("exists in vanilla or the glossary; add overrides: true or drop the definition to annotate it"), so nothing shadows another rule silently.
+- **Annotating or replacing something below.**
+  A name that vanilla or the glossary already defines may be used in two ways:
+  - *Annotation*: the entry has **no definition**. It only adds properties to the lower thing (a price, a class, a target, a Tabletop Simulator figure).
+  - *Replacement*: the entry has a definition and `"overrides": true`.
+
+  A definition without `overrides` for a name that exists below is an error, so nothing shadows another rule silently.
+  The message reads "exists in vanilla or the glossary; add overrides: true or drop the definition to annotate it".
 
 ## 4. Three ways to define a thing
 
 The same three forms apply to units, items and rules:
 
-1. **Annotate an existing vanilla thing.** Use its exact name and add properties only. This is how the file gives a vanilla item a price and makes it sold, or a vanilla rule a target.
-2. **Extend a thing with a delta.** `"extends": "Ranger of Arnor"` names the base; the entry says what is different. Units use `with`, `addRules`, `addKeywords`; items and companies inherit every field they do not write.
+1. **Annotate an existing vanilla thing.** Use its exact name and add properties only.
+  This is how the file gives a vanilla item a price and makes it sold, or a vanilla rule a target.
+2. **Extend a thing with a delta.** `"extends": "Ranger of Arnor"` names the base; the entry says what is different.
+  Units use `with`, `addRules`, `addKeywords`, `race`; items and companies inherit every field they do not write.
 3. **A brand-new thing with no base.** A full definition and a name nothing below uses. Items, rules and units are fully supported; for units see section 6.
 
 ## 5. Rules
 
-A special rule is defined **once** in `rules[]` and **named** everywhere else, like vanilla: `addRules`, `grants`, `granted`, hero upgrades and path results all take the rule's name. Naming keeps one text for one rule, and the pages (cards, tooltips, the glossary popups) find it by name.
+A special rule is defined **once** in `rules[]` and **named** everywhere else, like vanilla: `addRules`, `grants`, `granted`, hero upgrades and path results all take the rule's name.
+Naming keeps one text for one rule, and the pages (cards, tooltips, the glossary popups) find it by name.
 
 <!-- example: custom-rule.json -->
 ```json
@@ -142,8 +198,12 @@ A special rule is defined **once** in `rules[]` and **named** everywhere else, l
 ```
 
 - `tag` is `Active` or `Passive`; `source` says where the rule is printed; `minor: true` puts it on the minor special rules list a path may offer.
-- A rule that **takes an argument** (`Hatred (X)`) declares `parameter` (`kind`: `keyword`, `weapon`, `rollTarget`, `number` or `companyHero`). Using it as `Hatred (Orc)` resolves to the rule `Hatred (X)`.
-- `target` says who a rule works against or for, so the unit cards can highlight it: `appliesTo` is `enemy-keyword`, `enemy-any`, `friendly-keyword` or `own` (the default), with `keywords` and `match` (`any`/`all`). A rule whose argument is a keyword also needs `bareTarget` when its bare form means something else (Terror).
+- A rule that **takes an argument** (`Hatred (X)`) declares `parameter` (`kind`: `keyword`, `weapon`, `rollTarget`, `number` or `companyHero`).
+  Using it as `Hatred (Orc)` resolves to the rule `Hatred (X)`.
+- `target` says who a rule works against or for, so the unit cards can highlight it.
+  - `appliesTo` is `enemy-keyword`, `enemy-any`, `friendly-keyword` or `own` (the default).
+  - `keywords` and `match` (`any` or `all`) refine it.
+  - A rule whose argument is a keyword also needs `bareTarget` when its bare form means something else (Terror).
 - `auras` draw a ring of a fixed radius around the bearer in Tabletop Simulator and on the card (banners, Stand Fast, "within 6" rules):
 
 <!-- example: custom-rule.json -->
@@ -188,12 +248,24 @@ A special rule is defined **once** in `rules[]` and **named** everywhere else, l
 },
 ```
 
-- **By name or inline.** Prefer the name. A few places let you write the definition where you use it (it is moved into `rules[]` when the file is loaded): a hero upgrade's `definition`, a path result `{"rule": {"name": ..., "definition": ...}}`, and a rule defined in one company's own `rules`. An inline rule is a rule like any other: its name must be unique and it is shown the same way.
+- **By name or inline.** Prefer the name.
+  A few places let you write the definition where you use it:
+  - a hero upgrade's `definition`;
+  - a path result `{"rule": {"name": ..., "definition": ...}}`;
+  - a rule defined in one company's own `rules`.
+
+  The app moves an inline rule into `rules[]` when it loads the file.
+  An inline rule is a rule like any other: its name must be unique and it is shown the same way.
 - A rule name that resolves nowhere (not in `rules[]`, vanilla or the glossary) is an error with the closest name.
 
 ## 6. Units
 
-A unit is a vanilla unit plus what the company changes, or a unit vanilla does not have. The three forms all work everywhere in the app (company build, armoury, rating, promotion, level-up, live match, aftermath, Tabletop Simulator list). A name is looked up in this order: **the company's own `units`, then the shared top-level `units[]`, then vanilla**. The three forms:
+A unit is a vanilla unit plus what the company changes, or a unit vanilla does not have.
+The three forms below all work everywhere in the app: company build, armoury, rating, promotion, level-up, live match, aftermath and Tabletop Simulator list.
+
+The app looks a name up in this order: **the company's own `units`, then the shared top-level `units[]`, then vanilla**.
+
+The three forms:
 
 **a. Annotate a vanilla unit** (top-level `units[]`): the vanilla unit's exact name plus properties. The shipped file uses it for Tabletop Simulator figures:
 
@@ -209,7 +281,10 @@ A unit is a vanilla unit plus what the company changes, or a unit vanilla does n
 },
 ```
 
-**b. Build a unit on another** (`extends`): a unit that a company calls by its own name. Write it in the **company's own `units`** (one company), or in the shared top-level `units[]` (every company of the file may field it). A shared unit nobody fields is valid; it can be used later:
+**b.
+Build a unit on another** (`extends`): a unit that a company calls by its own name.
+Write it in the **company's own `units`** (one company), or in the shared top-level `units[]` (every company of the file may field it).
+A shared unit nobody fields is valid; it can be used later:
 
 <!-- example: custom-unit.json -->
 ```json
@@ -231,7 +306,17 @@ A unit is a vanilla unit plus what the company changes, or a unit vanilla does n
 ],
 ```
 
-- `extends` names a vanilla unit (or another unit of the file). `with` pre-selects options of the base unit by their vanilla names (an option the base does not have is an error with the closest option). `addRules` names rules (section 5). `addKeywords` adds keywords. `types` adds or removes unit types, `models` says how many roster slots a recruit counts as, `composite` makes one model that counts as several (the Warg Marauder), `includes` bundles units (the Vault Warden Team), `ownPath` marks On Their Own Path units. `note` is the sentence the card prints.
+- `extends` names a vanilla unit (or another unit of the file).
+- `with` pre-selects options of the base unit by their vanilla names. An option the base does not have is an error, with the closest option.
+- `addRules` names rules (section 5).
+- `addKeywords` adds keywords (a faction, say).
+- `race` gives the unit these race keywords **instead of** those of the unit it extends: the Goblin Hulk is a Gundabad Ogre that is a Goblin and no longer an Ogre, so Hatred (Goblin) applies to it and Hatred (Ogre) does not. Each must be a race of the vanilla file; `race` without `extends` is an error.
+- `types` adds or removes unit types.
+- `models` says how many roster slots a recruit counts as.
+- `composite` makes one model that counts as several (the Warg Marauder).
+- `includes` bundles units (the Vault Warden Team).
+- `ownPath` marks On Their Own Path units.
+- `note` is the sentence the card prints.
 - The company then **uses the unit by its own name** in the starting force, charts and advancements, never "base unit plus a label":
 
 <!-- example: custom-unit.json -->
@@ -245,9 +330,25 @@ A unit is a vanilla unit plus what the company changes, or a unit vanilla does n
     },
 ```
 
-- The app turns the unit into its base unit's profile with the options and rules applied. A company's own unit with the same name as a shared one wins; a shared or own unit with the name of a vanilla unit needs `"overrides": true`. The base may itself be a unit of the file (own or shared), a brand-new one included.
+- The app turns the unit into its base unit's profile with the options and rules applied.
+- A company's own unit with the same name as a shared one wins.
+- A shared or own unit with the name of a vanilla unit needs `"overrides": true`.
+- The base may itself be a unit of the file (own or shared), a brand-new one included.
 
-**c. A brand-new unit** (no `extends`, a name vanilla does not use): `profile`, `points`, `options`, `definition`. The `profile` is written the way the vanilla file writes a profile: the characteristics by name (`movement`, `fight`, `shoot` (`"-"` for none), `strength`, `defence`, `attack`, `wounds`, `courage`, `intelligence`; heroes also `might`, `will`, `fate`) and the words `race`, `faction`, `unitType` (`Warrior` or `Hero`, `Infantry`, `Cavalry`...), `specialRules`, `wargear`, `heroicActions`, `magicalPowers` and `baseSize`. `race` and `unitType` are required; `specialRules` and `wargear` must name rules and items that exist. `points` is the unit's cost and `options` lists what it may take (`name`, `points`, and `chooseOneKey` / `requireChooseOneKey` for a choose-one group), as in vanilla. The app then treats the unit like a vanilla profile, in the starting force, charts, advancements and promotions. It can be company-local or shared; a shared one with a vanilla name needs `"overrides": true` and replaces the vanilla profile.
+**c. A brand-new unit** (no `extends`, a name vanilla does not use) has these keys: `profile`, `points`, `options`, `definition`.
+
+- The `profile` is written the way the vanilla file writes a profile.
+  - Characteristics by name: `movement`, `fight`, `shoot` (`"-"` for none), `strength`, `defence`, `attack`, `wounds`, `courage`, `intelligence`.
+    Heroes also have `might`, `will`, `fate`.
+  - Words: `race`, `faction`, `unitType` (`Warrior` or `Hero`, `Infantry`, `Cavalry`...), `specialRules`, `wargear`, `heroicActions`, `magicalPowers` and `baseSize`.
+  - `race` and `unitType` are required.
+  - `specialRules` and `wargear` must name rules and items that exist.
+- `points` is the unit's cost.
+- `options` lists what the unit may take, as in vanilla: `name`, `points`, and `chooseOneKey` / `requireChooseOneKey` for a choose-one group.
+
+The app then treats the unit like a vanilla profile, in the starting force, charts, advancements and promotions.
+It can be company-local or shared.
+A shared one with a vanilla name needs `"overrides": true` and replaces the vanilla profile.
 
 <!-- example: custom-unit.json -->
 ```json
@@ -312,7 +413,8 @@ A unit name that resolves nowhere is an error: `no unit "Greenway Watchr" in thi
 
 ## 7. Items
 
-Items live in the one `gear[]` list. `kind` is `wargear`, `equipment`, `creature` or `wanderer`; an entry with a `kind` is **sold** in the armoury (unless `unsold: true`); an entry without a `kind` annotates a vanilla item. A company's own `gear[]` is that company's **unique wargear**.
+Items live in the one `gear[]` list. `kind` is `wargear`, `equipment`, `creature` or `wanderer`; an entry with a `kind` is **sold** in the armoury (unless `unsold: true`); an entry without a `kind` annotates a vanilla item.
+A company's own `gear[]` is that company's **unique wargear**.
 
 <!-- example: custom-item.json -->
 ```json
@@ -330,7 +432,11 @@ Items live in the one `gear[]` list. `kind` is `wargear`, `equipment`, `creature
 ```
 
 - **Cost**: `influence` (what it costs in Influence), `rating` (its points: one number, or `{"warrior": 1, "hero": 5}`), `gold` (default: the rating). `size` is `small` or `large` for equipment (the slot it takes).
-- **What it is**: `classes` come from the closed set `melee, spear, two_handed, mount, bow, armour, throwing, shield, instrument, consumable, lance, banner, missile, crossbow, other` (the first is the main class); they are derived from `type` when the vanilla type says them. `ranged {range, strength}` is required for bows, crossbows, throwing weapons and missiles.
+- **What it is.**
+  - `classes` come from the closed set `melee, spear, two_handed, mount, bow, armour, throwing, shield, instrument, consumable, lance, banner, missile, crossbow, other`.
+    The first is the main class.
+  - The app derives classes from `type` when the vanilla type says them.
+  - `ranged {range, strength}` is required for bows, crossbows, throwing weapons and missiles.
 - **What it gives**: `grants` names rules the bearer gets; `statChanges` changes characteristics (with a `condition` it is only a note on the card); `grantsSlots {small, large}` adds equipment slots (the Backpack); `auras` draw rings.
 - **Who may buy it**: `who` (below) and `limit` (the most models of a company that may carry it).
 - **An item built on another**: `extends` inherits every field the item does not write (not `name`, `definition`, `note`, `tts`):
@@ -391,7 +497,8 @@ Items live in the one `gear[]` list. `kind` is `wargear`, `equipment`, `creature
 ```
 
 - An item's identity is its **name** and nothing else: two items with the same stats are two items. Related but distinct items go in `related`, true synonyms in `aka`.
-- Shields, bows and similar items carry typed `abilities` (`defenceBonus`, `attacksBonus`) that the engine reads; copy them from the shipped items rather than writing new ones. Elven-made weaponry is an item with `base`/`modifiers`/`pricedAs`; see the shipped Elven items.
+- Shields, bows and similar items carry typed `abilities` (`defenceBonus`, `attacksBonus`) that the engine reads; copy them from the shipped items rather than writing new ones.
+  Elven-made weaponry is an item with `base`/`modifiers`/`pricedAs`; see the shipped Elven items.
 - `creature` and `wanderer` items carry a free `profile` and, for the shipped ones, `companyFeature` blocks the engine reads: copy from the shipped Baggage Pony or Wanderer.
 
 ### Which models: `who`
@@ -417,7 +524,8 @@ chosen by name). `Who.Admits` (`internal/core/lean/who.go`) is the only reader; 
 
 ## 8. Paths
 
-A heroic path is how a hero levels up: a table keyed by a roll, whose results are improvements. A hero rolls the dice of the path (`dice`, default `campaign.progression.hero.roll`) and the table must cover every total exactly once.
+A heroic path is how a hero levels up: a table keyed by a roll, whose results are improvements.
+A hero rolls the dice of the path (`dice`, default `campaign.progression.hero.roll`) and the table must cover every total exactly once.
 
 <!-- example: custom-path.json -->
 ```json
@@ -429,9 +537,24 @@ A heroic path is how a hero levels up: a table keyed by a roll, whose results ar
 ```
 
 - `maximums` are the ceilings per characteristic, as in the shipped paths: `max` is the highest value the stat may reach, `maxIncrease` the most points that level-ups may add to the profile, and `best` the best (lowest) value of a stat where lower is better, such as Courage 3+.
-- `mastery` names the Mastery rule, `heroicAction` the Heroic Action the path starts with (a name that resolves in `rules[]` or the glossary; `null` when the path adds none), `signature` the characteristics the path is known for, `spells` the magical powers of a path with magic, `limit` the most heroes of a company that may take it.
+- `mastery` names the Mastery rule.
+- `heroicAction` names the Heroic Action the path starts with: a name that resolves in `rules[]` or the glossary, or `null` when the path adds none.
+- `signature` lists the characteristics the path is known for.
+- `spells` lists the magical powers of a path with magic.
+- `limit` is the most heroes of a company that may take the path.
 - `kind` is `heroic` (default, offered to heroes), `custom` (the homebrew path an option hands out) or `endOfPath` (no table, only a `rule`).
-- Each row is `{"roll": 7, "options": [...]}`. **An option is exactly one of**: `stat` (with `amount`, `max`, `rollAgain`), `rule` (a name, or an inline definition), `minorRule`, `heroicAction`, `power`, `castingValue`, `oneOf` (the hero picks one of the listed options), or an open choice `anyMinorRule`, `anyHeroicAction`, `anyPower` (with `maxTotal`). Several options in a row are alternatives the player picks from:
+- Each row is `{"roll": 7, "options": [...]}`.
+  **An option is exactly one of:**
+  - `stat` (with `amount`, `max`, `rollAgain`);
+  - `rule` (a name, or an inline definition);
+  - `minorRule`;
+  - `heroicAction`;
+  - `power`;
+  - `castingValue`;
+  - `oneOf` (the hero picks one of the listed options);
+  - an open choice: `anyMinorRule`, `anyHeroicAction` or `anyPower` (with `maxTotal`).
+
+  Several options in a row are alternatives the player picks from:
 
 <!-- example: custom-path.json -->
 ```json
@@ -459,7 +582,9 @@ A heroic path is how a hero levels up: a table keyed by a roll, whose results ar
 },
 ```
 
-- A row that gives a rule by name needs no `text`: the app writes `Name (Tag) - definition` from the rule. A row that improves only characteristics needs none either. Write `text` only where it cannot be derived; a written text that differs from the derived one is a warning.
+- A row that gives a rule by name needs no `text`: the app writes `Name (Tag) - definition` from the rule.
+  A row that improves only characteristics needs none either.
+  Write `text` only where it cannot be derived; a written text that differs from the derived one is a warning.
 - The path picker's summary (the "offers") is derived from the table; do not write it.
 
 An inline rule is moved into `rules[]` when the file is loaded, so its name must be new:
@@ -519,8 +644,20 @@ A company is a name, an alignment, a starting force and the two charts a player 
 ```
 
 - **Header**: `name`, `alignment` (`good` or `evil`, required), `description`, `epigraph {quote, text}`, `oath {vow, text}` (`{name}` once, not at the start or end of the text), `maxModels` and `breakPoint` when the company has its own, `faction` (default: the name), `label`, `aka`.
-- **`start`**: `gold` and `units[{unit, count, with, role}]`. A unit is written by the name the company calls it (a vanilla unit or one of the company's `units`). `with` lists options or wargear. The checker does not verify that the force adds up to the 105 points the rulebook asks for of a Battle Company (the shipped file's tests do); it does check `maxModels` and the officers.
-- **Charts.** `reinforcements {influence, rows}` and `special {rows, buy}`. Every row has a `roll` (a number, `"2-3"` or `[2, 3]`) and **exactly one result**: `unit` (with `count`, `with`, `rare` for "at most N in the roster", `pick: true` when the player picks the unit's options), `nothing` (`blocks: true` also blocks further rolls), `special` (the roll goes on to the special chart; reinforcement chart only), `choose` or `options`. The rows of a chart must cover the recruiting die (`campaign.recruitment.die`, D6) exactly once.
+- **`start`**: `gold` and `units[{unit, count, with, role}]`.
+  - Write a unit by the name the company calls it (a vanilla unit or one of the company's `units`).
+  - `with` lists options or wargear.
+  - The checker does not verify that the force adds up to the 105 points the rulebook asks for of a Battle Company (the shipped file's tests do).
+  - It does check `maxModels` and the officers.
+- **Charts.** `reinforcements {influence, rows}` and `special {rows, buy}`.
+  - Every row has a `roll`: a number, `"2-3"` or `[2, 3]`.
+  - Every row has **exactly one result**:
+    - `unit` (with `count`, `with`, `rare` for "at most N in the roster", and `pick: true` when the player picks the unit's options);
+    - `nothing` (`blocks: true` also blocks further rolls);
+    - `special` (the roll goes on to the special chart; reinforcement chart only);
+    - `choose`;
+    - `options`.
+  - The rows of a chart must cover the recruiting die (`campaign.recruitment.die`, D6) exactly once.
 
 <!-- example: custom-company.json -->
 ```json
@@ -557,7 +694,9 @@ A company is a name, an alignment, a starting force and the two charts a player 
 
 A reinforcement or special chart row that lets the player take a result of the chart has `choose` (the words the page prints), `scope` (required) and
 `picks` (how many results the player takes, 1 to 10, default 1). `scope: "above"` offers the units of the rows above the roll on the chart being
-rolled; `scope: "any"` offers the units of any row of both charts of the company. The words decide nothing. The row above is the `roll: 5` row: `{"roll": 5, "choose": "Choice of above", "scope": "above"}`.
+rolled; `scope: "any"` offers the units of any row of both charts of the company.
+The words decide nothing.
+The row above is the `roll: 5` row: `{"roll": 5, "choose": "Choice of above", "scope": "above"}`.
 
 A row with several units for the player to pick from is an `options` row with `text`:
 
@@ -581,7 +720,11 @@ A row with several units for the player to pick from is an `options` row with `t
 ### Advancements, hero upgrades, promotions
 
 - **`advancements`**: `{from, with?, to[]}`. A target is a name, or `{unit, with}` when the promotion also gives wargear.
-- **`heroUpgrades`**: `{name, flavour?, definition?, who?}`. The `name` is the rule the upgrade gives; either it resolves (vanilla, the glossary, `rules[]`) or the upgrade carries its own `definition`. A hero may swap **any** rolled result of a level-up for its company's upgrade if it does not have it already. `who` restricts which models may take it.
+- **`heroUpgrades`**: `{name, flavour?, definition?, who?}`.
+  - The `name` is the rule the upgrade gives.
+    Either it resolves (vanilla, the glossary, `rules[]`) or the upgrade carries its own `definition`.
+  - A hero may swap **any** rolled result of a level-up for its company's upgrade if it does not have it already.
+  - `who` restricts which models may take it.
 - **`promotions`**: what a unit of the company that rolls *Hero in the Making* (or another progression result) becomes: `{from, on, becomes, statGain?, pathChoice?, forgo?, text}`.
 
 <!-- example: custom-company.json -->
@@ -678,7 +821,9 @@ The Battle Companies armoury restricts Elven-made weaponry to Elf models unless 
 the refusal "Elven-made weaponry is for Elves". A company may let other models of its own buy and wear them with `elvenWeaponry`, a `who` that names those
 models (an empty object `{}` means every model of the company). No shipped company uses it. The company's rules section then prints a sentence made from the
 data, for example "Warrior of Minas Tirith models may buy and wear Elven-made weaponry, which is otherwise restricted to Elf models." (`ElvenWeaponrySentence`,
-shown with `CompanyProfile.OwnRules`). The option opens only the race restriction of the Elven items: a company's own unique wargear keeps its own `who`. The Elven items are in the shipped file; the minimal file has none, so in the example the option reads but has nothing to open.
+shown with `CompanyProfile.OwnRules`).
+The option opens only the race restriction of the Elven items: a company's own unique wargear keeps its own `who`.
+The Elven items are in the shipped file; the minimal file has none, so in the example the option reads but has nothing to open.
 
 <!-- example: custom-company.json -->
 ```json
@@ -691,7 +836,8 @@ shown with `CompanyProfile.OwnRules`). The option opens only the race restrictio
 
 ### A company built on another
 
-`extends` copies every field the company does not write from another company of the file (lists and objects are replaced as a whole, not merged); `name`, `faction`, `description`, `epigraph`, `notes` and `specialRules` are never inherited. This is how the Elite companies are made.
+`extends` copies every field the company does not write from another company of the file (lists and objects are replaced as a whole, not merged); `name`, `faction`, `description`, `epigraph`, `notes` and `specialRules` are never inherited.
+This is how the Elite companies are made.
 
 <!-- example: custom-company.json -->
 ```json
@@ -707,7 +853,13 @@ shown with `CompanyProfile.OwnRules`). The option opens only the race restrictio
 
 ## 10. Scenarios and scoring
 
-A scenario is text sections plus **scoring objectives**, one per printed Victory Point bullet, in printed order. It is played from the scenario tables of `campaign.scenarioSelection`: a first die picks a table, a second picks the scenario in it; the ranges of the tables partition `1..N` of the first die and each table lists exactly N scenario names.
+A scenario is text sections plus **scoring objectives**, one per printed Victory Point bullet, in printed order.
+
+The app plays a scenario from the scenario tables of `campaign.scenarioSelection`:
+
+- A first die picks a table; a second die picks the scenario in it.
+- The ranges of the tables partition `1..N` of the first die.
+- Each table lists exactly N scenario names.
 
 <!-- example: custom-scenario.json -->
 ```json
@@ -745,7 +897,10 @@ A scenario is text sections plus **scoring objectives**, one per printed Victory
   - `tiers`: the player scores the best tier reached ("instead score" sentences are alternatives, not additions).
   - `each`: a count of items worth a number of points each (`item`, `count`).
   - `eachTiers`: every item (each of 5 Objective Markers) scores its own best tier.
-  - `side` (`both`, `attacker`, `defender`) restricts an objective to a role; `secret: true` keeps it hidden until the end, with an `instruction` (what the player notes down) and a `nomination` (`from`: `ownHeroes`, `enemyHeroes` or `terrain`; `allowLeader: onlyHero` only for heroes; `where: opponentHalf` only for terrain).
+  - `side` (`both`, `attacker`, `defender`) restricts an objective to a role.
+  - `secret: true` keeps it hidden until the end. It takes:
+    - an `instruction` (what the player notes down);
+    - a `nomination` with `from` (`ownHeroes`, `enemyHeroes` or `terrain`), `allowLeader: onlyHero` (only for heroes) and `where: opponentHalf` (only for terrain).
 
 <!-- example: custom-scenario.json -->
 ```json
@@ -795,13 +950,23 @@ A scenario is text sections plus **scoring objectives**, one per printed Victory
 ]
 ```
 
-A company's Victory Points are the sum of its objectives; the most points wins, equal is a draw. The scenario **rewards** (`rewards[]`, each pointing at a `campaign.aftermathEffects` entry by `effect`) are the typed grants of the War's Aftermath; copy them from a shipped scenario that has the same reward rather than writing new effects, because the engine decides what each effect does.
+A company's Victory Points are the sum of its objectives.
+The most points wins; equal is a draw.
+
+The scenario **rewards** (`rewards[]`) are the typed grants of the War's Aftermath.
+Each points at a `campaign.aftermathEffects` entry by `effect`.
+Copy them from a shipped scenario that has the same reward rather than writing new effects, because the engine decides what each effect does.
 
 ## 11. Engine parameters
 
-Everything the engine uses as a number, a die or a switch is a key of `campaign` (or of a few other sections), required and range-checked: there is no hidden default in the code. A custom file changes a value by writing a different one. The values below are those of the shipped file.
+Everything the engine uses as a number, a die or a switch is a key of `campaign` (or of a few other sections), required and range-checked: there is no hidden default in the code.
+A custom file changes a value by writing a different one.
+The values below are those of the shipped file.
 
-**Dice.** A dice spec is `[N]dM`: `d6`, `2d6`, `d3`. N is 1 to 10, M is 2 to 100; `d66` is refused. Where a single die is meant (`recruitment.die`, `scenarioSelection.die`) N must be 1. Every table keyed by a roll must cover the totals of its dice exactly once: the checker names the gaps.
+**Dice.** A dice spec is `[N]dM`: `d6`, `2d6`, `d3`.
+N is 1 to 10, M is 2 to 100; `d66` is refused.
+Where a single die is meant (`recruitment.die`, `scenarioSelection.die`) N must be 1.
+Every table keyed by a roll must cover the totals of its dice exactly once: the checker names the gaps.
 
 | Key | Shipped | Allowed | What it does |
 |---|---|---|---|
@@ -868,13 +1033,41 @@ A **parameter override** is a change of one of these values. Influence cap 5 ins
 },
 ```
 
-In your copy of the shipped file the change is a single value at a path, e.g. `campaign.recruitment.adjust.maxPerAttempt` from `3` to `5`; the test `TestParameterOverrideWorksInTheShippedFile` does exactly that to the shipped file and checks the engine reads 5. Out of range gives `campaign.recruitment.adjust.maxPerAttempt: 40 is out of range 0..20`.
+In your copy of the shipped file the change is a single value at a path, for example `campaign.recruitment.adjust.maxPerAttempt` from `3` to `5`.
+The test `TestParameterOverrideWorksInTheShippedFile` does exactly that to the shipped file and checks the engine reads 5.
+A value out of range gives `campaign.recruitment.adjust.maxPerAttempt: 40 is out of range 0..20`.
 
-**What the file cannot change.** Some rules are in the engine, not in the file: the injury result keys the app switches on (`dead`, `injured`, `fullRecovery`, ...), how the lower-result rule of the charts works, that the Break Point is never rounded, how the live match applies a Courage test. The campaign tables (injuries, Against the Odds, aftermath effects, the Break Point, characteristic limits, options, match input) are typed: every key is listed in the reference and checked, and an unknown key is an error. Do not expect a new key or a new vocabulary word to change what the engine does: it acts on the words the reference lists.
+**What the file cannot change.**
+Some rules are in the engine, not in the file:
+
+- the injury result keys the app switches on (`dead`, `injured`, `fullRecovery`, ...);
+- how the lower-result rule of the charts works;
+- that the Break Point is never rounded;
+- how the live match applies a Courage test.
+
+The campaign tables are typed: injuries, Against the Odds, aftermath effects, the Break Point, characteristic limits, options and match input.
+The reference lists and checks every key, and an unknown key is an error.
+Do not expect a new key or a new vocabulary word to change what the engine does: it acts on the words the reference lists.
 
 ### Shares: fractions, not percentages
 
-A limit, a keyword limit of a company and a Break Point are parts of a whole. They are written as an **integer fraction in a string**: `"1/3"`, `"1/2"`, `"2/3"`, `"3/4"`. The numerator is 0 or more, the denominator is 1 or more (at most 1,000,000), the share may not be above 1, and the fraction need not be in lowest terms (`"2/4"` is `"1/2"`). The engine turns a share into a count with whole numbers only: the most models of `n` is `(n * numerator + denominator - 1) / denominator` rounded up (`"roundUp": true`) or `n * numerator / denominator` rounded down, so a third of 6 is exactly 2 whichever way it rounds.
+A limit, a keyword limit of a company and a Break Point are parts of a whole.
+Write each as an **integer fraction in a string**: `"1/3"`, `"1/2"`, `"2/3"`, `"3/4"`.
+
+The rules for a share:
+
+- The numerator is 0 or more.
+- The denominator is 1 or more (at most 1,000,000).
+- The share may not be above 1.
+- The fraction need not be in lowest terms (`"2/4"` is `"1/2"`).
+
+The engine turns a share into a count with whole numbers only.
+The most models of `n` is:
+
+- `(n * numerator + denominator - 1) / denominator`, rounded up (`"roundUp": true`);
+- `n * numerator / denominator`, rounded down.
+
+So a third of 6 is exactly 2 whichever way it rounds.
 
 | Where | Fraction key | Older percent key (still accepted) |
 |---|---|---|
@@ -884,11 +1077,30 @@ A limit, a keyword limit of a company and a Break Point are parts of a whole. Th
 | `campaign.breakPoint.default` | `share` | `percent` (1..100) |
 | `companies[].breakPoint` | the value: `"33/50"` | the value as a number: `66` |
 
-Write one of the two keys of a limit, a keyword limit or the default Break Point, never both (a limit with neither is an error too). A **percent is converted to the exact fraction over 100** in lowest terms and nothing else: `50` is `1/2`, `66` is `33/50`, `33` is `33/100` and `33.33` is `3333/10000`, which is **not** a third. Up to 1,000,000 as denominator, so a percent has at most four decimals. A file written with percents therefore keeps giving the numbers it gave before.
+Write one of the two keys of a limit, a keyword limit or the default Break Point, never both.
+A limit with neither is an error too.
 
-The check warns when a percent is a rounding of a simple fraction (denominator up to 12, within 0.1 percentage points), because that is almost always a mistake: `limits[0].maximumPercentage: 33.33 looks like 1/3: write `1/3``. A warning never blocks the upload. A percent that is exactly a simple fraction (50, 25, 12.5) and a deliberate one like 33 or 66 do not warn.
+The app converts a **percent to the exact fraction over 100**, in lowest terms, and does nothing else to it:
 
-The live match counts casualties against whole percents (`casualties * 100` against `percent * startingModels`), so a **Break Point share must be a whole percent**: `"1/2"` and `"33/50"` are, `"1/3"` (33.33 percent) is refused with that reason. A limit share may be any fraction.
+- `50` is `1/2`.
+- `66` is `33/50`.
+- `33` is `33/100`.
+- `33.33` is `3333/10000`, which is **not** a third.
+
+The denominator may be up to 1,000,000, so a percent has at most four decimals.
+A file written with percents gives exactly the numbers its percents say.
+
+The check warns when a percent is a rounding of a simple fraction (denominator up to 12, within 0.1 percentage points), because that is almost always a mistake:
+
+```text
+limits[0].maximumPercentage: 33.33 looks like 1/3: write `1/3`
+```
+
+A warning never blocks the upload.
+A percent that is exactly a simple fraction (50, 25, 12.5) does not warn, and neither does a deliberate one like 33 or 66.
+
+The live match counts casualties against whole percents (`casualties * 100` against `percent * startingModels`), so a **Break Point share must be a whole percent**: `"1/2"` and `"33/50"` are, `"1/3"` (33.33 percent) is refused with that reason.
+A limit share may be any fraction.
 
 ## 12. The validation loop and the error report
 
@@ -896,14 +1108,41 @@ The live match counts casualties against whole percents (`casualties * 100` agai
 make check-ruleset FILE=my-ruleset.json
 make check-ruleset FILE=my-ruleset.json VANILLA=my-vanilla.json GLOSSARY=my-glossary.json   # when you also customise those
 make validate     # the shipped files: schemas, cross references, curator checks (the repository's own gate)
-make test         # the Go and Python tests, including these examples
+make test         # the Go tests, including these examples
 ```
 
-`make check-ruleset` is the same check the upload runs: it decodes the file strictly (unknown keys, types, ranges, vocabularies), resolves every name against the file, vanilla and the glossary, checks the charts, tables and parameters, and prints **every** problem, not the first. Exit status 0: no errors (warnings are printed); 1: errors; 2: the command could not run.
+`make check-ruleset` is the same check the upload runs.
+It does the following:
 
-**Without the command line:** every signed-in player can use the online validator at `/tools/validate` (linked from the new-campaign form: "Not sure your file is valid? Check it first"). Upload your Battle Companies file and, if you wrote your own, the vanilla file and the glossary; an empty vanilla or glossary input means the shipped one. Your Battle Companies file is checked against the vanilla file and glossary you upload there, not against the shipped ones, so a unit or rule that only exists in your own vanilla file or glossary is found. You get the same report as `make check-ruleset`; nothing is stored and no campaign is created. It allows 6 checks a minute per account and files of at most 16 MB; when the checker is busy it answers "try again in a few seconds". The new-campaign form does the same cross check when you upload the files together.
+- decodes the file strictly (unknown keys, types, ranges, vocabularies);
+- resolves every name against the file, vanilla and the glossary;
+- checks the charts, tables and parameters;
+- prints **every** problem, not the first.
 
-The admin page does the same: **Administration → Rules files**, pick the kind (Battle Companies rules data) and the file, then **Check this file**. It stores nothing and shows the same report. The schema (`battle_companies.schema.json`) gives completion in an editor and catches shape errors early, but the checker is the authority because it also checks names and charts.
+Its exit status is 0 for no errors (warnings are printed), 1 for errors and 2 when the command could not run.
+
+**Without the command line**, every signed-in player can use the online validator at `/tools/validate`.
+The new-campaign form links to it ("Not sure your file is valid? Check it first").
+
+1. Upload your Battle Companies file and, if you wrote your own, the vanilla file and the glossary.
+   An empty vanilla or glossary input means the shipped one.
+2. Read the report.
+   It is the same report as `make check-ruleset`.
+
+Your Battle Companies file is checked against the vanilla file and glossary you upload there, not against the shipped ones.
+So a unit or rule that only exists in your own vanilla file or glossary is found.
+Nothing is stored and no campaign is created.
+
+Limits: 6 checks a minute per account, and files of at most 16 MB.
+When the checker is busy it answers "try again in a few seconds".
+The new-campaign form does the same cross check when you upload the files together.
+
+The admin page does the same.
+Go to **Administration → Rules files**, pick the kind (Battle Companies rules data) and the file, then choose **Check this file**.
+It stores nothing and shows the same report.
+
+The schema (`battle_companies.schema.json`) gives completion in an editor and catches shape errors early.
+The checker is the authority, because it also checks names and charts.
 
 **Reading a report.** One problem per line:
 
@@ -937,15 +1176,33 @@ typos.json: 4 errors, 0 warnings
 3. `start.units[0].unit: no unit "Greenway Watchr"`: the same for a unit.
 4. `reinforcements.rows: rolls cover 1-5, 6 is missing`: the chart has no row for a 6.
 
-The messages are executable: `internal/core/lean/testdata/invalid/*.json` with the wording pinned in `*.want`. The common ones: `unknown field` (a key not in the schema), `is not a valid <vocabulary>; known: ...` (a closed word list), `is out of range a..b`, `is already defined at ... names are unique`, `exists in vanilla or the glossary; add "overrides": true or drop the definition to annotate it`, `has no definition here, in Battle Companies, vanilla or the glossary`, `rolls cover ... is missing` (a chart gap), `a row is one of unit, nothing, special, choose and options` (a chart row with two results), `schemaVersion ... is not supported`.
+The messages are executable: `internal/core/lean/testdata/invalid/*.json`, with the wording pinned in `*.want`.
+
+The common ones:
+
+- `unknown field`: a key not in the schema.
+- `is not a valid <vocabulary>; known: ...`: a closed word list.
+- `is out of range a..b`.
+- `is already defined at ... names are unique`.
+- `exists in vanilla or the glossary; add "overrides": true or drop the definition to annotate it`.
+- `has no definition here, in Battle Companies, vanilla or the glossary`.
+- `rolls cover ... is missing`: a chart gap.
+- `a row is one of unit, nothing, special, choose and options`: a chart row with two results.
+- `schemaVersion ... is not supported`.
 
 ## 13. Uploading and using a ruleset
 
 1. Check the file (section 12) until it reports `0 errors, 0 warnings`.
-2. Upload it. On **Administration → Rules files** (superusers), pick the kind **Battle Companies rules data**, choose the file and press **Upload**; **Make default** makes
-   it the file new campaigns start with. A file with the same content is stored once; files are told apart by their content (the short code next to the name), so two files
+2.
+  Upload it.
+  On **Administration → Rules files** (superusers), pick the kind **Battle Companies rules data**, choose the file and press **Upload**; **Make default** makes
+   it the file new campaigns start with.
+   A file with the same content is stored once; files are told apart by their content (the short code next to the name), so two files
    may share a name and version. A file that fails is refused with the same report and nothing is stored.
-3. Or choose it when a campaign is created: the **Rules** section of the new-campaign form offers, for each of the three kinds, the app's default file or **My own file**.
+3.
+  Or choose it when a campaign is created: the **Rules** section of the new-campaign form offers, for each of the three kinds, the app's default file or **My own file**.
    The form checks and stores the file like the admin page does, and shows the report when it is refused. A campaign keeps the exact files it was created with.
-4. A custom file plays with the vanilla file and the glossary chosen next to it. The checker compares names against the **shipped** vanilla file and glossary unless you pass
+4.
+  A custom file plays with the vanilla file and the glossary chosen next to it.
+  The checker compares names against the **shipped** vanilla file and glossary unless you pass
    `VANILLA=` and `GLOSSARY=`, so a file written for another vanilla file must be checked against that one.

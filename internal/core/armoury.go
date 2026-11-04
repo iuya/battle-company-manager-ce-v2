@@ -93,6 +93,12 @@ func canPay(d CompanyDetail, influence, gold int) (inf, goldOK bool) {
 	return influence <= d.Influence, gold > 0 && gold <= d.Gold
 }
 
+// canPayEither says the company can pay a price in influence or in Gold.
+func canPayEither(d CompanyDetail, influence, gold int) bool {
+	inf, g := canPay(d, influence, gold)
+	return inf || g
+}
+
 // costReason says why the company cannot afford something.
 func costReason(d CompanyDetail, influence, gold int) string {
 	if gold > 0 {
@@ -154,12 +160,14 @@ func (a *ArmouryService) ArmouryEntries(ctx context.Context, campaignID, company
 	return sh.entries(), nil
 }
 
-// goldPrice is what the unit pays in Gold for the item: its rating. A warrior is worth its MESBG points, so for wargear that is
-// one of its profile's options on its own the price is that option's points (a Dwarf Ranger pays 1 for a Dwarf Longbow, the
-// armoury says 2); every other case pays the armoury's price. 0 stays 0 (not for Gold).
+// goldPrice is what the unit pays in Gold for the item, the same for a warrior and a hero: the armoury's first value (the
+// warrior rating; the second is only what the item adds to a hero's rating, never Gold). The exception is wargear that is one of
+// the unit's own profile's options on its own, which costs that option's points, lower or higher ("If the Hero's faction uses a
+// lower/higher point value for a Warrior, use that": a Dwarf Ranger pays 1 for a Dwarf Longbow, the armoury says 2; a Dwarf
+// Warrior pays 2). Equipment and armour upgrades pay the first value. 0 stays 0 (not for Gold).
 func (sh shop) goldPrice(u CompanyUnit, o GearOffer) int {
-	price := o.Gold.For(u.IsHero())
-	if price == 0 || u.IsHero() || o.Size != "" {
+	price := o.Gold.Warrior
+	if price == 0 || o.Size != "" || o.ArmourStage > 0 {
 		return price
 	}
 	if v, ok := sh.profileOf(u.Type); ok {
@@ -276,8 +284,8 @@ func (sh shop) whyNot(u CompanyUnit, o GearOffer) (string, Blocker) {
 	case o.Size == "small" && !slots.SmallFree():
 		return "No free small slot", BlockedBySlots
 	}
-	if inf, gold := canPay(sh.d, o.Cost, o.Gold.For(u.IsHero())); !inf && !gold {
-		return costReason(sh.d, o.Cost, o.Gold.For(u.IsHero())), BlockedByInfluence
+	if price := sh.goldPrice(u, o); !canPayEither(sh.d, o.Cost, price) {
+		return costReason(sh.d, o.Cost, price), BlockedByInfluence
 	}
 	return "", ""
 }
@@ -546,7 +554,7 @@ func (sh shop) wanderers() []ArmouryWanderer {
 	}
 	var out []ArmouryWanderer
 	for _, o := range offers {
-		entry := ArmouryWanderer{WandererOffer: o, StatBlock: sh.rs.Vanilla.Profile(o.AsUnit(), true, nil)}
+		entry := ArmouryWanderer{WandererOffer: o, StatBlock: recruitStats(sh.rs, sh.bcC, "", o.Name, nil, RoleHero)}
 		// possible: nothing but the roster of the day stands in the way (the models a company may have, a keyword's share of it); the
 		// balance between two races is met by hiring the other one
 		why, kind := companyBlockFor(sh.rs, sh.bcC, nil, o.AsUnit())

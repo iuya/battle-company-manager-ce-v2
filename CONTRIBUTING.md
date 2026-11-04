@@ -1,7 +1,9 @@
 # Contributing
 
-Thank you for helping. This project is a Go + PostgreSQL web app for the Battle Companies 2nd Community Edition game mode. By taking part you agree to the
-[Code of Conduct](CODE_OF_CONDUCT.md). If you work with a coding agent, read [docs/collaborating.md](docs/collaborating.md) too: it is the practical guide.
+Thank you for helping. This page is for anyone who wants to report an issue or send a change to this Go and PostgreSQL web app for the Battle Companies 2nd Community Edition game mode.
+
+By taking part you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
+If you work with a coding agent, also read [docs/collaborating.md](docs/collaborating.md), the practical guide.
 
 ## Reporting issues
 
@@ -23,18 +25,24 @@ Keep to **one logical change per pull request**. Unrelated clean-ups go in their
 
 ## Setting up
 
-You need the Go version in `go.mod`, Docker (PostgreSQL for development), Python 3 (`make validate`, tool tests) and, for the browser tests, Node 20+ and Chrome or Chromium.
+You need:
+
+- the Go version in `go.mod`;
+- Docker, for the development PostgreSQL;
+- Node 20+ and Chrome or Chromium, for the browser tests.
 
 ```bash
-make get-tailwind                                    # once: the Tailwind standalone binary for this machine (macOS and Linux, x64 and arm64)
-make user EMAIL=you@example.com NAME="You"           # an account (others join through an invitation link)
-make run                                             # http://localhost:8080
-make demo                                            # destructive: empties the dev database and loads the demo world
+make get-tailwind                           # once: the Tailwind standalone binary (macOS and Linux, x64 and arm64)
+make user EMAIL=you@example.com NAME="You"  # an account (others join through an invitation link)
+make run                                    # the app on http://localhost:8080
+make demo                                   # destructive: empties the dev database and loads the demo world
 ```
 
-**Windows:** use WSL2 (Ubuntu) with Docker Desktop's WSL integration and clone inside the Linux file system; the whole suite runs there. Natively, `go vet`, `gofmt` and
-`go test ./...` run; if Application Control blocks the executables `go run` builds, `make tools-bin` and the `RULECHECK` and `CONCEPTNODES` variables work around it. Details and troubleshooting:
-[docs/collaborating.md](docs/collaborating.md#7-working-on-windows).
+**Windows.** Use WSL2 (Ubuntu) with Docker Desktop's WSL integration, and clone inside the Linux file system; the whole suite runs there.
+
+Natively, `go vet`, `gofmt` and `go test ./...` run.
+If Application Control blocks the executables that `go run` builds, `make tools-bin` builds the tools into `tmp/bin` to run from there.
+Details and troubleshooting: [docs/collaborating.md](docs/collaborating.md#7-working-on-windows).
 
 See the [README](README.md) for more and [docs/architecture.md](docs/architecture.md) for how the code is organised.
 
@@ -57,52 +65,69 @@ See the [README](README.md) for more and [docs/architecture.md](docs/architectur
 | `pre-commit` | Staged Go files are `gofmt`-formatted, and the added lines contain no private key, AWS key id or GitHub token (for a deliberate fake in a test fixture: `BCM_SKIP_SECRET_SCAN=1 git commit ...`). |
 | `pre-push` | Refuses a push to `main`: changes reach `main` through a reviewed pull request. The repository rules enforce this on GitHub as well. |
 
-Each hook runs the [beads](docs/collaborating.md) hook of `.beads/hooks` first, so task tracking keeps working. `make hooks-test` checks the hooks in a throwaway repository.
+Each hook runs the [beads](docs/collaborating.md) hook of `.beads/hooks` first, so task tracking keeps working.
+`make hooks-test` checks the hooks in a throwaway repository.
 
 ## Tests to run
 
 ```bash
 gofmt -l .                # prints nothing
 go vet ./...
-make test                 # unit tests and python tool tests
+make test                 # unit tests, the tools' tests included
 make test-integration     # when you touch internal/postgres (starts the compose database)
 make validate             # when you touch definitions/ or tools/
 make e2e-enforce          # when you touch templates, handlers or JavaScript
 node tests/ci/pr-check.test.mjs   # when you touch the pull request check
 ```
 
-Write the test first for a bug fix. Interfaces are declared where they are used; after changing one run `make generate`.
-Golden snapshot updates (`go test ./internal/core -run Snapshot -update-snapshot`) are reviewed and explained in the pull request ([docs/testing.md](docs/testing.md)).
+- Write the test first for a bug fix.
+- Interfaces are declared where they are used; after changing one, run `make generate`.
+- Golden snapshot updates (`go test ./internal/core -run Snapshot -update-snapshot`) are reviewed and explained in the pull request ([docs/testing.md](docs/testing.md)).
 
 ## Rules-data changes
 
-The rules the app uses live in `definitions/battle_companies/battle_companies.json` (checked against its `.schema.json`). Edit that file, never
-`definitions/vanilla/data2024.json`, which is read-only. Run `make validate` and the snapshot test, and quote the rule you follow in the pull request.
-Do not add text copied from copyrighted rulebooks; short names and numbers with a reference are fine. Details: [docs/definitions.md](docs/definitions.md).
+The rules the app uses live in `definitions/battle_companies/battle_companies.json`, checked against its `.schema.json`.
+Edit that file, never `definitions/vanilla/data2024.json`, which is read-only.
+
+- Run `make validate` and the snapshot test.
+- Quote the rule you follow in the pull request.
+- Do not add text copied from copyrighted rulebooks; short names and numbers with a reference are fine.
+
+Details: [docs/definitions.md](docs/definitions.md).
 
 ## The demo world
 
-Every new feature or change of behaviour must be reachable in the demo world (`make demo`), so reviewers and the browser tests can see it without
-setting it up by hand. Extend a campaign, company or match in `cmd/server/world_*.go` and describe it in [docs/demo-world.md](docs/demo-world.md); a
-state the services cannot produce is recorded there as a gap, with the reason. The pull request says how the demo world covers the change.
+Every new feature or change of behaviour must be reachable in the demo world (`make demo`), so reviewers and the browser tests can see it without setting it up by hand.
+
+1. Extend a campaign, company or match in `cmd/server/world_*.go`.
+2. Describe it in [docs/demo-world.md](docs/demo-world.md). A state the services cannot produce is recorded there as a gap, with the reason.
+3. Say in the pull request how the demo world covers the change.
 
 ## Documentation
 
-`docs/` describes the current state of the app, not its history. Update the page that covers your change in the same pull request. UI changes follow
-[docs/frontend.md](docs/frontend.md): semantic theme tokens, responsive from 360 px, checked at 360, 768 and 1280 px in light and dark.
+`docs/` describes the current state of the app, not its history. Update the page that covers your change in the same pull request.
+
+UI changes follow [docs/frontend.md](docs/frontend.md): semantic theme tokens, responsive from 360 px, checked at 360, 768 and 1280 px in light and dark.
 
 ## Review and merge
 
-Contributors open issues and pull requests from forks. **Only maintainers review, approve and merge.** Expect a review with questions or requested changes; push
-fixes to the same branch. Draft pull requests are welcome for early feedback.
+Contributors open issues and pull requests from forks. **Only maintainers review, approve and merge.**
+
+Expect a review with questions or requested changes, and push fixes to the same branch.
+Draft pull requests are welcome for early feedback.
 
 ### Automatic pull request check
 
-The `pr-check` workflow ([.github/workflows/pr-check.yml](.github/workflows/pr-check.yml)) fails when the title is not a Conventional Commit, when the description lacks
-a section of the [pull request template](.github/PULL_REQUEST_TEMPLATE.md) (Summary, Type, Linked issue, How it was tested, Checklist), or when a mandatory checklist box
-(`make test`, no secrets, licence) is not ticked. The message in the failed run says what to fix; edit the title or description and it runs again. The check is meant to be a
-**required status check** on `main`, which the repository owner enables in the repository settings. Its logic is tested by `node tests/ci/pr-check.test.mjs`
-(no dependencies).
+The `pr-check` workflow ([.github/workflows/pr-check.yml](.github/workflows/pr-check.yml)) fails when:
+
+- the title is not a Conventional Commit;
+- the description lacks a section of the [pull request template](.github/PULL_REQUEST_TEMPLATE.md) (Summary, Type, Linked issue, How it was tested, Checklist);
+- a mandatory checklist box (`make test`, no secrets, licence) is not ticked.
+
+The message in the failed run says what to fix. Edit the title or description and the check runs again.
+
+The check is meant to be a **required status check** on `main`, which the repository owner enables in the repository settings.
+Its logic is tested by `node tests/ci/pr-check.test.mjs` (no dependencies).
 
 ## Licence
 

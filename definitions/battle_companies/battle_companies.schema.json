@@ -5514,6 +5514,13 @@
         "profile": {
           "description": "A brand-new unit: its full profile, written the way the vanilla file writes one: the characteristics movement, fight, shoot (\"-\" for none), strength, defence, attack, wounds, courage, intelligence (and might, will, fate for a hero), and the lists race, unitType (both required), faction, specialRules, wargear, heroicActions, magicalPowers and baseSize. The app then treats the unit like a vanilla profile."
         },
+        "race": {
+          "description": "The race keywords of the unit, replacing those of the unit it extends (Goblin Hulk: a Gundabad Ogre that is a Goblin, no longer an Ogre). Only with extends.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "tts": {
           "$ref": "#/$defs/UnitTTS",
           "description": "The Tabletop Simulator figure."

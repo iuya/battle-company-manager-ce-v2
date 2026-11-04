@@ -1,5 +1,5 @@
 // Envenom Weapon (X): a weapon modifier that gives the UNIT Poisoned Attacks (<weapon>) for the weapon the player chooses at purchase
-// (docs/frontend.md, "Weapon modifiers"). Bought from the buy window and from the Armory tab with the same weapon chooser; the weapon
+// (docs/frontend-company.md, "Weapon modifiers"). Bought from the buy window and from the Armory tab with the same weapon chooser; the weapon
 // stays plain, the choice is final (no chooser, no "Change weapon"), dropping the weapon keeps the rule and buying it again shows the rule once, a weapon already poisoned is not offered, and a unit that cannot take it gets the reason instead of a button
 // (the "no weapon left" reason itself is a handler test: no demo unit reaches it). Mordor's gallery company (60 influence, orc warriors with one small slot each) and Harad's (a Bow poisoned by the profile).
 import { assert, campaignId, layout, SIZES } from '../lib/util.mjs';

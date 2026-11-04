@@ -273,3 +273,55 @@ func BenchmarkGlossaryWithUnits(b *testing.B) {
 		_ = rs.Glossary.withUnits(units)
 	}
 }
+
+// A bundle's members (Vault Warden Team: Iron Shield Bearer and Foe Spear Wielder) have cards of their own, and so does every unit a
+// company names that the vanilla book can resolve: nothing a company can field is missing from the glossary.
+func TestEveryReachableUnitHasACard(t *testing.T) {
+	rs := shippedRules(t)
+	g := rs.GlossaryWithUnits()
+	has := func(name string) bool {
+		for _, u := range g.Units {
+			if NameKey(u.Name) == NameKey(name) {
+				return true
+			}
+		}
+		return false
+	}
+	var team *BaseUnit
+	for i, u := range g.Units {
+		if u.Name == "Vault Warden Team" {
+			team = &g.Units[i]
+		}
+	}
+	if team == nil || len(team.Includes) != 2 {
+		t.Fatalf("the Vault Warden Team card: %+v", team)
+	}
+	for _, m := range team.Includes {
+		if !has(m) {
+			t.Errorf("bundle member %s has no card", m)
+		}
+		if c := g.UnitCard(UnitAnchor(m)); c == nil || len(c.Preview.Stats) == 0 || len(c.Companies) == 0 {
+			t.Errorf("bundle member %s: card %+v", m, c)
+		}
+		if segs := g.Link("The " + m + " fights."); mark(segs) != "The [U:"+UnitAnchor(m)+"|"+m+"] fights." {
+			t.Errorf("%s is not linked: %s", m, mark(segs))
+		}
+	}
+	if a, b := g.UnitCard("u-iron-shield-bearer"), g.UnitCard("u-foe-spear-wielder"); a == nil || b == nil || a.Preview.Points != 13 || b.Preview.Points != 12 {
+		t.Errorf("the members are worth their own points: %+v %+v", a, b)
+	}
+	for _, u := range g.Units {
+		for _, m := range u.Includes {
+			if !has(m) {
+				t.Errorf("%s: member %s has no card", u.Name, m)
+			}
+		}
+	}
+	for _, p := range rs.BC.Profiles() {
+		for _, m := range p.mentionedUnits() {
+			if _, _, ok := rs.ResolveUnit(p, m.unit); ok && !has(m.unit) {
+				t.Errorf("%s names %s, which has no card", p.Name, m.unit)
+			}
+		}
+	}
+}

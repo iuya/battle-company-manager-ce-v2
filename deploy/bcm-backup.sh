@@ -4,8 +4,8 @@
 #   /opt/bcm/bcm-backup.sh
 #
 # OFFSITE_HOOK (a path in .env or the environment, default /opt/bcm/offsite-hook.sh when it exists and is executable) is called with the
-# dump path as its only argument; a failing hook fails the job so the unit shows red. deploy/oracle/offsite-oci.sh is one such hook.
-# A backup on the same disk is not a backup (docs/operations.md, "Backup").
+# dump path as its only argument; a failing hook fails the job so the unit shows red. Provider-specific hooks are not part of this repository.
+# A backup on the same disk is not a backup (docs/backup-restore.md, "Backup").
 set -euo pipefail
 cd "$(dirname "$0")"
 KEEP="${KEEP:-14}" scripts/backup.sh backups

@@ -266,7 +266,7 @@ func LeanGearTerms(d *lean.Document, vanilla *VanillaBook) []ExtraTerm {
 			}
 			o := t.Offers[sold]
 			sold++
-			if text, ok := gearTermText(o.Description, o.Cost, o.Gold, o.Size); ok {
+			if text, ok := gearTermText(o.Description, o.Size); ok {
 				term := ExtraTerm{Name: o.Name, Category: g.Kind, Aliases: o.AlsoCalled, Definition: text, Source: src, Weak: g.Kind == "wargear"}
 				out = append(out, term)
 			}

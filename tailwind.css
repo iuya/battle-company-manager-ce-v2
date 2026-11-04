@@ -5,7 +5,7 @@
    a palette is one block of variables. The <html> element carries data-palette and data-mode (light|dark, already
    resolved from the user's System/Light/Dark choice); the same attributes on any element preview that palette
    (settings menu swatches). See static/js/theme.js.
-   tools/check_theme_contrast.py verifies every palette against WCAG AA.
+   `go run ./tools/themecontrast` verifies every palette against WCAG AA.
    ========================================================================================================== */
 
 @font-face {
@@ -606,28 +606,27 @@ html[data-mode="dark"] { color-scheme: dark; }
   .path-name-short .path-icon { @apply h-7 w-7; }
   .path-name-short .path-icon > svg { height: 1.375rem; width: 1.375rem; }
 
-  /* The path carousel (path_panel): side buttons round a strip that scrolls inside its own box; the selected tab is raised. */
-  .path-carousel { @apply flex items-center gap-1.5; }
+  /* The path carousel (path_panel): a mosaic of every path (a wrapping grid, small icon and name on one line) the selected tab is marked; the previous and next arrows float beside the card. */
+  .path-carousel { @apply grid gap-1.5; grid-template-columns: minmax(0, 1fr); }
   .path-nav { @apply !min-h-11 !min-w-11 shrink-0 !px-0; }
-  .path-strip { @apply flex min-w-0 flex-1 gap-1.5 overflow-x-auto py-1; scrollbar-width: none; overscroll-behavior-x: contain; }
-  .path-strip::-webkit-scrollbar { display: none; }
-  .path-tab { @apply flex min-h-11 shrink-0 cursor-pointer flex-col items-center gap-1 rounded-lg border border-line bg-surface px-2 py-1.5 text-xs text-fg; width: 5.25rem; }
+  .path-strip { @apply grid min-w-0 gap-1.5 py-1; grid-template-columns: repeat(auto-fill, minmax(7.75rem, 1fr)); }
+  .path-tab { @apply flex min-h-9 min-w-0 cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-surface px-1.5 py-1 text-xs leading-tight text-fg; }
+  .path-tab .path-icon { @apply h-6 w-6; }
+  .path-tab .path-icon > svg { height: 1.125rem; width: 1.125rem; }
   .path-tab:hover { @apply bg-raised; }
   .path-tab.is-on { @apply border-accent bg-accent-soft font-semibold; }
   .path-tab:focus-within { @apply outline outline-2 outline-offset-2; outline-color: var(--accent); }
-  .path-tab-name { @apply text-center leading-tight; overflow-wrap: anywhere; }
+  .path-tab-name { @apply min-w-0; overflow-wrap: anywhere; }
   /* The stack of cards: all in one grid cell; data-rel is the place against the selected card (0 front and whole, +-1 behind it, smaller and faded, +-2 away). */
   .path-stage { @apply relative grid overflow-hidden py-1; touch-action: pan-y; }
-  .path-card { @apply w-4/5 justify-self-center self-start; grid-area: 1 / 1; transition: transform 0.3s ease, opacity 0.3s ease; }
+  /* --r is the place against the selected card (not clamped: a jump of five sweeps the cards past each other), --dur how long the move takes (set by the component: longer for a longer jump, capped). */
+  .path-card { @apply w-4/5 justify-self-center self-start; grid-area: 1 / 1; transform: translateX(calc(var(--r, 0) * 36%)) scale(max(0.6, calc(1 - 0.14 * abs(var(--r, 0))))); transform-origin: center top; transition: transform var(--dur, 300ms) ease, opacity var(--dur, 300ms) ease; }
   .path-card-body { @apply rounded-lg border border-line p-3; background: color-mix(in srgb, var(--surface) 85%, transparent); } /* the card in front is a little see-through: the background only, so the text keeps its contrast */
   .path-card[data-rel="0"] { z-index: 3; }
   .path-card[data-rel="0"] .path-card-body { @apply border-accent; }
   .path-card[data-rel="-1"], .path-card[data-rel="1"] { z-index: 2; opacity: 0.55; filter: blur(2px); cursor: pointer; max-height: 14rem; overflow: hidden; }
-  .path-card[data-rel="-1"] { transform: translateX(-42%) scale(0.86); transform-origin: right top; }
-  .path-card[data-rel="1"] { transform: translateX(42%) scale(0.86); transform-origin: left top; }
   .path-card[data-rel="-2"], .path-card[data-rel="2"] { z-index: 1; opacity: 0; visibility: hidden; pointer-events: none; max-height: 14rem; overflow: hidden; }
-  .path-card[data-rel="-2"] { transform: translateX(-60%) scale(0.7); }
-  .path-card[data-rel="2"] { transform: translateX(60%) scale(0.7); }
+  .path-stage.is-moving .path-card[data-rel="-2"], .path-stage.is-moving .path-card[data-rel="2"] { opacity: 0.35; visibility: visible; filter: blur(2px); } /* while a jump sweeps over them the cards in between are seen going by */
   /* The floating arrows: a layer over the stack whose inner bar sticks at the middle of the window, so the arrows stay in reach while the card is scrolled. */
   .path-deck { @apply relative; }
   .path-float { @apply pointer-events-none absolute inset-0 z-[5]; }

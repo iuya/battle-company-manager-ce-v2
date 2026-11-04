@@ -729,7 +729,7 @@ func (c *MapCatalogue) Keys(name string) []string {
 	return c.byName[strings.ToLower(strings.TrimSpace(name))]
 }
 
-// LoadTTSCatalogue reads a catalogue file (tools/extract_tts_models.py: a JSON list of keys, or an object keyed by them).
+// LoadTTSCatalogue reads a catalogue file (tools/ttsmodels writes it: a JSON list of keys, or an object keyed by them).
 func LoadTTSCatalogue(path string) (*MapCatalogue, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
