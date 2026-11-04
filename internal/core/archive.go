@@ -67,9 +67,11 @@ func (r ArchiveRules) File(kind RulesetKind) []byte {
 	return nil
 }
 
+func (a Archive) rawJSON() ([]byte, error) { return json.Marshal(a) }
+
 // Pack is the document as it is stored: JSON, gzipped.
 func (a Archive) Pack() ([]byte, error) {
-	raw, err := json.Marshal(a)
+	raw, err := a.rawJSON()
 	if err != nil {
 		return nil, err
 	}
@@ -728,3 +730,22 @@ func pruneGlossary(rs *RuleSet, raw []byte, use *ArchiveUse) (json.RawMessage, e
 func (a Archive) Compact() ([]byte, error) { return json.Marshal(a) }
 
 var _ = slices.Contains[[]string]
+
+// digestUnit is what a page shows of a unit: stats, gear and rule names with their texts.
+func digestUnit(u CompanyUnit) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s|%d|", u.Type, u.Points)
+	for _, a := range u.Stats {
+		fmt.Fprintf(&b, "%s%d%s,", a.Abbr, a.Value, a.Trail)
+	}
+	for _, e := range u.Equipment {
+		fmt.Fprintf(&b, "[%s:%s]", e.Name, e.Description)
+	}
+	for _, r := range u.Rules {
+		fmt.Fprintf(&b, "{%s:%s}", r.Name, r.Description)
+	}
+	for _, k := range u.Keywords.Model {
+		fmt.Fprintf(&b, "<%s:%s>", k.Name, k.Text)
+	}
+	return b.String()
+}

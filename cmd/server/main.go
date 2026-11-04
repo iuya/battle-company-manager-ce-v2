@@ -64,6 +64,8 @@ func main() {
 			run = func() error { return runUser(os.Args[2:]) }
 		case "audit":
 			run = func() error { return runAudit(os.Args[2:]) }
+		case "archive":
+			run = func() error { return runArchive(os.Args[2:]) }
 		case "migrate":
 			run = func() error { return runMigrate() }
 		case "healthcheck":

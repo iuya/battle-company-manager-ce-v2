@@ -68,6 +68,8 @@ type campaignRepository interface {
 	// It returns ErrCampaignLimit when the owner already organises as many unfinished campaigns as they may (c.DefaultLimit or their own
 	// limit), counted under a lock on the account so two creations cannot both pass.
 	Create(ctx context.Context, owner User, c NewCampaign) (CampaignSummary, error)
+	// Header reads the campaign row without a viewer: what archiving needs (ErrNotFound for an unknown campaign).
+	Header(ctx context.Context, campaignID int64) (CampaignHeader, error)
 	// Quota counts the unfinished campaigns an account organises against its limit (defaultLimit when it has none of its own).
 	Quota(ctx context.Context, userID int64, defaultLimit int) (CampaignQuota, error)
 	// Get returns the campaign as the member sees it (ErrNotFound for non-members too, so ids do not leak), with the hashes of

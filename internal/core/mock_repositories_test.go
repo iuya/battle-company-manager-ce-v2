@@ -607,6 +607,45 @@ func (c *MockcampaignRepositoryHashesCall) DoAndReturn(f func(context.Context, i
 	return c
 }
 
+// Header mocks base method.
+func (m *MockcampaignRepository) Header(ctx context.Context, campaignID int64) (CampaignHeader, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Header", ctx, campaignID)
+	ret0, _ := ret[0].(CampaignHeader)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Header indicates an expected call of Header.
+func (mr *MockcampaignRepositoryMockRecorder) Header(ctx, campaignID any) *MockcampaignRepositoryHeaderCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Header", reflect.TypeOf((*MockcampaignRepository)(nil).Header), ctx, campaignID)
+	return &MockcampaignRepositoryHeaderCall{Call: call}
+}
+
+// MockcampaignRepositoryHeaderCall wrap *gomock.Call
+type MockcampaignRepositoryHeaderCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignRepositoryHeaderCall) Return(arg0 CampaignHeader, arg1 error) *MockcampaignRepositoryHeaderCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignRepositoryHeaderCall) Do(f func(context.Context, int64) (CampaignHeader, error)) *MockcampaignRepositoryHeaderCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignRepositoryHeaderCall) DoAndReturn(f func(context.Context, int64) (CampaignHeader, error)) *MockcampaignRepositoryHeaderCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // List mocks base method.
 func (m *MockcampaignRepository) List(ctx context.Context, userID int64, withFinished bool) ([]CampaignSummary, error) {
 	m.ctrl.T.Helper()

@@ -120,22 +120,3 @@ func TestArchivePrunedRulesLoadAndBuildTheSame(t *testing.T) {
 		}
 	}
 }
-
-// digestUnit is what a page shows of a unit: stats, gear and rule names with their texts.
-func digestUnit(u CompanyUnit) string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "%s|%d|", u.Type, u.Points)
-	for _, a := range u.Stats {
-		fmt.Fprintf(&b, "%s%d%s,", a.Abbr, a.Value, a.Trail)
-	}
-	for _, e := range u.Equipment {
-		fmt.Fprintf(&b, "[%s:%s]", e.Name, e.Description)
-	}
-	for _, r := range u.Rules {
-		fmt.Fprintf(&b, "{%s:%s}", r.Name, r.Description)
-	}
-	for _, k := range u.Keywords.Model {
-		fmt.Fprintf(&b, "<%s:%s>", k.Name, k.Text)
-	}
-	return b.String()
-}

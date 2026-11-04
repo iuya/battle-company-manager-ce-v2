@@ -174,6 +174,13 @@ type Campaigns struct {
 	log      *slog.Logger
 	// campaignLimit is how many unfinished campaigns an account without a limit of its own may organise (DefaultCampaignLimit unless set).
 	campaignLimit int
+	archiver      *Archiver
+}
+
+// WithArchiver makes ending a campaign archive it (docs/archive.md).
+func (c *Campaigns) WithArchiver(a *Archiver) *Campaigns {
+	c.archiver = a
+	return c
 }
 
 // DefaultCampaignLimit is the number of unfinished (active or paused) campaigns an account may organise unless a superuser set another.
@@ -410,29 +417,36 @@ func (c *Campaigns) HandOver(ctx context.Context, actor User, campaignID, newOrg
 	})
 }
 
-// SetCampaignStatus pauses, resumes, ends or reactivates a campaign. The organiser and administrators pause (active to paused), resume
-// (paused to active) and end (active or paused to finished; allowed with open matches, the page warns first); only administrators
-// reactivate a finished campaign (an ended campaign is ended for good for the organiser). Ending needs
-// the campaign's name as confirm (the page asks for it after its warnings) and revokes every invitation link; the matches stay exactly
-// as they are, frozen. ErrRefused with the reason otherwise.
+// SetCampaignStatus pauses, resumes or ends a campaign. The organiser and administrators pause (active to paused), resume
+// (paused to active) and end (active or paused to finished; allowed with open matches, the page warns first). Ending is final for everybody:
+// it needs the campaign's name as confirm (the page asks for it after its warnings), revokes every invitation link and turns the campaign
+// into a read-only archive (Archiver; docs/archive.md). A finished campaign cannot change status again. ErrRefused with the reason otherwise.
+//
+// If the archive cannot be made (a bug in the pruning, a stored file that no longer loads) the campaign stays ended and unarchived, which
+// is what every campaign ended before archives existed is: the failure is logged and "server archive" tries again.
 func (c *Campaigns) SetCampaignStatus(ctx context.Context, actor User, campaignID int64, to CampaignStatus, confirm string) error {
-	return c.campaigns.SetStatus(ctx, campaignID, func(organiserID int64, name string, from CampaignStatus) (CampaignStatus, error) {
+	err := c.campaigns.SetStatus(ctx, campaignID, func(organiserID int64, name string, from CampaignStatus) (CampaignStatus, error) {
 		if !CanManageCampaign(actor, organiserID) {
 			return from, Refuse("Only the organiser of the campaign or an administrator can change its status.")
 		}
 		switch {
 		case to != CampaignActive && to != CampaignPaused && to != CampaignFinished:
 			return from, Refuse("Unknown campaign status.")
+		case from == CampaignFinished:
+			return from, Refuse("An ended campaign is final: it is a read-only archive and cannot be reopened.")
 		case to == from:
 			return from, Refuse("The campaign is already %s.", from)
-		case from == CampaignFinished && (actor.Role != RoleAdmin && actor.Role != RoleSuperuser):
-			return from, Refuse("Only an administrator can reactivate a finished campaign.")
-		case from == CampaignFinished && to == CampaignPaused:
-			return from, Refuse("Reactivate the campaign first.")
 		}
 		if to == CampaignFinished && strings.TrimSpace(confirm) != name {
 			return from, Refuse("Type the name of the campaign to end it.")
 		}
 		return to, nil
 	})
+	if err != nil || to != CampaignFinished || c.archiver == nil {
+		return err
+	}
+	if aerr := c.archiver.Archive(ctx, campaignID); aerr != nil {
+		c.log.Error("the ended campaign could not be archived; it stays ended, run \"server archive\" to try again", "campaign", campaignID, "err", aerr)
+	}
+	return nil
 }

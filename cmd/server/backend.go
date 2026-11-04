@@ -56,6 +56,7 @@ type backend struct {
 	invitations *core.AccountInvitations // account invitations (docs/auth.md)
 	recovery    *core.Recovery           // password recovery links
 	liveHub     *core.LiveHub            // main starts it (Start) and closes it on shutdown
+	archiver    *core.Archiver           // ending a campaign calls it; "server archive" calls it for the campaigns ended before archives existed
 }
 
 // rulesCacheMax is MAX_CACHED_RULESETS as run read it; 0 (the commands that do not load the server config) keeps core's default.
@@ -105,6 +106,7 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 	camps, comps, matches, aftermaths := core.ScopeCampaigns(store.Campaigns()), core.ScopeCompanies(store.Companies()), core.ScopeMatches(store.Matches()), store.Aftermaths()
 	atoRepo, liveRepo := core.ScopeATO(store.ATO()), core.ScopeLive(store.Live())
 
+	archiver := core.NewArchiver(camps, comps, matches, store.Rulesets(), rules, store.Archives(), log)
 	aftermath := core.NewAftermathService(camps, comps, matches, aftermaths, rules, dice).WithATO(atoRepo)
 	matchSvc := core.NewMatches(camps, comps, matches, rules).WithATO(atoRepo)
 	matchSvc.AftermathStarted = aftermaths.Started           // a match cannot be reopened once a company started its aftermath
@@ -123,8 +125,9 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 
 	auth := core.NewAuth(store)
 	return &backend{
+		archiver: archiver,
 		campaigns: &campaignsFacade{
-			campaignsSvc: core.NewCampaigns(camps, comps, store.Rulesets(), rules, log).WithCampaignLimit(campaignLimit),
+			campaignsSvc: core.NewCampaigns(camps, comps, store.Rulesets(), rules, log).WithCampaignLimit(campaignLimit).WithArchiver(archiver),
 			companySvc:   core.NewCompanyService(camps, comps, rules).WithAftermaths(aftermaths),
 			armourySvc:   core.NewArmouryService(camps, comps, rules),
 			recruitSvc:   core.NewRecruitService(camps, comps, rules, dice),

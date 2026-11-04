@@ -154,6 +154,9 @@ type CampaignDetail struct {
 	// What the Manage campaign dialogs say before the organiser pauses, ends or invalidates: invitation links that still work,
 	// matches not ended, and companies with an aftermath to finish.
 	ActiveInvites, OpenMatches, PendingAftermaths int
+	// Archived says the campaign has ended for good and is a read-only document (docs/archive.md): nothing in it can change, and the pages
+	// that need live data (live matches, aftermaths, the armoury, recruiting) are not offered.
+	Archived bool
 }
 
 // CampaignMember is a member of a campaign, with or without a company.
