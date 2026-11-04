@@ -167,7 +167,11 @@ func TestArchiveKeepsTheReadOnlyPages(t *testing.T) {
 				t.Errorf("the archived campaign shows something else:\n  %s", strings.Join(diffs, "\n  "))
 			}
 			rowsAfter := rowCounts(t, ctx, conn, cs.ID)
-			t.Logf("rows before %v, after %v", rowsBefore, rowsAfter)
+			var raw, packed int
+			if err := conn.QueryRow(ctx, `SELECT raw_size, packed_size FROM campaign_archives WHERE campaign_id = $1`, cs.ID).Scan(&raw, &packed); err != nil {
+				t.Fatal(err)
+			}
+			t.Logf("SIZE %q: %d companies, rows %d B -> archive %d B (document %d B raw, rules pruned)", cs.Name, rowsBefore["companies"], rowsBefore["row_bytes"], packed, raw)
 			for _, table := range []string{"company_units", "fallen_units", "matches", "grants", "company_perks", "campaign_invites"} {
 				if rowsAfter[table] != 0 {
 					t.Errorf("%s still has %d rows", table, rowsAfter[table])
@@ -205,7 +209,20 @@ func rowCounts(t *testing.T, ctx context.Context, conn *pgx.Conn, id int64) map[
 		"campaign_invites": `SELECT count(*) FROM campaign_invites WHERE campaign_id = $1`,
 		"companies":        `SELECT count(*) FROM companies WHERE campaign_id = $1`,
 		"campaign_members": `SELECT count(*) FROM campaign_members WHERE campaign_id = $1`,
-		"pinned_files":     `SELECT (vanilla_hash IS NOT NULL)::int + (bc_hash IS NOT NULL)::int + (glossary_hash IS NOT NULL)::int FROM campaigns WHERE id = $1`,
+		"row_bytes": `SELECT (
+		  (SELECT COALESCE(sum(pg_column_size(x.*)), 0) FROM company_units x WHERE x.company_id IN (SELECT id FROM companies WHERE campaign_id = $1)) +
+		  (SELECT COALESCE(sum(pg_column_size(e.*)), 0) FROM unit_equipment e WHERE e.unit_id IN (SELECT id FROM company_units WHERE company_id IN (SELECT id FROM companies WHERE campaign_id = $1))) +
+		  (SELECT COALESCE(sum(pg_column_size(x.*)), 0) FROM fallen_units x WHERE x.company_id IN (SELECT id FROM companies WHERE campaign_id = $1)) +
+		  (SELECT COALESCE(sum(pg_column_size(x.*)), 0) FROM grants x WHERE x.company_id IN (SELECT id FROM companies WHERE campaign_id = $1)) +
+		  (SELECT COALESCE(sum(pg_column_size(x.*)), 0) FROM matches x WHERE x.campaign_id = $1) +
+		  (SELECT COALESCE(sum(pg_column_size(x.*)), 0) FROM match_sides x WHERE x.match_id IN (SELECT id FROM matches WHERE campaign_id = $1)) +
+		  (SELECT COALESCE(sum(pg_column_size(x.*)), 0) FROM match_side_companies x WHERE x.match_id IN (SELECT id FROM matches WHERE campaign_id = $1)) +
+		  (SELECT COALESCE(sum(pg_column_size(x.*)), 0) FROM match_events x WHERE x.match_id IN (SELECT id FROM matches WHERE campaign_id = $1)) +
+		  (SELECT COALESCE(sum(pg_column_size(x.*)), 0) FROM match_aftermaths x WHERE x.match_id IN (SELECT id FROM matches WHERE campaign_id = $1)) +
+		  (SELECT COALESCE(sum(pg_column_size(x.*)), 0) FROM match_live_log x WHERE x.match_id IN (SELECT id FROM matches WHERE campaign_id = $1)) +
+		  (SELECT COALESCE(sum(pg_column_size(x.*)), 0) FROM match_live_unit x WHERE x.match_id IN (SELECT id FROM matches WHERE campaign_id = $1))
+		)::int`,
+		"pinned_files": `SELECT (vanilla_hash IS NOT NULL)::int + (bc_hash IS NOT NULL)::int + (glossary_hash IS NOT NULL)::int FROM campaigns WHERE id = $1`,
 	} {
 		var n int
 		if err := conn.QueryRow(ctx, q, id).Scan(&n); err != nil {

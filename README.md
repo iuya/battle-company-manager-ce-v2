@@ -99,6 +99,7 @@ Start at [docs/README.md](docs/README.md). Everything in `docs/`, by audience:
 | [tabletop-simulator.md](docs/tabletop-simulator.md) | Taking a company into Tabletop Simulator |
 | [admin.md](docs/admin.md) | The Administration section, campaign status, invitations, handover |
 | [rules-coverage.md](docs/rules-coverage.md) | Which Battle Companies mechanics the app implements |
+| [archive.md](docs/archive.md) | Ended campaigns as read-only archives: what is kept, what is not, archiving old campaigns |
 | [multi-company.md](docs/multi-company.md) | Several companies per player (up to a campaign setting), the company in the URL, and opening the last campaign directly |
 | [practice-matches.md](docs/practice-matches.md) | Practice matches: no rewards, no injuries, an empty aftermath |
 

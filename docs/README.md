@@ -19,6 +19,7 @@ The tables group the pages by who they are for; the same map is in the [README](
 | [tabletop-simulator.md](tabletop-simulator.md) | Taking a company into Tabletop Simulator: army list, figure names and descriptions, the helper |
 | [admin.md](admin.md) | The Administration section, campaign status, invitations, handover |
 | [rules-coverage.md](rules-coverage.md) | Which Battle Companies mechanics the app implements, with the tests |
+| [archive.md](archive.md) | Ended campaigns as read-only archives: one document holding the campaign and its pruned rules, what is kept and what is not, archiving old campaigns |
 | [multi-company.md](multi-company.md) | Several companies per player (up to a campaign setting), the company in the URL, and opening the last campaign directly |
 | [practice-matches.md](practice-matches.md) | Practice matches: a flag on a match set on the creation form, no rewards, no injuries, an empty derived aftermath |
 

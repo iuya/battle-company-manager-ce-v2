@@ -210,7 +210,6 @@ The Administration section, user permissions, account invitations and rules file
 | Action | Who |
 |---|---|
 | Pause, resume, end the campaign; invalidate or regenerate invitation links | Managers |
-| Reactivate a finished campaign | Administrators and superusers only |
 | Reopen an ended match; edit the scenario and result of an ended match | Managers |
 | Waive an aftermath, grants, invites, live trackers and undo, edit a match while it is open | Managers |
 | Hand over the campaign | The current organiser or an administrator |
@@ -227,7 +226,8 @@ The **Manage campaign** card on the campaign Overview is visible to managers onl
 
   `POST /campaigns/{id}/status` carries `to` and `confirm`.
   Ending revokes every invitation link.
-  An ended campaign is ended for good for the organiser; administrators have **Reactivate**.
+  Ending is final for everybody: the campaign becomes a read-only archive ([archive.md](archive.md)) and nobody, an administrator either, can reopen it.
+  The third step says so, and an ended campaign stops counting towards the number of campaigns its organiser may have open.
 
 | | active | paused | finished |
 |---|---|---|---|
@@ -238,9 +238,9 @@ The **Manage campaign** card on the campaign Overview is visible to managers onl
 | Join by invitation, create an invitation | yes | no | no |
 | Pages visible to members | yes | yes | yes, read only |
 
-A finished campaign is frozen.
+A finished campaign is frozen, and an ended campaign is archived at once ([archive.md](archive.md)): its rows become one read-only document.
 Matches stay exactly as they were (an open match stays open but nothing changes).
-Every write path refuses with "The campaign is finished." until an administrator reactivates it.
+Every write path refuses with "The campaign is finished." (or, once archived, "This campaign is an archive"); there is no way back.
 That covers match edits and ending, the live service, side tags, grants, the aftermath, invitations and every company use case (`TestFinishedCampaignRefusesEveryCompanyWrite`).
 
 The service is `Campaigns.SetCampaignStatus(actor, id, to, confirm)`; the repository changes the status under a row lock.
