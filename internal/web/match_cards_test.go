@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"go.uber.org/mock/gomock"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
 // slotTag returns the opening tag of the element with the id.
@@ -31,14 +33,28 @@ func TestMatchPageDrawsItsCardsInline(t *testing.T) {
 			t.Errorf("the page lacks %q", want)
 		}
 	}
-	if tag := slotTag(t, body, "ato-slot"); strings.Contains(tag, "hx-trigger") {
-		t.Errorf("the ATO slot does not fetch on load: %s", tag)
+	// "none", never no trigger at all: htmx defaults a div with hx-get to click, and every click in the card would fetch it again and lose what was ticked.
+	if tag := slotTag(t, body, "ato-slot"); !strings.Contains(tag, `hx-trigger="none"`) {
+		t.Errorf("the ATO slot fetches neither on load nor on click: %s", tag)
 	}
 	if strings.Contains(body, "end-checks-slot") {
 		t.Error("the End checks card is gone: the End match sheet asks for the objective and the MVP")
 	}
 	if tag := slotTag(t, body, "live-log-slot"); strings.Contains(tag, `"load`) || !strings.Contains(tag, `hx-trigger="live:match from:body"`) || !strings.Contains(tag, "data-live-match") {
 		t.Errorf("the log slot only refreshes on live:match and still names the match for the stream: %s", tag)
+	}
+}
+
+// The log of an ended match has nothing to refresh: its slot never fetches, a click in it included.
+func TestEndedMatchLogSlotDoesNotFetchOnClick(t *testing.T) {
+	m := editableMatch()
+	m.Ended = true
+	f := matchWrite(t, m)
+	f.camp.EXPECT().AgainstTheOdds(gomock.Any(), frodo, int64(7), int64(3)).Return(core.ATO{}, nil).AnyTimes()
+	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), liveLogPage).Return(logEntries(2, 5), nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
+	if tag := slotTag(t, body, "live-log-slot"); !strings.Contains(tag, `hx-trigger="none"`) {
+		t.Errorf("the log slot of an ended match fetches neither on load nor on click: %s", tag)
 	}
 }
 

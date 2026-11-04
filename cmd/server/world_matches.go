@@ -158,13 +158,17 @@ func (w *world) matchCampaign() {
 }
 
 // atoAtCreation makes a match whose lower rated company took Against the Odds bonuses on the new match form (docs/matches.md,
-// "New match"): the owner of that company creates it, with the first bonus the gap affords that needs no detail.
+// "New match"): the owner of that company creates it, with the first bonus the gap affords that needs no detail. The higher rated company
+// hires a Wanderer first, so the gap also pays for what is added on the match page (Tool Kit, Wanderer) and the card can be played by hand.
 func (w *world) atoAtCreation(c *wcamp, x, y *wco) {
-	sides := []core.NewSide{{Companies: []int64{x.id}}, {Companies: []int64{y.id}}}
-	fmt.Fprintln(w.out, "  DEBUGATO:", x.name, y.name, len(w.detail(x).Roster), len(w.detail(y).Roster))
-	for _, r := range append(w.detail(x).Roster, w.detail(y).Roster...) {
-		fmt.Fprintln(w.out, "  DEBUGU:", r.Title(), r.Points, r.PathPending, r.Path)
+	higher := x
+	if w.detail(y).Points > w.detail(x).Points {
+		higher = y
 	}
+	if !w.hireWanderer(higher, "Wandering Swordsman") {
+		w.gap("Against the Odds at creation: %s cannot hire the Wanderer that makes the gap", higher.name)
+	}
+	sides := []core.NewSide{{Companies: []int64{x.id}}, {Companies: []int64{y.id}}}
 	for _, who := range []*wco{x, y} {
 		card, err := w.c().PreviewAgainstTheOdds(w.ctx, who.user, c.id, sides, false)
 		w.must("Against the Odds of the new match", err)

@@ -222,7 +222,7 @@ The aftermath wards play the aftermaths for real.
 - A **three-sided match** (The Wolves Attack, third side wins), ended.
 - A **two-sided match with two companies per side**, open.
 - **Result entered, not ended** (Show of Strength): the next click is "End match".
-- **Against the Odds chosen at creation**: the owner of the lower rated company took a bonus on the new match form.
+- **Against the Odds chosen at creation**: the owner of the lower rated company took a bonus on the new match form. The gap is at least 60 and the game has not started, so the card of the match page can be played by hand: add the Tool Kit or the Wanderer the form left out.
 - **Played live, end pending** (`sheetEnd`): the end proposed through the End match sheet (winner and the proposer's MVP vote), waiting
   for the rival's Confirm (the *ending* phase; Your turn on the rival's Matches page).
 - **Played live and ended through the sheets**: End match, then the rival's Confirm with their own MVP vote.
