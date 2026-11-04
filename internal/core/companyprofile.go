@@ -195,6 +195,7 @@ type UnitPreview struct {
 	Rules         []string
 	RuleCards     []UnitRule // the rules with their text, as the roster card lists them (filled with the stats: see RuleSet.finishPreviews)
 	HeroicActions []string
+	Members       []UnitPreview // the units a bundle is made of (Vault Warden Team), each as its own card; empty for a single model
 }
 
 // PreviewKey identifies a unit with the wargear it is given in a chart or a promotion.

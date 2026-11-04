@@ -24,6 +24,17 @@ export default async function (h) {
     assert.ok(await admin.page.$(`${CARD} [data-concept^="Goblin"]`), 'a keyword has its popup too');
   });
 
+  await h.step('glossary: the To Wound Chart article draws the chart, not only how to read it', async () => {
+    await admin.fill('#glossary-search', 'To Wound Chart');
+    await admin.page.waitForSelector('#t-to-wound-chart', { timeout: 8000 });
+    await admin.settle(300);
+    const t = await admin.page.$eval('#t-to-wound-chart [data-to-wound-chart]', (e) => ({ rows: e.querySelectorAll('tbody tr').length, cols: e.querySelectorAll('thead th').length, first: e.querySelector('tbody td')?.textContent.trim() }));
+    assert.ok(t.rows >= 8 && t.cols >= 8 && t.first, `the chart has its grid: ${JSON.stringify(t)}`);
+    await admin.fill('#glossary-search', 'Goblin Mercenary');
+    await admin.page.waitForSelector(CARD, { timeout: 8000 });
+    await admin.settle(300);
+  });
+
   await h.step('glossary unit links: hover shows what Chittering Hordes does, a click opens the helper popup', async () => {
     const sel = chip('Chittering Hordes');
     await admin.page.$eval(sel, (e) => e.scrollIntoView({ block: 'center' }));

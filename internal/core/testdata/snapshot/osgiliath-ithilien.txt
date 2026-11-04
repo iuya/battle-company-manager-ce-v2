@@ -1,7 +1,6 @@
 # Osgiliath & Ithilien (good)
 
-=== anomalies (37) ===
-tooltip-name | Armoured horse | tooltip (bc armoury) never says "Armoured horse": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
+=== anomalies (32) ===
 tooltip-name | Armour | tooltip (bc definition) never says "Armour": Adds 1 to Defence.
 tooltip-name | Barding | tooltip (bc definition) never says "Barding": The rider gains the Expert Rider & Horselord special rules.
 tooltip-name | Blowpipe | tooltip (bc definition) never says "Blowpipe": 12" Range, 2 Strength. Benefits from the Poisoned Weapons special rule (re-roll …
@@ -21,12 +20,9 @@ tooltip-name | Elven spear | tooltip (bc definition) never says "Elven spear": S
 tooltip-name | Elven throwing weapon | tooltip (bc definition) never says "Elven throwing weapon": 6" Range, 3 Strength. Throwing weapon: can be used in the Shoot Phase even after…
 tooltip-name | Envenom Weapon (X) | tooltip (bc definition) never says "Envenom Weapon (X)": When a model purchases Envenom Weapon, they must decide which weapon on their pr…
 tooltip-name | Esgaroth Bow | tooltip (bc definition) never says "Esgaroth Bow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
-tooltip-name | Fell Warg | tooltip (bc armoury) never says "Fell Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
 tooltip-name | Galadhrim Steed | tooltip (bc definition) never says "Galadhrim Steed": This is an armoured horse that also has the Woodland Creature special rule.
-tooltip-name | Goat | tooltip (bc armoury) never says "Goat": Battle Companies armory: 4 influence or 15 Gold for a warrior, 25 for a hero.
 tooltip-name | Hand-and-a-half weapon | tooltip (bc definition) never says "Hand-and-a-half weapon": Two-handed weapon: -1 to the Duel Roll (not on a natural 6) and +1 to To Wound r…
 tooltip-name | Heavy Armour | tooltip (bc definition) never says "Heavy Armour": Adds 2 to Defence.
-tooltip-name | Horse | tooltip (bc armoury) never says "Horse": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
 tooltip-name | Longbow | tooltip (bc definition) never says "Longbow": 24" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
 tooltip-name | Orc Bow | tooltip (bc definition) never says "Orc Bow": 18" Range, 2 Strength. A model with a bow may shoot after moving, as long as it …
 tooltip-name | Seeing Stone | tooltip (bc definition) never says "Seeing Stone": Once per game, during the Priority Phase but before the roll for Priority, the b…
@@ -37,7 +33,6 @@ tooltip-name | Throwing Spears | tooltip (bc definition) never says "Throwing Sp
 tooltip-name | Torching Brand | tooltip (bc definition) never says "Torching Brand": A model with a Torch gains the following benefits: They illuminate the area with…
 tooltip-name | Uruk-Hai Bow | tooltip (bc definition) never says "Uruk-Hai Bow": 18" Range, 3 Strength. A model with a bow may shoot after moving, as long as it …
 tooltip-name | War spear | tooltip (bc definition) never says "War spear": Counts as a lance while mounted, and a spear while dismounted
-tooltip-name | Warg | tooltip (bc armoury) never says "Warg": Battle Companies armory: 3 influence or 10 Gold for a warrior, 20 for a hero.
 
 === profile (everything the company page holds) ===
 profile
@@ -372,7 +367,7 @@ carrying Spear: matches warrior yes hero yes | choices warrior: promo:1:0=Ranger
 
 === tooltips and glossary terms (digest of the text in _tooltips.txt) ===
 Armour | gear | bc definition | Armour | 2f9f13f9
-Armoured horse | gear | bc armoury | Armoured horse | 333e3f85
+Armoured horse | gear | vanilla mount profile | Armoured horse | 24ce635b
 Axe of Lossarnach | gear | bc definition | Axe of Lossarnach | 1b918223
 Backpack | gear | bc definition | Backpack | 7b80e55f
 Badge of Courage | gear | bc definition | Badge of Courage | bec4a181
@@ -401,15 +396,15 @@ Elven spear | gear | bc definition |  | a07b16fc
 Elven throwing weapon | gear | bc definition | Elven throwing weapon | 7c19502f
 Envenom Weapon (X) | gear | bc definition | Envenom Weapon (X) | 15b47736
 Esgaroth Bow | gear | bc definition | Esgaroth Bow | aa321757
-Fell Warg | gear | bc armoury | Fell Warg | a2c5ffdf
+Fell Warg | gear | vanilla mount profile | Fell Warg | 24ce635b
 Flaming Brand | gear | bc definition | Flaming Brand | ef23e06a
 Galadhrim Steed | gear | bc definition | Galadhrim Steed | 9092cc78
-Goat | gear | bc armoury | Goat | 333e3f85
+Goat | gear | vanilla mount profile |  | 24ce635b
 Hand weapon | gear | none | Hand Weapon | a152aed7
 Hand-and-a-half weapon | gear | bc definition | Hand-and-a-half Weapon | 5e201940
 Healing Herbs | gear | bc definition | Healing Herbs | b67655bf
 Heavy Armour | gear | bc definition | Heavy Armour | 25524851
-Horse | gear | bc armoury | Horse | a2c5ffdf
+Horse | gear | vanilla mount profile | Horse | 24ce635b
 Lance | gear | bc definition | Lance | c0628685
 lance | gear | bc definition | Lance | c0628685
 Light Shield | gear | bc definition | Light Shield | 7dba0213
@@ -438,7 +433,7 @@ Two-handed weapon | gear | bc definition | Two-handed Weapon | 5e201940
 Uruk-Hai Bow | gear | bc definition | Uruk-Hai Bow | b534ad01
 War horn | gear | bc definition | War Horn | 3dcaab42
 War spear | gear | bc definition | War Spear | 8700bf62
-Warg | gear | bc armoury | Warg | a2c5ffdf
+Warg | gear | vanilla mount profile | Warg | 24ce635b
 Wondrous Cram | gear | bc definition | Wondrous Cram | 7853368f
 Woodland Belt | gear | bc definition | Woodland Belt | 2cd22098
 Hatred (Mordor) | rule | vanilla rule | Hatred (Mordor) | 224dd9d4

@@ -31,6 +31,7 @@
       <div class="mt-2 space-y-2" data-def>
         {{range .Paragraphs}}<p>{{range .}}{{if .TermID}}<a href="#t-{{.TermID}}">{{.Text}}</a>{{else if .UnitID}}{{template "glossary_unit_link" (dict "G" $.Glossary "S" .)}}{{else}}{{.Text}}{{end}}{{end}}</p>{{end}}
       </div>
+      {{if and $.Glossary.ToWound (eq .ID "to-wound-chart")}}{{template "to_wound_static" (toWoundTable $.Glossary.ToWound)}}{{end}}
       {{with .Path}}{{if or .Limits .Rows}}
       {{/* A path, as in the rulebook: the limits of its heroes, then the chart a level-up rolls on. An end-of-path term (On Their Own Path) has neither: just its text. */}}
       <h4 class="mt-4 !text-lg">Characteristic limits</h4>

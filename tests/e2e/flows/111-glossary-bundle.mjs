@@ -52,4 +52,22 @@ export default async function (h) {
     }
     await layout(admin, 1280, 'light');
   });
+
+  await h.step('glossary bundle: the Vault Warden Team preview of Durin\'s Folk on "Choose your company" holds the card of each member', async () => {
+    await admin.goto(`${gl.replace('/glossary', '')}/company/new?c=${encodeURIComponent("Durin's Folk")}`);
+    await admin.page.waitForSelector('#company-info article', { timeout: 8000 });
+    const cards = await admin.page.evaluate(() => {
+      const ref = [...document.querySelectorAll('#company-info .unit-ref')].find((e) => e.textContent.trim() === 'Vault Warden Team');
+      const box = ref && document.getElementById(ref.dataset.preview);
+      return box ? [...box.querySelectorAll('.rounded-lg.border.bg-surface')].map((c) => ({ name: c.querySelector('p.font-heading').innerText, stats: c.querySelectorAll('dl dd').length })) : null;
+    });
+    assert.ok(cards, 'the Vault Warden Team is named in Durin\'s Folk');
+    assert.deepEqual(cards.map((c) => c.name), ['Iron Shield Bearer', 'Foe Spear Wielder']);
+    const refs = await admin.page.$$('#company-info .unit-ref');
+    for (const r of refs) { if ((await r.evaluate((e) => e.textContent.trim())) === 'Vault Warden Team') { await r.evaluate((e) => e.scrollIntoView({ block: 'center' })); await r.hover(); } }
+    await admin.settle(500);
+    const tip = await admin.page.evaluate(() => { const t = [...document.querySelectorAll('[role=tooltip]')].find((x) => x.getBoundingClientRect().height && getComputedStyle(x).display !== 'none'); return t ? { h: t.getBoundingClientRect().height, sh: t.scrollHeight, vh: innerHeight } : null; });
+    assert.ok(tip && tip.sh <= tip.h + 1, `the tooltip shows both cards whole: ${JSON.stringify(tip)}`);
+    assert.ok(cards.every((c) => c.stats >= 6), `each member has its stat line: ${JSON.stringify(cards)}`);
+  });
 }
