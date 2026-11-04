@@ -937,7 +937,7 @@ func TestNoRawTokenIsStored(t *testing.T) {
 	var _ pgx.Tx
 }
 
-// The four migrations (the three of account administration and the campaign limit) go down and up again on a database that already has rows.
+// The five migrations (the three of account administration, the campaign limit and the archives) go down and up again on a database that already has rows.
 func TestAccountMigrationsDownAndUp(t *testing.T) {
 	dsn := scratchDatabase(t)
 	ctx := context.Background()
@@ -957,7 +957,7 @@ func TestAccountMigrationsDownAndUp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for range 4 {
+	for range 5 {
 		if _, err := p.Down(ctx); err != nil {
 			t.Fatal(err)
 		}

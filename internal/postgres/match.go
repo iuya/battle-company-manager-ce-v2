@@ -189,7 +189,26 @@ func fillMatch(m *core.Match, sidesJSON, companiesJSON, proposalJSON, confirmati
 
 // List returns the campaign's matches, newest first.
 func (ms matchStore) List(ctx context.Context, campaignID int64) ([]core.Match, error) {
-	return ms.load(ctx, ms.s.pool, `m.campaign_id = $1`, false, campaignID)
+	list, err := ms.load(ctx, ms.s.pool, `m.campaign_id = $1`, false, campaignID)
+	if err != nil || len(list) > 0 {
+		return list, err
+	}
+	if a, err := ms.archive(ctx, campaignID); err != nil || a != nil { // no rows: the campaign may have none, or its matches are in the archive
+		if err != nil {
+			return nil, err
+		}
+		return slices.Clone(a.Matches), nil
+	}
+	return list, nil
+}
+
+// archive is the archive of the campaign when it has one, nil when it has none.
+func (ms matchStore) archive(ctx context.Context, campaignID int64) (*core.Archive, error) {
+	archived, err := ms.s.isArchived(ctx, campaignID)
+	if err != nil || !archived {
+		return nil, err
+	}
+	return ms.s.archiveOf(ctx, campaignID)
 }
 
 // Get returns one match of the campaign, or ErrNotFound.
@@ -199,6 +218,15 @@ func (ms matchStore) Get(ctx context.Context, campaignID, matchID int64) (core.M
 		return core.Match{}, err
 	}
 	if len(list) == 0 {
+		a, err := ms.archive(ctx, campaignID)
+		if err != nil {
+			return core.Match{}, err
+		}
+		if a != nil {
+			if i := slices.IndexFunc(a.Matches, func(m core.Match) bool { return m.ID == matchID }); i >= 0 {
+				return a.Matches[i], nil
+			}
+		}
 		return core.Match{}, core.ErrNotFound
 	}
 	return list[0], nil
@@ -233,6 +261,13 @@ func (ms matchStore) Events(ctx context.Context, campaignID, matchID int64) ([]c
 		return nil, err
 	}
 	if !found {
+		a, err := ms.archive(ctx, campaignID)
+		if err != nil {
+			return nil, err
+		}
+		if a != nil && slices.ContainsFunc(a.Matches, func(m core.Match) bool { return m.ID == matchID }) {
+			return slices.Clone(a.Events[matchID]), nil
+		}
 		return nil, core.ErrNotFound
 	}
 	return out, nil
@@ -255,6 +290,12 @@ func (ms matchStore) Create(ctx context.Context, campaignID int64, by core.User,
 	}
 	if err != nil {
 		return core.Match{}, err
+	}
+	if archived, err := campaignArchived(ctx, tx, campaignID); err != nil || archived {
+		if err != nil {
+			return core.Match{}, err
+		}
+		return core.Match{}, core.ErrArchived
 	}
 	var id int64
 	if err := tx.QueryRow(ctx, `
@@ -343,6 +384,9 @@ func (ms matchStore) Update(ctx context.Context, campaignID, matchID int64, by c
 		return core.Match{}, err
 	}
 	if len(list) == 0 {
+		if archived, err := campaignArchived(ctx, tx, campaignID); err == nil && archived {
+			return core.Match{}, core.ErrArchived
+		}
 		return core.Match{}, core.ErrNotFound
 	}
 	before := list[0]
@@ -506,7 +550,7 @@ func (ms matchStore) AddGrant(ctx context.Context, campaignID int64, by core.Use
 		  WHERE campaign_id = $1 AND id = $2 AND gold + $3 >= 0 AND influence + $4 >= 0`,
 		campaignID, g.CompanyID, g.Gold, g.Influence)
 	if err != nil {
-		return core.Grant{}, err
+		return core.Grant{}, refusedAsArchived(err)
 	}
 	if tag.RowsAffected() == 0 {
 		var exists bool
@@ -593,7 +637,16 @@ func (ms matchStore) Grants(ctx context.Context, campaignID, companyID int64) ([
 		}
 		out = append(out, g)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil || len(out) > 0 {
+		return out, err
+	}
+	if a, err := ms.archive(ctx, campaignID); err != nil || a != nil { // no rows: none were given, or they are in the archive
+		if err != nil {
+			return nil, err
+		}
+		return slices.Clone(a.Grants[companyID]), nil
+	}
+	return out, nil
 }
 
 // nullRole stores no tag as NULL.

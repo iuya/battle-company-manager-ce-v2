@@ -54,7 +54,7 @@ The Overview stays the first tab.
   status badge; **Pause** / **Resume** with one inline confirmation; **End campaign** in three steps (consequences from
   `CampaignDetail.OpenMatches/PendingAftermaths/ActiveInvites`, the exact campaign name typed, a final "End the campaign for good"), posted to
   `POST /campaigns/{id}/status` (`to`, `confirm`; success redirects to the overview, a refusal re-renders the card with the reason, 422).
-  A finished campaign shows "ended for good" to the organiser; administrators get **Reactivate**. The invite block shows "N links work now"
+  An ended campaign shows the Manage card with a note that it is a read-only archive and no button (nobody reopens it, [archive.md](archive.md)); an archive has no Armory tab or sidebar entry, and `gateArchive` answers the pages it does not have. The invite block shows "N links work now"
   with **Regenerate** and **Invalidate links** (inline confirm; `POST .../invites/regenerate`, `.../invites/invalidate`); while paused it hides
   "Invite players" and Regenerate. Paused: the Matches tab hides New match (`CampaignDetail.CanStartMatch`) and says why, `/matches/new` is 403, the
   join page says the campaign is paused (`InvitePreview.Paused`; a refused join is 422). Finished: the Matches tab says matches are frozen.

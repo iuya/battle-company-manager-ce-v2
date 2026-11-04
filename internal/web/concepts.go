@@ -200,6 +200,9 @@ func (s *Server) conceptRuleset(w http.ResponseWriter, r *http.Request) (cid int
 	if s.fail(w, r, err) {
 		return 0, h, false
 	}
+	if c.Archived { // the pruned copy of the archive is the rule set the pages were built with
+		return cid, c.Hashes, true
+	}
 	for _, info := range c.Rulesets {
 		switch info.Kind {
 		case core.KindVanilla:

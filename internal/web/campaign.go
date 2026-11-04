@@ -38,7 +38,7 @@ func (s *Server) loadCampaign(w http.ResponseWriter, r *http.Request, tab string
 		return campaignBase{}, false
 	}
 	c, err := s.campaigns.Get(r.Context(), userFrom(r.Context()).ID, id)
-	if s.fail(w, r, err) {
+	if s.fail(w, r, err) || !s.gateArchive(w, r, c) {
 		return campaignBase{}, false
 	}
 	s.rememberVisit(w, r, c, 0)
@@ -52,7 +52,7 @@ func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) bool {
 		return false
 	case errors.Is(err, core.ErrNotFound):
 		s.notFound(w, r)
-	case errors.Is(err, core.ErrForbidden):
+	case errors.Is(err, core.ErrForbidden), errors.Is(err, core.ErrArchived):
 		s.refuse(w, r, http.StatusForbidden, reason(err))
 	default:
 		s.serverError(w, r, err)
@@ -699,7 +699,7 @@ func (s *Server) loadOwn(w http.ResponseWriter, r *http.Request, tab string) (ca
 // the company through ownCompany.
 func (s *Server) ownCompanyID(w http.ResponseWriter, r *http.Request, campaignID int64) (int64, bool) {
 	d, err := s.campaigns.Get(r.Context(), userFrom(r.Context()).ID, campaignID)
-	if s.fail(w, r, err) {
+	if s.fail(w, r, err) || !s.gateArchive(w, r, d) {
 		return 0, false
 	}
 	co, ok := s.ownCompany(w, r, d)

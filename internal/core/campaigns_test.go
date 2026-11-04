@@ -213,9 +213,10 @@ func TestSetCampaignStatusRules(t *testing.T) {
 		{"end an active campaign", CampaignActive, CampaignFinished, organiser, CampaignFinished, false},
 		{"end a paused campaign", CampaignPaused, CampaignFinished, admin, CampaignFinished, false},
 		{"a player", CampaignActive, CampaignPaused, player, CampaignActive, true},
-		{"the organiser cannot reactivate", CampaignFinished, CampaignActive, organiser, CampaignFinished, true},
-		{"an administrator reactivates", CampaignFinished, CampaignActive, admin, CampaignActive, false},
+		{"the organiser cannot reopen", CampaignFinished, CampaignActive, organiser, CampaignFinished, true},
+		{"nor can an administrator: ending is final", CampaignFinished, CampaignActive, admin, CampaignFinished, true},
 		{"no pausing a finished campaign", CampaignFinished, CampaignPaused, admin, CampaignFinished, true},
+		{"nor ending it again", CampaignFinished, CampaignFinished, admin, CampaignFinished, true},
 		{"same status", CampaignActive, CampaignActive, organiser, CampaignActive, true},
 		{"unknown status", CampaignActive, "dormant", organiser, CampaignActive, true},
 	} {

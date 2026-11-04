@@ -5878,6 +5878,10 @@
   "additionalProperties": false,
   "description": "The whole Battle Companies file: a header, the campaign engine parameters and the sections of rules, items, paths, scenarios, companies and units. The file is complete, not a patch: it is uploaded as the Battle Companies file of a ruleset next to the vanilla file and the glossary. Generated from internal/core/lean/model.go and campaign.go by `go test ./internal/core/lean -run TestSchemaUpToDate -update-schema`; never edit by hand. The Go decoder (lean.Decode) is the authority: it also checks names, charts and cross references, which a schema cannot.",
   "properties": {
+    "archive": {
+      "description": "Set by the app, never by hand, on the pruned copy of the rules an ended campaign keeps as an archive: the scenario selection tables may then be empty, since no match is rolled again.",
+      "type": "boolean"
+    },
     "armourUpgrade": {
       "$ref": "#/$defs/ArmourUpgrade",
       "description": "The armour upgrade rule."
