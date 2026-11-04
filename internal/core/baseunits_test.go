@@ -102,3 +102,18 @@ func TestGlossaryUnitsAreForTheCampaignOnly(t *testing.T) {
 		t.Errorf("units %d terms %d", len(g.Units), len(g.Terms))
 	}
 }
+
+// A mount on a card (the Rider of Rohan's Horse) comes with the stat block and special rules of its profile, the way the company page's tooltip shows it.
+func TestBaseUnitsMountsHaveTheirProfile(t *testing.T) {
+	rs := shippedRules(t)
+	for _, u := range rs.BaseUnits() {
+		if u.Name != "Rider of Rohan" {
+			continue
+		}
+		if len(u.Mounts) != 1 || u.Mounts[0].Name != "Horse" || len(u.Mounts[0].Stats) == 0 {
+			t.Fatalf("Rider of Rohan mounts = %+v, want its Horse with a stat block", u.Mounts)
+		}
+		return
+	}
+	t.Fatal("no card for the Rider of Rohan")
+}

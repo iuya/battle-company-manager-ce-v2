@@ -248,3 +248,14 @@ func TestBundleCardShowsItsMembers(t *testing.T) {
 		t.Error("the members are still a text line")
 	}
 }
+
+func TestMountChipAddsTheProfile(t *testing.T) {
+	m := []core.BaseMount{{Name: "Horse", Stats: []core.Attribute{{Abbr: "M", Value: 10, Trail: `"`}, {Abbr: "D", Value: 4}}, Rules: []string{"Fast"}}}
+	c := mountChip(chipView{Name: "horse", Meta: "wargear", Tip: "A steed."}, m)
+	if c.Meta != "Mount" || c.Tip != "M 10\" · D 4\n\nSpecial rules: Fast\n\nA steed." {
+		t.Errorf("chip = %+v", c)
+	}
+	if got := mountChip(chipView{Name: "Shield", Tip: "x"}, m); got.Tip != "x" || got.Meta != "" {
+		t.Errorf("a name that is no mount changed: %+v", got)
+	}
+}
