@@ -188,6 +188,17 @@ Organisers upload from the new-campaign form as well.
 The methods are on `core.Rulesets`: `ListWithUsage`, `SetDefault`, `Delete`, `PruneUnused`, `Download`, `Check`, and `Store`/`StoreAs` (which record the uploader).
 Each takes the acting user and refuses anyone who is not a superuser (administrators do not see this page).
 
+## Campaign limit
+
+An account may organise a limited number of **unfinished** campaigns (active or paused): `CAMPAIGN_LIMIT`, 10 unless the server is configured otherwise.
+Ending a campaign stops it counting, so the organiser can create another.
+A superuser gives an account its own limit on the account's card (**Campaign limit**, `users.max_campaigns`; empty returns it to the default, 0 forbids new campaigns, 1000 is the highest) and the change is recorded in the audit trail (`campaign_limit.changed`, with the previous and the new value).
+Lowering a limit never touches the campaigns that exist; it only refuses new ones.
+
+- **Creating** a campaign is refused at the limit (`core.ErrCampaignLimit`), counted under a lock on the account's row so two requests cannot both take the last place; the New campaign page shows "You organise N of the M unfinished campaigns you may have" and, when full, explains instead of offering the form (before any rules file upload is stored).
+- **Handing a campaign over** to an account that is at its limit is refused the same way; a finished campaign counts for nobody, so it can always be handed over.
+- The count is the campaigns the account **organises**, not the ones it plays in.
+
 ## Campaign management
 
 ### Who manages a campaign

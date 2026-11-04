@@ -29,6 +29,7 @@ services:
 #   TRUST_PROXY=false            true only behind a reverse proxy that sets X-Forwarded-For
 #   CSP_MODE=report              off | report | enforce
 #   MIGRATE_ON_START=true        false: refuse to start on a database that is behind (make migrate first)
+#   CAMPAIGN_LIMIT=10            unfinished campaigns an account may organise (per account: Users page)
 #   MAX_CACHED_RULESETS=16       parsed rule sets kept in memory, at least 1
 #   REQUEST_TIMEOUT=30s          a request that works longer is cancelled and answers 503; 0 = no limit; the live stream is exempt
 #   RULES_BUILD_TIMEOUT=60s      deadline of building a parsed rule set (a parser stuck on a hostile upload); at least 1s

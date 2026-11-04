@@ -40,7 +40,7 @@ func TestCampaignsCreateResolvesDefaults(t *testing.T) {
 	f.rulesets.EXPECT().Info(ctx, "mine").Return(RulesetInfo{Kind: KindBattleCompanies, Hash: "mine"}, nil)
 	f.rulesets.EXPECT().Default(ctx, KindGlossary).Return(RulesetInfo{Kind: KindGlossary, Hash: "dg"}, nil)
 	settings := CampaignSettings{ManualRolls: true}
-	want := NewCampaign{Name: "Siege", Description: "d", Vanilla: "dv", BattleCompanies: "mine", Glossary: "dg", Settings: settings}
+	want := NewCampaign{Name: "Siege", Description: "d", Vanilla: "dv", BattleCompanies: "mine", Glossary: "dg", Settings: settings, DefaultLimit: DefaultCampaignLimit}
 	f.campaigns.EXPECT().Create(ctx, owner, want).Return(CampaignSummary{ID: 7, Name: "Siege"}, nil)
 	got, err := f.svc.Create(ctx, owner, CampaignInput{Name: " Siege ", Description: "d", BattleCompanies: "mine", Settings: settings})
 	if err != nil || got.ID != 7 {
@@ -166,8 +166,8 @@ func TestCampaignsHandOver(t *testing.T) {
 	// the repository runs allowed with the current organiser (id 1) and returns its verdict
 	run := func(t *testing.T, actor User, newOrg int64) error {
 		f := newCampaignFixture(t)
-		f.campaigns.EXPECT().HandOver(ctx, int64(5), newOrg, gomock.Any()).DoAndReturn(
-			func(_ context.Context, _, _ int64, allowed func(int64) error) error { return allowed(1) })
+		f.campaigns.EXPECT().HandOver(ctx, int64(5), newOrg, DefaultCampaignLimit, gomock.Any()).DoAndReturn(
+			func(_ context.Context, _, _ int64, _ int, allowed func(int64) error) error { return allowed(1) })
 		return f.svc.HandOver(ctx, actor, 5, newOrg)
 	}
 	for _, c := range []struct {
@@ -191,7 +191,7 @@ func TestCampaignsHandOver(t *testing.T) {
 	}
 	t.Run("errors pass through", func(t *testing.T) {
 		f := newCampaignFixture(t)
-		f.campaigns.EXPECT().HandOver(ctx, int64(5), int64(2), gomock.Any()).Return(ErrNotFound)
+		f.campaigns.EXPECT().HandOver(ctx, int64(5), int64(2), DefaultCampaignLimit, gomock.Any()).Return(ErrNotFound)
 		if err := f.svc.HandOver(ctx, User{ID: 1}, 5, 2); !errors.Is(err, ErrNotFound) {
 			t.Fatalf("got %v", err)
 		}
@@ -374,5 +374,18 @@ func TestCampaignsRateOwnCompaniesFromOneRosterRead(t *testing.T) {
 	f.campaigns.EXPECT().Get(ctx, int64(9), int64(1)).Return(CampaignDetail{CampaignSummary: CampaignSummary{ID: 1, Companies: []CampaignCompany{{ID: 10}}}}, nil)
 	if _, err := svc.Get(ctx, 9, 1); !errors.Is(err, ErrNotFound) {
 		t.Errorf("a listed company that has no roster: %v", err)
+	}
+}
+
+func TestCampaignsQuotaAndLimitConfig(t *testing.T) {
+	ctx := context.Background()
+	f := newCampaignFixture(t)
+	f.campaigns.EXPECT().Quota(ctx, int64(3), DefaultCampaignLimit).Return(CampaignQuota{Open: 10, Limit: 10}, nil)
+	if q, err := f.svc.Quota(ctx, 3); err != nil || !q.Full() {
+		t.Fatalf("quota = %+v, %v", q, err)
+	}
+	f.campaigns.EXPECT().Quota(ctx, int64(3), 4).Return(CampaignQuota{Open: 1, Limit: 4}, nil)
+	if q, err := f.svc.WithCampaignLimit(4).Quota(ctx, 3); err != nil || q.Full() {
+		t.Fatalf("configured default: %+v, %v", q, err)
 	}
 }

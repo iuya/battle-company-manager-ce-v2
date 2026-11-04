@@ -64,6 +64,9 @@ var rulesCacheMax int
 // rulesBuildTimeout is RULES_BUILD_TIMEOUT as run read it; 0 keeps core's default.
 var rulesBuildTimeout time.Duration
 
+// campaignLimit is CAMPAIGN_LIMIT as run read it; 0 keeps core's default.
+var campaignLimit int
+
 // newBackend builds the services over the Postgres store, registers the rules files the app ships with (read from
 // definitions/, so run from the repository root) and returns them.
 func newBackend(ctx context.Context, store *postgres.Store) (*backend, error) {
@@ -121,7 +124,7 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 	auth := core.NewAuth(store)
 	return &backend{
 		campaigns: &campaignsFacade{
-			campaignsSvc: core.NewCampaigns(camps, comps, store.Rulesets(), rules, log),
+			campaignsSvc: core.NewCampaigns(camps, comps, store.Rulesets(), rules, log).WithCampaignLimit(campaignLimit),
 			companySvc:   core.NewCompanyService(camps, comps, rules).WithAftermaths(aftermaths),
 			armourySvc:   core.NewArmouryService(camps, comps, rules),
 			recruitSvc:   core.NewRecruitService(camps, comps, rules, dice),

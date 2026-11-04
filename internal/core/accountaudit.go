@@ -26,6 +26,7 @@ const (
 
 const (
 	AuditRoleChanged         AuditAction = "role.changed"
+	AuditCampaignLimit       AuditAction = "campaign_limit.changed"
 	AuditInvitationCreated   AuditAction = "invitation.created"
 	AuditInvitationRevoked   AuditAction = "invitation.revoked"
 	AuditInvitationUsed      AuditAction = "invitation.used"
@@ -58,6 +59,19 @@ func RoleChangedAudit(at time.Time, source AuditSource, actorID *int64, subjectI
 	return AuditEntry{At: at, Source: source, ActorID: actorID, Action: AuditRoleChanged, SubjectUserID: ptr(subjectID), Detail: map[string]string{
 		"from_role": string(fromRole), "to_role": string(toRole),
 		"from_can_create": strconv.FormatBool(fromCan), "to_can_create": strconv.FormatBool(toCan),
+	}}
+}
+
+// CampaignLimitAudit records a superuser changing how many campaigns an account may organise. "" means the server's default.
+func CampaignLimitAudit(at time.Time, actorID, subjectID int64, from, to *int) AuditEntry {
+	show := func(n *int) string {
+		if n == nil {
+			return ""
+		}
+		return strconv.Itoa(*n)
+	}
+	return AuditEntry{At: at, Source: AuditWeb, ActorID: ptr(actorID), Action: AuditCampaignLimit, SubjectUserID: ptr(subjectID), Detail: map[string]string{
+		"from": show(from), "to": show(to),
 	}}
 }
 

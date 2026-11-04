@@ -41,8 +41,8 @@ All share the password `demo-password` (or `PASSWORD`). `admin@example.com`, `yo
 |---|---|---|
 | `admin@example.com` | superuser | `/admin`, reopening matches, waiving aftermaths; a member of every campaign |
 | `steward@example.com` | administrator | the same powers on campaigns; sees the **Users** and **Invitations** pages and the Organiser switch; no rules-file powers and no recovery links (superusers only); a member of every campaign |
-| `you@example.com` | user, may create campaigns | organises nearly every campaign: grants, matches, invites |
-| `faramir@example.com` | user, may create campaigns | organises one campaign, receives another by handover |
+| `you@example.com` | user, may create campaigns | organises nearly every campaign: grants, matches, invites; a superuser raised the campaign limit to 200 (more than the default 10) |
+| `faramir@example.com` | user, may create campaigns | organises one campaign, receives another by handover; his campaign limit is 2, so he is at it: "New campaign" explains instead of offering the form |
 | `eowyn@example.com`, `sauron@example.com`, `aragorn@example.com`, `gimli@example.com`, `bilbo@example.com`, `galadriel@example.com`, `radagast@example.com` | user | the players; each has a company in many campaigns (see below) |
 | `pippin@example.com` | user, **cannot** create campaigns | no "New campaign" button; plays in a few campaigns and used the one-use invite link |
 | `frodo@example.com` | user, may create campaigns | in no campaign: the empty home page. Open the valid invite link as him |

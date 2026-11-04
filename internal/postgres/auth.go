@@ -70,6 +70,31 @@ func (s *Store) SetUserPermissionsByID(ctx context.Context, userID int64, role c
 	return tx.Commit(ctx)
 }
 
+// SetMaxCampaigns sets the account's own limit of unfinished campaigns (nil: the default) and records the change.
+func (s *Store) SetMaxCampaigns(ctx context.Context, userID int64, max *int, at time.Time, actorID int64) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	var from *int
+	if err := tx.QueryRow(ctx, `SELECT max_campaigns FROM users WHERE id = $1 AND closed_at IS NULL FOR UPDATE`, userID).Scan(&from); errors.Is(err, pgx.ErrNoRows) {
+		return core.ErrNotFound
+	} else if err != nil {
+		return err
+	}
+	if (from == nil) == (max == nil) && (from == nil || *from == *max) {
+		return nil // nothing changes, nothing is recorded
+	}
+	if _, err := tx.Exec(ctx, `UPDATE users SET max_campaigns = $2 WHERE id = $1`, userID, max); err != nil {
+		return err
+	}
+	if err := insertAudit(ctx, tx, core.CampaignLimitAudit(at, actorID, userID, from, max)); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
 func (s *Store) UserByID(ctx context.Context, userID int64) (core.User, bool, error) {
 	var u core.User
 	var closedAt *time.Time
@@ -95,7 +120,7 @@ func (s *Store) ListUsers(ctx context.Context, q string, limit, offset int) ([]c
 	}
 	rows, err := s.pool.Query(ctx,
 		`SELECT `+strings.ReplaceAll(userColumns, "id, email, display_name, role, can_create_campaigns, palette, mode, timezone", "u.id, u.email, u.display_name, u.role, u.can_create_campaigns, u.palette, u.mode, u.timezone")+`, u.created_at, u.closed_at,
-		        (SELECT count(*) FROM campaign_members m WHERE m.user_id = u.id),
+		        (SELECT count(*) FROM campaign_members m WHERE m.user_id = u.id), u.max_campaigns,
 		        l.id, l.created_at, l.expires_at, coalesce(lc.display_name, ''), l.used_at, l.revoked_at, coalesce(lr.display_name, ''),
 		        l.invalidated_at, coalesce(l.invalidated_reason, '')
 		   FROM users u
@@ -117,7 +142,7 @@ func (s *Store) ListUsers(ctx context.Context, q string, limit, offset int) ([]c
 		var linkID *int64
 		var linkCreated, linkExpires *time.Time
 		var reason string
-		if err := rows.Scan(append(userDest(&u.User), &u.CreatedAt, &closedAt, &u.Campaigns, &linkID, &linkCreated, &linkExpires,
+		if err := rows.Scan(append(userDest(&u.User), &u.CreatedAt, &closedAt, &u.Campaigns, &u.MaxCampaigns, &linkID, &linkCreated, &linkExpires,
 			&link.CreatedByName, &link.UsedAt, &link.RevokedAt, &link.RevokedByName, &link.InvalidatedAt, &reason)...); err != nil {
 			return nil, 0, err
 		}

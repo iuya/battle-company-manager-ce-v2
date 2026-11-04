@@ -243,21 +243,21 @@ func TestCampaignHandOver(t *testing.T) {
 	}
 	yes := func(int64) error { return nil }
 
-	if err := repo.HandOver(ctx, -1, player.ID, yes); !errors.Is(err, core.ErrNotFound) {
+	if err := repo.HandOver(ctx, -1, player.ID, 10, yes); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("unknown campaign: %v", err)
 	}
-	if err := repo.HandOver(ctx, camp.ID, outsider.ID, yes); !errors.Is(err, core.ErrRefused) {
+	if err := repo.HandOver(ctx, camp.ID, outsider.ID, 10, yes); !errors.Is(err, core.ErrRefused) {
 		t.Fatalf("non-member: %v", err)
 	}
 	denied := errors.New("denied")
 	var seen int64
-	if err := repo.HandOver(ctx, camp.ID, player.ID, func(c int64) error { seen = c; return denied }); err != denied || seen != org.ID {
+	if err := repo.HandOver(ctx, camp.ID, player.ID, 10, func(c int64) error { seen = c; return denied }); err != denied || seen != org.ID {
 		t.Fatalf("allowed must see the organiser and veto: %v %d", err, seen)
 	}
 	if r := roles(); r[org.ID] != "organiser" || r[player.ID] != "player" {
 		t.Fatalf("a vetoed hand over must change nothing: %v", r)
 	}
-	if err := repo.HandOver(ctx, camp.ID, player.ID, yes); err != nil {
+	if err := repo.HandOver(ctx, camp.ID, player.ID, 10, yes); err != nil {
 		t.Fatal(err)
 	}
 	if r := roles(); r[org.ID] != "player" || r[player.ID] != "organiser" || len(r) != 2 {
@@ -316,7 +316,7 @@ func TestCampaignMembersIncludeThoseWithoutACompany(t *testing.T) {
 		t.Errorf("unknown campaign: %v", err)
 	}
 	// a member without a company can take over
-	if err := repo.HandOver(ctx, camp.ID, anna.ID, func(int64) error { return nil }); err != nil {
+	if err := repo.HandOver(ctx, camp.ID, anna.ID, 10, func(int64) error { return nil }); err != nil {
 		t.Errorf("hand over to a member without a company: %v", err)
 	}
 }

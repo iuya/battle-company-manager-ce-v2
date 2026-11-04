@@ -22,8 +22,8 @@ type worldAccount struct {
 var worldAccounts = []worldAccount{
 	{"admin", "admin@example.com", "Gandalf", core.RoleSuperuser, true, "Superuser: /admin, reopen matches, waive aftermaths, every campaign action"},
 	{"steward", "steward@example.com", "Denethor", core.RoleAdmin, true, "Administrator (not superuser): administers campaigns; sees Users and Invitations and the Organiser switch; no rules-file or recovery-link powers"},
-	{"you", "you@example.com", "You", core.RoleUser, true, "Organiser of most campaigns (grants, matches, invites); also plays in a few"},
-	{"faramir", "faramir@example.com", "Faramir", core.RoleUser, true, "Can create campaigns; organises one campaign and, after the handover, another"},
+	{"you", "you@example.com", "You", core.RoleUser, true, "Organiser of most campaigns (grants, matches, invites); also plays in a few; limit raised to 200 by a superuser"},
+	{"faramir", "faramir@example.com", "Faramir", core.RoleUser, true, "Can create campaigns; organises one campaign and, after the handover, another: at his limit of 2, so New campaign says so"},
 	{"eowyn", "eowyn@example.com", "Éowyn", core.RoleUser, false, "Player in many campaigns; cannot create campaigns"},
 	{"sauron", "sauron@example.com", "Sauron", core.RoleUser, false, "Player; the dark side of the matches"},
 	{"aragorn", "aragorn@example.com", "Aragorn", core.RoleUser, false, "Player; joined the brand new campaign but has no company there yet"},
@@ -41,6 +41,11 @@ var worldAccounts = []worldAccount{
 func (w *world) accounts() {
 	for _, a := range worldAccounts {
 		w.account(a.key, a.email, a.name, a.role, a.canCreate)
+	}
+	// Campaign limits (docs/admin.md, "Campaign limit"): "you" organises far more unfinished campaigns than the default allows, so a
+	// superuser gave the account a larger one; Faramir has exactly the two the script gives him, so he is at his limit of 2.
+	for key, n := range map[string]int{"you": 200, "faramir": 2} {
+		w.must("campaign limit of "+key, w.b.auth.SetMaxCampaigns(w.ctx, w.user("admin"), w.user(key).ID, &n))
 	}
 }
 

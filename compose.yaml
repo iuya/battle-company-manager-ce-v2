@@ -51,6 +51,7 @@ services:
       # TRUST_PROXY: ${TRUST_PROXY:-false}           # true only behind a reverse proxy that sets X-Forwarded-For; login attempts are counted per client
       # CSP_MODE: ${CSP_MODE:-report}                # off | report | enforce, Content-Security-Policy (docs/csp.md)
       # MIGRATE_ON_START: ${MIGRATE_ON_START:-true}  # false: refuse to start on a database that is behind; run `docker compose run --rm app migrate` first
+      # CAMPAIGN_LIMIT: ${CAMPAIGN_LIMIT:-10}   # unfinished (active or paused) campaigns an account may organise; a superuser changes it per account
       # MAX_CACHED_RULESETS: ${MAX_CACHED_RULESETS:-16}   # parsed rule sets kept in memory (a few MB each), least recently used dropped; at least 1
       # REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-30s}    # a request that works longer is cancelled (queries stop, answer 503); 0 = no limit; the live stream is exempt
       # RULES_BUILD_TIMEOUT: ${RULES_BUILD_TIMEOUT:-60s}   # deadline of building a parsed rule set from its three files (a parser stuck on a hostile upload); at least 1s

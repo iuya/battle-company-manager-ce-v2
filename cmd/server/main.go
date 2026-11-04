@@ -36,7 +36,10 @@ type config struct {
 	RulesBuildTimeout time.Duration `env:"RULES_BUILD_TIMEOUT" default:"60s"`
 	// PerfTrace adds a Server-Timing header (time, database statements) to every answer, for tests/e2e/perf.mjs. Development only.
 	PerfTrace bool `env:"PERF_TRACE" default:"false"`
-	Web       web.Config
+	// CampaignLimit is how many unfinished (active or paused) campaigns an account without a limit of its own may organise; a superuser
+	// sets another number per account on the Users page.
+	CampaignLimit int `env:"CAMPAIGN_LIMIT" default:"10"`
+	Web           web.Config
 }
 
 // validate rejects settings the server cannot run with; the web settings are checked by web.Config.Resolve.
@@ -46,6 +49,9 @@ func (c config) validate() error {
 	}
 	if c.RulesBuildTimeout < time.Second {
 		return fmt.Errorf("RULES_BUILD_TIMEOUT %s: want at least 1s", c.RulesBuildTimeout)
+	}
+	if c.CampaignLimit < 1 {
+		return fmt.Errorf("CAMPAIGN_LIMIT %d: want at least 1", c.CampaignLimit)
 	}
 	return nil
 }
@@ -82,6 +88,7 @@ func run() error {
 	}
 	rulesCacheMax = cfg.MaxCachedRuleSets
 	rulesBuildTimeout = cfg.RulesBuildTimeout
+	campaignLimit = cfg.CampaignLimit
 	if err := cfg.Web.Resolve(); err != nil {
 		return err
 	}

@@ -530,17 +530,17 @@ func (c *MockcampaignRepositoryGetCall) DoAndReturn(f func(context.Context, int6
 }
 
 // HandOver mocks base method.
-func (m *MockcampaignRepository) HandOver(ctx context.Context, campaignID, newOrganiser int64, allowed func(int64) error) error {
+func (m *MockcampaignRepository) HandOver(ctx context.Context, campaignID, newOrganiser int64, defaultLimit int, allowed func(int64) error) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandOver", ctx, campaignID, newOrganiser, allowed)
+	ret := m.ctrl.Call(m, "HandOver", ctx, campaignID, newOrganiser, defaultLimit, allowed)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // HandOver indicates an expected call of HandOver.
-func (mr *MockcampaignRepositoryMockRecorder) HandOver(ctx, campaignID, newOrganiser, allowed any) *MockcampaignRepositoryHandOverCall {
+func (mr *MockcampaignRepositoryMockRecorder) HandOver(ctx, campaignID, newOrganiser, defaultLimit, allowed any) *MockcampaignRepositoryHandOverCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandOver", reflect.TypeOf((*MockcampaignRepository)(nil).HandOver), ctx, campaignID, newOrganiser, allowed)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandOver", reflect.TypeOf((*MockcampaignRepository)(nil).HandOver), ctx, campaignID, newOrganiser, defaultLimit, allowed)
 	return &MockcampaignRepositoryHandOverCall{Call: call}
 }
 
@@ -556,13 +556,13 @@ func (c *MockcampaignRepositoryHandOverCall) Return(arg0 error) *MockcampaignRep
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockcampaignRepositoryHandOverCall) Do(f func(context.Context, int64, int64, func(int64) error) error) *MockcampaignRepositoryHandOverCall {
+func (c *MockcampaignRepositoryHandOverCall) Do(f func(context.Context, int64, int64, int, func(int64) error) error) *MockcampaignRepositoryHandOverCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignRepositoryHandOverCall) DoAndReturn(f func(context.Context, int64, int64, func(int64) error) error) *MockcampaignRepositoryHandOverCall {
+func (c *MockcampaignRepositoryHandOverCall) DoAndReturn(f func(context.Context, int64, int64, int, func(int64) error) error) *MockcampaignRepositoryHandOverCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -681,6 +681,45 @@ func (c *MockcampaignRepositoryMembersCall) Do(f func(context.Context, int64) ([
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignRepositoryMembersCall) DoAndReturn(f func(context.Context, int64) ([]CampaignMember, error)) *MockcampaignRepositoryMembersCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// Quota mocks base method.
+func (m *MockcampaignRepository) Quota(ctx context.Context, userID int64, defaultLimit int) (CampaignQuota, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Quota", ctx, userID, defaultLimit)
+	ret0, _ := ret[0].(CampaignQuota)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Quota indicates an expected call of Quota.
+func (mr *MockcampaignRepositoryMockRecorder) Quota(ctx, userID, defaultLimit any) *MockcampaignRepositoryQuotaCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Quota", reflect.TypeOf((*MockcampaignRepository)(nil).Quota), ctx, userID, defaultLimit)
+	return &MockcampaignRepositoryQuotaCall{Call: call}
+}
+
+// MockcampaignRepositoryQuotaCall wrap *gomock.Call
+type MockcampaignRepositoryQuotaCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignRepositoryQuotaCall) Return(arg0 CampaignQuota, arg1 error) *MockcampaignRepositoryQuotaCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignRepositoryQuotaCall) Do(f func(context.Context, int64, int) (CampaignQuota, error)) *MockcampaignRepositoryQuotaCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignRepositoryQuotaCall) DoAndReturn(f func(context.Context, int64, int) (CampaignQuota, error)) *MockcampaignRepositoryQuotaCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

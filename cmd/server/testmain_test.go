@@ -22,6 +22,7 @@ func TestMain(m *testing.M) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	campaignLimit = 100000 // the tests make far more campaigns per organiser than the default allows; the limit has tests of its own
 	code := m.Run()
 	worldTemplate.drop()
 	os.Exit(code)

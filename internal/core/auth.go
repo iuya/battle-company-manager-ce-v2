@@ -102,6 +102,9 @@ type authRepository interface {
 	// SetUserPermissionsByID changes the role and the flag and writes the audit entry in the same transaction; ErrNotFound when
 	// there is no such open user.
 	SetUserPermissionsByID(ctx context.Context, userID int64, role Role, canCreateCampaigns bool, audit AuditEntry) error
+	// SetMaxCampaigns sets the account's own limit of unfinished campaigns (nil: the server's default) and writes the campaign_limit.changed
+	// entry (CampaignLimitAudit, with the previous value it reads) in the same transaction; ErrNotFound when there is no such open user.
+	SetMaxCampaigns(ctx context.Context, userID int64, max *int, at time.Time, actorID int64) error
 	// UserByID returns the user, closed accounts included (closed is true for them), or ErrNotFound.
 	UserByID(ctx context.Context, userID int64) (user User, closed bool, err error)
 	// ListUsers returns the accounts whose name or email contains q (case-insensitive, empty: all): open ones by display
@@ -275,12 +278,30 @@ func (a *Auth) setPermissions(ctx context.Context, actor Actor, actorID *int64, 
 	return nil
 }
 
+// MaxCampaignLimit is the highest limit of unfinished campaigns a superuser can give an account.
+const MaxCampaignLimit = 1000
+
+// SetMaxCampaigns gives the account its own limit of unfinished (active or paused) campaigns it organises, or none (nil: the server's
+// default). Only a superuser may (ErrForbidden); the limit is 0 to MaxCampaignLimit (0: the account organises none), else ErrInvalidUser.
+// Lowering it never touches the campaigns the account already organises: it only refuses new ones.
+func (a *Auth) SetMaxCampaigns(ctx context.Context, actor User, userID int64, max *int) error {
+	if !actor.IsSuperuser() {
+		return ErrForbidden
+	}
+	if max != nil && (*max < 0 || *max > MaxCampaignLimit) {
+		return errors.Join(ErrInvalidUser, fmt.Errorf("the limit must be a number from 0 to %d", MaxCampaignLimit))
+	}
+	return a.repo.SetMaxCampaigns(ctx, userID, max, a.now(), actor.ID)
+}
+
 // AdminUser is one row of the administration Users page.
 type AdminUser struct {
 	User
 	Campaigns int // campaigns the user is a member of, in any status
-	CreatedAt time.Time
-	Closed    bool // the account is closed; the other fields are the anonymised ones
+	// MaxCampaigns is the account's own limit of unfinished campaigns it organises; nil is the server's default.
+	MaxCampaigns *int
+	CreatedAt    time.Time
+	Closed       bool // the account is closed; the other fields are the anonymised ones
 	// Recovery is the account's latest recovery link, filled for superusers only (nil: never had one, or the caller may not see it).
 	Recovery *RecoveryStatus
 	// Organises are the campaigns the user is the organiser of (any status), for the Users page: an administrator hands them over

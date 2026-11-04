@@ -172,6 +172,29 @@ type Campaigns struct {
 	companyDeps
 	rulesets rulesetRepository
 	log      *slog.Logger
+	// campaignLimit is how many unfinished campaigns an account without a limit of its own may organise (DefaultCampaignLimit unless set).
+	campaignLimit int
+}
+
+// DefaultCampaignLimit is the number of unfinished (active or paused) campaigns an account may organise unless a superuser set another.
+const DefaultCampaignLimit = 10
+
+// WithCampaignLimit sets the limit of accounts that have none of their own (CAMPAIGN_LIMIT).
+func (c *Campaigns) WithCampaignLimit(n int) *Campaigns {
+	c.campaignLimit = n
+	return c
+}
+
+func (c *Campaigns) defaultLimit() int {
+	if c.campaignLimit <= 0 {
+		return DefaultCampaignLimit
+	}
+	return c.campaignLimit
+}
+
+// Quota is how many unfinished campaigns the account organises and how many it may.
+func (c *Campaigns) Quota(ctx context.Context, userID int64) (CampaignQuota, error) {
+	return c.campaigns.Quota(ctx, userID, c.defaultLimit())
 }
 
 // NewCampaigns builds the service. rules is the loader (*Rules).
@@ -260,7 +283,8 @@ func (c *Campaigns) NavCampaigns(ctx context.Context, userID int64, withFinished
 	return out, nil
 }
 
-// Create makes the user the organiser of a new campaign. Only users with CanCreateCampaigns (or admins) may (ErrRefused). An
+// Create makes the user the organiser of a new campaign. Only users with CanCreateCampaigns (or admins) may (ErrRefused), and no more than the
+// account's limit of unfinished campaigns (ErrCampaignLimit). An
 // empty hash means the app's default file of that kind; a hash that is not stored or is of another kind is ErrInvalidCampaign.
 func (c *Campaigns) Create(ctx context.Context, owner User, in CampaignInput) (CampaignSummary, error) {
 	if !owner.MayCreateCampaigns() {
@@ -270,7 +294,7 @@ func (c *Campaigns) Create(ctx context.Context, owner User, in CampaignInput) (C
 	if err != nil {
 		return CampaignSummary{}, err
 	}
-	nc := NewCampaign{Name: in.Name, Description: in.Description, Settings: in.Settings}
+	nc := NewCampaign{Name: in.Name, Description: in.Description, Settings: in.Settings, DefaultLimit: c.defaultLimit()}
 	for _, pick := range []struct {
 		kind RulesetKind
 		hash string
@@ -375,7 +399,7 @@ func (c *Campaigns) Members(ctx context.Context, id int64) ([]CampaignMember, er
 // organiser and administrators (admin or superuser) may; the new organiser must be a member. ErrRefused with the reason
 // otherwise, ErrNotFound for an unknown campaign.
 func (c *Campaigns) HandOver(ctx context.Context, actor User, campaignID, newOrganiserID int64) error {
-	return c.campaigns.HandOver(ctx, campaignID, newOrganiserID, func(current int64) error {
+	return c.campaigns.HandOver(ctx, campaignID, newOrganiserID, c.defaultLimit(), func(current int64) error {
 		if !CanManageCampaign(actor, current) {
 			return Refuse("Only the organiser can hand the campaign over")
 		}

@@ -21,6 +21,8 @@
 <div class="max-w-xl">
   <p class="text-sm"><a href="/campaigns" class="inline-flex min-h-11 items-center">← Campaigns</a></p>
   <h1 class="mt-2">New campaign</h1>
+  <p class="mt-1 text-sm text-muted" data-campaign-quota>You organise {{.Quota.Open}} of the {{.Quota.Limit}} unfinished campaigns you may have. A campaign you end stops counting.</p>
+  {{if .Quota.Full}}<div class="alert alert-info mt-4" role="status">You already organise all the campaigns you may have open. End one, or ask a superuser for a higher limit, to create another.</div>{{else}}
   <form method="post" action="/campaigns" enctype="multipart/form-data" hx-boost="false" class="card mt-6 space-y-4" x-data="{ name: '' }" x-init="name = $refs.name.value">
     {{if .Report}}<div class="alert alert-danger" role="alert">{{template "ruleset_report" .Report}}</div>
     {{else}}{{with .Error}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}{{end}}
@@ -51,5 +53,6 @@
       <a href="/campaigns" class="btn btn-secondary">Cancel</a>
     </div>
   </form>
+  {{end}}
 </div>
 {{end}}
