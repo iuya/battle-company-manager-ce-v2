@@ -25,7 +25,8 @@ type Store struct {
 	url  string // kept for connections outside the pool (the live feed)
 
 	// hashes remembers each campaign's rules files and settings (campaignStore.Hashes): they are set when the campaign is created and
-	// never change, and campaigns are never deleted, so the answer is read once per campaign and process.
+	// change only when settings are edited or the organiser moves the campaign to the current files (UpdateSettings and SetRulesets forget
+	// the entry), and campaigns are never deleted, so the answer is read once per campaign and process.
 	hashes     sync.Map // campaign id -> hashesEntry
 	hashesSize atomic.Int64
 }

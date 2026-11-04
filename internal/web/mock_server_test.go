@@ -3670,6 +3670,45 @@ func (c *MockcampaignsRollRecruitWithPerkCall) DoAndReturn(f func(context.Contex
 	return c
 }
 
+// RulesUpdatePreview mocks base method.
+func (m *Mockcampaigns) RulesUpdatePreview(ctx context.Context, actor core.User, campaignID int64) (core.RulesUpdate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RulesUpdatePreview", ctx, actor, campaignID)
+	ret0, _ := ret[0].(core.RulesUpdate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RulesUpdatePreview indicates an expected call of RulesUpdatePreview.
+func (mr *MockcampaignsMockRecorder) RulesUpdatePreview(ctx, actor, campaignID any) *MockcampaignsRulesUpdatePreviewCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RulesUpdatePreview", reflect.TypeOf((*Mockcampaigns)(nil).RulesUpdatePreview), ctx, actor, campaignID)
+	return &MockcampaignsRulesUpdatePreviewCall{Call: call}
+}
+
+// MockcampaignsRulesUpdatePreviewCall wrap *gomock.Call
+type MockcampaignsRulesUpdatePreviewCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsRulesUpdatePreviewCall) Return(arg0 core.RulesUpdate, arg1 error) *MockcampaignsRulesUpdatePreviewCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsRulesUpdatePreviewCall) Do(f func(context.Context, core.User, int64) (core.RulesUpdate, error)) *MockcampaignsRulesUpdatePreviewCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsRulesUpdatePreviewCall) DoAndReturn(f func(context.Context, core.User, int64) (core.RulesUpdate, error)) *MockcampaignsRulesUpdatePreviewCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // SaveAftermath mocks base method.
 func (m *Mockcampaigns) SaveAftermath(ctx context.Context, user core.User, id, matchID, companyID int64, revision int, in core.AftermathInput) (core.Aftermath, error) {
 	m.ctrl.T.Helper()
@@ -4600,6 +4639,44 @@ func (c *MockcampaignsUnitLogCall) Do(f func(context.Context, core.User, int64, 
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsUnitLogCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, core.LiveKind) ([]core.LiveEntry, error)) *MockcampaignsUnitLogCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UpdateRules mocks base method.
+func (m *Mockcampaigns) UpdateRules(ctx context.Context, actor core.User, campaignID int64, switchCustom bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateRules", ctx, actor, campaignID, switchCustom)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateRules indicates an expected call of UpdateRules.
+func (mr *MockcampaignsMockRecorder) UpdateRules(ctx, actor, campaignID, switchCustom any) *MockcampaignsUpdateRulesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRules", reflect.TypeOf((*Mockcampaigns)(nil).UpdateRules), ctx, actor, campaignID, switchCustom)
+	return &MockcampaignsUpdateRulesCall{Call: call}
+}
+
+// MockcampaignsUpdateRulesCall wrap *gomock.Call
+type MockcampaignsUpdateRulesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsUpdateRulesCall) Return(arg0 error) *MockcampaignsUpdateRulesCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsUpdateRulesCall) Do(f func(context.Context, core.User, int64, bool) error) *MockcampaignsUpdateRulesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsUpdateRulesCall) DoAndReturn(f func(context.Context, core.User, int64, bool) error) *MockcampaignsUpdateRulesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

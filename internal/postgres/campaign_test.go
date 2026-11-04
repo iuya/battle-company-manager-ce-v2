@@ -227,3 +227,54 @@ func TestCampaignLimit(t *testing.T) {
 		t.Fatalf("unknown account: %v", err)
 	}
 }
+
+// A campaign's rules files change under a lock with the state read under it; the remembered hashes follow, a file that is not stored is
+// ErrNotFound, and an error of the callback changes nothing.
+func TestCampaignSetRulesets(t *testing.T) {
+	s, ctx := testStore(t)
+	repo := s.Campaigns()
+	org := testUser(t, s, ctx, "rules-org")
+	c, err := repo.Create(ctx, org, testNewCampaign(t, s, ctx, "Rules update"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	was, _, err := repo.Hashes(ctx, c.ID) // remembered
+	if err != nil {
+		t.Fatal(err)
+	}
+	st, err := repo.RulesState(ctx, c.ID)
+	if err != nil || st.OrganiserID != org.ID || st.Name != "Rules update" || st.Status != core.CampaignActive || st.Hashes != was || st.OpenMatches != 0 || st.PendingAftermaths != 0 {
+		t.Fatalf("state = %+v, %v", st, err)
+	}
+	if _, err := repo.RulesState(ctx, -1); !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("unknown campaign: %v", err)
+	}
+	other := testNewCampaign(t, s, ctx, "Other files")
+	next := core.RulesetHashes{Vanilla: other.Vanilla, BattleCompanies: other.BattleCompanies, Glossary: other.Glossary}
+
+	denied := errors.New("denied")
+	if err := repo.SetRulesets(ctx, c.ID, func(core.CampaignRulesState) (core.RulesetHashes, error) { return next, denied }); err != denied {
+		t.Fatalf("a refusing callback: %v", err)
+	}
+	if got, _, _ := repo.Hashes(ctx, c.ID); got != was {
+		t.Fatalf("a refused change moved the files: %+v", got)
+	}
+	var seen core.CampaignRulesState
+	if err := repo.SetRulesets(ctx, c.ID, func(st core.CampaignRulesState) (core.RulesetHashes, error) { seen = st; return next, nil }); err != nil {
+		t.Fatal(err)
+	}
+	if seen.OrganiserID != org.ID || seen.Hashes != was {
+		t.Fatalf("the callback saw %+v", seen)
+	}
+	if got, _, _ := repo.Hashes(ctx, c.ID); got != next {
+		t.Fatalf("the remembered hashes did not follow: %+v", got)
+	}
+	if err := repo.SetRulesets(ctx, c.ID, func(core.CampaignRulesState) (core.RulesetHashes, error) {
+		return core.RulesetHashes{Vanilla: "nope", BattleCompanies: next.BattleCompanies, Glossary: next.Glossary}, nil
+	}); !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("a file that is not stored: %v", err)
+	}
+	if err := repo.SetRulesets(ctx, -1, func(st core.CampaignRulesState) (core.RulesetHashes, error) { return st.Hashes, nil }); !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("unknown campaign: %v", err)
+	}
+}

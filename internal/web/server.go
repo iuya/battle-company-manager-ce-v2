@@ -251,6 +251,10 @@ type campaigns interface {
 	// SetCampaignStatus pauses, resumes, ends (confirm = the exact campaign name) or reactivates (administrators only) a campaign;
 	// core.ErrRefused with the reason otherwise.
 	SetCampaignStatus(ctx context.Context, actor core.User, campaignID int64, to core.CampaignStatus, confirm string) error
+	// RulesUpdatePreview says what moving the campaign to the app's current rules files would do (nothing is changed); UpdateRules does it
+	// when nothing blocks (switchCustom: the caller accepts dropping files of the campaign's own). Organiser and administrators; core.ErrRefused otherwise.
+	RulesUpdatePreview(ctx context.Context, actor core.User, campaignID int64) (core.RulesUpdate, error)
+	UpdateRules(ctx context.Context, actor core.User, campaignID int64, switchCustom bool) error
 	Join(ctx context.Context, user core.User, token string) (int64, error)
 	Preview(ctx context.Context, user core.User, token string) (core.InvitePreview, error)
 	// HandOver makes another member the organiser; the organiser or an administrator may (core.ErrRefused otherwise).
@@ -409,6 +413,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /campaigns/{id}/settings/companies", s.protected(s.once(s.handleSetCompanyCap)))
 	mux.HandleFunc("POST /campaigns/{id}/invite", s.protected(s.once(s.handleInvite)))
 	mux.HandleFunc("POST /campaigns/{id}/status", s.protected(s.once(s.handleCampaignStatus)))
+	mux.HandleFunc("GET /campaigns/{id}/rules-update", s.protected(s.handleRulesUpdateCheck))
+	mux.HandleFunc("POST /campaigns/{id}/rules-update", s.protected(s.once(s.handleRulesUpdate)))
 	mux.HandleFunc("POST /campaigns/{id}/invites/invalidate", s.protected(s.once(s.handleInvalidateInvites)))
 	mux.HandleFunc("POST /campaigns/{id}/invites/regenerate", s.protected(s.once(s.handleRegenerateInvite)))
 	mux.HandleFunc("POST /campaigns/{id}/handover", s.protected(s.handleHandOver))

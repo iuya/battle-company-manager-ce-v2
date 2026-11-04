@@ -85,6 +85,12 @@ type campaignRepository interface {
 	// one (or an error, which is returned as is and changes nothing). Becoming finished also revokes every invitation link, in the
 	// same transaction. ErrNotFound for an unknown campaign. Members or not: the caller decides who may.
 	SetStatus(ctx context.Context, campaignID int64, fn func(organiserID int64, name string, current CampaignStatus) (CampaignStatus, error)) error
+	// RulesState reads what the rules update needs: organiser, status, the pinned hashes and the open matches and aftermaths.
+	// ErrNotFound for an unknown campaign.
+	RulesState(ctx context.Context, id int64) (CampaignRulesState, error)
+	// SetRulesets changes the three rules files of a campaign under a lock: fn gets the state read under it and returns the new hashes
+	// (or an error, returned as is, changing nothing). The files must be stored (ErrNotFound otherwise). ErrNotFound for an unknown campaign.
+	SetRulesets(ctx context.Context, id int64, fn func(CampaignRulesState) (RulesetHashes, error)) error
 	// HandOver makes newOrganiser the organiser and the previous organiser a player, in one transaction. allowed is called
 	// inside it with the current organiser's id and may refuse (its error is returned as is). ErrNotFound for an unknown
 	// campaign; ErrRefused when newOrganiser is not a member of the campaign.

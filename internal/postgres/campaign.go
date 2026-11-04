@@ -509,3 +509,60 @@ func quotaOf(ctx context.Context, q rowQuerier, userID int64, defaultLimit int, 
 	}
 	return out, nil
 }
+
+const rulesStateSQL = `
+	SELECT g.name, g.status, o.user_id, g.vanilla_hash, g.bc_hash, g.glossary_hash,
+	       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND NOT x.ended)::int,
+	       (SELECT count(*) FROM match_side_companies sc JOIN matches x ON x.id = sc.match_id AND x.ended
+	          LEFT JOIN match_aftermaths a ON a.match_id = sc.match_id AND a.company_id = sc.company_id
+	         WHERE sc.campaign_id = g.id AND (CASE WHEN x.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END) NOT IN ('done', 'waived'))::int
+	  FROM campaigns g JOIN campaign_members o ON o.campaign_id = g.id AND o.role = 'organiser'
+	 WHERE g.id = $1`
+
+func scanRulesState(row pgx.Row) (core.CampaignRulesState, error) {
+	var st core.CampaignRulesState
+	var status string
+	err := row.Scan(&st.Name, &status, &st.OrganiserID, &st.Hashes.Vanilla, &st.Hashes.BattleCompanies, &st.Hashes.Glossary, &st.OpenMatches, &st.PendingAftermaths)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return st, core.ErrNotFound
+	}
+	st.Status = core.CampaignStatus(status)
+	return st, err
+}
+
+// RulesState reads the pinned files, the status and the open matches and aftermaths of a campaign.
+func (cs campaignStore) RulesState(ctx context.Context, id int64) (core.CampaignRulesState, error) {
+	return scanRulesState(cs.s.pool.QueryRow(ctx, rulesStateSQL, id))
+}
+
+// SetRulesets changes the pinned files under a row lock; the remembered hashes of the campaign are dropped.
+func (cs campaignStore) SetRulesets(ctx context.Context, id int64, fn func(core.CampaignRulesState) (core.RulesetHashes, error)) error {
+	tx, err := cs.s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	st, err := scanRulesState(tx.QueryRow(ctx, rulesStateSQL+" FOR UPDATE OF g", id))
+	if err != nil {
+		return err
+	}
+	next, err := fn(st)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `UPDATE campaigns SET vanilla_hash = $2, bc_hash = $3, glossary_hash = $4 WHERE id = $1`, id, next.Vanilla, next.BattleCompanies, next.Glossary)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == foreignKeyViolation {
+		return core.ErrNotFound // a file that is not stored
+	}
+	if err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	if _, loaded := cs.s.hashes.LoadAndDelete(id); loaded {
+		cs.s.hashesSize.Add(-1)
+	}
+	return nil
+}

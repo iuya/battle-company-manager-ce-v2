@@ -724,6 +724,83 @@ func (c *MockcampaignRepositoryQuotaCall) DoAndReturn(f func(context.Context, in
 	return c
 }
 
+// RulesState mocks base method.
+func (m *MockcampaignRepository) RulesState(ctx context.Context, id int64) (CampaignRulesState, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RulesState", ctx, id)
+	ret0, _ := ret[0].(CampaignRulesState)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RulesState indicates an expected call of RulesState.
+func (mr *MockcampaignRepositoryMockRecorder) RulesState(ctx, id any) *MockcampaignRepositoryRulesStateCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RulesState", reflect.TypeOf((*MockcampaignRepository)(nil).RulesState), ctx, id)
+	return &MockcampaignRepositoryRulesStateCall{Call: call}
+}
+
+// MockcampaignRepositoryRulesStateCall wrap *gomock.Call
+type MockcampaignRepositoryRulesStateCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignRepositoryRulesStateCall) Return(arg0 CampaignRulesState, arg1 error) *MockcampaignRepositoryRulesStateCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignRepositoryRulesStateCall) Do(f func(context.Context, int64) (CampaignRulesState, error)) *MockcampaignRepositoryRulesStateCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignRepositoryRulesStateCall) DoAndReturn(f func(context.Context, int64) (CampaignRulesState, error)) *MockcampaignRepositoryRulesStateCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SetRulesets mocks base method.
+func (m *MockcampaignRepository) SetRulesets(ctx context.Context, id int64, fn func(CampaignRulesState) (RulesetHashes, error)) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetRulesets", ctx, id, fn)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetRulesets indicates an expected call of SetRulesets.
+func (mr *MockcampaignRepositoryMockRecorder) SetRulesets(ctx, id, fn any) *MockcampaignRepositorySetRulesetsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetRulesets", reflect.TypeOf((*MockcampaignRepository)(nil).SetRulesets), ctx, id, fn)
+	return &MockcampaignRepositorySetRulesetsCall{Call: call}
+}
+
+// MockcampaignRepositorySetRulesetsCall wrap *gomock.Call
+type MockcampaignRepositorySetRulesetsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignRepositorySetRulesetsCall) Return(arg0 error) *MockcampaignRepositorySetRulesetsCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignRepositorySetRulesetsCall) Do(f func(context.Context, int64, func(CampaignRulesState) (RulesetHashes, error)) error) *MockcampaignRepositorySetRulesetsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignRepositorySetRulesetsCall) DoAndReturn(f func(context.Context, int64, func(CampaignRulesState) (RulesetHashes, error)) error) *MockcampaignRepositorySetRulesetsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // SetStatus mocks base method.
 func (m *MockcampaignRepository) SetStatus(ctx context.Context, campaignID int64, fn func(int64, string, CampaignStatus) (CampaignStatus, error)) error {
 	m.ctrl.T.Helper()

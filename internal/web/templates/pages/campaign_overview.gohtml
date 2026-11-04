@@ -71,6 +71,7 @@
     </li>
     {{end}}
   </ul>
+  {{if and .CanManage .Campaign.RulesOutdated (ne (print .Campaign.Status) "finished")}}{{template "rules_update_card" .Campaign}}{{end}}
 </section>
 {{end}}
 
@@ -268,4 +269,56 @@
     </div>
   {{end}}
 </section>
+{{end}}
+
+{{/* The start of the rules update (managers): some file of the campaign is not the app's current one. The button swaps this block for the report. */}}
+{{define "rules_update_card"}}
+<div id="rules-update" class="space-y-2 border-t border-line pt-3" data-rules-update>
+  <p class="text-sm text-muted">Some of these files are not the ones the app ships with now. The files a campaign was created with stay as they are, so a release never changes a running game. You can move the campaign to the current files once nothing breaks.</p>
+  <button type="button" class="btn btn-secondary" hx-get="/campaigns/{{.ID}}/rules-update" hx-target="#rules-update" hx-swap="outerHTML">Check the update</button>
+</div>
+{{end}}
+
+{{/* The report of "Check the update". Takes a rulesUpdateCard. The move button shows only when something differs and nothing blocks. */}}
+{{define "rules_update_report"}}
+{{$u := .Update}}
+<div id="rules-update" class="space-y-3 border-t border-line pt-3" data-rules-update aria-live="polite">
+  <h3 class="!text-lg">Moving {{$u.Name}} to the current files</h3>
+  {{with .Error}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
+  <ul class="grid gap-2 text-sm sm:grid-cols-3" aria-label="Files">
+    {{range $u.Files}}<li class="min-w-0">
+      <p class="text-muted">{{.Kind.Label}}</p>
+      {{if .Differs}}<p class="break-words"><span class="font-mono">{{.Pinned.ShortHash}}</span> <span aria-hidden="true">→</span><span class="sr-only">to</span> <span class="font-mono">{{.Current.ShortHash}}</span></p>
+      <p class="break-words text-xs text-muted">{{.Pinned.Name}}{{with .Pinned.Version}} v{{.}}{{end}} → {{.Current.Name}}{{with .Current.Version}} v{{.}}{{end}}{{if .Custom}} · <strong>the campaign's own file</strong>{{end}}</p>
+      {{else}}<p>Already current <span class="font-mono text-muted">{{.Pinned.ShortHash}}</span></p>{{end}}
+    </li>{{end}}
+  </ul>
+  {{if not $u.Differs}}<div class="alert alert-info" role="status">The campaign already uses the app's current files.</div>
+  {{else}}
+  {{range $u.Blockers}}<div class="alert alert-danger" role="alert" data-blocker>{{.}}</div>{{end}}
+  {{if $u.Custom}}<div class="alert alert-info" role="status">A file of this campaign is one of its own, not an older edition of the app's. Moving drops it for the app's file.</div>{{end}}
+  <ul class="space-y-2" aria-label="Companies">
+    {{range $u.Companies}}
+    <li class="rounded-lg border border-line p-3" data-company="{{.ID}}">
+      <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <p class="font-medium break-words">{{.Name}}</p>
+        {{if .Problems}}<span class="badge badge-danger">{{len .Problems}} {{if eq (len .Problems) 1}}problem{{else}}problems{{end}}</span>{{else}}<span class="badge">Works</span>{{end}}
+        <span class="text-sm text-muted">{{index .Points 0}} → {{index .Points 1}} points{{if ne (index .Gold 0) (index .Gold 1)}} · gold {{index .Gold 0}} → {{index .Gold 1}}{{end}}</span>
+      </div>
+      {{with .Problems}}<ul class="mt-1 list-disc space-y-0.5 pl-5 text-sm text-danger" data-problems>{{range .}}<li>{{.}}</li>{{end}}</ul>{{end}}
+      {{with .Changes}}<details class="mt-1"><summary class="cursor-pointer text-sm text-accent-text">What changes ({{len .}})</summary>
+        <ul class="mt-1 list-disc space-y-0.5 pl-5 text-sm">{{range .}}<li>{{.}}</li>{{end}}</ul></details>{{end}}
+    </li>
+    {{end}}
+  </ul>
+  {{if $u.Clean}}
+  <div class="alert alert-success" role="status" data-clean>Every company works with the current files. Nothing is changed until you move the campaign, and it cannot be moved back.</div>
+  <form hx-post="/campaigns/{{.Campaign.ID}}/rules-update" hx-target="#rules-update" hx-swap="outerHTML" class="space-y-2">
+    {{if $u.Custom}}<label class="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" name="switch_custom" required class="mt-1 h-5 w-5 accent-[var(--accent)]"><span>Switch to the app's files and drop the campaign's own.</span></label>{{end}}
+    <button class="btn btn-primary">Move to the current files</button>
+  </form>
+  {{end}}
+  {{end}}
+  <p><button type="button" class="btn btn-secondary" hx-get="/campaigns/{{.Campaign.ID}}/rules-update" hx-target="#rules-update" hx-swap="outerHTML">Check again</button></p>
+</div>
 {{end}}

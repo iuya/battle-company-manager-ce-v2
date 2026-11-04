@@ -91,6 +91,7 @@ func (w *world) settingsCampaigns() {
 
 	// a campaign pinned to another edition of the Battle Companies rules: a fork of the app's file with its own version
 	w.forkedEdition()
+	w.rulesUpdateStates()
 
 	// the finished campaign, and rounds in the others
 	w.finishedCampaign()

@@ -192,6 +192,11 @@ func (d CampaignDetail) CanCreateCompany() bool {
 }
 
 // CanManage says whether u manages this campaign: an administrator or the organiser.
+// RulesOutdated says one of the campaign's rules files is not the app's current default of its kind: the organiser can check moving it.
+func (d CampaignDetail) RulesOutdated() bool {
+	return slices.ContainsFunc(d.Rulesets, func(r RulesetInfo) bool { return !r.Default })
+}
+
 func (d CampaignDetail) CanManage(u User) bool { return CanManageCampaign(u, d.OrganiserID) }
 
 // CanManageCampaign says whether the user manages the campaign whose organiser is organiserID: administrators, superusers and the

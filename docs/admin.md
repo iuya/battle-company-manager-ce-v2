@@ -199,6 +199,20 @@ Lowering a limit never touches the campaigns that exist; it only refuses new one
 - **Handing a campaign over** to an account that is at its limit is refused the same way; a finished campaign counts for nobody, so it can always be handed over.
 - The count is the campaigns the account **organises**, not the ones it plays in.
 
+## Rules files of a campaign
+
+A campaign is pinned to the three rules files (vanilla, Battle Companies, glossary) it was created with, by content hash.
+A release that changes the files the app ships leaves running campaigns on the old ones, so a game never changes under its players, and the Rules card of the overview shows a file that is no longer the app's current one without the **Default** badge.
+
+The organiser of the campaign and administrators can move it to the current files from that card (managers of an active or paused campaign only; an ended campaign never changes):
+
+1. **Check the update** (`GET /campaigns/{id}/rules-update`, `Campaigns.RulesUpdatePreview`) stores nothing. It loads the app's current files through the same loader the pages use and builds **every company** of the campaign with the old and the new files. It shows, per file, the pinned and the current one and, per company, whether it works (green) or what blocks it, its points and gold before and after, and what changes in its roster (points, characteristics, wargear, rules; for example the Gold prices of v2.7.0).
+2. **Blocking problems** are a company or unit that is not in the new files, wargear, a path, a wanderer or a creature that no longer exists, a company over its model count or over a limit it was within before. The campaign as a whole is blocked while a match is open (practice ones too) or a company has an aftermath to finish, so no game is played half with one set of rules and half with another.
+3. **Move to the current files** (`POST`, `Campaigns.UpdateRules`) appears only when nothing blocks. The service checks again inside the transaction that changes the three hashes under a lock on the campaign (`campaignRepository.SetRulesets`), so a company that changed between the check and the click is caught. Nothing else is touched: companies keep their state, and the move cannot be undone from the page.
+4. A file that is **another file, not an older edition** of the app's (another name: a fork or an upload) is moved only after the organiser ticks "Switch to the app's files and drop the campaign's own".
+
+The change is logged (`campaign moved to the current rules files`, with the short hashes and the account); it has no audit entry because it is not an account action.
+
 ## Campaign management
 
 ### Who manages a campaign
