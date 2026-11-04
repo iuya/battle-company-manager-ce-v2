@@ -15,6 +15,7 @@ import (
 
 	"go-simpler.org/env"
 
+	"github.com/iuya/battle-company-manager-ce-v2/internal/buildinfo"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/perftrace"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/postgres"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/web"
@@ -70,6 +71,8 @@ func main() {
 			run = func() error { return runMigrate() }
 		case "healthcheck":
 			run = runHealthcheck
+		case "version":
+			run = func() error { fmt.Println(buildinfo.Version); return nil }
 		case "seed":
 			run = func() error { return runSeed(os.Args[2:]) }
 		}

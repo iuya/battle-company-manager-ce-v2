@@ -16,6 +16,7 @@ import (
 
 	"go.uber.org/mock/gomock"
 
+	"github.com/iuya/battle-company-manager-ce-v2/internal/buildinfo"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
@@ -323,6 +324,24 @@ func TestFooterDisclaimer(t *testing.T) {
 	f := newFixture(t, Config{})
 	if body := f.do(httptest.NewRequest("GET", "/login", nil)).Body.String(); !strings.Contains(body, "Not affiliated with Games Workshop") {
 		t.Error("login page lacks the disclaimer")
+	}
+}
+
+// The footer names the release the binary was built from, the license and the source, on every page (a build from a checkout says "dev build").
+func TestFooterVersionLicenseSource(t *testing.T) {
+	f := newFixture(t, Config{})
+	body := f.do(httptest.NewRequest("GET", "/login", nil)).Body.String()
+	for _, want := range []string{"data-app-version", "dev build", "CC BY-NC-SA 4.0", "https://github.com/iuya/battle-company-manager-ce-v2"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("login page footer lacks %q", want)
+		}
+	}
+	old := buildinfo.Version
+	buildinfo.Version = "v9.8.7"
+	t.Cleanup(func() { buildinfo.Version = old })
+	body = newFixture(t, Config{}).do(httptest.NewRequest("GET", "/login", nil)).Body.String()
+	if !strings.Contains(body, `href="https://github.com/iuya/battle-company-manager-ce-v2/releases/tag/v9.8.7"`) || strings.Contains(body, "dev build") {
+		t.Errorf("a released build links its release notes:\n%s", body)
 	}
 }
 
