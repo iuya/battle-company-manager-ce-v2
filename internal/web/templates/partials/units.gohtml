@@ -168,7 +168,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </div>
   {{if ne (printf "%s" $u.Role) "warrior"}}<span class="unit-rank shrink-0 self-center [&>svg]:h-10 [&>svg]:w-10">{{template "role_insignia" $u.Role}}</span>{{end}}
 </header>
-<div class="flex flex-wrap items-center gap-1.5 not-has-[*]:hidden" data-unit-facts>
+<div class="flex flex-wrap items-center gap-1.5 not-has-[*]:hidden lg:not-has-[*]:flex lg:min-h-8" data-unit-facts>
   {{with (roleLook $u.Role).Label}}<span class="badge badge-muted">{{.}}</span>{{end}}
   {{with $u.Path}}{{if .Name}}<span class="path-k-{{(pathLook .Name).Kind}}">{{template "path_name" (dict "N" .Name "Short" true)}}</span>{{end}}{{end}}
   {{if $u.PathPending}}<span class="badge badge-gold">No path yet</span>{{end}}

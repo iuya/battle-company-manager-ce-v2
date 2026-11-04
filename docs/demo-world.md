@@ -256,6 +256,8 @@ and both Sergeants (the Leader comes from the Warriors, then the Sergeants). The
 its path on My Company once the aftermath is finished; the last answer finishes it on its own (before that the path window says "Finish the aftermath ... first").
 Ward 4 (two matches, Rohan against Mordor): the Riders' Leader took an **Arm Wound** in Match 1, and in Match 2 his **Full Recovery** waits for "heal one persistent injury" while a Warrior's **Lesson Learned** waits for the typed bonus die. Below the casualties, the rest of the company shows what each unit did: one Warrior **fled** with the objective, another earned Wounded, two Slain and MVP; last, a Sergeant who **did not take part** and a Warrior injured in Match 1 who **missed the game and recovers**.
 
+The casualty cards of the Injuries step: a card with a question and a highlighted border in the Rangers of ward 1, re-rolls and a given-up result in the Orcs of ward 2, dice still to roll in the Shieldmaidens of the Deep (Two bands) and the Veterans of the Riddermark (Veterans).
+
 The Elven Cloak: the Galadhrim of ward 1 (Galadriel) carry it as a unit upgrade badge with a tooltip.
 
 ## Account invitations and recovery links

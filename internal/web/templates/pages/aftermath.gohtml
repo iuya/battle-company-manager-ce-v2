@@ -99,7 +99,12 @@
   <span class="badge {{.Badge}} inline-flex items-center gap-1">{{with .Icon}}{{template "gi_icon" (dict "N" . "C" "h-3.5 w-3.5 shrink-0")}}{{end}}{{.Status}}</span>
   {{with .Next}}<span class="badge badge-success inline-flex items-center gap-1" data-unit-next>{{.}}</span>{{end}}
 </div>
-<div class="milestones milestones-wrap" role="group" aria-label="Milestones">{{range .Milestones}}{{template "milestone" (dict "M" . "Edit" false "Unit" "")}}{{end}}</div>
+{{template "aftermath_unit_milestones" .}}
+{{end}}
+
+{{/* Every milestone as on the sheet, those the unit earned lit and none to press. Takes a unitResult. */}}
+{{define "aftermath_unit_milestones"}}
+<div class="milestones milestones-wrap mt-auto [&+*]:mt-0" role="group" aria-label="Milestones">{{range .Milestones}}{{template "milestone" (dict "M" . "Edit" false "Unit" "")}}{{end}}</div>
 {{end}}
 
 {{/* The first block of a finished aftermath: the summary of changes, the level-up rolls waiting and every line. */}}
@@ -118,6 +123,7 @@
 
 {{/* The Injuries step: a card per casualty, the questions that are open, Against the Odds re-rolls and the Leader's succession. */}}
 {{define "aftermath_injuries"}}
+<div class="space-y-2" x-data="aftermathTips" @mouseover="over($event)" @mouseout="out($event)" @focusin="over($event)" @focusout="out($event)" @click="tap($event)" @keydown.escape.window="hideTip()">
 {{$cid := .Campaign.ID}}{{$base := printf "/campaigns/%d/matches/%d/aftermath/%d" .Campaign.ID .Match.ID .Company.ID}}
 {{if not .A.Casualties}}<p class="text-muted">No casualties: nothing to roll.</p>{{end}}
 {{with .ItemBanner}}<p class="alert alert-info" role="status"><strong>{{.}}</strong> (the total stops at 12).</p>{{end}}
@@ -126,7 +132,7 @@
 <form hx-post="{{$base}}/roll" hx-target="#aftermath-page" hx-swap="outerHTML"><input type="hidden" name="unrolled" value="{{$.UnrolledIDs}}"><input type="hidden" name="roll" value="0"><input type="hidden" name="roll2" value="0">
   <button class="btn btn-primary">Roll all {{len .}} casualties</button></form>
 {{end}}{{end}}
-<div class="space-y-4">
+<div class="unit-choices">
   {{range .A.Casualties}}{{template "aftermath_casualty" (dict "V" $ "C" . "Base" $base)}}{{end}}
 </div>
 {{with .A.Succession}}{{template "aftermath_succession" (dict "V" $ "S" . "Base" $base)}}{{end}}
@@ -138,65 +144,105 @@
   <button class="btn btn-primary">Continue</button>
 </form>
 {{end}}
+<div x-ref="tip" x-show="tip.show" x-cloak role="tooltip" class="card pointer-events-none fixed z-50 max-h-[calc(100vh-1rem)] w-80 max-w-[calc(100vw-1rem)] overflow-hidden !p-3 text-sm shadow-lg" :style="`left: ${tip.x}px; top: ${tip.y}px`">
+  <p class="font-heading text-lg font-bold leading-tight" x-text="tip.title"></p>
+  <p class="text-xs text-muted" x-show="tip.meta" x-text="tip.meta"></p>
+  <p class="mt-1 whitespace-pre-line" x-show="tip.text" x-text="tip.text"></p>
+  <div class="mt-1" x-show="tip.html" x-html="tip.html"></div>
+</div>
+</div>
 {{end}}
 
 {{define "aftermath_casualty"}}
-{{$v := .V}}{{$c := .C}}{{$base := .Base}}{{$animate := index $v.Animate $c.UnitID}}{{$u := $v.CasualtyUnit $c}}
-<article class="{{template "unit_frame" $u}} flex flex-col gap-3" id="casualty-{{$c.UnitID}}" aria-label="{{$c.Name}}" x-data="rollPanel"
+{{$v := .V}}{{$c := .C}}{{$base := .Base}}{{$animate := index $v.Animate $c.UnitID}}{{$u := $v.CasualtyUnit $c}}{{$pending := $v.CasualtyPending $c}}
+<article class="{{template "unit_frame" $u}} {{if and $pending (not $animate)}}unit-pending{{end}} flex flex-col gap-3" id="casualty-{{$c.UnitID}}" aria-label="{{$c.Name}}" x-data="rollPanel" {{if and $pending $animate}}:class="revealed && 'unit-pending'"{{end}}
          data-dice="{{$v.DiceCSV $c}}" data-groups="{{$v.Rules.InjuryDice.Count}}" data-per-lane="{{$v.Rules.InjuryDice.Count}}" data-sides="{{$v.Rules.InjuryDice.Sides}}" data-labels="" data-animate="{{$animate}}" data-shake="{{$v.Settings.ShakeTheTable}}" @keydown.space.window="onSpace($event)">
   {{template "unit_summary" $u}}
-  {{template "aftermath_unit_marks" ($v.ResultOf $c.UnitID)}}
-  <p class="flex flex-wrap items-center gap-2 text-sm text-muted"><span>{{if $c.Hero}}Hero{{else}}Warrior{{end}} injuries chart</span>{{if $c.Final}}<span class="badge badge-muted">Final</span>{{end}}</p>
+  {{template "aftermath_injury_chart" (dict "V" $v "C" $c)}}
   <canvas x-ref="canvas" class="dice-tray" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>
   {{if not $c.Rolled}}
     {{if $v.Edit}}
-    <form x-ref="rollForm" hx-post="{{$base}}/roll" hx-target="#aftermath-page" hx-swap="outerHTML" class="flex flex-wrap items-end gap-3">
+    <form x-ref="rollForm" hx-post="{{$base}}/roll" hx-target="#aftermath-page" hx-swap="outerHTML" class="space-y-2">
       <input type="hidden" name="unit" value="{{$c.UnitID}}"><input type="hidden" name="thrown" value="">
+      {{template "aftermath_strip_unrolled" (dict "V" $v "C" $c)}}
       {{if $v.Settings.ManualRolls}}
-      {{template "dice_selects" (dict "ID" "d" "Suffix" (printf "-%d" $c.UnitID) "Count" $v.Rules.InjuryDice.Count "Sides" $v.Rules.InjuryDice.Sides "Class" "w-40")}}
+      <div class="injury-typed" x-show="typing" x-cloak>{{template "dice_selects" (dict "ID" "d" "Suffix" (printf "-%d" $c.UnitID) "Count" $v.Rules.InjuryDice.Count "Sides" $v.Rules.InjuryDice.Sides "Class" "w-full")}}</div>
       {{else}}{{template "dice_zeros" (dict "Count" $v.Rules.InjuryDice.Count)}}{{end}}
-      <button class="btn btn-primary" :disabled="rolling" {{if $v.Settings.ShakeTheTable}}@click="if (!typed()) { $event.preventDefault(); throwCasualty() }"{{end}}>Roll {{$v.Rules.InjuryDice.Display}}</button>
     </form>
     {{if $v.Settings.ShakeTheTable}}<p class="text-sm text-muted" x-show="rolling && !shaken" x-cloak role="status">Press the space bar to shake the table (once).</p>{{end}}
-    {{else}}<p class="text-sm text-muted">Waiting for the roll.</p>{{end}}
+    {{else}}{{template "aftermath_strip_unrolled" (dict "V" $v "C" $c)}}{{end}}
   {{else}}
-  <div {{if $animate}}x-show="revealed" x-cloak{{end}} class="space-y-3" role="status">
-    <p>{{if $c.Item}}<span class="badge badge-gold">{{$v.ItemName $c.Item}}</span> No roll:{{else}}Rolled {{if $c.Modifier}}{{$v.Raw $c}} {{printf "%+d" $c.Modifier}} = {{end}}<strong class="text-xl">{{$c.Total}}</strong> <span class="text-sm text-muted">({{range $i, $d := $c.Dice}}{{if $i}} + {{end}}{{$d}}{{end}})</span>:{{end}}
-      <strong class="{{if $v.Fallen $c}}text-danger{{end}}">{{$c.ResultTxt}}</strong>{{with $v.BonusText $c}} <span class="badge badge-gold">{{.}}</span>{{end}}</p>
-    {{with $c.Text}}<p class="text-sm text-muted">{{.}}</p>{{end}}
+  <div {{if $animate}}x-show="revealed" x-cloak{{end}} class="space-y-2" role="status">
+    {{if $v.CanReroll $c}}
+    <form hx-post="{{$base}}/reroll" hx-target="#aftermath-page" hx-swap="outerHTML" class="space-y-2"><input type="hidden" name="unit" value="{{$c.UnitID}}">
+      {{template "aftermath_strip_rolled" (dict "V" $v "C" $c "Reroll" true)}}
+      {{if $v.Settings.ManualRolls}}<div class="injury-typed" x-show="typing" x-cloak>{{template "dice_selects" (dict "ID" "rr" "Suffix" (printf "-%d" $c.UnitID) "Count" $v.Rules.InjuryDice.Count "Sides" $v.Rules.InjuryDice.Sides "Class" "w-full")}}</div>{{end}}
+    </form>
+    {{else}}{{template "aftermath_strip_rolled" (dict "V" $v "C" $c "Reroll" false)}}{{end}}
+    {{with $v.BonusText $c}}<p><span class="badge badge-gold">{{.}}</span></p>{{end}}
     {{with $v.BonusLine $c}}<p class="text-sm font-medium">{{.}}</p>{{end}}
     {{with $c.Previous}}<p class="text-xs text-muted">Gave up: {{join . ", "}}</p>{{end}}
-    {{if $v.Fallen $c}}<p class="rounded-md border border-line bg-raised px-3 py-2 text-sm">🪦 {{$c.Name}} {{if eq (printf "%s" $c.Kind) "retired"}}retires{{else}}has fallen{{end}} and goes to the cemetery.</p>{{end}}
+    {{if $v.Fallen $c}}<p class="text-sm text-muted">🪦 {{if eq (printf "%s" $c.Kind) "retired"}}Retires{{else}}Has fallen{{end}}: goes to the cemetery.</p>{{end}}
     {{with $c.Decision}}{{if $v.Edit}}{{template "aftermath_decision" (dict "V" $v "C" $c "D" . "Base" $base)}}{{else}}<p class="text-sm text-muted">The owner of the company decides.</p>{{end}}{{end}}
-    {{if $v.CanReroll $c}}
-    <form hx-post="{{$base}}/reroll" hx-target="#aftermath-page" hx-swap="outerHTML"><input type="hidden" name="unit" value="{{$c.UnitID}}">
-      {{if $v.Settings.ManualRolls}}<div class="mb-2 flex flex-wrap items-end gap-3">
-        {{template "dice_selects" (dict "ID" "rr" "Suffix" (printf "-%d" $c.UnitID) "Count" $v.Rules.InjuryDice.Count "Sides" $v.Rules.InjuryDice.Sides "Class" "w-40")}}</div>{{end}}
-      <button class="btn btn-secondary">Re-roll · Against the Odds <span class="text-sm text-muted">({{$v.A.Rerolls}} left)</span></button></form>
-    {{end}}
-    <details class="group">
-      <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium"><span>The {{if $c.Hero}}hero{{else}}warrior{{end}} injuries chart</span><span class="text-muted group-open:hidden">Show</span><span class="hidden text-muted group-open:inline">Hide</span></summary>
-      <div class="overflow-x-auto rounded-lg border border-line"><table class="w-full text-sm">
-        <thead class="bg-raised text-xs uppercase text-muted"><tr><th class="w-16 px-3 py-1.5 text-center font-semibold">{{$v.Rules.InjuryDice.Display}}</th><th class="px-3 py-1.5 text-left font-semibold">Result</th></tr></thead>
-        <tbody class="divide-y divide-line">{{range $v.Chart $c}}<tr {{if .Covers $c.Total}}class="bg-accent-soft font-semibold" aria-current="true"{{end}}><td class="px-3 py-2 text-center">{{if eq .Min .Max}}{{.Min}}{{else}}{{.Min}}-{{.Max}}{{end}}</td><td class="px-3 py-2"><span class="font-medium">{{.Name}}</span>{{with .Text}}<span class="block text-muted font-normal">{{.}}</span>{{end}}</td></tr>{{end}}</tbody>
-      </table></div>
-    </details>
   </div>
   {{end}}
+  {{template "aftermath_unit_milestones" ($v.ResultOf $c.UnitID)}}
   {{template "unit_summary_foot" ($v.Foot $u)}}
 </article>
 {{end}}
+
+{{/* The injuries chart of a casualty, out of sight: the tooltip of its dice shows it (aftermathTips) and a screen reader reads it as their description. Takes {V, C}. */}}
+{{define "aftermath_injury_chart"}}{{$v := .V}}{{$c := .C}}
+<div id="injury-chart-{{$c.UnitID}}" hidden><table class="w-full text-xs">
+  <thead class="text-muted"><tr><th class="w-12 px-1 py-0.5 text-center font-semibold">{{$v.Rules.InjuryDice.Display}}</th><th class="px-1 py-0.5 text-left font-semibold">Result</th></tr></thead>
+  <tbody>{{range $v.Chart $c}}<tr {{if .Covers $c.Total}}class="bg-accent-soft font-semibold" aria-current="true"{{end}}><td class="px-1 py-0.5 text-center">{{if eq .Min .Max}}{{.Min}}{{else}}{{.Min}}-{{.Max}}{{end}}</td><td class="px-1 py-0.5">{{.Name}}</td></tr>{{end}}</tbody>
+</table></div>
+{{end}}
+
+{{/* The strip of a casualty still to roll: empty dice, the Casualty badge, the Roll button and the pencil that opens the typed dice. Takes {V, C}. */}}
+{{define "aftermath_strip_unrolled"}}{{$v := .V}}{{$c := .C}}{{$r := $v.ResultOf $c.UnitID}}
+<div class="injury-strip" data-unit-outcome>
+  <button type="button" class="injury-dice" data-tip-title="{{if $c.Hero}}Hero{{else}}Warrior{{end}} injuries chart" data-tip-chart="injury-chart-{{$c.UnitID}}" aria-label="{{if $c.Hero}}Hero{{else}}Warrior{{end}} injuries chart" aria-describedby="injury-chart-{{$c.UnitID}}">{{range seq 1 $v.Rules.InjuryDice.Count}}<span class="die-face die-blank" aria-hidden="true"></span>{{end}}</button>
+  <span class="injury-name"><span class="badge {{$r.Badge}} inline-flex items-center gap-1">{{with $r.Icon}}{{template "gi_icon" (dict "N" . "C" "h-3.5 w-3.5 shrink-0")}}{{end}}{{$r.Status}}</span></span>
+  {{if $v.Edit}}
+  <span class="injury-actions"><button class="btn btn-primary shrink-0" :disabled="rolling" {{if $v.Settings.ShakeTheTable}}@click="if (!typed()) { $event.preventDefault(); throwCasualty() }"{{end}}>Roll {{$v.Rules.InjuryDice.Display}}</button>
+  {{if $v.Settings.ManualRolls}}{{template "aftermath_pencil"}}{{end}}</span>
+  {{else}}<span class="text-sm text-muted">Waiting for the roll.</span>{{end}}
+</div>
+{{end}}
+
+{{/* The strip of a rolled casualty: the dice (or the item that replaced them), with the chart in their tooltip, and the result, with its rule in its tooltip; coloured by how bad it is.
+   Takes {V, C, Reroll: inside the re-roll form}. */}}
+{{define "aftermath_strip_rolled"}}{{$v := .V}}{{$c := .C}}
+<div class="injury-strip" data-tone="{{$v.CasualtyTone $c}}" data-unit-outcome>
+  {{if $c.Item}}<span class="badge badge-gold shrink-0">{{$v.ItemName $c.Item}}</span><span class="sr-only">No roll:</span>
+  {{else}}<span class="sr-only">{{$v.RollText $c}}:</span>
+  <button type="button" class="injury-dice" data-tip-title="{{if $c.Hero}}Hero{{else}}Warrior{{end}} injuries chart" data-tip-meta="{{$v.RollText $c}}" data-tip-chart="injury-chart-{{$c.UnitID}}" aria-label="{{if $c.Hero}}Hero{{else}}Warrior{{end}} injuries chart" aria-describedby="injury-chart-{{$c.UnitID}}">{{range $c.Dice}}{{template "die_face" .}}{{end}}{{if $c.Modifier}}<span class="ml-0.5 text-sm font-bold">{{printf "%+d" $c.Modifier}}</span>{{end}}</button>{{end}}
+  <span class="injury-name"><span class="injury-result has-tip" tabindex="0" data-concept data-tip-title="{{$c.ResultTxt}}" data-tip-text="{{$c.Text}}">{{$c.ResultTxt}}<svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></span>{{with $c.Text}}<span class="sr-only"> {{.}}</span>{{end}}</span>
+  {{if $c.Final}}<span class="badge badge-muted shrink-0">Final</span>{{end}}
+  {{if .Reroll}}
+  <span class="injury-actions"><button class="btn btn-secondary shrink-0 !px-2" aria-label="Re-roll · Against the Odds ({{$v.A.Rerolls}} left)" title="Re-roll · Against the Odds ({{$v.A.Rerolls}} left)"><svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 6.3M20 5v6h-6"/></svg><span class="injury-reroll-label">Re-roll</span> ({{$v.A.Rerolls}})</button>
+  {{if $v.Settings.ManualRolls}}{{template "aftermath_pencil"}}{{end}}</span>
+  {{end}}
+</div>
+{{end}}
+
+{{/* The button that shows the typed dice of the roll. */}}
+{{define "aftermath_pencil"}}<button type="button" class="btn btn-secondary shrink-0 !px-2" aria-label="Type the dice" title="Type the dice" :aria-expanded="typing" @click="typing = !typing"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/></svg></button>{{end}}
+
+{{/* One die as it fell: its pips, or its number where the die has more faces than pips. Takes the number. */}}
+{{define "die_face"}}{{if le . 6}}<span class="die-face" data-n="{{.}}" aria-hidden="true">{{range seq 1 .}}<i></i>{{end}}</span>{{else}}<span class="die-face die-number" aria-hidden="true">{{.}}</span>{{end}}{{end}}
 
 {{define "aftermath_decision"}}
 {{$v := .V}}{{$d := .D}}{{$c := .C}}
 <form hx-post="{{.Base}}/decide" hx-target="#aftermath-page" hx-swap="outerHTML" class="space-y-2 rounded-xl border border-accent bg-accent-soft p-3">
   <input type="hidden" name="kind" value="{{$d.Kind}}"><input type="hidden" name="unit" value="{{$c.UnitID}}">
   <fieldset class="min-w-0 space-y-2">
-    <legend class="text-sm font-semibold">{{if eq $d.Kind "scratch"}}Just a Scratch: roll again once (the second result stands, even if worse; a second Scratch means it misses the next game) or keep it?{{else if eq $d.Kind "heal"}}Full Recovery: heal one persistent injury?{{else if eq $d.Kind "bonus"}}{{$v.BonusDieText $c}}{{else}}Decide{{end}}</legend>
+    <legend class="text-sm font-semibold">{{if eq $d.Kind "scratch"}}Roll again (the second result stands, even if worse), or miss the next game?{{else if eq $d.Kind "heal"}}Heal one persistent injury?{{else if eq $d.Kind "bonus"}}{{$v.BonusDieText $c}}{{else}}Decide{{end}}</legend>
     <div class="flex flex-wrap items-center gap-2">
     {{if eq $d.Kind "scratch"}}
       <button name="answer" value="reroll" class="btn btn-primary">Roll again</button>
-      <button name="answer" value="keep" class="btn btn-secondary">Keep it (misses the next game)</button>
+      <button name="answer" value="keep" class="btn btn-secondary">Keep it</button>
     {{else if eq $d.Kind "bonus"}}
       <button name="answer" value="0" class="btn btn-primary">Roll for me</button>
       <span class="text-sm text-muted">or the die you rolled:</span>
@@ -444,7 +490,7 @@
         <button type="button" class="outcome-toggle" data-tone="danger" aria-pressed="{{eq (printf "%s" .Sheet.Outcome) "casualty"}}" :aria-pressed="outcome === 'casualty'" @click="outcome = outcome === 'casualty' ? 'survived' : 'casualty'; $nextTick(() => $dispatch('change'))" title="Removed as a casualty: rolls on the injuries chart">{{template "gi_icon" (dict "N" "death-skull" "C" "h-4 w-4 shrink-0")}}Casualty</button>
         <button type="button" class="outcome-toggle" aria-pressed="{{not .Sheet.Took}}" :aria-pressed="!took" @click="took = !took; $nextTick(() => $dispatch('change'))" title="Did not take part: earns nothing"><svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>Absent</button>
       </div>
-      <div class="milestones milestones-wrap" role="group" aria-label="Milestones of {{.Unit.Title}}" :class="!took && 'opacity-50'">
+      <div class="milestones milestones-wrap mt-auto" role="group" aria-label="Milestones of {{.Unit.Title}}" :class="!took && 'opacity-50'">
         {{$unit := .Unit.Title}}
         {{range $.SheetMilestones .Unit .Sheet}}
         {{if .Repeatable}}
@@ -488,7 +534,7 @@
 {{end}}
 
 {{/* The foot of a unit on the sheet; a save answers it again, as the experience of the unit may have changed. Takes {ID: the unit's id, Foot, OOB: from a save}. */}}
-{{define "aftermath_sheet_foot"}}<div class="mt-auto" id="sheet-xp-{{.ID}}"{{if .OOB}} hx-swap-oob="true"{{end}}>{{template "unit_summary_foot" .Foot}}</div>{{end}}
+{{define "aftermath_sheet_foot"}}<div class="[&>*]:!mt-0" id="sheet-xp-{{.ID}}"{{if .OOB}} hx-swap-oob="true"{{end}}>{{template "unit_summary_foot" .Foot}}</div>{{end}}
 
 {{/* What a save of the sheet answers: the bar, and the experience of every unit. Takes aftermathView. */}}
 {{define "aftermath_saved"}}{{template "aftermath_bar" .}}{{range .Units}}{{template "aftermath_sheet_foot" (dict "ID" .Unit.ID "Foot" ($.Foot .Unit) "OOB" true)}}{{end}}{{end}}

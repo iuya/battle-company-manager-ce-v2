@@ -450,6 +450,35 @@ func (v aftermathView) CanReroll(c core.Casualty) bool {
 // Chart is the injuries chart of the casualty's kind of unit.
 func (v aftermathView) Chart(c core.Casualty) []core.InjuryRow { return v.Rules.Chart(c.Hero) }
 
+// CasualtyPending says the card of a casualty waits for the viewer: to roll, or to answer a question of its result.
+func (v aftermathView) CasualtyPending(c core.Casualty) bool {
+	return v.Edit() && (!c.Rolled || c.Decision != nil)
+}
+
+// CasualtyTone is the colour of a rolled casualty's strip: a unit lost, a unit hurt or out of the next game, and a recovery.
+func (v aftermathView) CasualtyTone(c core.Casualty) string {
+	switch c.Kind {
+	case core.CasualtyDead, core.CasualtyRetired:
+		return "danger"
+	case core.CasualtyInjured, core.CasualtyInjury, core.CasualtyScratch:
+		return "warn"
+	}
+	return "success"
+}
+
+// RollText is the roll of a casualty in words: "Rolled 1 + 2 = 3", with its modifier if it has one.
+func (v aftermathView) RollText(c core.Casualty) string {
+	dice := make([]string, len(c.Dice))
+	for i, d := range c.Dice {
+		dice[i] = strconv.Itoa(d)
+	}
+	mod := ""
+	if c.Modifier != 0 {
+		mod = fmt.Sprintf(" %+d", c.Modifier)
+	}
+	return "Rolled " + strings.Join(dice, " + ") + mod + " = " + strconv.Itoa(c.Total)
+}
+
 // DiceCSV is a casualty's two dice for the rolling animation.
 func (v aftermathView) DiceCSV(c core.Casualty) string {
 	var ds []string

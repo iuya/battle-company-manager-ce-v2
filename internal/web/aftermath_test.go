@@ -286,10 +286,16 @@ func TestInjuriesStepShowsRollsResultsAndDecisions(t *testing.T) {
 		core.Casualty{UnitID: 12, Name: "Cirion", Hero: true, Rolled: true, Dice: []int{3, 3}, Total: 6, ResultTxt: "Just a Scratch", Kind: core.CasualtyScratch,
 			Decision: &core.CasualtyDecision{Kind: "scratch"}}), nil)
 	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
-	for _, want := range []string{`hx-post="/campaigns/7/matches/3/aftermath/1/roll"`, `name="unit" value="10"`, "Roll 2D6", "Dead", "goes to the cemetery",
+	for _, want := range []string{`hx-post="/campaigns/7/matches/3/aftermath/1/roll"`, `name="unit" value="10"`, "Roll 2D6", "Dead", "goes to the cemetery", `class="die-face" data-n="2"`, `data-tone="danger"`, `data-tone="warn"`, `data-tip-chart="injury-chart-11"`,
 		`name="kind" value="scratch"`, `value="reroll"`, "Re-roll · Against the Odds", "<strong>2</strong> re-roll", `aria-current="true"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("injuries step lacks %q", want)
+		}
+	}
+	for id, pending := range map[string]bool{"casualty-10": true, "casualty-11": false, "casualty-12": true} { // to roll, nothing to do, a question
+		i := strings.Index(body, `id="`+id+`"`)
+		if open := strings.LastIndex(body[:i], "<article"); strings.Contains(body[open:i], "unit-pending") != pending {
+			t.Errorf("%s: unit-pending should be %t", id, pending)
 		}
 	}
 	if strings.Contains(body, "Roll all") || strings.Contains(body, `value="continue"`) {
@@ -875,7 +881,7 @@ func TestInjuriesStepShowsTheHerbsBannerAndTheCramCard(t *testing.T) {
 	a.Input.Models[0].UsesItem = "healingHerbs"
 	f := itemFixture(t, a)
 	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
-	for _, want := range []string{"Healing Herbs: &#43;1 to every injury roll", "Rolled 9 &#43;1 = ", `<strong class="text-xl">10</strong>`, ">Wondrous Cram</span> No roll:", "Full Recovery"} {
+	for _, want := range []string{"Healing Herbs: &#43;1 to every injury roll", "&#43;1 = 10", `>Wondrous Cram</span><span class="sr-only">No roll:`, "Full Recovery"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("injuries lack %q", want)
 		}

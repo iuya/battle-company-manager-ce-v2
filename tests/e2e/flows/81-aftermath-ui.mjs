@@ -101,6 +101,7 @@ export default async function (h) {
       return {
         order: casualty.compareDocumentPosition(cards[0]) === Node.DOCUMENT_POSITION_FOLLOWING,
         casualtyMarks: !!casualty.querySelector('[data-unit-outcome]'),
+        sameWidth: casualty.offsetWidth === cards[0].offsetWidth,
         xp: cards.every((c) => c.querySelector('.xp-bar')),
         allMilestones: cards.every((c) => c.querySelectorAll('.milestone').length >= 4) && !document.querySelector('[data-unit-result] button.milestone'),
         texts: cards.map((c) => c.querySelector('[data-unit-outcome]').innerText),
@@ -109,7 +110,7 @@ export default async function (h) {
         heroInline: document.querySelectorAll('[data-unit-result] [data-hero-inline], article[id^=casualty-] [data-hero-inline]').length,
       };
     });
-    assert.ok(r.order && r.casualtyMarks && r.xp && r.allMilestones, `results: ${JSON.stringify(r)}`);
+    assert.ok(r.order && r.casualtyMarks && r.sameWidth && r.xp && r.allMilestones, `results: ${JSON.stringify(r)}`);
     assert.ok(r.texts.some((t) => /Fled/.test(t)) && r.texts.some((t) => /Survived/.test(t)), `who fled and who survived: ${JSON.stringify(r.texts)}`);
     assert.ok(r.lit >= 1, 'the milestones earned are lit');
     assert.equal(r.profile, 0, 'no profile on the aftermath');

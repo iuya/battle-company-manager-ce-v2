@@ -44,7 +44,7 @@ document.addEventListener('alpine:init', () => {
   // A window with a roll in it (recruiting, treating a hero's injuries): the dice (static/js/dice.js), the roll the player may adjust, and the chart row it lands on.
   Alpine.data('rollPanel', () => ({
     ...window.diceMixin(),
-    roll: 0, adjust: 0, budget: 0, budgetDown: 0, cost: 1, sides: 6, perLane: 1, lanes: 1, influence: 0, revealed: true, shakeOn: false, // note: `shake` is the method of the dice mixin; a field of that name would hide it
+    roll: 0, adjust: 0, budget: 0, budgetDown: 0, cost: 1, sides: 6, perLane: 1, lanes: 1, influence: 0, revealed: true, typing: false, shakeOn: false, // note: `shake` is the method of the dice mixin; a field of that name would hide it
     init() {
       const d = this.$el.dataset;
       this.shakeOn = d.shake === 'true';
@@ -103,6 +103,38 @@ document.addEventListener('alpine:init', () => {
         this.$refs.thrown.value = '1';
         this.$refs.rollForm.requestSubmit();
       } });
+    },
+  }));
+
+  // The tooltips of the casualties of an aftermath: a rule on hover or keyboard focus (a tap opens its helper popup, concepts.js), and the injuries
+  // chart of the dice (data-tip-chart names the hidden element that holds it) on hover, keyboard focus or a tap.
+  Alpine.data('aftermathTips', () => ({
+    tip: { show: false, x: 0, y: 0, title: '', meta: '', text: '', html: '' },
+    tipTimer: null, tipFor: null,
+    over(e) {
+      const wanted = e.type === 'focusin' ? e.target.matches(':focus-visible') : window.matchMedia('(hover: hover)').matches;
+      const el = wanted && e.target.closest && e.target.closest('[data-tip-title]');
+      if (!el) return;
+      clearTimeout(this.tipTimer);
+      this.tipTimer = setTimeout(() => this.showTip(el), 150);
+    },
+    out(e) { if (e.target.closest && e.target.closest('[data-tip-title]')) this.hideTip(); },
+    tap(e) {
+      if (window.matchMedia('(hover: hover)').matches) return;
+      const el = e.target.closest && e.target.closest('[data-tip-chart]');
+      const again = this.tip.show && this.tipFor === el;
+      this.hideTip();
+      if (el && !again) this.showTip(el);
+    },
+    hideTip() { clearTimeout(this.tipTimer); this.tip.show = false; },
+    async showTip(el) {
+      const chart = el.dataset.tipChart ? document.getElementById(el.dataset.tipChart) : null;
+      this.tipFor = el;
+      this.tip = { show: true, x: 0, y: 0, title: el.dataset.tipTitle, meta: el.dataset.tipMeta || '', text: el.dataset.tipText || '', html: chart ? chart.innerHTML : '' };
+      await this.$nextTick();
+      const box = this.$refs.tip;
+      if (!box || !el.isConnected) { this.tip.show = false; return; } // the page was swapped while the tip waited
+      Object.assign(this.tip, tipPlace(box, el));
     },
   }));
 

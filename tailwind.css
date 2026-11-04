@@ -470,7 +470,7 @@ html[data-mode="dark"] { color-scheme: dark; }
   .unit-fallen > .unit-head { background: transparent; border-bottom-color: var(--line); }
   .promo + .unit-head { margin-top: -.75rem; border-radius: 0; }
   /* A unit summary that is itself an answer: its button stretches over the whole card (a button cannot hold the card's lists); what has a tooltip stays above it. */
-  .unit-choices { @apply grid grid-cols-1 gap-3 sm:grid-cols-2; }
+  .unit-choices { @apply grid grid-cols-1 gap-3 lg:grid-cols-2; }
   /* The cards sit deep in a question: the profile gives up its minimum width and a little type, and a value stays on one line. */
   .unit-choices .statline > div { @apply min-w-0; }
   .unit-choices .statline dd { @apply whitespace-nowrap px-0 text-sm sm:text-base; }
@@ -569,6 +569,31 @@ html[data-mode="dark"] { color-scheme: dark; }
   .limit-exempt { background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--muted) 70%, transparent) 0 2px, transparent 2px 5px); }
   /* The dice tray (static/js/dice.js): a felt-like strip the dice move over; shaken, it jolts. */
   .dice-tray { @apply block h-36 w-full rounded-xl border border-line bg-raised; }
+  /* A casualty of the aftermath: its dice and result on one strip, coloured by how bad the result is; the rule and the chart are in tooltips. */
+  .injury-strip { container-type: inline-size; --tone: var(--line); @apply flex flex-wrap items-center gap-2 rounded-lg border bg-raised px-2 py-1.5; border-color: var(--tone); }
+  .injury-strip[data-tone] { background: color-mix(in srgb, var(--tone) 16%, var(--surface)); }
+  .injury-strip[data-tone="danger"] { --tone: var(--danger); }
+  .injury-strip[data-tone="warn"] { --tone: var(--warn); }
+  .injury-strip[data-tone="success"] { --tone: var(--success); }
+  .injury-name { flex: 1 1 7rem; min-width: 7rem; }
+  .injury-actions { @apply ml-auto flex shrink-0 items-center gap-2; }
+  .injury-typed { @apply flex flex-wrap gap-2; }
+  .injury-typed > .field { flex: 1 1 9rem; min-width: 0; }
+  .injury-dice { @apply inline-flex min-h-11 shrink-0 cursor-help items-center gap-1 rounded-md; }
+  .die-face { @apply grid h-9 w-9 rounded-md p-1.5; grid-template: repeat(3, 1fr) / repeat(3, 1fr); place-items: center; background: var(--fg); color: var(--surface); }
+  .die-face > i { display: block; height: .34rem; width: .34rem; border-radius: 50%; background: currentColor; grid-area: 1 / 1; }
+  .die-blank { background: var(--surface); border: 1px dashed var(--line); }
+  .die-number { display: flex; align-items: center; justify-content: center; font-weight: 700; }
+  .die-face[data-n="1"] > i:nth-child(1), .die-face[data-n="3"] > i:nth-child(2), .die-face[data-n="5"] > i:nth-child(3) { grid-area: 2 / 2; }
+  .die-face[data-n="2"] > i:nth-child(2), .die-face[data-n="3"] > i:nth-child(3), .die-face[data-n="4"] > i:nth-child(4), .die-face[data-n="5"] > i:nth-child(5), .die-face[data-n="6"] > i:nth-child(6) { grid-area: 3 / 3; }
+  .die-face[data-n="4"] > i:nth-child(2), .die-face[data-n="5"] > i:nth-child(2), .die-face[data-n="6"] > i:nth-child(2) { grid-area: 1 / 3; }
+  .die-face[data-n="4"] > i:nth-child(3), .die-face[data-n="5"] > i:nth-child(4), .die-face[data-n="6"] > i:nth-child(5) { grid-area: 3 / 1; }
+  .die-face[data-n="6"] > i:nth-child(3) { grid-area: 2 / 1; }
+  .die-face[data-n="6"] > i:nth-child(4) { grid-area: 2 / 3; }
+  .injury-result { @apply inline-flex cursor-pointer items-center gap-1 rounded-xl border bg-surface px-2 py-0.5 text-xs font-semibold; border-color: var(--tone); color: var(--tone); }
+  @container (max-width: 25rem) { .injury-reroll-label { display: none; } }
+  /* A card that waits for the player: to roll or to answer. */
+  .unit.unit-pending { border-color: var(--accent); outline: 3px solid var(--accent); outline-offset: 1px; box-shadow: 0 0 1rem .25rem color-mix(in srgb, var(--accent) 55%, transparent); }
   .dice-shake { animation: dice-shake .4s ease-in-out; }
   @keyframes dice-shake { 0%, 100% { transform: translate(0, 0); } 15% { transform: translate(-7px, 3px); } 30% { transform: translate(6px, -4px); } 45% { transform: translate(-5px, -2px); } 60% { transform: translate(5px, 4px); } 80% { transform: translate(-2px, 1px); } }
   @media (prefers-reduced-motion: reduce) { .dice-shake { animation: none; } }
