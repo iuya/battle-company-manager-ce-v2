@@ -29,7 +29,7 @@ func outsiderMatch() core.Match {
 	return m
 }
 
-const matchPath = "/campaigns/7/matches/3"
+const testMatchPath = "/campaigns/7/matches/3"
 
 // matchWrite sets up a campaign and match for a request that loads them (twice when reloaded is set, as a stale write does).
 func matchWrite(t *testing.T, m core.Match) *fixture {
@@ -63,7 +63,7 @@ func htmxGet(f *fixture, path string) *httptest.ResponseRecorder {
 func TestScenarioPickerListsTheScenariosByTable(t *testing.T) {
 	f := matchWrite(t, editableMatch())
 	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return(testScenarios, nil)
-	rec := htmxGet(f, matchPath+"/scenario?mode=pick")
+	rec := htmxGet(f, testMatchPath+"/scenario?mode=pick")
 	body := rec.Body.String()
 	if rec.Code != 200 || strings.Contains(body, "<html") {
 		t.Fatalf("a fragment was expected: %d", rec.Code)
@@ -85,7 +85,7 @@ func TestScenarioPickerKeepsRulesTextOutOfScripts(t *testing.T) {
 	m.Scenario = &core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Evil', z: alert(1), y: '"}
 	f := matchWrite(t, m)
 	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return([]core.ScenarioInfo{{Name: "Evil', z: alert(1), y: '", Table: 1, Roll: 1}}, nil)
-	body := htmxGet(f, matchPath+"/scenario?mode=pick").Body.String()
+	body := htmxGet(f, testMatchPath+"/scenario?mode=pick").Body.String()
 	if !strings.Contains(body, `name="name" value="Evil&#39;, z: alert(1), y: &#39;"`) || strings.Contains(body, "picked:") {
 		t.Errorf("the scenario name is only an escaped value, never part of an expression")
 	}
@@ -93,10 +93,10 @@ func TestScenarioPickerKeepsRulesTextOutOfScripts(t *testing.T) {
 
 func TestScenarioPickerIsForEditorsOnly(t *testing.T) {
 	f := matchWrite(t, outsiderMatch())
-	if rec := htmxGet(f, matchPath+"/scenario?mode=pick"); rec.Code != http.StatusForbidden {
+	if rec := htmxGet(f, testMatchPath+"/scenario?mode=pick"); rec.Code != http.StatusForbidden {
 		t.Errorf("an outsider asked for the picker: %d", rec.Code)
 	}
-	if rec := htmxGet(f, matchPath+"/scenario?mode=nonsense"); rec.Code != http.StatusNotFound {
+	if rec := htmxGet(f, testMatchPath+"/scenario?mode=nonsense"); rec.Code != http.StatusNotFound {
 		t.Errorf("an unknown mode: %d", rec.Code)
 	}
 }
@@ -105,14 +105,14 @@ func TestMatchPageOffersScenarioControlsToEditorsOnly(t *testing.T) {
 	m := editableMatch()
 	m.Scenario = &core.MatchScenario{Kind: core.ScenarioCustom, Name: "Ambush"}
 	f := matchWrite(t, m)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	for _, want := range []string{"Change scenario", "Roll again", "Choose another", `hx-get="/campaigns/7/matches/3/scenario?mode=pick"`, `data-phase="preparing"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("an editor misses %q", want)
 		}
 	}
 	f = matchWrite(t, outsiderMatch())
-	body = f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body = f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	for _, bad := range []string{"Change scenario", "Roll again", "mode=pick", "data-end-match"} {
 		if strings.Contains(body, bad) {
 			t.Errorf("a viewer outside the match sees %q", bad)
@@ -128,7 +128,7 @@ func TestSetScenarioPostsTheNameAndRevision(t *testing.T) {
 	done.Scenario = &core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Rescue"}
 	f.camp.EXPECT().SetScenario(gomock.Any(), frodo, int64(7), int64(3), 4, core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Rescue"}).Return(done, nil)
 	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return(testScenarios, nil)
-	rec := f.do(f.signedIn(form(matchPath+"/scenario", url.Values{"kind": {"rulebook"}, "name": {"Rescue"}, "revision": {"4"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/scenario", url.Values{"kind": {"rulebook"}, "name": {"Rescue"}, "revision": {"4"}})))
 	body := rec.Body.String()
 	if rec.Code != 200 || !strings.Contains(body, `id="match"`) || !strings.Contains(body, "Rescue") || !strings.Contains(body, `value="5"`) {
 		t.Errorf("the whole match was expected, with the new revision: %d\n%s", rec.Code, body)
@@ -142,7 +142,7 @@ func TestSetScenarioRefusals(t *testing.T) {
 	// an outsider: 403, nothing rendered
 	f := matchWrite(t, outsiderMatch())
 	f.camp.EXPECT().SetScenario(gomock.Any(), frodo, int64(7), int64(3), 4, in).Return(core.Match{}, core.Refuse("Only the players in this match can change it."))
-	if rec := f.do(f.signedIn(form(matchPath+"/scenario", post))); rec.Code != http.StatusForbidden {
+	if rec := f.do(f.signedIn(form(testMatchPath+"/scenario", post))); rec.Code != http.StatusForbidden {
 		t.Errorf("outsider: %d", rec.Code)
 	}
 
@@ -151,7 +151,7 @@ func TestSetScenarioRefusals(t *testing.T) {
 	ended.Ended = true
 	f = matchWrite(t, ended)
 	f.camp.EXPECT().SetScenario(gomock.Any(), frodo, int64(7), int64(3), 4, in).Return(core.Match{}, core.Refuse("This match has ended; ask an administrator."))
-	if rec := f.do(f.signedIn(form(matchPath+"/scenario", post))); rec.Code != http.StatusForbidden {
+	if rec := f.do(f.signedIn(form(testMatchPath+"/scenario", post))); rec.Code != http.StatusForbidden {
 		t.Errorf("ended: %d", rec.Code)
 	}
 
@@ -160,7 +160,7 @@ func TestSetScenarioRefusals(t *testing.T) {
 	bad := core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Nowhere"}
 	f.camp.EXPECT().SetScenario(gomock.Any(), frodo, int64(7), int64(3), 4, bad).Return(core.Match{}, errors.Join(core.ErrInvalidMatch, errors.New("the campaign's rules have no scenario called Nowhere")))
 	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return(testScenarios, nil)
-	rec := f.do(f.signedIn(form(matchPath+"/scenario", url.Values{"kind": {"rulebook"}, "name": {"Nowhere"}, "revision": {"4"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/scenario", url.Values{"kind": {"rulebook"}, "name": {"Nowhere"}, "revision": {"4"}})))
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "no scenario called Nowhere") || !strings.Contains(rec.Body.String(), `type="search"`) {
 		t.Errorf("invalid name: %d\n%s", rec.Code, rec.Body.String())
 	}
@@ -170,7 +170,7 @@ func TestStaleRevisionReloadsTheMatchWithANotice(t *testing.T) {
 	m := editableMatch()
 	f := matchWrite(t, m)
 	f.camp.EXPECT().SetScenario(gomock.Any(), frodo, int64(7), int64(3), 2, gomock.Any()).Return(core.Match{}, core.ErrMatchChanged)
-	rec := f.do(f.signedIn(form(matchPath+"/scenario", url.Values{"kind": {"rulebook"}, "name": {"Rescue"}, "revision": {"2"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/scenario", url.Values{"kind": {"rulebook"}, "name": {"Rescue"}, "revision": {"2"}})))
 	body := rec.Body.String()
 	if rec.Code != 200 || !strings.Contains(body, "changed this match while you were editing") || !strings.Contains(body, `id="match"`) {
 		t.Errorf("stale: %d\n%s", rec.Code, body)
@@ -184,7 +184,7 @@ func TestClearScenario(t *testing.T) {
 	cleared := editableMatch()
 	cleared.Revision = 5
 	f.camp.EXPECT().ClearScenario(gomock.Any(), frodo, int64(7), int64(3), 4).Return(cleared, nil)
-	rec := f.do(f.signedIn(form(matchPath+"/scenario/remove", url.Values{"revision": {"4"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/scenario/remove", url.Values{"revision": {"4"}})))
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "No scenario yet") {
 		t.Errorf("remove: %d", rec.Code)
 	}
@@ -194,7 +194,7 @@ func TestOneOffFormIsPrefilledAndEscaped(t *testing.T) {
 	m := editableMatch()
 	m.Scenario = &core.MatchScenario{Kind: core.ScenarioCustom, Name: `Ambush "<script>"`, Description: "line one\nline <two>", Victory: "last <b>"}
 	f := matchWrite(t, m)
-	body := htmxGet(f, matchPath+"/scenario?mode=custom").Body.String()
+	body := htmxGet(f, testMatchPath+"/scenario?mode=custom").Body.String()
 	for _, want := range []string{`value="Ambush &#34;&lt;script&gt;&#34;"`, "line &lt;two&gt;", "last &lt;b&gt;", `maxlength="60"`, `maxlength="1000"`, "Players are trusted", "kept with this match only", `name="kind" value="custom"`, `name="revision" value="4"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
@@ -207,7 +207,7 @@ func TestOneOffFormIsPrefilledAndEscaped(t *testing.T) {
 	m.Scenario = &core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Rescue"}
 	f = matchWrite(t, m)
 	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return(testScenarios, nil)
-	if body := htmxGet(f, matchPath+"/scenario?mode=custom").Body.String(); strings.Contains(body, `value="Rescue"`) {
+	if body := htmxGet(f, testMatchPath+"/scenario?mode=custom").Body.String(); strings.Contains(body, `value="Rescue"`) {
 		t.Error("the one-off form must not carry the rulebook name")
 	}
 }
@@ -220,7 +220,7 @@ func TestSaveOneOffScenario(t *testing.T) {
 	done.Revision = 5
 	done.Scenario = &in
 	f.camp.EXPECT().SetScenario(gomock.Any(), frodo, int64(7), int64(3), 4, in).Return(done, nil)
-	rec := f.do(f.signedIn(form(matchPath+"/scenario", url.Values{"kind": {"custom"}, "name": {"Ambush"}, "description": {"d <script>"}, "victory": {"v"}, "revision": {"4"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/scenario", url.Values{"kind": {"custom"}, "name": {"Ambush"}, "description": {"d <script>"}, "victory": {"v"}, "revision": {"4"}})))
 	body := rec.Body.String()
 	if rec.Code != 200 || !strings.Contains(body, "One-off") || !strings.Contains(body, "d &lt;script&gt;") || strings.Contains(body, "d <script>") {
 		t.Errorf("saved: %d\n%s", rec.Code, body)
@@ -231,7 +231,7 @@ func TestOneOffValidationErrorsSitBesideTheFields(t *testing.T) {
 	f := matchWrite(t, editableMatch())
 	_, verr := core.ScenarioInput{Kind: core.ScenarioCustom, Name: "", Description: strings.Repeat("x", 1001)}.Validate()
 	f.camp.EXPECT().SetScenario(gomock.Any(), frodo, int64(7), int64(3), 4, gomock.Any()).Return(core.Match{}, verr)
-	rec := f.do(f.signedIn(form(matchPath+"/scenario", url.Values{"kind": {"custom"}, "name": {" "}, "description": {strings.Repeat("x", 1001)}, "victory": {"keep me"}, "revision": {"4"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/scenario", url.Values{"kind": {"custom"}, "name": {" "}, "description": {strings.Repeat("x", 1001)}, "victory": {"keep me"}, "revision": {"4"}})))
 	body := rec.Body.String()
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status %d", rec.Code)
@@ -252,7 +252,7 @@ func TestOneOffScenarioIsNotOfferedByThePicker(t *testing.T) {
 	other.Scenario = &core.MatchScenario{Kind: core.ScenarioCustom, Name: "Secret Ambush"}
 	f := matchWrite(t, editableMatch())
 	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return(testScenarios, nil)
-	if body := htmxGet(f, matchPath+"/scenario?mode=pick").Body.String(); strings.Contains(body, other.Scenario.Name) {
+	if body := htmxGet(f, testMatchPath+"/scenario?mode=pick").Body.String(); strings.Contains(body, other.Scenario.Name) {
 		t.Error("a one-off scenario appeared in the picker")
 	}
 }
@@ -281,7 +281,7 @@ func TestSaveResultPostsTheWholeReport(t *testing.T) {
 	done := m
 	done.Ended, done.Revision, done.Result, done.Winner = true, 5, want, 2
 	f.camp.EXPECT().SaveResult(gomock.Any(), sauron, int64(7), int64(3), 4, want).Return(done, nil)
-	rec := f.do(f.signedInAs(sauron, form(matchPath+"/result", url.Values{"winner": {"2"}, "note": {"close <one>"}, "revision": {"4"}})))
+	rec := f.do(f.signedInAs(sauron, form(testMatchPath+"/result", url.Values{"winner": {"2"}, "note": {"close <one>"}, "revision": {"4"}})))
 	body := rec.Body.String()
 	if rec.Code != 200 || !strings.Contains(body, "Result saved.") || !strings.Contains(body, `id="match"`) || !strings.Contains(body, `value="5"`) || !strings.Contains(body, "close &lt;one&gt;") {
 		t.Errorf("saved: %d\n%s", rec.Code, body)
@@ -290,14 +290,14 @@ func TestSaveResultPostsTheWholeReport(t *testing.T) {
 
 func TestSaveResultKeepsTheTypedValuesWhenRejected(t *testing.T) {
 	f := endedForTheAdmin(t, editableMatch())
-	rec := f.do(f.signedInAs(sauron, form(matchPath+"/result", url.Values{"note": {"keep this"}, "revision": {"4"}})))
+	rec := f.do(f.signedInAs(sauron, form(testMatchPath+"/result", url.Values{"note": {"keep this"}, "revision": {"4"}})))
 	body := rec.Body.String()
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(body, "Choose who won, or a draw") || !strings.Contains(body, "keep this") {
 		t.Errorf("no winner: %d\n%s", rec.Code, body)
 	}
 	f = endedForTheAdmin(t, editableMatch())
 	f.camp.EXPECT().SaveResult(gomock.Any(), sauron, int64(7), int64(3), 4, gomock.Any()).Return(core.Match{}, errors.Join(core.ErrInvalidMatch, errors.New("the note can have at most 500 characters")))
-	rec = f.do(f.signedInAs(sauron, form(matchPath+"/result", url.Values{"winner": {"1"}, "note": {"keep this"}, "revision": {"4"}})))
+	rec = f.do(f.signedInAs(sauron, form(testMatchPath+"/result", url.Values{"winner": {"1"}, "note": {"keep this"}, "revision": {"4"}})))
 	body = rec.Body.String()
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(body, "at most 500 characters") || !strings.Contains(body, "keep this") {
 		t.Errorf("rejected: %d\n%s", rec.Code, body)
@@ -306,16 +306,16 @@ func TestSaveResultKeepsTheTypedValuesWhenRejected(t *testing.T) {
 
 func TestResultWritesByOutsidersAreForbidden(t *testing.T) {
 	f := matchWrite(t, outsiderMatch())
-	if rec := f.do(f.signedIn(form(matchPath+"/result", url.Values{"winner": {"1"}, "revision": {"4"}}))); rec.Code != http.StatusForbidden {
+	if rec := f.do(f.signedIn(form(testMatchPath+"/result", url.Values{"winner": {"1"}, "revision": {"4"}}))); rec.Code != http.StatusForbidden {
 		t.Errorf("save: %d", rec.Code)
 	}
 	f = matchWrite(t, outsiderMatch())
-	if rec := f.do(f.signedIn(form(matchPath+"/end/propose", url.Values{"revision": {"4"}, "winner": {"1"}}))); rec.Code != http.StatusForbidden {
+	if rec := f.do(f.signedIn(form(testMatchPath+"/end/propose", url.Values{"revision": {"4"}, "winner": {"1"}}))); rec.Code != http.StatusForbidden {
 		t.Errorf("end: %d", rec.Code)
 	}
 	// and the page shows them no controls
 	f = matchWrite(t, outsiderMatch())
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	for _, bad := range []string{"Save result", "data-end-match", `name="winner"`, "Edit the result (organiser or administrator)"} {
 		if strings.Contains(body, bad) {
 			t.Errorf("an outsider sees %q", bad)
@@ -326,7 +326,7 @@ func TestResultWritesByOutsidersAreForbidden(t *testing.T) {
 func TestStaleResultShowsTheNotice(t *testing.T) {
 	f := endedForTheAdmin(t, editableMatch())
 	f.camp.EXPECT().SaveResult(gomock.Any(), sauron, int64(7), int64(3), 2, gomock.Any()).Return(core.Match{}, core.ErrMatchChanged)
-	rec := f.do(f.signedInAs(sauron, form(matchPath+"/result", url.Values{"winner": {"1"}, "revision": {"2"}})))
+	rec := f.do(f.signedInAs(sauron, form(testMatchPath+"/result", url.Values{"winner": {"1"}, "revision": {"2"}})))
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "changed this match while you were editing") || !strings.Contains(rec.Body.String(), `name="revision" value="4"`) {
 		t.Errorf("stale: %d", rec.Code)
 	}
@@ -347,7 +347,7 @@ func TestAdministratorEditsAnEndedMatchBehindAButton(t *testing.T) {
 		m.Winner = 1
 		f := endedForTheAdmin(t, m)
 		f.aftermaths = tt.refs
-		body := f.do(f.signedInAs(sauron, httptest.NewRequest("GET", matchPath, nil))).Body.String()
+		body := f.do(f.signedInAs(sauron, httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 		for _, want := range []string{"Edit the result (organiser or administrator)", tt.warning, "Save result", `hx-post="/campaigns/7/matches/3/result"`, `data-phase="ended"`} {
 			if !strings.Contains(body, want) {
 				t.Errorf("%s: missing %q", tt.name, want)
@@ -381,7 +381,7 @@ func TestSaveResultPostsTheObjectives(t *testing.T) {
 	done := m
 	done.Ended, done.Revision, done.Result = true, 5, want
 	f.camp.EXPECT().SaveResult(gomock.Any(), sauron, int64(7), int64(3), 4, want).Return(done, nil)
-	rec := f.do(f.signedInAs(sauron, form(matchPath+"/result", url.Values{"revision": {"4"}, "winner": {"1"}, "tick-1-allCargo": {"1"}, "tick-1-relics": {"2"}, "tick-2-relics": {"0"}, "tick-1-bogus": {"1"}})))
+	rec := f.do(f.signedInAs(sauron, form(testMatchPath+"/result", url.Values{"revision": {"4"}, "winner": {"1"}, "tick-1-allCargo": {"1"}, "tick-1-relics": {"2"}, "tick-2-relics": {"0"}, "tick-1-bogus": {"1"}})))
 	body := rec.Body.String()
 	if rec.Code != 200 || !strings.Contains(body, "Result saved.") || !strings.Contains(body, "Relics carried off (x2)") {
 		t.Errorf("saved: %d\n%s", rec.Code, body)
@@ -393,7 +393,7 @@ func TestSaveResultShowsAnObjectiveCountOverTheMaximum(t *testing.T) {
 	f := endedForTheAdmin(t, m)
 	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return([]core.ScenarioInfo{cargoScenario}, nil).AnyTimes()
 	f.camp.EXPECT().SaveResult(gomock.Any(), sauron, int64(7), int64(3), 4, gomock.Any()).Return(core.Match{}, errors.Join(core.ErrInvalidMatch, errors.New(`"relics" can be completed 0 to 3 times`)))
-	rec := f.do(f.signedInAs(sauron, form(matchPath+"/result", url.Values{"revision": {"4"}, "winner": {"1"}, "tick-1-relics": {"9"}})))
+	rec := f.do(f.signedInAs(sauron, form(testMatchPath+"/result", url.Values{"revision": {"4"}, "winner": {"1"}, "tick-1-relics": {"9"}})))
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "0 to 3 times") || !strings.Contains(rec.Body.String(), `value="9"`) {
 		t.Errorf("over max: %d", rec.Code)
 	}
@@ -406,7 +406,7 @@ func TestReadOnlyReportListsTheCompletedObjectives(t *testing.T) {
 	m.Result = core.MatchResult{Decided: true, Winner: 1, Companies: []core.CompanyResult{{CompanyID: 1, Objectives: map[string]int{"allCargo": 1, "relics": 2}}}}
 	f := matchWrite(t, m)
 	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return([]core.ScenarioInfo{cargoScenario}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	if !strings.Contains(body, "Rangers") || !strings.Contains(body, "completed:") || !strings.Contains(body, "Scored all Cargo.") || !strings.Contains(body, "Relics carried off (x2)") {
 		t.Errorf("report: %s", body)
 	}
@@ -445,7 +445,7 @@ func rollSetup(t *testing.T, m core.Match, settings core.CampaignSettings) *fixt
 
 func TestScenarioRollIsForEditorsOnly(t *testing.T) {
 	f := rollSetup(t, outsiderMatch(), core.CampaignSettings{})
-	if rec := f.do(f.signedIn(form(matchPath+"/scenario/roll", url.Values{}))); rec.Code != http.StatusForbidden {
+	if rec := f.do(f.signedIn(form(testMatchPath+"/scenario/roll", url.Values{}))); rec.Code != http.StatusForbidden {
 		t.Errorf("an outsider rolled: %d", rec.Code)
 	}
 }
@@ -465,7 +465,7 @@ func TestReopenIsOfferedToAdministratorsOnlyAndHistoryIsListed(t *testing.T) {
 	d.OrganiserID = 99
 	f.camp.EXPECT().Get(gomock.Any(), sauron.ID, int64(7)).Return(d, nil)
 	f.camp.EXPECT().Match(gomock.Any(), int64(7), int64(3)).Return(m, nil)
-	body := f.do(f.signedInAs(sauron, httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedInAs(sauron, httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	for _, want := range []string{"Reopen match", `hx-post="/campaigns/7/matches/3/reopen"`, `name="revision" value="4"`, "History", "Ended</span> by Frodo", "Reopened</span> by Sauron", "19 October 2026, 14:05"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
@@ -476,7 +476,7 @@ func TestReopenIsOfferedToAdministratorsOnlyAndHistoryIsListed(t *testing.T) {
 	}
 	// a player of the match sees the history but not the button
 	f = matchWrite(t, endedBy(readyToEnd()))
-	body = f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body = f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	if strings.Contains(body, "Reopen match") || !strings.Contains(body, "by Frodo") {
 		t.Error("players see the history, not the button")
 	}
@@ -484,7 +484,7 @@ func TestReopenIsOfferedToAdministratorsOnlyAndHistoryIsListed(t *testing.T) {
 
 func TestReopenMatchIsForbiddenToEveryoneButAdministrators(t *testing.T) {
 	f := matchWrite(t, endedBy(readyToEnd())) // frodo plays in it; no call to the backend is expected
-	if rec := f.do(f.signedIn(form(matchPath+"/reopen", url.Values{"revision": {"4"}}))); rec.Code != http.StatusForbidden {
+	if rec := f.do(f.signedIn(form(testMatchPath+"/reopen", url.Values{"revision": {"4"}}))); rec.Code != http.StatusForbidden {
 		t.Errorf("a player reopened: %d", rec.Code)
 	}
 }
@@ -499,7 +499,7 @@ func TestReopenMatchAnswersTheOpenMatch(t *testing.T) {
 	open := m
 	open.Ended, open.EndedOn, open.Revision = false, nil, 5
 	f.camp.EXPECT().ReopenMatch(gomock.Any(), sauron, int64(7), int64(3), 4).Return(open, nil)
-	rec := f.do(f.signedInAs(sauron, form(matchPath+"/reopen", url.Values{"revision": {"4"}})))
+	rec := f.do(f.signedInAs(sauron, form(testMatchPath+"/reopen", url.Values{"revision": {"4"}})))
 	body := rec.Body.String()
 	if rec.Code != 200 || !strings.Contains(body, "Match reopened.") || !strings.Contains(body, "data-end-match") || strings.Contains(body, "Reopen match") {
 		t.Errorf("%d %s", rec.Code, body)
@@ -532,11 +532,11 @@ func TestFinishedCampaignTakesNoNewMatchesAndNoEdits(t *testing.T) {
 		!strings.Contains(rec.Body.String(), "The campaign is finished.") {
 		t.Errorf("create: %d %s", rec.Code, rec.Body.String())
 	}
-	rec := f.do(f.signedIn(form(matchPath+"/result", url.Values{"winner": {"1"}, "revision": {"4"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/result", url.Values{"winner": {"1"}, "revision": {"4"}})))
 	if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "The campaign is finished.") {
 		t.Errorf("result: %d %s", rec.Code, rec.Body.String())
 	}
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	for _, bad := range []string{"Save result", "data-end-match", `name="winner"`, "Roll again"} {
 		if strings.Contains(body, bad) {
 			t.Errorf("a finished campaign's match offers %q", bad)
@@ -548,7 +548,7 @@ func TestEndedMatchTellsAPlayerToAskTheOrganiserOrAnAdministrator(t *testing.T) 
 	m := editableMatch()
 	m.Ended = true
 	f := matchWrite(t, m)
-	rec := f.do(f.signedIn(form(matchPath+"/result", url.Values{"winner": {"1"}, "revision": {"4"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/result", url.Values{"winner": {"1"}, "revision": {"4"}})))
 	if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "This match has ended; ask the organiser or an administrator.") {
 		t.Errorf("got %d %s", rec.Code, rec.Body.String())
 	}
@@ -556,7 +556,7 @@ func TestEndedMatchTellsAPlayerToAskTheOrganiserOrAnAdministrator(t *testing.T) 
 
 func TestShellShowsFailedHtmxRequests(t *testing.T) {
 	f := matchWrite(t, editableMatch())
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	for _, want := range []string{`@htmx:response-error.window`, `@htmx:send-error.window`, `x-text="err"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the shell lacks %q: failures of htmx requests would be silent", want)
@@ -574,7 +574,7 @@ func TestMatchPageShowsTheRulebookTextAndThePrizes(t *testing.T) {
 			Sections: []core.ScenarioText{{Title: "Layout", Text: "Dense terrain."}},
 			Rules:    []core.ScenarioText{{Title: "Defend the Hill", Text: "No Courage tests."}}},
 		Prizes: []core.ScenarioPrize{{Name: "Rendezvous", Who: "The winner", Text: "Plus or minus one."}}}}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	for _, want := range []string{"About this scenario", "Two companies &lt;meet&gt;.", "Dense terrain.", "Special rules", "Defend the Hill",
 		"What the result earns", "Rendezvous", "The winner", "an Attacker and a Defender"} {
 		if !strings.Contains(body, want) {
@@ -587,7 +587,7 @@ func TestUnnamedSidesShowTheirCompanies(t *testing.T) {
 	m := editableMatch()
 	m.Sides[0].Name, m.Sides[1].Name = "Side 1", "Side 2"
 	f := matchWrite(t, m)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	if strings.Contains(body, "Side 1") || strings.Contains(body, "Side 2") || !strings.Contains(body, ">Raiders</a>") {
 		t.Error("the scoreboard names the companies, never Side 1 / Side 2")
 	}
@@ -619,7 +619,7 @@ func TestMatchPageShowsScenarioRuleTablesAndMarksTheCombinedRating(t *testing.T)
 			{Title: "There's Always a Bigger Beast", Text: "Rule of thumb:", Table: &core.ScenarioRuleTable{Lookup: "combinedRating", Columns: []string{"Combined Rating", "Monster Budget"},
 				Rows: []core.ScenarioTableRow{{Min: 0, Max: 400, Cells: []string{"0-400", "140 points"}}, {Min: 401, Max: 500, Cells: []string{"401-500", "200 points"}}, {Min: 501, Max: -1, Cells: []string{"501+", "300 points"}}}}},
 			{Title: "Strange Aura", Text: "Roll.", Table: &core.ScenarioRuleTable{Lookup: "d6", TableDice: core.DiceSpec{Count: 1, Sides: 6}, Columns: []string{"D6", "Result"}, Rows: []core.ScenarioTableRow{{Min: 1, Max: 6, Cells: []string{"1-6", "Fearless"}}}}}}}}}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	for _, want := range []string{"Monster Budget", "200 points", `aria-current="true"`, "add up to 450 rating", "Roll a D6", "Dark of Night"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
@@ -647,7 +647,7 @@ func TestVantagePointIsOfferedAfterTheRollAndMovesTheSecondDie(t *testing.T) {
 		f.camp.EXPECT().SetScenario(gomock.Any(), frodo, int64(7), int64(3), 4, core.ScenarioInput{Kind: core.ScenarioRulebook, Name: name}).Return(done, nil)
 	}
 	set("Seize Ground")
-	body := f.do(f.signedIn(form(matchPath+"/scenario/roll", url.Values{"revision": {"4"}}))).Body.String()
+	body := f.do(f.signedIn(form(testMatchPath+"/scenario/roll", url.Values{"revision": {"4"}}))).Body.String()
 	for _, want := range []string{"Vantage Point", `name="vantage" value="1"`, `name="adjust" value="1"`, `name="adjust" value="-1" class="btn btn-secondary !min-h-9" disabled`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("roll panel lacks %q", want)
@@ -656,7 +656,7 @@ func TestVantagePointIsOfferedAfterTheRollAndMovesTheSecondDie(t *testing.T) {
 	f.camp.EXPECT().UseVantagePoint(gomock.Any(), frodo, int64(7), int64(3), int64(1), 1, 1).Return(2, "1, Vantage Point +1 = 2", nil)
 	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(core.CompanyDetail{}, nil).Times(1)
 	set("Chance Encounter")
-	rec := f.do(f.signedIn(form(matchPath+"/scenario/roll", url.Values{"revision": {"4"}, "roll": {"1"}, "roll2": {"1"}, "vantage": {"1"}, "adjust": {"1"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/scenario/roll", url.Values{"revision": {"4"}, "roll": {"1"}, "roll2": {"1"}, "vantage": {"1"}, "adjust": {"1"}})))
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "1, Vantage Point &#43;1 = 2") || strings.Contains(rec.Body.String(), `name="vantage"`) {
 		t.Errorf("adjust: %d %s", rec.Code, rec.Body.String())
 	}
@@ -675,7 +675,7 @@ func TestOrganiserEditsAndReopensAnEndedMatchLikeAnAdministrator(t *testing.T) {
 	d.OrganiserID = frodo.ID
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
 	f.camp.EXPECT().Match(gomock.Any(), int64(7), int64(3)).Return(m, nil).AnyTimes()
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	for _, want := range []string{"Edit the result (organiser or administrator)", "Reopen match", "Save result"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the organiser lacks %q", want)
@@ -695,10 +695,10 @@ func matchWriteOwning(t *testing.T, m core.Match) *fixture {
 	return f
 }
 
-// The open match has no result form: End match opens the sheet (docs/simplify-matches-spec.md, phase 3).
+// The open match has no result form: End match opens the sheet (docs/matches.md, "Ending a match").
 func TestOpenMatchOffersEndMatchInsteadOfAResultForm(t *testing.T) {
 	f := matchWriteOwning(t, readyToEnd())
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	for _, want := range []string{`data-end-match`, `hx-get="/campaigns/7/matches/3/end/sheet"`, `id="modal-body"`, "Go to my company", `href="/campaigns/7/my-company/1"`, `id="scoreboard"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
@@ -718,7 +718,7 @@ func TestOrganiserAndAdminSeeTheControlsOfAnOpenMatch(t *testing.T) {
 		d.OrganiserID = gandalf.ID
 		f.camp.EXPECT().Get(gomock.Any(), u.ID, int64(7)).Return(d, nil)
 		f.camp.EXPECT().Match(gomock.Any(), int64(7), int64(3)).Return(outsiderMatch(), nil)
-		body := f.do(f.signedInAs(u, httptest.NewRequest("GET", matchPath, nil))).Body.String()
+		body := f.do(f.signedInAs(u, httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 		for _, want := range []string{"End match", "Roll again", "Choose another"} {
 			if !strings.Contains(body, want) {
 				t.Errorf("%s misses %q", u.DisplayName, want)
@@ -744,14 +744,14 @@ func endedForTheAdmin(t *testing.T, m core.Match) *fixture {
 
 func TestEndMatchButtonIsDisabledWithTheReason(t *testing.T) {
 	f := matchWrite(t, editableMatch())
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	for _, want := range []string{"disabled", "Choose the scenario before ending the match.", "End match"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
 	}
 	f = matchWrite(t, readyToEnd())
-	body = f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body = f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	if strings.Contains(body, `id="end-reason"`) || strings.Contains(body, "aria-describedby=\"end-reason\"") {
 		t.Error("a match that can end shows no reason")
 	}
@@ -763,7 +763,7 @@ func TestPlayingPhaseOpensTheScenarioAndLogAndMarksTheBroken(t *testing.T) {
 	f := matchWriteOwning(t, m)
 	f.started = true
 	f.breaks = map[int64]core.LiveBreak{2: {Broken: true, Casualties: 8, StartingModels: 15}, 1: {Casualties: 1, StartingModels: 12}}
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	for _, want := range []string{`data-phase="playing"`, `id="scenario-folded" open`, `id="log" open`, "Go to my company", "Wound chart", "data-end-match", `title="8 of 15 casualties">Broken</span>`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("playing: missing %q", want)
@@ -779,7 +779,7 @@ func TestPlayingPhaseOpensTheScenarioAndLogAndMarksTheBroken(t *testing.T) {
 	}
 }
 
-// Roll again rolls both dice and sets the scenario at once, whatever the dice settings say (docs/simplify-matches-spec.md, D4).
+// Roll again rolls both dice and sets the scenario at once, whatever the dice settings say (docs/matches.md, "New match").
 func TestRollAgainSetsTheScenarioAtOnce(t *testing.T) {
 	m := editableMatch()
 	f := rollSetup(t, m, core.CampaignSettings{ManualRolls: true, ShakeTheTable: true})
@@ -788,7 +788,7 @@ func TestRollAgainSetsTheScenarioAtOnce(t *testing.T) {
 	done := m
 	done.Revision, done.Scenario = 5, &core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Chance Encounter"}
 	f.camp.EXPECT().SetScenario(gomock.Any(), frodo, int64(7), int64(3), 4, core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Chance Encounter"}).Return(done, nil)
-	rec := f.do(f.signedIn(form(matchPath+"/scenario/roll", url.Values{"revision": {"4"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/scenario/roll", url.Values{"revision": {"4"}})))
 	body := rec.Body.String()
 	if rec.Code != 200 {
 		t.Fatalf("%d %s", rec.Code, body)
@@ -803,14 +803,13 @@ func TestRollAgainSetsTheScenarioAtOnce(t *testing.T) {
 	}
 }
 
-// The players settle Attacker and Defender at the table (docs/simplify-matches-spec.md, D1): the page has no roles.
+// The players settle Attacker and Defender at the table (docs/matches.md, "Concepts"): the page has no roles.
 func TestNoRolesOnTheMatchPage(t *testing.T) {
 	m := editableMatch()
-	m.Sides[0].Role = "attacker" // an older match may carry a tag: it is not shown
 	m.Scenario = &core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Stand Your Ground"}
 	f := matchWrite(t, m)
 	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return([]core.ScenarioInfo{{Name: "Stand Your Ground", About: core.ScenarioAbout{Roles: []string{"Attacker", "Defender"}}}}, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	if strings.Contains(body, `id="roles"`) || strings.Contains(body, "Swap roles") || strings.Contains(body, ">attacker<") || !strings.Contains(body, "settle them at the table") {
 		t.Error("no roles card or badges; the scenario says the table settles them")
 	}

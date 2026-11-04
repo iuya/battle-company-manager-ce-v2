@@ -154,7 +154,7 @@ func (s *Matches) validScenario(ctx context.Context, id int64, in ScenarioInput)
 		if err != nil {
 			return in, err
 		}
-		if !slices.ContainsFunc(list, func(sc ScenarioInfo) bool { return sc.Name == in.Name }) {
+		if FindScenario(list, in.Name) == nil {
 			return in, errors.Join(ErrInvalidMatch, errors.New("the campaign's rules have no scenario called "+in.Name))
 		}
 	}
@@ -217,7 +217,7 @@ func (s *Matches) MatchStarted(ctx context.Context, id, matchID int64) (bool, er
 }
 
 // scenarioOpen refuses a change of the scenario of an open match once the game has started (the first live entry), as Against the
-// Odds is: what the players set up for stays (docs/simplify-matches-spec.md, D4). An ended match can still be corrected, and a match that
+// Odds is: what the players set up for stays (docs/matches.md, "New match"). An ended match can still be corrected, and a match that
 // started without one (older matches) can still get one, since it cannot end without it.
 func (s *Matches) scenarioOpen(ctx context.Context, id int64, m *Match) error {
 	if m.Ended || m.Scenario == nil || s.GameStarted == nil {
@@ -268,9 +268,7 @@ func (s *Matches) SaveResult(ctx context.Context, user User, id, matchID int64, 
 					return err
 				}
 			}
-			if i := slices.IndexFunc(scenarios, func(sc ScenarioInfo) bool { return sc.Name == m.Scenario.Name }); i >= 0 {
-				info = &scenarios[i]
-			}
+			info = FindScenario(scenarios, m.Scenario.Name)
 		}
 		r, err := m.ValidateResult(r, info)
 		if err != nil {
@@ -278,18 +276,6 @@ func (s *Matches) SaveResult(ctx context.Context, user User, id, matchID int64, 
 		}
 		m.Result, m.Winner = r, r.Winner
 		m.resetEnd(user.DisplayName, "result")
-		return nil
-	})
-}
-
-// endMatch closes the match at once when Match.CanEnd passes (unexported since 7k7). It is the internal step for an end that needs no confirmation; the pages
-// use ProposeEnd, ConfirmEnd and OverrideEnd (docs/matches.md).
-func (s *Matches) endMatch(ctx context.Context, user User, id, matchID int64, revision int) (Match, error) {
-	return s.edit(ctx, user, id, matchID, revision, func(m *Match) error {
-		if err := s.checkEnd(ctx, m, id, 0); err != nil {
-			return err
-		}
-		m.finishEnd("")
 		return nil
 	})
 }

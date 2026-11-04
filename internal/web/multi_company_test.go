@@ -12,7 +12,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// Several companies per player (docs/multi-company-spec.md): the company is in the URL, one helper authorises it, and the chip switcher
+// Several companies per player (docs/architecture.md, "Several companies per player"): the company is in the URL, one helper authorises it, and the chip switcher
 // appears only for a player with two or more.
 
 func ownTwo(cap int) core.CampaignDetail {

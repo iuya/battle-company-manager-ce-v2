@@ -96,7 +96,7 @@ func TestMalformedInputNeverCrashesAHandler(t *testing.T) {
 	fields := fieldNames(t)
 	hostile := []string{"", " ", "0", "-1", "99999999999999999999", "9223372036854775807", "-9223372036854775808", "1e999", "NaN", "abc",
 		"1.5", "\x00", "\xff\xfe\xfd", "<script>alert(1)</script>", "'; DROP TABLE users; --", "%", "[]", "a,,b,", "true",
-		strings.Repeat("a", 70000), strings.Repeat("9", 400), "../../etc/passwd", "ß‮\u0000"}
+		strings.Repeat("a", 70000), strings.Repeat("9", 400), "../../etc/passwd", "ß\u202e\u0000"}
 
 	if os.Getenv("SWEEP_FULL") == "" { // the default run keeps the values that found bugs; SWEEP_FULL=1 tries them all
 		hostile = []string{"", "0", "-1", "9223372036854775807", "abc", "\x00", "\xff\xfe\xfd", strings.Repeat("a", 70000)}

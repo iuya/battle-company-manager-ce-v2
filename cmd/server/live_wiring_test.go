@@ -20,6 +20,5 @@ var _ interface {
 	MatchBreaks(ctx context.Context, id, matchID int64) (map[int64]core.LiveBreak, error)
 	MatchStarted(ctx context.Context, id, matchID int64) (bool, error)
 	SecretObjectives(ctx context.Context, user core.User, id, matchID int64) (core.SecretView, error)
-	SecretScore(ctx context.Context, user core.User, id, matchID, companyID int64) (int, []core.SecretLine, bool, error)
 	Subscribe(ctx context.Context, user core.User, id, matchID int64) (core.LiveStream, error)
 } = (*campaignsFacade)(nil)

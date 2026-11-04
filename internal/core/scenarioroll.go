@@ -54,15 +54,3 @@ func (s MatchSide) Rating() int {
 	}
 	return n
 }
-
-// TopDog says which side of a two-sided match has the higher rating (the Top Dog, 0-based index) and which the Underdog.
-// A tie, or a match that does not have exactly two sides, has neither: both are -1.
-func (m Match) TopDog() (top, under int) {
-	if len(m.Sides) != 2 || m.Sides[0].Rating() == m.Sides[1].Rating() {
-		return -1, -1
-	}
-	if m.Sides[0].Rating() > m.Sides[1].Rating() {
-		return 0, 1
-	}
-	return 1, 0
-}

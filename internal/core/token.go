@@ -85,8 +85,3 @@ func parseToken(s string) ([]byte, error) {
 
 // sameHash compares a stored hash with the computed one in constant time (defence in depth: the database already compared hashes).
 func sameHash(stored, computed []byte) bool { return subtle.ConstantTimeCompare(stored, computed) == 1 }
-
-func defaultRandom() io.Reader { return rand.Reader }
-
-// withArgon lowers the password hashing cost in tests.
-func withArgon(p argonParams) ServiceOption { return func(o *serviceOptions) { o.argon = p } }

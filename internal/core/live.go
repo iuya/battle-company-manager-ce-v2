@@ -135,7 +135,7 @@ const (
 	LiveCourageSkip LiveKind = "courageSkip" // a Broken company's unit passes or is exempt from the courage test without a roll (UnitID, Reason)
 	LiveItemUsed    LiveKind = "itemUsed"    // a loaned or owned consumable used during the game (UnitID, Item, Index)
 
-	// Kinds older logs may hold and that can no longer be written (docs/simplify-matches-spec.md, D10 and D14): a "turn" entry is
+	// Kinds older logs may hold and that can no longer be written (docs/live-match.md, "Company Break Point in play"): a "turn" entry is
 	// ignored by the fold; an "allIsLost" entry with Flee still takes the company's units in the Field off the board.
 	liveTurnLegacy      LiveKind = "turn"
 	liveAllIsLostLegacy LiveKind = "allIsLost"

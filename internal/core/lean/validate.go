@@ -533,12 +533,3 @@ func (v *validator) officers(c *Company, path string) {
 		v.rep.Add(Issue{Path: Join(Join(path, "heroes"), "who"), Message: "the starting heroes are chosen by unit name: only units and except count here", Hint: "list the units that may lead (units) or the ones that may not (except)"})
 	}
 }
-
-func inList(list []string, key string) bool {
-	for _, x := range list {
-		if NameKey(x) == key {
-			return true
-		}
-	}
-	return false
-}

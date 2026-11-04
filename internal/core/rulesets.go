@@ -452,14 +452,6 @@ func (r *Rulesets) lowersOf(ctx context.Context, vanilla, glossary []byte) (*low
 	return against, warns, nil
 }
 
-// validate checks the file against the JSON schema of its kind and returns the report as the error (nil when it passes).
-func (r *Rulesets) validate(kind RulesetKind, content []byte) error {
-	if rep := r.validateSchema(kind, content); rep.Errors() > 0 {
-		return rep
-	}
-	return nil
-}
-
 // validateSchema checks the file against the JSON schema of its kind.
 func (r *Rulesets) validateSchema(kind RulesetKind, content []byte) *RulesetReport {
 	file := kind.fileName()

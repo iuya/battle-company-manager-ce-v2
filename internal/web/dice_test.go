@@ -23,7 +23,7 @@ func TestScenarioRollFollowsTheDieOfTheRules(t *testing.T) {
 	done := m
 	done.Scenario = &core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Rescue"}
 	f.camp.EXPECT().SetScenario(gomock.Any(), frodo, int64(7), int64(3), 4, core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Rescue"}).Return(done, nil)
-	rec := f.do(f.signedIn(form(matchPath+"/scenario/roll", url.Values{"revision": {"4"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/scenario/roll", url.Values{"revision": {"4"}})))
 	body := rec.Body.String()
 	if rec.Code != 200 || !strings.Contains(body, "Rolled <strong>8</strong> (table 3) and <strong>1</strong>") || len(sides) != 2 || sides[0] != 8 || sides[1] != 8 {
 		t.Errorf("an 8 and a 1 on d8 dice pick table 3: %d %v %s", rec.Code, sides, body)

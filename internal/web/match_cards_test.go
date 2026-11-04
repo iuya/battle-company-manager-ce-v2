@@ -25,7 +25,7 @@ func TestMatchPageDrawsItsCardsInline(t *testing.T) {
 	f := atoFixture(t)
 	f.camp.EXPECT().AgainstTheOdds(gomock.Any(), frodo, int64(7), int64(3)).Return(atoCard(), nil)
 	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), liveLogPage).Return(logEntries(2, 5), nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	for _, want := range []string{`id="ato"`, `name="bonus" value="toolKit"`, "Match log"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the page lacks %q", want)
@@ -46,7 +46,7 @@ func TestMatchPageDrawsItsCardsInline(t *testing.T) {
 func TestMatchPageCardThatFailsStaysLazy(t *testing.T) {
 	f := atoFixture(t)
 	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), liveLogPage).Return(logEntries(2, 5), nil)
-	rec := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))) // the ATO card is not stubbed: it errors
+	rec := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))) // the ATO card is not stubbed: it errors
 	if rec.Code != 200 {
 		t.Fatalf("%d", rec.Code)
 	}
@@ -61,7 +61,7 @@ func TestMatchPageSendsItsGenerationToTheStream(t *testing.T) {
 	f.camp.EXPECT().LiveGeneration(gomock.Any(), frodo, int64(7), int64(3)).Return("4.41", nil)
 	f.camp.EXPECT().AgainstTheOdds(gomock.Any(), frodo, int64(7), int64(3)).Return(atoCard(), nil)
 	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), liveLogPage).Return(logEntries(2, 5), nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	if tag := slotTag(t, body, "live-log-slot"); !strings.Contains(tag, `data-live-since="4.41"`) {
 		t.Errorf("the log slot carries the generation: %s", tag)
 	}
@@ -71,7 +71,7 @@ func TestMatchPageSendsItsGenerationToTheStream(t *testing.T) {
 func TestMatchPageWithoutAGenerationNamesNone(t *testing.T) {
 	f := atoFixture(t)
 	f.camp.EXPECT().Log(gomock.Any(), frodo, int64(7), int64(3), int64(0), liveLogPage).Return(logEntries(2, 5), nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	if tag := slotTag(t, body, "live-log-slot"); strings.Contains(tag, "data-live-since") {
 		t.Errorf("no generation to send: %s", tag)
 	}

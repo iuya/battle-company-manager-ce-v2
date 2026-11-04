@@ -90,7 +90,7 @@ func TestArmoryTabLinksTheGlossaryInItemDescriptions(t *testing.T) {
 	if got := strings.Join(linkTextsIn(body, "while mounted and a"), ","); got != "lance,spear" {
 		t.Errorf("war spear links: %q", got)
 	}
-	if got := linkTextsIn(body, "Gives its mount:"); got != nil && len(got) > 1 {
+	if got := linkTextsIn(body, "Gives its mount:"); len(got) > 1 {
 		t.Errorf("unexpected links %q", got)
 	}
 	if !strings.Contains(body, `class="term-link" hx-boost="false" data-concept data-tip-title="Mountain Dweller"`) {

@@ -88,8 +88,8 @@ func EndAccessFor(u User, m Match, companies []CampaignCompany, organiserID int6
 	}
 }
 
-// matchCompanies lists the companies of every side, in the match's order.
-func matchCompanies(m Match) []CampaignCompany {
+// AllCompanies lists the companies of every side, in the match's order.
+func (m Match) AllCompanies() []CampaignCompany {
 	var out []CampaignCompany
 	for _, s := range m.Sides {
 		out = append(out, s.Companies...)
@@ -134,7 +134,7 @@ func companyNames(list []EndConfirmation) string {
 	return strings.Join(names, ", ")
 }
 
-// MissingVote is an MVP vote still to be made before a competitive match can end (docs/simplify-matches-spec.md, D7): the owner of a
+// MissingVote is an MVP vote still to be made before a competitive match can end (docs/matches.md, "Ending a match"): the owner of a
 // company of the match has not voted a unit of the opposing company Company.
 type MissingVote struct {
 	OwnerID   int64
@@ -214,7 +214,7 @@ func (s *Matches) ProposeEnd(ctx context.Context, user User, id, matchID int64, 
 		}
 		now := time.Now()
 		p := EndProposal{ProposedBy: user.DisplayName, ProposedByID: user.ID, ProposedOn: now}
-		for _, c := range matchCompanies(*m) {
+		for _, c := range m.AllCompanies() {
 			e := EndConfirmation{CompanyID: c.ID, OwnerID: c.OwnerID, CompanyName: c.Name}
 			if c.OwnerID == user.ID && user.ID != 0 {
 				e.Confirmed, e.By, e.On = true, user.DisplayName, now

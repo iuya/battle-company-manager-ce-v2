@@ -744,15 +744,11 @@ func TestSecretObjectivesAreTheirAuthorsUntilTheEnd(t *testing.T) {
 		t.Errorf("the author undoes: %v", err)
 	}
 
-	// after the end everything is revealed, the score is ready for the result form
+	// after the end everything is revealed
 	f.repo.ended[1], f.match.Ended = true, true
 	view, err := f.svc.SecretObjectives(f.ctx, them, 5, 1)
 	if err != nil || !view.Revealed || len(view.Lines) == 0 {
 		t.Fatalf("revealed: %+v %v", view, err)
-	}
-	points, lines, ok, err := f.svc.SecretScore(f.ctx, them, 5, 1, 1)
-	if err != nil || !ok || points != 3 || len(lines) != 1 {
-		t.Errorf("score: %d %+v %v %v", points, lines, ok, err)
 	}
 	log, _ = f.svc.Log(f.ctx, them, 5, 1, 0, 50)
 	seen := 0

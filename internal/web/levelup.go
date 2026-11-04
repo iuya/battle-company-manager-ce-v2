@@ -124,15 +124,7 @@ func (s *Server) handleLevelUpPanel(w http.ResponseWriter, r *http.Request) {
 
 // handleLevelUpRoll makes the roll: the player's own dice (a D6 for a warrior, the sums of two pairs for a hero) or the app's.
 func (s *Server) handleLevelUpRoll(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}
@@ -150,15 +142,7 @@ func (s *Server) handleLevelUpRoll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLevelUpChoose(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}
@@ -175,15 +159,7 @@ func (s *Server) handleLevelUpChoose(w http.ResponseWriter, r *http.Request) {
 
 // handleLevelUpReroll spends an Against the Odds re-roll on a result.
 func (s *Server) handleLevelUpReroll(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}

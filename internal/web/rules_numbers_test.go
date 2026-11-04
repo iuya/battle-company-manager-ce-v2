@@ -109,7 +109,7 @@ func TestTheEndMatchSheetPrintsTheExperienceOfTheRules(t *testing.T) {
 	ec := endChecksFixture()
 	ec.ObjectiveXP, ec.MVPXP = 2, 4
 	f.camp.EXPECT().EndChecks(gomock.Any(), frodo, int64(7), int64(3)).Return(ec, nil)
-	body := htmxGet(f, matchPath+"/end/sheet").Body.String()
+	body := htmxGet(f, testMatchPath+"/end/sheet").Body.String()
 	if !strings.Contains(body, "· 2 experience each") || !strings.Contains(body, "· 4 experience") || strings.Contains(body, "· 1 experience") {
 		t.Errorf("the sheet says 2 and 4 experience")
 	}

@@ -806,15 +806,18 @@ func (a ArmouryItem) Offered() bool { return a.Blocker != BlockedByRule }
 func OrderUnits(units []CompanyUnit, saved []int64) []CompanyUnit {
 	out := slices.Clone(units)
 	slices.SortStableFunc(out, func(a, b CompanyUnit) int { return a.Role.order() - b.Role.order() })
-	if len(saved) == 0 {
-		return out
-	}
+	sortBySaved(out, saved, func(u CompanyUnit) int64 { return u.ID })
+	return out
+}
+
+// sortBySaved moves the items saved names (by id) to the front, in that order; the others keep their order behind them.
+func sortBySaved[T any](items []T, saved []int64, id func(T) int64) {
 	rank := map[int64]int{}
-	for i, id := range saved {
-		rank[id] = i + 1
+	for i, x := range saved {
+		rank[x] = i + 1
 	}
-	slices.SortStableFunc(out, func(a, b CompanyUnit) int {
-		ra, rb := rank[a.ID], rank[b.ID]
+	slices.SortStableFunc(items, func(a, b T) int {
+		ra, rb := rank[id(a)], rank[id(b)]
 		switch {
 		case ra == 0 && rb == 0:
 			return 0
@@ -825,7 +828,6 @@ func OrderUnits(units []CompanyUnit, saved []int64) []CompanyUnit {
 		}
 		return ra - rb
 	})
-	return out
 }
 
 // DropReason applies the Battle Companies rules for dropping what a model carries and says why it cannot (empty when it can):
@@ -1011,22 +1013,7 @@ type FallenUnit struct {
 // OrderFallen puts the cemetery in the order the player chose (unit ids; units not named keep their place at the end).
 func OrderFallen(fallen []FallenUnit, saved []int64) []FallenUnit {
 	out := slices.Clone(fallen)
-	rank := map[int64]int{}
-	for i, id := range saved {
-		rank[id] = i + 1
-	}
-	slices.SortStableFunc(out, func(a, b FallenUnit) int {
-		ra, rb := rank[a.Unit.ID], rank[b.Unit.ID]
-		switch {
-		case ra == 0 && rb == 0:
-			return 0
-		case ra == 0:
-			return 1
-		case rb == 0:
-			return -1
-		}
-		return ra - rb
-	})
+	sortBySaved(out, saved, func(f FallenUnit) int64 { return f.Unit.ID })
 	return out
 }
 

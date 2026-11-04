@@ -84,38 +84,3 @@ func ttsTable(names, values []string) (string, string) {
 	}
 	return strings.Join(r1, ttsTableSep), strings.Join(r2, ttsTableSep)
 }
-
-// ttsBarPositions are the pixel offsets of the bars of a table row as the model measures them (for the alignment test).
-func ttsBarPositions(row string) []int {
-	var out []int
-	x := 0
-	for _, part := range strings.SplitAfter(row, "|") {
-		if !strings.HasSuffix(part, "|") {
-			break
-		}
-		x += ttsRichWidth(part[:len(part)-1])
-		out = append(out, x)
-		x += ttsRegularWidth['|']
-	}
-	return out
-}
-
-// ttsRichWidth is the width of a text with [b]..[/b] spans and colour codes.
-func ttsRichWidth(s string) int {
-	w := 0
-	for s != "" {
-		i := strings.Index(s, "[b]")
-		if i < 0 {
-			return w + ttsTextWidth(s, false)
-		}
-		w += ttsTextWidth(s[:i], false)
-		s = s[i+3:]
-		j := strings.Index(s, "[/b]")
-		if j < 0 {
-			return w + ttsTextWidth(s, true)
-		}
-		w += ttsTextWidth(s[:j], true)
-		s = s[j+4:]
-	}
-	return w
-}

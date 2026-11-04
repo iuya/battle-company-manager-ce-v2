@@ -48,7 +48,7 @@ func (w *world) aftermathWardOne() {
 	set(&in, ws[0].ID, core.OutcomeCasualty, nil)
 	w.settle(arnor, m2, in, map[int64][3]int{s[0].ID: {3, 3, 1}, ws[0].ID: {2, 3, 1}}, false)
 
-	l, s, _ = w.roster(loth)
+	l, _, _ = w.roster(loth)
 	in = w.sheet(loth)
 	set(&in, l.ID, core.OutcomeCasualty, nil)
 	w.settle(loth, m2, in, map[int64][3]int{l.ID: {1, 1, 1}}, false) // 2: dead; the sergeants may take over
@@ -107,11 +107,11 @@ func (w *world) aftermathWardTwo() {
 	// a draw; Mordor was the Underdog and took Influence, Experience and the re-rolls
 	m1 := w.played(c, "Seize Ground", outcome{draw: true}, []*wco{rohan}, []*wco{mordor})
 	in := w.sheet(rohan)
-	l, s, ws := w.roster(rohan)
+	_, _, ws := w.roster(rohan)
 	set(&in, ws[0].ID, core.OutcomeCasualty, nil)
 	w.settle(rohan, m1, in, map[int64][3]int{ws[0].ID: {4, 3, 1}}, true)
 	in = w.sheet(mordor)
-	l, s, ws = w.roster(mordor)
+	_, s, ws := w.roster(mordor)
 	in.AgainstTheOdds = []string{"influence", "experience", "reroll"}
 	set(&in, s[0].ID, core.OutcomeCasualty, nil)
 	set(&in, ws[0].ID, core.OutcomeCasualty, nil)
@@ -120,11 +120,10 @@ func (w *world) aftermathWardTwo() {
 	w.dice.Set(5, 5)
 	_, err := w.c().RerollCasualty(w.ctx, c.org, c.id, m1.ID, mordor.id, ws[0].ID, nil, false)
 	w.try("re-roll a casualty", err)
-	_ = l
 
 	// a Leader fell in Arnor: the successor and a new Sergeant chosen, finished
 	m2 := w.played(c, "Rescue", outcome{winner: 1}, []*wco{arnor}, []*wco{loth})
-	l, s, _ = w.roster(arnor)
+	l, _, _ := w.roster(arnor)
 	in = w.sheet(arnor)
 	set(&in, l.ID, core.OutcomeCasualty, nil)
 	a = w.settle(arnor, m2, in, map[int64][3]int{l.ID: {1, 1, 1}}, false)
@@ -134,9 +133,11 @@ func (w *world) aftermathWardTwo() {
 	if a.Succession != nil && a.Succession.NeedSergeant && len(a.Succession.SergeantOptions) > 0 {
 		a = w.decide(arnor, m2, core.AftermathAnswer{Kind: "sergeant", Answer: itoa(a.Succession.SergeantOptions[0])})
 	}
-	if a.Status == core.AftermathLevelUps {
+	switch a.Status { // with no reward choice open the aftermath has finished on its own
+	case core.AftermathLevelUps:
 		w.finishAftermath(arnor, m2)
-	} else {
+	case core.AftermathDone:
+	default:
 		w.gap("the succession of %s was not settled (status %s)", arnor.name, a.Status)
 	}
 	// the Elves survived the Rescue: the Leader earns the extra Experience (survival of the fittest)

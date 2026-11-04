@@ -75,15 +75,6 @@ func (d *FixedDice) Die(sides int) int {
 
 func (d *FixedDice) Roll(spec DiceSpec) int { return sumDice(d, spec) }
 
-// ParseDiceAt reads a dice string of the rules file; the error names the path of the key.
-func ParseDiceAt(path, s string) (DiceSpec, error) {
-	spec, err := lean.ParseDice(s)
-	if err != nil {
-		return DiceSpec{}, fmt.Errorf("%s: %w", path, err)
-	}
-	return spec, nil
-}
-
 // CheckCovers says whether the ranges [lo, hi] (one per table row) cover every total of the spec exactly once and nothing outside
 // it. path names the table in the error.
 func CheckCovers(path string, spec DiceSpec, ranges [][2]int) error {

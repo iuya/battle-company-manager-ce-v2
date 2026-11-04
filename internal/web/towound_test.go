@@ -99,7 +99,7 @@ func TestToWoundButtonAndWindowAreOnTheMatchAndLivePages(t *testing.T) {
 	}
 	// the match page: the window after #match
 	f = matchWrite(t, editableMatch())
-	body = f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body = f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	if !strings.Contains(body, "data-to-wound-open") || !strings.Contains(body, `id="to-wound-dialog"`) {
 		t.Error("the match page has the button and the window")
 	}

@@ -136,7 +136,7 @@ func TestAftermathStartRecoversAbsentUnitsAndCreditsRerolls(t *testing.T) {
 	}
 }
 
-// Nothing to decide (no casualty, no reward to choose): Start aftermath finishes it at once (docs/simplify-matches-spec.md, D15).
+// Nothing to decide (no casualty, no reward to choose): Start aftermath finishes it at once (docs/aftermath.md, "Flow").
 func TestAftermathWithoutCasualtiesFinishesAtOnce(t *testing.T) {
 	f := newAmFixture(t)
 	xp := f.unit(t, 6).XP
@@ -379,7 +379,7 @@ func TestAftermathPermissionsAndRefusals(t *testing.T) {
 		t.Errorf("company not in the match: %v", err)
 	}
 	a, err := f.svc.Aftermath(f.ctx, other, 5, 1, 1)
-	if err != nil || a.Access != AftermathNone || len(a.Input.Models) == 0 || a.Status != AftermathPending || a.Preview.InfluenceTotal() != 4 {
+	if err != nil || a.Access != AftermathNone || len(a.Input.Models) == 0 || a.Status != AftermathPending {
 		t.Fatalf("another player reads: %+v %v", a, err)
 	}
 	if _, err := f.svc.SaveAftermath(f.ctx, other, 5, 1, 1, 0, a.Input); !errors.Is(err, ErrRefused) {

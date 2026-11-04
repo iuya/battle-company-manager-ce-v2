@@ -8,10 +8,8 @@ import (
 	"os"
 
 	"github.com/jackc/pgx/v5"
-	"go-simpler.org/env"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
-	"github.com/iuya/battle-company-manager-ce-v2/internal/postgres"
 )
 
 const seedUsage = `usage: server seed [--world] [--password <password>]
@@ -44,12 +42,8 @@ func runSeed(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return errors.New(seedUsage)
 	}
-	var cfg config
-	if err := env.Load(&cfg, nil); err != nil {
-		return err
-	}
 	ctx := context.Background()
-	store, err := postgres.Open(ctx, cfg.DatabaseURL)
+	store, databaseURL, err := openStore(ctx)
 	if err != nil {
 		return err
 	}
@@ -60,7 +54,7 @@ func runSeed(args []string) error {
 		if err != nil {
 			return err
 		}
-		conn, err := pgx.Connect(ctx, cfg.DatabaseURL)
+		conn, err := pgx.Connect(ctx, databaseURL)
 		if err != nil {
 			return err
 		}
@@ -166,7 +160,7 @@ func seed(ctx context.Context, b *backend, password string) error {
 			return fmt.Errorf("waive the aftermath of %s: %w", co.Name, err)
 		}
 	}
-	if _, err = c.CreateMatch(ctx, organiser, camp.ID, core.NewMatch{Sides: []core.NewSide{{Name: "Gondor", Companies: []int64{companies[1].ID}}, {Name: "Rohan", Companies: []int64{companies[2].ID}}, {Name: "Mordor", Companies: []int64{companies[3].ID}}}}); err != nil {
+	if _, err = c.CreateMatch(ctx, organiser, camp.ID, core.NewMatch{Sides: []core.NewSide{{Companies: []int64{companies[1].ID}}, {Companies: []int64{companies[2].ID}}, {Companies: []int64{companies[3].ID}}}}); err != nil {
 		return err
 	}
 	fmt.Printf("Seeded %q. Sign in with any of %s, %s, %s, %s and the password given (default demo-password).\n",
@@ -218,7 +212,7 @@ func endNow(ctx context.Context, c *campaignsFacade, organiser core.User, campai
 	return c.OverrideEnd(ctx, organiser, campaignID, matchID, m.Revision, "Demo data: ended without the players' confirmation")
 }
 
-// voteMissing casts the MVP votes a competitive match still needs before it can end (docs/simplify-matches-spec.md, D7): each owner
+// voteMissing casts the MVP votes a competitive match still needs before it can end (docs/matches.md, "Ending a match"): each owner
 // votes the first unit of every opposing company that took part, as the demo data does not say who stood out.
 func voteMissing(ctx context.Context, c *campaignsFacade, campaignID, matchID int64) error {
 	missing, err := c.liveSvc.MissingVotes(ctx, campaignID, matchID, 0)

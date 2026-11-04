@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/sha256"
 	"errors"
 	"strings"
@@ -46,8 +47,8 @@ func TestNewToken(t *testing.T) {
 	if _, err := newToken(bytes.NewReader([]byte{1, 2})); err == nil {
 		t.Fatal("a short read is an error")
 	}
-	x, _ := newToken(defaultRandom())
-	y, _ := newToken(defaultRandom())
+	x, _ := newToken(rand.Reader)
+	y, _ := newToken(rand.Reader)
 	if x == y {
 		t.Fatal("two tokens differ")
 	}
@@ -72,3 +73,6 @@ func TestErrors(t *testing.T) {
 		t.Fatal("NotPendingError is ErrNotPending")
 	}
 }
+
+// withArgon lowers the password hashing cost in tests.
+func withArgon(p argonParams) ServiceOption { return func(o *serviceOptions) { o.argon = p } }

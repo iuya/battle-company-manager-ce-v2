@@ -80,7 +80,6 @@ func (w *world) injuryCampaign() {
 
 	// treatments by Rohan: a warrior is treated, broken honour goes to the healers, a leg wound is a near miss waiting for
 	// extra influence, an arm wound stays
-	_, s, ws = w.roster(rohan)
 	w.treatWarriors(rohan)
 	for _, u := range w.detail(rohan).Roster {
 		for _, inj := range u.Injuries {

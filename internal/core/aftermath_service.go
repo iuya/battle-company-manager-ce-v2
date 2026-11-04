@@ -76,7 +76,6 @@ type amEnv struct {
 	settings                       CampaignSettings
 	rules                          AftermathRules
 	outcome                        string
-	fled                           bool
 	access                         AftermathAccess
 	practice                       bool         // a practice match: its aftermath is complete and empty (only Aftermath reads it; every write is refused)
 	finished                       bool         // the campaign is finished: the aftermath can be read, not changed
@@ -94,7 +93,7 @@ func (s *AftermathService) load(ctx context.Context, user User, id, matchID, com
 	if err != nil {
 		return nil, err
 	}
-	outcome, fled, ok := CompanyOutcome(m, companyID)
+	outcome, ok := CompanyOutcome(m, companyID)
 	if !ok {
 		return nil, ErrNotFound
 	}
@@ -111,7 +110,7 @@ func (s *AftermathService) load(ctx context.Context, user User, id, matchID, com
 	}
 	if m.Practice { // nothing to roll: no rules are read and the company is never touched
 		return &amEnv{campaignID: id, matchID: matchID, companyID: companyID, user: user, match: m, company: co, practice: true,
-			outcome: outcome, fled: fled, access: AftermathAccessFor(user, m, co, camp.OrganiserID), finished: camp.Status == CampaignFinished}, nil
+			outcome: outcome, access: AftermathAccessFor(user, m, co, camp.OrganiserID), finished: camp.Status == CampaignFinished}, nil
 	}
 	h, settings, err := s.campaigns.Hashes(ctx, id)
 	if err != nil {
@@ -126,7 +125,7 @@ func (s *AftermathService) load(ctx context.Context, user User, id, matchID, com
 		return nil, err
 	}
 	env := &amEnv{campaignID: id, matchID: matchID, companyID: companyID, user: user, match: m, company: co, organiser: camp.OrganiserID,
-		rs: rs, settings: settings, rules: rules, outcome: outcome, fled: fled, access: AftermathAccessFor(user, m, co, camp.OrganiserID), finished: camp.Status == CampaignFinished}
+		rs: rs, settings: settings, rules: rules, outcome: outcome, access: AftermathAccessFor(user, m, co, camp.OrganiserID), finished: camp.Status == CampaignFinished}
 	if s.ato != nil {
 		rec, err := s.ato.Get(ctx, id, matchID)
 		if err != nil {
@@ -179,7 +178,7 @@ func (e *amEnv) context(st CompanyState, rec AftermathRecord) AftermathContext {
 	if roster == nil {
 		roster = e.detail(st).Roster
 	}
-	return AftermathContext{Rules: e.rules, Outcome: e.outcome, Fled: e.fled, Scenario: e.scenarioName(),
+	return AftermathContext{Rules: e.rules, Outcome: e.outcome, Scenario: e.scenarioName(),
 		Result: e.match.Result.Company(e.companyID), Roster: roster}
 }
 
@@ -203,7 +202,7 @@ func (s *AftermathService) view(ctx context.Context, e *amEnv, st CompanyState, 
 	if status == "" {
 		status = AftermathPending
 	}
-	a := Aftermath{MatchID: e.matchID, CompanyID: e.companyID, Status: status, Revision: rec.Revision, Outcome: e.outcome, Fled: e.fled,
+	a := Aftermath{MatchID: e.matchID, CompanyID: e.companyID, Status: status, Revision: rec.Revision, Outcome: e.outcome,
 		Absent: slices.Clone(rec.Work.Absent), Casualties: slices.Clone(rec.Work.Casualties), Lines: slices.Clone(rec.Lines),
 		Rerolls: rec.Work.Rerolls, WaivedNote: rec.Work.WaivedNote, Access: e.access}
 	on := time.Time{}
@@ -797,7 +796,7 @@ func decideSuccession(e *amEnv, st *CompanyState, rec *AftermathRecord, ans Afte
 	return Refuse("That is not what the company has to choose now.")
 }
 
-// advance moves the aftermath on as far as it can without the player (docs/simplify-matches-spec.md, D15): the injuries step closes when
+// advance moves the aftermath on as far as it can without the player (docs/aftermath.md, "Flow"): the injuries step closes when
 // every casualty is rolled and no question is open (and, with re-rolls left, the player moved on), the effects are applied, the
 // Leader's succession is settled and the experience goes to the units; then, when no scenario reward waits for a choice, the aftermath
 // finishes on its own. Level-up rolls never hold it: they wait on the unit cards.

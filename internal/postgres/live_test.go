@@ -16,15 +16,14 @@ import (
 
 // liveWorld is a campaign with two companies in an open match.
 type liveWorld struct {
-	s        *Store
-	ctx      context.Context
-	org, p2  core.User
-	p3       core.User
-	camp     int64
-	a, b     core.CampaignCompany
-	match    core.Match
-	unitsOf  map[int64][]int64
-	campaign core.NewCampaign
+	s       *Store
+	ctx     context.Context
+	org, p2 core.User
+	p3      core.User
+	camp    int64
+	a, b    core.CampaignCompany
+	match   core.Match
+	unitsOf map[int64][]int64
 }
 
 func newLiveWorld(t *testing.T, tag string) liveWorld {

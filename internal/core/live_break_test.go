@@ -402,14 +402,14 @@ func TestMatchDefaults(t *testing.T) {
 	if _, ok, err := f.svc.MatchDefaults(f.ctx, 5, 1); err != nil || ok {
 		t.Fatalf("no live data yet: %v %v", ok, err)
 	}
-	for company, owner := range map[int64]int64{2: liveOwner2, 3: liveOwner3} { // the other team is two companies
-		theirs, _ := f.svc.Live(f.ctx, f.user(owner), 5, company)
+	for _, side := range []struct{ company, owner int64 }{{2, liveOwner2}, {3, liveOwner3}} { // the other team is two companies, in this order
+		theirs, _ := f.svc.Live(f.ctx, f.user(side.owner), 5, side.company)
 		for _, u := range theirs.Units {
-			if _, _, err := f.svc.Apply(f.ctx, f.user(owner), 5, 1, company, LiveAction{Kind: LiveDied, UnitID: u.UnitID}); err != nil {
+			if _, _, err := f.svc.Apply(f.ctx, f.user(side.owner), 5, 1, side.company, LiveAction{Kind: LiveDied, UnitID: u.UnitID}); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if company == 2 {
+		if side.company == 2 {
 			d, _, _ := f.svc.MatchDefaults(f.ctx, 5, 1)
 			if len(d.EnemyBroken) != 0 {
 				t.Fatal("setup")

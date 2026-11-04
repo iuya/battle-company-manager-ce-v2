@@ -80,28 +80,36 @@ func HashInviteToken(token string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// Invite makes a link for the campaign. Only its organiser and administrators may (ErrRefused), and not once it is finished;
-// ErrNotFound when the user is not in the campaign.
-func (s *Invites) Invite(ctx context.Context, user User, campaignID int64) (Invite, error) {
-	camp, err := s.campaigns.Get(ctx, user.ID, campaignID)
+// mint checks that the actor may invite to the campaign and makes a new link: what the player gets and what is stored.
+func (s *Invites) mint(ctx context.Context, actor User, campaignID int64) (Invite, NewInvite, error) {
+	camp, err := s.campaigns.Get(ctx, actor.ID, campaignID)
 	if err != nil {
-		return Invite{}, err
+		return Invite{}, NewInvite{}, err
 	}
 	switch {
-	case !camp.CanManage(user):
-		return Invite{}, Refuse("Only the organiser of the campaign can invite players.")
+	case !camp.CanManage(actor):
+		return Invite{}, NewInvite{}, Refuse("Only the organiser of the campaign can invite players.")
 	case camp.Status == CampaignPaused:
-		return Invite{}, ErrCampaignPaused
+		return Invite{}, NewInvite{}, ErrCampaignPaused
 	case camp.Status == CampaignFinished:
-		return Invite{}, Refuse("The campaign is finished.")
+		return Invite{}, NewInvite{}, Refuse("The campaign is finished.")
 	}
 	raw := make([]byte, 32)
 	if _, err := io.ReadFull(s.random, raw); err != nil {
-		return Invite{}, err
+		return Invite{}, NewInvite{}, err
 	}
 	inv := Invite{Token: base64.RawURLEncoding.EncodeToString(raw), ExpiresAt: s.now().Add(InviteLifetime), MaxUses: InviteMaxUses}
-	err = s.invites.Create(ctx, NewInvite{CampaignID: campaignID, TokenHash: HashInviteToken(inv.Token), ExpiresAt: inv.ExpiresAt, MaxUses: inv.MaxUses, CreatedBy: user.ID})
-	return inv, err
+	return inv, NewInvite{CampaignID: campaignID, TokenHash: HashInviteToken(inv.Token), ExpiresAt: inv.ExpiresAt, MaxUses: inv.MaxUses, CreatedBy: actor.ID}, nil
+}
+
+// Invite makes a link for the campaign. Only its organiser and administrators may (ErrRefused), and not once it is finished;
+// ErrNotFound when the user is not in the campaign.
+func (s *Invites) Invite(ctx context.Context, user User, campaignID int64) (Invite, error) {
+	inv, stored, err := s.mint(ctx, user, campaignID)
+	if err != nil {
+		return Invite{}, err
+	}
+	return inv, s.invites.Create(ctx, stored)
 }
 
 // Join makes the user a member of the campaign the token invites to and returns its id. An unknown, expired or used-up token is
@@ -140,23 +148,10 @@ func (s *Invites) InvalidateInvites(ctx context.Context, actor User, campaignID 
 // RegenerateInvite revokes the campaign's links and makes a new one, in one transaction. Like Invite it is refused for a paused or
 // finished campaign.
 func (s *Invites) RegenerateInvite(ctx context.Context, actor User, campaignID int64) (Invite, error) {
-	camp, err := s.campaigns.Get(ctx, actor.ID, campaignID)
+	inv, stored, err := s.mint(ctx, actor, campaignID)
 	if err != nil {
 		return Invite{}, err
 	}
-	switch {
-	case !camp.CanManage(actor):
-		return Invite{}, Refuse("Only the organiser of the campaign can invite players.")
-	case camp.Status == CampaignPaused:
-		return Invite{}, ErrCampaignPaused
-	case camp.Status == CampaignFinished:
-		return Invite{}, Refuse("The campaign is finished.")
-	}
-	raw := make([]byte, 32)
-	if _, err := io.ReadFull(s.random, raw); err != nil {
-		return Invite{}, err
-	}
-	inv := Invite{Token: base64.RawURLEncoding.EncodeToString(raw), ExpiresAt: s.now().Add(InviteLifetime), MaxUses: InviteMaxUses}
-	_, err = s.invites.Replace(ctx, NewInvite{CampaignID: campaignID, TokenHash: HashInviteToken(inv.Token), ExpiresAt: inv.ExpiresAt, MaxUses: inv.MaxUses, CreatedBy: actor.ID})
+	_, err = s.invites.Replace(ctx, stored)
 	return inv, err
 }

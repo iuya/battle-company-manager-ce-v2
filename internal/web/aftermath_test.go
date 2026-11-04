@@ -30,7 +30,7 @@ func twoAftermaths(a, b core.AftermathStatus) []core.AftermathRef {
 
 func TestAftermathCardIsHiddenWhileTheMatchIsOpen(t *testing.T) {
 	f := matchWrite(t, editableMatch())
-	if body := f.do(f.signedIn(httpGet(matchPath))).Body.String(); strings.Contains(body, `id="aftermath"`) {
+	if body := f.do(f.signedIn(httpGet(testMatchPath))).Body.String(); strings.Contains(body, `id="aftermath"`) {
 		t.Error("an open match has no Aftermath card")
 	}
 }
@@ -38,7 +38,7 @@ func TestAftermathCardIsHiddenWhileTheMatchIsOpen(t *testing.T) {
 func TestAftermathCardForAPlayer(t *testing.T) {
 	f := matchWrite(t, endedMatch())
 	f.aftermaths = twoAftermaths(core.AftermathPending, core.AftermathInjuries)
-	body := f.do(f.signedIn(httpGet(matchPath))).Body.String()
+	body := f.do(f.signedIn(httpGet(testMatchPath))).Body.String()
 	for _, want := range []string{`id="aftermath"`, "Rangers", "Raiders", ">Pending<", ">In progress<", "/campaigns/7/matches/3/aftermath/1", "/campaigns/7/matches/3/aftermath/2"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("card lacks %q", want)
@@ -64,7 +64,7 @@ func TestAftermathCardForTheOrganiserOffersWaiveAndContinue(t *testing.T) {
 	f.camp.EXPECT().Aftermath(gomock.Any(), gandalf, int64(7), int64(3), int64(2)).Return(core.Aftermath{
 		Status: core.AftermathDone, Casualties: []core.Casualty{{ResultKey: "dead"}, {ResultKey: "injured"}},
 		Preview: core.AftermathPreview{Experience: []core.UnitGain{{Total: 3}, {Total: 2}}, Influence: []core.AmountLine{{Amount: 2}, {Amount: 2}}}}, nil)
-	card := f.do(f.signedInAs(gandalf, httpGet(matchPath))).Body.String()
+	card := f.do(f.signedInAs(gandalf, httpGet(testMatchPath))).Body.String()
 	card = card[strings.Index(card, `id="aftermath"`):]
 	for _, want := range []string{`/aftermath/1">Continue<`, `/aftermath/2">View<`, ">Done<", "2 casualties (1 dead) · &#43;5 Experience · &#43;4 Influence", `/aftermath/1/waive`, `name="note"`} {
 		if !strings.Contains(card, want) {
@@ -79,14 +79,14 @@ func TestAftermathCardForTheOrganiserOffersWaiveAndContinue(t *testing.T) {
 func TestAftermathCardShowsAnErrorInsteadOfFailingThePage(t *testing.T) {
 	f := matchWrite(t, endedMatch())
 	f.aftermathErr = errors.New("db down")
-	rec := f.do(f.signedIn(httpGet(matchPath)))
+	rec := f.do(f.signedIn(httpGet(testMatchPath)))
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "The aftermath could not be loaded") {
 		t.Errorf("%d\n%s", rec.Code, rec.Body.String())
 	}
 }
 
 func waivePost(f *fixture, u core.User, company string, note string) *httptest.ResponseRecorder {
-	r := form(matchPath+"/aftermath/"+company+"/waive", url.Values{"note": {note}})
+	r := form(testMatchPath+"/aftermath/"+company+"/waive", url.Values{"note": {note}})
 	r.Header.Set("HX-Request", "true")
 	return f.do(f.signedInAs(u, r))
 }
@@ -127,7 +127,7 @@ func TestWaiveAftermath(t *testing.T) {
 
 // --- the aftermath page ---
 
-const amPath = matchPath + "/aftermath/1"
+const amPath = testMatchPath + "/aftermath/1"
 
 var amRules = core.AftermathRules{
 	InjuryDice: core.DiceSpec{Count: 2, Sides: 6},
@@ -184,7 +184,7 @@ func TestAftermathPageIsReadOnlyForOthersAndLockedForOpenMatches(t *testing.T) {
 		t.Errorf("open match: %d", rec.Code)
 	}
 	f = matchWrite(t, endedMatch())
-	if rec := f.do(f.signedIn(httpGet(matchPath + "/aftermath/99"))); rec.Code != 404 {
+	if rec := f.do(f.signedIn(httpGet(testMatchPath + "/aftermath/99"))); rec.Code != 404 {
 		t.Errorf("a company that is not in the match: %d", rec.Code)
 	}
 }

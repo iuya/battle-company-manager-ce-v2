@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"errors"
+	"maps"
 	"net/http"
 	"slices"
 	"strconv"
@@ -11,7 +12,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// The End match and Confirm sheets (docs/matches.md, "Ending a match"; docs/simplify-matches-spec.md, phase 3). End match asks the
+// The End match and Confirm sheets (docs/matches.md, "Ending a match"). End match asks the
 // winner (each side by its companies, or a draw), the MVP of every opposing company (D6, D7), the objective review of the viewer's own
 // companies (D17), the scenario reward ticks when the scenario has rewards (D18) and a note, and proposes the end in one request. The
 // other owners answer with the Confirm sheet: their MVP votes, the review and ticks of their own companies, and Confirm; Change result
@@ -38,8 +39,11 @@ type endSheetView struct {
 
 // Tick is how many times the company completed the reward objective as the sheet shows it.
 func (v endSheetView) Tick(companyID int64, key string) int {
-	return v.Ticks[strconv.FormatInt(companyID, 10)+"/"+key]
+	return v.Ticks[tickKey(companyID, key)]
 }
+
+// tickKey is where a company's reward tick is kept.
+func tickKey(companyID int64, key string) string { return strconv.FormatInt(companyID, 10) + "/" + key }
 
 // Vote is the unit chosen as MVP of the ballot's company (0 for none yet).
 func (v endSheetView) Vote(companyID int64) int64 { return v.Votes[companyID] }
@@ -92,7 +96,7 @@ func (v endSheetView) PostURL() string {
 	if v.Confirm {
 		step = "confirm"
 	}
-	return "/campaigns/" + itoa(int(v.Campaign)) + "/matches/" + itoa(int(v.Match.ID)) + "/end/" + step
+	return matchPath(v.Campaign, v.Match.ID) + "/end/" + step
 }
 
 // endSheet builds the sheet for the viewer from the match and the end checks of the live mode.
@@ -100,7 +104,7 @@ func (s *Server) endSheet(r *http.Request, base campaignBase, m core.Match, conf
 	v := endSheetView{Campaign: base.Campaign.ID, Match: m, Confirm: confirm, Company: formID(r, "company"), Winner: winnerValue(m.Result), Note: m.Result.Note,
 		Votes: map[int64]int64{}, Has: map[int64]bool{}, Ticks: map[string]int{}}
 	if v.Company == 0 {
-		v.Company, _ = strconv.ParseInt(r.URL.Query().Get("company"), 10, 64)
+		v.Company = queryID(r, "company")
 	}
 	checks, err := s.campaigns.EndChecks(r.Context(), *userFrom(r.Context()), base.Campaign.ID, m.ID)
 	if err != nil && !errors.Is(err, core.ErrNotFound) {
@@ -123,7 +127,7 @@ func (s *Server) endSheet(r *http.Request, base campaignBase, m core.Match, conf
 		return v, err
 	}
 	for _, c := range checks.Objective { // the viewer sets the ticks of the companies they may edit
-		for _, co := range matchCompanies(m) {
+		for _, co := range m.AllCompanies() {
 			if co.ID == c.CompanyID {
 				v.Tickers = append(v.Tickers, co)
 			}
@@ -133,14 +137,14 @@ func (s *Server) endSheet(r *http.Request, base campaignBase, m core.Match, conf
 	for _, c := range m.Result.Companies {
 		reported[c.CompanyID] = true
 		for k, n := range c.Objectives {
-			v.Ticks[strconv.FormatInt(c.CompanyID, 10)+"/"+k] = n
+			v.Ticks[tickKey(c.CompanyID, k)] = n
 		}
 	}
 	if slices.ContainsFunc(v.Rewards, func(o core.ScenarioObjective) bool { return o.Key == "enemyBroken" }) {
 		if def, ok, err := s.campaigns.MatchDefaults(r.Context(), base.Campaign.ID, m.ID); err == nil && ok { // every opposing company Broken
 			for id := range def.EnemyBroken {
 				if !reported[id] {
-					v.Ticks[strconv.FormatInt(id, 10)+"/enemyBroken"] = 1
+					v.Ticks[tickKey(id, "enemyBroken")] = 1
 				}
 			}
 		}
@@ -169,9 +173,17 @@ func (s *Server) handleEndSheet(w http.ResponseWriter, r *http.Request) {
 	s.render.partial(w, http.StatusOK, "match", "end_sheet", v)
 }
 
-// handleEndSheetSubmit is End match (confirm false) or Confirm: the votes, the objective changes and the result, then the end proposed or
-// confirmed, in one request. A refusal answers the sheet again (422) with what was posted; success goes to the match page.
-func (s *Server) handleEndSheetSubmit(w http.ResponseWriter, r *http.Request, confirm bool) {
+// handleProposeEnd is the submit of the End match sheet, handleConfirmEnd of the Confirm sheet.
+func (s *Server) handleProposeEnd(w http.ResponseWriter, r *http.Request) {
+	s.submitEndSheet(w, r, false)
+}
+func (s *Server) handleConfirmEnd(w http.ResponseWriter, r *http.Request) {
+	s.submitEndSheet(w, r, true)
+}
+
+// submitEndSheet takes the votes, the objective changes and the result, then proposes or confirms the end, in one request. A refusal
+// answers the sheet again (422) with what was posted; success goes to the match page.
+func (s *Server) submitEndSheet(w http.ResponseWriter, r *http.Request, confirm bool) {
 	base, m, ok := s.matchCtx(w, r)
 	if !ok {
 		return
@@ -190,11 +202,9 @@ func (s *Server) handleEndSheetSubmit(w http.ResponseWriter, r *http.Request, co
 		s.render.partial(w, http.StatusUnprocessableEntity, "match", "end_sheet", v)
 	}
 	if revisionOf(r) != m.Revision {
-		cur, err := s.endSheet(r, base, m, m.EndProposal != nil)
-		if s.fail(w, r, err) {
+		if v, err = s.endSheet(r, base, m, m.EndProposal != nil); s.fail(w, r, err) {
 			return
 		}
-		v = cur
 		again("Somebody changed this match meanwhile, so this is its current state. Check it and send it again.")
 		return
 	}
@@ -206,66 +216,18 @@ func (s *Server) handleEndSheetSubmit(w http.ResponseWriter, r *http.Request, co
 		again("The end of this match has already been proposed.")
 		return
 	}
-	// what was posted, kept on the sheet if it comes back
-	v.Note = r.PostFormValue("note")
-	if w := r.PostFormValue("winner"); w != "" || !confirm {
-		v.Winner = w
-	}
-	for _, b := range v.Ballots {
-		v.Votes[b.CompanyID] = formID(r, "mvp-"+itoa(int(b.CompanyID)))
-	}
-	for _, c := range v.Objectives {
-		for _, u := range c.Units {
-			v.Has[u.UnitID] = r.PostFormValue("objective-"+itoa(int(u.UnitID))) == "1"
-		}
-	}
-	res := m.Result
-	res.Note = v.Note
-	if !confirm || r.PostFormValue("winner") != "" {
-		var okWinner bool
-		if res.Decided, res.Winner, okWinner = winnerFromForm(r, m); !okWinner {
-			again("Choose who won, or a draw.")
-			return
-		}
-	}
-	res, problems := ticksFromForm(r, res, v.Tickers, v.Rewards)
-	for _, c := range v.Tickers {
-		for _, o := range v.Rewards {
-			v.Ticks[strconv.FormatInt(c.ID, 10)+"/"+o.Key] = formInt(r, "tick-"+itoa(int(c.ID))+"-"+o.Key)
-		}
+	v.keepPosted(r, confirm)
+	res, problems := v.postedResult(r, confirm)
+	if missing := v.missingMVPs(); len(missing) > 0 && len(problems) == 0 {
+		problems = []string{"Choose the MVP of " + strings.Join(missing, " and ") + "."}
 	}
 	if len(problems) > 0 {
 		again(problems...)
 		return
 	}
-	var missing []string
-	for _, b := range v.Ballots {
-		if !slices.ContainsFunc(b.Units, func(u core.EndCheckUnit) bool { return u.UnitID == v.Votes[b.CompanyID] }) {
-			missing = append(missing, b.Name)
-		}
-	}
-	if len(missing) > 0 {
-		again("Choose the MVP of " + strings.Join(missing, " and ") + ".")
+	if err := s.applyEndEntries(r, id, v); err != nil {
+		s.sheetRefused(w, r, err, again)
 		return
-	}
-	// the live entries first: the votes and the objective switches that changed (they never cancel a pending end)
-	for _, b := range v.Ballots {
-		if vote := v.Votes[b.CompanyID]; vote != b.Current {
-			if _, _, err := s.campaigns.Apply(ctx, user, id, m.ID, b.CompanyID, core.LiveAction{Kind: core.LiveMVPVote, UnitID: vote}); err != nil {
-				s.sheetRefused(w, r, err, again)
-				return
-			}
-		}
-	}
-	for _, c := range v.Objectives {
-		for _, u := range c.Units {
-			if on := v.Has[u.UnitID]; on != u.Has {
-				if _, _, err := s.campaigns.Apply(ctx, user, id, m.ID, c.CompanyID, core.LiveAction{Kind: core.LiveObjective, UnitID: u.UnitID, On: on}); err != nil {
-					s.sheetRefused(w, r, err, again)
-					return
-				}
-			}
-		}
 	}
 	rev := m.Revision
 	if !sameResult(res, m.Result) {
@@ -285,7 +247,74 @@ func (s *Server) handleEndSheetSubmit(w http.ResponseWriter, r *http.Request, co
 		s.sheetRefused(w, r, err, again)
 		return
 	}
-	redirect(w, r, "/campaigns/"+itoa(int(id))+"/matches/"+itoa(int(m.ID)))
+	redirect(w, r, matchPath(id, m.ID))
+}
+
+// keepPosted puts what was posted on the sheet, so a refusal shows it again.
+func (v *endSheetView) keepPosted(r *http.Request, confirm bool) {
+	v.Note = r.PostFormValue("note")
+	if w := r.PostFormValue("winner"); w != "" || !confirm {
+		v.Winner = w
+	}
+	for _, b := range v.Ballots {
+		v.Votes[b.CompanyID] = formID(r, "mvp-"+itoa(int(b.CompanyID)))
+	}
+	for _, c := range v.Objectives {
+		for _, u := range c.Units {
+			v.Has[u.UnitID] = r.PostFormValue("objective-"+itoa(int(u.UnitID))) == "1"
+		}
+	}
+	for _, c := range v.Tickers {
+		for _, o := range v.Rewards {
+			v.Ticks[tickKey(c.ID, o.Key)] = formInt(r, "tick-"+itoa(int(c.ID))+"-"+o.Key)
+		}
+	}
+}
+
+// postedResult is the result the sheet reports and what is wrong with it. The Confirm sheet keeps the winner unless Change result posted one.
+func (v endSheetView) postedResult(r *http.Request, confirm bool) (core.MatchResult, []string) {
+	res := v.Match.Result
+	res.Note = v.Note
+	if !confirm || r.PostFormValue("winner") != "" {
+		var chosen bool
+		if res.Decided, res.Winner, chosen = winnerFromForm(r, v.Match); !chosen {
+			return res, []string{"Choose who won, or a draw."}
+		}
+	}
+	return ticksFromForm(r, res, v.Tickers, v.Rewards)
+}
+
+// missingMVPs names the opposing companies whose ballot has no unit of theirs chosen.
+func (v endSheetView) missingMVPs() []string {
+	var missing []string
+	for _, b := range v.Ballots {
+		if !slices.ContainsFunc(b.Units, func(u core.EndCheckUnit) bool { return u.UnitID == v.Votes[b.CompanyID] }) {
+			missing = append(missing, b.Name)
+		}
+	}
+	return missing
+}
+
+// applyEndEntries writes the live entries of the sheet: the votes and the objective switches that changed (they never cancel a pending end).
+func (s *Server) applyEndEntries(r *http.Request, id int64, v endSheetView) error {
+	ctx, user, matchID := r.Context(), *userFrom(r.Context()), v.Match.ID
+	for _, b := range v.Ballots {
+		if vote := v.Votes[b.CompanyID]; vote != b.Current {
+			if _, _, err := s.campaigns.Apply(ctx, user, id, matchID, b.CompanyID, core.LiveAction{Kind: core.LiveMVPVote, UnitID: vote}); err != nil {
+				return err
+			}
+		}
+	}
+	for _, c := range v.Objectives {
+		for _, u := range c.Units {
+			if on := v.Has[u.UnitID]; on != u.Has {
+				if _, _, err := s.campaigns.Apply(ctx, user, id, matchID, c.CompanyID, core.LiveAction{Kind: core.LiveObjective, UnitID: u.UnitID, On: on}); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // sheetRefused answers a refused step of a sheet submit: the reason on the sheet, or the error page for anything unexpected.
@@ -312,20 +341,11 @@ func sameResult(a, b core.MatchResult) bool {
 		for _, c := range r.Companies {
 			for k, n := range c.Objectives {
 				if n != 0 {
-					out[strconv.FormatInt(c.CompanyID, 10)+"/"+k] = n
+					out[tickKey(c.CompanyID, k)] = n
 				}
 			}
 		}
 		return out
 	}
-	ta, tb := ticks(a), ticks(b)
-	if len(ta) != len(tb) {
-		return false
-	}
-	for k, n := range ta {
-		if tb[k] != n {
-			return false
-		}
-	}
-	return true
+	return maps.Equal(ticks(a), ticks(b))
 }

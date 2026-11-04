@@ -62,7 +62,6 @@ type field struct {
 	noun       string
 	min, max   *float64
 	emin, emax *float64
-	rest       bool
 }
 
 type structInfo struct {

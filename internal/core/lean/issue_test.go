@@ -75,7 +75,7 @@ func TestReportDeterministicText(t *testing.T) {
 		r.Warnf("a.json", "y", "two")
 		return r.String()
 	}
-	if build() != build() || build() != "a.json: x: one\nwarn: a.json: y: two\n" {
+	if a, b := build(), build(); a != b || a != "a.json: x: one\nwarn: a.json: y: two\n" {
 		t.Fatalf("unexpected report text %q", build())
 	}
 }

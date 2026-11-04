@@ -28,9 +28,9 @@ const matchColumns = `m.id, m.number, m.played_on, m.ended, m.ended_on, m.revisi
 // matchJSON are the columns of a match that come from other tables, as JSON built by the match's own statement (one round trip for
 // the whole match instead of one per table). Times are microseconds since the epoch.
 const matchJSON = `
-	(SELECT COALESCE(jsonb_agg(jsonb_build_array(s.name, s.victory_points, coalesce(s.role, '')) ORDER BY s.position), '[]')
+	(SELECT COALESCE(jsonb_agg(s.name ORDER BY s.position), '[]')
 	   FROM match_sides s WHERE s.match_id = m.id),
-	(SELECT COALESCE(jsonb_agg(jsonb_build_array(mc.position, mc.fled, c.id, c.name, c.faction, c.owner_id, u.display_name,
+	(SELECT COALESCE(jsonb_agg(jsonb_build_array(mc.position, c.id, c.name, c.faction, c.owner_id, u.display_name,
 	                                             (SELECT count(*) FROM company_units cu WHERE cu.company_id = c.id)) ORDER BY mc.position, mc.slot), '[]')
 	   FROM match_side_companies mc JOIN companies c ON c.id = mc.company_id JOIN users u ON u.id = c.owner_id WHERE mc.match_id = m.id),
 	(SELECT jsonb_build_array(p.proposed_by, pu.display_name, (extract(epoch FROM p.proposed_on) * 1000000)::bigint, p.notice)
@@ -84,30 +84,23 @@ func (ms matchStore) load(ctx context.Context, q querier, where string, lock boo
 // fillMatch decodes matchJSON into the match.
 func fillMatch(m *core.Match, sidesJSON, companiesJSON, proposalJSON, confirmationsJSON, objectivesJSON []byte) error {
 	// Sides, in order.
-	var sides [][3]json.RawMessage
-	if err := json.Unmarshal(sidesJSON, &sides); err != nil {
+	var names []string
+	if err := json.Unmarshal(sidesJSON, &names); err != nil {
 		return err
 	}
-	for _, r := range sides {
-		var side core.MatchSide
-		var vp *int
-		if err := unmarshalAll(r[:], &side.Name, &vp, &side.Role); err != nil {
-			return err
-		}
-		_ = vp // Victory Points of older matches are no longer read (docs/simplify-matches-spec.md, D3)
-		m.Sides = append(m.Sides, side)
+	for _, name := range names {
+		m.Sides = append(m.Sides, core.MatchSide{Name: name})
 	}
 
-	// Companies of the sides (the fled flag of older matches is no longer read).
-	var companies [][8]json.RawMessage
+	// Companies of the sides.
+	var companies [][7]json.RawMessage
 	if err := json.Unmarshal(companiesJSON, &companies); err != nil {
 		return err
 	}
 	for _, r := range companies {
 		var pos int
-		var fled bool
 		var c core.CampaignCompany
-		if err := unmarshalAll(r[:], &pos, &fled, &c.ID, &c.Name, &c.Faction, &c.OwnerID, &c.Owner, &c.Units); err != nil {
+		if err := unmarshalAll(r[:], &pos, &c.ID, &c.Name, &c.Faction, &c.OwnerID, &c.Owner, &c.Units); err != nil {
 			return err
 		}
 		m.Sides[pos].Companies = append(m.Sides[pos].Companies, c)
@@ -344,13 +337,8 @@ func openMatchOf(ctx context.Context, q querier, companyID int64) (*core.OpenMat
 	return &r, nil
 }
 
-// Update runs fn on the locked match and stores the scenario, result and ended flag it leaves behind.
-func (ms matchStore) Update(ctx context.Context, campaignID, matchID int64, by core.User, fn func(*core.Match) error) (core.Match, error) {
-	tx, err := ms.s.pool.Begin(ctx)
-	if err != nil {
-		return core.Match{}, err
-	}
-	defer tx.Rollback(ctx)
+// lockMatch reads the match under a row lock held until tx ends; core.ErrNotFound when there is none.
+func (ms matchStore) lockMatch(ctx context.Context, tx pgx.Tx, campaignID, matchID int64) (core.Match, error) {
 	list, err := ms.load(ctx, tx, `m.campaign_id = $1 AND m.id = $2`, true, campaignID, matchID)
 	if err != nil {
 		return core.Match{}, err
@@ -358,7 +346,20 @@ func (ms matchStore) Update(ctx context.Context, campaignID, matchID int64, by c
 	if len(list) == 0 {
 		return core.Match{}, core.ErrNotFound
 	}
-	before := list[0]
+	return list[0], nil
+}
+
+// Update runs fn on the locked match and stores the scenario, result and ended flag it leaves behind.
+func (ms matchStore) Update(ctx context.Context, campaignID, matchID int64, by core.User, fn func(*core.Match) error) (core.Match, error) {
+	tx, err := ms.s.pool.Begin(ctx)
+	if err != nil {
+		return core.Match{}, err
+	}
+	defer tx.Rollback(ctx)
+	before, err := ms.lockMatch(ctx, tx, campaignID, matchID)
+	if err != nil {
+		return core.Match{}, err
+	}
 	m := before
 	if err := fn(&m); err != nil {
 		return core.Match{}, err
@@ -433,7 +434,7 @@ func (ms matchStore) Update(ctx context.Context, campaignID, matchID int64, by c
 			return core.Match{}, err
 		}
 	}
-	list, err = ms.load(ctx, tx, `m.id = $1`, false, matchID)
+	list, err := ms.load(ctx, tx, `m.id = $1`, false, matchID)
 	if err != nil || len(list) == 0 {
 		return core.Match{}, err
 	}

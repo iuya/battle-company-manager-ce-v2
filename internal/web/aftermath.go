@@ -9,6 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
@@ -197,7 +200,7 @@ func effectItemName(rules core.AftermathRules, key string) string {
 	if best == "" {
 		return key
 	}
-	return strings.Title(best) //nolint:staticcheck // ASCII equipment names
+	return cases.Title(language.Und, cases.NoLower).String(best)
 }
 
 // effectResultName is the chart row a Wondrous Cram counts as ("Full Recovery").
@@ -249,9 +252,6 @@ func (v aftermathView) UnitNames() string {
 	b, _ := json.Marshal(m)
 	return string(b)
 }
-
-// ItemModifier is the injury-roll modifier the saved sheet elects (Healing Herbs: +1), 0 without.
-func (v aftermathView) ItemModifier() int { return core.RollModifierOf(v.Rules, v.A.Input).Amount }
 
 // ItemBanner is the sentence of the injuries step when a modifier is in force.
 func (v aftermathView) ItemBanner() string {
@@ -552,7 +552,7 @@ type aftermathStep struct {
 	Index int
 }
 
-// Steps are the steps that apply (docs/simplify-matches-spec.md, D15): Injuries only with a casualty, Level-ups only with a roll waiting,
+// Steps are the steps that apply (docs/aftermath.md, "Flow"): Injuries only with a casualty, Level-ups only with a roll waiting,
 // Rewards only while a scenario reward waits for a choice.
 func (v aftermathView) Steps() []aftermathStep {
 	out := []aftermathStep{{"Sheet", 0}}
@@ -608,7 +608,7 @@ func (v aftermathView) ChangeSummary() string {
 		parts = append(parts, fmt.Sprintf("%d dead", dead))
 	}
 	if n := len(v.Waiting()); n > 0 {
-		parts = append(parts, fmt.Sprintf("%d level-up%s ready", n, map[bool]string{true: "", false: "s"}[n == 1]))
+		parts = append(parts, fmt.Sprintf("%d %s ready", n, core.Plural(n, "level-up", "level-ups")))
 	}
 	if len(parts) == 0 {
 		return "Nothing changed"

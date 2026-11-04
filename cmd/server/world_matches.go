@@ -148,10 +148,14 @@ func (w *world) matchCampaign() {
 	}
 }
 
-// atoAtCreation makes a match whose lower rated company took Against the Odds bonuses on the new match form (docs/simplify-matches-spec.md,
-// D9): the owner of that company creates it, with the first bonus the gap affords that needs no detail.
+// atoAtCreation makes a match whose lower rated company took Against the Odds bonuses on the new match form (docs/matches.md,
+// "New match"): the owner of that company creates it, with the first bonus the gap affords that needs no detail.
 func (w *world) atoAtCreation(c *wcamp, x, y *wco) {
 	sides := []core.NewSide{{Companies: []int64{x.id}}, {Companies: []int64{y.id}}}
+	fmt.Fprintln(w.out, "  DEBUGATO:", x.name, y.name, len(w.detail(x).Roster), len(w.detail(y).Roster))
+	for _, r := range append(w.detail(x).Roster, w.detail(y).Roster...) {
+		fmt.Fprintln(w.out, "  DEBUGU:", r.Title(), r.Points, r.PathPending, r.Path)
+	}
 	for _, who := range []*wco{x, y} {
 		card, err := w.c().PreviewAgainstTheOdds(w.ctx, who.user, c.id, sides, false)
 		w.must("Against the Odds of the new match", err)

@@ -232,7 +232,7 @@ func (s *Matches) SaveAgainstTheOdds(ctx context.Context, user User, id, matchID
 }
 
 // PreviewAgainstTheOdds is the Against the Odds block of the new match form for these sides, before the match exists
-// (docs/simplify-matches-spec.md, D9): the card the match page would show with nothing taken yet. It is editable (Access ATOEdit) only
+// (docs/matches.md, "New match"): the card the match page would show with nothing taken yet. It is editable (Access ATOEdit) only
 // for the owner of the lower rated company; Eligible is false (with Why) unless the sides are two companies with different ratings.
 func (s *Matches) PreviewAgainstTheOdds(ctx context.Context, user User, id int64, sides []NewSide, practice bool) (ATO, error) {
 	camp, err := s.campaigns.Get(ctx, user.ID, id)

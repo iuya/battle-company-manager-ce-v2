@@ -12,7 +12,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// The new match form (docs/simplify-matches-spec.md, phase 1): the scenario the server rolled, Roll again / Choose another / One-off,
+// The new match form (docs/matches.md, "New match"): the scenario the server rolled, Roll again / Choose another / One-off,
 // the user's own companies marked, and the Against the Odds block for the underdog's owner only.
 
 func newMatchFixture(t *testing.T) *fixture {

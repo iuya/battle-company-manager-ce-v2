@@ -350,7 +350,7 @@ func TestMatchesPausedCampaignFinishesOpenMatchesButStartsNone(t *testing.T) {
 }
 
 func TestAScenarioWithRolesEndsWithoutThem(t *testing.T) {
-	// the players settle Attacker and Defender at the table (docs/simplify-matches-spec.md, D1)
+	// the players settle Attacker and Defender at the table (docs/matches.md, "Concepts")
 	f := newMatchesFixture(t)
 	list, _ := f.svc.Scenarios(f.ctx, 5)
 	var roles string
@@ -442,4 +442,16 @@ func TestMatchesOrganiserGrantsTheirOwnCompany(t *testing.T) {
 	if _, err := f.svc.GrantReward(f.ctx, f.player(), 5, 1, GrantInput{Gold: 3, Note: "Own purse"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("a player cannot award even their own company: %v", err)
 	}
+}
+
+// endMatch closes the match at once when Match.CanEnd passes (unexported since 7k7). It is the internal step for an end that needs no confirmation; the pages
+// use ProposeEnd, ConfirmEnd and OverrideEnd (docs/matches.md).
+func (s *Matches) endMatch(ctx context.Context, user User, id, matchID int64, revision int) (Match, error) {
+	return s.edit(ctx, user, id, matchID, revision, func(m *Match) error {
+		if err := s.checkEnd(ctx, m, id, 0); err != nil {
+			return err
+		}
+		m.finishEnd("")
+		return nil
+	})
 }

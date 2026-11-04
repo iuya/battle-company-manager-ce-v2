@@ -122,7 +122,7 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 	numbers := []string{"", "0", "-1", "1", "2", "9", "10", "100", " 3 ", "+3", "3.5", "0x10", "2147483647", "2147483648", "-2147483649",
 		"4294967296", "9223372036854775807", "9223372036854775808", "-9223372036854775808", "99999999999999999999999"}
 	texts := []string{"", " ", "x", "courage", "left", "start", "casualties", "wounds", "might", "will", "fate", "Wounds", "mount", "rider",
-		strings.Repeat("n", 201), "\x00", "a\x00b", "\xff\xfe", "<b>x</b>'; --", "ß‮"}
+		strings.Repeat("n", 201), "\x00", "a\x00b", "\xff\xfe", "<b>x</b>'; --", "ß\u202e"}
 	bools := []string{"", "0", "1", "2", "-1", "true", "on"}
 	if !full {
 		numbers = []string{"", "0", "-1", "2", "10", "2147483648", "-2147483649", "9223372036854775807", "9223372036854775808", "-9223372036854775808"}

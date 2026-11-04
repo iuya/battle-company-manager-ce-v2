@@ -14,7 +14,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// Practice matches (docs/practice-match-spec.md): the flag comes from the creation form only, the badge and banner mark the match, and
+// Practice matches (docs/matches.md, "Practice matches"): the flag comes from the creation form only, the badge and banner mark the match, and
 // the aftermath is the short "nothing to roll" state.
 
 func practiceMatch(ended bool) core.Match {
@@ -147,7 +147,7 @@ func TestMatchPageMarksAPracticeMatch(t *testing.T) {
 	for _, ended := range []bool{false, true} {
 		f := matchWrite(t, practiceMatch(ended))
 		f.aftermaths = twoAftermaths(core.AftermathDone, core.AftermathDone)
-		body := f.do(f.signedIn(httpGet(matchPath))).Body.String()
+		body := f.do(f.signedIn(httpGet(testMatchPath))).Body.String()
 		for _, want := range []string{"data-practice-badge", "data-practice-banner", "Practice match: no experience, influence, rewards or injuries."} {
 			if !strings.Contains(body, want) {
 				t.Errorf("ended=%v lacks %q", ended, want)
@@ -164,7 +164,7 @@ func TestMatchPageMarksAPracticeMatch(t *testing.T) {
 		}
 	}
 	f := matchWrite(t, editableMatch())
-	if body := f.do(f.signedIn(httpGet(matchPath))).Body.String(); strings.Contains(body, "data-practice") {
+	if body := f.do(f.signedIn(httpGet(testMatchPath))).Body.String(); strings.Contains(body, "data-practice") {
 		t.Error("a real match has no practice marks")
 	}
 }
@@ -216,7 +216,7 @@ func TestATOCardShowsTheRewardBonusesDisabledInAPracticeMatch(t *testing.T) {
 	c.Options = append(c.Options, core.ATOOption{Key: "influence", Name: "Influence", Rating: 15, Taken: true, Reason: core.ATOPracticeReason})
 	c.Selection = core.ATOSelection{Bonuses: []string{"influence"}}
 	f.camp.EXPECT().AgainstTheOdds(gomock.Any(), frodo, int64(7), int64(3)).Return(c, nil)
-	body := htmxGet(f, matchPath+"/ato").Body.String()
+	body := htmxGet(f, testMatchPath+"/ato").Body.String()
 	if strings.Count(body, core.ATOPracticeReason) < 2 || !strings.Contains(body, "data-ato-practice") || !strings.Contains(body, `name="bonus" value="toolKit"`) {
 		t.Errorf("reward bonuses show the reason, table effects stay:\n%s", body)
 	}

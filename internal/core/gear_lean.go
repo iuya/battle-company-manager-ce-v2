@@ -23,11 +23,6 @@ type LeanGearTable struct {
 	Wanderers   []WandererOffer
 }
 
-// Armoury is what a company's heroes and warriors can buy: the common items and the company's own unique wargear.
-func (t LeanGearTable) Armoury(company string) []GearOffer {
-	return slices.Concat(t.Offers, t.Local[company])
-}
-
 // LeanClasses are the classes of an item: the ones it names, else the one its type word says (the type of the entry, else the type of
 // the vanilla item of the same name), else "other".
 func LeanClasses(g lean.Gear, vanilla *VanillaBook) []EquipmentClass {

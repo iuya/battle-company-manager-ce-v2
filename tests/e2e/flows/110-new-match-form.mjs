@@ -1,4 +1,4 @@
-// The new match form (docs/matches.md, "New match"; docs/simplify-matches-spec.md, phase 1), in the demo world's "Two bands" campaign: the
+// The new match form (docs/matches.md, "New match"), in the demo world's "Two bands" campaign: the
 // scenario the server rolled with Roll again, Choose another and One-off, the player's own companies marked and ordered, no side names or
 // roles, and the page at 360/768/1280 px in light and dark. Nothing is created: the form writes nothing until Create match.
 import { assert, campaignId, layout, SIZES } from '../lib/util.mjs';

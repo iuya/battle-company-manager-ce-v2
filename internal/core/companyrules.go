@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -22,7 +21,6 @@ type CompanyRules struct {
 	Leaders, Sergeants int        // officers of a company: a starting company has this many heroes (leaders + sergeants)
 	HeroStart          HeroStart  // what a new hero starts with
 	MaxModels          int        // the models of a company; a company's own maxModels overrides it
-	EliteMaxModels     int        // the models of an Elite company (carried by the companies' own maxModels in the shipped file)
 	EquipmentSlots     SlotCounts // the equipment slots every model has (campaign.company.equipmentSlots)
 }
 
@@ -46,17 +44,6 @@ func (w WargearThreshold) Reached(stats map[string]int) bool {
 		sum += stats[s]
 	}
 	return sum >= w.SumAtLeast
-}
-
-// problems collects the errors of a parse so one report names every path.
-type problems []string
-
-func (p *problems) add(format string, args ...any) { *p = append(*p, fmt.Sprintf(format, args...)) }
-func (p problems) err() error {
-	if len(p) == 0 {
-		return nil
-	}
-	return fmt.Errorf("%s", strings.Join(p, "; "))
 }
 
 // limitLabel is the short name a limit is shown under: the file's label without its note in brackets, first letter capitalised

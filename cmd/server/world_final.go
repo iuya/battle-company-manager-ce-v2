@@ -77,10 +77,12 @@ func (w *world) finishingTouches() {
 	if a.Status == core.AftermathInjuries && a.Succession == nil {
 		a = w.decide(shire, m, core.AftermathAnswer{Kind: "continue"})
 	}
-	if a.Status != core.AftermathLevelUps {
-		w.gap("the succession of %s was not settled (status %s, succession %+v, rerolls %d)", shire.name, a.Status, a.Succession, a.Rerolls)
-	} else {
+	switch a.Status { // with no reward choice open the aftermath has finished on its own
+	case core.AftermathLevelUps:
 		w.finishAftermath(shire, m)
+	case core.AftermathDone:
+	default:
+		w.gap("the succession of %s was not settled (status %s, succession %+v, rerolls %d)", shire.name, a.Status, a.Succession, a.Rerolls)
 	}
 	w.choosePaths(shire, 0) // the Warrior who became an officer chooses its path in the company window
 	w.show(shire)

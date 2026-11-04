@@ -1011,22 +1011,6 @@ func (s *LiveService) SecretObjectives(ctx context.Context, user User, id, match
 	return view, nil
 }
 
-// SecretScore is the Victory Points the secret objectives a company reported add up to, for the result form to prefill once the match
-// is over (ok is false when it has not ended or the company reported none).
-func (s *LiveService) SecretScore(ctx context.Context, user User, id, matchID, companyID int64) (points int, lines []SecretLine, ok bool, err error) {
-	view, err := s.SecretObjectives(ctx, user, id, matchID)
-	if err != nil || !view.Revealed {
-		return 0, nil, false, err
-	}
-	for _, l := range view.Lines {
-		if l.CompanyID == companyID && l.Tier > 0 {
-			points += l.Points
-			lines = append(lines, l)
-		}
-	}
-	return points, lines, len(lines) > 0, nil
-}
-
 // MVPHint is the tally of the MVP votes for a company, nil when nobody voted or the match has no live data. The aftermath sheet shows it
 // next to the MVP flag (the winner is prefilled by AftermathDefaults).
 func (s *LiveService) MVPHint(ctx context.Context, id, matchID, companyID int64) (*MVPHint, error) {
@@ -1190,7 +1174,7 @@ func (s *LiveService) MatchBreaks(ctx context.Context, id, matchID int64) (map[i
 	return out, nil
 }
 
-// MissingVotes lists the MVP votes a competitive match still needs before it can end (docs/simplify-matches-spec.md, D7): for the owner
+// MissingVotes lists the MVP votes a competitive match still needs before it can end (docs/matches.md, "Ending a match"): for the owner
 // ownerID (0: every owner of a company of the match), each opposing company with units that took part that they have not voted for. It
 // is what Matches.MissingVotes is set to. A match without live data has no ballots, so nothing is missing.
 func (s *LiveService) MissingVotes(ctx context.Context, id, matchID, ownerID int64) ([]MissingVote, error) {

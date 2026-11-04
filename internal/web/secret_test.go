@@ -39,7 +39,7 @@ func TestSecretCardOfAPlayerListsNominationsAndTiers(t *testing.T) {
 	f.camp.EXPECT().SecretObjectives(gomock.Any(), frodo, int64(7), int64(3)).Return(core.SecretView{
 		Lines:  []core.SecretLine{{CompanyID: 1, Key: "ownHeroSurvives", Nominee: "Hador (Sergeant)", Tier: 2, Points: 3}},
 		Others: []string{"Raiders"}}, nil)
-	body := f.do(f.signedIn(httpGet(matchPath + "/secret"))).Body.String()
+	body := f.do(f.signedIn(httpGet(testMatchPath + "/secret"))).Body.String()
 	for _, want := range []string{"Secret objectives", "ownHeroSurvives", "terrainPiece", "Hador (Sergeant)</option>", `value="6" selected`, "3 VP", `value="2" checked`, "Noted already: Raiders", "ruined tower"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("card lacks %q", want)
@@ -58,13 +58,13 @@ func TestSecretWriteAppliesTheActionAndIsRefusedForViewers(t *testing.T) {
 	f.camp.EXPECT().Apply(gomock.Any(), frodo, int64(7), int64(3), int64(1), core.LiveAction{Kind: core.LiveSecretNominate, ObjectiveKey: "ownHeroSurvives", UnitID: 6}).
 		Return(core.LiveCompany{}, core.LiveEntry{ID: 60}, nil)
 	f.camp.EXPECT().SecretObjectives(gomock.Any(), frodo, int64(7), int64(3)).Return(core.SecretView{}, nil).AnyTimes()
-	rec := f.do(f.signedIn(form(matchPath+"/secret/1", url.Values{"kind": {"nominate"}, "key": {"ownHeroSurvives"}, "unit": {"6"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/secret/1", url.Values{"kind": {"nominate"}, "key": {"ownHeroSurvives"}, "unit": {"6"}})))
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Only you can see it") || !strings.Contains(rec.Body.String(), "/live/log/60/undo") {
 		t.Errorf("nominate: %d", rec.Code)
 	}
 	f.camp.EXPECT().Apply(gomock.Any(), frodo, int64(7), int64(3), int64(1), core.LiveAction{Kind: core.LiveSecretDone, ObjectiveKey: "ownHeroSurvives", Tier: 2}).
 		Return(core.LiveCompany{}, core.LiveEntry{}, core.Refuse("Choose one of the tiers of this objective."))
-	rec = f.do(f.signedIn(form(matchPath+"/secret/1", url.Values{"kind": {"done"}, "key": {"ownHeroSurvives"}, "tier": {"2"}})))
+	rec = f.do(f.signedIn(form(testMatchPath+"/secret/1", url.Values{"kind": {"done"}, "key": {"ownHeroSurvives"}, "tier": {"2"}})))
 	if rec.Code != 422 || !strings.Contains(rec.Body.String(), "Choose one of the tiers") {
 		t.Errorf("refused: %d", rec.Code)
 	}
@@ -77,7 +77,7 @@ func TestSecretObjectivesAreRevealedAndPrefillTheResultAfterTheEnd(t *testing.T)
 	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return([]core.ScenarioInfo{fogScenario}, nil).AnyTimes()
 	line := core.SecretLine{CompanyID: 1, Company: "Rangers", Key: "ownHeroSurvives", Label: "Own hero survives", Text: "A very long rule text", Nominee: "Hador (Sergeant)", Tier: 2, Points: 3}
 	f.camp.EXPECT().SecretObjectives(gomock.Any(), frodo, int64(7), int64(3)).Return(core.SecretView{Revealed: true, Lines: []core.SecretLine{line}}, nil).AnyTimes()
-	body := f.do(f.signedIn(httpGet(matchPath + "/secret"))).Body.String()
+	body := f.do(f.signedIn(httpGet(testMatchPath + "/secret"))).Body.String()
 	if !strings.Contains(body, "revealed") || !strings.Contains(body, "Noted: Hador") || !strings.Contains(body, "Scored 3 VP") || !strings.Contains(body, "Own hero survives") || strings.Contains(body, "A very long rule text") {
 		t.Errorf("reveal: %.300s", body)
 	}

@@ -106,12 +106,8 @@ func runGrant(args []string) error {
 	if *email == "" {
 		return errors.New(userUsage)
 	}
-	var cfg config
-	if err := env.Load(&cfg, nil); err != nil {
-		return err
-	}
 	ctx := context.Background()
-	store, err := postgres.Open(ctx, cfg.DatabaseURL)
+	store, _, err := openStore(ctx)
 	if err != nil {
 		return err
 	}
@@ -125,4 +121,14 @@ func runGrant(args []string) error {
 	}
 	fmt.Printf("%s is now %s (create campaigns: %t)\n", *email, *role, *create)
 	return nil
+}
+
+// openStore opens the database the environment names and says which it is.
+func openStore(ctx context.Context) (*postgres.Store, string, error) {
+	var cfg config
+	if err := env.Load(&cfg, nil); err != nil {
+		return nil, "", err
+	}
+	store, err := postgres.Open(ctx, cfg.DatabaseURL)
+	return store, cfg.DatabaseURL, err
 }

@@ -40,9 +40,7 @@ type liveMatches interface {
 	// MatchBreaks is the Break Point state of every company of the match (the "is broken" notice of the live banner); empty without live data.
 	MatchBreaks(ctx context.Context, id, matchID int64) (map[int64]core.LiveBreak, error)
 	// SecretObjectives is what the viewer may see of the secret objectives (their own while the match is open, everybody's after it);
-	// SecretScore the Victory Points the reported tiers of a company add up to, for the result form (ok false before the end or when none).
 	SecretObjectives(ctx context.Context, user core.User, id, matchID int64) (core.SecretView, error)
-	SecretScore(ctx context.Context, user core.User, id, matchID, companyID int64) (points int, lines []core.SecretLine, ok bool, err error)
 	// RollCourage rolls (or reads the typed dice of) a Courage test of a unit in the Field; it writes nothing, the player records the
 	// result with Apply. core.ErrRefused (not an editor, roll refused, unit not in the Field or without Courage), core.ErrNotFound.
 	RollCourage(ctx context.Context, user core.User, id, matchID, unitID int64, entered []int, thrown bool) (core.CourageRoll, error)
@@ -193,7 +191,7 @@ type campaigns interface {
 	// MatchStarted says whether the game of an open match has begun (a live entry exists): the match page is then in its Playing phase and
 	// the scenario is fixed.
 	MatchStarted(ctx context.Context, id, matchID int64) (bool, error)
-	// PreviewAgainstTheOdds is the Against the Odds block of the new match form for those sides (docs/simplify-matches-spec.md, D9):
+	// PreviewAgainstTheOdds is the Against the Odds block of the new match form for those sides (docs/matches.md, "New match"):
 	// Eligible false (with Why) unless they are two companies of different ratings; Access core.ATOEdit only for the owner of the lower one.
 	PreviewAgainstTheOdds(ctx context.Context, user core.User, id int64, sides []core.NewSide, practice bool) (core.ATO, error)
 	// AgainstTheOdds loads the Against the Odds card for the viewer (never an error for "not eligible": ATO.Eligible false with Why);
@@ -486,8 +484,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/result", s.protected(s.handleSaveResult))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/live/end/banner", s.protected(s.handleEndBanner))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/end/card", s.protected(readOnly(s.handleEndCard)))
-	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/propose", s.protected(s.handleEnd(endPropose)))
-	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/confirm", s.protected(s.handleEnd(endConfirm)))
+	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/propose", s.protected(s.handleProposeEnd))
+	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/confirm", s.protected(s.handleConfirmEnd))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/withdraw", s.protected(s.handleEnd(endWithdraw)))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/cancel", s.protected(s.handleEnd(endCancel)))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/override", s.protected(s.handleEnd(endOverride)))

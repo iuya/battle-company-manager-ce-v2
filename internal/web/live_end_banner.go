@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
@@ -45,7 +44,7 @@ func (s *Server) endBannerFor(r *http.Request, base campaignBase, m core.Match, 
 	}
 	if !m.Ended {
 		if breaks, err := s.campaigns.MatchBreaks(r.Context(), base.Campaign.ID, m.ID); err == nil { // an extra: a failed read shows none
-			for _, co := range matchCompanies(m) {
+			for _, co := range m.AllCompanies() {
 				if br, ok := breaks[co.ID]; ok && br.Broken {
 					b.Broken = append(b.Broken, fmt.Sprintf("%s is broken (%d of %d casualties)", co.Name, br.Casualties, br.StartingModels))
 				}
@@ -61,8 +60,7 @@ func (s *Server) handleEndBanner(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	company, _ := strconv.ParseInt(r.URL.Query().Get("company"), 10, 64)
-	s.answerEndBanner(w, r, http.StatusOK, base, m, company, "", false, "", "")
+	s.answerEndBanner(w, r, http.StatusOK, base, m, queryID(r, "company"), "", false, "", "")
 }
 
 func (s *Server) answerEndBanner(w http.ResponseWriter, r *http.Request, status int, base campaignBase, m core.Match, company int64, notice string, isErr bool, note, noteErr string) {

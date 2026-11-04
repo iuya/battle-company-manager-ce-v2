@@ -13,7 +13,7 @@ import (
 
 // The match page (docs/matches.md). Every card lives inside #match, and every write answers with the whole of it again, so
 // the header badge, the scenario card and the result always agree with each other. Only the current phase is open
-// (docs/simplify-matches-spec.md, phase 2): Preparing (no live entry yet), Playing, Ending (an end is pending) and Ended.
+// (docs/matches.md, "The match page"): Preparing (no live entry yet), Playing, Ending (an end is pending) and Ended.
 
 // The phases of the match page.
 const (
@@ -29,7 +29,7 @@ type scenarioGroup struct {
 	Scenarios []core.ScenarioInfo
 }
 
-// SamePlayerNotes are the "Same player" notes of the match page (docs/multi-company-spec.md, 4.3): a player who owns two or more of its
+// SamePlayerNotes are the "Same player" notes of the match page (docs/matches.md, "Several companies of one player"): a player who owns two or more of its
 // companies. Never a refusal; the match counts like any other. Empty when no player has several.
 func (v matchView) SamePlayerNotes() []string {
 	var notes []string
@@ -186,11 +186,9 @@ func matchAccess(base campaignBase, m core.Match, u core.User) core.MatchAccess 
 // newMatchView gathers what the cards need; the scenario list is read only when a card shows it.
 func (s *Server) newMatchView(r *http.Request, base campaignBase, m core.Match, mode string) (matchView, error) {
 	v := matchView{campaignBase: base, Match: m, Draft: m, Mode: mode, Access: matchAccess(base, m, *userFrom(r.Context()))}
-	for _, side := range m.Sides {
-		for _, c := range side.Companies {
-			if base.Campaign.Owns(c.ID) {
-				v.Mine = append(v.Mine, c)
-			}
+	for _, c := range m.AllCompanies() {
+		if base.Campaign.Owns(c.ID) {
+			v.Mine = append(v.Mine, c)
 		}
 	}
 	if m.Ended {
@@ -234,12 +232,9 @@ func (s *Server) newMatchView(r *http.Request, base campaignBase, m core.Match, 
 			return v, err
 		}
 		if rulebook {
-			if i := slices.IndexFunc(list, func(sc core.ScenarioInfo) bool { return sc.Name == m.Scenario.Name }); i >= 0 {
-				v.Info = &list[i]
-				for _, side := range m.Sides {
-					for _, c := range side.Companies {
-						v.Combined += c.Points
-					}
+			if v.Info = core.FindScenario(list, m.Scenario.Name); v.Info != nil {
+				for _, c := range m.AllCompanies() {
+					v.Combined += c.Points
 				}
 			}
 		}
@@ -287,7 +282,7 @@ func (s *Server) handleMatch(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, r, err) {
 		return
 	}
-	if !m.Ended && v.Campaign.Status != "finished" { // read before the cards are built (they share the read scope's snapshot)
+	if !m.Ended && v.Campaign.Status != core.CampaignFinished { // read before the cards are built (they share the read scope's snapshot)
 		if gen, err := s.campaigns.LiveGeneration(r.Context(), *userFrom(r.Context()), base.Campaign.ID, m.ID); err == nil {
 			v.LiveSince = gen
 		}
@@ -399,13 +394,9 @@ func (s *Server) handleClearScenario(w http.ResponseWriter, r *http.Request) {
 
 // reasons are the messages of an error built with errors.Join(sentinel, reason...), without the sentinel.
 func reasons(err error) []string {
-	u, ok := err.(interface{ Unwrap() []error })
-	if !ok {
-		return []string{sentence(err.Error())}
-	}
 	var out []string
-	for _, e := range u.Unwrap()[1:] {
-		out = append(out, sentence(e.Error()))
+	for _, fr := range fieldReasons(err) {
+		out = append(out, fr.Msg)
 	}
 	return out
 }
@@ -484,15 +475,6 @@ func ticksFromForm(r *http.Request, res core.MatchResult, companies []core.Campa
 	return res, problems
 }
 
-// matchCompanies lists the companies of every side, in the match's order.
-func matchCompanies(m core.Match) []core.CampaignCompany {
-	var out []core.CampaignCompany
-	for _, side := range m.Sides {
-		out = append(out, side.Companies...)
-	}
-	return out
-}
-
 // scenarioObjectives are the reward ticks of the match's rulebook scenario (none for a one-off).
 func (s *Server) scenarioObjectives(r *http.Request, campaignID int64, m core.Match) ([]core.ScenarioObjective, error) {
 	if m.Scenario == nil || m.Scenario.Kind != core.ScenarioRulebook {
@@ -502,10 +484,8 @@ func (s *Server) scenarioObjectives(r *http.Request, campaignID int64, m core.Ma
 	if err != nil {
 		return nil, err
 	}
-	for _, sc := range list {
-		if sc.Name == m.Scenario.Name {
-			return sc.Objectives, nil
-		}
+	if sc := core.FindScenario(list, m.Scenario.Name); sc != nil {
+		return sc.Objectives, nil
 	}
 	return nil, nil
 }
@@ -527,11 +507,11 @@ func (s *Server) handleSaveResult(w http.ResponseWriter, r *http.Request) {
 	}
 	res := core.MatchResult{Note: r.PostFormValue("note"), Companies: m.Result.Companies}
 	var problems []string
-	var ok2 bool
-	if res.Decided, res.Winner, ok2 = winnerFromForm(r, m); !ok2 {
+	var chosen bool
+	if res.Decided, res.Winner, chosen = winnerFromForm(r, m); !chosen {
 		problems = append(problems, "Choose who won, or a draw")
 	}
-	res, more := ticksFromForm(r, res, matchCompanies(m), objectives)
+	res, more := ticksFromForm(r, res, m.AllCompanies(), objectives)
 	problems = append(problems, more...)
 	show := func(msg string) func(*matchView) {
 		return func(v *matchView) {
@@ -559,7 +539,7 @@ func endAccess(r *http.Request, base campaignBase, m core.Match) core.EndAccess 
 	if base.Campaign.Status == core.CampaignFinished {
 		return core.EndAccess{Reason: "The campaign is finished."}
 	}
-	return core.EndAccessFor(*userFrom(r.Context()), m, matchCompanies(m), base.Campaign.OrganiserID)
+	return core.EndAccessFor(*userFrom(r.Context()), m, m.AllCompanies(), base.Campaign.OrganiserID)
 }
 
 // handleEndCard answers the pending-end card (and the End match button, out of band) for the live refresh of the match page.
@@ -575,24 +555,18 @@ func (s *Server) handleEndCard(w http.ResponseWriter, r *http.Request) {
 	s.render.partial(w, http.StatusOK, "match", "end_card_slot", v)
 }
 
-// The five answers to the end of a match (docs/matches.md): propose it, confirm or withdraw one's companies, cancel it ("Keep playing") and
-// the organiser's override. Propose and Confirm come from the End match and Confirm sheets (end_sheet.go).
+// The answers to a pending end of a match (docs/matches.md): withdraw one's companies, cancel it ("Keep playing") and the organiser's
+// override. Propose and Confirm come from the End match and Confirm sheets (end_sheet.go).
 type endStep int
 
 const (
-	endPropose endStep = iota
-	endConfirm
-	endWithdraw
+	endWithdraw endStep = iota
 	endCancel
 	endOverride
 )
 
 func (s *Server) handleEnd(step endStep) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if step == endPropose || step == endConfirm {
-			s.handleEndSheetSubmit(w, r, step == endConfirm)
-			return
-		}
 		base, m, ok := s.matchCtx(w, r)
 		if !ok {
 			return
@@ -644,7 +618,19 @@ func (s *Server) handleEnd(step endStep) http.HandlerFunc {
 	}
 }
 
-// handleScenarioRoll is Roll again on the match page (docs/simplify-matches-spec.md, D4): the server rolls both dice of the scenario
+// rollScenario rolls both dice of the selection (always the server's dice) until they point at a scenario of the list, a few tries at
+// most: a pair of dice the file places no scenario on is rolled again. found is false after the last try, whose dice it gives.
+func (s *Server) rollScenario(sel core.ScenarioSelection, list []core.ScenarioInfo) (sc core.ScenarioInfo, first, second int, found bool) {
+	for range 10 {
+		first, second = s.die(sel.Die.Sides), s.die(sel.Die.Sides)
+		if sc, found = core.ScenarioByRolls(sel, list, first, second); found {
+			break
+		}
+	}
+	return sc, first, second, found
+}
+
+// handleScenarioRoll is Roll again on the match page (docs/matches.md, "New match"): the server rolls both dice of the scenario
 // selection and the scenario they point at is set at once. With vantage (a company of the viewer) it is the Vantage Point perk on the
 // roll on show instead: the second die moves by adjust (+1 or -1) and the scenario follows.
 func (s *Server) handleScenarioRoll(w http.ResponseWriter, r *http.Request) {
@@ -669,7 +655,7 @@ func (s *Server) handleScenarioRoll(w http.ResponseWriter, r *http.Request) {
 	roll := &scenarioRoll{Sides: sel.Die.Sides}
 	keep := func(v *matchView) { v.Roll = roll }
 	var sc core.ScenarioInfo
-	found := false
+	var found bool
 	if vantage := formID(r, "vantage"); vantage != 0 {
 		d1, d2 := formInt(r, "roll"), formInt(r, "roll2")
 		if !sel.Valid(d1) || !sel.Valid(d2) {
@@ -692,12 +678,7 @@ func (s *Server) handleScenarioRoll(w http.ResponseWriter, r *http.Request) {
 			s.answer(w, r, http.StatusUnprocessableEntity, base, m, "", "The rules of this campaign have no scenario dice.", true, nil)
 			return
 		}
-		for range 10 { // a pair of dice the file places no scenario on is rolled again
-			roll.First, roll.Second = s.die(sel.Die.Sides), s.die(sel.Die.Sides)
-			if sc, found = core.ScenarioByRolls(sel, list, roll.First, roll.Second); found {
-				break
-			}
-		}
+		sc, roll.First, roll.Second, found = s.rollScenario(sel, list)
 	}
 	roll.Table = sel.Table(roll.First)
 	if !found {
@@ -709,7 +690,7 @@ func (s *Server) handleScenarioRoll(w http.ResponseWriter, r *http.Request) {
 		s.writeFailed(w, r, base, m, "", err, nil)
 		return
 	}
-	for _, co := range matchCompanies(updated) {
+	for _, co := range updated.AllCompanies() {
 		if co.OwnerID != user.ID || m.Ended {
 			continue
 		}

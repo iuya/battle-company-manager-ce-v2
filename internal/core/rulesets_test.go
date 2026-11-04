@@ -331,7 +331,7 @@ func TestRulesetsShippedFilesPassTheirSchemas(t *testing.T) {
 		t.Fatal(err)
 	}
 	for kind, f := range map[RulesetKind]string{KindVanilla: "vanilla/data2024.json", KindGlossary: "glossary/mesbg_glossary.json"} {
-		if err := rs.validate(kind, read(f)); err != nil {
+		if err := rs.validateSchema(kind, read(f)); err.Errors() > 0 {
 			t.Errorf("%s: %v", f, err)
 		}
 	}

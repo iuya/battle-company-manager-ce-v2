@@ -250,7 +250,7 @@ func TestGrants(t *testing.T) {
 }
 
 // The new match form creates the match with its scenario and the Against the Odds bonuses in one transaction
-// (docs/simplify-matches-spec.md, D4 and D9).
+// (docs/matches.md, "New match").
 func TestCreateMatchStoresTheScenarioAndAgainstTheOdds(t *testing.T) {
 	w := newLiveWorld(t, "create")
 	repo := w.s.Matches()

@@ -1,27 +1,29 @@
 // The new-match form (docs/matches.md, "New match"): two sides with the company search only, + Add side (up to the maximum, an added side
 // can be removed), All vs all and Practice. State comes from the data-companies / data-sides attributes (JSON) and goes back to the server
 // as plain form fields: sides and one side-N field per company; in all vs all mode, mode=ffa and the pool as side-1.
-// A player may own several companies (docs/multi-company-spec.md): the search shows owner and faction beside the name, the viewer's own
+// A player may own several companies (docs/matches.md, "Several companies of one player"): the search shows owner and faction beside the name, the viewer's own
 // companies are highlighted and listed first, and last on the other sides once one of them is placed (playing yourself is rare); a
 // non-blocking "Same player" note names a player who has two companies on one side or companies on several sides.
 // When the sides are one company each, the Against the Odds block is loaded (GET .../matches/new/ato); Ambush! there turns the scenario
 // card into a free choice.
 document.addEventListener('alpine:init', () => {
+  const newSide = (ids = []) => ({ ids, query: '', open: false });
+
   Alpine.data('matchForm', () => ({
     companies: [],
     sides: [],
     ffa: false, // all vs all: one pool of companies, each fighting alone
     practice: false,
-    maxSides: 8,
+    maxSides: 0,
     atoKey: '',
     campaign: '', // read once: inside a nested handler $el is the element pressed, not the form
     init() {
       this.ffa = this.$el.dataset.ffa === 'true';
       this.practice = this.$el.dataset.practice === 'true';
-      this.maxSides = Number(this.$el.dataset.maxSides) || 8;
+      this.maxSides = Number(this.$el.dataset.maxSides);
       this.campaign = this.$el.dataset.campaign;
       this.companies = JSON.parse(this.$el.dataset.companies);
-      this.sides = JSON.parse(this.$el.dataset.sides).map(s => ({ ids: s.ids, query: '', open: false }));
+      this.sides = JSON.parse(this.$el.dataset.sides).map(s => newSide(s.ids));
       // the block drawn with the page (a failed create) is kept until the sides change
       this.atoKey = this.pairKey();
       if (!document.getElementById('new-ato-card')) this.$nextTick(() => this.loadATO());
@@ -34,11 +36,11 @@ document.addEventListener('alpine:init', () => {
         this.sides.forEach(s => { s.ids = []; });
         this.sides[0].ids = all;
       } else if (this.sides.length < 2) {
-        this.sides.push({ ids: [], query: '', open: false });
+        this.sides.push(newSide());
       }
       this.loadATO();
     },
-    addSide() { if (this.sides.length < this.maxSides) { this.sides.push({ ids: [], query: '', open: false }); this.loadATO(); } },
+    addSide() { if (this.sides.length < this.maxSides) { this.sides.push(newSide()); this.loadATO(); } },
     removeSide(i) { this.sides.splice(i, 1); this.loadATO(); }, // its companies go back to the pool
     company(id) { return this.companies.find(c => c.id === id); },
     taken(id) { return this.sides.some(s => s.ids.includes(id)); },

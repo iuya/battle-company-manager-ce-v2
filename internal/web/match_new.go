@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// The new match form (docs/matches.md, "New match"; docs/simplify-matches-spec.md, phase 1): two sides with the company search only,
+// The new match form (docs/matches.md, "New match"): two sides with the company search only,
 // one options block (Practice, + Add side, All vs all), the scenario the server already rolled and, for a 1 v 1 whose lower rated company
 // is the creator's, the Against the Odds bonuses that need no detail. Nothing is written until Create match.
 
@@ -102,20 +103,29 @@ func newMatchForm(base campaignBase, companies []core.CampaignCompany, sides []c
 		return newMatchView{}, err
 	}
 	return newMatchView{campaignBase: base, CompaniesJSON: string(cj), SidesJSON: string(sj), FFA: ffa, Error: errMsg, Companies: len(companies),
-		Scenario: newScenarioView{CampaignID: base.Campaign.ID}, MaxSides: 8}, nil
+		Scenario: newScenarioView{CampaignID: base.Campaign.ID}, MaxSides: core.MaxSides}, nil
 }
 
-func (s *Server) handleNewMatchPage(w http.ResponseWriter, r *http.Request) {
+// newMatchCtx loads the campaign of the form and its companies; it answers itself when the campaign is unknown or cannot start a match.
+func (s *Server) newMatchCtx(w http.ResponseWriter, r *http.Request) (campaignBase, []core.CampaignCompany, bool) {
 	base, ok := s.loadCampaign(w, r, "")
 	if !ok {
-		return
+		return base, nil, false
 	}
 	if err := base.Campaign.CanStartMatch(); err != nil {
 		s.refuse(w, r, http.StatusForbidden, reason(err))
-		return
+		return base, nil, false
 	}
 	list, err := s.campaigns.Companies(r.Context(), base.Campaign.ID)
 	if s.fail(w, r, err) {
+		return base, nil, false
+	}
+	return base, list, true
+}
+
+func (s *Server) handleNewMatchPage(w http.ResponseWriter, r *http.Request) {
+	base, list, ok := s.newMatchCtx(w, r)
+	if !ok {
 		return
 	}
 	sides := []core.NewSide{{}, {}}
@@ -133,8 +143,7 @@ func (s *Server) handleNewMatchPage(w http.ResponseWriter, r *http.Request) {
 	s.render.page(w, r, http.StatusOK, "match_new", view)
 }
 
-// rolledScenario rolls both dice of the scenario selection (always the server's dice: the form asks nothing) until they point at a
-// scenario of the rules file, a few tries at most.
+// rolledScenario is the card with the scenario the server rolled (the form asks nothing).
 func (s *Server) rolledScenario(r *http.Request, id int64) (newScenarioView, error) {
 	v := newScenarioView{CampaignID: id}
 	list, err := s.campaigns.Scenarios(r.Context(), id)
@@ -149,12 +158,9 @@ func (s *Server) rolledScenario(r *http.Request, id int64) (newScenarioView, err
 		v.Note = "The rules of this campaign list no scenarios to roll for: describe a one-off one, or leave it for the match page."
 		return v, nil
 	}
-	for range 10 {
-		d1, d2 := s.die(sel.Die.Sides), s.die(sel.Die.Sides)
-		if sc, ok := core.ScenarioByRolls(sel, list, d1, d2); ok {
-			v.Info, v.Dice, v.Table = &sc, [2]int{d1, d2}, sel.Table(d1)
-			return v, nil
-		}
+	if sc, d1, d2, ok := s.rollScenario(sel, list); ok {
+		v.Info, v.Dice, v.Table = &sc, [2]int{d1, d2}, sel.Table(d1)
+		return v, nil
 	}
 	v.Note = "The dice found no scenario of this campaign's rules: choose one."
 	return v, nil
@@ -183,9 +189,7 @@ func (s *Server) scenarioCardFor(r *http.Request, id int64, in *core.ScenarioInp
 	if in != nil {
 		switch in.Kind {
 		case core.ScenarioRulebook:
-			if i := slices.IndexFunc(list, func(sc core.ScenarioInfo) bool { return sc.Name == in.Name }); i >= 0 {
-				v.Info = &list[i]
-			}
+			v.Info = core.FindScenario(list, in.Name)
 		case core.ScenarioCustom:
 			v.Custom = *in
 		}
@@ -212,8 +216,9 @@ func (s *Server) handleNewScenarioCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	in := scenarioFromForm(r)
-	if name := r.URL.Query().Get("name"); name != "" {
-		in = &core.ScenarioInput{Kind: core.ScenarioRulebook, Name: name}
+	chosen := r.URL.Query().Get("name")
+	if chosen != "" {
+		in = &core.ScenarioInput{Kind: core.ScenarioRulebook, Name: chosen}
 	}
 	if mode == "custom" && (in == nil || in.Kind != core.ScenarioCustom) {
 		in = &core.ScenarioInput{Kind: core.ScenarioCustom}
@@ -222,7 +227,7 @@ func (s *Server) handleNewScenarioCard(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, r, err) {
 		return
 	}
-	if r.URL.Query().Get("name") == "" {
+	if chosen == "" {
 		if err := s.keepDice(r, base.Campaign.ID, &v); s.fail(w, r, err) {
 			return
 		}
@@ -261,15 +266,13 @@ func (s *Server) handleNewScenarioRoll(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleNewATO answers the Against the Odds block for the companies a and b (one each side): empty unless the viewer owns the lower
-// rated one and there is a gap (docs/simplify-matches-spec.md, D9).
+// rated one and there is a gap (docs/matches.md, "New match").
 func (s *Server) handleNewATO(w http.ResponseWriter, r *http.Request) {
 	base, ok := s.loadCampaign(w, r, "")
 	if !ok {
 		return
 	}
-	a, _ := strconv.ParseInt(r.URL.Query().Get("a"), 10, 64)
-	b, _ := strconv.ParseInt(r.URL.Query().Get("b"), 10, 64)
-	v, err := s.newATO(r, base, []core.NewSide{{Companies: []int64{a}}, {Companies: []int64{b}}}, r.URL.Query().Get("practice") == "1", nil)
+	v, err := s.newATO(r, base, []core.NewSide{{Companies: []int64{queryID(r, "a")}}, {Companies: []int64{queryID(r, "b")}}}, r.URL.Query().Get("practice") == "1", nil)
 	if s.fail(w, r, err) {
 		return
 	}
@@ -304,16 +307,8 @@ func (s *Server) newATO(r *http.Request, base campaignBase, sides []core.NewSide
 }
 
 func (s *Server) handleCreateMatch(w http.ResponseWriter, r *http.Request) {
-	base, ok := s.loadCampaign(w, r, "")
+	base, list, ok := s.newMatchCtx(w, r)
 	if !ok {
-		return
-	}
-	if err := base.Campaign.CanStartMatch(); err != nil {
-		s.refuse(w, r, http.StatusForbidden, reason(err))
-		return
-	}
-	list, err := s.campaigns.Companies(r.Context(), base.Campaign.ID)
-	if s.fail(w, r, err) {
 		return
 	}
 	known := map[int64]bool{}
@@ -322,7 +317,7 @@ func (s *Server) handleCreateMatch(w http.ResponseWriter, r *http.Request) {
 	}
 	ffa := r.PostFormValue("mode") == "ffa"
 	n, _ := strconv.Atoi(r.PostFormValue("sides"))
-	sides := make([]core.NewSide, max(2, min(n, 8)))
+	sides := make([]core.NewSide, max(2, min(n, core.MaxSides)))
 	for i := range sides {
 		for _, v := range r.PostForm["side-"+itoa(i+1)] {
 			if id, err := strconv.ParseInt(v, 10, 64); err == nil && known[id] {
@@ -357,7 +352,7 @@ func (s *Server) handleCreateMatch(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, core.ErrInvalidMatch) || errors.Is(err, core.ErrRefused):
 		msg := reason(err)
 		if errors.Is(err, core.ErrInvalidMatch) {
-			msg = joinReasons(err)
+			msg = strings.Join(reasons(err), " ")
 		}
 		view, jerr := newMatchForm(base, list, form, ffa, msg)
 		if s.fail(w, r, jerr) {
@@ -368,14 +363,15 @@ func (s *Server) handleCreateMatch(w http.ResponseWriter, r *http.Request) {
 		if errors.As(err, &busy) {
 			view.Busy = &busy.OpenMatchRef
 		}
+		custom := scenario != nil && scenario.Kind == core.ScenarioCustom
 		mode := ""
-		if scenario != nil && scenario.Kind == core.ScenarioCustom {
+		if custom {
 			mode = "custom"
 		}
 		if view.Scenario, jerr = s.scenarioCardFor(r, base.Campaign.ID, scenario, mode, slices.Contains(taken, "ambush")); s.fail(w, r, jerr) {
 			return
 		}
-		if scenario != nil && scenario.Kind == core.ScenarioCustom {
+		if custom {
 			view.Scenario.Err = scenarioErrors(err)
 		}
 		if !ffa {
@@ -386,18 +382,6 @@ func (s *Server) handleCreateMatch(w http.ResponseWriter, r *http.Request) {
 		s.render.page(w, r, http.StatusUnprocessableEntity, "match_new", view)
 	case s.fail(w, r, err):
 	default:
-		redirect(w, r, "/campaigns/"+itoa(int(base.Campaign.ID))+"/matches/"+itoa(int(matchID)))
+		redirect(w, r, matchPath(base.Campaign.ID, matchID))
 	}
-}
-
-// joinReasons is the sentences of an error built with errors.Join(sentinel, reason...), as one message.
-func joinReasons(err error) string {
-	out := ""
-	for i, r := range reasons(err) {
-		if i > 0 {
-			out += " "
-		}
-		out += r
-	}
-	return out
 }

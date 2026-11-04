@@ -158,20 +158,6 @@ type RegisteredSession struct {
 	User    User
 }
 
-// InvitationStateAt derives the state of an invitation at now. Precedence: revoked, used, expired, pending; an invitation that
-// expires at exactly now is expired.
-func InvitationStateAt(expiresAt time.Time, revokedAt *time.Time, uses, maxUses int, now time.Time) InvitationState {
-	switch {
-	case revokedAt != nil:
-		return InvitationRevoked
-	case uses >= maxUses:
-		return InvitationUsed
-	case !expiresAt.After(now):
-		return InvitationExpired
-	}
-	return InvitationPending
-}
-
 // AccountInvitations creates, lists, revokes and redeems account invitations. Administrators and superusers manage them;
 // the public side (Preview, Register) knows a single failure, ErrLinkUnusable.
 type AccountInvitations struct {

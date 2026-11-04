@@ -161,3 +161,12 @@ func TestHubNextLeavesNoGoroutineBehind(t *testing.T) {
 		t.Errorf("goroutines %d -> %d", before, after)
 	}
 }
+
+// subscribe opens a stream of a match whose companies are given; its first batch refetches all of them (initial sync).
+func (h *LiveHub) subscribe(userID, matchID int64, companies []int64, seq int64) (LiveStream, error) {
+	s, err := h.open(userID, matchID, companies, seq, true)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}

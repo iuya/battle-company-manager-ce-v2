@@ -67,7 +67,7 @@ func (in ScenarioInput) Validate() (ScenarioInput, error) {
 }
 
 // CompanyResult is what is reported for one company of the match: the scenario reward ticks it completed. All is Lost has no entry of
-// its own: the players report the other side as the winner (docs/simplify-matches-spec.md, D3).
+// its own: the players report the other side as the winner (docs/matches.md, "Concepts").
 type CompanyResult struct {
 	CompanyID  int64
 	Objectives map[string]int // objective key (rules file) -> times completed (0 or absent: not completed)
@@ -224,6 +224,16 @@ type ScenarioInfo struct {
 	ScoringObjectives []ScoringObjective
 }
 
+// FindScenario is the scenario of that name in the list, nil without one.
+func FindScenario(list []ScenarioInfo, name string) *ScenarioInfo {
+	for i := range list {
+		if list[i].Name == name {
+			return &list[i]
+		}
+	}
+	return nil
+}
+
 // ScoringObjective is one Victory Point condition of a scenario. Side is "both", "attacker" or "defender". A Secret one (Fog of War)
 // is kept hidden until the end of the game; a Nomination says what the player notes down at the start.
 type ScoringObjective struct {
@@ -347,7 +357,7 @@ func (m Match) NoAccessReason() string {
 
 // SamePlayer says that one player owns several companies of a match (several companies per player are allowed in a campaign). It is a
 // note for the match setup and the match page, never a refusal: ValidateSides allows it, a player's own companies may share a side or
-// face each other (docs/multi-company-spec.md, decision 2).
+// face each other (docs/matches.md, "Several companies of one player").
 type SamePlayer struct {
 	OwnerID int64
 	Owner   string

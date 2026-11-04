@@ -362,3 +362,8 @@ func TestAuraRadiiInRuleText(t *testing.T) {
 		t.Errorf("only %d entries had a text to check", checked)
 	}
 }
+
+// CompanyAuraSummary is the summary of a company's own list (every unit once, rider and on-foot version as the list has them).
+func (r *RuleSet) CompanyAuraSummary(d CompanyDetail, sel AuraSelection) AuraSummary {
+	return r.AuraSummaryFor(d, r.TTSList(d, TTSOptions{FootVersions: true, MountFigures: true}), sel)
+}

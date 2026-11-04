@@ -131,8 +131,8 @@ func TestLeanGear(t *testing.T) {
 	if _, ok := got.Annotations["axe"]; !ok {
 		t.Error("an unsold item is still annotated")
 	}
-	if len(got.Armoury("Rohan")) != 4 || len(got.Armoury("Umbar")) != 5 {
-		t.Errorf("a company's armoury is the common items and its own: %d and %d", len(got.Armoury("Rohan")), len(got.Armoury("Umbar")))
+	if len(got.Offers) != 4 || len(got.Local["Rohan"]) != 0 || len(got.Local["Umbar"]) != 1 {
+		t.Errorf("the common items and the company's own: %d, %d and %d", len(got.Offers), len(got.Local["Rohan"]), len(got.Local["Umbar"]))
 	}
 	smoke := got.Local["Umbar"][0]
 	if !smoke.Exclusive || smoke.Limit != 1 || smoke.Who.Label() != "Corsair" || !reflect.DeepEqual(smoke.Who.Units, []string{"Corsair"}) || smoke.Restrictions != nil {

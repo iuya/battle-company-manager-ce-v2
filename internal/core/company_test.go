@@ -581,10 +581,7 @@ func TestCompanyPageNeverRepeatsASentence(t *testing.T) {
 	book := shippedRules(t).BC
 	key := func(t string) string { return strings.ToLower(strings.Join(strings.Fields(t), " ")) }
 	for _, p := range book.Profiles() {
-		var shown []string
-		for _, r := range p.OwnRules() {
-			shown = append(shown, r)
-		}
+		shown := slices.Clone(p.OwnRules())
 		for _, g := range p.Granted {
 			shown = append(shown, g.Text)
 		}

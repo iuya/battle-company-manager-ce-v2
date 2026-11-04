@@ -30,7 +30,7 @@ func (v liveView) PagePath(companyID int64) string {
 	if v.Own[companyID] {
 		return ownPath(v.CampaignID, companyID)
 	}
-	return "/campaigns/" + itoa(int(v.CampaignID)) + "/companies/" + itoa(int(companyID))
+	return companyPath(v.CampaignID, companyID)
 }
 
 // Broken is whether the company is Broken (its cards show the courage chips).
@@ -176,7 +176,7 @@ func (s *Server) liveFor(r *http.Request, base campaignBase, detail core.Company
 		}
 		v.Practice = match.Practice
 		v.End = s.endBannerFor(r, base, match, lc.CompanyID)
-		v.Companies, v.Own = matchCompanies(match), map[int64]bool{}
+		v.Companies, v.Own = match.AllCompanies(), map[int64]bool{}
 		for _, co := range v.Companies {
 			if base.Campaign.Owns(co.ID) {
 				v.Own[co.ID] = true

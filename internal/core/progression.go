@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/json"
 	"fmt"
 	"slices"
 	"sort"
@@ -635,19 +634,4 @@ func (l LevelLists) canonAction(a string) string {
 		return a
 	}
 	return l.ActionName(a)
-}
-
-// soleRule is the special rule a progression row grants when that is all it grants, "" for any other row.
-func soleRule(options []json.RawMessage) string {
-	if len(options) != 1 {
-		return ""
-	}
-	var o struct {
-		Type string `json:"type"`
-		Rule string `json:"specialRule"`
-	}
-	if json.Unmarshal(options[0], &o) != nil || o.Type != "specialRule" {
-		return ""
-	}
-	return o.Rule
 }

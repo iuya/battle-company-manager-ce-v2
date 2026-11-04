@@ -1,5 +1,14 @@
 // Searchable lists: the campaigns on the main page (listSearch) and the glossary (glossary, which adds jumping between
 // terms, a way back and previews on hover). Everything runs in the browser over what is already on the page.
+// Where a tooltip goes: under its element, or over it when it does not fit below; a long text stays inside the window. Shared with company.js.
+function tipPlace(box, el) {
+  const r = el.getBoundingClientRect();
+  const x = Math.max(8, Math.min(r.left, window.innerWidth - box.offsetWidth - 8));
+  const below = r.bottom + 8;
+  const y = below + box.offsetHeight > window.innerHeight && r.top - box.offsetHeight - 8 > 0 ? r.top - box.offsetHeight - 8 : below;
+  return { x, y: Math.max(8, Math.min(y, window.innerHeight - box.offsetHeight - 8)) };
+}
+
 document.addEventListener('alpine:init', () => {
   // Shared by both: items carry data-name and optionally data-aliases (separated by |).
   const search = () => ({
@@ -69,11 +78,7 @@ document.addEventListener('alpine:init', () => {
       await this.$nextTick();
       const box = this.$refs.tip;
       if (!box || !el.isConnected) { this.tip.show = false; return; }
-      const r = el.getBoundingClientRect();
-      const x = Math.max(8, Math.min(r.left, window.innerWidth - box.offsetWidth - 8));
-      const below = r.bottom + 8;
-      const y = below + box.offsetHeight > window.innerHeight && r.top - box.offsetHeight - 8 > 0 ? r.top - box.offsetHeight - 8 : below;
-      this.tip.x = x; this.tip.y = Math.max(8, Math.min(y, window.innerHeight - box.offsetHeight - 8));
+      Object.assign(this.tip, tipPlace(box, el));
     },
   }));
 
@@ -105,11 +110,7 @@ document.addEventListener('alpine:init', () => {
       await this.$nextTick();
       const box = this.$refs.tip;
       if (!box || !el.isConnected) { this.tip.show = false; return; } // the page was swapped while the tip waited
-      const r = el.getBoundingClientRect();
-      const x = Math.max(8, Math.min(r.left, window.innerWidth - box.offsetWidth - 8));
-      const below = r.bottom + 8;
-      const y = below + box.offsetHeight > window.innerHeight && r.top - box.offsetHeight - 8 > 0 ? r.top - box.offsetHeight - 8 : below;
-      this.tip.x = x; this.tip.y = Math.max(8, Math.min(y, window.innerHeight - box.offsetHeight - 8));
+      Object.assign(this.tip, tipPlace(box, el));
     },
   }));
 

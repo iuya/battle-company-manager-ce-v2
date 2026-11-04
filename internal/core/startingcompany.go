@@ -83,18 +83,6 @@ func (p CompanyProfile) DefaultHeroes() []StartHero {
 	return out
 }
 
-// heroesByProfile are the places of the starting units that already have their own Might, Will and Fate (a Ranger of the North:
-// startingHeroNoStatGain) and may lead: they are officers, or the company would be worth 15 points more than the rules say.
-func (p CompanyProfile) heroesByProfile() []int {
-	var out []int
-	for i, s := range p.StartList() {
-		if !p.StartGains(s.Unit) && p.CanLeadStart(s) {
-			out = append(out, i)
-		}
-	}
-	return out
-}
-
 // fixedLeader is the place of the starting unit the rules make the Leader: the Shire's Ranger of the North (the company's
 // replacement unit, which its file lists as the leader) starts as the Leader and cannot be demoted or left out of the officers.
 func (p CompanyProfile) fixedLeader(list []StartUnit) (int, bool) {

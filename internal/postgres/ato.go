@@ -142,14 +142,10 @@ func (as atoStore) Update(ctx context.Context, campaignID, matchID int64, by cor
 		return core.Match{}, err
 	}
 	defer tx.Rollback(ctx)
-	list, err := ms.load(ctx, tx, `m.campaign_id = $1 AND m.id = $2`, true, campaignID, matchID)
+	before, err := ms.lockMatch(ctx, tx, campaignID, matchID)
 	if err != nil {
 		return core.Match{}, err
 	}
-	if len(list) == 0 {
-		return core.Match{}, core.ErrNotFound
-	}
-	before := list[0]
 	st := core.ATOState{Match: before}
 	if st.Record, err = as.read(ctx, tx, matchID); err != nil {
 		return core.Match{}, err
@@ -209,7 +205,7 @@ func (as atoStore) Update(ctx context.Context, campaignID, matchID int64, by cor
 			return core.Match{}, err
 		}
 	}
-	list, err = ms.load(ctx, tx, `m.id = $1`, false, matchID)
+	list, err := ms.load(ctx, tx, `m.id = $1`, false, matchID)
 	if err != nil || len(list) == 0 {
 		return core.Match{}, err
 	}

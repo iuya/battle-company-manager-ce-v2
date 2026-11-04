@@ -243,17 +243,15 @@ func Rank(companies []CampaignCompany) []RankedCompany {
 }
 
 const (
-	maxSides       = 8
-	maxSideNameLen = 40
+	// MaxSides is how many sides a match can have.
+	MaxSides = 8
 )
 
 // MatchSide is one side of a match: its companies. Name is "Side N" (older matches may carry a name the players typed; the pages
-// show Label). Role is the Attacker or Defender tag older matches may carry; the app no longer reads it (the players settle roles at
-// the table).
+// show Label).
 type MatchSide struct {
 	Name      string
 	Companies []CampaignCompany
-	Role      string
 }
 
 // Label is what the pages call the side: its companies ("Rangers + Raiders"); the stored name only for a side without companies.
@@ -289,7 +287,7 @@ type Match struct {
 	EndProposal *EndProposal
 	EndDetail   string
 	// Practice is set when the match is created and never changed: no rewards and no injuries, its aftermath is complete and empty from
-	// the moment it ends (docs/practice-match-spec.md).
+	// the moment it ends (docs/matches.md, "Practice matches").
 	Practice bool
 }
 
@@ -315,7 +313,7 @@ func (m Match) WinnerName() string {
 }
 
 // NewMatch is the input of CreateMatch: the sides, whether it is a practice match, the scenario the form showed (nil: none yet) and
-// the Against the Odds bonuses the creator took for the lower rated company (nil: none; docs/simplify-matches-spec.md, D4 and D9).
+// the Against the Odds bonuses the creator took for the lower rated company (nil: none; docs/matches.md, "New match").
 type NewMatch struct {
 	Sides    []NewSide
 	Practice bool
@@ -340,19 +338,13 @@ type NewSide struct {
 // ValidateSides names the sides of a new match ("Side N") and checks them: at least two sides, every side with a company, and no
 // company twice (so never on both sides at once).
 func ValidateSides(sides []NewSide) ([]NewSide, error) {
-	if len(sides) < 2 || len(sides) > maxSides {
-		return nil, errors.Join(ErrInvalidMatch, errors.New("a match needs between 2 and 8 sides"))
+	if len(sides) < 2 || len(sides) > MaxSides {
+		return nil, errors.Join(ErrInvalidMatch, fmt.Errorf("a match needs between 2 and %d sides", MaxSides))
 	}
 	out := make([]NewSide, len(sides))
 	seen := map[int64]bool{}
 	for i, side := range sides {
-		side.Name = strings.TrimSpace(side.Name)
-		if utf8.RuneCountInString(side.Name) > maxSideNameLen {
-			return nil, errors.Join(ErrInvalidMatch, errors.New("a side name can have at most 40 characters"))
-		}
-		if side.Name == "" {
-			side.Name = "Side " + strconv.Itoa(i+1)
-		}
+		side.Name = "Side " + strconv.Itoa(i+1)
 		if len(side.Companies) == 0 {
 			return nil, errors.Join(ErrInvalidMatch, errors.New(side.Name+" needs at least one company"))
 		}

@@ -185,7 +185,7 @@ func (c BreakConfig) exceeded(casualties, models int) bool {
 	return casualties*100 > c.Percent*models
 }
 
-// Break is a company's Break Point state: Broken as soon as the casualties exceed the Break Point (docs/simplify-matches-spec.md, D10).
+// Break is a company's Break Point state: Broken as soon as the casualties exceed the Break Point (docs/live-match.md, "Company Break Point in play").
 func (s LiveState) Break(company int64) LiveBreak {
 	cfg := s.cfg.Break[company]
 	b := LiveBreak{Percent: cfg.Percent, StartingModels: s.startingModels(company), Casualties: s.casualtiesOf(company), Exceptions: cfg.Exceptions}
@@ -226,19 +226,6 @@ func (s LiveState) companyName(id int64) string {
 		}
 	}
 	return fmt.Sprintf("company %d", id)
-}
-
-func (s LiveState) companyIDs() []int64 {
-	var ids []int64
-	seen := map[int64]bool{}
-	for _, id := range s.order {
-		c := s.units[id].company
-		if !seen[c] {
-			seen[c] = true
-			ids = append(ids, c)
-		}
-	}
-	return ids
 }
 
 func (s LiveState) checkBreakAdjust(a LiveAction, company int64) (LiveAction, []int64, string, error) {

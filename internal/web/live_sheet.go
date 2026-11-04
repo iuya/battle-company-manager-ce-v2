@@ -63,14 +63,6 @@ type woundTarget struct {
 	Applies []core.RuleMatch
 }
 
-// HasEnemies and HasFriends say which parts of the target list exist.
-func (v liveSheet) HasEnemies() bool {
-	return slices.ContainsFunc(v.Groups, func(g woundGroup) bool { return !g.Friends })
-}
-func (v liveSheet) HasFriends() bool {
-	return slices.ContainsFunc(v.Groups, func(g woundGroup) bool { return g.Friends })
-}
-
 // handleLiveSheet answers the window of an action for a unit of {company}; only somebody who may change the company gets it.
 func (s *Server) handleLiveSheet(w http.ResponseWriter, r *http.Request) {
 	kind := r.PathValue("kind")

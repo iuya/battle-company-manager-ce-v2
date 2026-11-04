@@ -525,14 +525,14 @@ func TestLoanedHealerKitItemsAreElectableAndSpent(t *testing.T) {
 	}
 }
 
-// All is Lost is reported as the other side's win (docs/simplify-matches-spec.md, D3): the company that fled loses, keeps the participation
+// All is Lost is reported as the other side's win (docs/matches.md, "Concepts"): the company that fled loses, keeps the participation
 // influence and its Against the Odds bonuses, and gets no Win or Draw influence.
 func TestAllIsLostKeepsAgainstTheOddsBonusesWithTheSelection(t *testing.T) {
 	f := newAmFixture(t)
 	f.match.Winner, f.match.Result.Winner = 2, 2
 	f.withATO(t, &ATORecord{MatchID: 1, CompanyID: 1, Selection: ATOSelection{Bonuses: []string{"influence", "experience"}}})
 	a, err := f.svc.Aftermath(f.ctx, f.owner(), 5, 1, 1)
-	if err != nil || a.Fled || a.Outcome != "loss" {
+	if err != nil || a.Outcome != "loss" {
 		t.Fatalf("%+v %v", a.Outcome, err)
 	}
 	var keys []string

@@ -5,12 +5,12 @@ import "time"
 // PracticeNothingToRoll is the line of the aftermath of a practice match and the reason every write to it is refused.
 const PracticeNothingToRoll = "Practice match: nothing to roll."
 
-// ErrPracticeNothingToRoll is the refusal of every aftermath write on a practice match (docs/practice-match-spec.md, section 3).
+// ErrPracticeNothingToRoll is the refusal of every aftermath write on a practice match (docs/aftermath.md, "Practice matches").
 var ErrPracticeNothingToRoll = Refuse("%s", PracticeNothingToRoll)
 
 // practiceAftermath is the aftermath of a company in a practice match: done, empty, never stored. The repository derives the same status.
 func practiceAftermath(e *amEnv) Aftermath {
-	a := Aftermath{MatchID: e.matchID, CompanyID: e.companyID, Status: AftermathDone, Revision: 1, Outcome: e.outcome, Fled: e.fled,
+	a := Aftermath{MatchID: e.matchID, CompanyID: e.companyID, Status: AftermathDone, Revision: 1, Outcome: e.outcome,
 		Access: e.access, Practice: true}
 	var on time.Time
 	if e.match.EndedOn != nil {

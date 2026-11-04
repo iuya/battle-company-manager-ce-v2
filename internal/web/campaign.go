@@ -70,7 +70,7 @@ func (b campaignBase) CanInvite() bool {
 type overviewView struct {
 	campaignBase
 	Recent   []core.Match
-	YourTurn []yourTurn // what waits on the viewer (docs/simplify-matches-spec.md, D12)
+	YourTurn []yourTurn // what waits on the viewer (docs/frontend.md, "Matches")
 	// NewOrganisers are the players the viewer could hand the campaign over to (empty when they may not hand over).
 	NewOrganisers []handoverCandidate
 }
@@ -111,7 +111,7 @@ func (s *Server) yourTurns(r *http.Request, base campaignBase, matches []core.Ma
 			if !m.Practice {
 				text = "Vote the MVP and confirm the end of Match " + itoa(m.Number)
 			}
-			out = append(out, yourTurn{Text: text, URL: "/campaigns/" + itoa(int(id)) + "/matches/" + itoa(int(m.ID))})
+			out = append(out, yourTurn{Text: text, URL: matchPath(id, m.ID)})
 		}
 	}
 	several := len(base.Campaign.Companies) > 1
@@ -125,7 +125,7 @@ func (s *Server) yourTurns(r *http.Request, base campaignBase, matches []core.Ma
 			if ref.Status == core.AftermathPending {
 				verb = "Start"
 			}
-			t := yourTurn{Text: verb + " the aftermath of Match " + itoa(ref.MatchNumber), URL: "/campaigns/" + itoa(int(id)) + "/matches/" + itoa(int(ref.MatchID)) + "/aftermath/" + itoa(int(co.ID))}
+			t := yourTurn{Text: verb + " the aftermath of Match " + itoa(ref.MatchNumber), URL: matchPath(id, ref.MatchID) + "/aftermath/" + itoa(int(co.ID))}
 			if several {
 				t.Who = co.Name
 			}
@@ -137,14 +137,7 @@ func (s *Server) yourTurns(r *http.Request, base campaignBase, matches []core.Ma
 
 // mine says whether the viewer owns a company of the match.
 func mine(base campaignBase, m core.Match) bool {
-	for _, side := range m.Sides {
-		for _, c := range side.Companies {
-			if base.Campaign.Owns(c.ID) {
-				return true
-			}
-		}
-	}
-	return false
+	return slices.ContainsFunc(m.AllCompanies(), func(c core.CampaignCompany) bool { return base.Campaign.Owns(c.ID) })
 }
 
 // minMatchCompanies is how many companies a campaign needs before a match can be opened.
@@ -199,14 +192,14 @@ func (s *Server) handleCampaign(page, tab string) http.HandlerFunc {
 			if mv.YourTurn, err = s.yourTurns(r, base, matches); s.fail(w, r, err) {
 				return
 			}
-			switch mv.Filter {
-			case "mine":
-				mv.Matches = slices.DeleteFunc(slices.Clone(matches), func(m core.Match) bool { return !mine(base, m) })
-			case "open":
-				mv.Matches = slices.DeleteFunc(slices.Clone(matches), func(m core.Match) bool { return m.Ended })
-			case "ended":
-				mv.Matches = slices.DeleteFunc(slices.Clone(matches), func(m core.Match) bool { return !m.Ended })
-			default:
+			drop := map[string]func(core.Match) bool{
+				"mine":  func(m core.Match) bool { return !mine(base, m) },
+				"open":  func(m core.Match) bool { return m.Ended },
+				"ended": func(m core.Match) bool { return !m.Ended },
+			}[mv.Filter]
+			if drop != nil {
+				mv.Matches = slices.DeleteFunc(slices.Clone(matches), drop)
+			} else {
 				mv.Filter = ""
 			}
 			view = mv
@@ -229,7 +222,7 @@ func (s *Server) handleNewCompanyPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !base.Campaign.CanCreateCompany() { // at the cap (one company per player by default): go and manage it
-		redirect(w, r, "/campaigns/"+itoa(int(base.Campaign.ID))+"/my-company")
+		redirect(w, r, campaignPath(base.Campaign.ID)+"/my-company")
 		return
 	}
 	view, ok := s.newCompanyPage(w, r, base, core.CompanyInput{Faction: r.URL.Query().Get("c")}, "")
@@ -566,13 +559,13 @@ func creatureTip(c core.UnitCreatureRef) string {
 // other page.
 func (b campaignBase) Own() *core.CampaignCompany { return b.Current }
 
-// Switcher is whether the company chips show: the viewer owns two or more companies of the campaign (docs/multi-company-spec.md, 4.1).
+// Switcher is whether the company chips show: the viewer owns two or more companies of the campaign (docs/frontend.md, "Company switcher").
 func (b campaignBase) Switcher() bool { return len(b.Campaign.Companies) > 1 }
 
 // OwnPath is the URL root of the owner pages of the company the page acts on: /campaigns/{id}/my-company/{company}.
 func (b campaignBase) OwnPath() string {
 	if b.Current == nil {
-		return "/campaigns/" + itoa(int(b.Campaign.ID)) + "/my-company"
+		return campaignPath(b.Campaign.ID) + "/my-company"
 	}
 	return ownPath(b.Campaign.ID, b.Current.ID)
 }
@@ -587,12 +580,22 @@ func (b campaignBase) SwitchPath(companyID int64) string {
 
 // ArmoryPath is the URL of the armory of one of the viewer's companies.
 func (b campaignBase) ArmoryPath(companyID int64) string {
-	return "/campaigns/" + itoa(int(b.Campaign.ID)) + "/armory?company=" + itoa(int(companyID))
+	return campaignPath(b.Campaign.ID) + "/armory?company=" + itoa(int(companyID))
 }
 
 // ownPath is the URL root of the owner pages of one company.
+func campaignPath(campaignID int64) string { return "/campaigns/" + itoa(int(campaignID)) }
+
+func matchPath(campaignID, matchID int64) string {
+	return campaignPath(campaignID) + "/matches/" + itoa(int(matchID))
+}
+
+func companyPath(campaignID, companyID int64) string {
+	return campaignPath(campaignID) + "/companies/" + itoa(int(companyID))
+}
+
 func ownPath(campaignID, companyID int64) string {
-	return "/campaigns/" + itoa(int(campaignID)) + "/my-company/" + itoa(int(companyID))
+	return campaignPath(campaignID) + "/my-company/" + itoa(int(companyID))
 }
 
 // ownCompany is THE helper of every owner route: it reads {company} (or the form value "company" of the armory) and returns it when it is one of the viewer's own companies of the

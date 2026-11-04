@@ -276,11 +276,7 @@ document.addEventListener('alpine:init', () => {
       await this.$nextTick();
       const box = this.$refs.tip;
       if (!box || !el.isConnected) { this.tip.show = false; return; } // the page was swapped while the tip waited
-      const r = el.getBoundingClientRect();
-      const x = Math.max(8, Math.min(r.left, window.innerWidth - box.offsetWidth - 8));
-      const below = r.bottom + 8;
-      const y = below + box.offsetHeight > window.innerHeight && r.top - box.offsetHeight - 8 > 0 ? r.top - box.offsetHeight - 8 : below;
-      this.tip.x = x; this.tip.y = Math.max(8, Math.min(y, window.innerHeight - box.offsetHeight - 8)); // a long text stays inside the window
+      Object.assign(this.tip, tipPlace(box, el));
     },
   }));
 });

@@ -395,47 +395,6 @@ func (c *MockliveMatchesSecretObjectivesCall) DoAndReturn(f func(context.Context
 	return c
 }
 
-// SecretScore mocks base method.
-func (m *MockliveMatches) SecretScore(ctx context.Context, user core.User, id, matchID, companyID int64) (int, []core.SecretLine, bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SecretScore", ctx, user, id, matchID, companyID)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].([]core.SecretLine)
-	ret2, _ := ret[2].(bool)
-	ret3, _ := ret[3].(error)
-	return ret0, ret1, ret2, ret3
-}
-
-// SecretScore indicates an expected call of SecretScore.
-func (mr *MockliveMatchesMockRecorder) SecretScore(ctx, user, id, matchID, companyID any) *MockliveMatchesSecretScoreCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecretScore", reflect.TypeOf((*MockliveMatches)(nil).SecretScore), ctx, user, id, matchID, companyID)
-	return &MockliveMatchesSecretScoreCall{Call: call}
-}
-
-// MockliveMatchesSecretScoreCall wrap *gomock.Call
-type MockliveMatchesSecretScoreCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockliveMatchesSecretScoreCall) Return(points int, lines []core.SecretLine, ok bool, err error) *MockliveMatchesSecretScoreCall {
-	c.Call = c.Call.Return(points, lines, ok, err)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockliveMatchesSecretScoreCall) Do(f func(context.Context, core.User, int64, int64, int64) (int, []core.SecretLine, bool, error)) *MockliveMatchesSecretScoreCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockliveMatchesSecretScoreCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64) (int, []core.SecretLine, bool, error)) *MockliveMatchesSecretScoreCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // Subscribe mocks base method.
 func (m *MockliveMatches) Subscribe(ctx context.Context, user core.User, id, matchID int64) (core.LiveStream, error) {
 	m.ctrl.T.Helper()
@@ -4093,47 +4052,6 @@ func (c *MockcampaignsSecretObjectivesCall) Do(f func(context.Context, core.User
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsSecretObjectivesCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (core.SecretView, error)) *MockcampaignsSecretObjectivesCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// SecretScore mocks base method.
-func (m *Mockcampaigns) SecretScore(ctx context.Context, user core.User, id, matchID, companyID int64) (int, []core.SecretLine, bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SecretScore", ctx, user, id, matchID, companyID)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].([]core.SecretLine)
-	ret2, _ := ret[2].(bool)
-	ret3, _ := ret[3].(error)
-	return ret0, ret1, ret2, ret3
-}
-
-// SecretScore indicates an expected call of SecretScore.
-func (mr *MockcampaignsMockRecorder) SecretScore(ctx, user, id, matchID, companyID any) *MockcampaignsSecretScoreCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecretScore", reflect.TypeOf((*Mockcampaigns)(nil).SecretScore), ctx, user, id, matchID, companyID)
-	return &MockcampaignsSecretScoreCall{Call: call}
-}
-
-// MockcampaignsSecretScoreCall wrap *gomock.Call
-type MockcampaignsSecretScoreCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockcampaignsSecretScoreCall) Return(points int, lines []core.SecretLine, ok bool, err error) *MockcampaignsSecretScoreCall {
-	c.Call = c.Call.Return(points, lines, ok, err)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockcampaignsSecretScoreCall) Do(f func(context.Context, core.User, int64, int64, int64) (int, []core.SecretLine, bool, error)) *MockcampaignsSecretScoreCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsSecretScoreCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64) (int, []core.SecretLine, bool, error)) *MockcampaignsSecretScoreCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

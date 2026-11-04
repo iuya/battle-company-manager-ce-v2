@@ -446,6 +446,4 @@ func (w *world) loadScenarios() {
 	w.scenarios = map[string]core.ScenarioInfo{}
 }
 
-var errNoWarrior = errors.New("the company has no warrior for the script")
-
 func itoa(n int64) string { return fmt.Sprint(n) }

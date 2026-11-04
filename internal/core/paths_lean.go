@@ -245,29 +245,6 @@ func LeanPathRules(d *lean.Document, vanilla *VanillaBook) map[string][]UnitRule
 	return out
 }
 
-// LeanHeroicActionText is what a heroic action says: the definition of the rule of that name in rules[], else the glossary's term of the name
-// or an alias of it. It is false for a name neither knows.
-func LeanHeroicActionText(d *lean.Document, vanilla *VanillaBook, gl Glossary, name string) (string, bool) {
-	if def, ok := LeanRuleText(d.Rules, nil)(name); ok {
-		return def, true
-	}
-	key := lean.NameKey(name)
-	for _, t := range gl.Terms {
-		if lean.NameKey(t.Name) == key || slices.ContainsFunc(t.Aliases, func(a string) bool { return lean.NameKey(a) == key }) {
-			var paras []string
-			for _, para := range t.Paragraphs {
-				var words []string
-				for _, seg := range para {
-					words = append(words, seg.Text)
-				}
-				paras = append(paras, strings.Join(words, ""))
-			}
-			return tidy(strings.Join(paras, " ")), true
-		}
-	}
-	return LeanRuleText(nil, vanilla)(name)
-}
-
 // LeanPathTerms are the glossary terms the paths of a lean document make: one for every path (its description, the heroic action it starts
 // with, its limits and its chart) and one for every special rule a path unlocks. The term of a starting heroic action is the glossary's own.
 func LeanPathTerms(d *lean.Document, vanilla *VanillaBook, gl Glossary) []ExtraTerm {

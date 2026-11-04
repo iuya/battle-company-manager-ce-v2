@@ -177,7 +177,7 @@ func TestChangesResetTheConfirmationsExceptTheProposers(t *testing.T) {
 
 func TestEndAccessForTable(t *testing.T) {
 	m := testMatch()
-	cos := matchCompanies(m)
+	cos := m.AllCompanies()
 	pending := testMatch()
 	pending.EndProposal = &EndProposal{ProposedByID: 10, Companies: []EndConfirmation{
 		{CompanyID: 1, OwnerID: 10, Confirmed: true}, {CompanyID: 2, OwnerID: 20}, {CompanyID: 3, OwnerID: 30, Confirmed: true}}}

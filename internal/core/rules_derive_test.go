@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/json"
 	"reflect"
 	"testing"
 
@@ -18,58 +17,6 @@ func TestRuleRowText(t *testing.T) {
 		if got := RuleRowText(c.name, c.tag, c.def); got != c.want {
 			t.Errorf("RuleRowText(%q, %q, %q) = %q, want %q", c.name, c.tag, c.def, got, c.want)
 		}
-	}
-}
-
-func TestRuleTextsRowText(t *testing.T) {
-	texts := ruleTexts{}
-	texts.add("Spy", "Active", "First.")
-	texts.add("Spy", "Passive", "Second: the first definition of a name wins.")
-	texts.add("Burly", "", "Third.")
-	cases := []struct {
-		name, text, rule, want string
-	}{
-		{"the file's own text wins", "As written.", "Spy", "As written."},
-		{"a one-rule row derives its text", "", "Spy", "Spy (Active) - First."},
-		{"a rule without a tag", "", "Burly", "Burly - Third."},
-		{"a rule the file does not define stays empty", "", "Terror", ""},
-		{"a row that is not a one-rule row stays empty", "", "", ""},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			if got := texts.rowText(c.text, c.rule); got != c.want {
-				t.Errorf("got %q, want %q", got, c.want)
-			}
-		})
-	}
-}
-
-func TestSoleRule(t *testing.T) {
-	cases := []struct {
-		name string
-		opts []string
-		want string
-	}{
-		{"one special rule", []string{`{"type":"specialRule","specialRule":"Spy"}`}, "Spy"},
-		{"a stat", []string{`{"type":"improveStat","stats":["fight"]}`}, ""},
-		{"a choice of two", []string{`{"type":"specialRule","specialRule":"Spy"}`, `{"type":"improveStat"}`}, ""},
-		{"nothing", nil, ""},
-		{"not an object", []string{`7`}, ""},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			var raw [][]byte
-			for _, o := range c.opts {
-				raw = append(raw, []byte(o))
-			}
-			var opts []json.RawMessage
-			for _, r := range raw {
-				opts = append(opts, r)
-			}
-			if got := soleRule(opts); got != c.want {
-				t.Errorf("got %q, want %q", got, c.want)
-			}
-		})
 	}
 }
 

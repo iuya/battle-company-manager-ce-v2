@@ -352,7 +352,7 @@ func buildUnitFor(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSet
 	if comp, ok := profile.Composites[s.Base]; ok { // one model on the table that counts as several
 		u.Models = comp.Slots
 		for _, part := range comp.Parts {
-			u.Parts = append(u.Parts, UnitPart{Role: part.Role, Name: part.Name, Count: part.Count, Wargear: part.Wargear})
+			u.Parts = append(u.Parts, UnitPart(part))
 		}
 		for _, name := range comp.Rules {
 			if !have[NameKey(name)] {

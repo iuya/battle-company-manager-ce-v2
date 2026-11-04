@@ -8,8 +8,8 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// docs/simplify-matches-spec.md: the scenario and Against the Odds at creation (D4, D9), the scenario fixed once the game started, and the
-// mandatory MVP votes (D7).
+// docs/matches.md, "New match" and "Ending a match": the scenario and Against the Odds at creation, the scenario fixed once the game
+// started, and the mandatory MVP votes.
 
 // ownedATOFixture is newATOFixture with the companies' owners on the company records (Rangers: 10, Raiders: 20), as the new match form
 // reads them.

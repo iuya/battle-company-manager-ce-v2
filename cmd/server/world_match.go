@@ -17,7 +17,7 @@ func (w *world) newPracticeMatch(c *wcamp, sides ...[]*wco) core.Match {
 	return w.openMatch(c, true, sides...)
 }
 
-// newMatchOn opens a match with its rulebook scenario chosen on the new match form (docs/simplify-matches-spec.md, D4).
+// newMatchOn opens a match with its rulebook scenario chosen on the new match form (docs/matches.md, "New match").
 func (w *world) newMatchOn(c *wcamp, scenario string, sides ...[]*wco) core.Match {
 	return w.create(c, core.NewMatch{Sides: newSides(sides), Scenario: &core.ScenarioInput{Kind: core.ScenarioRulebook, Name: scenario}})
 }
@@ -42,13 +42,6 @@ func newSides(sides [][]*wco) []core.NewSide {
 		ns = append(ns, side)
 	}
 	return ns
-}
-
-// rulebook sets a scenario of the rules file.
-func (w *world) rulebook(c *wcamp, m core.Match, name string) core.Match {
-	m, err := w.c().SetScenario(w.ctx, c.org, c.id, m.ID, m.Revision, core.ScenarioInput{Kind: core.ScenarioRulebook, Name: name})
-	w.must("scenario "+name, err)
-	return m
 }
 
 // oneOff sets a scenario the players invented.

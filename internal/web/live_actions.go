@@ -25,6 +25,11 @@ func formInt(r *http.Request, name string) int {
 	return n
 }
 
+func queryID(r *http.Request, name string) int64 {
+	n, _ := strconv.ParseInt(r.URL.Query().Get(name), 10, 64)
+	return n
+}
+
 func formID(r *http.Request, name string) int64 {
 	n, _ := strconv.ParseInt(strings.TrimSpace(r.PostFormValue(name)), 10, 64)
 	return n

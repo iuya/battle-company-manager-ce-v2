@@ -280,16 +280,20 @@ func (s *Server) buyEquipment(r *http.Request, id, cid, unitID int64, item strin
 	return s.campaigns.BuyEquipment(r.Context(), u, id, cid, unitID, item, r.PostFormValue("pay"))
 }
 
+// ownUnitParams reads the campaign, the viewer's own company and the unit of an action; it answers itself when one is unknown.
+func (s *Server) ownUnitParams(w http.ResponseWriter, r *http.Request) (id, cid, unitID int64, ok bool) {
+	if id, ok = s.idParam(w, r, "id"); !ok {
+		return
+	}
+	if cid, ok = s.ownCompanyID(w, r, id); !ok {
+		return
+	}
+	unitID, ok = s.idParam(w, r, "unit")
+	return
+}
+
 func (s *Server) handleBuyEquipment(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}
@@ -300,15 +304,7 @@ func (s *Server) handleBuyEquipment(w http.ResponseWriter, r *http.Request) {
 
 // handleChooseModifierWeapon chooses the weapon a weapon modifier of the unit without one is for; the choice is final, core refuses a second.
 func (s *Server) handleChooseModifierWeapon(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}
@@ -318,15 +314,7 @@ func (s *Server) handleChooseModifierWeapon(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) handleDropEquipment(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}
@@ -391,15 +379,7 @@ func (s *Server) handleTreatPanel(w http.ResponseWriter, r *http.Request) {
 // handleTreatInjury pays to treat a unit's injuries. A warrior's treatment answers with the page; a hero's with the window,
 // showing what the roll gave, so that a failed attempt can be tried again.
 func (s *Server) handleTreatInjury(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}
@@ -482,15 +462,7 @@ func (s *Server) afterAction(w http.ResponseWriter, r *http.Request, done string
 
 // handleRenameUnit renames a unit; an empty name takes the unit back to its type.
 func (s *Server) handleRenameUnit(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}

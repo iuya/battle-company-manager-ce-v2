@@ -90,40 +90,6 @@ func allHeroes(names []string, heroes map[string]bool) bool {
 	return len(names) > 0
 }
 
-// ProfileWargear is a piece of wargear the vanilla profiles of some units carry that no armoury sells.
-type ProfileWargear struct {
-	Item  string
-	Units []string
-}
-
-// ProfileWargearNotSold lists, for the vanilla units a company uses, the wargear of their profiles that no armoury item names: a model
-// of the unit always starts with it (it is added on recruit) but it can never be bought and is not an option to choose. sold says
-// whether some armoury item is that item (by ItemKey). Sorted by item, ignoring case; the units of an item in alphabetical order.
-func (b *VanillaBook) ProfileWargearNotSold(units []string, sold func(item string) bool) []ProfileWargear {
-	var out []ProfileWargear
-	at := map[string]int{}
-	for _, name := range slices.Compact(slices.Sorted(slices.Values(units))) {
-		u, ok := b.units[name]
-		if !ok {
-			continue
-		}
-		for _, w := range u.Wargear {
-			if sold(w) {
-				continue
-			}
-			i, seen := at[w]
-			if !seen {
-				i = len(out)
-				at[w] = i
-				out = append(out, ProfileWargear{Item: w})
-			}
-			out[i].Units = append(out[i].Units, name)
-		}
-	}
-	sort.SliceStable(out, func(i, j int) bool { return strings.ToLower(out[i].Item) < strings.ToLower(out[j].Item) })
-	return out
-}
-
 // fillIns are the fields Battle Companies gives a vanilla unit or mount that the vanilla file leaves empty.
 type fillIns struct {
 	units  map[string]lean.VanillaFill

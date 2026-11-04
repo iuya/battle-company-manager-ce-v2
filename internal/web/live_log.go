@@ -3,7 +3,6 @@ package web
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
@@ -92,7 +91,7 @@ func (s *Server) handleLiveLog(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	before, _ := strconv.ParseInt(r.URL.Query().Get("before"), 10, 64)
+	before := queryID(r, "before")
 	v, err := s.logView(r, id, matchID, before)
 	if s.fail(w, r, err) {
 		return

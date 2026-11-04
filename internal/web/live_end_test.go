@@ -26,7 +26,7 @@ func endChecksFixture() core.EndChecks {
 	}
 }
 
-const sheetPath = matchPath + "/end/sheet"
+const sheetPath = testMatchPath + "/end/sheet"
 
 func sheetFixture(t *testing.T, m core.Match) *fixture {
 	t.Helper()
@@ -84,11 +84,11 @@ func TestEndMatchSheetIsForThePlayers(t *testing.T) {
 
 func TestEndMatchNeedsTheWinnerAndTheMVP(t *testing.T) {
 	f := sheetFixture(t, readyToEnd())
-	rec := f.do(f.signedIn(form(matchPath+"/end/propose", url.Values{"revision": {"4"}, "mvp-2": {"20"}, "note": {"keep me"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/end/propose", url.Values{"revision": {"4"}, "mvp-2": {"20"}, "note": {"keep me"}})))
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Choose who won, or a draw.") || !strings.Contains(rec.Body.String(), "keep me") {
 		t.Errorf("no winner: %d", rec.Code)
 	}
-	rec = f.do(f.signedIn(form(matchPath+"/end/propose", url.Values{"revision": {"4"}, "winner": {"1"}, "mvp-2": {"99"}})))
+	rec = f.do(f.signedIn(form(testMatchPath+"/end/propose", url.Values{"revision": {"4"}, "winner": {"1"}, "mvp-2": {"99"}})))
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Choose the MVP of Raiders.") {
 		t.Errorf("no MVP: %d %s", rec.Code, rec.Body.String())
 	}
@@ -108,10 +108,10 @@ func TestEndMatchSavesTheVotesTheObjectiveAndTheResultAndProposes(t *testing.T) 
 	saved.Revision, saved.Result = 5, want
 	f.camp.EXPECT().SaveResult(gomock.Any(), frodo, int64(7), int64(3), 4, want).Return(saved, nil)
 	f.camp.EXPECT().ProposeEnd(gomock.Any(), frodo, int64(7), int64(3), 5).Return(saved, nil)
-	r := f.signedIn(form(matchPath+"/end/propose", url.Values{"revision": {"4"}, "winner": {"1"}, "mvp-2": {"20"}, "objective-6": {"1"}, "tick-1-allCargo": {"1"}, "note": {"close"}}))
+	r := f.signedIn(form(testMatchPath+"/end/propose", url.Values{"revision": {"4"}, "winner": {"1"}, "mvp-2": {"20"}, "objective-6": {"1"}, "tick-1-allCargo": {"1"}, "note": {"close"}}))
 	r.Header.Set("HX-Request", "true")
 	rec := f.do(r)
-	if rec.Code != http.StatusNoContent || rec.Header().Get("HX-Redirect") != matchPath {
+	if rec.Code != http.StatusNoContent || rec.Header().Get("HX-Redirect") != testMatchPath {
 		t.Errorf("proposed: %d %q\n%s", rec.Code, rec.Header().Get("HX-Redirect"), rec.Body.String())
 	}
 }
@@ -120,14 +120,14 @@ func TestEndMatchRefusedShowsTheSheetAgain(t *testing.T) {
 	m := readyToEnd()
 	f := sheetFixture(t, m)
 	f.camp.EXPECT().ProposeEnd(gomock.Any(), frodo, int64(7), int64(3), 4).Return(core.Match{}, core.Refuse("Vote the MVP of Raiders first."))
-	rec := f.do(f.signedIn(form(matchPath+"/end/propose", url.Values{"revision": {"4"}, "winner": {"1"}, "mvp-2": {"21"}, "objective-5": {"1"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/end/propose", url.Values{"revision": {"4"}, "winner": {"1"}, "mvp-2": {"21"}, "objective-5": {"1"}})))
 	body := rec.Body.String()
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(body, "Vote the MVP of Raiders first.") || !strings.Contains(body, `id="end-sheet"`) {
 		t.Errorf("refused: %d\n%s", rec.Code, body)
 	}
 	// a stale sheet is answered with the current state, nothing is written
 	f = sheetFixture(t, m)
-	if rec := f.do(f.signedIn(form(matchPath+"/end/propose", url.Values{"revision": {"2"}, "winner": {"1"}, "mvp-2": {"21"}}))); rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Somebody changed this match meanwhile") {
+	if rec := f.do(f.signedIn(form(testMatchPath+"/end/propose", url.Values{"revision": {"2"}, "winner": {"1"}, "mvp-2": {"21"}}))); rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Somebody changed this match meanwhile") {
 		t.Errorf("stale: %d", rec.Code)
 	}
 }
@@ -157,9 +157,9 @@ func TestConfirmSavesTheVoteAndConfirms(t *testing.T) {
 	f := sheetFixture(t, m)
 	f.camp.EXPECT().Apply(gomock.Any(), frodo, int64(7), int64(3), int64(2), core.LiveAction{Kind: core.LiveMVPVote, UnitID: 20}).Return(core.LiveCompany{}, core.LiveEntry{}, nil)
 	f.camp.EXPECT().ConfirmEnd(gomock.Any(), frodo, int64(7), int64(3), 4).Return(m, nil) // the result is unchanged: no save
-	r := f.signedIn(form(matchPath+"/end/confirm", url.Values{"revision": {"4"}, "winner": {"2"}, "mvp-2": {"20"}, "objective-5": {"1"}}))
+	r := f.signedIn(form(testMatchPath+"/end/confirm", url.Values{"revision": {"4"}, "winner": {"2"}, "mvp-2": {"20"}, "objective-5": {"1"}}))
 	r.Header.Set("HX-Request", "true")
-	if rec := f.do(r); rec.Code != http.StatusNoContent || rec.Header().Get("HX-Redirect") != matchPath {
+	if rec := f.do(r); rec.Code != http.StatusNoContent || rec.Header().Get("HX-Redirect") != testMatchPath {
 		t.Errorf("confirmed: %d\n%s", rec.Code, rec.Body.String())
 	}
 	// Change result: the new winner is saved first (the other confirmations are reset by the service), then confirmed
@@ -168,7 +168,7 @@ func TestConfirmSavesTheVoteAndConfirms(t *testing.T) {
 	changed.Revision = 5
 	g.camp.EXPECT().SaveResult(gomock.Any(), frodo, int64(7), int64(3), 4, core.MatchResult{Decided: true, Winner: 0}).Return(changed, nil)
 	g.camp.EXPECT().ConfirmEnd(gomock.Any(), frodo, int64(7), int64(3), 5).Return(changed, nil)
-	if rec := g.do(g.signedIn(form(matchPath+"/end/confirm", url.Values{"revision": {"4"}, "winner": {"draw"}, "mvp-2": {"21"}, "objective-5": {"1"}}))); rec.Code != http.StatusSeeOther {
+	if rec := g.do(g.signedIn(form(testMatchPath+"/end/confirm", url.Values{"revision": {"4"}, "winner": {"draw"}, "mvp-2": {"21"}, "objective-5": {"1"}}))); rec.Code != http.StatusSeeOther {
 		t.Errorf("changed result: %d\n%s", rec.Code, rec.Body.String())
 	}
 }

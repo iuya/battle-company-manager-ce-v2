@@ -85,11 +85,7 @@ func (s *Server) secretCard(r *http.Request, id int64, m core.Match) (secretView
 		if err != nil {
 			return v, err
 		}
-		for i := range list {
-			if list[i].Name == m.Scenario.Name {
-				info = &list[i]
-			}
-		}
+		info = core.FindScenario(list, m.Scenario.Name)
 	}
 	details := map[int64]core.CompanyDetail{}
 	for _, side := range m.Sides {
