@@ -627,17 +627,6 @@ func (v aftermathView) ChangeSummary() string {
 	return strings.Join(parts, ", ")
 }
 
-// Earned says whether the unit's sheet shows the gain (a review shows only what was earned; "+ add" opens the rest).
-func (v aftermathView) Earned(m core.ModelSheet, key string) bool {
-	if key == "mvp" {
-		return m.Gains["mvp"] > 0 || v.MVP() == m.UnitID
-	}
-	return m.Gains[key] > 0
-}
-
-// Review says whether the sheet is a review of what the live log produced: each unit shows only what it earned.
-func (v aftermathView) Review() bool { return v.A.FromLive }
-
 // Editing is whether the Sheet step shows its form.
 func (v aftermathView) Editing() bool { return v.Edit() && v.Step() == 0 }
 
@@ -716,7 +705,7 @@ func (v aftermathView) Influence() (n int) {
 	return n
 }
 
-// Gains are the ways to earn experience the sheet offers as chips: participation is the "Took part" switch.
+// Gains are the ways to earn experience the sheet offers as milestones: participation is the "Absent" toggle.
 func (v aftermathView) Gains() []core.XPGain {
 	var out []core.XPGain
 	for _, g := range v.Rules.Gains {
@@ -1045,13 +1034,13 @@ func (s *Server) handleSheet(start bool) http.HandlerFunc {
 			s.aftermathFailed(w, r, base, m, co, err, &in)
 			return
 		}
-		if auto { // the sheet saves itself: only the bar (preview, revision) comes back
+		if auto { // the sheet saves itself: only the bar (preview, revision) and the experience of each unit come back
 			v, err := s.newAftermathView(r, base, m, co, a)
 			if s.fail(w, r, err) {
 				return
 			}
 			v.Notice = "Saved."
-			s.render.partial(w, http.StatusOK, "aftermath", "aftermath_bar", v)
+			s.render.partial(w, http.StatusOK, "aftermath", "aftermath_saved", v)
 			return
 		}
 		notice := "Sheet saved."

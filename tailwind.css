@@ -477,6 +477,8 @@ html[data-mode="dark"] { color-scheme: dark; }
   .unit-choice { transition: box-shadow 150ms; }
   .unit-choice:hover { box-shadow: 0 0 0 2px var(--accent); }
   .unit-choice-go::after { content: ""; position: absolute; inset: 0; border-radius: .75rem; }
+  /* A filter makes the button the containing block of its ::after: on hover the press area would shrink to the button and the card stop answering. */
+  .unit-choice-go { filter: none !important; }
   .unit-choice .has-tip { position: relative; z-index: 1; }
   /* A unit's kind (the kind_icon template): a glyph on a small tile. On a card's title plate it fills a bigger fixed tile with
      almost no inset, centred on the plate: a name over two lines makes the plate taller, never the icon. */
@@ -528,6 +530,26 @@ html[data-mode="dark"] { color-scheme: dark; }
   button.milestone[aria-pressed="true"]:not(:disabled):hover { @apply text-accent-fg brightness-110; }
   .milestone:disabled { @apply cursor-not-allowed opacity-50; }
   .milestone[aria-pressed="true"]:disabled { @apply cursor-default opacity-100; }
+  /* The same marks on the aftermath: a wrapping grid (a sheet offers more of them than a card fits in a row). On the sheet each is a checkbox of the form, lit by its state. */
+  .milestones-wrap { display: grid; grid-template-columns: repeat(auto-fill, minmax(3.75rem, 1fr)); }
+  .milestone-check { @apply flex min-w-0 cursor-pointer; }
+  .milestone-check .milestone { @apply w-full; }
+  .milestone-check:hover input:not(:disabled):not(:checked) + .milestone { @apply border-accent text-fg; }
+  .milestone-check input:checked + .milestone { @apply border-solid border-accent bg-accent font-semibold text-accent-fg shadow-sm; }
+  .milestone-check input:not(:checked) + .milestone .milestone-tick { display: none; }
+  .milestone-check input:disabled + .milestone { @apply cursor-not-allowed; }
+  .milestone-check input:focus-visible + .milestone { @apply outline-2 outline-offset-2 outline-accent; }
+  .milestone-less { @apply absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface bg-raised text-sm font-bold leading-none text-fg; }
+  .milestone-less::after { content: ""; position: absolute; inset: -.5rem; }
+  /* Might, Will and Fate in one short line among a unit's facts on the aftermath. */
+  .hero-inline { @apply ml-auto inline-flex items-center gap-2 whitespace-nowrap text-xs text-muted; }
+  .hero-inline b { @apply text-sm font-semibold text-fg; }
+  /* A unit's outcome on the sheet: a small toggle with an icon; both off is Survived. */
+  .outcome-toggle { @apply inline-flex min-h-11 items-center gap-1 rounded-md border border-dashed border-line bg-transparent px-2 text-xs font-medium text-muted transition-colors duration-150 sm:min-h-8; }
+  .outcome-toggle:hover { @apply border-accent text-fg; }
+  .outcome-toggle[aria-pressed="true"] { @apply border-solid border-fg bg-raised font-semibold text-fg; }
+  .outcome-toggle[data-tone="danger"][aria-pressed="true"] { @apply border-danger bg-danger-soft; }
+  .outcome-toggle[data-tone="warn"][aria-pressed="true"] { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 22%, var(--surface)); }
   /* The other actions of the unit, the row below the milestones: plain buttons, not toggles. */
   .live-actions { @apply -mt-0.5 flex gap-1.5; }
   .live-action { @apply flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg border border-line bg-surface px-1 py-1 text-fg transition-colors duration-150 hover:bg-raised; }

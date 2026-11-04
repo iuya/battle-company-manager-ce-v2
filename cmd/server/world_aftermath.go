@@ -27,16 +27,25 @@ func (w *world) aftermathWardFour() {
 	rohan, mordor := cos[0], cos[1]
 
 	first := w.played(c, "Seize Ground", outcome{winner: 1}, []*wco{rohan}, []*wco{mordor})
-	leader, _, warriors := w.roster(rohan)
+	leader, sergeants, warriors := w.roster(rohan)
 	in := w.sheet(rohan)
 	set(&in, leader.ID, core.OutcomeCasualty, nil)
-	w.settle(rohan, first, in, map[int64][3]int{leader.ID: {1, 2, 1}}, true) // 3: an Arm Wound
+	set(&in, warriors[3].ID, core.OutcomeCasualty, nil)
+	w.settle(rohan, first, in, map[int64][3]int{leader.ID: {1, 2, 1}, warriors[3].ID: {2, 2, 0}}, true) // 3: an Arm Wound; 4: Injured, misses the next match
 	w.settle(mordor, first, w.sheet(mordor), nil, true)
 
 	second := w.played(c, "Chance Encounter", outcome{winner: 1}, []*wco{rohan}, []*wco{mordor})
 	in = w.sheet(rohan)
 	set(&in, leader.ID, core.OutcomeCasualty, nil)
-	set(&in, warriors[0].ID, core.OutcomeCasualty, nil)
+	set(&in, warriors[0].ID, core.OutcomeCasualty, map[string]int{"woundedEnemy": 1})
+	// the rest of the company, below the casualties: what it earned and who fled
+	set(&in, warriors[1].ID, core.OutcomeFled, map[string]int{"objective": 1})
+	set(&in, warriors[2].ID, core.OutcomeSurvived, map[string]int{"woundedEnemy": 1, "slainHeroOrMonster": 2, "mvp": 1})
+	for i := range in.Models { // a Sergeant who stayed out of the game: last, with the Warrior who missed it hurt
+		if in.Models[i].UnitID == sergeants[1].ID {
+			in.Models[i].Gains = map[string]int{}
+		}
+	}
 	w.startAftermath(rohan, second, in)
 	// rolled directly: cast would answer the bonus die, and these questions are left open
 	for unit, dice := range map[int64][]int{leader.ID: {3, 4}, warriors[0].ID: {6, 6}} { // 7: Full Recovery; 12: Lesson Learned

@@ -143,36 +143,59 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     <dl class="statline">
       {{range $u.Stats}}{{if and (not .HeroOnly) (not (and $lu (liveStat .Name)))}}<div class="{{if .Gear}}ring-1 ring-inset ring-muted{{end}}" title="{{statTip .Name $u.StatMods}}"><dt>{{.Abbr}}</dt><dd class="{{if and (gt .Boost 0) (ne .Trail "+")}}tone-win{{else if and (lt .Boost 0) (eq .Trail "+")}}tone-win{{else if ne .Boost 0}}tone-loss{{end}}">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}
     </dl>
-    {{if and $u.HasHeroStats (not $lu)}}
-    <dl class="statline statline-hero">
-      {{range $u.Stats}}{{if .HeroOnly}}<div title="{{.Name}}"><dt>{{.Name}}</dt><dd class="{{if gt .Boost 0}}tone-win{{end}}">{{.Value}}</dd></div>{{end}}{{end}}
-    </dl>
-    {{end}}
+    {{if and $u.HasHeroStats (not $lu)}}{{template "unit_hero_stats" $u}}{{end}}
   </div>
+{{end}}
+
+{{/* Might, Will and Fate. Takes a unit that has them. */}}
+{{define "unit_hero_stats"}}
+<dl class="statline statline-hero">
+  {{range .Stats}}{{if .HeroOnly}}<div title="{{.Name}}"><dt>{{.Name}}</dt><dd class="{{if gt .Boost 0}}tone-win{{end}}">{{.Value}}</dd></div>{{end}}{{end}}
+</dl>
 {{end}}
 
 {{/* The frame of a unit summary: the card, coloured by the unit's place in the company. Takes a core.CompanyUnit; used inside a class attribute. */}}
 {{define "unit_frame"}}card unit unit-{{.Role}} {{if .Injured}}unit-injured{{end}} !p-4{{end}}
 
-{{/* Who a unit is at a glance, for the pages that choose among units (the aftermath): the title plate of its card, its place, path, level and
-   injuries, and its profile. It goes inside a unit_frame. Takes a core.CompanyUnit. */}}
-{{define "unit_summary"}}
+{{/* Who a unit is at a glance, for the aftermath: the title plate of its card, its place, path and injuries, and a hero's Might, Will and Fate in one short
+   line beside them; unit_summary_foot closes the card with its level. It goes inside a unit_frame. Takes a core.CompanyUnit. */}}
+{{define "unit_summary"}}{{$u := .}}
 <header class="unit-head flex items-start gap-2 !pr-2 [&_.kind-icon]:bg-surface">
-  {{template "kind_icon" .Kind}}
+  {{template "kind_icon" $u.Kind}}
   <div class="min-w-0 flex-1">
-    <p class="font-heading text-xl font-bold leading-tight break-words">{{.Title}}</p>
-    <p class="unit-sub mt-0.5 flex items-baseline justify-between gap-2 text-sm text-muted"><span class="min-w-0 truncate">{{if .Name}}{{.Type}}{{end}}</span><span class="shrink-0 whitespace-nowrap"><span class="font-semibold text-fg">{{.Points}}</span> pts</span></p>
+    <p class="font-heading text-xl font-bold leading-tight break-words">{{$u.Title}}</p>
+    <p class="unit-sub mt-0.5 flex items-baseline justify-between gap-2 text-sm text-muted"><span class="min-w-0 truncate">{{if $u.Name}}{{$u.Type}}{{end}}</span><span class="shrink-0 whitespace-nowrap"><span class="font-semibold text-fg">{{$u.Points}}</span> pts</span></p>
   </div>
-  {{if ne (printf "%s" .Role) "warrior"}}<span class="unit-rank shrink-0 self-center [&>svg]:h-10 [&>svg]:w-10">{{template "role_insignia" .Role}}</span>{{end}}
+  {{if ne (printf "%s" $u.Role) "warrior"}}<span class="unit-rank shrink-0 self-center [&>svg]:h-10 [&>svg]:w-10">{{template "role_insignia" $u.Role}}</span>{{end}}
 </header>
-<div class="flex flex-wrap items-center gap-1.5" data-unit-facts>
-  {{with (roleLook .Role).Label}}<span class="badge badge-muted">{{.}}</span>{{end}}
-  {{if not (or .Wanderer .OwnPath)}}<span class="level-medal" title="Level {{.Level}} · {{.XP}} XP in total"><span class="sr-only">Level </span>{{.Level}}</span>{{end}}
-  {{with .Path}}{{if .Name}}<span class="path-k-{{(pathLook .Name).Kind}}">{{template "path_name" (dict "N" .Name "Short" true)}}</span>{{end}}{{end}}
-  {{if .PathPending}}<span class="badge badge-gold">No path yet</span>{{end}}
-  {{template "unit_injury_chips" .}}
+<div class="flex flex-wrap items-center gap-1.5 not-has-[*]:hidden" data-unit-facts>
+  {{with (roleLook $u.Role).Label}}<span class="badge badge-muted">{{.}}</span>{{end}}
+  {{with $u.Path}}{{if .Name}}<span class="path-k-{{(pathLook .Name).Kind}}">{{template "path_name" (dict "N" .Name "Short" true)}}</span>{{end}}{{end}}
+  {{if $u.PathPending}}<span class="badge badge-gold">No path yet</span>{{end}}
+  {{template "unit_injury_chips" $u}}
+  {{if $u.HasHeroStats}}<span class="hero-inline" data-hero-inline>{{range $u.Stats}}{{if .HeroOnly}}<span title="{{.Name}}"><span aria-hidden="true">{{slice .Name 0 1}}</span><span class="sr-only">{{.Name}}</span> <b class="{{if gt .Boost 0}}tone-win{{end}}">{{.Value}}</b></span>{{end}}{{end}}</span>{{end}}
 </div>
-{{template "unit_stats" (dict "U" . "Live" false)}}
+{{end}}
+
+{{/* The level and the segmented experience bar at the foot of a unit card: a unit can have several level-up rolls waiting.
+   Takes {U: a unit, MatchXP: experience earned in a running match, 0 for none}. */}}
+{{define "unit_xp_bar"}}{{$u := .U}}{{$mxp := .MatchXP}}
+  <div class="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-2 text-xs">
+    <span class="level-medal" title="Level {{$u.Level}} · {{$u.XP}} XP in total"><span class="sr-only">Level </span>{{$u.Level}}</span>
+    {{/* In a match the experience earned so far follows the bar's fill in the magic path's colour, up to the end of the level; the
+       "+N" before the count says how much, also past the level. */}}
+    <div class="xp-bar" style="--seg: {{$u.LevelEvery}}" role="progressbar" aria-valuemin="0" aria-valuemax="{{$u.LevelEvery}}" aria-valuenow="{{$u.XPInLevel}}"{{if $mxp}} aria-valuetext="{{$u.XPInLevel}} of {{$u.LevelEvery}}, {{$mxp}} more earned this match"{{end}} aria-label="Experience"><div class="h-full {{if $u.PendingLevelUps}}bg-warn{{else}}xp-fill{{end}}" style="width: {{pct $u.XPInLevel $u.LevelEvery}}%"></div>{{if $mxp}}<div class="xp-match h-full" style="width: {{pct (xpAhead $u.XPInLevel $u.LevelEvery $mxp) $u.LevelEvery}}%"></div>{{end}}</div>
+    <span class="text-muted">{{if $mxp}}<span class="xp-match-text" title="Earned this match: added in the aftermath">+{{$mxp}}</span> {{end}}{{$u.XPInLevel}} / {{$u.LevelEvery}} XP</span>
+  </div>
+{{end}}
+
+{{/* The foot of a unit_summary, last in its unit_frame: the same as a My Company card in a match, the experience this match gives in its own colour. A unit
+   in the cemetery may have no level-up rules left to draw a bar with. Takes {U: a unit, MatchXP}, from aftermathView.Foot. */}}
+{{define "unit_summary_foot"}}{{$u := .U}}
+{{if $u.OwnPath}}<div class="mt-auto flex items-center gap-3 border-t border-line pt-2 text-xs"><span class="text-muted">On its own path: no experience</span></div>
+{{else if $u.Wanderer}}<div class="mt-auto flex items-center gap-3 border-t border-line pt-2 text-xs"><span class="text-muted">Mercenary: no experience</span></div>
+{{else if $u.LevelEvery}}{{template "unit_xp_bar" .}}
+{{else}}<div class="mt-auto flex items-center gap-3 border-t border-line pt-2 text-xs text-muted"><span class="level-medal" title="Level {{$u.Level}}"><span class="sr-only">Level </span>{{$u.Level}}</span><span>{{if .MatchXP}}<span class="xp-match-text">+{{.MatchXP}}</span> {{end}}{{$u.XP}} XP</span></div>{{end}}
 {{end}}
 
 {{define "unit_card"}}{{$ap := .AP}}{{$u := .U}}{{$cid := .CID}}{{$co := .CO}}{{$wcost := .WCost}}{{$lv := .LV}}{{$lu := .LU}}{{$rn := .RO}}{{$ro := or .RO $lv}}
@@ -392,14 +415,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     {{if and (not $ro) (not $lu)}}<form data-lock method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/dismiss" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/dismiss" hx-target="#main" hx-swap="innerHTML show:window:top" hx-confirm="Dismiss {{$u.Title}}? The influence is not returned."><button class="btn btn-ghost !min-h-8 !px-2 !text-xs">Dismiss</button></form>{{end}}
   </div>
   {{else}}
-  <div class="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-2 text-xs">
-    <span class="level-medal" title="Level {{$u.Level}} · {{$u.XP}} XP in total"><span class="sr-only">Level </span>{{$u.Level}}</span>
-    {{/* In a match the experience earned so far follows the bar's fill in the magic path's colour, up to the end of the level; the
-       "+N" before the count says how much, also past the level. */}}
-    {{$mxp := 0}}{{if $lu}}{{$mxp = $lu.MatchXP}}{{end}}
-    <div class="xp-bar" style="--seg: {{$u.LevelEvery}}" role="progressbar" aria-valuemin="0" aria-valuemax="{{$u.LevelEvery}}" aria-valuenow="{{$u.XPInLevel}}"{{if $mxp}} aria-valuetext="{{$u.XPInLevel}} of {{$u.LevelEvery}}, {{$mxp}} more earned this match"{{end}} aria-label="Experience"><div class="h-full {{if $u.PendingLevelUps}}bg-warn{{else}}xp-fill{{end}}" style="width: {{pct $u.XPInLevel $u.LevelEvery}}%"></div>{{if $mxp}}<div class="xp-match h-full" style="width: {{pct (xpAhead $u.XPInLevel $u.LevelEvery $mxp) $u.LevelEvery}}%"></div>{{end}}</div>
-    <span class="text-muted">{{if $mxp}}<span class="xp-match-text" title="Earned this match: added in the aftermath">+{{$mxp}}</span> {{end}}{{$u.XPInLevel}} / {{$u.LevelEvery}} XP</span>
-  </div>
+  {{$mxp := 0}}{{if $lu}}{{$mxp = $lu.MatchXP}}{{end}}{{template "unit_xp_bar" (dict "U" $u "MatchXP" $mxp)}}
   {{end}}
   {{/* Keywords: race, factions and the types the icon and insignia do not say; a lost mount changes none of them. Seldom needed at
      the table, so small, in the bottom corner of the card, below the experience. */}}

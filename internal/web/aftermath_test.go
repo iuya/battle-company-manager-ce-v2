@@ -2,9 +2,11 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -157,7 +159,7 @@ func TestAftermathPageEditorSeesTheSheetForm(t *testing.T) {
 	f := amFixture(t)
 	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(amState(core.AftermathPending, core.AftermathEdit), nil)
 	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
-	for _, want := range []string{"Aldor", "Brand", `name="unit" value="10"`, `name="outcome-10" value="casualty"`, `name="took-10"`, `name="gain-10-mvp"`, `name="gain-10-slain"`, `name="odds" value="toolkit"`, "No effect on the aftermath.",
+	for _, want := range []string{"Aldor", "Brand", `name="unit" value="10"`, `name="outcome-10" value="survived"`, `class="outcome-toggle" data-tone="danger"`, `name="took-10"`, `name="gain-10-mvp"`, `name="gain-10-slain"`, `name="odds" value="toolkit"`, "No effect on the aftermath.",
 		`hx-post="/campaigns/7/matches/3/aftermath/1/sheet?auto=1"`, `/aftermath/1/start`, `name="revision" value="2"`, "Missed this game", "Cirion", `aria-current="step"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("sheet lacks %q", want)
@@ -430,7 +432,7 @@ func TestTypedDiceStayInputs(t *testing.T) {
 
 // A casualty and a candidate show who they are at a glance; a casualty already buried keeps its card, from the cemetery.
 func TestUnitCardsTellWhoTheUnitIs(t *testing.T) {
-	sergeant := core.CompanyUnit{ID: 11, Name: "Brand", Type: "Captain of Rohan", Role: core.RoleSergeant, Points: 57, Level: 2, Path: &core.UnitPath{Name: "Path of the Warrior"},
+	sergeant := core.CompanyUnit{ID: 11, Name: "Brand", Type: "Captain of Rohan", Role: core.RoleSergeant, Points: 57, Level: 2, XP: 13, LevelEvery: 5, Path: &core.UnitPath{Name: "Path of the Warrior"},
 		Injuries: []core.UnitInjury{{Key: "armWound", Name: "Arm Wound", Count: 2}}, Stats: []core.Attribute{{Abbr: "Fi", Name: "Fight", Value: 4, Trail: "/4+"}, {Name: "Might", Value: 3, HeroOnly: true}}}
 	fallen := core.CompanyUnit{ID: 10, Type: "Captain of Rohan", Role: core.RoleLeader, Points: 83}
 	f := matchWrite(t, endedMatch())
@@ -440,11 +442,139 @@ func TestUnitCardsTellWhoTheUnitIs(t *testing.T) {
 	st.Succession = &core.Succession{NeedLeader: true, LeaderOptions: []int64{11}}
 	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(st, nil)
 	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
-	for _, want := range []string{"Brand (Sergeant)", "Captain of Rohan", `<span class="font-semibold text-fg">57</span> pts`, ">Sergeant</span>", "path-k-", "Arm Wound ×2", "<dt>Fi</dt>", "4/4&#43;", "<dt>Might</dt>", "unit-sergeant", // the candidate
+	for _, want := range []string{"Brand (Sergeant)", "Captain of Rohan", `<span class="font-semibold text-fg">57</span> pts`, ">Sergeant</span>", "path-k-", "Arm Wound ×2", "unit-sergeant", "data-hero-inline", `<span class="sr-only">Might</span>`, `class="xp-bar" style="--seg: 5"`, `aria-valuenow="3"`, "3 / 5 XP", // the candidate
 		"Aldor (Leader)", `<span class="font-semibold text-fg">83</span> pts`, "unit-leader"} { // the buried casualty
 		if !strings.Contains(body, want) {
 			t.Errorf("the cards lack %q", want)
 		}
+	}
+	if strings.Contains(body, "statline") || strings.Contains(body, "<dt>Fi</dt>") {
+		t.Error("the aftermath shows Might, Will and Fate in one line, and no profile")
+	}
+}
+
+// While the casualties are rolled the rest of the company follows them, each with what it earned; afterwards it is everybody, the casualties first.
+func TestEveryUnitShowsWhatTheMatchDidToIt(t *testing.T) {
+	rules := amRules
+	rules.Gains = append(slices.Clone(rules.Gains), core.XPGain{Key: core.GainObjective, Label: "Carrying an objective", Amount: 1})
+	roster := append(amUnits(), core.CompanyUnit{ID: 13, Name: "Dernhelm", Type: "Warrior of Rohan"}, core.CompanyUnit{ID: 14, Name: "Elfhelm", Type: "Warrior of Rohan"})
+	serve := func(t *testing.T, a core.Aftermath) string {
+		f := matchWrite(t, endedMatch())
+		f.camp.EXPECT().AftermathRules(gomock.Any(), int64(7)).Return(rules, nil).AnyTimes()
+		f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(core.CompanyDetail{Roster: roster}, nil).AnyTimes()
+		f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(a, nil)
+		return f.do(f.signedIn(httpGet(amPath))).Body.String()
+	}
+	state := func(status core.AftermathStatus) core.Aftermath {
+		a := amState(status, core.AftermathEdit)
+		a.Casualties = []core.Casualty{{UnitID: 11, Name: "Brand", Rolled: true, Dice: []int{6, 6}, Total: 12, ResultTxt: "Dead", Kind: core.CasualtyDead, Final: true}}
+		a.Input.Models = []core.ModelSheet{
+			{UnitID: 14, Outcome: core.OutcomeSurvived, Gains: map[string]int{}},
+			{UnitID: 13, Outcome: core.OutcomeFled, Gains: map[string]int{"participated": 1, "slain": 2, core.GainObjective: 1}},
+			{UnitID: 11, Outcome: core.OutcomeCasualty, Gains: map[string]int{"participated": 1}},
+			{UnitID: 10, Outcome: core.OutcomeSurvived, Gains: map[string]int{"participated": 1}},
+		}
+		a.Preview.Experience = []core.UnitGain{{UnitID: 13, Total: 4}, {UnitID: 11, Total: 1}, {UnitID: 10, Total: 1}}
+		return a
+	}
+	result := func(t *testing.T, body string, id int) string {
+		t.Helper()
+		_, after, ok := strings.Cut(body, fmt.Sprintf(`data-unit-result="%d"`, id))
+		if !ok {
+			t.Fatalf("no result card of unit %d", id)
+		}
+		card, _, _ := strings.Cut(after, "</article>")
+		return card
+	}
+
+	body := serve(t, state(core.AftermathInjuries))
+	if strings.Contains(body, `data-unit-result="11"`) {
+		t.Error("while rolling, a casualty has its own card only")
+	}
+	if !strings.Contains(body, `id="casualty-11"`) || strings.Index(body, `id="casualty-11"`) > strings.Index(body, `data-unit-result="13"`) {
+		t.Error("the casualty comes before the others")
+	}
+	fled := result(t, body, 13)
+	for _, want := range []string{"Fled", `xp-match-text">+4<`, "Objective", "Slain", `class="milestone-count"`, ">2</span>"} {
+		if !strings.Contains(fled, want) {
+			t.Errorf("the unit that fled lacks %q:\n%s", want, fled)
+		}
+	}
+	if survived := result(t, body, 10); !strings.Contains(survived, "Survived") || !strings.Contains(survived, `xp-match-text">+1<`) || strings.Contains(survived, `data-on="true"`) || strings.Count(survived, `data-on="false"`) != 3 {
+		t.Errorf("a unit that earned no milestone still shows them all, unlit:\n%s", survived)
+	}
+	if strings.Contains(body, "<button type=\"button\" class=\"milestone\"") {
+		t.Error("the milestones of the results cannot be pressed")
+	}
+	absent := result(t, body, 12)
+	if !strings.Contains(absent, "Missed this game") || !strings.Contains(absent, "Recovered: can play the next match") {
+		t.Errorf("the unit that missed the game:\n%s", absent)
+	}
+	if strings.Index(body, `data-unit-result="12"`) < strings.Index(body, `data-unit-result="14"`) || strings.Index(body, `data-unit-result="14"`) < strings.Index(body, `data-unit-result="10"`) {
+		t.Error("who did not play comes last")
+	}
+	if c := result(t, body, 14); !strings.Contains(c, "Did not take part") || !strings.Contains(c, "Can play the next match") {
+		t.Errorf("the unit that stayed out:\n%s", c)
+	}
+
+	done := state(core.AftermathDone)
+	done.Lines = []core.AftermathLine{{Kind: "experience", UnitID: 13, Amount: 5}}
+	body = serve(t, done)
+	if strings.Index(body, `data-unit-result="11"`) > strings.Index(body, `data-unit-result="13"`) || strings.Index(body, `data-unit-result="13"`) < 0 {
+		t.Error("afterwards the casualties come first")
+	}
+	if c := result(t, body, 11); !strings.Contains(c, "Dead") || strings.Contains(c, "xp-match-text") {
+		t.Errorf("the fallen unit:\n%s", c)
+	}
+	if c := result(t, body, 13); !strings.Contains(c, `xp-match-text">+5<`) {
+		t.Errorf("the experience given is the record's:\n%s", c)
+	}
+
+	waived := state(core.AftermathWaived)
+	if strings.Contains(serve(t, waived), "data-unit-result") {
+		t.Error("a waived aftermath did nothing to anybody")
+	}
+}
+
+// A save of the sheet answers the experience of every unit too: what the match gives it, over what it had. Given, the bar draws it the same way.
+func TestTheSheetSaveUpdatesTheExperienceOfEachUnit(t *testing.T) {
+	roster := amUnits()
+	roster[0].XP, roster[0].LevelEvery = 6, 5
+	f := matchWrite(t, endedMatch())
+	f.camp.EXPECT().AftermathRules(gomock.Any(), int64(7)).Return(amRules, nil).AnyTimes()
+	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(core.CompanyDetail{Roster: roster}, nil).AnyTimes()
+	a := amState(core.AftermathSheet, core.AftermathEdit)
+	a.Preview.Experience = []core.UnitGain{{UnitID: 10, Total: 3}}
+	f.camp.EXPECT().SaveAftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1), 2, gomock.Any()).Return(a, nil)
+	body := amPost(f, "/sheet?auto=1", sheetForm(nil)).Body.String()
+	for _, want := range []string{`id="aftermath-bar"`, `id="sheet-xp-10" hx-swap-oob="true"`, `id="sheet-xp-11" hx-swap-oob="true"`, `xp-match-text" title="Earned this match: added in the aftermath">+3<`, "6 / 5 XP"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the save lacks %q:\n%s", want, body)
+		}
+	}
+	v := aftermathView{A: core.Aftermath{Status: core.AftermathDone, Lines: []core.AftermathLine{{Kind: "experience", UnitID: 10, Amount: 3}}}}
+	if f := v.Foot(roster[0]); f.MatchXP != 3 || f.U.XP != 3 {
+		t.Errorf("experience already given: %+v", f)
+	}
+}
+
+// The sheet draws each gain as a milestone of one press, Fate only for a unit that has Fate, and repeatable gains count.
+func TestSheetOffersMilestonesOfOnePress(t *testing.T) {
+	v := aftermathView{Rules: core.AftermathRules{Gains: []core.XPGain{{Key: "participated", Label: "Took part"}, {Key: core.GainWoundedEnemy, Label: "Wounding at least one enemy"}, {Key: core.GainFatePrevented, Label: "Fate"}, {Key: "custom", Label: "A gain of a custom ruleset"}}}}
+	warrior := core.CompanyUnit{ID: 1}
+	got := v.SheetMilestones(warrior, core.ModelSheet{Gains: map[string]int{core.GainWoundedEnemy: 1}})
+	if len(got) != 2 || got[0].M.Label != "Wounded" || got[0].M.Tip != "Wounding at least one enemy" || got[0].Count != 1 || got[1].M.Icon != gainLookOther || got[1].M.Label != "A gain of a custom ruleset" {
+		t.Errorf("a warrior: %+v", got)
+	}
+	if got := v.SheetMilestones(warrior, core.ModelSheet{Gains: map[string]int{core.GainFatePrevented: 1}}); len(got) != 3 {
+		t.Errorf("a Fate the sheet already gives stays: %+v", got)
+	}
+	hero := core.CompanyUnit{ID: 2, Stats: []core.Attribute{{Name: "Fate", Value: 1, HeroOnly: true}}}
+	if !hero.HasHeroStats() {
+		t.Fatal("the test's hero has no hero stats")
+	}
+	if got := v.SheetMilestones(hero, core.ModelSheet{}); len(got) != 3 {
+		t.Errorf("a hero: %+v", got)
 	}
 }
 

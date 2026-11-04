@@ -47,6 +47,7 @@
   {{if .HasInjuries}}{{template "aftermath_later" (dict "V" . "Index" 1 "Title" "Injuries" "Text" "A casualty roll for every unit marked as a casualty.")}}{{end}}
   {{if eq .Step 3}}<section class="card space-y-2" id="aftermath-step-3"><h2 class="!text-xl">Rewards</h2>{{template "aftermath_finish" .}}</section>{{end}}
   {{if and .HasLevelUps (ne .Step 4)}}<section class="card space-y-2" id="aftermath-step-2"><h2 class="!text-xl">Level-ups</h2>{{template "aftermath_levelups" .}}</section>{{end}}
+  {{with .UnitResults}}{{template "aftermath_company" (dict "V" $ "R" .)}}{{end}}
   {{if .Owner}}
   {{/* The level-up window of My Company, opened here (its endpoints and panel are the same). */}}
   <div x-show="modal" x-cloak x-transition.opacity class="fixed inset-0 z-[55] flex items-start justify-center overflow-y-auto bg-black/60 p-3 sm:p-6" @click.self="closeModal()">
@@ -72,6 +73,33 @@
   {{else if lt $v.Step .Index}}<p class="text-sm text-muted">{{.Text}}</p>
   {{else}}{{template "aftermath_injuries_summary" $v}}{{end}}
 </section>
+{{end}}
+
+{{/* Every unit with what the match did to it. While the casualties are being rolled they have their own cards above, so these are the others;
+   afterwards it is the whole company, the casualties first. Takes {V: aftermathView, R: []unitResult}. */}}
+{{define "aftermath_company"}}
+<section class="card space-y-3" id="aftermath-company">
+  <h2 class="!text-xl">{{if eq .V.Step 1}}The rest of the company{{else}}The company{{end}}</h2>
+  <div class="unit-choices">
+    {{range .R}}
+    <article class="{{template "unit_frame" .Unit}} flex flex-col gap-2" data-unit-result="{{.Unit.ID}}" aria-label="{{.Unit.Title}}">
+      {{template "unit_summary" .Unit}}
+      {{template "aftermath_unit_marks" .}}
+      {{template "unit_summary_foot" .Foot}}
+    </article>
+    {{end}}
+  </div>
+</section>
+{{end}}
+
+{{/* What the match did to a unit: fled, a casualty and its result, that it recovers and can play next, and every milestone as on the sheet, those it earned lit
+   and none to press. The experience is in the bar of its foot. Takes a unitResult. */}}
+{{define "aftermath_unit_marks"}}
+<div class="flex flex-wrap items-center gap-1.5" data-unit-outcome>
+  <span class="badge {{.Badge}} inline-flex items-center gap-1">{{with .Icon}}{{template "gi_icon" (dict "N" . "C" "h-3.5 w-3.5 shrink-0")}}{{end}}{{.Status}}</span>
+  {{with .Next}}<span class="badge badge-success inline-flex items-center gap-1" data-unit-next>{{.}}</span>{{end}}
+</div>
+<div class="milestones milestones-wrap" role="group" aria-label="Milestones">{{range .Milestones}}{{template "milestone" (dict "M" . "Edit" false "Unit" "")}}{{end}}</div>
 {{end}}
 
 {{/* The first block of a finished aftermath: the summary of changes, the level-up rolls waiting and every line. */}}
@@ -117,6 +145,7 @@
 <article class="{{template "unit_frame" $u}} flex flex-col gap-3" id="casualty-{{$c.UnitID}}" aria-label="{{$c.Name}}" x-data="rollPanel"
          data-dice="{{$v.DiceCSV $c}}" data-groups="{{$v.Rules.InjuryDice.Count}}" data-per-lane="{{$v.Rules.InjuryDice.Count}}" data-sides="{{$v.Rules.InjuryDice.Sides}}" data-labels="" data-animate="{{$animate}}" data-shake="{{$v.Settings.ShakeTheTable}}" @keydown.space.window="onSpace($event)">
   {{template "unit_summary" $u}}
+  {{template "aftermath_unit_marks" ($v.ResultOf $c.UnitID)}}
   <p class="flex flex-wrap items-center gap-2 text-sm text-muted"><span>{{if $c.Hero}}Hero{{else}}Warrior{{end}} injuries chart</span>{{if $c.Final}}<span class="badge badge-muted">Final</span>{{end}}</p>
   <canvas x-ref="canvas" class="dice-tray" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>
   {{if not $c.Rolled}}
@@ -154,6 +183,7 @@
     </details>
   </div>
   {{end}}
+  {{template "unit_summary_foot" ($v.Foot $u)}}
 </article>
 {{end}}
 
@@ -186,7 +216,8 @@
 <article class="{{template "unit_frame" $u}} {{if .Edit}}unit-choice{{end}} flex flex-col gap-2">
   {{template "unit_summary" $u}}
   {{with .Note}}<p class="text-sm text-muted">{{.}}</p>{{end}}
-  {{if .Edit}}<button name="answer" value="{{.Value}}" class="btn btn-primary unit-choice-go mt-auto w-full">{{.Label}}<span class="sr-only">: {{$u.Title}}</span></button>{{end}}
+  {{if .Edit}}<button name="answer" value="{{.Value}}" class="btn btn-primary unit-choice-go w-full">{{.Label}}<span class="sr-only">: {{$u.Title}}</span></button>{{end}}
+  {{template "unit_summary_foot" (.V.Foot $u)}}
 </article>
 {{end}}
 
@@ -194,7 +225,7 @@
 {{define "aftermath_fallback"}}{{$v := .V}}{{$n := len .IDs}}{{$label := "Make Sergeant"}}{{if eq .Role "leader"}}{{$label = "Make Leader"}}{{end}}
 <legend class="text-sm font-semibold">{{if eq .Role "leader"}}The Leader has fallen and the company has no hero left.{{else}}A Sergeant has fallen and the company has no hero left.{{end}} {{if gt $n 1}}{{$n}} Warriors are tied for the most Experience (then the highest rating): choose which one becomes {{if eq .Role "leader"}}the Leader{{else}}a Sergeant{{end}}.{{else}}The Warrior with the most Experience becomes {{if eq .Role "leader"}}the Leader{{else}}a Sergeant{{end}}.{{end}} It is treated as having rolled Hero in the Making: it chooses its path in the company window. This place cannot stay empty.</legend>
 <div class="unit-choices">
-  {{range $id := .IDs}}{{$u := index $v.Roster $id}}{{template "aftermath_unit_choice" (dict "U" $u "Value" $id "Label" $label "Note" (printf "%d Experience" $u.XP) "Edit" $v.Edit)}}{{end}}
+  {{range $id := .IDs}}{{$u := index $v.Roster $id}}{{template "aftermath_unit_choice" (dict "V" $v "U" $u "Value" $id "Label" $label "Note" (printf "%d Experience" $u.XP) "Edit" $v.Edit)}}{{end}}
 </div>
 {{end}}
 
@@ -208,7 +239,7 @@
     {{else}}
     <legend class="text-sm font-semibold">The Leader has fallen. Which one takes over as Leader? A Sergeant place may then need a replacement.</legend>
     <div class="unit-choices">
-      {{range $id := $s.LeaderOptions}}{{template "aftermath_unit_choice" (dict "U" (index $v.Roster $id) "Value" $id "Label" "Make Leader" "Edit" $v.Edit)}}{{end}}
+      {{range $id := $s.LeaderOptions}}{{template "aftermath_unit_choice" (dict "V" $v "U" (index $v.Roster $id) "Value" $id "Label" "Make Leader" "Edit" $v.Edit)}}{{end}}
     </div>
     {{end}}
   </fieldset>
@@ -219,7 +250,7 @@
     {{else}}
     <legend class="text-sm font-semibold">The company has fewer than {{count $s.Sergeants "Sergeant"}}. Which hero becomes a Sergeant? (Optional: a Hero who is not a Leader or Sergeant may take the place.)</legend>
     <div class="unit-choices">
-      {{range $id := $s.SergeantOptions}}{{template "aftermath_unit_choice" (dict "U" (index $v.Roster $id) "Value" $id "Label" "Make Sergeant" "Edit" $v.Edit)}}{{end}}
+      {{range $id := $s.SergeantOptions}}{{template "aftermath_unit_choice" (dict "V" $v "U" (index $v.Roster $id) "Value" $id "Label" "Make Sergeant" "Edit" $v.Edit)}}{{end}}
     </div>
     {{if $v.Edit}}<button name="answer" value="" class="btn btn-secondary">Nobody for now</button>{{end}}
     {{end}}
@@ -246,7 +277,8 @@
   <li class="{{template "unit_frame" .}} flex flex-col gap-2">
     {{template "unit_summary" .}}
     <p class="text-sm text-muted">{{.PendingLevelUps}} roll{{if ne .PendingLevelUps 1}}s{{end}} waiting</p>
-    {{if $.Owner}}<button type="button" class="btn btn-primary mt-auto w-full" hx-get="/campaigns/{{$cid}}/my-company/{{$.Company.ID}}/units/{{.ID}}/levelup" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Level up<span class="sr-only"> {{.Title}}</span></button>{{end}}
+    {{if $.Owner}}<button type="button" class="btn btn-primary w-full" hx-get="/campaigns/{{$cid}}/my-company/{{$.Company.ID}}/units/{{.ID}}/levelup" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Level up<span class="sr-only"> {{.Title}}</span></button>{{end}}
+    {{template "unit_summary_foot" ($.Foot .)}}
   </li>
   {{end}}
 </ul>
@@ -295,7 +327,7 @@
     <div class="rounded-lg border border-line bg-surface p-2" :class="item === {{jsstr $o.Name}} && '!border-accent'">
       <label class="flex min-h-11 items-start gap-3"><input type="radio" name="item-{{$r.Key}}" value="{{$o.Name}}" x-model="item" class="mt-1 h-5 w-5 accent-[var(--accent)]"><span><span class="font-medium">{{$o.Name}}</span> <span class="text-xs text-muted">worth {{$o.Cost}}{{if $o.Size}} · {{$o.Size}}{{end}}</span>{{with $o.Segments}}<span class="block text-muted">{{template "segments" (dict "S" . "CID" $v.Campaign.ID)}}</span>{{end}}</span></label>
       <div class="unit-choices mt-2" x-show="item === {{jsstr $o.Name}}" x-cloak>
-        {{range $o.Units}}{{template "aftermath_unit_choice" (dict "U" (index $v.Roster .ID) "Value" (printf "%s|%d" $o.Name .ID) "Label" "Takes it" "Edit" true)}}{{end}}
+        {{range $o.Units}}{{template "aftermath_unit_choice" (dict "V" $v "U" (index $v.Roster .ID) "Value" (printf "%s|%d" $o.Name .ID) "Label" "Takes it" "Edit" true)}}{{end}}
       </div>
     </div>
     {{else}}<p class="text-muted">The armory has nothing a unit can take at that value.</p>{{end}}
@@ -396,46 +428,39 @@
       {{else if .Tied}}<p class="text-sm">Tied: {{range $i, $t := .Tied}}{{if $i}}, {{end}}{{with index $.Roster $t}}{{.Title}}{{end}}{{end}}. Choose the MVP among them below (or none).</p>{{end}}
     </div>
     {{end}}
+    <div class="unit-choices">
     {{range .Units}}
     {{$id := .Unit.ID}}
-    <fieldset class="{{template "unit_frame" .Unit}} min-w-0 space-y-3" x-data="{ outcome: '{{.Sheet.Outcome}}', took: {{.Sheet.Took}}, items: JSON.parse($el.dataset.items || '{}'),
+    <fieldset class="{{template "unit_frame" .Unit}} flex min-w-0 flex-col gap-3" x-data="{ outcome: '{{.Sheet.Outcome}}', took: {{.Sheet.Took}}, items: JSON.parse($el.dataset.items || '{}'),
         reason(key) { const it = this.items[key]; if (!it) return ''; if (!this.took) return it.reasons.took || ''; return it.outcomes.includes(this.outcome) ? '' : (it.reasons[this.outcome] || ''); } }" data-items="{{.ItemsJSON}}" x-effect="if (outcome === 'casualty' && relic === '{{$id}}') relic = ''; if (uses['{{$id}}'] && reason(uses['{{$id}}'])) delete uses['{{$id}}']">
       <input type="hidden" name="unit" value="{{$id}}">
       <legend class="sr-only">{{.Unit.Title}} {{.Unit.Type}}</legend>
       {{template "unit_summary" .Unit}}
       {{with .Err}}<p class="error text-sm font-medium text-danger" role="alert">{{.}}</p>{{end}}
-      <div class="grid grid-cols-3 gap-1" role="radiogroup" aria-label="What happened to {{.Unit.Title}}">
-        {{range $k, $o := (split "survived,casualty,fled" ",")}}
-        <label class="block min-w-0"><input type="radio" class="peer sr-only" name="outcome-{{$id}}" value="{{$o}}" x-model="outcome">
-          <span class="btn btn-secondary w-full !min-h-11 !px-1 capitalize peer-checked:!border-accent peer-checked:!bg-accent-soft peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">{{$o}}</span></label>
-        {{end}}
+      <div class="flex flex-wrap gap-1.5" role="group" aria-label="What happened to {{.Unit.Title}}">
+        <input type="hidden" name="outcome-{{$id}}" value="{{.Sheet.Outcome}}" :value="outcome">
+        <input type="hidden" name="took-{{$id}}" value="{{if .Sheet.Took}}1{{end}}" :value="took ? '1' : ''">
+        <button type="button" class="outcome-toggle" data-tone="warn" aria-pressed="{{eq (printf "%s" .Sheet.Outcome) "fled"}}" :aria-pressed="outcome === 'fled'" @click="outcome = outcome === 'fled' ? 'survived' : 'fled'; $nextTick(() => $dispatch('change'))" title="Left the board: no injury roll">{{template "gi_icon" (dict "N" "boot-prints" "C" "h-4 w-4 shrink-0")}}Fled</button>
+        <button type="button" class="outcome-toggle" data-tone="danger" aria-pressed="{{eq (printf "%s" .Sheet.Outcome) "casualty"}}" :aria-pressed="outcome === 'casualty'" @click="outcome = outcome === 'casualty' ? 'survived' : 'casualty'; $nextTick(() => $dispatch('change'))" title="Removed as a casualty: rolls on the injuries chart">{{template "gi_icon" (dict "N" "death-skull" "C" "h-4 w-4 shrink-0")}}Casualty</button>
+        <button type="button" class="outcome-toggle" aria-pressed="{{not .Sheet.Took}}" :aria-pressed="!took" @click="took = !took; $nextTick(() => $dispatch('change'))" title="Did not take part: earns nothing"><svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>Absent</button>
       </div>
-      <label class="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" name="took-{{$id}}" value="1" x-model="took" class="h-5 w-5 accent-[var(--accent)]"> Took part</label>
-      <p class="text-xs font-semibold uppercase text-muted">Earned experience</p>
-      {{$sheet := .Sheet}}{{$review := $.Review}}
-      <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Experience earned by {{.Unit.Title}}" {{if $review}}x-data="{ more: false }"{{end}}>
-        {{range $.Gains}}{{$shown := or (not $review) ($.Earned $sheet .Key)}}
-        <span class="contents" {{if not $shown}}x-show="more" x-cloak{{end}}>
+      <div class="milestones milestones-wrap" role="group" aria-label="Milestones of {{.Unit.Title}}" :class="!took && 'opacity-50'">
+        {{$unit := .Unit.Title}}
+        {{range $.SheetMilestones .Unit .Sheet}}
         {{if .Repeatable}}
-        <div class="inline-flex max-w-full flex-wrap items-center gap-0.5 rounded-full border border-line bg-surface py-0.5 pl-3 pr-1 text-xs" x-data="{ n: {{index $sheet.Gains .Key}} }" :class="!took && 'opacity-50'">
-          <span>{{.Label}}</span>
-          <button type="button" class="btn btn-ghost !min-h-11 !min-w-11 !px-2 sm:!min-h-7 sm:!min-w-7" :disabled="!took || n <= 0" @click="n--; $nextTick(() => $dispatch('change'))" aria-label="Fewer: {{.Label}}">−</button>
-          <input type="number" name="gain-{{$id}}-{{.Key}}" x-model.number="n" min="0" max="9" readonly :disabled="!took" class="w-6 bg-transparent text-center text-sm font-semibold" aria-label="{{.Label}}">
-          <button type="button" class="btn btn-ghost !min-h-11 !min-w-11 !px-2 sm:!min-h-7 sm:!min-w-7" :disabled="!took || n >= 9" @click="n++; $nextTick(() => $dispatch('change'))" aria-label="More: {{.Label}}">+</button>
+        <div class="relative flex min-w-0" x-data="{ n: {{.Count}} }">
+          <input type="hidden" name="gain-{{$id}}-{{.Key}}" value="{{.Count}}" :value="n" :disabled="!took">
+          <button type="button" class="milestone w-full" title="{{.M.Tip}}" aria-label="{{.M.Tip}} ({{$unit}}): one more" aria-pressed="{{gt .Count 0}}" :aria-pressed="n > 0" :disabled="!took || n >= 9" @click="n++; $nextTick(() => $dispatch('change'))">{{template "gi_icon" (dict "N" .M.Icon "C" "h-6 w-6 shrink-0")}}<span class="milestone-label">{{.M.Label}}</span><span class="milestone-count" x-show="n > 0" x-cloak x-text="n">{{.Count}}</span></button>
+          <button type="button" class="milestone-less" aria-label="{{.M.Tip}} ({{$unit}}): one fewer" x-show="n > 0" x-cloak :disabled="!took" @click="n--; $nextTick(() => $dispatch('change'))">−</button>
         </div>
         {{else if eq .Key "mvp"}}
-        <label class="inline-flex max-w-full"><input type="checkbox" class="peer sr-only" name="gain-{{$id}}-mvp" value="1" :disabled="!took" :checked="mvp === '{{$id}}'" @change="mvp = $event.target.checked ? '{{$id}}' : ''">
-          <span class="chip cursor-pointer !text-fg peer-checked:border-accent peer-checked:bg-accent-soft peer-checked:before:mr-1 peer-checked:before:content-['✓'] peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">{{.Label}}{{if and $.A.FromLive $sheet.Took (index $sheet.Gains "mvp")}} <span class="badge badge-gold" title="The opposing players voted for this unit">Voted MVP</span>{{end}}</span></label>
+        <label class="milestone-check" title="{{.M.Tip}}"><input type="checkbox" class="sr-only" name="gain-{{$id}}-mvp" value="1" aria-label="{{.M.Tip}} ({{$unit}})" :disabled="!took" :checked="mvp === '{{$id}}'" @change="mvp = $event.target.checked ? '{{$id}}' : ''"><span class="milestone">{{template "milestone_face" .M}}</span></label>
         {{else}}
-        <label class="inline-flex max-w-full"><input type="checkbox" class="peer sr-only" name="gain-{{$id}}-{{.Key}}" value="1" :disabled="!took" {{if index $sheet.Gains .Key}}checked{{end}}>
-          <span class="chip cursor-pointer !text-fg peer-checked:border-accent peer-checked:bg-accent-soft peer-checked:before:mr-1 peer-checked:before:content-['✓'] peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">{{.Label}}{{if and $.A.FromLive (eq .Key "objective") (index $sheet.Gains .Key)}} <span class="badge badge-gold" title="Set when the match ended">From the live match</span>{{end}}</span></label>
+        <label class="milestone-check" title="{{.M.Tip}}"><input type="checkbox" class="sr-only" name="gain-{{$id}}-{{.Key}}" value="1" aria-label="{{.M.Tip}} ({{$unit}})" :disabled="!took" {{if .Count}}checked{{end}}><span class="milestone">{{template "milestone_face" .M}}</span></label>
         {{end}}
-        </span>
         {{end}}
-        {{if $review}}<button type="button" class="chip" x-show="!more" @click="more = true" data-add-gain>+ add</button>{{end}}
         {{if $.RelicTicked}}
-        <label class="inline-flex" x-show="outcome !== 'casualty'"><input type="checkbox" class="peer sr-only" name="relic" value="{{$id}}" :checked="relic === '{{$id}}'" @change="relic = $event.target.checked ? '{{$id}}' : ''">
-          <span class="chip cursor-pointer !text-fg peer-checked:border-accent peer-checked:bg-accent-soft peer-checked:before:mr-1 peer-checked:before:content-['✓'] peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">Holds the Relic</span></label>
+        <label class="milestone-check" title="Holds the Relic" x-show="outcome !== 'casualty'"><input type="checkbox" class="sr-only" name="relic" value="{{$id}}" aria-label="Holds the Relic ({{$unit}})" :checked="relic === '{{$id}}'" @change="relic = $event.target.checked ? '{{$id}}' : ''"><span class="milestone">{{template "milestone_face" $.RelicFace}}</span></label>
         {{end}}
       </div>
       {{range .Items}}
@@ -451,14 +476,22 @@
       </div>
       {{end}}
       <input type="hidden" name="item-{{$id}}" :value="uses['{{$id}}'] || ''">
+      {{template "aftermath_sheet_foot" (dict "ID" $id "Foot" ($.Foot .Unit))}}
     </fieldset>
     {{end}}
+    </div>
   </div>
   {{template "aftermath_absent" .}}
 
   {{template "aftermath_bar" .}}
 </form>
 {{end}}
+
+{{/* The foot of a unit on the sheet; a save answers it again, as the experience of the unit may have changed. Takes {ID: the unit's id, Foot, OOB: from a save}. */}}
+{{define "aftermath_sheet_foot"}}<div class="mt-auto" id="sheet-xp-{{.ID}}"{{if .OOB}} hx-swap-oob="true"{{end}}>{{template "unit_summary_foot" .Foot}}</div>{{end}}
+
+{{/* What a save of the sheet answers: the bar, and the experience of every unit. Takes aftermathView. */}}
+{{define "aftermath_saved"}}{{template "aftermath_bar" .}}{{range .Units}}{{template "aftermath_sheet_foot" (dict "ID" .Unit.ID "Foot" ($.Foot .Unit) "OOB" true)}}{{end}}{{end}}
 
 {{/* The bar under the sheet, sticky on phones: what the saved sheet gives and Start aftermath. The sheet saves itself on every change and
    this is what the save answers (with the new revision). Takes aftermathView. */}}

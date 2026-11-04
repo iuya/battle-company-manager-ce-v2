@@ -41,6 +41,11 @@ func TestIconSpriteMatchesTheIconsInUse(t *testing.T) {
 	for _, m := range (liveView{}).Milestones(5, lu) {
 		used[m.Icon] = "milestone " + m.Label
 	}
+	for key, l := range gainLooks {
+		used[l.Icon] = "gain " + key
+	}
+	used[gainLookOther] = "a gain with no look of its own"
+	used[(aftermathView{}).RelicFace().Icon] = "the Relic milestone"
 	// The templates name a few icons themselves: {{template "gi_icon" (dict "N" "death-skull" ...)}}.
 	literal := regexp.MustCompile(`"gi_icon" \(dict "N" "([a-z0-9-]+)"`)
 	err := fs.WalkDir(assets, "templates", func(p string, d fs.DirEntry, err error) error {
