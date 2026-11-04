@@ -199,7 +199,7 @@ type AuraSelection struct { // the dialog's switches; the zero value draws nothi
 }
 func (r *RuleSet) UnitAuras(u CompanyUnit) []Aura          // unfiltered, merged by kind and radius, sorted by kind then radius
 func (r *RuleSet) CreatureAuras(c CompanyCreature) []Aura
-func (r *RuleSet) CompanyAuraSummary(d CompanyDetail, sel AuraSelection) AuraSummary
+func (r *RuleSet) AuraSummaryFor(d CompanyDetail, exp TTSExport, sel AuraSelection) AuraSummary
 ```
 
 `UnitAuras` is pure over the built `CompanyUnit` and `RuleSet`: item entries match by item name, alias or class on the unit's current equipment; rule and path entries match by name on `Rules` and the unlocked `Path.Rules`

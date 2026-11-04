@@ -221,7 +221,7 @@ same tabs under the campaign you are in.
 - **Practice matches** ([matches.md](matches.md#practice-matches)): the new-match form has a **Practice match** checkbox (`name=practice`, off by default, `data-practice-box`; a line says what is skipped and that it cannot be changed; the "Same player" note
   offers "Make it a practice match"); the Matches tab shows the badge on the row (no Practice filter); the Overview line "n practice matches" (`data-practice-count`); the match page banner
   (`data-practice-banner`) and the aftermath block text; the aftermath page short state; the live bar badge. 360 px: the badge sits on the title line and wraps below; no horizontal scroll; semantic tokens only.
-- **Several companies per player** (spec [multi-company-spec.md](multi-company-spec.md), decisions in its section 12). The campaign setting
+- **Several companies per player** ([architecture.md](architecture.md#several-companies-per-player)). The campaign setting
   **Companies per player** (1 to 4, default 1; `CampaignSettings.CompanyCap`) is a number field on the creation form (`companies-per-player`, with
   its help text; empty keeps 1, a value outside 1 to 4 is a 422) and is editable later by the organiser and administrators (`companies_cap_card`
   in the Campaign settings card of the Overview, `POST /campaigns/{id}/settings/companies`, `SetCompaniesPerPlayer`; success reloads the Overview,
@@ -1080,8 +1080,7 @@ The rules of the mode are in [live-match.md](live-match.md) and the technical de
   form (a select of own or enemy Heroes without the Leader unless he is the only Hero, or a text box for the terrain piece) and a tier radio
   list ("Not reached yet" clears); `POST .../secret/{company}` (`kind=nominate|done`, `key`, `unit`/`note`/`tier`) applies the live action, with an
   Undo (`from=secret`). While the match is open nothing of other players is shown but "Noted already: <companies>" (privacy is the service's);
-  after End match the card lists everybody's. On the result form of an ended match the Victory Points of a side with none reported are prefilled
-  from `SecretScore` with the badge "From the live match" (editable, saved only with Save result).
+  after End match the card lists everybody's.
 - **Perks in the rolls**: the recruit roll form shows **Rendezvous** (Not now / +1 / -1, field `perk`, `RollRecruitWithPerk`) while the company has an unused
   Rendezvous (`core.UnusedPerk(detail.Perks, ...)`; the free roll on the special chart does not offer it); after a scenario roll ("Roll for it") the
   panel offers **Vantage Point** +1 / -1 on the second die to an owner of a company in the match with an unused one (`POST .../scenario/roll` with

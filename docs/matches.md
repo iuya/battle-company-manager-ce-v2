@@ -5,6 +5,9 @@ It describes the match page `/campaigns/{id}/matches/{match}` and the Go types a
 the companies afterwards (injury rolls, experience, influence) is the War's Aftermath, in [aftermath.md](aftermath.md); while a match is
 open its companies are in live mode ([live-match.md](live-match.md)).
 
+The aim is few presses and short pages: after the game at the table, a normal match takes **End match → Confirm → Start aftermath**, stopping
+only for real decisions, and every page shows only what the player needs at that moment.
+
 Code: `internal/core/match.go`, `matches.go`, `match_end.go`, `ato*.go`; `internal/web/match.go`, `match_new.go`, `end_sheet.go`, `ato.go`; `internal/postgres/match.go`, `ato.go`
 (tables in [architecture.md](architecture.md)). A write answers with the whole `#match` block, which htmx swaps in, so the header badge,
 scenario and result stay in step. A stale revision answers 200 with a notice; a viewer who cannot edit gets 403; an editor with invalid input gets 422 with the form kept.
@@ -22,10 +25,12 @@ scenario and result stay in step. A stale revision answers 200 with a notice; a 
 - **Results** are what the players report: who won (or a draw), an optional note, and, for the scenarios whose rewards need them, which
   reward objectives each company completed (the Relic, all the cargo, all the objective markers). There are no Victory Points and no
   "Fled" flag: a company that leaves the field (All is Lost) is reported by the players as the other side's win, which already costs it the
-  Win / Draw influence and the scenario rewards (it keeps the participation influence). Old rows keep their Victory Points, fled flags and
-  side roles in the database; the app no longer reads or writes them.
+  Win / Draw influence and the scenario rewards (it keeps the participation influence); the app applies no flee penalty of its own.
 
 ## Practice matches
+
+For a friendly game, a test of a new build, teaching a newcomer or two companies of one player that must not feed the roster or the cemetery. It is a house rule of the app: the rulebook has no
+practice mode, the rules files say nothing about it, any member who may start a match may tick it, and no campaign setting forbids it.
 
 A match is a **practice match** when its creator ticks **Practice match** on the new-match form (`practice=1`; off by default; "No experience, influence, rewards or
 injuries. The result is only recorded."). It is stored in `matches.practice` (migration 00025), set by `core.NewMatch{Sides, Practice}` in `CreateMatch` and **never changed afterwards**:
@@ -34,12 +39,22 @@ there is no setter, route or button; to change course, end the match and start a
 reopen it (`ReopenMatch` ignores the "aftermath started" rule for a practice match, which has none). What it never does: award or spend experience, influence, gold or rerolls, apply
 scenario or Against the Odds rewards, injure, kill, change the rating, consume an item or count toward anything. Its aftermath is derived as complete and empty ([aftermath.md](aftermath.md#practice-matches)).
 
+- **Nothing moves on**: the aftermath is what heals, so a model Injured before the game does not recover by missing it. Wounds, Might, Will and Fate spent in the game are match state, derived from the log, and never reach the company. The organiser's grants do not depend on matches and stay allowed.
 - **Counts**: wins, draws, losses and the Matches figure exclude practice matches; the Overview adds a muted "n practice matches" line (`CampaignSummary.PracticeMatches`) and the home list "· n practice".
 - **Marks**: the `practice_badge` partial (a neutral pill, icon plus "Practice", never a result colour) after the match number on the Matches list, the Overview's latest matches, the match page header, the aftermath page
   and the live bar of the company page; a banner "Practice match: no experience, influence, rewards or injuries." on the match page (open and ended) and in the live bar ("No aftermath will follow."). The Matches tab has no Practice filter: the badge on the row says it.
 - **Pages**: the Aftermath card of an ended practice match says "Aftermath: nothing to roll (practice match)" for each company (no badge, no Start, no Waive); the End match sheet does not require the MVP vote.
 - **Against the Odds**: the card stays for its table effects (kits, Wanderer, Ambush!). The reward bonuses (influence, experience, reroll) are disabled with "No reward in a practice match" (`ATOPracticeReason`) and cannot be newly taken (`SaveAgainstTheOdds` refuses); one saved before stays as entered and does nothing. Nothing is consumed.
 - **Multi-company**: a fight between two companies of one player is the natural practice match; the "Same player" note of the form offers "Make it a practice match", which ticks the box (`/matches/new?practice=1` also ticks it).
+
+## Several companies of one player
+
+A campaign may allow a player several companies ([architecture.md](architecture.md#several-companies-per-player)). In a match they count like anyone's:
+
+- **Sides**: a player's companies may share a side or face each other; `ValidateSides` has no rule about it. Such a match counts like any other, and a practice match is the way to play it without consequences.
+- **Same player** (`core.SamePlayers`, `matchView.SamePlayerNotes`, and `match_form.js` while the form is filled in): a note, never a refusal, naming a player with two or more companies on a side or companies on several sides. The form's note offers "Make it a practice match", which ticks the box.
+- **Each company separately**: the owner confirms all their waiting companies with one tap, each company has its own aftermath and lock (a company whose aftermath is not finished cannot start another match; the player's other company can), the secret objectives card lists both, and Against the Odds still needs two sides of one company each.
+- **MVP**: a company is opposing for a voter who owns a company on another side, so a player with companies on two sides votes every company of the match, their own included.
 
 ## Who may edit
 
@@ -124,7 +139,7 @@ starting positions, how the game ends, special rules, roles) and `Prizes` (rewar
 A `ScenarioObjective` is one tick per company on the End match sheet: a reward condition of the rules file that the players tick
 (`data.scenarioDetails[].rewards[]` with a `companyFlag` condition). Today those are Scavenge the Battlefield (free equipment), Baggage Train
 (1 Influence) and Relic of Ages Past. Rewards that follow from the result itself (`victory`, `leaderNotRemoved`) are not ticks; they belong to the aftermath. Objective fields are posted as
-`obj-<company id>-<key>`.
+`tick-<company id>-<key>`.
 
 ## New match
 
@@ -168,7 +183,7 @@ The page shows only the current **phase** (`matchView.Phase`, `data-phase` on `#
    and the match log. Managers get **Reopen match** while no company has started or waived its aftermath.
 
 States of every card: empty, editing, read only, stale (`ErrMatchChanged`: notice on top, form reloaded), error (`ErrInvalidMatch` / `ErrRefused` reasons beside the field or on top). Every campaign player can read the page; a non-member gets a 404.
-Controls are touch sized (44 px) and the winner choices stack at 360 px.
+Controls are touch sized (44 px) and the winner choices stack at 360 px. In the `playing` phase the page stays at about two screens at 375 px.
 
 ### Change scenario
 
@@ -274,7 +289,7 @@ needs, so a normal game ends with **End match → Confirm → Start aftermath**.
 
 ### Rules
 
-- **Participants** are the owners of the companies in the match, one confirmation per company; an owner of several companies (a campaign may allow up to 4 per player, [multi-company-spec.md](multi-company-spec.md)) confirms all of them with one tap, whether they share a side or face each other. `ValidateSides` does not look at owners: a player's own companies may be on one side or on opposite sides, and `core.SamePlayers(sides)` / `Match.SamePlayers()` list the owners with several companies for the "Same player" note of the setup and the match page; each company has its own live card and its own aftermath, locked independently. A company without an owner (closed account) can only be covered by the override.
+- **Participants** are the owners of the companies in the match, one confirmation per company; an owner of several companies ([above](#several-companies-of-one-player)) confirms all of them with one tap, whether they share a side or face each other. `ValidateSides` does not look at owners: a player's own companies may be on one side or on opposite sides, and `core.SamePlayers(sides)` / `Match.SamePlayers()` list the owners with several companies for the "Same player" note of the setup and the match page; each company has its own live card and its own aftermath, locked independently. A company without an owner (closed account) can only be covered by the override.
 - **MVP is mandatory** in a competitive match: every company owner votes one unit of every opposing company (the live `mvpVote` action) before
   proposing or confirming. `checkEnd` refuses with the names of who is missing (`Matches.MissingVotes`, wired to `LiveService.MissingVotes`,
   type `MissingVote`): the proposer's votes in `ProposeEnd`, the confirmer's in `ConfirmEnd`, everybody's when the match ends. A practice

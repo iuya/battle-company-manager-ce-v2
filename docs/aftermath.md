@@ -26,6 +26,8 @@ the status of a company in a practice match as `done` (`CASE WHEN m.practice THE
 experience and influence are the same before and after. The page `GET .../aftermath/{company}` shows the short state (badge, the line, "Nothing was awarded and nobody was injured.", a link back to the match; no sheet,
 stepper or waive); a write route answers 422 with the line for an editor and 403 for a reader. `LiveMatches.AftermathDefaults` is never read for it.
 
+It is derived rather than stored because a `done` row would need a write in every way a match can end, with a window between the end and the write, and `ReopenMatch` would refuse: a row counts as a started aftermath.
+
 ## Principles
 
 - **One aftermath per company per match**, entered and applied by that company's owner (an administrator or the campaign organiser may do
@@ -198,7 +200,6 @@ type Aftermath struct {
     Status             AftermathStatus
     Revision           int
     Outcome            string // win | draw | loss
-    Fled               bool   // no longer set: All is Lost is reported as the other side's win
     FromMatch, FromLive bool
     Absent             []int64
     Input              AftermathInput

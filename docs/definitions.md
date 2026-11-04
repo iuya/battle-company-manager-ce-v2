@@ -109,7 +109,7 @@ The app computes these from the data; the file does not carry them and does not 
 
 - **Path offers and texts**: the path picker's summary and offers (`DerivePathOffers`) from the table, `heroicAction`, `spells`, `mastery` and `signature`; the text of a row that grants one rule (`RuleRowText`: `Name (Tag) - definition`) or only improves characteristics (`StatRowText`); `hidden` from the kind. A row keeps its `text` only where the words cannot be derived (a rule vanilla words otherwise, a mastery row with its "OR improve ..." alternative, a result with a ceiling or a second roll).
 - **Item classes** from the vanilla type (`ClassesOfVanillaType`: mount, bow, armour, shield, banner, throwingWeapon, blowpipe, horn, spear, two-handed, upgrade); `gold` from the rating; `grantedTo: mount` of a mount that grants rules; a mount's stat block; `restrictions` (badges) from `who`; `pricedAs` items sold at their base's price.
-- **Reserved options**: the options of vanilla units whose `availableIn` names only heroes (Lorien Guard, Hearthguard, Helmingas...) are never offered by a Choice of Options (`VanillaBook.ReservedOptions`); a company reaches one explicitly through a unit's `with`. The profile wargear no armoury sells (armour and hand weapons, natural weapons) is derived too (`ProfileWargearNotSold`): a model always starts with it, it is never an option or buyable.
+- **Reserved options**: the options of vanilla units whose `availableIn` names only heroes (Lorien Guard, Hearthguard, Helmingas...) are never offered by a Choice of Options (`VanillaBook.ReservedOptions`); a company reaches one explicitly through a unit's `with`. The profile wargear no armoury sells (armour and hand weapons, natural weapons): a model always starts with it, it is never an option or buyable.
 - **Ids**, the keywords of a unit (`core.UnitKeywords`, [unit-keywords.md](unit-keywords.md)), the company rules sentence of `elvenWeaponry` (`ElvenWeaponrySentence`), the hero-upgrade rule text, the effective stats of a unit (below).
 
 ## Engine parameters
@@ -130,7 +130,7 @@ the path, in the upload report and at start-up. `lean.ParameterIDs` is the index
 | `magic.floor`, `magic.maxPerPower`, `magic.powers` | `LeanCasting` |
 | `gear[].grantsSlots` | `Equipment.GrantsSlots`; `CompanyUnit.Slots()` adds them to `BaseSlots` (there is no Backpack name check) |
 
-**Dice are data.** Every dice string is an `[N]dM` spec (N 1..10, M 2..100, `d66` refused), parsed once at load with `lean.ParseDice` (`core.DiceSpec`, `core.ParseDiceAt` names the key in the error) and rolled with
+**Dice are data.** Every dice string is an `[N]dM` spec (N 1..10, M 2..100, `d66` refused), parsed once at load with `lean.ParseDice` (`core.DiceSpec`) and rolled with
 `core.Dice.Roll(spec)`. A table that does not cover the dice of its key is a load error naming the path (`core.CheckCovers`).
 
 **Typed tables.** `campaign.injuries` is typed (`lean.Injuries`, `campaign_injuries.go`): the rows with their `effects` (a closed vocabulary), persistence and `retireAtCount`, `disables`, `grantsAtCount`, `heals`, the

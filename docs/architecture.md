@@ -107,21 +107,6 @@ what the pages show (profiles, limits, rating, order), and each action is a func
 `Update`. Rolls come from an injected `Dice` (`D6()`, `Die(sides)`, `Roll(spec)` for an `NdM` spec of the rules file) so tests are
 deterministic (`core.FixedDice`).
 
-A player may own several companies in a campaign (`CampaignSettings.CompaniesPerPlayer`, 1 to 4, default 1, in the settings JSON; the
-organiser or an administrator changes it at any time with `Campaigns.SetCompaniesPerPlayer`, and lowering it only refuses new
-companies). Every owner action takes the company id after the campaign id, `(ctx, user, campaignID, companyID, ...)`, and resolves and
-authorises it through the one helper `companyDeps.ownCompany` / `ownCompanyToChange` (`campaigns.go`): `ErrNotFound` unless the company
-is among `CampaignDetail.Companies`, the viewer's own, so another player's company, an organiser probing and a stranger all learn
-nothing; the changing variant also refuses a finished campaign. `CompanyService.CreateCompany` checks the cap and the owner's company
-names in core and passes `NewCompany.Cap` to `companyRepository.Create`, which repeats both checks in the transaction that holds the
-owner's `campaign_members` row (`SELECT ... FOR UPDATE`), so simultaneous creates never exceed the cap (`ErrCompanyLimit`; a name used
-by another company of the same owner, case ignored, is `ErrCompanyNameTaken`, an `ErrInvalidCompany`). The listing queries (`List`,
-`Get`, `Members`) keep one row per campaign or member and aggregate the companies, oldest first (`CampaignSummary.Companies`,
-`CampaignMember.Companies`). Migration `00024_several_companies.sql` drops the `(campaign_id, owner_id)` unique constraint and adds
-`companies_owner_idx`; its down refuses while a player owns two companies. Matches, live, aftermath, grants and ATO were already keyed
-by company: two companies of one owner may share a side or fight each other, and `core.SamePlayers` / `Match.SamePlayers` tell the web
-layer which owners have several companies in a match (a note, never a refusal). See [multi-company-spec.md](multi-company-spec.md).
-
 The services (`internal/core`, one file each) share `companyDeps` (campaign and company repositories, the rule source, the dice):
 
 | Service | Methods | Notes |
@@ -138,6 +123,31 @@ The services (`internal/core`, one file each) share `companyDeps` (campaign and 
 
 `CompanyState` also holds what waits between two requests: `Recruit` (roll, lower-result choice, options choice) and each unit's
 `Pending`. They are stored as versioned jsonb.
+
+### Several companies per player
+
+A player may own several companies in a campaign (`CampaignSettings.CompaniesPerPlayer`, 1 to 4, default 1, in the settings JSON; the
+organiser or an administrator changes it at any time with `Campaigns.SetCompaniesPerPlayer`, and lowering it only refuses new
+companies). Every owner action takes the company id after the campaign id, `(ctx, user, campaignID, companyID, ...)`, and resolves and
+authorises it through the one helper `companyDeps.ownCompany` / `ownCompanyToChange` (`campaigns.go`): `ErrNotFound` unless the company
+is among `CampaignDetail.Companies`, the viewer's own, so another player's company, an organiser probing and a stranger all learn
+nothing; the changing variant also refuses a finished campaign. `CompanyService.CreateCompany` checks the cap and the owner's company
+names in core and passes `NewCompany.Cap` to `companyRepository.Create`, which repeats both checks in the transaction that holds the
+owner's `campaign_members` row (`SELECT ... FOR UPDATE`), so simultaneous creates never exceed the cap (`ErrCompanyLimit`; a name used
+by another company of the same owner, case ignored, is `ErrCompanyNameTaken`, an `ErrInvalidCompany`). The listing queries (`List`,
+`Get`, `Members`) keep one row per campaign or member and aggregate the companies, oldest first (`CampaignSummary.Companies`,
+`CampaignMember.Companies`). Migration `00024_several_companies.sql` drops the `(campaign_id, owner_id)` unique constraint and adds
+`companies_owner_idx`; its down refuses while a player owns two companies. Matches, live, aftermath, grants and ATO were already keyed
+by company: two companies of one owner may share a side or fight each other, and `core.SamePlayers` / `Match.SamePlayers` tell the web
+layer which owners have several companies in a match (a note, never a refusal; [matches.md](matches.md#several-companies-of-one-player)).
+
+The company id is in the path of every owner address (`/my-company/{company}/...`) because a hidden field or a cookie would let an htmx fragment or a second tab act on another company than the one on screen.
+
+The rulebook assumes one company per player, so all of this is a house rule the organiser opts into (default 1):
+
+- **Resources** are per company: influence, gold, re-rolls, pack, experience and whatever is pending (recruit, treatment, level-up, perks). Nothing is shared or transferred between a player's companies, a hero cannot move between them, and companies cannot be merged, retired or deleted: creating one is permanent, so a mistaken one stays.
+- **Rating** is per company: `Rank` sorts companies and Against the Odds compares two companies. Rankings show the owner on each row; there is no player total and no winner per player.
+- **Handover** moves the `organiser` role between members; the companies stay with their owners. A closed account keeps its companies under "Former player".
 
 ### Persistence shape
 

@@ -102,7 +102,7 @@ War's Aftermath (1 Injuries, 2 Experience, 3 Progression, 4 Influence), Step 3 C
 | Mechanic | Source | Layer | Status | Where | Test |
 |---|---|---|---|---|---|
 | Find an opponent, create the match (any number of sides and companies) | S218-224 | PH | DONE | `matches.go`, [matches.md](matches.md) | `TestMatchesCreate`, `TestSideRolesValidationSwapAndEnd`, e2e `40-match` |
-| Compare ratings, Top Dog and Underdog | S5249-5251 | PH | DONE | `Match.TopDog` in `scenarioroll.go` | `TestTopDog` |
+| Compare ratings, Top Dog and Underdog | S5249-5251 | PH | DONE | `atoSides` in `ato_service.go` | `internal/core/ato_test.go` |
 | Scenario table: D6 for the column, D6 for the scenario (18 scenarios); or choose | S5252-5282 | PH | DONE | `ScenarioByRolls`, `ScenarioTable`; the match page picker | `TestScenarioByRollsUsesTheRealFile`, `TestMatchesSetScenarioAndAccess` |
 | One-off scenario for a game outside the rulebook | none (app) | APP | DONE | [matches.md](matches.md) "One-off scenario form" | `TestScenarioInputValidate` |
 | Scenario text: armies, layout, starting positions, how the game ends, special rules, tables, roles | S5340- | PH | DONE | `ScenarioAbout`, `ParseScenarios` | `TestParseScenarios`, `TestParseScenariosReadsTheObjectivesOfTheRealFile`, `TestScenarioRuleTableRowFor` |

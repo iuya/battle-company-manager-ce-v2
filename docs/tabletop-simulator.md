@@ -171,7 +171,7 @@ Spec and classification: [aura-ranges.md](aura-ranges.md). `TTSNamesOptions.Aura
 Per figure `a:[{"r":3,"k":"banner","w":"a","n":"Banner"}]` (radius in inches, kind id, when: `a` always, `d` declared, `x` conditional, `c` cast, `t` target; labels joined). There is no base size: the helper
 measures the figure's bounds. Rings go to the rider figure of a unit and its on-foot version and to a creature's own figure; never to a mount, a unit of the fallen warband, and of a bundle only the first. Limits,
 in this order: **6 rings per figure** (the kinds in data order, then the smaller radius) and **150 in the payload** (the helper's own hard limits are 6 and 200), then the 24 KB rule: rule texts are lowered first and
-when the payload with rings is still too big the rings are given up (the payload falls back to v1) with the note `aurasLeftOut`. A ring costs about 45 bytes. `RuleSet.CompanyAuraSummary(d, sel)` and
+when the payload with rings is still too big the rings are given up (the payload falls back to v1) with the note `aurasLeftOut`. A ring costs about 45 bytes. `RuleSet.AuraSummaryFor(d, exp, sel)` and
 `TTSService.TTSAuras(ctx, campaignID, companyID, live, opts, sel)` give the dialog the kinds the company has, the rings and radii, the totals and what each switch adds (`AuraSelection` has an `Optional` switch for the Torch).
 Tests: `ttsauras_test.go`, `ttsglue_test.go`. The campaign "Aura parade" of the demo world carries every aura a company can reach ([demo-world.md](demo-world.md#aura-parade)).
 

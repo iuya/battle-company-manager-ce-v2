@@ -84,8 +84,6 @@ Start at [docs/README.md](docs/README.md). Everything in `docs/`, by audience:
 | [tabletop-simulator.md](docs/tabletop-simulator.md) | Taking a company into Tabletop Simulator |
 | [admin.md](docs/admin.md) | The Administration section, campaign status, invitations, handover |
 | [rules-coverage.md](docs/rules-coverage.md) | Which Battle Companies mechanics the app implements |
-| [multi-company-spec.md](docs/multi-company-spec.md) | Several companies per player (up to a campaign setting), the company in the URL, and opening the last campaign directly (implemented) |
-| [practice-match-spec.md](docs/practice-match-spec.md) | Practice matches: no rewards, no injuries, an empty aftermath (implemented) |
 
 **Rules authors (customising the Battle Companies JSON)**
 

@@ -77,7 +77,7 @@ company, sees "My company"). Page names are those of the navigation: Overview, M
 
 ### Two bands
 
-Step `world_bands.go`, campaign **Two bands: several companies per player** (organiser `you`, `CompaniesPerPlayer` = 3; every other campaign keeps the default of 1). Spec: [multi-company-spec.md](multi-company-spec.md).
+Step `world_bands.go`, campaign **Two bands: several companies per player** (organiser `you`, `CompaniesPerPlayer` = 3; every other campaign keeps the default of 1). Rules: [architecture.md](architecture.md#several-companies-per-player).
 
 | Player | Companies | What it shows |
 |---|---|---|
@@ -88,7 +88,7 @@ Step `world_bands.go`, campaign **Two bands: several companies per player** (org
 - **Match 1** (ended, **practice**): Éowyn's two companies against each other, the "Same player" case; the result is entered and the aftermath reads "Practice match: nothing to roll", so neither company is locked by it.
 - **Match 2** (ended): both of Éowyn's companies on one side against Sauron's, a competitive match. The match page says "Same player: both of these companies are Éowyn's."; her first company's aftermath is finished, the second's still to play, and Sauron's is untouched (each is locked on its own).
 - **Match 3** (open): one of Galadriel's companies against Gimli's; her other two are free for a new match.
-- **Match 4** (open, **practice**): Galadriel's other two companies against each other, with a live log (a point of Might spent); their pages show the live state with the Practice badge. The Overview of the campaign counts 2 matches and "2 practice matches"; Éowyn's wins count only Match 2 (see [practice-match-spec.md](practice-match-spec.md)). In the new match form the viewer's own companies are marked "Yours" and listed first (last on the other sides once one is placed), and putting two companies of one player on a side shows the same note before the match is created.
+- **Match 4** (open, **practice**): Galadriel's other two companies against each other, with a live log (a point of Might spent); their pages show the live state with the Practice badge. The Overview of the campaign counts 2 matches and "2 practice matches"; Éowyn's wins count only Match 2 (see [matches.md](matches.md#practice-matches)). In the new match form the viewer's own companies are marked "Yours" and listed first (last on the other sides once one is placed), and putting two companies of one player on a side shows the same note before the match is created.
 - The company id is in every address (`/campaigns/N/my-company/ID`); `/campaigns/N/my-company` alone opens the first company, and another player's company id answers 404.
 
 ### Aura parade

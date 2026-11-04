@@ -16,9 +16,6 @@ that describe planned work say so in their first lines. The tables below group t
 | [tabletop-simulator.md](tabletop-simulator.md) | Taking a company into Tabletop Simulator: army list, figure names and descriptions, the helper |
 | [admin.md](admin.md) | The Administration section, campaign status, invitations, handover |
 | [rules-coverage.md](rules-coverage.md) | Which Battle Companies mechanics the app implements, with the tests |
-| [multi-company-spec.md](multi-company-spec.md) | Several companies per player (up to a campaign setting), the company in the URL, and opening the last campaign directly (implemented) |
-| [practice-match-spec.md](practice-match-spec.md) | Practice matches: a flag on a match set on the creation form, no rewards, no injuries, an empty derived aftermath (implemented) |
-| [simplify-matches-spec.md](simplify-matches-spec.md) | Simpler matches: scenario and Against the Odds at creation, no roles, VP or turns, one-sheet ending with a mandatory MVP, a lighter aftermath (implemented on `feat/simplify-matches`, being tested) |
 
 ## Rules authors
 
