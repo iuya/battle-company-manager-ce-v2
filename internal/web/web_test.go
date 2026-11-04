@@ -31,6 +31,8 @@ type fixture struct {
 	rec  *Mockrecoveries
 	// selection is how the rules pick a scenario by dice (the default: the shipped rules, testSelection).
 	selection core.ScenarioSelection
+	// unavailable is what the new match form reads as the companies that cannot play (the default: none).
+	unavailable map[int64]string
 	// grants is what the company pages read as the company's history of awards (the default: none).
 	grants []core.Grant
 	// aftermaths is what the match page's Aftermath card reads (the default: none).
@@ -70,6 +72,7 @@ func newFixture(t *testing.T, cfg Config) *fixture {
 		f.navFinished = with
 		return f.nav, f.navErr
 	}).AnyTimes()
+	f.camp.EXPECT().UnavailableCompanies(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64, []int64) (map[int64]string, error) { return f.unavailable, nil }).AnyTimes()
 	f.camp.EXPECT().ScenarioSelection(gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64) (core.ScenarioSelection, error) { return f.selection, nil }).AnyTimes()
 	f.camp.EXPECT().MatchStarted(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64, int64) (bool, error) { return f.started, nil }).AnyTimes()
 	f.camp.EXPECT().MatchBreaks(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64, int64) (map[int64]core.LiveBreak, error) { return f.breaks, nil }).AnyTimes()

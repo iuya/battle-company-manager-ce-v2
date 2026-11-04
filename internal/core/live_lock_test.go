@@ -97,6 +97,30 @@ func TestCreateMatchGuards(t *testing.T) {
 	}
 }
 
+func TestUnavailableCompaniesGivesCreateMatchsReasons(t *testing.T) {
+	f := newMatchesFixture(t)
+	f.svc.CompanyAftermaths = func(_ context.Context, _, companyID int64) ([]AftermathRef, error) {
+		if companyID == 2 {
+			return []AftermathRef{{MatchID: 9, MatchNumber: 4, CompanyID: 2}}, nil
+		}
+		return nil, nil
+	}
+	got, err := f.svc.UnavailableCompanies(f.ctx, 5, []int64{1, 2})
+	if err != nil || len(got) != 1 || got[2] != "Finish the aftermath of Match 4 first." {
+		t.Errorf("a pending aftermath, the other free: %v, %v", got, err)
+	}
+	f.state.OpenMatch = &OpenMatchRef{MatchID: 3, Number: 3}
+	got, err = f.svc.UnavailableCompanies(f.ctx, 5, []int64{1, 2})
+	if err != nil || got[1] != "Already in Match 3." || got[2] != "Already in Match 3." {
+		t.Errorf("an open match, which also wins over an aftermath: %v, %v", got, err)
+	}
+	f.state.OpenMatch = nil
+	f.state.Recruit.Officers = &OfficerStep{}
+	if got, err = f.svc.UnavailableCompanies(f.ctx, 5, []int64{1}); err != nil || got[1] != "Arrange the officers first." {
+		t.Errorf("officers to arrange: %v, %v", got, err)
+	}
+}
+
 func TestCreateMatchPassesTheBusyCompanyError(t *testing.T) {
 	f := newMatchesFixture(t)
 	busy := &CompanyBusyError{Company: "Rangers", OpenMatchRef: OpenMatchRef{MatchID: 2, Number: 2}}

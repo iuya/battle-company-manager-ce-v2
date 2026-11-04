@@ -191,6 +191,9 @@ type campaigns interface {
 	// MatchStarted says whether the game of an open match has begun (a live entry exists): the match page is then in its Playing phase and
 	// the scenario is fixed.
 	MatchStarted(ctx context.Context, id, matchID int64) (bool, error)
+	// UnavailableCompanies says which of the companies CreateMatch would refuse right now and why (a sentence fit to show): the new match
+	// form lists them struck through and disabled.
+	UnavailableCompanies(ctx context.Context, id int64, companies []int64) (map[int64]string, error)
 	// PreviewAgainstTheOdds is the Against the Odds block of the new match form for those sides (docs/matches.md, "New match"):
 	// Eligible false (with Why) unless they are two companies of different ratings; Access core.ATOEdit only for the owner of the lower one.
 	PreviewAgainstTheOdds(ctx context.Context, user core.User, id int64, sides []core.NewSide, practice bool) (core.ATO, error)

@@ -188,6 +188,15 @@ export default async function (h) {
     await search(1, 'Sentries');
     await galadriel.waitText('Same player: Galadriel plays both sides');
     assert.ok(await galadriel.has('Make it a practice match'), 'the note offers the link');
+    // the same two on one side: the other note; then back to one each
+    await galadriel.click('button[aria-label^="Remove Sentries"]');
+    await galadriel.waitGone('Same player: Galadriel plays both sides');
+    await search(0, 'Sentries');
+    await galadriel.waitText("Both are Galadriel's");
+    await galadriel.click('button[aria-label^="Remove Sentries"]');
+    await galadriel.waitGone("Both are Galadriel's");
+    await search(1, 'Sentries');
+    await galadriel.waitText('Same player: Galadriel plays both sides');
     await galadriel.click('[data-make-practice]', 'Make it a practice match');
     assert.equal(await galadriel.page.$eval('[data-practice-box]', (c) => c.checked), true, 'the link ticks the box');
     assert.ok(await galadriel.has('The flag cannot be changed later'), 'a line says what is skipped');

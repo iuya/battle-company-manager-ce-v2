@@ -4483,6 +4483,45 @@ func (c *MockcampaignsTreatmentStateCall) DoAndReturn(f func(context.Context, co
 	return c
 }
 
+// UnavailableCompanies mocks base method.
+func (m *Mockcampaigns) UnavailableCompanies(ctx context.Context, id int64, companies []int64) (map[int64]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnavailableCompanies", ctx, id, companies)
+	ret0, _ := ret[0].(map[int64]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnavailableCompanies indicates an expected call of UnavailableCompanies.
+func (mr *MockcampaignsMockRecorder) UnavailableCompanies(ctx, id, companies any) *MockcampaignsUnavailableCompaniesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnavailableCompanies", reflect.TypeOf((*Mockcampaigns)(nil).UnavailableCompanies), ctx, id, companies)
+	return &MockcampaignsUnavailableCompaniesCall{Call: call}
+}
+
+// MockcampaignsUnavailableCompaniesCall wrap *gomock.Call
+type MockcampaignsUnavailableCompaniesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsUnavailableCompaniesCall) Return(arg0 map[int64]string, arg1 error) *MockcampaignsUnavailableCompaniesCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsUnavailableCompaniesCall) Do(f func(context.Context, int64, []int64) (map[int64]string, error)) *MockcampaignsUnavailableCompaniesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsUnavailableCompaniesCall) DoAndReturn(f func(context.Context, int64, []int64) (map[int64]string, error)) *MockcampaignsUnavailableCompaniesCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // Undo mocks base method.
 func (m *Mockcampaigns) Undo(ctx context.Context, user core.User, id, matchID, entryID, companyID int64) (core.LiveCompany, error) {
 	m.ctrl.T.Helper()

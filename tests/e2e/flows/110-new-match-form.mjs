@@ -17,6 +17,7 @@ export default async function (h) {
     assert.equal(await eowyn.page.$$eval('section[aria-label="Side 1"] ul[aria-label="Companies on this side"] li', (l) => l.length), 1, 'her first company is on side 1');
     assert.ok(await eowyn.page.$('[data-practice-box]') && await eowyn.page.$('[data-ffa-box]') && await eowyn.page.$('[data-add-side]'), 'Practice, All vs all and + Add side');
     assert.ok(await scenarioName(eowyn), 'a scenario is already rolled');
+    assert.ok(await eowyn.page.$eval('#new-scenario', (s) => !!(s.compareDocumentPosition(document.querySelector('section[aria-label="Side 1"]')) & Node.DOCUMENT_POSITION_PRECEDING)), 'the scenario comes after the sides');
     assert.match(await eowyn.page.$eval('#new-scenario', (e) => e.innerText), /Rolled \d \(table \d\) and \d/, 'with its dice');
   });
 
@@ -28,6 +29,13 @@ export default async function (h) {
     assert.ok(!one.includes(true) || one.indexOf(false) === -1 || one.lastIndexOf(true) < one.indexOf(false), `side 1: hers first: ${one}`);
     assert.ok(await eowyn.page.$$eval('ul[role=listbox] button[data-own=true]', (bs) => bs.every((b) => /Yours/.test(b.innerText))), 'the Yours badge');
     assert.ok(!(await eowyn.page.$$eval('main button', (bs) => bs.some((b) => b.innerText.trim() === 'Mine'))), 'no Mine chip');
+  });
+
+  await h.step('new match: a company in another open match is listed struck through and disabled, with the reason', async () => {
+    const busy = await eowyn.page.$$eval('section[aria-label="Side 2"] ul[role=listbox] button[data-unavailable=true]', (bs) => bs.map((b) => ({ disabled: b.disabled, text: b.textContent, struck: getComputedStyle(b.querySelector('span span')).textDecorationLine })));
+    assert.ok(busy.length > 0, 'the demo world has busy companies');
+    assert.ok(busy.every((b) => b.disabled && b.struck === 'line-through'), `disabled and struck through: ${JSON.stringify(busy)}`);
+    assert.ok(busy.some((b) => /Already in Match \d+\./.test(b.text)), 'the reason is on the row');
   });
 
   await h.step('new match: Roll again rolls both dice without writing anything; Choose another and One-off replace the scenario', async () => {

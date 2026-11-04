@@ -117,7 +117,7 @@ That refusal is intended.
 | Armoury | The company named by `?company=ID` (default: the active one); the Buy forms carry a hidden `company` field |
 | Rankings | Every company, the owner's name on each row, all of the viewer's rows highlighted |
 | New company | Open while below the limit, titled "Create another company" from the second one; at the limit it redirects to My Company with a notice |
-| New match | The search lists companies by name, owner or faction; the viewer's own are marked "Yours" and listed first (last on the other sides once one is placed); a company already in an open match is disabled |
+| New match | The search lists companies by name, owner or faction; the viewer's own are marked "Yours" and listed first (last on the other sides once one is placed); a company that cannot play right now (in an open match, a path or an aftermath pending) is struck through and disabled, with the reason |
 | Match, live match, aftermath | The owner's name next to every company name |
 
 The tab and sidebar keep the label "My Company".

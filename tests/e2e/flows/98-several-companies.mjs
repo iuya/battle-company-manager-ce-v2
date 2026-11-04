@@ -196,7 +196,7 @@ export default async function (h) {
     assert.equal(res.status(), 404, 'a company of another campaign is 404');
   });
 
-  await h.step('several companies: a match with two companies of one player carries the "Same player" note; the new match form shows it as you build', async () => {
+  await h.step('several companies: a match with two companies of one player carries the "Same player" note; the new match form disables her company that owes an aftermath', async () => {
     await eowyn.goto(`/campaigns/${bands}/matches`);
     const href = await eowyn.page.evaluate(() => [...document.querySelectorAll('main a[href]')].map((a) => a.getAttribute('href')).find((x) => /\/matches\/\d+$/.test(x) && document.querySelector(`a[href="${x}"]`).innerText.includes('Shieldmaidens')));
     assert.ok(href, 'the match of Éowyn\'s two companies is listed');
@@ -213,17 +213,9 @@ export default async function (h) {
     assert.ok(own1.includes(true) && (own1.indexOf(false) === -1 || own1.lastIndexOf(true) < own1.indexOf(false)), `side 1: her companies first: ${own1}`);
     assert.ok(own2.includes(true) && own2.lastIndexOf(false) < own2.indexOf(true), `side 2: her companies last: ${own2}`);
     assert.ok(await eowyn.page.$$eval('section[aria-label="Side 1"] ul[role=listbox] button[data-own]', (bs) => bs.some((b) => b.innerText.includes('Yours'))), 'her companies carry the Yours badge');
-    const boxes = await eowyn.page.$$('input[type=search]');
-    await boxes[1].click();
-    await boxes[1].type('Shield');
-    await eowyn.click('ul[role=listbox] button', 'Shieldmaidens of the Deep');
-    await eowyn.waitText('Same player: Éowyn plays both sides');
-    await eowyn.click('button[aria-label^="Remove Shieldmaidens"]');
-    await eowyn.waitGone('Same player: Éowyn plays both sides');
-    await (await eowyn.page.$$('input[type=search]'))[0].click();
-    await (await eowyn.page.$$('input[type=search]'))[0].type('Shield');
-    await eowyn.click('ul[role=listbox] button', 'Shieldmaidens of the Deep');
-    await eowyn.waitText("Both are Éowyn's");
+    // her second company still owes the aftermath of Match 2: it is listed but cannot be picked (the notes as you build: flow 100-practice-match)
+    const shield = await eowyn.page.$$eval('section[aria-label="Side 2"] ul[role=listbox] button', (bs) => bs.filter((b) => b.textContent.includes('Shieldmaidens of the Deep')).map((b) => ({ disabled: b.disabled, text: b.textContent })));
+    assert.ok(shield.length === 1 && shield[0].disabled && /Finish the aftermath of Match \d+ first\./.test(shield[0].text), `Shieldmaidens disabled with the reason: ${JSON.stringify(shield)}`);
   });
 
   for (const scheme of ['light', 'dark']) for (const w of SIZES) {

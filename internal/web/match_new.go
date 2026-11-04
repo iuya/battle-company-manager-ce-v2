@@ -81,10 +81,10 @@ func (v newATOView) Options() (out []core.ATOOption) {
 // Later says whether a bonus needs details only the match page asks for (kits and their items, which Wanderer).
 func (v newATOView) Later(key string) bool { return key == "toolKit" || key == "wanderer" }
 
-func newMatchForm(base campaignBase, companies []core.CampaignCompany, sides []core.NewSide, ffa bool, errMsg string) (newMatchView, error) {
+func newMatchForm(base campaignBase, companies []core.CampaignCompany, unavailable map[int64]string, sides []core.NewSide, ffa bool, errMsg string) (newMatchView, error) {
 	list := make([]map[string]any, len(companies))
 	for i, c := range companies {
-		list[i] = map[string]any{"id": c.ID, "name": c.Name, "owner": c.Owner, "ownerId": c.OwnerID, "faction": c.FactionName(), "mine": base.Campaign.Owns(c.ID)}
+		list[i] = map[string]any{"id": c.ID, "name": c.Name, "owner": c.Owner, "ownerId": c.OwnerID, "faction": c.FactionName(), "mine": base.Campaign.Owns(c.ID), "unavailable": unavailable[c.ID]}
 	}
 	state := make([]map[string]any, len(sides))
 	for i, sd := range sides {
@@ -104,6 +104,15 @@ func newMatchForm(base campaignBase, companies []core.CampaignCompany, sides []c
 	}
 	return newMatchView{campaignBase: base, CompaniesJSON: string(cj), SidesJSON: string(sj), FFA: ffa, Error: errMsg, Companies: len(companies),
 		Scenario: newScenarioView{CampaignID: base.Campaign.ID}, MaxSides: core.MaxSides}, nil
+}
+
+// unavailableCompanies asks why each company of the list cannot play right now.
+func (s *Server) unavailableCompanies(r *http.Request, id int64, list []core.CampaignCompany) (map[int64]string, error) {
+	ids := make([]int64, len(list))
+	for i, c := range list {
+		ids[i] = c.ID
+	}
+	return s.campaigns.UnavailableCompanies(r.Context(), id, ids)
 }
 
 // newMatchCtx loads the campaign of the form and its companies; it answers itself when the campaign is unknown or cannot start a match.
@@ -128,11 +137,18 @@ func (s *Server) handleNewMatchPage(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	sides := []core.NewSide{{}, {}}
-	if mine := base.Campaign.Companies; len(mine) > 0 {
-		sides[0].Companies = []int64{mine[0].ID} // you are most likely playing; with several companies the first
+	unavailable, err := s.unavailableCompanies(r, base.Campaign.ID, list)
+	if s.fail(w, r, err) {
+		return
 	}
-	view, err := newMatchForm(base, list, sides, false, "")
+	sides := []core.NewSide{{}, {}}
+	for _, c := range base.Campaign.Companies { // you are most likely playing; with several companies the first that can
+		if _, no := unavailable[c.ID]; !no {
+			sides[0].Companies = []int64{c.ID}
+			break
+		}
+	}
+	view, err := newMatchForm(base, list, unavailable, sides, false, "")
 	if s.fail(w, r, err) {
 		return
 	}
@@ -354,7 +370,11 @@ func (s *Server) handleCreateMatch(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, core.ErrInvalidMatch) {
 			msg = strings.Join(reasons(err), " ")
 		}
-		view, jerr := newMatchForm(base, list, form, ffa, msg)
+		unavailable, jerr := s.unavailableCompanies(r, base.Campaign.ID, list)
+		if s.fail(w, r, jerr) {
+			return
+		}
+		view, jerr := newMatchForm(base, list, unavailable, form, ffa, msg)
 		if s.fail(w, r, jerr) {
 			return
 		}

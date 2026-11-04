@@ -169,9 +169,14 @@ A `ScenarioObjective` is one tick per company on the End match sheet: a reward c
 
 `GET /campaigns/{id}/matches/new` (`internal/web/match_new.go`, `pages/match_new.gohtml`, `static/js/match_form.js`). Nothing is written until **Create match**.
 
+The form runs top to bottom: the side blocks (the strongest cards of the page: accent border and a thick top bar), the scenario card, the options, Against the Odds.
+
 - **Two side blocks**, each with the company search only (no side name, no role). The user's own companies are highlighted (accent border and a
   "Yours" badge) and listed first; once one of them is on a side, on the other sides they are listed last (playing yourself is rare; the
-  "Same player" note stays). The first side starts with the user's first company.
+  "Same player" note stays). The first side starts with the user's first company that can play.
+- **A company that cannot play right now** (`Matches.UnavailableCompanies`: in another open match, officers to arrange, a path to choose, an
+  aftermath to finish) is listed struck through and disabled with the reason, after the free ones of its group. Enter and "Add every company"
+  skip it. `CreateMatch` still checks all of it when the form is posted.
 - **Options**: **Practice match**, **+ Add side** (up to 8; an added side has Remove) and **All vs all** (every company on its own side).
 - **Scenario card**: the scenario the server rolled when the page was drawn (both dice, always the server's, whatever `ManualRolls` /
   `ShakeTheTable` say), with the dice ("Rolled 3 (table 2) and 5"), and **Roll again** (`POST .../matches/new/scenario-roll`, both dice, no

@@ -99,10 +99,10 @@ The Overview stays the first tab.
   match (partial `match_row`): its sides (`A + B vs C`), "Match N · scenario", the Practice badge and the result badge (Open, Draw,
   "<side> won"). Names are coloured by outcome: the winning side green, losing sides red, every side yellow after a draw (`Match.Tone`).
   Wins/draws/losses are shown as green/yellow/red numbers wherever they appear (`wdl` partial).
-- **New match** (`/campaigns/{id}/matches/new`, `internal/web/match_new.go`, `static/js/match_form.js`): two side blocks with the company search
+- **New match** (`/campaigns/{id}/matches/new`, `internal/web/match_new.go`, `static/js/match_form.js`): two side blocks (accent border, thick top bar) with the company search, then the scenario card
   only (added companies are chips that can be removed, a company already on a side no longer shows up, Enter adds the first result),
   **Practice match**, **+ Add side** (up to 8), **All vs all** (one pool where each company fights alone, with "Add every company";
-  `mode=ffa`), the scenario card the server rolled (Roll again, Choose another, One-off scenario) and, for the owner of the lower rated of
+  `mode=ffa`); the scenario card is the one the server rolled (Roll again, Choose another, One-off scenario) and, for the owner of the lower rated of
   two companies, the Against the Odds block. The form is posted as `sides`, one `side-N` per company, the scenario fields and `ato`;
   `core.ValidateSides` checks that every side has a company and none repeats. Any player of the campaign can create a match. A campaign
   with fewer than two companies offers no "New match" (the matches page says what is needed) and the form page says the same instead of

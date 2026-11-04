@@ -18,9 +18,9 @@
 
     <div class="grid gap-4" :class="!ffa && 'md:grid-cols-2'">
       <template x-for="(side, i) in visible" :key="i">
-        <section class="card space-y-3 !p-4" @click.outside="side.open = false" :aria-label="ffa ? 'Everyone in the match' : 'Side ' + (i + 1)">
+        <section class="card space-y-3 !border-2 !border-t-8 !border-accent !p-4 !shadow-md" data-side-card @click.outside="side.open = false" :aria-label="ffa ? 'Everyone in the match' : 'Side ' + (i + 1)">
           <div class="flex items-center justify-between gap-2">
-            <h2 class="!text-xl" x-text="ffa ? 'Everyone in the match' : (side.ids.length ? sideLabel(side) : 'Side ' + (i + 1))"></h2>
+            <h2 class="!text-2xl text-accent-text" x-text="ffa ? 'Everyone in the match' : (side.ids.length ? sideLabel(side) : 'Side ' + (i + 1))"></h2>
             <button type="button" class="btn btn-ghost !min-h-11 !px-3 text-sm" x-show="!ffa && i >= 2" x-cloak @click="removeSide(i)" :aria-label="'Remove side ' + (i + 1)">Remove</button>
           </div>
 
@@ -40,12 +40,13 @@
 
           <div class="relative" @keydown.escape="side.open = false">
             <input type="search" x-model="side.query" @focus="side.open = true" @input="side.open = true"
-                   @keydown.enter="if (side.query.trim() && results(side, i).length) { $event.preventDefault(); add(side, results(side, i)[0].id); side.open = false }" placeholder="Search companies to add…" autocomplete="off"
+                   @keydown.enter="if (side.query.trim() && free(side, i).length) { $event.preventDefault(); add(side, free(side, i)[0].id); side.open = false }" placeholder="Search companies to add…" autocomplete="off"
                    class="input" role="combobox" :aria-label="'Search companies for ' + (ffa ? 'the match' : 'side ' + (i + 1))" :aria-expanded="side.open" aria-autocomplete="list">
             <ul x-show="side.open" x-cloak class="card absolute inset-x-0 z-10 mt-1 max-h-56 overflow-y-auto !p-1 shadow-lg" role="listbox">
               <template x-for="c in results(side, i)" :key="c.id">
-                <li role="option"><button type="button" class="flex w-full flex-col rounded-md border-l-4 px-3 py-2 text-left hover:bg-raised" :class="c.mine ? 'border-accent' : 'border-transparent'" @click="add(side, c.id); side.open = false" :data-own="c.mine">
-                  <span class="flex flex-wrap items-center gap-2"><span class="font-medium" x-text="c.name"></span><span class="badge" x-show="c.mine">Yours</span></span><span class="text-xs text-muted" x-text="c.owner + ' · ' + c.faction"></span>
+                <li role="option" :aria-disabled="!!c.unavailable"><button type="button" class="flex w-full flex-col rounded-md border-l-4 px-3 py-2 text-left enabled:hover:bg-raised disabled:cursor-not-allowed" :class="c.mine ? 'border-accent' : 'border-transparent'" :disabled="!!c.unavailable" @click="add(side, c.id); side.open = false" :data-own="c.mine" :data-unavailable="!!c.unavailable">
+                  <span class="flex flex-wrap items-center gap-2"><span class="font-medium" :class="c.unavailable && 'text-muted line-through'" x-text="c.name"></span><span class="badge" x-show="c.mine">Yours</span></span><span class="text-xs text-muted" :class="c.unavailable && 'line-through'" x-text="c.owner + ' · ' + c.faction"></span>
+                  <span class="text-xs font-medium" x-show="c.unavailable" x-text="c.unavailable"></span>
                 </button></li>
               </template>
               <li class="px-3 py-2 text-sm text-muted" x-show="results(side, i).length === 0">No matching companies left.</li>
@@ -56,21 +57,23 @@
       </template>
     </div>
 
+    {{template "new_scenario" .Scenario}}
+
     <div class="card space-y-2" id="match-options">
-      <label class="flex min-h-11 items-start gap-3 text-sm">
-        <input type="checkbox" name="practice" value="1" x-model="practice" @change="$nextTick(() => loadATO())" class="mt-0.5 h-5 w-5 accent-[var(--accent)]" data-practice-box>
+      <div>
+      <label class="flex items-start gap-3 py-2.5 text-sm sm:py-1">
+        <input type="checkbox" name="practice" value="1" x-model="practice" @change="$nextTick(() => loadATO())" class="h-5 w-5 shrink-0 accent-[var(--accent)]" data-practice-box>
         <span><span class="font-medium">Practice match</span> <span class="text-muted">· No experience, influence, rewards or injuries. The result is only recorded.</span></span>
       </label>
-      <p class="alert alert-info !py-2 text-sm" role="status" x-show="practice" x-cloak>Nothing is rolled afterwards and no company is locked when it ends. The flag cannot be changed later: to change course, end the match and start a new one.</p>
-      <label class="flex min-h-11 items-center gap-3 text-sm">
-        <input type="checkbox" class="h-5 w-5 accent-[var(--accent)]" :checked="ffa" @change="setFFA($event.target.checked)" data-ffa-box>
+      <label class="flex items-start gap-3 py-2.5 text-sm sm:py-1">
+        <input type="checkbox" class="h-5 w-5 shrink-0 accent-[var(--accent)]" :checked="ffa" @change="setFFA($event.target.checked)" data-ffa-box>
         <span><span class="font-medium">All vs all</span> <span class="text-muted">· every company fights on its own side (at least two)</span></span>
       </label>
+      </div>
+      <p class="alert alert-info !py-2 text-sm" role="status" x-show="practice" x-cloak>Nothing is rolled afterwards and no company is locked when it ends. The flag cannot be changed later: to change course, end the match and start a new one.</p>
       <button type="button" class="btn btn-secondary" x-show="!ffa" :disabled="sides.length >= maxSides" @click="addSide()" data-add-side>+ Add side</button>
       <p class="alert alert-info text-sm" role="status" x-show="sameAcross().length" x-cloak data-same-player><span x-text="sameAcross().join('. ') + '.'"></span> Allowed: <span x-show="!practice">it counts like any other match. </span><span x-show="!practice"><button type="button" class="underline" @click="practice = true; $nextTick(() => loadATO())" data-make-practice>Make it a practice match</button>.</span><span x-show="practice">it is a practice match.</span></p>
     </div>
-
-    {{template "new_scenario" .Scenario}}
 
     <div id="new-ato">{{with .ATO}}{{template "new_ato" .}}{{end}}</div>
 

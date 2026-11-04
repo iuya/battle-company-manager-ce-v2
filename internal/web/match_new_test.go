@@ -42,6 +42,18 @@ func TestNewMatchFormShowsTheRolledScenarioAndMarksOwnCompanies(t *testing.T) {
 	}
 }
 
+func TestNewMatchFormMarksCompaniesThatCannotPlay(t *testing.T) {
+	f := newMatchFixture(t)
+	f.unavailable = map[int64]string{1: "Already in Match 6."}
+	body := f.do(f.signedIn(httpGet("/campaigns/7/matches/new"))).Body.String()
+	if !strings.Contains(body, `&#34;unavailable&#34;:&#34;Already in Match 6.&#34;`) {
+		t.Error("the form lacks the reason of the busy company")
+	}
+	if !strings.Contains(body, `data-sides="[{&#34;ids&#34;:[]},{&#34;ids&#34;:[]}]"`) {
+		t.Error("a company that cannot play does not start on side 1")
+	}
+}
+
 func TestNewMatchScenarioRollAgainChooseAnotherAndOneOff(t *testing.T) {
 	f := newMatchFixture(t)
 	seq := []int{5, 1}

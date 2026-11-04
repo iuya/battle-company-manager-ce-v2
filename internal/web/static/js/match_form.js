@@ -4,6 +4,7 @@
 // A player may own several companies (docs/matches.md, "Several companies of one player"): the search shows owner and faction beside the name, the viewer's own
 // companies are highlighted and listed first, and last on the other sides once one of them is placed (playing yourself is rare); a
 // non-blocking "Same player" note names a player who has two companies on one side or companies on several sides.
+// A company that cannot play right now (data-companies "unavailable": the reason) is listed struck through and disabled, after the free ones of its group.
 // When the sides are one company each, the Against the Odds block is loaded (GET .../matches/new/ato); Ambush! there turns the scenario
 // card into a free choice.
 document.addEventListener('alpine:init', () => {
@@ -51,9 +52,10 @@ document.addEventListener('alpine:init', () => {
       const found = this.companies.filter(c => !this.taken(c.id) &&
         (q === '' || [c.name, c.owner, c.faction].some(v => v.toLowerCase().includes(q))));
       const placed = !this.ffa && this.visible.some((s, j) => j !== i && s.ids.some(id => this.company(id).mine));
-      const mine = found.filter(c => c.mine), others = found.filter(c => !c.mine);
-      return placed ? [...others, ...mine] : [...mine, ...others];
+      const group = own => [...found.filter(c => c.mine === own && !c.unavailable), ...found.filter(c => c.mine === own && c.unavailable)];
+      return placed ? [...group(false), ...group(true)] : [...group(true), ...group(false)];
     },
+    free(side, i) { return this.results(side, i).filter(c => !c.unavailable); },
     // "Same player" notes for one side: a player with two or more companies on it.
     sameOnSide(side) {
       const by = {};
@@ -67,7 +69,7 @@ document.addEventListener('alpine:init', () => {
       return Object.values(sides).filter(o => o.set.size > 1).map(o => 'Same player: ' + o.owner + ' plays ' + (o.set.size === 2 ? 'both sides' : o.set.size + ' sides'));
     },
     add(side, id) { side.ids.push(id); side.query = ''; this.loadATO(); },
-    addAll(side) { this.results(side, 0).forEach(c => side.ids.push(c.id)); side.query = ''; },
+    addAll(side) { this.free(side, 0).forEach(c => side.ids.push(c.id)); side.query = ''; },
     remove(side, id) { side.ids = side.ids.filter(i => i !== id); this.loadATO(); },
     // "a-b" for a 1 v 1, "" otherwise: the Against the Odds block exists only for two sides of one company each.
     pairKey() {

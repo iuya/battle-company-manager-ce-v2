@@ -242,7 +242,7 @@ func TestMatchesCreate(t *testing.T) {
 	}
 	f.state.Units[1].Path = "Path of the Warlord"
 	f.state.Recruit.Officers = &OfficerStep{Unit: "Ranger of the North"}
-	if _, err := f.svc.CreateMatch(f.ctx, f.player(), 5, NewMatch{Sides: sides}); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "arrange the officers") {
+	if _, err := f.svc.CreateMatch(f.ctx, f.player(), 5, NewMatch{Sides: sides}); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Arrange the officers") {
 		t.Errorf("a pending officer arrangement cannot play: %v", err)
 	}
 }

@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"time"
 )
@@ -96,22 +97,12 @@ func (s *Matches) CreateMatch(ctx context.Context, user User, id int64, in NewMa
 			if err != nil {
 				return Match{}, err
 			}
-			if d.OfficersPending {
-				return Match{}, Refuse("%s cannot play yet: arrange the officers first.", d.Name)
+			why, err := s.cannotPlayYet(ctx, id, cid, d)
+			if err != nil {
+				return Match{}, err
 			}
-			for _, u := range d.Roster {
-				if u.PathPending {
-					return Match{}, Refuse("%s cannot play yet: %s has to choose a path first.", d.Name, u.Title())
-				}
-			}
-			if s.CompanyAftermaths != nil {
-				refs, err := s.CompanyAftermaths(ctx, id, cid)
-				if err != nil {
-					return Match{}, err
-				}
-				if len(refs) > 0 {
-					return Match{}, Refuse("%s cannot play yet: %s", d.Name, LockMessage(refs))
-				}
+			if why != "" {
+				return Match{}, Refuse("%s cannot play yet: %s", d.Name, why)
 			}
 		}
 	}
@@ -141,6 +132,52 @@ func (s *Matches) CreateMatch(ctx context.Context, user User, id int64, in NewMa
 		_ = s.LiveInit(ctx, id, m.ID) // the live data is also made on the first read
 	}
 	return s.complete(ctx, id, m)
+}
+
+// cannotPlayYet says what the company has to do before it can start a match, empty when nothing. An open match is not in it: Create
+// checks that under the campaign's lock (*CompanyBusyError).
+func (s *Matches) cannotPlayYet(ctx context.Context, id, companyID int64, d CompanyDetail) (string, error) {
+	if d.OfficersPending {
+		return "Arrange the officers first.", nil
+	}
+	for _, u := range d.Roster {
+		if u.PathPending {
+			return u.Title() + " has to choose a path first.", nil
+		}
+	}
+	if s.CompanyAftermaths != nil {
+		refs, err := s.CompanyAftermaths(ctx, id, companyID)
+		if err != nil {
+			return "", err
+		}
+		if len(refs) > 0 {
+			return LockMessage(refs), nil
+		}
+	}
+	return "", nil
+}
+
+// UnavailableCompanies says which of the companies CreateMatch would refuse right now and why (a sentence fit to show), so the new match
+// form can grey them out. A company that can play is not in the map.
+func (s *Matches) UnavailableCompanies(ctx context.Context, id int64, companies []int64) (map[int64]string, error) {
+	out := map[int64]string{}
+	for _, cid := range companies {
+		d, _, err := s.detail(ctx, id, cid)
+		if err != nil {
+			return nil, err
+		}
+		why, err := s.cannotPlayYet(ctx, id, cid, d)
+		if err != nil {
+			return nil, err
+		}
+		if d.OpenMatch != nil {
+			why = fmt.Sprintf("Already in Match %d.", d.OpenMatch.Number)
+		}
+		if why != "" {
+			out[cid] = why
+		}
+	}
+	return out, nil
 }
 
 // validScenario checks a scenario of the new match form (a rulebook name must be in the campaign's rules file).
