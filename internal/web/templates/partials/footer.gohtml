@@ -1,7 +1,12 @@
-{{/* Fan-project disclaimer, shown on every page. */}}
+{{/* Fan-project disclaimer, the release, the license and the source, shown on every page. */}}
 {{define "footer"}}
 <footer class="px-4 pb-6 pt-2 text-center text-xs text-muted">
   <p>Not affiliated with Games Workshop.</p>
   <p>Based on the Battle Companies Community 2nd Edition by the “Middle-earth: SBG Community”.</p>
+  <p data-app-footer>
+    {{if eq appVersion "dev"}}<span data-app-version>dev build</span>{{else}}<a class="underline" data-app-version href="https://github.com/iuya/battle-company-manager-ce-v2/releases/tag/{{appVersion}}" rel="noopener">{{appVersion}}</a>{{end}}
+    · <a class="underline" href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener">CC BY-NC-SA 4.0</a>
+    · <a class="underline" href="https://github.com/iuya/battle-company-manager-ce-v2" rel="noopener">Source</a>
+  </p>
 </footer>
 {{end}}

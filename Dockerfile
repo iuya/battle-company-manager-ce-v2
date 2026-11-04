@@ -24,7 +24,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=css /app.css internal/web/static/app.css
-RUN CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags="-s -w -buildid=" -o /server ./cmd/server
+ARG VERSION=dev
+RUN CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags="-s -w -buildid= -X github.com/iuya/battle-company-manager-ce-v2/internal/buildinfo.Version=${VERSION}" -o /server ./cmd/server
 
 # 3. Runtime: distroless static (CA certificates, tzdata, no shell, no package manager), non-root numeric uid, nothing but the binary
 # and the shipped rules files. It writes nothing to disk, so the root filesystem can be read-only (compose.yaml does that).

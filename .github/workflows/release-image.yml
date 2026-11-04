@@ -75,6 +75,7 @@ jobs:
           tags: bcm:smoke
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
+          build-args: VERSION=${{ github.ref_type == 'tag' && github.ref_name || 'dev' }}
           cache-from: type=gha,scope=release-image-${{ matrix.pair }}
           cache-to: type=gha,scope=release-image-${{ matrix.pair }},mode=max
       - name: Smoke test
@@ -115,6 +116,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
+          build-args: VERSION=${{ github.ref_type == 'tag' && github.ref_name || 'dev' }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=release-image-${{ matrix.pair }}
           cache-to: type=gha,scope=release-image-${{ matrix.pair }},mode=max

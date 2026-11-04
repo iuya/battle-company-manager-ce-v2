@@ -349,8 +349,8 @@ Routes by area (the feature documents list the actions):
 | `GET/POST /recover/{token}` | public, no session read | Set a new password with a recovery link |
 | `GET /styleguide` | `STYLEGUIDE=true` | Design tokens and components ([frontend.md](frontend.md)) |
 | `GET /static/...` | public | Embedded assets |
-| `GET /healthz` | public | Liveness: `200 ok` while the process serves; touches nothing else |
-| `GET /readyz` | public | Readiness: pings the database (2 s); `503` when it does not answer |
+| `GET /healthz` | the container network and the host (the published server kit answers `404` to it from the internet) | Liveness: `200 ok` while the process serves; touches nothing else |
+| `GET /readyz` | as `/healthz` | Readiness: pings the database (2 s); `503` when it does not answer |
 | `POST /csp-report` | public | Content-Security-Policy violation reports: 4 KB body cap, at most 60 logged a minute |
 
 ### Single-use tokens
@@ -401,6 +401,7 @@ Environment variables (loaded by `go-simpler.org/env`; `.env.example` lists them
 
 The container runs as uid 65532 with `APP_ENV=production`.
 Its `HEALTHCHECK` runs `server healthcheck` (GET `/readyz` on its own port).
+`server version` prints the release the image was built from (the `VERSION` build argument, the tag in a release build, `dev` otherwise); the footer of every page shows it with the license and a link to the source.
 
 **Production compose.** `docker compose up -d --build` (`make up`) is the production setup.
 `compose.yaml` (project `bcm`) runs the image next to PostgreSQL on a named volume, read-only, capabilities dropped, with no database port.
@@ -412,7 +413,7 @@ See [operations.md](operations.md).
 
 **Behind a reverse proxy (TLS).** Terminate TLS at the proxy and forward to `:8080`. Set `TRUST_PROXY=true` only if the proxy sets
 `X-Forwarded-For` itself and replaces any value the client sent; leave `SECURE_COOKIES` unset. Probe `/healthz` for liveness and
-`/readyz` for readiness. Without TLS (a private network) set `SECURE_COOKIES=false` and `ALLOW_INSECURE_COOKIES=true`.
+`/readyz` for readiness, from the proxy's own network or the host, and do not forward them to the internet (they are for the orchestrator, not for visitors). Without TLS (a private network) set `SECURE_COOKIES=false` and `ALLOW_INSECURE_COOKIES=true`.
 
 **Migrations.** For a controlled deploy set `MIGRATE_ON_START=false` on the servers and run `server migrate` (`make migrate`, or
 `docker compose run --rm app migrate`) first: the servers then refuse to start while migrations are pending. A rollback of data is a
