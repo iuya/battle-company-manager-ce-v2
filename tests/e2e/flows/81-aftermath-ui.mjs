@@ -32,6 +32,8 @@ export default async function (h) {
         return out;
       });
       assert.ok(r.length >= 20, `XP chips found (${r.length})`);
+      const cards = await page.$$eval('fieldset.unit', (fs) => fs.map((f) => { const b = f.getBoundingClientRect(); return { facts: !!f.querySelector('[data-unit-facts]'), stats: !!f.querySelector('dl.statline'), over: [...f.querySelectorAll('dl.statline')].some((d) => d.getBoundingClientRect().right > b.right + 1) }; }));
+      assert.ok(cards.length >= 3 && cards.every((c) => c.facts && c.stats && !c.over), `each unit shows who it is, inside its card, at ${w}px ${scheme}: ${JSON.stringify(cards.slice(0, 3))}`);
       // a chip is one line high plus its padding (about 32 px); a long label wraps and then is taller only by whole lines
       assert.ok(r.every((c) => c.len > 40 || c.h <= 36.5), `short chips no taller than 36px at ${w}px: ${JSON.stringify(r.filter((c) => c.len <= 40 && c.h > 36.5).slice(0, 3))}`);
       assert.ok(r.every((c) => c.pad <= 22), `the padding of a chip stays small (it is not a big button) at ${w}px: ${JSON.stringify(r.filter((c) => c.pad > 22).slice(0, 3))}`);

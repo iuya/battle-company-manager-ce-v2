@@ -12,6 +12,37 @@ func (w *world) aftermathCampaigns() {
 	w.aftermathWardOne()
 	w.aftermathWardTwo()
 	w.aftermathWardThree()
+	w.aftermathWardFour()
+}
+
+// aftermathWardFour stops at the questions only a result asks: which persistent injury a hero's Full Recovery heals, and the bonus die
+// of Lesson Learned when the dice are typed. The Leader needs an injury to heal first, so the company plays two matches.
+func (w *world) aftermathWardFour() {
+	c := w.campaign("you", "Aftermath ward 4: the questions of a recovery",
+		"A hero's Full Recovery asks which injury it heals, and a Warrior's Lesson Learned asks for the die the player rolled: each answer is one press.", defaultSettings)
+	cos := w.pool(c, [][3]string{
+		{"eowyn", "Riders nursing their Captain", "Rohan"},
+		{"sauron", "Orcs who watched from afar", "Mordor"},
+	}...)
+	rohan, mordor := cos[0], cos[1]
+
+	first := w.played(c, "Seize Ground", outcome{winner: 1}, []*wco{rohan}, []*wco{mordor})
+	leader, _, warriors := w.roster(rohan)
+	in := w.sheet(rohan)
+	set(&in, leader.ID, core.OutcomeCasualty, nil)
+	w.settle(rohan, first, in, map[int64][3]int{leader.ID: {1, 2, 1}}, true) // 3: an Arm Wound
+	w.settle(mordor, first, w.sheet(mordor), nil, true)
+
+	second := w.played(c, "Chance Encounter", outcome{winner: 1}, []*wco{rohan}, []*wco{mordor})
+	in = w.sheet(rohan)
+	set(&in, leader.ID, core.OutcomeCasualty, nil)
+	set(&in, warriors[0].ID, core.OutcomeCasualty, nil)
+	w.startAftermath(rohan, second, in)
+	// rolled directly: cast would answer the bonus die, and these questions are left open
+	for unit, dice := range map[int64][]int{leader.ID: {3, 4}, warriors[0].ID: {6, 6}} { // 7: Full Recovery; 12: Lesson Learned
+		_, err := w.c().RollCasualty(w.ctx, c.org, c.id, second.ID, rohan.id, unit, dice, false)
+		w.must("roll the injury in "+rohan.name, err)
+	}
 }
 
 func (w *world) aftermathWardOne() {

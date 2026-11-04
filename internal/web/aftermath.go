@@ -278,6 +278,7 @@ type aftermathView struct {
 	Units   []sheetUnit
 	Absent  []core.CompanyUnit
 	Roster  map[int64]core.CompanyUnit
+	fallen  map[int64]core.CompanyUnit // the cemetery: a casualty buried by its result keeps its card on the page
 
 	// RangerFell: the company's Ranger of the North fell in this match and a reinforcement may bring one back (an informational line).
 	RangerFell bool
@@ -291,6 +292,16 @@ type aftermathView struct {
 	Animate map[int64]bool // the casualties the server just rolled: their dice are shown rolling first
 
 	Offers map[string][]freeOfferView // free equipment to choose from, by the key of the reward that offers it
+}
+
+// CasualtyUnit is the unit a casualty's card shows, on the roster or already in the cemetery, under the casualty's title.
+func (v aftermathView) CasualtyUnit(c core.Casualty) core.CompanyUnit {
+	u, ok := v.Roster[c.UnitID]
+	if !ok {
+		u = v.fallen[c.UnitID]
+	}
+	u.Name = c.Name
+	return u
 }
 
 // Owner is whether the viewer plays this company: the level-up window of My Company works on the viewer's own company.
@@ -819,6 +830,10 @@ func (s *Server) newAftermathView(r *http.Request, base campaignBase, m core.Mat
 	}
 	for _, u := range core.Distinguish(detail.Roster) {
 		v.Roster[u.ID] = u
+	}
+	v.fallen = make(map[int64]core.CompanyUnit, len(detail.Cemetery))
+	for _, f := range detail.Cemetery {
+		v.fallen[f.Unit.ID] = f.Unit
 	}
 	if detail.RangerMayReturn {
 		where := fmt.Sprintf("Match %d", m.Number)

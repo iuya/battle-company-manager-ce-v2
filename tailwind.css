@@ -469,6 +469,15 @@ html[data-mode="dark"] { color-scheme: dark; }
   .unit-injured > .unit-head { background: var(--danger-soft); border-bottom-color: var(--danger); }
   .unit-fallen > .unit-head { background: transparent; border-bottom-color: var(--line); }
   .promo + .unit-head { margin-top: -.75rem; border-radius: 0; }
+  /* A unit summary that is itself an answer: its button stretches over the whole card (a button cannot hold the card's lists); what has a tooltip stays above it. */
+  .unit-choices { @apply grid grid-cols-1 gap-3 sm:grid-cols-2; }
+  /* The cards sit deep in a question: the profile gives up its minimum width and a little type, and a value stays on one line. */
+  .unit-choices .statline > div { @apply min-w-0; }
+  .unit-choices .statline dd { @apply whitespace-nowrap px-0 text-sm sm:text-base; }
+  .unit-choice { transition: box-shadow 150ms; }
+  .unit-choice:hover { box-shadow: 0 0 0 2px var(--accent); }
+  .unit-choice-go::after { content: ""; position: absolute; inset: 0; border-radius: .75rem; }
+  .unit-choice .has-tip { position: relative; z-index: 1; }
   /* A unit's kind (the kind_icon template): a glyph on a small tile. On a card's title plate it fills a bigger fixed tile with
      almost no inset, centred on the plate: a name over two lines makes the plate taller, never the icon. */
   .kind-icon { height: 2.25rem; width: 2.25rem; }

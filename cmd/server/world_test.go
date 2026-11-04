@@ -264,6 +264,33 @@ func TestSeedWorld(t *testing.T) {
 	if fallback["Orcs with one clear veteran"] != 1 || fallback["Dwarves with two equal veterans"] != 2 || fallback["Rangers who lost every officer"] < 1 {
 		t.Errorf("ward 3 Warriors to choose from: %v", fallback)
 	}
+	// ward 4: the Riders' second aftermath waits for the injury to heal and for the typed bonus die
+	ward4 := byName["Aftermath ward 4: the questions of a recovery"]
+	m4, err := b.campaigns.Matches(ctx, ward4.ID)
+	if err != nil || len(m4) != 2 {
+		t.Fatalf("ward 4 matches: %v %v", m4, err)
+	}
+	questions := map[string]bool{}
+	for _, m := range m4 {
+		refs4, err := b.campaigns.AftermathStatuses(ctx, ward4.ID, m.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, r := range refs4 {
+			a, err := b.campaigns.Aftermath(ctx, you, ward4.ID, m.ID, r.CompanyID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, c := range a.Casualties {
+				if c.Decision != nil {
+					questions[c.Decision.Kind] = true
+				}
+			}
+		}
+	}
+	if !questions["heal"] || !questions["bonus"] {
+		t.Errorf("ward 4 questions: %v", questions)
+	}
 	// the Shire company of the cemetery lost its Ranger in a played match: three officers (a company recruits only with
 	// three) and the Ranger in the cemetery, so Recruit may swap a successful result for a new one
 	cem, ok := byName["Cemetery: the fallen of the Misty Mountains"]

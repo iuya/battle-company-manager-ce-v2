@@ -373,6 +373,81 @@ func TestSuccessionQuestions(t *testing.T) {
 	}
 }
 
+// Every question is answered by one press: the options are the buttons, there is nothing to tick and confirm.
+func TestDecisionsAnswerWithOneClick(t *testing.T) {
+	dead := core.Casualty{UnitID: 10, Name: "Aldor", Rolled: true, Dice: []int{1, 1}, Total: 2, ResultTxt: "Dead", Kind: core.CasualtyDead, Final: true}
+	decided := func(d core.CasualtyDecision) core.Aftermath {
+		return injuriesState(core.Casualty{UnitID: 10, Name: "Aldor", Hero: true, Rolled: true, Dice: []int{3, 3}, Total: 6, ResultTxt: "Result", Decision: &d})
+	}
+	succession := func(s core.Succession) core.Aftermath {
+		a := injuriesState(dead)
+		a.Succession = &s
+		return a
+	}
+	for _, tc := range []struct {
+		name  string
+		state core.Aftermath
+		want  []string
+	}{
+		{"scratch", decided(core.CasualtyDecision{Kind: "scratch"}), []string{`name="answer" value="reroll"`, `name="answer" value="keep"`}},
+		{"heal", decided(core.CasualtyDecision{Kind: "heal", Options: []core.DecisionOption{{Key: "armWound", Label: "Heal the Arm Wound"}}}), []string{`name="answer" value="armWound"`, `name="answer" value=""`}},
+		{"bonus", decided(core.CasualtyDecision{Kind: "bonus"}), []string{`name="answer" value="0"`}},
+		{"leader", succession(core.Succession{NeedLeader: true, LeaderOptions: []int64{11}}), []string{`name="answer" value="11"`}},
+		{"sergeant", succession(core.Succession{Sergeants: 2, SergeantOptions: []int64{11}}), []string{`name="answer" value="11"`, `name="answer" value=""`}},
+		{"fallback", succession(core.Succession{NeedLeader: true, Fallback: []int64{11, 12}}), []string{`name="answer" value="11"`, `name="answer" value="12"`}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := amFixture(t)
+			f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(tc.state, nil)
+			body := f.do(f.signedIn(httpGet(amPath))).Body.String()
+			for _, want := range tc.want {
+				if !strings.Contains(body, "<button "+want) {
+					t.Errorf("no button %q", want)
+				}
+			}
+			for _, gone := range []string{`type="radio"`, ">Decide</button>", ">Choose</button>", `id="bonus-`} {
+				if strings.Contains(body, gone) {
+					t.Errorf("a two-step control is left: %q", gone)
+				}
+			}
+		})
+	}
+}
+
+// With typed dice the player still gives the dice of the roll and the re-roll: these are inputs, not answers.
+func TestTypedDiceStayInputs(t *testing.T) {
+	f := rollSetup(t, endedMatch(), core.CampaignSettings{ManualRolls: true})
+	f.camp.EXPECT().AftermathRules(gomock.Any(), int64(7)).Return(amRules, nil).AnyTimes()
+	st := injuriesState(core.Casualty{UnitID: 10, Name: "Aldor"}, core.Casualty{UnitID: 11, Name: "Brand", Rolled: true, Dice: []int{4, 4}, Total: 8, ResultTxt: "Full Recovery", Kind: core.CasualtyRecovered})
+	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(st, nil)
+	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
+	for _, want := range []string{`<select id="d1-10" name="roll"`, `<select id="d2-10" name="roll2"`, `<select id="rr1-11" name="roll"`, `<select id="rr2-11" name="roll2"`, "Roll for me", "I rolled a 6"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the typed dice lack %q", want)
+		}
+	}
+}
+
+// A casualty and a candidate show who they are at a glance; a casualty already buried keeps its card, from the cemetery.
+func TestUnitCardsTellWhoTheUnitIs(t *testing.T) {
+	sergeant := core.CompanyUnit{ID: 11, Name: "Brand", Type: "Captain of Rohan", Role: core.RoleSergeant, Points: 57, Level: 2, Path: &core.UnitPath{Name: "Path of the Warrior"},
+		Injuries: []core.UnitInjury{{Key: "armWound", Name: "Arm Wound", Count: 2}}, Stats: []core.Attribute{{Abbr: "Fi", Name: "Fight", Value: 4, Trail: "/4+"}, {Name: "Might", Value: 3, HeroOnly: true}}}
+	fallen := core.CompanyUnit{ID: 10, Type: "Captain of Rohan", Role: core.RoleLeader, Points: 83}
+	f := matchWrite(t, endedMatch())
+	f.camp.EXPECT().AftermathRules(gomock.Any(), int64(7)).Return(amRules, nil).AnyTimes()
+	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(core.CompanyDetail{Roster: []core.CompanyUnit{sergeant}, Cemetery: []core.FallenUnit{{Unit: fallen, Fate: "Dead"}}}, nil).AnyTimes()
+	st := injuriesState(core.Casualty{UnitID: 10, Name: "Aldor (Leader)", Hero: true, Rolled: true, Dice: []int{1, 1}, Total: 2, ResultTxt: "Dead", Kind: core.CasualtyDead, Final: true})
+	st.Succession = &core.Succession{NeedLeader: true, LeaderOptions: []int64{11}}
+	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(st, nil)
+	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
+	for _, want := range []string{"Brand (Sergeant)", "Captain of Rohan", `<span class="font-semibold text-fg">57</span> pts`, ">Sergeant</span>", "path-k-", "Arm Wound ×2", "<dt>Fi</dt>", "4/4&#43;", "<dt>Might</dt>", "unit-sergeant", // the candidate
+		"Aldor (Leader)", `<span class="font-semibold text-fg">83</span> pts`, "unit-leader"} { // the buried casualty
+		if !strings.Contains(body, want) {
+			t.Errorf("the cards lack %q", want)
+		}
+	}
+}
+
 func TestNobodyLeftToLeadIsSaid(t *testing.T) {
 	f := amFixture(t)
 	st := injuriesState(core.Casualty{UnitID: 10, Name: "Aldor", Rolled: true, Dice: []int{1, 1}, Total: 2, ResultTxt: "Dead", Kind: core.CasualtyDead, Final: true})
@@ -440,7 +515,7 @@ func TestFinishStepOffersFreeEquipmentAndRefusesWhileOpen(t *testing.T) {
 	if got := strings.Join(linkTextsIn(body, "while mounted and a"), ","); got != "lance,spear" {
 		t.Errorf("the offered item's description links: %q", got)
 	}
-	for _, want := range []string{"To the Victor the Spoils", "Choose one item worth at most 2 Influence", `value="Shield"`, `value="10"`, `name="key" value="spoils"`, "The aftermath finishes as soon as the choice is made.", "+1 Influence"} {
+	for _, want := range []string{"To the Victor the Spoils", "Choose one item worth at most 2 Influence", `value="Shield"`, `name="answer" value="Shield|10"`, `name="key" value="spoils"`, "The aftermath finishes as soon as the choice is made.", "+1 Influence"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("finish lacks %q", want)
 		}
@@ -587,7 +662,7 @@ func TestBonusDieIsAskedForWhenDiceAreTyped(t *testing.T) {
 		Decision: &core.CasualtyDecision{Kind: "bonus"}})
 	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(st, nil)
 	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
-	for _, want := range []string{`name="kind" value="bonus"`, `name="answer"`, "I rolled a 6", "Roll for me"} {
+	for _, want := range []string{`name="kind" value="bonus"`, `name="answer" value="0"`, `name="answer" value="6"`, "I rolled a ", "Roll for me"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the bonus question lacks %q", want)
 		}
@@ -692,7 +767,7 @@ func TestSuccessionFallbackNamesTheWarriorsAndIsMandatory(t *testing.T) {
 	st.Succession = &core.Succession{Fallback: []int64{11}}
 	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(st, nil)
 	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
-	for _, want := range []string{`name="kind" value="sergeant"`, "A Sergeant has fallen and the company has no hero left", "Hero in the Making", "This place cannot stay empty", `name="answer" value="11" required checked`, "Experience"} {
+	for _, want := range []string{`name="kind" value="sergeant"`, "A Sergeant has fallen and the company has no hero left", "Hero in the Making", "This place cannot stay empty", `name="answer" value="11"`, "Make Sergeant", "Experience"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("fallback lacks %q", want)
 		}

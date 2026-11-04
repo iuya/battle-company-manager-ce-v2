@@ -131,6 +131,50 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </ul>
 </div>{{end}}{{end}}
 
+{{/* "Out next match" and a hero's persistent injuries, each with its tooltip. Takes a unit. */}}
+{{define "unit_injury_chips"}}
+  {{if .Injured}}<span class="badge !bg-danger-soft !text-danger" title="Misses the next game and does not count towards the company's rating">Out next match</span>{{end}}
+  {{range .Injuries}}<span class="badge !bg-danger-soft !text-danger has-tip" tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Injury{{if gt .Count 1}} · suffered {{.Count}} times{{end}}" data-tip-text="{{.Text}}">{{.Name}}{{if gt .Count 1}} ×{{.Count}}{{end}}</span>{{end}}
+{{end}}
+
+{{/* The profile, then (for heroes) Might, Will and Fate; the backend decides which exist. In a live match (Live) the trackers replace the stats they follow. Takes {U: a unit, Live: its live state or nothing}. */}}
+{{define "unit_stats"}}{{$u := .U}}{{$lu := .Live}}
+  <div class="flex flex-wrap justify-center gap-x-3 gap-y-1.5" role="group" aria-label="Attributes">
+    <dl class="statline">
+      {{range $u.Stats}}{{if and (not .HeroOnly) (not (and $lu (liveStat .Name)))}}<div class="{{if .Gear}}ring-1 ring-inset ring-muted{{end}}" title="{{statTip .Name $u.StatMods}}"><dt>{{.Abbr}}</dt><dd class="{{if and (gt .Boost 0) (ne .Trail "+")}}tone-win{{else if and (lt .Boost 0) (eq .Trail "+")}}tone-win{{else if ne .Boost 0}}tone-loss{{end}}">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}
+    </dl>
+    {{if and $u.HasHeroStats (not $lu)}}
+    <dl class="statline statline-hero">
+      {{range $u.Stats}}{{if .HeroOnly}}<div title="{{.Name}}"><dt>{{.Name}}</dt><dd class="{{if gt .Boost 0}}tone-win{{end}}">{{.Value}}</dd></div>{{end}}{{end}}
+    </dl>
+    {{end}}
+  </div>
+{{end}}
+
+{{/* The frame of a unit summary: the card, coloured by the unit's place in the company. Takes a core.CompanyUnit; used inside a class attribute. */}}
+{{define "unit_frame"}}card unit unit-{{.Role}} {{if .Injured}}unit-injured{{end}} !p-4{{end}}
+
+{{/* Who a unit is at a glance, for the pages that choose among units (the aftermath): the title plate of its card, its place, path, level and
+   injuries, and its profile. It goes inside a unit_frame. Takes a core.CompanyUnit. */}}
+{{define "unit_summary"}}
+<header class="unit-head flex items-start gap-2 !pr-2 [&_.kind-icon]:bg-surface">
+  {{template "kind_icon" .Kind}}
+  <div class="min-w-0 flex-1">
+    <p class="font-heading text-xl font-bold leading-tight break-words">{{.Title}}</p>
+    <p class="unit-sub mt-0.5 flex items-baseline justify-between gap-2 text-sm text-muted"><span class="min-w-0 truncate">{{if .Name}}{{.Type}}{{end}}</span><span class="shrink-0 whitespace-nowrap"><span class="font-semibold text-fg">{{.Points}}</span> pts</span></p>
+  </div>
+  {{if ne (printf "%s" .Role) "warrior"}}<span class="unit-rank shrink-0 self-center [&>svg]:h-10 [&>svg]:w-10">{{template "role_insignia" .Role}}</span>{{end}}
+</header>
+<div class="flex flex-wrap items-center gap-1.5" data-unit-facts>
+  {{with (roleLook .Role).Label}}<span class="badge badge-muted">{{.}}</span>{{end}}
+  {{if not (or .Wanderer .OwnPath)}}<span class="level-medal" title="Level {{.Level}} · {{.XP}} XP in total"><span class="sr-only">Level </span>{{.Level}}</span>{{end}}
+  {{with .Path}}{{if .Name}}<span class="path-k-{{(pathLook .Name).Kind}}">{{template "path_name" (dict "N" .Name "Short" true)}}</span>{{end}}{{end}}
+  {{if .PathPending}}<span class="badge badge-gold">No path yet</span>{{end}}
+  {{template "unit_injury_chips" .}}
+</div>
+{{template "unit_stats" (dict "U" . "Live" false)}}
+{{end}}
+
 {{define "unit_card"}}{{$ap := .AP}}{{$u := .U}}{{$cid := .CID}}{{$co := .CO}}{{$wcost := .WCost}}{{$lv := .LV}}{{$lu := .LU}}{{$rn := .RO}}{{$ro := or .RO $lv}}
 <div class="unit-slot {{if $u.Injured}}unit-away{{end}}" data-unit-id="{{$u.ID}}" :style="expanded === {{$u.ID}} ? 'min-height:' + slotH + 'px' : ''">
 <div class="unit-handle" x-show="formation" x-cloak>
@@ -195,8 +239,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
       {{if and $lu $lu.HasMount (not $lu.Mounted)}}<p class="mt-1"><span class="badge badge-muted" title="The mount is lost: what needs it is struck through">On foot</span></p>{{end}}
       {{$warrior := eq (printf "%s" $u.Role) "warrior"}}
       {{if or $u.Injured $u.Injuries}}<p class="mt-1 flex flex-wrap items-center gap-1.5">
-        {{if $u.Injured}}<span class="badge !bg-danger-soft !text-danger" title="Misses the next game and does not count towards the company's rating">Out next match</span>{{end}}
-        {{range $u.Injuries}}<span class="badge !bg-danger-soft !text-danger has-tip" tabindex="0" data-concept data-tip-title="{{.Name}}" data-tip-meta="Injury{{if gt .Count 1}} · suffered {{.Count}} times{{end}}" data-tip-text="{{.Text}}">{{.Name}}{{if gt .Count 1}} ×{{.Count}}{{end}}</span>{{end}}
+        {{template "unit_injury_chips" $u}}
         {{if $ro}}{{else if $warrior}}{{if $u.Injured}}<form data-lock method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/treat" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/treat" hx-target="#main" hx-swap="innerHTML show:window:top" hx-confirm="Treat {{$u.Title}}'s injury for {{$wcost}} influence?"><input type="hidden" name="method" value="warrior"><button class="eq-add eq-heal" title="Treat injuries: {{$wcost}} influence, no roll" aria-label="Heal {{$u.Title}} for {{$wcost}} influence">{{template "cross"}}</button></form>{{end}}
         {{else}}<button type="button" data-lock class="eq-add eq-heal" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$u.ID}}/treat" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()" title="Treat injuries" aria-label="Treat {{$u.Title}}'s injuries">{{template "cross"}}</button>{{end}}
       </p>{{end}}
@@ -204,16 +247,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </div>
 
   {{/* Attributes: the profile, then (for heroes) Might, Will and Fate. The backend decides which exist. */}}
-  <div class="flex flex-wrap justify-center gap-x-3 gap-y-1.5" role="group" aria-label="Attributes">
-    <dl class="statline">
-      {{range $u.Stats}}{{if and (not .HeroOnly) (not (and $lu (liveStat .Name)))}}<div class="{{if .Gear}}ring-1 ring-inset ring-muted{{end}}" title="{{statTip .Name $u.StatMods}}"><dt>{{.Abbr}}</dt><dd class="{{if and (gt .Boost 0) (ne .Trail "+")}}tone-win{{else if and (lt .Boost 0) (eq .Trail "+")}}tone-win{{else if ne .Boost 0}}tone-loss{{end}}">{{.Value}}{{.Trail}}</dd></div>{{end}}{{end}}
-    </dl>
-    {{if and $u.HasHeroStats (not $lu)}}
-    <dl class="statline statline-hero">
-      {{range $u.Stats}}{{if .HeroOnly}}<div title="{{.Name}}"><dt>{{.Name}}</dt><dd class="{{if gt .Boost 0}}tone-win{{end}}">{{.Value}}</dd></div>{{end}}{{end}}
-    </dl>
-    {{end}}
-  </div>
+  {{template "unit_stats" (dict "U" $u "Live" $lu)}}
   {{range $u.StatMods}}{{if and (eq .Delta 0) .Note}}<p class="text-center text-xs text-muted" data-stat-note>{{.From}}: {{.Note}}</p>{{end}}{{end}}
   {{if $lu}}{{template "live_trackers" (dict "U" $u "L" $lu "LV" $lv "CID" $cid)}}{{end}}
 

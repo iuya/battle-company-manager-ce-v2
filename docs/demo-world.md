@@ -72,6 +72,7 @@ Page names are those of the navigation: Overview, My company, Armoury, Rankings,
 | **Aftermath ward 1: every step of the War's Aftermath** | eight companies | see [Aftermaths](#aftermaths) | Matches > a match > the company's aftermath; Round 3 of 12 on the Overview |
 | **Aftermath ward 2: draws, odds, perks and a succession** | six companies | see [Aftermaths](#aftermaths) | the same |
 | **Aftermath ward 3: no hero left to step up** | Sauron (Mordor), Gimli (Durin's Folk), Aragorn (Arnor), Galadriel (Lothlorien) | a Sergeant fell and the company has no hero: the Warrior with the most Experience (one clear choice), two Warriors tied (the player chooses), and a Leader who fell with both Sergeants (a Leader, then Sergeants, all from the Warriors); see [Aftermaths](#aftermaths) | the aftermath of each company in Match 1 |
+| **Aftermath ward 4: the questions of a recovery** | Éowyn (Rohan), Sauron (Mordor) | a hero's Full Recovery waits for the injury to heal, a Warrior's Lesson Learned for the die the player rolled; see [Aftermaths](#aftermaths) | the aftermath of the Riders in Match 2 |
 | **Settings: the server rolls every die** | Éowyn, Sauron | `ShakeTheTable` and `ManualRolls` **off**: roll panels have only a Roll button; the script fixed the server's dice, so the results never change | My company > recruit / level up; the aftermath of Match 1 |
 | **Settings: heroes drop profile gear** | Aragorn | `HeroesDropProfileGear` **on** (a hero dropped an item its unit came with); the campaign is **paused**, Round 5 of 8 | Aragorn's Leader card; the Overview status |
 | **Settings: everything on, own paths level up** | Galadriel | all four settings on; `CustomOnTheirOwnPath`: the Wood Elf Sentinels are warriors that earn experience: one has two level-ups waiting, another rolled a 6 and became a hero on the "Path of Their Own Making" | My company |
@@ -249,10 +250,12 @@ and one left, and its injuries are not yet applied); a **Rescue** where Arnor's 
 (*cargo*, +1 Influence) and the Hobbits (perk *Rendezvous*); the organiser's grants in the Dwarves' history.
 
 Ward 3 (one match, three companies on one side): the **Warrior-to-Hero fallback**, built with the real services (experience granted by the organiser before
-the match, casualties rolled with typed dice): the Orcs' Sergeant is dead and one Warrior is ahead in Experience (offered alone, already chosen), the
-Dwarves' Sergeant is dead and two Warriors are tied for the most Experience (both listed, none chosen, an answer is required), and the Rangers lost the Leader
+the match, casualties rolled with typed dice): the Orcs' Sergeant is dead and one Warrior is ahead in Experience (offered alone, one card to press), the
+Dwarves' Sergeant is dead and two Warriors are tied for the most Experience (both offered, each card its own answer), and the Rangers lost the Leader
 and both Sergeants (the Leader comes from the Warriors, then the Sergeants). The answer is mandatory in every case (no "nobody"); the promoted Warrior takes
 its path on My Company once the aftermath is finished; the last answer finishes it on its own (before that the path window says "Finish the aftermath ... first").
+Ward 4 (two matches, Rohan against Mordor): the Riders' Leader took an **Arm Wound** in Match 1, and in Match 2 his **Full Recovery** waits for "heal one persistent injury" while a Warrior's **Lesson Learned** waits for the typed bonus die.
+
 The Elven Cloak: the Galadhrim of ward 1 (Galadriel) carry it as a unit upgrade badge with a tooltip.
 
 ## Account invitations and recovery links

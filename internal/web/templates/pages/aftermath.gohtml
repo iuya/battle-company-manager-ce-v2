@@ -113,14 +113,11 @@
 {{end}}
 
 {{define "aftermath_casualty"}}
-{{$v := .V}}{{$c := .C}}{{$base := .Base}}{{$animate := index $v.Animate $c.UnitID}}
-<article class="space-y-3 rounded-xl border border-line p-3" id="casualty-{{$c.UnitID}}" x-data="rollPanel"
+{{$v := .V}}{{$c := .C}}{{$base := .Base}}{{$animate := index $v.Animate $c.UnitID}}{{$u := $v.CasualtyUnit $c}}
+<article class="{{template "unit_frame" $u}} flex flex-col gap-3" id="casualty-{{$c.UnitID}}" aria-label="{{$c.Name}}" x-data="rollPanel"
          data-dice="{{$v.DiceCSV $c}}" data-groups="{{$v.Rules.InjuryDice.Count}}" data-per-lane="{{$v.Rules.InjuryDice.Count}}" data-sides="{{$v.Rules.InjuryDice.Sides}}" data-labels="" data-animate="{{$animate}}" data-shake="{{$v.Settings.ShakeTheTable}}" @keydown.space.window="onSpace($event)">
-  <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-    <h3 class="!text-xl break-words">{{$c.Name}}</h3>
-    <span class="text-sm text-muted">{{if $c.Hero}}Hero{{else}}Warrior{{end}} · {{if $c.Hero}}hero{{else}}warrior{{end}} chart</span>
-    {{if $c.Final}}<span class="badge badge-muted">Final</span>{{end}}
-  </div>
+  {{template "unit_summary" $u}}
+  <p class="flex flex-wrap items-center gap-2 text-sm text-muted"><span>{{if $c.Hero}}Hero{{else}}Warrior{{end}} injuries chart</span>{{if $c.Final}}<span class="badge badge-muted">Final</span>{{end}}</p>
   <canvas x-ref="canvas" class="dice-tray" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>
   {{if not $c.Rolled}}
     {{if $v.Edit}}
@@ -164,26 +161,41 @@
 {{$v := .V}}{{$d := .D}}{{$c := .C}}
 <form hx-post="{{.Base}}/decide" hx-target="#aftermath-page" hx-swap="outerHTML" class="space-y-2 rounded-xl border border-accent bg-accent-soft p-3">
   <input type="hidden" name="kind" value="{{$d.Kind}}"><input type="hidden" name="unit" value="{{$c.UnitID}}">
-  <fieldset class="min-w-0 space-y-1">
+  <fieldset class="min-w-0 space-y-2">
     <legend class="text-sm font-semibold">{{if eq $d.Kind "scratch"}}Just a Scratch: roll again once (the second result stands, even if worse; a second Scratch means it misses the next game) or keep it?{{else if eq $d.Kind "heal"}}Full Recovery: heal one persistent injury?{{else if eq $d.Kind "bonus"}}{{$v.BonusDieText $c}}{{else}}Decide{{end}}</legend>
+    <div class="flex flex-wrap items-center gap-2">
     {{if eq $d.Kind "scratch"}}
-    <label class="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="answer" value="reroll" required class="h-5 w-5 accent-[var(--accent)]"> Roll again</label>
-    <label class="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="answer" value="keep" class="h-5 w-5 accent-[var(--accent)]"> Keep it (misses the next game)</label>
+      <button name="answer" value="reroll" class="btn btn-primary">Roll again</button>
+      <button name="answer" value="keep" class="btn btn-secondary">Keep it (misses the next game)</button>
     {{else if eq $d.Kind "bonus"}}
-    <div class="field"><label for="bonus-{{$c.UnitID}}">The die</label><select id="bonus-{{$c.UnitID}}" name="answer" class="input w-48"><option value="0">Roll for me</option>{{range $n := seq 1 ($v.BonusMax $c)}}<option value="{{$n}}">I rolled a {{$n}}</option>{{end}}</select></div>
+      <button name="answer" value="0" class="btn btn-primary">Roll for me</button>
+      <span class="text-sm text-muted">or the die you rolled:</span>
+      {{range $n := seq 1 ($v.BonusMax $c)}}<button name="answer" value="{{$n}}" class="btn btn-secondary !min-h-11 !min-w-11 !px-2"><span class="sr-only">I rolled a </span>{{$n}}</button>{{end}}
     {{else}}
-    {{range $d.Options}}<label class="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="answer" value="{{.Key}}" class="h-5 w-5 accent-[var(--accent)]"> {{.Label}}</label>{{end}}
-    <label class="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="answer" value="" checked class="h-5 w-5 accent-[var(--accent)]"> None</label>
+      {{range $d.Options}}<button name="answer" value="{{.Key}}" class="btn btn-primary">Heal {{.Label}}</button>{{end}}
+      <button name="answer" value="" class="btn btn-secondary">Heal nothing</button>
     {{end}}
+    </div>
   </fieldset>
-  <button class="btn btn-primary">Decide</button>
 </form>
 {{end}}
 
+{{/* A unit offered as an answer: its summary, and the button that answers with it across the whole card. Takes {U: the unit, Value: the answer,
+   Label: the button's text, Note: a line under the summary, Edit: whether the viewer may answer}. */}}
+{{define "aftermath_unit_choice"}}{{$u := .U}}
+<article class="{{template "unit_frame" $u}} {{if .Edit}}unit-choice{{end}} flex flex-col gap-2">
+  {{template "unit_summary" $u}}
+  {{with .Note}}<p class="text-sm text-muted">{{.}}</p>{{end}}
+  {{if .Edit}}<button name="answer" value="{{.Value}}" class="btn btn-primary unit-choice-go mt-auto w-full">{{.Label}}<span class="sr-only">: {{$u.Title}}</span></button>{{end}}
+</article>
+{{end}}
+
 {{/* The Warriors offered when no hero is left: the most experienced (ties by rating). Takes {V, IDs, Role}. */}}
-{{define "aftermath_fallback"}}{{$v := .V}}{{$n := len .IDs}}
+{{define "aftermath_fallback"}}{{$v := .V}}{{$n := len .IDs}}{{$label := "Make Sergeant"}}{{if eq .Role "leader"}}{{$label = "Make Leader"}}{{end}}
 <legend class="text-sm font-semibold">{{if eq .Role "leader"}}The Leader has fallen and the company has no hero left.{{else}}A Sergeant has fallen and the company has no hero left.{{end}} {{if gt $n 1}}{{$n}} Warriors are tied for the most Experience (then the highest rating): choose which one becomes {{if eq .Role "leader"}}the Leader{{else}}a Sergeant{{end}}.{{else}}The Warrior with the most Experience becomes {{if eq .Role "leader"}}the Leader{{else}}a Sergeant{{end}}.{{end}} It is treated as having rolled Hero in the Making: it chooses its path in the company window. This place cannot stay empty.</legend>
-{{range $id := .IDs}}{{$u := index $v.Roster $id}}<label class="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="answer" value="{{$id}}" required {{if eq $n 1}}checked{{end}} class="h-5 w-5 accent-[var(--accent)]"> <span>{{$v.UnitName $id}} <span class="text-muted">· {{$u.XP}} Experience · {{$u.Points}} pts</span></span></label>{{end}}
+<div class="unit-choices">
+  {{range $id := .IDs}}{{$u := index $v.Roster $id}}{{template "aftermath_unit_choice" (dict "U" $u "Value" $id "Label" $label "Note" (printf "%d Experience" $u.XP) "Edit" $v.Edit)}}{{end}}
+</div>
 {{end}}
 
 {{define "aftermath_succession"}}
@@ -191,25 +203,29 @@
 <form hx-post="{{.Base}}/decide" hx-target="#aftermath-page" hx-swap="outerHTML" class="space-y-2 rounded-xl border border-accent bg-accent-soft p-3">
   {{if $s.NeedLeader}}
   <input type="hidden" name="kind" value="succession">
-  <fieldset class="min-w-0 space-y-1">
+  <fieldset class="min-w-0 space-y-2">
     {{if $s.Fallback}}{{template "aftermath_fallback" (dict "V" $v "IDs" $s.Fallback "Role" "leader")}}
     {{else}}
     <legend class="text-sm font-semibold">The Leader has fallen. Which one takes over as Leader? A Sergeant place may then need a replacement.</legend>
-    {{range $id := $s.LeaderOptions}}<label class="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="answer" value="{{$id}}" required class="h-5 w-5 accent-[var(--accent)]"> {{$v.UnitName $id}}</label>{{end}}
+    <div class="unit-choices">
+      {{range $id := $s.LeaderOptions}}{{template "aftermath_unit_choice" (dict "U" (index $v.Roster $id) "Value" $id "Label" "Make Leader" "Edit" $v.Edit)}}{{end}}
+    </div>
     {{end}}
   </fieldset>
   {{else}}
   <input type="hidden" name="kind" value="sergeant">
-  <fieldset class="min-w-0 space-y-1">
+  <fieldset class="min-w-0 space-y-2">
     {{if $s.Fallback}}{{template "aftermath_fallback" (dict "V" $v "IDs" $s.Fallback "Role" "sergeant")}}
     {{else}}
     <legend class="text-sm font-semibold">The company has fewer than {{count $s.Sergeants "Sergeant"}}. Which hero becomes a Sergeant? (Optional: a Hero who is not a Leader or Sergeant may take the place.)</legend>
-    {{range $id := $s.SergeantOptions}}<label class="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="answer" value="{{$id}}" class="h-5 w-5 accent-[var(--accent)]"> {{$v.UnitName $id}}</label>{{end}}
-    <label class="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="answer" value="" checked class="h-5 w-5 accent-[var(--accent)]"> Nobody for now</label>
+    <div class="unit-choices">
+      {{range $id := $s.SergeantOptions}}{{template "aftermath_unit_choice" (dict "U" (index $v.Roster $id) "Value" $id "Label" "Make Sergeant" "Edit" $v.Edit)}}{{end}}
+    </div>
+    {{if $v.Edit}}<button name="answer" value="" class="btn btn-secondary">Nobody for now</button>{{end}}
     {{end}}
   </fieldset>
   {{end}}
-  {{if $v.Edit}}<button class="btn btn-primary">Choose</button>{{else}}<p class="text-sm text-muted">The owner of the company chooses.</p>{{end}}
+  {{if not $v.Edit}}<p class="text-sm text-muted">The owner of the company chooses.</p>{{end}}
 </form>
 {{end}}
 
@@ -225,11 +241,12 @@
 {{$cid := .Campaign.ID}}
 <p class="text-sm text-muted">Every {{.LevelEvery}} experience a unit rolls for a level-up. Experience is applied; units that crossed a threshold are listed here.</p>
 {{with .Waiting}}
-<ul class="divide-y divide-line">
+<ul class="unit-choices">
   {{range .}}
-  <li class="flex flex-wrap items-center justify-between gap-2 py-2">
-    <span><span class="font-medium break-words">{{.Title}}</span> <span class="text-sm text-muted">{{.Type}} · {{.PendingLevelUps}} roll{{if ne .PendingLevelUps 1}}s{{end}} waiting</span></span>
-    {{if $.Owner}}<button type="button" class="btn btn-primary" hx-get="/campaigns/{{$cid}}/my-company/{{$.Company.ID}}/units/{{.ID}}/levelup" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Level up<span class="sr-only"> {{.Title}}</span></button>{{end}}
+  <li class="{{template "unit_frame" .}} flex flex-col gap-2">
+    {{template "unit_summary" .}}
+    <p class="text-sm text-muted">{{.PendingLevelUps}} roll{{if ne .PendingLevelUps 1}}s{{end}} waiting</p>
+    {{if $.Owner}}<button type="button" class="btn btn-primary mt-auto w-full" hx-get="/campaigns/{{$cid}}/my-company/{{$.Company.ID}}/units/{{.ID}}/levelup" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Level up<span class="sr-only"> {{.Title}}</span></button>{{end}}
   </li>
   {{end}}
 </ul>
@@ -270,21 +287,19 @@
 
 {{define "aftermath_free_equipment"}}
 {{$v := .V}}{{$r := .R}}
-<form hx-post="{{.Base}}/decide" hx-target="#aftermath-page" hx-swap="outerHTML" class="space-y-2 rounded-xl border border-accent bg-accent-soft p-3" x-data="{ item: '', unit: '' }">
+<form hx-post="{{.Base}}/decide" hx-target="#aftermath-page" hx-swap="outerHTML" class="space-y-2 rounded-xl border border-accent bg-accent-soft p-3" x-data="{ item: '' }">
   <input type="hidden" name="kind" value="reward"><input type="hidden" name="key" value="{{$r.Key}}">
-  <input type="hidden" name="answer" :value="item && unit ? item + '|' + unit : ''">
   <fieldset class="min-w-0 space-y-2">
-    <legend class="text-sm font-semibold">Choose one item worth at most {{$r.MaxValue}} Influence, and who takes it.</legend>
+    <legend class="text-sm font-semibold">Choose one item worth at most {{$r.MaxValue}} Influence, then who takes it.</legend>
     {{range $o := index $v.Offers $r.Key}}
     <div class="rounded-lg border border-line bg-surface p-2" :class="item === {{jsstr $o.Name}} && '!border-accent'">
       <label class="flex min-h-11 items-start gap-3"><input type="radio" name="item-{{$r.Key}}" value="{{$o.Name}}" x-model="item" class="mt-1 h-5 w-5 accent-[var(--accent)]"><span><span class="font-medium">{{$o.Name}}</span> <span class="text-xs text-muted">worth {{$o.Cost}}{{if $o.Size}} · {{$o.Size}}{{end}}</span>{{with $o.Segments}}<span class="block text-muted">{{template "segments" (dict "S" . "CID" $v.Campaign.ID)}}</span>{{end}}</span></label>
-      <div class="mt-1 flex flex-wrap gap-2" x-show="item === {{jsstr $o.Name}}" x-cloak>
-        {{range $o.Units}}<label class="inline-flex"><input type="radio" class="peer sr-only" name="unit-{{$r.Key}}" value="{{.ID}}" x-model="unit"><span class="btn btn-secondary !min-h-11 !px-3 peer-checked:!border-accent peer-checked:!bg-accent-soft peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">{{.Title}}</span></label>{{end}}
+      <div class="unit-choices mt-2" x-show="item === {{jsstr $o.Name}}" x-cloak>
+        {{range $o.Units}}{{template "aftermath_unit_choice" (dict "U" (index $v.Roster .ID) "Value" (printf "%s|%d" $o.Name .ID) "Label" "Takes it" "Edit" true)}}{{end}}
       </div>
     </div>
     {{else}}<p class="text-muted">The armory has nothing a unit can take at that value.</p>{{end}}
   </fieldset>
-  <button class="btn btn-primary" :disabled="!item || !unit">Choose</button>
 </form>
 {{end}}
 
@@ -383,10 +398,11 @@
     {{end}}
     {{range .Units}}
     {{$id := .Unit.ID}}
-    <fieldset class="min-w-0 space-y-3 rounded-xl border border-line p-3" x-data="{ outcome: '{{.Sheet.Outcome}}', took: {{.Sheet.Took}}, items: JSON.parse($el.dataset.items || '{}'),
+    <fieldset class="{{template "unit_frame" .Unit}} min-w-0 space-y-3" x-data="{ outcome: '{{.Sheet.Outcome}}', took: {{.Sheet.Took}}, items: JSON.parse($el.dataset.items || '{}'),
         reason(key) { const it = this.items[key]; if (!it) return ''; if (!this.took) return it.reasons.took || ''; return it.outcomes.includes(this.outcome) ? '' : (it.reasons[this.outcome] || ''); } }" data-items="{{.ItemsJSON}}" x-effect="if (outcome === 'casualty' && relic === '{{$id}}') relic = ''; if (uses['{{$id}}'] && reason(uses['{{$id}}'])) delete uses['{{$id}}']">
       <input type="hidden" name="unit" value="{{$id}}">
-      <legend class="px-1 font-medium break-words">{{.Unit.Title}} <span class="text-sm font-normal text-muted">{{.Unit.Type}}</span></legend>
+      <legend class="sr-only">{{.Unit.Title}} {{.Unit.Type}}</legend>
+      {{template "unit_summary" .Unit}}
       {{with .Err}}<p class="error text-sm font-medium text-danger" role="alert">{{.}}</p>{{end}}
       <div class="grid grid-cols-3 gap-1" role="radiogroup" aria-label="What happened to {{.Unit.Title}}">
         {{range $k, $o := (split "survived,casualty,fled" ",")}}
@@ -453,7 +469,7 @@
   <p class="text-sm" aria-live="polite">Experience <strong>{{.XP}}</strong> across {{len .A.Preview.Experience}} unit{{if ne (len .A.Preview.Experience) 1}}s{{end}} · Influence <strong>{{.Influence}}</strong> · {{.A.Preview.Rolls}} injury roll{{if ne .A.Preview.Rolls 1}}s{{end}}.{{with .A.Preview.Items}} Items: {{range $i, $l := .}}{{if $i}}; {{end}}{{$l.Text}}{{end}}.{{end}} <span class="text-muted" data-saved>{{with .Notice}}{{.}}{{else}}Saved as you go.{{end}}</span></p>
   {{with .A.Preview.Rewards}}<ul class="text-sm text-muted" aria-label="Scenario rewards that will apply">{{range .}}<li>{{$.RewardText .}}</li>{{end}}</ul>{{end}}
   <p class="text-sm font-medium text-danger" x-show="startReason" x-text="startReason" x-cloak></p>
-  <button type="button" class="btn btn-primary" hx-post="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/aftermath/{{.Company.ID}}/start" hx-include="closest form" hx-target="#aftermath-page" hx-swap="outerHTML" hx-sync="closest form:queue last" hx-confirm="Start the aftermath? The sheet is locked until the first casualty is rolled." :disabled="startReason !== ''">Start aftermath</button>
+  <button type="button" class="btn btn-primary" hx-post="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/aftermath/{{.Company.ID}}/start" hx-include="closest form" hx-target="#aftermath-page" hx-swap="outerHTML" hx-sync="closest form:queue last" :disabled="startReason !== ''">Start aftermath</button>
 </div>
 {{end}}
 
