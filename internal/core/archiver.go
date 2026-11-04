@@ -138,13 +138,21 @@ func (a *Archiver) Archive(ctx context.Context, campaignID int64) error {
 	}
 	for _, st := range doc.Companies {
 		full, small := BuildDetail(rs, h.Settings, st), BuildDetail(mini, h.Settings, st)
-		if len(full.Roster) != len(small.Roster) || full.Points != small.Points {
-			return fmt.Errorf("company %q: the pruned rules give %d units and %d points, the full rules %d and %d", st.Company.Name, len(small.Roster), small.Points, len(full.Roster), full.Points)
+		if len(full.Roster) != len(small.Roster) {
+			return fmt.Errorf("company %q: the pruned rules give %d units, the full rules %d", st.Company.Name, len(small.Roster), len(full.Roster))
 		}
 		for i := range full.Roster {
-			if digestUnit(full.Roster[i]) != digestUnit(small.Roster[i]) {
-				return fmt.Errorf("company %q: unit %s is not the same with the pruned rules", st.Company.Name, full.Roster[i].Type)
+			if a, b := digestUnit(full.Roster[i]), digestUnit(small.Roster[i]); a != b {
+				at := 0
+				for at < len(a) && at < len(b) && a[at] == b[at] {
+					at++
+				}
+				return fmt.Errorf("company %q: unit %s is not the same with the pruned rules, from byte %d: full %q, pruned %q", st.Company.Name, full.Roster[i].Type, at,
+					a[max(0, at-30):min(len(a), at+60)], b[max(0, at-30):min(len(b), at+60)])
 			}
+		}
+		if full.Points != small.Points {
+			return fmt.Errorf("company %q: the pruned rules give %d points, the full rules %d", st.Company.Name, small.Points, full.Points)
 		}
 	}
 	raw, err := doc.rawJSON()

@@ -117,7 +117,9 @@ func (s *Store) archivedFiles(ctx context.Context, campaignID int64) ([]core.Rul
 const archiveHashPrefix = "archive:"
 
 func archiveHashes(campaignID int64) core.RulesetHashes {
-	h := func(k core.RulesetKind) string { return archiveHashPrefix + strconv.FormatInt(campaignID, 10) + ":" + string(k) }
+	h := func(k core.RulesetKind) string {
+		return archiveHashPrefix + strconv.FormatInt(campaignID, 10) + ":" + string(k)
+	}
 	return core.RulesetHashes{Vanilla: h(core.KindVanilla), BattleCompanies: h(core.KindBattleCompanies), Glossary: h(core.KindGlossary)}
 }
 
@@ -177,6 +179,15 @@ func (cs campaignStore) Header(ctx context.Context, campaignID int64) (core.Camp
 		h.Hashes = core.RulesetHashes{Vanilla: *v, BattleCompanies: *b, Glossary: *g}
 	}
 	return h, nil
+}
+
+// notFoundOrArchived is the answer for a row that is not there: ErrArchived when the campaign has been archived (its matches and live data
+// are in the document and are not changed), else ErrNotFound.
+func (s *Store) notFoundOrArchived(ctx context.Context, campaignID int64) error {
+	if archived, err := s.isArchived(ctx, campaignID); err == nil && archived {
+		return core.ErrArchived
+	}
+	return core.ErrNotFound
 }
 
 // campaignArchived is Header's archived flag for a campaign locked in a transaction, with the lock's own answer.
@@ -294,4 +305,3 @@ func (as archiveStore) Unarchived(ctx context.Context) ([]int64, error) {
 	}
 	return ids, rows.Err()
 }
-

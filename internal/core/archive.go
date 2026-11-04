@@ -128,6 +128,22 @@ func newUse() *ArchiveUse {
 		Powers: map[string]bool{}, Companies: map[string]bool{}, Scenarios: map[string]bool{}, Terms: map[string]bool{}, Keywords: map[string]bool{}}
 }
 
+// hasGear says whether the campaign used the item, in any spelling it is known by (Elven-made Hand-and-a-half Weapon is the Elven hand-and-a-half
+// weapon: ItemKey).
+func (u *ArchiveUse) hasGear(name string) bool {
+	return u.Gear[baseName(name)] || u.Gear["item:"+ItemKey(name)]
+}
+
+// addGear is add for gear: the item is kept under its identity too.
+func (u *ArchiveUse) addGear(names ...string) {
+	u.add(u.Gear, names...)
+	for _, n := range names {
+		if strings.TrimSpace(n) != "" {
+			u.Gear["item:"+ItemKey(n)] = true
+		}
+	}
+}
+
 func (u *ArchiveUse) add(set map[string]bool, names ...string) {
 	for _, n := range names {
 		if strings.TrimSpace(n) == "" {
@@ -143,9 +159,10 @@ func UseOf(rs *RuleSet, settings CampaignSettings, states []CompanyState, matche
 	use := newUse()
 	addUnit := func(cu CompanyUnit) {
 		use.add(use.Units, cu.Type, cu.PromotedFrom)
+		use.addGear(cu.Type) // a wanderer is a gear entry of the Battle Companies file (kind: wanderer), recruited by its name
 		for _, e := range cu.Equipment {
-			use.add(use.Gear, e.Name)
-			use.add(use.Gear, e.Spellings...)
+			use.addGear(e.Name)
+			use.addGear(e.Spellings...)
 			use.add(use.Rules, e.MountRules...)
 		}
 		for _, r := range cu.Rules {
@@ -167,7 +184,7 @@ func UseOf(rs *RuleSet, settings CampaignSettings, states []CompanyState, matche
 			use.add(use.Rules, in.Name)
 		}
 		if cu.Creature != nil {
-			use.add(use.Gear, cu.Creature.Name)
+			use.addGear(cu.Creature.Name)
 			use.add(use.Rules, cu.Creature.Rules...)
 		}
 		for _, k := range cu.Keywords.Model {
@@ -184,13 +201,14 @@ func UseOf(rs *RuleSet, settings CampaignSettings, states []CompanyState, matche
 			addUnit(f.Unit)
 		}
 		for _, p := range st.Pack {
-			use.add(use.Gear, p)
+			use.addGear(p)
 		}
 		for _, u := range st.Units {
 			use.add(use.Units, u.Base)
-			use.add(use.Gear, u.Gear...)
-			use.add(use.Gear, u.Bought...)
-			use.add(use.Gear, u.Dropped...)
+			use.addGear(u.Wanderer, u.Creature)
+			use.addGear(u.Gear...)
+			use.addGear(u.Bought...)
+			use.addGear(u.Dropped...)
 			use.add(use.Paths, u.Path)
 			use.add(use.Rules, u.Actions...)
 			use.add(use.Rules, u.BoughtActions...)
@@ -259,7 +277,7 @@ func BuildArchive(rs *RuleSet, src ArchiveSource) (Archive, error) {
 	}
 }
 
-var missingName = regexp.MustCompile(`no (unit|rule|gear|path|power|spell|scenario|keyword|item|ring labelled) "([^"]+)"`)
+var missingName = regexp.MustCompile(`no (unit|rule|gear|path|power|spell|scenario|keyword|item|race|ring labelled) "([^"]+)"`)
 
 // absorb adds the names a loading error says are missing to the use; false when it found none that was not there already.
 func (u *ArchiveUse) absorb(err error) bool {
@@ -274,12 +292,13 @@ func (u *ArchiveUse) absorb(err error) bool {
 				for _, set := range []map[string]bool{u.Rules, u.Gear, u.Powers} {
 					set[baseName(m[2])] = true
 				}
+				u.Gear["item:"+ItemKey(m[2])] = true
 				u.Terms[baseName(m[2])] = true
 				grew = true
 				continue
 			}
 			set := map[string]map[string]bool{"unit": u.Units, "rule": u.Rules, "gear": u.Gear, "item": u.Gear, "path": u.Paths, "power": u.Powers, "spell": u.Powers,
-				"scenario": u.Scenarios, "keyword": u.Keywords}[m[1]]
+				"scenario": u.Scenarios, "keyword": u.Keywords, "race": u.Keywords}[m[1]]
 			n := baseName(m[2])
 			if !set[n] || !u.Terms[n] {
 				set[n], u.Terms[n] = true, true
@@ -347,12 +366,29 @@ func closeUse(rs *RuleSet, rawBC []byte, use *ArchiveUse) error {
 			case string:
 				switch key {
 				case "with", "equipment", "wargear", "gear", "drops", "replaces", "item", "items":
-					use.add(use.Gear, x)
+					use.addGear(x)
 				}
 			}
 		}
 		gear(c, "")
 	}
+	// the armour a unit upgrades through (Light Armour, Armour, Heavy Armour, Dwarf Armour) decides how armour is told from the rest
+	var armour func(v any)
+	armour = func(v any) {
+		switch x := v.(type) {
+		case obj:
+			for _, e := range x {
+				armour(e)
+			}
+		case []any:
+			for _, e := range x {
+				armour(e)
+			}
+		case string:
+			use.addGear(x)
+		}
+	}
+	armour(doc["armourUpgrade"])
 	// kept gear names other gear (what cancels it, what it is priced as): follow those names to the end; the file is small and a name is a name
 	allGear := map[string]bool{}
 	for _, g := range jlist(doc, "gear") {
@@ -361,7 +397,7 @@ func closeUse(rs *RuleSet, rawBC []byte, use *ArchiveUse) error {
 	for grew := true; grew; {
 		grew = false
 		for _, g := range jlist(doc, "gear") {
-			if !use.Gear[baseName(nameOf(g))] {
+			if !use.hasGear(nameOf(g)) {
 				continue
 			}
 			var walk func(v any)
@@ -377,7 +413,7 @@ func closeUse(rs *RuleSet, rawBC []byte, use *ArchiveUse) error {
 					}
 				case string:
 					if n := baseName(x); allGear[n] && !use.Gear[n] {
-						use.add(use.Gear, x)
+						use.addGear(x)
 						grew = true
 					}
 				}
@@ -391,7 +427,7 @@ func closeUse(rs *RuleSet, rawBC []byte, use *ArchiveUse) error {
 		}
 	}
 	for _, g := range jlist(doc, "gear") {
-		if use.Gear[baseName(nameOf(g))] {
+		if use.hasGear(nameOf(g)) {
 			collect(g, "", func(r string) { use.add(use.Rules, r) })
 		}
 	}
@@ -408,7 +444,7 @@ func closeUse(rs *RuleSet, rawBC []byte, use *ArchiveUse) error {
 	}
 	for _, g := range jlist(doc, "gear") {
 		if cw, ok := g.(obj)["grantsForChosenWeapon"].(obj); ok {
-			use.add(use.Gear, nameOf(g))
+			use.addGear(nameOf(g))
 			use.add(use.Rules, str(cw["rule"]))
 		}
 	}
@@ -636,7 +672,7 @@ func pruneBC(raw []byte, use *ArchiveUse) (json.RawMessage, error) {
 		return nil, err
 	}
 	keep(o, "rules", func(n string) bool { return use.Rules[baseName(n)] })
-	keep(o, "gear", func(n string) bool { return use.Gear[baseName(n)] })
+	keep(o, "gear", use.hasGear)
 	keep(o, "paths", func(n string) bool { return use.Paths[baseName(n)] })
 	// no match is rolled again: the selection tables go (the loader allows that for an "archive" file) and only the scenarios played stay
 	scenarios := map[string]bool{}
@@ -692,7 +728,7 @@ func pruneBCReferences(o obj, use *ArchiveUse, scenarios map[string]bool) {
 	}
 	for _, g := range jlist(o, "gear") {
 		gm := g.(obj)
-		filterStrings(gm, "related", func(n string) bool { return use.Gear[baseName(n)] })
+		filterStrings(gm, "related", func(n string) bool { return use.hasGear(n) })
 	}
 	for _, c := range jlist(o, "companies") {
 		cm := c.(obj)

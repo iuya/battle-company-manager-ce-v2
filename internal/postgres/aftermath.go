@@ -57,6 +57,9 @@ func pendingRefs(ctx context.Context, q querier, companyID int64, name string) (
 	return out, rows.Err()
 }
 
+// errNoRecord is readRecord's answer for a match or company that is not there; the stores turn it into ErrNotFound (or ErrArchived).
+var errNoRecord = core.ErrNotFound
+
 // readRecord reads the record (the zero one when none is stored). The match row is locked shared (the match cannot be reopened
 // meanwhile) and checked to belong to the campaign and to have the company; lock also locks the record for update.
 func readRecord(ctx context.Context, q querier, campaignID, matchID, companyID int64, lock bool) (rec core.AftermathRecord, practice bool, err error) {
@@ -68,7 +71,7 @@ func readRecord(ctx context.Context, q querier, campaignID, matchID, companyID i
 	}
 	var endedOn *time.Time
 	if err := q.QueryRow(ctx, query, matchID, campaignID, companyID).Scan(&rec.MatchEnded, &practice, &endedOn); errors.Is(err, pgx.ErrNoRows) {
-		return rec, false, core.ErrNotFound
+		return rec, false, errNoRecord
 	} else if err != nil {
 		return rec, false, err
 	}
@@ -135,7 +138,7 @@ func (as aftermathStore) Get(ctx context.Context, campaignID, matchID, companyID
 		 WHERE m.id = $1 AND m.campaign_id = $2 AND sc.company_id = $3`, matchID, campaignID, companyID).
 		Scan(&rec.MatchEnded, &practice, &endedOn, &status, &revision, &input, &state, &lines, &rec.StartedAt, &rec.FinishedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return rec, core.ErrNotFound
+		return rec, as.s.notFoundOrArchived(ctx, campaignID)
 	}
 	if err != nil {
 		return rec, err
@@ -159,6 +162,9 @@ func (as aftermathStore) Update(ctx context.Context, campaignID, matchID, compan
 	}
 	defer tx.Rollback(ctx)
 	rec, practice, err := readRecord(ctx, tx, campaignID, matchID, companyID, true)
+	if errors.Is(err, errNoRecord) {
+		return as.s.notFoundOrArchived(ctx, campaignID)
+	}
 	if err != nil {
 		return err
 	}

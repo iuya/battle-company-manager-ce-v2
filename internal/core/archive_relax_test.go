@@ -46,3 +46,31 @@ func TestArchiveRelaxesTheScenarioSelectionOnlyForAnArchive(t *testing.T) {
 		t.Fatal("a file without the archive mark and with no selection tables must be refused")
 	}
 }
+
+// Wanderers are gear entries of the Battle Companies file recruited by name, and the weapons they carry are known by more than one spelling
+// (Elven-made Hand-and-a-half Weapon is the Elven hand-and-a-half weapon): the pruned rules give them the roster the full rules give.
+func TestArchiveKeepsWanderersAndTheSpellingsOfTheirGear(t *testing.T) {
+	rs := shippedRules(t)
+	files := RuleFiles{Vanilla: readDef(t, "vanilla/data2024.json"), BattleCompanies: readDef(t, shippedBCPath()), Glossary: readDef(t, "glossary/mesbg_glossary.json")}
+	st := CompanyState{Company: CampaignCompany{ID: 1, Name: "Co", Faction: "Mordor"}, Influence: 5}
+	for i, w := range []string{"Wandering Swordsman", "Wandering Marksman", "Wandering Sage", "Wandering Scavenger"} {
+		st.Units = append(st.Units, UnitState{ID: int64(i + 1), Base: w, Role: RoleHero, Wanderer: w})
+	}
+	a, err := BuildArchive(rs, ArchiveSource{Raw: files, States: []CompanyState{st}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mini, err := a.LoadPruned()
+	if err != nil {
+		t.Fatal(err)
+	}
+	full, small := BuildDetail(rs, CampaignSettings{}, st), BuildDetail(mini, CampaignSettings{}, st)
+	if len(full.Roster) != 4 || len(small.Roster) != 4 {
+		t.Fatalf("rosters of %d and %d units, want 4", len(full.Roster), len(small.Roster))
+	}
+	for i := range full.Roster {
+		if x, y := digestUnit(full.Roster[i]), digestUnit(small.Roster[i]); x != y {
+			t.Errorf("%s differs:\n full  %s\n small %s", full.Roster[i].Type, x, y)
+		}
+	}
+}

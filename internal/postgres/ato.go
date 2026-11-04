@@ -147,7 +147,7 @@ func (as atoStore) Update(ctx context.Context, campaignID, matchID int64, by cor
 		return core.Match{}, err
 	}
 	if len(list) == 0 {
-		return core.Match{}, core.ErrNotFound
+		return core.Match{}, as.s.notFoundOrArchived(ctx, campaignID)
 	}
 	before := list[0]
 	st := core.ATOState{Match: before}
