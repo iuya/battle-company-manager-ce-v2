@@ -101,7 +101,7 @@
   </div>{{end}}
   {{if and $.Live (not $.ReadOnly)}}<p class="mt-3 text-sm text-muted" id="live-locked">The company is locked until the match ends: no recruiting, buying, healing or level-ups.</p>{{end}}
   {{if $.Live}}{{template "live_zones" $}}{{else}}
-  <div x-ref="grid" class="mt-4 grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" :class="formation && 'formation-editing'">
+  <div x-ref="grid" class="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" :class="formation && 'formation-editing'">
     {{range $.Units}}{{template "unit_card" (dict "U" . "CID" $.Campaign.ID "CO" $.Company.ID "WCost" $.Company.Injuries.WarriorCost "RO" $.ReadOnly)}}{{end}}
   </div>
   {{end}}
@@ -122,7 +122,7 @@
         <button type="button" class="btn btn-secondary !min-h-9" @click="cancel()">Cancel</button>
       </form>
     </div>
-    <div x-ref="grid" class="mt-4 grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" :class="editing && 'formation-editing'">
+    <div x-ref="grid" class="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" :class="editing && 'formation-editing'">
       {{range .}}{{template "fallen_card" (dict "F" . "Return" (and $.Company.RangerMayReturn (eq .Unit.Type $.Company.RangerUnit)))}}{{end}}
     </div>
   </section>
@@ -252,7 +252,7 @@
 {{define "live_zones"}}{{$cid := .Campaign.ID}}{{$co := .Company.ID}}{{$lv := .Live}}
 <div id="live-zones"{{if .OOB}} hx-swap-oob="true"{{end}} data-seq="{{$lv.Seq}}" data-company="{{$lv.CompanyID}}" data-match="{{$lv.MatchID}}" data-campaign="{{$cid}}" class="space-y-8">
   {{template "live_break" (dict "LV" $lv "CID" $cid)}}
-  <div x-ref="grid" class="mt-4 grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Battle company in the field">
+  <div x-ref="grid" class="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Battle company in the field">
     {{range $lv.Field}}{{template "unit_card" (dict "U" .U "CID" $cid "CO" $co "WCost" $.Company.Injuries.WarriorCost "RO" $.ReadOnly "LV" $lv "LU" .L "AP" .Applies)}}{{else}}<p class="text-muted md:col-span-2 xl:col-span-3">Nobody is in the field.</p>{{end}}
   </div>
   {{template "live_zone" (dict "Title" "Retreated" "Cards" $lv.Retreated "LV" $lv "CID" $cid "Kind" "retreated" "Note" "Left the table. They roll no injuries and finish the match as having fled.")}}
@@ -265,17 +265,24 @@
    casualties exceed its Break Point (there are no turns), and whole again when an undo takes them back under. It sits in the zones so every
    change of the match (SSE) refreshes it for the viewers too. Takes {LV, CID}. */}}
 {{define "live_break"}}{{$lv := .LV}}{{$b := $lv.Break}}{{$act := printf "/campaigns/%d/matches/%d/live/%d/actions" .CID $lv.MatchID $lv.CompanyID}}
-<div class="mt-4 space-y-3" id="live-break">
+<div class="mt-3 !mb-3 space-y-3" id="live-break">
   {{if $b.StartingModels}}
-  <details class="card !p-3" id="live-break-panel">
-    <summary class="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1">
-      <span class="font-medium">Break Point {{$b.BreakPoint}} of {{$b.StartingModels}} · Casualties {{$b.Casualties}} · {{$b.Percent}}%</span>
-      {{if $b.Broken}}<span class="badge !bg-danger-soft !text-danger">Broken</span>{{end}}
-      <span class="ml-auto text-sm text-muted">Details</span>
+  <details class="card group !px-3 !py-2" id="live-break-panel">
+    <summary class="-my-2 flex cursor-pointer list-none flex-col gap-1 py-2 leading-tight">
+      <span class="flex items-center gap-x-3">
+        {{if $b.Percent}}<span class="font-medium {{if $b.Broken}}text-danger{{else if le $b.ToBreak 2}}text-warn{{end}}"><span class="break-key bg-path-melee" aria-hidden="true"></span>{{if $b.Broken}}Broken{{else}}{{$b.ToBreak}} more to Break{{end}}</span>{{else}}<span class="font-medium">{{$b.Casualties}} of {{$b.StartingModels}} fallen</span>{{end}}
+        {{if $b.EndPercent}}<span class="{{if not $b.ToEnd}}font-medium text-danger{{else if le $b.ToEnd 2}}text-warn{{end}}"><span class="break-key bg-gold" aria-hidden="true"></span>{{if $b.ToEnd}}{{$b.ToEnd}} more to {{$b.EndPercent}}%{{else}}{{$b.EndPercent}}% reached{{end}}</span>{{end}}
+        <span class="ml-auto text-muted transition-transform group-open:rotate-180" aria-hidden="true">&#9662;</span><span class="sr-only">Details</span>
+      </span>
+      <span class="relative flex gap-0.5" role="img" aria-label="{{$b.Casualties}} casualties of {{$b.StartingModels}} starting models{{if $b.LeftTable}}, {{$b.LeftTable}} left the table{{end}}">
+        {{range $lv.BreakCells}}<span class="h-2.5 min-w-0 flex-1 rounded-sm {{if .Fallen}}bg-path-melee{{else if .Left}}break-cell-left{{else}}bg-raised{{end}}"></span>{{end}}
+        {{if $b.Percent}}<span class="break-mark bg-path-melee {{if and $b.EndPercent $lv.MarksMeet}}break-mark-top{{end}}" style="left: {{$lv.BreakMark}}%" data-break-mark></span>{{end}}
+        {{if $b.EndPercent}}<span class="break-mark bg-gold {{if and $b.Percent $lv.MarksMeet}}break-mark-bottom{{end}}" style="left: {{$lv.EndMark}}%" data-end-mark></span>{{end}}
+      </span>
     </summary>
-    <div class="mt-1 h-2 overflow-hidden rounded-full bg-raised" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{$lv.MeterPct}}" aria-label="Casualties against the Break Point"><div class="h-full rounded-full {{if $b.Broken}}bg-danger{{else}}bg-accent{{end}}" style="width: {{$lv.MeterPct}}%"></div></div>
     <div class="mt-3 space-y-3 text-sm">
-      <p class="text-muted">The Break Point is {{$b.Percent}}% of the starting models{{if ne $b.Percent 50}} (this company's own rule){{end}}. A company whose casualties are above it is Broken.</p>
+      {{if $b.Percent}}<p class="text-muted">The company breaks at {{$b.BreakAt}} casualties: {{if $b.AtLeast}}at least{{else}}more than{{end}} {{$b.Percent}}% of its {{$b.StartingModels}} starting models{{if ne $b.Percent 50}} (this company's own rule){{end}}.</p>{{end}}
+      {{if $b.EndPercent}}<p class="text-muted" id="live-break-end">This scenario ends when {{if $b.EndModels}}{{$b.EndModels}} or fewer models remain{{else}}no models remain{{end}} ({{$b.EndPercent}}% of the starting models). Casualties and models that left the table both count{{if $b.LeftTable}}: {{$b.LeftTable}} left the table so far{{end}}.</p>{{end}}
       {{$fc := $lv.FailedCourage}}
       <div><p class="font-medium">Casualties ({{$b.Casualties}})</p>
         <ul class="text-muted">{{range $lv.Casualties}}<li>{{.U.Title}} · {{.L.Reason}}</li>{{end}}{{range $fc}}<li>{{.U.Title}} · Failed courage</li>{{end}}{{if and (not $lv.Casualties) (not $fc)}}<li>None counted from the log.</li>{{end}}</ul></div>
@@ -298,8 +305,8 @@
 
   {{if $b.Broken}}
   <section class="alert alert-danger space-y-2" id="live-broken" aria-labelledby="broken-title">
-    <h3 id="broken-title" class="!text-lg">The company is Broken ({{$b.Casualties}} of {{$b.StartingModels}} casualties)</h3>
-    <p>Every model tests Courage before it does anything else, each turn. Models in combat, or that cannot activate, do not test. If the company flees (All is Lost), settle it at the table: report the other side as the winner.</p>
+    <h3 id="broken-title" class="!text-lg">The company is Broken</h3>
+    <p>Every model tests Courage before it activates, each turn. Models in combat, or that cannot activate, do not test.</p>
   </section>
   {{end}}
 </div>

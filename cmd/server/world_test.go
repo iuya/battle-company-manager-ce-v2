@@ -420,6 +420,39 @@ func checkAdminStates(t *testing.T, ctx context.Context, b *backend, admin core.
 // export with a second warband) and the campaign whose limit was lowered after companies existed.
 func checkLiveAndLimit(t *testing.T, ctx context.Context, b *backend, byName map[string]core.CampaignSummary, you core.User) {
 	t.Helper()
+	milestones, ok := byName[milestonesName]
+	if !ok {
+		t.Fatal("the Break and 25% campaign is missing")
+	}
+	mcos, err := b.campaigns.Companies(ctx, milestones.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]core.LiveBreak{}
+	mmatches, err := b.campaigns.Matches(ctx, milestones.ID)
+	if err != nil || len(mmatches) != 2 {
+		t.Fatalf("Break and 25%% matches: %v %v", mmatches, err)
+	}
+	for _, m := range mmatches {
+		breaks, err := b.campaigns.MatchBreaks(ctx, milestones.ID, m.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, co := range mcos {
+			if br, ok := breaks[co.ID]; ok {
+				seen[co.Name] = br
+			}
+		}
+	}
+	if br := seen["Rohan"]; br.EndPercent != 25 || br.LeftTable == 0 || br.Casualties == 0 {
+		t.Errorf("Rohan has casualties and models off the table on a 25%% scenario: %+v", br)
+	}
+	if br := seen["Arnor"]; br.ToEnd() != 0 {
+		t.Errorf("Arnor has reached the 25%%: %+v", br)
+	}
+	if br := seen["Dale"]; br.Casualties != 0 || br.ToEnd() == 0 {
+		t.Errorf("Dale is whole: %+v", br)
+	}
 	fog, ok := byName[fogName]
 	if !ok {
 		t.Fatal("the Fog of War campaign is missing")

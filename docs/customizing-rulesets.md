@@ -892,7 +892,7 @@ The app plays a scenario from the scenario tables of `campaign.scenarioSelection
 
 (The shipped file uses a `d6` first die and a table of six scenarios for each of three ranges. The minimal file uses a `d2` and two scenarios per table to stay small.)
 
-- **Text**: `description`, `outline`, `armies`, `layout`, `startingPositions`, `objectives` (how the game ends), `specialRules` (a list of `{name, definition}`; a rule that prints a table also has `table`), `usesRules` (rules applied by name only), `roles` (`attacker`/`defender` scenarios), `side`.
+- **Text**: `description`, `outline`, `armies`, `layout`, `startingPositions`, `objectives` (how the game ends), `endsAtPercent` (the share of its starting models a company is down to when the game ends, such as 25, shown to the players in the live match), `specialRules` (a list of `{name, definition}`; a rule that prints a table also has `table`), `usesRules` (rules applied by name only), `roles` (`attacker`/`defender` scenarios), `side`.
 - **Scoring** objectives have a `key` (unique in the scenario), a `kind` and `options`, the printed sentences in printed order with their Victory Points:
   - `tiers`: the player scores the best tier reached ("instead score" sentences are alternatives, not additions).
   - `each`: a count of items worth a number of points each (`item`, `count`).

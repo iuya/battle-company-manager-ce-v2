@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -63,6 +64,46 @@ func (b *bp) fall(n int) { // n more units of company 1 die
 	}
 }
 
+func TestBreakCountsAreWholeModels(t *testing.T) {
+	tests := []struct {
+		name                               string
+		b                                  LiveBreak
+		breakAt, toBreak, endModels, toEnd int
+	}{
+		{"15 models: the Break Point is 7.5, the 8th breaks; 3 may remain", LiveBreak{StartingModels: 15, Threshold100: 750, Casualties: 3, EndPercent: 25}, 8, 5, 3, 9},
+		{"14 models: exactly the Break Point is not Broken", LiveBreak{StartingModels: 14, Threshold100: 700, Casualties: 7, EndPercent: 25}, 8, 1, 3, 4},
+		{"16 models: exactly 25% has been reduced to it", LiveBreak{StartingModels: 16, Threshold100: 800, Casualties: 12, EndPercent: 25}, 9, 0, 4, 0},
+		{"models that left bring the 25% closer, not the Break", LiveBreak{StartingModels: 15, Threshold100: 750, Casualties: 3, LeftTable: 4, EndPercent: 25}, 8, 5, 3, 5},
+		{"at least the Break Point (gte), rounded up to a whole model", LiveBreak{StartingModels: 15, Threshold100: 750, Casualties: 3, AtLeast: true}, 8, 5, 0, 12},
+		{"gte on a whole Break Point", LiveBreak{StartingModels: 14, Threshold100: 700, Casualties: 7, AtLeast: true}, 7, 0, 0, 7},
+		{"three models: no model may remain", LiveBreak{StartingModels: 3, Threshold100: 150, EndPercent: 25}, 2, 2, 0, 3},
+		{"never below zero", LiveBreak{StartingModels: 4, Threshold100: 200, Casualties: 9, EndPercent: 25}, 3, 0, 1, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b := tt.b
+			if b.BreakAt() != tt.breakAt || b.ToBreak() != tt.toBreak || b.EndModels() != tt.endModels || b.ToEnd() != tt.toEnd {
+				t.Errorf("BreakAt %d, ToBreak %d, EndModels %d, ToEnd %d; want %d %d %d %d", b.BreakAt(), b.ToBreak(), b.EndModels(), b.ToEnd(), tt.breakAt, tt.toBreak, tt.endModels, tt.toEnd)
+			}
+		})
+	}
+}
+
+// Models that left the board count towards the scenario's end only; a failed courage test is already a casualty.
+func TestBreakCountsWhoLeftTheTable(t *testing.T) {
+	b := &bp{t: t, inits: breakInits(12), cfg: LiveFoldConfig{Break: map[int64]BreakConfig{1: {Percent: 50, EndPercent: 25}}}}
+	b.do(1, LiveAction{Kind: LiveRetreat, UnitID: 1, Why: "left"})
+	b.do(1, LiveAction{Kind: LiveRetreat, UnitID: 2, Why: "courage"})
+	b.do(1, LiveAction{Kind: LiveDied, UnitID: 3})
+	if got := b.state().Break(1); got.LeftTable != 1 || got.Casualties != 2 || got.EndPercent != 25 {
+		t.Errorf("left %d casualties %d end %d%%, want 1, 2 and 25", got.LeftTable, got.Casualties, got.EndPercent)
+	}
+	b.do(1, LiveAction{Kind: LiveReturn, UnitID: 1})
+	if got := b.state().Break(1); got.LeftTable != 0 {
+		t.Errorf("returned: left %d", got.LeftTable)
+	}
+}
+
 func TestBreakPointEdges(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -86,8 +127,8 @@ func TestBreakPointEdges(t *testing.T) {
 			b := newBP(t, tt.models, tt.percent)
 			b.fall(tt.casualties)
 			got := b.state().Break(1)
-			if got.Broken != tt.broken || got.Casualties != tt.casualties || got.StartingModels != tt.models || got.BreakPoint() != tt.breakPoint {
-				t.Errorf("%+v (Break Point %s), want broken=%v %s", got, got.BreakPoint(), tt.broken, tt.breakPoint)
+			if got.Broken != tt.broken || got.Casualties != tt.casualties || got.StartingModels != tt.models || fmt.Sprintf("%d.%d", got.Threshold100/100, (got.Threshold100%100)/10) != tt.breakPoint {
+				t.Errorf("%+v, want broken=%v %s", got, tt.broken, tt.breakPoint)
 			}
 		})
 	}

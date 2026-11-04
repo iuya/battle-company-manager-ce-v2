@@ -556,6 +556,12 @@ html[data-mode="dark"] { color-scheme: dark; }
   .milestone-label { @apply max-w-full truncate text-[11px] leading-tight; }
   .milestone-tick { @apply absolute -right-1.5 -top-1.5 h-5 w-5 rounded-full border-2 border-surface bg-success p-0.5 text-page; }
   .milestone-count { @apply absolute -left-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center gap-0.5 rounded-full border-2 border-surface bg-danger px-1 text-[10px] font-bold leading-none text-page; }
+  /* The bar of the Break Point panel: one cell per starting model, with a mark at each milestone and its key beside the text. */
+  .break-key { @apply mr-1.5 inline-block h-2 w-2 rounded-sm align-[1px]; }
+  .break-mark { @apply absolute -top-[3px] -bottom-[3px] -ml-px w-0.5 rounded-sm; }
+  .break-mark-top { bottom: 50%; }
+  .break-mark-bottom { top: 50%; }
+  .break-cell-left { background: repeating-linear-gradient(45deg, var(--raised) 0 2px, var(--line) 2px 4px); }
   .xp-bar { @apply relative flex h-2.5 min-w-20 flex-1 overflow-hidden rounded-full bg-raised; }
   /* The experience of a unit fills in the muted tone (warn while a level-up waits), not the palette accent, which shares its hue with a game colour. */
   .xp-fill { background: var(--muted); }

@@ -11,7 +11,7 @@ import (
 )
 
 // The part of the sticky live banner that every change of the match refreshes (docs/live-match.md "Ending a match while live"): the
-// companies that are Broken ("Minas Morgul is broken (8 of 15 casualties)") and the pending end with Confirm, which opens the Confirm
+// companies that are Broken ("Minas Morgul is broken", "Minas Morgul is broken and quartered") and the pending end with Confirm, which opens the Confirm
 // sheet. Its other buttons post to the match's end routes with view=banner and company=<page's company>, and those answer the banner again.
 
 // endBanner is what the banner shows; zero shows nothing.
@@ -22,7 +22,7 @@ type endBanner struct {
 	Proposal                   *core.EndProposal
 	Result                     string // what the pending end reports: "Rohan won", "Draw"
 	Access                     core.EndAccess
-	Broken                     []string // "Minas Morgul is broken (8 of 15 casualties)", for every Broken company of the match
+	Broken                     []string // "Minas Morgul is broken", for every Broken company of the match
 	Notice                     string
 	NoticeErr                  bool
 	OverrideNote, OverrideErr  string
@@ -46,12 +46,23 @@ func (s *Server) endBannerFor(r *http.Request, base campaignBase, m core.Match, 
 		if breaks, err := s.campaigns.MatchBreaks(r.Context(), base.Campaign.ID, m.ID); err == nil { // an extra: a failed read shows none
 			for _, co := range m.AllCompanies() {
 				if br, ok := breaks[co.ID]; ok && br.Broken {
-					b.Broken = append(b.Broken, fmt.Sprintf("%s is broken (%d of %d casualties)", co.Name, br.Casualties, br.StartingModels))
+					b.Broken = append(b.Broken, brokenNotice(co.Name, br))
 				}
 			}
 		}
 	}
 	return b
+}
+
+// brokenNotice names a Broken company for the banner and adds the scenario's end when it has been reached too.
+func brokenNotice(name string, br core.LiveBreak) string {
+	switch {
+	case br.EndPercent == 0 || br.ToEnd() > 0:
+		return name + " is broken"
+	case br.EndPercent == 25:
+		return name + " is broken and quartered"
+	}
+	return fmt.Sprintf("%s is broken and down to %d%%", name, br.EndPercent)
 }
 
 // handleEndBanner answers the banner for the page's refresh (GET ...?company=N).

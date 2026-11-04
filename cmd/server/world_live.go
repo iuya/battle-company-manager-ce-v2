@@ -3,8 +3,9 @@ package main
 import "github.com/iuya/battle-company-manager-ce-v2/internal/core"
 
 const (
-	fogName     = "Fog of War: secret notes, retreats and the dead"
-	loweredName = "Lowered limit: more companies than the campaign allows now"
+	fogName        = "Fog of War: secret notes, retreats and the dead"
+	milestonesName = "Break and 25%: how far each company is from them"
+	loweredName    = "Lowered limit: more companies than the campaign allows now"
 )
 
 // liveAs records an action of the company's owner (the author of a secret note, who alone sees it while the match is open).
@@ -86,4 +87,38 @@ func (w *world) loweredLimit() {
 	w.company(c, "eowyn", "Riders of the west march", "Helm's Deep", true)
 	w.company(c, "aragorn", "Rangers of the north", "Arnor", true)
 	w.must("lower the limit", w.c().SetCompaniesPerPlayer(w.ctx, c.org, c.id, 2))
+}
+
+// breakMilestonesCampaign holds the Break Point panel's states side by side, on a scenario that ends at 25%: one company has lost a few,
+// one is about to break with models gone from the table (the 25% has moved closer than the Break), and one has reached the 25%.
+func (w *world) breakMilestonesCampaign() {
+	c := w.campaign("you", milestonesName,
+		"Seize Ground ends at 25%: the Break Point panel counts down in whole models. Gondor has lost a few, Rohan is about to break and has models off the table, Arnor has reached the 25%; a second game on Fog of War has no 25% to show.", defaultSettings)
+	gondor := w.company(c, "you", "Gondor", "Minas Tirith", true)
+	rohan := w.company(c, "eowyn", "Rohan", "Rohan", true)
+	arnor := w.company(c, "aragorn", "Arnor", "Arnor", true)
+	dale := w.company(c, "gimli", "Dale", "Erebor & Dale", true)
+	for _, co := range []*wco{gondor, rohan, arnor, dale} {
+		w.grant(co, 10, 30)
+		w.recruitAll(co)
+	}
+	m1 := w.newMatchOn(c, "Seize Ground", []*wco{gondor}, []*wco{rohan})
+	m2 := w.newMatchOn(c, "Seize Ground", []*wco{arnor}, []*wco{dale})
+	fall := func(co *wco, m core.Match, n int) {
+		_, _, warriors := w.roster(co)
+		for i := 0; i < n && i < len(warriors); i++ {
+			w.try("a warrior falls", w.liveAs(co, m, core.LiveAction{Kind: core.LiveDied, UnitID: warriors[i].ID, Note: "Fell in the line"}))
+		}
+	}
+	fall(gondor, m1, 3)
+	fall(rohan, m1, 2)
+	_, _, rw := w.roster(rohan)
+	for i := 2; i < 4 && i < len(rw); i++ {
+		w.try("a rider leaves the table", w.liveAs(rohan, m1, core.LiveAction{Kind: core.LiveRetreat, UnitID: rw[i].ID, Why: "left"}))
+	}
+	_, _, aw := w.roster(arnor)
+	fall(arnor, m2, len(aw))
+	if lc, err := w.c().Live(w.ctx, arnor.user, c.id, arnor.id); err != nil || lc.Break.ToEnd() > 0 {
+		w.gap("Break and 25%%: Arnor has too few Warriors to reach it, the Heroes stay on the table")
+	}
 }

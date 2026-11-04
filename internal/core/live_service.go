@@ -144,6 +144,9 @@ func (lc *liveContext) breakConfig(rs *RuleSet, d CompanyDetail) {
 	for _, e := range rules.ExceptionsFor(scenario) {
 		cfg.Exceptions = append(cfg.Exceptions, e.Text())
 	}
+	if sc := FindScenario(rs.BC.Scenarios(), scenario); sc != nil {
+		cfg.EndPercent = sc.EndPercent
+	}
 	lc.cfg.Break[d.ID] = cfg
 	for _, u := range d.Roster {
 		for _, e := range u.Equipment {
@@ -1161,7 +1164,7 @@ func (s *LiveService) MatchDefaults(ctx context.Context, id, matchID int64) (Liv
 }
 
 // MatchBreaks is the Break Point state of every company of the match, by company: what the live banner of every viewer shows ("Minas
-// Morgul is broken (8 of 15 casualties)"). Empty when the match has no live data.
+// Morgul is broken"). Empty when the match has no live data.
 func (s *LiveService) MatchBreaks(ctx context.Context, id, matchID int64) (map[int64]LiveBreak, error) {
 	st, ok, err := s.readState(ctx, id, matchID)
 	if err != nil || !ok {

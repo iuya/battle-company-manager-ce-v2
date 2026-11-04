@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
@@ -63,13 +64,37 @@ func (v liveView) CourageTest(l core.LiveUnit) bool {
 	return v.Break.Broken && l.Zone == core.ZoneField
 }
 
-// MeterPct is how far the casualties are towards the Break Point, held to 100.
-func (v liveView) MeterPct() int {
-	if v.Break.Threshold100 <= 0 {
-		return 0
+// breakCell is one starting model on the bar of the Break Point panel: fallen, gone from the table or still in play.
+type breakCell struct{ Fallen, Left bool }
+
+// BreakCells is the bar of the Break Point panel, one cell per starting model: the casualties fill it from the left and the models that
+// left the board take the far end, so the fill always reads against the Break mark.
+func (v liveView) BreakCells() []breakCell {
+	b := v.Break
+	out := make([]breakCell, b.StartingModels)
+	for i := range out {
+		out[i] = breakCell{Fallen: i < b.Casualties, Left: i >= b.StartingModels-b.LeftTable && i >= b.Casualties}
 	}
-	return min(100, v.Break.Casualties*10000/v.Break.Threshold100)
+	return out
 }
+
+// breakMark is where a mark sits on the bar, as a CSS percentage: the boundary before the cell of the model that crosses it, so the fill
+// passing a mark means that milestone has been reached.
+func (v liveView) breakMark(cells int) string {
+	return strconv.FormatFloat(float64(min(max(cells, 0), v.Break.StartingModels))*100/float64(v.Break.StartingModels), 'f', 2, 64)
+}
+
+// BreakMark is the position of the casualty that breaks the company.
+func (v liveView) BreakMark() string { return v.breakMark(v.Break.BreakAt() - 1) }
+
+// EndMark is the position of the casualty that reaches the scenario's end, with the models gone from the table taken off.
+func (v liveView) EndMark() string {
+	b := v.Break
+	return v.breakMark(b.StartingModels - b.EndModels() - b.LeftTable - 1)
+}
+
+// MarksMeet says the Break and the end fall on the same model (a very small company): the two marks then share the line.
+func (v liveView) MarksMeet() bool { return v.BreakMark() == v.EndMark() }
 
 // FailedCourage lists the units that fled a courage test: casualties for the Break Point.
 func (v liveView) FailedCourage() (out []liveCard) {

@@ -679,6 +679,7 @@ type Scenario struct {
 	Layout            string    `json:"layout,omitempty"`
 	StartingPositions string    `json:"startingPositions,omitempty"`
 	Objectives        string    `json:"objectives,omitempty"`
+	EndsAtPercent     int       `json:"endsAtPercent,omitempty" min:"1" max:"99"` // the game ends once a company is down to this share of its starting models
 	SpecialRules      Free      `json:"specialRules,omitempty"`
 	Roles             Free      `json:"roles,omitempty"`
 	Rewards           Free      `json:"rewards,omitempty"`

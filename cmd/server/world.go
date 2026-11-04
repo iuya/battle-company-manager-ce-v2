@@ -422,6 +422,7 @@ func seedWorld(ctx context.Context, b *backend, dice *demoDice, password string,
 		{"several companies per player", w.bandsCampaign},
 		{"veterans with long trackers", w.veteransCampaign},
 		{"Fog of War live notes and retreats", w.fogCampaign},
+		{"Break Point and 25% milestones", w.breakMilestonesCampaign},
 		{"a lowered company limit", w.loweredLimit},
 		{"account invitations and recovery links", w.adminStates},
 	} {

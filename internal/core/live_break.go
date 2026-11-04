@@ -99,6 +99,7 @@ type BreakConfig struct {
 	Percent    int      // the share of the starting models that breaks it (company effect or the file's default); 0: never Broken
 	Extra      int      // models counted besides the units: the company's creatures, a temporary Wanderer, models yet to arrive
 	Exceptions []string // the scenario's exceptions, as sentences
+	EndPercent int      // the game ends once the company is down to this share of its starting models; 0: the scenario has no such end
 }
 
 // LiveFoldConfig is what the fold takes besides the starting values and the log.
@@ -118,12 +119,32 @@ type LiveBreak struct {
 	Casualties     int
 	Threshold100   int  // Percent * StartingModels: the Break Point is Threshold100 / 100
 	Broken         bool // the casualties exceed the Break Point now; an undo that takes them back under makes it whole again
+	AtLeast        bool // the comparison of the rules file: reaching the Break Point is enough to break (see BreakConfig)
+	LeftTable      int  // models that left the board: no casualties, but no longer in the game
+	EndPercent     int  // the share of the starting models at which the scenario ends; 0: it has no such end
 	Exceptions     []string
 }
 
-// BreakPoint is the Break Point as a number with one decimal ("6.5").
-func (b LiveBreak) BreakPoint() string {
-	return fmt.Sprintf("%d.%d", b.Threshold100/100, (b.Threshold100%100)/10)
+// BreakAt is how many casualties make the company Broken, always a whole number of models: with 15 models and 50% the Break Point is
+// 7.5 and the 8th casualty breaks it; with 14 it is 7 and, as only exceeding it counts, the 8th as well.
+func (b LiveBreak) BreakAt() int {
+	if b.AtLeast {
+		return (b.Threshold100 + 99) / 100
+	}
+	return b.Threshold100/100 + 1
+}
+
+// ToBreak is how many more casualties make the company Broken; 0 when it already is.
+func (b LiveBreak) ToBreak() int { return max(0, b.BreakAt()-b.Casualties) }
+
+// EndModels is how many models may remain when the scenario's end is reached: its share of the starting models, rounded down because
+// the rule is "reduced to the share or below".
+func (b LiveBreak) EndModels() int { return b.EndPercent * b.StartingModels / 100 }
+
+// ToEnd is how many more models the company can lose until the scenario's end is reached; 0 when it has been. Models that left the board
+// are gone as well as the casualties, so this does not follow ToBreak one for one.
+func (b LiveBreak) ToEnd() int {
+	return max(0, b.StartingModels-b.Casualties-b.LeftTable-b.EndModels())
 }
 
 // Courage reasons of a courageSkip.
@@ -159,6 +180,21 @@ func (s LiveState) casualtiesOf(company int64) int {
 	return n + s.brk(company).adjCasualties
 }
 
+// leftTableOf counts the models of the company that left the board without being casualties.
+func (s LiveState) leftTableOf(company int64) int {
+	n := 0
+	for _, id := range s.order {
+		u := s.units[id]
+		if u.company != company || u.absent {
+			continue
+		}
+		if z, _ := u.zone(); z == ZoneRetreated && u.retreat != "Failed courage" {
+			n += s.modelsOf(id)
+		}
+	}
+	return n
+}
+
 func (s LiveState) modelsOf(unit int64) int {
 	if n := s.cfg.BreakModels[unit]; n > 0 {
 		return n
@@ -188,7 +224,7 @@ func (c BreakConfig) exceeded(casualties, models int) bool {
 // Break is a company's Break Point state: Broken as soon as the casualties exceed the Break Point (docs/live-match.md, "Company Break Point in play").
 func (s LiveState) Break(company int64) LiveBreak {
 	cfg := s.cfg.Break[company]
-	b := LiveBreak{Percent: cfg.Percent, StartingModels: s.startingModels(company), Casualties: s.casualtiesOf(company), Exceptions: cfg.Exceptions}
+	b := LiveBreak{Percent: cfg.Percent, StartingModels: s.startingModels(company), Casualties: s.casualtiesOf(company), AtLeast: cfg.AtLeast, LeftTable: s.leftTableOf(company), EndPercent: cfg.EndPercent, Exceptions: cfg.Exceptions}
 	b.Threshold100 = b.Percent * b.StartingModels
 	b.Broken = b.Percent > 0 && cfg.exceeded(b.Casualties, b.StartingModels)
 	return b

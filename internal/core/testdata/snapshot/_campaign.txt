@@ -397,6 +397,7 @@ scenarios
           -
             Text: "You score 1 Victory Point for each enemy Hero model that has been removed as a casualty, up to a maximum of 3 Victory Points."
             Points: 1
+    EndPercent: 25
   -
     Name: "Show of Strength"
     Table: 1
@@ -455,6 +456,7 @@ scenarios
         Options:
           - {Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game.", Points: 1}
           - {Text: "If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points.", Points: 3}
+    EndPercent: 25
   -
     Name: "The Wolves Attack"
     Table: 1
@@ -804,6 +806,7 @@ scenarios
           -
             Text: "You score 1 Victory Point for each of your Hero models within 3\" of the centre of the board at the end of the game, to a maximum of 3 Victory Points."
             Points: 1
+    EndPercent: 25
   -
     Name: "Relic of Ages Past"
     Table: 2
@@ -894,6 +897,7 @@ scenarios
         Options:
           - {Text: "You score 1 Victory Point if you have at least one Command Support remaining at the end of the game.", Points: 1}
           - {Text: "If you have more Command Support alive than your opponent, then you instead score 2 Victory Points.", Points: 2}
+    EndPercent: 25
   -
     Name: "Seize Ground"
     Table: 2
@@ -947,6 +951,7 @@ scenarios
         Options:
           - {Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game.", Points: 1}
           - {Text: "If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points.", Points: 3}
+    EndPercent: 25
   -
     Name: "Sites of Power"
     Table: 2
@@ -1033,6 +1038,7 @@ scenarios
           -
             Text: "If the highest rating model that is not their Leader was removed as a casualty, then you instead score 2 Victory Points. If there is a tie of highest rating, then the controlling player declares which model is the target before deployment. In the rare instance that a member of a Battle Company is specifically composed of multiple profiles, they may not be considered (e.g. you are allowing the use of Warg Marauders in your campaign)."
             Points: 2
+    EndPercent: 25
   -
     Name: "Plunder the Supplies"
     Table: 2
@@ -1128,6 +1134,7 @@ scenarios
         Options:
           - {Text: "You score 1 Victory Point if you have at least one Command Support remaining at the end of the game.", Points: 1}
           - {Text: "If you have more Command Support alive than your opponent, then you instead score 2 Victory Points.", Points: 2}
+    EndPercent: 25
   -
     Name: "Hoard of Treasures"
     Table: 2
@@ -1195,6 +1202,7 @@ scenarios
           -
             Text: "If you have at least three models wholly within 12\" of your opponent's board edge, then you instead score 2 Victory Points."
             Points: 2
+    EndPercent: 25
   -
     Name: "Scavenge the Battlefield"
     Table: 2
@@ -1268,6 +1276,7 @@ scenarios
         Options:
           - {Text: "You score 1 Victory Point if you have at least one Command Support remaining at the end of the game.", Points: 1}
           - {Text: "If you have more Command Support alive than your opponent, then you instead score 2 Victory Points.", Points: 2}
+    EndPercent: 25
   -
     Name: "Secure the Area"
     Table: 3

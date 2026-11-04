@@ -147,9 +147,9 @@ It is a `<details>` element.
 - Editors also get +/- adjusters for starting models and casualties, with a shared note (`kind=breakAdjust`).
 
 **Broken notice.**
-Every viewer sees it in `#live-end` of the banner: "Rangers is broken (8 of 15 casualties)" (`endBanner.Broken`).
+Every viewer sees it in `#live-end` of the banner: "Rangers is broken", or "Rangers is broken and quartered" once it has also reached a 25% end (`endBanner.Broken`).
 
-**Cards of a Broken company** in the Field offer the **Courage test** (`CourageTest`) and show "Test due" until the unit has a recorded test (`CourageDue`).
+**Cards of a Broken company** in the Field offer the **Courage test** (`CourageTest`) and show no chip until the unit has a recorded test (`CourageDue`).
 Then they show a chip (`liveView.CourageChip`, from `LiveUnit.CourageHow`):
 
 - "Tested: passed" or "Tested: failed";

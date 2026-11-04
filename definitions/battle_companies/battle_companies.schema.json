@@ -4743,6 +4743,12 @@
           "description": "A short description shown to the players.",
           "type": "string"
         },
+        "endsAtPercent": {
+          "description": "The game ends once a company is down to this share of its starting models or fewer, as a whole percent. The live match shows how many more models each company can lose before it. Leave it out when the scenario has no such end.",
+          "maximum": 99,
+          "minimum": 1,
+          "type": "integer"
+        },
         "id": {
           "description": "A stable id; default: the name as a slug. Write it only to keep an id when the name changes.",
           "type": "string"

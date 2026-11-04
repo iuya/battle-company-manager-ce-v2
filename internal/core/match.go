@@ -222,6 +222,7 @@ type ScenarioInfo struct {
 	Prizes     []ScenarioPrize     // rewards that follow from the result (the winner, a surviving Leader); not ticks
 	// ScoringObjectives are the Victory Point conditions as data, in the printed order (data.scenarioDetails[].scoringObjectives).
 	ScoringObjectives []ScoringObjective
+	EndPercent        int // the game ends once a company is down to this share of its starting models; 0: the scenario has no such end
 }
 
 // FindScenario is the scenario of that name in the list, nil without one.

@@ -260,7 +260,29 @@ func TestLiveBannerNamesEveryBrokenCompany(t *testing.T) {
 	f := liveSetupMatch(t, core.LiveEdit, nil, nil, pendingSides()...)
 	f.breaks = map[int64]core.LiveBreak{2: {Broken: true, Casualties: 8, StartingModels: 15}, 1: {Casualties: 2, StartingModels: 12}}
 	body := htmxGet(f, "/campaigns/7/matches/3/live/end/banner?company=1").Body.String()
-	if !strings.Contains(body, "Raiders is broken (8 of 15 casualties)") || strings.Contains(body, "Rangers is broken") {
+	if !strings.Contains(body, "Raiders is broken<") || strings.Contains(body, "Rangers is broken") {
 		t.Errorf("broken notice:\n%s", body)
+	}
+	if strings.Contains(body, "casualties") {
+		t.Errorf("the notice gives no counts:\n%s", body)
+	}
+}
+
+func TestBrokenNoticeAddsTheScenarioEndOnceReached(t *testing.T) {
+	const start = 8
+	for _, tt := range []struct {
+		name string
+		br   core.LiveBreak
+		want string
+	}{
+		{"no such end", core.LiveBreak{StartingModels: start, Casualties: 6}, "Arnor is broken"},
+		{"not there yet", core.LiveBreak{StartingModels: start, Casualties: 5, EndPercent: 25}, "Arnor is broken"},
+		{"at a quarter", core.LiveBreak{StartingModels: start, Casualties: 6, EndPercent: 25}, "Arnor is broken and quartered"},
+		{"models off the table count", core.LiveBreak{StartingModels: start, Casualties: 5, LeftTable: 1, EndPercent: 25}, "Arnor is broken and quartered"},
+		{"another share", core.LiveBreak{StartingModels: start, Casualties: 6, EndPercent: 30}, "Arnor is broken and down to 30%"},
+	} {
+		if got := brokenNotice("Arnor", tt.br); got != tt.want {
+			t.Errorf("%s: %q, want %q", tt.name, got, tt.want)
+		}
 	}
 }

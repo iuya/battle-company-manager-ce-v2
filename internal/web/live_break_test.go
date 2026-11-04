@@ -25,13 +25,13 @@ func TestBreakPanelForTheOwnerHasNoTurns(t *testing.T) {
 		lc.Break = core.LiveBreak{Percent: 50, StartingModels: 13, Casualties: 6, Threshold100: 650, Exceptions: []string{"Models on the hill do not test."}}
 	})
 	body := livePage(f)
-	for _, want := range []string{"Break Point 6.5 of 13 · Casualties 6 · 50%", `"kind":"breakAdjust","field":"start","delta":"-1"`, `"field":"casualties","delta":"1"`, `id="break-note"`,
-		"Models on the hill do not test.", `role="progressbar"`, "Hador"} {
+	for _, want := range []string{"1 more to Break", "The company breaks at 7 casualties: more than 50% of its 13 starting models", `"kind":"breakAdjust","field":"start","delta":"-1"`, `"field":"casualties","delta":"1"`, `id="break-note"`,
+		"Models on the hill do not test.", `aria-label="6 casualties of 13 starting models"`, "Hador"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("break panel lacks %q", want)
 		}
 	}
-	for _, banned := range []string{`id="live-broken"`, "Test due", "Start turn", "Turn not started", `"kind":"turn"`, "Will break"} {
+	for _, banned := range []string{"6.5 of", `data-end-mark`, "to 0%", `id="live-broken"`, "Test due", "Start turn", "Turn not started", `"kind":"turn"`, "Will break"} {
 		if strings.Contains(body, banned) {
 			t.Errorf("not Broken and no turns: no %q", banned)
 		}
@@ -43,7 +43,7 @@ func TestBreakPanelForAViewerHasNoButtons(t *testing.T) {
 		lc.Break = core.LiveBreak{Percent: 66, StartingModels: 13, Casualties: 2, Threshold100: 858}
 	})
 	body := livePage(f)
-	if !strings.Contains(body, "Break Point 8.5 of 13") || !strings.Contains(body, "this company's own rule") {
+	if !strings.Contains(body, "7 more to Break") || !strings.Contains(body, "this company's own rule") {
 		t.Error("viewer reads the panel")
 	}
 	for _, banned := range []string{`"kind":"breakAdjust"`, `id="break-note"`} {
@@ -53,15 +53,44 @@ func TestBreakPanelForAViewerHasNoButtons(t *testing.T) {
 	}
 }
 
+// The scenario's 25%: whole models only, shown when the scenario ends there, and models that left the table bring it closer but not the Break.
+func TestBreakPanelCountsToTheScenarioEnd(t *testing.T) {
+	f := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) {
+		lc.Break = core.LiveBreak{Percent: 50, StartingModels: 15, Casualties: 3, LeftTable: 2, Threshold100: 750, EndPercent: 25}
+	})
+	body := livePage(f)
+	for _, want := range []string{"5 more to Break", "7 more to 25%", `data-end-mark`, "This scenario ends when 3 or fewer models remain (25% of the starting models)", "2 left the table so far", `aria-label="3 casualties of 15 starting models, 2 left the table"`,
+		"left: 46.67%" /* the 8th casualty breaks */, "left: 60.00%" /* with 2 gone and 3 allowed to remain, the 10th casualty reaches it */} {
+		if !strings.Contains(body, want) {
+			t.Errorf("panel lacks %q", want)
+		}
+	}
+	if strings.Contains(body, "7.5 of") {
+		t.Error("no half models on the panel")
+	}
+	if got := strings.Count(body, "break-cell-left"); got != 2 {
+		t.Errorf("%d cells for models that left the table, want 2", got)
+	}
+	g := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) {
+		lc.Break = core.LiveBreak{Percent: 50, StartingModels: 4, Casualties: 3, Threshold100: 200, Broken: true, EndPercent: 25}
+	})
+	body = livePage(g)
+	for _, want := range []string{">Broken<", "25% reached", "break-mark-top", "break-mark-bottom"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("small company reaching both lacks %q", want)
+		}
+	}
+}
+
 func TestBrokenBannerAndChipsWithoutAllIsLost(t *testing.T) {
 	f := liveSetupWith(t, core.LiveEdit, brokenState)
 	body := livePage(f)
-	for _, want := range []string{`id="live-broken"`, "The company is Broken (7 of 13 casualties)", "Every model tests Courage before it does anything else", ">Test due<", "Courage test", "/units/5/sheet/courage", "report the other side as the winner"} {
+	for _, want := range []string{`id="live-broken"`, "The company is Broken</h3>", "Every model tests Courage before it activates, each turn. Models in combat, or that cannot activate, do not test.</p>", "Courage test", "/units/5/sheet/courage"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("broken page lacks %q", want)
 		}
 	}
-	for _, banned := range []string{"Flee the battlefield", `"kind":"allIsLost"`, "Who has tested this turn", "since turn"} {
+	for _, banned := range []string{"Test due", "Flee the battlefield", `"kind":"allIsLost"`, "Who has tested this turn", "since turn"} {
 		if strings.Contains(body, banned) {
 			t.Errorf("no All is Lost offer and no turns: %q", banned)
 		}
@@ -176,7 +205,7 @@ func TestLoanedItemsTemporaryWandererAndItemUsed(t *testing.T) {
 }
 
 func TestCourageChipSaysHowItWasResolved(t *testing.T) {
-	for how, want := range map[string]string{"passed": "Tested: passed", "failed": "Tested: failed", "heroicResolve": "Auto-pass", "scenario": "Auto-pass", "engaged": "Exempt", "cannotActivate": "Exempt", "": "Test due"} {
+	for how, want := range map[string]string{"passed": "Tested: passed", "failed": "Tested: failed", "heroicResolve": "Auto-pass", "scenario": "Auto-pass", "engaged": "Exempt", "cannotActivate": "Exempt"} {
 		f := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) { brokenState(lc); lc.Units[0].CourageHow = how })
 		if body := livePage(f); !strings.Contains(body, ">"+want+"<") {
 			t.Errorf("how %q: chip lacks %q", how, want)

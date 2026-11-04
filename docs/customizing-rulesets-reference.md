@@ -3556,6 +3556,7 @@ Example:
 | `aka` | list of string | no | - | - | Other spellings of the same name (true synonyms only). A spelling that already is a vanilla name is refused. |
 | `armies` | string | no | - | - | The Armies section. |
 | `description` | string | no | - | - | A short description shown to the players. |
+| `endsAtPercent` | integer | no | - | 1..99 | The game ends once a company is down to this share of its starting models or fewer, as a whole percent. The live match shows how many more models each company can lose before it. Leave it out when the scenario has no such end. |
 | `id` | string | no | - | - | A stable id; default: the name as a slug. Write it only to keep an id when the name changes. |
 | `layout` | string | no | - | - | The Layout section. |
 | `objectives` | string | no | - | - | The Objectives section (how the game ends). |
