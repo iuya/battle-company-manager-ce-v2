@@ -70,6 +70,19 @@ Raise it only if a superuser uploads many rules files that campaigns pin; lower 
   The current deployment runs one instance.
 
 
+## Archiving campaigns ended before archives
+
+Ending a campaign archives it ([archive.md](archive.md)). Campaigns ended before that, and any whose archiving failed (the server logs "the ended campaign could not be archived"), stay finished with all their rows and rules files until you archive them.
+Run the console command in the production container (the same `DATABASE_URL` as the app); it lists the campaigns, asks you to type `yes`, and each archive is final:
+
+```
+docker compose run --rm app archive --campaign all-finished     # every ended campaign that has no archive
+docker compose run --rm app archive --campaign 12               # one of them
+docker compose run --rm app archive --campaign all-finished --yes
+```
+
+Take a backup first ([backup-restore.md](backup-restore.md)): the rows an archive replaces cannot be restored from the app. Afterwards a superuser's "Prune unused files" on the rules files page removes the files no campaign uses any more.
+
 ## Where to look next
 
 | Page | What it covers |
@@ -77,6 +90,7 @@ Raise it only if a superuser uploads many rules files that campaigns pin; lower 
 | [backup-restore.md](backup-restore.md) | What to back up, backup, restore, the restore drill, the recovery point |
 | [releases.md](releases.md) | The published image, how a release is built, tags, signed images, rolling back an image |
 | [deploy-server.md](deploy-server.md) | The server kit: updater, memory, rollback |
+| [archive.md](archive.md) | Ended campaigns as read-only archives: what is kept, what is not, how old ones are archived |
 | [csp.md](csp.md) | Content-Security-Policy: report mode, then enforce |
 | [robustness.md](robustness.md) | Guards, limits and timeouts that keep one failure from taking the app down |
 | [architecture.md](architecture.md) | Configuration, health checks, the migration command |

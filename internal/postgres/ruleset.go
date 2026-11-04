@@ -144,6 +144,7 @@ func (rs rulesetStore) ListUsage(ctx context.Context) ([]core.RulesetUsage, erro
 		     SELECT vanilla_hash AS h, id, name FROM campaigns
 		     UNION SELECT bc_hash, id, name FROM campaigns
 		     UNION SELECT glossary_hash, id, name FROM campaigns) x
+		  WHERE h IS NOT NULL
 		  ORDER BY lower(name), id`)
 	if err != nil {
 		return nil, err
