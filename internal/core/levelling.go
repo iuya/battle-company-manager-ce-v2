@@ -8,6 +8,9 @@ import (
 	"strings"
 )
 
+// HeroChoiceKey is the choice of a warrior's Hero in the Making: it becomes a hero and chooses its path later.
+const HeroChoiceKey = "hero"
+
 // LevelService runs level-ups. A unit that earned LevelEvery experience rolls: a warrior on a D6 (nothing, a promotion, or a
 // hero in the making), a hero twice on 2D6 on its path, choosing one result. The rules come from the Battle Companies file
 // (ProgressionRules); the roll in progress is UnitState.Pending.Level, stored with the unit, until the player chooses. Every
@@ -87,7 +90,15 @@ func (s *LevelService) LevelUpState(ctx context.Context, user User, campaignID, 
 	if us.Pending.Level == nil {
 		return nil, nil
 	}
-	roll := cloneLevelRoll(*us.Pending.Level)
+	rs, settings, err := s.ruleset(ctx, campaignID)
+	if err != nil {
+		return nil, err
+	}
+	env, err := newLevelEnv(rs, settings, st, unitID)
+	if err != nil {
+		return nil, err
+	}
+	roll := env.present(st, cloneLevelRoll(*us.Pending.Level))
 	return &roll, nil
 }
 
@@ -138,7 +149,7 @@ func (s *LevelService) RollLevelUp(ctx context.Context, user User, campaignID, c
 			out, err = env.settleWarrior(st, us, roll)
 			return err
 		}
-		out = roll
+		out = env.present(*st, roll)
 		if roll.Done {
 			p.Taken++
 			return nil
@@ -158,8 +169,11 @@ func (s *LevelService) ChooseLevelUp(ctx context.Context, user User, campaignID,
 	var out LevelRoll
 	err := s.mutate(ctx, user, campaignID, companyID, unitID, func(env *levelEnv, st *CompanyState, us *UnitState) error {
 		var err error
-		out, err = env.choose(st, us, keys)
-		return err
+		if out, err = env.choose(st, us, keys); err != nil {
+			return err
+		}
+		out = env.present(*st, out)
+		return nil
 	})
 	return out, err
 }
@@ -171,6 +185,7 @@ func (env *levelEnv) choose(st *CompanyState, us *UnitState, keys []string) (Lev
 	if roll == nil {
 		return LevelRoll{}, Refuse("There is no level-up roll to choose from.")
 	}
+	modernHeroOffer(roll)
 	var chosen LevelChoice
 	chosenOffer := -1
 	if roll.Upgrade != nil { // a hero upgrade replaces whichever result the hero would have taken
@@ -182,8 +197,8 @@ func (env *levelEnv) choose(st *CompanyState, us *UnitState, keys []string) (Lev
 	}
 	for i, o := range roll.Offers {
 		for _, ch := range o.Choices {
-			if ch.Key == key {
-				chosen, chosenOffer = ch, i
+			if ch.Key == key && !(chosenOffer >= 0 && len(keys) > 1 && !offersKey(roll.Offers[1-i], keys[1])) {
+				chosen, chosenOffer = ch, i // the same stat can be in both results: the one chosen is the one whose other result has the second key
 			}
 		}
 	}
@@ -215,27 +230,19 @@ func (env *levelEnv) choose(st *CompanyState, us *UnitState, keys []string) (Lev
 			dropUnlisted(env, us, p.Base, to.Wargear)
 		}
 		summary = fmt.Sprintf("%s is promoted to %s.", u.Title(), name)
-	case "path":
-		for _, pp := range rules.Paths { // the offer may be older than another hero's choice of a limited path
-			if pp.Name == rest && pp.LimitPerCompany > 0 && heroesOnPath(env.d, rest) >= pp.LimitPerCompany {
-				return LevelRoll{}, Refuse("The company already has a hero on the %s (at most %d).", rest, pp.LimitPerCompany)
-			}
+	case HeroChoiceKey: // the path comes later, in the path window (ChoosePath)
+		if to := env.becomeHero(p); to != "" {
+			summary = fmt.Sprintf("%s is promoted to %s and becomes a hero.", u.Title(), to)
+		} else {
+			summary = fmt.Sprintf("%s becomes a hero.", u.Title())
 		}
-		p.Hero, p.Path = true, rest
-		profile, _ := rs.BC.Profile(bcCo.Name)
-		promotion, promotes := profile.PromotionOnHero(u.Type)
-		if path, ok := rules.Path(rest); ok && len(path.Start) > 0 { // the homebrew path starts on its own Might, Will and Fate
-			p.Bonus = mergeBonus(p.Bonus, map[string]int{"might": path.Start["might"], "will": path.Start["will"], "fate": path.Start["fate"]})
-		} else if profile.StartGains(u.Type) && !(promotes && !promotion.StatGain) { // a Ranger of the North already has its point of Might, Will and Fate
-			p.Bonus = mergeBonus(p.Bonus, rs.BC.HeroBonus(nil))
-		}
+	case "path": // a unit on its own path takes it at once (settleWarrior)
 		summary = fmt.Sprintf("%s becomes a hero on the %s.", u.Title(), rest)
-		if promotes { // it also changes profile: Ranger of Arnor to Ranger of the North, keeping some of its wargear
-			p.Base = promotion.Becomes // what it had stays, except the wargear of its old profile (replacedWargear)
-			summary = fmt.Sprintf("%s is promoted to %s and becomes a hero on the %s.", u.Title(), promotion.Becomes, rest)
+		if to := env.becomeHero(p); to != "" {
+			summary = fmt.Sprintf("%s is promoted to %s and becomes a hero on the %s.", u.Title(), to, rest)
 		}
+		env.takePath(p, rest)
 		if path, ok := rules.Path(rest); ok {
-			p.Start = path.StartAction // the path's heroic action comes at once
 			if path.StartAction != "" {
 				summary += " It gains " + path.StartAction + "."
 			}
@@ -276,6 +283,11 @@ func (env *levelEnv) choose(st *CompanyState, us *UnitState, keys []string) (Lev
 	p.Taken++
 	us.Pending.Level = nil
 	return LevelRoll{Kind: roll.Kind, Done: true, Summary: summary}, nil
+}
+
+// offersKey says whether a result offers the choice.
+func offersKey(o LevelOffer, key string) bool {
+	return slices.ContainsFunc(o.Choices, func(c LevelChoice) bool { return c.Key == key })
 }
 
 // RerollLevelUp spends an Against the Odds re-roll (the company's Rerolls) on one result of the roll in progress. A warrior's D6
@@ -328,10 +340,69 @@ func (s *LevelService) RerollLevelUp(ctx context.Context, user User, campaignID,
 				break
 			}
 		}
-		out = cloneLevelRoll(*roll)
+		out = env.present(*st, cloneLevelRoll(*roll))
 		return nil
 	})
 	return out, err
+}
+
+// becomeHero makes the unit a hero, still without a path: its Might, Will and Fate and, for a unit that changes profile, its new
+// profile. It says what the unit was promoted to, empty when it keeps its profile.
+func (env *levelEnv) becomeHero(p *Progress) string {
+	p.Hero = true
+	profile, _ := env.rs.BC.Profile(env.bcC.Name)
+	promotion, promotes := profile.PromotionOnHero(env.unit.Type)
+	if profile.StartGains(env.unit.Type) && !(promotes && !promotion.StatGain) { // a Ranger of the North already has its point of Might, Will and Fate
+		p.StartBonus = env.rs.BC.HeroBonus(nil)
+		p.Bonus = mergeBonus(p.Bonus, p.StartBonus)
+	}
+	if !promotes {
+		return ""
+	}
+	p.Base = promotion.Becomes // what it had stays, except the wargear of its old profile (replacedWargear)
+	return promotion.Becomes
+}
+
+// takePath puts a unit that became a hero on the path: the path's heroic action comes at once, and a homebrew path that starts on its
+// own Might, Will and Fate replaces the usual ones (never both).
+func (env *levelEnv) takePath(p *Progress, name string) {
+	p.Path = name
+	path, ok := env.rs.BC.Progression().Path(name)
+	if !ok {
+		return
+	}
+	p.Start = path.StartAction
+	if len(path.Start) > 0 {
+		for stat, n := range p.StartBonus {
+			p.Bonus[stat] -= n
+		}
+		p.StartBonus = nil
+		p.Bonus = mergeBonus(p.Bonus, map[string]int{"might": path.Start["might"], "will": path.Start["will"], "fate": path.Start["fate"]})
+	}
+}
+
+// modernHeroOffer brings a Hero in the Making stored before the path moved to the path window up to date: its paths become the one
+// choice of becoming a hero.
+func modernHeroOffer(roll *LevelRoll) {
+	if roll.Result != WarriorResultHeroInTheMaking || roll.Auto || roll.Stage != "" || len(roll.Offers) != 1 {
+		return
+	}
+	choices := slices.DeleteFunc(slices.Clone(roll.Offers[0].Choices), func(c LevelChoice) bool { return strings.HasPrefix(c.Key, "path:") })
+	if slices.ContainsFunc(choices, func(c LevelChoice) bool { return c.Key == HeroChoiceKey }) {
+		return
+	}
+	roll.Offers = slices.Clone(roll.Offers)
+	roll.Offers[0].Choices = append([]LevelChoice{heroChoice()}, choices...)
+}
+
+// heroChoice is the choice of accepting a Hero in the Making.
+func heroChoice() LevelChoice { return LevelChoice{Key: HeroChoiceKey, Label: "Become a hero"} }
+
+// present is the roll as the player sees it: what goes together among its results.
+func (env *levelEnv) present(st CompanyState, roll LevelRoll) LevelRoll {
+	modernHeroOffer(&roll)
+	roll.Plan = env.levelPlan(st, roll)
+	return roll
 }
 
 // ownPath is the homebrew path the rolling unit follows when it is On Its Own Path in a campaign with the option.
@@ -372,27 +443,21 @@ func (env *levelEnv) warriorRoll(p *Progress, d6 int) LevelRoll {
 	roll := LevelRoll{Kind: "warrior", D6: d6, Result: row.Key}
 	u := env.unit
 	switch row.Key {
-	case "promoted":
+	case WarriorResultPromoted:
 		choices := promotionChoices(env.rs, env.bcC, u)
 		if len(choices) > 0 {
 			roll.Offers = []LevelOffer{{Roll: d6, Text: row.Text, Choices: choices}}
 		} else {
 			roll.Done, roll.Summary = true, noPromotion(u, p, rules)
 		}
-	case "heroInTheMaking":
+	case WarriorResultHeroInTheMaking:
 		offer := LevelOffer{Roll: d6, Text: row.Text}
 		if custom, ok := env.ownPath(); ok { // a unit on its own path takes its path at once: nothing to choose, no promotion to forgo for
 			offer.Choices = []LevelChoice{{Key: "path:" + custom, Label: custom, Group: "Its own path"}}
 			roll.Offers, roll.Auto = []LevelOffer{offer}, true
 			return roll
 		}
-		for _, path := range rules.Paths {
-			if path.LimitPerCompany > 0 && heroesOnPath(env.d, path.Name) >= path.LimitPerCompany {
-				roll.Notes = append(roll.Notes, fmt.Sprintf("The company already has a hero on the %s (at most %d): it is not offered.", path.Name, path.LimitPerCompany))
-				continue
-			}
-			offer.Choices = append(offer.Choices, LevelChoice{Key: "path:" + path.Name, Label: path.Name, Group: "Choose its path"})
-		}
+		offer.Choices = []LevelChoice{heroChoice()}
 		for _, ch := range promotionChoices(env.rs, env.bcC, u) {
 			ch.Label = "Forgo the Hero's Journey: " + ch.Label
 			ch.Group = "Take the promotion instead"
@@ -433,7 +498,7 @@ func (env *levelEnv) pathOffer() (PathOffer, error) {
 	}
 	offer := PathOffer{Unit: u}
 	for _, path := range env.rs.BC.Progression().Paths {
-		opt := PathOption{Name: path.Name, StartAction: path.StartAction, StartPower: path.StartPower, Description: path.Description, Summary: path.Summary, Mastery: path.Mastery, Rules: path.SpecialRules}
+		opt := PathOption{Name: path.Name, Categories: path.Categories, StartAction: path.StartAction, StartPower: path.StartPower, Description: path.Description, Summary: path.Summary, Mastery: path.Mastery, Rules: path.SpecialRules}
 		if path.LimitPerCompany > 0 && heroesOnPath(env.d, path.Name) >= path.LimitPerCompany {
 			opt.Blocked = fmt.Sprintf("the company already has a hero on it (at most %d)", path.LimitPerCompany)
 		}
@@ -461,6 +526,13 @@ func (s *LevelService) ChoosePath(ctx context.Context, user User, campaignID, co
 		}
 		if !offer.Paths[i].StartPower {
 			power = ""
+		}
+		if p := us.Progress; p != nil && p.Hero { // a warrior that became a hero through a level-up: all of it is in its progress
+			env.takePath(p, path)
+			if power != "" {
+				return env.rs.BC.Progression().Apply(p, "power:"+power)
+			}
+			return nil
 		}
 		*us = WithPath(*us, path, power, env.rs.BC.Progression())
 		return nil

@@ -62,23 +62,19 @@ type liveActionJSON struct {
 	Note    string             `json:"note,omitempty"`
 	Mounted bool               `json:"mounted,omitempty"`
 	On      bool               `json:"on,omitempty"`
-	Key     string             `json:"key,omitempty"`
-	Tier    int                `json:"tier,omitempty"`
 	Target  int64              `json:"target,omitempty"`
 	// the Break Point and the Against the Odds items (36y)
-	Turn      int    `json:"turn,omitempty"`
-	Field     string `json:"field,omitempty"`
-	StandFast bool   `json:"standFast,omitempty"`
-	Reason    string `json:"reason,omitempty"`
-	Flee      bool   `json:"flee,omitempty"`
-	Item      string `json:"item,omitempty"`
-	Index     int    `json:"index,omitempty"`
+	Turn  int    `json:"turn,omitempty"`
+	Field string `json:"field,omitempty"`
+	Flee  bool   `json:"flee,omitempty"`
+	Item  string `json:"item,omitempty"`
+	Index int    `json:"index,omitempty"`
 }
 
 func encodeAction(a core.LiveAction) ([]byte, error) {
 	return json.Marshal(liveActionJSON{V: 1, Kind: a.Kind, UnitID: a.UnitID, Stat: a.Stat, Delta: a.Delta, Set: a.Set,
-		Targets: a.Targets, Count: a.Count, Why: a.Why, Note: a.Note, Mounted: a.Mounted, On: a.On, Target: a.TargetCompanyID, Key: a.ObjectiveKey, Tier: a.Tier,
-		Turn: a.Turn, Field: a.Field, StandFast: a.StandFast, Reason: a.Reason, Flee: a.Flee, Item: a.Item, Index: a.Index})
+		Targets: a.Targets, Count: a.Count, Why: a.Why, Note: a.Note, Mounted: a.Mounted, On: a.On, Target: a.TargetCompanyID,
+		Turn: a.Turn, Field: a.Field, Flee: a.Flee, Item: a.Item, Index: a.Index})
 }
 
 func decodeAction(raw []byte) (core.LiveAction, error) {
@@ -87,8 +83,8 @@ func decodeAction(raw []byte) (core.LiveAction, error) {
 		return core.LiveAction{}, err
 	}
 	return core.LiveAction{Kind: j.Kind, UnitID: j.UnitID, Stat: j.Stat, Delta: j.Delta, Set: j.Set, Targets: j.Targets,
-		Count: j.Count, Why: j.Why, Note: j.Note, Mounted: j.Mounted, On: j.On, TargetCompanyID: j.Target, ObjectiveKey: j.Key, Tier: j.Tier,
-		Turn: j.Turn, Field: j.Field, StandFast: j.StandFast, Reason: j.Reason, Flee: j.Flee, Item: j.Item, Index: j.Index}, nil
+		Count: j.Count, Why: j.Why, Note: j.Note, Mounted: j.Mounted, On: j.On, TargetCompanyID: j.Target,
+		Turn: j.Turn, Field: j.Field, Flee: j.Flee, Item: j.Item, Index: j.Index}, nil
 }
 
 const liveEntryColumns = `l.id, l.seq, l.match_id, l.company_id, l.unit_id, l.touches, l.payload, l.text, coalesce(u.display_name, ''),
@@ -353,7 +349,7 @@ func (ls liveStore) Update(ctx context.Context, campaignID, matchID int64, by co
 	default:
 		return core.LiveEntry{}, errors.Join(core.ErrInvalidLive, errors.New("a change is exactly one of append and undo"))
 	}
-	if out.Action.Kind.Secret() { // a secret objective notifies nobody: the other players' pages learn nothing before the end
+	if out.Action.Kind.Secret() { // an older secret note notifies nobody, its undo included: the other players' pages learn nothing before the end
 		return out, tx.Commit(ctx)
 	}
 	companies := []int64{out.CompanyID}

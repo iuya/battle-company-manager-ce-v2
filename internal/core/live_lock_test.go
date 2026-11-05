@@ -62,6 +62,9 @@ func TestCompanyActionsAreLockedWhileAMatchIsRunning(t *testing.T) {
 	if err := svc.SaveFormation(f.ctx, f.user, 5, 1, order); err != nil {
 		t.Errorf("formation: %v", err)
 	}
+	if err := svc.ResetFormation(f.ctx, f.user, 5, 1); err != nil {
+		t.Errorf("default order: %v", err)
+	}
 	if err := NewCemeteryService(f.campaigns, f.companies, rules).SaveCemeteryOrder(f.ctx, f.user, 5, 1, nil); err != nil {
 		t.Errorf("cemetery order: %v", err)
 	}
@@ -94,6 +97,38 @@ func TestCreateMatchGuards(t *testing.T) {
 	f.svc.CompanyAftermaths = func(context.Context, int64, int64) ([]AftermathRef, error) { return nil, nil }
 	if _, err := f.svc.CreateMatch(f.ctx, f.player(), 5, NewMatch{Sides: sides}); err != nil || !created || !inited {
 		t.Errorf("created %v, live init %v, err %v (a failing live init does not fail the match)", created, inited, err)
+	}
+}
+
+func TestUnavailableCompaniesGivesCreateMatchsReasons(t *testing.T) {
+	f := newMatchesFixture(t)
+	f.svc.CompanyAftermaths = func(_ context.Context, _, companyID int64) ([]AftermathRef, error) {
+		if companyID == 2 {
+			return []AftermathRef{{MatchID: 9, MatchNumber: 4, CompanyID: 2}}, nil
+		}
+		return nil, nil
+	}
+	got, err := f.svc.UnavailableCompanies(f.ctx, 5, []int64{1, 2})
+	if err != nil || len(got) != 1 || got[2] != "Finish the aftermath of Match 4 first." {
+		t.Errorf("a pending aftermath, the other free: %v, %v", got, err)
+	}
+	f.state.OpenMatch = &OpenMatchRef{MatchID: 3, Number: 3}
+	got, err = f.svc.UnavailableCompanies(f.ctx, 5, []int64{1, 2})
+	if err != nil || got[1] != "Already in Match 3." || got[2] != "Already in Match 3." {
+		t.Errorf("an open match, which also wins over an aftermath: %v, %v", got, err)
+	}
+	f.svc.CompanyAftermaths = func(context.Context, int64, int64) ([]AftermathRef, error) {
+		t.Error("the open match already gave the reason: no need to read the aftermaths")
+		return nil, nil
+	}
+	if _, err = f.svc.UnavailableCompanies(f.ctx, 5, []int64{1}); err != nil {
+		t.Error(err)
+	}
+	f.svc.CompanyAftermaths = nil
+	f.state.OpenMatch = nil
+	f.state.Recruit.Officers = &OfficerStep{}
+	if got, err = f.svc.UnavailableCompanies(f.ctx, 5, []int64{1}); err != nil || got[1] != "Arrange the officers first." {
+		t.Errorf("officers to arrange: %v, %v", got, err)
 	}
 }
 
@@ -134,7 +169,7 @@ func TestFinishedCampaignRefusesEveryCompanyWrite(t *testing.T) {
 		"recruit": rec.RollRecruit(ctx, user, 5, 1, 0, false), "special": special, "treat": treat,
 		"level": rollLevel, "choose": chooseLevel, "reroll": rerollLevel, "path": lvl.ChoosePath(ctx, user, 5, 1, 1, "Path of the Warlord", ""),
 		"rename company": co.RenameCompany(ctx, user, 5, 1, "New name"), "rename unit": co.RenameUnit(ctx, user, 5, 1, 1, "Bold"),
-		"formation": co.SaveFormation(ctx, user, 5, 1, []int64{1}), "cemetery order": NewCemeteryService(campaigns, companies, rules).SaveCemeteryOrder(ctx, user, 5, 1, nil),
+		"formation": co.SaveFormation(ctx, user, 5, 1, []int64{1}), "default order": co.ResetFormation(ctx, user, 5, 1), "cemetery order": NewCemeteryService(campaigns, companies, rules).SaveCemeteryOrder(ctx, user, 5, 1, nil),
 		"perk": (&AftermathService{companyDeps: companyDeps{campaigns: campaigns}}).UsePerk(ctx, user, 5, 1, 1),
 	} {
 		if !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "The campaign is finished.") {

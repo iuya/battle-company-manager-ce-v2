@@ -13,5 +13,6 @@ func (w *world) targetsCampaign() {
 	mir := w.company(c, "radagast", "Mirkwood's Orcs and spiders", "Mirkwood", true)
 	w.grant(mir, 20, 60)
 	w.recruitAll(mir)
+	w.reverseFormation(mir) // My Company shows a saved order; Change formation offers Restore default order
 	w.show(mir)
 }

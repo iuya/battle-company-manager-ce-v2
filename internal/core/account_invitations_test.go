@@ -389,27 +389,3 @@ func TestAccountInvitations_Register(t *testing.T) {
 		}
 	})
 }
-
-func TestInvitationStateAt(t *testing.T) {
-	rev := t0.Add(-time.Hour)
-	for _, c := range []struct {
-		name    string
-		expires time.Time
-		revoked *time.Time
-		uses    int
-		max     int
-		want    InvitationState
-	}{
-		{"pending", t0.Add(time.Second), nil, 0, 1, InvitationPending},
-		{"partly used anonymous is pending", t0.Add(time.Second), nil, 2, 5, InvitationPending},
-		{"expires_at == now is expired", t0, nil, 0, 1, InvitationExpired},
-		{"used", t0.Add(time.Hour), nil, 5, 5, InvitationUsed},
-		{"used beats expired", t0.Add(-time.Hour), nil, 1, 1, InvitationUsed},
-		{"revoked beats used", t0.Add(time.Hour), &rev, 1, 1, InvitationRevoked},
-		{"revoked beats expired", t0.Add(-time.Hour), &rev, 0, 1, InvitationRevoked},
-	} {
-		if got := InvitationStateAt(c.expires, c.revoked, c.uses, c.max, t0); got != c.want {
-			t.Errorf("%s: got %v, want %v", c.name, got, c.want)
-		}
-	}
-}

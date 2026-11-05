@@ -35,23 +35,24 @@
 {{with .Aftermaths}}{{if not $.ReadOnly}}
 <section class="alert alert-info mt-4 space-y-2" role="region" aria-label="Aftermath to finish" id="aftermath-banner">
   <p class="font-medium">The War's Aftermath is waiting. The company is locked (no recruiting, buying, dropping or healing) until each one is finished.</p>
-  <ul class="flex flex-wrap gap-2">{{range .}}<li><a class="btn btn-primary !min-h-9" href="/campaigns/{{$.Campaign.ID}}/matches/{{.MatchID}}/aftermath/{{.CompanyID}}">Match {{.MatchNumber}}: {{if eq (printf "%s" .Status) "pending"}}Start{{else}}Continue{{end}} the aftermath</a></li>{{end}}</ul>
+  <ul class="flex flex-wrap gap-2">{{range .}}<li>{{if eq (printf "%s" .Status) "pending"}}<form method="post" action="/campaigns/{{$.Campaign.ID}}/matches/{{.MatchID}}/aftermath/{{.CompanyID}}/begin"><button class="btn btn-primary !min-h-9">Match {{.MatchNumber}}: Start the aftermath</button></form>{{else}}<a class="btn btn-primary !min-h-9" href="/campaigns/{{$.Campaign.ID}}/matches/{{.MatchID}}/aftermath/{{.CompanyID}}">Match {{.MatchNumber}}: Continue the aftermath</a>{{end}}</li>{{end}}</ul>
 </section>
 {{end}}{{end}}
 
 {{with $.Live}}{{template "live_banner" (dict "LV" . "CID" $.Campaign.ID "CO" $.Company.ID)}}
 {{/* Beside the banner, not in it (the sticky banner is a stacking context) and outside #live-zones, which the live refresh swaps: it stays open. */}}
 {{template "to_wound_dialog" (dict "CID" $.Campaign.ID)}}{{end}}
-{{template "company_stats" (dict "Company" .CampaignCompany "Max" .MaxUnits "Injured" .InjuredUnits)}}
+{{if not $.Live}}{{template "company_stats" (dict "Company" .CampaignCompany "Max" .MaxUnits "Injured" .InjuredUnits)}}{{end}}
 
 {{/* One component for the resources and the units: the tooltips, the windows and the formation. */}}
-<div x-data="company" @open-modal.window="openModal()" data-lock="{{.LockMessage}}" @click.capture="lockClick($event)" data-modal="{{if or $.Pending $.Recruiting $.Officers}}true{{end}}" @mouseover="over($event)" @mouseout="out($event)" @focusin="over($event)" @focusout="out($event)" @keydown.escape.window="close()">
-{{/* Resources and limits */}}
+<div x-data="company" @open-modal.window="openModal()" @close-modal.window="closeModal()" data-lock="{{.LockMessage}}" @click.capture="lockClick($event)" data-modal="{{if or $.Pending $.Recruiting $.Officers}}true{{end}}" @mouseover="over($event)" @mouseout="out($event)" @focusin="over($event)" @focusout="out($event)" @keydown.escape.window="close()">
+{{/* Resources and limits; a match in play keeps only the re-rolls, which are spent during the game. */}}
+{{if $.Live}}{{if .Rerolls}}<section class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Resources">{{template "rerolls_card" .}}</section>{{end}}{{else}}
 <section class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" aria-label="Resources">
   <div class="grid {{if .Rerolls}}grid-cols-3{{else}}grid-cols-2{{end}} gap-3">
     <div class="card has-tip !p-4" tabindex="0" data-tip-title="Influence" data-tip-meta="Resource" data-tip-text="Spent on recruiting, on equipment, creatures and wanderers from the armory, on treating injuries and on adjusting reinforcement rolls. The company earns it from its matches and from some injury results."><p class="text-sm text-muted">Influence</p><p class="text-3xl font-semibold" id="company-influence">{{.Influence}}</p></div>
     <div class="card has-tip !p-4" tabindex="0" data-tip-title="Gold" data-tip-meta="Resource" data-tip-text="Gold is given to some companies in their starting company, as a special victory reward in some scenarios, or by the organizer in a narrative scenario. It buys equipment, creatures and wanderers at their rating in Gold (no influence) and extra wargear for models. Slots and limits still apply, and what is left is kept."><p class="text-sm text-muted">Gold</p><p class="text-3xl font-semibold">{{.Gold}}</p></div>
-    {{if .Rerolls}}<div class="card has-tip !p-4" tabindex="0" data-tip-title="Re-rolls" data-tip-meta="Against the Odds" data-tip-text="They come from the Against the Odds bonus Reroll, which the company with the lower rating may pick after the scenario roll (it costs {{.RuleDice.RerollRating}} rating): {{.RuleDice.RerollCount}} re-rolls, usable during the game or in the War's Aftermath, each for a single die or a single result such as a level-up roll. No other rule grants them. Spare ones do not carry over to the next match. (The other Against the Odds bonuses give influence, experience, a tool kit, a temporary wanderer or the choice of scenario.)"><p class="text-sm text-muted">Re-rolls</p><p class="text-3xl font-semibold">{{.Rerolls}}</p></div>{{end}}
+    {{if .Rerolls}}{{template "rerolls_card" .}}{{end}}
   </div>
   <div class="card space-y-3 !p-4">
     <h3 class="!text-xl">Limits <span class="text-sm font-normal text-muted">used / maximum</span></h3>
@@ -66,33 +67,37 @@
     </ul>
   </div>
 </section>
+{{end}}
 
 {{/* The units */}}
 <section class="mt-8">
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <h2 class="!text-2xl">Battle company <span class="text-base font-normal text-muted">{{.ModelCount}} / {{.MaxUnits}} units</span></h2>
+      <h2 class="!text-2xl">Battle company{{if not $.Live}} <span class="text-base font-normal text-muted">{{.ModelCount}} / {{.MaxUnits}} units</span>{{end}}</h2>
     </div>
     <div class="flex flex-wrap items-center gap-2">
     {{if and (not $.ReadOnly) (not $.Live)}}<button type="button" class="btn btn-secondary" x-show="!formation" @click="startFormation()">Change formation</button>
     <button type="button" data-lock class="btn btn-primary" hx-get="{{$.OwnPath}}/recruit" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">{{if $.Pending}}Choose {{$.Pending.Unit}}'s options{{else}}Recruit · {{.Recruit.Cost}} influence{{end}}{{if $.Pending}}<span class="ml-2 inline-block h-2.5 w-2.5 rounded-full bg-warn" aria-hidden="true"></span>{{end}}</button>{{end}}
     </div>
   </div>
-  <p class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+  {{if not $.Live}}<p class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
     <span class="inline-flex items-center gap-1">{{template "role_insignia" "leader"}} Leader</span>
     <span class="inline-flex items-center gap-1">{{template "role_insignia" "sergeant"}} Sergeant</span>
     <span class="inline-flex items-center gap-1">{{template "role_insignia" "hero"}} Hero</span>
     <span><span class="eq-chip is-bought !py-0">+ item</span> bought</span>
     <span><span class="eq-chip has-tip !py-0">item</span> dashed: hover for its rules, click for more</span>
-  </p>
+  </p>{{end}}
   {{/* Change formation: drag the cards (or use their arrows), then save the order; it is kept for good. */}}
   {{if and (not $.ReadOnly) (not $.Live)}}<div x-show="formation" x-cloak class="alert alert-info mt-4 flex flex-wrap items-center justify-between gap-3" role="status">
     <span>Drag the units into the order you want, or use the arrows on their handles. Save to keep it.</span>
+    <div class="flex flex-wrap gap-2">
     <form method="post" action="{{$.OwnPath}}/formation" hx-post="{{$.OwnPath}}/formation" hx-target="#main" hx-swap="innerHTML show:window:top" class="flex gap-2">
       <input type="hidden" name="order" :value="formationOrder">
       <button class="btn btn-primary !min-h-9">Save formation</button>
       <button type="button" class="btn btn-secondary !min-h-9" @click="cancelFormation()">Cancel</button>
     </form>
+    {{if $.Company.Formation}}<form method="post" action="{{$.OwnPath}}/formation/reset" hx-post="{{$.OwnPath}}/formation/reset" hx-target="#main" hx-swap="innerHTML show:window:top"><button class="btn btn-secondary !min-h-9">Restore default order</button></form>{{end}}
+    </div>
   </div>{{end}}
   {{if and $.Live (not $.ReadOnly)}}<p class="mt-3 text-sm text-muted" id="live-locked">The company is locked until the match ends: no recruiting, buying, healing or level-ups.</p>{{end}}
   {{if $.Live}}{{template "live_zones" $}}{{else}}
@@ -117,7 +122,7 @@
         <button type="button" class="btn btn-secondary !min-h-9" @click="cancel()">Cancel</button>
       </form>
     </div>
-    <div x-ref="grid" class="mt-4 grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" :class="editing && 'formation-editing'">
+    <div x-ref="grid" class="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" :class="editing && 'formation-editing'">
       {{range .}}{{template "fallen_card" (dict "F" . "Return" (and $.Company.RangerMayReturn (eq .Unit.Type $.Company.RangerUnit)))}}{{end}}
     </div>
   </section>
@@ -201,27 +206,45 @@
 {{end}}
 {{end}}
 
-{{/* The banner of a company in a running match. Takes {LV, CID}. The dot is driven by the sync script (static/js/live.js). */}}
-{{define "live_banner"}}{{$cid := .CID}}{{$co := .CO}}{{with .LV}}
-<div id="live-banner" data-match="{{.MatchID}}" class="alert alert-info sticky top-[3.75rem] z-10 mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 !py-2" role="status">
+{{/* The re-rolls of a company, with what they are. Takes the company. */}}
+{{define "rerolls_card"}}<div class="card has-tip !p-4" tabindex="0" data-tip-title="Re-rolls" data-tip-meta="Against the Odds" data-tip-text="They come from the Against the Odds bonus Reroll, which the company with the lower rating may pick after the scenario roll (it costs {{.RuleDice.RerollRating}} rating): {{.RuleDice.RerollCount}} re-rolls, usable during the game or in the War's Aftermath, each for a single die or a single result such as a level-up roll. No other rule grants them. Spare ones do not carry over to the next match. (The other Against the Odds bonuses give influence, experience, a tool kit, a temporary wanderer or the choice of scenario.)"><p class="text-sm text-muted">Re-rolls</p><p class="text-3xl font-semibold">{{.Rerolls}}</p></div>{{end}}
+
+{{/* The banner of a company in a running match (docs/live-match.md, "Company page in a live match"). Takes {LV, CID}: Match N and the
+   scenario, the live dot (driven by the sync script, static/js/live.js), Go to match, Wound chart and End match, one chip per company of the
+   match (the one on this page marked); below, what every change of the match refreshes (the Broken companies and a pending end). */}}
+{{define "live_banner"}}{{$cid := .CID}}{{$co := .CO}}{{with .LV}}{{$lv := .}}
+<div id="live-banner" data-match="{{.MatchID}}" class="alert alert-info sticky top-[3.75rem] z-10 mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 !py-2" role="status">
   <span class="min-w-0 font-medium"><a class="underline" href="/campaigns/{{$cid}}/matches/{{.MatchID}}">Match {{.MatchNumber}}</a> is running{{with .Scenario}} <span class="font-normal text-muted">· {{.}}</span>{{end}}{{if .Practice}} {{template "practice_badge"}}{{end}}</span>
   {{if .Practice}}<span class="basis-full text-sm" data-practice-banner>Practice match: no experience, influence, rewards or injuries. No aftermath will follow.</span>{{end}}
   <span id="live-dot" class="inline-flex items-center gap-1.5 text-xs text-muted" data-state="off"><span class="live-dot" aria-hidden="true"></span><span id="live-dot-text">Live</span></span>
-  <span class="ml-auto flex flex-wrap gap-2">
-  {{template "to_wound_button" (dict "Class" "!min-h-9")}}
-  <button type="button" class="btn btn-secondary !min-h-9" hx-get="/campaigns/{{$cid}}/matches/{{.MatchID}}/live/end?company={{.CompanyID}}" hx-target="#modal-body" hx-swap="innerHTML" data-open-modal>End checks</button>
-  {{if .Edit}}<button type="button" class="btn btn-secondary !min-h-9" hx-get="/campaigns/{{$cid}}/matches/{{.MatchID}}/live/log?company={{.CompanyID}}" hx-target="#modal-body" hx-swap="innerHTML" data-open-modal>Match log</button>{{end}}
+  {{/* On a phone one row of equal buttons and one sideways row of chips: the banner is sticky, so it has to stay short. */}}
+  <span class="grid w-full auto-cols-fr grid-flow-col gap-1.5 sm:ml-auto sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-2">
+  <a class="btn btn-secondary !min-h-9 !px-1 sm:!px-4" href="/campaigns/{{$cid}}/matches/{{.MatchID}}" data-go-match>Go to match</a>
+  {{template "to_wound_button" (dict "Class" "!min-h-9 !px-1 sm:!px-4")}}
+  {{template "live_end_button" .End}}
   </span>
+  {{if gt (len .Companies) 1}}
+  <nav class="flex min-w-0 basis-full gap-1.5 overflow-x-auto [scrollbar-width:none] sm:flex-wrap sm:overflow-visible" aria-label="Companies of the match" data-match-companies>
+    {{range .Companies}}<a href="{{$lv.PagePath .ID}}" class="chip shrink-0 !text-fg {{if eq .ID $lv.CompanyID}}chip-on before:mr-1 before:content-['✓']{{end}}" {{if eq .ID $lv.CompanyID}}aria-current="page"{{end}}><span class="max-w-[11rem] truncate sm:max-w-[16rem]">{{.Name}}</span><span class="hidden pl-1 font-normal text-muted sm:inline">· {{.Owner}}</span></a>{{end}}
+  </nav>
+  {{end}}
   <div id="live-end" class="basis-full empty:hidden" hx-target="this" hx-get="/campaigns/{{$cid}}/matches/{{.MatchID}}/live/end/banner?company={{.CompanyID}}" hx-trigger="live:match from:body" hx-swap="innerHTML">{{template "end_banner" .End}}</div>
 </div>
 {{end}}{{end}}
 
-{{/* The pending end inside the sticky live banner: who it waits for and what the viewer may do. Takes endBanner. Posts to the match routes, which answer it again. */}}
-{{define "end_banner"}}{{if .Pending}}{{$base := printf "/campaigns/%d/matches/%d/end" .Campaign .MatchID}}{{$extra := .Fields}}{{$a := .Access}}
+{{/* End match of the live banner. It answers again, out of band, with the banner's refresh: disabled while the match waits for Against the Odds. Takes endBanner. */}}
+{{define "live_end_button"}}<span id="live-end-button" class="contents" {{if .OOB}}hx-swap-oob="true"{{end}}>{{if and .Edit (not .Pending)}}<button type="button" class="btn btn-primary !min-h-9 !px-1 sm:!px-4" {{with .ATOWaiting}}disabled title="{{.}}"{{end}} hx-get="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/end/sheet?company={{.Company}}" hx-target="#modal-body" hx-swap="innerHTML" data-open-modal data-end-match>End match</button>{{end}}</span>{{end}}
+
+{{/* The answer to a refresh of the banner: the banner, and End match out of band. Takes endBanner. */}}
+{{define "end_banner_answer"}}{{template "end_banner" .}}{{template "live_end_button" .}}{{end}}
+
+{{/* What the live banner refreshes on every change of the match: the companies that are Broken (every viewer sees it at once) and the pending
+   end with Confirm, which opens the Confirm sheet. Takes endBanner. Its other buttons post to the match routes, which answer it again. */}}
+{{define "end_banner"}}{{with .ATOWaiting}}<p class="border-t border-line pt-2 font-medium" role="status" data-ato-banner>{{.}} <a class="underline" href="/campaigns/{{$.Campaign}}/matches/{{$.MatchID}}">{{if $.ATOMine}}Choose on the match page{{else}}See the match page{{end}}</a></p>{{end}}{{range .Broken}}<p class="border-t border-line pt-2 font-medium text-danger" role="status" data-broken-notice>{{.}}</p>{{end}}{{if .Pending}}{{$base := printf "/campaigns/%d/matches/%d/end" .Campaign .MatchID}}{{$extra := .Fields}}{{$a := .Access}}
 <div class="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-2" role="status" id="live-end-body">
-  <p class="min-w-0 flex-1 basis-60 font-medium break-words"><span aria-hidden="true">&#9719;</span> Ending: waiting for {{.WaitingNames}}{{with .Proposal.Notice}}<span class="block text-sm font-normal text-muted">{{.}}</span>{{end}}</p>
+  <p class="min-w-0 flex-1 basis-60 font-medium break-words"><span aria-hidden="true">&#9719;</span> {{.Proposal.ProposedBy}} proposes to end: {{.Result}}<span class="block text-sm font-normal text-muted">Waiting for {{.WaitingNames}}</span>{{with .Proposal.Notice}}<span class="block text-sm font-normal text-muted">{{.}}</span>{{end}}</p>
   <div class="flex flex-wrap gap-2">
-    {{if $a.CanConfirm}}<form hx-post="{{$base}}/confirm" hx-target="#live-end" hx-swap="innerHTML">{{$extra}}<input type="hidden" name="revision" value="{{.Revision}}"><button class="btn btn-primary !min-h-9">Confirm the end</button></form>{{end}}
+    {{if $a.CanConfirm}}<button type="button" class="btn btn-primary !min-h-9" hx-get="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/end/sheet?company={{.Company}}" hx-target="#modal-body" hx-swap="innerHTML" data-open-modal data-confirm-end>Confirm</button>{{end}}
     {{if $a.CanWithdraw}}<form hx-post="{{$base}}/withdraw" hx-target="#live-end" hx-swap="innerHTML">{{$extra}}<input type="hidden" name="revision" value="{{.Revision}}"><button class="btn btn-secondary !min-h-9">Withdraw</button></form>{{end}}
     {{if $a.CanCancel}}<form hx-post="{{$base}}/cancel" hx-target="#live-end" hx-swap="innerHTML">{{$extra}}<input type="hidden" name="revision" value="{{.Revision}}"><button class="btn btn-secondary !min-h-9">Keep playing</button></form>{{end}}
   </div>
@@ -233,9 +256,9 @@
 {{/* The zones of a company in a running match: the Field (the unit cards), Retreated, Field casualties and Missed this game. The whole
    block is what the sync script refetches from /campaigns/{id}/companies/{company}/live. Takes the page view. */}}
 {{define "live_zones"}}{{$cid := .Campaign.ID}}{{$co := .Company.ID}}{{$lv := .Live}}
-<div id="live-zones"{{if .OOB}} hx-swap-oob="true"{{end}} data-seq="{{$lv.Seq}}" data-company="{{$lv.CompanyID}}" data-match="{{$lv.MatchID}}" data-campaign="{{$cid}}" class="space-y-8">
+<div id="live-zones"{{if .OOB}} hx-swap-oob="true"{{end}} data-seq="{{$lv.Seq}}" data-company="{{$lv.CompanyID}}" data-match="{{$lv.MatchID}}" data-campaign="{{$cid}}" class="mt-4 space-y-8">
   {{template "live_break" (dict "LV" $lv "CID" $cid)}}
-  <div x-ref="grid" class="mt-4 grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Battle company in the field">
+  <div x-ref="grid" class="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Battle company in the field">
     {{range $lv.Field}}{{template "unit_card" (dict "U" .U "CID" $cid "CO" $co "WCost" $.Company.Injuries.WarriorCost "RO" $.ReadOnly "LV" $lv "LU" .L "AP" .Applies)}}{{else}}<p class="text-muted md:col-span-2 xl:col-span-3">Nobody is in the field.</p>{{end}}
   </div>
   {{template "live_zone" (dict "Title" "Retreated" "Cards" $lv.Retreated "LV" $lv "CID" $cid "Kind" "retreated" "Note" "Left the table. They roll no injuries and finish the match as having fled.")}}
@@ -244,26 +267,29 @@
 </div>
 {{end}}
 
-{{/* The turn, the Break Point panel and the Company broken banner (docs/live-match.md, Company break point in play). It sits in the zones so every
-   change of the match (SSE) refreshes it for the viewers too. Takes {LV, CID}. */}}
+{{/* The Break Point panel and the Company broken banner (docs/live-match.md, Company break point in play). A company is Broken as soon as its
+   casualties exceed its Break Point (there are no turns), and whole again when an undo takes them back under. It sits in the zones so every
+   change of the match (SSE) refreshes it for the viewers too. It is always sent closed: live.js keeps it as the user left it across those refreshes, with
+   the note being written and the focus (the +/- buttons have ids for it). Takes {LV, CID}. */}}
 {{define "live_break"}}{{$lv := .LV}}{{$b := $lv.Break}}{{$act := printf "/campaigns/%d/matches/%d/live/%d/actions" .CID $lv.MatchID $lv.CompanyID}}
-<div class="mt-4 space-y-3" id="live-break">
-  <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-    <p class="font-medium" id="live-turn">{{if $lv.Turn}}Turn {{$lv.Turn}}{{else}}Turn not started{{end}}</p>
-    {{if $lv.Edit}}<button type="button" class="btn btn-secondary !min-h-11" {{if $lv.EndPending}}disabled aria-describedby="turn-blocked"{{end}} hx-post="{{$act}}" hx-vals='{"kind":"turn","turn":"{{$lv.NextTurn}}"}' {{template "hx_zones"}}>Start turn {{$lv.NextTurn}}</button>{{if $lv.EndPending}}<p id="turn-blocked" class="basis-full text-sm text-muted">Cancel the ending first: the match is about to end.</p>{{end}}{{end}}
-  </div>
-
+<div class="mt-3 !mb-3 space-y-3" id="live-break">
   {{if $b.StartingModels}}
-  <details class="card !p-3" id="live-break-panel">
-    <summary class="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1">
-      <span class="font-medium">Break Point {{$b.BreakPoint}} of {{$b.StartingModels}} · Casualties {{$b.Casualties}} · {{$b.Percent}}%</span>
-      {{if $b.Broken}}<span class="badge !bg-danger-soft !text-danger">Broken since turn {{$b.BrokenAtTurn}}</span>{{else if $b.WillBreak}}<span class="badge badge-gold">Will break next turn</span>{{end}}
-      <span class="ml-auto text-sm text-muted">Details</span>
+  <details class="card group !px-3 !py-2" id="live-break-panel">
+    <summary class="-my-2 flex cursor-pointer list-none flex-col gap-1 py-2 leading-tight">
+      <span class="flex items-center gap-x-3">
+        {{if $b.Percent}}<span class="font-medium {{if $b.Broken}}text-danger{{else if le $b.ToBreak 2}}text-warn{{end}}"><span class="break-key bg-path-melee" aria-hidden="true"></span>{{if $b.Broken}}Broken{{else}}{{$b.ToBreak}} more to Break{{end}}</span>{{else}}<span class="font-medium">{{$b.Casualties}} of {{$b.StartingModels}} fallen</span>{{end}}
+        {{if $b.EndLossPercent}}<span class="{{if not $b.ToEnd}}font-medium text-danger{{else if le $b.ToEnd 2}}text-warn{{end}}"><span class="break-key bg-gold" aria-hidden="true"></span>{{if $b.ToEnd}}{{$b.ToEnd}} more to {{$b.EndLeftPercent}}%{{else}}{{$b.EndLeftPercent}}% reached{{end}}</span>{{end}}
+        <span class="ml-auto text-muted transition-transform group-open:rotate-180" aria-hidden="true">&#9662;</span><span class="sr-only">Details</span>
+      </span>
+      <span class="relative flex gap-0.5" role="img" aria-label="{{$b.Casualties}} casualties of {{$b.StartingModels}} starting models{{if $b.LeftTable}}, {{$b.LeftTable}} left the table{{end}}">
+        {{range $lv.BreakCells}}<span class="h-2.5 min-w-0 flex-1 rounded-sm {{if .Fallen}}bg-path-melee{{else if .Left}}break-cell-left{{else}}bg-raised{{end}}"></span>{{end}}
+        {{if $b.Percent}}<span class="break-mark bg-path-melee {{if and $b.EndLossPercent $lv.MarksMeet}}break-mark-top{{end}}" style="left: {{$lv.BreakMark}}%" data-break-mark></span>{{end}}
+        {{if $b.EndLossPercent}}<span class="break-mark bg-gold {{if and $b.Percent $lv.MarksMeet}}break-mark-bottom{{end}}" style="left: {{$lv.EndMark}}%" data-end-mark></span>{{end}}
+      </span>
     </summary>
-    <div class="mt-1 h-2 overflow-hidden rounded-full bg-raised" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{$lv.MeterPct}}" aria-label="Casualties against the Break Point"><div class="h-full rounded-full {{if $b.Broken}}bg-danger{{else if $b.WillBreak}}bg-warn{{else}}bg-accent{{end}}" style="width: {{$lv.MeterPct}}%"></div></div>
     <div class="mt-3 space-y-3 text-sm">
-      <p class="text-muted">The Break Point is {{$b.Percent}}% of the starting models{{if ne $b.Percent 50}} (this company's own rule){{end}}. A company whose casualties are above it when a turn starts is Broken for the rest of the game.</p>
-      {{if $b.WillBreak}}<p class="alert alert-info" role="status">This company will be Broken at the start of the next turn ({{$b.Casualties}} casualties, Break Point {{$b.BreakPoint}}).</p>{{end}}
+      {{if $b.Percent}}<p class="text-muted">The company breaks at {{$b.BreakAt}} casualties: {{if $b.AtLeast}}at least{{else}}more than{{end}} {{$b.Percent}}% of its {{$b.StartingModels}} starting models{{if ne $b.Percent 50}} (this company's own rule){{end}}.</p>{{end}}
+      {{if $b.EndLossPercent}}<p class="text-muted" id="live-break-end">This scenario ends at {{$b.EndAt}} casualties, with the company down to {{$b.EndLeftPercent}}% of its {{$b.StartingModels}} starting models. Models that fled a failed Courage test count; models that left the board do not{{if $b.LeftTable}} ({{$b.LeftTable}} so far){{end}}.</p>{{end}}
       {{$fc := $lv.FailedCourage}}
       <div><p class="font-medium">Casualties ({{$b.Casualties}})</p>
         <ul class="text-muted">{{range $lv.Casualties}}<li>{{.U.Title}} · {{.L.Reason}}</li>{{end}}{{range $fc}}<li>{{.U.Title}} · Failed courage</li>{{end}}{{if and (not $lv.Casualties) (not $fc)}}<li>None counted from the log.</li>{{end}}</ul></div>
@@ -272,11 +298,11 @@
         <p class="font-medium">Adjust the count <span class="font-normal text-muted">(creatures, Ponies, late arrivals: what the app cannot know)</span></p>
         <div class="field"><label for="break-note">Note (optional)</label><input id="break-note" name="note" maxlength="200" class="input" placeholder="Late arrival"></div>
         <div class="flex flex-wrap items-center gap-2"><span class="min-w-32">Starting models <strong>{{$b.StartingModels}}</strong></span>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"-1"}' hx-include="#break-note" {{template "hx_zones"}}>−</button>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"1"}' hx-include="#break-note" {{template "hx_zones"}}>+</button></div>
+          <button type="button" id="break-start-less" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"-1"}' hx-include="#break-note" {{template "hx_zones"}}>−</button>
+          <button type="button" id="break-start-more" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"1"}' hx-include="#break-note" {{template "hx_zones"}}>+</button></div>
         <div class="flex flex-wrap items-center gap-2"><span class="min-w-32">Casualties <strong>{{$b.Casualties}}</strong></span>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"-1"}' hx-include="#break-note" {{template "hx_zones"}}>−</button>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"1"}' hx-include="#break-note" {{template "hx_zones"}}>+</button></div>
+          <button type="button" id="break-casualties-less" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"-1"}' hx-include="#break-note" {{template "hx_zones"}}>−</button>
+          <button type="button" id="break-casualties-more" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"1"}' hx-include="#break-note" {{template "hx_zones"}}>+</button></div>
       </div>
       {{end}}
       {{with $b.Exceptions}}<div><p class="font-medium">Scenario exceptions</p><ul class="list-disc pl-5 text-muted">{{range .}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
@@ -286,28 +312,8 @@
 
   {{if $b.Broken}}
   <section class="alert alert-danger space-y-2" id="live-broken" aria-labelledby="broken-title">
-    <h3 id="broken-title" class="!text-lg">The company is Broken (turn {{$b.BrokenAtTurn}})</h3>
-    <p>Every model tests Courage before it does anything else. Models in combat, or that cannot activate, do not test.</p>
-    {{if $b.Fled}}<p class="font-medium">The company fled the battlefield (All is Lost). Your opponent claims victory.</p>{{end}}
-    {{if and $b.Offer $lv.Edit}}
-    <details class="rounded-lg border border-line bg-surface p-3 text-fg">
-      <summary class="flex min-h-11 cursor-pointer items-center font-medium">All is Lost: flee or fight on?</summary>
-      <p class="mt-1 text-sm">Decided at the beginning of the turn the company breaks. Your opponent claims victory and full rewards. You earn only the Influence for taking part (the injury rolls and experience still happen).</p>
-      <div class="mt-2 flex flex-wrap gap-2">
-        <button type="button" class="btn btn-danger" hx-post="{{$act}}" hx-vals='{"kind":"allIsLost","flee":"1"}' hx-confirm="Flee the battlefield? Every model in the field leaves the table and your opponent claims victory." {{template "hx_zones"}}>Flee the battlefield</button>
-        <button type="button" class="btn btn-secondary" hx-post="{{$act}}" hx-vals='{"kind":"allIsLost","flee":"0"}' {{template "hx_zones"}}>Fight on</button>
-      </div>
-    </details>
-    {{else if $b.Offer}}<p class="text-sm">The owner of the company can decide to flee (All is Lost) this turn.</p>{{end}}
-    {{$t := $lv.ToTest}}{{$due := $t.Due}}{{$done := $t.Done}}
-    <details id="who-tested" class="rounded-lg border border-line bg-surface p-3 text-fg">
-      <summary class="flex min-h-11 cursor-pointer items-center font-medium">Who has tested this turn</summary>
-      <ul class="mt-1 text-sm">
-        {{range $due}}<li class="py-0.5"><span class="badge !bg-danger-soft !text-danger">Test due</span> {{.U.Title}}</li>{{end}}
-        {{range $done}}<li class="py-0.5 text-muted"><span class="badge badge-muted">Resolved</span> {{.U.Title}}</li>{{end}}
-        {{if and (not $due) (not $done)}}<li class="text-muted">Nobody is in the field.</li>{{end}}
-      </ul>
-    </details>
+    <h3 id="broken-title" class="!text-lg">The company is Broken</h3>
+    <p>Every model tests Courage before it activates, each turn. Models in combat, or that cannot activate, do not test.</p>
   </section>
   {{end}}
 </div>

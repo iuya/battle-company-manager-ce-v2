@@ -38,7 +38,7 @@ func TestPagesShowTimesInTheAccountsZoneAndOthersAreUnaffected(t *testing.T) {
 	when := func(u core.User) string {
 		f := matchWrite(t, m)
 		f.camp.EXPECT().Scenarios(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
-		r := f.signedInAs(u, httptest.NewRequest("GET", matchPath, nil))
+		r := f.signedInAs(u, httptest.NewRequest("GET", testMatchPath, nil))
 		return f.do(r).Body.String()
 	}
 	nz := frodo
@@ -52,7 +52,7 @@ func TestPagesShowTimesInTheAccountsZoneAndOthersAreUnaffected(t *testing.T) {
 	// the browser's zone applies when the account has none
 	f := matchWrite(t, m)
 	f.camp.EXPECT().Scenarios(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
-	r := f.signedIn(httptest.NewRequest("GET", matchPath, nil))
+	r := f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))
 	r.AddCookie(&http.Cookie{Name: "tz", Value: "Pacific/Auckland"})
 	if body := f.do(r).Body.String(); !strings.Contains(body, "27 September 2026") {
 		t.Error("the tz cookie is used")

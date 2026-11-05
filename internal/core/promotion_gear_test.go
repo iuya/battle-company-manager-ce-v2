@@ -119,22 +119,10 @@ func TestAHeroInTheMakingKeepsItsWargear(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
 	f.companyOf("Halls of Thranduil", 5, []UnitState{{ID: 90, Base: "Mirkwood Elf Warrior", Role: RoleWarrior, Gear: []string{"Elven-made Glaive", "Shield"}, XP: 5}})
-	roll, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{6}, false)
-	if err != nil {
+	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{6}, false); err != nil {
 		t.Fatal(err)
 	}
-	key := ""
-	for _, o := range roll.Offers {
-		for _, ch := range o.Choices {
-			if strings.HasPrefix(ch.Key, "path:") && key == "" {
-				key = ch.Key
-			}
-		}
-	}
-	if key == "" {
-		t.Fatalf("no path offered: %+v", roll.Offers)
-	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 90, []string{key}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 90, []string{"hero"}); err != nil {
 		t.Fatal(err)
 	}
 	u := f.unit(t, 90)

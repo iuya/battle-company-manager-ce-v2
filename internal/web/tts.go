@@ -61,9 +61,6 @@ type ttsView struct {
 	Auras   core.AuraSummary
 }
 
-// auraKindOrder is the kinds of data.auras in the order of the dialog; the query lists the ones that are on.
-var auraKindOrder = []core.AuraKind{"banner", "command", "support", "enemy", "utility"}
-
 // auraSwitches are the group switches of the Auras section in the order the dialog shows them (the group "always" has none: it is on with
 // the master switch). Defaults as in docs/aura-ranges.md section 9: declared and conditional on, the others off.
 var auraSwitches = []struct {
@@ -234,9 +231,6 @@ func (v ttsView) NamesSize() string {
 // NamesLimit is the size the generator keeps to, in KB.
 func (v ttsView) NamesLimit() int { return core.TTSNamesMaxBytes / 1024 }
 
-// NamesOver is whether the JSON is over the limit even without rule texts.
-func (v ttsView) NamesOver() bool { return v.Names.Size > core.TTSNamesMaxBytes }
-
 // RulesIs is whether the switch is at that level (for the radio buttons).
 func (v ttsView) RulesIs(level string) bool { return v.Rules == level }
 
@@ -263,7 +257,7 @@ func (v ttsView) Tip() string { return ttsTip }
 
 // URL is the address of the dialog's content.
 func (v ttsView) URL() string {
-	return "/campaigns/" + itoa(int(v.CampaignID)) + "/companies/" + itoa(int(v.CompanyID)) + "/tts" + ttsQuery(v.Live)
+	return companyPath(v.CampaignID, v.CompanyID) + "/tts" + ttsQuery(v.Live)
 }
 
 func ttsQuery(live bool) string {
@@ -315,7 +309,7 @@ func (v myCompanyView) HasCopyButton() bool { return len(v.Company.Roster) > 0 &
 
 // TTSURL is the address of the dialog's content for the company on the page (live when it is in an open match).
 func (v myCompanyView) TTSURL() string {
-	return "/campaigns/" + itoa(int(v.Campaign.ID)) + "/companies/" + itoa(int(v.Company.ID)) + "/tts" + ttsQuery(v.Live != nil)
+	return companyPath(v.Campaign.ID, v.Company.ID) + "/tts" + ttsQuery(v.Live != nil)
 }
 
 // TTSTip is the button's tooltip.

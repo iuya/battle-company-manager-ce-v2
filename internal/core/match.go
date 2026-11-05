@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 )
 
@@ -17,7 +16,6 @@ const (
 	maxScenarioName = 60
 	maxScenarioText = 1000
 	maxResultNote   = 500
-	maxVictoryPts   = 99
 )
 
 // ScenarioKind says where a match's scenario comes from.
@@ -67,24 +65,18 @@ func (in ScenarioInput) Validate() (ScenarioInput, error) {
 	return in, nil
 }
 
-// SideResult is what is reported for one side.
-type SideResult struct {
-	VictoryPoints *int // nil: not reported; 0-99
-}
-
-// CompanyResult is what is reported for one company of the match.
+// CompanyResult is what is reported for one company of the match: the scenario reward ticks it completed. All is Lost has no entry of
+// its own: the players report the other side as the winner (docs/matches.md, "Concepts").
 type CompanyResult struct {
 	CompanyID  int64
-	Fled       bool           // All is Lost: left the battlefield once Broken; the opponent claims the win
 	Objectives map[string]int // objective key (rules file) -> times completed (0 or absent: not completed)
 }
 
-// MatchResult is the whole report. Winner uses Match.Winner's convention (1-based side, 0 a draw) once Decided; SaveResult
-// also sets Match.Winner.
+// MatchResult is the whole report: the winner (or a draw) and a note. Winner uses Match.Winner's convention (1-based side, 0 a draw)
+// once Decided; SaveResult also sets Match.Winner.
 type MatchResult struct {
 	Decided   bool // the players reported an outcome; false means nothing reported yet (Winner 0 is then not a draw)
 	Winner    int
-	Sides     []SideResult    // same order as Match.Sides
 	Companies []CompanyResult // zero or one per company of the match
 	Note      string          // 0-500 characters: "a word about the game" shown on the match page
 }
@@ -99,18 +91,11 @@ func (r MatchResult) Company(id int64) CompanyResult {
 	return CompanyResult{CompanyID: id}
 }
 
-// SideVP is the Victory Points reported for side i (0-based), nil when none were.
-func (m Match) SideVP(i int) *int {
-	if i < 0 || i >= len(m.Result.Sides) {
-		return nil
-	}
-	return m.Result.Sides[i].VictoryPoints
-}
-
-// ReportedWinner is the name of the side the players reported as the winner, empty for a draw or nothing reported yet.
+// ReportedWinner is the side the players reported as the winner (its companies, "Rohan + Gondor"), empty for a draw or nothing
+// reported yet.
 func (m Match) ReportedWinner() string {
 	if m.Result.Decided && m.Result.Winner >= 1 && m.Result.Winner <= len(m.Sides) {
-		return m.Sides[m.Result.Winner-1].Name
+		return m.Sides[m.Result.Winner-1].Label()
 	}
 	return ""
 }
@@ -148,20 +133,6 @@ func (m Match) Access(u User, organiserID int64) MatchAccess {
 	return MatchNoAccess
 }
 
-// FleeConflict is "" or why the reported winner contradicts a Fled company: a company that left the battlefield cannot be on
-// the winning side, its opponent claims the win.
-func (m Match) FleeConflict() string {
-	if !m.Result.Decided || m.Result.Winner < 1 || m.Result.Winner > len(m.Sides) {
-		return ""
-	}
-	for _, c := range m.Sides[m.Result.Winner-1].Companies {
-		if m.Result.Company(c.ID).Fled {
-			return c.Name + " fled the battlefield, so " + m.Sides[m.Result.Winner-1].Name + " cannot be the winner."
-		}
-	}
-	return ""
-}
-
 // CanEnd is nil, or ErrRefused with the reason the match cannot be ended yet.
 func (m Match) CanEnd() error {
 	switch {
@@ -171,9 +142,6 @@ func (m Match) CanEnd() error {
 		return Refuse("Choose the scenario before ending the match.")
 	case !m.Result.Decided:
 		return Refuse("Report who won, or a draw, before ending the match.")
-	}
-	if why := m.FleeConflict(); why != "" {
-		return Refuse("%s", why)
 	}
 	return nil
 }
@@ -193,15 +161,6 @@ func (m Match) ValidateResult(r MatchResult, info *ScenarioInfo) (MatchResult, e
 	}
 	if !r.Decided {
 		r.Winner = 0
-	}
-	if len(r.Sides) != len(m.Sides) {
-		bad("the result needs one entry per side")
-	}
-	for _, s := range r.Sides {
-		if s.VictoryPoints != nil && (*s.VictoryPoints < 0 || *s.VictoryPoints > maxVictoryPts) {
-			bad("Victory Points must be between 0 and 99")
-			break
-		}
 	}
 	companies := make([]CompanyResult, 0, len(r.Companies))
 	seen := map[int64]bool{}
@@ -235,7 +194,7 @@ func (m Match) ValidateResult(r MatchResult, info *ScenarioInfo) (MatchResult, e
 		if len(objs) == 0 {
 			objs = nil
 		}
-		companies = append(companies, CompanyResult{CompanyID: c.CompanyID, Fled: c.Fled, Objectives: objs})
+		companies = append(companies, CompanyResult{CompanyID: c.CompanyID, Objectives: objs})
 	}
 	if len(errs) > 0 {
 		return r, errors.Join(append([]error{ErrInvalidMatch}, errs...)...)
@@ -252,69 +211,25 @@ func (m Match) hasCompany(id int64) bool {
 
 // ScenarioInfo is a scenario of the rules file as the picker and the match page show it.
 type ScenarioInfo struct {
-	Name       string
-	Table      int                 // 1-3 (the scenario selection table it is on); 0 when the file does not place it
-	Roll       int                 // 1..Sides on that table's second die; 0 when unknown
-	FirstDie   [2]int              // the range of the first die that picks its table (campaign.scenarioSelection.tables[].roll)
-	Objectives []ScenarioObjective // the ticks of the scenario's rewards; empty for most scenarios
-	Scoring    []string            // text of the Victory Point conditions, shown as a read-only reminder
-	About      ScenarioAbout       // what the rulebook says about the set-up and the special rules
-	Prizes     []ScenarioPrize     // rewards that follow from the result (the winner, a surviving Leader); not ticks
-	// ScoringObjectives are the Victory Point conditions as data, in the printed order (data.scenarioDetails[].scoringObjectives).
-	ScoringObjectives []ScoringObjective
+	Name           string
+	Table          int                 // 1-3 (the scenario selection table it is on); 0 when the file does not place it
+	Roll           int                 // 1..Sides on that table's second die; 0 when unknown
+	FirstDie       [2]int              // the range of the first die that picks its table (campaign.scenarioSelection.tables[].roll)
+	Objectives     []ScenarioObjective // the ticks of the scenario's rewards; empty for most scenarios
+	Scoring        []string            // text of the Victory Point conditions, shown as a read-only reminder
+	About          ScenarioAbout       // what the rulebook says about the set-up and the special rules
+	Prizes         []ScenarioPrize     // rewards that follow from the result (the winner, a surviving Leader); not ticks
+	EndLossPercent int                 // the game ends once a company has lost this share of its starting models; 0: the scenario has no such end
 }
 
-// HasRoles says whether the scenario has an Attacker and a Defender.
-func (si ScenarioInfo) HasRoles() bool { return len(si.About.Roles) > 0 }
-
-// ObjectivesFor lists the scoring objectives a company with that tag scores: those for both sides and for its role. Without a tag
-// (role "") all are listed.
-func (si ScenarioInfo) ObjectivesFor(role string) []ScoringObjective {
-	var out []ScoringObjective
-	for _, o := range si.ScoringObjectives {
-		if role == "" || o.Side == "" || o.Side == "both" || o.Side == role {
-			out = append(out, o)
+// FindScenario is the scenario of that name in the list, nil without one.
+func FindScenario(list []ScenarioInfo, name string) *ScenarioInfo {
+	for i := range list {
+		if list[i].Name == name {
+			return &list[i]
 		}
 	}
-	return out
-}
-
-// ScoringObjective is one Victory Point condition of a scenario. Side is "both", "attacker" or "defender". A Secret one (Fog of War)
-// is kept hidden until the end of the game; a Nomination says what the player notes down at the start.
-type ScoringObjective struct {
-	Key, Text, Side, Kind, Instruction string
-	Label                              string // a short name for lists and the log: "Own hero survives"
-	MaxPoints                          int
-	Secret                             bool
-	Nomination                         *ObjectiveNomination
-	Options                            []ScoringTier // the tiers, ascending
-}
-
-// ObjectiveLabel makes a short name out of an objective's key ("ownHeroSurvives" is "Own hero survives").
-func ObjectiveLabel(key string) string {
-	var b strings.Builder
-	for i, r := range key {
-		switch {
-		case i == 0:
-			b.WriteRune(unicode.ToUpper(r))
-		case unicode.IsUpper(r):
-			b.WriteRune(' ')
-			b.WriteRune(unicode.ToLower(r))
-		default:
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
-}
-
-// ObjectiveNomination: From is "ownHeroes", "enemyHeroes" or "terrain"; AllowLeader "onlyHero" (the Leader only when the company has one Hero);
-// Where "opponentHalf" for a terrain piece.
-type ObjectiveNomination struct{ From, AllowLeader, Where string }
-
-// ScoringTier is a reachable level of a scoring objective.
-type ScoringTier struct {
-	Text   string
-	Points int
+	return nil
 }
 
 // ScenarioAbout is the rulebook text of a scenario that is not about scoring: the page shows it folded.
@@ -402,7 +317,7 @@ func (m Match) NoAccessReason() string {
 
 // SamePlayer says that one player owns several companies of a match (several companies per player are allowed in a campaign). It is a
 // note for the match setup and the match page, never a refusal: ValidateSides allows it, a player's own companies may share a side or
-// face each other (docs/multi-company.md).
+// face each other (docs/matches.md, "Several companies of one player").
 type SamePlayer struct {
 	OwnerID int64
 	Owner   string

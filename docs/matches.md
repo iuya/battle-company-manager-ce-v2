@@ -5,10 +5,13 @@ It is for players and organisers who use the match page, and for developers who 
 
 It describes the match page `/campaigns/{id}/matches/{match}` and the Go types and methods behind it (`core.Matches`).
 
+The aim is few presses and short pages: after the game at the table, a normal match takes **End match → Confirm → Start aftermath**, stopping
+only for real decisions, and every page shows only what the player needs at that moment.
+
 - What a match does to the companies afterwards (injury rolls, experience, influence) is the War's Aftermath, in [aftermath.md](aftermath.md).
 - While a match is open, its companies are in live mode ([live-match.md](live-match.md)).
 
-Code: `internal/core/match.go`, `matches.go`, `match_end.go`, `ato*.go`; `internal/web/match.go`, `ato.go`; `internal/postgres/match.go`, `ato.go` (tables in [architecture.md](architecture.md)).
+Code: `internal/core/match.go`, `matches.go`, `match_end.go`, `ato*.go`; `internal/web/match.go`, `match_new.go`, `end_sheet.go`, `ato.go`; `internal/postgres/match.go`, `ato.go` (tables in [architecture.md](architecture.md)).
 
 How a write is answered:
 
@@ -21,10 +24,11 @@ How a write is answered:
 
 - [Concepts](#concepts)
 - [Practice matches](#practice-matches)
+- [Several companies of one player](#several-companies-of-one-player)
 - [Who may edit](#who-may-edit)
 - [Go contract](#go-contract)
-- [The match page](#the-match-page): [scenario picker](#scenario-picker), [one-off scenario form](#one-off-scenario-form), [To wound chart](#to-wound-chart)
-- [Team tags and secret objectives](#team-tags-and-secret-objectives)
+- [New match](#new-match)
+- [The match page](#the-match-page): [change scenario](#change-scenario), [one-off scenario form](#one-off-scenario-form), [Wound chart](#wound-chart)
 - [Against the Odds](#against-the-odds)
 - [Organiser grants and scenario rewards](#organiser-grants-and-scenario-rewards)
 - [Ending a match](#ending-a-match)
@@ -35,52 +39,53 @@ How a write is answered:
 - A **scenario** is one of the Battle Companies scenarios of the campaign's rules file (chosen by name; 18 in the default file, in three
   tables of six) or a **one-off scenario** invented by the players (name, description, victory conditions: free text, not enforced, players are
   trusted). A one-off scenario lives only in that match's record.
-- The scenario is optional while the match is open (players often fill it in at the table) but **required to end** the match.
-- **Results** are what the players report: who won (or a draw), optional Victory Points per side, which companies fled (All is Lost), and which
-  scenario objectives each company completed.
+- The scenario is chosen **on the new match form** (the server has already rolled one; see "New match") and can be changed on the match page
+  until the game starts (the first live entry). It is **required to end** the match.
+- A side has no name and no Attacker / Defender role: it is shown by its companies ("Rohan + Gondor", `MatchSide.Label`). Players settle
+  roles at the table.
+- **Results** are what the players report: who won (or a draw), an optional note, and, for the scenarios whose rewards need them, which
+  reward objectives each company completed (the Relic, all the cargo, all the objective markers). There are no Victory Points and no
+  "Fled" flag: a company that leaves the field (All is Lost) is reported by the players as the other side's win, which already costs it the
+  Win / Draw influence and the scenario rewards (it keeps the participation influence); the app applies no flee penalty of its own.
 
 ## Practice matches
 
-A match is a **practice match** when its creator ticks **Practice match** on the new-match form.
-The box is off by default, and a line under it says: "No experience, influence, rewards or injuries. The result is only recorded."
+For a friendly game, a test of a new build, teaching a newcomer or two companies of one player that must not feed the roster or the cemetery. It is a house rule of the app: the rulebook has no
+practice mode, the rules files say nothing about it, any member who may start a match may tick it, and no campaign setting forbids it.
 
-What a practice match is:
+A match is a **practice match** when its creator ticks **Practice match** on the new-match form (`practice=1`; off by default; "No experience, influence, rewards or
+injuries. The result is only recorded."). It is stored in `matches.practice` (migration 00025), set by `core.NewMatch{Sides, Practice}` in `CreateMatch` and **never changed afterwards**:
+there is no setter, route or button; to change course, end the match and start another. A practice match is otherwise a real match: its companies are in an open match (one at a time,
+`CompanyBusyError`), the company pages show the same live state, the live log works, ending needs the same confirmations (but no MVP vote), and an administrator can
+reopen it (`ReopenMatch` ignores the "aftermath started" rule for a practice match, which has none). What it never does: award or spend experience, influence, gold or rerolls, apply
+scenario or Against the Odds rewards, injure, kill, change the rating, consume an item or count toward anything. Its aftermath is derived as complete and empty ([aftermath.md](aftermath.md#practice-matches)).
 
-- It is a real match in every other way.
-  Its companies are in an open match (one at a time, `CompanyBusyError`), and the company pages show the same live state.
-  The live log, end checks and secret objectives work, and ending needs the same confirmations.
-- An administrator can reopen it.
-  `ReopenMatch` ignores the "aftermath started" rule for a practice match, because it has none.
+The whole feature is in [practice-matches.md](practice-matches.md).
 
-What it never does:
-
-- award or spend experience, influence, gold or rerolls;
-- apply scenario or Against the Odds rewards;
-- injure or kill a unit, change the rating, or consume an item;
-- count toward anything.
-
-Its aftermath is derived as complete and empty ([aftermath.md](aftermath.md#practice-matches)).
-
-The flag is fixed when the match is created.
-There is no setter, route or button; to change course, end the match and start another.
-
-Implementation: the form posts `practice=1`.
-It is stored in `matches.practice` (migration 00025) and set by `core.NewMatch{Sides, Practice}` in `CreateMatch`.
-
+- **Nothing moves on**: the aftermath is what heals, so a model Injured before the game does not recover by missing it. Wounds, Might, Will and Fate spent in the game are match state, derived from the log, and never reach the company. The organiser's grants do not depend on matches and stay allowed.
 - **Counts**: wins, draws, losses and the Matches figure exclude practice matches; the Overview adds a muted "n practice matches" line (`CampaignSummary.PracticeMatches`) and the home list "· n practice".
 - **Marks**: the `practice_badge` partial (a neutral pill, icon plus "Practice", never a result colour) after the match number on the Matches list, the Overview's latest matches, the match page header, the aftermath page
-  and the live bar of the company page; a banner "Practice match: no experience, influence, rewards or injuries." on the match page (open and ended) and in the live bar ("No aftermath will follow."). The Matches tab has a filter, `?practice=1` (chips All and Practice with the count).
-- **Pages**: the Aftermath card of an ended practice match says "Aftermath: nothing to roll (practice match)" for each company (no badge, no Start, no Waive); the result form says "Objectives: recorded only; no reward in a practice match"; the end checks say a practice match awards no experience (`EndChecks.Practice`) and the End match reminder adds "No aftermath will follow.".
+  and the live bar of the company page; a banner "Practice match: no experience, influence, rewards or injuries." on the match page (open and ended) and in the live bar ("No aftermath will follow."). The Matches tab has no Practice filter: the badge on the row says it.
+- **Pages**: the Aftermath card of an ended practice match says "Aftermath: nothing to roll (practice match)" for each company (no badge, no Start, no Waive); the End match sheet does not require the MVP vote.
 - **Against the Odds**: the card stays for its table effects (kits, Wanderer, Ambush!). The reward bonuses (influence, experience, reroll) are disabled with "No reward in a practice match" (`ATOPracticeReason`) and cannot be newly taken (`SaveAgainstTheOdds` refuses); one saved before stays as entered and does nothing. Nothing is consumed.
 - **Multi-company**: a fight between two companies of one player is the natural practice match; the "Same player" note of the form offers "Make it a practice match", which ticks the box (`/matches/new?practice=1` also ticks it).
+
+## Several companies of one player
+
+A campaign may allow a player several companies ([architecture.md](architecture.md#several-companies-per-player)). In a match they count like anyone's:
+
+- **Sides**: a player's companies may share a side or face each other; `ValidateSides` has no rule about it. Such a match counts like any other, and a practice match is the way to play it without consequences.
+- **Same player** (`core.SamePlayers`, `matchView.SamePlayerNotes`, and `match_form.js` while the form is filled in): a note, never a refusal, naming a player with two or more companies on a side or companies on several sides. The form's note offers "Make it a practice match", which ticks the box.
+- **Each company separately**: the owner confirms all their waiting companies with one tap, each company has its own aftermath and lock (a company whose aftermath is not finished cannot start another match; the player's other company can), and Against the Odds still needs two sides of one company each.
+- **MVP**: a company is opposing for a voter who owns a company on another side, so a player with companies on two sides votes every company of the match, their own included.
 
 ## Who may edit
 
 | Viewer | Match open | Match ended |
 |---|---|---|
-| Owner of a company in the match | edit scenario and results, propose and confirm the end | read only |
-| Campaign organiser | same as a participant | edit scenario and results, reopen |
-| Administrator or superuser | same as a participant | edit scenario and results, reopen |
+| Owner of a company in the match | change the scenario until the game starts, end and confirm the end | read only |
+| Campaign organiser | same as a participant | edit the result, reopen |
+| Administrator or superuser | same as a participant | edit the result, reopen |
 | Other player of the campaign | read only | read only |
 
 A **finished campaign** is read only for everybody, administrators included ([admin.md](admin.md)): creating a match and every change to one
@@ -107,22 +112,25 @@ type MatchScenario struct {
     Victory     string // custom only: how it is won, 0-1000 characters, plain text
 }
 
-type SideResult struct{ VictoryPoints *int }  // nil: not reported; 0-99
 type CompanyResult struct {
     CompanyID  int64
-    Fled       bool           // All is Lost: left the battlefield once Broken; the opponent claims the win
-    Objectives map[string]int // objective key (rules file) -> times completed
+    Objectives map[string]int // reward objective key (rules file) -> times completed
 }
 type MatchResult struct {
     Decided   bool   // an outcome was reported; false means nothing reported yet (Winner 0 is then not a draw)
     Winner    int    // 1-based side, 0 a draw
-    Sides     []SideResult
     Companies []CompanyResult
     Note      string // 0-500 characters
 }
 
+type NewMatch struct {
+    Sides    []NewSide      // company ids per side; ValidateSides names them "Side N" internally
+    Practice bool
+    Scenario *ScenarioInput // the scenario the form showed (rolled, chosen or one-off)
+}
+
 func (m Match) Access(u User, organiserID int64) MatchAccess
-func (m Match) CanEnd() error     // no scenario, outcome not decided, roles not tagged, a Fled company on the winning side
+func (m Match) CanEnd() error     // no scenario, outcome not decided (the MVP votes are checked by the service, see "Ending a match")
 func (m Match) ValidateResult(r MatchResult, info *ScenarioInfo) (MatchResult, error)
 var ErrMatchChanged = errors.New("the match changed")
 ```
@@ -133,90 +141,96 @@ interface all take the acting `core.User` and return `ErrNotFound` for an unknow
 
 | Method | Does |
 |---|---|
-| `SetScenario(ctx, user, id, matchID, revision, ScenarioInput)` | Chooses or replaces the scenario; an unknown rulebook name is `ErrInvalidMatch`; clears the reported objectives (they belonged to the old scenario) |
-| `ClearScenario(...)` | Removes it |
-| `SaveResult(..., MatchResult)` | Replaces the reported result as one document. Winner within `0..len(Sides)`, every company in the match, objective keys known to the scenario, counts within the maximum, VP 0-99 |
+| `CreateMatch(ctx, user, id, NewMatch)` | Validates the sides and the scenario (a rulebook name must be in the campaign's file) and stores them in one transaction. Whoever creates it, Against the Odds is chosen afterwards on the match page |
+| `SetScenario(ctx, user, id, matchID, revision, ScenarioInput)` | Chooses or replaces the scenario; a scenario already set is fixed once the game started (`GameStarted`); an unknown rulebook name is `ErrInvalidMatch`; clears the reported objectives (they belonged to the old scenario) |
+| `ClearScenario(...)` | Removes it (same lock) |
+| `MatchStarted(ctx, id, matchID)` | Whether a live entry exists: the scenario and Against the Odds are then fixed |
+| `SaveResult(..., MatchResult)` | Replaces the reported result as one document. Winner within `0..len(Sides)`, every company in the match, objective keys known to the scenario, counts within the maximum. Used by the End match sheet and by the organiser's form on an ended match |
 | `ProposeEnd`, `ConfirmEnd`, `WithdrawEnd`, `CancelEnd`, `OverrideEnd` | The end of the match, see "Ending a match" |
 | `ReopenMatch(...)` | Managers only; refused once an aftermath started |
 | `Scenarios(ctx, id)` | What the picker offers: the campaign's rules file grouped by table |
-| `AgainstTheOdds`, `SaveAgainstTheOdds` | See "Against the Odds" |
+| `AgainstTheOdds`, `SaveAgainstTheOdds`, `ReopenAgainstTheOdds`, `ATOStatus`, `ATOBlocks` | See "Against the Odds" |
 | `GrantReward`, `Grants` | See "Organiser grants and scenario rewards" |
 
 `core.ScenarioInfo` (from `core.ParseScenarios`) describes a scenario as the picker and the page show it: name, table (1-3) and roll (1-6),
-`Objectives` (the ticks of the result form), `Scoring` (the Victory Point text, composed by `core.ComposeObjectiveText` from the typed objective's
-`instruction` and `options[].text`), `ScoringObjectives` (with `ObjectivesFor(role)` and `HasRoles()`), `About` (outline, description, armies, layout,
+`Objectives` (the reward ticks of the End match sheet), `Scoring` (how the scenario is won, composed by `core.ComposeObjectiveText` from the typed objective's
+`instruction` and `options[].text`), `About` (outline, description, armies, layout,
 starting positions, how the game ends, special rules, roles) and `Prizes` (rewards that follow from the result: Rendezvous, Vantage Point, Survival of the Fittest; shown, not ticked).
 
-A `ScenarioObjective` is one tick per company on the result form: a reward condition of the rules file that the players tick
+A `ScenarioObjective` is one tick per company on the End match sheet: a reward condition of the rules file that the players tick
 (`data.scenarioDetails[].rewards[]` with a `companyFlag` condition). Those are Scavenge the Battlefield (free equipment), Baggage Train
 (1 Influence) and Relic of Ages Past. Rewards that follow from the result itself (`victory`, `leaderNotRemoved`) are not ticks; they belong to the aftermath. Objective fields are posted as
-`obj-<company id>-<key>`.
+`tick-<company id>-<key>`.
+
+## New match
+
+`GET /campaigns/{id}/matches/new` (`internal/web/match_new.go`, `pages/match_new.gohtml`, `static/js/match_form.js`). Nothing is written until **Create match**.
+
+The form runs top to bottom: the side blocks (the strongest cards of the page: accent border and a thick top bar), the scenario card, the options.
+
+- **Two side blocks**, each with the company search only (no side name, no role). The user's own companies are highlighted (accent border and a
+  "Yours" badge) and listed first; once one of them is on a side, on the other sides they are listed last (playing yourself is rare; the
+  "Same player" note stays). The first side starts with the user's first company that can play.
+- **A company that cannot play right now** (`Matches.UnavailableCompanies`: in another open match, officers to arrange, a path to choose, an
+  aftermath to finish) is listed struck through and disabled with the reason, after the free ones of its group. Enter and "Add every company"
+  skip it. `CreateMatch` still checks all of it when the form is posted.
+- **Options**: **Practice match**, **+ Add side** (up to 8; an added side has Remove) and **All vs all** (every company on its own side).
+- **Scenario card**: the scenario the server rolled when the page was drawn (both dice, always the server's, whatever `ManualRolls` /
+  `ShakeTheTable` say), with the dice ("Rolled 3 (table 2) and 5"), and **Roll again** (`POST .../matches/new/scenario-roll`, both dice, no
+  question), **Choose another** (`GET .../matches/new/scenario?mode=pick`, the list grouped by table, one press sets it with `?name=`; its
+  **Cancel** brings back the scenario the card held, the server's dice included, which the card carries as `scenario-die`) and
+  **One-off scenario** (`?mode=custom`). The card's hidden inputs (`scenario-kind`, `scenario-name` and the one-off fields) go with the form.
+- A refusal (422) draws the form again with the companies and the scenario card.
+- Against the Odds is not on the form: it is chosen on the match page, whoever creates the match.
 
 ## The match page
 
-Order of the cards (mobile first, 360 px up):
+The page shows only the current **phase** (`matchView.Phase`, `data-phase` on `#match`):
 
-1. **Header**: `Match N`, result badge (Open / Draw / "<side> won"), date, "Ended <date>". An open match shows, to an editor, **Propose to end** (disabled with the reason until `CanEnd` passes)
-   and **To wound**.
-2. **Sides**: side cards with the companies linking to their pages; a side left at its default name "Side N" is shown by its companies (`MatchSide.Label`). When result data exists each side shows its VP and a "Fled" badge per company.
-3. **Scenario card**: empty state "No scenario yet" with **Choose scenario** and **One-off scenario** (editors; others read "The players have not chosen a scenario yet"). A
-   one-off shows a badge and its description and victory conditions as escaped plain paragraphs. A rulebook scenario shows **What the result earns**, a line about Attacker and
-   Defender when it has roles, and three collapsed sections: **About this scenario**, **Special rules** and **How it is scored** (rule tables of the file are drawn as tables). Editors get **Change** and **Remove** (with a confirmation).
+| Phase | When | Shown |
+|---|---|---|
+| `preparing` | open, no live entry | scoreboard, scenario card (**Change scenario**), Against the Odds card when eligible. While the decision is pending **End match** is disabled with the reason |
+| `playing` | a live entry exists | scoreboard, **Go to my company** (the viewer's live company page), Wound chart, **End match**; the scenario and the log open |
+| `ending` | an end is pending | the End card with **Confirm** for whoever must confirm (see "Ending a match"); the scenario and the log open |
+| `ended` | ended | scoreboard with the result, the Aftermath card, the note; the organiser and administrators get the result form |
+
+1. **Header**: `Match N`, result badge (Open / Draw / "<companies> won"), date, "Ended <date>".
+2. **Scoreboard**: one compact row per side, its companies (links) and the result badge.
+3. **Scenario card**: a one-off shows a badge and its description and victory conditions as escaped plain paragraphs. A rulebook scenario shows
+   **What the result earns** and three sections, collapsed except while the game is played or its end is pending: **About this scenario**, **Special rules** and **How it is scored** (rule tables of
+   the file are drawn as tables). What Fog of War asks the players to note down secretly is only text here: they keep it themselves and report the winner.
 4. **Against the Odds card** (open matches; read only on an ended match that has one).
-5. **Result card** (editors: a form; others: read only): the winner as a radio group (one per side plus "Draw"; nothing preselected, so an unreported match is not read as a draw), a VP field per side, per company a
-   "Fled the battlefield" checkbox, one tick (or stepper) per objective of a rulebook scenario, and the note. `static/js/match_result.js` shows hints that block nothing: a winner with fewer VP than another
-   side, a draw with unequal VP, two companies ticking a one-holder objective (the Relic). One **Save result** button.
-6. **History** (`Match.History`, a `MatchEvent{Kind "ended"|"reopened", By, On, Detail}` per transition): once the match was ended, "Ended by X · date". Managers get **Reopen match** while no company has started or waived its aftermath; after that the
-   "Edit as administrator" form warns that changes do not redo the aftermath.
+5. **Result** (ended matches): the winner and the note; the organiser and administrators get the form (winner radio group, the reward ticks
+   of the scenario, note, **Save result**), which edits it without redoing the aftermath.
+6. **Log** (at the bottom, open while the game is played or its end is pending, collapsed otherwise): the history (`Match.History`, a `MatchEvent{Kind "ended"|"reopened", By, On, Detail}` per transition)
+   and the match log. Managers get **Reopen match** while no company has started or waived its aftermath.
 
 States of every card: empty, editing, read only, stale (`ErrMatchChanged`: notice on top, form reloaded), error (`ErrInvalidMatch` / `ErrRefused` reasons beside the field or on top). Every campaign player can read the page; a non-member gets a 404.
-Controls are touch sized (44 px) and the winner choices stack at 360 px.
+Controls are touch sized (44 px) and the winner choices stack at 360 px. In the `playing` phase the page stays at about two screens at 375 px.
 
-### Scenario picker
+### Change scenario
 
-A dialog loaded by `GET .../matches/{match}/scenario`: the scenarios grouped under "Table 1/2/3 (roll 1-2, 3-4, 5-6)", each a radio row with its name and a one-line summary, with a search box. "Roll for it" shows each side's rating
-(`MatchSide.Rating`, the sum of its companies' points; injured units are counted) with the Top Dog / Underdog (`Match.TopDog`; equal ratings or other than two sides: no verdict), and rolls the two D6 of `scenarioSelection` (`POST .../scenario/roll`): the first picks the table, the second the scenario
-(`core.ScenarioByRolls`). The server rolls and the dice animate; a typed roll needs `ManualRolls` and a thrown one `ShakeTheTable` (`CampaignSettings.RollRefusal`, 422 otherwise). The roll writes nothing: it preselects the scenario in the list and the player confirms with "Use this scenario".
+Until the game starts, **Change scenario** offers the same three actions as the new match form: **Roll again** (`POST .../scenario/roll`: the
+server rolls the two dice of `scenarioSelection`, the first the table, the second the scenario, `core.ScenarioByRolls`, and sets it at once),
+**Choose another** (`GET .../matches/{match}/scenario`, the scenarios grouped under "Table 1/2/3", one press sets it) and **One-off
+scenario**. Once a live entry exists the scenario is fixed (`SetScenario` refuses), unless the match has none: an older match that started without a scenario still offers the three actions in the `playing` phase, since it cannot end without one.
 
 ### One-off scenario form
 
 Fields: **Name** (required, 60), **Description** (1000), **How it is won** (1000), with the helper text "Players are trusted: the app does not check the victory conditions. It is kept with this match only." The same form edits it later. Text is rendered escaped with line breaks kept. A one-off scenario has no rewards; the organiser grants those.
 
-### To wound chart
+### Wound chart
 
-An open match has a **To wound** button beside the heading; the live company page has the same one in its banner. It opens the rulebook's To Wound Chart (Strength rows by Defence columns) in a window, so a player can check a roll without leaving the match.
-The chart is `reference.toWound` of the campaign's glossary file ([definitions.md](definitions.md)); `core.Glossary.ToWound` carries it, so a campaign with another glossary file has that file's chart, and a file without one answers "This campaign's rules file has no To Wound chart.". Code: `partials/to_wound.gohtml`, `internal/web/towound.go`, `static/js/towound.js`.
+An open match has a **Wound chart** button beside the heading; the live company page has the same one in its banner. It opens the rulebook's To Wound Chart (Strength rows by Defence columns) in a window, so a player can check a roll without leaving the match.
+The chart is `reference.toWound` of the campaign's glossary file ([definitions.md](definitions.md)); `core.Glossary.ToWound` carries it, so a campaign with another glossary file has that file's chart, and a file without one answers "This campaign's rules file has no Wound chart.". Code: `partials/to_wound.gohtml`, `internal/web/towound.go`, `static/js/towound.js`.
 
 - **A window, not a tab**: the live company page is long and its zones are refetched by the event stream; a window opened by an always reachable button covers neither, and it sits outside `#match` and `#live-zones`, so a write or a live refresh never closes it. Its body is fetched once when the page loads (`GET /campaigns/{id}/to-wound`, any member) and is static HTML after that, so it works while the event stream is down.
 - **Find control**: two steppers, the attacker's Strength and the target's Defence; the result is shown large ("4+", "6+ then 4+", "Cannot wound") with the chart's own notation, the row, column and cell are marked in the table, and tapping a cell sets both. No unit is preselected.
 - **The table**: sticky header row and column inside the window's own scroll box, 27 px cells at 360 px without sideways scrolling. Cells are colour bands from semantic tokens and never colour alone: the roll is printed in every cell ("6/4" is a 6+ then a further 4+, "-" cannot wound) and a key under the table words each band. The chart's notes (Rend, Trapped) are listed under it.
 
-## Team tags and secret objectives
-
-### Attacker / Defender tags
-
-Scenarios with roles (`data.scenarioDetails[].roles`: Stand Your Ground, Defend the Gate, Hold the Line, Baggage Train) have an Attacker and a Defender and scoring objectives limited by `side`. The tag is a property of a **side**: `MatchSide.Role` is `""`, `"attacker"` or `"defender"` (`core.RoleAttacker`, `RoleDefender`), and every company of the side has it.
-
-- **Where**: the create-match form has an optional **Role** select per side (not in all vs all); an editor of an open match changes the tags in the **Roles** card (`POST .../matches/{match}/roles`, `.../roles/swap`; **Swap roles** is one action); a badge shows on each side and per company on the result form. The controls are offered while the scenario is unchosen or has roles, and hidden when the chosen scenario has none (`matchView.ShowRoles`). Form fields are `side-role-N` on the create form and `role-N` on the Roles card, an invalid choice is a 422 with the reason, and End match with a roles scenario and untagged teams shows "Choose which team attacks and which defends".
-- **Validation**: at most one side per role. Ending a two-team match with a roles scenario requires exactly one Attacker and one Defender ("Choose which team attacks and which defends"); a match of more sides ends without tags.
-- The result form lists, per company, the scoring objectives whose `side` is `both` or equals the company's tag (`ObjectivesFor(role)`); without a tag all are shown with the note "Set the roles to hide the other side's objectives".
-- Storage: `match_sides.role`, unique per match where set (migration 00017). Code: `Matches.SetSideRoles`, `SwapSideRoles`, `Match.RoleOf`.
-
-### Secret objectives (Fog of War)
-
-A scoring objective with `secret: true` is noted down by the player during the game and revealed at the end. The rules file marks it with `secret` and `instruction`; per objective it can carry
-`nomination` (`from: ownHeroes | enemyHeroes`, `allowLeader: onlyHero`, or a terrain-piece note), `reveal: endOfGame` and the tiers the player picks from.
-
-- The match must be open. A player **nominates** the unit for each objective that needs one (`LiveSecretNominate`: objective key and unit; the third Fog of War objective nominates a terrain piece, so `Note` carries its description) and later **logs a completion** (`LiveSecretDone`: objective key and 1-based tier, 0 clears). Both are live actions on the author's own company, editable until the end; the service checks the objective is a secret one of the scenario, who may be nominated (Heroes of the allowed side, the Leader only when the company has no other Hero) and the tier. The fold keeps the last entry per company and objective (`LiveState.SecretOf`).
-- **Who sees what**: while the match is open only the author sees an entry. Others see "Noted already: <companies>" and never keys, tiers or units; administrators and the organiser see only their own. `LiveService.Log` drops other users' secret entries and `SecretObjectives(user, id, match)` returns the viewer's own lines plus the names of the companies that have some (`SecretView.Others`). A secret entry sends no live notification. Only the author undoes an entry.
-- After End match everybody's entries are **revealed** in the log and on the result form. The completed tiers prefill the result form's Victory Points through `SecretScore(user, id, match, company)` with the badge "From the live match" (editable; saved only with Save result). Nothing is scored automatically.
-- Page: the `secret_card` on the match page (`internal/web/secret.go`, `GET .../matches/{match}/secret`, `POST .../secret/{company}` with `kind=nominate|done`).
-
-`SecretLine.Label` (and `ScoringObjective.Label`, `core.ObjectiveLabel`) is the short name of a secret objective for lists and the log ("Own hero survives"); `Text` is the printed rule.
-
 ## Against the Odds
 
-The lower rated company may buy bonuses **after the Scenario Table roll and before setting up**. The card records the choice where it is made, so the loaned items, the temporary Wanderer, the chosen scenario and the Break Point can use it. Rules data: `campaign.againstTheOdds` (`eligible`, `budget`, bonuses `reroll`, `influence`, `experience`, `toolKit`, `wanderer`, `ambush`, each with `rating` and `appliesIn`; see [definitions.md](definitions.md)).
+The lower rated company may buy bonuses **after the Scenario Table roll and before setting up**. The order at the table is scenario, Against the Odds, then deployment and the game, and the app holds the game until the decision is made. The card records the choice where it is made, so the loaned items, the temporary Wanderer, the chosen scenario and the Break Point can use it. Rules data: `campaign.againstTheOdds` (`eligible`, `budget`, bonuses `reroll`, `influence`, `experience`, `toolKit`, `wanderer`, `ambush`, each with `rating` and `appliesIn`; see [definitions.md](definitions.md)).
 
 ### Rules as the app applies them
 
@@ -225,7 +239,11 @@ The lower rated company may buy bonuses **after the Scenario Table roll and befo
 - **Each bonus once**, except the Tool Kit: up to five **different** kits (Healer's, Explorer's, Scholar's, Hunter's, Raider's), each a 30 Rating purchase.
 - **Tool Kit items** are assigned to roster models that take part (Warriors or Heroes, not the temporary Wanderer) before setup; capacity and alignment rules are ignored, Hero-only still applies, no extra Rating for the models, and the items are gone after the aftermath. An item that goes on a weapon (Envenom Weapon) names the weapon (`Detail`, 0-40 characters). Unassigned items are allowed while editing and are simply not in play.
 - **Temporary Wanderer**: one of `data.wanderers.items`, priced at the flat 45, never together with a permanent Wanderer on the roster; not on the roster, not against the 15 model cap, counts as a model for the Break Point, no injury roll or experience, and the Top Dog / Underdog comparison ignores it.
-- **Ambush!**: the lower company **chooses the scenario**, any of the 18, replacing the rolled one. Attacker and Defender are decided by the scenario's own rule, not by Ambush!. Removing the bonus restores the scenario that was set before, as long as the match still shows the scenario Ambush! chose.
+- **Ambush!**: the lower company **chooses the scenario**, any of the 18, replacing the rolled one. Removing the bonus restores the scenario that was set before, as long as the match still shows the scenario Ambush! chose.
+- **The game waits**: while the decision is pending (`ATOStatus.Pending`), `LiveService.Apply` refuses every entry and End match and Confirm are refused, End match disabled, with "Waiting for Hador to choose Against the Odds." (`Matches.ATOBlocks`, `matchView.EndReason`). The organiser's override (`OverrideEnd`) still works. The live banner of a company page says what the match waits for; the owner of the lower rated company gets the line "Choose Against the Odds for Match N" under Your turn.
+- **Nothing to wait for**: nobody is eligible (equal ratings, not two sides of one company), the decision is confirmed (`Match.ATODecided`, column `matches.ato_decided`), the game has started, or the gap pays for no bonus the company can take (`atoPayable`: a gap under the cheapest bonus; in a practice match the reward bonuses do not count; a company with a Wanderer cannot take another). A game that started never stops, whatever happens to the ratings.
+- **Confirming**: one button saves the selection and marks the decision, **Confirm bonuses**, or **Play without bonuses** with nothing ticked. It needs a scenario. The owner of the lower rated company, the organiser and administrators can do it, whoever created the match. **Change** (`ReopenAgainstTheOdds`, same permissions) reopens it until the first live entry and keeps the selection as the starting point.
+- **The scenario and the decision**: `SetScenario` and `ClearScenario` take a confirmed decision back when the scenario really changes (the roll goes through `SetScenario`), and the match page says so. With Ambush! chosen the scenario changes only from the card: `scenarioOpen` refuses it with the reason and the scenario card is read only.
 - **Locked** once the first live entry exists (the game began): the card turns read only with "The game has started"; undoing every entry unlocks it. Administrators and the organiser edit like the lower company's owner and are not exempt from the lock.
 
 ### The card
@@ -235,7 +253,9 @@ It sits after the Scenario card and is visible to every campaign player (the opp
 1. **Not eligible**: a read only line ("Against the Odds: nobody. Both companies are rated 240." / "Only the lower rated company can choose Against the Odds bonuses (Hador, 85 below)." / "Against the Odds is only available in two-company matches"). A match with only one side filled hides it.
 2. **Gap header and budget bar**: "Hador is 85 below Gorgoroth (240 vs 325). Spend up to 85 Rating." and a bar "Spent 75 / 85, 10 left" (the text is always present; colour is only an addition).
 3. **Bonus rows** (44 px targets): switch, name, Rating, one-line effect, help popup. A row that does not fit the remaining budget is disabled with the reason ("Needs 45, 10 left"). Tool Kit opens the five kit checkboxes and, per chosen kit, one select per item copy listing the models that take part (Hero-only items list Heroes only, with a weapon field for Envenom Weapon); the Wanderer opens a radio list (name, profile summary, own price crossed out, "45 here"; disabled with "The company already has a Wanderer"); Ambush! opens a select of the campaign's scenarios grouped by table, and the Scenario card then shows the badge "Ambush!".
-4. **Summary line** for viewers and the locked card ("Hador took: Reroll, Wanderer (...) and the Healer's Kit.") and, for an editor, **Save** (the whole selection) and **Clear**.
+4. **Pending**: an editor gets the form and its one button, **Confirm bonuses** or **Play without bonuses** (disabled, with the reason, without a scenario); everybody else reads "Waiting for Hador to choose." and not the bonuses.
+5. **Confirmed or locked**: the summary line ("Hador took: Reroll, Wanderer (...) and the Healer's Kit.", "Hador took no bonus.") and, for an editor before the game starts, **Change**.
+6. **A gap that pays for nothing**: one line, "A gap of 5 pays for no bonus: there is nothing to choose."
 
 Code: `LeanATO` reads `campaign.againstTheOdds` and `data.wanderers.items` (a kit key is made from its name, "Healer's Kit" is `healer`; an item is Hero-only when `data.equipment.items[].restrictions` says `hero`).
 
@@ -250,12 +270,15 @@ type ATOSelection struct {
 func (s ATOSelection) Validate(rules ATORules, roster []CompanyUnit, gap int, scenarioNames []string) (ATOSelection, error)
 
 AgainstTheOdds(ctx, user, id, matchID) (core.ATO, error)  // never an error for "not eligible": ATO.Eligible=false with Why
-SaveAgainstTheOdds(ctx, user, id, matchID, revision, sel) (core.ATO, error)
+SaveAgainstTheOdds(ctx, user, id, matchID, revision, sel) (core.ATO, error)  // confirms the decision; an empty selection is "play without bonuses"
+ReopenAgainstTheOdds(ctx, user, id, matchID, revision) (core.ATO, error)      // Change
+ATOStatus(ctx, id, m) (core.ATOStatus, error)                                 // a rated match: Pending, the company, the scenario Ambush! chose
+ATOBlocks(ctx, id, matchID) (string, error)                                   // the sentence that holds the game, empty when nothing does
 ```
 
 `Validate` refuses an unknown or repeated bonus, a kit twice, more kits than the file allows, kits without the Tool Kit, an assignment outside the chosen kits or beyond an item's count, a Hero-only item on a non-Hero, a model that misses the game or is not on the roster, a weapon on anything but an `(X)` item, an unknown Wanderer or a Wanderer when the roster has a permanent one, Ambush! without a known scenario, and a spend above the gap. `SaveAgainstTheOdds` takes the match revision and runs `atoRepository.Update` in one transaction (the match, the record and "has a live entry"): Ambush! sets a rulebook scenario, clears the objectives and remembers the scenario it replaced once; an empty selection deletes the record; the match revision goes up by one. The live service and the aftermath read the record with `atoRepository.Get`.
 
-Routes: `GET /campaigns/{id}/matches/{match}/ato` (the card, loaded into `#ato-slot`) and `POST .../ato` (the whole selection: `bonus`, `kit`, `assign-<kit>-<item>-<copy>`, `detail-...`, `wanderer`, `ambush`, `revision`). A successful save answers the whole match (`HX-Retarget: #match`) with "Against the Odds saved."; a refusal (422), a stale revision or a lock answers the card alone; a viewer's write is 403.
+Routes: `GET /campaigns/{id}/matches/{match}/ato` (the card, loaded into `#ato-slot`) and `POST .../ato` (the whole selection: `bonus`, `kit`, `assign-<kit>-<item>-<copy>`, `detail-...`, `wanderer`, `ambush`, `revision`), `POST .../ato/change` (Change, `revision`). A successful confirmation answers the whole match (`HX-Retarget: #match`) with "Against the Odds confirmed."; a refusal (422), a stale revision or a lock answers the card alone; a viewer's write is 403. The slot refreshes on `live:match`, so the rival's page follows the decision; while the card's own form is being sent the refresh is dropped (`hx-sync`), as the answer brings the whole match.
 
 ## Organiser grants and scenario rewards
 
@@ -297,28 +320,43 @@ Validation:
 
 ## Ending a match
 
-A match ends only when **every participant confirms**: *propose, confirm, end*. The result card, the end checks and the aftermath are separate.
+A match ends only when **every participant confirms**: *End match, Confirm, ended*. Each step is one sheet that holds everything the step
+needs, so a normal game ends with **End match → Confirm → Start aftermath**.
 
 ### Rules
 
-- **Participants** are the owners of the companies in the match, one confirmation per company; an owner of several companies (a campaign may allow up to 4 per player, [multi-company.md](multi-company.md)) confirms all of them with one tap, whether they share a side or face each other. `ValidateSides` does not look at owners: a player's own companies may be on one side or on opposite sides, and `core.SamePlayers(sides)` / `Match.SamePlayers()` list the owners with several companies (companies, sides holding two or more, across sides) for the "Same player" note of the setup and the match page; each company has its own live card and its own aftermath, locked independently. A company without an owner (closed account) can only be covered by the override.
-- **Proposing**: anyone who may edit the match. It runs `CanEnd` at once (scenario set, outcome decided, roles tagged, no Fled conflict) and is refused with those reasons. The proposer's own companies are confirmed automatically; an organiser or administrator who owns no company in the match confirms nothing. If nobody is left waiting (one owner, or all companies are the proposer's) the match ends at once.
+- **Participants** are the owners of the companies in the match, one confirmation per company; an owner of several companies ([above](#several-companies-of-one-player)) confirms all of them with one tap, whether they share a side or face each other. `ValidateSides` does not look at owners: a player's own companies may be on one side or on opposite sides, and `core.SamePlayers(sides)` / `Match.SamePlayers()` list the owners with several companies for the "Same player" note of the setup and the match page; each company has its own live card and its own aftermath, locked independently. A company without an owner (closed account) can only be covered by the override.
+- **MVP is mandatory** in a competitive match: every company owner votes one unit of every opposing company (the live `mvpVote` action) before
+  proposing or confirming. `checkEnd` refuses with the names of who is missing (`Matches.MissingVotes`, wired to `LiveService.MissingVotes`,
+  type `MissingVote`): the proposer's votes in `ProposeEnd`, the confirmer's in `ConfirmEnd`, everybody's when the match ends. A practice
+  match needs no vote; `OverrideEnd` needs none.
+- **Proposing**: anyone who may edit the match. It runs `CanEnd` at once (scenario set, outcome decided) plus the votes, and is refused with those reasons. The proposer's own companies are confirmed automatically; an organiser or administrator who owns no company in the match confirms nothing. If nobody is left waiting (one owner, or all companies are the proposer's) the match ends at once.
 - **Pending state** (`Match.EndProposal`): visible to every campaign player on the match page and, through the live banner, on every company page of the match. It lists every company as Confirmed (by name, time) or Waiting.
 - **Confirm**: the owner of a waiting company; the last confirmation ends the match (`Ended`, `EndedOn`, history line "Ended: confirmed by Hador, Gorgoroth").
 - **Withdraw**: the owner takes back their own confirmation while the proposal is pending; a withdrawal that leaves nobody confirmed cancels the proposal.
 - **Cancel / "Keep playing"**: any participant owner, the organiser or an administrator cancels the whole proposal (all confirmations are dropped, with a line in the log). There is no timeout.
 - **Override for an absent participant**: the organiser or an administrator can **End without X's confirmation** while at least one company waits. It asks for a note (1-200) and shows the warning "Gorgoroth has not confirmed that the game is over. The result and the aftermath will be fixed for everyone." The history reads "Ended by <name> overriding Gorgoroth: <note>". An organiser who owns a waiting company is confirmed, not overridden.
-- **What resets confirmations**: any change to the scenario, the result, the side roles or the Against the Odds selection resets every confirmation except the proposer's and tells the others ("Hador changed the result; confirm again", `EndProposal.Notice`).
+- **What resets confirmations**: any change to the scenario, the result or the Against the Odds selection (a match that waits for the decision cannot be confirmed either) resets every confirmation except the proposer's and tells the others ("Hador changed the result; confirm again", `EndProposal.Notice`).
 - **Reopen** clears the proposal. A finished campaign and an ended match are read only for proposals. Viewers see the pending state and cannot write (403).
 
-### The page
+### The sheets
 
-While a match is open the header button reads **Propose to end**; once a proposal exists it is replaced by the **End card** directly below the header:
+`internal/web/end_sheet.go`, template `end_sheet` of `pages/match.gohtml`, opened in the window of the match page or of a live company page
+(`GET .../matches/{match}/end/sheet[?company=N]`):
 
-1. "Ending the match" with who proposed and when; one row per company: name, owner, a chip **Confirmed** (check icon and text) or **Waiting** (clock icon and text), and the time.
-2. For the owner of a waiting company, **Confirm the end** and **Keep playing**; for a confirmed owner, **Withdraw my confirmation**; for the proposer, **Cancel**.
-3. For the organiser or an administrator while someone waits, a quiet **End without confirmation...** that opens the dialog with the warning and the note field.
-4. Viewers see the rows without buttons. A stale revision shows the usual notice; a refusal shows its reason (422). An ended match shows the history line only.
+1. **End match** (no end pending): the winner as buttons (each side by its companies, plus Draw), the **MVP** of every opposing company (a
+   searchable combobox of its units that took part: Field, Retreated or Field casualty; optional, "recorded only", in a practice match), the **objective review** of
+   the viewer's own companies (a chip per unit that has the objective experience, switched on and off; each switch is the live `objective`
+   action, logged and undoable), the **scenario reward ticks** (one compact line per company, only for scenarios that have such rewards) and
+   the optional note. Its **End match** posts `POST .../end/propose`: the votes, the objective switches, the result and `ProposeEnd` in one
+   request with one revision check; success answers `HX-Redirect` to the match page.
+2. **Confirm** (an end is pending, for an owner who must confirm): "Hador proposes to end: Rohan won", the viewer's MVP votes, the objective
+   review and reward ticks of their own companies, and **Confirm** (`POST .../end/confirm`: votes + `ConfirmEnd`). **Change result** in the
+   sheet edits the winner and resets the others' confirmations as above.
+3. A refusal (a missing vote, a stale revision) answers the sheet again (422) with the reason and what was chosen.
+
+The **End card** of the match page (`ending` phase) lists the companies as Confirmed or Waiting, with **Confirm** (opens the Confirm sheet),
+**Withdraw my confirmation**, **Keep playing** and, for the organiser or an administrator, **End without confirmation...**.
 
 ### Go contract
 
@@ -352,4 +390,4 @@ OverrideEnd(ctx, user, id, matchID, revision, note string) (core.Match, error) /
 
 All five run through the match `edit` path, so the revision check, `MatchEdit` access and the finished-campaign refusal apply. `finishEnd` is the step the last confirm, a single-owner propose and the override share: it sets `Ended`, records the history and starts the aftermath lock. Every proposal change bumps `Match.Revision`, calls `Match.resetEnd` where a result changes, and notifies the live hub through `Matches.EndNotify` (event `match`). The live mode cancels a pending end with `CancelPendingEnd` (no revision).
 
-History: `MatchEvent.Detail` is "confirmed by Rangers, Raiders" or "overriding Raiders: note". Routes (all with `revision`; the page swaps `#match`): `POST /campaigns/{id}/matches/{match}/end/propose`, `/end/confirm`, `/end/withdraw`, `/end/cancel`, `/end/override`. Storage: `match_end_proposal` and `match_end_confirmation` (migration 00023). The page templates and the live banner are described in [frontend-live-match.md](frontend-live-match.md#ending-a-match-by-confirmation). The demo data and the seed end matches with `ProposeEnd` plus `OverrideEnd`.
+History: `MatchEvent.Detail` is "confirmed by Rangers, Raiders" or "overriding Raiders: note". Routes (all with `revision`): `POST /campaigns/{id}/matches/{match}/end/propose` and `/end/confirm` (the sheets), `/end/withdraw`, `/end/cancel`, `/end/override` (the page swaps `#match`). Storage: `match_end_proposal` and `match_end_confirmation` (migration 00023). The page templates and the live banner are described in [frontend-live-match.md](frontend-live-match.md#ending-a-match-by-confirmation). The demo data and the seed end matches with `voteMissing`, `ProposeEnd` plus `OverrideEnd` (`endNow` in `cmd/server/seed.go`).

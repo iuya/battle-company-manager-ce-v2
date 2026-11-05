@@ -34,18 +34,13 @@ type liveMatches interface {
 	// it back when it opens its event stream. SubscribeSince is Subscribe with that: no initial batch while the match is still in the state.
 	LiveGeneration(ctx context.Context, user core.User, id, matchID int64) (string, error)
 	SubscribeSince(ctx context.Context, user core.User, id, matchID int64, since string) (core.LiveStream, error)
-	// EndChecks is the card of the end of the game (objective flags, MVP ballots, tally, what is still open); core.ErrNotFound when the
-	// match is not open.
+	// EndChecks is what the End match and Confirm sheets list for the viewer (the objective flags of their companies, their MVP ballots,
+	// the tally); core.ErrNotFound when the match is not open.
 	EndChecks(ctx context.Context, user core.User, id, matchID int64) (core.EndChecks, error)
-	// SecretObjectives is what the viewer may see of the secret objectives (their own while the match is open, everybody's after it);
-	// SecretScore the Victory Points the reported tiers of a company add up to, for the result form (ok false before the end or when none).
-	SecretObjectives(ctx context.Context, user core.User, id, matchID int64) (core.SecretView, error)
-	SecretScore(ctx context.Context, user core.User, id, matchID, companyID int64) (points int, lines []core.SecretLine, ok bool, err error)
-	// RollCourage rolls (or reads the typed dice of) a Courage test of a unit in the Field; it writes nothing, the player records the
-	// result with Apply. core.ErrRefused (not an editor, roll refused, unit not in the Field or without Courage), core.ErrNotFound.
-	RollCourage(ctx context.Context, user core.User, id, matchID, unitID int64, entered []int, thrown bool) (core.CourageRoll, error)
-	// MatchDefaults is what the live log says about the result form: who fled (All is Lost) and for whom every opposing company is
-	// Broken. ok is false without live data; there is no user: the handler gates.
+	// MatchBreaks is the Break Point state of every company of the match (the "is broken" notice of the live banner); empty without live data.
+	MatchBreaks(ctx context.Context, id, matchID int64) (map[int64]core.LiveBreak, error)
+	// MatchDefaults is what the live log says about the result: for whom every opposing company is Broken (the enemyBroken reward
+	// tick). ok is false without live data; there is no user: the handler gates.
 	MatchDefaults(ctx context.Context, id, matchID int64) (core.LiveMatchDefaults, bool, error)
 }
 
@@ -113,6 +108,8 @@ type campaigns interface {
 	// over the default order for good; units it does not name (recruited since) follow in the default order. Unknown ids come
 	// back as an error wrapping core.ErrRefused.
 	SaveFormation(ctx context.Context, user core.User, id, companyID int64, order []int64) error
+	// ResetFormation forgets the saved order: the company goes back to the default order.
+	ResetFormation(ctx context.Context, user core.User, id, companyID int64) error
 	// SaveCemeteryOrder stores the order of the fallen units, the same way; the cemetery and the roster stay apart.
 	SaveCemeteryOrder(ctx context.Context, user core.User, id, companyID int64, order []int64) error
 	// BuyEquipment, the steps of a recruit and RecruitSpecial spend the company's influence; what the rules do not allow
@@ -167,7 +164,8 @@ type campaigns interface {
 	CreateCompany(ctx context.Context, user core.User, id int64, in core.CompanyInput) (core.CampaignCompany, error)
 	Matches(ctx context.Context, id int64) ([]core.Match, error) // newest first
 	Match(ctx context.Context, id, matchID int64) (core.Match, error)
-	// CreateMatch returns an error wrapping core.ErrInvalidMatch when the sides are rejected (see core.ValidateSides).
+	// CreateMatch returns an error wrapping core.ErrInvalidMatch when the sides, the scenario or the Against the Odds bonuses are rejected
+	// (see core.ValidateSides), core.ErrRefused when a company cannot play or the bonuses are not the creator's to take.
 	CreateMatch(ctx context.Context, user core.User, id int64, in core.NewMatch) (core.Match, error)
 
 	// The match layer (docs/matches.md). Every write takes the acting user and the Match.Revision the form was rendered with;
@@ -189,15 +187,21 @@ type campaigns interface {
 	CancelEnd(ctx context.Context, user core.User, id, matchID int64, revision int) (core.Match, error)
 	OverrideEnd(ctx context.Context, user core.User, id, matchID int64, revision int, note string) (core.Match, error)
 	ReopenMatch(ctx context.Context, user core.User, id, matchID int64, revision int) (core.Match, error)
-	// SetSideRoles tags the sides of an open match (one of "", "attacker", "defender" per side, in order); SwapSideRoles swaps the two teams' tags.
-	SetSideRoles(ctx context.Context, user core.User, id, matchID int64, revision int, roles []string) (core.Match, error)
-	SwapSideRoles(ctx context.Context, user core.User, id, matchID int64, revision int) (core.Match, error)
+	// MatchStarted says whether the game of an open match has begun (a live entry exists): the match page is then in its Playing phase and
+	// the scenario is fixed.
+	MatchStarted(ctx context.Context, id, matchID int64) (bool, error)
+	// UnavailableCompanies says which of the companies CreateMatch would refuse right now and why (a sentence fit to show): the new match
+	// form lists them struck through and disabled.
+	UnavailableCompanies(ctx context.Context, id int64, companies []int64) (map[int64]string, error)
 	// AgainstTheOdds loads the Against the Odds card for the viewer (never an error for "not eligible": ATO.Eligible false with Why);
-	// SaveAgainstTheOdds replaces the lower company's whole selection (an empty one clears it): core.ErrRefused (not allowed or the game
-	// began, reason fit to show), core.ErrMatchChanged (stale match revision), core.ErrInvalidMatch (refusals fit to show). Ambush! also
-	// sets the match's scenario.
+	// SaveAgainstTheOdds confirms the decision with the lower company's whole selection (an empty one is "play without bonuses"):
+	// core.ErrRefused (not allowed, no scenario or the game began, reason fit to show), core.ErrMatchChanged (stale match revision),
+	// core.ErrInvalidMatch (refusals fit to show). Ambush! also sets the match's scenario. ReopenAgainstTheOdds takes the decision back (Change).
 	AgainstTheOdds(ctx context.Context, user core.User, id, matchID int64) (core.ATO, error)
 	SaveAgainstTheOdds(ctx context.Context, user core.User, id, matchID int64, revision int, sel core.ATOSelection) (core.ATO, error)
+	ReopenAgainstTheOdds(ctx context.Context, user core.User, id, matchID int64, revision int) (core.ATO, error)
+	// ATOStatus says where the decision of a rated match stands: whether the game waits for it, and the scenario Ambush! chose.
+	ATOStatus(ctx context.Context, id int64, m core.Match) (core.ATOStatus, error)
 	// Scenarios lists what the scenario picker offers: the campaign's rules file, by table and roll.
 	Scenarios(ctx context.Context, id int64) ([]core.ScenarioInfo, error)
 	// ScenarioSelection is how the campaign's rules pick a scenario by dice: the size of the two dice and the range of the first that picks each table.
@@ -420,6 +424,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /campaigns/{id}/my-company/{company}/recruit", s.protected(s.handleRecruitPanel))
 	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/recruit", s.protected(s.handleRecruit))
 	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/formation", s.protected(s.handleSaveFormation))
+	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/formation/reset", s.protected(s.handleResetFormation))
 	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/cemetery", s.protected(s.handleSaveCemetery))
 	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/recruit/roll", s.protected(s.once(s.handleRollRecruit)))
 	mux.HandleFunc("POST /campaigns/{id}/my-company/{company}/recruit/confirm", s.protected(s.once(s.handleConfirmRecruit)))
@@ -460,39 +465,35 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /campaigns/{id}/companies/{company}/tts", s.protected(readOnly(s.handleTTS)))
 	mux.HandleFunc("GET /tts/helper.zip", s.protected(s.handleTTSHelper))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/live/{company}/units/{unit}/sheet/{kind}", s.protected(s.handleLiveSheet))
-	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/live/{company}/units/{unit}/courage/roll", s.protected(s.handleCourageRoll))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/live/{company}/actions", s.protected(s.handleLiveAction))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/live/log/{entry}/undo", s.protected(s.handleLiveUndo))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/live/log", s.protected(readOnly(s.handleLiveLog)))
-	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/secret", s.protected(s.handleSecretCard))
-	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/secret/{company}", s.protected(s.handleSecretWrite))
-	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/live/end", s.protected(readOnly(s.handleEndChecks)))
-	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/live/end/reminder", s.protected(s.handleEndReminder))
-	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/live/{company}/objective", s.protected(s.handleEndObjective))
-	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/live/{company}/mvp", s.protected(s.handleEndMVP))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/events", s.protected(s.handleLiveEvents))
 	mux.HandleFunc("GET /campaigns/{id}/matches/new", s.protected(s.handleNewMatchPage))
+	mux.HandleFunc("GET /campaigns/{id}/matches/new/scenario", s.protected(s.handleNewScenarioCard))
+	mux.HandleFunc("POST /campaigns/{id}/matches/new/scenario-roll", s.protected(s.handleNewScenarioRoll))
 	mux.HandleFunc("POST /campaigns/{id}/matches", s.protected(s.handleCreateMatch))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}", s.protected(readOnly(s.handleMatch)))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/scenario", s.protected(s.handleScenarioCard))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/scenario", s.protected(s.handleSetScenario))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/scenario/roll", s.protected(s.handleScenarioRoll))
+	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/end/sheet", s.protected(s.handleEndSheet))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/scenario/remove", s.protected(s.handleClearScenario))
 	mux.HandleFunc("GET /campaigns/{id}/to-wound", s.protected(s.handleToWound))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/ato", s.protected(readOnly(s.handleATOCard)))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/ato", s.protected(s.handleATOSave))
+	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/ato/change", s.protected(s.handleATOChange))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/result", s.protected(s.handleSaveResult))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/live/end/banner", s.protected(s.handleEndBanner))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/end/card", s.protected(readOnly(s.handleEndCard)))
-	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/propose", s.protected(s.handleEnd(endPropose)))
-	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/confirm", s.protected(s.handleEnd(endConfirm)))
+	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/propose", s.protected(s.handleProposeEnd))
+	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/confirm", s.protected(s.handleConfirmEnd))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/withdraw", s.protected(s.handleEnd(endWithdraw)))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/cancel", s.protected(s.handleEnd(endCancel)))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/end/override", s.protected(s.handleEnd(endOverride)))
-	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/roles", s.protected(s.handleSetRoles))
-	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/roles/swap", s.protected(s.handleSwapRoles))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/reopen", s.protected(s.handleReopenMatch))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/aftermath/{company}", s.protected(s.handleAftermath))
+	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/aftermath/{company}/begin", s.protected(s.handleBeginAftermath))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/aftermath/{company}/sheet", s.protected(s.handleSheet(false)))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/aftermath/{company}/start", s.protected(s.handleSheet(true)))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/aftermath/{company}/reopen-sheet", s.protected(s.handleReopenSheet))

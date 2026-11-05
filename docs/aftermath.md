@@ -56,11 +56,13 @@ There is no sheet, stepper or waive.
 A write route answers 422 with the line for an editor and 403 for a reader.
 `LiveMatches.AftermathDefaults` is never read for it.
 
+It is derived rather than stored because a `done` row would need a write in every way a match can end, with a window between the end and the write, and `ReopenMatch` would refuse: a row counts as a started aftermath.
+
 ## Principles
 
 - **One aftermath per company per match**, entered and applied by that company's owner (an administrator or the campaign organiser may do
   it for an absent player). Companies are independent: a slow player never blocks another company.
-- **Only after the match is ended.** An open match refuses it ("End the match first"). The result (winner, Victory Points, Fled) is the
+- **Only after the match is ended.** An open match refuses it ("End the match first"). The result (the winner and the reward ticks) is the
   match's; the aftermath reads it and never changes it.
 - **Guided, with rolls.** Injury rolls are the app's dice (`core.Dice`, `CampaignSettings.RollRefusal` for typed or thrown rolls, as in the
   recruit and level-up windows). The player types in what happened at the table (the sheet), the app does the arithmetic and asks only for
@@ -93,9 +95,10 @@ States (`AftermathStatus`): `pending` (nothing saved), `sheet` (draft saved), `i
      the result form ticks that the company holds it and the sheet says which unit does, exactly one when ticked, never a casualty;
    - units that missed this game (`Injured` or `SentToHealers` when the match ended) are not on the sheet: they are listed as "Missed this
      game, recovers" and earn nothing.
-   The company's own `Fled` and `Objectives` come from the match result and are shown read only with a link back. The sheet shows a **preview**
-   after every save: experience per unit, the influence breakdown, how many injury rolls are coming, the scenario rewards that will apply.
-2. **Start** (`injuries`). Locks the sheet (the player can still unlock it until the first roll: `ReopenSheet`). The units that missed this
+   The company's `Objectives` come from the match result and are shown read only with a link back. The sheet **saves itself** on every
+   change and shows a **preview** of the saved sheet: experience per unit, the influence breakdown, how many injury rolls are coming, the
+   scenario rewards that will apply.
+2. **Start** (`injuries`; straight to `done` when there is no casualty and no reward to choose). Locks the sheet (the player can still unlock it until the first roll: `ReopenSheet`). The units that missed this
    game recover. The Against the Odds `reroll` bonus credits `CompanyState.Rerolls` (+2). One **casualty** is created per unit with outcome `casualty`.
 3. **Injuries.** Per casualty, the injury dice (`campaign.injuries.roll`, 2D6 in the shipped file) on the chart of its type
    (`campaign.injuries.warrior[]` or `.hero[]`):
@@ -113,23 +116,24 @@ States (`AftermathStatus`): `pending` (nothing saved), `sheet` (draft saved), `i
      Making (Might, Will, Fate +1, no hero promotion; it keeps its profile and chooses its path in the path window). Several officers lost in one
      match are handled one question at a time (Leader first); retirement counts as death; only units on the active roster are candidates; a
      company with nobody left to lead has no question. The Warrior question has no "nobody" answer: `Aftermath.Succession` with `NeedSergeant`
-     and `Fallback` set is the mandatory question (radios of `Fallback`; the templates `aftermath_succession` and `aftermath_fallback` list each
-     Warrior with its Experience and points, preselect a single one and say when several are tied), `NeedSergeant` with `SergeantOptions` the optional Hero question.
+     and `Fallback` set is the mandatory question (a card per unit of `Fallback`; the templates `aftermath_succession` and `aftermath_fallback` list each
+     Warrior with its Experience and points and say when several are tied), `NeedSergeant` with `SergeantOptions` the optional Hero question.
    - **The Shire's Ranger of the North.** Nothing special happens when he falls: he goes to the cemetery like any Hero (a fallen Leader opens the succession). The summary says he may return with a reinforcement; see "Ranger of the North replacement" in [frontend-company-building.md](frontend-company-building.md#ranger-of-the-north-replacement-shire).
-   - When every casualty is final and every decision is made, the server applies **experience** and moves to `levelups`. If re-rolls are left,
+   - When every casualty is final and every decision is made, the server applies **experience** and moves on. If re-rolls are left,
      the step waits for `Decide` with kind `continue`; using the last re-roll closes the step on its own.
 4. **Experience** (automatic). Each surviving unit that took part gets the sum of its gains (`campaign.experience.gains[].amount` times the
    count) plus the Against the Odds `experience` bonus (+2 for a Win, +1 otherwise, per participating unit) plus scenario experience rewards
    (`survivalOfTheFittest`: +1 to the Leader when `leaderNotRemoved`). Dead and retired units get none.
 5. **Progression** (`levelups`). XP is cumulative and never spent (`campaign.progression.xp`): units that crossed a multiple of 5 show the
    "Level Up ready!" banner and are rolled in the level-up window (`LevelUpState`, `RollLevelUp`...), where Against the Odds re-rolls also
-   work. Progression is not forced: the player may continue with rolls waiting; they stay pending on the cards.
-6. **Finish** (`done`). Applies influence and rewards, clears `Rerolls` (the bonus expires at the end of the aftermath), consumes the elected items and unlocks the company:
+   work. Progression never holds the aftermath: the rolls stay waiting on the cards.
+6. **Finish** (`done`), **on its own**: once every casualty is final, no decision is open and no reward needs a choice, the server finishes
+   the aftermath without a press (`advance`, `finish`, `rewardChoiceOpen`); while a reward waits for its choice the status stays `levelups`
+   and the choice finishes it. `FinishAftermath` remains for older pages and is a no-op on a finished aftermath. It applies influence and rewards, clears `Rerolls` (the bonus expires at the end of the aftermath), consumes the elected items and unlocks the company:
    - **Influence** (`campaign.influence.gains`): participating 2 always; a Draw +1; a Win +2; the Against the Odds `influence` bonus +2 for a
-     Win, +1 otherwise; plus Wounds of a Hero. **All is Lost** (`Fled`): the company gets participating and its Against the Odds bonuses
-     (influence and experience), no Win or Draw influence and no scenario rewards; the other side is the winner and claims everything.
-   - **Scenario rewards** (`scenarioDetails[].rewards[]`, effect = `campaign.aftermathEffects[key]`, only the winner side for `victory`, never a
-     fled company): `cargo` (+1 Influence when the `allCargo` tick was reported), `toTheVictorTheSpoils` (decision: choose a free equipment item
+     Win, +1 otherwise; plus Wounds of a Hero. A company that fled the field (All is Lost) is reported by the players as the loser, so it gets participating and
+     its Against the Odds bonuses only; the app applies no flee penalty of its own.
+   - **Scenario rewards** (`scenarioDetails[].rewards[]`, effect = `campaign.aftermathEffects[key]`, only the winner side for `victory`): `cargo` (+1 Influence when the `allCargo` tick was reported), `toTheVictorTheSpoils` (decision: choose a free equipment item
      worth at most `maxInfluenceValue` that a unit can take and carry, listed by `FreeEquipmentOffers`; the `allObjectiveMarkers` tick; stored like a bought item),
      `survivalOfTheFittest` (applied at Experience), and the **perks** `rendezvous`, `vantagePoint` and `aFinalBlessing` (the relic bearer
      gets Fortify Spirit next game, ignoring Will). Perks are stored on the company (`Perk`, table `company_perks`) for the winner only and shown until used. Gold is never rewarded by a scenario.
@@ -225,8 +229,8 @@ type Aftermath struct {
     MatchID, CompanyID int64
     Status             AftermathStatus
     Revision           int
-    Outcome            string // win | draw | loss; Fled says All is Lost
-    Fled, FromMatch, FromLive bool
+    Outcome            string // win | draw | loss
+    FromMatch, FromLive bool
     Absent             []int64
     Input              AftermathInput
     Preview            AftermathPreview // experience, influence, rolls, rewards, items
@@ -248,7 +252,7 @@ type Aftermath struct {
 | `RollCasualty(..., unitID, entered, thrown)` | Rolls one casualty, or all unrolled ones (`unitID` 0, then `entered` nil); `RollRefusal` applies |
 | `RerollCasualty(...)` | Spends one Against the Odds re-roll on a rolled casualty that is not final |
 | `Decide(ctx, user, ..., core.AftermathAnswer)` | Answers an open decision (scratch: `reroll`/`keep`; heal: an injury key or `""`; succession and sergeant: a unit id; `bonus`; `continue`) or a pending reward (`"<item>\|<unit id>"` for free equipment) |
-| `FinishAftermath(...)` | Applies step 6; refused while a casualty is not final or a reward decision is open |
+| `FinishAftermath(...)` | Applies step 6 (which also happens on its own); refused while a casualty is not final or a reward decision is open; a no-op once done |
 | `WaiveAftermath(..., note)` | Organiser and administrators: no effects, unlocks the company, records the note |
 | `UsePerk(ctx, user, id, companyID, perkID)` | The owner marks a perk used |
 | `FreeEquipmentOffers(ctx, id, companyID, maxInfluenceValue)` | Armoury items worth at most the value that a unit can take and carry; `Decide` and Finish check the choice with it |
@@ -263,30 +267,37 @@ usual path window. `CompanyDetail` carries `Aftermaths` (pending ones), `Perks` 
 
 ## The aftermath page
 
-`/campaigns/{id}/matches/{match}/aftermath/{company}` is readable by every player of the campaign and editable per `AftermathAccess`. A header (match N, scenario, the company, an outcome badge: Win / Draw / Defeat /
-"Fled (All is Lost)"), then a **stepper** of four steps (Sheet, Injuries, Level-ups, Finish) where the current one is open, earlier ones collapsed to their summary line ("3 casualties, 1 Dead") and later ones dimmed. Every write
-answers with the whole `#aftermath-page` (`aftermath_body`), like the match page. States of each step: empty, editing, read only (not your company, or the step is done), stale (notice "<name> changed this while you were editing"),
+`/campaigns/{id}/matches/{match}/aftermath/{company}` is readable by every player of the campaign and editable per `AftermathAccess`. A header (match N, scenario, the company, an outcome badge: Win / Draw / Defeat),
+then, until the aftermath is over, a **stepper** of only the steps that apply (`aftermathView.Steps`): Sheet, **Injuries** only with a casualty, **Level-ups** only with a
+roll waiting, **Rewards** only while a reward waits for its choice, and Done. The current step is open, earlier ones collapsed to their
+summary line ("3 casualties, 1 Dead"). Every write answers with the whole `#aftermath-page` (`aftermath_body`), like the match page. States
+of each step: empty, editing, read only (not your company, or the step is done), stale (notice "<name> changed this while you were editing"),
 error, locked (match open: "End the match first"). State lives in the core, so a reload restores it. Cards use `core.Distinguish(roster)` for titles: a Leader or Sergeant carries its role ("Mordor Orc Warrior (Leader)"),
 units that still share a title are numbered ("Warrior of Rohan 2"), a name the player gave stays; titles are for display only.
 
-- **Sheet** (`POST .../sheet`, `.../start` with a confirmation, `.../reopen-sheet`). One card per unit in the company's order, single column: name and type; a segmented control Survived / Casualty / Fled; a "Took part" switch; the gains as
-  toggle chips in the file's wording (short label, full text in the help popup) with a stepper for the repeatable one; MVP and Relic chips (Alpine keeps one holder of each and disables the chips of a unit that did not take part);
-  44 px touch size. Above: the Against the Odds block (checkboxes with rating and effect, badge "From the match") and the read-only match result. A unit that can elect an item has a switch row below the gains
+- **Sheet** (`POST .../sheet?auto=1` on every change, debounced, answering the bar and each unit's experience bar, `aftermath_saved`; `.../start`; `.../reopen-sheet`). One card per unit in the company's order (also when the sheet was saved before the formation changed), two columns from `sm`: the unit's summary (see below); three small toggles with an icon, **Fled**, **Casualty** (both off is Survived; a second press takes it back) and **Absent** (did not take part); the gains as
+  the **milestones** of a card in the field (`.milestone`, `aftermath_units.go`), all of them in view and each one press: a checkbox lit by its state, the file's sentence in the tooltip, Fate only for a unit with hero stats. **Slain** (a repeatable gain) counts a press each, with a small − to take one back; MVP and Relic (Alpine keeps one holder of each) are milestones too, and the gains of a unit that did not take part are off;
+  44 px touch size on phones. The sheet of a match played live is the same, prefilled from its log. Above: the Against the Odds bonuses taken (others behind "+ add"; badge "From the match") and the read-only match result. A unit that can elect an item has a switch row below the gains
   ("Use Healing Herbs (+1 to every injury roll of the company)", "Use Wondrous Cram (skips the injury roll: counts as Full Recovery)"); once one unit has the Herbs on, the other Herbs switches show "Already used by Brand
   (they do not stack)", and a carrier that does not qualify shows the reason ("Casualties cannot use Healing Herbs"). The form posts `unit` ids, per unit `outcome-<id>`, `took-<id>`, `gain-<id>-<key>`, `item-<id>`, a single `relic` and `odds`.
-  A sticky bottom bar on phones (an inline card from `md`) shows the preview of the *saved* sheet ("XP +N across M units, Influence +N, K injury rolls", the scenario rewards, "Items: Herbs +1, 1 Cram") with **Save** and **Start aftermath**
-  (disabled with the reason while invalid, or while the Relic is ticked but unassigned). Messages that start with a unit's title appear on that unit's card, the others on top (422, the typed sheet kept). Absent units appear below
-  as "Missed this game, back next match". When the sheet is the unsaved default of a live match it shows "From the live match" and the MVP vote lines (`Aftermath.MVP`: the winner is prefilled, a tie shows "Tied: ..." and the owner chooses; the lines show who is ticked, and revealed secret lines print `SecretLine.Label`).
+  A sticky bottom bar on phones (an inline card from `md`, `aftermath_bar`) shows the preview of the *saved* sheet ("XP +N across M units, Influence +N, K injury rolls", the scenario rewards, "Items: Herbs +1, 1 Cram"), "Saved as you go." and one button, **Start aftermath**
+  (disabled with the reason while the Relic is ticked but unassigned). Messages that start with a unit's title appear on that unit's card, the others on top (422, the typed sheet kept). Absent units appear below
+  as "Missed this game, back next match". When the sheet is the unsaved default of a live match it shows "From the live match" and the MVP vote lines (`Aftermath.MVP`: the winner is prefilled, a tie shows "Tied: ..." and the owner chooses).
+- **Who a unit is.** The sheet, the casualties, the succession questions, the free equipment and the level-ups draw each unit with `unit_summary` (`partials/units.gohtml`) in the frame of its place in the company (`unit_frame`): the title plate of its My Company card (kind icon, title, type, points, insignia), its place in words, path and injuries (`unit_injury_chips`), and a hero's Might, Will and Fate in one short line beside them (`hero-inline`); the rest of the profile plays no part in the aftermath. The card closes with its level and segmented experience bar, the foot of a My Company card in a match: the experience the match gives is in its own colour with its "+N" (`unit_summary_foot`, `unit_xp_bar`, `aftermathView.Foot`: the preview of the sheet, so every press of a milestone updates it once saved; once given, the record's lines). A casualty already buried keeps its card, from the cemetery (`aftermathView.CasualtyUnit`).
+- **What the match did to each unit.** Once the sheet is locked every unit shows its outcome (Fled, Survived; a casualty, its result once rolled) and all the milestones of the sheet, read only, those it earned lit (`aftermath_unit_marks`, `unitResult`). During **Injuries** the casualties have this on their own card and the others follow in **The rest of the company**; after it, **The company** lists everybody, casualties first, each group in the company's order; the units with level-ups waiting and the free equipment's choices also put the casualties first (`casualtiesFirst`). The units that did not play come last and say so: "Did not take part · Can play the next match", or "Missed this game · Recovered: can play the next match" (`aftermath_company`, `UnitResults`). A waived aftermath has none.
+- **One press answers.** A question's options are its buttons (`<button name="answer" value=...>`): there is nothing to tick and confirm, and the answer is final. A unit offered as an answer is a whole clickable card (`aftermath_unit_choice`): its button stretches over the card, and what has a tooltip stays above it. A choice of free equipment takes two presses, the item and then the unit, and only the second writes. Typed dice stay inputs: with `ManualRolls` the roll and the re-roll keep their dice selects and their button, and the bonus die offers **Roll for me** and one button per value.
 - **Injuries** (`aftermath_injuries`, `aftermath_casualty`, `aftermath_decision`, `aftermath_succession`). One card per casualty with the dice component, **Roll {injury dice}** (`POST .../roll` with `unit`, `roll`, `roll2`, `thrown`), **Roll all**
   when two or more wait (the server rolls; only the unrolled dice animate), the result with its bonus die, the chart (collapsed, the row of the roll highlighted), a tombstone note for the fallen, the open decision (`POST .../decide`
   with `kind`, `unit`, `answer`), **Re-roll · Against the Odds** (`POST .../reroll`) with the count left, and the Leader's succession and new Sergeant questions. A Herbs banner reads "Healing Herbs: +1 to every injury roll (the total stops
   at 12)"; a Cram card has no Roll button and the badge "Wondrous Cram". The collapsed step says what each result did ("goes to the cemetery", "forced to retire by its injury number N", "misses the next game", "healed one Arm Wound" / "nothing healed").
-- **Level-ups** (`aftermath_levelups`). The units with rolls waiting, each with a **Level up** button that opens the My Company level-up window in a modal on this page (same endpoints and `level_panel`; only the owner has the buttons, others
-  are told who rolls); closing the window reloads the page. **Continue to Finish** (editors only; readers see Finish open) is always allowed. Once the aftermath is done the step reads "N units still have a level-up roll waiting" when rolls remain.
-- **Finish** (`aftermath_finish`). The influence breakdown, the scenario rewards, the free-equipment decision (`POST .../decide kind=reward key=<reward> answer="<item>|<unit id>"`) and **Finish aftermath** (`POST .../finish`,
-  disabled while a decision is open). Afterwards the page is the **summary**: the audit lines grouped by unit (the company first), with links to My Company and the match, readable by everybody.
+- **Level-ups** (`aftermath_levelups`). The units with rolls waiting, each with a **Level up** button that opens the My Company level-up window in a modal on this page (same endpoints and `level_panel`; when it is done it comes back to this page, refreshed; only the owner has the buttons, others
+  are told who rolls); closing the window reloads the page. The rolls never hold the aftermath.
+- **Rewards** (`aftermath_finish`, only while a reward waits for its choice). The influence breakdown, the scenario rewards and the free-equipment decision (`POST .../decide kind=reward key=<reward> answer="<item>|<unit id>"`); "The aftermath finishes as soon as the choice is made."
+- **Finished** (status `done` or `waived`; `aftermath_done`). No stepper and no step cards under the header. First the **summary of changes** (`ChangeSummary`: "+7 XP, +5 Influence, 1 dead, 2 level-ups ready") or, when waived, "Waived: nothing was applied." with the organiser's note; the counts of the sheet ("6 took part · 1 casualty"); two collapsed details, **Everything that changed** (the audit lines grouped by unit, the company first; a waived aftermath with no lines does not have it) and **The sheet** (read only, with the match result); and the links to My Company (owner only) and back to the match. Then **Level-ups**, only with a roll waiting, usable without opening anything; **Injuries**, with the results of the casualties; and **The company**. A reader sees the same, without the Level up buttons.
 
-The match page has an **Aftermath card** once the match has ended (`aftermath_card`): one row per company with its status badge (Pending / In progress / Done / Waived), **Start** or **Continue** for an editor, **View** for everybody
+**Start aftermath from outside the page** (the Aftermath card, Your turn, the My Company banner: `POST .../aftermath/{company}/begin`, `handleBeginAftermath`) starts the aftermath with the prefilled sheet and opens the page on its first step: the casualties to roll, or the summary when nothing is left to decide. The sheet is one press away, **Edit the sheet again**, until the first roll; an aftermath with nothing to roll finishes on that press and its sheet can no longer change. The page opens on the sheet instead, with nothing started, when the player must say something first (`needsSheet`): the sheet is blank (`AftermathInput.Blank`: everybody survived and the only gains are taking part, the MVP and the objective, what a match nobody tracked gives, so the sheet is the only account of it), the MVP votes tied, or the sheet is refused as it stands (the Relic has no holder). A saved sheet shows **Continue** and opens the sheet, whose bar has the **Start aftermath** button.
+
+The match page has an **Aftermath card** once the match has ended (`aftermath_card`): one row per company with its status badge (Pending / In progress / Done / Waived), **Start aftermath** (`POST .../begin`, see above) or **Continue** for an editor, **View** for everybody
 else, the one-line summary of a finished or waived one and, for the organiser and administrators on an unfinished one, **Waive** (an inline form with the note, `POST .../aftermath/{company}/waive`). My Company and the company page get the
 banner, the perks card and the history ([frontend-company.md](frontend-company.md#company-pages-and-the-aftermath)). The History card groups the lines by match ("Match 4", newest first); the repository takes whole aftermaths until it has at least 20 lines. Every `AftermathLine` is filled with
 `Match`, `MatchID` and `On` when it is read; they are not stored in the lines JSON.

@@ -2,7 +2,7 @@
 // account `you`): the Auras section (switch, kinds with counts and radii, groups, legend), the names payload (v2 with `a` entries, v1 when no ring is selected), the
 // notice to download the helper again, the choices remembered and refreshed by htmx, the keyboard, another player's company, the live variant, the aura chips of the cards
 // (radius, tooltip, +N, glossary popup), 360/768/1280 px in both themes with axe and screenshots.
-import { assert, campaignId, layout, SIZES } from '../lib/util.mjs';
+import { assert, campaignId, decideATO, layout, SIZES } from '../lib/util.mjs';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
@@ -340,10 +340,10 @@ export default async function (h) {
     await you.goto(`/campaigns/${parade}/my-company`);
     if (!(await you.page.$('#live-zones'))) {
       await you.goto(`/campaigns/${parade}/matches/new`);
-      await you.page.waitForSelector('[name=side-name-2]');
+      await you.page.waitForSelector('section[aria-label="Side 2"]');
       const pick = async (side, t) => {
         await you.page.evaluate((side, t) => {
-          let el = document.querySelector(`[name=side-name-${side}]`);
+          let el = document.querySelector(`section[aria-label="Side ${side}"]`);
           while (el && ![...el.querySelectorAll('button')].some((b) => b.innerText.includes(t))) el = el.parentElement;
           [...el.querySelectorAll('button')].find((b) => b.innerText.includes(t)).click();
         }, side, t);
@@ -353,6 +353,7 @@ export default async function (h) {
       await pick(2, 'Riders of the Mark');
       await you.click('main button', 'Create match', { nav: true }).catch(() => {});
       await you.settle(400);
+      await decideATO(you); // the organiser decides for the lower rated player
       await you.goto(`/campaigns/${parade}/my-company`);
     }
     await you.page.waitForSelector('#live-zones');
@@ -365,8 +366,7 @@ export default async function (h) {
     const nBefore = ringsOf(before).length;
     await close(you);
     // retreat the first unit of the field
-    await you.liveSheet('retreat'); // no Fled button on the card: its window
-    await you.click('[role=dialog] button', '=Retreated');
+    await you.liveRetreat();
     await you.waitText('Retreated');
     await you.settle(500);
     await open(you);

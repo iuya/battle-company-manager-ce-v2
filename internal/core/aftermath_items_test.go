@@ -252,7 +252,7 @@ func TestHealingHerbsAddOneToEveryRoll(t *testing.T) {
 	if c := casOf(a, 3); c.Total != 5 || c.Modifier != 1 || c.ResultKey != "brokenHonour" {
 		t.Fatalf("scratch re-roll: %+v", c)
 	}
-	if a.Status != AftermathLevelUps {
+	if a.Status != AftermathDone {
 		t.Fatalf("status %s", a.Status)
 	}
 	if _, err := f.svc.FinishAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision); err != nil {
@@ -310,23 +310,17 @@ func TestWondrousCramSkipsTheRoll(t *testing.T) {
 	if !c.Rolled || c.Item != "wondrousCram" || c.ResultKey != "fullRecovery" || c.Kind != CasualtyRecovered || len(c.Dice) != 0 || a.Preview.Rolls != 0 {
 		t.Fatalf("casualty: %+v (rolls %d)", c, a.Preview.Rolls)
 	}
-	if a.Status != AftermathLevelUps || !c.Final {
+	if a.Status != AftermathDone || !c.Final {
 		t.Fatalf("nothing is left to roll, the step closes: %s final=%v", a.Status, c.Final)
 	}
 	if f.unit(t, 6).Injured || len(f.state.Cemetery) != 0 {
 		t.Error("Full Recovery: not injured, not dead")
 	}
-	if !slices.Contains(f.bought(6), "Wondrous Cram") {
-		t.Fatal("the Cram is consumed at Finish")
+	if slices.Contains(f.bought(6), "Wondrous Cram") {
+		t.Error("nothing is left to decide: the aftermath finishes and the Cram is consumed")
 	}
 	if _, err := f.svc.RollCasualty(f.ctx, f.owner(), 5, 1, 1, 6, []int{6, 6}, false); err == nil {
 		t.Error("there is nothing to roll")
-	}
-	if _, err := f.svc.FinishAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision); err != nil {
-		t.Fatal(err)
-	}
-	if slices.Contains(f.bought(6), "Wondrous Cram") {
-		t.Error("Finish removes the Cram")
 	}
 	if !slices.ContainsFunc(f.rec.Lines, func(l AftermathLine) bool { return strings.HasPrefix(l.Text, "Cirion used Wondrous Cram") }) {
 		t.Errorf("lines: %+v", f.rec.Lines)
@@ -531,13 +525,14 @@ func TestLoanedHealerKitItemsAreElectableAndSpent(t *testing.T) {
 	}
 }
 
+// All is Lost is reported as the other side's win (docs/matches.md, "Concepts"): the company that fled loses, keeps the participation
+// influence and its Against the Odds bonuses, and gets no Win or Draw influence.
 func TestAllIsLostKeepsAgainstTheOddsBonusesWithTheSelection(t *testing.T) {
 	f := newAmFixture(t)
-	f.match.Result.Companies = []CompanyResult{{CompanyID: 1, Fled: true}}
 	f.match.Winner, f.match.Result.Winner = 2, 2
 	f.withATO(t, &ATORecord{MatchID: 1, CompanyID: 1, Selection: ATOSelection{Bonuses: []string{"influence", "experience"}}})
 	a, err := f.svc.Aftermath(f.ctx, f.owner(), 5, 1, 1)
-	if err != nil || !a.Fled {
+	if err != nil || a.Outcome != "loss" {
 		t.Fatalf("%+v %v", a.Outcome, err)
 	}
 	var keys []string
@@ -556,7 +551,9 @@ func TestAllIsLostKeepsAgainstTheOddsBonusesWithTheSelection(t *testing.T) {
 	if !xp {
 		t.Error("and its Against the Odds experience")
 	}
-	if len(a.Preview.Rewards) != 0 {
-		t.Errorf("no scenario rewards: %+v", a.Preview.Rewards)
+	for _, r := range a.Preview.Rewards {
+		if r.Key == "victory" {
+			t.Errorf("no victory reward for the side that lost: %+v", a.Preview.Rewards)
+		}
 	}
 }

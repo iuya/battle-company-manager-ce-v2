@@ -125,11 +125,11 @@ Contents: [1 Muster](#1-muster-and-company-creation), [2 Recruiting](#2-recruiti
 | Mechanic | Source | Layer | Status | Where | Test |
 |---|---|---|---|---|---|
 | Find an opponent, create the match (any number of sides and companies) | S218-224 | PH | DONE | `matches.go`, [matches.md](matches.md) | `TestMatchesCreate`, `TestSideRolesValidationSwapAndEnd`, e2e `40-match` |
-| Compare ratings, Top Dog and Underdog | S5249-5251 | PH | DONE | `Match.TopDog` in `scenarioroll.go` | `TestTopDog` |
+| Compare ratings, Top Dog and Underdog | S5249-5251 | PH | DONE | `atoSides` in `ato_service.go` | `internal/core/ato_test.go` |
 | Scenario table: D6 for the column, D6 for the scenario (18 scenarios); or choose | S5252-5282 | PH | DONE | `ScenarioByRolls`, `ScenarioTable`; the match page picker | `TestScenarioByRollsUsesTheRealFile`, `TestMatchesSetScenarioAndAccess` |
 | One-off scenario for a game outside the rulebook | none (app) | APP | DONE | [matches.md](matches.md) "One-off scenario form" | `TestScenarioInputValidate` |
 | Scenario text: armies, layout, starting positions, how the game ends, special rules, tables, roles | S5340- | PH | DONE | `ScenarioAbout`, `ParseScenarios` | `TestParseScenarios`, `TestParseScenariosReadsTheObjectivesOfTheRealFile`, `TestScenarioRuleTableRowFor` |
-| Objectives and Victory Points per scenario, winner, draw (scoring is a tally, the players decide the result) | scenario texts | PH | DONE | `ScoringTier`, `ValidateResult`, match result form | `TestValidateResult`, `TestScenariosKnowTheirScoringObjectivesBySide`, `TestMatchesSaveResultKnowsRulebookObjectives` |
+| Objectives and Victory Points per scenario, winner, draw (scoring is a tally, the players decide the result) | scenario texts | PH | DONE | `ValidateResult`, match result form | `TestValidateResult`, `TestScenariosKnowTheirScoringObjectivesBySide`, `TestMatchesSaveResultKnowsRulebookObjectives` |
 | Board 48 by 48 inches, terrain | S5283-5286 | PH | N-A (physical) | none | none |
 | Scenario special rules: Command Support, NPC scenarios (Neutral Third-Party, Aggressive, Passive, Resolving Combat), Allies of Convenience | S5308-5339 | PH | N-A (played at the table; the text is shown on the scenario card) | `ScenarioAbout.Rules` | `TestParseScenarios` |
 | Maelstrom of Battle (models arriving late count for the Break Point) | S5287-5307 | PH | PARTIAL: the text is shown and the Break Point has a manual adjustment for models yet to arrive; no arrival roll or tracker (by design, a table rule) | `ScenarioAbout.Uses`, `breakAdjust` in `live_break.go` | `TestBreakPointModelsAndExtras` |
@@ -161,7 +161,7 @@ Details in [live-match.md](live-match.md).
 | Mechanic | Source | Layer | Status | Where | Test |
 |---|---|---|---|---|---|
 | Cemetery of the dead and retired | none (app) | CM | DONE | `cemetery.go` | `TestSaveCemeteryOrder`, `TestTheFallenCountTowardsNoLimit` |
-| Formation order of the roster | none (app) | CM | DONE | `OrderUnits` | `TestOrderUnitsHonoursTheSavedOrder` |
+| Formation order of the roster | none (app) | CM | DONE | `OrderUnits`, `ResetFormation` | `TestOrderUnitsWithinARole`, `TestOrderUnitsHonoursTheSavedOrder`, `TestSaveFormation` |
 | Organiser grants of Gold, Influence, XP with a note | none (app) | APP | DONE | `grant.go` | `TestGrantInputValidate`, `TestMatchesGrants` |
 | Campaign: invite links, members, pause, end, hand over, settings (shake the table, manual rolls, optional rules) | none (app) | APP | DONE | `campaigns.go`, `invites.go`, [admin.md](admin.md), [auth.md](auth.md) | `TestSetCampaignStatusRules`, `TestCampaignsHandOver`, `TestCampaignsSettings` |
 | Calendar, rounds, campaign victory, alliances between companies | none (not in the rulebook) | APP | N-A (not built) | none | none |

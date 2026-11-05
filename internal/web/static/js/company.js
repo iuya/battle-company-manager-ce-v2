@@ -41,10 +41,55 @@ document.addEventListener('alpine:init', () => {
       if (Math.abs(dx) > 50) this.step(dx < 0 ? 1 : -1);
     },
   }));
+  // The options of a level-up (level_panel, docs/frontend-level-up.md): a press applies the option at once, unless the result takes the other
+  // result too (core.LevelPlan). Then one option is marked, a press on another that takes the other result moves the mark, and a press on the
+  // other result's option applies both in one request; when both results take the other, each has a mark and "Apply both" applies them.
+  Alpine.data('levelChoices', () => ({
+    plan: { marks: ['', ''], both: false, conflicts: {}, alone: [] },
+    marks: ['', ''],
+    init() {
+      try { if (this.$root.dataset.plan) this.plan = JSON.parse(this.$root.dataset.plan); } catch (e) { /* no plan: every option applies alone */ }
+      this.marks = [...this.plan.marks];
+    },
+    get planned() { return !!(this.marks[0] || this.marks[1]); },
+    marked(i, key) { return i >= 0 && this.marks[i] === key; },
+    // The other result's options go with the mark (only when this result has no mark of its own).
+    takesOther(i) { return this.planned && !this.plan.both && !this.marks[i]; },
+    alsoTakes(key) { return this.planned && !this.plan.alone.includes(key); },
+    // Why the option does not fit with the mark of the other result, empty when it does.
+    why(i, key) {
+      if (i < 0) return '';
+      const other = this.marks[1 - i];
+      if (!other || (this.marks[i] && !this.plan.both)) return '';
+      return this.plan.conflicts[i === 0 ? key + '|' + other : other + '|' + key] || '';
+    },
+    press(el) {
+      const i = Number(el.dataset.offer), key = el.value;
+      if (i < 0 || !this.planned) return this.send(key); // the company upgrade replaces either result, whatever is marked
+      if (this.why(i, key)) return;
+      if (this.plan.both) { this.marks[i] = key; return; }
+      const side = this.marks[0] ? 0 : 1;
+      if (i !== side) return this.send(this.marks[side], key);
+      if (!el.hasAttribute('data-again') || this.plan.alone.includes(key)) return this.send(key); // the other result is lost, or has nothing to give
+      this.marks[i] = key;
+    },
+    // The option that takes the other result goes first (ChooseLevelUp).
+    applyBoth() {
+      const again = [...this.$root.querySelectorAll('[data-opt][data-offer="0"]')].find(b => b.value === this.marks[0])?.hasAttribute('data-again');
+      if (again) this.send(this.marks[0], this.marks[1]); else this.send(this.marks[1], this.marks[0]);
+    },
+    send(first, second, then) {
+      const f = this.$root.elements;
+      f.choice.value = first;
+      f.also.value = second || ''; f.also.disabled = !second;
+      f.then.value = then || ''; f.then.disabled = !then;
+      this.$root.requestSubmit();
+    },
+  }));
   // A window with a roll in it (recruiting, treating a hero's injuries): the dice (static/js/dice.js), the roll the player may adjust, and the chart row it lands on.
   Alpine.data('rollPanel', () => ({
     ...window.diceMixin(),
-    roll: 0, adjust: 0, budget: 0, budgetDown: 0, cost: 1, sides: 6, perLane: 1, lanes: 1, influence: 0, revealed: true, shakeOn: false, // note: `shake` is the method of the dice mixin; a field of that name would hide it
+    roll: 0, adjust: 0, budget: 0, budgetDown: 0, cost: 1, sides: 6, perLane: 1, lanes: 1, influence: 0, revealed: true, typing: false, shakeOn: false, // note: `shake` is the method of the dice mixin; a field of that name would hide it
     init() {
       const d = this.$el.dataset;
       this.shakeOn = d.shake === 'true';
@@ -56,6 +101,18 @@ document.addEventListener('alpine:init', () => {
       const values = dice.length ? dice : (this.roll > 0 ? [this.roll] : []);
       this.revealed = !(d.animate === 'true' && values.length);
       if (!this.revealed) this.$nextTick(() => this.throwDice({ count: values.length, sides: this.sides, values, then: () => { this.revealed = true; }, groups: (d.groups || '').split(',').map(Number).filter(n => n > 0), labels: (d.labels || '').split(',').filter(Boolean) }));
+      // a result with nothing left to do closes the window by itself, counted from when the dice stop
+      const panel = this.$el, after = Number(d.closeAfter) || 0;
+      const close = () => setTimeout(() => { if (panel.isConnected) this.finish(panel); }, after);
+      if (after && this.revealed) close();
+      else if (after) this.$watch('revealed', v => { if (v) close(); });
+    },
+    // Done: back to the page the window was opened from, refreshed. The aftermath's window reloads its page when it closes; My Company's does not.
+    finish(panel) {
+      const root = panel || this.$root.closest('[data-back]');
+      const reloads = root.closest('[data-reloads-on-close]');
+      this.closeModal();
+      if (!reloads) htmx.ajax('GET', root.dataset.back, { target: '#main', swap: 'innerHTML show:window:top' });
     },
     // Where Shake the table is on, the Roll button throws the dice in the browser, unless the player typed their own roll.
     typed() { const f = this.$refs.rollForm; return !!f && Array.from(f.elements).some(e => /^roll\d*$/.test(e.name) && Number(e.value) > 0); },
@@ -103,6 +160,23 @@ document.addEventListener('alpine:init', () => {
         this.$refs.thrown.value = '1';
         this.$refs.rollForm.requestSubmit();
       } });
+    },
+  }));
+
+  // The tooltips of the casualties of an aftermath: a rule on hover or keyboard focus (a tap opens its helper popup, concepts.js), and the injuries
+  // chart of the dice (data-tip-chart names the hidden element that holds it) on hover, keyboard focus or a tap.
+  Alpine.data('aftermathTips', () => ({
+    ...window.tipMixin({ focus: 'visible', extra: { html: '' } }),
+    tap(e) {
+      if (window.matchMedia('(hover: hover)').matches) return;
+      const el = e.target.closest && e.target.closest('[data-tip-chart]');
+      const again = this.tip.show && this.tipFor === el;
+      this.hideTip();
+      if (el && !again) this.showTip(el);
+    },
+    tipContent(el) {
+      const chart = el.dataset.tipChart ? document.getElementById(el.dataset.tipChart) : null;
+      return { ...tipTexts(el), html: chart ? chart.innerHTML : '' };
     },
   }));
 
@@ -174,8 +248,7 @@ document.addEventListener('alpine:init', () => {
         }
       });
     },
-    tip: { show: false, x: 0, y: 0, title: '', meta: '', text: '', stats: [], path: null },
-    tipTimer: null,
+    ...window.tipMixin({ extra: { stats: [], path: null } }),
 
     init() {
       this.syncLock();
@@ -262,29 +335,12 @@ document.addEventListener('alpine:init', () => {
 
 
     // Hovering (or focusing) a rule, an item with rules, or a glossary link previews it. Not on touch screens.
-    over(e) {
-      if (!window.matchMedia('(hover: hover)').matches) return;
-      const el = e.target.closest && e.target.closest('[data-tip-title]');
-      if (!el) return;
-      clearTimeout(this.tipTimer);
-      this.tipTimer = setTimeout(() => this.showTip(el), 150);
-    },
-    out(e) { if (e.target.closest && e.target.closest('[data-tip-title]')) this.hideTip(); },
-    hideTip() { clearTimeout(this.tipTimer); this.tip.show = false; },
-    async showTip(el) {
+    tipContent(el) {
       let stats = [];
       try { stats = JSON.parse(el.dataset.tipStats || '[]'); } catch (e) { stats = []; }
       let path = null;
       try { path = el.dataset.tipPath ? JSON.parse(el.dataset.tipPath) : null; } catch (e) { path = null; }
-      this.tip = { show: true, x: 0, y: 0, title: el.dataset.tipTitle, meta: el.dataset.tipMeta || '', text: el.dataset.tipText || '', stats, path };
-      await this.$nextTick();
-      const box = this.$refs.tip;
-      if (!box || !el.isConnected) { this.tip.show = false; return; } // the page was swapped while the tip waited
-      const r = el.getBoundingClientRect();
-      const x = Math.max(8, Math.min(r.left, window.innerWidth - box.offsetWidth - 8));
-      const below = r.bottom + 8;
-      const y = below + box.offsetHeight > window.innerHeight && r.top - box.offsetHeight - 8 > 0 ? r.top - box.offsetHeight - 8 : below;
-      this.tip.x = x; this.tip.y = Math.max(8, Math.min(y, window.innerHeight - box.offsetHeight - 8)); // a long text stays inside the window
+      return { ...tipTexts(el), stats, path };
     },
   }));
 });

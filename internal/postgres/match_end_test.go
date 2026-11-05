@@ -30,7 +30,7 @@ func TestMatchEndProposalRoundTrip(t *testing.T) {
 	// a pending end: Alpha confirmed by its owner, Beta waiting
 	got, err := repo.Update(ctx, camp.ID, m.ID, org, func(x *core.Match) error {
 		x.Scenario = &core.MatchScenario{Kind: core.ScenarioCustom, Name: "x"}
-		x.Result = core.MatchResult{Decided: true, Winner: 1, Sides: make([]core.SideResult, 2)}
+		x.Result = core.MatchResult{Decided: true, Winner: 1}
 		x.EndProposal = &core.EndProposal{ProposedBy: org.DisplayName, ProposedByID: org.ID, ProposedOn: now, Notice: "Someone changed the result; confirm again",
 			Companies: []core.EndConfirmation{{CompanyID: a.ID, OwnerID: org.ID, CompanyName: "Alpha", Confirmed: true, By: org.DisplayName, On: now}, {CompanyID: b.ID, OwnerID: p2.ID, CompanyName: "Beta"}}}
 		return nil

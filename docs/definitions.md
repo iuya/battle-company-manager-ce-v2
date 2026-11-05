@@ -211,8 +211,7 @@ The file does not carry them and does not need to.
 - **Reserved options.**
   - The options of vanilla units whose `availableIn` names only heroes (Lorien Guard, Hearthguard, Helmingas...) are never offered by a Choice of Options (`VanillaBook.ReservedOptions`).
   - A company reaches one explicitly through a unit's `with`.
-  - The profile wargear no armoury sells (armour and hand weapons, natural weapons) is derived too (`ProfileWargearNotSold`).
-    A model always starts with it; it is never an option or buyable.
+  - The profile wargear no armoury sells (armour and hand weapons, natural weapons) is never an option or buyable: a model always starts with it.
 - **Other derived values.** Ids; the keywords of a unit (`core.UnitKeywords`, [unit-keywords.md](unit-keywords.md)); the company rules sentence of `elvenWeaponry` (`ElvenWeaponrySentence`); the hero-upgrade rule text; the effective stats of a unit (see below).
 
 ## Engine parameters
@@ -240,7 +239,7 @@ Where the engine reads them:
 
 **Dice are data.**
 Every dice string is an `[N]dM` spec: N from 1 to 10, M from 2 to 100, and `d66` is refused.
-It is parsed once at load with `lean.ParseDice` (`core.DiceSpec`; `core.ParseDiceAt` names the key in the error) and rolled with `core.Dice.Roll(spec)`.
+It is parsed once at load with `lean.ParseDice` (`core.DiceSpec`) and rolled with `core.Dice.Roll(spec)`.
 A table that does not cover the dice of its key is a load error naming the path (`core.CheckCovers`).
 
 **Typed tables.**
@@ -388,8 +387,8 @@ Contents: [Items and prices](#items-and-prices) | [Stats and poison](#stats-and-
 ### Scenarios, auras and Tabletop Simulator
 
 - **Scenarios.**
-  - A company's Victory Points are the sum of its objectives (`side` restricts to a role).
-  - The most points wins; equal is a draw.
+  - `endsAtLosses` (`{"of": "startingModels", "share": "3/4"}`, the type of `campaign.breakPoint.default`) is on each scenario that ends when a company has lost that share or more, a whole percent; without it the scenario has no such end.
+  - The Victory Point objectives are the printed rules of the scenario: the app shows them (the scenario's "How it is scored") and does not add them up. The players total them at the table, the most points wins and equal is a draw, and they tell the app who won.
   - Rewards point at `campaign.aftermathEffects` entries, applied when their `condition` holds.
   - `campaign.matchInput` describes what the players enter per match.
 - **Auras and targets.**

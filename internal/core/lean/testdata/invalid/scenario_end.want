@@ -1,0 +1,8 @@
+battle_companies.json: scenarios[0].endsAtPercent: "endsAtPercent" is gone: write "endsAtLosses", the share lost and not the share that remains
+  hint: 25 becomes "endsAtLosses": {"of": "startingModels", "share": "3/4"}
+battle_companies.json: scenarios[3].endsAtLosses.of: "allModels" is not a valid of; known: startingModels
+battle_companies.json: scenarios[1].endsAtLosses: the end of the scenario needs a share
+  hint: write "share": "3/4"
+battle_companies.json: scenarios[2].endsAtLosses.share: write the share lost as "share" or as "percent", not both
+battle_companies.json: scenarios[3].endsAtLosses.share: the end of the scenario 1/3 is 33.33 percent; it must be a whole percent
+  hint: write a fraction that is a whole percent: "1/2", "33/50"

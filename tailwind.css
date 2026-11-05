@@ -469,6 +469,17 @@ html[data-mode="dark"] { color-scheme: dark; }
   .unit-injured > .unit-head { background: var(--danger-soft); border-bottom-color: var(--danger); }
   .unit-fallen > .unit-head { background: transparent; border-bottom-color: var(--line); }
   .promo + .unit-head { margin-top: -.75rem; border-radius: 0; }
+  /* A unit summary that is itself an answer: its button stretches over the whole card (a button cannot hold the card's lists); what has a tooltip stays above it. */
+  .unit-choices { @apply grid grid-cols-1 gap-3 lg:grid-cols-2; }
+  /* The cards sit deep in a question: the profile gives up its minimum width and a little type, and a value stays on one line. */
+  .unit-choices .statline > div { @apply min-w-0; }
+  .unit-choices .statline dd { @apply whitespace-nowrap px-0 text-sm sm:text-base; }
+  .unit-choice { transition: box-shadow 150ms; }
+  .unit-choice:hover { box-shadow: 0 0 0 2px var(--accent); }
+  .unit-choice-go::after { content: ""; position: absolute; inset: 0; border-radius: .75rem; }
+  /* A filter makes the button the containing block of its ::after: on hover the press area would shrink to the button and the card stop answering. */
+  .unit-choice-go { filter: none !important; }
+  .unit-choice .has-tip { position: relative; z-index: 1; }
   /* A unit's kind (the kind_icon template): a glyph on a small tile. On a card's title plate it fills a bigger fixed tile with
      almost no inset, centred on the plate: a name over two lines makes the plate taller, never the icon. */
   .kind-icon { height: 2.25rem; width: 2.25rem; }
@@ -489,7 +500,7 @@ html[data-mode="dark"] { color-scheme: dark; }
   .statline-hero dt { @apply px-2; }
   /* The trackers of a live match (live_trackers): Might, Will, Fate and Wounds, one per row, left-aligned, as segmented bars like the experience
      one, led by the stat's full name; Wounds as hearts (14 px, inside the same 16 px row). Each stat has its own colour (--tracker), the theme
-     game colours of the path kinds (.path-k-*), the same in every palette: amber Might (command), blue Will (magic), green Fate
+     game colours of the path kinds (.path-k-*), the same in every palette: amber Might (support), blue Will (will), green Fate
      (ranged), red Wounds (melee, the Soldier's). The bold name and the bar take it; an empty segment or heart is a faint tint of it with a
      thin outline (an inset shadow, so the segment keeps its size). A segment sits in a 22 x 16 px tap area. The rows share one grid (name, bar,
      count; each row a subgrid), so the counts line up in a column after the longest bar. */
@@ -519,16 +530,44 @@ html[data-mode="dark"] { color-scheme: dark; }
   button.milestone[aria-pressed="true"]:not(:disabled):hover { @apply text-accent-fg brightness-110; }
   .milestone:disabled { @apply cursor-not-allowed opacity-50; }
   .milestone[aria-pressed="true"]:disabled { @apply cursor-default opacity-100; }
+  /* The same marks on the aftermath: a wrapping grid (a sheet offers more of them than a card fits in a row). On the sheet each is a checkbox of the form, lit by its state. */
+  .milestones-wrap { display: grid; grid-template-columns: repeat(auto-fill, minmax(3.75rem, 1fr)); }
+  .milestone-check { @apply flex min-w-0 cursor-pointer; }
+  .milestone-check .milestone { @apply w-full; }
+  .milestone-check:hover input:not(:disabled):not(:checked) + .milestone { @apply border-accent text-fg; }
+  .milestone-check input:checked + .milestone { @apply border-solid border-accent bg-accent font-semibold text-accent-fg shadow-sm; }
+  .milestone-check input:not(:checked) + .milestone .milestone-tick { display: none; }
+  .milestone-check input:disabled + .milestone { @apply cursor-not-allowed; }
+  .milestone-check input:focus-visible + .milestone { @apply outline-2 outline-offset-2 outline-accent; }
+  .milestone-less { @apply absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface bg-raised text-sm font-bold leading-none text-fg; }
+  .milestone-less::after { content: ""; position: absolute; inset: -.5rem; }
+  /* Might, Will and Fate in one short line among a unit's facts on the aftermath. */
+  .hero-inline { @apply ml-auto inline-flex items-center gap-2 whitespace-nowrap text-xs text-muted; }
+  .hero-inline b { @apply text-sm font-semibold text-fg; }
+  /* A unit's outcome on the sheet: a small toggle with an icon; both off is Survived. */
+  .outcome-toggle { @apply inline-flex min-h-11 items-center gap-1 rounded-md border border-dashed border-line bg-transparent px-2 text-xs font-medium text-muted transition-colors duration-150 sm:min-h-8; }
+  .outcome-toggle:hover { @apply border-accent text-fg; }
+  .outcome-toggle[aria-pressed="true"] { @apply border-solid border-fg bg-raised font-semibold text-fg; }
+  .outcome-toggle[data-tone="danger"][aria-pressed="true"] { @apply border-danger bg-danger-soft; }
+  .outcome-toggle[data-tone="warn"][aria-pressed="true"] { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 22%, var(--surface)); }
   /* The other actions of the unit, the row below the milestones: plain buttons, not toggles. */
+  /* The mark of a failed Courage test on a card of a Broken company: only the border stands out. */
+  .courage-failed { @apply flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border-2 border-danger bg-transparent px-3 text-sm font-medium text-fg hover:bg-raised; }
   .live-actions { @apply -mt-0.5 flex gap-1.5; }
   .live-action { @apply flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg border border-line bg-surface px-1 py-1 text-fg transition-colors duration-150 hover:bg-raised; }
   .milestone-label { @apply max-w-full truncate text-[11px] leading-tight; }
   .milestone-tick { @apply absolute -right-1.5 -top-1.5 h-5 w-5 rounded-full border-2 border-surface bg-success p-0.5 text-page; }
   .milestone-count { @apply absolute -left-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center gap-0.5 rounded-full border-2 border-surface bg-danger px-1 text-[10px] font-bold leading-none text-page; }
+  /* The bar of the Break Point panel: one cell per starting model, with a mark at each milestone and its key beside the text. */
+  .break-key { @apply mr-1.5 inline-block h-2 w-2 rounded-sm align-[1px]; }
+  .break-mark { @apply absolute -top-[3px] -bottom-[3px] -ml-px w-0.5 rounded-sm; }
+  .break-mark-top { bottom: 50%; }
+  .break-mark-bottom { top: 50%; }
+  .break-cell-left { background: repeating-linear-gradient(45deg, var(--raised) 0 2px, var(--line) 2px 4px); }
   .xp-bar { @apply relative flex h-2.5 min-w-20 flex-1 overflow-hidden rounded-full bg-raised; }
   /* The experience of a unit fills in the muted tone (warn while a level-up waits), not the palette accent, which shares its hue with a game colour. */
   .xp-fill { background: var(--muted); }
-  /* The experience earned in a running match, after the fill: the magic path's colour (the Path of the Sorcerer, .path-k-magic). */
+  /* The experience earned in a running match, after the fill: the colour of the will category (the Path of the Sorcerer, .path-k-will). */
   .xp-match { background: var(--path-magic); }
   .xp-match-text { @apply font-semibold text-path-magic; }
   .xp-bar::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(100% / var(--seg, 5) - 2px), var(--surface) calc(100% / var(--seg, 5) - 2px) calc(100% / var(--seg, 5))); pointer-events: none; }
@@ -538,6 +577,31 @@ html[data-mode="dark"] { color-scheme: dark; }
   .limit-exempt { background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--muted) 70%, transparent) 0 2px, transparent 2px 5px); }
   /* The dice tray (static/js/dice.js): a felt-like strip the dice move over; shaken, it jolts. */
   .dice-tray { @apply block h-36 w-full rounded-xl border border-line bg-raised; }
+  /* A casualty of the aftermath: its dice and result on one strip, coloured by how bad the result is; the rule and the chart are in tooltips. */
+  .injury-strip { container-type: inline-size; --tone: var(--line); @apply flex flex-wrap items-center gap-2 rounded-lg border bg-raised px-2 py-1.5; border-color: var(--tone); }
+  .injury-strip[data-tone] { background: color-mix(in srgb, var(--tone) 16%, var(--surface)); }
+  .injury-strip[data-tone="danger"] { --tone: var(--danger); }
+  .injury-strip[data-tone="warn"] { --tone: var(--warn); }
+  .injury-strip[data-tone="success"] { --tone: var(--success); }
+  .injury-name { flex: 1 1 7rem; min-width: 7rem; }
+  .injury-actions { @apply ml-auto flex shrink-0 items-center gap-2; }
+  .injury-typed { @apply flex flex-wrap gap-2; }
+  .injury-typed > .field { flex: 1 1 9rem; min-width: 0; }
+  .injury-dice { @apply inline-flex min-h-11 shrink-0 cursor-help items-center gap-1 rounded-md; }
+  .die-face { @apply grid h-9 w-9 rounded-md p-1.5; grid-template: repeat(3, 1fr) / repeat(3, 1fr); place-items: center; background: var(--fg); color: var(--surface); }
+  .die-face > i { display: block; height: .34rem; width: .34rem; border-radius: 50%; background: currentColor; grid-area: 1 / 1; }
+  .die-blank { background: var(--surface); border: 1px dashed var(--line); }
+  .die-number { display: flex; align-items: center; justify-content: center; font-weight: 700; }
+  .die-face[data-n="1"] > i:nth-child(1), .die-face[data-n="3"] > i:nth-child(2), .die-face[data-n="5"] > i:nth-child(3) { grid-area: 2 / 2; }
+  .die-face[data-n="2"] > i:nth-child(2), .die-face[data-n="3"] > i:nth-child(3), .die-face[data-n="4"] > i:nth-child(4), .die-face[data-n="5"] > i:nth-child(5), .die-face[data-n="6"] > i:nth-child(6) { grid-area: 3 / 3; }
+  .die-face[data-n="4"] > i:nth-child(2), .die-face[data-n="5"] > i:nth-child(2), .die-face[data-n="6"] > i:nth-child(2) { grid-area: 1 / 3; }
+  .die-face[data-n="4"] > i:nth-child(3), .die-face[data-n="5"] > i:nth-child(4), .die-face[data-n="6"] > i:nth-child(5) { grid-area: 3 / 1; }
+  .die-face[data-n="6"] > i:nth-child(3) { grid-area: 2 / 1; }
+  .die-face[data-n="6"] > i:nth-child(4) { grid-area: 2 / 3; }
+  .injury-result { @apply inline-flex cursor-pointer items-center gap-1 rounded-xl border bg-surface px-2 py-0.5 text-xs font-semibold; border-color: var(--tone); color: var(--tone); }
+  @container (max-width: 25rem) { .injury-reroll-label { display: none; } }
+  /* A card that waits for the player: to roll or to answer. */
+  .unit.unit-pending { border-color: var(--accent); outline: 3px solid var(--accent); outline-offset: 1px; box-shadow: 0 0 1rem .25rem color-mix(in srgb, var(--accent) 55%, transparent); }
   .dice-shake { animation: dice-shake .4s ease-in-out; }
   @keyframes dice-shake { 0%, 100% { transform: translate(0, 0); } 15% { transform: translate(-7px, 3px); } 30% { transform: translate(6px, -4px); } 45% { transform: translate(-5px, -2px); } 60% { transform: translate(5px, 4px); } 80% { transform: translate(-2px, 1px); } }
   @media (prefers-reduced-motion: reduce) { .dice-shake { animation: none; } }
@@ -588,19 +652,25 @@ html[data-mode="dark"] { color-scheme: dark; }
   .rule-equipment { border-left-color: var(--gold); }
   .rule-company { border-left-color: var(--gold); @apply border border-gold bg-warn/10; }
   .rule-spell { border-left-color: var(--path-magic); background: color-mix(in srgb, var(--path-magic) 14%, var(--surface)); }
-  /* A hero's path: its icon and name, heroic actions and rules, in a box below the attributes, tinted by the kind of hero the
-     path makes (pathLook): melee red, ranged green, command amber (the leader's), magic blue, the rest muted. Game colours, the same in every palette. */
+  /* A hero's path: its icon and name, heroic actions and rules, in a box below the attributes, tinted by the path's main
+     category (pathLook): melee red, ranged green, support amber (the leader's), will blue, none muted. Game colours, the same in every palette.
+     .path-k2-* is the secondary category, for the other half of a split icon. */
   .path-k-melee { --path: var(--path-melee); }
   .path-k-ranged { --path: var(--path-ranged); }
-  .path-k-command { --path: var(--leader); }
-  .path-k-magic { --path: var(--path-magic); }
+  .path-k-support { --path: var(--leader); }
+  .path-k-will { --path: var(--path-magic); }
   .path-k-other { --path: var(--muted); }
+  .path-k2-melee { --path-2: var(--path-melee); }
+  .path-k2-ranged { --path-2: var(--path-ranged); }
+  .path-k2-support { --path-2: var(--leader); }
+  .path-k2-will { --path-2: var(--path-magic); }
   .path-box { @apply rounded-lg border p-2; border-color: color-mix(in srgb, var(--path, var(--accent)) 45%, transparent); background: color-mix(in srgb, var(--path, var(--accent)) 8%, var(--surface)); }
   .path-name { @apply flex items-center gap-2 leading-tight; color: var(--path, var(--accent-text)); }
   .path-name[data-tip-title] { cursor: help; }
   .path-lead { @apply block text-xs text-muted; }
   .path-main { @apply block font-heading text-lg font-bold; }
   .path-icon { @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-page; background: var(--path, var(--accent)); }
+  .path-icon-hybrid { background: linear-gradient(135deg, var(--path) 48.5%, var(--page) 48.5% 51.5%, var(--path-2) 51.5%); } /* the main category top-left and the secondary bottom-right; the thin line shows the split without relying on hue (two colours can be close in lightness) */
   .path-icon > svg { height: 1.875rem; width: 1.875rem; } /* little margin: the badge is the icon, not a frame round it */
   /* On a unit card the path takes less room: no "Path of the" lead, so the name sits level with a smaller icon. */
   .path-name-short .path-icon { @apply h-7 w-7; }
@@ -609,7 +679,12 @@ html[data-mode="dark"] { color-scheme: dark; }
   /* The path carousel (path_panel): a mosaic of every path (a wrapping grid, small icon and name on one line) the selected tab is marked; the previous and next arrows float beside the card. */
   .path-carousel { @apply grid gap-1.5; grid-template-columns: minmax(0, 1fr); }
   .path-nav { @apply !min-h-11 !min-w-11 shrink-0 !px-0; }
-  .path-strip { @apply grid min-w-0 gap-1.5 py-1; grid-template-columns: repeat(auto-fill, minmax(7.75rem, 1fr)); }
+  .path-strip { @apply grid min-w-0 gap-1.5 py-1; container-type: inline-size; }
+  .path-row { @apply grid items-center gap-1.5; grid-template-columns: 2.25rem minmax(0, 1fr); }
+  .path-row-icon { @apply flex h-9 w-9 items-center justify-center rounded-lg border-2; color: var(--path); border-color: var(--path); background: color-mix(in srgb, var(--path) 14%, var(--surface)); } /* inverted against the round path badges: a heading, not one more button */
+  .path-row-icon > svg { height: 1.625rem; width: 1.625rem; }
+  .path-row-cells { @apply grid min-w-0 gap-1.5; grid-column: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @container (min-width: 35rem) { .path-row-cells { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
   .path-tab { @apply flex min-h-9 min-w-0 cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-surface px-1.5 py-1 text-xs leading-tight text-fg; }
   .path-tab .path-icon { @apply h-6 w-6; }
   .path-tab .path-icon > svg { height: 1.125rem; width: 1.125rem; }
@@ -680,6 +755,54 @@ html[data-mode="dark"] { color-scheme: dark; }
   .facts dd { @apply font-semibold; }
   .exclusive { @apply rounded-lg border border-dashed border-accent bg-surface px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]; }
   .exclusive-gold { @apply border-solid border-gold bg-warn/10; }
+  /* The level-up window: options that apply at once, a stat's progress dots, a warrior's failure and its celebration. */
+  .level-row { @apply flex items-stretch gap-1; }
+  .level-opt { @apply flex min-h-11 min-w-0 flex-1 flex-col justify-center gap-1 rounded-lg border border-line bg-surface px-3 py-2 text-left outline-none hover:border-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-[var(--accent)]; }
+  .level-opt-gold { @apply border-gold; }
+  .level-opt.is-marked { @apply border-accent bg-accent-soft; box-shadow: inset 0 0 0 1px var(--accent); }
+  .level-opt.is-off { @apply cursor-not-allowed border-line bg-raised text-muted hover:border-line hover:bg-raised; }
+  .level-opt-main { @apply flex flex-wrap items-center gap-x-2 gap-y-1; }
+  .level-opt-name { @apply min-w-0 font-medium; overflow-wrap: anywhere; }
+  .level-check { @apply h-4 w-4 shrink-0 text-accent-text; }
+  .level-why { @apply text-xs text-muted; }
+  .level-info { @apply flex w-9 shrink-0 items-center justify-center rounded-lg border border-line bg-surface font-serif text-sm font-semibold italic text-muted outline-none hover:bg-raised hover:text-fg focus-visible:ring-2 focus-visible:ring-[var(--accent)]; }
+  .level-dots { @apply flex flex-wrap items-center gap-1; }
+  .level-dots i { @apply block h-2.5 w-2.5 rounded-full border; }
+  .level-dot-taken { @apply border-fg bg-fg; }
+  .level-dot-gain { @apply border-gold bg-gold; }
+  .level-dot-free { @apply border-muted bg-transparent; }
+  .level-fail { @apply flex items-center gap-3; }
+  .level-fail-roll { @apply text-4xl leading-none text-danger; }
+  .hero-fanfare { @apply relative overflow-hidden rounded-xl border-2 border-gold bg-warn/10 px-4 py-6 text-center; }
+  .hero-fanfare-title { @apply text-2xl font-semibold; color: color-mix(in srgb, var(--gold) 65%, var(--fg)); } /* the same pull as .exclusive-label: 4.5:1 on the pale gold */
+  .confetti { @apply pointer-events-none absolute inset-0; }
+  .confetti i { @apply absolute block h-2.5 w-1.5 rounded-sm opacity-0; top: -0.75rem; background: var(--gold); animation: confetti-fall 1.8s ease-in 1 forwards; }
+  .confetti i:nth-child(3n) { background: var(--accent); }
+  .confetti i:nth-child(3n + 1) { background: var(--warn); }
+  .confetti i:nth-child(1) { left: 4%; animation-delay: 0s; }
+  .confetti i:nth-child(2) { left: 10%; animation-delay: .35s; }
+  .confetti i:nth-child(3) { left: 16%; animation-delay: .1s; }
+  .confetti i:nth-child(4) { left: 22%; animation-delay: .5s; }
+  .confetti i:nth-child(5) { left: 28%; animation-delay: .2s; }
+  .confetti i:nth-child(6) { left: 34%; animation-delay: .65s; }
+  .confetti i:nth-child(7) { left: 40%; animation-delay: .05s; }
+  .confetti i:nth-child(8) { left: 46%; animation-delay: .4s; }
+  .confetti i:nth-child(9) { left: 52%; animation-delay: .15s; }
+  .confetti i:nth-child(10) { left: 58%; animation-delay: .55s; }
+  .confetti i:nth-child(11) { left: 64%; animation-delay: .25s; }
+  .confetti i:nth-child(12) { left: 70%; animation-delay: .7s; }
+  .confetti i:nth-child(13) { left: 76%; animation-delay: .1s; }
+  .confetti i:nth-child(14) { left: 82%; animation-delay: .45s; }
+  .confetti i:nth-child(15) { left: 88%; animation-delay: .3s; }
+  .confetti i:nth-child(16) { left: 94%; animation-delay: .6s; }
+  .confetti i:nth-child(17) { left: 7%; animation-delay: .8s; }
+  .confetti i:nth-child(18) { left: 91%; animation-delay: .85s; }
+  @keyframes confetti-fall {
+    0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(14rem) rotate(540deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .confetti { display: none; } }
   .exclusive-label { @apply mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-accent-text; }
   .exclusive-gold .exclusive-label { color: color-mix(in srgb, var(--gold) 65%, var(--fg)); } /* gold, pulled toward the text colour: the pale gold box needs 4.5:1 */
   .eq-heal { @apply border-solid border-danger text-danger hover:bg-danger-soft; }

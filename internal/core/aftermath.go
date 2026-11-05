@@ -340,6 +340,22 @@ type ModelSheet struct {
 	UsesItem string `json:",omitempty"`
 }
 
+// Blank says that the sheet records nothing about how the game went: everybody survived, and the only gains are taking part and what the
+// End match sheets ask of every match (the MVP, the objective). It is what a match nobody tracked gives, so nothing tells whether it is true.
+func (in AftermathInput) Blank() bool {
+	for _, m := range in.Models {
+		if m.Outcome != OutcomeSurvived {
+			return false
+		}
+		for k, n := range m.Gains {
+			if k != participatedKey && k != GainMVP && k != GainObjective && n != 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // Took says whether the unit took part (the "participated" gain).
 func (m ModelSheet) Took() bool { return m.Gains[participatedKey] > 0 }
 
@@ -491,33 +507,29 @@ func (in AftermathInput) ValidateWith(roster []CompanyUnit, loaned []LoanedItem,
 type AftermathContext struct {
 	Rules    AftermathRules
 	Outcome  string // "win" | "draw" | "loss"
-	Fled     bool   // All is Lost
 	Scenario string // the rulebook scenario's name; "" for a one-off or none
 	Result   CompanyResult
 	Roster   []CompanyUnit
 }
 
-// CompanyOutcome is "win", "draw" or "loss" for the company in an ended match, and whether it fled (All is Lost, which counts
-// as a loss). ok is false when the company is not in the match.
-func CompanyOutcome(m Match, companyID int64) (outcome string, fled, ok bool) {
+// CompanyOutcome is "win", "draw" or "loss" for the company in an ended match; All is Lost is reported as the other side's win
+// (docs/matches.md, "Concepts"). ok is false when the company is not in the match.
+func CompanyOutcome(m Match, companyID int64) (outcome string, ok bool) {
 	for i, s := range m.Sides {
 		for _, c := range s.Companies {
 			if c.ID != companyID {
 				continue
 			}
-			fled = m.Result.Company(companyID).Fled
 			switch {
-			case fled:
-				return "loss", true, true
 			case m.Winner == 0:
-				return "draw", false, true
+				return "draw", true
 			case m.Winner == i+1:
-				return "win", false, true
+				return "win", true
 			}
-			return "loss", false, true
+			return "loss", true
 		}
 	}
-	return "", false, false
+	return "", false
 }
 
 // AmountLine is a reason and an amount, for the preview and the history ("Winning +2").
@@ -564,10 +576,10 @@ type RewardApply struct {
 	Decision        bool   // needs the player's choice at Finish
 }
 
-// Rewards are the scenario rewards that apply to the company, in the file's order. A fled company gets none; a "victory"
+// Rewards are the scenario rewards that apply to the company, in the file's order. A "victory"
 // reward needs a win; a model flag needs the unit on the sheet that holds it.
 func Rewards(ctx AftermathContext, in AftermathInput) []RewardApply {
-	if ctx.Fled || ctx.Scenario == "" {
+	if ctx.Scenario == "" {
 		return nil
 	}
 	var out []RewardApply
@@ -707,15 +719,6 @@ type AftermathPreview struct {
 	Rolls      int           // casualty rolls to come (a Wondrous Cram casualty does not roll)
 	Items      []AmountLine  // consumables in use ("Healing Herbs: +1 to every injury roll", "Wondrous Cram on Aldor: no roll")
 	Rewards    []RewardApply // scenario rewards and perks that will apply
-}
-
-// InfluenceTotal sums the Influence lines.
-func (p AftermathPreview) InfluenceTotal() int {
-	n := 0
-	for _, l := range p.Influence {
-		n += l.Amount
-	}
-	return n
 }
 
 // Preview works out the whole preview of a sheet.
@@ -994,7 +997,6 @@ type Aftermath struct {
 	Status             AftermathStatus
 	Revision           int
 	Outcome            string // "win" | "draw" | "loss"
-	Fled               bool   // All is Lost
 	Absent             []int64
 	Input              AftermathInput
 	Preview            AftermathPreview // recomputed on read while pending/sheet; the applied numbers afterwards

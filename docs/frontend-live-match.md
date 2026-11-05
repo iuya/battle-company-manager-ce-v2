@@ -1,6 +1,6 @@
 # Frontend: live match screens
 
-What the pages of an open match do: the company page with its banner, trackers and milestones, the End checks and the sync.
+What the pages of an open match do: the company page with its banner, trackers and milestones, the End match and Confirm sheets and the sync.
 The rules of the mode are in [live-match.md](live-match.md) and the technical design in [architecture.md](architecture.md#live-match-design).
 Code: `internal/web/live*.go`, `static/js/live.js`, the `live_*` templates in `campaign_my_company.gohtml`, `company_panels.gohtml`, `units.gohtml` and `match.gohtml`; `web` declares `liveMatches` (embedded in `campaigns`; `core.LiveService` implements it).
 The design language and the page patterns are in [frontend.md](frontend.md).
@@ -11,31 +11,30 @@ The design language and the page patterns are in [frontend.md](frontend.md).
 [The opponent's keywords and "applies" markers](#the-opponents-keywords-and-applies-markers) ·
 [Trackers](#trackers) ·
 [Milestones](#milestones) ·
-[Break Point, turns and courage](#break-point-turns-and-courage) ·
+[Break Point and courage](#break-point-and-courage) ·
 [Against the Odds items](#against-the-odds-items) ·
-[Result form](#result-form) ·
+[End match sheet defaults](#end-match-sheet-defaults) ·
 [Mount lost](#mount-lost) ·
 [Match log](#match-log) ·
-[End checks](#end-checks) ·
+[End match and Confirm sheets](#end-match-and-confirm-sheets) ·
 [Ending a match by confirmation](#ending-a-match-by-confirmation) ·
 [Sync](#sync) ·
-[Secret objectives](#secret-objectives) ·
 [Perks in the rolls](#perks-in-the-rolls) ·
 [Gear notes on the card](#gear-notes-on-the-card) ·
 [Finished campaigns are frozen](#finished-campaigns-are-frozen) ·
 [Match creation refusals](#match-creation-refusals) ·
-[To Wound chart (window)](#to-wound-chart-window)
+[Wound chart (window)](#wound-chart-window)
 
 ## Company page in an open match
 
 A company in an open match (`CompanyDetail.OpenMatch`; `liveFor` loads its `Live` state) gets the usual company page with:
-- `#live-banner` (sticky under the app bar): "Match N is running" with the scenario, the sync dot, **To wound** (opens the To Wound chart window, below), **End checks** (everybody) and, for who may edit, **Match log**;
+- `#live-banner` (sticky under the app bar): "Match N" with the scenario, the sync dot, **Go to match** (`data-go-match`), **Wound chart** (opens the Wound chart window, below), for who may edit **End match** (opens the End match sheet in the page's window; hidden while an end is pending), and `nav[data-match-companies]`: one chip per company of the match with its owner, each linking to its page in match mode, the current one `chip-on`, with a tick and `aria-current="page"`;
 - the roster locked like read only (no recruit, buy chips, heal, level-up, drop, dismiss; rename stays) with the line "The company is
   locked until the match ends"; "Change formation" is hidden while live (the grid is re-rendered by the sync);
 - `#live-zones` (`live_zones`): the Field as unit cards, then **Retreated**, **Field casualties** and **Missed this game** as
   one-line headers with a count ("None" when empty) and compact cards (`live_compact`: badge, reason, **Return to the battle** for
   who may edit), then the Cemetery. `GET /campaigns/{id}/companies/{company}/live` answers `#live-zones` alone (its `data-seq` is the
-  match's last sequence). Every control that answers the zones (trackers, milestones, the turn, the Break Point, the courage and item
+  match's last sequence; once the match has ended an htmx request gets `HX-Refresh`, so an open page becomes the ended one). Every control that answers the zones (trackers, milestones, the Break Point, Failed Courage and the item
   windows) takes the `hx_zones` attributes: it replaces `#live-zones`, and `hx-sync` queues the presses one at a time.
 - Another player's company is the same page read only (`ReadOnly`); an editor who is not the owner (organiser, administrator) has the
   trackers and actions on it. Viewers see `current / start` without buttons.
@@ -84,10 +83,10 @@ Layout:
 - Wounds is always shown, also when it starts at 1 (a plain warrior).
   Taking it to 0 makes the unit a Field casualty, as Died does.
 
-Colour: each stat has its own colour on its bold name and its bar, from the theme tokens of the path kinds (`.path-k-*`):
+Colour: each stat has its own colour on its bold name and its bar, from the theme tokens of the path categories (`.path-k-*`):
 
-- gold Might (command);
-- hero-blue Will (magic);
+- gold Might (support);
+- hero-blue Will (will);
 - success-green Fate (ranged);
 - danger-red Wounds (melee, as the Soldier).
 
@@ -123,8 +122,7 @@ Code: `liveView.Milestones` in `live_milestones.go` builds them, `live_actions_m
 **Actions below the row.**
 
 - `.live-actions` (editors only, icon above the label) appears only while the unit has a loaned item to spend; **Item used** opens its sheet.
-- The route also serves the list of every action (`sheet/menu`, which no card opens): Wounded a unit, Passed a fate roll, Passed a Broken courage roll, Retreated, Died, Mount removed/re-added. Fate and Mount appear only when the unit has them.
-- Each action opens its sheet (`GET .../live/{company}/units/{unit}/sheet/{kind}`, `live_sheet`).
+- **Wounded a unit** and **Item used** are the two actions with a sheet (`GET .../live/{company}/units/{unit}/sheet/{kind}`, `live_sheet`); any other kind is a 404.
 
 **Wounded a unit.**
 
@@ -132,52 +130,45 @@ Code: `liveView.Milestones` in `live_milestones.go` builds them, `live_actions_m
 - It has a search, Rider/Mount for a mounted target, and wounds caused and saved by Fate steppers (`woundSheet` in `live.js`).
 - A preview sentence uses the words of the log.
 
-## Break Point, turns and courage
+## Break Point and courage
 
 Code: `live_break` in `campaign_my_company.gohtml`, inside `#live-zones` so the SSE (server-sent events) refetch refreshes viewers too.
 The rules are in [live-match.md](live-match.md#company-break-point-in-play).
 
-**Turn row.**
-It reads "Turn 3" or "Turn not started".
-Editors get **Start turn N** (`kind=turn`, `turn=N`).
-A stale press is the service's 422 toast.
+There is no turn row.
 
 **Break Point panel.**
 It is a `<details>` element.
 
-- The summary reads "Break Point 6.5 of 13 · Casualties 4 · 50%", with a "Will break next turn" or "Broken since turn N" badge and a progressbar.
+- The summary reads "Break Point 6.5 of 13 · Casualties 4 · 50%", with a "Broken" badge and a progressbar.
 - Opened, it lists the casualties by name and the scenario exceptions.
 - Editors also get +/- adjusters for starting models and casualties, with a shared note (`kind=breakAdjust`).
+- It opens and closes only through its summary.
+  The server always sends it closed, and `live.js` puts back how the user left it after every swap of `#live-zones` (an action, a refresh, an out-of-band answer).
+- The note being written survives those swaps too, with its cursor. It empties once a +/- button has logged it, and stays when the adjustment is refused.
+- The control that had the focus inside the panel gets it back after the swap (by id, from `live.js`), so a keyboard user can press a +/- button again.
 
-**Company broken banner** (`#live-broken`).
-It is a danger alert and is not sticky, because a sticky banner would cover the live banner.
+**Broken notice.**
+Every viewer sees it in `#live-end` of the banner: "Rangers is broken", or "Rangers is broken and down to 25%" once it has also reached the end of the scenario (`endBanner.Broken`).
 
-- It holds the All is Lost choice as an inline `<details>`: **Flee the battlefield** (with a confirmation) or **Fight on**, for editors, while `Break.Offer` is set.
-- It also shows "Who has tested this turn".
-
-**Cards of a Broken company** show "Test due" until the unit's courage is resolved this turn (`CourageDue`: `CourageTurn != Turn`).
+**Cards of a Broken company** in the Field offer **Failed Courage** (`CourageTest`) and show no chip until the unit has a recorded test (`CourageDue`).
 Then they show a chip (`liveView.CourageChip`, from `LiveUnit.CourageHow`):
 
-- "Tested: passed" or "Tested: failed";
-- "Auto-pass" for `standFast`, `heroicResolve`, `chariot` and `scenario`;
-- "Exempt" for `engaged` and `cannotActivate`;
-- otherwise "Courage resolved".
+- "Tested: passed" or "Tested: failed".
 
 **Company header.**
 On the company's own page and on another company's read-only page it shows "Break Point: N% of the starting models".
 The percentage is `CompanyDetail.BreakPointPercent`: the company's own rule (for example 66 for Muster of Isengard), else the file's default, and never 0 with real rules.
 
-**Courage test button.**
-A primary **Courage test** button in the header opens the `courage` sheet (`live_courage`):
+**Failed Courage.**
+The test is rolled at the table. **Failed Courage** on a card (`.courage-failed`: `boot-prints` icon, only the border highlighted) posts `retreat` with reason `courage` at once, with no window and no confirmation; the entry can be undone from the match log or with Return to the battle.
+A passed test is the **Courage** milestone (`broken`).
 
-1. **Roll 2D6** (`POST .../units/{unit}/courage/roll`, `RollCourage`).
-   Nothing is written. Typed dice are accepted only with ManualRolls. It is a plain server roll, not the animated dice component.
-2. **Record: passed** (`broken`, with Call Stand Fast for Heroes that are not Wanderers) or **Record: failed** (`retreat` with reason `courage`, after a confirmation).
-3. The six pass-or-exempt buttons (`courageSkip`).
-
-All writes go through the one `actions` route (`liveActionFrom` reads `turn`, `field` + `delta`, `reason`, `flee`, `standFast`, `item` + `index`).
+All writes go through the one `actions` route (`liveActionFrom` reads `field` + `delta`, `reason`, `standFast`, `item` + `index`).
 
 ## Against the Odds items
+
+While the match waits for the Against the Odds decision the live banner says so (`endBanner.ATOWaiting`, `data-ato-banner`) with a link to the match page, its **End match** is disabled (`live_end_button`, sent again out of band with each refresh of the banner, so it comes back when the decision is made) and the service refuses every action with that sentence.
 
 - `LiveUnit.Loaned` is listed under the Wargear of the card, grouped by item ("Climbing ropes ×5", tag "Loaned (Raider's Kit)").
   "use after the game" marks Healing Herbs and Wondrous Cram. A spent item is struck through and marked "used".
@@ -187,9 +178,9 @@ All writes go through the one `actions` route (`liveActionFrom` reads `turn`, `f
   It is a roster unit with a synthetic negative id, badges "Wanderer" and "Temporary", the profile summary, Rating as its points and no Dismiss.
   It sits in the zone its live unit is in, and is a wound target in the wound sheet.
 
-## Result form
+## End match sheet defaults
 
-For a company whose result was not reported yet, `prefillLiveDefaults` ticks **Fled** (All is Lost) and the `enemyBroken` objective from `MatchDefaults`, each with the badge "From the live match", and the Fled switch explains "The other side claims victory (All is Lost). Saving this does not end the match."
+For a company whose result was not reported yet, the `enemyBroken` reward tick comes prefilled from `MatchDefaults`.
 
 ## Mount lost
 
@@ -205,32 +196,21 @@ The data flag `requiresMount` comes from the Battle Companies file.
 
 ## Match log
 
-`GET .../matches/{match}/live/log` is the sheet (company page; `?company=` so Undo refreshes the zones out of band), `?card=1` the card of
-the match page (below History, drawn inline in the full page, refreshed on `live:match`), `?before=<seq>` the next 30 older rows. Newest first,
+`GET .../matches/{match}/live/log` is the log of the match page's **Log** card (with History, drawn inline in the full page, refreshed on `live:match`), `?before=<seq>` the next 30 older rows. Newest first,
 grouped by minute, Undo only where the service says `CanUndo` and the match is open; a dependency refusal shows in the log. After the
 match the card stays (read only, permanent); an ended match recorded after the fact says it has no log.
 
-## End checks
+## End match and Confirm sheets
 
-Code: `live_end.go`, `end_*` templates in `match.gohtml`.
+Code: `end_sheet.go`, template `end_sheet` in `match.gohtml`; the rules are in [matches.md](matches.md#the-sheets).
 
-**Where it shows.**
+`GET .../matches/{match}/end/sheet[?company=]` opens in the window of the match page or the live company page. It holds:
 
-- The sheet opens from the banner button (`GET .../matches/{match}/live/end?company=`).
-- The card on the match page (`?card=1`, `#end-checks-slot`) is refreshed on `live:match` and empty once the match ended.
-- Both show `core.EndChecks`.
+- the winner as buttons;
+- one MVP combobox per opposing company (`unitPick` in `match_form.js`, posted as `mvp-<company>`);
+- the objective chips of the viewer's companies, the reward ticks and the note.
 
-**What it holds.**
-
-- Per own company, a switch per unit "Got the objective" (`POST .../live/{company}/objective`, `unit`, `on`).
-- Per opposing company, a radio list "Select MVP" with "No MVP" (`POST .../live/{company}/mvp`, `unit`; 0 withdraws) and the vote tally. A tie says the owner picks in the aftermath ([aftermath.md](aftermath.md)).
-
-**Answers.**
-
-- Every write answers the body again with a message and Undo (`from=end|endcard` of the shared undo route).
-- A refusal is 422; a user with nothing to set gets 403.
-
-**Propose to end** is a button that fetches `.../live/end/reminder?revision=`: what is still open, with **Go back** and **Propose anyway**. It never blocks (`POST .../end/propose`).
+It posts to `POST .../end/propose` or `/end/confirm` (with `revision`), which answers `HX-Redirect` to the match page, or the sheet again with the reasons (422).
 
 ## Ending a match by confirmation
 
@@ -246,7 +226,7 @@ Code: `match.go` `handleEnd`, `live_end_banner.go`; templates `end_card`, `end_p
 
 - The header button is hidden while an end is pending.
 - The **End card** (`#end-card-slot`, refreshed on `live:match` through `GET .../end/card`, which also sends the header button out of band) lists one row per company: **Confirmed** with who and when, or **Waiting**.
-- It shows the reset notice and the buttons: **Confirm the end** (owner of a waiting company), **Withdraw my confirmation**, **Keep playing** (any participant, organiser, admin).
+- It shows the reset notice and the buttons: **Confirm** (owner of a waiting company: opens the Confirm sheet), **Withdraw my confirmation**, **Keep playing** (any participant, organiser, admin).
 - For the organiser or an administrator, while somebody waits, a quiet **End without confirmation...** opens the warning and the note field; the dialog stays open with the error on a missing note.
 - Viewers see rows without buttons.
 - The history line of an ended match carries `MatchEvent.Detail`.
@@ -255,7 +235,6 @@ Code: `match.go` `handleEnd`, `live_end_banner.go`; templates `end_card`, `end_p
 
 - `#live-end` inside the sticky `#live-banner` ("Ending: waiting for Gorgoroth", same actions, override included) is fetched on load and on `live:match` (`GET .../live/end/banner?company=`).
 - Its forms post with `view=banner&company=` and get the banner back, or `HX-Refresh` when the match ended.
-- **Start turn** is disabled with "Cancel the ending first: the match is about to end." while `liveView.EndPending`.
 - The log lines ("Ending cancelled: ...") come from the backend and show in the normal log.
 
 **Elsewhere.**
@@ -274,18 +253,6 @@ Code: `live.js`.
 - The dot is green "Live", or pulsing grey "Reconnecting": the browser retries every 3 s, and when the stream is back the page refetches what it missed (the state is in Postgres).
 - When the stream is refused (caps) or unsupported, the page polls every 10 s.
 
-## Secret objectives
-
-Code: `secret.go`, `secret_card` in `match.gohtml`; only for a scenario with `ScoringObjectives[].Secret`, i.e. Fog of War.
-
-The card
-(`GET .../matches/{match}/secret`, drawn inline in the full page; the endpoint serves the refresh and the fallback) lists, for each company the viewer owns, each secret objective with a nomination
-form (a select of own or enemy Heroes without the Leader unless he is the only Hero, or a text box for the terrain piece) and a tier radio
-list ("Not reached yet" clears); `POST .../secret/{company}` (`kind=nominate|done`, `key`, `unit`/`note`/`tier`) applies the live action, with an
-Undo (`from=secret`). While the match is open nothing of other players is shown but "Noted already: <companies>" (privacy is the service's);
-after End match the card lists everybody's. On the result form of an ended match the Victory Points of a side with none reported are prefilled
-from `SecretScore` with the badge "From the live match" (editable, saved only with Save result).
-
 ## Perks in the rolls
 
 The recruit roll form shows **Rendezvous** (Not now / +1 / -1, field `perk`, `RollRecruitWithPerk`) while the company has an unused
@@ -302,7 +269,7 @@ attributes (`data-stat-note`), besides the characteristic's tooltip, so it shows
 ## Finished campaigns are frozen
 
 My company is read only with the notice "frozen as it was" (`myCompanyView.Frozen`, badge "Frozen"; no recruit window),
-an open match says it stays open but cannot change, and shows no End checks, Roles or secret objectives cards. The organiser (not only administrators) sees
+an open match says it stays open but cannot change, and shows no End match card. The organiser (not only administrators) sees
 "Edit the result" and "Reopen match" on an ended match (`CanManageCampaign`).
 
 ## Match creation refusals
@@ -311,10 +278,10 @@ Shows "Company X is already in Match N." with a link (`*core.CompanyBusyError`) 
 first."; the aftermath sheet shows **From the live match** (heading badge and a line) while it is the unsaved default
 (`Aftermath.FromLive`).
 
-## To Wound chart (window)
+## Wound chart (window)
 
 `partials/to_wound.gohtml` (`to_wound_button`, `to_wound_dialog`, `to_wound_body`), `web/towound.go`, `static/js/towound.js`, the `tw-*` classes in `tailwind.css`; the
-behaviour and the reasons are in [matches.md](matches.md#to-wound-chart).
+behaviour and the reasons are in [matches.md](matches.md#wound-chart).
 
 - The button (`data-to-wound-open`) is on the match page (next to the heading, open matches) and in the live banner. `towound.js` turns its click into a window
   event (`open-to-wound`), as `dialog.js` does for `data-open-modal`: no inline handler. The window (`#to-wound-dialog`, `role="dialog" aria-modal="true"`, labelled
@@ -327,4 +294,4 @@ behaviour and the reasons are in [matches.md](matches.md#to-wound-chart).
   `93-to-wound` (4.5:1, light and dark), and the roll is always printed, so colour is not the only cue.
 
 
-See also: [live-match.md](live-match.md) (the rules of the mode), [matches.md](matches.md) (side roles, ending a match, the To Wound chart), [aftermath.md](aftermath.md) (the aftermath sheet and its MVP hint), [unit-keywords.md](unit-keywords.md), [architecture.md](architecture.md#live-match-design), [frontend-company.md](frontend-company.md), [frontend.md](frontend.md).
+See also: [live-match.md](live-match.md) (the rules of the mode), [matches.md](matches.md) (ending a match, the Wound chart), [aftermath.md](aftermath.md) (the aftermath sheet and its MVP hint), [unit-keywords.md](unit-keywords.md), [architecture.md](architecture.md#live-match-design), [frontend-company.md](frontend-company.md), [frontend.md](frontend.md).

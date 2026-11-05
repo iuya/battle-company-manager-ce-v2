@@ -626,7 +626,8 @@ type Path struct {
 	Name         string               `json:"name" required:"true" min:"1"`
 	ID           string               `json:"id,omitempty"`
 	Aka          []string             `json:"aka,omitempty"`
-	Kind         string               `json:"kind,omitempty" enum:"heroic|custom|endOfPath"` // default heroic
+	Kind         string               `json:"kind,omitempty" enum:"heroic|custom|endOfPath"`                                      // default heroic
+	Categories   []string             `json:"categories,omitempty" max:"2" enum:"support|melee|ranged|will" noun:"path category"` // what the path is for, the main one first: they give its colours
 	Extends      string               `json:"extends,omitempty"`
 	Dice         DiceSpec             `json:"dice,omitempty"` // default campaign.progression.hero.roll
 	Description  string               `json:"description,omitempty"`
@@ -671,21 +672,22 @@ type PathOption struct {
 
 // Scenario is a scenario.
 type Scenario struct {
-	Name              string    `json:"name" required:"true" min:"1"`
-	ID                string    `json:"id,omitempty"`
-	Aka               []string  `json:"aka,omitempty"`
-	Side              string    `json:"side,omitempty" enum:"both|attacker|defender"` // default both
-	Description       string    `json:"description,omitempty"`
-	Outline           string    `json:"outline,omitempty"`   // the short lead-in some scenarios print before the description
-	UsesRules         []string  `json:"usesRules,omitempty"` // rules applied without text of their own (Maelstrom of Battle): shown by name
-	Armies            string    `json:"armies,omitempty"`
-	Layout            string    `json:"layout,omitempty"`
-	StartingPositions string    `json:"startingPositions,omitempty"`
-	Objectives        string    `json:"objectives,omitempty"`
-	SpecialRules      Free      `json:"specialRules,omitempty"`
-	Roles             Free      `json:"roles,omitempty"`
-	Rewards           Free      `json:"rewards,omitempty"`
-	Scoring           []Scoring `json:"scoring,omitempty"`
+	Name              string     `json:"name" required:"true" min:"1"`
+	ID                string     `json:"id,omitempty"`
+	Aka               []string   `json:"aka,omitempty"`
+	Side              string     `json:"side,omitempty" enum:"both|attacker|defender"` // default both
+	Description       string     `json:"description,omitempty"`
+	Outline           string     `json:"outline,omitempty"`   // the short lead-in some scenarios print before the description
+	UsesRules         []string   `json:"usesRules,omitempty"` // rules applied without text of their own (Maelstrom of Battle): shown by name
+	Armies            string     `json:"armies,omitempty"`
+	Layout            string     `json:"layout,omitempty"`
+	StartingPositions string     `json:"startingPositions,omitempty"`
+	Objectives        string     `json:"objectives,omitempty"`
+	EndsAtLosses      *LossShare `json:"endsAtLosses,omitempty"` // the game ends once a company has lost this share of its starting models or more
+	SpecialRules      Free       `json:"specialRules,omitempty"`
+	Roles             Free       `json:"roles,omitempty"`
+	Rewards           Free       `json:"rewards,omitempty"`
+	Scoring           []Scoring  `json:"scoring,omitempty"`
 }
 
 // Scoring is one scoring objective of a scenario.

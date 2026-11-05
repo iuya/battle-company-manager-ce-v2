@@ -17,9 +17,7 @@ var _ interface {
 	SetCampaignStatus(ctx context.Context, actor core.User, campaignID int64, to core.CampaignStatus, confirm string) error
 	InvalidateInvites(ctx context.Context, actor core.User, campaignID int64) (int, error)
 	RegenerateInvite(ctx context.Context, actor core.User, campaignID int64) (core.Invite, error)
-	SetSideRoles(ctx context.Context, user core.User, id, matchID int64, revision int, roles []string) (core.Match, error)
-	SwapSideRoles(ctx context.Context, user core.User, id, matchID int64, revision int) (core.Match, error)
-	SecretObjectives(ctx context.Context, user core.User, id, matchID int64) (core.SecretView, error)
-	SecretScore(ctx context.Context, user core.User, id, matchID, companyID int64) (int, []core.SecretLine, bool, error)
+	MatchBreaks(ctx context.Context, id, matchID int64) (map[int64]core.LiveBreak, error)
+	MatchStarted(ctx context.Context, id, matchID int64) (bool, error)
 	Subscribe(ctx context.Context, user core.User, id, matchID int64) (core.LiveStream, error)
 } = (*campaignsFacade)(nil)

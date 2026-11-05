@@ -196,7 +196,7 @@ export default async function (h) {
     assert.equal(res.status(), 404, 'a company of another campaign is 404');
   });
 
-  await h.step('several companies: a match with two companies of one player carries the "Same player" note; the new match form shows it as you build', async () => {
+  await h.step('several companies: a match with two companies of one player carries the "Same player" note; the new match form disables her company that owes an aftermath', async () => {
     await eowyn.goto(`/campaigns/${bands}/matches`);
     const href = await eowyn.page.evaluate(() => [...document.querySelectorAll('main a[href]')].map((a) => a.getAttribute('href')).find((x) => /\/matches\/\d+$/.test(x) && document.querySelector(`a[href="${x}"]`).innerText.includes('Shieldmaidens')));
     assert.ok(href, 'the match of Éowyn\'s two companies is listed');
@@ -205,26 +205,17 @@ export default async function (h) {
     assert.ok(await eowyn.has('Eorlings of the Mark') && await eowyn.has('Shieldmaidens of the Deep') && await eowyn.has('Vanguard of the Black Gate'), 'all three companies are on it');
     // the form: side 1 starts with her first company
     await eowyn.goto(`/campaigns/${bands}/matches/new`);
-    assert.ok(await eowyn.has('Mine'), 'the Mine chip is there for a player with companies');
-    const search = (i) => `section:nth-of-type(${i}) input[type=search]`;
     await eowyn.page.waitForSelector('input[type=search]');
-    const boxes = await eowyn.page.$$('input[type=search]');
-    await boxes[1].click();
-    await boxes[1].type('Shield');
-    await eowyn.click('ul[role=listbox] button', 'Shieldmaidens of the Deep');
-    await eowyn.waitText('Same player: Éowyn plays both sides');
-    await eowyn.click('button[aria-label^="Remove Shieldmaidens"]');
-    await eowyn.waitGone('Same player: Éowyn plays both sides');
-    await (await eowyn.page.$$('input[type=search]'))[0].click();
-    await (await eowyn.page.$$('input[type=search]'))[0].type('Shield');
-    await eowyn.click('ul[role=listbox] button', 'Shieldmaidens of the Deep');
-    await eowyn.waitText("Both are Éowyn's");
-    void search;
-    // Mine narrows the search to her own
-    await eowyn.click('button', '=Mine');
-    await (await eowyn.page.$$('input[type=search]'))[1].click();
-    const listed = await eowyn.page.$$eval('ul[role=listbox] li[role=option]', (l) => l.filter((x) => x.getBoundingClientRect().height).map((x) => x.innerText));
-    assert.ok(listed.length === 0 || listed.every((t) => t.includes('Éowyn')), `Mine lists only her companies: ${listed}`);
+    assert.ok(!(await eowyn.page.$$eval('main button', (bs) => bs.some((b) => b.innerText.trim() === 'Mine'))), 'no Mine chip: her companies are marked instead');
+    // her own are marked "Yours" and listed first on side 1; once one is placed there, side 2 lists them last
+    const order = (side) => eowyn.page.$$eval(`section[aria-label="Side ${side}"] ul[role=listbox] button`, (bs) => bs.map((b) => b.hasAttribute('data-own') && b.getAttribute('data-own') !== 'false'));
+    const own1 = await order(1), own2 = await order(2);
+    assert.ok(own1.includes(true) && (own1.indexOf(false) === -1 || own1.lastIndexOf(true) < own1.indexOf(false)), `side 1: her companies first: ${own1}`);
+    assert.ok(own2.includes(true) && own2.lastIndexOf(false) < own2.indexOf(true), `side 2: her companies last: ${own2}`);
+    assert.ok(await eowyn.page.$$eval('section[aria-label="Side 1"] ul[role=listbox] button[data-own]', (bs) => bs.some((b) => b.innerText.includes('Yours'))), 'her companies carry the Yours badge');
+    // her second company still owes the aftermath of Match 2: it is listed but cannot be picked (the notes as you build: flow 100-practice-match)
+    const shield = await eowyn.page.$$eval('section[aria-label="Side 2"] ul[role=listbox] button', (bs) => bs.filter((b) => b.textContent.includes('Shieldmaidens of the Deep')).map((b) => ({ disabled: b.disabled, text: b.textContent })));
+    assert.ok(shield.length === 1 && shield[0].disabled && /Finish the aftermath of Match \d+ first\./.test(shield[0].text), `Shieldmaidens disabled with the reason: ${JSON.stringify(shield)}`);
   });
 
   for (const scheme of ['light', 'dark']) for (const w of SIZES) {

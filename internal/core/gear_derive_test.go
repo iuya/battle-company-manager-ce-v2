@@ -63,29 +63,6 @@ func TestVanillaReservedOptions(t *testing.T) {
 	}
 }
 
-func TestVanillaProfileWargearNotSold(t *testing.T) {
-	v, err := ParseVanilla([]byte(miniVanilla))
-	if err != nil {
-		t.Fatal(err)
-	}
-	sold := func(item string) bool { return ItemKey(item) == ItemKey("Hand weapons") } // the plural is the same item
-	for _, c := range []struct {
-		name  string
-		units []string
-		want  []ProfileWargear
-	}{
-		{"every unit a company uses", []string{"Hunter Orc Warrior", "Galadhrim Warrior", "Dwarf Ranger"},
-			[]ProfileWargear{{Item: "Armour", Units: []string{"Galadhrim Warrior", "Hunter Orc Warrior"}}, {Item: "Heavy armour", Units: []string{"Dwarf Ranger"}}}},
-		{"a unit twice and a unit vanilla lacks count once or not at all", []string{"Dwarf Ranger", "Dwarf Ranger", "Nobody"},
-			[]ProfileWargear{{Item: "Heavy armour", Units: []string{"Dwarf Ranger"}}}},
-		{"no unit, no item", nil, nil},
-	} {
-		if got := v.ProfileWargearNotSold(c.units, sold); !reflect.DeepEqual(got, c.want) {
-			t.Errorf("%s: got %v, want %v", c.name, got, c.want)
-		}
-	}
-}
-
 func TestApplyFillIns(t *testing.T) {
 	v, err := ParseVanilla([]byte(`{"data":{"warriors":[
  {"name":"Hunter Orc Warrior"},

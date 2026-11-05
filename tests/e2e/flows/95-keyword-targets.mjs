@@ -1,7 +1,7 @@
 // Who a rule works against (docs/unit-keywords.md "Rule targets"): the rule's tooltip and popup say "Works against: ...", the live match shows the
 // opponent's keyword chips on every card (also the compact ones), and an enemy unit that a rule of YOUR units names gets a "<rule> applies" marker.
 // The campaign "Keyword targets" has Gimli's Dwarves (Ancient Enemies (Orc)) and Radagast's Mirkwood company (Orcs, Goblins, Spiders), no match yet.
-import { assert, campaignId, layout, MODAL, SIZES } from '../lib/util.mjs';
+import { assert, campaignId, decideATO, layout, MODAL, SIZES } from '../lib/util.mjs';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
@@ -40,7 +40,7 @@ export default async function (h) {
     await you.goto(`/campaigns/${cid}/matches/new`);
     const pick = async (side, text) => {
       await you.page.evaluate((side, text) => {
-        let el = document.querySelector(`[name=side-name-${side}]`);
+        let el = document.querySelector(`section[aria-label="Side ${side}"]`);
         while (el && ![...el.querySelectorAll('button')].some((b) => b.innerText.includes(text))) el = el.parentElement;
         [...el.querySelectorAll('button')].find((b) => b.innerText.includes(text)).click();
       }, side, text);
@@ -50,6 +50,7 @@ export default async function (h) {
     await pick(2, 'Mirkwood');
     await you.click('main button', 'Create match', { nav: true }).catch(() => {});
     await you.settle(400);
+    await decideATO(you); // the organiser decides for the lower rated player
     const mid = (new URL(you.page.url()).pathname.match(/matches\/(\d+)/) || [])[1];
     assert.ok(mid, 'redirected to the new match: ' + you.page.url());
     const ids = await you.page.evaluate(() => [...new Set([...document.querySelectorAll('main a[href*="/companies/"]')].map((a) => a.getAttribute('href').match(/companies\/(\d+)/)[1]))]);
@@ -163,8 +164,7 @@ export default async function (h) {
       return slots.find((u) => (u.querySelector('h3')?.innerText || '').trim() === title && u.querySelector('[data-keywords] li.kw-chip')?.textContent.includes('Orc'))?.dataset.unitId;
     }, victim);
     assert.ok(id, 'the card of the Orc');
-    await radagast.liveSheet('retreat', id); // no Fled button on the card: its window
-    await radagast.click(MODAL + ' button', '=Retreated');
+    await radagast.liveRetreat(id);
     await radagast.waitText('Failed courage');
     // Gimli's page is refreshed by the event stream: one marker fewer, the rest are still there
     await gimli.page.waitForFunction((n) => document.querySelectorAll('#live-zones section[aria-label=Retreated] li, #live-zones [aria-label=Retreated] li').length > 0 && document.querySelectorAll('#live-zones .unit-slot [data-rule-match]').length === n,

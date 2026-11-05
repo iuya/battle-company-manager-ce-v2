@@ -132,14 +132,14 @@ type ExperienceGain struct {
 
 // BreakPoint is `campaign.breakPoint`.
 type BreakPoint struct {
-	Default            BreakDefault     `json:"default" required:"true"`
+	Default            LossShare        `json:"default" required:"true"`
 	Threshold          BreakThreshold   `json:"threshold" required:"true"`
 	WhenBroken         WhenBroken       `json:"whenBroken" required:"true"`
 	ScenarioExceptions []BreakException `json:"scenarioExceptions,omitempty"`
 }
 
-// BreakDefault is the Break Point of a company with none of its own.
-type BreakDefault struct {
+// LossShare is a share of the starting models lost: the Break Point of a company with none of its own, the losses that end a scenario.
+type LossShare struct {
 	Percent int    `json:"percent,omitempty" min:"1" max:"100"`
 	Share   Share  `json:"share,omitempty"` // "1/2"; or percent, not both: a whole percent either way
 	Of      string `json:"of,omitempty" enum:"startingModels"`

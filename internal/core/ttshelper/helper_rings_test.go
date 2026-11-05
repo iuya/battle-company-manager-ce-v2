@@ -14,8 +14,6 @@ var (
 	colBanner  = [3]float64{0xF0 / 255.0, 0xE4 / 255.0, 0x42 / 255.0}
 	colCommand = [3]float64{0xE6 / 255.0, 0x9F / 255.0, 0x00 / 255.0}
 	colEnemy   = [3]float64{0xD5 / 255.0, 0x5E / 255.0, 0x00 / 255.0}
-	colUtility = [3]float64{0xCC / 255.0, 0x79 / 255.0, 0xA7 / 255.0}
-	colSupport = [3]float64{0x56 / 255.0, 0xB4 / 255.0, 0xE9 / 255.0}
 	modCircle  = ttsfake.Line{Color: [3]float64{0, 0.8, 0.4}, Thickness: 0.05, Points: [][3]float64{{1, 0.1, 0}, {0, 0.1, 1}, {-1, 0.1, 0}, {1, 0.1, 0}}}
 )
 

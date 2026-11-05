@@ -3,7 +3,7 @@
 //    Tab trap, Copy to the clipboard, the switches (a Warg company), the remembered choice, 360/768/1280 px in both themes with axe.
 // 2. Another player's read-only company page, the wanderers and creatures of a Shire company (stand-ins, "Shown as").
 // 3. The live variant in a match: a retreated unit goes to a second warband after a blank line, with a note.
-import { assert, campaignId, layout, SIZES } from '../lib/util.mjs';
+import { assert, campaignId, decideATO, layout, SIZES } from '../lib/util.mjs';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
@@ -170,7 +170,7 @@ export default async function (h) {
       await you.goto(`/campaigns/${gallery}/matches/new`);
       const pick = async (side, t) => {
         await you.page.evaluate((side, t) => {
-          let el = document.querySelector(`[name=side-name-${side}]`);
+          let el = document.querySelector(`section[aria-label="Side ${side}"]`);
           while (el && ![...el.querySelectorAll('button')].some((b) => b.innerText.includes(t))) el = el.parentElement;
           [...el.querySelectorAll('button')].find((b) => b.innerText.includes(t)).click();
         }, side, t);
@@ -180,6 +180,7 @@ export default async function (h) {
       await pick(2, 'Rohan Company');
       await you.click('main button', 'Create match', { nav: true }).catch(() => {});
       await you.settle(400);
+      await decideATO(you); // the organiser decides for the lower rated player
       await angmar.goto(`/campaigns/${gallery}/my-company`);
     }
     await angmar.page.waitForSelector('#live-zones');
@@ -191,8 +192,7 @@ export default async function (h) {
     assert.ok(!(await angmar.page.$eval('#tts-body', (e) => /Second warband/.test(e.innerText))), 'no second warband yet');
     await close(angmar);
     // retreat the first unit of the field
-    await angmar.liveSheet('retreat'); // no Fled button on the card: its window
-    await angmar.click('[role=dialog] button', '=Retreated');
+    await angmar.liveRetreat();
     await angmar.waitText('Retreated');
     await angmar.settle(500);
     await open(angmar);

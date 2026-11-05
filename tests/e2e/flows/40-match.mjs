@@ -1,5 +1,5 @@
 // A match from creation to its aftermath, with two signed-in players and the organiser watching.
-import { assert, campaignId, MODAL, confirmDialog, sleep } from '../lib/util.mjs';
+import { chooseScenario, decideATO, endMatch, confirmEnd, assert, campaignId, MODAL, confirmDialog, sleep } from '../lib/util.mjs';
 
 export default async function (h) {
   const you = await h.session('you@example.com');
@@ -12,7 +12,7 @@ export default async function (h) {
     await you.goto(`/campaigns/${cid}/matches/new`);
     const pick = async (side, text) => {
       await you.page.evaluate((side, text) => {
-        let el = document.querySelector(`[name=side-name-${side}]`);
+        let el = document.querySelector(`section[aria-label="Side ${side}"]`);
         while (el && ![...el.querySelectorAll('button')].some((b) => b.innerText.includes(text))) el = el.parentElement;
         [...el.querySelectorAll('button')].find((b) => b.innerText.includes(text)).click();
       }, side, text);
@@ -30,11 +30,9 @@ export default async function (h) {
   });
   if (!mid) return;
 
-  await h.step('match: pick a scenario', async () => {
-    await you.click('main button', 'Choose scenario');
-    await you.click('main label', 'Chance Encounter');
-    await you.click('main button', 'Use this scenario');
-    await you.waitText('Chance Encounter');
+  await h.step('match: the match has the rolled scenario; Change scenario picks another before the game', async () => {
+    await chooseScenario(you, 'Chance Encounter');
+    await decideATO(you);
   });
 
   await h.step('live: both players open their company and see the live banner', async () => {
@@ -139,8 +137,7 @@ export default async function (h) {
   });
 
   await h.step('live: a unit retreats (failed courage) and returns to the battle', async () => {
-    await sauron.liveSheet('retreat'); // no Fled button on the card: its window
-    await sauron.click(MODAL + ' button', '=Retreated');
+    await sauron.liveRetreat();
     await sauron.waitText('Failed courage');
     await eowyn.goto(`/campaigns/${cid}/companies/${sCo}`);
     await eowyn.waitText('Failed courage');
@@ -148,15 +145,17 @@ export default async function (h) {
     await sauron.waitGone('Failed courage');
   });
 
-  await h.step('live: end checks (got the objective) and the match log', async () => {
+  await h.step('live: the company page has no stats and no log; a chip changes company and Go to match opens the log', async () => {
     await eowyn.goto(`/campaigns/${cid}/companies/${eCo}`);
-    await eowyn.click('main button', 'End checks');
-    await eowyn.click(MODAL + ' button', 'Rider of Rohan');
-    await eowyn.page.waitForFunction((m) => [...document.querySelectorAll(m + ' button')].some((b) => /^Rider of Rohan Has the objective$/.test(b.innerText.replace(/\s+/g, ' ').trim())), {}, MODAL);
-    await eowyn.click(MODAL + ' button[aria-label]', 'Close').catch(() => eowyn.page.keyboard.press('Escape'));
-    await eowyn.click('main button', 'Match log');
+    assert.ok(!(await eowyn.has('Match log')) && !(await eowyn.page.$('#company-influence')), 'no log and no resources in play');
+    assert.ok(await eowyn.page.$('#live-banner [data-match-companies] [aria-current="page"]'), 'the company on the page is marked');
+    await eowyn.click(`#live-banner [data-match-companies] a[href$="/companies/${sCo}"]`, '');
+    await eowyn.page.waitForFunction((co) => document.getElementById('live-zones')?.dataset.company === String(co), { timeout: 8000 }, sCo);
+    await eowyn.click('#live-banner [data-go-match]', '');
+    await eowyn.page.waitForSelector('#log[open] #live-log');
     await eowyn.waitText('wounded');
-    await eowyn.page.keyboard.press('Escape');
+    assert.ok(await eowyn.page.$('#scenario-folded[open]'), 'the scenario is open while the match is played');
+    await eowyn.goto(`/campaigns/${cid}/companies/${eCo}`);
   });
 
   // The stream is cut with request interception: aborted = a network error (the browser keeps retrying), refused = HTTP 429 (the
@@ -199,40 +198,38 @@ export default async function (h) {
     await you.page.waitForFunction(() => document.getElementById('live-dot-text')?.textContent === 'Live', { timeout: 8000 });
   });
 
-  await h.step('match: record the result, propose to end, the other player confirms', async () => {
-    await eowyn.goto(`/campaigns/${cid}/matches/${mid}`);
-    await eowyn.click('main label', 'Draw');
-    await eowyn.click('main button', 'Save result');
-    await eowyn.click('main button', 'Propose to end');
-    await eowyn.click('main button', 'Propose anyway');
-    await eowyn.waitText('proposed');
-    await sauron.goto(`/campaigns/${cid}/matches/${mid}`);
-    await sauron.click('main button', 'Confirm the end');
+  await h.step('match: End match (winner, MVP), the other player confirms with their own vote', async () => {
+    const path = `/campaigns/${cid}/matches/${mid}`;
+    await endMatch(eowyn, path, 'Draw');
+    await eowyn.waitText('proposes to end');
+    await confirmEnd(sauron, path);
     await sauron.waitText('Ended');
   });
 
-  await h.step('aftermath: start, finish (no casualties)', async () => {
-    await eowyn.goto(`/campaigns/${cid}/matches/${mid}/aftermath/${eCo}`);
-    await eowyn.click('main button', 'Start aftermath');
-    await eowyn.settle(500);
-    await eowyn.waitText('Finish aftermath');
-    await eowyn.click('main button', '=Finish aftermath');
+  await h.step('aftermath: no casualties, Start aftermath on the match page finishes it at once', async () => {
+    await eowyn.goto(`/campaigns/${cid}/matches/${mid}`);
+    await eowyn.click('#aftermath button', 'Start aftermath');
     await eowyn.settle(600);
+    await eowyn.page.waitForSelector('[data-change-summary]');
     await eowyn.goto(`/campaigns/${cid}/my-company`);
     assert.ok(!(await eowyn.has('The company is locked until the match ends')), 'the company is unlocked');
   });
 
-  await h.step('aftermath: the other player rolls for an injury and finishes', async () => {
-    await sauron.goto(`/campaigns/${cid}/matches/${mid}/aftermath/${sCo}`);
+  await h.step('aftermath: Start aftermath on the match page skips the sheet; the other player can go back to it, rolls for an injury and the aftermath finishes on its own', async () => {
+    await sauron.goto(`/campaigns/${cid}/matches/${mid}`);
+    await sauron.click('#aftermath button', 'Start aftermath');
+    await sauron.waitText('Edit the sheet again');
+    assert.ok(new URL(sauron.page.url()).pathname.endsWith(`/aftermath/${sCo}`), 'the aftermath page opens');
+    assert.equal(await sauron.page.$$eval('main fieldset.unit', (f) => f.length), 0, 'the sheet is not the step in front of the player');
+    await sauron.click('main button', 'Edit the sheet again');
+    await sauron.page.waitForSelector('main fieldset.unit');
     await sauron.click('main button', 'Start aftermath');
     await sauron.settle(500);
     const dice = await sauron.page.$$('main select');
     await dice[0].select('3'); await dice[1].select('4');
     await sauron.click('main button', 'Roll 2D6');
     await sauron.waitGone('Roll 2D6', 15000);
-    await sauron.waitText('Finish aftermath');
-    await sauron.click('main button', '=Finish aftermath');
-    await sauron.settle(600);
+    await sauron.page.waitForSelector('[data-change-summary]', { timeout: 15000 }); // the last roll finishes it
     await sauron.goto(`/campaigns/${cid}/my-company`);
     assert.ok(!(await sauron.has('The company is locked until the match ends')), 'the company is unlocked');
   });

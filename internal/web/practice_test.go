@@ -1,9 +1,11 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 
@@ -19,7 +21,7 @@ func practiceMatch(ended bool) core.Match {
 	m := editableMatch()
 	m.Practice, m.Ended = true, ended
 	if ended {
-		m.Result = core.MatchResult{Decided: true, Winner: 1, Sides: make([]core.SideResult, 2)}
+		m.Result = core.MatchResult{Decided: true, Winner: 1}
 	}
 	return m
 }
@@ -62,7 +64,7 @@ func TestCreateMatchFormKeepsThePracticeBoxWhenRefused(t *testing.T) {
 	f.camp.EXPECT().Companies(gomock.Any(), int64(7)).Return([]core.CampaignCompany{{ID: 1, Name: "A"}, {ID: 2, Name: "B"}}, nil)
 	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), gomock.Any()).Return(core.Match{}, core.Refuse("A cannot play yet."))
 	rec := f.do(f.signedIn(form("/campaigns/7/matches", url.Values{"sides": {"2"}, "side-1": {"1"}, "side-2": {"2"}, "practice": {"1"}})))
-	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "practice: true") {
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), `data-practice="true"`) {
 		t.Errorf("got %d: the box stays ticked", rec.Code)
 	}
 }
@@ -78,31 +80,47 @@ func TestNewMatchFormHasThePracticeBox(t *testing.T) {
 				t.Errorf("%s lacks %q", path, want)
 			}
 		}
-		if got := strings.Contains(body, "practice: true"); got != ticked {
+		if got := strings.Contains(body, `data-practice="true"`); got != ticked {
 			t.Errorf("%s: ticked = %v, want %v", path, got, ticked)
 		}
 	}
 }
 
-func TestMatchesListShowsTheBadgeAndTheFilter(t *testing.T) {
+func TestMatchesListShowsTheBadgeAndTheFilters(t *testing.T) {
 	list := func(f *fixture) {
-		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
+		d := campaignDetail()
+		d.Companies = []core.CampaignCompany{{ID: 1, Name: "Rangers", OwnerID: frodo.ID}}
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
 		f.camp.EXPECT().Companies(gomock.Any(), int64(7)).Return(twoCompanies, nil).AnyTimes()
-		real, practice := editableMatch(), practiceMatch(true)
-		real.ID, real.Number, practice.ID, practice.Number = 1, 1, 2, 2
-		f.camp.EXPECT().Matches(gomock.Any(), int64(7)).Return([]core.Match{practice, real}, nil)
+		open, practice, other := editableMatch(), practiceMatch(true), outsiderMatch()
+		open.ID, open.Number, practice.ID, practice.Number, other.ID, other.Number = 1, 1, 2, 2, 4, 4
+		other.Sides[0].Companies[0].ID = 9
+		f.camp.EXPECT().Matches(gomock.Any(), int64(7)).Return([]core.Match{other, practice, open}, nil)
 	}
-	f := newFixture(t, Config{})
-	list(f)
-	body := f.do(f.signedIn(httpGet("/campaigns/7/matches"))).Body.String()
-	if strings.Count(body, "data-practice-badge") != 1 || !strings.Contains(body, `href="/campaigns/7/matches/1"`) || !strings.Contains(body, `data-filter-practice`) || !strings.Contains(body, `ml-1 text-muted">1</span>`) {
-		t.Errorf("the list shows both, one badge and the chip with its count:\n%s", body)
-	}
-	f = newFixture(t, Config{})
-	list(f)
-	body = f.do(f.signedIn(httpGet("/campaigns/7/matches?practice=1"))).Body.String()
-	if strings.Contains(body, `href="/campaigns/7/matches/1"`) || !strings.Contains(body, `href="/campaigns/7/matches/2"`) {
-		t.Errorf("the Practice filter lists only practice matches:\n%s", body)
+	for filter, want := range map[string][]int{"": {1, 2, 4}, "mine": {1, 2}, "open": {1, 4}, "ended": {2}} {
+		f := newFixture(t, Config{})
+		list(f)
+		path := "/campaigns/7/matches"
+		if filter != "" {
+			path += "?filter=" + filter
+		}
+		body := f.do(f.signedIn(httpGet(path))).Body.String()
+		for _, id := range []int{1, 2, 4} {
+			if got := strings.Contains(body, fmt.Sprintf(`href="/campaigns/7/matches/%d"`, id)); got != slices.Contains(want, id) {
+				t.Errorf("%q: match %d listed = %v", filter, id, got)
+			}
+		}
+		if slices.Contains(want, 2) && strings.Count(body, "data-practice-badge") != 1 {
+			t.Errorf("%q: the practice match has its badge", filter)
+		}
+		for _, chip := range []string{`data-filter="mine"`, `data-filter="open"`, `data-filter="ended"`} {
+			if !strings.Contains(body, chip) {
+				t.Errorf("%q: lacks the chip %s", filter, chip)
+			}
+		}
+		if strings.Contains(body, "data-filter-practice") {
+			t.Error("no Practice filter: practice is a badge on the row")
+		}
 	}
 }
 
@@ -129,7 +147,7 @@ func TestMatchPageMarksAPracticeMatch(t *testing.T) {
 	for _, ended := range []bool{false, true} {
 		f := matchWrite(t, practiceMatch(ended))
 		f.aftermaths = twoAftermaths(core.AftermathDone, core.AftermathDone)
-		body := f.do(f.signedIn(httpGet(matchPath))).Body.String()
+		body := f.do(f.signedIn(httpGet(testMatchPath))).Body.String()
 		for _, want := range []string{"data-practice-badge", "data-practice-banner", "Practice match: no experience, influence, rewards or injuries."} {
 			if !strings.Contains(body, want) {
 				t.Errorf("ended=%v lacks %q", ended, want)
@@ -146,7 +164,7 @@ func TestMatchPageMarksAPracticeMatch(t *testing.T) {
 		}
 	}
 	f := matchWrite(t, editableMatch())
-	if body := f.do(f.signedIn(httpGet(matchPath))).Body.String(); strings.Contains(body, "data-practice") {
+	if body := f.do(f.signedIn(httpGet(testMatchPath))).Body.String(); strings.Contains(body, "data-practice") {
 		t.Error("a real match has no practice marks")
 	}
 }
@@ -198,7 +216,7 @@ func TestATOCardShowsTheRewardBonusesDisabledInAPracticeMatch(t *testing.T) {
 	c.Options = append(c.Options, core.ATOOption{Key: "influence", Name: "Influence", Rating: 15, Taken: true, Reason: core.ATOPracticeReason})
 	c.Selection = core.ATOSelection{Bonuses: []string{"influence"}}
 	f.camp.EXPECT().AgainstTheOdds(gomock.Any(), frodo, int64(7), int64(3)).Return(c, nil)
-	body := htmxGet(f, matchPath+"/ato").Body.String()
+	body := htmxGet(f, testMatchPath+"/ato").Body.String()
 	if strings.Count(body, core.ATOPracticeReason) < 2 || !strings.Contains(body, "data-ato-practice") || !strings.Contains(body, `name="bonus" value="toolKit"`) {
 		t.Errorf("reward bonuses show the reason, table effects stay:\n%s", body)
 	}

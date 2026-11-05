@@ -1,6 +1,6 @@
-// The To Wound chart (docs/matches.md, "To Wound chart"): a window opened from the match page and from the live company page, with a find
+// The To Wound chart (docs/matches.md, "Wound chart"): a window opened from the match page and from the live company page, with a find
 // control, the rulebook's values, and a window that no live refresh closes. Axe, contrast and screenshots at 3 widths x 2 themes.
-import { assert, campaignId, layout, SIZES, contrast } from '../lib/util.mjs';
+import { assert, campaignId, decideATO, layout, SIZES, contrast } from '../lib/util.mjs';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
@@ -35,7 +35,7 @@ export default async function (h) {
       await you.goto(`/campaigns/${gallery}/matches/new`);
       const pick = async (side, t) => {
         await you.page.evaluate((side, t) => {
-          let el = document.querySelector(`[name=side-name-${side}]`);
+          let el = document.querySelector(`section[aria-label="Side ${side}"]`);
           while (el && ![...el.querySelectorAll('button')].some((b) => b.innerText.includes(t))) el = el.parentElement;
           [...el.querySelectorAll('button')].find((b) => b.innerText.includes(t)).click();
         }, side, t);
@@ -45,6 +45,7 @@ export default async function (h) {
       await pick(2, 'Rohan Company');
       await you.click('main button', 'Create match', { nav: true }).catch(() => {});
       await you.settle(400);
+      await decideATO(you); // the organiser decides for the lower rated player
       await angmar.goto(`/campaigns/${gallery}/my-company`);
     }
     await angmar.page.waitForSelector('#live-zones');
@@ -64,7 +65,7 @@ export default async function (h) {
     for (const [S, D, want] of [[3, 3, '4+'], [4, 6, '5+'], [5, 3, '3+'], [1, 1, '4+'], [2, 7, '6+/4+'], [1, 9, '-'], [9, 10, '5+']]) assert.equal(await cell(you, S, D), want, `S${S} vs D${D}`);
     assert.ok(await you.page.$eval(DLG, (d) => d.contains(document.activeElement)), 'focus moved into the window');
     const label = await you.page.$eval(DLG, (d) => d.getAttribute('aria-labelledby'));
-    assert.match(await you.page.$eval(`#${label}`, (e) => e.innerText), /To Wound/);
+    assert.match(await you.page.$eval(`#${label}`, (e) => e.innerText), /Wound chart/);
     await close(you);
     assert.equal(await shown(you), false, 'Escape closes');
     assert.ok(await you.page.evaluate(() => document.activeElement?.hasAttribute('data-to-wound-open')), 'focus is back on the button');
@@ -109,7 +110,7 @@ export default async function (h) {
 
   await h.step('to-wound: the live company page has the button in the banner and the window outside #live-zones; a live refresh does not close it or lose the pick', async () => {
     await angmar.goto(`/campaigns/${gallery}/my-company`);
-    assert.equal(await angmar.page.$eval('#live-banner [data-to-wound-open]', (b) => b.innerText.trim()), 'To wound');
+    assert.equal(await angmar.page.$eval('#live-banner [data-to-wound-open]', (b) => b.innerText.trim()), 'Wound chart');
     assert.equal(await angmar.page.$eval(DLG, (e) => !!e.closest('#live-zones, #live-banner')), false, 'outside what is swapped or sticky');
     await open(angmar);
     await find(angmar, 4, 6);

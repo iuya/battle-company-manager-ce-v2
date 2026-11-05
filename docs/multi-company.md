@@ -117,7 +117,7 @@ That refusal is intended.
 | Armoury | The company named by `?company=ID` (default: the active one); the Buy forms carry a hidden `company` field |
 | Rankings | Every company, the owner's name on each row, all of the viewer's rows highlighted |
 | New company | Open while below the limit, titled "Create another company" from the second one; at the limit it redirects to My Company with a notice |
-| New match | The search lists companies by name, owner or faction; a **Mine** chip narrows it to the viewer's own; a company already in an open match is disabled |
+| New match | The search lists companies by name, owner or faction; the viewer's own are marked "Yours" and listed first (last on the other sides once one is placed); a company that cannot play right now (in an open match, a path or an aftermath pending) is struck through and disabled, with the reason |
 | Match, live match, aftermath | The owner's name next to every company name |
 
 The tab and sidebar keep the label "My Company".
@@ -188,8 +188,7 @@ Other entry points:
 
 - Companies of one player may share a side or face each other.
   Ending a match counts one confirmation per company, and one owner confirms all of theirs with one tap.
-- Secret objectives are written per company.
-  A voter who owns companies in the match votes only for companies of teams other than any team of their own, and abstains when none remains.
+  A company is opposing for a voter who owns a company on another side, so a player with companies on two sides votes every company of the match, their own included.
 - Against the Odds compares only matches of two sides with one company each.
 
 ## Opening the last campaign

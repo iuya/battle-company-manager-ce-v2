@@ -3,7 +3,6 @@ package core
 import (
 	"errors"
 	"slices"
-	"strings"
 	"testing"
 )
 
@@ -25,20 +24,18 @@ func TestRank(t *testing.T) {
 }
 
 func TestValidateSides(t *testing.T) {
-	got, err := ValidateSides([]NewSide{{Name: " Gondor ", Companies: []int64{1}}, {Companies: []int64{2, 3}}, {Companies: []int64{4}}})
+	got, err := ValidateSides([]NewSide{{Companies: []int64{1}}, {Companies: []int64{2, 3}}, {Companies: []int64{4}}})
 	if err != nil {
 		t.Fatalf("three sides: %v", err)
 	}
-	if got[0].Name != "Gondor" || got[1].Name != "Side 2" || got[2].Name != "Side 3" {
+	if got[0].Name != "Side 1" || got[1].Name != "Side 2" || got[2].Name != "Side 3" {
 		t.Errorf("names: %+v", got)
 	}
-	long := strings.Repeat("a", 41)
 	for name, sides := range map[string][]NewSide{
 		"one side":           {{Companies: []int64{1}}},
 		"empty side":         {{Companies: []int64{1}}, {}},
 		"same company twice": {{Companies: []int64{1}}, {Companies: []int64{1}}},
 		"twice on one side":  {{Companies: []int64{1, 1}}, {Companies: []int64{2}}},
-		"long name":          {{Name: long, Companies: []int64{1}}, {Companies: []int64{2}}},
 		"too many sides":     make([]NewSide, 9),
 	} {
 		if _, err := ValidateSides(sides); !errors.Is(err, ErrInvalidMatch) {

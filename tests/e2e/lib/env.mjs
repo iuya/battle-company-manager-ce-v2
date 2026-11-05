@@ -67,7 +67,7 @@ export class Env {
   // done once per version of the seed script, the migrations and the rules files, then copied per run).
   async prepare(log) {
     mkdirSync(outDir, { recursive: true });
-    this.bin = join(outDir, `bcm-e2e-server-${process.pid}`); // one binary per run: parallel runs must not overwrite each other's
+    this.bin = join(outDir, `bcm-e2e-server-${process.pid}${process.platform === 'win32' ? '.exe' : ''}`); // one binary per run: parallel runs must not overwrite each other's
     log('building the server');
     sh('go', ['build', '-o', this.bin, './cmd/server']);
     // Seeding the template and copying from it must not overlap with another run (PostgreSQL refuses CREATE DATABASE ... TEMPLATE while

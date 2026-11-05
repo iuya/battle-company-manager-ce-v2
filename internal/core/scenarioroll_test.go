@@ -39,26 +39,3 @@ func TestScenarioByRollsUsesTheRealFile(t *testing.T) {
 		}
 	}
 }
-
-func TestTopDog(t *testing.T) {
-	side := func(points ...int) MatchSide {
-		var s MatchSide
-		for _, p := range points {
-			s.Companies = append(s.Companies, CampaignCompany{Points: p})
-		}
-		return s
-	}
-	if top, under := (Match{Sides: []MatchSide{side(100), side(120, 10)}}).TopDog(); top != 1 || under != 0 {
-		t.Errorf("sums of the side: %d %d", top, under)
-	}
-	if top, _ := (Match{Sides: []MatchSide{side(100), side(100)}}).TopDog(); top != -1 {
-		t.Error("a tie has no top dog")
-	}
-	if top, _ := (Match{Sides: []MatchSide{side(1), side(2), side(3)}}).TopDog(); top != -1 {
-		t.Error("three sides have no top dog")
-	}
-	full := MatchSide{Companies: []CampaignCompany{{Points: 90, FullPoints: 110}}}
-	if full.Rating() != 110 {
-		t.Error("full points count")
-	}
-}

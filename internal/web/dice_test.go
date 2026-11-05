@@ -14,24 +14,19 @@ import (
 // has a number of dice or of faces of its own.
 
 func TestScenarioRollFollowsTheDieOfTheRules(t *testing.T) {
-	f := rollSetup(t, editableMatch(), core.CampaignSettings{ManualRolls: true})
+	m := editableMatch()
+	f := rollSetup(t, m, core.CampaignSettings{ManualRolls: true})
 	f.selection = core.ScenarioSelection{Die: core.NdM(1, 8), Tables: []core.ScenarioTableRange{{Min: 1, Max: 3}, {Min: 4, Max: 5}, {Min: 6, Max: 8}}}
-	rec := f.do(f.signedIn(form(matchPath+"/scenario/roll", url.Values{"roll": {"8"}, "roll2": {"1"}})))
+	var sides []int
+	seq := []int{8, 1}
+	f.srv.die = func(n int) int { sides = append(sides, n); v := seq[0]; seq = seq[1:]; return v }
+	done := m
+	done.Scenario = &core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Rescue"}
+	f.camp.EXPECT().SetScenario(gomock.Any(), frodo, int64(7), int64(3), 4, core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Rescue"}).Return(done, nil)
+	rec := f.do(f.signedIn(form(testMatchPath+"/scenario/roll", url.Values{"revision": {"4"}})))
 	body := rec.Body.String()
-	if rec.Code != 200 || !strings.Contains(body, `data-pick="Rescue"`) || !strings.Contains(body, `data-sides="8"`) || !strings.Contains(body, "table 3") {
-		t.Errorf("an 8 and a 1 on d8 dice pick table 3: %d %s", rec.Code, body)
-	}
-	for _, want := range []string{`<option value="8">I rolled a 8</option>`, "roll a D8 to pick one of the 3 tables"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the roll panel lacks %q", want)
-		}
-	}
-	if strings.Contains(body, `<option value="9">`) {
-		t.Error("the typed die has more faces than the rules' die")
-	}
-	rec = f.do(f.signedIn(form(matchPath+"/scenario/roll", url.Values{"roll": {"9"}, "roll2": {"1"}})))
-	if rec.Code != 422 || !strings.Contains(rec.Body.String(), "A die shows 1 to 8.") {
-		t.Errorf("a 9 on a d8: %d", rec.Code)
+	if rec.Code != 200 || !strings.Contains(body, "Rolled <strong>8</strong> (table 3) and <strong>1</strong>") || len(sides) != 2 || sides[0] != 8 || sides[1] != 8 {
+		t.Errorf("an 8 and a 1 on d8 dice pick table 3: %d %v %s", rec.Code, sides, body)
 	}
 }
 
@@ -152,16 +147,5 @@ func TestLevelUpFormFollowsTheDiceOfTheRules(t *testing.T) {
 	}
 	if strings.Contains(body, `name="roll4"`) || strings.Contains(body, `<option value="13">`) {
 		t.Error("more results or faces than the rules have")
-	}
-}
-
-func TestCourageSheetFollowsTheCourageDice(t *testing.T) {
-	saved := testRuleDice
-	t.Cleanup(func() { testRuleDice = saved })
-	testRuleDice.Courage = core.NdM(3, 8)
-	f := liveSetupWith(t, core.LiveEdit, brokenState)
-	body := f.do(f.signedIn(httpGet("/campaigns/7/matches/3/live/1/units/5/sheet/courage"))).Body.String()
-	if !strings.Contains(body, "Roll 3D8") || !strings.Contains(body, "tests Courage (3D8, at least its Courage)") || strings.Contains(body, "2D6") {
-		t.Errorf("the courage window prints the dice of the rules file: %s", body)
 	}
 }

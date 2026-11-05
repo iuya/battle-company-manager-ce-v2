@@ -23,14 +23,14 @@ type matchStore struct{ s *Store }
 func (s *Store) Matches() matchStore { return matchStore{s} }
 
 const matchColumns = `m.id, m.number, m.played_on, m.ended, m.ended_on, m.revision, m.decided, m.winner, m.note,
-	m.scenario_kind, m.scenario_name, m.scenario_description, m.scenario_victory, m.practice`
+	m.scenario_kind, m.scenario_name, m.scenario_description, m.scenario_victory, m.practice, m.ato_decided`
 
 // matchJSON are the columns of a match that come from other tables, as JSON built by the match's own statement (one round trip for
 // the whole match instead of one per table). Times are microseconds since the epoch.
 const matchJSON = `
-	(SELECT COALESCE(jsonb_agg(jsonb_build_array(s.name, s.victory_points, coalesce(s.role, '')) ORDER BY s.position), '[]')
+	(SELECT COALESCE(jsonb_agg(s.name ORDER BY s.position), '[]')
 	   FROM match_sides s WHERE s.match_id = m.id),
-	(SELECT COALESCE(jsonb_agg(jsonb_build_array(mc.position, mc.fled, c.id, c.name, c.faction, c.owner_id, u.display_name,
+	(SELECT COALESCE(jsonb_agg(jsonb_build_array(mc.position, c.id, c.name, c.faction, c.owner_id, u.display_name,
 	                                             (SELECT count(*) FROM company_units cu WHERE cu.company_id = c.id)) ORDER BY mc.position, mc.slot), '[]')
 	   FROM match_side_companies mc JOIN companies c ON c.id = mc.company_id JOIN users u ON u.id = c.owner_id WHERE mc.match_id = m.id),
 	(SELECT jsonb_build_array(p.proposed_by, pu.display_name, (extract(epoch FROM p.proposed_on) * 1000000)::bigint, p.notice)
@@ -65,7 +65,7 @@ func (ms matchStore) load(ctx context.Context, q querier, where string, lock boo
 		var sc core.MatchScenario
 		var sides, companies, proposal, confirmations, objectives []byte
 		if err := rows.Scan(&m.ID, &m.Number, &m.PlayedOn, &m.Ended, &m.EndedOn, &m.Revision, &m.Result.Decided, &m.Result.Winner,
-			&m.Result.Note, &kind, &sc.Name, &sc.Description, &sc.Victory, &m.Practice, &sides, &companies, &proposal, &confirmations, &objectives); err != nil {
+			&m.Result.Note, &kind, &sc.Name, &sc.Description, &sc.Victory, &m.Practice, &m.ATODecided, &sides, &companies, &proposal, &confirmations, &objectives); err != nil {
 			return nil, err
 		}
 		m.Winner = m.Result.Winner
@@ -84,36 +84,26 @@ func (ms matchStore) load(ctx context.Context, q querier, where string, lock boo
 // fillMatch decodes matchJSON into the match.
 func fillMatch(m *core.Match, sidesJSON, companiesJSON, proposalJSON, confirmationsJSON, objectivesJSON []byte) error {
 	// Sides, in order.
-	var sides [][3]json.RawMessage
-	if err := json.Unmarshal(sidesJSON, &sides); err != nil {
+	var names []string
+	if err := json.Unmarshal(sidesJSON, &names); err != nil {
 		return err
 	}
-	for _, r := range sides {
-		var side core.MatchSide
-		var vp *int
-		if err := unmarshalAll(r[:], &side.Name, &vp, &side.Role); err != nil {
-			return err
-		}
-		m.Sides = append(m.Sides, side)
-		m.Result.Sides = append(m.Result.Sides, core.SideResult{VictoryPoints: vp})
+	for _, name := range names {
+		m.Sides = append(m.Sides, core.MatchSide{Name: name})
 	}
 
-	// Companies of the sides, with what was reported for them.
-	var companies [][8]json.RawMessage
+	// Companies of the sides.
+	var companies [][7]json.RawMessage
 	if err := json.Unmarshal(companiesJSON, &companies); err != nil {
 		return err
 	}
 	for _, r := range companies {
 		var pos int
-		var fled bool
 		var c core.CampaignCompany
-		if err := unmarshalAll(r[:], &pos, &fled, &c.ID, &c.Name, &c.Faction, &c.OwnerID, &c.Owner, &c.Units); err != nil {
+		if err := unmarshalAll(r[:], &pos, &c.ID, &c.Name, &c.Faction, &c.OwnerID, &c.Owner, &c.Units); err != nil {
 			return err
 		}
 		m.Sides[pos].Companies = append(m.Sides[pos].Companies, c)
-		if fled {
-			m.Result.Companies = append(m.Result.Companies, core.CompanyResult{CompanyID: c.ID, Fled: true})
-		}
 	}
 
 	// The pending end, with one entry per company of the match (a company without a confirmation row is waiting).
@@ -153,7 +143,7 @@ func fillMatch(m *core.Match, sidesJSON, companiesJSON, proposalJSON, confirmati
 		m.EndProposal = &p
 	}
 
-	// Objectives, merged into the company entries (one per company that fled or completed something).
+	// Objectives, one company entry per company that completed something.
 	var objectives [][3]json.RawMessage
 	if err := json.Unmarshal(objectivesJSON, &objectives); err != nil {
 		return err
@@ -298,14 +288,20 @@ func (ms matchStore) Create(ctx context.Context, campaignID int64, by core.User,
 		return core.Match{}, core.ErrArchived
 	}
 	var id int64
+	var kind *string
+	var sc core.MatchScenario
+	if in.Scenario != nil {
+		k := string(in.Scenario.Kind)
+		kind, sc = &k, *in.Scenario
+	}
 	if err := tx.QueryRow(ctx, `
-		INSERT INTO matches (campaign_id, number, created_by, practice)
-		VALUES ($1, (SELECT coalesce(max(number), 0) + 1 FROM matches WHERE campaign_id = $1), $2, $3) RETURNING id`,
-		campaignID, by.ID, in.Practice).Scan(&id); err != nil {
+		INSERT INTO matches (campaign_id, number, created_by, practice, scenario_kind, scenario_name, scenario_description, scenario_victory)
+		VALUES ($1, (SELECT coalesce(max(number), 0) + 1 FROM matches WHERE campaign_id = $1), $2, $3, $4, $5, $6, $7) RETURNING id`,
+		campaignID, by.ID, in.Practice, kind, sc.Name, sc.Description, sc.Victory).Scan(&id); err != nil {
 		return core.Match{}, err
 	}
 	for pos, side := range in.Sides {
-		if _, err := tx.Exec(ctx, `INSERT INTO match_sides (match_id, position, name, role) VALUES ($1, $2, $3, $4)`, id, pos, side.Name, nullRole(side.Role)); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO match_sides (match_id, position, name) VALUES ($1, $2, $3)`, id, pos, side.Name); err != nil {
 			return core.Match{}, err
 		}
 		for slot, companyID := range side.Companies {
@@ -372,13 +368,8 @@ func openMatchOf(ctx context.Context, q querier, companyID int64) (*core.OpenMat
 	return &r, nil
 }
 
-// Update runs fn on the locked match and stores the scenario, result and ended flag it leaves behind.
-func (ms matchStore) Update(ctx context.Context, campaignID, matchID int64, by core.User, fn func(*core.Match) error) (core.Match, error) {
-	tx, err := ms.s.pool.Begin(ctx)
-	if err != nil {
-		return core.Match{}, err
-	}
-	defer tx.Rollback(ctx)
+// lockMatch reads the match under a row lock held until tx ends; core.ErrNotFound when there is none.
+func (ms matchStore) lockMatch(ctx context.Context, tx pgx.Tx, campaignID, matchID int64) (core.Match, error) {
 	list, err := ms.load(ctx, tx, `m.campaign_id = $1 AND m.id = $2`, true, campaignID, matchID)
 	if err != nil {
 		return core.Match{}, err
@@ -389,7 +380,20 @@ func (ms matchStore) Update(ctx context.Context, campaignID, matchID int64, by c
 		}
 		return core.Match{}, core.ErrNotFound
 	}
-	before := list[0]
+	return list[0], nil
+}
+
+// Update runs fn on the locked match and stores the scenario, result and ended flag it leaves behind.
+func (ms matchStore) Update(ctx context.Context, campaignID, matchID int64, by core.User, fn func(*core.Match) error) (core.Match, error) {
+	tx, err := ms.s.pool.Begin(ctx)
+	if err != nil {
+		return core.Match{}, err
+	}
+	defer tx.Rollback(ctx)
+	before, err := ms.lockMatch(ctx, tx, campaignID, matchID)
+	if err != nil {
+		return core.Match{}, err
+	}
 	m := before
 	if err := fn(&m); err != nil {
 		return core.Match{}, err
@@ -402,9 +406,6 @@ func (ms matchStore) Update(ctx context.Context, campaignID, matchID int64, by c
 			return core.Match{}, err
 		}
 	}
-	if len(m.Result.Sides) != 0 && len(m.Result.Sides) != len(before.Sides) {
-		return core.Match{}, errors.New("postgres: result sides do not match the match's sides")
-	}
 	var kind *string
 	var sc core.MatchScenario
 	if m.Scenario != nil {
@@ -415,49 +416,25 @@ func (ms matchStore) Update(ctx context.Context, campaignID, matchID int64, by c
 		UPDATE matches SET scenario_kind = $2, scenario_name = $3, scenario_description = $4, scenario_victory = $5,
 		       decided = $6, winner = $7, note = $8, ended = $9,
 		       ended_on = CASE WHEN NOT $9 THEN NULL WHEN ended THEN ended_on ELSE now() END,
-		       revision = revision + 1
+		       ato_decided = $10, revision = revision + 1
 		 WHERE id = $1`,
-		matchID, kind, sc.Name, sc.Description, sc.Victory, m.Result.Decided, m.Result.Winner, m.Result.Note, m.Ended); err != nil {
+		matchID, kind, sc.Name, sc.Description, sc.Victory, m.Result.Decided, m.Result.Winner, m.Result.Note, m.Ended, m.ATODecided); err != nil {
 		return core.Match{}, err
 	}
-	rolesChanged := false
-	for pos := range before.Sides {
-		rolesChanged = rolesChanged || (pos < len(m.Sides) && m.Sides[pos].Role != before.Sides[pos].Role)
-	}
-	if rolesChanged { // clear first: swapping Attacker and Defender passes through a state the unique index forbids
-		if _, err := tx.Exec(ctx, `UPDATE match_sides SET role = NULL WHERE match_id = $1`, matchID); err != nil {
+	if m.ATODecided != before.ATODecided && !m.Ended { // a change of the scenario reopened Against the Odds: the pages of the match refetch it
+		if err := notifyLive(ctx, tx, liveNotice{Match: matchID, Kind: "changed"}); err != nil {
 			return core.Match{}, err
 		}
-		for pos, side := range m.Sides {
-			if side.Role != "" {
-				if _, err := tx.Exec(ctx, `UPDATE match_sides SET role = $3 WHERE match_id = $1 AND position = $2`, matchID, pos, side.Role); err != nil {
-					return core.Match{}, err
-				}
-			}
-		}
-	}
-	for pos := range before.Sides {
-		var vp *int16
-		if pos < len(m.Result.Sides) && m.Result.Sides[pos].VictoryPoints != nil {
-			v := int16(*m.Result.Sides[pos].VictoryPoints)
-			vp = &v
-		}
-		if _, err := tx.Exec(ctx, `UPDATE match_sides SET victory_points = $3 WHERE match_id = $1 AND position = $2`, matchID, pos, vp); err != nil {
-			return core.Match{}, err
-		}
-	}
-	if _, err := tx.Exec(ctx, `UPDATE match_side_companies SET fled = false WHERE match_id = $1`, matchID); err != nil {
-		return core.Match{}, err
 	}
 	if _, err := tx.Exec(ctx, `DELETE FROM match_objectives WHERE match_id = $1`, matchID); err != nil {
 		return core.Match{}, err
 	}
 	for _, c := range m.Result.Companies {
-		tag, err := tx.Exec(ctx, `UPDATE match_side_companies SET fled = $3 WHERE match_id = $1 AND company_id = $2`, matchID, c.CompanyID, c.Fled)
-		if err != nil {
+		var known bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM match_side_companies WHERE match_id = $1 AND company_id = $2)`, matchID, c.CompanyID).Scan(&known); err != nil {
 			return core.Match{}, err
 		}
-		if tag.RowsAffected() == 0 {
+		if !known {
 			return core.Match{}, errors.Join(core.ErrInvalidMatch, errors.New("a company in the result is not in this match"))
 		}
 		for key, n := range c.Objectives {
@@ -496,7 +473,7 @@ func (ms matchStore) Update(ctx context.Context, campaignID, matchID int64, by c
 			return core.Match{}, err
 		}
 	}
-	list, err = ms.load(ctx, tx, `m.id = $1`, false, matchID)
+	list, err := ms.load(ctx, tx, `m.id = $1`, false, matchID)
 	if err != nil || len(list) == 0 {
 		return core.Match{}, err
 	}
@@ -647,12 +624,4 @@ func (ms matchStore) Grants(ctx context.Context, campaignID, companyID int64) ([
 		return slices.Clone(a.Grants[companyID]), nil
 	}
 	return out, nil
-}
-
-// nullRole stores no tag as NULL.
-func nullRole(role string) *string {
-	if role == "" {
-		return nil
-	}
-	return &role
 }

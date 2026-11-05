@@ -167,7 +167,7 @@ func hostileWorld(t *testing.T) (*fixture, []string) {
 	hostileCompany := d.Companies[0]
 
 	match := core.Match{ID: 3, Number: 3, Scenario: &core.MatchScenario{Kind: core.ScenarioCustom, Name: "n", Description: "d", Victory: "v"},
-		Result: core.MatchResult{Decided: true, Winner: 1, Note: "n", Sides: make([]core.SideResult, 2)},
+		Result: core.MatchResult{Decided: true, Winner: 1, Note: "n"},
 		Sides: []core.MatchSide{
 			{Name: "n", Companies: []core.CampaignCompany{{ID: 1, Name: "n", OwnerID: 1, Owner: "o"}}},
 			{Name: "n", Companies: []core.CampaignCompany{{ID: 2, Name: "n", OwnerID: 50, Owner: "o"}}}}}

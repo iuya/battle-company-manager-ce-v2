@@ -20,45 +20,37 @@ export default async function (h) {
     }
     await s.goto(urls[name]);
   }
-  // The succession form: its legend, radios and button.
+  // The succession form: its legend and the cards of the Warriors, each answered by its own button.
   const form = (s) => s.page.evaluate(() => {
     const f = [...document.querySelectorAll('form')].find((x) => /has no hero left/.test(x.innerText));
     if (!f) return null;
-    const radios = [...f.querySelectorAll('input[type=radio]')].map((r) => ({ value: r.value, checked: r.checked, required: r.required, label: r.closest('label').innerText.replace(/\s+/g, ' ').trim() }));
-    return { legend: f.querySelector('legend').innerText.replace(/\s+/g, ' ').trim(), radios, button: f.querySelector('button')?.innerText.trim(), text: f.innerText.replace(/\s+/g, ' ') };
+    const answers = [...f.querySelectorAll('button[name=answer]')].map((b) => ({ value: b.value, label: b.closest('article').innerText.replace(/\s+/g, ' ').trim() }));
+    return { legend: f.querySelector('legend').innerText.replace(/\s+/g, ' ').trim(), answers, radios: f.querySelectorAll('input[type=radio]').length, text: f.innerText.replace(/\s+/g, ' ') };
   });
 
-  await h.step('fallback: one Warrior ahead in Experience is offered alone, already chosen, with no "nobody" option', async () => {
+  await h.step('fallback: one Warrior ahead in Experience is offered alone, with no "nobody" option and one button', async () => {
     await open(sauron, 'Orcs with one clear veteran');
     const f = await form(sauron);
     assert.ok(f, 'the succession form is on the page');
     assert.match(f.legend, /A Sergeant has fallen and the company has no hero left\./);
     assert.match(f.legend, /The Warrior with the most Experience becomes a Sergeant/);
-    assert.equal(f.radios.length, 1, 'one Warrior listed');
-    assert.ok(f.radios[0].checked && f.radios[0].required, 'it is chosen and the answer is mandatory');
-    assert.match(f.radios[0].label, /Mordor Orc Warrior.*Experience.*pts/);
-    assert.ok(!f.radios.some((r) => r.value === ''), 'there is no "nobody" answer');
+    assert.equal(f.answers.length, 1, 'one Warrior listed');
+    assert.equal(f.radios, 0, 'nothing to tick first');
+    assert.match(f.answers[0].label, /Mordor Orc Warrior.*pts.*Experience.*Make Sergeant/);
+    assert.ok(!f.answers.some((r) => r.value === ''), 'there is no "nobody" answer');
     assert.ok(!/Nobody/i.test(f.text), 'the word nobody is not offered');
-    assert.equal(f.button, 'Choose');
   });
 
-  await h.step('fallback: two Warriors tied for the most Experience are both listed, nobody is chosen for the player, an answer is required', async () => {
+  await h.step('fallback: two Warriors tied for the most Experience are both offered, each with its own button', async () => {
     await open(gimli, 'Dwarves with two equal veterans');
     const f = await form(gimli);
     assert.ok(f);
     assert.match(f.legend, /2 Warriors are tied for the most Experience \(then the highest rating\): choose which one becomes a Sergeant/);
-    assert.equal(f.radios.length, 2);
-    assert.ok(f.radios.every((r) => !r.checked && r.required), 'none is pre-selected and each is required');
-    assert.ok(!f.radios.some((r) => r.value === ''), 'no "nobody" answer');
-    const xps = f.radios.map((r) => r.label.match(/(\d+) Experience/)[1]);
+    assert.equal(f.answers.length, 2);
+    assert.ok(!f.answers.some((r) => r.value === ''), 'no "nobody" answer');
+    const xps = f.answers.map((r) => r.label.match(/(\d+) Experience/)[1]);
     assert.equal(xps[0], xps[1], 'the tied Warriors have the same Experience');
     assert.ok(Number(xps[0]) >= 3);
-    // submitting without choosing is refused by the browser (required radio), nothing is sent
-    const before = gimli.reqCount;
-    await gimli.page.evaluate(() => [...document.querySelectorAll('form')].find((x) => /has no hero left/.test(x.innerText)).querySelector('button').click());
-    await gimli.settle(300);
-    assert.equal(gimli.reqCount, before, 'no request without an answer');
-    assert.ok(await gimli.page.evaluate(() => !!document.querySelector('input[type=radio]:invalid')), 'the browser flags the missing answer');
   });
 
   await h.step('fallback: a Leader who fell with both Sergeants is replaced from the Warriors, and the answer is mandatory', async () => {
@@ -67,7 +59,7 @@ export default async function (h) {
     assert.ok(f);
     assert.match(f.legend, /The Leader has fallen and the company has no hero left\./);
     assert.match(f.legend, /becomes the Leader|choose which one becomes the Leader/);
-    assert.ok(f.radios.length >= 1 && f.radios.every((r) => r.required) && !f.radios.some((r) => r.value === ''));
+    assert.ok(f.answers.length >= 1 && !f.answers.some((r) => r.value === ''));
   });
 
   await h.step('fallback: the screen fits 360, 768 and 1280 px in light and dark', async () => {
@@ -84,9 +76,14 @@ export default async function (h) {
   await h.step('fallback: the chosen Warrior becomes the Sergeant and is asked for its path', async () => {
     await open(gimli, 'Dwarves with two equal veterans');
     const f = await form(gimli);
-    const pick = f.radios[1];
-    await gimli.page.evaluate((v) => document.querySelector(`input[type=radio][value="${v}"]`).click(), pick.value);
-    await gimli.click('form button', '=Choose');
+    // one press anywhere on the card answers: it is clicked away from the button
+    const card = await gimli.page.$(`button[name=answer][value="${f.answers[1].value}"]`);
+    const plate = await card.evaluateHandle((b) => b.closest('article').querySelector('.unit-head'));
+    await plate.asElement().evaluate((e) => e.scrollIntoView({ block: 'center' }));
+    const box = await plate.asElement().boundingBox();
+    const hit = await gimli.page.evaluate((x, y) => { const e = document.elementFromPoint(x, y); return e && `${e.tagName}.${e.className}`; }, box.x + box.width / 2, box.y + box.height / 2);
+    assert.match(hit, /unit-choice-go/, 'the card answers wherever it is pressed');
+    await gimli.page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     await gimli.settle(500);
     const t = await gimli.text();
     assert.match(t, /Dwarf Warrior 2 becomes a Sergeant \(Hero in the Making: choose its path\)/);
@@ -102,17 +99,10 @@ export default async function (h) {
     const modal = await gimli.page.$eval('#modal-body', (m) => m.innerText);
     assert.match(modal, /is a sergeant of the company and has to follow a path/i);
     assert.ok(await gimli.page.$$eval(MODAL + ' input[name=path]', (r) => r.length >= 2 && r.every((x) => x.required)), 'at least two paths, a choice is required');
-    // a path cannot be taken while the aftermath is open: the refusal says so and nothing changes
-    gimli.allow.push(/422/);
-    await gimli.click(MODAL + ' label', '');
-    await gimli.click(MODAL + ' button', 'Take this path');
-    await gimli.settle(400);
-    assert.match(await gimli.page.$eval('#modal-body', (m) => m.innerText), /Finish the aftermath of Match 1 first\./);
     await gimli.page.keyboard.press('Escape');
-    // finish the aftermath, then the path can be taken
+    // the last answer finished the aftermath on its own (nothing else to decide), so the path can be taken at once
     await open(gimli, 'Dwarves with two equal veterans');
-    await gimli.click('button', 'Finish aftermath');
-    await gimli.settle(500);
+    assert.ok(await gimli.page.$('[data-change-summary]'), 'the aftermath finished by itself after the last decision');
     await gimli.goto(`/campaigns/${cid}/my-company`);
     await gimli.click('main button.promo', 'Choose a path');
     await gimli.page.waitForSelector(MODAL + ' form input[name=path]', { visible: true });

@@ -150,7 +150,7 @@ func BenchmarkPages(b *testing.B) {
 		{"home", eowyn, "/"}, {"nav", eowyn, "/nav/campaigns"},
 		{"overview", eowyn, fmt.Sprintf("/campaigns/%d", m)}, {"my-company", eowyn, myCompany},
 		{"armoury", eowyn, fmt.Sprintf("/campaigns/%d/armory", m)}, {"matches", eowyn, fmt.Sprintf("/campaigns/%d/matches", m)},
-		{"match", admin, matchPath}, {"ato-card", admin, matchPath + "/ato"}, {"log-card", admin, matchPath + "/live/log?card=1"},
+		{"match", admin, matchPath}, {"ato-card", admin, matchPath + "/ato"}, {"log-card", admin, matchPath + "/live/log"},
 		{"live", admin, livePath}, {"aftermath", admin, aftermath[:len(aftermath)-1]},
 		{"new-company", newCompanyUser, newCompanyPath},
 		{"tts", eowyn, fmt.Sprintf("/campaigns/%d/companies/%s/tts", m, ownCompany[1])},

@@ -34,7 +34,7 @@ func showFinished(r *http.Request) bool {
 	return err == nil && c.Value == "1"
 }
 
-// handleHome is GET /: a signed-in user with a valid bcm-last cookie goes to the campaign Overview they opened last; everyone else
+// handleHome is GET /: a signed-in user with a valid bcm-last cookie goes to My Company of the campaign they opened last; everyone else
 // sees the campaign list. The cookie is checked against the database every time and cleared when it is malformed, another user's,
 // finished, or the campaign is no longer the user's.
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +52,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 				s.serverError(w, r, err)
 				return
 			default:
-				http.Redirect(w, r, "/campaigns/"+itoa(int(d.ID))+"/my-company", http.StatusSeeOther)
+				http.Redirect(w, r, campaignPath(d.ID)+"/my-company", http.StatusSeeOther)
 				return
 			}
 		}

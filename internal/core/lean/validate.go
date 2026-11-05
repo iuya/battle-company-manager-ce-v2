@@ -2,6 +2,7 @@ package lean
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -215,6 +216,9 @@ func (v *validator) pins(van *Vanilla) {
 }
 
 func (v *validator) scenario(s *Scenario, path string) {
+	if s.EndsAtLosses != nil {
+		v.scenarioEnd(s.EndsAtLosses, Join(path, "endsAtLosses"))
+	}
 	seen := map[string]int{}
 	for i, sc := range s.Scoring {
 		p := Idx(Join(path, "scoring"), i)
@@ -277,6 +281,11 @@ func (v *validator) gear(g *Gear, path string) {
 }
 
 func (v *validator) pathStructure(p *Path, path string) {
+	for i, c := range p.Categories {
+		if slices.Contains(p.Categories[:i], c) {
+			v.rep.Errorf(Idx(Join(path, "categories"), i), "%q is already a category of this path", c)
+		}
+	}
 	forEachOption(p.Rows, path, func(o *PathOption, op string) {
 		set := 0
 		for _, b := range []bool{o.Stat != "", o.Rule != nil, o.MinorRule != nil, o.HeroicAction != "", o.Power != "", o.CastingValue != 0, len(o.OneOf) > 0, o.AnyMinorRule, o.AnyHeroicAction, o.AnyPower} {
@@ -532,13 +541,4 @@ func (v *validator) officers(c *Company, path string) {
 	if w := h.Who; w != nil && (w.Hero != nil || len(w.Race) > 0 || len(w.Keywords) > 0 || w.Alignment != "") {
 		v.rep.Add(Issue{Path: Join(Join(path, "heroes"), "who"), Message: "the starting heroes are chosen by unit name: only units and except count here", Hint: "list the units that may lead (units) or the ones that may not (except)"})
 	}
-}
-
-func inList(list []string, key string) bool {
-	for _, x := range list {
-		if NameKey(x) == key {
-			return true
-		}
-	}
-	return false
 }

@@ -105,7 +105,7 @@ func (as atoStore) Get(ctx context.Context, campaignID, matchID int64) (core.ATO
 		FROM matches m LEFT JOIN match_ato a ON a.match_id = m.id WHERE m.id = $1 AND m.campaign_id = $2`, matchID, campaignID).
 		Scan(&companyID, &sel, &prev, &had)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return core.ATORecord{}, core.ErrNotFound
+		return core.ATORecord{}, as.s.notFoundOrArchived(ctx, campaignID)
 	}
 	if err != nil {
 		return core.ATORecord{}, err
@@ -128,7 +128,7 @@ func (as atoStore) GameStarted(ctx context.Context, campaignID, matchID int64) (
 	err := as.s.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM match_live_log WHERE match_id = m.id AND undone_at IS NULL)
 		FROM matches m WHERE m.id = $1 AND m.campaign_id = $2`, matchID, campaignID).Scan(&started)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return false, core.ErrNotFound
+		return false, as.s.notFoundOrArchived(ctx, campaignID)
 	}
 	return started, err
 }
@@ -142,14 +142,10 @@ func (as atoStore) Update(ctx context.Context, campaignID, matchID int64, by cor
 		return core.Match{}, err
 	}
 	defer tx.Rollback(ctx)
-	list, err := ms.load(ctx, tx, `m.campaign_id = $1 AND m.id = $2`, true, campaignID, matchID)
+	before, err := ms.lockMatch(ctx, tx, campaignID, matchID)
 	if err != nil {
 		return core.Match{}, err
 	}
-	if len(list) == 0 {
-		return core.Match{}, as.s.notFoundOrArchived(ctx, campaignID)
-	}
-	before := list[0]
 	st := core.ATOState{Match: before}
 	if st.Record, err = as.read(ctx, tx, matchID); err != nil {
 		return core.Match{}, err
@@ -167,14 +163,17 @@ func (as atoStore) Update(ctx context.Context, campaignID, matchID int64, by cor
 		kind, sc = &k, *st.Match.Scenario
 	}
 	if _, err := tx.Exec(ctx, `
-		UPDATE matches SET scenario_kind = $2, scenario_name = $3, scenario_description = $4, scenario_victory = $5, revision = revision + 1
-		 WHERE id = $1`, matchID, kind, sc.Name, sc.Description, sc.Victory); err != nil {
+		UPDATE matches SET scenario_kind = $2, scenario_name = $3, scenario_description = $4, scenario_victory = $5, ato_decided = $6, revision = revision + 1
+		 WHERE id = $1`, matchID, kind, sc.Name, sc.Description, sc.Victory, st.Match.ATODecided); err != nil {
 		return core.Match{}, err
 	}
-	if !reflect.DeepEqual(before.EndProposal, st.Match.EndProposal) { // a change of the selection resets the confirmations of a pending end
+	endChanged := !reflect.DeepEqual(before.EndProposal, st.Match.EndProposal) // a change of the selection resets the confirmations of a pending end
+	if endChanged {
 		if err := storeEndProposal(ctx, tx, matchID, by, st.Match.EndProposal); err != nil {
 			return core.Match{}, err
 		}
+	}
+	if endChanged || before.ATODecided != st.Match.ATODecided { // the pages of the match refetch: the rival is waiting for the decision
 		if err := notifyLive(ctx, tx, liveNotice{Match: matchID, Kind: "changed"}); err != nil {
 			return core.Match{}, err
 		}
@@ -209,7 +208,7 @@ func (as atoStore) Update(ctx context.Context, campaignID, matchID int64, by cor
 			return core.Match{}, err
 		}
 	}
-	list, err = ms.load(ctx, tx, `m.id = $1`, false, matchID)
+	list, err := ms.load(ctx, tx, `m.id = $1`, false, matchID)
 	if err != nil || len(list) == 0 {
 		return core.Match{}, err
 	}

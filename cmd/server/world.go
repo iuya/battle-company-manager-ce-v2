@@ -412,6 +412,7 @@ func seedWorld(ctx context.Context, b *backend, dice *demoDice, password string,
 		{"gallery of companies", w.galleryCampaign},
 		{"injuries and treatment", w.injuryCampaign},
 		{"level-ups", w.levelCampaign},
+		{"level-up options", w.levelOptionsCampaign},
 		{"units, creatures, wanderers and limits", w.limitsCampaign},
 		{"keyword targets", w.targetsCampaign},
 		{"matches and scenarios", w.matchCampaign},
@@ -421,7 +422,8 @@ func seedWorld(ctx context.Context, b *backend, dice *demoDice, password string,
 		{"cemetery, invites and handover", w.finishingTouches},
 		{"several companies per player", w.bandsCampaign},
 		{"veterans with long trackers", w.veteransCampaign},
-		{"Fog of War live notes and retreats", w.fogCampaign},
+		{"Fog of War live retreats", w.fogCampaign},
+		{"Break Point and 25% milestones", w.breakMilestonesCampaign},
 		{"a lowered company limit", w.loweredLimit},
 		{"account invitations and recovery links", w.adminStates},
 	} {
@@ -445,7 +447,5 @@ func (w *world) loadScenarios() {
 	// the campaign that exists first is a scratch one to read the scenarios of the default file
 	w.scenarios = map[string]core.ScenarioInfo{}
 }
-
-var errNoWarrior = errors.New("the company has no warrior for the script")
 
 func itoa(n int64) string { return fmt.Sprint(n) }

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,6 +9,9 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
@@ -197,7 +201,7 @@ func effectItemName(rules core.AftermathRules, key string) string {
 	if best == "" {
 		return key
 	}
-	return strings.Title(best) //nolint:staticcheck // ASCII equipment names
+	return cases.Title(language.Und, cases.NoLower).String(best)
 }
 
 // effectResultName is the chart row a Wondrous Cram counts as ("Full Recovery").
@@ -250,9 +254,6 @@ func (v aftermathView) UnitNames() string {
 	return string(b)
 }
 
-// ItemModifier is the injury-roll modifier the saved sheet elects (Healing Herbs: +1), 0 without.
-func (v aftermathView) ItemModifier() int { return core.RollModifierOf(v.Rules, v.A.Input).Amount }
-
 // ItemBanner is the sentence of the injuries step when a modifier is in force.
 func (v aftermathView) ItemBanner() string {
 	rm := core.RollModifierOf(v.Rules, v.A.Input)
@@ -278,6 +279,8 @@ type aftermathView struct {
 	Units   []sheetUnit
 	Absent  []core.CompanyUnit
 	Roster  map[int64]core.CompanyUnit
+	fallen  map[int64]core.CompanyUnit // the cemetery: a casualty buried by its result keeps its card on the page
+	order   map[int64]int              // each unit's place in the company's order, the fallen included
 
 	// RangerFell: the company's Ranger of the North fell in this match and a reinforcement may bring one back (an informational line).
 	RangerFell bool
@@ -290,8 +293,17 @@ type aftermathView struct {
 
 	Animate map[int64]bool // the casualties the server just rolled: their dice are shown rolling first
 
-	ShowFinish bool                       // the Finish block is open (the player continued, or no level-up roll waits)
-	Offers     map[string][]freeOfferView // free equipment to choose from, by the key of the reward that offers it
+	Offers map[string][]freeOfferView // free equipment to choose from, by the key of the reward that offers it
+}
+
+// CasualtyUnit is the unit a casualty's card shows, on the roster or already in the cemetery, under the casualty's title.
+func (v aftermathView) CasualtyUnit(c core.Casualty) core.CompanyUnit {
+	u, ok := v.Roster[c.UnitID]
+	if !ok {
+		u = v.fallen[c.UnitID]
+	}
+	u.Name = c.Name
+	return u
 }
 
 // Owner is whether the viewer plays this company: the level-up window of My Company works on the viewer's own company.
@@ -312,8 +324,37 @@ func (v aftermathView) Waiting() (out []core.CompanyUnit) {
 			out = append(out, unit)
 		}
 	}
-	slices.SortFunc(out, func(a, b core.CompanyUnit) int { return strings.Compare(a.Title(), b.Title()) })
+	slices.SortFunc(out, func(a, b core.CompanyUnit) int {
+		return cmp.Or(v.casualtiesFirst(a.ID, b.ID), strings.Compare(a.Title(), b.Title()))
+	})
 	return out
+}
+
+// companyOrder gives each unit its place in the company's order. The fallen count too (OrderUnits treats them like the units the
+// formation does not name), so that a casualty buried by its result keeps a sensible place among the others.
+func companyOrder(detail core.CompanyDetail) map[int64]int {
+	units := slices.Clone(detail.Roster)
+	for _, f := range detail.Cemetery {
+		units = append(units, f.Unit)
+	}
+	order := make(map[int64]int, len(units))
+	for i, u := range core.OrderUnits(units, detail.Formation) {
+		order[u.ID] = i
+	}
+	return order
+}
+
+// casualtiesFirst compares two units for the lists after the sheet: the casualties of the match, then the company's order.
+func (v aftermathView) casualtiesFirst(a, b int64) int {
+	_, ca := v.casualty(a)
+	_, cb := v.casualty(b)
+	switch {
+	case ca && !cb:
+		return -1
+	case cb && !ca:
+		return 1
+	}
+	return v.order[a] - v.order[b]
 }
 
 // Chosen says whether the player already answered the decision of a reward (it is not in Pending any more).
@@ -408,6 +449,35 @@ func (v aftermathView) CanReroll(c core.Casualty) bool {
 
 // Chart is the injuries chart of the casualty's kind of unit.
 func (v aftermathView) Chart(c core.Casualty) []core.InjuryRow { return v.Rules.Chart(c.Hero) }
+
+// CasualtyPending says the card of a casualty waits for the viewer: to roll, or to answer a question of its result.
+func (v aftermathView) CasualtyPending(c core.Casualty) bool {
+	return v.Edit() && (!c.Rolled || c.Decision != nil)
+}
+
+// CasualtyTone is the colour of a rolled casualty's strip: a unit lost, a unit hurt or out of the next game, and a recovery.
+func (v aftermathView) CasualtyTone(c core.Casualty) string {
+	switch {
+	case v.Fallen(c):
+		return "danger"
+	case c.Kind == core.CasualtyInjured || c.Kind == core.CasualtyInjury || c.Kind == core.CasualtyScratch:
+		return "warn"
+	}
+	return "success"
+}
+
+// RollText is the roll of a casualty in words: "Rolled 1 + 2 = 3", with its modifier if it has one.
+func (v aftermathView) RollText(c core.Casualty) string {
+	dice := make([]string, len(c.Dice))
+	for i, d := range c.Dice {
+		dice[i] = strconv.Itoa(d)
+	}
+	mod := ""
+	if c.Modifier != 0 {
+		mod = fmt.Sprintf(" %+d", c.Modifier)
+	}
+	return "Rolled " + strings.Join(dice, " + ") + mod + " = " + strconv.Itoa(c.Total)
+}
 
 // DiceCSV is a casualty's two dice for the rolling animation.
 func (v aftermathView) DiceCSV(c core.Casualty) string {
@@ -533,21 +603,115 @@ func (v aftermathView) Note(c core.Casualty) string {
 // Edit is whether the viewer may change the aftermath.
 func (v aftermathView) Edit() bool { return v.A.Access == core.AftermathEdit }
 
-// Step is the index of the current step: 0 Sheet, 1 Injuries, 2 Level-ups (Finish follows on Continue), 4 when it is all over.
+// The steps of an aftermath, in order. Their numbers are the indexes of the stepper and of the aftermath-step-N sections of the page.
+const (
+	stepSheet = iota
+	stepInjuries
+	stepLevelUps // never the current step: its rolls wait on the unit cards and do not hold the aftermath
+	stepRewards  // a scenario reward waits for a choice; otherwise the aftermath finishes on its own
+	stepDone
+)
+
+// Step is the index of the current step.
 func (v aftermathView) Step() int {
 	switch v.A.Status {
 	case core.AftermathInjuries:
-		return 1
+		return stepInjuries
 	case core.AftermathLevelUps:
-		return 2
+		return stepRewards
 	case core.AftermathDone, core.AftermathWaived:
-		return 4 // every step is behind
+		return stepDone // every step is behind
 	}
-	return 0
+	return stepSheet
+}
+
+// OnSheet says that the Sheet is the current step.
+func (v aftermathView) OnSheet() bool { return v.Step() == stepSheet }
+
+// OnInjuries says that the Injuries are the current step.
+func (v aftermathView) OnInjuries() bool { return v.Step() == stepInjuries }
+
+// InjuriesAhead says that the Injuries step has not been reached.
+func (v aftermathView) InjuriesAhead() bool { return v.Step() < stepInjuries }
+
+// OnRewards says that the Rewards are the current step.
+func (v aftermathView) OnRewards() bool { return v.Step() == stepRewards }
+
+// experienceGiven says that the units already count the experience of the match (from the Rewards step on).
+func (v aftermathView) experienceGiven() bool { return v.Step() >= stepRewards }
+
+// aftermathStep is one step of the stepper.
+type aftermathStep struct {
+	Name  string
+	Index int
+}
+
+// Steps are the steps that apply (docs/aftermath.md, "Flow"): Injuries only with a casualty, Level-ups only with a roll waiting,
+// Rewards only while a scenario reward waits for a choice.
+func (v aftermathView) Steps() []aftermathStep {
+	out := []aftermathStep{{"Sheet", stepSheet}}
+	if v.HasInjuries() {
+		out = append(out, aftermathStep{"Injuries", stepInjuries})
+	}
+	if v.HasLevelUps() {
+		out = append(out, aftermathStep{"Level-ups", stepLevelUps})
+	}
+	if v.A.Status == core.AftermathLevelUps {
+		out = append(out, aftermathStep{"Rewards", stepRewards})
+	}
+	return append(out, aftermathStep{"Done", stepDone})
+}
+
+// HasInjuries says whether the aftermath has (or, on the sheet, will have) a casualty roll.
+func (v aftermathView) HasInjuries() bool {
+	if v.OnSheet() {
+		return v.Casualties() > 0
+	}
+	return len(v.A.Casualties) > 0
+}
+
+// HasLevelUps says whether a level-up roll waits once the experience is given.
+func (v aftermathView) HasLevelUps() bool {
+	return v.experienceGiven() && v.A.Status != core.AftermathWaived && len(v.Waiting()) > 0
+}
+
+// ChangeSummary is the first line of a finished aftermath: "+7 XP, +5 Influence, 1 dead, 2 level-ups ready".
+func (v aftermathView) ChangeSummary() string {
+	xp, influence, dead := 0, 0, 0
+	for _, l := range v.A.Lines {
+		switch l.Kind {
+		case "experience":
+			xp += l.Amount
+		case "influence":
+			influence += l.Amount
+		}
+	}
+	for _, c := range v.A.Casualties {
+		if v.Fallen(c) {
+			dead++
+		}
+	}
+	var parts []string
+	if xp != 0 {
+		parts = append(parts, fmt.Sprintf("%+d XP", xp))
+	}
+	if influence != 0 {
+		parts = append(parts, fmt.Sprintf("%+d Influence", influence))
+	}
+	if dead > 0 {
+		parts = append(parts, fmt.Sprintf("%d dead", dead))
+	}
+	if n := len(v.Waiting()); n > 0 {
+		parts = append(parts, fmt.Sprintf("%d %s ready", n, core.Plural(n, "level-up", "level-ups")))
+	}
+	if len(parts) == 0 {
+		return "Nothing changed"
+	}
+	return strings.Join(parts, ", ")
 }
 
 // Editing is whether the Sheet step shows its form.
-func (v aftermathView) Editing() bool { return v.Edit() && v.Step() == 0 }
+func (v aftermathView) Editing() bool { return v.Edit() && v.OnSheet() }
 
 // Closed says that nothing more will happen: the aftermath is done or waived.
 func (v aftermathView) Closed() bool {
@@ -624,7 +788,7 @@ func (v aftermathView) Influence() (n int) {
 	return n
 }
 
-// Gains are the ways to earn experience the sheet offers as chips: participation is the "Took part" switch.
+// Gains are the ways to earn experience the sheet offers as milestones: participation is the "Absent" toggle.
 func (v aftermathView) Gains() []core.XPGain {
 	var out []core.XPGain
 	for _, g := range v.Rules.Gains {
@@ -677,8 +841,6 @@ func (v aftermathView) UnitName(id int64) string { return v.Roster[id].Title() }
 // OutcomeText is the header's badge text.
 func (v aftermathView) OutcomeText() string {
 	switch {
-	case v.A.Fled:
-		return "Fled (All is Lost)"
 	case v.A.Outcome == "win":
 		return "Win"
 	case v.A.Outcome == "draw":
@@ -689,7 +851,7 @@ func (v aftermathView) OutcomeText() string {
 
 func (v aftermathView) OutcomeTone() string {
 	switch {
-	case v.A.Fled, v.A.Outcome == "loss":
+	case v.A.Outcome == "loss":
 		return "loss"
 	case v.A.Outcome == "win":
 		return "win"
@@ -741,6 +903,11 @@ func (s *Server) newAftermathView(r *http.Request, base campaignBase, m core.Mat
 	for _, u := range core.Distinguish(detail.Roster) {
 		v.Roster[u.ID] = u
 	}
+	v.fallen = make(map[int64]core.CompanyUnit, len(detail.Cemetery))
+	for _, f := range detail.Cemetery {
+		v.fallen[f.Unit.ID] = f.Unit
+	}
+	v.order = companyOrder(detail)
 	if detail.RangerMayReturn {
 		where := fmt.Sprintf("Match %d", m.Number)
 		for _, f := range detail.Cemetery {
@@ -769,11 +936,11 @@ func (s *Server) newAftermathView(r *http.Request, base campaignBase, m core.Mat
 				}
 			}
 			for _, o := range offers {
+				slices.SortStableFunc(o.Units, func(a, b core.UnitOption) int { return v.casualtiesFirst(a.ID, b.ID) })
 				v.Offers[rw.Key] = append(v.Offers[rw.Key], freeOfferView{FreeEquipment: o, Segments: itemText(g, o.Description, append([]string{o.Name}, o.AlsoCalled...)...)})
 			}
 		}
 	}
-	v.ShowFinish = a.Status == core.AftermathLevelUps && (len(v.Waiting()) == 0 || !v.Edit()) // a reader has no button to continue: the step is open for them
 	return v, nil
 }
 
@@ -792,6 +959,9 @@ func (v *aftermathView) fillUnits(in core.AftermathInput, errs map[int64]string)
 			v.Absent = append(v.Absent, u)
 		}
 	}
+	// a sheet saved before the formation changed still follows the company's order now
+	slices.SortStableFunc(v.Units, func(a, b sheetUnit) int { return v.order[a.Unit.ID] - v.order[b.Unit.ID] })
+	slices.SortStableFunc(v.Absent, func(a, b core.CompanyUnit) int { return v.order[a.ID] - v.order[b.ID] })
 }
 
 // handleAftermath shows a company's aftermath. An open match shows the locked state.
@@ -929,16 +1099,94 @@ func (s *Server) handleSheet(start bool) http.HandlerFunc {
 		} else {
 			a, err = s.campaigns.SaveAftermath(r.Context(), user, base.Campaign.ID, m.ID, co.ID, revisionOf(r), in)
 		}
+		auto := !start && r.URL.Query().Get("auto") == "1"
+		if err != nil && auto && (errors.Is(err, core.ErrInvalidAftermath) || errors.Is(err, core.ErrAftermathChanged)) {
+			cur, gerr := s.campaigns.Aftermath(r.Context(), user, base.Campaign.ID, m.ID, co.ID) // the bar says what is wrong; the sheet stays as typed
+			if s.fail(w, r, gerr) {
+				return
+			}
+			v, verr := s.newAftermathView(r, base, m, co, cur)
+			if s.fail(w, r, verr) {
+				return
+			}
+			v.A.Input = in
+			if errors.Is(err, core.ErrAftermathChanged) {
+				v.Problems = []string{"Somebody changed this aftermath meanwhile: reload the page."}
+			} else {
+				v.Problems = reasons(err)
+			}
+			s.render.partial(w, http.StatusUnprocessableEntity, "aftermath", "aftermath_bar", v)
+			return
+		}
 		if err != nil {
 			s.aftermathFailed(w, r, base, m, co, err, &in)
 			return
 		}
+		if auto { // the sheet saves itself: only the bar (preview, revision) and the experience of each unit come back
+			v, err := s.newAftermathView(r, base, m, co, a)
+			if s.fail(w, r, err) {
+				return
+			}
+			v.Notice = "Saved."
+			s.render.partial(w, http.StatusOK, "aftermath", "aftermath_saved", v)
+			return
+		}
 		notice := "Sheet saved."
 		if start {
-			notice = "Aftermath started: the sheet is locked and the casualty rolls come next."
+			switch a.Status {
+			case core.AftermathDone:
+				notice = "Aftermath finished: nothing was left to decide."
+			case core.AftermathInjuries:
+				notice = "Aftermath started: roll the casualties one by one."
+			default:
+				notice = "Aftermath started."
+			}
 		}
 		s.aftermathAnswer(w, r, http.StatusOK, base, m, co, a, notice, false, nil)
 	}
+}
+
+// handleBeginAftermath is Start aftermath from outside the page (the match page, Your turn, the My Company banner): it starts the
+// aftermath with the prefilled sheet and opens the page on its first step; "Edit the sheet again" is the way back to the sheet. The sheet
+// opens instead when only the player can fill it in (needsSheet) or the core does not accept it as it is (the Relic has no holder yet).
+func (s *Server) handleBeginAftermath(w http.ResponseWriter, r *http.Request) {
+	base, m, co, ok := s.aftermathCtx(w, r)
+	if !ok {
+		return
+	}
+	user := *userFrom(r.Context())
+	page := matchPath(base.Campaign.ID, m.ID) + "/aftermath/" + itoa(int(co.ID))
+	a, err := s.campaigns.Aftermath(r.Context(), user, base.Campaign.ID, m.ID, co.ID)
+	if errors.Is(err, core.ErrRefused) {
+		redirect(w, r, page) // the page says why
+		return
+	}
+	if s.fail(w, r, err) {
+		return
+	}
+	if a.Status != core.AftermathPending { // a second press, or somebody else, has already moved it on
+		redirect(w, r, page)
+		return
+	}
+	if a.Access != core.AftermathEdit {
+		s.refuse(w, r, http.StatusForbidden, "Only the owner of the company can start its aftermath.")
+		return
+	}
+	if needsSheet(a) {
+		redirect(w, r, page)
+		return
+	}
+	_, err = s.campaigns.StartAftermath(r.Context(), user, base.Campaign.ID, m.ID, co.ID, a.Revision, a.Input)
+	if err != nil && !errors.Is(err, core.ErrInvalidAftermath) && !errors.Is(err, core.ErrAftermathChanged) && !errors.Is(err, core.ErrRefused) && s.fail(w, r, err) {
+		return
+	}
+	redirect(w, r, page)
+}
+
+// needsSheet says that a pending aftermath cannot start without the player: nothing about the game was recorded, so the sheet is the only
+// account of it and, with no casualty, starting would finish it for good; or the MVP votes tied and the owner chooses.
+func needsSheet(a core.Aftermath) bool {
+	return a.Input.Blank() || (a.MVP != nil && len(a.MVP.Tied) > 0)
 }
 
 // handleReopenSheet unlocks the sheet again before the first casualty roll.
@@ -1053,7 +1301,7 @@ func (s *Server) handleDecide(w http.ResponseWriter, r *http.Request) {
 	if ans.Kind == "scratch" && ans.Answer == "reroll" {
 		animate[unit] = true
 	}
-	s.aftermathAnswer(w, r, http.StatusOK, base, m, co, a, "", false, func(v *aftermathView) { v.Animate = animate; v.ShowFinish = v.ShowFinish || ans.Kind == "reward" })
+	s.aftermathAnswer(w, r, http.StatusOK, base, m, co, a, "", false, func(v *aftermathView) { v.Animate = animate })
 }
 
 // handleFinishAftermath applies the influence and rewards and unlocks the company. A refusal (a decision is still open) is shown
@@ -1071,7 +1319,7 @@ func (s *Server) handleFinishAftermath(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if cur.Access == core.AftermathEdit {
-				s.aftermathAnswer(w, r, http.StatusUnprocessableEntity, base, m, co, cur, reason(err), true, func(v *aftermathView) { v.ShowFinish = true })
+				s.aftermathAnswer(w, r, http.StatusUnprocessableEntity, base, m, co, cur, reason(err), true, nil)
 				return
 			}
 		}

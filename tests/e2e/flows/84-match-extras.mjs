@@ -1,6 +1,6 @@
-// A three-company match on the Limits campaign: Fog of War's secret objectives on the match page, a cavalry company's live card
-// (granted rules, the mount lost), and a tie in the MVP votes of the end checks (two opposing players vote for different units).
-import { assert, campaignId, MODAL, layout, SIZES } from '../lib/util.mjs';
+// A three-company match on the Limits campaign: Fog of War without a secret objectives card, a cavalry company's live card
+// (granted rules, the mount lost), and a tie in the MVP votes of the end sheets (two opposing players vote for different units).
+import { chooseScenario, endMatch, confirmEnd, assert, campaignId, MODAL, layout, SIZES } from '../lib/util.mjs';
 
 export default async function (h) {
   const you = await h.session('you@example.com');
@@ -9,12 +9,41 @@ export default async function (h) {
   const sauron = await h.session('sauron@example.com');
   let cid, mid, eCo, gCo, sCo;
 
+  await h.step('failed courage: a card of a Broken company marks it with one press, with only the border highlighted', async () => {
+    const aragorn = await h.session('aragorn@example.com');
+    const camp = await campaignId(aragorn, 'Fog of War: retreats');
+    await aragorn.goto(`/campaigns/${camp}/my-company`);
+    const marks = () => aragorn.page.$$eval('main .courage-failed', (b) => b.length);
+    const before = await marks();
+    assert.ok(before > 1, `the Rangers in the Field have the mark (${before})`);
+    assert.equal(await aragorn.page.$('main [hx-get$="/sheet/courage"]'), null, 'the Courage test window is gone');
+    for (const scheme of ['light', 'dark']) {
+      for (const width of SIZES) {
+        await layout(aragorn, width, scheme);
+        const look = await aragorn.page.$eval('main .courage-failed', (b) => {
+          const c = getComputedStyle(b);
+          return { fill: c.backgroundColor, border: c.borderTopColor, icon: !!b.querySelector('svg use'), wide: document.documentElement.scrollWidth > innerWidth };
+        });
+        assert.equal(look.fill, 'rgba(0, 0, 0, 0)', 'no filled background');
+        assert.notEqual(look.border, 'rgba(0, 0, 0, 0)', 'the border stands out');
+        assert.ok(look.icon && !look.wide, `${width} ${scheme}: the icon, and no horizontal scroll`);
+        await aragorn.page.$eval('main .courage-failed', (b) => b.scrollIntoView({ block: 'center' }));
+        await aragorn.page.screenshot({ path: `out/failed-courage-${width}-${scheme}.png` });
+      }
+    }
+    await layout(aragorn, 1280, 'light');
+    await aragorn.page.click('main .courage-failed');
+    await aragorn.page.waitForFunction((n) => document.querySelectorAll('main .courage-failed').length === n - 1, { timeout: 8000 }, before);
+    assert.equal(await aragorn.page.$eval(MODAL, (m) => m.offsetParent !== null), false, 'no window opened');
+    assert.match(await aragorn.text(), /Failed courage/);
+  });
+
   await h.step('match: a cavalry company and the Dwarves against the Helm\'s Deep garrison, Fog of War', async () => {
     cid = await campaignId(you, 'Limits, creatures');
     await you.goto(`/campaigns/${cid}/matches/new`);
     const pick = async (side, text) => {
       await you.page.evaluate((side, text) => {
-        let el = document.querySelector(`[name=side-name-${side}]`);
+        let el = document.querySelector(`section[aria-label="Side ${side}"]`);
         while (el && ![...el.querySelectorAll('button')].some((b) => b.innerText.includes(text))) el = el.parentElement;
         [...el.querySelectorAll('button')].find((b) => b.innerText.includes(text)).click();
       }, side, text);
@@ -30,51 +59,14 @@ export default async function (h) {
     const ids = await you.page.evaluate(() => [...new Set([...document.querySelectorAll('main a[href*="/companies/"]')].map((a) => a.getAttribute('href').match(/companies\/(\d+)/)[1]))]);
     assert.equal(ids.length, 3, 'three companies in the match');
     [eCo, gCo, sCo] = ids;
-    await you.click('main button', 'Choose scenario');
-    await you.click('main label', 'Fog of War');
-    await you.click('main button', 'Use this scenario');
-    await you.waitText('Fog of War');
+    await chooseScenario(you, 'Fog of War');
   });
   if (!mid) return;
 
-  await h.step('secret objectives: the match page lists the three Fog of War objectives by label, with distinct heroes to note, and keeps them private', async () => {
+  await h.step('secret objectives: a Fog of War match has no card for them, the rules still print how it is scored', async () => {
     await eowyn.goto(`/campaigns/${cid}/matches/${mid}`);
-    await eowyn.page.waitForSelector('#secret-objectives');
-    await eowyn.settle(500);
-    const labels = await eowyn.page.$$eval('#secret-objectives fieldset > legend', (l) => l.map((x) => x.innerText.trim()));
-    assert.deepEqual(labels, ['Own hero survives', 'Enemy hero harmed', 'Terrain piece'], 'the objectives are listed by their label, not their key');
-    assert.ok(!/ownHeroSurvives|enemyHeroHarmed|terrainPiece/.test(await eowyn.page.$eval('#secret-objectives', (e) => e.innerText)), 'no internal key is shown');
-    // the heroes to choose from have distinct names (two Sergeants of one kind are told apart)
-    const opts = await eowyn.page.$$eval('#secret-objectives select[name=unit]', (s) => s.map((x) => [...x.options].map((o) => o.text)));
-    assert.equal(opts.length, 2, 'two nomination lists (own hero, enemy hero)');
-    for (const list of opts) assert.equal(new Set(list).size, list.length, `heroes are told apart: ${list}`);
-    assert.ok(opts[0].some((t) => /Sergeant\) \d/.test(t)) || opts[0].length >= 2, 'own heroes listed');
-    // note a hero and a tier, and see them come back
-    const own = await eowyn.page.$eval('#secret-objectives select[name=unit]', (s) => { const o = [...s.options].find((x) => x.value !== '0'); return { value: o.value, text: o.text }; });
-    await eowyn.page.select('#secret-objectives select[name=unit]', own.value);
-    const mark = eowyn.reqs.length;
-    await eowyn.click('#secret-objectives form button', 'Save note');
-    await eowyn.settle(400);
-    await eowyn.waitText(`Noted: ${own.text}`);
-    const sent = eowyn.reqs.slice(mark).filter((r) => r.includes('> '));
-    assert.equal(sent.filter((r) => /GET .*\/secret$/.test(r)).length, 0, `a click inside the card must not refetch it (it raced the save): ${sent}`);
-    assert.equal(await eowyn.page.$eval('#secret-objectives select[name=unit]', (s) => s.options[s.selectedIndex].text), own.text, 'the noted hero is the one selected after the save');
-    await eowyn.page.evaluate(() => document.querySelector('#secret-objectives input[name=tier][value="2"]').click());
-    await eowyn.page.evaluate(() => [...document.querySelectorAll('#secret-objectives form')].find((f) => f.querySelector('input[name=tier]')).querySelector('button').click());
-    await eowyn.settle(400);
-    assert.ok(await eowyn.page.$eval('#secret-objectives input[name=tier][value="2"]', (r) => r.checked), 'the tier is kept');
-    // the opposing player sees that Riders noted something, not what
-    await sauron.goto(`/campaigns/${cid}/matches/${mid}`);
-    await sauron.page.waitForSelector('#secret-objectives');
-    const st = await sauron.page.$eval('#secret-objectives', (e) => e.innerText);
-    assert.match(st, /Noted already: Riders on every horse/);
-    assert.ok(!st.includes(own.text.split(' (')[0] + ' (Sergeant)') || own.text === '' || !/Noted: /.test(st), 'the other player sees no note of Éowyn');
-    for (const scheme of ['light', 'dark']) for (const w of SIZES) {
-      await layout(eowyn, w, scheme);
-      assert.ok(await eowyn.noHScroll(), `no horizontal scroll at ${w}px ${scheme}`);
-      await (await eowyn.page.$('#secret-objectives')).screenshot({ path: `out/secret-objectives-${w}-${scheme}.png` });
-    }
-    await layout(eowyn, 1280, 'light');
+    assert.equal(await eowyn.page.$('#secret-objectives'), null, 'no secret objectives card');
+    assert.match(await eowyn.page.$eval('main', (m) => m.textContent), /secretly note down/, 'the printed objectives are still there to read');
   });
 
   // The live card of every unit of the company: its mount chip, struck state and special rules.
@@ -126,65 +118,29 @@ export default async function (h) {
     await layout(eowyn, 1280, 'light');
   });
 
-  // The MVP votes of the end checks: each player votes for a unit of the company he fought.
-  const vote = async (s, unitIndex) => {
-    await s.goto(`/campaigns/${cid}/matches/${mid}`);
-    await s.settle(400);
-    await s.page.evaluate((i) => [...document.querySelectorAll('[role=radiogroup][aria-label^="MVP of"] button[role=radio]')][i].click(), unitIndex);
-    await s.settle(500);
-  };
-  const tally = (s) => s.page.evaluate(() => {
-    const h3 = [...document.querySelectorAll('h3')].find((x) => /^Votes ·/.test(x.innerText));
-    if (!h3) return { lines: [], tied: '' };
-    const box = h3.parentElement;
-    return { lines: [...box.querySelectorAll('li')].map((l) => l.innerText.replace(/\s+/g, ' ').trim()), tied: (box.innerText.match(/Tied:[^\n]*/) || [''])[0] };
-  });
-
-  await h.step('MVP votes: two opposing players vote for different units, the end checks say it is a tie; one more vote breaks it', async () => {
-    await vote(eowyn, 0);
-    let t = await tally(eowyn);
-    assert.equal(t.lines.length, 1, 'one unit has a vote');
-    assert.match(t.lines[0], /1 vote$/);
-    assert.equal(t.tied, '', 'no tie with a single vote');
-    await vote(gimli, 1);
-    t = await tally(gimli);
-    assert.equal(t.lines.length, 2, 'two units have one vote each');
-    assert.ok(t.lines.every((l) => /1 vote$/.test(l)));
-    assert.equal(t.tied, "Tied: the owner of Garrison of Helm's Deep picks in the aftermath.", 'the tie is named and says who decides');
-    // the voter's own choice is marked
-    assert.equal(await gimli.page.$$eval('[role=radiogroup][aria-label^="MVP of"] button[aria-checked=true]', (b) => b.length), 1);
-    // Gimli changes his vote to Éowyn's unit: one unit with two votes, no tie
-    await vote(gimli, 0);
-    t = await tally(gimli);
-    assert.equal(t.lines.length, 1);
-    assert.match(t.lines[0], /2 votes$/);
-    assert.equal(t.tied, '', 'two votes for one unit is no tie');
-    // and back to a tie, to be settled in the aftermath
-    await vote(gimli, 1);
-    t = await tally(gimli);
-    assert.match(t.tied, /^Tied: the owner of Garrison of Helm's Deep picks in the aftermath\.$/);
+  await h.step('MVP votes: End match asks the proposer for a vote, each Confirm the others; the two opposing players vote different units', async () => {
+    const path = `/campaigns/${cid}/matches/${mid}`;
+    // without a vote the sheet is refused with who is missing
+    eowyn.allow.push(/422/);
+    await eowyn.goto(path);
+    await eowyn.click('main [data-end-match]', '');
+    await eowyn.page.waitForSelector(MODAL + ' [data-end-sheet]');
+    assert.deepEqual(await eowyn.page.$$eval(MODAL + ' [data-mvp-ballot]', (b) => b.map((x) => x.dataset.mvpBallot)), ["Garrison of Helm's Deep"], 'one ballot: the opposing company');
+    await eowyn.click(MODAL + ' label', 'Draw');
+    await eowyn.click(MODAL + ' [data-end-sheet] button.btn-primary', '=End match');
+    await eowyn.page.waitForFunction((m) => /MVP/.test(document.querySelector(m + ' [data-end-sheet] [role=alert]')?.innerText || ''), { timeout: 8000 }, MODAL)
+      .catch(() => { throw new Error('an End match without the MVP vote must be refused'); });
+    await endMatch(eowyn, path, 'Draw', { mvp: 0 });
+    await eowyn.waitText('proposes to end');
+    await confirmEnd(gimli, path, { mvp: 1 });
+    await confirmEnd(sauron, path, { mvp: 0 });
     await gimli.page.screenshot({ path: 'out/mvp-tie.png' });
   });
 
-  await h.step('match end: all three players confirm; the secret notes are revealed with their score and the tie is left to the owner in the aftermath', async () => {
-    await eowyn.goto(`/campaigns/${cid}/matches/${mid}`);
-    await eowyn.click('main label', 'Draw');
-    await eowyn.click('main button', 'Save result');
-    await eowyn.click('main button', 'Propose to end');
-    await eowyn.click('main button', 'Propose anyway');
-    await eowyn.waitText('proposed');
-    for (const p of [gimli, sauron]) {
-      await p.goto(`/campaigns/${cid}/matches/${mid}`);
-      await p.click('main button', 'Confirm the end');
-    }
+  await h.step('match end: all three players confirm with the winner and the MVP alone; the tie is left to the owner in the aftermath', async () => {
     await sauron.waitText('Ended');
     await sauron.goto(`/campaigns/${cid}/matches/${mid}`);
-    await sauron.page.waitForSelector('#secret-objectives');
-    const rev = await sauron.page.$eval('#secret-objectives', (e) => e.innerText);
-    assert.match(rev, /The match is over: the notes are revealed\./);
-    assert.match(rev, /Riders on every horse · Own hero survives/, 'the label is shown, with the company');
-    assert.match(rev, /Noted: Warrior of Rohan \(Sergeant\) \d/);
-    assert.match(rev, /Scored 3 VP/, 'tier 2 is worth 3 VP');
+    assert.equal(await sauron.page.$('#secret-objectives'), null, 'nothing to reveal at the end');
     // the tie: the owner of the voted company picks in the aftermath
     await sauron.goto(`/campaigns/${cid}/matches/${mid}/aftermath/${sCo}`);
     const txt = await sauron.text();

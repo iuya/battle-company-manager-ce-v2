@@ -39,7 +39,7 @@ func (e *NotPendingError) Is(target error) bool { return target == ErrNotPending
 // Forbid builds an ErrForbidden with a reason.
 func Forbid(reason string) error { return errors.Join(ErrForbidden, errors.New(reason)) }
 
-// ServiceOption configures a service (the clock and the source of randomness), so tests and the demo world control time and tokens.
+// ServiceOption configures a service, so tests and the demo world control what it depends on (WithClock for time).
 type ServiceOption func(*serviceOptions)
 
 type serviceOptions struct {
@@ -58,9 +58,6 @@ func newServiceOptions(opts []ServiceOption) serviceOptions {
 
 // WithClock replaces time.Now.
 func WithClock(now func() time.Time) ServiceOption { return func(o *serviceOptions) { o.now = now } }
-
-// WithRandom replaces crypto/rand as the source of tokens.
-func WithRandom(r io.Reader) ServiceOption { return func(o *serviceOptions) { o.random = r } }
 
 const tokenBytes = 32
 
@@ -85,8 +82,3 @@ func parseToken(s string) ([]byte, error) {
 
 // sameHash compares a stored hash with the computed one in constant time (defence in depth: the database already compared hashes).
 func sameHash(stored, computed []byte) bool { return subtle.ConstantTimeCompare(stored, computed) == 1 }
-
-func defaultRandom() io.Reader { return rand.Reader }
-
-// withArgon lowers the password hashing cost in tests.
-func withArgon(p argonParams) ServiceOption { return func(o *serviceOptions) { o.argon = p } }

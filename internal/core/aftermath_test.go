@@ -226,8 +226,8 @@ func TestSheetValidate(t *testing.T) {
 	}
 }
 
-func ctxFor(t *testing.T, outcome, scenario string, fled bool, result CompanyResult) AftermathContext {
-	return AftermathContext{Rules: realAftermathRules(t), Outcome: outcome, Fled: fled, Scenario: scenario, Result: result, Roster: roster()}
+func ctxFor(t *testing.T, outcome, scenario string, result CompanyResult) AftermathContext {
+	return AftermathContext{Rules: realAftermathRules(t), Outcome: outcome, Scenario: scenario, Result: result, Roster: roster()}
 }
 
 func gainOf(gains []UnitGain, id int64) UnitGain {
@@ -240,7 +240,7 @@ func gainOf(gains []UnitGain, id int64) UnitGain {
 }
 
 func TestExperience(t *testing.T) {
-	ctx := ctxFor(t, "loss", "", false, CompanyResult{})
+	ctx := ctxFor(t, "loss", "", CompanyResult{})
 	in := DefaultSheet(roster())
 	in.Models[0].Gains["woundedEnemy"] = 1
 	in.Models[0].Gains["slainHeroOrMonster"] = 2
@@ -266,7 +266,7 @@ func TestExperience(t *testing.T) {
 	if g := gainOf(Experience(ctx, in), 5); g.Total != 2 { // 1 + 1
 		t.Errorf("loss bonus: %+v", g)
 	}
-	win := ctxFor(t, "win", "", false, CompanyResult{})
+	win := ctxFor(t, "win", "", CompanyResult{})
 	if g := gainOf(Experience(win, in), 5); g.Total != 3 {
 		t.Errorf("win bonus: %+v", g)
 	}
@@ -287,24 +287,21 @@ func TestInfluence(t *testing.T) {
 	cases := []struct {
 		name    string
 		outcome string
-		fled    bool
 		odds    []string
 		want    int
 	}{
-		{"loss", "loss", false, nil, 2},
-		{"draw", "draw", false, nil, 3},
-		{"win", "win", false, nil, 4},
-		{"win with the bonus", "win", false, []string{"influence"}, 6},
-		{"loss with the bonus", "loss", false, []string{"influence"}, 3},
-		{"draw with the bonus", "draw", false, []string{"influence"}, 4},
-		{"All is Lost: participating only", "loss", true, nil, 2},
-		{"All is Lost keeps the influence bonus", "loss", true, []string{"influence"}, 3},
-		{"no-effect bonus", "win", false, []string{"ambush", "toolKit"}, 4},
+		{"loss", "loss", nil, 2},
+		{"draw", "draw", nil, 3},
+		{"win", "win", nil, 4},
+		{"win with the bonus", "win", []string{"influence"}, 6},
+		{"loss with the bonus", "loss", []string{"influence"}, 3},
+		{"draw with the bonus", "draw", []string{"influence"}, 4},
+		{"no-effect bonus", "win", []string{"ambush", "toolKit"}, 4},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			in.AgainstTheOdds = c.odds
-			ctx := ctxFor(t, c.outcome, "", c.fled, CompanyResult{})
+			ctx := ctxFor(t, c.outcome, "", CompanyResult{})
 			if got := sum(Influence(ctx, in)); got != c.want {
 				t.Errorf("got %d, want %d: %+v", got, c.want, Influence(ctx, in))
 			}
@@ -319,22 +316,18 @@ func TestInfluence(t *testing.T) {
 func TestRewards(t *testing.T) {
 	in := DefaultSheet(roster())
 	// Baggage Train: +1 Influence when the company ticked all cargo
-	cargo := ctxFor(t, "loss", "Baggage Train", false, CompanyResult{Objectives: map[string]int{"allCargo": 1}})
+	cargo := ctxFor(t, "loss", "Baggage Train", CompanyResult{Objectives: map[string]int{"allCargo": 1}})
 	if r := Rewards(cargo, in); len(r) != 1 || r[0].Kind != "influence" || r[0].Amount != 1 {
 		t.Errorf("cargo: %+v", r)
 	}
 	if lines := Influence(cargo, in); lines[len(lines)-1].Amount != 1 {
 		t.Errorf("cargo in the breakdown: %+v", lines)
 	}
-	if r := Rewards(ctxFor(t, "loss", "Baggage Train", false, CompanyResult{}), in); len(r) != 0 {
+	if r := Rewards(ctxFor(t, "loss", "Baggage Train", CompanyResult{}), in); len(r) != 0 {
 		t.Errorf("no tick, no reward: %+v", r)
 	}
-	// All is Lost: no scenario rewards
-	if r := Rewards(ctxFor(t, "loss", "Baggage Train", true, CompanyResult{Objectives: map[string]int{"allCargo": 1}}), in); len(r) != 0 {
-		t.Errorf("a fled company gets no rewards: %+v", r)
-	}
 	// Rescue: the Leader's survival earns an Experience Point
-	rescue := ctxFor(t, "loss", "Rescue", false, CompanyResult{})
+	rescue := ctxFor(t, "loss", "Rescue", CompanyResult{})
 	if g := gainOf(Experience(rescue, in), 1); g.Total != 2 {
 		t.Errorf("survival of the fittest: %+v", g)
 	}
@@ -345,18 +338,18 @@ func TestRewards(t *testing.T) {
 	}
 	// victory-only perks: the winner only (a draw has no victor)
 	for outcome, want := range map[string]int{"win": 1, "draw": 0, "loss": 0} {
-		got := Rewards(ctxFor(t, outcome, "Chance Encounter", false, CompanyResult{}), in)
+		got := Rewards(ctxFor(t, outcome, "Chance Encounter", CompanyResult{}), in)
 		if len(got) != want || (want == 1 && (got[0].Kind != "perk" || got[0].Key != "rendezvous")) {
 			t.Errorf("Rendezvous for a %s: %+v", outcome, got)
 		}
 	}
 	// To the Victor the Spoils: a decision at Finish
-	spoils := Rewards(ctxFor(t, "win", "Scavenge the Battlefield", false, CompanyResult{Objectives: map[string]int{"allObjectiveMarkers": 1}}), in)
+	spoils := Rewards(ctxFor(t, "win", "Scavenge the Battlefield", CompanyResult{Objectives: map[string]int{"allObjectiveMarkers": 1}}), in)
 	if len(spoils) != 1 || !spoils[0].Decision || spoils[0].MaxValue != 2 {
 		t.Errorf("spoils: %+v", spoils)
 	}
 	// the relic: only when ticked, the bearer gets the perk
-	relicCtx := ctxFor(t, "win", "Relic of Ages Past", false, CompanyResult{Objectives: map[string]int{"possessesRelic": 1}})
+	relicCtx := ctxFor(t, "win", "Relic of Ages Past", CompanyResult{Objectives: map[string]int{"possessesRelic": 1}})
 	if r := Rewards(relicCtx, in); len(r) != 0 {
 		t.Errorf("no bearer on the sheet: %+v", r)
 	}
@@ -364,18 +357,18 @@ func TestRewards(t *testing.T) {
 	if r := Rewards(relicCtx, in); len(r) != 1 || r[0].UnitID != 4 || r[0].Kind != "perk" {
 		t.Errorf("relic: %+v", r)
 	}
-	if r := Rewards(ctxFor(t, "win", "Relic of Ages Past", false, CompanyResult{}), in); len(r) != 0 {
+	if r := Rewards(ctxFor(t, "win", "Relic of Ages Past", CompanyResult{}), in); len(r) != 0 {
 		t.Errorf("not ticked: %+v", r)
 	}
 }
 
 func TestPreview(t *testing.T) {
-	ctx := ctxFor(t, "win", "", false, CompanyResult{})
+	ctx := ctxFor(t, "win", "", CompanyResult{})
 	in := DefaultSheet(roster())
 	in.Models[4].Outcome, in.Models[5].Outcome = OutcomeCasualty, OutcomeCasualty
 	in.Models[1].Outcome = OutcomeFled
 	p := Preview(ctx, in)
-	if p.Rolls != 2 || p.InfluenceTotal() != 4 || len(p.Experience) != 7 {
+	if p.Rolls != 2 || len(p.Experience) != 7 {
 		t.Errorf("preview: %+v", p)
 	}
 }
@@ -386,16 +379,15 @@ func TestCompanyOutcome(t *testing.T) {
 	for _, c := range []struct {
 		id      int64
 		winner  int
-		fled    bool
 		outcome string
-	}{{1, 1, false, "win"}, {2, 1, false, "loss"}, {1, 0, false, "draw"}, {2, 0, false, "draw"}, {2, 1, true, "loss"}} {
+	}{{1, 1, "win"}, {2, 1, "loss"}, {1, 0, "draw"}, {2, 0, "draw"}} {
 		m.Winner = c.winner
-		m.Result = MatchResult{Companies: []CompanyResult{{CompanyID: c.id, Fled: c.fled}}}
-		if got, fled, ok := CompanyOutcome(m, c.id); !ok || got != c.outcome || fled != c.fled {
-			t.Errorf("%+v: %s %v %v", c, got, fled, ok)
+		m.Result = MatchResult{Companies: []CompanyResult{{CompanyID: c.id}}}
+		if got, ok := CompanyOutcome(m, c.id); !ok || got != c.outcome {
+			t.Errorf("%+v: %s %v", c, got, ok)
 		}
 	}
-	if _, _, ok := CompanyOutcome(m, 9); ok {
+	if _, ok := CompanyOutcome(m, 9); ok {
 		t.Error("a company outside the match has no outcome")
 	}
 }
@@ -508,10 +500,9 @@ func TestAllIsLostKeepsTheExperienceBonus(t *testing.T) {
 	if _, ok := rules.Bonus("experience"); !ok {
 		t.Skip("no experience bonus in the file")
 	}
-	fled := Experience(ctxFor(t, "loss", "", true, CompanyResult{}), in)
-	stayed := Experience(ctxFor(t, "loss", "", false, CompanyResult{}), in)
-	if len(fled) == 0 || fled[0].Total != stayed[0].Total || fled[0].Total == 0 {
-		t.Errorf("a fled company gets the same experience bonus: %+v vs %+v", fled, stayed)
+	lost := Experience(ctxFor(t, "loss", "", CompanyResult{}), in)
+	if len(lost) == 0 || lost[0].Total == 0 {
+		t.Errorf("a company that lost gets the experience bonus: %+v", lost)
 	}
 }
 
@@ -556,7 +547,7 @@ func TestWoundsOfAHeroWithAnInjuryKeepsItsBonus(t *testing.T) {
 // BC: a Wanderer cannot gain Experience Points or advancements: the aftermath credits it none (also with Against the Odds and a reward) and
 // the card never shows "Level up ready" for it, whatever XP it carries.
 func TestExperienceSkipsWanderers(t *testing.T) {
-	ctx := ctxFor(t, "win", "", false, CompanyResult{})
+	ctx := ctxFor(t, "win", "", CompanyResult{})
 	ro := append(roster(), CompanyUnit{ID: 9, Name: "Wandering Ruffian", Role: RoleWarrior, Points: 10, Wanderer: true})
 	ctx.Roster = ro
 	in := DefaultSheet(ro)
@@ -576,5 +567,28 @@ func TestExperienceSkipsWanderers(t *testing.T) {
 	}
 	if n := (CompanyUnit{XP: 10, LevelEvery: 5}).PendingLevelUps(); n != 2 {
 		t.Errorf("an ordinary unit has %d level-ups waiting", n)
+	}
+}
+
+func TestAftermathInputBlank(t *testing.T) {
+	took := map[string]int{participatedKey: 1}
+	tests := []struct {
+		name string
+		in   AftermathInput
+		want bool
+	}{
+		{"everybody survived and took part", AftermathInput{Models: []ModelSheet{{Outcome: OutcomeSurvived, Gains: took}, {Outcome: OutcomeSurvived, Gains: map[string]int{}}}}, true},
+		{"a gain switched off", AftermathInput{Models: []ModelSheet{{Outcome: OutcomeSurvived, Gains: map[string]int{participatedKey: 1, GainWoundedEnemy: 0}}}}, true},
+		{"only what the End match sheets ask", AftermathInput{Models: []ModelSheet{{Outcome: OutcomeSurvived, Gains: map[string]int{participatedKey: 1, GainMVP: 1, GainObjective: 1}}}}, true},
+		{"a casualty", AftermathInput{Models: []ModelSheet{{Outcome: OutcomeCasualty, Gains: took}}}, false},
+		{"a unit that fled", AftermathInput{Models: []ModelSheet{{Outcome: OutcomeFled, Gains: took}}}, false},
+		{"a gain tracked in the game", AftermathInput{Models: []ModelSheet{{Outcome: OutcomeSurvived, Gains: map[string]int{participatedKey: 1, GainWoundedEnemy: 1}}}}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.in.Blank(); got != tt.want {
+				t.Errorf("Blank() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

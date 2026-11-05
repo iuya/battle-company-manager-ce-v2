@@ -333,11 +333,7 @@ func TestALevelUpPowerChoiceShowsTheWholeDefinition(t *testing.T) {
 		t.Fatal(err)
 	}
 	views := offerViews(gl, []core.LevelOffer{{Roll: 7, Choices: []core.LevelChoice{{Key: "power:Banishment", Label: "Banishment", Hint: long}}}})
-	var got strings.Builder
-	for _, seg := range views[0].Choices[0].Segments {
-		got.WriteString(seg.Text)
-	}
-	if got.String() != long {
-		t.Errorf("the power is cut: %d of %d characters", got.Len(), len(long))
+	if got := views[0].Choices[0].TipText; got != long {
+		t.Errorf("the power is cut: %d of %d characters", len(got), len(long))
 	}
 }

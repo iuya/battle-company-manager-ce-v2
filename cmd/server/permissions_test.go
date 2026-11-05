@@ -160,6 +160,9 @@ var permActions = []permAction{
 		}
 		return f.c().SaveFormation(f.ctx, a, f.camp.id, f.companyOf(a), order)
 	}, allow: [3]permRole{players, players, 0}, notFound: roleNoCompany | managers, stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
+	{name: "ResetFormation", run: func(f *permFx, a core.User) error {
+		return f.c().ResetFormation(f.ctx, a, f.camp.id, f.companyOf(a))
+	}, allow: [3]permRole{players, players, 0}, notFound: roleNoCompany | managers, stateMsg: [3]string{"", "", msgFinished}},
 	{name: "SaveCemeteryOrder", run: func(f *permFx, a core.User) error {
 		return f.c().SaveCemeteryOrder(f.ctx, a, f.camp.id, f.companyOf(a), nil)
 	}, allow: [3]permRole{players, players, 0}, notFound: roleNoCompany | managers, stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
@@ -184,7 +187,7 @@ var permActions = []permAction{
 
 	// -- matches
 	{name: "CreateMatch", fixture: permIdle, run: func(f *permFx, a core.User) error {
-		_, err := f.c().CreateMatch(f.ctx, a, f.camp.id, core.NewMatch{Sides: []core.NewSide{{Name: "A", Companies: []int64{f.a.id}}, {Name: "B", Companies: []int64{f.b.id}}}})
+		_, err := f.c().CreateMatch(f.ctx, a, f.camp.id, core.NewMatch{Sides: []core.NewSide{{Companies: []int64{f.a.id}}, {Companies: []int64{f.b.id}}}})
 		return err
 	}, allow: [3]permRole{members, 0, 0}, stateMsg: [3]string{"", msgPaused, msgFinished}},
 	{name: "SetScenario", fixture: permOpen, run: func(f *permFx, a core.User) error {
@@ -196,14 +199,11 @@ var permActions = []permAction{
 		return err
 	}, allow: [3]permRole{players | managers, players | managers, 0}, roleMsg: "Only the players in this match", stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
 	{name: "SaveResult", fixture: permOpen, run: func(f *permFx, a core.User) error {
-		_, err := f.c().SaveResult(f.ctx, a, f.camp.id, f.match.ID, f.rev(), core.MatchResult{Decided: true, Winner: 2, Sides: make([]core.SideResult, 2)})
-		return err
-	}, allow: [3]permRole{players | managers, players | managers, 0}, roleMsg: "Only the players in this match", stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
-	{name: "SetSideRoles", fixture: permOpen, run: func(f *permFx, a core.User) error {
-		_, err := f.c().SetSideRoles(f.ctx, a, f.camp.id, f.match.ID, f.rev(), []string{core.RoleAttacker, core.RoleDefender})
+		_, err := f.c().SaveResult(f.ctx, a, f.camp.id, f.match.ID, f.rev(), core.MatchResult{Decided: true, Winner: 2})
 		return err
 	}, allow: [3]permRole{players | managers, players | managers, 0}, roleMsg: "Only the players in this match", stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
 	{name: "ProposeEnd", fixture: permOpen, run: func(f *permFx, a core.User) error {
+		_ = voteMissing(f.ctx, f.c(), f.camp.id, f.match.ID) // a competitive match ends with the MVP votes in place
 		_, err := f.c().ProposeEnd(f.ctx, a, f.camp.id, f.match.ID, f.rev())
 		return err
 	}, allow: [3]permRole{players | managers, players | managers, 0}, roleMsg: "Only the players in this match", stateMsg: [3]string{"", "", msgFinished}},
@@ -454,6 +454,10 @@ func permBuild(w *world, users map[permRole]core.User, fixture permFixture, prep
 	}
 	switch fixture {
 	case permProposed:
+		w.must("vote the MVPs", voteMissing(w.ctx, w.c(), camp.id, f.match.ID)) // an end needs every owner's votes (D7)
+		cur, err := w.c().Match(w.ctx, camp.id, f.match.ID)
+		w.must("read the match", err)
+		f.match = cur
 		m, err := w.c().ProposeEnd(w.ctx, users[roleOther], camp.id, f.match.ID, f.match.Revision)
 		w.must("propose the end", err)
 		f.match = m

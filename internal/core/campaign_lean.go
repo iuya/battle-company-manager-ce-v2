@@ -2,7 +2,6 @@ package core
 
 import (
 	"log/slog"
-	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
@@ -57,17 +56,15 @@ func LeanScenarioSelection(d *lean.Document) ScenarioSelection {
 }
 
 // defaultBreakPercent is the file's default Break Point as a whole percent.
-func defaultBreakPercent(d lean.BreakDefault) int {
-	s, _ := d.DefaultShare()
+func defaultBreakPercent(d lean.LossShare) int {
+	s, _ := d.Fraction()
 	return wholePercent(s)
 }
 
 // LeanBreakRules are the break point rules of a lean document.
 func LeanBreakRules(d *lean.Document) BreakRules {
 	bp := d.Campaign.BreakPoint
-	r := BreakRules{DefaultPercent: defaultBreakPercent(bp.Default), AtLeast: bp.Threshold.Comparison == "gte",
-		CourageDice: strings.ToLower(bp.WhenBroken.CourageTest.Dice.String()), CourageSpec: bp.WhenBroken.CourageTest.Dice}
-	r.PassIf = bp.WhenBroken.CourageTest.PassIf
+	r := BreakRules{DefaultPercent: defaultBreakPercent(bp.Default), AtLeast: bp.Threshold.Comparison == "gte"}
 	for _, e := range bp.ScenarioExceptions {
 		r.Exceptions = append(r.Exceptions, BreakException{Scenario: e.Scenario, Setting: e.ScenarioSetting, Rule: e.Rule, Effect: e.Effect, Who: e.Who, Prose: e.Text})
 	}

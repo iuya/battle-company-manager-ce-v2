@@ -1,6 +1,7 @@
 {{define "title"}}Matches · {{.Campaign.Name}} · Battle Companies 2nd CE Manager{{end}}
 {{define "content"}}
 {{template "campaign_header" .}}
+{{template "your_turn" .YourTurn}}
 <div class="mt-6 flex items-center justify-between gap-3">
   <h2 class="!text-2xl">Matches</h2>
   {{if .CanOpenMatch}}<a href="/campaigns/{{.Campaign.ID}}/matches/new" class="btn btn-primary">New match</a>{{end}}
@@ -8,18 +9,15 @@
 {{if eq .Campaign.Status "paused"}}<p class="mt-2 text-sm text-muted">This campaign is paused: open matches can be finished, but no new match can start until the organiser resumes it.</p>
 {{else if eq .Campaign.Status "finished"}}<p class="mt-2 text-sm text-muted">This campaign has ended. Its matches are frozen as they were, open ones included, until an administrator reactivates it.</p>
 {{else if not .CanOpenMatch}}<p class="mt-2 text-sm text-muted">A match needs at least two companies and this campaign has {{.Companies}}. Players create theirs from <strong>My Company</strong>; invite them from the Overview.</p>{{end}}
+{{$base := printf "/campaigns/%d/matches" .Campaign.ID}}
 <nav class="mt-3 flex flex-wrap gap-2" aria-label="Filter the matches">
-  <a href="/campaigns/{{.Campaign.ID}}/matches" class="chip no-underline hover:no-underline {{if not .PracticeOnly}}chip-on{{end}}" {{if not .PracticeOnly}}aria-current="true"{{end}}>All</a>
-  <a href="/campaigns/{{.Campaign.ID}}/matches?practice=1" class="chip no-underline hover:no-underline {{if .PracticeOnly}}chip-on{{end}}" {{if .PracticeOnly}}aria-current="true"{{end}} data-filter-practice>Practice{{if .Practice}} <span class="ml-1 text-muted">{{.Practice}}</span>{{end}}</a>
+  {{range $f := (split "mine,open,ended" ",")}}{{$on := eq $.Filter $f}}
+  <a href="{{$base}}{{if not $on}}?filter={{$f}}{{end}}" class="chip no-underline hover:no-underline {{if $on}}chip-on{{end}}" {{if $on}}aria-current="true"{{end}} data-filter="{{$f}}">{{if eq $f "mine"}}Mine{{else if eq $f "open"}}Open{{else}}Ended{{end}}</a>
+  {{end}}
 </nav>
 {{if .Matches}}
 <ul class="card mt-3 divide-y divide-line !p-0">
-  {{range .Matches}}
-  <li><a href="/campaigns/{{$.Campaign.ID}}/matches/{{.ID}}" class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-fg no-underline hover:bg-raised hover:no-underline">
-    <span class="min-w-0"><span class="flex flex-wrap items-center gap-x-2 text-xs text-muted">Match {{.Number}} · {{fmtDateShort .PlayedOn}}{{if .Practice}} {{template "practice_badge"}}{{end}}</span>{{template "match_sides" .}}{{template "match_scenario" .}}</span>
-    {{template "match_result" .}}
-  </a></li>
-  {{end}}
+  {{range .Matches}}{{template "match_row" (dict "M" . "CID" $.Campaign.ID)}}{{end}}
 </ul>
-{{else}}<p class="mt-3 text-muted">{{if .PracticeOnly}}No practice matches yet.{{else}}No matches have been played yet.{{end}}</p>{{end}}
+{{else}}<p class="mt-3 text-muted">{{if eq .Filter "mine"}}None of your companies has played a match yet.{{else if eq .Filter "open"}}No match is open.{{else if eq .Filter "ended"}}No match has ended yet.{{else}}No matches have been played yet.{{end}}</p>{{end}}
 {{end}}

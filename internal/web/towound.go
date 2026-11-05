@@ -8,7 +8,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// The To Wound chart (docs/matches.md, "To Wound chart"): a window on the match page and the live company page, filled from
+// The To Wound chart (docs/matches.md, "Wound chart"): a window on the match page and the live company page, filled from
 // GET /campaigns/{id}/to-wound. The chart is the campaign glossary file's reference.toWound (core.Glossary.ToWound); the answer is
 // static HTML, so it is fetched once when the page loads and nothing the live stream refetches replaces it.
 

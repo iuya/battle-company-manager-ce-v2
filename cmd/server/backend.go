@@ -116,6 +116,9 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 	matchSvc.LiveInit = live.Init                                                                 // the live data of a match is made when it is created (and on the first read otherwise)
 	matchSvc.EndNotify = func(ctx context.Context, ch core.EndChange) { live.RecordEnd(ctx, ch) } // the log lines of a pending end
 	live.WithEnds(matchSvc)                                                                       // a game action cancels a pending end
+	live.WithATOGate(matchSvc)                                                                    // nothing is noted before the Against the Odds decision
+	matchSvc.MissingVotes = live.MissingVotes                                                     // a competitive match ends only with every MVP voted
+	matchSvc.GameStarted = atoRepo.GameStarted                                                    // the scenario is fixed once the game has started
 	aftermath.WithLive(live)                                                                      // the default aftermath sheet comes from the live match
 
 	curated, err := loadConceptFile(log)

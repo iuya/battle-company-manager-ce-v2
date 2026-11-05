@@ -55,10 +55,12 @@ func TestArchivedPagesRenderTheSameAsTheFinishedCampaign(t *testing.T) {
 	manage := regexp.MustCompile(`(?s)<section id="manage".*?</section>`)
 	// the ends of a page that differ by themselves: the clock of a "x minutes ago", the nonce of a form
 	noise := regexp.MustCompile(`name="nonce" value="[^"]*"|\?v=[0-9a-f]+`)
-	// Against the Odds is not kept in an archive (docs/archive.md): its card is cut from the live page, up to the result that follows it
-	ato := regexp.MustCompile(`(?s)<div id="ato-slot".*?(<section class="card mt-6 space-y-4" id="result")`)
+	// Against the Odds is not kept in an archive (docs/archive.md): its card is cut from the live page, up to the log that follows it
+	ato := regexp.MustCompile(`(?s)<div id="ato-slot".*?(<details class="card mt-6" id="log")`)
 	// what a live match leaves on the page and an archive does not keep: its log card, and the Tabletop Simulator button of a company
-	logCard := regexp.MustCompile(`(?s)<div id="live-log-slot".*?</section>\s*</div>`)
+	logCard := regexp.MustCompile(`(?s)<div id="live-log-slot"[^>]*>.*?</div>\s*(</details>)`)
+	// without its log card, the Log of an open match with no history holds nothing, and an archive does not draw it
+	emptyLog := regexp.MustCompile(`(?s)<details class="card mt-6" id="log"[^>]*>\s*<summary[^>]*>.*?</summary>\s*</details>`)
 	ttsButton := regexp.MustCompile(`(?s)<div class="inline-flex" x-data="\{ open: false \}".*?(<span class="badge badge-muted">Viewing only</span>)`)
 	// a glossary term inside a text is a link only when the archive kept the term: one level of links, never the terms of those
 	termLink := regexp.MustCompile(`<a href="/campaigns/\d+/glossary#[^"]*" class="term-link"[^>]*>([^<]*)</a>`)
@@ -72,7 +74,8 @@ func TestArchivedPagesRenderTheSameAsTheFinishedCampaign(t *testing.T) {
 		s = aftermathCard.ReplaceAllString(s, "")
 		s = perksCard.ReplaceAllString(s, "")
 		s = termLink.ReplaceAllString(s, "$1")
-		s = logCard.ReplaceAllString(s, "")
+		s = logCard.ReplaceAllString(s, "$1")
+		s = emptyLog.ReplaceAllString(s, "")
 		s = ttsButton.ReplaceAllString(s, "$1")
 		s = space.ReplaceAllString(s, " ")
 		s = strings.ReplaceAll(strings.ReplaceAll(s, "> <", "><"), "> ", ">")

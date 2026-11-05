@@ -21,10 +21,11 @@ func NewArmouryService(campaigns campaignRepository, companies companyRepository
 
 // shop is a company as the armoury sees it: its rules, its page data and its Battle Companies profile.
 type shop struct {
-	rs   *RuleSet
-	d    CompanyDetail
-	bcC  BCCompany
-	memo *shopMemo // what is worked out once per shop (nil: not kept)
+	rs       *RuleSet
+	settings CampaignSettings
+	d        CompanyDetail
+	bcC      BCCompany
+	memo     *shopMemo // what is worked out once per shop (nil: not kept)
 }
 
 // shopMemo keeps the options of the heroes and the armour pools of a shop, which the armoury asks for once per unit and item.
@@ -36,7 +37,7 @@ type shopMemo struct {
 func newShop(rs *RuleSet, settings CampaignSettings, st CompanyState) shop {
 	d := BuildDetail(rs, settings, st)
 	bcCo, _ := rs.BC.Company(st.Company.Faction)
-	return shop{rs: rs, d: d, bcC: bcCo, memo: &shopMemo{hero: map[string][]ChoiceOption{}, pool: map[string]map[int][]string{}}}
+	return shop{rs: rs, settings: settings, d: d, bcC: bcCo, memo: &shopMemo{hero: map[string][]ChoiceOption{}, pool: map[string]map[int][]string{}}}
 }
 
 func (sh shop) unit(id int64) (CompanyUnit, bool) {
@@ -45,6 +46,24 @@ func (sh shop) unit(id int64) (CompanyUnit, bool) {
 		return CompanyUnit{}, false
 	}
 	return sh.d.Roster[i], true
+}
+
+// changeShop runs change on the viewer's own unlocked company under the repository's lock, with its shop.
+func (a *ArmouryService) changeShop(ctx context.Context, user User, campaignID, companyID int64, change func(*CompanyState, shop) error) error {
+	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
+	if err != nil {
+		return err
+	}
+	rs, settings, err := a.ruleset(ctx, campaignID)
+	if err != nil {
+		return err
+	}
+	return a.companies.Update(ctx, campaignID, id, func(st *CompanyState) error {
+		if err := st.Locked(); err != nil {
+			return err
+		}
+		return change(st, newShop(rs, settings, *st))
+	})
 }
 
 // readShop builds the shop of a company without locking it.
@@ -321,19 +340,7 @@ func (a *ArmouryService) BuyEquipment(ctx context.Context, user User, campaignID
 // its weapon (the unit gains the rule only for a weapon chosen from the unit's own, and the choice is final), and a weapon for an item
 // that takes none is refused.
 func (a *ArmouryService) BuyEquipmentFor(ctx context.Context, user User, campaignID, companyID, unitID int64, item, how, weapon string) error {
-	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
-	if err != nil {
-		return err
-	}
-	rs, settings, err := a.ruleset(ctx, campaignID)
-	if err != nil {
-		return err
-	}
-	return a.companies.Update(ctx, campaignID, id, func(st *CompanyState) error {
-		if err := st.Locked(); err != nil {
-			return err
-		}
-		sh := newShop(rs, settings, *st)
+	return a.changeShop(ctx, user, campaignID, companyID, func(st *CompanyState, sh shop) error {
 		items, err := sh.items(unitID)
 		if err != nil {
 			return err
@@ -400,19 +407,7 @@ func pickWeapon(choices []string, weapon, unit, modifier string) (string, error)
 // Attacks (<weapon>); the weapon stays the plain item. A locked company, an unknown unit or item and a weapon the unit cannot give the
 // rule to are refused.
 func (a *ArmouryService) ChooseModifierWeapon(ctx context.Context, user User, campaignID, companyID, unitID int64, modifier, weapon string) error {
-	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
-	if err != nil {
-		return err
-	}
-	rs, settings, err := a.ruleset(ctx, campaignID)
-	if err != nil {
-		return err
-	}
-	return a.companies.Update(ctx, campaignID, id, func(st *CompanyState) error {
-		if err := st.Locked(); err != nil {
-			return err
-		}
-		sh := newShop(rs, settings, *st)
+	return a.changeShop(ctx, user, campaignID, companyID, func(st *CompanyState, sh shop) error {
 		unit, ok := sh.unit(unitID)
 		if !ok {
 			return ErrNotFound
@@ -421,21 +416,21 @@ func (a *ArmouryService) ChooseModifierWeapon(ctx context.Context, user User, ca
 			if !sameName(e.Name, strings.TrimSpace(modifier)) {
 				return false
 			}
-			an, ok := rs.BC.Annotation(e.Name)
+			an, ok := sh.rs.BC.Annotation(e.Name)
 			return ok && an.ChosenWeapon != nil
 		})
 		if i < 0 {
 			return ErrNotFound
 		}
 		e := unit.Equipment[i]
-		if _, chosen, ok := rs.BC.ChosenWeapon(e.Name); ok {
+		if _, chosen, ok := sh.rs.BC.ChosenWeapon(e.Name); ok {
 			return Refuse("%s already has its weapon (%s): the choice is final.", e.Name, chosen)
 		}
 		w, err := pickWeapon(e.Choices, weapon, unit.Title(), e.Name)
 		if err != nil {
 			return err
 		}
-		an, _ := rs.BC.Annotation(e.Name)
+		an, _ := sh.rs.BC.Annotation(e.Name)
 		u, _ := stateUnit(st, unitID)
 		renamed := ChosenWeaponName(an.Name, w)
 		for _, list := range []*[]string{&u.Bought, &u.Gear} {
@@ -452,19 +447,7 @@ func (a *ArmouryService) ChooseModifierWeapon(ctx context.Context, user User, ca
 // for good, nothing is refunded, its rating leaves the unit's points, and it stops counting against slots and limits, which
 // can make room for another unit to buy a limited item.
 func (a *ArmouryService) DropEquipment(ctx context.Context, user User, campaignID, companyID, unitID int64, item string) error {
-	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
-	if err != nil {
-		return err
-	}
-	rs, settings, err := a.ruleset(ctx, campaignID)
-	if err != nil {
-		return err
-	}
-	return a.companies.Update(ctx, campaignID, id, func(st *CompanyState) error {
-		if err := st.Locked(); err != nil {
-			return err
-		}
-		sh := newShop(rs, settings, *st)
+	return a.changeShop(ctx, user, campaignID, companyID, func(st *CompanyState, sh shop) error {
 		unit, ok := sh.unit(unitID)
 		if !ok {
 			return ErrNotFound
@@ -530,19 +513,8 @@ func (sh shop) creatures() []ArmouryCreature {
 
 // BuyCreature buys a creature for an officer (the leader or a sergeant) of the user's company.
 func (a *ArmouryService) BuyCreature(ctx context.Context, user User, campaignID, companyID, ownerID int64, name, how string) error {
-	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
-	if err != nil {
-		return err
-	}
-	rs, settings, err := a.ruleset(ctx, campaignID)
-	if err != nil {
-		return err
-	}
-	return a.companies.Update(ctx, campaignID, id, func(st *CompanyState) error {
-		if err := st.Locked(); err != nil {
-			return err
-		}
-		list := newShop(rs, settings, *st).creatures()
+	return a.changeShop(ctx, user, campaignID, companyID, func(st *CompanyState, sh shop) error {
+		list := sh.creatures()
 		k := slices.IndexFunc(list, func(c ArmouryCreature) bool { return c.Name == name })
 		if k < 0 {
 			return ErrNotFound
@@ -608,19 +580,8 @@ func (sh shop) wanderers() []ArmouryWanderer {
 
 // HireWanderer hires a wanderer for the user's company: it joins as a hero and counts towards the unit limit.
 func (a *ArmouryService) HireWanderer(ctx context.Context, user User, campaignID, companyID int64, name, how string) error {
-	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
-	if err != nil {
-		return err
-	}
-	rs, settings, err := a.ruleset(ctx, campaignID)
-	if err != nil {
-		return err
-	}
-	return a.companies.Update(ctx, campaignID, id, func(st *CompanyState) error {
-		if err := st.Locked(); err != nil {
-			return err
-		}
-		list := newShop(rs, settings, *st).wanderers()
+	return a.changeShop(ctx, user, campaignID, companyID, func(st *CompanyState, sh shop) error {
+		list := sh.wanderers()
 		k := slices.IndexFunc(list, func(w ArmouryWanderer) bool { return w.Name == name })
 		if k < 0 {
 			return ErrNotFound
@@ -659,19 +620,7 @@ func (a *ArmouryService) DismissWanderer(ctx context.Context, user User, campaig
 // something it could buy (its wargear, slots and the company limits), mounts cannot be carried, and the pack holds a limited
 // number of pieces. Only gear that could be dropped can be stored.
 func (a *ArmouryService) Carry(ctx context.Context, user User, campaignID, companyID, unitID int64, act CarryAction) error {
-	id, err := a.ownCompanyToChange(ctx, user, campaignID, companyID)
-	if err != nil {
-		return err
-	}
-	rs, settings, err := a.ruleset(ctx, campaignID)
-	if err != nil {
-		return err
-	}
-	return a.companies.Update(ctx, campaignID, id, func(st *CompanyState) error {
-		if err := st.Locked(); err != nil {
-			return err
-		}
-		sh := newShop(rs, settings, *st)
+	return a.changeShop(ctx, user, campaignID, companyID, func(st *CompanyState, sh shop) error {
 		if sh.d.Pack == nil {
 			return Refuse("The company has no Baggage Pony.")
 		}
@@ -717,11 +666,11 @@ func (a *ArmouryService) Carry(ctx context.Context, user User, campaignID, compa
 			if p := slices.Index(st.Pack, act.Take); p >= 0 {
 				st.Pack = slices.Delete(st.Pack, p, p+1)
 			}
-			after := newShop(rs, settings, *st)
+			after := newShop(sh.rs, sh.settings, *st)
 			k, _ := after.unit(unitID)
-			offer, ok := rs.BC.Offer(sh.bcC, act.Take)
+			offer, ok := sh.rs.BC.Offer(sh.bcC, act.Take)
 			if !ok {
-				e, _ := equipmentFor(rs, sh.bcC, act.Take, false, false, unit.IsHero())
+				e, _ := equipmentFor(sh.rs, sh.bcC, act.Take, false, false, unit.IsHero())
 				offer = GearOffer{Name: act.Take, Classes: e.Classes(), Size: e.Size}
 			}
 			offer.Cost = 0 // carrying gear is free

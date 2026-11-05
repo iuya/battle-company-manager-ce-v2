@@ -31,30 +31,20 @@ func TestAWarriorLevelUpFollowsTheD6Table(t *testing.T) {
 	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 7, []int{4}, false); !errors.Is(err, ErrRefused) {
 		t.Errorf("no roll left: %v", err)
 	}
-	// a 6 is a hero in the making: the warrior picks a path and becomes a hero
+	// a 6 is a hero in the making: the warrior becomes a hero and picks its path after
 	r, err = s.RollLevelUp(f.ctx, f.user, 5, 1, 8, []int{6}, false)
 	if err != nil || r.Done || len(r.Offers) != 1 {
 		t.Fatalf("a 6 is a hero in the making: %+v %v", r, err)
 	}
-	var path string
-	for _, c := range r.Offers[0].Choices {
-		if strings.HasPrefix(c.Key, "path:") {
-			path = c.Key
-			break
-		}
-	}
-	if path == "" {
-		t.Fatalf("it can pick a path: %+v", r.Offers[0].Choices)
-	}
 	if state, _ := s.LevelUpState(f.ctx, f.user, 5, 1, 8); state == nil || state.Kind != "warrior" {
 		t.Errorf("the roll waits for its choice, stored with the unit: %+v", state)
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 8, []string{path}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 8, []string{"hero"}); err != nil {
 		t.Fatal(err)
 	}
 	hero := f.unit(t, 8)
-	if !hero.IsHero() || !hero.HasHeroStats() || hero.Path == nil || "path:"+hero.Path.Name != path {
-		t.Errorf("it is a hero now with Might, Will and Fate: %+v", hero.Role)
+	if !hero.IsHero() || !hero.HasHeroStats() || !hero.PathPending {
+		t.Errorf("it is a hero now with Might, Will and Fate, and no path yet: %+v", hero.Role)
 	}
 	if state, _ := s.LevelUpState(f.ctx, f.user, 5, 1, 8); state != nil {
 		t.Errorf("nothing waits any more: %+v", state)
@@ -151,47 +141,21 @@ func TestAWarriorRerollRollsTheD6Again(t *testing.T) {
 	}
 }
 
-func TestANewSorcererChoosesAPowerAndGetsItsHeroicAction(t *testing.T) {
-	f := newCompanyFixture(t)
-	s := f.leveller(t)
-	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 8, []int{6}, false); err != nil {
-		t.Fatal(err)
-	}
-	r, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 8, []string{"path:Path of the Sorcerer"})
-	if err != nil || r.Done || r.Stage != "startingPower" || len(r.Offers[0].Choices) < 20 {
-		t.Fatalf("a Sorcerer picks its first power from the list: %+v %v", r.Stage, err)
-	}
-	if got, _ := s.LevelUpState(f.ctx, f.user, 5, 1, 8); got == nil || got.Stage != "startingPower" {
-		t.Error("the half-made choice is stored")
-	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 8, []string{"power:Black Dart"}); err != nil {
-		t.Fatal(err)
-	}
-	hero := f.unit(t, 8)
-	hasPower, hasAction := false, false
-	for _, p := range hero.Path.Powers {
-		hasPower = hasPower || (p.Name == "Black Dart" && p.Casting == 6 && p.Range == 6)
-	}
-	for _, a := range hero.Path.HeroicActions {
-		hasAction = hasAction || a.Name == "Heroic Channeling"
-	}
-	if !hasPower || !hasAction {
-		t.Errorf("it has Black Dart (6+, 6\") and Heroic Channeling: %+v %+v", hero.Path.Powers, hero.Path.HeroicActions)
-	}
-}
-
 func TestOnlyOneHeroOfTheCompanyTakesThePathOfTheSorcerer(t *testing.T) {
 	f := newCompanyFixture(t)
 	s := f.leveller(t)
 	if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, 8, []int{6}, false); err != nil {
 		t.Fatal(err)
 	}
-	r, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 8, []string{"path:Path of the Sorcerer"})
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 8, []string{"hero"}); err != nil {
+		t.Fatal(err)
+	}
+	offer, err := s.PathOptions(f.ctx, f.user, 5, 1, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fury := 0
-	for _, c := range r.Offers[0].Choices {
+	for _, c := range offer.Powers {
 		if strings.HasPrefix(c.Key, "power:Fury (") {
 			fury++
 		}
@@ -202,7 +166,7 @@ func TestOnlyOneHeroOfTheCompanyTakesThePathOfTheSorcerer(t *testing.T) {
 	if fury < 5 {
 		t.Errorf("one choice per species: %d", fury)
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 8, []string{"power:Fury (Mordor Orc)"}); err != nil {
+	if err := s.ChoosePath(f.ctx, f.user, 5, 1, 8, "Path of the Sorcerer", "Fury (Mordor Orc)"); err != nil {
 		t.Fatal(err)
 	}
 	spell := false
@@ -211,37 +175,6 @@ func TestOnlyOneHeroOfTheCompanyTakesThePathOfTheSorcerer(t *testing.T) {
 	}
 	if !spell {
 		t.Error("it knows Fury (Mordor Orc)")
-	}
-	// a second warrior rolling a 6 is not offered the Sorcerer any more
-	f.state.Units = append(f.state.Units, UnitState{ID: 90, Base: "Warrior of Minas Tirith", Role: RoleWarrior, XP: 5})
-	r, err = s.RollLevelUp(f.ctx, f.user, 5, 1, 90, []int{6}, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, c := range r.Offers[0].Choices {
-		if c.Key == "path:Path of the Sorcerer" {
-			t.Error("the company already has its Sorcerer")
-		}
-	}
-	if len(r.Notes) == 0 {
-		t.Error("it says why")
-	}
-}
-
-func TestAStaleOfferOfTheSorcererPathIsRefusedOnceTheCompanyHasOne(t *testing.T) {
-	f := newCompanyFixture(t)
-	s := f.leveller(t)
-	f.state.Units = append(f.state.Units, UnitState{ID: 90, Base: "Warrior of Minas Tirith", Role: RoleWarrior, XP: 5})
-	for _, id := range []int64{8, 90} { // both roll their 6 while the path is still free
-		if _, err := s.RollLevelUp(f.ctx, f.user, 5, 1, id, []int{6}, false); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 8, []string{"path:Path of the Sorcerer"}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 90, []string{"path:Path of the Sorcerer"}); !errors.Is(err, ErrRefused) {
-		t.Errorf("the second Sorcerer is refused: %v", err)
 	}
 }
 
@@ -485,12 +418,19 @@ func TestARangerOfArnorBecomesAHeroAndIsPromotedAtOnce(t *testing.T) {
 			t.Errorf("there is no promotion without the hero's journey: %+v", ch)
 		}
 	}
-	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 90, []string{"path:Path of the Ranger"}); err != nil {
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 90, []string{"hero"}); err != nil {
 		t.Fatal(err)
 	}
 	u := f.unit(t, 90)
-	if u.Type != "Ranger of the North" || !u.IsHero() {
-		t.Errorf("a hero and a Ranger of the North: %+v", u)
+	if u.Type != "Ranger of the North" || !u.IsHero() || !u.PathPending {
+		t.Errorf("a hero and a Ranger of the North, its path still to choose: %+v", u)
+	}
+	if err := s.ChoosePath(f.ctx, f.user, 5, 1, 90, "Path of the Ranger", ""); err != nil {
+		t.Fatal(err)
+	}
+	u = f.unit(t, 90)
+	if u.Type != "Ranger of the North" || u.Path == nil || u.Path.Name != "Path of the Ranger" {
+		t.Errorf("on its path, the same Ranger of the North: %+v", u)
 	}
 	for _, a := range u.Stats {
 		if a.HeroOnly && a.Boost != 0 {
@@ -801,5 +741,23 @@ func TestEveryOwnPathUnitStartsAWarriorAndTakesTheHomebrewPathOnASix(t *testing.
 	}
 	if n == 0 {
 		t.Fatal("no own-path units")
+	}
+}
+
+// The window compares a roll's result with these constants, so the rules file has to use the same keys.
+func TestTheWarriorResultConstantsAreTheKeysOfTheRulesFile(t *testing.T) {
+	f := newCompanyFixture(t)
+	rs, _, err := f.leveller(t).ruleset(f.ctx, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var keys []string
+	for _, row := range rs.BC.Progression().Warrior {
+		keys = append(keys, row.Key)
+	}
+	for _, want := range []string{WarriorResultNoChange, WarriorResultPromoted, WarriorResultHeroInTheMaking} {
+		if !slices.Contains(keys, want) {
+			t.Errorf("no row with the key %q: %v", want, keys)
+		}
 	}
 }

@@ -45,28 +45,6 @@ func flatOptions(opts []ProgOption) []ProgOption {
 	return out
 }
 
-// RowMastery finds the Mastery rule of a chart and the characteristics that come with it: the rule named "Heroic X Mastery" in a row, and
-// the stats that row also improves. It is what a lean file states in `mastery` and `signature`, so the file can be checked against
-// its own chart, and what the offers are made from.
-func RowMastery(rows []ProgRow) (mastery string, signature []string) {
-	for _, r := range rows {
-		row := flatOptions(r.Options)
-		for _, o := range row {
-			if o.Type == "specialRule" && strings.HasPrefix(o.Rule, "Heroic ") && strings.HasSuffix(o.Rule, " Mastery") {
-				mastery = o.Rule
-				signature = nil
-				for _, s := range row {
-					if s.Type == "improveStat" {
-						signature = append(signature, s.Stats...)
-					}
-				}
-				break
-			}
-		}
-	}
-	return mastery, signature
-}
-
 var choiceWords = []struct{ key, words string }{
 	{"minorSpecialRule", "a Minor Special Rule"}, {"heroicAction", "a new Heroic Action"}, {"magicalPower", "a Magical Power"}, {"improveCastingValue", "a better Casting Value"}}
 

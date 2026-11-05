@@ -136,11 +136,13 @@ func TestAftermathStartRecoversAbsentUnitsAndCreditsRerolls(t *testing.T) {
 	}
 }
 
-func TestAftermathWithoutCasualtiesGoesStraightToLevelUps(t *testing.T) {
+// Nothing to decide (no casualty, no reward to choose): Start aftermath finishes it at once (docs/aftermath.md, "Flow").
+func TestAftermathWithoutCasualtiesFinishesAtOnce(t *testing.T) {
 	f := newAmFixture(t)
 	xp := f.unit(t, 6).XP
+	influence := f.state.Influence
 	a := f.start(t, AftermathInput{})
-	if a.Status != AftermathLevelUps {
+	if a.Status != AftermathDone {
 		t.Fatalf("status %s", a.Status)
 	}
 	if got := f.unit(t, 6).XP; got != xp+1 {
@@ -149,11 +151,6 @@ func TestAftermathWithoutCasualtiesGoesStraightToLevelUps(t *testing.T) {
 	if got := f.unit(t, 7).XP; got != 5 {
 		t.Errorf("a unit that missed the game earns nothing: %d", got)
 	}
-	influence := f.state.Influence
-	a, err := f.svc.FinishAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision)
-	if err != nil || a.Status != AftermathDone {
-		t.Fatalf("finish: %+v %v", a, err)
-	}
 	// Rescue: the Leader was not removed, so survivalOfTheFittest gave it +1 experience; Participating 2 + Win 2 Influence
 	if f.state.Influence != influence+4 || f.rec.FinishedAt == nil {
 		t.Errorf("influence %d -> %d", influence, f.state.Influence)
@@ -161,8 +158,8 @@ func TestAftermathWithoutCasualtiesGoesStraightToLevelUps(t *testing.T) {
 	if len(f.rec.NewGrants) != 1 || f.rec.NewGrants[0].Experience != 1 || f.rec.NewGrants[0].UnitID != 1 || f.rec.NewGrants[0].Kind != GrantScenario || f.rec.NewGrants[0].MatchID != 1 {
 		t.Errorf("the scenario experience is recorded as a grant: %+v", f.rec.NewGrants)
 	}
-	if _, err := f.svc.FinishAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision); !errors.Is(err, ErrRefused) {
-		t.Errorf("finish twice: %v", err)
+	if a, err := f.svc.FinishAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision); err != nil || a.Status != AftermathDone || f.state.Influence != influence+4 {
+		t.Errorf("an explicit Finish of a finished aftermath changes nothing: %v %v", a.Status, err)
 	}
 }
 
@@ -170,7 +167,7 @@ func TestAftermathLeaderFallsAndSuccessionIsAskedFor(t *testing.T) {
 	f := newAmFixture(t)
 	f.start(t, casualties(1))
 	a := f.roll(t, 1, 1, 1) // 2: Dead
-	if a.Status != AftermathInjuries || a.Succession == nil || !a.Succession.NeedLeader || !slices.Equal(a.Succession.LeaderOptions, []int64{2, 3}) {
+	if a.Status != AftermathInjuries || a.Succession == nil || !a.Succession.NeedLeader || !slices.Equal(a.Succession.LeaderOptions, []int64{3, 2}) {
 		t.Fatalf("the Leader fell: %+v", a.Succession)
 	}
 	if len(f.state.Cemetery) != 1 || f.state.Cemetery[0].Fate != "Dead" || f.state.Cemetery[0].Match != "Match 3, Rescue" {
@@ -187,16 +184,13 @@ func TestAftermathLeaderFallsAndSuccessionIsAskedFor(t *testing.T) {
 		t.Error("the Sergeant leads now")
 	}
 	xp := f.unit(t, 3).XP
+	influence := f.state.Influence
 	a, err = f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, AftermathAnswer{Kind: "sergeant", Answer: "5"})
-	if err != nil || a.Status != AftermathLevelUps || f.unit(t, 5).Role != RoleSergeant {
+	if err != nil || a.Status != AftermathDone || f.unit(t, 5).Role != RoleSergeant {
 		t.Fatalf("sergeant: %+v %v", a, err)
 	}
 	if f.unit(t, 3).XP <= xp {
 		t.Error("experience is given when the succession is settled")
-	}
-	influence := f.state.Influence
-	if _, err := f.svc.FinishAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision); err != nil {
-		t.Fatal(err)
 	}
 	if f.state.Influence != influence+4 || len(f.rec.NewGrants) != 0 {
 		t.Errorf("no Rescue reward without the Leader: influence +%d, grants %+v", f.state.Influence-influence, f.rec.NewGrants)
@@ -253,14 +247,14 @@ func TestAftermathHeroInjuries(t *testing.T) {
 		if _, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, AftermathAnswer{UnitID: 3, Kind: "bonus", Answer: "7"}); !errors.Is(err, ErrInvalidAftermath) {
 			t.Fatalf("a D6 is 1 to 6: %v", err)
 		}
+		influence := f.state.Influence
 		a, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, AftermathAnswer{UnitID: 3, Kind: "bonus", Answer: "4"}) // D6 influence (4)
 		if err != nil || a.Casualties[0].Bonus != 4 {
 			t.Fatalf("typed die: %+v %v", a.Casualties[0], err)
 		}
-		if a.Status != AftermathLevelUps {
+		if a.Status != AftermathDone {
 			t.Fatalf("%s", a.Status)
 		}
-		influence := f.state.Influence
 		if _, err := f.svc.FinishAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision); err != nil {
 			t.Fatal(err)
 		}
@@ -343,7 +337,7 @@ func TestAftermathWarriorResultsAndRerolls(t *testing.T) {
 	}
 	xp9 := f.unit(t, 9).XP
 	a, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, AftermathAnswer{Kind: "continue"})
-	if err != nil || a.Status != AftermathLevelUps {
+	if err != nil || a.Status != AftermathDone {
 		t.Fatalf("continue: %+v %v", a.Status, err)
 	}
 	if len(f.state.Cemetery) != 1 || f.state.Cemetery[0].Unit.ID != 6 || !f.unit(t, 8).Injured || f.unit(t, 9).XP != xp9+1 {
@@ -351,9 +345,6 @@ func TestAftermathWarriorResultsAndRerolls(t *testing.T) {
 	}
 	if _, err := f.svc.RerollCasualty(f.ctx, f.owner(), 5, 1, 1, 8, nil, false); !errors.Is(err, ErrRefused) {
 		t.Errorf("no re-roll once settled: %v", err)
-	}
-	if _, err := f.svc.FinishAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision); err != nil {
-		t.Fatal(err)
 	}
 	if f.state.Rerolls != 0 {
 		t.Errorf("the bonus expires at the end: %d", f.state.Rerolls)
@@ -373,7 +364,7 @@ func TestAftermathLastRerollClosesTheStep(t *testing.T) {
 		t.Fatalf("one re-roll is left, the player decides: %v", f.rec.Status)
 	}
 	a, err := f.svc.RerollCasualty(f.ctx, f.owner(), 5, 1, 1, 9, nil, false)
-	if err != nil || a.Status != AftermathLevelUps || f.state.Rerolls != 0 {
+	if err != nil || a.Status != AftermathDone || f.state.Rerolls != 0 {
 		t.Fatalf("with no re-roll left nothing waits for a Continue: %v %v rerolls %d", a.Status, err, f.state.Rerolls)
 	}
 }
@@ -388,7 +379,7 @@ func TestAftermathPermissionsAndRefusals(t *testing.T) {
 		t.Errorf("company not in the match: %v", err)
 	}
 	a, err := f.svc.Aftermath(f.ctx, other, 5, 1, 1)
-	if err != nil || a.Access != AftermathNone || len(a.Input.Models) == 0 || a.Status != AftermathPending || a.Preview.InfluenceTotal() != 4 {
+	if err != nil || a.Access != AftermathNone || len(a.Input.Models) == 0 || a.Status != AftermathPending {
 		t.Fatalf("another player reads: %+v %v", a, err)
 	}
 	if _, err := f.svc.SaveAftermath(f.ctx, other, 5, 1, 1, 0, a.Input); !errors.Is(err, ErrRefused) {
@@ -423,7 +414,7 @@ func TestWaiveAftermath(t *testing.T) {
 	if _, err := f.svc.WaiveAftermath(f.ctx, User{ID: amOrganiser}, 5, 1, 1, strings.Repeat("x", 201)); !errors.Is(err, ErrInvalidAftermath) {
 		t.Errorf("note too long: %v", err)
 	}
-	f.start(t, AftermathInput{AgainstTheOdds: []string{"reroll"}})
+	f.start(t, AftermathInput{AgainstTheOdds: []string{"reroll"}, Models: casualties(8).Models}) // a casualty to roll: it stays open
 	f.state.Influence = 3
 	a, err := f.svc.WaiveAftermath(f.ctx, User{ID: amOrganiser}, 5, 1, 1, "gone")
 	if err != nil || a.Status != AftermathWaived || f.state.Influence != 3 || f.state.Rerolls != 0 {
@@ -473,10 +464,7 @@ func TestScenarioRewardsAtFinish(t *testing.T) {
 	t.Run("a victory leaves a perk", func(t *testing.T) {
 		f := newAmFixture(t)
 		scenario(f, "Chance Encounter", nil)
-		f.start(t, AftermathInput{})
-		if _, err := f.svc.FinishAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision); err != nil {
-			t.Fatal(err)
-		}
+		f.start(t, AftermathInput{}) // nothing to decide: it finishes at once
 		if len(f.rec.NewPerks) != 1 || f.rec.NewPerks[0].Effect != "rendezvous" || f.rec.NewPerks[0].MatchID != 1 {
 			t.Fatalf("perks: %+v", f.rec.NewPerks)
 		}
@@ -486,9 +474,6 @@ func TestScenarioRewardsAtFinish(t *testing.T) {
 		scenario(f, "Chance Encounter", nil)
 		f.match.Winner = 2
 		f.start(t, AftermathInput{})
-		if _, err := f.svc.FinishAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision); err != nil {
-			t.Fatal(err)
-		}
 		if len(f.rec.NewPerks) != 0 {
 			t.Fatalf("perks: %+v", f.rec.NewPerks)
 		}
@@ -500,9 +485,6 @@ func TestScenarioRewardsAtFinish(t *testing.T) {
 		in.Models[2].Relic = true
 		bearer := in.Models[2].UnitID
 		f.start(t, in)
-		if _, err := f.svc.FinishAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision); err != nil {
-			t.Fatal(err)
-		}
 		if len(f.rec.NewPerks) != 1 || f.rec.NewPerks[0].UnitID != bearer || f.rec.NewPerks[0].When != "nextGame" {
 			t.Fatalf("perks: %+v (bearer %d)", f.rec.NewPerks, bearer)
 		}
@@ -510,11 +492,8 @@ func TestScenarioRewardsAtFinish(t *testing.T) {
 	t.Run("cargo is Influence and a grant", func(t *testing.T) {
 		f := newAmFixture(t)
 		scenario(f, "Baggage Train", map[string]int{"allCargo": 1})
-		f.start(t, AftermathInput{})
 		influence := f.state.Influence
-		if _, err := f.svc.FinishAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision); err != nil {
-			t.Fatal(err)
-		}
+		f.start(t, AftermathInput{})
 		if f.state.Influence != influence+5 || len(f.rec.NewGrants) != 1 || f.rec.NewGrants[0].Influence != 1 {
 			t.Fatalf("influence +%d, grants %+v", f.state.Influence-influence, f.rec.NewGrants)
 		}
@@ -553,6 +532,9 @@ func TestScenarioRewardsAtFinish(t *testing.T) {
 		item := offers[0]
 		if err := decide(item.Name + "|" + strconv.FormatInt(item.Units[0].ID, 10)); err != nil {
 			t.Fatal(err)
+		}
+		if f.rec.Status != AftermathDone || f.rec.FinishedAt == nil {
+			t.Errorf("the last choice finishes the aftermath on its own: %s", f.rec.Status)
 		}
 		if _, err := f.svc.FinishAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision); err != nil {
 			t.Fatal(err)
@@ -629,16 +611,16 @@ func TestAftermathRerollAndBonusDieCanBeTyped(t *testing.T) {
 		t.Fatalf("a die is 1 to 6: %v", err)
 	}
 	a, err := f.svc.RerollCasualty(f.ctx, f.owner(), 5, 1, 1, 8, []int{6, 6}, false) // typed: 12, Lesson Learned
-	if err != nil || a.Casualties[0].Total != 12 {
-		t.Fatalf("typed re-roll: %+v %v", a.Casualties[0], err)
+	if err != nil || a.Casualties[1].Total != 12 {
+		t.Fatalf("typed re-roll: %+v %v", a.Casualties[1], err)
 	}
-	if d := a.Casualties[0].Decision; d == nil || d.Kind != "bonus" {
-		t.Fatalf("the re-rolled result asks for its own bonus die: %+v", a.Casualties[0])
+	if d := a.Casualties[1].Decision; d == nil || d.Kind != "bonus" {
+		t.Fatalf("the re-rolled result asks for its own bonus die: %+v", a.Casualties[1])
 	}
 	f.dice.Rolls, f.dice.n = []int{6}, 0
 	a, err = f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, AftermathAnswer{UnitID: 8, Kind: "bonus", Answer: "0"}) // roll it for me: a 6 is a 3 on a D3
-	if err != nil || a.Casualties[0].Bonus != 3 {
-		t.Fatalf("server die: %+v %v", a.Casualties[0], err)
+	if err != nil || a.Casualties[1].Bonus != 3 {
+		t.Fatalf("server die: %+v %v", a.Casualties[1], err)
 	}
 	if _, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, AftermathAnswer{UnitID: 8, Kind: "bonus", Answer: "1"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("answered twice: %v", err)
@@ -799,11 +781,11 @@ func TestAftermathDeadSergeantIsReplacedByAHeroOptionally(t *testing.T) {
 	f := newAmFixture(t)
 	f.start(t, casualties(3)) // Cene, a Sergeant; Dal (4) is a Hero
 	a := f.roll(t, 3, 1, 1)   // Dead
-	if a.Status != AftermathInjuries || a.Succession == nil || a.Succession.NeedLeader || !a.Succession.NeedSergeant || !slices.Equal(a.Succession.SergeantOptions, []int64{4, 5}) {
+	if a.Status != AftermathInjuries || a.Succession == nil || a.Succession.NeedLeader || !a.Succession.NeedSergeant || !slices.Equal(a.Succession.SergeantOptions, []int64{5, 4}) {
 		t.Fatalf("the Leader lives, a Sergeant place is open: %+v", a.Succession)
 	}
 	a, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, AftermathAnswer{Kind: "sergeant", Answer: ""})
-	if err != nil || a.Status != AftermathLevelUps || a.Succession != nil {
+	if err != nil || a.Status != AftermathDone || a.Succession != nil {
 		t.Fatalf("a Hero may be passed over: %+v %v", a, err)
 	}
 }
@@ -828,7 +810,7 @@ func TestAftermathDeadSergeantNeedsAWarriorWhenNoHeroIsLeft(t *testing.T) {
 	}
 	pick := strconv.FormatInt(a.Succession.Fallback[0], 10)
 	a, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, AftermathAnswer{Kind: "sergeant", Answer: pick})
-	if err != nil || a.Status != AftermathLevelUps {
+	if err != nil || a.Status != AftermathDone {
 		t.Fatalf("%+v %v", a, err)
 	}
 	id, _ := strconv.ParseInt(pick, 10, 64)
@@ -863,7 +845,7 @@ func TestAftermathLeaderAndSergeantLostTogether(t *testing.T) {
 	if a.Succession == nil || !a.Succession.NeedSergeant {
 		t.Fatalf("the second place is still offered: %+v", a.Succession)
 	}
-	if a, err = f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, AftermathAnswer{Kind: "sergeant", Answer: ""}); err != nil || a.Status != AftermathLevelUps {
+	if a, err = f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, AftermathAnswer{Kind: "sergeant", Answer: ""}); err != nil || a.Status != AftermathDone {
 		t.Fatalf("it can be left empty: %+v %v", a, err)
 	}
 }
@@ -889,7 +871,7 @@ func TestAftermathBothSergeantsLostAndNoHeroLeft(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if a.Status != AftermathLevelUps || a.Succession != nil {
+	if a.Status != AftermathDone || a.Succession != nil {
 		t.Errorf("both places are filled: %+v", a)
 	}
 }

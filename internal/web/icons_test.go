@@ -33,14 +33,22 @@ func TestIconSpriteMatchesTheIconsInUse(t *testing.T) {
 	}
 	used[gearLook("no such key").Icon] = "unknown gear"
 	used[elvenMark] = "the Elven weapon mark"
-	for name := range pathLooks {
-		used[pathLook(name).Icon] = name
+	for name, icon := range pathIcons {
+		used[icon] = name
 	}
-	used[pathLook("Path of the Smith").Icon] = "unknown path"
+	used[pathLook("Path of the Smith", nil).Icon] = "unknown path"
+	for _, row := range pathRowList {
+		used[row.Icon] = row.Label
+	}
 	lu := core.LiveUnit{Fate: core.LiveStat{Start: 1}}
 	for _, m := range (liveView{}).Milestones(5, lu) {
 		used[m.Icon] = "milestone " + m.Label
 	}
+	for key, l := range gainLooks {
+		used[l.Icon] = "gain " + key
+	}
+	used[gainLookOther] = "a gain with no look of its own"
+	used[(aftermathView{}).RelicFace().Icon] = "the Relic milestone"
 	// The templates name a few icons themselves: {{template "gi_icon" (dict "N" "death-skull" ...)}}.
 	literal := regexp.MustCompile(`"gi_icon" \(dict "N" "([a-z0-9-]+)"`)
 	err := fs.WalkDir(assets, "templates", func(p string, d fs.DirEntry, err error) error {

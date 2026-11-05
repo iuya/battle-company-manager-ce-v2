@@ -1,6 +1,9 @@
 package main
 
 import (
+	"cmp"
+	"slices"
+
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
@@ -16,6 +19,10 @@ func (w *world) roster(co *wco) (leader core.CompanyUnit, sergeants, warriors []
 			warriors = append(warriors, u)
 		}
 	}
+	// in the order they joined, not the card order: the script picks units by place, and points must not change who it picks
+	byID := func(a, b core.CompanyUnit) int { return cmp.Compare(a.ID, b.ID) }
+	slices.SortFunc(sergeants, byID)
+	slices.SortFunc(warriors, byID)
 	return
 }
 
@@ -45,7 +52,7 @@ func (w *world) injuryCampaign() {
 	}
 	w.must("bury a warrior", w.c().Bury(w.ctx, c.id, arnor.id, wr[0].ID, "Dead", "an old skirmish"))
 
-	m := w.played(c, "Seize Ground", outcome{winner: 1, vp: []int{5, 2}, note: "Rohan held three of the five markers."}, []*wco{rohan}, []*wco{mordor})
+	m := w.played(c, "Seize Ground", outcome{winner: 1, note: "Rohan held three of the five markers."}, []*wco{rohan}, []*wco{mordor})
 
 	// Rohan: every kind of result on the heroes' and the warriors' chart
 	l, s, ws := w.roster(rohan)
@@ -80,7 +87,6 @@ func (w *world) injuryCampaign() {
 
 	// treatments by Rohan: a warrior is treated, broken honour goes to the healers, a leg wound is a near miss waiting for
 	// extra influence, an arm wound stays
-	_, s, ws = w.roster(rohan)
 	w.treatWarriors(rohan)
 	for _, u := range w.detail(rohan).Roster {
 		for _, inj := range u.Injuries {

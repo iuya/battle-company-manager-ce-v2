@@ -23,16 +23,6 @@ type LeanCompanySet struct {
 	Advancements map[string][]Advancement // by company
 }
 
-// Company finds a company by its exact name.
-func (s LeanCompanySet) Company(name string) (BCCompany, bool) {
-	for _, c := range s.Companies {
-		if c.Name == name {
-			return c, true
-		}
-	}
-	return BCCompany{}, false
-}
-
 // LeanCompanies reads the companies of a lean document. gear supplies each company's unique wargear (LeanGear).
 func LeanCompanies(d *lean.Document, vanilla *VanillaBook, gear LeanGearTable) LeanCompanySet {
 	set := LeanCompanySet{Advancements: map[string][]Advancement{}}

@@ -34,7 +34,7 @@ campaigns are searched only while "Show finished campaigns" is on.
 
 `/campaigns/{id}` has six tabs.
 Each tab is its own URL and page.
-The header and tabs are the `campaign_header` partial, and `campaignBase` carries the campaign and the current tab.
+The header and tabs are the `campaign_header` partial (the campaign title on one line on every inner page, the description only on the Overview), and `campaignBase` carries the campaign and the current tab.
 The sidebar lists the same tabs under the campaign you are in.
 
 | Tab | What it shows |
@@ -59,9 +59,9 @@ The Overview stays the first tab.
   "Invite players" and Regenerate. Paused: the Matches tab hides New match (`CampaignDetail.CanStartMatch`) and says why, `/matches/new` is 403, the
   join page says the campaign is paused (`InvitePreview.Paused`; a refused join is 422). Finished: the Matches tab says matches are frozen.
 - **Practice matches** ([matches.md](matches.md#practice-matches)): the new-match form has a **Practice match** checkbox (`name=practice`, off by default, `data-practice-box`; a line says what is skipped and that it cannot be changed; the "Same player" note
-  offers "Make it a practice match"); the Matches tab has the filter chips All / Practice n (`?practice=1`) and the badge after the match number; the Overview line "n practice matches" (`data-practice-count`); the match page banner
+  offers "Make it a practice match"); the Matches tab shows the badge on the row (no Practice filter); the Overview line "n practice matches" (`data-practice-count`); the match page banner
   (`data-practice-banner`) and the aftermath block text; the aftermath page short state; the live bar badge. 360 px: the badge sits on the title line and wraps below; no horizontal scroll; semantic tokens only.
-- **Several companies per player** (spec [multi-company.md](multi-company.md), decisions in its section 12). The campaign setting
+- **Several companies per player** ([multi-company.md](multi-company.md)). The campaign setting
   **Companies per player** (1 to 4, default 1; `CampaignSettings.CompanyCap`) is a number field on the creation form (`companies-per-player`, with
   its help text; empty keeps 1, a value outside 1 to 4 is a 422) and is editable later by the organiser and administrators (`companies_cap_card`
   in the Campaign settings card of the Overview, `POST /campaigns/{id}/settings/companies`, `SetCompaniesPerPlayer`; success reloads the Overview,
@@ -87,29 +87,34 @@ The Overview stays the first tab.
     after a lowered cap. With a limit of 1 nothing is added. Companies and Rankings mark every company of the viewer "Yours" and show the owner.
   - **Same player** (`core.SamePlayers`): a non-blocking note on the match page (`matchView.SamePlayerNotes`: "Same player: both of these companies
     are X's." / "Same player: X plays both sides.") and, live, in the new match form (`match_form.js`: "Both are X's" under a side, "Same player:
-    X plays both sides" across sides). Nothing is refused. The form lists each company with its owner and faction, puts the viewer's own first
-    and has a **Mine** chip that narrows the search to them.
+    X plays both sides" across sides). Nothing is refused. The form lists each company with its owner and faction and marks the viewer's own
+    (accent border, "Yours" badge): first, and last on the other sides once one of them is placed.
 - A company page shows a management section only to its owner. `/campaigns/{id}/company/new` creates a company (name, faction).
 - **Rankings** sort by the total point cost of a company's units (`core.Rank`; equal points share a rank) and show
   wins/draws/losses, matches played and unit count.
-- **Matches** are listed newest first with their sides (`A + B vs C`) and a result badge (Open, Draw, "<side> won").
-  Names are coloured by outcome: the winning side green, losing sides red, every side yellow after a draw
-  (`Match.Tone`). Wins/draws/losses are shown as green/yellow/red numbers wherever they appear (`wdl` partial).
-- **New match** (`/campaigns/{id}/matches/new`, `static/js/match_form.js`): choose the number of sides (2 to 8), name
-  each one (blank means "Side N") and search the campaign's companies to add to it; added companies are chips that can
-  be removed, and a company already on a side does not show up in the searches (Enter in a search box adds the first match instead of submitting the form). **All vs all** turns the sides into one
-  pool of companies (with an "Add every company" button) where each company fights alone: the handler turns each into a
-  side named after it (`mode=ffa`). The form is posted as `sides`,
-  `side-name-N` and one `side-N` per company; `core.ValidateSides` checks that every side has a company and none repeats.
-  Any player of the campaign can create a match. A campaign with fewer than two companies offers no "New match" (the matches page says what is needed) and the form page says the same instead of showing the form; a finished campaign offers and accepts none.
-- **Match page** (`/campaigns/{id}/matches/{match}`): header (result badge, date, "Ended <date>"), side
-  cards (reported Victory Points, a "Fled" badge per company), **Scenario** card (empty state, a rulebook scenario with
+- **Matches** (`pages/campaign_matches.gohtml`): a **Your turn** list on top (`yourTurns`, partial `your_turn`; also on the Overview):
+  the matches that wait on the viewer, as buttons ("Vote the MVP and confirm the end of Match 25", "Start the aftermath of Match 3",
+  "Continue the aftermath of Match 4", with the company when the viewer has several); nothing when nothing waits. Then the filter chips
+  **Mine** / **Open** / **Ended** (`?filter=mine|open|ended`; no chip on lists every match) and the list, newest first, one compact row per
+  match (partial `match_row`): its sides (`A + B vs C`), "Match N · scenario", the Practice badge and the result badge (Open, Draw,
+  "<side> won"). Names are coloured by outcome: the winning side green, losing sides red, every side yellow after a draw (`Match.Tone`).
+  Wins/draws/losses are shown as green/yellow/red numbers wherever they appear (`wdl` partial).
+- **New match** (`/campaigns/{id}/matches/new`, `internal/web/match_new.go`, `static/js/match_form.js`): two side blocks (accent border, thick top bar) with the company search, then the scenario card
+  only (added companies are chips that can be removed, a company already on a side no longer shows up, Enter adds the first result),
+  **Practice match**, **+ Add side** (up to 8), **All vs all** (one pool where each company fights alone, with "Add every company";
+  `mode=ffa`); the scenario card is the one the server rolled (Roll again, Choose another, One-off scenario). Against the Odds is chosen on the match page.
+  The form is posted as `sides`, one `side-N` per company and the scenario fields;
+  `core.ValidateSides` checks that every side has a company and none repeats. Any player of the campaign can create a match. A campaign
+  with fewer than two companies offers no "New match" (the matches page says what is needed) and the form page says the same instead of
+  showing the form; a finished campaign offers and accepts none. See [matches.md](matches.md#new-match).
+- **Match page** (`/campaigns/{id}/matches/{match}`): only the current phase is open (preparing, playing, ending, ended; `data-phase`):
+  header (result badge, date, "Ended <date>"), the scoreboard (one row per side, no VP, no roles), **Scenario** card (a rulebook scenario with
   "How it is scored" collapsed, or a one-off with its description and victory text escaped, `whitespace-pre-line`; the folded Special rules print the rule
   tables of the file (`ScenarioText.Table`, template `rule_table`: Strange Aura by D6, the Tame the Beast Monster Budget with the row of the
-  companies' combined rating marked) and the rules a scenario `usesRules` by name) and
-  **Result** card (outcome as reported, note). The view carries the viewer's `core.MatchAccess` (`Match.Access`), which decides
-  the edit controls (scenario picker and one-off form, result form with objectives, Propose to end and the End card, administrator reopen and history,
-  organiser grants, the Aftermath card); see [matches.md](matches.md).
+  companies' combined rating marked) and the rules a scenario `usesRules` by name), **Go to my company** and **End match** while playing,
+  the End card while an end is pending, and the result, Aftermath card and note once ended; History and the match log share one
+  **Log** card; it and the scenario (with its sections) are open while playing or ending and folded otherwise (`matchView.InProgress`). The End match and Confirm sheets open in the page's window (`sheet_dialog`, `#modal-body`). The view carries the viewer's
+  `core.MatchAccess` (`Match.Access`), which decides the edit controls; see [matches.md](matches.md).
 
 ## Rules files (vanilla and Battle Companies)
 

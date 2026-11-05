@@ -44,7 +44,7 @@ A practice match is a real match while it is open:
 
 - its companies are in the open match, so they cannot join another (`CompanyBusyError`);
 - the company page shows the same "match active" state, trackers and counters;
-- the live log and secret objectives work;
+- the live log works;
 - ending it needs the same confirmations.
 
 The only additions on those pages are the Practice badge and banner.
@@ -85,10 +85,10 @@ The rule "reopen is refused once an aftermath started" ignores practice matches.
 
 It records:
 
-- the scenario (rulebook or one-off), the sides and roles;
-- the result: winner or draw, Victory Points, Fled, objectives completed, a note;
+- the scenario (rulebook or one-off) and the sides;
+- the result: winner or draw, objectives completed, a note;
 - who played, the live log (trackers, wounds, kills, zones, MVP votes);
-- the end confirmation and history, the Against the Odds selection, and secret objectives.
+- the end confirmation and history, and the Against the Odds selection.
 
 The match page, live pages and log stay available forever, also after the campaign finishes.
 
@@ -118,12 +118,12 @@ Pages follow the usual rules: 360 px up, no horizontal scroll, light and dark, s
 | Page | What it shows |
 |---|---|
 | New match | The checkbox; when ticked, a line repeats what is skipped. The "Same player" note offers "Make it a practice match", which ticks the box |
-| Campaign Matches list | The badge after the match number; a **Practice** filter chip with a count; ended practice rows show the result and no aftermath chip |
+| Campaign Matches list | The badge on the row (no Practice filter); ended practice rows show the result and no aftermath chip |
 | Campaign Overview | "Matches played" excludes practice; a muted line "n practice matches" when n > 0; open practice matches count in "Open matches" |
 | Match page | The badge beside "Match N" and a banner, open or ended: "Practice match: no experience, influence, rewards or injuries." Each company shows "Aftermath: nothing to roll (practice match)" with no call to action |
 | Aftermath page of a company | A short read-only state: badge, "Practice match: nothing to roll.", a link back to the match and one line saying nothing was awarded and nobody was injured. No sheet, rolls or waive button |
-| Result form | Unchanged; the helper under "Objectives" says "Recorded only; no reward in a practice match" |
-| Live match | Identical to a real match plus the badge in the match bar. The "End match" confirmation says "No aftermath will follow"; end checks (objective, MVP votes) stay |
+| End match and Confirm sheets | The same sheets, with no MVP vote required; MVP and objectives say "recorded only", and the sheet says "No aftermath will follow" |
+| Live match | Identical to a real match plus the badge in the match bar |
 | Company page, match history | The badge and no aftermath chip |
 | Rankings, company W/D/L | Exclude practice matches |
 | Viewers, finished campaigns | The same badge and banner, no actions |
@@ -133,6 +133,7 @@ Pages follow the usual rules: 360 px up, no horizontal scroll, light and dark, s
 The Against the Odds card stays, because kits, the Temporary Wanderer and Ambush! are table effects.
 Bonuses that only pay after the match (`influence`, `experience`, `reroll`) are shown disabled with "No reward in a practice match", and the aftermath ignores them.
 The saved selection is kept as entered, and kit items are never consumed.
+The decision works as in any match: the game waits for it, unless the gap pays for none of the table effects (under 30 with the shipped rules).
 
 ## Persistence
 
@@ -184,5 +185,5 @@ Tests:
 
 - Core: `CreateMatch` with `Practice`; the aftermath service returning the done record and refusing each write without calling `companyRepository.Update`; reward bonuses disabled and ignored; counts excluding practice; `ReopenMatch` allowed.
 - PostgreSQL (integration): the migration; the derived status in every aftermath query for a practice and a real match side by side; no `match_aftermaths` row ever written; W/D/L and played queries; query count.
-- Web: the form value, the aftermath page and its refused POSTs, the badge, banner, filter, Overview line and disabled ATO options.
+- Web: the form value, the aftermath page and its refused POSTs, the badge, banner, Overview line and disabled ATO options.
 - End to end: flow `100-practice-match` in `tests/e2e/flows`.

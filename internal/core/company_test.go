@@ -28,6 +28,19 @@ func TestOrderUnitsDefault(t *testing.T) {
 	}
 }
 
+func TestOrderUnitsWithinARole(t *testing.T) {
+	units := []CompanyUnit{
+		{ID: 1, Role: RoleWarrior, Points: 8, Type: "Warrior"}, {ID: 2, Role: RoleWarrior, Points: 12, Type: "Warrior"},
+		{ID: 3, Role: RoleWarrior, Points: 8, Name: "aldor", Type: "Warrior"}, {ID: 4, Role: RoleWarrior, Points: 8, Name: "Brego", Type: "Warrior"},
+		{ID: 5, Role: RoleHero, Points: 1, Type: "Hero"}, {ID: 6, Role: RoleHero, Points: 40, Type: "Hero"},
+		{ID: 7, Role: RoleLeader, Points: 2, Type: "Leader"},
+	}
+	// the role first, whatever the points; then the most points; then the name, upper or lower case; same title: as given
+	if got, want := ids(OrderUnits(units, nil)), []int64{7, 6, 5, 2, 3, 4, 1}; !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 func TestOrderUnitsHonoursTheSavedOrder(t *testing.T) {
 	units := []CompanyUnit{{ID: 1, Role: RoleLeader}, {ID: 2, Role: RoleWarrior}, {ID: 3, Role: RoleWarrior}, {ID: 4, Role: RoleHero}}
 	// the player moved 3 to the top; 4 is new (not saved yet) and follows in the default order
@@ -581,10 +594,7 @@ func TestCompanyPageNeverRepeatsASentence(t *testing.T) {
 	book := shippedRules(t).BC
 	key := func(t string) string { return strings.ToLower(strings.Join(strings.Fields(t), " ")) }
 	for _, p := range book.Profiles() {
-		var shown []string
-		for _, r := range p.OwnRules() {
-			shown = append(shown, r)
-		}
+		shown := slices.Clone(p.OwnRules())
 		for _, g := range p.Granted {
 			shown = append(shown, g.Text)
 		}

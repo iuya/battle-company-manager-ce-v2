@@ -50,8 +50,7 @@ func (w *aftermathWorld) finish(t *testing.T, m core.Match) core.Match {
 	if m, err = w.matches.SetScenario(ctx, w.org, w.camp.ID, m.ID, m.Revision, core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Scavenge the Battlefield"}); err != nil {
 		t.Fatal(err)
 	}
-	three, one := 3, 1
-	res := core.MatchResult{Decided: true, Winner: 1, Sides: []core.SideResult{{VictoryPoints: &three}, {VictoryPoints: &one}}}
+	res := core.MatchResult{Decided: true, Winner: 1}
 	if m, err = w.matches.SaveResult(ctx, w.org, w.camp.ID, m.ID, m.Revision, res); err != nil {
 		t.Fatal(err)
 	}
@@ -238,4 +237,35 @@ func sameState(a, b core.CompanyState) bool {
 		}
 	}
 	return true
+}
+
+// 00031 drops what a match no longer reports; going down brings the columns back, empty.
+func TestDropVictoryPointsFledRolesMigrationDownUp(t *testing.T) {
+	s, ctx := testStore(t)
+	db := stdlib.OpenDBFromPool(s.pool)
+	defer db.Close()
+	goose.SetBaseFS(migrations)
+	columns := func() int {
+		var n int
+		if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM information_schema.columns
+			WHERE (table_name = 'match_sides' AND column_name IN ('role', 'victory_points')) OR (table_name = 'match_side_companies' AND column_name = 'fled')`).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+	if columns() != 0 {
+		t.Fatal("the columns are gone")
+	}
+	if err := goose.DownToContext(ctx, db, "migrations", 30); err != nil {
+		t.Fatal(err)
+	}
+	if columns() != 3 {
+		t.Fatal("down adds them")
+	}
+	if err := goose.UpContext(ctx, db, "migrations"); err != nil {
+		t.Fatal(err)
+	}
+	if columns() != 0 {
+		t.Fatal("up drops them")
+	}
 }

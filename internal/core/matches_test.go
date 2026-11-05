@@ -138,22 +138,21 @@ func TestMatchesSetScenarioAndAccess(t *testing.T) {
 func TestMatchesChangingTheScenarioClearsObjectives(t *testing.T) {
 	f := newMatchesFixture(t)
 	f.match.Scenario = &MatchScenario{Kind: ScenarioCustom, Name: "x"}
-	f.match.Result.Companies = []CompanyResult{{CompanyID: 1, Fled: true, Objectives: map[string]int{"k": 1}}}
+	f.match.Result.Companies = []CompanyResult{{CompanyID: 1, Objectives: map[string]int{"k": 1}}}
 	m, err := f.svc.ClearScenario(f.ctx, f.player(), 5, 1, 3)
 	if err != nil || m.Scenario != nil {
 		t.Fatalf("ClearScenario = %+v, %v", m.Scenario, err)
 	}
-	if c := m.Result.Companies[0]; !c.Fled || c.Objectives != nil {
-		t.Errorf("objectives go, fled stays: %+v", c)
+	if c := m.Result.Companies[0]; c.Objectives != nil {
+		t.Errorf("objectives go: %+v", c)
 	}
 }
 
 func TestMatchesSaveResult(t *testing.T) {
 	f := newMatchesFixture(t)
-	vp := 12
-	good := MatchResult{Decided: true, Winner: 2, Sides: []SideResult{{VictoryPoints: &vp}, {}}, Companies: []CompanyResult{{CompanyID: 3, Fled: true}}, Note: " fun "}
+	good := MatchResult{Decided: true, Winner: 2, Companies: []CompanyResult{{CompanyID: 3}}, Note: " fun "}
 	m, err := f.svc.SaveResult(f.ctx, f.player(), 5, 1, 3, good)
-	if err != nil || m.Winner != 2 || m.Result.Note != "fun" || !m.Result.Company(3).Fled {
+	if err != nil || m.Winner != 2 || m.Result.Note != "fun" || len(m.Result.Companies) != 1 {
 		t.Fatalf("SaveResult = %+v, %v", m.Result, err)
 	}
 	bad := good
@@ -186,7 +185,7 @@ func TestMatchesSaveResultKnowsRulebookObjectives(t *testing.T) {
 		t.Skip("the rules file has no scenario with objectives")
 	}
 	f.match.Scenario = &MatchScenario{Kind: ScenarioRulebook, Name: sc.Name}
-	r := MatchResult{Sides: make([]SideResult, 2), Companies: []CompanyResult{{CompanyID: 1, Objectives: map[string]int{sc.Objectives[0].Key: 1}}}}
+	r := MatchResult{Companies: []CompanyResult{{CompanyID: 1, Objectives: map[string]int{sc.Objectives[0].Key: 1}}}}
 	m, err := f.svc.SaveResult(f.ctx, f.player(), 5, 1, 3, r)
 	if err != nil || m.Result.Company(1).Objectives[sc.Objectives[0].Key] != 1 {
 		t.Fatalf("SaveResult = %+v, %v", m.Result, err)
@@ -200,7 +199,7 @@ func TestMatchesEndAndReopen(t *testing.T) {
 		t.Errorf("no scenario, no result: %v", err)
 	}
 	f.match.Scenario = &MatchScenario{Kind: ScenarioCustom, Name: "x"}
-	f.match.Result = MatchResult{Decided: true, Winner: 1, Sides: make([]SideResult, 2)}
+	f.match.Result = MatchResult{Decided: true, Winner: 1}
 	m, err := f.svc.endMatch(f.ctx, f.player(), 5, 1, 3)
 	if err != nil || !m.Ended || m.EndedOn == nil || m.Revision != 4 {
 		t.Fatalf("endMatch = %+v, %v", m, err)
@@ -243,7 +242,7 @@ func TestMatchesCreate(t *testing.T) {
 	}
 	f.state.Units[1].Path = "Path of the Warlord"
 	f.state.Recruit.Officers = &OfficerStep{Unit: "Ranger of the North"}
-	if _, err := f.svc.CreateMatch(f.ctx, f.player(), 5, NewMatch{Sides: sides}); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "arrange the officers") {
+	if _, err := f.svc.CreateMatch(f.ctx, f.player(), 5, NewMatch{Sides: sides}); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Arrange the officers") {
 		t.Errorf("a pending officer arrangement cannot play: %v", err)
 	}
 }
@@ -299,8 +298,6 @@ func TestMatchesFinishedCampaignIsReadOnly(t *testing.T) {
 	_, calls["end"] = f.svc.endMatch(f.ctx, f.player(), 6, 1, 3)
 	_, calls["reopen"] = f.svc.ReopenMatch(f.ctx, admin, 6, 1, 3)
 	_, calls["admin result"] = f.svc.SaveResult(f.ctx, admin, 6, 1, 3, MatchResult{})
-	_, calls["side roles"] = f.svc.SetSideRoles(f.ctx, f.player(), 6, 1, 3, []string{"attacker", ""})
-	_, calls["swap roles"] = f.svc.SwapSideRoles(f.ctx, f.player(), 6, 1, 3)
 	for name, err := range calls {
 		if !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "The campaign is finished.") {
 			t.Errorf("%s in a finished campaign: %v", name, err)
@@ -352,71 +349,24 @@ func TestMatchesPausedCampaignFinishesOpenMatchesButStartsNone(t *testing.T) {
 	}
 }
 
-func TestSideRolesValidationSwapAndEnd(t *testing.T) {
-	if _, err := ValidateSides([]NewSide{{Companies: []int64{1}, Role: "attacker"}, {Companies: []int64{2}, Role: "attacker"}}); !errors.Is(err, ErrInvalidMatch) {
-		t.Errorf("two attackers: %v", err)
-	}
-	if _, err := ValidateSides([]NewSide{{Companies: []int64{1}, Role: "king"}, {Companies: []int64{2}}}); !errors.Is(err, ErrInvalidMatch) {
-		t.Errorf("unknown role: %v", err)
-	}
-	if _, err := ValidateSides([]NewSide{{Companies: []int64{1}, Role: "attacker"}, {Companies: []int64{2}, Role: "defender"}}); err != nil {
-		t.Errorf("both roles: %v", err)
-	}
-
+func TestAScenarioWithRolesEndsWithoutThem(t *testing.T) {
+	// the players settle Attacker and Defender at the table (docs/matches.md, "Concepts")
 	f := newMatchesFixture(t)
-	p := f.player()
-	rev := func() int { return f.match.Revision }
-	if _, err := f.svc.SetSideRoles(f.ctx, p, 5, 1, rev(), []string{"attacker"}); !errors.Is(err, ErrInvalidMatch) {
-		t.Errorf("one role per side: %v", err)
-	}
-	if _, err := f.svc.SetSideRoles(f.ctx, p, 5, 1, rev(), []string{"defender", "defender"}); !errors.Is(err, ErrInvalidMatch) {
-		t.Errorf("duplicate: %v", err)
-	}
-	m, err := f.svc.SetSideRoles(f.ctx, p, 5, 1, rev(), []string{"attacker", ""})
-	if err != nil || m.RoleOf(1) != "attacker" || m.RoleOf(2) != "" || m.RoleOf(3) != "" {
-		t.Fatalf("set: %v %+v", err, m.Sides)
-	}
-	m, err = f.svc.SwapSideRoles(f.ctx, p, 5, 1, rev())
-	if err != nil || m.RoleOf(1) != "defender" || m.RoleOf(2) != "attacker" {
-		t.Fatalf("swap with one tag: %v %+v", err, m.Sides)
-	}
-	m, _ = f.svc.SwapSideRoles(f.ctx, p, 5, 1, rev())
-	if m.RoleOf(1) != "attacker" || m.RoleOf(2) != "defender" {
-		t.Errorf("swap back: %+v", m.Sides)
-	}
-
-	// a scenario with roles needs both tags to end (two teams only)
 	list, _ := f.svc.Scenarios(f.ctx, 5)
-	var roles, plain string
+	var roles string
 	for _, sc := range list {
-		if sc.HasRoles() && roles == "" {
+		if len(sc.About.Roles) > 0 && roles == "" {
 			roles = sc.Name
 		}
-		if !sc.HasRoles() && plain == "" {
-			plain = sc.Name
-		}
 	}
-	f.match.Sides = []MatchSide{{Name: "A", Companies: f.match.Sides[0].Companies}, {Name: "B", Companies: f.match.Sides[1].Companies}}
+	if roles == "" {
+		t.Fatal("the rules file has a scenario with roles")
+	}
 	f.match.Scenario = &MatchScenario{Kind: ScenarioRulebook, Name: roles}
 	f.match.Result = MatchResult{Decided: true, Winner: 1}
 	f.match.Winner = 1
-	if _, err := f.svc.endMatch(f.ctx, p, 5, 1, rev()); !errors.Is(err, ErrInvalidMatch) || !strings.Contains(err.Error(), "which team attacks") {
-		t.Errorf("ending without tags: %v", err)
-	}
-	if _, err := f.svc.SetSideRoles(f.ctx, p, 5, 1, rev(), []string{"attacker", "defender"}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := f.svc.endMatch(f.ctx, p, 5, 1, rev()); err != nil {
-		t.Errorf("tagged: %v", err)
-	}
-	if _, err := f.svc.SetSideRoles(f.ctx, p, 5, 1, rev(), []string{"", ""}); !errors.Is(err, ErrRefused) {
-		t.Errorf("roles of an ended match: %v", err)
-	}
-	f.match.Ended = false
-	f.match.Scenario = &MatchScenario{Kind: ScenarioRulebook, Name: plain}
-	f.match.Sides[0].Role, f.match.Sides[1].Role = "", ""
-	if _, err := f.svc.endMatch(f.ctx, p, 5, 1, rev()); err != nil {
-		t.Errorf("a scenario without roles ends without tags: %v", err)
+	if _, err := f.svc.endMatch(f.ctx, f.player(), 5, 1, f.match.Revision); err != nil {
+		t.Errorf("ending %s without roles: %v", roles, err)
 	}
 }
 
@@ -432,28 +382,18 @@ func TestScenariosKnowTheirScoringObjectivesBySide(t *testing.T) {
 			fog = sc
 		}
 	}
-	if !stand.HasRoles() || len(stand.ScoringObjectives) == 0 {
+	if len(stand.About.Roles) == 0 || len(stand.Scoring) == 0 {
 		t.Fatalf("Stand Your Ground: %+v", stand.About.Roles)
 	}
-	if len(stand.ObjectivesFor("")) != len(stand.ScoringObjectives) {
-		t.Error("without a tag all objectives are listed")
-	}
-	for _, o := range stand.ObjectivesFor("attacker") {
-		if o.Side == "defender" {
-			t.Errorf("a defender's objective for the attacker: %+v", o)
+	// Fog of War's objectives stay for the players to read in How it is scored; the app keeps nothing of them
+	noted := 0
+	for _, text := range fog.Scoring {
+		if strings.Contains(text, "secretly note down") {
+			noted++
 		}
 	}
-	secret := 0
-	for _, o := range fog.ScoringObjectives {
-		if o.Secret {
-			secret++
-			if o.Nomination == nil && len(o.Options) == 0 {
-				t.Errorf("secret objective without data: %+v", o)
-			}
-		}
-	}
-	if secret == 0 {
-		t.Error("Fog of War has secret objectives")
+	if noted != 3 {
+		t.Errorf("Fog of War prints its three objectives to note down: %q", fog.Scoring)
 	}
 }
 
@@ -466,7 +406,7 @@ func TestOrganiserReopensAndEditsEndedMatches(t *testing.T) {
 	if _, err := f.svc.SaveResult(f.ctx, f.player(), 5, 1, 4, MatchResult{}); !errors.Is(err, ErrRefused) {
 		t.Errorf("a player cannot edit an ended match: %v", err)
 	}
-	if _, err := f.svc.SaveResult(f.ctx, org, 5, 1, 4, MatchResult{Decided: true, Winner: 1, Sides: make([]SideResult, 2)}); err != nil {
+	if _, err := f.svc.SaveResult(f.ctx, org, 5, 1, 4, MatchResult{Decided: true, Winner: 1}); err != nil {
 		t.Errorf("the organiser corrects an ended match: %v", err)
 	}
 	m, err := f.svc.ReopenMatch(f.ctx, org, 5, 1, 5)
@@ -475,14 +415,6 @@ func TestOrganiserReopensAndEditsEndedMatches(t *testing.T) {
 	}
 	if _, err := f.svc.ReopenMatch(f.ctx, User{ID: 77}, 5, 1, 6); !errors.Is(err, ErrRefused) {
 		t.Errorf("a stranger to the match: %v", err)
-	}
-}
-
-func TestObjectiveLabel(t *testing.T) {
-	for in, want := range map[string]string{"ownHeroSurvives": "Own hero survives", "enemyHeroHarmed": "Enemy hero harmed", "terrainPiece": "Terrain piece", "enemyLeader": "Enemy leader"} {
-		if got := ObjectiveLabel(in); got != want {
-			t.Errorf("%s: %q", in, got)
-		}
 	}
 }
 
@@ -500,4 +432,16 @@ func TestMatchesOrganiserGrantsTheirOwnCompany(t *testing.T) {
 	if _, err := f.svc.GrantReward(f.ctx, f.player(), 5, 1, GrantInput{Gold: 3, Note: "Own purse"}); !errors.Is(err, ErrRefused) {
 		t.Errorf("a player cannot award even their own company: %v", err)
 	}
+}
+
+// endMatch closes the match at once when Match.CanEnd passes (unexported since 7k7). It is the internal step for an end that needs no confirmation; the pages
+// use ProposeEnd, ConfirmEnd and OverrideEnd (docs/matches.md).
+func (s *Matches) endMatch(ctx context.Context, user User, id, matchID int64, revision int) (Match, error) {
+	return s.edit(ctx, user, id, matchID, revision, func(m *Match) error {
+		if err := s.checkEnd(ctx, m, id, 0); err != nil {
+			return err
+		}
+		m.finishEnd("")
+		return nil
+	})
 }

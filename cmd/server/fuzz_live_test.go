@@ -21,7 +21,7 @@ import (
 
 // TestLiveActionsSurviveExtremeValues (robustness): the sweep above puts the same hostile value into every field at once, so
 // a request is almost always refused at the first field. This one sends every live match POST (the action kinds of
-// {company}/actions, undo, courage roll, the end checks, the secret objectives, the end-of-match votes) with a valid form in which ONE
+// {company}/actions, undo, the end checks, the end-of-match votes) with a valid form in which ONE
 // field at a time takes an extreme but individually plausible value (2^31 wounds, negative counts, the unit of another company, match
 // or campaign, a wrong zone, an ended match, ...), also repeated, against the live state of a real seeded match. Every answer is a 2xx,
 // 3xx or 4xx, never a 5xx or a panic, and after every request the folded state of both companies is sound: every tracker within
@@ -122,7 +122,7 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 	numbers := []string{"", "0", "-1", "1", "2", "9", "10", "100", " 3 ", "+3", "3.5", "0x10", "2147483647", "2147483648", "-2147483649",
 		"4294967296", "9223372036854775807", "9223372036854775808", "-9223372036854775808", "99999999999999999999999"}
 	texts := []string{"", " ", "x", "courage", "left", "start", "casualties", "wounds", "might", "will", "fate", "Wounds", "mount", "rider",
-		strings.Repeat("n", 201), "\x00", "a\x00b", "\xff\xfe", "<b>x</b>'; --", "ß‮"}
+		strings.Repeat("n", 201), "\x00", "a\x00b", "\xff\xfe", "<b>x</b>'; --", "ß\u202e"}
 	bools := []string{"", "0", "1", "2", "-1", "true", "on"}
 	if !full {
 		numbers = []string{"", "0", "-1", "2", "10", "2147483648", "-2147483649", "9223372036854775807", "9223372036854775808", "-9223372036854775808"}
@@ -155,14 +155,11 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 		"died":    {map[string]string{"kind": "died", "unit": str(au[2].UnitID), "note": "x"}, map[string][]string{"unit": unitIDs, "note": texts}},
 		"mount":   {map[string]string{"kind": "mount", "unit": str(hero), "mounted": "0"}, map[string][]string{"unit": unitIDs, "mounted": bools}},
 		"return":  {map[string]string{"kind": "return", "unit": str(au[2].UnitID)}, map[string][]string{"unit": unitIDs}},
-		"broken":  {map[string]string{"kind": "broken", "unit": str(hero), "standFast": "1"}, map[string][]string{"unit": unitIDs, "standFast": bools}},
-		"turn":    {map[string]string{"kind": "turn", "turn": "1"}, map[string][]string{"turn": numbers}},
+		"broken":  {map[string]string{"kind": "broken", "unit": str(hero)}, map[string][]string{"unit": unitIDs}},
 		"breakAdjust": {map[string]string{"kind": "breakAdjust", "field": "start", "delta": "1"},
 			map[string][]string{"field": texts, "delta": numbers}},
-		"courageSkip": {map[string]string{"kind": "courageSkip", "unit": str(hero), "reason": "engaged"}, map[string][]string{"unit": unitIDs, "reason": append([]string{"standFast", "engaged"}, texts...)}},
-		"allIsLost":   {map[string]string{"kind": "allIsLost", "flee": "0"}, map[string][]string{"flee": bools}},
-		"itemUsed":    {map[string]string{"kind": "itemUsed", "unit": str(hero), "item": "Healing Potion", "index": "0"}, map[string][]string{"unit": unitIDs, "item": texts, "index": numbers}},
-		"unknown":     {map[string]string{"kind": "objective", "unit": str(hero)}, map[string][]string{"kind": append([]string{"objective", "mvpVote", "secretNominate", "endProposed", "endConfirmed", "endOverride"}, texts...)}},
+		"itemUsed": {map[string]string{"kind": "itemUsed", "unit": str(hero), "item": "Healing Potion", "index": "0"}, map[string][]string{"unit": unitIDs, "item": texts, "index": numbers}},
+		"unknown":  {map[string]string{"kind": "objective", "unit": str(hero)}, map[string][]string{"kind": append([]string{"objective", "mvpVote", "secretNominate", "courageSkip", "endProposed", "endConfirmed", "endOverride"}, texts...)}},
 	}
 
 	var failures []string
@@ -183,8 +180,8 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 				}
 			}
 			br := lc.Break
-			if br.StartingModels < 0 || br.Casualties < 0 || br.Threshold100 < 0 || br.Percent < 0 || br.StartingModels > 10000 || br.Casualties > 10000 || lc.Turn < 0 || lc.Turn > 1000 {
-				failures = append(failures, fmt.Sprintf("after %s: company %d break %+v turn %d", what, co, br, lc.Turn))
+			if br.StartingModels < 0 || br.Casualties < 0 || br.Threshold100 < 0 || br.Percent < 0 || br.StartingModels > 10000 || br.Casualties > 10000 {
+				failures = append(failures, fmt.Sprintf("after %s: company %d break %+v", what, co, br))
 			}
 		}
 		if _, err := b.campaigns.Log(ctx, admin, camp, mt, 0, 50); err != nil {
@@ -286,7 +283,7 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 	entries = append(entries, 0, -1, 1<<62)
 	for _, e := range entries {
 		for _, cp := range []string{str(a), str(c), "", "0", "-1", "99999999999999999999", str(otherCos[0])} {
-			for _, from := range []string{"", "log", "card", "end", "endcard", "secret", "x"} {
+			for _, from := range []string{"", "log", "card", "end", "endcard", "x"} {
 				send(fmt.Sprintf("/campaigns/%d/matches/%d/live/log/%d/undo", camp, mt, e), map[string]string{"company": cp, "from": from})
 				if !full {
 					break
@@ -300,17 +297,7 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 	}
 	check("undo")
 
-	// the courage roll
-	for _, u := range []int64{hero, cu[0].UnitID, otherUnit, foreign, endedUnit, 0, -1, 1 << 62} {
-		for _, r1 := range numbers {
-			p := fmt.Sprintf("/campaigns/%d/matches/%d/live/%d/units/%d/courage/roll", camp, mt, a, u)
-			send(p, map[string]string{"roll": r1, "roll2": "3"})
-			send(p, map[string]string{"roll": "3", "roll2": r1})
-		}
-	}
-	check("courage roll")
-
-	// the end checks: objective, mvp vote, secret objectives
+	// the end checks: objective, mvp vote
 	for _, co := range []int64{a, c, otherCos[0], endedCos[0], 0, -1, 1 << 62} {
 		for _, m := range []int64{mt, other, endedMatch, 0, -1} {
 			for _, u := range unitIDs {
@@ -325,19 +312,10 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 			}
 			for _, v := range numbers {
 				send(fmt.Sprintf("/campaigns/%d/matches/%d/live/%d/mvp", camp, m, co), map[string]string{"unit": v, "page": v})
-				secret := fmt.Sprintf("/campaigns/%d/matches/%d/secret/%d", camp, m, co)
-				send(secret, map[string]string{"kind": "done", "key": "x", "tier": v})
-				send(secret, map[string]string{"kind": "nominate", "key": "x", "unit": v})
-			}
-			for _, v := range texts {
-				secret := fmt.Sprintf("/campaigns/%d/matches/%d/secret/%d", camp, m, co)
-				send(secret, map[string]string{"kind": "nominate", "key": v, "note": "a tree"})
-				send(secret, map[string]string{"kind": "nominate", "key": "x", "note": v})
-				send(secret, map[string]string{"kind": v, "key": "x"})
 			}
 		}
 	}
-	check("end checks and secrets")
+	check("end checks")
 
 	// the pending end of a match
 	for _, step := range []string{"propose", "confirm", "withdraw", "cancel", "override"} {

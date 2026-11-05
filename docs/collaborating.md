@@ -20,7 +20,7 @@ Contents: [1. Where everything is](#1-where-everything-is), [2. How we build](#2
 | `definitions/` | Rules data: `battle_companies/battle_companies.json` (lean, the one you edit) and its `.schema.json`, `vanilla/` (read-only), `glossary/`, `concepts/` |
 | `tools/` | Go programs for the definitions, glossary, concept graph, icons, theme contrast ([tools/README.md](../tools/README.md)) |
 | `tests/e2e` | Browser tests (puppeteer-core, headless Chrome) against the demo world; `tests/ci` tests the pull request check |
-| `docs/` | Documentation of the current state; specs of designed features (`*-spec.md`) |
+| `docs/` | Documentation of the current state |
 | `.claude/agents` | Specialist agent roles (section 3) |
 | `.beads` | Beads (bd) hooks and setup; the issue database itself is private and local to the maintainers |
 | `sources/` | Gitignored, local only: copyrighted rulebooks and anything converted from them |
@@ -50,7 +50,7 @@ If you run `bd` in your own clone, `bd init` creates your own local database; it
 ### Specs first
 
 A feature starts as a spec with acceptance criteria and the interface contract.
-The domain expert writes `docs/<feature>-spec.md`, for example [practice-matches.md](practice-matches.md).
+The domain expert writes it in the feature's GitHub issue; `docs/` only describes what the app does once it is built.
 Planners agree the core and persistence contracts, then a coder implements one bead at a time, test first, against mocks.
 Large features start from an agreed issue.
 
@@ -213,7 +213,7 @@ These do not run natively; use WSL2 for them:
 - `make`, which is not installed by default (the Makefile uses `sh`, `uname`, `curl`, `chmod`);
 - `make get-tailwind`, which knows no Windows asset;
 - the shell scripts (`scripts/`, `.githooks`, `tests/ci/githooks.test.sh`);
-- the browser tests: `tests/e2e` expects the Tailwind binary built for the OS, Docker Compose, a Linux or macOS Chrome path and a server binary without `.exe`.
+- the browser tests: `tests/e2e` expects the Tailwind binary built for the OS, Docker Compose, a Linux or macOS Chrome path, and Application Control can block its server binary.
 
 ### Troubleshooting
 

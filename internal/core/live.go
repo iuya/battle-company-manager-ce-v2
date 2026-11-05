@@ -41,13 +41,11 @@ type LiveUnit struct {
 	// FateEntry and BrokenEntry are the unit's last not-undone fate and broken entries (0 for none): what pressing a lit Fate or Courage
 	// milestone undoes.
 	FateEntry, BrokenEntry int64
-	// BreakModels is how many models the unit counts as for the company's Break Point (at least 1). CourageTurn is the turn its courage
-	// was last resolved (a broken, courageSkip or failed-courage retreat entry), StandFastTurn the turn it called Stand Fast. Temporary
+	// BreakModels is how many models the unit counts as for the company's Break Point (at least 1). Temporary
 	// is set for the temporary Wanderer of Against the Odds (its UnitID is TemporaryUnitID(company), never a roster id).
-	BreakModels, CourageTurn, StandFastTurn int
-	Temporary                               bool
-	// CourageHow is how the courage of CourageTurn was resolved: "passed" (tested), "failed" (tested, retreated), or the courageSkip reason
-	// (standFast, heroicResolve, chariot, scenario: automatic passes; engaged, cannotActivate: exemptions). Empty before any.
+	BreakModels int
+	Temporary   bool
+	// CourageHow is how the unit's last courage test was resolved: "passed" (tested), "failed" (tested, retreated),. Empty before any.
 	CourageHow string
 	// Loaned are the items a Tool Kit put on the unit for this match (Used when an itemUsed entry spent it); UsedItems the names of the
 	// owned items it used.
@@ -58,6 +56,11 @@ type LiveUnit struct {
 // TemporaryUnitID is the id of the temporary Wanderer a company took with Against the Odds: negative, so that it never meets a roster id,
 // and one per company.
 func TemporaryUnitID(companyID int64) int64 { return -companyID }
+
+// FledCourage says the unit is off the board for failing a courage test: a casualty for the Break Point, unlike a unit that left the board.
+func (u LiveUnit) FledCourage() bool {
+	return u.Zone == ZoneRetreated && u.Reason == reasonFailedCourage
+}
 
 // ItemsToUse are the loaned items the unit can still mark as used (not spent, not for the aftermath).
 func (u LiveUnit) ItemsToUse() (out []LoanedItem) {
@@ -91,7 +94,6 @@ type LiveCompany struct {
 	Access             LiveAccess
 	Break              LiveBreak          // the company's Break Point state
 	Wanderer           *TemporaryWanderer // the temporary Wanderer this company took with Against the Odds, nil without
-	Turn               int                // match level: the last started turn, 0 before the first
 }
 
 // LiveAccess is what the viewer may do with a company's live state; the page only hides controls with it.
@@ -128,16 +130,20 @@ const (
 	LiveReturn     LiveKind = "return"    // back to the battle from Retreated or Field casualties (Wounds 0 becomes 1)
 	LiveObjective  LiveKind = "objective" // a unit got (or no longer has) the objective at the end of the game
 	LiveMVPVote    LiveKind = "mvpVote"   // a player votes a unit of an opposing company as MVP (UnitID 0 withdraws)
-	// The secret objectives of Fog of War: kept by their author and hidden from everybody else until the match ends.
-	LiveSecretNominate LiveKind = "secretNominate" // what the player noted down at the start (a Hero, a terrain piece)
-	LiveSecretDone     LiveKind = "secretDone"     // the tier the player reports at the end
 
 	// The company Break Point in play and the Against the Odds items (epic 36y; docs/live-match.md).
-	LiveTurn        LiveKind = "turn"        // a new turn starts (Turn); match level, company 0
 	LiveBreakAdjust LiveKind = "breakAdjust" // the manual correction of a company's starting models or casualties (Field, Delta, Note)
-	LiveCourageSkip LiveKind = "courageSkip" // a Broken company's unit passes or is exempt from the courage test without a roll (UnitID, Reason)
-	LiveAllIsLost   LiveKind = "allIsLost"   // a Broken company flees the battlefield (Flee true) or fights on (false)
 	LiveItemUsed    LiveKind = "itemUsed"    // a loaned or owned consumable used during the game (UnitID, Item, Index)
+
+	// Kinds older logs may hold and that can no longer be written (docs/live-match.md, "Company Break Point in play"): a "turn" entry is
+	// ignored by the fold; an "allIsLost" entry with Flee still takes the company's units in the Field off the board. The secret objective
+	// notes of Fog of War are ignored by the fold too; while their match is open they stay their author's (LiveKind.Secret).
+	// A "courageSkip" entry, a pass or an exemption noted without a roll, is ignored by the fold as well.
+	liveTurnLegacy           LiveKind = "turn"
+	liveAllIsLostLegacy      LiveKind = "allIsLost"
+	liveSecretNominateLegacy LiveKind = "secretNominate"
+	liveSecretDoneLegacy     LiveKind = "secretDone"
+	liveCourageSkipLegacy    LiveKind = "courageSkip"
 
 	// Informational entries about a pending end of the match (epic 6uh): written by the app, shown in the log, never undone and never
 	// part of the fold.
@@ -157,14 +163,19 @@ func (k LiveKind) Informational() bool {
 	return false
 }
 
-// EndCheckKind says whether entries of the kind belong to the end checks (the objectives, the MVP votes and the secret objectives): they are
+// EndCheckKind says whether entries of the kind belong to the end checks (the objectives, the MVP votes and the older secret notes): they are
 // made when the game is over and do not cancel a pending end of the match.
 func (k LiveKind) EndCheckKind() bool {
 	return k == LiveObjective || k == LiveMVPVote || k.Secret() || k.Informational()
 }
 
-// Secret says whether entries of the kind are hidden from other players while the match is open.
-func (k LiveKind) Secret() bool { return k == LiveSecretNominate || k == LiveSecretDone }
+// Secret says whether entries of the kind are older secret notes, hidden from other players while the match is open.
+func (k LiveKind) Secret() bool { return k == liveSecretNominateLegacy || k == liveSecretDoneLegacy }
+
+// legacy says whether the kind is one that older logs may hold and that can no longer be written.
+func (k LiveKind) legacy() bool {
+	return k == liveTurnLegacy || k == liveAllIsLostLegacy || k == liveCourageSkipLegacy || k.Secret()
+}
 
 // LiveAction is one thing the player did. Fields by Kind:
 //
@@ -190,22 +201,15 @@ type LiveAction struct {
 	Note    string // 0-200 characters
 	Mounted bool
 	On      bool
-	// ObjectiveKey and Tier belong to the secret objectives: the scoring objective's key, and the tier reached (1-based; 0 clears).
-	// A secretNominate names the nominated Hero in UnitID, or a terrain piece in Note (UnitID 0); both empty clears the note.
-	ObjectiveKey string
-	Tier         int
 	// TargetCompanyID is the company an mvpVote is about.
 	TargetCompanyID int64
-	// Turn is the number of the turn a turn entry starts (1 for the first). Field is "start" or "casualties" for a breakAdjust.
-	// StandFast is set on a broken entry when the Hero called Stand Fast. Reason is a courageSkip's reason (standFast|heroicResolve|
-	// chariot|scenario|engaged|cannotActivate). Flee is an allIsLost's answer. Item and Index name the consumable of an itemUsed.
-	Turn      int
-	Field     string
-	StandFast bool
-	Reason    string
-	Flee      bool
-	Item      string
-	Index     int
+	// Turn is what an older turn entry started (no longer written). Field is "start" or "casualties" for a breakAdjust.
+	// Flee is an older allIsLost's answer. Item and Index name the consumable of an itemUsed.
+	Turn  int
+	Field string
+	Flee  bool
+	Item  string
+	Index int
 }
 
 // WoundTarget is one unit wounded by a declaration.
@@ -338,19 +342,9 @@ type liveFeed interface {
 	Run(ctx context.Context, onEvent func(LiveEvent), onResync func()) error
 }
 
-// CourageRoll is a Courage test rolled for a unit of a Broken company: the dice, their total, the unit's Courage and whether it passed.
-// Nothing is written: the player records the result with Apply (broken or retreat).
-type CourageRoll struct {
-	Dice    []int
-	Total   int
-	Courage int
-	Passed  bool
-}
-
-// LiveMatchDefaults are what the live log says about the result form of the match: which companies chose to flee (All is Lost) and
-// for which companies every opposing company is Broken at the end of the game (the enemyBroken scenario objective).
+// LiveMatchDefaults are what the live log says about the result of the match: for which companies every opposing company is Broken at
+// the end of the game (the enemyBroken scenario objective).
 type LiveMatchDefaults struct {
-	Fled        map[int64]bool
 	EnemyBroken map[int64]bool
 }
 

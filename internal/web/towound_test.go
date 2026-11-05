@@ -62,7 +62,7 @@ func TestToWoundBodyWithoutAChartSaysSo(t *testing.T) {
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
 	rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/to-wound", nil)))
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "has no To Wound chart") || strings.Contains(rec.Body.String(), "data-roll") {
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "has no Wound chart") || strings.Contains(rec.Body.String(), "data-roll") {
 		t.Errorf("%d %q", rec.Code, rec.Body.String())
 	}
 }
@@ -99,7 +99,7 @@ func TestToWoundButtonAndWindowAreOnTheMatchAndLivePages(t *testing.T) {
 	}
 	// the match page: the window after #match
 	f = matchWrite(t, editableMatch())
-	body = f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
+	body = f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
 	if !strings.Contains(body, "data-to-wound-open") || !strings.Contains(body, `id="to-wound-dialog"`) {
 		t.Error("the match page has the button and the window")
 	}

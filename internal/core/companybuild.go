@@ -276,6 +276,9 @@ func buildUnitFor(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSet
 		u.Path = &UnitPath{}
 	} else if hero {
 		u.Path = &UnitPath{Name: s.Path, Rules: rs.BC.PathRules(s.Path, s.PathRules)}
+		if p, ok := rs.BC.Progression().Path(s.Path); ok {
+			u.Path.Categories = p.Categories
+		}
 		if p := s.Progress; p != nil {
 			for _, name := range p.Rules {
 				u.Path.Rules = append(u.Path.Rules, rs.BC.pathRuleNamed(s.Path, name))
@@ -367,7 +370,7 @@ func buildUnitFor(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSet
 	if comp, ok := profile.Composites[s.Base]; ok { // one model on the table that counts as several
 		u.Models = comp.Slots
 		for _, part := range comp.Parts {
-			u.Parts = append(u.Parts, UnitPart{Role: part.Role, Name: part.Name, Count: part.Count, Wargear: part.Wargear})
+			u.Parts = append(u.Parts, UnitPart(part))
 		}
 		for _, name := range comp.Rules {
 			if !have[NameKey(name)] {
@@ -1003,7 +1006,7 @@ func BuildDetail(rs *RuleSet, settings CampaignSettings, st CompanyState) Compan
 		co.Points += cr.Points // a creature counts for its points in the rating
 		co.FullPoints += cr.Points
 	}
-	detail := CompanyDetail{CampaignCompany: co, Influence: st.Influence, Gold: st.Gold, Limits: append(rs.BC.Limits(bcCo, units, stored...), companyLimits...),
+	detail := CompanyDetail{CampaignCompany: co, Influence: st.Influence, Gold: st.Gold, Formation: st.Order, Limits: append(rs.BC.Limits(bcCo, units, stored...), companyLimits...),
 		MaxUnits: bcCo.MaxModels, Roster: units, Recruit: recruitInfo(bcCo, rs.BC.Recruiting()), InjuredUnits: injured, Settings: settings, Injuries: rs.BC.Injuries(), RuleDice: ruleDice(rs), Creatures: creatures, Pack: pack, Rerolls: st.Rerolls, Aftermaths: st.Aftermaths, OpenMatch: st.OpenMatch, OfficersPending: st.Recruit.Officers != nil, BreakPointPercent: breakPointPercent(rs, co.Faction)}
 	for _, chart := range []struct {
 		rows []RecruitRow
@@ -1095,7 +1098,7 @@ func unitKeywordsOf(rs *RuleSet, profile CompanyProfile, s UnitState, u CompanyU
 
 // ruleDice is the dice and the Against the Odds re-roll figures of the rules that the company pages print.
 func ruleDice(rs *RuleSet) RuleDice {
-	d := RuleDice{Level: rs.BC.Progression().LevelDice(), Courage: rs.BC.BreakRules().CourageSpec}
+	d := RuleDice{Level: rs.BC.Progression().LevelDice()}
 	for _, b := range rs.BC.ATO().Bonuses {
 		if b.Key == "reroll" {
 			d.RerollRating, d.RerollCount = b.Rating, b.GivesRerolls

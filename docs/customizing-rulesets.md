@@ -542,6 +542,7 @@ A hero rolls the dice of the path (`dice`, default `campaign.progression.hero.ro
 - `signature` lists the characteristics the path is known for.
 - `spells` lists the magical powers of a path with magic.
 - `limit` is the most heroes of a company that may take the path.
+- `categories` says what the path is for, the main one first: at most two of `support`, `melee`, `ranged` and `will`. They give its colours: one colours the icon and the box, a second splits the icon on the diagonal. A path without them is drawn in the muted colour, so a file written before this key looks muted until it is added.
 - `kind` is `heroic` (default, offered to heroes), `custom` (the homebrew path an option hands out) or `endOfPath` (no table, only a `rule`).
 - Each row is `{"roll": 7, "options": [...]}`.
   **An option is exactly one of:**
@@ -892,14 +893,14 @@ The app plays a scenario from the scenario tables of `campaign.scenarioSelection
 
 (The shipped file uses a `d6` first die and a table of six scenarios for each of three ranges. The minimal file uses a `d2` and two scenarios per table to stay small.)
 
-- **Text**: `description`, `outline`, `armies`, `layout`, `startingPositions`, `objectives` (how the game ends), `specialRules` (a list of `{name, definition}`; a rule that prints a table also has `table`), `usesRules` (rules applied by name only), `roles` (`attacker`/`defender` scenarios), `side`.
+- **Text**: `description`, `outline`, `armies`, `layout`, `startingPositions`, `objectives` (how the game ends), `endsAtLosses` (the share of its starting models a company has lost when the game ends, such as `{"of": "startingModels", "share": "3/4"}`, shown to the players as what remains, 25%, in the live match), `specialRules` (a list of `{name, definition}`; a rule that prints a table also has `table`), `usesRules` (rules applied by name only), `roles` (`attacker`/`defender` scenarios), `side`.
 - **Scoring** objectives have a `key` (unique in the scenario), a `kind` and `options`, the printed sentences in printed order with their Victory Points:
   - `tiers`: the player scores the best tier reached ("instead score" sentences are alternatives, not additions).
   - `each`: a count of items worth a number of points each (`item`, `count`).
   - `eachTiers`: every item (each of 5 Objective Markers) scores its own best tier.
   - `side` (`both`, `attacker`, `defender`) restricts an objective to a role.
-  - `secret: true` keeps it hidden until the end. It takes:
-    - an `instruction` (what the player notes down);
+  - `secret: true` says the rules keep it hidden until the end. The players do that themselves: the app prints the objective in How it is scored and builds no form from these keys, which are validated and informative. It takes:
+    - an `instruction` (what the player notes down), printed before the options;
     - a `nomination` with `from` (`ownHeroes`, `enemyHeroes` or `terrain`), `allowLeader: onlyHero` (only for heroes) and `where: opponentHalf` (only for terrain).
 
 <!-- example: custom-scenario.json -->

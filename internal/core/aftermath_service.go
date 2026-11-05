@@ -76,7 +76,6 @@ type amEnv struct {
 	settings                       CampaignSettings
 	rules                          AftermathRules
 	outcome                        string
-	fled                           bool
 	access                         AftermathAccess
 	practice                       bool         // a practice match: its aftermath is complete and empty (only Aftermath reads it; every write is refused)
 	finished                       bool         // the campaign is finished: the aftermath can be read, not changed
@@ -97,7 +96,7 @@ func (s *AftermathService) load(ctx context.Context, user User, id, matchID, com
 	if err != nil {
 		return nil, err
 	}
-	outcome, fled, ok := CompanyOutcome(m, companyID)
+	outcome, ok := CompanyOutcome(m, companyID)
 	if !ok {
 		return nil, ErrNotFound
 	}
@@ -114,7 +113,7 @@ func (s *AftermathService) load(ctx context.Context, user User, id, matchID, com
 	}
 	if m.Practice { // nothing to roll: no rules are read and the company is never touched
 		return &amEnv{campaignID: id, matchID: matchID, companyID: companyID, user: user, match: m, company: co, practice: true,
-			outcome: outcome, fled: fled, access: AftermathAccessFor(user, m, co, camp.OrganiserID), finished: camp.Status == CampaignFinished}, nil
+			outcome: outcome, access: AftermathAccessFor(user, m, co, camp.OrganiserID), finished: camp.Status == CampaignFinished}, nil
 	}
 	h, settings, err := s.campaigns.Hashes(ctx, id)
 	if err != nil {
@@ -129,7 +128,7 @@ func (s *AftermathService) load(ctx context.Context, user User, id, matchID, com
 		return nil, err
 	}
 	env := &amEnv{campaignID: id, matchID: matchID, companyID: companyID, user: user, match: m, company: co, organiser: camp.OrganiserID,
-		rs: rs, settings: settings, rules: rules, outcome: outcome, fled: fled, access: AftermathAccessFor(user, m, co, camp.OrganiserID), finished: camp.Status == CampaignFinished}
+		rs: rs, settings: settings, rules: rules, outcome: outcome, access: AftermathAccessFor(user, m, co, camp.OrganiserID), finished: camp.Status == CampaignFinished}
 	if s.ato != nil {
 		rec, err := s.ato.Get(ctx, id, matchID)
 		if err != nil {
@@ -182,7 +181,7 @@ func (e *amEnv) context(st CompanyState, rec AftermathRecord) AftermathContext {
 	if roster == nil {
 		roster = e.detail(st).Roster
 	}
-	return AftermathContext{Rules: e.rules, Outcome: e.outcome, Fled: e.fled, Scenario: e.scenarioName(),
+	return AftermathContext{Rules: e.rules, Outcome: e.outcome, Scenario: e.scenarioName(),
 		Result: e.match.Result.Company(e.companyID), Roster: roster}
 }
 
@@ -206,7 +205,7 @@ func (s *AftermathService) view(ctx context.Context, e *amEnv, st CompanyState, 
 	if status == "" {
 		status = AftermathPending
 	}
-	a := Aftermath{MatchID: e.matchID, CompanyID: e.companyID, Status: status, Revision: rec.Revision, Outcome: e.outcome, Fled: e.fled,
+	a := Aftermath{MatchID: e.matchID, CompanyID: e.companyID, Status: status, Revision: rec.Revision, Outcome: e.outcome,
 		Absent: slices.Clone(rec.Work.Absent), Casualties: slices.Clone(rec.Work.Casualties), Lines: slices.Clone(rec.Lines),
 		Rerolls: rec.Work.Rerolls, WaivedNote: rec.Work.WaivedNote, Access: e.access}
 	on := time.Time{}
@@ -800,32 +799,46 @@ func decideSuccession(e *amEnv, st *CompanyState, rec *AftermathRecord, ans Afte
 	return Refuse("That is not what the company has to choose now.")
 }
 
-// advance moves the injuries step on when it can: all casualties rolled and no question open (and, with re-rolls left, the
-// player moved on), then the effects are applied, then the Leader's succession settled, then the experience goes to the units.
+// advance moves the aftermath on as far as it can without the player (docs/aftermath.md, "Flow"): the injuries step closes when
+// every casualty is rolled and no question is open (and, with re-rolls left, the player moved on), the effects are applied, the
+// Leader's succession is settled and the experience goes to the units; then, when no scenario reward waits for a choice, the aftermath
+// finishes on its own. Level-up rolls never hold it: they wait on the unit cards.
 func (s *AftermathService) advance(e *amEnv, st *CompanyState, rec *AftermathRecord) error {
-	if rec.Status != AftermathInjuries {
-		return nil
-	}
-	w := &rec.Work
-	if !w.Applied {
-		for _, cas := range w.Casualties {
-			if !cas.Rolled || cas.Decision != nil {
+	if rec.Status == AftermathInjuries {
+		w := &rec.Work
+		if !w.Applied {
+			for _, cas := range w.Casualties {
+				if !cas.Rolled || cas.Decision != nil {
+					return nil
+				}
+			}
+			if w.Rerolls > 0 && len(w.Casualties) > 0 && !w.Continued {
 				return nil
 			}
+			if err := s.applyInjuries(e, st, rec); err != nil {
+				return err
+			}
 		}
-		if w.Rerolls > 0 && len(w.Casualties) > 0 && !w.Continued {
+		if successionOpen(e.detail(*st).Roster, *rec, e.rs.BC.Shape()) != nil {
 			return nil
 		}
-		if err := s.applyInjuries(e, st, rec); err != nil {
-			return err
-		}
+		applyExperience(e, st, rec)
+		rec.Status = AftermathLevelUps
 	}
-	if successionOpen(e.detail(*st).Roster, *rec, e.rs.BC.Shape()) != nil {
+	if rec.Status != AftermathLevelUps || rewardChoiceOpen(e, *st, *rec) {
 		return nil
 	}
-	applyExperience(e, st, rec)
-	rec.Status = AftermathLevelUps
-	return nil
+	return s.finish(e, st, rec)
+}
+
+// rewardChoiceOpen says whether a scenario reward still waits for the player's choice (the free equipment of To the Victor the Spoils).
+func rewardChoiceOpen(e *amEnv, st CompanyState, rec AftermathRecord) bool {
+	for _, rw := range Rewards(e.context(st, rec), rec.Input) {
+		if rw.Decision && rec.Work.Answers["reward:"+rw.Key] == "" {
+			return true
+		}
+	}
+	return false
 }
 
 // applyInjuries makes the casualties' results real.
@@ -952,73 +965,83 @@ func applyExperience(e *amEnv, st *CompanyState, rec *AftermathRecord) {
 	}
 }
 
-// FinishAftermath applies Influence and the scenario rewards, clears the re-rolls and unlocks the company.
+// FinishAftermath applies Influence and the scenario rewards, clears the re-rolls and unlocks the company. The aftermath finishes on its
+// own once nothing is left to decide (advance), so this is only the explicit press of an older page; on a finished aftermath it does
+// nothing.
 func (s *AftermathService) FinishAftermath(ctx context.Context, user User, id, matchID, companyID int64, revision int) (Aftermath, error) {
 	return s.write(ctx, user, id, matchID, companyID, true, func(e *amEnv, st *CompanyState, rec *AftermathRecord) error {
 		switch {
 		case revision != rec.Revision:
 			return ErrAftermathChanged
+		case rec.Status == AftermathDone:
+			return nil
 		case rec.Status != AftermathLevelUps:
 			return Refuse("The injuries must be settled before the aftermath can finish.")
 		}
-		ctxA := e.context(*st, *rec)
-		rewards := Rewards(ctxA, rec.Input)
-		for _, rw := range rewards {
-			if !rw.Decision {
-				continue
-			}
-			answer := rec.Work.Answers["reward:"+rw.Key]
-			if answer == "" {
-				return Refuse("Choose %s first.", rw.Name)
-			}
-			item, unit, _ := strings.Cut(answer, "|")
-			uid, _ := strconv.ParseInt(unit, 10, 64)
-			if err := checkFreeEquipment(e.rs, e.settings, *st, rw.MaxValue, item, uid); err != nil {
-				return Refuse("%s: %s Choose again.", rw.Name, strings.TrimSuffix(err.Error(), "."))
-			}
-		}
-		influence := 0
-		for _, l := range Influence(ctxA, rec.Input) {
-			influence += l.Amount
-			line(rec, "influence", fmt.Sprintf("+%d Influence: %s", l.Amount, l.Text), 0, l.Amount)
-		}
-		for _, cas := range rec.Work.Casualties {
-			if row := e.chartRow(cas); row.BonusKind == "influence" && cas.Bonus > 0 && cas.Kind != CasualtyDead && cas.Kind != CasualtyRetired {
-				influence += cas.Bonus
-				line(rec, "influence", fmt.Sprintf("+%d Influence: %s", cas.Bonus, row.Name), cas.UnitID, cas.Bonus)
-			}
-		}
-		st.Influence += influence
-		now := time.Now()
-		for _, rw := range rewards {
-			grant := Grant{CompanyID: companyID, Kind: GrantScenario, MatchID: matchID, UnitID: rw.UnitID, Note: rw.Name, On: now}
-			switch rw.Kind {
-			case "influence": // already in the sum above
-				grant.Influence = rw.Amount
-			case "experience": // given with the experience step
-				grant.Experience = rw.Amount
-			case "freeEquipment":
-				item, unit, _ := strings.Cut(rec.Work.Answers["reward:"+rw.Key], "|")
-				uid, _ := strconv.ParseInt(unit, 10, 64)
-				us, _ := stateUnit(st, uid)
-				us.Bought = append(us.Bought, item)
-				line(rec, "reward", fmt.Sprintf("%s: %s takes %s for free", rw.Name, mustUnit(e.detail(*st).Roster, uid).Title(), item), uid, 0)
-				continue
-			default:
-				rec.NewPerks = append(rec.NewPerks, Perk{MatchID: matchID, UnitID: rw.UnitID, Effect: rw.Key, Name: rw.Name, Text: rw.Text, When: rw.When})
-				line(rec, "perk", rw.Name+": "+rw.Text, rw.UnitID, 0)
-				continue
-			}
-			rec.NewGrants = append(rec.NewGrants, grant)
-			line(rec, "reward", rw.Name, rw.UnitID, rw.Amount)
-		}
-		consumeItems(e, st, rec)
-		st.Rerolls = 0
-		rec.Work.Rerolls = 0
-		rec.Status = AftermathDone
-		rec.FinishedAt = &now
-		return nil
+		return s.finish(e, st, rec)
 	})
+}
+
+// finish applies Influence and the scenario rewards, clears the re-rolls and unlocks the company.
+func (s *AftermathService) finish(e *amEnv, st *CompanyState, rec *AftermathRecord) error {
+	matchID, companyID := e.matchID, e.companyID
+	ctxA := e.context(*st, *rec)
+	rewards := Rewards(ctxA, rec.Input)
+	for _, rw := range rewards {
+		if !rw.Decision {
+			continue
+		}
+		answer := rec.Work.Answers["reward:"+rw.Key]
+		if answer == "" {
+			return Refuse("Choose %s first.", rw.Name)
+		}
+		item, unit, _ := strings.Cut(answer, "|")
+		uid, _ := strconv.ParseInt(unit, 10, 64)
+		if err := checkFreeEquipment(e.rs, e.settings, *st, rw.MaxValue, item, uid); err != nil {
+			return Refuse("%s: %s Choose again.", rw.Name, strings.TrimSuffix(err.Error(), "."))
+		}
+	}
+	influence := 0
+	for _, l := range Influence(ctxA, rec.Input) {
+		influence += l.Amount
+		line(rec, "influence", fmt.Sprintf("+%d Influence: %s", l.Amount, l.Text), 0, l.Amount)
+	}
+	for _, cas := range rec.Work.Casualties {
+		if row := e.chartRow(cas); row.BonusKind == "influence" && cas.Bonus > 0 && cas.Kind != CasualtyDead && cas.Kind != CasualtyRetired {
+			influence += cas.Bonus
+			line(rec, "influence", fmt.Sprintf("+%d Influence: %s", cas.Bonus, row.Name), cas.UnitID, cas.Bonus)
+		}
+	}
+	st.Influence += influence
+	now := time.Now()
+	for _, rw := range rewards {
+		grant := Grant{CompanyID: companyID, Kind: GrantScenario, MatchID: matchID, UnitID: rw.UnitID, Note: rw.Name, On: now}
+		switch rw.Kind {
+		case "influence": // already in the sum above
+			grant.Influence = rw.Amount
+		case "experience": // given with the experience step
+			grant.Experience = rw.Amount
+		case "freeEquipment":
+			item, unit, _ := strings.Cut(rec.Work.Answers["reward:"+rw.Key], "|")
+			uid, _ := strconv.ParseInt(unit, 10, 64)
+			us, _ := stateUnit(st, uid)
+			us.Bought = append(us.Bought, item)
+			line(rec, "reward", fmt.Sprintf("%s: %s takes %s for free", rw.Name, mustUnit(e.detail(*st).Roster, uid).Title(), item), uid, 0)
+			continue
+		default:
+			rec.NewPerks = append(rec.NewPerks, Perk{MatchID: matchID, UnitID: rw.UnitID, Effect: rw.Key, Name: rw.Name, Text: rw.Text, When: rw.When})
+			line(rec, "perk", rw.Name+": "+rw.Text, rw.UnitID, 0)
+			continue
+		}
+		rec.NewGrants = append(rec.NewGrants, grant)
+		line(rec, "reward", rw.Name, rw.UnitID, rw.Amount)
+	}
+	consumeItems(e, st, rec)
+	st.Rerolls = 0
+	rec.Work.Rerolls = 0
+	rec.Status = AftermathDone
+	rec.FinishedAt = &now
+	return nil
 }
 
 // WaiveAftermath is for the organiser and administrators: no effects, unlocks the company, records the note (1-200).

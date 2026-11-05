@@ -957,10 +957,8 @@ func TestAccountMigrationsDownAndUp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for range 5 {
-		if _, err := p.Down(ctx); err != nil {
-			t.Fatal(err)
-		}
+	if _, err := p.DownTo(ctx, 25); err != nil { // before 00026_audit_events
+		t.Fatal(err)
 	}
 	var n int
 	if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM information_schema.tables WHERE table_name IN ('audit_events','account_invitations','account_invitation_uses','password_recovery_links')`).Scan(&n); err != nil || n != 0 {

@@ -179,6 +179,24 @@ func TestATOAccessFor(t *testing.T) {
 	}
 }
 
+func TestATOStatusCanDecideFollowsATOAccessFor(t *testing.T) {
+	st := ATOStatus{Pending: true, OwnerID: 10}
+	for _, tt := range []struct {
+		name string
+		u    User
+		want bool
+	}{
+		{"the owner of the lower company", User{ID: 10}, true},
+		{"the opposing owner", User{ID: 20}, false},
+		{"the organiser", User{ID: 99}, true},
+		{"an administrator", User{ID: 5, Role: RoleAdmin}, true},
+	} {
+		if got := st.CanDecide(tt.u, 99); got != tt.want {
+			t.Errorf("%s: %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}
+
 // --- the service ---
 
 type atoFixture struct {
@@ -195,7 +213,7 @@ func newATOFixture(t *testing.T) *atoFixture {
 	t.Helper()
 	f := &atoFixture{matchesFixture: newMatchesFixture(t)}
 	f.repo = NewMockatoRepository(gomock.NewController(t))
-	f.match = Match{ID: 1, Number: 1, Revision: 3, Sides: []MatchSide{
+	f.match = Match{ID: 1, Number: 1, Revision: 3, Scenario: &MatchScenario{Kind: ScenarioCustom, Name: "The bridge"}, Sides: []MatchSide{
 		{Name: "A", Companies: []CampaignCompany{{ID: 1, OwnerID: 10, Name: "Rangers"}}},
 		{Name: "B", Companies: []CampaignCompany{{ID: 2, OwnerID: 20, Name: "Raiders"}}}}}
 	f.companies = NewMockcompanyRepository(gomock.NewController(t))
@@ -395,26 +413,15 @@ func TestAmbushSetsAndRestoresTheScenario(t *testing.T) {
 	if f.match.Scenario == nil || f.match.Scenario.Name != rolled.Name || f.rec.Previous != nil {
 		t.Errorf("restored: %+v %+v", f.match.Scenario, f.rec)
 	}
-	// a match that had no scenario gets none back
-	f.match.Scenario = nil
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 6, ATOSelection{Bonuses: []string{"ambush"}, Ambush: other}); err != nil {
-		t.Fatal(err)
-	}
-	if f.match.Scenario == nil || f.rec.HadPrevious {
-		t.Fatalf("%+v %+v", f.match.Scenario, f.rec)
-	}
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 7, ATOSelection{}); err != nil {
-		t.Fatal(err)
-	}
-	if f.match.Scenario != nil {
-		t.Errorf("no scenario before, none after: %+v", f.match.Scenario)
+	// an older match whose only scenario was Ambush!'s: dropping it would leave none, and without a scenario nothing is confirmed
+	f.match.Scenario = &MatchScenario{Kind: ScenarioRulebook, Name: other}
+	f.rec = ATORecord{MatchID: 1, CompanyID: 1, Selection: ATOSelection{Bonuses: []string{"ambush"}, Ambush: other}}
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 6, ATOSelection{}); !errors.Is(err, ErrRefused) {
+		t.Errorf("no scenario left: %v", err)
 	}
 	// somebody chose another scenario by hand meanwhile: Ambush no longer owns it, so dropping it leaves that choice
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 8, ATOSelection{Bonuses: []string{"ambush"}, Ambush: other}); err != nil {
-		t.Fatal(err)
-	}
 	f.match.Scenario = &MatchScenario{Kind: ScenarioRulebook, Name: third}
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 9, ATOSelection{}); err != nil {
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 6, ATOSelection{}); err != nil {
 		t.Fatal(err)
 	}
 	if f.match.Scenario == nil || f.match.Scenario.Name != third {

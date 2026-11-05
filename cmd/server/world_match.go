@@ -7,7 +7,7 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// newMatch opens a match between the sides (each a list of companies); the first company's name is the side's name.
+// newMatch opens a match between the sides (each a list of companies), without a scenario.
 func (w *world) newMatch(c *wcamp, sides ...[]*wco) core.Match {
 	return w.openMatch(c, false, sides...)
 }
@@ -17,32 +17,38 @@ func (w *world) newPracticeMatch(c *wcamp, sides ...[]*wco) core.Match {
 	return w.openMatch(c, true, sides...)
 }
 
+// newMatchOn opens a match with its rulebook scenario chosen on the new match form (docs/matches.md, "New match").
+func (w *world) newMatchOn(c *wcamp, scenario string, sides ...[]*wco) core.Match {
+	return w.create(c, core.NewMatch{Sides: newSides(sides), Scenario: &core.ScenarioInput{Kind: core.ScenarioRulebook, Name: scenario}})
+}
+
 func (w *world) openMatch(c *wcamp, practice bool, sides ...[]*wco) core.Match {
+	return w.create(c, core.NewMatch{Sides: newSides(sides), Practice: practice})
+}
+
+func (w *world) create(c *wcamp, in core.NewMatch) core.Match {
+	m, err := w.c().CreateMatch(w.ctx, c.org, c.id, in)
+	w.must("create match in "+c.name, err)
+	return w.decideATO(c, m) // the scripts play it next; the matches that wait for the decision are made by atoWaiting
+}
+
+func newSides(sides [][]*wco) []core.NewSide {
 	var ns []core.NewSide
 	for _, s := range sides {
-		side := core.NewSide{Name: s[0].name}
+		var side core.NewSide
 		for _, co := range s {
 			side.Companies = append(side.Companies, co.id)
 		}
 		ns = append(ns, side)
 	}
-	m, err := w.c().CreateMatch(w.ctx, c.org, c.id, core.NewMatch{Sides: ns, Practice: practice})
-	w.must("create match in "+c.name, err)
-	return m
-}
-
-// rulebook sets a scenario of the rules file.
-func (w *world) rulebook(c *wcamp, m core.Match, name string) core.Match {
-	m, err := w.c().SetScenario(w.ctx, c.org, c.id, m.ID, m.Revision, core.ScenarioInput{Kind: core.ScenarioRulebook, Name: name})
-	w.must("scenario "+name, err)
-	return m
+	return ns
 }
 
 // oneOff sets a scenario the players invented.
 func (w *world) oneOff(c *wcamp, m core.Match, name, description, victory string) core.Match {
 	m, err := w.c().SetScenario(w.ctx, c.org, c.id, m.ID, m.Revision, core.ScenarioInput{Kind: core.ScenarioCustom, Name: name, Description: description, Victory: victory})
 	w.must("one-off scenario "+name, err)
-	return m
+	return w.decideATO(c, m)
 }
 
 // scenarioInfo is what the rules file says about a scenario (its tickable objectives).
@@ -60,66 +66,46 @@ func (w *world) scenarioInfo(c *wcamp, name string) core.ScenarioInfo {
 	return w.scenarios[name]
 }
 
-// outcome describes the result the script reports.
+// outcome describes the result the script reports: the winner (or a draw), the scenario reward ticks and a note.
 type outcome struct {
 	winner int // 1-based side; 0 with decided: a draw
 	draw   bool
-	none   bool  // nothing reported
-	vp     []int // victory points per side (empty: not reported)
-	fled   []*wco
+	none   bool // nothing reported
 	ticks  map[*wco]map[string]int
 	note   string
 }
 
 // report saves the result of the match.
 func (w *world) report(c *wcamp, m core.Match, o outcome) core.Match {
-	r := core.MatchResult{Decided: !o.none, Winner: o.winner, Note: o.note, Sides: make([]core.SideResult, len(m.Sides))}
+	r := core.MatchResult{Decided: !o.none, Winner: o.winner, Note: o.note}
 	if o.draw {
 		r.Winner = 0
 	}
-	for i, v := range o.vp {
-		v := v
-		r.Sides[i].VictoryPoints = &v
-	}
-	seen := map[int64]bool{}
-	for _, f := range o.fled {
-		seen[f.id] = true
-		r.Companies = append(r.Companies, core.CompanyResult{CompanyID: f.id, Fled: true, Objectives: o.ticks[f]})
-	}
 	for co, t := range o.ticks {
-		if !seen[co.id] {
-			r.Companies = append(r.Companies, core.CompanyResult{CompanyID: co.id, Objectives: t})
-		}
+		r.Companies = append(r.Companies, core.CompanyResult{CompanyID: co.id, Objectives: t})
 	}
 	m, err := w.c().SaveResult(w.ctx, c.org, c.id, m.ID, m.Revision, r)
 	w.must("result of match "+fmt.Sprint(m.Number), err)
 	return m
 }
 
-// endMatch ends the match; its aftermaths are then to play.
+// endMatch ends the match; its aftermaths are then to play (endNow casts the MVP votes a competitive match needs first).
 func (w *world) endMatch(c *wcamp, m core.Match) core.Match {
-	if m.Scenario != nil && len(m.Sides) == 2 && w.scenarioInfo(c, m.Scenario.Name).HasRoles() && (m.Sides[0].Role == "" || m.Sides[1].Role == "") {
-		var err error // a scenario with an Attacker and a Defender needs both teams tagged before it ends
-		m, err = w.c().SetSideRoles(w.ctx, c.org, c.id, m.ID, m.Revision, []string{core.RoleAttacker, core.RoleDefender})
-		w.must("tag the teams", err)
-	}
 	m, err := endNow(w.ctx, w.c(), c.org, c.id, m.ID, m.Revision)
 	w.must("end match", err)
 	return m
 }
 
-// played makes an ended match: scenario, result, end.
+// played makes an ended match: created with its scenario, result, end.
 func (w *world) played(c *wcamp, scenario string, o outcome, sides ...[]*wco) core.Match {
-	m := w.newMatch(c, sides...)
-	m = w.rulebook(c, m, scenario)
+	m := w.newMatchOn(c, scenario, sides...)
 	m = w.report(c, m, o)
 	return w.endMatch(c, m)
 }
 
 // playedPractice makes an ended practice match: the same steps as played, but it awards nothing and has no aftermath.
 func (w *world) playedPractice(c *wcamp, scenario string, o outcome, sides ...[]*wco) core.Match {
-	m := w.newPracticeMatch(c, sides...)
-	m = w.rulebook(c, m, scenario)
+	m := w.create(c, core.NewMatch{Sides: newSides(sides), Practice: true, Scenario: &core.ScenarioInput{Kind: core.ScenarioRulebook, Name: scenario}})
 	m = w.report(c, m, o)
 	return w.endMatch(c, m)
 }

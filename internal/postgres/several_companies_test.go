@@ -342,8 +342,7 @@ func TestAnOwnerOfTwoCompaniesFightsThemselves(t *testing.T) {
 	if m, err = w.matches.SetScenario(ctx, w.org, id, m.ID, m.Revision, core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Scavenge the Battlefield"}); err != nil {
 		t.Fatal(err)
 	}
-	three, one := 3, 1
-	if m, err = w.matches.SaveResult(ctx, w.org, id, m.ID, m.Revision, core.MatchResult{Decided: true, Winner: 1, Sides: []core.SideResult{{VictoryPoints: &three}, {VictoryPoints: &one}}}); err != nil {
+	if m, err = w.matches.SaveResult(ctx, w.org, id, m.ID, m.Revision, core.MatchResult{Decided: true, Winner: 1}); err != nil {
 		t.Fatal(err)
 	}
 	// one owner, two companies: proposing confirms for the proposer's companies, and the single owner's confirmation ends the match

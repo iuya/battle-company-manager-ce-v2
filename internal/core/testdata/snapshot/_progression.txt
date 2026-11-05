@@ -21,6 +21,7 @@ progression
   Paths:
     -
       Name: "Path of the Tactician"
+      Categories: ["support", "will"]
       Limits:
         "attack": {"max": 2}
         "courage": {"maxIncrease": 3}
@@ -78,6 +79,7 @@ progression
       SpecialRules: ["Spy", "Gatekeeper", "Longbeard", "Reading the Portents"]
     -
       Name: "Path of the Sharpshooter"
+      Categories: ["ranged"]
       Limits:
         "attack": {"max": 1}
         "courage": {"maxIncrease": 3}
@@ -128,6 +130,7 @@ progression
       SpecialRules: ["Big Game Hunter", "Knife Mastery", "Swift Shot", "Rapid Fire"]
     -
       Name: "Path of the Soldier"
+      Categories: ["melee"]
       Limits:
         "attack": {"max": 2}
         "courage": {"maxIncrease": 3}
@@ -178,6 +181,7 @@ progression
       SpecialRules: ["A Good Sort", "Relentless Commander", "Fearsome Charge", "Reckless Charge"]
     -
       Name: "Path of the Marksman"
+      Categories: ["ranged"]
       Limits:
         "attack": {"max": 1}
         "courage": {"maxIncrease": 3}
@@ -230,6 +234,7 @@ progression
       SpecialRules: ["Pinpoint Shot", "\"Hold positions, loose the arrows!\"", "Volley Fire", "Lethal Aim"]
     -
       Name: "Path of the Claimant"
+      Categories: ["melee"]
       Limits:
         "attack": {"max": 3}
         "courage": {"maxIncrease": 3}
@@ -282,6 +287,7 @@ progression
       SpecialRules: ["Usurper of Kings", "Claim the Throne", "General Hunter", "Cunning Fighter"]
     -
       Name: "Path of the Sorcerer"
+      Categories: ["will"]
       Limits:
         "attack": {"max": 2}
         "courage": {"best": 3}
@@ -347,6 +353,7 @@ progression
       SpecialRules: ["Deceptive Caster", "Sorcerous Adept", "Master of Magic"]
     -
       Name: "Path of the Shieldbearer"
+      Categories: ["support"]
       Limits:
         "attack": {"max": 2}
         "courage": {"maxIncrease": 4}
@@ -399,6 +406,7 @@ progression
       SpecialRules: ["Swift Parry", "Marshal", "Defender of the City", "The King's Protector"]
     -
       Name: "Path of the Ranger"
+      Categories: ["ranged", "support"]
       Limits:
         "attack": {"max": 2}
         "courage": {"maxIncrease": 3}
@@ -452,6 +460,7 @@ progression
       SpecialRules: ["Spectral Walk", "Experienced Tracker", "Chief Advisor", "Rallying Cry"]
     -
       Name: "Path of the Warlord"
+      Categories: ["support"]
       Limits:
         "attack": {"max": 3}
         "courage": {"best": 3}
@@ -506,6 +515,7 @@ progression
       SpecialRules: ["Furious Tirade", "Commanding Bellow", "Master of Battle (3+)", "Voice of Command"]
     -
       Name: "Path of the Berserker"
+      Categories: ["melee"]
       Limits:
         "attack": {"max": 3}
         "courage": {"maxIncrease": 4}
@@ -558,6 +568,7 @@ progression
       SpecialRules: ["Burly", "To Arms!", "Oblivious to Pain", "Fury of the Bear"]
     -
       Name: "Path of the Duelist"
+      Categories: ["melee", "support"]
       Limits:
         "attack": {"max": 2}
         "courage": {"maxIncrease": 4}

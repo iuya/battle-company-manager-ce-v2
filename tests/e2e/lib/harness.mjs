@@ -29,8 +29,8 @@ export class Session {
     await this.page.waitForFunction((t) => !document.body.innerText.includes(t), { timeout }, text)
       .catch(() => { throw new Error(`text still present after ${timeout} ms: "${text}"`); });
   }
-  // Retreated and Died have no button on a live card: open their window the way the card's Wounded milestone opens its own (the same sheet
-  // route with another kind), through htmx in the page. unitID: a field unit of the page's company; by default the first one.
+  // The window of a live action of a unit, opened the way the card's Wounded milestone opens its own (the same sheet route with another
+  // kind), through htmx in the page. Only wound and item have one. unitID: a field unit of the page's company; by default the first one.
   async liveSheet(kind, unitID) {
     await this.page.evaluate((kind, id) => {
       const btn = [...document.querySelectorAll('main .unit-slot button[hx-get$="/sheet/wound"]')].find((b) => id == null || b.closest('.unit-slot').dataset.unitId === String(id));
@@ -38,6 +38,17 @@ export class Session {
       htmx.ajax('GET', btn.getAttribute('hx-get').replace(/\/wound$/, `/${kind}`), { target: '#modal-body', swap: 'innerHTML' });
       window.dispatchEvent(new CustomEvent('open-modal'));
     }, kind, unitID ?? null);
+  }
+  // A unit retreats. The card's Failed Courage button exists only while the company is Broken and there is no window for "left the board" any
+  // more: send the action as that button does, to the actions route the milestones post to. why: courage (default) or left. unitID: by default
+  // the first field unit.
+  async liveRetreat(unitID, why = 'courage') {
+    await this.page.evaluate((id, why) => {
+      const btn = [...document.querySelectorAll('main .unit-slot button[hx-get$="/sheet/wound"]')].find((b) => id == null || b.closest('.unit-slot').dataset.unitId === String(id));
+      if (!btn) throw new Error(`no field unit ${id ?? ''} with a Wounded milestone`);
+      const url = btn.getAttribute('hx-get').replace(/\/units\/\d+\/sheet\/wound$/, '/actions');
+      htmx.ajax('POST', url, { target: '#live-zones', swap: 'outerHTML', values: { kind: 'retreat', unit: btn.closest('.unit-slot').dataset.unitId, why } });
+    }, unitID ?? null, why);
   }
   // The mount switch has no button on a live card for now (a GitHub issue brings it back): send its action as that button did, to the
   // actions route the milestones post to. unitID: by default the first field unit.

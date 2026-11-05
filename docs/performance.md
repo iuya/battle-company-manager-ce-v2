@@ -119,7 +119,7 @@ Numbers, the rejected ideas and the method are in [the report linked from issue 
 
 #### The match page's stream
 
-A full initial batch on the event stream would make the match page fetch the end card, the end checks and the log a second time.
+A full initial batch on the event stream would make the match page fetch the end card and the log a second time.
 That costs three requests and 30 statements, and a third round trip (1.0 s at 300 ms of latency).
 The page therefore proves it is current instead.
 

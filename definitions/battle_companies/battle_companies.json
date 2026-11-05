@@ -5550,6 +5550,10 @@
   "paths": [
     {
       "name": "Path of the Tactician",
+      "categories": [
+        "support",
+        "will"
+      ],
       "mastery": "Heroic Move Mastery",
       "maximums": {
         "attack": {
@@ -5721,6 +5725,9 @@
     },
     {
       "name": "Path of the Sharpshooter",
+      "categories": [
+        "ranged"
+      ],
       "mastery": "Heroic Shoot Mastery",
       "maximums": {
         "attack": {
@@ -5885,6 +5892,9 @@
     },
     {
       "name": "Path of the Soldier",
+      "categories": [
+        "melee"
+      ],
       "mastery": "Heroic Combat Mastery",
       "maximums": {
         "attack": {
@@ -6049,6 +6059,9 @@
     },
     {
       "name": "Path of the Marksman",
+      "categories": [
+        "ranged"
+      ],
       "description": "The Hero adds Heroic Accuracy to their list of Heroic Actions when embarking upon this path.",
       "heroicAction": "Heroic Accuracy",
       "mastery": "Heroic Accuracy Mastery",
@@ -6214,6 +6227,9 @@
     },
     {
       "name": "Path of the Claimant",
+      "categories": [
+        "melee"
+      ],
       "description": "The Hero adds Heroic Challenge to their list of Heroic Actions when embarking upon this path.",
       "heroicAction": "Heroic Challenge",
       "mastery": "Heroic Challenge Mastery",
@@ -6379,6 +6395,9 @@
     },
     {
       "name": "Path of the Sorcerer",
+      "categories": [
+        "will"
+      ],
       "description": "The Hero adds Heroic Channeling to their list of Heroic Actions, adds their choice of Magical Power to their Spell List when embarking upon this path. (Rare Limit: 1 per Company)",
       "heroicAction": "Heroic Channeling",
       "limit": 1,
@@ -6596,6 +6615,9 @@
     },
     {
       "name": "Path of the Shieldbearer",
+      "categories": [
+        "support"
+      ],
       "description": "The Hero adds Heroic Defence to their list of Heroic Actions when embarking upon this path.",
       "heroicAction": "Heroic Defence",
       "mastery": "Heroic Defence Mastery",
@@ -6761,6 +6783,10 @@
     },
     {
       "name": "Path of the Ranger",
+      "categories": [
+        "ranged",
+        "support"
+      ],
       "description": "The Hero adds Heroic March to their list of Heroic Actions when embarking upon this path.",
       "heroicAction": "Heroic March",
       "mastery": "Heroic March Mastery",
@@ -6930,6 +6956,9 @@
     },
     {
       "name": "Path of the Warlord",
+      "categories": [
+        "support"
+      ],
       "description": "The Hero adds Heroic Resolve to their list of Heroic Actions when embarking upon this path.",
       "heroicAction": "Heroic Resolve",
       "mastery": "Heroic Resolve Mastery",
@@ -7102,6 +7131,9 @@
     },
     {
       "name": "Path of the Berserker",
+      "categories": [
+        "melee"
+      ],
       "description": "The Hero adds Heroic Strength to their list of Heroic Actions when embarking upon this path.",
       "heroicAction": "Heroic Strength",
       "mastery": "Heroic Strength Mastery",
@@ -7267,6 +7299,10 @@
     },
     {
       "name": "Path of the Duelist",
+      "categories": [
+        "melee",
+        "support"
+      ],
       "description": "The Hero adds Heroic Strike to their list of Heroic Actions when embarking upon this path.",
       "heroicAction": "Heroic Strike",
       "mastery": "Heroic Strike Mastery",
@@ -7621,6 +7657,10 @@
       "armies": "All available members of each Battle Company.",
       "layout": "Set up terrain as described on page 65. Then, place five Objective Markers on the battlefield; one is automatically placed in the centre of the board. To place the other objectives, both players roll a D6. The player with the highest score places one objective anywhere on the battlefield at least 12\" away from the existing objective and 6\" away from any board edge. Their opponent then places a third objective at least 12\" away from existing objectives and at least 6\" away from any board edge. The players then alternate placing the remaining two objectives, according to the restriction noted earlier.",
       "objectives": "The game lasts until the end of a turn in which one Army has been reduced to a quarter (25%) of its starting number of models or below, at which point the player that has scored the most Victory Points wins the game. If both players have the same number of Victory Points, the game is a draw.",
+      "endsAtLosses": {
+        "of": "startingModels",
+        "share": "3/4"
+      },
       "scoring": [
         {
           "key": "objectiveMarkers",
@@ -7682,6 +7722,10 @@
       "armies": "All available members of each Battle Company.",
       "layout": "Set up terrain as described on page 65.",
       "objectives": "The game lasts until the end of a turn in which one Battle Company has been reduced to 25% of its starting models, at which point the player who has scored the most Victory Points wins the game. If both players have the same number of Victory Points, the game is a draw.",
+      "endsAtLosses": {
+        "of": "startingModels",
+        "share": "3/4"
+      },
       "rewards": [
         {
           "name": "Rendezvous",
@@ -7868,6 +7912,10 @@
       "armies": "All available members of each Battle Company.",
       "layout": "Set up terrain as described on page 65. Then, place three Objective Markers in each player's deployment zone so that the objectives are equidistant along the edge of each player's deployment zone, with one in the centre.\n\nThe first is placed 12\" from the centre of the player's board edge. The others are then placed halfway between the central objective and the board edges on either side, so that all three objectives are equidistant along the edge of one player's deployment zone.",
       "objectives": "The game lasts until the end of a turn in which one Army has been reduced to a quarter (25%) of its starting number of models or below, at which point the player that has scored the most Victory Points wins the game. If both players have the same number of Victory Points, the game is a draw.",
+      "endsAtLosses": {
+        "of": "startingModels",
+        "share": "3/4"
+      },
       "scoring": [
         {
           "key": "suppliesDestroyed",
@@ -8092,6 +8140,10 @@
       "armies": "All available members of each Battle Company.",
       "layout": "Set up terrain as described on page 65.",
       "objectives": "Whichever leader can slay the most will be the victor. Note that if your leader is missing this game, use the Sergeant in your Battle Company with the highest points cost instead.\n\nThe game lasts until the end of a turn in which one Battle Company has been reduced to 25% of its starting models.",
+      "endsAtLosses": {
+        "of": "startingModels",
+        "share": "3/4"
+      },
       "scoring": [
         {
           "key": "leaderKills",
@@ -8161,6 +8213,10 @@
       "armies": "All available members of each Battle Company.",
       "layout": "Set up terrain as described on page 65. You then place the objective markers as shown on the map.",
       "objectives": "Whichever Battle Company can hold the most objectives will be the winner. The game lasts until the end of a turn in which one Battle Company has been reduced to 25% of its starting models.",
+      "endsAtLosses": {
+        "of": "startingModels",
+        "share": "3/4"
+      },
       "rewards": [
         {
           "name": "To the Victor Goes the Spoils",
@@ -8252,6 +8308,10 @@
       "armies": "All available members of each Battle Company.",
       "layout": "Set up terrain as described on page 65. Then, place six identical Objective markers on the battlefield where one is secretly marked as different from the others. All six Objective Markers should be identical on one side, with the one side that is the Relic clearly marked on the reverse side. To deploy the Objective Markers, place one exactly 12\" from the centre of the northern edge and another exactly 12\" from the centre of the southern board edge. The remaining four objectives are deployed so that they form a hexagon with each being 12\" away from the others, as shown on the map.\n\nIt is recommended to have the campaign organizer or another player deploy the Objective Markers.",
       "objectives": "The Battle Companies are searching for the relic, and once it is found, they must escape with it in their grasp. The game lasts until either the relic has been moved off of one board edge, or one side has been reduced to a quarter (25%) of their starting forces.",
+      "endsAtLosses": {
+        "of": "startingModels",
+        "share": "3/4"
+      },
       "rewards": [
         {
           "name": "A Final Blessing",
@@ -8362,6 +8422,10 @@
       "armies": "All available members of each Battle Company.",
       "layout": "Set up terrain as described on page 65. Then, place three Objective Markers in each half of the board/ The first is placed exactly 18\" from the centre of one player's board edge. The others are then placed halfway between the central objective and the board edges on either side, ensuring that they are equidistant along an imaginary line 18\" from one player's board edge (see map). These represent the Relics of Power.",
       "objectives": "The game lasts until the end of a turn in which one Battle Company has been reduced to a quarter (25%) of its starting number of models or below, at which point the player who has scored the most Victory Points wins the game. If both players have the same number of Victory Points, the game is a draw.",
+      "endsAtLosses": {
+        "of": "startingModels",
+        "share": "3/4"
+      },
       "scoring": [
         {
           "key": "artefacts",
@@ -8436,6 +8500,10 @@
       "armies": "All available members of each Battle Company.",
       "layout": "Set up terrain as described on page 65. Then, place four Objective Markers on the battlefield. The first Objective Marker is placed exactly halfway between the centre of the board and the north-east corner of the board edge. The other three Objective Markers are deployed in the same way in relation to the south-east, south-west, and north-west corners respectively (See map).",
       "objectives": "The game lasts until the end of a turn in which one Battle Company has been reduced to a quarter (25%) of its starting number of models or below, at which point the player who has scored the most Victory Points wins the game. If both players have the same number of Victory Points, the game is a draw.",
+      "endsAtLosses": {
+        "of": "startingModels",
+        "share": "3/4"
+      },
       "scoring": [
         {
           "key": "objectiveMarkers",
@@ -8554,7 +8622,11 @@
       "description": "In the ebb and flow of battle, leaders from both sides have found themselves cut off from their reinforcements and must stand firm until their relief force arrives.",
       "armies": "All available members of each Battle Company.",
       "layout": "Set up terrain as described on page 65.",
-      "objectives": "The game ends at the end of the turn when either the target Hero is slain, or one Battle Company is reduced to less than 25% of its starting numbers.",
+      "objectives": "The game ends at the end of the turn when either the target Hero is slain, or one Battle Company is reduced to 25% of its starting numbers or below.",
+      "endsAtLosses": {
+        "of": "startingModels",
+        "share": "3/4"
+      },
       "rewards": [
         {
           "name": "Survival of the Fittest",

@@ -59,8 +59,6 @@ func TestMatchCanEnd(t *testing.T) {
 		{"a draw is a decision", func(m *Match) { m.Result.Winner = 0 }, ""},
 		{"no scenario", func(m *Match) { m.Scenario = nil }, "scenario"},
 		{"nothing reported", func(m *Match) { m.Result = MatchResult{} }, "who won"},
-		{"the winner fled", func(m *Match) { m.Result.Companies = []CompanyResult{{CompanyID: 1, Fled: true}} }, "Rangers fled"},
-		{"the loser fled", func(m *Match) { m.Result.Companies = []CompanyResult{{CompanyID: 2, Fled: true}} }, ""},
 		{"already ended", func(m *Match) { m.Ended = true }, "already ended"},
 	}
 	for _, tt := range tests {
@@ -115,9 +113,8 @@ func TestScenarioInputValidate(t *testing.T) {
 
 func TestValidateResult(t *testing.T) {
 	info := &ScenarioInfo{Name: "Seize Ground", Objectives: []ScenarioObjective{{Key: "relic", Max: 2}}}
-	vp := func(n int) *int { return &n }
 	base := func() MatchResult {
-		return MatchResult{Decided: true, Winner: 2, Sides: []SideResult{{VictoryPoints: vp(3)}, {}}}
+		return MatchResult{Decided: true, Winner: 2}
 	}
 	m := testMatch()
 	m.Scenario = &MatchScenario{Kind: ScenarioRulebook, Name: "Seize Ground"}
@@ -139,10 +136,6 @@ func TestValidateResult(t *testing.T) {
 		{"company not in the match", func(r *MatchResult) { r.Companies = []CompanyResult{{CompanyID: 9}} }, false},
 		{"company twice", func(r *MatchResult) { r.Companies = []CompanyResult{{CompanyID: 1}, {CompanyID: 1}} }, false},
 		{"winner out of range", func(r *MatchResult) { r.Winner = 3 }, false},
-		{"wrong number of sides", func(r *MatchResult) { r.Sides = r.Sides[:1] }, false},
-		{"VP 99", func(r *MatchResult) { r.Sides[0].VictoryPoints = vp(99) }, true},
-		{"VP 100", func(r *MatchResult) { r.Sides[0].VictoryPoints = vp(100) }, false},
-		{"VP negative", func(r *MatchResult) { r.Sides[1].VictoryPoints = vp(-1) }, false},
 		{"note 500", func(r *MatchResult) { r.Note = strings.Repeat("a", 500) }, true},
 		{"note 501", func(r *MatchResult) { r.Note = strings.Repeat("a", 501) }, false},
 	}
@@ -157,7 +150,7 @@ func TestValidateResult(t *testing.T) {
 		}
 	}
 	// an undecided result carries no winner; a custom scenario has no objectives
-	got, _ := m.ValidateResult(MatchResult{Winner: 2, Sides: make([]SideResult, 2)}, info)
+	got, _ := m.ValidateResult(MatchResult{Winner: 2}, info)
 	if got.Winner != 0 || got.Decided {
 		t.Errorf("undecided result: %+v", got)
 	}
@@ -221,7 +214,7 @@ func TestMatchSideLabelNamesTheCompaniesOfAnUnnamedSide(t *testing.T) {
 	}{
 		{MatchSide{Name: "Side 2", Companies: two[:1]}, "Rangers"},
 		{MatchSide{Name: "Side 1", Companies: two}, "Rangers + Raiders"},
-		{MatchSide{Name: "Gondor", Companies: two}, "Gondor"},
+		{MatchSide{Name: "Gondor", Companies: two}, "Rangers + Raiders"}, // a name typed on an older match: the companies are shown
 		{MatchSide{Name: "Side 3"}, "Side 3"},
 	}
 	for _, tt := range tests {

@@ -25,6 +25,11 @@ func formInt(r *http.Request, name string) int {
 	return n
 }
 
+func queryID(r *http.Request, name string) int64 {
+	n, _ := strconv.ParseInt(r.URL.Query().Get(name), 10, 64)
+	return n
+}
+
 func formID(r *http.Request, name string) int64 {
 	n, _ := strconv.ParseInt(strings.TrimSpace(r.PostFormValue(name)), 10, 64)
 	return n
@@ -53,21 +58,13 @@ func liveActionFrom(r *http.Request) (core.LiveAction, error) {
 		a.Mounted = r.PostFormValue("mounted") == "1"
 	case core.LiveWound:
 		a.Targets = []core.WoundTarget{{UnitID: formID(r, "target"), Part: r.PostFormValue("part"), Caused: formInt(r, "caused"), SavedByFate: formInt(r, "saved")}}
-	case core.LiveBroken:
-		a.StandFast = r.PostFormValue("standFast") == "1"
-	case core.LiveTurn:
-		a.Turn = formInt(r, "turn")
 	case core.LiveBreakAdjust:
 		a.Field, a.Delta = r.PostFormValue("field"), formInt(r, "delta")
-	case core.LiveCourageSkip:
-		a.Reason = r.PostFormValue("reason")
-	case core.LiveAllIsLost:
-		a.Flee = r.PostFormValue("flee") == "1"
 	case core.LiveObjective:
 		a.On = r.PostFormValue("on") == "1"
 	case core.LiveItemUsed:
 		a.Item, a.Index = r.PostFormValue("item"), formInt(r, "index")
-	case core.LiveDied, core.LiveReturn:
+	case core.LiveBroken, core.LiveDied, core.LiveReturn:
 	default:
 		return a, core.Refuse("Unknown action.")
 	}
@@ -119,16 +116,8 @@ func (s *Server) handleLiveUndo(w http.ResponseWriter, r *http.Request) {
 	companyID := formID(r, "company")
 	toast := liveToast{MatchID: matchID, Company: companyID, Campaign: id}
 	_, err := s.campaigns.Undo(r.Context(), *userFrom(r.Context()), id, matchID, entryID, companyID)
-	if r.PostFormValue("from") == "secret" {
-		s.answerSecretUndo(w, r, id, matchID, err)
-		return
-	}
-	if from := r.PostFormValue("from"); from == "end" || from == "endcard" {
-		s.answerEndUndo(w, r, id, matchID, companyID, from == "endcard", err)
-		return
-	}
-	if from := r.PostFormValue("from"); from == "log" || from == "card" { // pressed in the log: it answers with the log
-		s.answerLogUndo(w, r, id, matchID, companyID, from == "card", err)
+	if r.PostFormValue("from") == "card" { // pressed in the log: it answers with the log
+		s.answerLogUndo(w, r, id, matchID, err)
 		return
 	}
 	if err == nil {

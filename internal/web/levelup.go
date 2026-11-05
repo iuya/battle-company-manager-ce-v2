@@ -3,7 +3,9 @@ package web
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -26,6 +28,12 @@ type levelPanel struct {
 	Pending  int             // level-up rolls the unit still has waiting
 	Rerolls  int             // Against the Odds re-rolls the company has
 	Error    string
+	Fresh    bool         // the roll was made just now: a celebration plays only then, reopening the window shows it still
+	Heroic   bool         // a warrior's Hero in the Making waiting to be accepted
+	Forgo    []choiceView // what it can take instead of becoming a hero (the promotions)
+	Plan     string       // the roll's core.LevelPlan as JSON, for the marks of the window
+	// CloseAfter is how many milliseconds after the reveal the window closes by itself: a warrior's no change with no roll left.
+	CloseAfter int
 	// Spec is the dice of this unit's roll (a warrior's, or the hero's path chart) and Pairs how many results a hero rolls: the form,
 	// the dice tray and the heading are sized by them (campaign.progression, data.paths[].dice).
 	Spec  core.DiceSpec
@@ -41,67 +49,109 @@ func (s *Server) showLevelPanel(w http.ResponseWriter, r *http.Request, status i
 	if s.fail(w, r, err) {
 		return
 	}
-	panel := levelPanel{Campaign: base.Campaign, Co: base.Current.ID, Roll: roll, Animate: animate, Error: errMsg}
-	found := false
-	for _, u := range detail.Roster {
-		if u.ID == unitID {
-			panel.Unit, found = u, true
-		}
-	}
-	if !found {
+	i := slices.IndexFunc(detail.Roster, func(u core.CompanyUnit) bool { return u.ID == unitID })
+	if i < 0 {
 		s.notFound(w, r)
 		return
 	}
-	panel.Pending, panel.Rerolls = panel.Unit.PendingLevelUps(), detail.Rerolls
-	panel.Spec, panel.Pairs = detail.RuleDice.Level.Warrior, 1
-	if panel.Unit.IsHero() {
-		panel.Spec, panel.Pairs = detail.RuleDice.Level.Hero, detail.RuleDice.Level.Pairs
-		if panel.Unit.Path != nil {
-			panel.Spec = detail.RuleDice.Level.HeroFor(panel.Unit.Path.Name)
-		}
-	}
+	unit := detail.Roster[i]
+	panel := levelPanel{Campaign: base.Campaign, Co: base.Current.ID, Unit: unit, Roll: roll, Animate: animate, Error: errMsg, Fresh: roll != nil,
+		Pending: unit.PendingLevelUps(), Rerolls: detail.Rerolls}
+	panel.Spec, panel.Pairs = levelDice(unit, detail.RuleDice.Level)
 	glossary, err := s.glossary.ForCampaign(r.Context(), base.Campaign.ID) // to describe a rule, an action or a power with links to its terms
 	if err != nil && !errors.Is(err, core.ErrNotFound) {
 		s.fail(w, r, err)
 		return
 	}
 	if roll == nil {
-		if roll, err = s.campaigns.LevelUpState(r.Context(), *userFrom(r.Context()), base.Campaign.ID, base.Current.ID, unitID); s.fail(w, r, err) {
+		if panel.Roll, err = s.campaigns.LevelUpState(r.Context(), *userFrom(r.Context()), base.Campaign.ID, base.Current.ID, unitID); s.fail(w, r, err) {
 			return
 		}
-		panel.Roll = roll
 	}
-	if panel.Roll != nil {
-		panel.Offers = offerViews(glossary, panel.Roll.Offers)
-		if panel.Roll.Upgrade != nil {
-			up := offerViews(glossary, []core.LevelOffer{*panel.Roll.Upgrade})[0]
-			panel.Upgrade = &up
-		}
-		if len(panel.Roll.Offers) > 0 { // a result nothing of which can be taken is shown too, shadowed
-			for i, pair := range panel.Roll.Pairs {
-				if !pair.Usable {
-					panel.Unusable = append(panel.Unusable, pairView{Pair: i + 1, Sum: pair.Sum, Segments: linkText(glossary, pair.Text)})
-				}
-			}
-		}
-		var dice, groups, labels []string
-		if panel.Roll.D6 > 0 {
-			dice = append(dice, strconv.Itoa(panel.Roll.D6))
-		}
-		for i, pair := range panel.Roll.Pairs { // each of a hero's rolls gets its own lane
-			if len(pair.Dice) == 0 {
-				continue
-			}
-			for _, d := range pair.Dice {
-				dice = append(dice, strconv.Itoa(d))
-			}
-			groups = append(groups, strconv.Itoa(len(pair.Dice)))
-			labels = append(labels, rollLabel(i+1))
-		}
-		panel.Dice, panel.Groups, panel.Labels = strings.Join(dice, ","), strings.Join(groups, ","), strings.Join(labels, ",")
+	if panel.Roll != nil && s.fail(w, r, panel.fillRoll(glossary)) {
+		return
 	}
 	s.render.partial(w, status, "campaign_my_company", "level_panel", panel)
 }
+
+// levelDice is the dice of a unit's level-up roll and how many results it rolls: a warrior's D6, or a hero's roll on its path's chart.
+func levelDice(u core.CompanyUnit, dice core.LevelDice) (core.DiceSpec, int) {
+	if !u.IsHero() {
+		return dice.Warrior, 1
+	}
+	if u.Path != nil {
+		return dice.HeroFor(u.Path.Name), dice.Pairs
+	}
+	return dice.Hero, dice.Pairs
+}
+
+// fillRoll sets what the window shows of its roll.
+func (p *levelPanel) fillRoll(g core.Glossary) error {
+	roll := p.Roll
+	p.Offers = offerViews(g, roll.Offers)
+	if roll.Upgrade != nil {
+		up := offerViews(g, []core.LevelOffer{*roll.Upgrade})[0]
+		p.Upgrade = &up
+	}
+	if roll.Plan != nil {
+		plan, err := json.Marshal(roll.Plan)
+		if err != nil {
+			return err
+		}
+		p.Plan = string(plan)
+	}
+	if roll.Done && roll.Result == core.WarriorResultNoChange && p.Pending == 0 {
+		p.CloseAfter = noChangeCloseMillis
+	}
+	if !roll.Done && roll.Stage == "" && roll.Result == core.WarriorResultHeroInTheMaking && len(p.Offers) == 1 {
+		p.Heroic = true
+		for _, c := range p.Offers[0].Choices {
+			if c.Key != core.HeroChoiceKey {
+				p.Forgo = append(p.Forgo, c)
+			}
+		}
+	}
+	p.Unusable = unusablePairs(g, *roll)
+	p.Dice, p.Groups, p.Labels = rollDice(*roll)
+	return nil
+}
+
+// unusablePairs is the results of a hero's rolls it cannot take anything from: shown too, shadowed, while there is something to choose.
+func unusablePairs(g core.Glossary, roll core.LevelRoll) []pairView {
+	if len(roll.Offers) == 0 {
+		return nil
+	}
+	var out []pairView
+	for i, pair := range roll.Pairs {
+		if !pair.Usable {
+			out = append(out, pairView{Pair: i + 1, Sum: pair.Sum, Segments: linkText(g, pair.Text)})
+		}
+	}
+	return out
+}
+
+// rollDice is the dice to show rolling, how they are grouped in lanes and the lanes' names, comma separated: each of a hero's rolls
+// gets its own lane.
+func rollDice(roll core.LevelRoll) (dice, groups, labels string) {
+	var d, g, l []string
+	if roll.D6 > 0 {
+		d = append(d, strconv.Itoa(roll.D6))
+	}
+	for i, pair := range roll.Pairs {
+		if len(pair.Dice) == 0 {
+			continue
+		}
+		for _, n := range pair.Dice {
+			d = append(d, strconv.Itoa(n))
+		}
+		g = append(g, strconv.Itoa(len(pair.Dice)))
+		l = append(l, rollLabel(i+1))
+	}
+	return strings.Join(d, ","), strings.Join(g, ","), strings.Join(l, ",")
+}
+
+// noChangeCloseMillis is how long a warrior's no change stays on screen after the dice stop.
+const noChangeCloseMillis = 2000
 
 // rollLabel names the i-th result of a hero's level-up: "First roll", "Second roll", "Roll 3".
 func rollLabel(i int) string {
@@ -124,15 +174,7 @@ func (s *Server) handleLevelUpPanel(w http.ResponseWriter, r *http.Request) {
 
 // handleLevelUpRoll makes the roll: the player's own dice (a D6 for a warrior, the sums of two pairs for a hero) or the app's.
 func (s *Server) handleLevelUpRoll(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}
@@ -150,15 +192,7 @@ func (s *Server) handleLevelUpRoll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLevelUpChoose(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}
@@ -168,6 +202,13 @@ func (s *Server) handleLevelUpChoose(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, core.ErrRefused):
 		s.showLevelPanel(w, r, http.StatusUnprocessableEntity, unitID, nil, false, reason(err))
 	case s.fail(w, r, err):
+	case r.PostFormValue("then") == "close": // a Hero in the Making accepted: the window closes by itself and the page behind refreshes
+		s.render.partial(w, http.StatusOK, "campaign_my_company", "level_closing", map[string]any{"Campaign": id, "Co": cid, "Summary": roll.Summary})
+	case r.PostFormValue("then") == "path": // ... or goes on to the path window
+		base, ok := s.loadOwn(w, r, "my-company")
+		if ok {
+			s.showPathPanel(w, r, base, unitID, http.StatusOK, "")
+		}
 	default:
 		s.showLevelPanel(w, r, http.StatusOK, unitID, &roll, false, "")
 	}
@@ -175,15 +216,7 @@ func (s *Server) handleLevelUpChoose(w http.ResponseWriter, r *http.Request) {
 
 // handleLevelUpReroll spends an Against the Odds re-roll on a result.
 func (s *Server) handleLevelUpReroll(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}
@@ -208,7 +241,9 @@ type offerView struct {
 // pieces that link to other terms (and preview them on hover), and the full text for the choice's own tooltip.
 type choiceView struct {
 	core.LevelChoice
-	Segments []segView
+	Name     string   // what the button says: the option's name, a stat with its amount ("Fight +1")
+	Badge    string   // the kind of ability it gives
+	Dots     []string // a stat's progress against its limit: taken, gain, free
 	TipTitle string
 	TipText  string
 	TipPath  string // a path's limits and chart as JSON for the tooltip: {"limits": [["Fight", "+3 / 9"]], "rows": [[2, "..."]]}
@@ -219,34 +254,70 @@ func offerViews(g core.Glossary, offers []core.LevelOffer) []offerView {
 	for i, o := range offers {
 		out[i] = offerView{LevelOffer: o}
 		for _, c := range o.Choices {
-			v := choiceView{LevelChoice: c}
-			if name := choiceTerm(c.Key); name != "" {
-				if term, ok := g.Find(name); ok {
-					v.TipTitle = term.Name
-					if strings.HasPrefix(c.Key, "path:") { // a path is chosen by its name; the tooltip has its whole chart
-						v.TipText = term.Text()
-						v.TipPath = tipPath(term.Path)
-					} else if strings.HasPrefix(c.Key, "power:") { // a power is chosen by what it does: its whole description, never cut
-						v.TipText = term.Text()
-						v.Segments = linkText(g, powerText(g, c))
-					} else {
-						v.TipText = term.Summary(700)
-						text := term.Summary(240)
-						if _, target, ok := strings.Cut(c.Label, " - "); ok && strings.Contains(c.Key, "|unit:") { // X is the unit picked
-							text = strings.ReplaceAll(text, " X ", " "+target+" ")
-						}
-						v.Segments = linkText(g, text)
-					}
-				}
-			}
-			if v.TipText == "" && c.Hint != "" {
-				v.TipTitle, v.TipText = c.Label, c.Hint
-				v.Segments = linkText(g, c.Hint)
-			}
-			out[i].Choices = append(out[i].Choices, v)
+			out[i].Choices = append(out[i].Choices, newChoiceView(g, c))
 		}
 	}
 	return out
+}
+
+func newChoiceView(g core.Glossary, c core.LevelChoice) choiceView {
+	v := choiceView{LevelChoice: c, Name: c.Label, Badge: choiceBadge(c.Key)}
+	if st := c.Stat; st != nil {
+		v.Name = fmt.Sprintf("%s +%d", st.Stat, st.Gain)
+		v.Dots = statDots(*st)
+		v.TipTitle, v.TipText = v.Name, st.Detail
+		return v
+	}
+	if name := choiceTerm(c.Key); name != "" {
+		if term, ok := g.Find(name); ok {
+			v.TipTitle, v.TipText = term.Name, term.Text()
+			if strings.HasPrefix(c.Key, "path:") {
+				v.TipPath = tipPath(term.Path)
+			}
+			if _, target, ok := strings.Cut(c.Label, " - "); ok && strings.Contains(c.Key, "|unit:") { // X is the unit picked
+				v.TipText = strings.ReplaceAll(v.TipText, " X ", " "+target+" ")
+			}
+		}
+	}
+	if v.TipText == "" && c.Hint != "" {
+		v.TipTitle, v.TipText = c.Label, c.Hint
+	}
+	return v
+}
+
+// statDots is a stat's progress against its limit, one dot per step of improvement; none when nothing limits the stat.
+func statDots(st core.StatGain) []string {
+	if st.Limit <= 0 {
+		return nil
+	}
+	dots := make([]string, 0, st.Limit)
+	for i := range st.Limit {
+		switch {
+		case i < st.Taken:
+			dots = append(dots, "taken")
+		case i < st.Taken+st.Gain:
+			dots = append(dots, "gain")
+		default:
+			dots = append(dots, "free")
+		}
+	}
+	return dots
+}
+
+// choiceBadge names the kind of ability a choice gives; empty for anything else.
+func choiceBadge(key string) string {
+	kind, _, _ := strings.Cut(key, ":")
+	switch kind {
+	case "rule":
+		return "Special rule"
+	case "minor":
+		return "Minor rule"
+	case "action":
+		return "Heroic action"
+	case "power":
+		return "Magical power"
+	}
+	return ""
 }
 
 // choiceTerm is the glossary name of what a choice gives (a rule, a minor rule, a heroic action, a power, a path); empty for

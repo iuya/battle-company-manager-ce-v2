@@ -37,6 +37,30 @@ func shippedBCPath() string {
 }
 
 // shippedRules is the RuleSet of the default files, built once for all tests.
+// Every path a hero chooses has its categories, in order; the paths that are not chosen have none, and a unit carries those of its path.
+func TestShippedPathCategories(t *testing.T) {
+	want := map[string][]string{
+		"Path of the Warlord": {"support"}, "Path of the Shieldbearer": {"support"}, "Path of the Tactician": {"support", "will"},
+		"Path of the Sorcerer": {"will"},
+		"Path of the Soldier":  {"melee"}, "Path of the Claimant": {"melee"}, "Path of the Berserker": {"melee"}, "Path of the Duelist": {"melee", "support"},
+		"Path of the Sharpshooter": {"ranged"}, "Path of the Marksman": {"ranged"}, "Path of the Ranger": {"ranged", "support"},
+	}
+	prog := shippedRules(t).BC.Progression()
+	if len(prog.Paths) != len(want) {
+		t.Errorf("%d paths offered, want %d", len(prog.Paths), len(want))
+	}
+	for _, p := range prog.Paths {
+		if !slices.Equal(p.Categories, want[p.Name]) {
+			t.Errorf("%s: categories %v, want %v", p.Name, p.Categories, want[p.Name])
+		}
+	}
+	for _, p := range prog.Hidden {
+		if len(p.Categories) != 0 {
+			t.Errorf("%s: categories %v, want none", p.Name, p.Categories)
+		}
+	}
+}
+
 func shippedRules(t testing.TB) *RuleSet {
 	t.Helper()
 	shippedOnce.Do(func() {
@@ -349,12 +373,13 @@ func TestBuildDetailSavedOrderTakesPriority(t *testing.T) {
 		return out
 	}
 	st := gondor()
-	if got := ids(st); got[0] != 1 || got[1] != 2 || got[2] != 3 {
-		t.Fatalf("the default order is leader, sergeants, heroes, then the regular units: %v", got)
+	// the leader, the sergeants, the heroes, the regular units; within each the most points, then the name
+	if got := ids(st); !slices.Equal(got, []int64{1, 3, 2, 5, 4, 9, 8, 6, 7, 11, 10}) {
+		t.Fatalf("the default order is role, points, name: %v", got)
 	}
 	st.Order = []int64{6, 2, 3, 4, 5, 1}
 	got := ids(st)
-	if got[0] != 6 || got[5] != 1 || got[6] != 7 || got[len(got)-1] != 11 {
+	if !slices.Equal(got, []int64{6, 2, 3, 4, 5, 1, 9, 8, 7, 11, 10}) {
 		t.Errorf("the saved order, then the others in the default order: %v", got)
 	}
 	st.Units = append(st.Units, UnitState{ID: 100, Base: "Warrior of Minas Tirith", Role: RoleWarrior})

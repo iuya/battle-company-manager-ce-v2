@@ -385,7 +385,7 @@ The specification and classification are in [aura-ranges.md](aura-ranges.md).
   3. the 24 KB rule: rule texts are lowered first, and if the payload with rings is still too big the rings are given up (the payload falls back to version 1) with the note `aurasLeftOut`.
 
   A ring costs about 45 bytes.
-- `RuleSet.CompanyAuraSummary(d, sel)` and `TTSService.TTSAuras(ctx, campaignID, companyID, live, opts, sel)` give the dialog the kinds the company has, the rings and radii, the totals and what each switch adds.
+- `RuleSet.AuraSummaryFor(d, exp, sel)` and `TTSService.TTSAuras(ctx, campaignID, companyID, live, opts, sel)` give the dialog the kinds the company has, the rings and radii, the totals and what each switch adds.
   `AuraSelection` has an `Optional` switch for the Torch.
 
 Tests: `ttsauras_test.go` and `ttsglue_test.go`.

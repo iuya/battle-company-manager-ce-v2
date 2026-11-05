@@ -6,6 +6,7 @@ import (
 	"fmt"
 	neturl "net/url"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -267,6 +268,33 @@ func TestSeedWorld(t *testing.T) {
 	if fallback["Orcs with one clear veteran"] != 1 || fallback["Dwarves with two equal veterans"] != 2 || fallback["Rangers who lost every officer"] < 1 {
 		t.Errorf("ward 3 Warriors to choose from: %v", fallback)
 	}
+	// ward 4: the Riders' second aftermath waits for the injury to heal and for the typed bonus die
+	ward4 := byName["Aftermath ward 4: the questions of a recovery"]
+	m4, err := b.campaigns.Matches(ctx, ward4.ID)
+	if err != nil || len(m4) != 2 {
+		t.Fatalf("ward 4 matches: %v %v", m4, err)
+	}
+	questions := map[string]bool{}
+	for _, m := range m4 {
+		refs4, err := b.campaigns.AftermathStatuses(ctx, ward4.ID, m.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, r := range refs4 {
+			a, err := b.campaigns.Aftermath(ctx, you, ward4.ID, m.ID, r.CompanyID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, c := range a.Casualties {
+				if c.Decision != nil {
+					questions[c.Decision.Kind] = true
+				}
+			}
+		}
+	}
+	if !questions["heal"] || !questions["bonus"] {
+		t.Errorf("ward 4 questions: %v", questions)
+	}
 	// the Shire company of the cemetery lost its Ranger in a played match: three officers (a company recruits only with
 	// three) and the Ranger in the cemetery, so Recruit may swap a successful result for a new one
 	cem, ok := byName["Cemetery: the fallen of the Misty Mountains"]
@@ -304,7 +332,8 @@ func TestSeedWorld(t *testing.T) {
 	if !found {
 		t.Error("the Shire company of the cemetery is missing")
 	}
-	checkLiveAndLimit(t, ctx, b, byName, you)
+	checkLiveAndLimit(t, ctx, b, byName)
+	checkATOMatches(t, ctx, b, byName)
 	t.Run("queries do not grow with the data", func(t *testing.T) { assertQueryCounts(ctx, t, b, counter, conn, admin) })
 }
 
@@ -392,10 +421,94 @@ func checkAdminStates(t *testing.T, ctx context.Context, b *backend, admin core.
 	}
 }
 
-// checkLiveAndLimit asserts the Fog of War game (secret notes, the zones of retreated and fallen units, the live Tabletop Simulator
-// export with a second warband) and the campaign whose limit was lowered after companies existed.
-func checkLiveAndLimit(t *testing.T, ctx context.Context, b *backend, byName map[string]core.CampaignSummary, you core.User) {
+// checkATOMatches asserts the two Against the Odds matches of the matches campaign: one waits for the player below, the other is confirmed.
+func checkATOMatches(t *testing.T, ctx context.Context, b *backend, byName map[string]core.CampaignSummary) {
 	t.Helper()
+	var id int64
+	for name, c := range byName {
+		if strings.HasPrefix(name, "Matches: every scenario") {
+			id = c.ID
+		}
+	}
+	matches, err := b.campaigns.Matches(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waiting, confirmed := 0, 0
+	for _, m := range matches {
+		st, err := b.campaigns.ATOStatus(ctx, id, m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rec, err := b.store.ATO().Get(ctx, id, m.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if st.Pending {
+			waiting++
+		}
+		if m.ATODecided && !m.Ended && rec.Selection.Has("reroll") {
+			confirmed++
+		}
+	}
+	if waiting != 1 || confirmed != 1 {
+		t.Errorf("Against the Odds: %d matches wait and %d are confirmed with a bonus, want one each", waiting, confirmed)
+	}
+}
+
+// checkLiveAndLimit asserts the Fog of War game (the zones of retreated and fallen units, the live Tabletop Simulator
+// export with a second warband) and the campaign whose limit was lowered after companies existed.
+func checkLiveAndLimit(t *testing.T, ctx context.Context, b *backend, byName map[string]core.CampaignSummary) {
+	t.Helper()
+	milestones, ok := byName[milestonesName]
+	if !ok {
+		t.Fatal("the Break and 25% campaign is missing")
+	}
+	mcos, err := b.campaigns.Companies(ctx, milestones.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]core.LiveBreak{}
+	mmatches, err := b.campaigns.Matches(ctx, milestones.ID)
+	if err != nil || len(mmatches) != 2 {
+		t.Fatalf("Break and 25%% matches: %v %v", mmatches, err)
+	}
+	for _, m := range mmatches {
+		breaks, err := b.campaigns.MatchBreaks(ctx, milestones.ID, m.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, co := range mcos {
+			if br, ok := breaks[co.ID]; ok {
+				seen[co.Name] = br
+			}
+		}
+	}
+	if br := seen["Rohan"]; br.EndLeftPercent() != 25 || br.LeftTable == 0 || br.Casualties == 0 || br.ToEnd() != br.EndAt()-br.Casualties {
+		t.Errorf("Rohan has casualties and models off the table, which do not count, on a 25%% scenario: %+v", br)
+	}
+	if br := seen["Arnor"]; br.ToEnd() != 0 {
+		t.Errorf("Arnor has reached the 25%%: %+v", br)
+	}
+	for _, co := range mcos {
+		if co.Name != "Arnor" {
+			continue
+		}
+		_, _, owner, err := b.auth.Login(ctx, "aragorn@example.com", "demo-password")
+		if err != nil {
+			t.Fatal(err)
+		}
+		lc, err := b.campaigns.Live(ctx, owner, milestones.ID, co.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.ContainsFunc(lc.Units, func(u core.LiveUnit) bool { return u.Reason == "Failed courage" }) {
+			t.Error("Arnor reaches the 25% with a unit that failed its Courage test")
+		}
+	}
+	if br := seen["Dale"]; br.Casualties != 0 || br.ToEnd() == 0 {
+		t.Errorf("Dale is whole: %+v", br)
+	}
 	fog, ok := byName[fogName]
 	if !ok {
 		t.Fatal("the Fog of War campaign is missing")
@@ -403,13 +516,6 @@ func checkLiveAndLimit(t *testing.T, ctx context.Context, b *backend, byName map
 	matches, err := b.campaigns.Matches(ctx, fog.ID)
 	if err != nil || len(matches) != 1 {
 		t.Fatalf("Fog of War matches: %v %v", matches, err)
-	}
-	view, err := b.campaigns.SecretObjectives(ctx, you, fog.ID, matches[0].ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if view.Revealed || len(view.Others) == 0 {
-		t.Errorf("the secret notes of an open match are hidden from a stranger: %+v", view)
 	}
 	cos, err := b.campaigns.Companies(ctx, fog.ID)
 	if err != nil || len(cos) != 2 {
@@ -419,10 +525,6 @@ func checkLiveAndLimit(t *testing.T, ctx context.Context, b *backend, byName map
 		_, _, owner, err := b.auth.Login(ctx, map[string]string{"Dwarves who keep their counsel": "gimli@example.com", "Rangers of the silent road": "aragorn@example.com"}[c.Name], "demo-password")
 		if err != nil {
 			t.Fatal(err)
-		}
-		own, err := b.campaigns.SecretObjectives(ctx, owner, fog.ID, matches[0].ID)
-		if err != nil || len(own.Lines) == 0 {
-			t.Errorf("%s sees no secret note of their own: %v %+v", c.Name, err, own)
 		}
 		lc, err := b.campaigns.Live(ctx, owner, fog.ID, c.ID)
 		if err != nil {

@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"slices"
 	"strconv"
-	"strings"
 )
 
 // LiveService runs the live mode of a match (docs/live-match.md): it computes the starting values, folds the log, validates and
@@ -20,6 +19,7 @@ type LiveService struct {
 	hub     *LiveHub
 	ato     atoRepository // optional (WithATO): the Against the Odds selection overlaid on the live state
 	ends    endCanceller  // optional (WithEnds): cancels a pending end of the match when the game goes on
+	gate    atoGate       // optional (WithATOGate): holds the game until Against the Odds is decided
 }
 
 // endCanceller is what the live mode needs of the match service: a game action made while the end of the match is pending cancels the
@@ -30,6 +30,15 @@ type endCanceller interface {
 
 // WithEnds gives the service the match service that cancels a pending end.
 func (s *LiveService) WithEnds(c endCanceller) *LiveService { s.ends = c; return s }
+
+// atoGate says why nothing can be noted live yet (the Against the Odds decision is pending), empty when it can. It needs the rated
+// companies, which only the match service works out.
+type atoGate interface {
+	ATOBlocks(ctx context.Context, id, matchID int64) (string, error)
+}
+
+// WithATOGate gives the service the match service that holds the game until Against the Odds is decided.
+func (s *LiveService) WithATOGate(g atoGate) *LiveService { s.gate = g; return s }
 
 // NewLiveService builds the service.
 func NewLiveService(live liveRepository, campaigns campaignRepository, companies companyRepository, matches matchRepository, rules ruleSource) *LiveService {
@@ -74,7 +83,7 @@ func (s *LiveService) context(ctx context.Context, user User, id, matchID int64)
 // build is context for a match already read; camp is the zero value when no viewer is involved (MatchDefaults).
 func (s *LiveService) build(ctx context.Context, id int64, camp CampaignDetail, m Match) (liveContext, error) {
 	lc := liveContext{camp: camp, match: m, details: map[int64]CompanyDetail{}, owners: map[int64]int64{},
-		cfg: LiveFoldConfig{Break: map[int64]BreakConfig{}, BreakModels: map[int64]int{}, NoStandFast: map[int64]bool{}, Owned: map[int64][]string{}}}
+		cfg: LiveFoldConfig{Break: map[int64]BreakConfig{}, BreakModels: map[int64]int{}, Owned: map[int64][]string{}}}
 	for _, side := range m.Sides {
 		for _, co := range side.Companies {
 			lc.owners[co.ID] = co.OwnerID
@@ -120,7 +129,6 @@ func (lc *liveContext) overlay(rules ATORules, rec ATORecord) {
 		}
 		lc.extra = append(lc.extra, LiveUnitInit{UnitID: id, CompanyID: rec.CompanyID, Wounds: w.Wounds, Might: w.Might, Will: w.Will, Fate: w.Fate,
 			CountsAsKill: true, Temporary: true})
-		lc.cfg.NoStandFast[id] = true
 		lc.temp = &TemporaryWanderer{UnitID: id, Name: w.Name, Summary: w.Summary, Rating: rating, Courage: w.Courage}
 		lc.tempCo = rec.CompanyID
 	}
@@ -147,6 +155,9 @@ func (lc *liveContext) breakConfig(rs *RuleSet, d CompanyDetail) {
 	for _, e := range rules.ExceptionsFor(scenario) {
 		cfg.Exceptions = append(cfg.Exceptions, e.Text())
 	}
+	if sc := FindScenario(rs.BC.Scenarios(), scenario); sc != nil {
+		cfg.EndLossPercent = sc.EndLossPercent
+	}
 	lc.cfg.Break[d.ID] = cfg
 	for _, u := range d.Roster {
 		for _, e := range u.Equipment {
@@ -157,7 +168,6 @@ func (lc *liveContext) breakConfig(rs *RuleSet, d CompanyDetail) {
 			n = 1
 		}
 		lc.cfg.BreakModels[u.ID] = n
-		lc.cfg.NoStandFast[u.ID] = !u.IsHero() || u.Wanderer || u.Lost(AbilityStandFast)
 	}
 }
 
@@ -277,7 +287,7 @@ func (lc liveContext) state(snap LiveSnapshot) LiveState {
 
 func (lc liveContext) view(snap LiveSnapshot, user User, co CampaignCompany) LiveCompany {
 	st := lc.state(snap)
-	out := LiveCompany{MatchID: snap.MatchID, CompanyID: co.ID, MatchNumber: lc.match.Number, Seq: snap.Seq, Units: st.Company(co.ID), Access: lc.access(user, co), Break: st.Break(co.ID), Turn: st.Turn()}
+	out := LiveCompany{MatchID: snap.MatchID, CompanyID: co.ID, MatchNumber: lc.match.Number, Seq: snap.Seq, Units: st.Company(co.ID), Access: lc.access(user, co), Break: st.Break(co.ID)}
 	if lc.temp != nil && lc.tempCo == co.ID {
 		w := *lc.temp
 		out.Wanderer = &w
@@ -343,9 +353,6 @@ func (s *LiveService) Apply(ctx context.Context, user User, id, matchID, company
 	if !ok {
 		return LiveCompany{}, LiveEntry{}, ErrNotFound
 	}
-	if a.Kind == LiveTurn && lc.match.EndProposal != nil {
-		return LiveCompany{}, LiveEntry{}, Refuse("Cancel the ending first: the match is about to end.")
-	}
 	if a.Kind == LiveMVPVote { // the voter is an opponent, not an editor of the company voted on
 		a.TargetCompanyID = companyID
 		err = lc.mayVote(user, co)
@@ -355,10 +362,13 @@ func (s *LiveService) Apply(ctx context.Context, user User, id, matchID, company
 	if err != nil {
 		return LiveCompany{}, LiveEntry{}, err
 	}
-	var secretText string
-	if a.Kind.Secret() {
-		if secretText, err = s.checkSecretRules(ctx, id, lc, user, companyID, a); err != nil {
+	if s.gate != nil && !lc.match.ATODecided {
+		why, err := s.gate.ATOBlocks(ctx, id, matchID)
+		if err != nil {
 			return LiveCompany{}, LiveEntry{}, err
+		}
+		if why != "" {
+			return LiveCompany{}, LiveEntry{}, Refuse("%s", why)
 		}
 	}
 	if _, err := s.snapshot(ctx, id, lc.match); err != nil {
@@ -373,14 +383,7 @@ func (s *LiveService) Apply(ctx context.Context, user User, id, matchID, company
 		if err != nil {
 			return LiveChange{}, err
 		}
-		if secretText != "" {
-			text = secretText
-		}
-		entryCompany := companyID
-		if a.Kind == LiveTurn { // a turn belongs to the match, not to the company that pressed the button
-			entryCompany = 0
-		}
-		return LiveChange{Append: &LiveEntry{MatchID: matchID, CompanyID: entryCompany, UnitID: a.UnitID, Touches: touches, Action: res, Text: text}}, nil
+		return LiveChange{Append: &LiveEntry{MatchID: matchID, CompanyID: companyID, UnitID: a.UnitID, Touches: touches, Action: res, Text: text}}, nil
 	})
 	if err != nil {
 		return LiveCompany{}, LiveEntry{}, err
@@ -565,7 +568,7 @@ func (s *LiveService) UnitLog(ctx context.Context, user User, id, matchID, unitI
 	return s.entries(ctx, user, id, matchID, func() ([]LiveEntry, error) { return s.live.UnitLog(ctx, id, matchID, unitID, kind) })
 }
 
-// entries reads log entries for a member of the campaign: read lists them; the other players' secret objectives are left out while
+// entries reads log entries for a member of the campaign: read lists them; the other players' older secret notes are left out while
 // the match is open, and CanUndo is set for the user.
 func (s *LiveService) entries(ctx context.Context, user User, id, matchID int64, read func() ([]LiveEntry, error)) ([]LiveEntry, error) {
 	lc, err := s.context(ctx, user, id, matchID)
@@ -582,7 +585,7 @@ func (s *LiveService) entries(ctx context.Context, user User, id, matchID int64,
 		return nil, err
 	}
 	open := !lc.match.Ended && lc.camp.CanPlay() == nil
-	if !lc.match.Ended { // the secret objectives of the other players do not exist for this viewer until the match ends
+	if !lc.match.Ended { // the older secret notes of the other players do not exist for this viewer until the match ends
 		list = slices.DeleteFunc(list, func(e LiveEntry) bool { return e.Action.Kind.Secret() && e.ByUserID != user.ID })
 	}
 	for i := range list {
@@ -836,207 +839,6 @@ func (s *LiveService) EndChecks(ctx context.Context, user User, id, matchID int6
 	return out, nil
 }
 
-// secretObjective finds a secret scoring objective of the match's scenario.
-func (s *LiveService) secretObjective(ctx context.Context, campaignID int64, m Match, key string) (ScoringObjective, error) {
-	if m.Scenario == nil || m.Scenario.Kind != ScenarioRulebook {
-		return ScoringObjective{}, Refuse("Choose the scenario first: secret objectives belong to it.")
-	}
-	rs, _, err := s.ruleset(ctx, campaignID)
-	if err != nil {
-		return ScoringObjective{}, err
-	}
-	sc, ok := rs.BC.Scenario(m.Scenario.Name)
-	if !ok {
-		return ScoringObjective{}, Refuse("The rules do not know this scenario.")
-	}
-	for _, o := range sc.ScoringObjectives {
-		if o.Key == key && o.Secret {
-			return o, nil
-		}
-	}
-	return ScoringObjective{}, Refuse("That is not a secret objective of %s.", m.Scenario.Name)
-}
-
-// checkSecretRules applies the rules of a secret objective entry that need the scenario and the rosters, and words the entry (only its
-// author sees it before the end, and everybody after).
-func (s *LiveService) checkSecretRules(ctx context.Context, campaignID int64, lc liveContext, user User, companyID int64, a LiveAction) (string, error) {
-	o, err := s.secretObjective(ctx, campaignID, lc.match, a.ObjectiveKey)
-	if err != nil {
-		return "", err
-	}
-	me := user.DisplayName
-	if me == "" {
-		me = "A player"
-	}
-	company := lc.details[companyID]
-	switch a.Kind {
-	case LiveSecretDone:
-		if a.Tier < 0 || a.Tier > len(o.Options) {
-			return "", invalid("Choose one of the tiers of this objective.")
-		}
-		if a.Tier == 0 {
-			return fmt.Sprintf("%s withdrew the report of %s", me, o.Label), nil
-		}
-		tier := o.Options[a.Tier-1]
-		return fmt.Sprintf("%s scored %d for %s", me, tier.Points, o.Label), nil
-	}
-	n := o.Nomination
-	if n == nil {
-		return "", Refuse("%s needs nothing noted down.", o.Label)
-	}
-	note := strings.TrimSpace(a.Note)
-	if a.UnitID == 0 && note == "" {
-		return fmt.Sprintf("%s cleared the note for %s", me, o.Label), nil
-	}
-	if n.From == "terrain" {
-		if a.UnitID != 0 || note == "" {
-			return "", invalid("Describe the terrain piece.")
-		}
-		return fmt.Sprintf("%s noted the terrain piece %q for %s", me, note, o.Label), nil
-	}
-	if note != "" || a.UnitID == 0 {
-		return "", invalid("Choose a Hero.")
-	}
-	var unit CompanyUnit
-	var owner int64
-	for cid, d := range lc.details {
-		for _, u := range d.Roster {
-			if u.ID == a.UnitID {
-				unit, owner = u, cid
-			}
-		}
-	}
-	if owner == 0 || Absent(unit) {
-		return "", Refuse("That unit takes no part in this match.")
-	}
-	if !unit.IsHero() {
-		return "", Refuse("%s is not a Hero.", unit.Title())
-	}
-	switch n.From {
-	case "ownHeroes":
-		if owner != companyID {
-			return "", Refuse("Note down one of your own Heroes.")
-		}
-	case "enemyHeroes":
-		if lc.sideOf(owner) == lc.sideOf(companyID) {
-			return "", Refuse("Note down a Hero of an opposing company.")
-		}
-	}
-	if n.AllowLeader == "onlyHero" && unit.Role == RoleLeader {
-		heroes := 0
-		for _, u := range lc.details[owner].Roster {
-			if u.IsHero() && !Absent(u) {
-				heroes++
-			}
-		}
-		if heroes > 1 {
-			return "", Refuse("The Leader may only be noted down when the company has no other Hero.")
-		}
-	}
-	_ = company
-	return fmt.Sprintf("%s noted %s (%s) for %s", me, unit.Title(), lc.details[owner].Name, o.Label), nil
-}
-
-// SecretLine is one secret objective of a company, as the viewer may see it.
-type SecretLine struct {
-	CompanyID int64
-	Company   string
-	Key       string
-	Label     string // a short name: "Own hero survives"
-	Text      string // the objective
-	Nominee   string // the Hero or terrain piece noted down
-	Tier      int    // 0: not reported
-	Points    int
-}
-
-// SecretView is what the viewer may see of the secret objectives of a match: their own while it is open (and who else has some, by
-// company name, never what), everybody's once it has ended.
-type SecretView struct {
-	Revealed bool
-	Lines    []SecretLine
-	Others   []string // companies that have secret objectives the viewer cannot see yet
-}
-
-// SecretObjectives lists the secret objectives the viewer may see. Privacy is applied here, on read.
-func (s *LiveService) SecretObjectives(ctx context.Context, user User, id, matchID int64) (SecretView, error) {
-	lc, err := s.context(ctx, user, id, matchID)
-	if err != nil {
-		return SecretView{}, err
-	}
-	snap, err := s.live.Read(ctx, id, matchID)
-	if err != nil {
-		return SecretView{}, err
-	}
-	view := SecretView{Revealed: lc.match.Ended}
-	authors := map[int64]map[int64]bool{}
-	for _, e := range snap.Entries {
-		if e.Action.Kind.Secret() {
-			if authors[e.CompanyID] == nil {
-				authors[e.CompanyID] = map[int64]bool{}
-			}
-			authors[e.CompanyID][e.ByUserID] = true
-		}
-	}
-	st := lc.state(snap)
-	var sc ScenarioInfo
-	if lc.match.Scenario != nil && lc.match.Scenario.Kind == ScenarioRulebook {
-		if rs, _, err := s.ruleset(ctx, id); err == nil {
-			sc, _ = rs.BC.Scenario(lc.match.Scenario.Name)
-		}
-	}
-	titles := map[int64]string{}
-	for _, d := range lc.details {
-		for _, u := range Distinguish(d.Roster) { // the nominee of "one of your Heroes" is told apart from a twin
-			titles[u.ID] = u.Title()
-		}
-	}
-	for _, side := range lc.match.Sides {
-		for _, co := range side.Companies {
-			if len(authors[co.ID]) == 0 {
-				continue
-			}
-			if !lc.match.Ended && !authors[co.ID][user.ID] {
-				view.Others = append(view.Others, lc.details[co.ID].Name)
-				continue
-			}
-			for _, o := range sc.ScoringObjectives {
-				n, ok := st.SecretOf(co.ID, o.Key)
-				if !o.Secret || !ok {
-					continue
-				}
-				l := SecretLine{CompanyID: co.ID, Company: lc.details[co.ID].Name, Key: o.Key, Label: o.Label, Text: o.Text, Tier: n.Tier}
-				switch {
-				case n.Nominee != 0:
-					l.Nominee = titles[n.Nominee]
-				default:
-					l.Nominee = n.Terrain
-				}
-				if n.Tier >= 1 && n.Tier <= len(o.Options) {
-					l.Points = o.Options[n.Tier-1].Points
-				}
-				view.Lines = append(view.Lines, l)
-			}
-		}
-	}
-	return view, nil
-}
-
-// SecretScore is the Victory Points the secret objectives a company reported add up to, for the result form to prefill once the match
-// is over (ok is false when it has not ended or the company reported none).
-func (s *LiveService) SecretScore(ctx context.Context, user User, id, matchID, companyID int64) (points int, lines []SecretLine, ok bool, err error) {
-	view, err := s.SecretObjectives(ctx, user, id, matchID)
-	if err != nil || !view.Revealed {
-		return 0, nil, false, err
-	}
-	for _, l := range view.Lines {
-		if l.CompanyID == companyID && l.Tier > 0 {
-			points += l.Points
-			lines = append(lines, l)
-		}
-	}
-	return points, lines, len(lines) > 0, nil
-}
-
 // MVPHint is the tally of the MVP votes for a company, nil when nobody voted or the match has no live data. The aftermath sheet shows it
 // next to the MVP flag (the winner is prefilled by AftermathDefaults).
 func (s *LiveService) MVPHint(ctx context.Context, id, matchID, companyID int64) (*MVPHint, error) {
@@ -1059,73 +861,6 @@ func (s *LiveService) MVPHint(ctx context.Context, id, matchID, companyID int64)
 		h.Lines = append(h.Lines, TallyLine{UnitID: c.UnitID, Title: titles[c.UnitID], Votes: c.Votes})
 	}
 	return h, nil
-}
-
-// RollCourage rolls the Courage test of a unit of a Broken company: two dice (or the two the player typed or threw, as the campaign's
-// settings allow) against the unit's Courage; the file says how many dice and what passes. It writes nothing: the player records the
-// result with Apply (broken for a pass, retreat with Why "courage" for a fail). ErrRefused when the user may not change the company, the
-// unit is not in the battle or the campaign does not allow that kind of roll; ErrNotFound for a unit in no company of the match.
-func (s *LiveService) RollCourage(ctx context.Context, user User, id, matchID, unitID int64, entered []int, thrown bool) (CourageRoll, error) {
-	lc, err := s.context(ctx, user, id, matchID)
-	if err != nil {
-		return CourageRoll{}, err
-	}
-	var co CampaignCompany
-	var unit CompanyUnit
-	for cid, d := range lc.details {
-		if u, ok := rosterUnit(d.Roster, unitID); ok {
-			unit, co = u, mustCompany(lc, cid)
-		}
-	}
-	if unit.ID == 0 && lc.temp != nil && lc.temp.UnitID == unitID {
-		unit = CompanyUnit{ID: unitID, Name: lc.temp.Name, Role: RoleHero, Stats: []Attribute{{Name: "Courage", Value: lc.temp.Courage}}}
-		co = mustCompany(lc, lc.tempCo)
-	}
-	if unit.ID == 0 {
-		return CourageRoll{}, ErrNotFound
-	}
-	if err := lc.writable(user, co); err != nil {
-		return CourageRoll{}, err
-	}
-	rs, settings, err := s.ruleset(ctx, id)
-	if err != nil {
-		return CourageRoll{}, err
-	}
-	if msg := settings.RollRefusal(entered != nil, thrown); msg != "" {
-		return CourageRoll{}, Refuse("%s", msg)
-	}
-	rules := rs.BC.BreakRules()
-	if !rules.CourageSpec.Valid() || rules.PassIf != "totalAtLeastCourage" { // the dice are the file's; the pass rule is the one the engine implements
-		return CourageRoll{}, fmt.Errorf("the rules file asks for a courage test the app does not know (%q, %q)", rules.CourageDice, rules.PassIf)
-	}
-	snap, err := s.snapshot(ctx, id, lc.match)
-	if err != nil {
-		return CourageRoll{}, err
-	}
-	live, ok := lc.state(snap).Unit(unitID)
-	if !ok || live.Zone != ZoneField {
-		return CourageRoll{}, Refuse("%s is not in the battle.", unit.Title())
-	}
-	courage := 0
-	for _, a := range unit.Stats {
-		if a.Name == "Courage" {
-			courage = a.Value
-		}
-	}
-	if courage == 0 {
-		return CourageRoll{}, Refuse("%s has no Courage to test.", unit.Title())
-	}
-	dice, err := castDice(s.dice, rules.CourageSpec, entered)
-	if err != nil { // the live mode answers bad input with ErrInvalidLive (422), not the aftermath's error (which would be a 500 here)
-		return CourageRoll{}, invalid("Enter %s, each from 1 to %d.", diceWords(rules.CourageSpec.Count, "die", "dice"), rules.CourageSpec.Sides)
-	}
-	total := sumOf(dice)
-	return CourageRoll{Dice: dice, Total: total, Courage: courage, Passed: total >= courage}, nil
-}
-
-func mustCompany(lc liveContext, id int64) CampaignCompany {
-	co, _ := lc.company(id)
-	return co
 }
 
 // readState folds the live data of a match as the pages see it (the Against the Odds overlay and the Break Point settings included),
@@ -1152,8 +887,8 @@ func (s *LiveService) readState(ctx context.Context, id, matchID int64) (LiveSta
 	return lc.state(snap), true, nil
 }
 
-// MatchDefaults is what the live log says about the match's result form: the companies that fled (All is Lost) and those whose
-// opponents are all Broken at the end. The second result is false when the match has no live data.
+// MatchDefaults is what the live log says about the match's result: the companies whose opponents are all Broken at the end. The
+// second result is false when the match has no live data.
 func (s *LiveService) MatchDefaults(ctx context.Context, id, matchID int64) (LiveMatchDefaults, bool, error) {
 	st, ok, err := s.readState(ctx, id, matchID)
 	if err != nil || !ok {
@@ -1163,12 +898,9 @@ func (s *LiveService) MatchDefaults(ctx context.Context, id, matchID int64) (Liv
 	if err != nil {
 		return LiveMatchDefaults{}, false, err
 	}
-	out := LiveMatchDefaults{Fled: map[int64]bool{}, EnemyBroken: map[int64]bool{}}
+	out := LiveMatchDefaults{EnemyBroken: map[int64]bool{}}
 	for i, side := range m.Sides {
 		for _, co := range side.Companies {
-			if st.Break(co.ID).Fled {
-				out.Fled[co.ID] = true
-			}
 			enemies, broken := 0, 0
 			for j, other := range m.Sides {
 				if j == i {
@@ -1187,4 +919,72 @@ func (s *LiveService) MatchDefaults(ctx context.Context, id, matchID int64) (Liv
 		}
 	}
 	return out, true, nil
+}
+
+// MatchBreaks is the Break Point state of every company of the match, by company: what the live banner of every viewer shows ("Minas
+// Morgul is broken"). Empty when the match has no live data.
+func (s *LiveService) MatchBreaks(ctx context.Context, id, matchID int64) (map[int64]LiveBreak, error) {
+	st, ok, err := s.readState(ctx, id, matchID)
+	if err != nil || !ok {
+		return nil, err
+	}
+	out := map[int64]LiveBreak{}
+	for company := range st.breaks {
+		out[company] = st.Break(company)
+	}
+	return out, nil
+}
+
+// MissingVotes lists the MVP votes a competitive match still needs before it can end (docs/matches.md, "Ending a match"): for the owner
+// ownerID (0: every owner of a company of the match), each opposing company with units that took part that they have not voted for. It
+// is what Matches.MissingVotes is set to. A match without live data has no ballots, so nothing is missing.
+func (s *LiveService) MissingVotes(ctx context.Context, id, matchID, ownerID int64) ([]MissingVote, error) {
+	snap, err := s.live.Read(ctx, id, matchID)
+	if errors.Is(err, ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	m, err := s.matches.Get(ctx, id, matchID)
+	if err != nil {
+		return nil, err
+	}
+	if m.Practice {
+		return nil, nil
+	}
+	if !snap.Initialised {
+		if err := s.initMatch(ctx, id, m); err != nil {
+			return nil, err
+		}
+		if snap, err = s.live.Read(ctx, id, matchID); err != nil {
+			return nil, err
+		}
+	}
+	lc, err := s.build(ctx, id, CampaignDetail{}, m)
+	if err != nil {
+		return nil, err
+	}
+	st := lc.state(snap)
+	var owners []CampaignCompany // one entry per owner, in the match's order
+	for _, side := range m.Sides {
+		for _, co := range side.Companies {
+			if co.OwnerID != 0 && (ownerID == 0 || co.OwnerID == ownerID) && !slices.ContainsFunc(owners, func(o CampaignCompany) bool { return o.OwnerID == co.OwnerID }) {
+				owners = append(owners, co)
+			}
+		}
+	}
+	var out []MissingVote
+	for _, o := range owners {
+		voter := User{ID: o.OwnerID}
+		for _, side := range m.Sides {
+			for _, co := range side.Companies {
+				if !lc.opposing(voter, co.ID) || len(st.Company(co.ID)) == 0 || st.Vote(o.OwnerID, co.ID) != 0 {
+					continue
+				}
+				out = append(out, MissingVote{OwnerID: o.OwnerID, Owner: o.Owner, CompanyID: co.ID, Company: co.Name})
+			}
+		}
+	}
+	return out, nil
 }

@@ -280,16 +280,20 @@ func (s *Server) buyEquipment(r *http.Request, id, cid, unitID int64, item strin
 	return s.campaigns.BuyEquipment(r.Context(), u, id, cid, unitID, item, r.PostFormValue("pay"))
 }
 
+// ownUnitParams reads the campaign, the viewer's own company and the unit of an action; it answers itself when one is unknown.
+func (s *Server) ownUnitParams(w http.ResponseWriter, r *http.Request) (id, cid, unitID int64, ok bool) {
+	if id, ok = s.idParam(w, r, "id"); !ok {
+		return
+	}
+	if cid, ok = s.ownCompanyID(w, r, id); !ok {
+		return
+	}
+	unitID, ok = s.idParam(w, r, "unit")
+	return
+}
+
 func (s *Server) handleBuyEquipment(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}
@@ -300,15 +304,7 @@ func (s *Server) handleBuyEquipment(w http.ResponseWriter, r *http.Request) {
 
 // handleChooseModifierWeapon chooses the weapon a weapon modifier of the unit without one is for; the choice is final, core refuses a second.
 func (s *Server) handleChooseModifierWeapon(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}
@@ -318,15 +314,7 @@ func (s *Server) handleChooseModifierWeapon(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) handleDropEquipment(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}
@@ -391,15 +379,7 @@ func (s *Server) handleTreatPanel(w http.ResponseWriter, r *http.Request) {
 // handleTreatInjury pays to treat a unit's injuries. A warrior's treatment answers with the page; a hero's with the window,
 // showing what the roll gave, so that a failed attempt can be tried again.
 func (s *Server) handleTreatInjury(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}
@@ -469,6 +449,20 @@ func (s *Server) handleSaveFormation(w http.ResponseWriter, r *http.Request) {
 	s.afterAction(w, r, "Formation saved.", err)
 }
 
+// handleResetFormation forgets the saved unit order, back to the default one.
+func (s *Server) handleResetFormation(w http.ResponseWriter, r *http.Request) {
+	id, ok := s.idParam(w, r, "id")
+	if !ok {
+		return
+	}
+	cid, ok := s.ownCompanyID(w, r, id)
+	if !ok {
+		return
+	}
+	err := s.campaigns.ResetFormation(r.Context(), *userFrom(r.Context()), id, cid)
+	s.afterAction(w, r, "Default order restored.", err)
+}
+
 // afterAction shows the My Company page again: with the notice when it worked, or the reason when the rules refused.
 func (s *Server) afterAction(w http.ResponseWriter, r *http.Request, done string, err error) {
 	switch {
@@ -482,15 +476,7 @@ func (s *Server) afterAction(w http.ResponseWriter, r *http.Request, done string
 
 // handleRenameUnit renames a unit; an empty name takes the unit back to its type.
 func (s *Server) handleRenameUnit(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}
@@ -523,7 +509,8 @@ func (s *Server) showPathPanel(w http.ResponseWriter, r *http.Request, base camp
 	if s.fail(w, r, err) {
 		return
 	}
-	s.render.partial(w, status, "campaign_my_company", "path_panel", map[string]any{"Campaign": base.Campaign, "Co": base.Current.ID, "Offer": offer, "Cards": pathCards(g, offer.Paths), "Powers": powerViews(g, offer.Powers), "Error": errMsg})
+	rows, cards := pathRows(pathCards(g, offer.Paths))
+	s.render.partial(w, status, "campaign_my_company", "path_panel", map[string]any{"Campaign": base.Campaign, "Co": base.Current.ID, "Offer": offer, "Rows": rows, "Cards": cards, "Powers": powerViews(g, offer.Powers), "Error": errMsg})
 }
 
 // pathCard is one path of the carousel with all that is known of it: what PathOffer holds plus the glossary's limits and chart. The chart
@@ -549,7 +536,7 @@ type pathRowView struct {
 func pathCards(g core.Glossary, paths []core.PathOption) []pathCard {
 	out := make([]pathCard, len(paths))
 	for i, p := range paths {
-		c := pathCard{PathOption: p, Look: pathLook(p.Name), Desc: linkText(g, p.Description)}
+		c := pathCard{PathOption: p, Look: pathLook(p.Name, p.Categories), Desc: linkText(g, p.Description)}
 		if p.StartAction != "" {
 			c.Heroic = linkText(g, p.StartAction)
 		}
@@ -656,6 +643,10 @@ func (s *Server) handleChoosePath(w http.ResponseWriter, r *http.Request) {
 	err := s.campaigns.ChoosePath(r.Context(), *userFrom(r.Context()), base.Campaign.ID, base.Current.ID, unitID, r.PostFormValue("path"), r.PostFormValue("power"))
 	if errors.Is(err, core.ErrRefused) {
 		s.showPathPanel(w, r, base, unitID, http.StatusUnprocessableEntity, reason(err))
+		return
+	}
+	if err == nil && r.PostFormValue("back") == "aftermath" { // the window of the aftermath page says so (hx-vals on its #modal-body): back to that page
+		w.Header().Set("HX-Refresh", "true")
 		return
 	}
 	w.Header().Set("HX-Retarget", "#main")

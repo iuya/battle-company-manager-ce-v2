@@ -33,12 +33,11 @@ export default async function (h) {
     assert.equal(numberAfter(await eowyn.text(), 'Gold'), before - 1, 'one gold was spent');
   });
 
-  await h.step('level-up: a hero chooses one of its two results', async () => {
+  await h.step('level-up: a hero presses one of its two results and it applies at once', async () => {
     const c5 = await campaignId(galadriel, 'Level-ups waiting');
     await galadriel.goto(`/campaigns/${c5}/my-company`);
     await galadriel.click('main button', 'Level Up');
-    await galadriel.click(MODAL + ' label', 'Will +1');
-    await galadriel.click(MODAL + ' button', '=Choose');
+    await galadriel.click(MODAL + ' .level-opt', 'Will +1');
     await galadriel.waitText('Will +1.');
     await galadriel.click(MODAL + ' button', '=Done');
     await galadriel.waitGone('Will +1.');
@@ -65,5 +64,10 @@ export default async function (h) {
     await eowyn.settle(500);
     await eowyn.goto(`/campaigns/${c2}/my-company`);
     assert.deepEqual(await ids(), moved, 'the order survives a reload');
+    await eowyn.click('main button', 'Change formation');
+    await eowyn.click('main button', 'Restore default order');
+    await eowyn.settle(500);
+    await eowyn.goto(`/campaigns/${c2}/my-company`);
+    assert.deepEqual(await ids(), before, 'Restore default order brings the default order back');
   });
 }

@@ -11,7 +11,7 @@ func endFixture(t *testing.T) *matchesFixture {
 	t.Helper()
 	f := newMatchesFixture(t)
 	f.match.Scenario = &MatchScenario{Kind: ScenarioCustom, Name: "x"}
-	f.match.Result = MatchResult{Decided: true, Winner: 1, Sides: make([]SideResult, 2)}
+	f.match.Result = MatchResult{Decided: true, Winner: 1}
 	return f
 }
 
@@ -66,7 +66,7 @@ func TestProposalRunsCanEndAndNeedsAccess(t *testing.T) {
 		t.Errorf("no scenario or result: %v", err)
 	}
 	f.match.Scenario = &MatchScenario{Kind: ScenarioCustom, Name: "x"}
-	f.match.Result = MatchResult{Decided: true, Winner: 1, Sides: make([]SideResult, 2)}
+	f.match.Result = MatchResult{Decided: true, Winner: 1}
 	if _, err := f.svc.ProposeEnd(f.ctx, playerOf(7, "Stranger"), 5, 1, 3); !errors.Is(err, ErrRefused) {
 		t.Errorf("a stranger: %v", err)
 	}
@@ -166,9 +166,6 @@ func TestChangesResetTheConfirmationsExceptTheProposers(t *testing.T) {
 	}
 	for name, change := range map[string]func(rev int) (Match, error){
 		"scenario": func(rev int) (Match, error) { return f.svc.ClearScenario(f.ctx, playerOf(10, "Hador"), 5, 1, rev) },
-		"roles": func(rev int) (Match, error) {
-			return f.svc.SetSideRoles(f.ctx, playerOf(10, "Hador"), 5, 1, rev, []string{"", ""})
-		},
 	} {
 		m, _ = f.svc.ConfirmEnd(f.ctx, playerOf(20, "Gor"), 5, 1, f.match.Revision)
 		m, err = change(f.match.Revision)
@@ -180,7 +177,7 @@ func TestChangesResetTheConfirmationsExceptTheProposers(t *testing.T) {
 
 func TestEndAccessForTable(t *testing.T) {
 	m := testMatch()
-	cos := matchCompanies(m)
+	cos := m.AllCompanies()
 	pending := testMatch()
 	pending.EndProposal = &EndProposal{ProposedByID: 10, Companies: []EndConfirmation{
 		{CompanyID: 1, OwnerID: 10, Confirmed: true}, {CompanyID: 2, OwnerID: 20}, {CompanyID: 3, OwnerID: 30, Confirmed: true}}}
@@ -230,11 +227,11 @@ func TestCancelPendingEndForTheLiveMode(t *testing.T) {
 	}
 }
 
-// Live integration: the log tells about the end, a game action cancels it, an end check does not, Start turn is refused.
+// Live integration: the log tells about the end, a game action cancels it, an end check does not.
 func TestLivePlayDuringAPendingEnd(t *testing.T) {
 	f := newLiveFixture(t)
 	f.match.Scenario = &MatchScenario{Kind: ScenarioCustom, Name: "x"}
-	f.match.Result = MatchResult{Decided: true, Winner: 1, Sides: make([]SideResult, 2)}
+	f.match.Result = MatchResult{Decided: true, Winner: 1}
 	ms := f.matchesFixture.svc
 	ms.EndNotify = func(ctx context.Context, ch EndChange) { f.svc.RecordEnd(ctx, ch) }
 	f.svc.WithEnds(ms)
@@ -263,10 +260,6 @@ func TestLivePlayDuringAPendingEnd(t *testing.T) {
 	log, _ := f.svc.Log(f.ctx, f.user(liveOwner1), 5, 1, 0, 50)
 	if log[0].CanUndo || log[0].CompanyID != 1 {
 		t.Errorf("informational lines are not undoable and carry the company: %+v", log[0])
-	}
-	// the turn is refused while the end is pending
-	if _, _, err := f.svc.Apply(f.ctx, f.user(liveOwner1), 5, 1, 1, LiveAction{Kind: LiveTurn, Turn: 1}); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Cancel the ending first") {
-		t.Errorf("Start turn while pending: %v", err)
 	}
 	// an end check (an MVP vote of an opponent) keeps the proposal
 	if _, _, err := f.svc.Apply(f.ctx, f.user(liveOwner2), 5, 1, 1, LiveAction{Kind: LiveMVPVote, UnitID: unit}); err != nil {
@@ -310,10 +303,67 @@ func TestLivePlayDuringAPendingEnd(t *testing.T) {
 }
 
 func TestEndCheckKinds(t *testing.T) {
-	for k, want := range map[LiveKind]bool{LiveObjective: true, LiveMVPVote: true, LiveSecretDone: true, LiveSecretNominate: true, LiveEndCancelled: true,
-		LiveWound: false, LiveStatChange: false, LiveTurn: false, LiveItemUsed: false, LiveAllIsLost: false} {
+	for k, want := range map[LiveKind]bool{LiveObjective: true, LiveMVPVote: true, liveSecretDoneLegacy: true, liveSecretNominateLegacy: true, LiveEndCancelled: true,
+		LiveWound: false, LiveStatChange: false, LiveItemUsed: false, LiveBreakAdjust: false} {
 		if k.EndCheckKind() != want {
 			t.Errorf("%s: %v", k, !want)
 		}
+	}
+}
+
+// missingVotes fakes LiveService.MissingVotes: the votes still missing, by owner.
+func missingVotes(missing map[int64][]MissingVote) func(context.Context, int64, int64, int64) ([]MissingVote, error) {
+	return func(_ context.Context, _, _, owner int64) ([]MissingVote, error) {
+		if owner != 0 {
+			return missing[owner], nil
+		}
+		var all []MissingVote
+		for _, id := range []int64{10, 20, 30} {
+			all = append(all, missing[id]...)
+		}
+		return all, nil
+	}
+}
+
+func TestACompetitiveMatchEndsOnlyWithEveryMVPVoted(t *testing.T) {
+	f := endFixture(t)
+	missing := map[int64][]MissingVote{
+		10: {{OwnerID: 10, Owner: "Hador", CompanyID: 2, Company: "Raiders"}, {OwnerID: 10, Owner: "Hador", CompanyID: 3, Company: "Wolves"}},
+		20: {{OwnerID: 20, Owner: "Gor", CompanyID: 1, Company: "Rangers"}},
+	}
+	f.svc.MissingVotes = missingVotes(missing)
+	if _, err := f.svc.ProposeEnd(f.ctx, playerOf(10, "Hador"), 5, 1, 3); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Vote the MVP of Raiders and Wolves first") {
+		t.Fatalf("the proposer votes first: %v", err)
+	}
+	delete(missing, 10)
+	m, err := f.svc.ProposeEnd(f.ctx, playerOf(10, "Hador"), 5, 1, 3)
+	if err != nil || m.EndProposal == nil {
+		t.Fatalf("%+v %v", m, err)
+	}
+	if _, err := f.svc.ConfirmEnd(f.ctx, playerOf(20, "Gor"), 5, 1, m.Revision); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Vote the MVP of Rangers first") {
+		t.Fatalf("the confirmer votes first: %v", err)
+	}
+	delete(missing, 20)
+	if m, err = f.svc.ConfirmEnd(f.ctx, playerOf(20, "Gor"), 5, 1, m.Revision); err != nil || m.Ended {
+		t.Fatalf("%+v %v", m, err)
+	}
+	// a vote taken back meanwhile holds the last confirmation: everybody's votes count when the match ends
+	missing[20] = []MissingVote{{OwnerID: 20, Owner: "Gor", CompanyID: 1, Company: "Rangers"}}
+	if _, err := f.svc.ConfirmEnd(f.ctx, playerOf(30, "Wolf"), 5, 1, m.Revision); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Gor for Rangers") {
+		t.Fatalf("the last confirmation checks every owner: %v", err)
+	}
+	// the organiser's override needs no votes
+	m, err = f.svc.OverrideEnd(f.ctx, User{ID: matchOrganiser, Role: RoleUser, DisplayName: "Org"}, 5, 1, m.Revision, "they left")
+	if err != nil || !m.Ended {
+		t.Fatalf("override: %+v %v", m, err)
+	}
+}
+
+func TestAPracticeMatchEndsWithoutMVPVotes(t *testing.T) {
+	f := endFixture(t)
+	f.match.Practice = true
+	f.svc.MissingVotes = missingVotes(map[int64][]MissingVote{10: {{OwnerID: 10, Owner: "Hador", CompanyID: 2, Company: "Raiders"}}})
+	if m, err := f.svc.ProposeEnd(f.ctx, playerOf(10, "Hador"), 5, 1, 3); err != nil || m.EndProposal == nil {
+		t.Fatalf("a practice match awards nothing, so no MVP: %+v %v", m, err)
 	}
 }

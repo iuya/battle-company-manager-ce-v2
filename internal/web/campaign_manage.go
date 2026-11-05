@@ -45,7 +45,7 @@ func (s *Server) handleCampaignStatus(w http.ResponseWriter, r *http.Request) {
 	err := s.campaigns.SetCampaignStatus(r.Context(), user, base.Campaign.ID, core.CampaignStatus(r.PostFormValue("to")), r.PostFormValue("confirm"))
 	switch {
 	case err == nil:
-		redirect(w, r, "/campaigns/"+itoa(int(base.Campaign.ID)))
+		redirect(w, r, campaignPath(base.Campaign.ID))
 	case errors.Is(err, core.ErrRefused):
 		s.render.partial(w, http.StatusUnprocessableEntity, "campaign_overview", "manage_card", manageCard{Campaign: base.Campaign, Admin: isAdmin(user), Error: reason(err)})
 	default:
@@ -75,7 +75,7 @@ func (s *Server) handleSetCompanyCap(w http.ResponseWriter, r *http.Request) {
 	}
 	switch {
 	case err == nil:
-		redirect(w, r, "/campaigns/"+itoa(int(base.Campaign.ID)))
+		redirect(w, r, campaignPath(base.Campaign.ID))
 	case errors.Is(err, core.ErrRefused) || errors.Is(err, core.ErrInvalidCampaign):
 		msg := reason(err)
 		if perr != nil {

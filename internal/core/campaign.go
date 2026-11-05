@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -253,46 +252,20 @@ func Rank(companies []CampaignCompany) []RankedCompany {
 }
 
 const (
-	maxSides       = 8
-	maxSideNameLen = 40
+	// MaxSides is how many sides a match can have.
+	MaxSides = 8
 )
 
-// MatchSide is one side of a match: a name ("Side 1" unless the players chose another) and its companies.
+// MatchSide is one side of a match: its companies. Name is "Side N" (older matches may carry a name the players typed; the pages
+// show Label).
 type MatchSide struct {
 	Name      string
 	Companies []CampaignCompany
-	// Role is the tag of the team in a scenario with roles: "", RoleAttacker or RoleDefender. Every company of the side has it. It is
-	// kept when the scenario has no roles but is ignored then.
-	Role string
 }
 
-// The tags of a side in a scenario with an Attacker and a Defender.
-const (
-	RoleAttacker = "attacker"
-	RoleDefender = "defender"
-)
-
-// ValidRole says whether s is a side tag (the empty tag is none).
-func ValidRole(s string) bool { return s == "" || s == RoleAttacker || s == RoleDefender }
-
-// RoleOf is the tag of the side the company plays on ("" for none or an unknown company).
-func (m Match) RoleOf(companyID int64) string {
-	for _, s := range m.Sides {
-		for _, c := range s.Companies {
-			if c.ID == companyID {
-				return s.Role
-			}
-		}
-	}
-	return ""
-}
-
-var defaultSideName = regexp.MustCompile(`^Side [0-9]+$`)
-
-// Label is what the pages call the side: the players' name, or, for a side left at its default name ("Side 2"), its
-// companies ("Rangers + Raiders"), which says more than a number.
+// Label is what the pages call the side: its companies ("Rangers + Raiders"); the stored name only for a side without companies.
 func (s MatchSide) Label() string {
-	if !defaultSideName.MatchString(s.Name) || len(s.Companies) == 0 {
+	if len(s.Companies) == 0 {
 		return s.Name
 	}
 	names := make([]string, len(s.Companies))
@@ -312,9 +285,11 @@ type Match struct {
 	Sides    []MatchSide
 
 	Scenario *MatchScenario // nil until chosen
-	Result   MatchResult    // zero value while nothing is reported
-	Revision int            // bumped by every write; writes carry the one the form was rendered with
-	EndedOn  *time.Time
+	// ATODecided: the lower rated company's Against the Odds decision is confirmed (with bonuses or none); a change of the scenario takes it back.
+	ATODecided bool
+	Result     MatchResult // zero value while nothing is reported
+	Revision   int         // bumped by every write; writes carry the one the form was rendered with
+	EndedOn    *time.Time
 	// History is who ended and reopened the match and when, oldest first (the repository's Events); empty for a match never ended.
 	History []MatchEvent
 	// EndProposal is the pending end (docs/matches.md, "Ending a match: confirmation by all participants"); nil when there is none. The
@@ -348,45 +323,31 @@ func (m Match) WinnerName() string {
 	return ""
 }
 
-// NewMatch is the input of CreateMatch: the sides and whether it is a practice match.
+// NewMatch is the input of CreateMatch: the sides, whether it is a practice match, the scenario the form showed (nil: none yet) and
+// the Against the Odds bonuses the creator took for the lower rated company (nil: none; docs/matches.md, "New match").
 type NewMatch struct {
 	Sides    []NewSide
 	Practice bool
+	Scenario *ScenarioInput
 }
 
-// NewSide is a side of a match being created: an optional name and the ids of its companies.
+// NewSide is a side of a match being created: the ids of its companies. Name is set by ValidateSides ("Side N"); the form has no
+// side names and no roles.
 type NewSide struct {
 	Name      string
 	Companies []int64
-	Role      string // optional tag: "", "attacker" or "defender"
 }
 
-// ValidateSides trims and names the sides of a new match ("Side N" when blank) and checks them: at least two sides,
-// every side with a company, and no company twice (so never on both sides at once).
+// ValidateSides names the sides of a new match ("Side N") and checks them: at least two sides, every side with a company, and no
+// company twice (so never on both sides at once).
 func ValidateSides(sides []NewSide) ([]NewSide, error) {
-	if len(sides) < 2 || len(sides) > maxSides {
-		return nil, errors.Join(ErrInvalidMatch, errors.New("a match needs between 2 and 8 sides"))
+	if len(sides) < 2 || len(sides) > MaxSides {
+		return nil, errors.Join(ErrInvalidMatch, fmt.Errorf("a match needs between 2 and %d sides", MaxSides))
 	}
 	out := make([]NewSide, len(sides))
 	seen := map[int64]bool{}
-	roles := map[string]bool{}
 	for i, side := range sides {
-		if !ValidRole(side.Role) {
-			return nil, errors.Join(ErrInvalidMatch, errors.New("a side is Attacker or Defender, or neither"))
-		}
-		if side.Role != "" {
-			if roles[side.Role] {
-				return nil, errors.Join(ErrInvalidMatch, errors.New("only one side can be the "+side.Role))
-			}
-			roles[side.Role] = true
-		}
-		side.Name = strings.TrimSpace(side.Name)
-		if utf8.RuneCountInString(side.Name) > maxSideNameLen {
-			return nil, errors.Join(ErrInvalidMatch, errors.New("a side name can have at most 40 characters"))
-		}
-		if side.Name == "" {
-			side.Name = "Side " + strconv.Itoa(i+1)
-		}
+		side.Name = "Side " + strconv.Itoa(i+1)
 		if len(side.Companies) == 0 {
 			return nil, errors.Join(ErrInvalidMatch, errors.New(side.Name+" needs at least one company"))
 		}

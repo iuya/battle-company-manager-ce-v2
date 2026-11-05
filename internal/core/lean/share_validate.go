@@ -22,8 +22,8 @@ func (k KeywordLimit) KeywordShare() (Share, error) {
 	return PercentFloatShare(k.Percent)
 }
 
-// DefaultShare is the file's default Break Point: its share, else its percent converted.
-func (b BreakDefault) DefaultShare() (Share, error) {
+// Fraction is the share lost: its share, else its percent converted.
+func (b LossShare) Fraction() (Share, error) {
 	if b.Share.IsSet() {
 		return b.Share, nil
 	}
@@ -51,7 +51,7 @@ func (v *validator) shares() {
 		c := &d.Companies[i]
 		p := Idx("companies", i)
 		if c.BreakPoint.IsSet() {
-			v.wholePercentShare(c.BreakPoint, Join(p, "breakPoint"))
+			v.wholePercentShare(c.BreakPoint, Join(p, "breakPoint"), "the Break Point")
 		}
 		if c.Limits == nil {
 			continue
@@ -73,18 +73,43 @@ func (v *validator) shares() {
 		}
 	}
 	bd := d.Campaign.BreakPoint.Default
-	bp := "campaign.breakPoint.default"
+	if !bd.Share.IsSet() && bd.Percent == 0 && v.campaignHasErrors() {
+		return // the block did not bind; its own errors say why
+	}
+	v.lossShare(bd, "campaign.breakPoint.default", lossShareWords{
+		both:    `write the Break Point as "share" or as "percent", not both`,
+		missing: "the default Break Point needs a share",
+		hint:    `write "share": "1/2"`,
+		what:    "the Break Point",
+	})
+}
+
+// scenarioEnd checks a scenario's endsAtLosses, like a Break Point.
+func (v *validator) scenarioEnd(l *LossShare, at string) {
+	v.lossShare(*l, at, lossShareWords{
+		both:    `write the share lost as "share" or as "percent", not both`,
+		missing: "the end of the scenario needs a share",
+		hint:    `write "share": "3/4"`,
+		what:    "the end of the scenario",
+	})
+}
+
+// lossShareWords is what the report says about a LossShare: the two keys written together, neither written (and its hint), and the
+// name of the share for wholePercentShare.
+type lossShareWords struct {
+	both, missing, hint, what string
+}
+
+// lossShare checks a share of models lost: exactly one of its two keys, above 0 and a whole percent.
+func (v *validator) lossShare(l LossShare, at string, w lossShareWords) {
 	switch {
-	case bd.Share.IsSet() && bd.Percent != 0:
-		v.rep.Errorf(Join(bp, "share"), `write the Break Point as "share" or as "percent", not both`)
-	case !bd.Share.IsSet() && bd.Percent == 0:
-		if v.campaignHasErrors() {
-			break // the block did not bind; its own errors say why
-		}
-		v.rep.Add(Issue{Path: bp, Message: "the default Break Point needs a share", Hint: `write "share": "1/2"`})
+	case l.Share.IsSet() && l.Percent != 0:
+		v.rep.Errorf(Join(at, "share"), "%s", w.both)
+	case !l.Share.IsSet() && l.Percent == 0:
+		v.rep.Add(Issue{Path: at, Message: w.missing, Hint: w.hint})
 	default:
-		s, _ := bd.DefaultShare()
-		v.wholePercentShare(s, Join(bp, shareKey(bd.Share, "percent")))
+		s, _ := l.Fraction()
+		v.wholePercentShare(s, Join(at, shareKey(l.Share, "percent")), w.what)
 	}
 }
 
@@ -121,13 +146,13 @@ func (v *validator) checkShare(s Share, err error, at string, fraction, mustBePo
 	}
 }
 
-// wholePercentShare checks a Break Point share: above 0, and a whole percent.
-func (v *validator) wholePercentShare(s Share, at string) {
+// wholePercentShare checks a share of models lost, what names it in the report: above 0, and a whole percent.
+func (v *validator) wholePercentShare(s Share, at, what string) {
 	switch _, whole := s.WholePercent(); {
 	case s.Num == 0:
-		v.rep.Errorf(at, "the Break Point must be above 0")
+		v.rep.Errorf(at, "%s must be above 0", what)
 	case !whole:
-		v.rep.Add(Issue{Path: at, Message: fmt.Sprintf("the Break Point %s is %.2f percent; it must be a whole percent", s, s.Percent()), Hint: `write a fraction that is a whole percent: "1/2", "33/50"`})
+		v.rep.Add(Issue{Path: at, Message: fmt.Sprintf("%s %s is %.2f percent; it must be a whole percent", what, s, s.Percent()), Hint: `write a fraction that is a whole percent: "1/2", "33/50"`})
 	}
 }
 

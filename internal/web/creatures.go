@@ -54,15 +54,7 @@ func (s *Server) afterArmory(w http.ResponseWriter, r *http.Request, done string
 }
 
 func (s *Server) handleDismissWanderer(w http.ResponseWriter, r *http.Request) {
-	id, ok := s.idParam(w, r, "id")
-	if !ok {
-		return
-	}
-	cid, ok := s.ownCompanyID(w, r, id)
-	if !ok {
-		return
-	}
-	unitID, ok := s.idParam(w, r, "unit")
+	id, cid, unitID, ok := s.ownUnitParams(w, r)
 	if !ok {
 		return
 	}

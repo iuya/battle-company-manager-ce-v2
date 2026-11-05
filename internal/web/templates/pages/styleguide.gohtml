@@ -161,9 +161,9 @@
   {{/* ---- hero paths: the heading of the path box on a unit card, one icon per path ---- */}}
   <section id="sg-paths" class="space-y-4" aria-labelledby="sg-paths-h">
     <h2 id="sg-paths-h">Hero paths</h2>
-    <p class="text-sm text-muted">The heading of the path box, above a hero's special rules, coloured by the kind of hero: melee, ranged, command, magic, other. A path the app does not know (here the Path of the Smith) gets the medal.</p>
+    <p class="text-sm text-muted">The heading of the path box, above a hero's special rules, coloured by its categories: support, melee, ranged, will, muted without one. A second category splits the icon on the diagonal, main top-left; any pair works (the Path of the Example is ranged, will). A path the app does not know (here the Path of the Smith) gets the medal.</p>
     <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-      {{range (list "Path of the Tactician" "Path of the Sharpshooter" "Path of the Soldier" "Path of the Marksman" "Path of the Claimant" "Path of the Sorcerer" "Path of the Shieldbearer" "Path of the Ranger" "Path of the Warlord" "Path of the Berserker" "Path of the Duelist" "Path of Their Own Making" "On Their Own Path" "Path of the Smith")}}<div class="path-box path-k-{{(pathLook .).Kind}}">{{template "path_name" (dict "N" .)}}</div>{{end}}
+      {{range .Paths}}<div class="path-box path-k-{{(pathLook .Name .Categories).Kind}}">{{template "path_name" (dict "N" .Name "Cats" .Categories)}}</div>{{end}}
     </div>
   </section>
 

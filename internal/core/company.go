@@ -1,6 +1,7 @@
 package core
 
 import (
+	"cmp"
 	"fmt"
 	"regexp"
 	"slices"
@@ -389,6 +390,7 @@ type HeroicAction struct {
 // UnitPath is the path a hero has chosen: every hero, the leader and the sergeants included, has one.
 type UnitPath struct {
 	Name          string
+	Categories    []string       // what the path is for, the main one first; empty for a path the rules file gives none
 	HeroicActions []HeroicAction // unlocked so far, including the ones bought later
 	Rules         []UnitRule     // special rules gained from the path; they are not repeated among the unit's own rules
 	Powers        []UnitRule     // magical powers learned through the path (the Path of the Sorcerer); Spell is true
@@ -577,6 +579,8 @@ type CompanyDetail struct {
 	MaxUnits  int           // the most models the company may have (it differs per company)
 	Recruit   RecruitInfo   // what recruiting costs and can give
 	Roster    []CompanyUnit // the units, in the company's order (see OrderUnits)
+	// Formation is the order the player saved (unit ids; empty: the default order).
+	Formation []int64
 	// InjuredUnits is how many units are injured; their points are left out of the company's rating (Points).
 	InjuredUnits int
 	Settings     CampaignSettings
@@ -608,8 +612,7 @@ type CompanyDetail struct {
 
 // RuleDice are dice of the rules file the pages need to throw and to ask for.
 type RuleDice struct {
-	Level   LevelDice
-	Courage DiceSpec // campaign.breakPoint.whenBroken.courageTest.dice
+	Level LevelDice
 	// The Against the Odds Reroll bonus (campaign.againstTheOdds.bonuses[key=reroll]): what it costs in Rating and how many re-rolls it gives.
 	RerollRating, RerollCount int
 }
@@ -801,20 +804,25 @@ func (a ArmouryItem) Buyable() bool { return a.Reason == "" }
 func (a ArmouryItem) Offered() bool { return a.Blocker != BlockedByRule }
 
 // OrderUnits puts units in the company's order. By default the leader comes first, then the sergeants, then the other
-// heroes, then the regular units (each group in its given order). saved holds unit ids in the order the player chose
-// (persisted by the backend); units it names come first in that order, new units follow in the default order.
+// heroes, then the regular units; within a group, the most points first and then by name. saved holds unit ids in the order
+// the player chose (persisted by the backend); units it names come first in that order, new units follow in the default order.
 func OrderUnits(units []CompanyUnit, saved []int64) []CompanyUnit {
 	out := slices.Clone(units)
-	slices.SortStableFunc(out, func(a, b CompanyUnit) int { return a.Role.order() - b.Role.order() })
-	if len(saved) == 0 {
-		return out
-	}
-	rank := map[int64]int{}
-	for i, id := range saved {
-		rank[id] = i + 1
-	}
 	slices.SortStableFunc(out, func(a, b CompanyUnit) int {
-		ra, rb := rank[a.ID], rank[b.ID]
+		return cmp.Or(a.Role.order()-b.Role.order(), b.Points-a.Points, strings.Compare(NameKey(a.Title()), NameKey(b.Title())))
+	})
+	sortBySaved(out, saved, func(u CompanyUnit) int64 { return u.ID })
+	return out
+}
+
+// sortBySaved moves the items saved names (by id) to the front, in that order; the others keep their order behind them.
+func sortBySaved[T any](items []T, saved []int64, id func(T) int64) {
+	rank := map[int64]int{}
+	for i, x := range saved {
+		rank[x] = i + 1
+	}
+	slices.SortStableFunc(items, func(a, b T) int {
+		ra, rb := rank[id(a)], rank[id(b)]
 		switch {
 		case ra == 0 && rb == 0:
 			return 0
@@ -825,7 +833,6 @@ func OrderUnits(units []CompanyUnit, saved []int64) []CompanyUnit {
 		}
 		return ra - rb
 	})
-	return out
 }
 
 // DropReason applies the Battle Companies rules for dropping what a model carries and says why it cannot (empty when it can):
@@ -1011,22 +1018,7 @@ type FallenUnit struct {
 // OrderFallen puts the cemetery in the order the player chose (unit ids; units not named keep their place at the end).
 func OrderFallen(fallen []FallenUnit, saved []int64) []FallenUnit {
 	out := slices.Clone(fallen)
-	rank := map[int64]int{}
-	for i, id := range saved {
-		rank[id] = i + 1
-	}
-	slices.SortStableFunc(out, func(a, b FallenUnit) int {
-		ra, rb := rank[a.Unit.ID], rank[b.Unit.ID]
-		switch {
-		case ra == 0 && rb == 0:
-			return 0
-		case ra == 0:
-			return 1
-		case rb == 0:
-			return -1
-		}
-		return ra - rb
-	})
+	sortBySaved(out, saved, func(f FallenUnit) int64 { return f.Unit.ID })
 	return out
 }
 
@@ -1040,8 +1032,9 @@ type PathOffer struct {
 // PathOption is a path a hero could take, or the reason it cannot.
 type PathOption struct {
 	Name        string
-	StartAction string // the heroic action the path gives at once
-	StartPower  bool   // the hero also chooses a first magical power
+	Categories  []string // what the path is for, the main one first
+	StartAction string   // the heroic action the path gives at once
+	StartPower  bool     // the hero also chooses a first magical power
 	Blocked     string
 	Description string   // the path in a sentence (may be empty)
 	Summary     string   // what it offers (heroic action, Mastery rule, rules, signature characteristic): the tooltip

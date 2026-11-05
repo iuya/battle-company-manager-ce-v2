@@ -32,19 +32,29 @@ type fixture struct {
 	rec  *Mockrecoveries
 	// selection is how the rules pick a scenario by dice (the default: the shipped rules, testSelection).
 	selection core.ScenarioSelection
-	quota     core.CampaignQuota // what Quota answers; the zero value is replaced by one open of ten
+	// unavailable is what the new match form reads as the companies that cannot play (the default: none).
+	unavailable map[int64]string
+	quota       core.CampaignQuota // what Quota answers; the zero value is replaced by one open of ten
 
 	// grants is what the company pages read as the company's history of awards (the default: none).
 	grants []core.Grant
 	// aftermaths is what the match page's Aftermath card reads (the default: none).
 	aftermaths   []core.AftermathRef
 	aftermathErr error
-	// liveDefaults is what the result form reads from the live match (the default: no live data).
+	// liveDefaults is what the End match sheet reads from the live match (the default: no live data).
 	liveDefaults *core.LiveMatchDefaults
+	// started says the game of an open match has begun (the Playing phase); breaks is the Break Point of its companies.
+	started bool
+	breaks  map[int64]core.LiveBreak
+	// pending is what the Your turn list reads as each company's unfinished aftermaths (the default: none).
+	pending map[int64][]core.AftermathRef
 	// nav is what the sidebar's campaign list reads (the default: none); navErr makes it fail.
-	nav          []core.CampaignNav
-	navErr       error
+	nav    []core.CampaignNav
+	navErr error
+	// atoStatus is where the Against the Odds decision of the match stands (the default: nothing waits).
+	atoStatus    core.ATOStatus
 	cardsStubbed bool // lazyCards ran
+	formStubbed  bool // newMatchStubs ran
 	navFinished  bool // the withFinished the last NavCampaigns call was given
 }
 
@@ -67,7 +77,14 @@ func newFixture(t *testing.T, cfg Config) *fixture {
 		f.navFinished = with
 		return f.nav, f.navErr
 	}).AnyTimes()
+	f.camp.EXPECT().UnavailableCompanies(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64, []int64) (map[int64]string, error) { return f.unavailable, nil }).AnyTimes()
 	f.camp.EXPECT().ScenarioSelection(gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64) (core.ScenarioSelection, error) { return f.selection, nil }).AnyTimes()
+	f.camp.EXPECT().MatchStarted(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64, int64) (bool, error) { return f.started, nil }).AnyTimes()
+	f.camp.EXPECT().MatchBreaks(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64, int64) (map[int64]core.LiveBreak, error) { return f.breaks, nil }).AnyTimes()
+	f.camp.EXPECT().ATOStatus(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64, core.Match) (core.ATOStatus, error) { return f.atoStatus, nil }).AnyTimes()
+	f.camp.EXPECT().PendingAftermaths(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _, company int64) ([]core.AftermathRef, error) {
+		return f.pending[company], nil
+	}).AnyTimes()
 	f.camp.EXPECT().Quota(gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64) (core.CampaignQuota, error) {
 		if f.quota == (core.CampaignQuota{}) {
 			return core.CampaignQuota{Open: 1, Limit: 10}, nil
@@ -91,6 +108,9 @@ func (f *fixture) signedIn(r *http.Request) *http.Request {
 
 var matchPageRe = regexp.MustCompile(`^/campaigns/\d+/matches/\d+$`)
 
+// newMatchRe are the new match form and its parts: they read the scenarios (to roll one) and the Against the Odds preview.
+var newMatchRe = regexp.MustCompile(`^/campaigns/\d+/matches(/new(/.*)?)?$`)
+
 // lazyCards makes the cards the full match page draws inline fail (registered after the test's own expectations, so those win), which
 // leaves their slots lazy: the tests of other things need not stub them.
 func (f *fixture) lazyCards() {
@@ -100,16 +120,28 @@ func (f *fixture) lazyCards() {
 	f.cardsStubbed = true
 	errNo := errors.New("card not stubbed")
 	f.camp.EXPECT().AgainstTheOdds(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.ATO{}, errNo).AnyTimes()
-	f.camp.EXPECT().SecretObjectives(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.SecretView{}, errNo).AnyTimes()
 	f.camp.EXPECT().EndChecks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.EndChecks{}, errNo).AnyTimes()
 	f.camp.EXPECT().Log(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errNo).AnyTimes()
 	f.camp.EXPECT().UnitLog(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errNo).AnyTimes()
 	f.camp.EXPECT().LiveGeneration(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errNo).AnyTimes() // no generation: the stream starts with a full sync
 }
 
+// newMatchStubs gives the new match form the test scenarios and no Against the Odds block (registered after the test's own
+// expectations, so those win).
+func (f *fixture) newMatchStubs() {
+	if f.formStubbed {
+		return
+	}
+	f.formStubbed = true
+	f.camp.EXPECT().Scenarios(gomock.Any(), gomock.Any()).Return(testScenarios, nil).AnyTimes()
+}
+
 func (f *fixture) do(r *http.Request) *httptest.ResponseRecorder {
 	if r.Method == http.MethodGet && matchPageRe.MatchString(r.URL.Path) && r.Header.Get("HX-Request") == "" {
 		f.lazyCards()
+	}
+	if newMatchRe.MatchString(r.URL.Path) && (r.Method == http.MethodPost || strings.HasPrefix(r.URL.Path, "/campaigns/7/matches/new")) {
+		f.newMatchStubs()
 	}
 	rec := httptest.NewRecorder()
 	f.srv.Handler().ServeHTTP(rec, r)
@@ -671,7 +703,7 @@ func TestOthersCompanyCannotBeManaged(t *testing.T) {
 				Stats:     []core.Attribute{{Abbr: "Mv", Name: "Movement", Value: 6, Trail: `"`}, {Abbr: "FV", Name: "Fight", Value: 5, Boost: 1}, {Abbr: "M", Name: "Might", Value: 3, HeroOnly: true}},
 				Equipment: []core.Equipment{{Name: "Sword", Class: core.EquipMelee}, {Name: "Bow", Class: core.EquipBow, Bought: true, Stats: `24" · S2`, Description: "Can shoot."}, {Name: "Elven Cloak", Class: core.EquipOther, Description: "Stalk Unseen."}, {Name: "Helmingas", Class: core.EquipOther, Upgrade: true, Description: "Guards of the king."}},
 				Rules:     []core.UnitRule{{Name: "Bodyguard", Description: "Protects the Leader.", Source: core.RuleFromUnit}, {Name: "Wither", Description: "Bad things.", Source: core.RuleFromUnit, Spell: true, Casting: 3, Range: 12}},
-				Path: &core.UnitPath{Name: "Path of the Warlord",
+				Path: &core.UnitPath{Name: "Path of the Warlord", Categories: []string{"support"},
 					HeroicActions: []core.HeroicAction{{Name: "Heroic Strike", Source: core.ActionFromUnit}, {Name: "Heroic March", Source: core.ActionBought}},
 					Rules:         []core.UnitRule{{Name: "Rally the Troops", Description: "Cheers.", Source: core.RuleFromPath}},
 					Powers:        []core.UnitRule{{Name: "Black Dart", Description: "Hits.", Source: core.RuleFromPath, Spell: true, Casting: 3, Range: 12}}}},
@@ -686,7 +718,7 @@ func TestOthersCompanyCannotBeManaged(t *testing.T) {
 		t.Errorf("own company page: %d -> %q", rec.Code, rec.Header().Get("Location"))
 	}
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
-	for _, want := range []string{`aria-current="page">My Company`, "Influence", "Gold", "Bows", "1 / 2", "Beregond", "unit-leader", "insignia-leader", "+ Bow", `24&#34; · S2`, "has-tip", "Bodyguard", "rule-spell", "3+", "FV", "path-box path-k-command", `<span class="min-w-0"><span class="path-main">Warlord</span>`, "Heroic Strike", "+ Heroic March", "Rally the Troops", "Black Dart", "learned through the path", `title="Level 0 · 11 XP in total"`, "11 / 5 XP", "Level Up ready!", "×2", "unit-corner", "70", `data-tip-title="Elven Cloak"`, `data-tip-text="Stalk Unseen."`, `data-tip-title="Helmingas" data-tip-meta="Unit upgrade" data-tip-text="Guards of the king."`} {
+	for _, want := range []string{`aria-current="page">My Company`, "Influence", "Gold", "Bows", "1 / 2", "Beregond", "unit-leader", "insignia-leader", "+ Bow", `24&#34; · S2`, "has-tip", "Bodyguard", "rule-spell", "3+", "FV", "path-box path-k-support", `<span class="min-w-0"><span class="path-main">Warlord</span>`, "Heroic Strike", "+ Heroic March", "Rally the Troops", "Black Dart", "learned through the path", `title="Level 0 · 11 XP in total"`, "11 / 5 XP", "Level Up ready!", "×2", "unit-corner", "70", `data-tip-title="Elven Cloak"`, `data-tip-text="Stalk Unseen."`, `data-tip-title="Helmingas" data-tip-meta="Unit upgrade" data-tip-text="Guards of the king."`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("My Company tab lacks %q", want)
 		}
@@ -751,7 +783,7 @@ func TestCreateMatchBuildsSidesFromTheForm(t *testing.T) {
 	f := newFixture(t, Config{})
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
 	f.camp.EXPECT().Companies(gomock.Any(), int64(7)).Return([]core.CampaignCompany{{ID: 1}, {ID: 2}, {ID: 3}, {ID: 4}}, nil)
-	want := []core.NewSide{{Name: "Gondor", Companies: []int64{1, 3}}, {Companies: []int64{2}}, {Name: "Spies"}}
+	want := []core.NewSide{{Companies: []int64{1, 3}}, {Companies: []int64{2}}, {}} // the form has no side names: Side N is the core's
 	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), core.NewMatch{Sides: want}).Return(core.Match{ID: 12}, nil)
 	rec := f.do(f.signedIn(form("/campaigns/7/matches", url.Values{
 		"sides": {"3"}, "side-name-1": {"Gondor"}, "side-1": {"1", "3", "99"}, // 99 is not in the campaign: ignored
@@ -797,8 +829,8 @@ func TestCreateMatchInvalid(t *testing.T) {
 	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), gomock.Any()).
 		Return(core.Match{}, errors.Join(core.ErrInvalidMatch, errors.New("every side needs at least one company")))
 	rec := f.do(f.signedIn(form("/campaigns/7/matches", url.Values{"sides": {"2"}, "side-1": {"1"}})))
-	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "every side needs") {
-		t.Errorf("got %d", rec.Code)
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Every side needs at least one company") {
+		t.Errorf("got %d\n%s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -839,7 +871,7 @@ func TestCreateMatchAllVsAll(t *testing.T) {
 	f := newFixture(t, Config{})
 	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(campaignDetail(), nil)
 	f.camp.EXPECT().Companies(gomock.Any(), int64(7)).Return([]core.CampaignCompany{{ID: 1, Name: "A"}, {ID: 2, Name: "B"}, {ID: 3, Name: "C"}}, nil)
-	want := []core.NewSide{{Name: "C", Companies: []int64{3}}, {Name: "A", Companies: []int64{1}}}
+	want := []core.NewSide{{Companies: []int64{3}}, {Companies: []int64{1}}}
 	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), core.NewMatch{Sides: want}).Return(core.Match{ID: 5}, nil)
 	rec := f.do(f.signedIn(form("/campaigns/7/matches", url.Values{"mode": {"ffa"}, "sides": {"2"}, "side-1": {"3", "1"}})))
 	if rec.Code != http.StatusSeeOther {
@@ -930,8 +962,8 @@ func mineDetail() (core.CampaignDetail, core.CompanyDetail) {
 		RuleDice: testRuleDice}
 }
 
-// testRuleDice are the dice of the shipped rules file: warriors roll a d6, heroes two results of 2d6, a Broken model tests Courage on 2d6.
-var testRuleDice = core.RuleDice{Level: core.LevelDice{Warrior: core.DiceSpec{Count: 1, Sides: 6}, Hero: core.DiceSpec{Count: 2, Sides: 6}, Pairs: 2}, Courage: core.DiceSpec{Count: 2, Sides: 6}}
+// testRuleDice are the dice of the shipped rules file: warriors roll a d6, heroes two results of 2d6.
+var testRuleDice = core.RuleDice{Level: core.LevelDice{Warrior: core.DiceSpec{Count: 1, Sides: 6}, Hero: core.DiceSpec{Count: 2, Sides: 6}, Pairs: 2}}
 
 func TestRecruitWindowShowsBothChartsApart(t *testing.T) {
 	f := newFixture(t, Config{})
@@ -1441,18 +1473,18 @@ func TestTheLevelUpWindowRollsAndOffersTheResults(t *testing.T) {
 			t.Errorf("the roll form lacks %q", want)
 		}
 	}
-	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(1), int64(5), nil, false).Return(core.LevelRoll{Kind: "warrior", D6: 6, Result: "heroInTheMaking",
-		Offers: []core.LevelOffer{{Roll: 6, Text: "A hero", Choices: []core.LevelChoice{{Key: "path:Path of the Duelist", Label: "Become a hero: Path of the Duelist", Group: "Choose its path"}}}}}, nil)
+	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(1), int64(5), nil, false).Return(core.LevelRoll{Kind: "warrior", D6: 6, Result: "promoted",
+		Offers: []core.LevelOffer{{Roll: 6, Text: "A promotion", Choices: []core.LevelChoice{{Key: "promo:0:0", Label: "Citadel Guard", Group: "Promotions"}}}}}, nil)
 	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/levelup/roll", url.Values{"roll": {"0"}})))
 	body = rec.Body.String()
-	for _, want := range []string{`data-animate="true"`, `data-dice="6"`, "Become a hero: Path of the Duelist", `value="path:Path of the Duelist"`, "levelup/choose"} {
+	for _, want := range []string{`data-animate="true"`, `data-dice="6"`, "Citadel Guard", `value="promo:0:0"`, "levelup/choose"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the offers lack %q", want)
 		}
 	}
-	f.camp.EXPECT().ChooseLevelUp(gomock.Any(), frodo, int64(7), int64(1), int64(5), []string{"path:Path of the Duelist"}).Return(core.LevelRoll{Kind: "warrior", Done: true, Summary: "Hador becomes a hero."}, nil)
-	body = f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/levelup/choose", url.Values{"choice": {"path:Path of the Duelist"}}))).Body.String()
-	if !strings.Contains(body, "Hador becomes a hero.") || !strings.Contains(body, "Done") {
+	f.camp.EXPECT().ChooseLevelUp(gomock.Any(), frodo, int64(7), int64(1), int64(5), []string{"promo:0:0"}).Return(core.LevelRoll{Kind: "warrior", Done: true, Summary: "Hador is promoted."}, nil)
+	body = f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/levelup/choose", url.Values{"choice": {"promo:0:0"}}))).Body.String()
+	if !strings.Contains(body, "Hador is promoted.") || !strings.Contains(body, "Done") {
 		t.Errorf("the result is shown: %s", body)
 	}
 }
@@ -1622,7 +1654,7 @@ func TestMatchPageWithoutScenario(t *testing.T) {
 	}}
 	path, f := matchFixture(t, frodo, m)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", path, nil))).Body.String()
-	for _, want := range []string{"No scenario yet.", "Who won?", "Open"} {
+	for _, want := range []string{"No scenario yet", "Roll again", "Open"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -1641,19 +1673,17 @@ func TestMatchPageWithoutScenario(t *testing.T) {
 
 func TestMatchPageShowsScenarioAndResult(t *testing.T) {
 	now := time.Date(2026, 10, 3, 0, 0, 0, 0, time.UTC)
-	vp := 7
 	m := core.Match{ID: 4, Number: 4, Ended: true, Winner: 2, EndedOn: &now,
 		Scenario: &core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Seize Ground"},
 		Sides: []core.MatchSide{
 			{Name: "Gondor", Companies: []core.CampaignCompany{{ID: 1, Name: "Rangers"}}},
 			{Name: "Mordor", Companies: []core.CampaignCompany{{ID: 2, Name: "Raiders"}}},
 		},
-		Result: core.MatchResult{Decided: true, Winner: 2, Note: "<b>close</b>", Sides: []core.SideResult{{}, {VictoryPoints: &vp}},
-			Companies: []core.CompanyResult{{CompanyID: 1, Fled: true}}}}
+		Result: core.MatchResult{Decided: true, Winner: 2, Note: "<b>close</b>"}}
 	path, f := matchFixture(t, frodo, m)
 	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return([]core.ScenarioInfo{{Name: "Seize Ground", Scoring: []string{"Hold the objectives"}}}, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", path, nil))).Body.String()
-	for _, want := range []string{"Seize Ground", "How it is scored", "Hold the objectives", "Ended 3 October 2026", `>Fled</span>`, "&lt;b&gt;close&lt;/b&gt;", `<span class="tone-win">Mordor</span> won`, "This match has ended."} {
+	for _, want := range []string{"Seize Ground", "How it is scored", "Hold the objectives", "Ended 3 October 2026", "&lt;b&gt;close&lt;/b&gt;", `<span class="tone-win">Raiders</span> won`, `data-phase="ended"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}

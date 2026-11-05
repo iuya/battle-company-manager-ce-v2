@@ -81,7 +81,6 @@ type (
 	liveReadKey    struct{ campaign, match int64 }
 	campaignGetKey struct{ user, campaign int64 }
 	campaignCoKey  struct{ campaign, company int64 }
-	hashesKey      struct{ campaign int64 }
 	rosterKey      struct{ campaign int64 }
 	rosterOfKey    string // the company ids, comma separated
 	eventsKey      struct{ campaign, match int64 }

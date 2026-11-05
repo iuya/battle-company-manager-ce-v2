@@ -10,7 +10,7 @@ var ErrPracticeNothingToRoll = Refuse("%s", PracticeNothingToRoll)
 
 // practiceAftermath is the aftermath of a company in a practice match: done, empty, never stored. The repository derives the same status.
 func practiceAftermath(e *amEnv) Aftermath {
-	a := Aftermath{MatchID: e.matchID, CompanyID: e.companyID, Status: AftermathDone, Revision: 1, Outcome: e.outcome, Fled: e.fled,
+	a := Aftermath{MatchID: e.matchID, CompanyID: e.companyID, Status: AftermathDone, Revision: 1, Outcome: e.outcome,
 		Access: e.access, Practice: true}
 	var on time.Time
 	if e.match.EndedOn != nil {

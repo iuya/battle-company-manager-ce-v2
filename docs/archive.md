@@ -79,13 +79,13 @@ The pages and services are unchanged; the repositories answer from the document.
 
 - the Armory, recruiting, level-ups, treatment, the pack, paths and every other change to a company
 - creating a match or a company, grants, invitations, hand-over, settings
-- live matches (tracker, log, end checks), aftermath sheets, Against the Odds, secret objectives
+- live matches (tracker, log, end checks), aftermath sheets, Against the Odds
 - the Tabletop Simulator export
 - perks not used yet, a recruit in progress, the aftermath a company still owed (an archived company is shown as it stood, unlocked)
 - the open matches of a campaign ended with matches open stay as unfinished matches; their live view is not kept
 - glossary terms that no company used and no used term links to; the helper popups for them
 
-Differences in a page that is supported, each deliberate: the Armory tab and the Manage card are not drawn, the card of a match shows no Against the Odds or aftermath or live log, a term link inside a text is plain text when the pruned glossary lacks the term, and the Rules box shows the original hashes (identifying what was played) although the archive carries its own pruned copy.
+Differences in a page that is supported, each deliberate: the Armory tab and the Manage card are not drawn, the card of a match shows no Against the Odds or aftermath or live log (and an open match with no history no Log card), a term link inside a text is plain text when the pruned glossary lacks the term, and the Rules box shows the original hashes (identifying what was played) although the archive carries its own pruned copy.
 
 ## Writes are refused
 

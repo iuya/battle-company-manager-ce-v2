@@ -16,15 +16,14 @@ import (
 
 // liveWorld is a campaign with two companies in an open match.
 type liveWorld struct {
-	s        *Store
-	ctx      context.Context
-	org, p2  core.User
-	p3       core.User
-	camp     int64
-	a, b     core.CampaignCompany
-	match    core.Match
-	unitsOf  map[int64][]int64
-	campaign core.NewCampaign
+	s       *Store
+	ctx     context.Context
+	org, p2 core.User
+	p3      core.User
+	camp    int64
+	a, b    core.CampaignCompany
+	match   core.Match
+	unitsOf map[int64][]int64
 }
 
 func newLiveWorld(t *testing.T, tag string) liveWorld {
@@ -486,8 +485,8 @@ func TestOpenMatchGuards(t *testing.T) {
 
 func jsonUnmarshal(s string, v any) error { return json.Unmarshal([]byte(s), v) }
 
-// The new kinds survive the payload, and a secret objective notifies nobody.
-func TestLiveEndChecksAndSecretEntries(t *testing.T) {
+// The kinds survive the payload, and an older secret note can still be read and undone and notifies nobody.
+func TestLiveEndChecksAndOlderSecretNotes(t *testing.T) {
 	w := newLiveWorld(t, "sec")
 	live := w.s.Live()
 	if err := live.Init(w.ctx, w.camp, w.match.ID, w.inits()); err != nil {
@@ -501,6 +500,7 @@ func TestLiveEndChecksAndSecretEntries(t *testing.T) {
 	if _, err := conn.Exec(w.ctx, "LISTEN "+liveChannel); err != nil {
 		t.Fatal(err)
 	}
+	nominate, done := core.LiveKind("secretNominate"), core.LiveKind("secretDone")
 	ua, ub := w.unitsOf[w.a.ID][0], w.unitsOf[w.b.ID][0]
 	for _, e := range []core.LiveEntry{
 		{CompanyID: w.a.ID, UnitID: ua, Text: "o", Action: core.LiveAction{Kind: core.LiveObjective, UnitID: ua, On: true}},
@@ -519,33 +519,47 @@ func TestLiveEndChecksAndSecretEntries(t *testing.T) {
 		}
 	}
 	for _, e := range []core.LiveEntry{
-		{CompanyID: w.a.ID, UnitID: ub, Text: "n", Action: core.LiveAction{Kind: core.LiveSecretNominate, ObjectiveKey: "enemyHeroHarmed", UnitID: ub, Note: ""}},
-		{CompanyID: w.a.ID, Text: "d", Action: core.LiveAction{Kind: core.LiveSecretDone, ObjectiveKey: "enemyHeroHarmed", Tier: 2}},
+		{CompanyID: w.a.ID, UnitID: ub, Text: "n", Action: core.LiveAction{Kind: nominate, UnitID: ub}},
+		{CompanyID: w.a.ID, Text: "d", Action: core.LiveAction{Kind: done}},
 	} {
 		if _, err := w.append(t, w.org, e); err != nil {
 			t.Fatalf("%s: %v", e.Action.Kind, err)
 		}
 	}
+	// the payload of a note written when the app still had them
+	if _, err := conn.Exec(w.ctx, `UPDATE match_live_log SET payload = payload || '{"key":"enemyHeroHarmed","tier":2}' WHERE match_id = $1 AND kind IN ($2, $3)`, w.match.ID, string(nominate), string(done)); err != nil {
+		t.Fatal(err)
+	}
 	wctx, cancel := context.WithTimeout(w.ctx, 400*time.Millisecond)
 	defer cancel()
 	if n, err := conn.WaitForNotification(wctx); err == nil {
-		t.Fatalf("a secret entry must notify nobody: %+v", n)
+		t.Fatalf("a secret note must notify nobody: %+v", n)
 	}
 	snap, err := live.Read(w.ctx, w.camp, w.match.ID)
 	if err != nil || len(snap.Entries) != 4 {
 		t.Fatalf("%v %+v", err, snap.Entries)
 	}
-	got := map[core.LiveKind]core.LiveAction{}
+	got := map[core.LiveKind]core.LiveEntry{}
 	for _, e := range snap.Entries {
-		got[e.Action.Kind] = e.Action
+		got[e.Action.Kind] = e
 	}
-	if !got[core.LiveObjective].On || got[core.LiveMVPVote].TargetCompanyID != w.b.ID || got[core.LiveSecretNominate].ObjectiveKey != "enemyHeroHarmed" || got[core.LiveSecretDone].Tier != 2 {
+	if !got[core.LiveObjective].Action.On || got[core.LiveMVPVote].Action.TargetCompanyID != w.b.ID || got[nominate].Action.UnitID != ub || !got[done].Action.Kind.Secret() {
 		t.Errorf("payloads: %+v", got)
+	}
+	if _, err := live.Update(w.ctx, w.camp, w.match.ID, w.org, func(core.LiveSnapshot) (core.LiveChange, error) {
+		return core.LiveChange{Undo: got[nominate].ID}, nil
+	}); err != nil {
+		t.Fatalf("undo: %v", err)
+	}
+	wctx2, cancel2 := context.WithTimeout(w.ctx, 400*time.Millisecond)
+	defer cancel2()
+	if n, err := conn.WaitForNotification(wctx2); err == nil {
+		t.Fatalf("undoing a secret note must notify nobody: %+v", n)
 	}
 }
 
-// The kinds of the Break Point and the Against the Odds items: every field of the payload survives, a match-level
-// turn entry (company 0, unit 0) is stored, undo works on them, and a kind nobody declared is still refused by the constraint.
+// The kinds of the Break Point and the Against the Odds items: every field of the payload survives, undo works on them, and a kind
+// nobody declared is still refused by the constraint.
 func TestLiveBreakPointAndItemKinds(t *testing.T) {
 	w := newLiveWorld(t, "brk")
 	live := w.s.Live()
@@ -554,11 +568,9 @@ func TestLiveBreakPointAndItemKinds(t *testing.T) {
 	}
 	ua := w.unitsOf[w.a.ID][0]
 	actions := []core.LiveEntry{
-		{CompanyID: 0, Text: "Turn 2", Action: core.LiveAction{Kind: core.LiveTurn, Turn: 2}},
 		{CompanyID: w.a.ID, Text: "adj", Action: core.LiveAction{Kind: core.LiveBreakAdjust, Field: "casualties", Delta: -1, Note: "pony"}},
-		{CompanyID: w.a.ID, UnitID: ua, Text: "skip", Action: core.LiveAction{Kind: core.LiveCourageSkip, UnitID: ua, Reason: "standFast"}},
-		{CompanyID: w.a.ID, UnitID: ua, Text: "passed", Action: core.LiveAction{Kind: core.LiveBroken, UnitID: ua, StandFast: true}},
-		{CompanyID: w.a.ID, Text: "flee", Action: core.LiveAction{Kind: core.LiveAllIsLost, Flee: true}},
+		{CompanyID: w.a.ID, UnitID: ua, Text: "skip", Action: core.LiveAction{Kind: core.LiveKind("courageSkip"), UnitID: ua}},
+		{CompanyID: w.a.ID, UnitID: ua, Text: "passed", Action: core.LiveAction{Kind: core.LiveBroken, UnitID: ua}},
 		{CompanyID: w.a.ID, UnitID: ua, Text: "used", Action: core.LiveAction{Kind: core.LiveItemUsed, UnitID: ua, Item: "Dwarven Brew", Index: 2}},
 	}
 	var last core.LiveEntry
@@ -577,8 +589,8 @@ func TestLiveBreakPointAndItemKinds(t *testing.T) {
 		if got.Action.Kind != want.Action.Kind || got.CompanyID != want.CompanyID || got.UnitID != want.UnitID {
 			t.Errorf("entry %d: %+v, want %+v", i, got, want)
 		}
-		if g, w := got.Action, want.Action; g.Turn != w.Turn || g.Field != w.Field || g.Delta != w.Delta || g.Note != w.Note || g.Reason != w.Reason ||
-			g.StandFast != w.StandFast || g.Flee != w.Flee || g.Item != w.Item || g.Index != w.Index || g.UnitID != w.UnitID {
+		if g, w := got.Action, want.Action; g.Turn != w.Turn || g.Field != w.Field || g.Delta != w.Delta || g.Note != w.Note ||
+			g.Flee != w.Flee || g.Item != w.Item || g.Index != w.Index || g.UnitID != w.UnitID {
 			t.Errorf("payload %d: %+v, want %+v", i, g, w)
 		}
 	}
@@ -597,7 +609,7 @@ func TestLiveBreakPointAndItemKinds(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer again.Close()
-	if re, err := again.Live().Read(w.ctx, w.camp, w.match.ID); err != nil || len(re.Entries) != len(actions)-1 || re.Entries[0].Action.Turn != 2 {
+	if re, err := again.Live().Read(w.ctx, w.camp, w.match.ID); err != nil || len(re.Entries) != len(actions)-1 || re.Entries[0].Action.Field != "casualties" {
 		t.Fatalf("after a restart: %v %+v", err, re.Entries)
 	}
 	if _, err := w.append(t, w.org, core.LiveEntry{CompanyID: w.a.ID, Text: "x", Action: core.LiveAction{Kind: "nonsense"}}); !errors.Is(err, core.ErrInvalidLive) {

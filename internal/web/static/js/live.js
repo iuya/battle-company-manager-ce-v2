@@ -114,6 +114,41 @@ document.addEventListener('alpine:init', () => {
     arm();
   });
 
+  // The zones come from the server with the Break Point panel closed and its note empty, and only this page knows how the user left them. So
+  // both are read just before a swap of #live-zones (an action, a refresh, an answer that sends them out of band) and put back right after it,
+  // on the same frame. The panel opens and closes only through its summary. The note goes once a +/- button has logged it. The focus is put back
+  // here too: htmx tries by id, but what is inside a closed <details> cannot take it, and the panel is still closed at that moment.
+  let kept = null;
+  function keepPanel(e) {
+    const d = e.detail || {};
+    if (!d.target || d.target.id !== 'live-zones') return;
+    const panel = document.getElementById('live-break-panel'), note = document.getElementById('break-note');
+    const active = document.activeElement;
+    kept = panel ? { open: panel.open, focus: active && active.id && panel.contains(active) ? active.id : '' } : null;
+    if (!kept || !note) return;
+    const sender = d.requestConfig && d.requestConfig.elt;
+    const logged = !!d.xhr && d.xhr.status < 300 && !!sender && sender.getAttribute('hx-include') === '#break-note'; // a refusal (422) also swaps
+    kept.note = logged ? '' : note.value;
+    kept.start = note.selectionStart;
+    kept.end = note.selectionEnd;
+  }
+  function restorePanel(e) {
+    const d = e.detail || {};
+    if (!kept || !d.target || d.target.id !== 'live-zones') return; // a swap that was dropped (see above) left an old reading: never used elsewhere
+    const k = kept, panel = document.getElementById('live-break-panel'), note = document.getElementById('break-note');
+    kept = null;
+    if (panel) panel.open = k.open;
+    const again = k.focus && document.getElementById(k.focus);
+    if (again && k.open) again.focus({ preventScroll: true });
+    if (!note || k.note === undefined) return;
+    note.value = k.note;
+    if (again === note) note.setSelectionRange(k.start, k.end);
+  }
+  document.addEventListener('htmx:beforeSwap', keepPanel);
+  document.addEventListener('htmx:oobBeforeSwap', keepPanel);
+  document.addEventListener('htmx:afterSwap', restorePanel);
+  document.addEventListener('htmx:oobAfterSwap', restorePanel);
+
   function startPolling() {
     if (poll) return;
     dot('retry', 'Updating every few seconds');

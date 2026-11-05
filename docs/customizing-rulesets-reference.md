@@ -39,7 +39,7 @@ there are none, the first keys stand in.
 
 - [The file](#document): the top-level keys
 - [Objects](#objects): every nested object, in the order they are met
-  - `campaign`: [Campaign](#campaign), [CompanyRules](#companyrules), [HeroGain](#herogain), [SlotPair](#slotpair), [Oaths](#oaths), [Oath](#oath), [Recruitment](#recruitment), [Adjust](#adjust), [RareRule](#rarerule), [Influence](#influence), [InfluenceGains](#influencegains), [Progression](#progression), [WarriorProgress](#warriorprogress), [NoPromotion](#nopromotion), [TableRow](#tablerow), [HeroProgress](#heroprogress), [Injuries](#injuries), [InjuryHealingText](#injuryhealingtext), [InjuryRow](#injuryrow), [InjuryDisable](#injurydisable), [CountGrant](#countgrant), [DiceGrant](#dicegrant), [InjuryHeals](#injuryheals), [InjuryReroll](#injuryreroll), [InjuryChange](#injurychange), [InjuryRetirement](#injuryretirement), [InjuryRollModifier](#injuryrollmodifier), [InjuryTreatment](#injurytreatment), [HeroTreatment](#herotreatment), [TreatFailure](#treatfailure), [TreatRoll](#treatroll), [TreatModifier](#treatmodifier), [TreatmentRemoval](#treatmentremoval), [WarriorTreatment](#warriortreatment), [Experience](#experience), [ExperienceGain](#experiencegain), [BreakPoint](#breakpoint), [BreakDefault](#breakdefault), [BreakThreshold](#breakthreshold), [WhenBroken](#whenbroken), [CourageTest](#couragetest), [BreakException](#breakexception), [RatingRules](#ratingrules), [HeroRating](#herorating), [WargearRating](#wargearrating), [WargearThreshold](#wargearthreshold), [RatingPoint](#ratingpoint), [ScenarioSelection](#scenarioselection), [ScenarioTable](#scenariotable), [AftermathEffect](#aftermatheffect), [ActivatedBy](#activatedby), [ATOReward](#atoreward), [AgainstTheOdds](#againsttheodds), [ATOBonus](#atobonus), [ATOGains](#atogains), [ATOGrant](#atogrant), [ATOKit](#atokit), [ATOKitItem](#atokititem), [ATOPurchase](#atopurchase), [ATOBudget](#atobudget), [ATOEligible](#atoeligible), [CharacteristicLimits](#characteristiclimits), [CharacteristicIncrease](#characteristicincrease), [TotalCap](#totalcap), [PeakLimits](#peaklimits), [StatLimit](#statlimit), [MatchInput](#matchinput), [MatchAftermath](#matchaftermath), [MatchGold](#matchgold), [InputField](#inputfield), [MatchResult](#matchresult), [CampaignOption](#campaignoption), [OptionSwap](#optionswap)
+  - `campaign`: [Campaign](#campaign), [CompanyRules](#companyrules), [HeroGain](#herogain), [SlotPair](#slotpair), [Oaths](#oaths), [Oath](#oath), [Recruitment](#recruitment), [Adjust](#adjust), [RareRule](#rarerule), [Influence](#influence), [InfluenceGains](#influencegains), [Progression](#progression), [WarriorProgress](#warriorprogress), [NoPromotion](#nopromotion), [TableRow](#tablerow), [HeroProgress](#heroprogress), [Injuries](#injuries), [InjuryHealingText](#injuryhealingtext), [InjuryRow](#injuryrow), [InjuryDisable](#injurydisable), [CountGrant](#countgrant), [DiceGrant](#dicegrant), [InjuryHeals](#injuryheals), [InjuryReroll](#injuryreroll), [InjuryChange](#injurychange), [InjuryRetirement](#injuryretirement), [InjuryRollModifier](#injuryrollmodifier), [InjuryTreatment](#injurytreatment), [HeroTreatment](#herotreatment), [TreatFailure](#treatfailure), [TreatRoll](#treatroll), [TreatModifier](#treatmodifier), [TreatmentRemoval](#treatmentremoval), [WarriorTreatment](#warriortreatment), [Experience](#experience), [ExperienceGain](#experiencegain), [BreakPoint](#breakpoint), [LossShare](#lossshare), [BreakThreshold](#breakthreshold), [WhenBroken](#whenbroken), [CourageTest](#couragetest), [BreakException](#breakexception), [RatingRules](#ratingrules), [HeroRating](#herorating), [WargearRating](#wargearrating), [WargearThreshold](#wargearthreshold), [RatingPoint](#ratingpoint), [ScenarioSelection](#scenarioselection), [ScenarioTable](#scenariotable), [AftermathEffect](#aftermatheffect), [ActivatedBy](#activatedby), [ATOReward](#atoreward), [AgainstTheOdds](#againsttheodds), [ATOBonus](#atobonus), [ATOGains](#atogains), [ATOGrant](#atogrant), [ATOKit](#atokit), [ATOKitItem](#atokititem), [ATOPurchase](#atopurchase), [ATOBudget](#atobudget), [ATOEligible](#atoeligible), [CharacteristicLimits](#characteristiclimits), [CharacteristicIncrease](#characteristicincrease), [TotalCap](#totalcap), [PeakLimits](#peaklimits), [StatLimit](#statlimit), [MatchInput](#matchinput), [MatchAftermath](#matchaftermath), [MatchGold](#matchgold), [InputField](#inputfield), [MatchResult](#matchresult), [CampaignOption](#campaignoption), [OptionSwap](#optionswap)
   - `armourUpgrade`: [ArmourUpgrade](#armourupgrade)
   - `auras`: [Auras](#auras), [AuraGroup](#auragroup), [AuraKind](#aurakind)
   - `companies`: [Company](#company), [Advancement](#advancement), [Who](#who), [Epigraph](#epigraph), [Exchange](#exchange), [Gear](#gear), [Abilities](#abilities), [AttacksBonus](#attacksbonus), [DefenceBonus](#defencebonus), [DefenceLift](#defencelift), [Aura](#aura), [ChosenGrant](#chosengrant), [Slots](#slots), [Ranged](#ranged), [StatChange](#statchange), [GearTTS](#geartts), [Granted](#granted), [HeroUpgrade](#heroupgrade), [Heroes](#heroes), [CompanyLimit](#companylimit), [KeywordLimit](#keywordlimit), [Exempt](#exempt), [CompanyNote](#companynote), [OwnPath](#ownpath), [Promotion](#promotion), [Recruit](#recruit), [Balance](#balance), [Fallback](#fallback), [Replace](#replace), [Chart](#chart), [ChartRow](#chartrow), [ChartChoice](#chartchoice), [Rule](#rule), [Target](#target), [Parameter](#parameter), [SpecialChart](#specialchart), [BuyUnit](#buyunit), [Start](#start), [StartUnit](#startunit), [Substitution](#substitution), [SubTarget](#subtarget), [Unit](#unit), [Composite](#composite), [CompositePart](#compositepart), [Casualty](#casualty), [CompositeCount](#compositecount), [Included](#included), [UnitTTS](#unittts), [TypeDelta](#typedelta)
@@ -1036,16 +1036,16 @@ Example:
 
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
-| `default` | [BreakDefault](#breakdefault) | yes | - | - | The Break Point of a company with none of its own. |
+| `default` | [LossShare](#lossshare) | yes | - | - | The Break Point of a company with none of its own. |
 | `threshold` | [BreakThreshold](#breakthreshold) | yes | - | - | How casualties are compared. |
 | `whenBroken` | [WhenBroken](#whenbroken) | yes | - | - | What happens when the company is Broken. |
 | `scenarioExceptions` | list of [BreakException](#breakexception) | no | - | - | The scenarios, and scenario settings, that change the Courage tests or the count of a Broken company; the live match lists them. |
 
-### BreakDefault
+### LossShare
 
-The Break Point of a company that has none of its own.
+A share of the starting models lost: the Break Point of a company that has none of its own, or the losses that end a scenario.
 
-Found at: `campaign.breakPoint.default`.
+Found at: `campaign.breakPoint.default`, `scenarios[].endsAtLosses`.
 
 Example:
 
@@ -1118,7 +1118,7 @@ Example:
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `dice` | [DiceSpec](#dicespec) | yes | - | - | The dice rolled; the model passes with a total at least its Courage. |
-| `passIf` | string | no | - | `totalAtLeastCourage` | totalAtLeastCourage, the only pass rule the app implements. A live match refuses to roll a Courage test when it is missing. |
+| `passIf` | string | no | - | `totalAtLeastCourage` | totalAtLeastCourage, the only pass rule the format has. The test is rolled at the table. |
 
 ### BreakException
 
@@ -3461,6 +3461,7 @@ Example:
 |---|---|---|---|---|---|
 | `name` | string | yes | - | not empty | The name of the path. |
 | `aka` | list of string | no | - | - | Other spellings of the same name (true synonyms only). A spelling that already is a vanilla name is refused. |
+| `categories` | list of string | no | - | `support`, `melee`, `ranged`, `will`; at most 2 items | What the path is for, the main one first, each at most once: support (amber), melee (red), ranged (green), will (blue). They give the colours of its icon and box; a path without them is drawn in the muted colour. |
 | `description` | string | no | - | - | A short description shown to the players. |
 | `dice` | [DiceSpec](#dicespec) | no | - | - | The dice of the path table; default campaign.progression.hero.roll. The rows must cover them exactly once. |
 | `extends` | string | no | - | - | A path of this file whose fields (rows, maximums...) this one inherits where it does not write them. |
@@ -3557,6 +3558,7 @@ Example:
 | `aka` | list of string | no | - | - | Other spellings of the same name (true synonyms only). A spelling that already is a vanilla name is refused. |
 | `armies` | string | no | - | - | The Armies section. |
 | `description` | string | no | - | - | A short description shown to the players. |
+| `endsAtLosses` | [LossShare](#lossshare) | no | - | - | The game ends once a company has lost this share of its starting models or more, never rounded: 3/4 ends it when the company is down to 25% or fewer. Casualties and models that fled a failed Courage test count; models that left the board voluntarily do not. The live match shows how many more models each company can lose before it. Leave it out when the scenario has no such end. |
 | `id` | string | no | - | - | A stable id; default: the name as a slug. Write it only to keep an id when the name changes. |
 | `layout` | string | no | - | - | The Layout section. |
 | `objectives` | string | no | - | - | The Objectives section (how the game ends). |
@@ -3587,17 +3589,17 @@ Example:
 |---|---|---|---|---|---|
 | `key` | string | yes | - | not empty | A key unique within the scenario. |
 | `count` | integer | no | - | 0..99 | For each / eachTiers: how many items. |
-| `instruction` | string | no | - | - | The note-down sentence of a secret objective. |
+| `instruction` | string | no | - | - | The note-down sentence of a secret objective, printed before the options in How it is scored. |
 | `item` | string | no | - | - | For each / eachTiers: what is counted. |
 | `kind` | string | no | - | - | tiers (the best tier reached), each (item times pointsEach up to count), eachTiers (every item scores its own best tier). |
 | `nomination` | [Nomination](#nomination) | no | - | - | What the player notes down. |
 | `options` | list of [ScoringOption](#scoringoption) | no | - | - | The printed sentences with their points. |
-| `secret` | boolean | no | - | - | true: kept hidden until the end of the game. |
+| `secret` | boolean | no | - | - | true: the rules keep it hidden until the end of the game. Informative: the players keep it themselves. |
 | `side` | string | no | `"both"` | `both`, `attacker`, `defender` | both (default), attacker or defender. |
 
 ### Nomination
 
-What a player notes down at the start for a secret objective.
+What a player notes down at the start for a secret objective. Informative: the players keep it themselves.
 
 Found at: `scenarios[].scoring[].nomination`.
 

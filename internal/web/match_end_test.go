@@ -27,14 +27,14 @@ func pendingEnd() core.Match {
 
 func TestPendingEndCardForTheProposer(t *testing.T) {
 	f := matchWrite(t, pendingEnd())
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
-	for _, want := range []string{"Ending the match", "Rangers", "Confirmed", "Raiders", "Waiting", "Withdraw my confirmation", "Keep playing",
-		matchPath + "/end/withdraw", matchPath + "/end/cancel", `id="end-card-slot"`} {
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
+	for _, want := range []string{"Frodo proposes to end: Rangers won", "Rangers", "Raiders waiting", "Withdraw my confirmation", "Keep playing",
+		testMatchPath + "/end/withdraw", testMatchPath + "/end/cancel", `id="end-card-slot"`, `data-phase="ending"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
 	}
-	for _, bad := range []string{"Confirm the end", "Propose to end", "End without confirmation", "/live/end/reminder"} {
+	for _, bad := range []string{"data-confirm-end", "data-end-match", "End without confirmation", "/live/end/reminder"} {
 		if strings.Contains(body, bad) {
 			t.Errorf("shows %q", bad)
 		}
@@ -48,8 +48,8 @@ func TestPendingEndCardForTheWaitingOwner(t *testing.T) {
 	m.Sides[0].Companies[0].OwnerID, m.Sides[1].Companies[0].OwnerID = 50, frodo.ID
 	m.EndProposal.Notice = "Hador changed the result; confirm again"
 	f := matchWrite(t, m)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
-	for _, want := range []string{"Confirm the end", "Keep playing", matchPath + "/end/confirm", "Hador changed the result; confirm again"} {
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
+	for _, want := range []string{"data-confirm-end", "Keep playing", testMatchPath + "/end/sheet", "Hador changed the result; confirm again"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -63,11 +63,11 @@ func TestPendingEndCardForAViewerHasNoButtons(t *testing.T) {
 	m := pendingEnd()
 	m.Sides[0].Companies[0].OwnerID, m.Sides[1].Companies[0].OwnerID = 51, 52
 	f := matchWrite(t, m)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
-	if !strings.Contains(body, "Ending the match") || !strings.Contains(body, "Waiting") {
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
+	if !strings.Contains(body, "proposes to end") || !strings.Contains(body, "waiting") {
 		t.Error("a viewer sees the pending state")
 	}
-	for _, bad := range []string{"/end/confirm", "/end/withdraw", "/end/cancel", "/end/override", "Keep playing"} {
+	for _, bad := range []string{"data-confirm-end", "/end/withdraw", "/end/cancel", "/end/override", "Keep playing"} {
 		if strings.Contains(body, bad) {
 			t.Errorf("a viewer sees %q", bad)
 		}
@@ -79,8 +79,8 @@ func TestOrganiserSeesTheOverrideWithItsWarning(t *testing.T) {
 	m.Sides[0].Companies[0].OwnerID, m.Sides[1].Companies[0].OwnerID = 51, 52
 	m.EndProposal.Companies[0].OwnerID, m.EndProposal.Companies[1].OwnerID = 51, 52
 	f := organiserMatch(t, m)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String()
-	for _, want := range []string{"End without confirmation", "Raiders has not confirmed that the game is over. The result and the aftermath will be fixed for everyone.", `name="note"`, matchPath + "/end/override", "Keep playing"} {
+	body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String()
+	for _, want := range []string{"End without confirmation", "Raiders has not confirmed that the game is over. The result and the aftermath will be fixed for everyone.", `name="note"`, testMatchPath + "/end/override", "Keep playing"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -92,9 +92,6 @@ func TestEndAnswers(t *testing.T) {
 		path, notice string
 		expect       func(f *fixture, done core.Match)
 	}{
-		{"confirm", "Match ended.", func(f *fixture, done core.Match) {
-			f.camp.EXPECT().ConfirmEnd(gomock.Any(), frodo, int64(7), int64(3), 4).Return(done, nil)
-		}},
 		{"withdraw", "You took back your confirmation.", func(f *fixture, done core.Match) {
 			done.Ended = false
 			f.camp.EXPECT().WithdrawEnd(gomock.Any(), frodo, int64(7), int64(3), 4).Return(done, nil)
@@ -110,7 +107,7 @@ func TestEndAnswers(t *testing.T) {
 			done := readyToEnd()
 			done.Ended, done.EndedOn, done.Revision = true, &now, 5
 			tt.expect(f, done)
-			rec := f.do(f.signedIn(form(matchPath+"/end/"+tt.path, url.Values{"revision": {"4"}})))
+			rec := f.do(f.signedIn(form(testMatchPath+"/end/"+tt.path, url.Values{"revision": {"4"}})))
 			if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), tt.notice) {
 				t.Errorf("%d\n%s", rec.Code, rec.Body.String())
 			}
@@ -133,7 +130,7 @@ func TestOverrideNeedsANoteAndKeepsTheDialogOpen(t *testing.T) {
 	m.Sides[1].Companies[0].OwnerID = 52
 	f := organiserMatch(t, m)
 	f.camp.EXPECT().OverrideEnd(gomock.Any(), frodo, int64(7), int64(3), 4, "").Return(core.Match{}, errors.Join(core.ErrInvalidMatch, errors.New("the note must be between 1 and 200 characters")))
-	rec := f.do(f.signedIn(form(matchPath+"/end/override", url.Values{"revision": {"4"}, "note": {"  "}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/end/override", url.Values{"revision": {"4"}, "note": {"  "}})))
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "The note must be between 1 and 200 characters") {
 		t.Errorf("%d\n%s", rec.Code, rec.Body.String())
 	}
@@ -145,7 +142,7 @@ func TestOverrideEnds(t *testing.T) {
 	done := readyToEnd()
 	done.Ended, done.EndedOn = true, &now
 	f.camp.EXPECT().OverrideEnd(gomock.Any(), frodo, int64(7), int64(3), 4, "Raiders left the table").Return(done, nil)
-	rec := f.do(f.signedIn(form(matchPath+"/end/override", url.Values{"revision": {"4"}, "note": {" Raiders left the table "}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/end/override", url.Values{"revision": {"4"}, "note": {" Raiders left the table "}})))
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "ended without the confirmation") {
 		t.Errorf("%d", rec.Code)
 	}
@@ -153,14 +150,15 @@ func TestOverrideEnds(t *testing.T) {
 
 func TestEndRefusedAndStale(t *testing.T) {
 	f := matchWrite(t, pendingEnd())
+	f.camp.EXPECT().EndChecks(gomock.Any(), frodo, int64(7), int64(3)).Return(core.EndChecks{}, core.ErrNotFound)
 	f.camp.EXPECT().ConfirmEnd(gomock.Any(), frodo, int64(7), int64(3), 4).Return(core.Match{}, core.Refuse("You have no company waiting to confirm."))
-	rec := f.do(f.signedIn(form(matchPath+"/end/confirm", url.Values{"revision": {"4"}})))
+	rec := f.do(f.signedIn(form(testMatchPath+"/end/confirm", url.Values{"revision": {"4"}, "winner": {"1"}})))
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "You have no company waiting to confirm.") {
 		t.Errorf("refused: %d", rec.Code)
 	}
 	f = matchWrite(t, pendingEnd())
 	f.camp.EXPECT().CancelEnd(gomock.Any(), frodo, int64(7), int64(3), 3).Return(core.Match{}, core.ErrMatchChanged)
-	rec = f.do(f.signedIn(form(matchPath+"/end/cancel", url.Values{"revision": {"3"}})))
+	rec = f.do(f.signedIn(form(testMatchPath+"/end/cancel", url.Values{"revision": {"3"}})))
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "changed this match while you were editing") {
 		t.Errorf("stale: %d", rec.Code)
 	}
@@ -168,13 +166,13 @@ func TestEndRefusedAndStale(t *testing.T) {
 
 func TestEndCardRefreshSendsTheHeaderButtonOutOfBand(t *testing.T) {
 	f := matchWrite(t, pendingEnd())
-	body := htmxGet(f, matchPath+"/end/card").Body.String()
-	if !strings.Contains(body, "Ending the match") || !strings.Contains(body, `hx-swap-oob="true"`) || strings.Contains(body, "Propose to end") {
+	body := htmxGet(f, testMatchPath+"/end/card").Body.String()
+	if !strings.Contains(body, "proposes to end") || !strings.Contains(body, `hx-swap-oob="true"`) || strings.Contains(body, "data-end-match") {
 		t.Errorf("pending:\n%s", body)
 	}
 	f = matchWrite(t, readyToEnd())
-	body = htmxGet(f, matchPath+"/end/card").Body.String()
-	if strings.Contains(body, "Ending the match") || !strings.Contains(body, "Propose to end") {
+	body = htmxGet(f, testMatchPath+"/end/card").Body.String()
+	if strings.Contains(body, "proposes to end") || !strings.Contains(body, "data-end-match") {
 		t.Errorf("cancelled:\n%s", body)
 	}
 }
@@ -185,7 +183,7 @@ func TestHistoryShowsWhoConfirmedTheEnd(t *testing.T) {
 	m.Ended, m.EndedOn = true, &now
 	m.History = []core.MatchEvent{{Kind: "ended", By: "Frodo", On: now, Detail: "overriding Raiders: left the table"}}
 	f := matchWrite(t, m)
-	if body := f.do(f.signedIn(httptest.NewRequest("GET", matchPath, nil))).Body.String(); !strings.Contains(body, "overriding Raiders: left the table") {
+	if body := f.do(f.signedIn(httptest.NewRequest("GET", testMatchPath, nil))).Body.String(); !strings.Contains(body, "overriding Raiders: left the table") {
 		t.Error("the history shows the detail")
 	}
 }
@@ -197,45 +195,32 @@ func pendingSides() []core.MatchSide {
 	}
 }
 
-func pendingOnMatch(m *core.Match) { m.EndProposal = pendingEnd().EndProposal }
+func pendingOnMatch(m *core.Match) {
+	p := pendingEnd()
+	m.EndProposal, m.Result = p.EndProposal, p.Result
+}
 
 func TestLiveBannerShowsThePendingEndOnTheCompanyPage(t *testing.T) {
 	f := liveSetupMatch(t, core.LiveEdit, nil, pendingOnMatch, pendingSides()...)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
-	for _, want := range []string{`id="live-end"`, "Ending: waiting for Raiders", "Withdraw", "Keep playing", "/campaigns/7/matches/3/end/withdraw", `name="view" value="banner"`,
-		`/campaigns/7/matches/3/live/end/banner?company=1`, "Cancel the ending first: the match is about to end."} {
+	for _, want := range []string{`id="live-end"`, "Frodo proposes to end: Rangers won", "Waiting for Raiders", "Withdraw", "Keep playing", "/campaigns/7/matches/3/end/withdraw", `name="view" value="banner"`,
+		`/campaigns/7/matches/3/live/end/banner?company=1`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
 	}
-	if i := strings.Index(body, `id="turn-blocked"`); i < 0 || !strings.Contains(body[i-400:i], "disabled") {
-		t.Error("Start turn is disabled with the reason")
+	for _, bad := range []string{"turn-blocked", "Start turn", "data-end-match"} {
+		if strings.Contains(body, bad) {
+			t.Errorf("a pending end: no %q", bad)
+		}
 	}
 }
 
 func TestLiveBannerIsEmptyWithoutAPendingEnd(t *testing.T) {
 	f := liveSetupMatch(t, core.LiveEdit, nil, nil, pendingSides()...)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
-	if strings.Contains(body, "Ending: waiting") || strings.Contains(body, "turn-blocked") {
-		t.Error("nothing pending")
-	}
-}
-
-func TestLiveBannerOfAWaitingOwnerConfirmsAndAnswersTheBanner(t *testing.T) {
-	f := liveSetupMatch(t, core.LiveEdit, nil, func(m *core.Match) {
-		pendingOnMatch(m)
-		m.EndProposal.Companies[0].OwnerID, m.EndProposal.Companies[1].OwnerID = 50, frodo.ID
-		m.EndProposal.Companies[0].Confirmed, m.EndProposal.Companies[1].Confirmed = true, false
-		m.Sides[0].Companies[0].OwnerID, m.Sides[1].Companies[0].OwnerID = 50, frodo.ID
-	}, pendingSides()...)
-	body := htmxGet(f, "/campaigns/7/matches/3/live/end/banner?company=1").Body.String()
-	if !strings.Contains(body, "Confirm the end") || !strings.Contains(body, "/end/confirm") {
-		t.Errorf("banner:\n%s", body)
-	}
-	f.camp.EXPECT().ConfirmEnd(gomock.Any(), frodo, int64(7), int64(3), 6).Return(core.Match{ID: 3, Revision: 7, Sides: pendingSides(), EndProposal: pendingEnd().EndProposal}, nil)
-	rec := f.do(f.signedIn(form("/campaigns/7/matches/3/end/confirm", url.Values{"revision": {"6"}, "view": {"banner"}, "company": {"1"}})))
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "You confirmed the end.") || strings.Contains(rec.Body.String(), `id="match"`) {
-		t.Errorf("confirm: %d\n%s", rec.Code, rec.Body.String())
+	if strings.Contains(body, "proposes to end") || !strings.Contains(body, "data-end-match") {
+		t.Error("nothing pending: End match is offered")
 	}
 }
 
@@ -251,9 +236,53 @@ func TestLiveBannerAnswerRefreshesThePageWhenTheMatchEnded(t *testing.T) {
 
 func TestLiveBannerRefusalIsShownInTheBanner(t *testing.T) {
 	f := liveSetupMatch(t, core.LiveEdit, nil, pendingOnMatch, pendingSides()...)
-	f.camp.EXPECT().ConfirmEnd(gomock.Any(), frodo, int64(7), int64(3), 6).Return(core.Match{}, core.Refuse("You have no company waiting to confirm."))
-	rec := f.do(f.signedIn(form("/campaigns/7/matches/3/end/confirm", url.Values{"revision": {"6"}, "view": {"banner"}, "company": {"1"}})))
-	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "You have no company waiting to confirm.") {
+	f.camp.EXPECT().CancelEnd(gomock.Any(), frodo, int64(7), int64(3), 6).Return(core.Match{}, core.Refuse("Nobody has proposed to end this match."))
+	rec := f.do(f.signedIn(form("/campaigns/7/matches/3/end/cancel", url.Values{"revision": {"6"}, "view": {"banner"}, "company": {"1"}})))
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "Nobody has proposed to end this match.") {
 		t.Errorf("%d\n%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestLiveBannerOfAWaitingOwnerOpensTheConfirmSheet(t *testing.T) {
+	f := liveSetupMatch(t, core.LiveEdit, nil, func(m *core.Match) {
+		pendingOnMatch(m)
+		m.EndProposal.Companies[0].OwnerID, m.EndProposal.Companies[1].OwnerID = 50, frodo.ID
+		m.EndProposal.Companies[0].Confirmed, m.EndProposal.Companies[1].Confirmed = true, false
+		m.Sides[0].Companies[0].OwnerID, m.Sides[1].Companies[0].OwnerID = 50, frodo.ID
+	}, pendingSides()...)
+	body := htmxGet(f, "/campaigns/7/matches/3/live/end/banner?company=1").Body.String()
+	if !strings.Contains(body, "data-confirm-end") || !strings.Contains(body, "/end/sheet?company=1") {
+		t.Errorf("banner:\n%s", body)
+	}
+}
+
+func TestLiveBannerNamesEveryBrokenCompany(t *testing.T) {
+	f := liveSetupMatch(t, core.LiveEdit, nil, nil, pendingSides()...)
+	f.breaks = map[int64]core.LiveBreak{2: {Broken: true, Casualties: 8, StartingModels: 15}, 1: {Casualties: 2, StartingModels: 12}}
+	body := htmxGet(f, "/campaigns/7/matches/3/live/end/banner?company=1").Body.String()
+	if !strings.Contains(body, "Raiders is broken<") || strings.Contains(body, "Rangers is broken") {
+		t.Errorf("broken notice:\n%s", body)
+	}
+	if strings.Contains(body, "casualties") {
+		t.Errorf("the notice gives no counts:\n%s", body)
+	}
+}
+
+func TestBrokenNoticeAddsTheScenarioEndOnceReached(t *testing.T) {
+	const start = 8
+	for _, tt := range []struct {
+		name string
+		br   core.LiveBreak
+		want string
+	}{
+		{"no such end", core.LiveBreak{StartingModels: start, Casualties: 6}, "Arnor is broken"},
+		{"not there yet", core.LiveBreak{StartingModels: start, Casualties: 5, EndLossPercent: 75}, "Arnor is broken"},
+		{"at a quarter", core.LiveBreak{StartingModels: start, Casualties: 6, EndLossPercent: 75}, "Arnor is broken and down to 25%"},
+		{"models off the table do not count", core.LiveBreak{StartingModels: start, Casualties: 5, LeftTable: 1, EndLossPercent: 75}, "Arnor is broken"},
+		{"another share", core.LiveBreak{StartingModels: start, Casualties: 6, EndLossPercent: 70}, "Arnor is broken and down to 30%"},
+	} {
+		if got := brokenNotice("Arnor", tt.br); got != tt.want {
+			t.Errorf("%s: %q, want %q", tt.name, got, tt.want)
+		}
 	}
 }

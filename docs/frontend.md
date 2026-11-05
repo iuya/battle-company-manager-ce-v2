@@ -28,7 +28,7 @@ There is no JavaScript build step: htmx and Alpine are vendored in `internal/web
 | [frontend-company.md](frontend-company.md) | My Company: the unit card, the Armory, equipment, healing, formation, Gold, creatures, the aftermath cards |
 | [frontend-company-building.md](frontend-company-building.md) | Recruiting, the creation page, choosing a Battle Company, company rules |
 | [frontend-level-up.md](frontend-level-up.md) | The path mosaic and carousel, the Sorcerer's magical power window, the level-up window |
-| [frontend-live-match.md](frontend-live-match.md) | The live match: banner, trackers, milestones, Break Point, End checks, sync, the To Wound chart window |
+| [frontend-live-match.md](frontend-live-match.md) | The live match: banner, trackers, milestones, Break Point, the End match and Confirm sheets, sync, the Wound chart window |
 | [frontend-glossary.md](frontend-glossary.md) | The campaign Glossary tab, item definitions, links to terms and units, the sidebar glossary, the helper popup |
 | [frontend-account.md](frontend-account.md) | The Account page, invitation and recovery links, invite links, the minimal demo sign-in |
 | [tabletop-simulator.md](tabletop-simulator.md#copy-as-a-tabletop-simulator-army-list) | The "Copy as a Tabletop Simulator army list" dialog |

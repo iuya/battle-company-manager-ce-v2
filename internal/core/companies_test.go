@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -223,6 +224,9 @@ func TestSaveFormation(t *testing.T) {
 	if len(d.Roster) != len(f.state.Units) || d.Roster[0].ID != all[2] || d.Roster[1].ID != all[0] {
 		t.Errorf("roster starts %d, %d; the saved order must lead", d.Roster[0].ID, d.Roster[1].ID)
 	}
+	if !slices.Equal(d.Formation, f.state.Order) {
+		t.Errorf("the detail tells the saved order: %v", d.Formation)
+	}
 	saved := append([]int64(nil), f.state.Order...)
 	bad := map[string][]int64{
 		"unknown id": append(append([]int64{}, ordered[:len(ordered)-1]...), 12345),
@@ -240,5 +244,16 @@ func TestSaveFormation(t *testing.T) {
 	}
 	if err := s.SaveFormation(f.ctx, User{ID: 8}, 5, 1, ordered); !errors.Is(err, ErrNotFound) {
 		t.Errorf("non-owner: %v", err)
+	}
+
+	// back to the default order: nothing saved, the leader leads again
+	if err := s.ResetFormation(f.ctx, User{ID: 8}, 5, 1); !errors.Is(err, ErrNotFound) {
+		t.Errorf("non-owner reset: %v", err)
+	}
+	if err := s.ResetFormation(f.ctx, f.user, 5, 1); err != nil {
+		t.Fatal(err)
+	}
+	if d, _, _ := s.detail(f.ctx, 5, 1); len(f.state.Order) != 0 || len(d.Formation) != 0 || d.Roster[0].Role != RoleLeader {
+		t.Errorf("after a reset: order %v, formation %v, first %s", f.state.Order, d.Formation, d.Roster[0].Role)
 	}
 }

@@ -1,11 +1,12 @@
-{{/* Header shared by every page of a campaign: name, status and the tabs (the current one comes from .Tab). */}}
+{{/* Header shared by every page of a campaign: name and status on one line, the description on the Overview only, and the tabs (the
+   current one comes from .Tab). */}}
 {{define "campaign_header"}}
 <p class="text-sm"><a href="/campaigns" class="inline-flex min-h-11 items-center">← Campaigns</a></p>
-<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-  <h1>{{.Campaign.Name}}</h1>
-  {{if eq .Campaign.Status "paused"}}<span class="badge badge-muted">Paused</span>{{else if eq .Campaign.Status "finished"}}<span class="badge badge-muted">Finished</span>{{else}}<span class="badge">Active</span>{{end}}
+<div class="mt-1 flex min-w-0 items-center gap-x-3" data-campaign-title>
+  <h1 class="min-w-0 truncate" title="{{.Campaign.Name}}">{{.Campaign.Name}}</h1>
+  {{if eq .Campaign.Status "paused"}}<span class="badge badge-muted shrink-0">Paused</span>{{else if eq .Campaign.Status "finished"}}<span class="badge badge-muted shrink-0">Finished</span>{{else}}<span class="badge shrink-0">Active</span>{{end}}
 </div>
-{{with .Campaign.Description}}<p class="mt-1 text-muted">{{.}}</p>{{end}}
+{{if eq .Tab "overview"}}{{with .Campaign.Description}}<p class="mt-1 text-muted">{{.}}</p>{{end}}{{end}}
 <nav class="tab-bar mt-4 flex overflow-x-auto border-b border-line" aria-label="Campaign">
   {{$base := printf "/campaigns/%d" .Campaign.ID}}
   <a href="{{$base}}" class="tab" {{if eq .Tab "overview"}}aria-current="page"{{end}}>Overview</a>
@@ -47,8 +48,24 @@
 </span>
 {{end}}
 
+{{/* One match of a list in one or two lines: "Rohan vs Mordor · Hold the Line · Open"; practice is a badge. Takes {M: core.Match, CID}. */}}
+{{define "match_row"}}{{$m := .M}}
+<li><a href="/campaigns/{{.CID}}/matches/{{$m.ID}}" class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2.5 text-fg no-underline hover:bg-raised hover:no-underline" data-match-row="{{$m.Number}}">
+  <span class="min-w-0 break-words">{{template "match_sides" $m}}<span class="text-sm text-muted"> · Match {{$m.Number}}{{with $m.Scenario}} · {{.Name}}{{end}}</span></span>
+  <span class="flex min-w-0 flex-wrap items-center gap-2">{{if $m.Practice}}{{template "practice_badge"}}{{end}}{{template "match_result" $m}}</span>
+</a></li>
+{{end}}
+
+{{/* The Your turn list (docs/frontend-campaigns.md, "Matches"): the matches that wait on the viewer, on top of the Matches page and the
+   Overview. Nothing when nothing waits. Takes []yourTurn. */}}
+{{define "your_turn"}}{{if .}}
+<section class="alert alert-info mt-4 space-y-2" aria-labelledby="your-turn-title" id="your-turn">
+  <h2 id="your-turn-title" class="!text-lg">Your turn</h2>
+  <ul class="flex flex-wrap gap-2">{{range .}}<li>{{if .Post}}<form method="post" action="{{.URL}}"><button class="btn btn-primary !min-h-9">{{.Text}}{{with .Who}} <span class="font-normal">· {{.}}</span>{{end}}</button></form>{{else}}<a class="btn btn-primary !min-h-9" href="{{.URL}}">{{.Text}}{{with .Who}} <span class="font-normal">· {{.}}</span>{{end}}</a>{{end}}</li>{{end}}</ul>
+</section>
+{{end}}{{end}}
+
 {{/* "Scenario: X" or "One-off: X" under the sides of a match; nothing when none is chosen. */}}
-{{define "match_scenario"}}{{with .Scenario}}<span class="block text-sm text-muted break-words">{{if eq .Kind "custom"}}One-off{{else}}Scenario{{end}}: {{.Name}}</span>{{end}}{{end}}
 
 {{/* The Practice badge: neutral tone, icon plus text, never a result colour. Used wherever a practice match appears (docs/frontend.md). */}}
 {{define "practice_badge"}}<span class="badge badge-muted gap-1" data-practice-badge title="No experience, influence, rewards or injuries"><svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>Practice</span>{{end}}

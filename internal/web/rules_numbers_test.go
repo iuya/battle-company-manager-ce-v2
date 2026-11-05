@@ -104,13 +104,13 @@ func TestTheRerollCardPrintsTheBonusOfTheRules(t *testing.T) {
 	}
 }
 
-func TestTheEndChecksPrintTheExperienceOfTheRules(t *testing.T) {
-	f := liveOwnerSetup(t, core.LiveEdit)
+func TestTheEndMatchSheetPrintsTheExperienceOfTheRules(t *testing.T) {
+	f := matchWrite(t, readyToEnd())
 	ec := endChecksFixture()
-	ec.ObjectiveXP, ec.MVPXP = 2, 3
+	ec.ObjectiveXP, ec.MVPXP = 2, 4
 	f.camp.EXPECT().EndChecks(gomock.Any(), frodo, int64(7), int64(3)).Return(ec, nil)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/end?company=1", nil))).Body.String()
-	if !strings.Contains(body, "The objective is worth 2 experience, the MVP 3.") || strings.Contains(body, "worth 1 experience") {
-		t.Errorf("the end checks say 2 and 3 experience")
+	body := htmxGet(f, testMatchPath+"/end/sheet").Body.String()
+	if !strings.Contains(body, "· 2 experience each") || !strings.Contains(body, "· 4 experience") || strings.Contains(body, "· 1 experience") {
+		t.Errorf("the sheet says 2 and 4 experience")
 	}
 }

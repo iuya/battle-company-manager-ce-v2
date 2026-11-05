@@ -1,25 +1,19 @@
 package web
 
 import (
-	"errors"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
 	"sync"
-
-	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
-// matchCards are the cards of the match page that are not part of its main body (Against the Odds, secret objectives, end checks, log).
+// matchCards are the cards of the match page that are not part of its main body (Against the Odds, log).
 // The full page builds them in parallel and draws them in its own answer, so the first paint has them; a card that failed is nil
 // and its slot falls back to a fetch on load (hx-trigger="load"). The answers to writes (match_body) leave Cards nil: their slots
 // stay lazy.
 type matchCards struct {
-	ATO     *atoView
-	Secret  *secretView
-	End     *endView
-	EndNone bool // the end checks answered "no such open match": the card is empty
-	Log     *liveLogView
+	ATO *atoView
+	Log *liveLogView
 }
 
 // loadMatchCards builds the cards of a full match page, one goroutine each.
@@ -46,29 +40,8 @@ func (s *Server) loadMatchCards(r *http.Request, v *matchView) {
 			c.ATO = &a
 		}
 	})
-	if v.ShowSecret() {
-		run(func() {
-			if sv, err := s.secretCard(r, id, m); err == nil {
-				c.Secret = &sv
-			}
-		})
-	}
-	if !m.Ended && v.Campaign.Status != "finished" {
-		run(func() {
-			e := endView{Campaign: id, MatchID: m.ID, Card: true}
-			checks, err := s.campaigns.EndChecks(r.Context(), *userFrom(r.Context()), id, m.ID)
-			switch {
-			case err == nil:
-				e.Checks = checks
-				c.End = &e
-			case errors.Is(err, core.ErrNotFound):
-				c.EndNone = true // the handler answers an empty card here
-			}
-		})
-	}
 	run(func() {
 		if lv, err := s.logViewOf(r, id, m, 0); err == nil {
-			lv.Card = true
 			c.Log = &lv
 		}
 	})

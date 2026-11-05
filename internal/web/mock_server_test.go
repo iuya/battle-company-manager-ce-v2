@@ -238,6 +238,45 @@ func (c *MockliveMatchesLogCall) DoAndReturn(f func(context.Context, core.User, 
 	return c
 }
 
+// MatchBreaks mocks base method.
+func (m *MockliveMatches) MatchBreaks(ctx context.Context, id, matchID int64) (map[int64]core.LiveBreak, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MatchBreaks", ctx, id, matchID)
+	ret0, _ := ret[0].(map[int64]core.LiveBreak)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MatchBreaks indicates an expected call of MatchBreaks.
+func (mr *MockliveMatchesMockRecorder) MatchBreaks(ctx, id, matchID any) *MockliveMatchesMatchBreaksCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MatchBreaks", reflect.TypeOf((*MockliveMatches)(nil).MatchBreaks), ctx, id, matchID)
+	return &MockliveMatchesMatchBreaksCall{Call: call}
+}
+
+// MockliveMatchesMatchBreaksCall wrap *gomock.Call
+type MockliveMatchesMatchBreaksCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockliveMatchesMatchBreaksCall) Return(arg0 map[int64]core.LiveBreak, arg1 error) *MockliveMatchesMatchBreaksCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockliveMatchesMatchBreaksCall) Do(f func(context.Context, int64, int64) (map[int64]core.LiveBreak, error)) *MockliveMatchesMatchBreaksCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockliveMatchesMatchBreaksCall) DoAndReturn(f func(context.Context, int64, int64) (map[int64]core.LiveBreak, error)) *MockliveMatchesMatchBreaksCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // MatchDefaults mocks base method.
 func (m *MockliveMatches) MatchDefaults(ctx context.Context, id, matchID int64) (core.LiveMatchDefaults, bool, error) {
 	m.ctrl.T.Helper()
@@ -274,125 +313,6 @@ func (c *MockliveMatchesMatchDefaultsCall) Do(f func(context.Context, int64, int
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockliveMatchesMatchDefaultsCall) DoAndReturn(f func(context.Context, int64, int64) (core.LiveMatchDefaults, bool, error)) *MockliveMatchesMatchDefaultsCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// RollCourage mocks base method.
-func (m *MockliveMatches) RollCourage(ctx context.Context, user core.User, id, matchID, unitID int64, entered []int, thrown bool) (core.CourageRoll, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RollCourage", ctx, user, id, matchID, unitID, entered, thrown)
-	ret0, _ := ret[0].(core.CourageRoll)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RollCourage indicates an expected call of RollCourage.
-func (mr *MockliveMatchesMockRecorder) RollCourage(ctx, user, id, matchID, unitID, entered, thrown any) *MockliveMatchesRollCourageCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RollCourage", reflect.TypeOf((*MockliveMatches)(nil).RollCourage), ctx, user, id, matchID, unitID, entered, thrown)
-	return &MockliveMatchesRollCourageCall{Call: call}
-}
-
-// MockliveMatchesRollCourageCall wrap *gomock.Call
-type MockliveMatchesRollCourageCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockliveMatchesRollCourageCall) Return(arg0 core.CourageRoll, arg1 error) *MockliveMatchesRollCourageCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockliveMatchesRollCourageCall) Do(f func(context.Context, core.User, int64, int64, int64, []int, bool) (core.CourageRoll, error)) *MockliveMatchesRollCourageCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockliveMatchesRollCourageCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, []int, bool) (core.CourageRoll, error)) *MockliveMatchesRollCourageCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// SecretObjectives mocks base method.
-func (m *MockliveMatches) SecretObjectives(ctx context.Context, user core.User, id, matchID int64) (core.SecretView, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SecretObjectives", ctx, user, id, matchID)
-	ret0, _ := ret[0].(core.SecretView)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SecretObjectives indicates an expected call of SecretObjectives.
-func (mr *MockliveMatchesMockRecorder) SecretObjectives(ctx, user, id, matchID any) *MockliveMatchesSecretObjectivesCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecretObjectives", reflect.TypeOf((*MockliveMatches)(nil).SecretObjectives), ctx, user, id, matchID)
-	return &MockliveMatchesSecretObjectivesCall{Call: call}
-}
-
-// MockliveMatchesSecretObjectivesCall wrap *gomock.Call
-type MockliveMatchesSecretObjectivesCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockliveMatchesSecretObjectivesCall) Return(arg0 core.SecretView, arg1 error) *MockliveMatchesSecretObjectivesCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockliveMatchesSecretObjectivesCall) Do(f func(context.Context, core.User, int64, int64) (core.SecretView, error)) *MockliveMatchesSecretObjectivesCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockliveMatchesSecretObjectivesCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (core.SecretView, error)) *MockliveMatchesSecretObjectivesCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// SecretScore mocks base method.
-func (m *MockliveMatches) SecretScore(ctx context.Context, user core.User, id, matchID, companyID int64) (int, []core.SecretLine, bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SecretScore", ctx, user, id, matchID, companyID)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].([]core.SecretLine)
-	ret2, _ := ret[2].(bool)
-	ret3, _ := ret[3].(error)
-	return ret0, ret1, ret2, ret3
-}
-
-// SecretScore indicates an expected call of SecretScore.
-func (mr *MockliveMatchesMockRecorder) SecretScore(ctx, user, id, matchID, companyID any) *MockliveMatchesSecretScoreCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecretScore", reflect.TypeOf((*MockliveMatches)(nil).SecretScore), ctx, user, id, matchID, companyID)
-	return &MockliveMatchesSecretScoreCall{Call: call}
-}
-
-// MockliveMatchesSecretScoreCall wrap *gomock.Call
-type MockliveMatchesSecretScoreCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockliveMatchesSecretScoreCall) Return(points int, lines []core.SecretLine, ok bool, err error) *MockliveMatchesSecretScoreCall {
-	c.Call = c.Call.Return(points, lines, ok, err)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockliveMatchesSecretScoreCall) Do(f func(context.Context, core.User, int64, int64, int64) (int, []core.SecretLine, bool, error)) *MockliveMatchesSecretScoreCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockliveMatchesSecretScoreCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64) (int, []core.SecretLine, bool, error)) *MockliveMatchesSecretScoreCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -716,6 +636,45 @@ func NewMockcampaigns(ctrl *gomock.Controller) *Mockcampaigns {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *Mockcampaigns) EXPECT() *MockcampaignsMockRecorder {
 	return m.recorder
+}
+
+// ATOStatus mocks base method.
+func (m_2 *Mockcampaigns) ATOStatus(ctx context.Context, id int64, m core.Match) (core.ATOStatus, error) {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "ATOStatus", ctx, id, m)
+	ret0, _ := ret[0].(core.ATOStatus)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ATOStatus indicates an expected call of ATOStatus.
+func (mr *MockcampaignsMockRecorder) ATOStatus(ctx, id, m any) *MockcampaignsATOStatusCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ATOStatus", reflect.TypeOf((*Mockcampaigns)(nil).ATOStatus), ctx, id, m)
+	return &MockcampaignsATOStatusCall{Call: call}
+}
+
+// MockcampaignsATOStatusCall wrap *gomock.Call
+type MockcampaignsATOStatusCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsATOStatusCall) Return(arg0 core.ATOStatus, arg1 error) *MockcampaignsATOStatusCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsATOStatusCall) Do(f func(context.Context, int64, core.Match) (core.ATOStatus, error)) *MockcampaignsATOStatusCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsATOStatusCall) DoAndReturn(f func(context.Context, int64, core.Match) (core.ATOStatus, error)) *MockcampaignsATOStatusCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
 }
 
 // Aftermath mocks base method.
@@ -2659,6 +2618,45 @@ func (c *MockcampaignsMatchCall) DoAndReturn(f func(context.Context, int64, int6
 	return c
 }
 
+// MatchBreaks mocks base method.
+func (m *Mockcampaigns) MatchBreaks(ctx context.Context, id, matchID int64) (map[int64]core.LiveBreak, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MatchBreaks", ctx, id, matchID)
+	ret0, _ := ret[0].(map[int64]core.LiveBreak)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MatchBreaks indicates an expected call of MatchBreaks.
+func (mr *MockcampaignsMockRecorder) MatchBreaks(ctx, id, matchID any) *MockcampaignsMatchBreaksCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MatchBreaks", reflect.TypeOf((*Mockcampaigns)(nil).MatchBreaks), ctx, id, matchID)
+	return &MockcampaignsMatchBreaksCall{Call: call}
+}
+
+// MockcampaignsMatchBreaksCall wrap *gomock.Call
+type MockcampaignsMatchBreaksCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsMatchBreaksCall) Return(arg0 map[int64]core.LiveBreak, arg1 error) *MockcampaignsMatchBreaksCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsMatchBreaksCall) Do(f func(context.Context, int64, int64) (map[int64]core.LiveBreak, error)) *MockcampaignsMatchBreaksCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsMatchBreaksCall) DoAndReturn(f func(context.Context, int64, int64) (map[int64]core.LiveBreak, error)) *MockcampaignsMatchBreaksCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // MatchDefaults mocks base method.
 func (m *Mockcampaigns) MatchDefaults(ctx context.Context, id, matchID int64) (core.LiveMatchDefaults, bool, error) {
 	m.ctrl.T.Helper()
@@ -2695,6 +2693,45 @@ func (c *MockcampaignsMatchDefaultsCall) Do(f func(context.Context, int64, int64
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsMatchDefaultsCall) DoAndReturn(f func(context.Context, int64, int64) (core.LiveMatchDefaults, bool, error)) *MockcampaignsMatchDefaultsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// MatchStarted mocks base method.
+func (m *Mockcampaigns) MatchStarted(ctx context.Context, id, matchID int64) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MatchStarted", ctx, id, matchID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MatchStarted indicates an expected call of MatchStarted.
+func (mr *MockcampaignsMockRecorder) MatchStarted(ctx, id, matchID any) *MockcampaignsMatchStartedCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MatchStarted", reflect.TypeOf((*Mockcampaigns)(nil).MatchStarted), ctx, id, matchID)
+	return &MockcampaignsMatchStartedCall{Call: call}
+}
+
+// MockcampaignsMatchStartedCall wrap *gomock.Call
+type MockcampaignsMatchStartedCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsMatchStartedCall) Return(arg0 bool, arg1 error) *MockcampaignsMatchStartedCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsMatchStartedCall) Do(f func(context.Context, int64, int64) (bool, error)) *MockcampaignsMatchStartedCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsMatchStartedCall) DoAndReturn(f func(context.Context, int64, int64) (bool, error)) *MockcampaignsMatchStartedCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -3321,6 +3358,45 @@ func (c *MockcampaignsRenameUnitCall) DoAndReturn(f func(context.Context, core.U
 	return c
 }
 
+// ReopenAgainstTheOdds mocks base method.
+func (m *Mockcampaigns) ReopenAgainstTheOdds(ctx context.Context, user core.User, id, matchID int64, revision int) (core.ATO, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReopenAgainstTheOdds", ctx, user, id, matchID, revision)
+	ret0, _ := ret[0].(core.ATO)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReopenAgainstTheOdds indicates an expected call of ReopenAgainstTheOdds.
+func (mr *MockcampaignsMockRecorder) ReopenAgainstTheOdds(ctx, user, id, matchID, revision any) *MockcampaignsReopenAgainstTheOddsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReopenAgainstTheOdds", reflect.TypeOf((*Mockcampaigns)(nil).ReopenAgainstTheOdds), ctx, user, id, matchID, revision)
+	return &MockcampaignsReopenAgainstTheOddsCall{Call: call}
+}
+
+// MockcampaignsReopenAgainstTheOddsCall wrap *gomock.Call
+type MockcampaignsReopenAgainstTheOddsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsReopenAgainstTheOddsCall) Return(arg0 core.ATO, arg1 error) *MockcampaignsReopenAgainstTheOddsCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsReopenAgainstTheOddsCall) Do(f func(context.Context, core.User, int64, int64, int) (core.ATO, error)) *MockcampaignsReopenAgainstTheOddsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsReopenAgainstTheOddsCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int) (core.ATO, error)) *MockcampaignsReopenAgainstTheOddsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // ReopenMatch mocks base method.
 func (m *Mockcampaigns) ReopenMatch(ctx context.Context, user core.User, id, matchID int64, revision int) (core.Match, error) {
 	m.ctrl.T.Helper()
@@ -3477,6 +3553,44 @@ func (c *MockcampaignsRerollLevelUpCall) DoAndReturn(f func(context.Context, cor
 	return c
 }
 
+// ResetFormation mocks base method.
+func (m *Mockcampaigns) ResetFormation(ctx context.Context, user core.User, id, companyID int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetFormation", ctx, user, id, companyID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResetFormation indicates an expected call of ResetFormation.
+func (mr *MockcampaignsMockRecorder) ResetFormation(ctx, user, id, companyID any) *MockcampaignsResetFormationCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetFormation", reflect.TypeOf((*Mockcampaigns)(nil).ResetFormation), ctx, user, id, companyID)
+	return &MockcampaignsResetFormationCall{Call: call}
+}
+
+// MockcampaignsResetFormationCall wrap *gomock.Call
+type MockcampaignsResetFormationCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsResetFormationCall) Return(arg0 error) *MockcampaignsResetFormationCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsResetFormationCall) Do(f func(context.Context, core.User, int64, int64) error) *MockcampaignsResetFormationCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsResetFormationCall) DoAndReturn(f func(context.Context, core.User, int64, int64) error) *MockcampaignsResetFormationCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // RollCasualty mocks base method.
 func (m *Mockcampaigns) RollCasualty(ctx context.Context, user core.User, id, matchID, companyID, unitID int64, entered []int, thrown bool) (core.Aftermath, error) {
 	m.ctrl.T.Helper()
@@ -3512,45 +3626,6 @@ func (c *MockcampaignsRollCasualtyCall) Do(f func(context.Context, core.User, in
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsRollCasualtyCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, int64, []int, bool) (core.Aftermath, error)) *MockcampaignsRollCasualtyCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// RollCourage mocks base method.
-func (m *Mockcampaigns) RollCourage(ctx context.Context, user core.User, id, matchID, unitID int64, entered []int, thrown bool) (core.CourageRoll, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RollCourage", ctx, user, id, matchID, unitID, entered, thrown)
-	ret0, _ := ret[0].(core.CourageRoll)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RollCourage indicates an expected call of RollCourage.
-func (mr *MockcampaignsMockRecorder) RollCourage(ctx, user, id, matchID, unitID, entered, thrown any) *MockcampaignsRollCourageCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RollCourage", reflect.TypeOf((*Mockcampaigns)(nil).RollCourage), ctx, user, id, matchID, unitID, entered, thrown)
-	return &MockcampaignsRollCourageCall{Call: call}
-}
-
-// MockcampaignsRollCourageCall wrap *gomock.Call
-type MockcampaignsRollCourageCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockcampaignsRollCourageCall) Return(arg0 core.CourageRoll, arg1 error) *MockcampaignsRollCourageCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockcampaignsRollCourageCall) Do(f func(context.Context, core.User, int64, int64, int64, []int, bool) (core.CourageRoll, error)) *MockcampaignsRollCourageCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsRollCourageCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, []int, bool) (core.CourageRoll, error)) *MockcampaignsRollCourageCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -3941,86 +4016,6 @@ func (c *MockcampaignsScenariosCall) DoAndReturn(f func(context.Context, int64) 
 	return c
 }
 
-// SecretObjectives mocks base method.
-func (m *Mockcampaigns) SecretObjectives(ctx context.Context, user core.User, id, matchID int64) (core.SecretView, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SecretObjectives", ctx, user, id, matchID)
-	ret0, _ := ret[0].(core.SecretView)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SecretObjectives indicates an expected call of SecretObjectives.
-func (mr *MockcampaignsMockRecorder) SecretObjectives(ctx, user, id, matchID any) *MockcampaignsSecretObjectivesCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecretObjectives", reflect.TypeOf((*Mockcampaigns)(nil).SecretObjectives), ctx, user, id, matchID)
-	return &MockcampaignsSecretObjectivesCall{Call: call}
-}
-
-// MockcampaignsSecretObjectivesCall wrap *gomock.Call
-type MockcampaignsSecretObjectivesCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockcampaignsSecretObjectivesCall) Return(arg0 core.SecretView, arg1 error) *MockcampaignsSecretObjectivesCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockcampaignsSecretObjectivesCall) Do(f func(context.Context, core.User, int64, int64) (core.SecretView, error)) *MockcampaignsSecretObjectivesCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsSecretObjectivesCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (core.SecretView, error)) *MockcampaignsSecretObjectivesCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// SecretScore mocks base method.
-func (m *Mockcampaigns) SecretScore(ctx context.Context, user core.User, id, matchID, companyID int64) (int, []core.SecretLine, bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SecretScore", ctx, user, id, matchID, companyID)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].([]core.SecretLine)
-	ret2, _ := ret[2].(bool)
-	ret3, _ := ret[3].(error)
-	return ret0, ret1, ret2, ret3
-}
-
-// SecretScore indicates an expected call of SecretScore.
-func (mr *MockcampaignsMockRecorder) SecretScore(ctx, user, id, matchID, companyID any) *MockcampaignsSecretScoreCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecretScore", reflect.TypeOf((*Mockcampaigns)(nil).SecretScore), ctx, user, id, matchID, companyID)
-	return &MockcampaignsSecretScoreCall{Call: call}
-}
-
-// MockcampaignsSecretScoreCall wrap *gomock.Call
-type MockcampaignsSecretScoreCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockcampaignsSecretScoreCall) Return(points int, lines []core.SecretLine, ok bool, err error) *MockcampaignsSecretScoreCall {
-	c.Call = c.Call.Return(points, lines, ok, err)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockcampaignsSecretScoreCall) Do(f func(context.Context, core.User, int64, int64, int64) (int, []core.SecretLine, bool, error)) *MockcampaignsSecretScoreCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsSecretScoreCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64) (int, []core.SecretLine, bool, error)) *MockcampaignsSecretScoreCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // SetCampaignStatus mocks base method.
 func (m *Mockcampaigns) SetCampaignStatus(ctx context.Context, actor core.User, campaignID int64, to core.CampaignStatus, confirm string) error {
 	m.ctrl.T.Helper()
@@ -4132,45 +4127,6 @@ func (c *MockcampaignsSetScenarioCall) Do(f func(context.Context, core.User, int
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsSetScenarioCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int, core.ScenarioInput) (core.Match, error)) *MockcampaignsSetScenarioCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// SetSideRoles mocks base method.
-func (m *Mockcampaigns) SetSideRoles(ctx context.Context, user core.User, id, matchID int64, revision int, roles []string) (core.Match, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetSideRoles", ctx, user, id, matchID, revision, roles)
-	ret0, _ := ret[0].(core.Match)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SetSideRoles indicates an expected call of SetSideRoles.
-func (mr *MockcampaignsMockRecorder) SetSideRoles(ctx, user, id, matchID, revision, roles any) *MockcampaignsSetSideRolesCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetSideRoles", reflect.TypeOf((*Mockcampaigns)(nil).SetSideRoles), ctx, user, id, matchID, revision, roles)
-	return &MockcampaignsSetSideRolesCall{Call: call}
-}
-
-// MockcampaignsSetSideRolesCall wrap *gomock.Call
-type MockcampaignsSetSideRolesCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockcampaignsSetSideRolesCall) Return(arg0 core.Match, arg1 error) *MockcampaignsSetSideRolesCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockcampaignsSetSideRolesCall) Do(f func(context.Context, core.User, int64, int64, int, []string) (core.Match, error)) *MockcampaignsSetSideRolesCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsSetSideRolesCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int, []string) (core.Match, error)) *MockcampaignsSetSideRolesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -4288,45 +4244,6 @@ func (c *MockcampaignsSubscribeSinceCall) Do(f func(context.Context, core.User, 
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsSubscribeSinceCall) DoAndReturn(f func(context.Context, core.User, int64, int64, string) (core.LiveStream, error)) *MockcampaignsSubscribeSinceCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// SwapSideRoles mocks base method.
-func (m *Mockcampaigns) SwapSideRoles(ctx context.Context, user core.User, id, matchID int64, revision int) (core.Match, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SwapSideRoles", ctx, user, id, matchID, revision)
-	ret0, _ := ret[0].(core.Match)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SwapSideRoles indicates an expected call of SwapSideRoles.
-func (mr *MockcampaignsMockRecorder) SwapSideRoles(ctx, user, id, matchID, revision any) *MockcampaignsSwapSideRolesCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SwapSideRoles", reflect.TypeOf((*Mockcampaigns)(nil).SwapSideRoles), ctx, user, id, matchID, revision)
-	return &MockcampaignsSwapSideRolesCall{Call: call}
-}
-
-// MockcampaignsSwapSideRolesCall wrap *gomock.Call
-type MockcampaignsSwapSideRolesCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockcampaignsSwapSideRolesCall) Return(arg0 core.Match, arg1 error) *MockcampaignsSwapSideRolesCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockcampaignsSwapSideRolesCall) Do(f func(context.Context, core.User, int64, int64, int) (core.Match, error)) *MockcampaignsSwapSideRolesCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsSwapSideRolesCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int) (core.Match, error)) *MockcampaignsSwapSideRolesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -4522,6 +4439,45 @@ func (c *MockcampaignsTreatmentStateCall) Do(f func(context.Context, core.User, 
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsTreatmentStateCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64) (*core.TreatResult, error)) *MockcampaignsTreatmentStateCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UnavailableCompanies mocks base method.
+func (m *Mockcampaigns) UnavailableCompanies(ctx context.Context, id int64, companies []int64) (map[int64]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnavailableCompanies", ctx, id, companies)
+	ret0, _ := ret[0].(map[int64]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnavailableCompanies indicates an expected call of UnavailableCompanies.
+func (mr *MockcampaignsMockRecorder) UnavailableCompanies(ctx, id, companies any) *MockcampaignsUnavailableCompaniesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnavailableCompanies", reflect.TypeOf((*Mockcampaigns)(nil).UnavailableCompanies), ctx, id, companies)
+	return &MockcampaignsUnavailableCompaniesCall{Call: call}
+}
+
+// MockcampaignsUnavailableCompaniesCall wrap *gomock.Call
+type MockcampaignsUnavailableCompaniesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsUnavailableCompaniesCall) Return(arg0 map[int64]string, arg1 error) *MockcampaignsUnavailableCompaniesCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsUnavailableCompaniesCall) Do(f func(context.Context, int64, []int64) (map[int64]string, error)) *MockcampaignsUnavailableCompaniesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsUnavailableCompaniesCall) DoAndReturn(f func(context.Context, int64, []int64) (map[int64]string, error)) *MockcampaignsUnavailableCompaniesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

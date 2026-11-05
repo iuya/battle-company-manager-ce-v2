@@ -39,6 +39,18 @@ func (v atoView) Chosen() bool { return len(v.Selection.Bonuses) > 0 }
 // Editor is whether the viewer may change the selection.
 func (v atoView) Editor() bool { return v.Eligible && v.Access == core.ATOEdit }
 
+// Editing is whether the card shows the form: an editor while the decision is open. With a gap that pays for nothing there is nothing to decide.
+func (v atoView) Editing() bool { return v.Editor() && !v.Decided && (v.Payable || v.Chosen()) }
+
+// CanChange is whether the card offers Change: a confirmed decision before the game starts.
+func (v atoView) CanChange() bool { return v.Editor() && v.Decided }
+
+// Waiting is whether a viewer who cannot decide is told who is being waited for.
+func (v atoView) Waiting() bool { return v.Eligible && v.Pending && !v.Editing() }
+
+// NothingToBuy is whether the gap pays for no bonus and none was taken: the match does not wait.
+func (v atoView) NothingToBuy() bool { return v.Eligible && !v.Payable && !v.Chosen() && !v.Decided }
+
 // Left is what the saved selection leaves of the gap.
 func (v atoView) Left() int { return v.Gap - v.Spent }
 
@@ -162,7 +174,7 @@ func (s *Server) atoCard(r *http.Request, id int64, m core.Match) (atoView, erro
 		return atoView{}, err
 	}
 	v := atoView{ATO: a, Campaign: id, Ended: m.Ended}
-	if v.Editor() && slices.ContainsFunc(a.Options, func(o core.ATOOption) bool { return o.Key == "ambush" }) {
+	if v.Editing() && slices.ContainsFunc(a.Options, func(o core.ATOOption) bool { return o.Key == "ambush" }) {
 		list, err := s.campaigns.Scenarios(r.Context(), id)
 		if err != nil {
 			return v, err
@@ -243,6 +255,23 @@ func (s *Server) handleATOSave(w http.ResponseWriter, r *http.Request) {
 	}
 	sel := selectionFromForm(r, cur)
 	_, err = s.campaigns.SaveAgainstTheOdds(r.Context(), user, id, m.ID, revisionOf(r), sel)
+	s.answerATOWrite(w, r, base, m, err, "Against the Odds confirmed.", &sel)
+}
+
+// handleATOChange takes a confirmed decision back (Change on the card). Success answers the whole match; a refusal answers the card.
+func (s *Server) handleATOChange(w http.ResponseWriter, r *http.Request) {
+	base, m, ok := s.matchCtx(w, r)
+	if !ok {
+		return
+	}
+	_, err := s.campaigns.ReopenAgainstTheOdds(r.Context(), *userFrom(r.Context()), base.Campaign.ID, m.ID, revisionOf(r))
+	s.answerATOWrite(w, r, base, m, err, "", nil)
+}
+
+// answerATOWrite answers a write of the card from its error: nil answers the whole match with the notice (htmx retargets #match), a
+// refusal the card with the reason. typed, when given, is what the form sent: a card refused for its content keeps it.
+func (s *Server) answerATOWrite(w http.ResponseWriter, r *http.Request, base campaignBase, m core.Match, err error, notice string, typed *core.ATOSelection) {
+	id := base.Campaign.ID
 	status, msg := http.StatusOK, ""
 	switch {
 	case err == nil:
@@ -252,7 +281,7 @@ func (s *Server) handleATOSave(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("HX-Retarget", "#match")
 		w.Header().Set("HX-Reswap", "outerHTML")
-		s.answer(w, r, http.StatusOK, base, fresh, "", "Against the Odds saved.", false, nil)
+		s.answer(w, r, http.StatusOK, base, fresh, "", notice, false, nil)
 		return
 	case errors.Is(err, core.ErrMatchChanged):
 		msg = "Somebody changed this match while you were editing, so what you see now is the current state. Check it and make your change again."
@@ -271,8 +300,8 @@ func (s *Server) handleATOSave(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, r, cerr) {
 		return
 	}
-	if status == http.StatusUnprocessableEntity {
-		v.Selection, v.Spent = sel, 0 // keep what was typed
+	if typed != nil && status == http.StatusUnprocessableEntity {
+		v.Selection, v.Spent = *typed, 0 // keep what was typed
 	}
 	v.Msg, v.Error = msg, true
 	s.render.partial(w, status, "match", "ato_card", v)

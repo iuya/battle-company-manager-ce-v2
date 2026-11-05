@@ -13,7 +13,7 @@ The tables group the pages by who they are for; the same map is in the [README](
 | [demo-world.md](demo-world.md) | The demo world: what each campaign shows, which account to use and where to click |
 | [matches.md](matches.md) | Matches: scenario, results, Against the Odds, ending a match by confirmation, who may edit |
 | [aftermath.md](aftermath.md) | The War's Aftermath: injuries, experience, level-ups, influence, rewards |
-| [live-match.md](live-match.md) | Live match mode: trackers, casualties, Break Point, end checks, log with undo |
+| [live-match.md](live-match.md) | Live match mode: trackers, casualties, Break Point, objective and MVP, log with undo |
 | [unit-keywords.md](unit-keywords.md) | Race, faction and unit-type keywords on the unit cards, and who a rule works against |
 | [aura-ranges.md](aura-ranges.md) | Aura ranges: which rules draw a ring, the chips on the cards, the rings in Tabletop Simulator |
 | [tabletop-simulator.md](tabletop-simulator.md) | Taking a company into Tabletop Simulator: army list, figure names and descriptions, the helper |

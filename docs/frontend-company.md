@@ -130,8 +130,8 @@ A card, top to bottom:
   (`24" · S2`) and items with rules have a dashed outline and a `?`, with a hover preview.
 - **Path** (every hero, the leader and sergeants included): a box between the equipment and the special rules, headed by the path's icon (one game-icons.net icon per path in a round badge, `path_icon`; also in the
   path window and the fallen card) and its name, the "Path of the" lead small above the rest (`pathLook` in `paths.go`; on the unit card and the fallen card the name alone, beside a smaller badge, `path_name` with Short). Badge
-  and box take the colour of the kind of hero the path makes: melee red (`path-melee`), ranged green (`path-ranged`), command
-  amber (`leader`), magic blue (`path-magic`), the rest muted; a path the app does not know gets the medal. The name's tooltip is the glossary's text
+  and box take the colour of the path's main category (`categories` in the rules file): melee red (`path-melee`), ranged green (`path-ranged`), support
+  amber (`leader`), will blue (`path-magic`), muted without one; a path the app does not know gets the medal. The badge of a path with two categories (the Tactician, the Duelist, the Ranger) is split on the diagonal, main top-left (`.path-icon-hybrid`, [frontend-level-up.md](frontend-level-up.md)); its box stays in the main colour. The name's tooltip is the glossary's text
   of the path with its characteristic limits and level-up chart, as in the level-up window. Folded, it lists the heroic actions unlocked so far (the unit's own, the path's and those bought later; their text comes
   from the glossary term of the same name) and the special rules the path gave, and the magical powers it taught (the Path of the Sorcerer; a spell icon with
   casting value and range); unfolded, the same heading opens a section that has them in full. Those rules are not repeated below (`CompanyUnit.Path`). Magical powers a unit knows from some other source stay among the special rules, after its own rules.
@@ -292,19 +292,19 @@ company's `includedUnitPoints`: Iron Shield Bearer 13, Foe Spear Wielder 12), ea
 against the company's maximum (`CompanyUnit.Models`; `CompanyDetail.ModelCount`) and shows its parts on the card; it counts once for
 the Bow and Cavalry limits. The company's `unitTypes` change what a unit is (Infantry to Cavalry). Units **On Their Own Path** (the
 company's `onTheirOwnPath`, matched by exact name) start on the path "On Their Own Path": no experience, no level-ups, the rule At Path's End; the path is not selectable (`selectable: false`), so a hero's path choice never offers it. With the campaign option **customOnTheirOwnPath** (off by default, `CampaignSettings.CustomOnTheirOwnPath`) these units
-are instead ordinary warriors that earn experience (`CompanyUnit.OwnPath` is false) and roll on the warrior level-up table; on a 6 they become heroes on the homebrew "Path of Their Own Making" at once (0 Might, 0 Will, 1 Fate, a 2D6 chart in the file): `RollLevelUp` returns `Done` with that summary (`Result` heroInTheMaking, no `Offers`), there is no path window and no promotion to forgo, so the roll panel treats it like a final result: "You rolled a 6", the summary, Done. The campaign overview describes the setting that way; until the 6 the unit's card is a plain warrior's (XP bar, Level Up ready button). The path is hidden from the player's path choices like the empty one (`ProgressionRules.Hidden`). Officers made at company creation, or taking a lost officer's place, already carry the company's hero promotion (an Arnor officer is a Ranger of the North on the roster); only the path is chosen later. Unit names in the file are exact vanilla names (or a
+are instead ordinary warriors that earn experience (`CompanyUnit.OwnPath` is false) and roll on the warrior level-up table; on a 6 they become heroes on the homebrew "Path of Their Own Making" at once (0 Might, 0 Will, 1 Fate, a 2D6 chart in the file): `RollLevelUp` returns `Done` with that summary (`Result` heroInTheMaking, no `Offers`), there is no path window and no promotion to forgo, so the roll panel treats it like a final result: the celebration of a Hero in the Making with the summary, and Done. The campaign overview describes the setting that way; until the 6 the unit's card is a plain warrior's (XP bar, Level Up ready button). The path is hidden from the player's path choices like the empty one (`ProgressionRules.Hidden`). Officers made at company creation, or taking a lost officer's place, already carry the company's hero promotion (an Arnor officer is a Ranger of the North on the roster); only the path is chosen later. Unit names in the file are exact vanilla names (or a
 company's label for a unit, like the Goblin Hulk), so they are matched exactly. A `heroPromotion` (Arnor) makes the unit change profile
 and become a hero in one step, with no extra Might, Will and Fate.
 
 ## Formation
 
-The order of the units comes from the backend: the default (leader, sergeants, other heroes, regular units) until
-the player orders their company, and their saved order for good after that (`core.OrderUnits`; units they have not placed,
-such as new recruits, follow at the end in the default order). **Change formation**, next to the unit count, puts a handle above
+The order of the units comes from the backend: the default (leader, sergeants, other heroes, regular units; within each group the most points first, then by name) until
+the player orders their company, and their saved order after that (`core.OrderUnits`; units they have not placed,
+such as new recruits, follow at the end in the default order). A match uses the same order inside each of its zones, and the aftermath too (its lists after the sheet put the casualties first). **Change formation**, next to the unit count, puts a handle above
 every card: drag it (SortableJS, `static/js/sortable.min.js`, MIT, with its pointer-based drag so it feels the same with a
 mouse and on touch screens) or use the arrows on the handle (keyboard friendly). **Save formation** sends the ids in their
 new order (`SaveFormation`, which refuses an order that is empty, repeats a unit, misses one or names a unit of another company) and the page comes back in that order; **Cancel** (or Escape, when nothing else is open) puts the
-cards back. Meanwhile the cards themselves do not react.
+cards back. Meanwhile the cards themselves do not react. A company with a saved order also has **Restore default order** there (`ResetFormation`), which forgets it.
 
 ## Rating and injuries
 
@@ -395,8 +395,8 @@ Item tooltips read the Battle Companies file's `gearAnnotations[].definition`; a
 
 Roster, promotions (level-up, advancements) and injuries (Heal) are the cards of My Company on this page; level-up is in [frontend-level-up.md](frontend-level-up.md). Around them ([aftermath.md](aftermath.md)):
 
-- **Aftermath banner** (`#aftermath-banner`) at the top of My Company when `CompanyDetail.Aftermaths` is not empty: a link per
-  match to `/campaigns/{id}/matches/{match}/aftermath/{company}` (Start or Continue). The company is locked: the controls marked
+- **Aftermath banner** (`#aftermath-banner`) at the top of My Company when `CompanyDetail.Aftermaths` is not empty: a button per
+  match: Start sends `POST /campaigns/{id}/matches/{match}/aftermath/{company}/begin` ([aftermath.md](aftermath.md#the-aftermath-page)), Continue opens the page. The company is locked: the controls marked
   `data-lock` (Recruit, Armory buy, Drop, Heal, Dismiss) look disabled, are exposed as `aria-disabled="true"` (set by `syncLock` in `company.js` on the buttons and fields inside them, described by the banner, and re-set after any htmx swap inside the page by a `MutationObserver`; this also exempts the dimmed look from the contrast rule) and, on click or Enter or Space, `lockClick` in `company.js` says "Finish the
   aftermath of Match N first." instead of acting (the root's `data-lock` holds the reason, empty when unlocked). The core refuses
   the action too, so a stale page shows the refusal as a notice.
@@ -411,5 +411,9 @@ Roster, promotions (level-up, advancements) and injuries (Heal) are the cards of
   (no "use" button) and history; no rename, recruit, formation, buy, drop, heal, level-up, path, pack or dismiss controls and
   no buy window. The organiser's award form of the grants card stays. Your own company's URL redirects to `/my-company/{company}`.
 
+
+## Casualty cards of the aftermath
+
+On the Injuries step each casualty is a unit card in the same grid as the rest of the company (`unit-choices`: one column, two from 1024 px, where a card has the width for its rows). A strip replaces the status badge: before the roll, two empty dice, the Casualty badge, the Roll button and, with `ManualRolls` on, a pencil that opens the typed dice; after it, the dice as they fell (a modifier beside them, or the item that replaced the roll), the result and the Re-roll button. The strip is coloured by the result: danger for a unit lost, warning for an injury or a Scratch, success for a recovery. The result's rule is its tooltip (a tap opens the helper popup), and the injuries chart, with the row of the roll marked, is the tooltip of the dice (hover, keyboard focus or a tap: `aftermathTips`). A card that waits for the viewer, to roll or to answer a question of its result, has a highlighted border (`unit-pending`); a Re-roll that is only on offer does not count. Where the cards sit side by side, a unit with no place or path keeps an empty row of the same height, so the strips of a hero and a warrior line up while the hero's row fits on one line. The milestones sit at the bottom of the card, right above the experience bar, whatever the height of the card beside it.
 
 See also: [frontend-company-building.md](frontend-company-building.md) (recruiting and creating a company), [frontend-level-up.md](frontend-level-up.md) (paths and level-up), [frontend-live-match.md](frontend-live-match.md) (the same page in an open match), [aftermath.md](aftermath.md), [frontend.md](frontend.md).

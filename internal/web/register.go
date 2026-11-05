@@ -33,18 +33,27 @@ func (s *Server) unusable(w http.ResponseWriter, r *http.Request, status int, me
 	s.render.page(w, r, status, "link_unusable", linkView{pageBase: s.bare(r), Message: message})
 }
 
-// handleRegisterPage shows the registration form of a pending invitation. A signed-in visitor is sent to the home page without the
-// link being looked at. The ?email= of a named link is for people to read; the address shown is the invitation's own.
-func (s *Server) handleRegisterPage(w http.ResponseWriter, r *http.Request) {
+// registerGate is the start of both registration pages: a signed-in visitor goes to the home page, and a throttled address or link is
+// refused. ok is false when it has answered.
+func (s *Server) registerGate(w http.ResponseWriter, r *http.Request) (token string, ok bool) {
 	secretPage(w)
 	if userFrom(r.Context()) != nil {
 		redirect(w, r, "/")
-		return
+		return "", false
 	}
-	token, ip := r.PathValue("token"), s.clientIP(r)
-	key := tokenKey(token)
-	if s.registerThrottle.blocked(ip, key) {
+	token = r.PathValue("token")
+	if s.registerThrottle.blocked(s.clientIP(r), tokenKey(token)) {
 		s.unusable(w, r, http.StatusTooManyRequests, tooManyAttempts)
+		return "", false
+	}
+	return token, true
+}
+
+// handleRegisterPage shows the registration form of a pending invitation. A signed-in visitor is sent to the home page without the
+// link being looked at. The ?email= of a named link is for people to read; the address shown is the invitation's own.
+func (s *Server) handleRegisterPage(w http.ResponseWriter, r *http.Request) {
+	token, ok := s.registerGate(w, r)
+	if !ok {
 		return
 	}
 	pre, err := s.invitations.Preview(r.Context(), token)
@@ -61,17 +70,11 @@ func (s *Server) handleRegisterPage(w http.ResponseWriter, r *http.Request) {
 
 // handleRegister creates the account and signs it in. Every reason the link cannot be used answers the same page with 422.
 func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
-	secretPage(w)
-	if userFrom(r.Context()) != nil {
-		redirect(w, r, "/")
+	token, ok := s.registerGate(w, r)
+	if !ok {
 		return
 	}
-	token, ip := r.PathValue("token"), s.clientIP(r)
-	key := tokenKey(token)
-	if s.registerThrottle.blocked(ip, key) {
-		s.unusable(w, r, http.StatusTooManyRequests, tooManyAttempts)
-		return
-	}
+	ip, key := s.clientIP(r), tokenKey(token)
 	in := core.Registration{Email: r.PostFormValue("email"), DisplayName: r.PostFormValue("name"), Password: r.PostFormValue("password")}
 	view := registerView{pageBase: s.bare(r), Token: token, Email: in.Email, Name: in.DisplayName}
 	if r.PostFormValue("confirm") != in.Password {

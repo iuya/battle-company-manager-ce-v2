@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"time"
 )
@@ -27,6 +28,11 @@ type Matches struct {
 	// EndNotify, when set, is told about every change of a pending end (propose, confirm, withdraw, cancel, override, the end itself) after
 	// it is stored; the wiring points it at the live log and the hub (docs/live-match.md, "Ending a match while live").
 	EndNotify func(ctx context.Context, ch EndChange)
+	// MissingVotes, when set, lists the MVP votes still missing before a competitive match can end: those of the owner ownerID (0: of
+	// every owner of the match). The wiring points it at the live mode (LiveService.MissingVotes); nil means no vote is required.
+	MissingVotes func(ctx context.Context, campaignID, matchID, ownerID int64) ([]MissingVote, error)
+	// GameStarted, when set, says whether the game of an open match has begun (a live entry exists): the scenario is then fixed.
+	GameStarted func(ctx context.Context, campaignID, matchID int64) (bool, error)
 
 	ato atoRepository // optional (WithATO): the Against the Odds selection
 }
@@ -69,8 +75,9 @@ func (s *Matches) Match(ctx context.Context, id, matchID int64) (Match, error) {
 	return s.complete(ctx, id, m)
 }
 
-// CreateMatch starts an open match. An error wrapping ErrInvalidMatch when the sides are rejected, ErrRefused when the
-// campaign is finished or a company has an officer that has not chosen its path, ErrNotFound when the user is not in the campaign.
+// CreateMatch starts an open match with the scenario the form showed (optional). Against the Odds is chosen afterwards, on the match page.
+// An error wrapping ErrInvalidMatch when the sides or the scenario are rejected, ErrRefused when the campaign is finished or a company has
+// an officer that has not chosen its path, ErrNotFound when the user is not in the campaign.
 func (s *Matches) CreateMatch(ctx context.Context, user User, id int64, in NewMatch) (Match, error) {
 	sides, err := ValidateSides(in.Sides)
 	if err != nil {
@@ -89,26 +96,24 @@ func (s *Matches) CreateMatch(ctx context.Context, user User, id int64, in NewMa
 			if err != nil {
 				return Match{}, err
 			}
-			if d.OfficersPending {
-				return Match{}, Refuse("%s cannot play yet: arrange the officers first.", d.Name)
+			why, err := s.cannotPlayYet(ctx, id, cid, d)
+			if err != nil {
+				return Match{}, err
 			}
-			for _, u := range d.Roster {
-				if u.PathPending {
-					return Match{}, Refuse("%s cannot play yet: %s has to choose a path first.", d.Name, u.Title())
-				}
-			}
-			if s.CompanyAftermaths != nil {
-				refs, err := s.CompanyAftermaths(ctx, id, cid)
-				if err != nil {
-					return Match{}, err
-				}
-				if len(refs) > 0 {
-					return Match{}, Refuse("%s cannot play yet: %s", d.Name, LockMessage(refs))
-				}
+			if why != "" {
+				return Match{}, Refuse("%s cannot play yet: %s", d.Name, why)
 			}
 		}
 	}
-	m, err := s.matches.Create(ctx, id, user, NewMatch{Sides: sides, Practice: in.Practice}) // refuses with *CompanyBusyError when a company is in another open match
+	create := NewMatch{Sides: sides, Practice: in.Practice}
+	if in.Scenario != nil {
+		sc, err := s.validScenario(ctx, id, *in.Scenario)
+		if err != nil {
+			return Match{}, err
+		}
+		create.Scenario = &sc
+	}
+	m, err := s.matches.Create(ctx, id, user, create) // refuses with *CompanyBusyError when a company is in another open match
 	if err != nil {
 		return m, err
 	}
@@ -116,6 +121,71 @@ func (s *Matches) CreateMatch(ctx context.Context, user User, id int64, in NewMa
 		_ = s.LiveInit(ctx, id, m.ID) // the live data is also made on the first read
 	}
 	return s.complete(ctx, id, m)
+}
+
+// cannotPlayYet says what the company has to do before it can start a match, empty when nothing. An open match is not in it: Create
+// checks that under the campaign's lock (*CompanyBusyError).
+func (s *Matches) cannotPlayYet(ctx context.Context, id, companyID int64, d CompanyDetail) (string, error) {
+	if d.OfficersPending {
+		return "Arrange the officers first.", nil
+	}
+	for _, u := range d.Roster {
+		if u.PathPending {
+			return u.Title() + " has to choose a path first.", nil
+		}
+	}
+	if s.CompanyAftermaths != nil {
+		refs, err := s.CompanyAftermaths(ctx, id, companyID)
+		if err != nil {
+			return "", err
+		}
+		if len(refs) > 0 {
+			return LockMessage(refs), nil
+		}
+	}
+	return "", nil
+}
+
+// UnavailableCompanies says which of the companies CreateMatch would refuse right now and why (a sentence fit to show), so the new match
+// form can grey them out. A company that can play is not in the map.
+func (s *Matches) UnavailableCompanies(ctx context.Context, id int64, companies []int64) (map[int64]string, error) {
+	out := map[int64]string{}
+	for _, cid := range companies {
+		d, _, err := s.detail(ctx, id, cid)
+		if err != nil {
+			return nil, err
+		}
+		if d.OpenMatch != nil {
+			out[cid] = fmt.Sprintf("Already in Match %d.", d.OpenMatch.Number)
+			continue
+		}
+		why, err := s.cannotPlayYet(ctx, id, cid, d)
+		if err != nil {
+			return nil, err
+		}
+		if why != "" {
+			out[cid] = why
+		}
+	}
+	return out, nil
+}
+
+// validScenario checks a scenario of the new match form (a rulebook name must be in the campaign's rules file).
+func (s *Matches) validScenario(ctx context.Context, id int64, in ScenarioInput) (ScenarioInput, error) {
+	in, err := in.Validate()
+	if err != nil {
+		return in, err
+	}
+	if in.Kind == ScenarioRulebook {
+		list, err := s.Scenarios(ctx, id)
+		if err != nil {
+			return in, err
+		}
+		if FindScenario(list, in.Name) == nil {
+			return in, errors.Join(ErrInvalidMatch, errors.New("the campaign's rules have no scenario called "+in.Name))
+		}
+	}
+	return in, nil
 }
 
 // Scenarios lists what the picker offers: the scenarios of the campaign's Battle Companies file.
@@ -150,20 +220,15 @@ func (s *Matches) scenarioList(ctx context.Context, h RulesetHashes) ([]Scenario
 
 // SetScenario chooses or replaces the scenario; the objectives reported belonged to the old one and are cleared.
 func (s *Matches) SetScenario(ctx context.Context, user User, id, matchID int64, revision int, in ScenarioInput) (Match, error) {
-	in, err := in.Validate()
+	in, err := s.validScenario(ctx, id, in)
 	if err != nil {
 		return Match{}, err
 	}
-	if in.Kind == ScenarioRulebook {
-		list, err := s.Scenarios(ctx, id)
-		if err != nil {
-			return Match{}, err
-		}
-		if !slices.ContainsFunc(list, func(sc ScenarioInfo) bool { return sc.Name == in.Name }) {
-			return Match{}, errors.Join(ErrInvalidMatch, errors.New("the campaign's rules have no scenario called "+in.Name))
-		}
-	}
 	return s.edit(ctx, user, id, matchID, revision, func(m *Match) error {
+		if err := s.scenarioOpen(ctx, id, m); err != nil {
+			return err
+		}
+		reopenATO(m, &in)
 		m.Scenario = &in
 		clearObjectives(m)
 		m.resetEnd(user.DisplayName, "scenario")
@@ -171,9 +236,59 @@ func (s *Matches) SetScenario(ctx context.Context, user User, id, matchID int64,
 	})
 }
 
+// MatchStarted says whether the game of the match has begun (a live entry exists); false without GameStarted.
+func (s *Matches) MatchStarted(ctx context.Context, id, matchID int64) (bool, error) {
+	if s.GameStarted == nil {
+		return false, nil
+	}
+	return s.GameStarted(ctx, id, matchID)
+}
+
+// scenarioOpen refuses a change of the scenario of an open match once the game has started (the first live entry), as Against the
+// Odds is: what the players set up for stays (docs/matches.md, "New match"). An ended match can still be corrected, and a match that
+// started without one (older matches) can still get one, since it cannot end without it.
+func (s *Matches) scenarioOpen(ctx context.Context, id int64, m *Match) error {
+	if m.Ended || m.Scenario == nil {
+		return nil
+	}
+	if s.GameStarted != nil {
+		started, err := s.GameStarted(ctx, id, m.ID)
+		if err != nil {
+			return err
+		}
+		if started {
+			return Refuse("The game has started: the scenario can no longer change.")
+		}
+	}
+	if s.ato != nil {
+		rec, err := s.ato.Get(ctx, id, m.ID)
+		if err != nil {
+			return err
+		}
+		if rec.Selection.Ambush != "" {
+			return Refuse("Ambush! chose this scenario: change it on the Against the Odds card.")
+		}
+	}
+	return nil
+}
+
+// reopenATO takes back the Against the Odds decision of an open match when its scenario changes: the bonuses are chosen knowing the scenario.
+func reopenATO(m *Match, next *MatchScenario) {
+	if m.Ended {
+		return
+	}
+	if (m.Scenario == nil) != (next == nil) || (next != nil && *m.Scenario != *next) {
+		m.ATODecided = false
+	}
+}
+
 // ClearScenario removes the scenario and the objectives reported.
 func (s *Matches) ClearScenario(ctx context.Context, user User, id, matchID int64, revision int) (Match, error) {
 	return s.edit(ctx, user, id, matchID, revision, func(m *Match) error {
+		if err := s.scenarioOpen(ctx, id, m); err != nil {
+			return err
+		}
+		reopenATO(m, nil)
 		m.Scenario = nil
 		clearObjectives(m)
 		m.resetEnd(user.DisplayName, "scenario")
@@ -203,9 +318,7 @@ func (s *Matches) SaveResult(ctx context.Context, user User, id, matchID int64, 
 					return err
 				}
 			}
-			if i := slices.IndexFunc(scenarios, func(sc ScenarioInfo) bool { return sc.Name == m.Scenario.Name }); i >= 0 {
-				info = &scenarios[i]
-			}
+			info = FindScenario(scenarios, m.Scenario.Name)
 		}
 		r, err := m.ValidateResult(r, info)
 		if err != nil {
@@ -213,80 +326,6 @@ func (s *Matches) SaveResult(ctx context.Context, user User, id, matchID int64, 
 		}
 		m.Result, m.Winner = r, r.Winner
 		m.resetEnd(user.DisplayName, "result")
-		return nil
-	})
-}
-
-// endMatch closes the match at once when Match.CanEnd passes (unexported since 7k7). It is the internal step for an end that needs no confirmation; the pages
-// use ProposeEnd, ConfirmEnd and OverrideEnd (docs/matches.md).
-func (s *Matches) endMatch(ctx context.Context, user User, id, matchID int64, revision int) (Match, error) {
-	scenarios, err := s.Scenarios(ctx, id)
-	if err != nil {
-		return Match{}, err
-	}
-	return s.edit(ctx, user, id, matchID, revision, func(m *Match) error {
-		if err := checkEnd(m, scenarios); err != nil {
-			return err
-		}
-		m.finishEnd("")
-		return nil
-	})
-}
-
-// SetSideRoles tags the sides of an open match, one tag per side in order ("", "attacker" or "defender"; at most one side each). It can be
-// done before the scenario is chosen; the tags only matter for a scenario with roles.
-func (s *Matches) SetSideRoles(ctx context.Context, user User, id, matchID int64, revision int, roles []string) (Match, error) {
-	return s.edit(ctx, user, id, matchID, revision, func(m *Match) error {
-		if m.Ended {
-			return Refuse("The teams' roles can only change while the match is open.")
-		}
-		if len(roles) != len(m.Sides) {
-			return errors.Join(ErrInvalidMatch, errors.New("one role for each side"))
-		}
-		seen := map[string]bool{}
-		for _, r := range roles {
-			if !ValidRole(r) {
-				return errors.Join(ErrInvalidMatch, errors.New("a side is Attacker or Defender, or neither"))
-			}
-			if r != "" && seen[r] {
-				return errors.Join(ErrInvalidMatch, errors.New("only one side can be the "+r))
-			}
-			seen[r] = true
-		}
-		m.Sides = slices.Clone(m.Sides)
-		for i := range m.Sides {
-			m.Sides[i].Role = roles[i]
-		}
-		m.resetEnd(user.DisplayName, "teams' roles")
-		return nil
-	})
-}
-
-// SwapSideRoles swaps Attacker and Defender between the two tagged sides (a side without a tag takes the other's: with one tag the
-// other side gets the opposite role).
-func (s *Matches) SwapSideRoles(ctx context.Context, user User, id, matchID int64, revision int) (Match, error) {
-	return s.edit(ctx, user, id, matchID, revision, func(m *Match) error {
-		if m.Ended {
-			return Refuse("The teams' roles can only change while the match is open.")
-		}
-		if len(m.Sides) != 2 {
-			return Refuse("Swapping roles is for a match of two teams.")
-		}
-		opposite := map[string]string{"": "", RoleAttacker: RoleDefender, RoleDefender: RoleAttacker}
-		a, b := m.Sides[0].Role, m.Sides[1].Role
-		if a == "" && b == "" {
-			return Refuse("Choose the roles first.")
-		}
-		if a == "" || b == "" { // one tag: the other side takes the opposite
-			if a == "" {
-				a = opposite[b]
-			} else {
-				b = opposite[a]
-			}
-		}
-		m.Sides = slices.Clone(m.Sides)
-		m.Sides[0].Role, m.Sides[1].Role = b, a
-		m.resetEnd(user.DisplayName, "teams' roles")
 		return nil
 	})
 }

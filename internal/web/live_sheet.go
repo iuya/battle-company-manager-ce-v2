@@ -1,11 +1,8 @@
 package web
 
 import (
-	"errors"
 	"net/http"
 	"slices"
-	"strconv"
-	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
@@ -22,26 +19,6 @@ type liveSheet struct {
 	Gains    map[string]int
 	// Recorded are the unit's entries of this kind still in the log (wound, fate, broken): the milestone it earned and the way to undo it.
 	Recorded []core.LiveEntry
-
-	// The courage sheet and Item used: the match's turn, whether the company is Broken, who may be offered Stand Fast, the dice rolled for the
-	// test and why a roll was refused.
-	Turn            int
-	Broken          bool
-	Hero            bool // may call Stand Fast (a Hero that is not a Wanderer; the service refuses the rest with a sentence)
-	StandFastCalled bool // a Hero called Stand Fast this turn: the Warriors' hint
-	ManualRolls     bool
-	CourageDice     core.DiceSpec // the dice of the Courage test (campaign.breakPoint.whenBroken.courageTest.dice)
-	Roll            *core.CourageRoll
-	RollErr         string
-}
-
-// DiceText is the dice of the roll ("3 + 4").
-func (v liveSheet) DiceText() string {
-	var parts []string
-	for _, d := range v.Roll.Dice {
-		parts = append(parts, strconv.Itoa(d))
-	}
-	return strings.Join(parts, " + ")
 }
 
 // temporaryUnit is the card of the temporary Wanderer of Against the Odds as a roster unit: it is in no roster.
@@ -65,18 +42,10 @@ type woundTarget struct {
 	Applies []core.RuleMatch
 }
 
-// HasEnemies and HasFriends say which parts of the target list exist.
-func (v liveSheet) HasEnemies() bool {
-	return slices.ContainsFunc(v.Groups, func(g woundGroup) bool { return !g.Friends })
-}
-func (v liveSheet) HasFriends() bool {
-	return slices.ContainsFunc(v.Groups, func(g woundGroup) bool { return g.Friends })
-}
-
 // handleLiveSheet answers the window of an action for a unit of {company}; only somebody who may change the company gets it.
 func (s *Server) handleLiveSheet(w http.ResponseWriter, r *http.Request) {
 	kind := r.PathValue("kind")
-	if !slices.Contains([]string{"menu", "fate", "broken", "retreat", "died", "mount", "wound", "courage", "item"}, kind) {
+	if !slices.Contains([]string{"wound", "item"}, kind) {
 		s.notFound(w, r)
 		return
 	}
@@ -123,7 +92,7 @@ func (s *Server) liveSheetFor(w http.ResponseWriter, r *http.Request, kind strin
 	if s.fail(w, r, err) {
 		return none, false
 	}
-	sheet := liveSheet{Campaign: id, MatchID: matchID, Company: companyID, Kind: kind, Turn: lc.Turn, Broken: lc.Break.Broken}
+	sheet := liveSheet{Campaign: id, MatchID: matchID, Company: companyID, Kind: kind}
 	for _, u := range detail.Roster {
 		if u.ID == unitID {
 			sheet.Unit = u
@@ -136,25 +105,13 @@ func (s *Server) liveSheetFor(w http.ResponseWriter, r *http.Request, kind strin
 		if u.UnitID == unitID {
 			sheet.Live = u
 		}
-		if lc.Turn > 0 && u.StandFastTurn == lc.Turn {
-			sheet.StandFastCalled = true
-		}
 	}
 	if sheet.Unit.ID == 0 || sheet.Live.UnitID == 0 {
 		s.notFound(w, r)
 		return none, false
 	}
-	sheet.CourageDice = detail.RuleDice.Courage
-	sheet.Hero = sheet.Unit.IsHero() && !sheet.Unit.Wanderer
 	sheet.Gains = sheet.Live.Gains
-	if kind == "courage" {
-		base, ok := s.loadCampaign(w, r, "my-company")
-		if !ok {
-			return none, false
-		}
-		sheet.ManualRolls = base.Campaign.Settings.ManualRolls
-	}
-	if kind == "wound" || kind == "fate" || kind == "broken" {
+	if kind == "wound" {
 		if sheet.Recorded, err = s.campaigns.UnitLog(r.Context(), user, id, matchID, unitID, core.LiveKind(kind)); s.fail(w, r, err) {
 			return none, false
 		}
@@ -165,27 +122,6 @@ func (s *Server) liveSheetFor(w http.ResponseWriter, r *http.Request, kind strin
 		}
 	}
 	return sheet, true
-}
-
-// handleCourageRoll rolls the Courage test of a unit (nothing is written) and answers the courage window with the result.
-func (s *Server) handleCourageRoll(w http.ResponseWriter, r *http.Request) {
-	sheet, ok := s.liveSheetFor(w, r, "courage")
-	if !ok {
-		return
-	}
-	entered := enteredRolls(r)
-	status := http.StatusOK
-	roll, err := s.campaigns.RollCourage(r.Context(), *userFrom(r.Context()), sheet.Campaign, sheet.MatchID, sheet.Unit.ID, entered, false)
-	switch {
-	case err == nil:
-		sheet.Roll = &roll
-	case errors.Is(err, core.ErrRefused), errors.Is(err, core.ErrInvalidLive):
-		status, sheet.RollErr = http.StatusUnprocessableEntity, reason(err)
-	default:
-		s.fail(w, r, err)
-		return
-	}
-	s.render.partial(w, status, "campaign_my_company", "live_sheet", sheet)
 }
 
 // woundTargets lists the units in the Field of every company of the match, except the attacker: the other sides first.

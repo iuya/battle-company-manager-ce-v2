@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
@@ -42,20 +41,13 @@ func (w *world) finishingTouches() {
 	// promotion left. The company ends with three officers (a company recruits only with three) and the Ranger in the cemetery.
 	_, _, hobbits := w.roster(shire)
 	w.xp(shire, hobbits[0].ID, 5, "Saved the Ranger's pipe")
-	r := w.rollLevel(shire, hobbits[0], 6)
-	if len(r.Offers) > 0 {
-		for _, ch := range r.Offers[0].Choices {
-			if strings.HasPrefix(ch.Key, "path:") && !strings.Contains(ch.Key, "Sorcerer") {
-				w.chooseLevel(shire, hobbits[0], ch.Key)
-				break
-			}
-		}
-	}
+	w.rollLevel(shire, hobbits[0], 6)
+	w.chooseLevel(shire, hobbits[0], "hero")
 	w.choosePaths(shire, 0)
 	if h, _ := w.unit(shire, func(u core.CompanyUnit) bool { return u.Role == core.RoleHero }); h.ID == 0 {
 		w.gap("%s: the Hobbit who rolled a 6 is not a Hero in the Making", shire.name)
 	}
-	m := w.played(c, "Rescue", outcome{winner: 2, vp: []int{1, 5}, note: "The Hobbits lost their Ranger and the field."}, []*wco{shire}, []*wco{co})
+	m := w.played(c, "Rescue", outcome{winner: 2, note: "The Hobbits lost their Ranger and the field."}, []*wco{shire}, []*wco{co})
 	rl, _, _ := w.roster(shire)
 	in := w.sheet(shire)
 	set(&in, rl.ID, core.OutcomeCasualty, nil)
@@ -77,10 +69,12 @@ func (w *world) finishingTouches() {
 	if a.Status == core.AftermathInjuries && a.Succession == nil {
 		a = w.decide(shire, m, core.AftermathAnswer{Kind: "continue"})
 	}
-	if a.Status != core.AftermathLevelUps {
-		w.gap("the succession of %s was not settled (status %s, succession %+v, rerolls %d)", shire.name, a.Status, a.Succession, a.Rerolls)
-	} else {
+	switch a.Status { // with no reward choice open the aftermath has finished on its own
+	case core.AftermathLevelUps:
 		w.finishAftermath(shire, m)
+	case core.AftermathDone:
+	default:
+		w.gap("the succession of %s was not settled (status %s, succession %+v, rerolls %d)", shire.name, a.Status, a.Succession, a.Rerolls)
 	}
 	w.choosePaths(shire, 0) // the Warrior who became an officer chooses its path in the company window
 	w.show(shire)

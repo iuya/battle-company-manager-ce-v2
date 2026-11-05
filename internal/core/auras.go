@@ -495,11 +495,6 @@ type AuraSummary struct {
 	Notes  []TTSNote
 }
 
-// CompanyAuraSummary is the summary of a company's own list (every unit once, rider and on-foot version as the list has them).
-func (r *RuleSet) CompanyAuraSummary(d CompanyDetail, sel AuraSelection) AuraSummary {
-	return r.AuraSummaryFor(d, r.TTSList(d, TTSOptions{FootVersions: true, MountFigures: true}), sel)
-}
-
 // AuraSummaryFor is the summary for the figures of exp (the list the player spawns, a live list included: fallen units have no rings).
 func (r *RuleSet) AuraSummaryFor(d CompanyDetail, exp TTSExport, sel AuraSelection) AuraSummary {
 	s := AuraSummary{Counts: map[string]int{}, Groups: map[string]AuraGroupDef{}}

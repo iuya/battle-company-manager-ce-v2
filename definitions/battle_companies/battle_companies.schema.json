@@ -1084,30 +1084,6 @@
       ],
       "type": "object"
     },
-    "BreakDefault": {
-      "additionalProperties": false,
-      "description": "The Break Point of a company that has none of its own.",
-      "properties": {
-        "of": {
-          "description": "What the share is taken of: startingModels.",
-          "enum": [
-            "startingModels"
-          ],
-          "type": "string"
-        },
-        "percent": {
-          "description": "The share of the starting models that must be lost, as a whole percent. Write this or share.",
-          "maximum": 100,
-          "minimum": 1,
-          "type": "integer"
-        },
-        "share": {
-          "$ref": "#/$defs/Share",
-          "description": "The share of the starting models that must be lost, as a fraction that is a whole percent (\"1/2\"). Write this or percent."
-        }
-      },
-      "type": "object"
-    },
     "BreakException": {
       "additionalProperties": false,
       "description": "A scenario, or a scenario setting, that changes the Courage tests or the count of a Broken company. The live match of that scenario shows the text.",
@@ -1159,7 +1135,7 @@
       "description": "When a company is Broken and what happens then, and the scenarios that change it.",
       "properties": {
         "default": {
-          "$ref": "#/$defs/BreakDefault",
+          "$ref": "#/$defs/LossShare",
           "description": "The Break Point of a company with none of its own."
         },
         "scenarioExceptions": {
@@ -2024,7 +2000,7 @@
           "description": "The dice rolled; the model passes with a total at least its Courage."
         },
         "passIf": {
-          "description": "totalAtLeastCourage, the only pass rule the app implements. A live match refuses to roll a Courage test when it is missing.",
+          "description": "totalAtLeastCourage, the only pass rule the format has. The test is rolled at the table.",
           "enum": [
             "totalAtLeastCourage"
           ],
@@ -3609,6 +3585,30 @@
       ],
       "type": "object"
     },
+    "LossShare": {
+      "additionalProperties": false,
+      "description": "A share of the starting models lost: the Break Point of a company that has none of its own, or the losses that end a scenario.",
+      "properties": {
+        "of": {
+          "description": "What the share is taken of: startingModels.",
+          "enum": [
+            "startingModels"
+          ],
+          "type": "string"
+        },
+        "percent": {
+          "description": "The share of the starting models that must be lost, as a whole percent. Write this or share.",
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "share": {
+          "$ref": "#/$defs/Share",
+          "description": "The share of the starting models that must be lost, as a fraction that is a whole percent (\"1/2\"). Write this or percent."
+        }
+      },
+      "type": "object"
+    },
     "Magic": {
       "additionalProperties": false,
       "description": "What Battle Companies says about magical powers.",
@@ -3787,7 +3787,7 @@
     },
     "Nomination": {
       "additionalProperties": false,
-      "description": "What a player notes down at the start for a secret objective.",
+      "description": "What a player notes down at the start for a secret objective. Informative: the players keep it themselves.",
       "properties": {
         "allowLeader": {
           "description": "onlyHero: the Leader may be picked only when the company has a single Hero. Heroes only.",
@@ -3964,6 +3964,20 @@
           "items": {
             "type": "string"
           },
+          "type": "array"
+        },
+        "categories": {
+          "description": "What the path is for, the main one first, each at most once: support (amber), melee (red), ranged (green), will (blue). They give the colours of its icon and box; a path without them is drawn in the muted colour.",
+          "items": {
+            "enum": [
+              "support",
+              "melee",
+              "ranged",
+              "will"
+            ],
+            "type": "string"
+          },
+          "maxItems": 2,
           "type": "array"
         },
         "description": {
@@ -4743,6 +4757,10 @@
           "description": "A short description shown to the players.",
           "type": "string"
         },
+        "endsAtLosses": {
+          "$ref": "#/$defs/LossShare",
+          "description": "The game ends once a company has lost this share of its starting models or more, never rounded: 3/4 ends it when the company is down to 25% or fewer. Casualties and models that fled a failed Courage test count; models that left the board voluntarily do not. The live match shows how many more models each company can lose before it. Leave it out when the scenario has no such end."
+        },
         "id": {
           "description": "A stable id; default: the name as a slug. Write it only to keep an id when the name changes.",
           "type": "string"
@@ -4862,7 +4880,7 @@
           "type": "integer"
         },
         "instruction": {
-          "description": "The note-down sentence of a secret objective.",
+          "description": "The note-down sentence of a secret objective, printed before the options in How it is scored.",
           "type": "string"
         },
         "item": {
@@ -4890,7 +4908,7 @@
           "type": "array"
         },
         "secret": {
-          "description": "true: kept hidden until the end of the game.",
+          "description": "true: the rules keep it hidden until the end of the game. Informative: the players keep it themselves.",
           "type": "boolean"
         },
         "side": {
