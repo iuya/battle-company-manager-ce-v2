@@ -155,12 +155,11 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 		"died":    {map[string]string{"kind": "died", "unit": str(au[2].UnitID), "note": "x"}, map[string][]string{"unit": unitIDs, "note": texts}},
 		"mount":   {map[string]string{"kind": "mount", "unit": str(hero), "mounted": "0"}, map[string][]string{"unit": unitIDs, "mounted": bools}},
 		"return":  {map[string]string{"kind": "return", "unit": str(au[2].UnitID)}, map[string][]string{"unit": unitIDs}},
-		"broken":  {map[string]string{"kind": "broken", "unit": str(hero), "standFast": "1"}, map[string][]string{"unit": unitIDs, "standFast": bools}},
+		"broken":  {map[string]string{"kind": "broken", "unit": str(hero)}, map[string][]string{"unit": unitIDs}},
 		"breakAdjust": {map[string]string{"kind": "breakAdjust", "field": "start", "delta": "1"},
 			map[string][]string{"field": texts, "delta": numbers}},
-		"courageSkip": {map[string]string{"kind": "courageSkip", "unit": str(hero), "reason": "engaged"}, map[string][]string{"unit": unitIDs, "reason": append([]string{"standFast", "engaged"}, texts...)}},
-		"itemUsed":    {map[string]string{"kind": "itemUsed", "unit": str(hero), "item": "Healing Potion", "index": "0"}, map[string][]string{"unit": unitIDs, "item": texts, "index": numbers}},
-		"unknown":     {map[string]string{"kind": "objective", "unit": str(hero)}, map[string][]string{"kind": append([]string{"objective", "mvpVote", "secretNominate", "endProposed", "endConfirmed", "endOverride"}, texts...)}},
+		"itemUsed": {map[string]string{"kind": "itemUsed", "unit": str(hero), "item": "Healing Potion", "index": "0"}, map[string][]string{"unit": unitIDs, "item": texts, "index": numbers}},
+		"unknown":  {map[string]string{"kind": "objective", "unit": str(hero)}, map[string][]string{"kind": append([]string{"objective", "mvpVote", "secretNominate", "courageSkip", "endProposed", "endConfirmed", "endOverride"}, texts...)}},
 	}
 
 	var failures []string

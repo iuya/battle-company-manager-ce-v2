@@ -103,7 +103,6 @@ type BreakConfig struct {
 type LiveFoldConfig struct {
 	Break       map[int64]BreakConfig // by company
 	BreakModels map[int64]int         // by unit: how many models it counts as (1 when missing)
-	NoStandFast map[int64]bool        // units that cannot call Stand Fast (Wanderers, a Hero with Broken Honour)
 	Loaned      []LoanedItem          // the items a Tool Kit loaned to units for this match (Against the Odds)
 	Owned       map[int64][]string    // by unit: the names of the equipment it carries (an owned item can be marked used)
 	AfterGame   map[string]bool       // lower-case names of the items that act in the aftermath only (Healing Herbs, Wondrous Cram)
@@ -145,19 +144,6 @@ func (b LiveBreak) EndLeftPercent() int { return 100 - b.EndLossPercent }
 // ToEnd is how many more casualties reach the scenario's end; 0 when they have. Casualties count those who fled a failed Courage test;
 // models that left the board voluntarily do not count, as for the Break Point.
 func (b LiveBreak) ToEnd() int { return max(0, b.EndAt()-b.Casualties) }
-
-// Courage reasons of a courageSkip.
-var courageSkipReasons = map[string]string{
-	"standFast":      "Stand Fast",
-	"heroicResolve":  "Heroic Resolve",
-	"chariot":        "a Chariot",
-	"scenario":       "a scenario rule",
-	"engaged":        "in combat",
-	"cannotActivate": "cannot activate",
-}
-
-// exempt reasons are not passes: the model does not test at all.
-func courageExempt(reason string) bool { return reason == "engaged" || reason == "cannotActivate" }
 
 type breakState struct {
 	adjStart, adjCasualties int

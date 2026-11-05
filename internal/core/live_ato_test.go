@@ -11,8 +11,7 @@ import (
 
 func atoCfg() LiveFoldConfig {
 	return LiveFoldConfig{
-		Break:       map[int64]BreakConfig{},
-		NoStandFast: map[int64]bool{},
+		Break: map[int64]BreakConfig{},
 		Loaned: []LoanedItem{
 			{UnitID: 1, Item: "Dwarven Brew", Kit: "Raider's Kit", Index: 0},
 			{UnitID: 1, Item: "Torching Brand", Kit: "Raider's Kit", Index: 0},
@@ -97,7 +96,6 @@ func TestTemporaryWandererIsAUnitOfTheFold(t *testing.T) {
 	}
 	b := newBP(t, 4, 50)
 	b.inits = append(b.inits, LiveUnitInit{UnitID: id, CompanyID: 1, Wounds: 2, Might: 1, Will: 1, Fate: 1, CountsAsKill: true, Temporary: true})
-	b.cfg.NoStandFast[id] = true
 	u, ok := b.state().Unit(id)
 	if !ok || !u.Temporary || u.Wounds.Start != 2 || u.BreakModels != 1 {
 		t.Fatalf("wanderer: %+v %v", u, ok)
@@ -118,15 +116,8 @@ func TestTemporaryWandererIsAUnitOfTheFold(t *testing.T) {
 	if got := b.state().Break(1); got.Casualties != 1 {
 		t.Errorf("a casualty: %+v", got)
 	}
-	// no Stand Fast, and no MVP vote
-	if _, err := b.try(1, LiveAction{Kind: LiveBroken, UnitID: id, StandFast: true}); err == nil {
-		// it is in the casualty zone, so first bring it back
-		t.Log("refused as a casualty")
-	}
+	// no MVP vote
 	b.do(1, LiveAction{Kind: LiveReturn, UnitID: id})
-	if _, err := b.try(1, LiveAction{Kind: LiveBroken, UnitID: id, StandFast: true}); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Stand Fast") {
-		t.Errorf("no Stand Fast: %v", err)
-	}
 	vote := LiveAction{Kind: LiveMVPVote, TargetCompanyID: 1, UnitID: id}
 	if _, _, _, err := b.state().CheckAs(vote, 1, LiveVoter{ID: 5, Name: "Ann"}); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "temporary Wanderer") {
 		t.Errorf("no MVP: %v", err)
@@ -201,13 +192,10 @@ func TestLiveOverlaysTheAgainstTheOddsRecord(t *testing.T) {
 	if lc, err = f.svc.Undo(f.ctx, f.user(liveOwner1), 5, 1, e.ID, 1); err != nil || unitOf(lc, hero).Loaned[0].Used {
 		t.Errorf("undo: %v", err)
 	}
-	// the Wanderer fights: it can wound an enemy and cannot call Stand Fast
+	// the Wanderer fights: it can wound an enemy
 	enemy, _ := f.svc.Live(f.ctx, f.user(liveOwner2), 5, 2)
 	if _, _, err := f.svc.Apply(f.ctx, f.user(liveOwner1), 5, 1, 1, LiveAction{Kind: LiveWound, UnitID: -1, Targets: []WoundTarget{{UnitID: enemy.Units[0].UnitID, Caused: 1}}}); err != nil {
 		t.Fatalf("the Wanderer wounds: %v", err)
-	}
-	if _, _, err := f.svc.Apply(f.ctx, f.user(liveOwner1), 5, 1, 1, LiveAction{Kind: LiveBroken, UnitID: -1, StandFast: true}); !errors.Is(err, ErrRefused) {
-		t.Errorf("no Stand Fast: %v", err)
 	}
 	// it is not on the aftermath sheet
 	sheets, ok, err := f.svc.AftermathDefaults(f.ctx, 5, 1, 1)

@@ -122,8 +122,7 @@ Code: `liveView.Milestones` in `live_milestones.go` builds them, `live_actions_m
 **Actions below the row.**
 
 - `.live-actions` (editors only, icon above the label) appears only while the unit has a loaned item to spend; **Item used** opens its sheet.
-- The route also serves the list of every action (`sheet/menu`, which no card opens): Wounded a unit, Passed a fate roll, Passed a Broken courage roll, Retreated, Died, Mount removed/re-added. Fate and Mount appear only when the unit has them.
-- Each action opens its sheet (`GET .../live/{company}/units/{unit}/sheet/{kind}`, `live_sheet`).
+- **Wounded a unit** and **Item used** are the two actions with a sheet (`GET .../live/{company}/units/{unit}/sheet/{kind}`, `live_sheet`); any other kind is a 404.
 
 **Wounded a unit.**
 
@@ -155,9 +154,7 @@ Every viewer sees it in `#live-end` of the banner: "Rangers is broken", or "Rang
 **Cards of a Broken company** in the Field offer **Failed Courage** (`CourageTest`) and show no chip until the unit has a recorded test (`CourageDue`).
 Then they show a chip (`liveView.CourageChip`, from `LiveUnit.CourageHow`):
 
-- "Tested: passed" or "Tested: failed";
-- "Auto-pass" for `standFast`, `heroicResolve`, `chariot` and `scenario`;
-- "Exempt" for `engaged` and `cannotActivate`.
+- "Tested: passed" or "Tested: failed".
 
 **Company header.**
 On the company's own page and on another company's read-only page it shows "Break Point: N% of the starting models".

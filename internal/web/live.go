@@ -45,10 +45,6 @@ func (v liveView) CourageChip(l core.LiveUnit) string {
 		return "Tested: passed"
 	case "failed":
 		return "Tested: failed"
-	case "standFast", "heroicResolve", "chariot", "scenario":
-		return "Auto-pass"
-	case "engaged", "cannotActivate":
-		return "Exempt"
 	}
 	return "Courage resolved"
 }

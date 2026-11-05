@@ -295,10 +295,9 @@ There is no turn tracking (no Start turn, no turn number). When a write makes a 
    the casualties by name, the scenario exceptions (Defend the Hill: models on the hill do not test; Let nothing through!: the Defender within 6" of the Gate passes automatically; Only a Pony After All: Baggage Ponies do not count for the Defender; Neutral Third-Party: no tests; Maelstrom of Battle: models yet
    to arrive count as on the board) and the break point log lines. The company header shows "Break Point: N% of the starting models" (`CompanyDetail.BreakPointPercent`, the company's own rule or the file's default).
 2. **Broken notice** in the live banner (for everybody): "Hador is broken"; the Break Point panel says "Every model tests Courage before it activates, each turn. Models in combat, or that cannot activate, do not test."
-3. **Unit cards of a Broken company** in the Field offer **Failed Courage**; once the unit has a recorded test they show "Tested: passed", "Tested: failed", "Auto-pass" or "Exempt" (the last result; players test again at the table as often as the rules say). The test is rolled at the table and the app records the outcome:
+3. **Unit cards of a Broken company** in the Field offer **Failed Courage**; once the unit has a recorded test they show "Tested: passed" or "Tested: failed" (the last result; players test again at the table as often as the rules say). The test is rolled at the table and the app records the outcome:
    - **Failed** (the **Failed Courage** button, one press, no window and no confirmation): the `retreat` action with reason "Failed courage": the unit flees, counts as a casualty, outcome `fled`, no injury roll, no experience.
-   - **Passed** (`broken` action, the **Courage** milestone) earns `brokenCourageTestPassed` once. The `broken` sheet offers **Call Stand Fast** for a Hero (not for a Hero with Broken Honour or a Wanderer); it is logged. No card opens that sheet.
-   - **Passes without a roll** (`courageSkip`, reason `standFast`, `heroicResolve`, `chariot`, `scenario`, `engaged`, `cannotActivate`; the last two are exemptions) earn no experience. No page offers them any more; the kind stays so that stored match logs replay, and the chips still read them.
+   - **Passed** (`broken` action, the **Courage** milestone) earns `brokenCourageTestPassed` once. Stand Fast, automatic passes and exemptions are settled at the table: the app does not record them.
 
 There is no All is Lost action: a company that leaves the field is reported by the players as the other side's win ([matches.md](matches.md#concepts)); its units can still retreat one by one ("Left the board").
 
@@ -306,13 +305,12 @@ There is no All is Lost action: a company that leaves the field is reported by t
 
 ```go
 LiveBreakAdjust LiveKind = "breakAdjust" // Field "start"|"casualties", Delta, Note
-LiveCourageSkip LiveKind = "courageSkip" // UnitID, Reason
 ```
 
-`LiveAction` carries `Field`, `StandFast` (on a `broken` action: this Hero called Stand Fast), `Reason`, `Item` and `Index`. Old `turn` entries are ignored by the fold; old `allIsLost` flee entries still take the units off the board, and new ones are refused. Old secret objective notes of Fog of War (`secretNominate`, `secretDone`) are ignored by the fold and new ones are refused; while their match is open only their author sees and undoes them, they send no live notification, and after the end they are lines of the log. They still count as the start of the game. `FoldLiveWith(inits, entries, LiveFoldConfig)` and `ValidateLogWith` take what the log does not hold: per company `BreakConfig{Percent, Extra, Exceptions}` (the company's own
-`breakPointPercentage` or `campaign.breakPoint.default.percent`; `Extra` is the company's creatures; the exceptions are the match scenario's `scenarioExceptions` as sentences), `BreakModels` per unit and `NoStandFast` (non-Heroes, Wanderers, a Hero whose injuries took Stand Fast away). The service builds the config at every read
+`LiveAction` carries `Field`, `Item` and `Index`. Old `courageSkip` entries are ignored by the fold and new ones are refused. Old `turn` entries are ignored by the fold; old `allIsLost` flee entries still take the units off the board, and new ones are refused. Old secret objective notes of Fog of War (`secretNominate`, `secretDone`) are ignored by the fold and new ones are refused; while their match is open only their author sees and undoes them, they send no live notification, and after the end they are lines of the log. They still count as the start of the game. `FoldLiveWith(inits, entries, LiveFoldConfig)` and `ValidateLogWith` take what the log does not hold: per company `BreakConfig{Percent, Extra, Exceptions}` (the company's own
+`breakPointPercentage` or `campaign.breakPoint.default.percent`; `Extra` is the company's creatures; the exceptions are the match scenario's `scenarioExceptions` as sentences), and `BreakModels` per unit. The service builds the config at every read
 (`liveContext.breakConfig`); nothing is stored. `FoldLive` is the same with no config, and then nothing ever breaks. `LiveState.Break(company)` returns `LiveBreak{Percent, StartingModels, Casualties, Threshold100, Broken, AtLeast, LeftTable, EndLossPercent, Exceptions}` (`BreakAt()`, `ToBreak()`, `EndAt()`, `ToEnd()` in whole models, `EndLeftPercent()`);
-`LiveCompany` carries `Break`; `LiveUnit` carries `BreakModels`, `CourageHow` and `Temporary`. Migration `00021_live_break_point_kinds.sql` allows the kinds. `broken` and `courageSkip` are allowed even when the company is not Broken (the table may count differently); both are refused for a unit outside the Field.
+`LiveCompany` carries `Break`; `LiveUnit` carries `BreakModels`, `CourageHow` and `Temporary`. Migration `00021_live_break_point_kinds.sql` allows the kinds. `broken` is allowed even when the company is not Broken (the table may count differently) and refused for a unit outside the Field.
 
 ```go
 MatchDefaults(ctx, id, matchID int64) (core.LiveMatchDefaults, bool, error) // EnemyBroken per company; false without live data
@@ -320,7 +318,7 @@ MatchBreaks(ctx, id, matchID int64) (map[int64]core.LiveBreak, error)        // 
 ```
 
 `EnemyBroken` (every company of every other side is Broken at the end) prefills the `enemyBroken` scenario objective of the End match sheet. Routes: the `actions` route
-carries `breakAdjust`, `courageSkip` and the rest.
+carries `breakAdjust` and the rest.
 
 ## Against the Odds items in a live match
 

@@ -131,10 +131,6 @@ func TestCourageWindowIsGone(t *testing.T) {
 	if rec := f.do(f.signedIn(form("/campaigns/7/matches/3/live/1/units/5/courage/roll", url.Values{"roll": {"3"}, "roll2": {"4"}}))); rec.Code != 404 {
 		t.Errorf("the roll: %d", rec.Code)
 	}
-	menu := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/menu", nil))).Body.String()
-	if strings.Contains(menu, "Courage test") || !strings.Contains(menu, "Passed a Broken courage roll") {
-		t.Errorf("the menu has no Courage test entry: %s", menu)
-	}
 }
 
 func TestLiveActionsCarryTheBreakPointFields(t *testing.T) {
@@ -144,8 +140,7 @@ func TestLiveActionsCarryTheBreakPointFields(t *testing.T) {
 		want core.LiveAction
 	}{
 		{url.Values{"kind": {"breakAdjust"}, "field": {"start"}, "delta": {"-1"}, "note": {"Pony"}}, core.LiveAction{Kind: core.LiveBreakAdjust, Field: "start", Delta: -1, Note: "Pony"}},
-		{url.Values{"kind": {"courageSkip"}, "unit": {"5"}, "reason": {"engaged"}}, core.LiveAction{Kind: core.LiveCourageSkip, UnitID: 5, Reason: "engaged"}},
-		{url.Values{"kind": {"broken"}, "unit": {"5"}, "standFast": {"1"}}, core.LiveAction{Kind: core.LiveBroken, UnitID: 5, StandFast: true}},
+		{url.Values{"kind": {"broken"}, "unit": {"5"}}, core.LiveAction{Kind: core.LiveBroken, UnitID: 5}},
 		{url.Values{"kind": {"objective"}, "unit": {"5"}, "on": {"1"}}, core.LiveAction{Kind: core.LiveObjective, UnitID: 5, On: true}},
 		{url.Values{"kind": {"objective"}, "unit": {"5"}, "on": {"0"}}, core.LiveAction{Kind: core.LiveObjective, UnitID: 5}},
 		{url.Values{"kind": {"itemUsed"}, "unit": {"5"}, "item": {"Dwarven Brew"}, "index": {"1"}}, core.LiveAction{Kind: core.LiveItemUsed, UnitID: 5, Item: "Dwarven Brew", Index: 1}},
@@ -183,10 +178,6 @@ func TestLoanedItemsTemporaryWandererAndItemUsed(t *testing.T) {
 		t.Error("the temporary Wanderer cannot be dismissed")
 	}
 	f.camp.EXPECT().UnitLog(gomock.Any(), frodo, int64(7), int64(3), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes() // the window lists what the unit recorded
-	menu := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/menu", nil))).Body.String()
-	if !strings.Contains(menu, "Item used") {
-		t.Error("the menu offers Item used for a unit with an unspent loaned item")
-	}
 	items := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/item", nil))).Body.String()
 	for _, want := range []string{`value="itemUsed"`, `name="item" value="Dwarven Brew"`, "Healing Herbs and Wondrous Cram act in the aftermath"} {
 		if !strings.Contains(items, want) {
@@ -196,15 +187,10 @@ func TestLoanedItemsTemporaryWandererAndItemUsed(t *testing.T) {
 	if strings.Contains(items, `value="Torching Brand"`) || strings.Contains(items, `value="Healing Herbs"`) {
 		t.Error("spent and aftermath items are not offered")
 	}
-	// the temporary Wanderer has its own sheet, and Stand Fast is not offered for it
-	sheet := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/-1/sheet/broken", nil))).Body.String()
-	if !strings.Contains(sheet, "Radagast") || strings.Contains(sheet, "Call Stand Fast") {
-		t.Errorf("the Wanderer's sheet has no Stand Fast: %s", sheet)
-	}
 }
 
 func TestCourageChipSaysHowItWasResolved(t *testing.T) {
-	for how, want := range map[string]string{"passed": "Tested: passed", "failed": "Tested: failed", "heroicResolve": "Auto-pass", "scenario": "Auto-pass", "engaged": "Exempt", "cannotActivate": "Exempt"} {
+	for how, want := range map[string]string{"passed": "Tested: passed", "failed": "Tested: failed"} {
 		f := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) { brokenState(lc); lc.Units[0].CourageHow = how })
 		if body := livePage(f); !strings.Contains(body, ">"+want+"<") {
 			t.Errorf("how %q: chip lacks %q", how, want)

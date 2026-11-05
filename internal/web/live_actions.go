@@ -58,17 +58,13 @@ func liveActionFrom(r *http.Request) (core.LiveAction, error) {
 		a.Mounted = r.PostFormValue("mounted") == "1"
 	case core.LiveWound:
 		a.Targets = []core.WoundTarget{{UnitID: formID(r, "target"), Part: r.PostFormValue("part"), Caused: formInt(r, "caused"), SavedByFate: formInt(r, "saved")}}
-	case core.LiveBroken:
-		a.StandFast = r.PostFormValue("standFast") == "1"
 	case core.LiveBreakAdjust:
 		a.Field, a.Delta = r.PostFormValue("field"), formInt(r, "delta")
-	case core.LiveCourageSkip:
-		a.Reason = r.PostFormValue("reason")
 	case core.LiveObjective:
 		a.On = r.PostFormValue("on") == "1"
 	case core.LiveItemUsed:
 		a.Item, a.Index = r.PostFormValue("item"), formInt(r, "index")
-	case core.LiveDied, core.LiveReturn:
+	case core.LiveBroken, core.LiveDied, core.LiveReturn:
 	default:
 		return a, core.Refuse("Unknown action.")
 	}

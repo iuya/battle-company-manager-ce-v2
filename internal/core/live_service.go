@@ -80,7 +80,7 @@ func (s *LiveService) context(ctx context.Context, user User, id, matchID int64)
 // build is context for a match already read; camp is the zero value when no viewer is involved (MatchDefaults).
 func (s *LiveService) build(ctx context.Context, id int64, camp CampaignDetail, m Match) (liveContext, error) {
 	lc := liveContext{camp: camp, match: m, details: map[int64]CompanyDetail{}, owners: map[int64]int64{},
-		cfg: LiveFoldConfig{Break: map[int64]BreakConfig{}, BreakModels: map[int64]int{}, NoStandFast: map[int64]bool{}, Owned: map[int64][]string{}}}
+		cfg: LiveFoldConfig{Break: map[int64]BreakConfig{}, BreakModels: map[int64]int{}, Owned: map[int64][]string{}}}
 	for _, side := range m.Sides {
 		for _, co := range side.Companies {
 			lc.owners[co.ID] = co.OwnerID
@@ -126,7 +126,6 @@ func (lc *liveContext) overlay(rules ATORules, rec ATORecord) {
 		}
 		lc.extra = append(lc.extra, LiveUnitInit{UnitID: id, CompanyID: rec.CompanyID, Wounds: w.Wounds, Might: w.Might, Will: w.Will, Fate: w.Fate,
 			CountsAsKill: true, Temporary: true})
-		lc.cfg.NoStandFast[id] = true
 		lc.temp = &TemporaryWanderer{UnitID: id, Name: w.Name, Summary: w.Summary, Rating: rating, Courage: w.Courage}
 		lc.tempCo = rec.CompanyID
 	}
@@ -166,7 +165,6 @@ func (lc *liveContext) breakConfig(rs *RuleSet, d CompanyDetail) {
 			n = 1
 		}
 		lc.cfg.BreakModels[u.ID] = n
-		lc.cfg.NoStandFast[u.ID] = !u.IsHero() || u.Wanderer || u.Lost(AbilityStandFast)
 	}
 }
 

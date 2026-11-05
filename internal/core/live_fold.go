@@ -211,7 +211,7 @@ func clamp(v, lo, hi int) int { return min(max(v, lo), hi) }
 
 // apply changes the state by an action that has been resolved (deltas, no Set). It clamps instead of failing.
 func (s LiveState) apply(a LiveAction, byCompany, voter int64) {
-	if a.Kind.Informational() || a.Kind.Secret() { // an older secret note changes nothing in the state
+	if a.Kind.Informational() || a.Kind.Secret() || a.Kind == liveCourageSkipLegacy { // an older secret note or skip changes nothing in the state
 		return
 	}
 	if a.Kind == LiveMVPVote {
@@ -245,8 +245,6 @@ func (s LiveState) apply(a LiveAction, byCompany, voter int64) {
 		return
 	}
 	switch a.Kind {
-	case LiveCourageSkip:
-		u.CourageHow = a.Reason
 	case LiveItemUsed:
 		if i := u.loanedIndex(a.Item, a.Index); i >= 0 {
 			u.Loaned[i].Used = true
@@ -359,6 +357,8 @@ func (s LiveState) CheckAs(a LiveAction, byCompany int64, voter LiveVoter) (reso
 		return a, nil, "", invalid("Turns and All is Lost are settled at the table now.")
 	case liveSecretNominateLegacy, liveSecretDoneLegacy:
 		return a, nil, "", invalid("Secret objectives are settled at the table now.")
+	case liveCourageSkipLegacy:
+		return a, nil, "", invalid("Courage without a roll is settled at the table now.")
 	}
 	u, ok := s.units[a.UnitID]
 	if !ok {
@@ -488,13 +488,7 @@ func (s LiveState) CheckAs(a LiveAction, byCompany int64, voter LiveVoter) (reso
 		if err := inField(); err != nil {
 			return a, nil, "", err
 		}
-		if a.StandFast && s.cfg.NoStandFast[a.UnitID] {
-			return a, nil, "", Refuse("%s cannot call Stand Fast.", who)
-		}
 		text = who + " passed a Broken courage test"
-		if a.StandFast {
-			text += " and called Stand Fast"
-		}
 	case LiveItemUsed:
 		if err := inField(); err != nil {
 			return a, nil, "", err
@@ -526,19 +520,6 @@ func (s LiveState) CheckAs(a LiveAction, byCompany int64, voter LiveVoter) (reso
 		}
 		resolved.Item = item
 		text = who + " used " + item
-	case LiveCourageSkip:
-		if err := inField(); err != nil {
-			return a, nil, "", err
-		}
-		why, known := courageSkipReasons[a.Reason]
-		if !known {
-			return a, nil, "", invalid("Choose why %s needs no courage test.", who)
-		}
-		if courageExempt(a.Reason) {
-			text = fmt.Sprintf("%s takes no courage test (%s)", who, why)
-		} else {
-			text = fmt.Sprintf("%s passes courage automatically (%s)", who, why)
-		}
 	case LiveRetreat:
 		if err := inField(); err != nil {
 			return a, nil, "", err

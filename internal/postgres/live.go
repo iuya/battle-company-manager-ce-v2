@@ -64,19 +64,17 @@ type liveActionJSON struct {
 	On      bool               `json:"on,omitempty"`
 	Target  int64              `json:"target,omitempty"`
 	// the Break Point and the Against the Odds items (36y)
-	Turn      int    `json:"turn,omitempty"`
-	Field     string `json:"field,omitempty"`
-	StandFast bool   `json:"standFast,omitempty"`
-	Reason    string `json:"reason,omitempty"`
-	Flee      bool   `json:"flee,omitempty"`
-	Item      string `json:"item,omitempty"`
-	Index     int    `json:"index,omitempty"`
+	Turn  int    `json:"turn,omitempty"`
+	Field string `json:"field,omitempty"`
+	Flee  bool   `json:"flee,omitempty"`
+	Item  string `json:"item,omitempty"`
+	Index int    `json:"index,omitempty"`
 }
 
 func encodeAction(a core.LiveAction) ([]byte, error) {
 	return json.Marshal(liveActionJSON{V: 1, Kind: a.Kind, UnitID: a.UnitID, Stat: a.Stat, Delta: a.Delta, Set: a.Set,
 		Targets: a.Targets, Count: a.Count, Why: a.Why, Note: a.Note, Mounted: a.Mounted, On: a.On, Target: a.TargetCompanyID,
-		Turn: a.Turn, Field: a.Field, StandFast: a.StandFast, Reason: a.Reason, Flee: a.Flee, Item: a.Item, Index: a.Index})
+		Turn: a.Turn, Field: a.Field, Flee: a.Flee, Item: a.Item, Index: a.Index})
 }
 
 func decodeAction(raw []byte) (core.LiveAction, error) {
@@ -86,7 +84,7 @@ func decodeAction(raw []byte) (core.LiveAction, error) {
 	}
 	return core.LiveAction{Kind: j.Kind, UnitID: j.UnitID, Stat: j.Stat, Delta: j.Delta, Set: j.Set, Targets: j.Targets,
 		Count: j.Count, Why: j.Why, Note: j.Note, Mounted: j.Mounted, On: j.On, TargetCompanyID: j.Target,
-		Turn: j.Turn, Field: j.Field, StandFast: j.StandFast, Reason: j.Reason, Flee: j.Flee, Item: j.Item, Index: j.Index}, nil
+		Turn: j.Turn, Field: j.Field, Flee: j.Flee, Item: j.Item, Index: j.Index}, nil
 }
 
 const liveEntryColumns = `l.id, l.seq, l.match_id, l.company_id, l.unit_id, l.touches, l.payload, l.text, coalesce(u.display_name, ''),

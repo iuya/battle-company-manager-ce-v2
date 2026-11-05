@@ -558,11 +558,10 @@
 
 {{/* The window of a live action of a unit in a running match. Takes liveSheet. The form answers the zones of the page (htmx) and closes the
    window; a refusal comes back as a toast with the state as it is. */}}
-{{define "live_sheet"}}{{$u := .Unit}}{{$l := .Live}}{{if eq .Kind "menu"}}{{template "live_menu" .}}{{else if eq .Kind "item"}}{{template "live_items" .}}{{else}}
+{{define "live_sheet"}}{{$u := .Unit}}{{if eq .Kind "item"}}{{template "live_items" .}}{{else}}
 <form method="post" action="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/live/{{.Company}}/actions" hx-post="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/live/{{.Company}}/actions" {{template "hx_zones"}} @htmx:after-request="closeModal()" class="space-y-4"
-  {{if eq .Kind "wound"}}x-data="woundSheet" data-attacker="{{$u.Title}}" data-xp="{{index .Gains "woundedEnemy"}}"{{else if eq .Kind "fate"}}x-data="{ count: 1, fate: {{$l.Fate.Current}} }"{{end}}>
+  x-data="woundSheet" data-attacker="{{$u.Title}}" data-xp="{{index .Gains "woundedEnemy"}}">
   <input type="hidden" name="kind" value="{{.Kind}}"><input type="hidden" name="unit" value="{{$u.ID}}">
-  {{if eq .Kind "wound"}}
   <h2 class="!text-2xl pr-10">{{$u.Title}} wounded a unit</h2>
   <p class="text-sm text-muted">Pick who was wounded, how many wounds were caused and how many a Fate roll saved. The unit earns the wounding experience once per game, even when every wound was saved.</p>
   {{template "live_recorded" .}}
@@ -605,45 +604,6 @@
   <div class="flex flex-wrap gap-2"><button class="btn btn-primary" :disabled="!t">Confirm</button><button type="button" class="btn btn-secondary" @click="closeModal()">Cancel</button></div>
   {{end}}
 
-  {{else if eq .Kind "fate"}}
-  <h2 class="!text-2xl pr-10">{{$u.Title}} passed a fate roll</h2>
-  <p class="text-sm text-muted">Spending Fate to prevent a wound. It earns the Fate experience once per game.</p>
-  {{template "live_recorded" .}}
-  <div class="field"><label for="fate-count">Fate points spent</label>
-    <div class="flex items-center gap-1"><button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" @click="count = Math.max(1, count - 1)" aria-label="One fewer">−</button>
-    <input id="fate-count" name="count" type="number" min="1" max="{{$l.Fate.Current}}" x-model.number="count" class="input w-16 text-center"><button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" @click="count = Math.min(fate, count + 1)" aria-label="One more">+</button></div></div>
-  <p class="text-sm" role="status">Fate {{$l.Fate.Current}} → <strong x-text="fate - count"></strong></p>
-  <div class="flex flex-wrap gap-2"><button class="btn btn-primary">Confirm</button><button type="button" class="btn btn-secondary" @click="closeModal()">Cancel</button></div>
-
-  {{else if eq .Kind "broken"}}
-  <h2 class="!text-2xl pr-10">{{$u.Title}} passed a Broken courage roll</h2>
-  <p class="text-sm text-muted">Nothing changes on the card; it earns the courage experience once per game.{{if .Broken}} Its courage is resolved for this turn.{{end}}</p>
-  {{template "live_recorded" .}}
-  {{if .Hero}}<label class="flex min-h-11 items-start gap-3 rounded-lg border border-line px-3 py-2"><input type="checkbox" name="standFast" value="1" class="mt-1 h-4 w-4 accent-[var(--accent)]"><span><span class="font-medium">Call Stand Fast</span><span class="block text-sm text-muted">Warriors of the company within 6" in line of sight pass automatically. The match refuses it for a Hero with Broken Honour.</span></span></label>{{end}}
-  <div class="flex flex-wrap gap-2"><button class="btn btn-primary">Confirm</button><button type="button" class="btn btn-secondary" @click="closeModal()">Cancel</button></div>
-
-  {{else if eq .Kind "retreat"}}
-  <h2 class="!text-2xl pr-10">{{$u.Title}} retreated</h2>
-  <p class="text-sm text-muted">It leaves the table: no injury roll, and it cannot act or be targeted until it returns to the battle.</p>
-  <fieldset class="space-y-2"><legend class="sr-only">Why</legend>
-    <label class="flex min-h-11 items-center gap-3 rounded-lg border border-line px-3 py-2"><input type="radio" name="why" value="courage" checked class="h-4 w-4 accent-[var(--accent)]"><span>Failed a courage roll</span></label>
-    <label class="flex min-h-11 items-center gap-3 rounded-lg border border-line px-3 py-2"><input type="radio" name="why" value="left" class="h-4 w-4 accent-[var(--accent)]"><span>Left the board</span></label>
-  </fieldset>
-  <div class="field"><label for="live-note">Note (optional)</label><input id="live-note" name="note" maxlength="200" class="input"></div>
-  <div class="flex flex-wrap gap-2"><button class="btn btn-primary">Retreated</button><button type="button" class="btn btn-secondary" @click="closeModal()">Cancel</button></div>
-
-  {{else if eq .Kind "died"}}
-  <h2 class="!text-2xl pr-10">{{$u.Title}} died</h2>
-  <p class="text-sm text-muted">For a death no enemy wound caused (a fall, a collapse). It moves to the field casualties and rolls for injuries after the match.</p>
-  <div class="field"><label for="live-note">What happened (optional)</label><input id="live-note" name="note" maxlength="200" placeholder="Fell off a cliff" class="input"></div>
-  <div class="flex flex-wrap gap-2"><button class="btn btn-primary">Died</button><button type="button" class="btn btn-secondary" @click="closeModal()">Cancel</button></div>
-
-  {{else if eq .Kind "mount"}}
-  <h2 class="!text-2xl pr-10">{{if $l.Mounted}}{{$u.Title}} lost the mount{{else}}{{$u.Title}} has the mount back{{end}}</h2>
-  <p class="text-sm text-muted">{{if $l.Mounted}}It fights on foot: the gear and rules that need a mount, and Cavalry, are struck through. Nothing is lost for good.{{else}}The mounted gear and rules count again.{{end}}</p>
-  <input type="hidden" name="mounted" value="{{if $l.Mounted}}0{{else}}1{{end}}">
-  <div class="flex flex-wrap gap-2"><button class="btn btn-primary">Confirm</button><button type="button" class="btn btn-secondary" @click="closeModal()">Cancel</button></div>
-  {{end}}
 </form>{{end}}
 {{end}}
 
@@ -707,22 +667,6 @@
 
 {{/* The attributes of a request that answers the live zones: they replace #live-zones, one request at a time. */}}
 {{define "hx_zones"}}hx-target="#live-zones" hx-swap="outerHTML" hx-sync="#live-zones:queue all"{{end}}
-
-{{/* The list of actions a unit can take now (hidden: Fate with none left, the mount without one). Takes liveSheet. */}}
-{{define "live_menu"}}{{$u := .Unit}}{{$l := .Live}}{{$base := printf "/campaigns/%d/matches/%d/live/%d/units/%d/sheet" .Campaign .MatchID .Company $u.ID}}
-<h2 class="!text-2xl pr-10">{{$u.Title}}</h2>
-<p class="mt-1 text-sm text-muted">What happened to {{$u.Title}}? Each one is written in the match log and can be undone.</p>
-<ul class="mt-4 space-y-2" role="menu" aria-label="Actions of {{$u.Title}}">
-  {{range $a := list "wound|Wounded a unit|Pick who was wounded and how many wounds." "fate|Passed a fate roll|Spend Fate to prevent a wound." "broken|Passed a Broken courage roll|Earns experience once per game." "retreat|Retreated|Left the table: no injury roll." "died|Died|Without an enemy wound: a fall, a collapse." "mount|Mount|The mount was lost or is back." "item|Item used|A loaned item was used in the game."}}
-  {{$kind := index (split $a "|") 0}}{{$label := index (split $a "|") 1}}{{$hint := index (split $a "|") 2}}
-  {{if and (or (ne $kind "fate") (gt $l.Fate.Current 0)) (or (ne $kind "item") $l.ItemsToUse)}}{{if or (ne $kind "mount") $l.HasMount}}
-  <li role="none"><button type="button" role="menuitem" class="flex min-h-14 w-full flex-col items-start justify-center rounded-lg border border-line px-4 py-2 text-left hover:bg-raised" hx-get="{{$base}}/{{$kind}}" hx-target="#modal-body" hx-swap="innerHTML">
-    <span class="font-medium">{{if eq $kind "mount"}}{{if $l.Mounted}}Mount removed{{else}}Mount re-added{{end}}{{else}}{{$label}}{{end}}</span><span class="text-xs text-muted">{{$hint}}</span></button></li>
-  {{end}}{{end}}
-  {{end}}
-</ul>
-<p class="mt-4"><button type="button" class="btn btn-secondary" @click="closeModal()">Close</button></p>
-{{end}}
 
 {{/* The recruit window when a Ranger of the North has been chosen: he takes command and the player arranges the officers. The Ranger
    (ID 0) starts as Leader and may be moved to any officer place, never to the pool; the other officers fill the Sergeant places and one of

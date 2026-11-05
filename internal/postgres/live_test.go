@@ -569,8 +569,8 @@ func TestLiveBreakPointAndItemKinds(t *testing.T) {
 	ua := w.unitsOf[w.a.ID][0]
 	actions := []core.LiveEntry{
 		{CompanyID: w.a.ID, Text: "adj", Action: core.LiveAction{Kind: core.LiveBreakAdjust, Field: "casualties", Delta: -1, Note: "pony"}},
-		{CompanyID: w.a.ID, UnitID: ua, Text: "skip", Action: core.LiveAction{Kind: core.LiveCourageSkip, UnitID: ua, Reason: "standFast"}},
-		{CompanyID: w.a.ID, UnitID: ua, Text: "passed", Action: core.LiveAction{Kind: core.LiveBroken, UnitID: ua, StandFast: true}},
+		{CompanyID: w.a.ID, UnitID: ua, Text: "skip", Action: core.LiveAction{Kind: core.LiveKind("courageSkip"), UnitID: ua}},
+		{CompanyID: w.a.ID, UnitID: ua, Text: "passed", Action: core.LiveAction{Kind: core.LiveBroken, UnitID: ua}},
 		{CompanyID: w.a.ID, UnitID: ua, Text: "used", Action: core.LiveAction{Kind: core.LiveItemUsed, UnitID: ua, Item: "Dwarven Brew", Index: 2}},
 	}
 	var last core.LiveEntry
@@ -589,8 +589,8 @@ func TestLiveBreakPointAndItemKinds(t *testing.T) {
 		if got.Action.Kind != want.Action.Kind || got.CompanyID != want.CompanyID || got.UnitID != want.UnitID {
 			t.Errorf("entry %d: %+v, want %+v", i, got, want)
 		}
-		if g, w := got.Action, want.Action; g.Turn != w.Turn || g.Field != w.Field || g.Delta != w.Delta || g.Note != w.Note || g.Reason != w.Reason ||
-			g.StandFast != w.StandFast || g.Flee != w.Flee || g.Item != w.Item || g.Index != w.Index || g.UnitID != w.UnitID {
+		if g, w := got.Action, want.Action; g.Turn != w.Turn || g.Field != w.Field || g.Delta != w.Delta || g.Note != w.Note ||
+			g.Flee != w.Flee || g.Item != w.Item || g.Index != w.Index || g.UnitID != w.UnitID {
 			t.Errorf("payload %d: %+v, want %+v", i, g, w)
 		}
 	}

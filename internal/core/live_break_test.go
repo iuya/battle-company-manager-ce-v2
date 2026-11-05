@@ -28,7 +28,7 @@ type bp struct {
 }
 
 func newBP(t *testing.T, n, percent int) *bp {
-	cfg := LiveFoldConfig{Break: map[int64]BreakConfig{1: {Percent: percent}, 2: {Percent: percent}}, NoStandFast: map[int64]bool{}}
+	cfg := LiveFoldConfig{Break: map[int64]BreakConfig{1: {Percent: percent}, 2: {Percent: percent}}}
 	return &bp{t: t, inits: breakInits(n), cfg: cfg}
 }
 
@@ -321,7 +321,6 @@ func TestBreakPointModelsAndExtras(t *testing.T) {
 
 func TestCourageTests(t *testing.T) {
 	b := newBP(t, 4, 50)
-	b.cfg.NoStandFast = map[int64]bool{2: true}
 	b.do(1, LiveAction{Kind: LiveDied, UnitID: 3})
 	b.do(1, LiveAction{Kind: LiveDied, UnitID: 4})
 	if b.state().Break(1).Broken {
@@ -335,46 +334,18 @@ func TestCourageTests(t *testing.T) {
 	if u(1).CourageHow != "" {
 		t.Fatalf("not tested yet: %+v", u(1))
 	}
-	b.do(1, LiveAction{Kind: LiveBroken, UnitID: 1, StandFast: true})
+	b.do(1, LiveAction{Kind: LiveBroken, UnitID: 1})
 	if x := u(1); x.CourageHow != "passed" || x.Gains[GainBrokenPassed] != 1 {
 		t.Errorf("a rolled pass: %+v", x)
 	}
-	if _, err := b.try(1, LiveAction{Kind: LiveBroken, UnitID: 1, StandFast: true}); err != nil {
+	if _, err := b.try(1, LiveAction{Kind: LiveBroken, UnitID: 1}); err != nil {
 		t.Errorf("a hero passing again is allowed: %v", err)
-	}
-	// courageSkip: resolves without the experience flag
-	text := b.do(1, LiveAction{Kind: LiveCourageSkip, UnitID: 1, Reason: "heroicResolve"})
-	if text != "unit 1 passes courage automatically (Heroic Resolve)" {
-		t.Errorf("text: %q", text)
-	}
-	if x := u(1); x.CourageHow != "heroicResolve" {
-		t.Errorf("%+v", x)
-	}
-	s := b.state()
-	s.UnitName = func(id int64) string { return map[int64]string{3: "Cene"}[id] }
-	if _, _, tx, err := s.Check(LiveAction{Kind: LiveCourageSkip, UnitID: 1, Reason: "engaged"}, 1); err != nil || !strings.Contains(tx, "takes no courage test (in combat)") {
-		t.Errorf("exempt: %q %v", tx, err)
-	}
-	if _, err := b.try(1, LiveAction{Kind: LiveCourageSkip, UnitID: 1, Reason: "magic"}); !errors.Is(err, ErrInvalidLive) {
-		t.Errorf("unknown reason: %v", err)
-	}
-	if _, err := b.try(1, LiveAction{Kind: LiveCourageSkip, UnitID: 3, Reason: "chariot"}); !errors.Is(err, ErrRefused) {
-		t.Errorf("a unit outside the Field: %v", err)
-	}
-	b.do(1, LiveAction{Kind: LiveDied, UnitID: 1})
-	if _, err := b.try(1, LiveAction{Kind: LiveBroken, UnitID: 2, StandFast: true}); !errors.Is(err, ErrRefused) {
-		t.Errorf("a Warrior or Wanderer cannot call Stand Fast: %v", err)
 	}
 	// a failed test: the unit flees as a casualty
 	b2 := newBP(t, 4, 50)
 	b2.do(1, LiveAction{Kind: LiveRetreat, UnitID: 1, Why: "courage"})
 	if x, _ := b2.state().Unit(1); x.CourageHow != "failed" || x.Zone != ZoneRetreated {
 		t.Errorf("failed courage: %+v", x)
-	}
-	// a skip never earns the experience flag
-	b2.do(1, LiveAction{Kind: LiveCourageSkip, UnitID: 2, Reason: "standFast"})
-	if x, _ := b2.state().Unit(2); x.Gains[GainBrokenPassed] != 0 {
-		t.Errorf("an automatic pass earns nothing: %+v", x)
 	}
 }
 
@@ -430,20 +401,6 @@ func TestLiveServiceBreakPoint(t *testing.T) {
 	if _, _, err := f.svc.Apply(f.ctx, f.user(liveOwner1), 5, 1, 1, LiveAction{Kind: liveTurnLegacy, Turn: 1}); !errors.Is(err, ErrInvalidLive) {
 		t.Errorf("there are no turns: %v", err)
 	}
-	// a Warrior cannot call Stand Fast
-	var warrior int64
-	for _, u := range lc.Units {
-		if u.UnitID%100 >= 6 { // the gondor() warriors have ids 6.. in their company
-			warrior = u.UnitID
-			break
-		}
-	}
-	if warrior == 0 {
-		t.Skip("no warrior in the fixture")
-	}
-	if _, _, err := f.svc.Apply(f.ctx, f.user(liveOwner1), 5, 1, 1, LiveAction{Kind: LiveBroken, UnitID: warrior, StandFast: true}); !errors.Is(err, ErrRefused) {
-		t.Errorf("stand fast by a warrior: %v", err)
-	}
 }
 
 func TestMatchDefaults(t *testing.T) {
@@ -482,5 +439,21 @@ func TestBreakExceptionTextPrefersTheDataSentence(t *testing.T) {
 	e.Prose = "  Models on the hill never test.  "
 	if got := e.Text(); got != "Models on the hill never test." {
 		t.Errorf("data text: %q", got)
+	}
+}
+
+// Passes and exemptions without a roll are settled at the table now: an older log keeps its entries, which change nothing, and no new one can be written.
+func TestOlderCourageSkipsFoldToNothing(t *testing.T) {
+	b := newBP(t, 4, 50)
+	if _, err := b.try(1, LiveAction{Kind: liveCourageSkipLegacy, UnitID: 1}); !errors.Is(err, ErrInvalidLive) {
+		t.Errorf("a new skip: %v", err)
+	}
+	inits := b.inits
+	entries := []LiveEntry{{ID: 1, Seq: 1, CompanyID: 1, UnitID: 1, Action: LiveAction{Kind: liveCourageSkipLegacy, UnitID: 1}}}
+	if x, _ := FoldLiveWith(inits, entries, b.cfg).Unit(1); x.CourageHow != "" || x.Gains[GainBrokenPassed] != 0 {
+		t.Errorf("an older skip changes nothing: %+v", x)
+	}
+	if err := ValidateLogWith(inits, entries, b.cfg); err != nil {
+		t.Errorf("an older skip does not stop the log around it from being undone: %v", err)
 	}
 }

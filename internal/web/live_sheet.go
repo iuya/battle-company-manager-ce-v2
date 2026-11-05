@@ -19,9 +19,6 @@ type liveSheet struct {
 	Gains    map[string]int
 	// Recorded are the unit's entries of this kind still in the log (wound, fate, broken): the milestone it earned and the way to undo it.
 	Recorded []core.LiveEntry
-
-	Broken bool // whether the company is Broken
-	Hero   bool // may call Stand Fast (a Hero that is not a Wanderer; the service refuses the rest with a sentence)
 }
 
 // temporaryUnit is the card of the temporary Wanderer of Against the Odds as a roster unit: it is in no roster.
@@ -48,7 +45,7 @@ type woundTarget struct {
 // handleLiveSheet answers the window of an action for a unit of {company}; only somebody who may change the company gets it.
 func (s *Server) handleLiveSheet(w http.ResponseWriter, r *http.Request) {
 	kind := r.PathValue("kind")
-	if !slices.Contains([]string{"menu", "fate", "broken", "retreat", "died", "mount", "wound", "item"}, kind) {
+	if !slices.Contains([]string{"wound", "item"}, kind) {
 		s.notFound(w, r)
 		return
 	}
@@ -95,7 +92,7 @@ func (s *Server) liveSheetFor(w http.ResponseWriter, r *http.Request, kind strin
 	if s.fail(w, r, err) {
 		return none, false
 	}
-	sheet := liveSheet{Campaign: id, MatchID: matchID, Company: companyID, Kind: kind, Broken: lc.Break.Broken}
+	sheet := liveSheet{Campaign: id, MatchID: matchID, Company: companyID, Kind: kind}
 	for _, u := range detail.Roster {
 		if u.ID == unitID {
 			sheet.Unit = u
@@ -113,9 +110,8 @@ func (s *Server) liveSheetFor(w http.ResponseWriter, r *http.Request, kind strin
 		s.notFound(w, r)
 		return none, false
 	}
-	sheet.Hero = sheet.Unit.IsHero() && !sheet.Unit.Wanderer
 	sheet.Gains = sheet.Live.Gains
-	if kind == "wound" || kind == "fate" || kind == "broken" {
+	if kind == "wound" {
 		if sheet.Recorded, err = s.campaigns.UnitLog(r.Context(), user, id, matchID, unitID, core.LiveKind(kind)); s.fail(w, r, err) {
 			return none, false
 		}

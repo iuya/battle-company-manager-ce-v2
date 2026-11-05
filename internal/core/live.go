@@ -45,8 +45,7 @@ type LiveUnit struct {
 	// is set for the temporary Wanderer of Against the Odds (its UnitID is TemporaryUnitID(company), never a roster id).
 	BreakModels int
 	Temporary   bool
-	// CourageHow is how the unit's last courage test was resolved: "passed" (tested), "failed" (tested, retreated), or the courageSkip reason
-	// (standFast, heroicResolve, chariot, scenario: automatic passes; engaged, cannotActivate: exemptions). Empty before any.
+	// CourageHow is how the unit's last courage test was resolved: "passed" (tested), "failed" (tested, retreated),. Empty before any.
 	CourageHow string
 	// Loaned are the items a Tool Kit put on the unit for this match (Used when an itemUsed entry spent it); UsedItems the names of the
 	// owned items it used.
@@ -134,16 +133,17 @@ const (
 
 	// The company Break Point in play and the Against the Odds items (epic 36y; docs/live-match.md).
 	LiveBreakAdjust LiveKind = "breakAdjust" // the manual correction of a company's starting models or casualties (Field, Delta, Note)
-	LiveCourageSkip LiveKind = "courageSkip" // a Broken company's unit passes or is exempt from the courage test without a roll (UnitID, Reason)
 	LiveItemUsed    LiveKind = "itemUsed"    // a loaned or owned consumable used during the game (UnitID, Item, Index)
 
 	// Kinds older logs may hold and that can no longer be written (docs/live-match.md, "Company Break Point in play"): a "turn" entry is
 	// ignored by the fold; an "allIsLost" entry with Flee still takes the company's units in the Field off the board. The secret objective
 	// notes of Fog of War are ignored by the fold too; while their match is open they stay their author's (LiveKind.Secret).
+	// A "courageSkip" entry, a pass or an exemption noted without a roll, is ignored by the fold as well.
 	liveTurnLegacy           LiveKind = "turn"
 	liveAllIsLostLegacy      LiveKind = "allIsLost"
 	liveSecretNominateLegacy LiveKind = "secretNominate"
 	liveSecretDoneLegacy     LiveKind = "secretDone"
+	liveCourageSkipLegacy    LiveKind = "courageSkip"
 
 	// Informational entries about a pending end of the match (epic 6uh): written by the app, shown in the log, never undone and never
 	// part of the fold.
@@ -174,7 +174,7 @@ func (k LiveKind) Secret() bool { return k == liveSecretNominateLegacy || k == l
 
 // legacy says whether the kind is one that older logs may hold and that can no longer be written.
 func (k LiveKind) legacy() bool {
-	return k == liveTurnLegacy || k == liveAllIsLostLegacy || k.Secret()
+	return k == liveTurnLegacy || k == liveAllIsLostLegacy || k == liveCourageSkipLegacy || k.Secret()
 }
 
 // LiveAction is one thing the player did. Fields by Kind:
@@ -204,15 +204,12 @@ type LiveAction struct {
 	// TargetCompanyID is the company an mvpVote is about.
 	TargetCompanyID int64
 	// Turn is what an older turn entry started (no longer written). Field is "start" or "casualties" for a breakAdjust.
-	// StandFast is set on a broken entry when the Hero called Stand Fast. Reason is a courageSkip's reason (standFast|heroicResolve|
-	// chariot|scenario|engaged|cannotActivate). Flee is an older allIsLost's answer. Item and Index name the consumable of an itemUsed.
-	Turn      int
-	Field     string
-	StandFast bool
-	Reason    string
-	Flee      bool
-	Item      string
-	Index     int
+	// Flee is an older allIsLost's answer. Item and Index name the consumable of an itemUsed.
+	Turn  int
+	Field string
+	Flee  bool
+	Item  string
+	Index int
 }
 
 // WoundTarget is one unit wounded by a declaration.

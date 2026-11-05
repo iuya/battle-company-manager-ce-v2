@@ -262,32 +262,22 @@ func TestTrackersAreSegmentsForTheOwnerAndMarksForAViewer(t *testing.T) {
 	}
 }
 
-func TestLiveSheetsOfTheActionsMenu(t *testing.T) {
+func TestLiveSheetsOnlyServeWhatTheCardsOpen(t *testing.T) {
 	f := liveOwnerSetup(t, core.LiveEdit)
-	f.camp.EXPECT().UnitLog(gomock.Any(), frodo, int64(7), int64(3), int64(5), core.LiveBroken).Return([]core.LiveEntry{
-		{ID: 61, UnitID: 5, Action: core.LiveAction{Kind: core.LiveBroken, UnitID: 5}, Text: "Hador passed a Broken courage test", CanUndo: true},
+	f.camp.EXPECT().UnitLog(gomock.Any(), frodo, int64(7), int64(3), int64(5), core.LiveWound).Return([]core.LiveEntry{
+		{ID: 61, UnitID: 5, Action: core.LiveAction{Kind: core.LiveWound, UnitID: 5}, Text: "Hador wounded a unit", CanUndo: true},
 	}, nil).AnyTimes()
-	if code, body := liveSheetGet(f, "broken"); code != 200 || !strings.Contains(body, "Recorded this match") || !strings.Contains(body, "/live/log/61/undo") {
-		t.Errorf("broken: the window lists the unit's own courage entries with Undo: %d %s", code, body)
+	f.camp.EXPECT().Match(gomock.Any(), int64(7), int64(3)).Return(core.Match{ID: 3}, nil).AnyTimes()
+	if code, body := liveSheetGet(f, "wound"); code != 200 || !strings.Contains(body, "Recorded this match") || !strings.Contains(body, "/live/log/61/undo") || !strings.Contains(body, `hx-target="#live-zones"`) {
+		t.Errorf("wound: the window lists the unit's own entries with Undo: %d %s", code, body)
 	}
-	get := func(kind string) (int, string) {
-		rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/"+kind, nil)))
-		return rec.Code, rec.Body.String()
-	}
-	code, body := get("menu")
-	if code != 200 || !strings.Contains(body, "Wounded a unit") || !strings.Contains(body, "Passed a Broken courage roll") || strings.Contains(body, "Passed a fate roll") || strings.Contains(body, "Mount removed") {
-		t.Errorf("menu: %d %s", code, body) // no Fate left to spend, no mount
-	}
-	for kind, want := range map[string]string{"broken": `name="kind" value="broken"`, "retreat": "Failed a courage roll", "died": "Fell off a cliff"} {
-		if code, body := get(kind); code != 200 || !strings.Contains(body, want) || !strings.Contains(body, `hx-target="#live-zones"`) {
-			t.Errorf("%s: %d", kind, code)
+	for _, kind := range []string{"menu", "fate", "broken", "retreat", "died", "mount", "courage", "nonsense"} {
+		if code, _ := liveSheetGet(f, kind); code != 404 {
+			t.Errorf("%s: %d, want 404", kind, code)
 		}
 	}
-	if code, _ := get("nonsense"); code != 404 {
-		t.Errorf("unknown sheet: %d", code)
-	}
 	g := liveOwnerSetup(t, core.LiveNone)
-	if rec := g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/menu", nil))); rec.Code != http.StatusForbidden {
+	if rec := g.do(g.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/wound", nil))); rec.Code != http.StatusForbidden {
 		t.Errorf("a viewer gets no sheet: %d", rec.Code)
 	}
 }
