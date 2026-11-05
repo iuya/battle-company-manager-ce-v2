@@ -53,8 +53,7 @@ func (s *Server) endBannerFor(r *http.Request, base campaignBase, m core.Match, 
 	}
 	if !m.Ended && !m.ATODecided {
 		if st, err := s.campaigns.ATOStatus(r.Context(), base.Campaign.ID, m); err == nil && st.Pending { // an extra: a failed read shows none; the write is refused anyway
-			u := *userFrom(r.Context())
-			b.ATOWaiting, b.ATOMine = st.Why(), st.OwnerID == u.ID || base.Campaign.CanManage(u)
+			b.ATOWaiting, b.ATOMine = st.Why(), st.CanDecide(*userFrom(r.Context()), base.Campaign.OrganiserID)
 		}
 	}
 	if !m.Ended {

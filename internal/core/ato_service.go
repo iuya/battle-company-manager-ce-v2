@@ -332,6 +332,11 @@ func (a ATOStatus) Why() string {
 	return fmt.Sprintf("Waiting for %s to choose Against the Odds.", a.CompanyName)
 }
 
+// CanDecide is whether the user may make the decision the status describes, by ATOAccessFor. A status is only read of an open match.
+func (a ATOStatus) CanDecide(u User, organiserID int64) bool {
+	return ATOAccessFor(u, Match{}, CampaignCompany{OwnerID: a.OwnerID}, organiserID) == ATOEdit
+}
+
 // ATOStatus says where the decision of a match with its companies rated (Match, Matches) stands. Nothing blocks a match without a card
 // (not one company a side, equal ratings), one that is decided or has started, or one whose gap pays for no bonus.
 func (s *Matches) ATOStatus(ctx context.Context, id int64, m Match) (ATOStatus, error) {
