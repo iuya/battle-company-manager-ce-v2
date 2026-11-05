@@ -32,7 +32,7 @@
 {{if not .Edit}}<p class="mt-1 text-sm text-muted">You can read this aftermath but not change it.</p>{{end}}
 
 {{/* the stepper, until the aftermath is over: only the steps that apply (an empty one is skipped); the current step is open, earlier ones are summaries */}}
-{{if ne .Step 4}}
+{{if not .Closed}}
 {{$step := .Step}}{{$steps := .Steps}}
 <ol class="mt-5 flex gap-1 text-center text-xs sm:text-sm" aria-label="Steps">
   {{range $n, $st := $steps}}{{$i := $st.Index}}
@@ -43,12 +43,12 @@
 </ol>
 {{end}}
 
-<div class="{{if eq .Step 4}}mt-4{{else}}mt-6{{end}} space-y-6" x-effect="document.body.classList.toggle('overflow-hidden', modal)" x-data="{ modal: false, openModal() { this.modal = true }, closeModal() { this.modal = false; htmx.ajax('GET', location.pathname, { target: '#main', swap: 'innerHTML' }) } }" @keydown.escape.window="if (modal) closeModal()">
-  {{if eq .Step 4}}{{template "aftermath_done" .}}{{if .HasLevelUps}}{{template "aftermath_levelups_card" .}}{{end}}
+<div class="{{if .Closed}}mt-4{{else}}mt-6{{end}} space-y-6" x-effect="document.body.classList.toggle('overflow-hidden', modal)" x-data="{ modal: false, openModal() { this.modal = true }, closeModal() { this.modal = false; htmx.ajax('GET', location.pathname, { target: '#main', swap: 'innerHTML' }) } }" @keydown.escape.window="if (modal) closeModal()">
+  {{if .Closed}}{{template "aftermath_done" .}}{{if .HasLevelUps}}{{template "aftermath_levelups_card" .}}{{end}}
   {{else}}{{template "aftermath_sheet" .}}{{end}}
-  {{if .HasInjuries}}{{template "aftermath_later" (dict "V" . "Index" 1 "Title" "Injuries" "Text" "A casualty roll for every unit marked as a casualty.")}}{{end}}
-  {{if eq .Step 3}}<section class="card space-y-2" id="aftermath-step-3"><h2 class="!text-xl">Rewards</h2>{{template "aftermath_finish" .}}</section>{{end}}
-  {{if and .HasLevelUps (ne .Step 4)}}{{template "aftermath_levelups_card" .}}{{end}}
+  {{if .HasInjuries}}{{template "aftermath_later" .}}{{end}}
+  {{if .OnRewards}}<section class="card space-y-2" id="aftermath-step-3"><h2 class="!text-xl">Rewards</h2>{{template "aftermath_finish" .}}</section>{{end}}
+  {{if and .HasLevelUps (not .Closed)}}{{template "aftermath_levelups_card" .}}{{end}}
   {{with .UnitResults}}{{template "aftermath_company" (dict "V" $ "R" .)}}{{end}}
   {{if .Owner}}
   {{/* The level-up window of My Company, opened here (its endpoints and panel are the same). */}}
@@ -68,12 +68,11 @@
 
 {{/* The Injuries step: open while it is the current step, a summary once it is behind, dimmed before. */}}
 {{define "aftermath_later"}}
-{{$v := .V}}
-<section class="card space-y-2 {{if lt $v.Step .Index}}border-dashed{{end}}" id="aftermath-step-{{.Index}}">
-  <h2 class="!text-xl">{{.Title}}</h2>
-  {{if eq $v.Step .Index}}{{template "aftermath_injuries" $v}}
-  {{else if lt $v.Step .Index}}<p class="text-sm text-muted">{{.Text}}</p>
-  {{else}}{{template "aftermath_injuries_summary" $v}}{{end}}
+<section class="card space-y-2 {{if .InjuriesAhead}}border-dashed{{end}}" id="aftermath-step-1">
+  <h2 class="!text-xl">Injuries</h2>
+  {{if .OnInjuries}}{{template "aftermath_injuries" .}}
+  {{else if .InjuriesAhead}}<p class="text-sm text-muted">A casualty roll for every unit marked as a casualty.</p>
+  {{else}}{{template "aftermath_injuries_summary" .}}{{end}}
 </section>
 {{end}}
 
@@ -81,7 +80,7 @@
    afterwards it is the whole company, the casualties first. Takes {V: aftermathView, R: []unitResult}. */}}
 {{define "aftermath_company"}}
 <section class="card space-y-3" id="aftermath-company">
-  <h2 class="!text-xl">{{if eq .V.Step 1}}The rest of the company{{else}}The company{{end}}</h2>
+  <h2 class="!text-xl">{{if .V.OnInjuries}}The rest of the company{{else}}The company{{end}}</h2>
   <div class="unit-choices">
     {{range .R}}
     <article class="{{template "unit_frame" .Unit}} flex flex-col gap-2" data-unit-result="{{.Unit.ID}}" aria-label="{{.Unit.Title}}">
@@ -414,7 +413,7 @@
   {{if .Editing}}{{template "aftermath_sheet_form" .}}
   {{else}}
     <p class="text-sm text-muted">{{.Participants}} took part · {{.Casualties}} casualt{{if eq .Casualties 1}}y{{else}}ies{{end}}{{if .CanReopenSheet}} · the sheet is locked{{end}}</p>
-    <details class="group" {{if eq .Step 0}}open{{end}}>
+    <details class="group" {{if .OnSheet}}open{{end}}>
       <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium"><span>The sheet</span><span class="text-muted group-open:hidden">Show</span><span class="hidden text-muted group-open:inline">Hide</span></summary>
       {{template "aftermath_sheet_readonly" .}}
     </details>
