@@ -52,7 +52,7 @@
 {{define "match_row"}}{{$m := .M}}
 <li><a href="/campaigns/{{.CID}}/matches/{{$m.ID}}" class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2.5 text-fg no-underline hover:bg-raised hover:no-underline" data-match-row="{{$m.Number}}">
   <span class="min-w-0 break-words">{{template "match_sides" $m}}<span class="text-sm text-muted"> · Match {{$m.Number}}{{with $m.Scenario}} · {{.Name}}{{end}}</span></span>
-  <span class="flex shrink-0 flex-wrap items-center gap-2">{{if $m.Practice}}{{template "practice_badge"}}{{end}}{{template "match_result" $m}}</span>
+  <span class="flex min-w-0 flex-wrap items-center gap-2">{{if $m.Practice}}{{template "practice_badge"}}{{end}}{{template "match_result" $m}}</span>
 </a></li>
 {{end}}
 
