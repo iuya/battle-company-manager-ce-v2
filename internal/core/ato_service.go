@@ -135,149 +135,159 @@ func (s *Matches) atoStarted(ctx context.Context, id, matchID int64) (bool, erro
 	return s.ato.GameStarted(ctx, id, matchID)
 }
 
-// SaveAgainstTheOdds confirms the decision: it replaces the lower company's selection (an empty one is "play without bonuses") and, for
-// Ambush!, sets the match's scenario and remembers the one it had; dropping Ambush! puts that one back. ErrRefused: not the lower company's
-// owner, the organiser or an administrator, the game has started, the match has no scenario or no card; ErrMatchChanged for a stale revision;
-// ErrInvalidMatch (joined, fit to show) for a selection the rules refuse. The match revision goes up by one.
-func (s *Matches) SaveAgainstTheOdds(ctx context.Context, user User, id, matchID int64, revision int, sel ATOSelection) (ATO, error) {
+// atoTarget is what a write of the card works on: the campaign and who can take bonuses in the rated match.
+type atoTarget struct {
+	id, matchID   int64
+	camp          CampaignDetail
+	lower, higher CampaignCompany
+}
+
+// atoWriteTarget reads the target of a write. ErrNotFound as AgainstTheOdds; ErrRefused: the campaign is finished or the match has no card.
+func (s *Matches) atoWriteTarget(ctx context.Context, user User, id, matchID int64) (atoTarget, error) {
 	camp, err := s.campaigns.Get(ctx, user.ID, id)
 	if err != nil {
-		return ATO{}, err
+		return atoTarget{}, err
 	}
 	if err := camp.CanPlay(); err != nil {
-		return ATO{}, err
+		return atoTarget{}, err
 	}
 	m, err := s.Match(ctx, id, matchID)
 	if err != nil {
-		return ATO{}, err
+		return atoTarget{}, err
 	}
-	card, err := s.atoCard(ctx, user, camp, id, m)
-	if err != nil {
-		return ATO{}, err
+	lower, higher, why := atoSides(m)
+	if why != "" {
+		return atoTarget{}, Refuse("%s", why)
 	}
-	if !card.Eligible {
-		return ATO{}, Refuse("%s", card.Why)
+	if s.ato == nil {
+		return atoTarget{}, Refuse("Against the Odds is not available.")
 	}
-	h, _, err := s.campaigns.Hashes(ctx, id)
-	if err != nil {
-		return ATO{}, err
-	}
-	rules, err := s.atoRules(ctx, h)
-	if err != nil {
-		return ATO{}, err
-	}
-	scenarios, err := s.scenarioList(ctx, h)
-	if err != nil {
-		return ATO{}, err
-	}
-	names := make([]string, len(scenarios))
-	for i, sc := range scenarios {
-		names[i] = sc.Name
-	}
-	d, _, err := s.detail(ctx, id, card.CompanyID)
-	if err != nil {
-		return ATO{}, err
-	}
-	clean, err := sel.Validate(rules, d.Roster, card.Gap, names)
-	if err != nil {
-		return ATO{}, err
-	}
-	lower, _, _ := atoSides(m)
-	_, err = s.ato.Update(ctx, id, matchID, user, func(st *ATOState) error {
+	return atoTarget{id: id, matchID: matchID, camp: camp, lower: lower, higher: higher}, nil
+}
+
+// atoUpdate applies a write in the store's transaction, once the viewer may still make it (ErrRefused: not the lower company's owner, the
+// organiser or an administrator, or the game has started; ErrMatchChanged for a stale revision), and answers the new card.
+func (s *Matches) atoUpdate(ctx context.Context, user User, t atoTarget, revision int, change func(*ATOState) error) (ATO, error) {
+	_, err := s.ato.Update(ctx, t.id, t.matchID, user, func(st *ATOState) error {
 		switch {
-		case ATOAccessFor(user, st.Match, lower, camp.OrganiserID) != ATOEdit:
-			return Refuse("Only the owner of %s, the organiser of the campaign or an administrator can change this.", lower.Name)
+		case ATOAccessFor(user, st.Match, t.lower, t.camp.OrganiserID) != ATOEdit:
+			return Refuse("Only the owner of %s, the organiser of the campaign or an administrator can change this.", t.lower.Name)
 		case st.Started:
 			return Refuse("The game has started: Against the Odds can no longer change.")
 		case revision != st.Match.Revision:
 			return ErrMatchChanged
-		case st.Match.Scenario == nil:
-			return Refuse("Choose the scenario first: Against the Odds comes after it.")
 		}
-		old := st.Record
-		if st.Match.Practice { // a reward bonus cannot be newly taken in a practice match
-			for _, k := range clean.Bonuses {
-				if atoRewardBonus(k) && !old.Selection.Has(k) {
-					return Refuse("%s.", ATOPracticeReason)
-				}
-			}
+		if err := change(st); err != nil {
+			return err
 		}
-		switch {
-		case clean.Ambush != "":
-			if old.Selection.Ambush == "" { // the scenario it replaces is remembered once
-				old.HadPrevious = st.Match.Scenario != nil
-				old.Previous = nil
-				if st.Match.Scenario != nil {
-					cp := *st.Match.Scenario
-					old.Previous = &cp
-				}
-			}
-			if st.Match.Scenario == nil || st.Match.Scenario.Kind != ScenarioRulebook || st.Match.Scenario.Name != clean.Ambush {
-				st.Match.Scenario = &MatchScenario{Kind: ScenarioRulebook, Name: clean.Ambush}
-				clearObjectives(&st.Match)
-			}
-		case old.Selection.Ambush != "":
-			cur := st.Match.Scenario
-			if cur != nil && cur.Kind == ScenarioRulebook && cur.Name == old.Selection.Ambush { // still the one Ambush! chose: put the old one back
-				st.Match.Scenario = old.Previous
-				clearObjectives(&st.Match)
-			}
-			old.Previous, old.HadPrevious = nil, false
-		}
-		if st.Match.Scenario == nil { // an older record: Ambush! was all the scenario the match had
-			return Refuse("Choose the scenario first: without Ambush! this match has none.")
-		}
-		old.MatchID, old.CompanyID, old.Selection = matchID, lower.ID, clean
-		st.Record = old
-		st.Match.ATODecided = true
 		st.Match.resetEnd(user.DisplayName, "Against the Odds selection")
 		return nil
 	})
 	if err != nil {
 		return ATO{}, err
 	}
-	return s.AgainstTheOdds(ctx, user, id, matchID)
+	return s.AgainstTheOdds(ctx, user, t.id, t.matchID)
+}
+
+// SaveAgainstTheOdds confirms the decision: it replaces the lower company's selection (an empty one is "play without bonuses") and, for
+// Ambush!, sets the match's scenario and remembers the one it had; dropping Ambush! puts that one back. ErrRefused: not the lower company's
+// owner, the organiser or an administrator, the game has started, the match has no scenario or no card; ErrMatchChanged for a stale revision;
+// ErrInvalidMatch (joined, fit to show) for a selection the rules refuse. The match revision goes up by one.
+func (s *Matches) SaveAgainstTheOdds(ctx context.Context, user User, id, matchID int64, revision int, sel ATOSelection) (ATO, error) {
+	t, err := s.atoWriteTarget(ctx, user, id, matchID)
+	if err != nil {
+		return ATO{}, err
+	}
+	clean, err := s.atoValidSelection(ctx, t, sel)
+	if err != nil {
+		return ATO{}, err
+	}
+	return s.atoUpdate(ctx, user, t, revision, func(st *ATOState) error {
+		if st.Match.Scenario == nil {
+			return Refuse("Choose the scenario first: Against the Odds comes after it.")
+		}
+		return st.confirm(clean, matchID, t.lower.ID)
+	})
+}
+
+// atoValidSelection checks a selection against the campaign's rules, the lower company's roster and the gap.
+func (s *Matches) atoValidSelection(ctx context.Context, t atoTarget, sel ATOSelection) (ATOSelection, error) {
+	h, _, err := s.campaigns.Hashes(ctx, t.id)
+	if err != nil {
+		return ATOSelection{}, err
+	}
+	rules, err := s.atoRules(ctx, h)
+	if err != nil {
+		return ATOSelection{}, err
+	}
+	scenarios, err := s.scenarioList(ctx, h)
+	if err != nil {
+		return ATOSelection{}, err
+	}
+	names := make([]string, len(scenarios))
+	for i, sc := range scenarios {
+		names[i] = sc.Name
+	}
+	d, _, err := s.detail(ctx, t.id, t.lower.ID)
+	if err != nil {
+		return ATOSelection{}, err
+	}
+	return sel.Validate(rules, d.Roster, t.higher.Points-t.lower.Points, names)
+}
+
+// confirm records the checked selection as the decision of the company, moving the match's scenario with Ambush!.
+func (st *ATOState) confirm(clean ATOSelection, matchID, companyID int64) error {
+	old := st.Record
+	if st.Match.Practice { // a reward bonus cannot be newly taken in a practice match
+		for _, k := range clean.Bonuses {
+			if atoRewardBonus(k) && !old.Selection.Has(k) {
+				return Refuse("%s.", ATOPracticeReason)
+			}
+		}
+	}
+	switch {
+	case clean.Ambush != "":
+		if old.Selection.Ambush == "" { // the scenario it replaces is remembered once
+			old.HadPrevious = st.Match.Scenario != nil
+			old.Previous = nil
+			if st.Match.Scenario != nil {
+				cp := *st.Match.Scenario
+				old.Previous = &cp
+			}
+		}
+		if st.Match.Scenario == nil || st.Match.Scenario.Kind != ScenarioRulebook || st.Match.Scenario.Name != clean.Ambush {
+			st.Match.Scenario = &MatchScenario{Kind: ScenarioRulebook, Name: clean.Ambush}
+			clearObjectives(&st.Match)
+		}
+	case old.Selection.Ambush != "":
+		cur := st.Match.Scenario
+		if cur != nil && cur.Kind == ScenarioRulebook && cur.Name == old.Selection.Ambush { // still the one Ambush! chose: put the old one back
+			st.Match.Scenario = old.Previous
+			clearObjectives(&st.Match)
+		}
+		old.Previous, old.HadPrevious = nil, false
+	}
+	if st.Match.Scenario == nil { // an older record: Ambush! was all the scenario the match had
+		return Refuse("Choose the scenario first: without Ambush! this match has none.")
+	}
+	old.MatchID, old.CompanyID, old.Selection = matchID, companyID, clean
+	st.Record = old
+	st.Match.ATODecided = true
+	return nil
 }
 
 // ReopenAgainstTheOdds takes a confirmed decision back (Change on the card): the selection stays as the starting point and the match waits
 // for a new confirmation. ErrRefused: not the lower company's owner, the organiser or an administrator, the game has started, the match
 // has no card; ErrMatchChanged for a stale revision. The match revision goes up by one.
 func (s *Matches) ReopenAgainstTheOdds(ctx context.Context, user User, id, matchID int64, revision int) (ATO, error) {
-	camp, err := s.campaigns.Get(ctx, user.ID, id)
+	t, err := s.atoWriteTarget(ctx, user, id, matchID)
 	if err != nil {
 		return ATO{}, err
 	}
-	if err := camp.CanPlay(); err != nil {
-		return ATO{}, err
-	}
-	m, err := s.Match(ctx, id, matchID)
-	if err != nil {
-		return ATO{}, err
-	}
-	lower, _, why := atoSides(m)
-	if why != "" {
-		return ATO{}, Refuse("%s", why)
-	}
-	if s.ato == nil {
-		return ATO{}, Refuse("Against the Odds is not available.")
-	}
-	_, err = s.ato.Update(ctx, id, matchID, user, func(st *ATOState) error {
-		switch {
-		case ATOAccessFor(user, st.Match, lower, camp.OrganiserID) != ATOEdit:
-			return Refuse("Only the owner of %s, the organiser of the campaign or an administrator can change this.", lower.Name)
-		case st.Started:
-			return Refuse("The game has started: Against the Odds can no longer change.")
-		case revision != st.Match.Revision:
-			return ErrMatchChanged
-		}
+	return s.atoUpdate(ctx, user, t, revision, func(st *ATOState) error {
 		st.Match.ATODecided = false
-		st.Match.resetEnd(user.DisplayName, "Against the Odds selection")
 		return nil
 	})
-	if err != nil {
-		return ATO{}, err
-	}
-	return s.AgainstTheOdds(ctx, user, id, matchID)
 }
 
 // ATOStatus is where the Against the Odds decision of a match stands, for the pages around the card.
