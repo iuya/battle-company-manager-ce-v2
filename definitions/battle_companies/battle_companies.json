@@ -8622,7 +8622,7 @@
       "description": "In the ebb and flow of battle, leaders from both sides have found themselves cut off from their reinforcements and must stand firm until their relief force arrives.",
       "armies": "All available members of each Battle Company.",
       "layout": "Set up terrain as described on page 65.",
-      "objectives": "The game ends at the end of the turn when either the target Hero is slain, or one Battle Company is reduced to less than 25% of its starting numbers.",
+      "objectives": "The game ends at the end of the turn when either the target Hero is slain, or one Battle Company is reduced to 25% of its starting numbers or below.",
       "endsAtLosses": {
         "of": "startingModels",
         "share": "3/4"
