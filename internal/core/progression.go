@@ -11,10 +11,17 @@ import (
 // campaign.characteristicLimits). A unit that earns campaign.progression.threshold experience rolls once: a warrior on a D6 (promotion, or a hero in the
 // making), a hero twice on 2D6 on its path, choosing one of the two results.
 
+// The results of the warrior's D6 progression table: the keys of campaign.progression.warrior, and of LevelRoll.Result.
+const (
+	WarriorResultNoChange        = "noChange"
+	WarriorResultPromoted        = "promoted"
+	WarriorResultHeroInTheMaking = "heroInTheMaking"
+)
+
 // WarriorResult is a row of the warrior's D6 progression table.
 type WarriorResult struct {
 	Min, Max int
-	Key      string // noChange, promoted, heroInTheMaking
+	Key      string // WarriorResultNoChange, WarriorResultPromoted, WarriorResultHeroInTheMaking
 	Name     string
 	Text     string
 }

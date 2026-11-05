@@ -1,7 +1,9 @@
 package core
 
 import (
+	"bytes"
 	"errors"
+	"log/slog"
 	"slices"
 	"strings"
 	"testing"
@@ -26,6 +28,70 @@ func choiceKeys(o LevelOffer) []string {
 		out = append(out, c.Key)
 	}
 	return out
+}
+
+// planLog collects what the default logger writes during the test.
+func planLog(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	logger, buf := capture()
+	old := slog.Default()
+	slog.SetDefault(logger)
+	t.Cleanup(func() { slog.SetDefault(old) })
+	return buf
+}
+
+func TestAnOptionThatCannotBeWorkedOutIsLoggedAndTheRestOfThePlanStands(t *testing.T) {
+	const broken = "stat:courage:oops"
+	f := newCompanyFixture(t)
+	s := f.leveller(t)
+	r := aHeroOn(t, f, s, "Path of the Tactician", nil, 5, 8)
+	stored := f.state.Units[len(f.state.Units)-1].Pending.Level
+	stored.Offers[0].Choices = append([]LevelChoice{{Key: broken, Label: "Broken", RollAgain: true}}, stored.Offers[0].Choices...)
+	logged := planLog(t)
+
+	got, err := s.LevelUpState(f.ctx, f.user, 5, 1, 90)
+	if err != nil || got == nil || got.Plan == nil {
+		t.Fatalf("the window keeps its plan: %+v %v", got, err)
+	}
+	if got.Plan.Marks[0] != courageKey || !slices.Contains(got.Plan.Alone, broken) {
+		t.Errorf("Courage is still marked, the broken option goes alone: %+v", got.Plan)
+	}
+	for _, y := range r.Offers[1].Choices {
+		if got.Plan.Conflicts[broken+"|"+y.Key] == "" {
+			t.Errorf("the broken option does not fit %s: %+v", y.Key, got.Plan.Conflicts)
+		}
+	}
+	if n := strings.Count(logged.String(), "level-up plan"); n != 1 || !strings.Contains(logged.String(), broken) {
+		t.Errorf("logged once, naming the option: %q", logged.String())
+	}
+	if _, err := s.ChooseLevelUp(f.ctx, f.user, 5, 1, 90, []string{broken}); err == nil {
+		t.Error("pressing it fails: choosing applies the same key")
+	}
+}
+
+func TestAPlanWithNothingToWorkOutLeavesTheWindowWithoutMarks(t *testing.T) {
+	f := newCompanyFixture(t)
+	s := f.leveller(t)
+	aHeroOn(t, f, s, "Path of the Tactician", nil, 5, 8)
+	stored := f.state.Units[len(f.state.Units)-1].Pending.Level
+	stored.Offers[0].Choices = []LevelChoice{{Key: "stat:courage:oops", Label: "Broken", RollAgain: true}}
+	logged := planLog(t)
+	if got, err := s.LevelUpState(f.ctx, f.user, 5, 1, 90); err != nil || got == nil || got.Plan != nil {
+		t.Fatalf("the roll still shows, with no plan: %+v %v", got, err)
+	}
+	if !strings.Contains(logged.String(), "stat:courage:oops") {
+		t.Errorf("the loss of the plan is logged: %q", logged.String())
+	}
+}
+
+func TestARollAgainThatLeavesNothingToTakeIsNotLogged(t *testing.T) {
+	f := newCompanyFixture(t)
+	s := f.leveller(t)
+	logged := planLog(t)
+	aHeroOn(t, f, s, "Path of the Warlord", map[string]int{"courage": -1, "intelligence": -3}, 5, 5)
+	if logged.Len() != 0 {
+		t.Errorf("nothing went wrong: %q", logged.String())
+	}
 }
 
 func TestRollAgainBesideAnotherResultMarksCourageAndAppliesBothInOneRequest(t *testing.T) {

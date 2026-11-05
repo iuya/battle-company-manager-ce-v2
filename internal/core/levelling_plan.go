@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 )
@@ -28,7 +29,25 @@ func (env *levelEnv) levelPlan(st CompanyState, roll LevelRoll) *LevelPlan {
 	if !first && !second {
 		return nil
 	}
-	rules := env.rs.BC.Progression()
+	plan := &LevelPlan{Conflicts: env.planConflicts(st, roll, offers), Alone: []string{}}
+	var marked bool
+	switch {
+	case first && second:
+		marked = plan.markBothSides(offers)
+	case first:
+		marked = plan.markOneSide(offers, 0)
+	default:
+		marked = plan.markOneSide(offers, 1)
+	}
+	if !marked {
+		return nil
+	}
+	return plan
+}
+
+// planConflicts says which pairs of options do not go together, and why: a pair fits only when one of them takes the other result and
+// that result still offers the other option once it is applied.
+func (env *levelEnv) planConflicts(st CompanyState, roll LevelRoll, offers [2][]LevelChoice) map[string]string {
 	type asked struct {
 		side int
 		key  string
@@ -37,11 +56,15 @@ func (env *levelEnv) levelPlan(st CompanyState, roll LevelRoll) *LevelPlan {
 	after := func(side int, key string) map[string]bool { // what the other result offers once this option is applied
 		a := asked{side, key}
 		if _, ok := cache[a]; !ok {
-			cache[a] = env.offerAfter(st, key, roll.Offers[1-side].Roll)
+			offered, err := env.offerAfter(st, key, roll.Offers[1-side].Roll)
+			if err != nil { // the plan only helps the window, and this runs inside every step of a level-up: an error here must not stop one
+				slog.Error("level-up plan: treating the option as not fitting", "unit", env.unit.ID, "option", key, "err", err)
+			}
+			cache[a] = offered
 		}
 		return cache[a]
 	}
-	plan := &LevelPlan{Conflicts: map[string]string{}, Alone: []string{}}
+	conflicts := map[string]string{}
 	for _, x := range offers[0] {
 		for _, y := range offers[1] {
 			fits := false
@@ -52,27 +75,29 @@ func (env *levelEnv) levelPlan(st CompanyState, roll LevelRoll) *LevelPlan {
 				fits = after(1, y.Key)[x.Key]
 			}
 			if !fits {
-				plan.Conflicts[x.Key+"|"+y.Key] = rules.conflictReason(x, y)
+				conflicts[x.Key+"|"+y.Key] = conflictReason(x, y)
 			}
 		}
 	}
-	if first && second {
-		for _, a := range markOrder(offers[0], statCourage, statIntelligence) {
-			for _, b := range markOrder(offers[1], statIntelligence, statCourage) {
-				if _, no := plan.Conflicts[a.Key+"|"+b.Key]; !no && !plan.Both {
-					plan.Marks, plan.Both = [2]string{a.Key, b.Key}, true
-				}
+	return conflicts
+}
+
+// markBothSides puts the first pair that fits in the default order as the marks of two results that each take the other; false when none fits.
+func (p *LevelPlan) markBothSides(offers [2][]LevelChoice) bool {
+	for _, a := range markOrder(offers[0], statCourage, statIntelligence) {
+		for _, b := range markOrder(offers[1], statIntelligence, statCourage) {
+			if _, no := p.Conflicts[a.Key+"|"+b.Key]; !no {
+				p.Marks, p.Both = [2]string{a.Key, b.Key}, true
+				return true
 			}
 		}
-		if !plan.Both {
-			return nil
-		}
-		return plan
 	}
-	side := 0
-	if second {
-		side = 1
-	}
+	return false
+}
+
+// markOneSide marks the first option of the side that takes the other result and has something to take from it; the ones with nothing
+// to take apply alone. False when none can be marked.
+func (p *LevelPlan) markOneSide(offers [2][]LevelChoice, side int) bool {
 	for _, x := range markOrder(offers[side], statCourage, statIntelligence) {
 		if !x.RollAgain {
 			continue
@@ -82,20 +107,17 @@ func (env *levelEnv) levelPlan(st CompanyState, roll LevelRoll) *LevelPlan {
 			if side == 1 {
 				k = y.Key + "|" + x.Key
 			}
-			_, no := plan.Conflicts[k]
+			_, no := p.Conflicts[k]
 			return !no
 		})
 		switch {
 		case !fits:
-			plan.Alone = append(plan.Alone, x.Key)
-		case plan.Marks[side] == "":
-			plan.Marks[side] = x.Key
+			p.Alone = append(p.Alone, x.Key)
+		case p.Marks[side] == "":
+			p.Marks[side] = x.Key
 		}
 	}
-	if plan.Marks[side] == "" {
-		return nil
-	}
-	return plan
+	return p.Marks[side] != ""
 }
 
 // markOrder lists the options in the order they are marked by default: the stats named, then the other options that take the other
@@ -124,38 +146,39 @@ func optionStat(key string) string {
 	return ""
 }
 
-// offerAfter lists the keys a result of the path would offer once the option is applied, on a copy of the company.
-func (env *levelEnv) offerAfter(st CompanyState, key string, sum int) map[string]bool {
+// offerAfter lists the keys a result of the path would offer once the option is applied, on a copy of the company. None and no error
+// is a normal outcome: the result gives the unit nothing any more. An error means the option could not be worked out.
+func (env *levelEnv) offerAfter(st CompanyState, key string, sum int) (map[string]bool, error) {
 	c := st.Clone()
 	us, ok := stateUnit(&c, env.unit.ID)
 	if !ok {
-		return nil
+		return nil, fmt.Errorf("unit %d: %w", env.unit.ID, ErrNotFound)
 	}
 	if us.Progress == nil {
 		us.Progress = &Progress{}
 	}
 	rules := env.rs.BC.Progression()
 	if err := rules.Apply(us.Progress, key); err != nil {
-		return nil
+		return nil, err
 	}
 	e, err := newLevelEnv(env.rs, env.settings, c, env.unit.ID)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	offer, ok := rules.OfferFor(sheetOf(e.unit, us.Progress, e.d.Roster, upgradesOf(e.rs, e.bcC, e.unit)), levelLists(e.rs), sum)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 	out := make(map[string]bool, len(offer.Choices))
 	for _, ch := range offer.Choices {
 		out[ch.Key] = true
 	}
-	return out
+	return out, nil
 }
 
 // conflictReason says why two options cannot be taken together. The same stat twice stops at what improvedStat allows: the path's
 // limit, the overall peak and, for Courage and Intelligence, the total cap of each (CITotalCap).
-func (r ProgressionRules) conflictReason(x, y LevelChoice) string {
+func conflictReason(x, y LevelChoice) string {
 	a, b := optionStat(x.Key), optionStat(y.Key)
 	switch {
 	case !x.RollAgain && !y.RollAgain:
