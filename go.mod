@@ -3,7 +3,7 @@ module github.com/iuya/battle-company-manager-ce-v2
 go 1.27.3
 
 require (
-	github.com/jackc/pgx/v5 v5.11.0
+	github.com/jackc/pgx/v5 v5.12.0
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/yuin/gopher-lua v1.1.2
