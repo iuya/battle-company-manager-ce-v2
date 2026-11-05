@@ -1098,7 +1098,7 @@ func unitKeywordsOf(rs *RuleSet, profile CompanyProfile, s UnitState, u CompanyU
 
 // ruleDice is the dice and the Against the Odds re-roll figures of the rules that the company pages print.
 func ruleDice(rs *RuleSet) RuleDice {
-	d := RuleDice{Level: rs.BC.Progression().LevelDice(), Courage: rs.BC.BreakRules().CourageSpec}
+	d := RuleDice{Level: rs.BC.Progression().LevelDice()}
 	for _, b := range rs.BC.ATO().Bonuses {
 		if b.Key == "reroll" {
 			d.RerollRating, d.RerollCount = b.Rating, b.GivesRerolls

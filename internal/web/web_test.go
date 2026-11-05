@@ -935,8 +935,8 @@ func mineDetail() (core.CampaignDetail, core.CompanyDetail) {
 		RuleDice: testRuleDice}
 }
 
-// testRuleDice are the dice of the shipped rules file: warriors roll a d6, heroes two results of 2d6, a Broken model tests Courage on 2d6.
-var testRuleDice = core.RuleDice{Level: core.LevelDice{Warrior: core.DiceSpec{Count: 1, Sides: 6}, Hero: core.DiceSpec{Count: 2, Sides: 6}, Pairs: 2}, Courage: core.DiceSpec{Count: 2, Sides: 6}}
+// testRuleDice are the dice of the shipped rules file: warriors roll a d6, heroes two results of 2d6.
+var testRuleDice = core.RuleDice{Level: core.LevelDice{Warrior: core.DiceSpec{Count: 1, Sides: 6}, Hero: core.DiceSpec{Count: 2, Sides: 6}, Pairs: 2}}
 
 func TestRecruitWindowShowsBothChartsApart(t *testing.T) {
 	f := newFixture(t, Config{})

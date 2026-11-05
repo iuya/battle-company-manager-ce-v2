@@ -2000,7 +2000,7 @@
           "description": "The dice rolled; the model passes with a total at least its Courage."
         },
         "passIf": {
-          "description": "totalAtLeastCourage, the only pass rule the app implements. A live match refuses to roll a Courage test when it is missing.",
+          "description": "totalAtLeastCourage, the only pass rule the format has. The test is rolled at the table.",
           "enum": [
             "totalAtLeastCourage"
           ],

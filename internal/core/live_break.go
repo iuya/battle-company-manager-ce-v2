@@ -16,11 +16,8 @@ type BreakRules struct {
 	// Comparison is breakPoint.threshold.comparison: false is "gt" (Broken when the casualties are strictly greater than the Break
 	// Point, exactly the Break Point is not Broken), true is "gte". The Break Point is never rounded (a fixed engine rule): the test is
 	// done on integers, casualties * 100 against percent * startingModels.
-	AtLeast     bool
-	CourageDice string   // whenBroken.courageTest.dice as written, lower case ("2d6")
-	CourageSpec DiceSpec // CourageDice parsed; the zero spec when the file names none
-	PassIf      string   // whenBroken.courageTest.passIf, "totalAtLeastCourage"
-	Exceptions  []BreakException
+	AtLeast    bool
+	Exceptions []BreakException
 }
 
 // BreakException is a scenario or scenario setting that changes the courage tests or the count (campaign.breakPoint.scenarioExceptions).

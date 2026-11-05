@@ -180,7 +180,7 @@ func (d *dumper) put(indent int, label string, v reflect.Value) {
 
 // snapshotUnpinned are the fields the rules file drives (the dice of the rules): the goldens pin the
 // behaviour of the shipped data and stay byte-identical, the dice are tested in dice_test.go and TestCustomRuleset.
-var snapshotUnpinned = []string{"InjuryDice", "WarriorDice", "HeroDice", "HeroRolls", "HeroChoose", "PathDice", "CourageSpec", "ScenarioDie", "BonusSpec", "RuleDice", "FirstDie", "TableDice",
+var snapshotUnpinned = []string{"InjuryDice", "WarriorDice", "HeroDice", "HeroRolls", "HeroChoose", "PathDice", "ScenarioDie", "BonusSpec", "RuleDice", "FirstDie", "TableDice",
 	// the officers, the hero start, the level threshold of a unit and the classes of a limit
 	"Leaders", "Sergeants", "HeroStart", "LevelEvery", "TreatDice", "LimitClasses", "LimitKeyword", "CITotalCap", "CITotalGear",
 	// the amounts of the no-promotion improvement, the break point comparison, the stats an injury row gains

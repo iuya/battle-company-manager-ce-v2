@@ -945,8 +945,6 @@ ato
 === break point ===
 break
   DefaultPercent: 50
-  CourageDice: "2d6"
-  PassIf: "totalAtLeastCourage"
   Exceptions:
     -
       Scenario: "Stand Your Ground"

@@ -612,8 +612,7 @@ type CompanyDetail struct {
 
 // RuleDice are dice of the rules file the pages need to throw and to ask for.
 type RuleDice struct {
-	Level   LevelDice
-	Courage DiceSpec // campaign.breakPoint.whenBroken.courageTest.dice
+	Level LevelDice
 	// The Against the Odds Reroll bonus (campaign.againstTheOdds.bonuses[key=reroll]): what it costs in Rating and how many re-rolls it gives.
 	RerollRating, RerollCount int
 }

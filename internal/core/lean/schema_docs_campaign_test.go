@@ -191,7 +191,7 @@ var campaignFieldDocs = map[string]string{
 	"BreakThreshold.comparison":      "gt: Broken with strictly more casualties than the Break Point. gte: exactly the Break Point is Broken too. The Break Point is never rounded.",
 	"WhenBroken.courageTest":         "The Courage test of a Broken company.",
 	"CourageTest.dice":               "The dice rolled; the model passes with a total at least its Courage.",
-	"CourageTest.passIf":             "totalAtLeastCourage, the only pass rule the app implements. A live match refuses to roll a Courage test when it is missing.",
+	"CourageTest.passIf":             "totalAtLeastCourage, the only pass rule the format has. The test is rolled at the table.",
 	"BreakException.text":            "The sentence the live match shows. Without it the app words the exception from effect and who.",
 	"BreakException.scenario":        "The scenario the exception belongs to, spelled as in scenarios[]. Write this or scenarioSetting.",
 	"BreakException.scenarioSetting": "The scenario setting the exception belongs to: a scenario rule listed in a scenario's usesRules, such as Maelstrom of Battle; compared without case. Write this or scenario.",

@@ -123,15 +123,15 @@ func TestCustomRuleset(t *testing.T) {
 			mutate: func(t *testing.T, doc map[string]any) {},
 			check: func(t *testing.T, rs *RuleSet) {
 				d6, twoD6 := NdM(1, 6), NdM(2, 6)
-				p, b := rs.BC.Progression(), rs.BC.BreakRules()
+				p := rs.BC.Progression()
 				if p.WarriorDice != d6 || p.HeroDice != twoD6 || p.HeroRolls != 2 || p.HeroChoose != 1 {
 					t.Errorf("progression dice = %s %s rolls %d choose %d", p.WarriorDice, p.HeroDice, p.HeroRolls, p.HeroChoose)
 				}
 				if path, ok := p.Path("Path of the Tactician"); !ok || path.PathDice != twoD6 {
 					t.Errorf("path dice = %v %v", path.PathDice, ok)
 				}
-				if b.CourageSpec != twoD6 || rs.BC.Selection().Die != d6 || len(rs.BC.Selection().Tables) != 3 {
-					t.Errorf("courage %s, selection %+v", b.CourageSpec, rs.BC.Selection())
+				if rs.BC.Selection().Die != d6 || len(rs.BC.Selection().Tables) != 3 {
+					t.Errorf("selection %+v", rs.BC.Selection())
 				}
 			},
 		},
@@ -166,11 +166,7 @@ func TestCustomRuleset(t *testing.T) {
 			mutate: func(t *testing.T, doc map[string]any) {
 				jsonAt(t, doc, "campaign", "breakPoint", "whenBroken", "courageTest").(map[string]any)["dice"] = "3d6"
 			},
-			check: func(t *testing.T, rs *RuleSet) {
-				if got := rs.BC.BreakRules().CourageSpec; got != (NdM(3, 6)) {
-					t.Errorf("courage dice = %s, want 3d6", got)
-				}
-			},
+			check: func(t *testing.T, rs *RuleSet) {}, // the file loads: the test is rolled at the table
 		},
 		{
 			name: "P4 D2: Lesson Learned grants a D4 of experience",

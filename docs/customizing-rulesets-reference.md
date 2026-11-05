@@ -1117,7 +1117,7 @@ Example:
 | Key | Type | Required | Default | Allowed | Description |
 |---|---|---|---|---|---|
 | `dice` | [DiceSpec](#dicespec) | yes | - | - | The dice rolled; the model passes with a total at least its Courage. |
-| `passIf` | string | no | - | `totalAtLeastCourage` | totalAtLeastCourage, the only pass rule the app implements. A live match refuses to roll a Courage test when it is missing. |
+| `passIf` | string | no | - | `totalAtLeastCourage` | totalAtLeastCourage, the only pass rule the format has. The test is rolled at the table. |
 
 ### BreakException
 
