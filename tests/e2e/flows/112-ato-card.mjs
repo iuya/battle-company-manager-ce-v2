@@ -47,6 +47,7 @@ export default async function (h) {
     await rival.goto(`/campaigns/${cid}/my-company`);
     await rival.page.waitForSelector('[data-ato-banner]');
     const company = await rival.page.$eval('#live-zones', (z) => z.dataset.company);
+    rival.allow.push(/422.*\/actions/); // the refusal this step asks for
     const refused = await rival.page.evaluate((u) => fetch(u, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'HX-Request': 'true' }, body: 'kind=broken' }).then(async (r) => ({ status: r.status, text: await r.text() })),
       `/campaigns/${cid}/matches/${matchId}/live/${company}/actions`);
     assert.equal(refused.status, 422, 'the service refuses');

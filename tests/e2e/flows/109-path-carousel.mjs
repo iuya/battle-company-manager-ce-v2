@@ -145,7 +145,7 @@ export default async function (h, { only }) {
     assert.equal(await s.page.evaluate(() => document.activeElement.id), 'power-open', 'the focus is back on the button');
     // a click on a power chooses it and closes the list
     await openPowers();
-    await s.page.click(POWERS + ' label:nth-of-type(2)');
+    await s.page.click(POWERS + ' label:nth-of-type(2) .font-medium');
     await s.settle(300);
     assert.ok(!(await s.page.$eval(POWERS, (e) => e.getClientRects().length > 0)), 'a click closes the list');
     assert.equal(await s.page.$eval('#power-chosen', (e) => e.innerText.trim()), list[1].name, 'the panel shows the chosen power');
@@ -170,7 +170,7 @@ export default async function (h, { only }) {
     await s.click(STRIP + ' label', 'Sorcerer');
     await openPowers();
     const name = await s.page.$eval(POWERS + ' label:nth-of-type(3) .font-medium', (e) => e.innerText.trim());
-    await s.page.click(POWERS + ' label:nth-of-type(3)');
+    await s.page.click(POWERS + ' label:nth-of-type(3) .font-medium'); // its name: the description has glossary links, and a click on one opens the term instead
     await s.settle(300);
     await s.click(MODAL + ' form > button.btn-primary', 'Take this path');
     await s.waitText('The path is chosen');
