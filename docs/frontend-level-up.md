@@ -12,13 +12,14 @@ Code: `path_panel`, `handleChoosePath` and `pathCards` (`company_actions.go`); f
 
 ### The mosaic
 
-On top, every path is a small button (a small icon and the name on one line), in fixed rows by colour (`pathRowList`, `paths.go`):
+On top, every path is a small button (a small icon and the name on one line), in rows by the main category the rules file gives it (`pathRowList`, `paths.go`):
 
-1. a war horn: Warlord, Shieldbearer, Tactician, Sorcerer (the only path of the row whose main category is another: it is blue);
-2. a hand weapon: Soldier, Claimant, Berserker, Duelist;
-3. a bow: Sharpshooter, Marksman, Ranger.
+1. a war horn, `support` and `will`: Warlord, Shieldbearer, Tactician, Sorcerer (the only path of the row whose main category is `will`: it is blue);
+2. a hand weapon, `melee`: Soldier, Claimant, Berserker, Duelist;
+3. a bow, `ranged`: Sharpshooter, Marksman, Ranger.
 
-A path no row names (another rules file) goes in an extra last row without a heading icon; a row with no paths is not drawn; a blocked path keeps its place.
+The names only sort a row: a path of another rules file goes in the row of its main category, after the named ones, in the file's order.
+A path with no category, or with a main category no row takes, goes in an extra last row without a heading icon; a row with no paths is not drawn; a blocked path keeps its place.
 `pathRows` also gives the flat list that the radios and the stack share, so the arrows, the arrow keys and a swipe walk this order, crossing rows.
 
 - A row opens with its icon on a tile (`.path-row-icon`): a rounded square with a tinted background, a border and the drawing in the row's colour, the inverse of the round path badges. It is a heading and is not interactive.

@@ -1,6 +1,10 @@
 package web
 
-import "strings"
+import (
+	"cmp"
+	"slices"
+	"strings"
+)
 
 // pathLookView is how a hero's path is drawn: its game-icons.net icon (see static/img/CREDITS.md), the colours of its categories and
 // its name cut in two, the "Path of the" lead in small and the rest in large.
@@ -59,48 +63,58 @@ type pathStripRow struct {
 	Cards []pathCard
 }
 
-// pathRowList is the order of the path window, row by row. The Sorcerer, whose main category is will, goes last of the first row.
+// pathRowList is the path window, row by row. A path goes in the row of its main category, which the rules file gives; Paths only sorts a
+// row, with any other path after the named ones. A will path goes in the first row, so the Sorcerer ends it.
 var pathRowList = []struct {
 	Label, Icon, Kind string
+	Categories        []string
 	Paths             []string
 }{
-	{"Command paths", "horn", "support", []string{"Path of the Warlord", "Path of the Shieldbearer", "Path of the Tactician", "Path of the Sorcerer"}},
-	{"Melee paths", "sword-brandish", "melee", []string{"Path of the Soldier", "Path of the Claimant", "Path of the Berserker", "Path of the Duelist"}},
-	{"Ranged paths", "high-shot", "ranged", []string{"Path of the Sharpshooter", "Path of the Marksman", "Path of the Ranger"}},
+	{"Command paths", "horn", "support", []string{"support", "will"}, []string{"Path of the Warlord", "Path of the Shieldbearer", "Path of the Tactician", "Path of the Sorcerer"}},
+	{"Melee paths", "sword-brandish", "melee", []string{"melee"}, []string{"Path of the Soldier", "Path of the Claimant", "Path of the Berserker", "Path of the Duelist"}},
+	{"Ranged paths", "high-shot", "ranged", []string{"ranged"}, []string{"Path of the Sharpshooter", "Path of the Marksman", "Path of the Ranger"}},
+}
+
+// pathRowOf is the index in pathRowList of the row of a path; len(pathRowList), the extra row, for one with no category or a main category
+// no row takes.
+func pathRowOf(c pathCard) int {
+	if len(c.Categories) > 0 {
+		for i, def := range pathRowList {
+			if slices.Contains(def.Categories, c.Categories[0]) {
+				return i
+			}
+		}
+	}
+	return len(pathRowList)
 }
 
 // pathRows puts the paths offered in the rows of the path window and returns them with the same cards as one flat list, the order of
-// the radios and of the stack (pathCarousel pairs them by index). A row with no paths is left out; a path no row names (another rules
-// file) goes in an extra last row without a heading icon, so none is lost.
+// the radios and of the stack (pathCarousel pairs them by index). A row with no paths is left out; a path no row takes goes in an extra
+// last row without a heading icon, in the file's order, so none is lost.
 func pathRows(cards []pathCard) ([]pathStripRow, []pathCard) {
-	byName := make(map[string]pathCard, len(cards))
+	grouped := make([][]pathCard, len(pathRowList)+1)
 	for _, c := range cards {
-		byName[c.Name] = c
+		i := pathRowOf(c)
+		grouped[i] = append(grouped[i], c)
 	}
-	rows := make([]pathStripRow, 0, len(pathRowList)+1)
+	rows := make([]pathStripRow, 0, len(grouped))
 	flat := make([]pathCard, 0, len(cards))
-	for _, def := range pathRowList {
-		row := pathStripRow{Label: def.Label, Icon: def.Icon, Kind: def.Kind}
-		for _, name := range def.Paths {
-			if c, ok := byName[name]; ok {
-				row.Cards = append(row.Cards, c)
-				delete(byName, name)
+	for i, def := range pathRowList {
+		rank := func(c pathCard) int {
+			if n := slices.Index(def.Paths, c.Name); n >= 0 {
+				return n
 			}
+			return len(def.Paths)
 		}
-		if len(row.Cards) > 0 {
-			rows = append(rows, row)
-			flat = append(flat, row.Cards...)
-		}
-	}
-	extra := pathStripRow{Label: "Other paths", Kind: "other"}
-	for _, c := range cards {
-		if _, ok := byName[c.Name]; ok {
-			extra.Cards = append(extra.Cards, c)
+		slices.SortStableFunc(grouped[i], func(a, b pathCard) int { return cmp.Compare(rank(a), rank(b)) })
+		if len(grouped[i]) > 0 {
+			rows = append(rows, pathStripRow{Label: def.Label, Icon: def.Icon, Kind: def.Kind, Cards: grouped[i]})
+			flat = append(flat, grouped[i]...)
 		}
 	}
-	if len(extra.Cards) > 0 {
-		rows = append(rows, extra)
-		flat = append(flat, extra.Cards...)
+	if extra := grouped[len(pathRowList)]; len(extra) > 0 {
+		rows = append(rows, pathStripRow{Label: "Other paths", Kind: "other", Cards: extra})
+		flat = append(flat, extra...)
 	}
 	return rows, flat
 }

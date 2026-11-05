@@ -317,6 +317,7 @@ States of the wish list that the services cannot produce, or that need raw SQL (
   run: see the end of `tmp/demo-world.txt`.
 - **A second rules edition**: only one vanilla and one Battle Companies file ship with the app. The "other edition" is a copy of
   the Battle Companies file with another name and version stored through `Rulesets.StoreAs`; it plays like the original.
+  So the path window's rows only show the shipped paths: a path of another rules file in the row of its main category, or in the extra row, has no campaign and is covered by `paths_test.go`.
 - **An older log with secret objective notes**: the services refuse the `secretNominate` and `secretDone` entries now, and the app builds nothing from them; tests in `internal/core` and `internal/postgres` cover how an old log reads.
 - **A join request awaiting approval**: joining is by invite link only; the "pending join" state is a member with no company.
 
