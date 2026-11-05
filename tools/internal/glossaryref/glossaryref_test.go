@@ -9,6 +9,23 @@ import (
 	"testing"
 )
 
+func isOneToTen(v []int) bool {
+	if len(v) != 10 {
+		return false
+	}
+	for i, x := range v {
+		if x != i+1 {
+			return false
+		}
+	}
+	return true
+}
+
+// ToWoundErrors runs the checks of ToWoundErrorsJSON on a typed table, so a test can break it field by field.
+func ToWoundErrors(tw ToWoundTable) []string {
+	return cellErrors(isOneToTen(tw.Strengths) && isOneToTen(tw.Defences), tw.Cells)
+}
+
 func repoRoot(t *testing.T) string {
 	t.Helper()
 	d, err := os.Getwd()

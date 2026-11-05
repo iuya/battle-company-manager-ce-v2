@@ -114,24 +114,6 @@ func CellRank(c string) int {
 	return r
 }
 
-func isOneToTen(v []int) bool {
-	if len(v) != 10 {
-		return false
-	}
-	for i, x := range v {
-		if x != i+1 {
-			return false
-		}
-	}
-	return true
-}
-
-// ToWoundErrors checks the table: complete 10x10 grid, allowed values, never easier as Defence
-// rises, never harder as Strength rises. It returns nil for a valid table.
-func ToWoundErrors(tw ToWoundTable) []string {
-	return cellErrors(isOneToTen(tw.Strengths) && isOneToTen(tw.Defences), tw.Cells)
-}
-
 func cellErrors(axesOK bool, cells [][]string) []string {
 	var errs []string
 	if !axesOK {
@@ -179,8 +161,9 @@ func cellErrors(axesOK bool, cells [][]string) []string {
 	return errs
 }
 
-// ToWoundErrorsJSON runs the same checks on a decoded JSON "toWound" object (numbers as
-// float64, lists as []any), as found in the glossary file.
+// ToWoundErrorsJSON checks a decoded JSON "toWound" object (numbers as float64, lists as
+// []any), as found in the glossary file: complete 10x10 grid, allowed values, never easier as
+// Defence rises, never harder as Strength rises. It returns nil for a valid table.
 func ToWoundErrorsJSON(tw map[string]any) []string {
 	axis := func(key string) bool {
 		l, ok := tw[key].([]any)

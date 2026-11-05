@@ -5,17 +5,12 @@ import (
 	"reflect"
 )
 
-// Encode writes a model value back as JSON in the lean format: keys by their json tags (sorted by encoding/json), fields marked
-// omitempty left out when empty, and the keys held in `rest` maps written back. It is the inverse of Bind for a document that bound
-// without errors, which the fuzz test relies on.
-func Encode(v any) ([]byte, error) {
-	return json.Marshal(encodeTree(reflect.ValueOf(v)))
-}
-
 func reflectOf(v any) reflect.Value { return reflect.ValueOf(v) }
 
 func reflectInt(p *int) reflect.Value { return reflect.ValueOf(p).Elem() }
 
+// encodeTree turns a model value into the tree of its JSON in the lean format: keys by their json tags, fields marked omitempty left
+// out when empty, and the keys held in `rest` maps written back.
 func encodeTree(rv reflect.Value) any {
 	for rv.Kind() == reflect.Pointer || rv.Kind() == reflect.Interface {
 		if rv.IsNil() {
