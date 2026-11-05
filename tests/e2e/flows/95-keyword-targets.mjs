@@ -164,8 +164,7 @@ export default async function (h) {
       return slots.find((u) => (u.querySelector('h3')?.innerText || '').trim() === title && u.querySelector('[data-keywords] li.kw-chip')?.textContent.includes('Orc'))?.dataset.unitId;
     }, victim);
     assert.ok(id, 'the card of the Orc');
-    await radagast.liveSheet('retreat', id); // no Fled button on the card: its window
-    await radagast.click(MODAL + ' button', '=Retreated');
+    await radagast.liveRetreat(id);
     await radagast.waitText('Failed courage');
     // Gimli's page is refreshed by the event stream: one marker fewer, the rest are still there
     await gimli.page.waitForFunction((n) => document.querySelectorAll('#live-zones section[aria-label=Retreated] li, #live-zones [aria-label=Retreated] li').length > 0 && document.querySelectorAll('#live-zones .unit-slot [data-rule-match]').length === n,

@@ -116,7 +116,7 @@ type LiveBreak struct {
 	Threshold100   int  // Percent * StartingModels: the Break Point is Threshold100 / 100
 	Broken         bool // the casualties exceed the Break Point now; an undo that takes them back under makes it whole again
 	AtLeast        bool // the comparison of the rules file: reaching the Break Point is enough to break (see BreakConfig)
-	LeftTable      int  // models that left the board: no casualties, but no longer in the game
+	LeftTable      int  // models that left the board: no casualties and still counted as on the board (owner ruling, docs/live-match.md); only drawn apart on the bar
 	EndLossPercent int  // the share of the starting models whose loss ends the scenario; 0: it has no such end
 	Exceptions     []string
 }
