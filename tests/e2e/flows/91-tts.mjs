@@ -192,8 +192,7 @@ export default async function (h) {
     assert.ok(!(await angmar.page.$eval('#tts-body', (e) => /Second warband/.test(e.innerText))), 'no second warband yet');
     await close(angmar);
     // retreat the first unit of the field
-    await angmar.liveSheet('retreat'); // no Fled button on the card: its window
-    await angmar.click('[role=dialog] button', '=Retreated');
+    await angmar.liveRetreat();
     await angmar.waitText('Retreated');
     await angmar.settle(500);
     await open(angmar);

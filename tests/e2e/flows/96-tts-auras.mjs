@@ -366,8 +366,7 @@ export default async function (h) {
     const nBefore = ringsOf(before).length;
     await close(you);
     // retreat the first unit of the field
-    await you.liveSheet('retreat'); // no Fled button on the card: its window
-    await you.click('[role=dialog] button', '=Retreated');
+    await you.liveRetreat();
     await you.waitText('Retreated');
     await you.settle(500);
     await open(you);
