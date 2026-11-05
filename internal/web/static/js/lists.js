@@ -1,13 +1,55 @@
 // Searchable lists: the campaigns on the main page (listSearch) and the glossary (glossary, which adds jumping between
 // terms, a way back and previews on hover). Everything runs in the browser over what is already on the page.
-// Where a tooltip goes: under its element, or over it when it does not fit below; a long text stays inside the window. Shared with company.js.
-function tipPlace(box, el) {
+
+// Tooltips, shared with company.js. Where one goes: under its element, or over it when it does not fit below (tipSpot); tipPlace also keeps a long text inside the window.
+function tipSpot(box, el) {
   const r = el.getBoundingClientRect();
   const x = Math.max(8, Math.min(r.left, window.innerWidth - box.offsetWidth - 8));
   const below = r.bottom + 8;
   const y = below + box.offsetHeight > window.innerHeight && r.top - box.offsetHeight - 8 > 0 ? r.top - box.offsetHeight - 8 : below;
+  return { x, y };
+}
+function tipPlace(box, el) {
+  const { x, y } = tipSpot(box, el);
   return { x, y: Math.max(8, Math.min(y, window.innerHeight - box.offsetHeight - 8)) };
 }
+// What most tooltips say, from the data-tip-* of their element.
+function tipTexts(el) {
+  return { title: el.dataset.tipTitle || '', meta: el.dataset.tipMeta || '', text: el.dataset.tipText || '' };
+}
+
+// The tooltip of a component (x-ref="tip"), spread into its data the way diceMixin is. Options: the wait before it shows (delay), the elements
+// that have one (selector), what keyboard focus does (focus), where it goes (place) and the fields of tip beyond the usual ones (extra). focus is
+// "hover" (the same as a hover: nothing on touch screens), "always" or "visible" (only :focus-visible, so a tap is not taken for it).
+// A component with other elements overrides tipTarget, and one with other content overrides tipContent, which returns the fields of tip or null for no tooltip.
+window.tipMixin = ({ delay = 150, selector = '[data-tip-title]', focus = 'hover', place = tipPlace, extra = {} } = {}) => ({
+  tip: { show: false, x: 0, y: 0, title: '', meta: '', text: '', ...extra },
+  tipTimer: null,
+  tipFor: null, // the element the tooltip was last shown for
+  tipTarget(node) { return node.closest && node.closest(selector); },
+  tipContent(el) { return tipTexts(el); },
+  over(e) {
+    const wanted = e.type === 'focusin' && focus !== 'hover'
+      ? focus === 'always' || e.target.matches(':focus-visible')
+      : window.matchMedia('(hover: hover)').matches;
+    const el = wanted && this.tipTarget(e.target);
+    if (!el) return;
+    clearTimeout(this.tipTimer);
+    this.tipTimer = setTimeout(() => this.showTip(el), delay);
+  },
+  out(e) { if (this.tipTarget(e.target)) this.hideTip(); },
+  hideTip() { clearTimeout(this.tipTimer); this.tip.show = false; },
+  async showTip(el) {
+    const content = this.tipContent(el);
+    if (!content) return;
+    this.tipFor = el;
+    this.tip = { show: true, x: 0, y: 0, ...content };
+    await this.$nextTick();
+    const box = this.$refs.tip;
+    if (!box || !el.isConnected) { this.tip.show = false; return; } // the page was swapped while the tip waited
+    Object.assign(this.tip, place(box, el));
+  },
+});
 
 document.addEventListener('alpine:init', () => {
   // Shared by both: items carry data-name and optionally data-aliases (separated by |).
@@ -39,8 +81,7 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('armory', () => ({
     ...search(),
     main: '', sub: '', mine: true, applies: {},
-    tip: { show: false, x: 0, y: 0, title: '', meta: '', text: '' },
-    tipTimer: null,
+    ...window.tipMixin({ focus: 'always' }),
     init() {
       this.$root.removeAttribute('data-armory-pending'); // the CSS default (unavailable items hidden) gives way to x-show
       try { this.applies = JSON.parse(this.$root.dataset.applies || '{}'); } catch (e) { this.applies = {}; }
@@ -64,22 +105,6 @@ document.addEventListener('alpine:init', () => {
     // items the switch hides that would show otherwise
     hiddenCount() { return [...this.$root.querySelectorAll('[data-avail="0"]')].filter(el => this.ignoring(el)).length; },
     mainShows(m) { return [...this.$root.querySelectorAll('[data-main="' + m + '"]')].some(el => this.shows(el)); },
-    over(e) {
-      if (!window.matchMedia('(hover: hover)').matches && e.type !== 'focusin') return;
-      const el = e.target.closest && e.target.closest('[data-tip-title]');
-      if (!el) return;
-      clearTimeout(this.tipTimer);
-      this.tipTimer = setTimeout(() => this.showTip(el), 150);
-    },
-    out(e) { if (e.target.closest && e.target.closest('[data-tip-title]')) this.hideTip(); },
-    hideTip() { clearTimeout(this.tipTimer); this.tip.show = false; },
-    async showTip(el) {
-      this.tip = { show: true, x: 0, y: 0, title: el.dataset.tipTitle, meta: el.dataset.tipMeta || '', text: el.dataset.tipText || '' };
-      await this.$nextTick();
-      const box = this.$refs.tip;
-      if (!box || !el.isConnected) { this.tip.show = false; return; }
-      Object.assign(this.tip, tipPlace(box, el));
-    },
   }));
 
   // The company browser: a searchable list, an alignment filter, and tooltips that show the card of a unit (a hidden element named
@@ -87,30 +112,17 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('companyBrowser', () => ({
     ...search(),
     align: '', picked: '',
-    tip: { show: false, x: 0, y: 0, html: '', title: '', meta: '', text: '' },
-    tipTimer: null,
+    ...window.tipMixin({ delay: 120, focus: 'always', selector: '[data-preview], [data-tip-title]', extra: { html: '' } }),
     init() { this.picked = this.$el.dataset.picked || ''; },
     shows(el) {
       if (this.align && el.dataset.align !== this.align) return false;
       const q = this.fold(this.q.trim());
       return q === '' || this.fold(el.dataset.name).includes(q);
     },
-    over(e) {
-      if (!window.matchMedia('(hover: hover)').matches && e.type === 'mouseover') return;
-      const el = e.target.closest && e.target.closest('[data-preview], [data-tip-title]');
-      if (!el) return;
-      clearTimeout(this.tipTimer);
-      this.tipTimer = setTimeout(() => this.showTip(el), 120);
-    },
-    out(e) { if (e.target.closest && e.target.closest('[data-preview], [data-tip-title]')) this.hide(); },
-    hide() { clearTimeout(this.tipTimer); this.tip.show = false; },
-    async showTip(el) {
+    hide() { this.hideTip(); },
+    tipContent(el) {
       const src = el.dataset.preview ? document.getElementById(el.dataset.preview) : null;
-      this.tip = { show: true, x: 0, y: 0, html: src ? src.innerHTML : '', title: el.dataset.tipTitle || '', meta: el.dataset.tipMeta || '', text: el.dataset.tipText || '' };
-      await this.$nextTick();
-      const box = this.$refs.tip;
-      if (!box || !el.isConnected) { this.tip.show = false; return; } // the page was swapped while the tip waited
-      Object.assign(this.tip, tipPlace(box, el));
+      return { ...tipTexts(el), html: src ? src.innerHTML : '' };
     },
   }));
 
@@ -121,8 +133,7 @@ document.addEventListener('alpine:init', () => {
     trail: [],        // the terms you followed links from, newest last: what "Back" returns to
     hl: '',           // the term you jumped to (highlighted)
     scrolled: false,  // far enough down to offer "Top"
-    tip: { show: false, x: 0, y: 0, name: '', category: '', text: '' },
-    tipTimer: null,
+    ...window.tipMixin({ delay: 200, place: tipSpot, extra: { name: '', category: '' } }),
 
     init() {
       // the category filter lives in the address (?c=), so a filtered view can be shared; an unknown category is ignored
@@ -216,37 +227,21 @@ document.addEventListener('alpine:init', () => {
 
     // Hover (or keyboard focus) on a link previews its term: plain text only, so previews never nest. Not on touch
     // screens, where a tap simply follows the link.
-    over(e) {
-      if (!window.matchMedia('(hover: hover)').matches) return;
-      const t = this.termOf(e.target) || this.chipOf(e.target);
-      if (!t) return;
-      clearTimeout(this.tipTimer);
-      this.tipTimer = setTimeout(() => this.showTip(t.a, t.id), 200);
+    tipTarget(node) {
+      const t = this.termOf(node) || this.chipOf(node);
+      return t && t.a;
     },
-    out(e) {
-      if (!this.termOf(e.target) && !this.chipOf(e.target)) return;
-      this.hideTip();
-    },
-    hideTip() { clearTimeout(this.tipTimer); this.tip.show = false; },
-    async showTip(a, id) {
+    tipContent(a) {
       if (a.dataset.tipTitle) { // a unit named in a definition carries its own profile: its card may not be in the page yet
-        this.tip = { show: true, x: 0, y: 0, name: a.dataset.tipTitle, category: a.dataset.tipMeta || 'unit', text: a.dataset.tipText || '' };
-      } else {
-        const art = document.getElementById(id);
-        const def = art && art.querySelector('[data-def]');
-        if (!def) return;
-        let text = def.innerText.trim().replace(/\s+/g, ' ');
-        if (text.length > 480) text = text.slice(0, 480).replace(/\s+\S*$/, '') + '…';
-        this.tip = { show: true, x: 0, y: 0, name: art.dataset.name, category: art.dataset.category, text };
+        return { name: a.dataset.tipTitle, category: a.dataset.tipMeta || 'unit', text: a.dataset.tipText || '' };
       }
-      await this.$nextTick();
-      const box = this.$refs.tip;
-      if (!box || !a.isConnected) { this.tip.show = false; return; } // the page was swapped while the tip waited
-      const r = a.getBoundingClientRect();
-      const x = Math.max(8, Math.min(r.left, window.innerWidth - box.offsetWidth - 8));
-      const below = r.bottom + 8;
-      const y = below + box.offsetHeight > window.innerHeight && r.top - box.offsetHeight - 8 > 0 ? r.top - box.offsetHeight - 8 : below;
-      this.tip.x = x; this.tip.y = y;
+      const t = this.termOf(a);
+      const art = t && document.getElementById(t.id);
+      const def = art && art.querySelector('[data-def]');
+      if (!def) return null;
+      let text = def.innerText.trim().replace(/\s+/g, ' ');
+      if (text.length > 480) text = text.slice(0, 480).replace(/\s+\S*$/, '') + '…';
+      return { name: art.dataset.name, category: art.dataset.category, text };
     },
   }));
 
