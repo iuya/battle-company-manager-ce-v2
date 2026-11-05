@@ -131,7 +131,7 @@ A card, top to bottom:
 - **Path** (every hero, the leader and sergeants included): a box between the equipment and the special rules, headed by the path's icon (one game-icons.net icon per path in a round badge, `path_icon`; also in the
   path window and the fallen card) and its name, the "Path of the" lead small above the rest (`pathLook` in `paths.go`; on the unit card and the fallen card the name alone, beside a smaller badge, `path_name` with Short). Badge
   and box take the colour of the kind of hero the path makes: melee red (`path-melee`), ranged green (`path-ranged`), command
-  amber (`leader`), magic blue (`path-magic`), the rest muted; a path the app does not know gets the medal. The name's tooltip is the glossary's text
+  amber (`leader`), magic blue (`path-magic`), the rest muted; a path the app does not know gets the medal. The badge of the Ranger and the Duelist is split on the diagonal with the command amber (`.path-icon-hybrid`, [frontend-level-up.md](frontend-level-up.md)); their box stays in their own colour. The name's tooltip is the glossary's text
   of the path with its characteristic limits and level-up chart, as in the level-up window. Folded, it lists the heroic actions unlocked so far (the unit's own, the path's and those bought later; their text comes
   from the glossary term of the same name) and the special rules the path gave, and the magical powers it taught (the Path of the Sorcerer; a spell icon with
   casting value and range); unfolded, the same heading opens a section that has them in full. Those rules are not repeated below (`CompanyUnit.Path`). Magical powers a unit knows from some other source stay among the special rules, after its own rules.

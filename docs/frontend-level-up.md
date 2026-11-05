@@ -6,20 +6,35 @@ The design language and the page patterns are in [frontend.md](frontend.md).
 ## Path carousel
 
 A leader or sergeant without a path chooses it in the path window.
-The window is a carousel with a mosaic of every path above it.
+The window is a carousel with a mosaic of every path, in rows by colour, above it.
 
 Code: `path_panel`, `handleChoosePath` and `pathCards` (`company_actions.go`); flow `109-path-carousel`.
 
 ### The mosaic
 
-On top, every path is a small button (a small icon and the name on one line).
+On top, every path is a small button (a small icon and the name on one line), in fixed rows by colour (`pathRowList`, `paths.go`):
 
-- The buttons form a wrapping grid (`.path-strip`, columns of at least 7.75 rem), so there are 2 columns at 360 px and more as the window widens.
+1. a war horn: Warlord, Tactician, Shieldbearer, Sorcerer (the only path in a row of another colour: it keeps its blue);
+2. a hand weapon: Soldier, Claimant, Berserker, Duelist;
+3. a bow: Sharpshooter, Marksman, Ranger.
+
+A path no row names (another rules file) goes in an extra last row without a heading icon; a row with no paths is not drawn; a blocked path keeps its place.
+`pathRows` also gives the flat list that the radios and the stack share, so the arrows, the arrow keys and a swipe walk this order, crossing rows.
+
+- A row opens with its icon on a tile (`.path-row-icon`): a rounded square with a tinted background, a border and the drawing in the row's colour, the inverse of the round path badges. It is a heading and is not interactive.
+- The buttons of a row are 4 aligned columns where they fit (`.path-row-cells`, a container query on `.path-strip`) and 2 in a narrow window, with the icon at the left.
 - Every path is visible at once, with no scrolling.
-- The grid is a `role="radiogroup"` of radios named `path`, so Tab, the arrow keys, Enter and screen readers work natively.
+- The strip is one `role="radiogroup"` of radios named `path`, so Tab, the arrow keys, Enter and screen readers work natively.
+  Each row is a labelled `role="group"` ("Command paths", "Melee paths", "Ranged paths").
   A button's accessible name is the full path name.
 - The selected button is marked (`.is-on`).
-  Exactly one is always selected: the first available path at the start.
+  Exactly one is always selected: the first available path of this order at the start.
+
+Under the rows come, for a Sorcerer, the first magical power (see below), then "Take this path", then the cards.
+The button is the form's submit, so Enter takes the selected path.
+
+The badge of the Path of the Ranger and the Path of the Duelist (`Hybrid` in `pathLooks`, `.path-icon-hybrid`) is split on the diagonal: their own colour top-left, the command amber bottom-right, with a thin page-colour line between them because the two colours are close in lightness.
+It is only a look, in every place that draws the badge (`path_icon`), and says these two paths are useful beyond their kind. The box, the tab and the rules keep the path's own colour.
 
 ### The cards
 
@@ -51,7 +66,7 @@ The cards then move with a transform and opacity transition.
 
 Two **floating previous/next buttons** (`.path-float`) sit in a sticky bar at the middle of the window over the stack.
 They are 44 px and overlap only the card's margin, so they stay in reach when the card is scrolled.
-They share `step()` and the disabled state with the buttons at the sides of the mosaic.
+They walk the paths in the order of the mosaic (`step()`) and are off at its ends.
 
 ### What a card shows
 
@@ -73,7 +88,7 @@ A blocked path shows the reason, and "Take this path" is off.
 
 ### Select magical power (Sorcerer)
 
-A Sorcerer's first magical power is a second step under the stack.
+A Sorcerer's first magical power is a second step between the mosaic and "Take this path"; selecting another path hides it.
 
 1. A **"Select magical power"** button opens a second window inside the path window.
    Once a power is chosen, the button reads "Change" and the chosen name is shown.
@@ -88,7 +103,7 @@ A Sorcerer's first magical power is a second step under the stack.
 
 The form posts `POST .../units/{unit}/path` with `path` (and `power`). The choice is final.
 
-Styles: `.path-carousel`, `.path-strip`, `.path-tab`, `.path-stage` and `.path-card` in `tailwind.css`.
+Styles: `.path-carousel`, `.path-strip`, `.path-row`, `.path-row-icon`, `.path-tab`, `.path-stage` and `.path-card` in `tailwind.css`.
 
 ## Level-up
 

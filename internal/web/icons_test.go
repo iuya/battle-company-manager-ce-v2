@@ -37,6 +37,9 @@ func TestIconSpriteMatchesTheIconsInUse(t *testing.T) {
 		used[pathLook(name).Icon] = name
 	}
 	used[pathLook("Path of the Smith").Icon] = "unknown path"
+	for _, row := range pathRowList {
+		used[row.Icon] = row.Label
+	}
 	lu := core.LiveUnit{Fate: core.LiveStat{Start: 1}}
 	for _, m := range (liveView{}).Milestones(5, lu) {
 		used[m.Icon] = "milestone " + m.Label

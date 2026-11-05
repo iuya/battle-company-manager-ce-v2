@@ -1,5 +1,5 @@
-// The "Choose a path" window is a carousel (GitHub issue 63; docs/frontend-level-up.md, "Path carousel"): every path on one strip (a radio group), exactly one selected
-// and shown below with its details, the floating previous/next arrows, the arrow keys, the first magical power of a Sorcerer under the selection, no horizontal scroll
+// The "Choose a path" window is a carousel (GitHub issue 63; docs/frontend-level-up.md, "Path carousel"): every path on one strip (a radio group, in rows by colour), exactly one selected
+// and shown below with its details, the floating previous/next arrows, the arrow keys, the first magical power of a Sorcerer between the rows and the button, no horizontal scroll
 // in the 360 x 640 window, axe clean in every look. Eowyn's Rohan company in "Companies being built" has officers without a path.
 import { assert, campaignId, MODAL } from '../lib/util.mjs';
 import { axeScoped, eachLook, resetLook, setLook } from '../lib/axe.mjs';
@@ -30,6 +30,38 @@ export default async function (h, { only }) {
     assert.ok(mo.tabs.every((x) => x.sameLine), 'the icon and the name are on the same line');
     assert.ok(mo.tabs.some((x, i) => i && x.t > mo.tabs[0].b - 1), 'the buttons wrap into rows');
   };
+
+  await h.step('path carousel: the paths are in rows by colour, each opened by its icon, with the button right under them', async () => {
+    await open();
+    const rows = await s.page.$$eval(STRIP + ' > [role=group]', (e) => e.map((r) => { const i = r.querySelector('.path-row-icon'), u = i.querySelector('use'); return { label: r.getAttribute('aria-label'), icon: u.getAttribute('href').split('#').pop(), hidden: i.getAttribute('aria-hidden'), interactive: !!i.closest('label, button, a') || getComputedStyle(i).cursor === 'pointer', radius: parseFloat(getComputedStyle(i).borderTopLeftRadius), w: i.getBoundingClientRect().width, paths: [...r.querySelectorAll('input')].map((x) => x.value.replace(/^Path of the /, '')), kinds: [...r.querySelectorAll('label')].map((l) => [...l.classList].find((c) => c.startsWith('path-k-'))) }; }));
+    assert.deepEqual(rows.map((r) => r.paths), [['Warlord', 'Tactician', 'Shieldbearer', 'Sorcerer'], ['Soldier', 'Claimant', 'Berserker', 'Duelist'], ['Sharpshooter', 'Marksman', 'Ranger']], 'the exact rows');
+    assert.deepEqual(rows.map((r) => r.icon), ['horn', 'sword-brandish', 'high-shot'], 'the icons of the rows');
+    assert.deepEqual(rows.map((r) => r.label), ['Command paths', 'Melee paths', 'Ranged paths'], 'each row is a labelled group');
+    assert.ok(rows.every((r) => r.hidden === 'true' && !r.interactive), 'the row icon is hidden from assistive tech and not interactive');
+    assert.ok(rows.every((r) => r.w >= 34 && r.radius < r.w / 2), 'a rounded square, not a round badge');
+    assert.deepEqual(rows[0].kinds, ['path-k-command', 'path-k-command', 'path-k-command', 'path-k-magic'], 'the Sorcerer keeps its blue');
+    assert.deepEqual(await s.page.$$eval(MODAL + ' .path-card-body', (e) => e.map((b) => b.dataset.path)), await s.page.$$eval(MODAL + ' input[name=path]', (r) => r.map((x) => x.value)), 'the stack has the order of the radios');
+    assert.equal(await picked(s), 'Path of the Warlord', 'the first selection is the first of the new order');
+    const hybrid = await s.page.$$eval(STRIP + ' label', (l) => l.filter((x) => x.querySelector('.path-icon-hybrid')).map((x) => x.querySelector('input').value));
+    assert.deepEqual(hybrid, ['Path of the Duelist', 'Path of the Ranger'], 'only these two badges are split');
+    assert.match(await s.page.$eval(STRIP + ' .path-icon-hybrid', (e) => getComputedStyle(e).backgroundImage), /linear-gradient/, 'the split shows');
+    // the order of the window: the rows, the power block for a Sorcerer, the button, the stack
+    const under = () => s.page.evaluate((m) => { const top = (q) => { const e = document.querySelector(m + ' ' + q); return e && e.getClientRects().length ? e.getBoundingClientRect().top : null; }; const strip = document.querySelector(m + ' [role=radiogroup]').getBoundingClientRect().bottom; return { strip, power: top('#power-open'), button: top('form > button.btn-primary'), deck: top('.path-deck') }; }, MODAL);
+    let at = await under();
+    assert.equal(at.power, null, 'no power block for another path');
+    assert.ok(at.strip <= at.button && at.button < at.deck, 'the button is right under the rows, above the stack');
+    await s.click(STRIP + ' label', 'Sorcerer');
+    await s.page.waitForSelector('#power-open', { visible: true });
+    at = await under();
+    assert.ok(at.strip <= at.power && at.power < at.button && at.button < at.deck, 'the power block is between the rows and the button');
+    // the arrow keys cross rows
+    await s.page.focus(STRIP + ' input:checked');
+    await s.page.keyboard.press('ArrowRight');
+    await s.settle(600);
+    assert.equal(await picked(s), 'Path of the Soldier', 'the arrow key goes from the end of a row to the next one');
+    assert.deepEqual(await shown(s), ['Path of the Soldier'], 'and the front card follows');
+    assert.equal(await s.page.$$eval(MODAL + ' #power-open', (e) => e.filter((x) => x.getClientRects().length).length), 0, 'another path hides the power block');
+  }, { only });
 
   await h.step('path carousel: every path is on the strip, one is selected and its details show', async () => {
     await open();
@@ -184,6 +216,13 @@ export default async function (h, { only }) {
     await open();
     assert.ok(await s.noHScroll(), 'no horizontal scroll');
     await mosaic();
+    await s.page.screenshot({ path: `out/path-window-${w}-${scheme}${contrast === 'high' ? '-hc' : ''}.png` });
+    // the row icons reach 3:1 against their tile, in every look; the rows are 4 aligned columns where they fit and 2 at 360 px
+    const tiles = await s.page.$$eval(STRIP + ' .path-row-icon', (e) => { const rgb = (c) => { const x = document.createElement('canvas').getContext('2d', { willReadFrequently: true }); x.fillStyle = c; x.fillRect(0, 0, 1, 1); return [...x.getImageData(0, 0, 1, 1).data].slice(0, 3); }; const lum = (c) => { const [r, g, b] = rgb(c).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; }; return e.map((i) => { const st = getComputedStyle(i), a = lum(st.color), b = lum(st.backgroundColor), hi = Math.max(a, b), lo = Math.min(a, b); return (hi + 0.05) / (lo + 0.05); }); });
+    assert.ok(tiles.every((c) => c >= 3), `the row icons reach 3:1: ${tiles}`);
+    const cols = await s.page.$$eval(STRIP + ' .path-row-cells', (e) => e.map((c) => getComputedStyle(c).gridTemplateColumns.split(' ').length));
+    if (w === 360) assert.deepEqual(cols, [2, 2, 2], '2 columns in a narrow window');
+    if (w === 1280) assert.deepEqual(cols, [4, 4, 4], '4 columns where they fit');
     assert.ok(await s.page.$eval(MODAL, (e) => e.scrollWidth <= e.clientWidth + 1), 'no horizontal scroll in the window');
     assert.ok(await s.page.evaluate(() => !!document.activeElement && document.activeElement.closest('[role=dialog]') !== null), 'focus is inside the window');
     if (axeHere) assert.deepEqual(await axeScoped(s, [MODAL]), [], 'axe on the window');

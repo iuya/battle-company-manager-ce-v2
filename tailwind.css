@@ -663,6 +663,7 @@ html[data-mode="dark"] { color-scheme: dark; }
   .path-lead { @apply block text-xs text-muted; }
   .path-main { @apply block font-heading text-lg font-bold; }
   .path-icon { @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-page; background: var(--path, var(--accent)); }
+  .path-icon-hybrid { background: linear-gradient(135deg, var(--path) 48.5%, var(--page) 48.5% 51.5%, var(--leader) 51.5%); } /* the path's colour and the command colour on the diagonal; the thin line shows the split without relying on hue (the two are close in lightness) */
   .path-icon > svg { height: 1.875rem; width: 1.875rem; } /* little margin: the badge is the icon, not a frame round it */
   /* On a unit card the path takes less room: no "Path of the" lead, so the name sits level with a smaller icon. */
   .path-name-short .path-icon { @apply h-7 w-7; }
@@ -671,7 +672,12 @@ html[data-mode="dark"] { color-scheme: dark; }
   /* The path carousel (path_panel): a mosaic of every path (a wrapping grid, small icon and name on one line) the selected tab is marked; the previous and next arrows float beside the card. */
   .path-carousel { @apply grid gap-1.5; grid-template-columns: minmax(0, 1fr); }
   .path-nav { @apply !min-h-11 !min-w-11 shrink-0 !px-0; }
-  .path-strip { @apply grid min-w-0 gap-1.5 py-1; grid-template-columns: repeat(auto-fill, minmax(7.75rem, 1fr)); }
+  .path-strip { @apply grid min-w-0 gap-1.5 py-1; container-type: inline-size; }
+  .path-row { @apply grid items-center gap-1.5; grid-template-columns: 2.25rem minmax(0, 1fr); }
+  .path-row-icon { @apply flex h-9 w-9 items-center justify-center rounded-lg border-2; color: var(--path); border-color: var(--path); background: color-mix(in srgb, var(--path) 14%, var(--surface)); } /* inverted against the round path badges: a heading, not one more button */
+  .path-row-icon > svg { height: 1.625rem; width: 1.625rem; }
+  .path-row-cells { @apply grid min-w-0 gap-1.5; grid-column: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @container (min-width: 35rem) { .path-row-cells { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
   .path-tab { @apply flex min-h-9 min-w-0 cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-surface px-1.5 py-1 text-xs leading-tight text-fg; }
   .path-tab .path-icon { @apply h-6 w-6; }
   .path-tab .path-icon > svg { height: 1.125rem; width: 1.125rem; }

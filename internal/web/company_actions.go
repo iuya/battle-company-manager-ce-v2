@@ -509,7 +509,8 @@ func (s *Server) showPathPanel(w http.ResponseWriter, r *http.Request, base camp
 	if s.fail(w, r, err) {
 		return
 	}
-	s.render.partial(w, status, "campaign_my_company", "path_panel", map[string]any{"Campaign": base.Campaign, "Co": base.Current.ID, "Offer": offer, "Cards": pathCards(g, offer.Paths), "Powers": powerViews(g, offer.Powers), "Error": errMsg})
+	rows, cards := pathRows(pathCards(g, offer.Paths))
+	s.render.partial(w, status, "campaign_my_company", "path_panel", map[string]any{"Campaign": base.Campaign, "Co": base.Current.ID, "Offer": offer, "Rows": rows, "Cards": cards, "Powers": powerViews(g, offer.Powers), "Error": errMsg})
 }
 
 // pathCard is one path of the carousel with all that is known of it: what PathOffer holds plus the glossary's limits and chart. The chart

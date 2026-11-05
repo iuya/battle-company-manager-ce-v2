@@ -36,7 +36,7 @@
 
 {{/* A hero's path as a game-icons.net icon in a round badge, one per path so they tell apart at a glance, coloured by the kind of
    hero it makes (pathLook, see static/img/CREDITS.md). Takes the path's name. */}}
-{{define "path_icon"}}{{$l := pathLook .}}<span class="path-icon path-k-{{$l.Kind}}">{{template "gi_icon" (dict "N" $l.Icon "C" "")}}</span>{{end}}
+{{define "path_icon"}}{{$l := pathLook .}}<span class="path-icon path-k-{{$l.Kind}}{{if $l.Hybrid}} path-icon-hybrid{{end}}">{{template "gi_icon" (dict "N" $l.Icon "C" "")}}</span>{{end}}
 
 {{/* The heading of a hero's path box: its icon and name, the "Path of the" lead small above the rest, and (with Tip) the path's
    text, limits and level-up chart in the tooltip. Takes {N: the name, Tip: the glossary text, Chart: tipPath's JSON, Short: on a

@@ -466,27 +466,60 @@
 </form>
 {{end}}
 
-{{/* A leader or sergeant chooses its path (a Sorcerer also its first magical power) from a carousel: every path on one strip (a radio
-   group, so the arrow keys, Enter and screen readers work natively), exactly one selected; below, the paths as cards in a stack: the selected one in front and in full
+{{/* A leader or sergeant chooses its path (a Sorcerer also its first magical power) from a carousel: every path on one strip, in rows by colour each opened
+   by an icon (pathRows; one radio group across the rows, so the arrow keys, Enter and screen readers work natively), exactly one selected; under the rows the first power of
+   a Sorcerer and the button; below, the paths as cards in a stack: the selected one in front and in full
    (limits, chart, heroic action, Mastery, rules), the neighbours behind it, smaller and faded (aria-hidden, inert; a click on one selects it). Previous and next buttons
-   at the sides and floating ones over the stack that follow the scroll, swipe on the stack. A blocked path can be looked at but not taken. Takes {Campaign, Co, Offer: core.PathOffer, Cards: []pathCard, Error}.
+   at the sides and floating ones over the stack that follow the scroll, swipe on the stack. A blocked path can be looked at but not taken. Takes {Campaign, Co, Offer: core.PathOffer, Rows: []pathStripRow, Cards: []pathCard (the rows as one list, the order of the radios and the stack), Powers, Error}.
    Component `pathCarousel` in static/js/company.js. */}}
 {{define "path_panel"}}{{$cid := .Campaign.ID}}
-<div x-data="pathCarousel" data-start="{{range .Offer.Paths}}{{if not .Blocked}}{{.Name}}{{break}}{{end}}{{end}}">
+<div x-data="pathCarousel" data-start="{{range .Cards}}{{if not .Blocked}}{{.Name}}{{break}}{{end}}{{end}}">
 <h2 class="!text-2xl pr-10">Choose a path</h2>
 <p class="mt-1 text-sm text-muted">{{.Offer.Unit.Title}} is a {{.Offer.Unit.Role}} of the company and has to follow a path before the company can play. The path decides how it grows; its heroic action comes with it at once. This is final.</p>
 {{with .Error}}<div class="alert alert-danger mt-3" role="alert">{{.}}</div>{{end}}
 <form method="post" action="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/units/{{.Offer.Unit.ID}}/path" hx-post="/campaigns/{{.Campaign.ID}}/my-company/{{.Co}}/units/{{.Offer.Unit.ID}}/path" hx-target="#modal-body" hx-swap="innerHTML" class="mt-4">
   <div class="path-carousel">
     <div class="path-strip" role="radiogroup" aria-label="Paths">
-      {{range $i, $c := .Cards}}
-      <label class="path-tab path-k-{{$c.Look.Kind}}" :class="path === {{jsstr $c.Name}} && 'is-on'">
-        <input type="radio" name="path" value="{{$c.Name}}" x-model="path" class="sr-only" required data-sorcerer="{{if $c.StartPower}}1{{end}}" data-blocked="{{if $c.Blocked}}1{{end}}">
-        {{template "path_icon" $c.Name}}<span class="path-tab-name">{{with $c.Look.Lead}}<span class="sr-only">{{.}} </span>{{end}}{{$c.Look.Main}}</span>{{if $c.Blocked}}<span class="sr-only">(not available)</span>{{end}}
-      </label>
+      {{range .Rows}}
+      <div class="path-row" role="group" aria-label="{{.Label}}">
+        {{if .Icon}}<span class="path-row-icon path-k-{{.Kind}}" aria-hidden="true">{{template "gi_icon" (dict "N" .Icon "C" "")}}</span>{{end}}
+        <div class="path-row-cells">
+          {{range $c := .Cards}}
+          <label class="path-tab path-k-{{$c.Look.Kind}}" :class="path === {{jsstr $c.Name}} && 'is-on'">
+            <input type="radio" name="path" value="{{$c.Name}}" x-model="path" class="sr-only" required data-sorcerer="{{if $c.StartPower}}1{{end}}" data-blocked="{{if $c.Blocked}}1{{end}}">
+            {{template "path_icon" $c.Name}}<span class="path-tab-name">{{with $c.Look.Lead}}<span class="sr-only">{{.}} </span>{{end}}{{$c.Look.Main}}</span>{{if $c.Blocked}}<span class="sr-only">(not available)</span>{{end}}
+          </label>
+          {{end}}
+        </div>
+      </div>
       {{end}}
     </div>
   </div>
+  <div class="mt-3 rounded-lg border border-line p-3" x-show="sorcerer" x-cloak>
+    <p class="text-sm font-medium" id="power-label">First magical power</p>
+    <p class="mt-1 text-sm" x-show="power" x-cloak><strong id="power-chosen" x-text="powerLabel"></strong></p>
+    <button type="button" class="btn btn-secondary mt-2" id="power-open" @click="picking = true" aria-haspopup="dialog" aria-describedby="power-label"><span x-text="power ? 'Change' : 'Select magical power'"></span></button>
+    <p class="mt-1 text-xs text-muted" x-show="!power" x-cloak>A Sorcerer begins with one: choose it before taking the path.</p>
+  </div>
+  <div x-show="picking" x-cloak role="dialog" aria-modal="true" aria-labelledby="power-title" class="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/60 p-3 sm:p-6" @click.self="picking = false" @keydown.escape.stop.prevent="picking = false">
+    <div class="card relative my-4 w-full max-w-2xl !p-4 sm:!p-6">
+      <button type="button" class="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-md text-muted hover:bg-raised hover:text-fg" @click="picking = false" aria-label="Close the list of powers">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h3 class="!text-xl pr-10" id="power-title">Select a magical power</h3>
+      <p class="mt-1 text-sm text-muted">The Sorcerer begins with one power. Every power is described in full.</p>
+      <div class="mt-3 space-y-2" role="radiogroup" aria-labelledby="power-title" @keydown.enter.prevent="picking = false">
+        {{range .Powers}}
+        <label class="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-line px-3 py-2 hover:bg-raised" :class="power === {{jsstr .Value}} && '!border-accent bg-accent-soft'">
+          <input type="radio" name="power" value="{{.Value}}" data-label="{{.Label}}" x-model="power" :disabled="!sorcerer" class="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]" @click="pickPower($event)">
+          <span class="min-w-0 flex-1"><span class="block font-medium">{{.Label}}</span><span class="power-text mt-0.5 block text-sm">{{template "segments" (dict "S" .Segments "CID" $cid)}}</span></span>
+        </label>
+        {{end}}
+      </div>
+      <button type="button" class="btn btn-primary mt-4" :disabled="!power" @click="picking = false">Use this power</button>
+    </div>
+  </div>
+  <button class="btn btn-primary mt-3" :disabled="blocked || needsPower">Take this path</button>
   <div class="path-deck mt-3">
   <div class="path-float"><div>
     <button type="button" class="btn btn-secondary path-nav" data-float @click="step(-1)" :disabled="index <= 0" aria-label="Previous path"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
@@ -519,31 +552,6 @@
     {{end}}
   </div>
   </div>
-  <div class="mt-3 rounded-lg border border-line p-3" x-show="sorcerer" x-cloak>
-    <p class="text-sm font-medium" id="power-label">First magical power</p>
-    <p class="mt-1 text-sm" x-show="power" x-cloak><strong id="power-chosen" x-text="powerLabel"></strong></p>
-    <button type="button" class="btn btn-secondary mt-2" id="power-open" @click="picking = true" aria-haspopup="dialog" aria-describedby="power-label"><span x-text="power ? 'Change' : 'Select magical power'"></span></button>
-    <p class="mt-1 text-xs text-muted" x-show="!power" x-cloak>A Sorcerer begins with one: choose it before taking the path.</p>
-  </div>
-  <div x-show="picking" x-cloak role="dialog" aria-modal="true" aria-labelledby="power-title" class="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/60 p-3 sm:p-6" @click.self="picking = false" @keydown.escape.stop.prevent="picking = false">
-    <div class="card relative my-4 w-full max-w-2xl !p-4 sm:!p-6">
-      <button type="button" class="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-md text-muted hover:bg-raised hover:text-fg" @click="picking = false" aria-label="Close the list of powers">
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
-      <h3 class="!text-xl pr-10" id="power-title">Select a magical power</h3>
-      <p class="mt-1 text-sm text-muted">The Sorcerer begins with one power. Every power is described in full.</p>
-      <div class="mt-3 space-y-2" role="radiogroup" aria-labelledby="power-title" @keydown.enter.prevent="picking = false">
-        {{range .Powers}}
-        <label class="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-line px-3 py-2 hover:bg-raised" :class="power === {{jsstr .Value}} && '!border-accent bg-accent-soft'">
-          <input type="radio" name="power" value="{{.Value}}" data-label="{{.Label}}" x-model="power" :disabled="!sorcerer" class="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]" @click="pickPower($event)">
-          <span class="min-w-0 flex-1"><span class="block font-medium">{{.Label}}</span><span class="power-text mt-0.5 block text-sm">{{template "segments" (dict "S" .Segments "CID" $cid)}}</span></span>
-        </label>
-        {{end}}
-      </div>
-      <button type="button" class="btn btn-primary mt-4" :disabled="!power" @click="picking = false">Use this power</button>
-    </div>
-  </div>
-  <button class="btn btn-primary mt-4" :disabled="blocked || needsPower">Take this path</button>
 </form>
 </div>
 {{end}}
