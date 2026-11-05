@@ -64,11 +64,8 @@ func (w *world) becomeHero(co *wco, id int64, path, power string) {
 	u := w.unitByID(co, id)
 	w.xp(co, id, 5, "Hero in the making")
 	w.rollLevel(co, u, 6)
-	r := w.chooseLevel(co, u, "path:"+path)
-	if power != "" {
-		r = w.chooseLevel(co, u, "power:"+power)
-	}
-	_ = r
+	w.chooseLevel(co, u, "hero")
+	w.pathOf(co, id, path, power)
 }
 
 // pathOf gives an officer its path (a Sorcerer its first power).

@@ -66,6 +66,7 @@ Page names are those of the navigation: Overview, My company, Armoury, Rankings,
 | **Gallery: all 37 Battle Companies, a few games in** | one gallery account per company | all 37 factions with the same treatment: officers on different paths, a recruit on **every row** of the reinforcement chart and of the special chart, the company's special units, a piece of gear for the Leader. See [Company types](#company-types) | Companies; open a company, My company as its gallery account |
 | **Injuries and treatment: every wound on the chart** | Éowyn (Rohan), Sauron (Mordor), Aragorn (Arnor) | see [Injuries](#injuries-and-treatment) | My company of each |
 | **Level-ups waiting: warriors, heroes, paths and a Sorcerer** | Galadriel (Lothlorien), Bilbo (The Shire) | see [Level-ups](#level-ups) | My company: the unit cards with "Level up" |
+| **Level-up options: results that take the other too** | Galadriel (Lothlorien) | see [Level-up options](#level-up-options) | My company: the unit cards with "Level up" |
 | **Limits, creatures and wanderers: the armoury at its edge** | Radagast (Mirkwood), Pippin (The Shire), Gimli (Erebor & Dale), Éowyn (Rohan), Sauron (Helm's Deep), Galadriel (Rivendell) | see [Units, creatures and limits](#units-creatures-and-limits) | Armoury, My company |
 | **Keyword targets: who the rules work against** | Gimli (Erebor & Dale, Ancient Enemies (Orc)), Radagast (Mirkwood, Orcs, Goblins and Spiders) | two recruited companies and no match: open one between them to see the "Ancient Enemies (Orc) applies" markers on the enemy's units in the live match (e2e flow `95-keyword-targets`); Radagast's company has a saved formation (Change formation offers **Restore default order**), Gimli's the default order (role, points, name) | Matches > new match; the live company pages |
 | **Matches: every scenario and every state** | six pool companies (Éowyn, Sauron, Aragorn, Galadriel, Gimli, Bilbo) and 22 more played by gallery accounts | see [Matches](#matches) | Matches |
@@ -182,11 +183,24 @@ The gallery shows, among the 37 companies (names as in the rules file, recruits 
 
 ### Level-ups
 
-- Galadriel's Galadhrim: a warrior with a **roll waiting** (5 Experience, not rolled); one that rolled a **6, Hero in the Making**
-  (a path to choose); one that rolled a 6 and **chose the Sorcerer path: its first magical power is still to choose**; one with
-  **15 Experience (three rolls waiting)**; one that rolled a 2 (no change, Level 1); the Leader with **two rolls waiting** and a hero
+- Galadriel's Galadhrim: a warrior with a **roll waiting** (5 Experience, not rolled: a typed 2 is **no change with no roll left**, the window closes by itself; a typed 6 shows a new Hero in the Making with its confetti); one that rolled a **6, Hero in the Making, not accepted yet**; one that accepted and is a **hero with no path yet** (the card's Choose a path); one with
+  **15 Experience (three rolls waiting)**: a typed 2 is **no change with rolls left**; one that rolled a 2 (no change, Level 1); the Leader with **two rolls waiting** and a hero
   roll of 7 and 9 to choose between; a Sergeant with a roll waiting.
 - Bilbo's Hobbits: a roll of 4 and a roll of 5 that leave a **promotion to choose**, and a warrior with 10 Experience.
+
+### Level-up options
+
+"Level-up options: results that take the other too", Galadriel's Galadhrim (Courage 5+, so there is room to improve it). One hero per way the options go together, each with its roll made:
+
+- a 5 and an 8: Courage marked, the other result applies both;
+- a 5 and an 8 on the Warlord with **Courage at its limit**: Intelligence marked;
+- a 5 and a 2 that gives nothing (Spy, which it has): nothing marked, the options apply at once;
+- a 7 and an 8 on the Warlord: the normal option applies alone, the stats still mark;
+- a 5 and a 5: **a mark in each, Apply both**;
+- a 5 and a 7 on the Warlord: the 7's rule can take its mark, with the 5's stat;
+- an 8 and an 8 with Fight raised once: **stat options with partial progress** (the dots);
+
+A first magical power chosen inside the level-up window (`Stage` startingPower) is not in the world: the only way in is a hidden path that starts with a power, and the shipped file has none. A web test covers it.
 
 ### Units, creatures and limits
 
@@ -244,7 +258,7 @@ Ward 1 (matches 1 to 4 of the campaign):
 | 2, Chance Encounter | Rangers with a Scratch to decide (Aragorn) | **injuries**: a Sergeant's *Just a Scratch* waits for "roll again / miss the next game" |
 | | Galadhrim whose Leader fell (Galadriel) | **injuries**: the Leader is dead; **succession** waits for a new Leader |
 | 3, Scavenge the Battlefield | Dwarves with level-ups to roll (Gimli) | **level-ups**: experience applied, level-up rolls waiting, and the **free equipment** reward (all markers scored) to choose before finishing |
-| | Hobbits who finished (Bilbo) | **finished**, with a casualty and a level-up roll waiting: the compact page of a finished aftermath |
+| | Hobbits who finished (Bilbo) | **finished**, with a casualty and level-up rolls waiting (the Leader's and a warrior's, whose typed 2 comes back to this page): the compact page of a finished aftermath |
 | 4, Relic of Ages Past | Wild Wargs that fled (Radagast) | **All is Lost**, reported as the Wanderers' win; its aftermath **waived** by the organiser with a note |
 | | Pippin's patient company (Pippin) | **finished**, with the Relic bearer's perk *A Final Blessing* in the company's perks |
 

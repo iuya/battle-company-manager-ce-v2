@@ -229,8 +229,8 @@
    result of the rules file and chooses one of them. The dice come from the rules file (.Spec, .Pairs). "Roll for me" is animated; "I rolled" takes the player's own dice. */}}
 {{define "level_panel"}}
 {{$cid := .Campaign.ID}}{{$co := .Co}}{{$uid := .Unit.ID}}{{$hero := .Unit.IsHero}}
-<div x-data="rollPanel" @keydown.space.window="onSpace($event)" data-hero="{{$hero}}" data-sides="{{.Spec.Sides}}" data-per-lane="{{.Spec.Count}}" data-lanes="{{if $hero}}{{.Pairs}}{{else}}1{{end}}" data-roll="{{with .Roll}}{{.D6}}{{else}}0{{end}}" data-dice="{{.Dice}}" data-groups="{{.Groups}}" data-labels="{{.Labels}}" data-animate="{{.Animate}}" data-shake="{{.Campaign.Settings.ShakeTheTable}}">
-<h2 class="!text-2xl">Level up {{.Unit.Title}}</h2>
+<div x-data="rollPanel" @keydown.space.window="onSpace($event)" data-hero="{{$hero}}" data-sides="{{.Spec.Sides}}" data-per-lane="{{.Spec.Count}}" data-lanes="{{if $hero}}{{.Pairs}}{{else}}1{{end}}" data-roll="{{with .Roll}}{{.D6}}{{else}}0{{end}}" data-dice="{{.Dice}}" data-groups="{{.Groups}}" data-labels="{{.Labels}}" data-animate="{{.Animate}}" data-shake="{{.Campaign.Settings.ShakeTheTable}}" data-back="/campaigns/{{$cid}}/my-company/{{$co}}" data-close-after="{{.CloseAfter}}">
+<h2 class="!text-2xl pr-10">Level up {{.Unit.Title}}</h2>
 <p class="mt-1 text-sm text-muted">{{if $hero}}A hero rolls {{.Pairs}} x {{.Spec.Display}} on its path and chooses one result.{{else}}A warrior rolls {{if eq .Spec.Count 1}}a {{end}}{{.Spec.Display}}: nothing, a promotion, or a hero in the making.{{end}}
   {{if .Pending}}<strong class="text-fg">{{.Pending}}</strong> roll{{if gt .Pending 1}}s{{end}} waiting.{{end}}</p>
 {{with .Error}}<div class="alert alert-danger mt-3" role="alert">{{.}}</div>{{end}}
@@ -240,58 +240,61 @@
 <div x-show="revealed" x-cloak class="mt-4 space-y-4">
   {{range .Notes}}<p class="alert alert-info" role="status">{{.}}</p>{{end}}
   {{if .Done}}
-  {{if and .D6 (eq .Result "heroInTheMaking")}}<p class="text-lg">You rolled a <strong class="text-3xl">{{.D6}}</strong>.</p>{{end}}
-  <p class="alert alert-success" role="status">{{.Summary}}</p>
+  {{if and .D6 (eq .Result "heroInTheMaking")}}{{template "hero_fanfare" (dict "Unit" $.Unit "D6" .D6 "Fresh" $.Fresh "Summary" .Summary)}}
+  {{else if eq .Result "noChange"}}
+  <div class="alert alert-danger level-fail" role="status"><strong class="level-fail-roll">{{.D6}}</strong><span><strong class="block text-danger">No change</strong>{{.Summary}}</span></div>
+  {{else}}<p class="alert alert-success" role="status">{{.Summary}}</p>{{end}}
   <p class="flex flex-wrap gap-2">
     {{if gt $.Pending 0}}<button type="button" class="promo promo-btn" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/levelup" hx-target="#modal-body" hx-swap="innerHTML"><svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5l2.4 5.6 6.1.6-4.6 4 1.4 6-5.3-3.2-5.3 3.2 1.4-6-4.6-4 6.1-.6zM19 15l.9 2.1 2.1.9-2.1.9L19 21l-.9-2.1-2.1-.9 2.1-.9z"/></svg><span>Next level up</span></button>{{end}}
-    <button type="button" class="btn btn-primary" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}" hx-target="#main" hx-swap="innerHTML show:window:top" @click="closeModal()">Done</button></p>
+    <button type="button" class="btn btn-primary" @click="finish()">Done</button></p>
   {{else}}
-  {{if eq .Kind "warrior"}}<p class="text-lg">You rolled a <strong class="text-3xl">{{.D6}}</strong>.</p>{{end}}
-  <form method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/levelup/choose" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/levelup/choose" hx-target="#modal-body" hx-swap="innerHTML" class="space-y-4"
-        @invalid.capture="$event.target.closest('details')?.setAttribute('open', '')"
-        x-data="{ again: false, from: -1, last: {},
-          // A result that asks for the other roll too turns the other result's choices into the second pick. What was already picked
-          // there stays picked (or is cleared when this choice does not ask for it).
-          pick(again, offer, key) {
-            const other = 1 - offer, keep = again ? (this.again && this.from === offer ? $root.querySelector('input[name=also]:checked')?.value : this.last[other]) : null;
-            this.last[offer] = key; this.again = again; this.from = again ? offer : -1;
-            this.$nextTick(() => $root.querySelectorAll('[data-other]').forEach(r => { if (Number(r.dataset.other) !== offer) r.checked = keep != null && r.value === keep; }));
-          } }">
+  <form method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/levelup/choose" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/levelup/choose" hx-target="#modal-body" hx-swap="innerHTML" class="space-y-4" x-data="levelChoices" data-plan="{{$.Plan}}">
+    <input type="hidden" name="choice"><input type="hidden" name="also" disabled><input type="hidden" name="then" disabled>
+    {{if $.Heroic}}
+    {{template "hero_fanfare" (dict "Unit" $.Unit "D6" .D6 "Fresh" $.Fresh "Summary" "")}}
+    {{if and $.Rerolls (not .Again)}}<p class="flex justify-end">{{template "level_reroll" (dict "Base" (printf "/campaigns/%d/my-company/%d/units/%d" $cid $co $uid) "Which" 0 "Left" $.Rerolls)}}</p>{{end}}
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="btn btn-primary" @click="send('hero', '', 'close')">Accept and close</button>
+      <button type="button" class="btn btn-secondary" @click="send('hero', '', 'path')">Choose path now</button>
+    </div>
+    <p class="text-sm text-muted">It becomes a hero now and can choose its path later, from its card. The company cannot start a match until it does.</p>
+    {{if $.Forgo}}
+    <fieldset class="space-y-1 rounded-lg border border-line p-3">
+      <legend class="px-1 text-sm font-medium">Or forgo the Hero's Journey and take a promotion</legend>
+      {{template "level_choices" (dict "Choices" $.Forgo "I" 0 "Many" false)}}
+    </fieldset>
+    {{end}}
+    {{else}}
+    {{if eq .Kind "warrior"}}<p class="text-lg">You rolled a <strong class="text-3xl">{{.D6}}</strong>.</p>{{end}}
     {{if and .Again (ne .Stage "startingPower")}}<p class="text-sm text-muted">The result you chose says to take the other roll too.</p>{{end}}
     {{range $.Unusable}}{{if eq .Pair 1}}{{template "unusable_card" (dict "U" . "CID" $cid)}}{{end}}{{end}}
     {{range $i, $o := $.Offers}}
     <fieldset class="space-y-1 rounded-lg border border-line p-3">
       <legend class="px-1 text-sm font-medium">{{if eq $.Roll.Kind "hero"}}{{if eq $o.Pair 1}}First roll{{else}}Second roll{{end}} · {{$o.Roll}}{{else}}Result{{end}}</legend>
-      {{if and $.Rerolls (not $.Roll.Again)}}<button type="button" class="btn btn-ghost float-right !min-h-8 !px-2 !text-xs" formnovalidate hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/levelup/reroll" hx-vals='{"which": "{{$i}}"}' hx-target="#modal-body" hx-swap="innerHTML" title="Against the Odds: roll this result again ({{$.Rerolls}} left)">Re-roll · Against the Odds</button>{{end}}
+      {{if and $.Rerolls (not $.Roll.Again)}}<span class="float-right">{{template "level_reroll" (dict "Base" (printf "/campaigns/%d/my-company/%d/units/%d" $cid $co $uid) "Which" $i "Left" $.Rerolls)}}</span>{{end}}
       {{if $o.Text}}<p class="text-sm text-muted">{{$o.Text}}</p>{{end}}
-      <p class="text-sm font-medium text-warn" x-show="again && from !== {{$i}}" x-cloak>Also take one of these (the other result is taken too).</p>
-      {{$group := ""}}
-      {{range $o.Choices}}
-        {{if and .Group (ne .Group $group)}}{{if $group}}</div></details>{{end}}<details class="rounded-lg border border-line px-3 py-2" {{if lt (len $o.Choices) 7}}open{{end}}><summary class="cursor-pointer text-sm font-medium">{{.Group}}</summary><div class="mt-2 space-y-1">{{$group = .Group}}{{end}}
-        <label class="flex min-h-10 items-start gap-3 rounded-lg border border-line px-3 py-2" {{if .TipText}}data-tip-title="{{.TipTitle}}" data-tip-meta="{{.Group}}" data-tip-text="{{.TipText}}"{{with .TipPath}} data-tip-path="{{.}}"{{end}}{{end}}><input type="radio" :name="again && from !== {{$i}} ? 'also' : 'choice'" value="{{.Key}}" required data-offer="{{$i}}" data-other="{{$i}}" class="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]" @change="if ($el.name === 'choice') pick({{if .RollAgain}}true{{else}}false{{end}}, {{$i}}, $el.value); else last[{{$i}}] = $el.value"><span class="min-w-0 flex-1"><span class="block">{{.Label}}</span>{{if .Segments}}<span class="mt-0.5 block text-sm text-muted">{{template "segments" (dict "S" .Segments "CID" $.Campaign.ID)}}</span>{{end}}</span>{{if .RollAgain}}<span class="text-xs text-muted">and take the other result too</span>{{end}}</label>
-      {{end}}
-      {{if $group}}</div></details>{{end}}
+      <p class="text-sm font-medium text-warn" x-show="takesOther({{$i}})" x-cloak>Press one of these to apply it together with the marked option.</p>
+      {{template "level_choices" (dict "Choices" $o.Choices "I" $i "Many" (ge (len $o.Choices) 7))}}
     </fieldset>
     {{end}}
     {{range $.Unusable}}{{if eq .Pair 2}}{{template "unusable_card" (dict "U" . "CID" $cid)}}{{end}}{{end}}
+    <p x-show="plan.both" x-cloak><button type="button" class="btn btn-primary" @click="applyBoth()">Apply both</button></p>
     {{with $.Upgrade}}
     <fieldset class="exclusive exclusive-gold space-y-1 !p-3">
       <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-gold">Company hero upgrade</legend>
       <p class="text-sm text-muted">Only this company has it. A hero may take it instead of either result, if it does not have it yet.</p>
-      {{range .Choices}}
-      <label class="flex min-h-10 items-start gap-3 rounded-lg border border-gold bg-surface px-3 py-2" {{if .TipText}}data-tip-title="{{.TipTitle}}" data-tip-meta="Company-exclusive hero upgrade" data-tip-text="{{.TipText}}"{{end}}>
-        <input type="radio" name="choice" value="{{.Key}}" required data-other="2" class="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]" @change="pick(false, 2, $el.value)">
-        <span class="min-w-0 flex-1"><span class="block font-medium">{{.Label}}</span>{{if .Segments}}<span class="mt-0.5 block text-sm text-muted">{{template "segments" (dict "S" .Segments "CID" $.Campaign.ID)}}</span>{{end}}</span>
-      </label>
-      {{end}}
+      {{range .Choices}}{{template "level_option" (dict "C" . "I" -1 "Meta" "Company-exclusive hero upgrade")}}{{end}}
     </fieldset>
     {{end}}
-    <button class="btn btn-primary">Choose</button>
+    {{end}}
   </form>
   {{end}}
 </div>
 {{else}}
-{{if .Pending}}
+{{if .Unit.PathPending}}
+<p class="mt-4 text-muted">{{.Unit.Title}} has to choose a path before it can roll.</p>
+<p class="mt-3"><button type="button" class="btn btn-primary" hx-get="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/path" hx-target="#modal-body" hx-swap="innerHTML">Choose a path</button></p>
+{{else if .Pending}}
 {{if .Campaign.Settings.ShakeTheTable}}<canvas x-ref="canvas" class="dice-tray mt-4" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>{{end}}
 <form x-ref="rollForm" method="post" action="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/levelup/roll" hx-post="/campaigns/{{$cid}}/my-company/{{$co}}/units/{{$uid}}/levelup/roll" hx-target="#modal-body" hx-swap="innerHTML" class="mt-5 flex flex-wrap items-end gap-3">
   <input type="hidden" name="thrown" value="">
@@ -307,6 +310,52 @@
 <p class="mt-4 text-muted">{{.Unit.Title}} has no level-up roll waiting.</p>
 {{end}}
 {{end}}
+</div>
+{{end}}
+
+{{/* What the window says while it closes by itself (a Hero in the Making accepted). */}}
+{{define "level_closing"}}<div x-data="rollPanel" data-back="/campaigns/{{.Campaign}}/my-company/{{.Co}}" data-close-after="1"><p class="alert alert-success" role="status">{{.Summary}}</p></div>{{end}}
+
+{{/* A warrior that became a hero: the gold celebration, confetti only the first time it is shown. Takes {Unit, D6, Fresh, Summary}. */}}
+{{define "hero_fanfare"}}
+<div class="hero-fanfare" role="status">
+  {{if .Fresh}}<div class="confetti" aria-hidden="true">{{range seq 1 18}}<i></i>{{end}}</div>{{end}}
+  <p class="text-sm text-muted">You rolled a <strong class="text-xl text-fg">{{.D6}}</strong></p>
+  <p class="hero-fanfare-title">Hero in the Making!</p>
+  <p class="font-semibold">{{.Unit.Title}}</p>
+  {{with .Summary}}<p class="mt-1 text-sm">{{.}}</p>{{end}}
+</div>
+{{end}}
+
+{{/* The Against the Odds re-roll of a result. Takes {Base, Which, Left}. */}}
+{{define "level_reroll"}}<button type="button" class="btn btn-ghost !min-h-8 !px-2 !text-xs" hx-post="{{.Base}}/levelup/reroll" hx-vals='{"which": "{{.Which}}"}' hx-target="#modal-body" hx-swap="innerHTML" title="Against the Odds: roll this result again ({{.Left}} left)">Re-roll · Against the Odds</button>{{end}}
+
+{{/* The options of a result, a long list in collapsible groups. Takes {Choices, I (the result), Many (start the groups closed)}. */}}
+{{define "level_choices"}}{{$i := .I}}{{$many := .Many}}
+{{$group := ""}}
+{{range .Choices}}
+  {{if and .Group (ne .Group $group)}}{{if $group}}</div></details>{{end}}<details class="rounded-lg border border-line px-3 py-2" {{if not $many}}open{{end}}><summary class="cursor-pointer text-sm font-medium">{{.Group}}</summary><div class="mt-2 space-y-1">{{$group = .Group}}{{end}}
+  {{template "level_option" (dict "C" . "I" $i "Meta" .Group)}}
+{{end}}
+{{if $group}}</div></details>{{end}}
+{{end}}
+
+{{/* One option of a level-up: a press applies it (or moves the mark, levelChoices). The (i) beside it opens its text without choosing,
+   for touch screens, where a tap on the option cannot be undone. Takes {C, I (the result; -1 the company upgrade), Meta}. */}}
+{{define "level_option"}}{{$c := .C}}{{$i := .I}}
+<div class="level-row">
+  <button type="button" class="level-opt{{if lt $i 0}} level-opt-gold{{end}}" value="{{$c.Key}}" data-opt data-offer="{{$i}}"{{if $c.RollAgain}} data-again{{end}}{{if $c.TipText}} data-tip-title="{{$c.TipTitle}}" data-tip-meta="{{.Meta}}" data-tip-text="{{$c.TipText}}"{{with $c.TipPath}} data-tip-path="{{.}}"{{end}}{{end}}
+    :class="{ 'is-marked': marked({{$i}}, $el.value), 'is-off': !!why({{$i}}, $el.value) }" :aria-pressed="marked({{$i}}, $el.value) ? 'true' : null" :aria-disabled="why({{$i}}, $el.value) ? 'true' : null" :title="why({{$i}}, $el.value) || null" @click="press($el)">
+    <span class="level-opt-main">
+      <svg class="level-check" x-show="marked({{$i}}, $el.closest('[data-opt]').value)" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+      <span class="level-opt-name">{{$c.Name}}</span>
+      {{with $c.Badge}}<span class="kw-chip kw-type">{{.}}</span>{{end}}
+      {{if $c.RollAgain}}<span class="kw-chip kw-applies" x-show="alsoTakes($el.closest('[data-opt]').value)" x-cloak>+ other roll</span>{{end}}
+    </span>
+    {{with $c.Dots}}<span class="level-dots" role="img" aria-label="{{$c.Stat.Taken}} of {{$c.Stat.Limit}} taken, this adds {{$c.Stat.Gain}}">{{range .}}<i class="level-dot-{{.}}"></i>{{end}}</span>{{end}}
+    <span class="level-why" x-show="why({{$i}}, $el.closest('[data-opt]').value)" x-text="why({{$i}}, $el.closest('[data-opt]').value)" x-cloak></span>
+  </button>
+  {{if $c.TipText}}<button type="button" class="level-info" aria-label="About {{$c.Name}}" data-concept="{{$c.TipTitle}}" data-tip-title="{{$c.TipTitle}}" data-tip-meta="{{.Meta}}" data-tip-text="{{$c.TipText}}"{{with $c.TipPath}} data-tip-path="{{.}}"{{end}}>i</button>{{end}}
 </div>
 {{end}}
 

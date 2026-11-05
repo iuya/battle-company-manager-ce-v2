@@ -229,7 +229,7 @@ func cloneMap(m map[string]int) map[string]int {
 
 func cloneProgress(p *Progress) Progress {
 	c := *p
-	c.Bonus, c.Cast = cloneMap(p.Bonus), cloneMap(p.Cast)
+	c.Bonus, c.Cast, c.StartBonus = cloneMap(p.Bonus), cloneMap(p.Cast), cloneMap(p.StartBonus)
 	c.Rules, c.Minor, c.Actions, c.Powers, c.Gear = slices.Clone(p.Rules), slices.Clone(p.Minor), slices.Clone(p.Actions), slices.Clone(p.Powers), slices.Clone(p.Gear)
 	c.Upgrades = slices.Clone(p.Upgrades)
 	return c

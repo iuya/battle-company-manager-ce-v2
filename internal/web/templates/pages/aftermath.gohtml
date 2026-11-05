@@ -52,7 +52,7 @@
   {{with .UnitResults}}{{template "aftermath_company" (dict "V" $ "R" .)}}{{end}}
   {{if .Owner}}
   {{/* The level-up window of My Company, opened here (its endpoints and panel are the same). */}}
-  <div x-show="modal" x-cloak x-transition.opacity class="fixed inset-0 z-[55] flex items-start justify-center overflow-y-auto bg-black/60 p-3 sm:p-6" @click.self="closeModal()">
+  <div x-show="modal" x-cloak x-transition.opacity class="fixed inset-0 z-[55] flex items-start justify-center overflow-y-auto bg-black/60 p-3 sm:p-6" @click.self="closeModal()" data-reloads-on-close>
     <div class="card relative my-4 w-full max-w-3xl !p-4 sm:!p-6" role="dialog" aria-modal="true" aria-label="Level-up window">
       <button type="button" class="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-md text-muted hover:bg-raised hover:text-fg" @click="closeModal()" aria-label="Close">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>

@@ -109,6 +109,7 @@ func (w *world) aftermathWardOne() {
 	set(&in, l.ID, core.OutcomeSurvived, fiveXP) // a level-up roll still waits on the finished page
 	set(&in, ws[0].ID, core.OutcomeCasualty, nil)
 	w.settle(shire, m3, in, map[int64][3]int{ws[0].ID: {3, 5, 1}}, true) // finished
+	w.xp(shire, ws[1].ID, 5, "Told the tale of the battle")              // a warrior's roll too: its no change comes back to this page
 
 	// match 4: Mirkwood fled the field (All is Lost, reported as the Wanderers' win); Wanderers hold the Relic and finish with its blessing
 	m4 := w.played(c, "Relic of Ages Past", outcome{winner: 2,

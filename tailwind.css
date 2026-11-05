@@ -742,6 +742,54 @@ html[data-mode="dark"] { color-scheme: dark; }
   .facts dd { @apply font-semibold; }
   .exclusive { @apply rounded-lg border border-dashed border-accent bg-surface px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]; }
   .exclusive-gold { @apply border-solid border-gold bg-warn/10; }
+  /* The level-up window: options that apply at once, a stat's progress dots, a warrior's failure and its celebration. */
+  .level-row { @apply flex items-stretch gap-1; }
+  .level-opt { @apply flex min-h-11 min-w-0 flex-1 flex-col justify-center gap-1 rounded-lg border border-line bg-surface px-3 py-2 text-left outline-none hover:border-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-[var(--accent)]; }
+  .level-opt-gold { @apply border-gold; }
+  .level-opt.is-marked { @apply border-accent bg-accent-soft; box-shadow: inset 0 0 0 1px var(--accent); }
+  .level-opt.is-off { @apply cursor-not-allowed border-line bg-raised text-muted hover:border-line hover:bg-raised; }
+  .level-opt-main { @apply flex flex-wrap items-center gap-x-2 gap-y-1; }
+  .level-opt-name { @apply min-w-0 font-medium; overflow-wrap: anywhere; }
+  .level-check { @apply h-4 w-4 shrink-0 text-accent-text; }
+  .level-why { @apply text-xs text-muted; }
+  .level-info { @apply flex w-9 shrink-0 items-center justify-center rounded-lg border border-line bg-surface font-serif text-sm font-semibold italic text-muted outline-none hover:bg-raised hover:text-fg focus-visible:ring-2 focus-visible:ring-[var(--accent)]; }
+  .level-dots { @apply flex flex-wrap items-center gap-1; }
+  .level-dots i { @apply block h-2.5 w-2.5 rounded-full border; }
+  .level-dot-taken { @apply border-fg bg-fg; }
+  .level-dot-gain { @apply border-gold bg-gold; }
+  .level-dot-free { @apply border-muted bg-transparent; }
+  .level-fail { @apply flex items-center gap-3; }
+  .level-fail-roll { @apply text-4xl leading-none text-danger; }
+  .hero-fanfare { @apply relative overflow-hidden rounded-xl border-2 border-gold bg-warn/10 px-4 py-6 text-center; }
+  .hero-fanfare-title { @apply text-2xl font-semibold; color: color-mix(in srgb, var(--gold) 65%, var(--fg)); } /* the same pull as .exclusive-label: 4.5:1 on the pale gold */
+  .confetti { @apply pointer-events-none absolute inset-0; }
+  .confetti i { @apply absolute block h-2.5 w-1.5 rounded-sm opacity-0; top: -0.75rem; background: var(--gold); animation: confetti-fall 1.8s ease-in 1 forwards; }
+  .confetti i:nth-child(3n) { background: var(--accent); }
+  .confetti i:nth-child(3n + 1) { background: var(--warn); }
+  .confetti i:nth-child(1) { left: 4%; animation-delay: 0s; }
+  .confetti i:nth-child(2) { left: 10%; animation-delay: .35s; }
+  .confetti i:nth-child(3) { left: 16%; animation-delay: .1s; }
+  .confetti i:nth-child(4) { left: 22%; animation-delay: .5s; }
+  .confetti i:nth-child(5) { left: 28%; animation-delay: .2s; }
+  .confetti i:nth-child(6) { left: 34%; animation-delay: .65s; }
+  .confetti i:nth-child(7) { left: 40%; animation-delay: .05s; }
+  .confetti i:nth-child(8) { left: 46%; animation-delay: .4s; }
+  .confetti i:nth-child(9) { left: 52%; animation-delay: .15s; }
+  .confetti i:nth-child(10) { left: 58%; animation-delay: .55s; }
+  .confetti i:nth-child(11) { left: 64%; animation-delay: .25s; }
+  .confetti i:nth-child(12) { left: 70%; animation-delay: .7s; }
+  .confetti i:nth-child(13) { left: 76%; animation-delay: .1s; }
+  .confetti i:nth-child(14) { left: 82%; animation-delay: .45s; }
+  .confetti i:nth-child(15) { left: 88%; animation-delay: .3s; }
+  .confetti i:nth-child(16) { left: 94%; animation-delay: .6s; }
+  .confetti i:nth-child(17) { left: 7%; animation-delay: .8s; }
+  .confetti i:nth-child(18) { left: 91%; animation-delay: .85s; }
+  @keyframes confetti-fall {
+    0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(14rem) rotate(540deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .confetti { display: none; } }
   .exclusive-label { @apply mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-accent-text; }
   .exclusive-gold .exclusive-label { color: color-mix(in srgb, var(--gold) 65%, var(--fg)); } /* gold, pulled toward the text colour: the pale gold box needs 4.5:1 */
   .eq-heal { @apply border-solid border-danger text-danger hover:bg-danger-soft; }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
@@ -42,15 +41,8 @@ func (w *world) finishingTouches() {
 	// promotion left. The company ends with three officers (a company recruits only with three) and the Ranger in the cemetery.
 	_, _, hobbits := w.roster(shire)
 	w.xp(shire, hobbits[0].ID, 5, "Saved the Ranger's pipe")
-	r := w.rollLevel(shire, hobbits[0], 6)
-	if len(r.Offers) > 0 {
-		for _, ch := range r.Offers[0].Choices {
-			if strings.HasPrefix(ch.Key, "path:") && !strings.Contains(ch.Key, "Sorcerer") {
-				w.chooseLevel(shire, hobbits[0], ch.Key)
-				break
-			}
-		}
-	}
+	w.rollLevel(shire, hobbits[0], 6)
+	w.chooseLevel(shire, hobbits[0], "hero")
 	w.choosePaths(shire, 0)
 	if h, _ := w.unit(shire, func(u core.CompanyUnit) bool { return u.Role == core.RoleHero }); h.ID == 0 {
 		w.gap("%s: the Hobbit who rolled a 6 is not a Hero in the Making", shire.name)

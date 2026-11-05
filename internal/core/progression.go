@@ -245,6 +245,16 @@ type LevelChoice struct {
 	Group     string // choices that belong together (a long list of minor rules)
 	Hint      string // what it is, shown on hover (a power's definition)
 	RollAgain bool
+	Stat      *StatGain // a stat option: how far along it is
+}
+
+// StatGain is what a stat option does against the stat's limit, in steps of improvement (Courage and Shoot go down, the steps still
+// count up): Taken so far, Gain with this option, Limit in all as improvedStat allows it (the path's limit, a path's maximum and the
+// overall peak); 0 when nothing limits it.
+type StatGain struct {
+	Stat               string // its name, capitalised
+	Gain, Taken, Limit int
+	Detail             string // the exact values: "Fight 4 → 5, path limit +3, peak 9"
 }
 
 // LevelOffer is one of the results a hero may choose from.
@@ -314,6 +324,52 @@ func (r ProgressionRules) improvedStat(path PathProgression, sheet HeroSheet, st
 	return 0, false
 }
 
+// noStatLimit is more steps than any stat has: an improvement this big that still fits means nothing limits the stat.
+const noStatLimit = 40
+
+// statGain says how far along a stat is when an option takes it to value to.
+func (r ProgressionRules) statGain(path PathProgression, sheet HeroSheet, stat string, extraMax, to int) *StatGain {
+	cur, lower := sheet.Stats[stat], r.LowerIsBetter[stat]
+	steps := func(v int) int { return max(v-cur.Value, cur.Value-v) }
+	shown := func(v int) string {
+		if lower {
+			return fmt.Sprintf("%d+", v)
+		}
+		return fmt.Sprint(v)
+	}
+	g := &StatGain{Stat: Capitalise(stat), Gain: steps(to), Taken: max(0, cur.Boost)}
+	if lower {
+		g.Taken = max(0, -cur.Boost)
+	}
+	if best, ok := r.improvedStat(path, sheet, stat, noStatLimit, extraMax); ok && steps(best) < noStatLimit {
+		g.Limit = g.Taken + steps(best)
+	}
+	parts := []string{fmt.Sprintf("%s %s → %s", g.Stat, shown(cur.Value), shown(to))}
+	if n, ok := path.Limits[stat]["maxIncrease"]; ok {
+		parts = append(parts, fmt.Sprintf("path limit +%d", n))
+	}
+	if n, ok := path.Limits[stat]["max"]; ok && !lower {
+		parts = append(parts, "path maximum "+shown(n))
+	}
+	if n, ok := path.Limits[stat]["best"]; ok && lower {
+		parts = append(parts, "path best "+shown(n))
+	}
+	if extraMax > 0 && !lower {
+		parts = append(parts, "at most "+shown(extraMax))
+	}
+	if n, ok := r.Peak[stat]["max"]; ok && !lower {
+		parts = append(parts, "peak "+shown(n))
+	}
+	if n, ok := r.Peak[stat]["best"]; ok && lower {
+		parts = append(parts, "peak "+shown(n))
+	}
+	if lower && (stat == statCourage || stat == statIntelligence) && r.CITotalCap > 0 {
+		parts = append(parts, fmt.Sprintf("at most %d in total from its profile", r.CITotalCap))
+	}
+	g.Detail = strings.Join(parts, ", ")
+	return g
+}
+
 // choicesFor lists what an option gives a hero now (nothing when it cannot take it).
 func (r ProgressionRules) choicesFor(path PathProgression, sheet HeroSheet, lists LevelLists, o ProgOption, rollAgain bool) []LevelChoice {
 	var out []LevelChoice
@@ -332,7 +388,7 @@ func (r ProgressionRules) choicesFor(path PathProgression, sheet HeroSheet, list
 				} else if !r.heroStats[s] {
 					label = fmt.Sprintf("%s %d → %d", Capitalise(s), from, v)
 				}
-				out = append(out, LevelChoice{Key: "stat:" + s + ":" + fmt.Sprint(from-v), Label: label, RollAgain: o.RollAgain || rollAgain})
+				out = append(out, LevelChoice{Key: "stat:" + s + ":" + fmt.Sprint(from-v), Label: label, RollAgain: o.RollAgain || rollAgain, Stat: r.statGain(path, sheet, s, o.Maximum, v)})
 			}
 		}
 	case "minorSpecialRule":
@@ -418,6 +474,8 @@ type Progress struct {
 	Base     string         // the unit it was promoted to
 	Gear     []string       // wargear a promotion added
 	Hero     bool           // became a hero
+	// StartBonus is the Might, Will and Fate it got for becoming a hero, already in Bonus: a homebrew path chosen later replaces it with its own.
+	StartBonus map[string]int
 }
 
 // Apply gives a hero what a choice says.
@@ -469,6 +527,8 @@ type LevelRoll struct {
 	Stage   string // "startingPower": a new Sorcerer chooses its first power
 	Summary string
 	Auto    bool // not stored: a warrior's Hero in the Making whose path is not chosen by the player (On Their Own Path)
+	// Plan says how the two results go together when one takes the other too; worked out for the player each time, never stored. Nil: every option applies alone.
+	Plan *LevelPlan `json:"-"`
 }
 
 // HeroPair is one of a hero's two rolls of 2D6.

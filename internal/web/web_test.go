@@ -1447,18 +1447,18 @@ func TestTheLevelUpWindowRollsAndOffersTheResults(t *testing.T) {
 			t.Errorf("the roll form lacks %q", want)
 		}
 	}
-	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(1), int64(5), nil, false).Return(core.LevelRoll{Kind: "warrior", D6: 6, Result: "heroInTheMaking",
-		Offers: []core.LevelOffer{{Roll: 6, Text: "A hero", Choices: []core.LevelChoice{{Key: "path:Path of the Duelist", Label: "Become a hero: Path of the Duelist", Group: "Choose its path"}}}}}, nil)
+	f.camp.EXPECT().RollLevelUp(gomock.Any(), frodo, int64(7), int64(1), int64(5), nil, false).Return(core.LevelRoll{Kind: "warrior", D6: 6, Result: "promoted",
+		Offers: []core.LevelOffer{{Roll: 6, Text: "A promotion", Choices: []core.LevelChoice{{Key: "promo:0:0", Label: "Citadel Guard", Group: "Promotions"}}}}}, nil)
 	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/levelup/roll", url.Values{"roll": {"0"}})))
 	body = rec.Body.String()
-	for _, want := range []string{`data-animate="true"`, `data-dice="6"`, "Become a hero: Path of the Duelist", `value="path:Path of the Duelist"`, "levelup/choose"} {
+	for _, want := range []string{`data-animate="true"`, `data-dice="6"`, "Citadel Guard", `value="promo:0:0"`, "levelup/choose"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the offers lack %q", want)
 		}
 	}
-	f.camp.EXPECT().ChooseLevelUp(gomock.Any(), frodo, int64(7), int64(1), int64(5), []string{"path:Path of the Duelist"}).Return(core.LevelRoll{Kind: "warrior", Done: true, Summary: "Hador becomes a hero."}, nil)
-	body = f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/levelup/choose", url.Values{"choice": {"path:Path of the Duelist"}}))).Body.String()
-	if !strings.Contains(body, "Hador becomes a hero.") || !strings.Contains(body, "Done") {
+	f.camp.EXPECT().ChooseLevelUp(gomock.Any(), frodo, int64(7), int64(1), int64(5), []string{"promo:0:0"}).Return(core.LevelRoll{Kind: "warrior", Done: true, Summary: "Hador is promoted."}, nil)
+	body = f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/levelup/choose", url.Values{"choice": {"promo:0:0"}}))).Body.String()
+	if !strings.Contains(body, "Hador is promoted.") || !strings.Contains(body, "Done") {
 		t.Errorf("the result is shown: %s", body)
 	}
 }
