@@ -457,10 +457,10 @@ func (v aftermathView) CasualtyPending(c core.Casualty) bool {
 
 // CasualtyTone is the colour of a rolled casualty's strip: a unit lost, a unit hurt or out of the next game, and a recovery.
 func (v aftermathView) CasualtyTone(c core.Casualty) string {
-	switch c.Kind {
-	case core.CasualtyDead, core.CasualtyRetired:
+	switch {
+	case v.Fallen(c):
 		return "danger"
-	case core.CasualtyInjured, core.CasualtyInjury, core.CasualtyScratch:
+	case c.Kind == core.CasualtyInjured || c.Kind == core.CasualtyInjury || c.Kind == core.CasualtyScratch:
 		return "warn"
 	}
 	return "success"
@@ -603,19 +603,42 @@ func (v aftermathView) Note(c core.Casualty) string {
 // Edit is whether the viewer may change the aftermath.
 func (v aftermathView) Edit() bool { return v.A.Access == core.AftermathEdit }
 
-// Step is the index of the current step: 0 Sheet, 1 Injuries, 3 Rewards (a scenario reward waits for a choice; otherwise the aftermath
-// finishes on its own), 4 when it is all over. Level-ups (2) never hold the aftermath: their rolls wait on the unit cards.
+// The steps of an aftermath, in order. Their numbers are the indexes of the stepper and of the aftermath-step-N sections of the page.
+const (
+	stepSheet = iota
+	stepInjuries
+	stepLevelUps // never the current step: its rolls wait on the unit cards and do not hold the aftermath
+	stepRewards  // a scenario reward waits for a choice; otherwise the aftermath finishes on its own
+	stepDone
+)
+
+// Step is the index of the current step.
 func (v aftermathView) Step() int {
 	switch v.A.Status {
 	case core.AftermathInjuries:
-		return 1
+		return stepInjuries
 	case core.AftermathLevelUps:
-		return 3
+		return stepRewards
 	case core.AftermathDone, core.AftermathWaived:
-		return 4 // every step is behind
+		return stepDone // every step is behind
 	}
-	return 0
+	return stepSheet
 }
+
+// OnSheet says that the Sheet is the current step.
+func (v aftermathView) OnSheet() bool { return v.Step() == stepSheet }
+
+// OnInjuries says that the Injuries are the current step.
+func (v aftermathView) OnInjuries() bool { return v.Step() == stepInjuries }
+
+// InjuriesAhead says that the Injuries step has not been reached.
+func (v aftermathView) InjuriesAhead() bool { return v.Step() < stepInjuries }
+
+// OnRewards says that the Rewards are the current step.
+func (v aftermathView) OnRewards() bool { return v.Step() == stepRewards }
+
+// experienceGiven says that the units already count the experience of the match (from the Rewards step on).
+func (v aftermathView) experienceGiven() bool { return v.Step() >= stepRewards }
 
 // aftermathStep is one step of the stepper.
 type aftermathStep struct {
@@ -626,22 +649,22 @@ type aftermathStep struct {
 // Steps are the steps that apply (docs/aftermath.md, "Flow"): Injuries only with a casualty, Level-ups only with a roll waiting,
 // Rewards only while a scenario reward waits for a choice.
 func (v aftermathView) Steps() []aftermathStep {
-	out := []aftermathStep{{"Sheet", 0}}
+	out := []aftermathStep{{"Sheet", stepSheet}}
 	if v.HasInjuries() {
-		out = append(out, aftermathStep{"Injuries", 1})
+		out = append(out, aftermathStep{"Injuries", stepInjuries})
 	}
 	if v.HasLevelUps() {
-		out = append(out, aftermathStep{"Level-ups", 2})
+		out = append(out, aftermathStep{"Level-ups", stepLevelUps})
 	}
 	if v.A.Status == core.AftermathLevelUps {
-		out = append(out, aftermathStep{"Rewards", 3})
+		out = append(out, aftermathStep{"Rewards", stepRewards})
 	}
-	return append(out, aftermathStep{"Done", 4})
+	return append(out, aftermathStep{"Done", stepDone})
 }
 
 // HasInjuries says whether the aftermath has (or, on the sheet, will have) a casualty roll.
 func (v aftermathView) HasInjuries() bool {
-	if v.Step() == 0 {
+	if v.OnSheet() {
 		return v.Casualties() > 0
 	}
 	return len(v.A.Casualties) > 0
@@ -649,7 +672,7 @@ func (v aftermathView) HasInjuries() bool {
 
 // HasLevelUps says whether a level-up roll waits once the experience is given.
 func (v aftermathView) HasLevelUps() bool {
-	return v.Step() >= 3 && v.A.Status != core.AftermathWaived && len(v.Waiting()) > 0
+	return v.experienceGiven() && v.A.Status != core.AftermathWaived && len(v.Waiting()) > 0
 }
 
 // ChangeSummary is the first line of a finished aftermath: "+7 XP, +5 Influence, 1 dead, 2 level-ups ready".
@@ -664,7 +687,7 @@ func (v aftermathView) ChangeSummary() string {
 		}
 	}
 	for _, c := range v.A.Casualties {
-		if c.Kind == core.CasualtyDead || c.Kind == core.CasualtyRetired {
+		if v.Fallen(c) {
 			dead++
 		}
 	}
@@ -688,7 +711,7 @@ func (v aftermathView) ChangeSummary() string {
 }
 
 // Editing is whether the Sheet step shows its form.
-func (v aftermathView) Editing() bool { return v.Edit() && v.Step() == 0 }
+func (v aftermathView) Editing() bool { return v.Edit() && v.OnSheet() }
 
 // Closed says that nothing more will happen: the aftermath is done or waived.
 func (v aftermathView) Closed() bool {

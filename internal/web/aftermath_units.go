@@ -75,7 +75,7 @@ type unitFoot struct {
 func (v aftermathView) Foot(u core.CompanyUnit) unitFoot {
 	c, isCasualty := v.casualty(u.ID)
 	xp := v.unitXP(u.ID, isCasualty && v.Fallen(c))
-	if v.Step() >= 3 {
+	if v.experienceGiven() {
 		u.XP = max(0, u.XP-xp)
 	}
 	return unitFoot{U: u, MatchXP: xp}
@@ -106,12 +106,8 @@ func (v aftermathView) unitResult(m core.ModelSheet) unitResult {
 		r.Unit, r.Icon = v.CasualtyUnit(c), "death-skull"
 		if c.Rolled && !v.Animate[c.UnitID] { // while its dice roll, the card does not give the result away
 			r.Status = c.ResultTxt
-			switch c.Kind { // the skull is for the unit that fell
-			case core.CasualtyDead, core.CasualtyRetired:
-			case core.CasualtyInjured, core.CasualtyInjury, core.CasualtyScratch:
-				r.Badge, r.Icon = "badge-warn", ""
-			default:
-				r.Badge, r.Icon = "badge-success", ""
+			if !v.Fallen(c) { // the skull is for the unit that fell
+				r.Badge, r.Icon = "badge-"+v.CasualtyTone(c), ""
 			}
 		}
 	} else {
@@ -155,7 +151,7 @@ func (v aftermathView) unitXP(id int64, fell bool) int {
 			given += l.Amount
 		}
 	}
-	if v.Step() >= 3 || fell {
+	if v.experienceGiven() || fell {
 		return given
 	}
 	for _, g := range v.A.Preview.Experience {
@@ -170,7 +166,7 @@ func (v aftermathView) unitXP(id int64, fell bool) int {
 // casualties (those have their own cards); afterwards the whole company, the casualties first. Last come the units that did not play, which
 // recover and can play the next match. Nothing for a waived aftermath, where nothing happened.
 func (v aftermathView) UnitResults() []unitResult {
-	if v.Step() == 0 || v.A.Status == core.AftermathWaived {
+	if v.OnSheet() || v.A.Status == core.AftermathWaived {
 		return nil
 	}
 	var casualties, played, out []unitResult
@@ -182,7 +178,7 @@ func (v aftermathView) UnitResults() []unitResult {
 		switch {
 		case r.Unit.ID == 0: // no longer in the company
 		case isCasualty:
-			if v.Step() != 1 {
+			if !v.OnInjuries() {
 				casualties = append(casualties, r)
 			}
 		case r.Played:

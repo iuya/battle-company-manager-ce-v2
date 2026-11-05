@@ -572,7 +572,7 @@ func TestEveryUnitShowsWhatTheMatchDidToIt(t *testing.T) {
 	done := state(core.AftermathDone)
 	done.Lines = []core.AftermathLine{{Kind: "experience", UnitID: 13, Amount: 5}}
 	body = serve(t, done)
-	if strings.Index(body, `data-unit-result="11"`) > strings.Index(body, `data-unit-result="13"`) || strings.Index(body, `data-unit-result="13"`) < 0 {
+	if strings.Index(body, `data-unit-result="11"`) > strings.Index(body, `data-unit-result="13"`) || !strings.Contains(body, `data-unit-result="13"`) {
 		t.Error("afterwards the casualties come first")
 	}
 	if c := result(t, body, 11); !strings.Contains(c, "Dead") || strings.Contains(c, "xp-match-text") {
@@ -1047,6 +1047,59 @@ func TestWoundsOfAHeroShowsTheExtraInfluenceRoll(t *testing.T) {
 	for _, want := range []string{"Extra D6 Influence rolled: &#43;4 Influence.", "The extra D6 Influence is rolled once the question below is answered."} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the page lacks %q", want)
+		}
+	}
+}
+
+// Each status of the aftermath is one named step, and the stepper shows that step at its own index.
+func TestAftermathStepsNameTheCurrentStep(t *testing.T) {
+	for _, c := range []struct {
+		status                                core.AftermathStatus
+		step                                  int
+		sheet, injuries, rewards, done, ahead bool
+		given                                 bool
+	}{
+		{status: core.AftermathPending, step: stepSheet, sheet: true, ahead: true},
+		{status: core.AftermathSheet, step: stepSheet, sheet: true, ahead: true},
+		{status: core.AftermathInjuries, step: stepInjuries, injuries: true},
+		{status: core.AftermathLevelUps, step: stepRewards, rewards: true, given: true},
+		{status: core.AftermathDone, step: stepDone, done: true, given: true},
+		{status: core.AftermathWaived, step: stepDone, done: true, given: true},
+	} {
+		v := aftermathView{A: core.Aftermath{Status: c.status, Casualties: []core.Casualty{{UnitID: 1}}}}
+		if v.Step() != c.step || v.OnSheet() != c.sheet || v.OnInjuries() != c.injuries || v.OnRewards() != c.rewards || v.Closed() != c.done ||
+			v.InjuriesAhead() != c.ahead || v.experienceGiven() != c.given {
+			t.Errorf("%s: step %d, sheet %v, injuries %v, rewards %v, closed %v, ahead %v, given %v", c.status, v.Step(), v.OnSheet(), v.OnInjuries(), v.OnRewards(), v.Closed(), v.InjuriesAhead(), v.experienceGiven())
+		}
+		if !slices.ContainsFunc(v.Steps(), func(s aftermathStep) bool { return s.Index == c.step }) {
+			t.Errorf("%s: step %d is not in the stepper: %+v", c.status, c.step, v.Steps())
+		}
+	}
+}
+
+// The strip of a rolled casualty and the badge of its unit card come from one classification: only the unit that fell keeps the skull.
+func TestCasualtyToneDrivesTheUnitCard(t *testing.T) {
+	for _, c := range []struct {
+		kind        core.CasualtyKind
+		tone, badge string
+		icon        string
+	}{
+		{core.CasualtyDead, "danger", "badge-danger", "death-skull"},
+		{core.CasualtyRetired, "danger", "badge-danger", "death-skull"},
+		{core.CasualtyInjured, "warn", "badge-warn", ""},
+		{core.CasualtyInjury, "warn", "badge-warn", ""},
+		{core.CasualtyScratch, "warn", "badge-warn", ""},
+		{core.CasualtyHeal, "success", "badge-success", ""},
+		{core.CasualtyRecovered, "success", "badge-success", ""},
+	} {
+		cas := core.Casualty{UnitID: 10, Rolled: true, Kind: c.kind}
+		v := aftermathView{A: core.Aftermath{Casualties: []core.Casualty{cas}}}
+		if got := v.CasualtyTone(cas); got != c.tone {
+			t.Errorf("%s: tone %q, want %q", c.kind, got, c.tone)
+		}
+		r := v.unitResult(core.ModelSheet{UnitID: 10, Outcome: core.OutcomeCasualty})
+		if r.Badge != c.badge || r.Icon != c.icon {
+			t.Errorf("%s: badge %q icon %q, want %q %q", c.kind, r.Badge, r.Icon, c.badge, c.icon)
 		}
 	}
 }
