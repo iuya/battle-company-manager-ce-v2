@@ -255,6 +255,23 @@ func (s *Server) handleATOSave(w http.ResponseWriter, r *http.Request) {
 	}
 	sel := selectionFromForm(r, cur)
 	_, err = s.campaigns.SaveAgainstTheOdds(r.Context(), user, id, m.ID, revisionOf(r), sel)
+	s.answerATOWrite(w, r, base, m, err, "Against the Odds confirmed.", &sel)
+}
+
+// handleATOChange takes a confirmed decision back (Change on the card). Success answers the whole match; a refusal answers the card.
+func (s *Server) handleATOChange(w http.ResponseWriter, r *http.Request) {
+	base, m, ok := s.matchCtx(w, r)
+	if !ok {
+		return
+	}
+	_, err := s.campaigns.ReopenAgainstTheOdds(r.Context(), *userFrom(r.Context()), base.Campaign.ID, m.ID, revisionOf(r))
+	s.answerATOWrite(w, r, base, m, err, "", nil)
+}
+
+// answerATOWrite answers a write of the card from its error: nil answers the whole match with the notice (htmx retargets #match), a
+// refusal the card with the reason. typed, when given, is what the form sent: a card refused for its content keeps it.
+func (s *Server) answerATOWrite(w http.ResponseWriter, r *http.Request, base campaignBase, m core.Match, err error, notice string, typed *core.ATOSelection) {
+	id := base.Campaign.ID
 	status, msg := http.StatusOK, ""
 	switch {
 	case err == nil:
@@ -264,7 +281,7 @@ func (s *Server) handleATOSave(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("HX-Retarget", "#match")
 		w.Header().Set("HX-Reswap", "outerHTML")
-		s.answer(w, r, http.StatusOK, base, fresh, "", "Against the Odds confirmed.", false, nil)
+		s.answer(w, r, http.StatusOK, base, fresh, "", notice, false, nil)
 		return
 	case errors.Is(err, core.ErrMatchChanged):
 		msg = "Somebody changed this match while you were editing, so what you see now is the current state. Check it and make your change again."
@@ -283,47 +300,8 @@ func (s *Server) handleATOSave(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, r, cerr) {
 		return
 	}
-	if status == http.StatusUnprocessableEntity {
-		v.Selection, v.Spent = sel, 0 // keep what was typed
-	}
-	v.Msg, v.Error = msg, true
-	s.render.partial(w, status, "match", "ato_card", v)
-}
-
-// handleATOChange takes a confirmed decision back (Change on the card). Success answers the whole match; a refusal answers the card.
-func (s *Server) handleATOChange(w http.ResponseWriter, r *http.Request) {
-	base, m, ok := s.matchCtx(w, r)
-	if !ok {
-		return
-	}
-	id := base.Campaign.ID
-	_, err := s.campaigns.ReopenAgainstTheOdds(r.Context(), *userFrom(r.Context()), id, m.ID, revisionOf(r))
-	msg := ""
-	status := http.StatusOK
-	switch {
-	case err == nil:
-		fresh, merr := s.campaigns.Match(r.Context(), id, m.ID)
-		if s.fail(w, r, merr) {
-			return
-		}
-		w.Header().Set("HX-Retarget", "#match")
-		w.Header().Set("HX-Reswap", "outerHTML")
-		s.answer(w, r, http.StatusOK, base, fresh, "", "", false, nil)
-		return
-	case errors.Is(err, core.ErrMatchChanged):
-		msg = "Somebody changed this match while you were editing, so what you see now is the current state. Check it and make your change again."
-	case errors.Is(err, core.ErrRefused):
-		status, msg = http.StatusUnprocessableEntity, reason(err)
-	case errors.Is(err, core.ErrNotFound):
-		s.notFound(w, r)
-		return
-	default:
-		s.serverError(w, r, err)
-		return
-	}
-	v, cerr := s.atoCard(r, id, m)
-	if s.fail(w, r, cerr) {
-		return
+	if typed != nil && status == http.StatusUnprocessableEntity {
+		v.Selection, v.Spent = *typed, 0 // keep what was typed
 	}
 	v.Msg, v.Error = msg, true
 	s.render.partial(w, status, "match", "ato_card", v)
