@@ -17,8 +17,7 @@
 //	type ToWoundTable struct{ Title, Term string; RulebookPage int; Strengths, Defences []int; Cells [][]string; Notation Notation; Notes []string }
 //	func ToWound() ToWoundTable              // the table as the glossary file carries it
 //	func CellRank(cell string) int           // difficulty order of a cell
-//	func ToWoundErrors(tw ToWoundTable) []string   // empty when the table is valid
-//	func ToWoundErrorsJSON(v map[string]any) []string // the same check on a decoded JSON "toWound" object
+//	func ToWoundErrorsJSON(v map[string]any) []string // checks a decoded JSON "toWound" object; empty when valid
 //	type BuildOptions struct{ Src, Out, Summaries, Uncapped string }
 //	func BuildGlossary(opts BuildOptions) (BuildResult, error) // what tools/glossary runs
 package glossaryref

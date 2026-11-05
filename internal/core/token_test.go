@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
+	"io"
 	"strings"
 	"testing"
 )
@@ -73,6 +74,9 @@ func TestErrors(t *testing.T) {
 		t.Fatal("NotPendingError is ErrNotPending")
 	}
 }
+
+// WithRandom replaces crypto/rand as the source of tokens.
+func WithRandom(r io.Reader) ServiceOption { return func(o *serviceOptions) { o.random = r } }
 
 // withArgon lowers the password hashing cost in tests.
 func withArgon(p argonParams) ServiceOption { return func(o *serviceOptions) { o.argon = p } }

@@ -165,7 +165,7 @@ type AccountInvitations struct {
 	opts serviceOptions
 }
 
-// NewAccountInvitations builds the service; WithClock and WithRandom control time and tokens.
+// NewAccountInvitations builds the service; WithClock controls time.
 func NewAccountInvitations(repo accountInvitationRepository, opts ...ServiceOption) *AccountInvitations {
 	return &AccountInvitations{repo: repo, opts: newServiceOptions(opts)}
 }

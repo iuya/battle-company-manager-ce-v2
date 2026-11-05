@@ -359,7 +359,7 @@ Routes by area (the feature documents list the actions):
 
 Account invitations and recovery links share one design (`internal/core/token.go`): 32 random bytes (43 URL-safe characters), stored only as a
 SHA-256 `BYTEA` (`UNIQUE`, length-checked) and compared again in constant time, shown once; expiry and every timestamp come from the service
-clock (`core.WithClock`, `core.WithRandom` let tests and the demo world control time and tokens); the state (pending, used, expired, revoked,
+clock (`core.WithClock` lets tests and the demo world control time); the state (pending, used, expired, revoked,
 invalidated) is derived, never stored; a use is one transaction that locks the row, re-checks it and does the side effect; and every public
 failure is `core.ErrLinkUnusable`, "Talk with the administrator.". The request log writes `/register/{token}` for these routes, never the secret.
 See [auth.md](auth.md).
