@@ -122,7 +122,7 @@ company's `advancements`); a unit earns a roll every 5 XP and several can wait.
   - A result it cannot take is re-rolled by the app, with a note: a stat at the path's or the overall maximum, a rule or action already owned, or a minor-rule or heroic-action total reached.
   - The player presses the option it wants, see [Options](#options).
   - When rolls remain, "Next level up" (the card's banner effect) opens the next.
-- The window goes back to the page it was opened from when it is done (`rollPanel.finish`): My Company, or the aftermath, whose window reloads its own page when it closes (`data-reloads-on-close`). A path chosen from the aftermath also goes back to it (`handleChoosePath`).
+- The window goes back to the page it was opened from when it is done (`rollPanel.finish`): My Company, or the aftermath, whose window reloads its own page when it closes (`data-reloads-on-close`). A path chosen from the aftermath also goes back to it (`handleChoosePath`): the aftermath page's `#modal-body` carries `hx-vals` with `back=aftermath`, which every request from inside that window inherits, so the field survives the level-up steps, `then=path` and a refused choice that redraws the panel.
 - "Roll for me" is animated (a warrior's dice; a hero's dice run in one lane per result, named and totalled once they stop); "I rolled" takes the player's own dice. A roll
   waits for its choice if the window is closed (`campaigns.LevelUpState`).
 - **Magical powers** (Path of the Sorcerer only): the rows offer "a new power or improve a casting value".
