@@ -382,7 +382,7 @@ func TestScenariosKnowTheirScoringObjectivesBySide(t *testing.T) {
 			fog = sc
 		}
 	}
-	if len(stand.About.Roles) == 0 || len(stand.ScoringObjectives) == 0 {
+	if len(stand.About.Roles) == 0 || len(stand.Scoring) == 0 {
 		t.Fatalf("Stand Your Ground: %+v", stand.About.Roles)
 	}
 	// Fog of War's objectives stay for the players to read in How it is scored; the app keeps nothing of them
@@ -415,14 +415,6 @@ func TestOrganiserReopensAndEditsEndedMatches(t *testing.T) {
 	}
 	if _, err := f.svc.ReopenMatch(f.ctx, User{ID: 77}, 5, 1, 6); !errors.Is(err, ErrRefused) {
 		t.Errorf("a stranger to the match: %v", err)
-	}
-}
-
-func TestObjectiveLabel(t *testing.T) {
-	for in, want := range map[string]string{"ownHeroSurvives": "Own hero survives", "enemyHeroHarmed": "Enemy hero harmed", "terrainPiece": "Terrain piece", "enemyLeader": "Enemy leader"} {
-		if got := ObjectiveLabel(in); got != want {
-			t.Errorf("%s: %q", in, got)
-		}
 	}
 }
 

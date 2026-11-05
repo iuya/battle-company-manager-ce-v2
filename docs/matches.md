@@ -154,7 +154,7 @@ interface all take the acting `core.User` and return `ErrNotFound` for an unknow
 
 `core.ScenarioInfo` (from `core.ParseScenarios`) describes a scenario as the picker and the page show it: name, table (1-3) and roll (1-6),
 `Objectives` (the reward ticks of the End match sheet), `Scoring` (how the scenario is won, composed by `core.ComposeObjectiveText` from the typed objective's
-`instruction` and `options[].text`), `ScoringObjectives` (shown in the scenario card), `About` (outline, description, armies, layout,
+`instruction` and `options[].text`), `About` (outline, description, armies, layout,
 starting positions, how the game ends, special rules, roles) and `Prizes` (rewards that follow from the result: Rendezvous, Vantage Point, Survival of the Fittest; shown, not ticked).
 
 A `ScenarioObjective` is one tick per company on the End match sheet: a reward condition of the rules file that the players tick

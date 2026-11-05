@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 )
 
@@ -212,17 +211,15 @@ func (m Match) hasCompany(id int64) bool {
 
 // ScenarioInfo is a scenario of the rules file as the picker and the match page show it.
 type ScenarioInfo struct {
-	Name       string
-	Table      int                 // 1-3 (the scenario selection table it is on); 0 when the file does not place it
-	Roll       int                 // 1..Sides on that table's second die; 0 when unknown
-	FirstDie   [2]int              // the range of the first die that picks its table (campaign.scenarioSelection.tables[].roll)
-	Objectives []ScenarioObjective // the ticks of the scenario's rewards; empty for most scenarios
-	Scoring    []string            // text of the Victory Point conditions, shown as a read-only reminder
-	About      ScenarioAbout       // what the rulebook says about the set-up and the special rules
-	Prizes     []ScenarioPrize     // rewards that follow from the result (the winner, a surviving Leader); not ticks
-	// ScoringObjectives are the Victory Point conditions as data, in the printed order (data.scenarioDetails[].scoringObjectives).
-	ScoringObjectives []ScoringObjective
-	EndLossPercent    int // the game ends once a company has lost this share of its starting models; 0: the scenario has no such end
+	Name           string
+	Table          int                 // 1-3 (the scenario selection table it is on); 0 when the file does not place it
+	Roll           int                 // 1..Sides on that table's second die; 0 when unknown
+	FirstDie       [2]int              // the range of the first die that picks its table (campaign.scenarioSelection.tables[].roll)
+	Objectives     []ScenarioObjective // the ticks of the scenario's rewards; empty for most scenarios
+	Scoring        []string            // text of the Victory Point conditions, shown as a read-only reminder
+	About          ScenarioAbout       // what the rulebook says about the set-up and the special rules
+	Prizes         []ScenarioPrize     // rewards that follow from the result (the winner, a surviving Leader); not ticks
+	EndLossPercent int                 // the game ends once a company has lost this share of its starting models; 0: the scenario has no such end
 }
 
 // FindScenario is the scenario of that name in the list, nil without one.
@@ -233,30 +230,6 @@ func FindScenario(list []ScenarioInfo, name string) *ScenarioInfo {
 		}
 	}
 	return nil
-}
-
-// ScoringObjective is one Victory Point condition of a scenario. Side is "both", "attacker" or "defender".
-type ScoringObjective struct {
-	Key, Text, Side, Kind, Instruction string
-	Label                              string // a short name for lists and the log: "Own hero survives"
-	MaxPoints                          int
-}
-
-// ObjectiveLabel makes a short name out of an objective's key ("ownHeroSurvives" is "Own hero survives").
-func ObjectiveLabel(key string) string {
-	var b strings.Builder
-	for i, r := range key {
-		switch {
-		case i == 0:
-			b.WriteRune(unicode.ToUpper(r))
-		case unicode.IsUpper(r):
-			b.WriteRune(' ')
-			b.WriteRune(unicode.ToLower(r))
-		default:
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
 }
 
 // ScenarioAbout is the rulebook text of a scenario that is not about scoring: the page shows it folded.
