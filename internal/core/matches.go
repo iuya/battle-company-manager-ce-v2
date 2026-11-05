@@ -155,12 +155,13 @@ func (s *Matches) UnavailableCompanies(ctx context.Context, id int64, companies 
 		if err != nil {
 			return nil, err
 		}
+		if d.OpenMatch != nil {
+			out[cid] = fmt.Sprintf("Already in Match %d.", d.OpenMatch.Number)
+			continue
+		}
 		why, err := s.cannotPlayYet(ctx, id, cid, d)
 		if err != nil {
 			return nil, err
-		}
-		if d.OpenMatch != nil {
-			why = fmt.Sprintf("Already in Match %d.", d.OpenMatch.Number)
 		}
 		if why != "" {
 			out[cid] = why
