@@ -20,7 +20,7 @@ func (s *Matches) atoRules(ctx context.Context, h RulesetHashes) (ATORules, erro
 // atoSides says who can take bonuses in the match: the lower rated company (side index and company), its opponent and the gap. why is
 // the sentence for a match that has no card.
 func atoSides(m Match) (lower, higher CampaignCompany, why string) {
-	if len(m.Sides) != 2 || len(m.Sides[0].Companies) != 1 || len(m.Sides[1].Companies) != 1 {
+	if !atoOneAgainstOne(m) {
 		return lower, higher, "Against the Odds is only available in two-company matches."
 	}
 	a, b := m.Sides[0].Companies[0], m.Sides[1].Companies[0]
@@ -31,6 +31,11 @@ func atoSides(m Match) (lower, higher CampaignCompany, why string) {
 		return a, b, ""
 	}
 	return b, a, ""
+}
+
+// atoOneAgainstOne is whether the match has one company a side, which needs no rating to tell.
+func atoOneAgainstOne(m Match) bool {
+	return len(m.Sides) == 2 && len(m.Sides[0].Companies) == 1 && len(m.Sides[1].Companies) == 1
 }
 
 // AgainstTheOdds loads the card for the viewer. ErrNotFound: the campaign or the match is unknown, or the viewer is not in the
@@ -122,7 +127,7 @@ func (s *Matches) atoCardWith(ctx context.Context, user User, camp CampaignDetai
 	}
 	card.Decided, card.HasScenario = m.ATODecided, m.Scenario != nil
 	card.Payable = atoPayable(rules, card.Gap, m.Practice, hasWanderer)
-	card.Pending = !m.Ended && !m.ATODecided && !started && card.Payable
+	card.Pending = atoDecisionOpen(m, started) && card.Payable
 	card.Access = ATOAccessFor(user, m, lower, camp.OrganiserID)
 	if card.Locked || camp.CanPlay() != nil {
 		card.Access = ATONone
@@ -133,6 +138,24 @@ func (s *Matches) atoCardWith(ctx context.Context, user User, camp CampaignDetai
 // atoStarted says whether a live entry exists for the match.
 func (s *Matches) atoStarted(ctx context.Context, id, matchID int64) (bool, error) {
 	return s.ato.GameStarted(ctx, id, matchID)
+}
+
+// atoDecisionOpen is the rule of a pending decision, with the gap: the game waits for the company while the match is open, undecided and
+// not started and the gap pays for a bonus the company can take (atoPayable, atoGapPays).
+func atoDecisionOpen(m Match, started bool) bool {
+	return !m.Ended && !m.ATODecided && !started
+}
+
+// atoAwaited is atoDecisionOpen for a caller that has not read whether the game started: it is read only when it can change the answer.
+func (s *Matches) atoAwaited(ctx context.Context, id int64, m Match) (bool, error) {
+	if !atoDecisionOpen(m, false) {
+		return false, nil
+	}
+	started, err := s.atoStarted(ctx, id, m.ID)
+	if err != nil {
+		return false, err
+	}
+	return atoDecisionOpen(m, started), nil
 }
 
 // atoTarget is what a write of the card works on: the campaign and who can take bonuses in the rated match.
@@ -321,19 +344,16 @@ func (s *Matches) ATOStatus(ctx context.Context, id int64, m Match) (ATOStatus, 
 		return ATOStatus{}, err
 	}
 	out := ATOStatus{CompanyID: lower.ID, CompanyName: lower.Name, OwnerID: lower.OwnerID, Ambush: rec.Selection.Ambush}
-	if m.ATODecided {
-		return out, nil
-	}
-	started, err := s.atoStarted(ctx, id, m.ID)
-	if err != nil || started {
+	awaited, err := s.atoAwaited(ctx, id, m)
+	if err != nil || !awaited {
 		return out, err
 	}
-	out.Pending, err = s.atoPending(ctx, id, m, lower, higher)
+	out.Pending, err = s.atoGapPays(ctx, id, m, lower, higher)
 	return out, err
 }
 
-// atoPending says whether the gap pays for a bonus the company can take. The roster is read only when the Wanderer alone would decide it.
-func (s *Matches) atoPending(ctx context.Context, id int64, m Match, lower, higher CampaignCompany) (bool, error) {
+// atoGapPays says whether the gap pays for a bonus the company can take. The roster is read only when the Wanderer alone would decide it.
+func (s *Matches) atoGapPays(ctx context.Context, id int64, m Match, lower, higher CampaignCompany) (bool, error) {
 	h, _, err := s.campaigns.Hashes(ctx, id)
 	if err != nil {
 		return false, err
@@ -366,16 +386,23 @@ func (s *Matches) ATOBlocks(ctx context.Context, id, matchID int64) (string, err
 	if err != nil {
 		return "", err
 	}
-	if m.Ended || m.ATODecided || len(m.Sides) != 2 || len(m.Sides[0].Companies) != 1 || len(m.Sides[1].Companies) != 1 {
+	if !atoOneAgainstOne(m) {
 		return "", nil
 	}
-	started, err := s.atoStarted(ctx, id, matchID)
-	if err != nil || started {
+	awaited, err := s.atoAwaited(ctx, id, m)
+	if err != nil || !awaited {
 		return "", err
 	}
-	if m, err = s.complete(ctx, id, m); err != nil {
+	if m, err = s.complete(ctx, id, m); err != nil { // the ratings say who is lower, and whether anybody is
 		return "", err
 	}
-	st, err := s.ATOStatus(ctx, id, m)
-	return st.Why(), err
+	lower, higher, why := atoSides(m)
+	if why != "" {
+		return "", nil
+	}
+	pays, err := s.atoGapPays(ctx, id, m, lower, higher)
+	if err != nil {
+		return "", err
+	}
+	return ATOStatus{Pending: pays, CompanyName: lower.Name}.Why(), nil
 }
