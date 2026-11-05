@@ -89,7 +89,7 @@ func TestLiveCompanyPageHasBannerZonesAndNoRosterControls(t *testing.T) {
 			t.Errorf("live page lacks %q", want)
 		}
 	}
-	for _, banned := range []string{"Recruit ·", "Change formation", "Buy equipment", "Buy wargear", "Heal ", "Match log", "data-view-menu", ">Points</dt>", ">Limits <", ">Influence</p>", ">Gold</p>", "units</span></h2>"} {
+	for _, banned := range []string{"Recruit ·", "Change formation", "Buy equipment", "Buy wargear", "Heal ", "Match log", "data-view-menu", ">Points</dt>", ">Limits <", ">Influence</p>", ">Gold</p>", "units</span></h2>", "dashed: hover for its rules"} {
 		if strings.Contains(body, banned) {
 			t.Errorf("a company in a running match has no %q", banned)
 		}
@@ -182,7 +182,7 @@ func TestACompanyInNoOpenMatchIsNotLive(t *testing.T) {
 	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
-	if strings.Contains(body, "live-banner") || strings.Contains(body, "live-zones") || !strings.Contains(body, "Recruit ·") {
+	if strings.Contains(body, "live-banner") || strings.Contains(body, "live-zones") || !strings.Contains(body, "Recruit ·") || !strings.Contains(body, "dashed: hover for its rules") {
 		t.Error("the usual page")
 	}
 }
