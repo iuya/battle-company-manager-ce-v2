@@ -224,7 +224,7 @@ type liveMatches interface {
     Undo(ctx, user, id, matchID, entryID, companyID int64) (core.LiveCompany, error)                // ErrLiveDepends when a later entry depends on it
     Log(ctx, user, id, matchID, before int64, limit int) ([]core.LiveEntry, error)                  // not-undone entries newest first, CanUndo set for user
     Subscribe(ctx, user, id, matchID int64) (core.LiveStream, error)                                // Next blocks for a coalesced core.LiveBatch; ErrRefused at the caps
-    // EndChecks, RollCourage, MatchDefaults ... see below
+    // EndChecks, MatchDefaults ... see below
 }
 ```
 
@@ -315,14 +315,12 @@ LiveCourageSkip LiveKind = "courageSkip" // UnitID, Reason
 `LiveCompany` carries `Break`; `LiveUnit` carries `BreakModels`, `CourageHow` and `Temporary`. Migration `00021_live_break_point_kinds.sql` allows the kinds. `broken` and `courageSkip` are allowed even when the company is not Broken (the table may count differently); both are refused for a unit outside the Field.
 
 ```go
-RollCourage(ctx, user, id, matchID, unitID int64, entered []int, thrown bool) (core.CourageRoll, error) // writes nothing; honours RollRefusal; the unit must be in the Field and have a Courage
-type CourageRoll struct{ Dice []int; Total, Courage int; Passed bool }
 MatchDefaults(ctx, id, matchID int64) (core.LiveMatchDefaults, bool, error) // EnemyBroken per company; false without live data
 MatchBreaks(ctx, id, matchID int64) (map[int64]core.LiveBreak, error)        // the Break Point of every company, for the banner
 ```
 
-`RollCourage` requires `campaign.breakPoint.whenBroken.courageTest.dice` to be `2d6` and `passIf` `totalAtLeastCourage`. `EnemyBroken` (every company of every other side is Broken at the end) prefills the `enemyBroken` scenario objective of the End match sheet. Routes: the `actions` route
-carries `breakAdjust`, `courageSkip` and the rest. `RollCourage` is a core method with no route.
+`EnemyBroken` (every company of every other side is Broken at the end) prefills the `enemyBroken` scenario objective of the End match sheet. Routes: the `actions` route
+carries `breakAdjust`, `courageSkip` and the rest.
 
 ## Against the Odds items in a live match
 

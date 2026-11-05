@@ -201,17 +201,13 @@ func TestLiveOverlaysTheAgainstTheOddsRecord(t *testing.T) {
 	if lc, err = f.svc.Undo(f.ctx, f.user(liveOwner1), 5, 1, e.ID, 1); err != nil || unitOf(lc, hero).Loaned[0].Used {
 		t.Errorf("undo: %v", err)
 	}
-	// the Wanderer fights: it can wound an enemy, cannot call Stand Fast, and rolls its Courage
+	// the Wanderer fights: it can wound an enemy and cannot call Stand Fast
 	enemy, _ := f.svc.Live(f.ctx, f.user(liveOwner2), 5, 2)
 	if _, _, err := f.svc.Apply(f.ctx, f.user(liveOwner1), 5, 1, 1, LiveAction{Kind: LiveWound, UnitID: -1, Targets: []WoundTarget{{UnitID: enemy.Units[0].UnitID, Caused: 1}}}); err != nil {
 		t.Fatalf("the Wanderer wounds: %v", err)
 	}
 	if _, _, err := f.svc.Apply(f.ctx, f.user(liveOwner1), 5, 1, 1, LiveAction{Kind: LiveBroken, UnitID: -1, StandFast: true}); !errors.Is(err, ErrRefused) {
 		t.Errorf("no Stand Fast: %v", err)
-	}
-	f.svc.dice = &FixedDice{Rolls: []int{wand.Courage - 1, 1}}
-	if r, err := f.svc.RollCourage(f.ctx, f.user(liveOwner1), 5, 1, -1, nil, false); err != nil || r.Courage != wand.Courage || !r.Passed {
-		t.Errorf("courage: %+v %v", r, err)
 	}
 	// it is not on the aftermath sheet
 	sheets, ok, err := f.svc.AftermathDefaults(f.ctx, 5, 1, 1)

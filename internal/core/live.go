@@ -345,15 +345,6 @@ type liveFeed interface {
 	Run(ctx context.Context, onEvent func(LiveEvent), onResync func()) error
 }
 
-// CourageRoll is a Courage test rolled for a unit of a Broken company: the dice, their total, the unit's Courage and whether it passed.
-// Nothing is written: the player records the result with Apply (broken or retreat).
-type CourageRoll struct {
-	Dice    []int
-	Total   int
-	Courage int
-	Passed  bool
-}
-
 // LiveMatchDefaults are what the live log says about the result of the match: for which companies every opposing company is Broken at
 // the end of the game (the enemyBroken scenario objective).
 type LiveMatchDefaults struct {
