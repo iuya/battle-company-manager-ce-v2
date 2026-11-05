@@ -71,13 +71,10 @@ func (s *Server) endBannerFor(r *http.Request, base campaignBase, m core.Match, 
 
 // brokenNotice names a Broken company for the banner and adds the scenario's end when it has been reached too.
 func brokenNotice(name string, br core.LiveBreak) string {
-	switch {
-	case br.EndPercent == 0 || br.ToEnd() > 0:
+	if br.EndLossPercent == 0 || br.ToEnd() > 0 {
 		return name + " is broken"
-	case br.EndPercent == 25:
-		return name + " is broken and quartered"
 	}
-	return fmt.Sprintf("%s is broken and down to %d%%", name, br.EndPercent)
+	return fmt.Sprintf("%s is broken and down to %d%%", name, br.EndLeftPercent())
 }
 
 // handleEndBanner answers the banner for the page's refresh (GET ...?company=N).

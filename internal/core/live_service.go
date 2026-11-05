@@ -155,7 +155,7 @@ func (lc *liveContext) breakConfig(rs *RuleSet, d CompanyDetail) {
 		cfg.Exceptions = append(cfg.Exceptions, e.Text())
 	}
 	if sc := FindScenario(rs.BC.Scenarios(), scenario); sc != nil {
-		cfg.EndPercent = sc.EndPercent
+		cfg.EndLossPercent = sc.EndLossPercent
 	}
 	lc.cfg.Break[d.ID] = cfg
 	for _, u := range d.Roster {

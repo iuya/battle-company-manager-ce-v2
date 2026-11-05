@@ -66,41 +66,81 @@ func (b *bp) fall(n int) { // n more units of company 1 die
 
 func TestBreakCountsAreWholeModels(t *testing.T) {
 	tests := []struct {
-		name                               string
-		b                                  LiveBreak
-		breakAt, toBreak, endModels, toEnd int
+		name                           string
+		b                              LiveBreak
+		breakAt, toBreak, endAt, toEnd int
 	}{
-		{"15 models: the Break Point is 7.5, the 8th breaks; 3 may remain", LiveBreak{StartingModels: 15, Threshold100: 750, Casualties: 3, EndPercent: 25}, 8, 5, 3, 9},
-		{"14 models: exactly the Break Point is not Broken", LiveBreak{StartingModels: 14, Threshold100: 700, Casualties: 7, EndPercent: 25}, 8, 1, 3, 4},
-		{"16 models: exactly 25% has been reduced to it", LiveBreak{StartingModels: 16, Threshold100: 800, Casualties: 12, EndPercent: 25}, 9, 0, 4, 0},
-		{"models that left bring the 25% closer, not the Break", LiveBreak{StartingModels: 15, Threshold100: 750, Casualties: 3, LeftTable: 4, EndPercent: 25}, 8, 5, 3, 5},
-		{"at least the Break Point (gte), rounded up to a whole model", LiveBreak{StartingModels: 15, Threshold100: 750, Casualties: 3, AtLeast: true}, 8, 5, 0, 12},
-		{"gte on a whole Break Point", LiveBreak{StartingModels: 14, Threshold100: 700, Casualties: 7, AtLeast: true}, 7, 0, 0, 7},
-		{"three models: no model may remain", LiveBreak{StartingModels: 3, Threshold100: 150, EndPercent: 25}, 2, 2, 0, 3},
-		{"never below zero", LiveBreak{StartingModels: 4, Threshold100: 200, Casualties: 9, EndPercent: 25}, 3, 0, 1, 0},
+		{"15 models: the Break Point is 7.5, the 8th breaks; the end is 11.25, the 12th reaches it", LiveBreak{StartingModels: 15, Threshold100: 750, Casualties: 3, EndLossPercent: 75}, 8, 5, 12, 9},
+		{"14 models: exactly the Break Point is not Broken", LiveBreak{StartingModels: 14, Threshold100: 700, Casualties: 7, EndLossPercent: 75}, 8, 1, 11, 4},
+		{"16 models: strictly over the Break Point at the 9th, exactly 3/4 is the end at the 12th", LiveBreak{StartingModels: 16, Threshold100: 800, Casualties: 12, EndLossPercent: 75}, 9, 0, 12, 0},
+		{"16 models: one short of the end", LiveBreak{StartingModels: 16, Threshold100: 800, Casualties: 11, EndLossPercent: 75}, 9, 0, 12, 1},
+		{"16 models: exactly the Break Point is not Broken yet", LiveBreak{StartingModels: 16, Threshold100: 800, Casualties: 8, EndLossPercent: 75}, 9, 1, 12, 4},
+		{"models that left bring neither closer", LiveBreak{StartingModels: 15, Threshold100: 750, Casualties: 3, LeftTable: 4, EndLossPercent: 75}, 8, 5, 12, 9},
+		{"at least the Break Point (gte), rounded up to a whole model", LiveBreak{StartingModels: 15, Threshold100: 750, Casualties: 3, AtLeast: true}, 8, 5, 0, 0},
+		{"gte on a whole Break Point", LiveBreak{StartingModels: 14, Threshold100: 700, Casualties: 7, AtLeast: true}, 7, 0, 0, 0},
+		{"three models: every one must be lost", LiveBreak{StartingModels: 3, Threshold100: 150, EndLossPercent: 75}, 2, 2, 3, 3},
+		{"never below zero", LiveBreak{StartingModels: 4, Threshold100: 200, Casualties: 9, EndLossPercent: 75}, 3, 0, 3, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			b := tt.b
-			if b.BreakAt() != tt.breakAt || b.ToBreak() != tt.toBreak || b.EndModels() != tt.endModels || b.ToEnd() != tt.toEnd {
-				t.Errorf("BreakAt %d, ToBreak %d, EndModels %d, ToEnd %d; want %d %d %d %d", b.BreakAt(), b.ToBreak(), b.EndModels(), b.ToEnd(), tt.breakAt, tt.toBreak, tt.endModels, tt.toEnd)
+			if b.BreakAt() != tt.breakAt || b.ToBreak() != tt.toBreak || b.EndAt() != tt.endAt || b.ToEnd() != tt.toEnd {
+				t.Errorf("BreakAt %d, ToBreak %d, EndAt %d, ToEnd %d; want %d %d %d %d", b.BreakAt(), b.ToBreak(), b.EndAt(), b.ToEnd(), tt.breakAt, tt.toBreak, tt.endAt, tt.toEnd)
 			}
 		})
 	}
 }
 
-// Models that left the board count towards the scenario's end only; a failed courage test is already a casualty.
+// The players read the end as the share that remains, derived from the share lost.
+func TestEndLeftPercentIsTheShareThatRemains(t *testing.T) {
+	if got := (LiveBreak{EndLossPercent: 75}).EndLeftPercent(); got != 25 {
+		t.Errorf("3/4 lost leaves %d%%, want 25", got)
+	}
+}
+
+// A failed courage test is a casualty, for the Break Point and for the scenario's end; a model that left the board counts for neither.
 func TestBreakCountsWhoLeftTheTable(t *testing.T) {
-	b := &bp{t: t, inits: breakInits(12), cfg: LiveFoldConfig{Break: map[int64]BreakConfig{1: {Percent: 50, EndPercent: 25}}}}
+	b := &bp{t: t, inits: breakInits(12), cfg: LiveFoldConfig{Break: map[int64]BreakConfig{1: {Percent: 50, EndLossPercent: 75}}}}
 	b.do(1, LiveAction{Kind: LiveRetreat, UnitID: 1, Why: "left"})
 	b.do(1, LiveAction{Kind: LiveRetreat, UnitID: 2, Why: "courage"})
 	b.do(1, LiveAction{Kind: LiveDied, UnitID: 3})
-	if got := b.state().Break(1); got.LeftTable != 1 || got.Casualties != 2 || got.EndPercent != 25 {
-		t.Errorf("left %d casualties %d end %d%%, want 1, 2 and 25", got.LeftTable, got.Casualties, got.EndPercent)
+	got := b.state().Break(1)
+	if got.LeftTable != 1 || got.Casualties != 2 || got.EndLossPercent != 75 {
+		t.Errorf("left %d casualties %d end %d%%, want 1, 2 and 75", got.LeftTable, got.Casualties, got.EndLossPercent)
+	}
+	if got.ToEnd() != 7 { // the 9th of 12 is the end, with the two casualties and not the one who left
+		t.Errorf("%d more to the end, want 7", got.ToEnd())
 	}
 	b.do(1, LiveAction{Kind: LiveReturn, UnitID: 1})
-	if got := b.state().Break(1); got.LeftTable != 0 {
-		t.Errorf("returned: left %d", got.LeftTable)
+	if got := b.state().Break(1); got.LeftTable != 0 || got.ToEnd() != 7 {
+		t.Errorf("returned: left %d, %d more to the end", got.LeftTable, got.ToEnd())
+	}
+}
+
+// 16 models, played through the log: the 9th casualty breaks the company and the 12th ends the game, one of them a failed Courage test,
+// with models that left the board on the side.
+func TestScenarioEndThroughTheLog(t *testing.T) {
+	b := &bp{t: t, inits: breakInits(16), cfg: LiveFoldConfig{Break: map[int64]BreakConfig{1: {Percent: 50, EndLossPercent: 75}}}}
+	b.do(1, LiveAction{Kind: LiveRetreat, UnitID: 16, Why: "left"})
+	b.do(1, LiveAction{Kind: LiveRetreat, UnitID: 15, Why: "left"})
+	for id := int64(1); id <= 8; id++ {
+		b.do(1, LiveAction{Kind: LiveDied, UnitID: id})
+	}
+	if got := b.state().Break(1); got.Broken || got.ToEnd() != 4 {
+		t.Fatalf("8 casualties: Broken %v, %d more to the end; want whole and 4", got.Broken, got.ToEnd())
+	}
+	b.do(1, LiveAction{Kind: LiveRetreat, UnitID: 9, Why: "courage"})
+	if got := b.state().Break(1); !got.Broken || got.ToEnd() != 3 {
+		t.Fatalf("the 9th, a failed Courage test: Broken %v, %d more to the end; want Broken and 3", got.Broken, got.ToEnd())
+	}
+	b.do(1, LiveAction{Kind: LiveDied, UnitID: 10})
+	b.do(1, LiveAction{Kind: LiveDied, UnitID: 11})
+	if got := b.state().Break(1); got.ToEnd() != 1 {
+		t.Fatalf("11 casualties: %d more to the end, want 1", got.ToEnd())
+	}
+	b.do(1, LiveAction{Kind: LiveDied, UnitID: 12})
+	if got := b.state().Break(1); got.ToEnd() != 0 || got.LeftTable != 2 {
+		t.Errorf("the 12th: %d more to the end, %d left; want 0 and 2", got.ToEnd(), got.LeftTable)
 	}
 }
 

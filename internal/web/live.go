@@ -87,11 +87,8 @@ func (v liveView) breakMark(cells int) string {
 // BreakMark is the position of the casualty that breaks the company.
 func (v liveView) BreakMark() string { return v.breakMark(v.Break.BreakAt() - 1) }
 
-// EndMark is the position of the casualty that reaches the scenario's end, with the models gone from the table taken off.
-func (v liveView) EndMark() string {
-	b := v.Break
-	return v.breakMark(b.StartingModels - b.EndModels() - b.LeftTable - 1)
-}
+// EndMark is the position of the casualty that reaches the scenario's end.
+func (v liveView) EndMark() string { return v.breakMark(v.Break.EndAt() - 1) }
 
 // MarksMeet says the Break and the end fall on the same model (a very small company): the two marks then share the line.
 func (v liveView) MarksMeet() bool { return v.BreakMark() == v.EndMark() }

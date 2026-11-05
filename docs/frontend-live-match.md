@@ -151,7 +151,7 @@ It is a `<details>` element.
 - The control that had the focus inside the panel gets it back after the swap (by id, from `live.js`), so a keyboard user can press a +/- button again.
 
 **Broken notice.**
-Every viewer sees it in `#live-end` of the banner: "Rangers is broken", or "Rangers is broken and quartered" once it has also reached a 25% end (`endBanner.Broken`).
+Every viewer sees it in `#live-end` of the banner: "Rangers is broken", or "Rangers is broken and down to 25%" once it has also reached the end of the scenario (`endBanner.Broken`).
 
 **Cards of a Broken company** in the Field offer the **Courage test** (`CourageTest`) and show no chip until the unit has a recorded test (`CourageDue`).
 Then they show a chip (`liveView.CourageChip`, from `LiveUnit.CourageHow`):

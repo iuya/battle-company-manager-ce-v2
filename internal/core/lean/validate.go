@@ -215,6 +215,9 @@ func (v *validator) pins(van *Vanilla) {
 }
 
 func (v *validator) scenario(s *Scenario, path string) {
+	if s.EndsAtLosses != nil {
+		v.scenarioEnd(s.EndsAtLosses, Join(path, "endsAtLosses"))
+	}
 	seen := map[string]int{}
 	for i, sc := range s.Scoring {
 		p := Idx(Join(path, "scoring"), i)

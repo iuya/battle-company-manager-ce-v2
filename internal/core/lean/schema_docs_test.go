@@ -591,7 +591,7 @@ var fieldDocs = map[string]string{
 	"Scenario.layout":            "The Layout section.",
 	"Scenario.startingPositions": "The Starting Positions section.",
 	"Scenario.objectives":        "The Objectives section (how the game ends).",
-	"Scenario.endsAtPercent":     "The game ends once a company is down to this share of its starting models or fewer, as a whole percent. The live match shows how many more models each company can lose before it. Leave it out when the scenario has no such end.",
+	"Scenario.endsAtLosses":      "The game ends once a company has lost this share of its starting models or more, never rounded: 3/4 ends it when the company is down to 25% or fewer. Casualties and models that fled a failed Courage test count; models that left the board voluntarily do not. The live match shows how many more models each company can lose before it. Leave it out when the scenario has no such end.",
 	"Scenario.specialRules":      "A list of {name, definition, table?}; a table is {lookup, columns, rows[{min, max, cells}]}. Not typed.",
 	"Scenario.roles":             "A list of {key, name}, such as attacker and defender.",
 	"Scenario.rewards":           "A list of {effect, name, text, who, condition}; effect is a key of campaign.aftermathEffects. Not typed.",

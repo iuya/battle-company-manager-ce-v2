@@ -278,18 +278,18 @@
     <summary class="-my-2 flex cursor-pointer list-none flex-col gap-1 py-2 leading-tight">
       <span class="flex items-center gap-x-3">
         {{if $b.Percent}}<span class="font-medium {{if $b.Broken}}text-danger{{else if le $b.ToBreak 2}}text-warn{{end}}"><span class="break-key bg-path-melee" aria-hidden="true"></span>{{if $b.Broken}}Broken{{else}}{{$b.ToBreak}} more to Break{{end}}</span>{{else}}<span class="font-medium">{{$b.Casualties}} of {{$b.StartingModels}} fallen</span>{{end}}
-        {{if $b.EndPercent}}<span class="{{if not $b.ToEnd}}font-medium text-danger{{else if le $b.ToEnd 2}}text-warn{{end}}"><span class="break-key bg-gold" aria-hidden="true"></span>{{if $b.ToEnd}}{{$b.ToEnd}} more to {{$b.EndPercent}}%{{else}}{{$b.EndPercent}}% reached{{end}}</span>{{end}}
+        {{if $b.EndLossPercent}}<span class="{{if not $b.ToEnd}}font-medium text-danger{{else if le $b.ToEnd 2}}text-warn{{end}}"><span class="break-key bg-gold" aria-hidden="true"></span>{{if $b.ToEnd}}{{$b.ToEnd}} more to {{$b.EndLeftPercent}}%{{else}}{{$b.EndLeftPercent}}% reached{{end}}</span>{{end}}
         <span class="ml-auto text-muted transition-transform group-open:rotate-180" aria-hidden="true">&#9662;</span><span class="sr-only">Details</span>
       </span>
       <span class="relative flex gap-0.5" role="img" aria-label="{{$b.Casualties}} casualties of {{$b.StartingModels}} starting models{{if $b.LeftTable}}, {{$b.LeftTable}} left the table{{end}}">
         {{range $lv.BreakCells}}<span class="h-2.5 min-w-0 flex-1 rounded-sm {{if .Fallen}}bg-path-melee{{else if .Left}}break-cell-left{{else}}bg-raised{{end}}"></span>{{end}}
-        {{if $b.Percent}}<span class="break-mark bg-path-melee {{if and $b.EndPercent $lv.MarksMeet}}break-mark-top{{end}}" style="left: {{$lv.BreakMark}}%" data-break-mark></span>{{end}}
-        {{if $b.EndPercent}}<span class="break-mark bg-gold {{if and $b.Percent $lv.MarksMeet}}break-mark-bottom{{end}}" style="left: {{$lv.EndMark}}%" data-end-mark></span>{{end}}
+        {{if $b.Percent}}<span class="break-mark bg-path-melee {{if and $b.EndLossPercent $lv.MarksMeet}}break-mark-top{{end}}" style="left: {{$lv.BreakMark}}%" data-break-mark></span>{{end}}
+        {{if $b.EndLossPercent}}<span class="break-mark bg-gold {{if and $b.Percent $lv.MarksMeet}}break-mark-bottom{{end}}" style="left: {{$lv.EndMark}}%" data-end-mark></span>{{end}}
       </span>
     </summary>
     <div class="mt-3 space-y-3 text-sm">
       {{if $b.Percent}}<p class="text-muted">The company breaks at {{$b.BreakAt}} casualties: {{if $b.AtLeast}}at least{{else}}more than{{end}} {{$b.Percent}}% of its {{$b.StartingModels}} starting models{{if ne $b.Percent 50}} (this company's own rule){{end}}.</p>{{end}}
-      {{if $b.EndPercent}}<p class="text-muted" id="live-break-end">This scenario ends when {{if $b.EndModels}}{{$b.EndModels}} or fewer models remain{{else}}no models remain{{end}} ({{$b.EndPercent}}% of the starting models). Casualties and models that left the table both count{{if $b.LeftTable}}: {{$b.LeftTable}} left the table so far{{end}}.</p>{{end}}
+      {{if $b.EndLossPercent}}<p class="text-muted" id="live-break-end">This scenario ends at {{$b.EndAt}} casualties, with the company down to {{$b.EndLeftPercent}}% of its {{$b.StartingModels}} starting models. Models that fled a failed Courage test count; models that left the board do not{{if $b.LeftTable}} ({{$b.LeftTable}} so far){{end}}.</p>{{end}}
       {{$fc := $lv.FailedCourage}}
       <div><p class="font-medium">Casualties ({{$b.Casualties}})</p>
         <ul class="text-muted">{{range $lv.Casualties}}<li>{{.U.Title}} · {{.L.Reason}}</li>{{end}}{{range $fc}}<li>{{.U.Title}} · Failed courage</li>{{end}}{{if and (not $lv.Casualties) (not $fc)}}<li>None counted from the log.</li>{{end}}</ul></div>

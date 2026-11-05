@@ -1084,30 +1084,6 @@
       ],
       "type": "object"
     },
-    "BreakDefault": {
-      "additionalProperties": false,
-      "description": "The Break Point of a company that has none of its own.",
-      "properties": {
-        "of": {
-          "description": "What the share is taken of: startingModels.",
-          "enum": [
-            "startingModels"
-          ],
-          "type": "string"
-        },
-        "percent": {
-          "description": "The share of the starting models that must be lost, as a whole percent. Write this or share.",
-          "maximum": 100,
-          "minimum": 1,
-          "type": "integer"
-        },
-        "share": {
-          "$ref": "#/$defs/Share",
-          "description": "The share of the starting models that must be lost, as a fraction that is a whole percent (\"1/2\"). Write this or percent."
-        }
-      },
-      "type": "object"
-    },
     "BreakException": {
       "additionalProperties": false,
       "description": "A scenario, or a scenario setting, that changes the Courage tests or the count of a Broken company. The live match of that scenario shows the text.",
@@ -1159,7 +1135,7 @@
       "description": "When a company is Broken and what happens then, and the scenarios that change it.",
       "properties": {
         "default": {
-          "$ref": "#/$defs/BreakDefault",
+          "$ref": "#/$defs/LossShare",
           "description": "The Break Point of a company with none of its own."
         },
         "scenarioExceptions": {
@@ -3609,6 +3585,30 @@
       ],
       "type": "object"
     },
+    "LossShare": {
+      "additionalProperties": false,
+      "description": "A share of the starting models lost: the Break Point of a company that has none of its own, or the losses that end a scenario.",
+      "properties": {
+        "of": {
+          "description": "What the share is taken of: startingModels.",
+          "enum": [
+            "startingModels"
+          ],
+          "type": "string"
+        },
+        "percent": {
+          "description": "The share of the starting models that must be lost, as a whole percent. Write this or share.",
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "share": {
+          "$ref": "#/$defs/Share",
+          "description": "The share of the starting models that must be lost, as a fraction that is a whole percent (\"1/2\"). Write this or percent."
+        }
+      },
+      "type": "object"
+    },
     "Magic": {
       "additionalProperties": false,
       "description": "What Battle Companies says about magical powers.",
@@ -4743,11 +4743,9 @@
           "description": "A short description shown to the players.",
           "type": "string"
         },
-        "endsAtPercent": {
-          "description": "The game ends once a company is down to this share of its starting models or fewer, as a whole percent. The live match shows how many more models each company can lose before it. Leave it out when the scenario has no such end.",
-          "maximum": 99,
-          "minimum": 1,
-          "type": "integer"
+        "endsAtLosses": {
+          "$ref": "#/$defs/LossShare",
+          "description": "The game ends once a company has lost this share of its starting models or more, never rounded: 3/4 ends it when the company is down to 25% or fewer. Casualties and models that fled a failed Courage test count; models that left the board voluntarily do not. The live match shows how many more models each company can lose before it. Leave it out when the scenario has no such end."
         },
         "id": {
           "description": "A stable id; default: the name as a slug. Write it only to keep an id when the name changes.",

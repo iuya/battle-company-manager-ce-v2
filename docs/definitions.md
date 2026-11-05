@@ -387,6 +387,7 @@ Contents: [Items and prices](#items-and-prices) | [Stats and poison](#stats-and-
 ### Scenarios, auras and Tabletop Simulator
 
 - **Scenarios.**
+  - `endsAtLosses` (`{"of": "startingModels", "share": "3/4"}`, the type of `campaign.breakPoint.default`) is on each scenario that ends when a company has lost that share or more, a whole percent; without it the scenario has no such end.
   - A company's Victory Points are the sum of its objectives (`side` restricts to a role).
   - The most points wins; equal is a draw.
   - Rewards point at `campaign.aftermathEffects` entries, applied when their `condition` holds.

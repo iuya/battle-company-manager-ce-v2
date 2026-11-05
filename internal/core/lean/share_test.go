@@ -263,7 +263,7 @@ func TestLegacyPercentsConvertExactly(t *testing.T) {
 	if s, _ := c.Limits.Company[0].KeywordShare(); s != (Share{33, 100}) {
 		t.Errorf("keyword 33 = %v, want 33/100", s)
 	}
-	if s, _ := doc.Campaign.BreakPoint.Default.DefaultShare(); s != (Share{1, 2}) {
+	if s, _ := doc.Campaign.BreakPoint.Default.Fraction(); s != (Share{1, 2}) {
 		t.Errorf("default break point 50 = %v, want 1/2", s)
 	}
 }

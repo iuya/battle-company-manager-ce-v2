@@ -53,14 +53,14 @@ func TestBreakPanelForAViewerHasNoButtons(t *testing.T) {
 	}
 }
 
-// The scenario's 25%: whole models only, shown when the scenario ends there, and models that left the table bring it closer but not the Break.
+// The scenario's 25%: whole models only, shown when the scenario ends there, and models that left the table bring neither it nor the Break closer.
 func TestBreakPanelCountsToTheScenarioEnd(t *testing.T) {
 	f := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) {
-		lc.Break = core.LiveBreak{Percent: 50, StartingModels: 15, Casualties: 3, LeftTable: 2, Threshold100: 750, EndPercent: 25}
+		lc.Break = core.LiveBreak{Percent: 50, StartingModels: 15, Casualties: 3, LeftTable: 2, Threshold100: 750, EndLossPercent: 75}
 	})
 	body := livePage(f)
-	for _, want := range []string{"5 more to Break", "7 more to 25%", `data-end-mark`, "This scenario ends when 3 or fewer models remain (25% of the starting models)", "2 left the table so far", `aria-label="3 casualties of 15 starting models, 2 left the table"`,
-		"left: 46.67%" /* the 8th casualty breaks */, "left: 60.00%" /* with 2 gone and 3 allowed to remain, the 10th casualty reaches it */} {
+	for _, want := range []string{"5 more to Break", "9 more to 25%", `data-end-mark`, "This scenario ends at 12 casualties, with the company down to 25% of its 15 starting models", "models that left the board do not (2 so far)", `aria-label="3 casualties of 15 starting models, 2 left the table"`,
+		"left: 46.67%" /* the 8th casualty breaks */, "left: 73.33%" /* the 12th casualty reaches it, whoever left the table */} {
 		if !strings.Contains(body, want) {
 			t.Errorf("panel lacks %q", want)
 		}
@@ -72,7 +72,7 @@ func TestBreakPanelCountsToTheScenarioEnd(t *testing.T) {
 		t.Errorf("%d cells for models that left the table, want 2", got)
 	}
 	g := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) {
-		lc.Break = core.LiveBreak{Percent: 50, StartingModels: 4, Casualties: 3, Threshold100: 200, Broken: true, EndPercent: 25}
+		lc.Break = core.LiveBreak{Percent: 50, StartingModels: 4, Casualties: 3, Threshold100: 200, Broken: true, EndLossPercent: 75}
 	})
 	body = livePage(g)
 	for _, want := range []string{">Broken<", "25% reached", "break-mark-top", "break-mark-bottom"} {

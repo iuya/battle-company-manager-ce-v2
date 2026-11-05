@@ -276,6 +276,11 @@ func bindStruct(dst reflect.Value, v any, at string, r *Reporter) {
 	known := append([]string(nil), si.names...)
 	sort.Strings(known)
 	for _, k := range unknown {
+		if iss, retired := retiredFields[dst.Type().Name()+"."+k]; retired {
+			iss.Path = Join(at, k)
+			r.Add(iss)
+			continue
+		}
 		iss := Issue{Path: Join(at, k), Message: "unknown field", Hint: "known fields: " + strings.Join(known, ", ")}
 		if c := Closest(known, k); c != "" {
 			iss.Message += fmt.Sprintf("; did you mean %q?", c)
@@ -283,6 +288,16 @@ func bindStruct(dst reflect.Value, v any, at string, r *Reporter) {
 		}
 		r.Add(iss)
 	}
+}
+
+// retiredFields are the keys the format no longer has and what to write instead, by struct and key: a file that still uses one is told
+// how to change it, which "unknown field" cannot say.
+var retiredFields = map[string]Issue{
+	"Scenario.endsAtPercent": {
+		Message: `"endsAtPercent" is gone: write "endsAtLosses", the share lost and not the share that remains`,
+		Hint:    `25 becomes "endsAtLosses": {"of": "startingModels", "share": "3/4"}`,
+		Closest: "endsAtLosses",
+	},
 }
 
 func typeErr(r *Reporter, at, want string, got any) {

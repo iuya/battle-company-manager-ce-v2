@@ -22,8 +22,8 @@ func (k KeywordLimit) KeywordShare() (Share, error) {
 	return PercentFloatShare(k.Percent)
 }
 
-// DefaultShare is the file's default Break Point: its share, else its percent converted.
-func (b BreakDefault) DefaultShare() (Share, error) {
+// Fraction is the share lost: its share, else its percent converted.
+func (b LossShare) Fraction() (Share, error) {
 	if b.Share.IsSet() {
 		return b.Share, nil
 	}
@@ -51,7 +51,7 @@ func (v *validator) shares() {
 		c := &d.Companies[i]
 		p := Idx("companies", i)
 		if c.BreakPoint.IsSet() {
-			v.wholePercentShare(c.BreakPoint, Join(p, "breakPoint"))
+			v.wholePercentShare(c.BreakPoint, Join(p, "breakPoint"), "the Break Point")
 		}
 		if c.Limits == nil {
 			continue
@@ -83,8 +83,21 @@ func (v *validator) shares() {
 		}
 		v.rep.Add(Issue{Path: bp, Message: "the default Break Point needs a share", Hint: `write "share": "1/2"`})
 	default:
-		s, _ := bd.DefaultShare()
-		v.wholePercentShare(s, Join(bp, shareKey(bd.Share, "percent")))
+		s, _ := bd.Fraction()
+		v.wholePercentShare(s, Join(bp, shareKey(bd.Share, "percent")), "the Break Point")
+	}
+}
+
+// scenarioEnd checks a scenario's endsAtLosses: exactly one of its two keys, above 0 and a whole percent, like a Break Point.
+func (v *validator) scenarioEnd(l *LossShare, at string) {
+	switch {
+	case l.Share.IsSet() && l.Percent != 0:
+		v.rep.Errorf(Join(at, "share"), `write the share lost as "share" or as "percent", not both`)
+	case !l.Share.IsSet() && l.Percent == 0:
+		v.rep.Add(Issue{Path: at, Message: "the end of the scenario needs a share", Hint: `write "share": "3/4"`})
+	default:
+		s, _ := l.Fraction()
+		v.wholePercentShare(s, Join(at, shareKey(l.Share, "percent")), "the end of the scenario")
 	}
 }
 
@@ -121,13 +134,13 @@ func (v *validator) checkShare(s Share, err error, at string, fraction, mustBePo
 	}
 }
 
-// wholePercentShare checks a Break Point share: above 0, and a whole percent.
-func (v *validator) wholePercentShare(s Share, at string) {
+// wholePercentShare checks a share of models lost, what names it in the report: above 0, and a whole percent.
+func (v *validator) wholePercentShare(s Share, at, what string) {
 	switch _, whole := s.WholePercent(); {
 	case s.Num == 0:
-		v.rep.Errorf(at, "the Break Point must be above 0")
+		v.rep.Errorf(at, "%s must be above 0", what)
 	case !whole:
-		v.rep.Add(Issue{Path: at, Message: fmt.Sprintf("the Break Point %s is %.2f percent; it must be a whole percent", s, s.Percent()), Hint: `write a fraction that is a whole percent: "1/2", "33/50"`})
+		v.rep.Add(Issue{Path: at, Message: fmt.Sprintf("%s %s is %.2f percent; it must be a whole percent", what, s, s.Percent()), Hint: `write a fraction that is a whole percent: "1/2", "33/50"`})
 	}
 }
 

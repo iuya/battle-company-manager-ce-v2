@@ -57,8 +57,8 @@ func LeanScenarioSelection(d *lean.Document) ScenarioSelection {
 }
 
 // defaultBreakPercent is the file's default Break Point as a whole percent.
-func defaultBreakPercent(d lean.BreakDefault) int {
-	s, _ := d.DefaultShare()
+func defaultBreakPercent(d lean.LossShare) int {
+	s, _ := d.Fraction()
 	return wholePercent(s)
 }
 

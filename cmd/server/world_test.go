@@ -6,6 +6,7 @@ import (
 	"fmt"
 	neturl "net/url"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -480,11 +481,27 @@ func checkLiveAndLimit(t *testing.T, ctx context.Context, b *backend, byName map
 			}
 		}
 	}
-	if br := seen["Rohan"]; br.EndPercent != 25 || br.LeftTable == 0 || br.Casualties == 0 {
-		t.Errorf("Rohan has casualties and models off the table on a 25%% scenario: %+v", br)
+	if br := seen["Rohan"]; br.EndLeftPercent() != 25 || br.LeftTable == 0 || br.Casualties == 0 || br.ToEnd() != br.EndAt()-br.Casualties {
+		t.Errorf("Rohan has casualties and models off the table, which do not count, on a 25%% scenario: %+v", br)
 	}
 	if br := seen["Arnor"]; br.ToEnd() != 0 {
 		t.Errorf("Arnor has reached the 25%%: %+v", br)
+	}
+	for _, co := range mcos {
+		if co.Name != "Arnor" {
+			continue
+		}
+		_, _, owner, err := b.auth.Login(ctx, "aragorn@example.com", "demo-password")
+		if err != nil {
+			t.Fatal(err)
+		}
+		lc, err := b.campaigns.Live(ctx, owner, milestones.ID, co.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.ContainsFunc(lc.Units, func(u core.LiveUnit) bool { return u.Reason == "Failed courage" }) {
+			t.Error("Arnor reaches the 25% with a unit that failed its Courage test")
+		}
 	}
 	if br := seen["Dale"]; br.Casualties != 0 || br.ToEnd() == 0 {
 		t.Errorf("Dale is whole: %+v", br)

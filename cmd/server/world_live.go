@@ -93,7 +93,7 @@ func (w *world) loweredLimit() {
 // one is about to break with models gone from the table (the 25% has moved closer than the Break), and one has reached the 25%.
 func (w *world) breakMilestonesCampaign() {
 	c := w.campaign("you", milestonesName,
-		"Seize Ground ends at 25%: the Break Point panel counts down in whole models. Gondor has lost a few, Rohan is about to break and has models off the table, Arnor has reached the 25%; a second game on Fog of War has no 25% to show.", defaultSettings)
+		"Seize Ground ends at 25%. Gondor has lost a few, Rohan has models off the table that do not count, Arnor reached the 25% with casualties and a failed Courage test.", defaultSettings)
 	gondor := w.company(c, "you", "Gondor", "Minas Tirith", true)
 	rohan := w.company(c, "eowyn", "Rohan", "Rohan", true)
 	arnor := w.company(c, "aragorn", "Arnor", "Arnor", true)
@@ -117,7 +117,8 @@ func (w *world) breakMilestonesCampaign() {
 		w.try("a rider leaves the table", w.liveAs(rohan, m1, core.LiveAction{Kind: core.LiveRetreat, UnitID: rw[i].ID, Why: "left"}))
 	}
 	_, _, aw := w.roster(arnor)
-	fall(arnor, m2, len(aw))
+	fall(arnor, m2, len(aw)-1)
+	w.try("the last Warrior fails a courage test", w.liveAs(arnor, m2, core.LiveAction{Kind: core.LiveRetreat, UnitID: aw[len(aw)-1].ID, Why: "courage"}))
 	if lc, err := w.c().Live(w.ctx, arnor.user, c.id, arnor.id); err != nil || lc.Break.ToEnd() > 0 {
 		w.gap("Break and 25%%: Arnor has too few Warriors to reach it, the Heroes stay on the table")
 	}

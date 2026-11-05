@@ -38,7 +38,11 @@ func LeanScenarios(d *lean.Document) ([]ScenarioInfo, error) {
 	}
 	var out []ScenarioInfo
 	for _, sc := range d.Scenarios {
-		info := ScenarioInfo{Name: sc.Name, EndPercent: sc.EndsAtPercent}
+		info := ScenarioInfo{Name: sc.Name}
+		if sc.EndsAtLosses != nil {
+			s, _ := sc.EndsAtLosses.Fraction()
+			info.EndLossPercent = wholePercent(s)
+		}
 		for t, table := range d.Campaign.ScenarioSelection.Tables {
 			if i := slices.Index(table.Scenarios, sc.Name); i >= 0 {
 				info.Table, info.Roll = t+1, i+1

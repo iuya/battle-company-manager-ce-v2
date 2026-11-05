@@ -668,22 +668,22 @@ type PathOption struct {
 
 // Scenario is a scenario.
 type Scenario struct {
-	Name              string    `json:"name" required:"true" min:"1"`
-	ID                string    `json:"id,omitempty"`
-	Aka               []string  `json:"aka,omitempty"`
-	Side              string    `json:"side,omitempty" enum:"both|attacker|defender"` // default both
-	Description       string    `json:"description,omitempty"`
-	Outline           string    `json:"outline,omitempty"`   // the short lead-in some scenarios print before the description
-	UsesRules         []string  `json:"usesRules,omitempty"` // rules applied without text of their own (Maelstrom of Battle): shown by name
-	Armies            string    `json:"armies,omitempty"`
-	Layout            string    `json:"layout,omitempty"`
-	StartingPositions string    `json:"startingPositions,omitempty"`
-	Objectives        string    `json:"objectives,omitempty"`
-	EndsAtPercent     int       `json:"endsAtPercent,omitempty" min:"1" max:"99"` // the game ends once a company is down to this share of its starting models
-	SpecialRules      Free      `json:"specialRules,omitempty"`
-	Roles             Free      `json:"roles,omitempty"`
-	Rewards           Free      `json:"rewards,omitempty"`
-	Scoring           []Scoring `json:"scoring,omitempty"`
+	Name              string     `json:"name" required:"true" min:"1"`
+	ID                string     `json:"id,omitempty"`
+	Aka               []string   `json:"aka,omitempty"`
+	Side              string     `json:"side,omitempty" enum:"both|attacker|defender"` // default both
+	Description       string     `json:"description,omitempty"`
+	Outline           string     `json:"outline,omitempty"`   // the short lead-in some scenarios print before the description
+	UsesRules         []string   `json:"usesRules,omitempty"` // rules applied without text of their own (Maelstrom of Battle): shown by name
+	Armies            string     `json:"armies,omitempty"`
+	Layout            string     `json:"layout,omitempty"`
+	StartingPositions string     `json:"startingPositions,omitempty"`
+	Objectives        string     `json:"objectives,omitempty"`
+	EndsAtLosses      *LossShare `json:"endsAtLosses,omitempty"` // the game ends once a company has lost this share of its starting models or more
+	SpecialRules      Free       `json:"specialRules,omitempty"`
+	Roles             Free       `json:"roles,omitempty"`
+	Rewards           Free       `json:"rewards,omitempty"`
+	Scoring           []Scoring  `json:"scoring,omitempty"`
 }
 
 // Scoring is one scoring objective of a scenario.

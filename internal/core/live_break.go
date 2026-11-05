@@ -95,11 +95,11 @@ func (b *BCBook) BreakRules() BreakRules { return b.breakRules }
 
 // BreakConfig is what the fold needs to know about one company that is not in the log.
 type BreakConfig struct {
-	AtLeast    bool     // breakPoint.threshold.comparison is "gte"
-	Percent    int      // the share of the starting models that breaks it (company effect or the file's default); 0: never Broken
-	Extra      int      // models counted besides the units: the company's creatures, a temporary Wanderer, models yet to arrive
-	Exceptions []string // the scenario's exceptions, as sentences
-	EndPercent int      // the game ends once the company is down to this share of its starting models; 0: the scenario has no such end
+	AtLeast        bool     // breakPoint.threshold.comparison is "gte"
+	Percent        int      // the share of the starting models that breaks it (company effect or the file's default); 0: never Broken
+	Extra          int      // models counted besides the units: the company's creatures, a temporary Wanderer, models yet to arrive
+	Exceptions     []string // the scenario's exceptions, as sentences
+	EndLossPercent int      // the game ends once the company has lost this share of its starting models; 0: the scenario has no such end
 }
 
 // LiveFoldConfig is what the fold takes besides the starting values and the log.
@@ -121,7 +121,7 @@ type LiveBreak struct {
 	Broken         bool // the casualties exceed the Break Point now; an undo that takes them back under makes it whole again
 	AtLeast        bool // the comparison of the rules file: reaching the Break Point is enough to break (see BreakConfig)
 	LeftTable      int  // models that left the board: no casualties, but no longer in the game
-	EndPercent     int  // the share of the starting models at which the scenario ends; 0: it has no such end
+	EndLossPercent int  // the share of the starting models whose loss ends the scenario; 0: it has no such end
 	Exceptions     []string
 }
 
@@ -137,15 +137,17 @@ func (b LiveBreak) BreakAt() int {
 // ToBreak is how many more casualties make the company Broken; 0 when it already is.
 func (b LiveBreak) ToBreak() int { return max(0, b.BreakAt()-b.Casualties) }
 
-// EndModels is how many models may remain when the scenario's end is reached: its share of the starting models, rounded down because
-// the rule is "reduced to the share or below".
-func (b LiveBreak) EndModels() int { return b.EndPercent * b.StartingModels / 100 }
+// EndAt is how many casualties reach the scenario's end, a fixed "at least" against its share of the starting models and never rounded:
+// the smallest whole number with casualties * 100 >= share * models. With 16 models and 75% the 12th does, where the Break Point of 50%
+// takes the 9th.
+func (b LiveBreak) EndAt() int { return (b.EndLossPercent*b.StartingModels + 99) / 100 }
 
-// ToEnd is how many more models the company can lose until the scenario's end is reached; 0 when it has been. Models that left the board
-// are gone as well as the casualties, so this does not follow ToBreak one for one.
-func (b LiveBreak) ToEnd() int {
-	return max(0, b.StartingModels-b.Casualties-b.LeftTable-b.EndModels())
-}
+// EndLeftPercent is the scenario's end as the players read it, the share that remains: 25 for an end at 75% lost.
+func (b LiveBreak) EndLeftPercent() int { return 100 - b.EndLossPercent }
+
+// ToEnd is how many more casualties reach the scenario's end; 0 when they have. Casualties count those who fled a failed Courage test;
+// models that left the board voluntarily do not count, as for the Break Point.
+func (b LiveBreak) ToEnd() int { return max(0, b.EndAt()-b.Casualties) }
 
 // Courage reasons of a courageSkip.
 var courageSkipReasons = map[string]string{
@@ -224,7 +226,7 @@ func (c BreakConfig) exceeded(casualties, models int) bool {
 // Break is a company's Break Point state: Broken as soon as the casualties exceed the Break Point (docs/live-match.md, "Company Break Point in play").
 func (s LiveState) Break(company int64) LiveBreak {
 	cfg := s.cfg.Break[company]
-	b := LiveBreak{Percent: cfg.Percent, StartingModels: s.startingModels(company), Casualties: s.casualtiesOf(company), AtLeast: cfg.AtLeast, LeftTable: s.leftTableOf(company), EndPercent: cfg.EndPercent, Exceptions: cfg.Exceptions}
+	b := LiveBreak{Percent: cfg.Percent, StartingModels: s.startingModels(company), Casualties: s.casualtiesOf(company), AtLeast: cfg.AtLeast, LeftTable: s.leftTableOf(company), EndLossPercent: cfg.EndLossPercent, Exceptions: cfg.Exceptions}
 	b.Threshold100 = b.Percent * b.StartingModels
 	b.Broken = b.Percent > 0 && cfg.exceeded(b.Casualties, b.StartingModels)
 	return b

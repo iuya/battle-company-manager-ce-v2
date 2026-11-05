@@ -276,10 +276,10 @@ func TestBrokenNoticeAddsTheScenarioEndOnceReached(t *testing.T) {
 		want string
 	}{
 		{"no such end", core.LiveBreak{StartingModels: start, Casualties: 6}, "Arnor is broken"},
-		{"not there yet", core.LiveBreak{StartingModels: start, Casualties: 5, EndPercent: 25}, "Arnor is broken"},
-		{"at a quarter", core.LiveBreak{StartingModels: start, Casualties: 6, EndPercent: 25}, "Arnor is broken and quartered"},
-		{"models off the table count", core.LiveBreak{StartingModels: start, Casualties: 5, LeftTable: 1, EndPercent: 25}, "Arnor is broken and quartered"},
-		{"another share", core.LiveBreak{StartingModels: start, Casualties: 6, EndPercent: 30}, "Arnor is broken and down to 30%"},
+		{"not there yet", core.LiveBreak{StartingModels: start, Casualties: 5, EndLossPercent: 75}, "Arnor is broken"},
+		{"at a quarter", core.LiveBreak{StartingModels: start, Casualties: 6, EndLossPercent: 75}, "Arnor is broken and down to 25%"},
+		{"models off the table do not count", core.LiveBreak{StartingModels: start, Casualties: 5, LeftTable: 1, EndLossPercent: 75}, "Arnor is broken"},
+		{"another share", core.LiveBreak{StartingModels: start, Casualties: 6, EndLossPercent: 70}, "Arnor is broken and down to 30%"},
 	} {
 		if got := brokenNotice("Arnor", tt.br); got != tt.want {
 			t.Errorf("%s: %q, want %q", tt.name, got, tt.want)
