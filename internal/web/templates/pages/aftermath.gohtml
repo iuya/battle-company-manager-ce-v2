@@ -57,7 +57,7 @@
       <button type="button" class="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-md text-muted hover:bg-raised hover:text-fg" @click="closeModal()" aria-label="Close">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
-      <div id="modal-body" hx-target="#main" hx-swap="innerHTML show:window:top"><p class="text-muted">Loading…</p></div>
+      <div id="modal-body" hx-vals='{"back":"aftermath"}' hx-target="#main" hx-swap="innerHTML show:window:top"><p class="text-muted">Loading…</p></div>
     </div>
   </div>
   {{end}}

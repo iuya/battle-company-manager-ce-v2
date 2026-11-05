@@ -1,7 +1,9 @@
 package web
 
 import (
+	"fmt"
 	"html"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -164,10 +166,44 @@ func TestAHeroWithNoPathIsSentToThePathWindow(t *testing.T) {
 func TestChoosingAPathFromTheAftermathGoesBackToIt(t *testing.T) {
 	f := levelFixture(t, 5)
 	f.camp.EXPECT().ChoosePath(gomock.Any(), frodo, int64(7), int64(1), int64(5), "Path of the Duelist", "").Return(nil)
+	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/path", url.Values{"path": {"Path of the Duelist"}, "back": {"aftermath"}})))
+	if rec.Header().Get("HX-Refresh") != "true" {
+		t.Errorf("the page it was opened from: %v", rec.Header())
+	}
+}
+
+// The form field decides, not the address of the page: without it the choice answers with My Company, wherever the request says it came from.
+func TestChoosingAPathWithoutTheFieldStaysOnMyCompany(t *testing.T) {
+	f := levelFixture(t, 5)
+	f.camp.EXPECT().ChoosePath(gomock.Any(), frodo, int64(7), int64(1), int64(5), "Path of the Duelist", "").Return(nil)
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
 	req := form("/campaigns/7/my-company/1/units/5/path", url.Values{"path": {"Path of the Duelist"}})
 	req.Header.Set("HX-Current-URL", "http://x/campaigns/7/matches/3/aftermath/1")
 	rec := f.do(f.signedIn(req))
-	if rec.Header().Get("HX-Refresh") != "true" {
-		t.Errorf("the page it was opened from: %v", rec.Header())
+	if rec.Header().Get("HX-Refresh") != "" || rec.Header().Get("HX-Retarget") != "#main" {
+		t.Errorf("it goes on as on My Company: %v", rec.Header())
+	}
+}
+
+// A refused choice redraws the panel in the window instead of going back, whatever the field says; the window keeps sending the field.
+func TestARefusedPathFromTheAftermathRedrawsThePanel(t *testing.T) {
+	f := levelFixture(t, 5)
+	f.camp.EXPECT().ChoosePath(gomock.Any(), frodo, int64(7), int64(1), int64(5), "Path of the Duelist", "").Return(fmt.Errorf("%w: that path is taken", core.ErrRefused))
+	f.camp.EXPECT().PathOptions(gomock.Any(), frodo, int64(7), int64(1), int64(5)).Return(core.PathOffer{Unit: core.CompanyUnit{ID: 5, Name: "Hador"}, Paths: []core.PathOption{{Name: "Path of the Duelist"}}}, nil)
+	rec := f.do(f.signedIn(form("/campaigns/7/my-company/1/units/5/path", url.Values{"path": {"Path of the Duelist"}, "back": {"aftermath"}})))
+	if rec.Code != http.StatusUnprocessableEntity || rec.Header().Get("HX-Refresh") != "" || !strings.Contains(rec.Body.String(), "Choose a path") {
+		t.Errorf("%d %v: %s", rec.Code, rec.Header(), rec.Body.String())
+	}
+}
+
+// Every request from inside the aftermath's window inherits the field, so it reaches the path window through the level-up steps too.
+func TestTheAftermathWindowSendsTheFieldToWhatOpensInIt(t *testing.T) {
+	f := ownerFixture(t, levelUnits())
+	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(amState(core.AftermathLevelUps, core.AftermathEdit), nil)
+	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
+	if !strings.Contains(body, `<div id="modal-body" hx-vals='{"back":"aftermath"}'`) {
+		t.Errorf("the window of the aftermath page: %s", body)
 	}
 }

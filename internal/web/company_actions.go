@@ -645,7 +645,7 @@ func (s *Server) handleChoosePath(w http.ResponseWriter, r *http.Request) {
 		s.showPathPanel(w, r, base, unitID, http.StatusUnprocessableEntity, reason(err))
 		return
 	}
-	if err == nil && strings.Contains(r.Header.Get("HX-Current-URL"), "/aftermath") { // opened from the aftermath's level-ups: back to that page
+	if err == nil && r.PostFormValue("back") == "aftermath" { // the window of the aftermath page says so (hx-vals on its #modal-body): back to that page
 		w.Header().Set("HX-Refresh", "true")
 		return
 	}

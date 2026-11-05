@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"slices"
@@ -87,6 +88,49 @@ func cardNames(cards []pathCard) []string {
 	return out
 }
 
+// shippedPathCards are the named paths with the categories the Battle Companies file gives them.
+func shippedPathCards(t *testing.T, names ...string) []pathCard {
+	t.Helper()
+	data, err := os.ReadFile("../../definitions/battle_companies/battle_companies.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var file any
+	if err := json.Unmarshal(data, &file); err != nil {
+		t.Fatal(err)
+	}
+	categories := map[string][]string{}
+	var walk func(any)
+	walk = func(v any) {
+		switch v := v.(type) {
+		case []any:
+			for _, e := range v {
+				walk(e)
+			}
+		case map[string]any:
+			if name, ok := v["name"].(string); ok {
+				if list, ok := v["categories"].([]any); ok {
+					for _, c := range list {
+						categories[name] = append(categories[name], c.(string))
+					}
+				}
+			}
+			for _, e := range v {
+				walk(e)
+			}
+		}
+	}
+	walk(file)
+	cards := cardsNamed(names...)
+	for i := range cards {
+		cards[i].Categories = categories[cards[i].Name]
+		if len(cards[i].Categories) == 0 {
+			t.Errorf("the rules file gives %s no category", cards[i].Name)
+		}
+	}
+	return cards
+}
+
 // The rows come in the declared order whatever the rules file's order is; the flat list is the rows one after the other.
 func TestPathRowsOrder(t *testing.T) {
 	var file []string
@@ -96,7 +140,7 @@ func TestPathRowsOrder(t *testing.T) {
 		}
 	}
 	slices.Sort(file)
-	rows, flat := pathRows(cardsNamed(file...))
+	rows, flat := pathRows(shippedPathCards(t, file...))
 	want := []struct {
 		icon  string
 		kind  string
@@ -122,9 +166,53 @@ func TestPathRowsOrder(t *testing.T) {
 	}
 }
 
-// A path no row names goes in an extra last row without an icon, in the file's order; a row with no paths is left out; a blocked path keeps its place.
+// A path of another rules file goes in the row of its main category, whatever its name and its secondary category, after the named paths.
+// The order of the file holds among the paths the list does not name.
+func TestPathRowsGoByTheMainCategory(t *testing.T) {
+	cards := cardsNamed("Path of the Smith", "Path of the Duelist", "Path of the Cook", "Path of the Seer", "Path of the Warlord", "Path of the Scout")
+	for i, categories := range [][]string{{"melee", "ranged"}, {"melee"}, {"melee"}, {"will"}, {"support"}, {"ranged", "melee"}} {
+		cards[i].Categories = categories
+	}
+	rows, flat := pathRows(cards)
+	want := [][]string{
+		{"Path of the Warlord", "Path of the Seer"},
+		{"Path of the Duelist", "Path of the Smith", "Path of the Cook"},
+		{"Path of the Scout"},
+	}
+	if len(rows) != len(want) {
+		t.Fatalf("rows = %+v, want %d", rows, len(want))
+	}
+	for i, w := range want {
+		if got := cardNames(rows[i].Cards); !slices.Equal(got, w) {
+			t.Errorf("row %d = %v, want %v", i, got, w)
+		}
+	}
+	if rows[1].Icon != "sword-brandish" {
+		t.Errorf("the melee row keeps its heading: %+v", rows[1])
+	}
+	if len(flat) != len(cards) {
+		t.Errorf("flat has %d paths, want every one of %d", len(flat), len(cards))
+	}
+}
+
+// The category decides, not the name: a known name with another main category moves, and with none it goes in the extra row.
+func TestPathRowsIgnoreTheNameWithoutItsCategory(t *testing.T) {
+	cards := cardsNamed("Path of the Duelist", "Path of the Ranger")
+	cards[0].Categories = []string{"ranged"}
+	rows, _ := pathRows(cards)
+	if len(rows) != 2 || rows[0].Kind != "ranged" || !slices.Equal(cardNames(rows[0].Cards), []string{"Path of the Duelist"}) {
+		t.Fatalf("rows = %+v", rows)
+	}
+	if rows[1].Icon != "" || !slices.Equal(cardNames(rows[1].Cards), []string{"Path of the Ranger"}) {
+		t.Errorf("extra row = %+v", rows[1])
+	}
+}
+
+// A path with no category, or a main category no row takes, goes in an extra last row without an icon, in the file's order; a row with no
+// paths is left out; a blocked path keeps its place.
 func TestPathRowsUnknownAndEmpty(t *testing.T) {
 	cards := cardsNamed("Path of the Smith", "Path of the Ranger", "Path of the Cook", "Path of the Sharpshooter")
+	cards[1].Categories, cards[2].Categories, cards[3].Categories = []string{"ranged"}, []string{"siege"}, []string{"ranged"}
 	cards[3].Blocked = "full"
 	rows, flat := pathRows(cards)
 	if len(rows) != 2 {
