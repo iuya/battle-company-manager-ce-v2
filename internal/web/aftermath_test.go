@@ -572,7 +572,7 @@ func TestEveryUnitShowsWhatTheMatchDidToIt(t *testing.T) {
 	done := state(core.AftermathDone)
 	done.Lines = []core.AftermathLine{{Kind: "experience", UnitID: 13, Amount: 5}}
 	body = serve(t, done)
-	if strings.Index(body, `data-unit-result="11"`) > strings.Index(body, `data-unit-result="13"`) || strings.Index(body, `data-unit-result="13"`) < 0 {
+	if strings.Index(body, `data-unit-result="11"`) > strings.Index(body, `data-unit-result="13"`) || !strings.Contains(body, `data-unit-result="13"`) {
 		t.Error("afterwards the casualties come first")
 	}
 	if c := result(t, body, 11); !strings.Contains(c, "Dead") || strings.Contains(c, "xp-match-text") {
