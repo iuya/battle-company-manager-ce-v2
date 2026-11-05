@@ -208,6 +208,7 @@ func (s *Server) liveFor(r *http.Request, base campaignBase, detail core.Company
 			}
 		}
 	}
+	v.End.Campaign, v.End.MatchID, v.End.Company, v.End.Edit = campaignID, lc.MatchID, lc.CompanyID, v.Edit // End match is drawn even when the match could not be read
 	live := map[int64]core.LiveUnit{}
 	for _, u := range lc.Units {
 		live[u.UnitID] = u

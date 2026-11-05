@@ -173,6 +173,18 @@ func (s *Matches) checkEnd(ctx context.Context, m *Match, id, voter int64) error
 	return Refuse("The MVP is still to be voted: %s.", joinAnd(names))
 }
 
+// checkATO refuses to end a match that still waits for the Against the Odds decision; the override of the organiser does not ask.
+func (s *Matches) checkATO(ctx context.Context, id, matchID int64) error {
+	why, err := s.ATOBlocks(ctx, id, matchID)
+	if err != nil {
+		return err
+	}
+	if why != "" {
+		return Refuse("%s", why)
+	}
+	return nil
+}
+
 // joinAnd writes "a", "a and b", "a, b and c".
 func joinAnd(list []string) string {
 	switch len(list) {
@@ -204,6 +216,9 @@ func (s *Matches) notifyEnd(ctx context.Context, ch EndChange) {
 // ProposeEnd starts the end: CanEnd runs at once (ErrRefused / ErrInvalidMatch with its reasons), the proposer's own companies confirm,
 // and when nobody is left waiting the match ends at once.
 func (s *Matches) ProposeEnd(ctx context.Context, user User, id, matchID int64, revision int) (Match, error) {
+	if err := s.checkATO(ctx, id, matchID); err != nil {
+		return Match{}, err
+	}
 	var change EndChange
 	m, err := s.edit(ctx, user, id, matchID, revision, func(m *Match) error {
 		if m.EndProposal != nil {
@@ -241,6 +256,9 @@ func (s *Matches) ProposeEnd(ctx context.Context, user User, id, matchID int64, 
 
 // ConfirmEnd confirms the companies of the user that wait; the last confirmation ends the match.
 func (s *Matches) ConfirmEnd(ctx context.Context, user User, id, matchID int64, revision int) (Match, error) {
+	if err := s.checkATO(ctx, id, matchID); err != nil {
+		return Match{}, err
+	}
 	var change EndChange
 	m, err := s.edit(ctx, user, id, matchID, revision, func(m *Match) error {
 		p := m.EndProposal

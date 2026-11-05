@@ -7,6 +7,36 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
+// The decision is stored with the match; a change of the scenario through either store takes it back, and each change tells the pages.
+func TestATODecisionIsStoredWithTheMatch(t *testing.T) {
+	w := newLiveWorld(t, "atodecided")
+	ato := w.s.ATO()
+	m, err := w.s.Matches().Get(w.ctx, w.camp, w.match.ID)
+	if err != nil || m.ATODecided {
+		t.Fatalf("a new match is undecided: %+v %v", m.ATODecided, err)
+	}
+	m, err = ato.Update(w.ctx, w.camp, w.match.ID, w.org, func(st *core.ATOState) error {
+		st.Match.ATODecided = true
+		return nil
+	})
+	if err != nil || !m.ATODecided {
+		t.Fatalf("confirmed: %v %v", m.ATODecided, err)
+	}
+	if rec, err := ato.Get(w.ctx, w.camp, w.match.ID); err != nil || rec.CompanyID != 0 {
+		t.Errorf("playing without bonuses stores no selection: %+v %v", rec, err)
+	}
+	m, err = w.s.Matches().Update(w.ctx, w.camp, w.match.ID, w.org, func(m *core.Match) error {
+		m.ATODecided = false
+		return nil
+	})
+	if err != nil || m.ATODecided {
+		t.Fatalf("reopened: %v %v", m.ATODecided, err)
+	}
+	if got, err := w.s.Matches().Get(w.ctx, w.camp, w.match.ID); err != nil || got.ATODecided {
+		t.Errorf("read back: %v %v", got.ATODecided, err)
+	}
+}
+
 func TestATOStore(t *testing.T) {
 	w := newLiveWorld(t, "ato")
 	ato := w.s.ATO()

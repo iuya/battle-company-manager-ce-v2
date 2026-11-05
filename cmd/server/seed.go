@@ -202,6 +202,11 @@ func choosePaths(ctx context.Context, c *campaignsFacade, user core.User, campai
 
 // endNow ends a match in the demo data and the seed: the organiser proposes, and overrides the companies of other players, with a note.
 func endNow(ctx context.Context, c *campaignsFacade, organiser core.User, campaignID, matchID int64, revision int) (core.Match, error) {
+	decided, err := decideATO(ctx, c, organiser, campaignID, matchID)
+	if err != nil {
+		return core.Match{}, err
+	}
+	revision = max(revision, decided.Revision)
 	if err := voteMissing(ctx, c, campaignID, matchID); err != nil {
 		return core.Match{}, err
 	}
@@ -210,6 +215,23 @@ func endNow(ctx context.Context, c *campaignsFacade, organiser core.User, campai
 		return m, err
 	}
 	return c.OverrideEnd(ctx, organiser, campaignID, matchID, m.Revision, "Demo data: ended without the players' confirmation")
+}
+
+// decideATO confirms, as the organiser and without bonuses, the Against the Odds decision a match waits for (docs/matches.md, "Against the
+// Odds before the game"), and returns the match as it is now.
+func decideATO(ctx context.Context, c *campaignsFacade, organiser core.User, campaignID, matchID int64) (core.Match, error) {
+	m, err := c.Match(ctx, campaignID, matchID)
+	if err != nil {
+		return m, err
+	}
+	st, err := c.ATOStatus(ctx, campaignID, m)
+	if err != nil || !st.Pending {
+		return m, err
+	}
+	if _, err := c.SaveAgainstTheOdds(ctx, organiser, campaignID, matchID, m.Revision, core.ATOSelection{}); err != nil {
+		return m, err
+	}
+	return c.Match(ctx, campaignID, matchID)
 }
 
 // voteMissing casts the MVP votes a competitive match still needs before it can end (docs/matches.md, "Ending a match"): each owner

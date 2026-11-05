@@ -29,7 +29,7 @@ func (w *world) openMatch(c *wcamp, practice bool, sides ...[]*wco) core.Match {
 func (w *world) create(c *wcamp, in core.NewMatch) core.Match {
 	m, err := w.c().CreateMatch(w.ctx, c.org, c.id, in)
 	w.must("create match in "+c.name, err)
-	return m
+	return w.decideATO(c, m) // the scripts play it next; the matches that wait for the decision are made by atoWaiting
 }
 
 func newSides(sides [][]*wco) []core.NewSide {
@@ -48,7 +48,7 @@ func newSides(sides [][]*wco) []core.NewSide {
 func (w *world) oneOff(c *wcamp, m core.Match, name, description, victory string) core.Match {
 	m, err := w.c().SetScenario(w.ctx, c.org, c.id, m.ID, m.Revision, core.ScenarioInput{Kind: core.ScenarioCustom, Name: name, Description: description, Victory: victory})
 	w.must("one-off scenario "+name, err)
-	return m
+	return w.decideATO(c, m)
 }
 
 // scenarioInfo is what the rules file says about a scenario (its tickable objectives).

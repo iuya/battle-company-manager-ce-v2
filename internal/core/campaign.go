@@ -276,9 +276,11 @@ type Match struct {
 	Sides    []MatchSide
 
 	Scenario *MatchScenario // nil until chosen
-	Result   MatchResult    // zero value while nothing is reported
-	Revision int            // bumped by every write; writes carry the one the form was rendered with
-	EndedOn  *time.Time
+	// ATODecided: the lower rated company's Against the Odds decision is confirmed (with bonuses or none); a change of the scenario takes it back.
+	ATODecided bool
+	Result     MatchResult // zero value while nothing is reported
+	Revision   int         // bumped by every write; writes carry the one the form was rendered with
+	EndedOn    *time.Time
 	// History is who ended and reopened the match and when, oldest first (the repository's Events); empty for a match never ended.
 	History []MatchEvent
 	// EndProposal is the pending end (docs/matches.md, "Ending a match: confirmation by all participants"); nil when there is none. The
@@ -318,14 +320,6 @@ type NewMatch struct {
 	Sides    []NewSide
 	Practice bool
 	Scenario *ScenarioInput
-	ATO      *NewMatchATO
-}
-
-// NewMatchATO is the Against the Odds selection made on the new match form: the bonuses that need no detail (Reroll, Influence,
-// Experience, Ambush!, whose scenario is the match's). CompanyID is set by CreateMatch: the lower rated company.
-type NewMatchATO struct {
-	Selection ATOSelection
-	CompanyID int64
 }
 
 // NewSide is a side of a match being created: the ids of its companies. Name is set by ValidateSides ("Side N"); the form has no

@@ -1,7 +1,7 @@
 // Who a rule works against (docs/unit-keywords.md "Rule targets"): the rule's tooltip and popup say "Works against: ...", the live match shows the
 // opponent's keyword chips on every card (also the compact ones), and an enemy unit that a rule of YOUR units names gets a "<rule> applies" marker.
 // The campaign "Keyword targets" has Gimli's Dwarves (Ancient Enemies (Orc)) and Radagast's Mirkwood company (Orcs, Goblins, Spiders), no match yet.
-import { assert, campaignId, layout, MODAL, SIZES } from '../lib/util.mjs';
+import { assert, campaignId, decideATO, layout, MODAL, SIZES } from '../lib/util.mjs';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
@@ -50,6 +50,7 @@ export default async function (h) {
     await pick(2, 'Mirkwood');
     await you.click('main button', 'Create match', { nav: true }).catch(() => {});
     await you.settle(400);
+    await decideATO(you); // the organiser decides for the lower rated player
     const mid = (new URL(you.page.url()).pathname.match(/matches\/(\d+)/) || [])[1];
     assert.ok(mid, 'redirected to the new match: ' + you.page.url());
     const ids = await you.page.evaluate(() => [...new Set([...document.querySelectorAll('main a[href*="/companies/"]')].map((a) => a.getAttribute('href').match(/companies\/(\d+)/)[1]))]);

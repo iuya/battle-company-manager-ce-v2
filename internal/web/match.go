@@ -77,6 +77,7 @@ type matchView struct {
 	// AftermathApplied: a company started its aftermath or had it waived, so the match cannot be reopened and an
 	// administrator's change to the result does not redo what the aftermath did.
 	AftermathApplied bool
+	ATO              core.ATOStatus // where the Against the Odds decision stands (open matches)
 	EndReason        string         // why the match cannot be ended yet; empty when it can
 	End              core.EndAccess // what the viewer may do about the pending or proposed end
 	OverrideNote     string         // the override dialog's note after a refusal; the dialog then stays open
@@ -111,7 +112,7 @@ func (v matchView) AdminOnEnded() bool { return v.Access == core.MatchEditEnded 
 // ScenarioOpen is whether the scenario may still change (Change scenario is offered): an editor, before the game starts, or at any time
 // while an open match has none (an older match that started without one could not end otherwise).
 func (v matchView) ScenarioOpen() bool {
-	return v.CanEdit() && !v.Match.Ended && (!v.Started || v.Match.Scenario == nil)
+	return v.CanEdit() && !v.Match.Ended && (!v.Started || v.Match.Scenario == nil) && v.ATO.Ambush == ""
 }
 
 // Broken says whether the company is Broken now (the scoreboard while the match is played).
@@ -218,8 +219,18 @@ func (s *Server) newMatchView(r *http.Request, base campaignBase, m core.Match, 
 	default:
 		v.Phase = phasePreparing
 	}
-	if m.CanEnd() != nil && m.Scenario == nil {
+	if !m.Ended {
+		st, err := s.campaigns.ATOStatus(r.Context(), base.Campaign.ID, m)
+		if err != nil {
+			return v, err
+		}
+		v.ATO = st
+	}
+	switch {
+	case m.CanEnd() != nil && m.Scenario == nil:
 		v.EndReason = "Choose the scenario before ending the match."
+	case v.ATO.Pending:
+		v.EndReason = v.ATO.Why()
 	}
 	v.End = endAccess(r, base, m)
 	if mode == "custom" && m.Scenario != nil && m.Scenario.Kind == core.ScenarioCustom {
@@ -376,7 +387,15 @@ func (s *Server) handleSetScenario(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	s.answer(w, r, http.StatusOK, base, updated, "", "", false, nil)
+	s.answer(w, r, http.StatusOK, base, updated, "", atoReopened(m, updated), false, nil)
+}
+
+// atoReopened is the notice of a change of the scenario that took back a confirmed Against the Odds decision.
+func atoReopened(before, after core.Match) string {
+	if before.ATODecided && !after.ATODecided {
+		return "The scenario changed: Against the Odds has to be confirmed again."
+	}
+	return ""
 }
 
 func (s *Server) handleClearScenario(w http.ResponseWriter, r *http.Request) {
@@ -389,7 +408,7 @@ func (s *Server) handleClearScenario(w http.ResponseWriter, r *http.Request) {
 		s.writeFailed(w, r, base, m, "", err, nil)
 		return
 	}
-	s.answer(w, r, http.StatusOK, base, updated, "", "", false, nil)
+	s.answer(w, r, http.StatusOK, base, updated, "", atoReopened(m, updated), false, nil)
 }
 
 // reasons are the messages of an error built with errors.Join(sentinel, reason...), without the sentinel.
@@ -700,7 +719,7 @@ func (s *Server) handleScenarioRoll(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	s.answer(w, r, http.StatusOK, base, updated, "", "", false, keep)
+	s.answer(w, r, http.StatusOK, base, updated, "", atoReopened(m, updated), false, keep)
 }
 
 // handleReopenMatch is the way back for the organiser and administrators into an ended match; everybody else gets a 403. The reopening is

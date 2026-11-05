@@ -1,6 +1,6 @@
 // The To Wound chart (docs/matches.md, "Wound chart"): a window opened from the match page and from the live company page, with a find
 // control, the rulebook's values, and a window that no live refresh closes. Axe, contrast and screenshots at 3 widths x 2 themes.
-import { assert, campaignId, layout, SIZES, contrast } from '../lib/util.mjs';
+import { assert, campaignId, decideATO, layout, SIZES, contrast } from '../lib/util.mjs';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
@@ -45,6 +45,7 @@ export default async function (h) {
       await pick(2, 'Rohan Company');
       await you.click('main button', 'Create match', { nav: true }).catch(() => {});
       await you.settle(400);
+      await decideATO(you); // the organiser decides for the lower rated player
       await angmar.goto(`/campaigns/${gallery}/my-company`);
     }
     await angmar.page.waitForSelector('#live-zones');

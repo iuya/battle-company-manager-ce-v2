@@ -122,9 +122,13 @@ func (w *world) matchCampaign() {
 	m = w.newMatchOn(c, "Show of Strength", []*wco{t[0]}, []*wco{t[1]})
 	w.report(c, m, outcome{winner: 1})
 
-	// Against the Odds taken on the new match form by the owner of the lower rated company
+	// Against the Odds: created by the player above, waiting for the decision of the player below
 	t = w.spare(c, 2)
-	w.atoAtCreation(c, t[0], t[1])
+	w.atoWaiting(c, t[0], t[1], false)
+
+	// Against the Odds: the player below has confirmed a bonus, the match can be played
+	t = w.spare(c, 2)
+	w.atoWaiting(c, t[0], t[1], true)
 
 	// played live, then the end proposed through the End match sheet (winner and MVP vote) and waiting for the rival's Confirm
 	t = w.spare(c, 2)
@@ -157,41 +161,41 @@ func (w *world) matchCampaign() {
 	}
 }
 
-// atoAtCreation makes a match whose lower rated company took Against the Odds bonuses on the new match form (docs/matches.md,
-// "New match"): the owner of that company creates it, with the first bonus the gap affords that needs no detail. The higher rated company
-// hires a Wanderer first, so the gap also pays for what is added on the match page (Tool Kit, Wanderer) and the card can be played by hand.
-func (w *world) atoAtCreation(c *wcamp, x, y *wco) {
-	higher := x
+// atoWaiting makes a match the player above created and that waits for the Against the Odds decision of the player below (docs/matches.md,
+// "Against the Odds before the game"). The higher rated company hires a Wanderer first, so the gap pays for the whole card. With confirm, the
+// player below has taken a bonus and the match can be played.
+func (w *world) atoWaiting(c *wcamp, x, y *wco, confirm bool) {
+	higher, lower := x, y
 	if w.detail(y).Points > w.detail(x).Points {
-		higher = y
+		higher, lower = y, x
 	}
 	if !w.hireWanderer(higher, "Wandering Swordsman") {
-		w.gap("Against the Odds at creation: %s cannot hire the Wanderer that makes the gap", higher.name)
+		w.gap("Against the Odds: %s cannot hire the Wanderer that makes the gap", higher.name)
 	}
-	sides := []core.NewSide{{Companies: []int64{x.id}}, {Companies: []int64{y.id}}}
-	for _, who := range []*wco{x, y} {
-		card, err := w.c().PreviewAgainstTheOdds(w.ctx, who.user, c.id, sides, false)
-		w.must("Against the Odds of the new match", err)
-		if !card.Eligible {
-			w.gap("Against the Odds at creation: %s", card.Why)
-			return
-		}
-		if card.Access != core.ATOEdit {
-			continue // the other company is the lower rated one
-		}
-		for _, o := range card.Options {
-			if o.Disabled || o.OverBudget || o.Key == "toolKit" || o.Key == "wanderer" || o.Key == "ambush" {
-				continue
-			}
-			_, err := w.c().CreateMatch(w.ctx, who.user, c.id, core.NewMatch{Sides: sides,
-				Scenario: &core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Seize Ground"},
-				ATO:      &core.NewMatchATO{Selection: core.ATOSelection{Bonuses: []string{o.Key}}}})
-			w.must("create a match with Against the Odds", err)
-			return
-		}
-		w.gap("Against the Odds at creation: the gap affords no bonus without details")
+	m, err := w.c().CreateMatch(w.ctx, higher.user, c.id, core.NewMatch{Sides: []core.NewSide{{Companies: []int64{x.id}}, {Companies: []int64{y.id}}},
+		Scenario: &core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Seize Ground"}})
+	w.must("create a match that waits for Against the Odds", err)
+	card, err := w.c().AgainstTheOdds(w.ctx, lower.user, c.id, m.ID)
+	w.must("the Against the Odds card", err)
+	if card.Gap < 60 {
+		w.gap("Against the Odds: the gap of %s against %s is %d, too small for Ambush!", lower.name, higher.name, card.Gap)
+	}
+	if !confirm {
 		return
 	}
+	_, err = w.c().SaveAgainstTheOdds(w.ctx, lower.user, c.id, m.ID, m.Revision, core.ATOSelection{Bonuses: []string{"reroll"}})
+	w.must("confirm Against the Odds", err)
+}
+
+// decideATO confirms the Against the Odds decision of a match that waits for it, without bonuses, so the scripts that play it can go on. A
+// match with no scenario cannot be confirmed: it stays as it is.
+func (w *world) decideATO(c *wcamp, m core.Match) core.Match {
+	if m.Scenario == nil {
+		return m
+	}
+	m, err := decideATO(w.ctx, w.c(), c.org, c.id, m.ID)
+	w.must("decide Against the Odds", err)
+	return m
 }
 
 // sheetEnd plays a match live and ends it the way the End match and Confirm sheets do: a live entry, the result, the proposer's MVP vote

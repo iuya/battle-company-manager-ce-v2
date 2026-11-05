@@ -128,7 +128,6 @@ type NewMatch struct {
     Sides    []NewSide      // company ids per side; ValidateSides names them "Side N" internally
     Practice bool
     Scenario *ScenarioInput // the scenario the form showed (rolled, chosen or one-off)
-    ATO      *NewMatchATO   // the Against the Odds bonuses taken on the form (no Tool Kit, no Wanderer)
 }
 
 func (m Match) Access(u User, organiserID int64) MatchAccess
@@ -143,16 +142,15 @@ interface all take the acting `core.User` and return `ErrNotFound` for an unknow
 
 | Method | Does |
 |---|---|
-| `CreateMatch(ctx, user, id, NewMatch)` | Validates the sides, the scenario (a rulebook name must be in the campaign's file) and the Against the Odds bonuses (the creator owns the lower rated company, the bonuses fit the gap, no Tool Kit or Wanderer; Ambush! sets the scenario), and stores all of it in one transaction |
-| `PreviewAgainstTheOdds(ctx, user, id, sides, practice)` | The Against the Odds card for two companies before the match exists; editable only for the owner of the lower rated one |
+| `CreateMatch(ctx, user, id, NewMatch)` | Validates the sides and the scenario (a rulebook name must be in the campaign's file) and stores them in one transaction. Whoever creates it, Against the Odds is chosen afterwards on the match page |
 | `SetScenario(ctx, user, id, matchID, revision, ScenarioInput)` | Chooses or replaces the scenario; a scenario already set is fixed once the game started (`GameStarted`); an unknown rulebook name is `ErrInvalidMatch`; clears the reported objectives (they belonged to the old scenario) |
 | `ClearScenario(...)` | Removes it (same lock) |
-| `MatchStarted(ctx, id, matchID)` | Whether a live entry exists: the scenario and Against the Odds are then fixed |
+| `MatchStarted(ctx, id, matchID)` | Whether a live entry exists (a secret objective note counts): the scenario and Against the Odds are then fixed |
 | `SaveResult(..., MatchResult)` | Replaces the reported result as one document. Winner within `0..len(Sides)`, every company in the match, objective keys known to the scenario, counts within the maximum. Used by the End match sheet and by the organiser's form on an ended match |
 | `ProposeEnd`, `ConfirmEnd`, `WithdrawEnd`, `CancelEnd`, `OverrideEnd` | The end of the match, see "Ending a match" |
 | `ReopenMatch(...)` | Managers only; refused once an aftermath started |
 | `Scenarios(ctx, id)` | What the picker offers: the campaign's rules file grouped by table |
-| `AgainstTheOdds`, `SaveAgainstTheOdds` | See "Against the Odds" |
+| `AgainstTheOdds`, `SaveAgainstTheOdds`, `ReopenAgainstTheOdds`, `ATOStatus`, `ATOBlocks` | See "Against the Odds" |
 | `GrantReward`, `Grants` | See "Organiser grants and scenario rewards" |
 
 `core.ScenarioInfo` (from `core.ParseScenarios`) describes a scenario as the picker and the page show it: name, table (1-3) and roll (1-6),
@@ -169,7 +167,7 @@ A `ScenarioObjective` is one tick per company on the End match sheet: a reward c
 
 `GET /campaigns/{id}/matches/new` (`internal/web/match_new.go`, `pages/match_new.gohtml`, `static/js/match_form.js`). Nothing is written until **Create match**.
 
-The form runs top to bottom: the side blocks (the strongest cards of the page: accent border and a thick top bar), the scenario card, the options, Against the Odds.
+The form runs top to bottom: the side blocks (the strongest cards of the page: accent border and a thick top bar), the scenario card, the options.
 
 - **Two side blocks**, each with the company search only (no side name, no role). The user's own companies are highlighted (accent border and a
   "Yours" badge) and listed first; once one of them is on a side, on the other sides they are listed last (playing yourself is rare; the
@@ -183,11 +181,8 @@ The form runs top to bottom: the side blocks (the strongest cards of the page: a
   question), **Choose another** (`GET .../matches/new/scenario?mode=pick`, the list grouped by table, one press sets it with `?name=`; its
   **Cancel** brings back the scenario the card held, the server's dice included, which the card carries as `scenario-die`) and
   **One-off scenario** (`?mode=custom`). The card's hidden inputs (`scenario-kind`, `scenario-name` and the one-off fields) go with the form.
-- **Against the Odds block** (`GET .../matches/new/ato?a=&b=`, loaded when each side holds exactly one company): only when the creator owns
-  the lower rated company and there is a gap; it lists only the bonuses the gap affords. Reroll, Influence, Experience and Ambush! are
-  switches (`ato`); Tool Kit and the Wanderer show "Add on the match page". Ambush! turns the scenario card into a free choice. Otherwise
-  the block is absent and the underdog chooses on the match page until the game starts.
-- A refusal (422) draws the form again with the companies, the scenario card and the ticked bonuses.
+- A refusal (422) draws the form again with the companies and the scenario card.
+- Against the Odds is not on the form: it is chosen on the match page, whoever creates the match.
 
 ## The match page
 
@@ -195,7 +190,7 @@ The page shows only the current **phase** (`matchView.Phase`, `data-phase` on `#
 
 | Phase | When | Shown |
 |---|---|---|
-| `preparing` | open, no live entry | scoreboard, scenario card (**Change scenario**), Against the Odds card when eligible |
+| `preparing` | open, no live entry | scoreboard, scenario card (**Change scenario**), Against the Odds card when eligible. While the decision is pending **End match** is disabled with the reason |
 | `playing` | a live entry exists | scoreboard, **Go to my company** (the viewer's live company page), Wound chart, **End match**; the scenario and the log open |
 | `ending` | an end is pending | the End card with **Confirm** for whoever must confirm (see "Ending a match"); the scenario and the log open |
 | `ended` | ended | scoreboard with the result, the Aftermath card, the note; the organiser and administrators get the result form |
@@ -248,7 +243,7 @@ A scoring objective with `secret: true` is noted down by the player during the g
 
 ## Against the Odds
 
-The lower rated company may buy bonuses **after the Scenario Table roll and before setting up**. The card records the choice where it is made, so the loaned items, the temporary Wanderer, the chosen scenario and the Break Point can use it. Rules data: `campaign.againstTheOdds` (`eligible`, `budget`, bonuses `reroll`, `influence`, `experience`, `toolKit`, `wanderer`, `ambush`, each with `rating` and `appliesIn`; see [definitions.md](definitions.md)).
+The lower rated company may buy bonuses **after the Scenario Table roll and before setting up**. The order at the table is scenario, Against the Odds, then deployment and the game, and the app holds the game until the decision is made. The card records the choice where it is made, so the loaned items, the temporary Wanderer, the chosen scenario and the Break Point can use it. Rules data: `campaign.againstTheOdds` (`eligible`, `budget`, bonuses `reroll`, `influence`, `experience`, `toolKit`, `wanderer`, `ambush`, each with `rating` and `appliesIn`; see [definitions.md](definitions.md)).
 
 ### Rules as the app applies them
 
@@ -258,8 +253,11 @@ The lower rated company may buy bonuses **after the Scenario Table roll and befo
 - **Tool Kit items** are assigned to roster models that take part (Warriors or Heroes, not the temporary Wanderer) before setup; capacity and alignment rules are ignored, Hero-only still applies, no extra Rating for the models, and the items are gone after the aftermath. An item that goes on a weapon (Envenom Weapon) names the weapon (`Detail`, 0-40 characters). Unassigned items are allowed while editing and are simply not in play.
 - **Temporary Wanderer**: one of `data.wanderers.items`, priced at the flat 45, never together with a permanent Wanderer on the roster; not on the roster, not against the 15 model cap, counts as a model for the Break Point, no injury roll or experience, and the Top Dog / Underdog comparison ignores it.
 - **Ambush!**: the lower company **chooses the scenario**, any of the 18, replacing the rolled one. Removing the bonus restores the scenario that was set before, as long as the match still shows the scenario Ambush! chose.
-- **At creation**: a creator who owns the lower rated company may take the bonuses that need no detail (Reroll, Influence, Experience, Ambush!) on the new match form (`NewMatch.ATO`, checked like a save); Tool Kit and the Wanderer are added on the match page.
-- **Locked** once the first live entry exists (the game began): the card turns read only with "The game has started"; undoing every entry unlocks it. Administrators and the organiser edit like the lower company's owner and are not exempt from the lock.
+- **The game waits**: while the decision is pending (`ATOStatus.Pending`), `LiveService.Apply` refuses every entry and End match and Confirm are refused, End match disabled, with "Waiting for Hador to choose Against the Odds." (`Matches.ATOBlocks`, `matchView.EndReason`). The secret objectives of Fog of War are entries like the others: the rules note them at the start of the game, after the bonuses. The organiser's override (`OverrideEnd`) still works. The live banner of a company page says what the match waits for; the owner of the lower rated company gets the line "Choose Against the Odds for Match N" under Your turn.
+- **Nothing to wait for**: nobody is eligible (equal ratings, not two sides of one company), the decision is confirmed (`Match.ATODecided`, column `matches.ato_decided`), the game has started, or the gap pays for no bonus the company can take (`atoPayable`: a gap under the cheapest bonus; in a practice match the reward bonuses do not count; a company with a Wanderer cannot take another). A game that started never stops, whatever happens to the ratings.
+- **Confirming**: one button saves the selection and marks the decision, **Confirm bonuses**, or **Play without bonuses** with nothing ticked. It needs a scenario. The owner of the lower rated company, the organiser and administrators can do it, whoever created the match. **Change** (`ReopenAgainstTheOdds`, same permissions) reopens it until the first live entry and keeps the selection as the starting point.
+- **The scenario and the decision**: `SetScenario` and `ClearScenario` take a confirmed decision back when the scenario really changes (the roll goes through `SetScenario`), and the match page says so. With Ambush! chosen the scenario changes only from the card: `scenarioOpen` refuses it with the reason and the scenario card is read only.
+- **Locked** once the first live entry exists (the game began; a secret objective note counts): the card turns read only with "The game has started"; undoing every entry unlocks it. Administrators and the organiser edit like the lower company's owner and are not exempt from the lock.
 
 ### The card
 
@@ -268,7 +266,9 @@ It sits after the Scenario card and is visible to every campaign player (the opp
 1. **Not eligible**: a read only line ("Against the Odds: nobody. Both companies are rated 240." / "Only the lower rated company can choose Against the Odds bonuses (Hador, 85 below)." / "Against the Odds is only available in two-company matches"). A match with only one side filled hides it.
 2. **Gap header and budget bar**: "Hador is 85 below Gorgoroth (240 vs 325). Spend up to 85 Rating." and a bar "Spent 75 / 85, 10 left" (the text is always present; colour is only an addition).
 3. **Bonus rows** (44 px targets): switch, name, Rating, one-line effect, help popup. A row that does not fit the remaining budget is disabled with the reason ("Needs 45, 10 left"). Tool Kit opens the five kit checkboxes and, per chosen kit, one select per item copy listing the models that take part (Hero-only items list Heroes only, with a weapon field for Envenom Weapon); the Wanderer opens a radio list (name, profile summary, own price crossed out, "45 here"; disabled with "The company already has a Wanderer"); Ambush! opens a select of the campaign's scenarios grouped by table, and the Scenario card then shows the badge "Ambush!".
-4. **Summary line** for viewers and the locked card ("Hador took: Reroll, Wanderer (...) and the Healer's Kit.") and, for an editor, **Save** (the whole selection) and **Clear**.
+4. **Pending**: an editor gets the form and its one button, **Confirm bonuses** or **Play without bonuses** (disabled, with the reason, without a scenario); everybody else reads "Waiting for Hador to choose." and not the bonuses.
+5. **Confirmed or locked**: the summary line ("Hador took: Reroll, Wanderer (...) and the Healer's Kit.", "Hador took no bonus.") and, for an editor before the game starts, **Change**.
+6. **A gap that pays for nothing**: one line, "A gap of 5 pays for no bonus: there is nothing to choose."
 
 Code: `LeanATO` reads `campaign.againstTheOdds` and `data.wanderers.items` (a kit key is made from its name, "Healer's Kit" is `healer`; an item is Hero-only when `data.equipment.items[].restrictions` says `hero`).
 
@@ -283,12 +283,15 @@ type ATOSelection struct {
 func (s ATOSelection) Validate(rules ATORules, roster []CompanyUnit, gap int, scenarioNames []string) (ATOSelection, error)
 
 AgainstTheOdds(ctx, user, id, matchID) (core.ATO, error)  // never an error for "not eligible": ATO.Eligible=false with Why
-SaveAgainstTheOdds(ctx, user, id, matchID, revision, sel) (core.ATO, error)
+SaveAgainstTheOdds(ctx, user, id, matchID, revision, sel) (core.ATO, error)  // confirms the decision; an empty selection is "play without bonuses"
+ReopenAgainstTheOdds(ctx, user, id, matchID, revision) (core.ATO, error)      // Change
+ATOStatus(ctx, id, m) (core.ATOStatus, error)                                 // a rated match: Pending, the company, the scenario Ambush! chose
+ATOBlocks(ctx, id, matchID) (string, error)                                   // the sentence that holds the game, empty when nothing does
 ```
 
 `Validate` refuses an unknown or repeated bonus, a kit twice, more kits than the file allows, kits without the Tool Kit, an assignment outside the chosen kits or beyond an item's count, a Hero-only item on a non-Hero, a model that misses the game or is not on the roster, a weapon on anything but an `(X)` item, an unknown Wanderer or a Wanderer when the roster has a permanent one, Ambush! without a known scenario, and a spend above the gap. `SaveAgainstTheOdds` takes the match revision and runs `atoRepository.Update` in one transaction (the match, the record and "has a live entry"): Ambush! sets a rulebook scenario, clears the objectives and remembers the scenario it replaced once; an empty selection deletes the record; the match revision goes up by one. The live service and the aftermath read the record with `atoRepository.Get`.
 
-Routes: `GET /campaigns/{id}/matches/{match}/ato` (the card, loaded into `#ato-slot`) and `POST .../ato` (the whole selection: `bonus`, `kit`, `assign-<kit>-<item>-<copy>`, `detail-...`, `wanderer`, `ambush`, `revision`). A successful save answers the whole match (`HX-Retarget: #match`) with "Against the Odds saved."; a refusal (422), a stale revision or a lock answers the card alone; a viewer's write is 403.
+Routes: `GET /campaigns/{id}/matches/{match}/ato` (the card, loaded into `#ato-slot`) and `POST .../ato` (the whole selection: `bonus`, `kit`, `assign-<kit>-<item>-<copy>`, `detail-...`, `wanderer`, `ambush`, `revision`), `POST .../ato/change` (Change, `revision`). A successful confirmation answers the whole match (`HX-Retarget: #match`) with "Against the Odds confirmed."; a refusal (422), a stale revision or a lock answers the card alone; a viewer's write is 403. The slot refreshes on `live:match`, so the rival's page follows the decision.
 
 ## Organiser grants and scenario rewards
 
@@ -346,7 +349,7 @@ needs, so a normal game ends with **End match → Confirm → Start aftermath**.
 - **Withdraw**: the owner takes back their own confirmation while the proposal is pending; a withdrawal that leaves nobody confirmed cancels the proposal.
 - **Cancel / "Keep playing"**: any participant owner, the organiser or an administrator cancels the whole proposal (all confirmations are dropped, with a line in the log). There is no timeout.
 - **Override for an absent participant**: the organiser or an administrator can **End without X's confirmation** while at least one company waits. It asks for a note (1-200) and shows the warning "Gorgoroth has not confirmed that the game is over. The result and the aftermath will be fixed for everyone." The history reads "Ended by <name> overriding Gorgoroth: <note>". An organiser who owns a waiting company is confirmed, not overridden.
-- **What resets confirmations**: any change to the scenario, the result or the Against the Odds selection resets every confirmation except the proposer's and tells the others ("Hador changed the result; confirm again", `EndProposal.Notice`).
+- **What resets confirmations**: any change to the scenario, the result or the Against the Odds selection (a match that waits for the decision cannot be confirmed either) resets every confirmation except the proposer's and tells the others ("Hador changed the result; confirm again", `EndProposal.Notice`).
 - **Reopen** clears the proposal. A finished campaign and an ended match are read only for proposals. Viewers see the pending state and cannot write (403).
 
 ### The sheets

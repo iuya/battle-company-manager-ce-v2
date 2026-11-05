@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 )
@@ -121,6 +120,9 @@ func (s *Matches) atoCardWith(ctx context.Context, user User, camp CampaignDetai
 	if started {
 		card.Locked, card.LockedWhy = true, "The game has started."
 	}
+	card.Decided, card.HasScenario = m.ATODecided, m.Scenario != nil
+	card.Payable = atoPayable(rules, card.Gap, m.Practice, hasWanderer)
+	card.Pending = !m.Ended && !m.ATODecided && !started && card.Payable
 	card.Access = ATOAccessFor(user, m, lower, camp.OrganiserID)
 	if card.Locked || camp.CanPlay() != nil {
 		card.Access = ATONone
@@ -133,10 +135,10 @@ func (s *Matches) atoStarted(ctx context.Context, id, matchID int64) (bool, erro
 	return s.ato.GameStarted(ctx, id, matchID)
 }
 
-// SaveAgainstTheOdds replaces the lower company's selection (an empty one clears it) and, for Ambush!, sets the match's scenario and
-// remembers the one it had; dropping Ambush! puts that one back. ErrRefused: not the lower company's owner, the organiser or an administrator,
-// the game has started, the match has no card; ErrMatchChanged for a stale revision; ErrInvalidMatch (joined, fit to show) for a selection the
-// rules refuse. The match revision goes up by one.
+// SaveAgainstTheOdds confirms the decision: it replaces the lower company's selection (an empty one is "play without bonuses") and, for
+// Ambush!, sets the match's scenario and remembers the one it had; dropping Ambush! puts that one back. ErrRefused: not the lower company's
+// owner, the organiser or an administrator, the game has started, the match has no scenario or no card; ErrMatchChanged for a stale revision;
+// ErrInvalidMatch (joined, fit to show) for a selection the rules refuse. The match revision goes up by one.
 func (s *Matches) SaveAgainstTheOdds(ctx context.Context, user User, id, matchID int64, revision int, sel ATOSelection) (ATO, error) {
 	camp, err := s.campaigns.Get(ctx, user.ID, id)
 	if err != nil {
@@ -189,6 +191,8 @@ func (s *Matches) SaveAgainstTheOdds(ctx context.Context, user User, id, matchID
 			return Refuse("The game has started: Against the Odds can no longer change.")
 		case revision != st.Match.Revision:
 			return ErrMatchChanged
+		case st.Match.Scenario == nil:
+			return Refuse("Choose the scenario first: Against the Odds comes after it.")
 		}
 		old := st.Record
 		if st.Match.Practice { // a reward bonus cannot be newly taken in a practice match
@@ -220,8 +224,12 @@ func (s *Matches) SaveAgainstTheOdds(ctx context.Context, user User, id, matchID
 			}
 			old.Previous, old.HadPrevious = nil, false
 		}
+		if st.Match.Scenario == nil { // an older record: Ambush! was all the scenario the match had
+			return Refuse("Choose the scenario first: without Ambush! this match has none.")
+		}
 		old.MatchID, old.CompanyID, old.Selection = matchID, lower.ID, clean
 		st.Record = old
+		st.Match.ATODecided = true
 		st.Match.resetEnd(user.DisplayName, "Against the Odds selection")
 		return nil
 	})
@@ -231,94 +239,133 @@ func (s *Matches) SaveAgainstTheOdds(ctx context.Context, user User, id, matchID
 	return s.AgainstTheOdds(ctx, user, id, matchID)
 }
 
-// PreviewAgainstTheOdds is the Against the Odds block of the new match form for these sides, before the match exists
-// (docs/matches.md, "New match"): the card the match page would show with nothing taken yet. It is editable (Access ATOEdit) only
-// for the owner of the lower rated company; Eligible is false (with Why) unless the sides are two companies with different ratings.
-func (s *Matches) PreviewAgainstTheOdds(ctx context.Context, user User, id int64, sides []NewSide, practice bool) (ATO, error) {
+// ReopenAgainstTheOdds takes a confirmed decision back (Change on the card): the selection stays as the starting point and the match waits
+// for a new confirmation. ErrRefused: not the lower company's owner, the organiser or an administrator, the game has started, the match
+// has no card; ErrMatchChanged for a stale revision. The match revision goes up by one.
+func (s *Matches) ReopenAgainstTheOdds(ctx context.Context, user User, id, matchID int64, revision int) (ATO, error) {
 	camp, err := s.campaigns.Get(ctx, user.ID, id)
 	if err != nil {
 		return ATO{}, err
 	}
-	return s.previewATO(ctx, user, camp, id, sides, practice)
-}
-
-func (s *Matches) previewATO(ctx context.Context, user User, camp CampaignDetail, id int64, sides []NewSide, practice bool) (ATO, error) {
-	m := Match{Practice: practice}
-	var ids []int64
-	for _, side := range sides {
-		var ms MatchSide
-		for _, cid := range side.Companies {
-			d, _, err := s.detail(ctx, id, cid)
-			if err != nil {
-				return ATO{}, err
-			}
-			ms.Companies = append(ms.Companies, d.CampaignCompany)
-			ids = append(ids, cid)
-		}
-		m.Sides = append(m.Sides, ms)
+	if err := camp.CanPlay(); err != nil {
+		return ATO{}, err
 	}
-	slices.Sort(ids)
-	rate, err := s.rater(ctx, id, func(companyID int64) bool { return slices.Contains(ids, companyID) }, ids)
+	m, err := s.Match(ctx, id, matchID)
 	if err != nil {
 		return ATO{}, err
 	}
-	if err := rate(&m); err != nil {
-		return ATO{}, err
+	lower, _, why := atoSides(m)
+	if why != "" {
+		return ATO{}, Refuse("%s", why)
 	}
-	card, err := s.atoCardWith(ctx, user, camp, id, m, ATORecord{}, false)
-	if err != nil {
-		return card, err
+	if s.ato == nil {
+		return ATO{}, Refuse("Against the Odds is not available.")
 	}
-	if lower, _, why := atoSides(m); why == "" && (lower.OwnerID != user.ID || user.ID == 0) {
-		card.Access = ATONone // the underdog chooses on the match page
-	}
-	return card, nil
-}
-
-// newMatchATO checks the bonuses taken on the new match form and returns them cleaned, with the company they belong to: the creator
-// owns the lower rated company, the bonuses need no detail (Tool Kit and the Wanderer are added on the match page), the budget holds.
-func (s *Matches) newMatchATO(ctx context.Context, user User, camp CampaignDetail, id int64, sides []NewSide, practice bool, sel ATOSelection) (NewMatchATO, error) {
-	card, err := s.previewATO(ctx, user, camp, id, sides, practice)
-	if err != nil {
-		return NewMatchATO{}, err
-	}
-	switch {
-	case !card.Eligible:
-		return NewMatchATO{}, Refuse("%s", card.Why)
-	case card.Access != ATOEdit:
-		return NewMatchATO{}, Refuse("Only the owner of %s can take its Against the Odds bonuses here; they can do it on the match page.", card.CompanyName)
-	}
-	for _, key := range sel.Bonuses {
+	_, err = s.ato.Update(ctx, id, matchID, user, func(st *ATOState) error {
 		switch {
-		case key == atoToolKit || key == atoWanderer:
-			return NewMatchATO{}, errors.Join(ErrInvalidMatch, fmt.Errorf("add %s on the match page", key))
-		case practice && atoRewardBonus(key):
-			return NewMatchATO{}, Refuse("%s.", ATOPracticeReason)
+		case ATOAccessFor(user, st.Match, lower, camp.OrganiserID) != ATOEdit:
+			return Refuse("Only the owner of %s, the organiser of the campaign or an administrator can change this.", lower.Name)
+		case st.Started:
+			return Refuse("The game has started: Against the Odds can no longer change.")
+		case revision != st.Match.Revision:
+			return ErrMatchChanged
 		}
+		st.Match.ATODecided = false
+		st.Match.resetEnd(user.DisplayName, "Against the Odds selection")
+		return nil
+	})
+	if err != nil {
+		return ATO{}, err
 	}
+	return s.AgainstTheOdds(ctx, user, id, matchID)
+}
+
+// ATOStatus is where the Against the Odds decision of a match stands, for the pages around the card.
+type ATOStatus struct {
+	// Pending: the game waits for the decision of the lower rated company (nothing can be noted live and the match cannot end).
+	Pending     bool
+	CompanyID   int64 // the lower rated company; 0 when the match has no card
+	CompanyName string
+	OwnerID     int64
+	// Ambush is the scenario Ambush! chose: it changes only from the card. Empty without Ambush!.
+	Ambush string
+}
+
+// Why is the sentence that says what the match is waiting for.
+func (a ATOStatus) Why() string {
+	if !a.Pending {
+		return ""
+	}
+	return fmt.Sprintf("Waiting for %s to choose Against the Odds.", a.CompanyName)
+}
+
+// ATOStatus says where the decision of a match with its companies rated (Match, Matches) stands. Nothing blocks a match without a card
+// (not one company a side, equal ratings), one that is decided or has started, or one whose gap pays for no bonus.
+func (s *Matches) ATOStatus(ctx context.Context, id int64, m Match) (ATOStatus, error) {
+	lower, higher, why := atoSides(m)
+	if s.ato == nil || m.Ended || why != "" {
+		return ATOStatus{}, nil
+	}
+	rec, err := s.ato.Get(ctx, id, m.ID)
+	if err != nil {
+		return ATOStatus{}, err
+	}
+	out := ATOStatus{CompanyID: lower.ID, CompanyName: lower.Name, OwnerID: lower.OwnerID, Ambush: rec.Selection.Ambush}
+	if m.ATODecided {
+		return out, nil
+	}
+	started, err := s.atoStarted(ctx, id, m.ID)
+	if err != nil || started {
+		return out, err
+	}
+	out.Pending, err = s.atoPending(ctx, id, m, lower, higher)
+	return out, err
+}
+
+// atoPending says whether the gap pays for a bonus the company can take. The roster is read only when the Wanderer alone would decide it.
+func (s *Matches) atoPending(ctx context.Context, id int64, m Match, lower, higher CampaignCompany) (bool, error) {
 	h, _, err := s.campaigns.Hashes(ctx, id)
 	if err != nil {
-		return NewMatchATO{}, err
+		return false, err
 	}
 	rules, err := s.atoRules(ctx, h)
 	if err != nil {
-		return NewMatchATO{}, err
+		return false, err
 	}
-	scenarios, err := s.scenarioList(ctx, h)
+	gap := higher.Points - lower.Points
+	if atoPayable(rules, gap, m.Practice, true) {
+		return true, nil
+	}
+	if !atoPayable(rules, gap, m.Practice, false) {
+		return false, nil
+	}
+	d, _, err := s.detail(ctx, id, lower.ID)
 	if err != nil {
-		return NewMatchATO{}, err
+		return false, err
 	}
-	names := make([]string, len(scenarios))
-	for i, sc := range scenarios {
-		names[i] = sc.Name
+	return atoPayable(rules, gap, m.Practice, slices.ContainsFunc(d.Roster, func(u CompanyUnit) bool { return u.Wanderer })), nil
+}
+
+// ATOBlocks is the sentence that says why the game of the match cannot go on yet, empty when it can: LiveService.Apply and the end of the
+// match ask it. It stops at the cheapest answer, since a live action asks it on every press until the match is decided or has started.
+func (s *Matches) ATOBlocks(ctx context.Context, id, matchID int64) (string, error) {
+	if s.ato == nil {
+		return "", nil
 	}
-	d, _, err := s.detail(ctx, id, card.CompanyID)
+	m, err := s.matches.Get(ctx, id, matchID)
 	if err != nil {
-		return NewMatchATO{}, err
+		return "", err
 	}
-	clean, err := sel.Validate(rules, d.Roster, card.Gap, names)
-	if err != nil {
-		return NewMatchATO{}, err
+	if m.Ended || m.ATODecided || len(m.Sides) != 2 || len(m.Sides[0].Companies) != 1 || len(m.Sides[1].Companies) != 1 {
+		return "", nil
 	}
-	return NewMatchATO{Selection: clean, CompanyID: card.CompanyID}, nil
+	started, err := s.atoStarted(ctx, id, matchID)
+	if err != nil || started {
+		return "", err
+	}
+	if m, err = s.complete(ctx, id, m); err != nil {
+		return "", err
+	}
+	st, err := s.ATOStatus(ctx, id, m)
+	return st.Why(), err
 }

@@ -39,6 +39,19 @@ func atoRewardBonus(key string) bool {
 	return key == "influence" || key == "experience" || key == "reroll"
 }
 
+// atoPayable says whether a gap pays for a bonus the company can take: a practice match offers no reward bonus, and a company with a
+// Wanderer cannot take another. With none of them there is nothing to ask and the match does not wait.
+func atoPayable(r ATORules, gap int, practice, hasWanderer bool) bool {
+	for _, b := range r.Bonuses {
+		switch {
+		case practice && atoRewardBonus(b.Key), b.Key == atoWanderer && hasWanderer:
+		case b.Rating < gap, b.Rating == gap && r.Inclusive:
+			return true
+		}
+	}
+	return false
+}
+
 // ATOBonusRule is a bonus of campaign.againstTheOdds.bonuses.
 type ATOBonusRule struct {
 	Key, Name, Text string
@@ -380,7 +393,11 @@ type ATO struct {
 	Selection          ATOSelection
 	Locked             bool // the game began
 	LockedWhy          string
-	Revision           int // the match's
+	Decided            bool // the decision is confirmed (Match.ATODecided)
+	Payable            bool // the gap pays for a bonus the company can take
+	Pending            bool // the game waits for the decision
+	HasScenario        bool // the match has a scenario: the decision comes after it
+	Revision           int  // the match's
 	Access             ATOAccess
 }
 

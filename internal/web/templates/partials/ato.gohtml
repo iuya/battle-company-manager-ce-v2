@@ -8,12 +8,16 @@
   {{if not .Eligible}}
     <p class="text-muted">{{.Why}}</p>
   {{else}}
-    <p>{{.CompanyName}} is <strong>{{.Gap}}</strong> below {{.OppName}} ({{.OwnRating}} vs {{.OppRating}}).{{if .Editor}} Spend up to {{.Gap}} Rating.{{else}} Only the lower rated company chooses bonuses.{{end}}</p>
+    <p>{{.CompanyName}} is <strong>{{.Gap}}</strong> below {{.OppName}} ({{.OwnRating}} vs {{.OppRating}}).{{if .Editing}} Spend up to {{.Gap}} Rating.{{else if not .Editor}} Only the lower rated company chooses bonuses.{{end}}</p>
     {{if .Locked}}<p class="text-sm text-muted" role="status">{{.LockedWhy}} The choice can no longer be changed.</p>{{end}}
-    {{if .Editor}}{{template "ato_form" .}}{{else}}
-      <p>{{.Summary}}</p>
+    {{if .Editing}}{{template "ato_form" .}}
+    {{else if .Waiting}}<p class="alert alert-info" role="status" data-ato-waiting>Waiting for {{.CompanyName}} to choose. Nothing can be noted until they confirm.</p>
+    {{else if .NothingToBuy}}<p class="text-muted" data-ato-nothing>A gap of {{.Gap}} pays for no bonus: there is nothing to choose.</p>
+    {{else}}
+      <p data-ato-summary>{{.Summary}}</p>
       {{if .Chosen}}<p class="text-sm text-muted">Spent {{.Spent}} of {{.Gap}}.</p>{{end}}
       {{range .Selection.Items}}{{if .UnitID}}<p class="text-sm text-muted">{{$v.KitName .Kit}}: {{.Item}}{{with .Detail}} ({{.}}){{end}} goes to {{$v.ModelName .UnitID}}.</p>{{end}}{{end}}
+      {{if .CanChange}}<form hx-post="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/ato/change" hx-target="#ato" hx-swap="outerHTML"><input type="hidden" name="revision" value="{{.Revision}}"><button class="btn btn-secondary" data-ato-change>Change</button></form>{{end}}
     {{end}}
   {{end}}
 </section>
@@ -105,9 +109,9 @@
     <p class="text-sm text-muted" x-show="bonus.length === 0">No bonus chosen.</p>
   </div>
 
+  {{if not .HasScenario}}<p class="text-sm text-muted" data-ato-no-scenario>Choose the scenario first: the bonuses are chosen knowing it.</p>{{end}}
   <div class="flex flex-wrap gap-2">
-    <button class="btn btn-primary">Save</button>
-    {{if .Chosen}}<button type="button" class="btn btn-secondary" @click="if (confirm('Clear every bonus?')) { bonus = []; $nextTick(() => $root.requestSubmit()) }">Clear</button>{{end}}
+    <button class="btn btn-primary" data-ato-confirm {{if not .HasScenario}}disabled{{end}} x-text="bonus.length ? 'Confirm bonuses' : 'Play without bonuses'">{{if .Chosen}}Confirm bonuses{{else}}Play without bonuses{{end}}</button>
   </div>
 </form>
 {{end}}

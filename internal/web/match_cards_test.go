@@ -33,8 +33,8 @@ func TestMatchPageDrawsItsCardsInline(t *testing.T) {
 			t.Errorf("the page lacks %q", want)
 		}
 	}
-	// "none", never no trigger at all: htmx defaults a div with hx-get to click, and every click in the card would fetch it again and lose what was ticked.
-	if tag := slotTag(t, body, "ato-slot"); !strings.Contains(tag, `hx-trigger="none"`) {
+	// Never no trigger at all: htmx defaults a div with hx-get to click, and every click in the card would fetch it again and lose what was ticked.
+	if tag := slotTag(t, body, "ato-slot"); !strings.Contains(tag, `hx-trigger="live:match from:body"`) {
 		t.Errorf("the ATO slot fetches neither on load nor on click: %s", tag)
 	}
 	if strings.Contains(body, "end-checks-slot") {
@@ -66,7 +66,7 @@ func TestMatchPageCardThatFailsStaysLazy(t *testing.T) {
 	if rec.Code != 200 {
 		t.Fatalf("%d", rec.Code)
 	}
-	if tag := slotTag(t, rec.Body.String(), "ato-slot"); !strings.Contains(tag, `hx-trigger="load"`) {
+	if tag := slotTag(t, rec.Body.String(), "ato-slot"); !strings.Contains(tag, `hx-trigger="load, live:match from:body"`) {
 		t.Errorf("a failed card falls back to the fetch on load: %s", tag)
 	}
 }

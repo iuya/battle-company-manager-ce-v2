@@ -8,8 +8,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// docs/matches.md, "New match" and "Ending a match": the scenario and Against the Odds at creation, the scenario fixed once the game
-// started, and the mandatory MVP votes.
+// docs/matches.md, "New match" and "Ending a match": the scenario at creation, the scenario fixed once the game started, and the mandatory MVP votes.
 
 // ownedATOFixture is newATOFixture with the companies' owners on the company records (Rangers: 10, Raiders: 20), as the new match form
 // reads them.
@@ -34,7 +33,7 @@ func ownedATOFixture(t *testing.T) *atoFixture {
 	return f
 }
 
-func TestCreateMatchStoresTheScenarioAndAgainstTheOdds(t *testing.T) {
+func TestCreateMatchStoresTheScenario(t *testing.T) {
 	f := ownedATOFixture(t)
 	scenarios := mustScenarios(t, f)
 	sides := []NewSide{{Companies: []int64{1}}, {Companies: []int64{2}}}
@@ -48,64 +47,25 @@ func TestCreateMatchStoresTheScenarioAndAgainstTheOdds(t *testing.T) {
 		_, err := f.svc.CreateMatch(f.ctx, User{ID: user}, 5, in)
 		return err
 	}
-
-	if err := create(10, NewMatch{Sides: sides, Scenario: &ScenarioInput{Kind: ScenarioRulebook, Name: scenarios[0].Name},
-		ATO: &NewMatchATO{Selection: ATOSelection{Bonuses: []string{"reroll"}}}}); err != nil {
-		t.Fatal(err)
-	}
-	if got.Scenario == nil || got.Scenario.Name != scenarios[0].Name || got.ATO == nil || got.ATO.CompanyID != 1 || !got.ATO.Selection.Has("reroll") {
-		t.Errorf("scenario and bonuses are stored with the match: %+v %+v", got.Scenario, got.ATO)
-	}
-
-	if f.card(t, 10).Gap >= 60 { // Ambush!: the bonus's scenario wins over the one the form showed
-		if err := create(10, NewMatch{Sides: sides, Scenario: &ScenarioInput{Kind: ScenarioRulebook, Name: scenarios[0].Name},
-			ATO: &NewMatchATO{Selection: ATOSelection{Bonuses: []string{"ambush"}, Ambush: scenarios[1].Name}}}); err != nil {
+	// whoever creates it: the player above as much as the one below
+	for _, user := range []int64{10, 20} {
+		if err := create(user, NewMatch{Sides: sides, Scenario: &ScenarioInput{Kind: ScenarioRulebook, Name: scenarios[0].Name}}); err != nil {
 			t.Fatal(err)
 		}
-		if got.Scenario == nil || got.Scenario.Name != scenarios[1].Name {
-			t.Errorf("Ambush! sets the scenario: %+v", got.Scenario)
+		if got.Scenario == nil || got.Scenario.Name != scenarios[0].Name {
+			t.Errorf("user %d: the scenario is stored with the match: %+v", user, got.Scenario)
 		}
 	}
-
-	for name, tc := range map[string]struct {
-		user int64
-		in   NewMatch
-		want error
-	}{
-		"not the underdog's owner": {20, NewMatch{Sides: sides, ATO: &NewMatchATO{Selection: ATOSelection{Bonuses: []string{"reroll"}}}}, ErrRefused},
-		"Tool Kit at creation":     {10, NewMatch{Sides: sides, ATO: &NewMatchATO{Selection: ATOSelection{Bonuses: []string{"toolKit"}, Kits: []string{"x"}}}}, ErrInvalidMatch},
-		"Wanderer at creation":     {10, NewMatch{Sides: sides, ATO: &NewMatchATO{Selection: ATOSelection{Bonuses: []string{"wanderer"}}}}, ErrInvalidMatch},
-		"unknown scenario":         {10, NewMatch{Sides: sides, Scenario: &ScenarioInput{Kind: ScenarioRulebook, Name: "Nope"}}, ErrInvalidMatch},
-		"one-off without a name":   {10, NewMatch{Sides: sides, Scenario: &ScenarioInput{Kind: ScenarioCustom}}, ErrInvalidMatch},
+	for name, in := range map[string]NewMatch{
+		"unknown scenario":       {Sides: sides, Scenario: &ScenarioInput{Kind: ScenarioRulebook, Name: "Nope"}},
+		"one-off without a name": {Sides: sides, Scenario: &ScenarioInput{Kind: ScenarioCustom}},
 	} {
-		if err := create(tc.user, tc.in); !errors.Is(err, tc.want) {
-			t.Errorf("%s: %v, want %v", name, err, tc.want)
+		if err := create(10, in); !errors.Is(err, ErrInvalidMatch) {
+			t.Errorf("%s: %v", name, err)
 		}
 		if got.Sides != nil {
 			t.Errorf("%s: nothing is created", name)
 		}
-	}
-
-	if err := create(10, NewMatch{Sides: sides, ATO: &NewMatchATO{}}); err != nil || got.ATO != nil {
-		t.Errorf("an empty selection stores no Against the Odds: %+v, %v", got.ATO, err)
-	}
-}
-
-func TestPreviewAgainstTheOddsIsEditableOnlyForTheUnderdogsOwner(t *testing.T) {
-	f := ownedATOFixture(t)
-	sides := []NewSide{{Companies: []int64{2}}, {Companies: []int64{1}}}
-	for user, want := range map[int64]ATOAccess{10: ATOEdit, 20: ATONone, matchOrganiser: ATONone} {
-		c, err := f.svc.PreviewAgainstTheOdds(f.ctx, User{ID: user}, 5, sides, false)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !c.Eligible || c.CompanyID != 1 || c.Gap <= 0 || c.Access != want {
-			t.Errorf("user %d: %+v", user, c)
-		}
-	}
-	c, err := f.svc.PreviewAgainstTheOdds(f.ctx, User{ID: 10}, 5, []NewSide{{Companies: []int64{1, 2}}, {Companies: []int64{2}}}, false)
-	if err != nil || c.Eligible {
-		t.Errorf("not two sides of one company: %+v, %v", c, err)
 	}
 }
 

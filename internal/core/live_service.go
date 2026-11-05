@@ -20,6 +20,7 @@ type LiveService struct {
 	hub     *LiveHub
 	ato     atoRepository // optional (WithATO): the Against the Odds selection overlaid on the live state
 	ends    endCanceller  // optional (WithEnds): cancels a pending end of the match when the game goes on
+	gate    atoGate       // optional (WithATOGate): holds the game until Against the Odds is decided
 }
 
 // endCanceller is what the live mode needs of the match service: a game action made while the end of the match is pending cancels the
@@ -30,6 +31,15 @@ type endCanceller interface {
 
 // WithEnds gives the service the match service that cancels a pending end.
 func (s *LiveService) WithEnds(c endCanceller) *LiveService { s.ends = c; return s }
+
+// atoGate says why nothing can be noted live yet (the Against the Odds decision is pending), empty when it can. It needs the rated
+// companies, which only the match service works out.
+type atoGate interface {
+	ATOBlocks(ctx context.Context, id, matchID int64) (string, error)
+}
+
+// WithATOGate gives the service the match service that holds the game until Against the Odds is decided.
+func (s *LiveService) WithATOGate(g atoGate) *LiveService { s.gate = g; return s }
 
 // NewLiveService builds the service.
 func NewLiveService(live liveRepository, campaigns campaignRepository, companies companyRepository, matches matchRepository, rules ruleSource) *LiveService {
@@ -351,6 +361,15 @@ func (s *LiveService) Apply(ctx context.Context, user User, id, matchID, company
 	}
 	if err != nil {
 		return LiveCompany{}, LiveEntry{}, err
+	}
+	if s.gate != nil && !lc.match.ATODecided { // the secret objectives too: the rules note them at the start of the game, after the bonuses
+		why, err := s.gate.ATOBlocks(ctx, id, matchID)
+		if err != nil {
+			return LiveCompany{}, LiveEntry{}, err
+		}
+		if why != "" {
+			return LiveCompany{}, LiveEntry{}, Refuse("%s", why)
+		}
 	}
 	var secretText string
 	if a.Kind.Secret() {

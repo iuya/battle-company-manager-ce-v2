@@ -75,10 +75,9 @@ func (s *Matches) Match(ctx context.Context, id, matchID int64) (Match, error) {
 	return s.complete(ctx, id, m)
 }
 
-// CreateMatch starts an open match with the scenario the form showed and the Against the Odds bonuses the creator took (both optional).
-// An error wrapping ErrInvalidMatch when the sides, the scenario or the bonuses are rejected, ErrRefused when the campaign is finished,
-// a company has an officer that has not chosen its path or the creator does not own the lower rated company they took bonuses for,
-// ErrNotFound when the user is not in the campaign.
+// CreateMatch starts an open match with the scenario the form showed (optional). Against the Odds is chosen afterwards, on the match page.
+// An error wrapping ErrInvalidMatch when the sides or the scenario are rejected, ErrRefused when the campaign is finished or a company has
+// an officer that has not chosen its path, ErrNotFound when the user is not in the campaign.
 func (s *Matches) CreateMatch(ctx context.Context, user User, id int64, in NewMatch) (Match, error) {
 	sides, err := ValidateSides(in.Sides)
 	if err != nil {
@@ -113,16 +112,6 @@ func (s *Matches) CreateMatch(ctx context.Context, user User, id int64, in NewMa
 			return Match{}, err
 		}
 		create.Scenario = &sc
-	}
-	if in.ATO != nil && !in.ATO.Selection.Empty() {
-		ato, err := s.newMatchATO(ctx, user, camp, id, sides, in.Practice, in.ATO.Selection)
-		if err != nil {
-			return Match{}, err
-		}
-		if ato.Selection.Ambush != "" { // Ambush!: the scenario of the match is the one the bonus chose
-			create.Scenario = &MatchScenario{Kind: ScenarioRulebook, Name: ato.Selection.Ambush}
-		}
-		create.ATO = &ato
 	}
 	m, err := s.matches.Create(ctx, id, user, create) // refuses with *CompanyBusyError when a company is in another open match
 	if err != nil {
@@ -238,6 +227,7 @@ func (s *Matches) SetScenario(ctx context.Context, user User, id, matchID int64,
 		if err := s.scenarioOpen(ctx, id, m); err != nil {
 			return err
 		}
+		reopenATO(m, &in)
 		m.Scenario = &in
 		clearObjectives(m)
 		m.resetEnd(user.DisplayName, "scenario")
@@ -257,17 +247,38 @@ func (s *Matches) MatchStarted(ctx context.Context, id, matchID int64) (bool, er
 // Odds is: what the players set up for stays (docs/matches.md, "New match"). An ended match can still be corrected, and a match that
 // started without one (older matches) can still get one, since it cannot end without it.
 func (s *Matches) scenarioOpen(ctx context.Context, id int64, m *Match) error {
-	if m.Ended || m.Scenario == nil || s.GameStarted == nil {
+	if m.Ended || m.Scenario == nil {
 		return nil
 	}
-	started, err := s.GameStarted(ctx, id, m.ID)
-	if err != nil {
-		return err
+	if s.GameStarted != nil {
+		started, err := s.GameStarted(ctx, id, m.ID)
+		if err != nil {
+			return err
+		}
+		if started {
+			return Refuse("The game has started: the scenario can no longer change.")
+		}
 	}
-	if started {
-		return Refuse("The game has started: the scenario can no longer change.")
+	if s.ato != nil {
+		rec, err := s.ato.Get(ctx, id, m.ID)
+		if err != nil {
+			return err
+		}
+		if rec.Selection.Ambush != "" {
+			return Refuse("Ambush! chose this scenario: change it on the Against the Odds card.")
+		}
 	}
 	return nil
+}
+
+// reopenATO takes back the Against the Odds decision of an open match when its scenario changes: the bonuses are chosen knowing the scenario.
+func reopenATO(m *Match, next *MatchScenario) {
+	if m.Ended {
+		return
+	}
+	if (m.Scenario == nil) != (next == nil) || (next != nil && *m.Scenario != *next) {
+		m.ATODecided = false
+	}
 }
 
 // ClearScenario removes the scenario and the objectives reported.
@@ -276,6 +287,7 @@ func (s *Matches) ClearScenario(ctx context.Context, user User, id, matchID int6
 		if err := s.scenarioOpen(ctx, id, m); err != nil {
 			return err
 		}
+		reopenATO(m, nil)
 		m.Scenario = nil
 		clearObjectives(m)
 		m.resetEnd(user.DisplayName, "scenario")

@@ -46,8 +46,10 @@ type fixture struct {
 	// pending is what the Your turn list reads as each company's unfinished aftermaths (the default: none).
 	pending map[int64][]core.AftermathRef
 	// nav is what the sidebar's campaign list reads (the default: none); navErr makes it fail.
-	nav          []core.CampaignNav
-	navErr       error
+	nav    []core.CampaignNav
+	navErr error
+	// atoStatus is where the Against the Odds decision of the match stands (the default: nothing waits).
+	atoStatus    core.ATOStatus
 	cardsStubbed bool // lazyCards ran
 	formStubbed  bool // newMatchStubs ran
 	navFinished  bool // the withFinished the last NavCampaigns call was given
@@ -76,6 +78,7 @@ func newFixture(t *testing.T, cfg Config) *fixture {
 	f.camp.EXPECT().ScenarioSelection(gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64) (core.ScenarioSelection, error) { return f.selection, nil }).AnyTimes()
 	f.camp.EXPECT().MatchStarted(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64, int64) (bool, error) { return f.started, nil }).AnyTimes()
 	f.camp.EXPECT().MatchBreaks(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64, int64) (map[int64]core.LiveBreak, error) { return f.breaks, nil }).AnyTimes()
+	f.camp.EXPECT().ATOStatus(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(context.Context, int64, core.Match) (core.ATOStatus, error) { return f.atoStatus, nil }).AnyTimes()
 	f.camp.EXPECT().PendingAftermaths(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _, company int64) ([]core.AftermathRef, error) {
 		return f.pending[company], nil
 	}).AnyTimes()
@@ -123,7 +126,6 @@ func (f *fixture) newMatchStubs() {
 	}
 	f.formStubbed = true
 	f.camp.EXPECT().Scenarios(gomock.Any(), gomock.Any()).Return(testScenarios, nil).AnyTimes()
-	f.camp.EXPECT().PreviewAgainstTheOdds(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.ATO{Why: "not stubbed"}, nil).AnyTimes()
 }
 
 func (f *fixture) do(r *http.Request) *httptest.ResponseRecorder {

@@ -221,7 +221,7 @@
   <span class="grid w-full auto-cols-fr grid-flow-col gap-1.5 sm:ml-auto sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-2">
   <a class="btn btn-secondary !min-h-9 !px-1 sm:!px-4" href="/campaigns/{{$cid}}/matches/{{.MatchID}}" data-go-match>Go to match</a>
   {{template "to_wound_button" (dict "Class" "!min-h-9 !px-1 sm:!px-4")}}
-  {{if and .Edit (not .End.Pending)}}<button type="button" class="btn btn-primary !min-h-9 !px-1 sm:!px-4" hx-get="/campaigns/{{$cid}}/matches/{{.MatchID}}/end/sheet?company={{.CompanyID}}" hx-target="#modal-body" hx-swap="innerHTML" data-open-modal data-end-match>End match</button>{{end}}
+  {{template "live_end_button" .End}}
   </span>
   {{if gt (len .Companies) 1}}
   <nav class="flex min-w-0 basis-full gap-1.5 overflow-x-auto [scrollbar-width:none] sm:flex-wrap sm:overflow-visible" aria-label="Companies of the match" data-match-companies>
@@ -232,9 +232,15 @@
 </div>
 {{end}}{{end}}
 
+{{/* End match of the live banner. It answers again, out of band, with the banner's refresh: disabled while the match waits for Against the Odds. Takes endBanner. */}}
+{{define "live_end_button"}}<span id="live-end-button" class="contents" {{if .OOB}}hx-swap-oob="true"{{end}}>{{if and .Edit (not .Pending)}}<button type="button" class="btn btn-primary !min-h-9 !px-1 sm:!px-4" {{with .ATOWaiting}}disabled title="{{.}}"{{end}} hx-get="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/end/sheet?company={{.Company}}" hx-target="#modal-body" hx-swap="innerHTML" data-open-modal data-end-match>End match</button>{{end}}</span>{{end}}
+
+{{/* The answer to a refresh of the banner: the banner, and End match out of band. Takes endBanner. */}}
+{{define "end_banner_answer"}}{{template "end_banner" .}}{{template "live_end_button" .}}{{end}}
+
 {{/* What the live banner refreshes on every change of the match: the companies that are Broken (every viewer sees it at once) and the pending
    end with Confirm, which opens the Confirm sheet. Takes endBanner. Its other buttons post to the match routes, which answer it again. */}}
-{{define "end_banner"}}{{range .Broken}}<p class="border-t border-line pt-2 font-medium text-danger" role="status" data-broken-notice>{{.}}</p>{{end}}{{if .Pending}}{{$base := printf "/campaigns/%d/matches/%d/end" .Campaign .MatchID}}{{$extra := .Fields}}{{$a := .Access}}
+{{define "end_banner"}}{{with .ATOWaiting}}<p class="border-t border-line pt-2 font-medium" role="status" data-ato-banner>{{.}} <a class="underline" href="/campaigns/{{$.Campaign}}/matches/{{$.MatchID}}">{{if $.ATOMine}}Choose on the match page{{else}}See the match page{{end}}</a></p>{{end}}{{range .Broken}}<p class="border-t border-line pt-2 font-medium text-danger" role="status" data-broken-notice>{{.}}</p>{{end}}{{if .Pending}}{{$base := printf "/campaigns/%d/matches/%d/end" .Campaign .MatchID}}{{$extra := .Fields}}{{$a := .Access}}
 <div class="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-2" role="status" id="live-end-body">
   <p class="min-w-0 flex-1 basis-60 font-medium break-words"><span aria-hidden="true">&#9719;</span> {{.Proposal.ProposedBy}} proposes to end: {{.Result}}<span class="block text-sm font-normal text-muted">Waiting for {{.WaitingNames}}</span>{{with .Proposal.Notice}}<span class="block text-sm font-normal text-muted">{{.}}</span>{{end}}</p>
   <div class="flex flex-wrap gap-2">

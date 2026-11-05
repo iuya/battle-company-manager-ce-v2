@@ -248,35 +248,3 @@ func TestGrants(t *testing.T) {
 		t.Fatalf("failed grants change nothing: %+v", st)
 	}
 }
-
-// The new match form creates the match with its scenario and the Against the Odds bonuses in one transaction
-// (docs/matches.md, "New match").
-func TestCreateMatchStoresTheScenarioAndAgainstTheOdds(t *testing.T) {
-	w := newLiveWorld(t, "create")
-	repo := w.s.Matches()
-	// the live world already holds an open match with both companies; end it to make a new one
-	if _, err := w.s.pool.Exec(w.ctx, `UPDATE matches SET ended = true, ended_on = now() WHERE id = $1`, w.match.ID); err != nil {
-		t.Fatal(err)
-	}
-	sc := core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Ambush"}
-	m, err := repo.Create(w.ctx, w.camp, w.org, core.NewMatch{Sides: []core.NewSide{{Name: "Side 1", Companies: []int64{w.a.ID}}, {Name: "Side 2", Companies: []int64{w.b.ID}}},
-		Scenario: &sc, ATO: &core.NewMatchATO{CompanyID: w.a.ID, Selection: core.ATOSelection{Bonuses: []string{"ambush", "influence"}, Ambush: "Ambush"}}})
-	if err != nil || m.Scenario == nil || *m.Scenario != sc || m.Revision != 1 {
-		t.Fatalf("create: %+v %v", m.Scenario, err)
-	}
-	rec, err := w.s.ATO().Get(w.ctx, w.camp, m.ID)
-	if err != nil || rec.CompanyID != w.a.ID || !rec.Selection.Has("influence") || rec.Selection.Ambush != "Ambush" || rec.HadPrevious || rec.Previous != nil {
-		t.Fatalf("the selection is stored with the match: %+v %v", rec, err)
-	}
-	// without either, nothing is stored for them
-	if _, err := w.s.pool.Exec(w.ctx, `UPDATE matches SET ended = true, ended_on = now() WHERE id = $1`, m.ID); err != nil {
-		t.Fatal(err)
-	}
-	plain, err := repo.Create(w.ctx, w.camp, w.org, core.NewMatch{Sides: []core.NewSide{{Name: "Side 1", Companies: []int64{w.a.ID}}, {Name: "Side 2", Companies: []int64{w.b.ID}}}})
-	if err != nil || plain.Scenario != nil {
-		t.Fatalf("plain: %+v %v", plain.Scenario, err)
-	}
-	if rec, err := w.s.ATO().Get(w.ctx, w.camp, plain.ID); err != nil || rec.CompanyID != 0 {
-		t.Fatalf("no selection: %+v %v", rec, err)
-	}
-}

@@ -62,7 +62,7 @@
     <div class="card space-y-2" id="match-options">
       <div>
       <label class="flex items-start gap-3 py-2.5 text-sm sm:py-1">
-        <input type="checkbox" name="practice" value="1" x-model="practice" @change="$nextTick(() => loadATO())" class="h-5 w-5 shrink-0 accent-[var(--accent)]" data-practice-box>
+        <input type="checkbox" name="practice" value="1" x-model="practice" class="h-5 w-5 shrink-0 accent-[var(--accent)]" data-practice-box>
         <span><span class="font-medium">Practice match</span> <span class="text-muted">· No experience, influence, rewards or injuries. The result is only recorded.</span></span>
       </label>
       <label class="flex items-start gap-3 py-2.5 text-sm sm:py-1">
@@ -72,10 +72,8 @@
       </div>
       <p class="alert alert-info !py-2 text-sm" role="status" x-show="practice" x-cloak>Nothing is rolled afterwards and no company is locked when it ends. The flag cannot be changed later: to change course, end the match and start a new one.</p>
       <button type="button" class="btn btn-secondary" x-show="!ffa" :disabled="sides.length >= maxSides" @click="addSide()" data-add-side>+ Add side</button>
-      <p class="alert alert-info text-sm" role="status" x-show="sameAcross().length" x-cloak data-same-player><span x-text="sameAcross().join('. ') + '.'"></span> Allowed: <span x-show="!practice">it counts like any other match. </span><span x-show="!practice"><button type="button" class="underline" @click="practice = true; $nextTick(() => loadATO())" data-make-practice>Make it a practice match</button>.</span><span x-show="practice">it is a practice match.</span></p>
+      <p class="alert alert-info text-sm" role="status" x-show="sameAcross().length" x-cloak data-same-player><span x-text="sameAcross().join('. ') + '.'"></span> Allowed: <span x-show="!practice">it counts like any other match. </span><span x-show="!practice"><button type="button" class="underline" @click="practice = true" data-make-practice>Make it a practice match</button>.</span><span x-show="practice">it is a practice match.</span></p>
     </div>
-
-    <div id="new-ato">{{with .ATO}}{{template "new_ato" .}}{{end}}</div>
 
     <div class="flex flex-wrap gap-2">
       <button class="btn btn-primary">Create match</button>
@@ -89,9 +87,8 @@
 {{/* The scenario card of the new match form. Its hidden inputs (or the one-off fields) carry the scenario to Create match; every button
    answers the card again. Takes newScenarioView. */}}
 {{define "new_scenario"}}{{$base := printf "/campaigns/%d/matches/new" .CampaignID}}
-<section class="card space-y-3" id="new-scenario" aria-labelledby="new-scenario-title" data-ambush="{{.Ambush}}">
-  <h2 id="new-scenario-title" class="!text-xl">{{if .Ambush}}Scenario · Ambush!{{else}}Scenario{{end}}</h2>
-  {{if .Ambush}}<p class="text-sm text-muted">Ambush!: the lower rated company chooses the scenario.</p>{{end}}
+<section class="card space-y-3" id="new-scenario" aria-labelledby="new-scenario-title">
+  <h2 id="new-scenario-title" class="!text-xl">Scenario</h2>
   {{if eq .Mode "custom"}}
     {{$e := .Err}}
     <input type="hidden" name="scenario-kind" value="custom">
@@ -118,7 +115,7 @@
     {{else}}{{with $.Custom.Name}}<input type="hidden" name="scenario-kind" value="custom"><input type="hidden" name="scenario-name" value="{{$.Custom.Name}}"><input type="hidden" name="scenario-description" value="{{$.Custom.Description}}"><input type="hidden" name="scenario-victory" value="{{$.Custom.Victory}}">{{end}}{{end}}
     {{if or .Info .Custom.Name}}<div class="flex items-center justify-between gap-2">
       <p class="min-w-0 break-words text-sm"><span class="text-muted">Now:</span> <span class="font-medium">{{with .Info}}{{.Name}}{{else}}{{.Custom.Name}}{{end}}</span></p>
-      <button type="button" class="btn btn-ghost shrink-0" hx-get="{{$base}}/scenario{{if .Ambush}}?ambush=1{{end}}" hx-include="#new-scenario" hx-target="#new-scenario" hx-swap="outerHTML" data-cancel-pick>Cancel</button>
+      <button type="button" class="btn btn-ghost shrink-0" hx-get="{{$base}}/scenario" hx-include="#new-scenario" hx-target="#new-scenario" hx-swap="outerHTML" data-cancel-pick>Cancel</button>
     </div>{{end}}
     <div x-data="listSearch" class="space-y-3">
       <div class="field">
@@ -126,23 +123,23 @@
         <input id="new-scenario-search" type="search" x-model="q" placeholder="Name of a scenario…" autocomplete="off" class="input">
       </div>
       <p class="text-sm text-muted" x-show="noMatch()" x-cloak>No scenario matches.</p>
-      {{$cur := ""}}{{with .Info}}{{$cur = .Name}}{{end}}{{$amb := .Ambush}}
+      {{$cur := ""}}{{with .Info}}{{$cur = .Name}}{{end}}
       {{range .Groups}}{{$title := .Title}}
       <div class="space-y-1" x-show="catShows({{jsstr $title}})">
         <p class="text-sm font-semibold text-muted">{{$title}}</p>
         <ul class="grid gap-1 sm:grid-cols-2">
           {{range .Scenarios}}<li data-name="{{.Name}}" data-category="{{$title}}" x-show="shows($el)">
-            <button type="button" class="btn btn-secondary w-full !h-auto !min-h-11 !justify-start !whitespace-normal !px-3 !py-2 text-left {{if eq .Name $cur}}!border-accent !bg-accent-soft{{end}}" hx-get="{{$base}}/scenario?name={{.Name}}{{if $amb}}&ambush=1{{end}}" hx-target="#new-scenario" hx-swap="outerHTML">
+            <button type="button" class="btn btn-secondary w-full !h-auto !min-h-11 !justify-start !whitespace-normal !px-3 !py-2 text-left {{if eq .Name $cur}}!border-accent !bg-accent-soft{{end}}" hx-get="{{$base}}/scenario?name={{.Name}}" hx-target="#new-scenario" hx-swap="outerHTML">
               <span class="min-w-0"><span class="font-medium">{{.Name}}</span>{{if .Roll}} <span class="text-xs font-normal text-muted">(second die {{.Roll}})</span>{{end}}</span>
             </button></li>{{end}}
         </ul>
       </div>
       {{else}}<p class="text-muted">The rules of this campaign list no scenarios.</p>{{end}}
     </div>
-    {{if not .Ambush}}<div class="flex flex-wrap gap-2">
+    <div class="flex flex-wrap gap-2">
       <button type="button" class="btn btn-secondary" hx-post="{{$base}}/scenario-roll" hx-target="#new-scenario" hx-swap="outerHTML">Roll instead</button>
       <button type="button" class="btn btn-secondary" hx-get="{{$base}}/scenario?mode=custom" hx-target="#new-scenario" hx-swap="outerHTML">One-off scenario</button>
-    </div>{{end}}
+    </div>
   {{else}}
     {{with .Info}}
     <input type="hidden" name="scenario-kind" value="rulebook"><input type="hidden" name="scenario-name" value="{{.Name}}">{{if gt (index $.Dice 0) 0}}<input type="hidden" name="scenario-die" value="{{index $.Dice 0}}">{{end}}
@@ -154,34 +151,10 @@
     <p class="text-lg font-medium break-words">{{.}} <span class="badge badge-gold align-middle">One-off</span></p>
     {{else}}<p class="text-muted">{{with $.Note}}{{.}}{{else}}No scenario yet.{{end}}</p>{{end}}{{end}}
     <div class="flex flex-wrap gap-2">
-      {{if not .Ambush}}<button type="button" class="btn btn-secondary" hx-post="{{$base}}/scenario-roll" hx-target="#new-scenario" hx-swap="outerHTML" data-roll-again>Roll again</button>{{end}}
-      <button type="button" class="btn btn-secondary" hx-get="{{$base}}/scenario?mode=pick{{if .Ambush}}&ambush=1{{end}}" hx-include="#new-scenario" hx-target="#new-scenario" hx-swap="outerHTML" data-choose-another>Choose another</button>
-      {{if not .Ambush}}<button type="button" class="btn btn-secondary" hx-get="{{$base}}/scenario?mode=custom" hx-target="#new-scenario" hx-swap="outerHTML">One-off scenario</button>{{end}}
+      <button type="button" class="btn btn-secondary" hx-post="{{$base}}/scenario-roll" hx-target="#new-scenario" hx-swap="outerHTML" data-roll-again>Roll again</button>
+      <button type="button" class="btn btn-secondary" hx-get="{{$base}}/scenario?mode=pick" hx-include="#new-scenario" hx-target="#new-scenario" hx-swap="outerHTML" data-choose-another>Choose another</button>
+      <button type="button" class="btn btn-secondary" hx-get="{{$base}}/scenario?mode=custom" hx-target="#new-scenario" hx-swap="outerHTML">One-off scenario</button>
     </div>
   {{end}}
-</section>
-{{end}}
-
-{{/* The Against the Odds block of the new match form, for the owner of the lower rated company: the bonuses the gap affords. Reroll,
-   Influence, Experience and Ambush! are switches; Tool Kit and the Wanderer are completed on the match page. Takes newATOView. */}}
-{{define "new_ato"}}{{$c := .Card}}
-<section class="card space-y-3" id="new-ato-card" aria-labelledby="new-ato-title" x-data="atoPick" data-gap="{{$c.Gap}}" data-inclusive="{{$c.Inclusive}}">
-  <h2 id="new-ato-title" class="!text-xl">Against the Odds</h2>
-  <p class="text-sm text-muted">{{$c.CompanyName}} ({{$c.OwnRating}}) is {{$c.Gap}} below {{$c.OppName}} ({{$c.OppRating}}): spend the gap on bonuses. <span x-text="'Left: ' + left()">Left: {{$c.Gap}}</span></p>
-  <ul class="space-y-1">
-    {{range .Options}}
-    <li>
-      {{if $.Later .Key}}
-      <p class="rounded-md border border-dashed border-line px-3 py-2 text-sm"><span class="font-medium">{{.Name}}</span> <span class="text-muted">({{.Rating}}) · Add on the match page</span></p>
-      {{else}}
-      <label class="flex min-h-11 items-start gap-3 rounded-md border border-line px-3 py-2 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent-soft" :class="over({{.Rating}}, $refs['ato-{{.Key}}']) && 'opacity-50'">
-        <input type="checkbox" name="ato" value="{{.Key}}" x-ref="ato-{{.Key}}" data-rating="{{.Rating}}" {{if index $.Taken .Key}}checked{{end}} {{if .Disabled}}disabled{{end}}
-               :disabled="{{if .Disabled}}true{{else}}over({{.Rating}}, $el){{end}}" @change="changed($event, {{jsstr .Key}})" class="mt-0.5 h-5 w-5 accent-[var(--accent)]">
-        <span><span class="font-medium">{{.Name}}</span> <span class="text-muted">({{.Rating}})</span>{{with .Reason}}<span class="block text-muted">{{.}}</span>{{end}}<span class="block text-muted">{{.Text}}</span></span>
-      </label>
-      {{end}}
-    </li>
-    {{end}}
-  </ul>
 </section>
 {{end}}

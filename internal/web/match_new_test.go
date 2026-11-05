@@ -97,14 +97,28 @@ func TestNewMatchScenarioListCancelKeepsTheRolledScenario(t *testing.T) {
 	}
 }
 
-func TestCreateMatchCarriesTheScenarioAndAgainstTheOdds(t *testing.T) {
+func TestNewMatchFormHasNoAgainstTheOdds(t *testing.T) {
+	f := newMatchFixture(t)
+	f.camp.EXPECT().ScenarioSelection(gomock.Any(), int64(7)).Return(core.ScenarioSelection{}, nil).AnyTimes()
+	f.camp.EXPECT().UnavailableCompanies(gomock.Any(), int64(7), gomock.Any()).Return(nil, nil).AnyTimes()
+	body := f.do(f.signedIn(httpGet("/campaigns/7/matches/new"))).Body.String()
+	for _, bad := range []string{"Against the Odds", "new-ato", "Ambush", "loadATO", "atoPick"} {
+		if strings.Contains(body, bad) {
+			t.Errorf("the form has %q: it is chosen on the match page", bad)
+		}
+	}
+	if !strings.Contains(body, `id="new-scenario"`) {
+		t.Error("the scenario stays on the form")
+	}
+}
+
+func TestCreateMatchCarriesTheScenario(t *testing.T) {
 	f := newMatchFixture(t)
 	want := core.NewMatch{Sides: []core.NewSide{{Companies: []int64{1}}, {Companies: []int64{2}}},
-		Scenario: &core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Rescue"},
-		ATO:      &core.NewMatchATO{Selection: core.ATOSelection{Bonuses: []string{"reroll", "ambush"}, Ambush: "Rescue"}}}
+		Scenario: &core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Rescue"}}
 	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), want).Return(core.Match{ID: 12}, nil)
 	rec := f.do(f.signedIn(form("/campaigns/7/matches", url.Values{"sides": {"2"}, "side-1": {"1"}, "side-2": {"2"},
-		"scenario-kind": {"rulebook"}, "scenario-name": {"Rescue"}, "ato": {"reroll", "ambush", ""}})))
+		"scenario-kind": {"rulebook"}, "scenario-name": {"Rescue"}, "ato": {"reroll", "ambush"}})))
 	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/campaigns/7/matches/12" {
 		t.Errorf("got %d -> %q", rec.Code, rec.Header().Get("Location"))
 	}
@@ -116,41 +130,6 @@ func TestCreateMatchCarriesTheScenarioAndAgainstTheOdds(t *testing.T) {
 		"scenario-kind": {"custom"}, "scenario-name": {"Bridge"}, "scenario-victory": {"Hold it"}})))
 	if rec.Code != http.StatusSeeOther {
 		t.Errorf("one-off: %d", rec.Code)
-	}
-}
-
-func atoPreview(access core.ATOAccess, eligible bool) core.ATO {
-	return core.ATO{Eligible: eligible, Access: access, CompanyName: "Rangers", OwnRating: 100, OppName: "Raiders", OppRating: 140, Gap: 40,
-		Options: []core.ATOOption{
-			{Key: "reroll", Name: "Reroll", Rating: 5}, {Key: "influence", Name: "Influence", Rating: 10}, {Key: "toolKit", Name: "Tool Kit", Rating: 15},
-			{Key: "wanderer", Name: "Wanderer", Rating: 45, OverBudget: true}, {Key: "ambush", Name: "Ambush!", Rating: 60, OverBudget: true}}}
-}
-
-func TestNewMatchAgainstTheOddsBlock(t *testing.T) {
-	const path = "/campaigns/7/matches/new/ato?a=1&b=2"
-	f := newMatchFixture(t)
-	f.camp.EXPECT().PreviewAgainstTheOdds(gomock.Any(), frodo, int64(7), []core.NewSide{{Companies: []int64{1}}, {Companies: []int64{2}}}, false).Return(atoPreview(core.ATOEdit, true), nil)
-	body := htmxGet(f, path).Body.String()
-	for _, want := range []string{`id="new-ato-card"`, `name="ato" value="reroll"`, `name="ato" value="influence"`, "Tool Kit", "Add on the match page"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("block lacks %q", want)
-		}
-	}
-	for _, bad := range []string{"Wanderer", "Ambush!", `value="toolKit"`} {
-		if strings.Contains(body, bad) {
-			t.Errorf("not affordable or completed later: no %q", bad)
-		}
-	}
-	for name, card := range map[string]core.ATO{"not the underdog's owner": atoPreview(core.ATONone, true), "equal ratings": atoPreview(core.ATOEdit, false)} {
-		g := newMatchFixture(t)
-		g.camp.EXPECT().PreviewAgainstTheOdds(gomock.Any(), frodo, int64(7), gomock.Any(), false).Return(card, nil)
-		if body := htmxGet(g, path).Body.String(); strings.Contains(body, "new-ato-card") {
-			t.Errorf("%s: no block", name)
-		}
-	}
-	h := newMatchFixture(t) // no preview is asked for when a side has no single company
-	if body := htmxGet(h, "/campaigns/7/matches/new/ato?a=1&b=0").Body.String(); strings.Contains(body, "new-ato-card") {
-		t.Error("a missing company: no block")
 	}
 }
 

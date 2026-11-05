@@ -23,7 +23,7 @@ type matchStore struct{ s *Store }
 func (s *Store) Matches() matchStore { return matchStore{s} }
 
 const matchColumns = `m.id, m.number, m.played_on, m.ended, m.ended_on, m.revision, m.decided, m.winner, m.note,
-	m.scenario_kind, m.scenario_name, m.scenario_description, m.scenario_victory, m.practice`
+	m.scenario_kind, m.scenario_name, m.scenario_description, m.scenario_victory, m.practice, m.ato_decided`
 
 // matchJSON are the columns of a match that come from other tables, as JSON built by the match's own statement (one round trip for
 // the whole match instead of one per table). Times are microseconds since the epoch.
@@ -65,7 +65,7 @@ func (ms matchStore) load(ctx context.Context, q querier, where string, lock boo
 		var sc core.MatchScenario
 		var sides, companies, proposal, confirmations, objectives []byte
 		if err := rows.Scan(&m.ID, &m.Number, &m.PlayedOn, &m.Ended, &m.EndedOn, &m.Revision, &m.Result.Decided, &m.Result.Winner,
-			&m.Result.Note, &kind, &sc.Name, &sc.Description, &sc.Victory, &m.Practice, &sides, &companies, &proposal, &confirmations, &objectives); err != nil {
+			&m.Result.Note, &kind, &sc.Name, &sc.Description, &sc.Victory, &m.Practice, &m.ATODecided, &sides, &companies, &proposal, &confirmations, &objectives); err != nil {
 			return nil, err
 		}
 		m.Winner = m.Result.Winner
@@ -284,16 +284,6 @@ func (ms matchStore) Create(ctx context.Context, campaignID int64, by core.User,
 	if err := busyCompany(ctx, tx, campaignID, id); err != nil {
 		return core.Match{}, err
 	}
-	if in.ATO != nil && !in.ATO.Selection.Empty() { // the Against the Odds bonuses taken on the form, stored with the match
-		sel, err := encodeSelection(in.ATO.Selection)
-		if err != nil {
-			return core.Match{}, err
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO match_ato (match_id, company_id, selection, previous_scenario, had_previous) VALUES ($1, $2, $3, NULL, false)`,
-			id, in.ATO.CompanyID, sel); err != nil {
-			return core.Match{}, err
-		}
-	}
 	list, err := ms.load(ctx, tx, `m.id = $1`, false, id)
 	if err != nil || len(list) == 0 {
 		return core.Match{}, err
@@ -382,10 +372,15 @@ func (ms matchStore) Update(ctx context.Context, campaignID, matchID int64, by c
 		UPDATE matches SET scenario_kind = $2, scenario_name = $3, scenario_description = $4, scenario_victory = $5,
 		       decided = $6, winner = $7, note = $8, ended = $9,
 		       ended_on = CASE WHEN NOT $9 THEN NULL WHEN ended THEN ended_on ELSE now() END,
-		       revision = revision + 1
+		       ato_decided = $10, revision = revision + 1
 		 WHERE id = $1`,
-		matchID, kind, sc.Name, sc.Description, sc.Victory, m.Result.Decided, m.Result.Winner, m.Result.Note, m.Ended); err != nil {
+		matchID, kind, sc.Name, sc.Description, sc.Victory, m.Result.Decided, m.Result.Winner, m.Result.Note, m.Ended, m.ATODecided); err != nil {
 		return core.Match{}, err
+	}
+	if m.ATODecided != before.ATODecided && !m.Ended { // a change of the scenario reopened Against the Odds: the pages of the match refetch it
+		if err := notifyLive(ctx, tx, liveNotice{Match: matchID, Kind: "changed"}); err != nil {
+			return core.Match{}, err
+		}
 	}
 	if _, err := tx.Exec(ctx, `DELETE FROM match_objectives WHERE match_id = $1`, matchID); err != nil {
 		return core.Match{}, err

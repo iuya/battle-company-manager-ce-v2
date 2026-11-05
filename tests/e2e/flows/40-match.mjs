@@ -1,5 +1,5 @@
 // A match from creation to its aftermath, with two signed-in players and the organiser watching.
-import { chooseScenario, endMatch, confirmEnd, assert, campaignId, MODAL, confirmDialog, sleep } from '../lib/util.mjs';
+import { chooseScenario, decideATO, endMatch, confirmEnd, assert, campaignId, MODAL, confirmDialog, sleep } from '../lib/util.mjs';
 
 export default async function (h) {
   const you = await h.session('you@example.com');
@@ -32,6 +32,7 @@ export default async function (h) {
 
   await h.step('match: the match has the rolled scenario; Change scenario picks another before the game', async () => {
     await chooseScenario(you, 'Chance Encounter');
+    await decideATO(you);
   });
 
   await h.step('live: both players open their company and see the live banner', async () => {

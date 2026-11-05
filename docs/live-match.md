@@ -328,6 +328,8 @@ carries `breakAdjust`, `courageSkip` and the rest; `POST .../live/{company}/unit
 
 ## Against the Odds items in a live match
 
+Nothing can be noted until the Against the Odds decision is made ([matches.md](matches.md#against-the-odds)): `Apply` asks `Matches.ATOBlocks` (`WithATOGate`) while `Match.ATODecided` is false, because only the match service has the rated companies.
+
 The match's Against the Odds record ([matches.md](matches.md#against-the-odds)) is **overlaid at read time** on the live state (`LiveService.WithATO`, `liveContext.overlay`), so a selection saved after the live state was first read shows at once and one cleared before the game starts disappears.
 
 - **Loaned items** (Tool Kit): `LiveUnit.Loaned []LoanedItem{UnitID, Item, Kit, Detail, Index, AfterGame, Used}`, listed under the Wargear of the card grouped by item ("Climbing ropes ×5", tag "Loaned (Raider's Kit)") with no Rating. Consumables get **Item used** in the action menu (`LiveItemUsed`: `UnitID`, `Item`, `Index`),

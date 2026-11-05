@@ -53,7 +53,7 @@
 
 {{if eq .Phase "preparing"}}
   {{template "scenario_card" .}}
-  <div id="ato-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/ato" hx-trigger="{{if and .Cards .Cards.ATO}}none{{else}}load{{end}}" hx-swap="innerHTML">{{if .Cards}}{{with .Cards.ATO}}{{template "ato_card" .}}{{end}}{{end}}</div>
+  <div id="ato-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/ato" hx-trigger="{{if and .Cards .Cards.ATO}}{{else}}load, {{end}}live:match from:body" hx-swap="innerHTML">{{if .Cards}}{{with .Cards.ATO}}{{template "ato_card" .}}{{end}}{{end}}</div>
 {{else}}
   {{if $m.Ended}}
   {{template "aftermath_card" .}}
@@ -116,6 +116,7 @@
     <h2 class="!text-xl">Scenario</h2>
     {{if and .ScenarioOpen (not .Mode) $m.Scenario}}<button type="button" class="btn btn-secondary" x-show="!change" @click="change = true" data-change-scenario>Change scenario</button>{{end}}
   </div>
+  {{if .ATO.Ambush}}<p class="text-sm text-muted" data-scenario-ambush>Ambush! chose this scenario: change it on the Against the Odds card.</p>{{end}}
   {{with .Roll}}
   <div class="rounded-lg border border-line bg-raised px-3 py-2 text-sm" role="status" id="scenario-roll">
     {{if .First}}<p>Rolled <strong>{{.First}}</strong> (table {{.Table}}) and <strong>{{.Second}}</strong>.</p>{{end}}

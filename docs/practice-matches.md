@@ -133,6 +133,7 @@ Pages follow the usual rules: 360 px up, no horizontal scroll, light and dark, s
 The Against the Odds card stays, because kits, the Temporary Wanderer and Ambush! are table effects.
 Bonuses that only pay after the match (`influence`, `experience`, `reroll`) are shown disabled with "No reward in a practice match", and the aftermath ignores them.
 The saved selection is kept as entered, and kit items are never consumed.
+The decision works as in any match: the game waits for it, unless the gap pays for none of the table effects (under 30 with the shipped rules).
 
 ## Persistence
 

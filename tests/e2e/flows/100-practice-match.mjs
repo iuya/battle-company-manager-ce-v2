@@ -2,7 +2,7 @@
 // Éowyn's own two companies, Match 4 an open one of two of Galadriel's. The flow reads the badge, banner and counts, plays Match 4 through
 // (scenario, result, the live match, the end), checks that nothing was awarded and the companies are free, makes a new practice match with
 // the checkbox of the form, lets an administrator reopen and end one again, and checks the pages at 360/768/1280 px, light and dark, with axe.
-import { assert, campaignId, layout, SIZES, MODAL, endMatch, confirmEnd, chooseScenario } from '../lib/util.mjs';
+import { assert, campaignId, decideATO, layout, SIZES, MODAL, endMatch, confirmEnd, chooseScenario } from '../lib/util.mjs';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
@@ -120,6 +120,7 @@ export default async function (h) {
     await galadriel.goto(path);
     // the demo match started without a scenario (an older match): it can still get one, and must, to end
     if (await galadriel.has('Choose the scenario before ending the match.')) await chooseScenario(galadriel, 'Chance Encounter');
+    await decideATO(galadriel);
     await galadriel.click('main [data-end-match]', '');
     await galadriel.page.waitForSelector(MODAL + ' [data-end-sheet]');
     assert.ok(await galadriel.has('No aftermath will follow.'), 'the sheet says so');

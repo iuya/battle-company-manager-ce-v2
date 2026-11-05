@@ -172,6 +172,8 @@ All writes go through the one `actions` route (`liveActionFrom` reads `field` + 
 
 ## Against the Odds items
 
+While the match waits for the Against the Odds decision the live banner says so (`endBanner.ATOWaiting`, `data-ato-banner`) with a link to the match page, its **End match** is disabled (`live_end_button`, sent again out of band with each refresh of the banner, so it comes back when the decision is made) and the service refuses every action with that sentence.
+
 - `LiveUnit.Loaned` is listed under the Wargear of the card, grouped by item ("Climbing ropes ×5", tag "Loaned (Raider's Kit)").
   "use after the game" marks Healing Herbs and Wondrous Cram. A spent item is struck through and marked "used".
 - Owned items in `UsedItems` are struck through.

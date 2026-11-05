@@ -196,15 +196,15 @@ type campaigns interface {
 	// UnavailableCompanies says which of the companies CreateMatch would refuse right now and why (a sentence fit to show): the new match
 	// form lists them struck through and disabled.
 	UnavailableCompanies(ctx context.Context, id int64, companies []int64) (map[int64]string, error)
-	// PreviewAgainstTheOdds is the Against the Odds block of the new match form for those sides (docs/matches.md, "New match"):
-	// Eligible false (with Why) unless they are two companies of different ratings; Access core.ATOEdit only for the owner of the lower one.
-	PreviewAgainstTheOdds(ctx context.Context, user core.User, id int64, sides []core.NewSide, practice bool) (core.ATO, error)
 	// AgainstTheOdds loads the Against the Odds card for the viewer (never an error for "not eligible": ATO.Eligible false with Why);
-	// SaveAgainstTheOdds replaces the lower company's whole selection (an empty one clears it): core.ErrRefused (not allowed or the game
-	// began, reason fit to show), core.ErrMatchChanged (stale match revision), core.ErrInvalidMatch (refusals fit to show). Ambush! also
-	// sets the match's scenario.
+	// SaveAgainstTheOdds confirms the decision with the lower company's whole selection (an empty one is "play without bonuses"):
+	// core.ErrRefused (not allowed, no scenario or the game began, reason fit to show), core.ErrMatchChanged (stale match revision),
+	// core.ErrInvalidMatch (refusals fit to show). Ambush! also sets the match's scenario. ReopenAgainstTheOdds takes the decision back (Change).
 	AgainstTheOdds(ctx context.Context, user core.User, id, matchID int64) (core.ATO, error)
 	SaveAgainstTheOdds(ctx context.Context, user core.User, id, matchID int64, revision int, sel core.ATOSelection) (core.ATO, error)
+	ReopenAgainstTheOdds(ctx context.Context, user core.User, id, matchID int64, revision int) (core.ATO, error)
+	// ATOStatus says where the decision of a rated match stands: whether the game waits for it, and the scenario Ambush! chose.
+	ATOStatus(ctx context.Context, id int64, m core.Match) (core.ATOStatus, error)
 	// Scenarios lists what the scenario picker offers: the campaign's rules file, by table and roll.
 	Scenarios(ctx context.Context, id int64) ([]core.ScenarioInfo, error)
 	// ScenarioSelection is how the campaign's rules pick a scenario by dice: the size of the two dice and the range of the first that picks each table.
@@ -476,7 +476,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /campaigns/{id}/matches/new", s.protected(s.handleNewMatchPage))
 	mux.HandleFunc("GET /campaigns/{id}/matches/new/scenario", s.protected(s.handleNewScenarioCard))
 	mux.HandleFunc("POST /campaigns/{id}/matches/new/scenario-roll", s.protected(s.handleNewScenarioRoll))
-	mux.HandleFunc("GET /campaigns/{id}/matches/new/ato", s.protected(readOnly(s.handleNewATO)))
 	mux.HandleFunc("POST /campaigns/{id}/matches", s.protected(s.handleCreateMatch))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}", s.protected(readOnly(s.handleMatch)))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/scenario", s.protected(s.handleScenarioCard))
@@ -487,6 +486,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /campaigns/{id}/to-wound", s.protected(s.handleToWound))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/ato", s.protected(readOnly(s.handleATOCard)))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/ato", s.protected(s.handleATOSave))
+	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/ato/change", s.protected(s.handleATOChange))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/result", s.protected(s.handleSaveResult))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/live/end/banner", s.protected(s.handleEndBanner))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/end/card", s.protected(readOnly(s.handleEndCard)))

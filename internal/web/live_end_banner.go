@@ -23,6 +23,10 @@ type endBanner struct {
 	Result                     string // what the pending end reports: "Rohan won", "Draw"
 	Access                     core.EndAccess
 	Broken                     []string // "Minas Morgul is broken", for every Broken company of the match
+	ATOWaiting                 string   // why nothing can be noted yet: the Against the Odds decision is pending
+	ATOMine                    bool     // the viewer can make that decision
+	Edit                       bool     // the viewer may end the match from this company page
+	OOB                        bool     // End match goes with the answer, out of band
 	Notice                     string
 	NoticeErr                  bool
 	OverrideNote, OverrideErr  string
@@ -39,8 +43,19 @@ func (b endBanner) WaitingNames() string {
 
 func (s *Server) endBannerFor(r *http.Request, base campaignBase, m core.Match, company int64) endBanner {
 	b := endBanner{Campaign: base.Campaign.ID, MatchID: m.ID, Company: company, Revision: m.Revision}
+	for _, co := range m.AllCompanies() {
+		if co.ID == company {
+			b.Edit = core.LiveAccessFor(*userFrom(r.Context()), m, co, base.Campaign.OrganiserID) == core.LiveEdit && base.Campaign.CanPlay() == nil
+		}
+	}
 	if m.EndProposal != nil && !m.Ended {
 		b.Pending, b.Proposal, b.Access, b.Result = true, m.EndProposal, endAccess(r, base, m), proposedResult(m)
+	}
+	if !m.Ended && !m.ATODecided {
+		if st, err := s.campaigns.ATOStatus(r.Context(), base.Campaign.ID, m); err == nil && st.Pending { // an extra: a failed read shows none; the write is refused anyway
+			u := *userFrom(r.Context())
+			b.ATOWaiting, b.ATOMine = st.Why(), st.OwnerID == u.ID || base.Campaign.CanManage(u)
+		}
 	}
 	if !m.Ended {
 		if breaks, err := s.campaigns.MatchBreaks(r.Context(), base.Campaign.ID, m.ID); err == nil { // an extra: a failed read shows none
@@ -82,7 +97,8 @@ func (s *Server) answerEndBanner(w http.ResponseWriter, r *http.Request, status 
 	}
 	b := s.endBannerFor(r, base, m, company)
 	b.Notice, b.NoticeErr, b.OverrideNote, b.OverrideErr = notice, isErr, note, noteErr
-	s.render.partial(w, status, "campaign_my_company", "end_banner", b)
+	b.OOB = true
+	s.render.partial(w, status, "campaign_my_company", "end_banner_answer", b)
 }
 
 // bannerFailed answers a failed write of the banner: the current banner with the reason.

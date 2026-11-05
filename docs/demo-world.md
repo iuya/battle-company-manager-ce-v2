@@ -222,7 +222,9 @@ The aftermath wards play the aftermaths for real.
 - A **three-sided match** (The Wolves Attack, third side wins), ended.
 - A **two-sided match with two companies per side**, open.
 - **Result entered, not ended** (Show of Strength): the next click is "End match".
-- **Against the Odds chosen at creation**: the owner of the lower rated company took a bonus on the new match form. The gap is at least 60 and the game has not started, so the card of the match page can be played by hand: add the Tool Kit or the Wanderer the form left out.
+- **Against the Odds waiting**: the player above created the match (the higher rated company hired a Wanderer, so the gap is at least 60) and it waits for the player below: nothing can be noted and End match is disabled. The owner of the lower rated company sees "Choose Against the Odds for Match N" under Your turn and the whole card; the other player reads "Waiting for ... to choose".
+- **Against the Odds confirmed**: the same gap, with Reroll confirmed by the player below: the card shows the summary and **Change**, and the match can be played.
+- Every other match of the scripts is confirmed by the organiser without bonuses as it is created (`decideATO`), so their pages read "... took no bonus." when they have a gap that pays for one.
 - **Played live, end pending** (`sheetEnd`): the end proposed through the End match sheet (winner and the proposer's MVP vote), waiting
   for the rival's Confirm (the *ending* phase; Your turn on the rival's Matches page).
 - **Played live and ended through the sheets**: End match, then the rival's Confirm with their own MVP vote.

@@ -25,7 +25,7 @@ decisions.
 | D6 | **MVP is chosen with a searchable dropdown** per opposing company (the same combobox as the company search of the new match form). |
 | D7 | **MVP is mandatory to end a competitive match**: every company owner votes one unit of every opposing company before proposing or confirming. "No MVP" is no longer offered. Practice matches need no MVP (they award nothing). The organiser's / administrator's override end (`OverrideEnd`) still ends without votes. |
 | D8 | **Both sides choose their MVP**: the proposer votes in the End match sheet, the other owners vote in the Confirm sheet. |
-| D9 | **Against the Odds at creation**: once both companies are picked the form computes the gap and shows only the affordable bonuses; when nobody is eligible (equal ratings, not exactly two sides of one company, no gap) the block is not rendered at all. It is shown only when the user creating the match owns the lower rated company; otherwise the block is absent and the underdog chooses on the match page until the game starts (today's card). At creation only bonuses that need no detail are switches (Reroll, Influence, Experience, Ambush!); Tool Kit and Wanderer, when affordable, show one line "Add on the match page" and are completed there (kits, item assignment, which Wanderer). Ambush! turns the scenario card of the form into a free choice. |
+| D9 | **Against the Odds on the match page only**: the new match form has no block, whoever creates the match. The lower rated player, the organiser or an administrator decides on the match page during Preparing, with bonuses or none; nothing can be noted live and the match cannot end until then, unless the gap pays for no bonus. A change of the scenario reopens the decision, and Ambush! fixes the scenario to the card ([matches.md](matches.md#against-the-odds)). |
 | D10 | **No turn tracking**: no **Start turn N**, no turn number, no `turn` entry. A company is Broken as soon as its casualties exceed its Break Point; the banner of every viewer shows it at once ("Minas Morgul is broken") and it stops being Broken if an undo takes it back under. |
 | D11 | **The live company page keeps what the game needs.** Later changes took out the stats, Influence, Gold, limits and the match log, and turned the selector into one chip per company with **Go to match**. Its live banner: a **View ▾** selector to the other companies of the match (each opens that company's page in match mode; a "← Back to mine" link there), To wound, Match log and **End match**; the End checks button and the turn row go. |
 | D12 | **Match list**: a **Your turn** list on top of the Matches page and on the campaign Overview ("Confirm the end of Match 25", "Vote the MVP of Match 25", "Start the aftermath of Match 3"); filters **Mine / Open / Ended** instead of All / Practice (practice stays a badge on the row); lower rows: "Rohan vs Mordor · Hold the Line · Open" in one or two lines. |
@@ -50,9 +50,9 @@ Behaviour:
   One-off scenario. The roll needs no match: a campaign-level endpoint (for example `POST /campaigns/{id}/matches/new/scenario-roll`) rolls with
   `ScenarioSelection` and `core.ScenarioByRolls` and returns the card; nothing is written until **Create match**. The chosen scenario is posted
   with the form (`scenario-kind`, `scenario-name`, and the one-off fields).
-- Against the Odds block (D9), loaded when both sides have exactly one company each (htmx on change), hidden otherwise.
-- `core.NewMatch` gains `Scenario *ScenarioInput` and `ATO *ATOSelection`; `CreateMatch` validates and stores them in the same transaction as
-  the match (the ATO through the ATO repository, validated with `ATOSelection.Validate` against the gap). `NewSide.Name` and `NewSide.Role` are
+- No Against the Odds on the form (D9).
+- `core.NewMatch` gains `Scenario *ScenarioInput`; `CreateMatch` validates and stores it in the same transaction as
+  the match. `NewSide.Name` and `NewSide.Role` are
   no longer read from the form (the core may keep the fields for old data; `ValidateSides` still names sides "Side N" internally, and
   `MatchSide.Label` is what the pages show).
 
@@ -60,12 +60,12 @@ Acceptance:
 
 - A 1 v 1 is created with: pick own company (highlighted, first), pick rival, Create match; the match page shows the rolled scenario.
 - Roll again changes the scenario without writing anything; Choose another and One-off replace it; the created match carries what the form showed.
-- With equal ratings, more than two companies, or a creator who does not own the underdog, no Against the Odds block is in the HTML.
+- The form has no Against the Odds block, whoever creates the match.
 - With a gap of 40 the block shows Reroll, Influence, Experience (not Wanderer 45, not Ambush! 60) and the saved match has the selection.
 - 360 / 768 / 1280 px, light and dark, no horizontal scroll.
 
 Demo world and tests: the "Matches: every scenario and every state" campaign keeps matches created through the new input (scenario at
-creation), one with Against the Odds chosen at creation (`cmd/server/world_matches.go`); e2e `40-match`, `84-match-extras`, `98-several-companies`
+creation), two with a gap of 60 that wait for or have Against the Odds confirmed (`cmd/server/world_matches.go`); e2e `40-match`, `84-match-extras`, `98-several-companies`
 and `100-practice-match` updated, a new flow for the form (roll again, choose another, own companies order). Docs: [matches.md](matches.md)
 (match page header, scenario picker, new match), [multi-company.md](multi-company.md) (the Mine chip).
 
@@ -171,22 +171,22 @@ All five phases were written in one pass on `feat/simplify-matches`; nothing is 
 
 - **Core** (`internal/core`):
   - `match.go`: `SideResult`, `SideVP`, `maxVictoryPts`, `CompanyResult.Fled`, `FleeConflict`, `HasRoles`, `ObjectivesFor` removed; `ReportedWinner` uses `Label`.
-  - `campaign.go`: `MatchSide.Label` always shows the companies; `NewSide` has no `Role`; `NewMatch` gains `Scenario` and `ATO *NewMatchATO`.
-  - `matches.go`: `CreateMatch` validates and stores the scenario and the Against the Odds bonuses (Ambush! sets the scenario); `SetSideRoles` / `SwapSideRoles` removed; `SetScenario` / `ClearScenario` refused once the game started (`GameStarted` hook); `MatchStarted`; `validScenario`.
+  - `campaign.go`: `MatchSide.Label` always shows the companies; `NewSide` has no `Role`; `NewMatch` gains `Scenario`; `Match` gains `ATODecided`.
+  - `matches.go`: `CreateMatch` validates and stores the scenario; `SetSideRoles` / `SwapSideRoles` removed; `SetScenario` / `ClearScenario` refused once the game started (`GameStarted` hook); `MatchStarted`; `validScenario`.
   - `match_end.go`: `checkEnd` requires the MVP votes (`MissingVotes` hook, type `MissingVote`): the proposer's in `ProposeEnd`, the confirmer's in `ConfirmEnd`, everybody's when the match ends; practice skips it; `OverrideEnd` needs none.
-  - `ato_service.go`: `atoCardWith`, `PreviewAgainstTheOdds` (editable only for the owner of the lower rated company), `newMatchATO` (no Tool Kit / Wanderer at creation); `ATO.Inclusive`.
+  - `ato_service.go`: `atoCardWith`, `ReopenAgainstTheOdds`, `ATOStatus`, `ATOBlocks`; `ATO.Inclusive`.
   - Live (`live.go`, `live_break.go`, `live_fold.go`, `live_service.go`): no turns (`LiveTurn`, `startTurn`, `liveMeta`, `Turn()`, `LiveCompany.Turn`, `CourageTurn`, `StandFastTurn` gone); `Broken` derived from the casualties; `WillBreak`, `BrokenAtTurn`, `Offer`, `Fled` gone; older `turn` entries are ignored, older `allIsLost` flee entries still take the units off the board, new ones are refused (`liveTurnLegacy`, `liveAllIsLostLegacy`); `MatchDefaults` only `EnemyBroken`; new `MatchBreaks` and `MissingVotes`.
   - Aftermath: `CompanyOutcome` ignores Fled; `advance` finishes the aftermath by itself when no reward choice is open (`finish`, `rewardChoiceOpen`); `FinishAftermath` is a no-op on a finished one.
 - **Postgres**: `Create` stores the scenario and the `match_ato` row in the same transaction; VP, fled and roles are no longer read or written (columns kept, no migration).
 - **Wiring** (`cmd/server/backend.go`): `matchSvc.MissingVotes = live.MissingVotes`, `matchSvc.GameStarted = atoRepo.GameStarted`. Note: the facade has both the `Matches.MissingVotes` field and the `LiveService.MissingVotes` method; call `c.liveSvc.MissingVotes` explicitly.
 - **Web**:
-  - Phase 1: `match_new.go` (new file; the old code left `campaign.go`), `match_new.gohtml`, `match_form.js` (no Mine chip, own companies first/last, + Add side, All vs all, scenario card with Roll again / Choose another / One-off via `GET .../matches/new/scenario` and `POST .../new/scenario-roll`, Against the Odds block via `GET .../new/ato`, `atoPick`, `unitPick`).
+  - Phase 1: `match_new.go` (new file; the old code left `campaign.go`), `match_new.gohtml`, `match_form.js` (no Mine chip, own companies first/last, + Add side, All vs all, scenario card with Roll again / Choose another / One-off via `GET .../matches/new/scenario` and `POST .../new/scenario-roll`, `unitPick`).
   - Phase 2: `match.go` and `match.gohtml` rewritten (phases `preparing` / `playing` / `ending` / `ended` in `data-phase`, scoreboard, Go to my company, roles gone, Log card with History + match log, result form only for organiser/admin on an ended match, Roll again sets the scenario directly with Vantage Point). `match_result.js` and `live_end.go` deleted; `/roles`, `/live/end`, `/live/end/reminder`, `/live/{company}/objective`, `/live/{company}/mvp` routes removed.
   - Phase 3: `end_sheet.go` (new): `GET .../end/sheet` (End match or Confirm sheet), `POST .../end/propose` and `/end/confirm` do votes + objective switches + result + propose/confirm in one request and answer `HX-Redirect` to the match page. Sheet window on the match page (`sheet_dialog`, `#modal-body`, `open-modal` / `close-modal`).
   - Phase 4: live banner (View ▾, ← Back to mine, To wound, Match log, End match), `end_banner` lists Broken companies and Confirm opens the sheet, Break panel without turns or All is Lost; Courage test offered to every Field unit of a Broken company (`CourageTest`), `CourageDue` = not tested yet.
   - Phase 5: compact campaign header; Your turn list (`yourTurns`, `your_turn`, `match_row` partials) on Matches and Overview; filters `?filter=mine|open|ended`; aftermath stepper shows only the applicable steps (`Steps`, `HasInjuries`, `HasLevelUps`), Done block with `ChangeSummary`, sheet review (`Review`, `Earned`, "+ add"), Against the Odds only taken bonuses (+ add), autosave (`/sheet?auto=1` answers `aftermath_bar`), no Finish button.
-- **Demo world** (`cmd/server/world_*.go`, `seed.go`): no VP, Fled, roles or turns; `endNow` casts the missing MVP votes (`voteMissing`); `played` creates the match with its scenario (`newMatchOn`); matches campaign adds Against the Odds at creation (`atoAtCreation`), an end pending confirmation and one ended through the sheets (`sheetEnd`); the Fog of War Rangers become Broken.
-- **Tests**: `make test` and `make test-integration` pass (core, web, postgres, cmd/server). New: `internal/web/match_new_test.go` (form, scenario card, Against the Odds block, Your turn), `internal/core/simplify_matches_test.go` (`CreateMatch` with scenario and Against the Odds, `PreviewAgainstTheOdds`, the scenario fixed once the game started, `LiveService.MissingVotes`), the free equipment choice finishing the aftermath, the vote tests in `match_end_test.go`.
+- **Demo world** (`cmd/server/world_*.go`, `seed.go`): no VP, Fled, roles or turns; `endNow` casts the missing MVP votes (`voteMissing`); `played` creates the match with its scenario (`newMatchOn`); matches campaign adds a match waiting for Against the Odds and one confirmed (`atoWaiting`), scripts decide before they play (`decideATO`), an end pending confirmation and one ended through the sheets (`sheetEnd`); the Fog of War Rangers become Broken.
+- **Tests**: `make test` and `make test-integration` pass (core, web, postgres, cmd/server). New: `internal/web/match_new_test.go` (form, scenario card, Your turn), `internal/core/ato_gate_test.go` (the decision and the gate), `internal/core/simplify_matches_test.go` (`CreateMatch` with scenario, the scenario fixed once the game started, `LiveService.MissingVotes`), the free equipment choice finishing the aftermath, the vote tests in `match_end_test.go`.
 - **Docs**: `matches.md`, `live-match.md`, `aftermath.md`, `frontend.md`, `demo-world.md`, `multi-company.md`, `docs/README.md`.
 - **e2e**: `40-match`, `81-aftermath-ui`, `83-fallback`, `84-match-extras`, `98-several-companies`, `100-practice-match` updated; new `110-new-match-form`; shared helpers `endMatch`, `confirmEnd`, `chooseScenario` in `tests/e2e/lib/util.mjs`; the runner names the server binary `.exe` on Windows.
 

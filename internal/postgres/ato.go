@@ -163,14 +163,17 @@ func (as atoStore) Update(ctx context.Context, campaignID, matchID int64, by cor
 		kind, sc = &k, *st.Match.Scenario
 	}
 	if _, err := tx.Exec(ctx, `
-		UPDATE matches SET scenario_kind = $2, scenario_name = $3, scenario_description = $4, scenario_victory = $5, revision = revision + 1
-		 WHERE id = $1`, matchID, kind, sc.Name, sc.Description, sc.Victory); err != nil {
+		UPDATE matches SET scenario_kind = $2, scenario_name = $3, scenario_description = $4, scenario_victory = $5, ato_decided = $6, revision = revision + 1
+		 WHERE id = $1`, matchID, kind, sc.Name, sc.Description, sc.Victory, st.Match.ATODecided); err != nil {
 		return core.Match{}, err
 	}
-	if !reflect.DeepEqual(before.EndProposal, st.Match.EndProposal) { // a change of the selection resets the confirmations of a pending end
+	endChanged := !reflect.DeepEqual(before.EndProposal, st.Match.EndProposal) // a change of the selection resets the confirmations of a pending end
+	if endChanged {
 		if err := storeEndProposal(ctx, tx, matchID, by, st.Match.EndProposal); err != nil {
 			return core.Match{}, err
 		}
+	}
+	if endChanged || before.ATODecided != st.Match.ATODecided { // the pages of the match refetch: the rival is waiting for the decision
 		if err := notifyLive(ctx, tx, liveNotice{Match: matchID, Kind: "changed"}); err != nil {
 			return core.Match{}, err
 		}

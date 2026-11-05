@@ -81,6 +81,14 @@ export async function confirmEnd(s, matchPath, { mvp = 0 } = {}) {
   await s.settle(600);
 }
 
+// Confirms Against the Odds without bonuses when the match page offers it to this viewer (docs/matches.md, "Against the Odds before the
+// game"): nothing can be noted and the match cannot end until it is decided. It does nothing on a match with nothing to decide. The session must be on the match page.
+export async function decideATO(s) {
+  if (!(await s.page.$('#ato [data-ato-confirm]'))) return;
+  await s.click('#ato [data-ato-confirm]', '');
+  await s.waitText('Against the Odds confirmed.');
+}
+
 // Sets the scenario of an open match before the game: Change scenario, Choose another, then the scenario's button.
 export async function chooseScenario(s, name) {
   await s.click('main [data-change-scenario]', '').catch(() => {}); // a match without a scenario shows the choices at once

@@ -97,8 +97,8 @@ type yourTurn struct {
 	Who  string // the viewer's company it is about, when they have several
 }
 
-// yourTurns lists what waits on the viewer: the ends they must confirm (with their MVP votes) and the aftermaths of their companies that
-// are pending or in progress.
+// yourTurns lists what waits on the viewer: the ends they must confirm (with their MVP votes), the Against the Odds decisions of their lower
+// rated companies and the aftermaths of their companies that are pending or in progress.
 func (s *Server) yourTurns(r *http.Request, base campaignBase, matches []core.Match) ([]yourTurn, error) {
 	u := userFrom(r.Context())
 	if u == nil {
@@ -116,6 +116,22 @@ func (s *Server) yourTurns(r *http.Request, base campaignBase, matches []core.Ma
 		}
 	}
 	several := len(base.Campaign.Companies) > 1
+	for _, m := range matches { // only a match of the viewer that is still undecided asks more than the list already has
+		if m.Ended || m.ATODecided || !mine(base, m) || base.Campaign.Status == core.CampaignFinished {
+			continue
+		}
+		st, err := s.campaigns.ATOStatus(r.Context(), id, m)
+		if err != nil {
+			return nil, err
+		}
+		if st.Pending && st.OwnerID == u.ID {
+			t := yourTurn{Text: "Choose Against the Odds for Match " + itoa(m.Number), URL: matchPath(id, m.ID)}
+			if several {
+				t.Who = st.CompanyName
+			}
+			out = append(out, t)
+		}
+	}
 	for _, co := range base.Campaign.Companies {
 		refs, err := s.campaigns.PendingAftermaths(r.Context(), id, co.ID)
 		if err != nil {

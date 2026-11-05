@@ -329,6 +329,7 @@ func TestSeedWorld(t *testing.T) {
 		t.Error("the Shire company of the cemetery is missing")
 	}
 	checkLiveAndLimit(t, ctx, b, byName, you)
+	checkATOMatches(t, ctx, b, byName)
 	t.Run("queries do not grow with the data", func(t *testing.T) { assertQueryCounts(ctx, t, b, counter, conn, admin) })
 }
 
@@ -413,6 +414,41 @@ func checkAdminStates(t *testing.T, ctx context.Context, b *backend, admin core.
 	// the world stays usable: the pending named invitation and the pending recovery link are still pending
 	if r := status[recoveryPendingEmail]; r == nil || r.State != core.RecoveryPending {
 		t.Errorf("the pending recovery link is %+v", r)
+	}
+}
+
+// checkATOMatches asserts the two Against the Odds matches of the matches campaign: one waits for the player below, the other is confirmed.
+func checkATOMatches(t *testing.T, ctx context.Context, b *backend, byName map[string]core.CampaignSummary) {
+	t.Helper()
+	var id int64
+	for name, c := range byName {
+		if strings.HasPrefix(name, "Matches: every scenario") {
+			id = c.ID
+		}
+	}
+	matches, err := b.campaigns.Matches(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waiting, confirmed := 0, 0
+	for _, m := range matches {
+		st, err := b.campaigns.ATOStatus(ctx, id, m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rec, err := b.store.ATO().Get(ctx, id, m.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if st.Pending {
+			waiting++
+		}
+		if m.ATODecided && !m.Ended && rec.Selection.Has("reroll") {
+			confirmed++
+		}
+	}
+	if waiting != 1 || confirmed != 1 {
+		t.Errorf("Against the Odds: %d matches wait and %d are confirmed with a bonus, want one each", waiting, confirmed)
 	}
 }
 
