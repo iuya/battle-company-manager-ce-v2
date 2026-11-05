@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -48,84 +49,105 @@ func (s *Server) showLevelPanel(w http.ResponseWriter, r *http.Request, status i
 	if s.fail(w, r, err) {
 		return
 	}
-	panel := levelPanel{Campaign: base.Campaign, Co: base.Current.ID, Roll: roll, Animate: animate, Error: errMsg, Fresh: roll != nil}
-	found := false
-	for _, u := range detail.Roster {
-		if u.ID == unitID {
-			panel.Unit, found = u, true
-		}
-	}
-	if !found {
+	i := slices.IndexFunc(detail.Roster, func(u core.CompanyUnit) bool { return u.ID == unitID })
+	if i < 0 {
 		s.notFound(w, r)
 		return
 	}
-	panel.Pending, panel.Rerolls = panel.Unit.PendingLevelUps(), detail.Rerolls
-	panel.Spec, panel.Pairs = detail.RuleDice.Level.Warrior, 1
-	if panel.Unit.IsHero() {
-		panel.Spec, panel.Pairs = detail.RuleDice.Level.Hero, detail.RuleDice.Level.Pairs
-		if panel.Unit.Path != nil {
-			panel.Spec = detail.RuleDice.Level.HeroFor(panel.Unit.Path.Name)
-		}
-	}
+	unit := detail.Roster[i]
+	panel := levelPanel{Campaign: base.Campaign, Co: base.Current.ID, Unit: unit, Roll: roll, Animate: animate, Error: errMsg, Fresh: roll != nil,
+		Pending: unit.PendingLevelUps(), Rerolls: detail.Rerolls}
+	panel.Spec, panel.Pairs = levelDice(unit, detail.RuleDice.Level)
 	glossary, err := s.glossary.ForCampaign(r.Context(), base.Campaign.ID) // to describe a rule, an action or a power with links to its terms
 	if err != nil && !errors.Is(err, core.ErrNotFound) {
 		s.fail(w, r, err)
 		return
 	}
 	if roll == nil {
-		if roll, err = s.campaigns.LevelUpState(r.Context(), *userFrom(r.Context()), base.Campaign.ID, base.Current.ID, unitID); s.fail(w, r, err) {
+		if panel.Roll, err = s.campaigns.LevelUpState(r.Context(), *userFrom(r.Context()), base.Campaign.ID, base.Current.ID, unitID); s.fail(w, r, err) {
 			return
 		}
-		panel.Roll = roll
 	}
-	if panel.Roll != nil {
-		panel.Offers = offerViews(glossary, panel.Roll.Offers)
-		if panel.Roll.Upgrade != nil {
-			up := offerViews(glossary, []core.LevelOffer{*panel.Roll.Upgrade})[0]
-			panel.Upgrade = &up
-		}
-		if panel.Roll.Plan != nil {
-			plan, err := json.Marshal(panel.Roll.Plan)
-			if s.fail(w, r, err) {
-				return
-			}
-			panel.Plan = string(plan)
-		}
-		if panel.Roll.Done && panel.Roll.Result == core.WarriorResultNoChange && panel.Pending == 0 {
-			panel.CloseAfter = noChangeCloseMillis
-		}
-		if !panel.Roll.Done && panel.Roll.Stage == "" && panel.Roll.Result == core.WarriorResultHeroInTheMaking && len(panel.Offers) == 1 {
-			panel.Heroic = true
-			for _, c := range panel.Offers[0].Choices {
-				if c.Key != core.HeroChoiceKey {
-					panel.Forgo = append(panel.Forgo, c)
-				}
-			}
-		}
-		if len(panel.Roll.Offers) > 0 { // a result nothing of which can be taken is shown too, shadowed
-			for i, pair := range panel.Roll.Pairs {
-				if !pair.Usable {
-					panel.Unusable = append(panel.Unusable, pairView{Pair: i + 1, Sum: pair.Sum, Segments: linkText(glossary, pair.Text)})
-				}
-			}
-		}
-		var dice, groups, labels []string
-		if panel.Roll.D6 > 0 {
-			dice = append(dice, strconv.Itoa(panel.Roll.D6))
-		}
-		for i, pair := range panel.Roll.Pairs { // each of a hero's rolls gets its own lane
-			if len(pair.Dice) == 0 {
-				continue
-			}
-			for _, d := range pair.Dice {
-				dice = append(dice, strconv.Itoa(d))
-			}
-			groups = append(groups, strconv.Itoa(len(pair.Dice)))
-			labels = append(labels, rollLabel(i+1))
-		}
-		panel.Dice, panel.Groups, panel.Labels = strings.Join(dice, ","), strings.Join(groups, ","), strings.Join(labels, ",")
+	if panel.Roll != nil && s.fail(w, r, panel.fillRoll(glossary)) {
+		return
 	}
 	s.render.partial(w, status, "campaign_my_company", "level_panel", panel)
+}
+
+// levelDice is the dice of a unit's level-up roll and how many results it rolls: a warrior's D6, or a hero's roll on its path's chart.
+func levelDice(u core.CompanyUnit, dice core.LevelDice) (core.DiceSpec, int) {
+	if !u.IsHero() {
+		return dice.Warrior, 1
+	}
+	if u.Path != nil {
+		return dice.HeroFor(u.Path.Name), dice.Pairs
+	}
+	return dice.Hero, dice.Pairs
+}
+
+// fillRoll sets what the window shows of its roll.
+func (p *levelPanel) fillRoll(g core.Glossary) error {
+	roll := p.Roll
+	p.Offers = offerViews(g, roll.Offers)
+	if roll.Upgrade != nil {
+		up := offerViews(g, []core.LevelOffer{*roll.Upgrade})[0]
+		p.Upgrade = &up
+	}
+	if roll.Plan != nil {
+		plan, err := json.Marshal(roll.Plan)
+		if err != nil {
+			return err
+		}
+		p.Plan = string(plan)
+	}
+	if roll.Done && roll.Result == core.WarriorResultNoChange && p.Pending == 0 {
+		p.CloseAfter = noChangeCloseMillis
+	}
+	if !roll.Done && roll.Stage == "" && roll.Result == core.WarriorResultHeroInTheMaking && len(p.Offers) == 1 {
+		p.Heroic = true
+		for _, c := range p.Offers[0].Choices {
+			if c.Key != core.HeroChoiceKey {
+				p.Forgo = append(p.Forgo, c)
+			}
+		}
+	}
+	p.Unusable = unusablePairs(g, *roll)
+	p.Dice, p.Groups, p.Labels = rollDice(*roll)
+	return nil
+}
+
+// unusablePairs is the results of a hero's rolls it cannot take anything from: shown too, shadowed, while there is something to choose.
+func unusablePairs(g core.Glossary, roll core.LevelRoll) []pairView {
+	if len(roll.Offers) == 0 {
+		return nil
+	}
+	var out []pairView
+	for i, pair := range roll.Pairs {
+		if !pair.Usable {
+			out = append(out, pairView{Pair: i + 1, Sum: pair.Sum, Segments: linkText(g, pair.Text)})
+		}
+	}
+	return out
+}
+
+// rollDice is the dice to show rolling, how they are grouped in lanes and the lanes' names, comma separated: each of a hero's rolls
+// gets its own lane.
+func rollDice(roll core.LevelRoll) (dice, groups, labels string) {
+	var d, g, l []string
+	if roll.D6 > 0 {
+		d = append(d, strconv.Itoa(roll.D6))
+	}
+	for i, pair := range roll.Pairs {
+		if len(pair.Dice) == 0 {
+			continue
+		}
+		for _, n := range pair.Dice {
+			d = append(d, strconv.Itoa(n))
+		}
+		g = append(g, strconv.Itoa(len(pair.Dice)))
+		l = append(l, rollLabel(i+1))
+	}
+	return strings.Join(d, ","), strings.Join(g, ","), strings.Join(l, ",")
 }
 
 // noChangeCloseMillis is how long a warrior's no change stays on screen after the dice stop.
