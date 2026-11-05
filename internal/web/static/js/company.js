@@ -166,16 +166,7 @@ document.addEventListener('alpine:init', () => {
   // The tooltips of the casualties of an aftermath: a rule on hover or keyboard focus (a tap opens its helper popup, concepts.js), and the injuries
   // chart of the dice (data-tip-chart names the hidden element that holds it) on hover, keyboard focus or a tap.
   Alpine.data('aftermathTips', () => ({
-    tip: { show: false, x: 0, y: 0, title: '', meta: '', text: '', html: '' },
-    tipTimer: null, tipFor: null,
-    over(e) {
-      const wanted = e.type === 'focusin' ? e.target.matches(':focus-visible') : window.matchMedia('(hover: hover)').matches;
-      const el = wanted && e.target.closest && e.target.closest('[data-tip-title]');
-      if (!el) return;
-      clearTimeout(this.tipTimer);
-      this.tipTimer = setTimeout(() => this.showTip(el), 150);
-    },
-    out(e) { if (e.target.closest && e.target.closest('[data-tip-title]')) this.hideTip(); },
+    ...window.tipMixin({ focus: 'visible', extra: { html: '' } }),
     tap(e) {
       if (window.matchMedia('(hover: hover)').matches) return;
       const el = e.target.closest && e.target.closest('[data-tip-chart]');
@@ -183,15 +174,9 @@ document.addEventListener('alpine:init', () => {
       this.hideTip();
       if (el && !again) this.showTip(el);
     },
-    hideTip() { clearTimeout(this.tipTimer); this.tip.show = false; },
-    async showTip(el) {
+    tipContent(el) {
       const chart = el.dataset.tipChart ? document.getElementById(el.dataset.tipChart) : null;
-      this.tipFor = el;
-      this.tip = { show: true, x: 0, y: 0, title: el.dataset.tipTitle, meta: el.dataset.tipMeta || '', text: el.dataset.tipText || '', html: chart ? chart.innerHTML : '' };
-      await this.$nextTick();
-      const box = this.$refs.tip;
-      if (!box || !el.isConnected) { this.tip.show = false; return; } // the page was swapped while the tip waited
-      Object.assign(this.tip, tipPlace(box, el));
+      return { ...tipTexts(el), html: chart ? chart.innerHTML : '' };
     },
   }));
 
@@ -263,8 +248,7 @@ document.addEventListener('alpine:init', () => {
         }
       });
     },
-    tip: { show: false, x: 0, y: 0, title: '', meta: '', text: '', stats: [], path: null },
-    tipTimer: null,
+    ...window.tipMixin({ extra: { stats: [], path: null } }),
 
     init() {
       this.syncLock();
@@ -351,25 +335,12 @@ document.addEventListener('alpine:init', () => {
 
 
     // Hovering (or focusing) a rule, an item with rules, or a glossary link previews it. Not on touch screens.
-    over(e) {
-      if (!window.matchMedia('(hover: hover)').matches) return;
-      const el = e.target.closest && e.target.closest('[data-tip-title]');
-      if (!el) return;
-      clearTimeout(this.tipTimer);
-      this.tipTimer = setTimeout(() => this.showTip(el), 150);
-    },
-    out(e) { if (e.target.closest && e.target.closest('[data-tip-title]')) this.hideTip(); },
-    hideTip() { clearTimeout(this.tipTimer); this.tip.show = false; },
-    async showTip(el) {
+    tipContent(el) {
       let stats = [];
       try { stats = JSON.parse(el.dataset.tipStats || '[]'); } catch (e) { stats = []; }
       let path = null;
       try { path = el.dataset.tipPath ? JSON.parse(el.dataset.tipPath) : null; } catch (e) { path = null; }
-      this.tip = { show: true, x: 0, y: 0, title: el.dataset.tipTitle, meta: el.dataset.tipMeta || '', text: el.dataset.tipText || '', stats, path };
-      await this.$nextTick();
-      const box = this.$refs.tip;
-      if (!box || !el.isConnected) { this.tip.show = false; return; } // the page was swapped while the tip waited
-      Object.assign(this.tip, tipPlace(box, el));
+      return { ...tipTexts(el), stats, path };
     },
   }));
 });
