@@ -29,7 +29,6 @@ func (env *levelEnv) levelPlan(st CompanyState, roll LevelRoll) *LevelPlan {
 	if !first && !second {
 		return nil
 	}
-	rules := env.rs.BC.Progression()
 	type asked struct {
 		side int
 		key  string
@@ -57,7 +56,7 @@ func (env *levelEnv) levelPlan(st CompanyState, roll LevelRoll) *LevelPlan {
 				fits = after(1, y.Key)[x.Key]
 			}
 			if !fits {
-				plan.Conflicts[x.Key+"|"+y.Key] = rules.conflictReason(x, y)
+				plan.Conflicts[x.Key+"|"+y.Key] = conflictReason(x, y)
 			}
 		}
 	}
@@ -161,7 +160,7 @@ func (env *levelEnv) offerAfter(st CompanyState, key string, sum int) (map[strin
 
 // conflictReason says why two options cannot be taken together. The same stat twice stops at what improvedStat allows: the path's
 // limit, the overall peak and, for Courage and Intelligence, the total cap of each (CITotalCap).
-func (r ProgressionRules) conflictReason(x, y LevelChoice) string {
+func conflictReason(x, y LevelChoice) string {
 	a, b := optionStat(x.Key), optionStat(y.Key)
 	switch {
 	case !x.RollAgain && !y.RollAgain:
