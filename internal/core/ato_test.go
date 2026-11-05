@@ -179,6 +179,24 @@ func TestATOAccessFor(t *testing.T) {
 	}
 }
 
+func TestATOStatusCanDecideFollowsATOAccessFor(t *testing.T) {
+	st := ATOStatus{Pending: true, OwnerID: 10}
+	for _, tt := range []struct {
+		name string
+		u    User
+		want bool
+	}{
+		{"the owner of the lower company", User{ID: 10}, true},
+		{"the opposing owner", User{ID: 20}, false},
+		{"the organiser", User{ID: 99}, true},
+		{"an administrator", User{ID: 5, Role: RoleAdmin}, true},
+	} {
+		if got := st.CanDecide(tt.u, 99); got != tt.want {
+			t.Errorf("%s: %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}
+
 // --- the service ---
 
 type atoFixture struct {

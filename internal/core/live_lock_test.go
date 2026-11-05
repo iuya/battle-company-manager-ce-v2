@@ -117,6 +117,14 @@ func TestUnavailableCompaniesGivesCreateMatchsReasons(t *testing.T) {
 	if err != nil || got[1] != "Already in Match 3." || got[2] != "Already in Match 3." {
 		t.Errorf("an open match, which also wins over an aftermath: %v, %v", got, err)
 	}
+	f.svc.CompanyAftermaths = func(context.Context, int64, int64) ([]AftermathRef, error) {
+		t.Error("the open match already gave the reason: no need to read the aftermaths")
+		return nil, nil
+	}
+	if _, err = f.svc.UnavailableCompanies(f.ctx, 5, []int64{1}); err != nil {
+		t.Error(err)
+	}
+	f.svc.CompanyAftermaths = nil
 	f.state.OpenMatch = nil
 	f.state.Recruit.Officers = &OfficerStep{}
 	if got, err = f.svc.UnavailableCompanies(f.ctx, 5, []int64{1}); err != nil || got[1] != "Arrange the officers first." {
