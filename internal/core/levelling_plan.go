@@ -29,6 +29,25 @@ func (env *levelEnv) levelPlan(st CompanyState, roll LevelRoll) *LevelPlan {
 	if !first && !second {
 		return nil
 	}
+	plan := &LevelPlan{Conflicts: env.planConflicts(st, roll, offers), Alone: []string{}}
+	var marked bool
+	switch {
+	case first && second:
+		marked = plan.markBothSides(offers)
+	case first:
+		marked = plan.markOneSide(offers, 0)
+	default:
+		marked = plan.markOneSide(offers, 1)
+	}
+	if !marked {
+		return nil
+	}
+	return plan
+}
+
+// planConflicts says which pairs of options do not go together, and why: a pair fits only when one of them takes the other result and
+// that result still offers the other option once it is applied.
+func (env *levelEnv) planConflicts(st CompanyState, roll LevelRoll, offers [2][]LevelChoice) map[string]string {
 	type asked struct {
 		side int
 		key  string
@@ -45,7 +64,7 @@ func (env *levelEnv) levelPlan(st CompanyState, roll LevelRoll) *LevelPlan {
 		}
 		return cache[a]
 	}
-	plan := &LevelPlan{Conflicts: map[string]string{}, Alone: []string{}}
+	conflicts := map[string]string{}
 	for _, x := range offers[0] {
 		for _, y := range offers[1] {
 			fits := false
@@ -56,27 +75,29 @@ func (env *levelEnv) levelPlan(st CompanyState, roll LevelRoll) *LevelPlan {
 				fits = after(1, y.Key)[x.Key]
 			}
 			if !fits {
-				plan.Conflicts[x.Key+"|"+y.Key] = conflictReason(x, y)
+				conflicts[x.Key+"|"+y.Key] = conflictReason(x, y)
 			}
 		}
 	}
-	if first && second {
-		for _, a := range markOrder(offers[0], statCourage, statIntelligence) {
-			for _, b := range markOrder(offers[1], statIntelligence, statCourage) {
-				if _, no := plan.Conflicts[a.Key+"|"+b.Key]; !no && !plan.Both {
-					plan.Marks, plan.Both = [2]string{a.Key, b.Key}, true
-				}
+	return conflicts
+}
+
+// markBothSides puts the first pair that fits in the default order as the marks of two results that each take the other; false when none fits.
+func (p *LevelPlan) markBothSides(offers [2][]LevelChoice) bool {
+	for _, a := range markOrder(offers[0], statCourage, statIntelligence) {
+		for _, b := range markOrder(offers[1], statIntelligence, statCourage) {
+			if _, no := p.Conflicts[a.Key+"|"+b.Key]; !no {
+				p.Marks, p.Both = [2]string{a.Key, b.Key}, true
+				return true
 			}
 		}
-		if !plan.Both {
-			return nil
-		}
-		return plan
 	}
-	side := 0
-	if second {
-		side = 1
-	}
+	return false
+}
+
+// markOneSide marks the first option of the side that takes the other result and has something to take from it; the ones with nothing
+// to take apply alone. False when none can be marked.
+func (p *LevelPlan) markOneSide(offers [2][]LevelChoice, side int) bool {
 	for _, x := range markOrder(offers[side], statCourage, statIntelligence) {
 		if !x.RollAgain {
 			continue
@@ -86,20 +107,17 @@ func (env *levelEnv) levelPlan(st CompanyState, roll LevelRoll) *LevelPlan {
 			if side == 1 {
 				k = y.Key + "|" + x.Key
 			}
-			_, no := plan.Conflicts[k]
+			_, no := p.Conflicts[k]
 			return !no
 		})
 		switch {
 		case !fits:
-			plan.Alone = append(plan.Alone, x.Key)
-		case plan.Marks[side] == "":
-			plan.Marks[side] = x.Key
+			p.Alone = append(p.Alone, x.Key)
+		case p.Marks[side] == "":
+			p.Marks[side] = x.Key
 		}
 	}
-	if plan.Marks[side] == "" {
-		return nil
-	}
-	return plan
+	return p.Marks[side] != ""
 }
 
 // markOrder lists the options in the order they are marked by default: the stats named, then the other options that take the other
