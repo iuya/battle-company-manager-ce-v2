@@ -137,8 +137,7 @@ export default async function (h) {
   });
 
   await h.step('live: a unit retreats (failed courage) and returns to the battle', async () => {
-    await sauron.liveSheet('retreat'); // no Fled button on the card: its window
-    await sauron.click(MODAL + ' button', '=Retreated');
+    await sauron.liveRetreat();
     await sauron.waitText('Failed courage');
     await eowyn.goto(`/campaigns/${cid}/companies/${sCo}`);
     await eowyn.waitText('Failed courage');
