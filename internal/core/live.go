@@ -126,9 +126,6 @@ const (
 	LiveReturn     LiveKind = "return"    // back to the battle from Retreated or Field casualties (Wounds 0 becomes 1)
 	LiveObjective  LiveKind = "objective" // a unit got (or no longer has) the objective at the end of the game
 	LiveMVPVote    LiveKind = "mvpVote"   // a player votes a unit of an opposing company as MVP (UnitID 0 withdraws)
-	// The secret objectives of Fog of War: kept by their author and hidden from everybody else until the match ends.
-	LiveSecretNominate LiveKind = "secretNominate" // what the player noted down at the start (a Hero, a terrain piece)
-	LiveSecretDone     LiveKind = "secretDone"     // the tier the player reports at the end
 
 	// The company Break Point in play and the Against the Odds items (epic 36y; docs/live-match.md).
 	LiveBreakAdjust LiveKind = "breakAdjust" // the manual correction of a company's starting models or casualties (Field, Delta, Note)
@@ -136,9 +133,12 @@ const (
 	LiveItemUsed    LiveKind = "itemUsed"    // a loaned or owned consumable used during the game (UnitID, Item, Index)
 
 	// Kinds older logs may hold and that can no longer be written (docs/live-match.md, "Company Break Point in play"): a "turn" entry is
-	// ignored by the fold; an "allIsLost" entry with Flee still takes the company's units in the Field off the board.
-	liveTurnLegacy      LiveKind = "turn"
-	liveAllIsLostLegacy LiveKind = "allIsLost"
+	// ignored by the fold; an "allIsLost" entry with Flee still takes the company's units in the Field off the board. The secret objective
+	// notes of Fog of War are ignored by the fold too; while their match is open they stay their author's (LiveKind.Secret).
+	liveTurnLegacy           LiveKind = "turn"
+	liveAllIsLostLegacy      LiveKind = "allIsLost"
+	liveSecretNominateLegacy LiveKind = "secretNominate"
+	liveSecretDoneLegacy     LiveKind = "secretDone"
 
 	// Informational entries about a pending end of the match (epic 6uh): written by the app, shown in the log, never undone and never
 	// part of the fold.
@@ -158,14 +158,19 @@ func (k LiveKind) Informational() bool {
 	return false
 }
 
-// EndCheckKind says whether entries of the kind belong to the end checks (the objectives, the MVP votes and the secret objectives): they are
+// EndCheckKind says whether entries of the kind belong to the end checks (the objectives, the MVP votes and the older secret notes): they are
 // made when the game is over and do not cancel a pending end of the match.
 func (k LiveKind) EndCheckKind() bool {
 	return k == LiveObjective || k == LiveMVPVote || k.Secret() || k.Informational()
 }
 
-// Secret says whether entries of the kind are hidden from other players while the match is open.
-func (k LiveKind) Secret() bool { return k == LiveSecretNominate || k == LiveSecretDone }
+// Secret says whether entries of the kind are older secret notes, hidden from other players while the match is open.
+func (k LiveKind) Secret() bool { return k == liveSecretNominateLegacy || k == liveSecretDoneLegacy }
+
+// legacy says whether the kind is one that older logs may hold and that can no longer be written.
+func (k LiveKind) legacy() bool {
+	return k == liveTurnLegacy || k == liveAllIsLostLegacy || k.Secret()
+}
 
 // LiveAction is one thing the player did. Fields by Kind:
 //
@@ -191,10 +196,6 @@ type LiveAction struct {
 	Note    string // 0-200 characters
 	Mounted bool
 	On      bool
-	// ObjectiveKey and Tier belong to the secret objectives: the scoring objective's key, and the tier reached (1-based; 0 clears).
-	// A secretNominate names the nominated Hero in UnitID, or a terrain piece in Note (UnitID 0); both empty clears the note.
-	ObjectiveKey string
-	Tier         int
 	// TargetCompanyID is the company an mvpVote is about.
 	TargetCompanyID int64
 	// Turn is what an older turn entry started (no longer written). Field is "start" or "casualties" for a breakAdjust.

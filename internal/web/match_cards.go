@@ -7,14 +7,13 @@ import (
 	"sync"
 )
 
-// matchCards are the cards of the match page that are not part of its main body (Against the Odds, secret objectives, log).
+// matchCards are the cards of the match page that are not part of its main body (Against the Odds, log).
 // The full page builds them in parallel and draws them in its own answer, so the first paint has them; a card that failed is nil
 // and its slot falls back to a fetch on load (hx-trigger="load"). The answers to writes (match_body) leave Cards nil: their slots
 // stay lazy.
 type matchCards struct {
-	ATO    *atoView
-	Secret *secretView
-	Log    *liveLogView
+	ATO *atoView
+	Log *liveLogView
 }
 
 // loadMatchCards builds the cards of a full match page, one goroutine each.
@@ -41,13 +40,6 @@ func (s *Server) loadMatchCards(r *http.Request, v *matchView) {
 			c.ATO = &a
 		}
 	})
-	if v.ShowSecret() {
-		run(func() {
-			if sv, err := s.secretCard(r, id, m); err == nil {
-				c.Secret = &sv
-			}
-		})
-	}
 	run(func() {
 		if lv, err := s.logViewOf(r, id, m, 0); err == nil {
 			c.Log = &lv

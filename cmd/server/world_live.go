@@ -3,12 +3,12 @@ package main
 import "github.com/iuya/battle-company-manager-ce-v2/internal/core"
 
 const (
-	fogName        = "Fog of War: secret notes, retreats and the dead"
+	fogName        = "Fog of War: retreats, the dead and a Broken company"
 	milestonesName = "Break and 25%: how far each company is from them"
 	loweredName    = "Lowered limit: more companies than the campaign allows now"
 )
 
-// liveAs records an action of the company's owner (the author of a secret note, who alone sees it while the match is open).
+// liveAs records an action of the company's owner.
 func (w *world) liveAs(co *wco, m core.Match, a core.LiveAction) error {
 	_, _, err := w.c().Apply(w.ctx, co.user, co.camp.id, m.ID, co.id, a)
 	return err
@@ -23,12 +23,11 @@ func (w *world) reverseFormation(co *wco) {
 	w.try("save a formation", w.c().SaveFormation(w.ctx, co.user, co.camp.id, co.id, order))
 }
 
-// fogCampaign plays Fog of War live: both players noted down their secret objectives (a Hero of their own, an enemy Hero and a terrain
-// piece), one reported a tier, and units retreated, died and one came back, so the Retreated and Field casualties zones are
+// fogCampaign plays Fog of War live: units retreated, died and one came back, so the Retreated and Field casualties zones are
 // filled and the Tabletop Simulator export of the live match puts those units in a second warband.
 func (w *world) fogCampaign() {
 	c := w.campaign("you", fogName,
-		"An open Fog of War game: each player has secret notes only they see until the match ends, one report of a tier, units that left the table and one that returned, and the Rangers are Broken.", defaultSettings)
+		"An open Fog of War game: units that left the table and one that returned, and the Rangers are Broken.", defaultSettings)
 	dwarves := w.company(c, "gimli", "Dwarves who keep their counsel", "Durin's Folk", true)
 	rangers := w.company(c, "aragorn", "Rangers of the silent road", "Arnor", true)
 	for _, co := range []*wco{dwarves, rangers} {
@@ -38,20 +37,12 @@ func (w *world) fogCampaign() {
 	w.reverseFormation(dwarves) // the live match follows a saved order inside each zone; the Rangers keep the default one
 	m := w.newMatchOn(c, "Fog of War", []*wco{dwarves}, []*wco{rangers})
 
-	_, ds, dw := w.roster(dwarves)
-	_, rs, rw := w.roster(rangers)
-	if len(ds) == 0 || len(rs) == 0 || len(dw) < 2 || len(rw) < 2 {
+	_, _, dw := w.roster(dwarves)
+	_, _, rw := w.roster(rangers)
+	if len(dw) < 2 || len(rw) < 2 {
 		w.gap("Fog of War live: the companies have too few units to retreat and fall")
 		return
 	}
-	// secret notes: a Sergeant of their own, a Sergeant of the enemy and a terrain piece, one tier reported
-	w.try("Dwarves note their own hero", w.liveAs(dwarves, m, core.LiveAction{Kind: core.LiveSecretNominate, ObjectiveKey: "ownHeroSurvives", UnitID: ds[0].ID}))
-	w.try("Dwarves note an enemy hero", w.liveAs(dwarves, m, core.LiveAction{Kind: core.LiveSecretNominate, ObjectiveKey: "enemyHeroHarmed", UnitID: rs[0].ID}))
-	w.try("Dwarves note a terrain piece", w.liveAs(dwarves, m, core.LiveAction{Kind: core.LiveSecretNominate, ObjectiveKey: "terrainPiece", Note: "The ruined watchtower"}))
-	w.try("Rangers note their own hero", w.liveAs(rangers, m, core.LiveAction{Kind: core.LiveSecretNominate, ObjectiveKey: "ownHeroSurvives", UnitID: rs[len(rs)-1].ID}))
-	w.try("Rangers note an enemy hero", w.liveAs(rangers, m, core.LiveAction{Kind: core.LiveSecretNominate, ObjectiveKey: "enemyHeroHarmed", UnitID: ds[len(ds)-1].ID}))
-	w.try("Rangers report a tier", w.liveAs(rangers, m, core.LiveAction{Kind: core.LiveSecretDone, ObjectiveKey: "ownHeroSurvives", Tier: 1}))
-
 	// zones: a Dwarf left the table, a Ranger fled a courage test, another died, and one Dwarf came back
 	w.try("a Dwarf retreats", w.liveAs(dwarves, m, core.LiveAction{Kind: core.LiveRetreat, UnitID: dw[0].ID, Why: "left", Note: "Carried the message away"}))
 	w.try("a second Dwarf retreats", w.liveAs(dwarves, m, core.LiveAction{Kind: core.LiveRetreat, UnitID: dw[1].ID, Why: "left"}))

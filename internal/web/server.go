@@ -39,8 +39,6 @@ type liveMatches interface {
 	EndChecks(ctx context.Context, user core.User, id, matchID int64) (core.EndChecks, error)
 	// MatchBreaks is the Break Point state of every company of the match (the "is broken" notice of the live banner); empty without live data.
 	MatchBreaks(ctx context.Context, id, matchID int64) (map[int64]core.LiveBreak, error)
-	// SecretObjectives is what the viewer may see of the secret objectives (their own while the match is open, everybody's after it);
-	SecretObjectives(ctx context.Context, user core.User, id, matchID int64) (core.SecretView, error)
 	// RollCourage rolls (or reads the typed dice of) a Courage test of a unit in the Field; it writes nothing, the player records the
 	// result with Apply. core.ErrRefused (not an editor, roll refused, unit not in the Field or without Courage), core.ErrNotFound.
 	RollCourage(ctx context.Context, user core.User, id, matchID, unitID int64, entered []int, thrown bool) (core.CourageRoll, error)
@@ -470,8 +468,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/live/{company}/actions", s.protected(s.handleLiveAction))
 	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/live/log/{entry}/undo", s.protected(s.handleLiveUndo))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/live/log", s.protected(readOnly(s.handleLiveLog)))
-	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/secret", s.protected(s.handleSecretCard))
-	mux.HandleFunc("POST /campaigns/{id}/matches/{match}/secret/{company}", s.protected(s.handleSecretWrite))
 	mux.HandleFunc("GET /campaigns/{id}/matches/{match}/events", s.protected(s.handleLiveEvents))
 	mux.HandleFunc("GET /campaigns/{id}/matches/new", s.protected(s.handleNewMatchPage))
 	mux.HandleFunc("GET /campaigns/{id}/matches/new/scenario", s.protected(s.handleNewScenarioCard))

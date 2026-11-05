@@ -194,8 +194,7 @@ or be targeted. **Return to the battle** is its own action kind (`return`): it c
 
 ## Practice matches in live mode
 
-A [practice match](matches.md#practice-matches) plays exactly like a real one: its companies are locked while it is open, their pages show the same "match active" state with the trackers and counters, the log and the
-secret objectives work. The live bar adds the Practice badge and the line "Practice match: no experience, influence, rewards or injuries. No aftermath will follow." (`liveView.Practice`). The objective entries stay, no MVP vote is asked, and
+A [practice match](matches.md#practice-matches) plays exactly like a real one: its companies are locked while it is open, their pages show the same "match active" state with the trackers and counters, and the log works. The live bar adds the Practice badge and the line "Practice match: no experience, influence, rewards or injuries. No aftermath will follow." (`liveView.Practice`). The objective entries stay, no MVP vote is asked, and
 say they are recorded only. When the match ends there is no aftermath feed: the sheet is never built.
 
 ## Aftermath feed
@@ -225,7 +224,7 @@ type liveMatches interface {
     Undo(ctx, user, id, matchID, entryID, companyID int64) (core.LiveCompany, error)                // ErrLiveDepends when a later entry depends on it
     Log(ctx, user, id, matchID, before int64, limit int) ([]core.LiveEntry, error)                  // not-undone entries newest first, CanUndo set for user
     Subscribe(ctx, user, id, matchID int64) (core.LiveStream, error)                                // Next blocks for a coalesced core.LiveBatch; ErrRefused at the caps
-    // EndChecks, RollCourage, MatchDefaults, SecretObjectives ... see below
+    // EndChecks, RollCourage, MatchDefaults ... see below
 }
 ```
 
@@ -311,7 +310,7 @@ LiveBreakAdjust LiveKind = "breakAdjust" // Field "start"|"casualties", Delta, N
 LiveCourageSkip LiveKind = "courageSkip" // UnitID, Reason
 ```
 
-`LiveAction` carries `Field`, `StandFast` (on a `broken` action: this Hero called Stand Fast), `Reason`, `Item` and `Index`. Old `turn` entries are ignored by the fold; old `allIsLost` flee entries still take the units off the board, and new ones are refused. `FoldLiveWith(inits, entries, LiveFoldConfig)` and `ValidateLogWith` take what the log does not hold: per company `BreakConfig{Percent, Extra, Exceptions}` (the company's own
+`LiveAction` carries `Field`, `StandFast` (on a `broken` action: this Hero called Stand Fast), `Reason`, `Item` and `Index`. Old `turn` entries are ignored by the fold; old `allIsLost` flee entries still take the units off the board, and new ones are refused. Old secret objective notes of Fog of War (`secretNominate`, `secretDone`) are ignored by the fold and new ones are refused; while their match is open only their author sees and undoes them, they send no live notification, and after the end they are lines of the log. They still count as the start of the game. `FoldLiveWith(inits, entries, LiveFoldConfig)` and `ValidateLogWith` take what the log does not hold: per company `BreakConfig{Percent, Extra, Exceptions}` (the company's own
 `breakPointPercentage` or `campaign.breakPoint.default.percent`; `Extra` is the company's creatures; the exceptions are the match scenario's `scenarioExceptions` as sentences), `BreakModels` per unit and `NoStandFast` (non-Heroes, Wanderers, a Hero whose injuries took Stand Fast away). The service builds the config at every read
 (`liveContext.breakConfig`); nothing is stored. `FoldLive` is the same with no config, and then nothing ever breaks. `LiveState.Break(company)` returns `LiveBreak{Percent, StartingModels, Casualties, Threshold100, Broken, AtLeast, LeftTable, EndLossPercent, Exceptions}` (`BreakAt()`, `ToBreak()`, `EndAt()`, `ToEnd()` in whole models, `EndLeftPercent()`);
 `LiveCompany` carries `Break`; `LiveUnit` carries `BreakModels`, `CourageHow` and `Temporary`. Migration `00021_live_break_point_kinds.sql` allows the kinds. `broken` and `courageSkip` are allowed even when the company is not Broken (the table may count differently); both are refused for a unit outside the Field.
@@ -345,7 +344,7 @@ The match ends only when every participant confirms ([matches.md](matches.md#end
 
 - **Banner.** When a proposal is pending, every company page of the match (owners and viewers, live via the `match` event; `GET .../live/end/banner?company=N`) shows `#live-end` in the sticky live banner: "Hador proposes to end: Rohan won · Waiting for Gorgoroth". The waiting owner gets **Confirm** (the Confirm sheet) and **Keep playing**, a confirmed owner **Withdraw**,
   the organiser and administrators the override, viewers no buttons. End match is hidden while an end is pending.
-- **What is allowed while pending.** `objective`, `mvpVote` and the secret-objective entries are accepted and do **not** cancel the proposal. **Any other action or undo** cancels the proposal first (confirmations dropped, a log line "Ending cancelled: Aldor wounded Grashnak"), so the game is never played under
+- **What is allowed while pending.** `objective` and `mvpVote` entries are accepted and do **not** cancel the proposal. **Any other action or undo** cancels the proposal first (confirmations dropped, a log line "Ending cancelled: Aldor wounded Grashnak"), so the game is never played under
   a confirmed end. The cancellation happens after the game entry is stored, in a second transaction.
 - **Log.** Informational entries `endProposed`, `endConfirmed`, `endWithdrawn`, `endCancelled`, `endOverride` appear in the log with the company colour and the author (`LiveKind.Informational()`): written by `LiveService.RecordEnd` from `Matches.EndNotify`, skipped by the fold, not undoable and refused when a player posts them. `LiveService.WithEnds` makes
   `Apply` and `Undo` cancel a pending end after any entry that is not an end check (`LiveKind.EndCheckKind()`). Migration `00023` allows the kinds. Every proposal change notifies the live channel with company 0, so open pages refetch; the last confirmation emits `ended`.

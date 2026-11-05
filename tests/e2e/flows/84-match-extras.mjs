@@ -1,4 +1,4 @@
-// A three-company match on the Limits campaign: Fog of War's secret objectives on the match page, a cavalry company's live card
+// A three-company match on the Limits campaign: Fog of War without a secret objectives card, a cavalry company's live card
 // (granted rules, the mount lost), and a tie in the MVP votes of the end sheets (two opposing players vote for different units).
 import { chooseScenario, endMatch, confirmEnd, assert, campaignId, MODAL, layout, SIZES } from '../lib/util.mjs';
 
@@ -34,44 +34,10 @@ export default async function (h) {
   });
   if (!mid) return;
 
-  await h.step('secret objectives: the match page lists the three Fog of War objectives by label, with distinct heroes to note, and keeps them private', async () => {
+  await h.step('secret objectives: a Fog of War match has no card for them, the rules still print how it is scored', async () => {
     await eowyn.goto(`/campaigns/${cid}/matches/${mid}`);
-    await eowyn.page.waitForSelector('#secret-objectives');
-    await eowyn.settle(500);
-    const labels = await eowyn.page.$$eval('#secret-objectives fieldset > legend', (l) => l.map((x) => x.innerText.trim()));
-    assert.deepEqual(labels, ['Own hero survives', 'Enemy hero harmed', 'Terrain piece'], 'the objectives are listed by their label, not their key');
-    assert.ok(!/ownHeroSurvives|enemyHeroHarmed|terrainPiece/.test(await eowyn.page.$eval('#secret-objectives', (e) => e.innerText)), 'no internal key is shown');
-    // the heroes to choose from have distinct names (two Sergeants of one kind are told apart)
-    const opts = await eowyn.page.$$eval('#secret-objectives select[name=unit]', (s) => s.map((x) => [...x.options].map((o) => o.text)));
-    assert.equal(opts.length, 2, 'two nomination lists (own hero, enemy hero)');
-    for (const list of opts) assert.equal(new Set(list).size, list.length, `heroes are told apart: ${list}`);
-    assert.ok(opts[0].some((t) => /Sergeant\) \d/.test(t)) || opts[0].length >= 2, 'own heroes listed');
-    // note a hero and a tier, and see them come back
-    const own = await eowyn.page.$eval('#secret-objectives select[name=unit]', (s) => { const o = [...s.options].find((x) => x.value !== '0'); return { value: o.value, text: o.text }; });
-    await eowyn.page.select('#secret-objectives select[name=unit]', own.value);
-    const mark = eowyn.reqs.length;
-    await eowyn.click('#secret-objectives form button', 'Save note');
-    await eowyn.settle(400);
-    await eowyn.waitText(`Noted: ${own.text}`);
-    const sent = eowyn.reqs.slice(mark).filter((r) => r.includes('> '));
-    assert.equal(sent.filter((r) => /GET .*\/secret$/.test(r)).length, 0, `a click inside the card must not refetch it (it raced the save): ${sent}`);
-    assert.equal(await eowyn.page.$eval('#secret-objectives select[name=unit]', (s) => s.options[s.selectedIndex].text), own.text, 'the noted hero is the one selected after the save');
-    await eowyn.page.evaluate(() => document.querySelector('#secret-objectives input[name=tier][value="2"]').click());
-    await eowyn.page.evaluate(() => [...document.querySelectorAll('#secret-objectives form')].find((f) => f.querySelector('input[name=tier]')).querySelector('button').click());
-    await eowyn.settle(400);
-    assert.ok(await eowyn.page.$eval('#secret-objectives input[name=tier][value="2"]', (r) => r.checked), 'the tier is kept');
-    // the opposing player sees that Riders noted something, not what
-    await sauron.goto(`/campaigns/${cid}/matches/${mid}`);
-    await sauron.page.waitForSelector('#secret-objectives');
-    const st = await sauron.page.$eval('#secret-objectives', (e) => e.innerText);
-    assert.match(st, /Noted already: Riders on every horse/);
-    assert.ok(!st.includes(own.text.split(' (')[0] + ' (Sergeant)') || own.text === '' || !/Noted: /.test(st), 'the other player sees no note of Éowyn');
-    for (const scheme of ['light', 'dark']) for (const w of SIZES) {
-      await layout(eowyn, w, scheme);
-      assert.ok(await eowyn.noHScroll(), `no horizontal scroll at ${w}px ${scheme}`);
-      await (await eowyn.page.$('#secret-objectives')).screenshot({ path: `out/secret-objectives-${w}-${scheme}.png` });
-    }
-    await layout(eowyn, 1280, 'light');
+    assert.equal(await eowyn.page.$('#secret-objectives'), null, 'no secret objectives card');
+    assert.match(await eowyn.page.$eval('main', (m) => m.textContent), /secretly note down/, 'the printed objectives are still there to read');
   });
 
   // The live card of every unit of the company: its mount chip, struck state and special rules.
@@ -142,15 +108,10 @@ export default async function (h) {
     await gimli.page.screenshot({ path: 'out/mvp-tie.png' });
   });
 
-  await h.step('match end: all three players confirm; the secret notes are revealed with their score and the tie is left to the owner in the aftermath', async () => {
+  await h.step('match end: all three players confirm with the winner and the MVP alone; the tie is left to the owner in the aftermath', async () => {
     await sauron.waitText('Ended');
     await sauron.goto(`/campaigns/${cid}/matches/${mid}`);
-    await sauron.page.waitForSelector('#secret-objectives');
-    const rev = await sauron.page.$eval('#secret-objectives', (e) => e.innerText);
-    assert.match(rev, /The match is over: the notes are revealed\./);
-    assert.match(rev, /Riders on every horse · Own hero survives/, 'the label is shown, with the company');
-    assert.match(rev, /Noted: Warrior of Rohan \(Sergeant\) \d/);
-    assert.match(rev, /Scored 3 VP/, 'tier 2 is worth 3 VP');
+    assert.equal(await sauron.page.$('#secret-objectives'), null, 'nothing to reveal at the end');
     // the tie: the owner of the voted company picks in the aftermath
     await sauron.goto(`/campaigns/${cid}/matches/${mid}/aftermath/${sCo}`);
     const txt = await sauron.text();

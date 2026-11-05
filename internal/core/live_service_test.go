@@ -650,115 +650,71 @@ func TestLiveObjectiveAndMVPEndChecks(t *testing.T) {
 	}
 }
 
-func TestSecretObjectivesAreTheirAuthorsUntilTheEnd(t *testing.T) {
+// Secret objectives are the players' now: an older log keeps its notes, private until the end, and no new one can be written.
+func TestOlderSecretNotesStayTheirAuthors(t *testing.T) {
 	f := newLiveFixture(t)
 	me, them := f.user(liveOwner1), f.user(liveOwner2)
 	me.DisplayName, them.DisplayName = "Frodo", "Sam"
-	apply := func(u User, company int64, a LiveAction) (LiveEntry, error) {
-		_, e, err := f.svc.Apply(f.ctx, u, 5, 1, company, a)
-		return e, err
+	before, err := f.svc.Live(f.ctx, me, 5, 1)
+	if err != nil {
+		t.Fatal(err)
 	}
-	own := LiveAction{Kind: LiveSecretNominate, ObjectiveKey: "ownHeroSurvives", UnitID: 102}
-
-	if _, err := apply(me, 1, own); !errors.Is(err, ErrRefused) {
-		t.Errorf("no scenario yet: %v", err)
-	}
-	f.match.Scenario = &MatchScenario{Kind: ScenarioRulebook, Name: "Fog of War"}
-
-	for name, tc := range map[string]struct {
-		a   LiveAction
-		err error
-	}{
-		"the Leader with other Heroes": {LiveAction{Kind: LiveSecretNominate, ObjectiveKey: "ownHeroSurvives", UnitID: 101}, ErrRefused},
-		"a warrior":                    {LiveAction{Kind: LiveSecretNominate, ObjectiveKey: "ownHeroSurvives", UnitID: 106}, ErrRefused},
-		"an enemy for an own hero":     {LiveAction{Kind: LiveSecretNominate, ObjectiveKey: "ownHeroSurvives", UnitID: 202}, ErrRefused},
-		"an own hero for an enemy one": {LiveAction{Kind: LiveSecretNominate, ObjectiveKey: "enemyHeroHarmed", UnitID: 102}, ErrRefused},
-		"a plain objective":            {LiveAction{Kind: LiveSecretNominate, ObjectiveKey: "enemyLeader", UnitID: 202}, ErrRefused},
-		"terrain and a unit":           {LiveAction{Kind: LiveSecretNominate, ObjectiveKey: "terrainPiece", UnitID: 202, Note: "x"}, ErrInvalidLive},
-		"a tier past the last":         {LiveAction{Kind: LiveSecretDone, ObjectiveKey: "ownHeroSurvives", Tier: 9}, ErrInvalidLive},
-	} {
-		if _, err := apply(me, 1, tc.a); !errors.Is(err, tc.err) {
-			t.Errorf("%s: %v", name, err)
+	for _, kind := range []LiveKind{liveSecretNominateLegacy, liveSecretDoneLegacy} {
+		if _, _, err := f.svc.Apply(f.ctx, me, 5, 1, 1, LiveAction{Kind: kind, UnitID: before.Units[0].UnitID}); !errors.Is(err, ErrInvalidLive) {
+			t.Errorf("%s can no longer be written: %v", kind, err)
 		}
 	}
-
-	// the author notes and reports; it can be changed (the last entry counts)
-	for _, a := range []LiveAction{own,
-		{Kind: LiveSecretNominate, ObjectiveKey: "enemyHeroHarmed", UnitID: 202},
-		{Kind: LiveSecretNominate, ObjectiveKey: "terrainPiece", Note: "the old mill"},
-		{Kind: LiveSecretDone, ObjectiveKey: "ownHeroSurvives", Tier: 1},
-		{Kind: LiveSecretDone, ObjectiveKey: "ownHeroSurvives", Tier: 2}} {
-		if _, err := apply(me, 1, a); err != nil {
-			t.Fatalf("%v: %v", a.Kind, err)
+	var note LiveEntry
+	for _, kind := range []LiveKind{liveSecretNominateLegacy, liveSecretDoneLegacy} {
+		e, err := f.repo.Update(f.ctx, 5, 1, me, func(LiveSnapshot) (LiveChange, error) {
+			return LiveChange{Append: &LiveEntry{MatchID: 1, CompanyID: 1, Action: LiveAction{Kind: kind, Note: "the old mill"}, Text: "Frodo noted the old mill"}}, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if kind == liveSecretNominateLegacy {
+			note = e
 		}
 	}
-	mine, err := f.svc.SecretObjectives(f.ctx, me, 5, 1)
-	if err != nil || mine.Revealed || len(mine.Lines) != 3 {
-		t.Fatalf("the author sees her three: %+v %v", mine, err)
+	after, err := f.svc.Live(f.ctx, me, 5, 1)
+	if err != nil || !slices.EqualFunc(before.Units, after.Units, func(a, b LiveUnit) bool { return a.UnitID == b.UnitID && a.Zone == b.Zone && a.Wounds == b.Wounds }) {
+		t.Errorf("the notes change nothing in the state: %v", err)
 	}
-	for _, l := range mine.Lines {
-		if l.Key == "ownHeroSurvives" && (l.Tier != 2 || l.Points != 3 || l.Nominee == "" || l.Label != "Own hero survives") {
-			t.Errorf("own hero: %+v", l)
+	secrets := func(u User) (n int, canUndo bool) {
+		log, err := f.svc.Log(f.ctx, u, 5, 1, 0, 50)
+		if err != nil {
+			t.Fatal(err)
 		}
-	}
-
-	// everybody else sees nothing: not the log, not the view (the organiser and an administrator are players too)
-	for _, u := range []User{them, f.user(liveOwner3), f.user(matchOrganiser), {ID: 5, Role: RoleAdmin}} {
-		view, err := f.svc.SecretObjectives(f.ctx, u, 5, 1)
-		if err != nil || len(view.Lines) != 0 || view.Revealed || !slices.Equal(view.Others, []string{"Rangers"}) {
-			t.Errorf("user %d sees %+v %v", u.ID, view, err)
-		}
-		log, _ := f.svc.Log(f.ctx, u, 5, 1, 0, 50)
 		for _, e := range log {
-			if e.Action.Kind.Secret() || strings.Contains(e.Text, "ownHeroSurvives") || strings.Contains(e.Text, "old mill") {
-				t.Errorf("user %d sees the secret entry %+v", u.ID, e)
+			if e.Action.Kind.Secret() {
+				n++
+				canUndo = canUndo || e.CanUndo
 			}
 		}
+		return n, canUndo
 	}
-	log, _ := f.svc.Log(f.ctx, me, 5, 1, 0, 50)
-	n := 0
-	for _, e := range log {
-		if e.Action.Kind.Secret() {
-			n++
-			if !e.CanUndo {
-				t.Error("the author can undo her entry")
-			}
+	// nobody else sees them while the match is open, the organiser and an administrator included
+	for _, u := range []User{them, f.user(liveOwner3), f.user(matchOrganiser), {ID: 5, Role: RoleAdmin}} {
+		if n, _ := secrets(u); n != 0 {
+			t.Errorf("user %d sees %d secret notes", u.ID, n)
 		}
 	}
-	if n != 5 {
-		t.Errorf("the author's log has her five entries: %d", n)
+	if n, canUndo := secrets(me); n != 2 || !canUndo {
+		t.Errorf("the author sees %d notes, undo %v", n, canUndo)
 	}
-	// only the author undoes a secret entry; the organiser, who cannot see it, cannot either
-	var first LiveEntry
-	for _, e := range log {
-		if e.Action.Kind == LiveSecretNominate {
-			first = e
-		}
-	}
+	// only the author undoes one
 	for _, u := range []User{them, f.user(matchOrganiser)} {
-		if _, err := f.svc.Undo(f.ctx, u, 5, 1, first.ID, 2); !errors.Is(err, ErrRefused) {
-			t.Errorf("user %d undoes a secret: %v", u.ID, err)
+		if _, err := f.svc.Undo(f.ctx, u, 5, 1, note.ID, 2); !errors.Is(err, ErrRefused) {
+			t.Errorf("user %d undoes a secret note: %v", u.ID, err)
 		}
 	}
-	if _, err := f.svc.Undo(f.ctx, me, 5, 1, first.ID, 1); err != nil {
+	if _, err := f.svc.Undo(f.ctx, me, 5, 1, note.ID, 1); err != nil {
 		t.Errorf("the author undoes: %v", err)
 	}
-
-	// after the end everything is revealed
+	// after the end they are lines of the log like any other
 	f.repo.ended[1], f.match.Ended = true, true
-	view, err := f.svc.SecretObjectives(f.ctx, them, 5, 1)
-	if err != nil || !view.Revealed || len(view.Lines) == 0 {
-		t.Fatalf("revealed: %+v %v", view, err)
-	}
-	log, _ = f.svc.Log(f.ctx, them, 5, 1, 0, 50)
-	seen := 0
-	for _, e := range log {
-		if e.Action.Kind.Secret() {
-			seen++
-		}
-	}
-	if seen == 0 {
-		t.Error("the log shows the secret entries after the end")
+	if n, _ := secrets(them); n == 0 {
+		t.Error("the log shows the secret notes after the end")
 	}
 	f.repo.ended[1], f.match.Ended = false, false
 }

@@ -111,7 +111,6 @@ func (f *fixture) lazyCards() {
 	f.cardsStubbed = true
 	errNo := errors.New("card not stubbed")
 	f.camp.EXPECT().AgainstTheOdds(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.ATO{}, errNo).AnyTimes()
-	f.camp.EXPECT().SecretObjectives(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.SecretView{}, errNo).AnyTimes()
 	f.camp.EXPECT().EndChecks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(core.EndChecks{}, errNo).AnyTimes()
 	f.camp.EXPECT().Log(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errNo).AnyTimes()
 	f.camp.EXPECT().UnitLog(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errNo).AnyTimes()

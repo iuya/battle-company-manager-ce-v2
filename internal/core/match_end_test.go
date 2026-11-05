@@ -303,7 +303,7 @@ func TestLivePlayDuringAPendingEnd(t *testing.T) {
 }
 
 func TestEndCheckKinds(t *testing.T) {
-	for k, want := range map[LiveKind]bool{LiveObjective: true, LiveMVPVote: true, LiveSecretDone: true, LiveSecretNominate: true, LiveEndCancelled: true,
+	for k, want := range map[LiveKind]bool{LiveObjective: true, LiveMVPVote: true, liveSecretDoneLegacy: true, liveSecretNominateLegacy: true, LiveEndCancelled: true,
 		LiveWound: false, LiveStatChange: false, LiveItemUsed: false, LiveBreakAdjust: false} {
 		if k.EndCheckKind() != want {
 			t.Errorf("%s: %v", k, !want)

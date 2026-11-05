@@ -21,7 +21,7 @@ import (
 
 // TestLiveActionsSurviveExtremeValues (robustness): the sweep above puts the same hostile value into every field at once, so
 // a request is almost always refused at the first field. This one sends every live match POST (the action kinds of
-// {company}/actions, undo, courage roll, the end checks, the secret objectives, the end-of-match votes) with a valid form in which ONE
+// {company}/actions, undo, courage roll, the end checks, the end-of-match votes) with a valid form in which ONE
 // field at a time takes an extreme but individually plausible value (2^31 wounds, negative counts, the unit of another company, match
 // or campaign, a wrong zone, an ended match, ...), also repeated, against the live state of a real seeded match. Every answer is a 2xx,
 // 3xx or 4xx, never a 5xx or a panic, and after every request the folded state of both companies is sound: every tracker within
@@ -284,7 +284,7 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 	entries = append(entries, 0, -1, 1<<62)
 	for _, e := range entries {
 		for _, cp := range []string{str(a), str(c), "", "0", "-1", "99999999999999999999", str(otherCos[0])} {
-			for _, from := range []string{"", "log", "card", "end", "endcard", "secret", "x"} {
+			for _, from := range []string{"", "log", "card", "end", "endcard", "x"} {
 				send(fmt.Sprintf("/campaigns/%d/matches/%d/live/log/%d/undo", camp, mt, e), map[string]string{"company": cp, "from": from})
 				if !full {
 					break
@@ -308,7 +308,7 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 	}
 	check("courage roll")
 
-	// the end checks: objective, mvp vote, secret objectives
+	// the end checks: objective, mvp vote
 	for _, co := range []int64{a, c, otherCos[0], endedCos[0], 0, -1, 1 << 62} {
 		for _, m := range []int64{mt, other, endedMatch, 0, -1} {
 			for _, u := range unitIDs {
@@ -323,19 +323,10 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 			}
 			for _, v := range numbers {
 				send(fmt.Sprintf("/campaigns/%d/matches/%d/live/%d/mvp", camp, m, co), map[string]string{"unit": v, "page": v})
-				secret := fmt.Sprintf("/campaigns/%d/matches/%d/secret/%d", camp, m, co)
-				send(secret, map[string]string{"kind": "done", "key": "x", "tier": v})
-				send(secret, map[string]string{"kind": "nominate", "key": "x", "unit": v})
-			}
-			for _, v := range texts {
-				secret := fmt.Sprintf("/campaigns/%d/matches/%d/secret/%d", camp, m, co)
-				send(secret, map[string]string{"kind": "nominate", "key": v, "note": "a tree"})
-				send(secret, map[string]string{"kind": "nominate", "key": "x", "note": v})
-				send(secret, map[string]string{"kind": v, "key": "x"})
 			}
 		}
 	}
-	check("end checks and secrets")
+	check("end checks")
 
 	// the pending end of a match
 	for _, step := range []string{"propose", "confirm", "withdraw", "cancel", "override"} {

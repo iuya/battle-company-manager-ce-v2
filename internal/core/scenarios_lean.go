@@ -127,15 +127,8 @@ func LeanScenarios(d *lean.Document) ([]ScenarioInfo, error) {
 			for i, opt := range o.Options {
 				sentences[i] = opt.Text
 			}
-			so := ScoringObjective{Label: ObjectiveLabel(o.Key), Key: o.Key, Text: ComposeObjectiveText(o.Instruction, sentences), Side: o.Side, Kind: o.Kind, Instruction: o.Instruction, Secret: o.Secret, MaxPoints: LeanMaxPoints(o.Kind, o.Count, o.Options)}
+			so := ScoringObjective{Label: ObjectiveLabel(o.Key), Key: o.Key, Text: ComposeObjectiveText(o.Instruction, sentences), Side: o.Side, Kind: o.Kind, Instruction: o.Instruction, MaxPoints: LeanMaxPoints(o.Kind, o.Count, o.Options)}
 			info.Scoring = append(info.Scoring, so.Text)
-			if n := o.Nomination; n != nil {
-				so.Nomination = &ObjectiveNomination{From: n.From, AllowLeader: n.AllowLeader, Where: n.Where}
-			}
-			for _, opt := range o.Options {
-				so.Options = append(so.Options, ScoringTier{Text: opt.Text, Points: opt.Points})
-			}
-			slices.SortStableFunc(so.Options, func(a, b ScoringTier) int { return a.Points - b.Points }) // the tiers ascend whatever order the sentences are printed in
 			info.ScoringObjectives = append(info.ScoringObjectives, so)
 		}
 		for _, rw := range rewards {

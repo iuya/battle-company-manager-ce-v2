@@ -329,7 +329,7 @@ func TestSeedWorld(t *testing.T) {
 	if !found {
 		t.Error("the Shire company of the cemetery is missing")
 	}
-	checkLiveAndLimit(t, ctx, b, byName, you)
+	checkLiveAndLimit(t, ctx, b, byName)
 	checkATOMatches(t, ctx, b, byName)
 	t.Run("queries do not grow with the data", func(t *testing.T) { assertQueryCounts(ctx, t, b, counter, conn, admin) })
 }
@@ -453,9 +453,9 @@ func checkATOMatches(t *testing.T, ctx context.Context, b *backend, byName map[s
 	}
 }
 
-// checkLiveAndLimit asserts the Fog of War game (secret notes, the zones of retreated and fallen units, the live Tabletop Simulator
+// checkLiveAndLimit asserts the Fog of War game (the zones of retreated and fallen units, the live Tabletop Simulator
 // export with a second warband) and the campaign whose limit was lowered after companies existed.
-func checkLiveAndLimit(t *testing.T, ctx context.Context, b *backend, byName map[string]core.CampaignSummary, you core.User) {
+func checkLiveAndLimit(t *testing.T, ctx context.Context, b *backend, byName map[string]core.CampaignSummary) {
 	t.Helper()
 	milestones, ok := byName[milestonesName]
 	if !ok {
@@ -514,13 +514,6 @@ func checkLiveAndLimit(t *testing.T, ctx context.Context, b *backend, byName map
 	if err != nil || len(matches) != 1 {
 		t.Fatalf("Fog of War matches: %v %v", matches, err)
 	}
-	view, err := b.campaigns.SecretObjectives(ctx, you, fog.ID, matches[0].ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if view.Revealed || len(view.Others) == 0 {
-		t.Errorf("the secret notes of an open match are hidden from a stranger: %+v", view)
-	}
 	cos, err := b.campaigns.Companies(ctx, fog.ID)
 	if err != nil || len(cos) != 2 {
 		t.Fatalf("Fog of War companies: %v %v", cos, err)
@@ -529,10 +522,6 @@ func checkLiveAndLimit(t *testing.T, ctx context.Context, b *backend, byName map
 		_, _, owner, err := b.auth.Login(ctx, map[string]string{"Dwarves who keep their counsel": "gimli@example.com", "Rangers of the silent road": "aragorn@example.com"}[c.Name], "demo-password")
 		if err != nil {
 			t.Fatal(err)
-		}
-		own, err := b.campaigns.SecretObjectives(ctx, owner, fog.ID, matches[0].ID)
-		if err != nil || len(own.Lines) == 0 {
-			t.Errorf("%s sees no secret note of their own: %v %+v", c.Name, err, own)
 		}
 		lc, err := b.campaigns.Live(ctx, owner, fog.ID, c.ID)
 		if err != nil {

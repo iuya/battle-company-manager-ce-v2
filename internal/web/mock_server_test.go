@@ -356,45 +356,6 @@ func (c *MockliveMatchesRollCourageCall) DoAndReturn(f func(context.Context, cor
 	return c
 }
 
-// SecretObjectives mocks base method.
-func (m *MockliveMatches) SecretObjectives(ctx context.Context, user core.User, id, matchID int64) (core.SecretView, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SecretObjectives", ctx, user, id, matchID)
-	ret0, _ := ret[0].(core.SecretView)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SecretObjectives indicates an expected call of SecretObjectives.
-func (mr *MockliveMatchesMockRecorder) SecretObjectives(ctx, user, id, matchID any) *MockliveMatchesSecretObjectivesCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecretObjectives", reflect.TypeOf((*MockliveMatches)(nil).SecretObjectives), ctx, user, id, matchID)
-	return &MockliveMatchesSecretObjectivesCall{Call: call}
-}
-
-// MockliveMatchesSecretObjectivesCall wrap *gomock.Call
-type MockliveMatchesSecretObjectivesCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockliveMatchesSecretObjectivesCall) Return(arg0 core.SecretView, arg1 error) *MockliveMatchesSecretObjectivesCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockliveMatchesSecretObjectivesCall) Do(f func(context.Context, core.User, int64, int64) (core.SecretView, error)) *MockliveMatchesSecretObjectivesCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockliveMatchesSecretObjectivesCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (core.SecretView, error)) *MockliveMatchesSecretObjectivesCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // Subscribe mocks base method.
 func (m *MockliveMatches) Subscribe(ctx context.Context, user core.User, id, matchID int64) (core.LiveStream, error) {
 	m.ctrl.T.Helper()
@@ -4090,45 +4051,6 @@ func (c *MockcampaignsScenariosCall) Do(f func(context.Context, int64) ([]core.S
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsScenariosCall) DoAndReturn(f func(context.Context, int64) ([]core.ScenarioInfo, error)) *MockcampaignsScenariosCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// SecretObjectives mocks base method.
-func (m *Mockcampaigns) SecretObjectives(ctx context.Context, user core.User, id, matchID int64) (core.SecretView, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SecretObjectives", ctx, user, id, matchID)
-	ret0, _ := ret[0].(core.SecretView)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SecretObjectives indicates an expected call of SecretObjectives.
-func (mr *MockcampaignsMockRecorder) SecretObjectives(ctx, user, id, matchID any) *MockcampaignsSecretObjectivesCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SecretObjectives", reflect.TypeOf((*Mockcampaigns)(nil).SecretObjectives), ctx, user, id, matchID)
-	return &MockcampaignsSecretObjectivesCall{Call: call}
-}
-
-// MockcampaignsSecretObjectivesCall wrap *gomock.Call
-type MockcampaignsSecretObjectivesCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockcampaignsSecretObjectivesCall) Return(arg0 core.SecretView, arg1 error) *MockcampaignsSecretObjectivesCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockcampaignsSecretObjectivesCall) Do(f func(context.Context, core.User, int64, int64) (core.SecretView, error)) *MockcampaignsSecretObjectivesCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsSecretObjectivesCall) DoAndReturn(f func(context.Context, core.User, int64, int64) (core.SecretView, error)) *MockcampaignsSecretObjectivesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

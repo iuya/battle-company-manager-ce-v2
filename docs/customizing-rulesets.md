@@ -898,8 +898,8 @@ The app plays a scenario from the scenario tables of `campaign.scenarioSelection
   - `each`: a count of items worth a number of points each (`item`, `count`).
   - `eachTiers`: every item (each of 5 Objective Markers) scores its own best tier.
   - `side` (`both`, `attacker`, `defender`) restricts an objective to a role.
-  - `secret: true` keeps it hidden until the end. It takes:
-    - an `instruction` (what the player notes down);
+  - `secret: true` says the rules keep it hidden until the end. The players do that themselves: the app prints the objective in How it is scored and builds no form from these keys, which are validated and informative. It takes:
+    - an `instruction` (what the player notes down), printed before the options;
     - a `nomination` with `from` (`ownHeroes`, `enemyHeroes` or `terrain`), `allowLeader: onlyHero` (only for heroes) and `where: opponentHalf` (only for terrain).
 
 <!-- example: custom-scenario.json -->

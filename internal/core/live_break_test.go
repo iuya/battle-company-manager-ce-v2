@@ -225,6 +225,33 @@ func TestOlderTurnAndAllIsLostEntries(t *testing.T) {
 			t.Errorf("unit %d should have left the board: %+v", i, x)
 		}
 	}
+	if err := ValidateLogWith(b.inits, old, b.cfg); err != nil {
+		t.Errorf("an older entry must not stop an undo elsewhere in the log: %v", err)
+	}
+}
+
+func TestOlderSecretNotesFoldToNothing(t *testing.T) {
+	b := newBP(t, 13, 50)
+	b.fall(3)
+	want := b.state().Break(1)
+	old := append(append([]LiveEntry{}, b.entries...),
+		LiveEntry{ID: 90, Seq: 90, CompanyID: 1, UnitID: 8, Action: LiveAction{Kind: liveSecretNominateLegacy, UnitID: 8}},
+		LiveEntry{ID: 91, Seq: 91, CompanyID: 1, Action: LiveAction{Kind: liveSecretDoneLegacy}})
+	s := FoldLiveWith(b.inits, old, b.cfg)
+	if got := s.Break(1); got.Broken != want.Broken || got.Casualties != want.Casualties {
+		t.Errorf("the notes change nothing: %+v, want %+v", got, want)
+	}
+	if x, _ := s.Unit(8); x.Zone != ZoneField {
+		t.Errorf("the noted unit stays on the field: %+v", x)
+	}
+	if err := ValidateLogWith(b.inits, old, b.cfg); err != nil {
+		t.Errorf("an older note must not stop an undo elsewhere in the log: %v", err)
+	}
+	for _, kind := range []LiveKind{liveSecretNominateLegacy, liveSecretDoneLegacy} {
+		if _, err := b.try(1, LiveAction{Kind: kind, UnitID: 8}); !errors.Is(err, ErrInvalidLive) {
+			t.Errorf("%s can no longer be written: %v", kind, err)
+		}
+	}
 }
 
 func TestBreakPointCountsFromTheLog(t *testing.T) {

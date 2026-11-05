@@ -3587,17 +3587,17 @@ Example:
 |---|---|---|---|---|---|
 | `key` | string | yes | - | not empty | A key unique within the scenario. |
 | `count` | integer | no | - | 0..99 | For each / eachTiers: how many items. |
-| `instruction` | string | no | - | - | The note-down sentence of a secret objective. |
+| `instruction` | string | no | - | - | The note-down sentence of a secret objective, printed before the options in How it is scored. |
 | `item` | string | no | - | - | For each / eachTiers: what is counted. |
 | `kind` | string | no | - | - | tiers (the best tier reached), each (item times pointsEach up to count), eachTiers (every item scores its own best tier). |
 | `nomination` | [Nomination](#nomination) | no | - | - | What the player notes down. |
 | `options` | list of [ScoringOption](#scoringoption) | no | - | - | The printed sentences with their points. |
-| `secret` | boolean | no | - | - | true: kept hidden until the end of the game. |
+| `secret` | boolean | no | - | - | true: the rules keep it hidden until the end of the game. Informative: the players keep it themselves. |
 | `side` | string | no | `"both"` | `both`, `attacker`, `defender` | both (default), attacker or defender. |
 
 ### Nomination
 
-What a player notes down at the start for a secret objective.
+What a player notes down at the start for a secret objective. Informative: the players keep it themselves.
 
 Found at: `scenarios[].scoring[].nomination`.
 

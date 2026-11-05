@@ -19,6 +19,5 @@ var _ interface {
 	RegenerateInvite(ctx context.Context, actor core.User, campaignID int64) (core.Invite, error)
 	MatchBreaks(ctx context.Context, id, matchID int64) (map[int64]core.LiveBreak, error)
 	MatchStarted(ctx context.Context, id, matchID int64) (bool, error)
-	SecretObjectives(ctx context.Context, user core.User, id, matchID int64) (core.SecretView, error)
 	Subscribe(ctx context.Context, user core.User, id, matchID int64) (core.LiveStream, error)
 } = (*campaignsFacade)(nil)

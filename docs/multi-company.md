@@ -188,7 +188,6 @@ Other entry points:
 
 - Companies of one player may share a side or face each other.
   Ending a match counts one confirmation per company, and one owner confirms all of theirs with one tap.
-- Secret objectives are written per company.
   A company is opposing for a voter who owns a company on another side, so a player with companies on two sides votes every company of the match, their own included.
 - Against the Odds compares only matches of two sides with one company each.
 

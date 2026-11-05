@@ -120,6 +120,20 @@ func TestMatchPageOffersScenarioControlsToEditorsOnly(t *testing.T) {
 	}
 }
 
+// Secret objectives are the players': the match page of a scenario that prints them has no card for them and the routes are gone.
+func TestFogOfWarHasNoSecretObjectives(t *testing.T) {
+	m := editableMatch()
+	m.Scenario = &core.MatchScenario{Kind: core.ScenarioRulebook, Name: "Fog of War"}
+	f := matchWrite(t, m)
+	f.camp.EXPECT().Scenarios(gomock.Any(), int64(7)).Return([]core.ScenarioInfo{{Name: "Fog of War", Scoring: []string{"Secretly note down one of your own Heroes."}}}, nil).AnyTimes()
+	if body := f.do(f.signedIn(httpGet(testMatchPath))).Body.String(); strings.Contains(body, "secret-objectives") || strings.Contains(body, "secret-slot") {
+		t.Errorf("the page keeps the card: %.300s", body)
+	}
+	if rec := f.do(f.signedIn(httpGet(testMatchPath + "/secret"))); rec.Code != http.StatusNotFound {
+		t.Errorf("GET .../secret = %d", rec.Code)
+	}
+}
+
 func TestSetScenarioPostsTheNameAndRevision(t *testing.T) {
 	m := editableMatch()
 	f := matchWrite(t, m)

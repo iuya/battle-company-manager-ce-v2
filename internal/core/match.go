@@ -235,15 +235,11 @@ func FindScenario(list []ScenarioInfo, name string) *ScenarioInfo {
 	return nil
 }
 
-// ScoringObjective is one Victory Point condition of a scenario. Side is "both", "attacker" or "defender". A Secret one (Fog of War)
-// is kept hidden until the end of the game; a Nomination says what the player notes down at the start.
+// ScoringObjective is one Victory Point condition of a scenario. Side is "both", "attacker" or "defender".
 type ScoringObjective struct {
 	Key, Text, Side, Kind, Instruction string
 	Label                              string // a short name for lists and the log: "Own hero survives"
 	MaxPoints                          int
-	Secret                             bool
-	Nomination                         *ObjectiveNomination
-	Options                            []ScoringTier // the tiers, ascending
 }
 
 // ObjectiveLabel makes a short name out of an objective's key ("ownHeroSurvives" is "Own hero survives").
@@ -261,16 +257,6 @@ func ObjectiveLabel(key string) string {
 		}
 	}
 	return b.String()
-}
-
-// ObjectiveNomination: From is "ownHeroes", "enemyHeroes" or "terrain"; AllowLeader "onlyHero" (the Leader only when the company has one Hero);
-// Where "opponentHalf" for a terrain piece.
-type ObjectiveNomination struct{ From, AllowLeader, Where string }
-
-// ScoringTier is a reachable level of a scoring objective.
-type ScoringTier struct {
-	Text   string
-	Points int
 }
 
 // ScenarioAbout is the rulebook text of a scenario that is not about scoring: the page shows it folded.

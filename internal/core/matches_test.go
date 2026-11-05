@@ -385,17 +385,15 @@ func TestScenariosKnowTheirScoringObjectivesBySide(t *testing.T) {
 	if len(stand.About.Roles) == 0 || len(stand.ScoringObjectives) == 0 {
 		t.Fatalf("Stand Your Ground: %+v", stand.About.Roles)
 	}
-	secret := 0
-	for _, o := range fog.ScoringObjectives {
-		if o.Secret {
-			secret++
-			if o.Nomination == nil && len(o.Options) == 0 {
-				t.Errorf("secret objective without data: %+v", o)
-			}
+	// Fog of War's objectives stay for the players to read in How it is scored; the app keeps nothing of them
+	noted := 0
+	for _, text := range fog.Scoring {
+		if strings.Contains(text, "secretly note down") {
+			noted++
 		}
 	}
-	if secret == 0 {
-		t.Error("Fog of War has secret objectives")
+	if noted != 3 {
+		t.Errorf("Fog of War prints its three objectives to note down: %q", fog.Scoring)
 	}
 }
 

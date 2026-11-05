@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"slices"
 	"strconv"
-	"strings"
 )
 
 // LiveService runs the live mode of a match (docs/live-match.md): it computes the starting values, folds the log, validates and
@@ -362,19 +361,13 @@ func (s *LiveService) Apply(ctx context.Context, user User, id, matchID, company
 	if err != nil {
 		return LiveCompany{}, LiveEntry{}, err
 	}
-	if s.gate != nil && !lc.match.ATODecided { // the secret objectives too: the rules note them at the start of the game, after the bonuses
+	if s.gate != nil && !lc.match.ATODecided {
 		why, err := s.gate.ATOBlocks(ctx, id, matchID)
 		if err != nil {
 			return LiveCompany{}, LiveEntry{}, err
 		}
 		if why != "" {
 			return LiveCompany{}, LiveEntry{}, Refuse("%s", why)
-		}
-	}
-	var secretText string
-	if a.Kind.Secret() {
-		if secretText, err = s.checkSecretRules(ctx, id, lc, user, companyID, a); err != nil {
-			return LiveCompany{}, LiveEntry{}, err
 		}
 	}
 	if _, err := s.snapshot(ctx, id, lc.match); err != nil {
@@ -388,9 +381,6 @@ func (s *LiveService) Apply(ctx context.Context, user User, id, matchID, company
 		res, touches, text, err := st.CheckAs(a, companyID, LiveVoter{ID: user.ID, Name: user.DisplayName})
 		if err != nil {
 			return LiveChange{}, err
-		}
-		if secretText != "" {
-			text = secretText
 		}
 		return LiveChange{Append: &LiveEntry{MatchID: matchID, CompanyID: companyID, UnitID: a.UnitID, Touches: touches, Action: res, Text: text}}, nil
 	})
@@ -577,7 +567,7 @@ func (s *LiveService) UnitLog(ctx context.Context, user User, id, matchID, unitI
 	return s.entries(ctx, user, id, matchID, func() ([]LiveEntry, error) { return s.live.UnitLog(ctx, id, matchID, unitID, kind) })
 }
 
-// entries reads log entries for a member of the campaign: read lists them; the other players' secret objectives are left out while
+// entries reads log entries for a member of the campaign: read lists them; the other players' older secret notes are left out while
 // the match is open, and CanUndo is set for the user.
 func (s *LiveService) entries(ctx context.Context, user User, id, matchID int64, read func() ([]LiveEntry, error)) ([]LiveEntry, error) {
 	lc, err := s.context(ctx, user, id, matchID)
@@ -594,7 +584,7 @@ func (s *LiveService) entries(ctx context.Context, user User, id, matchID int64,
 		return nil, err
 	}
 	open := !lc.match.Ended && lc.camp.CanPlay() == nil
-	if !lc.match.Ended { // the secret objectives of the other players do not exist for this viewer until the match ends
+	if !lc.match.Ended { // the older secret notes of the other players do not exist for this viewer until the match ends
 		list = slices.DeleteFunc(list, func(e LiveEntry) bool { return e.Action.Kind.Secret() && e.ByUserID != user.ID })
 	}
 	for i := range list {
@@ -846,191 +836,6 @@ func (s *LiveService) EndChecks(ctx context.Context, user User, id, matchID int6
 		}
 	}
 	return out, nil
-}
-
-// secretObjective finds a secret scoring objective of the match's scenario.
-func (s *LiveService) secretObjective(ctx context.Context, campaignID int64, m Match, key string) (ScoringObjective, error) {
-	if m.Scenario == nil || m.Scenario.Kind != ScenarioRulebook {
-		return ScoringObjective{}, Refuse("Choose the scenario first: secret objectives belong to it.")
-	}
-	rs, _, err := s.ruleset(ctx, campaignID)
-	if err != nil {
-		return ScoringObjective{}, err
-	}
-	sc, ok := rs.BC.Scenario(m.Scenario.Name)
-	if !ok {
-		return ScoringObjective{}, Refuse("The rules do not know this scenario.")
-	}
-	for _, o := range sc.ScoringObjectives {
-		if o.Key == key && o.Secret {
-			return o, nil
-		}
-	}
-	return ScoringObjective{}, Refuse("That is not a secret objective of %s.", m.Scenario.Name)
-}
-
-// checkSecretRules applies the rules of a secret objective entry that need the scenario and the rosters, and words the entry (only its
-// author sees it before the end, and everybody after).
-func (s *LiveService) checkSecretRules(ctx context.Context, campaignID int64, lc liveContext, user User, companyID int64, a LiveAction) (string, error) {
-	o, err := s.secretObjective(ctx, campaignID, lc.match, a.ObjectiveKey)
-	if err != nil {
-		return "", err
-	}
-	me := user.DisplayName
-	if me == "" {
-		me = "A player"
-	}
-	company := lc.details[companyID]
-	switch a.Kind {
-	case LiveSecretDone:
-		if a.Tier < 0 || a.Tier > len(o.Options) {
-			return "", invalid("Choose one of the tiers of this objective.")
-		}
-		if a.Tier == 0 {
-			return fmt.Sprintf("%s withdrew the report of %s", me, o.Label), nil
-		}
-		tier := o.Options[a.Tier-1]
-		return fmt.Sprintf("%s scored %d for %s", me, tier.Points, o.Label), nil
-	}
-	n := o.Nomination
-	if n == nil {
-		return "", Refuse("%s needs nothing noted down.", o.Label)
-	}
-	note := strings.TrimSpace(a.Note)
-	if a.UnitID == 0 && note == "" {
-		return fmt.Sprintf("%s cleared the note for %s", me, o.Label), nil
-	}
-	if n.From == "terrain" {
-		if a.UnitID != 0 || note == "" {
-			return "", invalid("Describe the terrain piece.")
-		}
-		return fmt.Sprintf("%s noted the terrain piece %q for %s", me, note, o.Label), nil
-	}
-	if note != "" || a.UnitID == 0 {
-		return "", invalid("Choose a Hero.")
-	}
-	var unit CompanyUnit
-	var owner int64
-	for cid, d := range lc.details {
-		for _, u := range d.Roster {
-			if u.ID == a.UnitID {
-				unit, owner = u, cid
-			}
-		}
-	}
-	if owner == 0 || Absent(unit) {
-		return "", Refuse("That unit takes no part in this match.")
-	}
-	if !unit.IsHero() {
-		return "", Refuse("%s is not a Hero.", unit.Title())
-	}
-	switch n.From {
-	case "ownHeroes":
-		if owner != companyID {
-			return "", Refuse("Note down one of your own Heroes.")
-		}
-	case "enemyHeroes":
-		if lc.sideOf(owner) == lc.sideOf(companyID) {
-			return "", Refuse("Note down a Hero of an opposing company.")
-		}
-	}
-	if n.AllowLeader == "onlyHero" && unit.Role == RoleLeader {
-		heroes := 0
-		for _, u := range lc.details[owner].Roster {
-			if u.IsHero() && !Absent(u) {
-				heroes++
-			}
-		}
-		if heroes > 1 {
-			return "", Refuse("The Leader may only be noted down when the company has no other Hero.")
-		}
-	}
-	_ = company
-	return fmt.Sprintf("%s noted %s (%s) for %s", me, unit.Title(), lc.details[owner].Name, o.Label), nil
-}
-
-// SecretLine is one secret objective of a company, as the viewer may see it.
-type SecretLine struct {
-	CompanyID int64
-	Company   string
-	Key       string
-	Label     string // a short name: "Own hero survives"
-	Text      string // the objective
-	Nominee   string // the Hero or terrain piece noted down
-	Tier      int    // 0: not reported
-	Points    int
-}
-
-// SecretView is what the viewer may see of the secret objectives of a match: their own while it is open (and who else has some, by
-// company name, never what), everybody's once it has ended.
-type SecretView struct {
-	Revealed bool
-	Lines    []SecretLine
-	Others   []string // companies that have secret objectives the viewer cannot see yet
-}
-
-// SecretObjectives lists the secret objectives the viewer may see. Privacy is applied here, on read.
-func (s *LiveService) SecretObjectives(ctx context.Context, user User, id, matchID int64) (SecretView, error) {
-	lc, err := s.context(ctx, user, id, matchID)
-	if err != nil {
-		return SecretView{}, err
-	}
-	snap, err := s.live.Read(ctx, id, matchID)
-	if err != nil {
-		return SecretView{}, err
-	}
-	view := SecretView{Revealed: lc.match.Ended}
-	authors := map[int64]map[int64]bool{}
-	for _, e := range snap.Entries {
-		if e.Action.Kind.Secret() {
-			if authors[e.CompanyID] == nil {
-				authors[e.CompanyID] = map[int64]bool{}
-			}
-			authors[e.CompanyID][e.ByUserID] = true
-		}
-	}
-	st := lc.state(snap)
-	var sc ScenarioInfo
-	if lc.match.Scenario != nil && lc.match.Scenario.Kind == ScenarioRulebook {
-		if rs, _, err := s.ruleset(ctx, id); err == nil {
-			sc, _ = rs.BC.Scenario(lc.match.Scenario.Name)
-		}
-	}
-	titles := map[int64]string{}
-	for _, d := range lc.details {
-		for _, u := range Distinguish(d.Roster) { // the nominee of "one of your Heroes" is told apart from a twin
-			titles[u.ID] = u.Title()
-		}
-	}
-	for _, side := range lc.match.Sides {
-		for _, co := range side.Companies {
-			if len(authors[co.ID]) == 0 {
-				continue
-			}
-			if !lc.match.Ended && !authors[co.ID][user.ID] {
-				view.Others = append(view.Others, lc.details[co.ID].Name)
-				continue
-			}
-			for _, o := range sc.ScoringObjectives {
-				n, ok := st.SecretOf(co.ID, o.Key)
-				if !o.Secret || !ok {
-					continue
-				}
-				l := SecretLine{CompanyID: co.ID, Company: lc.details[co.ID].Name, Key: o.Key, Label: o.Label, Text: o.Text, Tier: n.Tier}
-				switch {
-				case n.Nominee != 0:
-					l.Nominee = titles[n.Nominee]
-				default:
-					l.Nominee = n.Terrain
-				}
-				if n.Tier >= 1 && n.Tier <= len(o.Options) {
-					l.Points = o.Options[n.Tier-1].Points
-				}
-				view.Lines = append(view.Lines, l)
-			}
-		}
-	}
-	return view, nil
 }
 
 // MVPHint is the tally of the MVP votes for a company, nil when nobody voted or the match has no live data. The aftermath sheet shows it

@@ -485,8 +485,8 @@ func TestOpenMatchGuards(t *testing.T) {
 
 func jsonUnmarshal(s string, v any) error { return json.Unmarshal([]byte(s), v) }
 
-// The new kinds survive the payload, and a secret objective notifies nobody.
-func TestLiveEndChecksAndSecretEntries(t *testing.T) {
+// The kinds survive the payload, and an older secret note can still be read and undone and notifies nobody.
+func TestLiveEndChecksAndOlderSecretNotes(t *testing.T) {
 	w := newLiveWorld(t, "sec")
 	live := w.s.Live()
 	if err := live.Init(w.ctx, w.camp, w.match.ID, w.inits()); err != nil {
@@ -500,6 +500,7 @@ func TestLiveEndChecksAndSecretEntries(t *testing.T) {
 	if _, err := conn.Exec(w.ctx, "LISTEN "+liveChannel); err != nil {
 		t.Fatal(err)
 	}
+	nominate, done := core.LiveKind("secretNominate"), core.LiveKind("secretDone")
 	ua, ub := w.unitsOf[w.a.ID][0], w.unitsOf[w.b.ID][0]
 	for _, e := range []core.LiveEntry{
 		{CompanyID: w.a.ID, UnitID: ua, Text: "o", Action: core.LiveAction{Kind: core.LiveObjective, UnitID: ua, On: true}},
@@ -518,28 +519,42 @@ func TestLiveEndChecksAndSecretEntries(t *testing.T) {
 		}
 	}
 	for _, e := range []core.LiveEntry{
-		{CompanyID: w.a.ID, UnitID: ub, Text: "n", Action: core.LiveAction{Kind: core.LiveSecretNominate, ObjectiveKey: "enemyHeroHarmed", UnitID: ub, Note: ""}},
-		{CompanyID: w.a.ID, Text: "d", Action: core.LiveAction{Kind: core.LiveSecretDone, ObjectiveKey: "enemyHeroHarmed", Tier: 2}},
+		{CompanyID: w.a.ID, UnitID: ub, Text: "n", Action: core.LiveAction{Kind: nominate, UnitID: ub}},
+		{CompanyID: w.a.ID, Text: "d", Action: core.LiveAction{Kind: done}},
 	} {
 		if _, err := w.append(t, w.org, e); err != nil {
 			t.Fatalf("%s: %v", e.Action.Kind, err)
 		}
 	}
+	// the payload of a note written when the app still had them
+	if _, err := conn.Exec(w.ctx, `UPDATE match_live_log SET payload = payload || '{"key":"enemyHeroHarmed","tier":2}' WHERE match_id = $1 AND kind IN ($2, $3)`, w.match.ID, string(nominate), string(done)); err != nil {
+		t.Fatal(err)
+	}
 	wctx, cancel := context.WithTimeout(w.ctx, 400*time.Millisecond)
 	defer cancel()
 	if n, err := conn.WaitForNotification(wctx); err == nil {
-		t.Fatalf("a secret entry must notify nobody: %+v", n)
+		t.Fatalf("a secret note must notify nobody: %+v", n)
 	}
 	snap, err := live.Read(w.ctx, w.camp, w.match.ID)
 	if err != nil || len(snap.Entries) != 4 {
 		t.Fatalf("%v %+v", err, snap.Entries)
 	}
-	got := map[core.LiveKind]core.LiveAction{}
+	got := map[core.LiveKind]core.LiveEntry{}
 	for _, e := range snap.Entries {
-		got[e.Action.Kind] = e.Action
+		got[e.Action.Kind] = e
 	}
-	if !got[core.LiveObjective].On || got[core.LiveMVPVote].TargetCompanyID != w.b.ID || got[core.LiveSecretNominate].ObjectiveKey != "enemyHeroHarmed" || got[core.LiveSecretDone].Tier != 2 {
+	if !got[core.LiveObjective].Action.On || got[core.LiveMVPVote].Action.TargetCompanyID != w.b.ID || got[nominate].Action.UnitID != ub || !got[done].Action.Kind.Secret() {
 		t.Errorf("payloads: %+v", got)
+	}
+	if _, err := live.Update(w.ctx, w.camp, w.match.ID, w.org, func(core.LiveSnapshot) (core.LiveChange, error) {
+		return core.LiveChange{Undo: got[nominate].ID}, nil
+	}); err != nil {
+		t.Fatalf("undo: %v", err)
+	}
+	wctx2, cancel2 := context.WithTimeout(w.ctx, 400*time.Millisecond)
+	defer cancel2()
+	if n, err := conn.WaitForNotification(wctx2); err == nil {
+		t.Fatalf("undoing a secret note must notify nobody: %+v", n)
 	}
 }
 

@@ -3787,7 +3787,7 @@
     },
     "Nomination": {
       "additionalProperties": false,
-      "description": "What a player notes down at the start for a secret objective.",
+      "description": "What a player notes down at the start for a secret objective. Informative: the players keep it themselves.",
       "properties": {
         "allowLeader": {
           "description": "onlyHero: the Leader may be picked only when the company has a single Hero. Heroes only.",
@@ -4866,7 +4866,7 @@
           "type": "integer"
         },
         "instruction": {
-          "description": "The note-down sentence of a secret objective.",
+          "description": "The note-down sentence of a secret objective, printed before the options in How it is scored.",
           "type": "string"
         },
         "item": {
@@ -4894,7 +4894,7 @@
           "type": "array"
         },
         "secret": {
-          "description": "true: kept hidden until the end of the game.",
+          "description": "true: the rules keep it hidden until the end of the game. Informative: the players keep it themselves.",
           "type": "boolean"
         },
         "side": {

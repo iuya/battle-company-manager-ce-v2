@@ -33,30 +33,16 @@ type liveUnit struct {
 type LiveState struct {
 	order     []int64 // unit ids, in the order of the inits
 	units     map[int64]*liveUnit
-	objective map[int64]bool           // units that got the objective
-	votes     map[voteKey]int64        // the unit a voter (user) chose as MVP of a company; the last not-undone vote counts
-	secrets   map[secretKey]SecretNote // what a company noted for each secret objective (the last not-undone entries count)
-	cfg       LiveFoldConfig           // what the rosters and the rules file add (Break Point percent, models per unit)
-	breaks    map[int64]*breakState    // by company: the manual corrections of the Break Point counts
+	objective map[int64]bool        // units that got the objective
+	votes     map[voteKey]int64     // the unit a voter (user) chose as MVP of a company; the last not-undone vote counts
+	cfg       LiveFoldConfig        // what the rosters and the rules file add (Break Point percent, models per unit)
+	breaks    map[int64]*breakState // by company: the manual corrections of the Break Point counts
 	// UnitName and CompanyName turn ids into words for reasons and log texts; unset, ids are shown.
 	UnitName    func(id int64) string
 	CompanyName func(id int64) string
 }
 
 type voteKey struct{ voter, company int64 }
-
-type secretKey struct {
-	company   int64
-	objective string
-}
-
-// SecretNote is what a company noted for one secret objective of the scenario (Fog of War): the unit or terrain piece it nominated
-// at the start and the tier it reports at the end (1-based; 0 none yet).
-type SecretNote struct {
-	Nominee int64  // the nominated Hero, 0 for none or a terrain piece
-	Terrain string // the terrain piece noted down
-	Tier    int
-}
 
 // LiveVoter is who makes an mvpVote: the author of the entry.
 type LiveVoter struct {
@@ -82,7 +68,7 @@ func FoldLiveWith(inits []LiveUnitInit, entries []LiveEntry, cfg LiveFoldConfig)
 }
 
 func newLiveState(inits []LiveUnitInit, cfg LiveFoldConfig) LiveState {
-	s := LiveState{units: map[int64]*liveUnit{}, objective: map[int64]bool{}, votes: map[voteKey]int64{}, secrets: map[secretKey]SecretNote{},
+	s := LiveState{units: map[int64]*liveUnit{}, objective: map[int64]bool{}, votes: map[voteKey]int64{},
 		cfg: cfg, breaks: map[int64]*breakState{}}
 	for _, in := range inits {
 		s.breaks[in.CompanyID] = &breakState{}
@@ -179,7 +165,7 @@ func (s LiveState) unitNameWithCompany(id int64) string {
 
 // clone copies the state so that Check can try an action without changing it.
 func (s LiveState) clone() LiveState {
-	c := LiveState{order: s.order, units: make(map[int64]*liveUnit, len(s.units)), objective: maps.Clone(s.objective), votes: maps.Clone(s.votes), secrets: maps.Clone(s.secrets), UnitName: s.UnitName, CompanyName: s.CompanyName,
+	c := LiveState{order: s.order, units: make(map[int64]*liveUnit, len(s.units)), objective: maps.Clone(s.objective), votes: maps.Clone(s.votes), UnitName: s.UnitName, CompanyName: s.CompanyName,
 		cfg: s.cfg, breaks: make(map[int64]*breakState, len(s.breaks))}
 	for id, b := range s.breaks {
 		cp := *b
@@ -220,22 +206,7 @@ func clamp(v, lo, hi int) int { return min(max(v, lo), hi) }
 
 // apply changes the state by an action that has been resolved (deltas, no Set). It clamps instead of failing.
 func (s LiveState) apply(a LiveAction, byCompany, voter int64) {
-	if a.Kind.Informational() {
-		return
-	}
-	if a.Kind.Secret() {
-		k := secretKey{byCompany, a.ObjectiveKey}
-		n := s.secrets[k]
-		if a.Kind == LiveSecretNominate {
-			n.Nominee, n.Terrain = a.UnitID, strings.TrimSpace(a.Note)
-		} else {
-			n.Tier = a.Tier
-		}
-		if n == (SecretNote{}) {
-			delete(s.secrets, k)
-		} else {
-			s.secrets[k] = n
-		}
+	if a.Kind.Informational() || a.Kind.Secret() { // an older secret note changes nothing in the state
 		return
 	}
 	if a.Kind == LiveMVPVote {
@@ -381,9 +352,8 @@ func (s LiveState) CheckAs(a LiveAction, byCompany int64, voter LiveVoter) (reso
 		return s.checkBreakAdjust(a, byCompany)
 	case liveTurnLegacy, liveAllIsLostLegacy:
 		return a, nil, "", invalid("Turns and All is Lost are settled at the table now.")
-	}
-	if a.Kind.Secret() {
-		return s.checkSecret(a, byCompany, voter)
+	case liveSecretNominateLegacy, liveSecretDoneLegacy:
+		return a, nil, "", invalid("Secret objectives are settled at the table now.")
 	}
 	u, ok := s.units[a.UnitID]
 	if !ok {
@@ -675,50 +645,6 @@ func (s LiveState) checkVote(a LiveAction, company int64, voter LiveVoter) (Live
 	return a, nil, fmt.Sprintf("%s voted %s as MVP of %s", who, s.name(a.UnitID), cname), nil
 }
 
-// checkSecret validates a secret objective entry structurally; that the objective is a secret one of the scenario, and who may be
-// nominated, is the service's rule (it knows the scenario). The text is generic: only the author ever sees the entry while the
-// match is open, and the service words it when it is revealed.
-func (s LiveState) checkSecret(a LiveAction, company int64, voter LiveVoter) (LiveAction, []int64, string, error) {
-	if a.ObjectiveKey == "" || len(a.ObjectiveKey) > 60 {
-		return a, nil, "", invalid("Choose the secret objective.")
-	}
-	known := false
-	for _, u := range s.units {
-		known = known || u.company == company
-	}
-	if !known {
-		return a, nil, "", Refuse("That company is not in this match.")
-	}
-	who := voter.Name
-	if who == "" {
-		who = "A player"
-	}
-	switch a.Kind {
-	case LiveSecretNominate:
-		if a.UnitID != 0 {
-			u, ok := s.units[a.UnitID]
-			if !ok || u.absent {
-				return a, nil, "", Refuse("That unit takes no part in this match.")
-			}
-			if strings.TrimSpace(a.Note) != "" {
-				return a, nil, "", invalid("Nominate a unit or a terrain piece, not both.")
-			}
-		}
-		return a, nil, who + " noted a secret objective", nil
-	default:
-		if a.Tier < 0 || a.Tier > 9 {
-			return a, nil, "", invalid("Choose the tier reached.")
-		}
-		return a, nil, who + " reported a secret objective", nil
-	}
-}
-
-// SecretOf is what a company noted for a secret objective.
-func (s LiveState) SecretOf(companyID int64, objective string) (SecretNote, bool) {
-	n, ok := s.secrets[secretKey{companyID, objective}]
-	return n, ok
-}
-
 // HasObjective says whether the unit got the objective.
 func (s LiveState) HasObjective(unitID int64) bool { return s.objective[unitID] }
 
@@ -770,12 +696,14 @@ func ValidateLogWith(inits []LiveUnitInit, entries []LiveEntry, cfg LiveFoldConf
 		if e.Action.Kind.Informational() {
 			continue
 		}
-		if _, _, _, err := s.CheckAs(e.Action, e.CompanyID, LiveVoter{ID: e.ByUserID, Name: e.By}); err != nil {
-			text := e.Text
-			if text == "" {
-				text = string(e.Action.Kind)
+		if !e.Action.Kind.legacy() { // an older entry can no longer be written, which does not stop the log around it from being undone
+			if _, _, _, err := s.CheckAs(e.Action, e.CompanyID, LiveVoter{ID: e.ByUserID, Name: e.By}); err != nil {
+				text := e.Text
+				if text == "" {
+					text = string(e.Action.Kind)
+				}
+				return fmt.Errorf("%w (%s)", ErrLiveDepends, text)
 			}
-			return fmt.Errorf("%w (%s)", ErrLiveDepends, text)
 		}
 		s.apply(e.Action, e.CompanyID, e.ByUserID)
 	}
@@ -788,7 +716,7 @@ func CanUndoEntry(u User, e LiveEntry, owners map[int64]int64, organiserID int64
 	if e.Action.Kind.Informational() { // the story of a pending end is kept
 		return false
 	}
-	if e.Action.Kind.Secret() { // a secret objective is its author's alone while the match is open, even for the organiser
+	if e.Action.Kind.Secret() { // an older secret note is its author's alone while the match is open, even for the organiser
 		return e.ByUserID != 0 && e.ByUserID == u.ID
 	}
 	if CanManageCampaign(u, organiserID) {

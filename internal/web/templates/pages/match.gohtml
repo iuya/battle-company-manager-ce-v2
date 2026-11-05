@@ -67,8 +67,6 @@
   </details>{{end}}
 {{end}}
 
-{{if .ShowSecret}}<div id="secret-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/secret" hx-trigger="{{if and .Cards .Cards.Secret}}none{{else}}load{{end}}" hx-swap="innerHTML">{{if .Cards}}{{with .Cards.Secret}}{{template "secret_card" .}}{{end}}{{end}}</div>{{end}}
-
 <details class="card mt-6" id="log" {{if .InProgress}}open{{end}}>
   <summary class="flex min-h-11 cursor-pointer items-center justify-between gap-3"><span class="font-heading text-xl">Log</span><span class="text-sm text-muted">History and match log</span></summary>
   {{with $m.History}}
@@ -508,61 +506,3 @@
 {{end}}
 
 {{define "end_owner"}}{{range .M.Sides}}{{range .Companies}}{{if eq .ID $.ID}}{{.Owner}}{{end}}{{end}}{{end}}{{end}}
-
-{{/* The secret objectives of the scenario (Fog of War): the viewer's own notes while the match is open, everybody's after it. Takes secretView. */}}
-{{define "secret_card"}}{{$v := .}}
-{{if or .Mine .Revealed .Others}}
-<section id="secret-objectives" class="card mt-6 space-y-4" aria-labelledby="secret-title">
-  <h2 id="secret-title" class="!text-xl">Secret objectives</h2>
-  {{if .Ended}}
-    <p class="text-sm text-muted">The match is over: the notes are revealed.</p>
-    {{if not .Revealed}}<p class="text-muted">Nobody noted a secret objective.</p>{{end}}
-    <ul class="divide-y divide-line">
-      {{range .Revealed}}<li class="py-2 text-sm"><span class="font-medium">{{.Company}}</span> · {{if .Label}}{{.Label}}{{else}}{{.Text}}{{end}}{{with .Nominee}}<br><span class="text-muted">Noted: {{.}}</span>{{end}}<br>{{if .Tier}}<span class="badge badge-gold">Scored {{.Points}} VP</span>{{else}}<span class="text-muted">No score reported.</span>{{end}}</li>{{end}}
-    </ul>
-  {{else}}
-  <p class="text-sm text-muted">Note these down at the start and report what you reached at the end. Only you see your entries until the match ends, then everybody does.</p>
-  <div aria-live="polite">
-  {{with .Msg}}<div class="alert {{if $v.Error}}alert-danger{{else}}alert-success{{end}} flex flex-wrap items-center justify-between gap-2" role="{{if $v.Error}}alert{{else}}status{{end}}"><span>{{.}}</span>
-    {{if and (not $v.Error) $v.EntryID}}<button type="button" class="btn btn-secondary !min-h-9" hx-post="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/live/log/{{$v.EntryID}}/undo" hx-vals='{"from":"secret"}' hx-target="#secret-objectives" hx-swap="outerHTML">Undo</button>{{end}}</div>{{end}}
-  </div>
-  {{range .Mine}}{{$co := .}}
-  <div class="space-y-3">
-    <h3 class="!text-base font-medium break-words">{{.Name}}</h3>
-    {{range .Objectives}}{{$o := .}}
-    <fieldset class="min-w-0 space-y-2 rounded-lg border border-line p-3">
-      <legend class="px-1 text-sm font-medium">{{if .Label}}{{.Label}}{{else}}{{.Key}}{{end}}</legend>
-      <p class="text-sm break-words">{{.Instruction}}</p>
-      {{with .Nomination}}
-      <form hx-post="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/secret/{{$co.ID}}" hx-target="#secret-objectives" hx-swap="outerHTML" class="space-y-2">
-        <input type="hidden" name="kind" value="nominate"><input type="hidden" name="key" value="{{$o.Key}}">
-        {{if eq .From "terrain"}}
-        <div class="field"><label for="n-{{$co.ID}}-{{$o.Key}}">The terrain piece{{if eq .Where "opponentHalf"}} (wholly in the opponent's half){{end}}</label>
-          <input id="n-{{$co.ID}}-{{$o.Key}}" name="note" maxlength="120" value="{{$o.Nominee}}" class="input" placeholder="For example: the ruined tower"></div>
-        {{else}}
-        <div class="field"><label for="n-{{$co.ID}}-{{$o.Key}}">{{if eq .From "ownHeroes"}}One of your Heroes{{else}}A Hero of the opponent{{end}}</label>
-          <select id="n-{{$co.ID}}-{{$o.Key}}" name="unit" class="input"><option value="0">None</option>{{range $o.Heroes}}<option value="{{.ID}}" {{if .Selected}}selected{{end}}>{{.Label}}</option>{{end}}</select></div>
-        {{end}}
-        <button class="btn btn-secondary">Save note</button>
-        {{if $o.Nominee}}<span class="ml-2 text-sm text-muted">Noted: {{$o.Nominee}}</span>{{end}}
-      </form>
-      {{end}}
-      <form hx-post="/campaigns/{{$v.Campaign}}/matches/{{$v.MatchID}}/secret/{{$co.ID}}" hx-target="#secret-objectives" hx-swap="outerHTML" class="space-y-2">
-        <input type="hidden" name="kind" value="done"><input type="hidden" name="key" value="{{$o.Key}}">
-        <p class="text-sm font-medium">What you reached</p>
-        <div class="grid gap-2" role="radiogroup" aria-label="Tier reached for {{$o.Label}}">
-          <label class="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-line px-3 py-2 hover:bg-raised has-[:checked]:border-accent has-[:checked]:bg-accent-soft"><input type="radio" name="tier" value="0" {{if eq $o.Tier 0}}checked{{end}} class="mt-1 size-4 shrink-0 accent-accent"><span class="text-sm">Not reached yet</span></label>
-          {{range $i, $t := .Options}}<label class="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-line px-3 py-2 hover:bg-raised has-[:checked]:border-accent has-[:checked]:bg-accent-soft"><input type="radio" name="tier" value="{{inc $i}}" {{if eq $o.Tier (inc $i)}}checked{{end}} class="mt-1 size-4 shrink-0 accent-accent"><span class="min-w-0 break-words text-sm"><strong>{{$t.Points}} VP</strong> · {{$t.Text}}</span></label>{{end}}
-        </div>
-        <button class="btn btn-secondary">Save</button>
-      </form>
-    </fieldset>
-    {{end}}
-  </div>
-  {{end}}
-  {{if not .Mine}}<p class="text-sm text-muted">Only the players of the match note secret objectives.</p>{{end}}
-  {{with .Others}}<p class="text-sm text-muted">Noted already: {{join . ", "}}. What they noted stays hidden until the match ends.</p>{{end}}
-  {{end}}
-</section>
-{{end}}
-{{end}}

@@ -124,7 +124,7 @@ var typeDocs = map[string]string{
 
 	"Scenario":      "A scenario: its text sections, special rules and Victory Point objectives.",
 	"Scoring":       "One scoring objective of a scenario: the sentences that award Victory Points.",
-	"Nomination":    "What a player notes down at the start for a secret objective.",
+	"Nomination":    "What a player notes down at the start for a secret objective. Informative: the players keep it themselves.",
 	"ScoringOption": "A tier of a scoring objective: its sentence and the Victory Points.",
 
 	"Vanilla":         "What Battle Companies says about vanilla things: which duplicate wins, what a vanilla unit lacks, which options are not sold.",
@@ -598,11 +598,11 @@ var fieldDocs = map[string]string{
 	"Scenario.scoring":           "The Victory Point objectives, one per printed bullet, in printed order.",
 	"Scoring.key":                "A key unique within the scenario.",
 	"Scoring.side":               "both (default), attacker or defender.",
-	"Scoring.secret":             "true: kept hidden until the end of the game.",
+	"Scoring.secret":             "true: the rules keep it hidden until the end of the game. Informative: the players keep it themselves.",
 	"Scoring.kind":               "tiers (the best tier reached), each (item times pointsEach up to count), eachTiers (every item scores its own best tier).",
 	"Scoring.item":               "For each / eachTiers: what is counted.",
 	"Scoring.count":              "For each / eachTiers: how many items.",
-	"Scoring.instruction":        "The note-down sentence of a secret objective.",
+	"Scoring.instruction":        "The note-down sentence of a secret objective, printed before the options in How it is scored.",
 	"Scoring.nomination":         "What the player notes down.",
 	"Scoring.options":            "The printed sentences with their points.",
 	"Nomination.from":            "ownHeroes, enemyHeroes or terrain.",

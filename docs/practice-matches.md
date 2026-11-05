@@ -44,7 +44,7 @@ A practice match is a real match while it is open:
 
 - its companies are in the open match, so they cannot join another (`CompanyBusyError`);
 - the company page shows the same "match active" state, trackers and counters;
-- the live log and secret objectives work;
+- the live log works;
 - ending it needs the same confirmations.
 
 The only additions on those pages are the Practice badge and banner.
@@ -88,7 +88,7 @@ It records:
 - the scenario (rulebook or one-off) and the sides;
 - the result: winner or draw, objectives completed, a note;
 - who played, the live log (trackers, wounds, kills, zones, MVP votes);
-- the end confirmation and history, the Against the Odds selection, and secret objectives.
+- the end confirmation and history, and the Against the Odds selection.
 
 The match page, live pages and log stay available forever, also after the campaign finishes.
 

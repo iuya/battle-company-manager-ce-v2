@@ -19,7 +19,6 @@ The design language and the page patterns are in [frontend.md](frontend.md).
 [End match and Confirm sheets](#end-match-and-confirm-sheets) ·
 [Ending a match by confirmation](#ending-a-match-by-confirmation) ·
 [Sync](#sync) ·
-[Secret objectives](#secret-objectives) ·
 [Perks in the rolls](#perks-in-the-rolls) ·
 [Gear notes on the card](#gear-notes-on-the-card) ·
 [Finished campaigns are frozen](#finished-campaigns-are-frozen) ·
@@ -261,17 +260,6 @@ Code: `live.js`.
 - The dot is green "Live", or pulsing grey "Reconnecting": the browser retries every 3 s, and when the stream is back the page refetches what it missed (the state is in Postgres).
 - When the stream is refused (caps) or unsupported, the page polls every 10 s.
 
-## Secret objectives
-
-Code: `secret.go`, `secret_card` in `match.gohtml`; only for a scenario with `ScoringObjectives[].Secret`, i.e. Fog of War.
-
-The card
-(`GET .../matches/{match}/secret`, drawn inline in the full page; the endpoint serves the refresh and the fallback) lists, for each company the viewer owns, each secret objective with a nomination
-form (a select of own or enemy Heroes without the Leader unless he is the only Hero, or a text box for the terrain piece) and a tier radio
-list ("Not reached yet" clears); `POST .../secret/{company}` (`kind=nominate|done`, `key`, `unit`/`note`/`tier`) applies the live action, with an
-Undo (`from=secret`). While the match is open nothing of other players is shown but "Noted already: <companies>" (privacy is the service's);
-after End match the card lists everybody's.
-
 ## Perks in the rolls
 
 The recruit roll form shows **Rendezvous** (Not now / +1 / -1, field `perk`, `RollRecruitWithPerk`) while the company has an unused
@@ -288,7 +276,7 @@ attributes (`data-stat-note`), besides the characteristic's tooltip, so it shows
 ## Finished campaigns are frozen
 
 My company is read only with the notice "frozen as it was" (`myCompanyView.Frozen`, badge "Frozen"; no recruit window),
-an open match says it stays open but cannot change, and shows no End match or secret objectives cards. The organiser (not only administrators) sees
+an open match says it stays open but cannot change, and shows no End match card. The organiser (not only administrators) sees
 "Edit the result" and "Reopen match" on an ended match (`CanManageCampaign`).
 
 ## Match creation refusals

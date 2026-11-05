@@ -35,6 +35,7 @@ decisions.
 | D16 | **Company search in the new match form**: the "Mine" chip goes; the user's own companies are highlighted (accent border and a "Yours" badge) and listed first; once one of them is on a side, on the other sides they are listed last instead (playing yourself is rare; the existing "Same player" note stays). |
 | D17 | **End match sheet reviews the objective**: before proposing, the proposer sees for each of their companies which units have the objective experience, as chips they can switch on and off (each switch is today's live `objective` action, so it is logged and undoable); the confirmer does the same for their own companies in the Confirm sheet. |
 | D18 | **Scenario reward ticks stay, compact**: the ticks of the result that feed the aftermath rewards (`CompanyResult.Objectives`: the Relic, all the cargo, all the objective markers) are kept, only for scenarios that have such rewards, as one compact line per company in the End match sheet (and the Confirm sheet for the confirmer's own companies). Scenarios without rewards show nothing. |
+| D19 | **No secret objectives**: the Secret objectives card of Fog of War goes, with its nominations, tier reports and routes. The players keep them at the table and report the winner; How it is scored still prints them. The `secret`, `nomination` and `instruction` keys stay in the rules file. An older log keeps its notes: the fold ignores them, none can be written, and while the match is open only their author sees and undoes them. |
 
 ## 2. Phase 1: new match
 
@@ -86,7 +87,7 @@ Behaviour (`pages/match.gohtml`, `internal/web/match.go`, `match_cards.go`):
   no longer split by role in the page.
 - **No Got the objective / End checks card** (D5) on the match page.
 - **History and Match log together** in one collapsed **Log** card at the bottom.
-- Secret objectives (Fog of War) stay in the scenario card.
+- No secret objectives card (D19): what Fog of War asks to note down stays as text in the scenario card.
 
 Acceptance: the open match page of the demo world is at most about two screens at 375 px in the Playing phase; nothing about roles is in the
 HTML; ending a scenario that had roles works without them. Demo world: the role states of `world_matches.go` go; docs-check of

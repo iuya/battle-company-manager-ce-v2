@@ -242,14 +242,13 @@ func TestLiveApplyAsksTheGate(t *testing.T) {
 	f.svc.WithATOGate(gateFunc(func() (string, error) { asked++; return "Waiting for Rangers to choose Against the Odds.", nil }))
 	for name, a := range map[string]LiveAction{
 		"a game action":    {Kind: LiveBroken, UnitID: firstUnit(lc)},
-		"a secret note":    {Kind: LiveSecretNominate, ObjectiveKey: "ownHeroSurvives", UnitID: firstUnit(lc)},
 		"the end of match": {Kind: LiveObjective, UnitID: firstUnit(lc)},
 	} {
 		if _, _, err := f.svc.Apply(f.ctx, f.user(liveOwner1), 5, 1, 1, a); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "Waiting for Rangers") {
 			t.Errorf("%s: %v", name, err)
 		}
 	}
-	if asked != 3 {
+	if asked != 2 {
 		t.Errorf("the gate was asked %d times", asked)
 	}
 	f.svc.WithATOGate(gateFunc(func() (string, error) { return "", nil }))

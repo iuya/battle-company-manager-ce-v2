@@ -86,7 +86,7 @@ Set in `cmd/server/main.go`:
 - **`TestLiveActionsSurviveExtremeValues`** (cmd/server; needs `TEST_DATABASE_URL`; about a minute with the seeding, `SWEEP_FULL=1` several times longer).
   It puts ONE extreme but plausible value at a time into an otherwise valid form of every live POST.
   - Values: wounds 2^31, negatives, 0, empty, overflowing numbers, the unit of another company, match or campaign, wrong parts, reasons and fields, oversized or NUL notes.
-  - Forms: each action kind, undo, courage roll, objective and MVP votes, secret objectives, the end-of-match steps.
+  - Forms: each action kind, undo, courage roll, objective and MVP votes, the end-of-match steps.
   - Each is also repeated against the wrong match, an ended match and a finished campaign.
   - No answer is a 5xx or an empty 4xx.
   - After every kind the folded state is checked: every tracker within 0..start, no negative or overflowing Break Point counter, the log readable.

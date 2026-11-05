@@ -120,10 +120,6 @@ func (s *Server) handleLiveUndo(w http.ResponseWriter, r *http.Request) {
 	companyID := formID(r, "company")
 	toast := liveToast{MatchID: matchID, Company: companyID, Campaign: id}
 	_, err := s.campaigns.Undo(r.Context(), *userFrom(r.Context()), id, matchID, entryID, companyID)
-	if r.PostFormValue("from") == "secret" {
-		s.answerSecretUndo(w, r, id, matchID, err)
-		return
-	}
 	if r.PostFormValue("from") == "card" { // pressed in the log: it answers with the log
 		s.answerLogUndo(w, r, id, matchID, err)
 		return
