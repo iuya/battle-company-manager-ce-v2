@@ -96,7 +96,7 @@ func (v liveView) MarksMeet() bool { return v.BreakMark() == v.EndMark() }
 // FailedCourage lists the units that fled a courage test: casualties for the Break Point.
 func (v liveView) FailedCourage() (out []liveCard) {
 	for _, c := range v.Retreated {
-		if c.L.Reason == "Failed courage" {
+		if c.L.FledCourage() {
 			out = append(out, c)
 		}
 	}

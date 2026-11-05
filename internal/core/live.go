@@ -58,6 +58,11 @@ type LiveUnit struct {
 // and one per company.
 func TemporaryUnitID(companyID int64) int64 { return -companyID }
 
+// FledCourage says the unit is off the board for failing a courage test: a casualty for the Break Point, unlike a unit that left the board.
+func (u LiveUnit) FledCourage() bool {
+	return u.Zone == ZoneRetreated && u.Reason == reasonFailedCourage
+}
+
 // ItemsToUse are the loaned items the unit can still mark as used (not spent, not for the aftermath).
 func (u LiveUnit) ItemsToUse() (out []LoanedItem) {
 	for _, it := range u.Loaned {
@@ -338,15 +343,6 @@ type liveRepository interface {
 // Run returns when ctx is done.
 type liveFeed interface {
 	Run(ctx context.Context, onEvent func(LiveEvent), onResync func()) error
-}
-
-// CourageRoll is a Courage test rolled for a unit of a Broken company: the dice, their total, the unit's Courage and whether it passed.
-// Nothing is written: the player records the result with Apply (broken or retreat).
-type CourageRoll struct {
-	Dice    []int
-	Total   int
-	Courage int
-	Passed  bool
 }
 
 // LiveMatchDefaults are what the live log says about the result of the match: for which companies every opposing company is Broken at

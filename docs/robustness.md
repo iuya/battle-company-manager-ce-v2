@@ -91,7 +91,6 @@ Set in `cmd/server/main.go`:
   - No answer is a 5xx or an empty 4xx.
   - After every kind the folded state is checked: every tracker within 0..start, no negative or overflowing Break Point counter, the log readable.
 - **Service bounds** (`LiveState.Check`): trackers 0..start, wounds caused 1 to 9, Fate within what is left, Break correction -9..9 and never below one starting model, turns in sequence.
-  Typed courage dice outside 1 to 6 are an `ErrInvalidLive` (422).
 - **`TestMalformedInputNeverCrashesAHandler`** (cmd/server; needs `TEST_DATABASE_URL`; about 40 s with the seeding, `SWEEP_FULL=1` tries 23 values and takes longer).
   It sends every route, read from `server.go`, hostile values for every form field the handlers and templates know, and hostile path ids, against the demo world.
   Nothing returns a 5xx or logs a panic.

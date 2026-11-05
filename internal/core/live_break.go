@@ -175,7 +175,7 @@ func (s LiveState) casualtiesOf(company int64) int {
 		if u.company != company || u.absent {
 			continue
 		}
-		if z, _ := u.zone(); z == ZoneCasualty || (z == ZoneRetreated && u.retreat == "Failed courage") {
+		if z, _ := u.zone(); z == ZoneCasualty || (z == ZoneRetreated && u.retreat == reasonFailedCourage) {
 			n += s.modelsOf(id)
 		}
 	}
@@ -190,7 +190,7 @@ func (s LiveState) leftTableOf(company int64) int {
 		if u.company != company || u.absent {
 			continue
 		}
-		if z, _ := u.zone(); z == ZoneRetreated && u.retreat != "Failed courage" {
+		if z, _ := u.zone(); z == ZoneRetreated && u.retreat != reasonFailedCourage {
 			n += s.modelsOf(id)
 		}
 	}

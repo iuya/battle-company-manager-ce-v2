@@ -741,29 +741,6 @@ func TestMVPHintForTheAftermathSheet(t *testing.T) {
 	}
 }
 
-// TestRollCourageEnteredDiceAreValidated: dice typed by the player outside 1 to 6, or a single one, are a refusal-grade
-// input error of the live mode (ErrInvalidLive, a 422), never the aftermath's error (which the web layer answers with a 500).
-func TestRollCourageEnteredDiceAreValidated(t *testing.T) {
-	f := newLiveFixture(t)
-	f.campaigns = NewMockcampaignRepository(gomock.NewController(t))
-	f.campaigns.EXPECT().Hashes(gomock.Any(), int64(5)).Return(RulesetHashes{BattleCompanies: "bc"}, CampaignSettings{ManualRolls: true}, nil).AnyTimes()
-	f.campaigns.EXPECT().Get(gomock.Any(), gomock.Any(), int64(5)).Return(CampaignDetail{CampaignSummary: CampaignSummary{ID: 5, Status: CampaignActive}, OrganiserID: matchOrganiser}, nil).AnyTimes()
-	svc := NewLiveService(f.repo, f.campaigns, f.companies, f.matches, staticRules{shippedRules(t)})
-	lc, err := svc.Live(f.ctx, f.user(liveOwner1), 5, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	unit := firstUnit(lc)
-	for _, dice := range [][]int{{0, 3}, {3, 0}, {7, 3}, {-1, 3}, {3}, {1, 2, 3}, {1 << 40, 1}, {-1 << 40, 1}} {
-		if _, err := svc.RollCourage(f.ctx, f.user(liveOwner1), 5, 1, unit, dice, false); !errors.Is(err, ErrInvalidLive) || errors.Is(err, ErrInvalidAftermath) {
-			t.Errorf("dice %v: %v", dice, err)
-		}
-	}
-	if r, err := svc.RollCourage(f.ctx, f.user(liveOwner1), 5, 1, unit, []int{6, 6}, false); err != nil || r.Total != 12 {
-		t.Errorf("two valid dice: %+v %v", r, err)
-	}
-}
-
 // A page that read the state of the match before it built its cards opens its stream with it: nothing is refetched while the match is
 // still in that state, everything is when it moved on, and a change after the subscription arrives as an event.
 func TestLiveSubscribeSinceSkipsTheInitialSyncOnlyWhenCurrent(t *testing.T) {

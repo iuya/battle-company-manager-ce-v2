@@ -482,3 +482,27 @@ func FoldLive(inits []LiveUnitInit, entries []LiveEntry) LiveState {
 func ValidateLog(inits []LiveUnitInit, entries []LiveEntry) error {
 	return ValidateLogWith(inits, entries, LiveFoldConfig{})
 }
+
+// Only a retreat for a failed courage test is one, and only until the unit returns: the same unit can then leave the board for good.
+func TestFledCourage(t *testing.T) {
+	courage := LiveAction{Kind: LiveRetreat, UnitID: 2, Why: "courage"}
+	left := LiveAction{Kind: LiveRetreat, UnitID: 2, Why: "left"}
+	back := LiveAction{Kind: LiveReturn, UnitID: 2}
+	for _, tc := range []struct {
+		name  string
+		steps []step
+		want  bool
+	}{
+		{"in the Field", nil, false},
+		{"failed courage", []step{{courage, 1}}, true},
+		{"left the board", []step{{left, 1}}, false},
+		{"died", []step{{LiveAction{Kind: LiveDied, UnitID: 2}, 1}}, false},
+		{"returned", []step{{courage, 1}, {back, 1}}, false},
+		{"returned and left", []step{{courage, 1}, {back, 1}, {left, 1}}, false},
+	} {
+		_, s := play(t, tc.steps...)
+		if got := unit(t, s, 2).FledCourage(); got != tc.want {
+			t.Errorf("%s: %v", tc.name, got)
+		}
+	}
+}

@@ -446,65 +446,6 @@ func TestLiveServiceBreakPoint(t *testing.T) {
 	}
 }
 
-func TestRollCourage(t *testing.T) {
-	f := newLiveFixture(t)
-	lc, err := f.svc.Live(f.ctx, f.user(liveOwner1), 5, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	unit := firstUnit(lc)
-	var courage int
-	for _, a := range f.unitStats(t, 1, unit) {
-		if a.Name == "Courage" {
-			courage = a.Value
-		}
-	}
-	if courage == 0 {
-		t.Fatal("the fixture's units have a Courage")
-	}
-	f.svc.dice = &FixedDice{Rolls: []int{courage - 1, 1}}
-	r, err := f.svc.RollCourage(f.ctx, f.user(liveOwner1), 5, 1, unit, nil, false)
-	if err != nil || r.Total != courage || r.Courage != courage || !r.Passed || len(r.Dice) != 2 {
-		t.Fatalf("a total equal to the Courage passes: %+v %v", r, err)
-	}
-	f.svc.dice = &FixedDice{Rolls: []int{1, 1}}
-	if r, err = f.svc.RollCourage(f.ctx, f.user(liveOwner1), 5, 1, unit, nil, false); err != nil || r.Passed || r.Total != 2 {
-		t.Fatalf("2 fails: %+v %v", r, err)
-	}
-	if snap, _ := f.repo.Read(f.ctx, 5, 1); len(snap.Entries) != 0 {
-		t.Error("a roll writes nothing")
-	}
-	// refusals
-	if _, err := f.svc.RollCourage(f.ctx, f.user(liveOwner2), 5, 1, unit, nil, false); !errors.Is(err, ErrRefused) {
-		t.Errorf("another company's owner: %v", err)
-	}
-	if _, err := f.svc.RollCourage(f.ctx, f.user(liveOwner1), 5, 1, unit, []int{3, 4}, false); !errors.Is(err, ErrRefused) {
-		t.Errorf("typed dice are refused when the campaign does not allow them: %v", err)
-	}
-	if _, err := f.svc.RollCourage(f.ctx, f.user(liveOwner1), 5, 1, unit, nil, true); !errors.Is(err, ErrRefused) {
-		t.Errorf("thrown dice are refused when the campaign does not allow them: %v", err)
-	}
-	if _, err := f.svc.RollCourage(f.ctx, f.user(liveOwner1), 5, 1, 424242, nil, false); !errors.Is(err, ErrNotFound) {
-		t.Errorf("an unknown unit: %v", err)
-	}
-	if _, _, err := f.svc.Apply(f.ctx, f.user(liveOwner1), 5, 1, 1, LiveAction{Kind: LiveDied, UnitID: unit}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := f.svc.RollCourage(f.ctx, f.user(liveOwner1), 5, 1, unit, nil, false); !errors.Is(err, ErrRefused) {
-		t.Errorf("a unit that is out of the battle does not test: %v", err)
-	}
-}
-
-func (f *liveFixture) unitStats(t *testing.T, company, unit int64) []Attribute {
-	t.Helper()
-	d, _, err := f.svc.detail(f.ctx, 5, company)
-	if err != nil {
-		t.Fatal(err)
-	}
-	u, _ := rosterUnit(d.Roster, unit)
-	return u.Stats
-}
-
 func TestMatchDefaults(t *testing.T) {
 	f := newLiveFixture(t)
 	if _, ok, err := f.svc.MatchDefaults(f.ctx, 5, 1); err != nil || ok {
