@@ -34,17 +34,22 @@ export default async function (h, { only }) {
   await h.step('path carousel: the paths are in rows by colour, each opened by its icon, with the button right under them', async () => {
     await open();
     const rows = await s.page.$$eval(STRIP + ' > [role=group]', (e) => e.map((r) => { const i = r.querySelector('.path-row-icon'), u = i.querySelector('use'); return { label: r.getAttribute('aria-label'), icon: u.getAttribute('href').split('#').pop(), hidden: i.getAttribute('aria-hidden'), interactive: !!i.closest('label, button, a') || getComputedStyle(i).cursor === 'pointer', radius: parseFloat(getComputedStyle(i).borderTopLeftRadius), w: i.getBoundingClientRect().width, paths: [...r.querySelectorAll('input')].map((x) => x.value.replace(/^Path of the /, '')), kinds: [...r.querySelectorAll('label')].map((l) => [...l.classList].find((c) => c.startsWith('path-k-'))) }; }));
-    assert.deepEqual(rows.map((r) => r.paths), [['Warlord', 'Tactician', 'Shieldbearer', 'Sorcerer'], ['Soldier', 'Claimant', 'Berserker', 'Duelist'], ['Sharpshooter', 'Marksman', 'Ranger']], 'the exact rows');
+    assert.deepEqual(rows.map((r) => r.paths), [['Warlord', 'Shieldbearer', 'Tactician', 'Sorcerer'], ['Soldier', 'Claimant', 'Berserker', 'Duelist'], ['Sharpshooter', 'Marksman', 'Ranger']], 'the exact rows');
     assert.deepEqual(rows.map((r) => r.icon), ['horn', 'sword-brandish', 'high-shot'], 'the icons of the rows');
     assert.deepEqual(rows.map((r) => r.label), ['Command paths', 'Melee paths', 'Ranged paths'], 'each row is a labelled group');
     assert.ok(rows.every((r) => r.hidden === 'true' && !r.interactive), 'the row icon is hidden from assistive tech and not interactive');
     assert.ok(rows.every((r) => r.w >= 34 && r.radius < r.w / 2), 'a rounded square, not a round badge');
-    assert.deepEqual(rows[0].kinds, ['path-k-command', 'path-k-command', 'path-k-command', 'path-k-magic'], 'the Sorcerer keeps its blue');
+    assert.deepEqual(rows[0].kinds, ['path-k-support', 'path-k-support', 'path-k-support', 'path-k-will'], 'the box and the tab take the main category: the Tactician stays amber, the Sorcerer blue');
     assert.deepEqual(await s.page.$$eval(MODAL + ' .path-card-body', (e) => e.map((b) => b.dataset.path)), await s.page.$$eval(MODAL + ' input[name=path]', (r) => r.map((x) => x.value)), 'the stack has the order of the radios');
     assert.equal(await picked(s), 'Path of the Warlord', 'the first selection is the first of the new order');
     const hybrid = await s.page.$$eval(STRIP + ' label', (l) => l.filter((x) => x.querySelector('.path-icon-hybrid')).map((x) => x.querySelector('input').value));
-    assert.deepEqual(hybrid, ['Path of the Duelist', 'Path of the Ranger'], 'only these two badges are split');
+    assert.deepEqual(hybrid, ['Path of the Tactician', 'Path of the Duelist', 'Path of the Ranger'], 'only the paths with two categories have a split badge');
     assert.match(await s.page.$eval(STRIP + ' .path-icon-hybrid', (e) => getComputedStyle(e).backgroundImage), /linear-gradient/, 'the split shows');
+    // the Tactician's badge: the amber of the Warlord top-left, the blue of the Sorcerer bottom-right
+    const badge = (path) => s.page.$eval(`${STRIP} label:has(input[value="${path}"]) .path-icon`, (e) => { const cs = getComputedStyle(e); return { bg: cs.backgroundColor, img: cs.backgroundImage }; });
+    const stops = (await badge('Path of the Tactician')).img.match(/rgba?\([^)]*\)|color\([^)]*\)/g);
+    assert.equal(stops[0], (await badge('Path of the Warlord')).bg, 'the Tactician starts amber');
+    assert.equal(stops[stops.length - 1], (await badge('Path of the Sorcerer')).bg, 'and ends blue');
     // the order of the window: the rows, the power block for a Sorcerer, the button, the stack
     const under = () => s.page.evaluate((m) => { const top = (q) => { const e = document.querySelector(m + ' ' + q); return e && e.getClientRects().length ? e.getBoundingClientRect().top : null; }; const strip = document.querySelector(m + ' [role=radiogroup]').getBoundingClientRect().bottom; return { strip, power: top('#power-open'), button: top('form > button.btn-primary'), deck: top('.path-deck') }; }, MODAL);
     let at = await under();

@@ -37,6 +37,30 @@ func shippedBCPath() string {
 }
 
 // shippedRules is the RuleSet of the default files, built once for all tests.
+// Every path a hero chooses has its categories, in order; the paths that are not chosen have none, and a unit carries those of its path.
+func TestShippedPathCategories(t *testing.T) {
+	want := map[string][]string{
+		"Path of the Warlord": {"support"}, "Path of the Shieldbearer": {"support"}, "Path of the Tactician": {"support", "will"},
+		"Path of the Sorcerer": {"will"},
+		"Path of the Soldier":  {"melee"}, "Path of the Claimant": {"melee"}, "Path of the Berserker": {"melee"}, "Path of the Duelist": {"melee", "support"},
+		"Path of the Sharpshooter": {"ranged"}, "Path of the Marksman": {"ranged"}, "Path of the Ranger": {"ranged", "support"},
+	}
+	prog := shippedRules(t).BC.Progression()
+	if len(prog.Paths) != len(want) {
+		t.Errorf("%d paths offered, want %d", len(prog.Paths), len(want))
+	}
+	for _, p := range prog.Paths {
+		if !slices.Equal(p.Categories, want[p.Name]) {
+			t.Errorf("%s: categories %v, want %v", p.Name, p.Categories, want[p.Name])
+		}
+	}
+	for _, p := range prog.Hidden {
+		if len(p.Categories) != 0 {
+			t.Errorf("%s: categories %v, want none", p.Name, p.Categories)
+		}
+	}
+}
+
 func shippedRules(t testing.TB) *RuleSet {
 	t.Helper()
 	shippedOnce.Do(func() {

@@ -623,7 +623,8 @@ type Path struct {
 	Name         string               `json:"name" required:"true" min:"1"`
 	ID           string               `json:"id,omitempty"`
 	Aka          []string             `json:"aka,omitempty"`
-	Kind         string               `json:"kind,omitempty" enum:"heroic|custom|endOfPath"` // default heroic
+	Kind         string               `json:"kind,omitempty" enum:"heroic|custom|endOfPath"`                                      // default heroic
+	Categories   []string             `json:"categories,omitempty" max:"2" enum:"support|melee|ranged|will" noun:"path category"` // what the path is for, the main one first: they give its colours
 	Extends      string               `json:"extends,omitempty"`
 	Dice         DiceSpec             `json:"dice,omitempty"` // default campaign.progression.hero.roll
 	Description  string               `json:"description,omitempty"`

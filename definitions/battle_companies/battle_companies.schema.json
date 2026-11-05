@@ -3966,6 +3966,20 @@
           },
           "type": "array"
         },
+        "categories": {
+          "description": "What the path is for, the main one first, each at most once: support (amber), melee (red), ranged (green), will (blue). They give the colours of its icon and box; a path without them is drawn in the muted colour.",
+          "items": {
+            "enum": [
+              "support",
+              "melee",
+              "ranged",
+              "will"
+            ],
+            "type": "string"
+          },
+          "maxItems": 2,
+          "type": "array"
+        },
         "description": {
           "description": "A short description shown to the players.",
           "type": "string"

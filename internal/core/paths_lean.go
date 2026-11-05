@@ -53,7 +53,7 @@ func LeanProgression(d *lean.Document, vanilla *VanillaBook, gl Glossary) (Progr
 		if hidden && path.Kind != "custom" {
 			continue
 		}
-		pp := PathProgression{Name: path.Name, Limits: pathMaximums(path.Maximums), PathDice: cmp.Or(path.Dice, rules.HeroDice), LimitPerCompany: path.Limit, Description: path.Description}
+		pp := PathProgression{Name: path.Name, Categories: path.Categories, Limits: pathMaximums(path.Maximums), PathDice: cmp.Or(path.Dice, rules.HeroDice), LimitPerCompany: path.Limit, Description: path.Description}
 		if path.Start != nil {
 			pp.Start = map[string]int{"might": path.Start.Might, "will": path.Start.Will, "fate": path.Start.Fate}
 		}

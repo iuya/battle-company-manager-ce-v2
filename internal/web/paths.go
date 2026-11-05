@@ -2,44 +2,46 @@ package web
 
 import "strings"
 
-// pathLookView is how a hero's path is drawn: its game-icons.net icon (see static/img/CREDITS.md), the kind of hero it makes
-// (which colours the icon and the box) and its name cut in two, the "Path of the" lead in small and the rest in large.
+// pathLookView is how a hero's path is drawn: its game-icons.net icon (see static/img/CREDITS.md), the colours of its categories and
+// its name cut in two, the "Path of the" lead in small and the rest in large.
 type pathLookView struct {
-	Icon string
-	Kind string // melee, ranged, command, magic or other
-	Lead string // "Path of the", "Path of" or empty
-	Main string
-	// Hybrid paths are the Ranger and the Duelist: their badge also carries the command colour. It is the owner's reading of what the
-	// path is useful for, not a rules concept, so it lives here and not in the rules file. The Duelist specialises in winning duels,
-	// dealing far less damage than the rest of its row so that its companions can hit.
-	Hybrid bool
+	Icon   string
+	Kind   string // the main category, which colours the icon, the box and the name: support, melee, ranged, will, or other without one
+	Second string // the secondary category, the other half of the icon; empty when the path has one category or none
+	Lead   string // "Path of the", "Path of" or empty
+	Main   string
 }
 
-// pathLooks are the paths of the Battle Companies file. Fighters are melee; archers and rangers ranged; those who lead or
-// guard the company are command; the Sorcerer is magic; the paths that are not chosen are other.
-var pathLooks = map[string]pathLookView{
-	"Path of the Soldier":      {Icon: "sword-clash", Kind: "melee"},
-	"Path of the Claimant":     {Icon: "crowned-skull", Kind: "melee"},
-	"Path of the Berserker":    {Icon: "enrage", Kind: "melee"},
-	"Path of the Duelist":      {Icon: "fencer", Kind: "melee", Hybrid: true},
-	"Path of the Sharpshooter": {Icon: "bullseye", Kind: "ranged"},
-	"Path of the Marksman":     {Icon: "arrow-cluster", Kind: "ranged"},
-	"Path of the Ranger":       {Icon: "boot-prints", Kind: "ranged", Hybrid: true},
-	"Path of the Tactician":    {Icon: "compass", Kind: "command"},
-	"Path of the Warlord":      {Icon: "crown", Kind: "command"},
-	"Path of the Shieldbearer": {Icon: "checked-shield", Kind: "command"},
-	"Path of the Sorcerer":     {Icon: "wizard-staff", Kind: "magic"},
-	"Path of Their Own Making": {Icon: "hiking", Kind: "other"},
-	"On Their Own Path":        {Icon: "padlock", Kind: "other"},
+// pathIcons are the icons of the paths of the Battle Companies file. Only the icon goes by the name: the colours come from the categories.
+var pathIcons = map[string]string{
+	"Path of the Soldier":      "sword-clash",
+	"Path of the Claimant":     "crowned-skull",
+	"Path of the Berserker":    "enrage",
+	"Path of the Duelist":      "fencer",
+	"Path of the Sharpshooter": "bullseye",
+	"Path of the Marksman":     "arrow-cluster",
+	"Path of the Ranger":       "boot-prints",
+	"Path of the Tactician":    "compass",
+	"Path of the Warlord":      "crown",
+	"Path of the Shieldbearer": "checked-shield",
+	"Path of the Sorcerer":     "wizard-staff",
+	"Path of Their Own Making": "hiking",
+	"On Their Own Path":        "padlock",
 }
 
-// pathLook is the look of a path by its name; a path the app does not know (another rules file) gets the medal.
-func pathLook(name string) pathLookView {
-	l, ok := pathLooks[name]
-	if !ok {
-		l = pathLookView{Icon: "medal", Kind: "other"}
+// pathLook is the look of a path from its name and the categories the rules file gives it, the main one first. A path the app does not
+// know (another rules file) gets the medal; a path without categories the muted colour.
+func pathLook(name string, categories []string) pathLookView {
+	l := pathLookView{Icon: "medal", Kind: "other", Main: name}
+	if icon, ok := pathIcons[name]; ok {
+		l.Icon = icon
 	}
-	l.Main = name
+	if len(categories) > 0 {
+		l.Kind = categories[0]
+	}
+	if len(categories) > 1 {
+		l.Second = categories[1]
+	}
 	for _, lead := range []string{"Path of the ", "Path of "} {
 		if rest, ok := strings.CutPrefix(name, lead); ok && rest != "" {
 			l.Lead, l.Main = strings.TrimSpace(lead), rest
@@ -49,7 +51,7 @@ func pathLook(name string) pathLookView {
 	return l
 }
 
-// pathStripRow is one row of the path window: the heading icon (none for the extra row), the kind that colours it and its paths.
+// pathStripRow is one row of the path window: the heading icon (none for the extra row), the category that colours it and its paths.
 type pathStripRow struct {
 	Label string
 	Icon  string
@@ -57,12 +59,12 @@ type pathStripRow struct {
 	Cards []pathCard
 }
 
-// pathRowList is the order of the path window, row by row. The Sorcerer keeps its blue and goes last of the first row.
+// pathRowList is the order of the path window, row by row. The Sorcerer, whose main category is will, goes last of the first row.
 var pathRowList = []struct {
 	Label, Icon, Kind string
 	Paths             []string
 }{
-	{"Command paths", "horn", "command", []string{"Path of the Warlord", "Path of the Tactician", "Path of the Shieldbearer", "Path of the Sorcerer"}},
+	{"Command paths", "horn", "support", []string{"Path of the Warlord", "Path of the Shieldbearer", "Path of the Tactician", "Path of the Sorcerer"}},
 	{"Melee paths", "sword-brandish", "melee", []string{"Path of the Soldier", "Path of the Claimant", "Path of the Berserker", "Path of the Duelist"}},
 	{"Ranged paths", "high-shot", "ranged", []string{"Path of the Sharpshooter", "Path of the Marksman", "Path of the Ranger"}},
 }

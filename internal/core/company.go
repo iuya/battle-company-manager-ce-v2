@@ -390,6 +390,7 @@ type HeroicAction struct {
 // UnitPath is the path a hero has chosen: every hero, the leader and the sergeants included, has one.
 type UnitPath struct {
 	Name          string
+	Categories    []string       // what the path is for, the main one first; empty for a path the rules file gives none
 	HeroicActions []HeroicAction // unlocked so far, including the ones bought later
 	Rules         []UnitRule     // special rules gained from the path; they are not repeated among the unit's own rules
 	Powers        []UnitRule     // magical powers learned through the path (the Path of the Sorcerer); Spell is true
@@ -1032,8 +1033,9 @@ type PathOffer struct {
 // PathOption is a path a hero could take, or the reason it cannot.
 type PathOption struct {
 	Name        string
-	StartAction string // the heroic action the path gives at once
-	StartPower  bool   // the hero also chooses a first magical power
+	Categories  []string // what the path is for, the main one first
+	StartAction string   // the heroic action the path gives at once
+	StartPower  bool     // the hero also chooses a first magical power
 	Blocked     string
 	Description string   // the path in a sentence (may be empty)
 	Summary     string   // what it offers (heroic action, Mastery rule, rules, signature characteristic): the tooltip

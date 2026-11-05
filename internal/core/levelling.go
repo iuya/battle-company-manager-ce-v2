@@ -498,7 +498,7 @@ func (env *levelEnv) pathOffer() (PathOffer, error) {
 	}
 	offer := PathOffer{Unit: u}
 	for _, path := range env.rs.BC.Progression().Paths {
-		opt := PathOption{Name: path.Name, StartAction: path.StartAction, StartPower: path.StartPower, Description: path.Description, Summary: path.Summary, Mastery: path.Mastery, Rules: path.SpecialRules}
+		opt := PathOption{Name: path.Name, Categories: path.Categories, StartAction: path.StartAction, StartPower: path.StartPower, Description: path.Description, Summary: path.Summary, Mastery: path.Mastery, Rules: path.SpecialRules}
 		if path.LimitPerCompany > 0 && heroesOnPath(env.d, path.Name) >= path.LimitPerCompany {
 			opt.Blocked = fmt.Sprintf("the company already has a hero on it (at most %d)", path.LimitPerCompany)
 		}

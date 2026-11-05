@@ -5550,6 +5550,10 @@
   "paths": [
     {
       "name": "Path of the Tactician",
+      "categories": [
+        "support",
+        "will"
+      ],
       "mastery": "Heroic Move Mastery",
       "maximums": {
         "attack": {
@@ -5721,6 +5725,9 @@
     },
     {
       "name": "Path of the Sharpshooter",
+      "categories": [
+        "ranged"
+      ],
       "mastery": "Heroic Shoot Mastery",
       "maximums": {
         "attack": {
@@ -5885,6 +5892,9 @@
     },
     {
       "name": "Path of the Soldier",
+      "categories": [
+        "melee"
+      ],
       "mastery": "Heroic Combat Mastery",
       "maximums": {
         "attack": {
@@ -6049,6 +6059,9 @@
     },
     {
       "name": "Path of the Marksman",
+      "categories": [
+        "ranged"
+      ],
       "description": "The Hero adds Heroic Accuracy to their list of Heroic Actions when embarking upon this path.",
       "heroicAction": "Heroic Accuracy",
       "mastery": "Heroic Accuracy Mastery",
@@ -6214,6 +6227,9 @@
     },
     {
       "name": "Path of the Claimant",
+      "categories": [
+        "melee"
+      ],
       "description": "The Hero adds Heroic Challenge to their list of Heroic Actions when embarking upon this path.",
       "heroicAction": "Heroic Challenge",
       "mastery": "Heroic Challenge Mastery",
@@ -6379,6 +6395,9 @@
     },
     {
       "name": "Path of the Sorcerer",
+      "categories": [
+        "will"
+      ],
       "description": "The Hero adds Heroic Channeling to their list of Heroic Actions, adds their choice of Magical Power to their Spell List when embarking upon this path. (Rare Limit: 1 per Company)",
       "heroicAction": "Heroic Channeling",
       "limit": 1,
@@ -6596,6 +6615,9 @@
     },
     {
       "name": "Path of the Shieldbearer",
+      "categories": [
+        "support"
+      ],
       "description": "The Hero adds Heroic Defence to their list of Heroic Actions when embarking upon this path.",
       "heroicAction": "Heroic Defence",
       "mastery": "Heroic Defence Mastery",
@@ -6761,6 +6783,10 @@
     },
     {
       "name": "Path of the Ranger",
+      "categories": [
+        "ranged",
+        "support"
+      ],
       "description": "The Hero adds Heroic March to their list of Heroic Actions when embarking upon this path.",
       "heroicAction": "Heroic March",
       "mastery": "Heroic March Mastery",
@@ -6930,6 +6956,9 @@
     },
     {
       "name": "Path of the Warlord",
+      "categories": [
+        "support"
+      ],
       "description": "The Hero adds Heroic Resolve to their list of Heroic Actions when embarking upon this path.",
       "heroicAction": "Heroic Resolve",
       "mastery": "Heroic Resolve Mastery",
@@ -7102,6 +7131,9 @@
     },
     {
       "name": "Path of the Berserker",
+      "categories": [
+        "melee"
+      ],
       "description": "The Hero adds Heroic Strength to their list of Heroic Actions when embarking upon this path.",
       "heroicAction": "Heroic Strength",
       "mastery": "Heroic Strength Mastery",
@@ -7267,6 +7299,10 @@
     },
     {
       "name": "Path of the Duelist",
+      "categories": [
+        "melee",
+        "support"
+      ],
       "description": "The Hero adds Heroic Strike to their list of Heroic Actions when embarking upon this path.",
       "heroicAction": "Heroic Strike",
       "mastery": "Heroic Strike Mastery",

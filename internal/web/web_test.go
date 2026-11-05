@@ -676,7 +676,7 @@ func TestOthersCompanyCannotBeManaged(t *testing.T) {
 				Stats:     []core.Attribute{{Abbr: "Mv", Name: "Movement", Value: 6, Trail: `"`}, {Abbr: "FV", Name: "Fight", Value: 5, Boost: 1}, {Abbr: "M", Name: "Might", Value: 3, HeroOnly: true}},
 				Equipment: []core.Equipment{{Name: "Sword", Class: core.EquipMelee}, {Name: "Bow", Class: core.EquipBow, Bought: true, Stats: `24" · S2`, Description: "Can shoot."}, {Name: "Elven Cloak", Class: core.EquipOther, Description: "Stalk Unseen."}, {Name: "Helmingas", Class: core.EquipOther, Upgrade: true, Description: "Guards of the king."}},
 				Rules:     []core.UnitRule{{Name: "Bodyguard", Description: "Protects the Leader.", Source: core.RuleFromUnit}, {Name: "Wither", Description: "Bad things.", Source: core.RuleFromUnit, Spell: true, Casting: 3, Range: 12}},
-				Path: &core.UnitPath{Name: "Path of the Warlord",
+				Path: &core.UnitPath{Name: "Path of the Warlord", Categories: []string{"support"},
 					HeroicActions: []core.HeroicAction{{Name: "Heroic Strike", Source: core.ActionFromUnit}, {Name: "Heroic March", Source: core.ActionBought}},
 					Rules:         []core.UnitRule{{Name: "Rally the Troops", Description: "Cheers.", Source: core.RuleFromPath}},
 					Powers:        []core.UnitRule{{Name: "Black Dart", Description: "Hits.", Source: core.RuleFromPath, Spell: true, Casting: 3, Range: 12}}}},
@@ -691,7 +691,7 @@ func TestOthersCompanyCannotBeManaged(t *testing.T) {
 		t.Errorf("own company page: %d -> %q", rec.Code, rec.Header().Get("Location"))
 	}
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
-	for _, want := range []string{`aria-current="page">My Company`, "Influence", "Gold", "Bows", "1 / 2", "Beregond", "unit-leader", "insignia-leader", "+ Bow", `24&#34; · S2`, "has-tip", "Bodyguard", "rule-spell", "3+", "FV", "path-box path-k-command", `<span class="min-w-0"><span class="path-main">Warlord</span>`, "Heroic Strike", "+ Heroic March", "Rally the Troops", "Black Dart", "learned through the path", `title="Level 0 · 11 XP in total"`, "11 / 5 XP", "Level Up ready!", "×2", "unit-corner", "70", `data-tip-title="Elven Cloak"`, `data-tip-text="Stalk Unseen."`, `data-tip-title="Helmingas" data-tip-meta="Unit upgrade" data-tip-text="Guards of the king."`} {
+	for _, want := range []string{`aria-current="page">My Company`, "Influence", "Gold", "Bows", "1 / 2", "Beregond", "unit-leader", "insignia-leader", "+ Bow", `24&#34; · S2`, "has-tip", "Bodyguard", "rule-spell", "3+", "FV", "path-box path-k-support", `<span class="min-w-0"><span class="path-main">Warlord</span>`, "Heroic Strike", "+ Heroic March", "Rally the Troops", "Black Dart", "learned through the path", `title="Level 0 · 11 XP in total"`, "11 / 5 XP", "Level Up ready!", "×2", "unit-corner", "70", `data-tip-title="Elven Cloak"`, `data-tip-text="Stalk Unseen."`, `data-tip-title="Helmingas" data-tip-meta="Unit upgrade" data-tip-text="Guards of the king."`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("My Company tab lacks %q", want)
 		}

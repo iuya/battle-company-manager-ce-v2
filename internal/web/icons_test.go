@@ -33,10 +33,10 @@ func TestIconSpriteMatchesTheIconsInUse(t *testing.T) {
 	}
 	used[gearLook("no such key").Icon] = "unknown gear"
 	used[elvenMark] = "the Elven weapon mark"
-	for name := range pathLooks {
-		used[pathLook(name).Icon] = name
+	for name, icon := range pathIcons {
+		used[icon] = name
 	}
-	used[pathLook("Path of the Smith").Icon] = "unknown path"
+	used[pathLook("Path of the Smith", nil).Icon] = "unknown path"
 	for _, row := range pathRowList {
 		used[row.Icon] = row.Label
 	}

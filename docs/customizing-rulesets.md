@@ -542,6 +542,7 @@ A hero rolls the dice of the path (`dice`, default `campaign.progression.hero.ro
 - `signature` lists the characteristics the path is known for.
 - `spells` lists the magical powers of a path with magic.
 - `limit` is the most heroes of a company that may take the path.
+- `categories` says what the path is for, the main one first: at most two of `support`, `melee`, `ranged` and `will`. They give its colours: one colours the icon and the box, a second splits the icon on the diagonal. A path without them is drawn in the muted colour, so a file written before this key looks muted until it is added.
 - `kind` is `heroic` (default, offered to heroes), `custom` (the homebrew path an option hands out) or `endOfPath` (no table, only a `rule`).
 - Each row is `{"roll": 7, "options": [...]}`.
   **An option is exactly one of:**

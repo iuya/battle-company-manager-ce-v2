@@ -3460,6 +3460,7 @@ Example:
 |---|---|---|---|---|---|
 | `name` | string | yes | - | not empty | The name of the path. |
 | `aka` | list of string | no | - | - | Other spellings of the same name (true synonyms only). A spelling that already is a vanilla name is refused. |
+| `categories` | list of string | no | - | `support`, `melee`, `ranged`, `will`; at most 2 items | What the path is for, the main one first, each at most once: support (amber), melee (red), ranged (green), will (blue). They give the colours of its icon and box; a path without them is drawn in the muted colour. |
 | `description` | string | no | - | - | A short description shown to the players. |
 | `dice` | [DiceSpec](#dicespec) | no | - | - | The dice of the path table; default campaign.progression.hero.roll. The rows must cover them exactly once. |
 | `extends` | string | no | - | - | A path of this file whose fields (rows, maximums...) this one inherits where it does not write them. |

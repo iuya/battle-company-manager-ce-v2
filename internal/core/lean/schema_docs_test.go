@@ -556,6 +556,7 @@ var fieldDocs = map[string]string{
 	"Path.kind":                  "heroic (default): offered to heroes. custom: the homebrew path an option hands out, hidden. endOfPath: no table, only rule.",
 	"Path.extends":               "A path of this file whose fields (rows, maximums...) this one inherits where it does not write them.",
 	"Path.dice":                  "The dice of the path table; default campaign.progression.hero.roll. The rows must cover them exactly once.",
+	"Path.categories":            "What the path is for, the main one first, each at most once: support (amber), melee (red), ranged (green), will (blue). They give the colours of its icon and box; a path without them is drawn in the muted colour.",
 	"Path.mastery":               "The name of the Mastery rule.",
 	"Path.heroicAction":          "The name of the Heroic Action the path starts with, or null when it adds none. Its text is the rule's.",
 	"Path.signature":             "The signature characteristics.",

@@ -1,43 +1,73 @@
 package web
 
 import (
+	"fmt"
+	"os"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
 
 func TestPathLook(t *testing.T) {
-	for _, c := range []struct{ name, icon, kind, lead, main string }{
-		{"Path of the Duelist", "fencer", "melee", "Path of the", "Duelist"},
-		{"Path of the Marksman", "arrow-cluster", "ranged", "Path of the", "Marksman"},
-		{"Path of the Ranger", "boot-prints", "ranged", "Path of the", "Ranger"},
-		{"Path of the Warlord", "crown", "command", "Path of the", "Warlord"},
-		{"Path of the Sorcerer", "wizard-staff", "magic", "Path of the", "Sorcerer"},
-		{"Path of Their Own Making", "hiking", "other", "Path of", "Their Own Making"},
-		{"On Their Own Path", "padlock", "other", "", "On Their Own Path"},
-		{"Path of the Smith", "medal", "other", "Path of the", "Smith"}, // another rules file
+	for _, c := range []struct {
+		name                           string
+		categories                     []string
+		icon, kind, second, lead, main string
+	}{
+		{"Path of the Duelist", []string{"melee", "support"}, "fencer", "melee", "support", "Path of the", "Duelist"},
+		{"Path of the Marksman", []string{"ranged"}, "arrow-cluster", "ranged", "", "Path of the", "Marksman"},
+		{"Path of the Tactician", []string{"support", "will"}, "compass", "support", "will", "Path of the", "Tactician"},
+		{"Path of the Sorcerer", []string{"will"}, "wizard-staff", "will", "", "Path of the", "Sorcerer"},
+		{"Path of Their Own Making", nil, "hiking", "other", "", "Path of", "Their Own Making"},
+		{"On Their Own Path", nil, "padlock", "other", "", "", "On Their Own Path"},
+		{"Path of the Smith", nil, "medal", "other", "", "Path of the", "Smith"},                           // another rules file
+		{"Path of the Smith", []string{"will", "melee"}, "medal", "will", "melee", "Path of the", "Smith"}, // any pair, on any path
 	} {
-		if got := pathLook(c.name); got.Icon != c.icon || got.Kind != c.kind || got.Lead != c.lead || got.Main != c.main {
-			t.Errorf("pathLook(%q) = %+v, want %s %s %q %q", c.name, got, c.icon, c.kind, c.lead, c.main)
+		got := pathLook(c.name, c.categories)
+		if got.Icon != c.icon || got.Kind != c.kind || got.Second != c.second || got.Lead != c.lead || got.Main != c.main {
+			t.Errorf("pathLook(%q, %v) = %+v, want %s %s %q %q %q", c.name, c.categories, got, c.icon, c.kind, c.second, c.lead, c.main)
 		}
 	}
 }
 
-// Only the Ranger and the Duelist are hybrid: an unknown path, or any other of the file, is not.
-func TestPathLookHybrid(t *testing.T) {
-	var got []string
-	for name, l := range pathLooks {
-		if l.Hybrid {
-			got = append(got, name)
+// The colours come from the categories alone: the same name with other categories draws those, and any pair splits the badge with no
+// code or CSS per path. Every category has both of its classes in the stylesheet source.
+func TestPathIconAnyPair(t *testing.T) {
+	r, err := newRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	css, err := os.ReadFile("../../tailwind.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	icon := func(categories ...string) string {
+		var b strings.Builder
+		if err := r.pages["styleguide"].ExecuteTemplate(&b, "path_icon", pathLook("Path of the Warlord", categories)); err != nil {
+			t.Fatal(err)
 		}
+		return b.String()
 	}
-	slices.Sort(got)
-	if want := []string{"Path of the Duelist", "Path of the Ranger"}; !slices.Equal(got, want) {
-		t.Errorf("hybrid paths = %v, want %v", got, want)
-	}
-	if !pathLook("Path of the Ranger").Hybrid || pathLook("Path of the Smith").Hybrid {
-		t.Error("pathLook carries the flag of the known path only")
+	categories := []string{"support", "melee", "ranged", "will"}
+	for _, main := range categories {
+		for _, second := range categories {
+			if main == second {
+				continue
+			}
+			if got, want := icon(main, second), fmt.Sprintf(`class="path-icon path-k-%s path-icon-hybrid path-k2-%s"`, main, second); !strings.Contains(got, want) {
+				t.Errorf("%s, %s: %s, want %s", main, second, got, want)
+			}
+		}
+		if got, want := icon(main), fmt.Sprintf(`class="path-icon path-k-%s"`, main); !strings.Contains(got, want) {
+			t.Errorf("%s: %s, want %s", main, got, want)
+		}
+		for _, class := range []string{".path-k-" + main + " {", ".path-k2-" + main + " {"} {
+			if !strings.Contains(string(css), class) {
+				t.Errorf("tailwind.css has no %s", class)
+			}
+		}
 	}
 }
 
@@ -60,8 +90,8 @@ func cardNames(cards []pathCard) []string {
 // The rows come in the declared order whatever the rules file's order is; the flat list is the rows one after the other.
 func TestPathRowsOrder(t *testing.T) {
 	var file []string
-	for name := range pathLooks {
-		if pathLooks[name].Kind != "other" {
+	for name := range pathIcons {
+		if name != "Path of Their Own Making" && name != "On Their Own Path" {
 			file = append(file, name)
 		}
 	}
@@ -73,7 +103,7 @@ func TestPathRowsOrder(t *testing.T) {
 		label string
 		paths []string
 	}{
-		{"horn", "command", "Command paths", []string{"Path of the Warlord", "Path of the Tactician", "Path of the Shieldbearer", "Path of the Sorcerer"}},
+		{"horn", "support", "Command paths", []string{"Path of the Warlord", "Path of the Shieldbearer", "Path of the Tactician", "Path of the Sorcerer"}},
 		{"sword-brandish", "melee", "Melee paths", []string{"Path of the Soldier", "Path of the Claimant", "Path of the Berserker", "Path of the Duelist"}},
 		{"high-shot", "ranged", "Ranged paths", []string{"Path of the Sharpshooter", "Path of the Marksman", "Path of the Ranger"}},
 	}

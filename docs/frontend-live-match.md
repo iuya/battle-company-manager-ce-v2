@@ -83,10 +83,10 @@ Layout:
 - Wounds is always shown, also when it starts at 1 (a plain warrior).
   Taking it to 0 makes the unit a Field casualty, as Died does.
 
-Colour: each stat has its own colour on its bold name and its bar, from the theme tokens of the path kinds (`.path-k-*`):
+Colour: each stat has its own colour on its bold name and its bar, from the theme tokens of the path categories (`.path-k-*`):
 
-- gold Might (command);
-- hero-blue Will (magic);
+- gold Might (support);
+- hero-blue Will (will);
 - success-green Fate (ranged);
 - danger-red Wounds (melee, as the Soldier).
 

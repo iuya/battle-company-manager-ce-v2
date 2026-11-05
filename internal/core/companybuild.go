@@ -276,6 +276,9 @@ func buildUnitFor(rs *RuleSet, bcCo BCCompany, s UnitState, settings CampaignSet
 		u.Path = &UnitPath{}
 	} else if hero {
 		u.Path = &UnitPath{Name: s.Path, Rules: rs.BC.PathRules(s.Path, s.PathRules)}
+		if p, ok := rs.BC.Progression().Path(s.Path); ok {
+			u.Path.Categories = p.Categories
+		}
 		if p := s.Progress; p != nil {
 			for _, name := range p.Rules {
 				u.Path.Rules = append(u.Path.Rules, rs.BC.pathRuleNamed(s.Path, name))

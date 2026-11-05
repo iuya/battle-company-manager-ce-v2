@@ -13,6 +13,7 @@ type styleGuideView struct {
 	Palettes []palette
 	Modes    []string
 	Keywords []keywordSample
+	Paths    []pathView       // sample paths, each with its categories
 	Applies  []core.RuleMatch // sample markers of an enemy unit in a live match
 	Auras    []core.Aura      // sample aura chips of a Hero
 	Report   *reportView      // a sample rules file report
@@ -42,6 +43,27 @@ func sampleKeywords() []keywordSample {
 	}
 }
 
+// samplePaths are the paths of the shipped rules file, an unknown one with no categories and an unknown one with a pair no shipped path has.
+func samplePaths() []pathView {
+	return []pathView{
+		{Name: "Path of the Warlord", Categories: []string{"support"}},
+		{Name: "Path of the Shieldbearer", Categories: []string{"support"}},
+		{Name: "Path of the Tactician", Categories: []string{"support", "will"}},
+		{Name: "Path of the Sorcerer", Categories: []string{"will"}},
+		{Name: "Path of the Soldier", Categories: []string{"melee"}},
+		{Name: "Path of the Claimant", Categories: []string{"melee"}},
+		{Name: "Path of the Berserker", Categories: []string{"melee"}},
+		{Name: "Path of the Duelist", Categories: []string{"melee", "support"}},
+		{Name: "Path of the Sharpshooter", Categories: []string{"ranged"}},
+		{Name: "Path of the Marksman", Categories: []string{"ranged"}},
+		{Name: "Path of the Ranger", Categories: []string{"ranged", "support"}},
+		{Name: "Path of Their Own Making"},
+		{Name: "On Their Own Path"},
+		{Name: "Path of the Smith"},
+		{Name: "Path of the Example", Categories: []string{"ranged", "will"}},
+	}
+}
+
 // handleStyleGuide shows every design token and component in the active theme. Registered only when Config.StyleGuide
 // is on, so it can be switched off in production.
 func (s *Server) handleStyleGuide(w http.ResponseWriter, r *http.Request) {
@@ -50,6 +72,7 @@ func (s *Server) handleStyleGuide(w http.ResponseWriter, r *http.Request) {
 		Palettes: []palette{{"forest", "Forest & Gold"}, {"ember", "Parchment & Ember"}, {"mithril", "Mithril & Night"}},
 		Modes:    []string{"system", "light", "dark"},
 		Keywords: sampleKeywords(),
+		Paths:    samplePaths(),
 		Report: newReportView(*core.NewRulesetReport([]core.RulesetIssue{
 			{File: "battle_companies.json", Path: "companies[0].start.units[0].unit", Message: `no unit "Ranger of Arnr" in this company or vanilla`, Closest: "Ranger of Arnor"},
 			{File: "battle_companies.json", Path: "gear[1].name", Message: `"Bow" is already defined at gear[0]`, Hint: "use another name or put the old spelling in aka"},

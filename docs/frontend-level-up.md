@@ -14,7 +14,7 @@ Code: `path_panel`, `handleChoosePath` and `pathCards` (`company_actions.go`); f
 
 On top, every path is a small button (a small icon and the name on one line), in fixed rows by colour (`pathRowList`, `paths.go`):
 
-1. a war horn: Warlord, Tactician, Shieldbearer, Sorcerer (the only path in a row of another colour: it keeps its blue);
+1. a war horn: Warlord, Shieldbearer, Tactician, Sorcerer (the only path of the row whose main category is another: it is blue);
 2. a hand weapon: Soldier, Claimant, Berserker, Duelist;
 3. a bow: Sharpshooter, Marksman, Ranger.
 
@@ -33,8 +33,10 @@ A path no row names (another rules file) goes in an extra last row without a hea
 Under the rows come, for a Sorcerer, the first magical power (see below), then "Take this path", then the cards.
 The button is the form's submit, so Enter takes the selected path.
 
-The badge of the Path of the Ranger and the Path of the Duelist (`Hybrid` in `pathLooks`, `.path-icon-hybrid`) is split on the diagonal: their own colour top-left, the command amber bottom-right, with a thin page-colour line between them because the two colours are close in lightness.
-It is only a look, in every place that draws the badge (`path_icon`), and says these two paths are useful beyond their kind. The box, the tab and the rules keep the path's own colour.
+A path's colours come from its `categories` in the rules file, the main one first: support amber, melee red, ranged green, will blue.
+With one category the badge has that colour.
+With two (the Tactician, the Duelist and the Ranger) it is split on the diagonal (`.path-icon-hybrid`, in every place that draws `path_icon`): main top-left, secondary bottom-right, with a thin page-colour line between them because two colours can be close in lightness. Any pair works: `.path-k-*` gives the first colour and `.path-k2-*` the second.
+The box, the tab and the rules take the main category's colour, so the Tactician's are amber. A path without categories is muted.
 
 ### The cards
 

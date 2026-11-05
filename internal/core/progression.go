@@ -41,6 +41,7 @@ type ProgRow struct {
 // PathProgression is a path's chart and the limits of its heroes.
 type PathProgression struct {
 	Name            string
+	Categories      []string                  // what the path is for, the main one first (support, melee, ranged, will): they give its colours
 	PathDice        DiceSpec                  // the dice of the chart (paths[].dice, else progression.hero.roll): Rows cover Min..Max of it
 	Limits          map[string]map[string]int // by stat: max, maxIncrease, best
 	Rows            []ProgRow

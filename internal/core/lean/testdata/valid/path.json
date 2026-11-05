@@ -228,6 +228,10 @@
     {
       "name": "Path of the Tactician",
       "kind": "heroic",
+      "categories": [
+        "support",
+        "will"
+      ],
       "dice": "2d6",
       "description": "...",
       "maximums": {

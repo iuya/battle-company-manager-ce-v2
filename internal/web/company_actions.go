@@ -536,7 +536,7 @@ type pathRowView struct {
 func pathCards(g core.Glossary, paths []core.PathOption) []pathCard {
 	out := make([]pathCard, len(paths))
 	for i, p := range paths {
-		c := pathCard{PathOption: p, Look: pathLook(p.Name), Desc: linkText(g, p.Description)}
+		c := pathCard{PathOption: p, Look: pathLook(p.Name, p.Categories), Desc: linkText(g, p.Description)}
 		if p.StartAction != "" {
 			c.Heroic = linkText(g, p.StartAction)
 		}

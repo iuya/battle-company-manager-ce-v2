@@ -487,7 +487,7 @@
           {{range $c := .Cards}}
           <label class="path-tab path-k-{{$c.Look.Kind}}" :class="path === {{jsstr $c.Name}} && 'is-on'">
             <input type="radio" name="path" value="{{$c.Name}}" x-model="path" class="sr-only" required data-sorcerer="{{if $c.StartPower}}1{{end}}" data-blocked="{{if $c.Blocked}}1{{end}}">
-            {{template "path_icon" $c.Name}}<span class="path-tab-name">{{with $c.Look.Lead}}<span class="sr-only">{{.}} </span>{{end}}{{$c.Look.Main}}</span>{{if $c.Blocked}}<span class="sr-only">(not available)</span>{{end}}
+            {{template "path_icon" $c.Look}}<span class="path-tab-name">{{with $c.Look.Lead}}<span class="sr-only">{{.}} </span>{{end}}{{$c.Look.Main}}</span>{{if $c.Blocked}}<span class="sr-only">(not available)</span>{{end}}
           </label>
           {{end}}
         </div>
@@ -529,7 +529,7 @@
     {{range $i, $c := .Cards}}
     <div class="path-card path-k-{{$c.Look.Kind}}" data-rel="{{if eq $i 0}}0{{else}}1{{end}}" :data-rel="rel({{$i}})" :style="`--r:${off({{$i}})}`" :aria-hidden="rel({{$i}}) !== 0 ? 'true' : null" @click="rel({{$i}}) !== 0 && (path = names[{{$i}}])">
       <div class="path-card-body" :inert="rel({{$i}}) !== 0" data-path="{{$c.Name}}">
-        <h3 class="path-name !text-xl">{{template "path_icon" $c.Name}}<span>{{$c.Name}}</span></h3>
+        <h3 class="path-name !text-xl">{{template "path_icon" $c.Look}}<span>{{$c.Name}}</span></h3>
         {{with $c.Blocked}}<p class="alert alert-danger mt-2 text-sm">Not available: {{.}}</p>{{end}}
         {{if $c.Desc}}<p class="mt-2 text-sm">{{template "segments" (dict "S" $c.Desc "CID" $cid)}}</p>{{end}}
         {{if or $c.Limits $c.Hero}}

@@ -2,6 +2,7 @@ package lean
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -280,6 +281,11 @@ func (v *validator) gear(g *Gear, path string) {
 }
 
 func (v *validator) pathStructure(p *Path, path string) {
+	for i, c := range p.Categories {
+		if slices.Contains(p.Categories[:i], c) {
+			v.rep.Errorf(Idx(Join(path, "categories"), i), "%q is already a category of this path", c)
+		}
+	}
 	forEachOption(p.Rows, path, func(o *PathOption, op string) {
 		set := 0
 		for _, b := range []bool{o.Stat != "", o.Rule != nil, o.MinorRule != nil, o.HeroicAction != "", o.Power != "", o.CastingValue != 0, len(o.OneOf) > 0, o.AnyMinorRule, o.AnyHeroicAction, o.AnyPower} {
