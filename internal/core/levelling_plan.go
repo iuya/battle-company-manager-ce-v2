@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 )
@@ -37,7 +38,11 @@ func (env *levelEnv) levelPlan(st CompanyState, roll LevelRoll) *LevelPlan {
 	after := func(side int, key string) map[string]bool { // what the other result offers once this option is applied
 		a := asked{side, key}
 		if _, ok := cache[a]; !ok {
-			cache[a] = env.offerAfter(st, key, roll.Offers[1-side].Roll)
+			offered, err := env.offerAfter(st, key, roll.Offers[1-side].Roll)
+			if err != nil { // the plan only helps the window, and this runs inside every step of a level-up: an error here must not stop one
+				slog.Error("level-up plan: treating the option as not fitting", "unit", env.unit.ID, "option", key, "err", err)
+			}
+			cache[a] = offered
 		}
 		return cache[a]
 	}
@@ -124,33 +129,34 @@ func optionStat(key string) string {
 	return ""
 }
 
-// offerAfter lists the keys a result of the path would offer once the option is applied, on a copy of the company.
-func (env *levelEnv) offerAfter(st CompanyState, key string, sum int) map[string]bool {
+// offerAfter lists the keys a result of the path would offer once the option is applied, on a copy of the company. None and no error
+// is a normal outcome: the result gives the unit nothing any more. An error means the option could not be worked out.
+func (env *levelEnv) offerAfter(st CompanyState, key string, sum int) (map[string]bool, error) {
 	c := st.Clone()
 	us, ok := stateUnit(&c, env.unit.ID)
 	if !ok {
-		return nil
+		return nil, fmt.Errorf("unit %d: %w", env.unit.ID, ErrNotFound)
 	}
 	if us.Progress == nil {
 		us.Progress = &Progress{}
 	}
 	rules := env.rs.BC.Progression()
 	if err := rules.Apply(us.Progress, key); err != nil {
-		return nil
+		return nil, err
 	}
 	e, err := newLevelEnv(env.rs, env.settings, c, env.unit.ID)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	offer, ok := rules.OfferFor(sheetOf(e.unit, us.Progress, e.d.Roster, upgradesOf(e.rs, e.bcC, e.unit)), levelLists(e.rs), sum)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 	out := make(map[string]bool, len(offer.Choices))
 	for _, ch := range offer.Choices {
 		out[ch.Key] = true
 	}
-	return out
+	return out, nil
 }
 
 // conflictReason says why two options cannot be taken together. The same stat twice stops at what improvedStat allows: the path's
