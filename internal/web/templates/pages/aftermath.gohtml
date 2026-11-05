@@ -31,7 +31,8 @@
 <p class="mt-1 text-muted">The War's Aftermath of <a href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Match {{.Match.Number}}</a>{{with .Match.Scenario}} · {{.Name}}{{end}}{{with .Company.Owner}} · {{.}}{{end}}</p>
 {{if not .Edit}}<p class="mt-1 text-sm text-muted">You can read this aftermath but not change it.</p>{{end}}
 
-{{/* the stepper: only the steps that apply (an empty one is skipped); the current step is open, earlier ones are summaries */}}
+{{/* the stepper, until the aftermath is over: only the steps that apply (an empty one is skipped); the current step is open, earlier ones are summaries */}}
+{{if ne .Step 4}}
 {{$step := .Step}}{{$steps := .Steps}}
 <ol class="mt-5 flex gap-1 text-center text-xs sm:text-sm" aria-label="Steps">
   {{range $n, $st := $steps}}{{$i := $st.Index}}
@@ -40,13 +41,14 @@
   </li>
   {{end}}
 </ol>
+{{end}}
 
-<div class="mt-6 space-y-6" x-effect="document.body.classList.toggle('overflow-hidden', modal)" x-data="{ modal: false, openModal() { this.modal = true }, closeModal() { this.modal = false; htmx.ajax('GET', location.pathname, { target: '#main', swap: 'innerHTML' }) } }" @keydown.escape.window="if (modal) closeModal()">
-  {{if eq .Step 4}}{{template "aftermath_done" .}}{{end}}
-  {{template "aftermath_sheet" .}}
+<div class="{{if eq .Step 4}}mt-4{{else}}mt-6{{end}} space-y-6" x-effect="document.body.classList.toggle('overflow-hidden', modal)" x-data="{ modal: false, openModal() { this.modal = true }, closeModal() { this.modal = false; htmx.ajax('GET', location.pathname, { target: '#main', swap: 'innerHTML' }) } }" @keydown.escape.window="if (modal) closeModal()">
+  {{if eq .Step 4}}{{template "aftermath_done" .}}{{if .HasLevelUps}}{{template "aftermath_levelups_card" .}}{{end}}
+  {{else}}{{template "aftermath_sheet" .}}{{end}}
   {{if .HasInjuries}}{{template "aftermath_later" (dict "V" . "Index" 1 "Title" "Injuries" "Text" "A casualty roll for every unit marked as a casualty.")}}{{end}}
   {{if eq .Step 3}}<section class="card space-y-2" id="aftermath-step-3"><h2 class="!text-xl">Rewards</h2>{{template "aftermath_finish" .}}</section>{{end}}
-  {{if and .HasLevelUps (ne .Step 4)}}<section class="card space-y-2" id="aftermath-step-2"><h2 class="!text-xl">Level-ups</h2>{{template "aftermath_levelups" .}}</section>{{end}}
+  {{if and .HasLevelUps (ne .Step 4)}}{{template "aftermath_levelups_card" .}}{{end}}
   {{with .UnitResults}}{{template "aftermath_company" (dict "V" $ "R" .)}}{{end}}
   {{if .Owner}}
   {{/* The level-up window of My Company, opened here (its endpoints and panel are the same). */}}
@@ -107,19 +109,32 @@
 <div class="milestones milestones-wrap mt-auto [&+*]:mt-0" role="group" aria-label="Milestones">{{range .Milestones}}{{template "milestone" (dict "M" . "Edit" false "Unit" "")}}{{end}}</div>
 {{end}}
 
-{{/* The first block of a finished aftermath: the summary of changes, the level-up rolls waiting and every line. */}}
+{{/* The top of a finished aftermath, with no card: what changed (or that it was waived), the counts of the sheet, the two collapsed details and the way out. */}}
 {{define "aftermath_done"}}
-<section class="card space-y-3" id="aftermath-done">
-  <h2 class="!text-xl">Done</h2>
-  {{if eq (printf "%s" .A.Status) "waived"}}<p class="font-medium">Waived: nothing was applied.</p>
-  {{else}}<p class="text-lg font-semibold" data-change-summary>{{.ChangeSummary}}</p>{{end}}
-  {{if .HasLevelUps}}{{template "aftermath_levelups" .}}{{end}}
-  <details class="group">
-    <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium"><span>Everything that changed</span><span class="text-muted group-open:hidden">Show</span><span class="hidden text-muted group-open:inline">Hide</span></summary>
-    {{template "aftermath_summary" .}}
-  </details>
-</section>
+<div class="space-y-3" id="aftermath-done">
+  <div class="space-y-1">
+    {{if eq (printf "%s" .A.Status) "waived"}}<p class="text-lg font-semibold">Waived: nothing was applied.</p>{{with .A.WaivedNote}}<p class="text-sm" data-waived-note>{{.}}</p>{{end}}
+    {{else}}<p class="text-lg font-semibold" data-change-summary>{{.ChangeSummary}}</p>{{end}}
+    {{if .A.Input.Models}}<p class="text-sm text-muted" data-sheet-counts>{{.Participants}} took part · {{.Casualties}} casualt{{if eq .Casualties 1}}y{{else}}ies{{end}}</p>{{end}}
+  </div>
+  <div class="divide-y divide-line border-y border-line">
+    {{if or .Summary (ne (printf "%s" .A.Status) "waived")}}
+    <details class="group" data-done-changes>
+      <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium"><span>Everything that changed</span><span class="text-muted group-open:hidden">Show</span><span class="hidden text-muted group-open:inline">Hide</span></summary>
+      <div class="pb-3">{{template "aftermath_summary" .}}</div>
+    </details>
+    {{end}}
+    <details class="group" data-done-sheet>
+      <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium"><span>The sheet</span><span class="text-muted group-open:hidden">Show</span><span class="hidden text-muted group-open:inline">Hide</span></summary>
+      <div class="pb-3">{{template "aftermath_sheet_readonly" .}}</div>
+    </details>
+  </div>
+  <p class="flex flex-wrap gap-3 text-sm" data-done-links>{{if .Owner}}<a class="btn btn-secondary" href="/campaigns/{{.Campaign.ID}}/my-company/{{.Company.ID}}">My Company</a>{{end}}<a class="btn btn-ghost" href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Back to the match</a></p>
+</div>
 {{end}}
+
+{{/* The level-up rolls waiting, in a card of their own. */}}
+{{define "aftermath_levelups_card"}}<section class="card space-y-2" id="aftermath-step-2"><h2 class="!text-xl">Level-ups</h2>{{template "aftermath_levelups" .}}</section>{{end}}
 
 {{/* The Injuries step: a card per casualty, the questions that are open, Against the Odds re-rolls and the Leader's succession. */}}
 {{define "aftermath_injuries"}}
@@ -384,12 +399,10 @@
 {{/* A finished aftermath: every line, grouped by unit. Readable by everybody in the campaign. */}}
 {{define "aftermath_summary"}}
 <div class="space-y-3">
-  {{if eq (printf "%s" .A.Status) "waived"}}<p class="text-sm">Waived: nothing was applied.{{with .A.WaivedNote}} {{.}}{{end}}</p>{{end}}
   {{range .Summary}}
   <div><h3 class="!text-lg">{{.Name}}</h3>
     <ul class="mt-1 text-sm">{{range .Lines}}<li class="py-0.5">{{.Text}}{{if .Amount}} <span class="text-muted">({{if gt .Amount 0}}+{{end}}{{.Amount}})</span>{{end}}</li>{{end}}</ul></div>
-  {{else}}{{if ne (printf "%s" .A.Status) "waived"}}<p class="text-sm text-muted">Nothing was recorded.</p>{{end}}{{end}}
-  <p class="flex flex-wrap gap-3 text-sm">{{if .Owner}}<a class="btn btn-secondary" href="/campaigns/{{.Campaign.ID}}/my-company/{{.Company.ID}}">My Company</a>{{end}}<a class="btn btn-ghost" href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Back to the match</a></p>
+  {{else}}<p class="text-sm text-muted">Nothing was recorded.</p>{{end}}
 </div>
 {{end}}
 

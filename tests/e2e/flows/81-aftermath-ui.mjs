@@ -166,4 +166,74 @@ export default async function (h) {
     assert.deepEqual(await start(pending.live), { sheet: false, edit: false, done: true }, 'no casualty: on to the summary');
     await admin.close?.();
   });
+
+  // The aftermath page of a company of ward 1, found through the links of its match.
+  const aftermathOf = async (s, name) => {
+    const cid = await campaignId(s, 'Aftermath ward 1');
+    await s.goto(`/campaigns/${cid}/matches`);
+    const matches = await s.page.$$eval('main a[href]', (a) => [...new Set(a.map((x) => x.getAttribute('href')).filter((x) => /\/matches\/\d+$/.test(x)))]);
+    for (const m of matches) {
+      await s.goto(m);
+      const found = await s.page.evaluate((n) => [...document.querySelectorAll('main a[href]')].find((x) => /\/aftermath\/\d+$/.test(x.getAttribute('href')) && x.innerText.includes(n))?.getAttribute('href'), name);
+      if (found) return found;
+    }
+    throw new Error(`no aftermath page of ${name}`);
+  };
+  const finished = (p) => p.evaluate(() => {
+    const seen = (el) => !!el && el.getBoundingClientRect().height > 0;
+    const links = [...document.querySelectorAll('[data-done-links] a')];
+    const y = (sel) => document.querySelector(sel)?.getBoundingClientRect().top ?? -1;
+    return {
+      stepper: !!document.querySelector('ol[aria-label=Steps]'), sheetCard: !!document.querySelector('#aftermath-sheet'),
+      summary: document.querySelector('[data-change-summary]')?.innerText || '', counts: document.querySelector('[data-sheet-counts]')?.innerText || '',
+      details: document.querySelectorAll('#aftermath-done details').length, open: document.querySelectorAll('#aftermath-done details[open]').length,
+      links: links.filter(seen).map((a) => a.innerText.trim()),
+      levelUp: [...document.querySelectorAll('#aftermath-step-2 button')].filter(seen).length,
+      order: [y('#aftermath-done'), y('#aftermath-step-2'), y('#aftermath-step-1'), y('#aftermath-company')],
+    };
+  });
+
+  await h.step('finished aftermath: no stepper or step cards, the summary and counts on top, two collapsed details, then Level-ups, Injuries and the company, at 360 / 768 / 1280 px, light and dark', async () => {
+    const bilbo = await h.session('bilbo@example.com');
+    const path = await aftermathOf(bilbo, 'Hobbits who finished');
+    for (const scheme of ['light', 'dark']) for (const w of SIZES) {
+      await layout(bilbo, w, scheme);
+      await bilbo.goto(path);
+      assert.ok(await bilbo.noHScroll(), `no horizontal scroll at ${w}px ${scheme}`);
+      const r = await finished(bilbo.page);
+      assert.ok(!r.stepper && !r.sheetCard, 'no stepper and no Sheet card');
+      assert.match(r.summary, /level-up/, 'the summary says a roll is waiting');
+      assert.match(r.counts, /\d+ took part · 1 casualty/);
+      assert.equal(r.details, 2);
+      assert.equal(r.open, 0, 'both details start collapsed');
+      assert.deepEqual(r.links, ['My Company', 'Back to the match'], 'the way out is in view');
+      assert.ok(r.levelUp > 0, 'the level-up is one press away');
+      assert.ok(r.order.every((v, i) => v >= 0 && (i === 0 || v > r.order[i - 1])), `summary, Level-ups, Injuries, company: ${r.order}`);
+      await bilbo.page.screenshot({ path: `out/aftermath-finished-${w}-${scheme}.png`, fullPage: true });
+    }
+    await layout(bilbo, 1280, 'light');
+    await bilbo.goto(path);
+    await bilbo.click('#aftermath-done summary', 'The sheet');
+    assert.ok(await bilbo.page.$('#aftermath-done details[open] li .badge'), 'the sheet opens with every unit');
+  });
+
+  await h.step('finished aftermath: somebody else reads the same page, with nothing to press', async () => {
+    const path = await aftermathOf(sauron, 'Hobbits who finished');
+    await sauron.goto(path);
+    const r = await finished(page);
+    assert.ok(!r.stepper && !r.sheetCard && r.details === 2 && r.summary, 'the same layout');
+    assert.deepEqual(r.links, ['Back to the match']);
+    assert.equal(r.levelUp, 0, 'only the owner rolls');
+    assert.ok(await sauron.has('You can read this aftermath but not change it.'));
+  });
+
+  await h.step('waived aftermath: it says so with its note, with no stepper and no summary of changes', async () => {
+    const path = await aftermathOf(sauron, 'Wild Wargs that fled');
+    await sauron.goto(path);
+    const r = await finished(page);
+    assert.ok(!r.stepper && !r.sheetCard && !r.summary, 'nothing was applied');
+    assert.ok(await sauron.has('Waived: nothing was applied.'));
+    assert.ok(await sauron.has('The Wargs fled; the organiser waives the rest'), 'the note is in view');
+    assert.deepEqual(r.links, ['Back to the match']);
+  });
 }

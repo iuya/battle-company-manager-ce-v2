@@ -106,7 +106,7 @@ func (w *world) aftermathWardOne() {
 
 	in = w.sheet(shire)
 	l, _, ws = w.roster(shire)
-	set(&in, l.ID, core.OutcomeSurvived, map[string]int{"woundedEnemy": 1})
+	set(&in, l.ID, core.OutcomeSurvived, fiveXP) // a level-up roll still waits on the finished page
 	set(&in, ws[0].ID, core.OutcomeCasualty, nil)
 	w.settle(shire, m3, in, map[int64][3]int{ws[0].ID: {3, 5, 1}}, true) // finished
 

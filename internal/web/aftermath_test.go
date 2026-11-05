@@ -685,6 +685,71 @@ func TestLevelUpsStepForAReaderHasNoContinueButtonAndTheSummaryCountsWaitingRoll
 	}
 }
 
+// A finished aftermath has no stepper and no step cards: the summary, the counts, two collapsed details and the way out; level-ups waiting and
+// the Injuries block stay in view, in that order, above the company.
+func TestFinishedAftermathIsCompact(t *testing.T) {
+	serve := func(st core.Aftermath) string {
+		f := ownerFixture(t, levelUnits())
+		f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(st, nil)
+		return f.do(f.signedIn(httpGet(amPath))).Body.String()
+	}
+	gone := func(t *testing.T, body string) {
+		t.Helper()
+		for _, not := range []string{`aria-label="Steps"`, `data-step=`, `id="aftermath-sheet"`, "1. Sheet", "!text-xl\">Done<"} {
+			if strings.Contains(body, not) {
+				t.Errorf("a finished aftermath has no %q", not)
+			}
+		}
+		for _, want := range []string{"data-sheet-counts>2 took part · 1 casualty<", "Everything that changed", "The sheet", ">Back to the match<", `id="modal-body"`} {
+			if !strings.Contains(body, want) {
+				t.Errorf("a finished aftermath lacks %q", want)
+			}
+		}
+		if strings.LastIndex(body, "</details>") > strings.Index(body, "data-done-links") {
+			t.Error("the links stay outside the collapsed details")
+		}
+		if strings.Contains(body, "data-done-changes open") || strings.Contains(body, "data-done-sheet open") {
+			t.Error("the details start collapsed")
+		}
+	}
+
+	done := amState(core.AftermathDone, core.AftermathEdit)
+	done.Casualties = []core.Casualty{{UnitID: 11, Name: "Boromir", ResultKey: "injured", ResultTxt: "Injured", Rolled: true, Final: true}}
+	body := serve(done)
+	gone(t, body)
+	for _, want := range []string{"data-change-summary>1 level-up ready<", ">My Company<", `/my-company/1/units/10/levelup"`, "2 rolls waiting", "Boromir"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the finished page lacks %q\n%s", want, body)
+		}
+	}
+	top, levels, injuries, company := strings.Index(body, `id="aftermath-done"`), strings.Index(body, `id="aftermath-step-2"`), strings.Index(body, `id="aftermath-step-1"`), strings.Index(body, `id="aftermath-company"`)
+	if top < 0 || !(top < levels && levels < injuries && injuries < company) {
+		t.Errorf("the order is summary, Level-ups, Injuries, company: %d %d %d %d", top, levels, injuries, company)
+	}
+
+	reader := done
+	reader.Access = core.AftermathNone
+	body = serve(reader)
+	gone(t, body)
+	if !strings.Contains(body, "You can read this aftermath but not change it.") {
+		t.Errorf("a reader is told it is read only:\n%s", body)
+	}
+
+	waived := amState(core.AftermathWaived, core.AftermathEdit)
+	waived.WaivedNote = "The player is gone"
+	body = serve(waived)
+	for _, want := range []string{"Waived: nothing was applied.", "data-waived-note>The player is gone<", "The sheet", ">Back to the match<"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the waived page lacks %q", want)
+		}
+	}
+	for _, not := range []string{"data-change-summary", "Everything that changed", `id="aftermath-step-2"`, `aria-label="Steps"`} {
+		if strings.Contains(body, not) {
+			t.Errorf("the waived page has %q", not)
+		}
+	}
+}
+
 func TestFinishStepOffersFreeEquipmentAndRefusesWhileOpen(t *testing.T) {
 	f := ownerFixture(t, amUnits())
 	st := amState(core.AftermathLevelUps, core.AftermathEdit)
@@ -725,7 +790,7 @@ func TestFinishedAftermathShowsTheSummaryToEveryone(t *testing.T) {
 	f.camp.EXPECT().FinishAftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1), 2).Return(st, nil)
 	rec := amPost(f, "/finish", url.Values{"revision": {"2"}})
 	body := rec.Body.String()
-	for _, want := range []string{"Aftermath finished.", "The company", "&#43;2 Influence for a Win", "Aldor: &#43;3 Experience", `href="/campaigns/7/my-company/1"`, "✓"} {
+	for _, want := range []string{"Aftermath finished.", "The company", "&#43;2 Influence for a Win", "Aldor: &#43;3 Experience", `href="/campaigns/7/my-company/1"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("summary lacks %q:\n%s", want, body)
 		}

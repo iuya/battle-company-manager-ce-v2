@@ -244,7 +244,7 @@ Ward 1 (matches 1 to 4 of the campaign):
 | 2, Chance Encounter | Rangers with a Scratch to decide (Aragorn) | **injuries**: a Sergeant's *Just a Scratch* waits for "roll again / miss the next game" |
 | | Galadhrim whose Leader fell (Galadriel) | **injuries**: the Leader is dead; **succession** waits for a new Leader |
 | 3, Scavenge the Battlefield | Dwarves with level-ups to roll (Gimli) | **level-ups**: experience applied, level-up rolls waiting, and the **free equipment** reward (all markers scored) to choose before finishing |
-| | Hobbits who finished (Bilbo) | **finished** |
+| | Hobbits who finished (Bilbo) | **finished**, with a casualty and a level-up roll waiting: the compact page of a finished aftermath |
 | 4, Relic of Ages Past | Wild Wargs that fled (Radagast) | **All is Lost**, reported as the Wanderers' win; its aftermath **waived** by the organiser with a note |
 | | Pippin's patient company (Pippin) | **finished**, with the Relic bearer's perk *A Final Blessing* in the company's perks |
 
