@@ -34,7 +34,7 @@ A company in an open match (`CompanyDetail.OpenMatch`; `liveFor` loads its `Live
 - `#live-zones` (`live_zones`): the Field as unit cards, then **Retreated**, **Field casualties** and **Missed this game** as
   one-line headers with a count ("None" when empty) and compact cards (`live_compact`: badge, reason, **Return to the battle** for
   who may edit), then the Cemetery. `GET /campaigns/{id}/companies/{company}/live` answers `#live-zones` alone (its `data-seq` is the
-  match's last sequence; once the match has ended an htmx request gets `HX-Refresh`, so an open page becomes the ended one). Every control that answers the zones (trackers, milestones, the Break Point, the courage and item
+  match's last sequence; once the match has ended an htmx request gets `HX-Refresh`, so an open page becomes the ended one). Every control that answers the zones (trackers, milestones, the Break Point, Failed Courage and the item
   windows) takes the `hx_zones` attributes: it replaces `#live-zones`, and `hx-sync` queues the presses one at a time.
 - Another player's company is the same page read only (`ReadOnly`); an editor who is not the owner (organiser, administrator) has the
   trackers and actions on it. Viewers see `current / start` without buttons.
@@ -152,7 +152,7 @@ It is a `<details>` element.
 **Broken notice.**
 Every viewer sees it in `#live-end` of the banner: "Rangers is broken", or "Rangers is broken and down to 25%" once it has also reached the end of the scenario (`endBanner.Broken`).
 
-**Cards of a Broken company** in the Field offer the **Courage test** (`CourageTest`) and show no chip until the unit has a recorded test (`CourageDue`).
+**Cards of a Broken company** in the Field offer **Failed Courage** (`CourageTest`) and show no chip until the unit has a recorded test (`CourageDue`).
 Then they show a chip (`liveView.CourageChip`, from `LiveUnit.CourageHow`):
 
 - "Tested: passed" or "Tested: failed";
@@ -163,13 +163,9 @@ Then they show a chip (`liveView.CourageChip`, from `LiveUnit.CourageHow`):
 On the company's own page and on another company's read-only page it shows "Break Point: N% of the starting models".
 The percentage is `CompanyDetail.BreakPointPercent`: the company's own rule (for example 66 for Muster of Isengard), else the file's default, and never 0 with real rules.
 
-**Courage test.**
-The **Courage test** of a card opens the `courage` sheet (`live_courage`):
-
-1. **Roll 2D6** (`POST .../units/{unit}/courage/roll`, `RollCourage`).
-   Nothing is written. Typed dice are accepted only with ManualRolls. It is a plain server roll, not the animated dice component.
-2. **Record: passed** (`broken`, with Call Stand Fast for Heroes that are not Wanderers) or **Record: failed** (`retreat` with reason `courage`, after a confirmation).
-3. The six pass-or-exempt buttons (`courageSkip`).
+**Failed Courage.**
+The test is rolled at the table. **Failed Courage** on a card (`.courage-failed`: `boot-prints` icon, only the border highlighted) posts `retreat` with reason `courage` at once, with no window and no confirmation; the entry can be undone from the match log or with Return to the battle.
+A passed test is the **Courage** milestone (`broken`).
 
 All writes go through the one `actions` route (`liveActionFrom` reads `field` + `delta`, `reason`, `standFast`, `item` + `index`).
 

@@ -58,8 +58,8 @@ func (v liveView) CourageDue(l core.LiveUnit) bool {
 	return v.Break.Broken && l.Zone == core.ZoneField && l.CourageHow == ""
 }
 
-// CourageTest is whether the card offers the Courage test: every unit of a Broken company in the Field (it tests again each turn; the
-// players know when).
+// CourageTest is whether the card offers the mark of a failed Courage test: every unit of a Broken company in the Field (it tests again
+// each turn at the table; the players know when).
 func (v liveView) CourageTest(l core.LiveUnit) bool {
 	return v.Break.Broken && l.Zone == core.ZoneField
 }

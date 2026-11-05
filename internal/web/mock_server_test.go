@@ -317,45 +317,6 @@ func (c *MockliveMatchesMatchDefaultsCall) DoAndReturn(f func(context.Context, i
 	return c
 }
 
-// RollCourage mocks base method.
-func (m *MockliveMatches) RollCourage(ctx context.Context, user core.User, id, matchID, unitID int64, entered []int, thrown bool) (core.CourageRoll, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RollCourage", ctx, user, id, matchID, unitID, entered, thrown)
-	ret0, _ := ret[0].(core.CourageRoll)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RollCourage indicates an expected call of RollCourage.
-func (mr *MockliveMatchesMockRecorder) RollCourage(ctx, user, id, matchID, unitID, entered, thrown any) *MockliveMatchesRollCourageCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RollCourage", reflect.TypeOf((*MockliveMatches)(nil).RollCourage), ctx, user, id, matchID, unitID, entered, thrown)
-	return &MockliveMatchesRollCourageCall{Call: call}
-}
-
-// MockliveMatchesRollCourageCall wrap *gomock.Call
-type MockliveMatchesRollCourageCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockliveMatchesRollCourageCall) Return(arg0 core.CourageRoll, arg1 error) *MockliveMatchesRollCourageCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockliveMatchesRollCourageCall) Do(f func(context.Context, core.User, int64, int64, int64, []int, bool) (core.CourageRoll, error)) *MockliveMatchesRollCourageCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockliveMatchesRollCourageCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, []int, bool) (core.CourageRoll, error)) *MockliveMatchesRollCourageCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // Subscribe mocks base method.
 func (m *MockliveMatches) Subscribe(ctx context.Context, user core.User, id, matchID int64) (core.LiveStream, error) {
 	m.ctrl.T.Helper()
@@ -3626,45 +3587,6 @@ func (c *MockcampaignsRollCasualtyCall) Do(f func(context.Context, core.User, in
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockcampaignsRollCasualtyCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, int64, []int, bool) (core.Aftermath, error)) *MockcampaignsRollCasualtyCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// RollCourage mocks base method.
-func (m *Mockcampaigns) RollCourage(ctx context.Context, user core.User, id, matchID, unitID int64, entered []int, thrown bool) (core.CourageRoll, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RollCourage", ctx, user, id, matchID, unitID, entered, thrown)
-	ret0, _ := ret[0].(core.CourageRoll)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RollCourage indicates an expected call of RollCourage.
-func (mr *MockcampaignsMockRecorder) RollCourage(ctx, user, id, matchID, unitID, entered, thrown any) *MockcampaignsRollCourageCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RollCourage", reflect.TypeOf((*Mockcampaigns)(nil).RollCourage), ctx, user, id, matchID, unitID, entered, thrown)
-	return &MockcampaignsRollCourageCall{Call: call}
-}
-
-// MockcampaignsRollCourageCall wrap *gomock.Call
-type MockcampaignsRollCourageCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockcampaignsRollCourageCall) Return(arg0 core.CourageRoll, arg1 error) *MockcampaignsRollCourageCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockcampaignsRollCourageCall) Do(f func(context.Context, core.User, int64, int64, int64, []int, bool) (core.CourageRoll, error)) *MockcampaignsRollCourageCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockcampaignsRollCourageCall) DoAndReturn(f func(context.Context, core.User, int64, int64, int64, []int, bool) (core.CourageRoll, error)) *MockcampaignsRollCourageCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

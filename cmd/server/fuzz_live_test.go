@@ -21,7 +21,7 @@ import (
 
 // TestLiveActionsSurviveExtremeValues (robustness): the sweep above puts the same hostile value into every field at once, so
 // a request is almost always refused at the first field. This one sends every live match POST (the action kinds of
-// {company}/actions, undo, courage roll, the end checks, the end-of-match votes) with a valid form in which ONE
+// {company}/actions, undo, the end checks, the end-of-match votes) with a valid form in which ONE
 // field at a time takes an extreme but individually plausible value (2^31 wounds, negative counts, the unit of another company, match
 // or campaign, a wrong zone, an ended match, ...), also repeated, against the live state of a real seeded match. Every answer is a 2xx,
 // 3xx or 4xx, never a 5xx or a panic, and after every request the folded state of both companies is sound: every tracker within
@@ -297,16 +297,6 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 		send(fmt.Sprintf("/campaigns/%d/matches/%d/live/log/%d/undo", finished, mt, e), map[string]string{"company": str(a)})
 	}
 	check("undo")
-
-	// the courage roll
-	for _, u := range []int64{hero, cu[0].UnitID, otherUnit, foreign, endedUnit, 0, -1, 1 << 62} {
-		for _, r1 := range numbers {
-			p := fmt.Sprintf("/campaigns/%d/matches/%d/live/%d/units/%d/courage/roll", camp, mt, a, u)
-			send(p, map[string]string{"roll": r1, "roll2": "3"})
-			send(p, map[string]string{"roll": "3", "roll2": r1})
-		}
-	}
-	check("courage roll")
 
 	// the end checks: objective, mvp vote
 	for _, co := range []int64{a, c, otherCos[0], endedCos[0], 0, -1, 1 << 62} {

@@ -558,7 +558,7 @@
 
 {{/* The window of a live action of a unit in a running match. Takes liveSheet. The form answers the zones of the page (htmx) and closes the
    window; a refusal comes back as a toast with the state as it is. */}}
-{{define "live_sheet"}}{{$u := .Unit}}{{$l := .Live}}{{if eq .Kind "menu"}}{{template "live_menu" .}}{{else if eq .Kind "courage"}}{{template "live_courage" .}}{{else if eq .Kind "item"}}{{template "live_items" .}}{{else}}
+{{define "live_sheet"}}{{$u := .Unit}}{{$l := .Live}}{{if eq .Kind "menu"}}{{template "live_menu" .}}{{else if eq .Kind "item"}}{{template "live_items" .}}{{else}}
 <form method="post" action="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/live/{{.Company}}/actions" hx-post="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/live/{{.Company}}/actions" {{template "hx_zones"}} @htmx:after-request="closeModal()" class="space-y-4"
   {{if eq .Kind "wound"}}x-data="woundSheet" data-attacker="{{$u.Title}}" data-xp="{{index .Gains "woundedEnemy"}}"{{else if eq .Kind "fate"}}x-data="{ count: 1, fate: {{$l.Fate.Current}} }"{{end}}>
   <input type="hidden" name="kind" value="{{.Kind}}"><input type="hidden" name="unit" value="{{$u.ID}}">
@@ -660,47 +660,6 @@
 </div>
 {{end}}{{end}}
 
-{{/* The courage test of a unit of a Broken company: roll (nothing is written), record the outcome, or pass without a roll. Takes liveSheet. */}}
-{{define "live_courage"}}{{$u := .Unit}}{{$base := printf "/campaigns/%d/matches/%d/live/%d" .Campaign .MatchID .Company}}
-<h2 class="!text-2xl pr-10">Courage test: {{$u.Title}}</h2>
-<p class="mt-1 text-sm text-muted">A Broken model tests Courage ({{.CourageDice.Display}}, at least its Courage) before it does anything else, every turn.{{if not .Hero}} When a Hero calls Stand Fast, Warriors within 6" in line of sight pass automatically.{{end}}</p>
-{{with .RollErr}}<p class="alert alert-danger mt-3" role="alert">{{.}}</p>{{end}}
-<form class="mt-4 space-y-3" hx-post="{{$base}}/units/{{$u.ID}}/courage/roll" hx-target="#modal-body" hx-swap="innerHTML">
-  {{if .ManualRolls}}<div class="flex flex-wrap items-end gap-3">
-    {{template "dice_selects" (dict "ID" "c-d" "Suffix" "" "Count" .CourageDice.Count "Sides" .CourageDice.Sides "Class" "w-40")}}
-  </div>{{end}}
-  <button class="btn btn-primary">{{if .Roll}}Roll again{{else}}Roll {{.CourageDice.Display}}{{end}}</button>
-</form>
-{{with .Roll}}<p class="mt-3 rounded-lg border border-line bg-raised px-3 py-2" role="status"><strong class="text-xl">{{.Total}}</strong> <span class="text-sm text-muted">({{$.DiceText}})</span> against Courage {{.Courage}}: <strong class="{{if .Passed}}text-success{{else}}text-danger{{end}}">{{if .Passed}}passed{{else}}failed{{end}}</strong></p>{{end}}
-
-<div class="mt-4 space-y-2">
-  <p class="text-sm font-medium">Record the result{{if .Roll}} (the roll says {{if .Roll.Passed}}passed{{else}}failed{{end}}){{else}} (rolled at the table){{end}}</p>
-  <div class="flex flex-wrap gap-2">
-    <form hx-post="{{$base}}/actions" {{template "hx_zones"}} @htmx:after-request="closeModal()" class="space-y-2">
-      <input type="hidden" name="kind" value="broken"><input type="hidden" name="unit" value="{{$u.ID}}">
-      {{if .Hero}}<label class="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" name="standFast" value="1" class="h-4 w-4 accent-[var(--accent)]"> Call Stand Fast</label>{{end}}
-      <button class="btn {{if and .Roll .Roll.Passed}}btn-primary{{else}}btn-secondary{{end}}">Record: passed</button>
-    </form>
-    <form hx-post="{{$base}}/actions" {{template "hx_zones"}} hx-confirm="{{$u.Title}} flees and is removed as a casualty. Record it?" @htmx:after-request="closeModal()" class="self-end">
-      <input type="hidden" name="kind" value="retreat"><input type="hidden" name="why" value="courage"><input type="hidden" name="unit" value="{{$u.ID}}">
-      <button class="btn {{if and .Roll (not .Roll.Passed)}}btn-primary{{else}}btn-secondary{{end}}">Record: failed</button>
-    </form>
-  </div>
-</div>
-
-<div class="mt-4 space-y-2">
-  <p class="text-sm font-medium">Passes without a roll <span class="font-normal text-muted">(no experience)</span></p>
-  <ul class="grid gap-2 sm:grid-cols-2">
-    {{range $r := list "standFast|Auto-pass: Stand Fast" "heroicResolve|Auto-pass: Heroic Resolve" "chariot|Auto-pass: Chariot" "scenario|Auto-pass: scenario rule" "engaged|Exempt: in combat" "cannotActivate|Exempt: cannot activate"}}
-    <li><form hx-post="{{$base}}/actions" {{template "hx_zones"}} @htmx:after-request="closeModal()">
-      <input type="hidden" name="kind" value="courageSkip"><input type="hidden" name="unit" value="{{$u.ID}}"><input type="hidden" name="reason" value="{{index (split $r "|") 0}}">
-      <button class="btn btn-secondary w-full !min-h-11">{{index (split $r "|") 1}}</button></form></li>
-    {{end}}
-  </ul>
-</div>
-<p class="mt-4"><button type="button" class="btn btn-secondary" @click="closeModal()">Close</button></p>
-{{end}}
-
 {{/* Item used: the loaned items still to spend. Takes liveSheet. */}}
 {{define "live_items"}}{{$u := .Unit}}
 <h2 class="!text-2xl pr-10">{{$u.Title}}: item used</h2>
@@ -715,12 +674,12 @@
 <p class="mt-4"><button type="button" class="btn btn-secondary" @click="closeModal()">Close</button></p>
 {{end}}
 
-{{/* The live part of a unit card's foot: the courage test while one is due (the owner), the milestones (liveView.Milestones; everybody
+{{/* The live part of a unit card's foot: the mark of a failed Courage test while the company is Broken (the owner, one press), the milestones (liveView.Milestones; everybody
    sees them, the owner presses them) and, for the owner while the unit has a loaned item to use, Item used, which opens its window (a
    popover inside the card would be clipped by its frame, so it lives in the company window). Takes {U, L, LV}. */}}
 {{define "live_actions_menu"}}{{$u := .U}}{{$l := .L}}{{$lv := .LV}}
 {{$sheet := printf "/campaigns/%d/matches/%d/live/%d/units/%d/sheet" $lv.CampaignID $lv.MatchID $lv.CompanyID $u.ID}}
-{{if and $lv.Edit ($lv.CourageTest $l)}}<button type="button" class="btn btn-primary w-full !min-h-11" hx-get="{{$sheet}}/courage" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">Courage test<span class="sr-only"> for {{$u.Title}}</span></button>{{end}}
+{{if and $lv.Edit ($lv.CourageTest $l)}}<button type="button" class="courage-failed" hx-post="/campaigns/{{$lv.CampaignID}}/matches/{{$lv.MatchID}}/live/{{$lv.CompanyID}}/actions" hx-vals='{"kind":"retreat","why":"courage","unit":"{{$u.ID}}"}' {{template "hx_zones"}} title="The Courage test was failed at the table: the unit flees and counts as a casualty">{{template "gi_icon" (dict "N" "boot-prints" "C" "h-5 w-5 shrink-0")}}Failed Courage<span class="sr-only"> ({{$u.Title}})</span></button>{{end}}
 <div class="milestones" role="group" aria-label="Milestones of {{$u.Title}}">
   {{range $lv.Milestones $u.ID $l}}{{template "milestone" (dict "M" . "Edit" $lv.Edit "Unit" $u.Title)}}{{end}}
 </div>
@@ -754,9 +713,9 @@
 <h2 class="!text-2xl pr-10">{{$u.Title}}</h2>
 <p class="mt-1 text-sm text-muted">What happened to {{$u.Title}}? Each one is written in the match log and can be undone.</p>
 <ul class="mt-4 space-y-2" role="menu" aria-label="Actions of {{$u.Title}}">
-  {{range $a := list "wound|Wounded a unit|Pick who was wounded and how many wounds." "fate|Passed a fate roll|Spend Fate to prevent a wound." "broken|Passed a Broken courage roll|Earns experience once per game." "retreat|Retreated|Left the table: no injury roll." "died|Died|Without an enemy wound: a fall, a collapse." "mount|Mount|The mount was lost or is back." "courage|Courage test|Roll or record the test of a Broken company." "item|Item used|A loaned item was used in the game."}}
+  {{range $a := list "wound|Wounded a unit|Pick who was wounded and how many wounds." "fate|Passed a fate roll|Spend Fate to prevent a wound." "broken|Passed a Broken courage roll|Earns experience once per game." "retreat|Retreated|Left the table: no injury roll." "died|Died|Without an enemy wound: a fall, a collapse." "mount|Mount|The mount was lost or is back." "item|Item used|A loaned item was used in the game."}}
   {{$kind := index (split $a "|") 0}}{{$label := index (split $a "|") 1}}{{$hint := index (split $a "|") 2}}
-  {{if and (or (ne $kind "fate") (gt $l.Fate.Current 0)) (or (ne $kind "courage") $.Broken) (or (ne $kind "item") $l.ItemsToUse)}}{{if or (ne $kind "mount") $l.HasMount}}
+  {{if and (or (ne $kind "fate") (gt $l.Fate.Current 0)) (or (ne $kind "item") $l.ItemsToUse)}}{{if or (ne $kind "mount") $l.HasMount}}
   <li role="none"><button type="button" role="menuitem" class="flex min-h-14 w-full flex-col items-start justify-center rounded-lg border border-line px-4 py-2 text-left hover:bg-raised" hx-get="{{$base}}/{{$kind}}" hx-target="#modal-body" hx-swap="innerHTML">
     <span class="font-medium">{{if eq $kind "mount"}}{{if $l.Mounted}}Mount removed{{else}}Mount re-added{{end}}{{else}}{{$label}}{{end}}</span><span class="text-xs text-muted">{{$hint}}</span></button></li>
   {{end}}{{end}}

@@ -85,56 +85,55 @@ func TestBreakPanelCountsToTheScenarioEnd(t *testing.T) {
 func TestBrokenBannerAndChipsWithoutAllIsLost(t *testing.T) {
 	f := liveSetupWith(t, core.LiveEdit, brokenState)
 	body := livePage(f)
-	for _, want := range []string{`id="live-broken"`, "The company is Broken</h3>", "Every model tests Courage before it activates, each turn. Models in combat, or that cannot activate, do not test.</p>", "Courage test", "/units/5/sheet/courage"} {
+	for _, want := range []string{`id="live-broken"`, "The company is Broken</h3>", "Every model tests Courage before it activates, each turn. Models in combat, or that cannot activate, do not test.</p>", `class="courage-failed"`, "boot-prints", `hx-vals='{"kind":"retreat","why":"courage","unit":"5"}'`, `<span class="sr-only"> (Hador)</span>`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("broken page lacks %q", want)
 		}
 	}
-	for _, banned := range []string{"Test due", "Flee the battlefield", `"kind":"allIsLost"`, "Who has tested this turn", "since turn"} {
+	for _, banned := range []string{"Test due", "Flee the battlefield", `"kind":"allIsLost"`, "Who has tested this turn", "since turn", "/sheet/courage", ">Courage test<"} {
 		if strings.Contains(body, banned) {
 			t.Errorf("no All is Lost offer and no turns: %q", banned)
 		}
 	}
-	// once tested the chip says how, and the test stays offered (it is taken again every turn)
+	// once tested the chip says how, and the mark stays offered (the test is taken again every turn)
 	g := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) { brokenState(lc); lc.Units[0].CourageHow = "passed" })
 	body = livePage(g)
-	if !strings.Contains(body, "/units/5/sheet/courage") || !strings.Contains(body, ">Tested: passed<") {
-		t.Error("tested: the chip says so and the Courage test is still there")
+	if !strings.Contains(body, `class="courage-failed"`) || !strings.Contains(body, ">Tested: passed<") {
+		t.Error("tested: the chip says so and the failed Courage mark is still there")
 	}
 	v := liveSetupWith(t, core.LiveNone, brokenState)
-	if body = livePage(v); !strings.Contains(body, `id="live-broken"`) || strings.Contains(body, "/units/5/sheet/courage") {
-		t.Error("a viewer sees the banner but cannot test")
+	if body = livePage(v); !strings.Contains(body, `id="live-broken"`) || strings.Contains(body, `class="courage-failed"`) {
+		t.Error("a viewer sees the banner but cannot mark the test")
 	}
 }
 
-func TestCourageSheetOffersRollRecordAndPasses(t *testing.T) {
+// The mark posts the retreat straight away: no window and no confirmation. Outside a Broken company it is not offered.
+func TestFailedCourageMarkRecordsTheRetreat(t *testing.T) {
 	f := liveSetupWith(t, core.LiveEdit, brokenState)
-	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/courage", nil))).Body.String()
-	for _, want := range []string{"Courage test: Hador", "/units/5/courage/roll", "Roll 2D6", "Record: passed", "Record: failed", `name="standFast"`, `name="reason" value="standFast"`, "Auto-pass: Heroic Resolve", "Exempt: in combat", "Exempt: cannot cannotActivate"} {
-		if want == "Exempt: cannot cannotActivate" {
-			want = "Exempt: cannot activate"
-		}
-		if !strings.Contains(body, want) {
-			t.Errorf("courage sheet lacks %q", want)
-		}
+	body := livePage(f)
+	if mark := body[strings.Index(body, `class="courage-failed"`):strings.Index(body, "Failed Courage<")]; strings.Contains(mark, "hx-confirm") || strings.Contains(mark, "openModal") {
+		t.Errorf("the mark asks for nothing: %s", mark)
 	}
-	if strings.Contains(body, `name="roll"`) {
-		t.Error("typed dice only with ManualRolls")
+	f.camp.EXPECT().Apply(gomock.Any(), frodo, int64(7), int64(3), int64(1), core.LiveAction{Kind: core.LiveRetreat, UnitID: 5, Why: "courage"}).Return(core.LiveCompany{}, core.LiveEntry{ID: 41, Text: "done"}, nil)
+	if rec := f.do(f.signedIn(form("/campaigns/7/matches/3/live/1/actions", url.Values{"kind": {"retreat"}, "why": {"courage"}, "unit": {"5"}}))); rec.Code != 200 {
+		t.Errorf("the mark's action: %d", rec.Code)
+	}
+	if body := livePage(liveSetupWith(t, core.LiveEdit, nil)); strings.Contains(body, `class="courage-failed"`) {
+		t.Error("a company that is not Broken has no mark")
 	}
 }
 
-func TestCourageRollShowsTheResultAndRefusals(t *testing.T) {
+func TestCourageWindowIsGone(t *testing.T) {
 	f := liveSetupWith(t, core.LiveEdit, brokenState)
-	f.camp.EXPECT().RollCourage(gomock.Any(), frodo, int64(7), int64(3), int64(5), []int(nil), false).Return(core.CourageRoll{Dice: []int{3, 4}, Total: 7, Courage: 4, Passed: true}, nil)
-	rec := f.do(f.signedIn(form("/campaigns/7/matches/3/live/1/units/5/courage/roll", url.Values{"roll": {"0"}, "roll2": {"0"}})))
-	body := rec.Body.String()
-	if rec.Code != 200 || !strings.Contains(body, "against Courage 4") || !strings.Contains(body, "3 &#43; 4") || !strings.Contains(body, ">passed<") || !strings.Contains(body, "Roll again") {
-		t.Errorf("roll: %d\n%s", rec.Code, body)
+	if rec := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/courage", nil))); rec.Code != 404 {
+		t.Errorf("the sheet: %d", rec.Code)
 	}
-	f.camp.EXPECT().RollCourage(gomock.Any(), frodo, int64(7), int64(3), int64(5), []int{2, 5}, false).Return(core.CourageRoll{}, core.Refuse("Typing in a roll is not allowed in this campaign."))
-	rec = f.do(f.signedIn(form("/campaigns/7/matches/3/live/1/units/5/courage/roll", url.Values{"roll": {"2"}, "roll2": {"5"}})))
-	if rec.Code != 422 || !strings.Contains(rec.Body.String(), "Typing in a roll is not allowed") {
-		t.Errorf("refused roll: %d", rec.Code)
+	if rec := f.do(f.signedIn(form("/campaigns/7/matches/3/live/1/units/5/courage/roll", url.Values{"roll": {"3"}, "roll2": {"4"}}))); rec.Code != 404 {
+		t.Errorf("the roll: %d", rec.Code)
+	}
+	menu := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/matches/3/live/1/units/5/sheet/menu", nil))).Body.String()
+	if strings.Contains(menu, "Courage test") || !strings.Contains(menu, "Passed a Broken courage roll") {
+		t.Errorf("the menu has no Courage test entry: %s", menu)
 	}
 }
 

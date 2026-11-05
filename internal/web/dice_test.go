@@ -149,14 +149,3 @@ func TestLevelUpFormFollowsTheDiceOfTheRules(t *testing.T) {
 		t.Error("more results or faces than the rules have")
 	}
 }
-
-func TestCourageSheetFollowsTheCourageDice(t *testing.T) {
-	saved := testRuleDice
-	t.Cleanup(func() { testRuleDice = saved })
-	testRuleDice.Courage = core.NdM(3, 8)
-	f := liveSetupWith(t, core.LiveEdit, brokenState)
-	body := f.do(f.signedIn(httpGet("/campaigns/7/matches/3/live/1/units/5/sheet/courage"))).Body.String()
-	if !strings.Contains(body, "Roll 3D8") || !strings.Contains(body, "tests Courage (3D8, at least its Courage)") || strings.Contains(body, "2D6") {
-		t.Errorf("the courage window prints the dice of the rules file: %s", body)
-	}
-}

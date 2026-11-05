@@ -9,6 +9,35 @@ export default async function (h) {
   const sauron = await h.session('sauron@example.com');
   let cid, mid, eCo, gCo, sCo;
 
+  await h.step('failed courage: a card of a Broken company marks it with one press, with only the border highlighted', async () => {
+    const aragorn = await h.session('aragorn@example.com');
+    const camp = await campaignId(aragorn, 'Fog of War: retreats');
+    await aragorn.goto(`/campaigns/${camp}/my-company`);
+    const marks = () => aragorn.page.$$eval('main .courage-failed', (b) => b.length);
+    const before = await marks();
+    assert.ok(before > 1, `the Rangers in the Field have the mark (${before})`);
+    assert.equal(await aragorn.page.$('main [hx-get$="/sheet/courage"]'), null, 'the Courage test window is gone');
+    for (const scheme of ['light', 'dark']) {
+      for (const width of SIZES) {
+        await layout(aragorn, width, scheme);
+        const look = await aragorn.page.$eval('main .courage-failed', (b) => {
+          const c = getComputedStyle(b);
+          return { fill: c.backgroundColor, border: c.borderTopColor, icon: !!b.querySelector('svg use'), wide: document.documentElement.scrollWidth > innerWidth };
+        });
+        assert.equal(look.fill, 'rgba(0, 0, 0, 0)', 'no filled background');
+        assert.notEqual(look.border, 'rgba(0, 0, 0, 0)', 'the border stands out');
+        assert.ok(look.icon && !look.wide, `${width} ${scheme}: the icon, and no horizontal scroll`);
+        await aragorn.page.$eval('main .courage-failed', (b) => b.scrollIntoView({ block: 'center' }));
+        await aragorn.page.screenshot({ path: `out/failed-courage-${width}-${scheme}.png` });
+      }
+    }
+    await layout(aragorn, 1280, 'light');
+    await aragorn.page.click('main .courage-failed');
+    await aragorn.page.waitForFunction((n) => document.querySelectorAll('main .courage-failed').length === n - 1, { timeout: 8000 }, before);
+    assert.equal(await aragorn.page.$eval(MODAL, (m) => m.offsetParent !== null), false, 'no window opened');
+    assert.match(await aragorn.text(), /Failed courage/);
+  });
+
   await h.step('match: a cavalry company and the Dwarves against the Helm\'s Deep garrison, Fog of War', async () => {
     cid = await campaignId(you, 'Limits, creatures');
     await you.goto(`/campaigns/${cid}/matches/new`);

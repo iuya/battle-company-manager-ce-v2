@@ -144,7 +144,7 @@ Everything the card has outside a match (except the Equipment line of a unit wit
 |---|---|---|---|
 | Wounded a unit | see below | target wounds, attacker xp flags | "Aldor wounded Grashnak (2 wounds, 1 saved by Fate)" |
 | Passed a fate roll | none from the milestone (`count=0`: no point spent); its window asks how many (at most the current Fate) | Fate -n (none for 0), `fatePrevented` flag; a count above the current Fate is refused | "Aldor passed a Fate roll" / "Aldor spent Fate (1 left)" |
-| Passed a Broken courage roll | none from the milestone; the Courage test window records it too | `brokenCourageTestPassed` flag; always offered, also before the app says Broken | "Aldor passed a Broken courage test" |
+| Passed a Broken courage roll | none | `brokenCourageTestPassed` flag; always offered, also before the app says Broken | "Aldor passed a Broken courage test" |
 | Retreated | "Failed a courage roll" / "Left the board", optional note | zone Retreated, outcome `fled` in the aftermath; no injury roll; cannot act or be targeted | "Aldor retreated (failed courage)" |
 | Died | optional note, for deaths not caused by an enemy wound | zone Field casualties with reason "Died"; injury roll later | "Aldor died: ..." |
 | Mount removed / re-added | none: one press | Mounted flips | "Aldor lost his mount" |
@@ -295,11 +295,10 @@ There is no turn tracking (no Start turn, no turn number). When a write makes a 
    the casualties by name, the scenario exceptions (Defend the Hill: models on the hill do not test; Let nothing through!: the Defender within 6" of the Gate passes automatically; Only a Pony After All: Baggage Ponies do not count for the Defender; Neutral Third-Party: no tests; Maelstrom of Battle: models yet
    to arrive count as on the board) and the break point log lines. The company header shows "Break Point: N% of the starting models" (`CompanyDetail.BreakPointPercent`, the company's own rule or the file's default).
 2. **Broken notice** in the live banner (for everybody): "Hador is broken"; the Break Point panel says "Every model tests Courage before it activates, each turn. Models in combat, or that cannot activate, do not test."
-3. **Unit cards of a Broken company** in the Field offer a **Courage test**; once the unit has a recorded test they show "Tested: passed", "Tested: failed", "Auto-pass" or "Exempt" (the last result; players test again at the table as often as the rules say). The sheet:
-   - **Roll** 2D6 against the unit's Courage (`RollCourage`, which writes nothing; a typed roll is "I rolled" with two dice fields as `RollRefusal` permits): "7 against Courage 4: passed", then **Record: passed** or **Record: failed**. Players may also just tap the outcome.
-   - **Passed** (`broken` action) earns `brokenCourageTestPassed` once. A Hero offers **Call Stand Fast** (not for a Hero with Broken Honour or a Wanderer); it is logged, and Warriors pass with the `standFast` reason.
-   - **Failed**: the `retreat` action with reason "Failed courage": the unit flees, counts as a casualty, outcome `fled`, no injury roll, no experience.
-   - **Passes without a roll** (`courageSkip`, reason `standFast`, `heroicResolve`, `chariot`, `scenario`, `engaged`, `cannotActivate`; the last two are exemptions): no experience. Heroic Resolve does not touch the Might tracker.
+3. **Unit cards of a Broken company** in the Field offer **Failed Courage**; once the unit has a recorded test they show "Tested: passed", "Tested: failed", "Auto-pass" or "Exempt" (the last result; players test again at the table as often as the rules say). The test is rolled at the table and the app records the outcome:
+   - **Failed** (the **Failed Courage** button, one press, no window and no confirmation): the `retreat` action with reason "Failed courage": the unit flees, counts as a casualty, outcome `fled`, no injury roll, no experience.
+   - **Passed** (`broken` action, the **Courage** milestone) earns `brokenCourageTestPassed` once. The `broken` sheet offers **Call Stand Fast** for a Hero (not for a Hero with Broken Honour or a Wanderer); it is logged. No card opens that sheet.
+   - **Passes without a roll** (`courageSkip`, reason `standFast`, `heroicResolve`, `chariot`, `scenario`, `engaged`, `cannotActivate`; the last two are exemptions) earn no experience. No page offers them any more; the kind stays so that stored match logs replay, and the chips still read them.
 
 There is no All is Lost action: a company that leaves the field is reported by the players as the other side's win ([matches.md](matches.md#concepts)); its units can still retreat one by one ("Left the board").
 
@@ -323,7 +322,7 @@ MatchBreaks(ctx, id, matchID int64) (map[int64]core.LiveBreak, error)        // 
 ```
 
 `RollCourage` requires `campaign.breakPoint.whenBroken.courageTest.dice` to be `2d6` and `passIf` `totalAtLeastCourage`. `EnemyBroken` (every company of every other side is Broken at the end) prefills the `enemyBroken` scenario objective of the End match sheet. Routes: the `actions` route
-carries `breakAdjust`, `courageSkip` and the rest; `POST .../live/{company}/units/{unit}/courage/roll` rolls.
+carries `breakAdjust`, `courageSkip` and the rest. `RollCourage` is a core method with no route.
 
 ## Against the Odds items in a live match
 

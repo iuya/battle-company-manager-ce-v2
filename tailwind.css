@@ -551,6 +551,8 @@ html[data-mode="dark"] { color-scheme: dark; }
   .outcome-toggle[data-tone="danger"][aria-pressed="true"] { @apply border-danger bg-danger-soft; }
   .outcome-toggle[data-tone="warn"][aria-pressed="true"] { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 22%, var(--surface)); }
   /* The other actions of the unit, the row below the milestones: plain buttons, not toggles. */
+  /* The mark of a failed Courage test on a card of a Broken company: only the border stands out. */
+  .courage-failed { @apply flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border-2 border-danger bg-transparent px-3 text-sm font-medium text-fg hover:bg-raised; }
   .live-actions { @apply -mt-0.5 flex gap-1.5; }
   .live-action { @apply flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg border border-line bg-surface px-1 py-1 text-fg transition-colors duration-150 hover:bg-raised; }
   .milestone-label { @apply max-w-full truncate text-[11px] leading-tight; }
