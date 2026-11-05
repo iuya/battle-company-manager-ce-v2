@@ -335,49 +335,6 @@ scenarios
         Name: "Rendezvous"
         Who: "The winner"
         Text: "The victorious Battle Company may apply +1 / -1 to their first Reinforcement roll in the subsequent War's Aftermath."
-    ScoringObjectives:
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader has been wounded, and only has 1 Wound remaining, then you instead score 3 Victory Points. If the enemy Leader was removed as a casualty, you instead score 5 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 5
-      -
-        Key: "enemyBroken"
-        Text: "You score 3 Victory Points if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 5 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 5
-      -
-        Key: "noCompanySupport"
-        Text: "You score 2 Victory Points if your opponent has no Company Support remaining at the end of the game."
-        Side: "both"
-        Kind: "tiers"
-        Label: "No company support"
-        MaxPoints: 2
-      -
-        Key: "commandSupport"
-        Text: "You score 1 Victory Point if you have at least one Command Support remaining at the end of the game. If you have more Command Support alive than your opponent, then you instead score 2 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Command support"
-        MaxPoints: 2
-      -
-        Key: "reducedTo25"
-        Text: "You score 3 Victory Points if the enemy Battle Company has been reduced to 25% of its starting models at the end of the game."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Reduced to25"
-        MaxPoints: 3
-      -
-        Key: "enemyHeroesSlain"
-        Text: "You score 1 Victory Point for each enemy Hero model that has been removed as a casualty, up to a maximum of 3 Victory Points."
-        Side: "both"
-        Kind: "each"
-        Label: "Enemy heroes slain"
-        MaxPoints: 3
     EndLossPercent: 75
   -
     Name: "Show of Strength"
@@ -402,28 +359,6 @@ scenarios
         -
           Title: "The Last Stand"
           Text: "Each time a Leader slays an enemy Hero or multi-wound model, they regain a Might point spent earlier in the battle."
-    ScoringObjectives:
-      -
-        Key: "leaderKills"
-        Text: "You score 4 Victory Points if your Leader has killed more models than your opponent's Leader. If your Leader has killed twice as many models as your opponent's Leader, then you instead score 8 Victory Points. If your Leader has killed three times as many models as your opponent's Leader, or you are the only player to have a Leader that has killed models, then you instead score 12 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Leader kills"
-        MaxPoints: 12
-      -
-        Key: "leaderDuel"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was wounded by your Leader, you instead score 3 Victory Points. If the enemy Leader is slain by your Leader, you instead score 5 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Leader duel"
-        MaxPoints: 5
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 3
     EndLossPercent: 75
   -
     Name: "The Wolves Attack"
@@ -450,35 +385,6 @@ scenarios
           Title: "The Wargs"
           Text: "The Fell Wargs will follow the rules of an Aggressive Neutral Third Party as described on page 75.\n\nIf the combined rating of the participating Battle Companies exceeds 400 rating, then the Fell Wargs will gain all of the benefits of the Cavalry keyword with none of the drawbacks."
         - {Title: "Allies of Convenience", Text: "See Page 63"}
-    ScoringObjectives:
-      -
-        Key: "leaderWargs"
-        Text: "You score 2 Victory Points if your Leader has killed more Wargs than your opponent's Leader. If your Leader has killed twice as many Wargs as your opponent's Leader, then you instead score 4 Victory Points. If your Leader has killed three times as many Wargs as your opponent's Leader, or you are the only player to have a Leader that has killed Wargs, then you instead score 6 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Leader wargs"
-        MaxPoints: 6
-      -
-        Key: "companyWargs"
-        Text: "You score 2 Victory Points if your Battle Company has killed more Wargs than your opponent's Battle Company. If your Battle Company has killed twice as many Wargs as your opponent's Battle Company, then you instead score 4 Victory Points. If your Battle Company has killed three times as many Wargs as your opponent's Battle Company, or you are the only player whose Battle Company has killed Wargs, then you instead score 6 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Company wargs"
-        MaxPoints: 6
-      -
-        Key: "leaderSurvives"
-        Text: "You score 1 Victory Point if your Leader survives the battle. If your Leader survives the battle without losing a wound, you instead score 3 Victory Points. If your Leader survives the battle without losing a wound or using a Fate point, you instead score 5 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Leader survives"
-        MaxPoints: 5
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 3
   -
     Name: "Fog of War"
     Table: 1
@@ -500,45 +406,6 @@ scenarios
         -
           Title: "How the game ends"
           Text: "Once one Battle Company has Broken, the game might suddenly end. At the end of each turn once this condition has been met, roll a d6. On a 3+, the game continues. If the roll is 1 or 2, the game ends.\n\nAt the end of the game, the player who has scored the most Victory Points wins the game. If both players have the same number of Victory Points, the game is a draw.\n\nIn this scenario, you do not have to reveal any objectives that you have achieved until the end of the game, and are in fact encouraged to keep them secret from your opponent.\n\nPart of the skill involved is trying to work out what your opponent is attempting to accomplish while deceiving them in equal measure."
-    ScoringObjectives:
-      -
-        Key: "ownHeroSurvives"
-        Text: "At the start of the game, secretly note down one of your own Hero models – this may not be your Leader unless you only have one Hero. You score 1 Victory Point if the nominated Hero is still alive at the end of the game. If the nominated Hero is still alive and has suffered no Wounds, you instead score 3 Victory Points. If the nominated Hero is still alive and has suffered no Wounds, and spent no Fate Points, you instead score 5 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Instruction: "At the start of the game, secretly note down one of your own Hero models – this may not be your Leader unless you only have one Hero."
-        Label: "Own hero survives"
-        MaxPoints: 5
-      -
-        Key: "enemyHeroHarmed"
-        Text: "At the start of the game, secretly note down one of your opponent's Hero models – this may not be your opponent's Leader unless they only have one Hero. You score 1 Victory Point for causing one or more Wounds on the nominated Hero. Wounds prevented by a successful Fate roll do not count. If the nominated Hero has been removed as a casualty, you instead score 3 Victory Points. If the nominated Hero has been removed as a casualty as a result of one of your models wounding them in Combat, you instead score 5 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Instruction: "At the start of the game, secretly note down one of your opponent's Hero models – this may not be your opponent's Leader unless they only have one Hero."
-        Label: "Enemy hero harmed"
-        MaxPoints: 5
-      -
-        Key: "terrainPiece"
-        Text: "At the start of the game secretly note down a single terrain piece wholly within your opponent's half of the board. You score 1 Victory Point if at the end of the game you have more models than your opponent on or in base contact with your chosen terrain piece. If at the end of the game, you have at least two models and twice as many as your opponent on or in base contact with your chosen terrain piece, you instead score 3 Victory Points. If your opponent has no models on or in base contact with your chosen terrain piece and you have at least two, you instead score 5 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Instruction: "At the start of the game secretly note down a single terrain piece wholly within your opponent's half of the board."
-        Label: "Terrain piece"
-        MaxPoints: 5
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was removed as a casualty, you instead score 2 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 2
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 3
   -
     Name: "Tame the Beast"
     Table: 1
@@ -577,42 +444,6 @@ scenarios
               - {Min: 401, Max: 500, Cells: ["401-500", "200 points"]}
               - {Min: 501, Max: 700, Cells: ["501-700", "300 points"]}
               - {Min: 701, Max: -1, Cells: ["701+", "500+ points"]}
-    ScoringObjectives:
-      -
-        Key: "woundMonster"
-        Text: "You score 4 Victory Points if you wounded the Monster(s)."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Wound monster"
-        MaxPoints: 4
-      -
-        Key: "trophy"
-        Text: "You score 4 Victory Points if at least one of your models exits your own board edge whilst in possession of a Trophy marker. If you exit the board edge with all possible Trophy markers, you score 8 Victory Points instead."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Trophy"
-        MaxPoints: 8
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was removed as a casualty, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 3
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 3
-      -
-        Key: "noCommandSupport"
-        Text: "You score 2 Victory Points if your opponent has no Command Support remaining at the end of the game."
-        Side: "both"
-        Kind: "tiers"
-        Label: "No command support"
-        MaxPoints: 2
   -
     Name: "Rescue"
     Table: 1
@@ -640,49 +471,6 @@ scenarios
         Name: "Survival of the Fittest"
         Who: "Each company whose Leader is not removed"
         Text: "Each Leader that is not removed from the board earns one additional Experience Point."
-    ScoringObjectives:
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader has been wounded, and only has a single Wound remaining, then you instead score 3 Victory Points. If the enemy Leader was removed as a casualty, you instead score 5 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 5
-      -
-        Key: "enemyBroken"
-        Text: "You score 3 Victory Points if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 5 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 5
-      -
-        Key: "noCompanyStandard"
-        Text: "You score 2 Victory Points if the opposing team has no Company Standard remaining at the end of the game."
-        Side: "both"
-        Kind: "tiers"
-        Label: "No company standard"
-        MaxPoints: 2
-      -
-        Key: "commandSupport"
-        Text: "You score 1 Victory Point if your Battle Company has at least one Command Support remaining at the end of the game. If your Battle Company has more Command Support remaining than the opposing Battle Company, then you instead score 2 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Command support"
-        MaxPoints: 2
-      -
-        Key: "secondaryForceHero"
-        Text: "You score 3 Victory Points if you kill the Hero with the highest rating present in the opposing Battle Company's Secondary Force."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Secondary force hero"
-        MaxPoints: 3
-      -
-        Key: "heroesAtCentre"
-        Text: "You score 1 Victory Point for each of your Hero models within 3\" of the centre of the board at the end of the game, to a maximum of 3 Victory Points."
-        Side: "both"
-        Kind: "each"
-        Label: "Heroes at centre"
-        MaxPoints: 3
     EndLossPercent: 75
   -
     Name: "Relic of Ages Past"
@@ -723,42 +511,6 @@ scenarios
           Text: "Only one of the Objective markers is actually the relic that both sides seek. The first time each turn an unengaged Infantry model ends its movement in base contact with an Objective, they may search it in an attempt to uncover the relic. When this happens, flip over the marker. If it is marked, then the relic has been discovered and the model that discovered it takes possession of it. If it is unmarked then the relic is not there, remove the Objective from play."
         - {Title: "Inside Info", Text: "The Underdog player automatically wins the roll for choosing the priority in the first turn."}
       Uses: ["Maelstrom of Battle", "Heirloom of Power"]
-    ScoringObjectives:
-      -
-        Key: "relic"
-        Text: "You score 8 Victory Points if your force is in possession of the relic at the end of the game. If at the end of the game you are not in possession of the relic but have more models within 3\" of the relic than your opponent, you instead score 4 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Relic"
-        MaxPoints: 8
-      -
-        Key: "decoysRevealed"
-        Text: "You score 1 Victory Point for each Objective Marker that you reveal to be a decoy."
-        Side: "both"
-        Kind: "each"
-        Label: "Decoys revealed"
-        MaxPoints: 5
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 3
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was slain, you instead score 2 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 2
-      -
-        Key: "commandSupport"
-        Text: "You score 1 Victory Point if you have at least one Command Support remaining at the end of the game. If you have more Command Support alive than your opponent, then you instead score 2 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Command support"
-        MaxPoints: 2
     EndLossPercent: 75
   -
     Name: "Seize Ground"
@@ -781,28 +533,6 @@ scenarios
         -
           Title: "How the game ends"
           Text: "The game lasts until the end of a turn in which one Army has been reduced to a quarter (25%) of its starting number of models or below, at which point the player that has scored the most Victory Points wins the game. If both players have the same number of Victory Points, the game is a draw."
-    ScoringObjectives:
-      -
-        Key: "objectiveMarkers"
-        Text: "For each Objective Marker, you score 1 Victory Point if you have more models within 3\" than your opponent. If you have at least twice as many models as your opponent within 3\", you instead score 2 Victory Points. If you are the only player to have models within 3\", you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "eachTiers"
-        Label: "Objective markers"
-        MaxPoints: 15
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was removed as a casualty, you instead score 2 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 2
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 3
     EndLossPercent: 75
   -
     Name: "Sites of Power"
@@ -844,35 +574,6 @@ scenarios
                 Max: 6
                 Cells: ["5 - 6", "Until the end of the turn, models within 3\" of an Objective Marker re-roll any To Wound rolls of a 1 when making Strikes."]
       Uses: ["Dark of Night", "Maelstrom of Battle"]
-    ScoringObjectives:
-      -
-        Key: "objectiveMarkers"
-        Text: "For each Objective Marker, you score 1 Victory Point if you have more models within 3\" than your opponent. If you have at least twice as many models as your opponent within 3\", you instead score 2 Victory Points. If you are the only player to have models within 3\", you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "eachTiers"
-        Label: "Objective markers"
-        MaxPoints: 12
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was removed as a casualty, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 3
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 3
-      -
-        Key: "highestRatedModel"
-        Text: "You score 1 Victory Point if the model with the highest rating value in your opponent's army, that is not their Leader, was wounded during the game. If the highest rating model that is not their Leader was removed as a casualty, then you instead score 2 Victory Points. If there is a tie of highest rating, then the controlling player declares which model is the target before deployment. In the rare instance that a member of a Battle Company is specifically composed of multiple profiles, they may not be considered (e.g. you are allowing the use of Warg Marauders in your campaign)."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Highest rated model"
-        MaxPoints: 2
     EndLossPercent: 75
   -
     Name: "Plunder the Supplies"
@@ -903,56 +604,6 @@ scenarios
         -
           Title: "Supply Markers"
           Text: "The Objective Markers represent a series of supplies that both sides are trying to destroy. To attempt to destroy an enemy Supply Marker, a model must be standing and in base contact with the marker during the End Phase of a turn having not Cast any Magical Powers, used a Missile Weapon, been Engaged in Combat, Supported a Combat, been rendered unable to Move any further that turn due to a special rule or result of a test (such as a Thrown Rider Test) or been under the effects of an enemy Magical Power that turn.\n\nIf the model in question has a Flaming Brand, Torch, or Torching Brand then they simply need to be standing and in base contact during the End Phase. The marker will then automatically be destroyed."
-    ScoringObjectives:
-      -
-        Key: "suppliesDestroyed"
-        Text: "You score 3 Victory Points for each enemy Supply Marker that has been destroyed."
-        Side: "both"
-        Kind: "each"
-        Label: "Supplies destroyed"
-        MaxPoints: 9
-      -
-        Key: "suppliesContested"
-        Text: "You score 1 Victory Point for each enemy Supply Marker that you have not destroyed, but you have more models within 3\" than your opponent."
-        Side: "both"
-        Kind: "each"
-        Label: "Supplies contested"
-        MaxPoints: 3
-      -
-        Key: "moreSuppliesDestroyed"
-        Text: "If you have destroyed more Supply Markers than your opponent, you score 1 Victory Point."
-        Side: "both"
-        Kind: "tiers"
-        Label: "More supplies destroyed"
-        MaxPoints: 1
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was removed as a casualty, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 3
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 3
-      -
-        Key: "noCommandSupport"
-        Text: "You score 2 Victory Points if your opponent has no Command Support remaining at the end of the game."
-        Side: "both"
-        Kind: "tiers"
-        Label: "No command support"
-        MaxPoints: 2
-      -
-        Key: "commandSupport"
-        Text: "You score 1 Victory Point if you have at least one Command Support remaining at the end of the game. If you have more Command Support alive than your opponent, then you instead score 2 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Command support"
-        MaxPoints: 2
     EndLossPercent: 75
   -
     Name: "Hoard of Treasures"
@@ -980,35 +631,6 @@ scenarios
         -
           Title: "Uncovering Artefacts"
           Text: "The Objective Markers in a Scenario with this special rule represent artefacts and other valuable trinkets that must be uncovered. An Infantry model who is in base contact with an Objective Marker at the end of its Move may attempt to free it.\n\nThe model attempting to free the Artefact must take an Intelligence Test. If the test is passed, the Artefact has been freed and the model that freed it immediately takes possession of it: an Artefact is treated as a Light Object (see page 134 of the Middle-Earth Strategy Battle Game Rules Manual). Might cannot be used to influence this roll. Only one model from each side may attempt to uncover each Artefact each turn. Models may hold any number of Artefacts."
-    ScoringObjectives:
-      -
-        Key: "artefacts"
-        Text: "You score 2 Victory Points for each artefact that is in the possession of a friendly model."
-        Side: "both"
-        Kind: "each"
-        Label: "Artefacts"
-        MaxPoints: 12
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was removed as a casualty, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 3
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 3
-      -
-        Key: "modelsInEnemyZone"
-        Text: "You score 1 Victory Point if you have at least one model wholly within 12\" of your opponent's board edge. If you have at least three models wholly within 12\" of your opponent's board edge, then you instead score 2 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Models in enemy zone"
-        MaxPoints: 2
     EndLossPercent: 75
   -
     Name: "Scavenge the Battlefield"
@@ -1040,35 +662,6 @@ scenarios
         -
           Title: "Objectives"
           Text: "The six objectives on the board are Light Objects, as detailed on page 134 of the main rules manual. This means that models may pick up and carry the objectives; in fact, a model will only count as holding an objective once they have picked it up. If a model holding an objective flees, it is immediately dropped where they stood before they fled, or as close as possible. Models may carry more than one objective."
-    ScoringObjectives:
-      -
-        Key: "objectiveMarkers"
-        Text: "For each Objective Marker your Battle Company has in its possession, you score 2 Victory Points. If an Objective Marker isn't currently held, but you have more models within 3\" of it than your opponent, you score 1 Victory Point."
-        Side: "both"
-        Kind: "eachTiers"
-        Label: "Objective markers"
-        MaxPoints: 12
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was slain, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 3
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 3
-      -
-        Key: "commandSupport"
-        Text: "You score 1 Victory Point if you have at least one Command Support remaining at the end of the game. If you have more Command Support alive than your opponent, then you instead score 2 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Command support"
-        MaxPoints: 2
     EndLossPercent: 75
   -
     Name: "Secure the Area"
@@ -1097,35 +690,6 @@ scenarios
         Name: "Vantage Point"
         Who: "The winner"
         Text: "The winner of the scenario has acquired a strategic advantage for their next battle. The next time they roll on the Scenario Table, after both dice have been rolled, they may apply a +1 or -1 to the second die result."
-    ScoringObjectives:
-      -
-        Key: "objective"
-        Text: "You score 4 Victory Points if you have more models within 6\" of the objective than your opponent. If you have twice as many models within 6\" of the objective than your opponent, then you instead score 8 Victory Points. If you have three times as many models within 6\" of the objective than your opponent, or you are the only player to have models within 6\" of the objective, then you instead score 12 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Objective"
-        MaxPoints: 12
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was removed as a casualty, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 3
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 3
-      -
-        Key: "noCommandSupport"
-        Text: "You score 2 Victory Points if your opponent has no Command Support remaining at the end of the game."
-        Side: "both"
-        Kind: "tiers"
-        Label: "No command support"
-        MaxPoints: 2
   -
     Name: "Stand Your Ground"
     Table: 3
@@ -1150,35 +714,6 @@ scenarios
           Text: "The Defender has been tasked with keeping the hill at all costs, whilst the Attacker must take it for their cause.\n\nThe game lasts until the end of the 8th Turn.\n\nSome Victory Points will be scored during the course of play rather than solely at the end."
       Rules: [{Title: "Defend the Hill", Text: "Models on the hill do not need to take Courage tests for being Broken."}]
       Roles: ["Attacker", "Defender"]
-    ScoringObjectives:
-      -
-        Key: "holdTheHill"
-        Text: "At the end of each turn after the first, you score 1 Victory Point if you have the more models within the outpost as your opponent. If you have twice as many models as your opponent, you instead score 2 Victory Points."
-        Side: "both"
-        Kind: "eachTiers"
-        Label: "Hold the hill"
-        MaxPoints: 14
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was removed as a casualty, you instead score 2 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 2
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 2 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 2
-      -
-        Key: "noCommandSupport"
-        Text: "You score 2 Victory Points if your opponent has no Command Support remaining at the end of the game."
-        Side: "both"
-        Kind: "tiers"
-        Label: "No command support"
-        MaxPoints: 2
   -
     Name: "Hold the Line"
     Table: 3
@@ -1202,35 +737,6 @@ scenarios
           Title: "How the game ends"
           Text: "The attacking Battle Company must have as many of their models escape the board via the northern board edge, whilst the Defenders must attempt to prevent them. Once the Attacker has been Broken, the game may suddenly end. At the end of each turn after this condition has been met, roll a D6. On a 1-2 the game ends, otherwise it continues for another turn."
       Roles: ["Attacker", "Defender"]
-    ScoringObjectives:
-      -
-        Key: "escape"
-        Text: "The Attacker earns 4 Victory Points if any of their models have escaped the battlefield via the Northern board edge. If at least half of the Attacker's models successfully escape the battlefield, they instead earn 8 Victory Points. If all of the Attacker's models escape the battlefield, the Attacker instead earns 12 Victory Points."
-        Side: "attacker"
-        Kind: "tiers"
-        Label: "Escape"
-        MaxPoints: 12
-      -
-        Key: "heroesSlain"
-        Text: "The Defender earns 2 Victory Points for each Attacking Hero model they remove as a casualty, up to a maximum of 6 Victory Points."
-        Side: "defender"
-        Kind: "each"
-        Label: "Heroes slain"
-        MaxPoints: 6
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was removed as a casualty, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 3
-      -
-        Key: "enemyBroken"
-        Text: "The Defender earns 3 Victory Points if the Attacker's Battle Company is Broken at the end of the game. If the Attacker's Battle Company is Broken and the Defender's Battle Company is not, they instead score 6 Victory Points."
-        Side: "defender"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 6
   -
     Name: "Defend the Gate"
     Table: 3
@@ -1258,35 +764,6 @@ scenarios
           Title: "Let nothing through!"
           Text: "Models from the Defender's Battle Company automatically pass all Courage tests they are required to make whilst within 6\" of the Gate."
       Roles: ["Attacker", "Defender"]
-    ScoringObjectives:
-      -
-        Key: "gate"
-        Text: "You score 4 Victory Points if you have more models within 6\" of the objective than your opponent. If you have twice as many models within 6\" of the objective than your opponent, then you instead score 8 Victory Points. If you have three times as many models within 6\" of the objective than your opponent, or you are the only player to have models within 6\" of the objective, then you instead score 12 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Gate"
-        MaxPoints: 12
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was removed as a casualty, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 3
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 3
-      -
-        Key: "noCommandSupport"
-        Text: "You score 2 Victory Points if your opponent has no Command Support remaining at the end of the game."
-        Side: "both"
-        Kind: "tiers"
-        Label: "No command support"
-        MaxPoints: 2
   -
     Name: "Seize the Outpost"
     Table: 3
@@ -1315,35 +792,6 @@ scenarios
           Title: "The Outpost Defenders"
           Text: "The Outpost defenders will follow the rules of a Passive Neutral Third Party as described on page 75.\n\nIf the combined rating of the participating Battle Companies exceeds 400 rating, then the Outpost defenders will gain the Blades of the Dead and Fearless special rule."
         - {Title: "Defend the Outpost", Text: "The outpost defenders may not leave the outpost for any reason."}
-    ScoringObjectives:
-      -
-        Key: "outpost"
-        Text: "You score 4 Victory Points if you have more models within the outpost than your opponent. If you have twice as many models within the outpost than your opponent, then you instead score 8 Victory Points. If you have three times as many models within the outpost than your opponent, or you are the only player to have models within the outpost, then you instead score 12 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Outpost"
-        MaxPoints: 12
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was removed as a casualty, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 3
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 3
-      -
-        Key: "noCommandSupport"
-        Text: "You score 2 Victory Points if your opponent has no Command Support remaining at the end of the game."
-        Side: "both"
-        Kind: "tiers"
-        Label: "No command support"
-        MaxPoints: 2
   -
     Name: "Baggage Train"
     Table: 3
@@ -1381,35 +829,6 @@ scenarios
           Title: "Cargo"
           Text: "The Baggage Ponies all carry some valuable cargo, gold, weapons or other items that are of use. If a Baggage Pony is slain or flees the battlefield, place a 25mm Cargo marker where the model used to be. Cargo is a Light Object."
       Roles: ["Attacker", "Defender"]
-    ScoringObjectives:
-      -
-        Key: "cargoHeld"
-        Text: "For each piece of Cargo being held by the Defenders or on a Bagge Pony, they earn 1 Victory Points. For each Cargo that the Defender moves any off the board, they instead earn 3 Victory Points."
-        Side: "defender"
-        Kind: "eachTiers"
-        Label: "Cargo held"
-        MaxPoints: 15
-      -
-        Key: "cargoTaken"
-        Text: "For each Cargo not held by any model or Pony, the Attackers earn 1 Victory Point. For each piece of Cargo being held by the Attackers, they instead earn 3 Victory Points."
-        Side: "attacker"
-        Kind: "eachTiers"
-        Label: "Cargo taken"
-        MaxPoints: 15
-      -
-        Key: "enemyLeader"
-        Text: "You score 1 Victory Point if the enemy Leader was wounded during the game. If the enemy Leader was removed as a casualty, you instead score 2 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy leader"
-        MaxPoints: 2
-      -
-        Key: "enemyBroken"
-        Text: "You score 1 Victory Point if the enemy Battle Company is Broken at the end of the game. If the enemy Battle Company is Broken and your Battle Company is not, you instead score 3 Victory Points."
-        Side: "both"
-        Kind: "tiers"
-        Label: "Enemy broken"
-        MaxPoints: 3
 
 === campaign options ===
 options

@@ -9,19 +9,6 @@ import (
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core/lean"
 )
 
-// LeanMaxPoints is the most a player can score on a scoring objective: its best tier, times the count of a "for each" objective.
-func LeanMaxPoints(kind string, count int, options []lean.ScoringOption) int {
-	best := 0
-	for _, o := range options {
-		best = max(best, o.Points)
-	}
-	switch kind {
-	case "eachTiers", "each":
-		return count * best
-	}
-	return best
-}
-
 // LeanScenarios reads the scenarios of a lean document in the order of its list: name, place on the scenario selection tables, the
 // text of its Victory Point conditions (one entry per objective) and its objectives: the rewards whose condition the players tick
 // (companyFlag, and modelFlag shown as one tick per company), each with the reward of its campaign.aftermathEffects[] entry. Rewards
@@ -127,9 +114,7 @@ func LeanScenarios(d *lean.Document) ([]ScenarioInfo, error) {
 			for i, opt := range o.Options {
 				sentences[i] = opt.Text
 			}
-			so := ScoringObjective{Label: ObjectiveLabel(o.Key), Key: o.Key, Text: ComposeObjectiveText(o.Instruction, sentences), Side: o.Side, Kind: o.Kind, Instruction: o.Instruction, MaxPoints: LeanMaxPoints(o.Kind, o.Count, o.Options)}
-			info.Scoring = append(info.Scoring, so.Text)
-			info.ScoringObjectives = append(info.ScoringObjectives, so)
+			info.Scoring = append(info.Scoring, ComposeObjectiveText(o.Instruction, sentences))
 		}
 		for _, rw := range rewards {
 			if rw.Condition.Kind != "companyFlag" && rw.Condition.Kind != "modelFlag" { // a reward that follows from the result: shown, not ticked
