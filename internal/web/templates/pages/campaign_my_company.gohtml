@@ -269,7 +269,8 @@
 
 {{/* The Break Point panel and the Company broken banner (docs/live-match.md, Company break point in play). A company is Broken as soon as its
    casualties exceed its Break Point (there are no turns), and whole again when an undo takes them back under. It sits in the zones so every
-   change of the match (SSE) refreshes it for the viewers too. Takes {LV, CID}. */}}
+   change of the match (SSE) refreshes it for the viewers too. It is always sent closed: live.js keeps it as the user left it across those refreshes, with
+   the note being written and the focus (the +/- buttons have ids for it). Takes {LV, CID}. */}}
 {{define "live_break"}}{{$lv := .LV}}{{$b := $lv.Break}}{{$act := printf "/campaigns/%d/matches/%d/live/%d/actions" .CID $lv.MatchID $lv.CompanyID}}
 <div class="mt-3 !mb-3 space-y-3" id="live-break">
   {{if $b.StartingModels}}
@@ -297,11 +298,11 @@
         <p class="font-medium">Adjust the count <span class="font-normal text-muted">(creatures, Ponies, late arrivals: what the app cannot know)</span></p>
         <div class="field"><label for="break-note">Note (optional)</label><input id="break-note" name="note" maxlength="200" class="input" placeholder="Late arrival"></div>
         <div class="flex flex-wrap items-center gap-2"><span class="min-w-32">Starting models <strong>{{$b.StartingModels}}</strong></span>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"-1"}' hx-include="#break-note" {{template "hx_zones"}}>−</button>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"1"}' hx-include="#break-note" {{template "hx_zones"}}>+</button></div>
+          <button type="button" id="break-start-less" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"-1"}' hx-include="#break-note" {{template "hx_zones"}}>−</button>
+          <button type="button" id="break-start-more" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One starting model more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"start","delta":"1"}' hx-include="#break-note" {{template "hx_zones"}}>+</button></div>
         <div class="flex flex-wrap items-center gap-2"><span class="min-w-32">Casualties <strong>{{$b.Casualties}}</strong></span>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"-1"}' hx-include="#break-note" {{template "hx_zones"}}>−</button>
-          <button type="button" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"1"}' hx-include="#break-note" {{template "hx_zones"}}>+</button></div>
+          <button type="button" id="break-casualties-less" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty fewer" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"-1"}' hx-include="#break-note" {{template "hx_zones"}}>−</button>
+          <button type="button" id="break-casualties-more" class="btn btn-secondary !min-h-11 !min-w-11 !px-0" aria-label="One casualty more" hx-post="{{$act}}" hx-vals='{"kind":"breakAdjust","field":"casualties","delta":"1"}' hx-include="#break-note" {{template "hx_zones"}}>+</button></div>
       </div>
       {{end}}
       {{with $b.Exceptions}}<div><p class="font-medium">Scenario exceptions</p><ul class="list-disc pl-5 text-muted">{{range .}}<li>{{.}}</li>{{end}}</ul></div>{{end}}

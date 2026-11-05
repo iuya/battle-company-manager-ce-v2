@@ -145,6 +145,10 @@ It is a `<details>` element.
 - The summary reads "Break Point 6.5 of 13 · Casualties 4 · 50%", with a "Broken" badge and a progressbar.
 - Opened, it lists the casualties by name and the scenario exceptions.
 - Editors also get +/- adjusters for starting models and casualties, with a shared note (`kind=breakAdjust`).
+- It opens and closes only through its summary.
+  The server always sends it closed, and `live.js` puts back how the user left it after every swap of `#live-zones` (an action, a refresh, an out-of-band answer).
+- The note being written survives those swaps too, with its cursor. It empties once a +/- button has logged it, and stays when the adjustment is refused.
+- The control that had the focus inside the panel gets it back after the swap (by id, from `live.js`), so a keyboard user can press a +/- button again.
 
 **Broken notice.**
 Every viewer sees it in `#live-end` of the banner: "Rangers is broken", or "Rangers is broken and quartered" once it has also reached a 25% end (`endBanner.Broken`).

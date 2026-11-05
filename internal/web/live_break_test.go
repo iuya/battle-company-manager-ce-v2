@@ -231,3 +231,19 @@ func TestCompanyPageShowsItsBreakPointRule(t *testing.T) {
 		t.Error("the company's Break Point rule is shown")
 	}
 }
+
+// live.js finds the +/- buttons again by id to give them the focus back after a swap of the zones, and the server sends the panel closed.
+func TestBreakPanelButtonsSurviveTheSwap(t *testing.T) {
+	f := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) {
+		lc.Break = core.LiveBreak{Percent: 50, StartingModels: 13, Casualties: 2, Threshold100: 650}
+	})
+	body := livePage(f)
+	for _, id := range []string{"break-start-less", "break-start-more", "break-casualties-less", "break-casualties-more"} {
+		if strings.Count(body, `id="`+id+`"`) != 1 {
+			t.Errorf("button %s: want one with that id", id)
+		}
+	}
+	if !strings.Contains(body, `id="live-break-panel"`) || strings.Contains(body, `id="live-break-panel" open`) {
+		t.Error("the server sends the panel closed: only the page knows how the user left it")
+	}
+}
