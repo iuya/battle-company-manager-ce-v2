@@ -91,13 +91,13 @@ func (s *Server) showLevelPanel(w http.ResponseWriter, r *http.Request, status i
 			}
 			panel.Plan = string(plan)
 		}
-		if panel.Roll.Done && panel.Roll.Result == "noChange" && panel.Pending == 0 {
+		if panel.Roll.Done && panel.Roll.Result == core.WarriorResultNoChange && panel.Pending == 0 {
 			panel.CloseAfter = noChangeCloseMillis
 		}
-		if !panel.Roll.Done && panel.Roll.Stage == "" && panel.Roll.Result == "heroInTheMaking" && len(panel.Offers) == 1 {
+		if !panel.Roll.Done && panel.Roll.Stage == "" && panel.Roll.Result == core.WarriorResultHeroInTheMaking && len(panel.Offers) == 1 {
 			panel.Heroic = true
 			for _, c := range panel.Offers[0].Choices {
-				if c.Key != "hero" {
+				if c.Key != core.HeroChoiceKey {
 					panel.Forgo = append(panel.Forgo, c)
 				}
 			}

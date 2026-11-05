@@ -743,3 +743,21 @@ func TestEveryOwnPathUnitStartsAWarriorAndTakesTheHomebrewPathOnASix(t *testing.
 		t.Fatal("no own-path units")
 	}
 }
+
+// The window compares a roll's result with these constants, so the rules file has to use the same keys.
+func TestTheWarriorResultConstantsAreTheKeysOfTheRulesFile(t *testing.T) {
+	f := newCompanyFixture(t)
+	rs, _, err := f.leveller(t).ruleset(f.ctx, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var keys []string
+	for _, row := range rs.BC.Progression().Warrior {
+		keys = append(keys, row.Key)
+	}
+	for _, want := range []string{WarriorResultNoChange, WarriorResultPromoted, WarriorResultHeroInTheMaking} {
+		if !slices.Contains(keys, want) {
+			t.Errorf("no row with the key %q: %v", want, keys)
+		}
+	}
+}

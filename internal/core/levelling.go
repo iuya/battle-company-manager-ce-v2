@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// heroChoiceKey is the choice of a warrior's Hero in the Making: it becomes a hero and chooses its path later.
-const heroChoiceKey = "hero"
+// HeroChoiceKey is the choice of a warrior's Hero in the Making: it becomes a hero and chooses its path later.
+const HeroChoiceKey = "hero"
 
 // LevelService runs level-ups. A unit that earned LevelEvery experience rolls: a warrior on a D6 (nothing, a promotion, or a
 // hero in the making), a hero twice on 2D6 on its path, choosing one result. The rules come from the Battle Companies file
@@ -230,7 +230,7 @@ func (env *levelEnv) choose(st *CompanyState, us *UnitState, keys []string) (Lev
 			dropUnlisted(env, us, p.Base, to.Wargear)
 		}
 		summary = fmt.Sprintf("%s is promoted to %s.", u.Title(), name)
-	case heroChoiceKey: // the path comes later, in the path window (ChoosePath)
+	case HeroChoiceKey: // the path comes later, in the path window (ChoosePath)
 		if to := env.becomeHero(p); to != "" {
 			summary = fmt.Sprintf("%s is promoted to %s and becomes a hero.", u.Title(), to)
 		} else {
@@ -384,11 +384,11 @@ func (env *levelEnv) takePath(p *Progress, name string) {
 // modernHeroOffer brings a Hero in the Making stored before the path moved to the path window up to date: its paths become the one
 // choice of becoming a hero.
 func modernHeroOffer(roll *LevelRoll) {
-	if roll.Result != "heroInTheMaking" || roll.Auto || roll.Stage != "" || len(roll.Offers) != 1 {
+	if roll.Result != WarriorResultHeroInTheMaking || roll.Auto || roll.Stage != "" || len(roll.Offers) != 1 {
 		return
 	}
 	choices := slices.DeleteFunc(slices.Clone(roll.Offers[0].Choices), func(c LevelChoice) bool { return strings.HasPrefix(c.Key, "path:") })
-	if slices.ContainsFunc(choices, func(c LevelChoice) bool { return c.Key == heroChoiceKey }) {
+	if slices.ContainsFunc(choices, func(c LevelChoice) bool { return c.Key == HeroChoiceKey }) {
 		return
 	}
 	roll.Offers = slices.Clone(roll.Offers)
@@ -396,7 +396,7 @@ func modernHeroOffer(roll *LevelRoll) {
 }
 
 // heroChoice is the choice of accepting a Hero in the Making.
-func heroChoice() LevelChoice { return LevelChoice{Key: heroChoiceKey, Label: "Become a hero"} }
+func heroChoice() LevelChoice { return LevelChoice{Key: HeroChoiceKey, Label: "Become a hero"} }
 
 // present is the roll as the player sees it: what goes together among its results.
 func (env *levelEnv) present(st CompanyState, roll LevelRoll) LevelRoll {
@@ -443,14 +443,14 @@ func (env *levelEnv) warriorRoll(p *Progress, d6 int) LevelRoll {
 	roll := LevelRoll{Kind: "warrior", D6: d6, Result: row.Key}
 	u := env.unit
 	switch row.Key {
-	case "promoted":
+	case WarriorResultPromoted:
 		choices := promotionChoices(env.rs, env.bcC, u)
 		if len(choices) > 0 {
 			roll.Offers = []LevelOffer{{Roll: d6, Text: row.Text, Choices: choices}}
 		} else {
 			roll.Done, roll.Summary = true, noPromotion(u, p, rules)
 		}
-	case "heroInTheMaking":
+	case WarriorResultHeroInTheMaking:
 		offer := LevelOffer{Roll: d6, Text: row.Text}
 		if custom, ok := env.ownPath(); ok { // a unit on its own path takes its path at once: nothing to choose, no promotion to forgo for
 			offer.Choices = []LevelChoice{{Key: "path:" + custom, Label: custom, Group: "Its own path"}}
