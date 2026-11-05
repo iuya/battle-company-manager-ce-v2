@@ -58,6 +58,11 @@ type LiveUnit struct {
 // and one per company.
 func TemporaryUnitID(companyID int64) int64 { return -companyID }
 
+// FledCourage says the unit is off the board for failing a courage test: a casualty for the Break Point, unlike a unit that left the board.
+func (u LiveUnit) FledCourage() bool {
+	return u.Zone == ZoneRetreated && u.Reason == reasonFailedCourage
+}
+
 // ItemsToUse are the loaned items the unit can still mark as used (not spent, not for the aftermath).
 func (u LiveUnit) ItemsToUse() (out []LoanedItem) {
 	for _, it := range u.Loaned {

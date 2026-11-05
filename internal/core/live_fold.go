@@ -18,6 +18,11 @@ const (
 	GainMVP           = "mvp"
 )
 
+// reasonFailedCourage is the reason of a unit that fled a failed courage test, shown as it is. Unlike every other way off the board it
+// makes the unit a casualty for the Break Point, so the fold and the count share this one value. The log holds the retreat's Why, never
+// this text. Outside the fold, ask LiveUnit.FledCourage.
+const reasonFailedCourage = "Failed courage"
+
 // liveUnit is a LiveUnit plus what the fold needs to derive the zone.
 type liveUnit struct {
 	LiveUnit
@@ -296,7 +301,7 @@ func (s LiveState) apply(a LiveAction, byCompany, voter int64) {
 	case LiveRetreat:
 		if a.Why == "courage" {
 			u.CourageHow = "failed"
-			u.retreat = "Failed courage"
+			u.retreat = reasonFailedCourage
 		} else {
 			u.retreat = "Left the board"
 		}
