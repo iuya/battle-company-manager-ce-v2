@@ -73,31 +73,43 @@ func (v *validator) shares() {
 		}
 	}
 	bd := d.Campaign.BreakPoint.Default
-	bp := "campaign.breakPoint.default"
-	switch {
-	case bd.Share.IsSet() && bd.Percent != 0:
-		v.rep.Errorf(Join(bp, "share"), `write the Break Point as "share" or as "percent", not both`)
-	case !bd.Share.IsSet() && bd.Percent == 0:
-		if v.campaignHasErrors() {
-			break // the block did not bind; its own errors say why
-		}
-		v.rep.Add(Issue{Path: bp, Message: "the default Break Point needs a share", Hint: `write "share": "1/2"`})
-	default:
-		s, _ := bd.Fraction()
-		v.wholePercentShare(s, Join(bp, shareKey(bd.Share, "percent")), "the Break Point")
+	if !bd.Share.IsSet() && bd.Percent == 0 && v.campaignHasErrors() {
+		return // the block did not bind; its own errors say why
 	}
+	v.lossShare(bd, "campaign.breakPoint.default", lossShareWords{
+		both:    `write the Break Point as "share" or as "percent", not both`,
+		missing: "the default Break Point needs a share",
+		hint:    `write "share": "1/2"`,
+		what:    "the Break Point",
+	})
 }
 
-// scenarioEnd checks a scenario's endsAtLosses: exactly one of its two keys, above 0 and a whole percent, like a Break Point.
+// scenarioEnd checks a scenario's endsAtLosses, like a Break Point.
 func (v *validator) scenarioEnd(l *LossShare, at string) {
+	v.lossShare(*l, at, lossShareWords{
+		both:    `write the share lost as "share" or as "percent", not both`,
+		missing: "the end of the scenario needs a share",
+		hint:    `write "share": "3/4"`,
+		what:    "the end of the scenario",
+	})
+}
+
+// lossShareWords is what the report says about a LossShare: the two keys written together, neither written (and its hint), and the
+// name of the share for wholePercentShare.
+type lossShareWords struct {
+	both, missing, hint, what string
+}
+
+// lossShare checks a share of models lost: exactly one of its two keys, above 0 and a whole percent.
+func (v *validator) lossShare(l LossShare, at string, w lossShareWords) {
 	switch {
 	case l.Share.IsSet() && l.Percent != 0:
-		v.rep.Errorf(Join(at, "share"), `write the share lost as "share" or as "percent", not both`)
+		v.rep.Errorf(Join(at, "share"), "%s", w.both)
 	case !l.Share.IsSet() && l.Percent == 0:
-		v.rep.Add(Issue{Path: at, Message: "the end of the scenario needs a share", Hint: `write "share": "3/4"`})
+		v.rep.Add(Issue{Path: at, Message: w.missing, Hint: w.hint})
 	default:
 		s, _ := l.Fraction()
-		v.wholePercentShare(s, Join(at, shareKey(l.Share, "percent")), "the end of the scenario")
+		v.wholePercentShare(s, Join(at, shareKey(l.Share, "percent")), w.what)
 	}
 }
 
