@@ -457,10 +457,10 @@ func (v aftermathView) CasualtyPending(c core.Casualty) bool {
 
 // CasualtyTone is the colour of a rolled casualty's strip: a unit lost, a unit hurt or out of the next game, and a recovery.
 func (v aftermathView) CasualtyTone(c core.Casualty) string {
-	switch c.Kind {
-	case core.CasualtyDead, core.CasualtyRetired:
+	switch {
+	case v.Fallen(c):
 		return "danger"
-	case core.CasualtyInjured, core.CasualtyInjury, core.CasualtyScratch:
+	case c.Kind == core.CasualtyInjured || c.Kind == core.CasualtyInjury || c.Kind == core.CasualtyScratch:
 		return "warn"
 	}
 	return "success"
@@ -664,7 +664,7 @@ func (v aftermathView) ChangeSummary() string {
 		}
 	}
 	for _, c := range v.A.Casualties {
-		if c.Kind == core.CasualtyDead || c.Kind == core.CasualtyRetired {
+		if v.Fallen(c) {
 			dead++
 		}
 	}

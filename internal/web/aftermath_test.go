@@ -1051,6 +1051,33 @@ func TestWoundsOfAHeroShowsTheExtraInfluenceRoll(t *testing.T) {
 	}
 }
 
+// The strip of a rolled casualty and the badge of its unit card come from one classification: only the unit that fell keeps the skull.
+func TestCasualtyToneDrivesTheUnitCard(t *testing.T) {
+	for _, c := range []struct {
+		kind        core.CasualtyKind
+		tone, badge string
+		icon        string
+	}{
+		{core.CasualtyDead, "danger", "badge-danger", "death-skull"},
+		{core.CasualtyRetired, "danger", "badge-danger", "death-skull"},
+		{core.CasualtyInjured, "warn", "badge-warn", ""},
+		{core.CasualtyInjury, "warn", "badge-warn", ""},
+		{core.CasualtyScratch, "warn", "badge-warn", ""},
+		{core.CasualtyHeal, "success", "badge-success", ""},
+		{core.CasualtyRecovered, "success", "badge-success", ""},
+	} {
+		cas := core.Casualty{UnitID: 10, Rolled: true, Kind: c.kind}
+		v := aftermathView{A: core.Aftermath{Casualties: []core.Casualty{cas}}}
+		if got := v.CasualtyTone(cas); got != c.tone {
+			t.Errorf("%s: tone %q, want %q", c.kind, got, c.tone)
+		}
+		r := v.unitResult(core.ModelSheet{UnitID: 10, Outcome: core.OutcomeCasualty})
+		if r.Badge != c.badge || r.Icon != c.icon {
+			t.Errorf("%s: badge %q icon %q, want %q %q", c.kind, r.Badge, r.Icon, c.badge, c.icon)
+		}
+	}
+}
+
 func TestSavedSheetColoursEachOutcome(t *testing.T) {
 	var v aftermathView
 	for o, want := range map[core.ModelOutcome]string{core.OutcomeSurvived: "badge-success", core.OutcomeFled: "badge-warn", core.OutcomeCasualty: "badge-danger"} {

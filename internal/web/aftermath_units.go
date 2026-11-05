@@ -106,12 +106,8 @@ func (v aftermathView) unitResult(m core.ModelSheet) unitResult {
 		r.Unit, r.Icon = v.CasualtyUnit(c), "death-skull"
 		if c.Rolled && !v.Animate[c.UnitID] { // while its dice roll, the card does not give the result away
 			r.Status = c.ResultTxt
-			switch c.Kind { // the skull is for the unit that fell
-			case core.CasualtyDead, core.CasualtyRetired:
-			case core.CasualtyInjured, core.CasualtyInjury, core.CasualtyScratch:
-				r.Badge, r.Icon = "badge-warn", ""
-			default:
-				r.Badge, r.Icon = "badge-success", ""
+			if !v.Fallen(c) { // the skull is for the unit that fell
+				r.Badge, r.Icon = "badge-"+v.CasualtyTone(c), ""
 			}
 		}
 	} else {
