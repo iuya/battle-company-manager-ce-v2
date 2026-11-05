@@ -37,6 +37,10 @@ func TestMatchPageDrawsItsCardsInline(t *testing.T) {
 	if tag := slotTag(t, body, "ato-slot"); !strings.Contains(tag, `hx-trigger="live:match from:body"`) {
 		t.Errorf("the ATO slot fetches neither on load nor on click: %s", tag)
 	}
+	// A refresh that overtook the answer to the card's own form would take the form away, and its answer with it.
+	if tag := slotTag(t, body, "ato-slot"); !strings.Contains(tag, `hx-sync="this:drop"`) {
+		t.Errorf("the ATO slot refreshes while its form is being sent: %s", tag)
+	}
 	if strings.Contains(body, "end-checks-slot") {
 		t.Error("the End checks card is gone: the End match sheet asks for the objective and the MVP")
 	}

@@ -144,7 +144,7 @@ func TestATOCardConfirmWaitAndChange(t *testing.T) {
 		return htmxGet(f, testMatchPath+"/ato").Body.String()
 	}
 	body := card(func(*core.ATO) {})
-	for _, want := range []string{"data-ato-confirm", "Play without bonuses"} {
+	for _, want := range []string{"data-ato-confirm", "Play without bonuses", `hx-sync="#ato-slot:replace"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the lower player's card lacks %q", want)
 		}

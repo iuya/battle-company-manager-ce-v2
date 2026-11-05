@@ -53,7 +53,7 @@
 
 {{if eq .Phase "preparing"}}
   {{template "scenario_card" .}}
-  <div id="ato-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/ato" hx-trigger="{{if and .Cards .Cards.ATO}}{{else}}load, {{end}}live:match from:body" hx-swap="innerHTML">{{if .Cards}}{{with .Cards.ATO}}{{template "ato_card" .}}{{end}}{{end}}</div>
+  <div id="ato-slot" hx-target="this" hx-sync="this:drop" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/ato" hx-trigger="{{if and .Cards .Cards.ATO}}{{else}}load, {{end}}live:match from:body" hx-swap="innerHTML">{{if .Cards}}{{with .Cards.ATO}}{{template "ato_card" .}}{{end}}{{end}}</div>
 {{else}}
   {{if $m.Ended}}
   {{template "aftermath_card" .}}

@@ -17,7 +17,7 @@
       <p data-ato-summary>{{.Summary}}</p>
       {{if .Chosen}}<p class="text-sm text-muted">Spent {{.Spent}} of {{.Gap}}.</p>{{end}}
       {{range .Selection.Items}}{{if .UnitID}}<p class="text-sm text-muted">{{$v.KitName .Kit}}: {{.Item}}{{with .Detail}} ({{.}}){{end}} goes to {{$v.ModelName .UnitID}}.</p>{{end}}{{end}}
-      {{if .CanChange}}<form hx-post="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/ato/change" hx-target="#ato" hx-swap="outerHTML"><input type="hidden" name="revision" value="{{.Revision}}"><button class="btn btn-secondary" data-ato-change>Change</button></form>{{end}}
+      {{if .CanChange}}<form hx-post="/campaigns/{{.Campaign}}/matches/{{.MatchID}}/ato/change" hx-target="#ato" hx-swap="outerHTML" hx-sync="#ato-slot:replace"><input type="hidden" name="revision" value="{{.Revision}}"><button class="btn btn-secondary" data-ato-change>Change</button></form>{{end}}
     {{end}}
   {{end}}
 </section>
@@ -26,7 +26,7 @@
 {{end}}
 
 {{define "ato_form"}}{{$v := .}}{{$base := printf "/campaigns/%d/matches/%d/ato" .Campaign .MatchID}}
-<form hx-post="{{$base}}" hx-target="#ato" hx-swap="outerHTML" class="space-y-4" novalidate
+<form hx-post="{{$base}}" hx-target="#ato" hx-swap="outerHTML" hx-sync="#ato-slot:replace" class="space-y-4" novalidate
   x-data="{ ...{{.State}},
     get kitRating() { return this.ratings.toolKit || 0 },
     get spent() { let n = 0; for (const k of this.bonus) { if (k !== 'toolKit') n += this.ratings[k] || 0 } if (this.bonus.includes('toolKit')) n += this.kits.length * this.kitRating; return n },
