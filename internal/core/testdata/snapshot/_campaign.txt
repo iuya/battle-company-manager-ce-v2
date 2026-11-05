@@ -465,7 +465,7 @@ scenarios
           Text: "Each player splits their Battle Company into two halves of as close of a Rating as possible. The half that contains the Leader will be considered Primary force.\n\nBoth players then roll a D6 - the player that scored highest becomes Team A and choose one of the deployment zones in the centre of the board. Team A then deploys their Primary Force wholly within 6\" of the centerline of the board in their deployment zone. Team B then deploys similarly. Once both Primary Forces have been deployed, Team A deploys their Secondary Force within 6\" of their opposing board edge, followed by Team B doing likewise."
         -
           Title: "How the game ends"
-          Text: "The game ends at the end of the turn when either the target Hero is slain, or one Battle Company is reduced to less than 25% of its starting numbers."
+          Text: "The game ends at the end of the turn when either the target Hero is slain, or one Battle Company is reduced to 25% of its starting numbers or below."
     Prizes:
       -
         Name: "Survival of the Fittest"
