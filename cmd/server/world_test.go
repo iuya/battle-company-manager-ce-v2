@@ -108,8 +108,11 @@ func TestSeedWorld(t *testing.T) {
 			t.Errorf("campaign %q is missing", name)
 		}
 	}
-	if s := byName["Finished campaign: the Siege of Osgiliath"]; s.Status != core.CampaignFinished {
-		t.Errorf("the finished campaign is %q", s.Status)
+	if s := byName["Finished campaign: the Siege of Osgiliath"]; s.Status != core.CampaignFinished || !s.Archived {
+		t.Errorf("the finished campaign is %q, archived %v: ending archives it", s.Status, s.Archived)
+	}
+	if s := byName["Ended before archives: finished, not archived yet"]; s.Status != core.CampaignFinished || s.Archived {
+		t.Errorf("the campaign ended before archives is %q, archived %v: it waits for `server archive`", s.Status, s.Archived)
 	}
 
 	// several companies per player: the cap is 3, Galadriel is at it, Éowyn below it, and the viewer's own companies are all listed

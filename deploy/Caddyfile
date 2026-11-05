@@ -17,11 +17,20 @@
 		Cross-Origin-Opener-Policy "same-origin"
 	}
 
+	# The probes (and a future /metrics) are for the container network and the host only: the internet gets a 404, as for any unknown path.
+	# The updater asks the app itself (docker compose exec app /app/server healthcheck), never through here.
+	@ops path /healthz /readyz /metrics /metrics/*
+	handle @ops {
+		respond "Not Found" 404
+	}
+
 	# The app counts login attempts per client address: hand it the real peer, never what the client claims.
-	reverse_proxy app:8080 {
-		header_up X-Forwarded-For {remote_host}
-		# Live match streams (server-sent events) must not be buffered.
-		flush_interval -1
+	handle {
+		reverse_proxy app:8080 {
+			header_up X-Forwarded-For {remote_host}
+			# Live match streams (server-sent events) must not be buffered.
+			flush_interval -1
+		}
 	}
 
 	log {

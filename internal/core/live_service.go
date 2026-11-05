@@ -70,6 +70,9 @@ func (s *LiveService) context(ctx context.Context, user User, id, matchID int64)
 	if err != nil {
 		return liveContext{}, err
 	}
+	if camp.Archived { // the live data of an archived campaign's matches is not kept (docs/archive.md)
+		return liveContext{}, ErrArchived
+	}
 	m, err := s.matches.Get(ctx, id, matchID)
 	if err != nil {
 		return liveContext{}, err

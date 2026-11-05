@@ -15,6 +15,7 @@ import (
 
 	"go-simpler.org/env"
 
+	"github.com/iuya/battle-company-manager-ce-v2/internal/buildinfo"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/perftrace"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/postgres"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/web"
@@ -36,7 +37,10 @@ type config struct {
 	RulesBuildTimeout time.Duration `env:"RULES_BUILD_TIMEOUT" default:"60s"`
 	// PerfTrace adds a Server-Timing header (time, database statements) to every answer, for tests/e2e/perf.mjs. Development only.
 	PerfTrace bool `env:"PERF_TRACE" default:"false"`
-	Web       web.Config
+	// CampaignLimit is how many unfinished (active or paused) campaigns an account without a limit of its own may organise; a superuser
+	// sets another number per account on the Users page.
+	CampaignLimit int `env:"CAMPAIGN_LIMIT" default:"10"`
+	Web           web.Config
 }
 
 // validate rejects settings the server cannot run with; the web settings are checked by web.Config.Resolve.
@@ -46,6 +50,9 @@ func (c config) validate() error {
 	}
 	if c.RulesBuildTimeout < time.Second {
 		return fmt.Errorf("RULES_BUILD_TIMEOUT %s: want at least 1s", c.RulesBuildTimeout)
+	}
+	if c.CampaignLimit < 1 {
+		return fmt.Errorf("CAMPAIGN_LIMIT %d: want at least 1", c.CampaignLimit)
 	}
 	return nil
 }
@@ -58,10 +65,14 @@ func main() {
 			run = func() error { return runUser(os.Args[2:]) }
 		case "audit":
 			run = func() error { return runAudit(os.Args[2:]) }
+		case "archive":
+			run = func() error { return runArchive(os.Args[2:]) }
 		case "migrate":
 			run = func() error { return runMigrate() }
 		case "healthcheck":
 			run = runHealthcheck
+		case "version":
+			run = func() error { fmt.Println(buildinfo.Version); return nil }
 		case "seed":
 			run = func() error { return runSeed(os.Args[2:]) }
 		}
@@ -82,6 +93,7 @@ func run() error {
 	}
 	rulesCacheMax = cfg.MaxCachedRuleSets
 	rulesBuildTimeout = cfg.RulesBuildTimeout
+	campaignLimit = cfg.CampaignLimit
 	if err := cfg.Web.Resolve(); err != nil {
 		return err
 	}

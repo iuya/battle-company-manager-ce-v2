@@ -105,7 +105,7 @@ func (as atoStore) Get(ctx context.Context, campaignID, matchID int64) (core.ATO
 		FROM matches m LEFT JOIN match_ato a ON a.match_id = m.id WHERE m.id = $1 AND m.campaign_id = $2`, matchID, campaignID).
 		Scan(&companyID, &sel, &prev, &had)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return core.ATORecord{}, core.ErrNotFound
+		return core.ATORecord{}, as.s.notFoundOrArchived(ctx, campaignID)
 	}
 	if err != nil {
 		return core.ATORecord{}, err
@@ -128,7 +128,7 @@ func (as atoStore) GameStarted(ctx context.Context, campaignID, matchID int64) (
 	err := as.s.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM match_live_log WHERE match_id = m.id AND undone_at IS NULL)
 		FROM matches m WHERE m.id = $1 AND m.campaign_id = $2`, matchID, campaignID).Scan(&started)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return false, core.ErrNotFound
+		return false, as.s.notFoundOrArchived(ctx, campaignID)
 	}
 	return started, err
 }

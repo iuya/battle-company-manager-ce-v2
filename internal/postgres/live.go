@@ -115,7 +115,7 @@ func (ls liveStore) snapshot(ctx context.Context, q querier, campaignID, matchID
 		  FROM matches m LEFT JOIN match_live l ON l.match_id = m.id
 		 WHERE m.id = $1 AND m.campaign_id = $2`, matchID, campaignID).Scan(&snap.Number, &snap.Ended, &snap.Seq, &snap.Initialised)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return snap, core.ErrNotFound
+		return snap, ls.s.notFoundOrArchived(ctx, campaignID)
 	}
 	if err != nil {
 		return snap, err
@@ -167,7 +167,7 @@ func (ls liveStore) Init(ctx context.Context, campaignID, matchID int64, units [
 	defer tx.Rollback(ctx)
 	var exists bool
 	if err := tx.QueryRow(ctx, `SELECT true FROM matches WHERE id = $1 AND campaign_id = $2`, matchID, campaignID).Scan(&exists); errors.Is(err, pgx.ErrNoRows) {
-		return core.ErrNotFound
+		return ls.s.notFoundOrArchived(ctx, campaignID)
 	} else if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func (ls liveStore) Read(ctx context.Context, campaignID, matchID int64) (core.L
 		 WHERE m.id = $1 AND m.campaign_id = $2`, matchID, campaignID).
 		Scan(&snap.Number, &snap.Ended, &snap.Seq, &snap.Initialised, &units, &entries)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return snap, core.ErrNotFound
+		return snap, ls.s.notFoundOrArchived(ctx, campaignID)
 	}
 	if err != nil {
 		return snap, err
@@ -277,7 +277,7 @@ func (ls liveStore) Update(ctx context.Context, campaignID, matchID int64, by co
 	var locked int64
 	err = tx.QueryRow(ctx, `SELECT id FROM matches WHERE id = $1 AND campaign_id = $2 FOR NO KEY UPDATE`, matchID, campaignID).Scan(&locked)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return core.LiveEntry{}, core.ErrNotFound
+		return core.LiveEntry{}, ls.s.notFoundOrArchived(ctx, campaignID)
 	}
 	if err != nil {
 		return core.LiveEntry{}, err
@@ -391,7 +391,7 @@ func (ls liveStore) UnitLog(ctx context.Context, campaignID, matchID, unitID int
 func (ls liveStore) entries(ctx context.Context, campaignID, matchID int64, rest string, args ...any) ([]core.LiveEntry, error) {
 	var exists bool
 	if err := ls.s.pool.QueryRow(ctx, `SELECT true FROM matches WHERE id = $1 AND campaign_id = $2`, matchID, campaignID).Scan(&exists); errors.Is(err, pgx.ErrNoRows) {
-		return nil, core.ErrNotFound
+		return nil, ls.s.notFoundOrArchived(ctx, campaignID)
 	} else if err != nil {
 		return nil, err
 	}

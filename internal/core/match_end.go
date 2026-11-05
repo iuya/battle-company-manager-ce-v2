@@ -176,6 +176,9 @@ func (s *Matches) checkEnd(ctx context.Context, m *Match, id, voter int64) error
 // checkATO refuses to end a match that still waits for the Against the Odds decision; the override of the organiser does not ask.
 func (s *Matches) checkATO(ctx context.Context, id, matchID int64) error {
 	why, err := s.ATOBlocks(ctx, id, matchID)
+	if errors.Is(err, ErrArchived) { // the edit that follows answers, by who is asking: a stranger must not learn of the campaign
+		return nil
+	}
 	if err != nil {
 		return err
 	}

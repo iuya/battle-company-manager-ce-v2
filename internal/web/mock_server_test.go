@@ -3126,6 +3126,45 @@ func (c *MockcampaignsProposeEndCall) DoAndReturn(f func(context.Context, core.U
 	return c
 }
 
+// Quota mocks base method.
+func (m *Mockcampaigns) Quota(ctx context.Context, userID int64) (core.CampaignQuota, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Quota", ctx, userID)
+	ret0, _ := ret[0].(core.CampaignQuota)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Quota indicates an expected call of Quota.
+func (mr *MockcampaignsMockRecorder) Quota(ctx, userID any) *MockcampaignsQuotaCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Quota", reflect.TypeOf((*Mockcampaigns)(nil).Quota), ctx, userID)
+	return &MockcampaignsQuotaCall{Call: call}
+}
+
+// MockcampaignsQuotaCall wrap *gomock.Call
+type MockcampaignsQuotaCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockcampaignsQuotaCall) Return(arg0 core.CampaignQuota, arg1 error) *MockcampaignsQuotaCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockcampaignsQuotaCall) Do(f func(context.Context, int64) (core.CampaignQuota, error)) *MockcampaignsQuotaCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockcampaignsQuotaCall) DoAndReturn(f func(context.Context, int64) (core.CampaignQuota, error)) *MockcampaignsQuotaCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // RecruitSpecial mocks base method.
 func (m *Mockcampaigns) RecruitSpecial(ctx context.Context, user core.User, id, companyID int64, unit string) (core.RecruitResult, error) {
 	m.ctrl.T.Helper()
@@ -5602,6 +5641,44 @@ func (c *MockauthSetAppearanceCall) Do(f func(context.Context, int64, string, st
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockauthSetAppearanceCall) DoAndReturn(f func(context.Context, int64, string, string) error) *MockauthSetAppearanceCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// SetMaxCampaigns mocks base method.
+func (m *Mockauth) SetMaxCampaigns(ctx context.Context, actor core.User, userID int64, max *int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetMaxCampaigns", ctx, actor, userID, max)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetMaxCampaigns indicates an expected call of SetMaxCampaigns.
+func (mr *MockauthMockRecorder) SetMaxCampaigns(ctx, actor, userID, max any) *MockauthSetMaxCampaignsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMaxCampaigns", reflect.TypeOf((*Mockauth)(nil).SetMaxCampaigns), ctx, actor, userID, max)
+	return &MockauthSetMaxCampaignsCall{Call: call}
+}
+
+// MockauthSetMaxCampaignsCall wrap *gomock.Call
+type MockauthSetMaxCampaignsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockauthSetMaxCampaignsCall) Return(arg0 error) *MockauthSetMaxCampaignsCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockauthSetMaxCampaignsCall) Do(f func(context.Context, core.User, int64, *int) error) *MockauthSetMaxCampaignsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockauthSetMaxCampaignsCall) DoAndReturn(f func(context.Context, core.User, int64, *int) error) *MockauthSetMaxCampaignsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

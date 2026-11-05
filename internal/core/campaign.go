@@ -20,6 +20,8 @@ var (
 	// ErrCompanyNameTaken is an ErrInvalidCompany: another company of the same owner in the campaign has the name (case ignored).
 	ErrCompanyNameTaken = errors.Join(ErrInvalidCompany, errors.New("You already have a company with that name."))
 	ErrCompanyLimit     = errors.New("you already have all the companies this campaign allows")
+	// ErrCampaignLimit is returned when an account already organises as many unfinished campaigns as it may (CampaignQuota.Limit).
+	ErrCampaignLimit = errors.Join(ErrRefused, errors.New("You already organise all the campaigns you may have open. End one to create another."))
 )
 
 type CampaignStatus string
@@ -114,6 +116,7 @@ type CampaignSummary struct {
 	// PracticeMatches counts the practice matches of the campaign, ended or open; they are not in Matches nor in the W/D/L of the companies.
 	PracticeMatches int
 	Companies       []CampaignCompany // the viewer's own companies, oldest first; empty until they create one
+	Archived        bool              // ended and kept as a document (CampaignDetail.Archived)
 }
 
 // CampaignCompany is a battle company inside a campaign. A user has up to CampaignSettings.CompanyCap() per campaign.
@@ -151,6 +154,12 @@ type CampaignDetail struct {
 	// What the Manage campaign dialogs say before the organiser pauses, ends or invalidates: invitation links that still work,
 	// matches not ended, and companies with an aftermath to finish.
 	ActiveInvites, OpenMatches, PendingAftermaths int
+	// Archived says the campaign has ended for good and is a read-only document (docs/archive.md): nothing in it can change, and the pages
+	// that need live data (live matches, aftermaths, the armoury, recruiting) are not offered.
+	Archived bool
+	// Hashes key the rule set of the campaign in the loader. They are the hashes of Rulesets, except for an archive, whose rules are its own
+	// pruned copy under hashes of their own.
+	Hashes RulesetHashes
 }
 
 // CampaignMember is a member of a campaign, with or without a company.

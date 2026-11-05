@@ -276,7 +276,7 @@ jump) (Alpine `inCampaign` / `onTab` on the shell, from the current path). The s
 superusers, gold-marked) opens `/admin`, whose tabs (Users, Invitations, and Rules files for superusers only; the sidebar entry stays marked on all) are the
 `admin_head` partial; the pages are described in [admin.md](admin.md). Signed-out pages (login) get only the top bar.
 
-Every page ends with the fan-project disclaimer (`partials/footer.gohtml`).
+Every page ends with the fan-project disclaimer, the release the server was built from (`dev build` for a build from a checkout), the license and a link to the source (`partials/footer.gohtml`).
 
 ## Dice
 

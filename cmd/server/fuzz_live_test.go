@@ -93,7 +93,7 @@ func TestLiveActionsSurviveExtremeValues(t *testing.T) {
 	cos := ints(`SELECT company_id FROM match_side_companies WHERE match_id = $1 ORDER BY position, slot`, mt)
 	otherCos := ints(`SELECT company_id FROM match_side_companies WHERE match_id = $1 ORDER BY position, slot`, other)
 	endedCos := ints(`SELECT company_id FROM match_side_companies WHERE match_id = $1 ORDER BY position, slot`, endedMatch)
-	finished := one(`SELECT id FROM campaigns WHERE name LIKE 'Finished campaign%'`)
+	finished := one(`SELECT id FROM campaigns WHERE name LIKE 'Ended before archives%'`)
 
 	tok, _, admin, err := b.auth.Login(ctx, "admin@example.com", "demo-password")
 	if err != nil {

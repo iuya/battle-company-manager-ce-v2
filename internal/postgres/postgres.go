@@ -28,6 +28,9 @@ type Store struct {
 	// never change, and campaigns are never deleted, so the answer is read once per campaign and process.
 	hashes     sync.Map // campaign id -> hashesEntry
 	hashesSize atomic.Int64
+
+	// archives keeps the decoded archives of ended campaigns that were read lately (archive.go).
+	archives *archiveCache
 }
 
 // Options tune Open.
@@ -60,7 +63,7 @@ func OpenWith(ctx context.Context, url string, opt Options) (*Store, error) {
 		pool.Close()
 		return nil, fmt.Errorf("pinging postgres: %w", err)
 	}
-	s := &Store{pool: pool, url: url}
+	s := &Store{pool: pool, url: url, archives: newArchiveCache(maxCachedArchives)}
 	if err := s.migrate(ctx, opt.SkipMigrations); err != nil {
 		pool.Close()
 		return nil, err

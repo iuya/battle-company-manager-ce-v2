@@ -581,6 +581,44 @@ func (c *MockauthRepositorySetAppearanceCall) DoAndReturn(f func(context.Context
 	return c
 }
 
+// SetMaxCampaigns mocks base method.
+func (m *MockauthRepository) SetMaxCampaigns(ctx context.Context, userID int64, max *int, at time.Time, actorID int64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetMaxCampaigns", ctx, userID, max, at, actorID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetMaxCampaigns indicates an expected call of SetMaxCampaigns.
+func (mr *MockauthRepositoryMockRecorder) SetMaxCampaigns(ctx, userID, max, at, actorID any) *MockauthRepositorySetMaxCampaignsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMaxCampaigns", reflect.TypeOf((*MockauthRepository)(nil).SetMaxCampaigns), ctx, userID, max, at, actorID)
+	return &MockauthRepositorySetMaxCampaignsCall{Call: call}
+}
+
+// MockauthRepositorySetMaxCampaignsCall wrap *gomock.Call
+type MockauthRepositorySetMaxCampaignsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockauthRepositorySetMaxCampaignsCall) Return(arg0 error) *MockauthRepositorySetMaxCampaignsCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockauthRepositorySetMaxCampaignsCall) Do(f func(context.Context, int64, *int, time.Time, int64) error) *MockauthRepositorySetMaxCampaignsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockauthRepositorySetMaxCampaignsCall) DoAndReturn(f func(context.Context, int64, *int, time.Time, int64) error) *MockauthRepositorySetMaxCampaignsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // SetTimezone mocks base method.
 func (m *MockauthRepository) SetTimezone(ctx context.Context, userID int64, zone string) error {
 	m.ctrl.T.Helper()

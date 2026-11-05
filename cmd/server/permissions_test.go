@@ -110,8 +110,11 @@ type permAction struct {
 }
 
 const (
-	msgPaused   = "This campaign is paused."
-	msgFinished = "The campaign is finished."
+	msgPaused = "This campaign is paused."
+	// an ended campaign is an archive (docs/archive.md): the services that look at the campaign first say it is finished, the ones that reach its
+	// rows first say it is an archive
+	msgFinished = "The campaign is finished.|This campaign is an archive"
+	msgFinal    = "An ended campaign is final"
 )
 
 var permActions = []permAction{
@@ -127,15 +130,15 @@ var permActions = []permAction{
 
 	// -- the campaign itself
 	{strangersRefused: true, name: "SetCampaignStatus pause", run: status(core.CampaignPaused),
-		allow: [3]permRole{managers | roleAdminOut, 0, 0}, roleMsg: "Only the organiser", stateMsg: [3]string{"", "already paused", "Reactivate the campaign first|Only an administrator can reactivate"}},
+		allow: [3]permRole{managers | roleAdminOut, 0, 0}, roleMsg: "Only the organiser", stateMsg: [3]string{"", "already paused", msgFinal}},
 	{strangersRefused: true, name: "SetCampaignStatus resume", run: status(core.CampaignActive),
-		allow: [3]permRole{0, managers | roleAdminOut, admins | roleAdminOut}, roleMsg: "Only the organiser",
-		stateMsg: [3]string{"already active", "", "Only an administrator can reactivate"}},
+		allow: [3]permRole{0, managers | roleAdminOut, 0}, roleMsg: "Only the organiser",
+		stateMsg: [3]string{"already active", "", msgFinal}},
 	{strangersRefused: true, name: "SetCampaignStatus end", run: status(core.CampaignFinished),
-		allow: [3]permRole{managers | roleAdminOut, managers | roleAdminOut, 0}, roleMsg: "Only the organiser", stateMsg: [3]string{"", "", "already finished"}},
+		allow: [3]permRole{managers | roleAdminOut, managers | roleAdminOut, 0}, roleMsg: "Only the organiser", stateMsg: [3]string{"", "", msgFinal}},
 	{strangersRefused: true, name: "HandOver to a member without a company", run: func(f *permFx, a core.User) error {
 		return f.c().HandOver(f.ctx, a, f.camp.id, f.u[roleNoCompany].ID)
-	}, allow: [3]permRole{managers | roleAdminOut, managers | roleAdminOut, managers | roleAdminOut}, roleMsg: "Only the organiser"},
+	}, allow: [3]permRole{managers | roleAdminOut, managers | roleAdminOut, 0}, roleMsg: "Only the organiser", stateMsg: [3]string{"", "", "This campaign is an archive"}},
 
 	// -- companies
 	{name: "CreateCompany", run: func(f *permFx, a core.User) error {
@@ -170,12 +173,13 @@ var permActions = []permAction{
 	// -- the Ranger of the North takes command (the Shire fixture: a fallen Ranger and three other officers wait to be arranged)
 	{name: "ArrangeOfficers", fixture: permRanger, run: func(f *permFx, a core.User) error {
 		panel, err := f.c().PendingOfficers(f.ctx, f.u[roleOwner], f.camp.id, f.a.id)
-		if err != nil || panel == nil {
-			return fmt.Errorf("the fixture has no officers waiting: %v", err)
-		}
 		arr := core.OfficerArrangement{Leader: core.RangerID}
-		for _, o := range panel.Officers[:2] {
-			arr.Sergeants = append(arr.Sergeants, o.ID)
+		if err == nil && panel != nil {
+			for _, o := range panel.Officers[:2] {
+				arr.Sergeants = append(arr.Sergeants, o.ID)
+			}
+		} else if f.state != stFinished { // an archive keeps no recruit in progress: the call still has to be refused
+			return fmt.Errorf("the fixture has no officers waiting: %v", err)
 		}
 		_, err = f.c().ArrangeOfficers(f.ctx, a, f.camp.id, f.companyOf(a), arr)
 		return err
@@ -273,7 +277,7 @@ var permActions = []permAction{
 	// -- aftermath of an ended match (the Rangers' company)
 	{name: "SaveAftermath (the Rangers' sheet)", fixture: permEnded, run: func(f *permFx, a core.User) error {
 		cur, err := f.c().Aftermath(f.ctx, f.u[roleOrganiser], f.camp.id, f.match.ID, f.a.id)
-		if err != nil {
+		if err != nil && f.state != stFinished { // an archive keeps no aftermath sheets: the save itself has to be refused
 			return err
 		}
 		d, err := f.c().CompanyDetail(f.ctx, f.camp.id, f.a.id)
@@ -305,6 +309,7 @@ type permFx struct {
 	match core.Match
 	token string // an invitation link made while the campaign was active
 	u     map[permRole]core.User
+	state permState
 }
 
 func (f *permFx) c() *campaignsFacade { return f.w.c() }
@@ -429,7 +434,7 @@ func permBuild(w *world, users map[permRole]core.User, fixture permFixture, prep
 	for k, u := range users {
 		w.users[k.String()] = u
 	}
-	f := &permFx{ctx: w.ctx, w: w, camp: camp, u: users, token: inv.Token}
+	f := &permFx{ctx: w.ctx, w: w, camp: camp, u: users, token: inv.Token, state: state}
 	if fixture == permRanger {
 		f.a = w.company(camp, roleOwner.String(), "Rangers", "The Shire", true)
 	} else {
@@ -466,6 +471,12 @@ func permBuild(w *world, users map[permRole]core.User, fixture permFixture, prep
 		w.must("pause", w.c().SetCampaignStatus(w.ctx, org, camp.id, core.CampaignPaused, ""))
 	case stFinished:
 		w.must("end the campaign", w.c().SetCampaignStatus(w.ctx, org, camp.id, core.CampaignFinished, camp.name))
+		// ending archives: the finished state of this matrix is the archive (docs/archive.md), every action is walked against it
+		d, err := w.c().Get(w.ctx, org.ID, camp.id)
+		w.must("read the ended campaign", err)
+		if !d.Archived {
+			w.must("the ended campaign is archived", errors.New("it is not"))
+		}
 	}
 	return f
 }
@@ -561,7 +572,7 @@ func TestPermissionMatrix(t *testing.T) {
 							}
 						case act.notFound&role != 0:
 							// (a finished campaign answers first to an account that has a company)
-							if !errors.Is(err, core.ErrNotFound) && !(state == stFinished && err != nil && strings.Contains(err.Error(), msgFinished)) {
+							if !errors.Is(err, core.ErrNotFound) && !(state == stFinished && err != nil && containsAny(err.Error(), msgFinished)) {
 								t.Errorf("%s: an account without that company gets ErrNotFound, got %v", cell, err)
 							}
 						default:

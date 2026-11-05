@@ -189,7 +189,7 @@
 {{end}}
 
 {{/* The Manage campaign card (managers). Pause and resume take one confirmation, ending four steps (consequences, the exact name, a last
-   confirmation), reactivating (administrators) one. Takes {Campaign: core.CampaignDetail, Admin, Error}. */}}
+   confirmation). Takes {Campaign: core.CampaignDetail, Admin, Error}. */}}
 {{define "manage_card"}}{{$c := .Campaign}}
 <section id="manage" class="card mt-4 space-y-4" aria-labelledby="manage-title">
   <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -198,19 +198,7 @@
   </div>
   {{with .Error}}<div class="alert alert-danger" role="alert">{{.}}</div>{{end}}
   {{if eq $c.Status "finished"}}
-    <p class="text-sm text-muted">This campaign has ended. Everything is frozen as it was: matches that were open stay open, and nothing can be changed.</p>
-    {{if .Admin}}
-    <div x-data="{ ask: false }" class="space-y-2">
-      <button type="button" class="btn btn-secondary" x-show="!ask" @click="ask = true">Reactivate campaign</button>
-      <div x-show="ask" x-cloak class="alert alert-info space-y-2" role="alertdialog" aria-label="Reactivate the campaign?">
-        <p class="text-sm">The campaign becomes active again and everything works as before. Invitation links stay revoked.</p>
-        <form hx-post="/campaigns/{{$c.ID}}/status" hx-target="#manage" hx-swap="outerHTML" class="flex flex-wrap gap-2">
-          <input type="hidden" name="to" value="active">
-          <button type="button" class="btn btn-secondary" @click="ask = false">Cancel</button><button class="btn btn-primary">Reactivate</button>
-        </form>
-      </div>
-    </div>
-    {{else}}<p class="text-sm text-muted">An ended campaign stays ended for the organiser: only an administrator can reactivate it.</p>{{end}}
+    <p class="text-sm text-muted" data-archive-note>{{if $c.Archived}}This campaign has ended for good and is kept as a read-only archive: its companies, matches and results are as they were, and nothing can be changed. The live pages (the armoury, recruiting, level-ups, live matches, aftermaths) are not part of it.{{else}}This campaign has ended. Everything is frozen as it was: matches that were open stay open, and nothing can be changed.{{end}}</p>
   {{else}}
     <div x-data="{ ask: false }" class="space-y-2">
       {{if eq $c.Status "paused"}}
@@ -244,7 +232,8 @@
           <li>{{if $c.OpenMatches}}{{$c.OpenMatches}} match{{if ne $c.OpenMatches 1}}es are{{else}} is{{end}} still open: {{if ne $c.OpenMatches 1}}they{{else}}it{{end}} stay open, frozen as {{if ne $c.OpenMatches 1}}they are{{else}}it is{{end}}, and cannot be ended or edited.{{else}}No match is open.{{end}}</li>
           <li>{{if $c.PendingAftermaths}}{{$c.PendingAftermaths}} aftermath{{if ne $c.PendingAftermaths 1}}s are{{else}} is{{end}} pending and will not be played.{{else}}No aftermath is pending.{{end}}</li>
           <li>{{if $c.ActiveInvites}}{{$c.ActiveInvites}} invitation link{{if ne $c.ActiveInvites 1}}s stop{{else}} stops{{end}} working.{{else}}Invitations stop working.{{end}}</li>
-          <li><strong>It cannot be undone by you.</strong> Only an administrator can reactivate an ended campaign.</li>
+          <li><strong>Ending is final.</strong> The campaign becomes a read-only archive: nobody, not even an administrator, can reopen it. Its units, matches and results are kept as a document; the live data (live match logs, aftermath sheets, recruits in progress) and the armoury are not.</li>
+          <li>It stops counting towards the number of campaigns you may have open.</li>
         </ul>
         <p class="flex flex-wrap gap-2"><button type="button" class="btn btn-secondary" @click="step = 0">Cancel</button><button type="button" class="btn btn-danger" @click="step = 2">Continue</button></p>
       </div>
@@ -256,7 +245,7 @@
       </div>
       <div x-show="step === 3" x-cloak class="alert alert-danger space-y-2" role="alertdialog" aria-labelledby="end-3">
         <p id="end-3" class="font-medium">Step 3 of 3: this is final</p>
-        <p class="text-sm">{{$c.Name}} ends now and stays frozen until an administrator reactivates it.</p>
+        <p class="text-sm">{{$c.Name}} ends now and becomes a read-only archive. This cannot be undone.</p>
         <form hx-post="/campaigns/{{$c.ID}}/status" hx-target="#manage" hx-swap="outerHTML" class="flex flex-wrap gap-2">
           <input type="hidden" name="to" value="finished"><input type="hidden" name="confirm" :value="typed.trim()">
           <button type="button" class="btn btn-secondary" @click="step = 2">Back</button><button class="btn btn-danger">End the campaign for good</button>

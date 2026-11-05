@@ -11,12 +11,12 @@ import (
 )
 
 // The Manage campaign card of the overview (docs/admin.md "Campaign status: pause and end"): pause and resume in one step, ending in
-// a series of confirmations, reactivating for administrators; and the invitation controls next to "Invite players".
+// a series of confirmations; and the invitation controls next to "Invite players".
 
 // manageCard is what the card shows; Error is the refusal of the last request.
 type manageCard struct {
 	Campaign core.CampaignDetail
-	Admin    bool // may reactivate a finished campaign
+	Admin    bool // an administrator looks (no extra control any more: an ended campaign is final)
 	Error    string
 }
 

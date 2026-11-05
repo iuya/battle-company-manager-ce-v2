@@ -130,4 +130,31 @@ export default async function (h, { only }) {
     }
   });
   await resetLook(steward); await resetLook(admin);
+
+  await h.step('campaign limit: only a superuser has the card; a new limit shows on the card, a bad one is refused, and an account at its limit cannot create', async () => {
+    await search(steward, 'faramir@example.com');
+    const sid = await rowId(steward, 'faramir@example.com');
+    assert.ok(!(await steward.page.$(`#user-${sid} [data-campaign-limit]`)), 'an administrator has no campaign limit card');
+    await search(admin, 'eowyn@example.com');
+    const id = await rowId(admin, 'eowyn@example.com');
+    await openRow(admin, id);
+    admin.allow.push(/422/); // the refusal of "many"
+    await admin.page.type(`#lim-${id}`, 'many');
+    await admin.page.click(`#user-${id} [data-campaign-limit] button`);
+    await admin.page.waitForSelector(`#user-${id} [data-campaign-limit] .alert-danger`, { timeout: 8000 });
+    assert.match(await admin.page.$eval(`#user-${id} [data-campaign-limit] .alert-danger`, (e) => e.innerText), /from 0 to 1000/);
+    await openRow(admin, id);
+    await admin.page.$eval(`#lim-${id}`, (e) => { e.value = '7'; });
+    await admin.page.click(`#user-${id} [data-campaign-limit] button`);
+    await admin.page.waitForFunction((id) => document.querySelector(`#user-${id} [data-campaign-limit] summary .badge`)?.innerText.trim() === '7', { timeout: 8000 }, id);
+    await openRow(admin, id);
+    await admin.page.$eval(`#lim-${id}`, (e) => { e.value = ''; });
+    await admin.page.click(`#user-${id} [data-campaign-limit] button`);
+    await admin.page.waitForFunction((id) => document.querySelector(`#user-${id} [data-campaign-limit] summary .badge`)?.innerText.trim() === 'default', { timeout: 8000 }, id);
+
+    const faramir = await h.session('faramir@example.com');
+    await faramir.goto('/campaigns/new');
+    assert.ok(await faramir.has('You organise 2 of the 2 unfinished campaigns'), 'Faramir is at his limit of 2');
+    assert.ok(!(await faramir.page.$('form[action="/campaigns"]')), 'no form at the limit');
+  }, { only });
 }

@@ -53,10 +53,10 @@
 
 {{if eq .Phase "preparing"}}
   {{template "scenario_card" .}}
-  <div id="ato-slot" hx-target="this" hx-sync="this:drop" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/ato" hx-trigger="{{if and .Cards .Cards.ATO}}{{else}}load, {{end}}live:match from:body" hx-swap="innerHTML">{{if .Cards}}{{with .Cards.ATO}}{{template "ato_card" .}}{{end}}{{end}}</div>
+  {{if not .Campaign.Archived}}<div id="ato-slot" hx-target="this" hx-sync="this:drop" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{$m.ID}}/ato" hx-trigger="{{if and .Cards .Cards.ATO}}{{else}}load, {{end}}live:match from:body" hx-swap="innerHTML">{{if .Cards}}{{with .Cards.ATO}}{{template "ato_card" .}}{{end}}{{end}}</div>{{end}}
 {{else}}
   {{if $m.Ended}}
-  {{template "aftermath_card" .}}
+  {{if not .Campaign.Archived}}{{template "aftermath_card" .}}{{end}}
   {{template "result_report" .}}
   {{if .AdminOnEnded}}{{template "result_admin" .}}{{end}}
   {{end}}
@@ -67,7 +67,7 @@
   </details>{{end}}
 {{end}}
 
-<details class="card mt-6" id="log" {{if .InProgress}}open{{end}}>
+{{if or $m.History (not .Campaign.Archived)}}<details class="card mt-6" id="log" {{if .InProgress}}open{{end}}>
   <summary class="flex min-h-11 cursor-pointer items-center justify-between gap-3"><span class="font-heading text-xl">Log</span><span class="text-sm text-muted">History and match log</span></summary>
   {{with $m.History}}
   <div class="mt-3 space-y-2" id="history">
@@ -78,7 +78,7 @@
   </div>
   {{end}}
   {{template "live_log_slot" .}}
-</details>
+</details>{{end}}
 </div>
 {{end}}
 
@@ -399,7 +399,7 @@
 
 {{/* The log card on the match page: loaded after the page, refreshed when the match changes (the sync script fires live:match). */}}
 {{define "live_log_slot"}}
-<div id="live-log-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/live/log" {{$lazy := not (and .Cards .Cards.Log)}}hx-trigger="{{if or $lazy (not .Match.Ended)}}{{if $lazy}}load{{end}}{{if not .Match.Ended}}{{if $lazy}}, {{end}}live:match from:body{{end}}{{else}}none{{end}}" hx-swap="innerHTML" {{if not .Match.Ended}}data-live-match="{{.Match.ID}}" data-campaign="{{.Campaign.ID}}"{{with .LiveSince}} data-live-since="{{.}}"{{end}}{{end}}>{{if .Cards}}{{with .Cards.Log}}{{template "live_log_card" .}}{{end}}{{end}}</div>
+{{if not .Campaign.Archived}}<div id="live-log-slot" hx-target="this" hx-get="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}/live/log" {{$lazy := not (and .Cards .Cards.Log)}}hx-trigger="{{if or $lazy (not .Match.Ended)}}{{if $lazy}}load{{end}}{{if not .Match.Ended}}{{if $lazy}}, {{end}}live:match from:body{{end}}{{else}}none{{end}}" hx-swap="innerHTML" {{if not .Match.Ended}}data-live-match="{{.Match.ID}}" data-campaign="{{.Campaign.ID}}"{{with .LiveSince}} data-live-since="{{.}}"{{end}}{{end}}>{{if .Cards}}{{with .Cards.Log}}{{template "live_log_card" .}}{{end}}{{end}}</div>{{end}}
 {{end}}
 
 {{/* The End match button, hidden while an end is pending. The card's slot sends it again out of band when the match changes. Takes V (matchView) and OOB. */}}

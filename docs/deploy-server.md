@@ -17,7 +17,7 @@ It needs Docker with the compose plugin, `curl`, `flock` and systemd; nothing el
 | File | What it is |
 |---|---|
 | `deploy/compose.prod.yaml` | Caddy, the app and PostgreSQL. Installed as `/opt/bcm/compose.yaml`. Only Caddy publishes ports (80, 443 and 443/udp); the app and the database sit on internal networks. The app runs read-only, with every capability dropped, memory, CPU and process limits, `TRUST_PROXY=true` and `SECURE_COOKIES=true`; container logs rotate (10 MB x 5) |
-| `deploy/Caddyfile` | Automatic HTTPS for `SITE_ADDRESS`, HTTP redirected to HTTPS, a 17 MB request cap, the client address handed to the app as `X-Forwarded-For` (replacing whatever the client sent), live streams unbuffered, no `Server` header, admin API off |
+| `deploy/Caddyfile` | Automatic HTTPS for `SITE_ADDRESS`, HTTP redirected to HTTPS, a 17 MB request cap, the client address handed to the app as `X-Forwarded-For` (replacing whatever the client sent), live streams unbuffered, `404` for `/healthz`, `/readyz` and `/metrics` (the probes are for the container network and the host), no `Server` header, admin API off |
 | `deploy/env.example` | The `/opt/bcm/.env` the installer writes: `SITE_ADDRESS`, a `POSTGRES_PASSWORD` generated on the host, `APP_IMAGE` (kept by the updater), `CSP_MODE`, `REQUIRE_SIGNATURE`. Mode 0600, never committed |
 | `deploy/install.sh` | Copies the kit and the backup scripts into `/opt/bcm` (`BCM_DIR` changes it), creates `.env` once, enables the timers. `sudo SITE_ADDRESS=bcm.example.org deploy/install.sh` |
 | `deploy/bcm-update.sh` + `systemd/bcm-update.{service,timer}` | The pull-based updater, every 5 minutes (see [The updater](#the-updater)) |
@@ -53,7 +53,7 @@ Each run:
 3. Takes a dump.
 4. Writes `APP_IMAGE=...@sha256:<digest>` into `.env`.
 5. Pulls and starts the image, and waits for the health check.
-6. Probes `/readyz` through Caddy.
+6. Asks the app for readiness with `docker compose exec app /app/server healthcheck` (Caddy does not forward `/healthz`, `/readyz` or `/metrics` to the internet).
 
 A release that does not become ready is replaced by the previous digest.
 The server is therefore always on an immutable digest, never on a moving tag.

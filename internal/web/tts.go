@@ -304,8 +304,8 @@ func ttsGroupsOf(groups []struct{ Kind, Title, Hint string }, notes []core.TTSNo
 	return out
 }
 
-// HasCopyButton is whether the page draws the copy button: the company has units.
-func (v myCompanyView) HasCopyButton() bool { return len(v.Company.Roster) > 0 }
+// HasCopyButton is whether the page draws the copy button: the company has units and the campaign is not an archive (the export is not part of it).
+func (v myCompanyView) HasCopyButton() bool { return len(v.Company.Roster) > 0 && !v.Campaign.Archived }
 
 // TTSURL is the address of the dialog's content for the company on the page (live when it is in an open match).
 func (v myCompanyView) TTSURL() string {

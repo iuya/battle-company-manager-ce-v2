@@ -89,6 +89,9 @@ func (s *AftermathService) load(ctx context.Context, user User, id, matchID, com
 	if err != nil {
 		return nil, err
 	}
+	if camp.Archived { // the aftermaths of an archived campaign's matches are not kept (docs/archive.md)
+		return nil, ErrArchived
+	}
 	m, err := s.matches.Get(ctx, id, matchID)
 	if err != nil {
 		return nil, err

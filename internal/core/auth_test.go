@@ -456,3 +456,26 @@ func TestAuth_Login_PurgesStaleTokensAtMostOncePerHour(t *testing.T) {
 	*now = now.Add(2 * time.Minute)
 	login()
 }
+
+func TestAuth_SetMaxCampaigns(t *testing.T) {
+	a, repo := newTestAuth(t)
+	ctx := context.Background()
+	super, admin := User{ID: 9, Role: RoleSuperuser}, User{ID: 8, Role: RoleAdmin}
+	two := 2
+	repo.EXPECT().SetMaxCampaigns(ctx, int64(1), &two, gomock.Any(), int64(9)).Return(nil)
+	if err := a.SetMaxCampaigns(ctx, super, 1, &two); err != nil {
+		t.Fatal(err)
+	}
+	repo.EXPECT().SetMaxCampaigns(ctx, int64(1), (*int)(nil), gomock.Any(), int64(9)).Return(nil)
+	if err := a.SetMaxCampaigns(ctx, super, 1, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.SetMaxCampaigns(ctx, admin, 1, &two); !errors.Is(err, ErrForbidden) {
+		t.Errorf("an administrator: %v, want ErrForbidden", err)
+	}
+	for _, n := range []int{-1, MaxCampaignLimit + 1} {
+		if err := a.SetMaxCampaigns(ctx, super, 1, &n); !errors.Is(err, ErrInvalidUser) {
+			t.Errorf("limit %d: %v, want ErrInvalidUser", n, err)
+		}
+	}
+}

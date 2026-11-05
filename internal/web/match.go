@@ -197,7 +197,7 @@ func (s *Server) newMatchView(r *http.Request, base campaignBase, m core.Match, 
 		for _, row := range v.Aftermath {
 			v.AftermathApplied = v.AftermathApplied || (!m.Practice && (row.Ref.Status.Started() || row.Ref.Status == core.AftermathWaived))
 		}
-	} else {
+	} else if base.Campaign.Status != core.CampaignFinished { // a frozen open match has no phase of play, and an archive keeps no live data
 		started, err := s.campaigns.MatchStarted(r.Context(), base.Campaign.ID, m.ID)
 		if err != nil {
 			return v, err
@@ -219,7 +219,7 @@ func (s *Server) newMatchView(r *http.Request, base campaignBase, m core.Match, 
 	default:
 		v.Phase = phasePreparing
 	}
-	if !m.Ended {
+	if !m.Ended && !base.Campaign.Archived {
 		st, err := s.campaigns.ATOStatus(r.Context(), base.Campaign.ID, m)
 		if err != nil {
 			return v, err

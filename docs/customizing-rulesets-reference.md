@@ -84,6 +84,7 @@ Example:
 | `name` | string | yes | - | not empty | The name of the ruleset as the admin page and the campaign form list it. |
 | `version` | [Scalar](#scalar) | yes | - | - | The version of the ruleset, a string such as "1.1" (a number is read as text). With the name and the short hash it tells two uploads apart. |
 | `campaign` | [Campaign](#campaign) | yes | - | - | The engine parameters and tables. |
+| `archive` | boolean | no | - | - | Set by the app, never by hand, on the pruned copy of the rules an ended campaign keeps as an archive: the scenario selection tables may then be empty, since no match is rolled again. |
 | `armourUpgrade` | [ArmourUpgrade](#armourupgrade) | no | - | - | The armour upgrade rule. |
 | `auras` | [Auras](#auras) | no | - | - | The vocabulary tables of the auras: kinds and groups. |
 | `companies` | list of [Company](#company) | no | - | - | The Battle Companies. |

@@ -62,20 +62,25 @@ const unitColumns = `id, base, custom_name, role, kind, path, path_rules, level,
 // load reads the whole state of a company in the campaign.
 func (cs companyStore) load(ctx context.Context, q querier, campaignID, companyID int64, lock bool) (core.CompanyState, error) {
 	var st core.CompanyState
-	query := `SELECT c.id, c.name, c.faction, c.owner_id, u.display_name, c.influence, c.gold, c.rerolls, c.pack, c.unit_order, c.grave_order, c.pending
+	query := `SELECT c.id, c.name, c.faction, c.owner_id, u.display_name, c.influence, c.gold, c.rerolls, c.pack, c.unit_order, c.grave_order, c.pending,
+	                 c.archived_at IS NOT NULL
 	            FROM companies c JOIN users u ON u.id = c.owner_id WHERE c.campaign_id = $1 AND c.id = $2`
 	if lock {
 		query += ` FOR UPDATE OF c`
 	}
 	co := &st.Company
 	var companyPending []byte
+	var archived bool
 	err := q.QueryRow(ctx, query, campaignID, companyID).
-		Scan(&co.ID, &co.Name, &co.Faction, &co.OwnerID, &co.Owner, &st.Influence, &st.Gold, &st.Rerolls, &st.Pack, &st.Order, &st.Graveyard, &companyPending)
+		Scan(&co.ID, &co.Name, &co.Faction, &co.OwnerID, &co.Owner, &st.Influence, &st.Gold, &st.Rerolls, &st.Pack, &st.Order, &st.Graveyard, &companyPending, &archived)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return st, core.ErrNotFound
 	}
 	if err != nil {
 		return st, err
+	}
+	if archived { // an ended campaign is a read-only archive: nothing in it is loaded for a change
+		return st, core.ErrArchived
 	}
 	var cp companyPendingJSON
 	if err := json.Unmarshal(companyPending, &cp); err != nil {
@@ -154,7 +159,8 @@ const readQuery = `
 	          FROM company_perks p WHERE p.company_id = c.id AND p.used_on IS NULL),
 	       ` + unitsJSON + `,
 	       (SELECT COALESCE(jsonb_agg(jsonb_build_object('fate', f.fate, 'in', f.fell_in, 'snapshot', f.snapshot) ORDER BY f.position), '[]')
-	          FROM fallen_units f WHERE f.company_id = c.id)
+	          FROM fallen_units f WHERE f.company_id = c.id),
+	       c.archived_at IS NOT NULL
 	  FROM companies c JOIN users u ON u.id = c.owner_id WHERE c.campaign_id = $1 AND c.id = $2`
 
 type readUnitJSON struct {
@@ -186,14 +192,18 @@ func (cs companyStore) Read(ctx context.Context, campaignID, companyID int64) (c
 	var st core.CompanyState
 	co := &st.Company
 	var companyPending, refs, open, perks, units, fallen []byte
+	var archived bool
 	err := cs.s.pool.QueryRow(ctx, readQuery, campaignID, companyID).
 		Scan(&co.ID, &co.Name, &co.Faction, &co.OwnerID, &co.Owner, &st.Influence, &st.Gold, &st.Rerolls, &st.Pack, &st.Order, &st.Graveyard,
-			&companyPending, &refs, &open, &perks, &units, &fallen)
+			&companyPending, &refs, &open, &perks, &units, &fallen, &archived)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return st, core.ErrNotFound
 	}
 	if err != nil {
 		return st, err
+	}
+	if archived { // the company's rows are gone: its state is in the campaign's archive
+		return cs.archivedState(ctx, campaignID, companyID)
 	}
 	var cp companyPendingJSON
 	if err := json.Unmarshal(companyPending, &cp); err != nil {
@@ -384,7 +394,7 @@ const rosterQueryFmt = `
 	       COALESCE(x.id, 0), COALESCE(x.base, ''), COALESCE(x.custom_name, ''), COALESCE(x.role, ''), COALESCE(x.kind, ''), COALESCE(x.path, ''),
 	       COALESCE(x.path_rules, 0), COALESCE(x.level, 0), COALESCE(x.xp, 0), COALESCE(x.points, 0), COALESCE(x.wanderer, ''),
 	       COALESCE(x.creature, ''), COALESCE(x.injured, false), COALESCE(x.sent_to_healers, false),
-	       x.progress, x.injuries, x.data, x.pending, e.gear, e.bought, e.dropped
+	       x.progress, x.injuries, x.data, x.pending, e.gear, e.bought, e.dropped, c.archived_at IS NOT NULL, c.campaign_id
 	  FROM companies c JOIN users u ON u.id = c.owner_id
 	  LEFT JOIN company_units x ON x.company_id = c.id
 	  LEFT JOIN LATERAL (SELECT array_agg(q.name ORDER BY q.position) FILTER (WHERE q.origin = 'gear') AS gear,
@@ -420,16 +430,22 @@ func (cs companyStore) readRoster(ctx context.Context, query string, arg any) ([
 	}
 	defer rows.Close()
 	var out []core.CompanyState
+	archived := map[int64]int64{} // archived companies of the answer -> their campaign
 	for rows.Next() {
 		var st core.CompanyState
 		co := &st.Company
 		var u core.UnitState
 		var role, kind string
 		var progress, injuries, data, pending []byte
+		var isArchived bool
+		var campaign int64
 		if err := rows.Scan(&co.ID, &co.Name, &co.Faction, &co.OwnerID, &co.Owner, &st.Influence, &st.Gold, &st.Rerolls, &st.Pack, &st.Order, &st.Graveyard,
 			&u.ID, &u.Base, &u.Name, &role, &kind, &u.Path, &u.PathRules, &u.Level, &u.XP, &u.Points, &u.Wanderer, &u.Creature, &u.Injured, &u.SentToHealers,
-			&progress, &injuries, &data, &pending, &u.Gear, &u.Bought, &u.Dropped); err != nil {
+			&progress, &injuries, &data, &pending, &u.Gear, &u.Bought, &u.Dropped, &isArchived, &campaign); err != nil {
 			return nil, err
+		}
+		if isArchived {
+			archived[co.ID] = campaign
 		}
 		if len(out) == 0 || out[len(out)-1].Company.ID != co.ID { // the first row of a company
 			st.Pack, st.Order, st.Graveyard = nilIfEmpty(st.Pack), nilIfEmpty(st.Order), nilIfEmpty(st.Graveyard)
@@ -470,7 +486,34 @@ func (cs companyStore) readRoster(ctx context.Context, query string, arg any) ([
 		last := &out[len(out)-1]
 		last.Units = append(last.Units, u)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	for i, st := range out { // an archived company's state is in its campaign's archive; a roster has no cemetery
+		if campaign, ok := archived[st.Company.ID]; ok {
+			as, err := cs.archivedState(ctx, campaign, st.Company.ID)
+			if err != nil {
+				return nil, err
+			}
+			as.Cemetery, as.Graveyard = nil, nil
+			out[i] = as
+		}
+	}
+	return out, nil
+}
+
+// archivedState is the state of a company of an archived campaign, from the archive. The caller owns the copy.
+func (cs companyStore) archivedState(ctx context.Context, campaignID, companyID int64) (core.CompanyState, error) {
+	a, err := cs.s.archiveOf(ctx, campaignID)
+	if err != nil {
+		return core.CompanyState{}, err
+	}
+	for _, st := range a.Companies {
+		if st.Company.ID == companyID {
+			return st.Clone(), nil
+		}
+	}
+	return core.CompanyState{}, core.ErrNotFound
 }
 
 // Update locks the company row, runs fn on the state and stores the result; an error from fn rolls everything back.
@@ -775,7 +818,7 @@ func (cs companyStore) Create(ctx context.Context, campaignID int64, owner core.
 	case errors.As(err, &pgErr) && pgErr.Code == foreignKeyViolation:
 		return core.CampaignCompany{}, core.ErrNotFound
 	case err != nil:
-		return core.CampaignCompany{}, err
+		return core.CampaignCompany{}, refusedAsArchived(err)
 	}
 	for pos, u := range slices.Clone(c.Units) {
 		if err := cs.saveUnit(ctx, tx, id, pos, u); err != nil {

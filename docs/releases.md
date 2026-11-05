@@ -14,6 +14,7 @@ For the maintainer who cuts a release and for anyone who runs the published imag
 
 Every release tag builds the image in CI and publishes it to the GitHub Container Registry: `ghcr.io/iuya/battle-company-manager-ce-v2`.
 It is built from the same `Dockerfile` as the local build (distroless, non-root uid 65532, no secrets baked in), for `linux/amd64` and `linux/arm64`.
+The binary knows its release: the workflow passes the tag as the `VERSION` build argument, `server version` prints it and the footer of every page shows it, linked to the release page.
 The image carries the OCI labels `source`, `version`, `revision` (the commit), `licenses`, `title` and `description`.
 
 When the image is published, the workflow also creates the **GitHub Release** of the tag.

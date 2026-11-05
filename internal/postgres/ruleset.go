@@ -45,6 +45,9 @@ func (rs rulesetStore) Insert(ctx context.Context, in core.StoredRuleset) error 
 }
 
 func (rs rulesetStore) Get(ctx context.Context, hash string) (core.StoredRuleset, error) {
+	if r, ok, err := rs.s.archivedRuleset(ctx, hash); ok { // the pruned file of an archived campaign
+		return r, err
+	}
 	var r core.StoredRuleset
 	var kind string
 	var uploader *int64
@@ -62,6 +65,9 @@ func (rs rulesetStore) Get(ctx context.Context, hash string) (core.StoredRuleset
 }
 
 func (rs rulesetStore) Info(ctx context.Context, hash string) (core.RulesetInfo, error) {
+	if r, ok, err := rs.s.archivedRuleset(ctx, hash); ok {
+		return r.RulesetInfo, err
+	}
 	return scanRulesetInfo(rs.s.pool.QueryRow(ctx, `SELECT `+rulesetInfoColumns+` FROM rulesets WHERE hash = $1`, hash))
 }
 
@@ -138,6 +144,7 @@ func (rs rulesetStore) ListUsage(ctx context.Context) ([]core.RulesetUsage, erro
 		     SELECT vanilla_hash AS h, id, name FROM campaigns
 		     UNION SELECT bc_hash, id, name FROM campaigns
 		     UNION SELECT glossary_hash, id, name FROM campaigns) x
+		  WHERE h IS NOT NULL
 		  ORDER BY lower(name), id`)
 	if err != nil {
 		return nil, err

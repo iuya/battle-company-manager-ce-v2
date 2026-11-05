@@ -50,7 +50,7 @@ func testNewCampaign(t *testing.T, s *Store, ctx context.Context, name string) c
 		hashes[i] = r.Hash
 	}
 	return core.NewCampaign{Name: name, Description: "d", Vanilla: hashes[0], BattleCompanies: hashes[1], Glossary: hashes[2],
-		Settings: core.CampaignSettings{ManualRolls: true, ShakeTheTable: true}, Rounds: 5}
+		Settings: core.CampaignSettings{ManualRolls: true, ShakeTheTable: true}, Rounds: 5, DefaultLimit: 10}
 }
 
 func TestCampaigns(t *testing.T) {
@@ -134,5 +134,96 @@ func TestCampaigns(t *testing.T) {
 	}
 	if d, _ = repo.Get(ctx, owner.ID, second.ID); len(d.Companies) != 1 || d.Companies[0].ID != co.ID {
 		t.Fatalf("detail company: %+v", d.Companies)
+	}
+}
+
+// The limit of unfinished campaigns an account organises: the default counts for an account with none of its own, a limit of its own wins,
+// ending a campaign frees a place, and a hand-over to an account that is full is refused.
+func TestCampaignLimit(t *testing.T) {
+	s, ctx := testStore(t)
+	repo := s.Campaigns()
+	org, other := testUser(t, s, ctx, "lim-org"), testUser(t, s, ctx, "lim-other")
+	mk := func(name string, u core.User, def int) (core.CampaignSummary, error) {
+		nc := testNewCampaign(t, s, ctx, name)
+		nc.DefaultLimit = def
+		return repo.Create(ctx, u, nc)
+	}
+	first, err := mk("Limit 1", org, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mk("Limit 2", org, 2); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mk("Limit 3", org, 2); !errors.Is(err, core.ErrCampaignLimit) {
+		t.Fatalf("third campaign over a default of 2: %v", err)
+	}
+	if q, err := repo.Quota(ctx, org.ID, 2); err != nil || q.Open != 2 || q.Limit != 2 || q.Own || !q.Full() {
+		t.Fatalf("quota = %+v, %v", q, err)
+	}
+	// a pause keeps the place; ending frees it
+	if err := repo.SetStatus(ctx, first.ID, func(int64, string, core.CampaignStatus) (core.CampaignStatus, error) { return core.CampaignPaused, nil }); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mk("Limit 3", org, 2); !errors.Is(err, core.ErrCampaignLimit) {
+		t.Fatalf("a paused campaign still counts: %v", err)
+	}
+	if err := repo.SetStatus(ctx, first.ID, func(int64, string, core.CampaignStatus) (core.CampaignStatus, error) {
+		return core.CampaignFinished, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	third, err := mk("Limit 3", org, 2)
+	if err != nil {
+		t.Fatalf("an ended campaign frees a place: %v", err)
+	}
+	// an own limit wins over the default, both ways
+	one := 1
+	if err := s.SetMaxCampaigns(ctx, org.ID, &one, time.Now(), org.ID); err != nil {
+		t.Fatal(err)
+	}
+	if q, _ := repo.Quota(ctx, org.ID, 50); q.Limit != 1 || !q.Own || q.Open != 2 {
+		t.Fatalf("own limit 1 with 2 open: %+v (lowering never touches what exists)", q)
+	}
+	if _, err := mk("Limit 4", org, 50); !errors.Is(err, core.ErrCampaignLimit) {
+		t.Fatalf("own limit 1: %v", err)
+	}
+	if err := s.SetMaxCampaigns(ctx, org.ID, nil, time.Now(), org.ID); err != nil {
+		t.Fatal(err)
+	}
+	if q, _ := repo.Quota(ctx, org.ID, 50); q.Limit != 50 || q.Own {
+		t.Fatalf("back to the default: %+v", q)
+	}
+	// the audit trail records both changes, once each
+	var n int
+	if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action = 'campaign_limit.changed' AND subject_user_id = $1`, org.ID).Scan(&n); err != nil || n != 2 {
+		t.Fatalf("audit entries = %d, %v", n, err)
+	}
+	if err := s.SetMaxCampaigns(ctx, org.ID, nil, time.Now(), org.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE action = 'campaign_limit.changed' AND subject_user_id = $1`, org.ID).Scan(&n); err != nil || n != 2 {
+		t.Fatalf("an unchanged limit is not recorded: %d, %v", n, err)
+	}
+	// a hand-over to an account at its limit is refused; to one with room it works
+	zero := 0
+	if err := s.SetMaxCampaigns(ctx, other.ID, &zero, time.Now(), org.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.pool.Exec(ctx, `INSERT INTO campaign_members (campaign_id, user_id, role) VALUES ($1, $2, 'player')`, third.ID, other.ID); err != nil {
+		t.Fatal(err)
+	}
+	yes := func(int64) error { return nil }
+	if err := repo.HandOver(ctx, third.ID, other.ID, 10, yes); !errors.Is(err, core.ErrCampaignLimit) {
+		t.Fatalf("hand-over to an account with limit 0: %v", err)
+	}
+	if err := s.SetMaxCampaigns(ctx, other.ID, nil, time.Now(), org.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.HandOver(ctx, third.ID, other.ID, 10, yes); err != nil {
+		t.Fatalf("hand-over with room: %v", err)
+	}
+	if err := s.SetMaxCampaigns(ctx, -1, &zero, time.Now(), org.ID); !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("unknown account: %v", err)
 	}
 }

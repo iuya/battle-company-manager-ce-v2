@@ -45,7 +45,18 @@ type NewCampaign struct {
 	Vanilla, BattleCompanies, Glossary string
 	Settings                           CampaignSettings
 	Rounds                             int
+	// DefaultLimit is the number of unfinished campaigns an account without a limit of its own may organise (the server's CAMPAIGN_LIMIT).
+	DefaultLimit int
 }
+
+// CampaignQuota is how many unfinished (active or paused) campaigns an account organises and how many it may.
+type CampaignQuota struct {
+	Open, Limit int
+	Own         bool // the limit is the account's own, not the server's default
+}
+
+// Full says the account may not create or take over another campaign.
+func (q CampaignQuota) Full() bool { return q.Open >= q.Limit }
 
 // campaignRepository keeps campaigns and their membership. Companies are created through the company repository (a company
 // row belongs to a campaign and to a user; a player may own up to CampaignSettings.CompanyCap() of them).
@@ -54,7 +65,13 @@ type campaignRepository interface {
 	// Companies are the user's own companies in it, oldest first.
 	List(ctx context.Context, userID int64, withFinished bool) ([]CampaignSummary, error)
 	// Create stores the campaign and makes the owner its organiser and first member, atomically.
+	// It returns ErrCampaignLimit when the owner already organises as many unfinished campaigns as they may (c.DefaultLimit or their own
+	// limit), counted under a lock on the account so two creations cannot both pass.
 	Create(ctx context.Context, owner User, c NewCampaign) (CampaignSummary, error)
+	// Header reads the campaign row without a viewer: what archiving needs (ErrNotFound for an unknown campaign).
+	Header(ctx context.Context, campaignID int64) (CampaignHeader, error)
+	// Quota counts the unfinished campaigns an account organises against its limit (defaultLimit when it has none of its own).
+	Quota(ctx context.Context, userID int64, defaultLimit int) (CampaignQuota, error)
 	// Get returns the campaign as the member sees it (ErrNotFound for non-members too, so ids do not leak), with the hashes of
 	// its rules files.
 	Get(ctx context.Context, userID, id int64) (CampaignDetail, error)
@@ -73,7 +90,8 @@ type campaignRepository interface {
 	// HandOver makes newOrganiser the organiser and the previous organiser a player, in one transaction. allowed is called
 	// inside it with the current organiser's id and may refuse (its error is returned as is). ErrNotFound for an unknown
 	// campaign; ErrRefused when newOrganiser is not a member of the campaign.
-	HandOver(ctx context.Context, campaignID, newOrganiser int64, allowed func(currentOrganiser int64) error) error
+	// An unfinished campaign cannot go to an account that organises as many as it may (defaultLimit stands for no limit of its own): ErrCampaignLimit.
+	HandOver(ctx context.Context, campaignID, newOrganiser int64, defaultLimit int, allowed func(currentOrganiser int64) error) error
 	// UpdateSettings changes the settings under a lock: fn gets the organiser's id, the status and the current settings and returns the
 	// new ones (or an error, returned as is, changing nothing). ErrNotFound for an unknown campaign.
 	UpdateSettings(ctx context.Context, campaignID int64, fn func(organiserID int64, status CampaignStatus, current CampaignSettings) (CampaignSettings, error)) error

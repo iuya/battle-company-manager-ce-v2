@@ -143,4 +143,14 @@ func (w *world) finishedCampaign() {
 	}
 	w.must("end the campaign", w.c().SetCampaignStatus(w.ctx, c.org, c.id, core.CampaignFinished, c.name))
 	w.sql("the rounds of a finished campaign", `UPDATE campaigns SET round = 12, rounds = 12 WHERE id = $1`, c.id)
+
+	// A campaign ended before archives existed (or whose archiving failed) is finished and not archived: `server archive` archives it
+	// (docs/archive.md). The script ends it with the archiver detached.
+	legacy := w.campaign("you", "Ended before archives: finished, not archived yet",
+		"Ended as campaigns were before archives: frozen, but still holding all its rows and the rules files it was played with. Run \"server archive --campaign all-finished\" to archive it.", defaultSettings)
+	w.company(legacy, "gimli", "Dwarves who left early", "Iron Hills", true)
+	w.company(legacy, "bilbo", "Hobbits who left early", "The Shire", true)
+	w.c().campaignsSvc.WithArchiver(nil)
+	w.must("end the legacy campaign", w.c().SetCampaignStatus(w.ctx, legacy.org, legacy.id, core.CampaignFinished, legacy.name))
+	w.c().campaignsSvc.WithArchiver(w.b.archiver)
 }

@@ -15,7 +15,8 @@ func TestTemplatesAndScriptsFitTheContentSecurityPolicy(t *testing.T) {
 	scriptTag := regexp.MustCompile(`(?is)<script\b[^>]*>`)
 	handler := regexp.MustCompile(`(?i)\s(on[a-z]+)\s*=\s*["']`) // onclick=, onload=... (hx-on:: and @click are not preceded by whitespace + "on")
 	jsURL := regexp.MustCompile(`(?i)(href|src|action|formaction)\s*=\s*["']\s*javascript:`)
-	external := regexp.MustCompile(`(?i)\b(src|href)\s*=\s*["']https?://`)
+	// What the page loads (a link to another site, <a href>, is a navigation and not governed by default-src).
+	external := regexp.MustCompile(`(?is)<(?:link|script|img|iframe|source|video|audio|embed|object|form)\b[^>]*?\b(?:src|href|action)\s*=\s*["']https?://`)
 	err := fs.WalkDir(assets, "templates", func(p string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return err

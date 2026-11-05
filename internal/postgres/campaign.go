@@ -51,13 +51,13 @@ const companyFigures = `SELECT ` + figureColumns + `
 const figureColumns = `c.id, c.name, c.faction, c.owner_id, u.display_name, ` + figureCounts
 
 // figureCounts are the units, wins, draws and losses of company c.
-const figureCounts = `(SELECT count(*) FROM company_units cu WHERE cu.company_id = c.id)::int,
-	       (SELECT count(*) FROM match_side_companies mc JOIN matches m ON m.id = mc.match_id
-	         WHERE mc.company_id = c.id AND m.ended AND NOT m.practice AND m.winner = mc.position + 1)::int,
-	       (SELECT count(*) FROM match_side_companies mc JOIN matches m ON m.id = mc.match_id
-	         WHERE mc.company_id = c.id AND m.ended AND NOT m.practice AND m.winner = 0)::int,
-	       (SELECT count(*) FROM match_side_companies mc JOIN matches m ON m.id = mc.match_id
-	         WHERE mc.company_id = c.id AND m.ended AND NOT m.practice AND m.winner <> 0 AND m.winner <> mc.position + 1)::int`
+const figureCounts = `COALESCE(c.archived_units, (SELECT count(*) FROM company_units cu WHERE cu.company_id = c.id))::int,
+	       COALESCE(c.archived_wins, (SELECT count(*) FROM match_side_companies mc JOIN matches m ON m.id = mc.match_id
+	         WHERE mc.company_id = c.id AND m.ended AND NOT m.practice AND m.winner = mc.position + 1))::int,
+	       COALESCE(c.archived_draws, (SELECT count(*) FROM match_side_companies mc JOIN matches m ON m.id = mc.match_id
+	         WHERE mc.company_id = c.id AND m.ended AND NOT m.practice AND m.winner = 0))::int,
+	       COALESCE(c.archived_losses, (SELECT count(*) FROM match_side_companies mc JOIN matches m ON m.id = mc.match_id
+	         WHERE mc.company_id = c.id AND m.ended AND NOT m.practice AND m.winner <> 0 AND m.winner <> mc.position + 1))::int`
 
 // ownCompaniesJSON is a column: the companies the member m owns in campaign g (oldest first, with their figures) as a JSON array,
 // so a query keeps one row per campaign or member whatever the number of companies (readOwnCompanies decodes it).
@@ -106,8 +106,9 @@ func scanCompany(row pgx.Row) (core.CampaignCompany, error) {
 func (cs campaignStore) List(ctx context.Context, userID int64, withFinished bool) ([]core.CampaignSummary, error) {
 	rows, err := cs.s.pool.Query(ctx, `
 		SELECT g.id, g.name, g.description, g.status, g.round, g.rounds,
-		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND NOT x.practice)::int,
-		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND x.practice)::int, `+ownCompaniesJSON+`
+		       COALESCE(g.archived_matches, (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND NOT x.practice))::int,
+		       COALESCE(g.archived_practice, (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND x.practice))::int, `+ownCompaniesJSON+`,
+		       g.archived_at IS NOT NULL
 		  FROM campaign_members m
 		  JOIN campaigns g ON g.id = m.campaign_id
 		 WHERE m.user_id = $1 AND ($2 OR g.status <> 'finished')
@@ -121,7 +122,7 @@ func (cs campaignStore) List(ctx context.Context, userID int64, withFinished boo
 		var c core.CampaignSummary
 		var status string
 		var raw []byte
-		if err := rows.Scan(&c.ID, &c.Name, &c.Description, &status, &c.Round, &c.Rounds, &c.Matches, &c.PracticeMatches, &raw); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Description, &status, &c.Round, &c.Rounds, &c.Matches, &c.PracticeMatches, &raw, &c.Archived); err != nil {
 			return nil, err
 		}
 		c.Status = core.CampaignStatus(status)
@@ -137,7 +138,7 @@ func (cs campaignStore) List(ctx context.Context, userID int64, withFinished boo
 // Nav lists the user's campaigns for the sidebar, in List's order, with id, name and status only: one statement, no company figures.
 func (cs campaignStore) Nav(ctx context.Context, userID int64, withFinished bool) ([]core.CampaignNav, error) {
 	rows, err := cs.s.pool.Query(ctx, `
-		SELECT g.id, g.name, g.status
+		SELECT g.id, g.name, g.status, g.archived_at IS NOT NULL
 		  FROM campaign_members m JOIN campaigns g ON g.id = m.campaign_id
 		 WHERE m.user_id = $1 AND ($2 OR g.status <> 'finished')
 		 ORDER BY (g.status = 'finished'), g.created_at DESC, g.id DESC`, userID, withFinished)
@@ -149,7 +150,7 @@ func (cs campaignStore) Nav(ctx context.Context, userID int64, withFinished bool
 	for rows.Next() {
 		var n core.CampaignNav
 		var status string
-		if err := rows.Scan(&n.ID, &n.Name, &status); err != nil {
+		if err := rows.Scan(&n.ID, &n.Name, &status, &n.Archived); err != nil {
 			return nil, err
 		}
 		n.Status = core.CampaignStatus(status)
@@ -169,6 +170,11 @@ func (cs campaignStore) Create(ctx context.Context, owner core.User, c core.NewC
 		return core.CampaignSummary{}, err
 	}
 	defer tx.Rollback(ctx)
+	if q, err := lockedQuota(ctx, tx, owner.ID, c.DefaultLimit); err != nil {
+		return core.CampaignSummary{}, err
+	} else if q.Full() {
+		return core.CampaignSummary{}, core.ErrCampaignLimit
+	}
 	out := core.CampaignSummary{Name: c.Name, Description: c.Description, Status: core.CampaignActive, Rounds: c.Rounds}
 	err = tx.QueryRow(ctx, `
 		INSERT INTO campaigns (name, description, rounds, vanilla_hash, bc_hash, glossary_hash, settings, created_by)
@@ -200,21 +206,21 @@ func (cs campaignStore) Get(ctx context.Context, userID, id int64) (core.Campaig
 	err := cs.s.pool.QueryRow(ctx, `
 		SELECT g.id, g.name, g.description, g.status, g.round, g.rounds, g.settings,
 		       o.user_id, ou.display_name, (SELECT count(*) FROM campaign_members x WHERE x.campaign_id = g.id)::int,
-		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND NOT x.practice)::int,
-		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND x.practice)::int,
+		       COALESCE(g.archived_matches, (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND NOT x.practice))::int,
+		       COALESCE(g.archived_practice, (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND x.practice))::int,
 		       (SELECT count(*) FROM campaign_invites i WHERE i.campaign_id = g.id AND i.revoked_at IS NULL AND i.expires_at > now()
 		           AND (i.max_uses = 0 OR i.uses < i.max_uses))::int,
 		       (SELECT count(*) FROM matches x WHERE x.campaign_id = g.id AND NOT x.ended)::int,
 		       (SELECT count(*) FROM match_side_companies sc JOIN matches x ON x.id = sc.match_id AND x.ended
 		          LEFT JOIN match_aftermaths a ON a.match_id = sc.match_id AND a.company_id = sc.company_id
 		         WHERE sc.campaign_id = g.id AND (CASE WHEN x.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END) NOT IN ('done', 'waived'))::int,
-		       rv.kind, rv.hash, rv.name, rv.version, rv.is_default,
-		       rb.kind, rb.hash, rb.name, rb.version, rb.is_default,
-		       rg.kind, rg.hash, rg.name, rg.version, rg.is_default, `+ownCompaniesJSON+`
+		       COALESCE(rv.kind, ''), COALESCE(rv.hash, ''), COALESCE(rv.name, ''), COALESCE(rv.version, ''), COALESCE(rv.is_default, false),
+		       COALESCE(rb.kind, ''), COALESCE(rb.hash, ''), COALESCE(rb.name, ''), COALESCE(rb.version, ''), COALESCE(rb.is_default, false),
+		       COALESCE(rg.kind, ''), COALESCE(rg.hash, ''), COALESCE(rg.name, ''), COALESCE(rg.version, ''), COALESCE(rg.is_default, false), `+ownCompaniesJSON+`, g.archived_at IS NOT NULL
 		  FROM campaigns g
-		  JOIN rulesets rv ON rv.hash = g.vanilla_hash
-		  JOIN rulesets rb ON rb.hash = g.bc_hash
-		  JOIN rulesets rg ON rg.hash = g.glossary_hash
+		  LEFT JOIN rulesets rv ON rv.hash = g.vanilla_hash
+		  LEFT JOIN rulesets rb ON rb.hash = g.bc_hash
+		  LEFT JOIN rulesets rg ON rg.hash = g.glossary_hash
 		  JOIN campaign_members m ON m.campaign_id = g.id AND m.user_id = $1
 		  JOIN campaign_members o ON o.campaign_id = g.id AND o.role = 'organiser'
 		  JOIN users ou ON ou.id = o.user_id
@@ -223,7 +229,7 @@ func (cs campaignStore) Get(ctx context.Context, userID, id int64) (core.Campaig
 			&d.OrganiserID, &d.Organiser, &d.Players, &d.Matches, &d.PracticeMatches, &d.ActiveInvites, &d.OpenMatches, &d.PendingAftermaths,
 			&infos[0].kind, &infos[0].hash, &infos[0].name, &infos[0].version, &infos[0].def,
 			&infos[1].kind, &infos[1].hash, &infos[1].name, &infos[1].version, &infos[1].def,
-			&infos[2].kind, &infos[2].hash, &infos[2].name, &infos[2].version, &infos[2].def, &ownRaw)
+			&infos[2].kind, &infos[2].hash, &infos[2].name, &infos[2].version, &infos[2].def, &ownRaw, &d.Archived)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return core.CampaignDetail{}, core.ErrNotFound
 	}
@@ -234,8 +240,16 @@ func (cs campaignStore) Get(ctx context.Context, userID, id int64) (core.Campaig
 	if d.Settings, err = decodeSettings(settings); err != nil {
 		return core.CampaignDetail{}, err
 	}
-	for _, i := range infos {
-		d.Rulesets = append(d.Rulesets, core.RulesetInfo{Kind: core.RulesetKind(i.kind), Hash: i.hash, Name: i.name, Version: i.version, Default: i.def})
+	if d.Archived { // the campaign no longer pins its files: the archive says which ones it was played with
+		if d.Rulesets, err = cs.s.archivedFiles(ctx, id); err != nil {
+			return core.CampaignDetail{}, err
+		}
+		d.Hashes = archiveHashes(id)
+	} else {
+		for _, i := range infos {
+			d.Rulesets = append(d.Rulesets, core.RulesetInfo{Kind: core.RulesetKind(i.kind), Hash: i.hash, Name: i.name, Version: i.version, Default: i.def})
+		}
+		d.Hashes = core.RulesetHashes{Vanilla: infos[0].hash, BattleCompanies: infos[1].hash, Glossary: infos[2].hash}
 	}
 	if d.Companies, err = readOwnCompanies(ownRaw); err != nil {
 		return core.CampaignDetail{}, err
@@ -289,8 +303,9 @@ type hashesEntry struct {
 func (cs campaignStore) readHashes(ctx context.Context, id int64) (core.RulesetHashes, core.CampaignSettings, error) {
 	var h core.RulesetHashes
 	var raw []byte
+	var v, b, g *string // NULL once the campaign is archived
 	err := cs.s.pool.QueryRow(ctx, `SELECT vanilla_hash, bc_hash, glossary_hash, settings FROM campaigns WHERE id = $1`, id).
-		Scan(&h.Vanilla, &h.BattleCompanies, &h.Glossary, &raw)
+		Scan(&v, &b, &g, &raw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return h, core.CampaignSettings{}, core.ErrNotFound
 	}
@@ -298,6 +313,10 @@ func (cs campaignStore) readHashes(ctx context.Context, id int64) (core.RulesetH
 		return h, core.CampaignSettings{}, err
 	}
 	s, err := decodeSettings(raw)
+	if v == nil || b == nil || g == nil { // archived: the rules are the pruned copy the archive carries
+		return archiveHashes(id), s, err
+	}
+	h = core.RulesetHashes{Vanilla: *v, BattleCompanies: *b, Glossary: *g}
 	return h, s, err
 }
 
@@ -347,7 +366,7 @@ func (cs campaignStore) Members(ctx context.Context, id int64) ([]core.CampaignM
 	return out, rows.Err()
 }
 
-func (cs campaignStore) HandOver(ctx context.Context, campaignID, newOrganiser int64, allowed func(currentOrganiser int64) error) error {
+func (cs campaignStore) HandOver(ctx context.Context, campaignID, newOrganiser int64, defaultLimit int, allowed func(currentOrganiser int64) error) error {
 	tx, err := cs.s.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -373,6 +392,23 @@ func (cs campaignStore) HandOver(ctx context.Context, campaignID, newOrganiser i
 	}
 	if err != nil {
 		return err
+	}
+	var status string
+	if err := tx.QueryRow(ctx, `SELECT status FROM campaigns WHERE id = $1`, campaignID).Scan(&status); err != nil {
+		return err
+	}
+	if archived, err := campaignArchived(ctx, tx, campaignID); err != nil || archived {
+		if err != nil {
+			return err
+		}
+		return core.ErrArchived
+	}
+	if status != string(core.CampaignFinished) { // a finished campaign counts for nobody
+		if q, err := lockedQuota(ctx, tx, newOrganiser, defaultLimit); err != nil {
+			return err
+		} else if q.Full() {
+			return core.ErrCampaignLimit
+		}
 	}
 	// the partial unique index allows one organiser: demote before promoting
 	if _, err := tx.Exec(ctx, `UPDATE campaign_members SET role = 'player' WHERE campaign_id = $1 AND user_id = $2`, campaignID, current); err != nil {
@@ -436,6 +472,12 @@ func (cs campaignStore) UpdateSettings(ctx context.Context, campaignID int64, fn
 	if err != nil {
 		return err
 	}
+	if archived, err := campaignArchived(ctx, tx, campaignID); err != nil || archived {
+		if err != nil {
+			return err
+		}
+		return core.ErrArchived
+	}
 	cur, err := decodeSettings(raw)
 	if err != nil {
 		return err
@@ -458,4 +500,38 @@ func (cs campaignStore) UpdateSettings(ctx context.Context, campaignID int64, fn
 		cs.s.hashesSize.Add(-1)
 	}
 	return nil
+}
+
+// Quota counts the unfinished campaigns an account organises against its limit.
+func (cs campaignStore) Quota(ctx context.Context, userID int64, defaultLimit int) (core.CampaignQuota, error) {
+	return quotaOf(ctx, cs.s.pool, userID, defaultLimit, "")
+}
+
+type rowQuerier interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+// lockedQuota is Quota under a lock on the account's row, so two creations (or a creation and a hand-over) cannot both take the last place.
+func lockedQuota(ctx context.Context, tx pgx.Tx, userID int64, defaultLimit int) (core.CampaignQuota, error) {
+	return quotaOf(ctx, tx, userID, defaultLimit, " FOR UPDATE OF u")
+}
+
+func quotaOf(ctx context.Context, q rowQuerier, userID int64, defaultLimit int, lock string) (core.CampaignQuota, error) {
+	var own *int
+	var open int
+	err := q.QueryRow(ctx, `
+		SELECT u.max_campaigns, (SELECT count(*) FROM campaign_members m JOIN campaigns g ON g.id = m.campaign_id
+		                          WHERE m.user_id = u.id AND m.role = 'organiser' AND g.status <> 'finished')::int
+		  FROM users u WHERE u.id = $1`+lock, userID).Scan(&own, &open)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return core.CampaignQuota{}, core.ErrNotFound
+	}
+	if err != nil {
+		return core.CampaignQuota{}, err
+	}
+	out := core.CampaignQuota{Open: open, Limit: defaultLimit}
+	if own != nil {
+		out.Limit, out.Own = *own, true
+	}
+	return out, nil
 }

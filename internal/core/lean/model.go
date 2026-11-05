@@ -19,12 +19,15 @@ type Free = any
 
 // Document is the whole Battle Companies file: the header and the sections.
 type Document struct {
-	SchemaVersion int      `json:"schemaVersion" required:"true" min:"1" max:"1000"` // separate from Version: 2 for this format
-	Name          string   `json:"name" required:"true" min:"1"`
-	Version       Scalar   `json:"version" required:"true"` // the rulebook version, "1.1"
-	Credit        Free     `json:"credit,omitempty"`
-	Extends       string   `json:"extends,omitempty"` // the vanilla file it builds on (header marker)
-	Campaign      Campaign `json:"campaign" required:"true"`
+	SchemaVersion int    `json:"schemaVersion" required:"true" min:"1" max:"1000"` // separate from Version: 2 for this format
+	Name          string `json:"name" required:"true" min:"1"`
+	Version       Scalar `json:"version" required:"true"` // the rulebook version, "1.1"
+	Credit        Free   `json:"credit,omitempty"`
+	// Archive is set by the app on the pruned copy of the rules an ended campaign keeps (docs/archive.md): the scenario selection tables may then
+	// be empty, since no match is ever rolled again. A file an organiser uploads does not set it.
+	Archive  bool     `json:"archive,omitempty"`
+	Extends  string   `json:"extends,omitempty"` // the vanilla file it builds on (header marker)
+	Campaign Campaign `json:"campaign" required:"true"`
 
 	Rules     []Rule         `json:"rules,omitempty"`
 	Magic     *Magic         `json:"magic,omitempty"`

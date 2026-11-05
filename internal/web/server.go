@@ -68,6 +68,8 @@ type campaigns interface {
 	NavCampaigns(ctx context.Context, userID int64, withFinished bool) ([]core.CampaignNav, error)
 	// Create returns an error wrapping core.ErrInvalidCampaign when the input is rejected.
 	Create(ctx context.Context, owner core.User, in core.CampaignInput) (core.CampaignSummary, error)
+	// Quota is how many unfinished campaigns the account organises and how many it may (core.ErrCampaignLimit when Create is over it).
+	Quota(ctx context.Context, userID int64) (core.CampaignQuota, error)
 
 	// The methods below return core.ErrNotFound for an unknown campaign, company or match. Get also returns the
 	// viewer's own companies in the campaign (CampaignDetail.Companies, oldest first; empty when they have none).
@@ -250,7 +252,7 @@ type campaigns interface {
 	// makes one new link (shown once). Managers only; RegenerateInvite is refused while the campaign is paused.
 	InvalidateInvites(ctx context.Context, actor core.User, campaignID int64) (int, error)
 	RegenerateInvite(ctx context.Context, actor core.User, campaignID int64) (core.Invite, error)
-	// SetCampaignStatus pauses, resumes, ends (confirm = the exact campaign name) or reactivates (administrators only) a campaign;
+	// SetCampaignStatus pauses, resumes, ends for good (confirm = the exact campaign name; the campaign becomes an archive) a campaign;
 	// core.ErrRefused with the reason otherwise.
 	SetCampaignStatus(ctx context.Context, actor core.User, campaignID int64, to core.CampaignStatus, confirm string) error
 	Join(ctx context.Context, user core.User, token string) (int64, error)
@@ -320,6 +322,8 @@ type auth interface {
 	// ListUsers and SetUserPermissions are the administration Users page; superusers only (core.ErrRefused otherwise).
 	ListUsers(ctx context.Context, actor core.User, q string, limit, offset int) ([]core.AdminUser, int, error)
 	SetUserPermissions(ctx context.Context, actor core.User, userID int64, role core.Role, canCreateCampaigns bool) error
+	// SetMaxCampaigns gives an account its own limit of unfinished campaigns (nil: the default); superusers only (core.ErrForbidden otherwise).
+	SetMaxCampaigns(ctx context.Context, actor core.User, userID int64, max *int) error
 }
 
 type Config struct {
@@ -522,6 +526,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /admin/users", s.requireAdmin(s.handleAdminUsers))
 	mux.HandleFunc("POST /admin/users/{id}/handover", s.requireAdmin(s.handleAdminHandover))
 	mux.HandleFunc("POST /admin/users/{id}/permissions", s.requireAdmin(s.handleAdminPermissions))
+	mux.HandleFunc("POST /admin/users/{id}/campaign-limit", s.requireSuperuser(s.handleAdminCampaignLimit))
 	mux.HandleFunc("POST /admin/users/{id}/recovery", s.requireSuperuser(s.once(s.handleAdminRecovery)))
 	mux.HandleFunc("POST /admin/users/{id}/recovery/revoke", s.requireSuperuser(s.once(s.handleAdminRecoveryRevoke)))
 	mux.HandleFunc("GET /admin/invitations", s.requireAdmin(s.handleAdminInvitations))

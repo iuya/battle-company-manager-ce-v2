@@ -76,6 +76,23 @@ type adminUserRow struct {
 	RecoveryMsg  string
 	RecoveryErr  bool
 	Link         *shownLink
+	// Campaign limit card (superusers): the form is open after a refusal, with what was sent.
+	LimitOpen bool
+	LimitErr  string
+	LimitSent string
+}
+
+// CanLimit says the card of the campaign limit is the viewer's: superusers, on open accounts.
+func (r adminUserRow) CanLimit() bool { return !r.U.Closed && r.Viewer.IsSuperuser() }
+
+// OpenOrganised is how many unfinished campaigns the account organises.
+func (r adminUserRow) OpenOrganised() (n int) {
+	for _, c := range r.U.Organises {
+		if c.Status != core.CampaignFinished {
+			n++
+		}
+	}
+	return n
 }
 
 // CanOrganiser says the Organiser switch is the viewer's to use on this account: administrators and superusers, on plain
@@ -220,6 +237,42 @@ func (s *Server) handleAdminPermissions(w http.ResponseWriter, r *http.Request) 
 	}
 	if err != nil { // a refusal of the state (closed account, last superuser) or an unknown role: the form stays open with what was sent
 		row.Role, row.CanCreate, row.Open, row.Err = role, can, true, reason(err)
+		s.render.partial(w, http.StatusUnprocessableEntity, "admin_users", "admin_user_row", row)
+		return
+	}
+	row.Notice = "Saved"
+	s.render.partial(w, http.StatusOK, "admin_users", "admin_user_row", row)
+}
+
+// handleAdminCampaignLimit saves an account's own limit of unfinished campaigns; an empty field returns the account to the server's default.
+// Superusers only: the service answers 403 for anyone else.
+func (s *Server) handleAdminCampaignLimit(w http.ResponseWriter, r *http.Request) {
+	me := *userFrom(r.Context())
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		s.notFound(w, r)
+		return
+	}
+	raw := strings.TrimSpace(r.PostFormValue("max_campaigns"))
+	var max *int
+	if raw != "" {
+		n, perr := strconv.Atoi(raw)
+		if perr != nil {
+			n = -1 // not a number: the service refuses it with the allowed range
+		}
+		max = &n
+	}
+	err = s.auth.SetMaxCampaigns(r.Context(), me, id, max)
+	if errors.Is(err, core.ErrForbidden) || (err != nil && !errors.Is(err, core.ErrInvalidUser)) {
+		s.fail(w, r, err)
+		return
+	}
+	row, ok := s.userRowFor(w, r, me, id)
+	if !ok {
+		return
+	}
+	if err != nil {
+		row.LimitOpen, row.LimitErr, row.LimitSent = true, reason(err), raw
 		s.render.partial(w, http.StatusUnprocessableEntity, "admin_users", "admin_user_row", row)
 		return
 	}

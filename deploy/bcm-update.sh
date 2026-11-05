@@ -7,7 +7,7 @@
 #   CHECK_ONLY=1 ...                       print what would change and stop
 #   REQUIRE_SIGNATURE=1 (here or in .env)  verify the cosign signature of the digest first; refuse an unsigned or foreign image
 #
-# Order: lock, resolve, verify the signature (when required), dump the database, write APP_IMAGE into .env, pull, `up --wait`, probe /readyz through Caddy. A failed start puts
+# Order: lock, resolve, verify the signature (when required), dump the database, write APP_IMAGE into .env, pull, `up --wait`, probe the app's readiness (server healthcheck, inside the container). A failed start puts
 # the previous digest back. Migrations are forward-only: if the new release migrated the database and the old image refuses it, restore the
 # dump printed in the message (docs/deploy-server.md, "Roll back on a server"). Registry access is anonymous (the package is public); nothing here reads a secret.
 set -euo pipefail
@@ -68,10 +68,9 @@ set_image() { # rewrite the APP_IMAGE line of .env atomically
   { grep -v '^APP_IMAGE=' .env || true; echo "APP_IMAGE=$1"; } > "$tmp"
   chmod 600 "$tmp"; mv "$tmp" .env
 }
-probe() { # readiness through Caddy, certificate checks skipped: the point is that the app answers behind the proxy
-  local host; host="$(sed -n 's/^SITE_ADDRESS=//p' .env | tail -n 1)"
+probe() { # readiness asked of the app itself (its built-in healthcheck: GET /readyz on its own port); Caddy does not forward /readyz to the internet
   for _ in $(seq 1 30); do
-    if curl -fsS -k --resolve "$host:443:127.0.0.1" "https://$host/readyz" > /dev/null 2>&1; then return 0; fi
+    if docker compose exec -T app /app/server healthcheck > /dev/null 2>&1; then return 0; fi
     sleep 2
   done
   return 1

@@ -239,7 +239,7 @@ func sameState(a, b core.CompanyState) bool {
 	return true
 }
 
-// 00029 drops what a match no longer reports; going down brings the columns back, empty.
+// 00031 drops what a match no longer reports; going down brings the columns back, empty.
 func TestDropVictoryPointsFledRolesMigrationDownUp(t *testing.T) {
 	s, ctx := testStore(t)
 	db := stdlib.OpenDBFromPool(s.pool)
@@ -256,7 +256,7 @@ func TestDropVictoryPointsFledRolesMigrationDownUp(t *testing.T) {
 	if columns() != 0 {
 		t.Fatal("the columns are gone")
 	}
-	if err := goose.DownToContext(ctx, db, "migrations", 28); err != nil {
+	if err := goose.DownToContext(ctx, db, "migrations", 30); err != nil {
 		t.Fatal(err)
 	}
 	if columns() != 3 {

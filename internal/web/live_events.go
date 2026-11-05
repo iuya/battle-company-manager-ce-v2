@@ -36,7 +36,7 @@ func (s *Server) handleLiveEvents(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, r, err) {
 		return
 	}
-	if _, err := s.campaigns.Get(r.Context(), user.ID, id); s.fail(w, r, err) { // not a member: 404 like the page
+	if c, err := s.campaigns.Get(r.Context(), user.ID, id); s.fail(w, r, err) || !s.gateArchive(w, r, c) { // not a member: 404 like the page
 		return
 	}
 	rc := http.NewResponseController(w)

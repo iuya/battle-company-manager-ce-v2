@@ -107,12 +107,16 @@ type newCampaignView struct {
 	Pickers []pickerView
 	Options []core.CampaignOption // the settings the rules file offers
 	Error   string
-	Report  *reportView // every problem of the rejected rules files
+	Report  *reportView        // every problem of the rejected rules files
+	Quota   core.CampaignQuota // unfinished campaigns the account organises and may organise
 }
 
 func (s *Server) newCampaignView(r *http.Request, in core.CampaignInput, errMsg string, report *reportView) (newCampaignView, error) {
 	view := newCampaignView{pageBase: s.base(r), Input: in, Error: errMsg, Report: report}
 	var err error
+	if view.Quota, err = s.campaigns.Quota(r.Context(), userFrom(r.Context()).ID); err != nil {
+		return view, err
+	}
 	if view.Options, err = s.rulesets.CampaignOptions(r.Context()); err != nil {
 		return view, err
 	}
@@ -152,6 +156,18 @@ func (s *Server) handleCreateCampaign(w http.ResponseWriter, r *http.Request) {
 		s.refuse(w, r, http.StatusRequestEntityTooLarge, "the request is too large or malformed")
 		return
 	}
+	if q, err := s.campaigns.Quota(r.Context(), user.ID); err != nil { // before any upload is stored
+		s.serverError(w, r, err)
+		return
+	} else if q.Full() {
+		view, verr := s.newCampaignView(r, core.CampaignInput{Name: r.PostFormValue("name"), Description: r.PostFormValue("description")}, reason(core.ErrCampaignLimit), nil)
+		if verr != nil {
+			s.serverError(w, r, verr)
+			return
+		}
+		s.render.page(w, r, http.StatusUnprocessableEntity, "campaign_new", view)
+		return
+	}
 	in := core.CampaignInput{Name: r.PostFormValue("name"), Description: r.PostFormValue("description")}
 	options, err := s.rulesets.CampaignOptions(r.Context())
 	if err != nil {
@@ -186,7 +202,7 @@ func (s *Server) handleCreateCampaign(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	switch {
-	case errors.Is(err, core.ErrInvalidCampaign) || errors.Is(err, core.ErrInvalidRuleset):
+	case errors.Is(err, core.ErrInvalidCampaign) || errors.Is(err, core.ErrInvalidRuleset) || errors.Is(err, core.ErrCampaignLimit):
 		rep := rulesetIssues(err)
 		if rep != nil {
 			rep.Note = "Nothing was stored and no campaign was created."
