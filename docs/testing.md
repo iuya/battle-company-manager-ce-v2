@@ -24,7 +24,7 @@ Contents:
 | `make validate` | The four rules files: JSON Schemas, the Go validator on the Battle Companies file, the curator's checks, the glossary and the concept graph (below) |
 | `make check-ruleset FILE=…` | Checks a lean rules file like the upload does ([definitions.md](definitions.md#upload-validation)) |
 | `make fuzz [FUZZTIME=1m]` | Explores `FuzzParseDice` and `FuzzDecode` (their seed corpus already runs in `make test`) |
-| `make e2e` | Browser smoke tests (this page); `make e2e-groups` runs them group by group, `make e2e-check-groups` (part of `make test`) checks the grouping |
+| `make e2e` | Browser smoke tests (this page); `make e2e-groups` runs them group by group, `make e2e-check-groups` (part of `make test`) checks the grouping and the dice loops of the flows |
 | `make perf` | Page-load measurements at 0/100/300 ms of latency, not a test: see [performance.md](performance.md) |
 
 ## Tabletop Simulator helper (Lua tests)
@@ -170,8 +170,10 @@ On a failure, `tests/e2e/out/` gets a full-page screenshot (`<step>.<n>-<who>.pn
 The run never touches the development database or `:8080`:
 
 - It builds the server to `tests/e2e/out/bcm-e2e-server-<pid>` (one binary per run, removed at the end).
-- The demo world takes minutes to seed, so it is seeded once into a template database `bcm_e2e_tpl_<hash>` (the hash covers
-  `cmd/server`, the migrations and `definitions/`, so a change to any of them reseeds; `E2E_RESEED=1` forces it) and every run
+- The demo world takes minutes to seed, so it is seeded once into a template database `bcm_e2e_tpl_<hash>` (the hash, `templateKey()`
+  in `lib/env.mjs`, covers `cmd/server`, `internal/` without `internal/web` and the test files, `go.mod`, `go.sum` and `definitions/`
+  (the migrations are in `internal/`), because the world is written through the services of `internal/core` and the repositories of
+  `internal/postgres`; so a change to a rule, a default or the schema reseeds, and a change to a page does not; `E2E_RESEED=1` forces it) and every run
   creates `bcm_e2e_run_<pid>` from it with `CREATE DATABASE ... TEMPLATE`, so each run starts from the same fresh world. The hash
   uses paths relative to the repository, so a clone or worktree shares the template. Seeding and copying the template are
   serialised across runs by a lock directory (`$TMPDIR/bcm-e2e-prepare.lock`; a run that finds it waits, a lock older than
@@ -191,11 +193,16 @@ The run never touches the development database or `:8080`:
 
 A match flow is a chain, so one failing step makes the steps after it fail too. Read the first failure.
 
-The harness helps in three ways:
+The harness helps in four ways:
 
 1. It waits for the clicked box to hold still.
 2. It clicks again once when a button with `hx-get` or `hx-post` sent no request, and prints `(click ... sent no request, clicking again)` and a count in the summary.
-3. It writes into every failure dump the last 60 requests of the page with times, the live dot, `data-seq` and the open sheets.
+3. It writes into every failure dump the last 60 requests of the page with times, the live dot, `data-seq` and the open sheets, and
+   the page's events: a renderer crash, the page closing, the main frame's navigations and a lost WebGL context (`webglcontextlost`).
+   A dump is written even when the page is gone (no screenshot then).
+4. It warms the server once before the first step (`Harness.warm`: `/login` and every static file, including the lazily loaded
+   `dice3d.js` and the fonts), so the first-use caches are not inside a timed step; sessions wait up to 30 s for a navigation,
+   and a Chrome that fails to start is started once more.
 
 htmx wires a swapped-in fragment only when it settles, 20 ms after the swap.
 `static/js/htmx_ready.js` processes the fragment at once, and the step "a menu entry clicked the instant it is swapped in" in `40-match` holds that.
@@ -229,6 +236,7 @@ Every step also fails on any browser console error, uncaught exception, failed r
 | `84-match-extras` | a three-company match (Éowyn's cavalry and Gimli's Dwarves against Sauron) on Fog of War, which has no secret objectives card and ends with the winner and the MVP alone; the Rohan live cards (mounts, the granted Arise rule, losing one mount strikes only that horse); an MVP tie with two opposing votes ("Tied: ... picks in the aftermath"), broken by a third vote and restored; the aftermath's tie hint |
 | `85-creation-submit` | a throwaway campaign of its own (the organiser creates it, two players join by the invitation link, so the demo world is untouched): a Shire company is sworn (the Ranger of the North leads, the vow dialog names the officers, redirect to My company, one Leader and two Sergeants as suggested, every unit with its points) and a Rohan company with officers arranged by real mouse drags is created exactly as dragged; both are on Companies and Rankings with the sum of their units' points; a second submit is refused with a 422 ("already have a company"), nothing is added, and the creation page sends the member to My company |
 | `86-dice3d` | the dice animation, with real WebGL (headless Chrome through SwiftShader, flags in `lib/harness.mjs`): a server roll (the campaign where the server rolls every die) loads `dice3d.js` only then, rolls on the 3D tray, ends, reports the number the server sent (`data-roll`) and shows it; the result, raise buttons and Confirm are hidden while the canvas rolls and appear when it stops (sampled every frame), the recruit can then be finished; with `getContext('webgl')` answering null the flat tray takes over and the result still shows; with `dice3d.js` blocked the flat tray is used; the style guide tray stops on given values (1, 2, 4 dice, two lanes) and can be rolled again, a browser roll is shaken once with the space bar, `prefers-reduced-motion` gives the result at once; a D3 is a 3D cube marked 1, 1, 2, 2, 3, 3 (style guide tray: given values and a live shake); the Lesson Learned D3 of an aftermath is thrown in the browser where the table shakes (ward 4) and rolled by the server, acted out, with its bonus hidden until it stops, where it does not (ward 5, which also refuses a thrown die); the tray fits 360, 768 and 1280 px, light and dark |
+| `115-server-dice` | the dice script: the endpoint refuses a request without its token and queues, reads and clears; the scenario roll on the new match form and a recruit roll show exactly the numbers queued |
 | `87-concepts` | the helper popup: a chip on My Company opens it (hover keeps the tooltip, which steps aside), its groups and "Open in glossary", a chip swaps the content and Back returns, Escape closes and the focus returns to the term, backdrop and Close; the shield's explicit cancels fold into closed lines with a count; a vanished concept says "no longer in these rules", an unknown name falls back to the tooltip text; keyboard (Enter opens, Tab and Shift+Tab stay inside, the heading takes the focus after a step); a glossary link in an expanded card opens it over the card and Escape closes only the popup; the live company page's terms open it; the sheet at 360/768/1280 px in both themes (bottom sheet at 360, card from 768, inside the window, no horizontal scroll, axe on the popup) with screenshots `out/concept-popup-*.png` |
 | `88-own-path` | units On Their Own Path and promoted officers: the overview text of the "everything on" campaign, a Sentinel as a warrior with XP and Level Up, a typed 6 that makes it a hero on the Path of Their Own Making with no path window, re-roll or forgo offer (360/768/1280, both themes, no horizontal scroll), the Take command badges following the campaign setting, and Arnor's officers previewed, confirmed and rostered as Rangers of the North (a throwaway campaign) |
 | `89-ruleset-report` | a rules file with twelve mistakes is refused with every problem listed (file, path, hint, closest match) by "Check this file" (a dry run), by the admin upload and by the new-campaign form; nothing is stored and no campaign is created; 360/768/1280 px, light and dark |
@@ -254,7 +262,33 @@ Every step also fails on any browser console error, uncaught exception, failed r
 | `105-recovery` | recovery links ([auth.md](auth.md#password-recovery)): the demo states are worded on the Users page; the superuser makes a link for `recover-expired@` (3 days), the person sets a new password in a fresh browser (mismatch and weak password keep the form), is not signed in, the old password is refused, the new one works, the old session is gone and the link is dead; signing in first (`recover-login@`) or opening the app with a session first (`recover-access@`) invalidates the link and the row says why; revoke with confirmation; a new link replaces the old; an administrator has no card and a forged post is 404; the Users card and the set-password and generic pages at 360/768/1280 px x light/dark x normal/high contrast with axe. Never signs in as `recover-pending@` |
 | `113-level-up-window` | the level-up window: a click only selects an option and Confirm applies it (a reload before Confirm leaves the level-up waiting), the marks of results that take the other too (moving a mark, both in one request, a normal option alone, Confirm with a mark in each, the Warlord 5 and 7), Courage at its limit, the dots and the (i) of a stat, no change closing by itself or staying with Next level up, a Hero in the Making with and without confetti, accepted or going on to the path window; 360, 768 and 1280 px, light and dark |
 | `114-aftermath-sheet` | the Sheet step of "Aftermath ward 6" of the demo world, as a player and as the organiser: the Against the Odds block (bonuses taken read only, also those with no effect; the control for the organiser; "No bonus taken."; no block for the higher company or equal ratings), the match result line, the description and why the sheet opened (nothing recorded, the Relic with no holder, a tied MVP vote) |
-| `116-dice-settle` | 20 live 3D throws (14 of two dice, 6 of one) on the style guide's tray: each stops in under 9 s (the cap is 12 s; a die asleep leaning on the other is kicked flat) and shows faces 1 to 6 |
+| `116-cancelled-transition` | the My Company window closed and reopened 60 times in the middle of its transition raises no unhandled rejection (Alpine's cancelled-transition rejection is marked handled by `theme-init.js`), and the handler marks nothing else |
+| `117-dice-settle` | 20 live 3D throws (14 of two dice, 6 of one) on the style guide's tray: each stops in under 9 s (the cap is 12 s; a die asleep leaning on the other is kicked flat) and shows faces 1 to 6 |
+
+### Scripting the server's dice
+
+The rolls the server makes (a recruit, a level-up, the aftermath injury and bonus dice, the scenario roll) are random at run time. A flow that
+must see a known number fixes it first. The e2e server is started with `E2E_DICE=1` and `E2E_DICE_TOKEN` (`lib/env.mjs`, which exports
+`E2E_DICE_TOKEN`), and serves a queue at `/_e2e/dice`:
+
+- `POST /_e2e/dice` with `{"next":[2,5]}` appends results; each is used by the next roll of the server whatever its sides, and must fit
+  that die (1 to sides) when the roll takes it: a result that does not fit fails the roll with a 500 and is dropped. An empty queue rolls at random.
+- `GET` returns `{"queued":n}`; `DELETE` empties the queue. Every answer carries the count.
+- Every request needs the `X-E2E-Dice-Token` header (403 without it) and a loopback peer.
+
+```js
+await fetch(h.base + '/_e2e/dice', { method: 'POST', headers: { 'X-E2E-Dice-Token': E2E_DICE_TOKEN }, body: '{"next":[2,5]}' });
+```
+
+A scripted number is the die as the server rolls it: the scenario roll takes two (1 to the scenario die), a recruit one, a level-up the dice of its chart.
+Queue only what the next action takes and check `queued` is 0 afterwards, so a number never leaks into another step. Only campaigns where the
+server rolls (Shake the table off, "Settings: the server rolls every die") roll on the server; where the table is shaken the browser decides.
+Flow `115-server-dice` is the example.
+
+The guard: one `Dice` serves every service and the web server's scenario roll (`RandomDice`, at the same cost as ever). The queue exists only
+when `E2E_DICE` is on and the route is registered only then: `APP_ENV=production` with `E2E_DICE` is refused at start (like insecure cookies),
+as is `E2E_DICE` without a token, and a production configuration answers 404 for `/_e2e/dice` (`internal/web/e2edice_test.go`). The public
+Content-Security-Policy and the reverse proxy configuration are unchanged: the route belongs to the development server and is never published.
 
 ### Groups
 
@@ -313,6 +347,27 @@ To reproduce the runner locally:
   The same `revealed` gate (`x-show="revealed"`) that hides that form is asserted on the recruit window.
   Other flows type their rolls so they do not wait for the animation.
 - A "cavalry-only rule applies" assertion. The cavalry check reads what the app strikes (the mount and the rules a mount gave), and the demo's Rohan company has no rule that only a mounted model has beyond those.
+
+### Dice in the flows
+
+Physical dice (the 3D tray) take 1.5 to 4 s on a quiet machine and were seen to take 12 s or more on a starved runner, so a flow never
+depends on how long or how a throw ends.
+
+- Every wait for dice uses `DICE_WAIT` (40 s, `lib/util.mjs`): `waitStopped(session, selector)` for a roll panel, the style guide demo,
+  a casualty card or the scenario card, and `rollNewScenario` / `waitRolledNewScenario` for the new-match card. `waitStopped` puts the
+  tray's state (rolling, stopped, dice, 3D or flat) and the time waited into its error.
+- There is no retry. The shipped rules place a scenario on all 36 pairs of dice (`TestScenarioByRollsUsesTheRealFile`), so the
+  "found no scenario" note cannot show and a flow asserts it does not; a second throw would only hide the first one's failure.
+- Prefer dice the flow decides: the style guide's "values decided beforehand" switch (`serverValues`) and the campaign "Settings: the
+  server rolls every die" read the number the server sent and compare it with what the tray reports. A dev-only server endpoint that
+  fixes the next roll is planned; its marker in a flow will be `diceSeed`.
+- The lint in `lib/groups.mjs` (`lintDiceLoops`, run by `make e2e-check-groups`, part of `make test`) fails on a `for`/`while` whose body
+  clicks a dice button (Roll again, Roll the scenario, Roll D3, the special chart, `rollNewScenario`, `throwDice`) without `serverValues`
+  or `diceSeed` in the loop. The few loops that are fine as they are are in `DICE_LOOP_ALLOWED`, each with its reason; an entry that
+  nothing needs any more is reported too. `lib/groups.test.mjs` tests the lint and the template key.
+- Keep playbacks few: one per distinct behaviour. `86-dice3d` plays 3 given-value throws in the style guide step (a lone die, a pair, four
+  dice in two lanes), 3 in the D3 step (two of one die, one of three dice; the cube's marks are asserted once per size of cube, not per
+  throw), then one live throw, instead of repeating a behaviour in each; a step stays far below the 90 s step limit.
 
 ### Writing steps
 

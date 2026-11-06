@@ -121,7 +121,9 @@ rules. Rules code in `core` is pure: `BuildDetail(RuleSet, CampaignSettings, Com
 what the pages show (profiles, limits, rating, order), and each action is a function `(RuleSet, settings, *CompanyState, input)
 (result, error)`. Refusals are `Refuse(...)` (they wrap `ErrRefused`); the service checks that the user owns the company before
 `Update`. Rolls come from an injected `Dice` (`D6()`, `Die(sides)`, `Roll(spec)` for an `NdM` spec of the rules file) so tests are
-deterministic (`core.FixedDice`).
+deterministic (`core.FixedDice`). `cmd/server` builds one `Dice` and hands it to every service that rolls (`newBackendWithDice`) and to
+`web.Server` (its own `die`, the scenario roll): `core.RandomDice` always, except in a development server started with `E2E_DICE`, where it
+is a `core.ScriptedDice` the end-to-end tests fill through `/_e2e/dice` ([testing.md](testing.md#scripting-the-servers-dice)).
 
 The services (`internal/core`, one file each) share `companyDeps` (campaign and company repositories, the rule source, the dice):
 
@@ -349,6 +351,7 @@ Routes by area (the feature documents list the actions):
 | `GET/POST /register/{token}` | public (a signed-in visitor is sent home) | Register with an account invitation; signs the new account in |
 | `GET/POST /recover/{token}` | public, no session read | Set a new password with a recovery link |
 | `GET /styleguide` | `STYLEGUIDE=true` | Design tokens and components ([frontend.md](frontend.md)) |
+| `GET/POST/DELETE /_e2e/dice` | `E2E_DICE=1` with `APP_ENV=development`, loopback peer, `X-E2E-Dice-Token` | The end-to-end tests' dice script ([testing.md](testing.md#scripting-the-servers-dice)); not registered otherwise |
 | `GET /static/...` | public | Embedded assets |
 | `GET /healthz` | the container network and the host (the published server kit answers `404` to it from the internet) | Liveness: `200 ok` while the process serves; touches nothing else |
 | `GET /readyz` | as `/healthz` | Readiness: pings the database (2 s); `503` when it does not answer |
@@ -379,6 +382,7 @@ Environment variables (loaded by `go-simpler.org/env`; `.env.example` lists them
 | `LISTEN_HOST` | empty (every interface) | Address the server listens on. Keep it empty in the container (`APP_BIND` limits the host side). `make run`, `make dev` and `make demo` default it to `127.0.0.1`, and the browser tests set it too: a loopback-only server raises no firewall prompt (Windows asks for every new build of `go run` or `air`). `make run LISTEN_HOST=` opens the development server to the network, for a phone on the same Wi-Fi |
 | `STATIC_MAX_AGE` | `0s` | Cache lifetime of static files requested without their `?v=` hash (`no-cache` when 0; the templates always add the hash, and those requests are cached for a year) |
 | `PERF_TRACE` | `false` | Adds a `Server-Timing` header (time, database statements) to every answer, for `make perf` ([performance.md](performance.md)); development only |
+| `E2E_DICE`, `E2E_DICE_TOKEN` | `false`, unset | Scripted server dice for the browser tests (`/_e2e/dice`); development only: refused at start with `APP_ENV=production`, and without a token |
 | `STYLEGUIDE` | `false` | Serve `/styleguide`; `make run`, `make dev` and `make demo` set it to `true` |
 | `APP_ENV` | `production` | `production` is the default; `development` (set by `make run`, `dev`, `demo`) is for plain http on localhost. Anything else is refused at start |
 | `SECURE_COOKIES` | unset | `Secure` session, theme and glossary cookies, and the `Strict-Transport-Security` header. Unset: on in production, off in development. `false` in production is refused at start unless `ALLOW_INSECURE_COOKIES=true` (then it starts with a warning). Behind a TLS proxy `true` is the setting |

@@ -12,6 +12,7 @@ export const here = dirname(fileURLToPath(import.meta.url));
 export const e2eDir = resolve(here, '..');
 export const root = resolve(e2eDir, '..', '..');
 export const outDir = join(e2eDir, 'out');
+export const E2E_DICE_TOKEN = process.env.E2E_DICE_TOKEN || 'e2e-dice-token'; // the secret of the server's /_e2e/dice (docs/testing.md)
 const compose = ['compose', '-f', join(root, 'compose.dev.yaml')];
 
 export function sh(cmd, args, opts = {}) {
@@ -32,15 +33,29 @@ export function dbUrl(name) {
   return `${base}/${name}?sslmode=disable`;
 }
 
-function hashTree(paths) {
+// A short hash of the files under `paths` (a file counts as given). `skip(path)` leaves a file or folder out.
+export function hashTree(paths, skip = () => false) {
   const h = createHash('sha1');
   const walk = (p) => {
-    if (!existsSync(p)) return;
+    if (!existsSync(p) || skip(p)) return;
     if (statSync(p).isDirectory()) { for (const f of readdirSync(p).sort()) walk(join(p, f)); return; }
     h.update(relative(root, p)); h.update(readFileSync(p));
   };
   for (const p of paths) walk(p);
   return h.digest('hex').slice(0, 10);
+}
+
+// The key of the cached seeded template: everything that decides what `seed --world` writes. The world is built through the services of
+// internal/core and the repositories of internal/postgres (which cmd/server imports), from the rules files in definitions/, on the schema of the
+// migrations, with the dependencies of go.mod/go.sum; so a core change (a different rule, a different default) must reseed, or a run would
+// start from a world the code no longer produces. internal/web (templates, handlers, static files) and the tests never write seeded state and
+// are left out, so a page change does not cost a reseeding of a few minutes.
+export function templateKey() {
+  const web = join(root, 'internal/web');
+  return hashTree(
+    [join(root, 'cmd/server'), join(root, 'internal'), join(root, 'go.mod'), join(root, 'go.sum'), join(root, 'definitions')],
+    (p) => p === web || /_test\.go$/.test(p) || /[\\/]testdata$/.test(p) || /[\\/]mocks?$/.test(p),
+  );
 }
 
 export async function freePort() {
@@ -75,7 +90,7 @@ export class Env {
     // Seeding the template and copying from it must not overlap with another run (PostgreSQL refuses CREATE DATABASE ... TEMPLATE while
     // the template is in use, and two seedings would drop each other's): a lock directory serialises the two steps across runs.
     await this.lock(log);
-    const tpl = 'bcm_e2e_tpl_' + hashTree([join(root, 'cmd/server'), join(root, 'internal/postgres/migrations'), join(root, 'definitions')]);
+    const tpl = 'bcm_e2e_tpl_' + templateKey();
     const exists = psql(`SELECT 1 FROM pg_database WHERE datname='${tpl}'`).trim() === '1';
     if (!exists || process.env.E2E_RESEED) {
       log(`seeding the demo world into ${tpl} (a few minutes, cached for later runs)`);
@@ -111,7 +126,7 @@ export class Env {
     const logFd = openSync(join(outDir, 'server.log'), 'w');
     const p = spawn(this.bin, [], {
       cwd: root, stdio: ['ignore', logFd, logFd],
-      env: { ...process.env, DATABASE_URL: dbUrl(this.db), PORT: String(this.port), LISTEN_HOST: '127.0.0.1', APP_ENV: 'development', CSP_MODE: process.env.E2E_CSP_MODE || 'report', STYLEGUIDE: 'true', ...(this.extraEnv || {}) },
+      env: { ...process.env, DATABASE_URL: dbUrl(this.db), PORT: String(this.port), LISTEN_HOST: '127.0.0.1', APP_ENV: 'development', CSP_MODE: process.env.E2E_CSP_MODE || 'report', STYLEGUIDE: 'true', E2E_DICE: '1', E2E_DICE_TOKEN: E2E_DICE_TOKEN, ...(this.extraEnv || {}) },
     });
     this.procs.push(p);
     for (let i = 0; i < 100; i++) {

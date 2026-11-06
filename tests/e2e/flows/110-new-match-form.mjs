@@ -1,7 +1,7 @@
 // The new match form (docs/matches.md, "New match"), in the demo world's "Two bands" campaign: the
 // scenario card (empty until the player rolls it on the 3D dice, then Roll again, Choose another and One-off), the player's own companies marked and ordered, no side names or
 // roles, and the page at 360/768/1280 px in light and dark. Nothing is created: the form writes nothing until Create match.
-import { assert, campaignId, layout, rollNewScenario, SIZES } from '../lib/util.mjs';
+import { assert, campaignId, layout, rollNewScenario, waitRolledNewScenario, SIZES } from '../lib/util.mjs';
 
 export default async function (h) {
   const eowyn = h.sessions.find((s) => s.email === 'eowyn@example.com') || await h.session('eowyn@example.com', { height: 1800 });
@@ -27,8 +27,7 @@ export default async function (h) {
     await eowyn.click('#new-scenario button', 'Roll the scenario');
     await eowyn.page.waitForSelector('#new-scenario canvas.dice-tray');
     assert.equal(await scenarioName(eowyn), '', 'the scenario is not decided while the dice roll');
-    await eowyn.page.waitForFunction(() => /Rolled \d \(table \d\) and \d|found no scenario/.test(document.querySelector('#new-scenario').innerText), { timeout: 30000 });
-    if (!(await scenarioName(eowyn))) await rollNewScenario(eowyn, 'Roll again'); // a pair the rules file places no scenario on: throw again
+    await waitRolledNewScenario(eowyn); // one throw: every pair of dice places a scenario, so there is never a reason to throw again
     assert.ok(await scenarioName(eowyn), 'a scenario once the dice stop');
     assert.ok(await eowyn.page.$('#new-scenario [data-scenario]'), 'the card shows it');
     assert.ok(await eowyn.page.$$eval('#new-scenario button', (bs) => ['Roll again', 'Choose another', 'One-off scenario'].every((t) => bs.some((b) => b.innerText.trim() === t))), 'Roll again, Choose another, One-off');
@@ -52,7 +51,7 @@ export default async function (h) {
   });
 
   await h.step('new match: Roll again rolls both dice without writing anything; Choose another and One-off replace the scenario', async () => {
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 2; i++) { // two throws: the second replaces the first (more would repeat the same behaviour)
       await rollNewScenario(eowyn, 'Roll again');
       assert.ok(await scenarioName(eowyn), 'a scenario after every roll');
     }

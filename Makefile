@@ -214,6 +214,7 @@ e2e-groups:
 
 e2e-check-groups:
 	node tests/e2e/lib/groups.mjs
+	node --test tests/e2e/lib/groups.test.mjs
 
 # make docs-check   every relative link of the Markdown files (README, CONTRIBUTING, docs/, tools/, examples/) resolves, fragments included (part of make test)
 docs-check:

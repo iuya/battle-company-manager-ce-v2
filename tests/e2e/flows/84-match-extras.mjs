@@ -1,6 +1,6 @@
 // A three-company match on the Limits campaign: Fog of War without a secret objectives card, a cavalry company's live card
 // (granted rules, the mount lost), and a tie in the MVP votes of the end sheets (two opposing players vote for different units).
-import { chooseScenario, endMatch, confirmEnd, assert, campaignId, MODAL, layout, SIZES } from '../lib/util.mjs';
+import { chooseScenario, endMatch, confirmEnd, assert, campaignId, MODAL, layout, SIZES, DICE_WAIT } from '../lib/util.mjs';
 
 export default async function (h) {
   const you = await h.session('you@example.com');
@@ -67,13 +67,10 @@ export default async function (h) {
     await you.goto(`/campaigns/${cid}/matches/${mid}`);
     assert.equal(await you.page.$('#scenario-roll'), null, 'a normal page load has no roll text');
     await you.click('main [data-change-scenario]', '');
-    for (let tries = 0; tries < 6; tries++) { // a pair the rules file places no scenario on is refused: throw again
-      await you.click('#scenario [data-roll-again]', '');
-      await you.page.waitForSelector('#scenario canvas.dice-tray', { visible: true, timeout: 15000 });
-      await you.page.waitForFunction(() => /Rolled \d+ \(table \d\) and \d+|place no scenario/.test(document.querySelector('#scenario').innerText), { timeout: 30000 });
-      if (await you.page.$('#scenario-roll')) break;
-      await you.click('main [data-change-scenario]', '').catch(() => {});
-    }
+    await you.click('#scenario [data-roll-again]', ''); // one throw: every pair of dice places a scenario (TestScenarioByRollsUsesTheRealFile)
+    await you.page.waitForSelector('#scenario canvas.dice-tray', { visible: true, timeout: DICE_WAIT });
+    await you.page.waitForFunction(() => /Rolled \d+ \(table \d\) and \d+/.test(document.querySelector('#scenario').innerText), { timeout: DICE_WAIT });
+    assert.doesNotMatch(await you.page.$eval('#scenario', (e) => e.innerText), /place no scenario/, 'every pair of dice places a scenario');
     assert.match(await you.page.$eval('#scenario-roll', (e) => e.innerText), /Rolled \d+ \(table \d\) and \d+/, 'the thrown dice are shown');
     assert.equal(await you.page.$eval('#scenario [data-roll-url]', (e) => e.dataset.animate), 'false', 'a thrown roll is not played out again');
     assert.ok(await you.page.$('#scenario p.font-medium'), 'the scenario is set');
