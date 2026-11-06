@@ -12,6 +12,7 @@ export const here = dirname(fileURLToPath(import.meta.url));
 export const e2eDir = resolve(here, '..');
 export const root = resolve(e2eDir, '..', '..');
 export const outDir = join(e2eDir, 'out');
+export const E2E_DICE_TOKEN = process.env.E2E_DICE_TOKEN || 'e2e-dice-token'; // the secret of the server's /_e2e/dice (docs/testing.md)
 const compose = ['compose', '-f', join(root, 'compose.dev.yaml')];
 
 export function sh(cmd, args, opts = {}) {
@@ -111,7 +112,7 @@ export class Env {
     const logFd = openSync(join(outDir, 'server.log'), 'w');
     const p = spawn(this.bin, [], {
       cwd: root, stdio: ['ignore', logFd, logFd],
-      env: { ...process.env, DATABASE_URL: dbUrl(this.db), PORT: String(this.port), LISTEN_HOST: '127.0.0.1', APP_ENV: 'development', CSP_MODE: process.env.E2E_CSP_MODE || 'report', STYLEGUIDE: 'true', ...(this.extraEnv || {}) },
+      env: { ...process.env, DATABASE_URL: dbUrl(this.db), PORT: String(this.port), LISTEN_HOST: '127.0.0.1', APP_ENV: 'development', CSP_MODE: process.env.E2E_CSP_MODE || 'report', STYLEGUIDE: 'true', E2E_DICE: '1', E2E_DICE_TOKEN: E2E_DICE_TOKEN, ...(this.extraEnv || {}) },
     });
     this.procs.push(p);
     for (let i = 0; i < 100; i++) {
