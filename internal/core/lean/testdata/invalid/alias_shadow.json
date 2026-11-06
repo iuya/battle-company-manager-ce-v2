@@ -222,8 +222,13 @@
         "wounds": 1,
         "courage": 5,
         "intelligence": 3,
-        "race": ["Orc"],
-        "unitType": ["Warrior", "Infantry"]
+        "race": [
+          "Orc"
+        ],
+        "unitType": [
+          "Warrior",
+          "Infantry"
+        ]
       },
       "points": 20
     },
