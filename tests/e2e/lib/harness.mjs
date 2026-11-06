@@ -10,7 +10,7 @@ export { sleep };
 // A signed-in browser context (own cookies) with one page that records console errors, page errors, failed requests
 // and 4xx/5xx answers; `issues()` returns and clears them.
 export class Session {
-  constructor(h, email, ctx, page) { this.h = h; this.email = email; this.ctx = ctx; this.page = page; this.found = []; this.allow = []; this.dialogs = []; this.reqs = []; this.reqCount = 0; }
+  constructor(h, email, ctx, page) { this.h = h; this.email = email; this.ctx = ctx; this.page = page; this.found = []; this.allow = []; this.dialogs = []; this.reqs = []; this.events = []; this.reqCount = 0; }
   record(kind, text) {
     if (this.allow.some((re) => re.test(text))) return;
     this.found.push(`${this.email}: ${kind}: ${text}`);
@@ -146,17 +146,43 @@ export class Session {
 export class Harness {
   constructor(base) { this.base = base; this.sessions = []; this.results = []; }
   async launch() {
-    this.browser = await puppeteer.launch({
+    const options = {
       executablePath: findChrome(), headless: true, protocolTimeout: 30000,
       // SwiftShader gives headless Chrome a software WebGL (the 3D dice, flow 86); where the runner has a GPU path it is not used
       args: ['--no-sandbox', '--disable-dev-shm-usage', '--hide-scrollbars', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
-    });
+    };
+    // One launch was seen to time out at 30 s on a starved runner; a second one starts a fresh Chrome and almost always succeeds.
+    try { this.browser = await puppeteer.launch(options); }
+    catch (e) {
+      console.log(`[e2e] Chrome did not start (${String(e.message).split('\n')[0]}), trying once more`);
+      this.browser = await puppeteer.launch(options);
+    }
+    await this.warm();
+  }
+
+  // The first requests of a fresh server pay for the things it builds on first use (the login page's template set, the compressed copies of
+  // the static files, the font and script files read from disk); a timed step or a 10 s navigation must not be the one that pays. Requests /login
+  // and every static file the app serves (the stylesheet, the scripts including the lazily loaded dice3d.js, the fonts) once, with the
+  // Accept-Encoding of a browser. Nothing here fails the run: a server that cannot answer will fail the first step with a better message.
+  async warm() {
+    const t0 = Date.now();
+    const get = async (path) => {
+      const r = await fetch(this.base + path, { headers: { 'Accept-Encoding': 'gzip, br' } }).catch(() => null);
+      return r && r.ok ? await r.text().catch(() => '') : '';
+    };
+    const login = await get('/login');
+    const css = await get('/static/app.css');
+    const paths = new Set(['/static/js/dice3d.js']);
+    for (const m of (login + css).matchAll(/(?:href|src)="(\/static\/[^"?#]+)|url\("?(\/static\/[^")?#]+)/g)) paths.add(m[1] || m[2]);
+    await Promise.all([...paths].map(get));
+    console.log(`[e2e] warm start: /login and ${paths.size + 1} static files in ${Date.now() - t0} ms`);
   }
   async session(email, { width = 1280, height = 900, password = PASSWORD, login = true } = {}) {
     const ctx = await this.browser.createBrowserContext();
     const page = await ctx.newPage();
     await page.setViewport({ width, height });
     page.setDefaultTimeout(10000);
+    page.setDefaultNavigationTimeout(30000); // the first /login of a session on a cold server or a starved runner was seen to take over 10 s
     const s = new Session(this, email, ctx, page);
     // Headless Chrome on Linux has no pointing device, so (hover: hover) is false there (true on macOS) and the app, which shows its
     // hover tooltips only for hover-capable devices, would show none: report a mouse, as a desktop browser does.
@@ -174,6 +200,21 @@ export class Harness {
         console.error(`CSP violation: ${e.disposition} ${e.violatedDirective} blocked=${e.blockedURI} source=${e.sourceFile}:${e.lineNumber} sample=${(e.sample || '').slice(0, 80)}`);
       });
     });
+    // Page life, for the failure dump: a renderer crash ('error' on the page: "Page crashed!"), the page closing, the main frame's
+    // navigations and a lost WebGL context (the 3D dice stop for ever when it is lost) with the time since the session began. Not failures by
+    // themselves; they say why a step that waited for the page timed out.
+    const ev0 = Date.now();
+    const note = (text) => { s.events.push(`${String(Date.now() - ev0).padStart(7)} ms ${text}`); if (s.events.length > 80) s.events.shift(); };
+    page.on('error', (e) => note(`RENDERER CRASH: ${e.message || e}`));
+    page.on('close', () => note('page closed'));
+    page.on('framenavigated', (f) => { if (f === page.mainFrame()) note(`navigated to ${f.url().replace(this.base, '')}`); });
+    page.on('workercreated', (w) => note(`worker ${w.url().replace(this.base, '')}`));
+    await page.evaluateOnNewDocument(() => {
+      // 'webglcontextlost' does not bubble: listen in the capture phase on the document to see every canvas
+      document.addEventListener('webglcontextlost', (e) => console.debug(`[e2e-diag] webglcontextlost canvas=${e.target && e.target.className}`), true);
+      document.addEventListener('webglcontextrestored', (e) => console.debug(`[e2e-diag] webglcontextrestored canvas=${e.target && e.target.className}`), true);
+    });
+    page.on('console', (m) => { if (m.type() === 'debug' && m.text().startsWith('[e2e-diag] ')) note(m.text().slice(11)); });
     page.on('console', (m) => { if (m.type() === 'error') s.record('console', m.text() + ' ' + (m.location()?.url || '')); });
     // hx-confirm and confirm() open native dialogs that block the page until answered: accept them and remember the text.
     page.on('dialog', (d) => { s.dialogs.push(d.message()); d.accept().catch(() => {}); });
@@ -226,9 +267,9 @@ export class Harness {
     for (const s of this.sessions) {
       try {
         const base = join(outDir, `${slug}.${i++}-${s.email.split('@')[0]}`);
-        await s.page.screenshot({ path: base + '.png', fullPage: true });
+        await s.page.screenshot({ path: base + '.png', fullPage: true }).catch(() => {}); // a crashed or closed page has none; the events below still get written
         const live = await s.page.evaluate(() => ({ dot: document.getElementById('live-dot-text')?.textContent, seq: document.getElementById('live-zones')?.dataset.seq, dialogs: [...document.querySelectorAll('[role=dialog]')].filter((d) => d.getBoundingClientRect().height).map((d) => d.innerText.slice(0, 80).replace(/\s+/g, ' ')), busy: !!document.querySelector('.htmx-request') })).catch(() => ({}));
-        writeFileSync(base + '.txt', `${s.page.url()}\n\nlive state: ${JSON.stringify(live)}\nlast requests (> sent, < answered):\n${s.reqs.join('\n')}\n\n${await s.text()}\n`);
+        writeFileSync(base + '.txt', `${s.page.url()}${s.page.isClosed() ? ' (page closed)' : ''}\n\npage events (crash, close, navigations, WebGL context loss):\n${s.events.join('\n') || '(none)'}\n\nlive state: ${JSON.stringify(live)}\nlast requests (> sent, < answered):\n${s.reqs.join('\n')}\n\n${await s.text().catch((e) => `(page text unreadable: ${e.message})`)}\n`);
       } catch {}
     }
     console.log(`        screenshots and page text: tests/e2e/out/${slug}.*`);

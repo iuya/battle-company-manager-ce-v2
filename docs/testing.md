@@ -24,7 +24,7 @@ Contents:
 | `make validate` | The four rules files: JSON Schemas, the Go validator on the Battle Companies file, the curator's checks, the glossary and the concept graph (below) |
 | `make check-ruleset FILE=…` | Checks a lean rules file like the upload does ([definitions.md](definitions.md#upload-validation)) |
 | `make fuzz [FUZZTIME=1m]` | Explores `FuzzParseDice` and `FuzzDecode` (their seed corpus already runs in `make test`) |
-| `make e2e` | Browser smoke tests (this page); `make e2e-groups` runs them group by group, `make e2e-check-groups` (part of `make test`) checks the grouping |
+| `make e2e` | Browser smoke tests (this page); `make e2e-groups` runs them group by group, `make e2e-check-groups` (part of `make test`) checks the grouping and the dice loops of the flows |
 | `make perf` | Page-load measurements at 0/100/300 ms of latency, not a test: see [performance.md](performance.md) |
 
 ## Tabletop Simulator helper (Lua tests)
@@ -170,8 +170,10 @@ On a failure, `tests/e2e/out/` gets a full-page screenshot (`<step>.<n>-<who>.pn
 The run never touches the development database or `:8080`:
 
 - It builds the server to `tests/e2e/out/bcm-e2e-server-<pid>` (one binary per run, removed at the end).
-- The demo world takes minutes to seed, so it is seeded once into a template database `bcm_e2e_tpl_<hash>` (the hash covers
-  `cmd/server`, the migrations and `definitions/`, so a change to any of them reseeds; `E2E_RESEED=1` forces it) and every run
+- The demo world takes minutes to seed, so it is seeded once into a template database `bcm_e2e_tpl_<hash>` (the hash, `templateKey()`
+  in `lib/env.mjs`, covers `cmd/server`, `internal/` without `internal/web` and the test files, `go.mod`, `go.sum` and `definitions/`
+  (the migrations are in `internal/`), because the world is written through the services of `internal/core` and the repositories of
+  `internal/postgres`; so a change to a rule, a default or the schema reseeds, and a change to a page does not; `E2E_RESEED=1` forces it) and every run
   creates `bcm_e2e_run_<pid>` from it with `CREATE DATABASE ... TEMPLATE`, so each run starts from the same fresh world. The hash
   uses paths relative to the repository, so a clone or worktree shares the template. Seeding and copying the template are
   serialised across runs by a lock directory (`$TMPDIR/bcm-e2e-prepare.lock`; a run that finds it waits, a lock older than
@@ -191,11 +193,16 @@ The run never touches the development database or `:8080`:
 
 A match flow is a chain, so one failing step makes the steps after it fail too. Read the first failure.
 
-The harness helps in three ways:
+The harness helps in four ways:
 
 1. It waits for the clicked box to hold still.
 2. It clicks again once when a button with `hx-get` or `hx-post` sent no request, and prints `(click ... sent no request, clicking again)` and a count in the summary.
-3. It writes into every failure dump the last 60 requests of the page with times, the live dot, `data-seq` and the open sheets.
+3. It writes into every failure dump the last 60 requests of the page with times, the live dot, `data-seq` and the open sheets, and
+   the page's events: a renderer crash, the page closing, the main frame's navigations and a lost WebGL context (`webglcontextlost`).
+   A dump is written even when the page is gone (no screenshot then).
+4. It warms the server once before the first step (`Harness.warm`: `/login` and every static file, including the lazily loaded
+   `dice3d.js` and the fonts), so the first-use caches are not inside a timed step; sessions wait up to 30 s for a navigation,
+   and a Chrome that fails to start is started once more.
 
 htmx wires a swapped-in fragment only when it settles, 20 ms after the swap.
 `static/js/htmx_ready.js` processes the fragment at once, and the step "a menu entry clicked the instant it is swapped in" in `40-match` holds that.
@@ -312,6 +319,27 @@ To reproduce the runner locally:
   The same `revealed` gate (`x-show="revealed"`) that hides that form is asserted on the recruit window.
   Other flows type their rolls so they do not wait for the animation.
 - A "cavalry-only rule applies" assertion. The cavalry check reads what the app strikes (the mount and the rules a mount gave), and the demo's Rohan company has no rule that only a mounted model has beyond those.
+
+### Dice in the flows
+
+Physical dice (the 3D tray) take 1.5 to 4 s on a quiet machine and were seen to take 12 s or more on a starved runner, so a flow never
+depends on how long or how a throw ends.
+
+- Every wait for dice uses `DICE_WAIT` (40 s, `lib/util.mjs`): `waitStopped(session, selector)` for a roll panel, the style guide demo,
+  a casualty card or the scenario card, and `rollNewScenario` / `waitRolledNewScenario` for the new-match card. `waitStopped` puts the
+  tray's state (rolling, stopped, dice, 3D or flat) and the time waited into its error.
+- There is no retry. The shipped rules place a scenario on all 36 pairs of dice (`TestScenarioByRollsUsesTheRealFile`), so the
+  "found no scenario" note cannot show and a flow asserts it does not; a second throw would only hide the first one's failure.
+- Prefer dice the flow decides: the style guide's "values decided beforehand" switch (`serverValues`) and the campaign "Settings: the
+  server rolls every die" read the number the server sent and compare it with what the tray reports. A dev-only server endpoint that
+  fixes the next roll is planned; its marker in a flow will be `diceSeed`.
+- The lint in `lib/groups.mjs` (`lintDiceLoops`, run by `make e2e-check-groups`, part of `make test`) fails on a `for`/`while` whose body
+  clicks a dice button (Roll again, Roll the scenario, Roll D3, the special chart, `rollNewScenario`, `throwDice`) without `serverValues`
+  or `diceSeed` in the loop. The few loops that are fine as they are are in `DICE_LOOP_ALLOWED`, each with its reason; an entry that
+  nothing needs any more is reported too. `lib/groups.test.mjs` tests the lint and the template key.
+- Keep playbacks few: one per distinct behaviour. `86-dice3d` plays 3 given-value throws in the style guide step (a lone die, a pair, four
+  dice in two lanes), 3 in the D3 step (two of one die, one of three dice; the cube's marks are asserted once per size of cube, not per
+  throw), then one live throw, instead of repeating a behaviour in each; a step stays far below the 90 s step limit.
 
 ### Writing steps
 

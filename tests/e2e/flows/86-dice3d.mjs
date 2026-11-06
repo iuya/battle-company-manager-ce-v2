@@ -2,7 +2,7 @@
 // WebGL through SwiftShader (the harness passes the flags), so the real 3D path runs. Server-rolled dice are random at run time,
 // so the checks compare what the server sent (data-roll) with what the animation reports and what the page then shows; the
 // style guide's dice demo takes values decided beforehand and is read through a spy on throwDice.
-import { assert, campaignId, layout, SIZES } from '../lib/util.mjs';
+import { assert, campaignId, layout, SIZES, DICE_WAIT, waitStopped } from '../lib/util.mjs';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const PANEL = '#modal-body [x-data="rollPanel"]';
@@ -24,8 +24,6 @@ export default async function (h) {
     const el = document.querySelector(sel), d = el && window.Alpine ? Alpine.$data(el) : null;
     return d ? { rolling: d.rolling, stopped: d.stopped, dice: [...d.dice], tray: d.tray ? (window.Dice3D && d.tray instanceof Dice3D.Tray ? '3d' : d.tray instanceof DiceTray ? '2d' : 'other') : null } : null;
   }, sel);
-  const waitStopped = (s, sel, ms = 25000) => s.page.waitForFunction((sel) => { const el = document.querySelector(sel); return el && Alpine.$data(el).stopped === true; }, { timeout: ms }, sel)
-    .catch(() => { throw new Error(`the dice did not stop within ${ms} ms`); });
   const script3d = (s) => s.page.evaluate(() => ({ tag: !!document.querySelector('script[src*="dice3d.js"]'), lib: typeof window.Dice3D }));
   // Samples, every animation frame, what a player could see of the roll window: the dice canvas and the parts that wait for the dice
   // (x-show="revealed": the result, the raise buttons, Confirm; the same gate hides the decision form of an aftermath roll).
@@ -110,7 +108,7 @@ export default async function (h) {
     const { t0 } = await recruitRoll(eowyn, campaign);
     await waitStopped(eowyn, PANEL);
     const took = Date.now() - t0;
-    assert.ok(took < 20000, `the animation ended (${took} ms)`);
+    assert.ok(took < DICE_WAIT,`the animation ended (${took} ms)`);
     assert.deepEqual(await script3d(eowyn), { tag: true, lib: 'object' }, 'the first roll loaded the 3D dice script');
     assert.equal(await eowyn.page.evaluate(() => Dice3D.supported()), true);
     await verifyRoll(eowyn, '3d');
@@ -160,7 +158,9 @@ export default async function (h) {
     await spy(demo);
     await demo.page.$eval('#sg-dice', (e) => e.scrollIntoView({ block: 'center' }));
     await demo.page.$eval(`${DEMO} input[type=checkbox][x-model="serverValues"]`, (e) => e.click());
-    for (const [n, lanes] of [[1, false], [2, false], [4, true], [4, false]]) {
+    // 1, 2 and 4 dice in two lanes: the three behaviours (a lone die, a pair, a split table). Four dice in one lane was a fourth playback of
+    // the pair's behaviour; 3 dice in one lane still play in the reduced-motion step below.
+    for (const [n, lanes] of [[1, false], [2, false], [4, true]]) {
       await demo.select('#sg-dice', n);
       const box = `${DEMO} input[type=checkbox][x-model="lanes"]`;
       if (await demo.page.$eval(box, (e) => e.checked) !== lanes) await demo.page.$eval(box, (e) => e.click());
@@ -241,16 +241,21 @@ export default async function (h) {
     }
   };
 
-  await h.step('dice: a D3 is a 3D cube marked 1, 1, 2, 2, 3, 3; a value decided beforehand is shown exactly, a live one reads 1 to 3', async () => {
+  // Two steps (each stays far under the 90 s step limit on a slow runner). The old step played six given D3 throws (1 die and 3 dice, three
+  // each) and asserted the cube's marks every time. What each repetition covered: a given value landing on top whatever the throw does (still
+  // 2 throws of one die and 1 of three dice here, plus the two Lesson Learned steps below that throw one D3 and compare it with the number
+  // the server sent), the marks 1,1,2,2,3,3 and equal opposite faces (one assertion per distinct cube count: 1 die in the Lesson Learned
+  // steps, 2 dice in the live throw, 3 dice here; the marks are fixed in the cube's model, not in the throw).
+  await h.step('dice: a D3 is a 3D cube marked 1, 1, 2, 2, 3, 3; a value decided beforehand is shown exactly', async () => {
     await demo.goto('/styleguide');
     await demo.page.waitForSelector(DEMO);
     await spy(demo);
     await demo.page.$eval('#sg-die', (e) => e.scrollIntoView({ block: 'center' }));
     await demo.select('#sg-die', 3);
     await demo.page.$eval(`${DEMO} input[type=checkbox][x-model="serverValues"]`, (e) => { if (!e.checked) e.click(); });
-    for (const n of [1, 3]) {
+    for (const [n, throws] of [[1, 2], [3, 1]]) {
       await demo.select('#sg-dice', n);
-      for (let k = 0; k < 3; k++) { // the wanted number must land on top whatever the throw does: a few throws
+      for (let k = 0; k < throws; k++) {
         await roll(demo);
         const t = await demo.page.evaluate(() => window.__throws.pop());
         const st = await state(demo, DEMO);
@@ -258,10 +263,13 @@ export default async function (h) {
         assert.ok(t.values.every((v) => v >= 1 && v <= 3), `a D3 shows 1 to 3 (${t.values})`);
         assert.equal(st.tray, '3d', 'a D3 is a 3D cube too');
         assert.deepEqual(st.dice, t.values, 'the cube stopped on the given numbers');
-        assertD3Marks(await d3Cube(demo, DEMO), n);
+        if (n === 3) assertD3Marks(await d3Cube(demo, DEMO), n);
         assert.equal(await resultText(demo), `Result: ${t.values.join(' + ')}`);
       }
     }
+  });
+
+  await h.step('dice: a live D3 throw (shaken once) reads 1 to 3 on a marked cube', async () => {
     await demo.page.$eval(`${DEMO} input[type=checkbox][x-model="serverValues"]`, (e) => { if (e.checked) e.click(); });
     await demo.select('#sg-dice', 2);
     await demo.click(`${DEMO} button`, '=Roll');
@@ -320,7 +328,7 @@ export default async function (h) {
       };
     }, ARTICLE);
     await thrower.click(`${ARTICLE} form[x-ref=bonusForm] button`, 'Roll D3');
-    await thrower.page.waitForFunction(() => window.__bonus.length === 1, { timeout: 25000 });
+    await thrower.page.waitForFunction(() => window.__bonus.length === 1, { timeout: DICE_WAIT });
     const thrown = await thrower.page.evaluate(() => window.__bonus[0]);
     assert.equal(thrown.tray, '3d');
     assert.deepEqual([thrown.sides, thrown.count, thrown.faces], [3, 1, 3]);
@@ -374,7 +382,7 @@ export default async function (h) {
     assert.equal(await pippin.page.$('#scenario-roll'), null, 'a normal page load has no roll text');
     await pippin.click('#scenario [data-roll-again]', '');
     const panel = '#scenario [data-roll-url]';
-    await pippin.page.waitForSelector('#scenario canvas.dice-tray', { visible: true, timeout: 15000 });
+    await pippin.page.waitForSelector('#scenario canvas.dice-tray', { visible: true, timeout: DICE_WAIT });
     const early = await pippin.page.evaluate((sel) => { const d = Alpine.$data(document.querySelector(sel)), r = document.querySelector('#scenario-roll'); return { stopped: d.stopped, shown: !!r && r.offsetParent !== null, text: r ? r.innerText : '' }; }, panel);
     assert.ok(early.stopped || !early.shown, `the roll text waits for the dice (${JSON.stringify(early)})`);
     assert.equal(await pippin.page.$eval(panel, (e) => e.dataset.animate), 'true', 'the server rolled: the card acts it out');
