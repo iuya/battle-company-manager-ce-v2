@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"compress/gzip"
+	"github.com/andybalholm/brotli"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -58,7 +59,7 @@ func TestStaticGzipForTextFilesOnly(t *testing.T) {
 	if plain.Header().Get("Content-Encoding") != "" || plain.Header().Get("Vary") != "Accept-Encoding" {
 		t.Errorf("no Accept-Encoding: %q vary %q", plain.Header().Get("Content-Encoding"), plain.Header().Get("Vary"))
 	}
-	gz := getStatic(f, "/static/app.css", map[string]string{"Accept-Encoding": "br, gzip;q=0.8"})
+	gz := getStatic(f, "/static/app.css", map[string]string{"Accept-Encoding": "gzip;q=0.8"})
 	if gz.Header().Get("Content-Encoding") != "gzip" {
 		t.Fatalf("gzip: %q", gz.Header().Get("Content-Encoding"))
 	}
@@ -78,6 +79,32 @@ func TestStaticGzipForTextFilesOnly(t *testing.T) {
 	}
 	if rec := getStatic(f, "/static/fonts/cormorant-garamond-latin-700.woff2", map[string]string{"Accept-Encoding": "gzip"}); rec.Header().Get("Content-Encoding") != "" || rec.Header().Get("Content-Type") != "font/woff2" {
 		t.Errorf("font: %q %q", rec.Header().Get("Content-Encoding"), rec.Header().Get("Content-Type"))
+	}
+}
+
+func TestStaticBrotliWhenAccepted(t *testing.T) {
+	f := newFixture(t, Config{})
+	plain := getStatic(f, "/static/app.css", nil)
+	gz := getStatic(f, "/static/app.css", map[string]string{"Accept-Encoding": "gzip"})
+	br := getStatic(f, "/static/app.css", map[string]string{"Accept-Encoding": "gzip, deflate, br"})
+	if br.Header().Get("Content-Encoding") != "br" {
+		t.Fatalf("br: %q", br.Header().Get("Content-Encoding"))
+	}
+	got, err := io.ReadAll(brotli.NewReader(bytes.NewReader(br.Body.Bytes())))
+	if err != nil || !bytes.Equal(got, plain.Body.Bytes()) {
+		t.Fatalf("brotli body differs: %v", err)
+	}
+	if br.Body.Len() >= gz.Body.Len() {
+		t.Errorf("brotli %d is not smaller than gzip %d", br.Body.Len(), gz.Body.Len())
+	}
+	if e := br.Header().Get("ETag"); e == gz.Header().Get("ETag") || e == plain.Header().Get("ETag") {
+		t.Errorf("the brotli body shares an ETag: %q", e)
+	}
+	if rec := getStatic(f, "/static/app.css", map[string]string{"Accept-Encoding": "br;q=0, gzip"}); rec.Header().Get("Content-Encoding") != "gzip" {
+		t.Errorf("br;q=0 refuses br: %q", rec.Header().Get("Content-Encoding"))
+	}
+	if rec := getStatic(f, "/static/fonts/cormorant-garamond-latin-700.woff2", map[string]string{"Accept-Encoding": "br"}); rec.Header().Get("Content-Encoding") != "" {
+		t.Error("a font is not compressed")
 	}
 }
 
