@@ -14,8 +14,8 @@ The design language and the page patterns are in [frontend.md](frontend.md).
 
 ## Recruiting
 
-The **Recruit** button above the units opens a window that stays open through the whole recruit:
-1. It shows the company's **reinforcement chart** and, if it has one, its **special chart** as a separate table, the
+The **Recruit** button above the units opens a window that stays open through the whole recruit (greyed when nothing can be recruited now, see [frontend-company.md](frontend-company.md#my-company-units)):
+1. It starts with the reason when no roll can be made (the price, or a full company). It shows the company's **reinforcement chart** and, if it has one, its **special chart** as a separate table, the
    company's own notes about reinforcements, and the price per roll (it differs per company: 2, 3 or 4). Companies with
    special units list them below, bought directly at their own cost (Moria's Cave Troll is 15).
 2. **Roll** (the player's own roll or "roll for me") pays the price, whatever the result, and shows it in the window with

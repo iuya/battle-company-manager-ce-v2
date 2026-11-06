@@ -473,6 +473,56 @@ type myCompanyView struct {
 	Live        *liveView  // the company is in an open match: its live state, zones and banner (nil otherwise)
 }
 
+// RecruitOff is why the Recruit button has nothing to offer now (no roll and no special unit can be paid for or fit), empty when it has.
+// A recruit in progress or waiting for the player is already paid for, so it never greys the button.
+func (v myCompanyView) RecruitOff() string {
+	if v.Pending != nil || v.Officers != nil || v.Recruiting != nil {
+		return ""
+	}
+	can, why := v.Company.CanRecruit(v.Company.Recruit.Cost)
+	if can {
+		return ""
+	}
+	for _, sp := range v.Company.Recruit.Special {
+		if ok, _ := v.Company.CanRecruit(sp.Cost); ok && sp.Blocked == "" {
+			return ""
+		}
+	}
+	return why
+}
+
+// companyWaiting is what the player can act on among the unit cards and the perks: how many of each, and the first unit of each kind.
+type companyWaiting struct {
+	LevelUps, Paths, Perks int
+	LevelUpAt, PathAt      int64
+}
+
+// Any says whether anything is waiting.
+func (c companyWaiting) Any() bool { return c.LevelUps+c.Paths+c.Perks > 0 }
+
+// Waiting sums up what the unit cards and the perks ask of the owner. A locked company has something else to do first (its banner says
+// what), so it waits for nothing here. A hero with no path offers its path, not its level-ups, as its card does.
+func (v myCompanyView) Waiting() companyWaiting {
+	var w companyWaiting
+	if v.ReadOnly || v.Live != nil || v.Company.OfficersPending || v.Company.LockMessage() != "" {
+		return w
+	}
+	for _, u := range v.Company.Roster {
+		switch {
+		case u.PathPending:
+			if w.Paths++; w.PathAt == 0 {
+				w.PathAt = u.ID
+			}
+		case u.PendingLevelUps() > 0:
+			if w.LevelUps += u.PendingLevelUps(); w.LevelUpAt == 0 {
+				w.LevelUpAt = u.ID
+			}
+		}
+	}
+	w.Perks = len(v.PerksUnused)
+	return w
+}
+
 // myCompanyPage renders the My Company tab for the company of the URL, optionally with a notice about what was just done.
 func (s *Server) myCompanyPage(w http.ResponseWriter, r *http.Request, status int, notice string, noticeErr bool) {
 	base, ok := s.loadOwn(w, r, "my-company")

@@ -559,7 +559,10 @@ type CompanyLimit struct {
 }
 
 // RoomForNew says whether a model that counts once against the limit can join the company.
-func (l CompanyLimit) RoomForNew() bool { return l.Used+1 <= l.Next }
+func (l CompanyLimit) RoomForNew() bool { return l.UsedWithNew() <= l.Next }
+
+// UsedWithNew is what the count would be with a model that counts once against the limit.
+func (l CompanyLimit) UsedWithNew() int { return l.Used + 1 }
 
 func (l CompanyLimit) Full() bool { return l.Used >= l.Max }
 

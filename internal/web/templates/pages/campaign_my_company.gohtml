@@ -39,6 +39,18 @@
 </section>
 {{end}}{{end}}
 
+{{/* What waits for the player among the cards and the perks of a long page; each link goes to the first of its kind. */}}
+{{$w := $.Waiting}}{{if $w.Any}}
+<nav class="alert alert-info mt-4 flex flex-wrap items-center gap-x-3 gap-y-2" aria-label="What is waiting for you" id="company-waiting">
+  <span class="font-medium">Waiting for you</span>
+  <span class="flex flex-wrap gap-2">
+    {{with $w.LevelUps}}<a class="btn btn-secondary !min-h-9" href="#unit-{{$w.LevelUpAt}}">{{.}} level-up{{if ne . 1}}s{{end}}</a>{{end}}
+    {{with $w.Paths}}<a class="btn btn-secondary !min-h-9" href="#unit-{{$w.PathAt}}">{{.}} path{{if ne . 1}}s{{end}} to choose</a>{{end}}
+    {{with $w.Perks}}<a class="btn btn-secondary !min-h-9" href="#perks">{{.}} unused perk{{if ne . 1}}s{{end}}</a>{{end}}
+  </span>
+</nav>
+{{end}}
+
 {{with $.Live}}{{template "live_banner" (dict "LV" . "CID" $.Campaign.ID "CO" $.Company.ID)}}
 {{/* Beside the banner, not in it (the sticky banner is a stacking context) and outside #live-zones, which the live refresh swaps: it stays open. */}}
 {{template "to_wound_dialog" (dict "CID" $.Campaign.ID)}}{{end}}
@@ -61,7 +73,7 @@
       <li{{if .Exempt}} class="has-tip" tabindex="0" data-tip-title="{{.Label}}" data-tip-meta="Limit" data-tip-text="The company has {{.Total}}: {{.Used}} count towards the limit of {{.Max}}, and {{.Exempt}} (the hatched segments) do not, because the company's rules leave them out."{{end}}>
         <p class="flex items-baseline justify-between gap-2 text-sm"><span>{{.Label}}</span><span class="whitespace-nowrap"><span class="font-semibold {{if .Full}}tone-draw{{end}}">{{.Used}} / {{.Max}}</span>{{if .Exempt}}<span class="text-xs text-muted"> · total {{.Total}}</span>{{end}}</span></p>
         <div class="xp-bar limit-bar mt-1" style="--seg: {{.Segments}}" role="img" aria-label="{{.Used}} of {{.Max}} used{{if .Exempt}}, and {{.Exempt}} more that do not count ({{.Total}} in all){{end}}"><div class="h-full {{if .Full}}bg-warn{{else}}bg-accent{{end}}" style="width: calc(100% * {{.Used}} / {{.Segments}})"></div>{{if .Exempt}}<div class="limit-exempt ml-auto h-full" style="width: calc(100% * {{.Exempt}} / {{.Segments}})"></div>{{end}}</div>
-        {{if not .RoomForNew}}<p class="mt-1 text-xs text-muted">No room for another such model: a new recruit counts too, and the maximum is {{.Next}} then.</p>{{end}}
+        {{if not .RoomForNew}}<p class="mt-1 text-xs text-muted">No room for a recruit of this kind: it would make {{.UsedWithNew}}, and with one more model the limit is {{.Next}}.</p>{{end}}
       </li>
       {{end}}
     </ul>
@@ -77,7 +89,9 @@
     </div>
     <div class="flex flex-wrap items-center gap-2">
     {{if and (not $.ReadOnly) (not $.Live)}}<button type="button" class="btn btn-secondary" x-show="!formation" @click="startFormation()">Change formation</button>
-    <button type="button" data-lock class="btn btn-primary" hx-get="{{$.OwnPath}}/recruit" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">{{if $.Pending}}Choose {{$.Pending.Unit}}'s options{{else}}Recruit · {{.Recruit.Cost}} influence{{end}}{{if $.Pending}}<span class="ml-2 inline-block h-2.5 w-2.5 rounded-full bg-warn" aria-hidden="true"></span>{{end}}</button>{{end}}
+    {{/* Greyed when nothing can be recruited now, but it still opens the window: its charts are worth reading, and it says why first. */}}
+    {{with $.RecruitOff}}<span id="recruit-off" class="sr-only">{{.}}</span>{{end}}
+    <button type="button" data-lock class="btn btn-primary" {{if $.RecruitOff}}data-off aria-disabled="true"{{if not .LockMessage}} aria-describedby="recruit-off"{{end}}{{end}} hx-get="{{$.OwnPath}}/recruit" hx-target="#modal-body" hx-swap="innerHTML" @click="openModal()">{{if $.Pending}}Choose {{$.Pending.Unit}}'s options{{else}}Recruit · {{.Recruit.Cost}} influence{{end}}{{if $.Pending}}<span class="ml-2 inline-block h-2.5 w-2.5 rounded-full bg-warn" aria-hidden="true"></span>{{end}}</button>{{end}}
     </div>
   </div>
   {{if not $.Live}}<p class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">

@@ -110,6 +110,8 @@
 
 {{else}}
 <section class="mt-5 space-y-3">
+  {{/* Why no roll can be made comes first: on a phone the charts below fill the window. */}}
+  {{with .Reason}}<p class="alert alert-info" role="status" id="recruit-reason">{{.}}</p>{{end}}
   <h3 class="!text-xl">Reinforcements <span class="text-sm font-normal text-muted">{{.Company.Recruit.Cost}} influence per roll</span></h3>
   {{template "recruit_table" (dict "Rows" .Company.Recruit.Chart "Live" false)}}
   {{if .Company.Recruit.SpecialChart}}
@@ -118,9 +120,7 @@
   {{end}}
   {{range .Company.Recruit.Notes}}<p class="text-sm text-muted">{{.}}</p>{{end}}
   <p class="text-sm text-muted">After you roll you may spend influence ({{.Company.Recruit.Rules.Adjust.CostPerPoint}} per point) to {{if eq .Company.Recruit.Rules.Adjust.Direction "up"}}raise{{else if eq .Company.Recruit.Rules.Adjust.Direction "down"}}lower{{else}}raise or lower{{end}} the die by 1 per point, up to {{.Company.Recruit.Rules.Adjust.Max}} in all, before you confirm. If the result cannot join the company you choose a lower one for free.</p>
-  {{if .Reason}}
-  <p class="alert alert-info" role="status">{{.Reason}}</p>
-  {{else}}
+  {{if not .Reason}}
   <canvas x-ref="canvas" class="dice-tray" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>
   {{template "recruit_roll_form" (dict "Campaign" .Campaign "Co" .Co "Sides" .Company.Recruit.Rules.Sides "Perk" .Company.Recruit.Rules.Rendezvous "Rendezvous" .Rendezvous "Label" (printf "Roll · %d influence" .Company.Recruit.Cost))}}
   {{end}}
