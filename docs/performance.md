@@ -76,6 +76,10 @@ What to keep when changing the code:
   Battle Companies file against, and with the duplicates it pins); a vanilla name is encoded for comparison only when it occurs twice; a field
   the entry does not have is not decoded (a missing key makes the decoder build and rewrite an error); the glossary sorts by keys worked
   out once per term; the lean binder builds a field's path only for the fields present.
+- **Compressing the static files is not part of the start.** `buildStaticFiles` reads and hashes the 52 embedded files (7 ms) and sets up the
+  gzip and brotli copies as once-values; `web.WarmStatic` makes the gzip copies in the background once the server listens (55 ms of CPU, 54 MB
+  allocated, `BenchmarkStaticGzip`) and a request that comes first makes the one it needs. The brotli copies stay on demand: level 11 for the
+  whole set is 2 s of CPU and 1.7 GB allocated, for browsers on HTTPS only.
 - **`encoding/json` against `encoding/json/v2`** (`BenchmarkJSON`, `internal/core/bench_json_test.go`, Go 1.27, median of 6). In Go 1.27
   `encoding/json` is a layer over v2, so the v1 API and v2 with `DefaultOptionsV1` run the same engine and measure the same (vanilla file
   decode 4.97 and 4.89 ms, glossary 0.72 and 0.72 ms). v2 with its own defaults decodes 20 to 25 % faster (vanilla 3.9 ms, glossary 0.54 ms,

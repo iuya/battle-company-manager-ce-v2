@@ -140,6 +140,7 @@ func run() error {
 	}()
 	errCh := make(chan error, 1)
 	go func() { errCh <- httpSrv.ListenAndServe() }()
+	web.WarmStatic() // the gzip copies of the static files are made now, in the background, and not before the server can answer
 	slog.Info("listening", "addr", httpSrv.Addr)
 
 	select {
