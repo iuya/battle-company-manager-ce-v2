@@ -75,6 +75,7 @@ Page names are those of the navigation: Overview, My company, Armoury, Rankings,
 | **Aftermath ward 3: no hero left to step up** | Sauron (Mordor), Gimli (Durin's Folk), Aragorn (Arnor), Galadriel (Lothlorien) | a Sergeant fell and the company has no hero: the Warrior with the most Experience (one clear choice), two Warriors tied (the player chooses), and a Leader who fell with both Sergeants (a Leader, then Sergeants, all from the Warriors); see [Aftermaths](#aftermaths) | the aftermath of each company in Match 1 |
 | **Aftermath ward 4: the questions of a recovery** | Éowyn (Rohan), Sauron (Mordor) | a hero's Full Recovery waits for the injury to heal, a Warrior's Lesson Learned for the die the player rolled; see [Aftermaths](#aftermaths) | the aftermath of the Riders in Match 2 |
 | **Aftermath ward 5: a bonus die the server rolls** | Éowyn (Rohan), Sauron (Mordor) | `ShakeTheTable` **off**, `ManualRolls` on: two Warriors' Lesson Learned wait for their D3; Roll D3 lets the server roll and the 3D die shows the number (ward 4 has the table shaken: the browser throws the D3) | the aftermath of the Riders |
+| **Aftermath ward 6: what the sheet asks** | Éowyn, Sauron, Aragorn, Galadriel, Gimli, Bilbo, Radagast, Pippin, Frodo | every state of the Sheet step, nothing saved; see [Aftermaths](#aftermaths) | the aftermath of each company, as its owner (a player) and as `you` or `admin@example.com` (who may change the bonuses and the result) |
 | **Settings: the server rolls every die** | Éowyn, Sauron, Pippin, Radagast | `ShakeTheTable` and `ManualRolls` **off**: roll panels have only a Roll button; the script fixed the server's dice, so the results never change. Pippin's and Radagast's companies have an **open match with no scenario yet**: Roll again there has the server roll and the card plays its numbers out on the 3D dice before it shows the scenario (flow `86-dice3d`; where Shake the table is on, as in Matches, the browser throws them, flow `84-match-extras`) | My company > recruit / level up; the aftermath of Match 1; Matches > the open match as `pippin` |
 | **Settings: heroes drop profile gear** | Aragorn | `HeroesDropProfileGear` **on** (a hero dropped an item its unit came with); the campaign is **paused**, Round 5 of 8 | Aragorn's Leader card; the Overview status |
 | **Settings: everything on, own paths level up** | Galadriel | all four settings on; `CustomOnTheirOwnPath`: the Wood Elf Sentinels are warriors that earn experience: one has two level-ups waiting, another rolled a 6 and became a hero on the "Path of Their Own Making" | My company |
@@ -250,6 +251,19 @@ The aftermath wards play the aftermaths for real.
   result; the match is open again.
 
 ### Aftermaths
+
+Ward 6 is the Sheet step, before anything is saved. Open a page from the organiser's match page or by its address: **Start aftermath** on a match page
+would start the ones with nothing to ask.
+
+| Match | Company (owner) | State |
+|---|---|---|
+| 1, Seize Ground | Riders who took a Tool Kit (Éowyn) | Against the Odds: **Influence and Tool Kit taken**: a player reads them, `you` and an administrator tick and untick them |
+| | Riders who hired a Wanderer (Sauron) | the higher company: **no block**, and "No casualties during the match, is this correct?" |
+| 2, Chance Encounter | Rangers who took nothing (Aragorn) | the gap paid for a bonus and **none was taken**: "No bonus taken." for a player, the control for `you` |
+| | Elves who hired a Wanderer (Galadriel) | the higher company: **no block**, not for the organiser either |
+| 3, Relic of Ages Past | Dwarves who forgot the Relic (Gimli) | level ratings: **no block**. The reasons "No casualties..." and "Choose who holds the Relic."; a player reads "The company holds the Relic." but not the match result |
+| | Hobbits who lost the Relic (Bilbo) | level ratings, nothing recorded |
+| 4, Hold the Line | Wargs with a tied vote (Radagast) | played live, a Warrior left the table: the only reason is "The MVP vote tied: choose the MVP." (Pippin and Frodo each voted a different unit) |
 
 Ward 1 (matches 1 to 4 of the campaign):
 

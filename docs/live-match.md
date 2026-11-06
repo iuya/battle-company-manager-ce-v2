@@ -203,7 +203,7 @@ At End match, and for the aftermath sheet built at its first read, the default `
 
 - `Outcome`: Field gives `survived`; Retreated gives `fled` (no injury roll); Field casualties give `casualty`.
 - `Gains`: `woundedEnemy`, `fatePrevented`, `brokenCourageTestPassed` from the flags, `slainHeroOrMonster` from the count, `objective` and `mvp` from the live log (the votes' tally); `participated` stays on.
-- The sheet shows the badge "From the live match" while it is the unsaved default; the player can change anything and saving the sheet never reads the log again. A match with no live data behaves as if there were no live mode.
+- The player can change anything and saving the sheet never reads the log again. A match with no live data behaves as if there were no live mode.
 - After the match ends the trackers disappear. Live state survives server restarts: all state is in PostgreSQL and the hub only notifies.
 
 ## Live sync for viewers

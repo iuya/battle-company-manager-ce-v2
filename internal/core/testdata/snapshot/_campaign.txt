@@ -120,6 +120,7 @@ aftermath
       Rating: 30
     - {Key: "wanderer", Name: "Wanderer", Text: "You may temporarily recruit a Wanderer for the match.", Rating: 45}
     - {Key: "ambush", Name: "Ambush!", Text: "You choose the scenario.", Rating: 60}
+  OddsInclusive: true
   Warrior:
     - {Min: 2, Max: 3, Key: "dead", Name: "Dead", Text: "Remove the Warrior, and all their wargear, from the Company Roster.", Kind: "dead"}
     -

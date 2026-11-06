@@ -434,22 +434,6 @@ func TestCreateMatchRefusedForABusyCompanyLinksToItsMatch(t *testing.T) {
 	}
 }
 
-func TestAftermathSheetFromTheLiveMatchCarriesTheBadge(t *testing.T) {
-	f := amFixture(t)
-	st := amState(core.AftermathPending, core.AftermathEdit)
-	st.FromLive = true
-	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(st, nil)
-	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
-	if !strings.Contains(body, "From the live match") {
-		t.Error("the prefilled sheet says where it comes from")
-	}
-	g := amFixture(t)
-	g.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(amState(core.AftermathPending, core.AftermathEdit), nil)
-	if body := g.do(g.signedIn(httpGet(amPath))).Body.String(); strings.Contains(body, "From the live match") {
-		t.Error("no badge for a sheet that is not from the live match")
-	}
-}
-
 // keywordRowOf is the compact keyword row of the first card in a page.
 func keywordRowOf(body string) string {
 	i := strings.Index(body, `aria-label="Keywords"`)

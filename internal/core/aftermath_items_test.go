@@ -452,8 +452,8 @@ func TestAftermathSheetIsPrefilledFromTheMatchSelection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !a.FromMatch || !slices.Equal(a.Input.AgainstTheOdds, []string{"influence", "experience"}) {
-		t.Fatalf("prefill: from=%v %v", a.FromMatch, a.Input.AgainstTheOdds)
+	if !slices.Equal(a.Input.AgainstTheOdds, []string{"influence", "experience", "toolKit", "wanderer"}) {
+		t.Fatalf("prefill: every bonus taken, also those with no effect here: %v", a.Input.AgainstTheOdds)
 	}
 	var odds bool
 	for _, l := range a.Preview.Influence {
@@ -462,19 +462,103 @@ func TestAftermathSheetIsPrefilledFromTheMatchSelection(t *testing.T) {
 	if !odds {
 		t.Errorf("the preview counts the bonus: %+v", a.Preview.Influence)
 	}
-	// the player changes it: the saved sheet wins and the badge goes
+	// an administrator changes it: the saved sheet wins
 	in := a.Input
 	in.AgainstTheOdds = nil
-	a, err = f.svc.SaveAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision, in)
-	if err != nil || a.FromMatch || len(a.Input.AgainstTheOdds) != 0 {
+	a, err = f.svc.SaveAftermath(f.ctx, f.admin(), 5, 1, 1, f.rec.Revision, in)
+	if err != nil || len(a.Input.AgainstTheOdds) != 0 {
 		t.Fatalf("saved: %+v %v", a.Input.AgainstTheOdds, err)
 	}
 	// the other company took them, not this one: nothing is prefilled
 	rec.CompanyID = 2
 	f2 := newAmFixture(t)
 	f2.withATO(t, rec)
-	if a, _ = f2.svc.Aftermath(f2.ctx, f2.owner(), 5, 1, 1); a.FromMatch || len(a.Input.AgainstTheOdds) != 0 {
+	if a, _ = f2.svc.Aftermath(f2.ctx, f2.owner(), 5, 1, 1); len(a.Input.AgainstTheOdds) != 0 {
 		t.Errorf("another company's selection: %+v", a.Input.AgainstTheOdds)
+	}
+}
+
+// A form never changes the bonuses of somebody who is neither the organiser nor an administrator: what the match recorded, or the saved sheet, stands.
+func TestOnlyManagersChangeTheBonusesOfTheSheet(t *testing.T) {
+	sheet := func(f *amFixture, odds ...string) AftermathInput {
+		a, err := f.svc.Aftermath(f.ctx, f.owner(), 5, 1, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		in := a.Input
+		in.AgainstTheOdds = odds
+		return in
+	}
+	taken := func() *ATORecord {
+		return &ATORecord{MatchID: 1, CompanyID: 1, Selection: ATOSelection{Bonuses: []string{"influence"}}}
+	}
+	t.Run("a player adds and removes nothing", func(t *testing.T) {
+		f := newAmFixture(t)
+		f.withATO(t, taken())
+		a, err := f.svc.SaveAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision, sheet(f, "experience", "reroll"))
+		if err != nil || !slices.Equal(a.Input.AgainstTheOdds, []string{"influence"}) {
+			t.Fatalf("forged add: %v %v", a.Input.AgainstTheOdds, err)
+		}
+		if a, err = f.svc.SaveAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision, sheet(f)); err != nil || !slices.Equal(a.Input.AgainstTheOdds, []string{"influence"}) {
+			t.Fatalf("forged removal: %v %v", a.Input.AgainstTheOdds, err)
+		}
+		if a.CanManage {
+			t.Error("the owner is not a manager")
+		}
+	})
+	t.Run("a player with no recorded bonus gets none", func(t *testing.T) {
+		f := newAmFixture(t)
+		a, err := f.svc.StartAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision, sheet(f, "reroll"))
+		if err != nil || len(a.Input.AgainstTheOdds) != 0 || a.Rerolls != 0 {
+			t.Fatalf("forged start: %v rerolls %d %v", a.Input.AgainstTheOdds, a.Rerolls, err)
+		}
+	})
+	t.Run("a player keeps what an administrator saved", func(t *testing.T) {
+		f := newAmFixture(t)
+		f.withATO(t, taken())
+		if _, err := f.svc.SaveAftermath(f.ctx, f.admin(), 5, 1, 1, f.rec.Revision, sheet(f, "experience")); err != nil {
+			t.Fatal(err)
+		}
+		a, err := f.svc.SaveAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision, sheet(f, "reroll"))
+		if err != nil || !slices.Equal(a.Input.AgainstTheOdds, []string{"experience"}) {
+			t.Fatalf("%v %v", a.Input.AgainstTheOdds, err)
+		}
+	})
+	t.Run("an administrator and the organiser change them", func(t *testing.T) {
+		for name, user := range map[string]User{"administrator": {ID: 98, Role: RoleAdmin}, "superuser": {ID: 98, Role: RoleSuperuser}, "organiser": {ID: amOrganiser}} {
+			f := newAmFixture(t)
+			a, err := f.svc.SaveAftermath(f.ctx, user, 5, 1, 1, f.rec.Revision, sheet(f, "reroll"))
+			if err != nil || !a.CanManage || !slices.Equal(a.Input.AgainstTheOdds, []string{"reroll"}) {
+				t.Errorf("%s: %v manage=%v %v", name, a.Input.AgainstTheOdds, a.CanManage, err)
+			}
+		}
+	})
+}
+
+func TestOddsAvailable(t *testing.T) {
+	rules := AftermathRules{OddsInclusive: true, Bonuses: []OddsBonus{{Key: "influence", Rating: 15}, {Key: "experience", Rating: 30}}}
+	match := func(a, b int) Match {
+		return Match{Sides: []MatchSide{{Companies: []CampaignCompany{{ID: 1, Points: a}}}, {Companies: []CampaignCompany{{ID: 2, Points: b}}}}}
+	}
+	for _, c := range []struct {
+		name string
+		m    Match
+		id   int64
+		want bool
+	}{
+		{"exactly the cheapest", match(100, 115), 1, true},
+		{"too small a gap", match(100, 114), 1, false},
+		{"the higher company", match(100, 115), 2, false},
+		{"equal", match(100, 100), 1, false},
+		{"more than two companies", Match{Sides: []MatchSide{{Companies: []CampaignCompany{{ID: 1}, {ID: 3}}}, {Companies: []CampaignCompany{{ID: 2, Points: 100}}}}}, 1, false},
+	} {
+		if got := OddsAvailable(c.m, c.id, rules); got != c.want {
+			t.Errorf("%s: %v", c.name, got)
+		}
+	}
+	rules.OddsInclusive = false
+	if OddsAvailable(match(100, 115), 1, rules) {
+		t.Error("an exclusive budget needs more than the price")
 	}
 }
 
@@ -492,9 +576,6 @@ func TestLoanedHealerKitItemsAreElectableAndSpent(t *testing.T) {
 	}
 	if !slices.Equal(a.ItemChoices[2], []string{"healingHerbs"}) || len(a.ItemChoices[6]) != 1 || a.ItemChoices[6][0] != "wondrousCram" {
 		t.Fatalf("choices: %v", a.ItemChoices)
-	}
-	if a.FromMatch {
-		t.Error("the Tool Kit has no aftermath bonus to prefill")
 	}
 	in := elect([]int64{6}, map[int64]string{2: "healingHerbs", 6: "wondrousCram"})
 	// Cirion's Cram is loaned: a casualty skips its roll, the Herbs add nothing to a roll nobody makes

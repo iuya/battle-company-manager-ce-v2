@@ -250,8 +250,7 @@ AftermathDefaults, Subscribe), `LiveHub` (`live_hub.go`), the web handlers in `i
 ### Aftermath prefill
 
 While the aftermath sheet has no saved input, `AftermathService` builds it from `LiveService.AftermathDefaults` (survived, fled or
-casualty, the experience flags and counts) and sets `Aftermath.FromLive`. Once the player saves, the saved input is used and the log is
-never read again; the "from the live match" badge shows only while the sheet is the unsaved default.
+casualty, the experience flags and counts). Once the player saves, the saved input is used and the log is never read again.
 
 ### Persistence (migrations 00014, 00016, 00021)
 
