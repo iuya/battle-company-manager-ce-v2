@@ -87,6 +87,11 @@ What to keep when changing the code:
   round trips (`kevent`, system calls and thread wake-ups, about half of the CPU samples, waiting included), garbage collection (about 30 %, mostly the roster decode in
   `internal/postgres` and the template buffers) and template execution.
 
+- **Compressing the static files is not part of the start.** `buildStaticFiles` reads and hashes the 52 embedded files (7 ms) and sets up the
+  gzip and brotli copies as once-values; `web.WarmStatic` makes the gzip copies in the background once the server listens (55 ms of CPU, 54 MB
+  allocated, `BenchmarkStaticGzip`) and a request that comes first makes the one it needs. The brotli copies stay on demand: level 11 for the
+  whole set is 2 s of CPU and 1.7 GB allocated, for browsers on HTTPS only.
+
 Two tools for comparing builds: `PAGES_DUMP=<dir>` makes `BenchmarkPages` write the body of every benchmarked page, and of the overview, matches
 and armoury page of every campaign, to `<dir>` (77 files); two builds are equal when `diff -r` of the two directories (static `?v=` hashes aside)
 is empty. `go test ./internal/core -run xxx -bench JSON -benchmem -count 6` repeats the JSON comparison.
