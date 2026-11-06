@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
@@ -101,8 +102,8 @@ func (r *Rulesets) store(ctx context.Context, kind RulesetKind, hash string, con
 
 // storeAgainst is store checking a Battle Companies file against the vanilla file and glossary given (the shipped ones, at the start)
 // instead of the defaults of the repository.
-func (r *Rulesets) storeAgainst(ctx context.Context, kind RulesetKind, hash string, content []byte, uploader int64, against *lowers) (RulesetInfo, error) {
-	p, err := r.prepare(ctx, kind, hash, content, against)
+func (r *Rulesets) storeAgainst(ctx context.Context, kind RulesetKind, hash string, content []byte, uploader int64, against func() *lowers) (RulesetInfo, error) {
+	p, err := r.prepareWith(ctx, kind, hash, content, against)
 	if err != nil {
 		return RulesetInfo{}, err
 	}
@@ -118,6 +119,20 @@ type prepared struct {
 
 // prepare runs every check of an upload (size, hash, kind, shape, schema or lean decode) without writing anything.
 func (r *Rulesets) prepare(ctx context.Context, kind RulesetKind, hash string, content []byte, against *lowers) (prepared, error) {
+	return r.prepareWith(ctx, kind, hash, content, func() *lowers { return against })
+}
+
+// againstOf calls a lazy against; none (nil) is the defaults of the repository.
+func againstOf(against func() *lowers) *lowers {
+	if against == nil {
+		return nil
+	}
+	return against()
+}
+
+// prepareWith is prepare with what the Battle Companies file is checked against given as a function, called only when the file is
+// not stored yet and has to be checked.
+func (r *Rulesets) prepareWith(ctx context.Context, kind RulesetKind, hash string, content []byte, against func() *lowers) (prepared, error) {
 	got, err := r.preflightHash(kind, content)
 	if err != nil {
 		return prepared{}, err
@@ -139,7 +154,7 @@ func (r *Rulesets) prepare(ctx context.Context, kind RulesetKind, hash string, c
 	case !errors.Is(err, ErrNotFound):
 		return prepared{}, err
 	}
-	if rep := r.validateFile(ctx, kind, content, against); rep.Errors() > 0 {
+	if rep := r.validateFile(ctx, kind, content, againstOf(against)); rep.Errors() > 0 {
 		return prepared{}, rep
 	}
 	compact, err := compactJSON(content)
@@ -515,13 +530,16 @@ func schemaPath(parts []string) string {
 // RegisterDefaults stores the files the app ships with and makes them the defaults of their kinds. Called at every start:
 // files already stored and already default are left alone.
 func (r *Rulesets) RegisterDefaults(ctx context.Context, vanilla, bc, glossary []byte) error {
-	// the Battle Companies file is checked against the shipped vanilla file and glossary, which are registered first
-	var against *lowers
-	if book, err := ParseVanilla(vanilla); err == nil {
-		if gl, err := BuildGlossary(RulesetInfo{Kind: KindGlossary}, glossary); err == nil {
-			against = &lowers{book, gl}
+	// the Battle Companies file is checked against the shipped vanilla file and glossary, which are registered first; they are read
+	// only when a file has to be checked, so a restart on a database that holds the files parses neither
+	against := sync.OnceValue(func() *lowers {
+		if book, err := ParseVanilla(vanilla); err == nil {
+			if gl, err := BuildGlossary(RulesetInfo{Kind: KindGlossary}, glossary); err == nil {
+				return &lowers{book, gl}
+			}
 		}
-	}
+		return nil
+	})
 	for _, d := range []struct {
 		kind    RulesetKind
 		content []byte
