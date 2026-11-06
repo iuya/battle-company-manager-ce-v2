@@ -91,6 +91,13 @@ What to keep when changing the code:
   round trips (`kevent`, system calls and thread wake-ups, about half of the CPU samples, waiting included), garbage collection (about 30 %, mostly the roster decode in
   `internal/postgres` and the template buffers) and template execution.
 
+- **The start builds one template set per page, not two.** `newRenderer` parses the layouts and partials once (`base`, never executed) and
+  clones it for every page. The set of a page for a viewer in another time zone (`pageIn`, `location.go`) is cloned and parsed on the first
+  request from that zone and kept, instead of a second, never executed copy of every page being built at the start (`BenchmarkNewRenderer`,
+  `go test ./internal/web -run xxx -bench NewRenderer -benchmem`). Parsing the pages side by side did not help: `Clone` holds the base's lock.
+  Nine tenths of the allocation left is `Template.Clone` copying the partials' parse trees for each page. The first request from another
+  zone costs about 0.5 ms more for the biggest page (`BenchmarkZoneSet`).
+
 Two tools for comparing builds: `PAGES_DUMP=<dir>` makes `BenchmarkPages` write the body of every benchmarked page, and of the overview, matches
 and armoury page of every campaign, to `<dir>` (77 files); two builds are equal when `diff -r` of the two directories (static `?v=` hashes aside)
 is empty. `go test ./internal/core -run xxx -bench JSON -benchmem -count 6` repeats the JSON comparison.

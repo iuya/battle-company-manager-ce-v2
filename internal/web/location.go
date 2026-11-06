@@ -82,8 +82,8 @@ func timeFuncs(loc *time.Location) template.FuncMap {
 	}
 }
 
-// pageIn is the template set of a page with its times shown in loc. Sets are cloned from a pristine one (a template that has been
-// executed cannot be cloned) and kept; the cache is emptied when it grows past maxLocationSets, so a visitor who sends many zone names
+// pageIn is the template set of a page with its times shown in loc. Sets are built from the layouts and partials, which are never executed (a
+// template that has been executed cannot be cloned), and kept; the cache is emptied when it grows past maxLocationSets, so a visitor who sends many zone names
 // cannot grow memory without bound.
 const maxLocationSets = 64
 
@@ -103,7 +103,10 @@ func (r *renderer) pageIn(name string, loc *time.Location) (*template.Template, 
 	if c, ok := r.loc.sets[key]; ok {
 		return c, true
 	}
-	clone, err := r.pristine[name].Clone()
+	clone, err := r.base.Clone() // the layouts and partials plus this page's file: what newRenderer built the page's own set from
+	if err == nil {
+		_, err = clone.ParseFS(assets, r.files[name])
+	}
 	if err != nil {
 		return t, true
 	}
