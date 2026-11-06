@@ -137,43 +137,38 @@ document.addEventListener('alpine:init', () => {
     // The form field of the i-th roll (1-based): roll, roll2, roll3 ... (read back by the server).
     field(i) { return this.$refs.rollForm.elements[i === 1 ? 'roll' : 'roll' + i]; },
     sum(v, from, n) { return v.slice(from, from + n).reduce((a, b) => a + b, 0); },
+    // Throws the dice in the browser (the options of throwDice) and, when they stop, lets `fill` write the result into the form, marks it thrown and submits it.
+    throwAndSubmit(form, opts, fill, thrown = form.elements.thrown) {
+      this.throwDice({ ...opts, canShake: true, then: v => { fill(v); thrown.value = '1'; form.requestSubmit(); } });
+    },
     // A level-up thrown in the browser: a warrior throws its dice, a hero one set for each result the rules ask for (one lane each);
     // the sum of each set is sent as the roll.
     throwLevel() {
-      const hero = this.$root.dataset.hero === 'true', form = this.$refs.rollForm, n = this.perLane, lanes = hero ? this.lanes : 1;
-      this.throwDice({ count: n * lanes, sides: this.sides, groups: lanes > 1 ? Array(lanes).fill(n) : null, labels: Array.from({ length: lanes }, (_, k) => ['First roll', 'Second roll'][k] || 'Roll ' + (k + 1)), canShake: true, then: v => {
+      const hero = this.$root.dataset.hero === 'true', n = this.perLane, lanes = hero ? this.lanes : 1;
+      this.throwAndSubmit(this.$refs.rollForm, { count: n * lanes, sides: this.sides, groups: lanes > 1 ? Array(lanes).fill(n) : null, labels: Array.from({ length: lanes }, (_, k) => ['First roll', 'Second roll'][k] || 'Roll ' + (k + 1)) }, v => {
         for (let k = 0; k < lanes; k++) this.field(k + 1).value = String(this.sum(v, k * n, n));
-        form.elements.thrown.value = '1';
-        form.requestSubmit();
-      } });
+      });
     },
     // A casualty's injury roll thrown in the browser, sent as the player's own dice (one field each).
     throwCasualty() {
-      const form = this.$refs.rollForm;
-      this.throwDice({ count: this.perLane, sides: this.sides, canShake: true, then: v => {
+      this.throwAndSubmit(this.$refs.rollForm, { count: this.perLane, sides: this.sides }, v => {
         v.forEach((n, k) => { this.field(k + 1).value = String(n); });
-        form.elements.thrown.value = '1';
-        form.requestSubmit();
-      } });
+      });
     },
     // The bonus die of a casualty's result (Lesson Learned: a D3) thrown in the browser; its faces and count come from the rules file via the form. The reading is sent as the answer.
     throwBonus() {
       const form = this.$refs.bonusForm, answer = this.$refs.bonusAnswer;
-      this.throwDice({ count: Number(form.dataset.count) || 1, sides: Number(form.dataset.sides) || 6, canShake: true, then: v => {
+      this.throwAndSubmit(form, { count: Number(form.dataset.count) || 1, sides: Number(form.dataset.sides) || 6 }, v => {
         answer.value = String(this.sum(v, 0, v.length)); answer.disabled = false;
-        form.elements.thrown.value = '1';
-        form.requestSubmit();
-      } });
+      });
     },
     // The scenario roll of the picker thrown in the browser: two dice in two lanes, sent as the player's own roll.
     throwScenario() {
       const form = this.$refs.rollForm;
-      this.throwDice({ count: 2, sides: this.sides, groups: [1, 1], labels: ['Table', 'Scenario'], canShake: true, then: v => {
+      this.throwAndSubmit(form, { count: 2, sides: this.sides, groups: [1, 1], labels: ['Table', 'Scenario'] }, v => {
         form.elements.roll.value = String(v[0]);
         form.elements.roll2.value = String(v[1]);
-        form.elements.thrown.value = '1';
-        form.requestSubmit();
-      } });
+      });
     },
     // A scenario card's roll thrown in the browser (Shake the table; the new match form's and the match page's): the two dice are sent to the card's
     // roll URL (data-roll-url), which answers the card into data-roll-target (default the new match card); data-revision, where set, goes with them.
@@ -193,11 +188,9 @@ document.addEventListener('alpine:init', () => {
     get final() { return Math.min(this.sides, Math.max(1, this.roll + this.adjust)); },
     // The browser throws the dice (Shake the table is on) and reports the result as the player's own roll.
     throwHere() {
-      this.throwDice({ count: this.perLane, sides: this.sides, canShake: true, then: v => {
+      this.throwAndSubmit(this.$refs.rollForm, { count: this.perLane, sides: this.sides }, v => {
         this.$refs.own.value = String(this.sum(v, 0, v.length));
-        this.$refs.thrown.value = '1';
-        this.$refs.rollForm.requestSubmit();
-      } });
+      }, this.$refs.thrown);
     },
   }));
 
