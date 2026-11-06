@@ -63,6 +63,32 @@ export default async function (h) {
   });
   if (!mid) return;
 
+  await h.step('scenario dice (Shake the table on): Roll again throws the 3D dice in the browser and the scenario shows when they stop; 360/768/1280 px in light and dark', async () => {
+    await you.goto(`/campaigns/${cid}/matches/${mid}`);
+    assert.equal(await you.page.$('#scenario-roll'), null, 'a normal page load has no roll text');
+    await you.click('main [data-change-scenario]', '');
+    for (let tries = 0; tries < 6; tries++) { // a pair the rules file places no scenario on is refused: throw again
+      await you.click('#scenario [data-roll-again]', '');
+      await you.page.waitForSelector('#scenario canvas.dice-tray', { visible: true, timeout: 15000 });
+      await you.page.waitForFunction(() => /Rolled \d+ \(table \d\) and \d+|place no scenario/.test(document.querySelector('#scenario').innerText), { timeout: 30000 });
+      if (await you.page.$('#scenario-roll')) break;
+      await you.click('main [data-change-scenario]', '').catch(() => {});
+    }
+    assert.match(await you.page.$eval('#scenario-roll', (e) => e.innerText), /Rolled \d+ \(table \d\) and \d+/, 'the thrown dice are shown');
+    assert.equal(await you.page.$eval('#scenario [data-roll-url]', (e) => e.dataset.animate), 'false', 'a thrown roll is not played out again');
+    assert.ok(await you.page.$('#scenario p.font-medium'), 'the scenario is set');
+    for (const scheme of ['light', 'dark']) {
+      for (const width of SIZES) {
+        await layout(you, width, scheme);
+        assert.ok(await you.noHScroll(), `${width} ${scheme}: no horizontal scroll`);
+        await you.page.$eval('#scenario', (e) => e.scrollIntoView());
+        await you.page.screenshot({ path: `out/match-scenario-dice-${width}-${scheme}.png` });
+      }
+    }
+    await layout(you, 1280, 'light');
+    await chooseScenario(you, 'Fog of War');
+  });
+
   await h.step('secret objectives: a Fog of War match has no card for them, the rules still print how it is scored', async () => {
     await eowyn.goto(`/campaigns/${cid}/matches/${mid}`);
     assert.equal(await eowyn.page.$('#secret-objectives'), null, 'no secret objectives card');

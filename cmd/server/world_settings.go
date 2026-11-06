@@ -48,6 +48,11 @@ func (w *world) settingsCampaigns() {
 	w.settle(or, m, in, map[int64][3]int{l.ID: {3, 4, 1}, ows[0].ID: {2, 3, 1}}, true)
 	w.show(or)
 
+	// an open match with no scenario yet: Roll again on the match page plays the server's dice (Shake the table is off)
+	pi := w.company(srv, "pippin", "Pony riders who trust the server", "The Shire", true)
+	ra := w.company(srv, "radagast", "Wargs who trust the server", "Mirkwood", true)
+	w.newMatch(srv, []*wco{pi}, []*wco{ra})
+
 	// heroes may drop the gear of their profile
 	drop := w.campaign("you", "Settings: heroes drop profile gear",
 		"HeroesDropProfileGear is on: a hero can drop the equipment its unit profile came with (see the Equipment card of a hero).",
