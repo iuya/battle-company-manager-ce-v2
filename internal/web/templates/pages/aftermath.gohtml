@@ -442,7 +442,7 @@
 {{define "aftermath_sheet_readonly"}}
 <div class="mt-3 space-y-3">
   {{template "aftermath_result" .}}
-  {{if .A.Input.AgainstTheOdds}}<p class="text-sm"><span class="font-medium">Against the Odds:</span> {{range $i, $k := .A.Input.AgainstTheOdds}}{{if $i}}, {{end}}{{range $.Rules.Bonuses}}{{if eq .Key $k}}{{.Name}}{{end}}{{end}}{{end}}</p>{{end}}
+  {{with .OddsTaken}}<p class="text-sm"><span class="font-medium">Against the Odds:</span> {{.}}</p>{{end}}
   <ul class="divide-y divide-line">
     {{range .Units}}
     <li class="space-y-1 py-2">
@@ -473,10 +473,10 @@
   {{if .Rules.Bonuses}}{{$anyTaken := false}}{{range .Rules.Bonuses}}{{if $.A.Input.Taken .Key}}{{$anyTaken = true}}{{end}}{{end}}
   <fieldset class="min-w-0 space-y-2" id="aftermath-ato">
     <legend class="text-lg font-semibold font-heading">Against the Odds{{if .A.FromMatch}} <span class="badge badge-gold align-middle" title="Ticked from what the company took on the match page; change anything that is not right">From the match</span>{{end}}</legend>
-    {{range .Rules.Bonuses}}{{if $.A.Input.Taken .Key}}{{template "aftermath_odds" (dict "B" . "On" true)}}{{end}}{{end}}
+    {{range .Rules.Bonuses}}{{if $.A.Input.Taken .Key}}{{template "aftermath_odds" (dict "B" . "N" ($.A.Input.TakenCount .Key))}}{{end}}{{end}}
     {{if not $anyTaken}}<p class="text-sm text-muted">No bonus taken.</p>{{end}}
     <details class="text-sm"><summary class="flex min-h-11 cursor-pointer items-center font-medium">+ add a bonus</summary>
-      <div class="space-y-2">{{range .Rules.Bonuses}}{{if not ($.A.Input.Taken .Key)}}{{template "aftermath_odds" (dict "B" . "On" false)}}{{end}}{{end}}</div>
+      <div class="space-y-2">{{range .Rules.Bonuses}}{{if not ($.A.Input.Taken .Key)}}{{template "aftermath_odds" (dict "B" . "N" 0)}}{{end}}{{end}}</div>
     </details>
   </fieldset>
   {{end}}
@@ -569,10 +569,22 @@
 </div>
 {{end}}
 
-{{/* One Against the Odds bonus of the sheet. Takes {B: the bonus rule, On: ticked}. */}}
+{{/* One Against the Odds bonus of the sheet, as on the card of the match page: one that repeats counts presses, as the Slain milestone. Takes {B: the bonus rule, N: how many were taken}. */}}
 {{define "aftermath_odds"}}{{$b := .B}}
+{{if $b.Repeatable}}
+<div class="ato-row text-sm" x-data="{ n: {{.N}} }" :class="n > 0 ? 'ato-row-taken' : 'ato-row-open'" data-odds-row="{{$b.Key}}">
+  <template x-for="i in n" :key="i"><input type="hidden" name="odds" value="{{$b.Key}}"></template>
+  <button type="button" class="ato-press" aria-label="{{$b.Name}}: one more" @click="n++; $nextTick(() => $dispatch('change'))" data-odds-add="{{$b.Key}}">
+    <span class="min-w-0 flex-1"><span class="font-medium">{{$b.Name}}</span><span class="block text-muted">{{if $b.Effective}}{{$b.Text}}{{else}}No effect on the aftermath.{{end}}</span></span>
+    <span class="ato-price">{{$b.Rating}} each</span>
+  </button>
+  <span class="milestone-count" x-show="n > 0" x-cloak x-text="n" data-odds-count="{{$b.Key}}">{{.N}}</span>
+  <button type="button" class="milestone-less" aria-label="{{$b.Name}}: one fewer" x-show="n > 0" x-cloak @click="n--; $nextTick(() => $dispatch('change'))" data-odds-less="{{$b.Key}}">−</button>
+</div>
+{{else}}
 <label class="flex min-h-11 items-start gap-3 rounded-md border border-line px-3 py-2 text-sm">
-  <input type="checkbox" name="odds" value="{{$b.Key}}" class="mt-0.5 h-5 w-5 accent-[var(--accent)]" {{if .On}}checked{{end}}>
+  <input type="checkbox" name="odds" value="{{$b.Key}}" class="mt-0.5 h-5 w-5 accent-[var(--accent)]" {{if .N}}checked{{end}}>
   <span><span class="font-medium">{{$b.Name}}</span> <span class="text-muted">(rating {{$b.Rating}})</span><br><span class="text-muted">{{if $b.Effective}}{{$b.Text}}{{else}}No effect on the aftermath.{{end}}</span></span>
 </label>
+{{end}}
 {{end}}

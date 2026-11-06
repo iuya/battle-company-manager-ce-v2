@@ -25,13 +25,15 @@ type ATOEligible struct {
 	RatingBeforeBonuses bool   `json:"ratingBeforeBonuses,omitempty"`
 }
 
-// ATOBonus is one Against the Odds bonus. The keys influence, experience and reroll are plain switches (gains, count); toolKit (kits, purchase),
-// wanderer and ambush are structured bonuses the app has its own windows for.
+// ATOBonus is one Against the Odds bonus. The keys influence, experience and reroll are plain bonuses (gains, count); toolKit (kits, purchase),
+// wanderer and ambush are structured bonuses the app has its own windows for. Repeatable says it can be bought again while the budget lasts; a
+// repeatable wanderer is one purchase per different Wanderer. The toolKit's purchases are in Purchase.
 type ATOBonus struct {
 	Key         string      `json:"key" required:"true" min:"1"`
 	Name        string      `json:"name" required:"true" min:"1"`
 	Text        string      `json:"text,omitempty"`
 	Rating      int         `json:"rating" required:"true" min:"0" max:"1000"`
+	Repeatable  bool        `json:"repeatable,omitempty"`
 	AppliesIn   []string    `json:"appliesIn,omitempty" enum:"setup|game|aftermath|scenarioChoice" noun:"phase"`
 	Gains       ATOGains    `json:"gains,omitempty"`
 	Count       int         `json:"count,omitempty" min:"1" max:"20"`

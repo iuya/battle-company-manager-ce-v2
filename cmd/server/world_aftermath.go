@@ -102,7 +102,7 @@ func (w *world) aftermathWardOne() {
 	set(&in, s[0].ID, core.OutcomeCasualty, nil)
 	set(&in, ws[0].ID, core.OutcomeCasualty, nil)
 	set(&in, ws[1].ID, core.OutcomeFled, nil)
-	in.AgainstTheOdds = []string{"influence"}
+	in.AgainstTheOdds = []string{"influence", "influence"}
 	w.saveSheet(mordor, m1, in)
 
 	// match 2: a hero's Scratch waits for the player; a Leader falls and the company must name a successor
@@ -178,7 +178,7 @@ func (w *world) aftermathWardTwo() {
 	w.settle(rohan, m1, in, map[int64][3]int{ws[0].ID: {4, 3, 1}}, true)
 	in = w.sheet(mordor)
 	_, s, ws := w.roster(mordor)
-	in.AgainstTheOdds = []string{"influence", "experience", "reroll"}
+	in.AgainstTheOdds = []string{"influence", "influence", "experience", "reroll"}
 	set(&in, s[0].ID, core.OutcomeCasualty, nil)
 	set(&in, ws[0].ID, core.OutcomeCasualty, nil)
 	a := w.settle(mordor, m1, in, map[int64][3]int{s[0].ID: {1, 2, 1}, ws[0].ID: {2, 1, 1}}, false) // arm wound and dead: re-rolls left to spend

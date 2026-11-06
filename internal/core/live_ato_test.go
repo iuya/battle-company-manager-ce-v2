@@ -90,7 +90,10 @@ func TestLoanedItemsAndTheirUse(t *testing.T) {
 }
 
 func TestTemporaryWandererIsAUnitOfTheFold(t *testing.T) {
-	id := TemporaryUnitID(1)
+	id := TemporaryUnitID(1, 0)
+	if TemporaryUnitID(1, 1) == id || TemporaryUnitID(1, 1) >= 0 || TemporaryUnitID(2, 0) == id {
+		t.Fatal("one id per Wanderer and company")
+	}
 	if id >= 0 {
 		t.Fatal("never a roster id")
 	}
@@ -139,20 +142,20 @@ func TestLiveOverlaysTheAgainstTheOddsRecord(t *testing.T) {
 	rec := &ATORecord{}
 	f, _ := newATOLiveFixture(t, rec)
 	before, err := f.svc.Live(f.ctx, f.user(liveOwner1), 5, 1)
-	if err != nil || before.Wanderer != nil {
-		t.Fatalf("without a record: %+v %v", before.Wanderer, err)
+	if err != nil || len(before.Wanderers) != 0 {
+		t.Fatalf("without a record: %+v %v", before.Wanderers, err)
 	}
 	hero := before.Units[0].UnitID
 	wand := realATO(t).Wanderers[0]
 	// the player saves the selection after the live state was first read: it shows at once
-	*rec = ATORecord{MatchID: 1, CompanyID: 1, Selection: ATOSelection{Bonuses: []string{"toolKit", "wanderer"}, Kits: []string{"raider", "healer"}, Wanderer: wand.Name,
+	*rec = ATORecord{MatchID: 1, CompanyID: 1, Selection: ATOSelection{Bonuses: []string{"toolKit", "wanderer"}, Kits: []string{"raider", "healer"}, Wanderers: []string{wand.Name},
 		Items: []KitAssignment{{Kit: "raider", Item: "Dwarven Brew", UnitID: hero}, {Kit: "healer", Item: "Healing Herbs", UnitID: hero}, {Kit: "raider", Item: "Torching Brand", Index: 2}}}}
 	lc, err := f.svc.Live(f.ctx, f.user(liveOwner1), 5, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if lc.Wanderer == nil || lc.Wanderer.UnitID != -1 || lc.Wanderer.Name != wand.Name || lc.Wanderer.Rating != 45 || lc.Wanderer.Courage != wand.Courage {
-		t.Fatalf("wanderer: %+v", lc.Wanderer)
+	if len(lc.Wanderers) != 1 || lc.Wanderers[0].UnitID != -1 || lc.Wanderers[0].Name != wand.Name || lc.Wanderers[0].Rating != 45 || lc.Wanderers[0].Courage != wand.Courage {
+		t.Fatalf("wanderer: %+v", lc.Wanderers)
 	}
 	var temp, carrier LiveUnit
 	for _, u := range lc.Units {
@@ -174,7 +177,7 @@ func TestLiveOverlaysTheAgainstTheOddsRecord(t *testing.T) {
 		t.Errorf("the Wanderer is a model for the Break Point: %d vs %d", lc.Break.StartingModels, before.Break.StartingModels)
 	}
 	// the opposing company sees the Wanderer too (table information), but it belongs to the first
-	if o, _ := f.svc.Live(f.ctx, f.user(liveOwner2), 5, 2); o.Wanderer != nil {
+	if o, _ := f.svc.Live(f.ctx, f.user(liveOwner2), 5, 2); len(o.Wanderers) != 0 {
 		t.Error("the other company has no Wanderer")
 	}
 	// item used: logged, struck through, undone
@@ -209,8 +212,8 @@ func TestLiveOverlaysTheAgainstTheOddsRecord(t *testing.T) {
 	}
 	// the record goes away (selection cleared): the Wanderer and the items are gone
 	*rec = ATORecord{}
-	if lc, _ = f.svc.Live(f.ctx, f.user(liveOwner1), 5, 1); lc.Wanderer != nil || len(unitOf(lc, hero).Loaned) != 0 {
-		t.Errorf("no overlay without a record: %+v", lc.Wanderer)
+	if lc, _ = f.svc.Live(f.ctx, f.user(liveOwner1), 5, 1); len(lc.Wanderers) != 0 || len(unitOf(lc, hero).Loaned) != 0 {
+		t.Errorf("no overlay without a record: %+v", lc.Wanderers)
 	}
 }
 

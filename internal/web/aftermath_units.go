@@ -1,7 +1,9 @@
 package web
 
 import (
+	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 )
@@ -193,4 +195,18 @@ func (v aftermathView) UnitResults() []unitResult {
 			Foot: v.Foot(u), Milestones: v.resultMilestones(u, core.ModelSheet{UnitID: u.ID})})
 	}
 	return out
+}
+
+// OddsTaken names the Against the Odds bonuses of the sheet, with how many of each: "Influence x3, Reroll".
+func (v aftermathView) OddsTaken() string {
+	var parts []string
+	for _, b := range v.Rules.Bonuses {
+		switch n := v.A.Input.TakenCount(b.Key); {
+		case n > 1:
+			parts = append(parts, fmt.Sprintf("%s x%d", b.Name, n))
+		case n == 1:
+			parts = append(parts, b.Name)
+		}
+	}
+	return strings.Join(parts, ", ")
 }

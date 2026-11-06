@@ -98,6 +98,7 @@ aftermath
       Name: "Influence"
       Text: "+2 Influence for Victory, +1 for Draw or Defeat."
       Rating: 15
+      Repeatable: true
       InfluenceWin: 2
       InfluenceOther: 1
     -
@@ -105,6 +106,7 @@ aftermath
       Name: "Experience"
       Text: "+2 Experience per model for Victory, +1 per model for Draw or Defeat."
       Rating: 30
+      Repeatable: true
       ExperienceWin: 2
       ExperienceOther: 1
     -
@@ -112,13 +114,18 @@ aftermath
       Name: "Reroll"
       Text: "Two rerolls that each can be used at any point during the game to re-roll a single die or the War's Aftermath for a single result."
       Rating: 15
+      Repeatable: true
       Rerolls: 2
     -
       Key: "toolKit"
       Name: "Tool Kit"
       Text: "You may only have one of each Kit, but their items may be distributed to any members and ignore all capacity / alignment rules."
       Rating: 30
-    - {Key: "wanderer", Name: "Wanderer", Text: "You may temporarily recruit a Wanderer for the match.", Rating: 45}
+    -
+      Key: "wanderer"
+      Name: "Wanderer"
+      Text: "You may temporarily recruit Wanderers for the match, each one different and each one paid for."
+      Rating: 45
     - {Key: "ambush", Name: "Ambush!", Text: "You choose the scenario.", Rating: 60}
   Warrior:
     - {Min: 2, Max: 3, Key: "dead", Name: "Dead", Text: "Remove the Warrior, and all their wargear, from the Company Roster.", Kind: "dead"}
@@ -853,18 +860,26 @@ options
 ato
   Inclusive: true
   Bonuses:
-    - {Key: "influence", Name: "Influence", Text: "+2 Influence for Victory, +1 for Draw or Defeat.", Rating: 15, AppliesIn: ["aftermath"]}
+    -
+      Key: "influence"
+      Name: "Influence"
+      Text: "+2 Influence for Victory, +1 for Draw or Defeat."
+      Rating: 15
+      Repeatable: true
+      AppliesIn: ["aftermath"]
     -
       Key: "experience"
       Name: "Experience"
       Text: "+2 Experience per model for Victory, +1 per model for Draw or Defeat."
       Rating: 30
+      Repeatable: true
       AppliesIn: ["aftermath"]
     -
       Key: "reroll"
       Name: "Reroll"
       Text: "Two rerolls that each can be used at any point during the game to re-roll a single die or the War's Aftermath for a single result."
       Rating: 15
+      Repeatable: true
       AppliesIn: ["game", "aftermath"]
     -
       Key: "toolKit"
@@ -872,7 +887,13 @@ ato
       Text: "You may only have one of each Kit, but their items may be distributed to any members and ignore all capacity / alignment rules."
       Rating: 30
       AppliesIn: ["setup", "game", "aftermath"]
-    - {Key: "wanderer", Name: "Wanderer", Text: "You may temporarily recruit a Wanderer for the match.", Rating: 45, AppliesIn: ["setup", "game"]}
+    -
+      Key: "wanderer"
+      Name: "Wanderer"
+      Text: "You may temporarily recruit Wanderers for the match, each one different and each one paid for."
+      Rating: 45
+      Repeatable: true
+      AppliesIn: ["setup", "game"]
     - {Key: "ambush", Name: "Ambush!", Text: "You choose the scenario.", Rating: 60, AppliesIn: ["scenarioChoice"]}
   Kits:
     -

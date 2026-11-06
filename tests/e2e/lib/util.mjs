@@ -81,10 +81,21 @@ export async function confirmEnd(s, matchPath, { mvp = 0 } = {}) {
   await s.settle(600);
 }
 
-// Confirms Against the Odds without bonuses when the match page offers it to this viewer (docs/matches.md, "Against the Odds before the
-// game"): nothing can be noted and the match cannot end until it is decided. It does nothing on a match with nothing to decide. The session must be on the match page.
+// Confirms Against the Odds when the match page offers it to this viewer (docs/matches.md, "Against the Odds before the game"), taking what still
+// fits until nothing does: nothing can be noted and the match cannot end until it is decided. It does nothing on a match with nothing to decide.
+// The session must be on the match page.
 export async function decideATO(s) {
   if (!(await s.page.$('#ato [data-ato-confirm]'))) return;
+  for (let i = 0; i < 40 && (await s.page.$eval('#ato [data-ato-confirm]', (b) => b.disabled)); i++) {
+    const pressed = await s.page.evaluate(() => {
+      const free = (css) => [...document.querySelectorAll(css)].find((e) => !e.disabled && !e.checked && e.offsetParent !== null);
+      const next = free('#ato [data-ato-add]') || free('#ato input[name=kit]') || free('#ato input[name=wanderer]') || free('#ato input[name=bonus][value=toolKit]') || free('#ato input[name=bonus][value=wanderer]');
+      next?.click();
+      return !!next;
+    });
+    if (!pressed) break;
+    await s.settle(50);
+  }
   await s.click('#ato [data-ato-confirm]', '');
   await s.waitText('Against the Odds confirmed.');
 }

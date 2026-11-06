@@ -269,8 +269,12 @@ var permActions = []permAction{
 		_, _, err := f.c().Apply(f.ctx, a, f.camp.id, f.match.ID, f.a.id, core.LiveAction{Kind: core.LiveStatChange, UnitID: f.leaderOf(f.a.id), Stat: "wounds", Delta: -1})
 		return err
 	}, allow: [3]permRole{roleOwner | managers, roleOwner | managers, 0}, roleMsg: "Only the owner of", stateMsg: [3]string{"", "", msgFinished}},
-	{name: "SaveAgainstTheOdds (clear)", fixture: permOpen, prep: (*permFx).strengthenOther, run: func(f *permFx, a core.User) error {
-		_, err := f.c().SaveAgainstTheOdds(f.ctx, a, f.camp.id, f.match.ID, f.rev(), core.ATOSelection{})
+	{name: "SaveAgainstTheOdds (complete)", fixture: permOpen, prep: (*permFx).strengthenOther, run: func(f *permFx, a core.User) error {
+		card, err := f.c().AgainstTheOdds(f.ctx, a, f.camp.id, f.match.ID)
+		if err != nil {
+			return err
+		}
+		_, err = f.c().SaveAgainstTheOdds(f.ctx, a, f.camp.id, f.match.ID, f.rev(), atoFill(card, f.match, core.ATOSelection{}))
 		return err
 	}, allow: [3]permRole{roleOwner | managers, roleOwner | managers, 0}, roleMsg: "Only the owner of", stateMsg: [3]string{"", "", msgFinished}, repeatable: true},
 

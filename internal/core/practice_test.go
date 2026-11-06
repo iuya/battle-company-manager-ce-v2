@@ -127,7 +127,7 @@ func TestAgainstTheOddsRewardBonusesAreDisabledInAPracticeMatch(t *testing.T) {
 	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, ATOSelection{Bonuses: []string{"reroll"}}); !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), ATOPracticeReason) {
 		t.Errorf("a reward bonus cannot be newly taken: %v", err)
 	}
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, ATOSelection{Bonuses: []string{"toolKit"}, Kits: []string{"healer"}}); err != nil {
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, f.filled(t, ATOSelection{Bonuses: []string{"toolKit"}, Kits: []string{"healer"}})); err != nil {
 		t.Errorf("a kit is a table effect: %v", err)
 	}
 	// a selection made before stays as entered, with the reason shown

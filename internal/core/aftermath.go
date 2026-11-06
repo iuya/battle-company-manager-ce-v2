@@ -72,8 +72,9 @@ type XPGain struct {
 type OddsBonus struct {
 	Key, Name, Text                string
 	Rating                         int
-	InfluenceWin, InfluenceOther   int // Influence for a Win / otherwise
-	ExperienceWin, ExperienceOther int // Experience per model for a Win / otherwise
+	Repeatable                     bool // it can be taken several times: each one pays again
+	InfluenceWin, InfluenceOther   int  // Influence for a Win / otherwise
+	ExperienceWin, ExperienceOther int  // Experience per model for a Win / otherwise
 	Rerolls                        int
 }
 
@@ -201,7 +202,7 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 		rules.Gains = append(rules.Gains, XPGain{Key: g.Key, Label: g.Label, Amount: g.Amount, Repeatable: g.Repeatable})
 	}
 	for _, b := range c.AgainstTheOdds.Bonuses {
-		ob := OddsBonus{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, Rerolls: b.Count}
+		ob := OddsBonus{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, Repeatable: b.Repeatable && b.Rating > 0 && b.Key != atoWanderer, Rerolls: b.Count}
 		if g := b.Gains.Influence; g != nil {
 			ob.InfluenceWin, ob.InfluenceOther = g.Win, g.Other
 		}
@@ -377,6 +378,37 @@ func (in AftermathInput) Model(unitID int64) (ModelSheet, bool) {
 // Taken says whether the company took the Against the Odds bonus.
 func (in AftermathInput) Taken(key string) bool { return slices.Contains(in.AgainstTheOdds, key) }
 
+// TakenCount is how many times the company took the Against the Odds bonus.
+func (in AftermathInput) TakenCount(key string) int {
+	n := 0
+	for _, k := range in.AgainstTheOdds {
+		if k == key {
+			n++
+		}
+	}
+	return n
+}
+
+// oddsLines gives each Against the Odds bonus of the sheet once, in order, with how many times it was taken.
+func (in AftermathInput) oddsLines(rules AftermathRules, yield func(b OddsBonus, n int)) {
+	done := map[string]bool{}
+	for _, key := range in.AgainstTheOdds {
+		if !done[key] {
+			done[key] = true
+			b, _ := rules.Bonus(key)
+			yield(b, in.TakenCount(key))
+		}
+	}
+}
+
+// oddsLineText names an Against the Odds bonus on a line of the results: "Against the Odds: Influence x3".
+func oddsLineText(b OddsBonus, n int) string {
+	if n > 1 {
+		return fmt.Sprintf("Against the Odds: %s x%d", b.Name, n)
+	}
+	return "Against the Odds: " + b.Name
+}
+
 // Absent says whether a unit misses this game: it is not on the sheet, recovers when the aftermath starts and earns nothing.
 func Absent(u CompanyUnit) bool { return u.Injured }
 
@@ -487,9 +519,9 @@ func (in AftermathInput) ValidateWith(roster []CompanyUnit, loaned []LoanedItem,
 	errs = append(errs, validateItems(out, roster, loaned, rules)...)
 	seen := map[string]bool{}
 	for _, key := range in.AgainstTheOdds {
-		if _, ok := rules.Bonus(key); !ok {
+		if b, ok := rules.Bonus(key); !ok {
 			bad("%q is not an Against the Odds bonus", key)
-		} else if !seen[key] {
+		} else if !seen[key] || b.Repeatable {
 			seen[key] = true
 			out.AgainstTheOdds = append(out.AgainstTheOdds, key)
 		}
@@ -649,16 +681,15 @@ func Experience(ctx AftermathContext, in AftermathInput) []UnitGain {
 					g.Lines = append(g.Lines, AmountLine{Text: gain.Label, Amount: n * gain.Amount, UnitID: m.UnitID, Key: gain.Key})
 				}
 			}
-			for _, key := range in.AgainstTheOdds {
-				b, _ := ctx.Rules.Bonus(key)
+			in.oddsLines(ctx.Rules, func(b OddsBonus, n int) {
 				amount := b.ExperienceOther
 				if ctx.Outcome == "win" {
 					amount = b.ExperienceWin
 				}
 				if amount != 0 {
-					g.Lines = append(g.Lines, AmountLine{Text: "Against the Odds: " + b.Name, Amount: amount, UnitID: m.UnitID, Key: "odds:" + b.Key})
+					g.Lines = append(g.Lines, AmountLine{Text: oddsLineText(b, n), Amount: n * amount, UnitID: m.UnitID, Key: "odds:" + b.Key})
 				}
-			}
+			})
 			for _, r := range rewards {
 				if r.Kind == "experience" && r.UnitID == m.UnitID {
 					g.Lines = append(g.Lines, AmountLine{Text: r.Name, Amount: r.Amount, UnitID: m.UnitID, Key: r.Key})
@@ -684,16 +715,15 @@ func Influence(ctx AftermathContext, in AftermathInput) []AmountLine {
 	case "draw":
 		lines = append(lines, AmountLine{Text: "Draw", Amount: ctx.Rules.Draw, Key: "draw"})
 	}
-	for _, key := range in.AgainstTheOdds {
-		b, _ := ctx.Rules.Bonus(key)
+	in.oddsLines(ctx.Rules, func(b OddsBonus, n int) {
 		amount := b.InfluenceOther
 		if ctx.Outcome == "win" {
 			amount = b.InfluenceWin
 		}
 		if amount != 0 {
-			lines = append(lines, AmountLine{Text: "Against the Odds: " + b.Name, Amount: amount, Key: "odds:" + b.Key})
+			lines = append(lines, AmountLine{Text: oddsLineText(b, n), Amount: n * amount, Key: "odds:" + b.Key})
 		}
-	}
+	})
 	for _, r := range Rewards(ctx, in) {
 		if r.Kind == "influence" {
 			lines = append(lines, AmountLine{Text: r.Name, Amount: r.Amount, Key: r.Key})

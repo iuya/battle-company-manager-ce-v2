@@ -63,9 +63,14 @@ func (v atoView) HardReason(o core.ATOOption) string {
 }
 
 // ToolKitRating is the Rating of one kit.
-func (v atoView) ToolKitRating() int {
+func (v atoView) ToolKitRating() int { return v.optionRating("toolKit") }
+
+// WandererRating is the Rating of one Wanderer.
+func (v atoView) WandererRating() int { return v.optionRating("wanderer") }
+
+func (v atoView) optionRating(key string) int {
 	for _, o := range v.Options {
-		if o.Key == "toolKit" {
+		if o.Key == key {
 			return o.Rating
 		}
 	}
@@ -74,12 +79,19 @@ func (v atoView) ToolKitRating() int {
 
 // State is what the form's Alpine component starts with.
 func (v atoView) State() string {
-	ratings, names := map[string]int{}, map[string]string{}
-	for _, o := range v.Options {
-		ratings[o.Key], names[o.Key] = o.Rating, o.Name
+	type option struct {
+		Key        string `json:"key"`
+		Name       string `json:"name"`
+		Rating     int    `json:"rating"`
+		Repeatable bool   `json:"repeatable"`
+		Closed     bool   `json:"closed"` // nothing more of it can be bought, whatever the budget
 	}
-	st := map[string]any{"gap": v.Gap, "ratings": ratings, "names": names, "bonus": nonNil(v.Selection.Bonuses), "kits": nonNil(v.Selection.Kits),
-		"wanderer": v.Selection.Wanderer, "ambush": v.Selection.Ambush}
+	opts := make([]option, 0, len(v.Options))
+	for _, o := range v.Options {
+		opts = append(opts, option{o.Key, o.Name, o.Rating, o.Repeatable, o.NoMore || v.HardReason(o) != ""})
+	}
+	st := map[string]any{"gap": v.Gap, "inclusive": v.Inclusive, "opts": opts, "maxKits": v.MaxKits, "maxWanderers": v.MaxWanderers, "ambushOk": len(v.Groups) > 0,
+		"bonus": nonNil(v.Selection.Bonuses), "kits": nonNil(v.Selection.Kits), "wanderers": nonNil(v.Selection.Wanderers), "ambush": v.Selection.Ambush}
 	b, _ := json.Marshal(st)
 	return string(b)
 }
@@ -155,11 +167,15 @@ func (v atoView) Summary() string {
 			}
 			parts = append(parts, o.Name+" ("+strings.Join(kits, ", ")+")")
 		case "wanderer":
-			parts = append(parts, o.Name+" ("+v.Selection.Wanderer+")")
+			parts = append(parts, o.Name+" ("+strings.Join(v.Selection.Wanderers, ", ")+")")
 		case "ambush":
 			parts = append(parts, o.Name+" (scenario: "+v.Selection.Ambush+")")
 		default:
-			parts = append(parts, o.Name)
+			if n := v.Selection.Count(o.Key); n > 1 {
+				parts = append(parts, fmt.Sprintf("%s x%d", o.Name, n))
+			} else {
+				parts = append(parts, o.Name)
+			}
 		}
 	}
 	if len(parts) == 0 {
@@ -223,7 +239,7 @@ func selectionFromForm(r *http.Request, a core.ATO) core.ATOSelection {
 		}
 	}
 	if sel.Has("wanderer") {
-		sel.Wanderer = r.PostFormValue("wanderer")
+		sel.Wanderers = slices.Clone(r.PostForm["wanderer"])
 	}
 	if sel.Has("ambush") {
 		sel.Ambush = r.PostFormValue("ambush")

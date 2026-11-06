@@ -53,11 +53,11 @@ func TestTheGameWaitsForTheLowerRatedPlayer(t *testing.T) {
 	}
 
 	// the lower rated owner confirms, whoever created the match
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, ATOSelection{}); err != nil {
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, f.filled(t, ATOSelection{})); err != nil {
 		t.Fatal(err)
 	}
 	if !f.match.ATODecided || blocks(t, f) != "" {
-		t.Errorf("playing without bonuses is a decision: %+v", f.match.ATODecided)
+		t.Errorf("the decision frees the game: %+v", f.match.ATODecided)
 	}
 	if c := f.card(t, 20); c.Pending || !c.Decided {
 		t.Errorf("the rival's card: %+v", c)
@@ -66,7 +66,7 @@ func TestTheGameWaitsForTheLowerRatedPlayer(t *testing.T) {
 
 func TestTheOrganiserCanConfirmForTheLowerRatedPlayer(t *testing.T) {
 	f := gateFixture(t)
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: matchOrganiser}, 5, 1, 3, ATOSelection{Bonuses: []string{"reroll"}}); err != nil {
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: matchOrganiser}, 5, 1, 3, f.filled(t, ATOSelection{Bonuses: []string{"reroll"}})); err != nil {
 		t.Fatal(err)
 	}
 	if !f.match.ATODecided || !f.rec.Selection.Has("reroll") {
@@ -79,7 +79,7 @@ func TestTheOrganiserCanConfirmForTheLowerRatedPlayer(t *testing.T) {
 
 func TestChangeReopensTheDecisionUntilTheGameStarts(t *testing.T) {
 	f := gateFixture(t)
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, ATOSelection{Bonuses: []string{"reroll"}}); err != nil {
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, f.filled(t, ATOSelection{Bonuses: []string{"reroll"}})); err != nil {
 		t.Fatal(err)
 	}
 	for name, tc := range map[string]struct {
@@ -147,7 +147,7 @@ func TestAPracticeMatchFollowsTheSameRules(t *testing.T) {
 	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, ATOSelection{Bonuses: []string{"reroll"}}); !errors.Is(err, ErrRefused) {
 		t.Errorf("no reward bonus in practice: %v", err)
 	}
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, ATOSelection{}); err != nil || blocks(t, f) != "" {
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, f.filled(t, ATOSelection{})); err != nil || blocks(t, f) != "" {
 		t.Errorf("confirmed: %v", err)
 	}
 }
@@ -170,7 +170,7 @@ func TestAPAyableGap(t *testing.T) {
 			t.Errorf("%s: %v", tc.name, got)
 		}
 	}
-	only := ATORules{Inclusive: true, Bonuses: []ATOBonusRule{{Key: atoWanderer, Rating: 45}}}
+	only := ATORules{Inclusive: true, Bonuses: []ATOBonusRule{{Key: atoWanderer, Rating: 45}}, Wanderers: []ATOWandererRule{{Name: "Sage"}}}
 	if atoPayable(only, 60, false, true) || !atoPayable(only, 60, false, false) {
 		t.Error("a company with a Wanderer cannot take another")
 	}
@@ -181,7 +181,7 @@ func TestAPAyableGap(t *testing.T) {
 
 func TestChangingTheScenarioReopensTheDecision(t *testing.T) {
 	f := gateFixture(t)
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, ATOSelection{}); err != nil {
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, f.filled(t, ATOSelection{})); err != nil {
 		t.Fatal(err)
 	}
 	// the same one again changes nothing
@@ -208,7 +208,7 @@ func TestChangingTheScenarioReopensTheDecision(t *testing.T) {
 func TestAmbushFixesTheScenarioToTheCard(t *testing.T) {
 	f := gateFixture(t)
 	other := mustScenarios(t, f)[0].Name
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, ATOSelection{Bonuses: []string{"ambush"}, Ambush: other}); err != nil {
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, f.filled(t, ATOSelection{Bonuses: []string{"ambush"}, Ambush: other})); err != nil {
 		t.Fatal(err)
 	}
 	before := f.match.Revision

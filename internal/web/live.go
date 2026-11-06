@@ -232,9 +232,9 @@ func (s *Server) liveFor(r *http.Request, base campaignBase, detail core.Company
 			v.Field = append(v.Field, card)
 		}
 	}
-	if lc.Wanderer != nil { // the temporary Wanderer of Against the Odds is in no roster: its card comes from the selection
-		if l, in := live[lc.Wanderer.UnitID]; in {
-			card := liveCard{U: unitViews(core.Glossary{}, []core.CompanyUnit{temporaryUnit(lc.Wanderer)})[0], L: l}
+	for _, w := range lc.Wanderers { // the temporary Wanderers of Against the Odds are in no roster: their cards come from the selection
+		if l, in := live[w.UnitID]; in {
+			card := liveCard{U: unitViews(core.Glossary{}, []core.CompanyUnit{temporaryUnit(w)})[0], L: l}
 			switch l.Zone {
 			case core.ZoneRetreated:
 				v.Retreated = append(v.Retreated, card)
@@ -342,4 +342,10 @@ func strikeMountGear(u unitView) unitView {
 // xpAhead is how much of the experience earned in the match fits in the unit's current level: the rest of the bar at most.
 func xpAhead(inLevel, every, match int) int {
 	return max(0, min(match, every-inLevel))
+}
+
+// TemporarySummary is the one-line profile of a temporary Wanderer of the company, empty for any other unit.
+func (v liveView) TemporarySummary(unitID int64) string {
+	w, _ := v.TemporaryWanderer(unitID)
+	return w.Summary
 }
