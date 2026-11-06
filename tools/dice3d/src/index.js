@@ -26,7 +26,27 @@ const PIPS = { 1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]]
 // The faces of a die in the order of BoxGeometry (+x, -x, +y, -y, +z, -z) and their normals; opposite faces add up to 7.
 const NORMALS = [new Vector3(1, 0, 0), new Vector3(-1, 0, 0), new Vector3(0, 1, 0), new Vector3(0, -1, 0), new Vector3(0, 0, 1), new Vector3(0, 0, -1)];
 const BASE_LABELS = [1, 6, 2, 5, 3, 4];
+// A D3 is a cube marked 1, 1, 2, 2, 3, 3 with opposite faces equal (one number per axis), like the commercial D3.
+const BASE_LABELS_D3 = [1, 1, 2, 2, 3, 3];
 const opposite = i => i ^ 1;
+const baseLabels = faces => (faces === 3 ? BASE_LABELS_D3 : BASE_LABELS).slice();
+// The labels of a die in which the face index shows `want`. A D6 swaps the wanted face with the one that is up (and their opposites,
+// to keep opposite faces adding up to 7); a D3 swaps the numbers of the two axes involved, so that opposite faces stay equal.
+function relabel(labels, index, want, faces) {
+  if (labels[index] === want) return labels;
+  if (faces === 3) {
+    const g = labels.findIndex(v => v === want), a = index & ~1, b = g & ~1, t = labels[a];
+    labels[a] = labels[a + 1] = labels[b]; labels[b] = labels[b + 1] = t;
+    return labels;
+  }
+  const g = labels.indexOf(want);
+  if (g === opposite(index)) { [labels[index], labels[g]] = [labels[g], labels[index]]; }
+  else {
+    [labels[index], labels[g]] = [labels[g], labels[index]];
+    [labels[opposite(index)], labels[opposite(g)]] = [labels[opposite(g)], labels[opposite(index)]];
+  }
+  return labels;
+}
 const reducedMotion = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // One renderer per canvas: a canvas keeps its WebGL context, so a second throw on it reuses everything but the dice.
@@ -104,6 +124,7 @@ class Dice3DTray {
     this.canvas = canvas;
     this.groups = opts.groups && opts.groups.length ? opts.groups : [opts.count || 1];
     this.labels = opts.labels || [];
+    this.faces = opts.faces === 3 ? 3 : 6; // the numbers on the cube: 6 (1-6) or 3 (1, 1, 2, 2, 3, 3)
     this.count = this.groups.reduce((a, b) => a + b, 0);
     this.laneOf = this.groups.flatMap((n, lane) => Array(n).fill(lane));
     this.values = opts.values || null;
@@ -189,10 +210,10 @@ class Dice3DTray {
       body.velocity.set(rand(12, 17), rand(-1, 2), rand(-1.8, 1.8));
       body.angularVelocity.set(rand(-18, 18), rand(-18, 18), rand(-18, 18));
       world.addBody(body);
-      const mesh = new Mesh(geometry(), BASE_LABELS.map(v => st.material(v)));
+      const mesh = new Mesh(geometry(), baseLabels(this.faces).map(v => st.material(v)));
       mesh.castShadow = true;
       st.scene.add(mesh); st.dice.push(mesh);
-      this.bodies.push(body); this.meshes.push(mesh); this.faceLabels.push(BASE_LABELS.slice());
+      this.bodies.push(body); this.meshes.push(mesh); this.faceLabels.push(baseLabels(this.faces));
     }
     this.sync();
   }
@@ -243,15 +264,7 @@ class Dice3DTray {
     const last = frames[frames.length - 1];
     this.bodies.forEach((b, i) => { // relabel so that the face that came up shows the wanted number
       const { index } = this.upFace({ x: last[i].q[0], y: last[i].q[1], z: last[i].q[2], w: last[i].q[3] });
-      const labels = BASE_LABELS.slice(), want = this.values[i];
-      if (labels[index] !== want) {
-        const g = labels.indexOf(want);
-        if (g === opposite(index)) { [labels[index], labels[g]] = [labels[g], labels[index]]; }
-        else {
-          [labels[index], labels[g]] = [labels[g], labels[index]];
-          [labels[opposite(index)], labels[opposite(g)]] = [labels[opposite(g)], labels[opposite(index)]];
-        }
-      }
+      const labels = relabel(baseLabels(this.faces), index, this.values[i], this.faces);
       this.faceLabels[i] = labels;
       this.meshes[i].material = labels.map(v => this.stage.material(v));
     });
@@ -313,7 +326,7 @@ class Dice3DTray {
       if (stacked.length && this.elapsed < 12) { // a die lying on another one is knocked off
         for (const b of stacked) { b.wakeUp(); b.velocity.set(rand(-3, 3), 6, rand(-1.2, 1.2)); b.angularVelocity.set(rand(-10, 10), rand(-10, 10), rand(-10, 10)); }
         this.elapsed = Math.min(this.elapsed, 1.5);
-      } else if (ups.every(u => u.dot > 0.95) || this.elapsed > 12) { this.finish(ups.map(u => BASE_LABELS[u.index])); return; }
+      } else if (ups.every(u => u.dot > 0.95) || this.elapsed > 12) { this.finish(ups.map(u => baseLabels(this.faces)[u.index])); return; }
     }
     this.raf = requestAnimationFrame(t => this.tick(t));
   }
@@ -337,15 +350,11 @@ class Dice3DTray {
   finishNow() { // reduced motion: the dice lie in a row, showing their numbers
     const LANE_D = laneDepth(this.groups.length), lane = i => this.laneOf[i], depth = this.groups.length * LANE_D;
     const inLane = this.laneOf.map((l, i) => this.laneOf.slice(0, i).filter(x => x === l).length);
-    const values = this.bodies.map((_, i) => (this.values && this.values[i]) || 1 + Math.floor(Math.random() * 6));
+    const values = this.bodies.map((_, i) => (this.values && this.values[i]) || 1 + Math.floor(Math.random() * this.faces));
     this.bodies.forEach((b, i) => {
       b.position.set(-TABLE_W / 2 + 1.6 + inLane[i] * 1.4, 0.5, -depth / 2 + (lane(i) + 0.5) * LANE_D);
       b.quaternion.setFromEuler(0, rand(0, 6.28), 0); // face +y is up: it shows BASE_LABELS[2]
-      const labels = BASE_LABELS.slice(), g = labels.indexOf(values[i]);
-      if (g !== 2) {
-        if (g === opposite(2)) [labels[2], labels[g]] = [labels[g], labels[2]];
-        else { [labels[2], labels[g]] = [labels[g], labels[2]]; [labels[opposite(2)], labels[opposite(g)]] = [labels[opposite(g)], labels[opposite(2)]]; }
-      }
+      const labels = relabel(baseLabels(this.faces), 2, values[i], this.faces);
       this.meshes[i].material = labels.map(v => this.stage.material(v));
     });
     this.sync();

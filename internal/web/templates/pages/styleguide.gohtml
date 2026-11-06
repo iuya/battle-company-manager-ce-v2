@@ -218,10 +218,11 @@
 
   <section class="space-y-3" x-data="diceDemo" @keydown.space.window="onSpace($event)">
     <h2>Dice</h2>
-    <p class="text-sm text-muted">Any number of D6, in 3D. A roll the server decided is shown rolling to its value and cannot be changed; where "Shake the table" is on and the browser decides, the space bar jolts the table while the dice roll.</p>
+    <p class="text-sm text-muted">Any number of D6 or D3, in 3D. A D3 is a cube marked 1, 1, 2, 2, 3, 3 with opposite faces equal. A roll the server decided is shown rolling to its value and cannot be changed; where "Shake the table" is on and the browser decides, the space bar jolts the table while the dice roll.</p>
     <canvas x-ref="canvas" class="dice-tray" aria-label="Dice tray"></canvas>
     <div class="flex flex-wrap items-end gap-3">
       <div class="field"><label for="sg-dice">Dice</label><select id="sg-dice" class="input w-24" x-model.number="count"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+      <div class="field"><label for="sg-die">Die</label><select id="sg-die" class="input w-24" x-model.number="sides"><option value="6">D6</option><option value="3">D3</option></select></div>
       <label class="flex items-center gap-2 text-sm"><input type="checkbox" x-model="canShakeDemo"> Shake with space</label>
       <label class="flex items-center gap-2 text-sm"><input type="checkbox" x-model="serverValues"> Value decided beforehand (cannot be shaken)</label>
       <label class="flex items-center gap-2 text-sm"><input type="checkbox" x-model="lanes"> Two rolls in two lanes</label>

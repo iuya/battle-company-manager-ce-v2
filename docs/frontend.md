@@ -284,8 +284,11 @@ The dice are 3D: `static/js/dice3d.js` (three.js draws them, cannon-es rolls the
 pages never pay for it; where WebGL or the file is missing, `static/js/dice.js` falls back to its flat 2D tray. **The number and the
 faces of the dice come from the rules file** ([definitions.md](definitions.md)), never from a template or script: a roll panel carries
 `data-sides` (faces of each die), `data-per-lane` (dice in one roll) and `data-lanes` (rolls side by side, a hero's results), and
-`throwDice({count, sides, groups})` takes them. The 3D dice are cubes, so a roll of d6 uses them; a roll of any other size (d3, d8,
-d12 ...) is drawn by the flat tray, a die with its number (a die of up to six faces shows pips, a bigger one its number). Typed
+`throwDice({count, sides, groups})` takes them. The 3D dice are cubes: a D6 (faces 1 to 6, opposite faces adding up to 7) and a D3, a cube
+marked 1, 1, 2, 2, 3, 3 with opposite faces equal (one number per axis, like the commercial D3; the tray takes `faces: 3`). A D3 the server
+rolled is relabelled so that the wanted number lands on top (any permutation of the three axis numbers is an honest D3); a live D3 reads
+the face on top. A roll of any other size (d8, d12 ...) is drawn by the flat tray, a die with its number (a die of up to six faces shows
+pips, a bigger one its number; the flat tray is also the fallback for a D3 without WebGL). The style guide's tray rolls either. Typed
 rolls are one select per die from `templates/partials/dice.gohtml` (`dice_selects`, fields `roll`, `roll2` ... read by
 `enteredRolls`); a die with no physical form (a D3) is typed on a D6 (`core.TypedMax`, `core.FromTyped`). `window.diceMixin()`
 (`throwDice`, `shake`, `onSpace`) is what the Alpine components use, with the same interface for both trays.
