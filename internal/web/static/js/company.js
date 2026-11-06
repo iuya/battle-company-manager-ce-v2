@@ -156,6 +156,15 @@ document.addEventListener('alpine:init', () => {
         form.requestSubmit();
       } });
     },
+    // The bonus die of a casualty's result (Lesson Learned: a D3) thrown in the browser; its faces and count come from the rules file via the form. The reading is sent as the answer.
+    throwBonus() {
+      const form = this.$refs.bonusForm, answer = this.$refs.bonusAnswer;
+      this.throwDice({ count: Number(form.dataset.count) || 1, sides: Number(form.dataset.sides) || 6, canShake: true, then: v => {
+        answer.value = String(this.sum(v, 0, v.length)); answer.disabled = false;
+        form.elements.thrown.value = '1';
+        form.requestSubmit();
+      } });
+    },
     // The scenario roll of the picker thrown in the browser: two dice in two lanes, sent as the player's own roll.
     throwScenario() {
       const form = this.$refs.rollForm;

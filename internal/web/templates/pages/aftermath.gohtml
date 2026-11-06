@@ -168,9 +168,10 @@
 {{end}}
 
 {{define "aftermath_casualty"}}
-{{$v := .V}}{{$c := .C}}{{$base := .Base}}{{$animate := index $v.Animate $c.UnitID}}{{$u := $v.CasualtyUnit $c}}{{$pending := $v.CasualtyPending $c}}
+{{$v := .V}}{{$c := .C}}{{$base := .Base}}{{$animate := index $v.Animate $c.UnitID}}{{$bonusRolls := $v.BonusAnimates $c}}{{$u := $v.CasualtyUnit $c}}{{$pending := $v.CasualtyPending $c}}
 <article class="{{template "unit_frame" $u}} {{if and $pending (not $animate)}}unit-pending{{end}} flex flex-col gap-3" id="casualty-{{$c.UnitID}}" aria-label="{{$c.Name}}" x-data="rollPanel" {{if and $pending $animate}}:class="revealed && 'unit-pending'"{{end}}
-         data-dice="{{$v.DiceCSV $c}}" data-groups="{{$v.Rules.InjuryDice.Count}}" data-per-lane="{{$v.Rules.InjuryDice.Count}}" data-sides="{{$v.Rules.InjuryDice.Sides}}" data-labels="" data-animate="{{$animate}}" data-shake="{{$v.Settings.ShakeTheTable}}" @keydown.space.window="onSpace($event)">
+         {{if $bonusRolls}}data-dice="{{$c.Bonus}}" data-groups="1" data-per-lane="1" data-sides="{{($v.BonusSpec $c).Sides}}" data-labels="" data-animate="true"
+         {{else}}data-dice="{{$v.DiceCSV $c}}" data-groups="{{$v.Rules.InjuryDice.Count}}" data-per-lane="{{$v.Rules.InjuryDice.Count}}" data-sides="{{$v.Rules.InjuryDice.Sides}}" data-labels="" data-animate="{{$animate}}"{{end}} data-shake="{{$v.Settings.ShakeTheTable}}" @keydown.space.window="onSpace($event)">
   {{template "unit_summary" $u}}
   {{template "aftermath_injury_chart" (dict "V" $v "C" $c)}}
   <canvas x-ref="canvas" class="dice-tray" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>
@@ -193,8 +194,8 @@
       {{if $v.Settings.ManualRolls}}<div class="injury-typed" x-show="typing" x-cloak>{{template "dice_selects" (dict "ID" "rr" "Suffix" (printf "-%d" $c.UnitID) "Count" $v.Rules.InjuryDice.Count "Sides" $v.Rules.InjuryDice.Sides "Class" "w-full")}}</div>{{end}}
     </form>
     {{else}}{{template "aftermath_strip_rolled" (dict "V" $v "C" $c "Reroll" false)}}{{end}}
-    {{with $v.BonusText $c}}<p><span class="badge badge-gold">{{.}}</span></p>{{end}}
-    {{with $v.BonusLine $c}}<p class="text-sm font-medium">{{.}}</p>{{end}}
+    {{with $v.BonusText $c}}<p {{if $bonusRolls}}x-show="revealed" x-cloak{{end}}><span class="badge badge-gold">{{.}}</span></p>{{end}}
+    {{with $v.BonusLine $c}}<p class="text-sm font-medium" {{if $bonusRolls}}x-show="revealed" x-cloak{{end}}>{{.}}</p>{{end}}
     {{with $c.Previous}}<p class="text-xs text-muted">Gave up: {{join . ", "}}</p>{{end}}
     {{if $v.Fallen $c}}<p class="text-sm text-muted">🪦 {{if eq (printf "%s" $c.Kind) "retired"}}Retires{{else}}Has fallen{{end}}: goes to the cemetery.</p>{{end}}
     {{with $c.Decision}}{{if $v.Edit}}{{template "aftermath_decision" (dict "V" $v "C" $c "D" . "Base" $base)}}{{else}}<p class="text-sm text-muted">The owner of the company decides.</p>{{end}}{{end}}
@@ -247,10 +248,13 @@
 {{/* One die as it fell: its pips, or its number where the die has more faces than pips. Takes the number. */}}
 {{define "die_face"}}{{if le . 6}}<span class="die-face" data-n="{{.}}" aria-hidden="true">{{range seq 1 .}}<i></i>{{end}}</span>{{else}}<span class="die-face die-number" aria-hidden="true">{{.}}</span>{{end}}{{end}}
 
+{{/* The question of a casualty. A bonus die (Lesson Learned, Wounds of a Hero) is thrown inside the casualty's rollPanel: its dice come from the rules file (BonusSpec),
+   it is thrown here when Shake the table is on (answer = the reading of the die, thrown=1) and rolled by the server otherwise (answer 0). */}}
 {{define "aftermath_decision"}}
-{{$v := .V}}{{$d := .D}}{{$c := .C}}
-<form hx-post="{{.Base}}/decide" hx-target="#aftermath-page" hx-swap="outerHTML" class="space-y-2 rounded-xl border border-accent bg-accent-soft p-3">
+{{$v := .V}}{{$d := .D}}{{$c := .C}}{{$spec := $v.BonusSpec $c}}
+<form hx-post="{{.Base}}/decide" hx-target="#aftermath-page" hx-swap="outerHTML" class="space-y-2 rounded-xl border border-accent bg-accent-soft p-3"{{if eq $d.Kind "bonus"}} x-ref="bonusForm" data-sides="{{$spec.Sides}}" data-count="{{$spec.Count}}"{{end}}>
   <input type="hidden" name="kind" value="{{$d.Kind}}"><input type="hidden" name="unit" value="{{$c.UnitID}}">
+  {{if eq $d.Kind "bonus"}}<input type="hidden" name="thrown" value=""><input type="hidden" name="answer" value="" disabled x-ref="bonusAnswer">{{end}}
   <fieldset class="min-w-0 space-y-2">
     <legend class="text-sm font-semibold">{{if eq $d.Kind "scratch"}}Roll again (the second result stands, even if worse), or miss the next game?{{else if eq $d.Kind "heal"}}Heal one persistent injury?{{else if eq $d.Kind "bonus"}}{{$v.BonusDieText $c}}{{else}}Decide{{end}}</legend>
     <div class="flex flex-wrap items-center gap-2">
@@ -258,14 +262,15 @@
       <button name="answer" value="reroll" class="btn btn-primary">Roll again</button>
       <button name="answer" value="keep" class="btn btn-secondary">Keep it</button>
     {{else if eq $d.Kind "bonus"}}
-      <button name="answer" value="0" class="btn btn-primary">Roll for me</button>
-      <span class="text-sm text-muted">or the die you rolled:</span>
-      {{range $n := seq 1 ($v.BonusMax $c)}}<button name="answer" value="{{$n}}" class="btn btn-secondary !min-h-11 !min-w-11 !px-2"><span class="sr-only">I rolled a </span>{{$n}}</button>{{end}}
+      <button name="answer" value="0" class="btn btn-primary" :disabled="rolling" {{if $v.Settings.ShakeTheTable}}@click="$event.preventDefault(); throwBonus()"{{end}}>Roll {{$spec.Display}}</button>
+      {{if $v.Settings.ManualRolls}}<span class="text-sm text-muted">or the die you rolled:</span>
+      {{range $n := seq 1 ($v.BonusMax $c)}}<button name="answer" value="{{$n}}" class="btn btn-secondary !min-h-11 !min-w-11 !px-2" :disabled="rolling"><span class="sr-only">I rolled a </span>{{$n}}</button>{{end}}{{end}}
     {{else}}
       {{range $d.Options}}<button name="answer" value="{{.Key}}" class="btn btn-primary">Heal {{.Label}}</button>{{end}}
       <button name="answer" value="" class="btn btn-secondary">Heal nothing</button>
     {{end}}
     </div>
+    {{if and (eq $d.Kind "bonus") $v.Settings.ShakeTheTable}}<p class="text-sm text-muted" x-show="rolling && !shaken" x-cloak role="status">Press the space bar to shake the table (once).</p>{{end}}
   </fieldset>
 </form>
 {{end}}

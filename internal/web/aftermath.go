@@ -291,7 +291,8 @@ type aftermathView struct {
 	NoticeErr bool
 	Problems  []string // messages of a rejected sheet that belong to no unit
 
-	Animate map[int64]bool // the casualties the server just rolled: their dice are shown rolling first
+	Animate      map[int64]bool // the casualties the server just rolled: their dice are shown rolling first
+	AnimateBonus map[int64]bool // the casualties whose bonus die the server just rolled (Lesson Learned): that die is shown rolling first
 
 	Offers map[string][]freeOfferView // free equipment to choose from, by the key of the reward that offers it
 }
@@ -528,6 +529,22 @@ func (v aftermathView) Fallen(c core.Casualty) bool {
 	return c.Kind == core.CasualtyDead || c.Kind == core.CasualtyRetired
 }
 
+// BonusSpec is the dice of the casualty's bonus roll (a D3 for Lesson Learned, a D6 for Wounds of a Hero); the zero spec when its result has none.
+func (v aftermathView) BonusSpec(c core.Casualty) core.DiceSpec {
+	for _, row := range v.Chart(c) {
+		if row.Key == c.ResultKey && row.BonusDice != "" {
+			return row.BonusSpec
+		}
+	}
+	return core.DiceSpec{}
+}
+
+// BonusAnimates says whether the bonus die the server just rolled for the casualty is shown rolling (one die; the sum of several is not kept apart).
+func (v aftermathView) BonusAnimates(c core.Casualty) bool {
+	spec := v.BonusSpec(c)
+	return v.AnimateBonus[c.UnitID] && c.Bonus > 0 && spec.Count == 1
+}
+
 // BonusMax is the highest number the player types for the casualty's bonus roll (6 for a D3, rolled on a D6).
 func (v aftermathView) BonusMax(c core.Casualty) int {
 	for _, row := range v.Chart(c) {
@@ -553,7 +570,7 @@ func (v aftermathView) BonusDieText(c core.Casualty) string {
 	for _, row := range v.Chart(c) {
 		if row.Key == c.ResultKey && row.BonusDice != "" {
 			text := fmt.Sprintf("%s: roll a %s for the bonus %s.", row.Name, strings.ToUpper(row.BonusDice), row.BonusKind)
-			if core.TypedMax(row.BonusSpec) > row.BonusSpec.Max() { // a die with no physical form (a D3) is rolled on a D6
+			if v.Settings().ManualRolls && core.TypedMax(row.BonusSpec) > row.BonusSpec.Max() { // typed, a die with no physical form (a D3) is read from a D6
 				text += foldText(row.BonusSpec)
 			}
 			return text
@@ -1283,7 +1300,8 @@ func (s *Server) handleDecide(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	unit, _ := strconv.ParseInt(r.PostFormValue("unit"), 10, 64)
-	ans := core.AftermathAnswer{UnitID: unit, Kind: r.PostFormValue("kind"), Key: r.PostFormValue("key"), Answer: r.PostFormValue("answer")}
+	ans := core.AftermathAnswer{UnitID: unit, Kind: r.PostFormValue("kind"), Key: r.PostFormValue("key"), Answer: r.PostFormValue("answer"),
+		Thrown: r.PostFormValue("kind") == "bonus" && r.PostFormValue("thrown") != ""}
 	if ans.Kind == "" || (ans.Answer == "" && ans.Kind != "heal" && ans.Kind != "sergeant" && ans.Kind != "continue") {
 		a, err := s.campaigns.Aftermath(r.Context(), *userFrom(r.Context()), base.Campaign.ID, m.ID, co.ID)
 		if s.fail(w, r, err) {
@@ -1297,11 +1315,14 @@ func (s *Server) handleDecide(w http.ResponseWriter, r *http.Request) {
 		s.aftermathFailed(w, r, base, m, co, err, nil)
 		return
 	}
-	animate := map[int64]bool{}
+	animate, bonus := map[int64]bool{}, map[int64]bool{}
 	if ans.Kind == "scratch" && ans.Answer == "reroll" {
 		animate[unit] = true
 	}
-	s.aftermathAnswer(w, r, http.StatusOK, base, m, co, a, "", false, func(v *aftermathView) { v.Animate = animate })
+	if ans.Kind == "bonus" && ans.Answer == "0" { // the server rolled the bonus die: it is shown rolling to the number it chose
+		bonus[unit] = true
+	}
+	s.aftermathAnswer(w, r, http.StatusOK, base, m, co, a, "", false, func(v *aftermathView) { v.Animate, v.AnimateBonus = animate, bonus })
 }
 
 // handleFinishAftermath applies the influence and rewards and unlocks the company. A refusal (a decision is still open) is shown
