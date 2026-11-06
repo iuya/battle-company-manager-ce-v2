@@ -37,5 +37,7 @@ services:
 #   STATIC_MAX_AGE=0s            Cache-Control lifetime of static files
 #   STYLEGUIDE=false             serve /styleguide and the development marks; make run, dev and demo set true
 #   PERF_TRACE=false             Server-Timing header (time, database statements) for tests/e2e/perf.mjs; development only
+#   E2E_DICE=false               scripted server dice for the end-to-end tests (/_e2e/dice); needs E2E_DICE_TOKEN; refused in production
+#   E2E_DICE_TOKEN=              the secret the test harness sends to /_e2e/dice
 volumes:
   pgdata:
