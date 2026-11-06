@@ -100,17 +100,50 @@ export async function decideATO(s) {
   await s.waitText('Against the Odds confirmed.');
 }
 
-// Rolls the new-match form's scenario card until it shows "Rolled N (table T) and N". With Shake the table on the browser throws physical
-// dice, and a pair the rules file places no scenario on leaves the card with a "roll again" note, so a roll can need another throw.
-// `first` is the text of the button that starts the first throw ("Roll the scenario", "Roll again", "Roll instead"); retries press the card's roll button.
-export async function rollNewScenario(s, first, { tries = 8, timeout = 30000 } = {}) {
-  for (let i = 0; i < tries; i++) {
-    if (i === 0) await s.click('#new-scenario button', first);
-    else await s.click('#new-scenario [data-roll-again]', '');
-    await s.page.waitForFunction(() => /Rolled \d \(table \d\) and \d|found no scenario/.test(document.querySelector('#new-scenario').innerText), { timeout });
-    if (/Rolled \d \(table \d\) and \d/.test(await s.page.$eval('#new-scenario', (e) => e.innerText))) return;
+// Every wait for physical dice (a tray that rolls, a "Rolled N (table T) and N" line, a result that shows when the dice stop) uses this one
+// bound. A live 3D throw takes 1.5-4 s on a quiet machine and was seen to take 12 s or more on a starved CI runner (the physics sometimes keeps
+// a leaning die moving), so the bound is generous: a wait that reaches it is a real hang, and waitStopped says what the tray was doing.
+export const DICE_WAIT = 40000;
+
+// Waits until the Alpine component at `sel` (a roll panel, the style guide's dice demo, a casualty card, the scenario card) reports its dice
+// stopped. On a timeout the error carries the tray state (rolling, stopped, the dice, which tray, the time waited), so a CI log says whether
+// the dice never started, kept rolling or the component is gone.
+export async function waitStopped(s, sel, ms = DICE_WAIT) {
+  const t0 = Date.now();
+  try {
+    await s.page.waitForFunction((sel) => { const el = document.querySelector(sel); return el && Alpine.$data(el).stopped === true; }, { timeout: ms }, sel);
+  } catch (e) {
+    const st = await s.page.evaluate((sel) => {
+      const el = document.querySelector(sel);
+      if (!el || !window.Alpine) return { element: !!el };
+      const d = Alpine.$data(el);
+      return { rolling: d.rolling, stopped: d.stopped, dice: d.dice && [...d.dice], tray: d.tray ? (window.Dice3D && d.tray instanceof Dice3D.Tray ? '3d' : '2d') : null };
+    }, sel).catch((x) => ({ unreadable: String(x.message) }));
+    throw new Error(`the dice at ${sel} did not stop within ${ms} ms (waited ${Date.now() - t0} ms; tray state ${JSON.stringify(st)})`);
   }
-  throw new Error(`the dice found no scenario in ${tries} throws`);
+}
+
+// The text a scenario card shows once the dice stopped and the rules file placed a scenario on the pair.
+export const ROLLED = /Rolled \d+ \(table \d\) and \d+/;
+
+// Rolls the new-match form's scenario card once and waits for "Rolled N (table T) and N". `first` is the text of the button that starts the
+// throw ("Roll the scenario", "Roll again", "Roll instead"). There is no retry: the shipped rules place a scenario on all 36 pairs of dice
+// (TestScenarioByRollsUsesTheRealFile in internal/core), so the card's "found no scenario" note can never show, and a slow throw is not a
+// reason to throw again (a second throw hides the first one's failure and doubles the wait). The note showing is a failure.
+// A dev-only server dice seam (the server told which pair to roll) would be used here and in 84-match-extras, the places that need a given pair.
+export async function rollNewScenario(s, first, { timeout = DICE_WAIT } = {}) {
+  await s.click('#new-scenario button', first);
+  await waitRolledNewScenario(s, { timeout });
+}
+
+// Waits for the new-match card's "Rolled N (table T) and N" after a throw the caller started, and fails on the "found no scenario" note.
+export async function waitRolledNewScenario(s, { timeout = DICE_WAIT } = {}) {
+  await s.page.waitForFunction((re) => new RegExp(re).test(document.querySelector('#new-scenario').innerText), { timeout }, ROLLED.source)
+    .catch(async () => {
+      const text = await s.page.$eval('#new-scenario', (e) => e.innerText.replace(/\s+/g, ' ')).catch(() => '(no card)');
+      throw new Error(`the new-match card did not show "Rolled N (table T) and N" within ${timeout} ms: ${text.slice(0, 200)}`);
+    });
+  assert.doesNotMatch(await s.page.$eval('#new-scenario', (e) => e.innerText), /found no scenario/, 'every pair of dice places a scenario');
 }
 
 // Sets the scenario of an open match before the game: Change scenario, Choose another, then the scenario's button.
