@@ -47,7 +47,7 @@ func TestTheLevelUpWindowHasButtonsNotRadios(t *testing.T) {
 	for _, want := range []string{
 		`value="stat:fight:-1"`, "Fight +1", `data-tip-text="Fight 4 → 5, path limit +3, peak 9"`,
 		`class="level-dot-taken"`, `class="level-dot-gain"`, `class="level-dot-free"`,
-		"Special rule", `class="level-info"`, `data-concept="Spy"`,
+		"Special rule", `class="level-info"`, `data-concept="Spy"`, `@click="confirm()">Confirm</button>`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the window lacks %q", want)

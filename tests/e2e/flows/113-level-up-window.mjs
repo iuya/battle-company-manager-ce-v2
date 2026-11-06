@@ -1,4 +1,4 @@
-// The level-up window (docs/frontend-level-up.md): options are buttons that apply at once, with the marks of the results that take the other one too,
+// The level-up window (docs/frontend-level-up.md): options are buttons that select, and Confirm applies (nothing is stored before), with the marks of the results that take the other one too,
 // a stat's progress dots, the (i) that shows an option's text without choosing it, a warrior's no change and its Hero in the Making.
 // Galadriel's companies in "Level-up options" (one hero per case) and "Level-ups waiting".
 import { assert, campaignId, layout, MODAL, SIZES, sleep } from '../lib/util.mjs';
@@ -52,11 +52,45 @@ export default async function (h) {
     assert.deepEqual(await pressed(), ['Intelligence +1'], 'the other stat moves the mark, applying nothing');
     assert.ok(await s.has('Second roll'), 'nothing was applied');
     await s.click(OPT, 'Fight +1');
+    await s.settle(150);
+    assert.deepEqual(await pressed(), ['Intelligence +1', 'Fight +1'], 'the pick is shown beside the mark');
+    assert.ok(await s.has('Second roll'), 'nothing was applied by the press');
+    const confirm = await s.page.$(MODAL + ' .level-confirm button');
+    assert.ok(confirm && !(await confirm.evaluate((b) => b.disabled)), 'Confirm is on');
+
+    // nothing is stored by the selection: a reload leaves the level-up waiting, and the window offers the same roll again
+    for (const scheme of ['light', 'dark']) for (const w of SIZES) {
+      await layout(s, w, scheme);
+      assert.ok(await s.noHScroll(), `no horizontal scroll with a pick at ${w}px ${scheme}`);
+    }
+    await layout(s, 1280, 'light');
+    await s.page.reload();
+    await s.settle(300);
+    await openWhere(async () => await rolled(5, 8)() && await hasCourage() && (await pressed()).includes('Courage +1'), 'the same 5 and 8, still waiting after the reload');
+    assert.ok(await s.has('First roll'), 'the choice was not made');
+    await s.click(OPT, 'Intelligence +1');
+    await s.click(OPT, 'Fight +1');
+    await s.click(MODAL + ' .level-confirm button', '=Confirm');
     await s.waitText('Done');
     const t = await windowText();
     assert.match(t, /Intelligence/);
     assert.match(t, /Fight/);
     await s.click(MODAL + ' button', '=Done');
+  });
+
+  await h.step('level-up window: Confirm is off until an option is selected, a selection can be changed, closing writes nothing', async () => {
+    await onOptions();
+    await openWhere(rolled(5, 2), 'a 5 and a 2 that gives nothing');
+    const confirm = () => s.page.$eval(MODAL + ' .level-confirm button', (b) => b.disabled);
+    assert.equal(await confirm(), true, 'nothing selected: Confirm is off');
+    await s.click(OPT, 'Courage +1');
+    assert.equal(await confirm(), false);
+    await s.click(OPT, 'Intelligence +1');
+    assert.deepEqual(await pressed(), ['Intelligence +1'], 'one selection, changeable');
+    await closeWindow();
+    await onOptions();
+    await openWhere(rolled(5, 2), 'the same 5 and 2 after closing');
+    assert.deepEqual(await pressed(), [], 'closing decided nothing');
   });
 
   await h.step('level-up window: Courage at its limit marks Intelligence', async () => {
@@ -71,6 +105,7 @@ export default async function (h) {
     assert.deepEqual(await pressed(), [], 'nothing is marked');
     assert.ok(!(await s.has('+ other roll')), 'nothing else to take');
     await s.click(OPT, 'Courage +1');
+    await s.click(MODAL + ' .level-confirm button', '=Confirm');
     await s.waitText('Done');
     await s.click(MODAL + ' button', '=Done');
   });
@@ -80,6 +115,7 @@ export default async function (h) {
     await openWhere(rolled(7, 8), 'a 7 and an 8');
     assert.deepEqual(await pressed(), ['Courage +1']);
     await s.click(OPT, 'Heroic Resolve Mastery');
+    await s.click(MODAL + ' .level-confirm button', '=Confirm');
     await s.waitText('Done');
     const t = await windowText();
     assert.match(t, /Heroic Resolve Mastery/);
@@ -102,7 +138,7 @@ export default async function (h) {
       await layout(s, 1280, scheme);
       assert.deepEqual(await axeScoped(s, ['#modal-body']), [], `axe on the options, ${scheme}`);
     }
-    await s.click(MODAL + ' button', '=Apply both');
+    await s.click(MODAL + ' .level-confirm button', '=Confirm');
     await s.waitText('Done');
     const t = await windowText();
     assert.match(t, /Courage/);
@@ -116,7 +152,7 @@ export default async function (h) {
     await s.click(OPT, 'Heroic Resolve Mastery');
     await s.settle(150);
     assert.ok((await pressed()).includes('Heroic Resolve Mastery'), 'the normal option takes the mark of its result');
-    await s.click(MODAL + ' button', '=Apply both');
+    await s.click(MODAL + ' .level-confirm button', '=Confirm');
     await s.waitText('Done');
     const t = await windowText();
     assert.match(t, /Heroic Resolve Mastery/);

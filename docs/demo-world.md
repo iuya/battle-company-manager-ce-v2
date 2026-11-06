@@ -195,9 +195,9 @@ The gallery shows, among the 37 companies (names as in the rules file, recruits 
 
 - a 5 and an 8: Courage marked, the other result applies both;
 - a 5 and an 8 on the Warlord with **Courage at its limit**: Intelligence marked;
-- a 5 and a 2 that gives nothing (Spy, which it has): nothing marked, the options apply at once;
+- a 5 and a 2 that gives nothing (Spy, which it has): nothing marked, select an option and confirm;
 - a 7 and an 8 on the Warlord: the normal option applies alone, the stats still mark;
-- a 5 and a 5: **a mark in each, Apply both**;
+- a 5 and a 5: **a mark in each, Confirm applies both**;
 - a 5 and a 7 on the Warlord: the 7's rule can take its mark, with the 5's stat;
 - an 8 and an 8 with Fight raised once: **stat options with partial progress** (the dots);
 
