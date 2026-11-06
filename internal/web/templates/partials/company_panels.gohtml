@@ -262,6 +262,7 @@
     <fieldset class="space-y-1 rounded-lg border border-line p-3">
       <legend class="px-1 text-sm font-medium">Or forgo the Hero's Journey and take a promotion</legend>
       {{template "level_choices" (dict "Choices" $.Forgo "I" 0 "Many" false)}}
+      <p class="pt-2"><button type="button" class="btn btn-primary" :disabled="!ready" @click="confirm()">Confirm</button></p>
     </fieldset>
     {{end}}
     {{else}}
@@ -273,12 +274,11 @@
       <legend class="px-1 text-sm font-medium">{{if eq $.Roll.Kind "hero"}}{{if eq $o.Pair 1}}First roll{{else}}Second roll{{end}} · {{$o.Roll}}{{else}}Result{{end}}</legend>
       {{if and $.Rerolls (not $.Roll.Again)}}<span class="float-right">{{template "level_reroll" (dict "Base" (printf "/campaigns/%d/my-company/%d/units/%d" $cid $co $uid) "Which" $i "Left" $.Rerolls)}}</span>{{end}}
       {{if $o.Text}}<p class="text-sm text-muted">{{$o.Text}}</p>{{end}}
-      <p class="text-sm font-medium text-warn" x-show="takesOther({{$i}})" x-cloak>Press one of these to apply it together with the marked option.</p>
+      <p class="text-sm font-medium text-warn" x-show="takesOther({{$i}})" x-cloak>Select one of these to take it together with the marked option, then confirm.</p>
       {{template "level_choices" (dict "Choices" $o.Choices "I" $i "Many" (ge (len $o.Choices) 7))}}
     </fieldset>
     {{end}}
     {{range $.Unusable}}{{if eq .Pair 2}}{{template "unusable_card" (dict "U" . "CID" $cid)}}{{end}}{{end}}
-    <p x-show="plan.both" x-cloak><button type="button" class="btn btn-primary" @click="applyBoth()">Apply both</button></p>
     {{with $.Upgrade}}
     <fieldset class="exclusive exclusive-gold space-y-1 !p-3">
       <legend class="px-1 text-sm font-semibold uppercase tracking-wide text-gold">Company hero upgrade</legend>
@@ -286,6 +286,7 @@
       {{range .Choices}}{{template "level_option" (dict "C" . "I" -1 "Meta" "Company-exclusive hero upgrade")}}{{end}}
     </fieldset>
     {{end}}
+    <p class="level-confirm"><button type="button" class="btn btn-primary" :disabled="!ready" @click="confirm()">Confirm</button></p>
     {{end}}
   </form>
   {{end}}
@@ -328,7 +329,7 @@
 {{end}}
 
 {{/* The Against the Odds re-roll of a result. Takes {Base, Which, Left}. */}}
-{{define "level_reroll"}}<button type="button" class="btn btn-ghost !min-h-8 !px-2 !text-xs" hx-post="{{.Base}}/levelup/reroll" hx-vals='{"which": "{{.Which}}"}' hx-target="#modal-body" hx-swap="innerHTML" title="Against the Odds: roll this result again ({{.Left}} left)">Re-roll · Against the Odds</button>{{end}}
+{{define "level_reroll"}}<button type="button" x-data="{ ask: false }" class="btn btn-ghost !min-h-8 !px-2 !text-xs" :class="ask && '!border-warn !text-warn'" hx-post="{{.Base}}/levelup/reroll" hx-vals='{"which": "{{.Which}}"}' hx-target="#modal-body" hx-swap="innerHTML" hx-trigger="reroll" @click="if (ask) { $dispatch('reroll') } else { ask = true }" @blur="ask = false" title="Against the Odds: roll this result again ({{.Left}} left). It uses up a re-roll: press twice to confirm."><span x-show="!ask">Re-roll · Against the Odds</span><span x-show="ask" x-cloak>Confirm re-roll</span></button>{{end}}
 
 {{/* The options of a result, a long list in collapsible groups. Takes {Choices, I (the result), Many (start the groups closed)}. */}}
 {{define "level_choices"}}{{$i := .I}}{{$many := .Many}}
@@ -340,7 +341,7 @@
 {{if $group}}</div></details>{{end}}
 {{end}}
 
-{{/* One option of a level-up: a press applies it (or moves the mark, levelChoices). The (i) beside it opens its text without choosing,
+{{/* One option of a level-up: a press selects it (or moves the mark) and the form's Confirm applies it (levelChoices). The (i) beside it opens its text without choosing,
    for touch screens, where a tap on the option cannot be undone. Takes {C, I (the result; -1 the company upgrade), Meta}. */}}
 {{define "level_option"}}{{$c := .C}}{{$i := .I}}
 <div class="level-row">

@@ -41,18 +41,26 @@ document.addEventListener('alpine:init', () => {
       if (Math.abs(dx) > 50) this.step(dx < 0 ? 1 : -1);
     },
   }));
-  // The options of a level-up (level_panel, docs/frontend-level-up.md): a press applies the option at once, unless the result takes the other
-  // result too (core.LevelPlan). Then one option is marked, a press on another that takes the other result moves the mark, and a press on the
-  // other result's option applies both in one request; when both results take the other, each has a mark and "Apply both" applies them.
+  // The options of a level-up (level_panel, docs/frontend-level-up.md): a press only SELECTS an option (picked) and the Confirm button sends
+  // the choice; nothing is written before. When the result takes the other result too (core.LevelPlan), one option is marked beforehand, a
+  // press on another that takes the other moves the mark, and a pick in the other result is sent together with the mark; when both results
+  // take the other, each has a mark and Confirm applies both.
   Alpine.data('levelChoices', () => ({
     plan: { marks: ['', ''], both: false, conflicts: {}, alone: [] },
     marks: ['', ''],
+    picked: null, // the selected option {i, key}, not sent yet
     init() {
       try { if (this.$root.dataset.plan) this.plan = JSON.parse(this.$root.dataset.plan); } catch (e) { /* no plan: every option applies alone */ }
       this.marks = [...this.plan.marks];
     },
     get planned() { return !!(this.marks[0] || this.marks[1]); },
-    marked(i, key) { return i >= 0 && this.marks[i] === key; },
+    // Confirm is on once there is something to send: a pick, or the two marks of "both".
+    get ready() { return !!this.picked || (this.planned && this.plan.both); },
+    // Selected: the pick, or the mark of a result whose own pick is not made.
+    marked(i, key) {
+      if (this.picked && (this.picked.i === i || this.picked.i < 0)) return this.picked.i === i && this.picked.key === key;
+      return i >= 0 && this.marks[i] === key;
+    },
     // The other result's options go with the mark (only when this result has no mark of its own).
     takesOther(i) { return this.planned && !this.plan.both && !this.marks[i]; },
     alsoTakes(key) { return this.planned && !this.plan.alone.includes(key); },
@@ -65,13 +73,23 @@ document.addEventListener('alpine:init', () => {
     },
     press(el) {
       const i = Number(el.dataset.offer), key = el.value;
-      if (i < 0 || !this.planned) return this.send(key); // the company upgrade replaces either result, whatever is marked
       if (this.why(i, key)) return;
-      if (this.plan.both) { this.marks[i] = key; return; }
+      if (i < 0 || !this.planned) { this.picked = { i, key }; return; } // the company upgrade replaces either result, whatever is marked
+      if (this.plan.both) { this.marks[i] = key; if (this.picked && this.picked.i === i) this.picked = null; return; }
       const side = this.marks[0] ? 0 : 1;
-      if (i !== side) return this.send(this.marks[side], key);
-      if (!el.hasAttribute('data-again') || this.plan.alone.includes(key)) return this.send(key); // the other result is lost, or has nothing to give
-      this.marks[i] = key;
+      // the other result, or an option that loses the other result or has nothing to give from it: a pick
+      if (i !== side || !el.hasAttribute('data-again') || this.plan.alone.includes(key)) { this.picked = { i, key }; return; }
+      this.marks[i] = key; // another option that takes the other result: it moves the mark
+      if (this.picked && (this.picked.i === i || this.why(this.picked.i, this.picked.key))) this.picked = null;
+    },
+    // Confirm: the mark and the pick of the other result together, or the pick alone, or both marks.
+    confirm() {
+      const p = this.picked;
+      if (!p) { if (this.planned && this.plan.both) this.applyBoth(); return; }
+      if (p.i < 0 || !this.planned || this.plan.both) return this.send(p.key);
+      const side = this.marks[0] ? 0 : 1;
+      if (p.i !== side) return this.send(this.marks[side], p.key);
+      this.send(p.key);
     },
     // The option that takes the other result goes first (ChooseLevelUp).
     applyBoth() {

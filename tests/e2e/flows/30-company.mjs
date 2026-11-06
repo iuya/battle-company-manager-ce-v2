@@ -33,11 +33,12 @@ export default async function (h) {
     assert.equal(numberAfter(await eowyn.text(), 'Gold'), before - 1, 'one gold was spent');
   });
 
-  await h.step('level-up: a hero presses one of its two results and it applies at once', async () => {
+  await h.step('level-up: a hero selects one of its two results and confirms it', async () => {
     const c5 = await campaignId(galadriel, 'Level-ups waiting');
     await galadriel.goto(`/campaigns/${c5}/my-company`);
     await galadriel.click('main button', 'Level Up');
     await galadriel.click(MODAL + ' .level-opt', 'Will +1');
+    await galadriel.click(MODAL + ' .level-confirm button', '=Confirm');
     await galadriel.waitText('Will +1.');
     await galadriel.click(MODAL + ' button', '=Done');
     await galadriel.waitGone('Will +1.');

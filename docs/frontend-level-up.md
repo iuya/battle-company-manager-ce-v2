@@ -116,11 +116,11 @@ company's `advancements`); a unit earns a roll every 5 XP and several can wait.
 
 - A **warrior** rolls its dice (`campaign.progression.warrior.roll`, d6 in the shipped file):
   - 1-2: nothing. A failure in danger colours with the rolled number. With no roll left the window closes by itself 2 seconds after the reveal (`levelPanel.CloseAfter`, counted when the dice stop in `rollPanel`) and refreshes the page it was opened from; with rolls left it stays open with "Next level up".
-  - 3-5: a promotion. The player presses one of the company's advancements that match the unit; with none, Courage and Intelligence +1 up to 3+, with its text and Done.
+  - 3-5: a promotion. The player selects one of the company's advancements and confirms that match the unit; with none, Courage and Intelligence +1 up to 3+, with its text and Done.
   - 6: a **Hero in the Making**, see below.
 - A **hero** rolls `progression.hero.rollsPerProgression` results (two) of its path's dice (`paths[].dice`, else `progression.hero.roll`, 2D6) on its path chart, and keeps one (`choose`, 1).
   - A result it cannot take is re-rolled by the app, with a note: a stat at the path's or the overall maximum, a rule or action already owned, or a minor-rule or heroic-action total reached.
-  - The player presses the option it wants, see [Options](#options).
+  - The player selects the option it wants and confirms, see [Options](#options).
   - When rolls remain, "Next level up" (the card's banner effect) opens the next.
 - The window goes back to the page it was opened from when it is done (`rollPanel.finish`): My Company, or the aftermath, whose window reloads its own page when it closes (`data-reloads-on-close`). A path chosen from the aftermath also goes back to it (`handleChoosePath`): the aftermath page's `#modal-body` carries `hx-vals` with `back=aftermath`, which every request from inside that window inherits, so the field survives the level-up steps, `then=path` and a refused choice that redraws the panel.
 - "Roll for me" is animated (a warrior's dice; a hero's dice run in one lane per result, named and totalled once they stop); "I rolled" takes the player's own dice. A roll
@@ -147,10 +147,10 @@ company's `advancements`); a unit earns a roll every 5 XP and several can wait.
 
 ### Options
 
-The options are buttons that apply at once (`level_option`, `level_choices`); there are no radios and no Choose button, except "Apply both" below. This holds for hero results, warrior promotions, the company hero upgrade and a first power chosen in this window.
+The options are toggle buttons (`level_option`, `level_choices`, `aria-pressed`): a press only **selects** an option (it is highlighted with a check, and another press moves the selection), and nothing is sent to the server until the **Confirm** button of the form (`levelChoices.confirm`) is pressed. Confirm is disabled until something is selected (or, with a mark in each result, always on). Closing the window, Escape or Cancel before Confirm writes nothing: the roll stays waiting. This holds for hero results, warrior promotions, the company hero upgrade, the promotion a hero in the making may take instead, and a first power chosen in this window; there are no radios. The Against the Odds re-roll asks twice (the button turns into "Confirm re-roll") because it uses up a re-roll. The server still refuses a second submission of the same choice.
 
 - A button shows the option's short name (`choiceView.Name`); the full text is its tooltip (`data-tip-*`).
-- Beside it, an **(i)** button (`.level-info`) opens that text in the helper popup without choosing, for touch screens, where a tap applies at once and cannot be undone. A stat is not a glossary term: the popup falls back to the option's own text.
+- Beside it, an **(i)** button (`.level-info`) opens that text in the helper popup without choosing, for touch screens, where a tap cannot show a tooltip. A stat is not a glossary term: the popup falls back to the option's own text.
 - An option that gives a special rule, a minor rule, a heroic action or a magical power has a badge with the kind (`kw-chip`).
 - A **stat option** shows its amount (Fight +1) and progress dots against its limit: taken, the gain in gold, free (`core.StatGain`, `statDots`). The steps count up for stats where lower is better, the limit is what `improvedStat` allows (the path's limit, a path's maximum and the overall peak), and the tooltip has the exact values ("Fight 4 → 5, path limit +3, peak 9").
 - Kept: the re-roll buttons, the shadowed results that give nothing, the collapsible groups of long lists.
@@ -161,12 +161,12 @@ A `RollAgain` option also takes the other result: Courage +1 or Intelligence +1 
 
 | Case | What the window does |
 |---|---|
-| One result takes the other, and the other has something to take | One option is marked: Courage, or Intelligence when Courage cannot go up. Pressing it does nothing and it cannot be unmarked, pressing the other stat moves the mark and applies nothing, pressing an option of the other result applies both in one request. |
-| The other result has nothing to take (or nothing after any of the options) | Nothing is marked: plain buttons that apply at once. A single option with nothing left after it is a plain button too (`LevelPlan.Alone`). |
-| A normal option in the same result (the Warlord's 7) | The stat is still marked, and pressing an option of the other result applies both. Pressing the normal option applies only it and the other result is lost: only the options that take it say "+ other roll". |
-| Both results take the other (5 and 5, 5 and 7) | One mark in each, Courage in the first and Intelligence in the second by default, each movable within its result. **Apply both** applies them. The normal option of a 7 can take that result's mark: the player gets it plus the 5's stat, since the 5 is what grants the other result. |
+| One result takes the other, and the other has something to take | One option is marked: Courage, or Intelligence when Courage cannot go up. Pressing it changes nothing and it cannot be unmarked, pressing the other stat moves the mark, selecting an option of the other result and pressing Confirm applies both in one request. |
+| The other result has nothing to take (or nothing after any of the options) | Nothing is marked: plain options, select one and Confirm. A single option with nothing left after it is a plain button too (`LevelPlan.Alone`). |
+| A normal option in the same result (the Warlord's 7) | The stat is still marked, and an option of the other result selected and confirmed applies both. Selecting the normal option and confirming applies only it and the other result is lost: only the options that take it say "+ other roll". |
+| Both results take the other (5 and 5, 5 and 7) | One mark in each, Courage in the first and Intelligence in the second by default, each movable within its result. **Confirm** applies both. The normal option of a 7 can take that result's mark: the player gets it plus the 5's stat, since the 5 is what grants the other result. |
 
-An option that does not fit with the mark is off, with the reason on the button and in its tooltip (`LevelPlan.Conflicts`: the same stat past its limit, two normal options). The company hero upgrade replaces either result: pressing it applies only the upgrade, whatever is marked. An Against the Odds re-roll comes back with a new plan, so the marks are worked out again. The request carries the option that takes the other result first (`choice`, then `also`).
+An option that does not fit with the mark is off, with the reason on the button and in its tooltip (`LevelPlan.Conflicts`: the same stat past its limit, two normal options). The company hero upgrade replaces either result: selecting it and confirming applies only the upgrade, whatever is marked. An Against the Odds re-roll comes back with a new plan, so the marks are worked out again. The request carries the option that takes the other result first (`choice`, then `also`).
 
 ### Hero in the Making
 
