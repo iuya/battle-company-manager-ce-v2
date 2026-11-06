@@ -35,9 +35,11 @@ Company pages are built by `core.BuildDetail` from the stored company state and 
 
 From top to bottom the tab shows:
 
-1. A row of **Points**, **Units** (current / the company's maximum), **Matches** and **W / D / L**.
-2. A row of **Influence**, **Gold** and the **limits**.
-3. One **card per unit**, in the company's order (`core.OrderUnits`: leader, sergeants, other heroes, regular units, unless the player saved another order).
+1. **Waiting for you**, when the owner has something to act on: links to the first unit with a level-up, the first with a path to choose and the unused perks, with their counts (`myCompanyView.Waiting`). A locked company has its own banner instead, so this row is absent there, as it is on a read only page or in a live match.
+2. A row of **Points**, **Units** (current / the company's maximum), **Matches** and **W / D / L**. It is one row of four compact cells on a phone too, so the units stay near the top.
+3. A row of **Influence**, **Gold** and the **limits**.
+4. **Change formation** and **Recruit**. When no roll and no special unit can be paid for or fit (`myCompanyView.RecruitOff`), Recruit is greyed and `aria-disabled` but still opens the window, which starts with the reason. The reason is on the page only for assistive technology (`aria-describedby`).
+5. One **card per unit**, in the company's order (`core.OrderUnits`: leader, sergeants, other heroes, regular units, unless the player saved another order).
 
 ## Company limits
 
@@ -50,7 +52,7 @@ By default each is a third of the company; the numbers are the `limits[]` of the
   There is one segment per allowed model, and the counted ones are filled from the left.
 - At the right end there is one **hatched** segment (`.limit-exempt`) per model or item that the company's exemptions leave out (`CompanyLimit.Exempt`).
   The numbers then read "0 / 2 · total 1" (a Rider of Rohan in a company where they do not count), with the explanation in the tooltip.
-- A limit with no `RoomForNew` says a new recruit would not fit.
+- A limit with no `RoomForNew` says a new recruit of that kind would not fit, with what the count and the limit would be.
 
 ## The unit card
 

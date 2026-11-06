@@ -207,7 +207,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     <button type="button" class="btn btn-ghost !min-h-7 !px-2" @click="move($el, 1)" aria-label="Move {{$u.Title}} later" title="Later">→</button>
   </span>
 </div>
-<article id="unit-{{$u.ID}}" class="card unit unit-{{$u.Role}} {{if $u.Injured}}unit-injured{{end}} flex flex-col gap-2 !p-4" :class="expanded === {{$u.ID}} && 'unit-expanded'">
+<article id="unit-{{$u.ID}}" class="card unit unit-{{$u.Role}} {{if $u.Injured}}unit-injured{{end}} flex scroll-mt-20 flex-col gap-2 !p-4" :class="expanded === {{$u.ID}} && 'unit-expanded'">
 
   {{/* The expand button is part of the frame: a small tab flush in the top-right corner, taking no room from the content. */}}
   <button type="button" class="unit-corner" @click.stop="toggle({{$u.ID}}, $el)" :aria-expanded="expanded === {{$u.ID}}" :aria-label="expanded === {{$u.ID}} ? 'Close' : 'Expand unit'" :title="expanded === {{$u.ID}} ? 'Close' : 'Expand'">

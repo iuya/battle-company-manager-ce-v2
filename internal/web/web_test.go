@@ -1182,7 +1182,7 @@ func TestInjuredUnitsAreMarkedAndNotCounted(t *testing.T) {
 	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
 	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil)
 	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1", nil))).Body.String()
-	for _, want := range []string{"Out next match", "unit-injured", "1 injured, not counted"} {
+	for _, want := range []string{"Out next match", "unit-injured", "1 injured, not counted in the points"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q", want)
 		}
@@ -2014,5 +2014,119 @@ func TestNewCampaignAtTheLimit(t *testing.T) {
 	post.AddCookie(&http.Cookie{Name: sessionCookie, Value: "tok"})
 	if rec := f.do(post); rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "All the campaigns you may have open") && !strings.Contains(rec.Body.String(), "all the campaigns you may have open") {
 		t.Errorf("post at the limit: %d %s", rec.Code, rec.Body)
+	}
+}
+
+// myCompanyOf renders the owner's My Company page of a company.
+func myCompanyOf(t *testing.T, detail core.CompanyDetail, d core.CampaignDetail) string {
+	t.Helper()
+	f := newFixture(t, Config{})
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
+	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil).AnyTimes()
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	f.gl.EXPECT().ForCampaign(gomock.Any(), int64(7)).Return(core.Glossary{}, nil).AnyTimes()
+	return f.do(f.signedIn(httpGet("/campaigns/7/my-company/1"))).Body.String()
+}
+
+func TestRecruitButtonIsGreyedOnlyWhenNothingCanBeRecruited(t *testing.T) {
+	const off = `data-off aria-disabled="true" aria-describedby="recruit-off"`
+	d, base := mineDetail()
+	base.Recruit.Special = []core.SpecialRecruit{{Unit: "Cave Troll", Cost: 15}}
+	cases := []struct {
+		name   string
+		change func(*core.CompanyDetail)
+		why    string // empty: the button is not greyed
+	}{
+		{"enough for a roll", func(c *core.CompanyDetail) { c.Influence = 3 }, ""},
+		{"too little influence", func(c *core.CompanyDetail) { c.Influence = 2 }, "That costs 3 influence and the company has 2."},
+		{"full", func(c *core.CompanyDetail) { c.Influence, c.MaxUnits = 20, 1; c.Units = 1 }, "The company is full"},
+		{"no roll, but a special unit it can pay for", func(c *core.CompanyDetail) {
+			c.Influence, c.Recruit.Special = 2, []core.SpecialRecruit{{Unit: "Hound", Cost: 2}}
+		}, ""},
+		{"no roll, and the special unit cannot join", func(c *core.CompanyDetail) {
+			c.Influence, c.Recruit.Special = 2, []core.SpecialRecruit{{Unit: "Hound", Cost: 2, Blocked: "the company has all it may"}}
+		}, "That costs 3 influence and the company has 2."},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			detail := base
+			c.change(&detail)
+			body := myCompanyOf(t, detail, d)
+			if c.why == "" {
+				if strings.Contains(body, off) || strings.Contains(body, `id="recruit-off"`) {
+					t.Error("the button is greyed although something can be recruited")
+				}
+				return
+			}
+			if !strings.Contains(body, off) || !strings.Contains(body, `id="recruit-off" class="sr-only">`+c.why) {
+				t.Errorf("the button should be greyed, with %q for assistive technology only", c.why)
+			}
+			if !strings.Contains(body, `hx-get="/campaigns/7/my-company/1/recruit"`) {
+				t.Error("a greyed button still opens the window")
+			}
+		})
+	}
+}
+
+func TestAGreyedRecruitOfALockedCompanyIsDescribedByTheBanner(t *testing.T) {
+	d, detail := mineDetail()
+	detail.Influence = 0
+	detail.Aftermaths = []core.AftermathRef{{MatchID: 3, MatchNumber: 3, CompanyID: 1, Status: core.AftermathPending}}
+	body := myCompanyOf(t, detail, d)
+	if !strings.Contains(body, `data-off aria-disabled="true"`) || strings.Contains(body, `aria-describedby="recruit-off"`) {
+		t.Error("the lock is the reason to give; company.js points the button at the aftermath banner")
+	}
+}
+
+func TestRecruitWindowStartsWithTheReason(t *testing.T) {
+	f := newFixture(t, Config{})
+	d, detail := mineDetail()
+	detail.Influence = 0
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil)
+	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(detail, nil)
+	f.camp.EXPECT().RecruitState(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	f.camp.EXPECT().PendingChoice(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil)
+	f.camp.EXPECT().PendingOfficers(gomock.Any(), frodo, int64(7), int64(1)).Return(nil, nil).AnyTimes()
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/campaigns/7/my-company/1/recruit", nil))).Body.String()
+	reason, chart := strings.Index(body, `id="recruit-reason">That costs 3 influence and the company has 0.`), strings.Index(body, "influence per roll")
+	if reason < 0 || chart < 0 || reason > chart {
+		t.Errorf("the reason comes before the charts: reason at %d, chart at %d", reason, chart)
+	}
+	if strings.Contains(body, "recruit/roll") {
+		t.Error("no roll form when no roll can be made")
+	}
+}
+
+func TestMyCompanySaysWhatIsWaiting(t *testing.T) {
+	d, detail := mineDetail()
+	detail.Influence = 3
+	body := myCompanyOf(t, detail, d)
+	if strings.Contains(body, `id="company-waiting"`) {
+		t.Error("nothing is waiting: no row")
+	}
+	warrior := func(id int64, xp int) core.CompanyUnit {
+		return core.CompanyUnit{ID: id, Type: "Warrior", Role: core.RoleWarrior, Kind: core.KindInfantry, LevelEvery: 5, XP: xp}
+	}
+	detail.Roster = []core.CompanyUnit{warrior(10, 0), warrior(11, 5), warrior(12, 10), {ID: 13, Type: "Hero", Role: core.RoleHero, Kind: core.KindInfantry, PathPending: true, LevelEvery: 5, XP: 5}}
+	detail.Perks = []core.Perk{{ID: 5, MatchID: 3, Name: "Rendezvous"}}
+	body = myCompanyOf(t, detail, d)
+	for _, want := range []string{`href="#unit-11">3 level-ups</a>`, `href="#unit-13">1 path to choose</a>`, `href="#perks">1 unused perk</a>`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the row lacks %q", want)
+		}
+	}
+	detail.Aftermaths = []core.AftermathRef{{MatchID: 3, MatchNumber: 3, CompanyID: 1, Status: core.AftermathPending}}
+	if strings.Contains(myCompanyOf(t, detail, d), `id="company-waiting"`) {
+		t.Error("a locked company has its banner instead")
+	}
+}
+
+func TestALimitWithNoRoomSaysWhy(t *testing.T) {
+	d, detail := mineDetail()
+	detail.Limits = []core.CompanyLimit{{ID: "bow", Label: "Bows", Used: 3, Max: 3, Next: 3}}
+	if body := myCompanyOf(t, detail, d); !strings.Contains(body, "it would make 4, and with one more model the limit is 3.") {
+		t.Error("the limit does not say what a recruit would make")
 	}
 }

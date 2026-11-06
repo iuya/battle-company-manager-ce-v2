@@ -81,12 +81,14 @@
 {{define "points"}}{{.Points}}{{if and .FullPoints (ne .FullPoints .Points)}} <span class="font-normal text-muted">({{.FullPoints}})</span>{{end}}{{end}}
 
 {{define "company_stats"}}
-<dl class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-  <div class="card !p-4"><dt class="text-sm text-muted">Points</dt><dd class="text-2xl font-semibold">{{template "points" .Company}}</dd>{{with .Injured}}<dd class="mt-0.5 text-xs text-danger">{{.}} injured, not counted</dd>{{end}}</div>
-  <div class="card !p-4"><dt class="text-sm text-muted">Units</dt><dd class="text-2xl font-semibold">{{.Company.Units}}{{with .Max}} <span class="text-base font-normal text-muted">/ {{.}}</span>{{end}}</dd></div>
-  <div class="card !p-4"><dt class="text-sm text-muted">Matches</dt><dd class="text-2xl font-semibold">{{.Company.Played}}</dd></div>
-  <div class="card !p-4"><dt class="text-sm text-muted">W / D / L</dt><dd class="text-2xl font-semibold">{{template "wdl" .Company}}</dd></div>
+{{/* One row at every width: on a phone it stays short, so the units and Recruit are nearer the top. */}}
+<dl class="mt-6 grid grid-cols-4 gap-1.5 sm:gap-3">
+  <div class="card min-w-0 !px-2 !py-2 sm:!p-4"><dt class="text-xs text-muted sm:text-sm">Points</dt><dd class="text-lg font-semibold sm:text-2xl">{{template "points" .Company}}</dd></div>
+  <div class="card min-w-0 !px-2 !py-2 sm:!p-4"><dt class="text-xs text-muted sm:text-sm">Units</dt><dd class="whitespace-nowrap text-lg font-semibold sm:text-2xl">{{.Company.Units}}{{with .Max}} <span class="text-xs font-normal text-muted sm:text-base">/ {{.}}</span>{{end}}</dd></div>
+  <div class="card min-w-0 !px-2 !py-2 sm:!p-4"><dt class="text-xs text-muted sm:text-sm">Matches</dt><dd class="text-lg font-semibold sm:text-2xl">{{.Company.Played}}</dd></div>
+  <div class="card min-w-0 !px-2 !py-2 sm:!p-4"><dt class="whitespace-nowrap text-xs text-muted sm:text-sm">W / D / L</dt><dd class="whitespace-nowrap text-lg font-semibold sm:text-2xl">{{template "wdl" .Company}}</dd></div>
 </dl>
+{{with .Injured}}<p class="mt-1 text-xs text-danger">{{.}} injured, not counted in the points</p>{{end}}
 {{end}}
 
 
@@ -146,7 +148,7 @@
 {{/* The Perks card of a company: scenario perks waiting to be used, with Mark used for the owner, and the used ones collapsed.
    Takes Unused, Used (perkView lists), CanUse and CampaignID. */}}
 {{define "perks_card"}}
-<section class="card mt-6 space-y-3" id="perks">
+<section class="card mt-6 scroll-mt-20 space-y-3" id="perks">
   <h2 class="!text-xl">Perks</h2>
   {{if .Unused}}
   <ul class="divide-y divide-line">
