@@ -29,6 +29,7 @@ func runUser(args []string) error {
 		return runGrant(args[1:])
 	}
 	if len(args) == 0 || args[0] != "create" {
+		//lint:ignore ST1005 the usage text is printed to the terminal as is, not wrapped into a longer message
 		return errors.New(userUsage)
 	}
 	fs := flag.NewFlagSet("user create", flag.ContinueOnError)
@@ -38,6 +39,7 @@ func runUser(args []string) error {
 		return err
 	}
 	if *email == "" || *name == "" {
+		//lint:ignore ST1005 the usage text is printed to the terminal as is, not wrapped into a longer message
 		return errors.New(userUsage)
 	}
 	var cfg config
@@ -104,6 +106,7 @@ func runGrant(args []string) error {
 		return err
 	}
 	if *email == "" {
+		//lint:ignore ST1005 the usage text is printed to the terminal as is, not wrapped into a longer message
 		return errors.New(userUsage)
 	}
 	ctx := context.Background()

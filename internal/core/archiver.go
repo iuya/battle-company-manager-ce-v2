@@ -12,6 +12,8 @@ import (
 
 // ErrArchived is returned by every change to a campaign that has been archived: ending a campaign turns it into a read-only document
 // (docs/archive.md) and what the change would store is gone.
+//
+//lint:ignore ST1005 shown to the user verbatim as a sentence in the page (reason())
 var ErrArchived = errors.Join(ErrRefused, errors.New("This campaign is an archive: it has ended and can no longer be changed."))
 
 // CampaignHeader is what the archive needs of the campaign row itself.

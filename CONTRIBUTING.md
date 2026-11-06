@@ -61,7 +61,7 @@ See the [README](README.md) for more and [docs/architecture.md](docs/architectur
 |---|---|
 | `commit-msg` | The subject follows Conventional Commits (the same rule as the `pr-check` workflow). |
 | `pre-commit` | Staged Go files are `gofmt`-formatted, and the added lines contain no private key, AWS key id or GitHub token (for a deliberate fake in a test fixture: `BCM_SKIP_SECRET_SCAN=1 git commit ...`). |
-| `pre-push` | Refuses a push to `main`: changes reach `main` through a reviewed pull request. The repository rules enforce this on GitHub as well. |
+| `pre-push` | Refuses a push to `main`: changes reach `main` through a reviewed pull request (the repository rules enforce this on GitHub as well). Refuses any push that sends commits or tags unless `make lint` passes; `--no-verify` skips it. |
 
 Each hook runs the [beads](docs/collaborating.md) hook of `.beads/hooks` first, so task tracking keeps working.
 `make hooks-test` checks the hooks in a throwaway repository.
@@ -70,8 +70,8 @@ Each hook runs the [beads](docs/collaborating.md) hook of `.beads/hooks` first, 
 
 ```bash
 gofmt -l .                # prints nothing
-go vet ./...
-make test                 # unit tests, the tools' tests included
+make lint                 # go vet, staticcheck, deadcode: must print nothing (also run by make test, the pre-push hook and CI)
+make test                 # lint, then the unit tests, the tools' tests included
 make test-integration     # when you touch internal/postgres (starts the compose database)
 make validate             # when you touch definitions/ or tools/
 make e2e-enforce          # when you touch templates, handlers or JavaScript

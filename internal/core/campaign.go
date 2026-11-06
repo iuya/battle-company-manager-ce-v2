@@ -18,9 +18,11 @@ var (
 	ErrInvalidMatch    = errors.New("invalid match")
 	// ErrCompanyLimit is returned when a user owns as many companies in the campaign as it allows (CampaignSettings.CompanyCap).
 	// ErrCompanyNameTaken is an ErrInvalidCompany: another company of the same owner in the campaign has the name (case ignored).
+	//lint:ignore ST1005 shown to the user verbatim as a sentence in the page (reason())
 	ErrCompanyNameTaken = errors.Join(ErrInvalidCompany, errors.New("You already have a company with that name."))
 	ErrCompanyLimit     = errors.New("you already have all the companies this campaign allows")
 	// ErrCampaignLimit is returned when an account already organises as many unfinished campaigns as it may (CampaignQuota.Limit).
+	//lint:ignore ST1005 shown to the user verbatim as a sentence in the page (reason())
 	ErrCampaignLimit = errors.Join(ErrRefused, errors.New("You already organise all the campaigns you may have open. End one to create another."))
 )
 

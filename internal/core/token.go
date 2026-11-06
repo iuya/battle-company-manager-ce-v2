@@ -16,6 +16,7 @@ const TalkToAdministrator = "Talk with the administrator."
 var (
 	// ErrLinkUnusable is the only public failure of an invitation or recovery link: malformed, unknown, revoked, used, expired or
 	// invalidated tokens, and an address that already has an account, all look the same. Its text is TalkToAdministrator.
+	//lint:ignore ST1005 the text is shown to the user verbatim on the public link page
 	ErrLinkUnusable = errors.New(TalkToAdministrator)
 	// ErrForbidden means the actor may not do this at all (the permission matrix, a non-administrator calling an administrator
 	// service); it is always joined with a reason fit to show. The web answers 403, or 404 when the whole route is not for them.

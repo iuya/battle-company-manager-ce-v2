@@ -11,8 +11,7 @@ func injuriesFull() any {
 }
 
 func withInjuries(inj any) any {
-	var d any
-	d = doc()
+	d := doc()
 	Put(d, inj, "campaign", "injuries")
 	return d
 }
@@ -22,8 +21,7 @@ func atoFull() any {
 }
 
 func withAto(a any) any {
-	var d any
-	d = doc()
+	d := doc()
 	Put(d, a, "campaign", "againstTheOdds")
 	return d
 }
@@ -37,15 +35,13 @@ func baseCompany() any {
 }
 
 func badInjuries(edit func(any)) any {
-	var inj any
-	inj = injuriesFull()
+	inj := injuriesFull()
 	edit(inj)
 	return withInjuries(inj)
 }
 
 func rowsEdit(inj any) {
-	var h any
-	h = At(inj, "hero")
+	h := At(inj, "hero")
 	Put(h, L("remove", "vanish"), 0, "effects")
 	Put(h, 0, 1, "retireAtCount")
 	Put(h, L(O("kind", "gearClass"), O("kind", "gearItem"), O("kind", "ability")), 1, "disables")
@@ -76,15 +72,13 @@ func treatEdit(inj any) {
 }
 
 func badAto(edit func(any)) any {
-	var a any
-	a = atoFull()
+	a := atoFull()
 	edit(a)
 	return withAto(a)
 }
 
 func atoEdit(a any) {
-	var b any
-	b = At(a, "bonuses")
+	b := At(a, "bonuses")
 	Put(b, L("aftermath", "later"), 0, "appliesIn")
 	Put(b, O("win", 50), 0, "gains", "influence")
 	Del(b, 1, "rating")
