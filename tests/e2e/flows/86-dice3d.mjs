@@ -363,6 +363,31 @@ export default async function (h) {
     assert.deepEqual(await badge(server), [`+${acted.dice} Experience`], 'then the bonus shows');
   });
 
+  await h.step('dice: Roll again on the match page (Shake the table off) plays the server\'s dice, and the scenario and the roll text show only when they stop', async () => {
+    const pippin = await h.session('pippin@example.com', { height: 1100 });
+    const cid = await campaignId(pippin, 'Settings: the server rolls every die');
+    await pippin.goto(`/campaigns/${cid}/matches`);
+    const href = await pippin.page.evaluate(() => [...document.querySelectorAll('main a')].filter((a) => /\/matches\/\d+$/.test(a.getAttribute('href'))).map((a) => a.getAttribute('href'))
+      .find((h) => { const a = document.querySelector(`main a[href="${h}"]`); return /Pony riders/.test((a.closest('li, article, tr') || a).innerText); }));
+    assert.ok(href, 'the open match of the Pony riders is listed');
+    await pippin.goto(href);
+    assert.equal(await pippin.page.$('#scenario-roll'), null, 'a normal page load has no roll text');
+    await pippin.click('#scenario [data-roll-again]', '');
+    const panel = '#scenario [data-roll-url]';
+    await pippin.page.waitForSelector('#scenario canvas.dice-tray', { visible: true, timeout: 15000 });
+    const early = await pippin.page.evaluate((sel) => { const d = Alpine.$data(document.querySelector(sel)), r = document.querySelector('#scenario-roll'); return { stopped: d.stopped, shown: !!r && r.offsetParent !== null, text: r ? r.innerText : '' }; }, panel);
+    assert.ok(early.stopped || !early.shown, `the roll text waits for the dice (${JSON.stringify(early)})`);
+    assert.equal(await pippin.page.$eval(panel, (e) => e.dataset.animate), 'true', 'the server rolled: the card acts it out');
+    await waitStopped(pippin, panel);
+    await pippin.page.waitForFunction(() => { const r = document.querySelector('#scenario-roll'); return r && r.offsetParent !== null; }, { timeout: 8000 });
+    assert.match(await pippin.page.$eval('#scenario-roll', (e) => e.innerText), /Rolled \d+ \(table \d\) and \d+/);
+    assert.ok(await pippin.page.$('#scenario p.font-medium'), 'the scenario shows once the dice stopped');
+    await pippin.page.reload({ waitUntil: 'load' });
+    assert.equal(await pippin.page.$('#scenario-roll'), null, 'the page again shows the saved scenario without a roll');
+    assert.equal(await pippin.page.$eval('#scenario [data-roll-url]', (e) => e.dataset.animate), 'false');
+    assert.ok(await pippin.page.$('#scenario p.font-medium'), 'the saved scenario is shown at once');
+  });
+
   await h.step('dice: the tray fits 360, 768 and 1280 px in light and dark', async () => {
     for (const scheme of ['light', 'dark']) for (const w of [360, 768, 1280]) {
       await layout(demo, w, scheme, 1100);

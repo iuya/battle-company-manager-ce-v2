@@ -807,7 +807,7 @@ func TestRollAgainSetsTheScenarioAtOnce(t *testing.T) {
 	if rec.Code != 200 {
 		t.Fatalf("%d %s", rec.Code, body)
 	}
-	for _, want := range []string{"Chance Encounter", "Rolled <strong>1</strong> (table 1) and <strong>2</strong>", `id="match"`} {
+	for _, want := range []string{"Chance Encounter", "Rolled <strong>1</strong> (table 1) and <strong>2</strong>", `id="match"`, `data-animate="true"`, `data-dice="1,2"`, `x-show="revealed"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("missing %q\n%s", want, body)
 		}
