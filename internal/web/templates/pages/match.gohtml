@@ -115,8 +115,11 @@
     {{if and .ScenarioOpen (not .Mode) $m.Scenario}}<button type="button" class="btn btn-secondary" x-show="!change" @click="change = true" data-change-scenario>Change scenario</button>{{end}}
   </div>
   {{if .ATO.Ambush}}<p class="text-sm text-muted" data-scenario-ambush>Ambush! chose this scenario: change it on the Against the Odds card.</p>{{end}}
+  {{/* With scenario dice the body is a rollPanel: Roll again throws the 3D dice (Shake the table) and a roll the server made is played out first. */}}
+  <div class="space-y-3"{{if .RollSides}} x-data="rollPanel" @keydown.space.window="onSpace($event)" data-sides="{{.RollSides}}" data-per-lane="1" data-lanes="2" data-shake="{{.Shake}}" data-animate="{{.Animating}}" data-dice="{{if .Animating}}{{.Roll.DiceCSV}}{{end}}" data-groups="1,1" data-labels="Table,Scenario" data-roll-url="{{$base}}/roll" data-roll-target="#match" data-revision="{{$m.Revision}}"{{end}}>
+  {{if .RollSides}}{{if .Animating}}<canvas x-ref="canvas" class="dice-tray" aria-hidden="true"></canvas>{{else if .Shake}}<canvas x-ref="canvas" class="dice-tray" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>{{end}}{{end}}
   {{with .Roll}}
-  <div class="rounded-lg border border-line bg-raised px-3 py-2 text-sm" role="status" id="scenario-roll">
+  <div class="rounded-lg border border-line bg-raised px-3 py-2 text-sm" role="status" id="scenario-roll"{{if $.Animating}} x-show="revealed" x-cloak{{end}}>
     {{if .First}}<p>Rolled <strong>{{.First}}</strong> (table {{.Table}}) and <strong>{{.Second}}</strong>.</p>{{end}}
     {{with .Line}}<p><span class="badge badge-gold">Vantage Point</span> {{.}}</p>{{end}}
     {{$roll := .}}
@@ -135,14 +138,16 @@
   {{else}}
   {{if .ScenarioOpen}}
   <div class="flex flex-wrap gap-2" x-show="change" {{if $m.Scenario}}x-cloak{{end}} data-scenario-actions>
-    <form hx-post="{{$base}}/roll" hx-target="#match" hx-swap="outerHTML"><input type="hidden" name="revision" value="{{$m.Revision}}"><button class="btn btn-primary" data-roll-again>Roll again</button></form>
+    {{if and .RollSides .Shake}}<button type="button" class="btn btn-primary" @click="throwNewScenario()" :disabled="rolling" data-roll-again>Roll again</button>
+    {{else}}<form hx-post="{{$base}}/roll" hx-target="#match" hx-swap="outerHTML"><input type="hidden" name="revision" value="{{$m.Revision}}"><button class="btn btn-primary"{{if .RollSides}} :disabled="!revealed"{{end}} data-roll-again>Roll again</button></form>{{end}}
     <button type="button" class="btn btn-secondary" hx-get="{{$base}}?mode=pick" hx-target="#scenario" hx-swap="outerHTML" data-choose-another>Choose another</button>
     <button type="button" class="btn btn-secondary" hx-get="{{$base}}?mode=custom" hx-target="#scenario" hx-swap="outerHTML">{{if and $m.Scenario (eq $m.Scenario.Kind "custom")}}Edit one-off{{else}}One-off scenario{{end}}</button>
     {{if $m.Scenario}}<button type="button" class="btn btn-ghost" @click="change = false">Keep it</button>{{end}}
   </div>
   {{end}}
-  {{template "scenario_info" .}}
+  <div{{if .Animating}} x-show="revealed" x-cloak{{end}}>{{template "scenario_info" .}}</div>
   {{end}}
+  </div>
 </section>
 {{end}}
 

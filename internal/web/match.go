@@ -83,6 +83,7 @@ type matchView struct {
 	OverrideNote     string         // the override dialog's note after a refusal; the dialog then stays open
 	OverrideErr      string
 	Roll             *scenarioRoll // the dice of the last Roll again, with the Vantage Point offers; nil otherwise
+	RollSides        int           // faces of the scenario dice where the card offers Roll again (0: none), for the 3D dice
 
 	Aftermath    []aftermathRow // the Aftermath card of an ended match, one row per company
 	AftermathErr string         // why the card could not be loaded
@@ -96,6 +97,7 @@ type scenarioRoll struct {
 	Vantage       []vantageOption // companies of the viewer in this match with an unused Vantage Point (offered after a roll)
 	Sides         int             // the size of the dice
 	Table         int
+	Animate       bool // the server rolled these dice: the card plays them out on the 3D dice before it shows the scenario
 }
 
 // vantageOption is a company whose Vantage Point the viewer may use on the roll.
@@ -103,6 +105,15 @@ type vantageOption struct {
 	CompanyID int64
 	Name      string
 }
+
+// Shake is whether the campaign lets the browser throw the dice (Shake the table).
+func (v matchView) Shake() bool { return v.Campaign.Settings.ShakeTheTable }
+
+// Animating is whether the card plays the server's roll out on the dice: the scenario is shown when they stop.
+func (v matchView) Animating() bool { return v.RollSides > 0 && v.Roll != nil && v.Roll.Animate }
+
+// DiceCSV is the roll the dice animation plays, for data-dice.
+func (r scenarioRoll) DiceCSV() string { return itoa(r.First) + "," + itoa(r.Second) }
 
 // CanEdit is whether the viewer may change an open match; AdminOnEnded whether they are an administrator looking at an
 // ended one (the form is then behind a button).
@@ -235,6 +246,13 @@ func (s *Server) newMatchView(r *http.Request, base campaignBase, m core.Match, 
 	v.End = endAccess(r, base, m)
 	if mode == "custom" && m.Scenario != nil && m.Scenario.Kind == core.ScenarioCustom {
 		v.ScenarioIn = *m.Scenario
+	}
+	if v.ScenarioOpen() && (mode == "" || mode == "pick") {
+		sel, err := s.campaigns.ScenarioSelection(r.Context(), base.Campaign.ID)
+		if err != nil {
+			return v, err
+		}
+		v.RollSides = max(sel.Die.Sides, 0)
 	}
 	rulebook := m.Scenario != nil && m.Scenario.Kind == core.ScenarioRulebook
 	if rulebook || mode == "pick" {
@@ -649,9 +667,9 @@ func (s *Server) rollScenario(sel core.ScenarioSelection, list []core.ScenarioIn
 	return sc, first, second, found
 }
 
-// handleScenarioRoll is Roll again on the match page (docs/matches.md, "New match"): the server rolls both dice of the scenario
-// selection and the scenario they point at is set at once. With vantage (a company of the viewer) it is the Vantage Point perk on the
-// roll on show instead: the second die moves by adjust (+1 or -1) and the scenario follows.
+// handleScenarioRoll is Roll again on the match page (docs/matches.md, "New match") and, with vantage (a company of the viewer), the
+// Vantage Point perk on the roll on show. The two are separate: vantageAdjust moves the second die of a roll already made, rollDice
+// makes a fresh roll (the browser's own thrown dice under Shake the table, or the server's, which the card then plays out on the 3D dice).
 func (s *Server) handleScenarioRoll(w http.ResponseWriter, r *http.Request) {
 	base, m, ok := s.matchCtx(w, r)
 	if !ok {
@@ -672,36 +690,18 @@ func (s *Server) handleScenarioRoll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	roll := &scenarioRoll{Sides: sel.Die.Sides}
-	keep := func(v *matchView) { v.Roll = roll }
 	var sc core.ScenarioInfo
 	var found bool
 	if vantage := formID(r, "vantage"); vantage != 0 {
-		d1, d2 := formInt(r, "roll"), formInt(r, "roll2")
-		if !sel.Valid(d1) || !sel.Valid(d2) {
-			s.answer(w, r, http.StatusUnprocessableEntity, base, m, "", fmt.Sprintf("A die shows 1 to %d.", sel.Die.Sides), true, nil)
+		if sc, found, ok = s.vantageAdjust(w, r, base, m, sel, list, roll, vantage); !ok {
 			return
 		}
-		moved, line, err := s.campaigns.UseVantagePoint(ctx, user, id, m.ID, vantage, d2, formInt(r, "adjust"))
-		if errors.Is(err, core.ErrRefused) || errors.Is(err, core.ErrInvalidRoll) {
-			roll.First, roll.Second = d1, d2
-			s.answer(w, r, http.StatusUnprocessableEntity, base, m, "", reason(err), true, keep)
-			return
-		}
-		if s.fail(w, r, err) {
-			return
-		}
-		roll.First, roll.Second, roll.Line = d1, moved, line
-		sc, found = core.ScenarioByRolls(sel, list, d1, moved)
-	} else {
-		if sel.Die.Sides <= 0 {
-			s.answer(w, r, http.StatusUnprocessableEntity, base, m, "", "The rules of this campaign have no scenario dice.", true, nil)
-			return
-		}
-		sc, roll.First, roll.Second, found = s.rollScenario(sel, list)
+	} else if sc, found, ok = s.rollDice(w, r, base, m, sel, list, roll); !ok {
+		return
 	}
 	roll.Table = sel.Table(roll.First)
 	if !found {
-		s.answer(w, r, http.StatusUnprocessableEntity, base, m, "", "The rules of this campaign place no scenario on that roll: choose one.", true, keep)
+		s.answer(w, r, http.StatusUnprocessableEntity, base, m, "", "The rules of this campaign place no scenario on that roll: choose one.", true, func(v *matchView) { v.Roll = roll })
 		return
 	}
 	updated, err := s.campaigns.SetScenario(ctx, user, id, m.ID, revisionOf(r), core.ScenarioInput{Kind: core.ScenarioRulebook, Name: sc.Name})
@@ -719,7 +719,55 @@ func (s *Server) handleScenarioRoll(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	s.answer(w, r, http.StatusOK, base, updated, "", atoReopened(m, updated), false, keep)
+	s.answer(w, r, http.StatusOK, base, updated, "", atoReopened(m, updated), false, func(v *matchView) { v.Roll = roll })
+}
+
+// rollDice makes a fresh roll of both dice into roll: the dice the browser threw (roll, roll2 and thrown, only where the campaign says Shake
+// the table, each a face of the die) or the server's own, which the card plays out (Animate). ok is false after it answered an error.
+func (s *Server) rollDice(w http.ResponseWriter, r *http.Request, base campaignBase, m core.Match, sel core.ScenarioSelection, list []core.ScenarioInfo, roll *scenarioRoll) (sc core.ScenarioInfo, found, ok bool) {
+	if sel.Die.Sides <= 0 {
+		s.answer(w, r, http.StatusUnprocessableEntity, base, m, "", "The rules of this campaign have no scenario dice.", true, nil)
+		return sc, false, false
+	}
+	if r.PostFormValue("thrown") == "" {
+		sc, roll.First, roll.Second, found = s.rollScenario(sel, list)
+		roll.Animate = true
+		return sc, found, true
+	}
+	if why := base.Campaign.Settings.RollRefusal(false, true); why != "" {
+		s.answer(w, r, http.StatusUnprocessableEntity, base, m, "", why, true, nil)
+		return sc, false, false
+	}
+	d1, d2 := formInt(r, "roll"), formInt(r, "roll2")
+	if !sel.Valid(d1) || !sel.Valid(d2) {
+		s.answer(w, r, http.StatusUnprocessableEntity, base, m, "", fmt.Sprintf("A die shows 1 to %d.", sel.Die.Sides), true, nil)
+		return sc, false, false
+	}
+	roll.First, roll.Second = d1, d2
+	sc, found = core.ScenarioByRolls(sel, list, d1, d2)
+	return sc, found, true
+}
+
+// vantageAdjust is the Vantage Point perk of a company of the viewer on the roll on show: the second die moves by adjust (+1 or -1) and the
+// scenario follows. Nothing is thrown or played out. ok is false after it answered an error.
+func (s *Server) vantageAdjust(w http.ResponseWriter, r *http.Request, base campaignBase, m core.Match, sel core.ScenarioSelection, list []core.ScenarioInfo, roll *scenarioRoll, company int64) (sc core.ScenarioInfo, found, ok bool) {
+	d1, d2 := formInt(r, "roll"), formInt(r, "roll2")
+	if !sel.Valid(d1) || !sel.Valid(d2) {
+		s.answer(w, r, http.StatusUnprocessableEntity, base, m, "", fmt.Sprintf("A die shows 1 to %d.", sel.Die.Sides), true, nil)
+		return sc, false, false
+	}
+	moved, line, err := s.campaigns.UseVantagePoint(r.Context(), *userFrom(r.Context()), base.Campaign.ID, m.ID, company, d2, formInt(r, "adjust"))
+	if errors.Is(err, core.ErrRefused) || errors.Is(err, core.ErrInvalidRoll) {
+		roll.First, roll.Second = d1, d2
+		s.answer(w, r, http.StatusUnprocessableEntity, base, m, "", reason(err), true, func(v *matchView) { v.Roll = roll })
+		return sc, false, false
+	}
+	if s.fail(w, r, err) {
+		return sc, false, false
+	}
+	roll.First, roll.Second, roll.Line = d1, moved, line
+	sc, found = core.ScenarioByRolls(sel, list, d1, moved)
+	return sc, found, true
 }
 
 // handleReopenMatch is the way back for the organiser and administrators into an ended match; everybody else gets a 403. The reopening is

@@ -215,10 +215,14 @@ Controls are touch sized (44 px) and the winner choices stack at 360 px. In the 
 
 ### Change scenario
 
-Until the game starts, **Change scenario** offers the same three actions as the new match form: **Roll again** (`POST .../scenario/roll`: the
-server rolls the two dice of `scenarioSelection`, the first the table, the second the scenario, `core.ScenarioByRolls`, and sets it at once),
+Until the game starts, **Change scenario** offers the same three actions as the new match form: **Roll again** (`POST .../scenario/roll`, the same dice as the new match card:
+the card is a `rollPanel` with the lanes "Table" and "Scenario". Where **Shake the table** is on the browser throws them (`throwNewScenario`) and posts `roll`, `roll2`, `thrown=1` and
+the match `revision`; the server takes them only where the setting is on and both are faces of the die (otherwise 422) and sets the scenario `core.ScenarioByRolls` finds, or
+answers "place no scenario on that roll: choose one" for a pair the file places none on, which it cannot re-roll. Where it is off the server rolls the two dice of `scenarioSelection` itself
+and the card (`data-animate`, `data-dice`) acts those numbers out; the "Rolled 3 (table 2) and 5" text, the scenario and the Vantage Point offers appear only when the dice stop. A normal page load shows the scenario at once.
+The scenario is saved by the server in both cases, with the revision check),
 **Choose another** (`GET .../matches/{match}/scenario`, the scenarios grouped under "Table 1/2/3", one press sets it) and **One-off
-scenario**. Once a live entry exists the scenario is fixed (`SetScenario` refuses), unless the match has none: an older match that started without a scenario still offers the three actions in the `playing` phase, since it cannot end without one.
+scenario**. The **Vantage Point** offers after a roll are a modifier on the roll on show (`vantage` and `adjust` on the same URL, handled apart from the dice): no animation and no thrown dice. Once a live entry exists the scenario is fixed (`SetScenario` refuses), unless the match has none: an older match that started without a scenario still offers the three actions in the `playing` phase, since it cannot end without one.
 
 ### One-off scenario form
 
