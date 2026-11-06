@@ -137,3 +137,56 @@ func TestReadScopeRemembersMatchEvents(t *testing.T) {
 		t.Fatal(err, inner.events)
 	}
 }
+
+type countingATOStarted struct {
+	atoRepository
+	n int
+}
+
+func (c *countingATOStarted) GameStarted(context.Context, int64, int64) (bool, error) {
+	c.n++
+	return true, nil
+}
+
+type countingAftermaths struct {
+	aftermathRepository
+	perks, history int
+}
+
+func (c *countingAftermaths) Perks(context.Context, int64, int64) ([]Perk, error) {
+	c.perks++
+	return []Perk{{ID: 1}}, nil
+}
+
+func (c *countingAftermaths) History(context.Context, int64, int64, int) ([]AftermathLine, error) {
+	c.history++
+	return []AftermathLine{{MatchID: 1}}, nil
+}
+
+func TestReadScopeRemembersGameStartedPerksAndHistory(t *testing.T) {
+	ato, am := &countingATOStarted{}, &countingAftermaths{}
+	started, after := ScopeATO(ato), ScopeAftermaths(am)
+	for _, ctx := range []context.Context{context.Background(), WithReadScope(context.Background())} {
+		ato.n, am.perks, am.history = 0, 0, 0
+		for range 3 {
+			if ok, err := started.GameStarted(ctx, 1, 2); err != nil || !ok {
+				t.Fatal(ok, err)
+			}
+			if p, err := after.Perks(ctx, 1, 2); err != nil || len(p) != 1 {
+				t.Fatal(p, err)
+			}
+			if h, err := after.History(ctx, 1, 2, 20); err != nil || len(h) != 1 {
+				t.Fatal(h, err)
+			}
+		}
+		_, _ = started.GameStarted(ctx, 1, 3)
+		_, _ = after.History(ctx, 1, 2, 5) // another limit is another read
+		want := 3
+		if ctx.Value(readScopeKey{}) != nil {
+			want = 1
+		}
+		if ato.n != want+1 || am.perks != want || am.history != want+1 {
+			t.Fatalf("scope=%v: GameStarted %d, Perks %d, History %d", ctx.Value(readScopeKey{}) != nil, ato.n, am.perks, am.history)
+		}
+	}
+}
