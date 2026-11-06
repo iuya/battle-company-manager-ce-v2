@@ -16,7 +16,7 @@ export default async function (h) {
     tied: await h.session('radagast@example.com'),
   };
 
-  // The aftermath page of a company of the ward, found through the organiser's match pages (the owner's link would start the aftermath).
+  // The aftermath page of a company of the ward, found through the organiser's match pages (Start aftermath would start it).
   const urls = {};
   async function pageOf(name) {
     if (!urls[name]) {
@@ -25,12 +25,11 @@ export default async function (h) {
       const matches = await you.page.$$eval('main a[href]', (a) => [...new Set(a.map((x) => x.getAttribute('href')).filter((x) => /\/matches\/\d+$/.test(x)))]);
       for (const m of matches) {
         await you.goto(m);
-        const found = await you.page.evaluate((n) => {
-          const row = [...document.querySelectorAll('#aftermath *')].find((x) => x.children.length === 0 && x.textContent.includes(n));
-          const id = row && row.closest('li, tr, article, div')?.querySelector('a[href*="/aftermath/"]')?.getAttribute('href');
-          return id ? id.replace(/\/begin$/, '') : null;
+        const company = await you.page.evaluate((n) => {
+          const link = [...document.querySelectorAll('#aftermath li a[href*="/companies/"]')].find((a) => a.innerText.includes(n));
+          return link ? link.getAttribute('href').match(/\/companies\/(\d+)/)[1] : null;
         }, name);
-        if (found) { urls[name] = found; break; }
+        if (company) { urls[name] = `${m}/aftermath/${company}`; break; }
       }
       assert.ok(urls[name], `an aftermath page for ${name}`);
     }
