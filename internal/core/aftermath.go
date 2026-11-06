@@ -950,6 +950,9 @@ type AftermathAnswer struct {
 	UnitID int64  // the casualty (scratch, heal); 0 for the rest
 	Kind   string // "scratch" | "heal" | "succession" | "sergeant" | "reward" | "continue"
 	Key    string // the reward key for "reward"
+	// Thrown says the browser threw the bonus die (Shake the table): Answer is then the reading of the die, 1..spec.Max() (a D3 reads 1 to 3,
+	// not the 1 to 6 of a typed one), and the campaign must allow thrown dice (CampaignSettings.RollRefusal). Only for kind "bonus".
+	Thrown bool
 	Answer string // scratch: "reroll" or "keep"; heal: an injury key or ""; succession and sergeant: a unit id ("" skips the sergeant); reward: "<item>|<unit id>"
 }
 

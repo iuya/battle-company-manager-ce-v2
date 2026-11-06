@@ -474,7 +474,7 @@ func (s *AftermathService) roll(e *amEnv, st *CompanyState, rec *AftermathRecord
 	cas.Kind, cas.InjuryKey, cas.Count, cas.Decision = eff.Kind, eff.InjuryKey, eff.Count, eff.Decision
 	cas.Bonus = 0
 	if eff.Row.BonusDice != "" && eff.Decision == nil {
-		if e.settings.ManualRolls { // the player has a die of their own: ask for it (Decide, kind "bonus")
+		if e.settings.ManualRolls || e.settings.ShakeTheTable { // the player has a die of their own, typed or thrown: ask for it (Decide, kind "bonus")
 			cas.Decision = &CasualtyDecision{Kind: "bonus"}
 		} else {
 			cas.Bonus = eff.Bonus(s.dice)
@@ -538,7 +538,9 @@ func consumeItems(e *amEnv, st *CompanyState, rec *AftermathRecord) {
 }
 
 // decideBonus answers the bonus dice of Lesson Learned (a D3) or Wounds of a Hero (a D6), whatever the rules file says: "0" lets
-// the server roll, a number is the roll the player made (see TypedMax and FromTyped: a D3 is rolled on a D6).
+// the server roll, a number is the roll the player typed (see TypedMax and FromTyped: a D3 is typed from a D6), and with Thrown the
+// number is what the die the browser threw shows (1 to the spec's maximum, a D3 reads 1 to 3).
+
 func (s *AftermathService) decideBonus(e *amEnv, rec *AftermathRecord, ans AftermathAnswer) error {
 	w := &rec.Work
 	i := slices.IndexFunc(w.Casualties, func(c Casualty) bool { return c.UnitID == ans.UnitID })
@@ -552,6 +554,16 @@ func (s *AftermathService) decideBonus(e *amEnv, rec *AftermathRecord, ans After
 	eff := CasualtyEffect{Row: e.chartRow(*cas)}
 	spec := eff.Row.BonusSpec
 	n, err := strconv.Atoi(ans.Answer)
+	if ans.Thrown {
+		if msg := e.settings.RollRefusal(true, true); msg != "" {
+			return Refuse("%s", msg)
+		}
+		if err != nil || n < spec.Min() || n > spec.Max() {
+			return invalidAftermath(fmt.Sprintf("the die you threw shows %d to %d", spec.Min(), spec.Max()))
+		}
+		cas.Bonus, cas.Decision = n, nil
+		return nil
+	}
 	if err != nil || n < 0 || n > TypedMax(spec) || n > 0 && n < spec.Min() {
 		return invalidAftermath(fmt.Sprintf("enter the roll, from %d to %d, or 0 to roll it for you", spec.Min(), TypedMax(spec)))
 	}

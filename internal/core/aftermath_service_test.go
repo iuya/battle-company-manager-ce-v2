@@ -627,6 +627,80 @@ func TestAftermathRerollAndBonusDieCanBeTyped(t *testing.T) {
 	}
 }
 
+// The bonus die thrown in the browser (Shake the table): its reading (a D3 shows 1 to 3) is the answer, and it needs the campaign's leave.
+func TestAftermathBonusDieCanBeThrown(t *testing.T) {
+	answer := func(unit int64, n string, thrown bool) AftermathAnswer {
+		return AftermathAnswer{UnitID: unit, Kind: "bonus", Answer: n, Thrown: thrown}
+	}
+	// open asks for the bonus die of Lesson Learned (a warrior's 12) of unit 9 in a campaign with the given settings.
+	open := func(t *testing.T, settings CampaignSettings) *amFixture {
+		f := newAmFixture(t)
+		f.settings = settings
+		f.start(t, casualties(9))
+		var a Aftermath
+		var err error
+		if settings.ManualRolls {
+			a, err = f.svc.RollCasualty(f.ctx, f.owner(), 5, 1, 1, 9, []int{6, 6}, false)
+		} else {
+			f.dice.Rolls = []int{6}
+			a, err = f.svc.RollCasualty(f.ctx, f.owner(), 5, 1, 1, 9, nil, false)
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if d := a.Casualties[0].Decision; d == nil || d.Kind != "bonus" {
+			t.Fatalf("the bonus die waits (typed or thrown dice): %+v", a.Casualties[0])
+		}
+		return f
+	}
+	t.Run("a thrown D3 reads 1 to 3 and is taken as it shows", func(t *testing.T) {
+		f := open(t, CampaignSettings{ShakeTheTable: true})
+		a, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, answer(9, "3", true))
+		if err != nil || a.Casualties[0].Bonus != 3 || a.Casualties[0].Decision != nil {
+			t.Fatalf("thrown 3: %+v %v", a.Casualties[0], err)
+		}
+	})
+	t.Run("a thrown D3 is not folded: 4 is no reading of it, and neither is 0", func(t *testing.T) {
+		f := open(t, CampaignSettings{ShakeTheTable: true, ManualRolls: true})
+		for _, n := range []string{"4", "6", "0", "x"} {
+			if _, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, answer(9, n, true)); !errors.Is(err, ErrInvalidAftermath) {
+				t.Errorf("thrown %q: %v", n, err)
+			}
+		}
+		if a, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, answer(9, "1", true)); err != nil || a.Casualties[0].Bonus != 1 {
+			t.Errorf("thrown 1: %v", err)
+		}
+	})
+	t.Run("a campaign without Shake the table refuses a thrown die", func(t *testing.T) {
+		f := open(t, CampaignSettings{ManualRolls: true})
+		_, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, answer(9, "2", true))
+		if !errors.Is(err, ErrRefused) || !strings.Contains(err.Error(), "throw the dice") {
+			t.Fatalf("thrown without Shake the table: %v", err)
+		}
+		if f.rec.Work.Casualties[0].Decision == nil {
+			t.Error("the question stays open")
+		}
+	})
+	t.Run("typed, a D3 still folds a six-sided die and a campaign without typed rolls refuses it", func(t *testing.T) {
+		f := open(t, CampaignSettings{ShakeTheTable: true})
+		if _, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, answer(9, "5", false)); !errors.Is(err, ErrRefused) {
+			t.Errorf("typed without ManualRolls: %v", err)
+		}
+		f = open(t, CampaignSettings{ManualRolls: true})
+		if a, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, answer(9, "5", false)); err != nil || a.Casualties[0].Bonus != 3 {
+			t.Errorf("typed 5 on a D3 reads 3: %+v %v", a.Casualties[0], err)
+		}
+	})
+	t.Run("the server rolls it when asked, in a campaign that lets the player throw", func(t *testing.T) {
+		f := open(t, CampaignSettings{ShakeTheTable: true})
+		f.dice.Rolls, f.dice.n = []int{4}, 0 // a 4 folds to 2 on a D3
+		a, err := f.svc.Decide(f.ctx, f.owner(), 5, 1, 1, answer(9, "0", false))
+		if err != nil || a.Casualties[0].Bonus != 2 {
+			t.Fatalf("server roll: %+v %v", a.Casualties[0], err)
+		}
+	})
+}
+
 type stubLive struct {
 	sheets []ModelSheet
 	ok     bool
