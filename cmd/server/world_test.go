@@ -290,7 +290,7 @@ func TestSeedWorld(t *testing.T) {
 	for _, m := range m6 {
 		byNumber[m.Number] = m
 	}
-	if a, _ := sheetOf(byNumber[1], 0); !slices.Equal(a.Input.AgainstTheOdds, []string{"influence", "toolKit"}) {
+	if a, _ := sheetOf(byNumber[1], 0); !slices.Equal(a.Input.AgainstTheOdds, []string{"influence", "influence", "toolKit"}) {
 		t.Errorf("ward 6, match 1: the sheet shows the bonuses taken: %v", a.Input.AgainstTheOdds)
 	}
 	if a, m := sheetOf(byNumber[2], 0); len(a.Input.AgainstTheOdds) != 0 || !core.OddsAvailable(m, m.Sides[0].Companies[0].ID, rules) {
