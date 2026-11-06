@@ -34,7 +34,7 @@
       "version": "three 0.160.1, cannon-es 0.20.0, esbuild 0.25.0",
       "license": "MIT",
       "source": "built from tools/dice3d (make dice3d); not fetched",
-      "sha256": "d87a08d2f77773bf3e382110f69e50e4bd5be640803333cde008f82ce81e53be",
+      "sha256": "a72311afeadfd812d5d4b96f2fb34986077629297f624a2b69e59c2a98a86f1f",
       "advisories": "https://github.com/mrdoob/three.js/security/advisories"
     }
   ]

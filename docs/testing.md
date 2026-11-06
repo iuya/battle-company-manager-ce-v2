@@ -18,7 +18,7 @@ Contents:
 |---|---|
 | `make lint` | Static analysis, failing on any finding: `go vet`, `staticcheck` (default checks) and `deadcode -test` (unreachable functions; tests count as users). The tools are pinned in the `tool` block of `go.mod` and run with `go tool`, no global install. A deliberate exception is a `//lint:ignore <check> <reason>` comment. Runs in `make test`, in the `pre-push` hook and in the `pr-check` workflow; the Docker image build does not run it |
 | `make hooks-test` | The hooks of `.githooks/` in a throwaway repository, including the pre-push refusal when `make lint` fails |
-| `make test` | `make lint`, then Go unit tests (the PostgreSQL ones are skipped), including the tests of the programs under `tools/` (below) |
+| `make test` | `make lint`, the grouping check, the link check, `make dice3d-test` (the settle logic of the 3D dice in node, `tools/dice3d/settle.test.mjs`), then Go unit tests (the PostgreSQL ones are skipped), including the tests of the programs under `tools/` (below) |
 | `make test-integration` | All Go tests against the `bcm_test` database of the compose PostgreSQL. In `cmd/server` the demo world is seeded once per run into a template database (`testmain_test.go`) and the two fuzz tests run side by side on copies of it; `go test ./cmd/server` takes about 2 minutes |
 | `make docs-check` | Every relative link of the Markdown files (README, CONTRIBUTING, `docs/`, `tools/`, `examples/`) resolves, headings in `#fragments` included (`tests/ci/links.mjs`; part of `make test`) |
 | `make validate` | The four rules files: JSON Schemas, the Go validator on the Battle Companies file, the curator's checks, the glossary and the concept graph (below) |
@@ -263,6 +263,7 @@ Every step also fails on any browser console error, uncaught exception, failed r
 | `113-level-up-window` | the level-up window: a click only selects an option and Confirm applies it (a reload before Confirm leaves the level-up waiting), the marks of results that take the other too (moving a mark, both in one request, a normal option alone, Confirm with a mark in each, the Warlord 5 and 7), Courage at its limit, the dots and the (i) of a stat, no change closing by itself or staying with Next level up, a Hero in the Making with and without confetti, accepted or going on to the path window; 360, 768 and 1280 px, light and dark |
 | `114-aftermath-sheet` | the Sheet step of "Aftermath ward 6" of the demo world, as a player and as the organiser: the Against the Odds block (bonuses taken read only, also those with no effect; the control for the organiser; "No bonus taken."; no block for the higher company or equal ratings), the match result line, the description and why the sheet opened (nothing recorded, the Relic with no holder, a tied MVP vote) |
 | `116-cancelled-transition` | the My Company window closed and reopened 60 times in the middle of its transition raises no unhandled rejection (Alpine's cancelled-transition rejection is marked handled by `theme-init.js`), and the handler marks nothing else |
+| `117-dice-settle` | 20 live 3D throws (14 of two dice, 6 of one) on the style guide's tray: each stops in under 9 s (the cap is 12 s; a die asleep leaning on the other is kicked flat) and shows faces 1 to 6 |
 
 ### Scripting the server's dice
 
