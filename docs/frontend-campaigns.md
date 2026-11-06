@@ -102,7 +102,7 @@ The Overview stays the first tab.
 - **New match** (`/campaigns/{id}/matches/new`, `internal/web/match_new.go`, `static/js/match_form.js`): two side blocks (accent border, thick top bar) with the company search, then the scenario card
   only (added companies are chips that can be removed, a company already on a side no longer shows up, Enter adds the first result),
   **Practice match**, **+ Add side** (up to 8), **All vs all** (one pool where each company fights alone, with "Add every company";
-  `mode=ffa`); the scenario card is the one the server rolled (Roll again, Choose another, One-off scenario). Against the Odds is chosen on the match page.
+  `mode=ffa`); the scenario card starts empty and Roll the scenario throws the 3D dice (then Roll again, Choose another, One-off scenario). Against the Odds is chosen on the match page.
   The form is posted as `sides`, one `side-N` per company and the scenario fields;
   `core.ValidateSides` checks that every side has a company and none repeats. Any player of the campaign can create a match. A campaign
   with fewer than two companies offers no "New match" (the matches page says what is needed) and the form page says the same instead of
