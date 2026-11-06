@@ -278,6 +278,8 @@ Ward 4 (two matches, Rohan against Mordor): the Riders' Leader took an **Arm Wou
 
 The casualty cards of the Injuries step: a card with a question and a highlighted border in the Rangers of ward 1, re-rolls and a given-up result in the Orcs of ward 2, dice still to roll in the Shieldmaidens of the Deep (Two bands) and the Veterans of the Riddermark (Veterans).
 
+The line of place, path and injuries of a unit card, reserved only beside a card that has one (from 1024 px): the Orcs' sheet in ward 1 has Hero+Hero, Hero+Warrior and then Warrior+Warrior rows; the level-up step of the Dwarves in ward 1 ends on a Warrior alone in its row.
+
 The Elven Cloak: the Galadhrim of ward 1 (Galadriel) carry it as a unit upgrade badge with a tooltip.
 
 ## Account invitations and recovery links

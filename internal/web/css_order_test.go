@@ -28,3 +28,22 @@ func TestBadgeBaseComesBeforeTones(t *testing.T) {
 		}
 	}
 }
+
+// The empty line of a unit summary is kept by pairing an odd card of .unit-choices with the next one, which is a row only while the grid has two columns
+// (at most): more columns would need the rule rewritten, and the same breakpoint has to switch both on.
+func TestUnitFactsPairMatchesColumns(t *testing.T) {
+	b, err := os.ReadFile("../../tailwind.css")
+	if err != nil {
+		t.Skip("tailwind.css not found")
+	}
+	css := string(b)
+	for _, want := range []string{
+		".unit-choices { @apply grid grid-cols-1 gap-3 lg:grid-cols-2; }",
+		".unit-choices > :nth-child(odd):has(+ * .unit-facts > *) .unit-facts:not(:has(*)),",
+		".unit-choices > :nth-child(odd):has(.unit-facts > *) + * .unit-facts:not(:has(*)) { @apply lg:flex; }",
+	} {
+		if !strings.Contains(css, want) {
+			t.Errorf("tailwind.css has no %q", want)
+		}
+	}
+}

@@ -30,6 +30,19 @@ export default async function (h) {
       }));
       assert.ok(cards.length >= 3 && cards.every((c) => c.facts && !c.profile && c.bar && !c.medalInFacts && c.marks >= 4 && c.toggles === 3 && !c.over), `each unit is told apart and its marks fit its card at ${w}px ${scheme}: ${JSON.stringify(cards.slice(0, 3))}`);
       assert.ok(cards.every((c) => c.toggleH <= 44.5), `the outcome toggles are small at ${w}px: ${cards[0].toggleH}`);
+      // a unit without a line of place, path and injuries reserves it only beside a card that has one, in the same row of the grid
+      const rows = await page.$$eval('fieldset.unit', (fs) => {
+        const by = new Map();
+        for (const f of fs) { const top = Math.round(f.getBoundingClientRect().top); by.set(top, [...(by.get(top) || []), f.querySelector('[data-unit-facts]')]); }
+        return [...by.values()].map((r) => ({ full: r.map((x) => x.children.length > 0), h: r.map((x) => x.getBoundingClientRect().height), top: r.map((x) => Math.round(x.getBoundingClientRect().top)) }));
+      });
+      for (const r of rows) {
+        const any = r.full.some(Boolean);
+        r.h.forEach((h, i) => { if (!r.full[i]) assert.equal(h > 0, any && r.h.length > 1, `an empty line is reserved only beside a full one at ${w}px: ${JSON.stringify(r)}`); });
+        // within a pixel: an officer's card has a thicker border than a Warrior's
+        if (any && r.h.length > 1) assert.ok(Math.abs(r.top[0] - r.top[1]) <= 1, `the two cards of a row line up at ${w}px: ${JSON.stringify(r)}`);
+      }
+      if (w >= 1024) assert.ok(rows.some((r) => r.h.length === 2 && !r.full[0] && !r.full[1]), `the sheet has a row of two Warriors at ${w}px`);
       await (await page.$('fieldset.unit')).screenshot({ path: `out/aftermath-sheet-${w}-${scheme}.png` });
     }
     await layout(sauron, 1280, 'light');
