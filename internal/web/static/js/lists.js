@@ -239,7 +239,9 @@ document.addEventListener('alpine:init', () => {
       const art = t && document.getElementById(t.id);
       const def = art && art.querySelector('[data-def]');
       if (!def) return null;
+      art.style.contentVisibility = 'visible'; // an article far from the screen is not laid out (tailwind.css) and has no innerText until it is
       let text = def.innerText.trim().replace(/\s+/g, ' ');
+      art.style.contentVisibility = '';
       if (text.length > 480) text = text.slice(0, 480).replace(/\s+\S*$/, '') + '…';
       return { name: art.dataset.name, category: art.dataset.category, text };
     },

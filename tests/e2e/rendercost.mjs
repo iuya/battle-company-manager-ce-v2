@@ -2,7 +2,7 @@
 // `node rendercost.mjs [--label name] [--reps 5] [--cpu 4] [--only text]`; `make perf` measures the network, this measures the page itself.
 // For each page (the static files already cached, no network latency): the CDP Performance metrics of the load (style, layout and script time,
 // whole task time, elements, layout count), the long tasks (over 50 ms) of the page, first contentful paint, largest contentful paint and the
-// layout shift score. `--cpu 4` slows the CPU four times (Emulation.setCPUThrottlingRate), a rough phone. The armoury also gets its two
+// layout shift score. `--cpu 4` slows the CPU four times (Emulation.setCPUThrottlingRate), a rough phone. The armoury and the glossary also get their
 // interactions: typing into the search and switching "Hide what ... cannot take". Median of --reps runs. Same scratch-database environment as
 // `make perf` (PERF_BASE_URL reuses a running app). Only reads. Writes tests/e2e/out/rendercost-<label>.json and prints a Markdown table.
 import { Env, outDir } from './lib/env.mjs';
@@ -89,6 +89,23 @@ async function armouryActions(s, cdp) {
   return { searchMs: search, clearMs: clear, toggleMs: toggle, openMs: open };
 }
 
+// The glossary's search and category chip: every term (1,245) is shown or hidden by Alpine.
+async function glossaryActions(s) {
+  const search = await frameTime(s, async () => {
+    const i = document.getElementById('glossary-search'); i.value = 'orc'; i.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  const clear = await frameTime(s, async () => {
+    const i = document.getElementById('glossary-search'); i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  const toggle = await frameTime(s, async () => {
+    document.querySelector('[data-chip="keywords"]').click();
+  });
+  const open = await frameTime(s, async () => {
+    document.querySelector('[data-chips] button').click(); // "All"
+  });
+  return { searchMs: search, clearMs: clear, toggleMs: toggle, openMs: open };
+}
+
 async function main() {
   const env = new Env();
   let h;
@@ -119,6 +136,7 @@ async function main() {
       { name: 'overview', s: eowyn, path: `/campaigns/${m}` },
       { name: 'live company page', s: admin, path: live },
       { name: 'match page', s: admin, path: match },
+      { name: 'campaign glossary', s: eowyn, path: `/campaigns/${m}/glossary`, interact: glossaryActions },
     ].filter((p) => !only || p.name.includes(only));
     const results = [];
     for (const p of pages) {
