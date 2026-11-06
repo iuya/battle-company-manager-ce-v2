@@ -348,6 +348,11 @@ type Config struct {
 	// StyleGuide serves /styleguide (the theme lab) and marks the pages as development. Off unless asked: make run, dev and
 	// demo turn it on.
 	StyleGuide bool `env:"STYLEGUIDE" default:"false"`
+	// E2EDice serves the end-to-end tests' dice script at /_e2e/dice (e2edice.go) and makes the server roll from it. Development only:
+	// Resolve refuses it in production. It needs E2EDiceToken.
+	E2EDice bool `env:"E2E_DICE" default:"false"`
+	// E2EDiceToken is the secret the test harness sends in the X-E2E-Dice-Token header.
+	E2EDiceToken string `env:"E2E_DICE_TOKEN"`
 	// AppTimezone is the zone times are shown in for a visitor whose account has none and whose browser sent none (IANA name; UTC when empty).
 	AppTimezone string `env:"APP_TIMEZONE"`
 	// RequestTimeout is how long one request may work before its context is cancelled (queries stop, the answer is 503). net/http's
@@ -373,6 +378,7 @@ type Server struct {
 	// accountThrottle limits wrong current passwords on the Account page, per signed-in user.
 	accountThrottle *loginThrottle
 	die             func(sides int) int         // the server's die (1..sides); tests replace it
+	diceScript      diceScript                  // the test harness' dice script (SetDiceScript); nil serves no /_e2e/dice
 	ready           func(context.Context) error // the database check of /readyz (SetReadiness)
 	cspReports      *reportLimiter
 	validator       *validatorGate // limits of the online validator (validator.go)
@@ -547,6 +553,7 @@ func (s *Server) Handler() http.Handler {
 	if s.cfg.StyleGuide {
 		mux.HandleFunc("GET /styleguide", s.session(s.handleStyleGuide))
 	}
+	s.registerDiceScript(mux)
 
 	// Rejects cross-site POSTs (CSRF) using the browser's Sec-Fetch-Site / Origin headers.
 	// Browsers send CSP reports without the headers the check relies on; a report only becomes a log line, so it is let through.

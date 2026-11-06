@@ -16,6 +16,7 @@ import (
 	"go-simpler.org/env"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/buildinfo"
+	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/perftrace"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/postgres"
 	"github.com/iuya/battle-company-manager-ce-v2/internal/web"
@@ -116,13 +117,25 @@ func run() error {
 	}
 	defer store.Close()
 
-	b, err := newBackend(ctx, store)
+	// One dice source for every service and the web server's own die: RandomDice, except for a development server started with
+	// E2E_DICE (Resolve refused it in production), whose script the end-to-end tests fill through /_e2e/dice.
+	var dice core.Dice = core.RandomDice{}
+	var script *core.ScriptedDice
+	if cfg.Web.E2EDice {
+		script = core.NewScriptedDice(dice)
+		dice = script
+		slog.Warn("E2E_DICE is on: the server rolls from a script that /_e2e/dice fills (development only)")
+	}
+	b, err := newBackendWithDice(ctx, store, dice)
 	if err != nil {
 		return err
 	}
 	srv, err := web.NewServer(cfg.Web, b.campaigns, b.rulesets, b.glossaries, b.auth)
 	if err != nil {
 		return err
+	}
+	if script != nil {
+		srv.SetDiceScript(script)
 	}
 	srv.SetReadiness(store.Ping)
 	srv.SetConcepts(b.concepts)
