@@ -39,6 +39,12 @@ func (c *Config) Resolve() error {
 		return errors.New("refusing to start: production with insecure cookies; set SECURE_COOKIES=true (behind a TLS-terminating proxy), " +
 			"or ALLOW_INSECURE_COOKIES=true to accept session cookies over plain http (docs/operations.md, TLS and cookies)")
 	}
+	if c.E2EDice && c.Production() {
+		return errors.New("refusing to start: E2E_DICE scripts the server's dice and exists only for the end-to-end tests; it is off in production (APP_ENV=development)")
+	}
+	if c.E2EDice && c.E2EDiceToken == "" {
+		return errors.New("E2E_DICE needs E2E_DICE_TOKEN, the secret the test harness sends")
+	}
 	if c.RequestTimeout < 0 {
 		return fmt.Errorf("REQUEST_TIMEOUT %s: want 0 (off) or a positive duration", c.RequestTimeout)
 	}
