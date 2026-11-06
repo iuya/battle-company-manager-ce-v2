@@ -3,6 +3,7 @@ module github.com/iuya/battle-company-manager-ce-v2
 go 1.27.3
 
 require (
+	github.com/andybalholm/brotli v1.2.6
 	github.com/jackc/pgx/v5 v5.12.0
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
@@ -18,7 +19,6 @@ require (
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/BurntSushi/toml v1.4.1-0.20240526193622-a339e1f7089c // indirect
 	github.com/air-verse/air v1.67.4 // indirect
-	github.com/andybalholm/brotli v1.2.6 // indirect
 	github.com/bep/godartsass/v2 v2.5.0 // indirect
 	github.com/bep/golibsass v1.2.0 // indirect
 	github.com/bep/helpers v0.12.0 // indirect

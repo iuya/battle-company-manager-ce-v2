@@ -1,5 +1,5 @@
 // Server-side cost of the main pages, taken over plain HTTP (no browser): issue #68, "Method".
-// `node pagetimes.mjs [--label name] [--reps 20] [--warm 5]`. Same scratch-database environment as the smoke tests (lib/env.mjs), the server
+// `node pagetimes.mjs [--label name] [--reps 20] [--warm 5] [--encoding br]`. Same scratch-database environment as the smoke tests (lib/env.mjs), the server
 // started with PERF_TRACE=true so that every answer carries Server-Timing (app ms to the first byte, database ms and statements).
 // For each page: the median of --reps requests after --warm warm-up requests of the Server-Timing figures, the wall time of the request as
 // the client sees it, the HTML raw and gzip, and the CSS and JS the page loads, raw and gzip. It also takes the server's startup time to
@@ -15,6 +15,7 @@ import { Env, outDir, dbUrl, root } from './lib/env.mjs';
 const args = process.argv.slice(2);
 const opt = (n, d) => (args.includes(n) ? args[args.indexOf(n) + 1] : d);
 const label = opt('--label', 'run');
+const coding = opt('--encoding', 'gzip'); // the content coding asked for: gzip (the default) or br (what browsers offer on HTTPS); the columns "gzip" then hold its size
 const reps = Number(opt('--reps', 20));
 const warm = Number(opt('--warm', 5));
 const log = (m) => console.error(`[pagetimes] ${m}`);
@@ -27,7 +28,7 @@ const jars = new Map();
 function request(base, path, { user, gzip = true, htmx = false, method = 'GET', form } = {}) {
   return new Promise((resolve, reject) => {
     const u = new URL(path, base);
-    const headers = { 'Accept-Encoding': gzip ? 'gzip' : 'identity' };
+    const headers = { 'Accept-Encoding': gzip ? coding : 'identity' };
     if (user && jars.get(user)) headers.Cookie = jars.get(user);
     if (htmx) headers['HX-Request'] = 'true';
     let body = null;
@@ -40,7 +41,7 @@ function request(base, path, { user, gzip = true, htmx = false, method = 'GET', 
         const wire = Buffer.concat(chunks);
         const ms = Number(process.hrtime.bigint() - t0) / 1e6;
         const enc = res.headers['content-encoding'];
-        const raw = enc === 'gzip' ? zlib.gunzipSync(wire) : wire;
+        const raw = enc === 'gzip' ? zlib.gunzipSync(wire) : enc === 'br' ? zlib.brotliDecompressSync(wire) : wire;
         const set = res.headers['set-cookie'];
         if (set && user) { // merge by cookie name: an answer may set only the appearance cookie
           const jar = new Map((jars.get(user) || '').split('; ').filter(Boolean).map((c) => [c.split('=')[0], c]));
@@ -184,7 +185,7 @@ async function main() {
     const sizeOfStatic = async (u) => {
       if (!statics.has(u)) {
         const g = await request(env.base, u, { user: E, gzip: true }), r = await request(env.base, u, { user: E, gzip: false });
-        statics.set(u, { raw: r.wire, gzip: g.headers['content-encoding'] === 'gzip' ? g.wire : null });
+        statics.set(u, { raw: r.wire, gzip: g.headers['content-encoding'] === coding ? g.wire : null });
       }
       return statics.get(u);
     };
@@ -205,7 +206,7 @@ async function main() {
         appMs: +median(runs.map((r) => r.app)).toFixed(1), dbMs: +median(runs.map((r) => r.db)).toFixed(1), stmts: median(runs.map((r) => r.stmts)),
         stmtsRange: [Math.min(...runs.map((r) => r.stmts)), Math.max(...runs.map((r) => r.stmts))],
         clientMs: +median(runs.map((r) => r.ms)).toFixed(1), ttfbMs: +median(runs.map((r) => r.ttfb)).toFixed(1),
-        htmlRaw: raw.wire, htmlGzip: gz.headers['content-encoding'] === 'gzip' ? gz.wire : null, css, js,
+        htmlRaw: raw.wire, htmlGzip: gz.headers['content-encoding'] === coding ? gz.wire : null, css, js,
       });
       log(`${p.name.padEnd(42)} app ${out.pages.at(-1).appMs} ms  db ${out.pages.at(-1).dbMs} ms  stmts ${out.pages.at(-1).stmts}  html ${raw.wire} B (gzip ${out.pages.at(-1).htmlGzip})`);
     }

@@ -230,13 +230,14 @@ Static files are served by `internal/web/static.go` (measurements in [performanc
 - Templates name a file with `{{static "js/x.js"}}`, which adds `?v=<content hash>`.
 - A request with the current hash is `Cache-Control: public, max-age=31536000, immutable`, so a page costs no request for the file.
 - `app.css` is served with the same `?v=` on the fonts and images it loads.
-- Text files are gzipped at start and served with an ETag (304 on a match).
+- Text files are gzipped at start and brotli-compressed (level 11) on the first request that accepts `br`; each form has its own ETag (304 on a match).
   `STATIC_MAX_AGE` only governs addresses without `?v=`.
 - Pages load three scripts:
   - `theme-init.js` and `tz.js` (in the head, synchronous);
   - `js/app.js`, a bundle made at start of htmx, the theme store, the page scripts, SortableJS and Alpine, in the order of `bundleScripts`.
     A new script goes into that list, not into the layout.
-- Pages and fragments over 1 KB are gzipped for browsers that accept it (`compress.go`; the live stream is not).
+- Pages and fragments over 1 KB are compressed for browsers that accept it, `br` (level 5) before `gzip` (level 5) (`compress.go`; the live stream is not).
+  Browsers offer `br` on HTTPS only, so a local `http://` run still shows gzip sizes.
 
 ### Loading rules
 

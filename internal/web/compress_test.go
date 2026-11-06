@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"compress/gzip"
+	"github.com/andybalholm/brotli"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -98,5 +99,31 @@ func TestPagesAreGzipped(t *testing.T) {
 	}
 	if b, _ := io.ReadAll(zr); !strings.Contains(string(b), "<form") {
 		t.Error("the decompressed page has no form")
+	}
+}
+
+func TestBrotliResponses(t *testing.T) {
+	big := strings.Repeat("<p>Battle Companies</p>\n", 200)
+	h := gzipResponses(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		io.WriteString(w, big)
+		w.(http.Flusher).Flush()
+		io.WriteString(w, big)
+	}))
+	r := httptest.NewRequest("GET", "/x", nil)
+	r.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, r)
+	if rec.Header().Get("Content-Encoding") != "br" || rec.Header().Get("Vary") != "Accept-Encoding" {
+		t.Fatalf("headers: %v", rec.Header())
+	}
+	if got, err := io.ReadAll(brotli.NewReader(rec.Body)); err != nil || string(got) != big+big {
+		t.Errorf("round trip failed: %v, %d bytes", err, len(got))
+	}
+	r.Header.Set("Accept-Encoding", "br;q=0, gzip")
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, r)
+	if rec.Header().Get("Content-Encoding") != "gzip" {
+		t.Errorf("br;q=0 falls back to gzip: %q", rec.Header().Get("Content-Encoding"))
 	}
 }
