@@ -81,6 +81,7 @@ func TestBonusDieMaxFollowsTheBonusDice(t *testing.T) {
 		{Key: "d10", Name: "Big", BonusDice: "d10", BonusSpec: core.NdM(1, 10), BonusKind: "influence"},
 	}
 	v := aftermathView{Rules: rules}
+	v.Campaign.Settings.ManualRolls = true // the fold only matters to a player who types
 	if got := v.BonusMax(core.Casualty{ResultKey: "ll"}); got != 6 {
 		t.Errorf("a D3 is rolled on a D6: %d", got)
 	}

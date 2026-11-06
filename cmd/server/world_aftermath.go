@@ -13,6 +13,7 @@ func (w *world) aftermathCampaigns() {
 	w.aftermathWardTwo()
 	w.aftermathWardThree()
 	w.aftermathWardFour()
+	w.aftermathWardFive()
 }
 
 // aftermathWardFour stops at the questions only a result asks: which persistent injury a hero's Full Recovery heals, and the bonus die
@@ -52,6 +53,30 @@ func (w *world) aftermathWardFour() {
 		_, err := w.c().RollCasualty(w.ctx, c.org, c.id, second.ID, rohan.id, unit, dice, false)
 		w.must("roll the injury in "+rohan.name, err)
 	}
+}
+
+// aftermathWardFive is ward 4's Lesson Learned in a campaign where players type their rolls but the table is not shaken: the bonus D3 is
+// not thrown in the browser, "Roll D3" lets the server roll it and the die acts out the server's number.
+func (w *world) aftermathWardFive() {
+	c := w.campaign("you", "Aftermath ward 5: a bonus die the server rolls",
+		"Shake the table is off (typed rolls are on): two Warriors' Lesson Learned ask for their D3; Roll D3 lets the server roll it and the 3D die shows the number, or the player types the die they rolled. The browser throws nothing.",
+		core.CampaignSettings{ManualRolls: true})
+	cos := w.pool(c, [][3]string{
+		{"eowyn", "Riders with a lesson to learn", "Rohan"},
+		{"sauron", "Orcs on the far hill", "Mordor"},
+	}...)
+	rohan, mordor := cos[0], cos[1]
+	m := w.played(c, "Seize Ground", outcome{winner: 1}, []*wco{rohan}, []*wco{mordor})
+	_, _, warriors := w.roster(rohan)
+	in := w.sheet(rohan)
+	set(&in, warriors[0].ID, core.OutcomeCasualty, nil)
+	set(&in, warriors[1].ID, core.OutcomeCasualty, nil)
+	w.startAftermath(rohan, m, in)
+	for _, unit := range []int64{warriors[0].ID, warriors[1].ID} { // 12: Lesson Learned, its D3 waits (two of them: answering the first leaves the step open, so its die is seen rolling)
+		_, err := w.c().RollCasualty(w.ctx, c.org, c.id, m.ID, rohan.id, unit, []int{6, 6}, false)
+		w.must("roll the injury in "+rohan.name, err)
+	}
+	w.settle(mordor, m, w.sheet(mordor), nil, true)
 }
 
 func (w *world) aftermathWardOne() {

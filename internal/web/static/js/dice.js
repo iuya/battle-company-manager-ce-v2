@@ -1,5 +1,6 @@
-// Rolling dice, for any number of dice of any size the rules ask for (a spec such as 2d6 or d12). The 3D dice are six-sided only;
-// a die of another size is drawn flat here, with its number (pips up to six faces would mislead on a d12).
+// Rolling dice, for any number of dice of any size the rules ask for (a spec such as 2d6 or d12). The 3D dice are a D6 and a D3 (a cube
+// marked 1, 1, 2, 2, 3, 3 with opposite faces equal); a die of another size is drawn flat here, with its number (pips up to six faces
+// would mislead on a d12).
 //
 // DiceTray throws dice on a canvas: they slide and tumble across the tray, bump into the walls and each other, show faces
 // flickering past while they move, slow down and stop on a number. The numbers can be decided beforehand (the server rolled:
@@ -225,13 +226,13 @@
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); // a space must not press a button
       const onStop = v => { this.dice = v; this.rolling = false; this.stopped = true; then(v); };
       const canvas = this.$refs.canvas, lanes = groups && groups.length > 1 ? groups.length : 1;
-      const lib = sides === 6 ? await load3D() : null; // the 3D dice are cubes: other sizes use the flat tray
+      const lib = sides === 6 || sides === 3 ? await load3D() : null; // the 3D dice are cubes (D6, D3): other sizes use the flat tray
       if (ticket !== this.ticket) return; // another throw (or the panel's end) came first
       let tray = null;
       if (lib) {
         try {
           canvas.style.height = lib.heightFor(canvas.clientWidth || 600, lanes) + 'px';
-          tray = new lib.Tray(canvas, { count, values, groups, labels, onStop });
+          tray = new lib.Tray(canvas, { count, values, groups, labels, faces: sides, onStop });
         } catch (e) { tray = null; canvas.style.height = ''; }
       }
       if (!tray) { // no WebGL: the flat tray
@@ -256,8 +257,8 @@
   // A tray on its own (the style guide): throw 1 to 6 dice.
   document.addEventListener('alpine:init', () => {
     Alpine.data('diceDemo', () => ({
-      ...window.diceMixin(), count: 2, canShakeDemo: true, serverValues: false, lanes: false,
-      go() { this.throwDice({ count: this.count, canShake: this.canShakeDemo, groups: this.lanes && this.count > 1 ? [Math.ceil(this.count / 2), Math.floor(this.count / 2)] : null, labels: ['First roll', 'Second roll'], values: this.serverValues ? Array.from({ length: this.count }, () => 1 + Math.floor(Math.random() * 6)) : null }); },
+      ...window.diceMixin(), count: 2, sides: 6, canShakeDemo: true, serverValues: false, lanes: false,
+      go() { this.throwDice({ count: this.count, sides: this.sides, canShake: this.canShakeDemo, groups: this.lanes && this.count > 1 ? [Math.ceil(this.count / 2), Math.floor(this.count / 2)] : null, labels: ['First roll', 'Second roll'], values: this.serverValues ? Array.from({ length: this.count }, () => 1 + Math.floor(Math.random() * this.sides)) : null }); },
     }));
   });
 })();

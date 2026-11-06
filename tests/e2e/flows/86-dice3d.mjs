@@ -2,7 +2,7 @@
 // WebGL through SwiftShader (the harness passes the flags), so the real 3D path runs. Server-rolled dice are random at run time,
 // so the checks compare what the server sent (data-roll) with what the animation reports and what the page then shows; the
 // style guide's dice demo takes values decided beforehand and is read through a spy on throwDice.
-import { assert, campaignId, layout } from '../lib/util.mjs';
+import { assert, campaignId, layout, SIZES } from '../lib/util.mjs';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const PANEL = '#modal-body [x-data="rollPanel"]';
@@ -149,7 +149,7 @@ export default async function (h) {
   const spy = (s) => s.page.evaluate((sel) => {
     const d = Alpine.$data(document.querySelector(sel)), orig = d.throwDice;
     window.__throws = [];
-    d.throwDice = function (o) { window.__throws.push({ count: o.count, values: o.values && [...o.values], groups: o.groups }); return orig.call(this, o); };
+    d.throwDice = function (o) { window.__throws.push({ count: o.count, sides: o.sides, values: o.values && [...o.values], groups: o.groups }); return orig.call(this, o); };
   }, DEMO);
   const resultText = (s) => s.page.$eval(`${DEMO} [role=status]`, (e) => e.innerText.replace(/\s+/g, ' ').trim());
   const roll = async (s) => { await s.click(`${DEMO} button`, '=Roll'); await waitStopped(s, DEMO); };
@@ -225,6 +225,142 @@ export default async function (h) {
     assert.equal(await resultText(lost), `Result: ${t.values.join(' + ')}`);
     await roll(lost); // and again: the failed load is remembered, not retried into a hang
     await lost.page.setRequestInterception(false);
+  });
+
+  // The D3 is a cube marked 1, 1, 2, 2, 3, 3 with opposite faces equal (one number per axis): the labels of every die say so.
+  const d3Cube = (s, sel) => s.page.evaluate((sel) => {
+    const t = Alpine.$data(document.querySelector(sel)).tray;
+    return t && t.faceLabels ? { faces: t.faces, labels: t.faceLabels.map((l) => [...l]) } : null;
+  }, sel);
+  const assertD3Marks = (cube, n) => {
+    assert.ok(cube && cube.faces === 3, 'the 3D tray was asked for a D3');
+    assert.equal(cube.labels.length, n);
+    for (const l of cube.labels) {
+      assert.deepEqual([...l].sort(), [1, 1, 2, 2, 3, 3], `the faces are marked 1, 1, 2, 2, 3, 3 (${l})`);
+      assert.ok(l[0] === l[1] && l[2] === l[3] && l[4] === l[5], `opposite faces are equal (${l})`);
+    }
+  };
+
+  await h.step('dice: a D3 is a 3D cube marked 1, 1, 2, 2, 3, 3; a value decided beforehand is shown exactly, a live one reads 1 to 3', async () => {
+    await demo.goto('/styleguide');
+    await demo.page.waitForSelector(DEMO);
+    await spy(demo);
+    await demo.page.$eval('#sg-die', (e) => e.scrollIntoView({ block: 'center' }));
+    await demo.select('#sg-die', 3);
+    await demo.page.$eval(`${DEMO} input[type=checkbox][x-model="serverValues"]`, (e) => { if (!e.checked) e.click(); });
+    for (const n of [1, 3]) {
+      await demo.select('#sg-dice', n);
+      for (let k = 0; k < 3; k++) { // the wanted number must land on top whatever the throw does: a few throws
+        await roll(demo);
+        const t = await demo.page.evaluate(() => window.__throws.pop());
+        const st = await state(demo, DEMO);
+        assert.equal(t.sides, 3, 'the page asks for a D3');
+        assert.ok(t.values.every((v) => v >= 1 && v <= 3), `a D3 shows 1 to 3 (${t.values})`);
+        assert.equal(st.tray, '3d', 'a D3 is a 3D cube too');
+        assert.deepEqual(st.dice, t.values, 'the cube stopped on the given numbers');
+        assertD3Marks(await d3Cube(demo, DEMO), n);
+        assert.equal(await resultText(demo), `Result: ${t.values.join(' + ')}`);
+      }
+    }
+    await demo.page.$eval(`${DEMO} input[type=checkbox][x-model="serverValues"]`, (e) => { if (e.checked) e.click(); });
+    await demo.select('#sg-dice', 2);
+    await demo.click(`${DEMO} button`, '=Roll');
+    await demo.page.waitForFunction((sel) => Alpine.$data(document.querySelector(sel)).rolling === true, {}, DEMO);
+    await demo.page.keyboard.press('Space');
+    await waitStopped(demo, DEMO);
+    const st = await state(demo, DEMO);
+    assert.equal(st.dice.length, 2);
+    assert.ok(st.dice.every((d) => d >= 1 && d <= 3), `a live D3 reads 1 to 3 (${st.dice})`);
+    assertD3Marks(await d3Cube(demo, DEMO), 2);
+    await demo.select('#sg-die', 6);
+  });
+
+  // The aftermath of a campaign: Lesson Learned (a D3, from the rules file) waits for the bonus die. Ward 4 lets the table be shaken, ward 5 does not.
+  const lessonPage = async (s, campaign, who) => {
+    const cid = await campaignId(s, campaign);
+    await s.goto(`/campaigns/${cid}/matches`);
+    const matches = await s.page.$$eval('main a[href]', (a) => [...new Set(a.map((x) => x.getAttribute('href')).filter((x) => /\/matches\/\d+$/.test(x)))]);
+    for (const m of matches.reverse()) {
+      await s.goto(m);
+      const u = await s.page.evaluate((who) => [...document.querySelectorAll('main a[href]')].find((x) => /\/aftermath\/\d+$/.test(x.getAttribute('href')) && new RegExp(who).test(x.innerText))?.getAttribute('href'), who);
+      if (!u) continue;
+      await s.goto(u);
+      if (await s.page.$('form[x-ref=bonusForm]')) return u;
+    }
+    throw new Error(`no aftermath of ${campaign} waits for a bonus die`);
+  };
+  const ARTICLE = 'article[id^=casualty-]:has(form[x-ref=bonusForm])';
+  const badge = (s) => s.page.$$eval('article[id^=casualty-] .badge-gold', (b) => b.map((x) => x.innerText.trim()));
+
+  const thrower = await h.session('eowyn@example.com', { height: 1000 });
+  await h.step('aftermath: with Shake the table the browser throws the Lesson Learned D3, and the number it shows is the bonus', async () => {
+    await lessonPage(thrower, 'Aftermath ward 4', 'nursing');
+    const form = await thrower.page.$eval(`${ARTICLE} form[x-ref=bonusForm]`, (f) => ({ sides: f.dataset.sides, count: f.dataset.count, text: f.innerText.replace(/\s+/g, ' ') }));
+    assert.deepEqual([form.sides, form.count], ['3', '1'], 'the dice come from the rules file: a D3');
+    assert.match(form.text, /Roll D3/);
+    assert.match(form.text, /or the die you rolled/, 'typed rolls keep their numbers');
+    assert.equal(await thrower.page.$$eval(`${ARTICLE} form[x-ref=bonusForm] button[name=answer]`, (b) => b.map((x) => x.value).join()), '0,1,2,3,4,5,6', 'Roll D3, then the six-sided numbers of a typed roll');
+    assert.equal(await thrower.page.$eval(`${ARTICLE} canvas.dice-tray`, (c) => getComputedStyle(c).display), 'none', 'no tray before the throw');
+    // sizes, light and dark: the question fits
+    for (const scheme of ['light', 'dark']) for (const w of SIZES) {
+      await layout(thrower, w, scheme, 1000);
+      await thrower.page.$eval(ARTICLE, (e) => e.scrollIntoView());
+      assert.ok(await thrower.noHScroll(), `no horizontal scroll at ${w}px ${scheme}`);
+      const box = await thrower.page.$eval(`${ARTICLE} form[x-ref=bonusForm]`, (f) => { const r = f.getBoundingClientRect(); return [r.left, r.right]; });
+      assert.ok(box[0] >= 0 && box[1] <= w + 1, `the question is inside the viewport at ${w}px`);
+    }
+    await layout(thrower, 1280, 'light', 1000);
+    await thrower.page.evaluate((sel) => {
+      const d = Alpine.$data(document.querySelector(sel)), orig = d.throwDice, self = d;
+      window.__bonus = [];
+      d.throwDice = function (o) {
+        const then = o.then;
+        o.then = (v) => { window.__bonus.push({ sides: o.sides, count: o.count, v: [...v], tray: self.tray instanceof Dice3D.Tray ? '3d' : 'other', faces: self.tray.faces, labels: self.tray.faceLabels.map((l) => [...l]) }); then(v); };
+        return orig.call(this, o);
+      };
+    }, ARTICLE);
+    await thrower.click(`${ARTICLE} form[x-ref=bonusForm] button`, 'Roll D3');
+    await thrower.page.waitForFunction(() => window.__bonus.length === 1, { timeout: 25000 });
+    const thrown = await thrower.page.evaluate(() => window.__bonus[0]);
+    assert.equal(thrown.tray, '3d');
+    assert.deepEqual([thrown.sides, thrown.count, thrown.faces], [3, 1, 3]);
+    assert.ok(thrown.v[0] >= 1 && thrown.v[0] <= 3, `the die shows 1 to 3 (${thrown.v})`);
+    assertD3Marks({ faces: thrown.faces, labels: thrown.labels }, 1);
+    await thrower.page.waitForFunction((n) => [...document.querySelectorAll('article[id^=casualty-] .badge-gold')].some((b) => b.innerText.trim() === `+${n} Experience`), { timeout: 8000 }, thrown.v[0])
+      .catch(async () => { throw new Error(`the page does not give +${thrown.v[0]} Experience: ${JSON.stringify(await badge(thrower))}`); });
+    assert.equal(await thrower.page.$('form[x-ref=bonusForm]'), null, 'the question is answered');
+  });
+
+  const server = await h.session('eowyn@example.com', { height: 1000 });
+  server.allow.push(/422/, /Failed to load resource/); // the refusal of a thrown die the step provokes
+  await h.step('aftermath: without Shake the table Roll D3 lets the server roll, the die acts it out, and the number shows only when the die stops', async () => {
+    await lessonPage(server, 'Aftermath ward 5', 'lesson');
+    const text = await server.page.$eval(`${ARTICLE} form[x-ref=bonusForm]`, (f) => f.innerText.replace(/\s+/g, ' '));
+    assert.match(text, /Roll D3/);
+    assert.doesNotMatch(text, /space bar/, 'nothing to shake');
+    // a thrown die is refused where the table is not shaken
+    const refused = await server.page.evaluate(async () => {
+      const f = document.querySelector('form[x-ref=bonusForm]');
+      const body = new URLSearchParams({ kind: 'bonus', unit: f.elements.unit.value, answer: '2', thrown: '1' });
+      const r = await fetch(f.getAttribute('hx-post'), { method: 'POST', body, headers: { 'HX-Request': 'true', 'Content-Type': 'application/x-www-form-urlencoded' }, credentials: 'same-origin' });
+      return { status: r.status, text: (await r.text()).replace(/\s+/g, ' ') };
+    });
+    assert.ok(refused.status >= 400 && /does not let players throw the dice/.test(refused.text), `a thrown die is refused: ${refused.status} ${refused.text.slice(0, 200)}`);
+    assert.ok(await server.page.$('form[x-ref=bonusForm]'), 'and the question stays open');
+    await server.click(`${ARTICLE} form[x-ref=bonusForm] button`, 'Roll D3');
+    const panel = 'article[id^=casualty-][data-animate=true]';
+    await server.page.waitForSelector(panel, { timeout: 8000 });
+    const acted = await server.page.$eval(panel, (a) => ({ dice: a.dataset.dice, sides: a.dataset.sides, hidden: [...a.querySelectorAll('.badge-gold')].map((b) => b.closest('p').getClientRects().length === 0) }));
+    assert.match(acted.dice, /^[1-3]$/, `the server's number for the D3 (${acted.dice})`);
+    assert.equal(acted.sides, '3');
+    assert.ok(acted.hidden.length === 1 && acted.hidden[0], 'the bonus is not given away while the die rolls');
+    await waitStopped(server, panel);
+    const st = await state(server, panel);
+    assert.equal(st.tray, '3d');
+    assert.deepEqual(st.dice, [Number(acted.dice)], 'the die stops on the number the server rolled');
+    assertD3Marks(await d3Cube(server, panel), 1);
+    await server.settle(200);
+    assert.deepEqual(await badge(server), [`+${acted.dice} Experience`], 'then the bonus shows');
   });
 
   await h.step('dice: Roll again on the match page (Shake the table off) plays the server\'s dice, and the scenario and the roll text show only when they stop', async () => {

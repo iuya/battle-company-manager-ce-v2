@@ -903,17 +903,90 @@ func TestSheetPreviewListsTheScenarioRewards(t *testing.T) {
 	}
 }
 
+// bonusRules is amRules with Lesson Learned (a D3 on the warrior chart) and Wounds of a Hero (a D6 on the hero chart), as the rules file has them.
+var bonusRules = func() core.AftermathRules {
+	r := amRules
+	r.Warrior = []core.InjuryRow{{Min: 2, Max: 12, Key: "lessonLearned", Name: "Lesson Learned", Kind: core.CasualtyRecovered, BonusDice: "d3", BonusSpec: core.NdM(1, 3), BonusKind: "experience"}}
+	r.Hero = []core.InjuryRow{{Min: 2, Max: 12, Key: "woundsOfAHero", Name: "Wounds of a Hero", Kind: core.CasualtyRecovered, BonusDice: "d6", BonusSpec: core.NdM(1, 6), BonusKind: "influence"}}
+	return r
+}()
+
+// bonusFixture is the aftermath page of a campaign with the settings, whose rules have the two bonus dice.
+func bonusFixture(t *testing.T, settings core.CampaignSettings) *fixture {
+	t.Helper()
+	f := rollSetup(t, endedMatch(), settings)
+	f.camp.EXPECT().AftermathRules(gomock.Any(), int64(7)).Return(bonusRules, nil).AnyTimes()
+	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(core.CompanyDetail{Roster: amUnits()}, nil).AnyTimes()
+	return f
+}
+
+// bonusPage renders the Injuries step with the casualty's bonus question open.
+func bonusPage(t *testing.T, settings core.CampaignSettings, c core.Casualty) string {
+	t.Helper()
+	f := bonusFixture(t, settings)
+	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(injuriesState(c), nil)
+	return f.do(f.signedIn(httpGet(amPath))).Body.String()
+}
+
+func lessonLearned(decision *core.CasualtyDecision) core.Casualty {
+	return core.Casualty{UnitID: 10, Name: "Aldor", Rolled: true, Dice: []int{6, 6}, Total: 12, ResultKey: "lessonLearned", ResultTxt: "Lesson Learned", Kind: core.CasualtyRecovered, Decision: decision}
+}
+
 func TestBonusDieIsAskedForWhenDiceAreTyped(t *testing.T) {
-	f := amFixture(t)
-	st := injuriesState(core.Casualty{UnitID: 10, Name: "Aldor", Hero: true, Rolled: true, Dice: []int{6, 6}, Total: 12, ResultKey: "woundsOfAHero", ResultTxt: "Wounds of a Hero", Kind: core.CasualtyRecovered,
-		Decision: &core.CasualtyDecision{Kind: "bonus"}})
-	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(st, nil)
-	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
-	for _, want := range []string{`name="kind" value="bonus"`, `name="answer" value="0"`, `name="answer" value="6"`, "I rolled a ", "Roll for me"} {
+	body := bonusPage(t, core.CampaignSettings{ManualRolls: true}, lessonLearned(&core.CasualtyDecision{Kind: "bonus"}))
+	for _, want := range []string{`name="kind" value="bonus"`, `name="answer" value="0"`, `name="answer" value="6"`, "I rolled a ", "Roll D3", "On a D3 a die of 1-2 reads 1"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the bonus question lacks %q", want)
 		}
 	}
+	if strings.Contains(body, "throwBonus") {
+		t.Error("without Shake the table the browser throws nothing")
+	}
+}
+
+// With Shake the table the bonus die is a roll panel: the dice of the rules file are thrown in the browser and sent as thrown=1.
+func TestBonusDieIsThrownWhereTheTableShakes(t *testing.T) {
+	body := bonusPage(t, core.CampaignSettings{ShakeTheTable: true}, lessonLearned(&core.CasualtyDecision{Kind: "bonus"}))
+	for _, want := range []string{`x-ref="bonusForm" data-sides="3" data-count="1"`, `name="thrown"`, `x-ref="bonusAnswer"`, "throwBonus()", "Roll D3", "space bar"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the thrown bonus die lacks %q", want)
+		}
+	}
+	if strings.Contains(body, `name="answer" value="6"`) || strings.Contains(body, "I rolled a ") {
+		t.Error("typed number buttons are for ManualRolls only")
+	}
+	hero := bonusPage(t, core.CampaignSettings{ShakeTheTable: true, ManualRolls: true}, core.Casualty{UnitID: 10, Name: "Aldor", Hero: true, Rolled: true, Dice: []int{6, 6}, Total: 12,
+		ResultKey: "woundsOfAHero", ResultTxt: "Wounds of a Hero", Kind: core.CasualtyRecovered, Decision: &core.CasualtyDecision{Kind: "bonus"}})
+	for _, want := range []string{`data-sides="6" data-count="1"`, "Roll D6", `name="answer" value="6"`} {
+		if !strings.Contains(hero, want) {
+			t.Errorf("Wounds of a Hero (a D6) through the same panel lacks %q", want)
+		}
+	}
+	if strings.Contains(hero, "reads") {
+		t.Error("a D6 is typed as it is: no folding hint")
+	}
+}
+
+func TestBonusDieThrownIsPassedOnAndTheServersIsActedOut(t *testing.T) {
+	f := bonusFixture(t, core.CampaignSettings{ShakeTheTable: true})
+	done := lessonLearned(nil)
+	done.Bonus = 2
+	st := injuriesState(done)
+	f.camp.EXPECT().Decide(gomock.Any(), frodo, int64(7), int64(3), int64(1), core.AftermathAnswer{UnitID: 10, Kind: "bonus", Answer: "2", Thrown: true}).Return(st, nil)
+	body := amPost(f, "/decide", url.Values{"kind": {"bonus"}, "unit": {"10"}, "answer": {"2"}, "thrown": {"1"}}).Body.String()
+	if strings.Contains(body, `data-animate="true"`) {
+		t.Error("a die the player threw is not acted out again")
+	}
+	f.camp.EXPECT().Decide(gomock.Any(), frodo, int64(7), int64(3), int64(1), core.AftermathAnswer{UnitID: 10, Kind: "bonus", Answer: "0"}).Return(st, nil)
+	body = amPost(f, "/decide", url.Values{"kind": {"bonus"}, "unit": {"10"}, "answer": {"0"}, "thrown": {""}}).Body.String()
+	for _, want := range []string{`data-dice="2"`, `data-sides="3"`, `data-animate="true"`, `x-show="revealed" x-cloak><span class="badge badge-gold">`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the server's bonus die is not acted out: lacks %q", want)
+		}
+	}
+	// the thrown flag means nothing for the other questions
+	f.camp.EXPECT().Decide(gomock.Any(), frodo, int64(7), int64(3), int64(1), core.AftermathAnswer{UnitID: 10, Kind: "scratch", Answer: "keep"}).Return(st, nil)
+	amPost(f, "/decide", url.Values{"kind": {"scratch"}, "unit": {"10"}, "answer": {"keep"}, "thrown": {"1"}})
 }
 
 // --- Healing Herbs and Wondrous Cram (36y.5) ---
