@@ -131,7 +131,7 @@ func newBackendWithDice(ctx context.Context, store *postgres.Store, dice core.Di
 		archiver: archiver,
 		campaigns: &campaignsFacade{
 			campaignsSvc: core.NewCampaigns(camps, comps, store.Rulesets(), rules, log).WithCampaignLimit(campaignLimit).WithArchiver(archiver),
-			companySvc:   core.NewCompanyService(camps, comps, rules).WithAftermaths(aftermaths),
+			companySvc:   core.NewCompanyService(camps, comps, rules).WithAftermaths(core.ScopeAftermaths(aftermaths)),
 			armourySvc:   core.NewArmouryService(camps, comps, rules),
 			recruitSvc:   core.NewRecruitService(camps, comps, rules, dice),
 			levelSvc:     core.NewLevelService(camps, comps, rules, dice),

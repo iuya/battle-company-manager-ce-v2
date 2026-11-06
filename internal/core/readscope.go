@@ -84,6 +84,12 @@ type (
 	rosterKey      struct{ campaign int64 }
 	rosterOfKey    string // the company ids, comma separated
 	eventsKey      struct{ campaign, match int64 }
+	gameStartedKey struct{ campaign, match int64 }
+	perksKey       struct{ campaign, company int64 }
+	historyKey     struct {
+		campaign, company int64
+		limit             int
+	}
 )
 
 // ScopedMatches, ScopedCompanies, ScopedATO, ScopedLive and ScopedCampaigns wrap a repository so the reads of one request that
@@ -137,6 +143,27 @@ func ScopeATO(r atoRepository) ScopedATO { return ScopedATO{r} }
 
 func (r ScopedATO) Get(ctx context.Context, campaignID, matchID int64) (ATORecord, error) {
 	return scoped(ctx, atoGetKey{campaignID, matchID}, func() (ATORecord, error) { return r.atoRepository.Get(ctx, campaignID, matchID) })
+}
+
+// GameStarted is asked three times by the match page (the view, the Against the Odds status and the card).
+func (r ScopedATO) GameStarted(ctx context.Context, campaignID, matchID int64) (bool, error) {
+	return scoped(ctx, gameStartedKey{campaignID, matchID}, func() (bool, error) { return r.atoRepository.GameStarted(ctx, campaignID, matchID) })
+}
+
+// ScopedAftermaths remembers the perks and the history of a company for the request: the live page builds the company's detail twice
+// (the page and the grants card).
+type ScopedAftermaths struct{ aftermathRepository }
+
+func ScopeAftermaths(r aftermathRepository) ScopedAftermaths { return ScopedAftermaths{r} }
+
+func (r ScopedAftermaths) Perks(ctx context.Context, campaignID, companyID int64) ([]Perk, error) {
+	return scoped(ctx, perksKey{campaignID, companyID}, func() ([]Perk, error) { return r.aftermathRepository.Perks(ctx, campaignID, companyID) })
+}
+
+func (r ScopedAftermaths) History(ctx context.Context, campaignID, companyID int64, limit int) ([]AftermathLine, error) {
+	return scoped(ctx, historyKey{campaignID, companyID, limit}, func() ([]AftermathLine, error) {
+		return r.aftermathRepository.History(ctx, campaignID, companyID, limit)
+	})
 }
 
 type ScopedLive struct{ liveRepository }
