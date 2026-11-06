@@ -18,14 +18,14 @@ func (w *world) aftermathCampaigns() {
 }
 
 // aftermathWardSix stops at every state of the Sheet step: the Against the Odds block (bonuses taken, none taken with a gap that paid for
-// one, no block at all) and each reason that opens the sheet instead of the steps. Nothing is saved: the sheets are the unsaved defaults.
+// one, no block at all) and each reason that opens the sheet instead of the steps. Only the sheet whose bonuses were removed is saved: the others are the unsaved defaults.
 func (w *world) aftermathWardSix() {
 	c := w.campaign("you", "Aftermath ward 6: what the sheet asks",
 		"The Sheet step before anything is saved: Against the Odds bonuses taken, none taken with a gap that paid, no block at all; and why the sheet opened: nothing recorded, the Relic with no holder, a tied MVP vote.", defaultSettings)
 	cos := w.pool(c, [][3]string{
 		{"eowyn", "Riders who took a Tool Kit", "Rohan"},
 		{"sauron", "Riders who hired a Wanderer", "Rohan"},
-		{"aragorn", "Rangers who took nothing", "Rohan"},
+		{"aragorn", "Rangers who lost their bonuses", "Rohan"},
 		{"galadriel", "Elves who hired a Wanderer", "Rohan"},
 		{"gimli", "Dwarves who forgot the Relic", "Rohan"},
 		{"bilbo", "Hobbits who lost the Relic", "Rohan"},
@@ -42,14 +42,17 @@ func (w *world) aftermathWardSix() {
 	// the lower company took a bonus for the aftermath and one that does nothing in it
 	m, err := w.c().CreateMatch(w.ctx, c.org, c.id, core.NewMatch{Sides: newSides([][]*wco{{cos[0]}, {cos[1]}}), Scenario: &core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Seize Ground"}})
 	w.must("create the match of the bonuses", err)
-	_, err = w.c().SaveAgainstTheOdds(w.ctx, cos[0].user, c.id, m.ID, m.Revision, core.ATOSelection{Bonuses: []string{"influence", "toolKit"}, Kits: []string{"healer"}})
+	card, err := w.c().AgainstTheOdds(w.ctx, cos[0].user, c.id, m.ID)
+	w.must("the card of the bonuses", err)
+	_, err = w.c().SaveAgainstTheOdds(w.ctx, cos[0].user, c.id, m.ID, m.Revision, atoFill(card, m, core.ATOSelection{Bonuses: []string{"influence", "toolKit"}, Kits: []string{"healer"}}))
 	w.must("take the bonuses", err)
 	m, err = w.c().Match(w.ctx, c.id, m.ID)
 	w.must("read the match of the bonuses", err)
 	w.endMatch(c, w.report(c, m, outcome{winner: 2}))
 
-	// the gap paid for a bonus and the lower company took none (decideATO, in played)
-	w.played(c, "Chance Encounter", outcome{winner: 2}, []*wco{cos[2]}, []*wco{cos[3]})
+	// the gap paid for bonuses and the organiser removed them on the sheet: a match cannot start with none, so only a saved sheet has none
+	removed := w.played(c, "Chance Encounter", outcome{winner: 2}, []*wco{cos[2]}, []*wco{cos[3]})
+	w.saveSheet(cos[2], removed, w.sheet(cos[2]))
 
 	// equal ratings and nothing tracked, and the result says the company holds a Relic nobody was given
 	w.played(c, "Relic of Ages Past", outcome{winner: 1, ticks: map[*wco]map[string]int{cos[4]: {"possessesRelic": 1}}}, []*wco{cos[4]}, []*wco{cos[5]})

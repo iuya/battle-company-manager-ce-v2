@@ -62,8 +62,8 @@ export default async function (h) {
     assert.match(await you.text(), /Match result:.*Change it on the match page \(administrators only\)\./);
   });
 
-  await h.step('a player whose gap paid for a bonus and took none reads that; the rival has no block', async () => {
-    await owners.tookNothing.goto(await pageOf('Rangers who took nothing'));
+  await h.step('a player whose bonuses the organiser removed reads that; the rival has no block', async () => {
+    await owners.tookNothing.goto(await pageOf('Rangers who lost their bonuses'));
     const b = await block(owners.tookNothing);
     assert.match(b.text, /No bonus taken\./);
     assert.equal(b.control, 0);
