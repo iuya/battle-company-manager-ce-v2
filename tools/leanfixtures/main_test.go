@@ -1,24 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 )
 
 const committed = "../../internal/core/lean/testdata"
-
-// drifted lists the committed fixtures that were edited by hand after they were generated; they are compared as JSON values.
-// company_typed (valid) is further behind: it lacks the promotion keys keep and drop, so it is only checked to parse.
-var drifted = map[string]bool{
-	"valid/unit_forms.json":      true,
-	"valid/company_typed.json":   true,
-	"invalid/alias_shadow.json":  true,
-	"invalid/company_typed.json": true,
-}
 
 func generateInto(t *testing.T) string {
 	t.Helper()
@@ -51,18 +40,8 @@ func TestGeneratedFixturesMatchCommitted(t *testing.T) {
 				t.Errorf("%s is generated but not committed: %v", rel, err)
 				continue
 			}
-			if !drifted[rel] {
-				if string(got) != string(want) {
-					t.Errorf("%s differs from the committed fixture", rel)
-				}
-				continue
-			}
-			if rel == "valid/company_typed.json" {
-				continue
-			}
-			var a, b any
-			if json.Unmarshal(got, &a) != nil || json.Unmarshal(want, &b) != nil || !reflect.DeepEqual(a, b) {
-				t.Errorf("%s differs from the committed fixture as JSON", rel)
+			if string(got) != string(want) {
+				t.Errorf("%s differs from the committed fixture", rel)
 			}
 		}
 	}
