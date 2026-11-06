@@ -527,6 +527,19 @@ html[data-mode="dark"] { color-scheme: dark; }
   .tracker-count { @apply pl-2 text-right text-xs tabular-nums text-muted; }
   /* Level and experience: the level on a gold medal, the bar cut into one segment per experience point of a level. */
   .level-medal { @apply inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full border-2 border-gold bg-surface px-1 font-heading text-base font-bold leading-none text-fg; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gold) 22%, transparent); font-variant-numeric: lining-nums; }
+  /* The rows of the Against the Odds card: what can be taken has a solid accent border, what is taken is tinted, and what cannot be paid is dashed and
+     says why, so the three read apart without colour. */
+  .ato-row { @apply relative rounded-lg border-2 border-line px-3 py-2; }
+  .ato-row-open { @apply border-accent bg-surface; }
+  .ato-row-taken { @apply border-accent bg-accent-soft; }
+  .ato-row-off { @apply border-dashed border-line bg-raised text-muted; }
+  .ato-press { @apply flex min-h-11 w-full items-start gap-3 text-left; }
+  .ato-press:disabled { @apply cursor-not-allowed; }
+  .ato-price { @apply shrink-0 rounded-full bg-raised px-2 py-0.5 text-sm font-medium text-fg; }
+  .ato-row-off .ato-price { @apply bg-surface text-muted; }
+  .ato-short { @apply block w-fit rounded-md border border-warn px-2 py-0.5 text-sm font-medium text-warn; }
+  .ato-row-off input { @apply cursor-not-allowed; }
+
   /* The milestones of a unit in a live match (the live_actions_menu template): what earns experience, as marks the owner presses. Off is a dashed, muted
      outline; on is filled with the accent, a tick in the corner, so a lit one reads across the table. */
   .milestones { @apply flex gap-1.5; }

@@ -257,7 +257,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   <div class="unit-badges min-w-0">
       {{template "kw_applies" $ap}}
       {{if $u.Wanderer}}<p class="mt-1 flex flex-wrap items-center gap-1.5"><span class="badge badge-gold">Wanderer</span>{{if and $lu $lu.Temporary}}<span class="badge badge-gold" title="Taken with Against the Odds for this match only">Temporary</span>{{end}}</p>{{end}}
-      {{if and $lu $lu.Temporary $lv.Wanderer}}<p class="mt-1 text-sm">{{$lv.Wanderer.Summary}}</p>{{end}}
+      {{if and $lu $lu.Temporary}}{{with $lv.TemporarySummary $lu.UnitID}}<p class="mt-1 text-sm">{{.}}</p>{{end}}{{end}}
       {{if and $lu $lv $lv.Broken (not ($lv.CourageDue $lu))}}<p class="mt-1"><span class="badge badge-muted" title="How its last courage test went">{{$lv.CourageChip $lu}}</span></p>{{end}}
       {{if and $lu $lu.HasMount (not $lu.Mounted)}}<p class="mt-1"><span class="badge badge-muted" title="The mount is lost: what needs it is struck through">On foot</span></p>{{end}}
       {{$warrior := eq (printf "%s" $u.Role) "warrior"}}

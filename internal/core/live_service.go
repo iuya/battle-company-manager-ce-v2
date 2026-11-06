@@ -61,7 +61,7 @@ type liveContext struct {
 	rules   *RuleSet                // the campaign's rules (any company's: they share the file)
 	cfg     LiveFoldConfig          // the Break Point settings of the companies (percent, models per unit), from the rosters and the rules
 	extra   []LiveUnitInit          // units that exist only in the overlay (the temporary Wanderer)
-	temp    *TemporaryWanderer      // the temporary Wanderer of the match, nil without
+	temps   []TemporaryWanderer     // the temporary Wanderers of the match
 	tempCo  int64                   // the company that took it
 }
 
@@ -121,15 +121,22 @@ func (lc *liveContext) overlay(rules ATORules, rec ATORecord) {
 		}
 	}
 	lc.cfg.Loaned = append(lc.cfg.Loaned, rules.LoanedFor(rec, rec.CompanyID)...)
-	if w, ok := rules.Wanderer(rec.Selection.Wanderer); ok && rec.Selection.Has(atoWanderer) {
-		id := TemporaryUnitID(rec.CompanyID)
-		rating := 0
-		if b, ok := rules.Bonus(atoWanderer); ok {
-			rating = b.Rating
+	if !rec.Selection.Has(atoWanderer) {
+		return
+	}
+	rating := 0
+	if b, ok := rules.Bonus(atoWanderer); ok {
+		rating = b.Rating
+	}
+	for n, name := range rec.Selection.Wanderers { // the selection is fixed once the game starts, so an id keeps its Wanderer
+		w, ok := rules.Wanderer(name)
+		if !ok {
+			continue
 		}
+		id := TemporaryUnitID(rec.CompanyID, n)
 		lc.extra = append(lc.extra, LiveUnitInit{UnitID: id, CompanyID: rec.CompanyID, Wounds: w.Wounds, Might: w.Might, Will: w.Will, Fate: w.Fate,
 			CountsAsKill: true, Temporary: true})
-		lc.temp = &TemporaryWanderer{UnitID: id, Name: w.Name, Summary: w.Summary, Rating: rating, Courage: w.Courage}
+		lc.temps = append(lc.temps, TemporaryWanderer{UnitID: id, Name: w.Name, Summary: w.Summary, Rating: rating, Courage: w.Courage})
 		lc.tempCo = rec.CompanyID
 	}
 }
@@ -190,8 +197,8 @@ func (lc liveContext) names(st *LiveState) {
 			units[u.ID] = u.Title()
 		}
 	}
-	if lc.temp != nil {
-		units[lc.temp.UnitID] = lc.temp.Name
+	for _, w := range lc.temps {
+		units[w.UnitID] = w.Name
 	}
 	st.UnitName = func(id int64) string { return units[id] }
 	st.CompanyName = func(id int64) string { return lc.details[id].Name }
@@ -288,9 +295,8 @@ func (lc liveContext) state(snap LiveSnapshot) LiveState {
 func (lc liveContext) view(snap LiveSnapshot, user User, co CampaignCompany) LiveCompany {
 	st := lc.state(snap)
 	out := LiveCompany{MatchID: snap.MatchID, CompanyID: co.ID, MatchNumber: lc.match.Number, Seq: snap.Seq, Units: st.Company(co.ID), Access: lc.access(user, co), Break: st.Break(co.ID)}
-	if lc.temp != nil && lc.tempCo == co.ID {
-		w := *lc.temp
-		out.Wanderer = &w
+	if lc.tempCo == co.ID {
+		out.Wanderers = slices.Clone(lc.temps)
 	}
 	for _, in := range snap.Units {
 		if in.CompanyID == co.ID && in.Absent {
@@ -788,8 +794,8 @@ func (s *LiveService) EndChecks(ctx context.Context, user User, id, matchID int6
 			titles[u.ID] = u
 		}
 	}
-	if lc.temp != nil {
-		titles[lc.temp.UnitID] = CompanyUnit{ID: lc.temp.UnitID, Name: lc.temp.Name, Type: "Temporary Wanderer", Role: RoleHero}
+	for _, w := range lc.temps {
+		titles[w.UnitID] = CompanyUnit{ID: w.UnitID, Name: w.Name, Type: "Temporary Wanderer", Role: RoleHero}
 	}
 	line := func(u LiveUnit) EndCheckUnit {
 		cu := titles[u.UnitID]

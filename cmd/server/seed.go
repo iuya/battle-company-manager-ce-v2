@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/jackc/pgx/v5"
 
@@ -217,8 +218,8 @@ func endNow(ctx context.Context, c *campaignsFacade, organiser core.User, campai
 	return c.OverrideEnd(ctx, organiser, campaignID, matchID, m.Revision, "Demo data: ended without the players' confirmation")
 }
 
-// decideATO confirms, as the organiser and without bonuses, the Against the Odds decision a match waits for (docs/matches.md, "Against the
-// Odds before the game"), and returns the match as it is now.
+// decideATO confirms, as the organiser, the Against the Odds decision a match waits for (docs/matches.md, "Against the Odds before the game"),
+// with whatever completes it (atoFill), and returns the match as it is now.
 func decideATO(ctx context.Context, c *campaignsFacade, organiser core.User, campaignID, matchID int64) (core.Match, error) {
 	m, err := c.Match(ctx, campaignID, matchID)
 	if err != nil {
@@ -228,10 +229,55 @@ func decideATO(ctx context.Context, c *campaignsFacade, organiser core.User, cam
 	if err != nil || !st.Pending {
 		return m, err
 	}
-	if _, err := c.SaveAgainstTheOdds(ctx, organiser, campaignID, matchID, m.Revision, core.ATOSelection{}); err != nil {
+	card, err := c.AgainstTheOdds(ctx, organiser, campaignID, matchID)
+	if err != nil {
+		return m, err
+	}
+	if _, err := c.SaveAgainstTheOdds(ctx, organiser, campaignID, matchID, m.Revision, atoFill(card, m, core.ATOSelection{})); err != nil {
 		return m, err
 	}
 	return c.Match(ctx, campaignID, matchID)
+}
+
+// atoFill completes a selection until nothing else fits the gap, in the card's order: the bonuses that repeat take what they can, so Influence
+// usually ends it; a practice match has no reward bonus and takes kits and Wanderers. Ambush!, when it comes to that, keeps the match's scenario.
+func atoFill(card core.ATO, m core.Match, sel core.ATOSelection) core.ATOSelection {
+	left := card.Gap - sel.SpentOn(card)
+	fits := func(rating int) bool { return rating < left || (rating == left && card.Inclusive) }
+	for _, o := range card.Options {
+		if o.Disabled && !o.OverBudget || o.NoMore {
+			continue
+		}
+		switch {
+		case o.Key == "toolKit":
+			for _, k := range card.Kits {
+				if len(sel.Kits) < card.MaxKits && fits(o.Rating) && !slices.Contains(sel.Kits, k.Key) {
+					sel.Kits, left = append(sel.Kits, k.Key), left-o.Rating
+				}
+			}
+			if len(sel.Kits) > 0 && !sel.Has(o.Key) {
+				sel.Bonuses = append(sel.Bonuses, o.Key)
+			}
+		case o.Key == "wanderer":
+			for _, w := range card.Wanderers {
+				if len(sel.Wanderers) < card.MaxWanderers && fits(o.Rating) && !slices.Contains(sel.Wanderers, w.Name) {
+					sel.Wanderers, left = append(sel.Wanderers, w.Name), left-o.Rating
+				}
+			}
+			if len(sel.Wanderers) > 0 && !sel.Has(o.Key) {
+				sel.Bonuses = append(sel.Bonuses, o.Key)
+			}
+		case o.Key == "ambush":
+			if !sel.Has(o.Key) && fits(o.Rating) && m.Scenario != nil {
+				sel.Bonuses, sel.Ambush, left = append(sel.Bonuses, o.Key), m.Scenario.Name, left-o.Rating
+			}
+		default:
+			for fits(o.Rating) && o.Rating > 0 && (o.Repeatable || !sel.Has(o.Key)) {
+				sel.Bonuses, left = append(sel.Bonuses, o.Key), left-o.Rating
+			}
+		}
+	}
+	return sel
 }
 
 // voteMissing casts the MVP votes a competitive match still needs before it can end (docs/matches.md, "Ending a match"): each owner

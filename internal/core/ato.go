@@ -23,7 +23,7 @@ type ATORules struct {
 	Wanderers []ATOWandererRule
 }
 
-// The keys of the bonuses the app gives a structure to (the others, reroll, influence and experience, are plain switches).
+// The keys of the bonuses the app gives a structure to (the others, reroll, influence and experience, are plain ones).
 const (
 	atoToolKit  = "toolKit"
 	atoWanderer = "wanderer"
@@ -39,25 +39,69 @@ func atoRewardBonus(key string) bool {
 	return key == "influence" || key == "experience" || key == "reroll"
 }
 
-// atoPayable says whether a gap pays for a bonus the company can take: a practice match offers no reward bonus, and a company with a
-// Wanderer cannot take another. With none of them there is nothing to ask and the match does not wait.
+// atoPayable says whether a gap pays for a bonus the company can take. With none of them there is nothing to ask and the match does not wait.
 func atoPayable(r ATORules, gap int, practice, hasWanderer bool) bool {
+	return len(ATOSelection{}.StillAffordable(r, ATOContext{Gap: gap, Practice: practice, HasWanderer: hasWanderer, CanAmbush: true})) > 0
+}
+
+// Fits says whether a price can be paid from what is left of the budget.
+func (r ATORules) Fits(price, left int) bool {
+	return price < left || (price == left && r.Inclusive)
+}
+
+// MaxWanderers is how many different temporary Wanderers a company can take: all of them when the bonus repeats, otherwise one.
+func (r ATORules) MaxWanderers() int {
+	if b, ok := r.Bonus(atoWanderer); ok && b.Repeatable {
+		return len(r.Wanderers)
+	}
+	return min(1, len(r.Wanderers))
+}
+
+// ATOContext is what a selection is completed against, besides the rules.
+type ATOContext struct {
+	Gap         int
+	Practice    bool // a practice match offers no reward bonus
+	HasWanderer bool // a company with a permanent Wanderer cannot take a temporary one
+	CanAmbush   bool // Ambush! has a scenario to choose
+}
+
+// StillAffordable lists the bonuses the selection could still buy, in the file's order: the decision cannot be confirmed while there is one.
+// Several selections can complete a decision; what they share is that nothing else fits what they leave.
+func (s ATOSelection) StillAffordable(r ATORules, c ATOContext) []ATOBonusRule {
+	left := c.Gap - s.Spent(r)
+	var out []ATOBonusRule
 	for _, b := range r.Bonuses {
+		var more bool
 		switch {
-		case practice && atoRewardBonus(b.Key), b.Key == atoWanderer && hasWanderer:
-		case b.Rating < gap, b.Rating == gap && r.Inclusive:
-			return true
+		case c.Practice && atoRewardBonus(b.Key):
+		case b.Key == atoToolKit:
+			more = len(s.Kits) < min(r.MaxKits, len(r.Kits))
+		case b.Key == atoWanderer:
+			more = !c.HasWanderer && len(s.Wanderers) < r.MaxWanderers()
+		case b.Key == atoAmbush:
+			more = c.CanAmbush && !s.Has(b.Key)
+		default:
+			more = !s.Has(b.Key) || b.canRepeat()
+		}
+		if more && r.Fits(b.Rating, left) {
+			out = append(out, b)
 		}
 	}
-	return false
+	return out
 }
 
 // ATOBonusRule is a bonus of campaign.againstTheOdds.bonuses.
 type ATOBonusRule struct {
 	Key, Name, Text string
-	Rating          int      // Tool Kit: per kit
+	Rating          int      // Tool Kit: per kit; Wanderer: per Wanderer
+	Repeatable      bool     // it can be bought again while the budget lasts (bonuses.repeatable); the Wanderer: different ones
 	GivesRerolls    int      // Reroll: how many re-rolls it gives (the bonus's count)
 	AppliesIn       []string // setup | game | aftermath | scenarioChoice
+}
+
+// canRepeat says whether the same key can be in a selection again: a free bonus has no budget to stop it, so it never repeats.
+func (b ATOBonusRule) canRepeat() bool {
+	return b.Repeatable && b.Rating > 0 && b.Key != atoToolKit && b.Key != atoWanderer && b.Key != atoAmbush
 }
 
 // ATOKitRule is a kit of the Tool Kit bonus; Key is made from its name ("Healer's Kit" is "healer").
@@ -129,7 +173,7 @@ func LeanATO(d *lean.Document, vanilla *VanillaBook) (ATORules, error) {
 	}
 	r := ATORules{Inclusive: ato.Budget.Inclusive}
 	for _, b := range ato.Bonuses {
-		r.Bonuses = append(r.Bonuses, ATOBonusRule{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, GivesRerolls: b.Count, AppliesIn: b.AppliesIn})
+		r.Bonuses = append(r.Bonuses, ATOBonusRule{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, Repeatable: b.Repeatable, GivesRerolls: b.Count, AppliesIn: b.AppliesIn})
 		if b.Key != atoToolKit {
 			continue
 		}
@@ -159,11 +203,11 @@ func LeanATO(d *lean.Document, vanilla *VanillaBook) (ATORules, error) {
 
 // ATOSelection is what the lower rated company took; it is saved as one document with the match.
 type ATOSelection struct {
-	Bonuses  []string        // campaign.againstTheOdds.bonuses[].key
-	Kits     []string        // toolKit only: distinct kit keys
-	Items    []KitAssignment // where each kit item went; fewer than the items are allowed (the rest is unassigned)
-	Wanderer string          // wanderer only: the Wanderer's name
-	Ambush   string          // ambush only: the rulebook scenario chosen
+	Bonuses   []string        // campaign.againstTheOdds.bonuses[].key, once per purchase of a repeatable bonus
+	Kits      []string        // toolKit only: distinct kit keys
+	Items     []KitAssignment // where each kit item went; fewer than the items are allowed (the rest is unassigned)
+	Wanderers []string        // wanderer only: the names of the Wanderers, all different
+	Ambush    string          // ambush only: the rulebook scenario chosen
 }
 
 // KitAssignment gives one copy of a kit item to a model of the match.
@@ -181,6 +225,17 @@ func (s ATOSelection) Empty() bool { return len(s.Bonuses) == 0 }
 // Has says whether the bonus was taken.
 func (s ATOSelection) Has(key string) bool { return slices.Contains(s.Bonuses, key) }
 
+// Count is how many times the bonus was taken.
+func (s ATOSelection) Count(key string) int {
+	n := 0
+	for _, k := range s.Bonuses {
+		if k == key {
+			n++
+		}
+	}
+	return n
+}
+
 const maxKitDetail = 40
 
 // Spent is the Rating the selection costs.
@@ -188,10 +243,29 @@ func (s ATOSelection) Spent(r ATORules) int {
 	n := 0
 	for _, key := range s.Bonuses {
 		b, _ := r.Bonus(key)
-		if key == atoToolKit {
+		switch key {
+		case atoToolKit:
 			n += b.Rating * len(s.Kits)
-		} else {
+		case atoWanderer:
+			n += b.Rating * len(s.Wanderers)
+		default:
 			n += b.Rating
+		}
+	}
+	return n
+}
+
+// SpentOn is the Rating the selection costs at the prices of a card.
+func (s ATOSelection) SpentOn(card ATO) int {
+	n := 0
+	for _, o := range card.Options {
+		switch o.Key {
+		case atoToolKit:
+			n += o.Rating * len(s.Kits)
+		case atoWanderer:
+			n += o.Rating * len(s.Wanderers)
+		default:
+			n += o.Rating * s.Count(o.Key)
 		}
 	}
 	return n
@@ -204,19 +278,19 @@ func (s ATOSelection) Validate(r ATORules, roster []CompanyUnit, gap int, scenar
 	var errs []error
 	bad := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }
 	var out ATOSelection
-	seen := map[string]bool{}
+	seen := map[string]int{}
 	for _, key := range s.Bonuses {
-		switch _, ok := r.Bonus(key); {
+		switch b, ok := r.Bonus(key); {
 		case !ok:
 			bad("%q is not an Against the Odds bonus", key)
-		case seen[key]:
+		case seen[key] > 0 && !b.canRepeat():
 			bad("%s is chosen twice", key)
 		default:
-			seen[key] = true
+			seen[key]++
 		}
 	}
 	for _, b := range r.Bonuses {
-		if seen[b.Key] {
+		for range seen[b.Key] {
 			out.Bonuses = append(out.Bonuses, b.Key)
 		}
 	}
@@ -233,9 +307,9 @@ func (s ATOSelection) Validate(r ATORules, roster []CompanyUnit, gap int, scenar
 		}
 	}
 	switch {
-	case seen[atoToolKit] && len(kits) == 0:
+	case seen[atoToolKit] > 0 && len(kits) == 0:
 		bad("choose at least one kit for the Tool Kit")
-	case !seen[atoToolKit] && len(s.Kits) > 0:
+	case seen[atoToolKit] == 0 && len(s.Kits) > 0:
 		bad("kits need the Tool Kit bonus")
 	case len(kits) > r.MaxKits:
 		bad("a Tool Kit has at most %d kits", r.MaxKits)
@@ -296,22 +370,40 @@ func (s ATOSelection) Validate(r ATORules, roster []CompanyUnit, gap int, scenar
 		}
 		return a.Index - b.Index
 	})
-	// the Wanderer
+	// the Wanderers: different ones, in the file's order
+	wanderers := map[string]bool{}
+	for _, name := range s.Wanderers {
+		switch _, ok := r.Wanderer(name); {
+		case !ok:
+			bad("%q is not a Wanderer", name)
+		case wanderers[name]:
+			bad("%s can only join once", name)
+		default:
+			wanderers[name] = true
+		}
+	}
 	switch {
-	case seen[atoWanderer]:
-		if _, ok := r.Wanderer(s.Wanderer); !ok {
+	case seen[atoWanderer] > 0:
+		if len(s.Wanderers) == 0 {
 			bad("choose which Wanderer joins for the match")
+		}
+		if len(wanderers) > r.MaxWanderers() {
+			bad("only %d Wanderer can join for the match", r.MaxWanderers())
 		}
 		if slices.ContainsFunc(roster, func(u CompanyUnit) bool { return u.Wanderer }) {
 			bad("the company already has a Wanderer")
 		}
-		out.Wanderer = s.Wanderer
-	case s.Wanderer != "":
+		for _, w := range r.Wanderers {
+			if wanderers[w.Name] {
+				out.Wanderers = append(out.Wanderers, w.Name)
+			}
+		}
+	case len(s.Wanderers) > 0:
 		bad("a Wanderer needs the Wanderer bonus")
 	}
 	// Ambush!
 	switch {
-	case seen[atoAmbush]:
+	case seen[atoAmbush] > 0:
 		if !slices.Contains(scenarios, s.Ambush) {
 			bad("choose the scenario for Ambush!")
 		}
@@ -333,9 +425,12 @@ func (s ATOSelection) Validate(r ATORules, roster []CompanyUnit, gap int, scenar
 type ATOOption struct {
 	Key, Name, Text string
 	Rating          int
+	Repeatable      bool // the same bonus can be bought again: a press adds one
+	Count           int  // how many of it the saved selection has
+	NoMore          bool // what is taken stays but cannot grow: a reward bonus in a practice match
 	Taken           bool
 	Disabled        bool
-	Reason          string // why it cannot be chosen now ("Needs 45, 10 left")
+	Reason          string // why it cannot be chosen now ("Can't pay: 35 short")
 	OverBudget      bool   // the budget alone stops it (the page works that out live); any other Reason is a rule
 	AppliesIn       []string
 }
@@ -386,6 +481,10 @@ type ATO struct {
 	Gap                int
 	Spent              int
 	Inclusive          bool // the bonuses may cost exactly the gap (ATORules.Inclusive)
+	MaxKits            int  // different kits a company can take
+	MaxWanderers       int  // different temporary Wanderers a company can take
+	HasWanderer        bool // a permanent Wanderer on the roster: no temporary one
+	Practice           bool // no reward bonus is owed
 	Options            []ATOOption
 	Kits               []ATOKit
 	Wanderers          []ATOWandererRule

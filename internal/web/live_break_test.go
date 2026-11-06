@@ -160,7 +160,7 @@ func TestLiveActionsCarryTheBreakPointFields(t *testing.T) {
 
 func TestLoanedItemsTemporaryWandererAndItemUsed(t *testing.T) {
 	f := liveSetupWith(t, core.LiveEdit, func(lc *core.LiveCompany) {
-		lc.Wanderer = &core.TemporaryWanderer{UnitID: -1, Name: "Radagast", Summary: "F4/2 Courage 6", Rating: 45, Courage: 6}
+		lc.Wanderers = []core.TemporaryWanderer{{UnitID: -1, Name: "Radagast", Summary: "F4/2 Courage 6", Rating: 45, Courage: 6}}
 		lc.Units = append(lc.Units, core.LiveUnit{UnitID: -1, Zone: core.ZoneField, Temporary: true, Wounds: core.LiveStat{Current: 3, Start: 3}, Might: core.LiveStat{Current: 3, Start: 3}})
 		lc.Units[0].Loaned = []core.LoanedItem{
 			{UnitID: 5, Item: "Dwarven Brew", Kit: "Raider's Kit", Index: 0},

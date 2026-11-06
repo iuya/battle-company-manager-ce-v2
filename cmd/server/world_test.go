@@ -458,7 +458,7 @@ func checkAdminStates(t *testing.T, ctx context.Context, b *backend, admin core.
 	}
 }
 
-// checkATOMatches asserts the two Against the Odds matches of the matches campaign: one waits for the player below, the other is confirmed.
+// checkATOMatches asserts the Against the Odds matches of the matches campaign: a big gap and a small one wait for the player below; a Reroll and two Wanderers are confirmed.
 func checkATOMatches(t *testing.T, ctx context.Context, b *backend, byName map[string]core.CampaignSummary) {
 	t.Helper()
 	var id int64
@@ -484,12 +484,12 @@ func checkATOMatches(t *testing.T, ctx context.Context, b *backend, byName map[s
 		if st.Pending {
 			waiting++
 		}
-		if m.ATODecided && !m.Ended && rec.Selection.Has("reroll") {
+		if m.ATODecided && !m.Ended && (rec.Selection.Has("reroll") || len(rec.Selection.Wanderers) == 2) {
 			confirmed++
 		}
 	}
-	if waiting != 1 || confirmed != 1 {
-		t.Errorf("Against the Odds: %d matches wait and %d are confirmed with a bonus, want one each", waiting, confirmed)
+	if waiting != 2 || confirmed != 2 {
+		t.Errorf("Against the Odds: %d matches wait and %d are confirmed, want two of each", waiting, confirmed)
 	}
 }
 

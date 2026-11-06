@@ -162,6 +162,7 @@
         {
           "name": "Influence",
           "key": "influence",
+          "repeatable": true,
           "text": "+2 Influence for Victory, +1 for Draw or Defeat.",
           "appliesIn": [
             "aftermath"
@@ -177,6 +178,7 @@
         {
           "name": "Experience",
           "key": "experience",
+          "repeatable": true,
           "text": "+2 Experience per model for Victory, +1 per model for Draw or Defeat.",
           "appliesIn": [
             "aftermath"
@@ -192,6 +194,7 @@
         {
           "name": "Reroll",
           "key": "reroll",
+          "repeatable": true,
           "text": "Two rerolls that each can be used at any point during the game to re-roll a single die or the War's Aftermath for a single result.",
           "affects": "singleDieOrSingleResult",
           "appliesIn": [
@@ -335,7 +338,8 @@
         {
           "name": "Wanderer",
           "key": "wanderer",
-          "text": "You may temporarily recruit a Wanderer for the match.",
+          "repeatable": true,
+          "text": "You may temporarily recruit Wanderers for the match, each one different and each one paid for.",
           "appliesIn": [
             "setup",
             "game"

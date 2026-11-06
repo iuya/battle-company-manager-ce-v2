@@ -2,8 +2,10 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
+	"strings"
 )
 
 // WithATO gives Matches the store of the Against the Odds selection; without it the card is not offered (AgainstTheOdds says so).
@@ -96,9 +98,14 @@ func (s *Matches) atoCardWith(ctx context.Context, user User, camp CampaignDetai
 	card.Spent = rec.Selection.Spent(rules)
 	card.Inclusive = rules.Inclusive
 	hasWanderer := slices.ContainsFunc(d.Roster, func(u CompanyUnit) bool { return u.Wanderer })
+	card.MaxKits, card.MaxWanderers = min(rules.MaxKits, len(rules.Kits)), rules.MaxWanderers()
+	card.HasWanderer, card.Practice = hasWanderer, m.Practice
 	left := card.Gap - card.Spent
 	for _, b := range rules.Bonuses {
-		o := ATOOption{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, Taken: rec.Selection.Has(b.Key), AppliesIn: b.AppliesIn}
+		o := ATOOption{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, Repeatable: b.canRepeat(), Count: rec.Selection.Count(b.Key), Taken: rec.Selection.Has(b.Key), NoMore: m.Practice && atoRewardBonus(b.Key), AppliesIn: b.AppliesIn}
+		if !o.Taken && !rules.Fits(b.Rating, card.Gap) {
+			continue // the card only offers what the gap can pay
+		}
 		switch {
 		case o.Taken:
 			if m.Practice && atoRewardBonus(b.Key) {
@@ -108,8 +115,8 @@ func (s *Matches) atoCardWith(ctx context.Context, user User, camp CampaignDetai
 			o.Disabled, o.Reason = true, ATOPracticeReason
 		case b.Key == atoWanderer && hasWanderer:
 			o.Disabled, o.Reason = true, "The company already has a Wanderer."
-		case b.Rating > left || (!rules.Inclusive && b.Rating == left):
-			o.Disabled, o.OverBudget, o.Reason = true, true, fmt.Sprintf("Needs %d, %d left", b.Rating, max(left, 0))
+		case !rules.Fits(b.Rating, left):
+			o.Disabled, o.OverBudget, o.Reason = true, true, fmt.Sprintf("Can't pay: %d short", b.Rating-max(left, 0))
 		}
 		card.Options = append(card.Options, o)
 	}
@@ -162,6 +169,7 @@ func (s *Matches) atoAwaited(ctx context.Context, id int64, m Match) (bool, erro
 type atoTarget struct {
 	id, matchID   int64
 	camp          CampaignDetail
+	practice      bool
 	lower, higher CampaignCompany
 }
 
@@ -185,7 +193,7 @@ func (s *Matches) atoWriteTarget(ctx context.Context, user User, id, matchID int
 	if s.ato == nil {
 		return atoTarget{}, Refuse("Against the Odds is not available.")
 	}
-	return atoTarget{id: id, matchID: matchID, camp: camp, lower: lower, higher: higher}, nil
+	return atoTarget{id: id, matchID: matchID, camp: camp, practice: m.Practice, lower: lower, higher: higher}, nil
 }
 
 // atoUpdate applies a write in the store's transaction, once the viewer may still make it (ErrRefused: not the lower company's owner, the
@@ -212,16 +220,16 @@ func (s *Matches) atoUpdate(ctx context.Context, user User, t atoTarget, revisio
 	return s.AgainstTheOdds(ctx, user, t.id, t.matchID)
 }
 
-// SaveAgainstTheOdds confirms the decision: it replaces the lower company's selection (an empty one is "play without bonuses") and, for
+// SaveAgainstTheOdds confirms the decision: it replaces the lower company's selection (empty only when the gap pays for nothing) and, for
 // Ambush!, sets the match's scenario and remembers the one it had; dropping Ambush! puts that one back. ErrRefused: not the lower company's
 // owner, the organiser or an administrator, the game has started, the match has no scenario or no card; ErrMatchChanged for a stale revision;
-// ErrInvalidMatch (joined, fit to show) for a selection the rules refuse. The match revision goes up by one.
+// ErrInvalidMatch (joined, fit to show) for a selection the rules refuse or that leaves a bonus it could still pay. The match revision goes up by one.
 func (s *Matches) SaveAgainstTheOdds(ctx context.Context, user User, id, matchID int64, revision int, sel ATOSelection) (ATO, error) {
 	t, err := s.atoWriteTarget(ctx, user, id, matchID)
 	if err != nil {
 		return ATO{}, err
 	}
-	clean, err := s.atoValidSelection(ctx, t, sel)
+	clean, incomplete, err := s.atoValidSelection(ctx, t, sel)
 	if err != nil {
 		return ATO{}, err
 	}
@@ -229,23 +237,27 @@ func (s *Matches) SaveAgainstTheOdds(ctx context.Context, user User, id, matchID
 		if st.Match.Scenario == nil {
 			return Refuse("Choose the scenario first: Against the Odds comes after it.")
 		}
-		return st.confirm(clean, matchID, t.lower.ID)
+		if err := st.confirm(clean, matchID, t.lower.ID); err != nil {
+			return err
+		}
+		return incomplete // a failed write stores nothing; the permissions and the revision answer first
 	})
 }
 
-// atoValidSelection checks a selection against the campaign's rules, the lower company's roster and the gap.
-func (s *Matches) atoValidSelection(ctx context.Context, t atoTarget, sel ATOSelection) (ATOSelection, error) {
+// atoValidSelection checks a selection against the campaign's rules, the lower company's roster and the gap. incomplete is the refusal of a
+// selection that leaves a bonus it could still pay.
+func (s *Matches) atoValidSelection(ctx context.Context, t atoTarget, sel ATOSelection) (clean ATOSelection, incomplete, err error) {
 	h, _, err := s.campaigns.Hashes(ctx, t.id)
 	if err != nil {
-		return ATOSelection{}, err
+		return ATOSelection{}, nil, err
 	}
 	rules, err := s.atoRules(ctx, h)
 	if err != nil {
-		return ATOSelection{}, err
+		return ATOSelection{}, nil, err
 	}
 	scenarios, err := s.scenarioList(ctx, h)
 	if err != nil {
-		return ATOSelection{}, err
+		return ATOSelection{}, nil, err
 	}
 	names := make([]string, len(scenarios))
 	for i, sc := range scenarios {
@@ -253,9 +265,22 @@ func (s *Matches) atoValidSelection(ctx context.Context, t atoTarget, sel ATOSel
 	}
 	d, _, err := s.detail(ctx, t.id, t.lower.ID)
 	if err != nil {
-		return ATOSelection{}, err
+		return ATOSelection{}, nil, err
 	}
-	return sel.Validate(rules, d.Roster, t.higher.Points-t.lower.Points, names)
+	gap := t.higher.Points - t.lower.Points
+	if clean, err = sel.Validate(rules, d.Roster, gap, names); err != nil {
+		return ATOSelection{}, nil, err
+	}
+	rest := clean.StillAffordable(rules, ATOContext{Gap: gap, Practice: t.practice, CanAmbush: len(names) > 0,
+		HasWanderer: slices.ContainsFunc(d.Roster, func(u CompanyUnit) bool { return u.Wanderer })})
+	if len(rest) > 0 {
+		parts := make([]string, len(rest))
+		for i, b := range rest {
+			parts[i] = fmt.Sprintf("%s (%d)", b.Name, b.Rating)
+		}
+		incomplete = errors.Join(ErrInvalidMatch, fmt.Errorf("every bonus that fits has to be taken. Still to take: %s", strings.Join(parts, ", ")))
+	}
+	return clean, incomplete, nil
 }
 
 // confirm records the checked selection as the decision of the company, moving the match's scenario with Ambush!.
@@ -263,7 +288,7 @@ func (st *ATOState) confirm(clean ATOSelection, matchID, companyID int64) error 
 	old := st.Record
 	if st.Match.Practice { // a reward bonus cannot be newly taken in a practice match
 		for _, k := range clean.Bonuses {
-			if atoRewardBonus(k) && !old.Selection.Has(k) {
+			if atoRewardBonus(k) && clean.Count(k) > old.Selection.Count(k) {
 				return Refuse("%s.", ATOPracticeReason)
 			}
 		}

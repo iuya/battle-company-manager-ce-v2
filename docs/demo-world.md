@@ -240,8 +240,10 @@ The aftermath wards play the aftermaths for real.
 - A **two-sided match with two companies per side**, open.
 - **Result entered, not ended** (Show of Strength): the next click is "End match".
 - **Against the Odds waiting**: the player above created the match (the higher rated company hired a Wanderer, so the gap is at least 60) and it waits for the player below: nothing can be noted and End match is disabled. The owner of the lower rated company sees "Choose Against the Odds for Match N" under Your turn and the whole card; the other player reads "Waiting for ... to choose".
-- **Against the Odds confirmed**: the same gap, with Reroll confirmed by the player below: the card shows the summary and **Change**, and the match can be played.
-- Every other match of the scripts is confirmed by the organiser without bonuses as it is created (`decideATO`), so their pages read "... took no bonus." when they have a gap that pays for one.
+- **Against the Odds confirmed**: the same gap, with Reroll and Influence for the rest confirmed by the player below: the card shows the summary and **Change**, and the match can be played.
+- **Against the Odds with a smaller gap** (`atoSmallGap`): the higher rated company recruits until it is 30 to 44 above, and the match waits: the card offers Influence, Experience, Reroll and Tool Kit, not Wanderer or Ambush!. Pressing Influence shows the repeat control and the rows that no longer fit, and Confirm opens when nothing else does.
+- **Against the Odds with two Wanderers** (`atoManyBonuses`): confirmed with two temporary Wanderers, so both are on the field of the live match. **Change** shows the Wanderer list with the others out of reach.
+- Every other match of the scripts is confirmed by the organiser as it is created, with what completes the decision (`decideATO`, `atoFill`): usually Influence, as often as it fits. Their pages read "... took: Influence x4." when they have a gap that pays for one.
 - **Played live, end pending** (`sheetEnd`): the end proposed through the End match sheet (winner and the proposer's MVP vote), waiting
   for the rival's Confirm (the *ending* phase; Your turn on the rival's Matches page).
 - **Played live and ended through the sheets**: End match, then the rival's Confirm with their own MVP vote.
@@ -270,7 +272,7 @@ Ward 1 (matches 1 to 4 of the campaign):
 | Match | Company (owner) | State |
 |---|---|---|
 | 1, Seize Ground | Rohirrim waiting at the gate (Éowyn) | **not started**; nothing was tracked, so **Start aftermath** opens the sheet |
-| | Orcs with a half-filled sheet (Sauron) | **draft sheet** saved (a casualty, a unit that left the board, Against the Odds: Influence) |
+| | Orcs with a half-filled sheet (Sauron) | **draft sheet** saved (a casualty, a unit that left the board, Against the Odds: Influence twice, drawn as a press with a count and a minus) |
 | 2, Chance Encounter | Rangers with a Scratch to decide (Aragorn) | **injuries**: a Sergeant's *Just a Scratch* waits for "roll again / miss the next game" |
 | | Galadhrim whose Leader fell (Galadriel) | **injuries**: the Leader is dead; **succession** waits for a new Leader |
 | 3, Scavenge the Battlefield | Dwarves with level-ups to roll (Gimli) | **level-ups**: experience applied, level-up rolls waiting, and the **free equipment** reward (all markers scored) to choose before finishing |
@@ -278,7 +280,7 @@ Ward 1 (matches 1 to 4 of the campaign):
 | 4, Relic of Ages Past | Wild Wargs that fled (Radagast) | **All is Lost**, reported as the Wanderers' win; its aftermath **waived** by the organiser with a note |
 | | Pippin's patient company (Pippin) | **finished**, with the Relic bearer's perk *A Final Blessing* in the company's perks |
 
-Ward 2 (a company in the next match has finished its aftermath, so the Hobbits' last game is against the Dwarves): a **draw** (Rohan finished; the Underdog Mordor took the three **Against the Odds** bonuses, has two **re-rolls**, one used
+Ward 2 (a company in the next match has finished its aftermath, so the Hobbits' last game is against the Dwarves): a **draw** (Rohan finished; the Underdog Mordor took **Against the Odds** bonuses, Influence twice, so its sheet shows the repeat control, has two **re-rolls**, one used
 and one left, and its injuries are not yet applied); a **Rescue** where Arnor's Leader fell and the **succession is settled**
 (a new Leader and a new Sergeant chosen) and finished; scenario rewards finished for the Elves (perk *Vantage Point*), the Dwarves
 (*cargo*, +1 Influence) and the Hobbits (perk *Rendezvous*); the organiser's grants in the Dwarves' history.

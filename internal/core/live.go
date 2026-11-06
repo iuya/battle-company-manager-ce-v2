@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 )
 
@@ -42,7 +43,7 @@ type LiveUnit struct {
 	// milestone undoes.
 	FateEntry, BrokenEntry int64
 	// BreakModels is how many models the unit counts as for the company's Break Point (at least 1). Temporary
-	// is set for the temporary Wanderer of Against the Odds (its UnitID is TemporaryUnitID(company), never a roster id).
+	// is set for the temporary Wanderer of Against the Odds (its UnitID is TemporaryUnitID(company, n), never a roster id).
 	BreakModels int
 	Temporary   bool
 	// CourageHow is how the unit's last courage test was resolved: "passed" (tested), "failed" (tested, retreated),. Empty before any.
@@ -55,7 +56,7 @@ type LiveUnit struct {
 
 // TemporaryUnitID is the id of the temporary Wanderer a company took with Against the Odds: negative, so that it never meets a roster id,
 // and one per company.
-func TemporaryUnitID(companyID int64) int64 { return -companyID }
+func TemporaryUnitID(companyID int64, n int) int64 { return -(companyID + int64(n)<<40) }
 
 // FledCourage says the unit is off the board for failing a courage test: a casualty for the Break Point, unlike a unit that left the board.
 func (u LiveUnit) FledCourage() bool {
@@ -92,8 +93,8 @@ type LiveCompany struct {
 	Units              []LiveUnit
 	Absent             []int64
 	Access             LiveAccess
-	Break              LiveBreak          // the company's Break Point state
-	Wanderer           *TemporaryWanderer // the temporary Wanderer this company took with Against the Odds, nil without
+	Break              LiveBreak           // the company's Break Point state
+	Wanderers          []TemporaryWanderer // the temporary Wanderers this company took with Against the Odds
 }
 
 // LiveAccess is what the viewer may do with a company's live state; the page only hides controls with it.
@@ -348,7 +349,16 @@ type LiveMatchDefaults struct {
 	EnemyBroken map[int64]bool
 }
 
-// TemporaryWanderer describes the temporary Wanderer of a company (the unit itself is among LiveCompany.Units, Temporary true).
+// TemporaryWanderer finds a temporary Wanderer of the company by its unit id.
+func (c LiveCompany) TemporaryWanderer(unitID int64) (TemporaryWanderer, bool) {
+	i := slices.IndexFunc(c.Wanderers, func(w TemporaryWanderer) bool { return w.UnitID == unitID })
+	if i < 0 {
+		return TemporaryWanderer{}, false
+	}
+	return c.Wanderers[i], true
+}
+
+// TemporaryWanderer describes a temporary Wanderer of a company (the unit itself is among LiveCompany.Units, Temporary true).
 type TemporaryWanderer struct {
 	UnitID  int64
 	Name    string

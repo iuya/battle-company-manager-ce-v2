@@ -446,7 +446,7 @@ func (f *amFixture) withATO(t *testing.T, rec *ATORecord) {
 
 func TestAftermathSheetIsPrefilledFromTheMatchSelection(t *testing.T) {
 	f := newAmFixture(t)
-	rec := &ATORecord{MatchID: 1, CompanyID: 1, Selection: ATOSelection{Bonuses: []string{"influence", "experience", "toolKit", "wanderer"}, Kits: []string{"raider"}, Wanderer: "x"}}
+	rec := &ATORecord{MatchID: 1, CompanyID: 1, Selection: ATOSelection{Bonuses: []string{"influence", "experience", "toolKit", "wanderer"}, Kits: []string{"raider"}, Wanderers: []string{"x"}}}
 	f.withATO(t, rec)
 	a, err := f.svc.Aftermath(f.ctx, f.owner(), 5, 1, 1)
 	if err != nil {

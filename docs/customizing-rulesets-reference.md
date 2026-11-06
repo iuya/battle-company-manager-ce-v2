@@ -1432,7 +1432,7 @@ Example:
 
 ### ATOBonus
 
-One Against the Odds bonus. influence, experience and reroll are plain switches (gains, count); toolKit (kits, purchase), wanderer and ambush are bonuses the app has its own windows for. Any other key is a plain bonus that costs its rating and adds its gains.
+One Against the Odds bonus. influence, experience and reroll are plain bonuses (gains, count); toolKit (kits, purchase), wanderer and ambush are bonuses the app has its own windows for. Any other key is a plain bonus that costs its rating and adds its gains.
 
 Found at: `campaign.againstTheOdds.bonuses[]`.
 
@@ -1460,6 +1460,7 @@ Example:
 | `grants` | [ATOGrant](#atogrant) | no | - | - | What a structured bonus gives. |
 | `kits` | list of [ATOKit](#atokit) | no | - | - | The kits of the Tool Kit bonus. |
 | `purchase` | [ATOPurchase](#atopurchase) | no | - | - | How many kits may be bought (Tool Kit). |
+| `repeatable` | boolean | no | - | - | true: the bonus can be bought again while the budget lasts, and pays each time; on wanderer, one purchase per different Wanderer. The Tool Kit counts its kits in purchase. A bonus of Rating 0 never repeats. |
 | `temporary` | boolean | no | - | - | true: the bonus lasts for one match (wanderer). Informational. |
 | `text` | string | no | - | - | The rule in words. |
 | `usableIn` | list of string | no | - | `game`, `warsAftermath` | Where a re-roll may be used: game or warsAftermath. Informational. |

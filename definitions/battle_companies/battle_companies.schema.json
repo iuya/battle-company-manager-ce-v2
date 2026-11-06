@@ -2,7 +2,7 @@
   "$defs": {
     "ATOBonus": {
       "additionalProperties": false,
-      "description": "One Against the Odds bonus. influence, experience and reroll are plain switches (gains, count); toolKit (kits, purchase), wanderer and ambush are bonuses the app has its own windows for. Any other key is a plain bonus that costs its rating and adds its gains.",
+      "description": "One Against the Odds bonus. influence, experience and reroll are plain bonuses (gains, count); toolKit (kits, purchase), wanderer and ambush are bonuses the app has its own windows for. Any other key is a plain bonus that costs its rating and adds its gains.",
       "properties": {
         "affects": {
           "description": "What a re-roll may re-roll: singleDieOrSingleResult. Informational.",
@@ -76,6 +76,10 @@
           "maximum": 1000,
           "minimum": 0,
           "type": "integer"
+        },
+        "repeatable": {
+          "description": "true: the bonus can be bought again while the budget lasts, and pays each time; on wanderer, one purchase per different Wanderer. The Tool Kit counts its kits in purchase. A bonus of Rating 0 never repeats.",
+          "type": "boolean"
         },
         "temporary": {
           "description": "true: the bonus lasts for one match (wanderer). Informational.",

@@ -130,6 +130,14 @@ func (w *world) matchCampaign() {
 	t = w.spare(c, 2)
 	w.atoWaiting(c, t[0], t[1], true)
 
+	// Against the Odds: a gap that pays only part of the card, waiting: Wanderer and Ambush! are not offered
+	t = w.spare(c, 2)
+	w.atoSmallGap(c, t[0], t[1])
+
+	// Against the Odds: two temporary Wanderers and repeated bonuses, confirmed: the match can be played and both Wanderers are on the field
+	t = w.spare(c, 2)
+	w.atoManyBonuses(c, t[0], t[1])
+
 	// played live, then the end proposed through the End match sheet (winner and MVP vote) and waiting for the rival's Confirm
 	t = w.spare(c, 2)
 	w.sheetEnd(c, t[0], t[1], false)
@@ -163,7 +171,7 @@ func (w *world) matchCampaign() {
 
 // atoWaiting makes a match the player above created and that waits for the Against the Odds decision of the player below (docs/matches.md,
 // "Against the Odds before the game"). The higher rated company hires a Wanderer first, so the gap pays for the whole card. With confirm, the
-// player below has taken a bonus and the match can be played.
+// player below has taken a Reroll and Influence for the rest, and the match can be played.
 func (w *world) atoWaiting(c *wcamp, x, y *wco, confirm bool) {
 	higher, lower := x, y
 	if w.detail(y).Points > w.detail(x).Points {
@@ -183,11 +191,70 @@ func (w *world) atoWaiting(c *wcamp, x, y *wco, confirm bool) {
 	if !confirm {
 		return
 	}
-	_, err = w.c().SaveAgainstTheOdds(w.ctx, lower.user, c.id, m.ID, m.Revision, core.ATOSelection{Bonuses: []string{"reroll"}})
+	sel := atoFill(card, m, core.ATOSelection{Bonuses: []string{"reroll"}})
+	_, err = w.c().SaveAgainstTheOdds(w.ctx, lower.user, c.id, m.ID, m.Revision, sel)
 	w.must("confirm Against the Odds", err)
 }
 
-// decideATO confirms the Against the Odds decision of a match that waits for it, without bonuses, so the scripts that play it can go on. A
+// atoWiden recruits into the higher rated company until it is at least want above the lower one, and answers the two companies, the higher first.
+func (w *world) atoWiden(x, y *wco, want int) (higher, lower *wco) {
+	higher, lower = x, y
+	if w.detail(y).Points > w.detail(x).Points {
+		higher, lower = y, x
+	}
+	for range 10 {
+		if w.detail(higher).Points-w.detail(lower).Points >= want {
+			break
+		}
+		w.grant(higher, 8, 10)
+		if _, err := w.recruit(higher, 0, 3); err != nil {
+			w.try("recruit into "+higher.name, err)
+			w.abandonRecruit(higher)
+			break
+		}
+	}
+	return higher, lower
+}
+
+// atoSmallGap makes a match that waits for the player below with a gap under the Wanderer's price, so the card leaves it and Ambush! out.
+func (w *world) atoSmallGap(c *wcamp, x, y *wco) {
+	higher, lower := w.atoWiden(x, y, 30)
+	m, err := w.c().CreateMatch(w.ctx, higher.user, c.id, core.NewMatch{Sides: []core.NewSide{{Companies: []int64{x.id}}, {Companies: []int64{y.id}}},
+		Scenario: &core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Seize Ground"}})
+	w.must("create a match with a small Against the Odds gap", err)
+	card, err := w.c().AgainstTheOdds(w.ctx, higher.user, c.id, m.ID)
+	w.must("the Against the Odds card", err)
+	if !card.Eligible || card.Gap < 30 || card.Gap >= 45 {
+		w.gap("Against the Odds: the gap of %s against %s is %d, not one that pays only part of the card", lower.name, higher.name, card.Gap)
+	}
+}
+
+// atoManyBonuses makes a match whose player below has confirmed two temporary Wanderers and repeated bonuses: the higher rated company hires a
+// Wanderer and recruits until the gap pays for them, and the card is filled with what is left.
+func (w *world) atoManyBonuses(c *wcamp, x, y *wco) {
+	higher, lower := x, y
+	if w.detail(y).Points > w.detail(x).Points {
+		higher, lower = y, x
+	}
+	if !w.hireWanderer(higher, "Wandering Sage") {
+		w.gap("Against the Odds: %s cannot hire the Wanderer that makes the gap", higher.name)
+	}
+	higher, lower = w.atoWiden(higher, lower, 105)
+	m, err := w.c().CreateMatch(w.ctx, higher.user, c.id, core.NewMatch{Sides: []core.NewSide{{Companies: []int64{x.id}}, {Companies: []int64{y.id}}},
+		Scenario: &core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Seize Ground"}})
+	w.must("create a match with many Against the Odds bonuses", err)
+	card, err := w.c().AgainstTheOdds(w.ctx, lower.user, c.id, m.ID)
+	w.must("the Against the Odds card", err)
+	if card.Gap < 90 {
+		w.gap("Against the Odds: the gap of %s against %s is %d, too small for two Wanderers", lower.name, higher.name, card.Gap)
+		return
+	}
+	sel := atoFill(card, m, core.ATOSelection{Bonuses: []string{"wanderer"}, Wanderers: []string{"Wandering Marksman", "Wandering Swordsman"}})
+	_, err = w.c().SaveAgainstTheOdds(w.ctx, lower.user, c.id, m.ID, m.Revision, sel)
+	w.must("confirm the Against the Odds bonuses", err)
+}
+
+// decideATO confirms the Against the Odds decision of a match that waits for it, with what completes it, so the scripts that play it can go on. A
 // match with no scenario cannot be confirmed: it stays as it is.
 func (w *world) decideATO(c *wcamp, m core.Match) core.Match {
 	if m.Scenario == nil {
