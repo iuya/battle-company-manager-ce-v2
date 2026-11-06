@@ -252,7 +252,7 @@ These `campaign` sections are typed.
     It refuses a treatment target the dice cannot reach, a `healable` or `heals` key that is no hero injury, and a `disables` entry without its classes, names or ability.
   - `core.LeanInjuries` and `core.LeanAftermath` read the typed values.
 - `campaign.againstTheOdds` (`lean.AgainstTheOdds`, `campaign_ato.go`):
-  - the bonuses (key, name, rating, `appliesIn`, `gains`, `count`, the structured `grants`, `kits` and `purchase`), the budget and the eligibility;
+  - the bonuses (key, name, rating, `repeatable`, `appliesIn`, `gains`, `count`, the structured `grants`, `kits` and `purchase`), the budget and the eligibility;
   - bonus keys and kit names are unique;
   - `core.LeanATO` and `core.LeanAftermath` read the typed values.
 - `campaign.breakPoint`: `scenarioExceptions[]` names a scenario of `scenarios[]`, spelled as the scenario is, or a scenario setting. It has a text or an effect, and a who.

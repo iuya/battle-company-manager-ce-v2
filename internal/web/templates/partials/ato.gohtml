@@ -8,7 +8,7 @@
   {{if not .Eligible}}
     <p class="text-muted">{{.Why}}</p>
   {{else}}
-    <p>{{.CompanyName}} is <strong>{{.Gap}}</strong> below {{.OppName}} ({{.OwnRating}} vs {{.OppRating}}).{{if .Editing}} Spend up to {{.Gap}} Rating.{{else if not .Editor}} Only the lower rated company chooses bonuses.{{end}}</p>
+    <p>{{.CompanyName}} is <strong>{{.Gap}}</strong> below {{.OppName}} ({{.OwnRating}} vs {{.OppRating}}).{{if .Editing}} Take bonuses until nothing else fits.{{else if not .Editor}} Only the lower rated company chooses bonuses.{{end}}</p>
     {{if .Locked}}<p class="text-sm text-muted" role="status">{{.LockedWhy}} The choice can no longer be changed.</p>{{end}}
     {{if .Editing}}{{template "ato_form" .}}
     {{else if .Waiting}}<p class="alert alert-info" role="status" data-ato-waiting>Waiting for {{.CompanyName}} to choose. Nothing can be noted until they confirm.</p>
@@ -28,14 +28,25 @@
 {{define "ato_form"}}{{$v := .}}{{$base := printf "/campaigns/%d/matches/%d/ato" .Campaign .MatchID}}
 <form hx-post="{{$base}}" hx-target="#ato" hx-swap="outerHTML" hx-sync="#ato-slot:replace" class="space-y-4" novalidate
   x-data="{ ...{{.State}},
-    get kitRating() { return this.ratings.toolKit || 0 },
-    get spent() { let n = 0; for (const k of this.bonus) { if (k !== 'toolKit') n += this.ratings[k] || 0 } if (this.bonus.includes('toolKit')) n += this.kits.length * this.kitRating; return n },
+    opt(key) { return this.opts.find(o => o.key === key) || { rating: 0 } },
+    count(key) { return this.bonus.filter(k => k === key).length },
+    get spent() { let n = this.kits.length * this.opt('toolKit').rating + this.wanderers.length * this.opt('wanderer').rating; for (const k of this.bonus) { if (k !== 'toolKit' && k !== 'wanderer') n += this.opt(k).rating } return n },
     get left() { return this.gap - this.spent },
-    get parts() { const p = []; for (const k of this.bonus) { if (k === 'toolKit') { if (this.kits.length) p.push({ name: this.names[k] + ' x' + this.kits.length, n: this.kits.length * this.kitRating }) } else p.push({ name: this.names[k], n: this.ratings[k] || 0 }) } return p },
-    can(key, hard) { return !hard && (this.bonus.includes(key) || (this.ratings[key] || 0) <= this.left) },
-    reason(key, hard) { if (hard) return hard; if (this.bonus.includes(key)) return ''; const need = this.ratings[key] || 0; return need <= this.left ? '' : 'Needs ' + need + ', ' + Math.max(this.left, 0) + ' left' },
-    canKit(key) { return this.kits.includes(key) || this.kitRating <= this.left } }"
-  x-effect="if (!bonus.includes('toolKit')) kits = []; if (!bonus.includes('wanderer')) wanderer = ''; if (!bonus.includes('ambush')) ambush = ''">
+    fits(n) { return n < this.left || (n === this.left && this.inclusive) },
+    short(n) { return 'Can\'t pay: ' + (n - Math.max(this.left, 0)) + ' short' },
+    get parts() { const p = []; if (this.kits.length) p.push({ name: this.opt('toolKit').name + ' x' + this.kits.length, n: this.kits.length * this.opt('toolKit').rating }); if (this.wanderers.length) p.push({ name: this.opt('wanderer').name + ' x' + this.wanderers.length, n: this.wanderers.length * this.opt('wanderer').rating }); for (const o of this.opts) { const c = this.count(o.key); if (c && o.key !== 'toolKit' && o.key !== 'wanderer') p.push({ name: o.name + (c > 1 ? ' x' + c : ''), n: c * o.rating }) } return p },
+    more(o) { if (o.closed) return false; if (o.key === 'toolKit') return this.kits.length < this.maxKits; if (o.key === 'wanderer') return this.wanderers.length < this.maxWanderers; if (o.key === 'ambush') return this.ambushOk && !this.count(o.key); return o.repeatable || !this.count(o.key) },
+    get remaining() { return this.opts.filter(o => this.more(o) && this.fits(o.rating)) },
+    can(key) { const o = this.opt(key); return !o.closed && (this.bonus.includes(key) || this.fits(o.rating)) },
+    canAdd(key) { const o = this.opt(key); return !o.closed && this.fits(o.rating) },
+    add(key) { if (this.canAdd(key)) this.bonus.push(key) },
+    less(key) { const i = this.bonus.indexOf(key); if (i >= 0) this.bonus.splice(i, 1) },
+    row(key) { const o = this.opt(key); if (this.bonus.includes(key)) return 'ato-row-taken'; return !o.closed && this.fits(o.rating) ? 'ato-row-open' : 'ato-row-off' },
+    reason(key) { const o = this.opt(key); if (o.closed || this.fits(o.rating)) return ''; if (!this.bonus.includes(key)) return this.short(o.rating); return o.repeatable ? 'No more: ' + (o.rating - Math.max(this.left, 0)) + ' short' : '' },
+    canKit(key) { return this.kits.includes(key) || (this.kits.length < this.maxKits && this.fits(this.opt('toolKit').rating)) },
+    canWanderer(name) { return this.wanderers.includes(name) || (this.wanderers.length < this.maxWanderers && this.fits(this.opt('wanderer').rating)) },
+    get blockers() { const b = []; if (this.left < 0) b.push('The bonuses cost ' + (-this.left) + ' more than the gap: remove some.'); if (this.bonus.includes('toolKit') && !this.kits.length) b.push('Choose a kit or untick ' + this.opt('toolKit').name + '.'); if (this.bonus.includes('wanderer') && !this.wanderers.length) b.push('Choose a Wanderer or untick ' + this.opt('wanderer').name + '.'); if (this.bonus.includes('ambush') && !this.ambush) b.push('Choose the scenario for ' + this.opt('ambush').name + '.'); return b } }"
+  x-effect="if (!bonus.includes('toolKit')) kits = []; if (!bonus.includes('wanderer')) wanderers = []; if (!bonus.includes('ambush')) ambush = ''">
   <input type="hidden" name="revision" value="{{.Revision}}">
 
   <div aria-live="polite">
@@ -46,24 +57,37 @@
     <ul class="mt-1 flex flex-wrap gap-x-3 text-xs text-muted"><template x-for="(p, i) in parts" :key="i"><li x-text="p.name + ' ' + p.n"></li></template></ul>
   </div>
 
-  <div class="space-y-2">
+  <div class="space-y-3">
     {{range .Options}}{{$o := .}}{{$hard := $v.HardReason .}}
-    <div class="rounded-lg border border-line px-3 py-2" :class="bonus.includes({{jsstr .Key}}) && '!border-accent bg-accent-soft'">
+    <div class="ato-row" :class="row({{jsstr .Key}})" data-ato-row="{{.Key}}">
+      {{if .Repeatable}}
+      {{/* A press adds one more and a "−" takes one away, as the Slain milestone of the sheet. */}}
+      <template x-for="i in count({{jsstr .Key}})" :key="i"><input type="hidden" name="bonus" value="{{.Key}}"></template>
+      <button type="button" class="ato-press" :disabled="!canAdd({{jsstr .Key}})" @click="add({{jsstr .Key}})" aria-label="{{.Name}}: one more" data-ato-add="{{.Key}}">
+        <span class="min-w-0 flex-1"><span class="font-medium">{{.Name}}</span><span class="block text-sm text-muted">{{.Text}}</span></span>
+        <span class="ato-price">{{.Rating}} each</span>
+      </button>
+      <span class="milestone-count" x-show="count({{jsstr .Key}}) > 0" x-cloak x-text="count({{jsstr .Key}})" data-ato-count="{{.Key}}"></span>
+      <button type="button" class="milestone-less" aria-label="{{.Name}}: one fewer" x-show="count({{jsstr .Key}}) > 0" x-cloak @click="less({{jsstr .Key}})" data-ato-less="{{.Key}}">−</button>
+      {{else}}
       <label class="flex min-h-11 items-start gap-3">
-        <input type="checkbox" name="bonus" value="{{.Key}}" x-model="bonus" :disabled="!can({{jsstr .Key}}, {{jsstr $hard}})" class="mt-1 size-5 shrink-0 accent-accent">
-        <span class="min-w-0"><span class="font-medium">{{.Name}}</span> <span class="text-sm text-muted">(Rating {{.Rating}}{{if eq .Key "toolKit"}} per kit{{end}})</span>
-          <span class="block text-sm text-muted">{{.Text}}</span></span>
+        <input type="checkbox" name="bonus" value="{{.Key}}" x-model="bonus" :disabled="!can({{jsstr .Key}})" class="mt-1 size-5 shrink-0 accent-accent">
+        <span class="min-w-0 flex-1"><span class="font-medium">{{.Name}}</span><span class="block text-sm text-muted">{{.Text}}</span></span>
+        <span class="ato-price">{{.Rating}}{{if or (eq .Key "toolKit") (eq .Key "wanderer")}} each{{end}}</span>
       </label>
-      <p class="mt-1 text-sm text-muted" x-show="reason({{jsstr .Key}}, {{jsstr $hard}})" x-text="reason({{jsstr .Key}}, {{jsstr $hard}})" x-cloak></p>
+      {{end}}
+      {{with $hard}}<p class="ato-short mt-1">{{.}}</p>{{end}}
+      <p class="ato-short mt-1" x-show="reason({{jsstr .Key}})" x-text="reason({{jsstr .Key}})" x-cloak data-ato-short></p>
       {{if and .Reason (not .Disabled)}}<p class="mt-1 text-sm text-muted" data-ato-practice>{{.Reason}}. It stays as entered and does nothing.</p>{{end}}
 
       {{if eq .Key "toolKit"}}
       <div class="mt-2 space-y-3" x-show="bonus.includes('toolKit')" x-cloak>
-        <fieldset class="min-w-0 space-y-2"><legend class="text-sm font-medium">Kits ({{$v.ToolKitRating}} Rating each, up to five different ones)</legend>
+        <fieldset class="min-w-0 space-y-2"><legend class="text-sm font-medium">Kits ({{$v.ToolKitRating}} Rating each, up to {{$v.MaxKits}} different ones)</legend>
           {{range $v.Kits}}{{$k := .}}
-          <label class="flex min-h-11 items-start gap-3 rounded-md border border-line bg-surface px-3 py-2">
+          <label class="ato-row flex min-h-11 items-start gap-3" :class="kits.includes({{jsstr .Key}}) ? 'ato-row-taken' : canKit({{jsstr .Key}}) ? 'ato-row-open' : 'ato-row-off'">
             <input type="checkbox" name="kit" value="{{.Key}}" x-model="kits" :disabled="!bonus.includes('toolKit') || !canKit({{jsstr .Key}})" class="mt-1 size-5 shrink-0 accent-accent">
-            <span class="min-w-0 text-sm"><span class="font-medium">{{.Name}}</span><span class="block text-muted">{{range $i, $it := .Items}}{{if $i}}, {{end}}{{$it.Item}}{{if gt $it.Count 1}} x{{$it.Count}}{{end}}{{end}}</span></span>
+            <span class="min-w-0 text-sm"><span class="font-medium">{{.Name}}</span><span class="block text-muted">{{range $i, $it := .Items}}{{if $i}}, {{end}}{{$it.Item}}{{if gt $it.Count 1}} x{{$it.Count}}{{end}}{{end}}</span>
+              <span class="ato-short mt-1" x-show="!canKit({{jsstr .Key}})" x-text="short(opt('toolKit').rating)" x-cloak></span></span>
           </label>
           {{end}}
         </fieldset>
@@ -85,14 +109,14 @@
         {{end}}
       </div>
       {{else if eq .Key "wanderer"}}
-      <fieldset class="mt-2 min-w-0 space-y-2" x-show="bonus.includes('wanderer')" x-cloak><legend class="text-sm font-medium">Which Wanderer ({{.Rating}} Rating here whatever it costs alone)</legend>
+      <fieldset class="mt-2 min-w-0 space-y-2" x-show="bonus.includes('wanderer')" x-cloak><legend class="text-sm font-medium">{{if gt $v.MaxWanderers 1}}Which Wanderers ({{.Rating}} Rating each whatever they cost alone, each one different){{else}}Which Wanderer ({{.Rating}} Rating here whatever it costs alone){{end}}</legend>
         {{range $v.Wanderers}}
-        <label class="flex min-h-11 items-start gap-3 rounded-md border border-line bg-surface px-3 py-2 has-[:checked]:border-accent">
-          <input type="radio" name="wanderer" value="{{.Name}}" x-model="wanderer" :disabled="!bonus.includes('wanderer')" class="mt-1 size-4 shrink-0 accent-accent">
-          <span class="min-w-0 text-sm"><span class="font-medium">{{.Name}}</span> <span class="text-muted"><s>{{.OwnPrice}}</s> · {{$o.Rating}} here</span>{{with .Summary}}<span class="block text-muted">{{.}}</span>{{end}}</span>
+        <label class="ato-row flex min-h-11 items-start gap-3" :class="wanderers.includes({{jsstr .Name}}) ? 'ato-row-taken' : canWanderer({{jsstr .Name}}) ? 'ato-row-open' : 'ato-row-off'">
+          <input type="checkbox" name="wanderer" value="{{.Name}}" x-model="wanderers" :disabled="!bonus.includes('wanderer') || !canWanderer({{jsstr .Name}})" class="mt-1 size-5 shrink-0 accent-accent">
+          <span class="min-w-0 text-sm"><span class="font-medium">{{.Name}}</span> <span class="text-muted"><s>{{.OwnPrice}}</s> · {{$o.Rating}} here</span>{{with .Summary}}<span class="block text-muted">{{.}}</span>{{end}}
+            <span class="ato-short mt-1" x-show="!canWanderer({{jsstr .Name}}) && !fits(opt('wanderer').rating)" x-text="short(opt('wanderer').rating)" x-cloak></span></span>
         </label>
         {{end}}
-        <p class="text-sm text-muted" x-show="wanderer === ''">Choose a Wanderer.</p>
       </fieldset>
       {{else if eq .Key "ambush"}}
       <div class="field mt-2" x-show="bonus.includes('ambush')" x-cloak>
@@ -106,12 +130,16 @@
       {{end}}
     </div>
     {{end}}
-    <p class="text-sm text-muted" x-show="bonus.length === 0">No bonus chosen.</p>
   </div>
 
   {{if not .HasScenario}}<p class="text-sm text-muted" data-ato-no-scenario>Choose the scenario first: the bonuses are chosen knowing it.</p>{{end}}
+  <div role="status" class="space-y-2">
+    <p class="alert alert-info" x-show="remaining.length" x-cloak data-ato-remaining>Still to take: <span x-text="remaining.map(o => o.name + ' (' + o.rating + ')').join(', ')"></span>. Every bonus that fits has to be taken.</p>
+    <template x-for="b in blockers" :key="b"><p class="alert alert-info" x-text="b" data-ato-blocker></p></template>
+    <p class="alert alert-success" x-show="!remaining.length && !blockers.length" x-cloak data-ato-complete>Nothing else fits.<span x-show="left > 0" x-text="' ' + left + ' Rating stays unspent.'"></span></p>
+  </div>
   <div class="flex flex-wrap gap-2">
-    <button class="btn btn-primary" data-ato-confirm {{if not .HasScenario}}disabled{{end}} x-text="bonus.length ? 'Confirm bonuses' : 'Play without bonuses'">{{if .Chosen}}Confirm bonuses{{else}}Play without bonuses{{end}}</button>
+    <button class="btn btn-primary" data-ato-confirm {{if not .HasScenario}}disabled{{else}}:disabled="remaining.length > 0 || blockers.length > 0"{{end}}>Confirm bonuses</button>
   </div>
 </form>
 {{end}}

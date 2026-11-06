@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/iuya/battle-company-manager-ce-v2/internal/core"
@@ -93,19 +94,19 @@ func TestATOStore(t *testing.T) {
 	}
 	// a second save updates the row; a failing fn stores nothing
 	if _, err := ato.Update(w.ctx, w.camp, w.match.ID, w.org, func(st *core.ATOState) error {
-		st.Record.Selection.Wanderer = "ignored"
+		st.Record.Selection.Wanderers = []string{"ignored"}
 		return errors.New("no")
 	}); err == nil {
 		t.Fatal("fn failed")
 	}
-	if rec, _ = ato.Get(w.ctx, w.camp, w.match.ID); rec.Selection.Wanderer != "" {
+	if rec, _ = ato.Get(w.ctx, w.camp, w.match.ID); len(rec.Selection.Wanderers) != 0 {
 		t.Error("a failed save stores nothing")
 	}
-	sel.Wanderer, sel.Bonuses = "Wandering Sage", []string{"toolKit", "ambush", "wanderer"}
+	sel.Wanderers, sel.Bonuses = []string{"Wandering Sage", "Wandering Marksman"}, []string{"influence", "influence", "toolKit", "ambush", "wanderer"}
 	if _, err := ato.Update(w.ctx, w.camp, w.match.ID, w.org, func(st *core.ATOState) error { st.Record.Selection = sel; return nil }); err != nil {
 		t.Fatal(err)
 	}
-	if rec, _ = ato.Get(w.ctx, w.camp, w.match.ID); rec.Selection.Wanderer != "Wandering Sage" || rec.CompanyID != w.a.ID {
+	if rec, _ = ato.Get(w.ctx, w.camp, w.match.ID); !slices.Equal(rec.Selection.Wanderers, sel.Wanderers) || rec.Selection.Count("influence") != 2 || rec.CompanyID != w.a.ID {
 		t.Errorf("second save: %+v", rec)
 	}
 	var revision int

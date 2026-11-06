@@ -413,8 +413,11 @@
 {{/* The Sheet step. */}}
 {{define "aftermath_sheet"}}
 <section class="card space-y-4" id="aftermath-sheet">
-  <h2 class="!text-xl">1. Sheet{{if .A.FromLive}} <span class="badge badge-gold align-middle" title="Outcomes and experience come from the match as it was played (the trackers and the log); change anything that is not right">From the live match</span>{{end}}</h2>
-  {{if .A.FromLive}}<p class="text-sm text-muted">Prefilled from the live match: who retreated or fell, and the experience earned by wounding, Fate and Broken courage tests. Change anything that is not right: the sheet saves itself.</p>{{end}}
+  <h2 class="!text-xl">1. Sheet</h2>
+  {{if .Editing}}<div class="space-y-1">
+    <p class="text-sm text-muted">Review the match results</p>
+    {{template "aftermath_reasons" (dict "V" . "OOB" false)}}
+  </div>{{end}}
   {{if .Editing}}{{template "aftermath_sheet_form" .}}
   {{else}}
     <p class="text-sm text-muted">{{.Participants}} took part · {{.Casualties}} casualt{{if eq .Casualties 1}}y{{else}}ies{{end}}{{if .CanReopenSheet}} · the sheet is locked{{end}}</p>
@@ -432,17 +435,22 @@
 </section>
 {{end}}
 
+{{/* Why the sheet asks for the player. A save answers it again, as a change can settle a reason. Takes {V: aftermathView, OOB: from a save}. */}}
+{{define "aftermath_reasons"}}<ul class="space-y-1 text-sm font-medium empty:hidden" id="aftermath-reasons"{{if .OOB}} hx-swap-oob="true"{{end}}>{{range .V.SheetReasons}}<li>{{.}}</li>{{end}}</ul>{{end}}
+
 {{define "aftermath_result"}}
+{{if or .A.CanManage .RelicTicked}}
 <div class="rounded-xl border border-line bg-raised p-3 text-sm space-y-1">
-  <p><span class="font-medium">Match result:</span> {{.OutcomeText}}. <a href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Change it on the match page</a>{{if .Match.Ended}} (administrators only){{end}}.</p>
+  {{if .A.CanManage}}<p><span class="font-medium">Match result:</span> {{.OutcomeText}}. <a href="/campaigns/{{.Campaign.ID}}/matches/{{.Match.ID}}">Change it on the match page</a> (administrators only).</p>{{end}}
   {{if .RelicTicked}}<p>The company holds the Relic.</p>{{end}}
 </div>
+{{end}}
 {{end}}
 
 {{define "aftermath_sheet_readonly"}}
 <div class="mt-3 space-y-3">
   {{template "aftermath_result" .}}
-  {{if .A.Input.AgainstTheOdds}}<p class="text-sm"><span class="font-medium">Against the Odds:</span> {{range $i, $k := .A.Input.AgainstTheOdds}}{{if $i}}, {{end}}{{range $.Rules.Bonuses}}{{if eq .Key $k}}{{.Name}}{{end}}{{end}}{{end}}</p>{{end}}
+  {{with .OddsTaken}}<p class="text-sm"><span class="font-medium">Against the Odds:</span> {{.}}</p>{{end}}
   <ul class="divide-y divide-line">
     {{range .Units}}
     <li class="space-y-1 py-2">
@@ -470,15 +478,23 @@
   {{template "aftermath_result" .}}
   {{if .Problems}}<div class="alert alert-danger" role="alert"><ul class="list-disc pl-4">{{range .Problems}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
 
-  {{if .Rules.Bonuses}}{{$anyTaken := false}}{{range .Rules.Bonuses}}{{if $.A.Input.Taken .Key}}{{$anyTaken = true}}{{end}}{{end}}
+  {{if .ShowOdds}}
+  {{if .A.CanManage}}
   <fieldset class="min-w-0 space-y-2" id="aftermath-ato">
-    <legend class="text-lg font-semibold font-heading">Against the Odds{{if .A.FromMatch}} <span class="badge badge-gold align-middle" title="Ticked from what the company took on the match page; change anything that is not right">From the match</span>{{end}}</legend>
-    {{range .Rules.Bonuses}}{{if $.A.Input.Taken .Key}}{{template "aftermath_odds" (dict "B" . "On" true)}}{{end}}{{end}}
-    {{if not $anyTaken}}<p class="text-sm text-muted">No bonus taken.</p>{{end}}
+    <legend class="text-lg font-semibold font-heading">Against the Odds</legend>
+    {{range .Rules.Bonuses}}{{if $.A.Input.Taken .Key}}{{template "aftermath_odds" (dict "B" . "N" ($.A.Input.TakenCount .Key))}}{{end}}{{end}}
+    {{if not .A.Input.AgainstTheOdds}}<p class="text-sm text-muted">No bonus taken.</p>{{end}}
     <details class="text-sm"><summary class="flex min-h-11 cursor-pointer items-center font-medium">+ add a bonus</summary>
-      <div class="space-y-2">{{range .Rules.Bonuses}}{{if not ($.A.Input.Taken .Key)}}{{template "aftermath_odds" (dict "B" . "On" false)}}{{end}}{{end}}</div>
+      <div class="space-y-2">{{range .Rules.Bonuses}}{{if not ($.A.Input.Taken .Key)}}{{template "aftermath_odds" (dict "B" . "N" 0)}}{{end}}{{end}}</div>
     </details>
   </fieldset>
+  {{else}}
+  <div class="min-w-0 space-y-2" id="aftermath-ato">
+    <h3 class="!text-lg">Against the Odds</h3>
+    {{if .A.Input.AgainstTheOdds}}<ul class="space-y-2">{{range .Rules.Bonuses}}{{if $.A.Input.Taken .Key}}<li class="rounded-md border border-line px-3 py-2 text-sm"><span class="font-medium">{{.Name}}</span>{{$n := $.A.Input.TakenCount .Key}}{{if gt $n 1}} x{{$n}}{{end}} <span class="text-muted">(rating {{.Rating}})</span>{{if .Effective}}<br><span class="text-muted">{{.Text}}</span>{{end}}</li>{{end}}{{end}}</ul>
+    {{else}}<p class="text-sm text-muted">No bonus taken.</p>{{end}}
+  </div>
+  {{end}}
   {{end}}
 
   <div class="space-y-3">
@@ -554,7 +570,7 @@
 {{define "aftermath_sheet_foot"}}<div class="[&>*]:!mt-0" id="sheet-xp-{{.ID}}"{{if .OOB}} hx-swap-oob="true"{{end}}>{{template "unit_summary_foot" .Foot}}</div>{{end}}
 
 {{/* What a save of the sheet answers: the bar, and the experience of every unit. Takes aftermathView. */}}
-{{define "aftermath_saved"}}{{template "aftermath_bar" .}}{{range .Units}}{{template "aftermath_sheet_foot" (dict "ID" .Unit.ID "Foot" ($.Foot .Unit) "OOB" true)}}{{end}}{{end}}
+{{define "aftermath_saved"}}{{template "aftermath_bar" .}}{{template "aftermath_reasons" (dict "V" . "OOB" true)}}{{range .Units}}{{template "aftermath_sheet_foot" (dict "ID" .Unit.ID "Foot" ($.Foot .Unit) "OOB" true)}}{{end}}{{end}}
 
 {{/* The bar under the sheet, sticky on phones: what the saved sheet gives and Start aftermath. The sheet saves itself on every change and
    this is what the save answers (with the new revision). Takes aftermathView. */}}
@@ -569,10 +585,22 @@
 </div>
 {{end}}
 
-{{/* One Against the Odds bonus of the sheet. Takes {B: the bonus rule, On: ticked}. */}}
+{{/* One Against the Odds bonus of the sheet, as on the card of the match page: one that repeats counts presses, as the Slain milestone. Takes {B: the bonus rule, N: how many were taken}. */}}
 {{define "aftermath_odds"}}{{$b := .B}}
+{{if $b.Repeatable}}
+<div class="ato-row text-sm" x-data="{ n: {{.N}} }" :class="n > 0 ? 'ato-row-taken' : 'ato-row-open'" data-odds-row="{{$b.Key}}">
+  <template x-for="i in n" :key="i"><input type="hidden" name="odds" value="{{$b.Key}}"></template>
+  <button type="button" class="ato-press" aria-label="{{$b.Name}}: one more" @click="n++; $nextTick(() => $dispatch('change'))" data-odds-add="{{$b.Key}}">
+    <span class="min-w-0 flex-1"><span class="font-medium">{{$b.Name}}</span><span class="block text-muted">{{if $b.Effective}}{{$b.Text}}{{else}}No effect on the aftermath.{{end}}</span></span>
+    <span class="ato-price">{{$b.Rating}} each</span>
+  </button>
+  <span class="milestone-count" x-show="n > 0" x-cloak x-text="n" data-odds-count="{{$b.Key}}">{{.N}}</span>
+  <button type="button" class="milestone-less" aria-label="{{$b.Name}}: one fewer" x-show="n > 0" x-cloak @click="n--; $nextTick(() => $dispatch('change'))" data-odds-less="{{$b.Key}}">−</button>
+</div>
+{{else}}
 <label class="flex min-h-11 items-start gap-3 rounded-md border border-line px-3 py-2 text-sm">
-  <input type="checkbox" name="odds" value="{{$b.Key}}" class="mt-0.5 h-5 w-5 accent-[var(--accent)]" {{if .On}}checked{{end}}>
+  <input type="checkbox" name="odds" value="{{$b.Key}}" class="mt-0.5 h-5 w-5 accent-[var(--accent)]" {{if .N}}checked{{end}}>
   <span><span class="font-medium">{{$b.Name}}</span> <span class="text-muted">(rating {{$b.Rating}})</span><br><span class="text-muted">{{if $b.Effective}}{{$b.Text}}{{else}}No effect on the aftermath.{{end}}</span></span>
 </label>
+{{end}}
 {{end}}

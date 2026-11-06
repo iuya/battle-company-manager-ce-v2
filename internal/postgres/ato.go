@@ -19,12 +19,13 @@ func (s *Store) ATO() atoStore { return atoStore{s} }
 
 // atoSelectionJSON is the stored shape of a core.ATOSelection, versioned like the other jsonb columns.
 type atoSelectionJSON struct {
-	V        int                 `json:"v"`
-	Bonuses  []string            `json:"bonuses,omitempty"`
-	Kits     []string            `json:"kits,omitempty"`
-	Items    []atoAssignmentJSON `json:"items,omitempty"`
-	Wanderer string              `json:"wanderer,omitempty"`
-	Ambush   string              `json:"ambush,omitempty"`
+	V         int                 `json:"v"`
+	Bonuses   []string            `json:"bonuses,omitempty"`
+	Kits      []string            `json:"kits,omitempty"`
+	Items     []atoAssignmentJSON `json:"items,omitempty"`
+	Wanderer  string              `json:"wanderer,omitempty"` // v1: the only Wanderer
+	Wanderers []string            `json:"wanderers,omitempty"`
+	Ambush    string              `json:"ambush,omitempty"`
 }
 
 type atoAssignmentJSON struct {
@@ -43,7 +44,7 @@ type atoScenarioJSON struct {
 }
 
 func encodeSelection(s core.ATOSelection) ([]byte, error) {
-	j := atoSelectionJSON{V: 1, Bonuses: s.Bonuses, Kits: s.Kits, Wanderer: s.Wanderer, Ambush: s.Ambush}
+	j := atoSelectionJSON{V: 2, Bonuses: s.Bonuses, Kits: s.Kits, Wanderers: s.Wanderers, Ambush: s.Ambush}
 	for _, a := range s.Items {
 		j.Items = append(j.Items, atoAssignmentJSON{Kit: a.Kit, Item: a.Item, Index: a.Index, Unit: a.UnitID, Detail: a.Detail})
 	}
@@ -55,7 +56,10 @@ func decodeSelection(raw []byte) (core.ATOSelection, error) {
 	if err := json.Unmarshal(raw, &j); err != nil {
 		return core.ATOSelection{}, err
 	}
-	s := core.ATOSelection{Bonuses: j.Bonuses, Kits: j.Kits, Wanderer: j.Wanderer, Ambush: j.Ambush}
+	s := core.ATOSelection{Bonuses: j.Bonuses, Kits: j.Kits, Wanderers: j.Wanderers, Ambush: j.Ambush}
+	if j.Wanderer != "" {
+		s.Wanderers = []string{j.Wanderer}
+	}
 	for _, a := range j.Items {
 		s.Items = append(s.Items, core.KitAssignment{Kit: a.Kit, Item: a.Item, Index: a.Index, UnitID: a.Unit, Detail: a.Detail})
 	}

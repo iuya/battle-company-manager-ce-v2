@@ -168,7 +168,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   </div>
   {{if ne (printf "%s" $u.Role) "warrior"}}<span class="unit-rank shrink-0 self-center [&>svg]:h-10 [&>svg]:w-10">{{template "role_insignia" $u.Role}}</span>{{end}}
 </header>
-<div class="flex flex-wrap items-center gap-1.5 not-has-[*]:hidden lg:not-has-[*]:flex lg:min-h-8" data-unit-facts>
+<div class="unit-facts" data-unit-facts>
   {{with (roleLook $u.Role).Label}}<span class="badge badge-muted">{{.}}</span>{{end}}
   {{with $u.Path}}{{if .Name}}<span class="path-k-{{(pathLook .Name .Categories).Kind}}">{{template "path_name" (dict "N" .Name "Cats" .Categories "Short" true)}}</span>{{end}}{{end}}
   {{if $u.PathPending}}<span class="badge badge-gold">No path yet</span>{{end}}
@@ -207,7 +207,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
     <button type="button" class="btn btn-ghost !min-h-7 !px-2" @click="move($el, 1)" aria-label="Move {{$u.Title}} later" title="Later">→</button>
   </span>
 </div>
-<article id="unit-{{$u.ID}}" class="card unit unit-{{$u.Role}} {{if $u.Injured}}unit-injured{{end}} flex flex-col gap-2 !p-4" :class="expanded === {{$u.ID}} && 'unit-expanded'">
+<article id="unit-{{$u.ID}}" class="card unit unit-{{$u.Role}} {{if $u.Injured}}unit-injured{{end}} flex scroll-mt-20 flex-col gap-2 !p-4" :class="expanded === {{$u.ID}} && 'unit-expanded'">
 
   {{/* The expand button is part of the frame: a small tab flush in the top-right corner, taking no room from the content. */}}
   <button type="button" class="unit-corner" @click.stop="toggle({{$u.ID}}, $el)" :aria-expanded="expanded === {{$u.ID}}" :aria-label="expanded === {{$u.ID}} ? 'Close' : 'Expand unit'" :title="expanded === {{$u.ID}} ? 'Close' : 'Expand'">
@@ -257,7 +257,7 @@ Special rules: {{end}}{{$r}}{{end}}"{{end}}>
   <div class="unit-badges min-w-0">
       {{template "kw_applies" $ap}}
       {{if $u.Wanderer}}<p class="mt-1 flex flex-wrap items-center gap-1.5"><span class="badge badge-gold">Wanderer</span>{{if and $lu $lu.Temporary}}<span class="badge badge-gold" title="Taken with Against the Odds for this match only">Temporary</span>{{end}}</p>{{end}}
-      {{if and $lu $lu.Temporary $lv.Wanderer}}<p class="mt-1 text-sm">{{$lv.Wanderer.Summary}}</p>{{end}}
+      {{if and $lu $lu.Temporary}}{{with $lv.TemporarySummary $lu.UnitID}}<p class="mt-1 text-sm">{{.}}</p>{{end}}{{end}}
       {{if and $lu $lv $lv.Broken (not ($lv.CourageDue $lu))}}<p class="mt-1"><span class="badge badge-muted" title="How its last courage test went">{{$lv.CourageChip $lu}}</span></p>{{end}}
       {{if and $lu $lu.HasMount (not $lu.Mounted)}}<p class="mt-1"><span class="badge badge-muted" title="The mount is lost: what needs it is struck through">On foot</span></p>{{end}}
       {{$warrior := eq (printf "%s" $u.Role) "warrior"}}

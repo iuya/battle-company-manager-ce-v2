@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"net/http/httptest"
 	"net/url"
 	"regexp"
@@ -34,8 +35,8 @@ func TestATOCardForTheLowerCompanyShowsBudgetRowsAndAssignments(t *testing.T) {
 	f := atoFixture(t)
 	f.camp.EXPECT().AgainstTheOdds(gomock.Any(), frodo, int64(7), int64(3)).Return(atoCard(), nil)
 	body := htmxGet(f, testMatchPath+"/ato").Body.String()
-	for _, want := range []string{`id="ato"`, "Rangers is <strong>85</strong> below Raiders (240 vs 325)", "Spent <span x-text=\"spent\"></span> / 85", `name="bonus" value="toolKit"`, "The company already has a Wanderer.",
-		`name="kit" value="healer"`, `name="assign-healer-0-1"`, "Heroes only", "Not given to anybody yet", `name="detail-healer-1-0"`, `name="wanderer" value="Radagast"`, `name="ambush"`, "Seize Ground", `name="revision" value="4"`, "No bonus chosen."} {
+	for _, want := range []string{`id="ato"`, "Rangers is <strong>85</strong> below Raiders (240 vs 325)", "Spent <span x-text=\"spent\"></span> / 85", `data-ato-row="reroll"`, `name="bonus" value="toolKit"`, "The company already has a Wanderer.",
+		`name="kit" value="healer"`, `name="assign-healer-0-1"`, "Heroes only", "Not given to anybody yet", `name="detail-healer-1-0"`, `name="wanderer" value="Radagast"`, `name="ambush"`, "Seize Ground", `name="revision" value="4"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("card lacks %q", want)
 		}
@@ -144,13 +145,13 @@ func TestATOCardConfirmWaitAndChange(t *testing.T) {
 		return htmxGet(f, testMatchPath+"/ato").Body.String()
 	}
 	body := card(func(*core.ATO) {})
-	for _, want := range []string{"data-ato-confirm", "Play without bonuses", `hx-sync="#ato-slot:replace"`} {
+	for _, want := range []string{"data-ato-confirm", "Confirm bonuses", "data-ato-remaining", `hx-sync="#ato-slot:replace"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the lower player's card lacks %q", want)
 		}
 	}
-	if strings.Contains(body, ">Save<") || strings.Contains(body, "Clear") || strings.Contains(body, "disabled>Play") {
-		t.Errorf("one button, enabled: %s", body)
+	if strings.Contains(body, ">Save<") || strings.Contains(body, "Clear") || strings.Contains(body, "Play without bonuses") || !strings.Contains(body, `:disabled="remaining.length > 0 || blockers.length > 0"`) {
+		t.Errorf("one button, the browser enables it when nothing else fits: %s", body)
 	}
 	body = card(func(c *core.ATO) { c.HasScenario = false })
 	if !strings.Contains(body, "Choose the scenario first") || !regexp.MustCompile(`data-ato-confirm disabled`).MatchString(body) {
@@ -261,5 +262,50 @@ func TestLiveBannerEndMatchWaitsForTheDecision(t *testing.T) {
 	body = htmxGet(f, testMatchPath+"/live/end/banner?company=1").Body.String()
 	if strings.Contains(body, "data-ato-banner") || strings.Contains(body, "disabled title=") || !strings.Contains(body, "data-end-match") {
 		t.Errorf("decided: End match is back: %s", body)
+	}
+}
+
+// A bonus that repeats is pressed like the Slain milestone: it posts once per purchase and has no checkbox.
+func TestATOCardDrawsARepeatableBonusAsAPress(t *testing.T) {
+	f := atoFixture(t)
+	c := atoCard()
+	for i := range c.Options {
+		if c.Options[i].Key == "reroll" {
+			c.Options[i].Repeatable = true
+		}
+	}
+	f.camp.EXPECT().AgainstTheOdds(gomock.Any(), frodo, int64(7), int64(3)).Return(c, nil)
+	body := htmxGet(f, testMatchPath+"/ato").Body.String()
+	for _, want := range []string{`data-ato-add="reroll"`, `data-ato-less="reroll"`, `data-ato-count="reroll"`, `name="bonus" value="reroll"`, "each</span>"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("card lacks %q", want)
+		}
+	}
+	if strings.Contains(body, `type="checkbox" name="bonus" value="reroll"`) {
+		t.Error("a repeatable bonus has no checkbox")
+	}
+}
+
+func TestATOSummaryCountsRepeatsAndNamesEveryWanderer(t *testing.T) {
+	v := atoView{ATO: atoCard()}
+	v.CompanyName = "Rangers"
+	v.Options = []core.ATOOption{{Key: "influence", Name: "Influence", Taken: true}, {Key: "reroll", Name: "Reroll", Taken: true}, {Key: "wanderer", Name: "Wanderer", Taken: true}}
+	v.Selection = core.ATOSelection{Bonuses: []string{"influence", "influence", "influence", "reroll", "wanderer"}, Wanderers: []string{"Radagast", "Gandalf"}}
+	if got, want := v.Summary(), "Rangers took: Influence x3; Reroll; Wanderer (Radagast, Gandalf)."; got != want {
+		t.Errorf("%q, want %q", got, want)
+	}
+}
+
+// The form sends each purchase and every Wanderer to the service, which alone decides; its refusal comes back on the card with what was chosen.
+func TestATOSavePassesEveryPurchaseAndShowsTheRefusal(t *testing.T) {
+	f := atoFixture(t)
+	f.camp.EXPECT().AgainstTheOdds(gomock.Any(), frodo, int64(7), int64(3)).Return(atoCard(), nil).AnyTimes()
+	want := core.ATOSelection{Bonuses: []string{"influence", "influence", "wanderer"}, Wanderers: []string{"Radagast", "Gandalf"}}
+	f.camp.EXPECT().SaveAgainstTheOdds(gomock.Any(), frodo, int64(7), int64(3), 4, want).Return(core.ATO{}, errors.Join(core.ErrInvalidMatch, errors.New("every bonus that fits has to be taken. Still to take: Reroll (15)")))
+	r := form(testMatchPath+"/ato", url.Values{"revision": {"4"}, "bonus": {"influence", "influence", "wanderer"}, "wanderer": {"Radagast", "Gandalf"}})
+	r.Header.Set("HX-Request", "true")
+	rec := f.do(f.signedIn(r))
+	if rec.Code != 422 || !strings.Contains(rec.Body.String(), "Still to take: Reroll (15)") {
+		t.Errorf("%d: %s", rec.Code, rec.Body.String())
 	}
 }

@@ -72,8 +72,9 @@ type XPGain struct {
 type OddsBonus struct {
 	Key, Name, Text                string
 	Rating                         int
-	InfluenceWin, InfluenceOther   int // Influence for a Win / otherwise
-	ExperienceWin, ExperienceOther int // Experience per model for a Win / otherwise
+	Repeatable                     bool // it can be taken several times: each one pays again
+	InfluenceWin, InfluenceOther   int  // Influence for a Win / otherwise
+	ExperienceWin, ExperienceOther int  // Experience per model for a Win / otherwise
 	Rerolls                        int
 }
 
@@ -154,11 +155,24 @@ type AftermathRules struct {
 	Participating, Draw, Win int // Influence
 	LevelEvery               int // the experience that earns one level-up roll (campaign.progression.threshold)
 	Bonuses                  []OddsBonus
+	OddsInclusive            bool // campaign.againstTheOdds.budget.inclusive: a bonus may cost exactly the Rating gap
 	Warrior, Hero            []InjuryRow
 	InjuryDice               DiceSpec                // campaign.injuries.roll, "2d6": the injury charts cover Min..Max of it
 	Effects                  map[string]RewardEffect // by key
 	ItemEffects              map[string]string       // lower-case equipment name -> aftermathEffects key (Healing Herbs, Wondrous Cram)
 	Scenarios                map[string][]RewardRule // by scenario name
+}
+
+// OddsAvailable says whether the company could take an Against the Odds bonus in the rated match: it is the lower company of a two-company
+// match and the gap pays for the cheapest bonus. The ratings are the current ones (they are not kept with the match), so an opponent that has
+// finished its own aftermath can move the gap.
+func OddsAvailable(m Match, companyID int64, r AftermathRules) bool {
+	lower, higher, why := atoSides(m)
+	if why != "" || lower.ID != companyID {
+		return false
+	}
+	gap := higher.Points - lower.Points
+	return slices.ContainsFunc(r.Bonuses, func(b OddsBonus) bool { return b.Rating < gap || (b.Rating == gap && r.OddsInclusive) })
 }
 
 // Gain finds an experience gain by key.
@@ -196,12 +210,13 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 		LevelEvery:    c.Progression.Threshold,
 		Participating: c.Influence.Gains.Participating, Draw: c.Influence.Gains.Draw, Win: c.Influence.Gains.Win,
 		Effects: map[string]RewardEffect{}, ItemEffects: map[string]string{}, Scenarios: map[string][]RewardRule{},
+		OddsInclusive: c.AgainstTheOdds.Budget.Inclusive,
 	}
 	for _, g := range c.Experience.Gains {
 		rules.Gains = append(rules.Gains, XPGain{Key: g.Key, Label: g.Label, Amount: g.Amount, Repeatable: g.Repeatable})
 	}
 	for _, b := range c.AgainstTheOdds.Bonuses {
-		ob := OddsBonus{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, Rerolls: b.Count}
+		ob := OddsBonus{Key: b.Key, Name: b.Name, Text: b.Text, Rating: b.Rating, Repeatable: b.Repeatable && b.Rating > 0 && b.Key != atoWanderer, Rerolls: b.Count}
 		if g := b.Gains.Influence; g != nil {
 			ob.InfluenceWin, ob.InfluenceOther = g.Win, g.Other
 		}
@@ -377,6 +392,37 @@ func (in AftermathInput) Model(unitID int64) (ModelSheet, bool) {
 // Taken says whether the company took the Against the Odds bonus.
 func (in AftermathInput) Taken(key string) bool { return slices.Contains(in.AgainstTheOdds, key) }
 
+// TakenCount is how many times the company took the Against the Odds bonus.
+func (in AftermathInput) TakenCount(key string) int {
+	n := 0
+	for _, k := range in.AgainstTheOdds {
+		if k == key {
+			n++
+		}
+	}
+	return n
+}
+
+// oddsLines gives each Against the Odds bonus of the sheet once, in order, with how many times it was taken.
+func (in AftermathInput) oddsLines(rules AftermathRules, yield func(b OddsBonus, n int)) {
+	done := map[string]bool{}
+	for _, key := range in.AgainstTheOdds {
+		if !done[key] {
+			done[key] = true
+			b, _ := rules.Bonus(key)
+			yield(b, in.TakenCount(key))
+		}
+	}
+}
+
+// oddsLineText names an Against the Odds bonus on a line of the results: "Against the Odds: Influence x3".
+func oddsLineText(b OddsBonus, n int) string {
+	if n > 1 {
+		return fmt.Sprintf("Against the Odds: %s x%d", b.Name, n)
+	}
+	return "Against the Odds: " + b.Name
+}
+
 // Absent says whether a unit misses this game: it is not on the sheet, recovers when the aftermath starts and earns nothing.
 func Absent(u CompanyUnit) bool { return u.Injured }
 
@@ -487,9 +533,9 @@ func (in AftermathInput) ValidateWith(roster []CompanyUnit, loaned []LoanedItem,
 	errs = append(errs, validateItems(out, roster, loaned, rules)...)
 	seen := map[string]bool{}
 	for _, key := range in.AgainstTheOdds {
-		if _, ok := rules.Bonus(key); !ok {
+		if b, ok := rules.Bonus(key); !ok {
 			bad("%q is not an Against the Odds bonus", key)
-		} else if !seen[key] {
+		} else if !seen[key] || b.Repeatable {
 			seen[key] = true
 			out.AgainstTheOdds = append(out.AgainstTheOdds, key)
 		}
@@ -649,16 +695,15 @@ func Experience(ctx AftermathContext, in AftermathInput) []UnitGain {
 					g.Lines = append(g.Lines, AmountLine{Text: gain.Label, Amount: n * gain.Amount, UnitID: m.UnitID, Key: gain.Key})
 				}
 			}
-			for _, key := range in.AgainstTheOdds {
-				b, _ := ctx.Rules.Bonus(key)
+			in.oddsLines(ctx.Rules, func(b OddsBonus, n int) {
 				amount := b.ExperienceOther
 				if ctx.Outcome == "win" {
 					amount = b.ExperienceWin
 				}
 				if amount != 0 {
-					g.Lines = append(g.Lines, AmountLine{Text: "Against the Odds: " + b.Name, Amount: amount, UnitID: m.UnitID, Key: "odds:" + b.Key})
+					g.Lines = append(g.Lines, AmountLine{Text: oddsLineText(b, n), Amount: n * amount, UnitID: m.UnitID, Key: "odds:" + b.Key})
 				}
-			}
+			})
 			for _, r := range rewards {
 				if r.Kind == "experience" && r.UnitID == m.UnitID {
 					g.Lines = append(g.Lines, AmountLine{Text: r.Name, Amount: r.Amount, UnitID: m.UnitID, Key: r.Key})
@@ -684,16 +729,15 @@ func Influence(ctx AftermathContext, in AftermathInput) []AmountLine {
 	case "draw":
 		lines = append(lines, AmountLine{Text: "Draw", Amount: ctx.Rules.Draw, Key: "draw"})
 	}
-	for _, key := range in.AgainstTheOdds {
-		b, _ := ctx.Rules.Bonus(key)
+	in.oddsLines(ctx.Rules, func(b OddsBonus, n int) {
 		amount := b.InfluenceOther
 		if ctx.Outcome == "win" {
 			amount = b.InfluenceWin
 		}
 		if amount != 0 {
-			lines = append(lines, AmountLine{Text: "Against the Odds: " + b.Name, Amount: amount, Key: "odds:" + b.Key})
+			lines = append(lines, AmountLine{Text: oddsLineText(b, n), Amount: n * amount, Key: "odds:" + b.Key})
 		}
-	}
+	})
 	for _, r := range Rewards(ctx, in) {
 		if r.Kind == "influence" {
 			lines = append(lines, AmountLine{Text: r.Name, Amount: r.Amount, Key: r.Key})
@@ -1011,9 +1055,8 @@ type Aftermath struct {
 	Rerolls            int // Against the Odds re-rolls left
 	WaivedNote         string
 	Access             AftermathAccess
-	FromLive           bool // the unsaved default sheet comes from the live match ("From the live match" badge)
-	// FromMatch says the Against the Odds bonuses of the unsaved sheet come from the match's selection ("From the match" badge).
-	FromMatch bool
+	// CanManage says the viewer may correct what a player cannot: the organiser or an administrator (the sheet's Against the Odds bonuses, the match result).
+	CanManage bool
 	// ItemChoices lists, per unit of the sheet, the consumables it may elect now (carried or loaned by a Healer's Kit); empty once started.
 	ItemChoices map[int64][]string
 	// MVP is the live vote tally for the company (nil without live data or votes): the winner is prefilled on the sheet; on a tie the

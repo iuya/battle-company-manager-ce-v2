@@ -179,12 +179,12 @@ func TestSheetValidate(t *testing.T) {
 		return in
 	}
 	ok, err := sheet(func(in *AftermathInput) {
-		in.AgainstTheOdds = []string{"experience", "experience", "ambush"}
+		in.AgainstTheOdds = []string{"experience", "experience", "ambush", "ambush"} // a bonus that repeats pays each time; another counts once
 		in.Models[4].Gains["slainHeroOrMonster"] = 3
 		in.Models[4].Gains["mvp"] = 1
 		in.Models[5].Gains["woundedEnemy"] = 0
 	}).Validate(roster(), r, CompanyResult{})
-	if err != nil || len(ok.AgainstTheOdds) != 2 || ok.Models[4].Gains["slainHeroOrMonster"] != 3 {
+	if err != nil || len(ok.AgainstTheOdds) != 3 || ok.Models[4].Gains["slainHeroOrMonster"] != 3 {
 		t.Fatalf("valid sheet: %+v %v", ok, err)
 	}
 	if empty, err := (AftermathInput{}).Validate(roster(), r, CompanyResult{}); err != nil || len(empty.Models) != 7 {
@@ -590,5 +590,33 @@ func TestAftermathInputBlank(t *testing.T) {
 				t.Errorf("Blank() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// A bonus that repeats pays each time, on one line of the results.
+func TestRepeatedOddsBonusesPayEachTime(t *testing.T) {
+	r := shippedRules(t).BC.Aftermath()
+	in := AftermathInput{AgainstTheOdds: []string{"influence", "influence", "influence", "experience", "experience", "reroll", "reroll"}, Models: []ModelSheet{{UnitID: 1, Outcome: OutcomeSurvived, Gains: map[string]int{}}}}
+	ctx := AftermathContext{Rules: r, Outcome: "win"}
+	var odds []AmountLine
+	for _, l := range Influence(ctx, in) {
+		if l.Key == "odds:influence" {
+			odds = append(odds, l)
+		}
+	}
+	if len(odds) != 1 || odds[0].Amount != 6 || odds[0].Text != "Against the Odds: Influence x3" {
+		t.Errorf("influence: %+v", odds)
+	}
+	ctx.Outcome = "loss"
+	for _, l := range Influence(ctx, in) {
+		if l.Key == "odds:influence" && l.Amount != 3 {
+			t.Errorf("a loss pays 1 each: %+v", l)
+		}
+	}
+	if n := RerollsFor(r, in); n != 4 {
+		t.Errorf("re-rolls: %d", n)
+	}
+	if in.TakenCount("experience") != 2 || in.TakenCount("ambush") != 0 {
+		t.Errorf("counts: %d %d", in.TakenCount("experience"), in.TakenCount("ambush"))
 	}
 }

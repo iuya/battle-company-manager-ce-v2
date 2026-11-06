@@ -73,7 +73,6 @@ func TestATOSelectionValidate(t *testing.T) {
 		{name: "one over the gap", sel: ATOSelection{Bonuses: []string{"influence"}}, gap: 14, wantErr: "cost 15 Rating and the gap is 14"},
 		{name: "everything but the kit", sel: ATOSelection{Bonuses: []string{"reroll", "influence", "experience"}}, gap: 60},
 		{name: "unknown bonus", sel: ATOSelection{Bonuses: []string{"fortune"}}, gap: 99, wantErr: `"fortune" is not an Against the Odds bonus`},
-		{name: "a bonus twice", sel: ATOSelection{Bonuses: []string{"reroll", "reroll"}}, gap: 99, wantErr: "chosen twice"},
 		{name: "a kit costs 30 each", sel: ATOSelection{Bonuses: []string{"toolKit"}, Kits: []string{"healer", "hunter"}}, gap: 60},
 		{name: "two kits do not fit 59", sel: ATOSelection{Bonuses: []string{"toolKit"}, Kits: []string{"healer", "hunter"}}, gap: 59, wantErr: "cost 60"},
 		{name: "the same kit twice", sel: ATOSelection{Bonuses: []string{"toolKit"}, Kits: []string{"healer", "healer"}}, gap: 99, wantErr: "only have one of each kit"},
@@ -103,12 +102,21 @@ func TestATOSelectionValidate(t *testing.T) {
 			Items: []KitAssignment{{Kit: "healer", Item: "Wondrous Cram", UnitID: 5, Detail: "Spear"}}}, wantErr: "takes no weapon"},
 		{name: "a weapon too long", gap: 30, sel: ATOSelection{Bonuses: []string{"toolKit"}, Kits: []string{"hunter"},
 			Items: []KitAssignment{{Kit: "hunter", Item: "Envenom Weapon (X)", UnitID: 5, Detail: strings.Repeat("x", 41)}}}, wantErr: "at most 40"},
-		{name: "a Wanderer", sel: ATOSelection{Bonuses: []string{"wanderer"}, Wanderer: wand}, gap: 45},
-		{name: "a Wanderer one short", sel: ATOSelection{Bonuses: []string{"wanderer"}, Wanderer: wand}, gap: 44, wantErr: "cost 45"},
+		{name: "a Wanderer", sel: ATOSelection{Bonuses: []string{"wanderer"}, Wanderers: []string{wand}}, gap: 45},
+		{name: "a Wanderer one short", sel: ATOSelection{Bonuses: []string{"wanderer"}, Wanderers: []string{wand}}, gap: 44, wantErr: "cost 45"},
 		{name: "no Wanderer named", sel: ATOSelection{Bonuses: []string{"wanderer"}}, gap: 45, wantErr: "choose which Wanderer"},
-		{name: "an unknown Wanderer", sel: ATOSelection{Bonuses: []string{"wanderer"}, Wanderer: "Gandalf"}, gap: 45, wantErr: "choose which Wanderer"},
-		{name: "a Wanderer without the bonus", sel: ATOSelection{Wanderer: wand}, gap: 45, wantErr: "needs the Wanderer bonus"},
-		{name: "a permanent Wanderer on the roster", sel: ATOSelection{Bonuses: []string{"wanderer"}, Wanderer: wand}, gap: 45,
+		{name: "an unknown Wanderer", sel: ATOSelection{Bonuses: []string{"wanderer"}, Wanderers: []string{"Gandalf"}}, gap: 45, wantErr: "not a Wanderer"},
+		{name: "two different Wanderers", sel: ATOSelection{Bonuses: []string{"wanderer"}, Wanderers: []string{wand, r.Wanderers[1].Name}}, gap: 90},
+		{name: "two different Wanderers one short", sel: ATOSelection{Bonuses: []string{"wanderer"}, Wanderers: []string{wand, r.Wanderers[1].Name}}, gap: 89, wantErr: "cost 90"},
+		{name: "the same Wanderer twice", sel: ATOSelection{Bonuses: []string{"wanderer"}, Wanderers: []string{wand, wand}}, gap: 90, wantErr: "can only join once"},
+		{name: "three Influence", sel: ATOSelection{Bonuses: []string{"influence", "influence", "influence"}}, gap: 45},
+		{name: "three Influence one short", sel: ATOSelection{Bonuses: []string{"influence", "influence", "influence"}}, gap: 44, wantErr: "cost 45"},
+		{name: "two Experience and two Reroll", sel: ATOSelection{Bonuses: []string{"experience", "reroll", "experience", "reroll"}}, gap: 90},
+		{name: "Ambush twice", sel: ATOSelection{Bonuses: []string{"ambush", "ambush"}, Ambush: "Rescue"}, gap: 120, wantErr: "chosen twice"},
+		{name: "the Tool Kit bonus twice", sel: ATOSelection{Bonuses: []string{"toolKit", "toolKit"}, Kits: []string{"healer"}}, gap: 60, wantErr: "chosen twice"},
+		{name: "the Wanderer bonus twice", sel: ATOSelection{Bonuses: []string{"wanderer", "wanderer"}, Wanderers: []string{wand}}, gap: 90, wantErr: "chosen twice"},
+		{name: "a Wanderer without the bonus", sel: ATOSelection{Wanderers: []string{wand}}, gap: 45, wantErr: "needs the Wanderer bonus"},
+		{name: "a permanent Wanderer on the roster", sel: ATOSelection{Bonuses: []string{"wanderer"}, Wanderers: []string{wand}}, gap: 45,
 			roster: append(atoRoster(), CompanyUnit{ID: 9, Name: "Wan", Role: RoleHero, Wanderer: true}), wantErr: "already has a Wanderer"},
 		{name: "Ambush", sel: ATOSelection{Bonuses: []string{"ambush"}, Ambush: "Rescue"}, gap: 60},
 		{name: "Ambush needs 60", sel: ATOSelection{Bonuses: []string{"ambush"}, Ambush: "Rescue"}, gap: 59, wantErr: "cost 60"},
@@ -207,9 +215,12 @@ type atoFixture struct {
 	started bool
 }
 
-// newATOFixture is a two-company match: Rangers (company 1, owner 10) is rated 100 against Raiders (company 2, owner 20) rated 190, so
-// the gap is 90.
-func newATOFixture(t *testing.T) *atoFixture {
+// newATOFixture is a two-company match: Rangers (company 1, owner 10) is rated 238 against Raiders (company 2, owner 20) rated 326, so
+// the gap is 88.
+func newATOFixture(t *testing.T) *atoFixture { return newATOFixtureGap(t, 90) }
+
+// newATOFixtureGap is newATOFixture with a company bigger by gap/8 Warriors of Minas Tirith: about that gap, whatever their Rating makes it.
+func newATOFixtureGap(t *testing.T, gap int) *atoFixture {
 	t.Helper()
 	f := &atoFixture{matchesFixture: newMatchesFixture(t)}
 	f.repo = NewMockatoRepository(gomock.NewController(t))
@@ -225,7 +236,7 @@ func newATOFixture(t *testing.T) *atoFixture {
 	f.companies.EXPECT().ReadRoster(gomock.Any(), int64(5)).DoAndReturn(func(context.Context, int64) ([]CompanyState, error) {
 		a, b := gondor(), gondor()
 		a.Company.ID, b.Company.ID = 1, 2
-		for i := int64(0); i < 12; i++ { // a bigger company: the gap is wide enough for Ambush!
+		for i := int64(0); i < int64(gap)/8; i++ { // a bigger company: the gap is wide enough for Ambush!
 			b.Units = append(b.Units, UnitState{ID: 90 + i, Base: "Warrior of Minas Tirith", Role: RoleWarrior})
 		}
 		return []CompanyState{a, b}, nil
@@ -247,6 +258,33 @@ func newATOFixture(t *testing.T) *atoFixture {
 			return st.Match, nil
 		}).AnyTimes()
 	return f
+}
+
+// filled completes a selection the way a player must: it adds what still fits until nothing does.
+func (f *atoFixture) filled(t *testing.T, sel ATOSelection) ATOSelection {
+	t.Helper()
+	r, card := realATO(t), f.card(t, 10)
+	c := ATOContext{Gap: card.Gap, Practice: card.Practice, HasWanderer: card.HasWanderer}
+	for {
+		rest := sel.StillAffordable(r, c)
+		if len(rest) == 0 {
+			return sel
+		}
+		switch b := rest[0]; b.Key {
+		case atoToolKit:
+			if !sel.Has(atoToolKit) {
+				sel.Bonuses = append(sel.Bonuses, atoToolKit)
+			}
+			sel.Kits = append(sel.Kits, r.Kits[len(sel.Kits)].Key)
+		case atoWanderer:
+			if !sel.Has(atoWanderer) {
+				sel.Bonuses = append(sel.Bonuses, atoWanderer)
+			}
+			sel.Wanderers = append(sel.Wanderers, r.Wanderers[len(sel.Wanderers)].Name)
+		default:
+			sel.Bonuses = append(sel.Bonuses, b.Key)
+		}
+	}
 }
 
 func (f *atoFixture) card(t *testing.T, user int64) ATO {
@@ -317,9 +355,9 @@ func TestAgainstTheOddsEqualRatings(t *testing.T) {
 func TestSaveAgainstTheOdds(t *testing.T) {
 	f := newATOFixture(t)
 	gap := f.card(t, 10).Gap
-	sel := ATOSelection{Bonuses: []string{"reroll", "influence"}}
+	sel := f.filled(t, ATOSelection{Bonuses: []string{"reroll"}})
 	c, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, sel)
-	if err != nil || !c.Selection.Has("reroll") || c.Spent != 30 || c.Revision != 4 || f.rec.CompanyID != 1 || f.rec.MatchID != 1 {
+	if err != nil || !c.Selection.Has("reroll") || c.Spent != sel.Spent(realATO(t)) || gap-c.Spent >= 15 || c.Revision != 4 || f.rec.CompanyID != 1 || f.rec.MatchID != 1 {
 		t.Fatalf("save: %+v %v (record %+v)", c, err, f.rec)
 	}
 	// refusals
@@ -345,9 +383,9 @@ func TestSaveAgainstTheOdds(t *testing.T) {
 	if f.match.Revision != 4 {
 		t.Errorf("refused saves change nothing: revision %d", f.match.Revision)
 	}
-	// the organiser edits too; an empty selection clears
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 99}, 5, 1, 4, ATOSelection{}); err != nil || !f.rec.Selection.Empty() || f.rec.CompanyID != 0 {
-		t.Fatalf("clear: %v %+v", err, f.rec)
+	// the organiser edits too
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 99}, 5, 1, 4, f.filled(t, ATOSelection{Bonuses: []string{"experience"}})); err != nil || !f.rec.Selection.Has("experience") {
+		t.Fatalf("the organiser: %v %+v", err, f.rec)
 	}
 	// locked once the game began
 	f.started = true
@@ -380,7 +418,7 @@ func TestAmbushSetsAndRestoresTheScenario(t *testing.T) {
 	if gap < 60 {
 		t.Skipf("the fixture's gap is %d", gap)
 	}
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, ATOSelection{Bonuses: []string{"ambush"}, Ambush: other}); err != nil {
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, f.filled(t, ATOSelection{Bonuses: []string{"ambush"}, Ambush: other})); err != nil {
 		t.Fatal(err)
 	}
 	if f.match.Scenario == nil || f.match.Scenario.Name != other || f.match.Scenario.Kind != ScenarioRulebook || f.match.Revision != 4 {
@@ -400,14 +438,14 @@ func TestAmbushSetsAndRestoresTheScenario(t *testing.T) {
 			break
 		}
 	}
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 4, ATOSelection{Bonuses: []string{"ambush"}, Ambush: third}); err != nil {
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 4, f.filled(t, ATOSelection{Bonuses: []string{"ambush"}, Ambush: third})); err != nil {
 		t.Fatal(err)
 	}
 	if f.match.Scenario.Name != third || f.rec.Previous == nil || f.rec.Previous.Name != rolled.Name {
 		t.Errorf("%+v %+v", f.match.Scenario, f.rec.Previous)
 	}
 	// dropping Ambush puts the rolled one back
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 5, ATOSelection{Bonuses: []string{"reroll"}}); err != nil {
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 5, f.filled(t, ATOSelection{Bonuses: []string{"reroll"}})); err != nil {
 		t.Fatal(err)
 	}
 	if f.match.Scenario == nil || f.match.Scenario.Name != rolled.Name || f.rec.Previous != nil {
@@ -421,7 +459,7 @@ func TestAmbushSetsAndRestoresTheScenario(t *testing.T) {
 	}
 	// somebody chose another scenario by hand meanwhile: Ambush no longer owns it, so dropping it leaves that choice
 	f.match.Scenario = &MatchScenario{Kind: ScenarioRulebook, Name: third}
-	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 6, ATOSelection{}); err != nil {
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 6, f.filled(t, ATOSelection{})); err != nil {
 		t.Fatal(err)
 	}
 	if f.match.Scenario == nil || f.match.Scenario.Name != third {
@@ -436,4 +474,198 @@ func mustScenarios(t *testing.T, f *atoFixture) []ScenarioInfo {
 		t.Fatalf("scenarios: %d %v", len(list), err)
 	}
 	return list
+}
+
+func TestATOStillAffordable(t *testing.T) {
+	r := realATO(t)
+	wand := r.Wanderers[0].Name
+	keys := func(s ATOSelection, c ATOContext) string {
+		var out []string
+		for _, b := range s.StillAffordable(r, c) {
+			out = append(out, b.Key)
+		}
+		return strings.Join(out, " ")
+	}
+	repeat := func(key string, n int) []string { return slices.Repeat([]string{key}, n) }
+	all := make([]string, len(r.Wanderers))
+	for i, w := range r.Wanderers {
+		all[i] = w.Name
+	}
+	tests := []struct {
+		name string
+		sel  ATOSelection
+		c    ATOContext
+		want string
+	}{
+		{name: "a gap under the cheapest bonus", c: ATOContext{Gap: 14}},
+		{name: "a bonus that costs exactly the gap counts", c: ATOContext{Gap: 15}, want: "influence reroll"},
+		{name: "the owner's 40: the cost that fits is offered", c: ATOContext{Gap: 40}, want: "influence experience reroll toolKit"},
+		{name: "after a 15, the 30s no longer fit", sel: ATOSelection{Bonuses: []string{"influence"}}, c: ATOContext{Gap: 40}, want: "influence reroll"},
+		{name: "one way to finish 40", sel: ATOSelection{Bonuses: []string{"influence", "reroll"}}, c: ATOContext{Gap: 40}},
+		{name: "another way to finish 40", sel: ATOSelection{Bonuses: []string{"experience"}}, c: ATOContext{Gap: 40}},
+		{name: "a kit bought counts", sel: ATOSelection{Bonuses: []string{"toolKit"}, Kits: []string{"healer"}}, c: ATOContext{Gap: 45}, want: "influence reroll"},
+		{name: "45 pays for a Wanderer or three Influence", c: ATOContext{Gap: 45}, want: "influence experience reroll toolKit wanderer"},
+		{name: "three Influence finish 45", sel: ATOSelection{Bonuses: repeat("influence", 3)}, c: ATOContext{Gap: 45}},
+		{name: "a permanent Wanderer shuts the temporary one out", c: ATOContext{Gap: 45, HasWanderer: true}, want: "influence experience reroll toolKit"},
+		{name: "another Wanderer is still open", sel: ATOSelection{Bonuses: []string{"wanderer"}, Wanderers: []string{wand}}, c: ATOContext{Gap: 90}, want: "influence experience reroll toolKit wanderer"},
+		{name: "every Wanderer taken", sel: ATOSelection{Bonuses: []string{"wanderer"}, Wanderers: all}, c: ATOContext{Gap: 45*len(all) + 45}, want: "influence experience reroll toolKit"},
+		{name: "Ambush is open once", c: ATOContext{Gap: 60, CanAmbush: true}, want: "influence experience reroll toolKit wanderer ambush"},
+		{name: "Ambush taken", sel: ATOSelection{Bonuses: []string{"ambush"}, Ambush: "Rescue"}, c: ATOContext{Gap: 75, CanAmbush: true}, want: "influence reroll"},
+		{name: "Ambush with no scenario to choose", c: ATOContext{Gap: 60}, want: "influence experience reroll toolKit wanderer"},
+		{name: "a practice match: no reward bonus", c: ATOContext{Gap: 30, Practice: true}, want: "toolKit"},
+		{name: "a practice match: all it can take", sel: ATOSelection{Bonuses: []string{"toolKit"}, Kits: []string{"healer"}}, c: ATOContext{Gap: 40, Practice: true}},
+		{name: "a practice match: one kit after another", sel: ATOSelection{Bonuses: []string{"toolKit"}, Kits: []string{"healer"}}, c: ATOContext{Gap: 60, Practice: true}, want: "toolKit"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := keys(tt.sel, tt.c); got != tt.want {
+				t.Errorf("still affordable: %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestATOSpentCountsEveryPurchase(t *testing.T) {
+	r := realATO(t)
+	s := ATOSelection{Bonuses: []string{"influence", "influence", "experience", "reroll", "reroll", "toolKit", "wanderer"}, Kits: []string{"healer", "raider"}, Wanderers: []string{r.Wanderers[0].Name, r.Wanderers[1].Name}}
+	if got, want := s.Spent(r), 30+30+30+60+90; got != want {
+		t.Errorf("spent %d, want %d", got, want)
+	}
+	if s.Count("influence") != 2 || s.Count("ambush") != 0 {
+		t.Errorf("counts: %d %d", s.Count("influence"), s.Count("ambush"))
+	}
+}
+
+// A bonus file that does not say repeatable keeps each bonus once: a campaign keeps the file it was created with.
+func TestATOWithoutRepeatableEachBonusIsTakenOnce(t *testing.T) {
+	r := realATO(t)
+	r.Bonuses = slices.Clone(r.Bonuses)
+	for i := range r.Bonuses {
+		r.Bonuses[i].Repeatable = false
+	}
+	if _, err := (ATOSelection{Bonuses: []string{"influence", "influence"}}).Validate(r, atoRoster(), 30, nil); err == nil || !strings.Contains(err.Error(), "chosen twice") {
+		t.Errorf("twice: %v", err)
+	}
+	if _, err := (ATOSelection{Bonuses: []string{"wanderer"}, Wanderers: []string{r.Wanderers[0].Name, r.Wanderers[1].Name}}).Validate(r, atoRoster(), 90, nil); err == nil || !strings.Contains(err.Error(), "only 1 Wanderer") {
+		t.Errorf("two Wanderers: %v", err)
+	}
+	if got := (ATOSelection{Bonuses: []string{"influence", "reroll"}}).StillAffordable(r, ATOContext{Gap: 45}); len(got) != 0 {
+		t.Errorf("only 15 left and both 15s taken: %v", got)
+	}
+}
+
+// A free bonus would keep "still affordable" true for ever if it repeated: the decision could never be confirmed.
+func TestATOFreeBonusNeverRepeats(t *testing.T) {
+	r := ATORules{Inclusive: true, Bonuses: []ATOBonusRule{{Key: "gift", Name: "Gift", Rating: 0, Repeatable: true}}}
+	if _, err := (ATOSelection{Bonuses: []string{"gift", "gift"}}).Validate(r, nil, 10, nil); err == nil {
+		t.Error("twice was accepted")
+	}
+	if got := (ATOSelection{Bonuses: []string{"gift"}}).StillAffordable(r, ATOContext{Gap: 10}); len(got) != 0 {
+		t.Errorf("still affordable: %v", got)
+	}
+}
+
+// docs/matches.md, "Against the Odds before the game": a forged POST cannot confirm while a bonus still fits, and nothing is stored.
+func TestSaveRefusesWhileABonusStillFits(t *testing.T) {
+	f := newATOFixture(t)
+	for name, sel := range map[string]ATOSelection{
+		"nothing":    {},
+		"a little":   {Bonuses: []string{"reroll"}},
+		"almost all": {Bonuses: slices.Repeat([]string{"influence"}, 4)},
+	} {
+		_, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, sel)
+		if !errors.Is(err, ErrInvalidMatch) || !strings.Contains(err.Error(), "Still to take: ") {
+			t.Errorf("%s: %v", name, err)
+		}
+		if f.match.ATODecided || !f.rec.Selection.Empty() || f.match.Revision != 3 {
+			t.Errorf("%s stored something: %+v %+v", name, f.match, f.rec)
+		}
+	}
+	// the organiser is not exempt
+	if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 99}, 5, 1, 3, ATOSelection{}); !errors.Is(err, ErrInvalidMatch) {
+		t.Errorf("the organiser: %v", err)
+	}
+	// two different ways to finish are both a decision
+	for _, sel := range []ATOSelection{f.filled(t, ATOSelection{Bonuses: []string{"experience", "reroll", "reroll"}}), f.filled(t, ATOSelection{Bonuses: []string{"influence"}})} {
+		f.match.Revision, f.match.ATODecided = 3, false
+		if _, err := f.svc.SaveAgainstTheOdds(f.ctx, User{ID: 10}, 5, 1, 3, sel); err != nil || !f.match.ATODecided {
+			t.Errorf("%v: %v", sel.Bonuses, err)
+		}
+	}
+}
+
+// The card offers what the gap can pay, keeps what was taken, and counts the purchases of a bonus that repeats.
+func TestCardOffersOnlyWhatTheGapCanPay(t *testing.T) {
+	f := newATOFixture(t)
+	keys := func(c ATO) []string {
+		var out []string
+		for _, o := range c.Options {
+			out = append(out, o.Key)
+		}
+		return out
+	}
+	r := realATO(t)
+	all := make([]string, 0, len(r.Bonuses))
+	for _, b := range r.Bonuses {
+		all = append(all, b.Key)
+	}
+	c := f.card(t, 10)
+	if !slices.Equal(keys(c), all) {
+		t.Errorf("a gap of %d offers %v", c.Gap, keys(c))
+	}
+	// spending does not hide a row: it stays, disabled, with the reason
+	f.rec = ATORecord{MatchID: 1, CompanyID: 1, Selection: ATOSelection{Bonuses: slices.Repeat([]string{"influence"}, 5)}}
+	c = f.card(t, 10)
+	if !slices.Equal(keys(c), all) {
+		t.Errorf("spent: %v", keys(c))
+	}
+	for _, o := range c.Options {
+		switch o.Key {
+		case "influence":
+			if o.Count != 5 || !o.Taken || !o.Repeatable || o.Disabled {
+				t.Errorf("influence: %+v", o)
+			}
+		case "experience":
+			if !o.Disabled || !o.OverBudget || o.Reason != "Can't pay: 17 short" {
+				t.Errorf("experience: %+v", o)
+			}
+		}
+	}
+	// a small gap: Wanderer and Ambush! are not offered at all
+	small := newATOFixtureGap(t, 40)
+	c = small.card(t, 10)
+	if want := []string{"influence", "experience", "reroll", "toolKit"}; !slices.Equal(keys(c), want) {
+		t.Errorf("a gap of %d offers %v, want %v", c.Gap, keys(c), want)
+	}
+	// what was taken stays on the card even if the gap no longer pays it, so it can be removed
+	small.rec = ATORecord{MatchID: 1, CompanyID: 1, Selection: ATOSelection{Bonuses: []string{"ambush"}, Ambush: "Rescue"}}
+	if c = small.card(t, 10); !slices.Contains(keys(c), "ambush") {
+		t.Errorf("the taken Ambush! is gone: %v", keys(c))
+	}
+}
+
+func TestLiveHasOneUnitPerTemporaryWanderer(t *testing.T) {
+	rec := &ATORecord{}
+	f, _ := newATOLiveFixture(t, rec)
+	r := realATO(t)
+	*rec = ATORecord{MatchID: 1, CompanyID: 1, Selection: ATOSelection{Bonuses: []string{"wanderer"}, Wanderers: []string{r.Wanderers[0].Name, r.Wanderers[1].Name}}}
+	lc, err := f.svc.Live(f.ctx, f.user(liveOwner1), 5, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lc.Wanderers) != 2 || lc.Wanderers[0].UnitID == lc.Wanderers[1].UnitID {
+		t.Fatalf("wanderers: %+v", lc.Wanderers)
+	}
+	seen := map[int64]bool{}
+	for _, u := range lc.Units {
+		if u.Temporary {
+			seen[u.UnitID] = true
+			if _, ok := lc.TemporaryWanderer(u.UnitID); !ok {
+				t.Errorf("unit %d has no Wanderer", u.UnitID)
+			}
+		}
+	}
+	if len(seen) != 2 {
+		t.Errorf("temporary units: %v", seen)
+	}
 }

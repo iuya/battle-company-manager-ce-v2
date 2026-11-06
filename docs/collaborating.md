@@ -188,40 +188,60 @@ Maintainers review, approve and merge. Expect questions, and answer them in the 
 
 ## 7. Working on Windows
 
-Supported: **WSL2 with Ubuntu and Docker Desktop's WSL integration**.
-Inside it everything in this repository runs as on Linux (`make test`, `make test-integration`, `make validate`, `make e2e-enforce`).
-Native Windows (PowerShell, `cmd`, Git Bash) is supported only for the Go gates, which include `go run ./tools/validate`.
+There are two ways, and every `make` command is the same as on macOS and Linux in both:
 
-Nobody has verified the Windows paths on a Windows machine yet (issue #34 tracks the confirmation).
-This section is what the code and a Windows cross-compile show.
+- **Native**, from PowerShell or Git Bash. It needs Smart App Control off (see below).
+- **WSL2 with Ubuntu**, which works with Smart App Control on.
 
-### Set-up (once)
+### Native set-up (once)
+
+1. Install the tools:
+
+   ```bash
+   winget install Git.Git GoLang.Go ezwinports.make OpenJS.NodeJS.LTS Docker.DockerDesktop Google.Chrome
+   ```
+
+2. Open a new terminal and start Docker Desktop.
+3. `make get-tailwind`, then `make hooks`, then `make test`.
+
+The Makefile runs its recipes with the `sh` and tools of Git for Windows, whichever terminal started it, so Git Bash does not have to be on the `PATH`.
+Type `make`, not `bash`, in PowerShell: the `bash` of `System32` is WSL's.
+`make dev` uses `.air.windows.toml`, because the binary has to end in `.exe`.
+The browser tests find Chrome in its install folders (`CHROME_PATH` overrides them).
+
+### Smart App Control
+
+Windows 11's Smart App Control blocks programs it does not know, and everything Go has just built is such a program: test binaries (`go test`), `go run`, `go tool air` and `go tool mockgen`, and the server `air` rebuilds. The `bd.exe` of the npm package is blocked too.
+
+The block is intermittent, because it depends on a reputation lookup: the same `go test ./...` passes some packages and fails others, and moving the binaries to another folder (`GOTMPDIR`, `make tools-bin`) does not make it reliable.
+
+To check it, in PowerShell:
+
+```powershell
+(Get-MpComputerStatus).SmartAppControlState
+```
+
+`On` means it is enforcing. The choices are:
+
+- Turn it off in Windows Security, App & browser control, Smart App Control. This lowers the machine's protection, and Windows warns if it cannot be turned back on without a reinstall, so it is the owner's decision.
+- Keep it on and work in WSL2: Linux binaries run inside the VM, where the policy does not apply.
+
+### WSL2 set-up (once)
 
 1. Install WSL2 and Ubuntu (`wsl --install -d Ubuntu`), and Docker Desktop with Settings, Resources, WSL integration on for the Ubuntu distribution.
 2. Inside Ubuntu: `sudo apt install build-essential curl git`, Go (the version of `go.mod`), Node 20+, and Chrome or Chromium (or set `CHROME_PATH` to a Linux Chrome).
-3. Clone **inside the Linux file system** (`~/src/battle-company-manager-ce-v2`), not under `/mnt/c`: the files are LF, `make` and the bash scripts work, and builds are much faster.
-   `.gitattributes` asks for LF on every platform; a clone made from the Windows side with an older Git setting may still carry CRLF (see the table).
+3. Clone **inside the Linux file system** (`~/src/battle-company-manager-ce-v2`), not under `/mnt/c`: builds are much faster.
 4. `make get-tailwind`, then `make test`.
-
-### What runs natively on Windows
-
-Without WSL these run: `go build`, `go vet ./...`, `gofmt -l .` and `go test ./...` (the PostgreSQL tests skip without `TEST_DATABASE_URL`).
-A Windows cross-compile (`GOOS=windows go vet ./...`, `go test -c` per package) is clean.
-
-These do not run natively; use WSL2 for them:
-
-- `make`, which is not installed by default (the Makefile uses `sh`, `uname`, `curl`, `chmod`);
-- `make get-tailwind`, which knows no Windows asset;
-- the shell scripts (`scripts/`, `.githooks`, `tests/ci/githooks.test.sh`);
-- the browser tests: `tests/e2e` expects the Tailwind binary built for the OS, Docker Compose, a Linux or macOS Chrome path, and Application Control can block its server binary.
 
 ### Troubleshooting
 
 | Symptom | Cause and fix |
 |---|---|
-| `go run ./tools/validate` or `go test` fails with an "Access denied", "blocked by your organization" or Application Control / WDAC / Smart App Control message | The policy blocks the executable `go run` builds in a temporary folder. Build the tools once to a normal folder: `make tools-bin`, then run `tmp/bin/validate.exe`, `tmp/bin/conceptgraph.exe`, `tmp/bin/glossary.exe` or `tmp/bin/rulesref.exe` (the other tools: `go build -o tmp/bin/ ./tools/<name>`).<br>Rebuild after changing Go code in `tools/` or `internal/core`.<br>In WSL2 the Linux binaries run inside the VM and the Windows policy does not apply.<br>If `go test ./...` itself is blocked, the test binaries are blocked too: ask for an exception for the Go build cache folder (`go env GOCACHE`) or use WSL2 |
+| "Una directiva de Control de aplicaciones bloqueó este archivo", "An Application Control policy has blocked this file", or `spawn UNKNOWN` from `bd` | Smart App Control; see above. Windows logs each block in the event log `Microsoft-Windows-CodeIntegrity/Operational` (event 3077) |
+| `"APP_ENV" no se reconoce como un comando`, `'APP_ENV' is not recognized` | `make` did not find Git for Windows' `sh`: install Git for Windows, and check that `git --exec-path` answers in that terminal |
 | `go test` fails on golden snapshots, `TestVendoredJSMatchesManifest` or `TestSchemaUpToDate`, or `make validate` reports a stale hash, with no change of yours | CRLF line endings in the working tree. A fresh clone gets LF from `.gitattributes`; an older clone keeps CRLF: commit or stash your work, then `git rm --cached -r .` and `git reset --hard`, or clone again |
 | `bash\r: No such file or directory`, `$'\r': command not found` | A shell script with CRLF; same fix as above |
 | `docker: command not found` or `Cannot connect to the Docker daemon` inside WSL | Docker Desktop is stopped, or WSL integration is off for this distribution (Settings, Resources, WSL integration) |
 | `make db-up` hangs or port 5432 is in use | Another PostgreSQL (for instance a Windows service) listens on 5432; stop it |
-| Slow builds and tests | The clone is under `/mnt/c`; move it into the Linux file system |
+| `bind: Solo se permite un uso de cada dirección de socket`, `Only one usage of each socket address` | Another server listens on that port; stop it or choose another: `make dev PORT=8081` |
+| Slow builds and tests in WSL | The clone is under `/mnt/c`; move it into the Linux file system |

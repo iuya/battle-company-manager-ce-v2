@@ -80,7 +80,7 @@ type amEnv struct {
 	practice                       bool         // a practice match: its aftermath is complete and empty (only Aftermath reads it; every write is refused)
 	finished                       bool         // the campaign is finished: the aftermath can be read, not changed
 	loaned                         []LoanedItem // items loaned to units for this match (a Healer's Kit); electable like carried ones
-	atoBonuses                     []string     // the Against the Odds bonuses the company took, in the file's order, that matter in the aftermath
+	atoBonuses                     []string     // the Against the Odds bonuses the company took
 }
 
 // load finds the match and the company and works out who the viewer is. An open match refuses the aftermath.
@@ -137,13 +137,21 @@ func (s *AftermathService) load(ctx context.Context, user User, id, matchID, com
 		if rec.CompanyID == companyID {
 			env.loaned = rs.BC.ATO().LoanedFor(rec, companyID)
 			for _, key := range rec.Selection.Bonuses {
-				if b, ok := rules.Bonus(key); ok && b.Effective() {
+				if _, ok := rules.Bonus(key); ok {
 					env.atoBonuses = append(env.atoBonuses, key)
 				}
 			}
 		}
 	}
 	return env, nil
+}
+
+// oddsOf is what the sheet's Against the Odds bonuses are now: the saved sheet's, or those the company took before the game.
+func (e *amEnv) oddsOf(saved AftermathInput) []string {
+	if len(saved.Models) == 0 && len(saved.AgainstTheOdds) == 0 {
+		return slices.Clone(e.atoBonuses)
+	}
+	return saved.AgainstTheOdds
 }
 
 func (e *amEnv) requireEdit() error {
@@ -207,7 +215,7 @@ func (s *AftermathService) view(ctx context.Context, e *amEnv, st CompanyState, 
 	}
 	a := Aftermath{MatchID: e.matchID, CompanyID: e.companyID, Status: status, Revision: rec.Revision, Outcome: e.outcome,
 		Absent: slices.Clone(rec.Work.Absent), Casualties: slices.Clone(rec.Work.Casualties), Lines: slices.Clone(rec.Lines),
-		Rerolls: rec.Work.Rerolls, WaivedNote: rec.Work.WaivedNote, Access: e.access}
+		Rerolls: rec.Work.Rerolls, WaivedNote: rec.Work.WaivedNote, Access: e.access, CanManage: CanManageCampaign(e.user, e.organiser)}
 	on := time.Time{}
 	switch {
 	case rec.FinishedAt != nil:
@@ -238,7 +246,6 @@ func (s *AftermathService) view(ctx context.Context, e *amEnv, st CompanyState, 
 						in.Models[i] = sheets[j]
 					}
 				}
-				a.FromLive = true
 				if t, ok := s.live.(liveTally); ok {
 					if hint, err := t.MVPHint(ctx, e.campaignID, e.matchID, e.companyID); err == nil {
 						a.MVP = hint
@@ -247,9 +254,8 @@ func (s *AftermathService) view(ctx context.Context, e *amEnv, st CompanyState, 
 			}
 		}
 	}
-	if len(rec.Input.Models) == 0 && !status.Started() && len(e.atoBonuses) > 0 && len(in.AgainstTheOdds) == 0 {
-		in.AgainstTheOdds = slices.Clone(e.atoBonuses) // the bonuses the company took before the game; the player can still change them
-		a.FromMatch = true
+	if len(rec.Input.Models) == 0 && !status.Started() {
+		in.AgainstTheOdds = e.oddsOf(rec.Input)
 	}
 	a.Input = in
 	if !status.Started() && status != AftermathWaived {
@@ -366,6 +372,9 @@ func (s *AftermathService) sheet(ctx context.Context, user User, id, matchID, co
 			return Refuse("The sheet is locked: the aftermath has started.")
 		case revision != rec.Revision:
 			return ErrAftermathChanged
+		}
+		if !CanManageCampaign(e.user, e.organiser) { // only the organiser or an administrator changes the bonuses, whatever the form says
+			in.AgainstTheOdds = e.oddsOf(rec.Input)
 		}
 		roster := e.detail(*st).Roster
 		in, err := in.ValidateWith(roster, e.loaned, e.rules, e.match.Result.Company(companyID))

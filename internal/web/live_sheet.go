@@ -21,8 +21,8 @@ type liveSheet struct {
 	Recorded []core.LiveEntry
 }
 
-// temporaryUnit is the card of the temporary Wanderer of Against the Odds as a roster unit: it is in no roster.
-func temporaryUnit(w *core.TemporaryWanderer) core.CompanyUnit {
+// temporaryUnit is the card of a temporary Wanderer of Against the Odds as a roster unit: it is in no roster.
+func temporaryUnit(w core.TemporaryWanderer) core.CompanyUnit {
 	return core.CompanyUnit{ID: w.UnitID, Name: w.Name, Type: "Temporary Wanderer", Role: core.RoleHero, Kind: core.KindInfantry, Points: w.Rating, Wanderer: true}
 }
 
@@ -98,8 +98,8 @@ func (s *Server) liveSheetFor(w http.ResponseWriter, r *http.Request, kind strin
 			sheet.Unit = u
 		}
 	}
-	if lc.Wanderer != nil && unitID == lc.Wanderer.UnitID {
-		sheet.Unit = temporaryUnit(lc.Wanderer)
+	if w, ok := lc.TemporaryWanderer(unitID); ok {
+		sheet.Unit = temporaryUnit(w)
 	}
 	for _, u := range lc.Units {
 		if u.UnitID == unitID {
@@ -157,8 +157,8 @@ func (s *Server) woundTargets(r *http.Request, id, matchID, companyID, attacker 
 				if lu.Zone != core.ZoneField || lu.UnitID == attacker {
 					continue
 				}
-				if lu.Temporary && lc.Wanderer != nil {
-					g.Targets = append(g.Targets, woundTarget{CompanyUnit: temporaryUnit(lc.Wanderer), Live: lu, Kill: true})
+				if w, ok := lc.TemporaryWanderer(lu.UnitID); ok {
+					g.Targets = append(g.Targets, woundTarget{CompanyUnit: temporaryUnit(w), Live: lu, Kill: true})
 				} else if k := slices.IndexFunc(detail.Roster, func(u core.CompanyUnit) bool { return u.ID == lu.UnitID }); k >= 0 {
 					u := detail.Roster[k]
 					g.Targets = append(g.Targets, woundTarget{CompanyUnit: u, Live: lu, Kill: u.IsHero() || u.Kind == core.KindMonster})

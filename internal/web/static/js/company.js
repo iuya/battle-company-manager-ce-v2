@@ -271,6 +271,7 @@ document.addEventListener('alpine:init', () => {
     },
     // The same controls are exposed to assistive technology as disabled (aria-disabled, which also exempts their dimmed look from the
     // contrast rule), described by the aftermath banner; run again when htmx swaps part of the page, so a refresh keeps the attribute.
+    // A control marked data-off is greyed by the server for its own reason (Recruit without the influence): it stays so when unlocked.
     syncLock() {
       const locked = !!this.$el.dataset.lock;
       const banner = document.getElementById('aftermath-banner') ? 'aftermath-banner' : '';
@@ -280,7 +281,7 @@ document.addEventListener('alpine:init', () => {
           if (locked) {
             if (c.getAttribute('aria-disabled') !== 'true') c.setAttribute('aria-disabled', 'true');
             if (banner && !c.hasAttribute('aria-describedby')) c.setAttribute('aria-describedby', banner);
-          } else if (c.hasAttribute('aria-disabled')) {
+          } else if (c.hasAttribute('aria-disabled') && !c.hasAttribute('data-off')) {
             c.removeAttribute('aria-disabled');
           }
         }

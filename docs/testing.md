@@ -147,8 +147,8 @@ It is a separate Node project (its own `package.json` and `package-lock.json`, `
 
 ### Setup (once)
 
-- macOS or Linux. CI runs the suite on Linux; the runner does not start on Windows, so check a change there in the browser and leave the suite to CI.
-- Node 20+ and a Chrome or Chromium, found in the usual places (set `CHROME_PATH` otherwise).
+- macOS, Linux or Windows ([collaborating.md](collaborating.md#7-working-on-windows)). CI runs the suite on Linux.
+- Node 20+ and a Chrome or Chromium, found in the usual places, on Windows the Google Chrome install folders (set `CHROME_PATH` otherwise).
 - `make e2e-install` runs `npm ci` in `tests/e2e`; `make e2e` does it when `node_modules` is missing.
 - The compose PostgreSQL must run; the target starts it (`make db-up`).
 
@@ -251,6 +251,7 @@ Every step also fails on any browser console error, uncaught exception, failed r
 | `104-invitations` | account invitations ([auth.md](auth.md#account-invitations)): a named invitation is created with the keyboard and the message is a read-only box (`?email=` in the link, no inline script, the list never shows the token); the person registers in a fresh browser (a forged `?email=` is ignored, the stored address shown read-only), lands on `/campaigns` signed in and the new password works; the link then shows "Talk with the administrator."; an anonymous invitation for two people, the third and an address that already has an account get the very same page (422); weak and mismatching passwords keep the form; revoke with the inline confirmation; the filter chips; the throttle (429); the creation card, the registration page and the generic page at 360/768/1280 px x light/dark x normal/high contrast with axe |
 | `105-recovery` | recovery links ([auth.md](auth.md#password-recovery)): the demo states are worded on the Users page; the superuser makes a link for `recover-expired@` (3 days), the person sets a new password in a fresh browser (mismatch and weak password keep the form), is not signed in, the old password is refused, the new one works, the old session is gone and the link is dead; signing in first (`recover-login@`) or opening the app with a session first (`recover-access@`) invalidates the link and the row says why; revoke with confirmation; a new link replaces the old; an administrator has no card and a forged post is 404; the Users card and the set-password and generic pages at 360/768/1280 px x light/dark x normal/high contrast with axe. Never signs in as `recover-pending@` |
 | `113-level-up-window` | the level-up window: a click only selects an option and Confirm applies it (a reload before Confirm leaves the level-up waiting), the marks of results that take the other too (moving a mark, both in one request, a normal option alone, Confirm with a mark in each, the Warlord 5 and 7), Courage at its limit, the dots and the (i) of a stat, no change closing by itself or staying with Next level up, a Hero in the Making with and without confetti, accepted or going on to the path window; 360, 768 and 1280 px, light and dark |
+| `114-aftermath-sheet` | the Sheet step of "Aftermath ward 6" of the demo world, as a player and as the organiser: the Against the Odds block (bonuses taken read only, also those with no effect; the control for the organiser; "No bonus taken."; no block for the higher company or equal ratings), the match result line, the description and why the sheet opened (nothing recorded, the Relic with no holder, a tied MVP vote) |
 
 ### Groups
 

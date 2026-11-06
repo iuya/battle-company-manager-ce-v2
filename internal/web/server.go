@@ -194,7 +194,7 @@ type campaigns interface {
 	// form lists them struck through and disabled.
 	UnavailableCompanies(ctx context.Context, id int64, companies []int64) (map[int64]string, error)
 	// AgainstTheOdds loads the Against the Odds card for the viewer (never an error for "not eligible": ATO.Eligible false with Why);
-	// SaveAgainstTheOdds confirms the decision with the lower company's whole selection (an empty one is "play without bonuses"):
+	// SaveAgainstTheOdds confirms the decision with the lower company's whole selection (nothing else may fit what it leaves):
 	// core.ErrRefused (not allowed, no scenario or the game began, reason fit to show), core.ErrMatchChanged (stale match revision),
 	// core.ErrInvalidMatch (refusals fit to show). Ambush! also sets the match's scenario. ReopenAgainstTheOdds takes the decision back (Change).
 	AgainstTheOdds(ctx context.Context, user core.User, id, matchID int64) (core.ATO, error)

@@ -269,6 +269,43 @@ func TestSeedWorld(t *testing.T) {
 		t.Errorf("ward 3 Warriors to choose from: %v", fallback)
 	}
 	// ward 4: the Riders' second aftermath waits for the injury to heal and for the typed bonus die
+	ward6 := byName["Aftermath ward 6: what the sheet asks"]
+	m6, err := b.campaigns.Matches(ctx, ward6.ID)
+	if err != nil || len(m6) != 4 {
+		t.Fatalf("ward 6 matches: %v %v", m6, err)
+	}
+	sheetOf := func(m core.Match, side int) (core.Aftermath, core.Match) {
+		t.Helper()
+		a, err := b.campaigns.Aftermath(ctx, you, ward6.ID, m.ID, m.Sides[side].Companies[0].ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return a, m
+	}
+	rules, err := b.campaigns.AftermathRules(ctx, ward6.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	byNumber := map[int]core.Match{}
+	for _, m := range m6 {
+		byNumber[m.Number] = m
+	}
+	if a, _ := sheetOf(byNumber[1], 0); !slices.Equal(a.Input.AgainstTheOdds, []string{"influence", "influence", "toolKit"}) {
+		t.Errorf("ward 6, match 1: the sheet shows the bonuses taken: %v", a.Input.AgainstTheOdds)
+	}
+	if a, m := sheetOf(byNumber[2], 0); len(a.Input.AgainstTheOdds) != 0 || !core.OddsAvailable(m, m.Sides[0].Companies[0].ID, rules) {
+		t.Errorf("ward 6, match 2: a gap that paid and no bonus: %v", a.Input.AgainstTheOdds)
+	}
+	if m := byNumber[2]; core.OddsAvailable(m, m.Sides[1].Companies[0].ID, rules) {
+		t.Error("ward 6, match 2: the higher company has no bonus to take")
+	}
+	if a, m := sheetOf(byNumber[3], 0); !a.Input.Blank() || core.OddsAvailable(m, m.Sides[0].Companies[0].ID, rules) {
+		t.Errorf("ward 6, match 3: nothing recorded, level ratings: %+v", a.Input)
+	}
+	if a, _ := sheetOf(byNumber[4], 0); a.MVP == nil || len(a.MVP.Tied) != 2 || a.Input.Blank() {
+		t.Errorf("ward 6, match 4: only the tied vote keeps the sheet open: %+v", a.MVP)
+	}
+
 	ward4 := byName["Aftermath ward 4: the questions of a recovery"]
 	m4, err := b.campaigns.Matches(ctx, ward4.ID)
 	if err != nil || len(m4) != 2 {
@@ -421,7 +458,7 @@ func checkAdminStates(t *testing.T, ctx context.Context, b *backend, admin core.
 	}
 }
 
-// checkATOMatches asserts the two Against the Odds matches of the matches campaign: one waits for the player below, the other is confirmed.
+// checkATOMatches asserts the Against the Odds matches of the matches campaign: a big gap and a small one wait for the player below; a Reroll and two Wanderers are confirmed.
 func checkATOMatches(t *testing.T, ctx context.Context, b *backend, byName map[string]core.CampaignSummary) {
 	t.Helper()
 	var id int64
@@ -447,12 +484,12 @@ func checkATOMatches(t *testing.T, ctx context.Context, b *backend, byName map[s
 		if st.Pending {
 			waiting++
 		}
-		if m.ATODecided && !m.Ended && rec.Selection.Has("reroll") {
+		if m.ATODecided && !m.Ended && (rec.Selection.Has("reroll") || len(rec.Selection.Wanderers) == 2) {
 			confirmed++
 		}
 	}
-	if waiting != 1 || confirmed != 1 {
-		t.Errorf("Against the Odds: %d matches wait and %d are confirmed with a bonus, want one each", waiting, confirmed)
+	if waiting != 2 || confirmed != 2 {
+		t.Errorf("Against the Odds: %d matches wait and %d are confirmed, want two of each", waiting, confirmed)
 	}
 }
 

@@ -751,6 +751,26 @@ func (v aftermathView) CanReopenSheet() bool {
 // RelicTicked is whether the match result says the company holds the Relic, so the sheet must say which unit has it.
 func (v aftermathView) RelicTicked() bool { return v.Result.Objectives["possessesRelic"] > 0 }
 
+// ShowOdds says whether the sheet has an Against the Odds block: a bonus was taken, or the company could have taken one.
+func (v aftermathView) ShowOdds() bool {
+	return len(v.A.Input.AgainstTheOdds) > 0 || core.OddsAvailable(v.Match, v.Company.ID, v.Rules)
+}
+
+// SheetReasons says why the sheet asks for the player: what makes it open instead of the aftermath's steps (needsSheet, or a start the core refuses).
+func (v aftermathView) SheetReasons() []string {
+	var out []string
+	if v.A.Input.Blank() {
+		out = append(out, "No casualties during the match, is this correct?")
+	}
+	if v.A.MVP != nil && len(v.A.MVP.Tied) > 0 {
+		out = append(out, "The MVP vote tied: choose the MVP.")
+	}
+	if v.RelicTicked() && v.Relic() == 0 {
+		out = append(out, "Choose who holds the Relic.")
+	}
+	return out
+}
+
 // Relic is the unit that holds the Relic on the sheet, 0 for none.
 func (v aftermathView) Relic() int64 {
 	for _, m := range v.A.Input.Models {
@@ -1061,6 +1081,9 @@ func (s *Server) aftermathFailed(w http.ResponseWriter, r *http.Request, base ca
 			in := v.A.Input
 			if typed != nil {
 				in = *typed
+				if !v.A.CanManage { // what the core would have kept: a player's form never changes the bonuses
+					in.AgainstTheOdds = v.A.Input.AgainstTheOdds
+				}
 				v.A.Input = in
 			}
 			v.fillUnits(in, byUnit)
