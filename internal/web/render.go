@@ -28,9 +28,12 @@ var assets embed.FS
 // A full navigation renders the whole layout. An htmx request (HX-Request header) renders only the page's "content"
 // block (and its <title>, which htmx picks up), which is what makes navigation fast.
 type renderer struct {
-	pages    map[string]*template.Template // executed sets, times shown in UTC
-	pristine map[string]*template.Template // the same sets, never executed: cloned per viewer zone (location.go)
-	loc      locationSets
+	pages map[string]*template.Template // executed sets, times shown in UTC
+	// base is the layouts and partials, never executed: a page's set for another viewer zone is cloned from it and parsed with the
+	// page's file on first use (location.go), so the start does not build a second, never executed copy of every page.
+	base  *template.Template
+	files map[string]string // page name to its template file
+	loc   locationSets
 }
 
 // intsCSV writes numbers separated by commas (the dice of a roll the server made, for the script that throws them).
@@ -117,18 +120,18 @@ func newRenderer() (*renderer, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := &renderer{pages: make(map[string]*template.Template, len(files)), pristine: make(map[string]*template.Template, len(files)), loc: locationSets{sets: map[string]*template.Template{}}}
+	r := &renderer{pages: make(map[string]*template.Template, len(files)), base: base, files: make(map[string]string, len(files)), loc: locationSets{sets: map[string]*template.Template{}}}
 	for _, f := range files {
-		for _, dst := range []map[string]*template.Template{r.pages, r.pristine} {
-			clone, err := base.Clone()
-			if err != nil {
-				return nil, err
-			}
-			if _, err := clone.ParseFS(assets, f); err != nil {
-				return nil, err
-			}
-			dst[strings.TrimSuffix(path.Base(f), ".gohtml")] = clone
+		clone, err := base.Clone()
+		if err != nil {
+			return nil, err
 		}
+		if _, err := clone.ParseFS(assets, f); err != nil {
+			return nil, err
+		}
+		name := strings.TrimSuffix(path.Base(f), ".gohtml")
+		r.pages[name] = clone
+		r.files[name] = f
 	}
 	return r, nil
 }

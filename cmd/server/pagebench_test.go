@@ -155,6 +155,8 @@ func BenchmarkPages(b *testing.B) {
 		{"new-company", newCompanyUser, newCompanyPath},
 		{"tts", eowyn, fmt.Sprintf("/campaigns/%d/companies/%s/tts", m, ownCompany[1])},
 		{"tts-no-auras", eowyn, fmt.Sprintf("/campaigns/%d/companies/%s/tts?auras=0", m, ownCompany[1])},
+		{"glossary", eowyn, fmt.Sprintf("/campaigns/%d/glossary", m)}, {"glossary-units", eowyn, fmt.Sprintf("/campaigns/%d/glossary/units", m)},
+		{"glossary-sidebar", eowyn, "/glossary"},
 	}
 	if dir := os.Getenv("PAGES_DUMP"); dir != "" { // PAGES_DUMP=<dir>: write the pages' bodies so two builds can be diffed byte for byte
 		if err := os.MkdirAll(dir, 0o755); err != nil {
