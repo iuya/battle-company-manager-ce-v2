@@ -26,7 +26,7 @@ LISTEN_HOST ?= 127.0.0.1
 CSS_IN  = ./tailwind.css
 CSS_OUT = ./internal/web/static/app.css
 
-.PHONY: hooks hooks-test deploy-test validate tools-bin concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs docs-check migrate up up-app prod-user prod-down test-backup-restore backuprestore restore-drill vendor-check dice3d user grant seed demo fuzz check-ruleset ruleset-reference db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
+.PHONY: lint hooks hooks-test deploy-test validate tools-bin concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs docs-check migrate up up-app prod-user prod-down test-backup-restore backuprestore restore-drill vendor-check dice3d user grant seed demo fuzz check-ruleset ruleset-reference db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
 
 # make user EMAIL=you@example.com NAME="Your Name"   (asks for the password)
 user: db-up
@@ -147,7 +147,16 @@ concept-graph:
 	go run ./tools/conceptgraph
 	go run ./tools/validate
 
-test: e2e-check-groups docs-check
+# make lint   static analysis, fails on any finding: go vet, staticcheck (default checks) and deadcode -test (functions no program or test reaches; tests count
+# as users, so helpers like ttsfake are not reported). The tools are pinned in the tool block of go.mod: no global install. Part of make test, of the pre-push
+# hook (.githooks/pre-push) and of the CI pr-check job. A deliberate exception is a //lint:ignore <check> <reason> comment at the site.
+lint:
+	go vet ./...
+	go tool staticcheck ./...
+	@out=$$(go tool deadcode -test ./...) || exit 1; if [ -n "$$out" ]; then echo "$$out"; echo "deadcode: unreachable functions above (delete them, or use them)"; exit 1; fi
+
+# The Dockerfile build does not run lint: the image only compiles; the gate is make test, the pre-push hook and CI.
+test: lint e2e-check-groups docs-check
 	go test ./...
 
 # Runs everything, including the postgres integration tests, against the bcm_test database of the compose PostgreSQL: the tests empty it, the development database (bcm) is never touched.

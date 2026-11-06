@@ -43,10 +43,17 @@ printf -- '-----BEGIN RSA PRIVATE KEY-----\n' >k.txt && git add k.txt
 .githooks/pre-commit >/dev/null 2>&1; check "refuses a private key" 1 $?
 git rm -q --cached k.txt
 
-# pre-push: never to main
+# pre-push: never to main, and only when `make lint` passes (a stub Makefile stands for the real one)
+printf 'lint:\n\t@true\n' >Makefile
 printf 'refs/heads/topic abc refs/heads/main def\n' | .githooks/pre-push origin url >/dev/null 2>&1; check "refuses a push to main" 1 $?
 printf 'refs/heads/topic abc refs/heads/topic def\n' | .githooks/pre-push origin url >/dev/null 2>&1; check "allows a push to a branch" 0 $?
 printf 'refs/tags/v1 abc refs/tags/v1 0000\n' | .githooks/pre-push origin url >/dev/null 2>&1; check "allows pushing a tag" 0 $?
+
+printf 'lint:\n\t@echo lint found a problem; exit 1\n' >Makefile
+printf 'refs/heads/topic abc refs/heads/topic def\n' | .githooks/pre-push origin url >/dev/null 2>&1; check "refuses a push when make lint fails" 1 $?
+printf 'refs/tags/v1 abc refs/tags/v1 0000\n' | .githooks/pre-push origin url >/dev/null 2>&1; check "refuses a tag push when make lint fails" 1 $?
+printf 'refs/heads/topic 0000000000000000000000000000000000000000 refs/heads/topic def\n' | .githooks/pre-push origin url >/dev/null 2>&1; check "does not lint a branch deletion" 0 $?
+printf 'refs/heads/topic abc refs/heads/main def\n' | .githooks/pre-push origin url >/dev/null 2>&1; check "still refuses main when lint fails" 1 $?
 
 echo "githooks: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

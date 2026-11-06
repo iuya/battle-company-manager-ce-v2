@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 # Pushes straight to main are never allowed: changes reach main through a reviewed pull request
 # (CONTRIBUTING.md). The repository ruleset enforces it on GitHub; this stops the mistake locally.
+# A push that sends anything (not only deletions) also needs `make lint` (go vet, staticcheck, deadcode) to pass, the same gate the CI runs.
+# Skip it the standard way: --no-verify.
 # Runs the beads pre-push hook first when there is one (it needs the same stdin).
 hook_dir=$(dirname "$0")
 input=$(cat)
@@ -14,5 +16,16 @@ printf '%s\n' "$input" | while read -r _local_ref _local_sha remote_ref _remote_
     echo "  Push a branch and open a pull request instead: git push -u origin <branch>" >&2
     exit 1
   fi
-done
-exit $?
+done || exit 1
+
+# Static analysis: only when the push sends something (a deletion has no code to check).
+sends=$(printf '%s\n' "$input" | awk 'NF >= 4 && $2 !~ /^0+$/ { print "yes"; exit }')
+if [ "$sends" = "yes" ]; then
+  cd "$(git rev-parse --show-toplevel)" || exit 1
+  echo "pre-push: make lint (skip with --no-verify)" >&2
+  if ! make lint >&2; then
+    echo "pre-push: refusing to push, the linter found problems (above). Fix them, or push with --no-verify." >&2
+    exit 1
+  fi
+fi
+exit 0

@@ -16,6 +16,7 @@ require (
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
+	github.com/BurntSushi/toml v1.4.1-0.20240526193622-a339e1f7089c // indirect
 	github.com/air-verse/air v1.67.4 // indirect
 	github.com/andybalholm/brotli v1.2.6 // indirect
 	github.com/bep/godartsass/v2 v2.5.0 // indirect
@@ -42,14 +43,19 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/tdewolff/parse/v2 v2.8.18 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/telemetry v0.0.0-20261009151841-97e8ea77aa2a // indirect
 	golang.org/x/tools v0.52.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
+	honnef.co/go/tools v0.8.2 // indirect
 )
 
 tool (
 	github.com/air-verse/air
 	go.uber.org/mock/mockgen
+	golang.org/x/tools/cmd/deadcode
+	honnef.co/go/tools/cmd/staticcheck
 )

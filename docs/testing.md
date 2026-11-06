@@ -16,7 +16,9 @@ Contents:
 
 | Command | What it runs |
 |---|---|
-| `make test` | Go unit tests (the PostgreSQL ones are skipped), including the tests of the programs under `tools/` (below) |
+| `make lint` | Static analysis, failing on any finding: `go vet`, `staticcheck` (default checks) and `deadcode -test` (unreachable functions; tests count as users). The tools are pinned in the `tool` block of `go.mod` and run with `go tool`, no global install. A deliberate exception is a `//lint:ignore <check> <reason>` comment. Runs in `make test`, in the `pre-push` hook and in the `pr-check` workflow; the Docker image build does not run it |
+| `make hooks-test` | The hooks of `.githooks/` in a throwaway repository, including the pre-push refusal when `make lint` fails |
+| `make test` | `make lint`, then Go unit tests (the PostgreSQL ones are skipped), including the tests of the programs under `tools/` (below) |
 | `make test-integration` | All Go tests against the `bcm_test` database of the compose PostgreSQL. In `cmd/server` the demo world is seeded once per run into a template database (`testmain_test.go`) and the two fuzz tests run side by side on copies of it; `go test ./cmd/server` takes about 2 minutes |
 | `make docs-check` | Every relative link of the Markdown files (README, CONTRIBUTING, `docs/`, `tools/`, `examples/`) resolves, headings in `#fragments` included (`tests/ci/links.mjs`; part of `make test`) |
 | `make validate` | The four rules files: JSON Schemas, the Go validator on the Battle Companies file, the curator's checks, the glossary and the concept graph (below) |

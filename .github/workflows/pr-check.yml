@@ -1,6 +1,7 @@
 # Pull request check: the title is a Conventional Commit and the body follows .github/PULL_REQUEST_TEMPLATE.md
 # (required sections present, mandatory checklist boxes ticked). Meant to be a REQUIRED status check (CONTRIBUTING.md).
-# Safe by construction: `pull_request` (never pull_request_target), read-only token, no secrets, no checkout, and the title and body
+# It also runs `make lint` (go vet, staticcheck, deadcode) on the pull request's code, so this one required check covers the linter too.
+# Safe by construction: `pull_request` (never pull_request_target), read-only token, no secrets, and the title and body
 # are read from the event payload by the script and never interpolated into a shell command.
 # tests/ci/pr-check.test.mjs extracts the script below and runs it against sample pull requests: keep the `script: |` block last.
 name: pr-check
@@ -15,8 +16,14 @@ permissions:
 jobs:
   pr-check:
     runs-on: ubuntu-26.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Static analysis (make lint)
+        run: make lint
       - name: Title and description
         uses: actions/github-script@v9
         with:

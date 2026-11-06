@@ -41,6 +41,7 @@ func runSeed(args []string) error {
 	password := fs.String("password", "demo-password", "password of every demo account (at least 10 characters)")
 	world := fs.Bool("world", false, "load the rich demo world (many campaigns in every state) instead of the minimal demo")
 	if err := fs.Parse(args); err != nil {
+		//lint:ignore ST1005 the usage text is printed to the terminal as is, not wrapped into a longer message
 		return errors.New(seedUsage)
 	}
 	ctx := context.Background()
