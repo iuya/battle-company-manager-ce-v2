@@ -18,3 +18,10 @@
   var c = cookie("bcm-contrast");
   if (c === "high" || (c !== "normal" && matchMedia("(prefers-contrast: more)").matches)) r.dataset.contrast = "high";
 })();
+// Alpine rejects the promise of an x-show + x-transition element with {isFromCancelledTransition: true} when that element is toggled again
+// before its transition ended (a window closed and reopened in a hurry) and nothing awaits it: the browser would report an unhandled
+// rejection and the e2e harness fails the step on it. That rejection is Alpine's way to stop the cancelled transition, not an error, so
+// it alone is marked handled; any other rejection still reaches the console.
+window.addEventListener("unhandledrejection", function (e) {
+  if (e.reason && e.reason.isFromCancelledTransition) e.preventDefault();
+});

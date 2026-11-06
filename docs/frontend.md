@@ -233,7 +233,7 @@ Static files are served by `internal/web/static.go` (measurements in [performanc
 - Text files are gzipped (best compression) in the background after the start (`web.WarmStatic`) or on the first request that needs the copy, and brotli-compressed (level 11) on the first request that accepts `br`; each form has its own ETag (304 on a match).
   `STATIC_MAX_AGE` only governs addresses without `?v=`.
 - Pages load three scripts:
-  - `theme-init.js` and `tz.js` (in the head, synchronous);
+  - `theme-init.js` and `tz.js` (in the head, synchronous); `theme-init.js` also marks Alpine's cancelled-transition rejection (`{isFromCancelledTransition: true}`, raised when an `x-show` + `x-transition` element is toggled again before its transition ends) as handled, and no other rejection;
   - `js/app.js`, a bundle made at start of htmx, the theme store, the page scripts, SortableJS and Alpine, in the order of `bundleScripts`.
     A new script goes into that list, not into the layout.
 - Pages and fragments over 1 KB are compressed for browsers that accept it, `br` (level 5) before `gzip` (level 5) (`compress.go`; the live stream is not).
