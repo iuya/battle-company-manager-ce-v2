@@ -74,6 +74,9 @@ func newAmFixture(t *testing.T) *amFixture {
 
 func (f *amFixture) owner() User { return User{ID: amOwner} }
 
+// admin is an administrator: the only ones, with the organiser, who change the sheet's Against the Odds bonuses.
+func (f *amFixture) admin() User { return User{ID: 98, Role: RoleAdmin} }
+
 func (f *amFixture) unit(t *testing.T, id int64) CompanyUnit {
 	t.Helper()
 	d := BuildDetail(shippedRules(t), CampaignSettings{}, f.state)
@@ -99,7 +102,11 @@ func casualties(ids ...int64) AftermathInput {
 
 func (f *amFixture) start(t *testing.T, in AftermathInput) Aftermath {
 	t.Helper()
-	a, err := f.svc.StartAftermath(f.ctx, f.owner(), 5, 1, 1, f.rec.Revision, in)
+	user := f.owner()
+	if len(in.AgainstTheOdds) > 0 { // a sheet that names bonuses comes from somebody who may change them
+		user = f.admin()
+	}
+	a, err := f.svc.StartAftermath(f.ctx, user, 5, 1, 1, f.rec.Revision, in)
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
@@ -723,8 +730,8 @@ func TestAftermathDefaultSheetComesFromTheLiveMatch(t *testing.T) {
 		f := newAmFixture(t)
 		wire(f)
 		a, err := f.svc.Aftermath(f.ctx, f.owner(), 5, 1, 1)
-		if err != nil || a.FromLive {
-			t.Fatalf("%s: %+v %v", name, a.FromLive, err)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
 		}
 		want := DefaultSheet(BuildDetail(shippedRules(t), CampaignSettings{ManualRolls: true}, f.state).Roster)
 		if len(a.Input.Models) != len(want.Models) || a.Input.Models[0].Outcome != OutcomeSurvived || a.Preview.Rolls != 0 {
@@ -736,8 +743,8 @@ func TestAftermathDefaultSheetComesFromTheLiveMatch(t *testing.T) {
 	live := &stubLive{sheets: liveSheets, ok: true}
 	f.svc.WithLive(live)
 	a, err := f.svc.Aftermath(f.ctx, f.owner(), 5, 1, 1)
-	if err != nil || !a.FromLive {
-		t.Fatalf("%v %v", a.FromLive, err)
+	if err != nil {
+		t.Fatal(err)
 	}
 	m1, _ := a.Input.Model(1)
 	m5, _ := a.Input.Model(5)
@@ -756,9 +763,7 @@ func TestAftermathDefaultSheetComesFromTheLiveMatch(t *testing.T) {
 	if len(byHand.Experience) != len(a.Preview.Experience) || byHand.Rolls != a.Preview.Rolls {
 		t.Errorf("the preview of a default is the preview of its sheet: %+v vs %+v", byHand, a.Preview)
 	}
-	if st := f.start(t, a.Input); st.FromLive {
-		t.Error("a started sheet is not from live")
-	}
+	f.start(t, a.Input)
 	calls := live.calls
 	if _, err := f.svc.Aftermath(f.ctx, f.owner(), 5, 1, 1); err != nil || live.calls != calls {
 		t.Errorf("a started aftermath never reads the live log again: %d -> %d, %v", calls, live.calls, err)
@@ -818,7 +823,7 @@ func TestAftermathViewCarriesTheMVPTally(t *testing.T) {
 	f := newAmFixture(t)
 	f.svc.WithLive(&tallyLive{stubLive{sheets: []ModelSheet{{UnitID: 1, Outcome: OutcomeSurvived, Gains: map[string]int{participatedKey: 1}}}, ok: true}})
 	a, err := f.svc.Aftermath(f.ctx, f.owner(), 5, 1, 1)
-	if err != nil || a.MVP == nil || len(a.MVP.Tied) != 2 || !a.FromLive {
+	if err != nil || a.MVP == nil || len(a.MVP.Tied) != 2 {
 		t.Fatalf("%+v %v", a.MVP, err)
 	}
 	f2 := newAmFixture(t)

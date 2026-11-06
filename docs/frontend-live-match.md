@@ -239,7 +239,7 @@ Code: `match.go` `handleEnd`, `live_end_banner.go`; templates `end_card`, `end_p
 
 **Elsewhere.**
 
-- On the aftermath sheet the prefilled objective shows "From the live match" and the MVP "Voted MVP".
+- On the aftermath sheet the objective is prefilled and the MVP shows "Voted MVP".
 - The two log/end slots set `hx-target="this"`: the body's inherited `hx-target="#main"` would swap them over the page.
 
 ## Sync
@@ -275,8 +275,7 @@ an open match says it stays open but cannot change, and shows no End match card.
 ## Match creation refusals
 
 Shows "Company X is already in Match N." with a link (`*core.CompanyBusyError`) or "Finish the aftermath of Match N
-first."; the aftermath sheet shows **From the live match** (heading badge and a line) while it is the unsaved default
-(`Aftermath.FromLive`).
+first.".
 
 ## Wound chart (window)
 

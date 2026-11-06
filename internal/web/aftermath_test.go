@@ -135,6 +135,8 @@ var amRules = core.AftermathRules{
 	InjuryDice: core.DiceSpec{Count: 2, Sides: 6},
 	Gains:      []core.XPGain{{Key: "participated", Label: "Took part", Amount: 1}, {Key: "mvp", Label: "MVP", Amount: 1}, {Key: "slain", Label: "Slain a hero", Amount: 1, Repeatable: true}},
 	Bonuses:    []core.OddsBonus{{Key: "influence", Name: "Influence", Rating: 15, InfluenceWin: 2}, {Key: "toolkit", Name: "Tool Kit", Rating: 30}},
+
+	OddsInclusive: true,
 }
 
 func amUnits() []core.CompanyUnit {
@@ -157,7 +159,9 @@ func amFixture(t *testing.T) *fixture {
 
 func TestAftermathPageEditorSeesTheSheetForm(t *testing.T) {
 	f := amFixture(t)
-	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(amState(core.AftermathPending, core.AftermathEdit), nil)
+	st := amState(core.AftermathPending, core.AftermathEdit)
+	st.CanManage, st.Input.AgainstTheOdds = true, []string{"influence"}
+	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(st, nil)
 	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
 	for _, want := range []string{"Aldor", "Brand", `name="unit" value="10"`, `name="outcome-10" value="survived"`, `class="outcome-toggle" data-tone="danger"`, `name="took-10"`, `name="gain-10-mvp"`, `name="gain-10-slain"`, `name="odds" value="toolkit"`, "No effect on the aftermath.",
 		`hx-post="/campaigns/7/matches/3/aftermath/1/sheet?auto=1"`, `/aftermath/1/start`, `name="revision" value="2"`, "Missed this game", "Cirion", `aria-current="step"`} {
@@ -203,6 +207,125 @@ func amPost(f *fixture, path string, v url.Values) *httptest.ResponseRecorder {
 	r := form(amPath+path, v)
 	r.Header.Set("HX-Request", "true")
 	return f.do(f.signedIn(r))
+}
+
+// ratedMatch is the ended match with the ratings of its companies: company 1 is frodo's.
+func ratedMatch(own, rival int) core.Match {
+	m := endedMatch()
+	m.Sides = []core.MatchSide{{Companies: []core.CampaignCompany{{ID: 1, Name: "Rangers", OwnerID: frodo.ID, Points: own}}}, {Companies: []core.CampaignCompany{{ID: 2, Name: "Raiders", Points: rival}}}}
+	return m
+}
+
+func sheetPage(t *testing.T, m core.Match, edit func(*core.Aftermath)) string {
+	t.Helper()
+	f := matchWrite(t, m)
+	f.camp.EXPECT().AftermathRules(gomock.Any(), int64(7)).Return(amRules, nil).AnyTimes()
+	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(core.CompanyDetail{Roster: amUnits()}, nil).AnyTimes()
+	st := amState(core.AftermathPending, core.AftermathEdit)
+	edit(&st)
+	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(st, nil)
+	return f.do(f.signedIn(httpGet(amPath))).Body.String()
+}
+
+func TestSheetAgainstTheOddsBlock(t *testing.T) {
+	const block, control = `id="aftermath-ato"`, `name="odds"`
+	for _, c := range []struct {
+		name         string
+		m            core.Match
+		manager      bool
+		odds         []string
+		show, canAdd bool
+		says, hides  string
+	}{
+		{name: "player, gap too small, none taken", m: ratedMatch(100, 114)},
+		{name: "administrator, gap too small, none taken", m: ratedMatch(100, 114), manager: true},
+		{name: "player of the higher company, none taken", m: ratedMatch(200, 100)},
+		{name: "administrator of the higher company, none taken", m: ratedMatch(200, 100), manager: true},
+		{name: "player, taken, also with a bonus of no effect", m: ratedMatch(100, 200), odds: []string{"influence", "toolkit"}, show: true, says: "Tool Kit", hides: "No effect on the aftermath."},
+		{name: "player, taken, whatever the gap says now", m: ratedMatch(100, 100), odds: []string{"influence"}, show: true, says: "Influence"},
+		{name: "player, gap pays, none taken", m: ratedMatch(100, 115), show: true, says: "No bonus taken."},
+		{name: "administrator, gap pays, none taken", m: ratedMatch(100, 115), manager: true, show: true, canAdd: true, says: "+ add a bonus"},
+		{name: "administrator, taken", m: ratedMatch(100, 100), manager: true, odds: []string{"influence"}, show: true, canAdd: true, says: "+ add a bonus"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			body := sheetPage(t, c.m, func(a *core.Aftermath) { a.CanManage, a.Input.AgainstTheOdds = c.manager, c.odds })
+			if strings.Contains(body, block) != c.show {
+				t.Errorf("block shown = %v, want %v", !c.show, c.show)
+			}
+			if strings.Contains(body, control) != c.canAdd {
+				t.Errorf("control shown = %v, want %v", !c.canAdd, c.canAdd)
+			}
+			if c.says != "" && !strings.Contains(body, c.says) {
+				t.Errorf("lacks %q", c.says)
+			}
+			if c.hides != "" && strings.Contains(body, c.hides) {
+				t.Errorf("has %q", c.hides)
+			}
+		})
+	}
+}
+
+func TestSheetResultLineIsForManagers(t *testing.T) {
+	const line = "Change it on the match page"
+	if body := sheetPage(t, ratedMatch(100, 100), func(a *core.Aftermath) { a.CanManage = true }); !strings.Contains(body, line) || !strings.Contains(body, "(administrators only)") || !strings.Contains(body, "Match result:") {
+		t.Error("a manager is told how to change the result")
+	}
+	if body := sheetPage(t, ratedMatch(100, 100), func(*core.Aftermath) {}); strings.Contains(body, line) || strings.Contains(body, "Match result:") {
+		t.Error("a player is not")
+	}
+	relic := ratedMatch(100, 100)
+	relic.Result.Companies = []core.CompanyResult{{CompanyID: 1, Objectives: map[string]int{"possessesRelic": 1}}}
+	if body := sheetPage(t, relic, func(*core.Aftermath) {}); !strings.Contains(body, "The company holds the Relic.") || strings.Contains(body, "Match result:") {
+		t.Error("a player still reads who holds the Relic")
+	}
+}
+
+func TestSheetSaysWhyItOpened(t *testing.T) {
+	const blank, tied, relic = "No casualties during the match, is this correct?", "The MVP vote tied: choose the MVP.", "Choose who holds the Relic."
+	noCasualty := func(a *core.Aftermath) { a.Input.Models[1].Outcome = core.OutcomeSurvived }
+	withRelic := ratedMatch(100, 100)
+	withRelic.Result.Companies = []core.CompanyResult{{CompanyID: 1, Objectives: map[string]int{"possessesRelic": 1}}}
+	for _, c := range []struct {
+		name string
+		m    core.Match
+		edit func(*core.Aftermath)
+		want []string
+	}{
+		{"a casualty recorded: no reason", ratedMatch(100, 100), func(*core.Aftermath) {}, nil},
+		{"nothing recorded", ratedMatch(100, 100), noCasualty, []string{blank}},
+		{"tied MVP votes", ratedMatch(100, 100), func(a *core.Aftermath) { a.MVP = &core.MVPHint{Tied: []int64{10, 11}} }, []string{tied}},
+		{"the Relic has no holder", withRelic, func(*core.Aftermath) {}, []string{relic}},
+		{"the Relic has its holder", withRelic, func(a *core.Aftermath) { a.Input.Models[0].Relic = true }, nil},
+		{"several at once", withRelic, noCasualty, []string{blank, relic}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			body := sheetPage(t, c.m, c.edit)
+			if !strings.Contains(body, "Review the match results") {
+				t.Error("no description")
+			}
+			for _, reason := range []string{blank, tied, relic} {
+				if strings.Contains(body, ">"+reason+"<") != slices.Contains(c.want, reason) {
+					t.Errorf("reason %q: want %v", reason, slices.Contains(c.want, reason))
+				}
+			}
+		})
+	}
+	if body := sheetPage(t, ratedMatch(100, 100), func(a *core.Aftermath) { noCasualty(a); a.Access = core.AftermathNone }); strings.Contains(body, "Review the match results") || strings.Contains(body, blank) {
+		t.Error("the description and the reasons ask the one who can answer")
+	}
+}
+
+// A rejected sheet comes back as typed, except the bonuses a player's form cannot change.
+func TestRejectedSheetOfAPlayerKeepsTheBonuses(t *testing.T) {
+	f := matchWrite(t, ratedMatch(100, 200))
+	f.camp.EXPECT().AftermathRules(gomock.Any(), int64(7)).Return(amRules, nil).AnyTimes()
+	f.camp.EXPECT().CompanyDetail(gomock.Any(), int64(7), int64(1)).Return(core.CompanyDetail{Roster: amUnits()}, nil).AnyTimes()
+	f.camp.EXPECT().SaveAftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1), 2, gomock.Any()).Return(core.Aftermath{}, fmt.Errorf("%w: %s", core.ErrInvalidAftermath, "Aldor: no"))
+	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(amState(core.AftermathPending, core.AftermathEdit), nil)
+	body := amPost(f, "/sheet", sheetForm(url.Values{"odds": {"toolkit"}})).Body.String()
+	if !strings.Contains(body, "No bonus taken.") || strings.Contains(body, "Tool Kit") {
+		t.Errorf("the forged bonus came back:\n%s", body)
+	}
 }
 
 func TestSaveAndStartTheSheet(t *testing.T) {
@@ -1015,13 +1138,12 @@ func itemFixture(t *testing.T, a core.Aftermath) *fixture {
 
 func TestSheetOffersTheItemsACarrierCanUse(t *testing.T) {
 	a := amState(core.AftermathPending, core.AftermathEdit)
-	a.FromMatch = true
 	a.Input.Models[0].UsesItem = "healingHerbs"
 	a.Preview.Items = []core.AmountLine{{Text: "Healing Herbs: +1 to every injury roll"}}
 	f := itemFixture(t, a)
 	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
 	for _, want := range []string{`name="item-10"`, `name="item-11"`, "Use Healing Herbs (&#43;1 to every injury roll of the company)", "Use Wondrous Cram (skips the injury roll: counts as Full Recovery)",
-		"From the match", "Items: Healing Herbs: &#43;1 to every injury roll.", `uses: {&#34;10&#34;:&#34;healingHerbs&#34;}`, "Casualties cannot use Healing Herbs.", "(they do not stack)"} {
+		"Items: Healing Herbs: &#43;1 to every injury roll.", `uses: {&#34;10&#34;:&#34;healingHerbs&#34;}`, "Casualties cannot use Healing Herbs.", "(they do not stack)"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("sheet lacks %q", want)
 		}
@@ -1039,8 +1161,8 @@ func TestSheetWithoutItemsShowsNoItemRows(t *testing.T) {
 	f := amFixture(t)
 	f.camp.EXPECT().Aftermath(gomock.Any(), frodo, int64(7), int64(3), int64(1)).Return(amState(core.AftermathPending, core.AftermathEdit), nil)
 	body := f.do(f.signedIn(httpGet(amPath))).Body.String()
-	if strings.Contains(body, "Use Healing Herbs") || strings.Contains(body, "From the match") {
-		t.Error("no items and no match prefill: nothing about them")
+	if strings.Contains(body, "Use Healing Herbs") {
+		t.Error("no items: nothing about them")
 	}
 }
 

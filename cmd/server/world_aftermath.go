@@ -14,6 +14,58 @@ func (w *world) aftermathCampaigns() {
 	w.aftermathWardThree()
 	w.aftermathWardFour()
 	w.aftermathWardFive()
+	w.aftermathWardSix()
+}
+
+// aftermathWardSix stops at every state of the Sheet step: the Against the Odds block (bonuses taken, none taken with a gap that paid for
+// one, no block at all) and each reason that opens the sheet instead of the steps. Nothing is saved: the sheets are the unsaved defaults.
+func (w *world) aftermathWardSix() {
+	c := w.campaign("you", "Aftermath ward 6: what the sheet asks",
+		"The Sheet step before anything is saved: Against the Odds bonuses taken, none taken with a gap that paid, no block at all; and why the sheet opened: nothing recorded, the Relic with no holder, a tied MVP vote.", defaultSettings)
+	cos := w.pool(c, [][3]string{
+		{"eowyn", "Riders who took a Tool Kit", "Rohan"},
+		{"sauron", "Riders who hired a Wanderer", "Rohan"},
+		{"aragorn", "Rangers who took nothing", "Rohan"},
+		{"galadriel", "Elves who hired a Wanderer", "Rohan"},
+		{"gimli", "Dwarves who forgot the Relic", "Rohan"},
+		{"bilbo", "Hobbits who lost the Relic", "Rohan"},
+		{"radagast", "Wargs with a tied vote", "Rohan"},
+		{"pippin", "Pippin's voters", "Rohan"},
+		{"frodo", "Frodo's voters", "Rohan"},
+	}...)
+
+	// the same faction starts level: the Wanderer alone makes the gap, which pays for the bonuses taken
+	if !w.hireWanderer(cos[1], "Wandering Swordsman") || !w.hireWanderer(cos[3], "Wandering Swordsman") {
+		w.gap("Aftermath ward 6: a Wanderer that makes the gap cannot be hired")
+	}
+
+	// the lower company took a bonus for the aftermath and one that does nothing in it
+	m, err := w.c().CreateMatch(w.ctx, c.org, c.id, core.NewMatch{Sides: newSides([][]*wco{{cos[0]}, {cos[1]}}), Scenario: &core.ScenarioInput{Kind: core.ScenarioRulebook, Name: "Seize Ground"}})
+	w.must("create the match of the bonuses", err)
+	_, err = w.c().SaveAgainstTheOdds(w.ctx, cos[0].user, c.id, m.ID, m.Revision, core.ATOSelection{Bonuses: []string{"influence", "toolKit"}, Kits: []string{"healer"}})
+	w.must("take the bonuses", err)
+	m, err = w.c().Match(w.ctx, c.id, m.ID)
+	w.must("read the match of the bonuses", err)
+	w.endMatch(c, w.report(c, m, outcome{winner: 2}))
+
+	// the gap paid for a bonus and the lower company took none (decideATO, in played)
+	w.played(c, "Chance Encounter", outcome{winner: 2}, []*wco{cos[2]}, []*wco{cos[3]})
+
+	// equal ratings and nothing tracked, and the result says the company holds a Relic nobody was given
+	w.played(c, "Relic of Ages Past", outcome{winner: 1, ticks: map[*wco]map[string]int{cos[4]: {"possessesRelic": 1}}}, []*wco{cos[4]}, []*wco{cos[5]})
+
+	// played live: a Warrior left the table, so only the two rival players' votes keep the sheet open (one vote each, on two units)
+	tied, voters := cos[6], cos[7:9]
+	m = w.newMatchOn(c, "Hold the Line", []*wco{tied}, voters)
+	l, s, ws := w.roster(tied)
+	w.try("a Warrior leaves the table", w.liveAs(tied, m, core.LiveAction{Kind: core.LiveRetreat, UnitID: ws[0].ID, Why: "left"}))
+	for i, unit := range []int64{l.ID, s[0].ID} {
+		_, _, err := w.c().Apply(w.ctx, voters[i].user, c.id, m.ID, tied.id, core.LiveAction{Kind: core.LiveMVPVote, UnitID: unit})
+		w.must(voters[i].name+" votes the MVP of "+tied.name, err)
+	}
+	m, err = w.c().Match(w.ctx, c.id, m.ID)
+	w.must("read the match of the tied vote", err)
+	w.endMatch(c, w.report(c, m, outcome{winner: 2}))
 }
 
 // aftermathWardFour stops at the questions only a result asks: which persistent injury a hero's Full Recovery heals, and the bonus die

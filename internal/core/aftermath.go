@@ -154,11 +154,24 @@ type AftermathRules struct {
 	Participating, Draw, Win int // Influence
 	LevelEvery               int // the experience that earns one level-up roll (campaign.progression.threshold)
 	Bonuses                  []OddsBonus
+	OddsInclusive            bool // campaign.againstTheOdds.budget.inclusive: a bonus may cost exactly the Rating gap
 	Warrior, Hero            []InjuryRow
 	InjuryDice               DiceSpec                // campaign.injuries.roll, "2d6": the injury charts cover Min..Max of it
 	Effects                  map[string]RewardEffect // by key
 	ItemEffects              map[string]string       // lower-case equipment name -> aftermathEffects key (Healing Herbs, Wondrous Cram)
 	Scenarios                map[string][]RewardRule // by scenario name
+}
+
+// OddsAvailable says whether the company could take an Against the Odds bonus in the rated match: it is the lower company of a two-company
+// match and the gap pays for the cheapest bonus. The ratings are the current ones (they are not kept with the match), so an opponent that has
+// finished its own aftermath can move the gap.
+func OddsAvailable(m Match, companyID int64, r AftermathRules) bool {
+	lower, higher, why := atoSides(m)
+	if why != "" || lower.ID != companyID {
+		return false
+	}
+	gap := higher.Points - lower.Points
+	return slices.ContainsFunc(r.Bonuses, func(b OddsBonus) bool { return b.Rating < gap || (b.Rating == gap && r.OddsInclusive) })
 }
 
 // Gain finds an experience gain by key.
@@ -196,6 +209,7 @@ func LeanAftermath(d *lean.Document, vanilla *VanillaBook) (AftermathRules, erro
 		LevelEvery:    c.Progression.Threshold,
 		Participating: c.Influence.Gains.Participating, Draw: c.Influence.Gains.Draw, Win: c.Influence.Gains.Win,
 		Effects: map[string]RewardEffect{}, ItemEffects: map[string]string{}, Scenarios: map[string][]RewardRule{},
+		OddsInclusive: c.AgainstTheOdds.Budget.Inclusive,
 	}
 	for _, g := range c.Experience.Gains {
 		rules.Gains = append(rules.Gains, XPGain{Key: g.Key, Label: g.Label, Amount: g.Amount, Repeatable: g.Repeatable})
@@ -1011,9 +1025,8 @@ type Aftermath struct {
 	Rerolls            int // Against the Odds re-rolls left
 	WaivedNote         string
 	Access             AftermathAccess
-	FromLive           bool // the unsaved default sheet comes from the live match ("From the live match" badge)
-	// FromMatch says the Against the Odds bonuses of the unsaved sheet come from the match's selection ("From the match" badge).
-	FromMatch bool
+	// CanManage says the viewer may correct what a player cannot: the organiser or an administrator (the sheet's Against the Odds bonuses, the match result).
+	CanManage bool
 	// ItemChoices lists, per unit of the sheet, the consumables it may elect now (carried or loaned by a Healer's Kit); empty once started.
 	ItemChoices map[int64][]string
 	// MVP is the live vote tally for the company (nil without live data or votes): the winner is prefilled on the sheet; on a tie the
