@@ -474,6 +474,12 @@ html[data-mode="dark"] { color-scheme: dark; }
   /* The cards sit deep in a question: the profile gives up its minimum width and a little type, and a value stays on one line. */
   .unit-choices .statline > div { @apply min-w-0; }
   .unit-choices .statline dd { @apply whitespace-nowrap px-0 text-sm sm:text-base; }
+  /* A unit summary's row of place, path and injuries: a unit with none of them (most Warriors) has no row, unless the other card of its row has one, so
+     that what follows lines up. A row of .unit-choices is an odd card and the next one: this goes with lg:grid-cols-2 above (TestUnitFactsPairMatchesColumns). */
+  .unit-facts { @apply flex flex-wrap items-center gap-1.5 lg:min-h-8; }
+  .unit-facts:not(:has(*)) { @apply hidden; }
+  .unit-choices > :nth-child(odd):has(+ * .unit-facts > *) .unit-facts:not(:has(*)),
+  .unit-choices > :nth-child(odd):has(.unit-facts > *) + * .unit-facts:not(:has(*)) { @apply lg:flex; }
   .unit-choice { transition: box-shadow 150ms; }
   .unit-choice:hover { box-shadow: 0 0 0 2px var(--accent); }
   .unit-choice-go::after { content: ""; position: absolute; inset: 0; border-radius: .75rem; }
