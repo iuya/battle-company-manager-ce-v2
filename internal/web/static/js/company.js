@@ -166,6 +166,14 @@ document.addEventListener('alpine:init', () => {
         form.requestSubmit();
       } });
     },
+    // The new match form's scenario roll thrown in the browser (Shake the table): the two dice are sent to the card's roll URL, which answers the card.
+    // `rolling` is set first so the tray's canvas is shown (and has a size) before the dice are thrown.
+    throwNewScenario() {
+      this.rolling = true;
+      this.$nextTick(() => this.throwDice({ count: 2, sides: this.sides, groups: [1, 1], labels: ['Table', 'Scenario'], canShake: true, then: v => {
+        htmx.ajax('POST', this.$root.dataset.rollUrl, { target: '#new-scenario', swap: 'outerHTML', values: { roll: v[0], roll2: v[1], thrown: '1' } });
+      } }));
+    },
     // What the company can pay for at the rules' price per point (free where the price is 0).
     get affordable() { return this.cost > 0 ? Math.floor(this.influence / this.cost) : Infinity; },
     // Whether the step (points, positive raises the die) is within the attempt's points, the die and the influence.

@@ -24,21 +24,65 @@ func newMatchFixture(t *testing.T) *fixture {
 	return f
 }
 
-func TestNewMatchFormShowsTheRolledScenarioAndMarksOwnCompanies(t *testing.T) {
+func TestNewMatchFormStartsWithNoScenarioAndMarksOwnCompanies(t *testing.T) {
 	f := newMatchFixture(t)
-	seq := []int{1, 2}
-	f.srv.die = func(int) int { n := seq[0]; seq = seq[1:]; return n }
+	f.srv.die = func(int) int { t.Error("the page load rolls nothing"); return 1 }
 	body := f.do(f.signedIn(httpGet("/campaigns/7/matches/new"))).Body.String()
-	for _, want := range []string{"Chance Encounter", "Rolled 1 (table 1) and 2", `name="scenario-kind" value="rulebook"`, `name="scenario-name" value="Chance Encounter"`,
+	for _, want := range []string{"No scenario yet.", "Roll the scenario", "data-roll-again", `x-data="rollPanel"`, `data-sides="6"`, `data-shake="false"`, `data-animate="false"`,
 		"/matches/new/scenario-roll", "/matches/new/scenario?mode=pick", "/matches/new/scenario?mode=custom", `&#34;mine&#34;:true`, `data-sides="[{&#34;ids&#34;:[1]},{&#34;ids&#34;:[]}]"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("form lacks %q", want)
 		}
 	}
-	for _, bad := range []string{"side-name", "role-", "Attacker", "Defender", "data-mine-chip"} {
+	for _, bad := range []string{"side-name", "role-", "Attacker", "Defender", "data-mine-chip", "Chance Encounter", `name="scenario-kind"`, `name="scenario-name"`, `name="scenario-die"`, "Rolled "} {
 		if strings.Contains(body, bad) {
 			t.Errorf("the form has no %q", bad)
 		}
+	}
+}
+
+func TestNewMatchScenarioRollAnswersTheCardWithTheServersDiceToAnimate(t *testing.T) {
+	f := newMatchFixture(t)
+	seq := []int{1, 2}
+	f.srv.die = func(int) int { n := seq[0]; seq = seq[1:]; return n }
+	r := f.signedIn(httptest.NewRequest("POST", "/campaigns/7/matches/new/scenario-roll", nil))
+	r.Header.Set("HX-Request", "true")
+	body := f.do(r).Body.String()
+	for _, want := range []string{`data-animate="true"`, `data-dice="1,2"`, `<canvas x-ref="canvas"`, "Rolled 1 (table 1) and 2", `name="scenario-name" value="Chance Encounter"`, `name="scenario-die" value="1"`, "Roll again", "Choose another", "One-off scenario"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the rolled card lacks %q:\n%s", want, body)
+		}
+	}
+}
+
+func TestNewMatchScenarioThrownDiceAreTakenOnlyUnderShakeTheTable(t *testing.T) {
+	post := func(shake bool) string {
+		f := newFixture(t, Config{})
+		d := campaignDetail()
+		d.Settings.ShakeTheTable = shake
+		f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
+		f.srv.die = func(int) int { return 1 }
+		r := f.signedIn(form("/campaigns/7/matches/new/scenario-roll", url.Values{"roll": {"5"}, "roll2": {"1"}, "thrown": {"1"}}))
+		r.Header.Set("HX-Request", "true")
+		return f.do(r).Body.String()
+	}
+	if body := post(true); !strings.Contains(body, `name="scenario-name" value="Rescue"`) || !strings.Contains(body, "Rolled 5 (table 3) and 1") || strings.Contains(body, `data-animate="true"`) {
+		t.Errorf("the browser's dice are shown as thrown:\n%s", body)
+	}
+	if body := post(false); strings.Contains(body, `value="Rescue"`) || !strings.Contains(body, `data-animate="true"`) {
+		t.Errorf("without Shake the table the server rolls:\n%s", body)
+	}
+}
+
+func TestNewMatchFormWithShakeTheTableThrowsInTheBrowser(t *testing.T) {
+	f := newFixture(t, Config{})
+	d := campaignDetail()
+	d.Settings.ShakeTheTable = true
+	f.camp.EXPECT().Get(gomock.Any(), frodo.ID, int64(7)).Return(d, nil).AnyTimes()
+	f.camp.EXPECT().Companies(gomock.Any(), int64(7)).Return([]core.CampaignCompany{{ID: 1, Name: "Rangers", OwnerID: frodo.ID}, {ID: 2, Name: "Raiders", OwnerID: 50}}, nil).AnyTimes()
+	body := f.do(f.signedIn(httpGet("/campaigns/7/matches/new"))).Body.String()
+	if !strings.Contains(body, `data-shake="true"`) || !strings.Contains(body, `@click="throwNewScenario()"`) || !strings.Contains(body, `<canvas x-ref="canvas"`) {
+		t.Errorf("the card throws the dice in the browser:\n%s", body)
 	}
 }
 
@@ -158,5 +202,15 @@ func TestYourTurnListsWhatWaitsOnTheViewer(t *testing.T) {
 	g.camp.EXPECT().Matches(gomock.Any(), int64(7)).Return([]core.Match{editableMatch()}, nil)
 	if body := g.do(g.signedIn(httpGet("/campaigns/7/matches"))).Body.String(); strings.Contains(body, `id="your-turn"`) {
 		t.Error("nothing waits: no Your turn list")
+	}
+}
+
+func TestCreateMatchWithNoScenarioIsValid(t *testing.T) {
+	f := newMatchFixture(t)
+	want := core.NewMatch{Sides: []core.NewSide{{Companies: []int64{1}}, {Companies: []int64{2}}}}
+	f.camp.EXPECT().CreateMatch(gomock.Any(), frodo, int64(7), want).Return(core.Match{ID: 14}, nil)
+	rec := f.do(f.signedIn(form("/campaigns/7/matches", url.Values{"sides": {"2"}, "side-1": {"1"}, "side-2": {"2"}})))
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/campaigns/7/matches/14" {
+		t.Errorf("a match is created with no scenario: %d -> %q", rec.Code, rec.Header().Get("Location"))
 	}
 }

@@ -11,7 +11,8 @@ import (
 )
 
 // The new match form (docs/matches.md, "New match"): two sides with the company search only,
-// one options block (Practice, + Add side, All vs all) and the scenario the server already rolled. Nothing is written until Create match;
+// one options block (Practice, + Add side, All vs all) and the scenario card, which starts empty until the player rolls (with the 3D dice)
+// or chooses one. Nothing is written until Create match;
 // Against the Odds is chosen afterwards, on the match page.
 
 // newMatchView feeds the form (static/js/match_form.js): the campaign's companies to search in and the sides as they currently are,
@@ -32,15 +33,18 @@ type newMatchView struct {
 // TooFew is whether the campaign has too few companies for a match.
 func (v newMatchView) TooFew() bool { return v.Companies < minMatchCompanies }
 
-// newScenarioView is the scenario card of the form. Mode "" shows the scenario (with the dice when the server rolled it), "pick" the
+// newScenarioView is the scenario card of the form. Mode "" shows the scenario (with the dice when it was rolled) or none yet, "pick" the
 // rulebook's list by table (one press sets it), "custom" the one-off fields. The card's hidden inputs carry the choice to Create match.
 type newScenarioView struct {
 	CampaignID int64
 	Mode       string
 	Info       *core.ScenarioInfo // the rulebook scenario on show; nil for none or a one-off
 	Custom     core.ScenarioInput // the one-off fields
-	Dice       [2]int             // the server's roll; zero when the scenario was chosen
+	Dice       [2]int             // the roll (the server's, or the browser's under Shake the table); zero when the scenario was chosen
 	Table      int
+	Sides      int  // faces of the scenario dice, from the rules file; 0 when the rules have none (nothing to roll)
+	Shake      bool // the campaign's Shake the table: the browser throws the dice and reports them
+	Animate    bool // the server just rolled: the 3D dice act the roll out before the card shows the scenario
 	Groups     []scenarioGroup
 	Err        map[string]string
 	Note       string
@@ -58,6 +62,9 @@ func (v newScenarioView) RollText() string {
 	}
 	return "Chosen"
 }
+
+// DiceCSV is the roll the dice animation plays, for data-dice.
+func (v newScenarioView) DiceCSV() string { return itoa(v.Dice[0]) + "," + itoa(v.Dice[1]) }
 
 func newMatchForm(base campaignBase, companies []core.CampaignCompany, unavailable map[int64]string, sides []core.NewSide, ffa bool, errMsg string) (newMatchView, error) {
 	list := make([]map[string]any, len(companies))
@@ -130,33 +137,42 @@ func (s *Server) handleNewMatchPage(w http.ResponseWriter, r *http.Request) {
 	if s.fail(w, r, err) {
 		return
 	}
-	if view.Scenario, err = s.rolledScenario(r, base.Campaign.ID); s.fail(w, r, err) {
+	if view.Scenario, err = s.scenarioCardFor(r, base, nil, ""); s.fail(w, r, err) { // empty: nothing is rolled until the player asks
 		return
 	}
 	view.Practice = r.URL.Query().Get("practice") == "1"
 	s.render.page(w, r, http.StatusOK, "match_new", view)
 }
 
-// rolledScenario is the card with the scenario the server rolled (the form asks nothing).
-func (s *Server) rolledScenario(r *http.Request, id int64) (newScenarioView, error) {
-	v := newScenarioView{CampaignID: id}
-	list, err := s.campaigns.Scenarios(r.Context(), id)
+// rolledScenario is the card after a roll. With thrown dice (the browser threw them: only under Shake the table) it shows those;
+// otherwise the server rolls both dice and the card plays them out on the 3D dice (Animate) before showing the scenario.
+func (s *Server) rolledScenario(r *http.Request, base campaignBase, thrown *[2]int) (newScenarioView, error) {
+	v, err := s.scenarioCardFor(r, base, nil, "")
+	if err != nil || v.Sides <= 0 {
+		return v, err
+	}
+	list, err := s.campaigns.Scenarios(r.Context(), base.Campaign.ID)
 	if err != nil {
 		return v, err
 	}
-	sel, err := s.campaigns.ScenarioSelection(r.Context(), id)
+	sel, err := s.campaigns.ScenarioSelection(r.Context(), base.Campaign.ID)
 	if err != nil {
 		return v, err
 	}
-	if sel.Die.Sides <= 0 || len(list) == 0 {
-		v.Note = "The rules of this campaign list no scenarios to roll for: describe a one-off one, or leave it for the match page."
-		return v, nil
+	var sc core.ScenarioInfo
+	var d1, d2 int
+	var ok bool
+	if thrown != nil {
+		d1, d2 = thrown[0], thrown[1]
+		sc, ok = core.ScenarioByRolls(sel, list, d1, d2)
+	} else if sc, d1, d2, ok = s.rollScenario(sel, list); ok {
+		v.Animate = true
 	}
-	if sc, d1, d2, ok := s.rollScenario(sel, list); ok {
+	if ok {
 		v.Info, v.Dice, v.Table = &sc, [2]int{d1, d2}, sel.Table(d1)
 		return v, nil
 	}
-	v.Note = "The dice found no scenario of this campaign's rules: choose one."
+	v.Note = "The dice found no scenario of this campaign's rules: roll again or choose one."
 	return v, nil
 }
 
@@ -174,11 +190,21 @@ func scenarioFromForm(r *http.Request) *core.ScenarioInput {
 }
 
 // scenarioCardFor is the card that shows the scenario in (a rulebook name, a one-off or none).
-func (s *Server) scenarioCardFor(r *http.Request, id int64, in *core.ScenarioInput, mode string) (newScenarioView, error) {
-	v := newScenarioView{CampaignID: id, Mode: mode}
+func (s *Server) scenarioCardFor(r *http.Request, base campaignBase, in *core.ScenarioInput, mode string) (newScenarioView, error) {
+	id := base.Campaign.ID
+	v := newScenarioView{CampaignID: id, Mode: mode, Shake: base.Campaign.Settings.ShakeTheTable}
 	list, err := s.campaigns.Scenarios(r.Context(), id)
 	if err != nil {
 		return v, err
+	}
+	sel, err := s.campaigns.ScenarioSelection(r.Context(), id)
+	if err != nil {
+		return v, err
+	}
+	if sel.Die.Sides > 0 && len(list) > 0 {
+		v.Sides = sel.Die.Sides
+	} else {
+		v.Note = "The rules of this campaign list no scenarios to roll for: describe a one-off one, or leave it for the match page."
 	}
 	if in != nil {
 		switch in.Kind {
@@ -214,7 +240,7 @@ func (s *Server) handleNewScenarioCard(w http.ResponseWriter, r *http.Request) {
 	if mode == "custom" && (in == nil || in.Kind != core.ScenarioCustom) {
 		in = &core.ScenarioInput{Kind: core.ScenarioCustom}
 	}
-	v, err := s.scenarioCardFor(r, base.Campaign.ID, in, mode)
+	v, err := s.scenarioCardFor(r, base, in, mode)
 	if s.fail(w, r, err) {
 		return
 	}
@@ -243,13 +269,24 @@ func (s *Server) keepDice(r *http.Request, id int64, v *newScenarioView) error {
 	return nil
 }
 
-// handleNewScenarioRoll rolls again (both dice, no question) and answers the card.
+// handleNewScenarioRoll rolls (both dice, no question) and answers the card. The browser's own roll (roll, roll2 and thrown) is taken
+// only where the campaign says Shake the table; anywhere else the server rolls and the card animates its numbers.
 func (s *Server) handleNewScenarioRoll(w http.ResponseWriter, r *http.Request) {
 	base, ok := s.loadCampaign(w, r, "")
 	if !ok {
 		return
 	}
-	v, err := s.rolledScenario(r, base.Campaign.ID)
+	var thrown *[2]int
+	if r.PostFormValue("thrown") != "" && base.Campaign.Settings.ShakeTheTable {
+		sel, err := s.campaigns.ScenarioSelection(r.Context(), base.Campaign.ID)
+		if s.fail(w, r, err) {
+			return
+		}
+		if d1, d2 := formInt(r, "roll"), formInt(r, "roll2"); sel.Valid(d1) && sel.Valid(d2) {
+			thrown = &[2]int{d1, d2}
+		}
+	}
+	v, err := s.rolledScenario(r, base, thrown)
 	if s.fail(w, r, err) {
 		return
 	}
@@ -314,7 +351,7 @@ func (s *Server) handleCreateMatch(w http.ResponseWriter, r *http.Request) {
 		if custom {
 			mode = "custom"
 		}
-		if view.Scenario, jerr = s.scenarioCardFor(r, base.Campaign.ID, scenario, mode); s.fail(w, r, jerr) {
+		if view.Scenario, jerr = s.scenarioCardFor(r, base, scenario, mode); s.fail(w, r, jerr) {
 			return
 		}
 		if custom {

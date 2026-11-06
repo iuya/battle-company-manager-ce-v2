@@ -87,8 +87,9 @@
 {{/* The scenario card of the new match form. Its hidden inputs (or the one-off fields) carry the scenario to Create match; every button
    answers the card again. Takes newScenarioView. */}}
 {{define "new_scenario"}}{{$base := printf "/campaigns/%d/matches/new" .CampaignID}}
-<section class="card space-y-3" id="new-scenario" aria-labelledby="new-scenario-title">
+<section class="card space-y-3" id="new-scenario" aria-labelledby="new-scenario-title"{{if .Sides}} x-data="rollPanel" @keydown.space.window="onSpace($event)" data-sides="{{.Sides}}" data-per-lane="1" data-lanes="2" data-shake="{{.Shake}}" data-animate="{{.Animate}}" data-dice="{{if .Animate}}{{.DiceCSV}}{{end}}" data-groups="1,1" data-labels="Table,Scenario" data-roll-url="{{$base}}/scenario-roll"{{end}}>
   <h2 id="new-scenario-title" class="!text-xl">Scenario</h2>
+  {{if and .Sides .Shake (ne .Mode "")}}<canvas x-ref="canvas" class="dice-tray" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>{{end}}
   {{if eq .Mode "custom"}}
     {{$e := .Err}}
     <input type="hidden" name="scenario-kind" value="custom">
@@ -107,7 +108,7 @@
       <textarea id="new-scenario-victory" name="scenario-victory" rows="3" maxlength="1000" class="input">{{.Custom.Victory}}</textarea>
     </div>
     <div class="flex flex-wrap gap-2">
-      <button type="button" class="btn btn-secondary" hx-post="{{$base}}/scenario-roll" hx-target="#new-scenario" hx-swap="outerHTML">Roll instead</button>
+      {{if .Shake}}<button type="button" class="btn btn-secondary" @click="throwNewScenario()" :disabled="rolling">Roll instead</button>{{else}}<button type="button" class="btn btn-secondary" hx-post="{{$base}}/scenario-roll" hx-target="#new-scenario" hx-swap="outerHTML">Roll instead</button>{{end}}
       <button type="button" class="btn btn-secondary" hx-get="{{$base}}/scenario?mode=pick" hx-target="#new-scenario" hx-swap="outerHTML">Choose from the rulebook</button>
     </div>
   {{else if eq .Mode "pick"}}
@@ -137,10 +138,12 @@
       {{else}}<p class="text-muted">The rules of this campaign list no scenarios.</p>{{end}}
     </div>
     <div class="flex flex-wrap gap-2">
-      <button type="button" class="btn btn-secondary" hx-post="{{$base}}/scenario-roll" hx-target="#new-scenario" hx-swap="outerHTML">Roll instead</button>
+      {{if .Shake}}<button type="button" class="btn btn-secondary" @click="throwNewScenario()" :disabled="rolling">Roll instead</button>{{else}}<button type="button" class="btn btn-secondary" hx-post="{{$base}}/scenario-roll" hx-target="#new-scenario" hx-swap="outerHTML">Roll instead</button>{{end}}
       <button type="button" class="btn btn-secondary" hx-get="{{$base}}/scenario?mode=custom" hx-target="#new-scenario" hx-swap="outerHTML">One-off scenario</button>
     </div>
   {{else}}
+    {{if .Sides}}{{if .Animate}}<canvas x-ref="canvas" class="dice-tray" aria-hidden="true"></canvas>{{else if .Shake}}<canvas x-ref="canvas" class="dice-tray" x-show="rolling || stopped" x-cloak aria-hidden="true"></canvas>{{end}}{{end}}
+    <div class="space-y-3"{{if .Sides}} x-show="{{if .Animate}}revealed{{else}}!(rolling || stopped){{end}}"{{if .Animate}} x-cloak{{end}}{{end}}>
     {{with .Info}}
     <input type="hidden" name="scenario-kind" value="rulebook"><input type="hidden" name="scenario-name" value="{{.Name}}">{{if gt (index $.Dice 0) 0}}<input type="hidden" name="scenario-die" value="{{index $.Dice 0}}">{{end}}
     <p class="text-lg font-medium break-words" data-scenario="{{.Name}}">{{.Name}}</p>
@@ -149,11 +152,15 @@
     {{else}}{{with $.Custom.Name}}
     <input type="hidden" name="scenario-kind" value="custom"><input type="hidden" name="scenario-name" value="{{$.Custom.Name}}"><input type="hidden" name="scenario-description" value="{{$.Custom.Description}}"><input type="hidden" name="scenario-victory" value="{{$.Custom.Victory}}">
     <p class="text-lg font-medium break-words">{{.}} <span class="badge badge-gold align-middle">One-off</span></p>
-    {{else}}<p class="text-muted">{{with $.Note}}{{.}}{{else}}No scenario yet.{{end}}</p>{{end}}{{end}}
+    {{else}}<p class="text-muted" data-no-scenario>{{with $.Note}}{{.}}{{else}}No scenario yet.{{end}}</p>{{end}}{{end}}
     <div class="flex flex-wrap gap-2">
-      <button type="button" class="btn btn-secondary" hx-post="{{$base}}/scenario-roll" hx-target="#new-scenario" hx-swap="outerHTML" data-roll-again>Roll again</button>
-      <button type="button" class="btn btn-secondary" hx-get="{{$base}}/scenario?mode=pick" hx-include="#new-scenario" hx-target="#new-scenario" hx-swap="outerHTML" data-choose-another>Choose another</button>
+      {{if .Sides}}{{$decided := or .Info .Custom.Name}}
+      {{if .Shake}}<button type="button" class="btn {{if $decided}}btn-secondary{{else}}btn-primary{{end}}" @click="throwNewScenario()" :disabled="rolling" data-roll-again>{{if $decided}}Roll again{{else}}Roll the scenario{{end}}</button>
+      {{else}}<button type="button" class="btn {{if $decided}}btn-secondary{{else}}btn-primary{{end}}" hx-post="{{$base}}/scenario-roll" hx-target="#new-scenario" hx-swap="outerHTML" data-roll-again>{{if $decided}}Roll again{{else}}Roll the scenario{{end}}</button>{{end}}
+      {{end}}
+      <button type="button" class="btn btn-secondary" hx-get="{{$base}}/scenario?mode=pick" hx-include="#new-scenario" hx-target="#new-scenario" hx-swap="outerHTML" data-choose-another>{{if or .Info .Custom.Name}}Choose another{{else}}Choose from the rulebook{{end}}</button>
       <button type="button" class="btn btn-secondary" hx-get="{{$base}}/scenario?mode=custom" hx-target="#new-scenario" hx-swap="outerHTML">One-off scenario</button>
+    </div>
     </div>
   {{end}}
 </section>

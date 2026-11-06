@@ -2,7 +2,7 @@
 // account `you`): the Auras section (switch, kinds with counts and radii, groups, legend), the names payload (v2 with `a` entries, v1 when no ring is selected), the
 // notice to download the helper again, the choices remembered and refreshed by htmx, the keyboard, another player's company, the live variant, the aura chips of the cards
 // (radius, tooltip, +N, glossary popup), 360/768/1280 px in both themes with axe and screenshots.
-import { assert, campaignId, decideATO, layout, SIZES } from '../lib/util.mjs';
+import { assert, campaignId, chooseScenario, decideATO, layout, SIZES } from '../lib/util.mjs';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
@@ -353,6 +353,7 @@ export default async function (h) {
       await pick(2, 'Riders of the Mark');
       await you.click('main button', 'Create match', { nav: true }).catch(() => {});
       await you.settle(400);
+      await chooseScenario(you, 'Chance Encounter'); // a new match has no scenario until one is rolled or chosen
       await decideATO(you); // the organiser decides for the lower rated player
       await you.goto(`/campaigns/${parade}/my-company`);
     }

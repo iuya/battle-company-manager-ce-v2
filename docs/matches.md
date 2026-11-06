@@ -39,8 +39,8 @@ How a write is answered:
 - A **scenario** is one of the Battle Companies scenarios of the campaign's rules file (chosen by name; 18 in the default file, in three
   tables of six) or a **one-off scenario** invented by the players (name, description, victory conditions: free text, not enforced, players are
   trusted). A one-off scenario lives only in that match's record.
-- The scenario is chosen **on the new match form** (the server has already rolled one; see "New match") and can be changed on the match page
-  until the game starts (the first live entry). It is **required to end** the match.
+- The scenario is chosen **on the new match form** (rolled on the 3D dice, picked from the rulebook or a one-off; see "New match"; the form may
+  also be sent with none) and can be set or changed on the match page until the game starts (the first live entry). It is **required to end** the match.
 - A side has no name and no Attacker / Defender role: it is shown by its companies ("Rohan + Gondor", `MatchSide.Label`). Players settle
   roles at the table.
 - **Results** are what the players report: who won (or a draw), an optional note, and, for the scenarios whose rewards need them, which
@@ -175,11 +175,16 @@ The form runs top to bottom: the side blocks (the strongest cards of the page: a
   aftermath to finish) is listed struck through and disabled with the reason, after the free ones of its group. Enter and "Add every company"
   skip it. `CreateMatch` still checks all of it when the form is posted.
 - **Options**: **Practice match**, **+ Add side** (up to 8; an added side has Remove) and **All vs all** (every company on its own side).
-- **Scenario card**: the scenario the server rolled when the page was drawn (both dice, always the server's, whatever `ManualRolls` /
-  `ShakeTheTable` say), with the dice ("Rolled 3 (table 2) and 5"), and **Roll again** (`POST .../matches/new/scenario-roll`, both dice, no
-  question), **Choose another** (`GET .../matches/new/scenario?mode=pick`, the list grouped by table, one press sets it with `?name=`; its
-  **Cancel** brings back the scenario the card held, the server's dice included, which the card carries as `scenario-die`) and
-  **One-off scenario** (`?mode=custom`). The card's hidden inputs (`scenario-kind`, `scenario-name` and the one-off fields) go with the form.
+- **Scenario card**: empty when the page opens ("No scenario yet."; nothing is rolled on load) with a primary **Roll the scenario**, **Choose from the rulebook** and
+  **One-off scenario**. Rolling throws the scenario's two dice on the 3D tray (`rollPanel`, [frontend.md](frontend.md#dice); faces from the rules file, one lane
+  "Table" for the first die and one "Scenario" for the second; the flat tray where WebGL is missing, the dice lying in a row under reduced motion) and the card shows the
+  scenario ("Rolled 3 (table 2) and 5") only when they stop. Who decides the roll follows **Shake the table**: off, `POST .../matches/new/scenario-roll`
+  makes the server roll both dice and the card (`data-animate`, `data-dice`) acts those numbers out; on, the browser throws (the space bar shakes the table)
+  and posts `roll`, `roll2` and `thrown`, which the server takes only where the setting is on (otherwise it rolls itself) and answers the card with them. Nothing is
+  written by a roll. Once a scenario is on the card: **Roll again**, **Choose another** (`GET .../matches/new/scenario?mode=pick`, the list grouped by table, one
+  press sets it with `?name=`; its **Cancel** brings back the scenario the card held, the dice included, which the card carries as `scenario-die`) and **One-off
+  scenario** (`?mode=custom`; its **Roll instead** also throws the dice). The card's hidden inputs (`scenario-kind`, `scenario-name` and the one-off fields) exist
+  only once a scenario is decided and go with the form; with none, **Create match** makes the match with no scenario and the match page's own card sets it.
 - A refusal (422) draws the form again with the companies and the scenario card.
 - Against the Odds is not on the form: it is chosen on the match page, whoever creates the match.
 
