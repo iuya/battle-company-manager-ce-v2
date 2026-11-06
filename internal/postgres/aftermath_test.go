@@ -367,3 +367,25 @@ func endNow(ctx context.Context, ms *core.Matches, org core.User, campaignID, ma
 	}
 	return ms.OverrideEnd(ctx, org, campaignID, matchID, m.Revision, "test: ended without confirmation")
 }
+
+// Pending is one statement that also answers "no such company": another campaign's company and an unknown id are ErrNotFound,
+// a company with nothing to finish is an empty list, and a played match shows up with the company's name.
+func TestPendingAftermathsOneStatement(t *testing.T) {
+	w := newAftermathWorld(t)
+	ctx := t.Context()
+	repo := w.s.Aftermaths()
+	if _, err := repo.Pending(ctx, w.camp.ID+1000, w.co1.ID); !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("another campaign's company: %v", err)
+	}
+	if _, err := repo.Pending(ctx, w.camp.ID, w.co1.ID+100000); !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("unknown company: %v", err)
+	}
+	if p, err := repo.Pending(ctx, w.camp.ID, w.co1.ID); err != nil || len(p) != 0 {
+		t.Fatalf("nothing pending: %v %v", p, err)
+	}
+	m := w.play(t, "Scavenge the Battlefield", map[string]int{"allObjectiveMarkers": 1})
+	p, err := repo.Pending(ctx, w.camp.ID, w.co1.ID)
+	if err != nil || len(p) != 1 || p[0].MatchID != m.ID || p[0].MatchNumber != m.Number || p[0].CompanyName != "One" || p[0].CompanyID != w.co1.ID || p[0].Status != core.AftermathPending {
+		t.Fatalf("one pending aftermath: %+v %v", p, err)
+	}
+}

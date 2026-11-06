@@ -581,17 +581,11 @@ func (ms matchStore) AddGrant(ctx context.Context, campaignID int64, by core.Use
 
 // Grants is the company's history, newest first.
 func (ms matchStore) Grants(ctx context.Context, campaignID, companyID int64) ([]core.Grant, error) {
-	var exists bool
-	if err := ms.s.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM companies WHERE campaign_id = $1 AND id = $2)`, campaignID, companyID).Scan(&exists); err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, core.ErrNotFound
-	}
+	// The company is joined in, so a history with rows is one statement; only an empty answer needs the check that the company is the campaign's.
 	rows, err := ms.s.pool.Query(ctx, `
 		SELECT g.id, g.kind, g.gold, g.influence, g.experience, g.unit_id, g.match_id, g.note, coalesce(u.display_name, ''), g.granted_at
-		  FROM grants g LEFT JOIN users u ON u.id = g.granted_by
-		 WHERE g.company_id = $1 ORDER BY g.id DESC`, companyID)
+		  FROM grants g JOIN companies c ON c.id = g.company_id AND c.campaign_id = $2 LEFT JOIN users u ON u.id = g.granted_by
+		 WHERE g.company_id = $1 ORDER BY g.id DESC`, companyID, campaignID)
 	if err != nil {
 		return nil, err
 	}
@@ -616,6 +610,14 @@ func (ms matchStore) Grants(ctx context.Context, campaignID, companyID int64) ([
 	}
 	if err := rows.Err(); err != nil || len(out) > 0 {
 		return out, err
+	}
+	rows.Close()
+	var exists bool
+	if err := ms.s.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM companies WHERE campaign_id = $1 AND id = $2)`, campaignID, companyID).Scan(&exists); err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, core.ErrNotFound
 	}
 	if a, err := ms.archive(ctx, campaignID); err != nil || a != nil { // no rows: none were given, or they are in the archive
 		if err != nil {
