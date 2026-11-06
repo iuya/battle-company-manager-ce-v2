@@ -83,6 +83,10 @@ What to keep when changing the code:
   key, strict UTF-8, other `omitempty`, and the lean decoder's error positions and texts come from the v1 token API. The whole gain is
   1 to 2 ms once per rule set (about 2 to 4 % of a load) and nothing on a request: the Tabletop Simulator payload (6 KB) encodes in 8 µs either
   way and the event, settings and session JSON in 2 µs. No call site was switched.
+- **A start parses only what it has to check.** `Rulesets.RegisterDefaults` runs at every start; the vanilla book and the glossary the shipped
+  Battle Companies file is checked against are read only when that file is not stored yet (`prepareWith` takes them as a function), so a
+  restart on a known database does not parse them (`BenchmarkRegisterDefaults`, `go test ./internal/core -run xxx -bench RegisterDefaults`).
+  The rule sets themselves are built on the first request that needs them, not at the start.
 - **Not in the profile:** the live hub, the session cache and goroutine use never showed. What is left in a request is PostgreSQL
   round trips (`kevent`, system calls and thread wake-ups, about half of the CPU samples, waiting included), garbage collection (about 30 %, mostly the roster decode in
   `internal/postgres` and the template buffers) and template execution.
