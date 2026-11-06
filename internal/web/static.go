@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/andybalholm/brotli"
 )
 
 // The embedded static files are read once: every file gets a content hash (its ETag and the ?v= of its URL), the stylesheets get
@@ -20,8 +22,9 @@ import (
 // changes its content, so the browser keeps it for a year and a page costs no request for it (docs/performance.md).
 type staticFile struct {
 	data, gz []byte
-	etag     string // quoted, strong
-	ver      string // first 10 hex digits of the content hash
+	br       func() []byte // the brotli copy (level 11), made on the first request that accepts it and kept
+	etag     string        // quoted, strong
+	ver      string        // first 10 hex digits of the content hash
 	ctype    string
 }
 
@@ -120,6 +123,14 @@ func (f *staticFile) seal() {
 		zw.Close()
 		if buf.Len() < len(f.data) {
 			f.gz = buf.Bytes()
+			data := f.data
+			f.br = sync.OnceValue(func() []byte {
+				var b bytes.Buffer
+				bw := brotli.NewWriterLevel(&b, brotli.BestCompression)
+				bw.Write(data)
+				bw.Close()
+				return b.Bytes()
+			})
 		}
 	}
 }
@@ -156,7 +167,11 @@ func (s *Server) staticHandler() http.Handler {
 		body, etag := f.data, f.etag
 		if f.gz != nil {
 			h.Add("Vary", "Accept-Encoding")
-			if acceptsGzip(r) {
+			switch pickEncoding(r) {
+			case "br":
+				body, etag = f.br(), strings.TrimSuffix(f.etag, `"`)+`-br"`
+				h.Set("Content-Encoding", "br")
+			case "gzip":
 				body, etag = f.gz, strings.TrimSuffix(f.etag, `"`)+`-gz"`
 				h.Set("Content-Encoding", "gzip")
 			}
@@ -166,13 +181,25 @@ func (s *Server) staticHandler() http.Handler {
 	})
 }
 
-// acceptsGzip reports whether the request lists gzip among its accepted encodings (q=0 refuses it).
-func acceptsGzip(r *http.Request) bool {
+// accepts reports whether the request lists the content coding among its accepted encodings (q=0 refuses it).
+func accepts(r *http.Request, coding string) bool {
 	for _, part := range strings.Split(r.Header.Get("Accept-Encoding"), ",") {
 		name, params, _ := strings.Cut(strings.TrimSpace(part), ";")
-		if strings.EqualFold(strings.TrimSpace(name), "gzip") {
-			return !strings.Contains(strings.ReplaceAll(params, " ", ""), "q=0") || strings.Contains(strings.ReplaceAll(params, " ", ""), "q=0.")
+		if strings.EqualFold(strings.TrimSpace(name), coding) {
+			params = strings.ReplaceAll(params, " ", "")
+			return !strings.Contains(params, "q=0") || strings.Contains(params, "q=0.")
 		}
 	}
 	return false
+}
+
+// pickEncoding is the compression to use for the answer: "br" when the client accepts it (browsers offer it on HTTPS only), else "gzip", else "".
+func pickEncoding(r *http.Request) string {
+	switch {
+	case accepts(r, "br"):
+		return "br"
+	case accepts(r, "gzip"):
+		return "gzip"
+	}
+	return ""
 }
