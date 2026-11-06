@@ -664,7 +664,6 @@ html[data-mode="dark"] { color-scheme: dark; }
   /* A unit missing the next match goes to the end of the list (the order is only visual: it comes back by itself). */
   .unit-away { order: 1; }
   .formation-editing .unit-away { order: 0; }
-  .eq-q { @apply ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-raised text-[10px] font-bold text-muted; }
   .rule-chip { @apply inline-flex items-center gap-1 rounded-md bg-raised px-2 py-0.5 text-xs text-fg; border-left: 3px solid var(--line); }
   .rule-chip[data-tip-title] { cursor: pointer; }
   .rule-path { border-left-color: var(--path, var(--muted)); } /* the kind of its path, inside .path-box */
