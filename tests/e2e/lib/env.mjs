@@ -52,9 +52,11 @@ export async function freePort() {
 }
 
 export function findChrome() {
+  const windows = [process.env.PROGRAMFILES, process.env['PROGRAMFILES(X86)'], process.env.LOCALAPPDATA].filter(Boolean)
+    .map((d) => join(d, 'Google', 'Chrome', 'Application', 'chrome.exe'));
   const c = [process.env.CHROME_PATH, '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser',
-    '/snap/bin/chromium'].filter(Boolean);
+    '/snap/bin/chromium', ...(process.platform === 'win32' ? windows : [])].filter(Boolean);
   const f = c.find((p) => existsSync(p));
   if (!f) throw new Error('No Chrome found: install Google Chrome or Chromium, or set CHROME_PATH');
   return f;

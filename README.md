@@ -25,7 +25,7 @@ You need:
 - Node 20+ and Chrome or Chromium, only for the browser tests.
 
 ```bash
-make get-tailwind                                  # once: download the Tailwind standalone binary (macOS and Linux, x64 and arm64)
+make get-tailwind                                  # once: download the Tailwind standalone binary (macOS and Linux, x64 and arm64; Windows x64)
 make user EMAIL=you@example.com NAME="Your Name"   # create an account; asks for a password
 make run                                           # build the CSS, start PostgreSQL and the server on http://localhost:8080
 ```

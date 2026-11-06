@@ -86,7 +86,7 @@ export default async function (h) {
     await open(eowyn);
     const want = await text(eowyn);
     await eowyn.click('#tts-body button', 'Copy to clipboard');
-    const got = await eowyn.page.evaluate(() => navigator.clipboard.readText());
+    const got = (await eowyn.page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n'); // the Windows clipboard turns line ends into CRLF
     assert.equal(got, want, 'the clipboard holds the list');
     assert.match(await eowyn.page.$eval('#tts-status', (e) => e.innerText), /Copied: 15 models/);
     // without the clipboard API the text is selected for Ctrl+C

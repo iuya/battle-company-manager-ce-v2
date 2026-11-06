@@ -73,7 +73,9 @@ async function login(base, user) {
   if (r.status !== 303 && r.status !== 302) throw new Error(`sign-in as ${user} failed: ${r.status}`);
 }
 
-const rssKB = (pid) => Number(execFileSync('ps', ['-o', 'rss=', '-p', String(pid)], { encoding: 'utf8' }).trim());
+const rssKB = (pid) => process.platform === 'win32'
+  ? Number(execFileSync('tasklist', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'], { encoding: 'utf8' }).split('","').pop().replace(/\D/g, '')) // "34.120 KB": the separator depends on the language
+  : Number(execFileSync('ps', ['-o', 'rss=', '-p', String(pid)], { encoding: 'utf8' }).trim());
 
 async function main() {
   const env = new Env();

@@ -147,8 +147,8 @@ It is a separate Node project (its own `package.json` and `package-lock.json`, `
 
 ### Setup (once)
 
-- macOS or Linux. CI runs the suite on Linux; the runner does not start on Windows, so check a change there in the browser and leave the suite to CI.
-- Node 20+ and a Chrome or Chromium, found in the usual places (set `CHROME_PATH` otherwise).
+- macOS, Linux or Windows ([collaborating.md](collaborating.md#7-working-on-windows)). CI runs the suite on Linux.
+- Node 20+ and a Chrome or Chromium, found in the usual places, on Windows the Google Chrome install folders (set `CHROME_PATH` otherwise).
 - `make e2e-install` runs `npm ci` in `tests/e2e`; `make e2e` does it when `node_modules` is missing.
 - The compose PostgreSQL must run; the target starts it (`make db-up`).
 

@@ -32,17 +32,15 @@ You need:
 - Node 20+ and Chrome or Chromium, for the browser tests.
 
 ```bash
-make get-tailwind                           # once: the Tailwind standalone binary (macOS and Linux, x64 and arm64)
+make get-tailwind                           # once: the Tailwind standalone binary (macOS and Linux, x64 and arm64; Windows x64)
 make user EMAIL=you@example.com NAME="You"  # an account (others join through an invitation link)
 make run                                    # the app on http://localhost:8080
 make demo                                   # destructive: empties the dev database and loads the demo world
 ```
 
-**Windows.** Use WSL2 (Ubuntu) with Docker Desktop's WSL integration, and clone inside the Linux file system; the whole suite runs there.
-
-Natively, `go vet`, `gofmt` and `go test ./...` run.
-If Application Control blocks the executables that `go run` builds, `make tools-bin` builds the tools into `tmp/bin` to run from there.
-Details and troubleshooting: [docs/collaborating.md](docs/collaborating.md#7-working-on-windows).
+**Windows.** The same `make` commands run natively from PowerShell or Git Bash, with Git for Windows, GNU Make, Docker Desktop and Chrome installed.
+Smart App Control blocks the executables Go builds, so with it on use WSL2 (Ubuntu).
+Set-up and troubleshooting: [docs/collaborating.md](docs/collaborating.md#7-working-on-windows).
 
 See the [README](README.md) for more and [docs/architecture.md](docs/architecture.md) for how the code is organised.
 

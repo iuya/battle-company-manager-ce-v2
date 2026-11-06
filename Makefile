@@ -1,6 +1,19 @@
 # Variables from .env (gitignored) are exported to the app; the defaults match compose.dev.yaml so a fresh clone just works.
 -include .env
 export
+# Native Windows: the recipes are POSIX shell, and from PowerShell or cmd make would run them with cmd.exe ("APP_ENV" is not recognized). Use Git for Windows' sh and tools
+# (bash, uname, mkdir, grep...), first in the PATH because the bash of System32 is WSL's. docs/collaborating.md, "Working on Windows".
+ifeq ($(OS),Windows_NT)
+ifneq ($(findstring ;,$(PATH)),)
+PATH := $(subst /mingw64/libexec/git-core,/usr/bin,$(shell git --exec-path));$(PATH)
+SHELL := sh.exe
+endif
+AIR_FLAGS = -c .air.windows.toml
+# A background job has no stdin there, and plain --watch stops when stdin closes.
+CSS_WATCH = --watch=always
+else
+CSS_WATCH = --watch
+endif
 # A GOROOT inherited from a long-running shell or IDE can name another Go version than go.mod asks for ("go1.26.2 does not match go1.27.3"); the go command finds its own root.
 unexport GOROOT
 # Development database (throwaway credentials, published on localhost). Production is the default compose.yaml: make up / prod-user.
@@ -60,7 +73,7 @@ prod-down:
 
 # make test-backup-restore   backup, restore and restore drill against a scratch PostgreSQL laid out like a server (Docker + Go; docs/backup-restore.md)
 test-backup-restore:
-	scripts/test-backup-restore.sh
+	bash scripts/test-backup-restore.sh
 
 # Drops the development database (all data) and starts an empty one; seed it again afterwards.
 db-reset:
@@ -72,7 +85,7 @@ run: css db-up
 
 # Rebuilds Go on change (air) and Tailwind in watch mode.
 dev: css db-up
-	./tailwindcss build -i $(CSS_IN) -o $(CSS_OUT) --watch & APP_ENV=development CSP_MODE=report STYLEGUIDE=true go tool air
+	./tailwindcss build -i $(CSS_IN) -o $(CSS_OUT) $(CSS_WATCH) & tw=$$!; trap 'kill $$tw 2>/dev/null' EXIT; APP_ENV=development CSP_MODE=report STYLEGUIDE=true go tool air $(AIR_FLAGS)
 
 css:
 	./tailwindcss build -i $(CSS_IN) -o $(CSS_OUT) --minified
@@ -87,7 +100,7 @@ restore:
 
 # make restore-drill [FILE=...]   restores the newest (or the given) dump into a scratch database, smoke-checks it, drops it
 restore-drill:
-	scripts/restore-drill.sh $(FILE)
+	bash scripts/restore-drill.sh $(FILE)
 
 # make vendor-check [ONLINE=1]   the vendored scripts match internal/web/vendor.json (ONLINE=1 also compares with the upstream files); docs/vendored-js.md
 vendor-check:
@@ -207,11 +220,12 @@ db-down:
 tidy:
 	go mod tidy
 
-# make get-tailwind [TAILWIND_VERSION=v4.3.3]   the Tailwind standalone binary for this machine (macOS arm64/x64, Linux x64/arm64) into ./tailwindcss; default: the latest release
+# make get-tailwind [TAILWIND_VERSION=v4.3.3]   the Tailwind standalone binary for this machine (macOS arm64/x64, Linux x64/arm64, Windows x64) into ./tailwindcss (.exe on Windows); default: the latest release
 TAILWIND_VERSION ?= latest
 get-tailwind:
-	@os=$$(uname -s); arch=$$(uname -m); \
+	@os=$$(uname -s); arch=$$(uname -m); bin=tailwindcss; \
 	case "$$os-$$arch" in \
+	  MINGW*-x86_64|MSYS*-x86_64) asset=windows-x64.exe; bin=tailwindcss.exe ;; \
 	  Darwin-arm64) asset=macos-arm64 ;; \
 	  Darwin-x86_64) asset=macos-x64 ;; \
 	  Linux-x86_64) asset=linux-x64 ;; \
@@ -221,4 +235,4 @@ get-tailwind:
 	if [ "$(TAILWIND_VERSION)" = latest ]; then url=https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-$$asset; \
 	else url=https://github.com/tailwindlabs/tailwindcss/releases/download/$(TAILWIND_VERSION)/tailwindcss-$$asset; fi; \
 	echo "get-tailwind: $$url"; \
-	curl -fsSL "$$url" -o tailwindcss && chmod +x tailwindcss
+	curl -fsSL "$$url" -o "$$bin" && chmod +x "$$bin"
