@@ -445,6 +445,10 @@ html[data-mode="dark"] { color-scheme: dark; }
   .tone-win { @apply text-success; }
   .tone-draw { @apply text-warn; }
   .tone-loss { @apply text-danger; }
+  /* A glossary term: the 1,245 articles of the page are laid out when they come near the screen (a term a link scrolls to is laid out by the jump),
+     which takes the layout and style of the page load and of every search from 123 ms to 24 ms. The unit cards (fetched on demand) are left out:
+     their text is read by innerText, which an unrendered article does not give. */
+  .term:not([data-unit]) { content-visibility: auto; contain-intrinsic-size: auto 220px; }
   /* A glossary term you jumped to through a link. */
   .term:target, .term-hl { @apply border-accent; box-shadow: 0 0 0 2px var(--accent); }
   /* the base comes first: the tone variants below (same specificity) must win over its background and text colour */

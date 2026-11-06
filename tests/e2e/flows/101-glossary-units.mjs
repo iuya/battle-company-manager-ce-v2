@@ -112,6 +112,23 @@ export default async function (h) {
     assert.deepEqual(at, { focus: 'u-cave-troll', hash: '#u-cave-troll' });
   });
 
+  await h.step('glossary terms: hovering a link to a term far down the page previews its definition (terms off screen are not laid out)', async () => {
+    await admin.goto(gl);
+    await admin.settle(300);
+    const far = await admin.page.evaluate(() => { // a term link on screen whose target is the last term of the page, far below
+      const last = [...document.querySelectorAll('article.term:not([data-unit])')].at(-1);
+      const a = document.createElement('a'); a.href = '#' + last.id; a.id = 'e2e-far-link'; a.textContent = 'far term'; a.style.cssText = 'position:fixed;top:120px;left:20px;z-index:50;background:#fff;color:#000';
+      document.querySelector('[x-data="glossary"]').prepend(a);
+      return { id: last.id, name: last.dataset.name, top: last.getBoundingClientRect().top, text: last.querySelector('[data-def]').textContent.trim().slice(0, 12) };
+    });
+    assert.ok(far.top > 5000, `the target is far from the screen (${far.top})`);
+    await admin.page.hover('#e2e-far-link');
+    await admin.page.waitForFunction((n) => [...document.querySelectorAll('[role=tooltip]')].some((t) => t.getBoundingClientRect().width && t.innerText.includes(n)), { timeout: 3000 }, far.name);
+    const tip = await admin.page.evaluate(() => [...document.querySelectorAll('[role=tooltip]')].find((t) => t.getBoundingClientRect().width).innerText);
+    assert.ok(tip.replace(far.name, '').trim().length > 20, `the preview holds the definition: ${tip}`);
+    assert.ok(tip.includes(far.text.split(/\s+/)[0]), `the preview starts with the definition: ${tip}`);
+  });
+
   for (const [scheme, contrast] of [['light', 'normal'], ['dark', 'normal'], ['light', 'high'], ['dark', 'high']]) {
     for (const w of SIZES) {
       await h.step(`glossary units at ${w} px, ${scheme}${contrast === 'high' ? ', high contrast' : ''}: no horizontal scroll, cards fit${w !== 768 && (contrast === 'normal' || scheme === 'dark') ? ', axe clean' : ''}`, async () => {
