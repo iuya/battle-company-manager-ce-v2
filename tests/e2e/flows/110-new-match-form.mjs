@@ -1,7 +1,7 @@
 // The new match form (docs/matches.md, "New match"), in the demo world's "Two bands" campaign: the
 // scenario card (empty until the player rolls it on the 3D dice, then Roll again, Choose another and One-off), the player's own companies marked and ordered, no side names or
 // roles, and the page at 360/768/1280 px in light and dark. Nothing is created: the form writes nothing until Create match.
-import { assert, campaignId, layout, SIZES } from '../lib/util.mjs';
+import { assert, campaignId, layout, rollNewScenario, SIZES } from '../lib/util.mjs';
 
 export default async function (h) {
   const eowyn = h.sessions.find((s) => s.email === 'eowyn@example.com') || await h.session('eowyn@example.com', { height: 1800 });
@@ -27,8 +27,8 @@ export default async function (h) {
     await eowyn.click('#new-scenario button', 'Roll the scenario');
     await eowyn.page.waitForSelector('#new-scenario canvas.dice-tray');
     assert.equal(await scenarioName(eowyn), '', 'the scenario is not decided while the dice roll');
-    await eowyn.page.waitForSelector('#new-scenario input[name=scenario-name]', { timeout: 15000 });
-    await eowyn.page.waitForFunction(() => /Rolled \d \(table \d\) and \d/.test(document.querySelector('#new-scenario').innerText), { timeout: 15000 });
+    await eowyn.page.waitForFunction(() => /Rolled \d \(table \d\) and \d|found no scenario/.test(document.querySelector('#new-scenario').innerText), { timeout: 30000 });
+    if (!(await scenarioName(eowyn))) await rollNewScenario(eowyn, 'Roll again'); // a pair the rules file places no scenario on: throw again
     assert.ok(await scenarioName(eowyn), 'a scenario once the dice stop');
     assert.ok(await eowyn.page.$('#new-scenario [data-scenario]'), 'the card shows it');
     assert.ok(await eowyn.page.$$eval('#new-scenario button', (bs) => ['Roll again', 'Choose another', 'One-off scenario'].every((t) => bs.some((b) => b.innerText.trim() === t))), 'Roll again, Choose another, One-off');
@@ -53,8 +53,7 @@ export default async function (h) {
 
   await h.step('new match: Roll again rolls both dice without writing anything; Choose another and One-off replace the scenario', async () => {
     for (let i = 0; i < 4; i++) {
-      await eowyn.click('#new-scenario button', 'Roll again');
-      await eowyn.page.waitForFunction(() => /Rolled \d \(table \d\) and \d/.test(document.querySelector('#new-scenario').innerText), { timeout: 15000 });
+      await rollNewScenario(eowyn, 'Roll again');
       assert.ok(await scenarioName(eowyn), 'a scenario after every roll');
     }
     assert.ok(eowyn.reqs.every((r) => !/> POST \/campaigns\/\d+\/matches$/.test(r)), 'no match was created');
@@ -67,8 +66,7 @@ export default async function (h) {
     await eowyn.click('#new-scenario button', 'One-off scenario');
     await eowyn.page.waitForSelector('#new-scenario-name');
     assert.equal(await eowyn.page.$eval('#new-scenario input[name=scenario-kind]', (i) => i.value), 'custom');
-    await eowyn.click('#new-scenario button', 'Roll instead');
-    await eowyn.page.waitForFunction(() => /Rolled \d \(table \d\) and \d/.test(document.querySelector('#new-scenario').innerText), { timeout: 15000 });
+    await rollNewScenario(eowyn, 'Roll instead');
     assert.ok(await scenarioName(eowyn), 'rolled again from the one-off form');
   });
 
@@ -80,8 +78,7 @@ export default async function (h) {
       assert.equal(await scenarioName(eowyn), '', 'empty card');
       assert.ok(await eowyn.noHScroll(), `no horizontal scroll at ${w}px ${scheme}`);
       await eowyn.page.screenshot({ path: `out/new-match-${w}-${scheme}.png`, fullPage: true });
-      await eowyn.click('#new-scenario button', 'Roll the scenario');
-      await eowyn.page.waitForSelector('#new-scenario input[name=scenario-name]', { timeout: 15000 });
+      await rollNewScenario(eowyn, 'Roll the scenario');
       assert.ok(await eowyn.noHScroll(), `no horizontal scroll with the rolled card at ${w}px ${scheme}`);
       await eowyn.page.screenshot({ path: `out/new-match-rolled-${w}-${scheme}.png`, fullPage: true });
     });

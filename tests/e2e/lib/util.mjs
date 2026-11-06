@@ -100,6 +100,19 @@ export async function decideATO(s) {
   await s.waitText('Against the Odds confirmed.');
 }
 
+// Rolls the new-match form's scenario card until it shows "Rolled N (table T) and N". With Shake the table on the browser throws physical
+// dice, and a pair the rules file places no scenario on leaves the card with a "roll again" note, so a roll can need another throw.
+// `first` is the text of the button that starts the first throw ("Roll the scenario", "Roll again", "Roll instead"); retries press the card's roll button.
+export async function rollNewScenario(s, first, { tries = 8, timeout = 30000 } = {}) {
+  for (let i = 0; i < tries; i++) {
+    if (i === 0) await s.click('#new-scenario button', first);
+    else await s.click('#new-scenario [data-roll-again]', '');
+    await s.page.waitForFunction(() => /Rolled \d \(table \d\) and \d|found no scenario/.test(document.querySelector('#new-scenario').innerText), { timeout });
+    if (/Rolled \d \(table \d\) and \d/.test(await s.page.$eval('#new-scenario', (e) => e.innerText))) return;
+  }
+  throw new Error(`the dice found no scenario in ${tries} throws`);
+}
+
 // Sets the scenario of an open match before the game: Change scenario, Choose another, then the scenario's button.
 export async function chooseScenario(s, name) {
   await s.click('main [data-change-scenario]', '').catch(() => {}); // a match without a scenario shows the choices at once
