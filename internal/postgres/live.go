@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -389,15 +390,11 @@ func (ls liveStore) UnitLog(ctx context.Context, campaignID, matchID, unitID int
 // entries lists the not-undone entries of a match of the campaign (core.ErrNotFound for another campaign's match) that the rest of the
 // query (more conditions and the order, its arguments from $2) selects.
 func (ls liveStore) entries(ctx context.Context, campaignID, matchID int64, rest string, args ...any) ([]core.LiveEntry, error) {
-	var exists bool
-	if err := ls.s.pool.QueryRow(ctx, `SELECT true FROM matches WHERE id = $1 AND campaign_id = $2`, matchID, campaignID).Scan(&exists); errors.Is(err, pgx.ErrNoRows) {
-		return nil, ls.s.notFoundOrArchived(ctx, campaignID)
-	} else if err != nil {
-		return nil, err
-	}
+	// The match is joined in, so a log with entries is one statement; only an empty answer needs the check that the match is the campaign's.
 	rows, err := ls.s.pool.Query(ctx, `
-		SELECT `+liveEntryColumns+` FROM match_live_log l LEFT JOIN users u ON u.id = l.by_user_id
-		 WHERE l.match_id = $1 AND l.undone_at IS NULL `+rest, append([]any{matchID}, args...)...)
+		SELECT `+liveEntryColumns+` FROM match_live_log l JOIN matches m ON m.id = l.match_id AND m.campaign_id = $`+strconv.Itoa(len(args)+2)+`
+		  LEFT JOIN users u ON u.id = l.by_user_id
+		 WHERE l.match_id = $1 AND l.undone_at IS NULL `+rest, append(append([]any{matchID}, args...), campaignID)...)
 	if err != nil {
 		return nil, err
 	}
@@ -410,7 +407,17 @@ func (ls liveStore) entries(ctx context.Context, campaignID, matchID int64, rest
 		}
 		out = append(out, e)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil || len(out) > 0 {
+		return out, err
+	}
+	rows.Close()
+	var exists bool
+	if err := ls.s.pool.QueryRow(ctx, `SELECT true FROM matches WHERE id = $1 AND campaign_id = $2`, matchID, campaignID).Scan(&exists); errors.Is(err, pgx.ErrNoRows) {
+		return nil, ls.s.notFoundOrArchived(ctx, campaignID)
+	} else if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // liveFeed implements the core live feed on one connection outside the pool.

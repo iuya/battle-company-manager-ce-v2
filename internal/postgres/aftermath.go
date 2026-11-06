@@ -251,13 +251,44 @@ func (as aftermathStore) Statuses(ctx context.Context, campaignID, matchID int64
 
 // Pending lists the aftermaths the company has to finish.
 func (as aftermathStore) Pending(ctx context.Context, campaignID, companyID int64) ([]core.AftermathRef, error) {
-	var name string
-	if err := as.s.pool.QueryRow(ctx, `SELECT name FROM companies WHERE id = $1 AND campaign_id = $2`, companyID, campaignID).Scan(&name); errors.Is(err, pgx.ErrNoRows) {
-		return nil, core.ErrNotFound
-	} else if err != nil {
+	// One statement: the company (its name, and ErrNotFound when it is not the campaign's) with its unfinished aftermaths, if any.
+	rows, err := as.s.pool.Query(ctx, `
+		SELECT c.name, x.id, x.number, x.status
+		  FROM companies c
+		  LEFT JOIN LATERAL (
+		        SELECT m.id, m.number, CASE WHEN m.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END AS status
+		          FROM match_side_companies sc
+		          JOIN matches m ON m.id = sc.match_id AND m.ended
+		          LEFT JOIN match_aftermaths a ON a.match_id = sc.match_id AND a.company_id = sc.company_id
+		         WHERE sc.company_id = c.id AND (CASE WHEN m.practice THEN 'done' ELSE COALESCE(a.status, 'pending') END) NOT IN ('done', 'waived')) x ON true
+		 WHERE c.id = $1 AND c.campaign_id = $2
+		 ORDER BY x.number`, companyID, campaignID)
+	if err != nil {
 		return nil, err
 	}
-	return pendingRefs(ctx, as.s.pool, companyID, name)
+	defer rows.Close()
+	var out []core.AftermathRef
+	found := false
+	for rows.Next() {
+		found = true
+		var name string
+		var matchID, number *int64
+		var status *string
+		if err := rows.Scan(&name, &matchID, &number, &status); err != nil {
+			return nil, err
+		}
+		if matchID == nil {
+			continue
+		}
+		out = append(out, core.AftermathRef{CompanyID: companyID, CompanyName: name, MatchID: *matchID, MatchNumber: int(*number), Status: core.AftermathStatus(*status)})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, core.ErrNotFound
+	}
+	return out, nil
 }
 
 // Started says whether a company has started the aftermath of the match or has it waived.
