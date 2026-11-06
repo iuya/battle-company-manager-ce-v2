@@ -1,6 +1,7 @@
 {
   "name": "dice3d",
   "private": true,
+  "type": "module",
   "description": "Builds internal/web/static/js/dice3d.js: three.js and cannon-es cut down to what the 3D dice use",
   "scripts": { "build": "node build.mjs" },
   "dependencies": { "cannon-es": "0.20.0", "three": "0.160.1" },

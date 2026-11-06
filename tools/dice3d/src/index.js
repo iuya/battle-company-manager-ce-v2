@@ -15,6 +15,8 @@ import {
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { World, Body, Box, Plane, Vec3, Material, ContactMaterial, Quaternion as CQuaternion } from 'cannon-es';
 
+import { settle, calmBody, CAP } from './settle.js';
+
 const rand = (a, b) => a + Math.random() * (b - a);
 const STEP = 1 / 120;            // physics step, small so that fast dice do not pass through the floor
 const TABLE_W = 10;
@@ -309,7 +311,7 @@ class Dice3DTray {
   // The browser decides: the physics run in front of the player and the top face is read when everything has stopped.
   live() {
     this.mode = 'live';
-    this.last = performance.now(); this.acc = 0; this.elapsed = 0;
+    this.last = performance.now(); this.acc = 0; this.elapsed = 0; this.kicks = 0;
     this.raf = requestAnimationFrame(t => this.tick(t));
   }
 
@@ -319,14 +321,17 @@ class Dice3DTray {
     while (this.acc >= STEP) { this.drag(Math.round(this.elapsed * 120)); this.world.step(STEP); this.acc -= STEP; }
     this.sync();
     this.stage.renderer.render(this.stage.scene, this.stage.camera);
-    const calm = this.settled() || this.elapsed > 12;
+    const calm = this.bodies.every(b => calmBody(b.sleepState, b.velocity.lengthSquared() + b.angularVelocity.lengthSquared())) || this.elapsed > CAP;
     if (calm && this.elapsed > 0.8) {
       const ups = this.bodies.map(b => this.upFace(b.quaternion));
-      const stacked = this.bodies.filter(b => b.position.y > 0.75);
-      if (stacked.length && this.elapsed < 12) { // a die lying on another one is knocked off
-        for (const b of stacked) { b.wakeUp(); b.velocity.set(rand(-3, 3), 6, rand(-1.2, 1.2)); b.angularVelocity.set(rand(-10, 10), rand(-10, 10), rand(-10, 10)); }
-        this.elapsed = Math.min(this.elapsed, 1.5);
-      } else if (ups.every(u => u.dot > 0.95) || this.elapsed > 12) { this.finish(ups.map(u => baseLabels(this.faces)[u.index])); return; }
+      const { kick, done } = settle(ups.map((u, i) => ({ dot: u.dot, y: this.bodies[i].position.y })), this.kicks, this.elapsed);
+      if (done) { this.finish(ups.map(u => baseLabels(this.faces)[u.index])); return; }
+      for (const i of kick) { // a die lying on another one, or leaning on it, is knocked off and falls flat again
+        const b = this.bodies[i];
+        b.wakeUp(); b.velocity.set(rand(-3, 3), 6, rand(-1.2, 1.2)); b.angularVelocity.set(rand(-10, 10), rand(-10, 10), rand(-10, 10));
+      }
+      this.kicks++;
+      this.elapsed = Math.min(this.elapsed, 1.5);
     }
     this.raf = requestAnimationFrame(t => this.tick(t));
   }
@@ -341,6 +346,7 @@ class Dice3DTray {
       b.angularVelocity.set(rand(-24, 24), rand(-24, 24), rand(-24, 24));
     }
     this.elapsed = Math.min(this.elapsed, 4); // a shaken table gets time to settle again
+    this.kicks = 0;
     this.canvas.classList.remove('dice-shake');
     void this.canvas.offsetWidth;
     this.canvas.classList.add('dice-shake');

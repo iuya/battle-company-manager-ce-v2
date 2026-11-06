@@ -26,7 +26,7 @@ LISTEN_HOST ?= 127.0.0.1
 CSS_IN  = ./tailwind.css
 CSS_OUT = ./internal/web/static/app.css
 
-.PHONY: lint hooks hooks-test deploy-test validate tools-bin concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs docs-check migrate up up-app prod-user prod-down test-backup-restore backuprestore restore-drill vendor-check dice3d user grant seed demo fuzz check-ruleset ruleset-reference db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
+.PHONY: dice3d-test lint hooks hooks-test deploy-test validate tools-bin concept-graph e2e e2e-groups e2e-check-groups e2e-enforce e2e-install e2e-clean perf test-db check-env-docs docs-check migrate up up-app prod-user prod-down test-backup-restore backuprestore restore-drill vendor-check dice3d user grant seed demo fuzz check-ruleset ruleset-reference db-reset run dev css css-watch generate audit test test-integration db-up db-down tidy get-tailwind
 
 # make user EMAIL=you@example.com NAME="Your Name"   (asks for the password)
 user: db-up
@@ -110,6 +110,10 @@ vendor-check:
 dice3d:
 	cd tools/dice3d && npm install --no-audit --no-fund && node build.mjs
 
+# The settle logic of a live throw (tools/dice3d/src/settle.js), in node: no browser, no npm install; part of make test.
+dice3d-test:
+	node --test tools/dice3d/settle.test.mjs
+
 # make audit [OUT=tmp/audit]   one markdown report per Battle Company plus an index with anomaly flags (docs/definitions.md)
 audit:
 	go run ./cmd/server audit $(if $(OUT),--out "$(OUT)")
@@ -156,7 +160,7 @@ lint:
 	@out=$$(go tool deadcode -test ./...) || exit 1; if [ -n "$$out" ]; then echo "$$out"; echo "deadcode: unreachable functions above (delete them, or use them)"; exit 1; fi
 
 # The Dockerfile build does not run lint: the image only compiles; the gate is make test, the pre-push hook and CI.
-test: lint e2e-check-groups docs-check
+test: lint e2e-check-groups docs-check dice3d-test
 	go test ./...
 
 # Runs everything, including the postgres integration tests, against the bcm_test database of the compose PostgreSQL: the tests empty it, the development database (bcm) is never touched.
