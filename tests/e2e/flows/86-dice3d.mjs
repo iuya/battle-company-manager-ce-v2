@@ -1,8 +1,9 @@
 // The dice animation (static/js/dice.js, and the 3D dice of static/js/dice3d.js that load on the first roll): headless Chrome has
-// WebGL through SwiftShader (the harness passes the flags), so the real 3D path runs. Server-rolled dice are random at run time,
-// so the checks compare what the server sent (data-roll) with what the animation reports and what the page then shows; the
+// WebGL through SwiftShader (the harness passes the flags), so the real 3D path runs. The recruit roll of the server is scripted to a 4 (the dev-only dice
+// endpoint); the checks compare what the server sent (data-roll) with what the animation reports and what the page then shows; the
 // style guide's dice demo takes values decided beforehand and is read through a spy on throwDice.
-import { assert, campaignId, layout, SIZES, DICE_WAIT, waitStopped } from '../lib/util.mjs';
+import { assert, campaignId, layout, SIZES, DICE_WAIT, waitStopped, scriptDice } from '../lib/util.mjs';
+import { E2E_DICE_TOKEN } from '../lib/env.mjs';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const PANEL = '#modal-body [x-data="rollPanel"]';
@@ -48,12 +49,13 @@ export default async function (h) {
     await s.click('main button', 'Recruit');
     await s.page.waitForSelector(PANEL);
     await sampler(s);
+    await scriptDice(h, [4], E2E_DICE_TOKEN); // diceSeed: the recruit result is decided here, so what follows never depends on the dice
     const t0 = Date.now();
     await s.click('#modal-body button', 'Roll ·');
     return { cid, t0 };
   };
 
-  // Ends the recruit in progress whatever the dice gave: confirm, choose a lower result, or roll on the special chart.
+  // Ends the recruit in progress (the scripted 4): confirm, or choose a lower result.
   const finishRecruit = async (s) => {
     const trace = [];
     for (let i = 0; i < 5; i++) {
@@ -63,12 +65,10 @@ export default async function (h) {
         if (q('form[action$="/recruit/lower"]')) return 'lower';
         if (q('form[action$="/recruit/choose"]')) return 'choose';
         if (q('form[action$="/recruit/officers"]')) return 'officers';
-        const b = [...document.querySelectorAll('#modal-body form[action$="/recruit/roll"] button')].find((x) => /special chart/.test(x.innerText));
-        return b ? 'special' : 'done';
+        return 'done';
       });
       trace.push(kind + ' | ' + await s.page.evaluate(() => (document.querySelector('#modal-body') || document.body).innerText.replace(/\s+/g, ' ').slice(0, 160)));
       if (kind === 'done' || kind === 'officers') return kind;
-      if (kind === 'special') { await sampler(s); await s.click('#modal-body button', 'Roll on the special chart'); await waitStopped(s, PANEL); continue; }
       await s.page.$$eval(`#modal-body form[action$="/recruit/${kind}"] input[type=radio]:not(:disabled)`, (r) => { const seen = new Set(); r.forEach((x) => { if (!seen.has(x.name) && !r.some((y) => y.name === x.name && y.checked)) x.click(); seen.add(x.name); }); });
       await s.click(`#modal-body form[action$="/recruit/${kind}"] button.btn-primary`, '');
     }
@@ -83,7 +83,7 @@ export default async function (h) {
     assert.equal(st.tray, tray, `the ${tray} tray is used`);
     assert.equal(st.rolling, false);
     const sent = Number(await s.page.$eval(PANEL, (e) => e.dataset.roll));
-    assert.ok(sent >= 1 && sent <= 6, `the server sent a die (${sent})`);
+    assert.equal(sent, 4, 'the server sent the scripted die');
     assert.deepEqual(st.dice, [sent], 'the animation reports the number the server sent');
     await s.settle(200);
     const text = await s.page.$eval(PANEL, (e) => e.innerText);

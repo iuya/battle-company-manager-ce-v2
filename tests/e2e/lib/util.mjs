@@ -153,3 +153,11 @@ export async function chooseScenario(s, name) {
   await s.click('main #scenario button', name);
   await s.waitText(name);
 }
+
+// Queues the numbers the server rolls next through the dev-only /_e2e/dice (docs/testing.md, "Scripting the server's dice"); a flow that
+// needs a given result calls it right before the click that rolls (the campaign must have the server roll the dice).
+export async function scriptDice(h, next, token) {
+  const res = await fetch(h.base + '/_e2e/dice', { method: 'POST', headers: { 'X-E2E-Dice-Token': token, 'Content-Type': 'application/json' }, body: JSON.stringify({ next }) });
+  assert.ok(res.ok, `the dice script was refused (${res.status})`);
+  assert.equal((await res.json()).queued, next.length);
+}
