@@ -359,8 +359,9 @@ depends on how long or how a throw ends.
 - There is no retry. The shipped rules place a scenario on all 36 pairs of dice (`TestScenarioByRollsUsesTheRealFile`), so the
   "found no scenario" note cannot show and a flow asserts it does not; a second throw would only hide the first one's failure.
 - Prefer dice the flow decides: the style guide's "values decided beforehand" switch (`serverValues`) and the campaign "Settings: the
-  server rolls every die" read the number the server sent and compare it with what the tray reports. A dev-only server endpoint that
-  fixes the next roll is planned; its marker in a flow will be `diceSeed`.
+  server rolls every die" read the number the server sent and compare it with what the tray reports. The dev-only server endpoint
+  (`/_e2e/dice`) fixes the next roll: a flow queues it with `scriptDice` (`lib/util.mjs`) right before the click, and `diceSeed` in the
+  loop (or beside the click) tells the lint the dice are decided. `86-dice3d` rolls its recruit that way, a 4 every time.
 - The lint in `lib/groups.mjs` (`lintDiceLoops`, run by `make e2e-check-groups`, part of `make test`) fails on a `for`/`while` whose body
   clicks a dice button (Roll again, Roll the scenario, Roll D3, the special chart, `rollNewScenario`, `throwDice`) without `serverValues`
   or `diceSeed` in the loop. The few loops that are fine as they are are in `DICE_LOOP_ALLOWED`, each with its reason; an entry that

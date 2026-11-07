@@ -94,9 +94,20 @@ export class Env {
     const exists = psql(`SELECT 1 FROM pg_database WHERE datname='${tpl}'`).trim() === '1';
     if (!exists || process.env.E2E_RESEED) {
       log(`seeding the demo world into ${tpl} (a few minutes, cached for later runs)`);
+      // Seeded under another name and renamed when done: a seeding that fails or is killed leaves only the scratch name (dropped by the
+      // next run), never a half-seeded template that a later run would copy.
+      const part = tpl + '_seeding';
       psql(`DROP DATABASE IF EXISTS ${tpl}`);
-      psql(`CREATE DATABASE ${tpl}`);
-      sh(this.bin, ['seed', '--world'], { env: { ...process.env, DATABASE_URL: dbUrl(tpl) }, maxBuffer: 1 << 28 });
+      psql(`DROP DATABASE IF EXISTS ${part}`);
+      psql(`CREATE DATABASE ${part}`);
+      try {
+        sh(this.bin, ['seed', '--world'], { env: { ...process.env, DATABASE_URL: dbUrl(part) }, maxBuffer: 1 << 28 });
+        psql(`ALTER DATABASE ${part} RENAME TO ${tpl}`);
+      } catch (e) {
+        try { psql(`DROP DATABASE IF EXISTS ${part}`); } catch {}
+        this.unlock();
+        throw e;
+      }
     }
     this.tpl = tpl;
     this.db = `bcm_e2e_run_${process.pid}`;

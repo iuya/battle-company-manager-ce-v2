@@ -39,7 +39,6 @@ const DICE_SOURCE = /serverValues|diceSeed/;
 // "<flow>: <dice click text of the loop>" -> why it is fine as it is.
 export const DICE_LOOP_ALLOWED = {
   '110-new-match-form: rollNewScenario(': 'two plain throws, each waited for in full; the scenario shown is read, never compared with a number (no retry, no pair is needed)',
-  '86-dice3d: Roll on the special chart': 'finishRecruit ends the recruit whatever the server rolled; each pass takes the branch the page offers and the loop is bounded at 5',
 };
 
 // The text of every `for`/`while` statement of `src` (header and body), found by matching brackets; strings and comments are not parsed,
