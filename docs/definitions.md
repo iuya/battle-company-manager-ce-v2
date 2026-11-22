@@ -538,6 +538,8 @@ They are in `tools/internal/glossaryref` (hand-transcribed), and `tools/validate
 
 The validator requires the complete grid, only those values, and monotonicity: never easier as Defence rises, never harder as Strength rises.
 
+A glossary term may also carry `table` (`columns`, `rows`): a chart the glossary page shows as a table in place of its text (the Missile Weapon Chart; the text stays for search and the previews). `tools/internal/glossaryref` cuts it from the flattened rulebook text and reports a row it cannot read.
+
 ## The concept graph file
 
 `definitions/concepts/concept_graph.json` (schema `concept_graph.schema.json`) is built by `go run ./tools/conceptgraph` from the shipped triple.

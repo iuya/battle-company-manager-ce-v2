@@ -197,6 +197,41 @@ type Entry struct {
 	Summarized bool      `json:"summarized,omitempty"`
 	Sources    []Source  `json:"sources"`
 	See        *[]string `json:"see,omitempty"`
+	Table      *Table    `json:"table,omitempty"`
+}
+
+// Table is a chart of a term, shown as a table: the column titles and the rows (docs/definitions.md, "Reference tables").
+type Table struct {
+	Columns []string   `json:"columns"`
+	Rows    [][]string `json:"rows"`
+}
+
+var chartRangeRe = regexp.MustCompile(`^\d+["”]$`)
+
+// missileChart cuts the flattened Missile Weapon Chart ("Name Range Strength Bow 24" 2 Crossbow 24" 4 ...") into its rows.
+func missileChart(def string) (*Table, error) {
+	f := strings.Fields(def)
+	if len(f) < 3 || strings.Join(f[:3], " ") != "Name Range Strength" {
+		return nil, fmt.Errorf("does not start with the column titles")
+	}
+	t := &Table{Columns: []string{"Name", "Range", "Strength"}}
+	var name []string
+	for i := 3; i < len(f); i++ {
+		if !chartRangeRe.MatchString(f[i]) {
+			name = append(name, f[i])
+			continue
+		}
+		if len(name) == 0 || i+1 >= len(f) || strings.Trim(f[i+1], "0123456789") != "" {
+			return nil, fmt.Errorf("a row is not a name, a range and a Strength: near %q", f[i])
+		}
+		t.Rows = append(t.Rows, []string{strings.Join(name, " "), f[i], f[i+1]})
+		name = nil
+		i++
+	}
+	if len(name) > 0 || len(t.Rows) == 0 {
+		return nil, fmt.Errorf("text left over after the last row: %q", name)
+	}
+	return t, nil
 }
 
 type referenceDoc struct {
@@ -373,6 +408,13 @@ func BuildGlossary(o BuildOptions) (BuildResult, error) {
 			} else {
 				problems = append(problems, t.Name+": needs a summary in tools/glossary_summaries.json (verbatim text kept for now)")
 			}
+		}
+		if t.Chart {
+			tb, err := missileChart(uncapped[t.Name])
+			if err != nil {
+				problems = append(problems, t.Name+": "+err.Error())
+			}
+			e.Table = tb
 		}
 		e.Sources = sources
 		entries = append(entries, e)
