@@ -254,11 +254,12 @@ type GlossaryTerm struct {
 	Name       string
 	Category   string
 	Aliases    []string
-	Paragraphs [][]Segment // the definition, paragraph by paragraph
-	See        []TermRef   // related terms
-	Pages      []int       // rulebook pages it comes from
-	Path       *PathTable  // for a path: its limits and chart, as tables
-	Source     string      // for terms made from a campaign's rules files: the file they come from
+	Paragraphs [][]Segment    // the definition, paragraph by paragraph
+	See        []TermRef      // related terms
+	Pages      []int          // rulebook pages it comes from
+	Path       *PathTable     // for a path: its limits and chart, as tables
+	Table      *GlossaryTable // for a chart term (the Missile Weapon Chart): its rows as a table
+	Source     string         // for terms made from a campaign's rules files: the file they come from
 
 	summaries *sync.Map // Summary(max) by max, shared by the copies of the term; nil on a term not made by BuildGlossaryWith
 }
@@ -272,6 +273,12 @@ type Segment struct {
 }
 
 type TermRef struct{ ID, Name string }
+
+// GlossaryTable is a chart of a term: the column titles and the rows, every row as long as the titles.
+type GlossaryTable struct {
+	Columns []string
+	Rows    [][]string
+}
 
 // PathTable is a path's limits and level-up chart; each result is cut into text and links to other terms.
 type PathTable struct {
@@ -328,8 +335,9 @@ func BuildGlossaryWith(info RulesetInfo, content []byte, extras []ExtraTerm) (Gl
 		Sources    []struct {
 			RulebookPage int `json:"rulebookPage"`
 		} `json:"sources"`
-		From string    `json:"-"`
-		Path *PathData `json:"-"`
+		Table *GlossaryTable `json:"table"`
+		From  string         `json:"-"`
+		Path  *PathData      `json:"-"`
 	}
 	var doc struct {
 		Terms []rawTerm `json:"terms"`
@@ -476,6 +484,7 @@ func BuildGlossaryWith(info RulesetInfo, content []byte, extras []ExtraTerm) (Gl
 		for _, s := range t.Sources {
 			term.Pages = append(term.Pages, s.RulebookPage)
 		}
+		term.Table = t.Table
 		if t.Path != nil {
 			table := &PathTable{PathDice: t.Path.PathDice}
 			for _, l := range t.Path.Limits {

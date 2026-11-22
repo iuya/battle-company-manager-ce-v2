@@ -259,3 +259,20 @@ func TestMountChipAddsTheProfile(t *testing.T) {
 		t.Errorf("a name that is no mount changed: %+v", got)
 	}
 }
+
+// A chart term (the Missile Weapon Chart) is a table, one row per weapon, and not a run of words.
+func TestGlossaryChartTermIsATable(t *testing.T) {
+	f := newFixture(t, Config{})
+	g := sampleGlossary()
+	g.Terms = append(g.Terms, core.GlossaryTerm{ID: "missile-weapon-chart", Name: "Missile Weapon Chart", Category: "weapons",
+		Paragraphs: [][]core.Segment{{{Text: "Name Range Strength Bow 24\" 2"}}},
+		Table:      &core.GlossaryTable{Columns: []string{"Name", "Range", "Strength"}, Rows: [][]string{{"Bow", "24\"", "2"}, {"Elf bow", "24\"", "3"}}}})
+	f.rs.EXPECT().Default(gomock.Any(), core.KindGlossary).Return(g.Info, nil)
+	f.gl.EXPECT().Default(gomock.Any()).Return(g, nil)
+	body := f.do(f.signedIn(httptest.NewRequest("GET", "/glossary", nil))).Body.String()
+	for _, want := range []string{`data-term-table`, `<th scope="col"`, `<th scope="row" class="px-3 py-1.5 text-left font-medium">Elf bow</th>`, `<td class="px-3 py-1.5 tabular-nums">3</td>`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the chart term lacks %q", want)
+		}
+	}
+}

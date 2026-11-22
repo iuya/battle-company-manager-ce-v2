@@ -180,7 +180,7 @@ var termList = []Term{
 	{Name: "Sling", Category: "weapons", Headings: []string{"SLING"}, Aliases: []string{"Slingshot", "Slings"}, See: []string{"Missile Weapons", "Moving and Shooting"}},
 	{Name: "Throwing Weapons", Category: "weapons", Headings: []string{"THROWING WEAPONS"}, Aliases: []string{"Throwing Weapon"}, See: []string{"Missile Weapons", "Charging", "Whip", "Missile Weapon Chart"}, Synth: true},
 	{Name: "Throwing Spear", Category: "weapons", Aliases: []string{"Throwing Spears", "throwing spear"}, Paragraphs: []ParagraphRule{{`^Throwing spears follow the same rules as throwing weapons`, 0}}, See: []string{"Throwing Weapons", "Missile Weapon Chart"}},
-	{Name: "Missile Weapon Chart", Category: "weapons", Headings: []string{"MISSILE WEAPON CHART"}, Aliases: []string{"Missile Weapon chart"}, See: []string{"Missile Weapons", "Rolling to Wound"}},
+	{Name: "Missile Weapon Chart", Category: "weapons", Headings: []string{"MISSILE WEAPON CHART"}, Aliases: []string{"Missile Weapon chart"}, See: []string{"Missile Weapons", "Rolling to Wound"}, Chart: true},
 	{Name: "Wargear", Category: "wargear", Headings: []string{"WARGEAR"}, See: []string{"Equipment", "Armour", "Shields", "The One Ring"}, First: 1},
 	{Name: "Equipment", Category: "wargear", Headings: []string{"EQUIPMENT"}, See: []string{"Banner", "Elven Cloak", "War Drum", "War Horn", "Wargear"}, First: 1},
 	{Name: "Banner", Category: "wargear", Headings: []string{"BANNER"}, Aliases: []string{"Banners", "banner"}, See: []string{"Duel Roll", "Who Re-rolls First?", "War Horn", "War Drum"}, Synth: true},

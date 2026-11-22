@@ -26,6 +26,7 @@ type Term struct {
 	See        []string
 	First      int
 	Synth      bool
+	Chart      bool // the text is a flattened chart (name, then columns): the entry also carries it as a table
 }
 
 // Source is a place in the rulebook.

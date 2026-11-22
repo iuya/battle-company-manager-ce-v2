@@ -182,7 +182,7 @@
   {{end}}
 
   {{/* Preview of the rule, item or glossary term under the pointer. */}}
-  <div x-ref="tip" x-show="tip.show" x-cloak role="tooltip" class="card pointer-events-none fixed z-[60] max-h-[calc(100vh-1rem)] w-80 max-w-[calc(100vw-1rem)] overflow-hidden !p-3 text-sm shadow-lg" :style="`left: ${tip.x}px; top: ${tip.y}px`">
+  <div x-ref="tip" x-show="tip.show" x-cloak role="tooltip" class="card pointer-events-none fixed z-[60] max-h-[calc(100vh-1rem)] w-80 max-w-[calc(100vw-1rem)] overflow-hidden !p-3 text-sm shadow-lg" :style="`left: ${tip.x}px; top: ${tip.y}px; visibility: ${tip.placed ? 'visible' : 'hidden'}`">
     <p class="font-heading text-lg font-bold leading-tight" x-text="tip.title"></p>
     <p class="text-xs text-muted" x-show="tip.meta" x-text="tip.meta"></p>
     <dl x-show="tip.stats.length" x-cloak class="mt-2 grid auto-cols-fr grid-flow-col overflow-hidden rounded-lg border border-line text-center">

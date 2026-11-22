@@ -3304,7 +3304,91 @@
       "see": [
         "Missile Weapons",
         "Rolling to Wound"
-      ]
+      ],
+      "table": {
+        "columns": [
+          "Name",
+          "Range",
+          "Strength"
+        ],
+        "rows": [
+          [
+            "Blowpipe",
+            "12\"",
+            "2"
+          ],
+          [
+            "Bow",
+            "24\"",
+            "2"
+          ],
+          [
+            "Crossbow",
+            "24\"",
+            "4"
+          ],
+          [
+            "Dwarf bow",
+            "18\"",
+            "3"
+          ],
+          [
+            "Dwarf longbow",
+            "24\"",
+            "3"
+          ],
+          [
+            "Elf bow",
+            "24\"",
+            "3"
+          ],
+          [
+            "Esgaroth bow",
+            "24\"",
+            "3"
+          ],
+          [
+            "Great bow",
+            "24\"",
+            "4"
+          ],
+          [
+            "Longbow",
+            "24\"",
+            "3"
+          ],
+          [
+            "Orc bow",
+            "18\"",
+            "2"
+          ],
+          [
+            "Short bow",
+            "18\"",
+            "2"
+          ],
+          [
+            "Sling",
+            "12\"",
+            "1"
+          ],
+          [
+            "Throwing spear",
+            "8\"",
+            "3"
+          ],
+          [
+            "Throwing weapon",
+            "6\"",
+            "3"
+          ],
+          [
+            "Uruk-hai bow",
+            "18\"",
+            "3"
+          ]
+        ]
+      }
     },
     {
       "name": "Wargear",
