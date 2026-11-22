@@ -29,9 +29,9 @@
       </div>
       {{with .Aliases}}<p class="text-sm text-muted">Also: {{join . ", "}}</p>{{end}}
       {{if .Table}}
-      <div class="mt-3 overflow-x-auto rounded-lg border border-line" tabindex="0" role="region" aria-label="{{.Name}}" data-term-table>
-        <table class="w-full text-sm">
-          <thead><tr class="bg-surface text-left">{{range .Table.Columns}}<th scope="col" class="px-3 py-1.5 text-xs font-semibold uppercase text-muted">{{.}}</th>{{end}}</tr></thead>
+      <div class="mt-3 w-fit max-w-full overflow-x-auto rounded-lg border border-line" tabindex="0" role="region" aria-label="{{.Name}}" data-term-table>
+        <table class="text-sm">
+          <thead><tr class="bg-surface text-left">{{range .Table.Columns}}<th scope="col" class="whitespace-nowrap px-3 py-1.5 text-xs font-semibold uppercase text-muted sm:pr-12">{{.}}</th>{{end}}</tr></thead>
           <tbody>{{range .Table.Rows}}<tr class="border-t border-line">{{range $i, $c := .}}{{if eq $i 0}}<th scope="row" class="px-3 py-1.5 text-left font-medium">{{$c}}</th>{{else}}<td class="px-3 py-1.5 tabular-nums">{{$c}}</td>{{end}}{{end}}</tr>{{end}}</tbody>
         </table>
       </div>
