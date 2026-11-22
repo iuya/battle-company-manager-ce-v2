@@ -157,7 +157,7 @@
   {{end}}
 
   {{/* The name and text of the rule, item or action under the pointer. */}}
-  <div x-ref="tip" x-show="tip.show" x-cloak role="tooltip" class="card pointer-events-none fixed z-50 max-h-[calc(100vh-1rem)] w-80 max-w-[calc(100vw-1rem)] overflow-hidden !p-3 text-sm shadow-lg" :style="`left: ${tip.x}px; top: ${tip.y}px`">
+  <div x-ref="tip" x-show="tip.show" x-cloak role="tooltip" class="card pointer-events-none fixed z-50 max-h-[calc(100vh-1rem)] w-80 max-w-[calc(100vw-1rem)] overflow-hidden !p-3 text-sm shadow-lg" :style="`left: ${tip.x}px; top: ${tip.y}px; visibility: ${tip.placed ? 'visible' : 'hidden'}`">
     <p class="font-heading text-lg font-bold leading-tight" x-text="tip.title"></p>
     <p class="text-xs text-muted" x-show="tip.meta" x-text="tip.meta"></p>
     <p class="mt-1 whitespace-pre-line" x-text="tip.text"></p>

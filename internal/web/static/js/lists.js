@@ -23,7 +23,7 @@ function tipTexts(el) {
 // "hover" (the same as a hover: nothing on touch screens), "always" or "visible" (only :focus-visible, so a tap is not taken for it).
 // A component with other elements overrides tipTarget, and one with other content overrides tipContent, which returns the fields of tip or null for no tooltip.
 window.tipMixin = ({ delay = 150, selector = '[data-tip-title]', focus = 'hover', place = tipPlace, extra = {} } = {}) => ({
-  tip: { show: false, x: 0, y: 0, title: '', meta: '', text: '', ...extra },
+  tip: { show: false, placed: false, x: 0, y: 0, title: '', meta: '', text: '', ...extra },
   tipTimer: null,
   tipFor: null, // the element the tooltip was last shown for
   tipTarget(node) { return node.closest && node.closest(selector); },
@@ -38,16 +38,16 @@ window.tipMixin = ({ delay = 150, selector = '[data-tip-title]', focus = 'hover'
     this.tipTimer = setTimeout(() => this.showTip(el), delay);
   },
   out(e) { if (this.tipTarget(e.target)) this.hideTip(); },
-  hideTip() { clearTimeout(this.tipTimer); this.tip.show = false; },
+  hideTip() { clearTimeout(this.tipTimer); this.tip.show = false; this.tip.placed = false; },
   async showTip(el) {
     const content = this.tipContent(el);
     if (!content) return;
     this.tipFor = el;
-    this.tip = { show: true, x: 0, y: 0, ...content };
+    this.tip = { show: true, placed: false, x: 0, y: 0, ...content }; // measured while invisible: it is never seen at 0,0
     await this.$nextTick();
     const box = this.$refs.tip;
     if (!box || !el.isConnected) { this.tip.show = false; return; } // the page was swapped while the tip waited
-    Object.assign(this.tip, place(box, el));
+    Object.assign(this.tip, place(box, el), { placed: true });
   },
 });
 
