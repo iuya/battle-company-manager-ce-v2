@@ -85,7 +85,7 @@ export default async function (h, { only }) {
     await search(admin, 'pippin@example.com');
     const id = await rowId(admin, 'pippin@example.com');
     await openRow(admin, id);
-    const sw = await admin.page.$$eval(`#user-${id} input[role=switch]`, (i) => i.map((x) => x.name));
+    const sw = await admin.page.$$eval(`#user-${id} form[hx-post$="/permissions"] input[role=switch]`, (i) => i.map((x) => x.name)); // the permission form; the read-only card has its own switch (flow 118)
     assert.deepEqual(sw, ['role', 'can_create']);
     assert.ok(!(await admin.page.evaluate(() => document.body.innerHTML.includes('value="superuser"'))), 'no Superuser option');
     await search(admin, 'admin@example.com');
