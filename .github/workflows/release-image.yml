@@ -235,6 +235,12 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Download the software bills of materials
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          path: sbom
+          pattern: sbom-*
+          merge-multiple: true
       - name: Create the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -248,3 +254,14 @@ jobs:
           flags=(--latest)
           case "$TAG" in *-*) flags=(--prerelease --latest=false) ;; esac
           gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$notes" "${flags[@]}"
+      # The SBOMs of the two images (CycloneDX, made by the build jobs from the image that passed the smoke test). Idempotent: a re-run of
+      # this job replaces them.
+      - name: Attach the software bills of materials
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          ls -l sbom
+          test "$(ls sbom/*.cdx.json | wc -l)" = 2 || { echo "::error::expected the SBOMs of two platforms"; exit 1; }
+          for f in sbom/*.cdx.json; do jq -e '.bomFormat == "CycloneDX" and (.components | length) > 0' "$f" >/dev/null || { echo "::error::$f is not a CycloneDX SBOM with components"; exit 1; }; done
+          gh release upload "$TAG" sbom/*.cdx.json --clobber

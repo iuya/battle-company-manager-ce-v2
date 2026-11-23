@@ -56,7 +56,7 @@ The jobs, in order:
 2. `build`: a matrix of two jobs on native runners (no QEMU), `linux/amd64` on `ubuntu-26.04` and `linux/arm64` on `ubuntu-26.04-arm` (free for public repositories).
    Each job builds its image into its runner and smoke-tests it: it starts the image read-only against a PostgreSQL service container and checks `/readyz`, `/healthz`, the login page, the built-in healthcheck and the architecture.
    It then scans the image with Trivy (`aquasecurity/trivy-action`): a fixable vulnerability of severity HIGH or CRITICAL, in the base image or in the Go binary, stops the release before anything is pushed; unfixed ones are reported by a normal scan but do not stop it.
-   It also writes the image's software bill of materials (CycloneDX, `sbom-<platform pair>.cdx.json`) and keeps it as an artifact of the run for 90 days (it is not attached to the GitHub release).
+   It also writes the image's software bill of materials (CycloneDX, `sbom-<platform pair>.cdx.json`) and keeps it as an artifact of the run for 90 days; the `release` job attaches the two files to the GitHub release (they describe the image that passed the smoke test, built from the same inputs as the one pushed).
    Only then does it push the image by digest (no tag) with the `GITHUB_TOKEN` (permissions: contents read, packages write) and upload the digest as an artifact.
 3. `merge` (tags only): downloads both digests and creates the multi-platform manifest with the tags of the table above (`docker buildx imagetools create`).
    It then inspects the manifest and **signs the manifest digest** keylessly with cosign (see [Signed images](#signed-images); `id-token: write` is granted to this job only).
