@@ -25,8 +25,10 @@ var tokenRoutes = []string{"/join/", "/register/", "/recover/"}
 //
 // The match is made on the cleaned path, anywhere in it: the mux redirects "//register/x" or "/a/../register/x" to the canonical
 // address, and the redirected request would otherwise be logged with the secret as sent.
-func logPath(r *http.Request) string {
-	clean := path.Clean("/" + r.URL.Path)
+func logPath(r *http.Request) string { return redactPath(r.URL.Path) }
+
+func redactPath(p string) string {
+	clean := path.Clean("/" + p)
 	for _, prefix := range tokenRoutes {
 		if strings.HasPrefix(clean, prefix) {
 			return prefix + "{token}"
@@ -35,7 +37,23 @@ func logPath(r *http.Request) string {
 	if strings.Contains(strings.ToLower(clean), "/register/") || strings.Contains(strings.ToLower(clean), "/recover/") || strings.Contains(clean, "/join/") {
 		return "{path with a token}"
 	}
-	return r.URL.Path
+	return p
+}
+
+// logURI is an address a browser reported (a CSP report names the page it happened on, and that page may be /register/<token>) as it may
+// be logged: scheme, host and the redacted path, never the query or the fragment. Anything that is not an absolute address
+// ("inline", "eval", "data") is kept, unless it holds a token route.
+func logURI(v string) string {
+	u, err := url.Parse(v)
+	if err != nil || u.Scheme == "" || u.Host == "" { // not absolute ("//register/x" parses as a host "register"): keep the part before ? and #
+		v, _, _ = strings.Cut(v, "?")
+		v, _, _ = strings.Cut(v, "#")
+		if redactPath(v) != v {
+			return "{uri with a token}"
+		}
+		return v
+	}
+	return u.Scheme + "://" + u.Host + redactPath(u.Path)
 }
 
 type statusRecorder struct {

@@ -1,9 +1,11 @@
 package web
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io/fs"
+	"log/slog"
 	"net/http/httptest"
 	"regexp"
 	"strings"
@@ -141,6 +143,53 @@ func TestCSPReport(t *testing.T) {
 	}
 	if rec := f.do(httptest.NewRequest("GET", "/csp-report", nil)); rec.Code == 204 {
 		t.Error("GET must not be accepted")
+	}
+}
+
+// A CSP report names the page it happened on, and the page may be a link whose address is a secret: the log line never holds it.
+func TestCSPReportLogsNoLinkSecret(t *testing.T) {
+	const secret = "s3cr3t-t0k3n-value"
+	var buf bytes.Buffer
+	old := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+	t.Cleanup(func() { slog.SetDefault(old) })
+	f := newFixture(t, Config{CSPMode: "report"})
+	for _, uri := range []string{"/register/" + secret, "/recover/" + secret + "?x=1", "/join/" + secret, "//register/" + secret, "/a/../register/" + secret} {
+		body := `{"csp-report":{"violated-directive":"script-src","document-uri":"https://bc.example` + uri + `","blocked-uri":"https://evil.example` + uri + `","source-file":"` + uri + `"}}`
+		r := httptest.NewRequest("POST", "/csp-report", strings.NewReader(body))
+		r.Header.Set("Content-Type", "application/csp-report")
+		r.Header.Set("Sec-Fetch-Site", "cross-site")
+		if rec := f.do(r); rec.Code != 204 {
+			t.Fatalf("report for %s = %d", uri, rec.Code)
+		}
+	}
+	log := buf.String()
+	if strings.Count(log, "csp violation") != 5 {
+		t.Fatalf("the reports were not logged: %s", log)
+	}
+	if strings.Contains(log, secret) || strings.Contains(log, "x=1") {
+		t.Errorf("the log holds a link secret or a query: %s", log)
+	}
+	if !strings.Contains(log, "https://bc.example/register/{token}") {
+		t.Errorf("the log should keep the host and the route: %s", log)
+	}
+}
+
+func TestLogURI(t *testing.T) {
+	for in, want := range map[string]string{
+		"https://bc.example/campaigns/3?tab=x#y": "https://bc.example/campaigns/3",
+		"https://bc.example/register/abc":        "https://bc.example/register/{token}",
+		"https://bc.example/x/recover/abc/def":   "https://bc.example{path with a token}",
+		"inline":                                 "inline",
+		"eval":                                   "eval",
+		"/join/abc":                              "{uri with a token}",
+		"data":                                   "data",
+		"":                                       "",
+		"https://bc.example":                     "https://bc.example",
+	} {
+		if got := logURI(in); got != want {
+			t.Errorf("logURI(%q) = %q, want %q", in, got, want)
+		}
 	}
 }
 

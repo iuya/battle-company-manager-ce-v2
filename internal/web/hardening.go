@@ -189,9 +189,10 @@ func (s *Server) handleCSPReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	field := func(k string) string { return cutField(fmt.Sprint(rep.R[k])) }
+	uri := func(k string) string { return logURI(field(k)) } // the page and the files may carry a link secret in their address
 	slog.Warn("csp violation",
-		"directive", field("effective-directive"), "violated", field("violated-directive"), "blocked", field("blocked-uri"),
-		"document", field("document-uri"), "source", field("source-file"), "line", field("line-number"), "disposition", field("disposition"))
+		"directive", field("effective-directive"), "violated", field("violated-directive"), "blocked", uri("blocked-uri"),
+		"document", uri("document-uri"), "source", uri("source-file"), "line", field("line-number"), "disposition", field("disposition"))
 }
 
 // cutField makes a reported value safe for one log line: printable, no line breaks, at most maxCSPField runes.
