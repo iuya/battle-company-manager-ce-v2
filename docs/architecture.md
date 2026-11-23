@@ -346,6 +346,7 @@ Routes by area (the feature documents list the actions):
 | `GET/POST /account...` | signed in | Account page ([auth.md](auth.md)) |
 | `/admin/users...` (incl. `POST .../permissions`, `.../handover`) | administrator or superuser (404 for everybody else; 403 when the permission matrix refuses a forged form) | Users, roles ([admin.md](admin.md)) |
 | `POST /admin/users/{id}/recovery`, `.../recovery/revoke` | superuser | Make or revoke a password recovery link |
+| `POST /admin/users/{id}/read-only` | superuser | Make an account read-only (every non-GET request but signing in and out answers 403) or let it write again ([admin.md](admin.md#read-only-accounts)) |
 | `GET/POST /admin/invitations...` | administrator or superuser | Account invitations: create, list, revoke |
 | `/admin/rulesets...` | superuser | Rules files |
 | `GET/POST /register/{token}` | public (a signed-in visitor is sent home) | Register with an account invitation; signs the new account in |

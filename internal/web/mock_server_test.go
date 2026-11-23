@@ -5683,6 +5683,44 @@ func (c *MockauthSetMaxCampaignsCall) DoAndReturn(f func(context.Context, core.U
 	return c
 }
 
+// SetReadOnly mocks base method.
+func (m *Mockauth) SetReadOnly(ctx context.Context, actor core.User, userID int64, readOnly bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetReadOnly", ctx, actor, userID, readOnly)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetReadOnly indicates an expected call of SetReadOnly.
+func (mr *MockauthMockRecorder) SetReadOnly(ctx, actor, userID, readOnly any) *MockauthSetReadOnlyCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetReadOnly", reflect.TypeOf((*Mockauth)(nil).SetReadOnly), ctx, actor, userID, readOnly)
+	return &MockauthSetReadOnlyCall{Call: call}
+}
+
+// MockauthSetReadOnlyCall wrap *gomock.Call
+type MockauthSetReadOnlyCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockauthSetReadOnlyCall) Return(arg0 error) *MockauthSetReadOnlyCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockauthSetReadOnlyCall) Do(f func(context.Context, core.User, int64, bool) error) *MockauthSetReadOnlyCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockauthSetReadOnlyCall) DoAndReturn(f func(context.Context, core.User, int64, bool) error) *MockauthSetReadOnlyCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // SetTimezone mocks base method.
 func (m *Mockauth) SetTimezone(ctx context.Context, userID int64, zone string) error {
 	m.ctrl.T.Helper()

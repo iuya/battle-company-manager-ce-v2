@@ -15,11 +15,11 @@ import (
 
 const uniqueViolation = "23505"
 
-const userColumns = `id, email, display_name, role, can_create_campaigns, palette, mode, timezone`
+const userColumns = `id, email, display_name, role, can_create_campaigns, palette, mode, timezone, read_only`
 
 // userDest scans userColumns; palette and mode are NULL until the user chooses.
 func userDest(u *core.User) []any {
-	return []any{&u.ID, &u.Email, &u.DisplayName, &u.Role, &u.CanCreateCampaigns, &nullText{&u.Appearance.Palette}, &nullText{&u.Appearance.Mode}, &nullText{&u.Timezone}}
+	return []any{&u.ID, &u.Email, &u.DisplayName, &u.Role, &u.CanCreateCampaigns, &nullText{&u.Appearance.Palette}, &nullText{&u.Appearance.Mode}, &nullText{&u.Timezone}, &u.ReadOnly}
 }
 
 // nullText scans a nullable text column into a string (NULL becomes "").
@@ -95,6 +95,26 @@ func (s *Store) SetMaxCampaigns(ctx context.Context, userID int64, max *int, at 
 	return tx.Commit(ctx)
 }
 
+// SetReadOnly sets the flag of an open account and records the change.
+func (s *Store) SetReadOnly(ctx context.Context, userID int64, readOnly bool, audit core.AuditEntry) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	tag, err := tx.Exec(ctx, `UPDATE users SET read_only = $2 WHERE id = $1 AND closed_at IS NULL`, userID, readOnly)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return core.ErrNotFound
+	}
+	if err := insertAudit(ctx, tx, audit); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
 func (s *Store) UserByID(ctx context.Context, userID int64) (core.User, bool, error) {
 	var u core.User
 	var closedAt *time.Time
@@ -119,7 +139,7 @@ func (s *Store) ListUsers(ctx context.Context, q string, limit, offset int) ([]c
 		return nil, 0, err
 	}
 	rows, err := s.pool.Query(ctx,
-		`SELECT `+strings.ReplaceAll(userColumns, "id, email, display_name, role, can_create_campaigns, palette, mode, timezone", "u.id, u.email, u.display_name, u.role, u.can_create_campaigns, u.palette, u.mode, u.timezone")+`, u.created_at, u.closed_at,
+		`SELECT `+strings.ReplaceAll(userColumns, "id, email, display_name, role, can_create_campaigns, palette, mode, timezone, read_only", "u.id, u.email, u.display_name, u.role, u.can_create_campaigns, u.palette, u.mode, u.timezone, u.read_only")+`, u.created_at, u.closed_at,
 		        (SELECT count(*) FROM campaign_members m WHERE m.user_id = u.id), u.max_campaigns,
 		        l.id, l.created_at, l.expires_at, coalesce(lc.display_name, ''), l.used_at, l.revoked_at, coalesce(lr.display_name, ''),
 		        l.invalidated_at, coalesce(l.invalidated_reason, '')
@@ -211,7 +231,7 @@ func (s *Store) UserBySession(ctx context.Context, tokenHash []byte, now time.Ti
 	var expires time.Time
 	var pending bool
 	err := s.pool.QueryRow(ctx,
-		`SELECT u.id, u.email, u.display_name, u.role, u.can_create_campaigns, u.palette, u.mode, u.timezone, s.expires_at,
+		`SELECT u.id, u.email, u.display_name, u.role, u.can_create_campaigns, u.palette, u.mode, u.timezone, u.read_only, s.expires_at,
 		        EXISTS (SELECT 1 FROM password_recovery_links r
 		                 WHERE r.user_id = u.id AND r.used_at IS NULL AND r.revoked_at IS NULL AND r.invalidated_at IS NULL AND r.expires_at > $2)
 		   FROM sessions s JOIN users u ON u.id = s.user_id

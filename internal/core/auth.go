@@ -60,6 +60,9 @@ type User struct {
 	Appearance Appearance
 	// Timezone is the IANA name of the zone times are shown in; empty means automatic (the browser's zone, see UserLocation).
 	Timezone string
+	// ReadOnly marks an account that may only read (the smoke-test account of a deployment): the web layer refuses every request that is
+	// not a GET, except signing in and out. Only a superuser sets it, never on a superuser (it could not be undone from the web).
+	ReadOnly bool
 }
 
 // Appearance is a user's saved look. Both empty means the user never chose (the browser's cookie decides).
@@ -105,6 +108,9 @@ type authRepository interface {
 	// SetMaxCampaigns sets the account's own limit of unfinished campaigns (nil: the server's default) and writes the campaign_limit.changed
 	// entry (CampaignLimitAudit, with the previous value it reads) in the same transaction; ErrNotFound when there is no such open user.
 	SetMaxCampaigns(ctx context.Context, userID int64, max *int, at time.Time, actorID int64) error
+	// SetReadOnly sets the read-only flag of an open account and writes the audit entry in the same transaction; ErrNotFound when
+	// there is no such open user.
+	SetReadOnly(ctx context.Context, userID int64, readOnly bool, audit AuditEntry) error
 	// UserByID returns the user, closed accounts included (closed is true for them), or ErrNotFound.
 	UserByID(ctx context.Context, userID int64) (user User, closed bool, err error)
 	// ListUsers returns the accounts whose name or email contains q (case-insensitive, empty: all): open ones by display
@@ -292,6 +298,32 @@ func (a *Auth) SetMaxCampaigns(ctx context.Context, actor User, userID int64, ma
 		return errors.Join(ErrInvalidUser, fmt.Errorf("the limit must be a number from 0 to %d", MaxCampaignLimit))
 	}
 	return a.repo.SetMaxCampaigns(ctx, userID, max, a.now(), actor.ID)
+}
+
+// SetReadOnly makes an account read-only, or lets it write again. Only a superuser may (ErrForbidden); not on a superuser (ErrRefused:
+// a read-only superuser could not undo it from the web), nor on a closed account. A change that changes nothing succeeds without a write.
+// The account's cached sessions are dropped so the change applies at once, and the change is audited in the same transaction.
+func (a *Auth) SetReadOnly(ctx context.Context, actor User, userID int64, readOnly bool) error {
+	if !actor.IsSuperuser() {
+		return ErrForbidden
+	}
+	target, closed, err := a.repo.UserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	switch {
+	case closed:
+		return Refuse("This account is closed")
+	case target.Role == RoleSuperuser:
+		return Refuse("A superuser cannot be read-only: it could not be undone from the web")
+	case target.ReadOnly == readOnly:
+		return nil
+	}
+	if err := a.repo.SetReadOnly(ctx, userID, readOnly, ReadOnlyAudit(a.now(), actor.ID, userID, target.ReadOnly, readOnly)); err != nil {
+		return err
+	}
+	a.cache.dropUser(userID, "")
+	return nil
 }
 
 // AdminUser is one row of the administration Users page.

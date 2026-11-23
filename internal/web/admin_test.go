@@ -32,7 +32,7 @@ func htmxReq(r *http.Request, target string) *http.Request {
 
 func TestAdminSectionGuards(t *testing.T) {
 	super := [][2]string{{"GET", "/admin/rulesets"}, {"POST", "/admin/rulesets"}, {"POST", "/admin/rulesets/prune"}, {"GET", "/admin/rulesets/h/download"}, {"POST", "/admin/rulesets/h/default"},
-		{"POST", "/admin/rulesets/h/delete"}, {"POST", "/admin/users/1/recovery"}, {"POST", "/admin/users/1/recovery/revoke"}, {"POST", "/admin/users/1/campaign-limit"}}
+		{"POST", "/admin/rulesets/h/delete"}, {"POST", "/admin/users/1/recovery"}, {"POST", "/admin/users/1/recovery/revoke"}, {"POST", "/admin/users/1/campaign-limit"}, {"POST", "/admin/users/1/read-only"}}
 	all := append([][2]string{{"GET", "/admin"}, {"GET", "/admin/users"}, {"POST", "/admin/users/1/permissions"}, {"POST", "/admin/users/1/handover"}, {"GET", "/admin/invitations"},
 		{"POST", "/admin/invitations"}, {"POST", "/admin/invitations/1/revoke"}}, super...)
 	for _, role := range []core.Role{core.RoleUser, core.RoleAdmin} {
@@ -299,5 +299,45 @@ func TestAdminCampaignLimit(t *testing.T) {
 	rec = post(url.Values{"max_campaigns": {"many"}, "email": {frodo.Email}})
 	if body := rec.Body.String(); rec.Code != 422 || !strings.Contains(body, "from 0 to 1000") || !strings.Contains(body, `value="many"`) || !strings.Contains(body, "data-campaign-limit") {
 		t.Errorf("refused: %d %s", rec.Code, body)
+	}
+}
+
+func TestAdminReadOnly(t *testing.T) {
+	f := newFixture(t, Config{})
+	post := func(v url.Values) *httptest.ResponseRecorder {
+		return f.do(htmxReq(f.asSuper(form("/admin/users/1/read-only", v)), "user-1"))
+	}
+	row := adminUsers()[1]
+	f.auth.EXPECT().ListUsers(gomock.Any(), superG, frodo.Email, 200, 0).Return([]core.AdminUser{row}, 1, nil).Times(3)
+
+	// the switch on: the field is sent
+	f.auth.EXPECT().SetReadOnly(gomock.Any(), superG, int64(1), true).Return(nil)
+	rec := post(url.Values{"read_only": {"1"}, "email": {frodo.Email}})
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Saved") || !strings.Contains(rec.Body.String(), "data-read-only") {
+		t.Errorf("on: %d %s", rec.Code, rec.Body)
+	}
+	// the switch off: an unchecked box sends nothing
+	f.auth.EXPECT().SetReadOnly(gomock.Any(), superG, int64(1), false).Return(nil)
+	post(url.Values{"email": {frodo.Email}})
+	// a superuser's account: the service refuses and the card stays open with the reason
+	f.auth.EXPECT().SetReadOnly(gomock.Any(), superG, int64(1), true).Return(core.Refuse("A superuser cannot be read-only"))
+	rec = post(url.Values{"read_only": {"1"}, "email": {frodo.Email}})
+	if body := rec.Body.String(); rec.Code != 422 || !strings.Contains(body, "cannot be read-only") || !strings.Contains(body, "data-read-only") {
+		t.Errorf("refused: %d %s", rec.Code, body)
+	}
+}
+
+// The card is a superuser's, on open accounts that are not superusers; a read-only account says so in its heading.
+func TestAdminReadOnlyCardAndBadge(t *testing.T) {
+	f := newFixture(t, Config{})
+	ro := adminUsers()[1]
+	ro.ReadOnly = true
+	f.auth.EXPECT().ListUsers(gomock.Any(), superG, "", userPageSize, 0).Return([]core.AdminUser{adminUsers()[1], ro}, 2, nil)
+	body := f.do(f.asSuper(httpGet("/admin/users"))).Body.String()
+	if strings.Count(body, "data-read-only") != 2 || strings.Count(body, `<span class="badge badge-muted">Read-only</span>`) != 1 {
+		t.Errorf("want two cards and one badge: cards %d, badges %d", strings.Count(body, "data-read-only"), strings.Count(body, `<span class="badge badge-muted">Read-only</span>`))
+	}
+	if strings.Count(body, `name="read_only" value="1" checked`) != 1 {
+		t.Error("the switch of the read-only account is on, the other off")
 	}
 }

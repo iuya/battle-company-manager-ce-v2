@@ -45,6 +45,7 @@ All share the password `demo-password` (or `PASSWORD`). `admin@example.com`, `yo
 | `faramir@example.com` | user, may create campaigns | organises one campaign, receives another by handover; his campaign limit is 2, so he is at it: "New campaign" explains instead of offering the form |
 | `eowyn@example.com`, `sauron@example.com`, `aragorn@example.com`, `gimli@example.com`, `bilbo@example.com`, `galadriel@example.com`, `radagast@example.com` | user | the players; each has a company in many campaigns (see below) |
 | `pippin@example.com` | user, **cannot** create campaigns | no "New campaign" button; plays in a few campaigns and used the one-use invite link |
+| `viewer@example.com` | user, **read-only** | the smoke-test account of a deployment: it signs in and looks (home, account, glossary), every other request answers 403 "This account is read-only"; the Users page shows its **Read-only** badge and switch (a superuser sets it) |
 | `frodo@example.com` | user, may create campaigns | in no campaign: the empty home page. Open the valid invite link as him |
 | `boromir@example.com` | **closed** account | closed at the end of the script (`Auth.CloseAccount`): the campaign "Cemetery" shows him as "Former player" and the address cannot sign in |
 | `invitee@example.com` | **no account yet** | the address of the pending named account invitation: open its printed link to register (the invitation may create campaigns) |

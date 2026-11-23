@@ -973,3 +973,45 @@ func TestAccountMigrationsDownAndUp(t *testing.T) {
 }
 
 func sha32(label string) []byte { _, h := tokenAndHash(label); return h }
+
+// A read-only account: the flag round-trips through every way a user is read, the change is audited in the same transaction, and a
+// closed or unknown account is not found.
+func TestSetReadOnly(t *testing.T) {
+	s, ctx := testStore(t)
+	actor, target := testUser(t, s, ctx, "ro-actor"), testUser(t, s, ctx, "ro-target")
+	if target.ReadOnly {
+		t.Fatal("a new account is not read-only")
+	}
+	at := time.Now().UTC().Truncate(time.Second)
+	if err := s.SetReadOnly(ctx, target.ID, true, core.ReadOnlyAudit(at, actor.ID, target.ID, false, true)); err != nil {
+		t.Fatal(err)
+	}
+	got, closed, err := s.UserByID(ctx, target.ID)
+	if err != nil || closed || !got.ReadOnly {
+		t.Fatalf("UserByID: %+v closed=%v err=%v", got, closed, err)
+	}
+	var action, from, to string
+	if err := s.pool.QueryRow(ctx, `SELECT action, detail->>'from', detail->>'to' FROM audit_events WHERE subject_user_id = $1 ORDER BY id DESC LIMIT 1`, target.ID).Scan(&action, &from, &to); err != nil {
+		t.Fatal(err)
+	}
+	if action != "read_only.changed" || from != "false" || to != "true" {
+		t.Errorf("audit row: %s %s -> %s", action, from, to)
+	}
+	rows, _, err := s.ListUsers(ctx, target.Email, 10, 0)
+	if err != nil || len(rows) != 1 || !rows[0].ReadOnly {
+		t.Fatalf("ListUsers: %+v %v", rows, err)
+	}
+	if err := s.SetReadOnly(ctx, target.ID, false, core.ReadOnlyAudit(at, actor.ID, target.ID, true, false)); err != nil {
+		t.Fatal(err)
+	}
+	if got, _, _ := s.UserByID(ctx, target.ID); got.ReadOnly {
+		t.Error("the flag is off again")
+	}
+	if err := s.SetReadOnly(ctx, 999999999, true, core.ReadOnlyAudit(at, actor.ID, 999999999, false, true)); !errors.Is(err, core.ErrNotFound) {
+		t.Errorf("unknown account: %v, want ErrNotFound", err)
+	}
+	var n int
+	if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM audit_events WHERE subject_user_id = 999999999`).Scan(&n); err != nil || n != 0 {
+		t.Errorf("a refused change leaves no audit row: %d %v", n, err)
+	}
+}

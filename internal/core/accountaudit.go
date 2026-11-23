@@ -27,6 +27,7 @@ const (
 const (
 	AuditRoleChanged         AuditAction = "role.changed"
 	AuditCampaignLimit       AuditAction = "campaign_limit.changed"
+	AuditReadOnly            AuditAction = "read_only.changed"
 	AuditInvitationCreated   AuditAction = "invitation.created"
 	AuditInvitationRevoked   AuditAction = "invitation.revoked"
 	AuditInvitationUsed      AuditAction = "invitation.used"
@@ -72,6 +73,13 @@ func CampaignLimitAudit(at time.Time, actorID, subjectID int64, from, to *int) A
 	}
 	return AuditEntry{At: at, Source: AuditWeb, ActorID: ptr(actorID), Action: AuditCampaignLimit, SubjectUserID: ptr(subjectID), Detail: map[string]string{
 		"from": show(from), "to": show(to),
+	}}
+}
+
+// ReadOnlyAudit records a superuser making an account read-only, or letting it write again.
+func ReadOnlyAudit(at time.Time, actorID, subjectID int64, from, to bool) AuditEntry {
+	return AuditEntry{At: at, Source: AuditWeb, ActorID: ptr(actorID), Action: AuditReadOnly, SubjectUserID: ptr(subjectID), Detail: map[string]string{
+		"from": strconv.FormatBool(from), "to": strconv.FormatBool(to),
 	}}
 }
 
