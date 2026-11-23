@@ -1520,7 +1520,7 @@ Example:
 | `duration` | string | no | - | `thisMatch` | How long the choice holds: thisMatch. |
 | `exclusiveWithPermanentWanderer` | boolean | no | - | - | true: a company with a permanent Wanderer cannot take it. |
 | `expires` | string | no | - | `endOfMatchAftermath`, `endOfMatch` | When the grant ends. |
-| `from` | string | no | - | not empty | Where the choice comes from (the `gear` entries of kind `wanderer`, scenarios). |
+| `from` | string | no | - | not empty | Where the choice comes from (the gear entries of kind wanderer, scenarios). |
 | `gainsExperience` | boolean | no | - | - | true: the temporary model earns Experience. |
 | `goldCost` | integer | no | - | 0..1000 | The Gold it costs. |
 | `ignores` | list of string | no | - | `capacity`, `alignment` | The rules the loaned items ignore: capacity, alignment. |

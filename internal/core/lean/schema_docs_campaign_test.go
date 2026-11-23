@@ -378,7 +378,7 @@ var campaignFieldDocs = map[string]string{
 	"ATOGrant.countsTowardsBreakPoint":        "true: the temporary model counts for the Break Point.",
 	"ATOGrant.countsTowardsMaxModels":         "true: the temporary model counts towards the company's size.",
 	"ATOGrant.exclusiveWithPermanentWanderer": "true: a company with a permanent Wanderer cannot take it.",
-	"ATOGrant.from":                           "Where the choice comes from (data.wanderers.items, scenarios).",
+	"ATOGrant.from":                           "Where the choice comes from (the gear entries of kind wanderer, scenarios).",
 	"ATOGrant.gainsExperience":                "true: the temporary model earns Experience.",
 	"ATOGrant.goldCost":                       "The Gold it costs.",
 	"ATOGrant.influenceCost":                  "The Influence it costs.",
