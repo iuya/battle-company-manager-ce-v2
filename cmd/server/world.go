@@ -62,7 +62,7 @@ type world struct {
 	scenarios map[string]core.ScenarioInfo
 	shipped   *core.RuleSet // the rules the app ships with, loaded on first use (rules)
 	spareNext int           // next faction of the rules file for w.spare
-	// the Aura parade: the default rules and the data.auras entries (by id) the companies of the script cover, with the companies
+	// the Aura parade: the default rules and the auras entries (by id) the companies of the script cover, with the companies
 	rules       *core.RuleSet
 	auraCovered map[string][]string
 }

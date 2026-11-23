@@ -65,7 +65,7 @@ type ttsView struct {
 // the master switch). Defaults as in docs/aura-ranges.md section 9: declared and conditional on, the others off.
 var auraSwitches = []struct {
 	Group, Param string
-	Default      bool // the label and the hint are data.auras.groups[].label and .text
+	Default      bool // the label and the hint are auras.groups[].label and .text
 }{
 	{core.AuraGroupDeclared, "adeclared", true},
 	{core.AuraGroupConditional, "aconditional", true},

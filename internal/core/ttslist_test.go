@@ -16,7 +16,7 @@ func ttsUnit(t *testing.T, rs *RuleSet, faction string, id int64, base string, r
 	return buildUnit(rs, co, UnitState{ID: id, Base: base, Role: role, Gear: gear, Bought: bought}, CampaignSettings{})
 }
 
-// ttsWithModels changes data.ttsModels of the shared shipped rules for the rest of the test.
+// ttsWithModels changes the `tts` of gear entries and units of the shared shipped rules for the rest of the test.
 func ttsWithModels(t *testing.T, rs *RuleSet, change func(*TTSModels)) *RuleSet {
 	t.Helper()
 	saved := rs.BC.ttsModels
@@ -96,7 +96,7 @@ func TestTTSListOptionsAreSortedAndMapped(t *testing.T) {
 	// Bow and Spear on a unit whose options are all in one group cannot both be taken: one is kept, the other noted
 	u := ttsUnit(t, rs, "Muster of Isengard", 1, "Isengard Orc Warrior", RoleWarrior, []string{"Orc bow"}, nil)
 	ex := rs.TTSList(ttsDetail("Muster of Isengard", u), TTSOptions{})
-	if ex.Text != "(Isengard Orc Warrior: Bow)" { // the mod's spelling comes from data.ttsModels.names
+	if ex.Text != "(Isengard Orc Warrior: Bow)" { // the mod's spelling comes from the tts of the gear entries and units
 		t.Errorf("text %q", ex.Text)
 	}
 	h := ttsUnit(t, rs, "Rohan", 2, "Warrior of Rohan", RoleWarrior, []string{"Shield", "Bow"}, nil)
@@ -391,7 +391,7 @@ func TestTTSListFallbackClosestKey(t *testing.T) {
 	}
 }
 
-// The fixed mappings of data.ttsModels give the three keys the bag has without any catalogue (the published image has none).
+// The fixed mappings of the `tts` of gear entries and units give the three keys the bag has without any catalogue (the published image has none).
 func TestTTSListFixedMappingsWithoutCatalogue(t *testing.T) {
 	rs := shippedRules(t)
 	for _, tc := range []struct {

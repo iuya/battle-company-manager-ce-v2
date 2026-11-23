@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-// GearAnnotation is what the Battle Companies file says about one piece of gear (data.gearAnnotations): what it is, what it
+// GearAnnotation is what the Battle Companies file says about one piece of gear (gear[]): what it is, what it
 // grants, and its missile profile.
 type GearAnnotation struct {
 	Name           string
@@ -20,18 +20,18 @@ type GearAnnotation struct {
 	MountProfile   string            // for a mount: the name of its vanilla entry, which has its stat block
 	Base           string            // the generic item this one is a version of (Elven spear: Spear); the tooltip already explains the modifiers
 	GrantsSlots    SlotCounts        // equipment slots the item adds to its bearer (the Backpack: 3 small)
-	Modifiers      []string          // keys of data.gearAnnotations.modifiers (elven, masterForged, poisoned)
+	Modifiers      []string          // keys of gear[].modifiers (elven, masterForged, poisoned)
 	PricedAs       string            // an Elven-made item sold at the price of its generic equivalent (derived from Base + the elven modifier)
 	Related        []string          // related but distinct items (Elf Bow and Longbow share a profile): never the same item
 	RequiresMount  bool              // only a mounted model can use it (a lance, Barding): struck through in a live match when the mount is lost
 	WeaponModifier bool              // not an item but a modifier bought for one weapon (Envenom Weapon)
 	ChosenWeapon   *ChosenWeaponRule // the rule the modifier gives the UNIT for the weapon the player chooses (Poisoned Attacks)
 	Situational    []StatChange      // bonuses that hold only in a game situation (Elven Glaive attacks): item text, never added to the stats
-	StatChanges    []StatChange      // armour: what it adds to a characteristic (data.gearAnnotations statChanges)
+	StatChanges    []StatChange      // armour: what it adds to a characteristic (gear[].statChanges)
 	Defence        *DefenceBonus     // a shield: the Defence it adds and what cancels it
 }
 
-// ChosenWeaponRule is data.gearAnnotations grantsRuleForChosenWeapon: the player chooses ONE item of the unit whose class is among
+// ChosenWeaponRule is gear[].grantsForChosenWeapon: the player chooses ONE item of the unit whose class is among
 // WeaponClasses; the unit gains the special rule `Rule (<weapon name>)` and the weapon itself stays the plain item.
 type ChosenWeaponRule struct {
 	Rule          string

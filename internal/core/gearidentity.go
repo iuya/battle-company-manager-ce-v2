@@ -11,7 +11,7 @@ import (
 // Gear identity. Two pieces of gear are the same item only when they have the same name once case, punctuation, the plural s,
 // the word "made" (Elven-made) and spacing (Warspear, War spear) are ignored, or when the rules file lists one as an alias of
 // the other. Having the same stats, the same class or the same price never makes two items one: a Pike is not a Spear, an Elf
-// bow is not a Longbow, a Light Shield is not a Shield (data.gearAnnotations, `relatedTo`).
+// bow is not a Longbow, a Light Shield is not a Shield (gear[].related).
 
 // ItemKey is the identity of an item name: lower-cased and normalised, with spaces removed.
 func ItemKey(name string) string { return itemKeys.get(name, itemKey) }

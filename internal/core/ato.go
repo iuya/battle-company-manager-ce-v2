@@ -14,7 +14,7 @@ import (
 // and before setting up. This file holds the rules read from the Battle Companies file, the selection, its validation and the card's
 // types; the service is in ato_service.go, the storage is atoRepository.
 
-// ATORules are the Against the Odds rules of the campaign's Battle Companies file (campaign.againstTheOdds, data.wanderers).
+// ATORules are the Against the Odds rules of the campaign's Battle Companies file (campaign.againstTheOdds, the gear entries of kind wanderer).
 type ATORules struct {
 	Inclusive bool           // budget.inclusive: the bonuses may take the company exactly up to its opponent's Rating
 	Bonuses   []ATOBonusRule // in the file's order
@@ -120,7 +120,7 @@ type ATOKitItem struct {
 	AfterGame bool
 }
 
-// ATOWandererRule is a Wanderer of data.wanderers.items that can be recruited for a match.
+// ATOWandererRule is a Wanderer (a gear entry of kind wanderer) that can be recruited for a match.
 type ATOWandererRule struct {
 	Name, Summary string
 	OwnPrice      int // its Rating as a permanent Wanderer (shown crossed out)

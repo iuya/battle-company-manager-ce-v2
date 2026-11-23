@@ -7,7 +7,7 @@ import (
 
 // Poison: the special rule Poisoned Attacks (<weapon>) belongs to a UNIT, never to the wargear. It
 // comes from the unit's profile, from the Blowpipe (an item that grants it itself), from a level-up (Poisoned Attacks|weapon:<name>)
-// and from Envenom Weapon (data.gearAnnotations grantsRuleForChosenWeapon): the player chooses one weapon of the unit and the unit
+// and from Envenom Weapon (gear[].grantsForChosenWeapon): the player chooses one weapon of the unit and the unit
 // gains the rule for it. A weapon already named by such a rule cannot be chosen again.
 
 // ChosenWeapon says whether the name is a weapon modifier with its weapon chosen ("Envenom Weapon (Bow)" for the annotation

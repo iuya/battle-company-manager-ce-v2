@@ -156,7 +156,7 @@ func TestRuleTargetsOverAllCompanies(t *testing.T) {
 	rs := shippedRules(t)
 	tt := rs.BC.RuleTargets()
 	if tt.Empty() {
-		t.Fatal("the shipped Battle Companies file has no data.ruleTargets")
+		t.Fatal("the shipped Battle Companies file has no rules[].target")
 	}
 	known := map[string]bool{}
 	var rules = map[string]RuleWorks{}
@@ -213,7 +213,7 @@ func TestRuleTargetsOverAllCompanies(t *testing.T) {
 	}
 }
 
-// A unit built by the loader carries the text of its rules; a custom ruleset without data.ruleTargets has none.
+// A unit built by the loader carries the text of its rules; a custom ruleset without rules[].target has none.
 func TestBuiltUnitsCarryWorksAgainst(t *testing.T) {
 	rs := shippedRules(t)
 	found := false

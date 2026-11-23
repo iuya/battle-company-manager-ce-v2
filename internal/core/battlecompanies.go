@@ -19,7 +19,7 @@ type BCBook struct {
 	armoury       []GearOffer
 	keywords      map[string]string
 	parameterised map[string]string // the definition of each rule with a parameter, by lower-cased name
-	ruleTargets   RuleTargets       // data.ruleTargets: who each keyword rule works against (empty in a custom ruleset)
+	ruleTargets   RuleTargets       // rules[].target: who each keyword rule works against (empty in a custom ruleset)
 	rating        RatingRules
 	annotations   map[string]GearAnnotation // by lower-cased name and alias
 	weaponRules   []GearAnnotation          // the annotations that give a rule to a weapon the player chooses (Envenom Weapon (X))
@@ -41,13 +41,13 @@ type BCBook struct {
 	profileSets   *profileSet
 	advancements  map[string][]Advancement
 	pathRules     map[string][]UnitRule // the special rules each path unlocks, in order, with their text
-	readAs        map[string]string     // unit|option (lower-cased) -> the armoury item an option is read as (data.optionSales readAs)
-	unsold        map[string]string     // unit|option (lower-cased) -> "status: reason" of the options no armoury sells (data.optionSales)
+	readAs        map[string]string     // unit|option (lower-cased) -> the armoury item an option is read as (vanilla.options readAs)
+	unsold        map[string]string     // unit|option (lower-cased) -> "status: reason" of the options no armoury sells (vanilla.options)
 	breakRules    BreakRules
 	xpGains       map[string]int // experience.gains[].amount by key
 	ato           ATORules
-	ttsModels     TTSModels       // data.ttsModels
-	auras         AuraTable       // data.auras
+	ttsModels     TTSModels       // the `tts` of gear entries and units
+	auras         AuraTable       // auras
 	reserved      map[string]bool // unit|option (lower-cased) of the options reserved to a named hero's army list
 	aftermath     AftermathRules
 }
@@ -125,7 +125,7 @@ type SpecialUnit struct {
 // GearOffer is something the armoury sells: wargear (no slot) or equipment (a small or large slot).
 type GearOffer struct {
 	Name           string
-	AlsoCalled     []string // other spellings of the same item (data.gearAnnotations aliases: Warspear); never a different item
+	AlsoCalled     []string // other spellings of the same item (gear[].aka: Warspear); never a different item
 	Classes        []EquipmentClass
 	Cost           int      // influence
 	Size           string   // "small" or "large" for equipment, empty for wargear
@@ -302,7 +302,7 @@ func (b *BCBook) Reserved(unit, option string) bool {
 	return b != nil && b.reserved[reservedKey(unit, option)]
 }
 
-// Unsold says that no armoury sells an option of a unit and why (data.optionSales: "notSold: ..." or "granted: ..."), so a
+// Unsold says that no armoury sells an option of a unit and why (vanilla.options: "notSold: ..." or "granted: ..."), so a
 // profile option without a matching armoury item is not a data defect.
 func (b *BCBook) Unsold(unit, option string) (string, bool) {
 	if b == nil {
@@ -322,7 +322,7 @@ func (b *BCBook) ReadAs(unit, option string) (string, bool) {
 }
 
 // ChoosableOptions are the options of a profile a "choice of options" recruit may take: the ones a Battle Companies armoury item
-// stands for. Not those no armoury sells (data.optionSales notSold or granted: banners, war horns and
+// stands for. Not those no armoury sells (vanilla.options notSold or exceptions: banners, war horns and
 // drums, Twin Blades...) nor those reserved to a named hero's army list (data.reservedOptions). An option read as an armoury item
 // (readAs) is choosable. The wargear of the profile itself is not an option: it is added on recruit whether sold or not
 // (data.profileWargearNotSold lists what can never be bought).

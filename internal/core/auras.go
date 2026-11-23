@@ -6,10 +6,10 @@ import (
 	"strings"
 )
 
-// Aura ranges (docs/aura-ranges.md, data.auras of the Battle Companies file, docs/definitions.md): the fixed radii in inches around a
+// Aura ranges (docs/aura-ranges.md, auras of the Battle Companies file, docs/definitions.md): the fixed radii in inches around a
 // figure inside which a rule or an item of the bearer works. Pure functions over a built unit and the rules: no repository, no state.
 
-// AuraKind is the colour group of an aura (data.auras.kinds): banner, command, support, enemy or utility.
+// AuraKind is the colour group of an aura (auras.kinds): banner, command, support, enemy or utility.
 type AuraKind string
 
 // AuraWhen says when an aura is in force.
@@ -23,7 +23,7 @@ const (
 	AuraTarget      AuraWhen = "target"      // the radius only limits the choice of one model
 )
 
-// Groups of data.auras.groups: the switches of the dialog.
+// Groups of auras.groups: the switches of the dialog.
 const (
 	AuraGroupAlways      = "always"
 	AuraGroupDeclared    = "declared"
@@ -40,15 +40,15 @@ const (
 	AurasPerPayload = 150
 )
 
-// Aura is the ring a figure draws: one or several entries of data.auras merged by kind, radius and tier.
+// Aura is the ring a figure draws: one or several entries of auras merged by kind, radius and tier.
 type Aura struct {
-	ID       string   // the data.auras entry id; a merged aura carries the first entry's
+	ID       string   // the aura entry id; a merged aura carries the first entry's
 	Entries  []string // the ids of all the entries merged into it, in table order
 	Kind     AuraKind
 	Radius   float64  // inches from the edge of the base; 0 < r <= 48
 	Affects  string   // "friendly", "enemy", "any", "self"
 	When     AuraWhen // the strongest of the merged entries (always, declared, conditional), else the tier (cast, target)
-	Group    string   // the dialog switch (data.auras.groups) of the strongest entry
+	Group    string   // the dialog switch (auras.groups) of the strongest entry
 	LOS      bool
 	Label    string   // the labels joined with ", "
 	Rules    []string // the rules, items, powers and actions of the unit that give it (for the tooltip)
@@ -57,26 +57,26 @@ type Aura struct {
 	Keywords []string // the affected models' keywords, kept only when every merged entry has one
 }
 
-// AuraKindDef is a data.auras.kinds row.
+// AuraKindDef is an auras.kinds row.
 type AuraKindDef struct {
 	ID, Label, Colour, RGB, Text string
 	Default                      bool
 }
 
-// AuraGroupDef is a data.auras.groups row.
+// AuraGroupDef is an auras.groups row.
 type AuraGroupDef struct {
 	ID, Label, Text string
 	Default         bool
 }
 
-// AuraSource says how an entry is found on a unit (data.auras.entries[].source).
+// AuraSource says how an entry is found on a unit (auras[].source).
 type AuraSource struct {
 	Type    string   // item, rule, power, heroicAction or hero
 	Names   []string // the names it goes by
 	Pattern string   // a parameterised family: "Fury (X)"
 }
 
-// AuraEntry is a row of data.auras.entries.
+// AuraEntry is a row of the auras[] of rules, items and powers.
 type AuraEntry struct {
 	ID          string
 	Source      AuraSource
@@ -98,7 +98,7 @@ type AuraEntry struct {
 	family string          // ItemKey of the pattern up to its bracket
 }
 
-// AuraTable is data.auras: empty (no rings, no error) for a ruleset that has none.
+// AuraTable is auras: empty (no rings, no error) for a ruleset that has none.
 type AuraTable struct {
 	Kinds   []AuraKindDef
 	Groups  []AuraGroupDef
@@ -278,11 +278,11 @@ func (r *RuleSet) CreatureAuras(c CompanyCreature) []Aura {
 type AuraSelection struct {
 	Draw  bool
 	Kinds map[AuraKind]bool // nil: every kind
-	// The groups of data.auras.groups; the group "always" is on whenever Draw is.
+	// The groups of auras.groups; the group "always" is on whenever Draw is.
 	Declared, Conditional, Cast, Target, Large, Optional bool
 }
 
-// DefaultAuraSelection is the selection the data defaults describe (data.auras kinds and groups; spec section 9).
+// DefaultAuraSelection is the selection the data defaults describe (auras kinds and groups; spec section 9).
 func (r *RuleSet) DefaultAuraSelection() AuraSelection {
 	sel := AuraSelection{Draw: true}
 	t := r.BC.auras
@@ -491,7 +491,7 @@ type AuraSummary struct {
 	LeftOut int               // rings left out by the limits
 	// Counts (before the limits): how many rings each switch (declared, conditional, cast, target, large, optional) adds when turned on, or removes when it is on.
 	Counts map[string]int
-	Groups map[string]AuraGroupDef // data.auras.groups by id: the labels and texts of the switches
+	Groups map[string]AuraGroupDef // auras.groups by id: the labels and texts of the switches
 	Notes  []TTSNote
 }
 
