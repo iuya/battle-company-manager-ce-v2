@@ -125,6 +125,27 @@ func TestHubCaps(t *testing.T) {
 	}
 }
 
+// However many users and matches there are, the process serves at most LiveStreamsTotal streams; a closed one frees its slot.
+func TestHubTotalCap(t *testing.T) {
+	hub, _ := startHub(t)
+	var last LiveStream
+	for i := range LiveStreamsTotal {
+		// 10 streams per user, 40 users per match: neither per-user nor per-match cap is reached
+		s, err := hub.subscribe(int64(i/LiveStreamsPerUser+1), int64(i/(LiveStreamsPerUser*4)+1000), nil, 0)
+		if err != nil {
+			t.Fatalf("stream %d: %v", i, err)
+		}
+		last = s
+	}
+	if _, err := hub.subscribe(100000, 5000, nil, 0); !errors.Is(err, ErrRefused) {
+		t.Fatalf("stream %d: %v, want the total cap", LiveStreamsTotal+1, err)
+	}
+	last.Close()
+	if _, err := hub.subscribe(100000, 5000, nil, 0); err != nil {
+		t.Errorf("a closed stream frees its slot: %v", err)
+	}
+}
+
 func TestHubResyncAndClose(t *testing.T) {
 	hub, feed := startHub(t)
 	s, _ := hub.subscribe(1, 7, []int64{1, 2}, 0)

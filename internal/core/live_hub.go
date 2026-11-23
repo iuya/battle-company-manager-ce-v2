@@ -8,10 +8,11 @@ import (
 	"time"
 )
 
-// Caps on the streams one process serves (10 per user, 50 per match).
+// Caps on the streams one process serves (10 per user, 50 per match, 500 in all: each is a goroutine and a connection held open).
 const (
 	LiveStreamsPerUser  = 10
 	LiveStreamsPerMatch = 50
+	LiveStreamsTotal    = 500
 )
 
 // ErrLiveClosed is what Next returns once the stream or the hub is closed.
@@ -103,6 +104,8 @@ func (h *LiveHub) open(userID, matchID int64, companies []int64, seq int64, init
 		return nil, Refuse("Too many live connections open; close another tab.")
 	case h.perMatch[matchID] >= LiveStreamsPerMatch:
 		return nil, Refuse("Too many people are watching this match live; the page updates every few seconds instead.")
+	case len(h.streams) >= LiveStreamsTotal:
+		return nil, Refuse("The server has many live connections open; the page updates every few seconds instead.")
 	}
 	s := &liveStream{hub: h, user: userID, match: matchID, companies: slices.Clone(companies), wake: make(chan struct{}, 1), done: make(chan struct{})}
 	if initial {

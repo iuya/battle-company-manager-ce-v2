@@ -276,7 +276,7 @@ match (cascade); undone rows stay as the audit.
   transaction; the hub is fed by the listener only, so no event is published before the commit and a one-process setup exercises the
   same path as several.
 - **Hub** (`core.LiveHub`): subscribers per match; each has a mutex-guarded pending batch and a wake channel of capacity 1, so a slow
-  client costs one batch, never a backlog. Caps: 10 streams per user, 50 per match (`ErrRefused`; the handler answers 429 and the client
+  client costs one batch, never a backlog. Caps: 10 streams per user, 50 per match, 500 in all (`ErrRefused`; the handler answers 429 and the client
   polls). `Close()` ends every stream.
 - **Handler**: checks that the user can read the campaign and the match is open; sets `Content-Type: text/event-stream`,
   `Cache-Control: no-cache, no-transform`, `X-Accel-Buffering: no`; writes `retry: 3000` and flushes at once; loops on the hub with a
