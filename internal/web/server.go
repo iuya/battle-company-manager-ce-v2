@@ -407,6 +407,7 @@ func (s *Server) Handler() http.Handler {
 
 	mux.HandleFunc("GET /healthz", s.handleHealthz)
 	mux.HandleFunc("GET /readyz", s.handleReadyz)
+	mux.HandleFunc("GET /version", s.handleVersion)
 	mux.HandleFunc("POST /csp-report", s.handleCSPReport)
 
 	mux.HandleFunc("GET /login", s.session(s.handleLoginPage))

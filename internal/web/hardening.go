@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 	"unicode/utf8"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/buildinfo"
 )
 
 // Production reports whether the server runs in production mode (APP_ENV=production, the default of the environment loader).
@@ -86,6 +88,13 @@ func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	_, _ = io.WriteString(w, "ok\n")
+}
+
+// handleVersion says which release and commit the binary was built from, for the smoke tests and the rollback checks: public, nothing else.
+func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(map[string]string{"version": buildinfo.Version, "commit": buildinfo.Commit})
 }
 
 // handleReadyz says the app can serve requests: the database answers. The reason stays in the log, not in the response.

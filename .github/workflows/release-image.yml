@@ -75,7 +75,9 @@ jobs:
           tags: bcm:smoke
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
-          build-args: VERSION=${{ github.ref_type == 'tag' && github.ref_name || 'dev' }}
+          build-args: |
+            VERSION=${{ github.ref_type == 'tag' && github.ref_name || 'dev' }}
+            COMMIT=${{ github.sha }}
           cache-from: type=gha,scope=release-image-${{ matrix.pair }}
           cache-to: type=gha,scope=release-image-${{ matrix.pair }},mode=max
       - name: Smoke test
@@ -94,6 +96,10 @@ jobs:
           curl -fsS http://127.0.0.1:8080/healthz; echo
           # the production image must not carry the development aids: no Server-Timing (PERF_TRACE) on an answer
           if curl -fsSI http://127.0.0.1:8080/login | grep -qi '^server-timing:'; then echo "::error::the image answers with Server-Timing"; exit 1; fi
+          # /version says the tag and the commit the image was built from (the smoke test of a deployment compares them with the release)
+          ver="$(curl -fsS http://127.0.0.1:8080/version)"; echo "$ver"
+          test "$(echo "$ver" | jq -r .version)" = "${{ github.ref_type == 'tag' && github.ref_name || 'dev' }}" || { echo "::error::/version does not say the tag"; exit 1; }
+          test "$(echo "$ver" | jq -r .commit)" = "${{ github.sha }}" || { echo "::error::/version does not say the commit"; exit 1; }
           curl -fsS http://127.0.0.1:8080/login | grep -qi "password" || { echo "::error::/login did not render a password field"; docker logs bcm-smoke; exit 1; }
           docker exec bcm-smoke /app/server healthcheck || { echo "::error::the built-in healthcheck failed"; docker logs bcm-smoke; exit 1; }
           test "$(docker inspect -f '{{.Config.User}}' bcm-smoke)" = "65532:65532"
@@ -142,7 +148,9 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
-          build-args: VERSION=${{ github.ref_type == 'tag' && github.ref_name || 'dev' }}
+          build-args: |
+            VERSION=${{ github.ref_type == 'tag' && github.ref_name || 'dev' }}
+            COMMIT=${{ github.sha }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=release-image-${{ matrix.pair }}
           cache-to: type=gha,scope=release-image-${{ matrix.pair }},mode=max

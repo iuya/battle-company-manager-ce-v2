@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io/fs"
 	"log/slog"
@@ -11,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/iuya/battle-company-manager-ce-v2/internal/buildinfo"
 )
 
 func TestConfigResolve(t *testing.T) {
@@ -84,6 +87,25 @@ func TestHealthEndpoints(t *testing.T) {
 				t.Error("health answers must not be cached")
 			}
 		})
+	}
+}
+
+// /version is public (no session, no database), says the release and the commit of the build and nothing else.
+func TestVersionEndpoint(t *testing.T) {
+	oldV, oldC := buildinfo.Version, buildinfo.Commit
+	t.Cleanup(func() { buildinfo.Version, buildinfo.Commit = oldV, oldC })
+	buildinfo.Version, buildinfo.Commit = "v9.8.7", "0123456789abcdef0123456789abcdef01234567"
+	f := newFixture(t, Config{})
+	rec := f.do(httptest.NewRequest("GET", "/version", nil)) // no session, no mock expectations
+	var got map[string]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil || rec.Code != 200 {
+		t.Fatalf("/version = %d %q (%v)", rec.Code, rec.Body.String(), err)
+	}
+	if len(got) != 2 || got["version"] != "v9.8.7" || got["commit"] != buildinfo.Commit {
+		t.Errorf("/version = %v, want only the version and the commit", got)
+	}
+	if rec.Header().Get("Cache-Control") != "no-store" || !strings.HasPrefix(rec.Header().Get("Content-Type"), "application/json") {
+		t.Error("the answer is JSON and must not be cached")
 	}
 }
 

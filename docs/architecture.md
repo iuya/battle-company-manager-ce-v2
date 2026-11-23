@@ -356,6 +356,7 @@ Routes by area (the feature documents list the actions):
 | `GET /static/...` | public | Embedded assets |
 | `GET /healthz` | the container network and the host (the published server kit answers `404` to it from the internet) | Liveness: `200 ok` while the process serves; touches nothing else |
 | `GET /readyz` | as `/healthz` | Readiness: pings the database (2 s); `503` when it does not answer |
+| `GET /version` | public (the published server kit passes it on) | `{"version": "v3.0.5", "commit": "<full hash>"}`: the release tag and commit the image was built from (`dev` and `unknown` from a checkout); nothing else. The deployment smoke test compares it with the release |
 | `POST /csp-report` | public | Content-Security-Policy violation reports: 4 KB body cap, at most 60 logged a minute |
 
 ### Single-use tokens

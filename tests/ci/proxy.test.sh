@@ -26,7 +26,7 @@ image=${APP_IMAGE:-}
 if [ -z "$image" ]; then
   image=bcm:proxytest
   echo "building $image"
-  docker build -q -t "$image" --build-arg VERSION=proxytest "$root" >/dev/null || { echo "FAIL: the image does not build"; exit 1; }
+  docker build -q -t "$image" --build-arg VERSION=proxytest --build-arg COMMIT=0123456789abcdef0123456789abcdef01234567 "$root" >/dev/null || { echo "FAIL: the image does not build"; exit 1; }
 fi
 
 # The shipped files, with only the published ports moved to loopback ones (and no UDP: HTTP/3 is not under test).
@@ -55,6 +55,14 @@ contains "nosniff" "x-content-type-options: nosniff" "$(printf '%s' "$hdr" | tr 
 contains "CSP enforced" "content-security-policy:" "$(printf '%s' "$hdr" | tr 'A-Z' 'a-z')"
 check "no Server header" "0" "$(printf '%s' "$hdr" | grep -ci '^server:')"
 check "no Server-Timing header" "0" "$(printf '%s' "$hdr" | grep -ci '^server-timing:')"
+
+# 3a. /version is public through the proxy: the release tag and commit the image was built from, nothing else
+ver=$(curl -sk "$base/version")
+if [ -z "${APP_IMAGE:-}" ]; then
+  check "/version through the proxy" '{"commit":"0123456789abcdef0123456789abcdef01234567","version":"proxytest"}' "$(printf '%s' "$ver" | jq -cS .)"
+else # an image built elsewhere: its values are not known here, only the shape
+  check "/version through the proxy has the version and the commit, nothing else" '["commit","version"]' "$(printf '%s' "$ver" | jq -cS 'keys')"
+fi
 
 # 3. The probes are for the host, not the internet
 for p in /healthz /readyz /metrics; do check "$p is 404 from outside" 404 "$(curl -sk -o /dev/null -w '%{http_code}' "$base$p")"; done
